@@ -40,7 +40,11 @@ CREATE TABLE old_label_point_pov (
     old_render_error_px DOUBLE PRECISION NOT NULL,
     PRIMARY KEY (label_id),
     FOREIGN KEY (label_id) REFERENCES label (label_id),
-    CHECK (old_render_error_px >= 0)
+    CHECK (old_render_error_px >= 0),
+    -- The solver normalizes heading into [0, 360) and a physical viewport pitch lies in [-90, 90], so an
+    -- out-of-range value can only mean a solver bug. Fail the evolution loudly rather than store a bad repair.
+    CHECK (new_heading >= 0 AND new_heading < 360),
+    CHECK (new_pitch >= -90 AND new_pitch <= 90)
 );
 ALTER TABLE old_label_point_pov OWNER TO sidewalk;
 
@@ -75,6 +79,7 @@ WITH pov_inputs AS (
         AND pano_data.width IS NOT NULL
         AND pano_data.width > 0
         AND pano_data.height IS NOT NULL
+        AND pano_data.height > 0
         AND pano_data.camera_heading IS NOT NULL
         AND pano_data.camera_heading <> 'NaN'
 ), ray AS (
@@ -162,65 +167,185 @@ SET heading = old_label_point_pov.new_heading,
 FROM old_label_point_pov
 WHERE label_point.label_id = old_label_point_pov.label_id;
 
--- Validation treatment (#4842, reviewed design). Votes on labels whose old record rendered >= 30 px off were
--- judgments of the wrong spot: below 30 px validator agreement sits at or above the 0.869 baseline, at 30-100 px it
--- drops to 0.830, and at >= 100 px it collapses to 0.606. We cannot know what those validators would have said about
--- the true position, so every vote on a >= 30 px repaired label is VOIDED -- flagged, never deleted (label_history
--- references validations, and the archived verdicts are themselves future study material). The labels' counts reset
--- and correct becomes NULL, so they re-enter the Validate queue rendering in the right place. Votes below 30 px are
--- kept -- the agreement data says those validators were not misled.
-ALTER TABLE label_validation ADD COLUMN voided BOOLEAN NOT NULL DEFAULT FALSE;
-
-CREATE TABLE old_label_validation_counts (
+-- Validation treatment (#4842, design v2 from the PR #4866 review). Votes on labels whose old record rendered
+-- >= 30 px off were judgments of the wrong spot: below 30 px validator agreement sits at or above the 0.869 baseline,
+-- at 30-100 px it drops to 0.830, and at >= 100 px it collapses to 0.606. We cannot know what those validators would
+-- have said about the true position, so every HUMAN vote on a >= 30 px repaired label is deleted and archived in
+-- voided_label_validation (the archived verdicts remain study material, and the freed unique slot lets the validator
+-- be re-served the label rendering in the right place). AI votes survive: the AI is pointed at the label via
+-- normalized pano_x/pano_y (AiService), the coordinate side that stayed true throughout the bug window, so its
+-- judgments were never misled by the stale record. Each affected label's counts and correct are then RECOMPUTED from
+-- its surviving votes -- zeros/NULL where none survive, which re-enters the label in the Validate queue. Votes below
+-- 30 px are kept: the agreement data says those validators were not misled.
+CREATE TABLE voided_label_validation (
+    label_validation_id INTEGER NOT NULL,
     label_id INTEGER NOT NULL,
-    old_agree_count INTEGER NOT NULL,
-    old_disagree_count INTEGER NOT NULL,
-    old_unsure_count INTEGER NOT NULL,
-    old_correct BOOLEAN,
-    PRIMARY KEY (label_id),
-    FOREIGN KEY (label_id) REFERENCES label (label_id)
+    validation_result validation_option NOT NULL,
+    user_id TEXT NOT NULL,
+    mission_id INTEGER NOT NULL,
+    canvas_x INTEGER,
+    canvas_y INTEGER,
+    heading DOUBLE PRECISION NOT NULL,
+    pitch DOUBLE PRECISION NOT NULL,
+    zoom DOUBLE PRECISION NOT NULL,
+    canvas_height INTEGER NOT NULL,
+    canvas_width INTEGER NOT NULL,
+    start_timestamp TIMESTAMPTZ NOT NULL,
+    end_timestamp TIMESTAMPTZ NOT NULL,
+    source ui_source NOT NULL,
+    old_severity INTEGER,
+    new_severity INTEGER,
+    old_tags TEXT[] NOT NULL,
+    new_tags TEXT[] NOT NULL,
+    viewer_type viewer_type NOT NULL,
+    -- On-screen error of the label's OLD record: the reason this vote was voided.
+    old_render_error_px DOUBLE PRECISION NOT NULL,
+    -- The label_ai_assessment row that referenced this vote before its FK was nulled, if any (expected ~0:
+    -- assessments attach to AI validations, which survive). Lets the Downs restore the linkage exactly.
+    label_ai_assessment_id INTEGER,
+    PRIMARY KEY (label_validation_id),
+    FOREIGN KEY (label_id) REFERENCES label (label_id),
+    FOREIGN KEY (user_id) REFERENCES sidewalk_login.sidewalk_user (user_id),
+    FOREIGN KEY (mission_id) REFERENCES mission (mission_id),
+    FOREIGN KEY (label_ai_assessment_id) REFERENCES label_ai_assessment (label_ai_assessment_id),
+    UNIQUE (user_id, label_id),
+    CHECK (old_severity IS NULL OR old_severity BETWEEN 1 AND 3),
+    CHECK (new_severity IS NULL OR new_severity BETWEEN 1 AND 3),
+    CHECK (old_render_error_px >= 30)
 );
-ALTER TABLE old_label_validation_counts OWNER TO sidewalk;
+ALTER TABLE voided_label_validation OWNER TO sidewalk;
 
--- Keyed on user_stat_id, not user_id: user_id carries no UNIQUE constraint and duplicate rows exist (#4776).
-CREATE TABLE old_user_stat_validation (
-    user_stat_id INTEGER NOT NULL,
-    old_own_labels_validated INTEGER NOT NULL,
-    old_accuracy DOUBLE PRECISION,
-    old_high_quality BOOLEAN NOT NULL,
-    PRIMARY KEY (user_stat_id),
-    FOREIGN KEY (user_stat_id) REFERENCES user_stat (user_stat_id)
+-- Archive for label_history rows deleted by the consistency pass below that are NOT regenerable from
+-- voided_label_validation: rows that became no-op entries (state equal to their predecessor) once the voided votes'
+-- own history rows were removed. They are real edits by surviving sources, so without this archive the Downs replay
+-- would restore the wrong label state. Expected row count is zero on every measured deployment.
+CREATE TABLE voided_label_history (
+    label_history_id INTEGER NOT NULL,
+    label_id INTEGER NOT NULL,
+    severity INTEGER,
+    tags TEXT[] NOT NULL,
+    edited_by TEXT NOT NULL,
+    edit_time TIMESTAMPTZ NOT NULL,
+    source ui_source NOT NULL,
+    label_validation_id INTEGER,
+    PRIMARY KEY (label_history_id),
+    FOREIGN KEY (label_id) REFERENCES label (label_id),
+    FOREIGN KEY (edited_by) REFERENCES sidewalk_login.sidewalk_user (user_id),
+    -- These rows only ever reference surviving (non-voided) votes -- the voided votes' history rows are deleted by
+    -- label_validation_id before this pass runs -- so the FK holds, and it would loudly block a bug that broke that.
+    FOREIGN KEY (label_validation_id) REFERENCES label_validation (label_validation_id),
+    CHECK (severity IS NULL OR severity BETWEEN 1 AND 3)
 );
-ALTER TABLE old_user_stat_validation OWNER TO sidewalk;
+ALTER TABLE voided_label_history OWNER TO sidewalk;
 
-UPDATE label_validation
-SET voided = TRUE
-WHERE label_id IN (SELECT label_id FROM old_label_point_pov WHERE old_render_error_px >= 30);
+-- Human votes only: SidewalkAI submissions are excluded by source, and (belt-and-suspenders) so is anything by an
+-- AI-role user -- the two definitions agree on all measured data, so the second clause is a guard, not a filter.
+INSERT INTO voided_label_validation (label_validation_id, label_id, validation_result, user_id, mission_id, canvas_x,
+                                     canvas_y, heading, pitch, zoom, canvas_height, canvas_width, start_timestamp,
+                                     end_timestamp, source, old_severity, new_severity, old_tags, new_tags, viewer_type,
+                                     old_render_error_px, label_ai_assessment_id)
+SELECT label_validation.label_validation_id, label_validation.label_id, label_validation.validation_result,
+       label_validation.user_id, label_validation.mission_id, label_validation.canvas_x, label_validation.canvas_y,
+       label_validation.heading, label_validation.pitch, label_validation.zoom, label_validation.canvas_height,
+       label_validation.canvas_width, label_validation.start_timestamp, label_validation.end_timestamp,
+       label_validation.source, label_validation.old_severity, label_validation.new_severity,
+       label_validation.old_tags, label_validation.new_tags, label_validation.viewer_type,
+       old_label_point_pov.old_render_error_px,
+       (SELECT MIN(label_ai_assessment.label_ai_assessment_id)
+        FROM label_ai_assessment
+        WHERE label_ai_assessment.label_validation_id = label_validation.label_validation_id)
+FROM label_validation
+INNER JOIN old_label_point_pov ON label_validation.label_id = old_label_point_pov.label_id
+WHERE old_label_point_pov.old_render_error_px >= 30
+    AND label_validation.source <> 'SidewalkAI'
+    AND label_validation.user_id NOT IN (
+        SELECT user_role.user_id
+        FROM sidewalk_login.user_role
+        INNER JOIN sidewalk_login.role ON user_role.role_id = role.role_id
+        WHERE role.role = 'AI'
+    );
 
-INSERT INTO old_label_validation_counts (label_id, old_agree_count, old_disagree_count, old_unsure_count, old_correct)
-SELECT label_id, agree_count, disagree_count, unsure_count, correct
-FROM label
-WHERE label_id IN (SELECT label_id FROM old_label_point_pov WHERE old_render_error_px >= 30)
-    AND EXISTS (SELECT 1 FROM label_validation WHERE label_validation.label_id = label.label_id);
+-- The voided votes' own history rows need no archiving: severity/tag edits ride on the votes' old_/new_ columns, so
+-- the Downs regenerates these rows from the archive.
+DELETE FROM label_history
+WHERE label_validation_id IN (SELECT label_validation_id FROM voided_label_validation);
 
--- Every vote on these labels is now voided, so the recount from live votes is zero and correct is NULL (the same
--- derivation ValidationService.updateValidationCounts uses: agree > disagree -> TRUE, the reverse -> FALSE, tie or
--- no votes -> NULL). Zeroed counts put the labels at the front of the Validate queue's unvalidated priority.
+-- History-consistency pass (the pattern from evolutions 247/248/253, scoped to the affected labels): archive, then
+-- delete, entries that no longer represent a change now that the voided edits are gone. IS NOT DISTINCT FROM instead
+-- of = because severity is nullable and two consecutive NULL-severity states are the same state. A label's first
+-- history row always survives (its predecessor is NULL, and tags is NOT NULL, so the equality can't hold).
+INSERT INTO voided_label_history (label_history_id, label_id, severity, tags, edited_by, edit_time, source,
+                                  label_validation_id)
+SELECT label_history_id, label_id, severity, tags, edited_by, edit_time, source, label_validation_id
+FROM (
+    SELECT label_history.label_history_id, label_history.label_id, label_history.severity, label_history.tags,
+           label_history.edited_by, label_history.edit_time, label_history.source, label_history.label_validation_id,
+           LAG(label_history.severity) OVER (PARTITION BY label_history.label_id
+                                             ORDER BY label_history.edit_time, label_history.label_history_id)
+               AS prev_severity,
+           LAG(label_history.tags) OVER (PARTITION BY label_history.label_id
+                                         ORDER BY label_history.edit_time, label_history.label_history_id)
+               AS prev_tags
+    FROM label_history
+    WHERE label_history.label_id IN (SELECT DISTINCT label_id FROM voided_label_validation)
+) AS with_previous
+WHERE severity IS NOT DISTINCT FROM prev_severity
+    AND tags = prev_tags;
+
+DELETE FROM label_history
+WHERE label_history_id IN (SELECT label_history_id FROM voided_label_history);
+
+-- Revert affected labels' severity/tags by replaying what survives: a label's current state is by invariant its
+-- latest history entry, so labels whose stream lost rows snap back to the latest surviving entry. Only rows whose
+-- state actually changes are touched.
 UPDATE label
-SET agree_count    = 0,
-    disagree_count = 0,
-    unsure_count   = 0,
-    correct        = NULL
-WHERE label_id IN (SELECT label_id FROM old_label_validation_counts);
+SET severity = latest_history.severity,
+    tags     = latest_history.tags
+FROM (
+    SELECT DISTINCT ON (label_id) label_id, severity, tags
+    FROM label_history
+    WHERE label_id IN (SELECT DISTINCT label_id FROM voided_label_validation)
+    ORDER BY label_id, edit_time DESC, label_history_id DESC
+) AS latest_history
+WHERE label.label_id = latest_history.label_id
+    AND (label.severity IS DISTINCT FROM latest_history.severity OR label.tags <> latest_history.tags);
 
-INSERT INTO old_user_stat_validation (user_stat_id, old_own_labels_validated, old_accuracy, old_high_quality)
-SELECT user_stat_id, own_labels_validated, accuracy, high_quality
-FROM user_stat
-WHERE user_id IN (
-    SELECT DISTINCT label.user_id
+-- Assessments are model outputs -- source data -- so they are kept. Only the reference to a deleted vote is nulled,
+-- with the mapping preserved on the archive row for the Downs.
+UPDATE label_ai_assessment
+SET label_validation_id = NULL
+WHERE label_validation_id IN (SELECT label_validation_id FROM voided_label_validation);
+
+DELETE FROM label_validation
+WHERE label_validation_id IN (SELECT label_validation_id FROM voided_label_validation);
+
+-- Recompute each affected label's counts and correct from its surviving votes, with the same per-vote predicate the
+-- runtime increments use (ValidationService.insert): self-validations and votes by excluded users never count.
+-- Correct mirrors updateValidationCounts: agree > disagree -> TRUE, the reverse -> FALSE, tie or no votes -> NULL.
+UPDATE label
+SET agree_count    = recount.agree_count,
+    disagree_count = recount.disagree_count,
+    unsure_count   = recount.unsure_count,
+    correct        = CASE WHEN recount.agree_count > recount.disagree_count THEN TRUE
+                          WHEN recount.disagree_count > recount.agree_count THEN FALSE
+                          END
+FROM (
+    SELECT label.label_id,
+           COUNT(label_validation.label_validation_id)
+               FILTER (WHERE label_validation.validation_result = 'Agree')::INT    AS agree_count,
+           COUNT(label_validation.label_validation_id)
+               FILTER (WHERE label_validation.validation_result = 'Disagree')::INT AS disagree_count,
+           COUNT(label_validation.label_validation_id)
+               FILTER (WHERE label_validation.validation_result = 'Unsure')::INT   AS unsure_count
     FROM label
-    INNER JOIN old_label_validation_counts ON label.label_id = old_label_validation_counts.label_id
-);
+    LEFT JOIN label_validation ON label.label_id = label_validation.label_id
+        AND label_validation.user_id <> label.user_id
+        AND NOT EXISTS (SELECT 1 FROM user_stat
+                        WHERE user_stat.user_id = label_validation.user_id AND user_stat.excluded)
+    WHERE label.label_id IN (SELECT DISTINCT label_id FROM voided_label_validation)
+    GROUP BY label.label_id
+) AS recount
+WHERE label.label_id = recount.label_id;
 
 -- Re-derive the affected labelers' stats from the corrected label table. Mirrors UserStatTable.updateAccuracy.
 UPDATE user_stat
@@ -238,7 +363,7 @@ FROM (
         AND label.user_id IN (
             SELECT DISTINCT label.user_id
             FROM label
-            INNER JOIN old_label_validation_counts ON label.label_id = old_label_validation_counts.label_id
+            INNER JOIN voided_label_validation ON label.label_id = voided_label_validation.label_id
         )
     GROUP BY label.user_id
 ) AS recomputed
@@ -253,26 +378,131 @@ SET high_quality =
     AND (COALESCE(high_quality_manual, FALSE)
          OR ((meters_audited = 0 OR COALESCE(labels_per_meter, 5) > 0.0375)
              AND (COALESCE(accuracy, 1.0) > 0.6 OR own_labels_validated < 50)))
-WHERE user_stat_id IN (SELECT user_stat_id FROM old_user_stat_validation);
+WHERE user_stat.user_id IN (
+    SELECT DISTINCT label.user_id
+    FROM label
+    INNER JOIN voided_label_validation ON label.label_id = voided_label_validation.label_id
+);
 
 
 # --- !Downs
-UPDATE user_stat
-SET own_labels_validated = old_user_stat_validation.old_own_labels_validated,
-    accuracy             = old_user_stat_validation.old_accuracy,
-    high_quality         = old_user_stat_validation.old_high_quality
-FROM old_user_stat_validation
-WHERE user_stat.user_stat_id = old_user_stat_validation.user_stat_id;
 
+-- Restore the archived votes. ON CONFLICT: if a validator re-validated a label post-evolution, their new vote owns
+-- the (user_id, label_id) slot -- it is the current judgment -- so the archived one stays out, and the history
+-- regeneration and FK restore below are correspondingly guarded on the vote actually being back.
+INSERT INTO label_validation (label_validation_id, label_id, validation_result, user_id, mission_id, canvas_x,
+                              canvas_y, heading, pitch, zoom, canvas_height, canvas_width, start_timestamp,
+                              end_timestamp, source, old_severity, new_severity, old_tags, new_tags, viewer_type)
+SELECT label_validation_id, label_id, validation_result, user_id, mission_id, canvas_x, canvas_y, heading, pitch,
+       zoom, canvas_height, canvas_width, start_timestamp, end_timestamp, source, old_severity, new_severity,
+       old_tags, new_tags, viewer_type
+FROM voided_label_validation
+ON CONFLICT (user_id, label_id) DO NOTHING;
+
+-- Regenerate the votes' history rows. The condition reproduces updateAndSaveLabelHistory's "did anything change"
+-- check (only Agree submissions carry edits, and tags compare as sets), verified to reproduce the deleted rows
+-- exactly on the dev data. edit_time is approximated by the vote's end_timestamp -- the original was stamped now()
+-- at submission, moments later -- which preserves ordering against neighboring entries.
+INSERT INTO label_history (label_id, severity, tags, edited_by, edit_time, source, label_validation_id)
+SELECT label_id, new_severity, new_tags, user_id, end_timestamp, source, label_validation_id
+FROM voided_label_validation
+WHERE validation_result = 'Agree'
+    AND (old_severity IS DISTINCT FROM new_severity OR NOT (old_tags @> new_tags AND old_tags <@ new_tags))
+    AND EXISTS (SELECT 1 FROM label_validation
+                WHERE label_validation.label_validation_id = voided_label_validation.label_validation_id);
+
+-- Restore the consistency-pass rows exactly (IDs preserved -- they were freed by the Ups and the sequence never
+-- reuses them).
+INSERT INTO label_history (label_history_id, label_id, severity, tags, edited_by, edit_time, source,
+                           label_validation_id)
+SELECT label_history_id, label_id, severity, tags, edited_by, edit_time, source, label_validation_id
+FROM voided_label_history;
+
+-- Re-apply severity/tags by the same replay the Ups used: with the history rows back, each affected label snaps to
+-- its latest entry. Post-evolution edits are newer than anything restored, so they stay in effect.
 UPDATE label
-SET agree_count    = old_label_validation_counts.old_agree_count,
-    disagree_count = old_label_validation_counts.old_disagree_count,
-    unsure_count   = old_label_validation_counts.old_unsure_count,
-    correct        = old_label_validation_counts.old_correct
-FROM old_label_validation_counts
-WHERE label.label_id = old_label_validation_counts.label_id;
+SET severity = latest_history.severity,
+    tags     = latest_history.tags
+FROM (
+    SELECT DISTINCT ON (label_id) label_id, severity, tags
+    FROM label_history
+    WHERE label_id IN (SELECT DISTINCT label_id FROM voided_label_validation)
+    ORDER BY label_id, edit_time DESC, label_history_id DESC
+) AS latest_history
+WHERE label.label_id = latest_history.label_id
+    AND (label.severity IS DISTINCT FROM latest_history.severity OR label.tags <> latest_history.tags);
 
-ALTER TABLE label_validation DROP COLUMN voided;
+-- Restore the nulled label_ai_assessment references from the archived mapping.
+UPDATE label_ai_assessment
+SET label_validation_id = voided_label_validation.label_validation_id
+FROM voided_label_validation
+WHERE voided_label_validation.label_ai_assessment_id = label_ai_assessment.label_ai_assessment_id
+    AND EXISTS (SELECT 1 FROM label_validation
+                WHERE label_validation.label_validation_id = voided_label_validation.label_validation_id);
+
+-- Recompute counts, correct, and user stats with the votes back -- the same derivations as the Ups, never a
+-- snapshot restore, so votes cast after the evolution keep their effect.
+UPDATE label
+SET agree_count    = recount.agree_count,
+    disagree_count = recount.disagree_count,
+    unsure_count   = recount.unsure_count,
+    correct        = CASE WHEN recount.agree_count > recount.disagree_count THEN TRUE
+                          WHEN recount.disagree_count > recount.agree_count THEN FALSE
+                          END
+FROM (
+    SELECT label.label_id,
+           COUNT(label_validation.label_validation_id)
+               FILTER (WHERE label_validation.validation_result = 'Agree')::INT    AS agree_count,
+           COUNT(label_validation.label_validation_id)
+               FILTER (WHERE label_validation.validation_result = 'Disagree')::INT AS disagree_count,
+           COUNT(label_validation.label_validation_id)
+               FILTER (WHERE label_validation.validation_result = 'Unsure')::INT   AS unsure_count
+    FROM label
+    LEFT JOIN label_validation ON label.label_id = label_validation.label_id
+        AND label_validation.user_id <> label.user_id
+        AND NOT EXISTS (SELECT 1 FROM user_stat
+                        WHERE user_stat.user_id = label_validation.user_id AND user_stat.excluded)
+    WHERE label.label_id IN (SELECT DISTINCT label_id FROM voided_label_validation)
+    GROUP BY label.label_id
+) AS recount
+WHERE label.label_id = recount.label_id;
+
+UPDATE user_stat
+SET own_labels_validated = recomputed.validated_count,
+    accuracy             = recomputed.new_accuracy
+FROM (
+    SELECT label.user_id,
+           COUNT(CASE WHEN label.correct IS NOT NULL THEN 1 END) AS validated_count,
+           CAST(SUM(CASE WHEN label.correct THEN 1 ELSE 0 END) AS DOUBLE PRECISION)
+               / NULLIF(SUM(CASE WHEN label.correct THEN 1 ELSE 0 END)
+                        + SUM(CASE WHEN NOT label.correct THEN 1 ELSE 0 END), 0) AS new_accuracy
+    FROM label
+    WHERE label.deleted = FALSE
+        AND label.tutorial = FALSE
+        AND label.user_id IN (
+            SELECT DISTINCT label.user_id
+            FROM label
+            INNER JOIN voided_label_validation ON label.label_id = voided_label_validation.label_id
+        )
+    GROUP BY label.user_id
+) AS recomputed
+WHERE user_stat.user_id = recomputed.user_id;
+
+UPDATE user_stat
+SET high_quality =
+    NOT excluded
+    AND COALESCE(high_quality_manual, TRUE)
+    AND (COALESCE(high_quality_manual, FALSE)
+         OR ((meters_audited = 0 OR COALESCE(labels_per_meter, 5) > 0.0375)
+             AND (COALESCE(accuracy, 1.0) > 0.6 OR own_labels_validated < 50)))
+WHERE user_stat.user_id IN (
+    SELECT DISTINCT label.user_id
+    FROM label
+    INNER JOIN voided_label_validation ON label.label_id = voided_label_validation.label_id
+);
+
+DROP TABLE voided_label_history;
+DROP TABLE voided_label_validation;
 
 UPDATE label_point
 SET heading = old_label_point_pov.old_heading,
@@ -280,6 +510,4 @@ SET heading = old_label_point_pov.old_heading,
 FROM old_label_point_pov
 WHERE label_point.label_id = old_label_point_pov.label_id;
 
-DROP TABLE old_user_stat_validation;
-DROP TABLE old_label_validation_counts;
 DROP TABLE old_label_point_pov;

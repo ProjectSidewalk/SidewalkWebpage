@@ -874,7 +874,9 @@ class UserStatTable @Inject() (
    * Per-day activity counts for a user (US/Pacific calendar days), across labeling, exploring, and validating.
    *
    * A day counts if the user placed a (non-deleted, non-tutorial) label, completed an audit task, or made a
-   * validation on it. Returned as (ISO date string, count) so the streak/heatmap math is done in Scala.
+   * validation on it -- including validations voided by the #4842 repair (evolution 352): the verdicts are dead, but
+   * the work happened, so the archive counts as activity. Returned as (ISO date string, count) so the streak/heatmap
+   * math is done in Scala.
    *
    * @param userId The user whose activity to summarize.
    * @return       One row per active day, ascending by date.
@@ -893,6 +895,10 @@ class UserStatTable @Inject() (
           SELECT (label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date
           FROM label_validation
           WHERE label_validation.user_id = $userId AND label_validation.end_timestamp IS NOT NULL
+          UNION ALL
+          SELECT (voided_label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date
+          FROM voided_label_validation
+          WHERE voided_label_validation.user_id = $userId
       )
       SELECT to_char(d, 'YYYY-MM-DD') AS day, COUNT(*)::int AS c
       FROM activity

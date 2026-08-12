@@ -130,9 +130,7 @@ class ValidationServiceImpl @Inject() (
             labeler      <- labelTable.find(labelId).map(_.get.userId)
             rowsAffected <- validationLabels.filter(_.labelValidationId === oldVal.labelValidationId).delete
             _            <- {
-              // A voided vote (#4842, evolution 352) was already removed from the label's counts when it was voided,
-              // so decrementing again would corrupt them (and can trip label_counts_nonneg_check at zero).
-              if (labeler != userId & !excludedUser & !oldVal.voided)
+              if (labeler != userId & !excludedUser)
                 updateValidationCounts(labelId, None, Some(oldVal.validationResult))
               else DBIO.successful(0)
             }
