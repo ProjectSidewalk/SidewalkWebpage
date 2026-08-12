@@ -7,6 +7,8 @@ import models.pano.PanoSource.PanoSource
 import models.pano._
 import models.street.StreetEdge
 import models.utils.{CommonUtils, MyPostgresProfile}
+import org.apache.pekko.stream.Materializer
+import org.apache.pekko.stream.scaladsl.{Sink, Source}
 import org.locationtech.jts.geom.Point
 import play.api.cache.AsyncCacheApi
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -14,7 +16,7 @@ import play.api.http.ContentTypes
 import play.api.libs.json.{JsObject, Json}
 import play.api.libs.ws.WSClient
 import play.api.{Configuration, Logger}
-import service.PanoDataService.{getFov, LiveImageryTtlDays}
+import service.PanoDataService.{getFov, ImageryCheckConcurrency, LiveImageryTtlDays, MaxUnexpiredPanosPerSweep}
 import slick.dbio.DBIO
 
 import java.io.{File, IOException}
@@ -26,6 +28,7 @@ import javax.crypto.spec.SecretKeySpec
 import javax.inject._
 import scala.concurrent.duration.{Duration, DurationInt}
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.control.NonFatal
 
 /**
  * Companion object with constants and functions that are shared throughout codebase, that shouldn't require injection.
@@ -41,6 +44,14 @@ object PanoDataService {
    * label was placed.
    */
   val LiveImageryTtlDays: Long = 7
+
+  /**
+   * How many panos the nightly expiry sweep may have in flight at once (#4559).
+   */
+  val ImageryCheckConcurrency: Int = 10
+
+  /** Ceiling on the unexpired panos one nightly expiry sweep will check. */
+  val MaxUnexpiredPanosPerSweep: Int = 5000
 
   /**
    * Hacky fix to generate the FOV for an image. Determined experimentally.
@@ -266,7 +277,8 @@ class PanoDataServiceImpl @Inject() (
     panoHistoryTable: PanoHistoryTable,
     streetEdgeTable: models.street.StreetEdgeTable,
     signingService: ImageSigningService
-) extends PanoDataService
+)(implicit mat: Materializer)
+    extends PanoDataService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   private val logger = Logger(this.getClass)
@@ -554,27 +566,46 @@ class PanoDataServiceImpl @Inject() (
     db.run(
       for {
         // Choose a bunch of panos that haven't been checked in the past 3 months to check.
-        nPanos: Int <- panoDataTable.countGsvPanosWithLabels
-        nUnexpiredPanosToCheck: Int = Math.max(minPanosToCheck, Math.min(5000, (0.05 * nPanos).toInt))
-        panoIdsToCheck: Seq[String] <- panoDataTable
+        nPanos: Int <- panoDataTable.countCheckablePanosWithLabels
+        nUnexpiredPanosToCheck: Int =
+          Math.max(minPanosToCheck, Math.min(MaxUnexpiredPanosPerSweep, (0.05 * nPanos).toInt))
+        panosToCheck: Seq[(String, PanoSource)] <- panoDataTable
           .getPanoIdsToCheckExpiration(nUnexpiredPanosToCheck, expired = false)
-        _ = logger.info(s"Checking ${panoIdsToCheck.length} unexpired panos.")
+        _ = logger.info(s"Checking ${panosToCheck.length} unexpired panos.")
 
         // Choose some panos that are already marked as expired to double-check.
         nExpiredPanosToCheck: Int =
-          Math.max(minPanosToCheck, Math.min(2500, (0.025 * nPanos).toInt) - panoIdsToCheck.length)
-        expiredPanoIdsToCheck: Seq[String] <-
+          Math.max(minPanosToCheck, Math.min(2500, (0.025 * nPanos).toInt) - panosToCheck.length)
+        expiredPanosToCheck: Seq[(String, PanoSource)] <-
           panoDataTable.getPanoIdsToCheckExpiration(nExpiredPanosToCheck, expired = true)
       } yield {
-        logger.info(s"Checking ${expiredPanoIdsToCheck.length} expired panos.")
+        logger.info(s"Checking ${expiredPanosToCheck.length} expired panos.")
 
-        // Run the panoExists function to check for imagery, then log some stats.
-        Future.traverse(panoIdsToCheck ++ expiredPanoIdsToCheck) { panoId => panoExists(panoId, PanoSource.Gsv) }.map {
-          responses =>
-            s"Not expired: ${responses.count(_ == Some(true))}. Expired: ${responses.count(_ == Some(false))}. Errors: ${responses.count(_.isEmpty)}."
+        // Check each pano against whichever provider it came from, then log some stats.
+        checkImageryBounded(panosToCheck ++ expiredPanosToCheck).map { responses =>
+          s"Not expired: ${responses.count(_ == Some(true))}. Expired: ${responses.count(_ == Some(false))}. Errors: ${responses.count(_.isEmpty)}."
         }
       }
     ).flatten
+  }
+
+  /**
+   * Runs `panoExists` over a batch of panos with at most `ImageryCheckConcurrency` checks in flight at once.
+   *
+   * @param panos Pano IDs paired with the imagery source to check each one against.
+   * @return      One result per pano, in completion order: `Some(true)` exists, `Some(false)` gone, `None` unknown.
+   */
+  private def checkImageryBounded(panos: Seq[(String, PanoSource)]): Future[Seq[Option[Boolean]]] = {
+    Source(panos.toVector)
+      .mapAsyncUnordered(ImageryCheckConcurrency) { case (panoId, source) =>
+        // One bad pano must not abort the sweep: the stream's default supervision would drop every pano not yet
+        // pulled. The providers recover their own exceptions, so this only catches a throw before their Future exists.
+        Future(panoExists(panoId, source)).flatten.recover { case NonFatal(e) =>
+          logger.warn(s"Imagery check for $panoId threw; treating as inconclusive.", e)
+          None
+        }
+      }
+      .runWith(Sink.seq)
   }
 
   def getCropDirectory: String =

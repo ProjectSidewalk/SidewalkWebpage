@@ -395,9 +395,10 @@ class LabelServiceImpl @Inject() (
       else (Seq.empty[A], labels)
 
     // One query up front for the answers we can reuse, so the per-label lookups below skip the provider where they can.
-    // Only GSV answers are reusable, and every batch is single-source (the label queries filter on the viewer's
-    // source), so asking about a Mapillary or Infra3d batch would spend a round trip to be told nothing.
-    val cacheablePanoIds: Set[String] = toCheck.collect { case l if l.panoSource == PanoSource.Gsv => l.panoId }.toSet
+    // Only provider-checked sources have reusable answers, and every batch is single-source (the label queries filter
+    // on the viewer's source), so asking about an Infra3d batch would spend a round trip to be told nothing.
+    val cacheablePanoIds: Set[String] =
+      toCheck.collect { case l if PanoSource.providerCheckedSources.contains(l.panoSource) => l.panoId }.toSet
     panoDataService.getReusableImageryStatus(cacheablePanoIds).flatMap { reusable =>
       def imageryExists(label: A): Future[Option[Boolean]] =
         reusable.get(label.panoId) match {
