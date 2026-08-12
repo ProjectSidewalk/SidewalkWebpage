@@ -185,6 +185,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           FROM "#$schema".label_validation
           INNER JOIN "#$schema".user_stat ON label_validation.user_id = user_stat.user_id
           WHERE NOT user_stat.excluded
+              AND label_validation.voided = FALSE
       ) AS total_val_count;
     """
       .as[(Double, Double, Int, Int, Int)]
@@ -233,7 +234,8 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
       SELECT label_validation.user_id
       FROM "#$schema".label_validation
       INNER JOIN "#$schema".user_stat ON label_validation.user_id = user_stat.user_id
-      WHERE NOT user_stat.excluded;
+      WHERE NOT user_stat.excluded
+          AND label_validation.voided = FALSE;
     """.as[String]
   }
 
@@ -472,7 +474,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           INNER JOIN "#$schema".user_stat ON label_validation.user_id = user_stat.user_id
           LEFT  JOIN sidewalk_login.user_role ON label_validation.user_id = user_role.user_id
           LEFT  JOIN sidewalk_login.role      ON user_role.role_id        = role.role_id
-          WHERE NOT user_stat.excluded
+          WHERE NOT user_stat.excluded AND label_validation.voided = FALSE
       ) AS val_counts, (
           -- AI-authored validations, counted separately from val_counts so the AI-role join can't fan out the totals.
           SELECT COUNT(DISTINCT label_validation.label_validation_id) AS ai_count
@@ -480,7 +482,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           INNER JOIN "#$schema".user_stat ON label_validation.user_id = user_stat.user_id
           LEFT  JOIN sidewalk_login.user_role ON label_validation.user_id = user_role.user_id
           LEFT  JOIN sidewalk_login.role      ON user_role.role_id        = role.role_id
-          WHERE NOT user_stat.excluded AND role.role = 'AI'
+          WHERE NOT user_stat.excluded AND role.role = 'AI' AND label_validation.voided = FALSE
       ) AS ai_val_counts, (
           SELECT COUNT(DISTINCT street_edge_id) FILTER (WHERE task_end >= NOW() - INTERVAL '7 days')  AS audits_7d,
                  COUNT(DISTINCT street_edge_id) FILTER (WHERE task_end >= NOW() - INTERVAL '30 days') AS audits_30d
@@ -504,6 +506,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
               LEFT  JOIN sidewalk_login.user_role ON label_validation.user_id = user_role.user_id
               LEFT  JOIN sidewalk_login.role      ON user_role.role_id        = role.role_id
               WHERE NOT user_stat.excluded AND role.role IS DISTINCT FROM 'AI'
+                  AND label_validation.voided = FALSE
           ) AS contributor_union
       ) AS active_contributors, (
           -- Distinct EXCLUDED (low-quality) users who placed a label — the data-quality "how much got filtered" signal.
@@ -774,6 +777,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
               LEFT  JOIN sidewalk_login.user_role ON label_validation.user_id = user_role.user_id
               LEFT  JOIN sidewalk_login.role      ON user_role.role_id        = role.role_id
               WHERE NOT user_stat.excluded AND role.role IS DISTINCT FROM 'AI'
+                  AND label_validation.voided = FALSE
               GROUP BY label_validation.user_id
           ) vc
       ) val, (
@@ -910,7 +914,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
       filterLowQuality: Boolean
   ): DBIO[Seq[(LocalDate, String, Int, Int, Int, Int, Int, Int)]] = {
     val userFilter = if (filterLowQuality) "user_stat.high_quality" else "NOT user_stat.excluded"
-    val where      = s"label.deleted = FALSE AND $userFilter"
+    val where      = s"label.deleted = FALSE AND label_validation.voided = FALSE AND $userFilter"
 
     implicit val getResult: GetResult[(LocalDate, String, Int, Int, Int, Int, Int, Int)] =
       GetResult(r =>

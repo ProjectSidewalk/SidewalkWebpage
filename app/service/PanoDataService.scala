@@ -84,7 +84,7 @@ object PanoDataService {
    * the click's canvas offset is projected through it, and the result is the label's own direction. Together with
    * `calculatePanoXYFromPov` this recomputes a label's `pano_x`/`pano_y` from its stored viewport record, which is
    * how the submission guard detects a record that does not reproduce its own coordinate (issue #4842; the
-   * record-staleness study in sidewalk-panorama-tools reports/2026-08-10-record-staleness-validate.md).
+   * off-target-markers study in sidewalk-panorama-tools reports/2026-08-10-off-target-markers-validate.md).
    *
    * @param viewport Viewport POV when the click happened (heading/pitch in degrees; zoom sets the fov).
    * @param canvasX  Click x on the logical labeling canvas (720x480, origin top-left).

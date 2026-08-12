@@ -108,7 +108,7 @@ class PanoDataServiceSpec extends AnyFunSuite with Matchers {
   // Every expected value is pinned from sidewalk-panorama-tools' pov_replay.py — the NumPy port whose fidelity the
   // era-replay study measured at 100% of 438k labels — not from running this implementation. Two fixtures are real
   // production records: Teaneck label 14955's stored record reproducing its stored pano (5217, 4972), and Chicago
-  // label 65640's REPAIRED record reproducing its truth (6453, 4688) (record-staleness report §5-6).
+  // label 65640's REPAIRED record reproducing its truth (6453, 4688) (off-target-markers report §5-6).
 
   test("a click at the canvas center is the viewport itself") {
     val pov = PanoDataService.calculatePovIfCentered(POV(123.4, -17.25, 1.0), 360.0, 240.0)

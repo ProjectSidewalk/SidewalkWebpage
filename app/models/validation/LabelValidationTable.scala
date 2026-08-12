@@ -40,7 +40,11 @@ case class LabelValidation(
     startTimestamp: OffsetDateTime,
     endTimestamp: OffsetDateTime,
     source: UiSource,
-    viewerType: ViewerType
+    viewerType: ViewerType,
+    // A voided vote was cast on a label whose marker rendered >= 30 px off target before the #4842 repair
+    // (evolution 352): a judgment of the wrong spot. Voided votes are dead for every verdict/count purpose but are
+    // kept as rows (label_history references them, and they are study material for validation-under-distortion).
+    voided: Boolean = false
 )
 
 case class ValidationCount(
@@ -80,10 +84,11 @@ class LabelValidationTableDef(tag: slick.lifted.Tag) extends Table[LabelValidati
   def endTimestamp: Rep[OffsetDateTime]             = column[OffsetDateTime]("end_timestamp")
   def source: Rep[UiSource]                         = column[UiSource]("source")
   def viewerType: Rep[ViewerType]                   = column[ViewerType]("viewer_type")
+  def voided: Rep[Boolean]                          = column[Boolean]("voided", O.Default(false))
 
   def * = (labelValidationId, labelId, validationResult, oldSeverity, newSeverity, oldTags, newTags, userId, missionId,
-    canvasX, canvasY, heading, pitch, zoom, canvasHeight, canvasWidth, startTimestamp, endTimestamp, source,
-    viewerType) <> ((LabelValidation.apply _).tupled, LabelValidation.unapply)
+    canvasX, canvasY, heading, pitch, zoom, canvasHeight, canvasWidth, startTimestamp, endTimestamp, source, viewerType,
+    voided) <> ((LabelValidation.apply _).tupled, LabelValidation.unapply)
 
   def label   = foreignKey("label_validation_label_id_fkey", labelId, TableQuery[LabelTableDef])(_.labelId)
   def user    = foreignKey("label_validation_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
@@ -103,7 +108,10 @@ class LabelValidationTable @Inject() (
 ) extends LabelValidationTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
-  val validations          = TableQuery[LabelValidationTableDef]
+  val validationsUnfiltered = TableQuery[LabelValidationTableDef]
+  // Voided votes (see the case class doc) are excluded from every verdict/count query; only row management
+  // (getValidation, and the insert/delete in ValidationService) reads validationsUnfiltered.
+  val validations          = validationsUnfiltered.filter(!_.voided)
   val users                = TableQuery[SidewalkUserTableDef]
   val userRoles            = TableQuery[UserRoleTableDef]
   val roleTable            = TableQuery[RoleTableDef]
@@ -120,7 +128,7 @@ class LabelValidationTable @Inject() (
    * @return An integer with the count
    */
   def countValidationsFromUserAndLabel(userId: String, labelId: Int): DBIO[Int] = {
-    validations.filter(v => v.userId === userId && v.labelId === labelId).length.result
+    validationsUnfiltered.filter(v => v.userId === userId && v.labelId === labelId).length.result
   }
 
   /**
@@ -151,7 +159,9 @@ class LabelValidationTable @Inject() (
   }
 
   def getValidation(labelId: Int, userId: String): DBIO[Option[LabelValidation]] = {
-    validations.filter(x => x.labelId === labelId && x.userId === userId).result.headOption
+    // Unfiltered on purpose: the submit flow replaces a user's existing vote via delete-then-insert, and a voided
+    // row still occupies the (user_id, label_id) unique slot, so it must be found and deleted like any other.
+    validationsUnfiltered.filter(x => x.labelId === labelId && x.userId === userId).result.headOption
   }
 
   /**
@@ -483,6 +493,7 @@ class LabelValidationTable @Inject() (
     val userFilter   = if (filterLowQuality) "user_stat.high_quality" else "NOT user_stat.excluded"
     val whereClauses = scala.collection.mutable.ListBuffer(
       "label.deleted = FALSE",
+      "label_validation.voided = FALSE",
       userFilter
     )
     startDate.foreach(d => whereClauses += s"label_validation.end_timestamp >= '$d'::date")

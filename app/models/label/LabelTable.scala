@@ -658,12 +658,14 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   }
   private val commentsAggregated = TableQuery[LabelCommentsAggTableDef]
 
-  val labelsUnfiltered       = TableQuery[LabelTableDef]
-  val auditTasks             = TableQuery[AuditTaskTableDef]
-  val panoData               = TableQuery[PanoDataTableDef]
-  val labelTypes             = TableQuery[LabelTypeTableDef]
-  val labelPoints            = TableQuery[LabelPointTableDef]
-  val labelValidations       = TableQuery[LabelValidationTableDef]
+  val labelsUnfiltered = TableQuery[LabelTableDef]
+  val auditTasks       = TableQuery[AuditTaskTableDef]
+  val panoData         = TableQuery[PanoDataTableDef]
+  val labelTypes       = TableQuery[LabelTypeTableDef]
+  val labelPoints      = TableQuery[LabelPointTableDef]
+  // Every consumer in this table reads votes as live verdicts (displays, majority checks, the "already validated by
+  // this user" queue exclusion), so voided votes (#4842, evolution 352) are filtered out at the source.
+  val labelValidations       = TableQuery[LabelValidationTableDef].filter(!_.voided)
   val labelAiAssessments     = TableQuery[LabelAiAssessmentTableDef]
   val labelAiFailures        = TableQuery[LabelAiFailureTableDef]
   val missions               = TableQuery[MissionTableDef]
@@ -1123,7 +1125,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
         .map { id =>
           s"""LEFT JOIN (
              |    SELECT label_id, validation_result
-             |    FROM label_validation WHERE user_id = '$id'
+             |    FROM label_validation WHERE user_id = '$id' AND voided = FALSE
              |) AS user_validation ON lb.label_id = user_validation.label_id""".stripMargin
         }
         .getOrElse("LEFT JOIN ( SELECT NULL AS validation_result ) AS user_validation ON lb.label_id = NULL")
@@ -1211,6 +1213,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           INNER JOIN user_role ON label_validation.user_id = user_role.user_id
           INNER JOIN role ON user_role.role_id = role.role_id
           WHERE role.role = 'AI'
+              AND label_validation.voided = FALSE
       ) AS ai_val ON lb1.label_id = ai_val.label_id
       LEFT JOIN (
           SELECT label_id,
@@ -2113,6 +2116,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           array_to_string(array_agg(CONCAT(label_validation.user_id, ':', label_validation.validation_result)), ',') AS validations
           FROM label
           INNER JOIN label_validation ON label.label_id = label_validation.label_id
+          WHERE label_validation.voided = FALSE
           GROUP BY label.label_id
       ) AS "vals" ON label.label_id = vals.label_id
       WHERE #$whereClause
@@ -2447,6 +2451,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           INNER JOIN user_role ON user_stat.user_id = user_role.user_id
           INNER JOIN role ON user_role.role_id = role.role_id
           WHERE #$userFilter
+              AND label_validation.voided = FALSE
       ) AS total_val_count, (
           SELECT #$validationAggCols
           FROM (
@@ -2466,6 +2471,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
               WHERE #$labelerFilter
                   AND validator_stat.excluded = FALSE
                   AND label.user_id <> label_validation.user_id -- Exclude users validating their own labels.
+                  AND label_validation.voided = FALSE
                   AND label.deleted = FALSE
                   AND label.tutorial = FALSE
                   AND label.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
@@ -2553,6 +2559,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
               INNER JOIN role ON user_role.role_id = role.role_id
               WHERE user_stat.excluded = FALSE
                   AND label.user_id <> label_validation.user_id -- Excluding times when user validated their own label.
+                  AND label_validation.voided = FALSE
               GROUP BY label.label_id, label_type.label_type
               HAVING COUNT(CASE WHEN role = 'AI' THEN 1 END) > 0
           ) AS majority_votes
