@@ -1,9 +1,17 @@
 # --- !Ups
 
--- Repair the off-target-markers bug (#4842). Labels placed in the bug window (2023-03-29 -> 2024-09-25, evolution 179
--- through the 7.20.7 deploy) could be submitted with a point-of-view record (heading/pitch) that went stale between
--- the click and the staged batch submission, while pano_x/pano_y -- computed and frozen at click time -- stayed true.
--- Validate, Gallery, and label-detail render the record side, so every stale record is a marker drawn off target.
+-- Repair the off-target-markers bug (#4842). Labels placed in the bug window (2023-03-29 -> 2024-09-25) could be
+-- submitted with a point-of-view record (heading/pitch) that went stale between the click and the staged batch
+-- submission, while pano_x/pano_y -- computed and frozen at click time -- stayed true. Validate, Gallery, and
+-- label-detail render the record side, so every stale record is a marker drawn off target.
+--
+-- The window bounds are release deploys, rounded outward. Start: the v7.12.2 deploy (2023-03-29 21:42 UTC), when the
+-- client began writing pano_x/pano_y live with the exact projection -- the identifiability horizon. End: the v7.20.7
+-- deploy (2024-09-25), the client fix. The last stale submission in every deployment lands that day (19:54-20:50
+-- UTC), rounded up to midnight because the fix ships in client JS and an open tab can submit stale records after the
+-- deploy. The bounds are literals rather than version-table lookups because version_start_time is stamped now() at
+-- evolution-apply time per schema -- late-bootstrapped schemas collapse their whole release history to the creation
+-- moment, and a missing row would make the bound NULL and turn the repair into a silent no-op.
 --
 -- Detection: forward-replay each in-window record through the production projection (the same math as evolution 179)
 -- and compare where it renders against the label's own stored pano_x/pano_y, flagging misses beyond rounding noise
