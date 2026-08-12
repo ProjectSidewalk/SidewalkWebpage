@@ -206,13 +206,16 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
   }
 
   /**
-   * Get a list of n least recently checked pano ids that have not been viewed in the last 3 months.
+   * Get a list of n least recently checked pano ids that have not been checked in the last 3 months.
    *
    * Note: only getting panos from GSV for now; we haven't set up imagery checking for other sources yet
    * @param n Number of least recently checked panos to return.
    * @param expired Whether to check for expired or unexpired panos.
    */
   def getPanoIdsToCheckExpiration(n: Int, expired: Boolean): DBIO[Seq[String]] = {
+    // Dedup on (pano_id, last_checked) pairs — equivalent to deduping pano_id alone, since both come from the same
+    // pano_data row — so that the sort sits at/above the DISTINCT. An ORDER BY buried in a subquery below a DISTINCT
+    // is one Postgres is free to discard, which would break the least-recently-checked-first contract.
     panoDataRecords
       .join(labelTable)
       .on(_.panoId === _.panoId)
@@ -221,10 +224,10 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
           && gsv._1.expired === expired
           && gsv._1.lastChecked < OffsetDateTime.now().minusMonths(3)
       )
-      .sortBy(_._1.lastChecked.asc)
-      .subquery
-      .map(_._1.panoId)
+      .map(gsv => (gsv._1.panoId, gsv._1.lastChecked))
       .distinct
+      .sortBy(_._2.asc)
+      .map(_._1)
       .take(n)
       .result
   }
