@@ -6,7 +6,7 @@ import models.pano.PanoSource.PanoSource
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import play.api.libs.json.JsValue
+import play.api.libs.json.{JsValue, Json}
 
 import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
@@ -239,43 +239,49 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
   }
 
   /**
-   * Updates the pano data if anything has changed.
+   * Inserts the pano's metadata, or refreshes it if the pano is already recorded.
+   *
+   * A single `INSERT ... ON CONFLICT` statement rather than an exists-check + insert/update pair, so two concurrent
+   * submissions of the same new pano (e.g. a `pagehide` flush racing a mission-complete POST, or two open tabs) can't
+   * fail on a duplicate key and leave labels without their pano row (#4587).
+   *
+   * Update semantics when the pano is already recorded:
+   *   - Position/camera fields take the submitted value but are never cleared.
+   *   - Intrinsic fields (dims, copyright) keep their existing value and only fill in NULLs, as they never change.
+   *   - `address` and `source_metadata` are only ever replaced, never cleared.
+   *   - The pano was just viewed, so `expired` resets to false and the viewed/checked timestamps refresh.
+   *
+   * @param data The pano metadata to save.
+   * @return Number of rows inserted/updated (always 1).
    */
-  def updateFromExplore(
-      panoId: String,
-      lat: Option[Double],
-      lng: Option[Double],
-      heading: Option[Double],
-      pitch: Option[Double],
-      roll: Option[Double],
-      address: Option[String],
-      expired: Boolean,
-      lastViewed: OffsetDateTime,
-      panoHistorySaved: Option[OffsetDateTime]
-  ): DBIO[Int] = {
-    // A stored address is only ever replaced, never cleared: submissions without one (e.g. non-GSV sources) leave
-    // the column untouched, so it needs its own (still static) query shape rather than a second UPDATE round trip.
-    if (address.isDefined) {
-      val q = for {
-        pano <- panoDataRecords if pano.panoId === panoId
-      } yield (pano.lat, pano.lng, pano.cameraHeading, pano.cameraPitch, pano.cameraRoll, pano.expired, pano.lastViewed,
-        pano.panoHistorySaved, pano.lastChecked, pano.address)
-      q.update((lat, lng, heading, pitch, roll, expired, lastViewed, panoHistorySaved, lastViewed, address))
-    } else {
-      val q = for {
-        pano <- panoDataRecords if pano.panoId === panoId
-      } yield (pano.lat, pano.lng, pano.cameraHeading, pano.cameraPitch, pano.cameraRoll, pano.expired, pano.lastViewed,
-        pano.panoHistorySaved, pano.lastChecked)
-      q.update((lat, lng, heading, pitch, roll, expired, lastViewed, panoHistorySaved, lastViewed))
-    }
-  }
-
-  /**
-   * Checks if the given panorama id already exists in the table.
-   * @param panoId Unique ID for the panorama
-   */
-  def panoramaExists(panoId: String): DBIO[Boolean] = {
-    panoDataRecords.filter(_.panoId === panoId).exists.result
+  def upsert(data: PanoData): DBIO[Int] = {
+    sqlu"""
+      INSERT INTO pano_data (pano_id, width, height, tile_width, tile_height, capture_date, copyright, lat, lng,
+                             camera_heading, camera_pitch, camera_roll, expired, last_viewed, pano_history_saved,
+                             last_checked, source, has_backup, address, source_metadata)
+      VALUES (${data.panoId}, ${data.width}, ${data.height}, ${data.tileWidth}, ${data.tileHeight},
+              ${data.captureDate}, ${data.copyright}, ${data.lat}, ${data.lng}, ${data.cameraHeading},
+              ${data.cameraPitch}, ${data.cameraRoll}, ${data.expired}, ${data.lastViewed}, ${data.panoHistorySaved},
+              ${data.lastChecked}, ${data.source.toString}::pano_source, ${data.hasBackup}, ${data.address},
+              ${data.sourceMetadata.map(m => Json.stringify(m))}::jsonb)
+      ON CONFLICT (pano_id) DO UPDATE SET
+        lat = COALESCE(EXCLUDED.lat, pano_data.lat),
+        lng = COALESCE(EXCLUDED.lng, pano_data.lng),
+        camera_heading = COALESCE(EXCLUDED.camera_heading, pano_data.camera_heading),
+        camera_pitch = COALESCE(EXCLUDED.camera_pitch, pano_data.camera_pitch),
+        camera_roll = COALESCE(EXCLUDED.camera_roll, pano_data.camera_roll),
+        width = COALESCE(pano_data.width, EXCLUDED.width),
+        height = COALESCE(pano_data.height, EXCLUDED.height),
+        tile_width = COALESCE(pano_data.tile_width, EXCLUDED.tile_width),
+        tile_height = COALESCE(pano_data.tile_height, EXCLUDED.tile_height),
+        copyright = COALESCE(pano_data.copyright, EXCLUDED.copyright),
+        address = COALESCE(EXCLUDED.address, pano_data.address),
+        source_metadata = COALESCE(EXCLUDED.source_metadata, pano_data.source_metadata),
+        expired = false,
+        last_viewed = EXCLUDED.last_viewed,
+        pano_history_saved = EXCLUDED.pano_history_saved,
+        last_checked = EXCLUDED.last_checked
+    """
   }
 
   /**
@@ -294,28 +300,5 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
    */
   def updatePanoHistorySaved(panoId: String, panoHistorySaved: Option[OffsetDateTime]): DBIO[Int] = {
     panoDataRecords.filter(_.panoId === panoId).map(_.panoHistorySaved).update(panoHistorySaved)
-  }
-
-  /**
-   * Sets a pano's provider metadata blob.
-   *
-   * Kept separate from updateFromExplore so only payloads that carry the blob (AI submissions) ever write the column;
-   * a crowd submission must never clear one saved earlier (#4806).
-   *
-   * updateFromExplore solves that same "replace, never clear" problem for `address` by branching between two static
-   * query shapes rather than issuing a second UPDATE. The blob doesn't follow suit because the two columns sit on
-   * very different paths: every Explore submission carries an address, so folding it in saves a round trip on the
-   * hottest write we have, whereas the blob has one caller (the AI ingest) whose volume is a nightly batch. Paying a
-   * round trip there is cheaper than doubling updateFromExplore's branches to four.
-   *
-   * @param panoId   Unique ID for the panorama
-   * @param metadata Verbatim imagery-provider metadata blob for this pano
-   */
-  def updateSourceMetadata(panoId: String, metadata: JsValue): DBIO[Int] = {
-    panoDataRecords.filter(_.panoId === panoId).map(_.sourceMetadata).update(Some(metadata))
-  }
-
-  def insert(data: PanoData): DBIO[String] = {
-    (panoDataRecords returning panoDataRecords.map(_.panoId)) += data
   }
 }

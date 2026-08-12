@@ -36,15 +36,17 @@ class PanoLinkTable @Inject() (
 
   /**
    * Save a PanoLink object to the PanoLink table if it isn't already in the table.
+   *
+   * `ON CONFLICT DO NOTHING` rather than a check-then-insert, so concurrent submissions of the same link (e.g. a
+   * `pagehide` flush racing a mission-complete POST) can't fail on a duplicate key (#4587).
+   *
+   * @return Number of rows inserted (0 if the link was already recorded).
    */
   def insertIfNew(link: PanoLink): DBIO[Int] = {
-    panoLinks
-      .filter(l => l.panoId === link.panoId && l.targetPanoId === link.targetPanoId)
-      .result
-      .headOption
-      .flatMap {
-        case Some(_) => DBIO.successful(0)
-        case None    => panoLinks += link
-      }
+    sqlu"""
+      INSERT INTO pano_link (pano_id, target_pano_id, yaw_deg, description)
+      VALUES (${link.panoId}, ${link.targetPanoId}, ${link.yawDeg}, ${link.description})
+      ON CONFLICT DO NOTHING
+    """
   }
 }
