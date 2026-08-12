@@ -305,25 +305,38 @@ class MapillaryViewer extends PanoViewer {
     };
   };
 
-  setLocation = async (latLng, excludedPanos = new Set()) => {
-    const center = turf.point([latLng.lng, latLng.lat]);
-    const radius = svl.STREETVIEW_MAX_DISTANCE / 1000.0; // Convert search radius to kms.
+  /**
+   * Searches for images near a point and picks the best viable candidate. Uses a prefetched search result if one
+   * exists near the location, otherwise fetches from the API and caches it. If a prefetched search yields no
+   * viable candidate (e.g. all excluded), falls back to a fresh API call centered exactly on the target, storing
+   * those results in case they're useful later as well.
+   *
+   * @param {turf.Point} center The target location.
+   * @param {number} radius Search radius in kilometers.
+   * @param {Set<PanoData>} excludedPanos Panos that are not viable candidates.
+   * @returns {Promise<Object|null>} The best candidate pano from the Mapillary API, or null if none are viable.
+   */
+  #searchAndSelectPano = async (center, radius, excludedPanos) => {
     const currSequenceId = this.currImage ? this.currImage.sequenceId : null;
     const { excludedPanoIds, excludedTimestamps } = this.#buildExclusionSets(excludedPanos);
 
+    const prefetch = this.#findNearestPrefetch(center);
+    let panos = await (prefetch ?? this.#storePrefetch(center, radius)).promise;
+    let bestPano = this.#selectBestPano(panos, excludedPanoIds, excludedTimestamps, center, currSequenceId);
+
+    if (!bestPano && prefetch) {
+      panos = await this.#storePrefetch(center, radius).promise;
+      bestPano = this.#selectBestPano(panos, excludedPanoIds, excludedTimestamps, center, currSequenceId);
+    }
+    return bestPano;
+  };
+
+  setLocation = async (latLng, excludedPanos = new Set()) => {
+    const center = turf.point([latLng.lng, latLng.lat]);
+    const radius = svl.STREETVIEW_MAX_DISTANCE / 1000.0; // Convert search radius to kms.
+
     try {
-      // Use a prefetched result if one exists near this location, otherwise fetch from the API and cache it.
-      // If the prefetch yields no viable candidates (e.g. all excluded), fall back to a fresh API call.
-      const prefetch = this.#findNearestPrefetch(center);
-      let panos = await (prefetch ?? this.#storePrefetch(center, radius)).promise;
-      let bestPano = this.#selectBestPano(panos, excludedPanoIds, excludedTimestamps, center, currSequenceId);
-
-      if (!bestPano && prefetch) {
-        // Making fresh API call. Store the results in case they're useful later as well.
-        panos = await this.#storePrefetch(center, radius).promise;
-        bestPano = this.#selectBestPano(panos, excludedPanoIds, excludedTimestamps, center, currSequenceId);
-      }
-
+      const bestPano = await this.#searchAndSelectPano(center, radius, excludedPanos);
       if (!bestPano) {
         throw new Error('No images found near this location');
       }
@@ -366,11 +379,7 @@ class MapillaryViewer extends PanoViewer {
     try {
       const center = turf.point([latLng.lng, latLng.lat]);
       const radius = svl.STREETVIEW_MAX_DISTANCE / 1000.0; // Convert search radius to kms.
-      const currSequenceId = this.currImage ? this.currImage.sequenceId : null;
-      const { excludedPanoIds, excludedTimestamps } = this.#buildExclusionSets(excludedPanos);
-
-      const panos = await (this.#findNearestPrefetch(center) ?? this.#storePrefetch(center, radius)).promise;
-      const bestPano = this.#selectBestPano(panos, excludedPanoIds, excludedTimestamps, center, currSequenceId);
+      const bestPano = await this.#searchAndSelectPano(center, radius, excludedPanos);
       if (bestPano) this.#cachePanoAssets(bestPano.id);
     } catch (err) {
       console.warn('Failed to preload pano near', latLng, err);

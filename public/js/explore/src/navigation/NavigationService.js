@@ -488,8 +488,18 @@ class NavigationService {
     // Best-effort: called from post-move UI updates, so never let a prediction error break those.
     try {
       if (!('taskContainer' in svl) || !svl.taskContainer.tasksLoaded()) return;
-      const currentTask = svl.taskContainer.getCurrentTask();
-      if (!currentTask) return;
+      // When walking is hard-locked (tutorial, mission-complete modal) no forward move can happen, so don't
+      // preload for one. The transient disableWalking that timeoutWalking() sets on every move doesn't apply.
+      if (this.#status.lockDisableWalking) return;
+
+      // When the label-before-jump state is armed, the next forward move is the jump itself: predict the start of
+      // the street being jumped to rather than a point on the street the user is about to leave (which would also
+      // pollute the prefetch cache that #endTheCurrentTask() just re-primed for the new street). No jump target
+      // means the route/neighborhood is complete, so there is nothing to preload.
+      const targetTask = this.getLabelBeforeJumpState()
+        ? svl.taskContainer.getNextTaskAfterJump()
+        : svl.taskContainer.getCurrentTask();
+      if (!targetTask) return;
 
       // Mirror the exclusions the next moveForward() will use: the stuck set plus the pano the user is on now
       // (moveForward() adds the current pano to the stuck set before searching).
@@ -497,7 +507,7 @@ class NavigationService {
       const currentPano = svl.panoStore.getPanoData(svl.panoViewer.getPanoId());
       if (currentPano) excludedPanos.add(currentPano);
 
-      const { currLoc } = this.#computeMoveTarget(currentTask);
+      const { currLoc } = this.#computeMoveTarget(targetTask);
       svl.panoViewer.preloadPanoNear(currLoc, excludedPanos);
     } catch (err) {
       console.warn('Failed to preload the next move target:', err);
