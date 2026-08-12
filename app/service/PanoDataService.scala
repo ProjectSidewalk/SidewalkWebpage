@@ -517,27 +517,28 @@ class PanoDataServiceImpl @Inject() (
   /**
    * Checks if panos are expired on a nightly basis. Called from CheckImageExpiryActor.scala.
    *
-   * Get as many as 5% of the panos with labels on them, or 5000, whichever is smaller. Check if the panos are expired
-   * and update the database accordingly. Also re-check panos that are already marked as expired to make sure that they
-   * weren't marked so incorrectly: at least `minExpiredPanosToCheck` every night, plus any capacity (up to 2.5% or
-   * 2500, whichever is smaller) left unused by the unexpired check.
+   * Get as many as 5% of the panos with labels on them, or 5000, whichever is smaller (but at least
+   * `minPanosToCheck`). Check if the panos are expired and update the database accordingly. Also re-check panos that
+   * are already marked as expired to make sure that they weren't marked so incorrectly: a budget of 2.5% or 2500
+   * (whichever is smaller) minus the number of unexpired panos checked, but at least `minPanosToCheck`.
    */
   def checkForImagery: Future[String] = {
-    // Nightly floor of expired panos to re-verify even when the unexpired queue fills the whole sample, so that
-    // re-verification of expired panos always makes some progress (#4638).
-    val minExpiredPanosToCheck: Int = 100
+    // Nightly floor for both sample sizes, so that checking always makes some progress: the percentage-based sizes
+    // round to 0 on small corpora, and the expired budget zeroes out on nights when the unexpired queue is full.
+    // getPanoIdsToCheckExpiration's take(n) caps at the stale pool, so the floor never overshoots (#4638).
+    val minPanosToCheck: Int = 100
     db.run(
       for {
         // Choose a bunch of panos that haven't been checked in the past 3 months to check.
         nPanos: Int <- panoDataTable.countGsvPanosWithLabels
-        nUnexpiredPanosToCheck: Int = Math.min(5000, (0.05 * nPanos).toInt)
+        nUnexpiredPanosToCheck: Int = Math.max(minPanosToCheck, Math.min(5000, (0.05 * nPanos).toInt))
         panoIdsToCheck: Seq[String] <- panoDataTable
           .getPanoIdsToCheckExpiration(nUnexpiredPanosToCheck, expired = false)
         _ = logger.info(s"Checking ${panoIdsToCheck.length} unexpired panos.")
 
         // Choose some panos that are already marked as expired to double-check.
         nExpiredPanosToCheck: Int =
-          Math.max(minExpiredPanosToCheck, Math.min(2500, (0.025 * nPanos).toInt) - panoIdsToCheck.length)
+          Math.max(minPanosToCheck, Math.min(2500, (0.025 * nPanos).toInt) - panoIdsToCheck.length)
         expiredPanoIdsToCheck: Seq[String] <-
           panoDataTable.getPanoIdsToCheckExpiration(nExpiredPanosToCheck, expired = true)
       } yield {

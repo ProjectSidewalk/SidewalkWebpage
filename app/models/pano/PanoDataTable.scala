@@ -186,18 +186,17 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
    * @param expired Whether to check for expired or unexpired panos.
    */
   def getPanoIdsToCheckExpiration(n: Int, expired: Boolean): DBIO[Seq[String]] = {
+    // A semi-join (exists) rather than a join: a join's DISTINCT would force a subquery whose ORDER BY Postgres is
+    // free to discard, breaking the least-recently-checked-first contract.
     panoDataRecords
-      .join(labelTable)
-      .on(_.panoId === _.panoId)
-      .filter(gsv =>
-        gsv._1.source === PanoSource.Gsv
-          && gsv._1.expired === expired
-          && gsv._1.lastChecked < OffsetDateTime.now().minusMonths(3)
+      .filter(pano =>
+        pano.source === PanoSource.Gsv
+          && pano.expired === expired
+          && pano.lastChecked < OffsetDateTime.now().minusMonths(3)
+          && labelTable.filter(_.panoId === pano.panoId).exists
       )
-      .sortBy(_._1.lastChecked.asc)
-      .subquery
-      .map(_._1.panoId)
-      .distinct
+      .sortBy(_.lastChecked.asc)
+      .map(_.panoId)
       .take(n)
       .result
   }
