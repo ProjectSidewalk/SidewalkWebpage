@@ -53,6 +53,41 @@ class Form {
   }
 
   /**
+   * Serializes a pano's metadata into the block the back end expects (both in `data.panos` and on each label).
+   *
+   * @param {PanoData} panoData - The pano metadata held by the PanoStore.
+   * @returns {Object} The pano metadata in the submission's wire format.
+   */
+  #compilePanoData(panoData) {
+    const props = panoData.getProperties();
+    return {
+      pano_id: props.panoId,
+      source: props.source,
+      capture_date: props.captureDate.format('YYYY-MM'),
+      width: props.width,
+      height: props.height,
+      tile_width: props.tileWidth,
+      tile_height: props.tileHeight,
+      lat: props.lat,
+      lng: props.lng,
+      camera_heading: props.cameraHeading,
+      camera_pitch: props.cameraPitch,
+      camera_roll: props.cameraRoll,
+      links: props.linkedPanos.map((link) => ({
+        target_pano_id: link.panoId,
+        yaw_deg: link.heading,
+        description: link.description || null,
+      })),
+      copyright: props.copyright || null,
+      address: props.address || null,
+      history: props.history.map((prevPano) => ({
+        pano_id: prevPano.panoId,
+        date: prevPano.captureDate.format('YYYY-MM'),
+      })),
+    };
+  }
+
+  /**
    * Gathers all the data needed to submit logs to the back end.
    *
    * @param {Task} task - The audit task to compile submission data for.
@@ -157,52 +192,16 @@ class Form {
         temp.label_point.computation_method = labelLatLng.latLngComputationMethod;
       }
 
+      // Tutorial panos are locally served with fabricated metadata, so their labels lean on the seeded pano_data rows.
+      if (!util.pano.TUTORIAL_PANO_IDS.has(prop.panoId)) {
+        temp.pano = this.#compilePanoData(panoData);
+      }
+
       data.labels.push(temp);
     }
 
-    // Keep pano metadata. This is particularly important to keep track of the date when the images were taken.
-    data.panos = [];
-
-    let temp;
-    const panoramas = this.#panoStore.getStagedPanoData();
-    for (let i = 0; i < panoramas.length; i++) {
-      const panoData = panoramas[i].getProperties();
-      const links = panoData.linkedPanos.map((link) => {
-        return {
-          target_pano_id: link.panoId,
-          yaw_deg: link.heading,
-          description: link.description || null,
-        };
-      });
-      const history = panoData.history.map((prevPano) => {
-        return {
-          pano_id: prevPano.panoId,
-          date: prevPano.captureDate.format('YYYY-MM'),
-        };
-      });
-
-      temp = {
-        pano_id: panoData.panoId,
-        source: panoData.source,
-        capture_date: panoData.captureDate.format('YYYY-MM'),
-        width: panoData.width,
-        height: panoData.height,
-        tile_width: panoData.tileWidth,
-        tile_height: panoData.tileHeight,
-        lat: panoData.lat,
-        lng: panoData.lng,
-        camera_heading: panoData.cameraHeading,
-        camera_pitch: panoData.cameraPitch,
-        camera_roll: panoData.cameraRoll,
-        links,
-        copyright: panoData.copyright || null,
-        address: panoData.address || null,
-        history,
-      };
-
-      data.panos.push(temp);
-      panoramas[i].setProperty('submitted', true);
-    }
+    // Keep metadata for every pano viewed this session, labeled or not.
+    data.panos = this.#panoStore.getStagedPanoData().map((panoData) => this.#compilePanoData(panoData));
     return data;
   }
 
@@ -221,7 +220,16 @@ class Form {
       headers: { 'Content-Type': 'application/json; charset=utf-8' },
       body: JSON.stringify(data),
     })
-      .then((response) => response.json())
+      .then((response) => {
+        // Mark panos as submitted only once the server has accepted them, so that after a failed POST their metadata
+        // stays staged and rides along with the next submission instead of being lost (#4587).
+        if (response.ok) {
+          for (const pano of data.panos) {
+            this.#panoStore.getPanoData(pano.pano_id)?.setProperty('submitted', true);
+          }
+        }
+        return response.json();
+      })
       .then((result) => {
         task.setProperty('auditTaskId', result.audit_task_id);
         svl.tracker.setAuditTaskID(result.audit_task_id);

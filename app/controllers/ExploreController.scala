@@ -262,22 +262,22 @@ class ExploreController @Inject() (
     val currTime: OffsetDateTime = data.timestamp
 
     // First do all the important stuff that needs to be done synchronously.
-    val response: Future[Result] =
-      exploreService.submitExploreData(data, user.userId).map { returnData: ExploreTaskPostReturnValue =>
+    val response: Future[Result] = exploreService
+      .savePanoInfo(data.panos)
+      .flatMap(_ => exploreService.submitExploreData(data, user.userId))
+      .map { returnData: ExploreTaskPostReturnValue =>
         // Now we do all the stuff that can be done async, we can return the response before these are done.
-        // TODO we should catch any errors from these submissions and log them.
-
-        // Insert pano metadata async.
-        // TODO would make sense to do this before submitting labels, then label table can have foreign key on pano_id.
-        exploreService.savePanoInfo(data.panos)
 
         // Insert environment async.
         val env: EnvironmentSubmission = data.environment
-        exploreService.insertEnvironment(
-          AuditTaskEnvironment(0, returnData.auditTaskId, missionId, env.browser, env.browserVersion, env.browserWidth,
-            env.browserHeight, env.availWidth, env.availHeight, env.screenWidth, env.screenHeight, env.operatingSystem,
-            Some(ipAddress), env.language, env.cssZoom, Some(currTime))
-        )
+        exploreService
+          .insertEnvironment(
+            AuditTaskEnvironment(0, returnData.auditTaskId, missionId, env.browser, env.browserVersion,
+              env.browserWidth, env.browserHeight, env.availWidth, env.availHeight, env.screenWidth, env.screenHeight,
+              env.operatingSystem, Some(ipAddress), env.language, env.cssZoom, Some(currTime))
+          )
+          .failed
+          .foreach(e => logger.error("Error saving explore environment data.", e))
 
         // Insert interactions async, send time spent auditing to scistarter (which uses the interactions table).
         exploreService
@@ -310,8 +310,12 @@ class ExploreController @Inject() (
                 .flatMap { timeSpent: Double =>
                   configService.sendSciStarterContributions(user.email, returnData.newLabels.length, timeSpent)
                 }
+                .failed
+                .foreach(e => logger.error("Error sending contributions to SciStarter.", e))
             }
           }
+          .failed
+          .foreach(e => logger.error("Error saving explore interaction data.", e))
 
         // Return the final result.
         Ok(
@@ -325,6 +329,12 @@ class ExploreController @Inject() (
             "refresh_page" -> returnData.refreshPage // If we notice something out of whack, tell front-end to refresh.
           )
         )
+      }
+      .recover { case e =>
+        // submitExploreData is transactional, so a failure here (including a label's integral pano write, #4587)
+        // means none of the submission was saved.
+        logger.error("Explore submission failed; nothing from it was saved.", e)
+        InternalServerError(Json.obj("status" -> "Error", "message" -> "Failed to save submitted data."))
       }
     response
   }

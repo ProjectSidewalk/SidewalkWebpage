@@ -64,7 +64,8 @@ object ExploreFormats {
       point: LabelPointSubmission,
       temporaryLabelId: Int,
       timeCreated: Option[OffsetDateTime],
-      tutorial: Boolean
+      tutorial: Boolean,
+      pano: Option[PanoSubmission] // Added in #4587 to support the pano_data row that is integral to a label.
   )
   case class TaskSubmission(
       streetEdgeId: Int,
@@ -272,40 +273,6 @@ object ExploreFormats {
       (JsPath \ "computation_method").readNullable[ComputationMethod.Value]
   )(LabelPointSubmission.apply _)
 
-  implicit val labelSubmissionReads: Reads[LabelSubmission] = (
-    (JsPath \ "pano_id").read[String] and
-      (JsPath \ "pano_source").read[PanoSource.Value] and
-      (JsPath \ "label_type").read[String] and
-      (JsPath \ "deleted").read[Boolean] and
-      (JsPath \ "severity").readNullable[Int] and
-      (JsPath \ "description").readNullable[String] and
-      (JsPath \ "tag_ids").read[Seq[Int]] and
-      (JsPath \ "label_point").read[LabelPointSubmission] and
-      (JsPath \ "temporary_label_id").read[Int] and
-      (JsPath \ "time_created").readNullable[OffsetDateTime] and
-      (JsPath \ "tutorial").read[Boolean]
-  )(LabelSubmission.apply _)
-
-  implicit val auditTaskReads: Reads[TaskSubmission] = (
-    (JsPath \ "street_edge_id").read[Int] and
-      (JsPath \ "task_start").read[OffsetDateTime] and
-      (JsPath \ "audit_task_id").readNullable[Int] and
-      (JsPath \ "completed").readNullable[Boolean] and
-      (JsPath \ "current_lat").read[Double] and
-      (JsPath \ "current_lng").read[Double] and
-      (JsPath \ "start_point_reversed").read[Boolean] and
-      (JsPath \ "current_mission_start").readNullable[Point] and
-      (JsPath \ "last_priority_update_time").read[OffsetDateTime] and
-      (JsPath \ "request_updated_street_priority").read[Boolean] and
-      (JsPath \ "audited_distance_m").readNullable[Double] and
-      (JsPath \ "route_street_id").readNullable[Int]
-  )(TaskSubmission.apply _)
-
-  implicit val noStreetViewSubmissionReads: Reads[NoStreetViewSubmission] = (
-    (JsPath \ "audit_task").read[TaskSubmission] and
-      (JsPath \ "mission_id").read[Int]
-  )(NoStreetViewSubmission.apply _)
-
   implicit val panoLinkSubmissionReads: Reads[PanoLinkSubmission] = (
     (JsPath \ "target_pano_id").read[String] and
       (JsPath \ "yaw_deg").read[Double] and
@@ -344,6 +311,41 @@ object ExploreFormats {
       (JsPath \ "history").read[Seq[PanoDate]] and
       (JsPath \ "source_metadata").readNullable[JsObject](sourceMetadataReads)
   )(PanoSubmission.apply _)
+
+  implicit val labelSubmissionReads: Reads[LabelSubmission] = (
+    (JsPath \ "pano_id").read[String] and
+      (JsPath \ "pano_source").read[PanoSource.Value] and
+      (JsPath \ "label_type").read[String] and
+      (JsPath \ "deleted").read[Boolean] and
+      (JsPath \ "severity").readNullable[Int] and
+      (JsPath \ "description").readNullable[String] and
+      (JsPath \ "tag_ids").read[Seq[Int]] and
+      (JsPath \ "label_point").read[LabelPointSubmission] and
+      (JsPath \ "temporary_label_id").read[Int] and
+      (JsPath \ "time_created").readNullable[OffsetDateTime] and
+      (JsPath \ "tutorial").read[Boolean] and
+      (JsPath \ "pano").readNullable[PanoSubmission]
+  )(LabelSubmission.apply _)
+
+  implicit val auditTaskReads: Reads[TaskSubmission] = (
+    (JsPath \ "street_edge_id").read[Int] and
+      (JsPath \ "task_start").read[OffsetDateTime] and
+      (JsPath \ "audit_task_id").readNullable[Int] and
+      (JsPath \ "completed").readNullable[Boolean] and
+      (JsPath \ "current_lat").read[Double] and
+      (JsPath \ "current_lng").read[Double] and
+      (JsPath \ "start_point_reversed").read[Boolean] and
+      (JsPath \ "current_mission_start").readNullable[Point] and
+      (JsPath \ "last_priority_update_time").read[OffsetDateTime] and
+      (JsPath \ "request_updated_street_priority").read[Boolean] and
+      (JsPath \ "audited_distance_m").readNullable[Double] and
+      (JsPath \ "route_street_id").readNullable[Int]
+  )(TaskSubmission.apply _)
+
+  implicit val noStreetViewSubmissionReads: Reads[NoStreetViewSubmission] = (
+    (JsPath \ "audit_task").read[TaskSubmission] and
+      (JsPath \ "mission_id").read[Int]
+  )(NoStreetViewSubmission.apply _)
 
   implicit val auditMissionProgressReads: Reads[AuditMissionProgress] = (
     (JsPath \ "mission_id").read[Int] and

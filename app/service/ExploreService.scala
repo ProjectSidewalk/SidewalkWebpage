@@ -96,9 +96,15 @@ trait ExploreService {
 
   /**
    * Takes data submitted from the Explore page updates the pano_data, pano_link, and pano_history tables accordingly.
+   *
+   * Each pano is saved independently and any failure is logged rather than thrown, so one bad pano can't abort the rest
+   * of the batch (#4587). This is the lenient path for panos merely *viewed* during a session; a labeled pano's
+   * metadata additionally rides its label (LabelSubmission.pano) and commits atomically with it in submitExploreData.
+   *
    * @param panos All pano-related data submitted from the Explore page front-end.
+   * @return Whether every pano in the batch was saved successfully.
    */
-  def savePanoInfo(panos: Seq[PanoSubmission]): Future[Unit]
+  def savePanoInfo(panos: Seq[PanoSubmission]): Future[Boolean]
   def insertComment(comment: AuditTaskComment): Future[Int]
 
   /**
@@ -609,6 +615,11 @@ class ExploreServiceImpl @Inject() (
     } yield gf.createPoint(new Coordinate(_lng, _lat))
 
     for {
+      // The pano's metadata is integral to the label (#4587): saving it here, inside the caller's transaction, means
+      // a label can never be committed without its pano_data row — and a pano whose write fails takes the label (and
+      // the rest of the submission) with it rather than quietly producing an orphan. Only skipped for tutorial labels.
+      _ <- label.pano.map(savePanoAction(_, OffsetDateTime.now)).getOrElse(DBIO.successful(()))
+
       // Use label's lat/lng to determine street_edge_id. If lat/lng isn't defined, use audit_task's as backup.
       calculatedStreetEdgeId: Int <- (point.lat, point.lng) match {
         case (Some(lat), Some(lng)) => labelTable.getStreetEdgeIdClosestToLatLng(lat, lng)
@@ -651,46 +662,49 @@ class ExploreServiceImpl @Inject() (
     }
   }
 
-  def savePanoInfo(panos: Seq[PanoSubmission]): Future[Unit] = {
-    val currTime: OffsetDateTime = OffsetDateTime.now
-    val panoSubmissionActions    = panos.map { pano: PanoSubmission =>
-      (for {
-        // Insert new entry to pano_data table, or update the last_viewed/checked columns if we've already recorded it.
-        panoExists: Boolean <- panoDataTable.panoramaExists(pano.panoId)
-        _                   <-
-          if (panoExists) {
-            // source_metadata is written only when the payload carries it (AI submissions do, crowd submissions
-            // don't), so a crowd submission for the same pano can never clear the saved blob (#4806).
-            panoDataTable
-              .updateFromExplore(pano.panoId, pano.lat, pano.lng, pano.cameraHeading, pano.cameraPitch, pano.cameraRoll,
-                pano.address, expired = false, currTime, Some(currTime))
-              .andThen(
-                pano.sourceMetadata
-                  .map(metadata => panoDataTable.updateSourceMetadata(pano.panoId, metadata))
-                  .getOrElse(DBIO.successful(0))
-              )
-          } else {
-            panoDataTable.insert(
-              PanoData(pano.panoId, pano.width, pano.height, pano.tileWidth, pano.tileHeight, pano.captureDate,
-                pano.copyright, pano.lat, pano.lng, pano.cameraHeading, pano.cameraPitch, pano.cameraRoll,
-                expired = false, currTime, Some(currTime), currTime, pano.source, hasBackup = None,
-                address = pano.address, sourceMetadata = pano.sourceMetadata)
-            )
-          }
-      } yield {
-        // Once panorama is saved, save the links and history.
-        val panoLinkInserts = pano.links.map { link =>
-          panoLinkTable.insertIfNew(PanoLink(pano.panoId, link.targetPanoId, link.yawDeg, link.description))
-        }
-        val panoHistoryInserts = pano.history.map { h =>
-          panoHistoryTable.insertIfNew(PanoHistory(h.panoId, h.date, pano.panoId))
-        }
+  /**
+   * Saves one pano's metadata: an upsert of its pano_data row, then any new pano_link / pano_history rows.
+   *
+   * The upsert never clears a saved address or source_metadata blob with an absent one (#4806); see
+   * PanoDataTable.upsert. Every statement is idempotent, so the action is safe to repeat.
+   */
+  private def savePanoAction(pano: PanoSubmission, timestamp: OffsetDateTime): DBIO[Unit] = {
+    for {
+      _ <- panoDataTable.upsert(
+        PanoData(pano.panoId, pano.width, pano.height, pano.tileWidth, pano.tileHeight, pano.captureDate,
+          pano.copyright, pano.lat, pano.lng, pano.cameraHeading, pano.cameraPitch, pano.cameraRoll, expired = false,
+          timestamp, Some(timestamp), timestamp, pano.source, hasBackup = None, address = pano.address,
+          sourceMetadata = pano.sourceMetadata)
+      )
 
-        // Run the pano_link and pano_history inserts in parallel.
-        DBIO.sequence(panoLinkInserts).zip(DBIO.sequence(panoHistoryInserts)).map(_ => ())
-      }).flatten
-    }
-    db.run(DBIO.sequence(panoSubmissionActions).map(_ => ()))
+      // Once panorama is saved, save the links and history. Run the two groups in parallel.
+      _ <- DBIO
+        .sequence(pano.links.map { link =>
+          panoLinkTable.insertIfNew(PanoLink(pano.panoId, link.targetPanoId, link.yawDeg, link.description))
+        })
+        .zip(DBIO.sequence(pano.history.map { h =>
+          panoHistoryTable.insertIfNew(PanoHistory(h.panoId, h.date, pano.panoId))
+        }))
+    } yield ()
+  }
+
+  def savePanoInfo(panos: Seq[PanoSubmission]): Future[Boolean] = {
+    val currTime: OffsetDateTime = OffsetDateTime.now
+    // asTry so one pano's failure can't abort the rest of the batch; failures are logged below.
+    val panoSubmissionActions = panos.map { pano: PanoSubmission => savePanoAction(pano, currTime).asTry }
+
+    db.run(DBIO.sequence(panoSubmissionActions))
+      .map { results =>
+        results.zip(panos).foreach { case (result, pano) =>
+          result.failed.foreach(e => logger.error(s"Failed to save pano metadata for pano ${pano.panoId}.", e))
+        }
+        results.forall(_.isSuccess)
+      }
+      .recover {
+        case e => // A failure of the batch itself, e.g. no connection available.
+          logger.error("Failed to save submitted pano metadata.", e)
+          false
+      }
   }
 
   def insertComment(comment: AuditTaskComment): Future[Int] = {
@@ -790,7 +804,8 @@ class ExploreServiceImpl @Inject() (
             severity = None,
             description = None,
             tagIds = Seq.empty[Int],
-            point = labelPoint
+            point = labelPoint,
+            pano = Some(pano)
           )
           labelId <- insertLabel(labelSubmission, aiUserId, auditTaskId, streetEdgeId, missionId).map(_.labelId)
           _       <- labelAiInfoTable.save(

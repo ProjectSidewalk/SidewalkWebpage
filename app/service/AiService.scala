@@ -68,9 +68,9 @@ class AiServiceImpl @Inject() (
               // Call the AI API to process the panorama data and validate labels.
               case Some(labelData) => callAiApiAndSubmitData(labelData)
               case None            =>
-                // Unexpected but recoverable: the label has no pano_data row with dimensions, e.g. because
-                // savePanoInfo (which runs in parallel with label submission) hasn't saved it yet. The nightly
-                // validateLabelsWithAiDaily sweep will pick the label up once its pano data exists.
+                // Unexpected but recoverable: the label's pano_data row lacks dimensions — a label commits atomically
+                // with its pano row (#4587), but the dimension columns are nullable and not every payload carries
+                // them. The nightly validateLabelsWithAiDaily sweep will pick the label up once its pano data exists.
                 logger.warn(s"Skipping AI validation for label $labelId: no label/pano data eligible for AI found.")
                 Future.successful(None)
             }
