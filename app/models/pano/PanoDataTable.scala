@@ -56,6 +56,11 @@ object PanoSource extends Enumeration {
   val Gsv       = Value("gsv")
   val Mapillary = Value("mapillary")
   val Infra3d   = Value("infra3d")
+
+  /**
+   * Sources whose imagery `PanoDataService.panoExists` can actually verify against a provider API.
+   */
+  val providerCheckedSources: Set[Value] = Set(Gsv, Mapillary)
 }
 
 case class PanoDataSlim(
@@ -127,13 +132,15 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
   }
 
   /**
-   * Count the number of panos that have associated labels. Only including GSV imagery for now.
+   * Count the panos that have associated labels and an imagery source we can verify against a provider API.
+   *
+   * Sizes the nightly expiry sample, so it counts the same population `getPanoIdsToCheckExpiration` draws from.
    */
-  def countGsvPanosWithLabels: DBIO[Int] = {
+  def countCheckablePanosWithLabels: DBIO[Int] = {
     labelTable
       .join(panoDataRecords)
       .on(_.panoId === _.panoId)
-      .filter(_._2.source === PanoSource.Gsv)
+      .filter(_._2.source inSet PanoSource.providerCheckedSources)
       .map(_._2.panoId)
       .countDistinct
       .result
@@ -175,9 +182,9 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
    *   - `expired` is false and `last_checked` is at or after `liveCheckedSince`. Liveness *can* lapse at any moment, so
    *     this side carries a TTL that bounds how long we'd keep handing out a pano that has since gone away.
    *
-   * GSV only: Mapillary has no nightly expiry check behind it (`getPanoIdsToCheckExpiration` is GSV-only), so its
-   * foreground check is the only one there is and must keep running. Infra3d is never checked against a provider at
-   * all. Both simply get no cache entry here.
+   * Restricted to `PanoSource.providerCheckedSources`, because both branches lean on the nightly sweep: it is what
+   * re-checks expired panos to catch ones marked so incorrectly, and what keeps `last_checked` moving. Infra3d is
+   * never checked against a provider, so its columns don't reflect a real answer and it gets no cache entry here.
    *
    * @param panoIds          Panos to look up.
    * @param liveCheckedSince Cutoff for reusing a non-expired result; older ones are re-checked.
@@ -186,7 +193,7 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
   def getReusableImageryStatus(panoIds: Set[String], liveCheckedSince: OffsetDateTime): DBIO[Map[String, Boolean]] = {
     panoDataRecords
       .filter(_.panoId inSet panoIds)
-      .filter(_.source === PanoSource.Gsv)
+      .filter(_.source inSet PanoSource.providerCheckedSources)
       .filter(pano => pano.expired || pano.lastChecked >= liveCheckedSince)
       .map(pano => (pano.panoId, pano.expired))
       .result
@@ -206,28 +213,28 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
   }
 
   /**
-   * Get a list of n least recently checked pano ids that have not been checked in the last 3 months.
+   * Get the n least recently checked panos that haven't been checked in the last 3 months; providerCheckedSources only.
    *
-   * Note: only getting panos from GSV for now; we haven't set up imagery checking for other sources yet
-   * @param n Number of least recently checked panos to return.
+   * @param n       Number of least recently checked panos to return.
    * @param expired Whether to check for expired or unexpired panos.
+   * @return        Pano ID paired with its imagery source, least recently checked first.
    */
-  def getPanoIdsToCheckExpiration(n: Int, expired: Boolean): DBIO[Seq[String]] = {
-    // Dedup on (pano_id, last_checked) pairs — equivalent to deduping pano_id alone, since both come from the same
-    // pano_data row — so that the sort sits at/above the DISTINCT. An ORDER BY buried in a subquery below a DISTINCT
-    // is one Postgres is free to discard, which would break the least-recently-checked-first contract.
+  def getPanoIdsToCheckExpiration(n: Int, expired: Boolean): DBIO[Seq[(String, PanoSource)]] = {
+    // Dedup on (pano_id, source, last_checked) triples — equivalent to deduping pano_id alone, since all three come
+    // from the same pano_data row — so that the sort sits at/above the DISTINCT. An ORDER BY buried in a subquery
+    // below a DISTINCT is one Postgres is free to discard, which would break "least-recently-checked-first".
     panoDataRecords
       .join(labelTable)
       .on(_.panoId === _.panoId)
-      .filter(gsv =>
-        gsv._1.source === PanoSource.Gsv
-          && gsv._1.expired === expired
-          && gsv._1.lastChecked < OffsetDateTime.now().minusMonths(3)
+      .filter(pano =>
+        (pano._1.source inSet PanoSource.providerCheckedSources)
+          && pano._1.expired === expired
+          && pano._1.lastChecked < OffsetDateTime.now().minusMonths(3)
       )
-      .map(gsv => (gsv._1.panoId, gsv._1.lastChecked))
+      .map(pano => (pano._1.panoId, pano._1.source, pano._1.lastChecked))
       .distinct
-      .sortBy(_._2.asc)
-      .map(_._1)
+      .sortBy(_._3.asc)
+      .map(pano => (pano._1, pano._2))
       .take(n)
       .result
   }
