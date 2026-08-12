@@ -8,12 +8,16 @@
 @* Pages that render the map full-window (no footer, #wrap becomes a fixed-height flex column). *@
 @fullWindow = @{url == "/labelMap" || url == "/routeBuilder"}
 
-@* The one moment locale this request needs. English is built into moment, so en/en-US need no file; every other
-   supported language has one vendored (#4486). Locale files register lowercase names ('zh-tw', 'pt-br') matching
-   their filenames, and moment lowercases the code it's given, so the language code maps straight to a filename. *@
+@* The one moment locale this request needs. Locale files register lowercase names ('zh-tw', 'pt-br') matching their
+   filenames, and moment lowercases the code it's given, so a language code maps straight to a filename (#4486).
+   Derived from play.i18n.langs rather than a second list of languages: a hardcoded copy that drifts fails the way
+   de/pt-BR did — silently, in English — whereas a missing file here is a 404 someone will notice. *@
 @momentLocaleFile = @{
   val langCode = messages.lang.code.toLowerCase
-  Option.when(Set("es", "nl", "zh-tw", "en-nz", "de", "pt-br").contains(langCode))(s"vendor/moment/$langCode.js")
+  // moment has US English built in, so those two need no file; every other supported language has one vendored.
+  val builtIntoMoment = Set("en", "en-us")
+  val supported       = config.get[Seq[String]]("play.i18n.langs").map(_.toLowerCase)
+  Option.when(!builtIntoMoment(langCode) && supported.contains(langCode))(s"vendor/moment/$langCode.js")
 }
 
 <!DOCTYPE html>

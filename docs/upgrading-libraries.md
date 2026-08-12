@@ -25,9 +25,9 @@ These versions live in [`build.sbt`](../build.sbt), [`project/build.properties`]
   [#3936](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/3936) (unclear if all our libraries support it
   yet). Edit `scalaVersion` in `build.sbt`.
   [Releases](https://www.scala-lang.org/download/all.html) · [Changelog](https://github.com/scala/scala/releases)
-- **sbt: 1.12.9** — set in `project/build.properties`; downloaded automatically on the next `npm start`. You may need
+- **sbt: 1.12.13** — set in `project/build.properties`; downloaded automatically on the next `npm start`. You may need
   to bump Play at the same time for major sbt updates. [Releases](https://github.com/sbt/sbt/releases)
-- **Play Framework: 3.0.10** — to update: (1) change the version in `project/plugins.sbt` (the `sbt-plugin`
+- **Play Framework: 3.0.11** — to update: (1) change the version in `project/plugins.sbt` (the `sbt-plugin`
   dependency), and (2) change it in `build.sbt` for the Play-provided libraries that share Play's versioning scheme
   (`play-guice`, `play-cache`, `play-ws`, `play-caffeine-cache`).
   [Releases](https://github.com/playframework/playframework/releases) ·
@@ -98,16 +98,16 @@ These versions live in [`build.sbt`](../build.sbt), [`project/build.properties`]
 
 ### Build plugins & test (`project/plugins.sbt`, `.scalafmt.conf`, test deps)
 
-- **sbt-plugin (Play): 3.0.10** — tracks the Play version above (`project/plugins.sbt`).
-- **scalafmt: 3.9.7** — pinned in [`.scalafmt.conf`](../.scalafmt.conf); the **sbt-scalafmt** plugin (**2.5.4**,
+- **sbt-plugin (Play): 3.0.11** — tracks the Play version above (`project/plugins.sbt`).
+- **scalafmt: 3.9.10** — pinned in [`.scalafmt.conf`](../.scalafmt.conf); the **sbt-scalafmt** plugin (**2.5.6**,
   `project/plugins.sbt`) fetches it. `scalafmtCheckAll` is a blocking CI gate.
   [Releases](https://github.com/scalameta/scalafmt/releases)
-- **sbt-scoverage: 2.3.1** — coverage, for a later CI phase with a ratcheting threshold.
+- **sbt-scoverage: 2.4.4** — coverage, for a later CI phase with a ratcheting threshold.
   [Releases](https://github.com/scoverage/sbt-scoverage/releases)
 - **sbt-digest: 2.1.0** — content-fingerprints assets during `stage`/`dist` (see `build.sbt`). Note the org: the
   sbt-web plugins moved from `com.typesafe.sbt` to `com.github.sbt`, and only the latter supports Play 3.
   [Releases](https://github.com/sbt/sbt-digest/releases)
-- **scalatestplus-play: 7.0.1** (test scope) — ScalaTest + Play test helpers; backs the API specs under `test/`.
+- **scalatestplus-play: 7.0.2** (test scope) — ScalaTest + Play test helpers; backs the API specs under `test/`.
   [Releases](https://mvnrepository.com/artifact/org.scalatestplus.play/scalatestplus-play)
 
 ## JavaScript

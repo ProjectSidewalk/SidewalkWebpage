@@ -262,7 +262,9 @@ Originals stay in place too, so hardcoded `/assets/...` paths and relative `url(
 `assets.path(...)` yields the long-lived URL, which is why it's preferred everywhere.
 
 Stage/dist only: local `sbt run` serves plain paths and `no-cache` as before, so exercising the real behavior means
-staging the app and running the binary directly rather than `npm start`.
+staging the app and running the binary directly rather than `npm start`. That depends on `pipelineStages` in
+`build.sbt` staying **unscoped** — the `Assets /`-scoped form of the same setting runs the digest on every dev request
+instead, which fingerprints for no benefit and roughly triples `target/web`.
 
 ### Liveness convention
 
