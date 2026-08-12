@@ -192,6 +192,15 @@ class PanoViewer {
   clearPrefetchCache() {}
 
   /**
+   * Pre-downloads the pano that setLocation() would pick near the given location, so a subsequent move there
+   * doesn't wait on the network. No-op by default; override in subclasses that support preloading.
+   * @param {{lat: number, lng: number}} latLng The location the next move is expected to target.
+   * @param {Set<PanoData>} [excludedPanos] Panos the next move is expected to exclude.
+   * @returns {Promise<void>}
+   */
+  async preloadPanoNear(_latLng, _excludedPanos = new Set()) {}
+
+  /**
    * Moves the current panorama to the specified panorama ID.
    * @param panoId The panorama ID to set.
    * @returns {Promise<PanoData>} The panorama data object.
