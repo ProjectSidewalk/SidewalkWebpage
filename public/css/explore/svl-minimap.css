@@ -351,10 +351,13 @@
   cursor: pointer;
 }
 
-/* Breadcrumb trail (ObservedArea): a small faded ring, in the peg's hue, at each visited pano; click to return there
-   (#2561). The element itself is a larger transparent hit area so the tiny ring is comfortably clickable (WCAG 2.5.8);
-   the visible ring is drawn by ::before, centered inside it. AdvancedMarkerElement anchors content bottom-center, so
-   the hit area shifts down half its height to center the ring on the pano. */
+/* Breadcrumb trail (ObservedArea): a small ring at each visited pano; click to return there (#2561). The green matches
+   the completed-route line so the trail reads as the beads on the path you've covered — past and coverage as one
+   "behind you" story (green = past, blue peg = you, gold forward crumbs = ahead (#4669)). Resting crumbs are hollow;
+   only the hover highlight fills (see below), so "filled = the crumb an arrow is pointing at". The element itself is a
+   larger transparent hit area so the tiny ring is comfortably clickable (WCAG 2.5.8); the visible ring is drawn by
+   ::before, centered inside it. AdvancedMarkerElement anchors content bottom-center, so the hit area shifts down half
+   its height to center the ring on the pano. */
 .minimap-breadcrumb {
   display: flex;
   align-items: center;
@@ -370,21 +373,26 @@
   box-sizing: border-box;
   width: calc(7px * var(--ui-scale, 1));
   height: calc(7px * var(--ui-scale, 1));
-  border: calc(1.4px * var(--ui-scale, 1)) solid var(--color-link-100);
+  border: calc(1.4px * var(--ui-scale, 1)) solid var(--color-pine-600);
   border-radius: 50%;
-  opacity: 0.8;
+
+  /* Thin white casing: the crumb sits on the (also green) route line, so a bare green ring would vanish — the same
+     1.07:1 problem the route solved with white casing. Keeps the quiet green bead findable without a louder color. */
+  box-shadow: 0 0 0 calc(1.25px * var(--ui-scale, 1)) rgb(255 255 255 / 82%);
+  opacity: 0.9;
 }
 
-/* Hovering the on-pano nav arrow that leads to this pano highlights its breadcrumb (#4682): the faint hollow ring
-   becomes a larger solid dot in the peg's hue, ringed in white with a soft glow — clearly the one that arrow points
-   to, and distinct from the plain hover-to-return affordance. */
+/* Hovering the on-pano nav arrow that leads to this pano fills its breadcrumb (#4682): the hollow green ring becomes a
+   larger solid green dot with a white stroke — "filled = the crumb this arrow points at", in the crumb's own hue. A
+   neutral lift shadow (not a colored glow) so it reads on the green route line too. Forward crumbs (#4669) will
+   parallel this exactly in gold. */
 .minimap-breadcrumb-highlight::before {
   width: calc(11px * var(--ui-scale, 1));
   height: calc(11px * var(--ui-scale, 1));
-  background: var(--color-link-100);
+  background: var(--color-pine-600);
   border-color: var(--color-neutral-white);
   opacity: 1;
-  box-shadow: 0 0 calc(4px * var(--ui-scale, 1)) var(--color-link-100);
+  box-shadow: 0 calc(1px * var(--ui-scale, 1)) calc(3px * var(--ui-scale, 1)) rgb(0 0 0 / 35%);
 }
 
 /* GSV-style "you are here" puck (Peg.js): a blue dot with a triangle pointing in the heading direction. Markers anchor

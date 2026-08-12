@@ -256,8 +256,8 @@ class ObservedArea {
   }
 
   /**
-   * Creates one clickable breadcrumb marker — a faded ring in the peg's hue — at a visited pano. Clicking it returns
-   * the user to that pano (#2561).
+   * Creates one clickable breadcrumb marker — a ring in the completed-route green — at a visited pano, so the trail
+   * reads as the beads on the path you've covered. Clicking it returns the user to that pano (#2561).
    * @param {{panoId: string, latLng: {lat: number, lng: number}}} area - The visited observed area.
    * @returns {google.maps.marker.AdvancedMarkerElement}
    */
