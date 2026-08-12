@@ -90,9 +90,10 @@ orphans remain.
    matching our moment version into `public/vendor/moment/`, then add the lowercased language code to
    `momentLocaleFile` in [`app/views/common/main.scala.html`](../app/views/common/main.scala.html); the filename and
    the name the file registers with moment are both that same lowercased code. Only the active language's locale is
-   sent to the browser, so adding one costs nobody but its own speakers. English needs no file (it's built into
-   moment). (There's an open ticket, [#1258](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/1258), about
-   moving off moment.js — don't take that on as part of adding a language.)
+   sent to the browser, so adding one costs nobody but its own speakers. Only `en` and `en-US` need no file, because
+   moment has US English built in — a new English variant still needs one, the way `en-NZ` does. (There's an open
+   ticket, [#1258](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/1258), about moving off moment.js — don't
+   take that on as part of adding a language.)
 5. **Mind the `unit-distance` key.** In `common.json`, `unit-distance` (e.g. `"kilometers"` / `"miles"`) is **not**
    display text — it's a unit-*system* selector consumed by turf.js. For a new non-US language, leave it as
    `"kilometers"` (metric) rather than translating the word.
