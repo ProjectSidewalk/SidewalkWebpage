@@ -14,7 +14,7 @@ import play.api.http.ContentTypes
 import play.api.libs.json.{JsObject, Json}
 import play.api.libs.ws.WSClient
 import play.api.{Configuration, Logger}
-import service.PanoDataService.getFov
+import service.PanoDataService.{getFov, LiveImageryTtlDays}
 import slick.dbio.DBIO
 
 import java.io.{File, IOException}
@@ -31,6 +31,16 @@ import scala.concurrent.{ExecutionContext, Future}
  * Companion object with constants and functions that are shared throughout codebase, that shouldn't require injection.
  */
 object PanoDataService {
+
+  /**
+   * How long a "the imagery is still there" answer stays good before we ask the provider again (#3004).
+   *
+   * The window bounds how long a pano that has since disappeared can keep being handed to users, so it trades page
+   * load time against that exposure. A pano's odds of vanishing in any given week are on the order of 0.1%, small
+   * enough to keep bad hand-outs rare, and a window this wide covers a whole mapathon rather than only the day a
+   * label was placed.
+   */
+  val LiveImageryTtlDays: Long = 7
 
   /**
    * Hacky fix to generate the FOV for an image. Determined experimentally.
@@ -228,6 +238,7 @@ trait PanoDataService {
    */
   def getInfra3dToken(cityId: String): Future[String]
   def panoExists(panoId: String, panoSource: PanoSource): Future[Option[Boolean]]
+  def getReusableImageryStatus(panoIds: Set[String]): Future[Map[String, Boolean]]
   def getImageUrl(panoId: String, panoSrc: PanoSource, heading: Double, pitch: Double, zoom: Double): Option[String]
   def getGsvImageUrlsForStreet(streetEdgeId: Int): Future[Seq[String]]
   def insertPanoHistories(histories: Seq[PanoHistorySubmission]): Future[Unit]
@@ -318,6 +329,19 @@ class PanoDataServiceImpl @Inject() (
       case PanoSource.Mapillary => mapillaryPanoExists(panoId)
       case _                    => Future.successful(Some(true))
     }
+  }
+
+  /**
+   * Looks up which of the given panos we already know the imagery-existence answer for, skipping a provider call.
+   *
+   * See `PanoDataTable.getReusableImageryStatus` for which rows qualify and why.
+   *
+   * @param panoIds Panos to look up.
+   * @return        Pano ID -> whether its imagery exists, holding only the panos an answer is reusable for.
+   */
+  def getReusableImageryStatus(panoIds: Set[String]): Future[Map[String, Boolean]] = {
+    if (panoIds.isEmpty) Future.successful(Map.empty)
+    else db.run(panoDataTable.getReusableImageryStatus(panoIds, OffsetDateTime.now.minusDays(LiveImageryTtlDays)))
   }
 
   /**
@@ -517,28 +541,30 @@ class PanoDataServiceImpl @Inject() (
   /**
    * Checks if panos are expired on a nightly basis. Called from CheckImageExpiryActor.scala.
    *
-   * Get as many as 5% of the panos with labels on them, or 5000, whichever is smaller. Check if the panos are expired
-   * and update the database accordingly. If there aren't enough of those remaining that haven't been checked in the
-   * last 3 months, check up to 2.5% or 2500 (whichever is smaller) of the panos that are already marked as expired to
-   * make sure that they weren't marked so incorrectly.
+   * Get as many as 5% of the panos with labels on them, or 5000, whichever is smaller (but at least
+   * `minPanosToCheck`). Check if the panos are expired and update the database accordingly. Also re-check panos that
+   * are already marked as expired to make sure that they weren't marked so incorrectly: a budget of 2.5% or 2500
+   * (whichever is smaller) minus the number of unexpired panos checked, but at least `minPanosToCheck`.
    */
   def checkForImagery: Future[String] = {
+    // Nightly floor for both sample sizes, so that checking always makes some progress: the percentage-based sizes
+    // round to 0 on small corpora, and the expired budget zeroes out on nights when the unexpired queue is full.
+    // getPanoIdsToCheckExpiration's take(n) caps at the stale pool, so the floor never overshoots (#4638).
+    val minPanosToCheck: Int = 100
     db.run(
       for {
-        // Choose a bunch of panos that haven't been checked in the past 6 months to check.
+        // Choose a bunch of panos that haven't been checked in the past 3 months to check.
         nPanos: Int <- panoDataTable.countGsvPanosWithLabels
-        nUnexpiredPanosToCheck: Int = Math.max(5000, Math.min(100, 0.05 * nPanos).toInt)
+        nUnexpiredPanosToCheck: Int = Math.max(minPanosToCheck, Math.min(5000, (0.05 * nPanos).toInt))
         panoIdsToCheck: Seq[String] <- panoDataTable
           .getPanoIdsToCheckExpiration(nUnexpiredPanosToCheck, expired = false)
         _ = logger.info(s"Checking ${panoIdsToCheck.length} unexpired panos.")
 
-        // Choose a few panos that are already marked as expired to double-check.
-        nExpiredPanosToCheck: Int = Math.max(2500, Math.min(50, 0.025 * nPanos).toInt)
+        // Choose some panos that are already marked as expired to double-check.
+        nExpiredPanosToCheck: Int =
+          Math.max(minPanosToCheck, Math.min(2500, (0.025 * nPanos).toInt) - panoIdsToCheck.length)
         expiredPanoIdsToCheck: Seq[String] <-
-          if (panoIdsToCheck.length < nExpiredPanosToCheck) {
-            val nRemainingExpiredPanosToCheck: Int = nExpiredPanosToCheck - panoIdsToCheck.length
-            panoDataTable.getPanoIdsToCheckExpiration(nRemainingExpiredPanosToCheck, expired = true)
-          } else DBIO.successful(Seq())
+          panoDataTable.getPanoIdsToCheckExpiration(nExpiredPanosToCheck, expired = true)
       } yield {
         logger.info(s"Checking ${expiredPanoIdsToCheck.length} expired panos.")
 

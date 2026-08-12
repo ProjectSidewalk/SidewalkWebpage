@@ -41,46 +41,51 @@ class ClusterController @Inject() (
 
   /**
    * Runs clustering, emitting status updates as a server-sent event stream.
+   *
+   * @param allRegions Re-cluster every region rather than only those whose set of clusterable labels has changed. Use
+   *                   after something moves labels the clusterer already knows about, like the #4818 position
+   *                   backfill: membership is unchanged, so the default selection would find nothing to do.
    */
-  def runClustering(): Action[AnyContent] = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-    cc.loggingService.insert(request.identity.userId, request.ipAddress, request.toString)
+  def runClustering(allRegions: Boolean): Action[AnyContent] = cc.securityService.SecuredAction(WithAdmin()) {
+    implicit request =>
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, request.toString)
 
-    // Create a shared status object for clustering progress updates.
-    val statusRef = new AtomicReference[String]("Starting")
+      // Create a shared status object for clustering progress updates.
+      val statusRef = new AtomicReference[String]("Starting")
 
-    // Run the clustering.
-    val resultFuture: Future[JsObject] = clusterService.runClustering(Some(statusRef)).map { results =>
-      Json.obj("labels" -> results.labelCount, "clusters" -> results.clusterCount)
-    }
-
-    // Create a source that emits status updates.
-    val statusSource = Source
-      .tick(initialDelay = 0.seconds, interval = 2.seconds, tick = ())
-      .mapMaterializedValue { mat =>
-        // Cancel the ticker when clustering ends or the client disconnects.
-        resultFuture.onComplete(_ => mat.cancel())
-        mat
+      // Run the clustering.
+      val resultFuture: Future[JsObject] = clusterService.runClustering(Some(statusRef), allRegions).map { results =>
+        Json.obj("labels" -> results.labelCount, "clusters" -> results.clusterCount)
       }
-      .takeWhile(_ =>
-        // Send normal status updates.
-        !resultFuture.isCompleted
-      )
-      .map { _ => s"""data: {"status": "${statusRef.get()}"}\n\n""" }
 
-    // When the main task completes, emit the final status and complete the stream.
-    val resultSource = Source.future(resultFuture).map { resultJson =>
-      s"""data: {"status": "Complete", "results": ${resultJson.toString}}\n\n"""
-    }
-
-    // Combine the sources and return as event stream.
-    Future.successful(
-      Ok.chunked(statusSource.concat(resultSource))
-        .as("text/event-stream")
-        .withHeaders(
-          "Cache-Control" -> "no-cache, no-store, must-revalidate",
-          "Connection"    -> "keep-alive"
+      // Create a source that emits status updates.
+      val statusSource = Source
+        .tick(initialDelay = 0.seconds, interval = 2.seconds, tick = ())
+        .mapMaterializedValue { mat =>
+          // Cancel the ticker when clustering ends or the client disconnects.
+          resultFuture.onComplete(_ => mat.cancel())
+          mat
+        }
+        .takeWhile(_ =>
+          // Send normal status updates.
+          !resultFuture.isCompleted
         )
-    )
+        .map { _ => s"""data: {"status": "${statusRef.get()}"}\n\n""" }
+
+      // When the main task completes, emit the final status and complete the stream.
+      val resultSource = Source.future(resultFuture).map { resultJson =>
+        s"""data: {"status": "Complete", "results": ${resultJson.toString}}\n\n"""
+      }
+
+      // Combine the sources and return as event stream.
+      Future.successful(
+        Ok.chunked(statusSource.concat(resultSource))
+          .as("text/event-stream")
+          .withHeaders(
+            "Cache-Control" -> "no-cache, no-store, must-revalidate",
+            "Connection"    -> "keep-alive"
+          )
+      )
   }
 
   /**

@@ -224,6 +224,8 @@ A deploy builds the app essentially the same way you do locally, in this order:
 3. **sbt** `clean stage` to compile the Scala/Play backend into a runnable package. This also bundles the `scripts/`
    directory into the staged app (via `Universal / mappings` in `build.sbt`) so the in-band `label_clustering.py` is
    present at runtime — the staged app runs from the stage dir, not the repo root, so an unbundled script can't be found.
+   Staging also runs the **asset pipeline**, which content-fingerprints assets so browsers can cache them for a year
+   (see [Asset caching](#asset-caching)). Fingerprints are computed from the built bundles, so step 2 must run first.
 
 The compile step also stamps git metadata (commit SHA, `git describe`, dirty flag) into the binary via a source
 generator in `build.sbt` (`models.utils.BuildInfo`), which the admin pages' deployment-info strip displays. The values
@@ -234,6 +236,35 @@ the build.
 Because the build is identical in spirit to local dev, **a change that fails to compile or bundle locally will fail
 the deploy.** The backend is built with `-Xfatal-warnings`, so warnings block the build too. See
 [`docs/testing-and-ci.md`](testing-and-ci.md) and [`docs/dev-environment.md`](dev-environment.md).
+
+### Asset caching
+
+**sbt-digest** content-fingerprints every asset at stage time, writing an `<md5>-<name>` copy beside the original.
+`assets.path("css/main.css")` resolves to that URL (`/assets/css/91f6…-main.css`), and since `conf/routes` serves
+assets through `controllers.Assets.versioned`, Play answers with `max-age=31536000, immutable` rather than the
+`max-age=3600` default. Changed content always arrives under a new URL, so there is no staleness risk.
+
+**It is a correctness fix, not only a speed one.** Play's fallback ETag for an un-fingerprinted asset comes from its
+path and last-modified date, not its bytes — and sbt's `packageTimestamp` (an sbt-wide default) freezes every jar
+entry at `2010-01-01` for reproducible builds. Both inputs are constant across deploys, so replacing a file's contents
+under the same name leaves the ETag unchanged and every cached copy revalidates to a `304` **indefinitely**. Don't fix
+that by unfreezing `packageTimestamp`: it would cost reproducible builds *and* invalidate every asset on every deploy.
+
+Costs ~291MB of duplicate files per staged instance and ~25s of stage time. Boot time is unaffected — Play resolves
+fingerprints lazily per asset, not at startup.
+
+The one-hour default applies only to the `Assets` controller, so **HTML isn't cached at all** — Play's Twirl responses
+carry no `Cache-Control`, `ETag`, or `Last-Modified`. That is what makes fingerprinting safe: a browser refetches the
+page on every navigation, so a deploy's new asset URLs are picked up immediately and nobody is left holding stale HTML
+that points at a fingerprinted file the new build no longer contains.
+
+Originals stay in place too, so hardcoded `/assets/...` paths and relative `url(...)` in CSS keep resolving — but only
+`assets.path(...)` yields the long-lived URL, which is why it's preferred everywhere.
+
+Stage/dist only: local `sbt run` serves plain paths and `no-cache` as before, so exercising the real behavior means
+staging the app and running the binary directly rather than `npm start`. That depends on `pipelineStages` in
+`build.sbt` staying **unscoped** — the `Assets /`-scoped form of the same setting runs the digest on every dev request
+instead, which fingerprints for no benefit and roughly triples `target/web`.
 
 ### Liveness convention
 

@@ -44,7 +44,7 @@
   pageMeta = service.PageMeta(description = Some(Messages("seo.description.landing", currentCity.cityNameShort)))) {
   @common.navbar(commonData, user)
   <div id="vidbanner">
-    <video playsinline autoplay muted loop controls poster='@assets.path("images/psmockup.jpg")' id="bgvid" class="visible-desktop">
+    <video playsinline autoplay muted loop controls poster='@assets.path("images/psmockup.jpg")' id="bgvid">
       <source src='@assets.path("videos/mainvideo.webm")' type="video/webm">
       <source src='@assets.path("videos/mainvideo.mp4")' type="video/mp4">
     </video>
@@ -108,16 +108,16 @@
         </div>
         <div class="hidden-xs" id="greenbar"></div>
         <div id="instructionvideo">
-          <video id="vid1" width="800" playsinline autoplay muted loop poster='@assets.path("images/segment-1-1.jpg")' class="visible-desktop ps-hidden">
+          <video id="vid1" width="800" playsinline autoplay muted loop poster='@assets.path("images/segment-1-1.jpg")' class="ps-hidden">
             <source src='@assets.path("videos/segment-1-1.mp4")' type="video/mp4">
           </video>
           @* vid2/vid3 start hidden and only play once their tab is clicked (homepage.js switchToVideo calls play()),
              so they don't autoplay and preload="none" keeps them out of the page's load path. homepage.js
              warmHiddenInstructionVideos downloads them shortly after load, so the tab switch is instant. *@
-          <video id="vid2" width="800" playsinline muted loop preload="none" poster='@assets.path("images/segment-2.jpg")' class="visible-desktop ps-hidden">
+          <video id="vid2" width="800" playsinline muted loop preload="none" poster='@assets.path("images/segment-2.jpg")' class="ps-hidden">
             <source src='@assets.path("videos/segment-2.mp4")' type="video/mp4">
           </video>
-          <video id="vid3" width="800" playsinline muted loop preload="none" poster='@assets.path("images/segment-3.jpg")' class="visible-desktop ps-hidden">
+          <video id="vid3" width="800" playsinline muted loop preload="none" poster='@assets.path("images/segment-3.jpg")' class="ps-hidden">
             <source src='@assets.path("videos/segment-3.mp4")' type="video/mp4">
           </video>
         </div>
@@ -223,7 +223,8 @@
         </div>
       </div>
       <div class="gif-container">
-        <img loading="lazy" id="mlgif" src="@assets.path("images/MLGraphic.gif")" alt="@Messages("landing.ml.gif.explain.alt")">
+        @* Animated WebP rather than GIF: same 1920x900 canvas, 3 frames, 400ms each, looping — 58% smaller. *@
+        <img loading="lazy" id="mlgif" src="@assets.path("images/MLGraphic.webp")" alt="@Messages("landing.ml.gif.explain.alt")">
         <p id="mlgif-bottom-text-1" class="ml-gif-header-1">@Messages("landing.ml.gif.you")</p>
         <p id="mlgif-bottom-text-2" class="ml-gif-header-1">@Messages("landing.ml.gif.machine.learning")</p>
         <p id="mlgif-bottom-text-3" class="ml-gif-header-1">@Messages("landing.ml.gif.outcomes")</p>
