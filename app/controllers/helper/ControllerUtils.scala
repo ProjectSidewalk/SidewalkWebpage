@@ -3,7 +3,7 @@ package controllers.helper
 import models.label.LabelTypeEnum
 import models.user.{RoleTable, SidewalkUserWithRole}
 import play.api.mvc.Results.{Redirect, Unauthorized}
-import play.api.mvc.{Request, RequestHeader, Result}
+import play.api.mvc.{RequestHeader, Result}
 
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
@@ -25,8 +25,12 @@ object ControllerUtils {
 
   /**
    * Returns true if the user is on mobile, false if the user is not on mobile.
+   *
+   * Takes a `RequestHeader` rather than a `Request[A]` so views can call it too — the navbar hides the destinations
+   * that redirect mobile visitors to /mobileLanding, and a Twirl template only ever has the header. Controllers pass
+   * their `Request[A]` unchanged, since it is one.
    */
-  def isMobile[A](implicit request: Request[A]): Boolean = {
+  def isMobile(implicit request: RequestHeader): Boolean = {
     val mobileOS: Regex =
       "(iPhone|webOS|iPod|Android|BlackBerry|mobile|SAMSUNG|IEMobile|OperaMobi|BB10|iPad|Tablet)".r.unanchored
     request.headers

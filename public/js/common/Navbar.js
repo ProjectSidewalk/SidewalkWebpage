@@ -25,6 +25,24 @@ class NavbarController {
   /** @type {HTMLElement[]} The two nav groups (primary, utility) whose combined width has to fit the bar. */
   #navGroups = [];
 
+  /** @type {?HTMLElement} The strip in the brand area that holds the collapsed bar's icon-only quick links. */
+  #quickStrip = null;
+
+  /**
+   * The `data-nav-quick` items, highest priority (lowest `data-nav-quick`) first — the order the collapsed bar fills
+   * them in, and the reverse of the order it drops them.
+   * @type {Array<{li: HTMLElement, parent: HTMLElement}>}
+   */
+  #quickItems = [];
+
+  /**
+   * Each quick item's original list, in its original child order, which is what says where an item goes back to.
+   * Recorded per list rather than as a "next sibling" per item, because that sibling can be a quick item that is
+   * itself away in the strip.
+   * @type {Map<HTMLElement, Element[]>}
+   */
+  #quickHomes = new Map();
+
   /**
    * Space-freeing steps for the inline bar, ordered lowest priority first. Each takes a boolean and applies or
    * clears its effect; #fitNav applies as few as will make the bar fit.
@@ -226,7 +244,15 @@ class NavbarController {
     this.#menu = document.getElementById('navbar');
     this.#hamburger = this.#nav.querySelector('[data-nav-toggle]');
     if (!this.#menu) return;
-    this.#navGroups = Array.from(this.#menu.querySelectorAll('.navbar-nav'));
+    this.#navGroups = Array.from(this.#menu.querySelectorAll('#navbar > .navbar-nav'));
+
+    this.#quickStrip = document.getElementById('navbar-quick');
+    this.#quickItems = Array.from(this.#menu.querySelectorAll('[data-nav-quick]'))
+      .sort((a, b) => Number(a.dataset.navQuick) - Number(b.dataset.navQuick))
+      .map((li) => ({ li, parent: li.parentElement }));
+    for (const { parent } of this.#quickItems) {
+      if (!this.#quickHomes.has(parent)) this.#quickHomes.set(parent, Array.from(parent.children));
+    }
 
     // Items opt in via data-nav-shed="<n>", n ascending from the first to be dropped.
     this.#shedSteps = Array.from(this.#menu.querySelectorAll('[data-nav-shed]'))
@@ -260,11 +286,69 @@ class NavbarController {
     // In the stacked hamburger panel each item has its own row, so everything is shown.
     const stacked = this.#hamburger && this.#hamburger.offsetParent !== null;
     for (const step of this.#shedSteps) step(false);
+    this.#applyQuickStrip(stacked);
     if (stacked) return;
     for (const step of this.#shedSteps) {
       if (this.#navFits()) return;
       step(true);
     }
+  }
+
+  /**
+   * Moves the `data-nav-quick` items between the collapsed bar's icon strip and their places in the inline bar.
+   *
+   * Below the collapse breakpoint the bar is otherwise just a logo and a hamburger, which buries the handful of
+   * destinations that are worth one tap. Each item is moved rather than duplicated — one copy keeps the ids the
+   * click logging and the dialog wiring key on unique — so an item promoted to the strip leaves the panel, and one
+   * that doesn't fit stays in the panel. Nothing is ever unreachable.
+   *
+   * @param {boolean} stacked - Whether the nav is collapsed behind the hamburger.
+   */
+  #applyQuickStrip(stacked) {
+    if (!this.#quickStrip) return;
+
+    if (!stacked) {
+      for (const item of this.#quickItems) this.#sendHome(item);
+      return;
+    }
+
+    for (const { li } of this.#quickItems) {
+      this.#quickStrip.appendChild(li);
+      li.classList.add('is-quick');
+    }
+    // Drop the lowest-priority icons until the row fits. Measured rather than pinned to a second breakpoint,
+    // because the logo is a per-city image and the strip's width depends on how many items the page renders.
+    for (const item of [...this.#quickItems].reverse()) {
+      if (this.#quickStripFits()) return;
+      this.#sendHome(item);
+    }
+  }
+
+  /**
+   * Puts a quick item back in its own list, before the first of its original later siblings that is currently there.
+   * Any that are still in the strip are skipped, so the surviving items keep their authored order however many of
+   * them have been promoted.
+   *
+   * @param {{li: HTMLElement, parent: HTMLElement}} item - The item and the list it belongs to.
+   */
+  #sendHome({ li, parent }) {
+    li.classList.remove('is-quick');
+    if (li.parentElement === parent) return;
+    const order = this.#quickHomes.get(parent) || [];
+    const anchor = order.slice(order.indexOf(li) + 1).find((el) => el.parentElement === parent) || null;
+    parent.insertBefore(li, anchor);
+  }
+
+  /**
+   * @returns {boolean} Whether the brand row (logo + quick strip + hamburger) fits on one line.
+   */
+  #quickStripFits() {
+    const row = this.#quickStrip.parentElement;
+    // The strip is the flex item that gives, so the row's own scrollWidth stays pinned to its width; sum the
+    // children instead. Slack leaves the logo and the icons from sitting flush against each other.
+    const needed = Array.from(row.children)
+      .reduce((sum, child) => sum + child.getBoundingClientRect().width, 0);
+    return needed <= row.clientWidth - 16;
   }
 
   /**
