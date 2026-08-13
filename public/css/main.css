@@ -696,10 +696,31 @@ a {
   min-height: 20px;
 }
 
+/* The three columns don't fill the 900px evenly, so centering the row alone leaves the group visibly left of centre;
+   the offset is what makes the *content* read as centered. */
 #footer-container .footer-links-row {
   width: 900px;
   position: relative;
   left: 80px;
+}
+
+/*
+ * Below the width that fits 900px plus that 80px offset, both turn into overflow: the row is laid out past the right
+ * edge, which widens the page. Every page carries this footer, so every page scrolled sideways on a phone — and since
+ * the navbar is fixed to the initial containing block that the overflow widens, the navbar was laid out wider than
+ * the screen too, pushing the hamburger off it (#4857).
+ *
+ * Bootstrap's gutters have to go with it: .row pulls itself 15px wider on each side expecting a block container to
+ * absorb the difference, and #footer-container is a flex container, so that width lands outside the viewport instead.
+ * The columns keep their own padding, which is what still indents the text once the row stops overhanging.
+ */
+@media (width <= 1060px) {
+  #footer-container .footer-links-row {
+    width: 100%;
+    left: 0;
+    margin-left: 0;
+    margin-right: 0;
+  }
 }
 
 #info-footer .footer-logos-row {
@@ -895,25 +916,27 @@ a {
   outline-offset: 2px;
 }
 
-@media only screen and (device-width <= 500px) {
-  #award-num {
-    width: 100% !important;
-    right: 0% !important;
-  }
-}
-
-@media only screen and (device-width <= 800px) and (device-width >= 500px) {
-  #award-num {
-    width: 350% !important;
-    right: 45% !important;
-  }
-}
-
+/* Sized as a multiple of its own column because the award text is far wider than the narrow .col-sm-1 it sits under,
+   and pulled back left by the matching offset so it stays under the NSF logo. */
 #award-num {
   font-size:10px;
   color:#c0becf;
   width: 220%;
   right: 35%;
+}
+
+/*
+ * Below Bootstrap's sm breakpoint the columns stop floating and stack full-width, so a percentage picked for a narrow
+ * column becomes multiples of the viewport — 220% of 737px is 1621px of page, and the fixed navbar is sized from the
+ * containing block that widens with it (#4857). Keyed on `width` rather than the `device-width` this used before:
+ * device-width is the physical screen, so it missed every resized desktop window and fired off the wrong dimension on
+ * a rotated tablet.
+ */
+@media (width <= 767px) {
+  #award-num {
+    width: 100%;
+    right: 0;
+  }
 }
 
 #funding-title {
