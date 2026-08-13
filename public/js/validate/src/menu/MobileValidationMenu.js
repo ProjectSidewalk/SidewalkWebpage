@@ -120,9 +120,7 @@ class MobileValidationMenu {
     const menuUI = this.#menuUI;
     const prevValResult = label.getProperty('validationResult');
 
-    // The reason buttons are shared markup that still describes whichever label type was on screen last, so they have
-    // to be rebuilt for this label on both paths. An undo can land on a label whose type differs from the one that
-    // replaced it, and then a stale button either shows the wrong reason text or hides the very reason being restored.
+    // Rerender the reason buttons, so that they match the correct label type when we allow such an undo (#4034).
     this.#renderReasonButtons(label);
 
     if (prevValResult === undefined) {
@@ -173,8 +171,8 @@ class MobileValidationMenu {
   /**
    * Fills in the text, tooltip, and visibility of every disagree and unsure reason button for a label's type.
    *
-   * The buttons are one fixed set of elements reused across label types: a type that offers a given reason gets that
-   * button shown and marked `defaultOption`. A type that doesn't offer it gets the button hidden.
+   * The buttons are one shared set of elements, so a type that offers a given reason gets it shown and marked
+   * `defaultOption`, while a type that doesn't offer it gets it hidden.
    *
    * @param {object} label The label whose type the buttons should describe.
    */

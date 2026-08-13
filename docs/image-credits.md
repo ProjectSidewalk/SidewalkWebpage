@@ -1,7 +1,6 @@
 # Image credits
 
-Where our images came from. Most are our own Google Street View screenshots and need no entry here. When you add an
-image that came from somewhere else, add a row so the source stays recorded.
+Where our images came from. Most are our own Google Street View screenshots and need no entry here. When you add an image that came from somewhere else, add a row so the source stays recorded.
 
 ## `public/images/validate/ExpertValidateTooltips/`
 

@@ -205,11 +205,9 @@ class KeyboardManager {
         case 'Numpad4':
         case 'Digit5':
         case 'Numpad5':
-          // The comment box is always the key one past the menu's last reason, so it moves from 4 to 5 on the one
-          // label type that offers a fourth reason. #handleNumberKeyShortcut gives that for free: a key with no
-          // matching `defaultOption` button falls through to the comment box, and no menu has a fifth reason. Routed
-          // separately from 1-3 only because of the Agree verdict, where it would reach for a severity button 4 or 5
-          // that doesn't exist rather than commenting.
+          // The comment box is always the key one past the menu's last reason, so it moves from 4 to 5 on any label
+          // type that offers a fourth reason, handled through #handleNumberKeyShortcut. Routed separately from 1-3 only
+          // because of the Agree verdict, where it would reach for a severity button 4 or 5 that doesn't exist.
           if (validationMenuUi.noButton.hasClass('chosen')) {
             this.#handleNumberKeyShortcut(parseInt(e.key, 10), e);
           } else {
