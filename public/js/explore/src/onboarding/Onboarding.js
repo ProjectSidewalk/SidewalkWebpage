@@ -497,14 +497,91 @@ class Onboarding {
   }
 
   /**
-   * Position the onboarding message box beside a live UI element using Floating UI lib, with an arrow pointing at it.
-   * @param {string} anchorSelector CSS selector of the element to point the box at.
-   * @param {string} placement Preferred Floating UI placement (e.g. 'left', 'right', 'top', 'bottom').
+   * On-screen rect of a placed label, for use as a Floating UI virtual reference.
+   *
+   * The projection is left unbounded and the result clamped into the pano instead, so a label the user has panned
+   * off-screen keeps a rect that rides the near edge.
+   *
+   * @param {Label} label The label to measure.
+   * @returns {DOMRect|null} null if there is no such label or its position can't be projected.
    */
-  #anchorMessageTo(anchorSelector, placement) {
-    const reference = document.querySelector(anchorSelector);
+  #labelRect(label) {
+    const pane = document.getElementById('street-view-holder');
+    const centeredPov = label && !label.isDeleted() && label.getProperty('povOfLabelIfCentered');
+    if (!pane || !centeredPov) return null;
+
+    const coord = util.pano.centeredPovToCanvasCoord(
+      centeredPov, this.#svl.panoViewer.getPov(),
+      util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, Infinity,
+    );
+    if (!coord) return null;
+
+    const scale = util.exploreDisplayScale();
+    const size = this.#svl.LABEL_ICON_RADIUS * scale * 2;
+    const paneRect = pane.getBoundingClientRect();
+    const clamp = (v, min, max) => Math.min(Math.max(v, min), Math.max(min, max));
+    const iconRect = new DOMRect(
+      clamp(paneRect.left + coord.x * scale - size / 2, paneRect.left, paneRect.right - size),
+      clamp(paneRect.top + coord.y * scale - size / 2, paneRect.top, paneRect.bottom - size),
+      size, size,
+    );
+
+    const card = this.#svl.ui.canvas.hoverCard;
+    if (label.getHoverInfoVisibility() !== 'visible' || card.css('visibility') !== 'visible') return iconRect;
+
+    const cardRect = card[0].getBoundingClientRect();
+    const left = Math.min(iconRect.left, cardRect.left);
+    const top = Math.min(iconRect.top, cardRect.top);
+    return new DOMRect(
+      left, top, Math.max(iconRect.right, cardRect.right) - left, Math.max(iconRect.bottom, cardRect.bottom) - top,
+    );
+  }
+
+  /**
+   * Builds an anchor resolver that points the message at a placed label.
+   *
+   * @param {Label} label The label to point at.
+   * @returns {Function} Resolver for #anchorMessageTo.
+   */
+  #labelAnchor(label) {
+    return () => {
+      const rect = this.#labelRect(label);
+      return rect ? { rect, placement: 'top', boundedByPane: true } : null;
+    };
+  }
+
+  /**
+   * Builds an anchor resolver that points the message at a UI element.
+   *
+   * A callout anchored inside the context menu follows the menu's label while the menu is closed: the menu is
+   * hidden with `visibility`, so it keeps a rect the callout would otherwise go on pointing at (#4859).
+   *
+   * @param {string} selector CSS selector of the element to point the box at.
+   * @param {string} placement Preferred Floating UI placement (e.g. 'left', 'right', 'top', 'bottom').
+   * @returns {Function} Resolver for #anchorMessageTo.
+   */
+  #elementAnchor(selector, placement) {
+    return () => {
+      const el = document.querySelector(selector);
+      if (!el) return null;
+
+      if (!this.#contextMenu.isOpen() && this.#svl.ui.contextMenu.holder[0]?.contains(el)) {
+        const rect = this.#labelRect(this.#contextMenu.getTargetLabel());
+        if (rect) return { rect, placement: 'top', boundedByPane: true };
+      }
+      const pane = document.getElementById('street-view-holder');
+      return { rect: el.getBoundingClientRect(), placement, boundedByPane: Boolean(pane?.contains(el)) };
+    };
+  }
+
+  /**
+   * Position the onboarding message box beside its anchor using Floating UI lib, with an arrow pointing at it.
+   * @param {Function} resolveAnchor Returns {rect, placement, boundedByPane} for the current frame, or null.
+   */
+  #anchorMessageTo(resolveAnchor) {
     const floating = this.#uiOnboarding.messageHolder.get(0);
-    if (!reference || !floating || typeof FloatingUIDOM === 'undefined') return;
+    let anchor = resolveAnchor();
+    if (!anchor || !floating || typeof FloatingUIDOM === 'undefined') return;
 
     // (Re)create the arrow element Floating UI positions; showMessage's html() call wipes the box's contents.
     let arrowEl = floating.querySelector('.fui-arrow');
@@ -515,8 +592,13 @@ class Onboarding {
     }
     floating.style.position = 'absolute';
 
+    const pane = document.getElementById('street-view-holder');
+    // A virtual reference, because an anchor can be a label icon painted on the canvas, with no element of its own.
+    const reference = { getBoundingClientRect: () => (resolveAnchor() ?? anchor).rect, contextElement: pane };
+
     // Recompute on scroll/resize/layout changes so the box keeps tracking the element.
     const update = () => {
+      anchor = resolveAnchor() ?? anchor;
       // The arrow is a square rotated 45deg centered on the box edge, so its tip protrudes by half its diagonal.
       // Gap the box from the element by that distance so the tip just reaches the near edge. Re-measured each
       // update since the arrow scales with --ui-scale.
@@ -524,10 +606,9 @@ class Onboarding {
       const arrowProtrusion = arrowHalf * Math.SQRT2;
       // Confine the callout to the streetscape pane so the pane's border can't slice it — but only when its
       // anchor lives in the pane; minimap/sidebar anchors need the callout to follow them across the gutter.
-      const pane = document.getElementById('street-view-holder');
-      const boundary = pane && pane.contains(reference) ? pane : undefined;
+      const boundary = anchor.boundedByPane ? pane : undefined;
       FloatingUIDOM.computePosition(reference, floating, {
-        placement,
+        placement: anchor.placement,
         middleware: [
           FloatingUIDOM.offset(arrowProtrusion),
           // bestFit: when no side fully fits the callout, take the roomiest one rather than the preferred one.
@@ -547,23 +628,25 @@ class Onboarding {
       }).then(({ x, y, placement: finalPlacement }) => {
         Object.assign(floating.style, { left: `${x}px`, top: `${y}px`, transform: 'none' });
 
-        // Point the arrow at the center of the element's near edge, computed from live rects so it stays
-        // centered even when shift() nudged the box along that axis.
+        // Point the arrow at the center of the anchor's near edge, computed from live rects so it stays centered even
+        // when shift() nudged the box along that axis. Clamped to the box's own edge, inset by the arrow's half-width.
         const side = finalPlacement.split('-')[0];
         const staticSide = { top: 'bottom', right: 'left', bottom: 'top', left: 'right' }[side];
-        const refRect = reference.getBoundingClientRect();
+        const refRect = anchor.rect;
         const floatRect = floating.getBoundingClientRect();
+        const along = side === 'left' || side === 'right'
+          ? { prop: 'top', center: refRect.top + refRect.height / 2 - floatRect.top, boxLen: floatRect.height }
+          : { prop: 'left', center: refRect.left + refRect.width / 2 - floatRect.left, boxLen: floatRect.width };
+        const maxOffset = Math.max(arrowHalf, along.boxLen - 3 * arrowHalf);
         Object.assign(arrowEl.style, { left: '', top: '', right: '', bottom: '' });
-        if (side === 'left' || side === 'right') {
-          arrowEl.style.top = `${refRect.top + refRect.height / 2 - floatRect.top - arrowHalf}px`;
-        } else {
-          arrowEl.style.left = `${refRect.left + refRect.width / 2 - floatRect.left - arrowHalf}px`;
-        }
+        arrowEl.style[along.prop] = `${Math.min(Math.max(along.center - arrowHalf, arrowHalf), maxOffset)}px`;
         arrowEl.style[staticSide] = `${-arrowHalf}px`;
       });
     };
 
-    this.#floatingCleanup = FloatingUIDOM.autoUpdate(reference, floating, update);
+    // animationFrame: an anchor can be a canvas-painted label, or a menu section that goes visibility:hidden —
+    // neither moves in a way the observers autoUpdate uses by default can see.
+    this.#floatingCleanup = FloatingUIDOM.autoUpdate(reference, floating, update, { animationFrame: true });
   }
 
   /**
@@ -618,7 +701,7 @@ class Onboarding {
     this.#uiOnboarding.messageHolder
       .removeClass('animated fadeIn fadeInLeft fadeInRight fadeInDown fadeInUp callout-floating '
         + 'onboarding-message-takeover onboarding-message-fullpage onboarding-message-top-right '
-        + 'onboarding-message-pano-anchored')
+        + 'onboarding-message-pano-anchored onboarding-message-pass-through')
       .css({ position: '', top: '', left: '', transform: '', width: '', maxWidth: '' });
     this.#uiOnboarding.background.css('visibility', 'hidden');
 
@@ -641,10 +724,16 @@ class Onboarding {
       this.#uiOnboarding.background.css('visibility', 'visible');
       this.#uiOnboarding.messageHolder.addClass('onboarding-message-takeover');
       if (parameters.fullPage) this.#uiOnboarding.messageHolder.addClass('onboarding-message-fullpage');
-    } else if (parameters.anchor) {
-      // Anchor to a live UI element; Floating UI computes the position and arrow.
+    } else if (parameters.anchor || parameters.labelAnchor) {
+      // Anchor to a live UI element or a placed label; Floating UI computes the position and arrow.
       this.#uiOnboarding.messageHolder.addClass('callout-floating');
-      this.#anchorMessageTo(parameters.anchor, parameters.placement || 'right');
+      if (parameters.labelAnchor) {
+        // Whatever this callout ends up over, it must not intercept the hover or click the step is asking for.
+        this.#uiOnboarding.messageHolder.addClass('onboarding-message-pass-through');
+      }
+      this.#anchorMessageTo(parameters.labelAnchor
+        ? this.#labelAnchor(this.#svl.labelContainer.findLabelByTempId(this.#currentLabelId))
+        : this.#elementAnchor(parameters.anchor, parameters.placement || 'right'));
     } else if (parameters.panoAnchor) {
       // Pin just above a pano-image coordinate (e.g. the step's annotation arrow).
       this.#positionMessageAtPanoCoord(parameters.panoAnchor);
@@ -771,6 +860,11 @@ class Onboarding {
     if (action === 'LabelAccessibilityAttribute' && state.message && state.annotations) {
       const arrow = state.annotations.find((a) => a.type === 'arrow');
       if (arrow) state.message.panoAnchor = { x: arrow.x, y: arrow.y };
+    }
+
+    // Delete steps point their message at the misplaced label the user has to hover (#4859).
+    if (action === 'DeleteAccessibilityAttribute' && state.message) {
+      state.message.labelAnchor = true;
     }
 
     // Show user a message box.
