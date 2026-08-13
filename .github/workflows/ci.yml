@@ -273,8 +273,15 @@ jobs:
       #   It seeds its own users and route walks, but hangs them on an existing street/region and needs a configured
       #   tutorial street, so all four tests CANCEL on this empty schema — listed here so they run the moment the job
       #   has a seeded DB, and so the cancel is visible rather than the suite silently not existing.
+      # - PanoDataServiceSpec (#4765/#4766): pure unit tests (no DB, no app boot) pinning the label lat/lng estimator
+      #   against research-derived constants — costs nothing here and otherwise runs nowhere in CI.
+      # - ConfigTableVoidedArchiveSpec (#4842): the voided-vote archive must count as work credit in the per-schema
+      #   aggregate queries AND those queries must survive a schema that hasn't applied evolution 353 (the cross-city
+      #   fan-out reads other schemas mid-rollout). Self-seeding in rolled-back transactions, meaningful even here.
+      # - StatsApiSpec (#3871/#3981): the stats endpoints' snake_case output contract and total/breakdown
+      #   reconciliation — the HTTP surface over the aggregate queries above. Shape-only, data-independent.
       - name: Run gating/auth tests (health dashboard + route auth posture + geodesic distances)
-        run: sbt 'set Test / parallelExecution := false' 'testOnly controllers.HealthDashboardSpec service.HealthServiceSpec controllers.RouteAuthPostureSpec models.street.GeodesicDistanceSpec service.ExploreTutorialRouteSpec'
+        run: sbt 'set Test / parallelExecution := false' 'testOnly controllers.HealthDashboardSpec service.HealthServiceSpec controllers.RouteAuthPostureSpec models.street.GeodesicDistanceSpec service.ExploreTutorialRouteSpec service.PanoDataServiceSpec models.utils.ConfigTableVoidedArchiveSpec controllers.api.StatsApiSpec'
         env:
           DATABASE_URL: jdbc:postgresql://localhost:5432/sidewalk
           DATABASE_USER: sidewalk

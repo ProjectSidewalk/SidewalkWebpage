@@ -235,7 +235,9 @@ class LabelValidationTable @Inject() (
 
   /**
    * The total number of human validations performed (i.e., excluding AI validations), as work credit. The voided-vote
-   * archive counts in full: the #4842 repair voids human votes only, so every archived vote is human.
+   * archive counts in full: the #4842 repair voids human votes only, so every archived vote is human. That
+   * human-ness is checked at repair time and not re-derived here — if an archived vote's caster were later granted
+   * the AI role, this count would still (correctly) treat their pre-role-change vote as human work.
    *
    * @return The total number of human validations performed, including archived voided ones.
    */

@@ -36,7 +36,12 @@ CREATE TABLE old_label_point_pov (
     new_heading DOUBLE PRECISION NOT NULL,
     new_pitch DOUBLE PRECISION NOT NULL,
     -- On-screen error of the OLD record in Validate-canvas px at the record's own zoom. Drives the >= 30 px
-    -- validation voiding below and makes the repair auditable per label.
+    -- validation voiding below and makes the repair auditable per label. The metric is the study instrument's,
+    -- verbatim (era_replay_study dx_deg/dy_deg -> validate_px in sidewalk-panorama-tools): equirectangular px
+    -- scaled by 360/width and 180/height, hypot, then / fov * 720. Deliberately no cos(altitude) factor on the
+    -- x term -- the instrument's metric has none, and the 30 px cutoff was read off that instrument's
+    -- agreement-vs-error curve, so adding one here would decalibrate the threshold (it would also only shrink
+    -- the error, i.e. void fewer votes, never more).
     old_render_error_px DOUBLE PRECISION NOT NULL,
     PRIMARY KEY (label_id),
     FOREIGN KEY (label_id) REFERENCES label (label_id),
@@ -51,7 +56,10 @@ ALTER TABLE old_label_point_pov OWNER TO sidewalk;
 -- One pass computes everything: replay the stored record (pov_inputs -> ray -> replayed -> residuals), keep the
 -- rows that miss their own coordinate by > 2 px and are not frame changes (mismatched), then re-solve the viewport
 -- (solved -> repaired). The projection constants are the 720x480 Explore canvas (center 360, 240) and get3dFov's
--- zoom ladder, exactly as in evolution 179. ROUND on double precision is half-to-even, matching the client replay.
+-- zoom ladder, exactly as in evolution 179. Rounding is NOT bit-identical to the client and does not need to be:
+-- Postgres ROUND(double precision) is half-to-even where the client's Math.round is half-up, and the client wraps x
+-- into [0, width) before rounding where this replay rounds first (so a stored pano_x can legitimately be exactly
+-- width). Both differences are at most 1 px and are absorbed by the > 2 px threshold and the seam-aware abs_dx.
 WITH pov_inputs AS (
     SELECT label.label_id,
            label_point.heading,
@@ -111,6 +119,12 @@ WITH pov_inputs AS (
     FROM replayed
 ), mismatched AS (
     -- Beyond rounding noise on either axis, and not explained by a previous pano generation (frame change).
+    -- The four generation heights are the certified study instrument's list, verbatim (sidewalk-panorama-tools
+    -- PR #80) -- the same allowlist the 438k-label era-replay study and the all-cities census ran with, which is
+    -- what makes detection here comparable to the published numbers the voiding thresholds rest on. Dev-DB re-runs
+    -- with a data-derived height list produced identical detection counts on Teaneck and Seattle, so an uncovered
+    -- generation is a theoretical gap today. Expand the list only in lockstep with the instrument (plus a re-run of
+    -- the affected-cohort census), never here alone.
     SELECT residuals.*
     FROM residuals
     WHERE (abs_dx > 2 OR abs_dy > 2)
@@ -135,6 +149,13 @@ WITH pov_inputs AS (
     -- Closed-form pitch: the ray's elevation f*sin(P) + dv*cos(P) must equal |ray| * sin(target altitude), where
     -- |ray| = sqrt(f^2 + du^2 + dv^2) is invariant in (heading, pitch). The WHERE is the asin domain guard -- it
     -- never fires on the study corpus, but an unrepairable row must be left alone, not crash the migration.
+    --
+    -- Branch choice is free, and that is load-bearing: the principal ASIN branch picks ONE of the (heading, pitch)
+    -- pairs that aim the record's canvas ray at the target, which suffices because no consumer renders the raw
+    -- record POV. Validate, Gallery, and label-detail all re-center the viewport through
+    -- util.pano.canvasCoordToCenteredPov(record POV, canvas_x, canvas_y) (panoUtilities.js), whose output depends
+    -- on the record only through that ray direction -- so every solution aiming at the target renders identically.
+    -- If a consumer ever starts rendering record heading/pitch directly, branch choice starts to matter.
     SELECT mismatched.*,
            camera_heading + 180.0 + 360.0 * pano_x / width AS target_heading,
            DEGREES(ASIN(SQRT(f * f + du * du + dv * dv) * SIN(RADIANS(90.0 - 180.0 * pano_y / height))
@@ -166,6 +187,69 @@ SET heading = old_label_point_pov.new_heading,
     pitch   = old_label_point_pov.new_pitch
 FROM old_label_point_pov
 WHERE label_point.label_id = old_label_point_pov.label_id;
+
+-- Self-check: re-replay every repaired record through the identical projection above and assert it now lands on its
+-- own pano_x/pano_y. The scaffold table's CHECK is the assert -- autocommit=false makes the whole evolution one
+-- transaction, so a single failing row aborts and rolls everything back instead of shipping a wrong repair. The
+-- table is dropped at the end of the Ups. It exists so every unattended application of this evolution (54 prod
+-- schemas) verifies its own repairs, not just the dev runs someone watched.
+CREATE TABLE pov_repair_check (
+    label_id INTEGER NOT NULL,
+    -- Residual of the repaired record against the label's own coordinate, in pano px (seam-aware on x, worst axis).
+    -- 2 px is the detection pass's own rounding-noise bound. The closed forms re-solve the coordinate exactly, so
+    -- anything beyond rounding noise can only be a solver bug -- fail the evolution loudly.
+    residual_px DOUBLE PRECISION NOT NULL,
+    CHECK (residual_px <= 2)
+);
+ALTER TABLE pov_repair_check OWNER TO sidewalk;
+
+WITH pov_inputs AS (
+    -- Same projection inputs as the detection pass, but reading the REPAIRED heading/pitch just written above,
+    -- restricted to exactly the repaired rows.
+    SELECT old_label_point_pov.label_id,
+           label_point.pano_x,
+           label_point.pano_y,
+           pano_data.camera_heading,
+           pano_data.width::DOUBLE PRECISION AS width,
+           pano_data.height::DOUBLE PRECISION AS height,
+           360.0 / TAN(0.5 * RADIANS(CASE WHEN label_point.zoom <= 2 THEN 126.5 - 36.75 * label_point.zoom
+                                          ELSE 195.93 / POWER(1.92, label_point.zoom) END)) AS f,
+           (label_point.canvas_x - 360)::DOUBLE PRECISION AS du,
+           (240 - label_point.canvas_y)::DOUBLE PRECISION AS dv,
+           RADIANS(label_point.heading) AS heading_rad,
+           RADIANS(label_point.pitch) AS pitch_rad
+    FROM old_label_point_pov
+    INNER JOIN label ON old_label_point_pov.label_id = label.label_id
+    INNER JOIN label_point ON label.label_id = label_point.label_id
+    INNER JOIN pano_data ON label.pano_id = pano_data.pano_id
+), ray AS (
+    SELECT pov_inputs.*,
+           f * COS(pitch_rad) * SIN(heading_rad)
+               + du * (CASE WHEN COS(pitch_rad) >= 0 THEN 1.0 ELSE -1.0 END) * COS(heading_rad)
+               - dv * SIN(pitch_rad) * SIN(heading_rad) AS ray_x,
+           f * COS(pitch_rad) * COS(heading_rad)
+               - du * (CASE WHEN COS(pitch_rad) >= 0 THEN 1.0 ELSE -1.0 END) * SIN(heading_rad)
+               - dv * SIN(pitch_rad) * COS(heading_rad) AS ray_y,
+           f * SIN(pitch_rad) + dv * COS(pitch_rad) AS ray_z
+    FROM pov_inputs
+), replayed AS (
+    SELECT ray.*,
+           DEGREES(ATAN2(ray_x, ray_y)) + CASE WHEN ATAN2(ray_x, ray_y) < 0 THEN 360.0 ELSE 0.0 END AS pov_heading,
+           DEGREES(ASIN(ray_z / SQRT(ray_x * ray_x + ray_y * ray_y + ray_z * ray_z))) AS pov_altitude,
+           camera_heading + 180.0 - 360.0 * FLOOR((camera_heading + 180.0) / 360.0) AS heading_pixel_zero
+    FROM ray
+)
+INSERT INTO pov_repair_check (label_id, residual_px)
+SELECT label_id,
+       GREATEST(
+           ABS((pano_x - ((width::INT + ROUND(width * (pov_heading - heading_pixel_zero) / 360.0)::INT) % width::INT))
+               - width * ROUND((pano_x
+                                - ((width::INT + ROUND(width * (pov_heading - heading_pixel_zero) / 360.0)::INT)
+                                   % width::INT)) / width)),
+           ABS(pano_y - (height / 2.0 - ROUND((height / 2.0) * pov_altitude / 90.0))::INT))
+FROM replayed;
+
+DROP TABLE pov_repair_check;
 
 -- Validation treatment (#4842, design v2 from the PR #4866 review). Votes on labels whose old record rendered
 -- >= 30 px off were judgments of the wrong spot: below 30 px validator agreement sits at or above the 0.869 baseline,
@@ -229,6 +313,10 @@ ALTER TABLE voided_label_validation OWNER TO sidewalk;
 -- voided_label_validation: rows that became no-op entries (state equal to their predecessor) once the voided votes'
 -- own history rows were removed. They are real edits by surviving sources, so without this archive the Downs replay
 -- would restore the wrong label state. Expected row count is zero on every measured deployment.
+--
+-- Deliberately no Slick model (unlike voided_label_validation, which the app reads for work credit): the app never
+-- reads this table -- it exists solely so the Downs can restore surviving-source edits, and mirroring rollback
+-- scaffolding in code would invite app reads of it.
 CREATE TABLE voided_label_history (
     label_history_id INTEGER NOT NULL,
     label_id INTEGER NOT NULL,
@@ -314,15 +402,21 @@ DELETE FROM label_history
 WHERE label_history_id IN (SELECT label_history_id FROM voided_label_history);
 
 -- Revert affected labels' severity/tags by replaying what survives: a label's current state is by invariant its
--- latest history entry, so labels whose stream lost rows snap back to the latest surviving entry. Only rows whose
--- state actually changes are touched.
+-- latest history entry, so labels whose stream lost rows snap back to the latest surviving entry. Scoped to labels
+-- whose history stream ACTUALLY lost a row (a voided vote that carried a history row, or a consistency-pass
+-- deletion), not every voided-vote label -- on a label whose stream is untouched this would otherwise "replay" any
+-- pre-existing drift between label and its history, rewriting state the repair never disturbed.
 UPDATE label
 SET severity = latest_history.severity,
     tags     = latest_history.tags
 FROM (
     SELECT DISTINCT ON (label_id) label_id, severity, tags
     FROM label_history
-    WHERE label_id IN (SELECT DISTINCT label_id FROM voided_label_validation)
+    WHERE label_id IN (
+        SELECT label_id FROM voided_label_validation WHERE old_history_id IS NOT NULL
+        UNION
+        SELECT label_id FROM voided_label_history
+    )
     ORDER BY label_id, edit_time DESC, label_history_id DESC
 ) AS latest_history
 WHERE label.label_id = latest_history.label_id
@@ -437,14 +531,20 @@ SELECT label_history_id, label_id, severity, tags, edited_by, edit_time, source,
 FROM voided_label_history;
 
 -- Re-apply severity/tags by the same replay the Ups used: with the history rows back, each affected label snaps to
--- its latest entry. Post-evolution edits are newer than anything restored, so they stay in effect.
+-- its latest entry. Post-evolution edits are newer than anything restored, so they stay in effect. Same
+-- lost-a-row scoping as the Ups, for the same reason: never touch a label whose history stream this evolution
+-- didn't change.
 UPDATE label
 SET severity = latest_history.severity,
     tags     = latest_history.tags
 FROM (
     SELECT DISTINCT ON (label_id) label_id, severity, tags
     FROM label_history
-    WHERE label_id IN (SELECT DISTINCT label_id FROM voided_label_validation)
+    WHERE label_id IN (
+        SELECT label_id FROM voided_label_validation WHERE old_history_id IS NOT NULL
+        UNION
+        SELECT label_id FROM voided_label_history
+    )
     ORDER BY label_id, edit_time DESC, label_history_id DESC
 ) AS latest_history
 WHERE label.label_id = latest_history.label_id

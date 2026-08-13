@@ -134,13 +134,42 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
   }
 
   /**
+   * True iff `voided_label_validation` (created by evolution 353, #4842) exists in the given schema.
+   *
+   * Cross-schema queries must not assume another city's schema is at this instance's evolution level: each city is
+   * its own app instance, so on a rolling release there is a window where this instance (new code) queries a schema
+   * that hasn't applied 353 yet — and a parked deployment (schema present, no running app) may never apply it. A
+   * missing relation would fail the whole query, and the callers' `.recover` would then drop the entire city from
+   * the aggregate surfaces. An unmigrated schema's archive contribution is genuinely 0 (no repair has run there), so
+   * the right behavior is to probe first and skip the archive arm, not to fail. `to_regclass` resolves a relation
+   * name to NULL instead of erroring when absent, which makes it the safe probe.
+   *
+   * @param schema The database schema to probe.
+   * @return       DBIO yielding true when the archive table exists in that schema.
+   */
+  private def schemaHasVoidedValidationArchive(schema: String): DBIO[Boolean] =
+    sql"""SELECT to_regclass('"#$schema".voided_label_validation') IS NOT NULL""".as[Boolean].head
+
+  /**
    * Retrieves essential aggregate data for a specific city schema.
    *
    * @param schema The database schema name for the target city
    * @return DBIO action that yields AggregateStats
    */
-  def getCityAggregateDataBySchema(schema: String): DBIO[AggregateStats] = {
-    sql"""
+  def getCityAggregateDataBySchema(schema: String): DBIO[AggregateStats] = schemaHasVoidedValidationArchive(schema)
+    .flatMap { hasVoidedArchive =>
+      // Work-credit count (#4842): votes voided by the off-target-markers repair are archived in
+      // voided_label_validation, not deleted, so the "how many validations happened" total keeps counting them.
+      // Guarded per-schema because the table may not exist there yet (see schemaHasVoidedValidationArchive).
+      val voidedCountArm =
+        if (hasVoidedArchive) s""" + (
+              SELECT COUNT(*)
+              FROM "$schema".voided_label_validation
+              INNER JOIN "$schema".user_stat ON voided_label_validation.user_id = user_stat.user_id
+              WHERE NOT user_stat.excluded
+          )"""
+        else ""
+      sql"""
       SELECT km_audited.km_audited AS km_explored,
             km_audited_no_overlap.km_audited_no_overlap AS km_explored_no_overlap,
             label_counts.label_count AS total_labels,
@@ -181,39 +210,32 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
               AND deleted = FALSE
               AND tutorial = TRUE
       ) AS tutorial_label_counts, (
-          -- Work-credit count (#4842): votes voided by the off-target-markers repair are archived in
-          -- voided_label_validation, not deleted, so the "how many validations happened" total keeps counting them.
           SELECT (
               SELECT COUNT(*)
               FROM "#$schema".label_validation
               INNER JOIN "#$schema".user_stat ON label_validation.user_id = user_stat.user_id
               WHERE NOT user_stat.excluded
-          ) + (
-              SELECT COUNT(*)
-              FROM "#$schema".voided_label_validation
-              INNER JOIN "#$schema".user_stat ON voided_label_validation.user_id = user_stat.user_id
-              WHERE NOT user_stat.excluded
-          ) AS validation_count
+          )#$voidedCountArm AS validation_count
       ) AS total_val_count;
     """
-      .as[(Double, Double, Int, Int, Int)]
-      .head
-      .map { case (kmExplored, kmExploredNoOverlap, totalLabels, tutorialLabels, totalValidations) =>
+        .as[(Double, Double, Int, Int, Int)]
+        .head
+        .map { case (kmExplored, kmExploredNoOverlap, totalLabels, tutorialLabels, totalValidations) =>
 
-        // Now get the label type statistics for this schema.
-        getLabelTypeStatsBySchema(schema).map { labelTypeStats =>
-          AggregateStats(
-            kmExplored = kmExplored, kmExploredNoOverlap = kmExploredNoOverlap, totalLabels = totalLabels,
-            tutorialLabels = tutorialLabels, totalValidations = totalValidations, totalUsers = 0, // Deduped across schemas in ConfigService (getContributorUserIdsBySchema); not a per-city sum
-            numCities = 0,    // Individual cities don't have deployment counts
-            numCountries = 0, // These are calculated at the service level
-            numLanguages = 0, // when aggregating across all cities
-            byLabelType = labelTypeStats
-          )
+          // Now get the label type statistics for this schema.
+          getLabelTypeStatsBySchema(schema).map { labelTypeStats =>
+            AggregateStats(
+              kmExplored = kmExplored, kmExploredNoOverlap = kmExploredNoOverlap, totalLabels = totalLabels,
+              tutorialLabels = tutorialLabels, totalValidations = totalValidations, totalUsers = 0, // Deduped across schemas in ConfigService (getContributorUserIdsBySchema); not a per-city sum
+              numCities = 0,    // Individual cities don't have deployment counts
+              numCountries = 0, // These are calculated at the service level
+              numLanguages = 0, // when aggregating across all cities
+              byLabelType = labelTypeStats
+            )
+          }
         }
-      }
-      .flatten
-  }
+        .flatten
+    }
 
   /**
    * Retrieves the distinct contributor user ids for a single city schema (#3976).
@@ -228,8 +250,18 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    * @param schema The database schema to query.
    * @return DBIO action yielding the distinct contributor `user_id`s (a `text` column) for this schema.
    */
-  def getContributorUserIdsBySchema(schema: String): DBIO[Seq[String]] = {
-    sql"""
+  def getContributorUserIdsBySchema(schema: String): DBIO[Seq[String]] = schemaHasVoidedValidationArchive(schema)
+    .flatMap { hasVoidedArchive =>
+      // Votes voided by the #4842 repair still mark their caster as a contributor — the participation happened.
+      // Guarded per-schema because the archive may not exist there yet (see schemaHasVoidedValidationArchive).
+      val voidedUnionArm =
+        if (hasVoidedArchive) s"""UNION
+      SELECT voided_label_validation.user_id
+      FROM "$schema".voided_label_validation
+      INNER JOIN "$schema".user_stat ON voided_label_validation.user_id = user_stat.user_id
+      WHERE NOT user_stat.excluded"""
+        else ""
+      sql"""
       SELECT label.user_id
       FROM "#$schema".label
       INNER JOIN "#$schema".user_stat ON label.user_id = user_stat.user_id
@@ -244,13 +276,9 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
       FROM "#$schema".label_validation
       INNER JOIN "#$schema".user_stat ON label_validation.user_id = user_stat.user_id
       WHERE NOT user_stat.excluded
-      UNION
-      SELECT voided_label_validation.user_id
-      FROM "#$schema".voided_label_validation
-      INNER JOIN "#$schema".user_stat ON voided_label_validation.user_id = user_stat.user_id
-      WHERE NOT user_stat.excluded;
+      #$voidedUnionArm;
     """.as[String]
-  }
+    }
 
   /**
    * Retrieves label type statistics from a specific schema using existing vote counts.
@@ -391,7 +419,26 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
       )
     }
 
-    val coreQuery =
+    // Both archive reads are guarded per-schema because voided_label_validation may not exist there yet (see
+    // schemaHasVoidedValidationArchive); an unmigrated schema contributes 0 voided votes and no extra contributors.
+    def coreQuery(hasVoidedArchive: Boolean) = {
+      // Work-credit add-on (#4842): archived voided votes count toward total_validations (activity volume) but
+      // not the agree/disagree verdict columns. The archive is human-only by construction.
+      val voidedValCountsBody =
+        if (hasVoidedArchive) s"""SELECT COUNT(*) AS cnt
+          FROM "$schema".voided_label_validation
+          INNER JOIN "$schema".user_stat ON voided_label_validation.user_id = user_stat.user_id
+          WHERE NOT user_stat.excluded"""
+        else "SELECT 0 AS cnt"
+      // Voided votes (#4842) still mark their caster as a contributor; the archive is human-only by construction,
+      // so no AI-role filter is needed.
+      val voidedContributorArm =
+        if (hasVoidedArchive) s"""UNION
+              SELECT voided_label_validation.user_id AS contributor_id
+              FROM "$schema".voided_label_validation
+              INNER JOIN "$schema".user_stat ON voided_label_validation.user_id = user_stat.user_id
+              WHERE NOT user_stat.excluded"""
+        else ""
       sql"""
       SELECT total_streets.cnt          AS total_streets,
              audited_streets.cnt        AS audited_streets,
@@ -497,12 +544,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           LEFT  JOIN sidewalk_login.role      ON user_role.role_id        = role.role_id
           WHERE NOT user_stat.excluded AND role.role = 'AI'
       ) AS ai_val_counts, (
-          -- Work-credit add-on (#4842): archived voided votes count toward total_validations (activity volume) but
-          -- not the agree/disagree verdict columns. The archive is human-only by construction.
-          SELECT COUNT(*) AS cnt
-          FROM "#$schema".voided_label_validation
-          INNER JOIN "#$schema".user_stat ON voided_label_validation.user_id = user_stat.user_id
-          WHERE NOT user_stat.excluded
+          #$voidedValCountsBody
       ) AS voided_val_counts, (
           SELECT COUNT(DISTINCT street_edge_id) FILTER (WHERE task_end >= NOW() - INTERVAL '7 days')  AS audits_7d,
                  COUNT(DISTINCT street_edge_id) FILTER (WHERE task_end >= NOW() - INTERVAL '30 days') AS audits_30d
@@ -526,13 +568,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
               LEFT  JOIN sidewalk_login.user_role ON label_validation.user_id = user_role.user_id
               LEFT  JOIN sidewalk_login.role      ON user_role.role_id        = role.role_id
               WHERE NOT user_stat.excluded AND role.role IS DISTINCT FROM 'AI'
-              UNION
-              -- Voided votes (#4842) still mark their caster as a contributor; the archive is human-only by
-              -- construction, so no AI-role filter is needed.
-              SELECT voided_label_validation.user_id AS contributor_id
-              FROM "#$schema".voided_label_validation
-              INNER JOIN "#$schema".user_stat ON voided_label_validation.user_id = user_stat.user_id
-              WHERE NOT user_stat.excluded
+              #$voidedContributorArm
           ) AS contributor_union
       ) AS active_contributors, (
           -- Distinct EXCLUDED (low-quality) users who placed a label — the data-quality "how much got filtered" signal.
@@ -548,16 +584,18 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           ) AS ts
       ) AS last_activity;
     """.as[ScorecardCore].head
+    }
 
     // Fold in the per-label-type breakdown, the weekly trend, and the (cheap) per-user output/speed stats (same
     // connection), then assemble the full scorecard. The expensive labeling-speed query is NOT here — it is computed on
     // a separate long-cached path (getCrossCityLabelingSpeed). Wrapped in withJitOff because coreQuery's km calc uses
     // PostGIS (#4376).
     withJitOff(for {
-      core        <- coreQuery
-      byLabelType <- getLabelTypeStatsBySchema(schema)
-      weeklyTrend <- getCityWeeklyTrendBySchema(schema, Some(ScorecardTrendWeeks))
-      output      <- getCityContributorOutputBySchema(schema)
+      hasVoidedArchive <- schemaHasVoidedValidationArchive(schema)
+      core             <- coreQuery(hasVoidedArchive)
+      byLabelType      <- getLabelTypeStatsBySchema(schema)
+      weeklyTrend      <- getCityWeeklyTrendBySchema(schema, Some(ScorecardTrendWeeks))
+      output           <- getCityContributorOutputBySchema(schema)
     } yield {
       val (lblMedian, lblP90, nLabelers, valMedian, valP90, nValidators, valSecMedian) = output
       CityScorecard(

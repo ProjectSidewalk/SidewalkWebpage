@@ -670,6 +670,11 @@ class ExploreServiceImpl @Inject() (
    * pano metadata block. AI labels pass through: their records are computed by the inverse of this replay, so a
    * warning from them would flag drift between the two projections.
    *
+   * The log line's `Label record mismatch (#4842):` prefix is a grep contract: a tripwire is only worth having if
+   * something watches for it, so the sidewalk-panorama-tools log analyzer must track that exact signature (a rollout
+   * prerequisite of the #4842 repair — "quiet for N months" is unmeasurable otherwise, see sunset review #4872).
+   * Changing the prefix means updating the analyzer in the same change.
+   *
    * @param label  The label submission to check, including its pano metadata block.
    * @param userId The submitting user, included in the log line for triage.
    */

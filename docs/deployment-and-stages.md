@@ -152,6 +152,33 @@ A hotfix that changes no schema *still* needs step 4 for the displayed version t
 > source of truth (an `sbt-buildinfo`-backed `/version` endpoint) is tracked in **#4548**; follow that convention if it
 > lands.
 
+### Rolling back a release
+
+Deploying an older tag rolls the **schema** back too: `autoApplyDowns=true` (`conf/application.conf`, no stage
+override) means each city instance runs the `Downs` of every evolution above the target version at startup,
+unattended. A Down that cannot apply leaves that instance **down until a human intervenes** — which is deliberate for
+evolutions that refuse to destroy data silently, so check those for conflicts *before* rolling back rather than
+discovering them one crashed city at a time.
+
+The canonical example is evolution **353** (#4842): its Down re-inserts archived voided votes with deliberately no
+`ON CONFLICT`. If any validator re-voted on a repaired label after the evolution applied, their new vote holds the
+`(user_id, label_id)` unique slot, the re-insert fails on `label_validation_user_id_label_id_unique`, and the instance
+won't start. That is the designed outcome — an archived verdict must never be discarded silently; a human decides
+which of the two votes survives. Before rolling back past 353, run this per city schema and resolve any rows it
+returns (delete whichever vote loses, then roll back):
+
+```sql
+-- Re-votes that will collide with the Downs' archive restore: same validator, same label, one live + one archived.
+SELECT voided_label_validation.label_validation_id AS archived_vote,
+       label_validation.label_validation_id        AS live_re_vote,
+       voided_label_validation.user_id,
+       voided_label_validation.label_id
+FROM voided_label_validation
+INNER JOIN label_validation
+    ON  label_validation.user_id  = voided_label_validation.user_id
+    AND label_validation.label_id = voided_label_validation.label_id;
+```
+
 ### Writing the release notes
 
 The notes are written **for non-technical users** — contributors, city partners, and researchers read them. Same text
