@@ -67,6 +67,7 @@ guide: **[`docs/dev-environment.md`](docs/dev-environment.md)**.
 | [`docs/upgrading-libraries.md`](docs/upgrading-libraries.md) | Dependency-version inventory and how to update each. |
 | [`docs/logged-events.md`](docs/logged-events.md) | How user-interaction logging works + the event reference. |
 | [`docs/data-notes.md`](docs/data-notes.md) | Release-specific caveats for analyzing Project Sidewalk data. |
+| [`docs/image-credits.md`](docs/image-credits.md) | Sources for the images we didn't take ourselves. |
 | [`docs/ai-subsystems.md`](docs/ai-subsystems.md) | Map of all AI/CV subsystems and repos: what's in production, how the pieces connect, and the project timeline since 2018. |
 | [`SECURITY.md`](SECURITY.md) | How to report a vulnerability. |
 | [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) | Community standards. |

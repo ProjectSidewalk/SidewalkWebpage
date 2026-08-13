@@ -155,6 +155,10 @@ class DesktopValidationMenu {
     const menuUI = this.#menuUI;
     this.#tagsAddedByUser = [];
     const prevValResult = label.getProperty('validationResult');
+
+    // Rerender the reason buttons, so that they match the correct label type when we allow such an undo (#4034).
+    this.#renderReasonButtons(label);
+
     if (prevValResult === undefined) {
       // This is a new label (not returning from an undo), so reset everything.
       menuUI.yesButton.removeClass('chosen');
@@ -172,35 +176,6 @@ class DesktopValidationMenu {
       menuUI.unsureReasonTextBox.removeClass('chosen');
       menuUI.disagreeReasonTextBox.val('');
       menuUI.unsureReasonTextBox.val('');
-
-      // Update the text and tooltips on each disagree and unsure reason buttons.
-      const labelType = util.camelToKebab(label.getAuditProperty('labelType'));
-      for (const reasonButton of this.#disagreeReasonButtons.add(this.#unsureReasonButtons)) {
-        const $reasonButton = $(reasonButton);
-        const buttonInfo = svv.reasonButtonInfo[labelType][$reasonButton.attr('id')];
-        if (buttonInfo) {
-          $reasonButton.html(buttonInfo.buttonText);
-
-          // Remove any old tooltip (from a previous label type) and add a new tooltip.
-          $reasonButton.tooltip('destroy');
-          if (buttonInfo.tooltipImage) {
-            util.getImage(buttonInfo.tooltipImage).then((img) => {
-              this.#addTooltip($reasonButton, buttonInfo.tooltipText, img);
-            });
-          } else {
-            this.#addTooltip($reasonButton, buttonInfo.tooltipText);
-          }
-
-          // Adds a class as a way to show that this button has associated text.
-          $reasonButton.addClass('defaultOption');
-          $reasonButton.css('display', 'flex');
-        } else {
-          $reasonButton.css('display', 'none');
-          if ($reasonButton.hasClass('defaultOption')) {
-            $reasonButton.removeClass('defaultOption');
-          }
-        }
-      }
       menuUI.submitButton.prop('disabled', true);
     } else {
       // This is a validation that they are going back to, so update all the views to match what they had before.
@@ -231,6 +206,41 @@ class DesktopValidationMenu {
       if (prevValResult === 'Agree') this.#setYesView();
       else if (prevValResult === 'Disagree') this.#setNoView();
       else if (prevValResult === 'Unsure') this.#setUnsureView();
+    }
+  }
+
+  /**
+   * Fills in the text, tooltip, and visibility of every disagree and unsure reason button for a label's type.
+   *
+   * The buttons are one shared set of elements, so a type that offers a given reason gets it shown and marked
+   * `defaultOption` — the flag the number-key shortcuts check — while a type that doesn't offer it gets it hidden.
+   *
+   * @param {object} label The label whose type the buttons should describe.
+   */
+  #renderReasonButtons(label) {
+    const labelType = util.camelToKebab(label.getAuditProperty('labelType'));
+    for (const reasonButton of this.#disagreeReasonButtons.add(this.#unsureReasonButtons)) {
+      const $reasonButton = $(reasonButton);
+      const buttonInfo = svv.reasonButtonInfo[labelType][$reasonButton.attr('id')];
+      if (buttonInfo) {
+        $reasonButton.html(buttonInfo.buttonText);
+
+        // Remove any old tooltip (from a previous label type) and add a new tooltip.
+        $reasonButton.tooltip('destroy');
+        if (buttonInfo.tooltipImage) {
+          util.getImage(buttonInfo.tooltipImage).then((img) => {
+            this.#addTooltip($reasonButton, buttonInfo.tooltipText, img);
+          });
+        } else {
+          this.#addTooltip($reasonButton, buttonInfo.tooltipText);
+        }
+
+        $reasonButton.addClass('defaultOption');
+        $reasonButton.css('display', 'flex');
+      } else {
+        $reasonButton.css('display', 'none');
+        $reasonButton.removeClass('defaultOption');
+      }
     }
   }
 
