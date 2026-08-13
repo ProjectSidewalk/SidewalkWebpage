@@ -54,7 +54,10 @@ class KeyboardManager {
 
   /**
    * Handles the logic for the number key shortcuts.
-   * @param {number} n The keyboard shortcut number that was hit (1-3, or 4 for a fourth disagree reason).
+   *
+   * @param {number} n The keyboard shortcut number that was hit. 1-3 map to a severity, disagree reason, or unsure
+   *                   reason; 4 maps to a fourth disagree reason where one is offered. Any n with no matching option
+   *                   focuses the comment box, which is what makes 5 reach it on a four-reason label type.
    * @param {Event} e The keypress event.
    */
   #handleNumberKeyShortcut(n, e) {
@@ -197,15 +200,18 @@ class KeyboardManager {
         case 'Numpad3':
           this.#handleNumberKeyShortcut(parseInt(e.key, 10), e);
           break;
-          // '4' key (Pick the fourth disagree reason, or focus the comment box).
+          // '4' and '5' keys (Pick the fourth disagree reason, or focus the comment box).
         case 'Digit4':
         case 'Numpad4':
-          // Routed separately from 1-3 because only the disagree menu can offer a fourth option: on an Agree verdict
-          // #handleNumberKeyShortcut would reach for a severity button 4 that doesn't exist. Within the disagree menu
-          // it already falls back to the comment box when the label type has no fourth reason, so 4 means "comment
-          // box" everywhere a fourth reason isn't offered.
+        case 'Digit5':
+        case 'Numpad5':
+          // The comment box is always the key one past the menu's last reason, so it moves from 4 to 5 on the one
+          // label type that offers a fourth reason. #handleNumberKeyShortcut gives that for free: a key with no
+          // matching `defaultOption` button falls through to the comment box, and no menu has a fifth reason. Routed
+          // separately from 1-3 only because of the Agree verdict, where it would reach for a severity button 4 or 5
+          // that doesn't exist rather than commenting.
           if (validationMenuUi.noButton.hasClass('chosen')) {
-            this.#handleNumberKeyShortcut(4, e);
+            this.#handleNumberKeyShortcut(parseInt(e.key, 10), e);
           } else {
             this.#handleCommentBoxShortcut(e);
           }
