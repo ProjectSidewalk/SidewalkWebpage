@@ -2373,6 +2373,10 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
                   SELECT DISTINCT(label_validation.user_id), 'validation' AS mission_type
                   FROM label_validation
                   UNION
+                  -- Votes voided by the #4842 repair still mark their caster as a validation user.
+                  SELECT DISTINCT(voided_label_validation.user_id), 'validation' AS mission_type
+                  FROM voided_label_validation
+                  UNION
                   SELECT DISTINCT(user_id), 'audit' AS mission_type
                   FROM audit_task
                   WHERE audit_task.completed = TRUE
@@ -2441,9 +2445,15 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
               AND label.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
               AND audit_task.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
       ) AS label_counts_and_severity, (
+          -- Work-credit totals (#4842): votes voided by the off-target-markers repair count toward the per-source
+          -- totals (the archive is human-only by construction). The verdict subqueries below use live votes only.
           SELECT #$validationTotalsCols
-          FROM label_validation
-          INNER JOIN user_stat ON label_validation.user_id = user_stat.user_id
+          FROM (
+              SELECT user_id FROM label_validation
+              UNION ALL
+              SELECT user_id FROM voided_label_validation
+          ) AS all_validations
+          INNER JOIN user_stat ON all_validations.user_id = user_stat.user_id
           INNER JOIN user_role ON user_stat.user_id = user_role.user_id
           INNER JOIN role ON user_role.role_id = role.role_id
           WHERE #$userFilter

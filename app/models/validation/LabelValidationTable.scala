@@ -221,14 +221,30 @@ class LabelValidationTable @Inject() (
   }
 
   /**
-   * @return The total number of validations.
+   * The total number of validations performed, as work credit: votes voided by the #4842 repair (evolution 353) live
+   * in the archive table, but the work happened, so they count here. Verdict-derived stats must not use this.
+   *
+   * @return The total number of validations performed, including archived voided ones.
    */
-  def countValidations: DBIO[Int] = validations.length.result
+  def countValidations: DBIO[Int] = {
+    for {
+      liveCount     <- validations.length.result
+      archivedCount <- voidedValidations.length.result
+    } yield liveCount + archivedCount
+  }
 
   /**
-   * @return The total number of human validations (i.e., excluding AI validations).
+   * The total number of human validations performed (i.e., excluding AI validations), as work credit. The voided-vote
+   * archive counts in full: the #4842 repair voids human votes only, so every archived vote is human.
+   *
+   * @return The total number of human validations performed, including archived voided ones.
    */
-  def countHumanValidations: DBIO[Int] = humanValidations.length.result
+  def countHumanValidations: DBIO[Int] = {
+    for {
+      liveCount     <- humanValidations.length.result
+      archivedCount <- voidedValidations.length.result
+    } yield liveCount + archivedCount
+  }
 
   /**
    * The number of validations performed by this user, as work credit: votes voided by the #4842 repair (evolution
