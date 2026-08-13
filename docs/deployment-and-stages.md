@@ -179,6 +179,16 @@ INNER JOIN label_validation
     AND label_validation.label_id = voided_label_validation.label_id;
 ```
 
+### Adding a table that cross-schema queries read
+
+`ConfigTable`'s fan-out queries read *other* cities' schemas, and each city instance applies its own evolutions when it
+restarts — so mid-rollout an already-updated instance can query a schema that hasn't applied the new evolution yet. The
+missing relation fails that city's whole query, and the service layer's `.recover` then drops the city from the
+aggregate surfaces silently. Two ways to handle it: ship the evolution one release ahead of the code that reads it, or
+add a `to_regclass` existence probe that skips the new table's arm (`ConfigTable.schemaHasVoidedValidationArchive` does
+this for 353) **plus a tracking issue to delete the probe once the release has reached every server** — without the
+issue, the temporary guard becomes permanent.
+
 ### Writing the release notes
 
 The notes are written **for non-technical users** — contributors, city partners, and researchers read them. Same text

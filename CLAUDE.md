@@ -77,6 +77,11 @@ sequence on deploy — a slow statement multiplies by 54). Concretely:
 
 **Postgres does *not* rename a table's constraints or indexes when you rename the table or a column** — the old name sticks and silently drifts from what it enforces. So an evolution that renames a column (or table) must also `ALTER TABLE … RENAME CONSTRAINT` / `ALTER INDEX … RENAME` every constraint and index whose name embeds the old identifier, back to the `<table>_<column>_{fkey,key,pkey,check}` convention, and update the matching name string in the Slick model (`foreignKey`/`index`/`primaryKey`). Skipping this forces a later evolution to patch the fossils — 337.sql had to rename three, e.g. `user_org_org_id_fkey` → `user_team_team_id_fkey`, left over from an old `user_org` → `user_team` table rename.
 
+**A new table that `ConfigTable`'s cross-schema fan-out queries read is exposed during the rollout window**, when an
+updated instance can query a city schema that hasn't applied the evolution yet — see
+[`docs/deployment-and-stages.md`](docs/deployment-and-stages.md) → "Adding a table that cross-schema queries read" for
+the two ways to handle it.
+
 ## Frontend architecture
 
 Each major UI is a self-contained app under `public/js/`, bundled separately by Grunt and loaded by the corresponding Twirl view. (Directory names are kebab-case; the app's internal JS namespace global may still use its old short name — see the `svl`/`sg` note below.)
