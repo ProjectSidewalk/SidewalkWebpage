@@ -1541,9 +1541,9 @@
   }
   .ud-field-inline .ud-input { flex: 1 1 auto; }
 
-  /* Mobile nav: the shared shell floats a fixed hamburger that overlaps our heading and uses an off-brand blue.
-       Our section nav is only a few links and the sidebar is the first child of the container, so instead we show it
-       inline above the content as a tidy chip row and hide that floating toggle entirely. */
+  /* Mobile nav: this surface's section nav is two or three links, so it fits inline above the content as a chip row
+       and needs no disclosure to open it — unlike the API docs' 18 links and the admin dashboard's 12, which the
+       shared shell collapses behind .api-sidebar-toggle. */
   .api-sidebar-toggle { display: none !important; }
 
   .api-container .api-sidebar {

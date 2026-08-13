@@ -793,20 +793,52 @@ h6:hover .permalink {
 
 /* ---- Sidebar Toggle ---- */
 
+/*
+ * Disclosure that opens the section nav on narrow screens. It is the first child of .api-sidebar and shares the
+ * sidebar's in-flow strip, so the nav it controls opens directly beneath it and pushes the page down rather than
+ * covering it. Hidden at widths where the sidebar is a real column.
+ */
 .api-sidebar-toggle {
   display: none;
-  background-color: var(--color-accent-link);
-  color: var(--color-text-on-accent);
-  border: none;
+  width: 100%;
+  align-items: center;
+  gap: var(--space-xs);
   padding: var(--space-sm) var(--space-md);
-  margin: var(--space-sm);
-  border-radius: var(--border-radius);
-  cursor: pointer;
+  border: none;
+  background-color: transparent;
+  color: var(--color-text-heading);
+  font-family: inherit;
   font-size: var(--font-size-md);
-  position: fixed;
-  top: calc(var(--navbar-height) + 10px);
-  left: var(--space-sm);
-  z-index: var(--z-index-sticky);
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.api-sidebar-toggle:hover {
+  background-color: var(--color-bg-hover);
+}
+
+.api-sidebar-toggle:focus-visible {
+  outline: 2px solid var(--color-accent-link);
+  outline-offset: -2px;
+}
+
+.api-sidebar-toggle-icon {
+  flex: none;
+  width: 12px;
+  transition: transform var(--transition-fast);
+}
+
+.api-sidebar-toggle[aria-expanded="true"] .api-sidebar-toggle-icon {
+  transform: rotate(180deg);
+}
+
+/* Pushes the chevron to the trailing edge so the label reads as a heading and the affordance sits where a thumb is. */
+.api-sidebar-toggle-label {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ==========================================================================
@@ -967,6 +999,11 @@ var(--breakpoint-md) → 992px */
     flex-direction: column;
   }
 
+  /*
+   * The sidebar stops being a column and becomes an in-flow strip between the navbar and the content, holding the
+   * disclosure button; its nav list collapses into that disclosure. The strip itself always renders, so nothing has to
+   * be floated over the page to reach the nav (#4856).
+   */
   .api-sidebar {
     flex: 0 0 auto;
     height: auto;
@@ -974,11 +1011,22 @@ var(--breakpoint-md) → 992px */
     width: 100%;
     border-right: none;
     border-bottom: 1px solid var(--color-border-light);
-    display: none;
+    display: block;
+    overflow: visible;
   }
 
-  .api-sidebar.mobile-visible {
+  .api-sidebar .api-nav {
+    display: none;
+    padding: 0 0 var(--space-sm);
+  }
+
+  .api-sidebar.mobile-visible .api-nav {
     display: block;
+  }
+
+  /* The strip already separates the nav from the page, so the desktop spacing above the first group is dead space. */
+  .api-sidebar .api-nav-header:first-child {
+    margin-top: 0;
   }
 
   .api-content {
@@ -987,7 +1035,7 @@ var(--breakpoint-md) → 992px */
   }
 
   .api-sidebar-toggle {
-    display: block;
+    display: flex;
   }
 
   /* Adjust heading sizes */
