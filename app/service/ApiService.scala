@@ -51,7 +51,13 @@ trait ApiService {
   def getLabelCVMetadata(batchSize: Int): Source[LabelCVMetadata, _]
 
   def getLabelsToClusterInRegion(regionId: Int): Future[Seq[LabelToCluster]]
-  def getRegionsToCluster: Future[Seq[Int]]
+
+  /**
+   * Regions for a clustering run: those whose label membership has changed, or every region when allRegions is set.
+   *
+   * @param allRegions Force a full rebuild, for when the labels' positions changed but the membership did not
+   */
+  def getRegionsToCluster(allRegions: Boolean): Future[Seq[Int]]
 
   /**
    * Submits clustering results for a region.
@@ -316,11 +322,14 @@ class ApiServiceImpl @Inject() (
   def getLabelsToClusterInRegion(regionId: Int): Future[Seq[LabelToCluster]] =
     db.run(clusteringSessionTable.getLabelsToClusterInRegion(regionId))
 
-  def getRegionsToCluster: Future[Seq[Int]] = {
-    // The list of regions that need re-clustering because their underlying labels have changed. Old data is no longer
-    // wiped here: each region's old clusters are deleted inside submitClusteringResults' transaction, so the API keeps
-    // serving the region's previous clusters until its re-cluster commits (#2507).
-    db.run(clusteringSessionTable.getRegionsToCluster)
+  def getRegionsToCluster(allRegions: Boolean): Future[Seq[Int]] = {
+    // The list of regions that need re-clustering because their underlying labels have changed, or every region when
+    // the caller is forcing a rebuild. This reads only: a region's old clusters are dropped inside
+    // submitClusteringResults' transaction, so the API keeps serving them until that region's re-cluster commits
+    // (#2507) -- which is what lets even a forced full rebuild run without an empty-cluster window.
+    db.run(
+      if (allRegions) clusteringSessionTable.getAllRegionsToCluster else clusteringSessionTable.getRegionsToCluster
+    )
   }
 
   def submitClusteringResults(

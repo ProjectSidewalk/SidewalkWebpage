@@ -232,7 +232,7 @@ class LabelValidationTable @Inject() (
 
   /**
    * The number of validations performed by this user, as work credit: votes voided by the #4842 repair (evolution
-   * 352) were deleted from label_validation, but the work happened, so the archive counts here (badges, dashboards).
+   * 353) were deleted from label_validation, but the work happened, so the archive counts here (badges, dashboards).
    *
    * @return The number of validations performed by this user, including archived voided ones.
    */

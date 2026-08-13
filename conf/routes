@@ -191,7 +191,7 @@ GET     /assets/*file                                   controllers.Assets.versi
 
 # Clustering
 GET     /clustering                                     controllers.ClusterController.index
-GET     /runClustering                                  controllers.ClusterController.runClustering()
+GET     /runClustering                                  controllers.ClusterController.runClustering(allRegions: Boolean ?= false)
 GET     /labelsToClusterInRegion                        controllers.ClusterController.getLabelsToClusterInRegion(regionId: Int)
 # Authenticated by the internal key (ControllerUtils.internalKeyValid), not a browser session.
 + nocsrf

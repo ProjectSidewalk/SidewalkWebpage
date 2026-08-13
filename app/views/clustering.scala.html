@@ -6,11 +6,23 @@
 
 @common.main(commonData, title) {
   @common.navbar(commonData, Some(user))
+  <style>
+    .all-regions-toggle { margin-left: 10px; font-weight: normal; }
+    .all-regions-help { max-width: 60em; }
+  </style>
   <div id="content">
     <div class="container">
       <h1>Clustering labels</h1>
       <button type="button" id="btn-run-clustering">Run Clustering</button>
-      <br>
+      <label for="chk-all-regions" class="all-regions-toggle">
+        <input type="checkbox" id="chk-all-regions"> Re-cluster every region
+      </label>
+      <p class="all-regions-help">
+        A normal run only visits regions whose set of clusterable labels has changed. Check the box when the labels
+        themselves moved instead &mdash; after a position backfill, or a change to the clustering thresholds &mdash;
+        since that leaves membership identical and a normal run would find nothing to do. Every region is replaced in
+        its own transaction, so the API keeps serving each region's existing clusters until its new ones are ready.
+      </p>
       <p id="clustering-status"></p>
     </div>
   </div>
@@ -41,7 +53,8 @@
 
       // Creates a new EventSource for the run clustering button click and sets up the event handlers.
       document.getElementById('btn-run-clustering').onclick = function() {
-        const eventSource = new EventSource('/runClustering');
+        const allRegions = document.getElementById('chk-all-regions').checked;
+        const eventSource = new EventSource(allRegions ? '/runClustering?allRegions=true' : '/runClustering');
         eventSource.onmessage = clusteringEventOnMessage;
         eventSource.onerror = clusteringEventOnError;
       };
