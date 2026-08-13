@@ -200,8 +200,10 @@ class KeyboardManager {
           // '4' key (Pick the fourth disagree reason, or focus the comment box).
         case 'Digit4':
         case 'Numpad4':
-          // Only some label types offer a fourth disagree reason; where there isn't one, 4 still falls through to
-          // the comment box, so the shortcut means the same thing everywhere else.
+          // Routed separately from 1-3 because only the disagree menu can offer a fourth option: on an Agree verdict
+          // #handleNumberKeyShortcut would reach for a severity button 4 that doesn't exist. Within the disagree menu
+          // it already falls back to the comment box when the label type has no fourth reason, so 4 means "comment
+          // box" everywhere a fourth reason isn't offered.
           if (validationMenuUi.noButton.hasClass('chosen')) {
             this.#handleNumberKeyShortcut(4, e);
           } else {
