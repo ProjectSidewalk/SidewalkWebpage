@@ -1655,18 +1655,22 @@ kbd {
     margin-left: 0;
   }
 
-  /* Full-bleed rather than a narrow card hanging off the right edge: at these widths the menu is the page's whole
-     navigation, and a 220px panel over a 390px screen reads as an afterthought. */
+  /* Wide enough to read as the page's whole navigation rather than a 220px card hanging off one corner, but capped
+     so it stays under the hamburger that opened it instead of stretching across a tablet. On a phone the cap is
+     wider than the screen, so it goes full-bleed. */
   #navbar {
     position: absolute;
     top: var(--navbar-height);
     right: 0;
-    left: 0;
+    left: auto;
+    width: 100%;
+    max-width: 420px;
     padding: 6px 0;
     z-index: var(--navbar-z-index);
     background-color: var(--color-neutral-white);
-    box-shadow: 0 6px 16px rgb(0 0 0 / 17.5%);
     border-bottom: 1px solid var(--color-neutral-300);
+    border-radius: 0 0 8px 8px;
+    box-shadow: 0 6px 16px rgb(0 0 0 / 17.5%);
   }
 
   #header.header--tall #navbar {
@@ -1682,7 +1686,8 @@ kbd {
     overflow: hidden !important;
   }
 
-  .navbar-nav {
+  /* Scoped to the panel: the quick strip is a .navbar-nav too, and it stays a horizontal row in the bar. */
+  #navbar .navbar-nav {
     display: block !important;
     width: 100%;
     margin: 0;
