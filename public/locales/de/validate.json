@@ -27,7 +27,9 @@
         "no-button-1": "Dies ist ein Gehweg in einem Wohngebiet.",
         "no-button-2": "Hier gibt es keinen Bürgersteig.",
         "no-button-3": "Dies sollte ein Etikett für eine Trottorabsenkung sein.",
-        "no-button-3-tooltip": "Manchmal wird eine Trottorabsenkung fälschlicherweise als fehlende Trottorabsenkung gekennzeichnet, oft weil eine taktile Warnmarkierung fehlt."
+        "no-button-3-tooltip": "Manchmal wird eine Trottorabsenkung fälschlicherweise als fehlende Trottorabsenkung gekennzeichnet, oft weil eine taktile Warnmarkierung fehlt.",
+        "no-button-4": "Hier kann man nicht sicher überqueren.",
+        "no-button-4-tooltip": "Fußgänger sollen an dieser Stelle nicht überqueren, daher ist hier keine Trottorabsenkung zu erwarten."
       },
       "obstacle": {
         "no-button-1": "Dies ist kein Weg für Fussgänger:innen.",

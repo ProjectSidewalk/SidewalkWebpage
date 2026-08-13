@@ -68,6 +68,10 @@ function defineValidateConstants() {
         tooltipText: i18next.t('validate:validate-menu.disagree-reason.no-curb-ramp.no-button-3-tooltip'),
         tooltipImage: '/assets/images/validate/ExpertValidateTooltips/NoCurbRampDisagree3.png',
       },
+      'no-button-4': {
+        buttonText: i18next.t('validate:validate-menu.disagree-reason.no-curb-ramp.no-button-4'),
+        tooltipText: i18next.t('validate:validate-menu.disagree-reason.no-curb-ramp.no-button-4-tooltip'),
+      },
       'unsure-button-1': {
         buttonText: i18next.t('validate:validate-menu.unsure-reason.common.reason-1'),
         tooltipText: i18next.t('validate:validate-menu.unsure-reason.common.reason-1-tooltip'),

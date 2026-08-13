@@ -53,8 +53,8 @@ class KeyboardManager {
   }
 
   /**
-   * Handles the logic for the 1, 2, and 3 key shortcuts.
-   * @param {number} n The keyboard shortcut number that was hit (1, 2, or 3).
+   * Handles the logic for the number key shortcuts.
+   * @param {number} n The keyboard shortcut number that was hit (1-3, or 4 for a fourth disagree reason).
    * @param {Event} e The keypress event.
    */
   #handleNumberKeyShortcut(n, e) {
@@ -197,9 +197,18 @@ class KeyboardManager {
         case 'Numpad3':
           this.#handleNumberKeyShortcut(parseInt(e.key, 10), e);
           break;
-          // '4' or 'c' key (Focus comment box)
+          // '4' key (Pick the fourth disagree reason, or focus the comment box).
         case 'Digit4':
         case 'Numpad4':
+          // Only some label types offer a fourth disagree reason; where there isn't one, 4 still falls through to
+          // the comment box, so the shortcut means the same thing everywhere else.
+          if (validationMenuUi.noButton.hasClass('chosen')) {
+            this.#handleNumberKeyShortcut(4, e);
+          } else {
+            this.#handleCommentBoxShortcut(e);
+          }
+          break;
+          // 'c' key (Focus comment box).
         case 'KeyC':
           this.#handleCommentBoxShortcut(e);
           break;

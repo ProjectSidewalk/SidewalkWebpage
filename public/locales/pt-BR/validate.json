@@ -27,7 +27,9 @@
         "no-button-1": "Isto é um passagem residencial",
         "no-button-2": "Não há calçada aqui",
         "no-button-3": "Isto deveria ser um rótulo de Rampa de Calçada",
-        "no-button-3-tooltip": "Às vezes uma rampa de calçada é rotulada como ausente, geralmente porque falta o piso tátil de alerta"
+        "no-button-3-tooltip": "Às vezes uma rampa de calçada é rotulada como ausente, geralmente porque falta o piso tátil de alerta",
+        "no-button-4": "Não é seguro atravessar aqui",
+        "no-button-4-tooltip": "Os pedestres não devem atravessar neste ponto, portanto não se espera uma rampa de calçada"
       },
       "obstacle": {
         "no-button-1": "Isto não está em um caminho de pedestres",
