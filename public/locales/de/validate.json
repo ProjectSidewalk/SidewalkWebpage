@@ -20,14 +20,16 @@
         "no-button-1": "Dies ist eine Einfahrt.",
         "no-button-2": "Dies ist ein Übergang vom Trottoir zur Einfahrt.",
         "no-button-2-tooltip": "Übergänge zwischen Trottoir und Ein- bzw. Ausfahrten sind keine Trottoirabsenkungen, es sei denn, es wurde eine spezielle Rampe hinzugefügt",
-        "no-button-3": "Dies sollte ein Etikett „Fehlende Trottorabsenkung“ sein.",
-        "no-button-3-tooltip": "Manchmal wird eine fehlende Trottorabsenkung versehentlich fälschlicherweise als Trottorabsenkung bezeichnet."
+        "no-button-3": "Dies sollte ein Etikett „Fehlende Trottoirabsenkung“ sein.",
+        "no-button-3-tooltip": "Manchmal wird eine fehlende Trottoirabsenkung versehentlich fälschlicherweise als Trottoirabsenkung bezeichnet."
       },
       "no-curb-ramp": {
         "no-button-1": "Dies ist ein Gehweg in einem Wohngebiet.",
         "no-button-2": "Hier gibt es keinen Bürgersteig.",
-        "no-button-3": "Dies sollte ein Etikett für eine Trottorabsenkung sein.",
-        "no-button-3-tooltip": "Manchmal wird eine Trottorabsenkung fälschlicherweise als fehlende Trottorabsenkung gekennzeichnet, oft weil eine taktile Warnmarkierung fehlt."
+        "no-button-3": "Dies sollte ein Etikett für eine Trottoirabsenkung sein.",
+        "no-button-3-tooltip": "Manchmal wird eine Trottoirabsenkung fälschlicherweise als fehlende Trottoirabsenkung gekennzeichnet, oft weil eine taktile Warnmarkierung fehlt.",
+        "no-button-4": "Hier kann man nicht sicher überqueren.",
+        "no-button-4-tooltip": "Fußgänger sollen an dieser Stelle nicht überqueren, daher ist hier keine Trottoirabsenkung zu erwarten."
       },
       "obstacle": {
         "no-button-1": "Dies ist kein Weg für Fussgänger:innen.",

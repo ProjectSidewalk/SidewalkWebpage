@@ -22,7 +22,7 @@ import service.ExploreTaskPostReturnValue
 import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success}
+import scala.util.{Failure, Success, Try}
 
 @Singleton
 class ExploreController @Inject() (
@@ -261,70 +261,89 @@ class ExploreController @Inject() (
     val missionId: Int           = data.missionProgress.missionId
     val currTime: OffsetDateTime = data.timestamp
 
+    // Save metadata for panos merely viewed this session, off the request's critical path (failures are logged inside
+    // savePanoInfo and cost nothing else). Panos carried by a label are excluded: submitExploreData commits those
+    // atomically with their labels (#4587), so writing them here too would just double the statements.
+    val labeledPanoIds: Set[String] = data.labels.flatMap(_.pano).map(_.panoId).toSet
+    val _ = exploreService.savePanoInfo(data.panos.filterNot(p => labeledPanoIds.contains(p.panoId)))
+
     // First do all the important stuff that needs to be done synchronously.
-    val response: Future[Result] =
-      exploreService.submitExploreData(data, user.userId).map { returnData: ExploreTaskPostReturnValue =>
-        // Now we do all the stuff that can be done async, we can return the response before these are done.
-        // TODO we should catch any errors from these submissions and log them.
+    val response: Future[Result] = exploreService
+      .submitExploreData(data, user.userId)
+      .transform {
+        case Failure(e) =>
+          // submitExploreData is transactional, so a failure inside it (including a label's integral pano write, #4587)
+          // means none of the submission was saved. Scoped to that future alone: once the success branch below runs,
+          // the transaction has committed, and a failure there must not claim otherwise.
+          logger.error("Explore submission failed; nothing from it was saved.", e)
+          Success(InternalServerError(Json.obj("status" -> "Error", "message" -> "Failed to save submitted data.")))
+        case Success(returnData: ExploreTaskPostReturnValue) =>
+          Try {
+            // Now we do all the stuff that can be done async, we can return the response before these are done.
 
-        // Insert pano metadata async.
-        // TODO would make sense to do this before submitting labels, then label table can have foreign key on pano_id.
-        exploreService.savePanoInfo(data.panos)
+            // Insert environment async.
+            val env: EnvironmentSubmission = data.environment
+            exploreService
+              .insertEnvironment(
+                AuditTaskEnvironment(0, returnData.auditTaskId, missionId, env.browser, env.browserVersion,
+                  env.browserWidth, env.browserHeight, env.availWidth, env.availHeight, env.screenWidth,
+                  env.screenHeight, env.operatingSystem, Some(ipAddress), env.language, env.cssZoom, Some(currTime))
+              )
+              .failed
+              .foreach(e => logger.error("Error saving explore environment data.", e))
 
-        // Insert environment async.
-        val env: EnvironmentSubmission = data.environment
-        exploreService.insertEnvironment(
-          AuditTaskEnvironment(0, returnData.auditTaskId, missionId, env.browser, env.browserVersion, env.browserWidth,
-            env.browserHeight, env.availWidth, env.availHeight, env.screenWidth, env.screenHeight, env.operatingSystem,
-            Some(ipAddress), env.language, env.cssZoom, Some(currTime))
-        )
-
-        // Insert interactions async, send time spent auditing to scistarter (which uses the interactions table).
-        exploreService
-          .insertMultipleInteractions(data.interactions.map { interaction =>
-            AuditTaskInteraction(0, returnData.auditTaskId, missionId, interaction.action, interaction.panoId,
-              interaction.lat, interaction.lng, interaction.heading, interaction.pitch, interaction.zoom,
-              interaction.note, interaction.temporaryLabelId, interaction.timestamp)
-          })
-          .map { _ =>
-            // Send labels to SidewalkAI API for AI validation. Only available for some label types and imagery sources.
-            val labelsToSend = returnData.newLabels.filter { l =>
-              LabelTypeEnum.aiLabelTypes.contains(l.labelType) && l.panoSource == PanoSource.Gsv && !l.tutorial
-            }
-            aiService
-              .validateLabelsWithAi(labelsToSend.map(_.labelId))
-              .onComplete {
-                case Success(_) => if (labelsToSend.nonEmpty) logger.info(s"AI validation(s) completed successfully.")
-                case Failure(e) => logger.error("Error occurred when submitting AI validations:", e)
-              }
-
-            // Send contributions to SciStarter async so that it can be recorded in their user dashboard there.
-            val eligibleUser: Boolean = RoleTable.SCISTARTER_ROLES.contains(user.role)
-            if (returnData.newLabels.nonEmpty && config.get[String]("environment-type") == "prod" && eligibleUser) {
-              exploreService
-                .secondsSpentAuditing(
-                  user.userId,
-                  returnData.newLabels.map(_.labelId).min,
-                  returnData.newLabels.map(_.timeCreated).max
-                )
-                .flatMap { timeSpent: Double =>
-                  configService.sendSciStarterContributions(user.email, returnData.newLabels.length, timeSpent)
+            // Insert interactions async, send time spent auditing to scistarter (which uses the interactions table).
+            exploreService
+              .insertMultipleInteractions(data.interactions.map { interaction =>
+                AuditTaskInteraction(0, returnData.auditTaskId, missionId, interaction.action, interaction.panoId,
+                  interaction.lat, interaction.lng, interaction.heading, interaction.pitch, interaction.zoom,
+                  interaction.note, interaction.temporaryLabelId, interaction.timestamp)
+              })
+              .map { _ =>
+                // Send labels to SidewalkAI API for AI validation. Only available for some label types and imagery sources.
+                val labelsToSend = returnData.newLabels.filter { l =>
+                  LabelTypeEnum.aiLabelTypes.contains(l.labelType) && l.panoSource == PanoSource.Gsv && !l.tutorial
                 }
-            }
-          }
+                aiService
+                  .validateLabelsWithAi(labelsToSend.map(_.labelId))
+                  .onComplete {
+                    case Success(_) =>
+                      if (labelsToSend.nonEmpty) logger.info(s"AI validation(s) completed successfully.")
+                    case Failure(e) => logger.error("Error occurred when submitting AI validations:", e)
+                  }
 
-        // Return the final result.
-        Ok(
-          Json.obj(
-            "audit_task_id"  -> returnData.auditTaskId,
-            "street_edge_id" -> data.auditTask.streetEdgeId,
-            "mission"        -> returnData.mission.map(Json.toJson(_)),
-            "label_ids"      -> returnData.newLabels
-              .map(l => Json.obj("label_id" -> l.labelId, "temporary_label_id" -> l.temporaryLabelId)),
-            "updated_streets" -> returnData.updatedStreets.map(Json.toJson(_)),
-            "refresh_page" -> returnData.refreshPage // If we notice something out of whack, tell front-end to refresh.
-          )
-        )
+                // Send contributions to SciStarter async so that it can be recorded in their user dashboard there.
+                val eligibleUser: Boolean = RoleTable.SCISTARTER_ROLES.contains(user.role)
+                if (returnData.newLabels.nonEmpty && config.get[String]("environment-type") == "prod" && eligibleUser) {
+                  exploreService
+                    .secondsSpentAuditing(
+                      user.userId,
+                      returnData.newLabels.map(_.labelId).min,
+                      returnData.newLabels.map(_.timeCreated).max
+                    )
+                    .flatMap { timeSpent: Double =>
+                      configService.sendSciStarterContributions(user.email, returnData.newLabels.length, timeSpent)
+                    }
+                    .failed
+                    .foreach(e => logger.error("Error sending contributions to SciStarter.", e))
+                }
+              }
+              .failed
+              .foreach(e => logger.error("Error saving explore interaction data.", e))
+
+            // Return the final result.
+            Ok(
+              Json.obj(
+                "audit_task_id"  -> returnData.auditTaskId,
+                "street_edge_id" -> data.auditTask.streetEdgeId,
+                "mission"        -> returnData.mission.map(Json.toJson(_)),
+                "label_ids"      -> returnData.newLabels
+                  .map(l => Json.obj("label_id" -> l.labelId, "temporary_label_id" -> l.temporaryLabelId)),
+                "updated_streets" -> returnData.updatedStreets.map(Json.toJson(_)),
+                "refresh_page" -> returnData.refreshPage // If we notice something out of whack, tell front-end to refresh.
+              )
+            )
+          }
       }
     response
   }

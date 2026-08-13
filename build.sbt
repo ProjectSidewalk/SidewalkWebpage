@@ -2,7 +2,7 @@ import com.typesafe.sbt.packager.MappingsHelper.directory
 
 name := """sidewalk-webpage"""
 
-version := "11.8.0"
+version := "11.8.1"
 
 scalaVersion := "2.13.18"
 
@@ -74,6 +74,20 @@ lazy val root = (project in file(".")).enablePlugins(PlayScala)
 // at runtime via a working-directory-relative path, so a prod/staged app (whose working dir is the stage dir, not the
 // repo root) can only find it if it's copied into the distribution alongside the app.
 Universal / mappings ++= directory(baseDirectory.value / "scripts")
+
+// Content-fingerprint every asset (#4486): sbt-digest writes an `<md5>-<name>` copy, `assets.path(...)` resolves to
+// it, and `Assets.versioned` serves that `immutable` for a year instead of the one-hour default. Originals stay in
+// place, so hardcoded `/assets/...` paths still resolve (uncached).
+//
+// Covering everything, not just the render-blocking JS/CSS, is a correctness fix. Play's fallback ETag comes from an
+// asset's path plus a last-modified date that sbt's `packageTimestamp` freezes at 2010-01-01, so swapping a file's
+// bytes under the same name leaves cached copies revalidating to a 304 forever. Costs ~291MB per staged instance.
+//
+// Leave this unscoped. sbt-web feeds plain `pipelineStages` into `pipeline`, which only `stage`/`dist` run, but feeds
+// `Assets / pipelineStages` into `Assets / mappings` -> `Assets / assets`, which Play's dev build link runs on every
+// request. Scoping it to Assets therefore fingerprints during `run` as well, which buys nothing (dev serves
+// `no-cache`) and grows `target/web` from 290MB to ~880MB in every checkout and QA worktree.
+pipelineStages := Seq(digest)
 
 // Stamp git metadata into the binary at build time (generates models.utils.BuildInfo), so the running app can report
 // exactly what code it was built from (surfaced on the admin pages' deployment-info strip). Deploy builds run from

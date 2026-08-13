@@ -252,6 +252,12 @@ body {
   z-index: 2;
   position: absolute;
   bottom: calc(15vw + 21px); /* = button holder top (15vw) + notch height (21px) */
+
+  /* The panel is anchored at the bottom and grows upward, so a label type with more reasons than another pushes its
+     own top edge higher. Cap it at the distance from that anchor to the top of the pano holder — which JS sizes to
+     reach the bottom of the screen — so a tall panel scrolls instead of running off the top on a short phone. */
+  max-height: calc(100% - 15vw - 21px);
+  overflow-y: auto;
   width: 60vw;
   padding: 16px 0;
   flex-direction: column;

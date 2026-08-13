@@ -53,8 +53,11 @@ class KeyboardManager {
   }
 
   /**
-   * Handles the logic for the 1, 2, and 3 key shortcuts.
-   * @param {number} n The keyboard shortcut number that was hit (1, 2, or 3).
+   * Handles the logic for the number key shortcuts.
+   *
+   * @param {number} n The keyboard shortcut number that was hit. 1-3 map to a severity, disagree reason, or unsure
+   *                   reason; 4 maps to a fourth disagree reason where one is offered. Any n with no matching option
+   *                   focuses the comment box, which is what makes 5 reach it on a four-reason label type.
    * @param {Event} e The keypress event.
    */
   #handleNumberKeyShortcut(n, e) {
@@ -197,9 +200,21 @@ class KeyboardManager {
         case 'Numpad3':
           this.#handleNumberKeyShortcut(parseInt(e.key, 10), e);
           break;
-          // '4' or 'c' key (Focus comment box)
+          // '4' and '5' keys (Pick the fourth disagree reason, or focus the comment box).
         case 'Digit4':
         case 'Numpad4':
+        case 'Digit5':
+        case 'Numpad5':
+          // The comment box is always the key one past the menu's last reason, so it moves from 4 to 5 on any label
+          // type that offers a fourth reason, handled through #handleNumberKeyShortcut. Routed separately from 1-3 only
+          // because of the Agree verdict, where it would reach for a severity button 4 or 5 that doesn't exist.
+          if (validationMenuUi.noButton.hasClass('chosen')) {
+            this.#handleNumberKeyShortcut(parseInt(e.key, 10), e);
+          } else {
+            this.#handleCommentBoxShortcut(e);
+          }
+          break;
+          // 'c' key (Focus comment box).
         case 'KeyC':
           this.#handleCommentBoxShortcut(e);
           break;

@@ -39,9 +39,11 @@ class AiSubmissionSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppP
   private val internalApiKey = "test-internal-api-key"
 
   // The provenance cases below walk one pano through insert → re-POST → omitted-key, so they share a row and run in
-  // order. The insert-without-the-key case needs a pristine row of its own, hence the second id.
-  private val panoId     = "AiSubmissionSpec-pano-4806"
-  private val barePanoId = "AiSubmissionSpec-pano-4806-no-metadata"
+  // order. The insert-without-the-key case needs a pristine row of its own, hence the second id, and the
+  // failed-pano-write case (#4587) a third.
+  private val panoId       = "AiSubmissionSpec-pano-4806"
+  private val barePanoId   = "AiSubmissionSpec-pano-4806-no-metadata"
+  private val badLatPanoId = "AiSubmissionSpec-pano-4587-bad-lat"
 
   // `city-id` resolves from this env var (conf/application.conf), which has no default — an unset value would boot an
   // app whose city flag this spec can't address, so fail loudly here instead of failing obscurely four cases later.
@@ -65,7 +67,7 @@ class AiSubmissionSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppP
   private def runDb[T](action: DBIO[T]): T = Await.result(dbConfig.db.run(action), 30.seconds)
 
   private def deleteTestPanos(): Unit = {
-    val _ = runDb(sqlu"DELETE FROM pano_data WHERE pano_id IN ($panoId, $barePanoId)")
+    val _ = runDb(sqlu"DELETE FROM pano_data WHERE pano_id IN ($panoId, $barePanoId, $badLatPanoId)")
   }
 
   private def panoRowCount(id: String = panoId): Int =
@@ -159,6 +161,17 @@ class AiSubmissionSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppP
       val oversized = Json.obj("padding" -> "x" * (64 * 1024))
       status(post(payloadWithRawMetadata(oversized))) mustBe BAD_REQUEST
       storedMetadata().map(Json.parse) mustBe Some(metadataV2)
+    }
+
+    "fail the whole request when the pano write fails, rather than saving labels without their pano (#4587)" in {
+      // lat=999 violates pano_data's lat/lng CHECK constraint, so the pano write fails at the database and the
+      // submission is refused outright — the pano must be recorded even for a label-less payload like this one, and
+      // the automated labeler can simply retry.
+      val base      = payload(None, id = badLatPanoId)
+      val badLatPay = base + ("pano" -> ((base \ "pano").as[JsObject] + ("lat" -> Json.toJson(999.0))))
+
+      status(post(badLatPay)) mustBe INTERNAL_SERVER_ERROR
+      panoRowCount(badLatPanoId) mustBe 0
     }
   }
 }
