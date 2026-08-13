@@ -18,7 +18,8 @@
       "no-curb-ramp": {
         "no-button-2": "There is no footpath here",
         "no-button-3": "This should be a Drop Kerb label",
-        "no-button-3-tooltip": "Sometimes a drop kerb is mislabeled as a missing ramp, often because it's missing a tactile warning"
+        "no-button-3-tooltip": "Sometimes a drop kerb is mislabeled as a missing ramp, often because it's missing a tactile warning",
+        "no-button-4-tooltip": "Pedestrians are not meant to cross at this spot, so no drop kerb is expected"
       },
       "obstacle": {
         "no-button-1-tooltip": "If there is no footpath or the object is not on the part of the footpath meant for pedestrians, like in the image below, an Obstacle label is not needed",
