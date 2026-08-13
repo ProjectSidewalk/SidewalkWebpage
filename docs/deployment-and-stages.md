@@ -160,11 +160,11 @@ unattended. A Down that cannot apply leaves that instance **down until a human i
 evolutions that refuse to destroy data silently, so check those for conflicts *before* rolling back rather than
 discovering them one crashed city at a time.
 
-The canonical example is evolution **353** (#4842): its Down re-inserts archived voided votes with deliberately no
+The canonical example is evolution **354** (#4842): its Down re-inserts archived voided votes with deliberately no
 `ON CONFLICT`. If any validator re-voted on a repaired label after the evolution applied, their new vote holds the
 `(user_id, label_id)` unique slot, the re-insert fails on `label_validation_user_id_label_id_unique`, and the instance
 won't start. That is the designed outcome — an archived verdict must never be discarded silently; a human decides
-which of the two votes survives. Before rolling back past 353, run this per city schema and resolve any rows it
+which of the two votes survives. Before rolling back past 354, run this per city schema and resolve any rows it
 returns (delete whichever vote loses, then roll back):
 
 ```sql
@@ -186,7 +186,7 @@ restarts — so mid-rollout an already-updated instance can query a schema that 
 missing relation fails that city's whole query, and the service layer's `.recover` then drops the city from the
 aggregate surfaces silently. Two ways to handle it: ship the evolution one release ahead of the code that reads it, or
 add a `to_regclass` existence probe that skips the new table's arm (`ConfigTable.schemaHasVoidedValidationArchive` does
-this for 353) **plus a tracking issue to delete the probe once the release has reached every server** — without the
+this for 354) **plus a tracking issue to delete the probe once the release has reached every server** — without the
 issue, the temporary guard becomes permanent.
 
 ### Writing the release notes

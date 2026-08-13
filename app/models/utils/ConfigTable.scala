@@ -134,11 +134,11 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
   }
 
   /**
-   * True iff `voided_label_validation` (created by evolution 353, #4842) exists in the given schema.
+   * True iff `voided_label_validation` (created by evolution 354, #4842) exists in the given schema.
    *
    * Cross-schema queries must not assume another city's schema is at this instance's evolution level: each city is
    * its own app instance, so on a rolling release there is a window where this instance (new code) queries a schema
-   * that hasn't applied 353 yet — and a parked deployment (schema present, no running app) may never apply it. A
+   * that hasn't applied 354 yet — and a parked deployment (schema present, no running app) may never apply it. A
    * missing relation would fail the whole query, and the callers' `.recover` would then drop the entire city from
    * the aggregate surfaces. An unmigrated schema's archive contribution is genuinely 0 (no repair has run there), so
    * the right behavior is to probe first and skip the archive arm, not to fail. `to_regclass` resolves a relation
