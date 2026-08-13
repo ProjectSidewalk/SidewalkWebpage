@@ -2,10 +2,11 @@
  * Tests for the collapsed navbar's quick strip in Navbar.js (#4857).
  *
  * Below the collapse breakpoint the bar is otherwise a logo and a hamburger, so Navbar.js promotes `data-nav-quick`
- * items into a strip of icons beside the hamburger — moving the elements rather than copying them, because their ids
- * are what the click logging and the sign-in dialog key on. That makes two things worth pinning: an item is in exactly
- * one place at a time (promoted items leave the panel, and anything that doesn't fit stays in it, so nothing goes
- * missing), and widening the window puts every item back where the inline bar expects it, in order.
+ * items into a strip beside the hamburger — moving the elements rather than copying them, because their ids are what
+ * the click logging and the sign-in dialog key on. That makes three things worth pinning: the strip reads in authored
+ * order while it *drops* by `data-nav-quick` priority, so the account control survives narrowest; an item is in
+ * exactly one place at a time (promoted items leave the panel, and anything that doesn't fit stays in it, so nothing
+ * goes missing); and widening the window puts every item back where the inline bar expects it, in order.
  *
  * jsdom has no layout, so the widths the fit check reads are stubbed per element; `stacked` is likewise driven by
  * stubbing the hamburger's offsetParent, which is what the real code tests.
@@ -20,7 +21,9 @@ const NAVBAR_SRC = fs.readFileSync(
 
 const LOGO_WIDTH = 110;
 const HAMBURGER_WIDTH = 44;
-const QUICK_ITEM_WIDTH = 42;
+// Destinations carry a label, so they are wider than the icon-only account control.
+const ACCOUNT_WIDTH = 40;
+const LABELLED_WIDTH = 90;
 
 /** Builds the navbar markup the template renders, reduced to what the responsive code reads. */
 function buildNavbar() {
@@ -85,11 +88,15 @@ function stubLayout({ stacked, barWidth }) {
     width(document.querySelector('.navbar-logo'), LOGO_WIDTH);
     width(hamburger, HAMBURGER_WIDTH);
 
-    // The strip is a flex row of fixed-size icons, so its width follows from how many items it holds.
+    // The strip is a flex row, so its width is the sum of whichever items are currently in it.
     const strip = document.getElementById('navbar-quick');
     Object.defineProperty(strip, 'getBoundingClientRect', {
         configurable: true,
-        value: () => ({ width: strip.children.length * QUICK_ITEM_WIDTH, height: 40, x: 0, y: 0, top: 0, left: 0 }),
+        value: () => ({
+            width: Array.from(strip.children)
+                .reduce((sum, li) => sum + (li.id === 'li-user' ? ACCOUNT_WIDTH : LABELLED_WIDTH), 0),
+            height: 36, x: 0, y: 0, top: 0, left: 0,
+        }),
     });
 
     // The inline bar's own fit check; irrelevant while stacked, and generous enough not to shed when not.
@@ -130,27 +137,37 @@ describe('Navbar quick strip', () => {
 
     describe('when the nav is collapsed', () => {
         it('promotes every quick item to the strip when they all fit', () => {
-            render({ stacked: true, barWidth: 400 });
+            render({ stacked: true, barWidth: 800 });
 
-            expect(stripIds()).toEqual(['li-user', 'li-validate', 'li-about', 'li-api']);
+            expect(stripIds()).toEqual(['li-validate', 'li-api', 'li-about', 'li-user']);
+        });
+
+        it('shows them in authored order, with the account control last as in the inline bar', () => {
+            render({ stacked: true, barWidth: 800 });
+
+            // Not `data-nav-quick` order (user, validate, about, api) — that ranking only decides what gets dropped.
+            expect(stripIds()).toEqual(['li-validate', 'li-api', 'li-about', 'li-user']);
         });
 
         it('takes promoted items out of the panel, so nothing is listed twice', () => {
-            render({ stacked: true, barWidth: 400 });
+            render({ stacked: true, barWidth: 800 });
 
             expect(panelIds()).toEqual(['li-explore', 'language-dropdown']);
         });
 
-        it('drops the lowest-priority icons on a narrow screen and leaves them in the panel', () => {
-            // Room for the logo, the hamburger, and two icons.
-            render({ stacked: true, barWidth: LOGO_WIDTH + HAMBURGER_WIDTH + (2 * QUICK_ITEM_WIDTH) + 16 });
+        it('drops the lowest-priority items on a narrow screen and leaves them in the panel', () => {
+            // Room for the logo, the hamburger, the account control, and one labelled destination.
+            render({
+                stacked: true,
+                barWidth: LOGO_WIDTH + HAMBURGER_WIDTH + ACCOUNT_WIDTH + LABELLED_WIDTH + 16,
+            });
 
-            expect(stripIds()).toEqual(['li-user', 'li-validate']);
+            expect(stripIds()).toEqual(['li-validate', 'li-user']);
             expect(panelIds()).toEqual(expect.arrayContaining(['li-about', 'li-api']));
         });
 
-        it('keeps the account item even when only one icon fits', () => {
-            render({ stacked: true, barWidth: LOGO_WIDTH + HAMBURGER_WIDTH + QUICK_ITEM_WIDTH + 16 });
+        it('keeps the account control even when nothing else fits', () => {
+            render({ stacked: true, barWidth: LOGO_WIDTH + HAMBURGER_WIDTH + ACCOUNT_WIDTH + 16 });
 
             expect(stripIds()).toEqual(['li-user']);
         });
@@ -176,7 +193,7 @@ describe('Navbar quick strip', () => {
             render({ stacked: false, barWidth: 1400 });
             const authoredOrder = panelIds();
 
-            render({ stacked: true, barWidth: 400 });
+            render({ stacked: true, barWidth: 800 });
             expect(stripIds()).toHaveLength(4);
 
             stubLayout({ stacked: false, barWidth: 1400 });
@@ -188,8 +205,11 @@ describe('Navbar quick strip', () => {
         });
 
         it('restores correctly from a partly-filled strip, where a dropped item outranks a promoted one', async () => {
-            render({ stacked: true, barWidth: LOGO_WIDTH + HAMBURGER_WIDTH + (2 * QUICK_ITEM_WIDTH) + 16 });
-            expect(stripIds()).toEqual(['li-user', 'li-validate']);
+            render({
+                stacked: true,
+                barWidth: LOGO_WIDTH + HAMBURGER_WIDTH + ACCOUNT_WIDTH + LABELLED_WIDTH + 16,
+            });
+            expect(stripIds()).toEqual(['li-validate', 'li-user']);
 
             stubLayout({ stacked: false, barWidth: 1400 });
             window.dispatchEvent(new Event('resize'));

@@ -1769,28 +1769,44 @@ kbd {
     margin-left: 0;
   }
 
-  /* Square tap target sized past the 24px WCAG 2.5.8 minimum, since these sit right next to each other. */
+  /*
+   * Destinations keep their labels here: an icon alone is only reliable for glyphs people have already learned, and
+   * "About" and "API" aren't among them. Labelling costs width, which is why Navbar.js measures — fewer items reach
+   * the bar on a small phone, and the rest stay one tap away in the panel.
+   */
   .navbar-nav.navbar-quick > li > .navbar-button {
     display: flex;
+    align-items: center;
     justify-content: center;
     width: auto;
     min-width: 40px;
-    height: 40px;
-    padding: 0;
-    gap: 0;
+    height: 36px;
+    padding: 0 10px;
+    gap: 4px;
     border: none;
     border-radius: 8px;
+
+    /* The panel lets labels wrap onto a second line; in this single-line bar that would break the row. */
+    white-space: nowrap;
   }
 
   .navbar-quick .navbar-lnk-icon,
   .navbar-quick .navbar-select-icon {
     display: block;
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
   }
 
-  /* The icon carries the meaning visually; the label still names the control for assistive tech. */
-  .navbar-quick .navbar-lnk-label,
+  /*
+   * The account control is the exception, and only because the person glyph is one of the learned ones. A username is
+   * also the longest, least predictable label in the bar — showing it would crowd out the destinations on a phone,
+   * and the button's aria-label still names it.
+   */
+  #navbar-quick #navbar-user-dropdown-list > .navbar-button {
+    min-width: 40px;
+    padding: 0;
+  }
+
   .navbar-quick .navbar-user-name {
     position: absolute;
     width: 1px;

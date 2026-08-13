@@ -25,15 +25,22 @@ class NavbarController {
   /** @type {HTMLElement[]} The two nav groups (primary, utility) whose combined width has to fit the bar. */
   #navGroups = [];
 
-  /** @type {?HTMLElement} The strip in the brand area that holds the collapsed bar's icon-only quick links. */
+  /** @type {?HTMLElement} The strip in the brand area that holds the collapsed bar's quick links. */
   #quickStrip = null;
 
   /**
-   * The `data-nav-quick` items, highest priority (lowest `data-nav-quick`) first — the order the collapsed bar fills
-   * them in, and the reverse of the order it drops them.
+   * The `data-nav-quick` items in authored order, which is the order the collapsed bar shows them in — destinations
+   * then the account control, matching the inline bar's primary-then-utility reading order.
    * @type {Array<{li: HTMLElement, parent: HTMLElement}>}
    */
   #quickItems = [];
+
+  /**
+   * The same items ordered by `data-nav-quick`, lowest first. This is a priority ranking, not a layout order: the bar
+   * drops from the back of it when the row won't fit, so the account control survives to the narrowest widths.
+   * @type {Array<{li: HTMLElement, parent: HTMLElement}>}
+   */
+  #quickByPriority = [];
 
   /**
    * Each quick item's original list, in its original child order, which is what says where an item goes back to.
@@ -248,8 +255,9 @@ class NavbarController {
 
     this.#quickStrip = document.getElementById('navbar-quick');
     this.#quickItems = Array.from(this.#menu.querySelectorAll('[data-nav-quick]'))
-      .sort((a, b) => Number(a.dataset.navQuick) - Number(b.dataset.navQuick))
       .map((li) => ({ li, parent: li.parentElement }));
+    this.#quickByPriority = [...this.#quickItems]
+      .sort((a, b) => Number(a.li.dataset.navQuick) - Number(b.li.dataset.navQuick));
     for (const { parent } of this.#quickItems) {
       if (!this.#quickHomes.has(parent)) this.#quickHomes.set(parent, Array.from(parent.children));
     }
@@ -295,7 +303,7 @@ class NavbarController {
   }
 
   /**
-   * Moves the `data-nav-quick` items between the collapsed bar's icon strip and their places in the inline bar.
+   * Moves the `data-nav-quick` items between the collapsed bar's quick strip and their places in the inline bar.
    *
    * Below the collapse breakpoint the bar is otherwise just a logo and a hamburger, which buries the handful of
    * destinations that are worth one tap. Each item is moved rather than duplicated — one copy keeps the ids the
@@ -316,9 +324,9 @@ class NavbarController {
       this.#quickStrip.appendChild(li);
       li.classList.add('is-quick');
     }
-    // Drop the lowest-priority icons until the row fits. Measured rather than pinned to a second breakpoint,
-    // because the logo is a per-city image and the strip's width depends on how many items the page renders.
-    for (const item of [...this.#quickItems].reverse()) {
+    // Drop the lowest-priority items until the row fits. Measured rather than pinned to a second breakpoint, because
+    // the widths involved depend on the active language's labels, the per-city logo, and which items the page renders.
+    for (const item of [...this.#quickByPriority].reverse()) {
       if (this.#quickStripFits()) return;
       this.#sendHome(item);
     }
@@ -345,7 +353,7 @@ class NavbarController {
   #quickStripFits() {
     const row = this.#quickStrip.parentElement;
     // The strip is the flex item that gives, so the row's own scrollWidth stays pinned to its width; sum the
-    // children instead. Slack leaves the logo and the icons from sitting flush against each other.
+    // children instead. The slack keeps the logo and the links from sitting flush against each other.
     const needed = Array.from(row.children)
       .reduce((sum, child) => sum + child.getBoundingClientRect().width, 0);
     return needed <= row.clientWidth - 16;
