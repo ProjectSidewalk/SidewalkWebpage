@@ -497,7 +497,7 @@ class Onboarding {
   }
 
   /**
-   * On-screen rect of a placed label's icon, for use as a Floating UI virtual reference.
+   * On-screen rect of a placed label, for use as a Floating UI virtual reference.
    *
    * The projection is left unbounded and the result clamped into the pano instead, so a label the user has panned
    * off-screen keeps a rect that rides the near edge.
@@ -520,15 +520,25 @@ class Onboarding {
     const size = this.#svl.LABEL_ICON_RADIUS * scale * 2;
     const paneRect = pane.getBoundingClientRect();
     const clamp = (v, min, max) => Math.min(Math.max(v, min), Math.max(min, max));
-    return new DOMRect(
+    const iconRect = new DOMRect(
       clamp(paneRect.left + coord.x * scale - size / 2, paneRect.left, paneRect.right - size),
       clamp(paneRect.top + coord.y * scale - size / 2, paneRect.top, paneRect.bottom - size),
       size, size,
     );
+
+    const card = this.#svl.ui.canvas.hoverCard;
+    if (label.getHoverInfoVisibility() !== 'visible' || card.css('visibility') !== 'visible') return iconRect;
+
+    const cardRect = card[0].getBoundingClientRect();
+    const left = Math.min(iconRect.left, cardRect.left);
+    const top = Math.min(iconRect.top, cardRect.top);
+    return new DOMRect(
+      left, top, Math.max(iconRect.right, cardRect.right) - left, Math.max(iconRect.bottom, cardRect.bottom) - top,
+    );
   }
 
   /**
-   * Builds an anchor resolver that points the message at a placed label (or it's hover menu if it's up).
+   * Builds an anchor resolver that points the message at a placed label.
    *
    * @param {Label} label The label to point at.
    * @returns {Function} Resolver for #anchorMessageTo.
@@ -536,21 +546,7 @@ class Onboarding {
   #labelAnchor(label) {
     return () => {
       const rect = this.#labelRect(label);
-      if (!rect) return null;
-
-      const card = this.#svl.ui.canvas.hoverCard;
-      if (label.getHoverInfoVisibility() === 'visible' && card.css('visibility') === 'visible') {
-        const cardRect = card[0].getBoundingClientRect();
-        const left = Math.min(rect.left, cardRect.left);
-        const top = Math.min(rect.top, cardRect.top);
-        return {
-          rect: new DOMRect(left, top, Math.max(rect.right, cardRect.right) - left,
-            Math.max(rect.bottom, cardRect.bottom) - top),
-          placement: 'top',
-          boundedByPane: true,
-        };
-      }
-      return { rect, placement: 'top', boundedByPane: true };
+      return rect ? { rect, placement: 'top', boundedByPane: true } : null;
     };
   }
 
