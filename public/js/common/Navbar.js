@@ -116,6 +116,9 @@ class NavbarController {
    */
   #open(li, btn, panel, focusFirst = false) {
     this.#closeAll(li);
+    // A dropdown outside the collapsible panel is a peer of it, not a child, so the two can't both be showing. The
+    // ones still inside it (Tools, city, language) obviously must leave it open.
+    if (this.#menu && !this.#menu.contains(li)) this.#setMenuOpen(false);
     li.classList.add('is-open');
     btn.setAttribute('aria-expanded', 'true');
     this.#current = { li, btn };
@@ -234,13 +237,28 @@ class NavbarController {
 
   /** Wires the mobile hamburger toggle for the collapsed nav. */
   #wireHamburger() {
-    const toggle = this.#nav.querySelector('[data-nav-toggle]');
-    const menu = document.getElementById('navbar');
-    if (!toggle || !menu) return;
-    toggle.addEventListener('click', () => {
-      const open = menu.classList.toggle('is-open');
-      toggle.setAttribute('aria-expanded', String(open));
+    this.#hamburger = this.#nav.querySelector('[data-nav-toggle]');
+    this.#menu = document.getElementById('navbar');
+    if (!this.#hamburger || !this.#menu) return;
+    this.#hamburger.addEventListener('click', () => {
+      this.#setMenuOpen(!this.#menu.classList.contains('is-open'));
     });
+  }
+
+  /**
+   * Opens or closes the collapsed nav's panel.
+   *
+   * Opening it closes any open dropdown, because the panel and the quick strip's dropdowns are peer disclosures
+   * anchored to the same bar: with the account control promoted into the strip, both could otherwise be open at once
+   * and overlap each other.
+   *
+   * @param {boolean} open - Whether the panel should be open.
+   */
+  #setMenuOpen(open) {
+    if (!this.#menu) return;
+    if (open) this.#closeAll();
+    this.#menu.classList.toggle('is-open', open);
+    this.#hamburger?.setAttribute('aria-expanded', String(open));
   }
 
   /**
@@ -248,8 +266,6 @@ class NavbarController {
    * can have changed.
    */
   #wireResponsiveNav() {
-    this.#menu = document.getElementById('navbar');
-    this.#hamburger = this.#nav.querySelector('[data-nav-toggle]');
     if (!this.#menu) return;
     this.#navGroups = Array.from(this.#menu.querySelectorAll('#navbar > .navbar-nav'));
 
@@ -356,7 +372,22 @@ class NavbarController {
     // children instead. The slack keeps the logo and the links from sitting flush against each other.
     const needed = Array.from(row.children)
       .reduce((sum, child) => sum + child.getBoundingClientRect().width, 0);
-    return needed <= row.clientWidth - 16;
+    return needed <= this.#visibleWidth(row) - 16;
+  }
+
+  /**
+   * The width of an element that the viewer can actually see.
+   *
+   * The navbar is fixed to the initial containing block, which a horizontally overflowing page widens past the
+   * screen — so a bar that measures as fitting can still run its last item off the right edge. Anything past the
+   * visible edge doesn't count toward the budget. Reduces to clientWidth on a page that doesn't overflow.
+   *
+   * @param {HTMLElement} el - The element being measured.
+   * @returns {number} Its width in px, less however much of it sits beyond the viewport's right edge.
+   */
+  #visibleWidth(el) {
+    const overhang = Math.max(0, el.getBoundingClientRect().right - document.documentElement.clientWidth);
+    return el.clientWidth - overhang;
   }
 
   /**
@@ -369,7 +400,7 @@ class NavbarController {
     const needed = this.#navGroups.reduce((sum, group) => sum + group.getBoundingClientRect().width, 0);
 
     // Slack covers the gap between the groups plus a little breathing room, so items never sit flush together.
-    return needed <= this.#menu.clientWidth - 24;
+    return needed <= this.#visibleWidth(this.#menu) - 24;
   }
 
   /** Wires live client-side filtering of the city switcher, hiding empty country groups. */
@@ -401,7 +432,32 @@ class NavbarController {
       }
     };
     document.addEventListener('click', (e) => closeIfOutside(e.target));
-    document.addEventListener('focusin', (e) => closeIfOutside(e.target));
+
+    // The panel dismisses on press, not click: closing a dropdown reflows the panel between press and release, which
+    // moves the row out from under the finger and makes the browser retarget the click to a common ancestor. Read on
+    // click, that ancestor looks like an outside tap and would close the panel the user is still using. The hamburger
+    // is excluded — its own handler has already toggled, and closing here would undo an open just asked for.
+    document.addEventListener('pointerdown', (e) => {
+      if (!this.#menu?.classList.contains('is-open')) return;
+      if (this.#menu.contains(e.target) || this.#hamburger?.contains(e.target)) return;
+      this.#setMenuOpen(false);
+    });
+
+    // Only a focus move out of the navbar entirely closes the open dropdown. Focus landing on another navbar control
+    // is left alone: that control's own click/keydown handler closes the others via #open, and closing here would
+    // reflow the bar mid-gesture, on the mousedown before the click that opens the next one lands.
+    document.addEventListener('focusin', (e) => {
+      if (!this.#nav.contains(e.target)) closeIfOutside(e.target);
+    });
+
+    // Escape closes the panel, innermost disclosure first: a dropdown inside it consumes the key (its handlers call
+    // preventDefault), so the first Escape closes that dropdown and only the next one closes the panel.
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape' || e.defaultPrevented) return;
+      if (!this.#menu?.classList.contains('is-open')) return;
+      this.#setMenuOpen(false);
+      this.#hamburger?.focus();
+    });
   }
 
   /** Logs navbar clicks to the activity table via a single delegated listener keyed on element id. */

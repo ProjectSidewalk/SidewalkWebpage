@@ -73,7 +73,7 @@ function buildNavbar() {
  * @param {boolean} opts.stacked - Whether the hamburger is showing (which is what puts the nav in its collapsed form).
  * @param {number} opts.barWidth - The width available to the brand row.
  */
-function stubLayout({ stacked, barWidth }) {
+function stubLayout({ stacked, barWidth, visibleWidth = Infinity }) {
     const width = (el, w) => Object.defineProperty(el, 'getBoundingClientRect', {
         configurable: true, value: () => ({ width: w, height: 38, x: 0, y: 0, top: 0, left: 0 }),
     });
@@ -83,8 +83,18 @@ function stubLayout({ stacked, barWidth }) {
         configurable: true, get: () => (stacked ? document.body : null),
     });
 
+    // A horizontally overflowing page widens the fixed navbar's containing block past the screen, so the row can be
+    // laid out wider than the viewer can see. `visibleWidth` is where the screen actually ends.
+    Object.defineProperty(document.documentElement, 'clientWidth', {
+        configurable: true, get: () => (visibleWidth === Infinity ? barWidth : visibleWidth),
+    });
+
     const row = document.querySelector('.navbar-brand-area');
     Object.defineProperty(row, 'clientWidth', { configurable: true, get: () => barWidth });
+    Object.defineProperty(row, 'getBoundingClientRect', {
+        configurable: true,
+        value: () => ({ width: barWidth, right: barWidth, height: 38, x: 0, y: 0, top: 0, left: 0 }),
+    });
     width(document.querySelector('.navbar-logo'), LOGO_WIDTH);
     width(hamburger, HAMBURGER_WIDTH);
 
@@ -168,6 +178,18 @@ describe('Navbar quick strip', () => {
 
         it('keeps the account control even when nothing else fits', () => {
             render({ stacked: true, barWidth: LOGO_WIDTH + HAMBURGER_WIDTH + ACCOUNT_WIDTH + 16 });
+
+            expect(stripIds()).toEqual(['li-user']);
+        });
+
+        it('budgets the visible width, not a width the overflowing page laid out off-screen', () => {
+            // Room for the account control and one destination on paper, but the screen ends 90px earlier — the
+            // symptom is the hamburger pushed off the right edge by an item that "fit".
+            render({
+                stacked: true,
+                barWidth: LOGO_WIDTH + HAMBURGER_WIDTH + ACCOUNT_WIDTH + LABELLED_WIDTH + 16,
+                visibleWidth: LOGO_WIDTH + HAMBURGER_WIDTH + ACCOUNT_WIDTH + 16,
+            });
 
             expect(stripIds()).toEqual(['li-user']);
         });
