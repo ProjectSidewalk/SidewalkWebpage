@@ -61,12 +61,11 @@ describe('MiniLineChart axis labels', () => {
         MiniLineChart = loadMiniLineChart();
     });
 
-    test('seven-digit y ticks fit between the SVG edge and the plot', () => {
-        const div = render(['Jan 2020', 'Aug 2026'], [12000, 1400146]);
+    test('wide y ticks fit between the SVG edge and the plot', () => {
+        const div = render(['Jan 2020', 'Aug 2026'], [12000, 1400146], { tickFormat: (v) => v.toLocaleString() });
         for (const tick of yTicks(div)) {
             expect(tick.x).toBeGreaterThanOrEqual(tick.text.length * MIN_PX_PER_CHAR);
         }
-        expect(yTicks(div).map((t) => t.text)).toContain('1,400,146');
     });
 
     test('small y ticks keep the standard margin, so short-number charts are unchanged', () => {
@@ -75,8 +74,9 @@ describe('MiniLineChart axis labels', () => {
     });
 
     test('the left margin grows with the widest tick, not the last one drawn', () => {
-        const narrow = plotLeft(render(['Jan', 'Feb'], [10, 100]));
-        const wide = plotLeft(render(['Jan', 'Feb'], [10, 1400146]));
+        const fmt = (v) => v.toLocaleString();
+        const narrow = plotLeft(render(['Jan', 'Feb'], [10, 100], { tickFormat: fmt }));
+        const wide = plotLeft(render(['Jan', 'Feb'], [10, 1400146], { tickFormat: fmt }));
         expect(wide).toBeGreaterThan(narrow);
     });
 

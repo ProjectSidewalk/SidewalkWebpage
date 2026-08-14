@@ -13,8 +13,10 @@ class MiniLineChart {
    *   each series' values align to `categories`; null = gap. Optional per-point tooltip strings.
    * @param {{yMax?: number, tickFormat?: function(number): string, valueFormat?: function(number): string,
    *          ariaLabel?: string, dotRadius?: number, kind?: string, maxXLabels?: number, barValues?: boolean,
-   *          emphasisIndex?: number, minMarginL?: number, minMarginR?: number}} [opts] - yMax defaults to the data
-   *   max; tickFormat labels the y-axis; valueFormat formats values in the default tooltip and in bar value labels;
+   *          emphasisIndex?: number, minMarginL?: number, minMarginR?: number}} [opts] - yMax defaults to a nice
+   *   rounded max above the data; tickFormat labels the y-axis (abbreviated by default, e.g. "1.6M") while
+   *   valueFormat formats values in the default tooltip and in bar value labels, so hovering still gives the exact
+   *   count;
    *   dotRadius sizes the point markers (default 3); kind 'bar' draws bars instead of lines; maxXLabels caps how many
    *   x labels are drawn (default 6); barValues draws each bar's value above it (meant for single-series bar charts —
    *   grouped bars would collide); emphasisIndex marks that index's bar and labels with `--emphasis` classes (e.g. an
@@ -28,8 +30,11 @@ class MiniLineChart {
     const n = categories.length;
     const isBar = opts.kind === 'bar';
     const allVals = series.flatMap((s) => s.values.filter((v) => v !== null && v !== undefined));
-    const yMax = opts.yMax || Math.max(1, ...allVals);
-    const tickFormat = opts.tickFormat || ((v) => Math.round(v).toLocaleString());
+    // Scaling the axis to the exact data max makes every gridline an arbitrary number (350,037 · 700,073 · 1,050,110);
+    // rounding the top up to a nice step lands them on values a reader can compare at a glance. Tooltips keep the
+    // exact counts, so the axis can trade precision for legibility.
+    const yMax = opts.yMax || MiniLineChart.#niceMax(Math.max(1, ...allVals), allVals.every(Number.isInteger));
+    const tickFormat = opts.tickFormat || MiniLineChart.#compact;
     const valueFormat = opts.valueFormat || ((v) => Math.round(v).toLocaleString());
     const dotRadius = opts.dotRadius ?? 3;
 
@@ -196,6 +201,39 @@ class MiniLineChart {
       minMarginL: Math.ceil(Number(grid.getAttribute('x1')) + Math.max(0, left)),
       minMarginR: Math.ceil(width - Number(grid.getAttribute('x2')) + Math.max(0, right)),
     };
+  }
+
+  /**
+   * Rounds a data max up so the four gridline gaps below it are a nice step (400,000 rather than 350,036.5). The
+   * candidate steps are the round-looking mantissas; the finer ones (1.5, 3, 6, 8) keep the headroom small, since a
+   * coarse 1-2-5 ladder can push a 2.28M series onto a 4M axis and leave the line hugging the floor.
+   *
+   * @param {number} dataMax - Largest value in the data (> 0).
+   * @param {boolean} integral - Whether the data are whole numbers, in which case fractional ticks read as noise.
+   * @returns {number} A y-max whose quarter is a nice step.
+   */
+  static #niceMax(dataMax, integral) {
+    const rawStep = dataMax / 4;
+    const magnitude = 10 ** Math.floor(Math.log10(rawStep));
+    const mantissa = rawStep / magnitude;
+    let step = ([1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10].find((c) => mantissa <= c) ?? 10) * magnitude;
+    if (integral && !Number.isInteger(step)) step = Math.ceil(step);
+    return step * 4;
+  }
+
+  /**
+   * Abbreviates a tick value ("1.6M", "800k", "250"). Axis room is scarce and the exact figure is a hover away in the
+   * tooltip, so ticks trade digits for readability. Matches the dashboard's own compact style — lowercase k, capital
+   * M/B — so an axis and a KPI tile spell the same number the same way.
+   *
+   * @param {number} v - The value to label.
+   * @returns {string} Abbreviated label.
+   */
+  static #compact(v) {
+    const abs = Math.abs(v);
+    const unit = [[1e9, 'B'], [1e6, 'M'], [1e3, 'k']].find(([min]) => abs >= min);
+    if (!unit) return Math.round(v).toLocaleString();
+    return `${(v / unit[0]).toFixed(1).replace(/\.0$/, '')}${unit[1]}`;
   }
 
   /** Font size of `.mini-axis` / `.mini-value` in px — keep in sync with admin-dashboard.css. */
