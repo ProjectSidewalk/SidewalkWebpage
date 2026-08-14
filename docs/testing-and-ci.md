@@ -15,7 +15,7 @@ Project Sidewalk is a public civic-tech app with real end users, yet it currentl
 - **(a) Unit, no-DB** — plain ScalaTest on pure logic / DI-free `object`s. Milliseconds, no app, no services.
 - **(b) DB integration** — `*Service`/`*Table` query tests against **real Postgres + PostGIS** (H2 cannot emulate the slick-pg geometry/enum/jsonb/hstore types in `app/models/utils/MyPostgresProfile.scala`). Home of the #4239 / #4228 regressions.
 - **(c) In-JVM functional/route** — boot a `GuiceApplicationBuilder` app with faked Silhouette auth, stubbed `WSClient`, and the eager actors disabled; exercise controllers/routes including auth guards and the public v3 API.
-- **(d) Thin browser E2E (advisory)** — Playwright smoke suite ([`test/e2e/`](../test/e2e)): loads each core page in headless Chromium and fails on uncaught console/page errors, external imagery stubbed or skip-guarded. Runs as an **advisory job on every PR** (`e2e-smoke`, `continue-on-error` — like `backend-tests`), promotable to blocking once proven stable. **Landed with #4504** (page-load phase; interactions and flows are later phases).
+- **(d) Thin browser E2E (advisory)** — Playwright smoke suite ([`test/e2e/`](../test/e2e)): loads each core page in headless Chromium and fails on uncaught console/page errors, external imagery stubbed or skip-guarded. A second, narrower gate loads the responsive pages on an iPhone-class device (390×844) and fails if the layout runs off the side of the screen (#4883, the guardrail half of the mobile plan in #4875). Runs as an **advisory job on every PR** (`e2e-smoke`, `continue-on-error` — like `backend-tests`), promotable to blocking once proven stable. **Landed with #4504** (page-load phase; interactions and flows are later phases).
 
 ## Test database
 

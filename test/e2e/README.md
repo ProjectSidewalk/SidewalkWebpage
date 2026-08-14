@@ -6,6 +6,9 @@ grunt build, and all four linters are blind to: runtime-only JS errors — a sta
 an unbound-method `this` bug, a route-ordering 400 breaking a fetch. It asserts *pages initialize cleanly*,
 not pixel-level behavior; deep canvas/imagery testing stays manual by design.
 
+A second, narrower gate rides along: [phone-viewport checks](#phone-viewport-checks) load the responsive
+pages on an iPhone-class device and fail if the layout runs off the side of the screen.
+
 ## Running locally
 
 The suite does **not** boot the app — it runs against whatever `BASE_URL` points at (default
@@ -55,6 +58,31 @@ identical in both environments.
 noise, each with a comment explaining the cause — never to get a red run green. `pageerror` (an uncaught
 exception) is never allowlisted.
 
+## Phone-viewport checks
+
+`phone-viewport.spec.js` (issue #4883) is the guardrail half of the responsive-first plan in #4875: every page
+that has been made to work on a phone gets a check here, so it can't quietly regress as the UA redirects come
+down page by page.
+
+Each page loads on a **full iPhone 13 profile at 390×844** — mobile user agent, touch, DPR 3 — not merely a
+narrow window, so a page that only holds together for a desktop UA fails the way it would on a real phone. The
+assertion is that **no visible element's box reaches past the viewport horizontally**. It measures boxes rather
+than scroll extent on purpose: `body { overflow-x: clip }` (main.css) stops overflowing content from ever
+growing the scroll width, so a page hides its own overflow and the content is simply lost off the edge — which
+is exactly what the #4857 footer bug did. Two shapes are not overflow and are skipped: anything inside a
+horizontally scrollable/clipping ancestor (our convention for wide tables, diagrams, and code blocks) and
+anything under 2×2 px (the `.sr-only` screen-reader idiom parks a clipped 1×1 box at a negative offset).
+
+A failing test attaches a **full-page screenshot** (the viewport-sized one Playwright takes on failure usually
+cuts off the element that caused it). One test injects an overflowing element, a contained one, and an
+`.sr-only` one to prove the detector still tells them apart — a layout check that can't fail is worse than no
+check.
+
+`/`, `/gallery`, and `/labelMap` are absent because a mobile user agent is still redirected off them to
+`/mobileLanding`; they join the list as #4875 phase 2 converts and un-redirects each one. Note that CI's
+database is the bare `sidewalk_init` template, so these pages render with little content there — the check is
+strongest against a seeded dev DB.
+
 ## Where it runs in CI
 
 The `e2e-smoke` job in `.github/workflows/ci.yml` — **advisory** (`continue-on-error: true`, like
@@ -82,6 +110,10 @@ local development** — your edit / `grunt watch` / reload loop is untouched.
   end-to-end flows (place a label + tag; validate a label); admin pages (promote the setup user via a
   superuser `UPDATE user_role` in CI).
 
+Running alongside those, on the [#4875](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4875) mobile
+track rather than this suite's own: the [phone-viewport checks](#phone-viewport-checks) grow a page at a time as
+each one is made responsive and its mobile redirect comes down.
+
 ## File map
 
 | File | Role |
@@ -90,6 +122,7 @@ local development** — your edit / `grunt watch` / reload loop is untouched.
 | `fixtures.js` | `consoleErrors` fixture, Mapbox stub, `waitForAppReady`, allowlist |
 | `auth.setup.js` | Registers a throwaway user, saves storageState for registered-user specs |
 | `pages.spec.js` | Table-driven phase-1 anonymous pages |
+| `phone-viewport.spec.js` | Phone-viewport layout checks: no horizontal overflow at 390×844 (#4883) |
 | `dashboard.spec.js` | Registered-user pages |
 | `explore-validate.spec.js` | Phase-2 Explore/Validate specs (skip without the real GSV key) |
 | `labelmap-feed-failure.spec.js` | What `/labelMap` shows when its label feed fails (intercepted, so DB-independent) |
