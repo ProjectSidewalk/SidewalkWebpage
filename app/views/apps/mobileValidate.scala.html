@@ -110,51 +110,54 @@
 
     <div id="modal-mission-holder">
       <div id="modal-mission-background" class="modal-background"></div>
-      <div id="modal-mission-foreground" class="modal-foreground">
+      <div id="modal-mission-foreground" class="modal-foreground mv-modal">
         @* Signed-in users get a plain username badge: the auth dialog only renders for signed-out users, so a
            data-au-open control here would be a focusable button that does nothing. *@
         @if(user.role != "Anonymous") {
           <span class="sign-in-up-button-mobile">@{user.username}</span>
         } else {
-          <button type="button" data-au-open="signIn" class="sign-in-up-button-mobile">@Messages("navbar.signin")</button>
+          <button type="button" data-au-open="signIn" class="sign-in-up-button-mobile button-ps">@Messages("navbar.signin")</button>
         }
-        <img src='@assets.path("images/" + config.get[String]("city-params.logo-img." + commonData.cityId))' id="ps-logo-mission" alt="Project Sidewalk logo"></img>
-        <h1 id="modal-mission-header" class="text-center"></h1>
-        <div id="modal-mission-instruction"></div>
-        <button type="button" class="validate-page-button" id="modal-mission-close-button">OK</button>
+        <div class="mv-modal__content">
+          <img src='@assets.path("images/" + config.get[String]("city-params.logo-img." + commonData.cityId))' id="ps-logo-mission" class="mv-modal__logo" alt="Project Sidewalk logo">
+          <h1 id="modal-mission-header"></h1>
+          @* Filled by ModalMission/ModalNoNewMission: an illustration of the accessibility features, then a sentence. *@
+          <div id="modal-mission-instruction"></div>
+        </div>
+        <button type="button" class="button-ps" id="modal-mission-close-button">@Messages("ok")</button>
       </div>
     </div>
 
     <div id="modal-mission-complete-holder">
       <div id="modal-mission-complete-background" class="modal-background"></div>
-      <div id="modal-mission-complete-foreground" class="modal-foreground">
-        <img src='@assets.path("images/" + config.get[String]("city-params.logo-img." + commonData.cityId))' id="ps-logo-mission-complete" alt="Project Sidewalk logo"></img>
-        <h1 class="normal" id="modal-mission-complete-title"></h1>
-        <p><div id="modal-mission-complete-message"></div></p>
-        <div id="modal-mission-complete-table">
-          <div class="col-sm-10">
-            <h3>@Messages("validate.mission.complete.category")</h3>
-            <table class="table">
-              <tr>
-                <th>@Messages("yes.caps")</th>
-                <td id="modal-mission-complete-agree-count" class="col-right text-right"></td>
-              </tr>
-              <tr>
-                <th>@Messages("no.caps")</th>
-                <td id="modal-mission-complete-disagree-count" class="col-right text-right"></td>
-              </tr>
-              <tr>
-                <th>@Messages("unsure.caps")</th>
-                <td id="modal-mission-complete-unsure-count" class="col-right text-right"></td>
-              </tr>
-              <tr id="your-overall-total">
-                <th>@Messages("validate.mission.complete.your.overall.total")</th>
-                <td id="modal-mission-complete-your-overall-total-count" class="col-right text-right"></td>
-              </tr>
-            </table>
-            <button type="button" class="btn btn-primary" id="modal-mission-complete-close-button-primary"></button>
-            <button type="button" class="btn btn-secondary" id="modal-mission-complete-close-button-secondary"></button>
+      <div id="modal-mission-complete-foreground" class="modal-foreground mv-modal">
+        <div class="mv-modal__content">
+          <img src='@assets.path("images/" + config.get[String]("city-params.logo-img." + commonData.cityId))' id="ps-logo-mission-complete" class="mv-modal__logo" alt="Project Sidewalk logo">
+          <h1 id="modal-mission-complete-title"></h1>
+          <div id="modal-mission-complete-message"></div>
+          @* The three counts echo the validation buttons they came from, each tinted with that button's color. *@
+          <div class="mv-stats">
+            <div class="mv-stat mv-stat--agree">
+              <span class="mv-stat__count" id="modal-mission-complete-agree-count"></span>
+              <span class="mv-stat__label">@Messages("yes.caps")</span>
+            </div>
+            <div class="mv-stat mv-stat--disagree">
+              <span class="mv-stat__count" id="modal-mission-complete-disagree-count"></span>
+              <span class="mv-stat__label">@Messages("no.caps")</span>
+            </div>
+            <div class="mv-stat mv-stat--unsure">
+              <span class="mv-stat__count" id="modal-mission-complete-unsure-count"></span>
+              <span class="mv-stat__label">@Messages("unsure.caps")</span>
+            </div>
           </div>
+          <div class="mv-total">
+            <span class="mv-total__label">@Messages("validate.mission.complete.your.overall.total")</span>
+            <span class="mv-total__count" id="modal-mission-complete-your-overall-total-count"></span>
+          </div>
+        </div>
+        <div class="mv-modal__actions">
+          <button type="button" class="button-ps btn-primary" id="modal-mission-complete-close-button-primary"></button>
+          <button type="button" class="button-ps btn-secondary" id="modal-mission-complete-close-button-secondary"></button>
         </div>
       </div>
     </div>

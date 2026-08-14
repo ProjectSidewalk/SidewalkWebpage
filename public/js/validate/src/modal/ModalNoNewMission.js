@@ -83,12 +83,8 @@ class ModalNoNewMission {
     }
     this.#uiModalMission.closeButton.html(buttonLabel);
 
-    // Widen the button to fit more text.
-    if (util.isMobile()) {
-      this.#uiModalMission.closeButton.css('font-size', '40pt');
-      this.#uiModalMission.closeButton.css('width', '76%');
-      this.#uiModalMission.closeButton.css('margin-right', '12%');
-    } else {
+    // Widen the button to fit more text. The mobile page's button is already full-width (mobile-validate.css).
+    if (!util.isMobile()) {
       this.#uiModalMission.closeButton.css('width', 'fit-content');
     }
 

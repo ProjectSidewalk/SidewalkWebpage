@@ -46,7 +46,9 @@ body {
   font-size: 5vw;
 }
 
-.modal-foreground {
+/* The landscape notice is the one modal here still on the page's legacy sizing; the mission screens below are
+   design-system components. */
+#modal-landscape-foreground {
   top: 0;
   height: 100%;
   width: 100%;
@@ -62,53 +64,217 @@ body {
   visibility: hidden;
 }
 
+#ps-logo-landscape {
+  width: 350px;
+}
+
+/* ---- Mission start + mission complete ---------------------------------------------------------------------------
+   These two screens are authored in real design-system units — --text-* type, .button-ps buttons, --color-* ink — and
+   then scaled up as one unit, the same trick the shared auth dialog uses further down this file. The page ships no
+   viewport meta (that's #4875 Phase 3, and SeoSpec pins its absence), so a phone lays it out at the 980px legacy
+   viewport and shrinks the result to the screen, leaving design-system sizes at ~0.4x; the multiplier cancels that
+   out, and Phase 3 retires it by setting --mobile-mission-scale to 1. Scaling beats re-authoring every rule in
+   oversized px (what the rest of this file does) because the --text-* tokens can't be scaled per-component: they bake
+   in whatever --ui-scale the root had when they were declared, so overriding that variable here moves the padding
+   and leaves the type behind.
+   The layout box is divided by the same factor so the scaled result still covers exactly the screen. */
+#modal-mission-foreground,
 #modal-mission-complete-foreground {
+  --mobile-mission-scale: 2.5; /* 980px layout viewport / a ~390pt phone. */
+
   top: 0;
-  padding-top: 8vw;
+  left: 0;
+  width: calc(100% / var(--mobile-mission-scale));
+  height: calc(100% / var(--mobile-mission-scale));
+  transform: scale(var(--mobile-mission-scale));
+  transform-origin: top left;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 24px;
+  border: none;
+  border-radius: 0;
+  background: var(--color-neutral-white);
+  font: var(--text-subtitle-regular);
+  color: var(--color-neutral-800);
+  text-align: center;
+  overflow-y: auto;
 }
 
-#ps-logo-mission {
-  width: calc(80vw - 40px);
-  margin-left: calc(10vw - 20px); /* Subtracting modal padding. */
+/* Clears the sign-in/username pill floating in the top-right corner. */
+#modal-mission-foreground {
+  padding-top: 76px;
 }
 
-#ps-logo-mission-complete {
-  width: 80vw;
+/* Centers the screen's content in whatever room the pinned call-to-action leaves it. It grows but never shrinks: a
+   shrunken box would center its children outside itself, and overflow above a scroll container can't be scrolled to. */
+.mv-modal__content {
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
 }
 
-#modal-mission-close-button {
-  font-size: 50pt;
-  height: 80pt;
+.mv-modal__logo {
+  width: 60%;
+  max-width: 260px;
+  height: auto;
 }
 
-#modal-mission-header {
-  font-size: 46pt;
-  line-height: 110%;
-  margin: 5vw;
-}
-
+/* The id is here to outrank svv-modal.css, which spaces the desktop title off a taller modal. */
+.mv-modal h1,
 #modal-mission-complete-title {
-  font-size: 50pt;
-  line-height: 100%;
+  margin: 0;
+  font: var(--text-h3-bold);
+  color: var(--color-neutral-900);
 }
 
-.modal-foreground .btn-primary {
-  line-height: 125%;
+/* The mission-start body copy, and its illustration of the accessibility features being validated. */
+#modal-mission-instruction p {
+  margin: 0;
+  font: var(--text-subtitle-regular);
+}
+
+#modal-mission-instruction figure {
+  margin: 0 0 12px;
+}
+
+#modal-mission-instruction img {
+  width: 62%;
+  max-width: 240px;
+  height: auto;
 }
 
 #modal-mission-complete-message {
-  width: 84%;
-  margin-left: 8%;
+  font: var(--text-subtitle-regular);
 }
 
-#modal-mission-complete-table {
-  width: 94%;
-  margin-left: 11%;
-  padding-left: 0;
+.mv-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  width: 100%;
 }
 
-#ps-logo-landscape {
-  width: 350px;
+.mv-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 14px 6px;
+  border-radius: 14px;
+}
+
+.mv-stat__count {
+  font: var(--text-h3-bold);
+}
+
+.mv-stat__label {
+  font: var(--text-small-medium);
+  color: var(--color-neutral-800);
+}
+
+.mv-stat--agree {
+  background: var(--color-pine-100);
+}
+
+.mv-stat--agree .mv-stat__count {
+  color: var(--color-pine-800);
+}
+
+.mv-stat--disagree {
+  background: var(--color-orange-100);
+}
+
+.mv-stat--disagree .mv-stat__count {
+  color: var(--color-orange-700);
+}
+
+.mv-stat--unsure {
+  background: var(--color-neutral-100);
+}
+
+.mv-stat--unsure .mv-stat__count {
+  color: var(--color-neutral-800);
+}
+
+.mv-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  width: 100%;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-neutral-200);
+}
+
+.mv-total__label {
+  font: var(--text-body-medium);
+  color: var(--color-neutral-700);
+}
+
+.mv-total__count {
+  font: var(--text-title-bold);
+  color: var(--color-neutral-900);
+}
+
+.mv-modal__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+/* The design system's largest button is sized for a mouse; a thumb wants a taller target and bigger type, so the
+   call-to-action takes the subtitle token and its own padding — about 50px tall on the screen. The id selector
+   outranks svv-modal.css, which sizes these same buttons for a desktop Validate. */
+#modal-mission-close-button,
+#modal-mission-complete-close-button-primary,
+#modal-mission-complete-close-button-secondary {
+  display: flex;
+  width: 100%;
+  justify-content: center;
+  margin: 0;
+  padding: 15px 24px;
+  border: none;
+  border-radius: 14px;
+  font: var(--text-subtitle-bold);
+  background: var(--color-banana-500);
+  color: var(--color-neutral-black);
+}
+
+/* Waiting on the next mission to load, which the primary button starts every mission-complete screen doing. */
+#modal-mission-complete-close-button-primary.btn-loading {
+  background: var(--color-neutral-200);
+  color: var(--color-neutral-700);
+  cursor: wait;
+  opacity: 1;
+}
+
+/* Only the desktop three-missions-done screen offers a second action (ModalMissionComplete keys it on !isMobile), so
+   here the button would just hold empty space open under the primary one. */
+#modal-mission-complete-close-button-secondary {
+  display: none;
+}
+
+/* Sits over the mission-start screen's top-right corner: a button for signed-out users, a name badge once signed in. */
+.sign-in-up-button-mobile {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  max-width: 200px;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 12px;
+  background: var(--color-banana-500);
+  font: var(--text-subtitle-medium);
+  color: var(--color-asphalt-500);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 #svv-panorama-holder {
@@ -338,24 +504,6 @@ body {
   border-radius: 16px;
   border: 3px solid #666666;
   background: var(--color-banana-500);
-}
-
-.sign-in-up-button-mobile {
-  position: absolute;
-  background-color: rgb(251 215 139 / 100%);
-  border-radius: 15px;
-  border: none;
-  right: 45px;
-  top: 45px;
-  color: var(--color-asphalt-500);
-  font: normal normal normal 14px/1.4em raleway,sans-serif;
-  font-family: Raleway, sans-serif;
-  font-weight: bolder;
-  font-size: 40px;
-  max-width: 500px;
-  height: 75px;
-  padding: 5px 25px;
-  transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
 }
 
 .test-server-banner {

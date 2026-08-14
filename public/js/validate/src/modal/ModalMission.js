@@ -109,7 +109,6 @@ class ModalMission {
     this.#uiModalMission.missionTitle.html(title);
     this.#uiModalMission.holder.css('visibility', 'visible');
     this.#uiModalMission.foreground.css('visibility', 'visible');
-    this.#uiModalMission.closeButton.html('Ok');
     this.#uiModalMission.closeButton.off('click').on('click', this.#handleButtonClick);
   }
 }

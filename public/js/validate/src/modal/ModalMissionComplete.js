@@ -99,7 +99,6 @@ class ModalMissionComplete {
 
       this.#uiModalMissionComplete.closeButtonSecondary.css('visibility', 'hidden');
     }
-    if (util.isMobile()) this.#uiModalMissionComplete.closeButtonPrimary.css('font-size', '30pt');
 
     svv.tracker.push(
       'MissionComplete',
@@ -126,6 +125,5 @@ class ModalMissionComplete {
     this.#uiModalMissionComplete.closeButtonSecondary.removeClass('btn-loading');
     this.#uiModalMissionComplete.closeButtonSecondary.addClass('btn-secondary');
     this.#uiModalMissionComplete.closeButtonSecondary.on('click', { button: 'secondary' }, this.#handleButtonClick);
-    if (util.isMobile()) this.#uiModalMissionComplete.closeButtonPrimary.css('font-size', '30pt');
   }
 }
