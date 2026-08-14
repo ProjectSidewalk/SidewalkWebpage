@@ -288,8 +288,12 @@ util.getOperatingSystem = () => _bowserParser.getOSName();
 util.isSafari = () => util.getBrowserName() === 'Safari';
 util.isChrome = () => util.getBrowserName() === 'Chrome';
 util.isFirefox = () => util.getBrowserName() === 'Firefox';
-// Tablets count as mobile: they get the touch-oriented mobile UI (and the /mobile redirect) same as phones.
-util.isMobile = () => ['mobile', 'tablet'].includes(_bowserParser.getPlatformType());
+
+// Whether the server judged this device mobile (ControllerUtils.isMobile — the single mobile definition; tablets
+// count as mobile) and so served it the mobile UI. main.scala.html stamps the verdict on <html>; reading it back,
+// rather than re-sniffing the UA client-side, means client and server can't disagree about which variant this page
+// is (#4887). For touch-vs-hover behavior questions, prefer a capability query (`pointer: coarse`) over this flag.
+util.isMobile = () => document.documentElement.dataset.mobileDevice === 'true';
 
 // A cross-browser function to capture a mouse position, relative to the given DOM element. The UI is scaled through
 // real layout sizes (var(--ui-scale)), so offset() already reflects the scaled position and no compensation is needed.

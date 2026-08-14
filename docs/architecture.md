@@ -141,6 +141,16 @@ First-party assets split by type: `public/js/` is JavaScript-only, `public/css/`
 `public/videos/`. Directories and CSS files are kebab-case; JS files use Airbnb casing (PascalCase for class files,
 camelCase otherwise). See [`style-guide.md`](style-guide.md) for the full layout and naming conventions.
 
+**Mobile detection has exactly one definition:** `ControllerUtils.isMobile`, a server-side User-Agent check that
+decides which UI a request is served (mobile visitors get `/mobileLanding`, the mobile Validate page at `/mobile`,
+and the shared auth pages; other pages redirect them). The shared layout stamps that verdict on every page as
+`<html data-mobile-device>`, and client code reads it back through `util.isMobile()` — never re-sniff the UA in JS,
+or client and server can disagree about which UI variant is running. Where the real question is touch-vs-hover
+capability rather than "which variant is this page", use a media query (`pointer: coarse`) instead. The device
+regex in the funnel-stats SQL classifies *stored* analytics rows by recorded OS name; it is analytics-only, never a
+product gate. (The longer-term direction — responsive pages replacing the UA fork entirely — is
+[#4875](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4875).)
+
 ## Internationalization
 
 Two separate i18n systems:

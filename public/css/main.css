@@ -238,6 +238,12 @@ body {
   padding-top: calc(var(--navbar-height) + var(--test-banner-height, 0px));
 }
 
+/* The landing page draws its hero under the fixed navbar and pads itself (homepage.css), so main.scala.html gives
+   its <body> this class to opt out of the navbar offset above. */
+body.no-navbar-offset {
+  padding-top: 0;
+}
+
 .spacer10 { height: 10px; }
 .spacer20 { height: 20px; }
 
