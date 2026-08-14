@@ -369,3 +369,20 @@ body {
 .test-server-banner-content {
   font-size: xx-large;
 }
+
+/* The shared auth dialog (authDialog.scala.html) is sized by auth.css for real viewports, but this page ships no
+   viewport meta: phones lay it out at ~980px and shrink everything to ~0.4x, which this page's own UI counters
+   with oversized type (e.g. the 40px button font above). Scale the dialog up as one unit the same way, instead of
+   re-authoring every au-* rule; retire with the Phase 3 viewport fix (#4875 / #4889). */
+dialog.au-dialog {
+  --mobile-auth-scale: 2.35; /* 384px width x 2.35 ≈ 900px of the ~980px layout viewport. */
+
+  width: 384px;
+  max-height: calc((100dvh - 32px) / var(--mobile-auth-scale)); /* Scaled back up, it must still fit the screen. */
+  transform: scale(var(--mobile-auth-scale));
+}
+
+/* auth.css's open animation ends at transform: none, which would override the scale while it plays. */
+dialog.au-dialog[open] {
+  animation: none;
+}

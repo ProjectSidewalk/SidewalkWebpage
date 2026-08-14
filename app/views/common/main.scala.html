@@ -8,6 +8,8 @@
 @currentCity = @{commonData.currentCity}
 @* Pages that render the map full-window (no footer, #wrap becomes a fixed-height flex column). *@
 @fullWindow = @{url == "/labelMap" || url == "/routeBuilder"}
+@* Tool pages fill or fix the viewport like the full-window pages do, so none of them render the footer. *@
+@noFooter = @{fullWindow || Seq("/explore", "/validate", "/expertValidate", "/mobile", "/mobileLanding").contains(url)}
 @* The landing page draws its hero under the fixed navbar and pads itself (homepage.css), so it opts out of the
    global navbar offset that main.css puts on <body>. Keyed on request.path (like navbar.scala.html's isLanding),
    NOT the url parameter: url defaults to "/", so the ~50 views that omit it would otherwise all be classified as
@@ -84,7 +86,8 @@
     @* Navbar interactivity (dropdowns, city search, hamburger, click logging); no-ops on pages without the navbar. *@
     <script src='@assets.path("js/common/Navbar.js")' defer></script>
 
-    <script src='@assets.path("vendor/bowser/bowser-2.14.1.min.js")'></script>
+    @* Deferred: utilities.js only touches the bowser global lazily, from DOMContentLoaded-or-later callers. *@
+    <script src='@assets.path("vendor/bowser/bowser-2.14.1.min.js")' defer></script>
     <script src='@assets.path("js/common/utilities.js")'></script>
     <script src='@assets.path("js/common/utilitiesMath.js")'></script>
     <script src='@assets.path("js/common/i18nDom.js")'></script>
@@ -132,15 +135,13 @@
     <div id="wrap" class='@if(fullWindow){wrap--full-window}'>
       @content
     </div>
-    @if(url == "/explore" || url == "/labelMap" || url == "/routeBuilder") {
+    @if(url == "/explore" || fullWindow) {
       <script>
         // Prevents extra whitespace at the bottom of the page, not sure why that's an issue.
         document.getElementsByTagName("body")[0].style.overflow = "hidden";
       </script>
     }
-    @* No footer on the tool and full-window map pages; everything else gets the full footer. *@
-    @if(url == "/explore" || url == "/validate" || url == "/expertValidate" || url == "/mobile" || url == "/mobileLanding" || url == "/labelMap" || url == "/routeBuilder") {
-    } else {
+    @if(!noFooter) {
 
     <div class="filler"></div>
 
