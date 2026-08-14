@@ -413,11 +413,13 @@ body {
 
 /* Where the mission leaves them: the badge their validations have earned, and how many that is in total. The badge
    half is empty until someone has earned one, so the row centers on whatever it holds. */
+
+/* Squared off with the counts above it, rather than shrunk to its contents. */
 .mv-standing {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 10px;
+  gap: 12px;
+  width: 100%;
   padding: 10px 16px;
   border-radius: 14px;
   background: var(--color-neutral-100);
@@ -433,6 +435,8 @@ body {
 }
 
 .mv-standing__text {
+  flex: 1;
+  min-width: 0; /* Lets a long "N more to …" line wrap instead of stretching the row. */
   display: flex;
   flex-direction: column;
   text-align: left;
