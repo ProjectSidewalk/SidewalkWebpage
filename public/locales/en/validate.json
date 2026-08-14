@@ -120,7 +120,10 @@
     "no-new-mission-body": "Click the button to start exploring.",
     "no-new-mission-button": "Start Exploring",
     "all-time_one": "{{count}} validation all time",
-    "all-time_other": "{{count}} validations all time"
+    "all-time_other": "{{count}} validations all time",
+    "next-badge_one": "{{count}} more validation to {{badge}}",
+    "next-badge_other": "{{count}} more validations to {{badge}}",
+    "top-badge": "Top badge earned — you’re a legend!"
   },
   "mobile": {
     "no-new-mission-body": "You can add more labels using a laptop/desktop computer, or you can validate labels in another city!",

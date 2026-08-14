@@ -453,6 +453,19 @@ body {
   color: var(--color-neutral-700);
 }
 
+/* How far along the next badge is, and what it is — what makes the badge read as a level rather than a decoration. */
+.mv-standing #mission-complete-badge-progress {
+  --ps-progress-bar-height: 7px;
+
+  width: 100%;
+  margin: 6px 0 4px;
+}
+
+.mv-standing__next {
+  font: var(--text-caption-medium);
+  color: var(--color-neutral-700);
+}
+
 /* The way forward stays put while a long briefing — or a verbose translation — scrolls behind it, so it is never
    below the fold. The margin is what the screen's own bottom padding would have been: a sticky element's offset is
    measured from its margin box, so this holds the gap open in both the stuck and the resting state. */
@@ -514,6 +527,11 @@ body {
 }
 
 #svv-panorama-holder {
+  /* The verdict row's footprint. The notch and the reason panels stack on top of it, so they measure from here
+     rather than repeating its numbers. */
+  --verdict-row-height: 12vw;
+  --verdict-row-bottom: 6vw;
+
   position: absolute;
   top: 80px;
 }
@@ -604,37 +622,95 @@ body {
 #validation-button-holder {
   z-index: 1;
   position: absolute;
-  height: 9vw;
-  bottom: 6vw;
+  height: var(--verdict-row-height);
+  bottom: var(--verdict-row-bottom);
   left: 0;
   right: 0;
   padding: 0 7vw;
 }
 
+/* Each verdict wears the thumb it will be counted under on the mission-complete screen, over the color it is drawn
+   in — an outline until it's the chosen one, then filled. */
 .validate-page-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
   width: 25vw;
   height: inherit;
+  padding: 0;
+  border: 3px solid var(--color-neutral-300);
   border-radius: 16px;
-  font-size: 28px;
+  background: var(--color-neutral-white);
+  font-size: 34px;
+  font-weight: 700;
+  color: var(--color-neutral-900);
+}
+
+.validate-page-button__icon {
+  width: 40px;
+  height: 40px;
+}
+
+#validate-yes-button {
+  border-color: var(--color-pine-500);
+}
+
+#validate-no-button {
+  border-color: var(--color-orange-400);
+}
+
+#validate-unsure-button {
+  border-color: var(--color-asphalt-200);
 }
 
 #validate-yes-button.chosen {
-  background: #76C9AB;
+  background: var(--color-pine-300);
 }
 
 #validate-no-button.chosen {
-  background: var(--color-orange-400);
+  background: var(--color-orange-300);
 }
 
 #validate-unsure-button.chosen {
-  background: #1A1A1A;
+  background: var(--color-asphalt-100);
+}
+
+/* The tapped verdict's thumb, rising away from its button — the tap is confirmed where the eye already is, rather
+   than only in the count on a screen two taps later. ModalMissionComplete's celebration is the same idea at the end
+   of a mission. Sized in this page's oversized px, like everything else outside the mission screens. */
+.validate-verdict-float {
+  position: fixed;
+  z-index: 3;
+  width: 120px;
+  height: 120px;
+  margin-left: -60px;
+  pointer-events: none;
+  animation: validate-verdict-rise 0.9s ease-out forwards;
+}
+
+@keyframes validate-verdict-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(0.6);
+  }
+
+  25% {
+    opacity: 1;
+    transform: translateY(-40px) scale(1.1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(-260px) scale(1);
+  }
 }
 
 #mobile-popup-notch {
   visibility: hidden;
   position: absolute;
   height: 21px;
-  bottom: 15vw; /* = 6vw (button holder bottom) + 9vw (button holder height) */
+  bottom: calc(var(--verdict-row-bottom) + var(--verdict-row-height));
   z-index: 1;
 }
 
@@ -653,12 +729,12 @@ body {
 .validation-menu-section {
   z-index: 2;
   position: absolute;
-  bottom: calc(15vw + 21px); /* = button holder top (15vw) + notch height (21px) */
+  bottom: calc(var(--verdict-row-bottom) + var(--verdict-row-height) + 21px); /* Clears the notch too. */
 
   /* The panel is anchored at the bottom and grows upward, so a label type with more reasons than another pushes its
      own top edge higher. Cap it at the distance from that anchor to the top of the pano holder — which JS sizes to
      reach the bottom of the screen — so a tall panel scrolls instead of running off the top on a short phone. */
-  max-height: calc(100% - 15vw - 21px);
+  max-height: calc(100% - var(--verdict-row-bottom) - var(--verdict-row-height) - 21px);
   overflow-y: auto;
   width: 60vw;
   padding: 16px 0;

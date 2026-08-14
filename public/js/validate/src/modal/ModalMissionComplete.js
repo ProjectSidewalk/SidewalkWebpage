@@ -62,13 +62,31 @@ class ModalMissionComplete {
    * @param {number} total The validator's all-time validation count.
    */
   #showStanding(total) {
-    this.#uiModalMissionComplete.yourOverallTotalCount.html(util.isMobile()
+    const ui = this.#uiModalMissionComplete;
+    ui.yourOverallTotalCount.html(util.isMobile()
       ? i18next.t('mission-complete.all-time', { count: total })
       : total);
-    const badge = BadgeAchievements.getBadge('validations', BadgeAchievements.getLevelForValue('validations', total));
-    this.#uiModalMissionComplete.badgeIcon.toggleClass('ps-hidden', !badge);
-    this.#uiModalMissionComplete.badgeName.text(badge ? `${badge.name} ${badge.roman}` : '');
-    if (badge) this.#uiModalMissionComplete.badgeIcon.css('background-image', `url("${badge.iconSrc}")`);
+
+    const level = BadgeAchievements.getLevelForValue('validations', total);
+    const badge = BadgeAchievements.getBadge('validations', level);
+    ui.badgeIcon.toggleClass('ps-hidden', !badge);
+    ui.badgeName.text(badge ? `${badge.name} ${badge.roman}` : '');
+    if (badge) ui.badgeIcon.css('background-image', `url("${badge.iconSrc}")`);
+
+    // What they're climbing toward, which is what makes the badge legible as a level rather than a decoration. It's
+    // the same line for someone who has none yet: their first badge is simply the next one.
+    const thresholds = BadgeAchievements.THRESHOLDS.validations;
+    const next = BadgeAchievements.getBadge('validations', level + 1);
+    if (next) {
+      const earnedAt = level > 0 ? thresholds[level - 1] : 0;
+      const nextAt = thresholds[level];
+      ui.badgeProgressFill.css('width', `${Math.round(((total - earnedAt) / (nextAt - earnedAt)) * 100)}%`);
+      ui.badgeNext.text(i18next.t('mission-complete.next-badge',
+        { count: nextAt - total, badge: `${next.name} ${next.roman}` }));
+    } else {
+      ui.badgeProgressFill.css('width', '100%');
+      ui.badgeNext.text(i18next.t('mission-complete.top-badge'));
+    }
   }
 
   /**
@@ -85,6 +103,7 @@ class ModalMissionComplete {
     celebration.getBoundingClientRect(); // Forces the reflow that lets the same animation play again.
     celebration.classList.add('mv-celebrate--play');
     navigator.vibrate?.([40, 60, 40]);
+    Confetti.burst();
   }
 
   /**

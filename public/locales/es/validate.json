@@ -120,7 +120,10 @@
     "no-new-mission-body": "Haga clic en el botón para comenzar a explorar.",
     "no-new-mission-button": "Comience a explorar",
     "all-time_one": "{{count}} validación en total",
-    "all-time_other": "{{count}} validaciones en total"
+    "all-time_other": "{{count}} validaciones en total",
+    "next-badge_one": "{{count}} validación más para {{badge}}",
+    "next-badge_other": "{{count}} validaciones más para {{badge}}",
+    "top-badge": "¡Insignia máxima conseguida, eres una leyenda!"
   },
   "mobile": {
     "no-new-mission-body": "Puede agregar más etiquetas usando una computadora portátil / de escritorio, ¡o puede validar etiquetas en otra ciudad!",

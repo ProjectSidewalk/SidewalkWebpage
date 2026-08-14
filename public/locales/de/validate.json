@@ -120,7 +120,10 @@
     "no-new-mission-body": "Klicken Sie auf die Schaltfläche, um mit der Erkundung zu beginnen.",
     "no-new-mission-button": "Beginnen Sie mit der Erkundung",
     "all-time_one": "{{count}} Validierung insgesamt",
-    "all-time_other": "{{count}} Validierungen insgesamt"
+    "all-time_other": "{{count}} Validierungen insgesamt",
+    "next-badge_one": "Noch {{count}} Validierung bis {{badge}}",
+    "next-badge_other": "Noch {{count}} Validierungen bis {{badge}}",
+    "top-badge": "Höchstes Abzeichen erreicht — du bist eine Legende!"
   },
   "mobile": {
     "no-new-mission-body": "Sie können weitere Etiketten mit einem Laptop/Desktop-Computer hinzufügen oder Etiketten in einer anderen Stadt validieren!",

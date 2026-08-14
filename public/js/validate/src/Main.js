@@ -113,6 +113,8 @@ class Main {
     // The validator's standing after the mission. Mobile only; empty jQuery sets on desktop.
     svv.ui.modalMissionComplete.badgeIcon = $('#mission-complete-badge-icon');
     svv.ui.modalMissionComplete.badgeName = $('#mission-complete-badge-name');
+    svv.ui.modalMissionComplete.badgeProgressFill = $('#mission-complete-badge-progress-fill');
+    svv.ui.modalMissionComplete.badgeNext = $('#mission-complete-badge-next');
     svv.ui.modalMissionComplete.yourOverallTotalCount = $('#modal-mission-complete-your-overall-total-count');
 
     svv.ui.status = {};

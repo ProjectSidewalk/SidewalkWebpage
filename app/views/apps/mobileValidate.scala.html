@@ -69,10 +69,21 @@
         <img src='@assets.path("images/icons/undo-icon.svg")' class="hide-label-button-icon" alt="undo">
         <span>@Messages("undo")</span>
       </button>
+      @* The verdict buttons carry the same thumbs the mission-complete counts do. Plain labels, not the underlined
+         `.shortcut` ones the desktop uses: there is no keyboard here to press the underlined letter on. *@
       <div id="validation-button-holder">
-        <button type="button" id="validate-no-button"class="validate-page-button button-ps button--small">@Html(Messages("no.caps.shortcut"))</button>
-        <button type="button" id="validate-unsure-button"class="validate-page-button button-ps button--small">@Html(Messages("unsure.caps.shortcut"))</button>
-        <button type="button" id="validate-yes-button"class="validate-page-button button-ps button--small">@Html(Messages("yes.caps.shortcut"))</button>
+        <button type="button" id="validate-no-button" class="validate-page-button button-ps button--small">
+          <img src='@assets.path("images/icons/validation/disagree-filled.svg")' class="validate-page-button__icon" alt="">
+          @Messages("no.caps")
+        </button>
+        <button type="button" id="validate-unsure-button" class="validate-page-button button-ps button--small">
+          <img src='@assets.path("images/icons/validation/unsure-filled.svg")' class="validate-page-button__icon" alt="">
+          @Messages("unsure.caps")
+        </button>
+        <button type="button" id="validate-yes-button" class="validate-page-button button-ps button--small">
+          <img src='@assets.path("images/icons/validation/agree-filled.svg")' class="validate-page-button__icon" alt="">
+          @Messages("yes.caps")
+        </button>
       </div>
       <img src='@assets.path("images/icons/mobile-popup-notch.svg")' id="mobile-popup-notch" alt=""></img>
       <div id="validate-why-no-section" class="validation-menu-section">
@@ -174,10 +185,16 @@
             @* Decorative — the level beside it says the same thing — and drawn as a background so the page doesn't
                fetch a badge for someone who hasn't earned one. ModalMissionComplete picks the artwork. *@
             <span id="mission-complete-badge-icon" class="mv-standing__badge ps-hidden"></span>
-            <span class="mv-standing__text">
+            <div class="mv-standing__text">
               <span id="mission-complete-badge-name" class="mv-standing__level"></span>
               <span id="modal-mission-complete-your-overall-total-count" class="mv-standing__total"></span>
-            </span>
+              @* How far this validator is along the badge they're working toward, and what it is. *@
+              @components.progressBar(
+                rootId = "mission-complete-badge-progress",
+                fillId = "mission-complete-badge-progress-fill"
+              )
+              <span id="mission-complete-badge-next" class="mv-standing__next"></span>
+            </div>
           </div>
         </div>
         <div class="mv-modal__actions">

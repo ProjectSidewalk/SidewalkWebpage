@@ -120,7 +120,10 @@
     "no-new-mission-body": "Clique no botão para começar a explorar.",
     "no-new-mission-button": "Começar a explorar",
     "all-time_one": "{{count}} validação no total",
-    "all-time_other": "{{count}} validações no total"
+    "all-time_other": "{{count}} validações no total",
+    "next-badge_one": "Mais {{count}} validação para {{badge}}",
+    "next-badge_other": "Mais {{count}} validações para {{badge}}",
+    "top-badge": "Emblema máximo conquistado — você é uma lenda!"
   },
   "mobile": {
     "no-new-mission-body": "Você pode adicionar mais rótulos usando um laptop/computador, ou pode validar rótulos em outra cidade!",
