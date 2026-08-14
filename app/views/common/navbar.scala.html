@@ -1,8 +1,7 @@
+@import controllers.helper.ControllerUtils
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
-@import play.filters.csrf.CSRF
 @import service.CommonPageData
-@import views.html.helper.{form, CSRF => htmlCSRF}
 @(commonData: CommonPageData, user: Option[SidewalkUserWithRole] = None
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
@@ -12,6 +11,11 @@
    city is pinned separately at the top of the switcher. Country order is alphabetical by country id. *@
 @otherCitiesByCountry = @{cityInfo.filter(_.cityId != commonData.cityId).sortBy(c => (c.countryId, c.stateId, c.cityId)).groupBy(_.countryId).toSeq.sortBy(_._1)}
 @isAdmin = @{user.isDefined && (user.get.role == "Administrator" || user.get.role == "Owner")}
+@* Destinations that redirect a mobile visitor to /mobileLanding (Explore, Label Map, Gallery, Route Builder) or to
+   /mobile (Expert Validate) are left out of the menu on those devices: a link that can only bounce you somewhere else
+   is worse than no link. This is deliberately the same user-agent test the controllers redirect on, not a width
+   breakpoint — a narrow desktop window still reaches all of them (#4857). *@
+@isMobileDevice = @{ControllerUtils.isMobile}
 @isLanding = @{request.path == "/" || request.path == "/home"}
 @isExplore = @{request.path == "/explore"}
 @curPath = @{request.path.toLowerCase}
@@ -32,6 +36,10 @@
       <div class="navbar-logo">
         <a id="navbar-brand" href="/"><img alt="Project Sidewalk Logo" height="28" src='@assets.path("images/" + config.get[String]("city-params.logo-img." + commonData.cityId))'></a>
       </div>
+      @* Filled by Navbar.js at collapsed widths with as many `data-nav-quick` items as fit. The items are moved here,
+         not cloned: their ids are what the click logging and the auth dialog key on, so a second copy would break
+         both. Empty in the inline bar, where those items sit in their own groups. *@
+      <ul class="navbar-nav navbar-quick" id="navbar-quick"></ul>
       <button type="button" class="navbar-toggle" data-nav-toggle aria-controls="navbar" aria-expanded="false" aria-label="@Messages("navbar.menu.toggle")">
         <img class="navbar-toggle-icon" src='@assets.path("images/icons/menu-feather.svg")' alt="" aria-hidden="true">
       </button>
@@ -41,18 +49,24 @@
       <ul class="navbar-nav navbar-nav--primary" id="topbuttons">
         @* Explore is the single dominant call to action. It stays visible and is marked active on /explore (rather
            than being hidden), so the link set is stable page to page. *@
-        <li class="navbar-lnk">
-          <a class="navbar-button@if(isExplore){ is-active}" id="navbar-start-btn" href="@routes.ExploreController.explore()"@if(isExplore){ aria-current="page"}>@common.navbarLnkIcon("compass")@Messages("navbar.explore")</a>
-        </li>
-        <li class="navbar-lnk">
-          <a class="navbar-button@if(request.path == "/validate"){ is-active}" id="navbar-validate-btn" href="@routes.ValidateController.validate()"@if(request.path == "/validate"){ aria-current="page"}>@common.navbarLnkIcon("check-circle")@Messages("navbar.validate")</a>
+        @if(!isMobileDevice) {
+          <li class="navbar-lnk">
+            <a class="navbar-button@if(isExplore){ is-active}" id="navbar-start-btn" href="@routes.ExploreController.explore()"@if(isExplore){ aria-current="page"}>@common.navbarLnkIcon("compass")@Messages("navbar.explore")</a>
+          </li>
+        }
+        @* `data-nav-quick` marks an item the collapsed bar shows as an icon beside the hamburger, lowest number first;
+           whatever doesn't fit stays in the panel. See #applyQuickStrip in Navbar.js. *@
+        <li class="navbar-lnk" data-nav-quick="2">
+          <a class="navbar-button@if(request.path == "/validate"){ is-active}" id="navbar-validate-btn" href="@routes.ValidateController.validate()"@if(request.path == "/validate"){ aria-current="page"}>@common.navbarLnkIcon("check-circle")<span class="navbar-lnk-label">@Messages("navbar.validate")</span></a>
         </li>
         @* Label Map is the results/output view — a top-level peer of the Explore (contribute) + Validate (verify) loop.
            `data-nav-shed` marks it droppable when the bar runs out of room (it stays reachable under Tools ▸ Analyze);
            see the shed order in Navbar.js. *@
-        <li class="navbar-lnk" data-nav-shed="5">
-          <a class="navbar-button@if(request.path.toLowerCase == "/labelmap"){ is-active}" id="navbar-labelmap-btn" href="@routes.ApplicationController.labelMap(None)"@if(request.path.toLowerCase == "/labelmap"){ aria-current="page"}>@common.navbarLnkIcon("map")@Messages("navbar.labelmap")</a>
-        </li>
+        @if(!isMobileDevice) {
+          <li class="navbar-lnk" data-nav-shed="5">
+            <a class="navbar-button@if(request.path.toLowerCase == "/labelmap"){ is-active}" id="navbar-labelmap-btn" href="@routes.ApplicationController.labelMap(None)"@if(request.path.toLowerCase == "/labelmap"){ aria-current="page"}>@common.navbarLnkIcon("map")@Messages("navbar.labelmap")</a>
+          </li>
+        }
         @* Retake Tutorial and Help are genuine /explore-only features, not the current page hidden. *@
         @if(isExplore) {
           <li class="navbar-lnk">
@@ -77,30 +91,36 @@
           <button type="button" id="nav-tools-dropdown" class="navbar-button navbar-dropdown-toggle@if(toolsToggleActive){ is-active}" data-nav-dropdown aria-haspopup="true" aria-expanded="false" aria-controls="nav-tools-menu">
             @common.navbarLnkIcon("tool")@Messages("navbar.tools")<b class="caret" aria-hidden="true"></b>
           </button>
+          @* On a mobile device only the Community group survives, so its section header would be labelling the whole
+             menu; the headers are what make three groups scannable, not one. *@
           <ul id="nav-tools-menu" class="dropdown-menu" aria-label="@Messages("navbar.tools")">
-            <li class="dropdown-section">@Messages("navbar.tools.analyze")</li>
-            <li><a id="navbar-gallery-btn" href="@routes.GalleryController.gallery()"@if(curPath == "/gallery"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("grid")@Messages("gallery")</a></li>
-            <li><a id="navbar-labelmap-btn-tools" href="@routes.ApplicationController.labelMap(None)"@if(curPath == "/labelmap"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("map")@Messages("navbar.labelmap")</a></li>
-            <li class="dropdown-section">@Messages("navbar.tools.community")</li>
+            @if(!isMobileDevice) {
+              <li class="dropdown-section">@Messages("navbar.tools.analyze")</li>
+              <li><a id="navbar-gallery-btn" href="@routes.GalleryController.gallery()"@if(curPath == "/gallery"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("grid")@Messages("gallery")</a></li>
+              <li><a id="navbar-labelmap-btn-tools" href="@routes.ApplicationController.labelMap(None)"@if(curPath == "/labelmap"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("map")@Messages("navbar.labelmap")</a></li>
+              <li class="dropdown-section">@Messages("navbar.tools.community")</li>
+            }
             <li><a id="navbar-leaderboard-btn" href='@routes.UserDashboardController.leaderboard'@if(curPath == "/leaderboard"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("award")@Messages("navbar.leaderboard")</a></li>
             <li><a id="navbar-stories-btn" href='@routes.StoryController.storiesPage'@if(curPath == "/stories"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("message-circle")@Messages("navbar.stories")</a></li>
             <li><a id="navbar-routes-btn" href='@routes.RouteBuilderController.routesPage'@if(curPath == "/routes"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("flag")@Messages("navbar.routes")</a></li>
-            <li class="dropdown-section">@Messages("navbar.tools.build")</li>
-            <li><a id="navbar-route-builder-btn" href='@routes.ApplicationController.routeBuilder'@if(curPath == "/routebuilder"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("navigation")@Messages("routebuilder.name")</a></li>
-            @if(isAdmin) {
-              <li class="dropdown-section">@Messages("navbar.tools.admin")</li>
-              <li><a id="navbar-expert-validate-btn-tools" href='@routes.ValidateController.expertValidate()'@if(curPath == "/expertvalidate" || curPath == "/adminvalidate"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("check-square")@Messages("navbar.expert.validate")</a></li>
+            @if(!isMobileDevice) {
+              <li class="dropdown-section">@Messages("navbar.tools.build")</li>
+              <li><a id="navbar-route-builder-btn" href='@routes.ApplicationController.routeBuilder'@if(curPath == "/routebuilder"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("navigation")@Messages("routebuilder.name")</a></li>
+              @if(isAdmin) {
+                <li class="dropdown-section">@Messages("navbar.tools.admin")</li>
+                <li><a id="navbar-expert-validate-btn-tools" href='@routes.ValidateController.expertValidate()'@if(curPath == "/expertvalidate" || curPath == "/adminvalidate"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("check-square")@Messages("navbar.expert.validate")</a></li>
+              }
             }
           </ul>
         </li>
 
-        <li class="navbar-lnk" data-nav-shed="3">
-          <a class="navbar-button" id="navbar-api-btn" href="@routes.ApiDocsController.index" aria-label="Developer API">@common.navbarLnkIcon("code")@Messages("navbar.api")</a>
+        <li class="navbar-lnk" data-nav-shed="3" data-nav-quick="4">
+          <a class="navbar-button" id="navbar-api-btn" href="@routes.ApiDocsController.index" aria-label="Developer API">@common.navbarLnkIcon("code")<span class="navbar-lnk-label">@Messages("navbar.api")</span></a>
         </li>
         @* About is the first item shed when the bar runs out of room: it's the only non-task link up here, and it
            stays reachable from the footer on every page. *@
-        <li class="navbar-lnk" data-nav-shed="1">
-          <a class="navbar-button@if(curPath == "/about"){ is-active}" id="navbar-about-btn" href="@routes.ApplicationController.about"@if(curPath == "/about"){ aria-current="page"}>@common.navbarLnkIcon("info")@Messages("navbar.about")</a>
+        <li class="navbar-lnk" data-nav-shed="1" data-nav-quick="3">
+          <a class="navbar-button@if(curPath == "/about"){ is-active}" id="navbar-about-btn" href="@routes.ApplicationController.about"@if(curPath == "/about"){ aria-current="page"}>@common.navbarLnkIcon("info")<span class="navbar-lnk-label">@Messages("navbar.about")</span></a>
         </li>
       </ul>
 
@@ -143,7 +163,9 @@
           </div>
         </li>
 
-        <li class="dropdown navbar-lnk" id="navbar-user-dropdown-list">
+        @* Highest quick-strip priority: signed-in or not is the one thing the collapsed bar should never hide, and
+           it is the entry point to everything personal. *@
+        <li class="dropdown navbar-lnk" id="navbar-user-dropdown-list" data-nav-quick="1">
         @if(user.isDefined && user.get.role != "Anonymous") {
           <button type="button" id="nav-user-dropdown" class="navbar-button navbar-dropdown-toggle@if(userToggleActive){ is-active}" data-nav-dropdown aria-haspopup="true" aria-expanded="false" aria-controls="nav-user-menu" aria-label="User options for @user.get.username">
             <img class="navbar-select-icon" src='@assets.path("images/icons/user-feather.svg")' alt="" aria-hidden="true"><span class="navbar-user-name">@user.get.username</span><b class="caret" aria-hidden="true"></b>
@@ -185,9 +207,11 @@
               <li>
                 <a id="navbar-admin-btn" href='@routes.AdminDashboardController.overview'@if(curPath == "/admin" || curPath == "/admin/overview"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("shield")@Messages("navbar.admin")</a>
               </li>
-              <li>
-                <a id="navbar-expert-validate-btn-user" href='@routes.ValidateController.expertValidate()'@if(curPath == "/expertvalidate" || curPath == "/adminvalidate"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("check-square")@Messages("navbar.expert.validate")</a>
-              </li>
+              @if(!isMobileDevice) {
+                <li>
+                  <a id="navbar-expert-validate-btn-user" href='@routes.ValidateController.expertValidate()'@if(curPath == "/expertvalidate" || curPath == "/adminvalidate"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("check-square")@Messages("navbar.expert.validate")</a>
+                </li>
+              }
             }
             <li class="dropdown-divider" role="separator"></li>
             <li>
@@ -197,7 +221,7 @@
         } else {
           @* Real href so it works on pages without the dialog (e.g. /signIn itself); AuthModal intercepts the
              click to open the dialog everywhere else. *@
-          <a id="navbar-sign-in-btn" href="@routes.UserController.signIn()" data-au-open="signIn" class="navbar-button">@common.navbarLnkIcon("log-in")@Messages("navbar.signin")</a>
+          <a id="navbar-sign-in-btn" href="@routes.UserController.signIn()" data-au-open="signIn" class="navbar-button">@common.navbarLnkIcon("log-in")<span class="navbar-lnk-label">@Messages("navbar.signin")</span></a>
         }
         </li>
 
@@ -224,103 +248,4 @@
 </nav>
   <!-- /.navbar -->
 
-@* The full-page /signIn·/signUp routes own the same form ids as the no-JS fallback, so the dialog is not rendered
-   there (avoids duplicate ids). *@
-@if((!user || user.get.role == "Anonymous") && request.path != "/signIn" && request.path != "/signUp") {
-  <dialog id="sign-in-modal-container" class="au-dialog" aria-labelledby="sign-in-label">
-    <div class="au-body">
-        <!-- Sign-in panel -->
-      <div class="au-panel" id="sign-in-modal">
-        <div class="au-top">
-          <img src='@assets.path("images/logos/ProjectSidewalkLogo_NoText_WheelchairCircleCentered_100x100.png")' alt="" width="40" height="40">
-          <div class="au-heading">
-            <p class="au-eyebrow">Project Sidewalk</p>
-            <h1 class="au-title" id="sign-in-label">@Messages("authenticate.welcome.back")</h1>
-          </div>
-          <button type="button" class="au-close" aria-label="@Messages("authenticate.close")">&#10005;</button>
-        </div>
-        @form(action = routes.UserController.authenticate(), args = 'id -> "sign-in-form", 'class -> "au-form", Symbol("data-error-generic") -> Messages("authenticate.error.generic")) {
-          @htmlCSRF.formField
-          <input type="hidden" name="returnUrl" value="@request.uri">
-          <div class="au-field">
-            <label class="au-label" for="sign-in-email">@Messages("authenticate.identifier")</label>
-            <input class="au-input" id="sign-in-email" name="email" type="text" autocomplete="username" required>
-          </div>
-          <div class="au-field">
-            <div class="au-label-row">
-              <label class="au-label" for="sign-in-password">@Messages("authenticate.password")</label>
-              <a class="au-link" href="@routes.UserController.forgotPassword()">@Messages("reset.pw.forgot.title")</a>
-            </div>
-            <div class="au-input-wrap">
-              <input class="au-input au-input--with-eye" id="sign-in-password" name="password" type="password" autocomplete="current-password" required>
-              @common.authEyeButton("sign-in-password")
-            </div>
-          </div>
-          <label class="au-check" for="sign-in-remember"><input type="checkbox" id="sign-in-remember" name="rememberMe" value="true" checked> @Messages("authenticate.remember.me")</label>
-          <button type="submit" class="button-ps button--primary button--large au-submit">@Messages("navbar.signin")</button>
-        }
-        <div class="au-footer">@Html(Messages("authenticate.new.detail"))</div>
-      </div>
-        <!-- Sign-up panel -->
-      <div class="au-panel ps-hidden" id="sign-up-modal">
-        <div class="au-top">
-          <img src='@assets.path("images/logos/ProjectSidewalkLogo_NoText_WheelchairCircleCentered_100x100.png")' alt="" width="40" height="40">
-          <div class="au-heading">
-            <p class="au-eyebrow">Project Sidewalk</p>
-            <h1 class="au-title" id="sign-up-label">@Messages("authenticate.join")</h1>
-            <p class="au-tagline">@Messages("authenticate.tagline")</p>
-          </div>
-          <button type="button" class="au-close" aria-label="@Messages("authenticate.close")">&#10005;</button>
-        </div>
-        @form(action = routes.UserController.signUpPost(), args = 'id -> "sign-up-form", 'class -> "au-form", Symbol("data-error-generic") -> Messages("authenticate.error.generic")) {
-          @htmlCSRF.formField
-          <input type="hidden" name="returnUrl" value="@request.uri">
-          <div class="au-field">
-            <label class="au-label" for="sign-up-username">@Messages("username")</label>
-            <input class="au-input" id="sign-up-username" name="username" type="text" autocomplete="username" spellcheck="false" maxlength="@forms.UsernamePolicy.maxLength" data-rule-regex="@forms.UsernamePolicy.jsPattern" aria-describedby="sign-up-username-rule" required>
-            <div class="au-match" id="sign-up-username-rule">
-              @common.authDot(withCross = true)
-              <span>@Messages("authenticate.username.rule")</span>
-            </div>
-          </div>
-          <div class="au-field">
-            <label class="au-label" for="sign-up-email">@Messages("authenticate.email")</label>
-            <input class="au-input" id="sign-up-email" name="email" type="email" autocomplete="email" required>
-          </div>
-          <div class="au-field">
-            <label class="au-label" for="sign-up-password">@Messages("authenticate.password")</label>
-            <div class="au-input-wrap">
-              <input class="au-input au-input--with-eye" id="sign-up-password" name="password" type="password" autocomplete="new-password" aria-describedby="sign-up-pw-rules" required>
-              @common.authEyeButton("sign-up-password")
-            </div>
-            <ul class="au-checklist" id="sign-up-pw-rules" aria-live="polite">
-              @for((msgKey, ruleRegex) <- forms.PasswordPolicy.checklist) {
-                <li data-rule-regex="@ruleRegex">
-                  @common.authDot()@Messages(msgKey, forms.PasswordPolicy.minLength)
-                </li>
-              }
-            </ul>
-            <div class="au-strength" aria-hidden="true">
-              <div class="au-slabs" id="sign-up-pw-strength"><span></span><span></span><span></span><span></span></div>
-              <span class="au-strength-word" id="sign-up-pw-strength-word" data-word1="@Messages("authenticate.pw.strength.1")" data-word2="@Messages("authenticate.pw.strength.2")" data-word3="@Messages("authenticate.pw.strength.3")" data-word4="@Messages("authenticate.pw.strength.4")"></span>
-            </div>
-          </div>
-          <div class="au-field">
-            <label class="au-label" for="sign-up-password-confirm">@Messages("authenticate.confirm.password")</label>
-            <div class="au-input-wrap">
-              <input class="au-input au-input--with-eye" id="sign-up-password-confirm" name="passwordConfirm" type="password" autocomplete="new-password" aria-describedby="sign-up-pw-match" required>
-              @common.authEyeButton("sign-up-password-confirm")
-            </div>
-            <div class="au-match" id="sign-up-pw-match" data-label-match="@Messages("authenticate.pw.match")" data-label-no-match="@Messages("authenticate.pw.match.not")">
-              @common.authDot(withCross = true)
-              <span id="sign-up-pw-match-text">@Messages("authenticate.pw.match")</span>
-            </div>
-          </div>
-          <label class="au-check" for="sign-up-terms"><input type="checkbox" id="sign-up-terms" name="terms" value="true" required> <span>@Html(Messages("authenticate.terms"))</span></label>
-          <button type="submit" class="button-ps button--primary button--large au-submit">@Messages("authenticate.create.account")</button>
-        }
-        <div class="au-footer">@Html(Messages("authenticate.has.account"))</div>
-      </div>
-    </div>
-  </dialog>
-}
+@common.authDialog(user)

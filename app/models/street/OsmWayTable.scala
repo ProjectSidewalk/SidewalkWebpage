@@ -34,7 +34,7 @@ case class OsmWay(
 
 class OsmWayTableDef(tag: Tag) extends Table[OsmWay](tag, "osm_way") {
   def osmWayId: Rep[Long]           = column[Long]("osm_way_id", O.PrimaryKey)
-  def tags: Rep[JsValue]            = column[JsValue]("tags")
+  def tags: Rep[JsValue]            = column[JsValue]("tags", O.Default(Json.obj()))
   def maxspeed: Rep[Option[String]] = column[Option[String]]("maxspeed")
   def geom: Rep[Option[LineString]] = column[Option[LineString]]("geom")
   // CHECK (source IN ('batch', 'on_demand')) in the DB (no Slick DSL for CHECK constraints).

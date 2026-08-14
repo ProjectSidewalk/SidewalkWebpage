@@ -28,7 +28,7 @@ GET     /routeBuilder                                   controllers.ApplicationC
 GET     /cities                                         controllers.ApplicationController.cities
 GET     /citiesDashboard                                controllers.ApplicationController.cities
 
-# User authentication
+# User authentication. The *Mobile routes are 301s kept for old bookmarks/links (#4884).
 GET     /signIn                                         controllers.UserController.signIn()
 GET     /signInMobile                                   controllers.UserController.signInMobile()
 GET     /signUp                                         controllers.UserController.signUp()
@@ -131,6 +131,7 @@ GET     /routeTasks                                     controllers.ExploreContr
 GET     /speedLimit                                     controllers.ExploreController.getSpeedLimit(lat: Double, lng: Double)
 POST    /task                                           controllers.ExploreController.post
 POST    /validationTask                                 controllers.ValidateController.post
+POST    /validationTask/moreLabels                      controllers.ValidateController.getMoreLabels
 POST    /galleryTask                                    controllers.GalleryController.post
 POST    /labelmap/validate                              controllers.ValidateController.postLabelMapValidation
 POST    /labelmap/comment                               controllers.ValidateController.postLabelMapComment
@@ -190,7 +191,7 @@ GET     /assets/*file                                   controllers.Assets.versi
 
 # Clustering
 GET     /clustering                                     controllers.ClusterController.index
-GET     /runClustering                                  controllers.ClusterController.runClustering()
+GET     /runClustering                                  controllers.ClusterController.runClustering(allRegions: Boolean ?= false)
 GET     /labelsToClusterInRegion                        controllers.ClusterController.getLabelsToClusterInRegion(regionId: Int)
 # Authenticated by the internal key (ControllerUtils.internalKeyValid), not a browser session.
 + nocsrf
@@ -227,6 +228,10 @@ DELETE  /adminapi/stories/:storyId                      controllers.StoryControl
 
 # AI
 POST    /ai/analyzeScene                                controllers.AiController.analyzeScene()
+# Authenticated by the internal key (ControllerUtils.internalKeyValid), not a browser session. Without nocsrf, the
+# CSRF filter 403s any POST carrying an Authorization header (Play protects that header by default), which is exactly
+# how the auto-labeler authenticates.
++ nocsrf
 POST    /ai/submitLabelsOnPano                          controllers.AiController.submitAiLabel
 
 # Public API (v3) for Project Sidewalk data and metadata.

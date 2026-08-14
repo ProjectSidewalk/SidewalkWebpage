@@ -7,14 +7,16 @@ import models.pano.PanoSource.PanoSource
 import models.pano._
 import models.street.StreetEdge
 import models.utils.{CommonUtils, MyPostgresProfile}
+import org.apache.pekko.stream.Materializer
+import org.apache.pekko.stream.scaladsl.{Sink, Source}
 import org.locationtech.jts.geom.Point
 import play.api.cache.AsyncCacheApi
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.http.ContentTypes
-import play.api.libs.json.Json
+import play.api.libs.json.{JsObject, Json}
 import play.api.libs.ws.WSClient
 import play.api.{Configuration, Logger}
-import service.PanoDataService.getFov
+import service.PanoDataService.{getFov, ImageryCheckConcurrency, LiveImageryTtlDays, MaxUnexpiredPanosPerSweep}
 import slick.dbio.DBIO
 
 import java.io.{File, IOException}
@@ -26,11 +28,30 @@ import javax.crypto.spec.SecretKeySpec
 import javax.inject._
 import scala.concurrent.duration.{Duration, DurationInt}
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.control.NonFatal
 
 /**
  * Companion object with constants and functions that are shared throughout codebase, that shouldn't require injection.
  */
 object PanoDataService {
+
+  /**
+   * How long a "the imagery is still there" answer stays good before we ask the provider again (#3004).
+   *
+   * The window bounds how long a pano that has since disappeared can keep being handed to users, so it trades page
+   * load time against that exposure. A pano's odds of vanishing in any given week are on the order of 0.1%, small
+   * enough to keep bad hand-outs rare, and a window this wide covers a whole mapathon rather than only the day a
+   * label was placed.
+   */
+  val LiveImageryTtlDays: Long = 7
+
+  /**
+   * How many panos the nightly expiry sweep may have in flight at once (#4559).
+   */
+  val ImageryCheckConcurrency: Int = 10
+
+  /** Ceiling on the unexpired panos one nightly expiry sweep will check. */
+  val MaxUnexpiredPanosPerSweep: Int = 5000
 
   /**
    * Hacky fix to generate the FOV for an image. Determined experimentally.
@@ -69,80 +90,152 @@ object PanoDataService {
   }
 
   /**
-   * Parameters determined from a series of linear regressions. Here links to the analysis and relevant Github issues:
-   * - https://github.com/ProjectSidewalk/label-latlng-estimation/blob/master/scripts/label-latlng-estimation.md#results
-   * - https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2374
-   * - https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2362
+   * Parameters of the label distance estimator ("approximation3"): a saturating-cotangent blend on a single
+   * camera-to-ground height.
+   *
+   * A label whose click sits `d` degrees below the horizon is `CAMERA_HEIGHT_M / tan(d)` meters away on flat ground.
+   * Within `BLEND_DEG` of the horizon the cotangent is ill-conditioned (a fraction of a degree of click noise moves
+   * the answer by meters), so a linear tail continues it with matched value and slope, bounding the estimate at
+   * 23.85 m.
+   *
+   * Every constant here is fitted, not chosen — each carries its own derivation below. They come from the
+   * **label-latlng-estimation** repo, which holds the notebooks, the held-out splits, and the reports:
+   *
+   *  - Form (cotangent + matched-slope tail, and `BLEND_DEG`):
+   *    [[https://github.com/ProjectSidewalk/label-latlng-estimation/blob/main/reports/2026-08-07-distance-refit.md]]
+   *    (PR #12). Won a 12-rung bake-off on 316,118 training rows of GSV depth truth, scored on a held-out 79,029.
+   *  - Falsification on a second imagery source (Mapillary), which located the residual scale error in the camera
+   *    rigs rather than the form:
+   *    [[https://github.com/ProjectSidewalk/label-latlng-estimation/blob/main/reports/2026-08-07-mapillary-falsification.md]]
+   *    (PR #13).
+   *  - Headroom for a learned model, checked twice with opposite-looking answers. A LightGBM given the same inputs
+   *    and split beat this form by 74% on 2017-2020 truth:
+   *    [[https://github.com/ProjectSidewalk/label-latlng-estimation/blob/main/reports/2026-08-07-gbm-ceiling.md]]
+   *    (PR #14). Scored against truth it was never fitted on, that gap inverts — with one calibration parameter on
+   *    each side this two-parameter form answers 0.410 m against 0.459-0.542 m for every recalibrated booster,
+   *    including one trained on modern truth directly:
+   *    [[https://github.com/ProjectSidewalk/label-latlng-estimation/blob/main/reports/2026-08-10-gbm-transfer.md]]
+   *    (PR #21). The booster's apparent edge was the era truth's own resolution-conditioned scale, not scene
+   *    structure. So there is no headroom for a learned model to recover here — but read the second report for that,
+   *    not the first, which measures only what the 2017-2020 truth frame supports.
+   *  - Absolute scale (`CAMERA_HEIGHT_M`), and the evidence for one height rather than a per-label-type table:
+   *    [[https://github.com/ProjectSidewalk/label-latlng-estimation/blob/main/reports/2026-08-07-modern-truth.md]]
+   *    (PR #16, §7 mechanism and §9 decision). Canonical values: `final_coefficients` in
+   *    `data/modern-truth-summary.json`.
+   *
+   * Measured against fresh GSV depth for 2,655 post-2021 human labels across 36 cities (13 with enough rows to
+   * score individually), as median absolute distance error on a held-out half (1,362 rows, split by pano): this
+   * estimator lands at **0.41 m**, where the same blend carrying the earlier per-label-type heights lands at 1.28 m
+   * and the linear regression this supersedes at 1.17 m. Known limits, from the modern-truth report: the reference
+   * ground planes are Google's own measurements, so the scale is internally consistent but externally unanchored
+   * (bearing-only triangulation, label-latlng-estimation#7, is the independent check); clicks within 2 degrees of
+   * the horizon are undershot by any bounded model; and the residual signed median runs about -0.17 m.
+   *
+   * Issues: [[https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4765]] (resolution dependence) and
+   * [[https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4766]] (near/far compression).
    */
-  case class LatLngEstimationParams(
-      headingIntercept: Double,
-      headingCanvasXSlope: Double,
-      distanceIntercept: Double,
-      distancePanoYSlope: Double,
-      distanceCanvasYSlope: Double
-  )
+  object LatLngEstimation {
 
-  object LatLngEstimationParams {
-    val LATLNG_ESTIMATION_PARAMS: Map[Int, LatLngEstimationParams] = Map(
-      1 -> LatLngEstimationParams(
-        headingIntercept = -51.2401711, headingCanvasXSlope = 0.1443374, distanceIntercept = 18.6051843,
-        distancePanoYSlope = 0.0138947, distanceCanvasYSlope = 0.0011023
-      ),
-      2 -> LatLngEstimationParams(
-        headingIntercept = -27.5267447, headingCanvasXSlope = 0.0784357, distanceIntercept = 20.8794248,
-        distancePanoYSlope = 0.0184087, distanceCanvasYSlope = 0.0022135
-      ),
-      3 -> LatLngEstimationParams(
-        headingIntercept = -13.5675945, headingCanvasXSlope = 0.0396061, distanceIntercept = 25.2472682,
-        distancePanoYSlope = 0.0264216, distanceCanvasYSlope = 0.0011071
-      )
+    /**
+     * Depression angle (degrees below the horizon) where the cotangent hands off to its linear tail.
+     *
+     * Fitted, not picked: `era_fit_coefficients.params.blend_deg` in `data/distance-refit-summary.json` (that block
+     * was called `provisional_coefficients` when this comment was written), from the rung (`D_blend_type_l1`) that
+     * won the distance refit's bake-off on train-half median absolute distance error. Only the angle carries over
+     * from that rung — `CAMERA_HEIGHT_M` is calibrated separately.
+     */
+    val BLEND_DEG: Double = 11.25
+
+    /**
+     * Hard ceiling on the estimated distance in meters — `meta.dist_cap_m` in `data/distance-refit-summary.json`,
+     * the clamp the fit's own reference implementation applies.
+     *
+     * It cannot bind at the height below: the tail is a line evaluated no further than the horizon, so its largest
+     * value is `CAMERA_HEIGHT_M * 10.186`, i.e. 23.85 m (`PanoDataServiceSpec` pins that maximum). It would only
+     * start clipping if a refit pushed the height past ~4.9 m, which is not a camera height any of our imagery
+     * sources has. Kept so the estimator stays bounded by construction rather than by the calibration.
+     */
+    val MAX_DISTANCE_M: Double = 50.0
+
+    /**
+     * Drop in meters from the camera to the ground plane, and the estimator's only calibrated quantity.
+     *
+     * `final_coefficients.params.height_m` in `data/modern-truth-summary.json`: the median of
+     * `truth_distance * tan(depression)` over the 2,488 gated human-label rows at depression >= 5 degrees, where
+     * truth is fresh GSV depth for post-2021 labels. A disjoint-half split (by pano, seed 666) puts the held-out
+     * median absolute error at 0.41 m.
+     *
+     * One height serves every label type. Giving each type its own is tempting — users do click some types above
+     * their ground contact — but on current imagery the implied per-type heights span only 2.27–2.37 m and their
+     * ordering does not reproduce the one an earlier fit found on 2017–2020 truth, which is the signature of a
+     * spread that tracked the era's depth payloads rather than the label types. Only 31% of today's payloads carry
+     * the pinned ground-plane default the era's mostly did, and today's measured plane sits near 2.35 m.
+     * Modern-truth report §7 has the mechanism, §9 the decision and its tradeoffs.
+     */
+    val CAMERA_HEIGHT_M: Double = 2.341219672825709
+
+    /** The constants above as JSON for the Explore front end, which runs the identical estimator (see Label.js). */
+    val asJson: JsObject = Json.obj(
+      "blendDeg"      -> BLEND_DEG,
+      "maxDistanceM"  -> MAX_DISTANCE_M,
+      "cameraHeightM" -> CAMERA_HEIGHT_M
     )
   }
 
   /**
-   * Get the label's estimated latitude/longitude position.
+   * Estimates a label's distance from the panorama in meters, given its depression angle below the horizon.
    *
-   * Estimates heading difference and distance from panorama using output from regression analysis.
-   * https://github.com/ProjectSidewalk/label-latlng-estimation/blob/master/scripts/label-latlng-estimation.md#results
+   * Flat-ground cotangent geometry down to `LatLngEstimation.BLEND_DEG`, then a linear tail whose slope is the
+   * cotangent's derivative at the blend angle, so value and slope match at the handoff. Above the horizon the answer
+   * is the horizon's, keeping the estimate bounded for any input.
    *
-   * @param panoLat The latitude of the panorama location
-   * @param panoLng The longitude of the panorama location
-   * @param heading The user's with respect to true north in degrees
-   * @param zoom The zoom level (1, 2, or 3)
-   * @param canvasX The x-coordinate on the canvas
-   * @param canvasY The y-coordinate on the canvas
-   * @param panoY The y-coordinate within the panorama
-   * @param panoHeight The height of the panorama
-   * @return A LatLng containing the estimated latitude and longitude
+   * @param depressionDeg Degrees below the horizon (negative when above the horizon).
+   * @return              Estimated distance in meters.
+   */
+  def estimateDistanceFromPanoM(depressionDeg: Double): Double = {
+    val heightM  = LatLngEstimation.CAMERA_HEIGHT_M
+    val blendRad = math.toRadians(LatLngEstimation.BLEND_DEG)
+    if (depressionDeg >= LatLngEstimation.BLEND_DEG) {
+      heightM / math.tan(math.toRadians(depressionDeg))
+    } else {
+      val tailM = heightM / math.tan(blendRad) +
+        heightM * (math.Pi / 180.0) / math.pow(math.sin(blendRad), 2) *
+        (LatLngEstimation.BLEND_DEG - math.max(depressionDeg, 0.0))
+      math.min(tailM, LatLngEstimation.MAX_DISTANCE_M)
+    }
+  }
+
+  /**
+   * Get the label's estimated latitude/longitude position from its pixel position within the panorama.
+   *
+   * The bearing to the label is exact projection geometry (`calculatePovFromPanoXY`), and the distance comes from
+   * `estimateDistanceFromPanoM` — both depend only on the label's angular position, so the estimate is independent of
+   * the panorama's resolution. The Explore front end runs the identical computation client-side (Label.js), fed the
+   * same constants through the explore view; this server-side path serves AI label submissions.
+   *
+   * @param panoLat       The latitude of the panorama location
+   * @param panoLng       The longitude of the panorama location
+   * @param panoX         The x-coordinate of the label within the panorama image
+   * @param panoY         The y-coordinate of the label within the panorama image
+   * @param panoWidth     The width of the panorama image
+   * @param panoHeight    The height of the panorama image
+   * @param cameraHeading The heading of the camera with respect to true north in degrees
+   * @return              A LatLng containing the estimated latitude and longitude
    */
   def toLatLng(
       panoLat: Double,
       panoLng: Double,
-      heading: Double,
-      zoom: Double,
-      canvasX: Int,
-      canvasY: Int,
+      panoX: Int,
       panoY: Int,
-      panoHeight: Int
+      panoWidth: Int,
+      panoHeight: Int,
+      cameraHeading: Double
   ): (Double, Double) = {
-    // TODO need to deal with non-integer zoom. Though as of Oct 2025, we only ever call this with zoom = 1.
-    val params = LatLngEstimationParams.LATLNG_ESTIMATION_PARAMS(math.round(zoom).toInt)
-
-    // Estimate heading difference and distance from pano using regression analysis output.
-    val estHeadingDiff =
-      params.headingIntercept + params.headingCanvasXSlope * canvasX
-
-    val estDistanceFromPanoKm = math.max(
-      0.0,
-      params.distanceIntercept +
-        params.distancePanoYSlope * (panoHeight / 2 - panoY) +
-        params.distanceCanvasYSlope * canvasY
-    ) / 1000.0
-
-    val estHeading = heading + estHeadingDiff
+    val pov          = calculatePovFromPanoXY(panoX, panoY, panoWidth, panoHeight, cameraHeading)
+    val estDistanceM = estimateDistanceFromPanoM(-pov.pitch)
 
     // Calculate destination point using haversine formula.
-    CommonUtils.calculateDestination(panoLat, panoLng, estDistanceFromPanoKm, estHeading)
+    CommonUtils.calculateDestination(panoLat, panoLng, estDistanceM / 1000.0, pov.heading)
   }
 }
 
@@ -156,6 +249,7 @@ trait PanoDataService {
    */
   def getInfra3dToken(cityId: String): Future[String]
   def panoExists(panoId: String, panoSource: PanoSource): Future[Option[Boolean]]
+  def getReusableImageryStatus(panoIds: Set[String]): Future[Map[String, Boolean]]
   def getImageUrl(panoId: String, panoSrc: PanoSource, heading: Double, pitch: Double, zoom: Double): Option[String]
   def getGsvImageUrlsForStreet(streetEdgeId: Int): Future[Seq[String]]
   def insertPanoHistories(histories: Seq[PanoHistorySubmission]): Future[Unit]
@@ -183,7 +277,8 @@ class PanoDataServiceImpl @Inject() (
     panoHistoryTable: PanoHistoryTable,
     streetEdgeTable: models.street.StreetEdgeTable,
     signingService: ImageSigningService
-) extends PanoDataService
+)(implicit mat: Materializer)
+    extends PanoDataService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   private val logger = Logger(this.getClass)
@@ -246,6 +341,19 @@ class PanoDataServiceImpl @Inject() (
       case PanoSource.Mapillary => mapillaryPanoExists(panoId)
       case _                    => Future.successful(Some(true))
     }
+  }
+
+  /**
+   * Looks up which of the given panos we already know the imagery-existence answer for, skipping a provider call.
+   *
+   * See `PanoDataTable.getReusableImageryStatus` for which rows qualify and why.
+   *
+   * @param panoIds Panos to look up.
+   * @return        Pano ID -> whether its imagery exists, holding only the panos an answer is reusable for.
+   */
+  def getReusableImageryStatus(panoIds: Set[String]): Future[Map[String, Boolean]] = {
+    if (panoIds.isEmpty) Future.successful(Map.empty)
+    else db.run(panoDataTable.getReusableImageryStatus(panoIds, OffsetDateTime.now.minusDays(LiveImageryTtlDays)))
   }
 
   /**
@@ -445,38 +553,59 @@ class PanoDataServiceImpl @Inject() (
   /**
    * Checks if panos are expired on a nightly basis. Called from CheckImageExpiryActor.scala.
    *
-   * Get as many as 5% of the panos with labels on them, or 5000, whichever is smaller. Check if the panos are expired
-   * and update the database accordingly. If there aren't enough of those remaining that haven't been checked in the
-   * last 3 months, check up to 2.5% or 2500 (whichever is smaller) of the panos that are already marked as expired to
-   * make sure that they weren't marked so incorrectly.
+   * Get as many as 5% of the panos with labels on them, or 5000, whichever is smaller (but at least
+   * `minPanosToCheck`). Check if the panos are expired and update the database accordingly. Also re-check panos that
+   * are already marked as expired to make sure that they weren't marked so incorrectly: a budget of 2.5% or 2500
+   * (whichever is smaller) minus the number of unexpired panos checked, but at least `minPanosToCheck`.
    */
   def checkForImagery: Future[String] = {
+    // Nightly floor for both sample sizes, so that checking always makes some progress: the percentage-based sizes
+    // round to 0 on small corpora, and the expired budget zeroes out on nights when the unexpired queue is full.
+    // getPanoIdsToCheckExpiration's take(n) caps at the stale pool, so the floor never overshoots (#4638).
+    val minPanosToCheck: Int = 100
     db.run(
       for {
-        // Choose a bunch of panos that haven't been checked in the past 6 months to check.
-        nPanos: Int <- panoDataTable.countGsvPanosWithLabels
-        nUnexpiredPanosToCheck: Int = Math.max(5000, Math.min(100, 0.05 * nPanos).toInt)
-        panoIdsToCheck: Seq[String] <- panoDataTable
+        // Choose a bunch of panos that haven't been checked in the past 3 months to check.
+        nPanos: Int <- panoDataTable.countCheckablePanosWithLabels
+        nUnexpiredPanosToCheck: Int =
+          Math.max(minPanosToCheck, Math.min(MaxUnexpiredPanosPerSweep, (0.05 * nPanos).toInt))
+        panosToCheck: Seq[(String, PanoSource)] <- panoDataTable
           .getPanoIdsToCheckExpiration(nUnexpiredPanosToCheck, expired = false)
-        _ = logger.info(s"Checking ${panoIdsToCheck.length} unexpired panos.")
+        _ = logger.info(s"Checking ${panosToCheck.length} unexpired panos.")
 
-        // Choose a few panos that are already marked as expired to double-check.
-        nExpiredPanosToCheck: Int = Math.max(2500, Math.min(50, 0.025 * nPanos).toInt)
-        expiredPanoIdsToCheck: Seq[String] <-
-          if (panoIdsToCheck.length < nExpiredPanosToCheck) {
-            val nRemainingExpiredPanosToCheck: Int = nExpiredPanosToCheck - panoIdsToCheck.length
-            panoDataTable.getPanoIdsToCheckExpiration(nRemainingExpiredPanosToCheck, expired = true)
-          } else DBIO.successful(Seq())
+        // Choose some panos that are already marked as expired to double-check.
+        nExpiredPanosToCheck: Int =
+          Math.max(minPanosToCheck, Math.min(2500, (0.025 * nPanos).toInt) - panosToCheck.length)
+        expiredPanosToCheck: Seq[(String, PanoSource)] <-
+          panoDataTable.getPanoIdsToCheckExpiration(nExpiredPanosToCheck, expired = true)
       } yield {
-        logger.info(s"Checking ${expiredPanoIdsToCheck.length} expired panos.")
+        logger.info(s"Checking ${expiredPanosToCheck.length} expired panos.")
 
-        // Run the panoExists function to check for imagery, then log some stats.
-        Future.traverse(panoIdsToCheck ++ expiredPanoIdsToCheck) { panoId => panoExists(panoId, PanoSource.Gsv) }.map {
-          responses =>
-            s"Not expired: ${responses.count(_ == Some(true))}. Expired: ${responses.count(_ == Some(false))}. Errors: ${responses.count(_.isEmpty)}."
+        // Check each pano against whichever provider it came from, then log some stats.
+        checkImageryBounded(panosToCheck ++ expiredPanosToCheck).map { responses =>
+          s"Not expired: ${responses.count(_ == Some(true))}. Expired: ${responses.count(_ == Some(false))}. Errors: ${responses.count(_.isEmpty)}."
         }
       }
     ).flatten
+  }
+
+  /**
+   * Runs `panoExists` over a batch of panos with at most `ImageryCheckConcurrency` checks in flight at once.
+   *
+   * @param panos Pano IDs paired with the imagery source to check each one against.
+   * @return      One result per pano, in completion order: `Some(true)` exists, `Some(false)` gone, `None` unknown.
+   */
+  private def checkImageryBounded(panos: Seq[(String, PanoSource)]): Future[Seq[Option[Boolean]]] = {
+    Source(panos.toVector)
+      .mapAsyncUnordered(ImageryCheckConcurrency) { case (panoId, source) =>
+        // One bad pano must not abort the sweep: the stream's default supervision would drop every pano not yet
+        // pulled. The providers recover their own exceptions, so this only catches a throw before their Future exists.
+        Future(panoExists(panoId, source)).flatten.recover { case NonFatal(e) =>
+          logger.warn(s"Imagery check for $panoId threw; treating as inconclusive.", e)
+          None
+        }
+      }
+      .runWith(Sink.seq)
   }
 
   def getCropDirectory: String =
@@ -518,6 +647,9 @@ class PanoDataServiceImpl @Inject() (
 
   /**
    * Returns the pano_data row for a pano if a self-hosted image exists AND all required fields are populated.
+   *
+   * "Required" means what PannellumViewer needs to render the backup; the columns mirror `PanoData`'s
+   * `requiredParams` (public/js/common/pano-viewer/src/PanoData.js) — see the note there before changing them.
    */
   def getLocalBackupImage(panoId: String): Future[Option[PanoData]] = {
     if (localBackupImageFile(panoId).isEmpty) {

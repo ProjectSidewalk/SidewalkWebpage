@@ -478,7 +478,7 @@
             <canvas id="onboarding-canvas" class="window-streetview" width="720px" height="480px"></canvas>
             <div id="hand-gesture-holder"></div>
             <div id="onboarding-background"></div>
-            <div id="onboarding-message-holder">
+            <div id="onboarding-message-holder" class="audit-selectable">
               <p></p>
             </div>
           </div>
@@ -991,6 +991,10 @@
     mainParam.countryId = "@currentCity.countryId";
     mainParam.mapboxApiKey = "@commonData.mapboxApiKey";
     mainParam.makeCrops = @data.makeCrops;
+    @* Label lat/lng estimator constants. The backend owns them (PanoDataService.LatLngEstimation, which documents
+       where each fitted value comes from) so the client-side copy of the estimator (Label.js) can never drift from
+       the server-side one. *@
+    mainParam.latLngEstimation = @jsonForScript(service.PanoDataService.LatLngEstimation.asJson);
     const imagerySrc = "@commonData.imagerySource.toString";
     mainParam.viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer : GsvViewer;
     mainParam.viewerAccessToken = "@commonData.imageryAccessToken";

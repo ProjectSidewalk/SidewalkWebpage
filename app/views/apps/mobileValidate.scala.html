@@ -48,7 +48,7 @@
     </div>
   </div>
 
-  <div class="container tool-ui">
+  <div class="container tool-ui ps-invisible"><!-- ps-invisible until loading completes (Main.js unhides), so the raw UI never flashes -->
     @components.progressBar(
       rootId = "mission-progress-bar-section",
       fillId = "mission-progress-bar-complete"
@@ -80,6 +80,7 @@
           <button type="button" id="no-button-1"class="validation-reason-button ps-button button--small"></button>
           <button type="button" id="no-button-2"class="validation-reason-button ps-button button--small"></button>
           <button type="button" id="no-button-3"class="validation-reason-button ps-button button--small"></button>
+          <button type="button" id="no-button-4" class="validation-reason-button ps-button button--small"></button>
           <div class="input-group input-group-sm validate-text-input">
             <input type="text" class="form-control" placeholder="@Messages("validate.add.own.reason")" id="add-disagree-comment" size="36" aria-label="Add no reason input">
           </div>
@@ -112,7 +113,7 @@
         @if(user.role != "Anonymous") {
           <button type="button" data-au-open="signIn" class="sign-in-up-button-mobile">@{user.username}</button>
         } else {
-          <button type="button" id="mobile-validate-sign-in-btn" data-au-open="signIn" class="sign-in-up-button-mobile">@Messages("navbar.signin")</button>
+          <button type="button" data-au-open="signIn" class="sign-in-up-button-mobile">@Messages("navbar.signin")</button>
         }
         <img src='@assets.path("images/" + config.get[String]("city-params.logo-img." + commonData.cityId))' id="ps-logo-mission" alt="Project Sidewalk logo"></img>
         <h1 id="modal-mission-header" class="text-center"></h1>
@@ -167,13 +168,11 @@
     </div>
   </div>
 
+  @* The mission modal's sign-in button opens this via its data-au-open hook (AuthModal.js). *@
+  @common.authDialog(Some(user))
+
   <script>
     window.appManager.ready(function() {
-      // Only rendered for anonymous users, so it may be absent.
-      document.getElementById('mobile-validate-sign-in-btn')?.addEventListener('click', function() {
-        window.location.href = '@routes.UserController.signInMobile()';
-      });
-
       const param = {};
 
       const userParam = {

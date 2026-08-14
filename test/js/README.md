@@ -32,6 +32,13 @@ Also covered, beyond the api-docs previews:
 - `community/*.js` → `communityListPage.test.js` — the /stories + /routes listing pages' client layer (#4688):
   search filtering (hidden attr, live count, no-results), sort orders and tie-breaks, localized dates, type-chip
   tinting, the read-more clamp toggle, view-label popup-vs-navigation routing, and the copy-share-link fallbacks.
+- `common/pano-viewer/src/PanoInfoPopover.js` → `panoInfoViewLink.test.js` — the pano info popover's
+  "view in \<provider\>" link (#4813). Validate and the label card swap the active viewer from label to label, so the
+  popover resolves it on every open and offers the link only when that viewer both publishes a public site and is
+  holding the pano on screen. These pin the link hidden — rather than left pointing at the previous label's pano — on
+  both fallbacks: Pannellum, and the static crop, where the provider's viewer is still loaded but with someone else's
+  pano. Like `ShareWidget` this is a top-level `class`, so the test evals the source instead of using
+  `loadGlobalScript`. jsdom implements neither the Popover API nor `:popover-open`, so the test stands both up.
 
 Each test file has:
 

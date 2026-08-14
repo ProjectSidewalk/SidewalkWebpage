@@ -27,7 +27,9 @@
         "no-button-1": "這是一條住宅人行道。",
         "no-button-2": "這裡沒有人行道。",
         "no-button-3": "這應該是路緣坡道標籤",
-        "no-button-3-tooltip": "有時，路緣坡道會被錯誤地標記為缺失坡道，這通常是因為缺少觸覺警告標誌。"
+        "no-button-3-tooltip": "有時，路緣坡道會被錯誤地標記為缺失坡道，這通常是因為缺少觸覺警告標誌。",
+        "no-button-4": "在這裡穿越並不安全。",
+        "no-button-4-tooltip": "行人不應在此處穿越，因此這裡不需要路緣坡道。"
       },
       "obstacle": {
         "no-button-1": "這裡不是人行道。",
@@ -92,6 +94,11 @@
   "center-ui": {
     "no-info": "無資訊",
     "pano-interactive-message": "拖曳環顧四周，捲動放大細看。"
+  },
+  "imagery-unavailable": {
+    "title": "無法載入影像",
+    "body": "我們無法載入此任務中標記的街景影像，因此目前沒有可顯示的內容。您已完成的檢核都已儲存。這通常會自行恢復，請再試一次。",
+    "retry": "再試一次"
   },
   "mission-start": {
     "title": "檢核{{n}} {{label_type}}標記",

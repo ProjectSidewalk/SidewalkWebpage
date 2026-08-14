@@ -38,6 +38,9 @@ class PanoManager {
   static #POV_LOG_INTERVAL_MS = 500;
   #logPovChange;
 
+  /** @type {Set<PanoViewer>} Viewers already subscribed to by #watchViewerPov(). */
+  #povWatchedViewers = new Set();
+
   /**
    * Initializes panoViewer on the validate page and loads the first pano.
    *
@@ -67,6 +70,8 @@ class PanoManager {
             = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none;';
     this.#panoCanvas.insertAdjacentElement('afterend', this.#pannellumCanvas);
 
+    this.#logPovChange = util.throttle(() => svv.tracker.push('POV_Changed'), PanoManager.#POV_LOG_INTERVAL_MS);
+
     this.#primaryViewer = await panoViewerType.create(this.#panoCanvas, panoOptions);
     svv.panoViewer = this.#primaryViewer;
 
@@ -85,8 +90,12 @@ class PanoManager {
       }
     }
 
-    this.#logPovChange = util.throttle(() => svv.tracker.push('POV_Changed'), PanoManager.#POV_LOG_INTERVAL_MS);
-    svv.panoViewer.addListener('pov_changed', () => this.#logPovChange());
+    // Subscribed after the first pano has loaded rather than beside the viewer's creation: that load sets the
+    // viewer's initial POV, which fires pov_changed, and the throttle's leading edge would log it as a pan the
+    // user never made. (Pannellum, when the fallback above builds one, subscribes at its own creation instead —
+    // by then a POV change is a real one.)
+    this.#watchViewerPov(this.#primaryViewer);
+
     if (util.isMobile()) {
       this.#sizePano();
       svv.panoViewer.resize(); // Necessary for PannellumViewer for correct vertical position of the label.
@@ -99,6 +108,24 @@ class PanoManager {
     } else if (panoViewerType === MapillaryViewer && !util.isMobile()) {
       this.#makeMapillaryAttributionClickable();
     }
+  }
+
+  /**
+   * Subscribes a viewer to the shared POV logger, once per viewer.
+   *
+   * Both viewers need their own subscription: only one of them is `svv.panoViewer` at a time, and Pannellum is built
+   * lazily the first time a label's imagery has expired, so it doesn't exist to subscribe to at startup (#4828).
+   * Panning and zooming a Pannellum label is the same interaction as panning a GSV one and belongs in the logs the
+   * same way. The one throttled logger is shared across viewers, so the interval covers the pano as a whole rather
+   * than giving each viewer its own window.
+   *
+   * @param {PanoViewer} viewer The viewer to subscribe; ignored if it is already subscribed.
+   * @private
+   */
+  #watchViewerPov(viewer) {
+    if (this.#povWatchedViewers.has(viewer)) return;
+    this.#povWatchedViewers.add(viewer);
+    viewer.addListener('pov_changed', () => this.#logPovChange());
   }
 
   /**
@@ -218,7 +245,7 @@ class PanoManager {
 
     if (!this.labelMarker) {
       const markerLayer = document.getElementById('view-control-layer');
-      const markerDiameter = Math.round((svv.labelRadius * 2 + 2) * util.uiScale());
+      const markerDiameter = this.#markerDiameter(util.uiScale());
       this.labelMarker = new PanoMarker({
         id: 'validate-pano-marker',
         markerContainer: markerLayer,
@@ -300,9 +327,12 @@ class PanoManager {
 
   /**
    * Sets the panorama. Tries the primary viewer first; falls back to Pannellum if there's a backup image available.
+   *
    * @param {string} panoId The ID for the panorama that we want to move to.
    * @param {{object}|null} backupImage Self-hosted pano data from the backend, or null.
-   * @returns {Promise<PanoData|undefined>}
+   * @returns {Promise<PanoData|null>} The loaded pano's metadata, or `null` when no viewer could render it. A null
+   *      return means the pano area is now empty, so the caller must not draw a label marker over it or ask for a
+   *      validation of the label it was loading (#4810).
    */
   async setPanorama(panoId, backupImage = null) {
     this.setProperty('panoLoaded', false);
@@ -330,8 +360,28 @@ class PanoManager {
       }
     }
 
-    // Both viewers failed; pano remains in broken state.
+    this.#clearViewer();
+    return null;
+  }
+
+  /**
+   * Empties the pano area: hides both viewer canvases and takes down the label marker.
+   *
+   * Neither viewer clears itself when a load fails — the primary viewer rejects before it ever swaps panos, and
+   * Pannellum keeps its last canvas — so without this the validator would be looking at the *previous* label's
+   * imagery, panned to the new label's POV with the new label's marker on it, and asked whether that label is
+   * correct (#4810). An empty pano is the honest state; the caller decides what to show in its place.
+   * @private
+   */
+  #clearViewer() {
     this.setProperty('panoLoaded', false);
+    this.#panoCanvas.style.display = 'none';
+    this.#pannellumCanvas.style.display = 'none';
+    if (this.labelMarker) {
+      this.labelMarker.removeMarker();
+      this.labelMarker = null;
+      this.#markerViewer = undefined;
+    }
   }
 
   /**
@@ -373,6 +423,7 @@ class PanoManager {
         startZoom: neutralPov.zoom,
       });
     }
+    this.#watchViewerPov(this.#pannellumViewer);
     svv.panoViewer = this.#pannellumViewer;
     svv.tracker.push('Viewer_Pannellum');
     this.#logo.showSourceLogo();
@@ -407,12 +458,28 @@ class PanoManager {
   }
 
   /**
+   * On-screen diameter of the label marker, in CSS px, at the given UI scale.
+   *
+   * Capped, the way Explore's placed icon is (#4838). --ui-scale runs to 1.8x, which took this marker from 22px to
+   * 40px on screen — a mark that hides more of the very feature the validator is judging the bigger their window
+   * gets, and the two tools' markers drifted apart at the top of the range. The cap engages above ~1.73x, so every
+   * scale below that is untouched. util.cappedMarkerDiameter leaves mobile's larger touch target alone.
+   *
+   * @param {number} scale The UI scale factor (see util.applyToolScale).
+   * @returns {number} Diameter in CSS px.
+   * @private
+   */
+  #markerDiameter(scale) {
+    return Math.round(util.cappedMarkerDiameter(svv.labelRadius * 2 + 2, scale));
+  }
+
+  /**
    * Resizes the label marker to match the given UI scale factor.
    * @param {number} scale The current UI scale factor (see util.applyToolScale).
    */
   setMarkerScale(scale) {
     if (!this.labelMarker) return;
-    const markerDiameter = Math.round((svv.labelRadius * 2 + 2) * scale);
+    const markerDiameter = this.#markerDiameter(scale);
     this.labelMarker.setSize({ width: markerDiameter, height: markerDiameter });
   }
 

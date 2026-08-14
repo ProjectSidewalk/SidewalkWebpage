@@ -39,6 +39,11 @@ for (const p of PAGES) {
     const response = await page.goto(p.path);
     expect(response.status(), `${p.path} responded ${response.status()}`).toBeLessThan(400);
     await waitForAppReady(page);
+    // The landing page defers its maps and validation grid behind util.onFirstInteractionOrIdle (#4486). Headless
+    // Chromium generates no input events, so without a nudge they'd only start on the 5s fallback — after the settle
+    // window below, silently costing this spec its coverage of map init rather than failing it.
+    await page.mouse.move(10, 10);
+    if (p.path === '/') await page.waitForFunction(() => window.choropleth && window.deploymentMap);
     if (p.loadingOverlay) await page.locator('#page-loading').waitFor({state: 'hidden'});
     // Settle window: init errors from late async work (post-ready fetches, map callbacks) land here.
     await page.waitForTimeout(1000);

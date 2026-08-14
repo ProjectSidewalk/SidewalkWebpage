@@ -61,7 +61,8 @@ class StreetEdgeTableDef(tag: Tag) extends Table[StreetEdge](tag, "street_edge")
   def y2: Rep[Double]                     = column[Double]("y2")
   def wayType: Rep[WayType.Value]         = column[WayType.Value]("way_type")
   def status: Rep[StreetEdgeStatus.Value] = column[StreetEdgeStatus.Value]("status")
-  def timestamp: Rep[OffsetDateTime]      = column[OffsetDateTime]("timestamp")
+  // DEFAULT now() in the DB (O.Default holds a value, not an expression).
+  def timestamp: Rep[OffsetDateTime] = column[OffsetDateTime]("timestamp")
 
   def * = (streetEdgeId, geom, x1, y1, x2, y2, wayType, status, timestamp) <> (
     (StreetEdge.apply _).tupled,

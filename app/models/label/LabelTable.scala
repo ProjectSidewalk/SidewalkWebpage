@@ -247,20 +247,21 @@ case class LabelValidationMetadata(
 ) extends BasicLabelMetadata
 
 class LabelTableDef(tag: slick.lifted.Tag) extends Table[Label](tag, "label") {
-  def labelId: Rep[Int]                = column[Int]("label_id", O.PrimaryKey, O.AutoInc)
-  def auditTaskId: Rep[Int]            = column[Int]("audit_task_id")
-  def missionId: Rep[Int]              = column[Int]("mission_id")
-  def userId: Rep[String]              = column[String]("user_id")
-  def panoId: Rep[String]              = column[String]("pano_id")
-  def labelTypeId: Rep[Int]            = column[Int]("label_type_id")
-  def deleted: Rep[Boolean]            = column[Boolean]("deleted")
-  def temporaryLabelId: Rep[Int]       = column[Int]("temporary_label_id")
+  def labelId: Rep[Int]          = column[Int]("label_id", O.PrimaryKey, O.AutoInc)
+  def auditTaskId: Rep[Int]      = column[Int]("audit_task_id")
+  def missionId: Rep[Int]        = column[Int]("mission_id")
+  def userId: Rep[String]        = column[String]("user_id")
+  def panoId: Rep[String]        = column[String]("pano_id")
+  def labelTypeId: Rep[Int]      = column[Int]("label_type_id")
+  def deleted: Rep[Boolean]      = column[Boolean]("deleted", O.Default(false))
+  def temporaryLabelId: Rep[Int] = column[Int]("temporary_label_id")
+  // DEFAULT now() in the DB (O.Default holds a value, not an expression).
   def timeCreated: Rep[OffsetDateTime] = column[OffsetDateTime]("time_created")
-  def tutorial: Rep[Boolean]           = column[Boolean]("tutorial")
+  def tutorial: Rep[Boolean]           = column[Boolean]("tutorial", O.Default(false))
   def streetEdgeId: Rep[Int]           = column[Int]("street_edge_id")
-  def agreeCount: Rep[Int]             = column[Int]("agree_count")
-  def disagreeCount: Rep[Int]          = column[Int]("disagree_count")
-  def unsureCount: Rep[Int]            = column[Int]("unsure_count")
+  def agreeCount: Rep[Int]             = column[Int]("agree_count", O.Default(0))
+  def disagreeCount: Rep[Int]          = column[Int]("disagree_count", O.Default(0))
+  def unsureCount: Rep[Int]            = column[Int]("unsure_count", O.Default(0))
   def correct: Rep[Option[Boolean]]    = column[Option[Boolean]]("correct")
   def severity: Rep[Option[Int]]       = column[Option[Int]]("severity")
   def description: Rep[Option[String]] = column[Option[String]]("description")
@@ -1227,6 +1228,24 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   }
 
   /**
+   * Whether Validate can show a label's imagery: the original is still live, or a viewable backup stands in.
+   *
+   * Rendering a backup in Pannellum needs the pano's dimensions, camera location, and camera angles, and rows written
+   * before we recorded those carry nulls. A label on one of them leaves Validate showing the *previous* label's
+   * imagery under the new label's marker (#4804), so they're better left out of the queue.
+   *
+   * `hasBackup` is NULL until the imagery check has looked at a pano and is read optimistically; the real gate is
+   * `LabelService.checkImageryBatch`, which checks disk and API per label as a mission is built.
+   *
+   * The six columns mirror `PanoData`'s `requiredParams` — see the note there before changing them.
+   */
+  private def imageryViewable(pd: PanoDataTableDef): Rep[Boolean] = {
+    !pd.expired || (pd.hasBackup.getOrElse(true: Rep[Boolean]) &&
+      pd.width.isDefined && pd.height.isDefined && pd.lat.isDefined && pd.lng.isDefined &&
+      pd.cameraHeading.isDefined && pd.cameraPitch.isDefined)
+  }
+
+  /**
    * Returns how many labels this user has available to validate (& how many need validations) for each label type.
    *
    * @param userId User ID for the current user
@@ -1239,7 +1258,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     val labelsToValidate = for {
       _lb <- labels
       _pd <- panoData if _pd.panoId === _lb.panoId
-      if (_pd.expired === false || _pd.hasBackup.getOrElse(true)) && _pd.source === viewer && _lb.userId =!= userId
+      if imageryViewable(_pd) && _pd.source === viewer && _lb.userId =!= userId
     } yield (_lb.labelId, _lb.labelTypeId, _lb.correct)
 
     // Left join with the labels that the user has already validated, then filter those out.
@@ -1267,12 +1286,12 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    * depending on how far we are from consensus. Another 25 points if the label was added in the past week. Then add a
    * random number so that the max score for each label is 426.
    *
-   * @param userId         User ID for the current user.
-   * @param labelTypeId    Label Type ID of labels requested.
-   * @param userIds        Optional list of user IDs to filter by.
-   * @param regionIds      Optional list of region IDs to filter by.
-   * @param skippedLabelId Label ID of the label that was just skipped (if applicable).
-   * @return               Seq[LabelValidationMetadata]
+   * @param userId           User ID for the current user.
+   * @param labelTypeId      Label Type ID of labels requested.
+   * @param userIds          Optional list of user IDs to filter by.
+   * @param regionIds        Optional list of region IDs to filter by.
+   * @param excludedLabelIds Labels the caller already holds and must not be handed again (#4810).
+   * @return                 Seq[LabelValidationMetadata]
    */
   def retrieveLabelListForValidationQuery(
       userId: String,
@@ -1282,7 +1301,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       userIds: Option[Set[String]] = None,
       regionIds: Option[Set[Int]] = None,
       unvalidatedOnly: Boolean = false,
-      skippedLabelId: Option[Int] = None
+      excludedLabelIds: Set[Int] = Set.empty
   ): Query[LabelValidationMetadataTupleRep, LabelValidationMetadataTuple, Seq] = {
     // Join all necessary tables and filter potential labels according to the given parameters.
     val _labelInfo = for {
@@ -1294,9 +1313,11 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _ur             <- userRoles if _us.userId === _ur.userId
       _r              <- roleTable if _ur.roleId === _r.roleId
       if _lt.labelTypeId === labelTypeId && _lp.lat.isDefined && _lp.lng.isDefined && _lb.userId =!= userId
-      if _pd.source === viewer && (!_pd.expired || _pd.hasBackup.getOrElse(true: Rep[Boolean]))
-      if !unvalidatedOnly.asColumnOf[Boolean] || _lb.correct.isEmpty                     // Filter out validated labels.
-      if skippedLabelId.map(_lb.labelId =!= _).getOrElse(true: Rep[Boolean])             // Filter out skipped label.
+      if _pd.source === viewer && imageryViewable(_pd)
+      if !unvalidatedOnly.asColumnOf[Boolean] || _lb.correct.isEmpty // Filter out validated labels.
+      // Filter out labels the caller already holds. An empty set can't go through `inSetBind`, which renders an
+      // `IN ()` that Postgres rejects, so the no-exclusions case has to short-circuit to a constant.
+      if (if (excludedLabelIds.isEmpty) true: Rep[Boolean] else !(_lb.labelId inSetBind excludedLabelIds))
       if regionIds.map(ids => _ser.regionId inSetBind ids).getOrElse(true: Rep[Boolean]) // Filter by region IDs.
       if userIds.map(ids => _lb.userId inSetBind ids).getOrElse(true: Rep[Boolean])      // Filter by user IDs.
     } yield (_lb, _lp, _pd, _us, _at, _lt.labelType, _ser.regionId, _r.role === "AI")

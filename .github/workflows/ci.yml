@@ -269,8 +269,12 @@ jobs:
       #   fixture tests (analytic WGS84 arc lengths, the #4774 nightly-refresh regression) seed every row they read,
       #   so they are meaningful even here — a reintroduced projection fails by double digits. Its cache-freshness
       #   comparisons need real data and CANCEL on this empty schema, same as RouteAuthPostureSpec's shape checks.
+      # - ExploreTutorialRouteSpec (#4816): a resumable route walk must not surface while the session is the tutorial.
+      #   It seeds its own users and route walks, but hangs them on an existing street/region and needs a configured
+      #   tutorial street, so all four tests CANCEL on this empty schema — listed here so they run the moment the job
+      #   has a seeded DB, and so the cancel is visible rather than the suite silently not existing.
       - name: Run gating/auth tests (health dashboard + route auth posture + geodesic distances)
-        run: sbt 'set Test / parallelExecution := false' 'testOnly controllers.HealthDashboardSpec service.HealthServiceSpec controllers.RouteAuthPostureSpec models.street.GeodesicDistanceSpec'
+        run: sbt 'set Test / parallelExecution := false' 'testOnly controllers.HealthDashboardSpec service.HealthServiceSpec controllers.RouteAuthPostureSpec models.street.GeodesicDistanceSpec service.ExploreTutorialRouteSpec'
         env:
           DATABASE_URL: jdbc:postgresql://localhost:5432/sidewalk
           DATABASE_USER: sidewalk

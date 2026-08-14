@@ -165,6 +165,10 @@ dialog.au-dialog::backdrop {
   width: 100%;
   padding: 11px 14px;
   font: var(--text-body-regular);
+
+  /* iOS Safari auto-zooms the page when a focused input renders below 16px, so floor the token's size — the
+     dialog can sit over a tool page whose --ui-scale shrinks --text-body-regular below that (#4884). */
+  font-size: max(16px, calc(16px * var(--ui-scale, 1)));
   color: var(--color-neutral-900);
   background: var(--color-neutral-white);
   border: 1.5px solid var(--color-neutral-400);

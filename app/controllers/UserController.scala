@@ -140,15 +140,12 @@ class UserController @Inject() (
   }
 
   /**
-   * Get the mobile sign in page.
+   * Permanent redirect for the retired mobile sign-in page: the responsive /signIn serves all devices (#4884).
+   *
+   * The query string (e.g. the `url` return-to parameter) is carried over so old bookmarks and links keep working.
    */
-  def signInMobile() = silhouette.UserAwareAction.async { implicit request =>
-    if (request.identity.isEmpty || request.identity.get.role == "Anonymous") {
-      configService.getCommonPageData(request2Messages.lang).map { commonData =>
-        cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_MobileSignIn")
-        Ok(views.html.authentication.signInMobile(SignInForm.form, commonData, request.identity))
-      }
-    } else Future.successful(Redirect("/"))
+  def signInMobile() = Action { request =>
+    Redirect(routes.UserController.signIn().url, request.queryString, MOVED_PERMANENTLY)
   }
 
   /**
@@ -164,15 +161,12 @@ class UserController @Inject() (
   }
 
   /**
-   * Get the mobile sign-up page.
+   * Permanent redirect for the retired mobile sign-up page: the responsive /signUp serves all devices (#4884).
+   *
+   * The query string (e.g. the `url` return-to parameter) is carried over so old bookmarks and links keep working.
    */
-  def signUpMobile() = silhouette.UserAwareAction.async { implicit request =>
-    if (request.identity.isEmpty || request.identity.get.role == "Anonymous") {
-      configService.getCommonPageData(request2Messages.lang).map { commonData =>
-        cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_MobileSignUp")
-        Ok(views.html.authentication.signUpMobile(SignUpForm.form, commonData, request.identity))
-      }
-    } else Future.successful(Redirect("/"))
+  def signUpMobile() = Action { request =>
+    Redirect(routes.UserController.signUp().url, request.queryString, MOVED_PERMANENTLY)
   }
 
   /**

@@ -58,7 +58,8 @@ class StoryMediaTableDef(tag: Tag) extends Table[StoryMedia](tag, "story_media")
   def photoCapturedAt: Rep[Option[OffsetDateTime]] = column[Option[OffsetDateTime]]("photo_captured_at")
   def photoLat: Rep[Option[Double]]                = column[Option[Double]]("photo_lat")
   def photoLng: Rep[Option[Double]]                = column[Option[Double]]("photo_lng")
-  def createdAt: Rep[OffsetDateTime]               = column[OffsetDateTime]("created_at")
+  // DEFAULT now() in the DB (O.Default holds a value, not an expression).
+  def createdAt: Rep[OffsetDateTime] = column[OffsetDateTime]("created_at")
 
   def * : ProvenShape[StoryMedia] =
     (storyMediaId, storyId, mediaType, mimeType, width, height, durationSecs, fileSizeBytes, altText, captureRecency,

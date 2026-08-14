@@ -31,15 +31,17 @@ case class FunnelStat(funnelType: String, window: String, segment: String, steps
 case class FunnelSegmentCounts(segment: String, steps: Seq[Int])
 
 class FunnelStatTableDef(tag: Tag) extends Table[FunnelStat](tag, "funnel_stat") {
-  def funnelType: Rep[String]         = column[String]("funnel_type")
+  // CHECK (funnel_type IN ('mapping', 'contribution')) in the DB (no Slick DSL for CHECK constraints).
+  def funnelType: Rep[String] = column[String]("funnel_type")
+  // CHECK (time_window IN ('30d', '90d', 'all')) in the DB.
   def timeWindow: Rep[String]         = column[String]("time_window")
   def segment: Rep[String]            = column[String]("segment")
-  def step1: Rep[Int]                 = column[Int]("step1")
-  def step2: Rep[Int]                 = column[Int]("step2")
-  def step3: Rep[Int]                 = column[Int]("step3")
-  def step4: Rep[Int]                 = column[Int]("step4")
-  def step5: Rep[Int]                 = column[Int]("step5")
-  def step6: Rep[Int]                 = column[Int]("step6")
+  def step1: Rep[Int]                 = column[Int]("step1", O.Default(0))
+  def step2: Rep[Int]                 = column[Int]("step2", O.Default(0))
+  def step3: Rep[Int]                 = column[Int]("step3", O.Default(0))
+  def step4: Rep[Int]                 = column[Int]("step4", O.Default(0))
+  def step5: Rep[Int]                 = column[Int]("step5", O.Default(0))
+  def step6: Rep[Int]                 = column[Int]("step6", O.Default(0))
   def computedAt: Rep[OffsetDateTime] = column[OffsetDateTime]("computed_at")
 
   // steps is a fixed six-slot Seq, so the projection maps the six step columns to/from it explicitly.
