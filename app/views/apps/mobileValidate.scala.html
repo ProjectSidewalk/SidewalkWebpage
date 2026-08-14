@@ -48,7 +48,7 @@
     </div>
   </div>
 
-  <div class="container tool-ui">
+  <div class="container tool-ui ps-invisible"><!-- ps-invisible until loading completes (Main.js unhides), so the raw UI never flashes -->
     @components.progressBar(
       rootId = "mission-progress-bar-section",
       fillId = "mission-progress-bar-complete"
