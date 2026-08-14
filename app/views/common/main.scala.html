@@ -9,8 +9,10 @@
 @* Pages that render the map full-window (no footer, #wrap becomes a fixed-height flex column). *@
 @fullWindow = @{url == "/labelMap" || url == "/routeBuilder"}
 @* The landing page draws its hero under the fixed navbar and pads itself (homepage.css), so it opts out of the
-   global navbar offset that main.css puts on <body>. *@
-@bodyClass = @{if (url == "/" || url == "/home") "no-navbar-offset" else ""}
+   global navbar offset that main.css puts on <body>. Keyed on request.path (like navbar.scala.html's isLanding),
+   NOT the url parameter: url defaults to "/", so the ~50 views that omit it would otherwise all be classified as
+   the landing page and lose their navbar padding. MobileDetectionSpec pins this. *@
+@bodyClass = @{if (request.path == "/" || request.path == "/home") "no-navbar-offset" else ""}
 
 @* The one moment locale this request needs. Locale files register lowercase names ('zh-tw', 'pt-br') matching their
    filenames, and moment lowercases the code it's given, so a language code maps straight to a filename (#4486).

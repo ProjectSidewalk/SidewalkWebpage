@@ -23,6 +23,10 @@ object ControllerUtils {
    */
   val NoUserId: String = ""
 
+  /** Mobile OS/device tokens in a User-Agent. Compiled once: isMobile runs on every page render (the layout stamp). */
+  private val mobileOsRegex: Regex =
+    "(iPhone|webOS|iPod|Android|BlackBerry|mobile|SAMSUNG|IEMobile|OperaMobi|BB10|iPad|Tablet)".r.unanchored
+
   /**
    * Whether the request comes from a mobile device, judged by matching its User-Agent against a list of mobile OS
    * and device tokens.
@@ -35,14 +39,12 @@ object ControllerUtils {
    * @return        True if that header is present and matches a mobile token; false if it is absent or matches none.
    */
   def isMobile(implicit request: RequestHeader): Boolean = {
-    val mobileOS: Regex =
-      "(iPhone|webOS|iPod|Android|BlackBerry|mobile|SAMSUNG|IEMobile|OperaMobi|BB10|iPad|Tablet)".r.unanchored
     request.headers
       .get("User-Agent")
       .exists(agent => {
         agent match {
-          case mobileOS(a) => true
-          case _           => false
+          case mobileOsRegex(_) => true
+          case _                => false
         }
       })
   }

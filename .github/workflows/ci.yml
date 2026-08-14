@@ -274,8 +274,9 @@ jobs:
       #   tutorial street, so all four tests CANCEL on this empty schema — listed here so they run the moment the job
       #   has a seeded DB, and so the cancel is visible rather than the suite silently not existing.
       # - MobileDetectionSpec (#4887): the layout must stamp ControllerUtils.isMobile's verdict on
-      #   <html data-mobile-device>, the single mobile definition util.isMobile() reads back. Fetches /signIn, which
-      #   renders without data, so it is meaningful on this empty schema.
+      #   <html data-mobile-device>, the single mobile definition util.isMobile() reads back; also pins the landing
+      #   page's navbar-padding opt-out to request.path. Fetches /signIn and the landing page, which render without
+      #   data (the landing shows zeros/NaN stats), so both are meaningful on this empty schema.
       - name: Run gating/auth tests (health dashboard + route auth posture + geodesic distances)
         run: sbt 'set Test / parallelExecution := false' 'testOnly controllers.HealthDashboardSpec service.HealthServiceSpec controllers.RouteAuthPostureSpec models.street.GeodesicDistanceSpec service.ExploreTutorialRouteSpec controllers.MobileDetectionSpec'
         env:
