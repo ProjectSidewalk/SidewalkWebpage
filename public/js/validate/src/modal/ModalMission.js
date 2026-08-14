@@ -74,6 +74,14 @@ class ModalMission {
         : i18next.t('validate:mission-start-tutorial.label-on-image-description-incorrect');
       // Only the first example is worth downloading up front; the rest are megabyte screenshots a swipe away.
       const loading = i === 0 ? '' : ' loading="lazy"';
+      // Each photo has an empty callout frame drawn into it, with a dotted line running to it from the label being
+      // taught. Its position comes in the frame the desktop tutorial displays the photo at, so scale it to a share of
+      // whatever width the phone gives the photo.
+      const frame = MissionStartTutorial.EXAMPLE_PHOTO;
+      const left = (parseFloat(slide.labelOnImage.position.left) / frame.width) * 100;
+      const top = (parseFloat(slide.labelOnImage.position.top) / frame.height) * 100;
+      // The callout's sentence is wrapped in its own span so the centering flex box sees a single item: handed
+      // "Mark <b>Agree</b>" as-is it makes two, and the space between them disappears.
       return `
         <figure class="mv-example mv-example--${correct ? 'correct' : 'incorrect'}">
           <div class="mv-example__photo">
@@ -84,11 +92,13 @@ class ModalMission {
               </svg>
               ${verdict}
             </span>
+            <span class="mv-example__callout" style="left: ${left.toFixed(2)}%; top: ${top.toFixed(2)}%;">
+              <span>${verdictAction}</span>
+            </span>
           </div>
           <figcaption class="mv-example__caption">
             <span class="mv-example__title">${slide.slideTitle}</span>
             <span class="mv-example__text">${slide.slideDescription}</span>
-            <span class="mv-example__action">${verdictAction}</span>
           </figcaption>
         </figure>`;
     }).join('');
@@ -101,6 +111,24 @@ class ModalMission {
     return `
       <div class="mv-examples">${figures}</div>
       <div class="mv-dots" aria-hidden="true">${dots}</div>`;
+  }
+
+  /**
+   * Shrinks the mission title until it fits on one line, down to a floor — a title reads as one thought that way, and
+   * the label types (and their translations) are too different in length for one size to fit them all. Past the floor
+   * it wraps rather than shrink into the unreadable.
+   *
+   * @param {HTMLElement} title The title element, already holding the text to fit.
+   */
+  static #fitToOneLine(title) {
+    const startingSize = 24; // The --text-h3-bold token this screen's headings are set in.
+    const floor = 16;
+    title.style.whiteSpace = 'nowrap';
+    for (let size = startingSize; size >= floor; size--) {
+      title.style.fontSize = `${size}px`;
+      if (title.scrollWidth <= title.clientWidth) return;
+    }
+    title.style.whiteSpace = '';
   }
 
   /**
@@ -161,6 +189,7 @@ class ModalMission {
 
     this.#uiModalMission.background.css('visibility', 'visible');
     this.#uiModalMission.missionTitle.html(title);
+    ModalMission.#fitToOneLine(this.#uiModalMission.missionTitle[0]);
     this.#uiModalMission.holder.css('visibility', 'visible');
     this.#uiModalMission.foreground.css('visibility', 'visible');
     this.#uiModalMission.closeButton.html(i18next.t('common:mission-start-tutorial.start-mission'));

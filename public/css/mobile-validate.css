@@ -129,9 +129,11 @@ body {
   height: auto;
 }
 
-/* The id is here to outrank svv-modal.css, which spaces the desktop title off a taller modal. */
+/* The id is here to outrank svv-modal.css, which spaces the desktop title off a taller modal. The full width is what
+   lets ModalMission measure the mission title against the screen and shrink it onto one line. */
 .mv-modal h1,
 #modal-mission-complete-title {
+  width: 100%;
   margin: 0;
   font: var(--text-h3-bold);
   color: var(--color-neutral-900);
@@ -151,6 +153,13 @@ body {
 .mv-eyebrow img {
   width: 22px;
   height: 22px;
+}
+
+/* Pinned to the screen's width, not sized to its contents: as a centered flex item this box would otherwise take a
+   fit-content width — which the examples' longest line can push past the screen, taking the carousel's own 100% with
+   it, so a wordy label type overflowed and a terse one didn't. */
+#modal-mission-instruction {
+  width: 100%;
 }
 
 /* The dead end (ModalNoNewMission) takes this same box over, and paints an illustration and a sentence into it. */
@@ -252,16 +261,32 @@ body {
   color: var(--color-neutral-800);
 }
 
-/* What the example is worth on the buttons below — "Mark Agree" / "Mark Disagree". */
-.mv-example__action {
-  font: var(--text-body-bold);
+/* What the example is worth on the buttons below — "Mark Agree" / "Mark Disagree" — sitting in the callout frame the
+   photo draws for it, at the end of the dotted line from the label. Sized to cover that frame: the desktop tutorial's
+   own callout is at most 220x90 of the 658x436 the photo is laid out in, and ModalMission places this one at the same
+   spot in percentages. */
+.mv-example__callout {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 33.5%;
+  min-height: 20.7%;
+  padding: 4px 6px;
+  border: 2px solid;
+  border-radius: 8px;
+  background: var(--color-neutral-white);
+  font: var(--text-caption-semibold);
+  text-align: center;
 }
 
-.mv-example--correct .mv-example__action {
+.mv-example--correct .mv-example__callout {
+  border-color: var(--color-pine-700);
   color: var(--color-pine-800);
 }
 
-.mv-example--incorrect .mv-example__action {
+.mv-example--incorrect .mv-example__callout {
+  border-color: var(--color-orange-700);
   color: var(--color-orange-700);
 }
 

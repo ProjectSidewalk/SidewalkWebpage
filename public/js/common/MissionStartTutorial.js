@@ -101,6 +101,12 @@ class MissionStartTutorial {
   };
 
   /**
+   * The frame each slide's `labelOnImage` position is measured in — the size the desktop tutorial displays an example
+   * photo at. Anywhere else the photo is shown at another size, divide by this to place the callout proportionally.
+   */
+  static EXAMPLE_PHOTO = { width: 658, height: 436 };
+
+  /**
    * The example slides that teach one label type, translated and ready to render.
    *
    * @param {string} missionType Mission type ('validate' or 'audit').

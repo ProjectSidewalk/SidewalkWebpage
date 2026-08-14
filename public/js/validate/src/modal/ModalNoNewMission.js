@@ -67,9 +67,11 @@ class ModalNoNewMission {
     }
     this.#uiModalMission.background.css('visibility', 'visible');
     this.#uiModalMission.instruction.html(imageryUnavailable ? this.#imageryUnavailable : this.#noMissionsRemaining);
-    // This dead end can follow a mission briefing, whose "YOUR MISSION" eyebrow would otherwise still be sitting
-    // above it (mobile only — desktop has no such element).
+    // This dead end can follow a mission briefing, which leaves two things behind on mobile: its "YOUR MISSION"
+    // eyebrow, and the shrunk-to-one-line sizing it put on the title. This message is a sentence and wants to wrap at
+    // the heading's own size. (Desktop has no eyebrow and never shrinks the title, so both are no-ops there.)
     this.#uiModalMission.eyebrow.empty();
+    this.#uiModalMission.missionTitle.css({ 'white-space': '', 'font-size': '' });
     this.#uiModalMission.missionTitle.html(imageryUnavailable
       ? i18next.t('imagery-unavailable.title')
       : i18next.t('mission-complete.no-new-mission-title'));
