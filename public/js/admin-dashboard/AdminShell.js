@@ -1,7 +1,7 @@
 /**
  * Shell behaviors for the redesigned admin dashboard (#4272): builds the right-hand "On this page" table of
  * contents from the page's headings, highlights the active section on scroll (scroll-spy), smooth-scrolls anchor
- * clicks past the fixed navbar, and provides a hamburger toggle for the left nav on narrow screens.
+ * clicks past the fixed navbar, and adds the left nav's mobile disclosure (sidebarDisclosure.js).
  *
  * This is a clean ES6 reimplementation of the equivalent api-docs.js logic, operating on the same .api-* markup so
  * the look and behavior match. It self-initializes on DOMContentLoaded.
@@ -23,7 +23,7 @@ class AdminShell {
     this.#buildTableOfContents();
     this.#setupScrollSpy();
     this.#setupSmoothScrolling();
-    this.#setupMobileNav();
+    initSidebarDisclosure();
     this.#localizeDeployTimes();
   }
 
@@ -111,23 +111,6 @@ class AdminShell {
         history.replaceState(null, '', `#${id}`);
       });
     });
-  }
-
-  /** Adds a hamburger button (shown via CSS on narrow screens) that toggles the left nav. */
-  #setupMobileNav() {
-    const sidebar = document.querySelector('.api-sidebar');
-    if (!sidebar || document.querySelector('.api-sidebar-toggle')) return;
-
-    const toggle = document.createElement('button');
-    toggle.className = 'api-sidebar-toggle';
-    toggle.setAttribute('aria-label', 'Toggle navigation');
-    toggle.setAttribute('aria-expanded', 'false');
-    toggle.innerHTML = '☰';
-    toggle.addEventListener('click', () => {
-      const open = sidebar.classList.toggle('mobile-visible');
-      toggle.setAttribute('aria-expanded', String(open));
-    });
-    document.body.appendChild(toggle);
   }
 }
 
