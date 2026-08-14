@@ -12,6 +12,124 @@ class MissionStartTutorial {
     EXPLORE: 'audit',
   };
 
+  /**
+   * What each label type teaches, and the example photos it teaches it with — the source of truth for both tools and
+   * for mobile Validate's mission-start screen (which renders the same slides as a swipeable carousel).
+   *
+   * Slide one is always the correct example; the rest are wrong ones. `copy` names the label type's block of slide
+   * titles/descriptions under `common:mission-start-tutorial`, `photos` the files under images/tutorials/, and each
+   * slide's `label` is where the example's label chip sits on the photo, in the photo's own pixels.
+   *
+   * Explore shoots its own wrong examples (`explore-` copies of the same filenames) but teaches the same lessons from
+   * the same spots, so the two tools differ by that prefix and nothing else.
+   */
+  static #LABEL_TYPE_LESSONS = {
+    CurbRamp: {
+      copy: 'curb-ramp',
+      nameKey: 'common:curb-ramp',
+      photos: 'curbramp',
+      slides: [
+        { photo: 'correct-1', label: { left: '237px', top: '222px' } },
+        { photo: 'incorrect-1', label: { left: '329px', top: '334px' } },
+        { photo: 'incorrect-2', label: { left: '295px', top: '333px' } },
+      ],
+    },
+    NoCurbRamp: {
+      copy: 'no-curb-ramp',
+      nameKey: 'common:no-curb-ramp',
+      photos: 'no-curbramp',
+      slides: [
+        { photo: 'correct-1', label: { left: '392px', top: '157px' } },
+        { photo: 'incorrect-1', label: { left: '324px', top: '250px' } },
+        { photo: 'incorrect-2', label: { left: '396px', top: '320px' } },
+        { photo: 'incorrect-3', label: { left: '325px', top: '302px' } },
+      ],
+    },
+    Obstacle: {
+      copy: 'obstacle',
+      nameKey: 'common:obstacle',
+      photos: 'obstacle',
+      slides: [
+        { photo: 'correct-1', label: { left: '268px', top: '301px' } },
+        { photo: 'incorrect-1', label: { left: '396px', top: '286px' } },
+        { photo: 'incorrect-2', label: { left: '76px', top: '112px' } },
+        { photo: 'incorrect-3', label: { left: '414px', top: '187px' } },
+      ],
+    },
+    SurfaceProblem: {
+      copy: 'surface-problem',
+      nameKey: 'common:surface-problem',
+      photos: 'surface-problem',
+      slides: [
+        { photo: 'correct-1', label: { left: '291px', top: '45px' } },
+        { photo: 'incorrect-1', label: { left: '397px', top: '190px' } },
+        { photo: 'incorrect-2', label: { left: '333px', top: '219px' } },
+      ],
+    },
+    NoSidewalk: {
+      copy: 'no-sidewalk',
+      nameKey: 'common:no-sidewalk',
+      photos: 'no-sidewalk',
+      slides: [
+        { photo: 'correct-1', label: { left: '290px', top: '132px' } },
+        { photo: 'incorrect-1', label: { left: '352px', top: '312px' } },
+        { photo: 'incorrect-2', label: { left: '183px', top: '298px' } },
+      ],
+    },
+    Crosswalk: {
+      copy: 'crosswalk',
+      nameKey: 'common:crosswalk',
+      photos: 'crosswalk',
+      slides: [
+        { photo: 'correct-1', label: { left: '175px', top: '159px' } },
+        { photo: 'incorrect-1', label: { left: '353px', top: '241px' } },
+        { photo: 'incorrect-2', label: { left: '247px', top: '301px' } },
+        { photo: 'incorrect-3', label: { left: '267px', top: '102px' } },
+      ],
+    },
+    Signal: {
+      copy: 'signal',
+      nameKey: 'common:signal',
+      photos: 'signal',
+      slides: [
+        { photo: 'correct-1', label: { left: '170px', top: '325px' } },
+        { photo: 'incorrect-1', label: { left: '376px', top: '86px' } },
+        { photo: 'incorrect-2', label: { left: '389px', top: '203px' } },
+        { photo: 'incorrect-3', label: { left: '358px', top: '332px' } },
+      ],
+    },
+  };
+
+  /**
+   * The example slides that teach one label type, translated and ready to render.
+   *
+   * @param {string} missionType Mission type ('validate' or 'audit').
+   * @param {string} labelType One of the seven label types.
+   * @returns {Object[]} One entry per slide: `isExampleCorrect`, `slideTitle`, `slideSubtitle`, `slideDescription`,
+   *      `imageURL`, and `labelOnImage.position`.
+   */
+  static slidesFor(missionType, labelType) {
+    const lesson = MissionStartTutorial.#LABEL_TYPE_LESSONS[labelType];
+    return lesson.slides.map((slide, i) => {
+      const isExampleCorrect = i === 0;
+      const isExplore = missionType === MissionStartTutorial.#MISSION_TYPES.EXPLORE;
+      const explore = isExplore && !isExampleCorrect ? 'explore-' : '';
+      // Only the correct example's title names the label type ("Curb Ramp"); the wrong ones name what they show
+      // instead ("Driveway"), so they take no interpolation.
+      const titleKey = `common:mission-start-tutorial.${lesson.copy}.slide-${i + 1}.title`;
+      return {
+        isExampleCorrect,
+        slideTitle: isExampleCorrect
+          ? i18next.t(titleKey, { labelType: i18next.t(lesson.nameKey) })
+          : i18next.t(titleKey),
+        slideSubtitle: isExampleCorrect ? '' : i18next.t('common:mission-start-tutorial.label-type-subtitle'),
+        slideDescription: i18next.t(`common:mission-start-tutorial.${lesson.copy}.slide-${i + 1}.description`),
+        imageURL: `/assets/images/tutorials/${explore}${lesson.photos}-${slide.photo}.png`,
+        labelOnImage: { position: slide.label },
+      };
+    });
+  }
+
   // Map of exampleType to ID of the smiley icon to be used.
   static #SMILEYS = {
     [MissionStartTutorial.#EXAMPLE_TYPES.CORRECT]: '#smile-positive',
@@ -72,782 +190,19 @@ class MissionStartTutorial {
    * @param {string} missionType Mission type ('validate' or 'audit').
    */
   #initModule(missionType) {
-    const validateMSTDescriptor = {
-      CurbRamp: {
-        missionInstruction1: i18next.t('validate:mission-start-tutorial.mst-instruction-1'),
-        missionInstruction2: i18next.t('validate:mission-start-tutorial.mst-instruction-2',
-          { nLabels: this.#data.nLabels, labelType: i18next.t('common:curb-ramp') }),
-        slides: [
-          {
-            isExampleCorrect: true,
-            slideTitle: i18next.t('common:mission-start-tutorial.curb-ramp.slide-1.title',
-              { labelType: i18next.t('common:curb-ramp') }),
-            slideSubtitle: '',
-            slideDescription: i18next.t('common:mission-start-tutorial.curb-ramp.slide-1.description'),
-            imageURL: '/assets/images/tutorials/curbramp-correct-1.png',
-            labelOnImage: {
-              position: {
-                left: '237px',
-                top: '222px',
-              },
-            },
-          },
-          {
-            isExampleCorrect: false,
-            slideTitle: i18next.t('common:mission-start-tutorial.curb-ramp.slide-2.title'),
-            slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
-            slideDescription: i18next.t('common:mission-start-tutorial.curb-ramp.slide-2.description'),
-            imageURL: '/assets/images/tutorials/curbramp-incorrect-1.png',
-            labelOnImage: {
-              position: {
-                left: '329px',
-                top: '334px',
-              },
-            },
-          },
-          {
-            isExampleCorrect: false,
-            slideTitle: i18next.t('common:mission-start-tutorial.curb-ramp.slide-3.title'),
-            slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
-            slideDescription: i18next.t('common:mission-start-tutorial.curb-ramp.slide-3.description'),
-            imageURL: '/assets/images/tutorials/curbramp-incorrect-2.png',
-            labelOnImage: {
-              position: {
-                left: '295px',
-                top: '333px',
-              },
-            },
-          },
-        ],
-      },
-      NoCurbRamp: {
-        missionInstruction1: i18next.t('validate:mission-start-tutorial.mst-instruction-1'),
-        missionInstruction2: i18next.t('validate:mission-start-tutorial.mst-instruction-2',
-          { nLabels: this.#data.nLabels, labelType: i18next.t('common:no-curb-ramp') }),
-        slides: [
-          {
-            isExampleCorrect: true,
-            slideTitle: i18next.t('common:mission-start-tutorial.no-curb-ramp.slide-1.title',
-              { labelType: i18next.t('common:no-curb-ramp') }),
-            slideSubtitle: '',
-            slideDescription: i18next.t('common:mission-start-tutorial.no-curb-ramp.slide-1.description'),
-            imageURL: '/assets/images/tutorials/no-curbramp-correct-1.png',
-            labelOnImage: {
-              position: {
-                left: '392px',
-                top: '157px',
-              },
-            },
-          },
-          {
-            isExampleCorrect: false,
-            slideTitle: i18next.t('common:mission-start-tutorial.no-curb-ramp.slide-2.title'),
-            slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
-            slideDescription: i18next.t('common:mission-start-tutorial.no-curb-ramp.slide-2.description'),
-            imageURL: '/assets/images/tutorials/no-curbramp-incorrect-1.png',
-            labelOnImage: {
-              position: {
-                left: '324px',
-                top: '250px',
-              },
-            },
-          },
-          {
-            isExampleCorrect: false,
-            slideTitle: i18next.t('common:mission-start-tutorial.no-curb-ramp.slide-3.title'),
-            slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
-            slideDescription: i18next.t('common:mission-start-tutorial.no-curb-ramp.slide-3.description'),
-            imageURL: '/assets/images/tutorials/no-curbramp-incorrect-2.png',
-            labelOnImage: {
-              position: {
-                left: '396px',
-                top: '320px',
-              },
-            },
-          },
-          {
-            isExampleCorrect: false,
-            slideTitle: i18next.t('common:mission-start-tutorial.no-curb-ramp.slide-4.title'),
-            slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
-            slideDescription: i18next.t('common:mission-start-tutorial.no-curb-ramp.slide-4.description'),
-            imageURL: '/assets/images/tutorials/no-curbramp-incorrect-3.png',
-            labelOnImage: {
-              position: {
-                left: '325px',
-                top: '302px',
-              },
-            },
-          },
-        ],
-      },
-      Obstacle: {
-        missionInstruction1: i18next.t('validate:mission-start-tutorial.mst-instruction-1'),
-        missionInstruction2: i18next.t('validate:mission-start-tutorial.mst-instruction-2',
-          { nLabels: this.#data.nLabels, labelType: i18next.t('common:obstacle') }),
-        slides: [
-          {
-            isExampleCorrect: true,
-            slideTitle: i18next.t('common:mission-start-tutorial.obstacle.slide-1.title',
-              { labelType: i18next.t('common:obstacle') }),
-            slideSubtitle: '',
-            slideDescription: i18next.t('common:mission-start-tutorial.obstacle.slide-1.description'),
-            imageURL: '/assets/images/tutorials/obstacle-correct-1.png',
-            labelOnImage: {
-              position: {
-                left: '268px',
-                top: '301px',
-              },
-            },
-          },
-          {
-            isExampleCorrect: false,
-            slideTitle: i18next.t('common:mission-start-tutorial.obstacle.slide-2.title'),
-            slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
-            slideDescription: i18next.t('common:mission-start-tutorial.obstacle.slide-2.description'),
-            imageURL: '/assets/images/tutorials/obstacle-incorrect-1.png',
-            labelOnImage: {
-              position: {
-                left: '396px',
-                top: '286px',
-              },
-            },
-          },
-          {
-            isExampleCorrect: false,
-            slideTitle: i18next.t('common:mission-start-tutorial.obstacle.slide-3.title'),
-            slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
-            slideDescription: i18next.t('common:mission-start-tutorial.obstacle.slide-3.description'),
-            imageURL: '/assets/images/tutorials/obstacle-incorrect-2.png',
-            labelOnImage: {
-              position: {
-                left: '76px',
-                top: '112px',
-              },
-            },
-          },
-          {
-            isExampleCorrect: false,
-            slideTitle: i18next.t('common:mission-start-tutorial.obstacle.slide-4.title'),
-            slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
-            slideDescription: i18next.t('common:mission-start-tutorial.obstacle.slide-4.description'),
-            imageURL: '/assets/images/tutorials/obstacle-incorrect-3.png',
-            labelOnImage: {
-              position: {
-                left: '414px',
-                top: '187px',
-              },
-            },
-          },
-        ],
-      },
-      SurfaceProblem: {
-        missionInstruction1: i18next.t('validate:mission-start-tutorial.mst-instruction-1'),
-        missionInstruction2: i18next.t('validate:mission-start-tutorial.mst-instruction-2',
-          { nLabels: this.#data.nLabels, labelType: i18next.t('common:surface-problem') }),
-        slides: [
-          {
-            isExampleCorrect: true,
-            slideTitle: i18next.t('common:mission-start-tutorial.surface-problem.slide-1.title',
-              { labelType: i18next.t('common:surface-problem') }),
-            slideSubtitle: '',
-            slideDescription: i18next.t('common:mission-start-tutorial.surface-problem.slide-1.description'),
-            imageURL: '/assets/images/tutorials/surface-problem-correct-1.png',
-            labelOnImage: {
-              position: {
-                left: '291px',
-                top: '45px',
-              },
-            },
-          },
-          {
-            isExampleCorrect: false,
-            slideTitle: i18next.t('common:mission-start-tutorial.surface-problem.slide-2.title'),
-            slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
-            slideDescription: i18next.t('common:mission-start-tutorial.surface-problem.slide-2.description'),
-            imageURL: '/assets/images/tutorials/surface-problem-incorrect-1.png',
-            labelOnImage: {
-              position: {
-                left: '397px',
-                top: '190px',
-              },
-            },
-          },
-          {
-            isExampleCorrect: false,
-            slideTitle: i18next.t('common:mission-start-tutorial.surface-problem.slide-3.title'),
-            slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
-            slideDescription: i18next.t('common:mission-start-tutorial.surface-problem.slide-3.description'),
-            imageURL: '/assets/images/tutorials/surface-problem-incorrect-2.png',
-            labelOnImage: {
-              position: {
-                left: '333px',
-                top: '219px',
-              },
-            },
-          },
-        ],
-      },
-      NoSidewalk: {
-        missionInstruction1: i18next.t('validate:mission-start-tutorial.mst-instruction-1'),
-        missionInstruction2: i18next.t('validate:mission-start-tutorial.mst-instruction-2',
-          { nLabels: this.#data.nLabels, labelType: i18next.t('common:no-sidewalk') }),
-        slides: [
-          {
-            isExampleCorrect: true,
-            slideTitle: i18next.t('common:mission-start-tutorial.no-sidewalk.slide-1.title',
-              { labelType: i18next.t('common:no-sidewalk') }),
-            slideSubtitle: '',
-            slideDescription: i18next.t('common:mission-start-tutorial.no-sidewalk.slide-1.description'),
-            imageURL: '/assets/images/tutorials/no-sidewalk-correct-1.png',
-            labelOnImage: {
-              position: {
-                left: '290px',
-                top: '132px',
-              },
-            },
-          },
-          {
-            isExampleCorrect: false,
-            slideTitle: i18next.t('common:mission-start-tutorial.no-sidewalk.slide-2.title'),
-            slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
-            slideDescription: i18next.t('common:mission-start-tutorial.no-sidewalk.slide-2.description'),
-            imageURL: '/assets/images/tutorials/no-sidewalk-incorrect-1.png',
-            labelOnImage: {
-              position: {
-                left: '352px',
-                top: '312px',
-              },
-            },
-          },
-          {
-            isExampleCorrect: false,
-            slideTitle: i18next.t('common:mission-start-tutorial.no-sidewalk.slide-3.title'),
-            slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
-            slideDescription: i18next.t('common:mission-start-tutorial.no-sidewalk.slide-3.description'),
-            imageURL: '/assets/images/tutorials/no-sidewalk-incorrect-2.png',
-            labelOnImage: {
-              position: {
-                left: '183px',
-                top: '298px',
-              },
-            },
-          },
-        ],
-      },
-      Crosswalk: {
-        missionInstruction1: i18next.t('validate:mission-start-tutorial.mst-instruction-1'),
-        missionInstruction2: i18next.t('validate:mission-start-tutorial.mst-instruction-2',
-          { nLabels: this.#data.nLabels, labelType: i18next.t('common:crosswalk') }),
-        slides: [
-          {
-            isExampleCorrect: true,
-            slideTitle: i18next.t('common:mission-start-tutorial.crosswalk.slide-1.title',
-              { labelType: i18next.t('common:crosswalk') }),
-            slideSubtitle: '',
-            slideDescription: i18next.t('common:mission-start-tutorial.crosswalk.slide-1.description'),
-            imageURL: '/assets/images/tutorials/crosswalk-correct-1.png',
-            labelOnImage: {
-              position: {
-                left: '175px',
-                top: '159px',
-              },
-            },
-          },
-          {
-            isExampleCorrect: false,
-            slideTitle: i18next.t('common:mission-start-tutorial.crosswalk.slide-2.title'),
-            slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
-            slideDescription: i18next.t('common:mission-start-tutorial.crosswalk.slide-2.description'),
-            imageURL: '/assets/images/tutorials/crosswalk-incorrect-1.png',
-            labelOnImage: {
-              position: {
-                left: '353px',
-                top: '241px',
-              },
-            },
-          },
-          {
-            isExampleCorrect: false,
-            slideTitle: i18next.t('common:mission-start-tutorial.crosswalk.slide-3.title'),
-            slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
-            slideDescription: i18next.t('common:mission-start-tutorial.crosswalk.slide-3.description'),
-            imageURL: '/assets/images/tutorials/crosswalk-incorrect-2.png',
-            labelOnImage: {
-              position: {
-                left: '247px',
-                top: '301px',
-              },
-            },
-          },
-          {
-            isExampleCorrect: false,
-            slideTitle: i18next.t('common:mission-start-tutorial.crosswalk.slide-4.title'),
-            slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
-            slideDescription: i18next.t('common:mission-start-tutorial.crosswalk.slide-4.description'),
-            imageURL: '/assets/images/tutorials/crosswalk-incorrect-3.png',
-            labelOnImage: {
-              position: {
-                left: '267px',
-                top: '102px',
-              },
-            },
-          },
-        ],
-      },
-      Signal: {
-        missionInstruction1: i18next.t('validate:mission-start-tutorial.mst-instruction-1'),
-        missionInstruction2: i18next.t('validate:mission-start-tutorial.mst-instruction-2',
-          { nLabels: this.#data.nLabels, labelType: i18next.t('common:signal') }),
-        slides: [
-          {
-            isExampleCorrect: true,
-            slideTitle: i18next.t('common:mission-start-tutorial.signal.slide-1.title',
-              { labelType: i18next.t('common:signal') }),
-            slideSubtitle: '',
-            slideDescription: i18next.t('common:mission-start-tutorial.signal.slide-1.description'),
-            imageURL: '/assets/images/tutorials/signal-correct-1.png',
-            labelOnImage: {
-              position: {
-                left: '170px',
-                top: '325px',
-              },
-            },
-          },
-          {
-            isExampleCorrect: false,
-            slideTitle: i18next.t('common:mission-start-tutorial.signal.slide-2.title'),
-            slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
-            slideDescription: i18next.t('common:mission-start-tutorial.signal.slide-2.description'),
-            imageURL: '/assets/images/tutorials/signal-incorrect-1.png',
-            labelOnImage: {
-              position: {
-                left: '376px',
-                top: '86px',
-              },
-            },
-          },
-          {
-            isExampleCorrect: false,
-            slideTitle: i18next.t('common:mission-start-tutorial.signal.slide-3.title'),
-            slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
-            slideDescription: i18next.t('common:mission-start-tutorial.signal.slide-3.description'),
-            imageURL: '/assets/images/tutorials/signal-incorrect-2.png',
-            labelOnImage: {
-              position: {
-                left: '389px',
-                top: '203px',
-              },
-            },
-          },
-          {
-            isExampleCorrect: false,
-            slideTitle: i18next.t('common:mission-start-tutorial.signal.slide-4.title'),
-            slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
-            slideDescription: i18next.t('common:mission-start-tutorial.signal.slide-4.description'),
-            imageURL: '/assets/images/tutorials/signal-incorrect-3.png',
-            labelOnImage: {
-              position: {
-                left: '358px',
-                top: '332px',
-              },
-            },
-          },
-        ],
-      },
-    };
+    const isValidate = missionType === MissionStartTutorial.#MISSION_TYPES.VALIDATE;
+    const lesson = MissionStartTutorial.#LABEL_TYPE_LESSONS[this.#labelType];
 
-    // Descriptor for explore mission screens
-    const exploreMSTDescriptor = {
-      CurbRamp: {
-        missionInstruction1: i18next.t('audit:mission-start-tutorial.mst-instruction-1'),
-        missionInstruction2: i18next.t('audit:mission-start-tutorial.mst-instruction-2',
-          { neighborhood: this.#data.neighborhood }),
-        slides: [
-          {
-            isExampleCorrect: true,
-            slideTitle: i18next.t('common:mission-start-tutorial.curb-ramp.slide-1.title',
-              { labelType: i18next.t('common:curb-ramp') }),
-            slideSubtitle: '',
-            slideDescription: i18next.t('common:mission-start-tutorial.curb-ramp.slide-1.description'),
-            imageURL: '/assets/images/tutorials/curbramp-correct-1.png',
-            labelOnImage: {
-              position: {
-                left: '237px',
-                top: '222px',
-              },
-            },
-          },
-          {
-            isExampleCorrect: false,
-            slideTitle: i18next.t('common:mission-start-tutorial.curb-ramp.slide-2.title'),
-            slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
-            slideDescription: i18next.t('common:mission-start-tutorial.curb-ramp.slide-2.description'),
-            imageURL: '/assets/images/tutorials/explore-curbramp-incorrect-1.png',
-            labelOnImage: {
-              position: {
-                left: '329px',
-                top: '334px',
-              },
-            },
-          },
-          {
-            isExampleCorrect: false,
-            slideTitle: i18next.t('common:mission-start-tutorial.curb-ramp.slide-3.title'),
-            slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
-            slideDescription: i18next.t('common:mission-start-tutorial.curb-ramp.slide-3.description'),
-            imageURL: '/assets/images/tutorials/explore-curbramp-incorrect-2.png',
-            labelOnImage: {
-              position: {
-                left: '295px',
-                top: '333px',
-              },
-            },
-          },
-        ],
-      },
-      NoCurbRamp: {
-        missionInstruction1: i18next.t('audit:mission-start-tutorial.mst-instruction-1'),
-        missionInstruction2: i18next.t('audit:mission-start-tutorial.mst-instruction-2',
-          { neighborhood: this.#data.neighborhood }),
-        slides: [
-          {
-            isExampleCorrect: true,
-            slideTitle: i18next.t('common:mission-start-tutorial.no-curb-ramp.slide-1.title',
-              { labelType: i18next.t('common:no-curb-ramp') }),
-            slideSubtitle: '',
-            slideDescription: i18next.t('common:mission-start-tutorial.no-curb-ramp.slide-1.description'),
-            imageURL: '/assets/images/tutorials/no-curbramp-correct-1.png',
-            labelOnImage: {
-              position: {
-                left: '392px',
-                top: '157px',
-              },
-            },
-          },
-          {
-            isExampleCorrect: false,
-            slideTitle: i18next.t('common:mission-start-tutorial.no-curb-ramp.slide-2.title'),
-            slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
-            slideDescription: i18next.t('common:mission-start-tutorial.no-curb-ramp.slide-2.description'),
-            imageURL: '/assets/images/tutorials/explore-no-curbramp-incorrect-1.png',
-            labelOnImage: {
-              position: {
-                left: '324px',
-                top: '250px',
-              },
-            },
-          },
-          {
-            isExampleCorrect: false,
-            slideTitle: i18next.t('common:mission-start-tutorial.no-curb-ramp.slide-3.title'),
-            slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
-            slideDescription: i18next.t('common:mission-start-tutorial.no-curb-ramp.slide-3.description'),
-            imageURL: '/assets/images/tutorials/explore-no-curbramp-incorrect-2.png',
-            labelOnImage: {
-              position: {
-                left: '396px',
-                top: '320px',
-              },
-            },
-          },
-          {
-            isExampleCorrect: false,
-            slideTitle: i18next.t('common:mission-start-tutorial.no-curb-ramp.slide-4.title'),
-            slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
-            slideDescription: i18next.t('common:mission-start-tutorial.no-curb-ramp.slide-4.description'),
-            imageURL: '/assets/images/tutorials/explore-no-curbramp-incorrect-3.png',
-            labelOnImage: {
-              position: {
-                left: '325px',
-                top: '302px',
-              },
-            },
-          },
-        ],
-      },
-      Obstacle: {
-        missionInstruction1: i18next.t('audit:mission-start-tutorial.mst-instruction-1'),
-        missionInstruction2: i18next.t('audit:mission-start-tutorial.mst-instruction-2',
-          { neighborhood: this.#data.neighborhood }),
-        slides: [
-          {
-            isExampleCorrect: true,
-            slideTitle: i18next.t('common:mission-start-tutorial.obstacle.slide-1.title',
-              { labelType: i18next.t('common:obstacle') }),
-            slideSubtitle: '',
-            slideDescription: i18next.t('common:mission-start-tutorial.obstacle.slide-1.description'),
-            imageURL: '/assets/images/tutorials/obstacle-correct-1.png',
-            labelOnImage: {
-              position: {
-                left: '268px',
-                top: '301px',
-              },
-            },
-          },
-          {
-            isExampleCorrect: false,
-            slideTitle: i18next.t('common:mission-start-tutorial.obstacle.slide-2.title'),
-            slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
-            slideDescription: i18next.t('common:mission-start-tutorial.obstacle.slide-2.description'),
-            imageURL: '/assets/images/tutorials/explore-obstacle-incorrect-1.png',
-            labelOnImage: {
-              position: {
-                left: '396px',
-                top: '286px',
-              },
-            },
-          },
-          {
-            isExampleCorrect: false,
-            slideTitle: i18next.t('common:mission-start-tutorial.obstacle.slide-3.title'),
-            slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
-            slideDescription: i18next.t('common:mission-start-tutorial.obstacle.slide-3.description'),
-            imageURL: '/assets/images/tutorials/explore-obstacle-incorrect-2.png',
-            labelOnImage: {
-              position: {
-                left: '76px',
-                top: '112px',
-              },
-            },
-          },
-          {
-            isExampleCorrect: false,
-            slideTitle: i18next.t('common:mission-start-tutorial.obstacle.slide-4.title'),
-            slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
-            slideDescription: i18next.t('common:mission-start-tutorial.obstacle.slide-4.description'),
-            imageURL: '/assets/images/tutorials/explore-obstacle-incorrect-3.png',
-            labelOnImage: {
-              position: {
-                left: '414px',
-                top: '187px',
-              },
-            },
-          },
-        ],
-      },
-      SurfaceProblem: {
-        missionInstruction1: i18next.t('audit:mission-start-tutorial.mst-instruction-1'),
-        missionInstruction2: i18next.t('audit:mission-start-tutorial.mst-instruction-2',
-          { neighborhood: this.#data.neighborhood }),
-        slides: [
-          {
-            isExampleCorrect: true,
-            slideTitle: i18next.t('common:mission-start-tutorial.surface-problem.slide-1.title',
-              { labelType: i18next.t('common:surface-problem') }),
-            slideSubtitle: '',
-            slideDescription: i18next.t('common:mission-start-tutorial.surface-problem.slide-1.description'),
-            imageURL: '/assets/images/tutorials/surface-problem-correct-1.png',
-            labelOnImage: {
-              position: {
-                left: '291px',
-                top: '45px',
-              },
-            },
-          },
-          {
-            isExampleCorrect: false,
-            slideTitle: i18next.t('common:mission-start-tutorial.surface-problem.slide-2.title'),
-            slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
-            slideDescription: i18next.t('common:mission-start-tutorial.surface-problem.slide-2.description'),
-            imageURL: '/assets/images/tutorials/explore-surface-problem-incorrect-1.png',
-            labelOnImage: {
-              position: {
-                left: '397px',
-                top: '190px',
-              },
-            },
-          },
-          {
-            isExampleCorrect: false,
-            slideTitle: i18next.t('common:mission-start-tutorial.surface-problem.slide-3.title'),
-            slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
-            slideDescription: i18next.t('common:mission-start-tutorial.surface-problem.slide-3.description'),
-            imageURL: '/assets/images/tutorials/explore-surface-problem-incorrect-2.png',
-            labelOnImage: {
-              position: {
-                left: '333px',
-                top: '219px',
-              },
-            },
-          },
-        ],
-      },
-      NoSidewalk: {
-        missionInstruction1: i18next.t('audit:mission-start-tutorial.mst-instruction-1'),
-        missionInstruction2: i18next.t('audit:mission-start-tutorial.mst-instruction-2',
-          { neighborhood: this.#data.neighborhood }),
-        slides: [
-          {
-            isExampleCorrect: true,
-            slideTitle: i18next.t('common:mission-start-tutorial.no-sidewalk.slide-1.title',
-              { labelType: i18next.t('common:no-sidewalk') }),
-            slideSubtitle: '',
-            slideDescription: i18next.t('common:mission-start-tutorial.no-sidewalk.slide-1.description'),
-            imageURL: '/assets/images/tutorials/no-sidewalk-correct-1.png',
-            labelOnImage: {
-              position: {
-                left: '290px',
-                top: '132px',
-              },
-            },
-          },
-          {
-            isExampleCorrect: false,
-            slideTitle: i18next.t('common:mission-start-tutorial.no-sidewalk.slide-2.title'),
-            slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
-            slideDescription: i18next.t('common:mission-start-tutorial.no-sidewalk.slide-2.description'),
-            imageURL: '/assets/images/tutorials/explore-no-sidewalk-incorrect-1.png',
-            labelOnImage: {
-              position: {
-                left: '352px',
-                top: '312px',
-              },
-            },
-          },
-          {
-            isExampleCorrect: false,
-            slideTitle: i18next.t('common:mission-start-tutorial.no-sidewalk.slide-3.title'),
-            slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
-            slideDescription: i18next.t('common:mission-start-tutorial.no-sidewalk.slide-3.description'),
-            imageURL: '/assets/images/tutorials/explore-no-sidewalk-incorrect-2.png',
-            labelOnImage: {
-              position: {
-                left: '183px',
-                top: '298px',
-              },
-            },
-          },
-        ],
-      },
-      Crosswalk: {
-        missionInstruction1: i18next.t('audit:mission-start-tutorial.mst-instruction-1'),
-        missionInstruction2: i18next.t('audit:mission-start-tutorial.mst-instruction-2',
-          { neighborhood: this.#data.neighborhood }),
-        slides: [
-          {
-            isExampleCorrect: true,
-            slideTitle: i18next.t('common:mission-start-tutorial.crosswalk.slide-1.title',
-              { labelType: i18next.t('common:crosswalk') }),
-            slideSubtitle: '',
-            slideDescription: i18next.t('common:mission-start-tutorial.crosswalk.slide-1.description'),
-            imageURL: '/assets/images/tutorials/crosswalk-correct-1.png',
-            labelOnImage: {
-              position: {
-                left: '175px',
-                top: '159px',
-              },
-            },
-          },
-          {
-            isExampleCorrect: false,
-            slideTitle: i18next.t('common:mission-start-tutorial.crosswalk.slide-2.title'),
-            slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
-            slideDescription: i18next.t('common:mission-start-tutorial.crosswalk.slide-2.description'),
-            imageURL: '/assets/images/tutorials/explore-crosswalk-incorrect-1.png',
-            labelOnImage: {
-              position: {
-                left: '353px',
-                top: '241px',
-              },
-            },
-          },
-          {
-            isExampleCorrect: false,
-            slideTitle: i18next.t('common:mission-start-tutorial.crosswalk.slide-3.title'),
-            slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
-            slideDescription: i18next.t('common:mission-start-tutorial.crosswalk.slide-3.description'),
-            imageURL: '/assets/images/tutorials/explore-crosswalk-incorrect-2.png',
-            labelOnImage: {
-              position: {
-                left: '247px',
-                top: '301px',
-              },
-            },
-          },
-          {
-            isExampleCorrect: false,
-            slideTitle: i18next.t('common:mission-start-tutorial.crosswalk.slide-4.title'),
-            slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
-            slideDescription: i18next.t('common:mission-start-tutorial.crosswalk.slide-4.description'),
-            imageURL: '/assets/images/tutorials/explore-crosswalk-incorrect-3.png',
-            labelOnImage: {
-              position: {
-                left: '267px',
-                top: '102px',
-              },
-            },
-          },
-        ],
-      },
-      Signal: {
-        missionInstruction1: i18next.t('audit:mission-start-tutorial.mst-instruction-1'),
-        missionInstruction2: i18next.t('audit:mission-start-tutorial.mst-instruction-2',
-          { neighborhood: this.#data.neighborhood }),
-        slides: [
-          {
-            isExampleCorrect: true,
-            slideTitle: i18next.t('common:mission-start-tutorial.signal.slide-1.title',
-              { labelType: i18next.t('common:signal') }),
-            slideSubtitle: '',
-            slideDescription: i18next.t('common:mission-start-tutorial.signal.slide-1.description'),
-            imageURL: '/assets/images/tutorials/signal-correct-1.png',
-            labelOnImage: {
-              position: {
-                left: '170px',
-                top: '325px',
-              },
-            },
-          },
-          {
-            isExampleCorrect: false,
-            slideTitle: i18next.t('common:mission-start-tutorial.signal.slide-2.title'),
-            slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
-            slideDescription: i18next.t('common:mission-start-tutorial.signal.slide-2.description'),
-            imageURL: '/assets/images/tutorials/explore-signal-incorrect-1.png',
-            labelOnImage: {
-              position: {
-                left: '376px',
-                top: '86px',
-              },
-            },
-          },
-          {
-            isExampleCorrect: false,
-            slideTitle: i18next.t('common:mission-start-tutorial.signal.slide-3.title'),
-            slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
-            slideDescription: i18next.t('common:mission-start-tutorial.signal.slide-3.description'),
-            imageURL: '/assets/images/tutorials/explore-signal-incorrect-2.png',
-            labelOnImage: {
-              position: {
-                left: '389px',
-                top: '203px',
-              },
-            },
-          },
-          {
-            isExampleCorrect: false,
-            slideTitle: i18next.t('common:mission-start-tutorial.signal.slide-4.title'),
-            slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
-            slideDescription: i18next.t('common:mission-start-tutorial.signal.slide-4.description'),
-            imageURL: '/assets/images/tutorials/explore-signal-incorrect-3.png',
-            labelOnImage: {
-              position: {
-                left: '358px',
-                top: '332px',
-              },
-            },
-          },
-        ],
-      },
+    // Validate counts out the labels of one type this mission holds; Explore names the neighborhood it covers.
+    this.#labelTypeModule = {
+      missionInstruction1: i18next.t(`${missionType}:mission-start-tutorial.mst-instruction-1`),
+      missionInstruction2: isValidate
+        ? i18next.t('validate:mission-start-tutorial.mst-instruction-2',
+            { nLabels: this.#data.nLabels, labelType: i18next.t(lesson.nameKey) })
+        : i18next.t('audit:mission-start-tutorial.mst-instruction-2', { neighborhood: this.#data.neighborhood }),
+      slides: MissionStartTutorial.slidesFor(missionType, this.#labelType),
     };
-
-    if (missionType === MissionStartTutorial.#MISSION_TYPES.VALIDATE) {
-      this.#labelTypeModule = validateMSTDescriptor[this.#labelType];
-      this.#nSlides = this.#labelTypeModule.slides.length;
-    } else if (missionType === MissionStartTutorial.#MISSION_TYPES.EXPLORE) {
-      this.#labelTypeModule = exploreMSTDescriptor[this.#labelType];
-      this.#nSlides = this.#labelTypeModule.slides.length;
-    }
+    this.#nSlides = this.#labelTypeModule.slides.length;
   }
 
   /**

@@ -111,48 +111,73 @@
     <div id="modal-mission-holder">
       <div id="modal-mission-background" class="modal-background"></div>
       <div id="modal-mission-foreground" class="modal-foreground mv-modal">
-        @* Signed-in users get a plain username badge: the auth dialog only renders for signed-out users, so a
-           data-au-open control here would be a focusable button that does nothing. *@
-        @if(user.role != "Anonymous") {
-          <span class="sign-in-up-button-mobile">@{user.username}</span>
-        } else {
-          <button type="button" data-au-open="signIn" class="sign-in-up-button-mobile button-ps">@Messages("navbar.signin")</button>
-        }
-        <div class="mv-modal__content">
+        <div class="mv-modal__header">
           <img src='@assets.path("images/" + config.get[String]("city-params.logo-img." + commonData.cityId))' id="ps-logo-mission" class="mv-modal__logo" alt="Project Sidewalk logo">
+          @* Signed-in users get a plain username badge: the auth dialog only renders for signed-out users, so a
+             data-au-open control here would be a focusable button that does nothing. *@
+          @if(user.role != "Anonymous") {
+            <span class="sign-in-up-button-mobile">@{user.username}</span>
+          } else {
+            <button type="button" data-au-open="signIn" class="sign-in-up-button-mobile button-ps">@Messages("navbar.signin")</button>
+          }
+        </div>
+        <div class="mv-modal__content">
+          @* Both filled by ModalMission (the label type's icon over "YOUR MISSION", then what to validate) — and
+             emptied/overwritten by ModalNoNewMission, which takes this screen over on a dead end. *@
+          <div id="modal-mission-eyebrow" class="mv-eyebrow"></div>
           <h1 id="modal-mission-header"></h1>
-          @* Filled by ModalMission/ModalNoNewMission: an illustration of the accessibility features, then a sentence. *@
+          @* The label type's examples, swipeable — the same ones the desktop tutorial teaches from. *@
           <div id="modal-mission-instruction"></div>
         </div>
-        <button type="button" class="button-ps" id="modal-mission-close-button">@Messages("ok")</button>
+        <div class="mv-modal__actions">
+          <button type="button" class="button-ps" id="modal-mission-close-button">@Messages("ok")</button>
+        </div>
       </div>
     </div>
 
     <div id="modal-mission-complete-holder">
       <div id="modal-mission-complete-background" class="modal-background"></div>
       <div id="modal-mission-complete-foreground" class="modal-foreground mv-modal">
-        <div class="mv-modal__content">
+        <div class="mv-modal__header">
           <img src='@assets.path("images/" + config.get[String]("city-params.logo-img." + commonData.cityId))' id="ps-logo-mission-complete" class="mv-modal__logo" alt="Project Sidewalk logo">
-          <h1 id="modal-mission-complete-title"></h1>
+        </div>
+        <div class="mv-modal__content">
+          @* Fireworks flank the congratulations, the way they do on the tutorial's own "You did it!" screen.
+             ModalMissionComplete replays their pop each time the screen comes up. *@
+          <div id="mission-complete-celebration" class="mv-celebrate">
+            <img src='@assets.path("images/icons/fireworks.svg")' class="mv-celebrate__burst mv-celebrate__burst--left" alt="">
+            <h1 id="modal-mission-complete-title"></h1>
+            <img src='@assets.path("images/icons/fireworks.svg")' class="mv-celebrate__burst mv-celebrate__burst--right" alt="">
+          </div>
           <div id="modal-mission-complete-message"></div>
-          @* The three counts echo the validation buttons they came from, each tinted with that button's color. *@
+          @* The three counts echo the validation buttons they came from, with that button's thumb and color. *@
           <div class="mv-stats">
             <div class="mv-stat mv-stat--agree">
+              <img src='@assets.path("images/icons/validation/agree-filled.svg")' class="mv-stat__icon" alt="">
               <span class="mv-stat__count" id="modal-mission-complete-agree-count"></span>
               <span class="mv-stat__label">@Messages("yes.caps")</span>
             </div>
             <div class="mv-stat mv-stat--disagree">
+              <img src='@assets.path("images/icons/validation/disagree-filled.svg")' class="mv-stat__icon" alt="">
               <span class="mv-stat__count" id="modal-mission-complete-disagree-count"></span>
               <span class="mv-stat__label">@Messages("no.caps")</span>
             </div>
             <div class="mv-stat mv-stat--unsure">
+              <img src='@assets.path("images/icons/validation/unsure-filled.svg")' class="mv-stat__icon" alt="">
               <span class="mv-stat__count" id="modal-mission-complete-unsure-count"></span>
               <span class="mv-stat__label">@Messages("unsure.caps")</span>
             </div>
           </div>
-          <div class="mv-total">
-            <span class="mv-total__label">@Messages("validate.mission.complete.your.overall.total")</span>
-            <span class="mv-total__count" id="modal-mission-complete-your-overall-total-count"></span>
+          @* Where this mission leaves them overall: their validation badge, if they've earned one, and their all-time
+             count. ModalMissionComplete fills all three and hides the badge for anyone who has none yet. *@
+          <div id="mission-complete-standing" class="mv-standing">
+            @* Decorative — the level beside it says the same thing — and drawn as a background so the page doesn't
+               fetch a badge for someone who hasn't earned one. ModalMissionComplete picks the artwork. *@
+            <span id="mission-complete-badge-icon" class="mv-standing__badge ps-hidden"></span>
+            <span class="mv-standing__text">
+              <span id="mission-complete-badge-name" class="mv-standing__level"></span>
+              <span id="modal-mission-complete-your-overall-total-count" class="mv-standing__total"></span>
+            </span>
           </div>
         </div>
         <div class="mv-modal__actions">

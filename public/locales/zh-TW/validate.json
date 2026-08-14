@@ -118,7 +118,8 @@
     "explore": "開始一個探索任務",
     "no-new-mission-title": "已無任何剩餘檢核任務",
     "no-new-mission-body": "按兩下按鈕開始探索。",
-    "no-new-mission-button": "開始探索"
+    "no-new-mission-button": "開始探索",
+    "all-time_other": "總共 {{count}} 次檢核"
   },
   "mobile": {
     "no-new-mission-body": "您可以使用筆記型電腦/台式計算機添加更多標籤，也可以在其他城市驗證標籤！",

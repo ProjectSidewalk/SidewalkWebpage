@@ -118,7 +118,9 @@
     "explore": "Iniciar uma missão de exploração",
     "no-new-mission-title": "Não há mais missões de validação disponíveis",
     "no-new-mission-body": "Clique no botão para começar a explorar.",
-    "no-new-mission-button": "Começar a explorar"
+    "no-new-mission-button": "Começar a explorar",
+    "all-time_one": "{{count}} validação no total",
+    "all-time_other": "{{count}} validações no total"
   },
   "mobile": {
     "no-new-mission-body": "Você pode adicionar mais rótulos usando um laptop/computador, ou pode validar rótulos em outra cidade!",

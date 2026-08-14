@@ -53,6 +53,41 @@ class ModalMissionComplete {
   }
 
   /**
+   * Says where this mission leaves the validator overall: the badge their all-time validation count has earned, if
+   * they have earned one, and the count itself.
+   *
+   * The badge and its wording are mobile's; the desktop screen has neither element, so those calls land on empty
+   * jQuery sets and it keeps the bare number its table column expects.
+   *
+   * @param {number} total The validator's all-time validation count.
+   */
+  #showStanding(total) {
+    this.#uiModalMissionComplete.yourOverallTotalCount.html(util.isMobile()
+      ? i18next.t('mission-complete.all-time', { count: total })
+      : total);
+    const badge = BadgeAchievements.getBadge('validations', BadgeAchievements.getLevelForValue('validations', total));
+    this.#uiModalMissionComplete.badgeIcon.toggleClass('ps-hidden', !badge);
+    this.#uiModalMissionComplete.badgeName.text(badge ? `${badge.name} ${badge.roman}` : '');
+    if (badge) this.#uiModalMissionComplete.badgeIcon.css('background-image', `url("${badge.iconSrc}")`);
+  }
+
+  /**
+   * Sets off the fireworks — and a short buzz where the device does haptics — for a finished mission.
+   *
+   * The animation rides a class rather than the screen's own visibility because `visibility: hidden` doesn't rewind
+   * one, and this screen is shown over and over. Both are pure celebration, so a visitor who asked for less motion
+   * gets neither. Mobile only: the desktop screen has no fireworks to play.
+   */
+  static #celebrate() {
+    const celebration = document.getElementById('mission-complete-celebration');
+    if (!celebration || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    celebration.classList.remove('mv-celebrate--play');
+    celebration.getBoundingClientRect(); // Forces the reflow that lets the same animation play again.
+    celebration.classList.add('mv-celebrate--play');
+    navigator.vibrate?.([40, 60, 40]);
+  }
+
+  /**
    * Displays the mission complete screen.
    * @param {Mission} mission Object for the mission that was just completed.
    */
@@ -79,10 +114,11 @@ class ModalMissionComplete {
     this.#uiModalMissionComplete.agreeCount.html(mission.getProperty('agreeCount'));
     this.#uiModalMissionComplete.disagreeCount.html(mission.getProperty('disagreeCount'));
     this.#uiModalMissionComplete.unsureCount.html(mission.getProperty('unsureCount'));
-    this.#uiModalMissionComplete.yourOverallTotalCount.html(svv.statusField.getCompletedValidations());
+    this.#showStanding(svv.statusField.getCompletedValidations());
 
     this.#uiModalMissionComplete.holder.css('visibility', 'visible');
     this.#uiModalMissionComplete.foreground.css('visibility', 'visible');
+    ModalMissionComplete.#celebrate();
 
     // Set primary button text to Explore if they've completed 3 validation missions (and are on a laptop/desktop).
     if (svv.missionsCompleted % 3 === 0 && !util.isMobile()) {

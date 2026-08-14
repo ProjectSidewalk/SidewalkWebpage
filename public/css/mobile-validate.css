@@ -92,7 +92,7 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 20px;
-  padding: 24px;
+  padding: 24px 24px 0; /* The bottom edge belongs to the sticky actions' margin — see .mv-modal__actions. */
   border: none;
   border-radius: 0;
   background: var(--color-neutral-white);
@@ -102,26 +102,30 @@ body {
   overflow-y: auto;
 }
 
-/* Clears the sign-in/username pill floating in the top-right corner. */
-#modal-mission-foreground {
-  padding-top: 76px;
+/* Brand line: the city's logo, and on the mission briefing the sign-in (or username) pill beside it. */
+.mv-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
 }
 
-/* Centers the screen's content in whatever room the pinned call-to-action leaves it. It grows but never shrinks: a
-   shrunken box would center its children outside itself, and overflow above a scroll container can't be scrolled to. */
+/* Centers the screen's content in whatever room the header and the pinned call-to-action leave it. It grows but never
+   shrinks: a shrunken box would center its children outside itself, and overflow above a scroll container can't be
+   scrolled to. */
 .mv-modal__content {
   flex: 1 0 auto;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
   width: 100%;
 }
 
 .mv-modal__logo {
-  width: 60%;
-  max-width: 260px;
+  width: 150px;
   height: auto;
 }
 
@@ -133,24 +137,198 @@ body {
   color: var(--color-neutral-900);
 }
 
-/* The mission-start body copy, and its illustration of the accessibility features being validated. */
-#modal-mission-instruction p {
-  margin: 0;
-  font: var(--text-subtitle-regular);
+/* "YOUR MISSION", behind the marker of the label type this mission is about. */
+.mv-eyebrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font: var(--text-small-bold);
+  letter-spacing: 0.08em;
+  color: var(--color-neutral-700);
+}
+
+.mv-eyebrow img {
+  width: 22px;
+  height: 22px;
+}
+
+/* The dead end (ModalNoNewMission) takes this same box over, and paints an illustration and a sentence into it. */
+#modal-mission-instruction .modal-mission-images {
+  width: 62%;
+  max-width: 240px;
+  height: auto;
 }
 
 #modal-mission-instruction figure {
   margin: 0 0 12px;
 }
 
-#modal-mission-instruction img {
-  width: 62%;
-  max-width: 240px;
-  height: auto;
+#modal-mission-instruction p {
+  margin: 0;
+  font: var(--text-subtitle-regular);
 }
+
+/* ---- The mission briefing's examples ----------------------------------------------------------------------------
+   One example fills the screen's width and the next is a swipe away, which is the phone reading of the desktop
+   tutorial's arrow-stepped carousel — same examples, same order, same lesson (MissionStartTutorial.slidesFor). */
+.mv-examples {
+  display: flex;
+  width: 100%;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  gap: 12px;
+}
+
+.mv-example {
+  flex: 0 0 100%;
+  scroll-snap-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+}
+
+.mv-example__photo {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--color-neutral-100);
+}
+
+/* The example photos are all screenshots of the same 3:2 frame; declaring it keeps the caption from jumping when a
+   lazily-loaded one arrives. */
+.mv-example__photo img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1316 / 872;
+  object-fit: cover;
+}
+
+.mv-example__verdict {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px 4px 6px;
+  border-radius: 999px;
+  background: var(--color-neutral-white);
+  font: var(--text-caption-semibold);
+  letter-spacing: 0.04em;
+}
+
+/* The shared smiley is drawn in strokes, so it takes the chip's own ink and would otherwise fill in solid black. */
+.mv-example__verdict-icon {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentcolor;
+}
+
+.mv-example--correct .mv-example__verdict {
+  color: var(--color-pine-800);
+}
+
+.mv-example--incorrect .mv-example__verdict {
+  color: var(--color-orange-700);
+}
+
+.mv-example__caption {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+}
+
+.mv-example__title {
+  font: var(--text-title-bold);
+  color: var(--color-neutral-900);
+}
+
+.mv-example__text {
+  font: var(--text-body-regular);
+  color: var(--color-neutral-800);
+}
+
+/* What the example is worth on the buttons below — "Mark Agree" / "Mark Disagree". */
+.mv-example__action {
+  font: var(--text-body-bold);
+}
+
+.mv-example--correct .mv-example__action {
+  color: var(--color-pine-800);
+}
+
+.mv-example--incorrect .mv-example__action {
+  color: var(--color-orange-700);
+}
+
+.mv-dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+
+.mv-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-neutral-300);
+  transition: background-color 0.2s ease;
+}
+
+.mv-dot--current {
+  background: var(--color-neutral-800);
+}
+
+/* ---- Mission complete ------------------------------------------------------------------------------------------ */
 
 #modal-mission-complete-message {
   font: var(--text-subtitle-regular);
+}
+
+/* Fireworks flanking the congratulations, as on the tutorial's "You did it!" screen. */
+.mv-celebrate {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.mv-celebrate__burst {
+  width: 46px;
+  height: 46px;
+}
+
+/* ModalMissionComplete adds the class on every mission, which is what restarts the burst. It leaves the class off
+   entirely for a visitor who asked for less motion, who gets the fireworks sitting still. */
+@media (prefers-reduced-motion: no-preference) {
+  .mv-celebrate--play .mv-celebrate__burst {
+    animation: mv-burst 0.7s ease-out;
+  }
+
+  .mv-celebrate--play .mv-celebrate__burst--right {
+    animation-delay: 0.12s;
+  }
+
+  @keyframes mv-burst {
+    0% {
+      opacity: 0;
+      transform: scale(0.4) rotate(-12deg);
+    }
+
+    60% {
+      opacity: 1;
+      transform: scale(1.12) rotate(4deg);
+    }
+
+    100% {
+      opacity: 1;
+      transform: scale(1) rotate(0deg);
+    }
+  }
 }
 
 .mv-stats {
@@ -165,8 +343,14 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 2px;
-  padding: 14px 6px;
+  padding: 12px 6px;
   border-radius: 14px;
+}
+
+/* The same thumb the validation button carried, in the same color it was drawn in. */
+.mv-stat__icon {
+  width: 22px;
+  height: 22px;
 }
 
 .mv-stat__count {
@@ -202,30 +386,59 @@ body {
   color: var(--color-neutral-800);
 }
 
-.mv-total {
+/* Where the mission leaves them: the badge their validations have earned, and how many that is in total. The badge
+   half is empty until someone has earned one, so the row centers on whatever it holds. */
+.mv-standing {
   display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  width: 100%;
-  padding-top: 12px;
-  border-top: 1px solid var(--color-neutral-200);
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-radius: 14px;
+  background: var(--color-neutral-100);
 }
 
-.mv-total__label {
-  font: var(--text-body-medium);
-  color: var(--color-neutral-700);
+.mv-standing__badge {
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
 }
 
-.mv-total__count {
-  font: var(--text-title-bold);
+.mv-standing__text {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.mv-standing__level {
+  font: var(--text-body-bold);
   color: var(--color-neutral-900);
 }
 
+/* Empty for anyone without a badge, which leaves the count alone in the row — so it can't sit on a stray line. */
+.mv-standing__level:empty {
+  display: none;
+}
+
+.mv-standing__total {
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+}
+
+/* The way forward stays put while a long briefing — or a verbose translation — scrolls behind it, so it is never
+   below the fold. The margin is what the screen's own bottom padding would have been: a sticky element's offset is
+   measured from its margin box, so this holds the gap open in both the stuck and the resting state. */
 .mv-modal__actions {
+  position: sticky;
+  bottom: 0;
   display: flex;
   flex-direction: column;
   gap: 10px;
   width: 100%;
+  margin-bottom: 24px;
 }
 
 /* The design system's largest button is sized for a mouse; a thumb wants a taller target and bigger type, so the
@@ -260,12 +473,10 @@ body {
   display: none;
 }
 
-/* Sits over the mission-start screen's top-right corner: a button for signed-out users, a name badge once signed in. */
+/* Opposite the logo on the mission briefing: a button for signed-out users, a name badge once signed in. */
 .sign-in-up-button-mobile {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  max-width: 200px;
+  flex: 0 0 auto;
+  max-width: 180px;
   padding: 10px 18px;
   border: none;
   border-radius: 12px;

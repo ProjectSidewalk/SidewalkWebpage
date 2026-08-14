@@ -67,6 +67,9 @@ class ModalNoNewMission {
     }
     this.#uiModalMission.background.css('visibility', 'visible');
     this.#uiModalMission.instruction.html(imageryUnavailable ? this.#imageryUnavailable : this.#noMissionsRemaining);
+    // This dead end can follow a mission briefing, whose "YOUR MISSION" eyebrow would otherwise still be sitting
+    // above it (mobile only — desktop has no such element).
+    this.#uiModalMission.eyebrow.empty();
     this.#uiModalMission.missionTitle.html(imageryUnavailable
       ? i18next.t('imagery-unavailable.title')
       : i18next.t('mission-complete.no-new-mission-title'));
