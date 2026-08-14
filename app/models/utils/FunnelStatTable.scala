@@ -194,6 +194,12 @@ class FunnelStatTable @Inject() (protected val dbConfigProvider: DatabaseConfigP
    * a real per-cookie population, kept and counted. The schema and events body are trusted (config + code), so they are
    * spliced in literally.
    *
+   * The device CTE's mobile/desktop split is an ANALYTICS-ONLY classification of historical rows: it works from what
+   * the client recorded (Bowser OS names in `audit_task_environment.operating_system`, screen/browser widths) plus
+   * Visit_Index/Visit_MobileLanding hints, because a stored row has no User-Agent to ask. It therefore cannot reuse
+   * `ControllerUtils.isMobile` — the product's single mobile definition, which gates live requests (#4887) — and must
+   * never be treated as one: keep this regex out of product gates, and keep product gates out of here.
+   *
    * @param schema   The database schema (already validated as a configured city schema).
    * @param events   The UNION ALL body producing (user_id, step) rows.
    * @param numSteps How many step columns to aggregate (6 for mapping, 3 for contribution).

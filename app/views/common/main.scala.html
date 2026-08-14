@@ -1,3 +1,4 @@
+@import controllers.helper.ControllerUtils
 @import play.api.Configuration
 @import service.CommonPageData
 @import play.filters.csrf.CSRF
@@ -7,6 +8,11 @@
 @currentCity = @{commonData.currentCity}
 @* Pages that render the map full-window (no footer, #wrap becomes a fixed-height flex column). *@
 @fullWindow = @{url == "/labelMap" || url == "/routeBuilder"}
+@* The landing page draws its hero under the fixed navbar and pads itself (homepage.css), so it opts out of the
+   global navbar offset that main.css puts on <body>. Keyed on request.path (like navbar.scala.html's isLanding),
+   NOT the url parameter: url defaults to "/", so the ~50 views that omit it would otherwise all be classified as
+   the landing page and lose their navbar padding. MobileDetectionSpec pins this. *@
+@bodyClass = @{if (request.path == "/" || request.path == "/home") "no-navbar-offset" else ""}
 
 @* The one moment locale this request needs. Locale files register lowercase names ('zh-tw', 'pt-br') matching their
    filenames, and moment lowercases the code it's given, so a language code maps straight to a filename (#4486).
@@ -21,7 +27,9 @@
 }
 
 <!DOCTYPE html>
-<html lang="@messages.lang.code">
+@* data-mobile-device is the server's mobile verdict (ControllerUtils.isMobile, the single mobile definition) for
+   this request; util.isMobile() reads it back so client and server always agree on which UI variant is running. *@
+<html lang="@messages.lang.code" data-mobile-device="@ControllerUtils.isMobile">
   <head>
       <!-- Global site tag (gtag.js) - Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=@commonData.googleAnalyticsId"></script>
@@ -77,20 +85,14 @@
     <script src='@assets.path("js/common/Navbar.js")' defer></script>
 
     <script src='@assets.path("vendor/bowser/bowser-2.14.1.min.js")'></script>
-    <script src='@assets.path("js/common/pagetopPadding.js")' defer></script>
     <script src='@assets.path("js/common/utilities.js")'></script>
     <script src='@assets.path("js/common/utilitiesMath.js")'></script>
     <script src='@assets.path("js/common/i18nDom.js")'></script>
     <script src='@assets.path("js/common/psTooltip.js")'></script>
     <script src='@assets.path("/js/common/AppManager.js")'></script>
   </head>
-  <body>
+  <body class="@bodyClass">
     <script>
-      // Removes top padding on the pages that render without a fixed navbar. Fires on full load to match the old
-      // <body onload>, which ran after all resources settled.
-      @* Lazy lookup: pagetopPadding.js is deferred, so checkIfPaddingNeeded isn't defined at parse time yet. *@
-      window.addEventListener('load', () => checkIfPaddingNeeded());
-
       // Set up AppManager to initialize stuff that we need on every page (CSRF token, i18next, etc.).
       $(document).ready(function() {
         const csrfToken = "@CSRF.getToken.map(_.value)";

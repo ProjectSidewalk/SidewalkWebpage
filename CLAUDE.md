@@ -81,6 +81,14 @@ No npm-based module system on the frontend — files are simply concatenated in 
 
 **Naming conventions (from #2292):** directories are **kebab-case**; CSS files are **kebab-case**; JS files follow Airbnb style — **PascalCase** for files that define a class/constructor (`AppManager.js`, `LabelPopup.js`), **camelCase** for function/utility/entry files (`main.js`, `aggregateStats.js`). Kebab-case is not used for JS files. Full write-up in [`docs/style-guide.md`](docs/style-guide.md). **Deferred mismatch:** the app dirs were renamed (`SVLabel → explore`, `SVValidate → validate`, `Progress → user-dashboard`), but the internal JS namespace *identifiers* `svl` (Explore) and `sg` (Gallery) were left as-is — renaming those is a large independent refactor, not part of the file reorg.
 
+**Mobile detection has one definition: `ControllerUtils.isMobile` (server-side UA regex).** It gates which UI a
+request is served (mobile → `/mobileLanding`, `/mobile`, the shared auth pages; other pages redirect), and
+`main.scala.html` stamps its verdict on every page as `<html data-mobile-device>`; client code asks
+`util.isMobile()`, which reads that stamp — never re-sniff the UA in JS (#4887; `MobileDetectionSpec` pins the
+stamp). For touch-vs-hover behavior questions, use a capability query (`pointer: coarse` — see `ShareWidget.js`)
+rather than the mobile flag. The device regex in `FunnelStatTable.scala` classifies stored analytics rows by
+recorded OS name and is analytics-only, never a product gate. (Longer-term direction: #4875.)
+
 ## Internationalization
 Two separate i18n systems:
 1. **Backend**: Play i18n with message files in `conf/messages/` (server-rendered strings)
