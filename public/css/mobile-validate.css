@@ -310,8 +310,37 @@ body {
 
 /* ---- Mission complete ------------------------------------------------------------------------------------------ */
 
-#modal-mission-complete-message {
+/* The end of a mission is the one heading on this page worth setting in the display face — and it carries no digits,
+   which is what the accent font can't set. */
+#modal-mission-complete-title {
+  font: var(--text-h1-bold);
+}
+
+/* What was validated, read as one unit: the label type's marker, then the sentence, in a column narrow enough to
+   break evenly rather than spanning the full screen. */
+.mv-summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 300px;
+  margin: 0 auto;
+}
+
+.mv-summary__icon {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
+/* The id outranks svv-modal.css, which centers this sentence for a screen that has no icon beside it. */
+#modal-mission-complete-message.mv-summary__text {
+  flex: 1;
+  min-width: 0;
   font: var(--text-subtitle-regular);
+  text-align: left;
 }
 
 /* Fireworks flanking the congratulations, as on the tutorial's "You did it!" screen. */
@@ -570,6 +599,12 @@ body {
 
 #view-control-layer {
   pointer-events: none; /* For now, just letting the SV viewer handle panning on it's own. */
+}
+
+/* The one thing in that click-through layer a finger has to reach: tapping the label opens its card, the way
+   hovering it does on desktop. Without this the tap lands on the imagery canvas underneath and nothing happens. */
+#validate-pano-marker {
+  pointer-events: auto;
 }
 
 /* Mobile has no --ui-scale, so the shared pano-overlay pill (sized for a scaled desktop tool) needs its own

@@ -160,7 +160,12 @@
             <h1 id="modal-mission-complete-title"></h1>
             <img src='@assets.path("images/icons/fireworks.svg")' class="mv-celebrate__burst mv-celebrate__burst--right" alt="">
           </div>
-          <div id="modal-mission-complete-message"></div>
+          @* What was just validated, behind that label type's own marker. ModalMissionComplete picks the marker
+             (a background, like the badge below, so nothing is fetched before a mission ends). *@
+          <div class="mv-summary">
+            <span id="mission-complete-label-icon" class="mv-summary__icon"></span>
+            <div id="modal-mission-complete-message" class="mv-summary__text"></div>
+          </div>
           @* The three counts echo the validation buttons they came from, with that button's thumb and color. *@
           <div class="mv-stats">
             <div class="mv-stat mv-stat--agree">

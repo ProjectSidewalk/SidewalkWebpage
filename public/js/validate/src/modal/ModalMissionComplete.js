@@ -130,6 +130,10 @@ class ModalMissionComplete {
     this.#uiModalMissionComplete.background.css('visibility', 'visible');
     this.#uiModalMissionComplete.missionTitle.html(i18next.t('mission-complete.title'));
     this.#uiModalMissionComplete.message.html(message);
+    // Mobile shows the mission's label type beside that sentence; the element is absent on desktop.
+    const labelType = svv.labelTypes[mission.getProperty('labelTypeId')];
+    this.#uiModalMissionComplete.labelIcon
+      .css('background-image', `url("${util.misc.getIconImagePaths(labelType).iconImagePath}")`);
     this.#uiModalMissionComplete.agreeCount.html(mission.getProperty('agreeCount'));
     this.#uiModalMissionComplete.disagreeCount.html(mission.getProperty('disagreeCount'));
     this.#uiModalMissionComplete.unsureCount.html(mission.getProperty('unsureCount'));

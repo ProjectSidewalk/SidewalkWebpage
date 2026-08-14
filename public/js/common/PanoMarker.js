@@ -156,9 +156,27 @@ class PanoMarker {
         // No ARIA here, deliberately: mobile Validate builds no KeyboardManager (Main.js) and this branch wires no
         // focus handler, so a marker calling itself a button would announce a disclosure that nothing can open by
         // keyboard or by an assistive tech's activate gesture — worse for a screen reader than the plain touch
-        // target it actually is. Making it properly operable needs a real activation path (touchstart alone doesn't
-        // answer a double-tap reliably) and testing on a device, so it stays untouched here rather than faked.
-        marker.addEventListener('touchstart', () => svv.labelVisibilityControl.toggleLabelCard(), false);
+        // target it actually is. Making it properly operable needs a real activation path and testing on a device,
+        // so it stays untouched here rather than faked.
+        //
+        // A touch is the marker's from the moment it lands, so a drag beginning on it can't pan the pano — the same
+        // trade the desktop marker makes with the mouse, over a target this small. Answering on touchend, and only
+        // when the finger stayed put, at least keeps such a drag from opening the card on its way past.
+        // (mobile-validate.css is what lets the touch reach the marker at all: the layer around it is
+        // click-through so the pano gets every pan.)
+        let touchStart = null;
+        marker.addEventListener('touchstart', (e) => {
+          const touch = e.changedTouches[0];
+          touchStart = { x: touch.clientX, y: touch.clientY };
+        }, { passive: true });
+        marker.addEventListener('touchend', (e) => {
+          if (!touchStart) return;
+          const touch = e.changedTouches[0];
+          const travelled = Math.hypot(touch.clientX - touchStart.x, touch.clientY - touchStart.y);
+          touchStart = null;
+          // In this page's oversized px — the layout it draws at is ~2.5x the screen, so this is ~10 real px.
+          if (travelled <= 25) svv.labelVisibilityControl.toggleLabelCard();
+        }, { passive: true });
       } else {
         // The marker is a keyboard stop, not just a hover target (#4729): the card it opens is the only place the
         // label's rating, tags, and description appear. role=button with aria-expanded makes it read as a
