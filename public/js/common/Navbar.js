@@ -28,6 +28,9 @@ class NavbarController {
   /** @type {?HTMLElement} The strip in the brand area that holds the collapsed bar's quick links. */
   #quickStrip = null;
 
+  /** @type {?boolean} Whether the last fit found the nav collapsed; null before the first one. */
+  #stacked = null;
+
   /**
    * The `data-nav-quick` items in authored order, which is the order the collapsed bar shows them in — destinations
    * then the account control, matching the inline bar's primary-then-utility reading order.
@@ -115,7 +118,7 @@ class NavbarController {
    * @param {boolean} [focusFirst=false] - Move focus into the panel (search input if present, else first item).
    */
   #open(li, btn, panel, focusFirst = false) {
-    this.#closeAll(li);
+    this.#closeAll({ except: li });
     // A dropdown outside the collapsible panel is a peer of it, not a child, so the two can't both be showing. The
     // ones still inside it (Tools, city, language) obviously must leave it open.
     if (this.#menu && !this.#menu.contains(li)) this.#setMenuOpen(false);
@@ -148,13 +151,18 @@ class NavbarController {
   }
 
   /**
-   * Closes every open dropdown except an optional one to keep open.
-   * @param {?HTMLElement} [except] - A <li> to leave open.
+   * Closes every open dropdown, optionally sparing one or limiting the sweep to a container.
+   *
+   * @param {Object} [opts] - Options.
+   * @param {?HTMLElement} [opts.except] - A <li> to leave open.
+   * @param {?HTMLElement} [opts.within] - Close only dropdowns inside this element; all of them when omitted.
    */
-  #closeAll(except) {
+  #closeAll({ except = null, within = null } = {}) {
     for (const btn of this.#toggles) {
       const li = btn.closest('.navbar-lnk');
-      if (li && li !== except && li.classList.contains('is-open')) this.#close(li, btn);
+      if (!li || li === except || !li.classList.contains('is-open')) continue;
+      if (within && !within.contains(li)) continue;
+      this.#close(li, btn);
     }
   }
 
@@ -250,13 +258,15 @@ class NavbarController {
    *
    * Opening it closes any open dropdown, because the panel and the quick strip's dropdowns are peer disclosures
    * anchored to the same bar: with the account control promoted into the strip, both could otherwise be open at once
-   * and overlap each other.
+   * and overlap each other. Closing it closes the ones nested inside it, since `is-open` lives on the <li> and nothing
+   * else clears it — an expanded Tools menu would come back expanded, and render as a floating panel in the inline bar
+   * if the window widened first.
    *
    * @param {boolean} open - Whether the panel should be open.
    */
   #setMenuOpen(open) {
     if (!this.#menu) return;
-    if (open) this.#closeAll();
+    this.#closeAll(open ? {} : { within: this.#menu });
     this.#menu.classList.toggle('is-open', open);
     this.#hamburger?.setAttribute('aria-expanded', String(open));
   }
@@ -308,7 +318,18 @@ class NavbarController {
    */
   #fitNav() {
     // In the stacked hamburger panel each item has its own row, so everything is shown.
-    const stacked = this.#hamburger && this.#hamburger.offsetParent !== null;
+    const stacked = Boolean(this.#hamburger && this.#hamburger.offsetParent !== null);
+
+    // Crossing the collapse boundary restyles every disclosure in the bar: the panel is the inline bar on the far
+    // side, and a dropdown is an anchored popover on one side and a flattened row on the other. Anything open at that
+    // moment was opened against the layout being left, so it closes. Only on the crossing — a plain resize (an
+    // on-screen keyboard opening, a URL bar collapsing) must not yank a menu out from under the user mid-use.
+    if (this.#stacked !== null && stacked !== this.#stacked) {
+      this.#setMenuOpen(false);
+      this.#closeAll();
+    }
+    this.#stacked = stacked;
+
     for (const step of this.#shedSteps) step(false);
     this.#applyQuickStrip(stacked);
     if (stacked) return;
@@ -337,6 +358,7 @@ class NavbarController {
     }
 
     for (const { li } of this.#quickItems) {
+      if (li.parentElement !== this.#quickStrip) this.#closeOpenDropdown(li);
       this.#quickStrip.appendChild(li);
       li.classList.add('is-quick');
     }
@@ -358,9 +380,25 @@ class NavbarController {
   #sendHome({ li, parent }) {
     li.classList.remove('is-quick');
     if (li.parentElement === parent) return;
+    this.#closeOpenDropdown(li);
     const order = this.#quickHomes.get(parent) || [];
     const anchor = order.slice(order.indexOf(li) + 1).find((el) => el.parentElement === parent) || null;
     parent.insertBefore(li, anchor);
+  }
+
+  /**
+   * Closes an item's dropdown, if it has one open, before the item changes lists.
+   *
+   * The open state is a class on the <li> and `.navbar-lnk.is-open > .dropdown-menu` isn't scoped by breakpoint, so an
+   * item carried across the collapse boundary still open would render its panel in a bar the user never opened it
+   * from — floating and unanchored in the inline bar, with no gesture behind it.
+   *
+   * @param {HTMLElement} li - The item about to move.
+   */
+  #closeOpenDropdown(li) {
+    if (!li.classList.contains('is-open')) return;
+    const btn = li.querySelector('[data-nav-dropdown]');
+    if (btn) this.#close(li, btn);
   }
 
   /**

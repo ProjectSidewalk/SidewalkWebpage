@@ -2,9 +2,9 @@
  * Mobile section-nav disclosure for the shared `.api-*` shell (API docs, admin dashboard, user dashboard).
  *
  * At mobile widths api-docs.css turns `.api-sidebar` from a column into an in-flow strip between the navbar and the
- * content, and collapses its `.api-nav`. This adds the button that opens it. The button lives *inside* the sidebar so
- * the nav opens beneath it and pushes the page down — the previous control was appended to <body> and positioned
- * fixed, so it floated over whatever the page happened to render underneath (#4856).
+ * content, and collapses its `.api-nav`. This adds the button that opens it. The button belongs *inside* the sidebar,
+ * sharing that in-flow strip, so the nav it discloses opens directly beneath it and pushes the page down rather than
+ * covering the content it lands on (#4856).
  *
  * The button is labelled with the active nav item, so the strip also answers "which page am I on?" — the thing the
  * collapsed sidebar otherwise takes away.
@@ -36,6 +36,9 @@ function buildSidebarDisclosure(sidebar) {
          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>`;
   // Assigned as text rather than interpolated into the markup above so a page title can't inject HTML.
   toggle.querySelector('.api-sidebar-toggle-label').textContent = label;
+  // The visible text is the page name, which says where you are but not what the control does. The accessible name
+  // has to carry both, and has to start with the visible text so speech input still reaches it (WCAG 2.5.3).
+  toggle.setAttribute('aria-label', `${label} — section navigation`);
 
   toggle.addEventListener('click', () => {
     const open = sidebar.classList.toggle('mobile-visible');

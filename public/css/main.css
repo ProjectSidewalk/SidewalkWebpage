@@ -928,9 +928,9 @@ a {
 /*
  * Below Bootstrap's sm breakpoint the columns stop floating and stack full-width, so a percentage picked for a narrow
  * column becomes multiples of the viewport — 220% of 737px is 1621px of page, and the fixed navbar is sized from the
- * containing block that widens with it (#4857). Keyed on `width` rather than the `device-width` this used before:
- * device-width is the physical screen, so it missed every resized desktop window and fired off the wrong dimension on
- * a rotated tablet.
+ * containing block that widens with it (#4857). Keyed on `width` because the viewport is what the columns lay out
+ * against: `device-width` is the physical screen, which ignores a resized desktop window entirely and reports the
+ * wrong dimension on a rotated tablet.
  */
 @media (width <= 767px) {
   #award-num {
@@ -1821,11 +1821,16 @@ kbd {
   }
 
   /*
-   * The account control is the exception, and only because the person glyph is one of the learned ones. A username is
-   * also the longest, least predictable label in the bar — showing it would crowd out the destinations on a phone,
-   * and the button's aria-label still names it.
+   * The signed-in account control is the exception, and only because the person glyph is one of the learned ones. A
+   * username is also the longest, least predictable label in the bar — showing it would crowd out the destinations on
+   * a phone, and the button's aria-label still names it.
+   *
+   * Scoped to that one button rather than the <li>, which also wraps the signed-out sign-in link: a log-in arrow is
+   * not a learned glyph, "Sign in" is short and predictable, and the label is that link's whole accessible name. It
+   * keeps its text and the shared pill padding above; Navbar.js measures, so the wider pill just means one fewer
+   * destination fits.
    */
-  #navbar-quick #navbar-user-dropdown-list > .navbar-button {
+  #navbar-quick #nav-user-dropdown {
     min-width: 40px;
     padding: 0;
   }

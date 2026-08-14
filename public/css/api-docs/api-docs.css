@@ -807,7 +807,7 @@ h6:hover .permalink {
   border: none;
   background-color: transparent;
   color: var(--color-text-heading);
-  font-family: inherit;
+  font-family: var(--font-sans);
   font-size: var(--font-size-md);
   font-weight: 600;
   text-align: left;

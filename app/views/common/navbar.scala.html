@@ -38,8 +38,9 @@
       <div class="navbar-logo">
         <a id="navbar-brand" href="/"><img alt="Project Sidewalk Logo" height="28" src='@assets.path("images/" + config.get[String]("city-params.logo-img." + commonData.cityId))'></a>
       </div>
-      @* Filled by Navbar.js at collapsed widths with as many `data-nav-quick` items as fit, as icon-only buttons.
-         Empty in the inline bar, where those items sit in their own groups. *@
+      @* Filled by Navbar.js at collapsed widths with as many `data-nav-quick` items as fit. The items are moved here,
+         not cloned: their ids are what the click logging and the auth dialog key on, so a second copy would break
+         both. Empty in the inline bar, where those items sit in their own groups. *@
       <ul class="navbar-nav navbar-quick" id="navbar-quick"></ul>
       <button type="button" class="navbar-toggle" data-nav-toggle aria-controls="navbar" aria-expanded="false" aria-label="@Messages("navbar.menu.toggle")">
         <img class="navbar-toggle-icon" src='@assets.path("images/icons/menu-feather.svg")' alt="" aria-hidden="true">

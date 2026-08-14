@@ -84,6 +84,18 @@ describe('Navbar disclosures', () => {
     const userBtn = () => document.getElementById('user-btn');
     const langBtn = () => document.getElementById('lang-btn');
 
+    /**
+     * Puts the bar in its collapsed or inline layout and lets the debounced re-fit run.
+     * The hamburger's visibility is what the controller reads the layout from.
+     */
+    async function setStacked(stacked) {
+        Object.defineProperty(hamburger(), 'offsetParent', {
+            configurable: true, get: () => (stacked ? document.body : null),
+        });
+        window.dispatchEvent(new Event('resize'));
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+    }
+
     it('closes the panel when a quick-strip dropdown opens', () => {
         hamburger().click();
         expect(panelOpen()).toBe(true);
@@ -164,5 +176,52 @@ describe('Navbar disclosures', () => {
 
         expect(isOpen('language-dropdown')).toBe(false);
         expect(panelOpen()).toBe(true);
+    });
+
+    it('closes a dropdown inside the panel when the panel is dismissed', () => {
+        hamburger().click();
+        langBtn().click();
+        expect(isOpen('language-dropdown')).toBe(true);
+
+        press(document.getElementById('page'));
+
+        expect(panelOpen()).toBe(false);
+        expect(isOpen('language-dropdown')).toBe(false);
+        expect(langBtn().getAttribute('aria-expanded')).toBe('false');
+    });
+
+    // `.navbar-lnk.is-open > .dropdown-menu` is not scoped by breakpoint, so an item that crosses the collapse
+    // boundary still carrying `is-open` renders its panel in a bar the user never opened it from.
+    describe('when the bar crosses the collapse boundary', () => {
+        it('closes a quick-strip dropdown as its item returns to the inline bar', async () => {
+            userBtn().click();
+            expect(isOpen('li-user')).toBe(true);
+
+            await setStacked(false);
+
+            expect(document.getElementById('navbar-quick').children).toHaveLength(0);
+            expect(isOpen('li-user')).toBe(false);
+            expect(userBtn().getAttribute('aria-expanded')).toBe('false');
+        });
+
+        it('closes the panel and a dropdown open inside it', async () => {
+            hamburger().click();
+            langBtn().click();
+            expect(panelOpen()).toBe(true);
+
+            await setStacked(false);
+
+            expect(panelOpen()).toBe(false);
+            expect(isOpen('language-dropdown')).toBe(false);
+        });
+
+        it('leaves an open dropdown alone on a resize that stays on one side of it', async () => {
+            userBtn().click();
+
+            // What an on-screen keyboard or a collapsing URL bar looks like: a resize, same layout, menu still in use.
+            await setStacked(true);
+
+            expect(isOpen('li-user')).toBe(true);
+        });
     });
 });

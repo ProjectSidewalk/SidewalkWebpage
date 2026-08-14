@@ -24,11 +24,15 @@ object ControllerUtils {
   val NoUserId: String = ""
 
   /**
-   * Returns true if the user is on mobile, false if the user is not on mobile.
+   * Whether the request comes from a mobile device, judged by matching its User-Agent against a list of mobile OS
+   * and device tokens.
    *
-   * Takes a `RequestHeader` rather than a `Request[A]` so views can call it too — the navbar hides the destinations
-   * that redirect mobile visitors to /mobileLanding, and a Twirl template only ever has the header. Controllers pass
-   * their `Request[A]` unchanged, since it is one.
+   * Accepts a `RequestHeader`, the widest type carrying headers, so Twirl templates can ask as well — the navbar drops
+   * the destinations that would only redirect a mobile visitor to /mobileLanding, and a template holds nothing but the
+   * header. A controller's `Request[A]` satisfies it unchanged, being one.
+   *
+   * @param request The request whose User-Agent header is inspected.
+   * @return        True if that header is present and matches a mobile token; false if it is absent or matches none.
    */
   def isMobile(implicit request: RequestHeader): Boolean = {
     val mobileOS: Regex =
