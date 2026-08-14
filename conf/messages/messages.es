@@ -370,12 +370,10 @@ authenticate.identifier = Correo electrónico o nombre de usuario
 authenticate.password = Contraseña
 authenticate.remember.me = Mantenerme conectado
 authenticate.new = ¿Eres nuevo/a? <a href="#" id="form-open-sign-up">¡Regístrate!</a>
-authenticate.non.member = ¿No eres un miembro? <a href="{0}">Regístrate ahora</a>
 authenticate.confirm.password = Confirmar contraseña
 authenticate.service.hours.title = ¿Planea solicitar que su trabajo a través de Project Sidewalk se cuente como horas de servicio comunitario/voluntario?
 authenticate.terms = Usted acepta nuestros <a target="_blank" href="/terms">Términos de uso y Política de privacidad</a>
 authenticate.signup = Regístrate
-authenticate.signup.new.account = Regístrate para una nueva cuenta
 authenticate.has.account = ¿Tienes una cuenta? <a href="#" id="form-open-sign-in">Iniciar sesión</a>
 
 # Sign-in/sign-up redesign (#4375) — draft translations, pending native-speaker polish (#4494).
@@ -420,7 +418,6 @@ welcome.hint.username = Puedes cambiar tu nombre de usuario cuando quieras en <a
 welcome.service.prompt = ¿Mapeas por créditos escolares o de voluntariado?
 welcome.service.button = Inscribirme en horas de servicio
 authenticate.is.member = ¿Ya eres miembro? <a href="{0}">Iniciar sesión ahora</a>
-authenticate.signin.with.credentials = Inicia sesión con tus credenciales
 
 user.exists = El correo electrónico ya existe
 authenticate.error.username.exists = El nombre de usuario ya existe
