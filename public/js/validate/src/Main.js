@@ -34,6 +34,10 @@ class Main {
       svv.tracker = new Tracker();
       svv.modalNoNewMission = new ModalNoNewMission(svv.ui.modalMission);
       svv.modalNoNewMission.show();
+      // The unhide in #init() never runs on this path, and the page still needs revealing: without it the loading
+      // overlay sits on screen forever and the modal is visible only through its own inline visibility override.
+      $('#page-loading').css({ visibility: 'hidden' });
+      $('.tool-ui').removeClass('ps-invisible');
     }
   }
 

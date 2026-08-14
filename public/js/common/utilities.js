@@ -279,12 +279,14 @@ util.uiScale = function () {
   return parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ui-scale')) || 1;
 };
 
-// Browser detection helpers backed by Bowser 2.x.
-const _bowserParser = bowser.getParser(window.navigator.userAgent);
-util.getBrowserName = () => _bowserParser.getBrowserName();
+// Browser detection helpers backed by Bowser 2.x. The vendor script loads deferred (this file does not), so the
+// parser must be built lazily: every caller runs at DOMContentLoaded or later, by which point bowser exists.
+let _bowserParser;
+const bowserParser = () => (_bowserParser ??= bowser.getParser(window.navigator.userAgent));
+util.getBrowserName = () => bowserParser().getBrowserName();
 util.getBrowser = () => util.getBrowserName();
-util.getBrowserVersion = () => _bowserParser.getBrowserVersion();
-util.getOperatingSystem = () => _bowserParser.getOSName();
+util.getBrowserVersion = () => bowserParser().getBrowserVersion();
+util.getOperatingSystem = () => bowserParser().getOSName();
 util.isSafari = () => util.getBrowserName() === 'Safari';
 util.isChrome = () => util.getBrowserName() === 'Chrome';
 util.isFirefox = () => util.getBrowserName() === 'Firefox';

@@ -2,7 +2,9 @@
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
 @import service.CommonPageData
-@(commonData: CommonPageData, user: Option[SidewalkUserWithRole] = None
+@* renderAuthDialog: a page whose body carries the full-page auth forms (signIn/signUp views, whatever path they
+   render from) passes false so the dialog's identical form ids aren't duplicated (see authDialog.scala.html). *@
+@(commonData: CommonPageData, user: Option[SidewalkUserWithRole] = None, renderAuthDialog: Boolean = true
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @currentCityInfo = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId).head}
@@ -248,4 +250,6 @@
 </nav>
   <!-- /.navbar -->
 
-@common.authDialog(user)
+@if(renderAuthDialog) {
+  @common.authDialog(user)
+}

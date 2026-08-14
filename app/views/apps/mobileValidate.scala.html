@@ -48,7 +48,8 @@
     </div>
   </div>
 
-  <div class="container tool-ui ps-invisible"><!-- ps-invisible until loading completes (Main.js unhides), so the raw UI never flashes -->
+  @* ps-invisible until loading completes (Main.js unhides), so the raw UI never flashes. *@
+  <div class="container tool-ui ps-invisible">
     @components.progressBar(
       rootId = "mission-progress-bar-section",
       fillId = "mission-progress-bar-complete"
@@ -110,8 +111,10 @@
     <div id="modal-mission-holder">
       <div id="modal-mission-background" class="modal-background"></div>
       <div id="modal-mission-foreground" class="modal-foreground">
+        @* Signed-in users get a plain username badge: the auth dialog only renders for signed-out users, so a
+           data-au-open control here would be a focusable button that does nothing. *@
         @if(user.role != "Anonymous") {
-          <button type="button" data-au-open="signIn" class="sign-in-up-button-mobile">@{user.username}</button>
+          <span class="sign-in-up-button-mobile">@{user.username}</span>
         } else {
           <button type="button" data-au-open="signIn" class="sign-in-up-button-mobile">@Messages("navbar.signin")</button>
         }
@@ -168,7 +171,8 @@
     </div>
   </div>
 
-  @* The mission modal's sign-in button opens this via its data-au-open hook (AuthModal.js). *@
+  @* For anonymous users, the mission modal's sign-in button opens this via its data-au-open hook (AuthModal.js);
+     for signed-in users neither the dialog nor any opener renders. *@
   @common.authDialog(Some(user))
 
   <script>
