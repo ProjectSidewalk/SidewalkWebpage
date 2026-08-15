@@ -149,16 +149,23 @@ class MiniLineChart {
    */
   static renderInto(container, categories, series, opts = {}) {
     if (!container) return;
+    // The measured correction below depends on label text and font, not on width, so it's the same at every width
+    // once known — cache it per draw and skip re-measuring (a forced-layout getBBox() pass) on every resize tick.
+    let grownMargins = null;
     // Store the latest draw on the container so a persistent container re-rendered with new data (e.g. a trend that
     // re-fetches on a range change) keeps the resize observer pointed at the current data, not the first call's.
     container._miniDraw = () => {
       const width = Math.max(280, Math.round(container.clientWidth) || 760);
-      container.innerHTML = MiniLineChart.svg(categories, series, { ...opts, width });
+      container.innerHTML = MiniLineChart.svg(categories, series, { ...opts, width, ...grownMargins });
+      if (grownMargins) return;
       // svg() can only estimate label widths from character counts, and the axis font is whatever the page resolves
       // `--font-sans` to. Now that the SVG is in the document its text can be measured for real, so widen the margins
       // and redraw if anything still overhangs the viewBox — the estimate stays the fast path, this is the guarantee.
       const grown = MiniLineChart.#marginsForOverhang(container, width);
-      if (grown) container.innerHTML = MiniLineChart.svg(categories, series, { ...opts, width, ...grown });
+      if (grown) {
+        grownMargins = grown;
+        container.innerHTML = MiniLineChart.svg(categories, series, { ...opts, width, ...grown });
+      }
     };
     container._miniDraw();
     if (typeof ResizeObserver !== 'undefined' && !container._miniResizeObserver) {
