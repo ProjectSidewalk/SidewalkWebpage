@@ -8,11 +8,6 @@ const applyMissionScale = () => {
 };
 
 $(document).ready(() => {
-  // Raleway doesn't load after being redirected from another page; redeclaring the font-face fixes that.
-  const font = '<style> @@font-face{ font-family: \'raleway\'; '
-    + 'src: url(\'/assets/fonts/Raleway/Raleway-Regular.woff2\');} </style>';
-  $('head').append(font);
-
   applyMissionScale();
   window.addEventListener('resize', applyMissionScale);
 
