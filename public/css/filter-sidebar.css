@@ -16,7 +16,10 @@
   overflow-y: auto;
   scrollbar-gutter: stable;
   padding: 40px 30px 30px;
-  font-family: Raleway, sans-serif;
+
+  /* The panel's inherited face only, deliberately not a --text-* token: each control below sets its own, and a
+     composite here would stamp a size onto anything that doesn't. */
+  font-family: var(--font-primary);
   transition: transform 0.2s ease;
 }
 
@@ -147,9 +150,7 @@ body.filter-sidebar-resizing {
 }
 
 .filter-sidebar__heading {
-  font-family: Raleway, sans-serif;
-  font-size: 16px;
-  font-weight: 700;
+  font: var(--text-body-bold);
   color: var(--color-neutral-black);
   margin: 0;
   line-height: normal;
@@ -167,9 +168,7 @@ body.filter-sidebar-resizing {
   border: none;
   color: var(--color-asphalt-400);
   cursor: pointer;
-  font-family: Raleway, sans-serif;
-  font-size: 13px;
-  font-weight: 600;
+  font: var(--text-caption-semibold);
   padding: 0;
 }
 
@@ -302,9 +301,7 @@ body.filter-sidebar-resizing {
 }
 
 .filter-sidebar__item label {
-  font-family: Raleway, sans-serif;
-  font-size: 16px;
-  font-weight: 500;
+  font: var(--text-body-medium);
   color: var(--color-neutral-black);
   margin: 0;
   cursor: pointer;
@@ -505,9 +502,7 @@ body.filter-sidebar-resizing {
 }
 
 .filter-sidebar__count {
-  font-family: Raleway, sans-serif;
-  font-size: 13px;
-  font-weight: 500;
+  font: var(--text-caption-medium);
   font-variant-numeric: tabular-nums;
   color: var(--color-neutral-700);
 }
@@ -517,9 +512,7 @@ body.filter-sidebar-resizing {
   border: none;
   padding: 0;
   cursor: pointer;
-  font-family: Raleway, sans-serif;
-  font-size: 13px;
-  font-weight: 600;
+  font: var(--text-caption-semibold);
   color: var(--color-asphalt-400);
   display: none;
 }
