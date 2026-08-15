@@ -1,9 +1,11 @@
 package controllers
 
 import controllers.helper.SubmissionSpecHelpers
+import models.label.LabelTableDef
 import models.utils.MyPostgresProfile.api._
+import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.Eventually
-import org.scalatest.time.{Seconds, Span}
+import org.scalatest.time.{Millis, Seconds, Span}
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
@@ -22,40 +24,110 @@ import java.time.OffsetDateTime
  * `label_validation` row and the label's updated agree/disagree/unsure counts (#4777).
  *
  * Follows the real client bootstrap: GET /validate embeds the assigned mission and label batch as inline page JS
- * (`param.*`), and the spec validates the first labels of that real batch. Every validation made here is cleared
- * through the same endpoints' undo flow (#4653), restoring the label's counts, so repeated runs leave no validations
- * behind in a shared dev DB. Tests cancel (not fail) when the connected DB can't hand out a validation mission
- * (that requires >= 10 validatable labels of one type).
+ * (`param.*`), and the spec validates the first label of that real batch. Both tests run the endpoint's own undo flow
+ * (#4653) and assert it restores what the validation changed.
+ *
+ * Unlike Explore, these endpoints write against *real* labels that the dev DB inherited from production, so the suite
+ * snapshots every label it touches and restores it in `afterAll` alongside deleting its own rows — a failed assertion
+ * partway through can't leave a real label carrying a phantom agree count. Tests cancel when the connected schema has
+ * no labels to validate (the empty CI city); a /validate that answers anything but 200 on a seeded schema is a bug
+ * and fails.
  */
-class ValidateSubmissionSpec extends PlaySpec with GuiceOneAppPerSuite with SubmissionSpecHelpers with Eventually {
+// Mixin order matters: GuiceOneAppPerSuite must be rightmost so its run() wraps BeforeAndAfterAll's — otherwise
+// afterAll's cleanup executes after the app (and its DB pool) has shut down and aborts the suite.
+class ValidateSubmissionSpec
+    extends PlaySpec
+    with BeforeAndAfterAll
+    with Eventually
+    with SubmissionSpecHelpers
+    with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    new GuiceApplicationBuilder()
+      .disable[modules.ActorModule]
+      // Several anon sessions per run share one loopback IP, so the 100/hr signup cap would 429 across repeat runs
+      // and break session minting rather than anything under test.
+      .configure("rate-limit.anon-signup.enabled" -> false)
+      .build()
+
+  private val labelsQ = TableQuery[LabelTableDef]
+
+  /** Users minted by this suite; everything written under them is deleted in `afterAll`. */
+  private var createdUserIds: Set[String] = Set.empty
+
+  /** Pre-test state of every real label the suite validated, restored in `afterAll`. */
+  private var labelBackup: Map[Int, LabelState] = Map.empty
+
+  /** The dev-DB dumps omit the interaction logs, so their assertions are skipped where the table isn't there. */
+  private lazy val interactionsLogged: Boolean = tableExists("validation_task_interaction")
+
+  /** Everything a validation can change on the label it targets. */
+  private case class LabelState(
+      agreeCount: Int,
+      disagreeCount: Int,
+      unsureCount: Int,
+      correct: Option[Boolean],
+      severity: Option[Int],
+      tags: List[String]
+  )
 
   /** The validate-page values a submission payload is built from, as the real client reads them. */
   private case class ValidateBootstrap(userId: String, missionId: Int, mission: JsObject, labels: Seq[JsObject])
 
-  /** Loads /validate for the session and pulls the assigned mission and label batch out of the bootstrap script. */
+  /**
+   * Loads /validate for the session and pulls the assigned mission and label batch out of the bootstrap script.
+   *
+   * @param session Cookies from an anonymous session.
+   * @return        The mission and label batch the server assigned.
+   */
   private def fetchValidateBootstrap(session: Seq[Cookie]): ValidateBootstrap = {
+    val labelCount = run(sql"SELECT count(*) FROM label WHERE deleted = false".as[Int]).head
+    if (labelCount == 0) cancel("No labels in the connected schema; /validate can't assign a mission.")
+
     val resp = route(app, FakeRequest(GET, "/validate").withCookies(session: _*)).get
-    if (status(resp) != OK) cancel(s"/validate responded ${status(resp)}.")
+    status(resp) mustBe OK
     val html    = contentAsString(resp)
     val mission = embeddedPageJson(html, "param.mission")
       .collect { case obj: JsObject => obj }
       .getOrElse(cancel("No validation mission available (needs >= 10 validatable labels of one type)."))
     val labels = embeddedPageJson(html, "param.labelList")
       .collect { case arr: JsArray => arr.value.toSeq }
-      .getOrElse(cancel("No label batch in the validate bootstrap."))
+      .getOrElse(fail("No label batch in the validate bootstrap."))
       .map(_.as[JsObject])
     val missionId = (mission \ "mission_id").as[Int]
     // The mission was just minted for this session's user, so it resolves the anon user's id for row assertions.
-    val userId = runDb(sql"SELECT user_id FROM mission WHERE mission_id = $missionId".as[String]).head
+    val userId = run(sql"SELECT user_id FROM mission WHERE mission_id = $missionId".as[String]).head
+    createdUserIds += userId
     ValidateBootstrap(userId, missionId, mission, labels)
   }
 
+  /** Reads everything a validation can change on a label. */
+  private def labelState(labelId: Int): LabelState = {
+    val row = run(
+      labelsQ
+        .filter(_.labelId === labelId)
+        .map(l => (l.agreeCount, l.disagreeCount, l.unsureCount, l.correct, l.severity, l.tags))
+        .result
+        .head
+    )
+    (LabelState.apply _).tupled(row)
+  }
+
+  /** Records a label's pre-validation state on first touch, so `afterAll` can put it back. */
+  private def backupLabel(labelId: Int): LabelState = {
+    val state = labelState(labelId)
+    if (!labelBackup.contains(labelId)) labelBackup += (labelId -> state)
+    state
+  }
+
   /**
-   * A single validation as the Validate frontend submits one. Severity and tags echo the label's current values, so
-   * an Agree changes nothing in the label's own severity/tags (no label_history side effects to clean up).
+   * A single validation as the Validate frontend submits one.
+   *
+   * Severity and tags echo the label's current values, which for a well-formed label means the validation makes no
+   * change to the label itself. That is an assumption about the data, not a guarantee from the code — `cleanTagList`
+   * drops tags that are invalid or mutually exclusive for the label type, so a legacy label carrying one would take
+   * the mutation branch — which is why the tests assert the label's severity, tags, and history are untouched rather
+   * than take it on trust.
    */
   private def validationJson(
       label: JsObject,
@@ -93,7 +165,7 @@ class ValidateSubmissionSpec extends PlaySpec with GuiceOneAppPerSuite with Subm
   private def taskSubmission(
       b: ValidateBootstrap,
       validations: Seq[JsObject],
-      missionProgress: Option[JsObject] = None
+      missionProgress: Option[JsObject]
   ): JsObject = {
     val now = OffsetDateTime.now
     Json.obj(
@@ -153,23 +225,76 @@ class ValidateSubmissionSpec extends PlaySpec with GuiceOneAppPerSuite with Subm
     )
   }
 
+  /** Posts a Validate-tool submission over HTTP as the session's user. */
   private def postValidationTask(session: Seq[Cookie], payload: JsValue) =
     route(app, FakeRequest(POST, "/validationTask").withCookies(session: _*).withJsonBody(payload).withCSRFToken).get
 
+  /** Posts a LabelMap/Gallery validation over HTTP as the session's user. */
   private def postLabelMapValidation(session: Seq[Cookie], payload: JsValue) =
     route(
       app,
       FakeRequest(POST, "/labelmap/validate").withCookies(session: _*).withJsonBody(payload).withCSRFToken
     ).get
 
+  /**
+   * The user's validation of a label, if any.
+   *
+   * @return The validation result and the mission it was recorded under, or None when the user has no validation of
+   *         this label — which is what an undo must leave behind.
+   */
   private def validationRow(labelId: Int, userId: String): Option[(String, Int)] =
-    runDb(
+    run(
       sql"""SELECT validation_result::text, mission_id FROM label_validation
             WHERE label_id = $labelId AND user_id = $userId""".as[(String, Int)]
     ).headOption
 
-  private def agreeCount(labelId: Int): Int =
-    runDb(sql"SELECT agree_count FROM label WHERE label_id = $labelId".as[Int]).head
+  /** How many `label_history` rows the label carries; a validation that changes nothing must not add one. */
+  private def labelHistoryCount(labelId: Int): Int =
+    run(sql"SELECT count(*) FROM label_history WHERE label_id = $labelId".as[Int]).head
+
+  /** The mission's recorded progress, which the client reports alongside each validation. */
+  private def missionProgress(missionId: Int): Int =
+    run(sql"SELECT labels_progress FROM mission WHERE mission_id = $missionId".as[Int]).head
+
+  /**
+   * Removes the suite's own rows and puts back every real label it validated.
+   *
+   * The happy path already undoes its validations through the endpoint; this is the safety net for a run that dies
+   * partway through, where the shared dev DB would otherwise keep a real label's inflated counts forever. Derived
+   * aggregates the deletion can't restore (the labeler's `user_stat.accuracy`) are recomputed by the nightly job.
+   */
+  private def deleteSubmittedData(): Unit = {
+    createdUserIds.foreach { uId =>
+      val _ = run(
+        DBIO.seq(
+          sqlu"""DELETE FROM label_history
+                 WHERE label_validation_id IN (SELECT label_validation_id FROM label_validation WHERE user_id = $uId)""",
+          sqlu"""DELETE FROM label_ai_assessment
+                 WHERE label_validation_id IN (SELECT label_validation_id FROM label_validation WHERE user_id = $uId)""",
+          sqlu"DELETE FROM validation_task_comment WHERE mission_id IN (SELECT mission_id FROM mission WHERE user_id = $uId)",
+          sqlu"""DELETE FROM validation_task_environment
+                 WHERE mission_id IN (SELECT mission_id FROM mission WHERE user_id = $uId)""",
+          sqlu"""DELETE FROM validation_task_interaction
+                 WHERE mission_id IN (SELECT mission_id FROM mission WHERE user_id = $uId)""",
+          sqlu"DELETE FROM label_validation WHERE user_id = $uId",
+          sqlu"DELETE FROM mission WHERE user_id = $uId"
+        )
+      )
+    }
+    labelBackup.foreach { case (labelId, state) =>
+      val _ = run(
+        labelsQ
+          .filter(_.labelId === labelId)
+          .map(l => (l.agreeCount, l.disagreeCount, l.unsureCount, l.correct, l.severity, l.tags))
+          .update((state.agreeCount, state.disagreeCount, state.unsureCount, state.correct, state.severity, state.tags))
+      )
+    }
+  }
+
+  override def afterAll(): Unit = {
+    try deleteSubmittedData()
+    finally super.afterAll()
+  }
 
   "POST /validationTask" should {
     "401 an unauthenticated submission" in {
@@ -193,11 +318,12 @@ class ValidateSubmissionSpec extends PlaySpec with GuiceOneAppPerSuite with Subm
     }
 
     "write a label_validation row for an Agree, bump the label's agree count, and clear both on undo" in {
-      val session     = freshAnonSession()
-      val b           = fetchValidateBootstrap(session)
-      val label       = b.labels.head
-      val labelId     = (label \ "label_id").as[Int]
-      val agreeBefore = agreeCount(labelId)
+      val session      = freshAnonSession()
+      val b            = fetchValidateBootstrap(session)
+      val label        = b.labels.head
+      val labelId      = (label \ "label_id").as[Int]
+      val before       = backupLabel(labelId)
+      val historyCount = labelHistoryCount(labelId)
 
       val posted = postValidationTask(
         session,
@@ -207,37 +333,59 @@ class ValidateSubmissionSpec extends PlaySpec with GuiceOneAppPerSuite with Subm
       (contentAsJson(posted) \ "has_mission_available").as[Boolean] mustBe true
 
       validationRow(labelId, b.userId) mustBe Some(("Agree", b.missionId))
-      agreeCount(labelId) mustBe agreeBefore + 1
-      runDb(sql"SELECT labels_progress FROM mission WHERE mission_id = ${b.missionId}".as[Int]).head mustBe 1
+      missionProgress(b.missionId) mustBe 1
+
+      // An Agree that re-sends the label's own severity and tags is a pure vote: the counts move, the label's own
+      // content doesn't, and nothing is appended to its edit history.
+      val agreed = labelState(labelId)
+      agreed.agreeCount mustBe before.agreeCount + 1
+      agreed.severity mustBe before.severity
+      agreed.tags mustBe before.tags
+      labelHistoryCount(labelId) mustBe historyCount
 
       // The async writes that ride the same submission: interaction and environment rows.
-      eventually(timeout(Span(15, Seconds))) {
-        runDb(
-          sql"SELECT count(*) FROM validation_task_interaction WHERE mission_id = ${b.missionId}".as[Int]
-        ).head mustBe 1
-        runDb(
+      eventually(timeout(Span(15, Seconds)), interval(Span(250, Millis))) {
+        run(
           sql"SELECT count(*) FROM validation_task_environment WHERE mission_id = ${b.missionId}".as[Int]
         ).head mustBe 1
       }
+      if (interactionsLogged) {
+        eventually(timeout(Span(15, Seconds)), interval(Span(250, Millis))) {
+          run(
+            sql"SELECT count(*) FROM validation_task_interaction WHERE mission_id = ${b.missionId}".as[Int]
+          ).head mustBe 1
+        }
+      } else {
+        info("validation_task_interaction is absent from this schema, so its assertion is skipped.")
+      }
 
-      // The undo flow (#4653): the same endpoint with undone=true deletes the validation and restores the counts.
-      // Also this spec's cleanup.
-      val undone =
-        postValidationTask(session, taskSubmission(b, Seq(validationJson(label, b.missionId, "Agree", undone = true))))
+      // The undo flow (#4653): the same endpoint with undone=true deletes the validation and restores the counts. The
+      // client decrements its mission progress and reports it on the undo POST like any other submission, so the
+      // mission row must walk back with it.
+      val undone = postValidationTask(
+        session,
+        taskSubmission(
+          b,
+          Seq(validationJson(label, b.missionId, "Agree", undone = true)),
+          Some(missionProgressJson(b, 0))
+        )
+      )
       status(undone) mustBe OK
       validationRow(labelId, b.userId) mustBe None
-      agreeCount(labelId) mustBe agreeBefore
+      labelState(labelId) mustBe before
+      missionProgress(b.missionId) mustBe 0
     }
   }
 
   "POST /labelmap/validate" should {
     "write a validation under an auto-created labelmapValidation mission, and clear it on undo" in {
+      // The validate bootstrap is only a source of a real, well-formed label payload here; this endpoint mints its own
+      // mission, and the one the bootstrap created is deleted with the rest of the suite's rows in afterAll.
       val session = freshAnonSession()
       val b       = fetchValidateBootstrap(session)
-      if (b.labels.size < 2) cancel(s"Needs at least 2 labels in the validate batch; found ${b.labels.size}.")
-      val label       = b.labels(1)
-      val labelId     = (label \ "label_id").as[Int]
-      val agreeBefore = agreeCount(labelId)
+      val label   = b.labels.head
+      val labelId = (label \ "label_id").as[Int]
+      val before  = backupLabel(labelId)
 
       val posted = postLabelMapValidation(session, labelMapValidationJson(label, "Agree"))
       status(posted) mustBe OK
@@ -248,14 +396,14 @@ class ValidateSubmissionSpec extends PlaySpec with GuiceOneAppPerSuite with Subm
       row.get._1 mustBe "Agree"
       // This endpoint mints (or resumes) its own mission rather than using Validate's.
       val missionType =
-        runDb(sql"SELECT mission_type::text FROM mission WHERE mission_id = ${row.get._2}".as[String]).head
+        run(sql"SELECT mission_type::text FROM mission WHERE mission_id = ${row.get._2}".as[String]).head
       missionType mustBe "labelmapValidation"
-      agreeCount(labelId) mustBe agreeBefore + 1
+      labelState(labelId).agreeCount mustBe before.agreeCount + 1
 
       val undone = postLabelMapValidation(session, labelMapValidationJson(label, "Agree", undone = true))
       status(undone) mustBe OK
       validationRow(labelId, b.userId) mustBe None
-      agreeCount(labelId) mustBe agreeBefore
+      labelState(labelId) mustBe before
     }
   }
 }

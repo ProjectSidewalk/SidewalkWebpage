@@ -1,43 +1,25 @@
 package controllers.helper
 
-import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
-import play.api.db.slick.DatabaseConfigProvider
 import play.api.libs.json.{JsValue, Json}
-import play.api.mvc.Cookie
-import play.api.test.FakeRequest
-import play.api.test.Helpers._
-import slick.basic.DatabaseConfig
+import util.{AnonSession, RolledBackDb}
 
-import scala.concurrent.Await
 import scala.concurrent.duration._
+import scala.util.Try
 
 /**
- * Shared plumbing for the submission-endpoint specs (#4777): anonymous session minting, direct DB reads for row
- * assertions, and extraction of the JSON that the tool pages embed in their inline bootstrap script.
+ * Page-bootstrap plumbing for the submission-endpoint specs (#4777).
+ *
+ * Pulls in the shared DB access ([[RolledBackDb.run]]) and session minting ([[AnonSession.freshAnonSession]]), and
+ * adds what is specific to these specs: reading the JSON that the tool pages embed in their inline bootstrap script,
+ * and probing for tables the dev-DB dumps may not carry.
  */
-trait SubmissionSpecHelpers { this: PlaySpec with GuiceOneAppPerSuite =>
+trait SubmissionSpecHelpers extends RolledBackDb with AnonSession { this: PlaySpec with GuiceOneAppPerSuite =>
 
-  protected lazy val dbConfig: DatabaseConfig[MyPostgresProfile] =
-    app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
-
-  /** Runs a DB action and waits for the result — for arrange/assert steps, never for the endpoint under test. */
-  protected def runDb[T](action: DBIO[T]): T = Await.result(dbConfig.db.run(action), 30.seconds)
-
-  /**
-   * Mints a fresh anonymous session (a distinct persistent user per call) and returns its cookies. Cancels the test
-   * (not fails) when anonymous signup itself doesn't redirect: on an unseeded schema the DB can't mint a session,
-   * and the advisory CI job should skip these specs rather than go red.
-   */
-  protected def freshAnonSession(): Seq[Cookie] = {
-    val resp = route(app, FakeRequest(GET, "/anonSignUp?url=%2F")).get
-    if (status(resp) != SEE_OTHER) {
-      cancel(s"/anonSignUp responded ${status(resp)}; the connected DB can't mint an anonymous session.")
-    }
-    cookies(resp).toSeq
-  }
+  /** Arrange/assert queries only, never the endpoint under test; 30s is plenty for those. */
+  override protected def dbTimeout: FiniteDuration = 30.seconds
 
   /**
    * Extracts the JSON assigned to `lhs` in a page's inline bootstrap script — how the Explore and Validate views hand
@@ -46,12 +28,29 @@ trait SubmissionSpecHelpers { this: PlaySpec with GuiceOneAppPerSuite =>
    *
    * @param html Rendered page body to search.
    * @param lhs  The assignment target, e.g. `"mainParam.task"` or `"param.labelList"`.
-   * @return     The parsed right-hand side, or None when the page doesn't assign `lhs` (multi-line object literals
-   *             authored directly in the template are skipped by design).
+   * @return     The parsed right-hand side of the first assignment to `lhs` that holds JSON, or None when the page has
+   *             no such assignment. A matched line whose right-hand side isn't JSON (a trailing comment, a JS
+   *             expression) is passed over rather than raised, since the prefix match alone can't tell the two apart.
    */
   protected def embeddedPageJson(html: String, lhs: String): Option[JsValue] =
-    html.linesIterator.map(_.trim).collectFirst {
-      case line if line.startsWith(s"$lhs = ") && line.endsWith(";") =>
-        Json.parse(line.stripPrefix(s"$lhs = ").stripSuffix(";"))
-    }
+    html.linesIterator
+      .map(_.trim)
+      .collect {
+        case line if line.startsWith(s"$lhs = ") && line.endsWith(";") =>
+          Try(Json.parse(line.stripPrefix(s"$lhs = ").stripSuffix(";"))).toOption
+      }
+      .collectFirst { case Some(json) => json }
+
+  /**
+   * Whether a table exists in the connected schema.
+   *
+   * The two interaction logs (`audit_task_interaction`, `validation_task_interaction`) are omitted from the dev-DB
+   * dumps that seed local development, so a spec asserting on them has to check first — an absent relation raises a
+   * Postgres error rather than returning an empty result.
+   *
+   * @param tableName Unqualified table name, resolved against the connection's search_path.
+   * @return          True when the relation is visible to this connection.
+   */
+  protected def tableExists(tableName: String): Boolean =
+    run(sql"SELECT to_regclass($tableName) IS NOT NULL".as[Boolean]).head
 }

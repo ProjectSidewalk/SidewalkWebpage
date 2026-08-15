@@ -284,8 +284,12 @@ jobs:
       #   fan-out reads other schemas mid-rollout). Self-seeding in rolled-back transactions, meaningful even here.
       # - StatsApiSpec (#3871/#3981): the stats endpoints' snake_case output contract and total/breakdown
       #   reconciliation — the HTTP surface over the aggregate queries above. Shape-only, data-independent.
+      # - ExploreSubmissionSpec / ValidateSubmissionSpec (#4777): the submission write paths (POST /task,
+      #   /validationTask, /labelmap/validate). Their auth and malformed-payload cases run anywhere; the row-writing
+      #   cases CANCEL on this empty schema (no streets, no validatable labels), so they are listed here to run the
+      #   moment the job has a seeded DB — and so the cancel is visible rather than the suites silently not existing.
       - name: Run gating/auth tests (health dashboard + route auth posture + geodesic distances)
-        run: sbt 'set Test / parallelExecution := false' 'testOnly controllers.HealthDashboardSpec service.HealthServiceSpec controllers.RouteAuthPostureSpec models.street.GeodesicDistanceSpec service.ExploreTutorialRouteSpec controllers.MobileDetectionSpec service.PanoDataServiceSpec models.utils.ConfigTableVoidedArchiveSpec controllers.api.StatsApiSpec'
+        run: sbt 'set Test / parallelExecution := false' 'testOnly controllers.HealthDashboardSpec service.HealthServiceSpec controllers.RouteAuthPostureSpec models.street.GeodesicDistanceSpec service.ExploreTutorialRouteSpec controllers.MobileDetectionSpec service.PanoDataServiceSpec models.utils.ConfigTableVoidedArchiveSpec controllers.api.StatsApiSpec controllers.ExploreSubmissionSpec controllers.ValidateSubmissionSpec'
         env:
           DATABASE_URL: jdbc:postgresql://localhost:5432/sidewalk
           DATABASE_USER: sidewalk

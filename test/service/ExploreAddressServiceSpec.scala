@@ -16,17 +16,16 @@ import models.street.{
   StreetEdgeTable
 }
 import models.user.SidewalkUserWithRole
-import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
-import play.api.db.slick.DatabaseConfigProvider
 import play.api.i18n.{Lang, MessagesApi, MessagesImpl}
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
 import play.silhouette.api.util.PasswordInfo
 import slick.dbio.DBIO
+import util.RolledBackDb
 
 import java.time.OffsetDateTime
 import scala.concurrent.Await
@@ -57,21 +56,21 @@ import scala.concurrent.duration._
  */
 // BeforeAndAfterAll must be mixed in BEFORE GuiceOneAppPerSuite: linearization then runs afterAll inside the running
 // app, rather than after the app (and its DB pool) has already been stopped.
-class ExploreAddressServiceSpec extends PlaySpec with org.scalatest.BeforeAndAfterAll with GuiceOneAppPerSuite {
+class ExploreAddressServiceSpec
+    extends PlaySpec
+    with org.scalatest.BeforeAndAfterAll
+    with RolledBackDb
+    with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
-  private val exploreService  = app.injector.instanceOf[ExploreService]
-  private val authService     = app.injector.instanceOf[AuthenticationService]
-  private val streetEdgeTable = app.injector.instanceOf[StreetEdgeTable]
-  private val auditTaskTable  = app.injector.instanceOf[AuditTaskTable]
-  private val trophyTable     = app.injector.instanceOf[TrophyTable]
-  private val userService     = app.injector.instanceOf[UserService]
-  // Keep the DatabaseConfig as a stable val and call .db.run inline; binding .db to its own val would infer a
-  // path-dependent existential type that needs -language:existentials.
-  private val dbConfig                   = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
-  private def run[T](action: DBIO[T]): T = Await.result(dbConfig.db.run(action), 60.seconds)
+  private val exploreService                             = app.injector.instanceOf[ExploreService]
+  private val authService                                = app.injector.instanceOf[AuthenticationService]
+  private val streetEdgeTable                            = app.injector.instanceOf[StreetEdgeTable]
+  private val auditTaskTable                             = app.injector.instanceOf[AuditTaskTable]
+  private val trophyTable                                = app.injector.instanceOf[TrophyTable]
+  private val userService                                = app.injector.instanceOf[UserService]
   private def await[T](f: scala.concurrent.Future[T]): T = Await.result(f, 60.seconds)
 
   private val missions         = TableQuery[MissionTableDef]
