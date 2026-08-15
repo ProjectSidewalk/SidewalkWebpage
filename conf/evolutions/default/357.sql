@@ -35,11 +35,11 @@ WHERE thresholds @> '[{"label_type": "Problem"}]';
 DELETE FROM label_type WHERE label_type = 'Problem';
 
 # --- !Downs
--- Restore the lookup row, id and description verbatim from 13.sql. The deleted clusters are not restored: they were
--- derived data, and re-running clustering for a region regenerates everything this evolution dropped. The thresholds
--- entry comes back with the value the script used (0.01, matching every non-curb-ramp type).
-INSERT INTO label_type (label_type_id, label_type, description)
-VALUES (8, 'Problem', 'Composite type: represents cluster of NoCurbRamp, Obstacle, and/or SurfaceProblem labels');
+-- Restore the lookup row at its original id. label_type carries only the id and the name, so that is the whole row.
+-- The deleted clusters are not restored: they are derived data, and re-running clustering for a region regenerates
+-- everything this evolution dropped. The thresholds entry comes back with the value the script uses (0.01, matching
+-- every non-curb-ramp type).
+INSERT INTO label_type (label_type_id, label_type) VALUES (8, 'Problem');
 
 UPDATE clustering_session
 SET thresholds = thresholds || '[{"label_type": "Problem", "threshold": 0.01}]'::jsonb
