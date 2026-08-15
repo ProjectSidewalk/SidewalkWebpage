@@ -877,7 +877,9 @@ class UserStatTable @Inject() (
    * Per-day activity counts for a user (US/Pacific calendar days), across labeling, exploring, and validating.
    *
    * A day counts if the user placed a (non-deleted, non-tutorial) label, completed an audit task, or made a
-   * validation on it. Returned as (ISO date string, count) so the streak/heatmap math is done in Scala.
+   * validation on it -- including validations voided by the #4842 repair (evolution 355): the verdicts are dead, but
+   * the work happened, so the archive counts as activity. Returned as (ISO date string, count) so the streak/heatmap
+   * math is done in Scala.
    *
    * @param userId The user whose activity to summarize.
    * @return       One row per active day, ascending by date.
@@ -896,6 +898,10 @@ class UserStatTable @Inject() (
           SELECT (label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date
           FROM label_validation
           WHERE label_validation.user_id = $userId AND label_validation.end_timestamp IS NOT NULL
+          UNION ALL
+          SELECT (voided_label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date
+          FROM voided_label_validation
+          WHERE voided_label_validation.user_id = $userId
       )
       SELECT to_char(d, 'YYYY-MM-DD') AS day, COUNT(*)::int AS c
       FROM activity
@@ -1015,14 +1021,19 @@ class UserStatTable @Inject() (
 
     // Add in the task completion logic.
     val auditTaskCompletedSql  = if (taskCompletedOnly) "audit_task.completed = TRUE" else "TRUE"
-    val validationCompletedSql = if (taskCompletedOnly) "label_validation.end_timestamp IS NOT NULL" else "TRUE"
+    val validationCompletedSql = if (taskCompletedOnly) "all_validations.end_timestamp IS NOT NULL" else "TRUE"
 
     sql"""
       SELECT COUNT(DISTINCT(users.user_id))
       FROM (
           SELECT DISTINCT(mission.user_id)
           FROM mission
-          LEFT JOIN label_validation ON mission.mission_id = label_validation.mission_id
+          LEFT JOIN (
+              -- Votes voided by the #4842 repair still count as participation.
+              SELECT mission_id, end_timestamp FROM label_validation
+              UNION ALL
+              SELECT mission_id, end_timestamp FROM voided_label_validation
+          ) AS all_validations ON mission.mission_id = all_validations.mission_id
           WHERE mission.mission_type IN ('validation', 'labelmapValidation')
               AND #$lblValidationTimeIntervalSql
               AND #$validationCompletedSql
@@ -1075,7 +1086,7 @@ class UserStatTable @Inject() (
              COALESCE(label_counts.labels_validated_correct, 0) AS labels_validated_correct,
              COALESCE(label_counts.labels_validated_incorrect, 0) AS labels_validated_incorrect,
              COALESCE(label_counts.labels_not_validated, 0) AS labels_not_validated,
-             COALESCE(validations.validations_given, 0) AS validations_given,
+             COALESCE(validations.validations_given, 0) + COALESCE(voided_validations.cnt, 0) AS validations_given,
              COALESCE(validations.dissenting_validations_given, 0) AS dissenting_validations_given,
              COALESCE(validations.agree_validations_given, 0) AS agree_validations_given,
              COALESCE(validations.disagree_validations_given, 0) AS disagree_validations_given,
@@ -1132,6 +1143,13 @@ class UserStatTable @Inject() (
           INNER JOIN label ON label_validation.label_id = label.label_id
           GROUP BY label_validation.user_id
       ) AS validations ON user_stat.user_id = validations.user_id
+      -- Votes voided by the #4842 repair: work credit toward validations_given only; the verdict splits
+      -- (agree/disagree/unsure/dissenting) read live votes, so validations_given can exceed their sum.
+      LEFT JOIN (
+          SELECT voided_label_validation.user_id, COUNT(*) AS cnt
+          FROM voided_label_validation
+          GROUP BY voided_label_validation.user_id
+      ) AS voided_validations ON user_stat.user_id = voided_validations.user_id
       -- Label and validation counts
       LEFT JOIN (
           SELECT audit_task.user_id,

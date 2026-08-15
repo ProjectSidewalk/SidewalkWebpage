@@ -301,7 +301,7 @@ util.pano.centeredPovToCanvasCoord2d = function (centeredPov, newPov, canvasWidt
   // In the 2D environment, the FOV follows the documented curve.
   const hfov = 180 / Math.pow(2, newPov.zoom);
   const vfov = hfov * (canvasHeight / canvasWidth);
-  const dh = PanoMarker.wrapHeading(centeredPov.heading - newPov.heading);
+  const dh = util.pano.wrapHeading(centeredPov.heading - newPov.heading);
   const dv = centeredPov.pitch - newPov.pitch;
 
   // Use the calculated pixel offsets. Return null if not in the viewport.

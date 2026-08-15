@@ -90,6 +90,70 @@ object PanoDataService {
   }
 
   /**
+   * How far a submitted label record may miss its own pano_x/pano_y before the submission guard logs it, in degrees
+   * of angular disagreement (0.18 deg is ~8 px on a 16384-px pano). Above integer-rounding noise (~0.02 deg) and the
+   * few-hundredths-of-a-degree jitter of Google's metadata, below anything a user could notice on screen.
+   */
+  val RECORD_MISMATCH_TOLERANCE_DEG: Double = 0.18
+
+  /**
+   * The POV at which a canvas click would sit at the viewport's center: the forward projection the Explore client
+   * runs when a label is placed.
+   *
+   * Port of `util.pano.canvasCoordToCenteredPov` (public/js/common/pano-viewer/src/panoUtilities.js) — the viewport
+   * is modeled as a rectilinear camera aimed at (heading, pitch) with focal length `(canvasWidth/2) / tan(fov/2)`,
+   * the click's canvas offset is projected through it, and the result is the label's own direction. Together with
+   * `calculatePanoXYFromPov` this recomputes a label's `pano_x`/`pano_y` from its stored viewport record, which is
+   * how the submission guard detects a record that does not reproduce its own coordinate (issue #4842; the
+   * off-target-markers study in sidewalk-panorama-tools reports/2026-08-10-off-target-markers-validate.md).
+   *
+   * @param viewport Viewport POV when the click happened (heading/pitch in degrees; zoom sets the fov).
+   * @param canvasX  Click x on the logical labeling canvas (720x480, origin top-left).
+   * @param canvasY  Click y on the logical labeling canvas.
+   * @return         The label's own POV: heading in [0, 360), pitch in [-90, 90], zoom carried through.
+   */
+  def calculatePovIfCentered(viewport: POV, canvasX: Double, canvasY: Double): POV = {
+    val fov = math.toRadians(getFov(viewport.zoom))
+    val h0  = math.toRadians(viewport.heading)
+    val p0  = math.toRadians(viewport.pitch)
+    val f   = 0.5 * LabelPointTable.canvasWidth / math.tan(0.5 * fov)
+    val du  = canvasX - LabelPointTable.canvasWidth / 2.0
+    val dv  = LabelPointTable.canvasHeight / 2.0 - canvasY
+    // The sign factor is the JS's beyond-vertical guard; it never fires for real viewer pitch but is kept verbatim.
+    val sg = if (math.cos(p0) >= 0) 1.0 else -1.0
+
+    val x = f * math.cos(p0) * math.sin(h0) + du * sg * math.cos(h0) - dv * math.sin(p0) * math.sin(h0)
+    val y = f * math.cos(p0) * math.cos(h0) - du * sg * math.sin(h0) - dv * math.sin(p0) * math.cos(h0)
+    val z = f * math.sin(p0) + dv * math.cos(p0)
+    val r = math.sqrt(x * x + y * y + z * z)
+
+    val heading = (math.toDegrees(math.atan2(x, y)) % 360 + 360) % 360
+    POV(heading, math.toDegrees(math.asin(z / r)), viewport.zoom)
+  }
+
+  /**
+   * The pano-pixel coordinate a POV points at, on a heading-centred equirectangular pano: the inverse of
+   * `calculatePovFromPanoXY` and the second half of the client's `pano_x`/`pano_y` computation.
+   *
+   * Port of `util.pano.povToPanoCoord` (public/js/common/pano-viewer/src/panoUtilities.js) with the client's
+   * round-then-wrap: column zero sits at bearing `cameraHeading - 180`, and the y mapping is linear in elevation.
+   *
+   * @param pov           The direction to locate (heading wrt true north, pitch positive above the horizon).
+   * @param cameraHeading Bearing of the pano's center column, degrees wrt true north.
+   * @param panoWidth     Width of the full pano image in pixels.
+   * @param panoHeight    Height of the full pano image in pixels.
+   * @return              (pano_x, pano_y) integer pixels; x wrapped into [0, panoWidth).
+   */
+  def calculatePanoXYFromPov(pov: POV, cameraHeading: Double, panoWidth: Int, panoHeight: Int): (Int, Int) = {
+    val headingWrapped   = (pov.heading           % 360 + 360) % 360
+    val headingPixelZero = ((cameraHeading + 180) % 360 + 360) % 360
+    val panoX = (((panoWidth + math.round(panoWidth * (headingWrapped - headingPixelZero) / 360.0)) % panoWidth)
+      + panoWidth) % panoWidth
+    val panoY = panoHeight / 2 - math.round(panoHeight / 2.0 * pov.pitch / 90.0)
+    (panoX.toInt, panoY.toInt)
+  }
+
+  /**
    * Parameters of the label distance estimator ("approximation3"): a saturating-cotangent blend on a single
    * camera-to-ground height.
    *

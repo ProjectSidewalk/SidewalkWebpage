@@ -104,6 +104,7 @@ class LabelValidationTable @Inject() (
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   val validations          = TableQuery[LabelValidationTableDef]
+  val voidedValidations    = TableQuery[VoidedLabelValidationTableDef]
   val users                = TableQuery[SidewalkUserTableDef]
   val userRoles            = TableQuery[UserRoleTableDef]
   val roleTable            = TableQuery[RoleTableDef]
@@ -220,19 +221,45 @@ class LabelValidationTable @Inject() (
   }
 
   /**
-   * @return The total number of validations.
+   * The total number of validations performed, as work credit: votes voided by the #4842 repair (evolution 355) live
+   * in the archive table, but the work happened, so they count here. Verdict-derived stats must not use this.
+   *
+   * @return The total number of validations performed, including archived voided ones.
    */
-  def countValidations: DBIO[Int] = validations.length.result
+  def countValidations: DBIO[Int] = {
+    for {
+      liveCount     <- validations.length.result
+      archivedCount <- voidedValidations.length.result
+    } yield liveCount + archivedCount
+  }
 
   /**
-   * @return The total number of human validations (i.e., excluding AI validations).
+   * The total number of human validations performed (i.e., excluding AI validations), as work credit. The voided-vote
+   * archive counts in full: the #4842 repair voids human votes only, so every archived vote is human. That
+   * human-ness is checked at repair time and not re-derived here — if an archived vote's caster were later granted
+   * the AI role, this count would still (correctly) treat their pre-role-change vote as human work.
+   *
+   * @return The total number of human validations performed, including archived voided ones.
    */
-  def countHumanValidations: DBIO[Int] = humanValidations.length.result
+  def countHumanValidations: DBIO[Int] = {
+    for {
+      liveCount     <- humanValidations.length.result
+      archivedCount <- voidedValidations.length.result
+    } yield liveCount + archivedCount
+  }
 
   /**
-   * @return The number of validations performed by this user.
+   * The number of validations performed by this user, as work credit: votes voided by the #4842 repair (evolution
+   * 354) were deleted from label_validation, but the work happened, so the archive counts here (badges, dashboards).
+   *
+   * @return The number of validations performed by this user, including archived voided ones.
    */
-  def countValidations(userId: String): DBIO[Int] = validations.filter(_.userId === userId).length.result
+  def countValidations(userId: String): DBIO[Int] = {
+    for {
+      liveCount     <- validations.filter(_.userId === userId).length.result
+      archivedCount <- voidedValidations.filter(_.userId === userId).length.result
+    } yield liveCount + archivedCount
+  }
 
   /**
    * Count validations of each label type, result, and human/AI in the time range. Includes counts for all subgroups.

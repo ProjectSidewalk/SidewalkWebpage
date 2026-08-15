@@ -614,6 +614,8 @@ class ExploreServiceImpl @Inject() (
       _lng <- point.lng
     } yield gf.createPoint(new Coordinate(_lng, _lat))
 
+    warnIfRecordStale(label, userId)
+
     for {
       // Use label's lat/lng to determine street_edge_id. If lat/lng isn't defined, use audit_task's as backup.
       calculatedStreetEdgeId: Int <- (point.lat, point.lng) match {
@@ -654,6 +656,57 @@ class ExploreServiceImpl @Inject() (
     } yield {
       NewLabelData(newLabelId, label.temporaryLabelId, LabelTypeEnum.byName(label.labelType), label.panoSource,
         label.tutorial, timeCreated)
+    }
+  }
+
+  /**
+   * Record-consistency tripwire (#4842): warn if a label's viewport record fails to reproduce its own pano_x/pano_y.
+   *
+   * The client derives pano_x/pano_y from this same record at click time, so a record that replays somewhere else
+   * means a field went stale between click and submission -- the client-side race that silently corrupted records
+   * for 18 months (2023-03 -> 2024-09) and that no test can reproduce, because it only exists in live client timing.
+   * This is production telemetry, not validation: log-only by design, because a false positive must never cost a
+   * contributor their label. Tutorial panos carry fabricated metadata and are skipped, as are submissions without a
+   * pano metadata block. AI labels pass through: their records are computed by the inverse of this replay, so a
+   * warning from them would flag drift between the two projections.
+   *
+   * The log line's `Label record mismatch (#4842):` prefix is a grep contract: a tripwire is only worth having if
+   * something watches for it, so the sidewalk-panorama-tools log analyzer must track that exact signature (a rollout
+   * prerequisite of the #4842 repair — "quiet for N months" is unmeasurable otherwise, see sunset review #4872).
+   * Changing the prefix means updating the analyzer in the same change.
+   *
+   * @param label  The label submission to check, including its pano metadata block.
+   * @param userId The submitting user, included in the log line for triage.
+   */
+  private def warnIfRecordStale(label: LabelSubmission, userId: String): Unit = {
+    val point: LabelPointSubmission = label.point
+    if (!label.tutorial) {
+      for {
+        panoData   <- label.pano
+        width      <- panoData.width
+        height     <- panoData.height
+        camHeading <- panoData.cameraHeading
+        if width > 0 && height > 0
+      } {
+        val labelPov =
+          PanoDataService.calculatePovIfCentered(
+            POV(point.heading, point.pitch, point.zoom),
+            point.canvasX.toDouble,
+            point.canvasY.toDouble
+          )
+        val (expectedX, expectedY) = PanoDataService.calculatePanoXYFromPov(labelPov, camHeading, width, height)
+        val dxPx                   = { val d = math.abs(point.panoX - expectedX); math.min(d, width - d) }
+        val mismatchDeg            = math.hypot(dxPx * 360.0 / width, (point.panoY - expectedY) * 180.0 / height)
+        if (mismatchDeg > PanoDataService.RECORD_MISMATCH_TOLERANCE_DEG) {
+          logger.warn(
+            s"Label record mismatch (#4842): user=$userId tempLabelId=${label.temporaryLabelId} " +
+              s"pano=${label.panoId} stored pano_x/y=(${point.panoX}, ${point.panoY}) " +
+              s"record replays to=($expectedX, $expectedY) mismatch=${f"$mismatchDeg%.3f"}deg " +
+              s"record=(h=${point.heading}, p=${point.pitch}, z=${point.zoom}, " +
+              s"canvas=${point.canvasX},${point.canvasY})"
+          )
+        }
+      }
     }
   }
 
