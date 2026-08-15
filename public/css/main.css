@@ -208,9 +208,31 @@
 
 
 /* General styles */
+
+/* Raleway's three weights, as weights of one family — which is what lets `font-weight: 700` on --font-accent pick
+   Raleway Bold. A weight the family doesn't declare is drawn by smearing the regular outlines instead, so the
+   --text-h1-bold / --text-h2-bold headings are the ones this is here for.
+   The raleway-bold and raleway-extrabold families below name the same two files, for the older rules that select a
+   weight by family name; prefer the weight on this family in anything new. */
 @font-face {
   font-family: raleway;
   src: url("../fonts/Raleway/Raleway-Regular.ttf");
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: raleway;
+  src: url("../fonts/Raleway/Raleway-Bold.ttf");
+  font-weight: 700;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: raleway;
+  src: url("../fonts/Raleway/Raleway-ExtraBold.ttf");
+  font-weight: 800;
+  font-style: normal;
 }
 
 @font-face {

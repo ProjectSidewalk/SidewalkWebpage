@@ -118,6 +118,52 @@ describe('the design system ships the faces its font tokens name', () => {
         expect(declaredFamilies).toContain('jetbrains mono');
     });
 
+    /**
+     * Every weight each family declares a face for. A face with a range (`font-weight: 200 1000`, a variable font)
+     * covers all of it; a bare weight covers only itself; an omitted descriptor means normal, i.e. 400.
+     * @returns {Map<string, Array<[number, number]>>} Family (lowercased) to the weight ranges it declares.
+     */
+    function declaredWeights() {
+        const KEYWORDS = { normal: 400, bold: 700 };
+        const byFamily = new Map();
+        for (const file of STYLESHEETS) {
+            for (const [, body] of read(file).matchAll(/@font-face\s*\{([^}]*)\}/g)) {
+                const family = /font-family:\s*(['"]?)([^;'"]+)\1\s*;/.exec(body)?.[2].trim().toLowerCase();
+                if (!family) continue;
+                const spec = (/font-weight:\s*([^;]+);/.exec(body)?.[1] ?? 'normal').trim();
+                const parts = spec.split(/\s+/).map((p) => KEYWORDS[p] ?? Number(p));
+                const range = [parts[0], parts[1] ?? parts[0]];
+                if (!byFamily.has(family)) byFamily.set(family, []);
+                byFamily.get(family).push(range);
+            }
+        }
+        return byFamily;
+    }
+
+    test('no type token asks for a weight its family would have to fake', () => {
+        // A weight with no face behind it is drawn by smearing the nearest one. It is the failure that looks like
+        // nothing at all — the heading is still bold, just not the bold the type designer drew, and a little wider
+        // or narrower than the real thing.
+        const weights = declaredWeights();
+        const tokenFamily = new Map(tokenFamilies.map((t) => [t.token, t.family]));
+        const faked = [];
+
+        const textTokens = STYLESHEETS.flatMap((file) => Array.from(
+            read(file).matchAll(/^\s*(--text-[\w-]+):\s*(\d{2,3})\s+.*?var\((--font-[\w-]+)\)/gm),
+        ).map((m) => ({ token: m[1], weight: Number(m[2]), fontToken: m[3] })));
+
+        expect(textTokens.length).toBeGreaterThan(10); // The tokens were found, so this isn't passing vacuously.
+
+        for (const { token, weight, fontToken } of textTokens) {
+            const family = tokenFamily.get(fontToken);
+            const ranges = weights.get(family) ?? [];
+            if (!ranges.some(([lo, hi]) => weight >= lo && weight <= hi)) {
+                faked.push(`${token}: weight ${weight} of "${family}" (declared: ${JSON.stringify(ranges)})`);
+            }
+        }
+        expect(faked).toEqual([]);
+    });
+
     test('each self-hosted family ships the license it is redistributed under', () => {
         // Inter and JetBrains Mono are SIL OFL 1.1, which requires the license to travel with the font files.
         for (const family of ['Inter', 'JetBrainsMono']) {
