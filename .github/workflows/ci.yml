@@ -253,8 +253,9 @@ jobs:
           ENV_TYPE: local
           SIDEWALK_IMAGES_DIR: .crops
 
-      # The same minimal city the e2e-smoke job seeds (one region holding a non-tutorial street), so the write-path
-      # specs below exercise the submission endpoints here instead of cancelling on unassignable data. Ordering is
+      # The same minimal city the e2e-smoke job seeds (one region holding a non-tutorial street). It is what lets the
+      # write-path specs below exercise the submission endpoints instead of cancelling on unassignable data, and it
+      # un-cancels a further nine assertions across the route-walk and geodesic-cache suites too. Ordering is
       # load-bearing in both directions: it must follow the PublicApiSpec step, whose app boot is what brings the
       # template schema up to evolution HEAD (the seed writes street_edge.status, which the pre-evolution template
       # lacks), and precede the specs that read it. Shared with test/e2e rather than duplicated — one definition of
@@ -276,12 +277,12 @@ jobs:
       #   report as CANCELED against this job's empty city schema rather than passing vacuously.
       # - GeodesicDistanceSpec (#4641): street lengths must be geodesic, not projected to a fixed CRS. Its synthetic-
       #   fixture tests (analytic WGS84 arc lengths, the #4774 nightly-refresh regression) seed every row they read,
-      #   so they are meaningful even here — a reintroduced projection fails by double digits. Its cache-freshness
-      #   comparisons need real data and CANCEL on this empty schema, same as RouteAuthPostureSpec's shape checks.
+      #   so they are meaningful even here — a reintroduced projection fails by double digits. The street and region
+      #   the seed above adds carry most of its cache-freshness comparisons too; the two that need a labelled user or
+      #   a built route still CANCEL.
       # - ExploreTutorialRouteSpec (#4816): a resumable route walk must not surface while the session is the tutorial.
-      #   It seeds its own users and route walks, but hangs them on an existing street/region and needs a configured
-      #   tutorial street, so all four tests CANCEL on this empty schema — listed here so they run the moment the job
-      #   has a seeded DB, and so the cancel is visible rather than the suite silently not existing.
+      #   It seeds its own users and route walks but hangs them on an existing street/region, which the seed above
+      #   supplies, so all four tests run here.
       # - MobileDetectionSpec (#4887): the layout must stamp ControllerUtils.isMobile's verdict on
       #   <html data-mobile-device>, the single mobile definition util.isMobile() reads back; also pins the landing
       #   page's navbar-padding opt-out to request.path. Fetches /signIn and the landing page, which render without
