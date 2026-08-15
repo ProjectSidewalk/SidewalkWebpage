@@ -1,12 +1,11 @@
 /**
  * Tests for public/js/common/Confetti.js — the burst that celebrates a finished mobile Validate mission (#4886).
  *
- * Two things about where it fires make it easy to get wrong. It fires on a page with no viewport meta, so the
- * layout it covers is ~980 CSS px wide and a couple of thousand tall rather than a phone's own 390x844; at
- * devicePixelRatio 3 a full-screen canvas of that asks for ~19M device pixels, past the ~16.7M iOS Safari allows.
- * Over the cap `getContext` still succeeds and every draw is a silent no-op, so the failure is an invisible
- * celebration on exactly the phones this targets — nothing throws and nothing logs. And it draws in brand colors
- * that live in the design tokens, which a color frozen into the source would drift away from.
+ * Two things about it are easy to get wrong. It covers the whole viewport, and a large one on a high-density
+ * display asks for more device pixels than a canvas is allowed: iOS Safari refuses past ~16.7M, and over that
+ * `getContext` still succeeds while every draw is a silent no-op — so the failure is an invisible celebration,
+ * with nothing thrown and nothing logged. And it draws in brand colors that live in the design tokens, which a
+ * color frozen into the source would drift away from.
  *
  * Confetti.js declares a top-level class, so the tests evaluate the source rather than using loadGlobalScript.
  */
@@ -24,8 +23,9 @@ const Confetti = new Function(`${SOURCE}; return Confetti;`)();
 // has to be a deliberate one rather than something these tests follow silently.
 const IOS_CANVAS_AREA_CAP = 4096 * 4096;
 
-// A 390x844pt iPhone laying out a page that ships no viewport meta, which is what mobile Validate is.
-const LEGACY_LAYOUT = {width: 980, height: 2121};
+// A desktop window big enough that the full device pixel ratio would blow the budget: 2560x1440 at ratio 3 is
+// ~33M device pixels, twice what is allowed.
+const OVERSIZED_LAYOUT = {width: 2560, height: 1440};
 
 describe('Confetti.backingRatio', () => {
     test('an unconstrained canvas is drawn at the display’s full device pixel ratio', () => {
@@ -33,20 +33,20 @@ describe('Confetti.backingRatio', () => {
         expect(Confetti.backingRatio(390, 844, 1)).toBe(1);
     });
 
-    test('the legacy-viewport canvas that broke on DPR-3 phones now fits the cap', () => {
-        const ratio = Confetti.backingRatio(LEGACY_LAYOUT.width, LEGACY_LAYOUT.height, 3);
+    test('a canvas that would blow the budget is drawn at a ratio that fits it', () => {
+        const ratio = Confetti.backingRatio(OVERSIZED_LAYOUT.width, OVERSIZED_LAYOUT.height, 3);
 
         expect(ratio).toBeLessThan(3);
-        const area = (LEGACY_LAYOUT.width * ratio) * (LEGACY_LAYOUT.height * ratio);
+        const area = (OVERSIZED_LAYOUT.width * ratio) * (OVERSIZED_LAYOUT.height * ratio);
         expect(area).toBeLessThanOrEqual(IOS_CANVAS_AREA_CAP + 1e-6); // The cap, to within a float's last bit.
     });
 
-    test('the backing store stays inside the cap across every plausible phone and ratio', () => {
-        for (const height of [1400, 1800, 2121, 2400, 3000]) {
+    test('the backing store stays inside the cap across every plausible viewport and ratio', () => {
+        for (const [width, height] of [[390, 844], [430, 932], [768, 1024], [1440, 900], [2560, 1440]]) {
             for (const deviceRatio of [1, 1.5, 2, 2.625, 3, 4]) {
-                const ratio = Confetti.backingRatio(980, height, deviceRatio);
+                const ratio = Confetti.backingRatio(width, height, deviceRatio);
                 expect(ratio).toBeLessThanOrEqual(deviceRatio);
-                expect((980 * ratio) * (height * ratio)).toBeLessThanOrEqual(IOS_CANVAS_AREA_CAP + 1e-6);
+                expect((width * ratio) * (height * ratio)).toBeLessThanOrEqual(IOS_CANVAS_AREA_CAP + 1e-6);
             }
         }
     });
@@ -62,7 +62,7 @@ describe('Confetti.backingRatio', () => {
 
     test('a canvas with no laid-out size falls back to the device ratio rather than dividing by zero', () => {
         expect(Confetti.backingRatio(0, 0, 2)).toBe(2);
-        expect(Confetti.backingRatio(980, 0, 3)).toBe(3);
+        expect(Confetti.backingRatio(390, 0, 3)).toBe(3);
     });
 });
 
@@ -75,9 +75,9 @@ describe('Confetti.burst', () => {
         window.matchMedia = jest.fn((query) => ({
             matches: query.includes('prefers-reduced-motion: reduce') ? reduceMotion : !reduceMotion,
         }));
-        // jsdom lays nothing out, so the canvas reports the legacy viewport the way a real phone would.
-        jest.spyOn(HTMLCanvasElement.prototype, 'offsetWidth', 'get').mockReturnValue(LEGACY_LAYOUT.width);
-        jest.spyOn(HTMLCanvasElement.prototype, 'offsetHeight', 'get').mockReturnValue(LEGACY_LAYOUT.height);
+        // jsdom lays nothing out, so the canvas is told what it covers. The default is the case the cap bites on.
+        jest.spyOn(HTMLCanvasElement.prototype, 'offsetWidth', 'get').mockReturnValue(OVERSIZED_LAYOUT.width);
+        jest.spyOn(HTMLCanvasElement.prototype, 'offsetHeight', 'get').mockReturnValue(OVERSIZED_LAYOUT.height);
         ctx = {
             scale: jest.fn(), clearRect: jest.fn(), save: jest.fn(), restore: jest.fn(),
             translate: jest.fn(), rotate: jest.fn(), fillRect: jest.fn(),
@@ -115,11 +115,11 @@ describe('Confetti.burst', () => {
         expect(ctx.scale).toHaveBeenCalledTimes(1);
         // The drawing is scaled by whatever ratio the backing store was sized at, or the pieces land off-canvas.
         // (The canvas's own width is that ratio rounded to whole device pixels, so compare against the ratio.)
-        const capped = Confetti.backingRatio(LEGACY_LAYOUT.width, LEGACY_LAYOUT.height, 3);
+        const capped = Confetti.backingRatio(OVERSIZED_LAYOUT.width, OVERSIZED_LAYOUT.height, 3);
         const [scaleX, scaleY] = ctx.scale.mock.calls[0];
         expect(scaleX).toBe(capped);
         expect(scaleY).toBe(scaleX);
-        expect(canvas().width).toBe(Math.floor(LEGACY_LAYOUT.width * capped));
+        expect(canvas().width).toBe(Math.floor(OVERSIZED_LAYOUT.width * capped));
     });
 
     test('a display that fits inside the cap keeps its full ratio', () => {

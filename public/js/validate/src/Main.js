@@ -89,11 +89,6 @@ class Main {
     svv.ui.undoValidation = {};
     svv.ui.undoValidation.undoButton = $('#validate-undo-button');
 
-    svv.ui.modalLandscape = {};
-    svv.ui.modalLandscape.holder = $('#modal-landscape-holder');
-    svv.ui.modalLandscape.foreground = $('#modal-landscape-foreground');
-    svv.ui.modalLandscape.background = $('#modal-landscape-background');
-
     svv.ui.modalMission = {};
     svv.ui.modalMission.holder = $('#modal-mission-holder');
     svv.ui.modalMission.foreground = $('#modal-mission-foreground');
@@ -302,7 +297,6 @@ class Main {
     }
 
     svv.modalMissionComplete = new ModalMissionComplete(svv.ui.modalMissionComplete, svv.user);
-    svv.modalLandscape = new ModalLandscape(svv.ui.modalLandscape);
 
     // Logs when the page's focus changes.
     function logPageFocus() {

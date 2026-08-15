@@ -69,26 +69,6 @@ body {
   font-size: min(5vw, 20px);
 }
 
-#modal-landscape-foreground {
-  top: 0;
-  height: 100%;
-  width: 100%;
-  font: var(--text-h3-bold);
-  line-height: 125%;
-}
-
-#modal-landscape-description {
-  font: var(--text-body-regular);
-}
-
-#modal-landscape-holder {
-  visibility: hidden;
-}
-
-#ps-logo-landscape {
-  width: min(50vw, 140px);
-}
-
 /* ---- Mission start + mission complete ---------------------------------------------------------------------------
    Both screens cover the page, and both scroll: a long briefing (or a verbose translation) is routine, and a short
    landscape viewport makes it the common case rather than the exception. */

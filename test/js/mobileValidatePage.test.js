@@ -1,112 +1,33 @@
 /**
- * Tests for the two page-level behaviors in public/js/mobileValidate.js, plus the measurement they rest on
- * (util.legacyViewportScale in public/js/common/utilities.js).
+ * Tests for the page-level behavior in public/js/mobileValidate.js.
  *
- * mobile Validate ships no viewport meta (#4875 Phase 3 removes that; SeoSpec pins its absence today), so a device
- * lays the page out at a legacy ~980px viewport and shrinks the result to fit. Two consequences are tested here:
- *
- *   1. The mission screens are authored in real design-system units and scaled back up to cancel that shrink, so
- *      the factor has to be measured per device. Every device the server's mobile UA regex routes here — phones
- *      and, deliberately, tablets — is shrunk by a different amount, and a single number baked into the stylesheet
- *      rendered tablets at roughly double their intended size and small phones under it.
- *   2. The page suppresses double-tap zoom by cancelling any touchstart that follows another within half a second.
- *      Cancelling a touchstart also cancels that touch's scrolling and its click, which was harmless while the page
- *      had no scroll surfaces — the mission briefing and its examples carousel are two, and their way forward is a
- *      tap, so a second quick flick or tap there must be left alone.
+ * The page suppresses double-tap zoom by cancelling any touchstart that follows another within half a second.
+ * Cancelling a touchstart also cancels that touch's scrolling and its click, which is harmless over the panorama but
+ * not over a scroll surface — the mission briefing and its examples carousel are two, and their way forward is a tap,
+ * so a second quick flick or tap there must be left alone.
  */
 
 const fs = require('fs');
 const path = require('path');
 
-const UTILITIES_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/common/utilities.js'), 'utf8'
-);
 const MOBILE_VALIDATE_SRC = fs.readFileSync(
     path.resolve(__dirname, '..', '..', 'public/js/mobileValidate.js'), 'utf8'
 );
 
-/** The legacy viewport width a browser lays a page out at when it is given no viewport meta. */
-const LEGACY_VIEWPORT = 980;
-
-/** Loads utilities.js into jsdom, the way the other utilities suites do. */
-function loadUtil() {
-    // utilities.js builds a Bowser parser at load time; nothing under test consults it.
-    window.bowser = {getParser: () => ({getBrowserName: () => 'Safari', getBrowserVersion: () => '1',
-        getOSName: () => 'iOS', getPlatformType: () => 'mobile'})};
-    window.eval(UTILITIES_SRC);
-    return window.util;
-}
-
-describe('util.legacyViewportScale', () => {
-    let util;
-
-    beforeEach(() => {
-        util = loadUtil();
-    });
-
-    test('a 390pt phone gets the ~2.5x the stylesheet assumed by default', () => {
-        expect(util.legacyViewportScale(LEGACY_VIEWPORT, 390)).toBeCloseTo(2.513, 3);
-        expect(util.DEFAULT_LEGACY_VIEWPORT_SCALE).toBe(2.5);
-    });
-
-    test('a tablet, which the server also routes to this page, gets about half that', () => {
-        // A 768pt iPad rendered at the phone's 2.5 would draw ~49pt titles and ~100pt-tall buttons.
-        expect(util.legacyViewportScale(LEGACY_VIEWPORT, 768)).toBeCloseTo(1.276, 3);
-        expect(util.legacyViewportScale(LEGACY_VIEWPORT, 810)).toBeCloseTo(1.21, 2);
-    });
-
-    test('a small phone gets more, not the 0.82x of intended size a fixed 2.5 left it at', () => {
-        expect(util.legacyViewportScale(LEGACY_VIEWPORT, 320)).toBeCloseTo(3.0625, 4);
-    });
-
-    test('scaling up by the factor returns UI to its authored size, on every device width', () => {
-        for (const screenWidth of [320, 360, 375, 390, 414, 430, 768, 810, 979]) {
-            const displayedFraction = screenWidth / LEGACY_VIEWPORT; // How far the browser shrinks the page.
-            const scale = util.legacyViewportScale(LEGACY_VIEWPORT, screenWidth);
-            expect(displayedFraction * scale).toBeCloseTo(1, 6);
-        }
-    });
-
-    test('a page that is not being shrunk is not scaled up', () => {
-        expect(util.legacyViewportScale(390, 390)).toBe(1);
-        expect(util.legacyViewportScale(390, 1024)).toBe(1);
-    });
-
-    test('an absurd measurement is clamped rather than passed through', () => {
-        expect(util.legacyViewportScale(LEGACY_VIEWPORT, 1)).toBe(4);
-    });
-
-    test('a missing or nonsense measurement falls back to the default rather than to zero', () => {
-        for (const args of [[0, 390], [LEGACY_VIEWPORT, 0], [undefined, 390], [LEGACY_VIEWPORT, undefined],
-            [NaN, 390], [LEGACY_VIEWPORT, NaN], [-980, 390]]) {
-            expect(util.legacyViewportScale(...args)).toBe(util.DEFAULT_LEGACY_VIEWPORT_SCALE);
-        }
-    });
-});
-
 describe('mobile Validate page behavior', () => {
-    let util;
     let modalForeground;
     let panoCanvas;
 
-    /**
-     * Loads mobileValidate.js into jsdom with the globals it reaches for at load time.
-     * @param {number} screenWidth - The device width `screen.width` should report.
-     */
-    function loadPage(screenWidth = 390) {
-        Object.defineProperty(window.screen, 'width', {value: screenWidth, configurable: true});
-        Object.defineProperty(document.documentElement, 'clientWidth',
-            {value: LEGACY_VIEWPORT, configurable: true});
-        // jQuery's surface here is $(document).ready, $('head').append, and $(window).on — all no-ops for these
-        // tests, whose subjects are the two document-level listeners and the scale written to the root.
+    /** Loads mobileValidate.js into jsdom with the globals it reaches for at load time. */
+    function loadPage() {
+        // jQuery's surface here is $(document).ready — a no-op for these tests, whose subject is the document-level
+        // touchstart listener the ready handler is installed alongside.
         const ready = [];
         window.$ = jest.fn(() => ({append: jest.fn(), on: jest.fn()}));
         window.$.mockImplementation((arg) => {
             if (arg === document) return {ready: (fn) => ready.push(fn)};
             return {append: jest.fn(), on: jest.fn()};
         });
-        window.screen.orientation = {type: 'portrait-primary'};
-        window.svv = {modalLandscape: {show: jest.fn(), hide: jest.fn()}};
         window.eval(MOBILE_VALIDATE_SRC);
         ready.forEach((fn) => fn());
     }
@@ -146,7 +67,7 @@ describe('mobile Validate page behavior', () => {
               </div>
             </div>`;
         // Every control the page's ready handler decorates with .animate-button; absent, it throws before it can
-        // install the listeners under test.
+        // install the listener under test.
         ['validate-no-button', 'validate-unsure-button', 'validate-yes-button', 'no-menu-submit-button',
             'unsure-menu-submit-button', 'modal-mission-complete-close-button-primary',
             'modal-mission-complete-close-button-secondary', 'label-visibility-control-button'].forEach((id) => {
@@ -158,42 +79,12 @@ describe('mobile Validate page behavior', () => {
         });
         modalForeground = document.getElementById('modal-mission-foreground');
         panoCanvas = document.getElementById('svv-panorama');
-        util = loadUtil();
     });
 
     afterEach(() => {
         jest.useRealTimers();
         document.body.innerHTML = '';
-        document.documentElement.style.removeProperty('--mobile-mission-scale');
         delete window.$;
-        delete window.svv;
-        delete window.util;
-    });
-
-    describe('the mission screens’ scale', () => {
-        test('is measured from this device and published to the root for the stylesheet to read', () => {
-            loadPage(390);
-
-            const written = document.documentElement.style.getPropertyValue('--mobile-mission-scale');
-            expect(parseFloat(written)).toBeCloseTo(util.legacyViewportScale(LEGACY_VIEWPORT, 390), 3);
-        });
-
-        test('is different on a tablet than on a phone, which is the whole point of measuring it', () => {
-            loadPage(768);
-
-            expect(parseFloat(document.documentElement.style.getPropertyValue('--mobile-mission-scale')))
-                .toBeCloseTo(1.276, 2);
-        });
-
-        test('is re-measured when the viewport changes, e.g. a rotation', () => {
-            loadPage(390);
-            Object.defineProperty(window.screen, 'width', {value: 768, configurable: true});
-
-            window.dispatchEvent(new Event('resize'));
-
-            expect(parseFloat(document.documentElement.style.getPropertyValue('--mobile-mission-scale')))
-                .toBeCloseTo(1.276, 2);
-        });
     });
 
     describe('the double-tap suppressor', () => {
