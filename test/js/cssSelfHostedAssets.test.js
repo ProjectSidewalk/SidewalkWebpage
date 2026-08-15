@@ -164,12 +164,33 @@ describe('the design system ships the faces its font tokens name', () => {
         expect(faked).toEqual([]);
     });
 
-    test('each self-hosted family ships the license it is redistributed under', () => {
-        // Inter and JetBrains Mono are SIL OFL 1.1, which requires the license to travel with the font files.
-        for (const family of ['Inter', 'JetBrainsMono']) {
-            const license = path.join(REPO_ROOT, 'public', 'fonts', family, 'OFL.txt');
-            expect(fs.existsSync(license)).toBe(true);
-            expect(fs.readFileSync(license, 'utf8')).toContain('SIL OPEN FONT LICENSE Version 1.1');
+    test('every self-hosted family ships the license it is redistributed under', () => {
+        // Serving a font file over HTTP is distribution, and both licenses in play require their text to travel
+        // with the files: Apache 2.0 §4(a), SIL OFL 1.1 condition 2. Each family's own binaries name which one
+        // applies (its `name` table, IDs 0/13/14) — read it from there rather than from whatever upstream says
+        // today, since a family can be relicensed after the copy we ship was taken.
+        const FONTS_ROOT = path.join(REPO_ROOT, 'public', 'fonts');
+        const families = fs.readdirSync(FONTS_ROOT, { withFileTypes: true })
+            .filter((e) => e.isDirectory()).map((e) => e.name);
+
+        expect(families.length).toBeGreaterThanOrEqual(6); // Not passing vacuously on an empty read.
+
+        const undocumented = [];
+        for (const family of families) {
+            const license = ['OFL.txt', 'LICENSE.txt']
+                .map((name) => path.join(FONTS_ROOT, family, name))
+                .find((candidate) => fs.existsSync(candidate));
+            if (!license) {
+                undocumented.push(`${family}: no OFL.txt or LICENSE.txt`);
+                continue;
+            }
+            const text = fs.readFileSync(license, 'utf8');
+            const named = text.includes('SIL OPEN FONT LICENSE Version 1.1')
+                || text.includes('Apache License');
+            if (!named) undocumented.push(`${family}: license file names no license`);
+            // The notice is half of what both licenses ask for, and it is per-family.
+            if (!/copyright/i.test(text)) undocumented.push(`${family}: license file carries no copyright notice`);
         }
+        expect(undocumented).toEqual([]);
     });
 });
