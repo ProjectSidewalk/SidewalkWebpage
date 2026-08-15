@@ -9,7 +9,6 @@ import play.api.libs.json.Json
 import play.silhouette.api.Silhouette
 import service.{ApiService, ConfigService}
 
-import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -78,7 +77,7 @@ class RegionApiController @Inject() (
           )
 
           val dbDataStream: Source[RegionDataForApi, _] = apiService.getRegions(filters, DEFAULT_BATCH_SIZE)
-          val baseFileName: String                      = s"regions_${OffsetDateTime.now()}"
+          val baseFileName: String                      = timestampedFilename("regions")
           cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
 
           filetype match {
@@ -89,7 +88,7 @@ class RegionApiController @Inject() (
             case Some("geopackage") =>
               outputGeopackage(dbDataStream, baseFileName, shapefileCreator.createRegionDataGeopackage, inline)
             case _ => // Default to GeoJSON.
-              outputGeoJSON(dbDataStream, inline, baseFileName + ".json")
+              outputGeoJSON(dbDataStream, inline, baseFileName + ".geojson")
           }
         }
     }

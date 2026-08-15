@@ -9,7 +9,6 @@ import play.api.libs.json.Json
 import play.silhouette.api.Silhouette
 import service.{ApiService, ConfigService}
 
-import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -81,7 +80,7 @@ class StreetsApiController @Inject() (
 
           // Get the data stream.
           val dbDataStream: Source[StreetDataForApi, _] = apiService.getStreets(filters, DEFAULT_BATCH_SIZE)
-          val baseFileName: String                      = s"streets_${OffsetDateTime.now()}"
+          val baseFileName: String                      = timestampedFilename("streets")
           cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
 
           // Output data in the appropriate file format.
@@ -93,7 +92,7 @@ class StreetsApiController @Inject() (
             case Some("geopackage") =>
               outputGeopackage(dbDataStream, baseFileName, shapefileCreator.createStreetDataGeopackage, inline)
             case _ => // Default to GeoJSON.
-              outputGeoJSON(dbDataStream, inline, baseFileName + ".json")
+              outputGeoJSON(dbDataStream, inline, baseFileName + ".geojson")
           }
         }
     }

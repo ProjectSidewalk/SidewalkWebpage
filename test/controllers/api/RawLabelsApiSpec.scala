@@ -82,7 +82,23 @@ class RawLabelsApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       (contentAsJson(resp) \ "type").as[String] mustBe "FeatureCollection"
     }
 
-    "accept both scoped and bare tags entries" in {
+    "accept both scoped and unscoped tags entries, one per repeated parameter" in {
+      val url  = s"/v3/api/rawLabels?$tinyBbox&tags=CurbRamp:narrow&tags=uneven surface"
+      val resp = route(app, FakeRequest(GET, url)).get
+      status(resp) mustBe OK
+      (contentAsJson(resp) \ "type").as[String] mustBe "FeatureCollection"
+    }
+
+    "take a tag containing a comma as one tag rather than splitting it" in {
+      // Real Signal tag. Tag values are validated against the city's tags, so the 200 is meaningful: split on the
+      // comma, the entry would become two names the vocabulary doesn't contain, and the request would 400.
+      val url  = s"/v3/api/rawLabels?$tinyBbox&tags=Signal:yellow box, accessibility features not visible"
+      val resp = route(app, FakeRequest(GET, url)).get
+      status(resp) mustBe OK
+      (contentAsJson(resp) \ "type").as[String] mustBe "FeatureCollection"
+    }
+
+    "still accept an older comma-joined tags value whose pieces name real tags" in {
       val resp = route(app, FakeRequest(GET, s"/v3/api/rawLabels?$tinyBbox&tags=CurbRamp:narrow,uneven surface")).get
       status(resp) mustBe OK
       (contentAsJson(resp) \ "type").as[String] mustBe "FeatureCollection"
@@ -120,6 +136,25 @@ class RawLabelsApiSpec extends PlaySpec with GuiceOneAppPerSuite {
 
     "reject a scoped tags entry with a missing tag with 400 (parameter=tags)" in {
       val resp = route(app, FakeRequest(GET, "/v3/api/rawLabels?tags=CurbRamp:")).get
+      status(resp) mustBe BAD_REQUEST
+      (contentAsJson(resp) \ "parameter").as[String] mustBe "tags"
+    }
+
+    "reject an empty tags occurrence with 400 (parameter=tags)" in {
+      val resp = route(app, FakeRequest(GET, "/v3/api/rawLabels?tags=narrow&tags=")).get
+      status(resp) mustBe BAD_REQUEST
+      (contentAsJson(resp) \ "parameter").as[String] mustBe "tags"
+    }
+
+    "reject a tag the city does not have with 400 (parameter=tags)" in {
+      val resp = route(app, FakeRequest(GET, "/v3/api/rawLabels?tags=definitely-not-a-real-tag")).get
+      status(resp) mustBe BAD_REQUEST
+      (contentAsJson(resp) \ "parameter").as[String] mustBe "tags"
+    }
+
+    "reject a tag scoped to a label type that does not carry it with 400 (parameter=tags)" in {
+      // APS is a Signal tag; scoping it to CurbRamp would otherwise silently drop every CurbRamp label.
+      val resp = route(app, FakeRequest(GET, "/v3/api/rawLabels?tags=CurbRamp:APS")).get
       status(resp) mustBe BAD_REQUEST
       (contentAsJson(resp) \ "parameter").as[String] mustBe "tags"
     }

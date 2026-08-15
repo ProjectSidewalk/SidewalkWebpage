@@ -22,9 +22,9 @@ class UserRoleTableDef(tag: Tag) extends Table[UserRole](tag, "user_role") {
   def userRoleId: Rep[Int]                  = column[Int]("user_role_id", O.PrimaryKey, O.AutoInc)
   def userId: Rep[String]                   = column[String]("user_id")
   def roleId: Rep[Int]                      = column[Int]("role_id")
-  def communityService: Rep[Boolean]        = column[Boolean]("community_service")
-  def zurichInfra3dAccess: Rep[Boolean]     = column[Boolean]("zurich_infra3d_access")
-  def winterthurInfra3dAccess: Rep[Boolean] = column[Boolean]("winterthur_infra3d_access")
+  def communityService: Rep[Boolean]        = column[Boolean]("community_service", O.Default(false))
+  def zurichInfra3dAccess: Rep[Boolean]     = column[Boolean]("zurich_infra3d_access", O.Default(false))
+  def winterthurInfra3dAccess: Rep[Boolean] = column[Boolean]("winterthur_infra3d_access", O.Default(false))
 
   def * = (userRoleId, userId, roleId, communityService, zurichInfra3dAccess, winterthurInfra3dAccess) <>
     ((UserRole.apply _).tupled, UserRole.unapply)

@@ -59,6 +59,7 @@
   "download": {
     "button": "Download",
     "title": "Select a file format to download",
+    "preparing": "Preparing your download…",
     "count_one": "{{count}} label",
     "count_other": "{{count}} labels",
     "count-match_one": "matches your filters",
@@ -67,8 +68,9 @@
     "hint-csv": "For Excel, Google Sheets",
     "hint-shapefile": "For ArcGIS, QGIS",
     "hint-geopackage": "Open GIS format",
-    "caveat": "Some filters from this page's link (multiple regions, routes, or AI validation) aren't applied to downloads.",
-    "api-docs-link": "Raw Labels API documentation"
+    "caveat": "Some filters from this page's link (multiple regions, routes, or AI validation) can't be applied to downloads, so the file may contain more labels than the count above.",
+    "api-docs-link": "Raw Labels API documentation",
+    "opens-new-tab": " (opens in a new tab)"
   },
   "story": {
     "heading": "Community stories",

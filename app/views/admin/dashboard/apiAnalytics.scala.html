@@ -79,5 +79,5 @@
 
 @common.main(commonData, "Sidewalk - Admin API Analytics") {
   @common.navbar(commonData, Some(user))
-  @admin.dashboard.adminLayout("api-analytics", user.role == "Owner")(content)
+  @admin.dashboard.adminLayout("api-analytics", commonData, user)(content)
 }

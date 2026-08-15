@@ -42,8 +42,8 @@ class AuditTaskEnvironmentTableDef(tag: Tag) extends Table[AuditTaskEnvironment]
   def screenHeight: Rep[Option[Int]]         = column[Option[Int]]("screen_height")
   def operatingSystem: Rep[Option[String]]   = column[Option[String]]("operating_system")
   def ipAddress: Rep[Option[String]]         = column[Option[String]]("ip_address")
-  def language: Rep[String]                  = column[String]("language")
-  def cssZoom: Rep[Int]                      = column[Int]("css_zoom")
+  def language: Rep[String]                  = column[String]("language", O.Default("en"))
+  def cssZoom: Rep[Int]                      = column[Int]("css_zoom", O.Default(100))
   def timestamp: Rep[Option[OffsetDateTime]] = column[Option[OffsetDateTime]]("timestamp")
 
   def * = (auditTaskEnvironmentId, auditTaskId, missionId, browser, browserVersion, browserWidth, browserHeight,

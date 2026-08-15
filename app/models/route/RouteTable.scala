@@ -103,9 +103,10 @@ class RouteTableDef(tag: slick.lifted.Tag) extends Table[Route](tag, "route") {
   def description: Rep[Option[String]] = column[Option[String]]("description")
   def public: Rep[Boolean]             = column[Boolean]("public")
   def deleted: Rep[Boolean]            = column[Boolean]("deleted")
-  def createdAt: Rep[OffsetDateTime]   = column[OffsetDateTime]("created_at")
-  def distanceMeters: Rep[Double]      = column[Double]("distance_meters")
-  def streetCount: Rep[Int]            = column[Int]("street_count")
+  // DEFAULT now() in the DB (O.Default holds a value, not an expression).
+  def createdAt: Rep[OffsetDateTime] = column[OffsetDateTime]("created_at")
+  def distanceMeters: Rep[Double]    = column[Double]("distance_meters")
+  def streetCount: Rep[Int]          = column[Int]("street_count")
 
   def * =
     (routeId, userId, regionId, name, slug, description, public, deleted, createdAt, distanceMeters, streetCount) <> (

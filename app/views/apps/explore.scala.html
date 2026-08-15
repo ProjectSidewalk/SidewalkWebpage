@@ -478,7 +478,7 @@
             <canvas id="onboarding-canvas" class="window-streetview" width="720px" height="480px"></canvas>
             <div id="hand-gesture-holder"></div>
             <div id="onboarding-background"></div>
-            <div id="onboarding-message-holder">
+            <div id="onboarding-message-holder" class="audit-selectable">
               <p></p>
             </div>
           </div>
@@ -723,8 +723,7 @@
     </div>
   </div>
 
-  @* Pre-tutorial intro walkthrough shown before the onboarding tutorial begins (driven by TutorialIntro.js). The
-     per-step illustrations are animated PNGs dropped into images/explore/onboarding/intro/ later. *@
+  @* Pre-tutorial intro walkthrough shown before the onboarding tutorial begins (driven by TutorialIntro.js). *@
   <div id="tutorial-intro" class="tutorial-intro audit-selectable" role="region" aria-labelledby="tutorial-intro-title">
     <div class="tutorial-intro__inner">
       <div class="tutorial-intro__header">
@@ -735,11 +734,32 @@
         <p class="tutorial-intro__route-note" id="tutorial-intro-route-note" data-i18n="audit:tutorial-intro.route-waiting" hidden></p>
       </div>
       <div class="tutorial-intro__body">
+        @* Each clip loops while its step is showing. `preload="none"` plus the still in data-poster (attached by
+           TutorialIntro, not by a `poster` attribute) keeps a page load that never opens the intro — every visit past
+           the first — from fetching either the clips or their stills. The still is each clip's final frame, which is
+           what a visitor who has asked for reduced motion sees in place of the animation. *@
         <div class="tutorial-intro__illustration">
-          <img class="tutorial-intro__illustration-img is-active" data-step="0" alt="" data-i18n-alt="audit:tutorial-intro.explore.title" src='@assets.path("images/explore/onboarding/intro/explore.png")'>
-          <img class="tutorial-intro__illustration-img" data-step="1" alt="" data-i18n-alt="audit:tutorial-intro.label.title" src='@assets.path("images/explore/onboarding/intro/label.png")'>
-          <img class="tutorial-intro__illustration-img" data-step="2" alt="" data-i18n-alt="audit:tutorial-intro.validate.title" src='@assets.path("images/explore/onboarding/intro/validate.png")'>
-          <img class="tutorial-intro__illustration-img" data-step="3" alt="" data-i18n-alt="audit:tutorial-intro.impact.title" src='@assets.path("images/explore/onboarding/intro/impact.png")'>
+          <video class="tutorial-intro__illustration-img is-active" data-step="0" aria-label="Explore" data-i18n-aria-label="audit:tutorial-intro.explore.title" loop muted playsinline preload="none" data-poster='@assets.path("images/explore/onboarding/intro/explore-poster.webp")'>
+            <source src='@assets.path("videos/explore/onboarding/intro/explore.mp4")' type="video/mp4">
+          </video>
+          <video class="tutorial-intro__illustration-img" data-step="1" aria-label="Label" data-i18n-aria-label="audit:tutorial-intro.label.title" loop muted playsinline preload="none" data-poster='@assets.path("images/explore/onboarding/intro/label-poster.webp")'>
+            <source src='@assets.path("videos/explore/onboarding/intro/label.mp4")' type="video/mp4">
+          </video>
+          <video class="tutorial-intro__illustration-img" data-step="2" aria-label="Validate" data-i18n-aria-label="audit:tutorial-intro.validate.title" loop muted playsinline preload="none" data-poster='@assets.path("images/explore/onboarding/intro/validate-poster.webp")'>
+            <source src='@assets.path("videos/explore/onboarding/intro/validate.mp4")' type="video/mp4">
+          </video>
+          <video class="tutorial-intro__illustration-img" data-step="3" aria-label="Impact" data-i18n-aria-label="audit:tutorial-intro.impact.title" loop muted playsinline preload="none" data-poster='@assets.path("images/explore/onboarding/intro/impact-poster.webp")'>
+            <source src='@assets.path("videos/explore/onboarding/intro/impact.mp4")' type="video/mp4">
+          </video>
+          @* WCAG 2.2.2 (Pause, Stop, Hide): the clips loop indefinitely alongside the step copy, so there has to be an
+             in-page way to stop them. Named for what pressing it does; aria-pressed carries the paused state. *@
+          <button type="button" id="tutorial-intro-motion-toggle" class="motion-toggle" aria-pressed="false" aria-label="Pause animation" data-i18n-aria-label="audit:tutorial-intro.pause-animation">
+            <svg class="motion-toggle__icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+              <rect class="motion-toggle__pause-bar" x="4" y="3" width="3" height="10" rx="1"></rect>
+              <rect class="motion-toggle__pause-bar" x="9" y="3" width="3" height="10" rx="1"></rect>
+              <path class="motion-toggle__play-arrow" d="M5 3.5v9l8-4.5z"></path>
+            </svg>
+          </button>
         </div>
         <div class="tutorial-intro__panel">
           <div class="tutorial-intro__step is-active" data-step="0">
@@ -799,7 +819,23 @@
       <div class="tutorial-complete__animation">
         <img class="tutorial-complete__fireworks tutorial-complete__fireworks--1" alt="" src='@assets.path("images/icons/fireworks.svg")'>
         <img class="tutorial-complete__fireworks tutorial-complete__fireworks--2" alt="" src='@assets.path("images/icons/fireworks.svg")'>
-        <img class="tutorial-complete__hero" alt="" src='@assets.path("images/explore/onboarding/tutorial-complete.gif")'>
+        @* Decorative celebration loop. Playback is started by Onboarding's outro state rather than by an `autoplay`
+           attribute, so a reduced-motion visitor gets the still in data-poster (the clip's final frame) instead of a
+           brief flash of motion. width/height give the box its aspect ratio up front, so the fireworks and the copy
+           below don't shift once the clip's own dimensions arrive. *@
+        <div class="tutorial-complete__hero-wrap">
+          <video class="tutorial-complete__hero" aria-hidden="true" width="1664" height="758" loop muted playsinline preload="none" data-poster='@assets.path("images/explore/onboarding/tutorial-complete-poster.webp")'>
+            <source src='@assets.path("videos/explore/onboarding/tutorial-complete.mp4")' type="video/mp4">
+          </video>
+          @* WCAG 2.2.2 (Pause, Stop, Hide) — see the matching control on the intro illustrations. *@
+          <button type="button" class="motion-toggle" aria-pressed="false" aria-label="@Messages("audit.tutorial.pause-animation")">
+            <svg class="motion-toggle__icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+              <rect class="motion-toggle__pause-bar" x="4" y="3" width="3" height="10" rx="1"></rect>
+              <rect class="motion-toggle__pause-bar" x="9" y="3" width="3" height="10" rx="1"></rect>
+              <path class="motion-toggle__play-arrow" d="M5 3.5v9l8-4.5z"></path>
+            </svg>
+          </button>
+        </div>
       </div>
       <div class="tutorial-complete__text">
         <p>@Messages("audit.tutorial.complete.1")</p>
@@ -955,6 +991,10 @@
     mainParam.countryId = "@currentCity.countryId";
     mainParam.mapboxApiKey = "@commonData.mapboxApiKey";
     mainParam.makeCrops = @data.makeCrops;
+    @* Label lat/lng estimator constants. The backend owns them (PanoDataService.LatLngEstimation, which documents
+       where each fitted value comes from) so the client-side copy of the estimator (Label.js) can never drift from
+       the server-side one. *@
+    mainParam.latLngEstimation = @jsonForScript(service.PanoDataService.LatLngEstimation.asJson);
     const imagerySrc = "@commonData.imagerySource.toString";
     mainParam.viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer : GsvViewer;
     mainParam.viewerAccessToken = "@commonData.imageryAccessToken";

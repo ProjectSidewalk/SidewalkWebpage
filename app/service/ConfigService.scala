@@ -15,7 +15,8 @@ import play.api.libs.ws.WSClient
 import play.api.{Configuration, Logger}
 import slick.dbio.DBIO
 
-import java.time.{LocalDate, OffsetDateTime, ZoneId}
+import java.lang.management.ManagementFactory
+import java.time.{Instant, LocalDate, OffsetDateTime, ZoneId, ZoneOffset}
 import java.time.temporal.ChronoUnit
 import javax.inject._
 import scala.concurrent.duration.{Duration, FiniteDuration}
@@ -61,6 +62,11 @@ case class CommonPageData(
     mapboxApiKey: String,
     versionId: String,
     versionTimestamp: OffsetDateTime,
+    versionDescription: Option[String],
+    appStartTime: OffsetDateTime,
+    buildCommit: Option[String],
+    buildDescribe: Option[String],
+    buildDirty: Boolean,
     allCityInfo: Seq[CityInfo]
 ) {
 
@@ -665,6 +671,7 @@ trait ConfigService {
   def getAiTagSuggestionsEnabled: Boolean
   def getAiLabelSubmissionEnabled: Boolean
   def getPrivateProfilesByDefault: Boolean
+  def defaultPrivacyFlags: (Boolean, Boolean)
   def getPanoSource: PanoSource
   def sendSciStarterContributions(email: String, contributions: Int, timeSpent: Double): Future[Int]
   def cachedDBIO[T: ClassTag](key: String, duration: Duration = Duration.Inf)(dbOperation: => DBIO[T]): DBIO[T]
@@ -1689,6 +1696,23 @@ class ConfigServiceImpl @Inject() (
 
   def getPrivateProfilesByDefault: Boolean = cityFlag("private-profiles-by-default", getCityId)
 
+  /**
+   * The initial values for a new user's two privacy flags in this deployment.
+   *
+   * Public cities start users ON (visible); school/minor deployments that set city-params.private-profiles-by-default
+   * start them OFF so usernames aren't public without an explicit opt-in (#4323). Both flags share the one default.
+   *
+   * This is deployment policy, so it lives here rather than on whichever service happens to create the row: every
+   * path that inserts a `user_stat` row must seed the same values, or a user ends up public in a private city
+   * depending on which page they (or an admin) happened to hit first.
+   *
+   * @return (onLeaderboard, publicProfile) for a newly created user_stat row.
+   */
+  def defaultPrivacyFlags: (Boolean, Boolean) = {
+    val isPublic = !getPrivateProfilesByDefault
+    (isPublic, isPublic)
+  }
+
   def getPanoSource: PanoSource = PanoSource.withName(config.get[String](s"city-params.pano-viewer-type.$getCityId"))
 
   // Uses Play's cache API to cache the result of a DBIO.
@@ -1702,6 +1726,11 @@ class ConfigServiceImpl @Inject() (
         }
     }
   }
+
+  // JVM boot time stands in for "when was this instance deployed": prod runs the staged binary as its own process, so
+  // process start = deploy/restart. Under dev-mode `sbt ~run` it is the sbt JVM's start, which is close enough locally.
+  private val appStartTime: OffsetDateTime =
+    OffsetDateTime.ofInstant(Instant.ofEpochMilli(ManagementFactory.getRuntimeMXBean.getStartTime), ZoneOffset.UTC)
 
   def getCommonPageData(lang: Lang): Future[CommonPageData] = {
     for {
@@ -1722,7 +1751,8 @@ class ConfigServiceImpl @Inject() (
       allCityInfo: Seq[CityInfo] = getAllCityInfo(lang)
     } yield {
       CommonPageData(cityId, envType, googleAnalyticsId, prodUrl, imagerySource, imageryAccessToken, gMapsApiKey,
-        mapboxApiKey, version.versionId, version.versionStartTime, allCityInfo)
+        mapboxApiKey, version.versionId, version.versionStartTime, version.description, appStartTime, BuildInfo.gitSha,
+        BuildInfo.gitDescribe, BuildInfo.gitDirty, allCityInfo)
     }
   }
 }

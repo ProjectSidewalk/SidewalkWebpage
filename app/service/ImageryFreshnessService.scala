@@ -11,10 +11,12 @@ import scala.concurrent.{ExecutionContext, Future}
 
 /**
  * Keeps the app's imagery-age knowledge (street_imagery) fresh and syncs the audit_task.outdated_imagery flag against
- * it (#4384). An audit performed on since-replaced imagery keeps its user credit and keeps counting toward completion
- * stats, but counts at half weight in the street-priority formula and stops counting for per-user routing -- so
- * labelers are re-sent down re-imaged streets (after unaudited ones) while "% complete" keeps meaning "ever
- * quality-audited", with freshness surfaced separately (km_needs_reaudit, re-audit prompts).
+ * it (#4384). An audit is flagged only when at least half the street's sampled points show newer imagery than the
+ * audit (street_imagery.median_newest_capture, written by the nightly imagery-age poll). A flagged audit keeps its
+ * user credit and keeps counting toward completion stats, but counts at a capped half weight in the street-priority
+ * formula and stops counting for per-user routing -- so labelers are re-sent down re-imaged streets (after unaudited
+ * ones) while "% complete" keeps meaning "ever quality-audited", with freshness surfaced separately
+ * (km_needs_reaudit, re-audit prompts).
  */
 @ImplementedBy(classOf[ImageryFreshnessServiceImpl])
 trait ImageryFreshnessService {

@@ -27,7 +27,9 @@
         "no-button-1": "Esta es una pasarela residencial.",
         "no-button-2": "No hay banqueta aquí",
         "no-button-3": "Esta debería ser una etiqueta de rampa peatonal",
-        "no-button-3-tooltip": "A veces, una rampa peatonal está mal etiquetada como una rampa faltante, a menudo porque le falta una advertencia táctil."
+        "no-button-3-tooltip": "A veces, una rampa peatonal está mal etiquetada como una rampa faltante, a menudo porque le falta una advertencia táctil.",
+        "no-button-4": "No es seguro cruzar aquí",
+        "no-button-4-tooltip": "Los peatones no deben cruzar en este punto, por lo que no se espera una rampa peatonal."
       },
       "obstacle": {
         "no-button-1": "Esto no está en un camino peatonal.",
@@ -92,6 +94,11 @@
   "center-ui": {
     "no-info": "No hay información disponible",
     "pano-interactive-message": "Arrastra para mirar alrededor, desplázate para acercar."
+  },
+  "imagery-unavailable": {
+    "title": "No se pudieron cargar las imágenes",
+    "body": "No pudimos cargar las imágenes de calle de las etiquetas de esta misión, así que ahora mismo no hay nada que mostrarte. Tus validaciones completadas están guardadas. Esto suele resolverse solo; inténtalo de nuevo.",
+    "retry": "Intentar de nuevo"
   },
   "mission-start": {
     "title": "Valida {{n}} etiquetas de {{label_type}}",

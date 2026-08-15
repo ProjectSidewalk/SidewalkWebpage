@@ -6,7 +6,12 @@ import controllers.helper.ValidateHelper.ValidateParams
 import formats.json.CommentSubmissionFormats.LabelMapValidationCommentSubmission
 import formats.json.LabelFormats
 import formats.json.MissionFormats._
-import formats.json.ValidateFormats.{EnvironmentSubmission, LabelMapValidationSubmission, ValidationTaskSubmission}
+import formats.json.ValidateFormats.{
+  EnvironmentSubmission,
+  LabelMapValidationSubmission,
+  MoreLabelsRequest,
+  ValidationTaskSubmission
+}
 import models.auth.WithAdmin
 import models.label.{LabelTypeEnum, Tag}
 import models.mission.MissionType
@@ -390,14 +395,86 @@ class ValidateController @Inject() (
   }
 
   /**
+   * Cuts a client-supplied ValidateParams down to what this user is allowed to ask for.
+   *
+   * adminVersion decides whether a response carries other people's data — the labeler's username and everyone who
+   * has validated the label — and it arrives in the request body, so on its own it is a claim, not a fact. Only
+   * /expertValidate sets it, and ADMIN_ROLES is the set `WithAdmin` gates that page on; keep the two together if
+   * that gate ever widens. The region and unvalidated-only filters are open to everyone on plain /validate.
+   */
+  private def paramsAllowedFor(params: ValidateParams, user: SidewalkUserWithRole): ValidateParams = {
+    if (RoleTable.ADMIN_ROLES.contains(user.role)) params
+    else
+      ValidateParams(
+        adminVersion = false,
+        neighborhoodIds = params.neighborhoodIds,
+        unvalidatedOnly = params.unvalidatedOnly
+      )
+  }
+
+  /**
    * Parse submitted validation data and submit to tables.
    */
   def post = cc.securityService.SecuredAction(parse.json) { implicit request =>
     val submission = request.body.validate[ValidationTaskSubmission]
     submission.fold(
       errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
-      submission => { processValidationTaskSubmissions(submission, request.ipAddress, request.identity) }
+      submission => {
+        val safeParams = paramsAllowedFor(submission.validateParams, request.identity)
+        processValidationTaskSubmissions(
+          submission.copy(validateParams = safeParams),
+          request.ipAddress,
+          request.identity
+        )
+      }
     )
+  }
+
+  /**
+   * Hands Validate replacement labels for a mission that ran out of them mid-mission (#4810).
+   *
+   * Validate receives exactly as many labels as its mission still needs, so a label whose imagery turns out not to
+   * render leaves the mission unfinishable. This is the only way to top the queue back up: the mission-complete
+   * response is the only other place labels are handed out, and it fires a mission too late to help.
+   *
+   * The request names every label the client already holds so a replacement can't duplicate one — the client's
+   * validations may not have reached the database yet, so the query's own "already validated by this user" filter
+   * isn't enough on its own. An empty `labels` array means there is nothing left for this user to validate.
+   */
+  def getMoreLabels = cc.securityService.SecuredAction(parse.json) { implicit request =>
+    request.body
+      .validate[MoreLabelsRequest]
+      .fold(
+        errors => Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))),
+        moreLabels => {
+          val safeParams: ValidateParams = paramsAllowedFor(moreLabels.validateParams, request.identity)
+          for {
+            (labels, adminData) <- labelService.getMoreLabelsToValidate(request.identity, moreLabels.labelTypeId,
+              moreLabels.labelsNeeded, moreLabels.excludedLabelIds.toSet, safeParams)
+            maxSpeeds <- osmWayService.getMaxSpeedsForStreets(labels.map(_.streetEdgeId).distinct)
+          } yield {
+            val labelMetadataJsonSeq: Seq[JsObject] = if (safeParams.adminVersion) {
+              labels.sortBy(_.labelId).zip(adminData.sortBy(_.labelId)).map { case (l, admin) =>
+                LabelFormats.validationLabelMetadataToJson(
+                  labelMetadata = l,
+                  backupImageUrl = panoDataService.backupImageUrl(l.panoId),
+                  adminData = Some(admin),
+                  maxSpeed = maxSpeeds.get(l.streetEdgeId)
+                )
+              }
+            } else {
+              labels.map { l =>
+                LabelFormats.validationLabelMetadataToJson(
+                  labelMetadata = l,
+                  backupImageUrl = panoDataService.backupImageUrl(l.panoId),
+                  maxSpeed = maxSpeeds.get(l.streetEdgeId)
+                )
+              }
+            }
+            Ok(Json.obj("labels" -> Json.toJson(labelMetadataJsonSeq)))
+          }
+        }
+      )
   }
 
   /**

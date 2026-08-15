@@ -100,7 +100,6 @@
   "bad": "Má",
   "yes": "Sim",
   "no": "Não",
-  "ai-disclaimer": "A IA analisou este rótulo e votou \"$t({{aiVal}})\"; no entanto, a IA pode cometer erros. Por favor, faça sua própria avaliação.",
   "ai-generated-label-tooltip": "Este rótulo foi gerado por IA. A IA pode cometer erros, então por favor faça sua própria avaliação.",
   "tag": {
     "narrow": "estreito",

@@ -59,6 +59,7 @@
   "download": {
     "button": "Descargar",
     "title": "Selecciona un formato de archivo para descargar",
+    "preparing": "Preparando tu descarga…",
     "count_one": "{{count}} etiqueta",
     "count_other": "{{count}} etiquetas",
     "count-match_one": "coincide con tus filtros",
@@ -67,8 +68,9 @@
     "hint-csv": "Para Excel, Google Sheets",
     "hint-shapefile": "Para ArcGIS, QGIS",
     "hint-geopackage": "Formato SIG abierto",
-    "caveat": "Algunos filtros del enlace de esta página (varias regiones, rutas o validación por IA) no se aplican a las descargas.",
-    "api-docs-link": "Documentación de la API de etiquetas sin procesar"
+    "caveat": "Algunos filtros del enlace de esta página (varias regiones, rutas o validación por IA) no se pueden aplicar a las descargas, por lo que el archivo puede contener más etiquetas que el número indicado arriba.",
+    "api-docs-link": "Documentación de la API de etiquetas sin procesar",
+    "opens-new-tab": " (se abre en una pestaña nueva)"
   },
   "story": {
     "heading": "Historias de la comunidad",

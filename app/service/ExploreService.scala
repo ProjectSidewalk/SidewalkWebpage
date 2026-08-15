@@ -96,9 +96,15 @@ trait ExploreService {
 
   /**
    * Takes data submitted from the Explore page updates the pano_data, pano_link, and pano_history tables accordingly.
+   *
+   * Each pano is saved independently and any failure is logged rather than thrown, so one bad pano can't abort the rest
+   * of the batch (#4587). This is the lenient path for panos merely *viewed* during a session; a labeled pano's
+   * metadata rides its label (LabelSubmission.pano) instead and commits atomically with it in submitExploreData.
+   *
    * @param panos All pano-related data submitted from the Explore page front-end.
+   * @return Whether every pano in the batch was saved successfully.
    */
-  def savePanoInfo(panos: Seq[PanoSubmission]): Future[Unit]
+  def savePanoInfo(panos: Seq[PanoSubmission]): Future[Boolean]
   def insertComment(comment: AuditTaskComment): Future[Int]
 
   /**
@@ -300,7 +306,13 @@ class ExploreServiceImpl @Inject() (
       tutorialStreetId: Int                      <- configTable.getTutorialStreetId
       makeCrops: Boolean                         <- configTable.getMakeCrops
     } yield {
-      ExplorePageData(task, updatedMission, region.get, userRoute, routeOption, hasCompletedAMission, nextTempLabelId,
+      // The tutorial takes over the whole session, so a resumable route must not surface mid-tutorial: shipping its
+      // id flips the client into route mode and draws the route over the tutorial map (#4816). Only the page payload
+      // is suppressed — the walk stays active, so it resumes on the post-tutorial reload of /explore. (An explicit
+      // ?routeId= still sets a walk up above, since that is the user asking for one; it just waits for them.)
+      val (pageUserRoute, pageRoute) =
+        if (updatedMission.missionType == MissionType.AuditOnboarding) (None, None) else (userRoute, routeOption)
+      ExplorePageData(task, updatedMission, region.get, pageUserRoute, pageRoute, hasCompletedAMission, nextTempLabelId,
         surveyData, tutorialStreetId, makeCrops)
     }
     db.run(getExploreDataAction.transactionally)
@@ -602,6 +614,8 @@ class ExploreServiceImpl @Inject() (
       _lng <- point.lng
     } yield gf.createPoint(new Coordinate(_lng, _lat))
 
+    warnIfRecordStale(label, userId)
+
     for {
       // Use label's lat/lng to determine street_edge_id. If lat/lng isn't defined, use audit_task's as backup.
       calculatedStreetEdgeId: Int <- (point.lat, point.lng) match {
@@ -645,38 +659,100 @@ class ExploreServiceImpl @Inject() (
     }
   }
 
-  def savePanoInfo(panos: Seq[PanoSubmission]): Future[Unit] = {
-    val currTime: OffsetDateTime = OffsetDateTime.now
-    val panoSubmissionActions    = panos.map { pano: PanoSubmission =>
-      (for {
-        // Insert new entry to pano_data table, or update the last_viewed/checked columns if we've already recorded it.
-        panoExists: Boolean <- panoDataTable.panoramaExists(pano.panoId)
-        _                   <-
-          if (panoExists) {
-            panoDataTable.updateFromExplore(pano.panoId, pano.lat, pano.lng, pano.cameraHeading, pano.cameraPitch,
-              pano.cameraRoll, pano.address, expired = false, currTime, Some(currTime))
-          } else {
-            panoDataTable.insert(
-              PanoData(pano.panoId, pano.width, pano.height, pano.tileWidth, pano.tileHeight, pano.captureDate,
-                pano.copyright, pano.lat, pano.lng, pano.cameraHeading, pano.cameraPitch, pano.cameraRoll,
-                expired = false, currTime, Some(currTime), currTime, pano.source, hasBackup = None,
-                address = pano.address)
-            )
-          }
-      } yield {
-        // Once panorama is saved, save the links and history.
-        val panoLinkInserts = pano.links.map { link =>
-          panoLinkTable.insertIfNew(PanoLink(pano.panoId, link.targetPanoId, link.yawDeg, link.description))
+  /**
+   * Record-consistency tripwire (#4842): warn if a label's viewport record fails to reproduce its own pano_x/pano_y.
+   *
+   * The client derives pano_x/pano_y from this same record at click time, so a record that replays somewhere else
+   * means a field went stale between click and submission -- the client-side race that silently corrupted records
+   * for 18 months (2023-03 -> 2024-09) and that no test can reproduce, because it only exists in live client timing.
+   * This is production telemetry, not validation: log-only by design, because a false positive must never cost a
+   * contributor their label. Tutorial panos carry fabricated metadata and are skipped, as are submissions without a
+   * pano metadata block. AI labels pass through: their records are computed by the inverse of this replay, so a
+   * warning from them would flag drift between the two projections.
+   *
+   * The log line's `Label record mismatch (#4842):` prefix is a grep contract: a tripwire is only worth having if
+   * something watches for it, so the sidewalk-panorama-tools log analyzer must track that exact signature (a rollout
+   * prerequisite of the #4842 repair — "quiet for N months" is unmeasurable otherwise, see sunset review #4872).
+   * Changing the prefix means updating the analyzer in the same change.
+   *
+   * @param label  The label submission to check, including its pano metadata block.
+   * @param userId The submitting user, included in the log line for triage.
+   */
+  private def warnIfRecordStale(label: LabelSubmission, userId: String): Unit = {
+    val point: LabelPointSubmission = label.point
+    if (!label.tutorial) {
+      for {
+        panoData   <- label.pano
+        width      <- panoData.width
+        height     <- panoData.height
+        camHeading <- panoData.cameraHeading
+        if width > 0 && height > 0
+      } {
+        val labelPov =
+          PanoDataService.calculatePovIfCentered(
+            POV(point.heading, point.pitch, point.zoom),
+            point.canvasX.toDouble,
+            point.canvasY.toDouble
+          )
+        val (expectedX, expectedY) = PanoDataService.calculatePanoXYFromPov(labelPov, camHeading, width, height)
+        val dxPx                   = { val d = math.abs(point.panoX - expectedX); math.min(d, width - d) }
+        val mismatchDeg            = math.hypot(dxPx * 360.0 / width, (point.panoY - expectedY) * 180.0 / height)
+        if (mismatchDeg > PanoDataService.RECORD_MISMATCH_TOLERANCE_DEG) {
+          logger.warn(
+            s"Label record mismatch (#4842): user=$userId tempLabelId=${label.temporaryLabelId} " +
+              s"pano=${label.panoId} stored pano_x/y=(${point.panoX}, ${point.panoY}) " +
+              s"record replays to=($expectedX, $expectedY) mismatch=${f"$mismatchDeg%.3f"}deg " +
+              s"record=(h=${point.heading}, p=${point.pitch}, z=${point.zoom}, " +
+              s"canvas=${point.canvasX},${point.canvasY})"
+          )
         }
-        val panoHistoryInserts = pano.history.map { h =>
-          panoHistoryTable.insertIfNew(PanoHistory(h.panoId, h.date, pano.panoId))
-        }
-
-        // Run the pano_link and pano_history inserts in parallel.
-        DBIO.sequence(panoLinkInserts).zip(DBIO.sequence(panoHistoryInserts)).map(_ => ())
-      }).flatten
+      }
     }
-    db.run(DBIO.sequence(panoSubmissionActions).map(_ => ()))
+  }
+
+  /**
+   * Saves one pano's metadata: an upsert of its pano_data row, then any new pano_link / pano_history rows.
+   *
+   * The upsert never clears a saved address or source_metadata blob with an absent one (#4806); see
+   * PanoDataTable.upsert. Every statement is idempotent, so the action is safe to repeat.
+   */
+  private def savePanoAction(pano: PanoSubmission, timestamp: OffsetDateTime): DBIO[Unit] = {
+    for {
+      _ <- panoDataTable.upsert(
+        PanoData(pano.panoId, pano.width, pano.height, pano.tileWidth, pano.tileHeight, pano.captureDate,
+          pano.copyright, pano.lat, pano.lng, pano.cameraHeading, pano.cameraPitch, pano.cameraRoll, expired = false,
+          timestamp, Some(timestamp), timestamp, pano.source, hasBackup = None, address = pano.address,
+          sourceMetadata = pano.sourceMetadata)
+      )
+
+      // Once panorama is saved, save the links and history. Run the two groups in parallel.
+      _ <- DBIO
+        .sequence(pano.links.map { link =>
+          panoLinkTable.insertIfNew(PanoLink(pano.panoId, link.targetPanoId, link.yawDeg, link.description))
+        })
+        .zip(DBIO.sequence(pano.history.map { h =>
+          panoHistoryTable.insertIfNew(PanoHistory(h.panoId, h.date, pano.panoId))
+        }))
+    } yield ()
+  }
+
+  def savePanoInfo(panos: Seq[PanoSubmission]): Future[Boolean] = {
+    val currTime: OffsetDateTime = OffsetDateTime.now
+    // asTry so one pano's failure can't abort the rest of the batch; failures are logged below.
+    val panoSubmissionActions = panos.map { pano: PanoSubmission => savePanoAction(pano, currTime).asTry }
+
+    db.run(DBIO.sequence(panoSubmissionActions))
+      .map { results =>
+        results.zip(panos).foreach { case (result, pano) =>
+          result.failed.foreach(e => logger.error(s"Failed to save pano metadata for pano ${pano.panoId}.", e))
+        }
+        results.forall(_.isSuccess)
+      }
+      .recover {
+        case e => // A failure of the batch itself, e.g. no connection available.
+          logger.error("Failed to save submitted pano metadata.", e)
+          false
+      }
   }
 
   def insertComment(comment: AuditTaskComment): Future[Int] = {
@@ -747,10 +823,12 @@ class ExploreServiceImpl @Inject() (
         // Calculate the label's lat/lng and theoretical user's heading/pitch from its panoX/panoY coordinates.
         val pov = PanoDataService.calculatePovFromPanoXY(label.panoX, label.panoY, pano.width.get, pano.height.get,
           pano.cameraHeading.get)
+        // label_point.canvas_x/y are NOT NULL, but an AI label was never drawn on a canvas. The center is the one
+        // value consistent with the heading/pitch stored beside it, which is the POV that centers the label.
         val canvasX = LabelPointTable.canvasWidth / 2
         val canvasY = LabelPointTable.canvasHeight / 2
-        val latLng  = PanoDataService.toLatLng(pano.lat.get, pano.lng.get, pov.heading, pov.zoom, canvasX, canvasY,
-          label.panoY, pano.height.get)
+        val latLng  = PanoDataService.toLatLng(pano.lat.get, pano.lng.get, label.panoX, label.panoY, pano.width.get,
+          pano.height.get, pano.cameraHeading.get)
         for {
           // Create necessary associated data for the label to fit in PS (mission, audit_task, etc.).
           streetEdgeId <- labelTable.getStreetEdgeIdClosestToLatLng(latLng._1, latLng._2)
@@ -762,7 +840,7 @@ class ExploreServiceImpl @Inject() (
           // Create and insert the label and label_point entries.
           labelPoint: LabelPointSubmission = LabelPointSubmission(label.panoX, label.panoY, canvasX, canvasY,
             heading = pov.heading, pitch = pov.pitch, pov.zoom, lat = Some(latLng._1), lng = Some(latLng._2),
-            computationMethod = Some(ComputationMethod.Approximation2))
+            computationMethod = Some(ComputationMethod.Approximation3))
           labelSubmission: LabelSubmission = LabelSubmission(
             panoId = pano.panoId,
             panoSource = pano.source,
@@ -774,7 +852,8 @@ class ExploreServiceImpl @Inject() (
             severity = None,
             description = None,
             tagIds = Seq.empty[Int],
-            point = labelPoint
+            point = labelPoint,
+            pano = Some(pano)
           )
           labelId <- insertLabel(labelSubmission, aiUserId, auditTaskId, streetEdgeId, missionId).map(_.labelId)
           _       <- labelAiInfoTable.save(
@@ -783,7 +862,9 @@ class ExploreServiceImpl @Inject() (
         } yield ()
       }
     }
-    db.run(labelSubmitActions.transactionally)
+    // The pano's metadata is integral to its labels (#4587): writing it in the same transaction means a label can
+    // never be committed without its pano_data row, and a failed pano write fails the whole request.
+    db.run(savePanoAction(pano, currTime).andThen(labelSubmitActions).transactionally)
   }
 
   def submitExploreData(data: AuditTaskSubmission, userId: String): Future[ExploreTaskPostReturnValue] = {
@@ -791,93 +872,107 @@ class ExploreServiceImpl @Inject() (
     val streetEdgeId: Int    = data.auditTask.streetEdgeId
     val missionId: Int       = data.missionProgress.missionId
 
+    // Each label's pano metadata is integral to the label (#4587): writing it in the same transaction as the labels
+    // means a label can never be committed without its pano_data row, and a failed pano write takes the whole
+    // submission with it rather than quietly producing an orphan.
+    val labeledPanos: Seq[PanoSubmission]  = data.labels.flatMap(_.pano).distinctBy(_.panoId).sortBy(_.panoId)
+    val saveLabeledPanosAction: DBIO[Unit] = DBIO.seq(labeledPanos.map(savePanoAction(_, OffsetDateTime.now)): _*)
+
     // Update the audit_task table and get the audit_task_id. This is needed to submit all other data.
-    db.run(updateAuditTaskTable(userId, data.auditTask, missionId).flatMap { auditTaskId: Int =>
-      missionTable.getMissionType(missionId).flatMap { missionType: Option[MissionType.Value] =>
-        // If task is complete, mark it in the db and update the street priority. A normal audit is completed by the
-        // client; a free-exploration drop-in has no such client signal, so the server derives it from how far the user
-        // walked (#4451). Deriving it also means a forged completed=true can't mark a drop-in street audited.
-        // Ordering is load-bearing: updateStreetPriority skips streets the user already completed, so it must read the
-        // completed flag before updateCompleted flips it — flipping first would skip the one legitimate update, and it
-        // is also what keeps re-running this action (every post-completion submission) from shifting priority again.
-        val completeTaskAction: DBIO[Int] = for {
-          newPriority: Option[Double] <- updateStreetPriority(streetEdgeId, userId)
-          atRowsUpdated: Int          <- auditTaskTable.updateCompleted(auditTaskId, completed = true)
-        } yield atRowsUpdated
+    val submitAction: DBIO[ExploreTaskPostReturnValue] = updateAuditTaskTable(userId, data.auditTask, missionId)
+      .flatMap { auditTaskId: Int =>
+        missionTable.getMissionType(missionId).flatMap { missionType: Option[MissionType.Value] =>
+          // If task is complete, mark it in the db and update the street priority. A normal audit is completed by the
+          // client; a free-exploration drop-in has no such client signal, so the server derives it from how far the
+          // user walked (#4451). Deriving it also means a forged completed=true can't mark a drop-in street audited.
+          // Ordering is load-bearing: updateStreetPriority skips streets the user already completed, so it must read
+          // the completed flag before updateCompleted flips it — flipping first would skip the one legitimate update,
+          // and it is also what keeps re-running this action from shifting priority again.
+          val completeTaskAction: DBIO[Int] = for {
+            newPriority: Option[Double] <- updateStreetPriority(streetEdgeId, userId)
+            atRowsUpdated: Int          <- auditTaskTable.updateCompleted(auditTaskId, completed = true)
+          } yield atRowsUpdated
 
-        val taskCompletedAction: DBIO[Int] = missionType match {
-          case Some(MissionType.Audit) if data.auditTask.completed.getOrElse(false) => completeTaskAction
-          case Some(MissionType.ExploreAddress)                                     =>
-            streetWalkedFarEnough(auditTaskId, streetEdgeId, data.auditTask.auditedDistanceM).flatMap {
-              farEnough: Boolean => if (farEnough) completeTaskAction else DBIO.successful(0)
+          val taskCompletedAction: DBIO[Int] = missionType match {
+            case Some(MissionType.Audit) if data.auditTask.completed.getOrElse(false) => completeTaskAction
+            case Some(MissionType.ExploreAddress)                                     =>
+              streetWalkedFarEnough(auditTaskId, streetEdgeId, data.auditTask.auditedDistanceM).flatMap {
+                farEnough: Boolean => if (farEnough) completeTaskAction else DBIO.successful(0)
+              }
+            case _ => DBIO.successful(0)
+          }
+
+          // Add to the audit_task_user_route and user_route tables if we are on a route and not in the tutorial.
+          val userRouteAction: DBIO[Boolean] =
+            if (data.userRouteId.isDefined && missionType.contains(MissionType.Audit)) {
+              for {
+                _ <- auditTaskUserRouteTable.insertIfNew(
+                  data.userRouteId.get,
+                  auditTaskId,
+                  data.auditTask.routeStreetId
+                )
+                routeComplete: Boolean <- userRouteTable.updateCompleteness(data.userRouteId.get)
+              } yield routeComplete
+            } else DBIO.successful(false)
+
+          // Update the MissionTable.
+          val updateMissionAction: DBIO[Option[Mission]] =
+            missionService.updateMissionTableExplore(userId, data.missionProgress)
+
+          // Insert any labels.
+          val labelSubmitActions: Seq[DBIO[Option[NewLabelData]]] =
+            data.labels.map { label: LabelSubmission =>
+              val labelTypeId: Int = LabelTypeEnum.labelTypeToId(label.labelType)
+              labelTable.find(label.temporaryLabelId, userId).flatMap {
+                case Some(existingLabel) =>
+                  // If there is already a label with this temp id but a mismatched label type, the user probably has the
+                  // Explore page open in multiple browsers. Don't add the label; tell the front-end to refresh the page.
+                  if (existingLabel.labelTypeId != labelTypeId) {
+                    refreshPage = true
+                    DBIO.successful(None)
+                  } else {
+                    // If the label exists and there are no issues, update it.
+                    for {
+                      // Map tag IDs to their string representations. Then update the label.
+                      allTags: Seq[Tag] <- labelService.selectAllTags
+                      tagStrings: List[String] = label.tagIds.distinct
+                        .flatMap(t => allTags.filter(_.tagId == t).map(_.tag).headOption)
+                        .toList
+                      _ <- labelService.updateLabelFromExplore(existingLabel.labelId, label.deleted, label.severity,
+                        label.description, tagStrings)
+                    } yield None
+                  }
+                // If there is no existing label with this temp id, insert a new one.
+                case None => insertLabel(label, userId, auditTaskId, streetEdgeId, missionId).map(Some(_))
+              }
             }
-          case _ => DBIO.successful(0)
+
+          // Check for streets in the user's neighborhood that have been audited by other users while they were auditing.
+          val updatedStreetsAction: DBIO[Option[UpdatedStreets]] =
+            if (data.auditTask.requestUpdatedStreetPriority) {
+              // Get streetEdgeIds and priority values for streets that have been updated since lastPriorityUpdateTime.
+              val lastPriorityUpdateTime: OffsetDateTime = data.auditTask.lastPriorityUpdateTime
+              streetEdgePriorityTable
+                .streetPrioritiesUpdatedSinceTime(data.missionProgress.regionId, lastPriorityUpdateTime)
+                .map(updatedStreetPriorities => Some(UpdatedStreets(OffsetDateTime.now, updatedStreetPriorities)))
+            } else {
+              DBIO.successful(None)
+            }
+
+          // Zip the actions together so that they can be completed in parallel, returning result once all complete.
+          taskCompletedAction
+            .zip(userRouteAction)
+            .zip(updateMissionAction)
+            .zip(DBIO.sequence(labelSubmitActions))
+            .zip(updatedStreetsAction)
+            .map { case ((((_, _), possibleNewMission), newLabels), updatedStreets) =>
+              ExploreTaskPostReturnValue(auditTaskId, possibleNewMission, newLabels.flatten, updatedStreets,
+                refreshPage)
+            }
         }
-
-        // Add to the audit_task_user_route and user_route tables if we are on a route and not in the tutorial.
-        val userRouteAction: DBIO[Boolean] =
-          if (data.userRouteId.isDefined && missionType.contains(MissionType.Audit)) {
-            for {
-              _ <- auditTaskUserRouteTable.insertIfNew(data.userRouteId.get, auditTaskId, data.auditTask.routeStreetId)
-              routeComplete: Boolean <- userRouteTable.updateCompleteness(data.userRouteId.get)
-            } yield routeComplete
-          } else DBIO.successful(false)
-
-        // Update the MissionTable.
-        val updateMissionAction: DBIO[Option[Mission]] =
-          missionService.updateMissionTableExplore(userId, data.missionProgress)
-
-        // Insert any labels.
-        val labelSubmitActions: Seq[DBIO[Option[NewLabelData]]] =
-          data.labels.map { label: LabelSubmission =>
-            val labelTypeId: Int = LabelTypeEnum.labelTypeToId(label.labelType)
-            labelTable.find(label.temporaryLabelId, userId).flatMap {
-              case Some(existingLabel) =>
-                // If there is already a label with this temp id but a mismatched label type, the user probably has the
-                // Explore page open in multiple browsers. Don't add the label; tell the front-end to refresh the page.
-                if (existingLabel.labelTypeId != labelTypeId) {
-                  refreshPage = true
-                  DBIO.successful(None)
-                } else {
-                  // If the label exists and there are no issues, update it.
-                  for {
-                    // Map tag IDs to their string representations. Then update the label.
-                    allTags: Seq[Tag] <- labelService.selectAllTags
-                    tagStrings: List[String] = label.tagIds.distinct
-                      .flatMap(t => allTags.filter(_.tagId == t).map(_.tag).headOption)
-                      .toList
-                    _ <- labelService.updateLabelFromExplore(existingLabel.labelId, label.deleted, label.severity,
-                      label.description, tagStrings)
-                  } yield None
-                }
-              // If there is no existing label with this temp id, insert a new one.
-              case None => insertLabel(label, userId, auditTaskId, streetEdgeId, missionId).map(Some(_))
-            }
-          }
-
-        // Check for streets in the user's neighborhood that have been audited by other users while they were auditing.
-        val updatedStreetsAction: DBIO[Option[UpdatedStreets]] =
-          if (data.auditTask.requestUpdatedStreetPriority) {
-            // Get streetEdgeIds and priority values for streets that have been updated since lastPriorityUpdateTime.
-            val lastPriorityUpdateTime: OffsetDateTime = data.auditTask.lastPriorityUpdateTime
-            streetEdgePriorityTable
-              .streetPrioritiesUpdatedSinceTime(data.missionProgress.regionId, lastPriorityUpdateTime)
-              .map(updatedStreetPriorities => Some(UpdatedStreets(OffsetDateTime.now, updatedStreetPriorities)))
-          } else {
-            DBIO.successful(None)
-          }
-
-        // Zip the actions together so that they can be completed in parallel, returning result once all complete.
-        taskCompletedAction
-          .zip(userRouteAction)
-          .zip(updateMissionAction)
-          .zip(DBIO.sequence(labelSubmitActions))
-          .zip(updatedStreetsAction)
-          .map { case ((((_, _), possibleNewMission), newLabels), updatedStreets) =>
-            ExploreTaskPostReturnValue(auditTaskId, possibleNewMission, newLabels.flatten, updatedStreets, refreshPage)
-          }
       }
-    }.transactionally)
+
+    db.run(saveLabeledPanosAction.andThen(submitAction).transactionally)
   }
 
   def secondsSpentAuditing(userId: String, timeRangeStartLabelId: Int, timeRangeEnd: OffsetDateTime): Future[Double] =
