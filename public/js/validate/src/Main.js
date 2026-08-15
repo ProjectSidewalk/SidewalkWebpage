@@ -8,6 +8,10 @@ class Main {
   // Long enough to read two lines and try the drag it suggests, without sitting on the imagery it is describing.
   static #PANO_HINT_MS = 6000;
 
+  // Re-sizing the pano is a layout and a viewer redraw, and a rotation fires resize several times as the device
+  // settles. Coalescing at about a frame's worth keeps the pano tracking the screen without doing it every event.
+  static #RESIZE_THROTTLE_MS = 150;
+
   #param;
 
   /**
@@ -222,6 +226,32 @@ class Main {
       };
       applyValidateScale();
       window.addEventListener('resize', applyValidateScale);
+    } else {
+      // The pano is sized to the viewport, so a rotation (or an on-screen keyboard opening) leaves it the wrong
+      // shape. Re-size it in place: a reload would be the only alternative, and it would cost the validator their
+      // place in the mission and a fresh round of imagery loading every time they turned the phone.
+      let lastWidth = document.documentElement.clientWidth;
+      let lastHeight = document.documentElement.clientHeight;
+      const resizePano = () => {
+        const width = document.documentElement.clientWidth;
+        const height = document.documentElement.clientHeight;
+        // A pinch fires resize on iOS but only moves the *visual* viewport: the layout is the shape it always was,
+        // and re-sizing the pano to a zoomed-into region is exactly the wrong answer.
+        if (width === lastWidth && height === lastHeight) return;
+
+        const rotated = (width > height) !== (lastWidth > lastHeight);
+        lastWidth = width;
+        lastHeight = height;
+
+        svv.panoManager.sizePano();
+        svv.panoViewer.resize();
+        svv.tracker?.push('Window_Resized', {
+          width, height, orientation: width > height ? 'landscape' : 'portrait', rotated,
+        });
+      };
+      // Leading + trailing edges both matter: iOS settles on its post-rotation dimensions over several events, so
+      // the first one keeps the pano from sitting visibly wrong and the last one is the size that sticks.
+      window.addEventListener('resize', util.throttle(resizePano, Main.#RESIZE_THROTTLE_MS));
     }
 
     svv.labelVisibilityControl = new LabelVisibilityControl();

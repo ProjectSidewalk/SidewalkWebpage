@@ -425,6 +425,9 @@ class PanoManager {
     }
     this.#watchViewerPov(this.#pannellumViewer);
     svv.panoViewer = this.#pannellumViewer;
+    // As #teardownPannellum does on the way back: a viewer only measures its container when told to, and this one
+    // has been sitting hidden — since a rotation, in the mobile case, which resized every canvas underneath it.
+    svv.panoViewer.resize();
     svv.tracker.push('Viewer_Pannellum');
     this.#logo.showSourceLogo();
     return svv.panoViewer.currPanoData;
@@ -521,6 +524,11 @@ class PanoManager {
     this.#panoCanvas.style.left = `${left}px`;
     panoHolderElem.style.left = `${left}px`;
     controlLayerElem.style.left = `${left}px`;
+
+    // The marker positions itself from the pano's size. It redraws on window resize too, but that listener is
+    // older than the one that calls this and runs unthrottled — so on a rotation it has already drawn against the
+    // dimensions being replaced here, and nothing would move it again until the next pan.
+    this.labelMarker?.draw();
   }
 
   /**
