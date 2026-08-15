@@ -52,6 +52,8 @@
     "distance-left-one-unit": "Only 1 kilometer left!",
     "less-than-one-unit-left": "Less than a kilometer left!",
     "click-to-help": "<a href='{{url}}' class='region-selection-trigger' regionId='{{regionId}}'>Click here</a> to help finish this neighborhood",
+    "needs-reaudit": "About {{n}} km of streets here have updated street-view imagery and need a re-audit!",
+    "click-to-reaudit": "<a href='{{url}}' class='region-selection-trigger' regionId='{{regionId}}'>Click here</a> to re-explore those streets",
     "thanks": "Thanks for all your help!",
     "100-percent-complete": "100% Complete!",
     "percent-complete": "{{percent}}% Complete"

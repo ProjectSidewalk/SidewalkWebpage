@@ -419,9 +419,25 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
       )
     }
 
+    // Coverage counts only audits on current imagery (#4384), but this query runs against OTHER cities' schemas,
+    // which may not have applied the evolution adding audit_task.outdated_imagery yet (e.g. mid-deploy). Gate the
+    // filter on the column existing so unmigrated schemas fall back to counting every completed audit instead of
+    // erroring out their whole scorecard. Once every deployed schema has the column this gate (and the branch in
+    // coreQuery) can go away -- tracked in #4705.
+    //
+    // Unlike the `"#$schema".table` splices below, which have to be raw because an identifier can't be a bind
+    // parameter, this one compares against a plain string column, so bind it properly.
+    val upToDateFilterQuery =
+      sql"""
+        SELECT EXISTS (
+            SELECT FROM information_schema.columns
+            WHERE table_schema::text = $schema AND table_name = 'audit_task' AND column_name = 'outdated_imagery'
+        );
+      """.as[Boolean].head
+
     // Both archive reads are guarded per-schema because voided_label_validation may not exist there yet (see
     // schemaHasVoidedValidationArchive); an unmigrated schema contributes 0 voided votes and no extra contributors.
-    def coreQuery(hasVoidedArchive: Boolean) = {
+    def coreQuery(upToDateFilter: String, hasVoidedArchive: Boolean) = {
       // Work-credit add-on (#4842): archived voided votes count toward total_validations (activity volume) but
       // not the agree/disagree verdict columns. The archive is human-only by construction.
       val voidedValCountsBody =
@@ -472,7 +488,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           FROM "#$schema".street_edge
           INNER JOIN "#$schema".audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
           INNER JOIN "#$schema".user_stat ON audit_task.user_id = user_stat.user_id
-          WHERE completed = TRUE AND NOT user_stat.excluded AND street_edge.status = 'open'
+          WHERE completed = TRUE AND NOT user_stat.excluded AND street_edge.status = 'open' #$upToDateFilter
       ) AS audited_streets, (
           SELECT SUM(ST_Length(geom::geography)) / 1000 AS km
           FROM "#$schema".street_edge WHERE status = 'open'
@@ -484,7 +500,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
               FROM "#$schema".street_edge
               INNER JOIN "#$schema".audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
               INNER JOIN "#$schema".user_stat ON audit_task.user_id = user_stat.user_id
-              WHERE completed = TRUE AND NOT user_stat.excluded AND street_edge.status = 'open'
+              WHERE completed = TRUE AND NOT user_stat.excluded AND street_edge.status = 'open' #$upToDateFilter
           ) AS distinct_audited
       ) AS audited_km, (
           SELECT COUNT(DISTINCT label.label_id) AS label_count,
@@ -591,11 +607,15 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
     // a separate long-cached path (getCrossCityLabelingSpeed). Wrapped in withJitOff because coreQuery's km calc uses
     // PostGIS (#4376).
     withJitOff(for {
-      hasVoidedArchive <- schemaHasVoidedValidationArchive(schema)
-      core             <- coreQuery(hasVoidedArchive)
-      byLabelType      <- getLabelTypeStatsBySchema(schema)
-      weeklyTrend      <- getCityWeeklyTrendBySchema(schema, Some(ScorecardTrendWeeks))
-      output           <- getCityContributorOutputBySchema(schema)
+      hasOutdatedImageryCol <- upToDateFilterQuery
+      hasVoidedArchive      <- schemaHasVoidedValidationArchive(schema)
+      core                  <- coreQuery(
+        if (hasOutdatedImageryCol) "AND audit_task.outdated_imagery = FALSE" else "",
+        hasVoidedArchive
+      )
+      byLabelType <- getLabelTypeStatsBySchema(schema)
+      weeklyTrend <- getCityWeeklyTrendBySchema(schema, Some(ScorecardTrendWeeks))
+      output      <- getCityContributorOutputBySchema(schema)
     } yield {
       val (lblMedian, lblP90, nLabelers, valMedian, valP90, nValidators, valSecMedian) = output
       CityScorecard(

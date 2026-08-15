@@ -35,6 +35,7 @@ class ApiFormatsSpec extends AnyFunSuite with Matchers {
       kmExploreNoOverlap = 8.0,
       kmExploredMultipleUsers = 3.0,
       kmExploredSingleUser = 5.0, // 8.0 no-overlap − 3.0 multiple
+      kmNeedsReaudit = 1.5,
       kmOpen = 12.0,
       kmNoImagery = 1.0,
       kmClosed = 0.5,
@@ -112,6 +113,7 @@ class ApiFormatsSpec extends AnyFunSuite with Matchers {
     val json = ApiFormats.projectSidewalkStatsToJson(sampleStats)
     (json \ "km_explored_multiple_users").as[Double] shouldBe 3.0
     (json \ "km_explored_single_user").as[Double] shouldBe 5.0
+    (json \ "km_needs_reaudit").as[Double] shouldBe 1.5
     (json \ "km_explorable").as[Double] shouldBe 12.0
     (json \ "km_by_status" \ "open").as[Double] shouldBe 12.0
     (json \ "km_by_status" \ "no_imagery").as[Double] shouldBe 1.0

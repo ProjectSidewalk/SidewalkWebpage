@@ -52,6 +52,8 @@
     "distance-left-one-unit": "Nur 1 Kilometer übrig!",
     "less-than-one-unit-left": "Weniger als 1 Kilometer übrig!",
     "click-to-help": "<a href='{{url}}' class='region-selection-trigger' regionId='{{regionId}}'>Hier klicken</a> um beim Vervollständigen dieses Quartiers zu helfen",
+    "needs-reaudit": "Etwa {{n}} km der Strassen hier haben neuere Aufnahmen und brauchen eine erneute Erkundung!",
+    "click-to-reaudit": "<a href='{{url}}' class='region-selection-trigger' regionId='{{regionId}}'>Hier klicken</a> um diese Strassen erneut zu erkunden",
     "thanks": "Danke für Ihre grosse Hilfe!",
     "100-percent-complete": "100% abgeschlossen!",
     "percent-complete": "{{percent}}% abgeschlossen"

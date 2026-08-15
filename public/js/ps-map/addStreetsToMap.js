@@ -9,8 +9,8 @@
  * @param {boolean} [params.logClicks=true] - Whether clicks should be logged when it takes you to the explore page.
  * @param {boolean} [params.differentiateUnauditedStreets=false] - Whether to color unaudited streets differently.
  * @param {boolean} [params.interactiveStreets=false] - Whether to include hover/click interactions on the streets.
- * @returns {Promise<{audited: number, unaudited: number}>} Resolves once the streets are on the map, with how many
- *      of them fall on each side of the audited line — the numbers the sidebar's street rows report.
+ * @returns {Promise<{audited: number, outdated: number, unaudited: number}>} Resolves once the streets are on the
+ *      map, with how many fall in each audit-status bucket (#4384) — the numbers the sidebar's street rows report.
  */
 function addStreetsToMap(map, streetData, params) {
   const STREET_LAYER_NAME = 'streets';
@@ -36,10 +36,18 @@ function addStreetsToMap(map, streetData, params) {
     },
     paint: {
       'line-opacity': 0.6,
-      'line-color': [ // Grey if unaudited, black if audited. All black if the map doesn't differentiate.
-        'case', ['all', params.differentiateUnauditedStreets, ['==', ['get', 'audited'], false]],
+      'line-color': [ // Grey if unaudited, black if audited or outdated. All black if the map doesn't differentiate.
+        'case', ['all', params.differentiateUnauditedStreets, ['==', ['get', 'audited'], false],
+          ['!=', ['get', 'outdated'], true]],
         UNAUDITED_STREET_COLOR,
         AUDITED_STREET_COLOR,
+      ],
+      // Outdated streets (audited, but newer imagery exists; #4384) render dashed in the audited color rather than
+      // with a third color, so they can't collide with the canonical label-type palette.
+      'line-dasharray': [
+        'case', ['all', params.differentiateUnauditedStreets, ['==', ['get', 'outdated'], true]],
+        ['literal', [2, 2]],
+        ['literal', [1, 0]],
       ],
       'line-width': [ // Twice the thickness if hovered. Increase thickness as we zoom in.
         'interpolate', ['linear'], ['zoom'],
@@ -86,19 +94,21 @@ function addStreetsToMap(map, streetData, params) {
     // Log clicks on the link to explore a street.
     if (params.logClicks) {
       // Log to the webpage_activity table when a street is selected from the map and 'Click here' is clicked.
-      // Logs are of the form 'Click_module=<mapName>_streetId=<streetId>_audited=<boolean>_target=explore'.
+      // Logs look like 'Click_module=<mapName>_streetId=<streetId>_audited=<bool>_outdated=<bool>_target=explore'.
       $(`#${params.mapName}`).on('click', '.street-selection-trigger', function () {
         const streetId = parseInt($(this).attr('streetId'), 10);
         const street = streetData.features.find((s) => streetId === s.properties.street_edge_id);
         const activity = `Click_module=${params.mapName}_streetId=${streetId}`
-          + `_audited=${street.properties.audited}_target=explore`;
+          + `_audited=${street.properties.audited}_outdated=${street.properties.outdated}_target=explore`;
         window.logWebpageActivity(activity);
       });
     }
   }
 
+  // Three-state status (#4384): audited and outdated are mutually exclusive; unaudited streets carry neither.
   const audited = streetData.features.filter((street) => street.properties.audited === true).length;
-  const counts = { audited, unaudited: streetData.features.length - audited };
+  const outdated = streetData.features.filter((street) => street.properties.outdated === true).length;
+  const counts = { audited, outdated, unaudited: streetData.features.length - audited - outdated };
 
   // Return promise that is resolved once all the layers have been added to the map.
   return new Promise((resolve) => {

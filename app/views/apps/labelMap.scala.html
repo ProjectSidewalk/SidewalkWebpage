@@ -18,7 +18,7 @@
   <div id="labelmap-choropleth-container" class="container choropleth-container">
     <div id="labelmap-choropleth-holder" class="choropleth-holder">
       <div id="labelmap-choropleth" class="choropleth"></div>
-      @common.filterSidebar(tags = tags, sections = Seq("search", "severity", "label-type", "validations", "streets"), showCounts = true)
+      @common.filterSidebar(tags = tags, sections = Seq("search", "severity", "label-type", "validations", "streets"), showOutdatedStreetFilter = true, showCounts = true)
       @common.mapLoadingOverlay()
     </div>
   </div>
