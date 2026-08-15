@@ -2,7 +2,7 @@ package models.street
 
 import com.google.inject.ImplementedBy
 import models.api.{StreetDataForApi, StreetFiltersForApi}
-import models.audit.AuditTaskTableDef
+import models.audit.{AuditTask, AuditTaskTableDef}
 import models.region.RegionTableDef
 import models.user.UserStatTableDef
 import models.utils.MyPostgresProfile.api._
@@ -61,7 +61,8 @@ class StreetEdgeTableDef(tag: Tag) extends Table[StreetEdge](tag, "street_edge")
   def y2: Rep[Double]                     = column[Double]("y2")
   def wayType: Rep[WayType.Value]         = column[WayType.Value]("way_type")
   def status: Rep[StreetEdgeStatus.Value] = column[StreetEdgeStatus.Value]("status")
-  def timestamp: Rep[OffsetDateTime]      = column[OffsetDateTime]("timestamp")
+  // DEFAULT now() in the DB (O.Default holds a value, not an expression).
+  def timestamp: Rep[OffsetDateTime] = column[OffsetDateTime]("timestamp")
 
   def * = (streetEdgeId, geom, x1, y1, x2, y2, wayType, status, timestamp) <> (
     (StreetEdge.apply _).tupled,
@@ -127,6 +128,14 @@ class StreetEdgeTable @Inject() (
   val completedAuditTasks       = completedAuditTasksWithUsers.map(_._1._1)
   val highQualityCompletedTasks = completedAuditTasksWithUsers.filter(_._1._2.highQuality).map(_._1._1)
 
+  /** When upToDateOnly, drops audits performed on since-replaced imagery (audit_task.outdated_imagery, #4384). */
+  private def auditFreshnessFilter(
+      tasks: Query[AuditTaskTableDef, AuditTask, Seq],
+      upToDateOnly: Boolean
+  ): Query[AuditTaskTableDef, AuditTask, Seq] = {
+    if (upToDateOnly) tasks.filterNot(_.outdatedImagery) else tasks
+  }
+
   def getStreet(streetEdgeId: Int): DBIO[Option[StreetEdge]] = {
     streetsWithTutorial.filter(_.streetEdgeId === streetEdgeId).result.headOption
   }
@@ -139,15 +148,17 @@ class StreetEdgeTable @Inject() (
    * Get the total street distance in meters.
    */
   def totalStreetDistance: DBIO[Double] = {
-    streets.map(_.geom.transform(26918).lengthD).sum.result.map(x => x.getOrElse(0.0d))
+    streets.map(_.geom.lengthGeodesic).sum.result.map(x => x.getOrElse(0.0d))
   }
 
   /**
    * Get the total street distance in meters for all streets that have been audited.
    * @param highQualityOnly if true, only count high quality audits.
+   * @param upToDateOnly if true, only count audits on current imagery (exclude outdated_imagery audits, #4384).
    */
-  def auditedStreetDistance(highQualityOnly: Boolean = false): DBIO[Double] = {
-    val filteredTasks = if (highQualityOnly) highQualityCompletedTasks else completedAuditTasks
+  def auditedStreetDistance(highQualityOnly: Boolean = false, upToDateOnly: Boolean = false): DBIO[Double] = {
+    val filteredTasks =
+      auditFreshnessFilter(if (highQualityOnly) highQualityCompletedTasks else completedAuditTasks, upToDateOnly)
 
     // Get the street edges that have been audited.
     val edges = for {
@@ -156,15 +167,17 @@ class StreetEdgeTable @Inject() (
     } yield _edges
 
     // Get length of each street segment, sum the lengths, and convert from meters to miles.
-    edges.distinctOn(_.streetEdgeId).map(_.geom.transform(26918).lengthD).sum.getOrElse(0d).result
+    edges.distinctOn(_.streetEdgeId).map(_.geom.lengthGeodesic).sum.getOrElse(0d).result
   }
 
   /**
    * Counts the number of distinct audited streets.
    * @param highQualityOnly if true, only count high quality audits.
+   * @param upToDateOnly if true, only count audits on current imagery (exclude outdated_imagery audits, #4384).
    */
-  def countDistinctAuditedStreets(highQualityOnly: Boolean = false): DBIO[Int] = {
-    val filteredTasks = if (highQualityOnly) highQualityCompletedTasks else completedAuditTasks
+  def countDistinctAuditedStreets(highQualityOnly: Boolean = false, upToDateOnly: Boolean = false): DBIO[Int] = {
+    val filteredTasks =
+      auditFreshnessFilter(if (highQualityOnly) highQualityCompletedTasks else completedAuditTasks, upToDateOnly)
     filteredTasks.distinctOn(_.streetEdgeId).length.result
   }
 
@@ -224,11 +237,10 @@ class StreetEdgeTable @Inject() (
   }
 
   /**
-   * Gets the length in meters of each of the given street edges.
+   * Gets the geodesic length in meters of each of the given street edges.
    *
-   * Lengths are computed by projecting the geometry to UTM zone 18N (EPSG:26918) so the result is in meters rather than
-   * degrees — the same projection used by the distance methods above. Used to length-weight region AccessScores (#3855).
-   * `inSet` inlines the ids (rather than binding them) to avoid the bound-parameter limit on whole-city id lists.
+   * Length-weights region AccessScores (#3855). `inSet` inlines the ids (rather than binding them) to avoid the
+   * bound-parameter limit on whole-city id lists.
    *
    * @param streetEdgeIds The street edge ids to measure.
    * @return A map from street edge id to its length in meters (empty for an empty input).
@@ -238,7 +250,7 @@ class StreetEdgeTable @Inject() (
     else
       streetsUnfiltered
         .filter(_.streetEdgeId inSet streetEdgeIds)
-        .map(s => (s.streetEdgeId, s.geom.transform(26918).lengthD))
+        .map(s => (s.streetEdgeId, s.geom.lengthGeodesic))
         .result
         .map(_.toMap)
   }
@@ -303,7 +315,8 @@ class StreetEdgeTable @Inject() (
       ),
       -- Get audit counts.
       audit_counts AS (
-        SELECT s.street_edge_id, COUNT(a.audit_task_id) as audit_count
+        SELECT s.street_edge_id, COUNT(a.audit_task_id) as audit_count,
+               COUNT(a.audit_task_id) FILTER (WHERE NOT a.outdated_imagery) as up_to_date_audit_count
         FROM filtered_streets s
         LEFT JOIN audit_task a ON s.street_edge_id = a.street_edge_id AND a.completed = true
         GROUP BY s.street_edge_id
@@ -333,6 +346,9 @@ class StreetEdgeTable @Inject() (
              COALESCE(l.user_ids, ARRAY[]::text[]) as user_ids,
              COALESCE(l.label_count, 0) as label_count,
              COALESCE(a.audit_count, 0) as audit_count,
+             -- Audited before, but every audit predates newer imagery (needs re-audit, #4384); mirrors the
+             -- three-state semantics of /contribution/streets/all, over this API's audit population.
+             COALESCE(a.audit_count, 0) > 0 AND COALESCE(a.up_to_date_audit_count, 0) = 0 as outdated,
              l.first_label_date,
              l.last_label_date,
              s.geom
@@ -363,6 +379,7 @@ class StreetEdgeTable @Inject() (
         },
         labelCount = r.nextInt(),
         auditCount = r.nextInt(),
+        outdated = r.nextBoolean(),
         firstLabelDate = r.nextTimestampOption().map(t => OffsetDateTime.ofInstant(t.toInstant, ZoneOffset.UTC)),
         lastLabelDate = r.nextTimestampOption().map(t => OffsetDateTime.ofInstant(t.toInstant, ZoneOffset.UTC)),
         geometry = r.nextGeometry[LineString]()

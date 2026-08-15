@@ -11,7 +11,7 @@ import play.api.mvc.Result
 import play.silhouette.api.Silhouette
 import service.{AggregateStats, ApiService, ConfigService}
 
-import java.time.{LocalDate, OffsetDateTime}
+import java.time.LocalDate
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -64,7 +64,7 @@ class StatsApiController @Inject() (
         minAccuracy = minAccuracy
       )
       .map { filteredStats: Seq[UserStatForApi] =>
-        val baseFileName: String = s"userStats_${OffsetDateTime.now()}"
+        val baseFileName: String = timestampedFilename("userStats")
         cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
 
         // Output data in the appropriate file format: CSV or JSON (default).
@@ -88,7 +88,7 @@ class StatsApiController @Inject() (
   def getOverallSidewalkStats(filterLowQuality: Boolean, filetype: Option[String]) = silhouette.UserAwareAction.async {
     implicit request =>
       apiService.getOverallStats(filterLowQuality).map { stats: ProjectSidewalkStats =>
-        val baseFileName: String = s"projectSidewalkStats_${OffsetDateTime.now()}"
+        val baseFileName: String = timestampedFilename("projectSidewalkStats")
         cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
 
         // Output data in the appropriate file format: CSV or JSON (default).
@@ -106,6 +106,7 @@ class StatsApiController @Inject() (
             row("KM Explored Without Overlap", stats.kmExploreNoOverlap)
             row("KM Explored Multiple Users", stats.kmExploredMultipleUsers)
             row("KM Explored Single User", stats.kmExploredSingleUser)
+            row("KM Needs Reaudit", stats.kmNeedsReaudit)
             row("KM Explorable", stats.kmOpen) // Auditable-now network (status = open); alias of KM Open below.
             row("KM Open", stats.kmOpen)
             row("KM No Imagery", stats.kmNoImagery)
@@ -193,7 +194,7 @@ class StatsApiController @Inject() (
         filetype match {
           case Some("csv") =>
             val csvContent   = generateAggregateStatsCsv(aggregateStats)
-            val baseFileName = s"aggregateStats_${OffsetDateTime.now()}"
+            val baseFileName = timestampedFilename("aggregateStats")
 
             // Create temporary CSV file (following the same pattern as other endpoints).
             val aggregateStatsFile = new java.io.File(s"$baseFileName.csv")
@@ -333,7 +334,7 @@ class StatsApiController @Inject() (
   private def renderDailyStats(stats: Seq[DailyStatRecord], filetype: Option[String], baseName: String): Result = {
     filetype match {
       case Some("csv") =>
-        val file   = new java.io.File(s"${baseName}_${OffsetDateTime.now()}.csv")
+        val file   = new java.io.File(s"${timestampedFilename(baseName)}.csv")
         val writer = new java.io.PrintStream(file, "UTF-8")
         writer.print(DailyStatRecord.csvHeader)
         stats.foreach { r =>

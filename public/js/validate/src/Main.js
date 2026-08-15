@@ -34,6 +34,10 @@ class Main {
       svv.tracker = new Tracker();
       svv.modalNoNewMission = new ModalNoNewMission(svv.ui.modalMission);
       svv.modalNoNewMission.show();
+      // The unhide in #init() never runs on this path, and the page still needs revealing: without it the loading
+      // overlay sits on screen forever and the modal is visible only through its own inline visibility override.
+      $('#page-loading').css({ visibility: 'hidden' });
+      $('.tool-ui').removeClass('ps-invisible');
     }
   }
 
@@ -90,6 +94,7 @@ class Main {
     svv.ui.modalMission.holder = $('#modal-mission-holder');
     svv.ui.modalMission.foreground = $('#modal-mission-foreground');
     svv.ui.modalMission.background = $('#modal-mission-background');
+    svv.ui.modalMission.eyebrow = $('#modal-mission-eyebrow'); // Mobile only; empty jQuery set on desktop.
     svv.ui.modalMission.missionTitle = $('#modal-mission-header');
     svv.ui.modalMission.instruction = $('#modal-mission-instruction');
     svv.ui.modalMission.closeButton = $('#modal-mission-close-button');
@@ -105,6 +110,12 @@ class Main {
     svv.ui.modalMissionComplete.message = $('#modal-mission-complete-message');
     svv.ui.modalMissionComplete.missionTitle = $('#modal-mission-complete-title');
     svv.ui.modalMissionComplete.unsureCount = $('#modal-mission-complete-unsure-count');
+    // The mission's label type, and the validator's standing after it. Mobile only; empty jQuery sets on desktop.
+    svv.ui.modalMissionComplete.labelIcon = $('#mission-complete-label-icon');
+    svv.ui.modalMissionComplete.badgeIcon = $('#mission-complete-badge-icon');
+    svv.ui.modalMissionComplete.badgeName = $('#mission-complete-badge-name');
+    svv.ui.modalMissionComplete.badgeProgressFill = $('#mission-complete-badge-progress-fill');
+    svv.ui.modalMissionComplete.badgeNext = $('#mission-complete-badge-next');
     svv.ui.modalMissionComplete.yourOverallTotalCount = $('#modal-mission-complete-your-overall-total-count');
 
     svv.ui.status = {};
@@ -159,11 +170,16 @@ class Main {
     svv.labelCard = new LabelCard();
 
     svv.panoStore = new PanoStore();
+
+    // Built before the first label renders because that render can need it: if none of the mission's labels have
+    // usable imagery, LabelContainer drops all of them and shows this modal instead of an empty pano (#4810).
+    svv.modalNoNewMission = new ModalNoNewMission(svv.ui.modalMission);
+
     const firstLabel = param.labelList[0];
     svv.panoManager = await PanoManager.create(
       svv.viewerType, param.viewerAccessToken, firstLabel.pano_id, buildBackupImageData(firstLabel),
     );
-    svv.labelContainer = await LabelContainer.create(param.labelList);
+    svv.labelContainer = await LabelContainer.create(param.labelList, param.mission.label_type_id);
 
     // There are certain features that will only make sense on desktop vs mobile.
     if (util.isMobile()) {
@@ -171,9 +187,15 @@ class Main {
     } else {
       svv.panoOverlay = new PanoOverlay();
       svv.keyboard = new KeyboardManager(svv.ui.validationMenu);
+      // Shortcuts act on the current label, and behind the dead-end modal there isn't one. The modal disables the
+      // keyboard when it goes up, but the first label's render can raise it before this exists to be told (#4810).
+      if (svv.modalNoNewMission.isShowing()) svv.keyboard.disableKeyboard();
+      // Read svv.panoViewer through closures rather than capturing it here, for the same reason as the info popover
+      // below: PanoManager swaps it between the primary viewer and Pannellum, and the sign would otherwise stay
+      // subscribed to whichever one happened to be showing the first label (#4828).
       svv.speedLimit = new SpeedLimit(
-        svv.panoViewer, svv.panoViewer.getPosition, () => false, param.countryId,
-        { labelContainer: svv.labelContainer, labelType },
+        () => svv.panoViewer, () => svv.panoViewer.getPosition(), () => false, param.countryId,
+        { labelContainer: svv.labelContainer },
       );
       svv.zoomControl = new ZoomControl();
       new MissionStartTutorial('validate', labelType, { nLabels: param.mission.labels_validated }, svv, param.language);
@@ -182,6 +204,11 @@ class Main {
     // Now that mission start tutorial has loaded, can unhide the UI under it and remove the loading icon.
     $('#page-loading').css({ visibility: 'hidden' });
     $('.tool-ui').removeClass('ps-invisible');
+
+    // The first label rendered while the tool was still invisible (visibility: hidden doesn't pause animations),
+    // so its halo pulse played unseen. Replay it now that the marker can be seen — or, on desktop, once the
+    // mission-start tutorial overlay raised just above it clears (#4790).
+    svv.panoManager.replayMarkerPulse();
 
     // Uniformly scale the whole tool to fit the viewport (like browser zoom) using var(--ui-scale). Mobile
     // instead fills the screen via PanoManager's own sizing.
@@ -209,8 +236,12 @@ class Main {
     svv.missionContainer.createAMission(param.mission, param.progress);
 
     if (!util.isMobile()) {
+      // Read svv.panoViewer through closures rather than capturing it here: PanoManager swaps it between the
+      // primary viewer and Pannellum as labels come and go, and a captured viewer keeps reporting the pano from
+      // the last label it showed (#4813).
       svv.infoPopover = new PanoInfoPopover(
-        svv.ui.viewer.dateHolder, svv.panoViewer, svv.panoViewer.getPosition, svv.panoViewer.getPanoId,
+        svv.ui.viewer.dateHolder, () => svv.panoViewer,
+        () => svv.panoViewer.getPosition(), () => svv.panoViewer.getPanoId(),
         () => {
           return svv.labelContainer.getCurrentLabel().getAuditProperty('streetEdgeId');
         },
@@ -223,7 +254,7 @@ class Main {
         () => {
           return svv.panoStore.getPanoData(svv.panoViewer.getPanoId()).getProperty('address');
         },
-        svv.panoViewer.getPov, true, () => {
+        () => svv.panoViewer.getPov(), true, () => {
           svv.tracker.push('PanoInfoButton_Click');
         },
         () => {
@@ -243,7 +274,6 @@ class Main {
 
     svv.modalMissionComplete = new ModalMissionComplete(svv.ui.modalMissionComplete, svv.user);
     svv.modalLandscape = new ModalLandscape(svv.ui.modalLandscape);
-    svv.modalNoNewMission = new ModalNoNewMission(svv.ui.modalMission);
 
     // Logs when the page's focus changes.
     function logPageFocus() {
@@ -262,14 +292,15 @@ class Main {
     });
     logPageFocus();
 
-    // The auth dialog is absent when signed in; pause keyboard shortcuts while it's open (events from Modal.js).
+    // The auth dialog is absent when signed in, and svv.keyboard is absent on the mobile page (#4884); pause
+    // keyboard shortcuts while the dialog is open (events from Modal.js).
     const signInModal = document.getElementById('sign-in-modal-container');
     signInModal?.addEventListener('ps:modal:hidden', () => {
-      svv.keyboard.enableKeyboard();
+      svv.keyboard?.enableKeyboard();
       $('.tool-ui').css('opacity', 1);
     });
     signInModal?.addEventListener('ps:modal:show', () => {
-      svv.keyboard.disableKeyboard();
+      svv.keyboard?.disableKeyboard();
       $('.tool-ui').css('opacity', 0.5);
     });
 

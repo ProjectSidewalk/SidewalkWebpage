@@ -302,6 +302,7 @@ audit.tutorial.complete.1 = Geschafft!
 audit.tutorial.complete.2 = Sie haben das Tutorial abgeschlossen!
 audit.tutorial.complete.learn-more = Mehr erfahren
 audit.tutorial.complete.start-contributing = Mit dem Beitragen beginnen
+audit.tutorial.pause-animation = Animation pausieren
 
 audit.ribbon.curb.ramp.labels = BESCHR. TROTTOIRABSENKUNGEN
 audit.ribbon.sidewalk.labels = BESCHR. GEHWEG
@@ -360,12 +361,10 @@ authenticate.identifier = E-Mail oder Benutzername
 authenticate.password = Passwort
 authenticate.remember.me = Ich möchte angemeldet bleiben
 authenticate.new = Neu dabei? <a href="#" id="form-open-sign-up">Registrieren!</a>
-authenticate.non.member = Kein Mitglied? <a href="{0}">Registrieren Sie sich jetzt</a>
 authenticate.confirm.password = Passwort wiederholen
 authenticate.service.hours.title = Haben Sie vor, Ihre Arbeit im Rahmen von Project Sidewalk als gemeinnützige/freiwillige Arbeit anrechnen zu lassen?
 authenticate.terms = Sie erklären sich mit unseren <a target="_blank" href="/terms">Nutzungsbedingungen und Datenschutzerklärung</a> einverstanden.
 authenticate.signup = Registrieren
-authenticate.signup.new.account = Mit neuem Account registrieren
 authenticate.has.account = Haben Sie einen Account? <a href="#" id="form-open-sign-in">Anmelden</a>
 
 # Sign-in/sign-up redesign (#4375) — draft translations, pending native-speaker polish (#4494).
@@ -410,7 +409,6 @@ welcome.hint.username = Du kannst deinen Benutzernamen jederzeit unter <a href="
 welcome.service.prompt = Kartierst du für Schul- oder Ehrenamtsstunden?
 welcome.service.button = Für Servicestunden anmelden
 authenticate.is.member = Schon ein Mitglied? <a href="{0}">Jetzt anmelden</a>
-authenticate.signin.with.credentials = Melden Sie sich mit Ihren Anmeldedaten an
 
 user.exists = E-Mail-Adresse wird bereits verwendet
 authenticate.error.username.exists = Benutzername wird bereits verwendet

@@ -32,7 +32,7 @@ class DashboardBadges {
     const roman = BadgeAchievements.ROMAN;
     if (!thresholds || !names) return;
 
-    const level = BadgeAchievements.getLevelForValue(type, value);
+    const { level, next: nextBadge, fraction, remaining } = BadgeAchievements.getProgress(type, value);
     const trackName = track.querySelector('.ud-badge-track-name')?.textContent.trim() ?? '';
 
     // Tier pill: "IV: Barrier Buster", colored by the level's ramp color (.ud-tier-N). Per-level names are
@@ -54,22 +54,15 @@ class DashboardBadges {
     const fill = track.querySelector('[data-fill]');
     const next = track.querySelector('[data-next]');
 
-    if (level >= 5) {
-      if (fill) fill.style.width = '100%';
-      if (next) next.textContent = i18next.t('dashboard:badges.maxed-out');
+    if (fill) fill.style.width = `${(fraction * 100).toFixed(0)}%`;
+    if (!next) return;
+
+    if (!nextBadge) {
+      next.textContent = i18next.t('dashboard:badges.maxed-out');
       return;
     }
-
-    // Progress between the current and next thresholds.
-    const prev = level >= 1 ? thresholds[level - 1] : 0;
-    const target = thresholds[level];
-    const pct = Math.max(0, Math.min(100, ((value - prev) / (target - prev)) * 100));
-    if (fill) fill.style.width = `${pct.toFixed(0)}%`;
-
-    if (next) {
-      const remaining = this.#formatRemaining(type, target - value);
-      next.innerHTML = `${remaining} → <strong>${trackName} ${roman[level]}: ${names[level]}</strong>`;
-    }
+    const remainingText = this.#formatRemaining(type, remaining);
+    next.innerHTML = `${remainingText} → <strong>${trackName} ${roman[level]}: ${names[level]}</strong>`;
   }
 
   /**

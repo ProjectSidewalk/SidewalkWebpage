@@ -71,6 +71,31 @@ class MapSidebarFilter {
   }
 
   /**
+   * Returns how many loaded labels the current filters leave visible on the map.
+   *
+   * Computed on demand (an O(labels) walk) rather than maintained on every filter click, so consumers that only
+   * need it occasionally — like the download menu on open — pay for it only then. The spotlighted label's filter
+   * bypass is deliberately not counted: it isn't part of the matching data, just a popup affordance.
+   *
+   * @returns {number} The visible label count across all checked label types.
+   */
+  getVisibleLabelCount() {
+    let total = 0;
+    for (const [labelType, features] of Object.entries(this.#mapData.sortedLabels)) {
+      if (!(this.#sidebar.querySelector(`#${labelType}-checkbox`)?.checked ?? false)) continue;
+      for (const feature of features) {
+        const props = feature.properties;
+        if (!this.#passesQualityFilters(props)) continue;
+        if (this.#passesSeverity(props) && this.#passesTags(labelType, props)
+          && this.#mapData[this.#validationCategory(props)]) {
+          total += 1;
+        }
+      }
+    }
+    return total;
+  }
+
+  /**
    * Applies a batch of selections (e.g. restored from the URL) to the sidebar controls and the map in one pass.
    * Only the provided sections change; onChange subscribers are not notified.
    *
@@ -271,7 +296,11 @@ class MapSidebarFilter {
     // Street counts are whatever loaded — no label filter narrows a street — so they come straight off the tracker.
     const streets = this.#mapData.streetCounts;
     const streetCounts = streets
-      ? { 'audited-street': streets.audited, 'unaudited-street': streets.unaudited }
+      ? {
+          'audited-street': streets.audited,
+          'outdated-street': streets.outdated,
+          'unaudited-street': streets.unaudited,
+        }
       : {};
 
     this.#filters.setCounts({ ...typeCounts, ...validationCounts, ...streetCounts });

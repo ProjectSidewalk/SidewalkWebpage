@@ -31,15 +31,17 @@ case class FunnelStat(funnelType: String, window: String, segment: String, steps
 case class FunnelSegmentCounts(segment: String, steps: Seq[Int])
 
 class FunnelStatTableDef(tag: Tag) extends Table[FunnelStat](tag, "funnel_stat") {
-  def funnelType: Rep[String]         = column[String]("funnel_type")
+  // CHECK (funnel_type IN ('mapping', 'contribution')) in the DB (no Slick DSL for CHECK constraints).
+  def funnelType: Rep[String] = column[String]("funnel_type")
+  // CHECK (time_window IN ('30d', '90d', 'all')) in the DB.
   def timeWindow: Rep[String]         = column[String]("time_window")
   def segment: Rep[String]            = column[String]("segment")
-  def step1: Rep[Int]                 = column[Int]("step1")
-  def step2: Rep[Int]                 = column[Int]("step2")
-  def step3: Rep[Int]                 = column[Int]("step3")
-  def step4: Rep[Int]                 = column[Int]("step4")
-  def step5: Rep[Int]                 = column[Int]("step5")
-  def step6: Rep[Int]                 = column[Int]("step6")
+  def step1: Rep[Int]                 = column[Int]("step1", O.Default(0))
+  def step2: Rep[Int]                 = column[Int]("step2", O.Default(0))
+  def step3: Rep[Int]                 = column[Int]("step3", O.Default(0))
+  def step4: Rep[Int]                 = column[Int]("step4", O.Default(0))
+  def step5: Rep[Int]                 = column[Int]("step5", O.Default(0))
+  def step6: Rep[Int]                 = column[Int]("step6", O.Default(0))
   def computedAt: Rep[OffsetDateTime] = column[OffsetDateTime]("computed_at")
 
   // steps is a fixed six-slot Seq, so the projection maps the six step columns to/from it explicitly.
@@ -191,6 +193,12 @@ class FunnelStatTable @Inject() (protected val dbConfigProvider: DatabaseConfigP
    * naturally nested. Device is all-time (a user attribute), not windowed. The AI user is excluded; anonymous users are
    * a real per-cookie population, kept and counted. The schema and events body are trusted (config + code), so they are
    * spliced in literally.
+   *
+   * The device CTE's mobile/desktop split is an ANALYTICS-ONLY classification of historical rows: it works from what
+   * the client recorded (Bowser OS names in `audit_task_environment.operating_system`, screen/browser widths) plus
+   * Visit_Index/Visit_MobileLanding hints, because a stored row has no User-Agent to ask. It therefore cannot reuse
+   * `ControllerUtils.isMobile` — the product's single mobile definition, which gates live requests (#4887) — and must
+   * never be treated as one: keep this regex out of product gates, and keep product gates out of here.
    *
    * @param schema   The database schema (already validated as a configured city schema).
    * @param events   The UNION ALL body producing (user_id, step) rows.

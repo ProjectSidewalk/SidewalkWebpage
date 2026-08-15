@@ -392,4 +392,38 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
       }
     }
   }
+
+  "user_stat's one-row-per-user invariant (#4604)" should {
+    "hold in the connected database" in {
+      // Every read of a user's stats takes the first row it finds, so a second row is a silent wrong answer rather
+      // than an error. Catches an evolution or hand fix-up that drops user_stat_user_id_key.
+      val dupeCount = await(
+        dbConfig.db.run(
+          sql"SELECT count(*) FROM (SELECT 1 FROM user_stat GROUP BY user_id HAVING count(*) > 1) duplicated"
+            .as[Int]
+            .head
+        )
+      )
+      dupeCount mustBe 0
+    }
+
+    "make a second insertIfNew for the same user a no-op" in {
+      // The behavior every caller now leans on instead of a read-then-insert. Also fails loudly if the constraint is
+      // ever renamed out from under insertIfNew's ON CONFLICT (user_id) inference.
+      val (first, second) = runRolledBack(for {
+        roleId <- sql"SELECT role_id FROM role WHERE role = 'Registered'".as[Int].head
+        _      <- sqlu"""INSERT INTO sidewalk_user (user_id, username, email)
+                         VALUES ($FixtureUserId, $FixtureUsername, 'zz_fixture_4533@example.com')"""
+        _      <- sqlu"INSERT INTO user_role (user_id, role_id) VALUES ($FixtureUserId, $roleId)"
+        first  <- userStatTable.insertIfNew(FixtureUserId, onLeaderboard = true, publicProfile = true)
+        second <- userStatTable.insertIfNew(FixtureUserId, onLeaderboard = false, publicProfile = false)
+        rows   <- sql"SELECT count(*) FROM user_stat WHERE user_id = $FixtureUserId".as[Int].head
+      } yield {
+        rows mustBe 1
+        (first, second)
+      })
+      first mustBe 1
+      second mustBe 0
+    }
+  }
 }

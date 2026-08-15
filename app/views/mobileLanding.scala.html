@@ -10,18 +10,7 @@
 @common.main(commonData, title, url = "/mobileLanding") {
   <link rel="stylesheet" href='@assets.path("css/mobile-landing.css")'>
 
-    <!-- Slim header: logo + sign-in link. No full navbar on mobile landing. -->
-  <header id="mobile-landing-header">
-    <img src='@assets.path("images/" + config.get[String]("city-params.logo-img." + commonData.cityId))'
-    id="mobile-landing-logo-header"
-    alt="Project Sidewalk Logo">
-    @* A cookie-less visitor (None) gets the same signed-out header as an anonymous account. *@
-    @if(user.forall(_.role == "Anonymous")) {
-      <a href='@routes.UserController.signInMobile()' class="mobile-header-signin">@Messages("navbar.signin")</a>
-    } else {
-      <span class="mobile-header-signin">@user.map(_.username)</span>
-    }
-  </header>
+  @common.navbar(commonData, user)
 
     <!-- Hero section with background video, tagline, and CTA -->
   <section id="mobile-landing-hero">

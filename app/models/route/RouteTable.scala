@@ -103,9 +103,10 @@ class RouteTableDef(tag: slick.lifted.Tag) extends Table[Route](tag, "route") {
   def description: Rep[Option[String]] = column[Option[String]]("description")
   def public: Rep[Boolean]             = column[Boolean]("public")
   def deleted: Rep[Boolean]            = column[Boolean]("deleted")
-  def createdAt: Rep[OffsetDateTime]   = column[OffsetDateTime]("created_at")
-  def distanceMeters: Rep[Double]      = column[Double]("distance_meters")
-  def streetCount: Rep[Int]            = column[Int]("street_count")
+  // DEFAULT now() in the DB (O.Default holds a value, not an expression).
+  def createdAt: Rep[OffsetDateTime] = column[OffsetDateTime]("created_at")
+  def distanceMeters: Rep[Double]    = column[Double]("distance_meters")
+  def streetCount: Rep[Int]          = column[Int]("street_count")
 
   def * =
     (routeId, userId, regionId, name, slug, description, public, deleted, createdAt, distanceMeters, streetCount) <> (
@@ -149,7 +150,7 @@ class RouteTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       .filter(_.routeId === routeId)
       .join(streetEdges)
       .on(_.streetEdgeId === _.streetEdgeId)
-      .map { case (_, streetEdge) => streetEdge.geom.transform(26918).lengthD }
+      .map { case (_, streetEdge) => streetEdge.geom.lengthGeodesic }
       .sum
       .getOrElse(0d)
       .result
@@ -200,15 +201,15 @@ class RouteTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    * Recomputes a route's cached distance and street count from its current streets.
    *
    * Called whenever the street list changes, so listings can read the stats straight off the route row instead of
-   * re-measuring every street's geometry per request. Distance is in meters (UTM 18N, matching the previous
-   * derivation); a route with no streets gets zeroes.
+   * re-measuring every street's geometry per request. Distance is in geodesic meters; a route with no streets gets
+   * zeroes.
    */
   def updateStats(routeId: Int): DBIO[Int] = {
     sqlu"""
       UPDATE route
       SET distance_meters = COALESCE(stats.distance_meters, 0), street_count = COALESCE(stats.street_count, 0)
       FROM (
-          SELECT SUM(ST_Length(ST_Transform(street_edge.geom, 26918))) AS distance_meters,
+          SELECT SUM(ST_Length(street_edge.geom::geography)) AS distance_meters,
                  COUNT(*) AS street_count
           FROM route_street
           INNER JOIN street_edge ON route_street.street_edge_id = street_edge.street_edge_id

@@ -218,11 +218,15 @@ class CoveragePage {
   #renderKpis(features) {
     const totalM = features.reduce((s, f) => s + (f.properties.total_distance_m || 0), 0);
     const auditedM = features.reduce((s, f) => s + (f.properties.audited_distance_m || 0), 0);
+    // Streets audited before, but whose audits all predate newer imagery (#4384) — still counted in coverage,
+    // surfaced here as their own KPI.
+    const outdatedM = features.reduce((s, f) => s + (f.properties.outdated_distance_m || 0), 0);
     const fullyAudited = features.filter((f) => (f.properties.completion_rate || 0) >= 0.999).length;
 
     document.getElementById('kpi-city-coverage').textContent = CoverageFormat.pct(totalM ? auditedM / totalM : 0);
     document.getElementById('kpi-regions').textContent = features.length.toLocaleString();
     document.getElementById('kpi-fully-audited').textContent = fullyAudited.toLocaleString();
+    document.getElementById('kpi-needs-reaudit').textContent = CoverageFormat.km(outdatedM);
   }
 
   #renderLegend() {

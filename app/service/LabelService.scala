@@ -7,12 +7,14 @@ import models.label.LabelTable._
 import models.label.LabelTypeEnum.labelTypeToId
 import models.label.{Tag, _}
 import models.mission.{Mission, MissionTable, MissionType}
+import models.pano.PanoSource
 import models.pano.PanoSource.PanoSource
 import models.user.SidewalkUserWithRole
 import models.utils.CommonUtils.UiSource
 import models.utils.MyPostgresProfile.api._
 import models.utils.{ExcludedTag, MyPostgresProfile}
 import models.validation.LabelValidationTable
+import org.apache.pekko.stream.scaladsl.Source
 import play.api.Logger
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.dbio.DBIO
@@ -46,8 +48,9 @@ trait LabelService {
   def getLabelsForLabelMap(
       regionIds: Seq[Int],
       routeIds: Seq[Int],
-      aiValOptions: Seq[String]
-  ): Future[Seq[LabelForLabelMap]]
+      aiValOptions: Seq[String],
+      batchSize: Int
+  ): Source[LabelForLabelMap, _]
   def getGalleryLabels(
       n: Int,
       labelTypes: Set[LabelTypeEnum.Base],
@@ -69,7 +72,7 @@ trait LabelService {
       userIds: Option[Set[String]] = None,
       regionIds: Option[Set[Int]] = None,
       unvalidatedOnly: Boolean = false,
-      skippedLabelId: Option[Int] = None
+      excludedLabelIds: Set[Int] = Set.empty
   ): Future[Seq[LabelValidationMetadata]]
   def getDataForValidationPages(
       user: SidewalkUserWithRole,
@@ -81,6 +84,13 @@ trait LabelService {
       missionProgress: Option[ValidationMissionProgress],
       validateParams: ValidateParams
   ): Future[ValidationTaskPostReturnValue]
+  def getMoreLabelsToValidate(
+      user: SidewalkUserWithRole,
+      labelTypeId: Int,
+      labelsNeeded: Int,
+      excludedLabelIds: Set[Int],
+      validateParams: ValidateParams
+  ): Future[(Seq[LabelValidationMetadata], Seq[AdminValidationData])]
   def getRecentValidatedLabelsForUser(
       userId: String,
       labelTypes: Set[LabelTypeEnum.Base],
@@ -185,9 +195,23 @@ class LabelServiceImpl @Inject() (
   def getLabelsForLabelMap(
       regionIds: Seq[Int],
       routeIds: Seq[Int],
-      aiValOptions: Seq[String]
-  ): Future[Seq[LabelForLabelMap]] =
-    db.run(labelTable.getLabelsForLabelMap(regionIds, routeIds, aiValOptions))
+      aiValOptions: Seq[String],
+      batchSize: Int
+  ): Source[LabelForLabelMap, _] =
+    // `.transactionally` is required for Postgres to honor fetchSize and stream instead of materializing (#3932). It
+    // also means a pooled connection stays checked out, transaction open, for the whole response rather than just the
+    // query: `Ok.chunked` backpressures from the client socket, so a slow reader pins one of the 25 connections until
+    // it finishes. Prod bounds that with idle_in_transaction_session_timeout=120s, which a fetch-to-fetch gap longer
+    // than that trips — the stream then fails mid-flight, and `logStreamFailures` is the only trace (see #4161).
+    Source.fromPublisher(
+      db.stream(
+        labelTable
+          .getLabelsForLabelMap(regionIds, routeIds, aiValOptions)
+          .result
+          .transactionally
+          .withStatementParameters(fetchSize = batchSize)
+      ).mapResult(labelTable.tupleToLabelForLabelMap)
+    )
 
   /**
    * Retrieves n labels, split evenly across the requested label types. An empty set of types gives a mix of all.
@@ -269,14 +293,14 @@ class LabelServiceImpl @Inject() (
    *
    * Starts by querying for n * 5 labels, then checks GSV API to see if each pano_id exists until we find n.
    *
-   * @param userId         User ID for the current user.
-   * @param n              Number of labels we need to query.
-   * @param viewer         The type of pano viewer the labels must have been added on (GSV, Mapillary, etc).
-   * @param labelTypeId    Label Type ID of labels requested.
-   * @param userIds        Optional list of user IDs to filter by.
-   * @param regionIds      Optional list of region IDs to filter by.
-   * @param skippedLabelId Label ID of the label that was just skipped (if applicable).
-   * @return               Seq[LabelValidationMetadata]
+   * @param userId           User ID for the current user.
+   * @param n                Number of labels we need to query.
+   * @param viewer           The type of pano viewer the labels must have been added on (GSV, Mapillary, etc).
+   * @param labelTypeId      Label Type ID of labels requested.
+   * @param userIds          Optional list of user IDs to filter by.
+   * @param regionIds        Optional list of region IDs to filter by.
+   * @param excludedLabelIds Labels the caller already holds and must not be handed again (#4810).
+   * @return                 Seq[LabelValidationMetadata]
    */
   def retrieveLabelListForValidation(
       userId: String,
@@ -286,12 +310,12 @@ class LabelServiceImpl @Inject() (
       userIds: Option[Set[String]] = None,
       regionIds: Option[Set[Int]] = None,
       unvalidatedOnly: Boolean = false,
-      skippedLabelId: Option[Int] = None
+      excludedLabelIds: Set[Int] = Set.empty
   ): Future[Seq[LabelValidationMetadata]] = {
     // TODO can we make this and the Gallery queries transactions to prevent label dupes?
     findValidLabelsForType(
       labelTable.retrieveLabelListForValidationQuery(userId, viewer, labelTypeId,
-        configService.getAiTagSuggestionsEnabled, userIds, regionIds, unvalidatedOnly, skippedLabelId),
+        configService.getAiTagSuggestionsEnabled, userIds, regionIds, unvalidatedOnly, excludedLabelIds),
       randomize = true,
       useCrops = false,
       n
@@ -304,7 +328,7 @@ class LabelServiceImpl @Inject() (
    * @param randomize Whether to randomize the label order or not.
    * @param useCrops If true, local static crop of pano around the label also works as well as an API call.
    * @param remaining Number of labels remaining to get.
-   * @param batchNumber Batch number we're on, used to paginate the query.
+   * @param offset Number of rows to skip; each batch advances it by the number of rows it read.
    * @param accumulator Accumulator of labels we've found so far.
    * @param tupleConverter Implicit converter to convert the tuple from the db to the appropriate case class.
    */
@@ -313,7 +337,7 @@ class LabelServiceImpl @Inject() (
       randomize: Boolean,
       useCrops: Boolean,
       remaining: Int,
-      batchNumber: Int = 0,
+      offset: Int = 0,
       accumulator: Seq[A] = Seq.empty
   )(implicit tupleConverter: TupleConverter[Tuple, A]): Future[Seq[A]] = {
     if (remaining <= 0) {
@@ -322,7 +346,7 @@ class LabelServiceImpl @Inject() (
       val batchSize = remaining * 5 // Get 5x the needed amount, shouldn't need to query again.
 
       // Query for a batch of labels.
-      db.run(labelQuery.drop(batchSize * batchNumber).take(batchSize).result)
+      db.run(labelQuery.drop(offset).take(batchSize).result)
         .map(l => l.map(tupleConverter.fromTuple))
         .flatMap { labels =>
           // Randomize the labels to prevent similar labels in a mission.
@@ -330,17 +354,25 @@ class LabelServiceImpl @Inject() (
 
           // Check for valid imagery in parallel.
           checkImageryBatch(shuffledLabels, useCrops).flatMap { validLabels =>
+            // Skip labels an earlier batch took. The validation query orders by a score containing `random()`, which
+            // Postgres re-evaluates per execution, so every batch sees a fresh shuffle and can resurface rows an
+            // earlier one covered, whatever the offset. A mission holding the same label twice is what that looks
+            // like to the user.
+            val alreadyFound: Set[Int] = accumulator.map(_.labelId).toSet
+            val newValidLabels: Seq[A] = validLabels.filterNot(l => alreadyFound.contains(l.labelId)).take(remaining)
+
             if (validLabels.isEmpty) {
               Future.successful(accumulator) // No more valid labels found.
             } else {
               // Add the valid labels to the accumulator and recurse.
-              val newValidLabels = validLabels.take(remaining)
               findValidLabelsForType(
                 labelQuery,
                 randomize,
                 useCrops,
                 remaining - newValidLabels.size,
-                batchNumber + 1,
+                // Advance by the rows this batch read. `batchSize` shrinks as `remaining` does, so it can't be
+                // multiplied out into an offset.
+                offset + labels.size,
                 accumulator ++ newValidLabels
               )
             }
@@ -350,29 +382,51 @@ class LabelServiceImpl @Inject() (
   }
 
   // Checks each label in a batch for imagery availability. When useCrops is true, labels with a locally-saved crop
-  // image are accepted without querying the API; only labels lacking a crop are checked. When useCrops is false, all
-  // labels are checked via panoExists(); labels with a locally-hosted backup pass as well.
+  // image are accepted without any imagery lookup; only labels lacking a crop are looked up. When useCrops is false,
+  // every label is looked up, and one with a viewable locally-hosted backup passes even when its imagery is gone.
+  //
+  // This is the gate expired imagery has to clear: LabelTable.imageryViewable screens on pano_data.expired, which a row
+  // keeps claiming false until something checks it, so a label whose imagery died arrives here still looking live. The
+  // lookup answers from pano_data where that's sound (getReusableImageryStatus) and asks the provider otherwise.
   private def checkImageryBatch[A <: BasicLabelMetadata](labels: Seq[A], useCrops: Boolean): Future[Seq[A]] = {
-    if (useCrops) {
-      // Partition: labels with local crops pass immediately; the rest are checked via panoExists().
-      val (withCrop, withoutCrop) = labels.partition(l => panoDataService.cropExists(l.labelId, l.labelType))
-      Future
-        .traverse(withoutCrop) { label =>
-          panoDataService.panoExists(label.panoId, label.panoSource).map {
-            case Some(true) => Some(label)
-            case _          => None
-          }
+    // Partition: labels with local crops need no imagery lookup at all; the rest are checked one by one.
+    val (withCrop, toCheck) =
+      if (useCrops) labels.partition(l => panoDataService.cropExists(l.labelId, l.labelType))
+      else (Seq.empty[A], labels)
+
+    // One query up front for the answers we can reuse, so the per-label lookups below skip the provider where they can.
+    // Only provider-checked sources have reusable answers, and every batch is single-source (the label queries filter
+    // on the viewer's source), so asking about an Infra3d batch would spend a round trip to be told nothing.
+    val cacheablePanoIds: Set[String] =
+      toCheck.collect { case l if PanoSource.providerCheckedSources.contains(l.panoSource) => l.panoId }.toSet
+    panoDataService.getReusableImageryStatus(cacheablePanoIds).flatMap { reusable =>
+      def imageryExists(label: A): Future[Option[Boolean]] =
+        reusable.get(label.panoId) match {
+          case Some(exists) => Future.successful(Some(exists))
+          case None         => panoDataService.panoExists(label.panoId, label.panoSource)
         }
-        .map(results => withCrop ++ results.flatten)
-    } else {
-      Future
-        .traverse(labels) { label =>
-          panoDataService.panoExists(label.panoId, label.panoSource).map {
-            case Some(true) => Some(label)
-            case _          => if (panoDataService.backupExists(label.panoId)) Some(label) else None
+
+      if (useCrops) {
+        Future
+          .traverse(toCheck) { label =>
+            imageryExists(label).map {
+              case Some(true) => Some(label)
+              case _          => None
+            }
           }
-        }
-        .map(_.flatten)
+          .map(results => withCrop ++ results.flatten)
+      } else {
+        Future
+          .traverse(toCheck) { label =>
+            imageryExists(label).flatMap {
+              case Some(true) => Future.successful(Some(label))
+              // getLocalBackupImage, not backupExists: a file on disk is only usable if pano_data also has the metadata
+              // Pannellum needs. Validate has no fallback behind it, so admitting a label we can't render is #4804.
+              case _ => panoDataService.getLocalBackupImage(label.panoId).map(_.map(_ => label))
+            }
+          }
+          .map(_.flatten)
+      }
     }
   }
 
@@ -469,6 +523,43 @@ class LabelServiceImpl @Inject() (
         Future.successful(
           (Option.empty[Mission], None, Seq.empty[LabelValidationMetadata], Seq.empty[AdminValidationData])
         )
+    }
+  }
+
+  /**
+   * Get replacement labels for a Validate mission that ran out of them mid-mission.
+   *
+   * Validate is handed exactly as many labels as its mission still needs, so a label it turns out not to be able to
+   * render (#4810) would otherwise leave the mission unfinishable. This tops the queue back up.
+   *
+   * @param user             The user validating.
+   * @param labelTypeId      Label type of the mission being topped up.
+   * @param labelsNeeded     How many labels the client is short, capped at a full mission's worth.
+   * @param excludedLabelIds Every label the client already holds, so it can't be handed one back.
+   * @param validateParams   The page's filters, so a topped-up label matches what the rest of the mission is.
+   * @return                 (labelList, adminData) — adminData empty unless this is Expert Validate.
+   */
+  def getMoreLabelsToValidate(
+      user: SidewalkUserWithRole,
+      labelTypeId: Int,
+      labelsNeeded: Int,
+      excludedLabelIds: Set[Int],
+      validateParams: ValidateParams
+  ): Future[(Seq[LabelValidationMetadata], Seq[AdminValidationData])] = {
+    val viewerType: PanoSource = configService.getPanoSource
+    val nToRetrieve: Int       = labelsNeeded.min(MissionTable.validationMissionLabelsToRetrieve)
+    if (nToRetrieve < 1) {
+      Future.successful((Seq.empty[LabelValidationMetadata], Seq.empty[AdminValidationData]))
+    } else {
+      for {
+        labelList <- retrieveLabelListForValidation(user.userId, nToRetrieve, viewerType, labelTypeId,
+          validateParams.userIds.map(_.toSet), validateParams.neighborhoodIds.map(_.toSet),
+          validateParams.unvalidatedOnly, excludedLabelIds)
+        adminData <- {
+          if (validateParams.adminVersion) getExtraAdminValidateData(labelList.map(_.labelId))
+          else Future.successful(Seq.empty[AdminValidationData])
+        }
+      } yield (labelList, adminData)
     }
   }
 

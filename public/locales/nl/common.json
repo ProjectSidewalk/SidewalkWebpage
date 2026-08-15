@@ -52,6 +52,8 @@
     "distance-left-one-unit": "Nog maar 1 kilometer te gaan!",
     "less-than-one-unit-left": "Minder dan een kilometer te gaan!",
     "click-to-help": "<a href='{{url}}' class='region-selection-trigger' regionId='{{regionId}}'>Klik hier</a> om te helpen bij het voltooien van deze wijk",
+    "needs-reaudit": "Ongeveer {{n}} km aan straten heeft hier nieuwere beelden en moet opnieuw verkend worden!",
+    "click-to-reaudit": "<a href='{{url}}' class='region-selection-trigger' regionId='{{regionId}}'>Klik hier</a> om die straten opnieuw te verkennen",
     "thanks": "Dank voor al je hulp!",
     "100-percent-complete": "100% Voltooid!",
     "percent-complete": "{{percent}}% Voltooid"
@@ -98,7 +100,6 @@
   "bad": "Slecht",
   "yes": "Ja",
   "no": "Nee",
-  "ai-disclaimer": "AI heeft dit label geanalyseerd en gestemd op \"$t({{aiVal}})\". AI kan echter fouten maken. Maak uw eigen beoordeling.",
   "ai-generated-label-tooltip": "Dit label is door AI gemaakt. AI kan fouten maken, dus maak uw eigen beoordeling.",
   "tag": {
     "narrow": "smal",

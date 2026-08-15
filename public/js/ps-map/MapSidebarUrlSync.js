@@ -105,7 +105,8 @@ class MapSidebarUrlSync {
     const tags = this.#parseTagPairs(params);
     if (tags) state.tags = tags;
 
-    const streets = this.#parseList(params, 'streets', ['audited', 'unaudited']);
+    const knownStreets = this.#checkboxIds('streets').map((id) => id.replace('-street', ''));
+    const streets = this.#parseList(params, 'streets', knownStreets);
     if (streets) state.streets = streets.map((s) => `${s}-street`);
 
     if (Object.keys(state).length > 0) this.#filter.applyState(state);
@@ -143,10 +144,11 @@ class MapSidebarUrlSync {
 
     // Each tag carries the type it narrows: names repeat across types ("narrow" is both a curb ramp and a
     // sidewalk tag), so a bare name couldn't say which one the user filtered, and restoring it would widen the
-    // filter to every checked type that renders it.
+    // filter to every checked type that renders it. One occurrence per tag rather than a comma-joined list —
+    // tag names are free-form and one of them contains a comma (#4783); see util.url.setRepeated.
     const tags = Object.entries(state.tags)
       .flatMap(([labelType, tagNames]) => tagNames.map((tag) => `${labelType}:${tag}`));
-    this.#setOrDelete(url, 'tags', tags.length === 0 ? null : tags.join(','));
+    util.url.setRepeated(url.searchParams, 'tags', tags);
 
     const streetIds = state.sections.streets ?? [];
     const streets = streetIds.map((id) => id.replace('-street', ''));
@@ -158,12 +160,7 @@ class MapSidebarUrlSync {
     url.searchParams.set('lng', center.lng.toFixed(5));
     url.searchParams.set('zoom', this.#map.getZoom().toFixed(2));
 
-    // Commas are legal unencoded in a query value, and these params are comma-separated lists, so leaving them
-    // readable keeps the shared URLs legible (Gallery precedent). LabelDetail.syncUrlLabelId serializes
-    // identically on purpose: both writers run on this page, and byte-differing output would make them fight
-    // over the same params (pinned by test/js/mapSidebarUrlSync.test.js).
-    const query = url.searchParams.toString().replace(/%2C/g, ',');
-    window.history.replaceState(null, '', `${url.pathname}${query ? `?${query}` : ''}${url.hash}`);
+    util.url.replaceQuery(url);
   }
 
   /**
@@ -191,24 +188,21 @@ class MapSidebarUrlSync {
   /**
    * Parses the `tags` param's `labelType:tag` tokens, keeping only pairs the sidebar actually renders.
    *
-   * Tokens are validated whole, before being split, so the split can safely take the first colon as the
-   * delimiter: label type keys never contain one, but tag names do ("parallel lines:yes").
+   * Tokens are matched whole against the rendered pills, which is what lets a token be split safely afterwards:
+   * the first colon is the delimiter (label type keys never contain one, but tag names do — "parallel
+   * lines:yes"), and a comma-joined token from an older link is only split once it fails to match on its own.
    *
    * @param {URLSearchParams} params The current query params.
    * @returns {?Array<{labelType: string, tag: string}>} The valid pairs, or null when the param is absent.
    */
   #parseTagPairs(params) {
-    const raw = params.get('tags');
-    if (raw === null) return null;
     const rendered = new Set(Array.from(this.#sidebar.querySelectorAll('.tag-pill[data-tag]'))
       .map((pill) => `${pill.dataset.labelType}:${pill.dataset.tag}`));
-    return raw.split(',')
-      .map((token) => token.trim())
-      .filter((token) => rendered.has(token))
-      .map((token) => {
+    return util.url.getRepeated(params, 'tags', (token) => rendered.has(token))
+      ?.map((token) => {
         const colon = token.indexOf(':');
         return { labelType: token.slice(0, colon), tag: token.slice(colon + 1) };
-      });
+      }) ?? null;
   }
 
   /**

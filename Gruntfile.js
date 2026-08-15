@@ -24,6 +24,8 @@ module.exports = function (grunt) {
       },
       dist_progress: {
         src: [
+          // Shared deep-link query rules; every reader/writer of the URL's filter params depends on it.
+          'public/js/common/urlQuery.js',
           'public/js/common/aiLabelIndicator.js',
           'public/js/admin/src/*.js',
           // PopupPanoManager and LabelDetail must be concatenated before LabelPopup.
@@ -46,6 +48,8 @@ module.exports = function (grunt) {
       },
       dist_admin: {
         src: [
+          // Shared deep-link query rules; every reader/writer of the URL's filter params depends on it.
+          'public/js/common/urlQuery.js',
           'public/js/common/aiLabelIndicator.js',
           // Toast must be concatenated before BadgeAchievements, which LabelDetail uses for validation badges.
           'public/js/common/Toast.js',
@@ -91,6 +95,7 @@ module.exports = function (grunt) {
           'public/js/common/utilitiesSidewalk.js',
           'public/js/common/SpeedLimit.js',
           'public/js/common/MissionStartTutorial.js',
+          'public/js/common/Confetti.js',
           // Toast must be concatenated before BadgeAchievements, which builds badge-unlock toasts.
           'public/js/common/Toast.js',
           'public/js/common/BadgeAchievements.js',
@@ -100,6 +105,8 @@ module.exports = function (grunt) {
       },
       dist_gallery: {
         src: [
+          // Shared deep-link query rules; every reader/writer of the URL's filter params depends on it.
+          'public/js/common/urlQuery.js',
           'public/js/common/aiLabelIndicator.js',
           // Toast must be concatenated before BadgeAchievements, which builds badge-unlock toasts.
           'public/js/common/Toast.js',
@@ -128,6 +135,8 @@ module.exports = function (grunt) {
       },
       dist_map: {
         src: [
+          // Shared deep-link query rules; every reader/writer of the URL's filter params depends on it.
+          'public/js/common/urlQuery.js',
           // The shared filter sidebar owns the sidebar controls; MapSidebarFilter is the map's adapter for it.
           'public/js/common/filter-sidebar/*.js',
           'public/js/ps-map/*.js',
@@ -146,6 +155,8 @@ module.exports = function (grunt) {
         src: [
           // The shared LabelDetail component + its deps (same set the Gallery bundle pulls in), plus the
           // SharedLabel app. The pano-viewer classes and ps-map load from their own bundles (script tags).
+          // Shared deep-link query rules; every reader/writer of the URL's filter params depends on it.
+          'public/js/common/urlQuery.js',
           'public/js/common/aiLabelIndicator.js',
           // Toast must precede BadgeAchievements, which builds badge-unlock toasts.
           'public/js/common/Toast.js',

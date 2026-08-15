@@ -5,7 +5,10 @@ set -euo pipefail
 # check_streets_for_imagery.py (db/street_imagery_summary.csv) into street_imagery with data_source = 'imagery_scan'.
 # This covers streets a scan reached but that have no labels yet, so Feeder 1 (the evolution-326 pano_data backfill)
 # could not see them. A deliberate scan is treated as authoritative for the streets it covers, so on a key collision the
-# scan row supersedes an existing pano_data row.
+# scan row supersedes an existing pano_data row. The app also refreshes street_imagery on its own each night (#4384):
+# refreshFromPanoData harvests capture dates from newly-labeled panos, and CheckImageryAgeActor polls the imagery
+# provider for a batch of streets (data_source = 'imagery_poll'); a bulk scan import remains useful for new cities and
+# for full-coverage passes.
 
 source /opt/scripts/helpers.sh
 

@@ -52,6 +52,8 @@
     "distance-left-one-unit": "Sólo faltan 1 kilómetro!",
     "less-than-one-unit-left": "¡Queda menos de un kilómetro!",
     "click-to-help": "¡<a href='{{url}}' class='region-selection-trigger' regionId='{{regionId}}'>Haz clic aquí</a> para ayudar a terminar este barrio",
+    "needs-reaudit": "¡Aproximadamente {{n}} km de calles aquí tienen imágenes actualizadas y necesitan una nueva exploración!",
+    "click-to-reaudit": "<a href='{{url}}' class='region-selection-trigger' regionId='{{regionId}}'>Haz clic aquí</a> para volver a explorar esas calles",
     "thanks": "¡Gracias por tu ayuda!",
     "100-percent-complete": "¡100% Completa!",
     "percent-complete": "{{percent}}% Completa"
@@ -98,7 +100,6 @@
   "bad": "Mala",
   "yes": "Sí",
   "no": "No",
-  "ai-disclaimer": "La IA analizó esta etiqueta y votó \"$t({{aiVal}})\"; sin embargo, la IA puede cometer errores. Por favor, haga su propia evaluación.",
   "ai-generated-label-tooltip": "Esta etiqueta fue generada por IA. La IA puede cometer errores, así que haga su propia evaluación.",
   "tag": {
     "narrow": "muy angosta",

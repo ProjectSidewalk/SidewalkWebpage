@@ -26,11 +26,14 @@ function addNeighborhoodsToMap(map, neighborhoodGeoJSON, completionRates, params
     neighborhood.properties.completionRate = Math.min(100, 100.0 * compRate.rate);
     neighborhood.properties.completed_distance_m = compRate.completed_distance_m;
     neighborhood.properties.total_distance_m = compRate.total_distance_m;
+    neighborhood.properties.outdated_distance_m = compRate.outdated_distance_m || 0;
     neighborhood.dist_remaining_m = compRate.total_distance_m - compRate.completed_distance_m;
     if (measurementSystem === 'metric') {
       neighborhood.properties.dist_remaining_converted = neighborhood.dist_remaining_m * 0.001; // Kilometers.
+      neighborhood.properties.outdated_dist_converted = neighborhood.properties.outdated_distance_m * 0.001;
     } else {
       neighborhood.properties.dist_remaining_converted = neighborhood.dist_remaining_m * 0.000621371; // Miles.
+      neighborhood.properties.outdated_dist_converted = neighborhood.properties.outdated_distance_m * 0.000621371;
     }
 
     // Compute fill color/opacity for each neighborhood.
@@ -125,29 +128,48 @@ function addNeighborhoodsToMap(map, neighborhoodGeoJSON, completionRates, params
         const compRate = currRegion.properties.completionRate;
         const compRateRounded = Math.floor(compRate);
         const distanceLeftRounded = Math.round(currRegion.properties.dist_remaining_converted);
+        // The needs-re-audit annotation + CTA (#4384): completion keeps crediting streets whose audits predate newer
+        // imagery, so a fully-explored neighborhood can still invite work. Shown whenever the re-audit distance
+        // doesn't round away to zero.
+        const outdatedConverted = currRegion.properties.outdated_dist_converted;
+        const outdatedRounded = outdatedConverted < 10
+          ? Math.round(outdatedConverted * 10) / 10
+          : Math.round(outdatedConverted);
+        const reauditLine = outdatedRounded > 0
+          ? `${i18next.t('common:map.needs-reaudit', { n: outdatedRounded })}<br>`
+          : '';
+        const reauditCta = i18next.t('common:map.click-to-reaudit', { url, regionId: hoveredRegionId });
         if (currRegion.properties.user_completed) {
           popupContent = `<strong>${regionName}</strong>:
             ${i18next.t('common:map.100-percent-complete')}<br>
             ${i18next.t('common:map.thanks')}`;
+          if (reauditLine) {
+            popupContent += `<br>
+            ${reauditLine}${reauditCta}`;
+          }
         } else if (compRate === 100) {
+          // A fully-audited region's CTA flips from "help finish" to "re-explore" when re-audits are the work left.
+          const fullRegionCta = reauditLine
+            ? `${reauditLine}${reauditCta}`
+            : i18next.t('common:map.click-to-help', { url, regionId: hoveredRegionId });
           popupContent = `<strong>${regionName}</strong>:
             ${i18next.t('common:map.100-percent-complete')}<br>
-            ${i18next.t('common:map.click-to-help', { url, regionId: hoveredRegionId })}`;
+            ${fullRegionCta}`;
         } else if (distanceLeftRounded === 0) {
           popupContent = `<strong>${regionName}</strong>:
             ${i18next.t('common:map.percent-complete', { percent: compRateRounded })}<br>
             ${i18next.t('common:map.less-than-one-unit-left')}<br>
-            ${i18next.t('common:map.click-to-help', { url, regionId: hoveredRegionId })}`;
+            ${reauditLine}${i18next.t('common:map.click-to-help', { url, regionId: hoveredRegionId })}`;
         } else if (distanceLeftRounded === 1) {
           popupContent = `<strong>${regionName}</strong>:
             ${i18next.t('common:map.percent-complete', { percent: compRateRounded })}<br>
             ${i18next.t('common:map.distance-left-one-unit')}<br>
-            ${i18next.t('common:map.click-to-help', { url, regionId: hoveredRegionId })}`;
+            ${reauditLine}${i18next.t('common:map.click-to-help', { url, regionId: hoveredRegionId })}`;
         } else {
           popupContent = `<strong>${regionName}</strong>:
             ${i18next.t('common:map.percent-complete', { percent: compRateRounded })}<br>
             ${i18next.t('common:map.distance-left', { n: distanceLeftRounded })}<br>
-            ${i18next.t('common:map.click-to-help', { url, regionId: hoveredRegionId })}`;
+            ${reauditLine}${i18next.t('common:map.click-to-help', { url, regionId: hoveredRegionId })}`;
         }
 
         // Set tooltip to center of neighborhood.
@@ -200,7 +222,10 @@ function addNeighborhoodsToMap(map, neighborhoodGeoJSON, completionRates, params
 
     if (params.logClicks) {
       // Logs to the webpage_activity table when a region is selected from the map and 'Click here' is clicked.
-      // Log form: 'Click_module=<mapName>_regionId=<regionId>_distanceLeft=<'0', '<1', '1' or '>1'>_target=audit'.
+      // Log form: 'Click_module=<mapName>_regionId=<regionId>_distanceLeft=<'0', '<1', '1' or '>1'>
+      //           _needsReaudit=<bool>_target=audit' (one string; wrapped here for line length).
+      // needsReaudit says whether the region had streets flagged for re-audit (#4384) when clicked, so re-audit CTA
+      // clicks can be distinguished from first-audit ones.
       $(`#${params.mapName}`).on('click', '.region-selection-trigger', function () {
         const regionId = parseInt($(this).attr('regionId'), 10);
         const region = neighborhoodGeoJSON.features.find((x) => {
@@ -212,8 +237,9 @@ function addNeighborhoodsToMap(map, neighborhoodGeoJSON, completionRates, params
         else if (distanceLeftRounded === 0) distanceLeftStr = '<1';
         else if (distanceLeftRounded === 1) distanceLeftStr = '1';
         else distanceLeftStr = '>1';
+        const needsReaudit = (region.properties.outdated_distance_m || 0) > 0;
         const activity = `Click_module=${params.mapName}_regionId=${regionId}`
-          + `_distanceLeft=${distanceLeftStr}_target=audit`;
+          + `_distanceLeft=${distanceLeftStr}_needsReaudit=${needsReaudit}_target=audit`;
         window.logWebpageActivity(activity);
       });
     }

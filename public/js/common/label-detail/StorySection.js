@@ -99,11 +99,10 @@ class StorySection {
    * @param {number} labelId
    */
   #maybeResumeDraft(labelId) {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('resumeStory') !== String(labelId)) return;
-    params.delete('resumeStory');
-    const qs = params.toString();
-    window.history.replaceState(null, '', window.location.pathname + (qs ? `?${qs}` : '') + window.location.hash);
+    const url = new URL(window.location);
+    if (url.searchParams.get('resumeStory') !== String(labelId)) return;
+    url.searchParams.delete('resumeStory');
+    util.url.replaceQuery(url);
     this.#composer.open(labelId, this.#maxTextLength);
   }
 

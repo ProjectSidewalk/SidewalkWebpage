@@ -27,7 +27,9 @@
         "no-button-1": "這是一條住宅人行道。",
         "no-button-2": "這裡沒有人行道。",
         "no-button-3": "這應該是路緣坡道標籤",
-        "no-button-3-tooltip": "有時，路緣坡道會被錯誤地標記為缺失坡道，這通常是因為缺少觸覺警告標誌。"
+        "no-button-3-tooltip": "有時，路緣坡道會被錯誤地標記為缺失坡道，這通常是因為缺少觸覺警告標誌。",
+        "no-button-4": "在這裡穿越並不安全。",
+        "no-button-4-tooltip": "行人不應在此處穿越，因此這裡不需要路緣坡道。"
       },
       "obstacle": {
         "no-button-1": "這裡不是人行道。",
@@ -93,9 +95,10 @@
     "no-info": "無資訊",
     "pano-interactive-message": "拖曳環顧四周，捲動放大細看。"
   },
-  "mission-start": {
-    "title": "檢核{{n}} {{label_type}}標記",
-    "body": "您的任務是判斷__LABELCOUNT_PLACEHOLDER__ __LABELTYPE_PLACEHOLDER__</span>其他使用者的標記正確性！"
+  "imagery-unavailable": {
+    "title": "無法載入影像",
+    "body": "我們無法載入此任務中標記的街景影像，因此目前沒有可顯示的內容。您已完成的檢核都已儲存。這通常會自行恢復，請再試一次。",
+    "retry": "再試一次"
   },
   "mission-complete": {
     "title": "做得好！",
@@ -111,7 +114,10 @@
     "explore": "開始一個探索任務",
     "no-new-mission-title": "已無任何剩餘檢核任務",
     "no-new-mission-body": "按兩下按鈕開始探索。",
-    "no-new-mission-button": "開始探索"
+    "no-new-mission-button": "開始探索",
+    "all-time_other": "總共 {{count}} 次檢核",
+    "next-badge_other": "再 {{count}} 個檢核即可獲得 {{badge}}",
+    "top-badge": "已獲得最高徽章 — 你是傳奇！"
   },
   "mobile": {
     "no-new-mission-body": "您可以使用筆記型電腦/台式計算機添加更多標籤，也可以在其他城市驗證標籤！",
@@ -124,6 +130,7 @@
   "mission-start-tutorial": {
     "mst-instruction-1": "您的任務",
     "mst-instruction-2": "檢核{{nLabels}}個{{- labelType}}的標記",
+    "examples-label": "標記範例",
     "example-type-label-incorrect": "錯誤案例",
     "label-on-image-title-incorrect": "錯誤標記",
     "label-on-image-description-correct": "選擇<b>同意</b>",

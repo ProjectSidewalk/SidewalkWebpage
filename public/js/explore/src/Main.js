@@ -27,7 +27,10 @@ class Main {
     svl.isExploreAddressMode = () => this.#params.mission.mission_type === 'exploreAddress';
     svl.regionId = params.regionId;
 
-    svl.LABEL_ICON_RADIUS = 17;
+    // Both are derived from --ui-scale and refreshed by applyExploreScale() below, which owns that variable. They
+    // start at their scale-1 values because the tool renders at scale 1 until that first call (#4838).
+    svl.LABEL_ICON_RADIUS = util.labelIconRadius(1);
+    svl.LABEL_HIT_MARGIN = util.labelHitMargin(1);
     svl.TUTORIAL_PANO_HEIGHT = 6656;
     svl.TUTORIAL_PANO_WIDTH = 13312;
     svl.TUTORIAL_PANO_SCALE_FACTOR = 3.25;
@@ -53,6 +56,8 @@ class Main {
     svl.userRouteId = params.userRouteId;
     svl.routeName = params.routeName;
     svl.makeCrops = params.makeCrops;
+    // Lat/lng estimator constants, owned by the backend (PanoDataService.LatLngEstimation) and used by Label.toLatLng.
+    svl.latLngEstimation = params.latLngEstimation;
 
     svl.storage = new TemporaryStorage(JSON);
     svl.tracker = new Tracker();
@@ -176,12 +181,13 @@ class Main {
     svl.panoOverlayControls = new PanoOverlayControls(svl.tracker, svl.navigationService, svl.stuckAlert,
       svl.keyboardShortcutAlert);
 
-    svl.infoPopover = new PanoInfoPopover(svl.ui.streetview.dateHolder, svl.panoViewer, svl.panoViewer.getPosition,
-      svl.panoViewer.getPanoId, () => svl.taskContainer.getCurrentTaskStreetEdgeId(),
+    svl.infoPopover = new PanoInfoPopover(svl.ui.streetview.dateHolder, () => svl.panoViewer,
+      () => svl.panoViewer.getPosition(), () => svl.panoViewer.getPanoId(),
+      () => svl.taskContainer.getCurrentTaskStreetEdgeId(),
       () => svl.neighborhoodModel.currentNeighborhood().getRegionId(),
       () => svl.panoStore.getPanoData(svl.panoViewer.getPanoId()).getProperty('captureDate'),
       () => svl.panoStore.getPanoData(svl.panoViewer.getPanoId()).getProperty('address'),
-      svl.panoViewer.getPov, true,
+      () => svl.panoViewer.getPov(), true,
       () => {
         svl.tracker.push('PanoInfoButton_Click');
       },
@@ -194,9 +200,8 @@ class Main {
     );
 
     // Speed limit
-    svl.speedLimit = new SpeedLimit(svl.panoViewer, svl.panoViewer.getPosition, svl.isOnboarding, params.countryId, {
-      taskContainer: svl.taskContainer,
-    });
+    svl.speedLimit = new SpeedLimit(() => svl.panoViewer, () => svl.panoViewer.getPosition(), svl.isOnboarding,
+      params.countryId, { taskContainer: svl.taskContainer });
 
     // Survey for select users
     svl.modalSurvey = new ModalSurvey();
@@ -411,13 +416,21 @@ class Main {
       svl.observedArea.update();
 
       // Uniformly scale the whole tool to fit the viewport (like browser zoom) using var(--ui-scale).
-      const applyExploreScale = () => util.applyToolScale(
-        ['--pano-base-width', '--sidebar-base-gap', '--sidebar-base-width'],
-        ['--ribbon-base-top', '--ribbon-base-height', '--pano-base-height'],
-      );
+      const applyExploreScale = () => {
+        const scale = util.applyToolScale(
+          ['--pano-base-width', '--sidebar-base-gap', '--sidebar-base-width'],
+          ['--ribbon-base-top', '--ribbon-base-height', '--pano-base-height'],
+        );
+        // The label icon and its click target are capped in screen px, so both depend on the scale just applied
+        // (#4838). Cached rather than computed per render: they're read once per label per canvas render, and per
+        // label on every mousemove, and each read would otherwise force a style recalculation.
+        svl.LABEL_ICON_RADIUS = util.labelIconRadius(scale);
+        svl.LABEL_HIT_MARGIN = util.labelHitMargin(scale);
+      };
       applyExploreScale();
       // The canvas was rasterized at scale 1 during init; re-raster it at the chosen scale.
       if (svl.canvas) svl.canvas.resize();
+      if (svl.onboarding) svl.onboarding.resize();
       if (svl.observedArea) svl.observedArea.update();
       // Redraw fog of war after the rescale. Minimap does this async, so we have to listen on this event.
       if (svl.observedArea && svl.minimap) {
@@ -431,6 +444,7 @@ class Main {
         clearTimeout(resizeRasterTimer);
         resizeRasterTimer = setTimeout(() => {
           if (svl.canvas) svl.canvas.resize();
+          if (svl.onboarding) svl.onboarding.resize();
           if (svl.observedArea) svl.observedArea.update();
         }, 150);
       });
@@ -528,6 +542,7 @@ class Main {
     svl.ui.contextMenu.severityMenu = $('#severity-menu');
     svl.ui.contextMenu.severityRadioHolder = $('#severity-radio-holder');
     svl.ui.contextMenu.radioButtons = $('input[name=\'label-severity\']');
+    svl.ui.contextMenu.tagSection = $('#context-menu-tag-section');
     svl.ui.contextMenu.tagHolder = $('#context-menu-tag-holder');
     svl.ui.contextMenu.tags = $('button[name=\'tag\']');
     svl.ui.contextMenu.textBox = $('#context-menu-description-text-box');

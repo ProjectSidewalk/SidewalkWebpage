@@ -31,6 +31,11 @@ class ModalMissionComplete {
       }
 
       this.hide();
+
+      // The new mission's first label rendered while this modal was still up (Form.js loads it before re-enabling
+      // the button), so its halo pulse played unseen. Replay it now that the marker can be seen — or once the
+      // mission-start tutorial raised just above clears (#4790).
+      svv.panoManager.replayMarkerPulse();
     }
   };
 
@@ -45,6 +50,51 @@ class ModalMissionComplete {
     this.#uiModalMissionComplete.foreground.css('visibility', 'hidden');
     this.#uiModalMissionComplete.closeButtonPrimary.css('visibility', 'hidden');
     this.#uiModalMissionComplete.closeButtonSecondary.css('visibility', 'hidden');
+  }
+
+  /**
+   * Says where this mission leaves the validator overall: the badge their all-time validation count has earned, if
+   * they have earned one, and the count itself.
+   *
+   * The badge and its wording are mobile's; the desktop screen has neither element, so those calls land on empty
+   * jQuery sets and it keeps the bare number its table column expects.
+   *
+   * @param {number} total The validator's all-time validation count.
+   */
+  #showStanding(total) {
+    const ui = this.#uiModalMissionComplete;
+    ui.yourOverallTotalCount.html(util.isMobile()
+      ? i18next.t('mission-complete.all-time', { count: total })
+      : total);
+
+    const { badge, next, fraction, remaining } = BadgeAchievements.getProgress('validations', total);
+    ui.badgeIcon.toggleClass('ps-hidden', !badge);
+    ui.badgeName.text(badge ? `${badge.name} ${badge.roman}` : '');
+    if (badge) ui.badgeIcon.css('background-image', `url("${badge.iconSrc}")`);
+
+    // What they're climbing toward, which is what makes the badge legible as a level rather than a decoration. It's
+    // the same line for someone who has none yet: their first badge is simply the next one.
+    if (ui.badgeProgressFill.length) new ProgressBar(ui.badgeProgressFill[0]).setFraction(fraction);
+    ui.badgeNext.text(next
+      ? i18next.t('mission-complete.next-badge', { count: remaining, badge: `${next.name} ${next.roman}` })
+      : i18next.t('mission-complete.top-badge'));
+  }
+
+  /**
+   * Sets off the fireworks — and a short buzz where the device does haptics — for a finished mission.
+   *
+   * The animation rides a class rather than the screen's own visibility because `visibility: hidden` doesn't rewind
+   * one, and this screen is shown over and over. Both are pure celebration, so a visitor who asked for less motion
+   * gets neither. Mobile only: the desktop screen has no fireworks to play.
+   */
+  static #celebrate() {
+    const celebration = document.getElementById('mission-complete-celebration');
+    if (!celebration || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    celebration.classList.remove('mv-celebrate--play');
+    celebration.getBoundingClientRect(); // Forces the reflow that lets the same animation play again.
+    celebration.classList.add('mv-celebrate--play');
+    navigator.vibrate?.([40, 60, 40]);
+    Confetti.burst();
   }
 
   /**
@@ -71,13 +121,21 @@ class ModalMissionComplete {
     this.#uiModalMissionComplete.background.css('visibility', 'visible');
     this.#uiModalMissionComplete.missionTitle.html(i18next.t('mission-complete.title'));
     this.#uiModalMissionComplete.message.html(message);
+    // Mobile shows the mission's label type beside that sentence; the element is absent on desktop.
+    const labelType = svv.labelTypes[mission.getProperty('labelTypeId')];
+    this.#uiModalMissionComplete.labelIcon
+      .css('background-image', `url("${util.misc.getIconImagePaths(labelType).iconImagePath}")`);
     this.#uiModalMissionComplete.agreeCount.html(mission.getProperty('agreeCount'));
     this.#uiModalMissionComplete.disagreeCount.html(mission.getProperty('disagreeCount'));
     this.#uiModalMissionComplete.unsureCount.html(mission.getProperty('unsureCount'));
-    this.#uiModalMissionComplete.yourOverallTotalCount.html(svv.statusField.getCompletedValidations());
+    this.#showStanding(svv.statusField.getCompletedValidations());
 
     this.#uiModalMissionComplete.holder.css('visibility', 'visible');
     this.#uiModalMissionComplete.foreground.css('visibility', 'visible');
+    // Hiding this screen only makes it invisible, which preserves how far it was scrolled, and it is shown again at
+    // the end of every mission — so without this the next one opens wherever the last one was left.
+    this.#uiModalMissionComplete.foreground.scrollTop(0);
+    ModalMissionComplete.#celebrate();
 
     // Set primary button text to Explore if they've completed 3 validation missions (and are on a laptop/desktop).
     if (svv.missionsCompleted % 3 === 0 && !util.isMobile()) {
@@ -94,7 +152,6 @@ class ModalMissionComplete {
 
       this.#uiModalMissionComplete.closeButtonSecondary.css('visibility', 'hidden');
     }
-    if (util.isMobile()) this.#uiModalMissionComplete.closeButtonPrimary.css('font-size', '30pt');
 
     svv.tracker.push(
       'MissionComplete',
@@ -121,6 +178,5 @@ class ModalMissionComplete {
     this.#uiModalMissionComplete.closeButtonSecondary.removeClass('btn-loading');
     this.#uiModalMissionComplete.closeButtonSecondary.addClass('btn-secondary');
     this.#uiModalMissionComplete.closeButtonSecondary.on('click', { button: 'secondary' }, this.#handleButtonClick);
-    if (util.isMobile()) this.#uiModalMissionComplete.closeButtonPrimary.css('font-size', '30pt');
   }
 }

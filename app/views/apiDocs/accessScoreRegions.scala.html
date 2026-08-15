@@ -24,8 +24,8 @@
     <p class="download-note"><strong>One method, not the method.</strong> There is no single correct way to measure street- and neighborhood-level accessibility—researchers and practitioners use many different approaches. AccessScore implements just one such algorithm, and it is experimental: the weighting is deliberately simple and subject to change. Treat these scores as one lens rather than a definitive measure, and compute your own index from the <a href="@routes.ApiDocsController.labelClusters">Label Clusters API</a> if a different method suits your needs better.</p>
     <div id="access-score-regions-preview"><!-- Replaced by JavaScript with the rendered map. --></div>
 
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-    <script src="https://unpkg.com/leaflet@@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <link rel="stylesheet" href='@assets.path("vendor/leaflet/leaflet-1.9.4.css")'>
+    <script src='@assets.path("vendor/leaflet/leaflet-1.9.4.js")'></script>
     <link rel="stylesheet" href="@assets.path("css/api-docs/access-score.css")">
     <script src="@routes.Assets.versioned("js/api-docs/accessScoreRegionsPreview.js")"></script>
     <script>

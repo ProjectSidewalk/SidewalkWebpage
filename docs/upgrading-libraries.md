@@ -25,9 +25,9 @@ These versions live in [`build.sbt`](../build.sbt), [`project/build.properties`]
   [#3936](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/3936) (unclear if all our libraries support it
   yet). Edit `scalaVersion` in `build.sbt`.
   [Releases](https://www.scala-lang.org/download/all.html) · [Changelog](https://github.com/scala/scala/releases)
-- **sbt: 1.12.9** — set in `project/build.properties`; downloaded automatically on the next `npm start`. You may need
+- **sbt: 1.12.13** — set in `project/build.properties`; downloaded automatically on the next `npm start`. You may need
   to bump Play at the same time for major sbt updates. [Releases](https://github.com/sbt/sbt/releases)
-- **Play Framework: 3.0.10** — to update: (1) change the version in `project/plugins.sbt` (the `sbt-plugin`
+- **Play Framework: 3.0.11** — to update: (1) change the version in `project/plugins.sbt` (the `sbt-plugin`
   dependency), and (2) change it in `build.sbt` for the Play-provided libraries that share Play's versioning scheme
   (`play-guice`, `play-cache`, `play-ws`, `play-caffeine-cache`).
   [Releases](https://github.com/playframework/playframework/releases) ·
@@ -98,13 +98,16 @@ These versions live in [`build.sbt`](../build.sbt), [`project/build.properties`]
 
 ### Build plugins & test (`project/plugins.sbt`, `.scalafmt.conf`, test deps)
 
-- **sbt-plugin (Play): 3.0.10** — tracks the Play version above (`project/plugins.sbt`).
-- **scalafmt: 3.9.7** — pinned in [`.scalafmt.conf`](../.scalafmt.conf); the **sbt-scalafmt** plugin (**2.5.4**,
+- **sbt-plugin (Play): 3.0.11** — tracks the Play version above (`project/plugins.sbt`).
+- **scalafmt: 3.9.10** — pinned in [`.scalafmt.conf`](../.scalafmt.conf); the **sbt-scalafmt** plugin (**2.5.6**,
   `project/plugins.sbt`) fetches it. `scalafmtCheckAll` is a blocking CI gate.
   [Releases](https://github.com/scalameta/scalafmt/releases)
-- **sbt-scoverage: 2.3.1** — coverage, for a later CI phase with a ratcheting threshold.
+- **sbt-scoverage: 2.4.4** — coverage, for a later CI phase with a ratcheting threshold.
   [Releases](https://github.com/scoverage/sbt-scoverage/releases)
-- **scalatestplus-play: 7.0.1** (test scope) — ScalaTest + Play test helpers; backs the API specs under `test/`.
+- **sbt-digest: 2.1.0** — content-fingerprints assets during `stage`/`dist` (see `build.sbt`). Note the org: the
+  sbt-web plugins moved from `com.typesafe.sbt` to `com.github.sbt`, and only the latter supports Play 3.
+  [Releases](https://github.com/sbt/sbt-digest/releases)
+- **scalatestplus-play: 7.0.2** (test scope) — ScalaTest + Play test helpers; backs the API specs under `test/`.
   [Releases](https://mvnrepository.com/artifact/org.scalatestplus.play/scalatestplus-play)
 
 ## JavaScript
@@ -171,6 +174,10 @@ matching it.
   [Changelog](https://github.com/js-cookie/js-cookie/releases)
 - **kinetic: 4.4.3** — **note:** only used for the hand animation in the Explore tutorial;
   [no longer maintained](https://github.com/ericdrowell/KineticJS). Could bump to 5.1.0 and leave it.
+- **leaflet (js & css): 1.9.4** — the maps embedded in the API-docs pages. Ships its own `images/` (marker and
+  layers PNGs), which the CSS resolves relative to itself and `L.Icon.Default` path-detects from — so upgrade the
+  whole `dist/` folder together, not just the two files.
+  [Download](https://leafletjs.com/download.html) · [Changelog](https://github.com/Leaflet/Leaflet/releases)
 - **mapbox-gl (js & css): 3.21.0** — check with `mapboxgl.version`.
   [Install/download](https://docs.mapbox.com/mapbox-gl-js/guides/install/) ·
   [Changelog](https://github.com/mapbox/mapbox-gl-js/blob/main/CHANGELOG.md)
@@ -181,7 +188,10 @@ matching it.
 - **mapillary: 4.1.2** — Mapillary imagery provider.
   [Downloads](https://mapillary.github.io/mapillary-js/docs/intro/try/#using-a-cdn) ·
   [Changelog](https://github.com/mapillary/mapillary-js/releases)
-- **moment.js: 2.30.1** — [Download](https://momentjs.com/) ·
+- **moment.js: 2.30.1** — vendored alongside one locale file per supported language. Only `en` and `en-US` need none,
+  since moment has US English built in; other English variants do have their own file (`en-NZ` formats dates
+  differently). **Adding a language means adding its locale file too**, or its dates silently render in English;
+  `common/main.scala.html` picks the file by lowercased language code. [Download](https://momentjs.com/) ·
   [Locale files](https://github.com/moment/moment/tree/develop/locale) ·
   [Changelog](https://github.com/moment/moment/blob/develop/CHANGELOG.md)
 - **pannellum: 2.5.7** — Pannellum panorama viewer. [Download](https://pannellum.org/download/) ·
@@ -200,10 +210,6 @@ matching it.
   [Changelog](https://github.com/mrdoob/three.js/releases)
 - **turf.js: 7.3.4** — [Download (set version in URL)](https://unpkg.com/@turf/turf@7.3.4/turf.min.js) ·
   [Changelog](https://github.com/Turfjs/turf/releases)
-- **jquery-ui: 1.12.1** — in `public/vendor/jquery-ui/`; self-hosted so the CSP `script-src` needn't allow
-  code.jquery.com. Tied to jQuery removal — don't invest in upgrades.
-  [Download](https://code.jquery.com/ui/1.12.1/jquery-ui.min.js) ·
-  [Changelog](https://github.com/jquery/jquery-ui/releases)
 - **jquery.magnific-popup** — **TODO:** unclear status; resolve the jQuery situation first. Tied to jQuery removal.
 
 > **jQuery / Bootstrap removal:** several entries above (Bootstrap, dataTables, magnific-popup, selectize) are part of

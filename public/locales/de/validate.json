@@ -20,14 +20,16 @@
         "no-button-1": "Dies ist eine Einfahrt.",
         "no-button-2": "Dies ist ein Übergang vom Trottoir zur Einfahrt.",
         "no-button-2-tooltip": "Übergänge zwischen Trottoir und Ein- bzw. Ausfahrten sind keine Trottoirabsenkungen, es sei denn, es wurde eine spezielle Rampe hinzugefügt",
-        "no-button-3": "Dies sollte ein Etikett „Fehlende Trottorabsenkung“ sein.",
-        "no-button-3-tooltip": "Manchmal wird eine fehlende Trottorabsenkung versehentlich fälschlicherweise als Trottorabsenkung bezeichnet."
+        "no-button-3": "Dies sollte ein Etikett „Fehlende Trottoirabsenkung“ sein.",
+        "no-button-3-tooltip": "Manchmal wird eine fehlende Trottoirabsenkung versehentlich fälschlicherweise als Trottoirabsenkung bezeichnet."
       },
       "no-curb-ramp": {
         "no-button-1": "Dies ist ein Gehweg in einem Wohngebiet.",
         "no-button-2": "Hier gibt es keinen Bürgersteig.",
-        "no-button-3": "Dies sollte ein Etikett für eine Trottorabsenkung sein.",
-        "no-button-3-tooltip": "Manchmal wird eine Trottorabsenkung fälschlicherweise als fehlende Trottorabsenkung gekennzeichnet, oft weil eine taktile Warnmarkierung fehlt."
+        "no-button-3": "Dies sollte ein Etikett für eine Trottoirabsenkung sein.",
+        "no-button-3-tooltip": "Manchmal wird eine Trottoirabsenkung fälschlicherweise als fehlende Trottoirabsenkung gekennzeichnet, oft weil eine taktile Warnmarkierung fehlt.",
+        "no-button-4": "Hier kann man nicht sicher überqueren.",
+        "no-button-4-tooltip": "Fußgänger sollen an dieser Stelle nicht überqueren, daher ist hier keine Trottoirabsenkung zu erwarten."
       },
       "obstacle": {
         "no-button-1": "Dies ist kein Weg für Fussgänger:innen.",
@@ -93,9 +95,10 @@
     "no-info": "Keine Informationen verfügbar",
     "pano-interactive-message": "Ziehen zum Umsehen, scrollen zum Heranzoomen."
   },
-  "mission-start": {
-    "title": "Validieren Sie {{n}} {{label_type}} Beschriftungen",
-    "body": "Ihre Mission ist es, die Richtigkeit von __LABELCOUNT_PLACEHOLDER__ __LABELTYPE_PLACEHOLDER__</span> Beschriftungen anderer Nutzenden zu bestimmen!"
+  "imagery-unavailable": {
+    "title": "Bildmaterial konnte nicht geladen werden",
+    "body": "Wir konnten das Strassenbildmaterial für die Beschriftungen dieser Mission nicht laden, daher gibt es im Moment nichts zu zeigen. Ihre abgeschlossenen Validierungen sind gespeichert. Das erledigt sich meist von selbst — bitte versuchen Sie es erneut.",
+    "retry": "Erneut versuchen"
   },
   "mission-complete": {
     "title": "Gute Arbeit!",
@@ -111,7 +114,12 @@
     "explore": "Erkundungsmission starten",
     "no-new-mission-title": "Keine weiteren Validierungsmissionen übrig",
     "no-new-mission-body": "Klicken Sie auf die Schaltfläche, um mit der Erkundung zu beginnen.",
-    "no-new-mission-button": "Beginnen Sie mit der Erkundung"
+    "no-new-mission-button": "Beginnen Sie mit der Erkundung",
+    "all-time_one": "{{count}} Validierung insgesamt",
+    "all-time_other": "{{count}} Validierungen insgesamt",
+    "next-badge_one": "Noch {{count}} Validierung bis {{badge}}",
+    "next-badge_other": "Noch {{count}} Validierungen bis {{badge}}",
+    "top-badge": "Höchstes Abzeichen erreicht — du bist eine Legende!"
   },
   "mobile": {
     "no-new-mission-body": "Sie können weitere Etiketten mit einem Laptop/Desktop-Computer hinzufügen oder Etiketten in einer anderen Stadt validieren!",
@@ -124,6 +132,7 @@
   "mission-start-tutorial": {
     "mst-instruction-1": "IHRE MISSION",
     "mst-instruction-2": "Validieren Sie {{nLabels}} Beschriftungen von {{- labelType}}",
+    "examples-label": "Beschriftungsbeispiele",
     "example-type-label-incorrect": "FALSCHES BEISPIEL",
     "label-on-image-title-incorrect": "Falsche Beschriftung",
     "label-on-image-description-correct": "Bewerten mit <b>Einverstanden</b>",

@@ -9,7 +9,6 @@ import play.api.libs.json.Json
 import play.silhouette.api.Silhouette
 import service.ApiService
 
-import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -118,7 +117,7 @@ class ValidationApiController @Inject() (
           changedSeverityLevels = changedSeverityLevels, source = parsedSource.toOption.flatten
         )
         val dbDataStream: Source[ValidationDataForApi, _] = apiService.getValidations(filters, DEFAULT_BATCH_SIZE)
-        val baseFileName: String                          = s"validations_${OffsetDateTime.now()}"
+        val baseFileName: String                          = timestampedFilename("validations")
 
         // Output data in the appropriate file format.
         filetype match {

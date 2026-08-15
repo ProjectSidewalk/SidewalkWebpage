@@ -1,8 +1,15 @@
+// The two mission screens are authored in design-system units and scaled back up as one unit, so they need to know
+// how far this device is shrinking the page (mobile-validate.css explains the trick). Every device the server routes
+// here shrinks it by a different amount — a tablet by half what a phone does — so measure rather than assume; the
+// stylesheet's own default covers the moment before this runs.
+const applyMissionScale = () => {
+  const scale = util.legacyViewportScale(document.documentElement.clientWidth, window.screen?.width);
+  document.documentElement.style.setProperty('--mobile-mission-scale', scale.toFixed(3));
+};
+
 $(document).ready(() => {
-  // Raleway doesn't load after being redirected from another page; redeclaring the font-face fixes that.
-  const font = '<style> @@font-face{ font-family: \'raleway\'; '
-    + 'src: url(\'/assets/fonts/Raleway/Raleway-Regular.ttf\');} </style>';
-  $('head').append(font);
+  applyMissionScale();
+  window.addEventListener('resize', applyMissionScale);
 
   // Add the 'animate-button' class to all validation buttons so an animation is performed to confirm click.
   document.getElementById('validate-no-button').classList.add('animate-button');
@@ -43,12 +50,19 @@ $(document).ready(() => {
 });
 
 // Prevents double tap functionality. We only want to pinch zoom in the pano.
+//
+// Cancelling a touchstart cancels that touch's scrolling and its click as well as the zoom, so the mission screens
+// are exempt: they scroll (a long briefing, its examples carousel) and their way forward is a tap, and a second
+// flick or tap arriving inside half a second of the last one is ordinary use there, not a zoom gesture.
+const DOUBLE_TAP_MS = 500;
+const DOUBLE_TAP_EXEMPT = '#modal-mission-foreground, #modal-mission-complete-foreground';
 let doubleTouchStartTimestamp = 0;
 document.addEventListener('touchstart', (event) => {
   const now = +(new Date());
-  if (doubleTouchStartTimestamp + 500 > now) {
+  const isSecondTap = doubleTouchStartTimestamp + DOUBLE_TAP_MS > now;
+  doubleTouchStartTimestamp = now;
+
+  if (isSecondTap && !event.target?.closest?.(DOUBLE_TAP_EXEMPT)) {
     event.preventDefault();
   }
-
-  doubleTouchStartTimestamp = now;
 }, { passive: false });

@@ -18,15 +18,8 @@
   <div id="labelmap-choropleth-container" class="container choropleth-container">
     <div id="labelmap-choropleth-holder" class="choropleth-holder">
       <div id="labelmap-choropleth" class="choropleth"></div>
-      @common.filterSidebar(tags = tags, sections = Seq("search", "severity", "label-type", "validations", "streets"), showCounts = true)
-      @* Feedback while the (large) label layer streams in — the map itself loads in ~1s but labels can be tens of MB, during which the sidebar sits greyed with no cue that work is happening. *@
-      <div id="labelmap-loading" class="labelmap-loading" hidden role="status" aria-live="polite" aria-busy="true">
-        <div class="labelmap-loading__card">
-          <div class="labelmap-loading__spinner" aria-hidden="true"></div>
-          <p class="labelmap-loading__message" data-i18n="labelmap:loading-labels">Loading sidewalk labels…</p>
-          <p id="labelmap-loading-elapsed" class="labelmap-loading__elapsed"></p>
-        </div>
-      </div>
+      @common.filterSidebar(tags = tags, sections = Seq("search", "severity", "label-type", "validations", "streets"), showOutdatedStreetFilter = true, showCounts = true)
+      @common.mapLoadingOverlay()
     </div>
   </div>
 
@@ -35,6 +28,7 @@
 
   <link href='@assets.path("css/label-detail.css")' rel="stylesheet">
   <link href='@assets.path("css/filter-sidebar.css")' rel="stylesheet">
+  <link href='@assets.path("css/map-download-control.css")' rel="stylesheet">
   <link href='@assets.path("css/tag-pills.css")' rel="stylesheet">
 
   <script src='@assets.path("vendor/i18next/i18next-23.16.8.min.js")'></script>
@@ -72,32 +66,8 @@
     const viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer : GsvViewer;
     const accessToken = "@commonData.imageryAccessToken";
 
-    // Loading overlay for the label layer. Indeterminate spinner + a live elapsed-time counter: the
-    // response is gzipped (Content-Length is the compressed size), so a byte-percentage bar isn't
-    // meaningful, and the exact count isn't known until the payload has fully parsed.
-    let labelMapLoadingTimer = null;
-    function showLabelMapLoading() {
-      const overlay = document.getElementById('labelmap-loading');
-      if (!overlay) return;
-      const elapsedEl = document.getElementById('labelmap-loading-elapsed');
-      const start = performance.now();
-      const renderElapsed = () => {
-        if (!elapsedEl) return;
-        const seconds = ((performance.now() - start) / 1000).toFixed(1);
-        elapsedEl.textContent = i18next.t('labelmap:loading-elapsed', { seconds: seconds });
-      };
-      renderElapsed();
-      overlay.hidden = false;
-      labelMapLoadingTimer = setInterval(renderElapsed, 100);
-    }
-    function hideLabelMapLoading() {
-      const overlay = document.getElementById('labelmap-loading');
-      if (overlay) overlay.hidden = true;
-      if (labelMapLoadingTimer) {
-        clearInterval(labelMapLoadingTimer);
-        labelMapLoadingTimer = null;
-      }
-    }
+    // Shared with /admin/label-map so both label maps report loading and failure identically.
+    const labelMapOverlay = new MapLoadingOverlay();
 
     // Gets all translations before loading the choropleth.
     window.appManager.ready(async function () {
@@ -203,7 +173,7 @@
         self.hasUrlViewport = MapSidebarUrlSync.applyUrlViewport(map);
         map.on('move', spotlight.updateTail); // Keep the tail pinned to the dot through pans/zooms/eases.
         initLabelMapLocationSearch(map, params.mapboxApiKey);
-        showLabelMapLoading();
+        labelMapOverlay.show();
         // A deep-linked popup's metadata fetch races map init; if it already arrived, place the camera now
         // instead of leaving the city-wide view up while the label layer streams in.
         if (deepLinkLabelId && !spotlight.spotlightedLabelId()) spotlight.spotlight(deepLinkLabelId, true);
@@ -218,6 +188,22 @@
         const sidebarFilter = new MapSidebarFilter(self.map, self.mapData, { highQualityFilter: true });
         // Restore shared-link filters from the URL and keep the URL updated as filters and viewport change.
         new MapSidebarUrlSync(sidebarFilter, self.map);
+        // "Download" control (#4095), added after the labels stream in so its count is always real. A single
+        // deep-linked region is passed through to the download; the other page-level params (multi-region, routes,
+        // AI validation) have no rawLabels counterpart, so the panel shows a caveat instead.
+        // Only one well-formed region id can be passed through. A malformed one is dropped rather than forwarded:
+        // it would reach rawLabels as a bad value and 400, which a plain anchor download shows as nothing happening.
+        const rawRegionIds = regionsParam ? regionsParam.split(',') : [];
+        const regionIds = rawRegionIds.map(Number).filter(Number.isInteger);
+        const downloadRegionId = rawRegionIds.length === 1 && regionIds.length === 1 ? regionIds[0] : null;
+        self.map.addControl(new MapDownloadControl({
+          getFilterState: () => sidebarFilter.getState(),
+          getVisibleLabelCount: () => sidebarFilter.getVisibleLabelCount(),
+          regionId: downloadRegionId,
+          // Any region param the download can't carry verbatim leaves the file wider than the map, caveat included.
+          showsPartialFilterCaveat: (rawRegionIds.length > 0 && downloadRegionId === null)
+            || Boolean(routesParam) || Boolean(aiValidationOptionsParam),
+        }), 'top-right');
         // Popup arrows step through spatially nearby labels using the already-loaded map data.
         self.nearbyNav = createNearbyLabelNavigator(self.mapData);
         params.popupLabelViewer.setNearbyNavigator(self.nearbyNav);
@@ -228,10 +214,10 @@
         if (openLabelId && labelModal.open) {
           spotlight.spotlight(openLabelId, true);
         }
-        hideLabelMapLoading();
+        labelMapOverlay.hide();
       }).catch(e => {
         console.error('LabelMap failed to load', e);
-        hideLabelMapLoading();
+        labelMapOverlay.showError();
       });
       window.map = self;
     });

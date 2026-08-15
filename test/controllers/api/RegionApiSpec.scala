@@ -40,7 +40,7 @@ class RegionApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       val body = contentAsString(resp)
       body must include(
         "region_id,name,label_count,street_count,user_count,audit_count,total_distance_m,audited_distance_m," +
-          "completion_rate,first_label_date,last_label_date,center_point"
+          "outdated_distance_m,completion_rate,first_label_date,last_label_date,center_point"
       )
       // camelCase headers must not appear per v3 naming convention (#3871).
       body must not include "regionId"
@@ -63,6 +63,10 @@ class RegionApiSpec extends PlaySpec with GuiceOneAppPerSuite {
         val props = feature \ "properties"
         (props \ "total_distance_m").asOpt[Double] mustBe defined
         (props \ "audited_distance_m").asOpt[Double] mustBe defined
+        // Distance needing re-audit (#4384): non-negative, and bounded by the region's total street distance.
+        val outdated = (props \ "outdated_distance_m").as[Double]
+        outdated must be >= 0.0
+        outdated must be <= ((props \ "total_distance_m").as[Double] + 0.001)
         // completion_rate is a fraction in [0, 1].
         val rate = (props \ "completion_rate").as[Double]
         rate must be >= 0.0
@@ -70,6 +74,30 @@ class RegionApiSpec extends PlaySpec with GuiceOneAppPerSuite {
         // camelCase keys must not leak into properties per #3871.
         (props \ "completionRate").asOpt[Double] mustBe empty
       }
+    }
+  }
+
+  "GET /v3/api/regions?filetype=geopackage" should {
+    "return a SQLite GeoPackage whose schema carries outdated_distance_m (#4384)" in {
+      val resp = route(app, FakeRequest(GET, "/v3/api/regions?filetype=geopackage")).get
+      status(resp) mustBe OK
+
+      val bytes = contentAsBytes(resp)
+      // A GeoPackage is a raw SQLite database; its column names appear as plain text in the schema pages, so a
+      // byte-level search proves the field reached the export without pulling in a SQLite reader as a test dep.
+      bytes.take(15).utf8String mustBe "SQLite format 3"
+      bytes.containsSlice(org.apache.pekko.util.ByteString("outdated_distance_m")) mustBe true
+      bytes.containsSlice(org.apache.pekko.util.ByteString("audited_distance_m")) mustBe true
+    }
+  }
+
+  "GET /v3/api/regions?filetype=shapefile" should {
+    "return a nonempty ZIP archive" in {
+      // The DBF field names live inside compressed entries, so this only smoke-tests that the export (including the
+      // outdDistM featureBuilder wiring, which would 500 on a schema/value mismatch) still assembles end to end.
+      val resp = route(app, FakeRequest(GET, "/v3/api/regions?filetype=shapefile")).get
+      status(resp) mustBe OK
+      contentAsBytes(resp).take(2).utf8String mustBe "PK"
     }
   }
 

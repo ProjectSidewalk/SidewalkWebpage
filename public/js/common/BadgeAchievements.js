@@ -92,6 +92,40 @@ class BadgeAchievements {
   }
 
   /**
+   * Where a value stands on its badge track: what it has earned, what it is climbing toward, and how far along it is.
+   *
+   * The fraction is measured across the current tier — from the threshold that earned the badge in hand to the one
+   * that earns the next — so a bar drawn from it fills once per badge rather than creeping across the whole track.
+   * Anyone with no badge yet is on the first tier, which starts at zero. This is the one place that arithmetic
+   * lives: the dashboard's badge tracks and Validate's mission-complete screen both read it, and each having its own
+   * copy is how the two would come to disagree about the same number.
+   *
+   * @param {string} type Badge type.
+   * @param {number} value Value in canonical units (miles for distance).
+   * @param {Object} [opts]
+   * @param {boolean} [opts.isMetric] Whether to use the kilometer distance icon variant on the returned badges.
+   * @returns {Object} `{ level, badge, next, earnedAt, nextAt, fraction, remaining }`. `badge` is null before the
+   *      first level; at the top level `next` is null, `nextAt` and `remaining` are 0, and `fraction` is 1. A type
+   *      with no track reports an empty progress rather than throwing.
+   */
+  static getProgress(type, value, opts = {}) {
+    const thresholds = BadgeAchievements.THRESHOLDS[type];
+    if (!thresholds) return { level: 0, badge: null, next: null, earnedAt: 0, nextAt: 0, fraction: 0, remaining: 0 };
+
+    const level = BadgeAchievements.getLevelForValue(type, value);
+    const badge = BadgeAchievements.getBadge(type, level, opts);
+    const next = BadgeAchievements.getBadge(type, level + 1, opts);
+    const earnedAt = level > 0 ? thresholds[level - 1] : 0;
+
+    if (!next) return { level, badge, next: null, earnedAt, nextAt: 0, fraction: 1, remaining: 0 };
+
+    const nextAt = thresholds[level];
+    const span = nextAt - earnedAt;
+    const fraction = span > 0 ? Math.min(1, Math.max(0, (value - earnedAt) / span)) : 0;
+    return { level, badge, next, earnedAt, nextAt, fraction, remaining: Math.max(0, nextAt - value) };
+  }
+
+  /**
    * Detects whether moving from `oldValue` to `newValue` crossed into a higher badge level.
    * @param {string} type Badge type.
    * @param {number} oldValue Previous value, in the caller's units.

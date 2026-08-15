@@ -1,0 +1,22 @@
+@*
+ * Load-state overlay for a label map, driven by public/js/ps-map/MapLoadingOverlay.js.
+ *
+ * Feedback while the (large) label layer streams in — the map itself loads in ~1s but labels can be tens of MB,
+ * during which the sidebar sits greyed with no cue that work is happening. The error card covers the case the
+ * status code can't: the feed is a chunked 200, so a stream that dies mid-flight is a truncated body under a
+ * success status, and without this the spinner would simply vanish and leave a label-less map unexplained.
+ *
+ * Place inside the map's .choropleth-holder, which is the positioned ancestor the overlay anchors to.
+ * Requires the "labelmap" i18n namespace and css/choropleth.css.
+ *@
+<div id="labelmap-loading" class="labelmap-loading" hidden role="status" aria-live="polite" aria-busy="true">
+  <div id="labelmap-loading-card" class="labelmap-loading__card">
+    <div class="labelmap-loading__spinner" aria-hidden="true"></div>
+    <p class="labelmap-loading__message" data-i18n="labelmap:loading-labels">Loading sidewalk labels…</p>
+    <p id="labelmap-loading-elapsed" class="labelmap-loading__elapsed"></p>
+  </div>
+  <div id="labelmap-error-card" class="labelmap-loading__card labelmap-loading__card--error" hidden>
+    <p class="labelmap-loading__message" data-i18n="labelmap:load-failed">We couldn&#x27;t load the map data.</p>
+    <button type="button" id="labelmap-retry" class="labelmap-loading__retry" data-i18n="labelmap:retry">Try again</button>
+  </div>
+</div>

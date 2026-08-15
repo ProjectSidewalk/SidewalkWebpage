@@ -203,4 +203,36 @@ describe('MapSidebarFilter counts', () => {
 
         expect(countFor('CurbRamp')).toBe('1');
     });
+
+    describe('getVisibleLabelCount', () => {
+        it('sums only checked label types, applying every active filter', () => {
+            const sidebar = build({
+                // Two visible CurbRamps plus one hidden by each filter axis: the default-off "incorrect" validation,
+                // a low-quality user, and an unchecked label type.
+                CurbRamp: [label({ correct: true }), label({}), label({ correct: false }),
+                    label({ high_quality_user: false })],
+                Obstacle: [label({ correct: true })],
+            });
+            expect(sidebar.getVisibleLabelCount()).toBe(3);
+
+            document.querySelector('#Obstacle-checkbox').click();
+            expect(sidebar.getVisibleLabelCount()).toBe(2);
+        });
+
+        it('respects the active tag filters', () => {
+            const sidebar = build({
+                CurbRamp: [label({ tags: ['narrow'] }), label({ tags: ['steep'] })],
+            });
+            expect(sidebar.getVisibleLabelCount()).toBe(2);
+
+            mapData.selectedTags.CurbRamp.add('narrow');
+            expect(sidebar.getVisibleLabelCount()).toBe(1);
+        });
+
+        it('returns 0 when every label type is deselected', () => {
+            const sidebar = build({ CurbRamp: [label({ correct: true })] });
+            document.querySelector('.filter-sidebar__deselect-all[data-section="label-type"]').click();
+            expect(sidebar.getVisibleLabelCount()).toBe(0);
+        });
+    });
 });

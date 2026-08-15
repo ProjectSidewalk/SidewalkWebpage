@@ -119,6 +119,10 @@ class MobileValidationMenu {
   resetMenu(label) {
     const menuUI = this.#menuUI;
     const prevValResult = label.getProperty('validationResult');
+
+    // Rerender the reason buttons, so that they match the correct label type when we allow such an undo (#4034).
+    this.#renderReasonButtons(label);
+
     if (prevValResult === undefined) {
       // This is a new label (not returning from an undo), so reset everything.
       menuUI.yesButton.removeClass('chosen');
@@ -133,35 +137,6 @@ class MobileValidationMenu {
       menuUI.unsureReasonTextBox.removeClass('chosen');
       menuUI.disagreeReasonTextBox.val('');
       menuUI.unsureReasonTextBox.val('');
-
-      // Update the text and tooltips on each disagree and unsure reason buttons.
-      const labelType = util.camelToKebab(label.getAuditProperty('labelType'));
-      for (const reasonButton of this.#disagreeReasonButtons.add(this.#unsureReasonButtons)) {
-        const $reasonButton = $(reasonButton);
-        const buttonInfo = svv.reasonButtonInfo[labelType][$reasonButton.attr('id')];
-        if (buttonInfo) {
-          $reasonButton.html(buttonInfo.buttonText);
-
-          // Remove any old tooltip (from a previous label type) and add a new tooltip.
-          $reasonButton.tooltip('destroy');
-          if (buttonInfo.tooltipImage) {
-            util.getImage(buttonInfo.tooltipImage).then((img) => {
-              this.#addTooltip($reasonButton, buttonInfo.tooltipText, img);
-            });
-          } else {
-            this.#addTooltip($reasonButton, buttonInfo.tooltipText);
-          }
-
-          // Adds a class as a way to show that this button has associated text.
-          $reasonButton.addClass('defaultOption');
-          $reasonButton.css('display', 'flex');
-        } else {
-          $reasonButton.css('display', 'none');
-          if ($reasonButton.hasClass('defaultOption')) {
-            $reasonButton.removeClass('defaultOption');
-          }
-        }
-      }
       menuUI.submitButton.prop('disabled', true);
     } else {
       // This is a validation that they are going back to, so update all the views to match what they had before.
@@ -190,6 +165,41 @@ class MobileValidationMenu {
       if (prevValResult === 'Agree') this.#setYesView();
       else if (prevValResult === 'Disagree') this.#setNoView();
       else if (prevValResult === 'Unsure') this.#setUnsureView();
+    }
+  }
+
+  /**
+   * Fills in the text, tooltip, and visibility of every disagree and unsure reason button for a label's type.
+   *
+   * The buttons are one shared set of elements, so a type that offers a given reason gets it shown and marked
+   * `defaultOption`, while a type that doesn't offer it gets it hidden.
+   *
+   * @param {object} label The label whose type the buttons should describe.
+   */
+  #renderReasonButtons(label) {
+    const labelType = util.camelToKebab(label.getAuditProperty('labelType'));
+    for (const reasonButton of this.#disagreeReasonButtons.add(this.#unsureReasonButtons)) {
+      const $reasonButton = $(reasonButton);
+      const buttonInfo = svv.reasonButtonInfo[labelType][$reasonButton.attr('id')];
+      if (buttonInfo) {
+        $reasonButton.html(buttonInfo.buttonText);
+
+        // Remove any old tooltip (from a previous label type) and add a new tooltip.
+        $reasonButton.tooltip('destroy');
+        if (buttonInfo.tooltipImage) {
+          util.getImage(buttonInfo.tooltipImage).then((img) => {
+            this.#addTooltip($reasonButton, buttonInfo.tooltipText, img);
+          });
+        } else {
+          this.#addTooltip($reasonButton, buttonInfo.tooltipText);
+        }
+
+        $reasonButton.addClass('defaultOption');
+        $reasonButton.css('display', 'flex');
+      } else {
+        $reasonButton.css('display', 'none');
+        $reasonButton.removeClass('defaultOption');
+      }
     }
   }
 
@@ -329,7 +339,37 @@ class MobileValidationMenu {
 
     // If enough time has passed between validations, log the new validation.
     if (timestamp - svv.labelContainer.getProperty('validationTimestamp') > 800) {
+      MobileValidationMenu.#floatVerdict(action);
       svv.labelContainer.validateCurrentLabel(action, timestamp, comment);
     }
+  }
+
+  /**
+   * Sends the verdict's own thumb floating up off the button that cast it, confirming the tap where the thumb already
+   * is. The icon is cloned from the button so the two can never drift apart, and it takes itself off the page when
+   * the animation ends. Nothing happens for a visitor who asked for less motion — the button's chosen state, which
+   * they keep, already says what was picked.
+   *
+   * @param {string} action The verdict cast: 'Agree', 'Disagree', or 'Unsure'.
+   */
+  static #floatVerdict(action) {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const buttonIds = {
+      Agree: 'validate-yes-button', Disagree: 'validate-no-button', Unsure: 'validate-unsure-button',
+    };
+    const button = document.getElementById(buttonIds[action]);
+    const icon = button?.querySelector('.validate-page-button__icon');
+    if (!icon) return;
+
+    // One at a time: a quick second verdict should replace the last one's thumb, not race it up the screen.
+    document.querySelectorAll('.validate-verdict-float').forEach((stale) => stale.remove());
+
+    const floater = icon.cloneNode();
+    floater.className = 'validate-verdict-float';
+    const box = button.getBoundingClientRect();
+    floater.style.left = `${box.left + box.width / 2}px`;
+    floater.style.top = `${box.top}px`;
+    floater.addEventListener('animationend', () => floater.remove());
+    document.body.appendChild(floater);
   }
 }
