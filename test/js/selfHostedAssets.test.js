@@ -260,12 +260,17 @@ describe('nothing in the render path comes from a third party we have not chosen
         expect(origins.size).toBeGreaterThan(0);
 
         // Anywhere we ship: views, our own JS/CSS, and vendored libraries (which declare their own remote assets).
+        // Only the file types that can name an origin — public/vendor/ also carries fonts, images and source maps,
+        // and reading those in as text is megabytes of work per run for something that could never match.
+        const TEXT = /\.(js|mjs|cjs|css|html|scala\.html|json|svg)$/;
         const haystack = ['app/views', 'public/js', 'public/css', 'public/vendor']
             .flatMap(function walk(rel) {
                 const full = path.join(REPO_ROOT, rel);
-                return fs.readdirSync(full, { withFileTypes: true }).flatMap((entry) => (entry.isDirectory()
-                    ? walk(path.join(rel, entry.name))
-                    : [fs.readFileSync(path.join(full, entry.name), 'utf8')]));
+                return fs.readdirSync(full, { withFileTypes: true }).flatMap((entry) => {
+                    if (entry.isDirectory()) return walk(path.join(rel, entry.name));
+                    if (!TEXT.test(entry.name)) return [];
+                    return [fs.readFileSync(path.join(full, entry.name), 'utf8')];
+                });
             })
             .join('\n');
 
