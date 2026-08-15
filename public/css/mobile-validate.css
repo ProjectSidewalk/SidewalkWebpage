@@ -726,25 +726,35 @@ body {
   margin-left: -60px;
   pointer-events: none;
 
-  /* Brief on purpose. The next label takes about 120ms to land, so anything longer than a flourish is still rising
-     over imagery it has nothing to do with — which reads as a verdict cast on the new label. */
-  animation: validate-verdict-rise 0.35s ease-out forwards;
+  /* One knob, to taste. The next label lands about 120ms after the tap, so the thumb spends most of any longer
+     flourish over imagery it has nothing to do with — which reads as a verdict cast on the new label. */
+  --verdict-float-duration: 0.6s;
+
+  animation: validate-verdict-rise var(--verdict-float-duration) ease-out forwards;
 }
 
+/* Most of the time is spent legible rather than travelling: it pops, holds where it can be read, then leaves. A long
+   climb over the pano is what made this feel like it belonged to the next label; a short one keeps it on its
+   button. */
 @keyframes validate-verdict-rise {
   0% {
     opacity: 0;
     transform: translateY(0) scale(0.6);
   }
 
-  35% {
+  25% {
     opacity: 1;
-    transform: translateY(-35px) scale(1.1);
+    transform: translateY(-45px) scale(1.12);
+  }
+
+  55% {
+    opacity: 1;
+    transform: translateY(-70px) scale(1);
   }
 
   100% {
     opacity: 0;
-    transform: translateY(-110px) scale(1);
+    transform: translateY(-120px) scale(0.95);
   }
 }
 
