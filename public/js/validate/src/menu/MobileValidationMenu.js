@@ -361,6 +361,9 @@ class MobileValidationMenu {
     const icon = button?.querySelector('.validate-page-button__icon');
     if (!icon) return;
 
+    // One at a time: a quick second verdict should replace the last one's thumb, not race it up the screen.
+    document.querySelectorAll('.validate-verdict-float').forEach((stale) => stale.remove());
+
     const floater = icon.cloneNode();
     floater.className = 'validate-verdict-float';
     const box = button.getBoundingClientRect();

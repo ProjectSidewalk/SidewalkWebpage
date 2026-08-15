@@ -725,7 +725,10 @@ body {
   height: 120px;
   margin-left: -60px;
   pointer-events: none;
-  animation: validate-verdict-rise 0.9s ease-out forwards;
+
+  /* Brief on purpose. The next label takes about 120ms to land, so anything longer than a flourish is still rising
+     over imagery it has nothing to do with — which reads as a verdict cast on the new label. */
+  animation: validate-verdict-rise 0.35s ease-out forwards;
 }
 
 @keyframes validate-verdict-rise {
@@ -734,14 +737,14 @@ body {
     transform: translateY(0) scale(0.6);
   }
 
-  25% {
+  35% {
     opacity: 1;
-    transform: translateY(-40px) scale(1.1);
+    transform: translateY(-35px) scale(1.1);
   }
 
   100% {
     opacity: 0;
-    transform: translateY(-260px) scale(1);
+    transform: translateY(-110px) scale(1);
   }
 }
 
