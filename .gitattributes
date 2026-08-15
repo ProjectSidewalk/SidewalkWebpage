@@ -5,3 +5,8 @@
 *.sh text eol=lf
 db/*.sh text eol=lf
 
+
+# Vendored third-party libraries are stored byte-for-byte as upstream published them, so each file still hashes to
+# the integrity value upstream documents — which is how a vendored copy stays verifiable against its origin.
+# Line-ending normalization would silently change those bytes.
+public/vendor/** -text
