@@ -134,7 +134,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
   }
 
   /**
-   * True iff `voided_label_validation` (created by evolution 354, #4842) exists in the given schema.
+   * True iff `voided_label_validation` (created by evolution 355, #4842) exists in the given schema.
    *
    * Cross-schema queries must not assume another city's schema is at this instance's evolution level: each city is
    * its own app instance, so on a rolling release there is a window where this instance (new code) queries a schema

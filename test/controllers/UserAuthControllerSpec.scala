@@ -197,4 +197,17 @@ class UserAuthControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
       cookies(signInByUsername).exists(_.name.toLowerCase.contains("authenticator")) mustBe true
     }
   }
+
+  "GET /signInMobile and /signUpMobile" should {
+    "permanently redirect to the responsive auth pages, preserving the query string (#4884)" in {
+      val signIn = route(app, FakeRequest(GET, "/signInMobile?url=%2Fmobile")).get
+      status(signIn) mustBe MOVED_PERMANENTLY
+      redirectLocation(signIn).get must startWith("/signIn")
+      redirectLocation(signIn).get must include("url=%2Fmobile")
+
+      val signUp = route(app, FakeRequest(GET, "/signUpMobile")).get
+      status(signUp) mustBe MOVED_PERMANENTLY
+      redirectLocation(signUp) mustBe Some("/signUp")
+    }
+  }
 }

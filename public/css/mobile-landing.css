@@ -1,37 +1,5 @@
 /* CSS for mobile landing page */
 
-/* Slim sticky header */
-#mobile-landing-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 16px;
-  background: var(--color-neutral-white);
-  box-shadow: 0 1px 3px rgb(0 0 0 / 12%);
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-
-#mobile-landing-logo-header {
-  height: 36px;
-  width: auto;
-}
-
-.mobile-header-signin {
-  font-family: Raleway, sans-serif;
-  font-size: 13px;
-  font-weight: bold;
-  color: var(--color-asphalt-500);
-  text-decoration: none;
-}
-
-.mobile-header-signin:hover,
-.mobile-header-signin:focus {
-  color: var(--color-asphalt-500);
-  text-decoration: underline;
-}
-
 /* Slightly smaller variant for the hero CTA so it doesn't compete with the tagline */
 #mobile-hero-cta-btn {
   font-size: 13px;

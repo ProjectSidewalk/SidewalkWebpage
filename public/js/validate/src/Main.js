@@ -34,6 +34,10 @@ class Main {
       svv.tracker = new Tracker();
       svv.modalNoNewMission = new ModalNoNewMission(svv.ui.modalMission);
       svv.modalNoNewMission.show();
+      // The unhide in #init() never runs on this path, and the page still needs revealing: without it the loading
+      // overlay sits on screen forever and the modal is visible only through its own inline visibility override.
+      $('#page-loading').css({ visibility: 'hidden' });
+      $('.tool-ui').removeClass('ps-invisible');
     }
   }
 
@@ -281,14 +285,15 @@ class Main {
     });
     logPageFocus();
 
-    // The auth dialog is absent when signed in; pause keyboard shortcuts while it's open (events from Modal.js).
+    // The auth dialog is absent when signed in, and svv.keyboard is absent on the mobile page (#4884); pause
+    // keyboard shortcuts while the dialog is open (events from Modal.js).
     const signInModal = document.getElementById('sign-in-modal-container');
     signInModal?.addEventListener('ps:modal:hidden', () => {
-      svv.keyboard.enableKeyboard();
+      svv.keyboard?.enableKeyboard();
       $('.tool-ui').css('opacity', 1);
     });
     signInModal?.addEventListener('ps:modal:show', () => {
-      svv.keyboard.disableKeyboard();
+      svv.keyboard?.disableKeyboard();
       $('.tool-ui').css('opacity', 0.5);
     });
 

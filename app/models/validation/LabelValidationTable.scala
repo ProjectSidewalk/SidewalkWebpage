@@ -221,7 +221,7 @@ class LabelValidationTable @Inject() (
   }
 
   /**
-   * The total number of validations performed, as work credit: votes voided by the #4842 repair (evolution 354) live
+   * The total number of validations performed, as work credit: votes voided by the #4842 repair (evolution 355) live
    * in the archive table, but the work happened, so they count here. Verdict-derived stats must not use this.
    *
    * @return The total number of validations performed, including archived voided ones.

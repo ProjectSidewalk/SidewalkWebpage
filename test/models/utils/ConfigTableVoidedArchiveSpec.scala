@@ -24,7 +24,7 @@ import scala.util.control.NoStackTrace
  *      inserts the full FK chain for one archived vote inside a rolled-back transaction — so it is meaningful on an
  *      empty CI schema and leaves a seeded dev DB exactly as found.
  *   2. Rollout safety: the same queries must SURVIVE a schema that does not have `voided_label_validation` yet.
- *      These queries fan out across OTHER cities' schemas, and each city applies evolution 354 on its own release
+ *      These queries fan out across OTHER cities' schemas, and each city applies evolution 355 on its own release
  *      schedule (a parked deployment may never apply it) — without the `to_regclass` guard, the missing table failed
  *      the whole per-city query and the service layer's `.recover` silently dropped that city from
  *      /v3/api/aggregateStats and the scorecard. Pinned by cloning the city schema's tables into a scratch schema
@@ -152,7 +152,7 @@ class ConfigTableVoidedArchiveSpec extends PlaySpec with GuiceOneAppPerSuite {
   }
 
   "the cross-schema queries against a schema without voided_label_validation" should {
-    // Clone of the review's rollout scenario: another city's schema exists but hasn't applied evolution 354.
+    // Clone of the review's rollout scenario: another city's schema exists but hasn't applied evolution 355.
     "still succeed, contributing zero archive rows" in {
       val scratch      = "ci_unmigrated_scratch"
       val clonedTables = Seq("street_edge", "audit_task", "user_stat", "label", "config", "label_validation",

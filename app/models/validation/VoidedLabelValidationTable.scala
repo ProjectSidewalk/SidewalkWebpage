@@ -10,7 +10,7 @@ import models.utils.MyPostgresProfile.api._
 import java.time.OffsetDateTime
 
 /**
- * A validation voided by the #4842 off-target-markers repair (evolution 354): a full copy of a deleted
+ * A validation voided by the #4842 off-target-markers repair (evolution 355): a full copy of a deleted
  * label_validation row whose judgment was cast on a label rendering >= 30 px off its true position.
  *
  * These rows are dead for every verdict/count purpose -- the votes were deleted so validators get re-served the
@@ -72,7 +72,7 @@ class VoidedLabelValidationTableDef(tag: slick.lifted.Tag)
   def labelAiAssessmentId: Rep[Option[Int]]         = column[Option[Int]]("label_ai_assessment_id")
 
   // Verbatim capture of the vote's deleted label_history row (PK, now()-stamped edit_time, cleaned tags), used only
-  // by evolution 354's Downs to regenerate that row byte-identically. Deliberately outside the default projection:
+  // by evolution 355's Downs to regenerate that row byte-identically. Deliberately outside the default projection:
   // the app never reads them, and the mapped tuple already sits at Scala's 22-element ceiling.
   def oldHistoryId: Rep[Option[Int]]                  = column[Option[Int]]("old_history_id")
   def oldHistoryEditTime: Rep[Option[OffsetDateTime]] = column[Option[OffsetDateTime]]("old_history_edit_time")

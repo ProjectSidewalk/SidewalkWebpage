@@ -48,7 +48,8 @@
     </div>
   </div>
 
-  <div class="container tool-ui">
+  @* ps-invisible until loading completes (Main.js unhides), so the raw UI never flashes. *@
+  <div class="container tool-ui ps-invisible">
     @components.progressBar(
       rootId = "mission-progress-bar-section",
       fillId = "mission-progress-bar-complete"
@@ -110,10 +111,12 @@
     <div id="modal-mission-holder">
       <div id="modal-mission-background" class="modal-background"></div>
       <div id="modal-mission-foreground" class="modal-foreground">
+        @* Signed-in users get a plain username badge: the auth dialog only renders for signed-out users, so a
+           data-au-open control here would be a focusable button that does nothing. *@
         @if(user.role != "Anonymous") {
-          <button type="button" data-au-open="signIn" class="sign-in-up-button-mobile">@{user.username}</button>
+          <span class="sign-in-up-button-mobile">@{user.username}</span>
         } else {
-          <button type="button" id="mobile-validate-sign-in-btn" data-au-open="signIn" class="sign-in-up-button-mobile">@Messages("navbar.signin")</button>
+          <button type="button" data-au-open="signIn" class="sign-in-up-button-mobile">@Messages("navbar.signin")</button>
         }
         <img src='@assets.path("images/" + config.get[String]("city-params.logo-img." + commonData.cityId))' id="ps-logo-mission" alt="Project Sidewalk logo"></img>
         <h1 id="modal-mission-header" class="text-center"></h1>
@@ -168,13 +171,12 @@
     </div>
   </div>
 
+  @* For anonymous users, the mission modal's sign-in button opens this via its data-au-open hook (AuthModal.js);
+     for signed-in users neither the dialog nor any opener renders. *@
+  @common.authDialog(Some(user))
+
   <script>
     window.appManager.ready(function() {
-      // Only rendered for anonymous users, so it may be absent.
-      document.getElementById('mobile-validate-sign-in-btn')?.addEventListener('click', function() {
-        window.location.href = '@routes.UserController.signInMobile()';
-      });
-
       const param = {};
 
       const userParam = {

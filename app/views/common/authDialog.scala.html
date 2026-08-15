@@ -1,44 +1,64 @@
 @import models.user.SidewalkUserWithRole
-@import play.api.Configuration
-@import service.CommonPageData
-@import views.html.helper.{CSRF, form}
-@import controllers.helper.ControllerUtils.buildUrlFromQueryString
-@(signUpForm: Form[forms.SignUpForm.SignUpData], commonData: CommonPageData, user: Option[SidewalkUserWithRole],
-  url: String = "/"
-)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+@import views.html.helper.{form, CSRF => htmlCSRF}
+@(user: Option[SidewalkUserWithRole]
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder)
 
-@* Full-page sign-up: the no-JS fallback and the target of a direct /signUp visit. Same auth card, fields, and live
-   checklist as the navbar dialog; AuthModal.js progressively enhances it but a plain POST still works. *@
-
-@common.main(commonData, Messages("seo.title.sign.up")) {
-  @* This page's body is the full-page sign-up form, so the navbar must not add the dialog with the same ids. *@
-  @common.navbar(commonData, user, renderAuthDialog = false)
-  <div class="au-page">
-    <div class="au-card">
-      <div class="au-body">
+@* The shared sign-in / sign-up <dialog> (#4375), opened by any element carrying data-au-open="signIn"|"signUp"
+   (AuthModal.js wires the openers). Rendered by the navbar and by navbar-less pages with their own sign-in
+   triggers (e.g. the mobile Validate mission modal, #4884). Only rendered for signed-out users. A page whose body
+   already carries the full-page auth forms must NOT also render this dialog — the two share every form id — and
+   that is the caller's call, not a path check here: the same views render from multiple paths (/signIn, /signUp,
+   and /authenticate/credentials' no-JS error branch), so those views suppress it via navbar's renderAuthDialog
+   parameter (#4889). *@
+@if(!user || user.get.role == "Anonymous") {
+  <dialog id="sign-in-modal-container" class="au-dialog" aria-labelledby="sign-in-label">
+    <div class="au-body">
+        <!-- Sign-in panel -->
+      <div class="au-panel" id="sign-in-modal">
         <div class="au-top">
           <img src='@assets.path("images/logos/ProjectSidewalkLogo_NoText_WheelchairCircleCentered_100x100.png")' alt="" width="40" height="40">
           <div class="au-heading">
             <p class="au-eyebrow">Project Sidewalk</p>
-            <h1 class="au-title">@Messages("authenticate.join")</h1>
+            <h1 class="au-title" id="sign-in-label">@Messages("authenticate.welcome.back")</h1>
+          </div>
+          <button type="button" class="au-close" aria-label="@Messages("authenticate.close")">&#10005;</button>
+        </div>
+        @form(action = routes.UserController.authenticate(), args = 'id -> "sign-in-form", 'class -> "au-form", Symbol("data-error-generic") -> Messages("authenticate.error.generic")) {
+          @htmlCSRF.formField
+          <input type="hidden" name="returnUrl" value="@request.uri">
+          <div class="au-field">
+            <label class="au-label" for="sign-in-email">@Messages("authenticate.identifier")</label>
+            <input class="au-input" id="sign-in-email" name="email" type="text" autocomplete="username" required>
+          </div>
+          <div class="au-field">
+            <div class="au-label-row">
+              <label class="au-label" for="sign-in-password">@Messages("authenticate.password")</label>
+              <a class="au-link" href="@routes.UserController.forgotPassword()">@Messages("reset.pw.forgot.title")</a>
+            </div>
+            <div class="au-input-wrap">
+              <input class="au-input au-input--with-eye" id="sign-in-password" name="password" type="password" autocomplete="current-password" required>
+              @common.authEyeButton("sign-in-password")
+            </div>
+          </div>
+          <label class="au-check" for="sign-in-remember"><input type="checkbox" id="sign-in-remember" name="rememberMe" value="true" checked> @Messages("authenticate.remember.me")</label>
+          <button type="submit" class="button-ps button--primary button--large au-submit">@Messages("navbar.signin")</button>
+        }
+        <div class="au-footer">@Html(Messages("authenticate.new.detail"))</div>
+      </div>
+        <!-- Sign-up panel -->
+      <div class="au-panel ps-hidden" id="sign-up-modal">
+        <div class="au-top">
+          <img src='@assets.path("images/logos/ProjectSidewalkLogo_NoText_WheelchairCircleCentered_100x100.png")' alt="" width="40" height="40">
+          <div class="au-heading">
+            <p class="au-eyebrow">Project Sidewalk</p>
+            <h1 class="au-title" id="sign-up-label">@Messages("authenticate.join")</h1>
             <p class="au-tagline">@Messages("authenticate.tagline")</p>
           </div>
+          <button type="button" class="au-close" aria-label="@Messages("authenticate.close")">&#10005;</button>
         </div>
-        @request.flash.get("error").map { msgKey =>
-          <div class="au-summary" role="alert">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-            <p>@Messages(msgKey)</p>
-          </div>
-        }
         @form(action = routes.UserController.signUpPost(), args = 'id -> "sign-up-form", 'class -> "au-form", Symbol("data-error-generic") -> Messages("authenticate.error.generic")) {
-          @CSRF.formField
-          @if(signUpForm.hasGlobalErrors) {
-            <div class="au-summary" role="alert">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-              <p>@signUpForm.globalErrors.map(e => Messages(e.message)).mkString(" ")</p>
-            </div>
-          }
-          <input type="hidden" name="returnUrl" value="@buildUrlFromQueryString(request.queryString)">
+          @htmlCSRF.formField
+          <input type="hidden" name="returnUrl" value="@request.uri">
           <div class="au-field">
             <label class="au-label" for="sign-up-username">@Messages("username")</label>
             <input class="au-input" id="sign-up-username" name="username" type="text" autocomplete="username" spellcheck="false" maxlength="@forms.UsernamePolicy.maxLength" data-rule-regex="@forms.UsernamePolicy.jsPattern" aria-describedby="sign-up-username-rule" required>
@@ -83,8 +103,8 @@
           <label class="au-check" for="sign-up-terms"><input type="checkbox" id="sign-up-terms" name="terms" value="true" required> <span>@Html(Messages("authenticate.terms"))</span></label>
           <button type="submit" class="button-ps button--primary button--large au-submit">@Messages("authenticate.create.account")</button>
         }
-        <div class="au-footer">@Html(Messages("authenticate.is.member", s"${routes.UserController.signIn().url}?url=${java.net.URLEncoder.encode(buildUrlFromQueryString(request.queryString), "UTF-8")}"))</div>
+        <div class="au-footer">@Html(Messages("authenticate.has.account"))</div>
       </div>
     </div>
-  </div>
+  </dialog>
 }

@@ -279,17 +279,23 @@ util.uiScale = function () {
   return parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ui-scale')) || 1;
 };
 
-// Browser detection helpers backed by Bowser 2.x.
-const _bowserParser = bowser.getParser(window.navigator.userAgent);
-util.getBrowserName = () => _bowserParser.getBrowserName();
+// Browser detection helpers backed by Bowser 2.x. The vendor script loads deferred (this file does not), so the
+// parser must be built lazily: every caller runs at DOMContentLoaded or later, by which point bowser exists.
+let _bowserParser;
+const bowserParser = () => (_bowserParser ??= bowser.getParser(window.navigator.userAgent));
+util.getBrowserName = () => bowserParser().getBrowserName();
 util.getBrowser = () => util.getBrowserName();
-util.getBrowserVersion = () => _bowserParser.getBrowserVersion();
-util.getOperatingSystem = () => _bowserParser.getOSName();
+util.getBrowserVersion = () => bowserParser().getBrowserVersion();
+util.getOperatingSystem = () => bowserParser().getOSName();
 util.isSafari = () => util.getBrowserName() === 'Safari';
 util.isChrome = () => util.getBrowserName() === 'Chrome';
 util.isFirefox = () => util.getBrowserName() === 'Firefox';
-// Tablets count as mobile: they get the touch-oriented mobile UI (and the /mobile redirect) same as phones.
-util.isMobile = () => ['mobile', 'tablet'].includes(_bowserParser.getPlatformType());
+
+// Whether the server judged this device mobile (ControllerUtils.isMobile — the single mobile definition; tablets
+// count as mobile) and so served it the mobile UI. main.scala.html stamps the verdict on <html>; reading it back,
+// rather than re-sniffing the UA client-side, means client and server can't disagree about which variant this page
+// is (#4887). For touch-vs-hover behavior questions, prefer a capability query (`pointer: coarse`) over this flag.
+util.isMobile = () => document.documentElement.dataset.mobileDevice === 'true';
 
 // A cross-browser function to capture a mouse position, relative to the given DOM element. The UI is scaled through
 // real layout sizes (var(--ui-scale)), so offset() already reflects the scaled position and no compensation is needed.

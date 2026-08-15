@@ -107,6 +107,9 @@ class SeoProdSpec extends PlaySpec with GuiceOneAppPerSuite with SeoSpecHelpers 
       body must include("Disallow: /anonSignUp")
       // Aliases are prefix matches, so /v3/api-docs must not appear: it would block the /v3/api-docs/* doc pages.
       body must not include "Disallow: /v3/api-docs"
+      // The retired mobile auth routes 301 to the already-disallowed /signIn·/signUp (#4884).
+      body must not include "Disallow: /signInMobile"
+      body must not include "Disallow: /signUpMobile"
       header(CACHE_CONTROL, resp) mustBe defined
     }
   }

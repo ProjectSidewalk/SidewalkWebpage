@@ -28,7 +28,7 @@ GET     /routeBuilder                                   controllers.ApplicationC
 GET     /cities                                         controllers.ApplicationController.cities
 GET     /citiesDashboard                                controllers.ApplicationController.cities
 
-# User authentication
+# User authentication. The *Mobile routes are 301s kept for old bookmarks/links (#4884).
 GET     /signIn                                         controllers.UserController.signIn()
 GET     /signInMobile                                   controllers.UserController.signInMobile()
 GET     /signUp                                         controllers.UserController.signUp()
