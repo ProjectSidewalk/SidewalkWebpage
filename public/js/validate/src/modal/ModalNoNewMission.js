@@ -69,7 +69,7 @@ class ModalNoNewMission {
     this.#uiModalMission.instruction.html(imageryUnavailable ? this.#imageryUnavailable : this.#noMissionsRemaining);
     // This dead end can follow a mission briefing, which leaves two things behind on mobile: its "YOUR MISSION"
     // eyebrow, and the shrunk-to-one-line sizing it put on the title. This message is a sentence and wants to wrap at
-    // the heading's own size. (Desktop has no eyebrow and never shrinks the title, so both are no-ops there.)
+    // the heading's own size. Both are mobile-only elements/behavior, so both are no-ops on desktop.
     this.#uiModalMission.eyebrow.empty();
     this.#uiModalMission.missionTitle.css({ 'white-space': '', 'font-size': '' });
     this.#uiModalMission.missionTitle.html(imageryUnavailable
@@ -77,6 +77,8 @@ class ModalNoNewMission {
       : i18next.t('mission-complete.no-new-mission-title'));
     this.#uiModalMission.holder.css('visibility', 'visible');
     this.#uiModalMission.foreground.css('visibility', 'visible');
+    // A briefing the validator had scrolled can be what this replaces, and hiding it preserved the offset.
+    this.#uiModalMission.foreground.scrollTop(0);
 
     let buttonLabel;
     if (imageryUnavailable) {

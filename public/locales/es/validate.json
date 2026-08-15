@@ -100,10 +100,6 @@
     "body": "No pudimos cargar las imágenes de calle de las etiquetas de esta misión, así que ahora mismo no hay nada que mostrarte. Tus validaciones completadas están guardadas. Esto suele resolverse solo; inténtalo de nuevo.",
     "retry": "Intentar de nuevo"
   },
-  "mission-start": {
-    "title": "Valida {{n}} etiquetas de {{label_type}}",
-    "body": "¡Tu misión es determinar la exactitud de  __LABELCOUNT_PLACEHOLDER__ etiquetas de __LABELTYPE_PLACEHOLDER__</span> colocadas por otras personas usuarias!"
-  },
   "mission-complete": {
     "title": "¡Gran trabajo!",
     "body-1": "Acabas de validar {{n}} etiquetas de Rampas Peatonales.",
@@ -136,6 +132,7 @@
   "mission-start-tutorial": {
     "mst-instruction-1": "TU MISIÓN",
     "mst-instruction-2": "Validar {{nLabels}} etiquetas de {{- labelType}}",
+    "examples-label": "Ejemplos de etiquetas",
     "example-type-label-incorrect": "EJEMPLO INCORRECTO",
     "label-on-image-title-incorrect": "etiqueta incorrecta",
     "label-on-image-description-correct": "Marcar <b>de acuerdo</b>",

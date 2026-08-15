@@ -108,27 +108,61 @@ class ModalMission {
       .map((slide, i) => `<span class="mv-dot${i === 0 ? ' mv-dot--current' : ''}"></span>`)
       .join('');
 
+    // The later examples are reachable only by scrolling the strip, so it has to be focusable: a keyboard or switch
+    // user can then land on it and use the arrow keys, which is the only way past the first example without a
+    // finger. A named group is what tells them what they have landed on.
+    const stripLabel = i18next.t('validate:mission-start-tutorial.examples-label');
     return `
-      <div class="mv-examples">${figures}</div>
+      <div class="mv-examples" tabindex="0" role="group" aria-label="${stripLabel}">${figures}</div>
       <div class="mv-dots" aria-hidden="true">${dots}</div>`;
   }
+
+  /** Below this the title wraps instead of shrinking further, which is past the point of being readable. */
+  static #TITLE_FLOOR_PX = 16;
 
   /**
    * Shrinks the mission title until it fits on one line, down to a floor — a title reads as one thought that way, and
    * the label types (and their translations) are too different in length for one size to fit them all. Past the floor
    * it wraps rather than shrink into the unreadable.
    *
+   * A title that already fits is left entirely alone: the size it keeps is the heading token's, so retuning that
+   * token moves this heading with every other one instead of leaving it behind at a number copied into here.
+   *
    * @param {HTMLElement} title The title element, already holding the text to fit.
    */
   static #fitToOneLine(title) {
-    const startingSize = 24; // The --text-h3-bold token this screen's headings are set in.
-    const floor = 16;
+    // Cleared first so the starting size read below is the stylesheet's, not whatever the last title was shrunk to.
+    title.style.fontSize = '';
     title.style.whiteSpace = 'nowrap';
-    for (let size = startingSize; size >= floor; size--) {
-      title.style.fontSize = `${size}px`;
+    const startingSize = parseFloat(getComputedStyle(title).fontSize);
+    const floor = ModalMission.#TITLE_FLOOR_PX;
+    for (let size = startingSize; size > floor; size--) {
       if (title.scrollWidth <= title.clientWidth) return;
+      title.style.fontSize = `${size - 1}px`;
     }
-    title.style.whiteSpace = '';
+    if (title.scrollWidth > title.clientWidth) title.style.whiteSpace = '';
+  }
+
+  /**
+   * Fits the title now, and again once the face it is set in has actually arrived.
+   *
+   * On a cold cache the first fit measures the fallback face, which is usually the narrower of the two, so a size
+   * chosen against it leaves the real text overflowing a box whose overflow is hidden — and nothing would re-run the
+   * fit until the next mission. Asking for the face resolves immediately once it is in hand, so every mission after
+   * the first costs a microtask.
+   *
+   * @param {HTMLElement} title The title element, already holding the text to fit.
+   */
+  static #fitTitleWhenReady(title) {
+    ModalMission.#fitToOneLine(title);
+    if (!document.fonts) return;
+    const { fontWeight, fontSize, fontFamily } = getComputedStyle(title);
+    document.fonts.load(`${fontWeight} ${fontSize} ${fontFamily}`, title.textContent)
+      .then(() => {
+        // A dead end can take this screen over while the face is in flight, and it wants the heading's own size.
+        if (!svv.modalNoNewMission?.isShowing()) ModalMission.#fitToOneLine(title);
+      })
+      .catch(() => { /* A face the browser won't parse is not worth failing the briefing over. */ });
   }
 
   /**
@@ -161,7 +195,10 @@ class ModalMission {
       nLabels: mission.getProperty('labelsValidated'),
       labelType: svv.labelTypeNames[mission.getProperty('labelTypeId')],
     });
-    this.show(title, ModalMission.#buildExamples(labelType), labelType);
+    // Desktop reaches here too — MissionContainer starts every mission the same way — but shows this screen only to
+    // announce a dead end (ModalNoNewMission). Building the briefing there would cost a tutorial photo fetched per
+    // mission for markup nobody sees.
+    this.show(title, util.isMobile() ? ModalMission.#buildExamples(labelType) : '', labelType);
   }
 
   /**
@@ -189,9 +226,14 @@ class ModalMission {
 
     this.#uiModalMission.background.css('visibility', 'visible');
     this.#uiModalMission.missionTitle.html(title);
-    ModalMission.#fitToOneLine(this.#uiModalMission.missionTitle[0]);
+    // Only the phone screen is tight enough to need it, and only it is visible: desktop's copy of this modal is
+    // display:none, so a fit measured there would size the title against a box of zero width.
+    if (util.isMobile()) ModalMission.#fitTitleWhenReady(this.#uiModalMission.missionTitle[0]);
     this.#uiModalMission.holder.css('visibility', 'visible');
     this.#uiModalMission.foreground.css('visibility', 'visible');
+    // Hiding this screen only makes it invisible, which preserves how far it was scrolled — and briefings routinely
+    // run past a phone screen, so without this the next mission's opens partway down.
+    this.#uiModalMission.foreground.scrollTop(0);
     this.#uiModalMission.closeButton.html(i18next.t('common:mission-start-tutorial.start-mission'));
     this.#uiModalMission.closeButton.off('click').on('click', this.#handleButtonClick);
   }

@@ -100,10 +100,6 @@
     "body": "We couldn't load the street imagery for the labels in this mission, so there's nothing to show you right now. Your finished validations are saved. This usually clears up on its own — please try again.",
     "retry": "Try Again"
   },
-  "mission-start": {
-    "title": "Validate {{n}} {{label_type}} labels",
-    "body": "Your mission is to determine the correctness of  __LABELCOUNT_PLACEHOLDER__ __LABELTYPE_PLACEHOLDER__</span> labels placed by other users!"
-  },
   "mission-complete": {
     "title": "Great Job!",
     "body-1": "You just validated {{n}} Curb Ramp labels.",
@@ -119,8 +115,8 @@
     "no-new-mission-title": "No more validation missions left",
     "no-new-mission-body": "Click the button to start exploring.",
     "no-new-mission-button": "Start Exploring",
-    "all-time_one": "{{count}} validation all time",
-    "all-time_other": "{{count}} validations all time",
+    "all-time_one": "{{count}} all-time validation",
+    "all-time_other": "{{count}} all-time validations",
     "next-badge_one": "{{count}} more validation to {{badge}}",
     "next-badge_other": "{{count}} more validations to {{badge}}",
     "top-badge": "Top badge earned — you’re a legend!"
@@ -136,6 +132,7 @@
   "mission-start-tutorial": {
     "mst-instruction-1": "YOUR MISSION",
     "mst-instruction-2": "Validate {{nLabels}} {{- labelType}} Labels",
+    "examples-label": "Label examples",
     "example-type-label-incorrect": "WRONG EXAMPLE",
     "label-on-image-title-incorrect": "Wrong label",
     "label-on-image-description-correct": "Mark <b>Agree</b>",

@@ -100,10 +100,6 @@
     "body": "Não conseguimos carregar as imagens de rua dos rótulos desta missão, então não há nada para mostrar agora. Suas validações concluídas estão salvas. Isso costuma se resolver sozinho — tente novamente.",
     "retry": "Tentar novamente"
   },
-  "mission-start": {
-    "title": "Validar {{n}} {{label_type}} rótulos",
-    "body": "Sua missão é determinar a correção de __LABELCOUNT_PLACEHOLDER__ rótulos __LABELTYPE_PLACEHOLDER__ colocados por outros usuários!"
-  },
   "mission-complete": {
     "title": "Ótimo trabalho!",
     "body-1": "Você acabou de validar {{n}} rótulos de Rampa de Calçada.",
@@ -136,6 +132,7 @@
   "mission-start-tutorial": {
     "mst-instruction-1": "SUA MISSÃO",
     "mst-instruction-2": "Validar {{nLabels}} rótulos {{- labelType}}",
+    "examples-label": "Exemplos de rótulos",
     "example-type-label-incorrect": "EXEMPLO INCORRETO",
     "label-on-image-title-incorrect": "Rótulo incorreto",
     "label-on-image-description-correct": "Marque <b>Concordo</b>",

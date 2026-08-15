@@ -152,44 +152,79 @@ class PanoMarker {
     // On Validate, the marker is what opens the label card (its metadata plus the Hide-label toggle). Positioning
     // and timing live in LabelVisibilityControl; this only reports the pointer and the keyboard focus.
     if (this.id_ === 'validate-pano-marker') {
+      // The marker is a control, not just a hover target (#4729): the card it opens is the only place the label's
+      // rating, tags, and description appear. role=button with aria-expanded makes it read as a disclosure, and
+      // aria-describedby hands a screen reader the card's contents right off the marker — the card itself never
+      // takes focus. Its aria-label (the label's type) is set per label by PanoManager.renderPanoMarker, and
+      // LabelVisibilityControl mirrors the card's visibility onto aria-expanded. Both platforms claim the same
+      // contract, because both answer the activation an assistive technology sends (a click).
+      marker.setAttribute('tabindex', '0');
+      marker.setAttribute('role', 'button');
+      marker.setAttribute('aria-haspopup', 'dialog');
+      marker.setAttribute('aria-expanded', 'false');
+      marker.setAttribute('aria-describedby', 'label-card');
+
       if (util.isMobile()) {
-        // No ARIA here, deliberately: mobile Validate builds no KeyboardManager (Main.js) and this branch wires no
-        // focus handler, so a marker calling itself a button would announce a disclosure that nothing can open by
-        // keyboard or by an assistive tech's activate gesture — worse for a screen reader than the plain touch
-        // target it actually is. Making it properly operable needs a real activation path and testing on a device,
-        // so it stays untouched here rather than faked.
+        // Three ways in, one path out: a finger, an assistive technology's activate gesture (which arrives as a
+        // click, never as a touch), and Enter/Space for a keyboard on a tablet. Mobile Validate builds no
+        // KeyboardManager (Main.js), so unlike desktop the keys are handled right here.
         //
         // A touch is the marker's from the moment it lands, so a drag beginning on it can't pan the pano — the same
         // trade the desktop marker makes with the mouse, over a target this small. Answering on touchend, and only
         // when the finger stayed put, at least keeps such a drag from opening the card on its way past.
         // (mobile-validate.css is what lets the touch reach the marker at all: the layer around it is
         // click-through so the pano gets every pan.)
+        const TAP_SLOP = 25; // In this page's oversized px — it draws at ~2.5x the screen, so this is ~10 real px.
+        const CLICK_AFTER_TOUCH_MS = 700;
         let touchStart = null;
-        marker.addEventListener('touchstart', (e) => {
-          const touch = e.changedTouches[0];
-          touchStart = { x: touch.clientX, y: touch.clientY };
-        }, { passive: true });
-        marker.addEventListener('touchend', (e) => {
-          if (!touchStart) return;
-          const touch = e.changedTouches[0];
-          const travelled = Math.hypot(touch.clientX - touchStart.x, touch.clientY - touchStart.y);
-          touchStart = null;
-          // In this page's oversized px — the layout it draws at is ~2.5x the screen, so this is ~10 real px.
-          if (travelled <= 25) svv.labelVisibilityControl.toggleLabelCard();
-        }, { passive: true });
-      } else {
-        // The marker is a keyboard stop, not just a hover target (#4729): the card it opens is the only place the
-        // label's rating, tags, and description appear. role=button with aria-expanded makes it read as a
-        // disclosure, and aria-describedby hands a screen reader the card's contents right off the marker — the
-        // card itself never takes focus. Its aria-label (the label's type) is set per label by
-        // PanoManager.renderPanoMarker. Enter, Space, and Escape are handled in Validate's KeyboardManager, which
-        // listens on window with capture and would otherwise submit a validation on the same keys.
-        marker.setAttribute('tabindex', '0');
-        marker.setAttribute('role', 'button');
-        marker.setAttribute('aria-haspopup', 'dialog');
-        marker.setAttribute('aria-expanded', 'false');
-        marker.setAttribute('aria-describedby', 'label-card');
+        let lastTouchEndAt = 0;
+        const activate = () => svv.labelVisibilityControl.toggleLabelCard();
 
+        marker.addEventListener('touchstart', (e) => {
+          // A second finger means a pinch is starting, not a tap. Drop the tracked touch rather than overwrite it:
+          // the marker is the one thing over the pano a finger can land on, so both fingers of a pinch can begin
+          // here, and the second one's lift would otherwise read as a tap that started where the first finger did.
+          if (e.touches.length > 1) {
+            touchStart = null;
+            return;
+          }
+          const touch = e.changedTouches[0];
+          touchStart = { id: touch.identifier, x: touch.clientX, y: touch.clientY };
+        }, { passive: true });
+
+        marker.addEventListener('touchcancel', () => {
+          touchStart = null;
+        }, { passive: true });
+
+        marker.addEventListener('touchend', (e) => {
+          lastTouchEndAt = Date.now();
+          if (!touchStart) return;
+          // Only the finger the tap started with, and only once it is the last one down.
+          const touch = Array.from(e.changedTouches).find((t) => t.identifier === touchStart.id);
+          if (!touch) return;
+          const { x, y } = touchStart;
+          touchStart = null;
+          if (e.touches.length > 0) return;
+          if (Math.hypot(touch.clientX - x, touch.clientY - y) <= TAP_SLOP) activate();
+        }, { passive: true });
+
+        marker.addEventListener('click', () => {
+          // A tap synthesizes a click shortly after its touchend, and that touch has already been judged above —
+          // honoured as a tap or turned down as a drag. So this is only for the activations that arrive with no
+          // touch behind them, which is how an assistive technology presses a button.
+          if (Date.now() - lastTouchEndAt < CLICK_AFTER_TOUCH_MS) return;
+          activate();
+        });
+
+        marker.addEventListener('keydown', (e) => {
+          // role=button brings no native key handling, and there is no KeyboardManager here to supply it.
+          if (e.key !== 'Enter' && e.key !== ' ') return;
+          e.preventDefault(); // Space would otherwise scroll the page.
+          activate();
+        });
+      } else {
+        // Enter, Space, and Escape are handled in Validate's KeyboardManager, which listens on window with capture
+        // and would otherwise submit a validation on the same keys.
         marker.addEventListener('mouseover', (e) => {
           // Don't re-show the hover info if the cursor passes over the marker mid-pan (a mouse button is held).
           if (e.buttons) return;

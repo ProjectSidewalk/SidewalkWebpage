@@ -17,6 +17,33 @@ class Confetti {
   static #DRAG = 0.9985;
 
   /**
+   * The largest backing store a canvas may have, in device pixels. iOS Safari refuses anything past roughly
+   * 4096x4096: `getContext` still hands back a context, but every draw on it is a silent no-op, so the only symptom
+   * is a celebration that never appears.
+   */
+  static MAX_CANVAS_AREA = 4096 * 4096;
+
+  /**
+   * The backing-store ratio to draw a canvas of the given CSS size at, capped to stay inside MAX_CANVAS_AREA.
+   *
+   * The cap bites on exactly the phones this fires over: a page with no viewport meta is laid out at ~980 CSS px
+   * wide and a couple of thousand tall, which at devicePixelRatio 3 asks for ~19M device pixels. Such a page is
+   * displayed at well under 1:1 anyway, so the ratio being given up buys no sharpness — and the ~75MB of RGBA it
+   * would have allocated is cleared every frame.
+   *
+   * @param {number} width Canvas width in CSS px.
+   * @param {number} height Canvas height in CSS px.
+   * @param {number} [deviceRatio=1] The display's device pixel ratio.
+   * @returns {number} The ratio to size the backing store by — never above `deviceRatio`, and below it whenever
+   *      the full device ratio would exceed the area budget. Falls back to `deviceRatio` for a zero-area canvas.
+   */
+  static backingRatio(width, height, deviceRatio = 1) {
+    const area = width * height;
+    if (!(area > 0)) return deviceRatio;
+    return Math.min(deviceRatio, Math.sqrt(Confetti.MAX_CANVAS_AREA / area));
+  }
+
+  /**
    * Fires a burst from the top of the viewport.
    *
    * @param {Object} [options]
@@ -26,6 +53,14 @@ class Confetti {
    */
   static burst({ count = 90, duration = 2600, zIndex = 1000 } = {}) {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    // Token-only: a page that doesn't carry the design tokens gets no confetti rather than confetti in some color
+    // frozen here, which would drift the moment the palette moved.
+    const rootStyle = getComputedStyle(document.documentElement);
+    const colors = Confetti.#COLOR_TOKENS
+      .map((token) => rootStyle.getPropertyValue(token).trim())
+      .filter(Boolean);
+    if (!colors.length) return;
 
     const canvas = document.createElement('canvas');
     canvas.style.cssText = `position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none;
@@ -37,14 +72,12 @@ class Confetti {
     // the canvas is sized in CSS pixels of that layout and the pieces are scaled to it.
     const width = canvas.offsetWidth;
     const height = canvas.offsetHeight;
-    const ratio = window.devicePixelRatio || 1;
+    const ratio = Confetti.backingRatio(width, height, window.devicePixelRatio || 1);
     canvas.width = width * ratio;
     canvas.height = height * ratio;
     const ctx = canvas.getContext('2d');
     ctx.scale(ratio, ratio);
 
-    const rootStyle = getComputedStyle(document.documentElement);
-    const colors = Confetti.#COLOR_TOKENS.map((token) => rootStyle.getPropertyValue(token).trim() || '#FBD98C');
     const size = width / 40;
 
     // Thrown from two points near the top corners, the way a pair of party poppers would.

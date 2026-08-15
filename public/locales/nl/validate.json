@@ -100,10 +100,6 @@
     "body": "We konden de straatbeelden voor de labels in deze missie niet laden, dus er is nu niets om te tonen. Je afgeronde validaties zijn opgeslagen. Dit lost zichzelf meestal op — probeer het opnieuw.",
     "retry": "Opnieuw proberen"
   },
-  "mission-start": {
-    "title": "Valideer {{n}} {{label_type}} labels",
-    "body": "Je missie is om de correctheid te bepalen van  __LABELCOUNT_PLACEHOLDER__ __LABELTYPE_PLACEHOLDER__</span> labels geplaatst door andere gebruikers!"
-  },
   "mission-complete": {
     "title": "Goed gedaan!",
     "body-1": "Je hebt net {{n}} Trottoir Oprit labels gelabeld.",
@@ -136,6 +132,7 @@
   "mission-start-tutorial": {
     "mst-instruction-1": "JOUW MISSIE",
     "mst-instruction-2": "Valideer {{nLabels}} {{- labelType}} labels",
+    "examples-label": "Labelvoorbeelden",
     "example-type-label-incorrect": "VERKEERD VOORBEELD",
     "label-on-image-title-incorrect": "Verkeerd etiket",
     "label-on-image-description-correct": "Markeer <b>Akkoord</b>",

@@ -67,26 +67,17 @@ class ModalMissionComplete {
       ? i18next.t('mission-complete.all-time', { count: total })
       : total);
 
-    const level = BadgeAchievements.getLevelForValue('validations', total);
-    const badge = BadgeAchievements.getBadge('validations', level);
+    const { badge, next, fraction, remaining } = BadgeAchievements.getProgress('validations', total);
     ui.badgeIcon.toggleClass('ps-hidden', !badge);
     ui.badgeName.text(badge ? `${badge.name} ${badge.roman}` : '');
     if (badge) ui.badgeIcon.css('background-image', `url("${badge.iconSrc}")`);
 
     // What they're climbing toward, which is what makes the badge legible as a level rather than a decoration. It's
     // the same line for someone who has none yet: their first badge is simply the next one.
-    const thresholds = BadgeAchievements.THRESHOLDS.validations;
-    const next = BadgeAchievements.getBadge('validations', level + 1);
-    if (next) {
-      const earnedAt = level > 0 ? thresholds[level - 1] : 0;
-      const nextAt = thresholds[level];
-      ui.badgeProgressFill.css('width', `${Math.round(((total - earnedAt) / (nextAt - earnedAt)) * 100)}%`);
-      ui.badgeNext.text(i18next.t('mission-complete.next-badge',
-        { count: nextAt - total, badge: `${next.name} ${next.roman}` }));
-    } else {
-      ui.badgeProgressFill.css('width', '100%');
-      ui.badgeNext.text(i18next.t('mission-complete.top-badge'));
-    }
+    if (ui.badgeProgressFill.length) new ProgressBar(ui.badgeProgressFill[0]).setFraction(fraction);
+    ui.badgeNext.text(next
+      ? i18next.t('mission-complete.next-badge', { count: remaining, badge: `${next.name} ${next.roman}` })
+      : i18next.t('mission-complete.top-badge'));
   }
 
   /**
@@ -141,6 +132,9 @@ class ModalMissionComplete {
 
     this.#uiModalMissionComplete.holder.css('visibility', 'visible');
     this.#uiModalMissionComplete.foreground.css('visibility', 'visible');
+    // Hiding this screen only makes it invisible, which preserves how far it was scrolled, and it is shown again at
+    // the end of every mission — so without this the next one opens wherever the last one was left.
+    this.#uiModalMissionComplete.foreground.scrollTop(0);
     ModalMissionComplete.#celebrate();
 
     // Set primary button text to Explore if they've completed 3 validation missions (and are on a laptop/desktop).

@@ -77,22 +77,23 @@ body {
    oversized px (what the rest of this file does) because the --text-* tokens can't be scaled per-component: they bake
    in whatever --ui-scale the root had when they were declared, so overriding that variable here moves the padding
    and leaves the type behind.
-   The layout box is divided by the same factor so the scaled result still covers exactly the screen. */
+   The layout box is divided by the same factor so the scaled result still covers exactly the screen — which holds
+   for any factor, and the factor is per-device: mobileValidate.js measures how far this device is shrinking the page
+   and writes --mobile-mission-scale to the root, since the tablets the server routes here are shrunk by about half
+   what a phone is. The fallback is a ~390pt phone, for the moment before that runs. */
 #modal-mission-foreground,
 #modal-mission-complete-foreground {
-  --mobile-mission-scale: 2.5; /* 980px layout viewport / a ~390pt phone. */
-
   top: 0;
   left: 0;
-  width: calc(100% / var(--mobile-mission-scale));
-  height: calc(100% / var(--mobile-mission-scale));
-  transform: scale(var(--mobile-mission-scale));
+  width: calc(100% / var(--mobile-mission-scale, 2.5));
+  height: calc(100% / var(--mobile-mission-scale, 2.5));
+  transform: scale(var(--mobile-mission-scale, 2.5));
   transform-origin: top left;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 20px;
-  padding: 24px 24px 0; /* The bottom edge belongs to the sticky actions' margin — see .mv-modal__actions. */
+  padding: 24px 24px 0; /* The bottom edge belongs to the sticky actions' padding — see .mv-modal__actions. */
   border: none;
   border-radius: 0;
   background: var(--color-neutral-white);
@@ -169,7 +170,9 @@ body {
   height: auto;
 }
 
-#modal-mission-instruction figure {
+/* The dead end's own figure only. The carousel's slides are figures too, one level further in, and they space
+   themselves with the strip's gap. */
+#modal-mission-instruction > figure {
   margin: 0 0 12px;
 }
 
@@ -500,8 +503,10 @@ body {
 }
 
 /* The way forward stays put while a long briefing — or a verbose translation — scrolls behind it, so it is never
-   below the fold. The margin is what the screen's own bottom padding would have been: a sticky element's offset is
-   measured from its margin box, so this holds the gap open in both the stuck and the resting state. */
+   below the fold. It paints, because content passing underneath would otherwise show through the gap below the
+   button and around its rounded corners — in exactly the long-content case this was added for. The padding is what
+   the screen's own bottom padding would have been, and holds that gap open in both the stuck and resting states
+   while staying part of what the bar paints. */
 .mv-modal__actions {
   position: sticky;
   bottom: 0;
@@ -509,7 +514,8 @@ body {
   flex-direction: column;
   gap: 10px;
   width: 100%;
-  margin-bottom: 24px;
+  padding-bottom: 24px;
+  background: var(--color-neutral-white);
 }
 
 /* The design system's largest button is sized for a mouse; a thumb wants a taller target and bigger type, so the
@@ -668,18 +674,28 @@ body {
   padding: 0 7vw;
 }
 
-/* Each verdict wears the thumb it will be counted under on the mission-complete screen, over the color it is drawn
-   in — an outline until it's the chosen one, then filled. */
+/* Shared with the disagree/unsure reason panels' own buttons, which override the box but not the type — so this
+   holds only what all of them want. */
 .validate-page-button {
+  width: 25vw;
+  height: inherit;
+  border-radius: 16px;
+  font-size: 28px;
+}
+
+/* Each verdict wears the thumb it will be counted under on the mission-complete screen, over the color it is drawn
+   in — an outline until it's the chosen one, then filled. Set in this page's oversized px rather than a --text-*
+   token, like everything else outside the mission screens: the page ships no viewport meta, so a phone displays it
+   at ~0.4x and a token's own size would land somewhere around 7px. */
+#validate-no-button,
+#validate-unsure-button,
+#validate-yes-button {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  width: 25vw;
-  height: inherit;
   padding: 0;
   border: 3px solid var(--color-neutral-300);
-  border-radius: 16px;
   background: var(--color-neutral-white);
   font-size: 34px;
   font-weight: 700;
@@ -711,8 +727,11 @@ body {
   background: var(--color-orange-300);
 }
 
+/* The ink comes with it: svv-validation-menu.css pairs its own near-black chosen background with white type, and
+   this background is a pale one. */
 #validate-unsure-button.chosen {
   background: var(--color-asphalt-100);
+  color: var(--color-neutral-900);
 }
 
 /* The tapped verdict's thumb, rising away from its button — the tap is confirmed where the eye already is, rather
