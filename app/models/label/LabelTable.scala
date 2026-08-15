@@ -143,7 +143,7 @@ case class ProjectSidewalkStats(
 case class LabelTypeValidationsLeft(labelType: LabelTypeEnum.Base, validationsAvailable: Int, validationsNeeded: Int)
 
 case class LabelCount(count: Int, timeInterval: TimeInterval, labelType: String) {
-  require((validLabelTypes ++ Seq("All")).contains(labelType))
+  require((labelTypeNames ++ Seq("All")).contains(labelType))
 }
 
 // Defines some common fields for a label metadata, which allows us to create generic functions using these fields.
@@ -908,7 +908,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       .result
       .map { labelCounts =>
         // Put data into LabelCount objects, and add an entry for any nonexistent label types with count=0.
-        val countsByType: Seq[LabelCount] = validLabelTypes.map { labelType =>
+        val countsByType: Seq[LabelCount] = labelTypeNames.map { labelType =>
           LabelCount(labelCounts.find(_._1 == labelType).map(_._2).getOrElse(0), timeInterval, labelType)
         }.toSeq
 

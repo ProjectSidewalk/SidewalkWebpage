@@ -60,15 +60,11 @@ THRESHOLDS = {
     'Signal': 0.01,
     'Occlusion': 0.01,
     'Other': 0.01,
-    'Problem': 0.01,
 }
 
-# Label types to cluster. 'Problem' is a synthetic type aggregating the PROBLEM_TYPES below.
-LABEL_TYPES = ['CurbRamp', 'NoSidewalk', 'Problem', 'Occlusion', 'SurfaceProblem', 'Obstacle', 'Other', 'NoCurbRamp',
-               'Crosswalk', 'Signal']
-
-# The label types that are additionally clustered together under the synthetic 'Problem' type.
-PROBLEM_TYPES = ['SurfaceProblem', 'Obstacle', 'NoCurbRamp']
+# Label types to cluster.
+LABEL_TYPES = ['CurbRamp', 'NoSidewalk', 'Occlusion', 'SurfaceProblem', 'Obstacle', 'Other', 'NoCurbRamp', 'Crosswalk',
+               'Signal']
 
 # Columns required in the POST payload for labels and clusters, respectively.
 LABEL_COLS = ['label_id', 'label_type', 'cluster']
@@ -159,12 +155,11 @@ def cluster_label_type(label_type, label_data, thresholds, label_cols=LABEL_COLS
     """
     Selects the rows for one label type and clusters them.
 
-    For the synthetic ``'Problem'`` type, selects all PROBLEM_TYPES rows; otherwise selects the matching type. With more
-    than one label it delegates to ``cluster``; with exactly one it forms a single trivial cluster; with none it returns
-    empty frames.
+    With more than one label it delegates to ``cluster``; with exactly one it forms a single trivial cluster; with none
+    it returns empty frames.
 
     Args:
-        label_type:   The label type (or ``'Problem'``) to cluster.
+        label_type:   The label type to cluster.
         label_data:   DataFrame of all of the region's cleaned labels (must include a ``coords`` column).
         thresholds:   Mapping of label type -> distance threshold in kilometers.
         label_cols:   Column order for the per-label output frame.
@@ -177,17 +172,13 @@ def cluster_label_type(label_type, label_data, thresholds, label_cols=LABEL_COLS
     clusters_for_type = pd.DataFrame(columns=cluster_cols)
     labels_for_type = pd.DataFrame(columns=label_cols)
 
-    if label_type == 'Problem':
-        type_data = label_data[label_data.label_type.isin(PROBLEM_TYPES)]
-    else:
-        type_data = label_data[label_data.label_type == label_type]
+    type_data = label_data[label_data.label_type == label_type]
 
     if type_data.shape[0] > 1:
         clusters_for_type, labels_for_type = cluster(type_data, label_type, thresholds, cluster_cols)
     elif type_data.shape[0] == 1:
         labels_for_type = type_data.copy()
         labels_for_type.loc[:, 'cluster'] = 1  # The single label is its own cluster.
-        labels_for_type.loc[:, 'label_type'] = label_type  # Re-tag as 'Problem' when needed.
         clusters_for_type = labels_for_type.filter(items=cluster_cols)
 
     return label_type, clusters_for_type, labels_for_type
