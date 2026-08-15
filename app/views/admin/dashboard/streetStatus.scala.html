@@ -56,5 +56,5 @@
 
 @common.main(commonData, "Sidewalk - Admin Street Status") {
   @common.navbar(commonData, Some(user))
-  @admin.dashboard.adminLayout("street-status", commonData)(content)
+  @admin.dashboard.adminLayout("street-status", commonData, user)(content)
 }

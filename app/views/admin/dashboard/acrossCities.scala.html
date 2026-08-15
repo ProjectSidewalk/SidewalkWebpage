@@ -311,5 +311,5 @@
 
 @common.main(commonData, "Sidewalk - Across Cities") {
   @common.navbar(commonData, Some(user))
-  @admin.dashboard.adminLayout("across-cities", commonData, user.role == "Owner")(content)
+  @admin.dashboard.adminLayout("across-cities", commonData, user)(content)
 }

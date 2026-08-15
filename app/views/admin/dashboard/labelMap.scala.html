@@ -83,5 +83,5 @@
 
 @common.main(commonData, "Sidewalk - Admin Label Map", i18Namespaces = Seq("common", "labelmap")) {
   @common.navbar(commonData, Some(user))
-  @admin.dashboard.adminLayout("label-map", commonData, user.role == "Owner")(content)
+  @admin.dashboard.adminLayout("label-map", commonData, user)(content)
 }
