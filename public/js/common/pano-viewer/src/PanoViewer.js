@@ -60,6 +60,8 @@ class PanoViewer {
    * @param {object} panoOptions Object containing initialization options
    * @param {string} [panoOptions.startPanoId] Pano to start at; either this or startLatLng is required
    * @param {{lat: number, lng: number}} [panoOptions.startLatLng] Starting loc; either this or startLatLng is required
+   * @param {boolean} [panoOptions.preloadNeighbors=false] Pre-download panos linked to the current one, so that
+   *     moving to them is fast. Only supported by Mapillary; other viewers ignore it.
    * @returns {Promise<void>}
    */
   initialize(_canvasElem, _panoOptions = {}) {
@@ -188,6 +190,15 @@ class PanoViewer {
    * No-op by default; override in subclasses that support prefetching.
    */
   clearPrefetchCache() {}
+
+  /**
+   * Pre-downloads the pano that setLocation() would pick near the given location, so a subsequent move there
+   * doesn't wait on the network. No-op by default; override in subclasses that support preloading.
+   * @param {{lat: number, lng: number}} latLng The location the next move is expected to target.
+   * @param {Set<PanoData>} [excludedPanos] Panos the next move is expected to exclude.
+   * @returns {Promise<void>}
+   */
+  async preloadPanoNear(_latLng, _excludedPanos = new Set()) {}
 
   /**
    * Moves the current panorama to the specified panorama ID.

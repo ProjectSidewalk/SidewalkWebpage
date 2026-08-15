@@ -46,6 +46,20 @@ class Form {
   }
 
   /**
+   * The page's label filters, in the shape the backend's `ValidateParams` reads.
+   * @returns {Object} The filters, ready to drop into a request body as `validate_params`.
+   */
+  getValidateParams() {
+    return {
+      admin_version: svv.adminVersion,
+      label_type: svv.validateParams.labelTypeId,
+      user_ids: svv.validateParams.userIds,
+      neighborhood_ids: svv.validateParams.regionIds,
+      unvalidated_only: svv.validateParams.unvalidatedOnly,
+    };
+  }
+
+  /**
    * Compiles data into a format that can be parsed by our back end.
    *
    * @param {boolean} missionComplete - Whether the mission is complete. Ensures we only send once per mission.
@@ -68,7 +82,6 @@ class Form {
         labels_total: mission.getProperty('labelsValidated'),
         label_type_id: mission.getProperty('labelTypeId'),
         completed: missionComplete ? missionComplete : false,
-        skipped: mission.getProperty('skipped'),
       };
     }
 
@@ -95,13 +108,7 @@ class Form {
       css_zoom: 100, // Sent for back-end compatibility; UI scaling is done via real layout sizes (--ui-scale).
     };
 
-    data.validate_params = {
-      admin_version: svv.adminVersion,
-      label_type: svv.validateParams.labelTypeId,
-      user_ids: svv.validateParams.userIds,
-      neighborhood_ids: svv.validateParams.regionIds,
-      unvalidated_only: svv.validateParams.unvalidatedOnly,
-    };
+    data.validate_params = this.getValidateParams();
 
     data.interactions = svv.tracker.getActions();
 
@@ -178,7 +185,7 @@ class Form {
       if (result.has_mission_available) {
         if (result.mission) {
           svv.missionContainer.createAMission(result.mission, result.progress);
-          svv.labelContainer.resetLabelList(result.labels);
+          svv.labelContainer.resetLabelList(result.labels, result.mission.label_type_id);
           await svv.labelContainer.renderCurrentLabel();
           svv.modalMissionComplete.nextMissionLoaded();
         }

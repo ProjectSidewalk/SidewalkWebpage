@@ -72,6 +72,7 @@ class PanoManager {
     const panoOptions = {
       accessToken: viewerAccessToken,
       defaultNavigation: false, // We create our own navigation arrows.
+      preloadNeighbors: true, // Pre-download linked panos so walking down the street doesn't wait on the network.
     };
 
     // Add the starting location to panoOptions. A pano seed is tried first; the lat/lng (plus backups sampled along

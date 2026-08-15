@@ -58,7 +58,9 @@
       <p><code><a href="/v3/api/rawLabels?labelType=CurbRamp">/v3/api/rawLabels?labelType=CurbRamp</a></code> Get all raw labels of type <code>CurbRamp</code>. The available label types match those in the <a href="@routes.ApiDocsController.labelTypes">Label Types API</a></p>
       <p><code><a href="/v3/api/rawLabels?labelType=SurfaceProblem&minSeverity=2">/v3/api/rawLabels?labelType=SurfaceProblem&minSeverity=2</a></code> Get all raw labels of type <code>SurfaceProblem</code> with a minimum severity of 2.</p>
       <p><code><a href="/v3/api/rawLabels?severity=none,3">/v3/api/rawLabels?severity=none,3</a></code> Get all raw labels that are either unrated or severity 3.</p>
-      <p><code><a href="/v3/api/rawLabels?tags=CurbRamp:narrow">/v3/api/rawLabels?tags=CurbRamp:narrow</a></code> Get all raw labels with the <code>narrow</code> tag, only on <code>CurbRamp</code> labels.</p>
+      <p><code><a href="/v3/api/rawLabels?tags=narrow&tags=uneven surface">/v3/api/rawLabels?tags=narrow&amp;tags=uneven surface</a></code> Get all raw labels carrying either the <code>narrow</code> or the <code>uneven surface</code> tag. Repeat <code>tags</code> once per tag.</p>
+      <p><code><a href="/v3/api/rawLabels?tags=CurbRamp:narrow">/v3/api/rawLabels?tags=CurbRamp:narrow</a></code> Narrow <code>CurbRamp</code> labels to those tagged <code>narrow</code>, leaving every other label type unfiltered.</p>
+      <p><code><a href="/v3/api/rawLabels?labelType=CurbRamp&tags=CurbRamp:narrow">/v3/api/rawLabels?labelType=CurbRamp&amp;tags=CurbRamp:narrow</a></code> Get <em>only</em> <code>CurbRamp</code> labels tagged <code>narrow</code> — pair the scoped tag with <code>labelType</code> to also drop the other types.</p>
     </div>
   </div>
 
@@ -126,12 +128,16 @@
           <tr>
             <td><code>labelType</code></td>
             <td><code>string</code></td>
-            <td>Filter by one or more label types. Provide comma-separated values (e.g., <code>labelType=CurbRamp,Obstacle</code>). See <a target="_blank" href="@routes.ApiDocsController.labelTypes">Label Types Reference</a> for available types. </td>
+            <td>Filter by one or more label types. Provide comma-separated values (e.g., <code>labelType=CurbRamp,Obstacle</code>). See <a target="_blank" href="@routes.ApiDocsController.labelTypes">Label Types Reference</a> for available types.
+              <strong>Changed August 2026</strong> (v3 is a preview API): values are validated against the known label types, so an unrecognized or empty value now returns a 400 error naming the parameter instead of silently matching nothing. </td>
           </tr>
           <tr>
             <td><code>tags</code></td>
-            <td><code>string</code></td>
-            <td>Filter by one or more tags associated with labels. Provide comma-separated values (e.g., <code>tags=missing tactile warning,uneven surface</code>). Matches labels containing *any* of the specified tags. An entry may be scoped to a single label type with a <code>LabelType:tag</code> prefix (e.g., <code>tags=CurbRamp:narrow</code>), which only matches that tag on that label type; an entry whose prefix (the text before the first colon) is not a valid label type is treated as a plain tag matching any type, since tag names may themselves contain colons. See <a target="_blank" href="@routes.ApiDocsController.labelTags">Tags Reference</a> for available tags. </td>
+            <td><code>string</code> (repeatable)</td>
+            <td>Filter by one or more tags associated with labels. <strong>Repeat the parameter once per tag</strong> (e.g., <code>tags=missing tactile warning&amp;tags=uneven surface</code>). Matches labels containing *any* of the specified tags.
+              An entry may be scoped to a single label type with a <code>LabelType:tag</code> prefix (e.g., <code>tags=CurbRamp:narrow</code>). A scoped entry narrows <em>only</em> that label type — labels of types nobody scoped come back unfiltered — so pair it with <code>labelType</code> if you want the other types dropped too. An entry whose prefix (the text before the first colon) is not a valid label type is treated as a plain tag applying to every type, since tag names may themselves contain colons (e.g., <code>cycle lane: faded paint</code>).
+              <strong>Changed August 2026</strong> (v3 is a preview API): <code>tags</code> is no longer comma-separated, because tag names may contain commas (e.g., <code>yellow box, accessibility features not visible</code>) and splitting on them silently shredded such a tag into two that matched nothing. Repeat the parameter instead (<code>tags=a&amp;tags=b</code>); a comma-joined value from an older link is still accepted when its pieces name real tags. Values are now validated against this city's tags — an unknown tag, or a tag scoped to a label type that doesn't carry it, returns a 400 error naming the parameter instead of silently matching nothing. Scoped entries also no longer exclude the label types they don't name.
+              See <a target="_blank" href="@routes.ApiDocsController.labelTags">Tags Reference</a> for available tags. </td>
           </tr>
           <tr>
             <td><code>severity</code></td>
@@ -176,7 +182,8 @@
           <tr>
             <td><code>inline</code></td>
             <td><code>boolean</code></td>
-            <td>Whether to display the file inline or as an attachment. Default: <code>false</code> (attachment). Set to <code>true</code> to view data in the browser instead of downloading.</td>
+            <td>Whether to display the file inline or as an attachment. Default: <code>false</code> (attachment). Set to <code>true</code> to view data in the browser instead of downloading.
+              <strong>Fixed August 2026:</strong> <code>filetype=csv</code> previously forced an attachment and ignored this parameter. The fix applies to every <code>/v3</code> endpoint that emits CSV, not just this one.</td>
           </tr>
         </tbody>
       </table>

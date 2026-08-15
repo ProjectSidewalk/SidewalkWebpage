@@ -11,7 +11,8 @@
    checklist as the navbar dialog; AuthModal.js progressively enhances it but a plain POST still works. *@
 
 @common.main(commonData, Messages("seo.title.sign.up")) {
-  @common.navbar(commonData, user)
+  @* This page's body is the full-page sign-up form, so the navbar must not add the dialog with the same ids. *@
+  @common.navbar(commonData, user, renderAuthDialog = false)
   <div class="au-page">
     <div class="au-card">
       <div class="au-body">

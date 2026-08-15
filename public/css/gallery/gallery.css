@@ -1,6 +1,8 @@
 #gallery {
   display: flex;
-  overflow: hidden;
+
+  /* `clip`, not `hidden`: `hidden` would make this a scroll container, which disables the sidebar's sticky. */
+  overflow-x: clip;
 }
 
 #labels-not-found {
@@ -25,13 +27,22 @@
   border-bottom: 1px solid gray;
 }
 
-/* Note that the side bar is out of the "flow" of the grid container b/c it is fixed when we aren't loading anything. */
+/* Sticky, not fixed, so the column keeps its place in the flow: the page is then always at least as tall as the
+   sidebar and the footer starts below it, even when the results fill less than one row of cards (#4778). Sticking
+   ends at #gallery's bottom edge, so the sidebar never rides down over the paging controls or footer. */
 .sidebar {
-  padding-left: 10px;
-  min-height: calc(100vh - 610px);
-  height: 100%;
+  position: sticky;
+  top: calc(var(--navbar-height) + var(--test-banner-height, 0px));
+
+  /* A stretched flex item is as tall as the row and so has nowhere to stick to; this keeps it its own height. */
+  align-self: flex-start;
+  flex: none;
+
+  /* border-box so the padding comes out of the 275px the cards are laid out against, rather than widening the
+     column past it. */
+  box-sizing: border-box;
   width: 275px;
-  grid-row: 1/2;
+  padding-left: 10px;
 }
 
 #labels-not-found-text {
@@ -76,6 +87,12 @@
   padding: 0 10px 10px;
 }
 
+/* Takes the rest of the flex row beside the sidebar; min-width: 0 lets it shrink instead of forcing #gallery wider. */
+#gallery-content {
+  flex: 1;
+  min-width: 0;
+}
+
 /* Gallery's inline expanded view — a fixed overlay floating over the card grid (the grid never reflows around it;
    cards to its left stay visible and clickable for browsing). The max caps keep the panel content-scaled on large
    monitors — uncapped, the viewport-derived sizing balloons the card (and its flex-grown pano) on ≥27" screens
@@ -101,7 +118,6 @@
 .cards {
   display: flex;
   flex-flow: row wrap;
-  margin-left: 275px; /* Offset to compensate for the space taken up by the sidebar. */
 }
 
 /* There is no specific intended function for hover/click on labels on the gallery page.

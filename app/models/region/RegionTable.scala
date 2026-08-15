@@ -24,7 +24,7 @@ class RegionTableDef(tag: Tag) extends Table[Region](tag, "region") {
   def dataSource: Rep[String] = column[String]("data_source")
   def name: Rep[String]       = column[String]("name")
   def geom: Rep[MultiPolygon] = column[MultiPolygon]("geom")
-  def deleted: Rep[Boolean]   = column[Boolean]("deleted")
+  def deleted: Rep[Boolean]   = column[Boolean]("deleted", O.Default(false))
 
   def * = (regionId, dataSource, name, geom, deleted) <> ((Region.apply _).tupled, Region.unapply)
 }

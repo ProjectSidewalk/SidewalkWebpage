@@ -175,6 +175,7 @@ class Card {
     cardValidationInfo.className = 'card-validation-info';
     this.validationInfoDisplay = new ValidationInfoDisplay(
       cardValidationInfo, properties.val_counts.Agree, properties.val_counts.Disagree, properties.ai_validation,
+      properties.user_validation,
     );
     cardData.appendChild(cardValidationInfo);
 
@@ -361,7 +362,9 @@ class Card {
       properties.user_validation = newUserValidation;
 
       // Update the small card's validation displays.
-      this.validationInfoDisplay.updateValCounts(properties.val_counts.Agree, properties.val_counts.Disagree);
+      this.validationInfoDisplay.updateValCounts(
+        properties.val_counts.Agree, properties.val_counts.Disagree, newUserValidation,
+      );
       this.validationMenu.showValidationOnCard(newUserValidation);
     }
   }

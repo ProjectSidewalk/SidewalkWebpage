@@ -344,6 +344,10 @@ class NavigationService {
     svl.compass.enableCompassClick();
     this.#refreshHeadingViewsAfterPovSettles();
 
+    // Now that the task state reflects the new position, predict where the next move will go and pre-download
+    // that pano so the move doesn't wait on the network.
+    this.#preloadNextMoveTarget();
+
     // Re-enable the keyboard.
     svl.keyboard.setStatus('disableKeyboard', false);
 
@@ -444,6 +448,73 @@ class NavigationService {
   }
 
   /**
+   * Computes the location that moveForward() will search first, along with the unwalked remainder of the street.
+   *
+   * The target is the start of the remainder (the user's furthest point reached), bumped one DIST_INCREMENT
+   * forward when the user is already near that point — so we search for imagery that's actually ahead rather
+   * than cycling through other panos clustered at the current location. If they've wandered away from the route,
+   * the target stays at the furthest point to bring them back.
+   *
+   * @param {Task} currentTask The task whose street is being walked.
+   * @returns {{currLoc: {lat: number, lng: number}, remainder: turf.Feature<turf.LineString>}}
+   */
+  #computeMoveTarget(currentTask) {
+    const streetEdge = currentTask.getFeature();
+    const startLatLng = turf.point(currentTask.getFurthestPointReached().geometry.coordinates);
+    const streetEndpoint = turf.point([currentTask.getEndCoordinate().lng, currentTask.getEndCoordinate().lat]);
+
+    // Remove the part of the street geometry that you've already passed using lineSlice.
+    let remainder = turf.cleanCoords(turf.lineSlice(startLatLng, streetEndpoint, streetEdge));
+    let currLoc = { lat: remainder.geometry.coordinates[0][1], lng: remainder.geometry.coordinates[0][0] };
+
+    const currPosition = svl.panoViewer.getPosition();
+    const distFromFurthest = turf.distance(
+      turf.point([currPosition.lng, currPosition.lat]), startLatLng, { units: 'meters' },
+    );
+    if (distFromFurthest <= svl.STREETVIEW_MAX_DISTANCE
+      && turf.length(remainder, { units: 'kilometers' }) > NavigationService.DIST_INCREMENT) {
+      remainder = turf.cleanCoords(turf.lineSliceAlong(remainder, NavigationService.DIST_INCREMENT, streetEndpoint));
+      currLoc = { lat: remainder.geometry.coordinates[0][1], lng: remainder.geometry.coordinates[0][0] };
+    }
+    return { currLoc, remainder };
+  }
+
+  /**
+   * Predicts where the next moveForward() will search and pre-downloads the pano that search would pick, so the
+   * next move doesn't wait on the network. Runs the same target computation and (in the viewer) the same search +
+   * scoring as the real move; a misprediction just costs one unused download.
+   */
+  #preloadNextMoveTarget() {
+    // Best-effort: called from post-move UI updates, so never let a prediction error break those.
+    try {
+      if (!('taskContainer' in svl) || !svl.taskContainer.tasksLoaded()) return;
+      // When walking is hard-locked (tutorial, mission-complete modal) no forward move can happen, so don't
+      // preload for one. The transient disableWalking that timeoutWalking() sets on every move doesn't apply.
+      if (this.#status.lockDisableWalking) return;
+
+      // When the label-before-jump state is armed, the next forward move is the jump itself: predict the start of
+      // the street being jumped to rather than a point on the street the user is about to leave (which would also
+      // pollute the prefetch cache that #endTheCurrentTask() just re-primed for the new street). No jump target
+      // means the route/neighborhood is complete, so there is nothing to preload.
+      const targetTask = this.getLabelBeforeJumpState()
+        ? svl.taskContainer.getNextTaskAfterJump()
+        : svl.taskContainer.getCurrentTask();
+      if (!targetTask) return;
+
+      // Mirror the exclusions the next moveForward() will use: the stuck set plus the pano the user is on now
+      // (moveForward() adds the current pano to the stuck set before searching).
+      const excludedPanos = new Set(this.#stuckPanos);
+      const currentPano = svl.panoStore.getPanoData(svl.panoViewer.getPanoId());
+      if (currentPano) excludedPanos.add(currentPano);
+
+      const { currLoc } = this.#computeMoveTarget(targetTask);
+      svl.panoViewer.preloadPanoNear(currLoc, excludedPanos);
+    } catch (err) {
+      console.warn('Failed to preload the next move target:', err);
+    }
+  }
+
+  /**
    * Attempts to move the user forward by incrementally checking for imagery every few meters along the route.
    * @returns {Promise<string|null|void>} Resolves with the new pano ID on a successful move, null if the street ran
    *     out of imagery, or undefined if walking is disabled.
@@ -455,33 +526,16 @@ class NavigationService {
 
     // TODO show loading icon. Add when resolving issue #2403.
 
-    // Grab street geometry and current location.
     const currentTask = svl.taskContainer.getCurrentTask();
-    const streetEdge = currentTask.getFeature();
-    const startLatLng = turf.point(currentTask.getFurthestPointReached().geometry.coordinates);
     const streetEndpoint = turf.point([currentTask.getEndCoordinate().lng, currentTask.getEndCoordinate().lat]);
-
-    // Remove the part of the street geometry that you've already passed using lineSlice.
-    let remainder = turf.cleanCoords(turf.lineSlice(startLatLng, streetEndpoint, streetEdge));
-    let currLoc = { lat: remainder.geometry.coordinates[0][1], lng: remainder.geometry.coordinates[0][0] };
 
     // Prefetch images for the full street geometry. Using the full street (not just the remainder) ensures the
     // sampled points are identical on every moveForward() call, so the dedup in prefetchLocation() makes this
     // effectively a no-op after the first call on a given street.
-    this.prefetchAlongStreet(streetEdge);
+    this.prefetchAlongStreet(currentTask.getFeature());
 
-    // If the user is already near their furthest point, bump currLoc one step forward so we search for imagery
-    // that's actually ahead rather than cycling through other panos clustered at the current location.
-    // If they've wandered away from the route, keep currLoc at getFurthestPointReached() to bring them back.
-    const currPosition = svl.panoViewer.getPosition();
-    const distFromFurthest = turf.distance(
-      turf.point([currPosition.lng, currPosition.lat]), startLatLng, { units: 'meters' },
-    );
-    if (distFromFurthest <= svl.STREETVIEW_MAX_DISTANCE
-      && turf.length(remainder, { units: 'kilometers' }) > NavigationService.DIST_INCREMENT) {
-      remainder = turf.cleanCoords(turf.lineSliceAlong(remainder, NavigationService.DIST_INCREMENT, streetEndpoint));
-      currLoc = { lat: remainder.geometry.coordinates[0][1], lng: remainder.geometry.coordinates[0][0] };
-    }
+    // Find where to start searching for imagery, and the part of the street geometry that hasn't been walked yet.
+    let { currLoc, remainder } = this.#computeMoveTarget(currentTask);
 
     // Save the current pano as one that you're stuck at.
     const currentPano = svl.panoStore.getPanoData(svl.panoViewer.getPanoId());

@@ -157,23 +157,26 @@ case class StreakStats(
 )
 
 class UserStatTableDef(tag: Tag) extends Table[UserStat](tag, "user_stat") {
+  // O.Default mirrors the DB default rather than driving it (nothing generates DDL from these definitions), so a
+  // reader can see what a row gets from a partial INSERT — which is what UserStatTable.insertIfNew issues.
   def userStatId: Rep[Int]                    = column[Int]("user_stat_id", O.PrimaryKey, O.AutoInc)
   def userId: Rep[String]                     = column[String]("user_id")
-  def metersAudited: Rep[Double]              = column[Double]("meters_audited")
+  def metersAudited: Rep[Double]              = column[Double]("meters_audited", O.Default(0d))
   def labelsPerMeter: Rep[Option[Double]]     = column[Option[Double]]("labels_per_meter")
-  def highQuality: Rep[Boolean]               = column[Boolean]("high_quality")
+  def highQuality: Rep[Boolean]               = column[Boolean]("high_quality", O.Default(true))
   def highQualityManual: Rep[Option[Boolean]] = column[Option[Boolean]]("high_quality_manual")
-  def ownLabelsValidated: Rep[Int]            = column[Int]("own_labels_validated")
+  def ownLabelsValidated: Rep[Int]            = column[Int]("own_labels_validated", O.Default(0))
   def accuracy: Rep[Option[Double]]           = column[Option[Double]]("accuracy")
-  def excluded: Rep[Boolean]                  = column[Boolean]("excluded")
-  def onLeaderboard: Rep[Boolean]             = column[Boolean]("on_leaderboard")
-  def publicProfile: Rep[Boolean]             = column[Boolean]("public_profile")
+  def excluded: Rep[Boolean]                  = column[Boolean]("excluded", O.Default(false))
+  def onLeaderboard: Rep[Boolean]             = column[Boolean]("on_leaderboard", O.Default(true))
+  def publicProfile: Rep[Boolean]             = column[Boolean]("public_profile", O.Default(true))
 
   override def * =
     (userStatId, userId, metersAudited, labelsPerMeter, highQuality, highQualityManual, ownLabelsValidated, accuracy,
       excluded, onLeaderboard, publicProfile) <> ((UserStat.apply _).tupled, UserStat.unapply)
 
-  def user = foreignKey("user_stat_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
+  def user       = foreignKey("user_stat_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
+  def userUnique = index("user_stat_user_id_key", userId, unique = true)
 }
 
 @ImplementedBy(classOf[UserStatTable])
@@ -874,7 +877,9 @@ class UserStatTable @Inject() (
    * Per-day activity counts for a user (US/Pacific calendar days), across labeling, exploring, and validating.
    *
    * A day counts if the user placed a (non-deleted, non-tutorial) label, completed an audit task, or made a
-   * validation on it. Returned as (ISO date string, count) so the streak/heatmap math is done in Scala.
+   * validation on it -- including validations voided by the #4842 repair (evolution 355): the verdicts are dead, but
+   * the work happened, so the archive counts as activity. Returned as (ISO date string, count) so the streak/heatmap
+   * math is done in Scala.
    *
    * @param userId The user whose activity to summarize.
    * @return       One row per active day, ascending by date.
@@ -893,6 +898,10 @@ class UserStatTable @Inject() (
           SELECT (label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date
           FROM label_validation
           WHERE label_validation.user_id = $userId AND label_validation.end_timestamp IS NOT NULL
+          UNION ALL
+          SELECT (voided_label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date
+          FROM voided_label_validation
+          WHERE voided_label_validation.user_id = $userId
       )
       SELECT to_char(d, 'YYYY-MM-DD') AS day, COUNT(*)::int AS c
       FROM activity
@@ -1012,14 +1021,19 @@ class UserStatTable @Inject() (
 
     // Add in the task completion logic.
     val auditTaskCompletedSql  = if (taskCompletedOnly) "audit_task.completed = TRUE" else "TRUE"
-    val validationCompletedSql = if (taskCompletedOnly) "label_validation.end_timestamp IS NOT NULL" else "TRUE"
+    val validationCompletedSql = if (taskCompletedOnly) "all_validations.end_timestamp IS NOT NULL" else "TRUE"
 
     sql"""
       SELECT COUNT(DISTINCT(users.user_id))
       FROM (
           SELECT DISTINCT(mission.user_id)
           FROM mission
-          LEFT JOIN label_validation ON mission.mission_id = label_validation.mission_id
+          LEFT JOIN (
+              -- Votes voided by the #4842 repair still count as participation.
+              SELECT mission_id, end_timestamp FROM label_validation
+              UNION ALL
+              SELECT mission_id, end_timestamp FROM voided_label_validation
+          ) AS all_validations ON mission.mission_id = all_validations.mission_id
           WHERE mission.mission_type IN ('validation', 'labelmapValidation')
               AND #$lblValidationTimeIntervalSql
               AND #$validationCompletedSql
@@ -1072,7 +1086,7 @@ class UserStatTable @Inject() (
              COALESCE(label_counts.labels_validated_correct, 0) AS labels_validated_correct,
              COALESCE(label_counts.labels_validated_incorrect, 0) AS labels_validated_incorrect,
              COALESCE(label_counts.labels_not_validated, 0) AS labels_not_validated,
-             COALESCE(validations.validations_given, 0) AS validations_given,
+             COALESCE(validations.validations_given, 0) + COALESCE(voided_validations.cnt, 0) AS validations_given,
              COALESCE(validations.dissenting_validations_given, 0) AS dissenting_validations_given,
              COALESCE(validations.agree_validations_given, 0) AS agree_validations_given,
              COALESCE(validations.disagree_validations_given, 0) AS disagree_validations_given,
@@ -1129,6 +1143,13 @@ class UserStatTable @Inject() (
           INNER JOIN label ON label_validation.label_id = label.label_id
           GROUP BY label_validation.user_id
       ) AS validations ON user_stat.user_id = validations.user_id
+      -- Votes voided by the #4842 repair: work credit toward validations_given only; the verdict splits
+      -- (agree/disagree/unsure/dissenting) read live votes, so validations_given can exceed their sum.
+      LEFT JOIN (
+          SELECT voided_label_validation.user_id, COUNT(*) AS cnt
+          FROM voided_label_validation
+          GROUP BY voided_label_validation.user_id
+      ) AS voided_validations ON user_stat.user_id = voided_validations.user_id
       -- Label and validation counts
       LEFT JOIN (
           SELECT audit_task.user_id,
@@ -1217,17 +1238,28 @@ class UserStatTable @Inject() (
   }
 
   /**
-   * Insert a new user_stat entry for the given userId.
+   * Insert a user_stat entry for the given userId, doing nothing if the user already has one.
+   *
+   * Raw SQL for the `ON CONFLICT` clause, which Slick can't express: the request path this exists for
+   * ([[service.AuthenticationService.addUserStatEntryIfNew]], run for every request from an identified user) can be
+   * hit by several concurrent requests before the row exists — the parallel requests of a user's first page load in a
+   * city. A read-then-insert lets each of them see "no row" and insert one, so the DB-level conflict on
+   * `user_stat_user_id_key` is what actually makes it insert-once (#4604).
+   *
+   * Only the three columns a caller can vary are named; every other column takes its DB default, so a future column
+   * with a `NOT NULL` default doesn't silently break this statement at runtime.
    *
    * @param userId        The userId to insert a user_stat entry for.
-   * @param onLeaderboard Whether the user appears in leaderboard rankings. Defaults true (public); the sign-up path
-   *                      passes false for private-by-default (school/minor) deployments.
-   * @param publicProfile Whether the user's dashboard is publicly viewable. Defaults true; same private-by-default rule.
-   * @return DBIO action that returns the number of rows inserted (should be 1).
+   * @param onLeaderboard Whether the user appears in leaderboard rankings.
+   * @param publicProfile Whether the user's dashboard is publicly viewable.
+   * @return DBIO action returning the number of rows inserted: 1 for a new user, 0 if they already had a row.
    */
-  def insert(userId: String, onLeaderboard: Boolean = true, publicProfile: Boolean = true): DBIO[Int] = {
-    userStats += UserStat(0, userId, 0d, None, highQuality = true, None, 0, None, excluded = false, onLeaderboard,
-      publicProfile)
+  def insertIfNew(userId: String, onLeaderboard: Boolean, publicProfile: Boolean): DBIO[Int] = {
+    sqlu"""
+      INSERT INTO user_stat (user_id, on_leaderboard, public_profile)
+      VALUES ($userId, $onLeaderboard, $publicProfile)
+      ON CONFLICT (user_id) DO NOTHING
+    """
   }
 
   /**

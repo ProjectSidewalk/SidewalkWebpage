@@ -12,9 +12,10 @@ import scala.concurrent.ExecutionContext
 case class LabelAiFailure(labelId: Int, reason: String, timestamp: OffsetDateTime)
 
 class LabelAiFailureTableDef(tag: Tag) extends Table[LabelAiFailure](tag, "label_ai_failure") {
-  def labelId: Rep[Int]              = column[Int]("label_id", O.PrimaryKey)
-  def reason: Rep[String]            = column[String]("reason")
-  def timestamp: Rep[OffsetDateTime] = column[OffsetDateTime]("timestamp", O.Default(OffsetDateTime.now))
+  def labelId: Rep[Int]   = column[Int]("label_id", O.PrimaryKey)
+  def reason: Rep[String] = column[String]("reason")
+  // DEFAULT now() in the DB (O.Default holds a value, not an expression).
+  def timestamp: Rep[OffsetDateTime] = column[OffsetDateTime]("timestamp")
 
   def * = (labelId, reason, timestamp) <> (
     (LabelAiFailure.apply _).tupled,

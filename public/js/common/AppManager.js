@@ -117,7 +117,11 @@ class AppManager {
     // hosts reject, so we skip them rather than maintaining an allowlist of hosts to exclude (#4232).
     const originalFetch = window.fetch;
     window.fetch = function (url, options = {}) {
-      const requestUrl = (typeof url === 'string') ? url : url.url;
+      // `fetch` accepts a string, a `URL`, or a `Request`. Only a `Request` carries its address on `.url`; a `URL`
+      // has to be stringified. Reading `.url` off a `URL` gives undefined, which resolves to <origin>/undefined and
+      // so reads as same-origin -- meaning a cross-origin `URL` would be handed a token, the very case above. The
+      // `typeof` guard is for non-browser hosts (jsdom); any browser with `fetch` also has `Request`.
+      const requestUrl = (typeof Request !== 'undefined' && url instanceof Request) ? url.url : String(url);
 
       // Resolve against the page origin so relative URLs (our routes) are correctly treated as same-origin.
       let isSameOrigin;
@@ -132,6 +136,9 @@ class AppManager {
         return originalFetch(url, options);
       }
 
+      // Known limitation: per the fetch spec, an init `headers` replaces a `Request` argument's own headers
+      // wholesale, so a same-origin `Request` constructed with its own headers loses them here. No call site passes
+      // a `Request`; if one ever needs to, merge `url.headers` into this object.
       const newOptions = {
         ...options,
         headers: {

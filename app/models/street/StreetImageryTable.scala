@@ -34,11 +34,11 @@ case class StreetImagery(
 
 class StreetImageryTableDef(tag: Tag) extends Table[StreetImagery](tag, "street_imagery") {
   def streetEdgeId: Rep[Int] = column[Int]("street_edge_id", O.PrimaryKey)
-  // DB CHECK (348.sql): oldest_capture <= newest_capture when both are present.
+  // DB CHECK (356.sql): oldest_capture <= newest_capture when both are present.
   def oldestCapture: Rep[Option[LocalDate]] = column[Option[LocalDate]]("oldest_capture")
   def newestCapture: Rep[Option[LocalDate]] = column[Option[LocalDate]]("newest_capture")
-  def nPanos: Rep[Int]                      = column[Int]("n_panos") // DB CHECK (348.sql): n_panos >= 0.
-  // DB CHECK (348.sql): one of 'pano_data', 'imagery_scan', 'imagery_poll'.
+  def nPanos: Rep[Int]                      = column[Int]("n_panos") // DB CHECK (356.sql): n_panos >= 0.
+  // DB CHECK (356.sql): one of 'pano_data', 'imagery_scan', 'imagery_poll'.
   def dataSource: Rep[String]        = column[String]("data_source")
   def updatedAt: Rep[OffsetDateTime] = column[OffsetDateTime]("updated_at")
 
@@ -69,7 +69,7 @@ object StreetImageryTable {
 /**
  * DAO for the street_imagery table, the app's per-street imagery-age knowledge.
  *
- * Rows come from three feeders: the evolution-348 pano_data backfill, db/scripts/import-street-imagery.sh (offline
+ * Rows come from three feeders: the evolution-356 pano_data backfill, db/scripts/import-street-imagery.sh (offline
  * scan ingest), and the in-app nightly refreshFromPanoData below. The nightly imagery-freshness sync (#4384) compares
  * newest_capture against audit dates to flag audits performed on since-replaced imagery. Pano-derived rows attribute
  * a pano to its nearest street within PanoStreetToleranceMeters of the pano's position, never via the street of the
@@ -103,7 +103,7 @@ class StreetImageryTable @Inject() (protected val dbConfigProvider: DatabaseConf
    *
    * A pano viewed in the past week informs the single street nearest its position, provided that street is within
    * PanoStreetToleranceMeters -- see that constant for why attribution is nearest-street rather than via
-   * label.street_edge_id or every street in tolerance. The evolution-348 backfill uses the same attribution, so a
+   * label.street_edge_id or every street in tolerance. The evolution-356 backfill uses the same attribution, so a
    * street's aggregate here matches what a full rebuild would produce. All providers feed this (GSV, Mapillary,
    * Infra3d): pano_data rows are written whenever a labeler views a pano.
    *
