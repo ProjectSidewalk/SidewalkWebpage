@@ -160,7 +160,8 @@ class StreetEdgePriorityTable @Inject() (
    */
 
   /**
-   * Returns 1 if no good-user audit exists, o/w 1 / (1 + fresh_good_count + 0.5*outdated_good_count + 0.25*bad_count).
+   * Returns 1 if no good-user audit exists, o/w 1 / (1 + fresh_good_count + outdated_half + 0.25*bad_count), where
+   * outdated_half is 0.5 if the street has any good-user audit flagged outdated_imagery and 0 otherwise.
    *
    *  - assign each user as "good" or "bad" based on their labeling frequency
    *    - compute total distance audited by each user, and total label count for each user
@@ -168,12 +169,15 @@ class StreetEdgePriorityTable @Inject() (
    *  - for each street edge, count good-user audits on current imagery (fresh), good-user audits flagged
    *    outdated_imagery (outdated), and bad-user audits
    *    - if fresh_good_count == 0 and outdated_good_count == 0 -> priority = 1
-   *      else -> priority = 1 / (1 + fresh_good_count + 0.5*outdated_good_count + 0.25*bad_user_audit_count)
+   *      else -> priority = 1 / (1 + fresh_good_count + (0.5 if outdated_good_count > 0) + 0.25*bad_count)
    *
-   * The 0.5 weight on outdated audits (#4384) places a street whose only audit is on since-replaced imagery at
+   * The flat 0.5 for outdated audits (#4384) places a street whose only audits are on since-replaced imagery at
    * priority 1/1.5 ~= 0.67: below never-audited streets (1.0), so fresh coverage always outranks re-audits, but above
    * freshly-audited streets (<= 0.5), so it re-enters the routing pool ahead of them -- and staying < 1.0 keeps
-   * region_completion and the audited-distance stats crediting the street as explored.
+   * region_completion and the audited-distance stats crediting the street as explored. It is a flat contribution, not
+   * 0.5 per audit: per-audit weighting would let a street with several outdated audits sink to or below the
+   * freshly-audited tier (two outdated would equal one fresh), pushing streets that need a re-audit behind streets
+   * that don't (review finding on #4649).
    *
    * @return
    */
@@ -233,12 +237,13 @@ class StreetEdgePriorityTable @Inject() (
      * ******** Compute Priority *********
      */
     // If any good-user audit exists (fresh or outdated), the completion count is
-    // fresh_good_count + 0.5*outdated_good_count + 0.25*bad_user_audit_count; else 0, which the reciprocal transform
-    // turns into priority 1. See the method ScalaDoc for why outdated audits carry half weight.
+    // fresh_good_count + (0.5 if any outdated good audit) + 0.25*bad_user_audit_count; else 0, which the reciprocal
+    // transform turns into priority 1. See the method ScalaDoc for why the outdated contribution is a capped 0.5.
     val priorityParamTable: DBIO[Seq[StreetEdgePriorityParameter]] =
       allAuditCounts.result.map(_.map { case (streetEdgeId, freshGood, outdatedGood, bad) =>
         if (freshGood > 0 || outdatedGood > 0) {
-          StreetEdgePriorityParameter.tupled((streetEdgeId, freshGood + 0.5 * outdatedGood + 0.25 * bad))
+          val outdatedHalf = if (outdatedGood > 0) 0.5 else 0.0
+          StreetEdgePriorityParameter.tupled((streetEdgeId, freshGood + outdatedHalf + 0.25 * bad))
         } else {
           StreetEdgePriorityParameter.tupled((streetEdgeId, 0.0))
         }

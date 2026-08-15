@@ -1,7 +1,7 @@
 package actor
 
 import actor.ActorUtils.{dateFormatter, getTimeToNextUpdate}
-import org.apache.pekko.actor.{Actor, Cancellable, Props}
+import org.apache.pekko.actor.{Actor, Cancellable}
 import play.api.Logger
 import service.ConfigService
 
@@ -12,8 +12,7 @@ import scala.concurrent.duration.{DurationInt, DurationLong}
 import scala.util.{Failure, Success}
 
 object AuthTokenCleanerActor {
-  val Name  = "auth-token-cleaner-actor"
-  def props = Props[AuthTokenCleanerActor]()
+  val Name = "auth-token-cleaner-actor"
   case object Tick
 }
 

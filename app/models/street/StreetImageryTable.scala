@@ -9,40 +9,55 @@ import java.time.{LocalDate, OffsetDateTime}
 import javax.inject.{Inject, Singleton}
 
 /**
+ * Which feeder wrote a street_imagery row. Values match the Postgres `street_imagery_source` enum type (356.sql):
+ * `pano_data` is the in-app refresh from panos observed while labeling, `imagery_scan` the offline
+ * check_streets_for_imagery.py summary (ingested by db/scripts/import-street-imagery.sh), and `imagery_poll` the
+ * nightly in-app provider poll.
+ */
+object StreetImagerySource extends Enumeration {
+  type StreetImagerySource = Value
+  val PanoData    = Value("pano_data")
+  val ImageryScan = Value("imagery_scan")
+  val ImageryPoll = Value("imagery_poll")
+}
+
+/**
  * Per-street imagery age (#4348): the capture-date range of the street-view panos observed on one street.
  *
  * Complements street_edge_status (#3888): status says whether a street has imagery; this says how old it is (a street
  * can be `open` yet years out of date). One row per street, aggregated across providers.
  *
- * @param streetEdgeId  The street this imagery summary is for.
- * @param oldestCapture Earliest observed capture date, standardized to a date (`None` if none were parseable).
- * @param newestCapture Latest observed capture date, standardized to a date (`None` if none were parseable).
- * @param nPanos        Number of distinct dated panos observed on the street.
- * @param dataSource    Which feeder created this row: `pano_data` (in-app, from panos observed while labeling) or
- *                      `imagery_scan` (the check_streets_for_imagery.py summary, ingested by
- *                      db/scripts/import-street-imagery.sh).
- * @param updatedAt     When this row was last written.
+ * @param streetEdgeId        The street this imagery summary is for.
+ * @param oldestCapture       Earliest observed capture date, standardized to a date (`None` if none were parseable).
+ * @param newestCapture       Latest observed capture date, standardized to a date (`None` if none were parseable).
+ * @param medianNewestCapture Newest capture date at the street's median sampled point: at least half the street's
+ *                            sample points show imagery at least this new. Written only by the nightly imagery-age
+ *                            poll (`None` until a street has been polled); drives the outdated_imagery flag (#4384).
+ * @param nPanos              Number of distinct dated panos observed on the street.
+ * @param dataSource          Which feeder created this row.
+ * @param updatedAt           When this row was last written.
  */
 case class StreetImagery(
     streetEdgeId: Int,
     oldestCapture: Option[LocalDate],
     newestCapture: Option[LocalDate],
+    medianNewestCapture: Option[LocalDate],
     nPanos: Int,
-    dataSource: String,
+    dataSource: StreetImagerySource.Value,
     updatedAt: OffsetDateTime
 )
 
 class StreetImageryTableDef(tag: Tag) extends Table[StreetImagery](tag, "street_imagery") {
   def streetEdgeId: Rep[Int] = column[Int]("street_edge_id", O.PrimaryKey)
   // DB CHECK (356.sql): oldest_capture <= newest_capture when both are present.
-  def oldestCapture: Rep[Option[LocalDate]] = column[Option[LocalDate]]("oldest_capture")
-  def newestCapture: Rep[Option[LocalDate]] = column[Option[LocalDate]]("newest_capture")
-  def nPanos: Rep[Int]                      = column[Int]("n_panos") // DB CHECK (356.sql): n_panos >= 0.
-  // DB CHECK (356.sql): one of 'pano_data', 'imagery_scan', 'imagery_poll'.
-  def dataSource: Rep[String]        = column[String]("data_source")
-  def updatedAt: Rep[OffsetDateTime] = column[OffsetDateTime]("updated_at")
+  def oldestCapture: Rep[Option[LocalDate]]       = column[Option[LocalDate]]("oldest_capture")
+  def newestCapture: Rep[Option[LocalDate]]       = column[Option[LocalDate]]("newest_capture")
+  def medianNewestCapture: Rep[Option[LocalDate]] = column[Option[LocalDate]]("median_newest_capture")
+  def nPanos: Rep[Int]                            = column[Int]("n_panos") // DB CHECK (356.sql): n_panos >= 0.
+  def dataSource: Rep[StreetImagerySource.Value]  = column[StreetImagerySource.Value]("data_source")
+  def updatedAt: Rep[OffsetDateTime]              = column[OffsetDateTime]("updated_at")
 
-  def * = (streetEdgeId, oldestCapture, newestCapture, nPanos, dataSource, updatedAt) <>
+  def * = (streetEdgeId, oldestCapture, newestCapture, medianNewestCapture, nPanos, dataSource, updatedAt) <>
     ((StreetImagery.apply _).tupled, StreetImagery.unapply)
 
   def streetEdge =
@@ -71,9 +86,10 @@ object StreetImageryTable {
  *
  * Rows come from three feeders: the evolution-356 pano_data backfill, db/scripts/import-street-imagery.sh (offline
  * scan ingest), and the in-app nightly refreshFromPanoData below. The nightly imagery-freshness sync (#4384) compares
- * newest_capture against audit dates to flag audits performed on since-replaced imagery. Pano-derived rows attribute
- * a pano to its nearest street within PanoStreetToleranceMeters of the pano's position, never via the street of the
- * labels placed on it -- labelers routinely observe panos that sit on a different street than the one they audit.
+ * median_newest_capture against audit dates to flag audits where at least half the street's sampled points show
+ * newer imagery. Pano-derived rows attribute a pano to its nearest street within PanoStreetToleranceMeters of the
+ * pano's position, never via the street of the labels placed on it -- labelers routinely observe panos that sit on a
+ * different street than the one they audit.
  */
 @Singleton
 class StreetImageryTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)
@@ -108,7 +124,9 @@ class StreetImageryTable @Inject() (protected val dbConfigProvider: DatabaseConf
    * Infra3d): pano_data rows are written whenever a labeler views a pano.
    *
    * On conflict, capture dates only ever widen (LEAST/GREATEST, which ignore NULLs in Postgres) and n_panos /
-   * data_source are left alone -- a scan's full-street pano count is richer than the labeling-observed subset. The
+   * data_source / median_newest_capture are left alone -- a scan's full-street pano count is richer than the
+   * labeling-observed subset, and labeling-observed panos are too positionally biased to support the median's
+   * "half the street" claim (only the fixed-sample-point poll writes it). The
    * seven-day last_viewed lookback overlaps nightly runs, so a missed run self-heals. Panos without a stored position
    * (lat/lng are nullable) contribute nothing, the tutorial pano is skipped, and a pano whose nearest street is the
    * tutorial street is dropped rather than reattributed.

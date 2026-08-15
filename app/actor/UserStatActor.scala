@@ -1,7 +1,7 @@
 package actor
 
 import actor.ActorUtils.{dateFormatter, getTimeToNextUpdate}
-import org.apache.pekko.actor.{Actor, Cancellable, Props}
+import org.apache.pekko.actor.{Actor, Cancellable}
 import play.api.Logger
 import service.{AdminService, ConfigService}
 
@@ -12,8 +12,7 @@ import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
 object UserStatActor {
-  val Name  = "user-stats-actor"
-  def props = Props[UserStatActor]()
+  val Name = "user-stats-actor"
   case object Tick
 }
 

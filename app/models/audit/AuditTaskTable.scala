@@ -95,7 +95,9 @@ class AuditTaskTableDef(tag: slick.lifted.Tag) extends Table[AuditTask](tag, "au
   def auditedDistanceM: Rep[Option[Double]]   = column[Option[Double]]("audited_distance_m")
   // CHECK (start_offset_m >= 0) in the DB (no Slick DSL for CHECK constraints).
   def startOffsetM: Rep[Option[Double]] = column[Option[Double]]("start_offset_m")
-  def outdatedImagery: Rep[Boolean]     = column[Boolean]("outdated_imagery")
+  // Partial index in the DB (356.sql, no Slick DSL for partial indexes):
+  // audit_task_street_edge_id_outdated_idx ON audit_task (street_edge_id) WHERE outdated_imagery.
+  def outdatedImagery: Rep[Boolean] = column[Boolean]("outdated_imagery", O.Default(false))
 
   def * = (auditTaskId, amtAssignmentId, userId, streetEdgeId, taskStart, taskEnd, completed, currentLat, currentLng,
     startPointReversed, currentMissionId, currentMissionStart, lowQuality, incomplete, stale, auditedDistanceM,
@@ -723,9 +725,13 @@ class AuditTaskTable @Inject() (
   /**
    * Syncs the machine-owned outdated_imagery flag against street_imagery (#4384).
    *
-   * Sets the flag on completed audits that ended before their street's newest known imagery capture, and clears it on
-   * flagged audits that fail that test (e.g. after corrected or removed imagery data), so the sync is idempotent in
-   * both directions. Streets with no street_imagery row (or a NULL newest_capture) are assumed up to date and never
+   * Sets the flag on completed audits that ended before their street's median_newest_capture -- i.e. at least half
+   * the street's sampled points show imagery newer than the audit -- and clears it on flagged audits that fail that
+   * test (e.g. after corrected imagery data), so the sync is idempotent in both directions. The comparison is
+   * deliberately NOT against newest_capture: a single newer pano (a partial re-drive, one stray corner pano) doesn't
+   * invalidate the audit of a whole street, and re-audits are expensive enough that we err toward flagging too few
+   * streets rather than too many (review consensus on #4649). Streets with no street_imagery row (or a NULL
+   * median_newest_capture -- every street until the imagery-age poll has sampled it) are assumed up to date and never
    * flagged. The tutorial street is excluded. Unlike the manually-set flags above, this flag is never set by admins,
    * so the clear-pass owns every TRUE value -- including tutorial-street rows, which the set-pass can never produce.
    *
@@ -740,9 +746,9 @@ class AuditTaskTable @Inject() (
    *     UTC-positive cities the rounding goes the other way: an audit in the first local hours of a capture month's
    *     1st lands on the previous UTC date and gets flagged despite covering the new imagery -- a narrow window
    *     (offset hours, once per capture month) accepted until the comparison uses each city's local timezone.
-   *   - A capture date in the future is bad data, not new imagery. Since every writer only ever *widens*
-   *     newest_capture (GREATEST), an unguarded future date would flag every audit on the street forever -- including
-   *     each fresh re-audit -- leaving it permanently un-completable. Ignoring future dates here keeps the street
+   *   - A capture date in the future is bad data (a bogus provider value, a typo'd import), not new imagery. An
+   *     unguarded future date would flag every audit on the street -- including each fresh re-audit -- leaving it
+   *     un-completable until the next poll happened to lower the median. Ignoring future dates here keeps the street
    *     routable and lets the flag clear itself once the bad row is corrected.
    *
    * @return (number of audits flagged, number of audits unflagged)
@@ -755,9 +761,9 @@ class AuditTaskTable @Inject() (
       WHERE audit_task.street_edge_id = street_imagery.street_edge_id
           AND audit_task.completed
           AND NOT audit_task.outdated_imagery
-          AND street_imagery.newest_capture IS NOT NULL
-          AND street_imagery.newest_capture <= (now() AT TIME ZONE 'UTC')::date
-          AND (audit_task.task_end AT TIME ZONE 'UTC')::date < street_imagery.newest_capture
+          AND street_imagery.median_newest_capture IS NOT NULL
+          AND street_imagery.median_newest_capture <= (now() AT TIME ZONE 'UTC')::date
+          AND (audit_task.task_end AT TIME ZONE 'UTC')::date < street_imagery.median_newest_capture
           AND audit_task.street_edge_id <> (SELECT tutorial_street_edge_id FROM config);
     """
     val clearPass = sqlu"""
@@ -769,9 +775,9 @@ class AuditTaskTable @Inject() (
               OR NOT EXISTS (
                   SELECT FROM street_imagery
                   WHERE street_imagery.street_edge_id = audit_task.street_edge_id
-                      AND street_imagery.newest_capture IS NOT NULL
-                      AND street_imagery.newest_capture <= (now() AT TIME ZONE 'UTC')::date
-                      AND (audit_task.task_end AT TIME ZONE 'UTC')::date < street_imagery.newest_capture
+                      AND street_imagery.median_newest_capture IS NOT NULL
+                      AND street_imagery.median_newest_capture <= (now() AT TIME ZONE 'UTC')::date
+                      AND (audit_task.task_end AT TIME ZONE 'UTC')::date < street_imagery.median_newest_capture
               )
           );
     """

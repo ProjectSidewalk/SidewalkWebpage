@@ -1,7 +1,7 @@
 package actor
 
 import actor.ActorUtils.{dateFormatter, getTimeToNextUpdate}
-import org.apache.pekko.actor.{Actor, Cancellable, Props}
+import org.apache.pekko.actor.{Actor, Cancellable}
 import play.api.{Configuration, Logger}
 import service.{AiService, ConfigService}
 
@@ -12,8 +12,7 @@ import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
 object GetAiValidationsActor {
-  val Name  = "get-ai-validations-actor"
-  def props = Props[GetAiValidationsActor]()
+  val Name = "get-ai-validations-actor"
   case object Tick
 }
 

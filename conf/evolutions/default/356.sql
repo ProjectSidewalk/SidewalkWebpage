@@ -1,19 +1,28 @@
 # --- !Ups
--- Machine-managed flag (#4384): TRUE on a completed audit whose street has known imagery captured after the audit
--- ended (street_imagery.newest_capture). Set AND cleared by the nightly imagery-freshness sync, unlike the
--- manually-set stale flag. A street with no street_imagery row (or NULL newest_capture) is assumed up to date, so
--- its audits are never flagged.
+-- Machine-managed flag (#4384): TRUE on a completed audit whose street shows newer imagery than the audit across at
+-- least half of its sampled points (street_imagery.median_newest_capture). Set AND cleared by the nightly
+-- imagery-freshness sync, unlike the manually-set stale flag. A street with no street_imagery row (or a NULL
+-- median_newest_capture) is assumed up to date, so its audits are never flagged.
+-- Efficiency: metadata-only on Postgres 11+ (non-volatile default), no table rewrite even on prod-sized audit_task.
 ALTER TABLE audit_task ADD COLUMN outdated_imagery BOOLEAN NOT NULL DEFAULT FALSE;
 
 -- Flagged rows should be a small minority of audit_task, and the nightly clear-pass only ever scans this subset.
 CREATE INDEX audit_task_street_edge_id_outdated_idx ON audit_task (street_edge_id) WHERE outdated_imagery;
 
--- street_imagery.data_source is a closed set of feeder names, so constrain it rather than leaving it free text
--- (#4103). It is a small, script-and-nightly-job-written table, so a CHECK is the right tool over an enum type.
--- `imagery_poll` is the nightly in-app provider poll (CheckImageryAgeActor).
+-- street_imagery.data_source is a closed set of feeder names mirrored by a Scala enum (StreetImagerySource), and the
+-- table is runtime-written and city-sized, so it gets a real enum type per the #4103 convention. `imagery_poll` is
+-- the nightly in-app provider poll (CheckImageryAgeActor).
+CREATE TYPE street_imagery_source AS ENUM ('pano_data', 'imagery_scan', 'imagery_poll');
 ALTER TABLE street_imagery
-    ADD CONSTRAINT street_imagery_data_source_check
-    CHECK (data_source IN ('pano_data', 'imagery_scan', 'imagery_poll'));
+    ALTER COLUMN data_source TYPE street_imagery_source USING data_source::street_imagery_source;
+
+-- Capture date of the newest imagery at the street's *median* sampled point (#4384): at least half the street's
+-- sample points show imagery at least this new. Written only by the nightly imagery-age poll, which snapshots a
+-- fixed set of interior sample points per street -- labeling-observed panos are too positionally biased to support
+-- a "half the street" claim, so refreshFromPanoData and the scan ingest leave it NULL. This is the column the
+-- outdated_imagery sync compares audit dates against: a single newer pano (newest_capture) must NOT trigger a
+-- re-audit, because a partial re-drive or one stray corner pano doesn't invalidate the audit of a whole street.
+ALTER TABLE street_imagery ADD COLUMN median_newest_capture DATE;
 
 -- Invariants every writer already preserves (MIN/MAX on insert, LEAST/GREATEST widening on conflict): constrain them
 -- while we're here rather than backfilling later (#3944 precedent).
@@ -26,11 +35,12 @@ ALTER TABLE street_imagery
 -- its position, provided it is within 15 m (StreetImageryTable.PanoStreetToleranceMeters -- keep the two in sync).
 -- The evolution-326 backfill attributed each pano to the street of the labels placed on it, but labelers routinely
 -- observe panos that sit on a neighboring street (looking down a cross street from an intersection), which inflates
--- newest_capture and would trigger spurious outdated_imagery flags. Nearest-street (not every street in tolerance)
--- because providers re-drive streets one at a time, so a corner pano's date describes only its own street's drive.
--- imagery_scan rows are untouched -- the scan samples streets spatially and its ingest script fully replaces a row
--- on conflict, so they carry no label-based attribution. Panos with no stored position are simply left out. Runs in
--- a minute or two on the largest cities (one GiST probe per pano).
+-- newest_capture. Nearest-street (not every street in tolerance) because providers re-drive streets one at a time,
+-- so a corner pano's date describes only its own street's drive. imagery_scan rows are untouched -- the scan samples
+-- streets spatially and its ingest script fully replaces a row on conflict, so they carry no label-based
+-- attribution. Panos with no stored position are simply left out. Runs in a minute or two on the largest cities
+-- (one GiST probe per pano via the ST_DWithin geometry prefilter, and pano_data is far smaller than the label
+-- tables).
 DELETE FROM street_imagery WHERE data_source = 'pano_data';
 
 INSERT INTO street_imagery (street_edge_id, oldest_capture, newest_capture, n_panos, data_source, updated_at)
@@ -84,6 +94,10 @@ SET oldest_capture = LEAST(street_imagery.oldest_capture, EXCLUDED.oldest_captur
 -- The pano_data row rebuild above is data-only and strictly more accurate, so it is not reversed.
 ALTER TABLE street_imagery DROP CONSTRAINT street_imagery_capture_order_check;
 ALTER TABLE street_imagery DROP CONSTRAINT street_imagery_n_panos_check;
-ALTER TABLE street_imagery DROP CONSTRAINT street_imagery_data_source_check;
+
+ALTER TABLE street_imagery DROP COLUMN median_newest_capture;
+
+ALTER TABLE street_imagery ALTER COLUMN data_source TYPE TEXT USING data_source::text;
+DROP TYPE street_imagery_source;
 
 ALTER TABLE audit_task DROP COLUMN outdated_imagery;
