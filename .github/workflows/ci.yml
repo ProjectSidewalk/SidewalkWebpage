@@ -253,6 +253,15 @@ jobs:
           ENV_TYPE: local
           SIDEWALK_IMAGES_DIR: .crops
 
+      # The same minimal city the e2e-smoke job seeds (one region holding a non-tutorial street), so the write-path
+      # specs below exercise the submission endpoints here instead of cancelling on unassignable data. Ordering is
+      # load-bearing in both directions: it must follow the PublicApiSpec step, whose app boot is what brings the
+      # template schema up to evolution HEAD (the seed writes street_edge.status, which the pre-evolution template
+      # lacks), and precede the specs that read it. Shared with test/e2e rather than duplicated — one definition of
+      # what a minimally-servable city is.
+      - name: Seed minimal explore data
+        run: docker compose exec -T db psql -v ON_ERROR_STOP=1 -U postgres -d sidewalk < test/e2e/fixtures/ci-seed.sql
+
       # Gating/auth specs. Run in a SEPARATE sbt invocation from PublicApiSpec above — a second concurrent app would
       # double the pool draw against CI Postgres — and `set Test / parallelExecution := false` so these suites boot one
       # app at a time within this invocation, the same single-app-at-a-time discipline the PublicApiSpec note above
@@ -285,11 +294,12 @@ jobs:
       # - StatsApiSpec (#3871/#3981): the stats endpoints' snake_case output contract and total/breakdown
       #   reconciliation — the HTTP surface over the aggregate queries above. Shape-only, data-independent.
       # - ExploreSubmissionSpec / ValidateSubmissionSpec (#4777): the submission write paths (POST /task,
-      #   /validationTask, /labelmap/validate). Their auth and malformed-payload cases run anywhere; the row-writing
-      #   cases CANCEL on this empty schema (no region holds a street, no validatable labels), so they are listed here
-      #   to run the moment the job has a seeded DB — and so the cancel is visible rather than the suites silently not
-      #   existing. The template's lone tutorial street sits in no region, so /explore can't assign one: it 500s on the
-      #   #4748 empty-Option gap, which is why the guard is a region-holds-a-street check rather than a street count.
+      #   /validationTask, /labelmap/validate). ExploreSubmissionSpec runs in full against the seed above — the audit
+      #   tutorial and the first real audit mission both write their rows here, so a regression in POST /task fails the
+      #   build. ValidateSubmissionSpec's row-writing cases still CANCEL: a validation mission needs >= 10 validatable
+      #   labels of one type and the seed has none, so only its auth and malformed-payload cases run. Both suites'
+      #   data preconditions check for an assignable region rather than a bare street count, because the template's
+      #   lone tutorial street belongs to no region and /explore 500s on that (#4748) instead of answering.
       - name: Run gating/auth tests (health dashboard + route auth posture + geodesic distances)
         run: sbt 'set Test / parallelExecution := false' 'testOnly controllers.HealthDashboardSpec service.HealthServiceSpec controllers.RouteAuthPostureSpec models.street.GeodesicDistanceSpec service.ExploreTutorialRouteSpec controllers.MobileDetectionSpec service.PanoDataServiceSpec models.utils.ConfigTableVoidedArchiveSpec controllers.api.StatsApiSpec controllers.ExploreSubmissionSpec controllers.ValidateSubmissionSpec'
         env:
