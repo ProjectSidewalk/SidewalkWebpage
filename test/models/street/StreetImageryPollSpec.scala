@@ -14,7 +14,8 @@ import java.time.{LocalDate, OffsetDateTime}
 
 /**
  * DB-backed tests for the imagery-age poller's table methods (#4384): StreetImageryTable.streetsToPoll (rotation
- * order) and upsertFromPoll (widen-only date merge). Mutating cases run inside rolled-back transactions, leaving the
+ * order) and upsertFromPoll (widen-only date range, per-point median snapshot). Mutating cases run inside
+ * rolled-back transactions, leaving the
  * connected DB untouched; requires Postgres+PostGIS like the other DB-backed specs. Actors are disabled.
  */
 class StreetImageryPollSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb {
@@ -58,7 +59,8 @@ class StreetImageryPollSpec extends PlaySpec with GuiceOneAppPerSuite with Rolle
         _ <- streetImagery.filter(_.streetEdgeId === target).delete
         _ <- DBIO.sequence(candidates.tail.map { id =>
           streetImagery.filter(_.streetEdgeId === id).delete andThen
-            (streetImagery += StreetImagery(id, None, None, 0, "imagery_poll", OffsetDateTime.now))
+            (streetImagery += StreetImagery(id, None, None, None, 0, StreetImagerySource.ImageryPoll,
+              OffsetDateTime.now))
         })
         reordered <- streetImageryTable.streetsToPoll(1000).map(_.map(_.streetEdgeId))
       } yield (reordered.headOption.contains(target), reordered.indexOf(candidates.tail.headOption.getOrElse(-1))))
@@ -77,15 +79,16 @@ class StreetImageryPollSpec extends PlaySpec with GuiceOneAppPerSuite with Rolle
     // an observation placed there must always be attributed.
     def onStreet(street: StreetToPoll, pointIdx: Int, capture: Option[LocalDate]): PolledPano = {
       val (lat, lng) = street.points(pointIdx)
-      PolledPano(lat, lng, capture)
+      PolledPano(lat, lng, capture, pointIdx)
     }
 
-    "insert a fresh row with the observed range and the imagery_poll source" in {
+    "insert a fresh row with the observed range, per-point median, and the imagery_poll source" in {
       val row = runRolledBack(for {
         street <- streetImageryTable.streetsToPoll(1).map(_.head)
         _      <- streetImagery.filter(_.streetEdgeId === street.streetEdgeId).delete
         _      <- streetImageryTable.upsertFromPoll(
           street.streetEdgeId,
+          3,
           Seq(onStreet(street, 0, Some(oldest)), onStreet(street, 1, Some(newest)), onStreet(street, 2, Some(newest)))
         )
         row <- streetImageryTable.getForStreet(street.streetEdgeId)
@@ -93,8 +96,33 @@ class StreetImageryPollSpec extends PlaySpec with GuiceOneAppPerSuite with Rolle
 
       row.map(_.oldestCapture) mustBe Some(Some(oldest))
       row.map(_.newestCapture) mustBe Some(Some(newest))
+      // Per-point newest captures are (oldest, newest, newest): two of the three points reach `newest`.
+      row.map(_.medianNewestCapture) mustBe Some(Some(newest))
       row.map(_.nPanos) mustBe Some(3)
-      row.map(_.dataSource) mustBe Some("imagery_poll")
+      row.map(_.dataSource) mustBe Some(StreetImagerySource.ImageryPoll)
+    }
+
+    "leave the median NULL when fewer than half the sampled points have dated imagery" in {
+      val (oneDated, sharedPano) = runRolledBack(for {
+        street <- streetImageryTable.streetsToPoll(1).map(_.head)
+        _      <- streetImagery.filter(_.streetEdgeId === street.streetEdgeId).delete
+        // Only 1 of 3 points shows dated imagery: no "half the street" claim can be made.
+        _        <- streetImageryTable.upsertFromPoll(street.streetEdgeId, 3, Seq(onStreet(street, 0, Some(newest))))
+        oneDated <- streetImageryTable.getForStreet(street.streetEdgeId)
+        // The same pano (same position) genuinely visible from points 0 and 1 informs both points, so the median
+        // exists -- while n_panos still counts it once.
+        sharedAtPoint0 = onStreet(street, 0, Some(newest))
+        _ <- streetImageryTable.upsertFromPoll(
+          street.streetEdgeId,
+          3,
+          Seq(sharedAtPoint0, sharedAtPoint0.copy(pointIndex = 1))
+        )
+        sharedPano <- streetImageryTable.getForStreet(street.streetEdgeId)
+      } yield (oneDated, sharedPano))
+
+      oneDated.map(_.medianNewestCapture) mustBe Some(None)
+      sharedPano.map(_.medianNewestCapture) mustBe Some(Some(newest))
+      sharedPano.map(_.nPanos) mustBe Some(1)
     }
 
     "not attribute an observation whose nearest street is not the polled street" in {
@@ -102,39 +130,46 @@ class StreetImageryPollSpec extends PlaySpec with GuiceOneAppPerSuite with Rolle
         street <- streetImageryTable.streetsToPoll(1).map(_.head)
         _      <- streetImagery.filter(_.streetEdgeId === street.streetEdgeId).delete
         // ~1.1 km north of the street's midpoint: whatever street is nearest there, it isn't the polled one.
-        farAway = PolledPano(street.points(1)._1 + 0.01, street.points(1)._2, Some(newest))
-        _   <- streetImageryTable.upsertFromPoll(street.streetEdgeId, Seq(farAway))
+        farAway = PolledPano(street.points(1)._1 + 0.01, street.points(1)._2, Some(newest), 1)
+        _   <- streetImageryTable.upsertFromPoll(street.streetEdgeId, 3, Seq(farAway))
         row <- streetImageryTable.getForStreet(street.streetEdgeId)
       } yield row)
 
       // The poll is still recorded ("checked"), but nothing was attributable to this street.
       row.map(_.oldestCapture) mustBe Some(None)
       row.map(_.newestCapture) mustBe Some(None)
+      row.map(_.medianNewestCapture) mustBe Some(None)
       row.map(_.nPanos) mustBe Some(0)
-      row.map(_.dataSource) mustBe Some("imagery_poll")
+      row.map(_.dataSource) mustBe Some(StreetImagerySource.ImageryPoll)
     }
 
-    "only widen an existing row's range, keep n_panos/data_source, and always bump updated_at" in {
-      val staleStamp = OffsetDateTime.now.minusYears(1)
-      val row        = runRolledBack(for {
+    "widen the range, replace the median (NULL on an empty poll), keep n_panos/data_source, and bump updated_at" in {
+      val staleStamp                 = OffsetDateTime.now.minusYears(1)
+      val (afterDatedPoll, finalRow) = runRolledBack(for {
         street <- streetImageryTable.streetsToPoll(1).map(_.head)
         _      <- streetImagery.filter(_.streetEdgeId === street.streetEdgeId).delete
         _      <- streetImagery += StreetImagery(street.streetEdgeId, Some(LocalDate.parse("2010-01-01")),
-          Some(LocalDate.parse("2030-01-01")), 42, "imagery_scan", staleStamp)
-        // This poll's narrower range must not shrink the stored one; a no-observation poll still bumps.
+          Some(LocalDate.parse("2030-01-01")), None, 42, StreetImagerySource.ImageryScan, staleStamp)
+        // This poll's narrower range must not shrink the stored one. Its median (2 of 3 points dated -> the older
+        // of the two per-point captures) is a snapshot, not a widen.
         _ <- streetImageryTable.upsertFromPoll(
           street.streetEdgeId,
+          3,
           Seq(onStreet(street, 0, Some(oldest)), onStreet(street, 1, Some(newest)))
         )
-        _   <- streetImageryTable.upsertFromPoll(street.streetEdgeId, Seq.empty)
-        row <- streetImageryTable.getForStreet(street.streetEdgeId)
-      } yield row)
+        afterDatedPoll <- streetImageryTable.getForStreet(street.streetEdgeId)
+        // A later conclusive poll that sees nothing attributable NULLs the median again -- its honest snapshot.
+        _        <- streetImageryTable.upsertFromPoll(street.streetEdgeId, 3, Seq.empty)
+        finalRow <- streetImageryTable.getForStreet(street.streetEdgeId)
+      } yield (afterDatedPoll, finalRow))
 
-      row.map(_.oldestCapture) mustBe Some(Some(LocalDate.parse("2010-01-01")))
-      row.map(_.newestCapture) mustBe Some(Some(LocalDate.parse("2030-01-01")))
-      row.map(_.nPanos) mustBe Some(42)
-      row.map(_.dataSource) mustBe Some("imagery_scan")
-      row.map(_.updatedAt.isAfter(staleStamp)) mustBe Some(true)
+      afterDatedPoll.map(_.medianNewestCapture) mustBe Some(Some(oldest))
+      finalRow.map(_.oldestCapture) mustBe Some(Some(LocalDate.parse("2010-01-01")))
+      finalRow.map(_.newestCapture) mustBe Some(Some(LocalDate.parse("2030-01-01")))
+      finalRow.map(_.medianNewestCapture) mustBe Some(None)
+      finalRow.map(_.nPanos) mustBe Some(42)
+      finalRow.map(_.dataSource) mustBe Some(StreetImagerySource.ImageryScan)
+      finalRow.map(_.updatedAt.isAfter(staleStamp)) mustBe Some(true)
     }
   }
 }

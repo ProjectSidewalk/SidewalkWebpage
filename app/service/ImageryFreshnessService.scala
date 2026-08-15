@@ -224,6 +224,11 @@ class ImageryFreshnessServiceImpl @Inject() (
    * street's capture dates onto this one (the same rule refreshFromPanoData applies). A conclusive poll whose
    * observations all filter out still upserts (NULL dates), recording "checked, nothing attributable".
    *
+   * Observations keep their sample-point index: median_newest_capture is computed per point, and a pano genuinely
+   * visible from two sample points describes the imagery at both, so deduplication (by provider id) happens within a
+   * point, never across points. Observations whose id came back empty are kept as-is rather than collapsed into one
+   * phantom pano.
+   *
    * Never fails the returned Future: the caller folds over the whole batch sequentially, so letting a single street's
    * DB or provider error escape would abandon every street after it. An error is logged and counted as a skip, which
    * leaves updated_at un-bumped so the next night's rotation retries the street.
@@ -242,17 +247,16 @@ class ImageryFreshnessServiceImpl @Inject() (
         if (results.contains(None)) {
           Future.successful(false)
         } else {
-          val nearThisStreet = results.flatten.flatten.filter(_.location.exists { case (lat, lng) =>
-            metersToStreet(lat, lng, street.geom) <= StreetImageryTable.PanoStreetToleranceMeters
-          })
-          // A pano can be seen from more than one sample point, so dedupe by provider id before counting. Keep
-          // observations whose id came back empty rather than collapsing them all into one phantom pano.
-          val (identified, anonymous) = nearThisStreet.partition(_.panoId.nonEmpty)
-          val deduped                 = identified.groupBy(_.panoId).map(_._2.head).toSeq ++ anonymous
-          val polled                  = deduped.collect { case PanoObservation(_, capture, Some((lat, lng))) =>
-            PolledPano(lat, lng, capture)
+          val polled = results.zipWithIndex.flatMap { case (pointResult, pointIndex) =>
+            val nearThisStreet = pointResult.toSeq.flatten.filter(_.location.exists { case (lat, lng) =>
+              metersToStreet(lat, lng, street.geom) <= StreetImageryTable.PanoStreetToleranceMeters
+            })
+            val (identified, anonymous) = nearThisStreet.partition(_.panoId.nonEmpty)
+            (identified.groupBy(_.panoId).map(_._2.head).toSeq ++ anonymous).collect {
+              case PanoObservation(_, capture, Some((lat, lng))) => PolledPano(lat, lng, capture, pointIndex)
+            }
           }
-          db.run(streetImageryTable.upsertFromPoll(street.streetEdgeId, polled)).map(_ => true)
+          db.run(streetImageryTable.upsertFromPoll(street.streetEdgeId, street.points.size, polled)).map(_ => true)
         }
       }
       .recover { case e: Throwable =>

@@ -184,41 +184,56 @@ class StreetImageryTable @Inject() (protected val dbConfigProvider: DatabaseConf
   }
 
   /**
-   * Records one poll's result for a street: widens the capture-date range and always bumps updated_at (#4384).
+   * Records one poll's result for a street: snapshots median_newest_capture, widens the min/max capture range, and
+   * always bumps updated_at (#4384).
    *
    * Each observation is attributed only if the polled street is the NEAREST street (within
    * PanoStreetToleranceMeters) to the observation's position -- the same nearest-street rule as refreshFromPanoData,
    * checked here in SQL because deciding "nearest" needs the whole street network, not just the polled street's
    * geometry. A corner pano whose nearest street is the cross street therefore never smears its date onto this one.
    *
-   * On conflict, capture dates only ever widen (LEAST/GREATEST ignore NULLs) and n_panos / data_source are left
-   * alone -- a 3-point poll sees at most a few panos, so a scan's richer pano count stays authoritative. A street
-   * where nothing was attributable still gets its row upserted (NULL dates, n_panos 0 on insert), which records
-   * "checked, nothing there" and keeps the streetsToPoll rotation advancing.
+   * median_newest_capture is the ceil(n/2)-th newest of the per-sample-point newest captures, with a point that has
+   * no attributable dated imagery counting as infinitely old -- so an audit predating it means at least half the
+   * sampled points show newer imagery (the flag rule in syncOutdatedImageryFlags). Unlike the min/max range it is
+   * REPLACED each poll, not widened: each poll is a complete snapshot of the same fixed sample points, and only this
+   * method writes the column, so widening would just fossilize the newest snapshot ever seen and stop flags from
+   * clearing when a later poll walks the median back.
    *
-   * @param streetEdgeId The polled street.
-   * @param panos        Deduped observations from the street's sample points; dated ones drive the capture range.
+   * On conflict, oldest/newest only ever widen (LEAST/GREATEST ignore NULLs) and n_panos / data_source are left
+   * alone -- a poll sees at most a few panos, so a scan's richer pano count stays authoritative. A street where
+   * nothing was attributable still gets its row upserted (NULL dates, n_panos 0 on insert), recording "checked,
+   * nothing there" and advancing the streetsToPoll rotation -- and NULLing the median, since that is this poll's
+   * honest snapshot.
+   *
+   * @param streetEdgeId   The polled street.
+   * @param nPointsSampled How many sample points the poll conclusively answered for (the median's denominator).
+   * @param panos          Observations from the street's sample points, deduped per (pano, sample point) -- a pano
+   *                       genuinely visible from two sample points informs both points' newest capture.
    */
-  def upsertFromPoll(streetEdgeId: Int, panos: Seq[PolledPano]): DBIO[Int] = {
+  def upsertFromPoll(streetEdgeId: Int, nPointsSampled: Int, panos: Seq[PolledPano]): DBIO[Int] = {
     if (panos.isEmpty) {
       sqlu"""
-        INSERT INTO street_imagery (street_edge_id, oldest_capture, newest_capture, n_panos, data_source, updated_at)
-        VALUES ($streetEdgeId, NULL, NULL, 0, 'imagery_poll', now())
+        INSERT INTO street_imagery (street_edge_id, oldest_capture, newest_capture, median_newest_capture, n_panos,
+                                    data_source, updated_at)
+        VALUES ($streetEdgeId, NULL, NULL, NULL, 0, 'imagery_poll', now())
         ON CONFLICT (street_edge_id) DO UPDATE
-        SET updated_at = EXCLUDED.updated_at;
+        SET median_newest_capture = NULL,
+            updated_at            = EXCLUDED.updated_at;
       """
     } else {
+      // The (offset+1)-th newest per-point date is the youngest date that at least ceil(n/2) sampled points reach.
+      val medianOffset = (nPointsSampled + 1) / 2 - 1
       // Inlined literals are program-built numerics and ISO dates (never user input), so interpolation is safe here.
       val valuesList = panos
         .map { pano =>
           val capture = pano.capture.map(d => s"'$d'::date").getOrElse("NULL::date")
-          s"(${pano.lat}::float8, ${pano.lng}::float8, $capture)"
+          s"(${pano.lat}::float8, ${pano.lng}::float8, $capture, ${pano.pointIndex}::int)"
         }
         .mkString(", ")
       sqlu"""
-        WITH observed (lat, lng, capture) AS (VALUES #$valuesList),
+        WITH observed (lat, lng, capture, point_idx) AS (VALUES #$valuesList),
         kept AS (
-            SELECT observed.capture
+            SELECT observed.lat, observed.lng, observed.capture, observed.point_idx
             FROM observed
             WHERE (
                 SELECT street_edge.street_edge_id
@@ -235,14 +250,36 @@ class StreetImageryTable @Inject() (protected val dbConfigProvider: DatabaseConf
                          )
                 LIMIT 1
             ) = $streetEdgeId
+        ),
+        per_point AS (
+            SELECT MAX(kept.capture) AS newest_at_point
+            FROM kept
+            GROUP BY kept.point_idx
+        ),
+        median AS (
+            -- Sample points absent from per_point (nothing attributable) or with only undated panos (NULL max) rank
+            -- as infinitely old, so they are simply skipped: if fewer than ceil(n/2) points have a dated newest, the
+            -- OFFSET walks past the last row and the scalar subquery below yields NULL (no median claim).
+            SELECT per_point.newest_at_point AS capture_at_median_point
+            FROM per_point
+            WHERE per_point.newest_at_point IS NOT NULL
+            ORDER BY per_point.newest_at_point DESC
+            OFFSET $medianOffset LIMIT 1
         )
-        INSERT INTO street_imagery (street_edge_id, oldest_capture, newest_capture, n_panos, data_source, updated_at)
-        SELECT $streetEdgeId, MIN(kept.capture), MAX(kept.capture), COUNT(kept.capture), 'imagery_poll', now()
+        INSERT INTO street_imagery (street_edge_id, oldest_capture, newest_capture, median_newest_capture, n_panos,
+                                    data_source, updated_at)
+        SELECT $streetEdgeId, MIN(kept.capture), MAX(kept.capture),
+               (SELECT median.capture_at_median_point FROM median),
+               -- Distinct positions stand in for distinct panos: a pano seen from two sample points appears once per
+               -- point in `kept`, at the identical provider-reported position.
+               COUNT(DISTINCT (kept.lat, kept.lng)) FILTER (WHERE kept.capture IS NOT NULL),
+               'imagery_poll', now()
         FROM kept
         ON CONFLICT (street_edge_id) DO UPDATE
-        SET oldest_capture = LEAST(street_imagery.oldest_capture, EXCLUDED.oldest_capture),
-            newest_capture = GREATEST(street_imagery.newest_capture, EXCLUDED.newest_capture),
-            updated_at     = EXCLUDED.updated_at;
+        SET oldest_capture        = LEAST(street_imagery.oldest_capture, EXCLUDED.oldest_capture),
+            newest_capture        = GREATEST(street_imagery.newest_capture, EXCLUDED.newest_capture),
+            median_newest_capture = EXCLUDED.median_newest_capture,
+            updated_at            = EXCLUDED.updated_at;
       """
     }
   }

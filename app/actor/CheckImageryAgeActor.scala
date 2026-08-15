@@ -1,7 +1,7 @@
 package actor
 
 import actor.ActorUtils.{dateFormatter, getTimeToNextUpdate}
-import org.apache.pekko.actor.{Actor, Cancellable, Props}
+import org.apache.pekko.actor.{Actor, Cancellable}
 import play.api.Logger
 import service.{ConfigService, ImageryFreshnessService}
 
@@ -12,8 +12,7 @@ import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
 object CheckImageryAgeActor {
-  val Name  = "check-imagery-age-actor"
-  def props = Props[CheckImageryAgeActor]()
+  val Name = "check-imagery-age-actor"
   case object Tick
 }
 
