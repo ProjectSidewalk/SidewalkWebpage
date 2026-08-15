@@ -194,3 +194,93 @@ describe('the design system ships the faces its font tokens name', () => {
         expect(undocumented).toEqual([]);
     });
 });
+
+/**
+ * The same rule the stylesheets are held to, applied to the views and to the policy that describes them.
+ *
+ * A `<script src>` or `<link rel=stylesheet>` pointing at another host makes that host part of our render path:
+ * its availability becomes our availability, its outage our outage, and every visitor's IP goes to it. Subresource
+ * integrity does not change that — it protects the bytes, not the delivery, and a legitimate upstream repack turns
+ * into a hard failure rather than a soft one. Libraries are vendored under public/vendor/ instead.
+ *
+ * A handful of third parties genuinely cannot be vendored, because what they serve is a live service rather than a
+ * library. Those are named below, and the CSP has to know about them — which is the second half of this: an origin
+ * the policy allows that nothing actually loads is a hole left open in a policy we intend to enforce (#4793).
+ */
+describe('nothing in the render path comes from a third party we have not chosen', () => {
+    const VIEWS_ROOT = path.join(REPO_ROOT, 'app', 'views');
+
+    // Remote by nature: gtag.js is versionless and rewritten server-side, and the Maps JS API is a keyed service.
+    const MUST_BE_REMOTE = ['www.googletagmanager.com', 'maps.googleapis.com'];
+
+    /** @returns {string[]} Every .scala.html under app/views, as repo-relative paths. */
+    function views(dir = VIEWS_ROOT) {
+        return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+            const full = path.join(dir, entry.name);
+            if (entry.isDirectory()) return views(full);
+            return entry.name.endsWith('.scala.html') ? [path.relative(REPO_ROOT, full)] : [];
+        });
+    }
+
+    const VIEWS = views();
+
+    test('the views were found, so these assertions are not passing vacuously', () => {
+        expect(VIEWS.length).toBeGreaterThan(50);
+        expect(VIEWS).toContain('app/views/apiDocs/rawLabels.scala.html');
+    });
+
+    test('no view loads a script or stylesheet from an unlisted origin', () => {
+        const LOADS = [
+            /<script\b[^>]*\bsrc\s*=\s*"((?:https?:)?\/\/[^"]+)"/g,
+            /<link\b[^>]*\bhref\s*=\s*"((?:https?:)?\/\/[^"]+)"/g,
+        ];
+        const offenders = [];
+        for (const file of VIEWS) {
+            const html = fs.readFileSync(path.join(REPO_ROOT, file), 'utf8');
+            for (const pattern of LOADS) {
+                for (const [, url] of html.matchAll(pattern)) {
+                    const host = url.replace(/^(https?:)?\/\//, '').split('/')[0];
+                    if (!MUST_BE_REMOTE.includes(host)) offenders.push(`${file} -> ${url}`);
+                }
+            }
+        }
+        expect(offenders).toEqual([]);
+    });
+
+    test('every origin the CSP allows for scripts, styles, or fonts is one something actually loads', () => {
+        // The direction that rots silently: a library gets vendored or deleted and its allowlist entry outlives it.
+        const conf = fs.readFileSync(path.join(REPO_ROOT, 'conf', 'application.conf'), 'utf8');
+        const origins = new Set();
+        for (const directive of ['script-src', 'style-src', 'font-src']) {
+            const value = new RegExp(`^\\s*${directive}\\s*=\\s*"([^"]*)"`, 'm').exec(conf)?.[1] ?? '';
+            for (const token of value.split(/\s+/)) {
+                if (token.startsWith('https://')) origins.add(token.replace('https://', ''));
+            }
+        }
+        expect(origins.size).toBeGreaterThan(0);
+
+        // Anywhere we ship: views, our own JS/CSS, and vendored libraries (which declare their own remote assets).
+        const haystack = ['app/views', 'public/js', 'public/css', 'public/vendor']
+            .flatMap(function walk(rel) {
+                const full = path.join(REPO_ROOT, rel);
+                return fs.readdirSync(full, { withFileTypes: true }).flatMap((entry) => (entry.isDirectory()
+                    ? walk(path.join(rel, entry.name))
+                    : [fs.readFileSync(path.join(full, entry.name), 'utf8')]));
+            })
+            .join('\n');
+
+        // Google's Maps bootstrap assembles its own host at runtime (`https://maps.${c}apis.com/…`, with c="google"),
+        // so the literal origin appears nowhere to be found. Pin the loader that builds it rather than exempting the
+        // origin outright, so the exemption dies the day the loader does.
+        const ASSEMBLED_AT_RUNTIME = {
+            'maps.googleapis.com': { file: 'app/views/common/main.scala.html', fragment: 'maps.${c}apis.com' },
+        };
+        for (const [origin, { file, fragment }] of Object.entries(ASSEMBLED_AT_RUNTIME)) {
+            expect(fs.readFileSync(path.join(REPO_ROOT, file), 'utf8')).toContain(fragment);
+            origins.delete(origin);
+        }
+
+        const unused = [...origins].filter((origin) => !haystack.includes(origin.replace(/^\*\./, '')));
+        expect(unused).toEqual([]);
+    });
+});
