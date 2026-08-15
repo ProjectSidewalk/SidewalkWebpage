@@ -1,17 +1,37 @@
 /**
- Most of this file contains overrides to elements/classes used in Validate on desktop.
+ Overrides for the Validate UI when it runs on a touch device (app/views/apps/mobileValidate.scala.html).
+
+ The page lays out at the device's own width, so everything here is authored in real CSS px and the design system's
+ --text-* tokens read at their native size (--ui-scale is 1 on this page; util.applyToolScale is desktop-only).
+ Fixed sizes are capped with min()/clamp() so that a landscape phone or a tablet — a short or a wide viewport, not a
+ layout of its own — sizes the same chrome sensibly instead of inflating it. Touch targets are floored at 44px.
  */
 
 html {
-  position: fixed;
+  position: fixed; /* Keeps the page from scrolling or rubber-banding under the fixed tool chrome. */
+  width: 100%;
+  height: 100%;
 }
 
 body {
-  height: 100vh;
-  width: 100vw;
+  /* ---- Shared geometry -------------------------------------------------------------------------------------------
+     The verdict row, the notch that points at it, and the reason panels that stack above it all measure from these,
+     so they can't drift apart. Widths stay in vw with a ceiling: proportional on a phone, bounded on a tablet. */
+  --mobile-header-height: 40px;              /* Progress bar (8px) + mission title (32px). */
+  --verdict-row-height: clamp(44px, 12vw, 48px);
+  --verdict-row-bottom: min(6vw, 24px);
+  --verdict-side-pad: 7vw;
+  --verdict-btn-width: min(25vw, 150px);
+  --notch-height: 10px;
+
+  width: 100%;
+  height: 100%;
+
+  /* main.css offsets every page below the fixed navbar; this one renders no navbar, and the tool is sized to fill
+     the screen exactly, so the offset would only push it into a scroll. */
+  padding: 0;
   text-align: center;
-  padding: 2vh 10vw;
-  font-family: raleway, sans-serif;
+  font: var(--text-body-regular);
   color: var(--color-neutral-black);
 }
 
@@ -20,11 +40,14 @@ body {
   width: unset;
 }
 
+/* Centered on the screen rather than offset from its top-left corner, so a short landscape viewport doesn't push it
+   off the bottom. The image is capped against the viewport's *height* as well, for that same case. */
 #page-loading {
   max-width: unset;
   max-height: unset;
-  top: 40vw;
-  left: 20vw;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 
 #loading-animation {
@@ -34,30 +57,28 @@ body {
 }
 
 #loading-animation img {
-  width: 55vw;
-  height: 55vw;
+  width: min(55vw, 40vh, 220px);
+  height: min(55vw, 40vh, 220px);
 }
 
 .loading-text {
-  font-size: 10vw;
+  font-size: min(10vw, 40px);
 }
 
 .loading-sub-text {
-  font-size: 5vw;
+  font-size: min(5vw, 20px);
 }
 
-/* The landscape notice is the one modal here still on the page's legacy sizing; the mission screens below are
-   design-system components. */
 #modal-landscape-foreground {
   top: 0;
   height: 100%;
   width: 100%;
-  font-size: 40pt;
+  font: var(--text-h3-bold);
   line-height: 125%;
 }
 
 #modal-landscape-description {
-  font-size: 20pt;
+  font: var(--text-body-regular);
 }
 
 #modal-landscape-holder {
@@ -65,30 +86,18 @@ body {
 }
 
 #ps-logo-landscape {
-  width: 350px;
+  width: min(50vw, 140px);
 }
 
 /* ---- Mission start + mission complete ---------------------------------------------------------------------------
-   These two screens are authored in real design-system units — --text-* type, .button-ps buttons, --color-* ink — and
-   then scaled up as one unit, the same trick the shared auth dialog uses further down this file. The page ships no
-   viewport meta (that's #4875 Phase 3, and SeoSpec pins its absence), so a phone lays it out at the 980px legacy
-   viewport and shrinks the result to the screen, leaving design-system sizes at ~0.4x; the multiplier cancels that
-   out, and Phase 3 retires it by setting --mobile-mission-scale to 1. Scaling beats re-authoring every rule in
-   oversized px (what the rest of this file does) because the --text-* tokens can't be scaled per-component: they bake
-   in whatever --ui-scale the root had when they were declared, so overriding that variable here moves the padding
-   and leaves the type behind.
-   The layout box is divided by the same factor so the scaled result still covers exactly the screen — which holds
-   for any factor, and the factor is per-device: mobileValidate.js measures how far this device is shrinking the page
-   and writes --mobile-mission-scale to the root, since the tablets the server routes here are shrunk by about half
-   what a phone is. The fallback is a ~390pt phone, for the moment before that runs. */
+   Both screens cover the page, and both scroll: a long briefing (or a verbose translation) is routine, and a short
+   landscape viewport makes it the common case rather than the exception. */
 #modal-mission-foreground,
 #modal-mission-complete-foreground {
   top: 0;
   left: 0;
-  width: calc(100% / var(--mobile-mission-scale, 2.5));
-  height: calc(100% / var(--mobile-mission-scale, 2.5));
-  transform: scale(var(--mobile-mission-scale, 2.5));
-  transform-origin: top left;
+  width: 100%;
+  height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -554,6 +563,7 @@ body {
 .sign-in-up-button-mobile {
   flex: 0 0 auto;
   max-width: 180px;
+  min-height: 44px;
   padding: 10px 18px;
   border: none;
   border-radius: 12px;
@@ -565,18 +575,18 @@ body {
   white-space: nowrap;
 }
 
-#svv-panorama-holder {
-  /* The verdict row's footprint. The notch and the reason panels stack on top of it, so they measure from here
-     rather than repeating its numbers. */
-  --verdict-row-height: 12vw;
-  --verdict-row-bottom: 6vw;
+/* ---- The tool itself -------------------------------------------------------------------------------------------- */
 
+/* PanoManager.sizePano() gives this its width and height, measuring down from wherever this rule puts its top edge —
+   so the pano follows the header without repeating its number. */
+#svv-panorama-holder {
   position: absolute;
-  top: 80px;
+  top: var(--mobile-header-height);
 }
 
 #mission-progress-bar-section {
-  --ps-progress-bar-height: 20px;
+  --ps-progress-bar-height: 8px;
+
   top: 0;
   left: 0;
   width: 100%;
@@ -590,17 +600,19 @@ body {
   border-radius: 0 10px 10px 0;
 }
 
+/* Fills the rest of the header band, under the progress bar. Mulish rather than the accent face: the title counts
+   the mission's labels, and Raleway sets digits as old-style figures that wander off the baseline. */
 #mission-title {
-  font-size: 38px;
-  color: var(--color-neutral-white);
-  top: 20px;
+  top: 8px;
   left: 0;
-  height: 60px;
   width: 100%;
-  background-color: #2C293E;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
+  background-color: var(--color-asphalt-500);
+  font: var(--text-body-bold);
+  color: var(--color-neutral-white);
 }
 
 #view-control-layer {
@@ -613,34 +625,38 @@ body {
   pointer-events: auto;
 }
 
-/* Mobile has no --ui-scale, so the shared pano-overlay pill (sized for a scaled desktop tool) needs its own
-   touch-sized dimensions here. */
+/* The card is authored for a desktop tool, where the smallest type it uses (--text-tiny-*, 10px) sits under a
+   pointer rather than at arm's length. A modest bump carries it, and everything sized against it, to a legible
+   size without a second set of dimensions; the cap keeps it inside a narrow phone. */
+#label-card {
+  --ui-scale: 1.2;
+
+  max-width: min(calc(240px * var(--ui-scale)), calc(100vw - 24px));
+}
+
+/* Touch-sized: the shared pill (css/pano-overlay-buttons.css) is drawn for a pointer, and 44px is the floor a
+   thumb wants. */
 .pano-overlay-button {
-  height: 66px;
-  padding: 0 18px;
-  gap: 16px;
-  border-radius: 12px;
-  font-size: 26px;
+  height: 44px;
+  padding: 0 12px;
+  gap: 6px;
+  border-radius: 10px;
+  font: var(--text-small-bold);
 }
 
 /* Both float over the pano's top corners. The holder is what's positioned for the visibility control, since the
    button itself now sits inside the shared .pano-overlay-button-group (#4726). */
 #label-visibility-control-holder {
-  top: 20px;
-  left: 20px;
+  top: 8px;
+  left: 8px;
   right: auto;
 }
 
 #validate-undo-button {
   position: absolute;
   z-index: 2;
-  top: 20px;
-  right: 20px;
-}
-
-.hide-label-button-icon {
-  width: 26px;
-  height: 26px;
+  top: 8px;
+  right: 8px;
 }
 
 .animate-button:active {
@@ -664,6 +680,10 @@ body {
   }
 }
 
+/* ---- The verdict row -------------------------------------------------------------------------------------------
+   Full-bleed in both orientations rather than capped and centered: on a wide landscape screen that puts Agree and
+   Disagree under the thumbs of a two-handed grip, and it keeps the notch's arithmetic below exact — the first
+   button starts at the padding edge, and the middle one is centered by construction. */
 #validation-button-holder {
   z-index: 1;
   position: absolute;
@@ -671,40 +691,38 @@ body {
   bottom: var(--verdict-row-bottom);
   left: 0;
   right: 0;
-  padding: 0 7vw;
+  padding: 0 var(--verdict-side-pad);
 }
 
-/* Shared with the disagree/unsure reason panels' own buttons, which override the box but not the type — so this
-   holds only what all of them want. */
+#validation-button-holder .validate-page-button {
+  width: var(--verdict-btn-width);
+  height: 100%;
+}
+
+/* Shared with the disagree/unsure reason panels' own buttons, which override the box but not the type. */
 .validate-page-button {
-  width: 25vw;
-  height: inherit;
-  border-radius: 16px;
-  font-size: 28px;
+  border-radius: 8px;
+  font: var(--text-body-bold);
 }
 
 /* Each verdict wears the thumb it will be counted under on the mission-complete screen, over the color it is drawn
-   in — an outline until it's the chosen one, then filled. Set in this page's oversized px rather than a --text-*
-   token, like everything else outside the mission screens: the page ships no viewport meta, so a phone displays it
-   at ~0.4x and a token's own size would land somewhere around 7px. */
+   in — an outline until it's the chosen one, then filled. */
 #validate-no-button,
 #validate-unsure-button,
 #validate-yes-button {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 4px;
   padding: 0;
-  border: 3px solid var(--color-neutral-300);
+  border: 2px solid var(--color-neutral-300);
   background: var(--color-neutral-white);
-  font-size: 34px;
-  font-weight: 700;
   color: var(--color-neutral-900);
 }
 
 .validate-page-button__icon {
-  width: 40px;
-  height: 40px;
+  width: 16px;
+  height: 16px;
 }
 
 #validate-yes-button {
@@ -736,13 +754,13 @@ body {
 
 /* The tapped verdict's thumb, rising away from its button — the tap is confirmed where the eye already is, rather
    than only in the count on a screen two taps later. ModalMissionComplete's celebration is the same idea at the end
-   of a mission. Sized in this page's oversized px, like everything else outside the mission screens. */
+   of a mission. MobileValidationMenu positions it over the button it came from. */
 .validate-verdict-float {
   position: fixed;
   z-index: 3;
-  width: 120px;
-  height: 120px;
-  margin-left: -60px;
+  width: 48px;
+  height: 48px;
+  margin-left: -24px;
   pointer-events: none;
 
   /* One knob, to taste. The next label lands about 120ms after the tap, so the thumb spends most of any longer
@@ -763,52 +781,55 @@ body {
 
   25% {
     opacity: 1;
-    transform: translateY(-45px) scale(1.12);
+    transform: translateY(-18px) scale(1.12);
   }
 
   55% {
     opacity: 1;
-    transform: translateY(-70px) scale(1);
+    transform: translateY(-28px) scale(1);
   }
 
   100% {
     opacity: 0;
-    transform: translateY(-120px) scale(0.95);
+    transform: translateY(-48px) scale(0.95);
   }
 }
 
+/* Points from the open reason panel down at the verdict that raised it. Centered on its button with a half-width
+   translate, so the notch art's own aspect ratio never has to be worked into the offset. */
 #mobile-popup-notch {
   visibility: hidden;
   position: absolute;
-  height: 21px;
+  height: var(--notch-height);
   bottom: calc(var(--verdict-row-bottom) + var(--verdict-row-height));
   z-index: 1;
+  transform: translateX(-50%);
 }
 
 .mobile-popup-notch-no {
   visibility: visible !important;
-  left: calc(7vw + 12.5vw - 24px); /* Dist to start of no button + no button width / 2 - notch width / 2. */
+  left: calc(var(--verdict-side-pad) + var(--verdict-btn-width) / 2);
 }
 
+/* The middle of three equal buttons spread across the full width is the middle of the screen. */
 .mobile-popup-notch-unsure {
   visibility: visible !important;
-
-  /* Distance to start of buttons + no button width + button gap + unsure button width / 2 - notch width / 2. */
-  left: calc(7vw + 25vw + 5.5vw + 12.5vw - 24px);
+  left: 50%;
 }
 
 .validation-menu-section {
   z-index: 2;
   position: absolute;
-  bottom: calc(var(--verdict-row-bottom) + var(--verdict-row-height) + 21px); /* Clears the notch too. */
+  bottom: calc(var(--verdict-row-bottom) + var(--verdict-row-height) + var(--notch-height));
 
   /* The panel is anchored at the bottom and grows upward, so a label type with more reasons than another pushes its
      own top edge higher. Cap it at the distance from that anchor to the top of the pano holder — which JS sizes to
-     reach the bottom of the screen — so a tall panel scrolls instead of running off the top on a short phone. */
-  max-height: calc(100% - var(--verdict-row-bottom) - var(--verdict-row-height) - 21px);
+     reach the bottom of the screen — so a tall panel scrolls instead of running off the top on a short phone. This
+     is what carries a landscape screen, where the room above the verdict row is a fraction of a portrait one's. */
+  max-height: calc(100% - var(--verdict-row-bottom) - var(--verdict-row-height) - var(--notch-height));
   overflow-y: auto;
-  width: 60vw;
-  padding: 16px 0;
+  width: min(60vw, 400px);
+  padding: 12px 0;
   flex-direction: column;
   align-items: center;
   gap: 8px;
@@ -816,36 +837,42 @@ body {
   background: rgb(255 255 255 / 70%);
 }
 
+/* Each panel sits under the verdict that opened it: the disagree panel aligned to that button's left edge, the
+   unsure panel centered like the button it belongs to. */
 #validate-why-no-section {
-  left: 7vw;
+  left: var(--verdict-side-pad);
 }
 
 #validate-why-unsure-section {
-  left: 20vw;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 .validation-menu-section-header {
-  font-size: 28px;
-  line-height: 100%;
   display: flex;
-  padding: 0 32px;
+  padding: 0 12px;
   align-items: flex-start;
-  gap: 12px;
+  gap: 4px;
   align-self: stretch;
+  font: var(--text-body-bold);
 }
 
 #no-reason-options, #unsure-reason-options {
-  gap: 16px;
-  padding: 0 32px;
+  gap: 6px;
+  padding: 0 12px;
   align-items: flex-start;
   align-self: stretch;
 }
 
+/* min-height rather than height: a long reason — or a long translation of a short one — wraps to a second line, and
+   a fixed box would crop it. */
 .validation-reason-button {
   width: unset;
-  height: 80px;
-  border-radius: 16px;
-  font-size: 24px;
+  min-height: 44px;
+  height: auto;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font: var(--text-small-medium);
   align-self: stretch;
 }
 
@@ -857,10 +884,13 @@ body {
 /* Bootstrap is getting loaded after this file hence overriding this. To avoid it, I am adding important but ideally
   the order of inclusion should be flipped. */
 .validate-text-input input {
-  height: 80px !important;
-  padding: 8px 18px !important;
-  border-radius: 16px !important;
-  font-size: 24px !important;
+  height: 44px !important;
+  padding: 4px 12px !important;
+  border-radius: 8px !important;
+
+  /* Exactly 16px, not a token that might drift under it: iOS Safari zooms the page in on focus for anything
+     smaller, which leaves the validator zoomed into a text field with the pano scrolled off. */
+  font-size: 16px !important;
 }
 
 #no-submit-section, #unsure-submit-section {
@@ -868,52 +898,34 @@ body {
   justify-content: space-between;
   align-items: flex-start;
   align-self: stretch;
-  margin-top: 20px;
-  padding: 0 32px;
+  margin-top: 8px;
+  padding: 0 12px;
 }
 
 #no-menu-skip-reason-button, #unsure-menu-skip-reason-button {
-  height: 76px;
+  min-height: 44px;
   width: auto;
-  padding: 0 12px;
+  padding: 0 8px;
   border: none;
   background: none;
+  font: var(--text-body-medium);
 }
 
 #no-menu-submit-button, #unsure-menu-submit-button {
-  height: 76px;
+  min-height: 44px;
   width: auto;
-  padding: 10px 24px;
-  border-radius: 16px;
-  border: 3px solid #666666;
+  padding: 0 16px;
+  border-radius: 8px;
+  border: 1px solid var(--color-neutral-700);
   background: var(--color-banana-500);
 }
 
+/* Sits under the tool's header band rather than over it — the mission title and its progress bar are pinned to the
+   top of the screen. Its type and narrow-screen layout come from main.css, which now matches on a phone. */
 .test-server-banner {
   position: absolute;
-  top: 80px;
+  top: var(--mobile-header-height);
   width: 100%;
   left: 0;
   z-index: 3;
-}
-
-.test-server-banner-content {
-  font-size: xx-large;
-}
-
-/* The shared auth dialog (authDialog.scala.html) is sized by auth.css for real viewports, but this page ships no
-   viewport meta: phones lay it out at ~980px and shrink everything to ~0.4x, which this page's own UI counters
-   with oversized type (e.g. the 40px button font above). Scale the dialog up as one unit the same way, instead of
-   re-authoring every au-* rule; retire with the Phase 3 viewport fix (#4875 / #4889). */
-dialog.au-dialog {
-  --mobile-auth-scale: 2.35; /* 384px width x 2.35 ≈ 900px of the ~980px layout viewport. */
-
-  width: 384px;
-  max-height: calc((100dvh - 32px) / var(--mobile-auth-scale)); /* Scaled back up, it must still fit the screen. */
-  transform: scale(var(--mobile-auth-scale));
-}
-
-/* auth.css's open animation ends at transform: none, which would override the scale while it plays. */
-dialog.au-dialog[open] {
-  animation: none;
 }

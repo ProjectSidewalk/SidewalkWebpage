@@ -189,11 +189,12 @@ class SeoProdSpec extends PlaySpec with GuiceOneAppPerSuite with SeoSpecHelpers 
   }
 
   "The mobile Validate page" should {
-    "not get the viewport meta tag its fixed-size CSS predates" in {
-      // mobile-validate.css is tuned for the ~980px fallback viewport phones use when no viewport meta is present.
+    "lay out at the device's own width" in {
       val (sc, body) = getMobilePage("/mobile")
       sc mustBe OK
-      body must not include "name=\"viewport\""
+      body must include("content=\"width=device-width, initial-scale=1\"")
+      // The viewport meta must appear before </head> so browsers apply it during initial layout.
+      body.indexOf("name=\"viewport\"") must be < body.indexOf("</head>")
     }
   }
 

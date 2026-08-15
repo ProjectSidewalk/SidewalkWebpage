@@ -97,7 +97,7 @@ class PanoManager {
     this.#watchViewerPov(this.#primaryViewer);
 
     if (util.isMobile()) {
-      this.#sizePano();
+      this.sizePano();
       svv.panoViewer.resize(); // Necessary for PannellumViewer for correct vertical position of the label.
     }
 
@@ -495,15 +495,20 @@ class PanoManager {
   }
 
   /**
-   * Sets the size of the panorama and panorama holder depending on the size of the mobile phone.
-   * @private
+   * Fills the screen below the tool's header with the panorama. Mobile only; desktop sizes the pano from CSS.
+   *
+   * Measured from documentElement rather than window.innerWidth/innerHeight, which on iOS track the *visual*
+   * viewport: called after a pinch, those report the zoomed-into region and would size the pano to it.
+   *
+   * The header's height is read off the holder's own top edge, so this follows whatever mobile-validate.css puts
+   * above it rather than repeating the number.
    */
-  #sizePano() {
+  sizePano() {
     const panoHolderElem = document.getElementById('svv-panorama-holder');
     const controlLayerElem = document.getElementById('view-control-layer');
     const heightOffset = panoHolderElem.getBoundingClientRect().top;
-    const h = window.innerHeight - heightOffset;
-    const w = window.innerWidth;
+    const h = document.documentElement.clientHeight - heightOffset;
+    const w = document.documentElement.clientWidth;
     const left = 0;
     this.#panoCanvas.style.height = `${h}px`;
     this.#pannellumCanvas.style.height = `${h}px`;

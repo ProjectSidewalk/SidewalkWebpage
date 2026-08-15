@@ -143,15 +143,14 @@ class Main {
   async #init() {
     const param = this.#param;
 
-    // On desktop the pano's display size is scaled to fit the viewport, so measure it live; label projection
-    // math and the canvas_width/height submitted with each validation always reflect the on-screen size.
-    svv.canvasWidth = () => (util.isMobile()
-      ? window.innerWidth
-      : Math.round(svv.ui.viewer.controlLayer[0].getBoundingClientRect().width));
-    svv.canvasHeight = () => (util.isMobile()
-      ? window.innerHeight
-      : Math.round(svv.ui.viewer.controlLayer[0].getBoundingClientRect().height));
-    svv.labelRadius = util.isMobile() ? 25 : 10;
+    // Measured live off the layer the imagery is actually drawn in, on both platforms: desktop scales the pano to
+    // fit the viewport and mobile sizes it to the screen below the header, and either can change under a resize.
+    // Label projection math and the canvas_width/height submitted with each validation follow the on-screen size.
+    svv.canvasWidth = () => Math.round(svv.ui.viewer.controlLayer[0].getBoundingClientRect().width);
+    svv.canvasHeight = () => Math.round(svv.ui.viewer.controlLayer[0].getBoundingClientRect().height);
+    // A phone activates the marker by pointer — it is what opens the label card — so it is floored at WCAG 2.5.8's
+    // 24px, here 32px across (2 * radius + 2). Bigger than that starts hiding the very imagery being judged.
+    svv.labelRadius = util.isMobile() ? 15 : 10;
 
     const labelType = svv.labelTypes[param.mission.label_type_id];
 
@@ -323,9 +322,8 @@ class Main {
    * mouse is what someone who hasn't found either will already have their hand on.
    *
    * Desktop only, for that same reason: the gestures it names are a mouse's, where touch pans with a drag and zooms
-   * with a pinch. Size rules it out too — the toast mounts on <body>, outside .tool-ui, so its --ui-scale can only
-   * come from the document root, which util.applyToolScale writes and mobile never runs. It would arrive at desktop
-   * size on a page the browser then shrinks to the screen.
+   * with a pinch. A phone also has nowhere to put it — the toast would cover a strip of the very pano the validator
+   * is being asked to judge, on a screen where that pano is the whole page.
    *
    * Held until the mission-start tutorial's overlay clears, since anything shown before that lands underneath it.
    * A mission that doesn't open with one gets the hint immediately.
