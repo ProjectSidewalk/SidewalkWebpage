@@ -216,33 +216,33 @@
    weight by family name; prefer the weight on this family in anything new. */
 @font-face {
   font-family: raleway;
-  src: url("../fonts/Raleway/Raleway-Regular.ttf");
+  src: url("../fonts/Raleway/Raleway-Regular.woff2") format("woff2");
   font-weight: 400;
   font-style: normal;
 }
 
 @font-face {
   font-family: raleway;
-  src: url("../fonts/Raleway/Raleway-Bold.ttf");
+  src: url("../fonts/Raleway/Raleway-Bold.woff2") format("woff2");
   font-weight: 700;
   font-style: normal;
 }
 
 @font-face {
   font-family: raleway;
-  src: url("../fonts/Raleway/Raleway-ExtraBold.ttf");
+  src: url("../fonts/Raleway/Raleway-ExtraBold.woff2") format("woff2");
   font-weight: 800;
   font-style: normal;
 }
 
 @font-face {
   font-family: raleway-bold;
-  src: url("../fonts/Raleway/Raleway-Bold.ttf");
+  src: url("../fonts/Raleway/Raleway-Bold.woff2") format("woff2");
 }
 
 @font-face {
   font-family: raleway-extrabold;
-  src: url("../fonts/Raleway/Raleway-ExtraBold.ttf");
+  src: url("../fonts/Raleway/Raleway-ExtraBold.woff2") format("woff2");
 }
 
 
