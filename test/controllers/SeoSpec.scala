@@ -8,19 +8,19 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.mvc.Cookie
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
+import util.AnonSession
 
 /**
  * Shared helpers for the SEO surface specs below (issue #4237): an anon session (some pages, e.g. /mobile, are still
  * SecuredActions that bounce cookie-less requests through /anonSignUp) and a page fetch that follows that flow. The
  * public pages themselves render cookie-less since #4643 — SessionlessPagesSpec pins that contract.
  */
-trait SeoSpecHelpers { this: PlaySpec with GuiceOneAppPerSuite =>
+trait SeoSpecHelpers extends AnonSession { this: PlaySpec with GuiceOneAppPerSuite =>
 
   implicit lazy val mat: Materializer = app.materializer
 
   /** Cookies from the anonymous-signup flow, giving subsequent requests an authenticated session. */
-  private lazy val anonCookies: Seq[Cookie] =
-    cookies(route(app, FakeRequest(GET, "/anonSignUp?url=%2F")).get).toSeq
+  private lazy val anonCookies: Seq[Cookie] = freshAnonSession()
 
   /** Fetches a page as an anonymous-but-authenticated user and returns (status, body). */
   def getPage(path: String): (Int, String) = {
@@ -34,7 +34,7 @@ trait SeoSpecHelpers { this: PlaySpec with GuiceOneAppPerSuite =>
    */
   def getMobilePage(path: String): (Int, String) = {
     val mobileUa      = "User-Agent" -> "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)"
-    val mobileCookies = cookies(route(app, FakeRequest(GET, "/anonSignUp?url=%2F").withHeaders(mobileUa)).get).toSeq
+    val mobileCookies = freshAnonSession(mobileUa)
     val resp          = route(app, FakeRequest(GET, path).withCookies(mobileCookies: _*).withHeaders(mobileUa)).get
     (status(resp), contentAsString(resp))
   }

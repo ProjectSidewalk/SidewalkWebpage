@@ -1,14 +1,12 @@
 package service
 
 import models.label.{LabelTable, LabelTypeEnum}
-import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
-import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
-import slick.dbio.DBIO
+import util.RolledBackDb
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -20,20 +18,15 @@ import scala.concurrent.duration._
  * Read-only: requires a Postgres+PostGIS database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI).
  * Scheduling actors are disabled so background actors can't do work during the run.
  */
-class LabelServiceSpec extends PlaySpec with GuiceOneAppPerSuite {
+class LabelServiceSpec extends PlaySpec with RolledBackDb with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
-  private val labelService  = app.injector.instanceOf[LabelService]
-  private val labelTable    = app.injector.instanceOf[LabelTable]
-  private val configService = app.injector.instanceOf[ConfigService]
-  // Keep the DatabaseConfig as a stable val and call .db.run inline; binding .db to its own val would infer a
-  // path-dependent existential type that needs -language:existentials.
-  private val dbConfig = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
-
+  private val labelService                               = app.injector.instanceOf[LabelService]
+  private val labelTable                                 = app.injector.instanceOf[LabelTable]
+  private val configService                              = app.injector.instanceOf[ConfigService]
   private def await[T](f: scala.concurrent.Future[T]): T = Await.result(f, 60.seconds)
-  private def run[T](action: DBIO[T]): T                 = Await.result(dbConfig.db.run(action), 60.seconds)
 
   "LabelService.selectTagsByLabelType" should {
     "return exactly the tags belonging to the requested label type" in {
