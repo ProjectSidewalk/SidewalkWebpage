@@ -146,8 +146,9 @@
   --font-primary: "Mulish", "PingFang TC", "Microsoft JhengHei", sans-serif;
   --font-accent:  "Raleway", sans-serif;
 
-  /* Monospace, for content whose alignment carries meaning: code, BibTeX, fixed-width identifiers. JetBrains Mono is
-       only webfont-loaded on the API docs pages, so everywhere else this resolves to the platform's own mono face. */
+  /* Monospace, for content whose alignment carries meaning: code, BibTeX, fixed-width identifiers. JetBrains Mono
+       is self-hosted in css/fonts.css, which every page links, so this resolves to it site-wide; the platform faces
+       behind it cover the scripts its Latin subsets don't. */
   --font-mono:    "JetBrains Mono", sfmono-regular, consolas, "Liberation Mono", menlo, monospace;
 
   /* Typography scale: mirrors the Figma Design System Tokens file.

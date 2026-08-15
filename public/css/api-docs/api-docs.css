@@ -5,8 +5,7 @@
  * and common components used throughout the Project Sidewalk API documentation.
  */
 
-/* Import Google Fonts: Inter for body, JetBrains Mono for code */
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
+/* Inter and JetBrains Mono are declared in css/fonts.css, which every page links (common/main.scala.html). */
 
 /* ==========================================================================
    CSS VARIABLES - Single source of truth for the entire application
