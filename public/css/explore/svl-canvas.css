@@ -4,8 +4,9 @@
   width: var(--pano-width);
 }
 
-/* The pano viewer, label canvas, and interaction layers fill the (display-sized) street view. The canvas
-   elements keep their fixed 720x480 bitmap resolution and are scaled up to this size by the browser. */
+/* The pano viewer, label canvas, and interaction layers fill the (display-sized) street view. The label and
+   onboarding canvases are re-rastered to this display size times devicePixelRatio (util.sizeCanvasToDisplay),
+   with drawing kept in the fixed 720x480 logical frame via a context transform. */
 .window-streetview {
   position: absolute;
   left: 0;

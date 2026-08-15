@@ -39,8 +39,7 @@ trait MissionService {
       missionId: Int,
       missionType: MissionType.Value,
       labelsProgress: Int,
-      labelTypeId: Option[Int],
-      skipped: Boolean
+      labelTypeId: Option[Int]
   ): Future[Option[Mission]]
   def updateValidationProgressOnly(
       userId: String,
@@ -314,7 +313,7 @@ class MissionServiceImpl @Inject() (
       labelTypeId: Int
   ): Future[Option[Mission]] = {
     val actions: Seq[String] = Seq("getValidationMission")
-    queryMissionTableValidationMissions(actions, userId, None, Some(missionType), None, Some(labelTypeId), None)
+    queryMissionTableValidationMissions(actions, userId, None, Some(missionType), None, Some(labelTypeId))
   }
 
   /**
@@ -324,19 +323,17 @@ class MissionServiceImpl @Inject() (
    * @param missionType      Type of validation mission {validation, labelmapValidation}
    * @param labelsProgress   Number of labels the user validated
    * @param labelTypeId      ID of the label type that was validated during this mission.
-   * @param skipped          Whether this mission was skipped (default: false)
    */
   def updateCompleteAndGetNextValidationMission(
       userId: String,
       missionId: Int,
       missionType: MissionType.Value,
       labelsProgress: Int,
-      labelTypeId: Option[Int],
-      skipped: Boolean
+      labelTypeId: Option[Int]
   ): Future[Option[Mission]] = {
     val actions: Seq[String] = Seq("updateProgress", "updateComplete", "getValidationMission")
     queryMissionTableValidationMissions(
-      actions, userId, Some(missionId), Some(missionType), Some(labelsProgress), labelTypeId, Some(skipped)
+      actions, userId, Some(missionId), Some(missionType), Some(labelsProgress), labelTypeId
     )
   }
 
@@ -358,7 +355,7 @@ class MissionServiceImpl @Inject() (
         Seq("updateProgress", "updateComplete")
       else
         Seq("updateProgress")
-    queryMissionTableValidationMissions(actions, userId, Some(missionId), None, Some(labelsProgress), None, None)
+    queryMissionTableValidationMissions(actions, userId, Some(missionId), None, Some(labelsProgress), None)
   }
 
   /**
@@ -369,7 +366,6 @@ class MissionServiceImpl @Inject() (
    * @param missionType        Type of validation mission {validation, labelmapValidation}
    * @param labelsProgress     Numbers of labels that have been validated {1: cr, 2: mcr, 3: obs in path, 4: sfcp, 7: no sdwlk}
    * @param labelTypeId        Label Type ID to be validated for the next mission
-   * @param skipped            Indicates whether this mission has been skipped (not fully implemented)
    */
   private def queryMissionTableValidationMissions(
       actions: Seq[String],
@@ -377,8 +373,7 @@ class MissionServiceImpl @Inject() (
       missionId: Option[Int],
       missionType: Option[MissionType.Value],
       labelsProgress: Option[Int],
-      labelTypeId: Option[Int],
-      skipped: Option[Boolean]
+      labelTypeId: Option[Int]
   ): Future[Option[Mission]] = {
 
     val updateProgressAction =
@@ -393,17 +388,10 @@ class MissionServiceImpl @Inject() (
         DBIO.successful(0)
       }
 
+    // No skipped branch, unlike the Explore path: only Explore's onboarding can skip a mission.
     val updateCompleteAction =
-      if (actions.contains("updateComplete")) {
-        val completeAction = missionTable.updateComplete(missionId.get)
-        if (skipped.getOrElse(false)) {
-          completeAction.flatMap(_ => missionTable.updateSkipped(missionId.get))
-        } else {
-          completeAction
-        }
-      } else {
-        DBIO.successful(0)
-      }
+      if (actions.contains("updateComplete")) missionTable.updateComplete(missionId.get)
+      else DBIO.successful(0)
 
     // Create or retrieve a mission with the passed in label type id.
     val getMissionValidationAction =
@@ -447,14 +435,12 @@ class MissionServiceImpl @Inject() (
       nextMissionLabelTypeId: Option[Int]
   ): Future[Option[Mission]] = {
     val missionId: Int      = missionProgress.missionId
-    val skipped: Boolean    = missionProgress.skipped
     val userId: String      = user.userId
     val labelsProgress: Int = missionProgress.labelsProgress
 
     if (missionProgress.completed) {
       updateCompleteAndGetNextValidationMission(
-        userId, missionId, MissionType.withName(missionProgress.missionType), labelsProgress, nextMissionLabelTypeId,
-        skipped
+        userId, missionId, MissionType.withName(missionProgress.missionType), labelsProgress, nextMissionLabelTypeId
       )
     } else {
       updateValidationProgressOnly(userId, missionId, labelsProgress, missionProgress.labelsTotal)

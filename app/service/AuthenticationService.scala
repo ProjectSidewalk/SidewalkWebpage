@@ -3,7 +3,6 @@ package service
 import com.google.inject.ImplementedBy
 import models.user._
 import models.utils.MyPostgresProfile
-import play.api.Configuration
 import play.api.cache.AsyncCacheApi
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.silhouette.api.LoginInfo
@@ -54,7 +53,6 @@ trait AuthenticationService extends IdentityService[SidewalkUserWithRole] {
 class AuthenticationServiceImpl @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     implicit val ec: ExecutionContext,
-    config: Configuration,
     passwordHasher: PasswordHasher,
     cacheApi: AsyncCacheApi,
     sidewalkUserTable: SidewalkUserTable,
@@ -63,27 +61,13 @@ class AuthenticationServiceImpl @Inject() (
     userPasswordInfoTable: UserPasswordInfoTable,
     userRoleTable: UserRoleTable,
     userStatTable: UserStatTable,
-    authTokenTable: AuthTokenTable
+    authTokenTable: AuthTokenTable,
+    configService: ConfigService
 ) extends AuthenticationService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
   import profile.api._
 
   def sha256Hasher: MessageDigest = MessageDigest.getInstance("SHA-256")
-
-  /**
-   * The initial values for a new user's two privacy flags in this deployment.
-   *
-   * Public cities start users ON (visible); school/minor deployments that set city-params.private-profiles-by-default
-   * start them OFF so usernames aren't public without an explicit opt-in (#4323). Both flags share the one default.
-   *
-   * @return (onLeaderboard, publicProfile) for a newly created user_stat row.
-   */
-  private def defaultPrivacyFlags: (Boolean, Boolean) = {
-    val path = s"city-params.private-profiles-by-default.${config.get[String]("city-id")}"
-    // hasPath is false for a missing key OR a missing parent block, so this never throws (public by default).
-    val isPublic = !(config.underlying.hasPath(path) && config.get[Boolean](path))
-    (isPublic, isPublic)
-  }
 
   /**
    * Retrieves a user that matches the specified login info.
@@ -180,9 +164,28 @@ class AuthenticationServiceImpl @Inject() (
       _                 <- userLoginInfoTable.insert(UserLoginInfo(0, user.userId, loginInfoId))
       _ <- userPasswordInfoTable.insert(UserPasswordInfo(0, pwInfo.hasher, pwInfo.password, pwInfo.salt, loginInfoId))
       _ <- userRoleTable.addRole(user.userId, user.role, user.communityService)
-      _ <- { val (onLb, pubProf) = defaultPrivacyFlags; userStatTable.insert(user.userId, onLb, pubProf) }
+      _ <- insertUserStatForNewUser(user.userId)
     } yield user
     db.run(dbActions.transactionally)
+  }
+
+  /**
+   * Seeds the `user_stat` row for a user being created, failing if they somehow already have one.
+   *
+   * Unlike [[addUserStatEntryIfNew]], a conflict here is not a benign race: a userId being created for the first time
+   * cannot already own a row, so one existing means the id isn't new (e.g. a `createUser` that should have taken the
+   * `transferUser` branch). Swallowing it would commit an account wearing a stranger's stats and privacy flags, so
+   * this fails instead and rolls the sign-up transaction back.
+   *
+   * @param userId The user being created.
+   * @return DBIO action returning 1, or a failed action if a row already existed.
+   */
+  private def insertUserStatForNewUser(userId: String): DBIO[Int] = {
+    val (onLeaderboard, publicProfile) = configService.defaultPrivacyFlags
+    userStatTable.insertIfNew(userId, onLeaderboard, publicProfile).flatMap { rowsInserted =>
+      if (rowsInserted == 0) DBIO.failed(new RuntimeException(s"user_stat row already exists for new user $userId"))
+      else DBIO.successful(rowsInserted)
+    }
   }
 
   /**
@@ -248,6 +251,15 @@ class AuthenticationServiceImpl @Inject() (
   /**
    * Adds a user stat entry if it does not already exist. Necessary on first visit to each new city.
    *
+   * `CustomSecurityService` calls this for every request from an identified user, so a cache miss issues a single
+   * conflict-tolerant INSERT rather than a read followed by a conditional insert: the parallel requests of a first
+   * page load would all read "no row" and each insert one, which is how the duplicates #4604 cleaned up were made.
+   *
+   * The tradeoff is that a cache miss is now a write rather than a read — it needs a writable connection (so this
+   * request can't be served by a read replica) and it burns a `user_stat_id` sequence value even when it inserts
+   * nothing, since `nextval` is evaluated before the conflict is detected. Both are bounded by the 1-day cache, so
+   * the rate is roughly one per active user per day per instance rather than one per request.
+   *
    * @param userId The user ID for which to add the stat entry.
    * @return The number of rows added (0 if the entry already exists).
    */
@@ -256,25 +268,11 @@ class AuthenticationServiceImpl @Inject() (
     cacheApi.get[Boolean](cacheKey).flatMap {
       case Some(true) => Future.successful(0) // User stat already exists.
       case _          =>
-        db.run(for {
-          existingEntry: Option[UserStat] <- userStatTable.getStatsFromUserId(userId)
-          rowsAdded: Int                  <- existingEntry match {
-            case Some(_) =>
-              // User stat exists - cache this result and return 0.
-              cacheApi.set(cacheKey, true, 1.day)
-              DBIO.successful(0)
-            case None =>
-              // User stat doesn't exist - insert and then cache.
-              val (onLb, pubProf) = defaultPrivacyFlags
-              userStatTable.insert(userId, onLb, pubProf).map { rows =>
-                if (rows > 0) {
-                  // Successfully inserted - now cache that it exists.
-                  cacheApi.set(cacheKey, true, 1.day)
-                }
-                rows
-              }
-          }
-        } yield rowsAdded)
+        val (onLeaderboard, publicProfile) = configService.defaultPrivacyFlags
+        db.run(userStatTable.insertIfNew(userId, onLeaderboard, publicProfile)).map { rowsAdded =>
+          cacheApi.set(cacheKey, true, 1.day)
+          rowsAdded
+        }
     }
   }
 

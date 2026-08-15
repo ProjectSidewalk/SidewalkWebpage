@@ -14,8 +14,9 @@ import java.time.OffsetDateTime
 /**
  * DB-backed tests pinning the routing/priority contract of audit_task.outdated_imagery (#4384): an audit flagged as
  * outdated stops counting as per-user street completion, so the street (and its region) re-opens for the user, while
- * in the city-wide priority formula the audit keeps half weight -- the street lands at the discounted re-audit tier
- * (1/1.5), below never-audited streets but above freshly-audited ones. The audit row itself is preserved.
+ * in the city-wide priority formula outdated audits collectively keep a capped half weight -- the street lands at the
+ * discounted re-audit tier (1/1.5), below never-audited streets but above freshly-audited ones, no matter how many
+ * outdated audits pile up. The audit rows themselves are preserved.
  *
  * Every mutating case runs inside a deliberately rolled-back transaction (runRolledBack), leaving the connected DB
  * untouched. Requires a Postgres+PostGIS database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI);
@@ -112,34 +113,48 @@ class OutdatedImageryRoutingSpec extends PlaySpec with GuiceOneAppPerSuite with 
       taskAfter.flatMap(_.auditTaskId) mustBe None
     }
 
-    "drop a street whose only audit is outdated to the discounted re-audit priority" in {
-      assume(someStreetRegion.isDefined && goodUserId.isDefined)
+    "drop a street whose only audits are outdated to the capped re-audit priority, however many pile up" in {
+      assume(someStreetRegion.isDefined)
       val streetId = someStreetRegion.get._1
-      val userId   = goodUserId.get
+      // The formula counts one audit per distinct (user, flags) tuple, so exercising the cap needs audits from
+      // *different* good users. Promote three existing users inside the rolled-back transaction rather than hoping
+      // the connected DB happens to hold three high-quality ones.
+      val userIds = run(userStats.filterNot(_.excluded).map(_.userId).take(3).result)
+      assume(userIds.size >= 3)
 
-      val (priorityBefore, priorityAfter) = runRolledBack(
+      val (priorityBefore, priorityAfterOne, priorityAfterThree) = runRolledBack(
         for {
+          _ <- userStats.filter(_.userId.inSet(userIds)).map(_.highQuality).update(true)
           // Neutralize the street's pre-existing audits (rolled back afterward) so the formula's counts are fully
-          // controlled: exactly one completed audit, by a high-quality user.
+          // controlled: exactly the completed audits this test inserts, each by a high-quality user.
           _ <- auditTasks
             .filter(t => t.streetEdgeId === streetId && t.completed)
             .map(_.completed)
             .update(false)
-          taskId <- auditTaskTable.insert(newCompletedTask(streetId, userId))
-          before <- streetEdgePriorityTable.selectGoodBadUserCompletionCountPriority
-          _      <- flagTask(taskId)
-          after  <- streetEdgePriorityTable.selectGoodBadUserCompletionCountPriority
+          taskIds <- DBIO.sequence(userIds.map(userId => auditTaskTable.insert(newCompletedTask(streetId, userId))))
+          before  <- streetEdgePriorityTable.selectGoodBadUserCompletionCountPriority
+          _       <- flagTask(taskIds.head)
+          // Hide the other two audits for the one-outdated-audit reading, then flag them for the pile-up reading.
+          _          <- auditTasks.filter(_.auditTaskId.inSet(taskIds.tail)).map(_.completed).update(false)
+          afterOne   <- streetEdgePriorityTable.selectGoodBadUserCompletionCountPriority
+          _          <- auditTasks.filter(_.auditTaskId.inSet(taskIds.tail)).map(_.completed).update(true)
+          _          <- DBIO.sequence(taskIds.tail.map(flagTask))
+          afterThree <- streetEdgePriorityTable.selectGoodBadUserCompletionCountPriority
         } yield (
           before.find(_.streetEdgeId == streetId).map(_.priorityParameter),
-          after.find(_.streetEdgeId == streetId).map(_.priorityParameter)
+          afterOne.find(_.streetEdgeId == streetId).map(_.priorityParameter),
+          afterThree.find(_.streetEdgeId == streetId).map(_.priorityParameter)
         )
       )
 
-      // One good audit: priority = 1 / (1 + 1). Flagged outdated, the audit keeps half weight (#4384): parameter 0.5
-      // -> priority 1 / 1.5, strictly between the freshly-audited tier (<= 0.5) and never-audited streets (1.0), and
-      // < 1.0 so region_completion keeps crediting the street as explored.
-      priorityBefore mustBe Some(0.5)
-      priorityAfter mustBe Some(1 / 1.5)
+      // Three fresh good audits: priority = 1 / (1 + 3). One outdated-only audit: the capped half weight (#4384)
+      // gives priority 1 / 1.5, strictly between the freshly-audited tier (<= 0.5) and never-audited streets (1.0),
+      // and < 1.0 so region_completion keeps crediting the street as explored. Three outdated audits must land
+      // exactly the same place: per-audit weighting would sink a street needing a re-audit to (or below) the
+      // freshly-audited tier.
+      priorityBefore mustBe Some(0.25)
+      priorityAfterOne mustBe Some(1 / 1.5)
+      priorityAfterThree mustBe Some(1 / 1.5)
     }
 
     "re-open a fully-explored region for the user once one of their audits is flagged" in {

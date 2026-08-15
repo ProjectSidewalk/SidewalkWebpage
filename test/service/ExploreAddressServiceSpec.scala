@@ -194,7 +194,8 @@ class ExploreAddressServiceSpec extends PlaySpec with org.scalatest.BeforeAndAft
       point = LabelPointSubmission(0, 0, 0, 0, 0d, 0d, 1d, None, None, None),
       temporaryLabelId = temporaryLabelId,
       timeCreated = Some(OffsetDateTime.now),
-      tutorial = false
+      tutorial = false,
+      pano = None
     )
 
   "getDataForExploreAddressPage" should {

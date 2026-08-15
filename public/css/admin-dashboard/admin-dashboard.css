@@ -56,6 +56,95 @@
   margin-left: var(--space-xs, 8px);
 }
 
+/* --- Deployment-info strip (shared by overview, across-cities, management, health) ---------------------------- */
+
+/* Slimmer sibling of .ov-pulse: quiet metadata about the running instance, not a KPI. Rendered by adminLayout
+   above every page's h1, so it opens the content column. */
+.deploy-strip {
+  /* The blue ramp stops at 500 (#78B0EA), which is a fill color — too light to set text on. These two are the
+     ramp continued into text-safe territory, so the strip's type stays blue-toned instead of falling back to
+     neutral gray. Both clear WCAG AA (4.5:1) against the gradient's darkest stop, --color-blue-300. */
+  --deploy-strip-text: #3d5a68;
+  --deploy-strip-link: #1c5c9e;
+
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px var(--space-xs, 8px);
+  margin: 0 0 var(--space-md, 16px);
+  padding: var(--space-sm, 12px) var(--space-md, 16px);
+  border: 1px solid var(--color-blue-400);
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--color-blue-100) 0%, var(--color-blue-300) 100%);
+  font: var(--text-small-regular);
+  color: var(--deploy-strip-text);
+}
+
+.deploy-strip > span {
+  white-space: nowrap;
+}
+
+/* The one identifier an admin is usually here to read, so it gets pill treatment: a white chip lifts off the blue
+   gradient and reads as the strip's primary control. */
+.deploy-strip-version {
+  padding: 2px 10px;
+  border: 1px solid var(--color-blue-400);
+  border-radius: 999px;
+  background: var(--color-neutral-white);
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--deploy-strip-link);
+  text-decoration: none;
+}
+
+.deploy-strip-version:hover,
+.deploy-strip-version:focus-visible {
+  background: var(--color-blue-200);
+  text-decoration: underline;
+}
+
+/* Field labels ("released", "commit", ...). <b> rather than <strong>: these draw the eye so the strip can be
+   scanned by field, but they carry no more importance than the values beside them — <strong> would tell a screen
+   reader the opposite. */
+.deploy-strip-label {
+  font-weight: 700;
+  color: var(--deploy-strip-link);
+}
+
+/* Decorative (aria-hidden) dots, so they sit below text contrast and let the fields themselves lead. */
+.deploy-strip-sep {
+  color: var(--color-blue-500);
+}
+
+.deploy-strip-env {
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 1px 7px;
+  border: 1px solid var(--color-neutral-300);
+  border-radius: 10px;
+  background: var(--color-neutral-white);
+  color: var(--color-neutral-700);
+}
+
+/* Prod gets the green "live" tint (same pair as .activity-feed-badge.is-validate); test/local stay neutral. */
+.deploy-strip-env-prod {
+  border-color: #bcdcc7;
+  background: #e9f3ec;
+  color: #1f6b3b;
+}
+
+/* Release notes are a full sentence, so they always take their own row rather than wrapping unpredictably and
+   stranding the field before them. Truncates at one line; title attr carries the full text. */
+.deploy-strip-desc {
+  flex: 1 1 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* --- KPIs ---------------------------------------------------------------------------------------------------- */
 .coverage-kpis {
   display: flex;

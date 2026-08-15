@@ -34,18 +34,17 @@ class StreetImageryTableSpec extends PlaySpec with GuiceOneAppPerSuite {
   private val dbConfig                   = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
   private def run[T](action: DBIO[T]): T = Await.result(dbConfig.db.run(action), 60.seconds)
 
-  private val validSources = Set("pano_data", "imagery_scan", "imagery_poll")
-
   "street_imagery (evolution 326) + StreetImageryTable" should {
     "exist and be countable through the DAO" in {
       run(streetImageryTable.count) must be >= 0
     }
 
     "hold the backfill invariants for every row" in {
+      // data_source needs no assertion here: the street_imagery_source enum mapper (356.sql) rejects unknown values
+      // at read time, so an unrecognized source would already have failed the .result above.
       val rows: Seq[StreetImagery] = run(streetImageryTable.streetImageryRecords.result)
       rows.foreach { row =>
         row.nPanos must be >= 0
-        validSources must contain(row.dataSource)
         // Where both endpoints of the capture-date range are known, oldest must not be after newest.
         (row.oldestCapture, row.newestCapture) match {
           case (Some(oldest), Some(newest)) => oldest.isAfter(newest) mustBe false

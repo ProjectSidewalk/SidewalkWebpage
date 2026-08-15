@@ -6,7 +6,7 @@ import com.github.tminglei.slickpg.geom.PgPostGISExtensions
 import models.label.{AiImageSource, ComputationMethod}
 import models.mission.MissionType
 import models.pano.PanoSource
-import models.street.{StreetEdgeIssueType, StreetEdgeStatus, WayType}
+import models.street.{StreetEdgeIssueType, StreetEdgeStatus, StreetImagerySource, WayType}
 import models.utils.CommonUtils.{UiSource, ViewerType}
 import models.validation.ValidationOption
 import org.locationtech.jts.geom.{Geometry, LineString, MultiPolygon, Point}
@@ -183,6 +183,15 @@ trait MyPostgresProfile
         "street_edge_issue_type",
         _.toString,
         StreetEdgeIssueType.withName,
+        quoteName = false
+      )
+
+    // Mapper for street_imagery_source enum type.
+    implicit val streetImagerySourceMapper: BaseColumnType[StreetImagerySource.Value] =
+      createEnumJdbcType[StreetImagerySource.Value](
+        "street_imagery_source",
+        _.toString,
+        StreetImagerySource.withName,
         quoteName = false
       )
   }

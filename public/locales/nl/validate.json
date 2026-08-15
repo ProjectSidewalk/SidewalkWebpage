@@ -27,7 +27,9 @@
         "no-button-1": "Dit is een wandelpad in een woonwijk.",
         "no-button-2": "Er is hier geen trottoir.",
         "no-button-3": "Dit zou een trottoir oprit-label moeten zijn.",
-        "no-button-3-tooltip": "Soms wordt een trottoir oprit ten onrechte als ontbrekende helling aangemerkt, vaak omdat er een voelbare waarschuwing ontbreekt."
+        "no-button-3-tooltip": "Soms wordt een trottoir oprit ten onrechte als ontbrekende helling aangemerkt, vaak omdat er een voelbare waarschuwing ontbreekt.",
+        "no-button-4": "Het is hier niet veilig om over te steken.",
+        "no-button-4-tooltip": "Voetgangers horen hier niet over te steken, dus is er geen trottoir oprit te verwachten."
       },
       "obstacle": {
         "no-button-1": "Dit is geen voetpad.",
@@ -92,6 +94,11 @@
   "center-ui": {
     "no-info": "Geen informatie beschikbaar",
     "pano-interactive-message": "Sleep om rond te kijken, scroll om in te zoomen."
+  },
+  "imagery-unavailable": {
+    "title": "Beelden konden niet worden geladen",
+    "body": "We konden de straatbeelden voor de labels in deze missie niet laden, dus er is nu niets om te tonen. Je afgeronde validaties zijn opgeslagen. Dit lost zichzelf meestal op — probeer het opnieuw.",
+    "retry": "Opnieuw proberen"
   },
   "mission-start": {
     "title": "Valideer {{n}} {{label_type}} labels",

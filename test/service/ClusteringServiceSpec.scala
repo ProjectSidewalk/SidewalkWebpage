@@ -26,6 +26,10 @@ import scala.concurrent.duration._
  *      empty submission clears the region; other regions are untouched.
  *   2. getRegionsToCluster no longer deletes anything -> querying the to-cluster list leaves existing clusters intact.
  *
+ * Also covers the forced full rebuild that the #4818 position backfill needs: because the default selection compares
+ * label *membership*, a region whose labels merely moved is invisible to it, so allRegions = true must reach a region
+ * that is already consistent -- while still never dropping one the default selection would have picked.
+ *
  * Not covered here: the literal "a concurrent reader never observes the region empty mid-swap" guarantee. That follows
  * from Postgres MVCC plus the single-transaction delete+insert and is not deterministically reproducible in a unit test
  * (it would require racing a reader against the in-flight transaction); these tests instead pin the committed-state
@@ -181,11 +185,46 @@ class ClusteringServiceSpec extends PlaySpec with GuiceOneAppPerSuite {
             val totalBefore       = run(clusters.length.result)
             regionCountBefore mustBe 1
 
-            await(apiService.getRegionsToCluster)
+            await(apiService.getRegionsToCluster(allRegions = false))
 
             clusterCountForRegion(regionId) mustBe regionCountBefore
             run(clusters.length.result) mustBe totalBefore
           }
+      }
+    }
+  }
+
+  "ApiService.getRegionsToCluster(allRegions = true) (#4818)" should {
+    "return a region whose clusters are already up to date, which the default selection skips" in {
+      candidateRegion match {
+        case None => cancel("No region in the connected DB has clusterable labels; nothing to exercise.")
+        case Some((regionId, labels)) =>
+          withRegionRestored(regionId) {
+            // Make the region's clusters exactly consistent with its clusterable labels, which is what the default
+            // selection tests for. One cluster holding every label is enough: the mismatch query compares label ids,
+            // and it is the state a region is in whenever nothing has been labeled since the last clustering run.
+            val clusterSubs = Seq(ClusterSubmission(labels.head.labelType, 1, labels.head.lat, labels.head.lng, None))
+            val labelSubs   = labels.map(l => ClusteredLabelSubmission(l.labelId, l.labelType, 1))
+            await(apiService.submitClusteringResults(regionId, clusterSubs, labelSubs, Seq.empty))
+
+            // Moving those labels would not change this: membership is what the default selection reads, so a
+            // position backfill leaves the region invisible to it. Forcing the rebuild is the only way to reach it.
+            await(apiService.getRegionsToCluster(allRegions = false)) must not contain regionId
+            await(apiService.getRegionsToCluster(allRegions = true)) must contain(regionId)
+          }
+      }
+    }
+
+    "be a superset of the default selection, so forcing a rebuild can never skip pending work" in {
+      candidateRegion match {
+        case None                => cancel("No region in the connected DB has clusterable labels; nothing to exercise.")
+        case Some((regionId, _)) =>
+          val toCluster    = await(apiService.getRegionsToCluster(allRegions = false))
+          val allToCluster = await(apiService.getRegionsToCluster(allRegions = true))
+
+          allToCluster must contain(regionId) // Not vacuous: this region has clusterable labels.
+          allToCluster.distinct.length mustBe allToCluster.length
+          toCluster.toSet.subsetOf(allToCluster.toSet) mustBe true
       }
     }
   }

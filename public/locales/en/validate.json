@@ -27,7 +27,9 @@
         "no-button-1": "This is a residential walkway",
         "no-button-2": "There is no sidewalk here",
         "no-button-3": "This should be a Curb Ramp label",
-        "no-button-3-tooltip": "Sometimes a curb ramp is mislabeled as a missing ramp, often because it's missing a tactile warning"
+        "no-button-3-tooltip": "Sometimes a curb ramp is mislabeled as a missing ramp, often because it's missing a tactile warning",
+        "no-button-4": "It is not safe to cross here",
+        "no-button-4-tooltip": "Pedestrians are not meant to cross at this spot, so no curb ramp is expected"
       },
       "obstacle": {
         "no-button-1": "This is not on a pedestrian path",
@@ -92,6 +94,11 @@
   "center-ui": {
     "no-info": "No available information",
     "pano-interactive-message": "Drag to look around, scroll to zoom in."
+  },
+  "imagery-unavailable": {
+    "title": "Imagery couldn't be loaded",
+    "body": "We couldn't load the street imagery for the labels in this mission, so there's nothing to show you right now. Your finished validations are saved. This usually clears up on its own — please try again.",
+    "retry": "Try Again"
   },
   "mission-start": {
     "title": "Validate {{n}} {{label_type}} labels",

@@ -92,6 +92,23 @@ class ObservedArea {
   }
 
   /**
+   * Forgets everything observed at the current pano, so the fog and progress ring restart from the current POV.
+   *
+   * A programmatic POV jump (e.g. the tutorial's opening heading) is otherwise credited as user panning: the sweep
+   * from the pano's default heading to the target pre-reveals fog and starts the examined ring at ~57%.
+   */
+  resetCurrentPano() {
+    this.#angle = null;
+    this.#leftAngle = null;
+    this.#rightAngle = null;
+    if (this.#currArea) {
+      this.#currArea.minAngle = null;
+      this.#currArea.maxAngle = null;
+    }
+    this.update();
+  }
+
+  /**
    * Converts degrees to radians.
    * @param {number} degrees
    * @returns {number}

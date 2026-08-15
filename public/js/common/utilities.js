@@ -20,6 +20,136 @@ util.exploreDisplayScale = function () {
   return layer ? layer.getBoundingClientRect().width / util.EXPLORE_CANVAS_WIDTH : 1;
 };
 
+// Radius of a placed label's icon at --ui-scale = 1, in the 720x480 logical frame. Every piece of icon geometry in
+// Label.js — the drawn size, the two outline rings, the unrated-severity badge — is authored against this value and
+// scales off it, so a capped radius keeps the mark's proportions.
+util.LABEL_ICON_BASE_RADIUS = 17;
+
+// Largest a pano label marker may get on screen, in CSS px, in either tool. The number is Label.CURSOR_ICON_SIZE,
+// the labeling cursor the user aims with in Explore: that cursor is a fixed-size bitmap and does not scale, so
+// letting the placed icon outgrow it means aiming with one size and placing another. Validate has no cursor to
+// match, but a marker that keeps growing hides more of the very feature being judged, and sharing the ceiling is
+// what keeps the two tools' markers the same size at the top of the scale range.
+util.LABEL_ICON_MAX_SCREEN_DIAMETER = 38;
+
+// Smallest a label's pointer target may get on screen, in CSS px. WCAG 2.5.8 Target Size (Minimum), level AA.
+// Validate's marker floors itself in CSS instead (--label-min-target in css/validate/svv-panorama.css), because
+// only the target grows there and not the mark; keep the two numbers in step.
+util.LABEL_MIN_SCREEN_TARGET = 24;
+
+/**
+ * On-screen diameter of a pano label marker, in CSS px, capped at util.LABEL_ICON_MAX_SCREEN_DIAMETER (#4838).
+ *
+ * For markers that are DOM elements sized directly in screen px — Validate's PanoMarker. Explore's marker is drawn
+ * into a scaled logical frame instead and caps itself through util.labelIconRadius; both land on the same ceiling.
+ *
+ * @param {number} baseDiameter - The marker's diameter at --ui-scale = 1, in CSS px.
+ * @param {number} scale - The tool's UI scale.
+ * @returns {number} Diameter in CSS px.
+ */
+util.cappedMarkerDiameter = function (baseDiameter, scale) {
+  // The cap limits growth driven by --ui-scale; it never shrinks a marker below the size its tool chose. That is
+  // what keeps mobile Validate out of it — a phone's marker is a 52px touch target and never runs applyToolScale,
+  // so capping it to 38 would shrink a touch target to answer a desktop problem.
+  return Math.min(baseDiameter * scale, Math.max(baseDiameter, util.LABEL_ICON_MAX_SCREEN_DIAMETER));
+};
+
+/**
+ * Half-extent of the icon actually drawn for a label of the given radius, in the same logical frame.
+ *
+ * Label.renderLabelIcon draws the icon at 2 * radius - 3, inset from the radius, so the mark the user sees is
+ * smaller than its nominal radius and is not proportional to it. Everything sized against the icon — the click
+ * target, the outline rings, the unrated-severity badge — measures from here rather than from the radius.
+ *
+ * @param {number} radius - Icon radius in logical px.
+ * @returns {number} Half the drawn icon's width, in logical px.
+ */
+util.labelIconHalfExtent = function (radius) {
+  return radius - 1.5;
+};
+
+/**
+ * Scale factor for icon geometry authored against util.LABEL_ICON_BASE_RADIUS, so that a decoration keeps its exact
+ * relationship to the icon's edge however the icon is sized (#4838). 1 at the base radius, smaller once capped.
+ *
+ * @param {number} radius - Icon radius in logical px.
+ * @returns {number} Multiplier for offsets, sizes, and stroke widths authored at the base radius.
+ */
+util.labelIconScale = function (radius) {
+  return util.labelIconHalfExtent(radius) / util.labelIconHalfExtent(util.LABEL_ICON_BASE_RADIUS);
+};
+
+/**
+ * Radius of a placed label's icon, in Explore's fixed 720x480 logical frame (#4838).
+ *
+ * The logical frame is displayed at var(--ui-scale) (0.65x-1.8x, see util.applyToolScale), so a constant radius
+ * grows with the tool — 20 to 56 on-screen px across that range. The *drawn* size is therefore capped in screen px
+ * instead: below ~1.23x scale this returns the unchanged base radius, and above it the icon holds still while the
+ * rest of the tool keeps growing.
+ *
+ * Callers should re-read this whenever --ui-scale changes; Explore caches it in svl.LABEL_ICON_RADIUS, which its
+ * scale-applying path refreshes.
+ *
+ * @param {number} [scale] - The tool's UI scale. Read from the page when omitted.
+ * @returns {number} Radius in logical px.
+ */
+util.labelIconRadius = function (scale) {
+  const uiScale = scale ?? util.uiScale();
+  // Cap the drawn diameter, not the radius: the icon is drawn inset from its radius (see labelIconHalfExtent), and
+  // it is the drawn size the on-screen limit is about.
+  const baseDiameter = 2 * util.labelIconHalfExtent(util.LABEL_ICON_BASE_RADIUS);
+  const diameter = Math.min(baseDiameter, util.LABEL_ICON_MAX_SCREEN_DIAMETER / uiScale);
+  return diameter / 2 + 1.5;
+};
+
+/**
+ * Half-width of a placed label's square click target, in Explore's fixed 720x480 logical frame (#4838).
+ *
+ * Deliberately not derived from the icon radius the way Label.isOn used to derive it (radius / 2 + 2): that made
+ * the target *smaller* than the icon it belongs to — 21 logical px under a 31 px icon — and capping the radius
+ * above would have shrunk it further. The target is the visible icon instead, floored so it stays usable once the
+ * tool scales down.
+ *
+ * The target is a square and the icon is round, so its corners do reach a little past the icon; that slack is what
+ * lets a near miss on a lone icon still land. Where it makes two neighbouring targets overlap, Canvas.onLabel
+ * resolves the tie in favour of the icon drawn on top.
+ *
+ * @param {number} [scale] - The tool's UI scale. Read from the page when omitted.
+ * @returns {number} Half-width in logical px.
+ */
+util.labelHitMargin = function (scale) {
+  const uiScale = scale ?? util.uiScale();
+  // Half the drawn icon, so every point of the icon is inside the target.
+  const halfIcon = util.labelIconHalfExtent(util.labelIconRadius(uiScale));
+  return Math.max(halfIcon, util.LABEL_MIN_SCREEN_TARGET / 2 / uiScale);
+};
+
+/**
+ * Sizes an Explore-tool canvas bitmap to its on-screen size times the device pixel ratio, and scales the 2D
+ * context so all drawing done in the fixed 720x480 logical frame renders at full resolution.
+ *
+ * Shared by the label canvas and the onboarding canvas so the two can't drift: both draw in the logical frame and
+ * are displayed at pano size, and a canvas left at its authored 720x480 bitmap gets CSS-stretched into visible
+ * pixelation on HiDPI displays (#4817).
+ *
+ * @param {HTMLCanvasElement} el - The canvas element to size.
+ * @param {CanvasRenderingContext2D} ctx - That canvas's 2D context.
+ */
+util.sizeCanvasToDisplay = function (el, ctx) {
+  const rect = el.getBoundingClientRect();
+  const displayWidth = rect.width || util.EXPLORE_CANVAS_WIDTH;
+  const dpr = window.devicePixelRatio || 1;
+  el.width = Math.round(displayWidth * dpr);
+  el.height = Math.round(displayWidth / util.EXPLORE_CANVAS_ASPECT_RATIO * dpr);
+  // Map the 720x480 logical frame onto the full-resolution bitmap. Setting el.width/height above resets the
+  // context, so this transform must be (re)applied here.
+  const scale = el.width / util.EXPLORE_CANVAS_WIDTH;
+  ctx.setTransform(scale, 0, 0, scale, 0, 0);
+  // Label icons are drawn from a raster sized for the densest display we support (see Label.preloadIcons), so on
+  // anything less dense they arrive downscaled; the default 'low' filter frays their outer circle.
+  ctx.imageSmoothingQuality = 'high';
+};
+
 /**
  * Positions a panel beside a label's icon in a pano and points its tail at that icon.
  *
@@ -149,17 +279,23 @@ util.uiScale = function () {
   return parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ui-scale')) || 1;
 };
 
-// Browser detection helpers backed by Bowser 2.x.
-const _bowserParser = bowser.getParser(window.navigator.userAgent);
-util.getBrowserName = () => _bowserParser.getBrowserName();
+// Browser detection helpers backed by Bowser 2.x. The vendor script loads deferred (this file does not), so the
+// parser must be built lazily: every caller runs at DOMContentLoaded or later, by which point bowser exists.
+let _bowserParser;
+const bowserParser = () => (_bowserParser ??= bowser.getParser(window.navigator.userAgent));
+util.getBrowserName = () => bowserParser().getBrowserName();
 util.getBrowser = () => util.getBrowserName();
-util.getBrowserVersion = () => _bowserParser.getBrowserVersion();
-util.getOperatingSystem = () => _bowserParser.getOSName();
+util.getBrowserVersion = () => bowserParser().getBrowserVersion();
+util.getOperatingSystem = () => bowserParser().getOSName();
 util.isSafari = () => util.getBrowserName() === 'Safari';
 util.isChrome = () => util.getBrowserName() === 'Chrome';
 util.isFirefox = () => util.getBrowserName() === 'Firefox';
-// Tablets count as mobile: they get the touch-oriented mobile UI (and the /mobile redirect) same as phones.
-util.isMobile = () => ['mobile', 'tablet'].includes(_bowserParser.getPlatformType());
+
+// Whether the server judged this device mobile (ControllerUtils.isMobile — the single mobile definition; tablets
+// count as mobile) and so served it the mobile UI. main.scala.html stamps the verdict on <html>; reading it back,
+// rather than re-sniffing the UA client-side, means client and server can't disagree about which variant this page
+// is (#4887). For touch-vs-hover behavior questions, prefer a capability query (`pointer: coarse`) over this flag.
+util.isMobile = () => document.documentElement.dataset.mobileDevice === 'true';
 
 // A cross-browser function to capture a mouse position, relative to the given DOM element. The UI is scaled through
 // real layout sizes (var(--ui-scale)), so offset() already reflects the scaled position and no compensation is needed.
@@ -296,6 +432,109 @@ function hasSession() {
 }
 
 util.hasSession = hasSession;
+
+/**
+ * Runs fn once the page has finished loading and the main thread next goes idle.
+ *
+ * The "deferred but eager" pattern for below-the-fold work (#4486). Keeping something off the critical path and
+ * deciding when it starts loading are separate choices: gating on an IntersectionObserver or a click answers both at
+ * once, which is right for work a visitor probably won't reach, but leaves them watching a blank space for anything
+ * they usually do reach. Waiting for `load` keeps the work out of the critical path; running it at idle rather than
+ * on an interaction means it has long since finished by the time the visitor arrives.
+ *
+ * When the work also costs the server something, prefer util.onFirstInteractionOrIdle, which adds an engagement gate
+ * on top of this.
+ *
+ * @param {Function} fn - The work to run. Called once.
+ */
+function afterLoadIdle(fn) {
+  const schedule = () => {
+    // Past the deadline the browser runs the callback anyway (as a normal task, with didTimeout set), so a busy main
+    // thread can delay the work but never starve it. requestIdleCallback is unavailable before Safari 17.4, where a
+    // short timeout approximates it well enough.
+    if (window.requestIdleCallback) window.requestIdleCallback(fn, { timeout: 2000 });
+    else setTimeout(fn, 200);
+  };
+  if (document.readyState === 'complete') schedule();
+  else window.addEventListener('load', schedule, { once: true });
+}
+
+util.afterLoadIdle = afterLoadIdle;
+
+// Any of these means a human is present. pointermove is the earliest of them by a wide margin — a single mouse
+// twitch — which is the point: the gate has to clear long before the visitor could scroll to the deferred content.
+const INTERACTION_EVENTS = ['pointermove', 'pointerdown', 'scroll', 'keydown', 'touchstart', 'wheel'];
+
+// Latched at module level, not per caller: an interaction that happened before a caller registered still counts. The
+// callers here register at very different times (parse time vs. inside an appManager.ready callback, i.e. after
+// i18next's fetches resolve), and a single early mouse twitch has to satisfy all of them.
+const firstInteraction = new Promise((resolve) => {
+  for (const type of INTERACTION_EVENTS) window.addEventListener(type, () => resolve(), { once: true, passive: true });
+});
+
+/**
+ * Runs fn at the visitor's first sign of engagement, falling back to a delay after load-idle if none comes.
+ *
+ * For deferred work that costs the *server* — a query, an API call — where util.afterLoadIdle alone would spend that
+ * cost on every crawler, link-preview prefetch, and drive-by load. An input event is a cheap, near-perfect filter for
+ * those, and it still clears far sooner than a human could reach anything below the fold.
+ *
+ * An interaction only cancels the wait for the fallback; it never jumps the load queue. The work always goes through
+ * afterLoadIdle, because a mouse twitch at 400ms is the common case, not the rare one, and starting a 600KB download
+ * then would put this back on the critical path — the opposite of the point.
+ *
+ * The fallback is deliberately slow, and its delay is nearly invisible in practice: deferred content sits below the
+ * fold, so actually looking at it requires a scroll, which trips the interaction path first. It exists only so a
+ * visitor who somehow generates no input events still ends up with a working page.
+ *
+ * @param {Function} fn - The work to run. Called once, whichever path gets there first.
+ * @param {number} [fallbackMs=5000] - How long after load-idle to give up waiting for an interaction.
+ */
+function onFirstInteractionOrIdle(fn, fallbackMs = 5000) {
+  let fired = false;
+  const run = () => {
+    if (fired) return;
+    fired = true;
+    afterLoadIdle(fn);
+  };
+  firstInteraction.then(run);
+  afterLoadIdle(() => setTimeout(run, fallbackMs));
+}
+
+util.onFirstInteractionOrIdle = onFirstInteractionOrIdle;
+
+/**
+ * Injects scripts that fetch in parallel but execute in insertion order.
+ *
+ * Dynamically created scripts default to async, so a dependent bundle can run before its dependencies exist. Setting
+ * `async = false` restores ordered execution without serializing the downloads — what `defer` does for scripts that
+ * were in the markup at parse time. Pair with util.afterLoadIdle to pull a heavy, below-the-fold bundle in after load.
+ *
+ * @param {string[]} srcs - Script URLs, in the order they must execute.
+ * @returns {Promise} Resolves once all of them have run; rejects on the first that fails to load.
+ */
+function loadScriptsInOrder(srcs) {
+  return Promise.all(srcs.map((src) => new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = src;
+    script.async = false;
+    script.onload = resolve;
+    script.onerror = () => reject(new Error(`failed to load ${src}`));
+    document.head.appendChild(script);
+  })));
+}
+
+util.loadScriptsInOrder = loadScriptsInOrder;
+
+/**
+ * Whether the visitor asked the browser to conserve data, in which case optional prefetching should be skipped.
+ * @returns {boolean} True only if Save-Data is explicitly on; unsupported browsers report false.
+ */
+function saveDataEnabled() {
+  return navigator.connection?.saveData === true;
+}
+
+util.saveDataEnabled = saveDataEnabled;
 
 // Sums an array's numbers (a helper, not an Array.prototype extension, to avoid polluting native prototypes).
 util.array = util.array || {};

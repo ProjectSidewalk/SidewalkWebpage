@@ -21,14 +21,17 @@ import scala.util.Try
 
 /**
  * Keeps the app's imagery-age knowledge (street_imagery) fresh and syncs the audit_task.outdated_imagery flag against
- * it (#4384). An audit performed on since-replaced imagery keeps its user credit and keeps counting toward completion
- * stats, but counts at half weight in the street-priority formula and stops counting for per-user routing -- so
- * labelers are re-sent down re-imaged streets (after unaudited ones) while "% complete" keeps meaning "ever
- * quality-audited", with freshness surfaced separately (km_needs_reaudit, re-audit prompts).
+ * it (#4384). An audit is flagged only when at least half the street's sampled points show newer imagery than the
+ * audit (street_imagery.median_newest_capture, written by the nightly imagery-age poll below). A flagged audit keeps
+ * its user credit and keeps counting toward completion stats, but counts at a capped half weight in the
+ * street-priority formula and stops counting for per-user routing -- so labelers are re-sent down re-imaged streets
+ * (after unaudited ones) while "% complete" keeps meaning "ever quality-audited", with freshness surfaced separately
+ * (km_needs_reaudit, re-audit prompts).
  *
  * Freshness data arrives two ways: refreshFromPanoData harvests capture dates from panos users observe while labeling
- * (zero API cost, but blind to streets nobody visits), and pollImageryAges actively queries the city's imagery
- * provider for a nightly batch of streets -- the piece that detects new imagery on "done" streets nobody is sent to.
+ * (zero API cost, but blind to streets nobody visits, and never a source of flags), and pollImageryAges actively
+ * queries the city's imagery provider at fixed sample points for a nightly batch of streets -- the only feeder
+ * systematic enough to write the median the flag sync compares against.
  */
 @ImplementedBy(classOf[ImageryFreshnessServiceImpl])
 trait ImageryFreshnessService {

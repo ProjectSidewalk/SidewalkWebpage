@@ -299,6 +299,7 @@ audit.tutorial.complete.1 = Het is gelukt!
 audit.tutorial.complete.2 = Je hebt de uitleg voltooid!
 audit.tutorial.complete.learn-more = Meer informatie
 audit.tutorial.complete.start-contributing = Beginnen met bijdragen
+audit.tutorial.pause-animation = Animatie pauzeren
 
 audit.ribbon.curb.ramp.labels = TROTTOIR OPRIT LABELS
 audit.ribbon.sidewalk.labels = TROTTOIR LABELS
@@ -357,12 +358,10 @@ authenticate.identifier = E-mailadres of gebruikersnaam
 authenticate.password = Wachtwoord
 authenticate.remember.me = Houd mij aangemeld
 authenticate.new = Ben je nieuw? <a href="#" id="form-open-sign-up">Nieuw account maken!</a>
-authenticate.non.member = Nog geen account? <a href="{0}">Maak er een</a>
 authenticate.confirm.password = Bevestig wachtwoord
 authenticate.service.hours.title = Bent u van plan om te verzoeken dat uw werk via Project Sidewalk wordt meegeteld voor de gemeenschaps-/vrijwilligersdiensturen?
 authenticate.terms = Je gaat akkoord met onze <a target="_blank" href="/terms">Gebruiksvoorwaarden en Privacybeleid</a>
 authenticate.signup = Een account maken
-authenticate.signup.new.account = Maak een nieuw account
 authenticate.has.account = Heb je een account? <a href="#" id="form-open-sign-in">Log in</a>
 
 # Sign-in/sign-up redesign (#4375) — draft translations, pending native-speaker polish (#4494).
@@ -407,7 +406,6 @@ welcome.hint.username = Je kunt je gebruikersnaam altijd wijzigen in <a href="{0
 welcome.service.prompt = Breng je in kaart voor school- of vrijwilligersuren?
 welcome.service.button = Aanmelden voor serviceuren
 authenticate.is.member = Al lid? <a href="{0}">Log direct in</a>
-authenticate.signin.with.credentials = Log in met je inloggegevens
 
 user.exists = E-mail bestaat al
 authenticate.error.username.exists = Gebruikersnaam bestaat al

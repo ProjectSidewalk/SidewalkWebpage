@@ -36,15 +36,17 @@ class PanoHistoryTable @Inject() (
 
   /**
    * Save a pano history object to the PanoHistory table if it isn't already in the table.
+   *
+   * `ON CONFLICT DO NOTHING` rather than a check-then-insert, so concurrent submissions of the same history entry
+   * (e.g. a `pagehide` flush racing a mission-complete POST) can't fail on a duplicate key (#4587).
+   *
+   * @return Number of rows inserted (0 if the history entry was already recorded).
    */
   def insertIfNew(history: PanoHistory): DBIO[Int] = {
-    panoHistoryTable
-      .filter(h => h.panoId === history.panoId && h.locationCurrPanoId === history.locationCurrPanoId)
-      .result
-      .headOption
-      .flatMap {
-        case Some(_) => DBIO.successful(0)
-        case None    => panoHistoryTable += history
-      }
+    sqlu"""
+      INSERT INTO pano_history (pano_id, capture_date, location_curr_pano_id)
+      VALUES (${history.panoId}, ${history.captureDate}, ${history.locationCurrPanoId})
+      ON CONFLICT DO NOTHING
+    """
   }
 }

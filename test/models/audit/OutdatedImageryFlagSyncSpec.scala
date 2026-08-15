@@ -1,7 +1,7 @@
 package models.audit
 
 import models.pano.{PanoData, PanoDataTable, PanoSource}
-import models.street.{StreetEdgeTableDef, StreetImagery, StreetImageryTable, StreetImageryTableDef}
+import models.street.{StreetEdgeTableDef, StreetImagery, StreetImagerySource, StreetImageryTable, StreetImageryTableDef}
 import models.user.UserStatTableDef
 import models.utils.ConfigTableDef
 import models.utils.MyPostgresProfile.api._
@@ -48,17 +48,23 @@ class OutdatedImageryFlagSyncSpec extends PlaySpec with GuiceOneAppPerSuite with
       startPointReversed = false, None, None, lowQuality = false, incomplete = false, stale = false,
       auditedDistanceM = None)
 
-  /** Replaces the street's imagery row (if any) with one having the given capture-date range. */
-  private def setImagery(streetEdgeId: Int, newest: Option[LocalDate], oldest: Option[LocalDate]): DBIO[Int] = {
+  /** Replaces the street's imagery row (if any) with one having the given median / capture-date range. */
+  private def setImagery(
+      streetEdgeId: Int,
+      median: Option[LocalDate],
+      newest: Option[LocalDate],
+      oldest: Option[LocalDate]
+  ): DBIO[Int] = {
     streetImagery.filter(_.streetEdgeId === streetEdgeId).delete andThen
-      (streetImagery += StreetImagery(streetEdgeId, oldest, newest, 1, "imagery_scan", OffsetDateTime.now))
+      (streetImagery += StreetImagery(streetEdgeId, oldest, newest, median, 1, StreetImagerySource.ImageryPoll,
+        OffsetDateTime.now))
   }
 
   private def flagOf(auditTaskId: Int): DBIO[Boolean] =
     auditTasks.filter(_.auditTaskId === auditTaskId).map(_.outdatedImagery).result.head
 
   "syncOutdatedImageryFlags" should {
-    "flag a completed audit that ended before the street's newest imagery, and be idempotent" in {
+    "flag a completed audit that predates the street's median newest capture, and be idempotent" in {
       assume(someUserId.isDefined && nonTutorialStreets.nonEmpty)
       val (userId, streetId) = (someUserId.get, nonTutorialStreets.head)
 
@@ -66,7 +72,12 @@ class OutdatedImageryFlagSyncSpec extends PlaySpec with GuiceOneAppPerSuite with
         taskId <- auditTaskTable.insert(
           newTask(streetId, userId, OffsetDateTime.parse("2020-01-15T12:00:00Z"), completed = true)
         )
-        _    <- setImagery(streetId, Some(LocalDate.parse("2024-06-01")), Some(LocalDate.parse("2019-01-01")))
+        _ <- setImagery(
+          streetId,
+          Some(LocalDate.parse("2024-03-01")),
+          Some(LocalDate.parse("2024-06-01")),
+          Some(LocalDate.parse("2019-01-01"))
+        )
         _    <- auditTaskTable.syncOutdatedImageryFlags
         flag <- flagOf(taskId)
         // A second pass right after the first must find nothing left to change, in either direction.
@@ -77,14 +88,41 @@ class OutdatedImageryFlagSyncSpec extends PlaySpec with GuiceOneAppPerSuite with
       secondRunCounts mustBe ((0, 0))
     }
 
-    "not flag audits at or after the newest capture, incomplete audits, or streets without imagery data" in {
+    "not flag when only the newest capture is newer than the audit: half the street must show newer imagery" in {
+      assume(someUserId.isDefined && nonTutorialStreets.nonEmpty)
+      val (userId, streetId) = (someUserId.get, nonTutorialStreets.head)
+
+      val (medianOlder, medianNull) = runRolledBack(for {
+        taskId <- auditTaskTable.insert(
+          newTask(streetId, userId, OffsetDateTime.parse("2020-01-15T12:00:00Z"), completed = true)
+        )
+        // A single newer pano (a partial re-drive, a stray corner pano) widens newest_capture but not the median.
+        _ <- setImagery(
+          streetId,
+          Some(LocalDate.parse("2019-06-01")),
+          Some(LocalDate.parse("2024-06-01")),
+          Some(LocalDate.parse("2015-01-01"))
+        )
+        _           <- auditTaskTable.syncOutdatedImageryFlags
+        medianOlder <- flagOf(taskId)
+        // A street only the pano_data / scan feeders have touched has no median at all, however new its newest pano.
+        _          <- setImagery(streetId, None, Some(LocalDate.parse("2024-06-01")), None)
+        _          <- auditTaskTable.syncOutdatedImageryFlags
+        medianNull <- flagOf(taskId)
+      } yield (medianOlder, medianNull))
+
+      medianOlder mustBe false
+      medianNull mustBe false
+    }
+
+    "not flag audits at or after the median capture, incomplete audits, or streets without imagery data" in {
       assume(someUserId.isDefined && nonTutorialStreets.size >= 2)
       val userId             = someUserId.get
       val (streetA, streetB) = (nonTutorialStreets.head, nonTutorialStreets(1))
-      val newest             = LocalDate.parse("2024-06-01")
+      val median             = LocalDate.parse("2024-06-01")
 
       val flags = runRolledBack(for {
-        _ <- setImagery(streetA, Some(newest), Some(newest))
+        _ <- setImagery(streetA, Some(median), Some(median), Some(median))
         // street B has no street_imagery row at all.
         _         <- streetImagery.filter(_.streetEdgeId === streetB).delete
         sameDayId <- auditTaskTable.insert(
@@ -101,13 +139,9 @@ class OutdatedImageryFlagSyncSpec extends PlaySpec with GuiceOneAppPerSuite with
         )
         _      <- auditTaskTable.syncOutdatedImageryFlags
         flags1 <- DBIO.sequence(Seq(sameDayId, afterId, incompleteId, noRowId).map(flagOf))
-        // A NULL newest_capture must behave like an absent row.
-        _          <- setImagery(streetB, None, None)
-        _          <- auditTaskTable.syncOutdatedImageryFlags
-        nullNewest <- flagOf(noRowId)
-      } yield flags1 :+ nullNewest)
+      } yield flags1)
 
-      flags mustBe Seq(false, false, false, false, false)
+      flags mustBe Seq(false, false, false, false)
     }
 
     "clear a flag once the street's imagery data fails the outdated test" in {
@@ -118,12 +152,12 @@ class OutdatedImageryFlagSyncSpec extends PlaySpec with GuiceOneAppPerSuite with
         taskId <- auditTaskTable.insert(
           newTask(streetId, userId, OffsetDateTime.parse("2020-01-15T12:00:00Z"), completed = true)
         )
-        _          <- setImagery(streetId, Some(LocalDate.parse("2024-06-01")), None)
-        _          <- auditTaskTable.syncOutdatedImageryFlags
+        _ <- setImagery(streetId, Some(LocalDate.parse("2024-06-01")), Some(LocalDate.parse("2024-06-01")), None)
+        _ <- auditTaskTable.syncOutdatedImageryFlags
         flagBefore <- flagOf(taskId)
-        // The street's newest known imagery now predates the audit (e.g. corrected scan data).
-        _         <- setImagery(streetId, Some(LocalDate.parse("2019-06-01")), None)
-        counts    <- auditTaskTable.syncOutdatedImageryFlags
+        // The street's median now predates the audit (e.g. a later poll found mostly older imagery at the points).
+        _      <- setImagery(streetId, Some(LocalDate.parse("2019-06-01")), Some(LocalDate.parse("2024-06-01")), None)
+        counts <- auditTaskTable.syncOutdatedImageryFlags
         flagAfter <- flagOf(taskId)
       } yield (flagBefore, flagAfter, counts._2))
 
@@ -132,7 +166,7 @@ class OutdatedImageryFlagSyncSpec extends PlaySpec with GuiceOneAppPerSuite with
       unflaggedCount must be >= 1
     }
 
-    "ignore a future capture date, and clear a flag that a future date would otherwise pin forever" in {
+    "ignore a future median capture date, and clear a flag that a future date would otherwise pin forever" in {
       assume(someUserId.isDefined && nonTutorialStreets.nonEmpty)
       val (userId, streetId) = (someUserId.get, nonTutorialStreets.head)
       val future             = LocalDate.now.plusYears(5)
@@ -141,10 +175,9 @@ class OutdatedImageryFlagSyncSpec extends PlaySpec with GuiceOneAppPerSuite with
         taskId <- auditTaskTable.insert(
           newTask(streetId, userId, OffsetDateTime.parse("2020-01-15T12:00:00Z"), completed = true)
         )
-        // A future capture date is bad data (a typo'd scan import, a bogus provider value), not new imagery. Since
-        // every writer only widens newest_capture, flagging on it would make the street permanently un-completable:
-        // each fresh re-audit would be re-flagged the same night.
-        _               <- setImagery(streetId, Some(future), None)
+        // A future capture date is bad data (a bogus provider value), not new imagery: flagging on it would leave
+        // the street un-completable, with each fresh re-audit re-flagged the same night.
+        _               <- setImagery(streetId, Some(future), Some(future), None)
         _               <- auditTaskTable.syncOutdatedImageryFlags
         flagFromBadData <- flagOf(taskId)
         // The clear-pass applies the same guard, so a row already flagged before the data went bad still clears.
@@ -165,7 +198,12 @@ class OutdatedImageryFlagSyncSpec extends PlaySpec with GuiceOneAppPerSuite with
         taskId <- auditTaskTable.insert(
           newTask(tutorialStreetId, userId, OffsetDateTime.parse("2020-01-15T12:00:00Z"), completed = true)
         )
-        _    <- setImagery(tutorialStreetId, Some(LocalDate.parse("2024-06-01")), None)
+        _ <- setImagery(
+          tutorialStreetId,
+          Some(LocalDate.parse("2024-06-01")),
+          Some(LocalDate.parse("2024-06-01")),
+          None
+        )
         _    <- auditTaskTable.syncOutdatedImageryFlags
         flag <- flagOf(taskId)
       } yield flag)
@@ -190,7 +228,7 @@ class OutdatedImageryFlagSyncSpec extends PlaySpec with GuiceOneAppPerSuite with
 
     def panoAt(lat: Double, lng: Double): PanoData =
       PanoData(testPanoId, None, None, None, None, "2024-06", None, Some(lat), Some(lng), None, None, None,
-        expired = false, OffsetDateTime.now, None, OffsetDateTime.now, PanoSource.Gsv, None, None)
+        expired = false, OffsetDateTime.now, None, OffsetDateTime.now, PanoSource.Gsv, None, None, None)
 
     "create a street's imagery row from a recently-viewed pano on it" in {
       assume(nonTutorialStreets.nonEmpty)
@@ -199,7 +237,7 @@ class OutdatedImageryFlagSyncSpec extends PlaySpec with GuiceOneAppPerSuite with
       val row = runRolledBack(for {
         _        <- ageOutRealPanos
         midpoint <- streetMidpoint(streetId)
-        _        <- panoDataTable.insert(panoAt(midpoint._1, midpoint._2))
+        _        <- panoDataTable.upsert(panoAt(midpoint._1, midpoint._2))
         _        <- streetImagery.filter(_.streetEdgeId === streetId).delete
         _        <- streetImageryTable.refreshFromPanoData
         row      <- streetImageryTable.getForStreet(streetId)
@@ -209,10 +247,12 @@ class OutdatedImageryFlagSyncSpec extends PlaySpec with GuiceOneAppPerSuite with
       // The month-precision "2024-06" capture date standardizes to the 1st.
       row.get.newestCapture mustBe Some(LocalDate.parse("2024-06-01"))
       row.get.oldestCapture mustBe Some(LocalDate.parse("2024-06-01"))
-      row.get.dataSource mustBe "pano_data"
+      // Labeling-observed panos can't support a "half the street" claim, so the refresh never writes a median.
+      row.get.medianNewestCapture mustBe None
+      row.get.dataSource mustBe StreetImagerySource.PanoData
     }
 
-    "only widen the capture-date range on conflict, leaving n_panos and data_source alone" in {
+    "only widen the capture-date range on conflict, leaving n_panos, data_source, and the median alone" in {
       assume(nonTutorialStreets.nonEmpty)
       val streetId   = nonTutorialStreets.head
       val staleStamp = OffsetDateTime.now.minusYears(1)
@@ -220,19 +260,21 @@ class OutdatedImageryFlagSyncSpec extends PlaySpec with GuiceOneAppPerSuite with
       val row = runRolledBack(for {
         _        <- ageOutRealPanos
         midpoint <- streetMidpoint(streetId)
-        _        <- panoDataTable.insert(panoAt(midpoint._1, midpoint._2))
-        // Pre-existing scan row with a wider date range and a richer pano count than the viewed pano provides.
+        _        <- panoDataTable.upsert(panoAt(midpoint._1, midpoint._2))
+        // Pre-existing polled row with a wider date range and a richer pano count than the viewed pano provides.
         _ <- streetImagery.filter(_.streetEdgeId === streetId).delete
         _ <- streetImagery += StreetImagery(streetId, Some(LocalDate.parse("2010-01-01")),
-          Some(LocalDate.parse("2030-01-01")), 42, "imagery_scan", staleStamp)
+          Some(LocalDate.parse("2030-01-01")), Some(LocalDate.parse("2015-01-01")), 42, StreetImagerySource.ImageryPoll,
+          staleStamp)
         _   <- streetImageryTable.refreshFromPanoData
         row <- streetImageryTable.getForStreet(streetId)
       } yield row)
 
-      row.get.oldestCapture mustBe Some(LocalDate.parse("2010-01-01")) // LEAST keeps the earlier scan date.
-      row.get.newestCapture mustBe Some(LocalDate.parse("2030-01-01")) // GREATEST keeps the later scan date.
+      row.get.oldestCapture mustBe Some(LocalDate.parse("2010-01-01"))       // LEAST keeps the earlier scan date.
+      row.get.newestCapture mustBe Some(LocalDate.parse("2030-01-01"))       // GREATEST keeps the later scan date.
+      row.get.medianNewestCapture mustBe Some(LocalDate.parse("2015-01-01")) // Only the poll may move the median.
       row.get.nPanos mustBe 42
-      row.get.dataSource mustBe "imagery_scan"
+      row.get.dataSource mustBe StreetImagerySource.ImageryPoll
       row.get.updatedAt.isAfter(staleStamp) mustBe true
     }
   }

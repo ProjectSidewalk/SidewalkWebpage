@@ -59,6 +59,7 @@
   "download": {
     "button": "Baixar",
     "title": "Selecione um formato de arquivo para baixar",
+    "preparing": "Preparando seu download…",
     "count_one": "{{count}} rótulo",
     "count_other": "{{count}} rótulos",
     "count-match_one": "corresponde aos seus filtros",
@@ -67,8 +68,9 @@
     "hint-csv": "Para Excel, Planilhas Google",
     "hint-shapefile": "Para ArcGIS, QGIS",
     "hint-geopackage": "Formato SIG aberto",
-    "caveat": "Alguns filtros do link desta página (várias regiões, rotas ou validação por IA) não são aplicados aos downloads.",
-    "api-docs-link": "Documentação da API de rótulos brutos"
+    "caveat": "Alguns filtros do link desta página (várias regiões, rotas ou validação por IA) não podem ser aplicados aos downloads, então o arquivo pode conter mais rótulos do que o número indicado acima.",
+    "api-docs-link": "Documentação da API de rótulos brutos",
+    "opens-new-tab": " (abre em uma nova aba)"
   },
   "story": {
     "heading": "Histórias da comunidade",

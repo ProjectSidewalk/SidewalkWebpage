@@ -12,6 +12,7 @@ import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import service.UpdatedStreets
 
+import java.nio.charset.StandardCharsets
 import java.time.OffsetDateTime
 
 object ExploreFormats {
@@ -63,7 +64,8 @@ object ExploreFormats {
       point: LabelPointSubmission,
       temporaryLabelId: Int,
       timeCreated: Option[OffsetDateTime],
-      tutorial: Boolean
+      tutorial: Boolean,
+      pano: Option[PanoSubmission] // Added in #4587 to support the pano_data row that is integral to a label.
   )
   case class TaskSubmission(
       streetEdgeId: Int,
@@ -99,7 +101,9 @@ object ExploreFormats {
       links: Seq[PanoLinkSubmission],
       copyright: Option[String],
       address: Option[String],
-      history: Seq[PanoDate]
+      history: Seq[PanoDate],
+      // Verbatim imagery-provider metadata blob; sent by the AI labeler only, never by the Explore client (#4806).
+      sourceMetadata: Option[JsObject]
   )
   case class AuditMissionProgress(
       missionId: Int,
@@ -270,6 +274,45 @@ object ExploreFormats {
       (JsPath \ "computation_method").readNullable[ComputationMethod.Value]
   )(LabelPointSubmission.apply _)
 
+  implicit val panoLinkSubmissionReads: Reads[PanoLinkSubmission] = (
+    (JsPath \ "target_pano_id").read[String] and
+      (JsPath \ "yaw_deg").read[Double] and
+      (JsPath \ "description").readNullable[String]
+  )(PanoLinkSubmission.apply _)
+
+  // Ceiling on the provider blob a single submission may persist (#4806). It is stored verbatim, the JSON body parser
+  // accepts up to play.http.parser.maxMemoryBuffer (100M), and the column rides pano_data's default projection, so
+  // without a bound one caller could park an arbitrarily fat row on a table other paths read whole. Real Mapillary
+  // blobs run a few KB, so this leaves ample headroom while turning an absurd payload into a 400 rather than a row
+  // that has to be cleaned up by hand.
+  private val maxSourceMetadataBytes = 64 * 1024
+
+  // Object-only: the blob is a provider metadata document, never a scalar or array. pano_data carries the matching
+  // jsonb_typeof CHECK (evolution 348), so a malformed blob is refused at both ends.
+  private val sourceMetadataReads: Reads[JsObject] = Reads.JsObjectReads.filter(
+    JsonValidationError(s"source_metadata must be a JSON object of at most $maxSourceMetadataBytes bytes")
+  )(blob => Json.stringify(blob).getBytes(StandardCharsets.UTF_8).length <= maxSourceMetadataBytes)
+
+  implicit val panoSubmissionReads: Reads[PanoSubmission] = (
+    (JsPath \ "pano_id").read[String] and
+      (JsPath \ "source").read[PanoSource.Value] and
+      (JsPath \ "capture_date").read[String] and
+      (JsPath \ "width").readNullable[Int] and
+      (JsPath \ "height").readNullable[Int] and
+      (JsPath \ "tile_width").readNullable[Int] and
+      (JsPath \ "tile_height").readNullable[Int] and
+      (JsPath \ "lat").readNullable[Double] and
+      (JsPath \ "lng").readNullable[Double] and
+      (JsPath \ "camera_heading").readNullable[Double] and
+      (JsPath \ "camera_pitch").readNullable[Double] and
+      (JsPath \ "camera_roll").readNullable[Double] and
+      (JsPath \ "links").read[Seq[PanoLinkSubmission]] and
+      (JsPath \ "copyright").readNullable[String] and
+      (JsPath \ "address").readNullable[String] and
+      (JsPath \ "history").read[Seq[PanoDate]] and
+      (JsPath \ "source_metadata").readNullable[JsObject](sourceMetadataReads)
+  )(PanoSubmission.apply _)
+
   implicit val labelSubmissionReads: Reads[LabelSubmission] = (
     (JsPath \ "pano_id").read[String] and
       (JsPath \ "pano_source").read[PanoSource.Value] and
@@ -281,8 +324,14 @@ object ExploreFormats {
       (JsPath \ "label_point").read[LabelPointSubmission] and
       (JsPath \ "temporary_label_id").read[Int] and
       (JsPath \ "time_created").readNullable[OffsetDateTime] and
-      (JsPath \ "tutorial").read[Boolean]
+      (JsPath \ "tutorial").read[Boolean] and
+      (JsPath \ "pano").readNullable[PanoSubmission]
   )(LabelSubmission.apply _)
+    // A mismatched block would let a buggy client write one pano's metadata while committing a label that points at
+    // another — exactly the orphan #4587 exists to prevent — so refuse it before anything touches the database.
+    .filter(JsonValidationError("The label's pano block must describe the label's own pano_id."))(label =>
+      label.pano.forall(_.panoId == label.panoId)
+    )
 
   implicit val auditTaskReads: Reads[TaskSubmission] = (
     (JsPath \ "street_edge_id").read[Int] and
@@ -303,31 +352,6 @@ object ExploreFormats {
     (JsPath \ "audit_task").read[TaskSubmission] and
       (JsPath \ "mission_id").read[Int]
   )(NoStreetViewSubmission.apply _)
-
-  implicit val panoLinkSubmissionReads: Reads[PanoLinkSubmission] = (
-    (JsPath \ "target_pano_id").read[String] and
-      (JsPath \ "yaw_deg").read[Double] and
-      (JsPath \ "description").readNullable[String]
-  )(PanoLinkSubmission.apply _)
-
-  implicit val panoSubmissionReads: Reads[PanoSubmission] = (
-    (JsPath \ "pano_id").read[String] and
-      (JsPath \ "source").read[PanoSource.Value] and
-      (JsPath \ "capture_date").read[String] and
-      (JsPath \ "width").readNullable[Int] and
-      (JsPath \ "height").readNullable[Int] and
-      (JsPath \ "tile_width").readNullable[Int] and
-      (JsPath \ "tile_height").readNullable[Int] and
-      (JsPath \ "lat").readNullable[Double] and
-      (JsPath \ "lng").readNullable[Double] and
-      (JsPath \ "camera_heading").readNullable[Double] and
-      (JsPath \ "camera_pitch").readNullable[Double] and
-      (JsPath \ "camera_roll").readNullable[Double] and
-      (JsPath \ "links").read[Seq[PanoLinkSubmission]] and
-      (JsPath \ "copyright").readNullable[String] and
-      (JsPath \ "address").readNullable[String] and
-      (JsPath \ "history").read[Seq[PanoDate]]
-  )(PanoSubmission.apply _)
 
   implicit val auditMissionProgressReads: Reads[AuditMissionProgress] = (
     (JsPath \ "mission_id").read[Int] and

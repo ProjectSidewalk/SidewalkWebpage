@@ -120,7 +120,10 @@ class LabelApiController @Inject() (
    *
    * @param bbox Bounding box in format "minLng,minLat,maxLng,maxLat"
    * @param labelType Comma-separated list of label types to include
-   * @param tags Comma-separated list of tags to filter by; a "LabelType:tag" entry only matches that label type
+   * @param tags Repeatable tag filter (`?tags=a&tags=b`), one tag per occurrence; a "LabelType:tag" entry narrows
+   *             only that label type. Not comma-separated — tag names may themselves contain commas. Values are
+   *             validated against the city's tags (400 on an unknown one), with an entry that fails whole re-read
+   *             as an older comma-joined list; see `TagFilterForApi.parse`.
    * @param severity Comma-separated set of severities to include ("1", "2", "3", "none" for unrated); mutually
    *                 exclusive with minSeverity/maxSeverity
    * @param minSeverity Minimum severity score (1-3 scale)
@@ -139,7 +142,7 @@ class LabelApiController @Inject() (
   def getRawLabelsV3(
       bbox: Option[String],
       labelType: Option[String],
-      tags: Option[String],
+      tags: List[String],
       severity: Option[String],
       minSeverity: Option[Int],
       maxSeverity: Option[Int],
@@ -160,53 +163,62 @@ class LabelApiController @Inject() (
     val parsedEndDate            = parseDateTimeParam(endDate, "endDate")
     val parsedValidationStatuses = parseValidationStatuses(validationStatus)
     val parsedLabelTypes         = parseAllowlistedList(labelType, LabelTypeEnum.validLabelTypes, "labelType")
-    val parsedTags               = parseTagsParam(tags)
     val parsedSeverity           = parseSeverityParam(severity, minSeverity, maxSeverity)
 
-    // Collect the first invalid-parameter error, if any.
-    val firstError: Option[ApiError] = Seq(
-      validateBBoxParam(bbox, parsedBbox),
-      parsedLabelTypes.left.toOption,
-      parsedTags.left.toOption,
-      parsedSeverity.left.toOption,
-      parsedValidationStatuses.left.toOption,
-      parsedStartDate.left.toOption,
-      parsedEndDate.left.toOption,
-      validateRegionId(regionId)
-    ).flatten.headOption
-
-    firstError match {
-      case Some(error) => Future.successful(badRequest(error))
-      case None        =>
-        configService.getCityMapParams.flatMap { cityMapParams =>
-          val (finalBbox, finalRegionId, finalRegionName) =
-            resolveGeoFilters(bbox, parsedBbox, regionId, regionName, cityMapParams)
-
-          // Create filters object.
-          val filters = RawLabelFiltersForApi(
-            bbox = finalBbox, labelTypes = parsedLabelTypes.toOption.flatten, tags = parsedTags.toOption.flatten,
-            severity = parsedSeverity.toOption.flatten, minSeverity = minSeverity, maxSeverity = maxSeverity,
-            validationStatuses = parsedValidationStatuses.toOption.flatten,
-            highQualityUserOnly = highQualityUserOnly.getOrElse(false), startDate = parsedStartDate.toOption.flatten,
-            endDate = parsedEndDate.toOption.flatten, regionId = finalRegionId, regionName = finalRegionName
-          )
-
-          // Get the data stream.
-          val dbDataStream: Source[LabelDataForApi, _] = apiService.getRawLabels(filters, DEFAULT_BATCH_SIZE)
-          val baseFileName: String                     = timestampedFilename("labels")
-
-          // Output data in the appropriate file format.
-          filetype match {
-            case Some("csv") =>
-              outputCSV(dbDataStream, LabelDataForApi.csvHeader, inline, baseFileName + ".csv")
-            case Some("shapefile") =>
-              outputShapefile(dbDataStream, baseFileName, shapefileCreator.createRawLabelShapefile, shapefileCreator)
-            case Some("geopackage") =>
-              outputGeopackage(dbDataStream, baseFileName, shapefileCreator.createRawLabelDataGeopackage, inline)
-            case _ => // Default to GeoJSON.
-              outputGeoJSON(dbDataStream, inline, baseFileName + ".geojson")
-          }
+    // Tag values are validated against the city's full tag list (cached), not the UI-facing one: a tag a city hides
+    // from its menus (config's excluded tags) may still be carried by existing labels, so filtering on it is valid.
+    labelService.selectAllTagsFuture.flatMap { cityTags =>
+      val tagsByLabelType: Map[String, Set[String]] =
+        cityTags.groupMap(t => LabelTypeEnum.labelTypeIdToLabelType(t.labelTypeId))(_.tag).map { case (lt, tagNames) =>
+          lt -> tagNames.toSet
         }
+      val parsedTags = TagFilterForApi.parse(tags, LabelTypeEnum.validLabelTypes, tagsByLabelType)
+
+      // Collect the first invalid-parameter error, if any.
+      val firstError: Option[ApiError] = Seq(
+        validateBBoxParam(bbox, parsedBbox),
+        parsedLabelTypes.left.toOption,
+        parsedTags.left.toOption,
+        parsedSeverity.left.toOption,
+        parsedValidationStatuses.left.toOption,
+        parsedStartDate.left.toOption,
+        parsedEndDate.left.toOption,
+        validateRegionId(regionId)
+      ).flatten.headOption
+
+      firstError match {
+        case Some(error) => Future.successful(badRequest(error))
+        case None        =>
+          configService.getCityMapParams.flatMap { cityMapParams =>
+            val (finalBbox, finalRegionId, finalRegionName) =
+              resolveGeoFilters(bbox, parsedBbox, regionId, regionName, cityMapParams)
+
+            // Create filters object.
+            val filters = RawLabelFiltersForApi(
+              bbox = finalBbox, labelTypes = parsedLabelTypes.toOption.flatten, tags = parsedTags.toOption.flatten,
+              severity = parsedSeverity.toOption.flatten, minSeverity = minSeverity, maxSeverity = maxSeverity,
+              validationStatuses = parsedValidationStatuses.toOption.flatten,
+              highQualityUserOnly = highQualityUserOnly.getOrElse(false), startDate = parsedStartDate.toOption.flatten,
+              endDate = parsedEndDate.toOption.flatten, regionId = finalRegionId, regionName = finalRegionName
+            )
+
+            // Get the data stream.
+            val dbDataStream: Source[LabelDataForApi, _] = apiService.getRawLabels(filters, DEFAULT_BATCH_SIZE)
+            val baseFileName: String                     = timestampedFilename("labels")
+
+            // Output data in the appropriate file format.
+            filetype match {
+              case Some("csv") =>
+                outputCSV(dbDataStream, LabelDataForApi.csvHeader, inline, baseFileName + ".csv")
+              case Some("shapefile") =>
+                outputShapefile(dbDataStream, baseFileName, shapefileCreator.createRawLabelShapefile, shapefileCreator)
+              case Some("geopackage") =>
+                outputGeopackage(dbDataStream, baseFileName, shapefileCreator.createRawLabelDataGeopackage, inline)
+              case _ => // Default to GeoJSON.
+                outputGeoJSON(dbDataStream, inline, baseFileName + ".geojson")
+            }
+          }
+      }
     }
   }
 
@@ -245,43 +257,6 @@ class LabelApiController @Inject() (
       parseAllowlistedList(raw, Set("1", "2", "3", "none"), "severity").map(_.map { tokens =>
         SeverityFilterForApi(tokens.filter(_ != "none").map(_.toInt).toSet, tokens.contains("none"))
       })
-
-  /**
-   * Parses the tags parameter, supporting optional label-type scoping (e.g. "CurbRamp:narrow").
-   *
-   * For each comma-separated entry, if the substring before the first colon exactly matches a label type name, the
-   * entry only matches that tag on that label type; otherwise the whole entry is a tag matching any label type (tag
-   * names may themselves contain colons, so an unrecognized prefix cannot be treated as an error).
-   *
-   * @param raw The optional tags query parameter.
-   * @return `Right(None)` if absent, `Right(Some(filters))` if valid, or `Left(ApiError)` if an entry is empty or a
-   *         scoped entry is missing its tag.
-   */
-  private def parseTagsParam(raw: Option[String]): Either[ApiError, Option[Seq[TagFilterForApi]]] =
-    parseCommaSeparated(raw) match {
-      case None         => Right(None)
-      case Some(tokens) =>
-        if (tokens.exists(_.isEmpty)) {
-          Left(ApiError.invalidParameter("The tags parameter contains an empty value.", "tags"))
-        } else {
-          val parsed = tokens.map { token =>
-            val prefix = token.takeWhile(_ != ':')
-            if (token.contains(':') && LabelTypeEnum.validLabelTypes.contains(prefix))
-              TagFilterForApi(Some(prefix), token.drop(prefix.length + 1).trim)
-            else TagFilterForApi(None, token)
-          }
-          parsed.find(tagFilter => tagFilter.labelType.isDefined && tagFilter.tag.isEmpty) match {
-            case Some(bad) =>
-              Left(
-                ApiError.invalidParameter(
-                  s"Missing tag after label type '${bad.labelType.get}:' in the tags parameter.",
-                  "tags"
-                )
-              )
-            case None => Right(Some(parsed))
-          }
-        }
-    }
 
   /**
    * Retrieves all panorama IDs that have labels.

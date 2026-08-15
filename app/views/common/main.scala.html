@@ -1,3 +1,4 @@
+@import controllers.helper.ControllerUtils
 @import play.api.Configuration
 @import service.CommonPageData
 @import play.filters.csrf.CSRF
@@ -7,9 +8,30 @@
 @currentCity = @{commonData.currentCity}
 @* Pages that render the map full-window (no footer, #wrap becomes a fixed-height flex column). *@
 @fullWindow = @{url == "/labelMap" || url == "/routeBuilder"}
+@* Tool pages fill or fix the viewport like the full-window pages do, so none of them render the footer. *@
+@noFooter = @{fullWindow || Seq("/explore", "/validate", "/expertValidate", "/mobile", "/mobileLanding").contains(url)}
+@* The landing page draws its hero under the fixed navbar and pads itself (homepage.css), so it opts out of the
+   global navbar offset that main.css puts on <body>. Keyed on request.path (like navbar.scala.html's isLanding),
+   NOT the url parameter: url defaults to "/", so the ~50 views that omit it would otherwise all be classified as
+   the landing page and lose their navbar padding. MobileDetectionSpec pins this. *@
+@bodyClass = @{if (request.path == "/" || request.path == "/home") "no-navbar-offset" else ""}
+
+@* The one moment locale this request needs. Locale files register lowercase names ('zh-tw', 'pt-br') matching their
+   filenames, and moment lowercases the code it's given, so a language code maps straight to a filename (#4486).
+   Derived from play.i18n.langs rather than a second list of languages: a hardcoded copy that drifts fails the way
+   de/pt-BR did — silently, in English — whereas a missing file here is a 404 someone will notice. *@
+@momentLocaleFile = @{
+  val langCode = messages.lang.code.toLowerCase
+  // moment has US English built in, so those two need no file; every other supported language has one vendored.
+  val builtIntoMoment = Set("en", "en-us")
+  val supported       = config.get[Seq[String]]("play.i18n.langs").map(_.toLowerCase)
+  Option.when(!builtIntoMoment(langCode) && supported.contains(langCode))(s"vendor/moment/$langCode.js")
+}
 
 <!DOCTYPE html>
-<html lang="@messages.lang.code">
+@* data-mobile-device is the server's mobile verdict (ControllerUtils.isMobile, the single mobile definition) for
+   this request; util.isMobile() reads it back so client and server always agree on which UI variant is running. *@
+<html lang="@messages.lang.code" data-mobile-device="@ControllerUtils.isMobile">
   <head>
       <!-- Global site tag (gtag.js) - Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=@commonData.googleAnalyticsId"></script>
@@ -38,7 +60,6 @@
     <link href='@assets.path("vendor/bootstrap-accessibility/bootstrap-accessibility.css")' rel='stylesheet'>
 
     <script src='@assets.path("vendor/jquery/jquery-1.12.2.min.js")'></script>
-    <script src='@assets.path("vendor/jquery-ui/jquery-ui-1.12.1.min.js")'></script>
     <script src='@assets.path("vendor/bootstrap/js/bootstrap-3.1.1.min.js")'></script>
     <script src='@assets.path("vendor/bootstrap-accessibility/bootstrap-accessibility.min.js")'></script>
 
@@ -65,21 +86,16 @@
     @* Navbar interactivity (dropdowns, city search, hamburger, click logging); no-ops on pages without the navbar. *@
     <script src='@assets.path("js/common/Navbar.js")' defer></script>
 
-    <script src='@assets.path("vendor/bowser/bowser-2.14.1.min.js")'></script>
-    <script src='@assets.path("js/common/pagetopPadding.js")' defer></script>
+    @* Deferred: utilities.js only touches the bowser global lazily, from DOMContentLoaded-or-later callers. *@
+    <script src='@assets.path("vendor/bowser/bowser-2.14.1.min.js")' defer></script>
     <script src='@assets.path("js/common/utilities.js")'></script>
     <script src='@assets.path("js/common/utilitiesMath.js")'></script>
     <script src='@assets.path("js/common/i18nDom.js")'></script>
     <script src='@assets.path("js/common/psTooltip.js")'></script>
     <script src='@assets.path("/js/common/AppManager.js")'></script>
   </head>
-  <body>
+  <body class="@bodyClass">
     <script>
-      // Removes top padding on the pages that render without a fixed navbar. Fires on full load to match the old
-      // <body onload>, which ran after all resources settled.
-      @* Lazy lookup: pagetopPadding.js is deferred, so checkIfPaddingNeeded isn't defined at parse time yet. *@
-      window.addEventListener('load', () => checkIfPaddingNeeded());
-
       // Set up AppManager to initialize stuff that we need on every page (CSRF token, i18next, etc.).
       $(document).ready(function() {
         const csrfToken = "@CSRF.getToken.map(_.value)";
@@ -119,20 +135,13 @@
     <div id="wrap" class='@if(fullWindow){wrap--full-window}'>
       @content
     </div>
-    @if(url == "/explore" || url == "/labelMap" || url == "/routeBuilder") {
+    @if(url == "/explore" || fullWindow) {
       <script>
         // Prevents extra whitespace at the bottom of the page, not sure why that's an issue.
         document.getElementsByTagName("body")[0].style.overflow = "hidden";
       </script>
     }
-      <!-- Trying out no footer on Explore or Validate. Mini footer on mobile sign in/up. Code is weird bc "else if" doesn't work in template scala rn. -->
-    @if(url == "/explore" || url == "/validate" || url == "/expertValidate" || url == "/mobile" || url == "/signInMobile" || url == "/signUpMobile" || url == "/mobileLanding" || url == "/labelMap" || url == "/routeBuilder") {
-      @if(url == "/explore" || url == "/validate" || url == "/expertValidate" || url == "/mobile" || url == "/mobileLanding" || url == "/labelMap" || url == "/routeBuilder") {
-      } else {
-        <!-- footer code found in app/views/footer.scala.html -->
-    @common.miniFooter(commonData)
-    }
-    } else {
+    @if(!noFooter) {
 
     <div class="filler"></div>
 
@@ -152,10 +161,10 @@
         </div>
         <div class="col-sm-4 footer-link">
           <span class="footer-header">@Messages("footer.connect")</span><br>
-          <a target="_blank" href="https://github.com/ProjectSidewalk/SidewalkWebpage" id="connect-github-link"><img width="15" src='@assets.path("images/github_logo.png")' alt="Github logo">&nbsp;Github</a> <br>
-          <a target="_blank" href="https://www.linkedin.com/company/project-sidewalk/" id="connect-linkedin-link"><img width="15" src='@assets.path("images/linkedin_logo.png")' alt="LinkedIn logo">&nbsp;LinkedIn</a><br>
-          <a target="_blank" href="https://bsky.app/profile/projectsidewalk.bsky.social" id="connect-bluesky-link"><img width="15" src='@assets.path("images/bluesky_logo.png")' alt="Bluesky logo">&nbsp;Bluesky</a><br>
-          <a target="_blank" href="mailto:sidewalk@@cs.uw.edu" id="connect-email-link"><img width="15" src='@assets.path("images/email.png")' alt="Email icon">&nbsp;@Messages("footer.email")</a><br>
+          <a target="_blank" href="https://github.com/ProjectSidewalk/SidewalkWebpage" id="connect-github-link">@common.socialIcon("github")&nbsp;Github</a> <br>
+          <a target="_blank" href="https://www.linkedin.com/company/project-sidewalk/" id="connect-linkedin-link">@common.socialIcon("linkedin")&nbsp;LinkedIn</a><br>
+          <a target="_blank" href="https://bsky.app/profile/projectsidewalk.bsky.social" id="connect-bluesky-link">@common.socialIcon("bluesky")&nbsp;Bluesky</a><br>
+          <a target="_blank" href="mailto:sidewalk@@cs.uw.edu" id="connect-email-link">@common.socialIcon("email")&nbsp;@Messages("footer.email")</a><br>
         </div>
       </div>
     </div>
@@ -235,11 +244,12 @@
       });
     </script>
 
-    <script src='@assets.path("vendor/moment/moment-2.30.1.js")'></script>
-    <script src='@assets.path("vendor/moment/es.js")'></script>
-    <script src='@assets.path("vendor/moment/nl.js")'></script>
-    <script src='@assets.path("vendor/moment/zh-tw.js")'></script>
-    <script src='@assets.path("vendor/moment/en-nz.js")'></script>
+    @* 37KB gz of parser-blocking script, and nothing reads `moment` at parse time — updateTimestamps defers its work
+       to $(document).ready. timestampLocalization.js stays blocking so the call below still resolves (#4486). *@
+    <script src='@assets.path("vendor/moment/moment-2.30.1.js")' defer></script>
+    @momentLocaleFile.map { localeFile =>
+      <script src='@assets.path(localeFile)' defer></script>
+    }
     <script src='@assets.path("js/common/timestampLocalization.js")'></script>
     <script>updateTimestamps("@messages.lang.code");</script>
   </body>

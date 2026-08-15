@@ -59,6 +59,7 @@
   "download": {
     "button": "Downloaden",
     "title": "Kies een bestandsformaat om te downloaden",
+    "preparing": "Je download wordt voorbereid…",
     "count_one": "{{count}} etiket",
     "count_other": "{{count}} etiketten",
     "count-match_one": "komt overeen met je filters",
@@ -67,8 +68,9 @@
     "hint-csv": "Voor Excel, Google Spreadsheets",
     "hint-shapefile": "Voor ArcGIS, QGIS",
     "hint-geopackage": "Open GIS-formaat",
-    "caveat": "Sommige filters uit de link van deze pagina (meerdere regio's, routes of AI-validatie) worden niet toegepast op downloads.",
-    "api-docs-link": "Documentatie van de Raw Labels API"
+    "caveat": "Sommige filters uit de link van deze pagina (meerdere regio’s, routes of AI-validatie) kunnen niet worden toegepast op downloads, dus het bestand kan meer etiketten bevatten dan het aantal hierboven.",
+    "api-docs-link": "Documentatie van de Raw Labels API",
+    "opens-new-tab": " (opent in een nieuw tabblad)"
   },
   "story": {
     "heading": "Verhalen uit de community",

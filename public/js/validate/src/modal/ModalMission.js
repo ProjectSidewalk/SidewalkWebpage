@@ -92,6 +92,11 @@ class ModalMission {
   }
 
   show(title, instruction) {
+    // ModalNoNewMission paints these same elements, and what it puts there is a dead end with its own button and
+    // handler. Page load reaches the mission-start message after the first label has rendered, which is one of the
+    // points that dead end can be hit, so this would otherwise bury it under an "Ok" that just closes (#4810).
+    if (svv.modalNoNewMission?.isShowing()) return;
+
     // Disable keyboard on mobile.
     if (svv.keyboard) {
       svv.keyboard.disableKeyboard();

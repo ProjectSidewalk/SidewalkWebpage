@@ -307,6 +307,7 @@ audit.tutorial.complete.1 = You did it!
 audit.tutorial.complete.2 = You completed the tutorial!
 audit.tutorial.complete.learn-more = Learn more
 audit.tutorial.complete.start-contributing = Start contributing
+audit.tutorial.pause-animation = Pause animation
 
 audit.ribbon.curb.ramp.labels = CURB RAMP LABELS
 audit.ribbon.sidewalk.labels = SIDEWALK LABELS
@@ -366,15 +367,12 @@ authenticate.identifier = Email or username
 authenticate.password = Password
 authenticate.remember.me = Keep me signed in
 authenticate.new = Are you new? <a href="#" id="form-open-sign-up">Sign up!</a>
-authenticate.non.member = Not a member? <a href="{0}">Sign up now</a>
 authenticate.confirm.password = Confirm password
 authenticate.service.hours.title = Are you planning to request that your work through Project Sidewalk be counted for community/volunteer service hours?
 authenticate.terms = You agree to our <a target="_blank" href="/terms">Terms of Use and Privacy Policy</a>
 authenticate.signup = Sign up
-authenticate.signup.new.account = Sign up for a new account
 authenticate.has.account = Have an account? <a href="#" id="form-open-sign-in">Sign in</a>
 authenticate.is.member = Already a member? <a href="{0}">Sign in now</a>
-authenticate.signin.with.credentials = Sign in with your credentials
 
 user.exists = Email already exists
 authenticate.error.username.exists = Username already exists

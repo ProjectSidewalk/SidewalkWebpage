@@ -52,9 +52,9 @@ class Canvas {
 
     // Render the canvas at its on-screen (and HiDPI) resolution now that pano may be displayed at a different size
     // than the 720x480 logical frame, while keeping all drawing code in that logical frame via a context transform.
-    this.#sizeCanvasToDisplay(el);
+    util.sizeCanvasToDisplay(el, this.#ctx);
 
-    // clearRect() operates in the logical frame thanks to the context transform set in #sizeCanvasToDisplay.
+    // clearRect() operates in the logical frame thanks to the context transform set in util.sizeCanvasToDisplay.
     this.#canvasProperties.width = util.EXPLORE_CANVAS_WIDTH;
     this.#canvasProperties.height = util.EXPLORE_CANVAS_HEIGHT;
 
@@ -77,26 +77,6 @@ class Canvas {
     svl.ui.streetview.viewControlLayer.on('mousemove', (e) => this.#handlerViewControlLayerMouseMove(e));
     svl.ui.streetview.viewControlLayer.on('mouseleave', (e) => this.#handlerViewControlLayerMouseLeave(e));
     svl.ui.streetview.viewControlLayer[0].onselectstart = () => false;
-  }
-
-  /**
-   * Sizes the label canvas bitmap to its on-screen size times the device pixel ratio, and scales the 2D
-   * context so all drawing done in the fixed 720x480 logical frame renders at full resolution.
-   * @param {HTMLCanvasElement} el - The label canvas element.
-   */
-  #sizeCanvasToDisplay(el) {
-    const rect = el.getBoundingClientRect();
-    const displayWidth = rect.width || util.EXPLORE_CANVAS_WIDTH;
-    const dpr = window.devicePixelRatio || 1;
-    el.width = Math.round(displayWidth * dpr);
-    el.height = Math.round(displayWidth / util.EXPLORE_CANVAS_ASPECT_RATIO * dpr);
-    // Map the 720x480 logical frame onto the full-resolution bitmap. Setting el.width/height above resets
-    // the context, so this transform must be (re)applied here.
-    const scale = el.width / util.EXPLORE_CANVAS_WIDTH;
-    this.#ctx.setTransform(scale, 0, 0, scale, 0, 0);
-    // Label icons are drawn from a raster sized for the densest display we support (see Label.preloadIcons), so on
-    // anything less dense they arrive downscaled; the default 'low' filter frays their outer circle.
-    this.#ctx.imageSmoothingQuality = 'high';
   }
 
   /**
@@ -575,8 +555,11 @@ class Canvas {
   onLabel(x, y) {
     const labels = svl.labelContainer.getCanvasLabels();
 
-    // Check labels to see if they are under the mouse cursor.
-    for (let i = 0; i < labels.length; i += 1) {
+    // Walked back to front, because render() draws this same list in order and so the *last* match is the one the
+    // user can actually see. Searching forward returned the label underneath. That was mostly hidden while the click
+    // target was smaller than the icon; now that the target is the icon (#4838), two icons that visually touch have
+    // overlapping targets, which makes it the ordinary case rather than a corner one.
+    for (let i = labels.length - 1; i >= 0; i -= 1) {
       if (labels[i].isOn(x, y)) {
         this.#status.currentLabel = labels[i];
         return labels[i];
@@ -619,7 +602,7 @@ class Canvas {
   resize() {
     const el = document.getElementById('label-canvas');
     if (!el || !this.#ctx) return;
-    this.#sizeCanvasToDisplay(el);
+    util.sizeCanvasToDisplay(el, this.#ctx);
     this.clear().render();
   }
 
