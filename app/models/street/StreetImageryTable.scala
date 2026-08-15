@@ -3,10 +3,32 @@ package models.street
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
+import org.locationtech.jts.geom.LineString
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+import slick.jdbc.GetResult
 
 import java.time.{LocalDate, OffsetDateTime}
 import javax.inject.{Inject, Singleton}
+
+/**
+ * A street selected for an imagery-age poll, with the sample points to query (#4384).
+ *
+ * @param streetEdgeId The street to poll.
+ * @param points       (lat, lng) sample points along the street's interior, at the 20%/50%/80% marks. Interior on
+ *                     purpose: an endpoint sits on an intersection, where the pano nearest the sample point is often
+ *                     on a cross street and would smear that street's capture dates onto this one.
+ * @param geom         The street's full geometry, so observed panos can be checked against the street itself.
+ */
+case class StreetToPoll(streetEdgeId: Int, points: Seq[(Double, Double)], geom: LineString)
+
+/**
+ * One pano observation forwarded to upsertFromPoll: its position, parsed capture date (if any), and which of the
+ * street's sample points it was seen from. The upsert attributes the observation to the polled street only when that
+ * street is the nearest one to this position (#4384), the same rule refreshFromPanoData and the evolution-356
+ * backfill apply to labeling-observed panos; pointIndex is what lets it compute the per-point newest captures behind
+ * median_newest_capture.
+ */
+case class PolledPano(lat: Double, lng: Double, capture: Option[LocalDate], pointIndex: Int)
 
 /**
  * Which feeder wrote a street_imagery row. Values match the Postgres `street_imagery_source` enum type (356.sql):
@@ -113,6 +135,154 @@ class StreetImageryTable @Inject() (protected val dbConfigProvider: DatabaseConf
    * Number of streets that have a recorded imagery summary.
    */
   def count: DBIO[Int] = streetImageryRecords.length.result
+
+  /**
+   * Picks the streets most in need of an imagery-age poll (#4384).
+   *
+   * Open, non-tutorial streets, ordered so that audited streets come first (their outdated_imagery flags are what the
+   * poll exists to feed) and, within each group, streets whose imagery knowledge is oldest (no street_imagery row at
+   * all first, then stale updated_at). The poller bumps updated_at on every street it successfully polls -- even when
+   * the dates don't change -- which is what advances this rotation. The tiering is strict: in a city with more than
+   * `limit` audited streets, the batch is all audited streets and unaudited ones are never reached -- accepted,
+   * since only audited streets have flags to feed, but it means this poll is not a city-wide imagery census.
+   *
+   * Sample points sit at the street's 20%/50%/80% marks -- see StreetToPoll for why interior points, not endpoints.
+   *
+   * The ordering forces a full sort of the city's open streets each night, but that is a top-N heapsort over a few
+   * tens of thousands of rows and Postgres evaluates the PostGIS interpolations above the Limit, so only `limit`
+   * streets pay for them. No need to hand-roll a subquery to get that.
+   *
+   * @param limit Maximum number of streets to return.
+   */
+  def streetsToPoll(limit: Int): DBIO[Seq[StreetToPoll]] = {
+    implicit val getStreetToPoll: GetResult[StreetToPoll] = GetResult { r =>
+      val id     = r.nextInt()
+      val points = Seq.fill(3)((r.nextDouble(), r.nextDouble())) // Each ST_LineInterpolatePoint pair is (lat, lng).
+      StreetToPoll(id, points, r.nextGeometry[LineString]())
+    }
+    sql"""
+      SELECT street_edge.street_edge_id,
+             ST_Y(ST_LineInterpolatePoint(street_edge.geom, 0.2)) AS near_start_lat,
+             ST_X(ST_LineInterpolatePoint(street_edge.geom, 0.2)) AS near_start_lng,
+             ST_Y(ST_LineInterpolatePoint(street_edge.geom, 0.5)) AS mid_lat,
+             ST_X(ST_LineInterpolatePoint(street_edge.geom, 0.5)) AS mid_lng,
+             ST_Y(ST_LineInterpolatePoint(street_edge.geom, 0.8)) AS near_end_lat,
+             ST_X(ST_LineInterpolatePoint(street_edge.geom, 0.8)) AS near_end_lng,
+             street_edge.geom
+      FROM street_edge
+      LEFT JOIN street_imagery ON street_edge.street_edge_id = street_imagery.street_edge_id
+      WHERE street_edge.status = 'open'
+          AND street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
+      ORDER BY EXISTS (
+                   SELECT FROM audit_task
+                   WHERE audit_task.street_edge_id = street_edge.street_edge_id AND audit_task.completed = TRUE
+               ) DESC,
+               street_imagery.updated_at ASC NULLS FIRST,
+               street_edge.street_edge_id
+      LIMIT $limit;
+    """.as[StreetToPoll]
+  }
+
+  /**
+   * Records one poll's result for a street: snapshots median_newest_capture, widens the min/max capture range, and
+   * always bumps updated_at (#4384).
+   *
+   * Each observation is attributed only if the polled street is the NEAREST street (within
+   * PanoStreetToleranceMeters) to the observation's position -- the same nearest-street rule as refreshFromPanoData,
+   * checked here in SQL because deciding "nearest" needs the whole street network, not just the polled street's
+   * geometry. A corner pano whose nearest street is the cross street therefore never smears its date onto this one.
+   *
+   * median_newest_capture is the ceil(n/2)-th newest of the per-sample-point newest captures, with a point that has
+   * no attributable dated imagery counting as infinitely old -- so an audit predating it means at least half the
+   * sampled points show newer imagery (the flag rule in syncOutdatedImageryFlags). Unlike the min/max range it is
+   * REPLACED each poll, not widened: each poll is a complete snapshot of the same fixed sample points, and only this
+   * method writes the column, so widening would just fossilize the newest snapshot ever seen and stop flags from
+   * clearing when a later poll walks the median back.
+   *
+   * On conflict, oldest/newest only ever widen (LEAST/GREATEST ignore NULLs) and n_panos / data_source are left
+   * alone -- a poll sees at most a few panos, so a scan's richer pano count stays authoritative. A street where
+   * nothing was attributable still gets its row upserted (NULL dates, n_panos 0 on insert), recording "checked,
+   * nothing there" and advancing the streetsToPoll rotation -- and NULLing the median, since that is this poll's
+   * honest snapshot.
+   *
+   * @param streetEdgeId   The polled street.
+   * @param nPointsSampled How many sample points the poll conclusively answered for (the median's denominator).
+   * @param panos          Observations from the street's sample points, deduped per (pano, sample point) -- a pano
+   *                       genuinely visible from two sample points informs both points' newest capture.
+   */
+  def upsertFromPoll(streetEdgeId: Int, nPointsSampled: Int, panos: Seq[PolledPano]): DBIO[Int] = {
+    if (panos.isEmpty) {
+      sqlu"""
+        INSERT INTO street_imagery (street_edge_id, oldest_capture, newest_capture, median_newest_capture, n_panos,
+                                    data_source, updated_at)
+        VALUES ($streetEdgeId, NULL, NULL, NULL, 0, 'imagery_poll', now())
+        ON CONFLICT (street_edge_id) DO UPDATE
+        SET median_newest_capture = NULL,
+            updated_at            = EXCLUDED.updated_at;
+      """
+    } else {
+      // The (offset+1)-th newest per-point date is the youngest date that at least ceil(n/2) sampled points reach.
+      val medianOffset = (nPointsSampled + 1) / 2 - 1
+      // Inlined literals are program-built numerics and ISO dates (never user input), so interpolation is safe here.
+      val valuesList = panos
+        .map { pano =>
+          val capture = pano.capture.map(d => s"'$d'::date").getOrElse("NULL::date")
+          s"(${pano.lat}::float8, ${pano.lng}::float8, $capture, ${pano.pointIndex}::int)"
+        }
+        .mkString(", ")
+      sqlu"""
+        WITH observed (lat, lng, capture, point_idx) AS (VALUES #$valuesList),
+        kept AS (
+            SELECT observed.lat, observed.lng, observed.capture, observed.point_idx
+            FROM observed
+            WHERE (
+                SELECT street_edge.street_edge_id
+                FROM street_edge
+                WHERE ST_DWithin(street_edge.geom, ST_SetSRID(ST_MakePoint(observed.lng, observed.lat), 4326), 0.001)
+                    AND ST_DWithin(
+                            street_edge.geom::geography,
+                            ST_SetSRID(ST_MakePoint(observed.lng, observed.lat), 4326)::geography,
+                            ${StreetImageryTable.PanoStreetToleranceMeters}
+                        )
+                ORDER BY ST_Distance(
+                             street_edge.geom::geography,
+                             ST_SetSRID(ST_MakePoint(observed.lng, observed.lat), 4326)::geography
+                         )
+                LIMIT 1
+            ) = $streetEdgeId
+        ),
+        per_point AS (
+            SELECT MAX(kept.capture) AS newest_at_point
+            FROM kept
+            GROUP BY kept.point_idx
+        ),
+        median AS (
+            -- Sample points absent from per_point (nothing attributable) or with only undated panos (NULL max) rank
+            -- as infinitely old, so they are simply skipped: if fewer than ceil(n/2) points have a dated newest, the
+            -- OFFSET walks past the last row and the scalar subquery below yields NULL (no median claim).
+            SELECT per_point.newest_at_point AS capture_at_median_point
+            FROM per_point
+            WHERE per_point.newest_at_point IS NOT NULL
+            ORDER BY per_point.newest_at_point DESC
+            OFFSET $medianOffset LIMIT 1
+        )
+        INSERT INTO street_imagery (street_edge_id, oldest_capture, newest_capture, median_newest_capture, n_panos,
+                                    data_source, updated_at)
+        SELECT $streetEdgeId, MIN(kept.capture), MAX(kept.capture),
+               (SELECT median.capture_at_median_point FROM median),
+               -- Distinct positions stand in for distinct panos: a pano seen from two sample points appears once per
+               -- point in `kept`, at the identical provider-reported position.
+               COUNT(DISTINCT (kept.lat, kept.lng)) FILTER (WHERE kept.capture IS NOT NULL),
+               'imagery_poll', now()
+        FROM kept
+        ON CONFLICT (street_edge_id) DO UPDATE
+        SET oldest_capture        = LEAST(street_imagery.oldest_capture, EXCLUDED.oldest_capture),
+            newest_capture        = GREATEST(street_imagery.newest_capture, EXCLUDED.newest_capture),
+            median_newest_capture = EXCLUDED.median_newest_capture,
+            updated_at            = EXCLUDED.updated_at;
+      """
+    }
+  }
 
   /**
    * Refreshes street_imagery from recently-viewed panos, attributing each pano to its nearest street (zero API cost).

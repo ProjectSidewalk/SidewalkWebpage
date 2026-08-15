@@ -313,6 +313,7 @@ trait PanoDataService {
    */
   def getInfra3dToken(cityId: String): Future[String]
   def panoExists(panoId: String, panoSource: PanoSource): Future[Option[Boolean]]
+  def signUrl(urlString: String): String
   def getReusableImageryStatus(panoIds: Set[String]): Future[Map[String, Boolean]]
   def getImageUrl(panoId: String, panoSrc: PanoSource, heading: Double, pitch: Double, zoom: Double): Option[String]
   def getGsvImageUrlsForStreet(streetEdgeId: Int): Future[Seq[String]]
