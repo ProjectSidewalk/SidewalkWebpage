@@ -174,6 +174,10 @@ matching it.
   [Changelog](https://github.com/js-cookie/js-cookie/releases)
 - **kinetic: 4.4.3** — **note:** only used for the hand animation in the Explore tutorial;
   [no longer maintained](https://github.com/ericdrowell/KineticJS). Could bump to 5.1.0 and leave it.
+- **leaflet (js & css): 1.9.4** — the maps embedded in the API-docs pages. Ships its own `images/` (marker and
+  layers PNGs), which the CSS resolves relative to itself and `L.Icon.Default` path-detects from — so upgrade the
+  whole `dist/` folder together, not just the two files.
+  [Download](https://leafletjs.com/download.html) · [Changelog](https://github.com/Leaflet/Leaflet/releases)
 - **mapbox-gl (js & css): 3.21.0** — check with `mapboxgl.version`.
   [Install/download](https://docs.mapbox.com/mapbox-gl-js/guides/install/) ·
   [Changelog](https://github.com/mapbox/mapbox-gl-js/blob/main/CHANGELOG.md)
