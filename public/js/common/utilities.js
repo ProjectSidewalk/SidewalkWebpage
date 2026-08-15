@@ -271,6 +271,27 @@ util.applyToolScale = function (widthVarNames, heightVarNames) {
   return scale;
 };
 
+/** What util.legacyViewportScale falls back to, and what the CSS assumes when JS hasn't run: a ~390pt phone. */
+util.DEFAULT_LEGACY_VIEWPORT_SCALE = 2.5;
+
+/**
+ * How far a page that ships no viewport meta is being shrunk to fit the device, as a factor to scale UI back up by.
+ *
+ * Such a page is laid out at a legacy viewport (~980 CSS px wide) and then fitted to the screen, which leaves
+ * anything authored in real design-system units at a fraction of its intended size. The counter-scale is the ratio
+ * between the two widths, so it lands near 2.5 on a 390pt phone, ~3.1 on a 320pt one, and ~1.3 on a tablet — all of
+ * which the server's mobile UA regex routes to the same page.
+ *
+ * @param {number} layoutWidth The layout viewport's width in CSS px, i.e. document.documentElement.clientWidth.
+ * @param {number} screenWidth The screen's own width in points, i.e. screen.width.
+ * @returns {number} The factor, clamped to [1, 4] — a screen at least as wide as the layout means the page isn't
+ *      being shrunk, so it scales by 1. DEFAULT_LEGACY_VIEWPORT_SCALE when either measurement is missing.
+ */
+util.legacyViewportScale = function (layoutWidth, screenWidth) {
+  if (!(layoutWidth > 0) || !(screenWidth > 0)) return util.DEFAULT_LEGACY_VIEWPORT_SCALE;
+  return Math.max(1, Math.min(4, layoutWidth / screenWidth));
+};
+
 /**
  * Returns the uniform UI scale factor currently applied to the page (see util.applyToolScale), or 1 if unscaled.
  * @returns {number} The current --ui-scale value.

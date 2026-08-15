@@ -195,8 +195,8 @@ class LabelVisibilityControl {
   }
 
   /**
-   * Toggles the card. The mobile pano has no hover, so a tap on the marker opens and closes it; on desktop this is
-   * Enter/Space on the focused marker.
+   * Toggles the card. The mobile pano has no hover, so activating the marker — a tap, an assistive technology's
+   * press, or Enter/Space — opens and closes it; on desktop this is Enter/Space on the focused marker.
    *
    * @param {Object} [options] Forwarded to showLabelCard — see its viaKeyboard note.
    */
@@ -229,8 +229,8 @@ class LabelVisibilityControl {
    * Mirrors the card's visibility onto the marker's aria-expanded, so a screen reader hears whether pressing the
    * marker will open or close the card. Looked up fresh each time: the marker is recreated on viewer swaps.
    *
-   * Only the desktop marker is a disclosure button (PanoMarker gives it its ARIA); the mobile one is a plain touch
-   * target, and stamping aria-expanded on it would be state for a role it doesn't claim.
+   * Guarded on the role rather than the platform: PanoMarker is what decides whether a given marker claims to be a
+   * disclosure button, and only one that does should carry the state.
    */
   #setMarkerExpanded(expanded) {
     const marker = document.getElementById('validate-pano-marker');

@@ -95,6 +95,7 @@ module.exports = function (grunt) {
           'public/js/common/utilitiesSidewalk.js',
           'public/js/common/SpeedLimit.js',
           'public/js/common/MissionStartTutorial.js',
+          'public/js/common/Confetti.js',
           // Toast must be concatenated before BadgeAchievements, which builds badge-unlock toasts.
           'public/js/common/Toast.js',
           'public/js/common/BadgeAchievements.js',

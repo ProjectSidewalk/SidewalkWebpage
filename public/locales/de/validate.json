@@ -100,10 +100,6 @@
     "body": "Wir konnten das Strassenbildmaterial für die Beschriftungen dieser Mission nicht laden, daher gibt es im Moment nichts zu zeigen. Ihre abgeschlossenen Validierungen sind gespeichert. Das erledigt sich meist von selbst — bitte versuchen Sie es erneut.",
     "retry": "Erneut versuchen"
   },
-  "mission-start": {
-    "title": "Validieren Sie {{n}} {{label_type}} Beschriftungen",
-    "body": "Ihre Mission ist es, die Richtigkeit von __LABELCOUNT_PLACEHOLDER__ __LABELTYPE_PLACEHOLDER__</span> Beschriftungen anderer Nutzenden zu bestimmen!"
-  },
   "mission-complete": {
     "title": "Gute Arbeit!",
     "body-1": "Sie haben gerade {{n}} Beschriftungen von Trottoirabsenkungen validiert.",
@@ -118,7 +114,12 @@
     "explore": "Erkundungsmission starten",
     "no-new-mission-title": "Keine weiteren Validierungsmissionen übrig",
     "no-new-mission-body": "Klicken Sie auf die Schaltfläche, um mit der Erkundung zu beginnen.",
-    "no-new-mission-button": "Beginnen Sie mit der Erkundung"
+    "no-new-mission-button": "Beginnen Sie mit der Erkundung",
+    "all-time_one": "{{count}} Validierung insgesamt",
+    "all-time_other": "{{count}} Validierungen insgesamt",
+    "next-badge_one": "Noch {{count}} Validierung bis {{badge}}",
+    "next-badge_other": "Noch {{count}} Validierungen bis {{badge}}",
+    "top-badge": "Höchstes Abzeichen erreicht — du bist eine Legende!"
   },
   "mobile": {
     "no-new-mission-body": "Sie können weitere Etiketten mit einem Laptop/Desktop-Computer hinzufügen oder Etiketten in einer anderen Stadt validieren!",
@@ -131,6 +132,7 @@
   "mission-start-tutorial": {
     "mst-instruction-1": "IHRE MISSION",
     "mst-instruction-2": "Validieren Sie {{nLabels}} Beschriftungen von {{- labelType}}",
+    "examples-label": "Beschriftungsbeispiele",
     "example-type-label-incorrect": "FALSCHES BEISPIEL",
     "label-on-image-title-incorrect": "Falsche Beschriftung",
     "label-on-image-description-correct": "Bewerten mit <b>Einverstanden</b>",

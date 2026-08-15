@@ -67,11 +67,18 @@ class ModalNoNewMission {
     }
     this.#uiModalMission.background.css('visibility', 'visible');
     this.#uiModalMission.instruction.html(imageryUnavailable ? this.#imageryUnavailable : this.#noMissionsRemaining);
+    // This dead end can follow a mission briefing, which leaves two things behind on mobile: its "YOUR MISSION"
+    // eyebrow, and the shrunk-to-one-line sizing it put on the title. This message is a sentence and wants to wrap at
+    // the heading's own size. Both are mobile-only elements/behavior, so both are no-ops on desktop.
+    this.#uiModalMission.eyebrow.empty();
+    this.#uiModalMission.missionTitle.css({ 'white-space': '', 'font-size': '' });
     this.#uiModalMission.missionTitle.html(imageryUnavailable
       ? i18next.t('imagery-unavailable.title')
       : i18next.t('mission-complete.no-new-mission-title'));
     this.#uiModalMission.holder.css('visibility', 'visible');
     this.#uiModalMission.foreground.css('visibility', 'visible');
+    // A briefing the validator had scrolled can be what this replaces, and hiding it preserved the offset.
+    this.#uiModalMission.foreground.scrollTop(0);
 
     let buttonLabel;
     if (imageryUnavailable) {
@@ -83,12 +90,8 @@ class ModalNoNewMission {
     }
     this.#uiModalMission.closeButton.html(buttonLabel);
 
-    // Widen the button to fit more text.
-    if (util.isMobile()) {
-      this.#uiModalMission.closeButton.css('font-size', '40pt');
-      this.#uiModalMission.closeButton.css('width', '76%');
-      this.#uiModalMission.closeButton.css('margin-right', '12%');
-    } else {
+    // Widen the button to fit more text. The mobile page's button is already full-width (mobile-validate.css).
+    if (!util.isMobile()) {
       this.#uiModalMission.closeButton.css('width', 'fit-content');
     }
 

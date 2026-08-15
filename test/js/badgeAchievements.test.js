@@ -75,6 +75,116 @@ describe('BadgeAchievements.getLevelForValue', () => {
     });
 });
 
+/**
+ * getProgress is the one copy of "how far along this badge track is a value", read by the dashboard's badge tracks
+ * and by Validate's mission-complete standing row. Both draw a bar from `fraction` and a "N more to X" line from
+ * `remaining`, so these pin the tier-relative semantics (a bar that fills once per badge, not once per track) and
+ * every boundary the two screens can land on.
+ */
+describe('BadgeAchievements.getProgress', () => {
+    // The validations track, which the mission-complete screen reads: [100, 250, 500, 1000, 5000].
+    const V = BadgeAchievements.THRESHOLDS.validations;
+
+    beforeEach(() => {
+        global.i18next = {t: (key) => key}; // getBadge localizes the badge's display name.
+    });
+
+    afterEach(() => {
+        delete global.i18next;
+    });
+
+    test('someone with no badge yet is on the first tier, measured from zero', () => {
+        const progress = BadgeAchievements.getProgress('validations', 0);
+
+        expect(progress.level).toBe(0);
+        expect(progress.badge).toBeNull();
+        expect(progress.next.roman).toBe('I');
+        expect(progress.earnedAt).toBe(0);
+        expect(progress.nextAt).toBe(V[0]);
+        expect(progress.fraction).toBe(0);
+        expect(progress.remaining).toBe(V[0]);
+    });
+
+    test('the fraction spans the current tier, not the whole track', () => {
+        // Halfway from Validator I (100) to Validator II (250) is 175 — a quarter of the way to 250 overall, so a
+        // fraction measured from zero would say 0.7 here and creep across the track instead of filling per badge.
+        const progress = BadgeAchievements.getProgress('validations', 175);
+
+        expect(progress.level).toBe(1);
+        expect(progress.fraction).toBeCloseTo(0.5, 10);
+        expect(progress.remaining).toBe(75);
+    });
+
+    test('landing exactly on a threshold earns that badge and starts the next tier at zero', () => {
+        const progress = BadgeAchievements.getProgress('validations', V[1]);
+
+        expect(progress.level).toBe(2);
+        expect(progress.badge.roman).toBe('II');
+        expect(progress.next.roman).toBe('III');
+        expect(progress.earnedAt).toBe(V[1]);
+        expect(progress.fraction).toBe(0);
+        expect(progress.remaining).toBe(V[2] - V[1]);
+    });
+
+    test('one short of a threshold has not earned it, and is all but there', () => {
+        const progress = BadgeAchievements.getProgress('validations', V[0] - 1);
+
+        expect(progress.level).toBe(0);
+        expect(progress.badge).toBeNull();
+        expect(progress.remaining).toBe(1);
+        expect(progress.fraction).toBeCloseTo(0.99, 10);
+    });
+
+    test('the top badge is a full bar with nothing left to climb', () => {
+        const progress = BadgeAchievements.getProgress('validations', V[4] + 12_345);
+
+        expect(progress.level).toBe(5);
+        expect(progress.badge.roman).toBe('V');
+        expect(progress.next).toBeNull();
+        expect(progress.fraction).toBe(1);
+        expect(progress.remaining).toBe(0);
+    });
+
+    test('fraction stays within [0, 1] and remaining never goes negative, on every track and every tier', () => {
+        for (const track of TRACKS) {
+            const thresholds = BadgeAchievements.THRESHOLDS[track];
+            const probes = [0, ...thresholds.flatMap((t) => [t - 0.001, t, t + 0.001]), thresholds[4] * 10];
+            for (const value of probes) {
+                const {fraction, remaining} = BadgeAchievements.getProgress(track, value);
+                expect(fraction).toBeGreaterThanOrEqual(0);
+                expect(fraction).toBeLessThanOrEqual(1);
+                expect(remaining).toBeGreaterThanOrEqual(0);
+            }
+        }
+    });
+
+    test('level and badge agree with getLevelForValue, which the tier pill reads separately', () => {
+        for (const track of TRACKS) {
+            for (const value of [0, 1, ...BadgeAchievements.THRESHOLDS[track]]) {
+                const progress = BadgeAchievements.getProgress(track, value);
+                expect(progress.level).toBe(BadgeAchievements.getLevelForValue(track, value));
+                expect(progress.badge?.level ?? 0).toBe(progress.level);
+            }
+        }
+    });
+
+    test('an unknown track reports no progress rather than throwing', () => {
+        const progress = BadgeAchievements.getProgress('nonsense', 10_000);
+
+        expect(progress.level).toBe(0);
+        expect(progress.badge).toBeNull();
+        expect(progress.next).toBeNull();
+        expect(progress.remaining).toBe(0);
+    });
+
+    test('the distance track can be asked for kilometer icons, as the dashboard does', () => {
+        const progress = BadgeAchievements.getProgress('distance', 3, {isMetric: true});
+
+        expect(progress.badge.iconSrc).toContain('distance_km');
+        expect(progress.next.iconSrc).toContain('distance_km');
+    });
+});
+
 describe('BadgeAchievements.seedCounts', () => {
     // Each test re-evaluates the class so the once-only #seeded latch starts fresh.
     let Badges;

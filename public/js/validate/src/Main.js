@@ -94,6 +94,7 @@ class Main {
     svv.ui.modalMission.holder = $('#modal-mission-holder');
     svv.ui.modalMission.foreground = $('#modal-mission-foreground');
     svv.ui.modalMission.background = $('#modal-mission-background');
+    svv.ui.modalMission.eyebrow = $('#modal-mission-eyebrow'); // Mobile only; empty jQuery set on desktop.
     svv.ui.modalMission.missionTitle = $('#modal-mission-header');
     svv.ui.modalMission.instruction = $('#modal-mission-instruction');
     svv.ui.modalMission.closeButton = $('#modal-mission-close-button');
@@ -109,6 +110,12 @@ class Main {
     svv.ui.modalMissionComplete.message = $('#modal-mission-complete-message');
     svv.ui.modalMissionComplete.missionTitle = $('#modal-mission-complete-title');
     svv.ui.modalMissionComplete.unsureCount = $('#modal-mission-complete-unsure-count');
+    // The mission's label type, and the validator's standing after it. Mobile only; empty jQuery sets on desktop.
+    svv.ui.modalMissionComplete.labelIcon = $('#mission-complete-label-icon');
+    svv.ui.modalMissionComplete.badgeIcon = $('#mission-complete-badge-icon');
+    svv.ui.modalMissionComplete.badgeName = $('#mission-complete-badge-name');
+    svv.ui.modalMissionComplete.badgeProgressFill = $('#mission-complete-badge-progress-fill');
+    svv.ui.modalMissionComplete.badgeNext = $('#mission-complete-badge-next');
     svv.ui.modalMissionComplete.yourOverallTotalCount = $('#modal-mission-complete-your-overall-total-count');
 
     svv.ui.status = {};
