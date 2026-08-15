@@ -29,8 +29,8 @@ import java.time.OffsetDateTime
  *
  * Everything the suite writes is keyed to the throwaway anon users it mints and is deleted in `afterAll`, along with
  * the fake pano rows and the street priority the completed-task case moves — so a failed assertion can't leave the
- * shared dev DB altered. Tests cancel when the connected schema carries no street data (the empty CI city); a
- * /explore that answers anything but 200 on a seeded schema is a bug and fails.
+ * shared dev DB altered. Tests cancel when no region in the connected schema holds a street (the empty CI city), since
+ * /explore cannot assign one; a /explore that answers anything but 200 on a seeded schema is a bug and fails.
  */
 // Mixin order matters: GuiceOneAppPerSuite must be rightmost so its run() wraps BeforeAndAfterAll's — otherwise
 // afterAll's cleanup executes after the app (and its DB pool) has shut down and aborts the suite.
@@ -87,8 +87,15 @@ class ExploreSubmissionSpec
    * @return        The mission/task the server assigned, in the shape a submission payload is built from.
    */
   private def fetchExploreBootstrap(session: Seq[Cookie]): ExploreBootstrap = {
-    val streetCount = run(sql"SELECT count(*) FROM street_edge".as[Int]).head
-    if (streetCount == 0) cancel("No streets in the connected schema; /explore can't assign a task.")
+    // A street alone isn't enough to serve /explore: region assignment needs a region that holds one, and the CI
+    // template ships the tutorial street (id 1) with zero regions, so a plain street count never trips. Without a
+    // region, /explore 500s on an unhandled empty Option rather than answering (#4748) — cancel instead of failing on
+    // that known gap, so a 500 with assignable data still fails below.
+    val assignableStreets = run(sql"""SELECT count(*)
+                                      FROM street_edge_region
+                                      INNER JOIN region ON street_edge_region.region_id = region.region_id
+                                      WHERE region.deleted = FALSE""".as[Int]).head
+    if (assignableStreets == 0) cancel("No region holds a street in the connected schema; /explore can't assign one.")
 
     val resp = route(app, FakeRequest(GET, "/explore").withCookies(session: _*)).get
     status(resp) mustBe OK
