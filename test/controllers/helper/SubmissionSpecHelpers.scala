@@ -3,7 +3,10 @@ package controllers.helper
 import models.utils.MyPostgresProfile.api._
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
-import play.api.libs.json.{JsValue, Json}
+import play.api.libs.json.{JsObject, JsValue, Json}
+import play.api.mvc.Cookie
+import play.api.test.FakeRequest
+import play.api.test.Helpers._
 import util.{AnonSession, RolledBackDb}
 
 import scala.concurrent.duration._
@@ -53,4 +56,69 @@ trait SubmissionSpecHelpers extends RolledBackDb with AnonSession { this: PlaySp
    */
   protected def tableExists(tableName: String): Boolean =
     run(sql"SELECT to_regclass($tableName) IS NOT NULL".as[Boolean]).head
+
+  /**
+   * Loads /explore for the session and pulls the assigned mission/task out of the page's bootstrap script.
+   *
+   * Cancels rather than fails when the connected schema can't produce an assignment, since that is a property of the
+   * seed data and not of the code under test. A /explore that answers anything but 200 on a schema that *can* assign
+   * is a real failure and is left to fail.
+   *
+   * @param session Cookies from an anonymous session.
+   * @return        The mission/task the server assigned, in the shape a submission payload is built from.
+   */
+  protected def exploreBootstrap(session: Seq[Cookie]): ExploreBootstrap = {
+    // A street alone isn't enough to serve /explore: region assignment needs a region that holds one, and the CI
+    // template ships the tutorial street (id 1) with zero regions, so a plain street count never trips. Without a
+    // region, /explore 500s on an unhandled empty Option rather than answering (#4748) — cancel instead of failing on
+    // that known gap, so a 500 with assignable data still fails below.
+    val assignableStreets = run(sql"""SELECT count(*)
+                                      FROM street_edge_region
+                                      INNER JOIN region ON street_edge_region.region_id = region.region_id
+                                      WHERE region.deleted = FALSE""".as[Int]).head
+    if (assignableStreets == 0) cancel("No region holds a street in the connected schema; /explore can't assign one.")
+
+    val resp = route(app, FakeRequest(GET, "/explore").withCookies(session: _*)).get
+    status(resp) mustBe OK
+    val html = contentAsString(resp)
+    val task = embeddedPageJson(html, "mainParam.task")
+      .getOrElse(cancel("No task in the explore bootstrap (the user's assigned region is fully audited)."))
+    val mission = embeddedPageJson(html, "mainParam.mission")
+      .getOrElse(fail("No mission in the explore bootstrap."))
+    val regionId = embeddedPageJson(html, "mainParam.regionId")
+      .map(_.as[Int])
+      .getOrElse(fail("No regionId in the explore bootstrap."))
+    val missionId = (mission \ "mission_id").as[Int]
+    // The assigned mission row carries the session user's id, so it resolves the anon user for row assertions.
+    val userId = run(sql"SELECT user_id FROM mission WHERE mission_id = $missionId".as[String]).head
+    val props  = (task \ "properties").as[JsObject]
+    ExploreBootstrap(
+      userId,
+      regionId,
+      missionId,
+      (mission \ "mission_type").as[String],
+      (props \ "street_edge_id").as[Int],
+      (props \ "current_lat").as[Double],
+      (props \ "current_lng").as[Double],
+      (props \ "task_start").as[String],
+      (props \ "start_point_reversed").as[Boolean],
+      // Echoed back on submission exactly as the client does. A task the user already started carries the id of its
+      // existing audit_task row, and sending it is what routes the write to the update path instead of a second insert.
+      (props \ "audit_task_id").asOpt[Int]
+    )
+  }
 }
+
+/** The explore-page values a submission payload is built from, as the real client reads them. */
+case class ExploreBootstrap(
+    userId: String,
+    regionId: Int,
+    missionId: Int,
+    missionType: String,
+    streetEdgeId: Int,
+    currentLat: Double,
+    currentLng: Double,
+    taskStart: String,
+    startPointReversed: Boolean,
+    auditTaskId: Option[Int]
+)

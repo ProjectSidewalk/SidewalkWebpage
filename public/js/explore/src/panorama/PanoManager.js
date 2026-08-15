@@ -64,6 +64,38 @@ class PanoManager {
   }
 
   /**
+   * Decides what a failure to seed the viewer is allowed to say about the assigned street, and acts on it.
+   *
+   * Three outcomes, in increasing order of what we let ourselves write down (#4918):
+   * - the provider never answered — an SDK, network, quota, or maps-library failure — so the street's imagery is
+   *   unknown and nothing at all is recorded;
+   * - the provider answered "nothing here", but this session has already spent its skip budget, so we treat the run
+   *   as a broken session rather than a run of empty streets and still record nothing;
+   * - otherwise the street really does look imagery-less, so it is reported and the page reloads onto the next one.
+   *
+   * The first two both leave the user on a page with no panorama, so they get told rather than silently stranded.
+   *
+   * @param {Error} err - Whatever `create()` rejected with.
+   * @param {{task: Task, missionId: number}} errorParams - The street and mission the failure happened on.
+   * @returns {Promise<void>} Resolves once any report has been sent. The reload itself never resolves.
+   */
+  static async #handleViewerCreationFailure(err, errorParams) {
+    // Surface the error either way: it is the only record of a transient failure, since nothing is written to the db.
+    console.error('Pano viewer creation failed at the starting location.', err);
+    const streetLooksEmpty = err instanceof NoImageryError;
+
+    if (!streetLooksEmpty || !ImagerySkipGuard.canSkip()) {
+      svl.tracker?.push(streetLooksEmpty ? 'ImagerySkipBudgetSpent' : 'PanoViewerCreateFailed');
+      svl.alertController?.showAlert(i18next.t('popup.imagery-load-failed'), 'imageryLoadFailed', false);
+      return;
+    }
+
+    ImagerySkipGuard.recordSkip();
+    await util.misc.reportNoImagery(errorParams.task, errorParams.missionId);
+    window.location.replace('/explore');
+  }
+
+  /**
    * Initializes panoViewer on the Explore page, sets it to the starting location, and sets up listeners.
    * @returns {Promise<void>}
    * @private
@@ -89,16 +121,13 @@ class PanoManager {
     try {
       svl.panoViewer = await panoViewerType.create(this.panoCanvas, panoOptions);
     } catch (err) {
-      // Surface the error: creation can also fail for reasons beyond missing imagery (e.g. the maps library failing
-      // to load), and the redirect below would otherwise bury it.
-      console.error('Pano viewer creation failed at the starting location.', err);
-      // Record the street as having no usable imagery and refresh the page to get a new street.
-      await util.misc.reportNoImagery(errorParams.task, errorParams.missionId);
-      // window.location.replace() doesn't halt execution, so bail out before the code below dereferences the
-      // missing viewer. Main.js sees the undefined svl.panoViewer and stops its own init the same way.
-      window.location.replace('/explore');
+      // window.location.replace() doesn't halt execution, and neither does the give-up path, so bail out before the
+      // code below dereferences the missing viewer. Main.js sees the undefined svl.panoViewer and stops the same way.
+      await PanoManager.#handleViewerCreationFailure(err, errorParams);
       return;
     }
+    // Reaching a pano ends any run of failures, so the session gets its full skip budget back (#4918).
+    ImagerySkipGuard.reset();
 
     // If we started from a lat/lng and used a backup point closer to the end of the street, reverse the street
     // direction. An explicitly requested pano that loaded isn't a "couldn't start at the start" signal, so it

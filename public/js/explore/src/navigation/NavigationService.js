@@ -34,6 +34,8 @@ class NavigationService {
    */
   #missionJump = undefined;
   #stuckPanos = new Set([]);
+  // Street the #stuckPanos set belongs to; see the reset in moveForward().
+  #stuckPanosStreetId = null;
   #positionUpdateCallbacks = [];
   #povSettlePoll = null; // Interval id; see #refreshHeadingViewsAfterPovSettles.
 
@@ -142,25 +144,37 @@ class NavigationService {
       this.#endTheCurrentTask(currentTask, currentMission);
       this.#updateUiAfterMove();
       return Promise.resolve(null);
-    } else {
-      // If they are nowhere near the end, log the street as having no imagery and move them to a new street.
-      await util.misc.reportNoImagery(currentTask, currentMission.getProperty('missionId'));
+    }
 
-      // Get a new task and jump to the new task location.
-      this.#finishCurrentTaskBeforeJumping(currentMission);
-      const newTask = svl.taskContainer.nextTask(currentTask);
-      if (newTask) {
-        svl.taskContainer.setCurrentTask(newTask);
-        svl.stuckAlert.stuckSkippedStreet();
-        return this.moveForward();
-      } else {
-        // No new task: complete the neighborhood. This path skips #updateUiAfterMove(), so clear the flags here.
-        this.#status.movingToNewLocation = false;
-        this.#status.headingSettling = false;
-        svl.neighborhoodModel.setComplete();
-        svl.missionController.wrapUpRouteOrNeighborhood();
-        return Promise.resolve(null);
-      }
+    // Nowhere near the end, so the street really does look like it runs out of imagery ahead of the user. Reporting
+    // it marks the whole street audited and drops it out of the rotation, and this branch then moves to a new street
+    // and searches again — recursively, with nothing of its own to stop it. So it is charged to the same budget that
+    // bounds the page-load skip loop: past the budget a run of failures is far better explained by one broken
+    // session than by a run of empty streets, and we stop spending streets on it (#4918).
+    if (!ImagerySkipGuard.canSkip()) {
+      svl.tracker.push('ImagerySkipBudgetSpent');
+      this.#status.movingToNewLocation = false;
+      this.#status.headingSettling = false;
+      svl.alertController.showAlert(i18next.t('popup.imagery-load-failed'), 'imageryLoadFailed', false);
+      return Promise.resolve(null);
+    }
+    ImagerySkipGuard.recordSkip();
+    await util.misc.reportNoImagery(currentTask, currentMission.getProperty('missionId'));
+
+    // Get a new task and jump to the new task location.
+    this.#finishCurrentTaskBeforeJumping(currentMission);
+    const newTask = svl.taskContainer.nextTask(currentTask);
+    if (newTask) {
+      svl.taskContainer.setCurrentTask(newTask);
+      svl.stuckAlert.stuckSkippedStreet();
+      return this.moveForward();
+    } else {
+      // No new task: complete the neighborhood. This path skips #updateUiAfterMove(), so clear the flags here.
+      this.#status.movingToNewLocation = false;
+      this.#status.headingSettling = false;
+      svl.neighborhoodModel.setComplete();
+      svl.missionController.wrapUpRouteOrNeighborhood();
+      return Promise.resolve(null);
     }
   }
 
@@ -529,6 +543,17 @@ class NavigationService {
     const currentTask = svl.taskContainer.getCurrentTask();
     const streetEndpoint = turf.point([currentTask.getEndCoordinate().lng, currentTask.getEndCoordinate().lat]);
 
+    // The stuck set exists to stop the user cycling among panos they have already stood at on *this* street.
+    // Carrying it onto the next street poisons the search there: the nearest pano to a new street's start is
+    // routinely one visited on the street just finished, and setLocation() rejects an excluded pano exactly as it
+    // rejects empty ground — so a street with perfectly good imagery can scan as having none, and then be reported
+    // and marked audited on that basis (#4918). Short streets are the worst case, since every sample point on them
+    // can fall within range of the same already-visited pano.
+    if (currentTask.getStreetEdgeId() !== this.#stuckPanosStreetId) {
+      this.#stuckPanos.clear();
+      this.#stuckPanosStreetId = currentTask.getStreetEdgeId();
+    }
+
     // Prefetch images for the full street geometry. Using the full street (not just the remainder) ensures the
     // sampled points are identical on every moveForward() call, so the dedup in prefetchLocation() makes this
     // effectively a no-op after the first call on a given street.
@@ -545,6 +570,8 @@ class NavigationService {
       // Save current pano as one that doesn't work in case they try to move before clicking 'stuck' again.
       const newPanoId = svl.panoViewer.getPanoId();
       this.#stuckPanos.add(svl.panoStore.getPanoData(newPanoId));
+      // A move that lands ends any run of imagery failures, so the session gets its full skip budget back (#4918).
+      ImagerySkipGuard.reset();
       this.#updateUiAfterMove();
       return Promise.resolve(newPanoId);
     };

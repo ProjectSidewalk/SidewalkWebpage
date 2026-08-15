@@ -338,7 +338,11 @@ class MapillaryViewer extends PanoViewer {
     try {
       const bestPano = await this.#searchAndSelectPano(center, radius, excludedPanos);
       if (!bestPano) {
-        throw new Error('No images found near this location');
+        // With nothing excluded, an empty search result is Mapillary reporting that the location has no imagery.
+        // With exclusions in play it only means nothing *unvisited* turned up, which says nothing about whether the
+        // street has imagery, so that case must not be recordable against the street (#4918).
+        if (excludedPanos.size > 0) throw new Error('No unvisited images found near this location');
+        throw new NoImageryError(`No Mapillary images within ${radius * 1000}m of ${latLng.lat},${latLng.lng}.`);
       }
 
       // Load the pano. Say that it failed if it doesn't work after 10 seconds.
