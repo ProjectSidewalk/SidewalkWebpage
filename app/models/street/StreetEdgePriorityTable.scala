@@ -160,15 +160,24 @@ class StreetEdgePriorityTable @Inject() (
    */
 
   /**
-   * Returns 1 if good_user_audit_count = 0, o/w 1 / (1 + good_user_audit_count + 0.25*bad_user_audit_count).
+   * Returns 1 if no good-user audit exists, o/w 1 / (1 + fresh_good_count + outdated_half + 0.25*bad_count), where
+   * outdated_half is 0.5 if the street has any good-user audit flagged outdated_imagery and 0 otherwise.
    *
    *  - assign each user as "good" or "bad" based on their labeling frequency
    *    - compute total distance audited by each user, and total label count for each user
    *    - join the audited distance and label count tables to compute labeling frequency (now done in separate func)
-   *  - for each street edge
-   *    - count the number of audits by "good" users, and the number of audits by "bad" users
-   *    - if good_user_audit_count == 0 -> priority = 1
-   *      else                          -> priority = 1 / (1 + good_user_audit_count + 0.25*bad_user_audit_count)
+   *  - for each street edge, count good-user audits on current imagery (fresh), good-user audits flagged
+   *    outdated_imagery (outdated), and bad-user audits
+   *    - if fresh_good_count == 0 and outdated_good_count == 0 -> priority = 1
+   *      else -> priority = 1 / (1 + fresh_good_count + (0.5 if outdated_good_count > 0) + 0.25*bad_count)
+   *
+   * The flat 0.5 for outdated audits (#4384) places a street whose only audits are on since-replaced imagery at
+   * priority 1/1.5 ~= 0.67: below never-audited streets (1.0), so fresh coverage always outranks re-audits, but above
+   * freshly-audited streets (<= 0.5), so it re-enters the routing pool ahead of them -- and staying < 1.0 keeps
+   * region_completion and the audited-distance stats crediting the street as explored. It is a flat contribution, not
+   * 0.5 per audit: per-audit weighting would let a street with several outdated audits sink to or below the
+   * freshly-audited tier (two outdated would equal one fresh), pushing streets that need a re-audit behind streets
+   * that don't (review finding on #4649).
    *
    * @return
    */
@@ -182,46 +191,61 @@ class StreetEdgePriorityTable @Inject() (
     // NOTE We are calling the getQualityOfUsers function below, which does the heavy lifting.
     val completions = completedTasks
       // Select distinct street edge ids, and keep user id and street flags
-      .groupBy(task => (task.streetEdgeId, task.userId, task.lowQuality, task.incomplete, task.stale))
+      .groupBy(task =>
+        (task.streetEdgeId, task.userId, task.lowQuality, task.incomplete, task.stale, task.outdatedImagery)
+      )
       .map(_._1)
       .join(userStats)
       .on(_._2 === _.userId)    // join on user_id
       .filterNot(_._2.excluded) // filter out users marked with excluded = TRUE
-      // SELECT street_edge_id, (is_good_user AND NOT (low_quality or incomplete or stale))
-      .map { case (_task, _qual) => (_task._1, _qual.highQuality && !(_task._3 || _task._4 || _task._5)) }
+      // SELECT street_edge_id, (is_good_user AND NOT (low_quality or incomplete or stale)), outdated_imagery.
+      // outdated_imagery is kept separate from the quality flags: it is a machine-managed freshness signal, not a
+      // judgment of the audit, so it discounts a good audit's weight rather than reclassifying it as bad (#4384).
+      .map { case (_task, _qual) =>
+        (_task._1, _qual.highQuality && !(_task._3 || _task._4 || _task._5), _task._6)
+      }
 
     /**
      * ******** Compute Audit Counts *********
      */
 
-    // For audits by good users and bad users separately, group by street_edge_id and count the number of audits.
-    val goodUserAuditCounts = completions.filter(_._2).groupBy(_._1).map { case (edge, group) => (edge, group.length) }
-    val badUserAuditCounts  =
+    // Group by street_edge_id and count good-user audits on current imagery, good-user audits on since-replaced
+    // imagery, and bad-user audits (freshness doesn't matter for those -- they never gate priority) separately.
+    val freshGoodAuditCounts =
+      completions.filter(c => c._2 && !c._3).groupBy(_._1).map { case (edge, group) => (edge, group.length) }
+    val outdatedGoodAuditCounts =
+      completions.filter(c => c._2 && c._3).groupBy(_._1).map { case (edge, group) => (edge, group.length) }
+    val badUserAuditCounts =
       completions.filterNot(_._2).groupBy(_._1).map { case (edge, group) => (edge, group.length) }
 
-    // Join the good and bad user audit counts with street_edge table, filling in any counts not present as 0. We now
-    // have a table with three columns: street_edge_id, good_user_audit_count, bad_user_audit_count. We keep tutorial
+    // Join the audit counts with the street_edge table, filling in any counts not present as 0. We now have a table
+    // with four columns: street_edge_id, fresh_good_count, outdated_good_count, bad_user_audit_count. We keep tutorial
     // street in the set so its street_edge_priority row stays at priority=1.0 (it's never a regular audit target).
     val allAuditCounts =
       streetEdgeTable.streetsWithTutorial
-        .joinLeft(goodUserAuditCounts)
+        .joinLeft(freshGoodAuditCounts)
         .on(_.streetEdgeId === _._1)
-        .map { case (_edge, _goodCount) => (_edge.streetEdgeId, _goodCount.map(_._2).getOrElse(0)) }
+        .map { case (_edge, _freshCount) => (_edge.streetEdgeId, _freshCount.map(_._2).getOrElse(0)) }
+        .joinLeft(outdatedGoodAuditCounts)
+        .on(_._1 === _._1)
+        .map { case (_fresh, _outdatedCount) => (_fresh._1, _fresh._2, _outdatedCount.map(_._2).getOrElse(0)) }
         .joinLeft(badUserAuditCounts)
         .on(_._1 === _._1)
-        .map { case (_goodCount, _badCount) => (_goodCount._1, _goodCount._2, _badCount.map(_._2).getOrElse(0)) }
+        .map { case (_counts, _badCount) => (_counts._1, _counts._2, _counts._3, _badCount.map(_._2).getOrElse(0)) }
 
     /**
      * ******** Compute Priority *********
      */
-    // If good_user_audit_count > 0, priority = 1 / (1 + good_user_audit_count + 0.25*bad_user_audit_count)
-    // Else priority = 1 -- i.e., 1 / (1 + 0)
+    // If any good-user audit exists (fresh or outdated), the completion count is
+    // fresh_good_count + (0.5 if any outdated good audit) + 0.25*bad_user_audit_count; else 0, which the reciprocal
+    // transform turns into priority 1. See the method ScalaDoc for why the outdated contribution is a capped 0.5.
     val priorityParamTable: DBIO[Seq[StreetEdgePriorityParameter]] =
-      allAuditCounts.result.map(_.map { streetCount =>
-        if (streetCount._2 > 0) {
-          StreetEdgePriorityParameter.tupled((streetCount._1, streetCount._2 + 0.25 * streetCount._3))
+      allAuditCounts.result.map(_.map { case (streetEdgeId, freshGood, outdatedGood, bad) =>
+        if (freshGood > 0 || outdatedGood > 0) {
+          val outdatedHalf = if (outdatedGood > 0) 0.5 else 0.0
+          StreetEdgePriorityParameter.tupled((streetEdgeId, freshGood + outdatedHalf + 0.25 * bad))
         } else {
-          StreetEdgePriorityParameter.tupled((streetCount._1, 0.0))
+          StreetEdgePriorityParameter.tupled((streetEdgeId, 0.0))
         }
       })
 

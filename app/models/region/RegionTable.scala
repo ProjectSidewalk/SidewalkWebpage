@@ -101,6 +101,8 @@ class RegionTable @Inject() (
    * Gets regions w/ boolean noting if given user fully audited the region. If provided, filter for only given regions.
    */
   def getNeighborhoodsWithUserCompletionStatus(userId: String, regionIds: Seq[Int]): DBIO[Seq[(Region, Boolean)]] = {
+    // Ever-audited on purpose (#4384): this feeds the "you completed this neighborhood" display, and a user's credit
+    // is not revoked when imagery refreshes -- the needs-re-audit prompt carries that signal instead.
     val userTasks = auditTasks.filter(a => a.completed && a.userId === userId)
     // Get regions that the user has not fully audited.
     val incompleteRegionsForUser = streetEdgeRegionTable.nonDeletedStreetEdgeRegions // FROM street_edge_region

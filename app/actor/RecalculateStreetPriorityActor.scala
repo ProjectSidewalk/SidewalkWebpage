@@ -1,9 +1,9 @@
 package actor
 
 import actor.ActorUtils.{dateFormatter, getTimeToNextUpdate}
-import org.apache.pekko.actor.{Actor, Cancellable, Props}
+import org.apache.pekko.actor.{Actor, Cancellable}
 import play.api.Logger
-import service.{ConfigService, RegionService, StreetService}
+import service.{ConfigService, ImageryFreshnessService, RegionService, StreetService}
 
 import java.time.Instant
 import javax.inject._
@@ -12,13 +12,16 @@ import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
 object RecalculateStreetPriorityActor {
-  val Name  = "recalculate-street-priority-actor"
-  def props = Props[RecalculateStreetPriorityActor]()
+  val Name = "recalculate-street-priority-actor"
   case object Tick
 }
 
 @Singleton
-class RecalculateStreetPriorityActor @Inject() (streetService: StreetService, regionService: RegionService)(implicit
+class RecalculateStreetPriorityActor @Inject() (
+    streetService: StreetService,
+    regionService: RegionService,
+    imageryFreshnessService: ImageryFreshnessService
+)(implicit
     ec: ExecutionContext,
     configService: ConfigService
 ) extends Actor {
@@ -53,6 +56,20 @@ class RecalculateStreetPriorityActor @Inject() (streetService: StreetService, re
     val currentTimeStart: String = dateFormatter.format(Instant.now())
     logger.info(s"Auto-scheduled recalculation of street priority starting at: $currentTimeStart")
     (for {
+      // The freshness sync must precede the priority recalc and region_completion rebuild so that all three stay
+      // mutually consistent (see ImageryFreshnessService.syncImageryFreshness for the ordering contract). A sync
+      // failure is recovered rather than propagated: the recalc and rebuild are still correct against the previous
+      // night's flags, and letting the sync abort them would leave routing and coverage stale for a whole day.
+      syncSummary <- imageryFreshnessService.syncImageryFreshness
+        .map { sync =>
+          s"${sync.streetsRefreshed} streets refreshed, ${sync.auditsFlagged} audits flagged outdated, " +
+            s"${sync.auditsUnflagged} unflagged"
+        }
+        .recover { case e: Throwable =>
+          logger.error("Imagery freshness sync failed; continuing with the previous night's flags", e)
+          "failed, see error above"
+        }
+      _ = logger.info(s"Imagery freshness sync: $syncSummary")
       _ <- streetService.recalculateStreetPriority
       _ <- regionService.truncateRegionCompletionTable
       _ <- regionService.initializeRegionCompletionTable
