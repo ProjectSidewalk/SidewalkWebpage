@@ -105,6 +105,8 @@ describe('Explore, when the imagery search runs out along a street', () => {
     // Set per test: given the sampled point, what the provider says. Returning a rejection stands for a failed
     // search, resolving for one that found a usable pano.
     let respondToSearch;
+    // The same, for a move to one named pano rather than a search along the street.
+    let respondToPanoHop;
     // Every (latLng, excludedPanos) the sweep asked about, in order.
     let searches;
 
@@ -112,6 +114,7 @@ describe('Explore, when the imagery search runs out along a street', () => {
         jest.useFakeTimers();
         window.sessionStorage.clear();
         searches = [];
+        respondToPanoHop = () => Promise.resolve();
         reportNoImagery = jest.fn(() => Promise.resolve());
 
         const stub = () => jest.fn();
@@ -145,6 +148,8 @@ describe('Explore, when the imagery search runs out along a street', () => {
             panoManager: {
                 disablePanning: stub(), enablePanning: stub(), hideNavArrows: stub(), resetNavArrows: stub(),
                 showNavArrows: stub(), updateCanvas: stub(),
+                // The link-graph hop, as opposed to the street sweep below: one named pano, no searching.
+                setPanorama: jest.fn(() => respondToPanoHop()),
                 setLocation: jest.fn((latLng, excludedPanos) => {
                     searches.push({
                         latLng,
@@ -179,7 +184,11 @@ describe('Explore, when the imagery search runs out along a street', () => {
         window.svl = svl;
         window.turf = turfStub;
         window.i18next = { t: (key) => key };
-        window.util = { getBrowser: () => 'chrome', misc: { reportNoImagery } };
+        window.util = {
+            getBrowser: () => 'chrome',
+            math: { toRadians: (degrees) => (degrees * Math.PI) / 180 },
+            misc: { reportNoImagery },
+        };
 
         window.eval(`${NO_IMAGERY_ERROR_SRC}; window.NoImageryError = NoImageryError;`);
         window.eval(`${FLAG_GUARD_SRC}; window.NoImageryFlagGuard = NoImageryFlagGuard;`);
@@ -404,6 +413,60 @@ describe('Explore, when the imagery search runs out along a street', () => {
             // so the task is finished through the same call the normal end-of-street flow uses.
             expect(svl.taskContainer.endTask).toHaveBeenCalled();
         });
+
+        it('still ends it when the provider stopped answering, since walking it is what earned the credit', async () => {
+            // Finishing here rests on where the labeler actually got to, not on anything the provider said. Gating it
+            // on a clean answer would mean a blip at the far end of a street withholds credit for work really done,
+            // and there is no false-audit risk: reaching the end of a street is exactly what the #4918 loop never did.
+            const [nearlyDone, next] = [makeTask(101, { atEnd: true }), makeTask(102)];
+            assignStreets(nearlyDone, next);
+            respondToSearch = providerFailure;
+
+            await nav.moveForward();
+
+            expect(svl.taskContainer.endTask).toHaveBeenCalledWith(nearlyDone);
+            expect(reportNoImagery).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('and the labeler steps to a linked pano instead of searching the street', () => {
+        it('gives the session its flag allowance back when the step lands', async () => {
+            // Walking on through the link graph is as much evidence that imagery is fine as a street sweep landing
+            // is, so a run of failures ends here too — otherwise a session that gave up on a few streets and then
+            // audited normally for an hour would still be refusing to report the next genuinely empty one.
+            assignStreets(makeTask(101));
+            window.NoImageryFlagGuard.recordStreetGivenUp();
+            window.NoImageryFlagGuard.recordStreetGivenUp();
+            svl.panoViewer.getLinkedPanos = () => [{ panoId: 'pano-next', heading: 0 }];
+
+            await nav.moveToLinkedPano(0);
+
+            expect(window.NoImageryFlagGuard.count()).toBe(0);
+        });
+
+        it('keeps quiet about a failed step when the caller has a fallback that may still move them', async () => {
+            // The spacebar route-advance tries the link graph first and falls back to the street sweep. A banner here
+            // would tell the labeler imagery couldn't be loaded on the very keypress that walked them down the street.
+            assignStreets(makeTask(101));
+            svl.panoViewer.getLinkedPanos = () => [{ panoId: 'pano-next', heading: 0 }];
+            respondToPanoHop = () => Promise.reject(new Error('that pano never loads'));
+
+            const moved = await nav.moveToLinkedPano(0, { alertOnFailure: false });
+
+            expect(moved).toBe(false);
+            expect(svl.alertController.showAlert).not.toHaveBeenCalled();
+        });
+
+        it('does tell them when nothing else is going to be tried', async () => {
+            assignStreets(makeTask(101));
+            svl.panoViewer.getLinkedPanos = () => [{ panoId: 'pano-next', heading: 0 }];
+            respondToPanoHop = () => Promise.reject(new Error('that pano never loads'));
+
+            await nav.moveToLinkedPano(0);
+
+            expect(svl.alertController.showAlert)
+                .toHaveBeenCalledWith('popup.imagery-load-failed', 'imageryLoadFailed', false);
+        });
     });
 
     describe('and the labeler is dropped into free exploration', () => {
@@ -418,6 +481,18 @@ describe('Explore, when the imagery search runs out along a street', () => {
             expect(svl.taskContainer.setCurrentTask).not.toHaveBeenCalled();
             expect(svl.alertController.showAlert)
                 .toHaveBeenCalledWith('popup.free-explore-no-imagery', 'exploreAddressNoImagery', false);
+        });
+
+        it('says the imagery failed to load, not that the street ran out, when nothing answered', async () => {
+            // "There's no more imagery this way" is a claim about the world that a failed lookup can't support.
+            svl.isExploreAddressMode = () => true;
+            assignStreets(makeTask(101), makeTask(102));
+            respondToSearch = providerFailure;
+
+            await nav.moveForward();
+
+            expect(svl.alertController.showAlert)
+                .toHaveBeenCalledWith('popup.imagery-load-failed', 'imageryLoadFailed', false);
         });
     });
 

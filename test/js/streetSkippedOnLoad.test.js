@@ -34,9 +34,25 @@ describe('a street given up on at page load', () => {
         viewerTypeFailingWith(error), 'access-token', { startPanoId: 'pano-a' }, { task, missionId: 3 },
     );
 
+    /** Whether an element is readable, i.e. not sitting under an inherited `visibility: hidden`. */
+    const isVisible = (id) => window.getComputedStyle(document.getElementById(id)).visibility === 'visible';
+
     beforeEach(() => {
         window.sessionStorage.clear();
-        document.body.innerHTML = '<div id="pano"></div>';
+        // Mirrors explore.scala.html: the alert banner lives inside `.tool-ui`, which the page ships hidden and
+        // Main.init() reveals — and init bails long before that whenever there is no viewer. The loading animation
+        // it also hides is what the labeler stares at meanwhile.
+        document.body.innerHTML = `
+            <div id="page-loading"></div>
+            <div class="container tool-ui ps-invisible">
+              <div id="pano"></div>
+              <div id="interaction-area-holder">
+                <div id="alert-holder"></div>
+              </div>
+            </div>`;
+        const style = document.createElement('style');
+        style.textContent = '.ps-invisible { visibility: hidden !important; }';
+        document.head.appendChild(style);
         // The failure path logs the error deliberately — it is the only trace of a transient failure, since nothing
         // is written to the db. Kept out of the test output rather than out of the code.
         jest.spyOn(console, 'error').mockImplementation(() => {});
@@ -96,5 +112,41 @@ describe('a street given up on at page load', () => {
         expect(reportNoImagery).not.toHaveBeenCalled();
         expect(window.location.replace).not.toHaveBeenCalled();
         expect(showAlert).toHaveBeenCalledWith('popup.imagery-skip-limit', 'imagerySkipLimit', false);
+    });
+
+    describe('when the load stops instead of reloading', () => {
+        // A message nobody can read is the same as no message, and this is the exact spot where that happens: the
+        // banner is inside `.tool-ui`, which only Main.init() reveals, and init returns as soon as it sees there is
+        // no viewer. Asserting that showAlert was called is not enough to know the labeler was told (#4918).
+        it('makes the banner readable rather than leaving it inside the hidden tool', async () => {
+            expect(isVisible('alert-holder')).toBe(false);
+
+            await loadAndFail(new Error('the maps library never loaded'));
+
+            expect(isVisible('alert-holder')).toBe(true);
+        });
+
+        it('stops the loading animation, which would otherwise say the page is still working', async () => {
+            await loadAndFail(new Error('the maps library never loaded'));
+
+            expect(isVisible('page-loading')).toBe(false);
+        });
+
+        it('leaves the rest of the tool hidden, since its controls have no viewer to drive', async () => {
+            await loadAndFail(new Error('the maps library never loaded'));
+
+            expect(isVisible('pano')).toBe(false);
+        });
+
+        it('does the same when the run ended on the flag budget rather than on an error', async () => {
+            for (let i = 0; i < window.NoImageryFlagGuard.MAX_CONSECUTIVE_FLAGS; i++) {
+                window.NoImageryFlagGuard.recordStreetGivenUp();
+            }
+
+            await loadAndFail(new window.NoImageryError('nothing usable here'));
+
+            expect(isVisible('alert-holder')).toBe(true);
+            expect(isVisible('page-loading')).toBe(false);
+        });
     });
 });
