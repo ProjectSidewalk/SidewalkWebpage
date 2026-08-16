@@ -178,4 +178,33 @@ describe('NoImageryError.allNoImagery', () => {
         const provider = new Error('ZERO_RESULTS');
         expect(new NoImageryError('empty', { cause: provider }).cause).toBe(provider);
     });
+
+    // The verdict that NavigationService.moveForward() builds from a street-long walk before deciding whether the
+    // street may be reported as imagery-less. Named cases, because each is a scenario the fix has to get right.
+    describe('as the verdict on a walk down a street', () => {
+        test('a street whose every sample point came back empty is reportable', () => {
+            const walk = [new NoImageryError('10m'), new NoImageryError('20m'), new NoImageryError('30m')];
+            expect(NoImageryError.allNoImagery(walk)).toBe(true);
+        });
+
+        test('a dead end whose remaining panos the user already visited is still reportable', () => {
+            // Exclusion rejections are NoImageryError precisely so this stays true: the provider answered, and what
+            // it found is unusable. Were these to disqualify, a real dead end could never be skipped and the user
+            // would be stranded on it.
+            const walk = [new NoImageryError('Excluded pano: abc'), new NoImageryError('40m')];
+            expect(NoImageryError.allNoImagery(walk)).toBe(true);
+        });
+
+        test('one provider error anywhere in the walk makes the street unreportable', () => {
+            // The blocked-API case from QA: with the maps RPC failing, the walk finds nothing at every point, but
+            // none of it is evidence. Before this, a provider outage still spent streets — just fewer of them.
+            const walk = [new NoImageryError('10m'), new Error('UNKNOWN_ERROR'), new NoImageryError('30m')];
+            expect(NoImageryError.allNoImagery(walk)).toBe(false);
+        });
+
+        test('a walk that failed entirely on provider errors is unreportable', () => {
+            const walk = [new Error('UNKNOWN_ERROR'), new Error('UNKNOWN_ERROR')];
+            expect(NoImageryError.allNoImagery(walk)).toBe(false);
+        });
+    });
 });

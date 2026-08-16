@@ -150,10 +150,13 @@ class GsvViewer extends PanoViewer {
    * @private
    */
   #getPanoramaCallback = async (newPanoData, excludedPanos = new Set()) => {
-    // If the pano given is in the excluded list, treat it as if the API call itself had returned nothing.
+    // If the pano given is in the excluded list, treat it as if the API call itself had returned nothing. This is a
+    // NoImageryError because the search itself succeeded — the caller asked for imagery it hasn't used yet and there
+    // is none here. A caller deciding whether a street ran out of imagery needs that to count, or a real dead end
+    // whose last panos the user already stood on could never be recognized (#4918).
     const excludedPanoIds = new Set([...excludedPanos].map((p) => p.getPanoId()));
     if (excludedPanoIds.has(newPanoData.data.location.pano)) {
-      throw new Error(`Excluded pano: ${newPanoData.data.location.pano}`);
+      throw new NoImageryError(`Excluded pano: ${newPanoData.data.location.pano}`);
     }
 
     // Package the data into a PanoData object and save it in this.currPanoData.

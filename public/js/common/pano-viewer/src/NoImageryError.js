@@ -6,6 +6,11 @@
  * Only the first may be written down against a street, because recording a street as imagery-less marks it audited
  * and drops it out of the assignment rotation — so a mistake there costs coverage that nobody ever looked at.
  * Anything not explicitly classified stays a plain Error, which callers must treat as "imagery unknown".
+ *
+ * "Usable" is relative to what the caller asked for: a search that finds only panos the caller excluded also raises
+ * this, because the search itself succeeded and the answer really is "nothing you can use here". That case matters
+ * for walking a street — a dead end whose last panos the user already stood on has to stay recognizable as a dead
+ * end. Seeding a viewer passes no exclusions, so there the two readings coincide.
  */
 class NoImageryError extends Error {
   /**
