@@ -360,7 +360,12 @@ jobs:
       INFRA3D_CLIENT_SECRET_ZURICH: DUMMY_INFRA3D_CLIENT_SECRET
       INFRA3D_CLIENT_SECRET_WINTERTHUR: DUMMY_INFRA3D_CLIENT_SECRET
       ENV_TYPE: local
-      SIDEWALK_IMAGES_DIR: .crops
+      # The staged app runs in prod mode, which arms PersistentMediaDirCheck (#4925): every media directory must
+      # resolve outside the build tree or the app refuses to boot. Point all four at the runner's temp dir.
+      SIDEWALK_IMAGES_DIR: ${{ runner.temp }}/sidewalk-media/crops
+      SIDEWALK_PANO_DIR: ${{ runner.temp }}/sidewalk-media/panos
+      SIDEWALK_SHARE_IMAGES_DIR: ${{ runner.temp }}/sidewalk-media/share-images
+      SIDEWALK_STORY_MEDIA_DIR: ${{ runner.temp }}/sidewalk-media/story-media
     steps:
       - uses: actions/checkout@v7
 

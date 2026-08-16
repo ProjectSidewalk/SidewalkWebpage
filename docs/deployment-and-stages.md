@@ -276,30 +276,38 @@ the deploy.** The backend is built with `-Xfatal-warnings`, so warnings block th
 
 ### Directories that must survive a deploy
 
-Note the `clean` in step 3: **the deploy deletes the entire build output directory and rebuilds it**, and the staged
-app then runs from inside it. So any file the app writes to a path that resolves *within* the application directory is
-destroyed by the next release — silently, because the database rows that point at it survive.
+Note the `clean` in step 3: **the deploy deletes the entire `target/` build tree and rebuilds it**, and the staged
+app then runs from inside it (`target/universal/stage`). So any file the app writes to a path that resolves *within*
+that tree is destroyed by the next release — silently, because the database rows that point at it survive. That
+includes paths that merely climb out of the stage directory: `../media` lands in `target/universal/`, which
+`sbt clean` deletes just the same.
 
-Everything users upload or that is expensive to recreate therefore lives on storage the deploy never touches. The
-relative defaults in `application.conf` are for local dev only; **every deployed stage must point each of these at a
-path outside the application directory** via its environment variable:
+Everything users upload or that cannot be recreated therefore lives on storage the deploy never touches. The relative
+defaults in `application.conf` are for local dev only; **every deployed stage must point each of these at a path
+outside the build tree** via its environment variable (a variable that is set but blank is rejected too):
 
 | Config key | Env var | Holds | Missing on a deployed stage |
 |---|---|---|---|
 | `story.media.directory` | `SIDEWALK_STORY_MEDIA_DIR` | User-uploaded story photos (**irreplaceable**) | **App refuses to start** |
-| `cropped.image.directory` | `SIDEWALK_IMAGES_DIR` | Label crops | Error logged at boot |
-| `pano.images.directory` | `SIDEWALK_PANO_DIR` | Self-hosted panorama imagery | Error logged at boot |
+| `pano.images.directory` | `SIDEWALK_PANO_DIR` | Self-hosted pano store — the only copies of GSV imagery Google has expired (**irreplaceable**) | **App refuses to start** |
+| `cropped.image.directory` | `SIDEWALK_IMAGES_DIR` | Label crops (re-derivable from pano imagery) | Error logged at boot |
 | `share.image.directory` | `SIDEWALK_SHARE_IMAGES_DIR` | Cached social-share previews (regenerable) | Error logged at boot |
 
-`PersistentMediaDirCheck` enforces this at boot on every stage (it is skipped for `environment-type = local`). It is
-deliberately fatal for user uploads: accepting a photo we already know the next release will delete is worse than not
-starting, and since `develop` redeploys **test** while prod waits for a release tag, a forgotten variable surfaces on
-test long before it can reach prod.
+`PersistentMediaDirCheck` enforces this at boot in **prod mode** — what every staged binary runs in — so it covers
+every deployed stage *and* a staged binary run by hand (export the four variables to `/tmp` paths for that; CI's
+`e2e-smoke` job does exactly this). It deliberately does not key on `ENV_TYPE`: that variable arrives through the
+same env file as the media paths, so the incomplete-env-file mistake behind #4925 would disarm the guard exactly when
+it is needed. Dev and test runs (`sbt run`, the test suites) skip the check.
 
-**Adding a fifth one?** Add it to `persistentDirs` in `PersistentMediaDirCheck`, decide whether its contents are
-user-supplied (fatal) or derived (logged), and have the deployment tooling export its variable. Losing a story photo
-this way (#4925) took three weeks to notice, so the check — not a comment in `application.conf` — is what holds the
-contract.
+The fatal tier is deliberate for irreplaceable content: accepting a photo we already know the next release will
+delete is worse than not starting, and since `develop` redeploys **test** while prod waits for a release tag, a
+forgotten variable surfaces on test long before it can reach prod.
+
+**Adding a fifth one?** Resolve it through `MediaDirs` (never a hand-rolled path concat — the check's verdict is only
+meaningful while it models the exact resolution the write paths use), add it to `persistentDirs` in
+`PersistentMediaDirCheck`, decide whether its contents are irreplaceable (fatal) or derived (logged), and have the
+deployment tooling export its variable. Losing a story photo this way (#4925) took three weeks to notice, so the
+check — not a comment in `application.conf` — is what holds the contract.
 
 ### Asset caching
 

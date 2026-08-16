@@ -15,7 +15,7 @@ import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.http.ContentTypes
 import play.api.libs.json.{JsObject, Json}
 import play.api.libs.ws.WSClient
-import play.api.{Configuration, Logger}
+import play.api.{Configuration, Environment, Logger}
 import service.PanoDataService.{getFov, ImageryCheckConcurrency, LiveImageryTtlDays, MaxUnexpiredPanosPerSweep}
 import slick.dbio.DBIO
 
@@ -335,6 +335,7 @@ trait PanoDataService {
 class PanoDataServiceImpl @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     config: Configuration,
+    environment: Environment,
     cacheApi: AsyncCacheApi,
     ws: WSClient,
     implicit val ec: ExecutionContext,
@@ -358,9 +359,9 @@ class PanoDataServiceImpl @Inject() (
   // Get an HMAC-SHA1 signing key from the raw key bytes.
   val sha1Key: SecretKeySpec = new SecretKeySpec(secretKey, "HmacSHA1")
 
-  private val cropsDirName: String = getCropDirectory
-  private val panosBaseDir: String =
-    config.get[String]("pano.images.directory") + File.separator + config.get[String]("city-id")
+  // Both resolved through MediaDirs, the same resolver PersistentMediaDirCheck models the write paths with (#4925).
+  private val cropsDir: File     = MediaDirs.cityDir(config, environment, "cropped.image.directory")
+  private val panosBaseDir: File = MediaDirs.cityDir(config, environment, "pano.images.directory")
 
   def getInfra3dToken(cityId: String): Future[String] = {
     // Token expires after 60 minutes, so we don't need to get a new token every time.
@@ -673,8 +674,7 @@ class PanoDataServiceImpl @Inject() (
       .runWith(Sink.seq)
   }
 
-  def getCropDirectory: String =
-    config.get[String]("cropped.image.directory") + File.separator + config.get[String]("city-id")
+  def getCropDirectory: String = cropsDir.getPath
 
   /** Checks whether a locally-hosted equirectangular backup image exists for the given pano. */
   def backupExists(panoId: String): Boolean = localBackupImageFile(panoId).isDefined
@@ -688,7 +688,7 @@ class PanoDataServiceImpl @Inject() (
 
   /** Returns the on-disk file where a label's crop image is (or would be) stored. */
   def cropFile(labelId: Int, labelType: String): File =
-    new File(cropsDirName + File.separator + labelType + File.separator + "crop_" + labelId + ".png")
+    new File(new File(cropsDir, labelType), s"crop_$labelId.png")
 
   /** Checks whether a crop image file exists for the given label. */
   def cropExists(labelId: Int, labelType: LabelTypeEnum.Base): Boolean =

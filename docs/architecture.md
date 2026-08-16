@@ -82,7 +82,9 @@ The backend follows a consistent layering: **routes → Controller → Service �
 
 DI is Guice. The app bootstraps via `app/CustomApplicationLoader.scala`; modules are registered in
 `conf/application.conf` and defined in `app/modules/` (`CustomControllerModule`, `ActorModule`, `ExecutorsModule`,
-`SilhouetteModule`). Custom execution contexts live in `app/executors/`; background actors in `app/actor/`.
+`SilhouetteModule`, and `StartupChecksModule` — the home for boot-time checks that surface deployment-level
+misconfiguration, like `PersistentMediaDirCheck`). Custom execution contexts live in `app/executors/`; background
+actors in `app/actor/`.
 
 **Views** are Twirl templates (`app/views/*.scala.html`).
 
