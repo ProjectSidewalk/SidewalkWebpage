@@ -226,10 +226,8 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
   def getLabelClustersV3(
       filters: LabelClusterFiltersForApi
   ): SqlStreamingAction[Vector[LabelClusterForApi], LabelClusterForApi, Effect] = {
-    // Build the base query conditions.
-    var whereConditions = Seq(
-      "label_type.label_type <> 'Problem'" // Exclude internal-only problem type.
-    )
+    // Build the query conditions.
+    var whereConditions = Seq.empty[String]
 
     // Apply location filters based on precedence logic.
     if (filters.bbox.isDefined) {
@@ -269,8 +267,8 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
       whereConditions :+= s"cluster.severity <= ${filters.maxSeverity.get}"
     }
 
-    // Combine all conditions.
-    val whereClause = whereConditions.mkString(" AND ")
+    // Combine all conditions. An unfiltered request has none, so fall back to TRUE to keep the WHERE clause valid.
+    val whereClause = if (whereConditions.isEmpty) "TRUE" else whereConditions.mkString(" AND ")
 
     // Aggregate per-label data for each cluster: validation counts, dates, label IDs, and user IDs.
     val labelAggregates =

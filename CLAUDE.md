@@ -164,7 +164,6 @@ Every label type has a **canonical color** and a set of **icon images**. Always 
 | Signal         | `#63C0AB` |
 | Other          | `#B3B3B3` |
 | Occlusion      | `#B3B3B3` |
-| Problem        | `#B3B3B3` |
 
 **Icons** live in `public/images/icons/label_type_icons/`. The colored marker every label type is drawn with is the
 scalable `{LabelType}_small.svg`, and it is **the only variant our own pages may use** — `util.misc.getIconImagePaths(labelType).iconImagePath`
