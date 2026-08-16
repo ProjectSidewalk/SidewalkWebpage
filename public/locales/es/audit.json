@@ -317,11 +317,13 @@
     "label-shortcuts-signal": "También puedes presionar la tecla <kbd>{{key}}</kbd> para seleccionar la etiqueta de Semáforo peatonal.",
     "label-shortcuts-occlusion": "También puedes presionar la tecla <kbd>{{key}}</kbd> para seleccionar la etiqueta de No Puedo Ver la Banqueta.",
     "still-stuck": "Si todavía estás atorado, otra vez haz clic en el botón Atorado.",
-    "stuck-skipped-street": "No pudimos encontrar un lugar para ti en esa calle, así que te trasladamos a una nueva calle.",
+    "stuck-skipped-street": "Esa calle no tenía imágenes que pudiéramos mostrarte, así que te hemos movido a una calle nueva.",
+    "stuck-skipped-street-named": "Esa calle no tenía imágenes que pudiéramos mostrarte, así que te hemos movido a <b>{{streetName}}</b>.",
     "free-explore-start": "Te hemos colocado cerca de la dirección que buscaste. ¡Mira a tu alrededor y etiqueta lo que encuentres!",
     "free-explore-start-named": "Has aterrizado cerca de <b>{{placeName}}</b>. ¡Mira a tu alrededor y etiqueta lo que encuentres!",
     "free-explore-no-imagery": "No hay más imágenes de la calle en esta dirección. Intenta mirar alrededor o ir hacia el otro lado.",
     "stuck-suggestion": "Si no puede moverse con las flechas, intente hacer clic en las direcciones de navegación en la parte inferior derecha. O intente hacer clic en el botón Atascado a la izquierda.",
+    "imagery-skip-limit": "Varias calles seguidas no tenían imágenes, así que hemos dejado de moverte automáticamente. Prueba con otra zona del mapa o recarga la página para empezar de nuevo.",
     "imagery-load-failed": "No pudimos cargar las imágenes de la calle en este momento. Vuelve a intentarlo en unos minutos."
   },
   "mission-start-tutorial": {

@@ -185,7 +185,10 @@ class NavigationService {
     if (!NoImageryFlagGuard.canAdvance()) {
       svl.tracker.push('NoImageryAdvanceLimitReached');
       this.#restoreUiAfterFailedMove();
-      svl.alertController.showAlert(i18next.t('popup.imagery-load-failed'), 'imageryLoadFailed', false);
+      // Its own message rather than the imagery-load-failed one: nothing failed to load here — the provider answered
+      // every time, and we are the ones who stopped believing it. "Try again in a few minutes" would be wrong
+      // advice, since waiting changes nothing about a run of streets that all read as empty (#4918).
+      svl.alertController.showAlert(i18next.t('popup.imagery-skip-limit'), 'imagerySkipLimit', false);
       return Promise.resolve(null);
     }
 
@@ -195,7 +198,8 @@ class NavigationService {
     const newTask = svl.taskContainer.nextTask(currentTask);
     if (newTask) {
       svl.taskContainer.setCurrentTask(newTask);
-      svl.stuckAlert.stuckSkippedStreet();
+      // Not awaited: naming the destination takes a network round trip, and the move should not wait on decoration.
+      svl.stuckAlert.announceSkippedStreetNear(newTask.getMidpoint(), svl.mapboxApiKey);
       // The failed search that brought us here left walking disabled, and moveForward() returns immediately in that
       // state — so without this the advance silently does nothing: the labeler is left standing on the old street's
       // pano with the panorama pane inert (no walking, panning, labeling, or keyboard) while the current task has

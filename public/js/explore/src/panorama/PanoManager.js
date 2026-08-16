@@ -63,6 +63,36 @@ class PanoManager {
     return points;
   }
 
+  // Set when a load gives up on its street, and read once by the load that follows. The reload is what carries the
+  // labeler to a new street, and it also destroys the alert banner, so the explanation has to outlive it (#4918).
+  static #STREET_SKIPPED_KEY = 'sidewalk.streetSkippedOnLoad';
+
+  /** Records that this load gave up on its street, so the next one can say so. */
+  static #rememberStreetSkipped() {
+    try {
+      window.sessionStorage?.setItem(PanoManager.#STREET_SKIPPED_KEY, '1');
+    } catch {
+      // An unwritable store costs the labeler an explanation, which is not worth failing the skip over.
+    }
+  }
+
+  /**
+   * Whether the load before this one moved the labeler off a street it couldn't show.
+   *
+   * Reading clears the notice, so the explanation appears once, on arrival, rather than on every later load.
+   *
+   * @returns {boolean} True when the preceding load gave up on its street.
+   */
+  static consumeStreetSkippedNotice() {
+    try {
+      const skipped = window.sessionStorage?.getItem(PanoManager.#STREET_SKIPPED_KEY) === '1';
+      window.sessionStorage?.removeItem(PanoManager.#STREET_SKIPPED_KEY);
+      return skipped;
+    } catch {
+      return false;
+    }
+  }
+
   /**
    * Decides what a failure to seed the viewer is allowed to say about the assigned street, and acts on it.
    *
@@ -86,12 +116,18 @@ class PanoManager {
 
     if (!streetLooksEmpty || !NoImageryFlagGuard.canFlag()) {
       svl.tracker?.push(streetLooksEmpty ? 'NoImageryFlagLimitReached' : 'PanoViewerCreateFailed');
-      svl.alertController?.showAlert(i18next.t('popup.imagery-load-failed'), 'imageryLoadFailed', false);
+      // Two different things to say. A provider that never answered is a transient failure worth retrying; a run of
+      // streets that all answered "nothing here" is us having stopped trusting the answers, which waiting won't
+      // change (#4918).
+      const message = streetLooksEmpty ? 'popup.imagery-skip-limit' : 'popup.imagery-load-failed';
+      const type = streetLooksEmpty ? 'imagerySkipLimit' : 'imageryLoadFailed';
+      svl.alertController?.showAlert(i18next.t(message), type, false);
       return;
     }
 
     NoImageryFlagGuard.recordStreetGivenUp();
     await util.misc.reportNoImagery(errorParams.task, errorParams.missionId);
+    PanoManager.#rememberStreetSkipped();
     window.location.replace('/explore');
   }
 

@@ -317,11 +317,13 @@
     "label-shortcuts-signal": "Je kunt ook de <kbd>{{key}}</kbd> toets gebruiken voor het selecteren van Verkeerslicht label.",
     "label-shortcuts-occlusion": "Je kunt ook de <kbd>{{key}}</kbd> toets gebruiken voor het selecteren van 'Het trottoir is niet zichtbaar' label.",
     "still-stuck": "Als je nog steeds vastzit, klik opnieuw op de Vastgelopen knop.",
-    "stuck-skipped-street": "We konden geen geschikte plek vinden in deze straat, dus we hebben je naar een nieuwe straat verplaatst.",
+    "stuck-skipped-street": "Die straat had geen beelden die we je konden tonen, dus hebben we je naar een nieuwe straat verplaatst.",
+    "stuck-skipped-street-named": "Die straat had geen beelden die we je konden tonen, dus hebben we je naar <b>{{streetName}}</b> verplaatst.",
     "free-explore-start": "Je bent neergezet in de buurt van het gezochte adres. Kijk rond en label wat je vindt!",
     "free-explore-start-named": "Je bent vlakbij <b>{{placeName}}</b> geland. Kijk rond en label wat je tegenkomt!",
     "free-explore-no-imagery": "Er zijn geen straatbeelden meer in deze richting. Kijk rond of ga de andere kant op.",
     "stuck-suggestion": "Als je niet met de pijlen kunt bewegen, probeer dan op de navigatie-aanwijzingen rechtsonder te klikken. Of probeer te klikken op de vastgelopen knop aan de linkerkant.",
+    "imagery-skip-limit": "Meerdere straten achter elkaar hadden geen beelden, dus verplaatsen we je niet meer automatisch. Probeer een ander deel van de kaart of herlaad de pagina om opnieuw te beginnen.",
     "imagery-load-failed": "We konden de straatbeelden nu niet laden. Probeer het over een paar minuten opnieuw."
   },
   "mission-start-tutorial": {

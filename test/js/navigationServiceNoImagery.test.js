@@ -91,6 +91,7 @@ function makeTask(streetEdgeId, { lengthKm = 0.1, atEnd = false } = {}) {
         getFurthestPointReached: () => pointFeature(start),
         isAtEnd: jest.fn(() => atEnd),
         isConnectedTo: () => true,
+        getMidpoint: () => ({ lat: FIXTURE_LAT, lng: (start[0] + end[0]) / 2 }),
         lineDistance: () => lengthKm * 1000,
         getDistanceFromStart: () => 0,
     };
@@ -138,7 +139,7 @@ describe('Explore, when the imagery search runs out along a street', () => {
             observedArea: { panoChanged: stub(), update: stub() },
             panoOverlayControls: { disableStuckButton: stub(), enableStuckButton: stub() },
             panoStore: { getPanoData: (panoId) => ({ panoId }) },
-            stuckAlert: { stuckSkippedStreet: jest.fn() },
+            stuckAlert: { announceSkippedStreetNear: jest.fn(() => Promise.resolve()) },
             tracker: { push: jest.fn() },
             panoManager: {
                 disablePanning: stub(), enablePanning: stub(), hideNavArrows: stub(), resetNavArrows: stub(),
@@ -336,9 +337,33 @@ describe('Explore, when the imagery search runs out along a street', () => {
 
             expect(window.NoImageryFlagGuard.count()).toBe(6);
             expect(svl.tracker.push).toHaveBeenCalledWith('NoImageryAdvanceLimitReached');
-            expect(svl.alertController.showAlert)
-                .toHaveBeenCalledWith('popup.imagery-load-failed', 'imageryLoadFailed', false);
             expect(nav.getStatus('disableWalking')).toBe(false);
+        });
+
+        it('says the run was stopped, not that imagery failed to load', async () => {
+            assignStreets(...Array.from({ length: 9 }, (_unused, i) => makeTask(200 + i)));
+            respondToSearch = emptyGround;
+
+            await nav.moveForward();
+
+            // The provider answered every time here, so "try again in a few minutes" would be wrong advice: the
+            // streets will read as empty just the same in five minutes (#4918).
+            expect(svl.alertController.showAlert)
+                .toHaveBeenCalledWith('popup.imagery-skip-limit', 'imagerySkipLimit', false);
+            expect(svl.alertController.showAlert).not.toHaveBeenCalledWith(
+                'popup.imagery-load-failed', 'imageryLoadFailed', false,
+            );
+        });
+
+        it('tells the labeler about every move, including the ones it stops recording', async () => {
+            assignStreets(...Array.from({ length: 9 }, (_unused, i) => makeTask(200 + i)));
+            respondToSearch = emptyGround;
+
+            await nav.moveForward();
+
+            // Five moves, only three of them written down: being moved is the labeler's business either way, and
+            // silence is what made this whole failure mode invisible from the seat (#4918).
+            expect(svl.stuckAlert.announceSkippedStreetNear).toHaveBeenCalledTimes(5);
         });
 
         it('completes the neighborhood instead, when there are no streets left to hand out', async () => {
