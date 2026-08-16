@@ -203,9 +203,14 @@ class StoryController @Inject() (
           case None                 => NotFound("Story media not found.")
           case Some((media, story)) =>
             val file = storyService.storyMediaFile(storyMediaId)
-            if (!story.viewableBy(request.identity.map(_.userId), isAdmin(request.identity)) || !file.exists())
+            if (!story.viewableBy(request.identity.map(_.userId), isAdmin(request.identity))) {
               NotFound("Story media not found.")
-            else
+            } else if (!file.exists()) {
+              // A row whose bytes are gone is data loss, not an ordinary miss, and the two are indistinguishable
+              // from outside — the response has to stay a plain 404, so the log is the only place it can be said.
+              logger.error(s"story_media $storyMediaId has no file on disk at ${file.getAbsolutePath}")
+              NotFound("Story media not found.")
+            } else
               // `private`: whether a hidden story's media serves depends on who's asking, so shared caches must
               // never hold it; the viewer's own browser may, for as long as the signed URL stays valid.
               Ok.sendFile(file, inline = true)

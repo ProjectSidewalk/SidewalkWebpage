@@ -274,6 +274,33 @@ Because the build is identical in spirit to local dev, **a change that fails to 
 the deploy.** The backend is built with `-Xfatal-warnings`, so warnings block the build too. See
 [`docs/testing-and-ci.md`](testing-and-ci.md) and [`docs/dev-environment.md`](dev-environment.md).
 
+### Directories that must survive a deploy
+
+Note the `clean` in step 3: **the deploy deletes the entire build output directory and rebuilds it**, and the staged
+app then runs from inside it. So any file the app writes to a path that resolves *within* the application directory is
+destroyed by the next release — silently, because the database rows that point at it survive.
+
+Everything users upload or that is expensive to recreate therefore lives on storage the deploy never touches. The
+relative defaults in `application.conf` are for local dev only; **every deployed stage must point each of these at a
+path outside the application directory** via its environment variable:
+
+| Config key | Env var | Holds | Missing on a deployed stage |
+|---|---|---|---|
+| `story.media.directory` | `SIDEWALK_STORY_MEDIA_DIR` | User-uploaded story photos (**irreplaceable**) | **App refuses to start** |
+| `cropped.image.directory` | `SIDEWALK_IMAGES_DIR` | Label crops | Error logged at boot |
+| `pano.images.directory` | `SIDEWALK_PANO_DIR` | Self-hosted panorama imagery | Error logged at boot |
+| `share.image.directory` | `SIDEWALK_SHARE_IMAGES_DIR` | Cached social-share previews (regenerable) | Error logged at boot |
+
+`PersistentMediaDirCheck` enforces this at boot on every stage (it is skipped for `environment-type = local`). It is
+deliberately fatal for user uploads: accepting a photo we already know the next release will delete is worse than not
+starting, and since `develop` redeploys **test** while prod waits for a release tag, a forgotten variable surfaces on
+test long before it can reach prod.
+
+**Adding a fifth one?** Add it to `persistentDirs` in `PersistentMediaDirCheck`, decide whether its contents are
+user-supplied (fatal) or derived (logged), and have the deployment tooling export its variable. Losing a story photo
+this way (#4925) took three weeks to notice, so the check — not a comment in `application.conf` — is what holds the
+contract.
+
 ### Asset caching
 
 **sbt-digest** content-fingerprints every asset at stage time, writing an `<md5>-<name>` copy beside the original.
@@ -360,7 +387,7 @@ plumbed through both this app's config *and* the deployment tooling, or it will 
 | Group | Variables (names only) |
 |-------|------------------------|
 | **Database** | `DATABASE_USER`, `DATABASE_PASSWORD`, `DATABASE_DB`, `DATABASE_URL` |
-| **Environment / city** | `ENV_TYPE`, `SIDEWALK_CITY_ID`, image/panorama storage directories |
+| **Environment / city** | `ENV_TYPE`, `SIDEWALK_CITY_ID`, the media storage directories ([above](#directories-that-must-survive-a-deploy)) |
 | **App secrets** | `SIDEWALK_APPLICATION_SECRET`, `SILHOUETTE_SIGNER_KEY`, `SILHOUETTE_CRYPTER_KEY` |
 | **Email** | `SIDEWALK_EMAIL_ADDRESS`, `SIDEWALK_EMAIL_PASSWORD` |
 | **Imagery / maps** | `GOOGLE_MAPS_API_KEY`, `GOOGLE_MAPS_SECRET`, `MAPBOX_API_KEY`, `MAPILLARY_ACCESS_TOKEN`, Infra3d client id/secret (including per-city credentials) |
