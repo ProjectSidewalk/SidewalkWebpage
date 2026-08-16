@@ -9,6 +9,7 @@
 class StreetStatusPage {
   #mapboxToken;
   #streetsUrl;
+  #trendUrl;
   #map;
   #table = null;
 
@@ -19,15 +20,21 @@ class StreetStatusPage {
   #hoverIds = null; // null = no active hover.
 
   /**
-   * @param {{mapboxToken: string, streetsUrl: string}} opts - Mapbox access token and the v3 streets endpoint URL,
-   *   both injected from the Twirl template so the JS has no server-config coupling.
+   * @param {{mapboxToken: string, streetsUrl: string, trendUrl: string}} opts - Mapbox access token, the v3 streets
+   *   endpoint URL, and the trend endpoint URL, all injected from the Twirl template so the JS has no server-config
+   *   coupling.
    */
   constructor(opts = {}) {
     this.#mapboxToken = opts.mapboxToken;
     this.#streetsUrl = opts.streetsUrl;
+    this.#trendUrl = opts.trendUrl;
   }
 
   async init() {
+    // Started before the snapshot and deliberately not awaited: the two draw from different endpoints and neither
+    // needs the other, so the whole-city GeoJSON fetch must not hold the trend charts blank behind it.
+    if (this.#trendUrl) new StreetStatusTrend({ trendUrl: this.#trendUrl }).init();
+
     try {
       const geojson = await this.#fetchStreets(this.#streetsUrl);
       const features = geojson.features || [];

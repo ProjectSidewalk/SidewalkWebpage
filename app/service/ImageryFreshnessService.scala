@@ -36,7 +36,7 @@ import scala.util.Try
 @ImplementedBy(classOf[ImageryFreshnessServiceImpl])
 trait ImageryFreshnessService {
   def syncImageryFreshness: Future[ImageryFreshnessService.SyncResult]
-  def pollImageryAges(): Future[String]
+  def pollImageryAges(): Future[ImageryFreshnessService.PollResult]
 }
 
 object ImageryFreshnessService {
@@ -49,6 +49,40 @@ object ImageryFreshnessService {
    * @param auditsUnflagged  Audits whose outdated_imagery flag was cleared.
    */
   case class SyncResult(streetsRefreshed: Int, auditsFlagged: Int, auditsUnflagged: Int)
+
+  /**
+   * Outcome of one nightly imagery-age poll.
+   *
+   * Counts, not just a log line, because the rotation is the only feeder that can write the median the re-audit flag
+   * compares against: a poll that quietly stops looks exactly like a city whose imagery never changes, and the
+   * difference is only visible in how much of the rotation each night actually covered.
+   *
+   * @param provider        Provider queried, or None when the poll never reached one.
+   * @param streetsSelected Streets the rotation picked for this batch.
+   * @param streetsPolled   Streets that answered conclusively and had their street_imagery row refreshed.
+   * @param streetsSkipped  Streets left un-bumped after an inconclusive answer, so the next night retries them.
+   * @param notPolledReason Why no street was polled at all (missing key, unsupported provider), if that's the case.
+   */
+  case class PollResult(
+      provider: Option[String],
+      streetsSelected: Int,
+      streetsPolled: Int,
+      streetsSkipped: Int,
+      notPolledReason: Option[String] = None
+  ) {
+
+    /** One line for the actor log. */
+    def summary: String = notPolledReason.getOrElse(
+      s"${provider.getOrElse("Imagery")} imagery-age poll: $streetsPolled streets updated, $streetsSkipped skipped " +
+        s"(of $streetsSelected selected)."
+    )
+  }
+
+  object PollResult {
+
+    /** A poll that never ran, e.g. because the provider has no API key configured in this deployment. */
+    def notPolled(reason: String): PollResult = PollResult(None, 0, 0, 0, Some(reason))
+  }
 
   /**
    * One pano seen at a sample point: its provider id, its capture date when one was parseable, and its (lat, lng)
@@ -172,34 +206,37 @@ class ImageryFreshnessServiceImpl @Inject() (
    *
    * @return A human-readable summary for the actor log.
    */
-  def pollImageryAges(): Future[String] = {
+  def pollImageryAges(): Future[PollResult] = {
     configService.getPanoSource match {
       // The key is resolved once here, like the Mapillary token below: resolving it lazily inside the per-point
       // fetch would throw synchronously in the batch fold and abandon every remaining street.
       case PanoSource.Gsv =>
         config.getOptional[String]("google-maps-api-key") match {
           case Some(key) => pollStreets("GSV")(fetchGsvPointObservations(key))
-          case None      => Future.successful("No google-maps-api-key configured; skipping imagery-age poll.")
+          case None      =>
+            Future.successful(PollResult.notPolled("No google-maps-api-key configured; skipping imagery-age poll."))
         }
       case PanoSource.Mapillary =>
         config.getOptional[String]("mapillary-access-token") match {
           case Some(token) => pollStreets("Mapillary")(fetchMapillaryPointObservations(token))
-          case None        => Future.successful("No mapillary-access-token configured; skipping imagery-age poll.")
+          case None        =>
+            Future.successful(PollResult.notPolled("No mapillary-access-token configured; skipping imagery-age poll."))
         }
-      case other => Future.successful(s"Imagery-age polling isn't supported for provider $other; skipping.")
+      case other =>
+        Future.successful(PollResult.notPolled(s"Imagery-age polling isn't supported for provider $other; skipping."))
     }
   }
 
   /**
    * Runs the poll loop for one batch of streets against a provider-specific point fetcher.
    *
-   * @param providerName For the summary string.
+   * @param providerName Names the provider in the run's summary and recorded counts.
    * @param fetchPoint   Queries one (lat, lng) sample point: Some(panos seen) on a conclusive answer (possibly
    *                     empty = confirmed no imagery), None when inconclusive.
    */
   private def pollStreets(
       providerName: String
-  )(fetchPoint: (Double, Double) => Future[Option[Seq[PanoObservation]]]): Future[String] = {
+  )(fetchPoint: (Double, Double) => Future[Option[Seq[PanoObservation]]]): Future[PollResult] = {
     db.run(streetImageryTable.streetsToPoll(pollBatchSize)).flatMap { streets =>
       streets
         .foldLeft(Future.successful((0, 0))) { case (accFuture, street) =>
@@ -207,9 +244,7 @@ class ImageryFreshnessServiceImpl @Inject() (
             pollOneStreet(street, fetchPoint).map(ok => if (ok) (polled + 1, skipped) else (polled, skipped + 1))
           }
         }
-        .map { case (polled, skipped) =>
-          s"$providerName imagery-age poll: $polled streets updated, $skipped skipped (of ${streets.size} selected)."
-        }
+        .map { case (polled, skipped) => PollResult(Some(providerName), streets.size, polled, skipped) }
     }
   }
 

@@ -2653,3 +2653,53 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
     grid-template-columns: 1fr;
   }
 }
+
+/* --- Street Status: recently-changed trends (#4928) ------------------------------------------------------------
+   Line/bar colors for the status series come from StreetStatusColors.STATUSES, published onto the section as
+   --trend-<status> custom properties by StreetStatusTrend so the charts and the map legend can't disagree. */
+
+/* Sized in em, not the --font-size-* tokens: those are rem-based but the document root is 62.5%, so they render at
+   ~8-10px here rather than the 13-16px they name. em inherits the 16px body size and stays legible. */
+.trend-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs, 8px);
+  margin-bottom: var(--space-sm, 12px);
+  font-size: 0.875em;
+  color: var(--color-text-secondary, #5a7785);
+}
+
+.trend-note {
+  margin: 0 0 var(--space-xs, 8px);
+  font-size: 0.875em;
+  color: var(--color-text-secondary, #5a7785);
+}
+
+.trend-range {
+  font: inherit;
+  padding: 4px 8px;
+  border: 1px solid var(--color-border, #d7dee2);
+  border-radius: 4px;
+  background: var(--color-surface, #ffffff);
+  color: var(--color-text-primary, #222222);
+}
+
+.trend-chart-heading {
+  margin: var(--space-md, 16px) 0 var(--space-xxs, 4px);
+  font-size: 1.125em;
+  font-weight: 600;
+  color: var(--color-text-primary, #222222);
+}
+
+.mini-line--open { stroke: var(--trend-open); }             .mini-pt--open { fill: var(--trend-open); }
+.mini-line--no-imagery { stroke: var(--trend-no-imagery); } .mini-pt--no-imagery { fill: var(--trend-no-imagery); }
+.mini-line--closed { stroke: var(--trend-closed); }         .mini-pt--closed { fill: var(--trend-closed); }
+.mini-line--disabled { stroke: var(--trend-disabled); }     .mini-pt--disabled { fill: var(--trend-disabled); }
+.mini-swatch--open { background: var(--trend-open); }
+.mini-swatch--no-imagery { background: var(--trend-no-imagery); }
+.mini-swatch--closed { background: var(--trend-closed); }
+.mini-swatch--disabled { background: var(--trend-disabled); }
+
+/* Reports are activity (a neutral accent); expiries are imagery loss, so they carry the no-imagery orange. */
+.mini-bar--reports { fill: var(--color-primary, #4a90d9); }
+.mini-bar--expired { fill: var(--color-orange-500, #eb724e); }

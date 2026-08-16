@@ -1,5 +1,6 @@
 package controllers
 
+import actor.CheckImageExpiryActor
 import controllers.base._
 import controllers.helper.ControllerUtils.isAdmin
 import formats.json.AdminFormats._
@@ -8,6 +9,7 @@ import formats.json.UserFormats._
 import models.auth.{DefaultEnv, WithAdmin, WithOwner}
 import models.label.LabelTypeEnum
 import models.user.{RoleTable, SidewalkUserWithRole}
+import models.utils.JobRunTrigger
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.dispatch.Dispatcher
 import play.api.cache.AsyncCacheApi
@@ -41,6 +43,7 @@ class AdminController @Inject() (
     panoDataService: PanoDataService,
     osmWayService: service.OsmWayService,
     userService: service.UserService,
+    jobRunService: JobRunService,
     actorSystem: ActorSystem
 )(implicit ec: ExecutionContext, assets: AssetsFinder)
     extends CustomBaseController(cc) {
@@ -922,10 +925,22 @@ class AdminController @Inject() (
 
   /**
    * Checks for imagery that might be missing. Same as nightly process.
+   *
+   * Recorded in `background_job_run` like the nightly sweep, but tagged `Manual` so a run someone kicked off by hand
+   * can't stand in for one the scheduler never fired (#4928).
    */
   def checkImagery() = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
-    panoDataService.checkForImagery.map { results => Ok(results) }
+    jobRunService
+      .record(CheckImageExpiryActor.Name, JobRunTrigger.Manual)(panoDataService.checkForImagery) { result =>
+        Json.obj(
+          "panos_checked" -> result.checked,
+          "still_there"   -> result.stillThere,
+          "gone"          -> result.gone,
+          "errors"        -> result.errors
+        )
+      }
+      .map { results => Ok(results.summary) }
   }
 
   /**

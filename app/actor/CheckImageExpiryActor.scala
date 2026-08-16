@@ -1,9 +1,11 @@
 package actor
 
 import actor.ActorUtils.{dateFormatter, getTimeToNextUpdate}
+import models.utils.JobRunTrigger
 import org.apache.pekko.actor.{Actor, Cancellable}
 import play.api.Logger
-import service.{ConfigService, PanoDataService}
+import play.api.libs.json.Json
+import service.{ConfigService, JobRunService, PanoDataService}
 
 import java.time.Instant
 import javax.inject._
@@ -17,7 +19,7 @@ object CheckImageExpiryActor {
 }
 
 @Singleton
-class CheckImageExpiryActor @Inject() (panoDataService: PanoDataService)(implicit
+class CheckImageExpiryActor @Inject() (panoDataService: PanoDataService, jobRunService: JobRunService)(implicit
     ec: ExecutionContext,
     configService: ConfigService
 ) extends Actor {
@@ -29,10 +31,14 @@ class CheckImageExpiryActor @Inject() (panoDataService: PanoDataService)(implici
     super.preStart()
     // Get the number of hours later to run the code in this city. Used to stagger computation/resource use.
     configService.getOffsetHours.foreach { hoursOffset =>
-      // Target time is 12:15 am Pacific + offset.
+      // Scheduled time comes from ScheduledJobs, shifted by this city's offset.
       cancellable = Some(
         context.system.scheduler.scheduleAtFixedRate(
-          getTimeToNextUpdate(0, 15, hoursOffset).toMillis.millis,
+          getTimeToNextUpdate(
+            ScheduledJobs.CheckImageExpiry.hour,
+            ScheduledJobs.CheckImageExpiry.minute,
+            hoursOffset
+          ).toMillis.millis,
           24.hours,
           self,
           CheckImageExpiryActor.Tick
@@ -51,12 +57,21 @@ class CheckImageExpiryActor @Inject() (panoDataService: PanoDataService)(implici
   def receive: Receive = { case CheckImageExpiryActor.Tick =>
     val currentTimeStart: String = dateFormatter.format(Instant.now())
     logger.info(s"Auto-scheduled checking image expiry started at: $currentTimeStart")
-    panoDataService.checkForImagery.onComplete {
-      case Success(results) =>
-        logger.info(results)
-        val currentEndTime: String = dateFormatter.format(Instant.now())
-        logger.info(s"Checking image expiry completed at: $currentEndTime")
-      case Failure(e) => logger.error(s"Error checking for expired imagery: ${e.getMessage}")
-    }
+    jobRunService
+      .record(CheckImageExpiryActor.Name, JobRunTrigger.Scheduled)(panoDataService.checkForImagery) { result =>
+        Json.obj(
+          "panos_checked" -> result.checked,
+          "still_there"   -> result.stillThere,
+          "gone"          -> result.gone,
+          "errors"        -> result.errors
+        )
+      }
+      .onComplete {
+        case Success(results) =>
+          logger.info(results.summary)
+          val currentEndTime: String = dateFormatter.format(Instant.now())
+          logger.info(s"Checking image expiry completed at: $currentEndTime")
+        case Failure(e) => logger.error(s"Error checking for expired imagery: ${e.getMessage}")
+      }
   }
 }

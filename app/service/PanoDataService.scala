@@ -16,7 +16,13 @@ import play.api.http.ContentTypes
 import play.api.libs.json.{JsObject, Json}
 import play.api.libs.ws.WSClient
 import play.api.{Configuration, Logger}
-import service.PanoDataService.{getFov, ImageryCheckConcurrency, LiveImageryTtlDays, MaxUnexpiredPanosPerSweep}
+import service.PanoDataService.{
+  getFov,
+  ImageryCheckConcurrency,
+  ImageryCheckResult,
+  LiveImageryTtlDays,
+  MaxUnexpiredPanosPerSweep
+}
 import slick.dbio.DBIO
 
 import java.io.{File, IOException}
@@ -52,6 +58,26 @@ object PanoDataService {
 
   /** Ceiling on the unexpired panos one nightly expiry sweep will check. */
   val MaxUnexpiredPanosPerSweep: Int = 5000
+
+  /**
+   * Outcome of one nightly expiry sweep.
+   *
+   * `errors` is the number the sweep could not get a conclusive answer for, and is the signal worth watching: a
+   * provider key that has expired or hit its quota turns every check inconclusive, which leaves the expired counts
+   * looking reassuringly quiet while the sweep has in fact stopped learning anything.
+   *
+   * @param stillThere Panos the provider confirmed still serve imagery.
+   * @param gone       Panos the provider confirmed it has no imagery for.
+   * @param errors     Panos the provider gave no usable answer for (timeout, auth failure, unexpected status).
+   */
+  case class ImageryCheckResult(stillThere: Int, gone: Int, errors: Int) {
+
+    /** Total panos the sweep asked the providers about. */
+    def checked: Int = stillThere + gone + errors
+
+    /** One line for the actor log and the admin endpoint's response body. */
+    def summary: String = s"Not expired: $stillThere. Expired: $gone. Errors: $errors."
+  }
 
   /**
    * Hacky fix to generate the FOV for an image. Determined experimentally.
@@ -319,7 +345,7 @@ trait PanoDataService {
   def getGsvImageUrlsForStreet(streetEdgeId: Int): Future[Seq[String]]
   def insertPanoHistories(histories: Seq[PanoHistorySubmission]): Future[Unit]
   def getAllPanos: Future[Seq[PanoDataSlim]]
-  def checkForImagery: Future[String]
+  def checkForImagery: Future[PanoDataService.ImageryCheckResult]
   def backupExists(panoId: String): Boolean
   def backupImageUrl(panoId: String): Option[String]
   def markHasBackup(panoId: String): Future[Int]
@@ -623,7 +649,7 @@ class PanoDataServiceImpl @Inject() (
    * are already marked as expired to make sure that they weren't marked so incorrectly: a budget of 2.5% or 2500
    * (whichever is smaller) minus the number of unexpired panos checked, but at least `minPanosToCheck`.
    */
-  def checkForImagery: Future[String] = {
+  def checkForImagery: Future[ImageryCheckResult] = {
     // Nightly floor for both sample sizes, so that checking always makes some progress: the percentage-based sizes
     // round to 0 on small corpora, and the expired budget zeroes out on nights when the unexpired queue is full.
     // getPanoIdsToCheckExpiration's take(n) caps at the stale pool, so the floor never overshoots (#4638).
@@ -646,9 +672,13 @@ class PanoDataServiceImpl @Inject() (
       } yield {
         logger.info(s"Checking ${expiredPanosToCheck.length} expired panos.")
 
-        // Check each pano against whichever provider it came from, then log some stats.
+        // Check each pano against whichever provider it came from, then tally the three outcomes.
         checkImageryBounded(panosToCheck ++ expiredPanosToCheck).map { responses =>
-          s"Not expired: ${responses.count(_ == Some(true))}. Expired: ${responses.count(_ == Some(false))}. Errors: ${responses.count(_.isEmpty)}."
+          ImageryCheckResult(
+            stillThere = responses.count(_.contains(true)),
+            gone = responses.count(_.contains(false)),
+            errors = responses.count(_.isEmpty)
+          )
         }
       }
     ).flatten

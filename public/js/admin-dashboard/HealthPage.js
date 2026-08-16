@@ -71,6 +71,7 @@ class HealthPage {
       this.#renderBloat(data.table_bloat || []);
       this.#renderConnections(data.connections || []);
       this.#renderPanos(data.pano_backups || null);
+      this.#renderNightlyJobs(data.nightly_jobs || []);
     } catch (e) {
       this.#setHtml('health-pulse', `<strong>Could not load health data.</strong> ${HealthPage.#esc(e.message)}`);
     } finally {
@@ -335,6 +336,87 @@ class HealthPage {
     this.#setHtml('health-panos-note',
       'Backup status is refreshed lazily by the nightly imagery check, so a large "unchecked" count is normal '
       + 'and these figures approximate what is actually on disk.');
+  }
+
+  // ---- Panel: nightly jobs ---------------------------------------------------------------------------------------
+
+  /**
+   * Every scheduled job and the state of its last run (#4928).
+   *
+   * Ordered worst-first rather than by schedule: on a healthy night every row says the same thing, and the whole point
+   * of the panel is the one row that doesn't.
+   *
+   * @param {Array<Object>} jobs - `nightly_jobs` entries from the health payload.
+   */
+  #renderNightlyJobs(jobs) {
+    if (jobs.length === 0) return this.#renderEmpty('health-jobs', 'No scheduled jobs are configured.');
+    const t = this.#thresholds;
+    const rank = { never_run: 0, abandoned: 1, failed: 2, running: 3, succeeded: 4 };
+    const sorted = [...jobs].sort((a, b) => {
+      if (a.overdue !== b.overdue) return a.overdue ? -1 : 1;
+      return (rank[a.last_status] ?? 9) - (rank[b.last_status] ?? 9);
+    });
+
+    const body = sorted.map((job) => `
+      <tr>
+        <td>${HealthPage.#esc(job.label)}</td>
+        <td class="ac-muted">${HealthPage.#esc(job.scheduled_at)}</td>
+        <td>${this.#jobStatusBadge(job)}</td>
+        <td>${HealthPage.#esc(HealthPage.#jobLastRun(job))}</td>
+        <td class="ac-num">${HealthPage.#jobDuration(job.last_duration_seconds)}</td>
+        <td class="ac-muted">${HealthPage.#esc(HealthPage.#jobDetails(job))}</td>
+        <td class="ac-num">${job.failures_in_window > 0
+          ? `<span class="ac-badge ac-badge--warn">${job.failures_in_window}/${job.runs_in_window}</span>`
+          : `${HealthPage.#num(job.failures_in_window)}/${HealthPage.#num(job.runs_in_window)}`}</td>
+      </tr>`).join('');
+    this.#table('health-jobs',
+      ['Job', 'Scheduled', 'Last run', 'When', ['Duration', true], 'Result', [`Failures (${t.job_window_days}d)`, true]],
+      body);
+    const overdue = jobs.filter((job) => job.overdue).length;
+    this.#setHtml('health-jobs-note', overdue === 0
+      ? `Every job has succeeded within the last ${t.job_overdue_hours} hours.`
+      : `${overdue} job${overdue === 1 ? ' has' : 's have'} not succeeded in the last ${t.job_overdue_hours} hours.`);
+  }
+
+  /** A job's last-run state as a toned badge, with overdue outranking whatever that last run reported. */
+  #jobStatusBadge(job) {
+    const tones = { never_run: 'bad', abandoned: 'bad', failed: 'bad', running: 'ok', succeeded: 'good' };
+    const labels = { never_run: 'never run', abandoned: 'abandoned', failed: 'failed', running: 'running',
+      succeeded: 'ok' };
+    const tone = job.overdue ? (tones[job.last_status] === 'bad' ? 'bad' : 'warn') : (tones[job.last_status] || 'good');
+    const label = job.overdue && job.last_status === 'succeeded' ? 'overdue' : (labels[job.last_status] || job.last_status);
+    return `<span class="ac-badge ac-badge--${tone}">${HealthPage.#esc(label)}</span>`;
+  }
+
+  /** "4h ago" / "3d ago", or an explicit never. */
+  static #jobLastRun(job) {
+    if (job.hours_since_last_run === null || job.hours_since_last_run === undefined) return 'never';
+    const hours = job.hours_since_last_run;
+    if (hours < 1) return 'under an hour ago';
+    if (hours < 48) return `${hours}h ago`;
+    return `${Math.floor(hours / 24)}d ago`;
+  }
+
+  /** A run's wall-clock duration, or an em dash while it is still open. */
+  static #jobDuration(seconds) {
+    if (seconds === null || seconds === undefined) return '—';
+    if (seconds < 60) return `${seconds}s`;
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
+    return `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`;
+  }
+
+  /**
+   * A run's own counts, flattened to `key: value` pairs. Every job reports a different shape, so this renders whatever
+   * it stored rather than naming fields the panel would have to be taught one by one.
+   */
+  static #jobDetails(job) {
+    if (job.last_error) return job.last_error;
+    const details = job.last_details;
+    if (!details || typeof details !== 'object') return '—';
+    const parts = Object.entries(details)
+      .filter(([, value]) => value !== null && value !== undefined)
+      .map(([key, value]) => `${key.replace(/_/g, ' ')}: ${typeof value === 'number' ? value.toLocaleString() : value}`);
+    return parts.length > 0 ? parts.join(', ') : '—';
   }
 
   // ---- Small helpers ---------------------------------------------------------------------------------------------
