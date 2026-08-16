@@ -114,6 +114,18 @@ describe('a street given up on at page load', () => {
         expect(showAlert).toHaveBeenCalledWith('popup.imagery-skip-limit', 'imagerySkipLimit', false);
     });
 
+    it('hands the budget back when it stops, so the reload it suggests actually starts over', async () => {
+        for (let i = 0; i < window.NoImageryFlagGuard.MAX_CONSECUTIVE_FLAGS; i++) {
+            window.NoImageryFlagGuard.recordStreetGivenUp();
+        }
+
+        await loadAndFail(new window.NoImageryError('nothing usable here'));
+
+        // The message tells the labeler to reload to start again. A budget that survived the reload would make that
+        // advice false and leave the tab unable to show them a street ever again.
+        expect(window.NoImageryFlagGuard.count()).toBe(0);
+    });
+
     describe('when the load stops instead of reloading', () => {
         // A message nobody can read is the same as no message, and this is the exact spot where that happens: the
         // banner is inside `.tool-ui`, which only Main.init() reveals, and init returns as soon as it sees there is

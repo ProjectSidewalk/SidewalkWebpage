@@ -468,16 +468,14 @@ class ExploreAddressServiceSpec
           val data         = await(exploreService.getDataForExploreAddressPage(testUser.userId, lat, lng)).value
           val streetEdgeId = data.task.value.edgeId
           val auditTaskId  = data.task.value.auditTaskId.get
-          val regionId     = data.region.regionId
 
           val priorityBefore = priorityOf(streetEdgeId)
           val issuesBefore   = run(streetIssues.filter(_.userId === testUser.userId).length.result)
 
-          val sub   = submission(data.mission.missionId, auditTaskId, streetEdgeId, regionId, false, None)
           val issue =
             StreetEdgeIssue(0, streetEdgeId, StreetEdgeIssueType.PanoNotAvailable, testUser.userId, "127.0.0.1",
               OffsetDateTime.now)
-          await(exploreService.insertNoImagery(sub.auditTask, issue, data.mission.missionId))
+          await(exploreService.insertNoImagery(issue))
 
           run(streetIssues.filter(_.userId === testUser.userId).length.result) mustBe issuesBefore + 1
           run(auditTasks.filter(_.auditTaskId === auditTaskId).map(_.completed).result.head) mustBe false

@@ -131,6 +131,7 @@ describe('Explore, when the imagery search runs out along a street', () => {
             },
             contextMenu: { isOpen: () => false, hide: stub() },
             feedbackModal: { hide: stub() },
+            form: { submitData: jest.fn(() => Promise.resolve()) },
             keyboard: { setStatus: jest.fn() },
             minimap: { setMinimapLocation: stub() },
             missionContainer: { getCurrentMission: () => ({ getProperty: () => 7, pushATaskToTheRoute: jest.fn() }) },
@@ -248,6 +249,20 @@ describe('Explore, when the imagery search runs out along a street', () => {
             expect(svl.taskContainer.endTask).not.toHaveBeenCalled();
         });
 
+        it('flushes the street being left before the task changes under the buffer', async () => {
+            const [dead, live] = [makeTask(101), makeTask(102)];
+            assignStreets(dead, live);
+            respondToSearch = () => (svl.taskContainer.getCurrentTask() === dead ? emptyGround() : foundImagery());
+
+            await nav.moveForward();
+
+            // Interactions carry no task id of their own, so whatever is still queued lands on whichever task the
+            // next submission names. Flushing against the street being left is what keeps it off the next one.
+            expect(svl.form.submitData).toHaveBeenCalledWith(dead);
+            expect(svl.form.submitData.mock.invocationCallOrder[0])
+                .toBeLessThan(svl.taskContainer.setCurrentTask.mock.invocationCallOrder[0]);
+        });
+
         it('searches the street it moved to, rather than stranding the labeler on the old one (#4921)', async () => {
             const [dead, live] = [makeTask(101), makeTask(102)];
             assignStreets(dead, live);
@@ -357,7 +372,10 @@ describe('Explore, when the imagery search runs out along a street', () => {
 
             await nav.moveForward();
 
-            expect(window.NoImageryFlagGuard.count()).toBe(6);
+            expect(svl.taskContainer.setCurrentTask).toHaveBeenCalledTimes(5);
+            // The budget goes back when the run ends: whatever happens next is the labeler deciding to try again,
+            // which is a fresh decision rather than more of the automatic run this bounds.
+            expect(window.NoImageryFlagGuard.count()).toBe(0);
             expect(svl.tracker.push).toHaveBeenCalledWith('NoImageryAdvanceLimitReached');
             expect(nav.getStatus('disableWalking')).toBe(false);
         });

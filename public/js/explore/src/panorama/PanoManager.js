@@ -146,6 +146,10 @@ class PanoManager {
       // change (#4918).
       const message = streetLooksEmpty ? 'popup.imagery-skip-limit' : 'popup.imagery-load-failed';
       const type = streetLooksEmpty ? 'imagerySkipLimit' : 'imageryLoadFailed';
+      // Ending the run also hands the budget back, which is what makes the message's advice to reload true. The guard
+      // bounds runs that Explore drives on its own; a labeler who reads this and chooses to reload is not that loop,
+      // and the per-user server limit is what bounds the writing whatever they choose (#4918).
+      if (streetLooksEmpty) NoImageryFlagGuard.reset();
       PanoManager.#revealMessageOnStoppedLoad();
       svl.alertController?.showAlert(i18next.t(message), type, false);
       return;

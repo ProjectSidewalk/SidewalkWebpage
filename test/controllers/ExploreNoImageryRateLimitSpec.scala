@@ -73,22 +73,43 @@ class ExploreNoImageryRateLimitSpec
   private def bootstrapFor(session: Seq[Cookie]): ExploreBootstrap = {
     val bootstrap = exploreBootstrap(session)
     createdUserIds += bootstrap.userId
-    run(
-      sql"SELECT priority FROM street_edge_priority WHERE street_edge_id = ${bootstrap.streetEdgeId}".as[Double]
-    ).headOption
-      .foreach(p => priorityBackup += (bootstrap.streetEdgeId -> p))
-    run(
-      sql"SELECT audited_distance FROM region_completion WHERE region_id = ${bootstrap.regionId}".as[Double]
-    ).headOption
-      .foreach(d => auditedDistanceBackup += (bootstrap.regionId -> d))
     bootstrap
   }
 
+  /**
+   * A street whose audited state the contract can actually be checked against, with its region.
+   *
+   * The street a session is *assigned* won't do: a brand-new anonymous user's first mission is the tutorial, whose
+   * street is served with a hardcoded priority and carries neither a `street_edge_priority` nor a `region_completion`
+   * row — so assertions keyed to it have nothing to compare and die on an empty result. Picking a regular street with
+   * both rows present is what makes "the report moved neither" a real check rather than one that reads two absences.
+   * The endpoint takes the street from the payload, so naming one here is exactly what the client does.
+   *
+   * @return The street and its region, or None when the connected schema has no such street.
+   */
+  private def streetWithAuditedState(): Option[(Int, Int)] =
+    run(sql"""SELECT street_edge_priority.street_edge_id, street_edge_region.region_id
+              FROM street_edge_priority
+              INNER JOIN street_edge_region
+                      ON street_edge_priority.street_edge_id = street_edge_region.street_edge_id
+              INNER JOIN region_completion ON street_edge_region.region_id = region_completion.region_id
+              WHERE street_edge_priority.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
+              ORDER BY street_edge_priority.street_edge_id
+              LIMIT 1""".as[(Int, Int)]).headOption
+
+  /** Snapshots the shared audited-state rows for a street, so a test can assert the report moved neither. */
+  private def backUpAuditedState(streetEdgeId: Int, regionId: Int): Unit = {
+    priorityBackup += (streetEdgeId ->
+      run(sql"SELECT priority FROM street_edge_priority WHERE street_edge_id = $streetEdgeId".as[Double]).head)
+    auditedDistanceBackup += (regionId ->
+      run(sql"SELECT audited_distance FROM region_completion WHERE region_id = $regionId".as[Double]).head)
+  }
+
   /** A missing-imagery report shaped exactly as `util.misc.reportNoImagery` builds one. */
-  private def reportPayload(b: ExploreBootstrap): JsValue =
+  private def reportPayload(b: ExploreBootstrap, streetEdgeId: Int = -1): JsValue =
     Json.obj(
       "audit_task" -> Json.obj(
-        "street_edge_id"                  -> b.streetEdgeId,
+        "street_edge_id"                  -> (if (streetEdgeId >= 0) streetEdgeId else b.streetEdgeId),
         "task_start"                      -> b.taskStart,
         "audit_task_id"                   -> b.auditTaskId,
         "completed"                       -> false,
@@ -140,33 +161,34 @@ class ExploreNoImageryRateLimitSpec
     }
 
     "accept a report within budget, recording evidence without marking the street audited" in {
-      val session = freshAnonSession()
-      val b       = bootstrapFor(session)
+      val session                  = freshAnonSession()
+      val b                        = bootstrapFor(session)
+      val (streetEdgeId, regionId) = streetWithAuditedState()
+        .getOrElse(cancel("No non-tutorial street in the connected schema carries priority and completion rows."))
+      backUpAuditedState(streetEdgeId, regionId)
 
-      val resp = postReport(session, reportPayload(b))
+      val resp = postReport(session, reportPayload(b, streetEdgeId))
       status(resp) mustBe OK
-      (contentAsJson(resp) \ "success").as[Int] mustBe b.streetEdgeId
+      (contentAsJson(resp) \ "success").as[Int] mustBe streetEdgeId
 
       run(
         sql"""SELECT count(*) FROM street_edge_issue
-              WHERE user_id = ${b.userId} AND street_edge_id = ${b.streetEdgeId} AND issue = 'PanoNotAvailable'"""
+              WHERE user_id = ${b.userId} AND street_edge_id = $streetEdgeId AND issue = 'PanoNotAvailable'"""
           .as[Int]
       ).head mustBe 1
 
-      // The evidence-only contract (#4922): the issue row above is the report's entire footprint. The task stays
-      // incomplete and the shared audited-state rows hold their pre-test values, so the street stays in the
-      // assignment rotation for everyone. The map lookups throw on a missing backup, so a street or region that
-      // skipped the backup fails here rather than passing vacuously.
+      // The evidence-only contract (#4922): the issue row above is the report's entire footprint. No audit task is
+      // touched at all, and the shared audited-state rows hold their pre-test values, so the street stays in the
+      // assignment rotation for everyone.
       run(
-        sql"SELECT completed FROM audit_task WHERE user_id = ${b.userId} AND street_edge_id = ${b.streetEdgeId}"
-          .as[Boolean]
-      ) must not contain true
+        sql"SELECT completed FROM audit_task WHERE user_id = ${b.userId} AND street_edge_id = $streetEdgeId".as[Boolean]
+      ) mustBe empty
       run(
-        sql"SELECT priority FROM street_edge_priority WHERE street_edge_id = ${b.streetEdgeId}".as[Double]
-      ).head mustBe priorityBackup(b.streetEdgeId)
+        sql"SELECT priority FROM street_edge_priority WHERE street_edge_id = $streetEdgeId".as[Double]
+      ).head mustBe priorityBackup(streetEdgeId)
       run(
-        sql"SELECT audited_distance FROM region_completion WHERE region_id = ${b.regionId}".as[Double]
-      ).head mustBe auditedDistanceBackup(b.regionId)
+        sql"SELECT audited_distance FROM region_completion WHERE region_id = $regionId".as[Double]
+      ).head mustBe auditedDistanceBackup(regionId)
     }
 
     "write nothing once the user's budget is spent" in {
@@ -180,12 +202,9 @@ class ExploreNoImageryRateLimitSpec
       val refused = postReport(session, reportPayload(b))
       status(refused) mustBe TOO_MANY_REQUESTS
 
-      // The point of the limit: a refused report leaves no trace, so the street stays in the assignment rotation.
+      // The point of the limit: a refused report leaves no trace at all, not even the evidence row an accepted one
+      // would write, so nothing downstream ever sees the street as suspect.
       reportedStreetCount(b.userId) mustBe before
-      run(
-        sql"SELECT completed FROM audit_task WHERE user_id = ${b.userId} AND street_edge_id = ${b.streetEdgeId}"
-          .as[Boolean]
-      ) must not contain true
     }
 
     "budget one user at a time, so a single runaway session can't lock everyone else out" in {

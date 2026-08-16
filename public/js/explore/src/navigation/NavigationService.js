@@ -193,6 +193,9 @@ class NavigationService {
     // excluded — so the run can cycle between the same few streets. The advance ceiling is what ends it.
     if (!NoImageryFlagGuard.canAdvance()) {
       svl.tracker.push('NoImageryAdvanceLimitReached');
+      // The run is over, so the budget goes back: what follows can only be the labeler deciding to try again, which
+      // is a fresh decision rather than a continuation of the automatic run this bounds (#4918).
+      NoImageryFlagGuard.reset();
       this.#restoreUiAfterFailedMove();
       // Its own message rather than the imagery-load-failed one: nothing failed to load here — the provider answered
       // every time, and we are the ones who stopped believing it. "Try again in a few minutes" would be wrong
@@ -206,6 +209,11 @@ class NavigationService {
     // claim a no-imagery verdict cannot support (#4922).
     const newTask = svl.taskContainer.nextTask(currentTask);
     if (newTask) {
+      // Flush what the labeler did here before the current task changes under the buffer. Interactions carry no task
+      // id of their own — the server files them against whichever audit_task the submission names — so anything still
+      // queued would land on the street they are about to be moved to. This is a plain submission, not endTask(): the
+      // task is left unfinished, since finishing it submits completed=true and credits a full audit (#4922).
+      await svl.form.submitData(currentTask);
       svl.taskContainer.setCurrentTask(newTask);
       // Not awaited: naming the destination takes a network round trip, and the move should not wait on decoration.
       svl.stuckAlert.announceSkippedStreetNear(newTask.getMidpoint(), svl.mapboxApiKey);

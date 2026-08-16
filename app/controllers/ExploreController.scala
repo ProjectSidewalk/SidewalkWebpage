@@ -211,10 +211,8 @@ class ExploreController @Inject() (
         noSv => {
           exploreService
             .insertNoImagery(
-              noSv.task,
               StreetEdgeIssue(0, noSv.task.streetEdgeId, StreetEdgeIssueType.PanoNotAvailable, request.identity.userId,
-                request.ipAddress, OffsetDateTime.now),
-              noSv.missionId
+                request.ipAddress, OffsetDateTime.now)
             )
             .map(_ => Ok(Json.obj("success" -> noSv.task.streetEdgeId)))
         }
