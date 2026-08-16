@@ -4,10 +4,10 @@
  * This path is the one that cost production ~3,370 streets, and it is the harder one to say anything on: the reload
  * tears down the page that would have told the labeler what happened. So the failing load leaves a note in
  * sessionStorage — the given-up street's id — and the load that follows reads it and speaks. The id matters because
- * a report leaves the street in the rotation (#4922), so the follow-up load usually retries the same street: the
- * "you were moved" explanation must only fire when the fresh assignment really is somewhere else. Without any of
- * this the labeler is silently elsewhere, which is precisely how a session could walk 44 streets in 33 seconds
- * without anyone in the seat realizing anything had happened.
+ * the reported street stays in the pool and assignment picks at random among the highest-priority ones (#4922), so
+ * the follow-up load can land back on it: the "you were moved" explanation must only fire when the fresh assignment
+ * really is somewhere else. Without any of this the labeler is silently elsewhere, which is precisely how a session
+ * could walk 44 streets in 33 seconds without anyone in the seat realizing anything had happened.
  */
 
 const fs = require('fs');

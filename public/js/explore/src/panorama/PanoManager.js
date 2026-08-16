@@ -64,9 +64,9 @@ class PanoManager {
   }
 
   // Set when a load gives up on its street, and read once by the load that follows. The reload destroys the alert
-  // banner, so the explanation has to outlive it (#4918). Holds the given-up street's id: a report leaves the street
-  // in the rotation (#4922), so the follow-up load usually lands on the *same* street for another try, and the
-  // arrival toast about being moved elsewhere must only fire when the assignment actually changed.
+  // banner, so the explanation has to outlive it (#4918). Holds the given-up street's id because assignment picks at
+  // random among the highest-priority streets and the reported one is still among them, so the follow-up load can
+  // land back on it — and the toast about being moved elsewhere must only fire when the street actually changed.
   static #STREET_SKIPPED_KEY = 'sidewalk.streetSkippedOnLoad';
 
   /**
@@ -124,9 +124,9 @@ class PanoManager {
    * - the provider answered "nothing here", but this session has already hit its flag limit, so we treat the run as
    *   a broken session rather than a run of empty streets and still record nothing;
    * - otherwise the street really does look imagery-less, so it is reported — as evidence only, leaving the task
-   *   incomplete and the street in the rotation (#4922) — and the page reloads. The fresh assignment is usually the
-   *   same street, which is the right outcome for a transient verdict: a recovered provider resumes the street, and
-   *   a persistent one re-reports it until the flag limit ends the run.
+   *   incomplete and the street in the pool for the offline checker to settle (#4922) — and the page reloads. The
+   *   reload lands somewhere else: /explore declines to resume a task whose street this labeler just reported, or
+   *   they would be handed the same unloadable street again on this load and every one after it.
    *
    * The first two both leave the user on a page with no panorama, so they get told rather than silently stranded.
    *
