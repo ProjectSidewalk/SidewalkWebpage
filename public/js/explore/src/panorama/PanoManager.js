@@ -94,6 +94,23 @@ class PanoManager {
   }
 
   /**
+   * Makes a message readable on a load that ends without a panorama.
+   *
+   * Explore's chrome — the alert banner included — sits inside `.tool-ui`, which stays `visibility: hidden` until
+   * `Main.init()` finishes revealing it, and init bails as soon as there is no viewer. So a message shown from here
+   * would otherwise render inside a hidden container, behind a loading animation that never goes away: the labeler
+   * sees a page that looks stuck forever and is told nothing (#4918).
+   *
+   * Only the banner is un-hidden, not the whole tool: `visibility` is the one property a descendant can override
+   * against an inherited `hidden`, and revealing the rest would show a half-initialized UI whose controls are wired
+   * to a viewer that does not exist. The navbar is outside `.tool-ui`, so the labeler still has somewhere to go.
+   */
+  static #revealMessageOnStoppedLoad() {
+    document.getElementById('page-loading')?.style.setProperty('visibility', 'hidden');
+    document.getElementById('alert-holder')?.style.setProperty('visibility', 'visible');
+  }
+
+  /**
    * Decides what a failure to seed the viewer is allowed to say about the assigned street, and acts on it.
    *
    * Three outcomes, in increasing order of what we let ourselves write down (#4918):
@@ -121,6 +138,7 @@ class PanoManager {
       // change (#4918).
       const message = streetLooksEmpty ? 'popup.imagery-skip-limit' : 'popup.imagery-load-failed';
       const type = streetLooksEmpty ? 'imagerySkipLimit' : 'imageryLoadFailed';
+      PanoManager.#revealMessageOnStoppedLoad();
       svl.alertController?.showAlert(i18next.t(message), type, false);
       return;
     }
