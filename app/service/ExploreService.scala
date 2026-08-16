@@ -108,8 +108,8 @@ trait ExploreService {
   def insertComment(comment: AuditTaskComment): Future[Int]
 
   /**
-   * Logs to the street_edge_issue table and, for regular audit missions, marks the task as complete as if it were
-   * completed normally. For exploreAddress missions only the issue is logged — the task never completes (#4451).
+   * Logs a labeler's report of missing imagery to the street_edge_issue table. Evidence only: the task stays
+   * incomplete and the street keeps its priority, whatever the mission type (#4918, #4922).
    * @param taskSubmission The audit task associated with the imagery issue
    * @param streetIssue The StreetIssue object to submit
    * @param missionId The mission_id for the task
@@ -759,27 +759,25 @@ class ExploreServiceImpl @Inject() (
     db.run(auditTaskCommentTable.insert(comment))
   }
 
+  /**
+   * Records a labeler's report that a street's imagery failed to load, without crediting anyone with an audit.
+   *
+   * The report is evidence, not a verdict: one session's failure to load imagery is unreliable (transient GSV
+   * failures forge it wholesale, #4918), so it must not complete the task, drop the street's priority, or count
+   * toward region completion or the user's audited distance. The street stays open and un-audited for everyone.
+   * Streets that genuinely lack imagery leave the pool when the offline checker (check_streets_for_imagery.py ->
+   * street_edge.status = 'no_imagery') confirms the accumulated street_edge_issue reports (#4922).
+   *
+   * @param taskSubmission The client's snapshot of the audit task the report came from.
+   * @param streetIssue    The report itself, one street_edge_issue row.
+   * @param missionId      The mission the labeler was on, so the task row's mission progress stays current.
+   * @return The number of street_edge_issue rows inserted (1).
+   */
   def insertNoImagery(taskSubmission: TaskSubmission, streetIssue: StreetEdgeIssue, missionId: Int): Future[Int] = {
-    // Record the imagery issue for any mission type, but only mark the street complete (with the priority update that
-    // entails) for regular audits: an exploreAddress task must never complete, so that a drop-in session at a spot
-    // with no imagery can't mark the whole street as audited (#4451).
-    def completeTaskAction(auditTaskId: Int, missionType: Option[MissionType.Value]): DBIO[Int] = {
-      if (missionType.contains(MissionType.ExploreAddress)) DBIO.successful(0)
-      else {
-        for {
-          _                  <- updateStreetPriority(streetIssue.streetEdgeId, streetIssue.userId)
-          atRowsUpdated: Int <- auditTaskTable.updateCompleted(auditTaskId, completed = true)
-        } yield atRowsUpdated
-      }
-    }
-
-    db.run(missionTable.getMissionType(missionId).flatMap { missionType: Option[MissionType.Value] =>
-      updateAuditTaskTable(streetIssue.userId, taskSubmission, missionId).flatMap { auditTaskId: Int =>
-        completeTaskAction(auditTaskId, missionType)
-          .zip(streetEdgeIssueTable.insert(streetIssue))
-          .map(_._2)
-      }
-    })
+    db.run(
+      updateAuditTaskTable(streetIssue.userId, taskSubmission, missionId)
+        .andThen(streetEdgeIssueTable.insert(streetIssue))
+    )
   }
 
   /**

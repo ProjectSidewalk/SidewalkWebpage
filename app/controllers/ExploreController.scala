@@ -190,17 +190,16 @@ class ExploreController @Inject() (
   /**
    * This method handles a POST request in which user reports missing imagery.
    *
-   * Accepting a report marks the whole street audited and lowers its priority, so it stops being handed out — which
-   * makes a false report permanent lost coverage rather than a retryable annoyance. The per-user limit is the
-   * backstop for that: a client stuck in a loop (a flaky imagery provider, a viewer that will not initialize) can
-   * otherwise walk a neighborhood one street per round trip, and no client-side guard protects the ~1 hour of cached
-   * bundles still running the old behavior after a deploy (#4918).
+   * An accepted report records a street_edge_issue row and nothing else — evidence for the offline imagery checker,
+   * never an audit credit (#4922). The per-user limit bounds how much junk evidence a client stuck in a loop (a
+   * flaky imagery provider, a viewer that will not initialize) can file at one street per round trip, and no
+   * client-side guard protects the ~1 hour of cached bundles still running without one after a deploy (#4918).
    */
   def postNoImagery = cc.securityService.SecuredAction(parse.json) { implicit request =>
     val limit  = rateLimiter.limit("no-imagery")
     val userId = request.identity.userId
     if (!rateLimiter.allow(s"no-imagery:user:$userId", limit)) {
-      logger.warn(s"User $userId exceeded the missing-imagery report limit; refusing to mark more streets audited.")
+      logger.warn(s"User $userId exceeded the missing-imagery report limit; refusing to record more reports.")
       Future.successful(
         TooManyRequests(Json.obj("status" -> "Error", "message" -> "Too many missing-imagery reports."))
           .withHeaders("Retry-After" -> limit.window.toSeconds.toString)

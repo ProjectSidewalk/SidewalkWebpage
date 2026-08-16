@@ -2,11 +2,12 @@
  * What Explore is allowed to conclude, and to write down, when the imagery search along a street comes up empty
  * (#4918), and that the labeler is actually taken somewhere afterwards (#4921).
  *
- * Recording a street as imagery-less marks it audited and drops it out of the assignment rotation, so the cost of
- * getting this wrong is coverage nobody ever looked at: production lost ~3,370 streets across 29 cities to it. The
- * decisions under test are therefore about evidence, not mechanics — whether the provider answered at all, whether
- * every sampled point along the street answered the same way, and whether a session's run of failures has gone on
- * long enough to be better explained by one broken session than by a run of genuinely empty streets.
+ * A report is evidence, not an audit (#4922): it records a street_edge_issue row and must not finish the task —
+ * finishing submits completed=true, which the regular submission path credits as a full audit, and that inflation
+ * is what cost production ~3,370 streets across 29 cities. The decisions under test are therefore about evidence —
+ * whether the provider answered at all, whether every sampled point along the street answered the same way, and
+ * whether a session's run of failures has gone on long enough to be better explained by one broken session than by
+ * a run of genuinely empty streets — plus the one write-path rule above.
  *
  * The seam is `svl.panoManager.setLocation`, the one call the sweep makes per sampled point: each test scripts what
  * the provider says at each point and asserts on what gets reported, what gets advanced, and what the labeler is
@@ -226,6 +227,18 @@ describe('Explore, when the imagery search runs out along a street', () => {
             expect(svl.taskContainer.setCurrentTask).toHaveBeenCalledWith(live);
         });
 
+        it('leaves the reported street\'s task unfinished, since a report is evidence, not an audit (#4922)', async () => {
+            const [dead, live] = [makeTask(101), makeTask(102)];
+            assignStreets(dead, live);
+            respondToSearch = () => (svl.taskContainer.getCurrentTask() === dead ? emptyGround() : foundImagery());
+
+            await nav.moveForward();
+
+            // endTask() submits the task with completed=true, and the regular submission path credits that as a
+            // full audit — region coverage, priority drop, audited meters. A no-imagery verdict supports none of it.
+            expect(svl.taskContainer.endTask).not.toHaveBeenCalled();
+        });
+
         it('searches the street it moved to, rather than stranding the labeler on the old one (#4921)', async () => {
             const [dead, live] = [makeTask(101), makeTask(102)];
             assignStreets(dead, live);
@@ -387,6 +400,9 @@ describe('Explore, when the imagery search runs out along a street', () => {
 
             expect(reportNoImagery).not.toHaveBeenCalled();
             expect(window.NoImageryFlagGuard.count()).toBe(0);
+            // Unlike a report, this is a real completion: the labeler walked the street to within reach of its end,
+            // so the task is finished through the same call the normal end-of-street flow uses.
+            expect(svl.taskContainer.endTask).toHaveBeenCalled();
         });
     });
 

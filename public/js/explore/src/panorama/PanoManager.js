@@ -63,33 +63,38 @@ class PanoManager {
     return points;
   }
 
-  // Set when a load gives up on its street, and read once by the load that follows. The reload is what carries the
-  // labeler to a new street, and it also destroys the alert banner, so the explanation has to outlive it (#4918).
+  // Set when a load gives up on its street, and read once by the load that follows. The reload destroys the alert
+  // banner, so the explanation has to outlive it (#4918). Holds the given-up street's id: a report leaves the street
+  // in the rotation (#4922), so the follow-up load usually lands on the *same* street for another try, and the
+  // arrival toast about being moved elsewhere must only fire when the assignment actually changed.
   static #STREET_SKIPPED_KEY = 'sidewalk.streetSkippedOnLoad';
 
-  /** Records that this load gave up on its street, so the next one can say so. */
-  static #rememberStreetSkipped() {
+  /**
+   * Records the street this load gave up on, so the next one can explain what happened.
+   * @param {number} streetEdgeId - The street the failed load was assigned.
+   */
+  static #rememberStreetSkipped(streetEdgeId) {
     try {
-      window.sessionStorage?.setItem(PanoManager.#STREET_SKIPPED_KEY, '1');
+      window.sessionStorage?.setItem(PanoManager.#STREET_SKIPPED_KEY, String(streetEdgeId));
     } catch {
       // An unwritable store costs the labeler an explanation, which is not worth failing the skip over.
     }
   }
 
   /**
-   * Whether the load before this one moved the labeler off a street it couldn't show.
+   * The street the load before this one gave up on, if any.
    *
    * Reading clears the notice, so the explanation appears once, on arrival, rather than on every later load.
    *
-   * @returns {boolean} True when the preceding load gave up on its street.
+   * @returns {number|null} The given-up street's id, or null when the preceding load ended normally.
    */
   static consumeStreetSkippedNotice() {
     try {
-      const skipped = window.sessionStorage?.getItem(PanoManager.#STREET_SKIPPED_KEY) === '1';
+      const stored = Number.parseInt(window.sessionStorage?.getItem(PanoManager.#STREET_SKIPPED_KEY) ?? '', 10);
       window.sessionStorage?.removeItem(PanoManager.#STREET_SKIPPED_KEY);
-      return skipped;
+      return Number.isFinite(stored) ? stored : null;
     } catch {
-      return false;
+      return null;
     }
   }
 
@@ -101,7 +106,10 @@ class PanoManager {
    *   unknown and nothing at all is recorded;
    * - the provider answered "nothing here", but this session has already hit its flag limit, so we treat the run as
    *   a broken session rather than a run of empty streets and still record nothing;
-   * - otherwise the street really does look imagery-less, so it is reported and the page reloads onto the next one.
+   * - otherwise the street really does look imagery-less, so it is reported — as evidence only, leaving the task
+   *   incomplete and the street in the rotation (#4922) — and the page reloads. The fresh assignment is usually the
+   *   same street, which is the right outcome for a transient verdict: a recovered provider resumes the street, and
+   *   a persistent one re-reports it until the flag limit ends the run.
    *
    * The first two both leave the user on a page with no panorama, so they get told rather than silently stranded.
    *
@@ -127,7 +135,7 @@ class PanoManager {
 
     NoImageryFlagGuard.recordStreetGivenUp();
     await util.misc.reportNoImagery(errorParams.task, errorParams.missionId);
-    PanoManager.#rememberStreetSkipped();
+    PanoManager.#rememberStreetSkipped(errorParams.task.getStreetEdgeId());
     window.location.replace('/explore');
   }
 

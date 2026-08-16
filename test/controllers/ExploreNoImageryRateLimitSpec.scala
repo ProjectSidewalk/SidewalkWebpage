@@ -16,20 +16,22 @@ import play.api.test.Helpers._
 import java.time.OffsetDateTime
 
 /**
- * Functional tests for the per-user cap on `POST /explore/nostreetview` (#4918).
+ * Functional tests for `POST /explore/nostreetview`: the per-user cap (#4918) and the evidence-only write contract
+ * (#4922).
  *
- * The endpoint is unusually expensive to get wrong: an accepted report marks the reported street `completed` and
- * lowers its priority, so the street stops being handed out to labelers. That makes a false report permanent lost
- * coverage rather than a retryable annoyance, and production has twice seen a client loop turn a transient imagery
- * failure into dozens of streets marked audited that nobody ever looked at — 44 streets in 33 seconds in one case.
+ * The write contract is the load-bearing property: an accepted report records a `street_edge_issue` row and nothing
+ * else — the task stays incomplete, the street keeps its priority, and the region's audited distance is untouched. A
+ * report is one session's verdict and transient imagery failures forge them wholesale (production saw a client loop
+ * submit 44 in 33 seconds), so nothing an audit credits may hang off of one.
  *
- * The client-side guards that bound those loops can't be the only defense, because clients keep running cached
- * bundles for up to an hour after a deploy and old bundles carry the unbounded behavior. So the property under test
- * here is the one that holds regardless of what the client does: past the budget, the server writes nothing.
+ * The rate limit bounds how much junk evidence a runaway client can write. The client-side guards that bound those
+ * loops can't be the only defense, because clients keep running cached bundles for up to an hour after a deploy. So
+ * the property under test is the one that holds regardless of what the client does: past the budget, the server
+ * writes nothing at all.
  *
  * The suite runs with a budget of [[MaxReports]] rather than the configured production value so a test can exhaust it
- * without marking a pile of real streets audited. Each test mints its own anonymous user, which is also the limiter's
- * key, so tests neither share budget nor depend on each other's order.
+ * in a handful of requests. Each test mints its own anonymous user, which is also the limiter's key, so tests neither
+ * share budget nor depend on each other's order.
  */
 // Mixin order matters: GuiceOneAppPerSuite must be rightmost so its run() wraps BeforeAndAfterAll's — otherwise
 // afterAll's cleanup executes after the app (and its DB pool) has shut down and aborts the suite.
@@ -58,10 +60,13 @@ class ExploreNoImageryRateLimitSpec
   /** Users minted by this suite; everything written under them is deleted in `afterAll`. */
   private var createdUserIds: Set[String] = Set.empty
 
-  /** Pre-test `street_edge_priority.priority` for each street a report completed, restored in `afterAll`. */
+  /**
+   * Pre-test `street_edge_priority.priority` per street: what a report must not move (#4922). Restored in `afterAll`
+   * regardless, so a regression that starts moving it can't leave the shared dev DB poisoned.
+   */
   private var priorityBackup: Map[Int, Double] = Map.empty
 
-  /** Pre-test `region_completion.audited_distance` for each region touched, restored in `afterAll`. */
+  /** Pre-test `region_completion.audited_distance` per region: same contract and same safety net as the priority. */
   private var auditedDistanceBackup: Map[Int, Double] = Map.empty
 
   /** The shared bootstrap, plus the bookkeeping that lets `afterAll` clean up after the user it assigns work to. */
@@ -134,7 +139,7 @@ class ExploreNoImageryRateLimitSpec
       (contentAsJson(refused) \ "status").as[String] mustBe "Error"
     }
 
-    "accept a report within budget and record the street as having no imagery" in {
+    "accept a report within budget, recording evidence without marking the street audited" in {
       val session = freshAnonSession()
       val b       = bootstrapFor(session)
 
@@ -147,9 +152,24 @@ class ExploreNoImageryRateLimitSpec
               WHERE user_id = ${b.userId} AND street_edge_id = ${b.streetEdgeId} AND issue = 'PanoNotAvailable'"""
           .as[Int]
       ).head mustBe 1
+
+      // The evidence-only contract (#4922): the issue row above is the report's entire footprint. The task stays
+      // incomplete and the shared audited-state rows hold their pre-test values, so the street stays in the
+      // assignment rotation for everyone. The map lookups throw on a missing backup, so a street or region that
+      // skipped the backup fails here rather than passing vacuously.
+      run(
+        sql"SELECT completed FROM audit_task WHERE user_id = ${b.userId} AND street_edge_id = ${b.streetEdgeId}"
+          .as[Boolean]
+      ) must not contain true
+      run(
+        sql"SELECT priority FROM street_edge_priority WHERE street_edge_id = ${b.streetEdgeId}".as[Double]
+      ).head mustBe priorityBackup(b.streetEdgeId)
+      run(
+        sql"SELECT audited_distance FROM region_completion WHERE region_id = ${b.regionId}".as[Double]
+      ).head mustBe auditedDistanceBackup(b.regionId)
     }
 
-    "stop marking streets audited once the user's budget is spent" in {
+    "write nothing once the user's budget is spent" in {
       val session = freshAnonSession()
       val b       = bootstrapFor(session)
 
@@ -181,7 +201,7 @@ class ExploreNoImageryRateLimitSpec
   }
 
   /**
-   * Removes the reports and tasks the suite wrote, and puts back the shared rows an accepted report moved.
+   * Removes the reports and tasks the suite wrote, and puts back the shared rows nothing should have moved.
    *
    * Order follows the foreign keys, and the mission's `current_audit_task_id` is cleared first: a mission points back
    * at the task the user is on, so deleting audit_task before breaking that reference violates the constraint.
