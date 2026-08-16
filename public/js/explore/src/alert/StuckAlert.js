@@ -13,10 +13,28 @@ class StuckAlert extends Alert {
   }
 
   /**
-   * Shows a notice that the current street was skipped because the user was stuck.
+   * Tells the labeler that they have been moved off a street with no imagery, and where to.
+   *
+   * Shown without the "don't show again" option (#4918): this reports an unrequested change of location, which the
+   * labeler needs in order to make sense of the screen in front of them, and a labeler who silenced it once would
+   * otherwise be teleported wordlessly for the rest of that browser's life.
+   *
+   * @param {string} [streetName] - Name of the street they were moved to, when it could be determined.
    */
-  stuckSkippedStreet() {
-    this._showAlert('popup.stuck-skipped-street', 'stuckStreetSkipped');
+  stuckSkippedStreet(streetName) {
+    const key = streetName ? 'popup.stuck-skipped-street-named' : 'popup.stuck-skipped-street';
+    this._showAlert(key, 'stuckStreetSkipped', { streetName }, false);
+  }
+
+  /**
+   * Looks up what the street at a location is called, then reports the move there.
+   *
+   * @param {{lat: number, lng: number}} latLng - A point on the street the labeler was moved to.
+   * @param {string} mapboxApiKey - Mapbox access token for the lookup; without one the message goes out unnamed.
+   * @returns {Promise<void>} Resolves once the message is on screen.
+   */
+  async announceSkippedStreetNear(latLng, mapboxApiKey) {
+    this.stuckSkippedStreet(await util.misc.getStreetNameNear(latLng, mapboxApiKey));
   }
 
   /**

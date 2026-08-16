@@ -90,8 +90,9 @@ class PanoViewer {
    * @param {string} [panoOptions.startPanoId] Pano to start at; tried before the lat/lngs
    * @param {{lat: number, lng: number}} [panoOptions.startLatLng] Preferred starting location
    * @param {Array<{lat: number, lng: number}>} [panoOptions.backupLatLngs=[]] Fallback locations, tried in order
-   * @returns {Promise<void>} Rejects only when every given seed fails: with the last setLocation() error when
-   *     locations were given, otherwise with the setPano() error
+   * @returns {Promise<void>} Rejects only when every given seed fails. The rejection is a NoImageryError only when
+   *     every candidate location answered "nothing here"; if any failed for another reason, that error is rethrown
+   *     as-is so callers can tell "this street is empty" from "we couldn't ask" (#4918)
    * @protected
    */
   async _moveToInitialLocation(panoOptions) {
@@ -107,17 +108,26 @@ class PanoViewer {
     }
     if (panoOptions.startLatLng) {
       const candidates = [panoOptions.startLatLng, ...(panoOptions.backupLatLngs ?? [])];
-      let lastError;
+      const failures = [];
       for (const latLng of candidates) {
         try {
           await this.setLocation(latLng);
           this.initialSeed = 'latLng';
           return;
         } catch (err) {
-          lastError = err;
+          failures.push(err);
         }
       }
-      throw lastError;
+      // One candidate that failed for a non-imagery reason leaves the stretch of street it covered unknown, not
+      // empty, so its error wins over the emptiness the other candidates found. Surfacing the first such failure
+      // rather than the last keeps the root cause (e.g. the maps library never loaded) at the top of the chain.
+      if (!NoImageryError.allNoImagery(failures)) {
+        throw failures.find((err) => !(err instanceof NoImageryError));
+      }
+      throw new NoImageryError(
+        `No imagery at any of the ${candidates.length} candidate points along the street.`,
+        { cause: failures[failures.length - 1] },
+      );
     }
   }
 

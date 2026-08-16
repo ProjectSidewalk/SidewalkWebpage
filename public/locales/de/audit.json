@@ -317,11 +317,14 @@
     "label-shortcuts-signal": "Sie können auch die Taste <kbd>{{key}}</kbd> drücken, um die Beschriftung für ein Fussgänger:innensignal zu wählen.",
     "label-shortcuts-occlusion": "Sie können auch die Taste <kbd>{{key}}</kbd> drücken, um die Beschriftung für ein nicht sichtbares Trottoir zu wählen.",
     "still-stuck": "Wenn Sie immer noch feststecken, klicken Sie erneut auf das Verlaufen-Symbol.",
-    "stuck-skipped-street": "Wir konnten für Sie keinen Ort auf dieser Strasse finden, daher haben wir Sie auf eine neue Strasse verschoben.",
+    "stuck-skipped-street": "Für diese Straße gab es keine Bilder, die wir dir zeigen konnten, deshalb haben wir dich zu einer neuen Straße gebracht.",
+    "stuck-skipped-street-named": "Für diese Straße gab es keine Bilder, die wir dir zeigen konnten, deshalb haben wir dich zur <b>{{streetName}}</b> gebracht.",
     "free-explore-start": "Sie wurden in der Nähe Ihrer gesuchten Adresse abgesetzt. Schauen Sie sich um und fügen Sie Labels hinzu!",
     "free-explore-start-named": "Sie wurden in der Nähe von <b>{{placeName}}</b> abgesetzt. Schauen Sie sich um und fügen Sie Labels hinzu!",
     "free-explore-no-imagery": "In dieser Richtung gibt es keine weiteren Strassenbilder. Schauen Sie sich um oder gehen Sie in die andere Richtung.",
-    "stuck-suggestion": "Wenn Sie sich nicht mithilfe der Pfeile bewegen können, versuchen Sie auf die Navigationsanweisungen unten rechts zu klicken. Oder klicken Sie links auf das Verlaufen-Symbols."
+    "stuck-suggestion": "Wenn Sie sich nicht mithilfe der Pfeile bewegen können, versuchen Sie auf die Navigationsanweisungen unten rechts zu klicken. Oder klicken Sie links auf das Verlaufen-Symbols.",
+    "imagery-skip-limit": "Mehrere Straßen hintereinander hatten keine Bilder, deshalb bewegen wir dich nicht mehr automatisch weiter. Probiere einen anderen Teil der Karte oder lade die Seite neu, um von vorn zu beginnen.",
+    "imagery-load-failed": "Die Straßenbilder konnten gerade nicht geladen werden. Bitte versuche es in ein paar Minuten erneut."
   },
   "mission-start-tutorial": {
     "mst-instruction-1": "MISSION ERKUNDEN",
