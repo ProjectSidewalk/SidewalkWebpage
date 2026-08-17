@@ -63,6 +63,9 @@ class OutdatedImageryFlagSyncSpec extends PlaySpec with GuiceOneAppPerSuite with
   private def flagOf(auditTaskId: Int): DBIO[Boolean] =
     auditTasks.filter(_.auditTaskId === auditTaskId).map(_.outdatedImagery).result.head
 
+  private def flaggedAtOf(auditTaskId: Int): DBIO[Option[OffsetDateTime]] =
+    auditTasks.filter(_.auditTaskId === auditTaskId).map(_.outdatedImageryAt).result.head
+
   "syncOutdatedImageryFlags" should {
     "flag a completed audit that predates the street's median newest capture, and be idempotent" in {
       assume(someUserId.isDefined && nonTutorialStreets.nonEmpty)
@@ -164,6 +167,35 @@ class OutdatedImageryFlagSyncSpec extends PlaySpec with GuiceOneAppPerSuite with
       flagBefore mustBe true
       flagAfter mustBe false
       unflaggedCount must be >= 1
+    }
+
+    "stamp outdated_imagery_at on the false-to-true edge only, and clear it with the flag" in {
+      assume(someUserId.isDefined && nonTutorialStreets.nonEmpty)
+      val (userId, streetId) = (someUserId.get, nonTutorialStreets.head)
+      // now() is transaction-constant in Postgres and this whole case runs in one rolled-back transaction, so
+      // "unchanged across re-runs" can't be asserted by comparing two reads. Planting a sentinel between runs can
+      // detect a re-stamp: the set-pass writes now(), which can never equal it.
+      val sentinel = OffsetDateTime.parse("2001-01-01T00:00:00Z")
+
+      val (stampAfterFlag, stampAfterRerun, stampAfterClear) = runRolledBack(for {
+        taskId <- auditTaskTable.insert(
+          newTask(streetId, userId, OffsetDateTime.parse("2020-01-15T12:00:00Z"), completed = true)
+        )
+        _ <- setImagery(streetId, Some(LocalDate.parse("2024-06-01")), Some(LocalDate.parse("2024-06-01")), None)
+        _ <- auditTaskTable.syncOutdatedImageryFlags
+        stampAfterFlag  <- flaggedAtOf(taskId)
+        _               <- auditTasks.filter(_.auditTaskId === taskId).map(_.outdatedImageryAt).update(Some(sentinel))
+        _               <- auditTaskTable.syncOutdatedImageryFlags
+        stampAfterRerun <- flaggedAtOf(taskId)
+        // The street's median now predates the audit, so the clear-pass unflags it.
+        _               <- setImagery(streetId, Some(LocalDate.parse("2019-06-01")), None, None)
+        _               <- auditTaskTable.syncOutdatedImageryFlags
+        stampAfterClear <- flaggedAtOf(taskId)
+      } yield (stampAfterFlag, stampAfterRerun, stampAfterClear))
+
+      stampAfterFlag mustBe defined
+      stampAfterRerun.map(_.toInstant) mustBe Some(sentinel.toInstant)
+      stampAfterClear mustBe empty
     }
 
     "ignore a future median capture date, and clear a flag that a future date would otherwise pin forever" in {

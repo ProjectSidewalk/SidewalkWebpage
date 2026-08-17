@@ -12,6 +12,15 @@
 ALTER TABLE pano_data ADD COLUMN expired_at TIMESTAMPTZ;
 ALTER TABLE pano_data ADD CONSTRAINT pano_data_expired_at_check CHECK (expired OR expired_at IS NULL);
 
+-- Same pattern for the re-audit flag (#4384): outdated_imagery says a completed audit predates its street's newer
+-- imagery, but not since when -- so flag-to-re-audit latency and "newly flagged this week" are unanswerable without
+-- it. The sync's set-pass stamps it (that pass only touches unflagged rows, so the stamp marks the false-to-true
+-- edge and re-runs leave it alone) and the clear-pass nulls it. Left NULL for audits already flagged when this
+-- evolution runs: their flip date was never recorded.
+ALTER TABLE audit_task ADD COLUMN outdated_imagery_at TIMESTAMPTZ;
+ALTER TABLE audit_task ADD CONSTRAINT audit_task_outdated_imagery_at_check
+    CHECK (outdated_imagery OR outdated_imagery_at IS NULL);
+
 -- street_edge.status has no application write path at all: it is written only by the hand-run scripts in db/scripts
 -- (hide-streets-without-imagery.sh, reveal-or-hide-neighborhoods.sh, remove_streets.sql). Nothing recorded that a run
 -- happened, which streets it touched, or what it changed them from -- so this table is also the only trace those
@@ -81,6 +90,9 @@ DROP TYPE job_run_status;
 
 DROP TABLE street_edge_status_change;
 DROP TYPE street_edge_status_change_source;
+
+ALTER TABLE audit_task DROP CONSTRAINT audit_task_outdated_imagery_at_check;
+ALTER TABLE audit_task DROP COLUMN outdated_imagery_at;
 
 ALTER TABLE pano_data DROP CONSTRAINT pano_data_expired_at_check;
 ALTER TABLE pano_data DROP COLUMN expired_at;
