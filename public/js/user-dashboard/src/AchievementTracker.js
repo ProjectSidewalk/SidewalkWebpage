@@ -120,8 +120,7 @@ class AchievementTracker {
       }
 
       // Convert to from miles to kilometers if using metric system.
-      const measurementSystem = i18next.t('common:measurement-system');
-      if (badgeType === BadgeTypes.Distance && measurementSystem === 'metric') {
+      if (badgeType === BadgeTypes.Distance && util.isMetric()) {
         diffValue = util.math.milesToKms(diffValue);
       }
 

@@ -10,9 +10,14 @@
     trophies: Seq[Trophy], myRoutes: Seq[RouteWithStats]
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
-@* Formats the already-unit-converted audited distance (km when metric, else miles) with one decimal + unit. *@
+@*
+* Formats the already-unit-converted audited distance (km when metric, else miles) with one decimal + unit. Floored
+* rather than rounded, matching util.math.floorTo on the frontend, so the same total can't read as 16.5 here and 16.4
+* in Explore's badge progress — and so it never reads as a badge threshold the user hasn't actually crossed.
+*@
 @distanceLabel = @{
-  f"${profileData.auditedDistance}%.1f ${if (isMetric) Messages("dashboard.unit.km") else Messages("dashboard.unit.mi")}"
+  val floored = Math.floor(profileData.auditedDistance * 10) / 10
+  f"$floored%.1f ${if (isMetric) Messages("dashboard.unit.km") else Messages("dashboard.unit.mi")}"
 }
 @accuracyLabel = @{ profileData.accuracy.map(a => f"${a * 100}%.0f%%").getOrElse("—") }
 

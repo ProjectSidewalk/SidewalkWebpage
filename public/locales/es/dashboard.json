@@ -21,8 +21,8 @@
   "badge-type-validations": "validaciones",
   "badge-missions-singular": "misión",
   "badge-missions-plural": "misiones",
-  "badge-distance-singular": "km",
-  "badge-distance-plural": "km",
+  "badge-distance-singular": "{{unitNameSingular}}",
+  "badge-distance-plural": "{{unitName}}",
   "badge-labels-singular": "etiqueta",
   "badge-labels-plural": "etiquetas",
   "badge-validations-singular": "validación",
@@ -47,8 +47,7 @@
     "remaining-missions_other": "{{count}} misiones más",
     "remaining-validations_one": "{{count}} validación más",
     "remaining-validations_other": "{{count}} validaciones más",
-    "remaining-distance-km": "{{dist}} km más",
-    "remaining-distance-mi": "{{dist}} mi más"
+    "remaining-distance": "{{dist}} {{unitAbbr}} más"
   },
   "mistake-cards": {
     "empty": "🎉 No hay errores por revisar: tus etiquetas se están sosteniendo muy bien. ¡Sigue así!",

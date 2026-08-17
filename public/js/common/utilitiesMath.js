@@ -55,6 +55,26 @@ function roundToTwentyFive(num) {
 
 util.math.roundToTwentyFive = roundToTwentyFive;
 
+/**
+ * Truncates a value to a number of decimal places, rather than rounding it.
+ *
+ * Progress toward a goal is displayed floored so that it never reads as finished before it is: rounding 16.45 up to
+ * "16.5 / 16.5 mi" claims a badge the user hasn't earned. Every display of an audited distance uses this so the same
+ * total can't render two different ways on two parts of a page.
+ *
+ * @param {number} value - The value to truncate.
+ * @param {number} decimals - How many decimal places to keep.
+ * @returns {number} The value truncated toward zero at that precision.
+ */
+function floorTo(value, decimals) {
+  const factor = 10 ** decimals;
+  // Scaling first lands just under the intended integer for values binary floating point can't hold exactly
+  // (0.29 * 100 is 28.999999999999996, which would floor to 0.28), so settle that noise before flooring.
+  return Math.floor(Number((value * factor).toFixed(6))) / factor;
+}
+
+util.math.floorTo = floorTo;
+
 function metersToMiles(dist) {
   return dist / 1609.34;
 }

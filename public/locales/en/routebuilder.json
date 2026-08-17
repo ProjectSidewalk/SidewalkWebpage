@@ -19,7 +19,6 @@
   "saved-view-title": "Open this route in the editor",
   "route-usage": "Explored by {{started}} · Completed by {{completed}}",
   "route-usage-tooltip": "Explored: how many people have started exploring this route. Completed: how many finished the whole route.",
-  "route-length": "{{dist}} $t(common:unit-distance-abbreviation)",
   "est-time-minutes": "{{min}} min",
   "est-time-hours": "{{hours}} hr {{min}} min",
   "street-count_one": "{{count}} street",

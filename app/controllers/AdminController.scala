@@ -1,6 +1,7 @@
 package controllers
 
 import controllers.base._
+import controllers.helper.ControllerUtils
 import controllers.helper.ControllerUtils.isAdmin
 import formats.json.AdminFormats._
 import formats.json.LabelFormats._
@@ -11,7 +12,6 @@ import models.user.{RoleTable, SidewalkUserWithRole}
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.dispatch.Dispatcher
 import play.api.cache.AsyncCacheApi
-import play.api.i18n.Messages
 import play.api.libs.json.{JsArray, JsError, JsObject, Json}
 import play.api.{Configuration, Logger}
 import play.silhouette.api.Silhouette
@@ -54,7 +54,7 @@ class AdminController @Inject() (
   def userProfile(username: String) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     authenticationService.findByUsername(username).flatMap {
       case Some(user) =>
-        val metricSystem: Boolean = Messages("measurement.system") == "metric"
+        val metricSystem: Boolean = ControllerUtils.isMetric
         for {
           userProfileData: UserProfileData <- userService.getUserProfileData(user.userId, metricSystem)
           adminData                        <- adminService.getAdminUserProfileData(user.userId)

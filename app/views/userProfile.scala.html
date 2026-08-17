@@ -1,4 +1,4 @@
-@import controllers.helper.ControllerUtils.isAdmin
+@import controllers.helper.ControllerUtils.{distanceUnitWords, isAdmin, isMetric}
 @import models.label.Tag
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
@@ -106,7 +106,7 @@
         <img src='@assets.path("images/icons/noun_target_3485590_cropped.png")' alt="@Messages("accuracy.icon.alt")" title="@Messages("dashboard.accuracy.icon.tooltip")">
 
         <span class="user-stats-stat">@data.missionCount</span>
-        <span class="user-stats-stat">@{s"%.2f ${Messages("dist.metric.abbr")}".format(data.auditedDistance)}</span>
+        <span class="user-stats-stat">@{s"%.2f ${distanceUnitWords.abbr}".format(Math.floor(data.auditedDistance * 100) / 100)}</span>
         <span class="user-stats-stat">@data.labelCount</span>
         <span class="user-stats-stat">@data.validationCount</span>
         <span class="user-stats-stat">@data.accuracy.map(a => "%.1f%%".format(a * 100)).getOrElse("N/A")</span>
@@ -133,7 +133,7 @@
           <h3>@Messages("dashboard.distance")</h3>
           <p id="distance-badge-encouragement" class="achievements-encouraging-statement">Just XX more miles until your next distance achievement.</p>
           <div id="distance-badge-grid" class="achievements-badge-grid">
-          @if(Messages("measurement.system") == "metric") {
+          @if(isMetric) {
             <img id="distance-badge1" src='@assets.path("images/badges/badge_distance_km_badge1.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.first"))">
             <img id="distance-badge2" src='@assets.path("images/badges/badge_distance_km_badge2.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.second"))">
             <img id="distance-badge3" src='@assets.path("images/badges/badge_distance_km_badge3.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.third"))">

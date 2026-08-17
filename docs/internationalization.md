@@ -56,6 +56,50 @@ Project Sidewalk has two separate translation systems; which one you use depends
 > Most user-facing text in the apps is in the **frontend** system. Reach for the backend message files only for
 > server-rendered Twirl pages.
 
+## Measurement units
+
+Units are **not** a property of the language. Readers pick metric or imperial for themselves on the Settings page
+(#4404), so the same language has to be able to render either — a Spanish reader can ask for miles, and a US English
+reader for kilometers.
+
+**One verdict, resolved server-side.** `ControllerUtils.measurementSystem` returns `"metric"` or `"imperial"` for a
+request: the reader's override cookie if they set one, otherwise the language's own default (the `measurement.system`
+message — a sentinel the code compares against, so it holds the literal string `metric`, never a translation of the
+word). Never re-derive units from the language.
+
+**The unit words live in `conf/messages` only.** `unit.distance.{abbr,abbr.small,name,name.singular}.{metric,imperial}`
+is the single definition; `ControllerUtils.distanceUnitWords` resolves the four for a request, server-rendered
+templates read them directly, and `main.scala.html` hands the same four to i18next as
+[interpolation defaults](https://www.i18next.com/translation-function/interpolation#default-variables). The locale
+JSON therefore carries **no** unit words at all — a client-side string just writes them:
+
+```json
+"distance-left_one":   "Only {{count}} {{unitNameSingular}} left!",
+"distance-left_other": "Only {{count}} {{unitName}} left!",
+"needs-reaudit":       "About {{n}} {{unitAbbr}} of streets here need a re-audit!"
+```
+
+No argument at the call site, nothing a caller can forget, and no metric/imperial pair of keys to keep in sync — plain
+`i18next.t()` is always correct. (The defaults must be plain strings: a getter that called `i18next.t()` would recurse
+through interpolation. They also flow into nested `$t(...)` references, and i18next's own plural suffixes compose with
+them, as `map.distance-left` shows.)
+
+**Rendering a distance is the `distance` formatter's job**, registered in `AppManager._addDistanceFormatter`:
+`{{meters, distance(style: small)}}` converts, rounds, localizes the number, and appends the unit. Its params are
+`style` (`small` → m/ft rounded to the nearest 25; `large` → km/mi), `precision`, and `unit: false` for the bare
+number; separate several with `;`. `util.distanceToString(meters)` and `util.longDistanceToString(km, precision)` call
+it from outside a translated string.
+
+**The formatter's input is always canonical** — meters for `small`, kilometers for `large`. Some values reach the
+frontend already converted (`/userapi/basicStats` converts server-side; turf measurements taken in
+`util.turfDistanceUnits()` are in the reader's units so they can be summed against those). Passing one of those to the
+formatter would convert it twice, so those call sites name the unit with `{{unitAbbr}}` / `util.unitWords()` instead
+and do no conversion.
+
+Backend sentences that embed a unit noun take it as an argument rather than being duplicated per system — see
+`landing.stats.content.*`. So when adding text that names a distance unit, reach for the interpolation defaults; never
+put imperial wording in `messages.en-US` / `locales/en-US/`, which only reaches readers whose *language* is US English.
+
 ## Adding or changing user-facing text
 
 1. **Add the key** to the appropriate backend message file or frontend namespace JSON, for the languages you can. For
@@ -65,8 +109,8 @@ Project Sidewalk has two separate translation systems; which one you use depends
    ones, so don't block on official translations.
 3. **Default to the generic `en`** files, and add **regional English overrides only where the wording actually
    differs**:
-   - **`en-US`** — imperial units: feet/miles (`ft`/`mi`) where generic `en` uses metric (`m`/`km`). Your code must
-     respect the unit system too (see existing examples).
+   - **`en-US`** — American spellings and phrasing. **Not** the place for imperial units: those are a measurement-system
+     variant of the key, carried by every locale (see "Measurement units" below), not a regional overlay.
    - **`en-NZ`** — dialect: curb ramp → *drop kerb*, sidewalk → *footpath*, crosswalk → *pedestrian crossing*,
      neighborhood → *neighbourhood*, organization → *organisation*, meter/kilometre → *metre/kilometre*,
      trash/recycling can → *trash/recycling bin*.
@@ -94,9 +138,10 @@ orphans remain.
    moment has US English built in — a new English variant still needs one, the way `en-NZ` does. (There's an open
    ticket, [#1258](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/1258), about moving off moment.js — don't
    take that on as part of adding a language.)
-5. **Mind the `unit-distance` key.** In `common.json`, `unit-distance` (e.g. `"kilometers"` / `"miles"`) is **not**
-   display text — it's a unit-*system* selector consumed by turf.js. For a new non-US language, leave it as
-   `"kilometers"` (metric) rather than translating the word.
+5. **Translate both measurement systems.** The unit words live in `conf/messages/messages.<lang>` as
+   `unit.distance.*.{metric,imperial}` (see "Measurement units" above), so a new language needs both sets — even one
+   whose speakers would never pick imperial, since the choice is the reader's. Nothing unit-related goes in the
+   locale JSON.
 6. **Test thoroughly.** Compare each main page against the English version (open them in adjacent tabs and flip
    between them) to catch layout breakage from differing text lengths. On Explore, place a label of each type and
    open the various sub-menus. Then open a PR and deploy to the test servers so the requesting partner can review the

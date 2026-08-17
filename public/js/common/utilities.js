@@ -318,6 +318,54 @@ util.isFirefox = () => util.getBrowserName() === 'Firefox';
 // is (#4887). For touch-vs-hover behavior questions, prefer a capability query (`pointer: coarse`) over this flag.
 util.isMobile = () => document.documentElement.dataset.mobileDevice === 'true';
 
+// Whether distances on this page are shown in kilometers and meters rather than miles and feet. The server resolves
+// it (ControllerUtils.measurementSystem: the user's Settings override if they set one, else the site language's
+// default) and main.scala.html stamps the answer on <html>, so client and server can't disagree about units the way
+// they would if each derived them from the language separately (#4404).
+//
+// This is for branching on the unit system — picking the km or mi badge artwork, converting a threshold. Rendering a
+// distance for a reader is the `distance` i18next formatter's job, and naming a unit in a sentence is the
+// {{unitAbbr}} / {{unitName}} / {{unitNameSingular}} interpolation defaults' (both set up in AppManager).
+util.isMetric = () => document.documentElement.dataset.measurementSystem === 'metric';
+
+// The unit name turf.js expects for distance/length options. A turf argument, not display text — turf only accepts its
+// own English identifiers, so this must never be routed through a translation.
+util.turfDistanceUnits = () => (util.isMetric() ? 'kilometers' : 'miles');
+
+/**
+ * This reader's distance words: `unitAbbr` ("km"), `unitAbbrSmall` ("m"), `unitName` ("kilometers"), and
+ * `unitNameSingular` ("kilometer"), translated and resolved for their measurement system by the server.
+ *
+ * A translated string names its unit by writing {{unitAbbr}} and friends — i18next fills them in with no argument at
+ * the call site. This accessor is for the few places building a display string outside i18next.
+ *
+ * @returns {Object} The four unit words for this page.
+ */
+util.unitWords = () => i18next.options.interpolation.defaultVariables;
+
+/**
+ * Renders a mission-scale distance for this reader, e.g. "425 m" or "1,400 ft".
+ *
+ * A thin call into the `distance` i18next formatter (AppManager registers it), which is also reachable from inside a
+ * translated string as `{{meters, distance(style: small)}}` — this is for the many places that render a bare distance
+ * with no sentence around it.
+ *
+ * @param {number} meters - The distance in meters. Always canonical: the formatter converts.
+ * @returns {string} The distance converted, rounded to the nearest 25, and localized, with its unit.
+ */
+util.distanceToString = (meters) =>
+  i18next.services.formatter.format(meters, 'distance(style: small)', i18next.language, {});
+
+/**
+ * Renders a long distance for this reader, e.g. "12.3 km" or "7.6 mi".
+ *
+ * @param {number} km - The distance in kilometers. Always canonical: the formatter converts.
+ * @param {number} [precision=0] - Decimal places to show.
+ * @returns {string} The distance converted, rounded, and localized, with its unit.
+ */
+util.longDistanceToString = (km, precision = 0) =>
+  i18next.services.formatter.format(km, `distance(style: large; precision: ${precision})`, i18next.language, {});
+
 // A cross-browser function to capture a mouse position, relative to the given DOM element. The UI is scaled through
 // real layout sizes (var(--ui-scale)), so offset() already reflects the scaled position and no compensation is needed.
 function mousePosition(e, dom) {

@@ -1,3 +1,4 @@
+@import controllers.helper.ControllerUtils
 @import models.route.RouteWithStats
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
@@ -15,7 +16,7 @@
 @(commonData: CommonPageData, user: SidewalkUserWithRole, cityRoutes: Seq[RouteWithStats]
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
-@isMetric = @{Messages("measurement.system") == "metric"}
+@isMetric = @{ControllerUtils.isMetric}
 
 @distanceLabel(meters: Double) = @{
   if (isMetric) f"${meters / 1000}%.2f ${Messages("dashboard.unit.km")}"

@@ -151,10 +151,14 @@ describe('addCitiesToMap city popup (#4591)', () => {
         global.i18next = {
             t: (key, opts) => {
                 if (key === 'common:format-number') return String(opts.val);
-                if (key === 'common:measurement-system') return 'metric';
-                if (key === 'common:unit-distance-abbreviation') return 'km';
                 return key;
             },
+        };
+        // Units come from the server's <html> stamp, which util reads back; these tests run in metric. The real
+        // longDistanceToString goes through i18next's `distance` formatter, which AppManager registers.
+        global.util = {
+            isMetric: () => true,
+            longDistanceToString: (km, precision = 0) => `${km.toFixed(precision)} km`,
         };
         global.mapboxgl = { Popup: FakePopup, LngLatBounds: FakeLngLatBounds };
         addCitiesToMap = loadAddCitiesToMap();
@@ -164,6 +168,7 @@ describe('addCitiesToMap city popup (#4591)', () => {
     afterEach(() => {
         delete global.fetch;
         delete global.i18next;
+        delete global.util;
         delete global.mapboxgl;
         jest.restoreAllMocks();
     });
