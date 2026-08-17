@@ -26,9 +26,6 @@ label.icon.alt = Minimalist map icon with large destination marker
 accuracy = accuracy
 accuracy.caps = Accuracy
 accuracy.icon.alt = Target with an arrow in the bullseye
-# Distance units. Which of the two a page uses is ControllerUtils.measurementSystem's call, not the language's (#4404),
-# so both variants exist in every language file rather than one per regional overlay. These are the app's only
-# translated unit words: the frontend gets them from here too, as i18next interpolation defaults.
 unit.distance.abbr.metric = km
 unit.distance.abbr.imperial = mi
 unit.distance.abbr.small.metric = m
@@ -256,8 +253,6 @@ landing.choropleth.title = Pick a Neighborhood
 landing.choropleth.content = Choose a neighborhood to explore below or click on the <a href="/explore">''Explore''</a> button and you''ll be assigned a neighborhood automatically!
 landing.choropleth.legend = Percent of Neighborhood Complete
 landing.stats.title = Your work is making a difference
-# The last argument of each of these is the distance unit noun (unit.distance.*), so one sentence per language serves
-# both measurement systems.
 landing.stats.content.unfinished.partial = Users like you have already mapped {0} {3} of {1}—that''s {2}% of the target area in the city!
 landing.stats.content.unfinished.full = Users like you have already mapped {0} {3} of {1}—that''s {2}% of the city!
 landing.stats.content.finished.partial = We did it! Users like you have mapped all {0} {2} of the target area in {1}. However, we are not done. The more users who contribute, the better quality data. So start exploring today!

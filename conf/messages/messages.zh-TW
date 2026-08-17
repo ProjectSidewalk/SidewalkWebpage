@@ -1,4 +1,3 @@
-# A sentinel the code compares against, not display text: only the literal "metric" selects kilometers and meters.
 measurement.system = metric
 label.type = 標記類型
 severity = 嚴重程度

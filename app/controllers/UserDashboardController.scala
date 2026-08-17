@@ -100,13 +100,10 @@ class UserDashboardController @Inject() (
   }
 
   /**
-   * Renders the Settings page: editable username, read-only email, a measurement-units choice, team membership, and
-   * the two privacy toggles ("Show me on the leaderboard" and "Make my dashboard public"). Secured to a signed-in user
-   * (settings are personal). The toggles reflect the user's real flags; `privateByDefault` tells the view whether this
-   * deployment starts users private (school/minor cities) so it can explain the default.
-   *
-   * The units select shows the user's own override, not the resolved system, so "follow the site language" stays
-   * visible as its own state rather than collapsing into whichever system the language happens to imply (#4404).
+   * Renders the user's Settings page: editable username, read-only email, a measurement-units choice, team membership,
+   * and the two privacy toggles ("Show me on the leaderboard" and "Make my dashboard public"). The toggles reflect the
+   * user's real flags; `privateByDefault` tells the view whether this deployment starts users private (school/minor
+   * cities) so it can explain the default.
    */
   def settings = cc.securityService.SecuredAction(WithSignedIn()) { implicit request =>
     val user        = request.identity

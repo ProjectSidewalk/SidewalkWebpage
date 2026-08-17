@@ -53,11 +53,7 @@ object ControllerUtils {
   /**
    * The two measurement systems the site renders distances in, and the cookie that pins a request to one of them.
    *
-   * Units are derived from the site language (the `measurement.system` message), which suits most visitors but leaves
-   * no way to read miles while browsing in Spanish, or kilometers while browsing in US English (#4404). The override
-   * rides a cookie for the same reason the language choice does: every page stamps the verdict for client code, and a
-   * template holds nothing but a `RequestHeader`. An absent (or unrecognized) cookie means "follow the language", so
-   * discarding it restores the default.
+   * Units can be specified on the User Dashboard, or defaults to the site language (the `measurement.system` message).
    */
   object MeasurementSystem {
     val Metric: String   = "metric"
@@ -83,8 +79,7 @@ object ControllerUtils {
   }
 
   /**
-   * The measurement system this request should render distances in: the user's override if they set one, else the
-   * site language's default.
+   * The measurement system this request should render distances in: users can override on their dashboard settings.
    *
    * @param request  The request whose override cookie is inspected.
    * @param messages The request's messages, supplying the language default when there is no override.

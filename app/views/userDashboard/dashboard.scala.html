@@ -16,22 +16,12 @@
 
 @*
 * Formats the already-unit-converted audited distance (km when metric, else miles) with one decimal + unit. Floored
-* rather than rounded, matching util.math.floorTo on the frontend, so the same total can't read as 16.5 here and 16.4
-* in Explore's badge progress — and so it never reads as a badge threshold the user hasn't actually crossed.
+* rather than rounded, matching util.math.floorTo on the frontend.
 *@
 @distanceLabel = @{
   f"${models.utils.CommonUtils.floorTo(profileData.auditedDistance, 1)}%.1f $unitAbbr"
 }
 @accuracyLabel = @{ profileData.accuracy.map(a => f"${a * 100}%.0f%%").getOrElse("—") }
-
-@*
-* Redesigned User Dashboard. Single page of "your impact" sections on the shared API-docs/admin shell. Every section
-* is an `.api-section` with an `h2.api-heading[id]` so admin-shell.js auto-builds the right-hand TOC. Ordered to lead
-* with personal accomplishment (works at N=1) and treat social comparison as a graceful, never-empty extra.
-*
-* All sections are real data: hero/KPIs, badges (BadgeAchievements from real counts), streak + heatmap, standing/rank,
-* accuracy bars, the contribution map, the recent-mistakes gallery + contest flow, and the trophy case.
-*@
 
 @cellTooltip(c: StreakCell) = @{
   if (c.count == 1) Messages("dashboard.streak.cell.tooltip.one", c.dateLabel)

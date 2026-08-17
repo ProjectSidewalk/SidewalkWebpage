@@ -346,9 +346,8 @@ util.unitWords = () => i18next.options.interpolation.defaultVariables;
 /**
  * Renders a mission-scale distance for this reader, e.g. "425 m" or "1,400 ft".
  *
- * A thin call into the `distance` i18next formatter (AppManager registers it), which is also reachable from inside a
- * translated string as `{{meters, distance(style: small)}}` — this is for the many places that render a bare distance
- * with no sentence around it.
+ * A thin call into the `distance` i18next formatter, which is also reachable from inside a translated string as
+ * `{{meters, distance(style: small)}}` — this is for places that render a distance w/ no surrounding text.
  *
  * @param {number} meters - The distance in meters. Always canonical: the formatter converts.
  * @returns {string} The distance converted, rounded to the nearest 25, and localized, with its unit.

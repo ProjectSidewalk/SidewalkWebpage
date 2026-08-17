@@ -67,20 +67,13 @@ util.math.roundToTwentyFive = roundToTwentyFive;
  * @returns {number} The value truncated toward zero at that precision.
  */
 function floorTo(value, decimals) {
-  // Shifts the decimal point by re-parsing the number's own decimal string instead of multiplying by a power of ten,
-  // which lands just under the intended integer for values binary floating point can't hold exactly (0.29 * 100 is
-  // 28.999999999999996, which would floor to 0.28). This is what CommonUtils.floorTo gets from BigDecimal.decimal on
-  // the Scala side, so the two agree on every input rather than only on the ones that aren't near a boundary.
   return Math.floor(Number(`${value}e${decimals}`)) / 10 ** decimals;
 }
 
 util.math.floorTo = floorTo;
 
 /**
- * Rounds a value up to a number of decimal places.
- *
- * The counterpart to floorTo, for the distance still to go rather than the distance covered: rounding a remainder
- * down can show "0 more miles" beside a badge the user hasn't earned, so what's left is always rounded up.
+ * Rounds a value up to a number of decimal places; the counterpart to floorTo.
  *
  * @param {number} value - The value to round up.
  * @param {number} decimals - How many decimal places to keep.
