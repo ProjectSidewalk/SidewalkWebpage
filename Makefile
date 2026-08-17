@@ -1,4 +1,5 @@
-.PHONY: dev docker-up docker-up-db docker-run docker-stop ssh qa-worktree qa-worktree-stop test-python test-e2e \
+.PHONY: dev docker-up docker-up-db docker-run docker-stop ssh qa-worktree qa-worktree-stop test-e2e \
+        test-python test-python-app test-python-tools \
         import-users import-dump create-new-schema fill-new-schema hide-streets-without-imagery \
         import-street-imagery reveal-or-hide-neighborhoods \
         lint lint-fix lint-evolutions lint-locales scalafmt scalafmt-fix \
@@ -123,8 +124,20 @@ import-street-imagery:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/import-street-imagery.sh"
 
 # Python utility tests (test/python/) in the web container; extra pytest flags via args=, e.g. args="-k bbox -v".
-test-python:
-	@docker exec -it $(web-container) sh -c "cd /home && python3 -m pytest test/python $(args)"
+# Split by interpreter, because the scripts are: label_clustering.py is shelled out to by the app, so it is tested on
+# the same `python3` (3.8) prod runs it on, while the offline tooling needs >= 3.10 for its libraries. Each half scopes
+# --cov to the module its interpreter can import, so the 100% gate in pyproject.toml stays honest on both.
+pytest-args-app   = test/python/test_label_clustering.py --cov=label_clustering
+pytest-args-tools = test/python/test_check_streets_for_imagery.py test/python/test_verify_latlng_backfill.py \
+                    --cov=check_streets_for_imagery
+
+test-python: test-python-app test-python-tools
+
+test-python-app:
+	@docker exec -it $(web-container) sh -c "cd /home && python3 -m pytest $(pytest-args-app) $(args)"
+
+test-python-tools:
+	@docker exec -it $(web-container) sh -c "cd /home && python3.13 -m pytest $(pytest-args-tools) $(args)"
 
 # Browser smoke tests (test/e2e/) HOST-side against an already-running app at localhost:9000 (override with
 # BASE_URL=). Unlike the other targets this doesn't docker exec — Playwright drives a host browser. One-time

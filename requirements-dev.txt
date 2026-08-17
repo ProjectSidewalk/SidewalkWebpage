@@ -1,9 +1,15 @@
-# Python development/test dependencies. Layers on top of requirements.txt (which holds the runtime deps the two
-# scripts in scripts/ need). Install both to run the suite:
+# Python development/test dependencies for the suite in test/python/.
 #
-#   pip install -r requirements.txt -r requirements-dev.txt
-#   pytest
+# The suite runs under both of the container's interpreters (see the Dockerfile): the app's `python3` for
+# label_clustering.py, which runs in-band under prod's 3.8, and `python3.13` for the offline tooling. Environment
+# markers give each one the newest release it can take, so the 3.13 side isn't held back by the EOL interpreter:
 #
-# Pinned to versions that support Python 3.8 (the web container's interpreter) and the pyproject `pythonpath` option.
-pytest==7.4.4
-pytest-cov==4.1.0
+#   python3    -m pip install -r requirements.txt -r requirements-dev.txt
+#   python3.13 -m pip install -r requirements-offline-tools.txt -r requirements-dev.txt
+#
+# 8.3.5 / 5.0.0 are the last releases supporting 3.8; they are also the first pytest line that supports 3.13, which is
+# why the legacy pin is not simply older.
+pytest==8.3.5; python_version < "3.9"
+pytest-cov==5.0.0; python_version < "3.9"
+pytest==9.1.1; python_version >= "3.9"
+pytest-cov==7.1.0; python_version >= "3.9"

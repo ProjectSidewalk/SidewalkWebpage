@@ -254,9 +254,12 @@ Data isolation matches the per-city model described in [`docs/architecture.md`](
 
 A deploy builds the app essentially the same way you do locally, in this order:
 
-1. Install Python deps (`requirements.txt`) — needed both by the out-of-band utilities and by `label_clustering.py`,
-   which the running app invokes **in-band** during clustering. These must land in the `python3` interpreter the app
-   shells out to, or clustering fails at import time (e.g. `ModuleNotFoundError: No module named 'haversine'`).
+1. Install Python deps (`requirements.txt`) — needed by `label_clustering.py`, which the running app invokes
+   **in-band** during clustering. These must land in the `python3` interpreter the app shells out to, or clustering
+   fails at import time (e.g. `ModuleNotFoundError: No module named 'haversine'`). That interpreter is the server's
+   system Python (3.8), which is why `requirements.txt` stays pinned to 3.8-installable versions (#4396). The
+   out-of-band utilities are **not** part of the deploy: `requirements-offline-tools.txt` needs Python ≥ 3.10, so it
+   is installed by hand into the 3.13 on the user account that runs those scripts.
 2. `npm install`, then **Grunt** to concatenate/build the frontend bundles.
 3. **sbt** `clean stage` to compile the Scala/Play backend into a runnable package. This also bundles the `scripts/`
    directory into the staged app (via `Universal / mappings` in `build.sbt`) so the in-band `label_clustering.py` is

@@ -1,11 +1,23 @@
 # Python utility scripts
 
 Two standalone Python utilities for Project Sidewalk. They are **not** part of the running web app's request path
-(except as noted below) — they are run out-of-band. `label_clustering.py` runs in-band (see below), so its dependencies
-are pinned in [`requirements.txt`](../requirements.txt); the offline-only `check_streets_for_imagery.py` keeps its extra
-dependencies in [`requirements-offline-tools.txt`](../requirements-offline-tools.txt). Both sets are installed into the
-web Docker container; unit tests live in [`test/python/`](../test/python). `check_streets_for_imagery.py` resolves its
-data files relative to the repo root, so it can be launched from any working directory.
+(except as noted below) — they are run out-of-band. `check_streets_for_imagery.py` resolves its data/output paths
+relative to the repo root, so it can be launched from any working directory. Unit tests for both live in
+[`test/python/`](../test/python) — see [Testing](#testing).
+
+## Which interpreter to use
+
+The web container ships **two** Pythons, mirroring prod (on makelab1 the app runs on the OS's Python while user
+accounts have a current one), and each script runs on one of them:
+
+| Script | Interpreter | Dependencies |
+| --- | --- | --- |
+| `label_clustering.py` | `python3` (3.8) | [`requirements.txt`](../requirements.txt) |
+| `check_streets_for_imagery.py` | `python3.13` | [`requirements-offline-tools.txt`](../requirements-offline-tools.txt) |
+
+`label_clustering.py` is shelled out to by the running app, so it has to work on whatever `python3` the deployed server
+has — currently 3.8, which is EOL (#4396). Everything offline is free of that constraint and runs on `python3.13`,
+where its libraries (which dropped 3.8 long ago) are installed. Host-side, anything ≥ 3.10 works for the offline tool.
 
 ## `label_clustering.py`
 
@@ -42,8 +54,8 @@ manual — nothing in the app calls it.
    hex), named `street_edge_endpoints.csv`, in the repo root.
 2. Run **one** of (from any directory — paths resolve relative to the repo root):
    ```bash
-   python3 scripts/check_streets_for_imagery.py --gsv         # needs GOOGLE_MAPS_API_KEY
-   python3 scripts/check_streets_for_imagery.py --mapillary   # needs MAPILLARY_ACCESS_TOKEN
+   python3.13 scripts/check_streets_for_imagery.py --gsv         # needs GOOGLE_MAPS_API_KEY
+   python3.13 scripts/check_streets_for_imagery.py --mapillary   # needs MAPILLARY_ACCESS_TOKEN
    ```
    It checks each street's endpoints first, then samples points along the street, and flags streets where enough points
    lack imagery. It writes streets without imagery to `db/streets_with_no_imagery.csv`, and a per-street imagery
@@ -115,7 +127,10 @@ column:
 ## Testing
 
 ```bash
-make test-python          # runs pytest in the web container
+make test-python          # both halves, in the web container
+make test-python-app      # just label_clustering.py, on python3 (3.8)
+make test-python-tools    # just the offline tooling, on python3.13
 ```
 
+The suite is split the same way the scripts are, so each one is exercised on the interpreter that actually runs it.
 See [`test/python/README.md`](../test/python/README.md) for details and CI status.

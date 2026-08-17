@@ -15,6 +15,7 @@ network, no live Google/Mapillary or app calls.
 - `test_check_streets_for_imagery.py` — bounding-box math (`create_bounding_box`), vertex interpolation
   (`redistribute_vertices`), the GSV/Mapillary response parsers (`gsv_has_imagery`, `mapillary_has_imagery`), the
   imagery-decision thresholds (`imagery_verdict`, `street_has_no_imagery`), and the CSV writer (`write_output`).
+- `test_verify_latlng_backfill.py` — the one-off checker in [`tools/`](../../tools), which is stdlib-only.
 
 ### Resilience coverage
 
@@ -30,39 +31,50 @@ that the bounding-box radius is in kilometers.
 
 ## How to run
 
-The scripts' runtime dependencies are installed in the **web** Docker container from `requirements.txt` (the app's
-in-band deps: `pandas`, `scipy`, ...) and `requirements-offline-tools.txt` (the offline `check_streets` deps:
-`shapely`, `geopy`, ...), with `pytest` from `requirements-dev.txt`. From the repo root:
-
 ```bash
 make test-python
 ```
 
-That runs `pytest` inside the running `projectsidewalk-web` container. To run directly:
+That runs `pytest` inside the running `projectsidewalk-web` container — **twice**, once per interpreter the image
+carries, because the two scripts run on different ones (#4396). `label_clustering.py` is shelled out to by the app, so
+it is tested on the same `python3` (3.8) the deployed server uses; `check_streets_for_imagery.py`'s libraries need
+≥ 3.10, so it is tested on `python3.13`. `make test-python-app` and `make test-python-tools` run one half each, and
+both take `args=` for extra pytest flags.
+
+The dependencies are preinstalled in the container: `requirements.txt` (the app's in-band deps: `pandas`, `scipy`, ...)
+into 3.8, `requirements-offline-tools.txt` (`shapely`, `geopy`, ...) into 3.13, and `requirements-dev.txt` (pytest)
+into both. To run a half directly, or on the host:
 
 ```bash
-docker exec -it projectsidewalk-web sh -c "cd /home && python3 -m pytest test/python"
+docker exec -it projectsidewalk-web sh -c "cd /home && python3.13 -m pytest test/python/test_check_streets_for_imagery.py --cov=check_streets_for_imagery"
+
+pip install -r requirements-offline-tools.txt -r requirements-dev.txt
+pytest test/python/test_check_streets_for_imagery.py --cov=check_streets_for_imagery
 ```
 
-Or on the host, if you have the deps installed locally:
-
-```bash
-pip install -r requirements.txt -r requirements-dev.txt -r requirements-offline-tools.txt
-pytest
-```
+The `--cov=` is not optional: see [Coverage](#coverage).
 
 Config lives in [`pyproject.toml`](../../pyproject.toml) (`[tool.pytest.ini_options]` + `[tool.coverage.*]`): it scopes
-collection to `test/python/` and puts `scripts/` on `sys.path` so the tests can `import label_clustering` /
+collection to `test/python/` and puts `scripts/` and `tools/` on `sys.path` so the tests can `import label_clustering` /
 `import check_streets_for_imagery` directly.
+
+**Adding a test file:** it must be named in one of the two `pytest-args-*` lists in the [`Makefile`](../../Makefile)
+*and* in the `python-tests` matrix in [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml). Neither half
+collects the whole directory — under 3.8 the offline tooling isn't even importable — so a file listed in neither is
+silently never run.
 
 ## Coverage
 
-Every run measures **line + branch** coverage of `scripts/` (`pytest-cov`) and **fails under 100%** (`--cov-fail-under`
-in `pyproject.toml`). The scripts are small and the logic is now pure, so full correctness coverage is the bar — a new
+Every run measures **line + branch** coverage (`pytest-cov`) and **fails under 100%** (`--cov-fail-under` in
+`pyproject.toml`). The scripts are small and the logic is now pure, so full correctness coverage is the bar — a new
 uncovered branch fails the suite. The HTTP/file I/O in `main` is exercised by mocking the network (`monkeypatch` of the
 `_get_json`/`fetch_labels`/`post_results` wrappers) and using `tmp_path`, so no real network or DB is touched. The two
 narrow exclusions are documented where they sit: the `if __name__ == '__main__'` entrypoint guards (never run under
 pytest) and one provably-unreachable loop-exit branch in `check_streets` (`# pragma: no branch`, justified inline).
+
+*Which* module is measured is passed per run (`--cov=label_clustering` / `--cov=check_streets_for_imagery`) rather than
+set in `pyproject.toml`, because a blanket `--cov=scripts` would count the half the running interpreter can't import as
+0% and fail the gate on both halves. That is also why the `--cov=` flag has to be part of any hand-run command.
 
 If you add logic, add a test — keep new code pure where possible (or hide I/O behind a thin wrapper and mock it) so the
 100% gate stays meaningful rather than something to lower.
@@ -71,4 +83,5 @@ If you add logic, add a test — keep new code pure where possible (or hide I/O 
 
 Run by the **advisory** `python-tests` job in `.github/workflows/ci.yml` (`continue-on-error: true`) — it reports
 failures but does not block PRs yet, matching how the DB-backed API tests were introduced. Ramp to blocking once the
-suite is proven stable.
+suite is proven stable. It is a two-leg matrix mirroring `make test-python`: `Python tests (in-band script)` on 3.8 and
+`Python tests (offline tooling)` on 3.13, with `fail-fast: false` so one half failing still reports the other.

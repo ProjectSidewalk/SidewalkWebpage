@@ -28,11 +28,24 @@ COPY requirements.txt ./
 COPY requirements-dev.txt ./
 COPY requirements-offline-tools.txt ./
 
-# Python3 dependencies. requirements.txt holds the app's in-band script deps; requirements-offline-tools.txt adds the
-# offline check_streets utility's deps; requirements-dev.txt adds pytest. All three install so the Python utility test
-# suite (test/python/, which imports both scripts) can run inside the container via `make test-python`.
+# The image carries two Python interpreters, matching prod (makelab1: Rocky's system 3.8 runs the app, user accounts
+# get 3.13). `python3` is the base image's 3.8 and is the one the app shells out to, so it gets requirements.txt — the
+# in-band label_clustering.py deps — plus pytest for that script's tests. Nothing else should be added here: 3.8 is EOL
+# (#4396) and every library worth having has dropped it.
 RUN python3 -m pip install --upgrade pip
-RUN python3 -m pip install -r requirements.txt -r requirements-dev.txt -r requirements-offline-tools.txt
+RUN python3 -m pip install -r requirements.txt -r requirements-dev.txt
 RUN python3 -m pip install --upgrade setuptools
+
+# `python3.13` is where offline tooling lives, because its dependencies (requirements-offline-tools.txt) need >= 3.10.
+# The interpreter is a prebuilt python-build-standalone CPython fetched by uv: no PPA carries 3.13 for focal, and uv
+# resolves the right build per architecture. Its EXTERNALLY-MANAGED marker is removed so plain
+# `python3.13 -m pip install` works, as it would on a normal system interpreter.
+RUN curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR=/usr/local/bin sh && \
+  uv python install 3.13 && \
+  ln -s "$(uv python find 3.13)" /usr/local/bin/python3.13 && \
+  rm "$(python3.13 -c 'import sysconfig; print(sysconfig.get_path("stdlib"))')/EXTERNALLY-MANAGED" && \
+  python3.13 -m ensurepip && \
+  python3.13 -m pip install --upgrade pip
+RUN python3.13 -m pip install -r requirements-offline-tools.txt -r requirements-dev.txt
 
 RUN npm install
