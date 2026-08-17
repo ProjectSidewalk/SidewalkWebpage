@@ -138,16 +138,15 @@ def test_cluster_label_type_absent_type_returns_empty():
     assert clusters.empty
 
 
-def test_cluster_label_type_problem_aggregates_component_types():
-    # 'Problem' pulls together SurfaceProblem / Obstacle / NoCurbRamp rows.
+def test_cluster_label_type_ignores_other_types():
     df = _typed_frame([
         (1, 'SurfaceProblem', 47.6000, -122.3000, 10, 'a', 1.0),
-        (2, 'Obstacle', 47.60003, -122.3000, 20, 'b', 2.0),
-        (3, 'CurbRamp', 47.8000, -122.3000, 30, 'c', 3.0),  # excluded from 'Problem'
+        (2, 'SurfaceProblem', 47.60003, -122.3000, 20, 'b', 2.0),
+        (3, 'Obstacle', 47.60005, -122.3000, 30, 'c', 3.0),
     ])
-    _, clusters, labels = lc.cluster_label_type('Problem', df, lc.THRESHOLDS)
-    assert len(labels) == 2  # only the two PROBLEM_TYPES rows
-    assert (clusters['label_type'] == 'Problem').all()
+    _, clusters, labels = lc.cluster_label_type('SurfaceProblem', df, lc.THRESHOLDS)
+    assert len(labels) == 2  # the Obstacle row is not pulled in
+    assert (clusters['label_type'] == 'SurfaceProblem').all()
 
 
 # --------------------------------------------------------------------------------------------------------------------
@@ -234,7 +233,7 @@ def _patch_io(monkeypatch, fetched):
 
 
 def _multi_type_frame():
-    """A realistic post-fetch frame: a clusterable pair, a singleton, and a Problem-component pair."""
+    """A realistic post-fetch frame: a clusterable pair, a singleton, and two singletons of different types."""
     return pd.DataFrame({
         'label_id': [1, 2, 3, 4, 5],
         'label_type': ['CurbRamp', 'CurbRamp', 'NoSidewalk', 'SurfaceProblem', 'Obstacle'],

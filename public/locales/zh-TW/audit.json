@@ -316,11 +316,14 @@
     "label-shortcuts-signal": "您也可按下<kbd>{{key}}</kbd>鍵以選擇「行人號誌」標記。",
     "label-shortcuts-occlusion": "您也可按下<kbd>{{key}}</kbd>鍵以選擇「看不見人行道」標記。",
     "still-stuck": "若您仍卡住無法動彈，請再次點選「卡住」鍵。",
-    "stuck-skipped-street": "在前一條街道已無可標記的地點，因此我們把您帶往這一條新的街道。",
+    "stuck-skipped-street": "這條街道沒有我們可以顯示的影像，因此我們已將您移至新的街道。",
+    "stuck-skipped-street-named": "這條街道沒有我們可以顯示的影像，因此我們已將您移至<b>{{streetName}}</b>。",
     "free-explore-start": "您已被帶到搜尋地址的附近。請環顧四周並標記您發現的問題！",
     "free-explore-start-named": "您已降落在 <b>{{placeName}}</b> 附近。四處看看，標記您發現的問題！",
     "free-explore-no-imagery": "這個方向沒有更多街景影像了。請試著環顧四周或往另一個方向前進。",
-    "stuck-suggestion": "若您無法透過箭頭移動，請嘗試點選右下角的導航方向，或嘗試點選左側的「卡住」鍵。"
+    "stuck-suggestion": "若您無法透過箭頭移動，請嘗試點選右下角的導航方向，或嘗試點選左側的「卡住」鍵。",
+    "imagery-skip-limit": "連續多條街道都沒有影像，因此我們已停止自動移動您。請嘗試地圖的其他區域，或重新載入頁面重新開始。",
+    "imagery-load-failed": "目前無法載入街景影像，請幾分鐘後再試一次。"
   },
   "mission-start-tutorial": {
     "mst-instruction-1": "探索任務",

@@ -436,7 +436,7 @@ class AdminController @Inject() (
    */
   private def thumbnailUrl(item: RecentActivityItem, metaById: Map[Int, LabelThumbnailMeta]): Option[String] = {
     (item.labelId, item.labelType) match {
-      case (Some(id), Some(labelType)) if LabelTypeEnum.validLabelTypes.contains(labelType) =>
+      case (Some(id), Some(labelType)) if LabelTypeEnum.labelTypeNames.contains(labelType) =>
         panoDataService
           .cropUrl(id, LabelTypeEnum.byName(labelType))
           .orElse(metaById.get(id).flatMap { m =>

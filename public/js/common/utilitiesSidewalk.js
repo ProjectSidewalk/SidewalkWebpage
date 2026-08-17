@@ -606,6 +606,41 @@ function UtilitiesMisc(JSON) {
     });
   }
 
+  /**
+   * Names the street nearest a coordinate, for telling a labeler where they have been taken.
+   *
+   * Street names aren't in our data — `street_edge` carries geometry and an OSM way id, no name — so this asks
+   * Mapbox, the same reverse-geocode the route builder's endpoint fields use. Purely decorative: every failure
+   * mode (no key, offline, rate limit, a coordinate the geocoder can't place) resolves to null so the caller can
+   * fall back to unnamed wording rather than to no message at all.
+   *
+   * @param {{lat: number, lng: number}} latLng - Where to look.
+   * @param {string} mapboxApiKey - Mapbox access token.
+   * @returns {Promise<string|null>} The street name, or null when it can't be determined.
+   */
+  async function getStreetNameNear(latLng, mapboxApiKey) {
+    if (!mapboxApiKey) return null;
+    try {
+      const params = new URLSearchParams({
+        longitude: latLng.lng,
+        latitude: latLng.lat,
+        types: 'address,street',
+        language: i18next.t('common:mapbox-language-code'),
+        access_token: mapboxApiKey,
+      });
+      const response = await fetch(`https://api.mapbox.com/search/geocode/v6/reverse?${params}`);
+      if (!response.ok) return null;
+      const data = await response.json();
+      const props = data.features?.[0]?.properties;
+      if (!props) return null;
+      // An address result names its street in `context`; a street result names itself.
+      const ownName = props.feature_type === 'street' ? (props.name_preferred || props.name) : null;
+      return props.context?.street?.name || ownName || null;
+    } catch {
+      return null;
+    }
+  }
+
   // TODO These colors should probably match the colors in our Design System Tokens in main.css.
   const colors = {
     Walk: {
@@ -675,6 +710,7 @@ function UtilitiesMisc(JSON) {
   self.getRatingLevelKeys = getRatingLevelKeys;
   self.getLabelColors = getLabelColors;
   self.reportNoImagery = reportNoImagery;
+  self.getStreetNameNear = getStreetNameNear;
   self.unwrapPanoX = unwrapPanoX;
   self.mergeOnboardingAnnotations = mergeOnboardingAnnotations;
   self.carryOverOnboardingAnnotations = carryOverOnboardingAnnotations;

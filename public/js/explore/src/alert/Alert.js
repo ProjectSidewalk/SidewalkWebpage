@@ -15,12 +15,14 @@ class Alert {
   }
 
   /**
-   * Renders a translated message through the shared alert banner, offering the "don't show again" option.
+   * Renders a translated message through the shared alert banner.
    * @param {string} translationKey - i18next key for the message.
    * @param {string} type - Message type identifier, used for the "don't show again" opt-out list.
    * @param {Object} [interpolation={}] - Interpolation values passed to i18next (e.g. `{ key: shortcut }`).
+   * @param {boolean} [dontShow=true] - Whether to offer "don't show again". Tips and nudges do; a message
+   *     reporting something that happened to the labeler without their asking does not.
    */
-  _showAlert(translationKey, type, interpolation = {}) {
-    this.#alertHandler.showAlert(i18next.t(translationKey, interpolation), type, true);
+  _showAlert(translationKey, type, interpolation = {}, dontShow = true) {
+    this.#alertHandler.showAlert(i18next.t(translationKey, interpolation), type, dontShow);
   }
 }

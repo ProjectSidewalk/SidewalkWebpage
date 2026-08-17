@@ -4,11 +4,7 @@ import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.db.slick.DatabaseConfigProvider
-import models.utils.MyPostgresProfile.api._
-
-import scala.concurrent.Await
-import scala.concurrent.duration._
+import util.RolledBackDb
 
 /**
  * Integration tests for the v3 API analytics query methods on WebpageActivityTable.
@@ -20,7 +16,7 @@ import scala.concurrent.duration._
  *
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env).
  */
-class WebpageActivityAnalyticsSpec extends PlaySpec with GuiceOneAppPerSuite {
+class WebpageActivityAnalyticsSpec extends PlaySpec with RolledBackDb with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder()
@@ -28,9 +24,6 @@ class WebpageActivityAnalyticsSpec extends PlaySpec with GuiceOneAppPerSuite {
       .build()
 
   private lazy val table: WebpageActivityTable = app.injector.instanceOf[WebpageActivityTable]
-
-  private val dbConfig                   = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
-  private def run[T](action: DBIO[T]): T = Await.result(dbConfig.db.run(action), 10.seconds)
 
   "WebpageActivityTable.getApiEndpointCounts" should {
     "execute without error and return a Seq[ApiEndpointCount] when excluding apiDocs (last 30 days)" in {

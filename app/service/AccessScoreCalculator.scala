@@ -109,7 +109,7 @@ object AccessScoreCalculator {
    * Computes a single cluster's signed contribution to its street's pre-sigmoid sum.
    *
    * @param c The cluster inputs.
-   * @return  The contribution, or 0.0 if the cluster's label type is not scored (e.g. Occlusion/Other/Problem).
+   * @return  The contribution, or 0.0 if the cluster's label type is not scored (e.g. Occlusion/Other).
    */
   def scoreCluster(c: ClusterScoreInput): Double = {
     typeWeights.get(c.labelType) match {

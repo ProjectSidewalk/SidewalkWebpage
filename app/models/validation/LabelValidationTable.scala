@@ -2,7 +2,7 @@ package models.validation
 
 import com.google.inject.ImplementedBy
 import models.api.{ValidationDataForApi, ValidationFiltersForApi, ValidationResultTypeForApi}
-import models.label.LabelTypeEnum.{labelTypeIdToLabelType, validLabelTypeIds, validLabelTypes}
+import models.label.LabelTypeEnum.{labelTypeIdToLabelType, labelTypeIds, labelTypeNames}
 import models.label._
 import models.mission.MissionTableDef
 import models.user._
@@ -50,7 +50,7 @@ case class ValidationCount(
     validationResult: Option[ValidationOption.Value], // None represents the "All" results subtotal.
     validatorType: String
 ) {
-  require((validLabelTypes ++ Seq("All")).contains(labelType))
+  require((labelTypeNames ++ Seq("All")).contains(labelType))
   require(Seq("AI", "Human", "Both").contains(validatorType))
 }
 
@@ -289,7 +289,7 @@ class LabelValidationTable @Inject() (
         // Let's start by enumerating every subgroup combination. We include None for each of the three fields to
         // allow for "All" entries.
         val subgroupCombinations: Set[(Option[Int], Option[ValidationOption.Value], Option[Boolean])] = for {
-          labelType <- validLabelTypeIds.map(Some(_)) ++ Seq(None)
+          labelType <- labelTypeIds.map(Some(_)) ++ Seq(None)
           valResult <- ValidationOption.values.toSeq.map(Some(_)) ++ Seq(None)
           validator <- Seq(Some(true), Some(false), None)
         } yield (labelType, valResult, validator)

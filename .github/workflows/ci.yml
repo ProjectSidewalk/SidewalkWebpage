@@ -253,6 +253,16 @@ jobs:
           ENV_TYPE: local
           SIDEWALK_IMAGES_DIR: .crops
 
+      # The same minimal city the e2e-smoke job seeds (one region holding a non-tutorial street). It is what lets the
+      # write-path specs below exercise the submission endpoints instead of cancelling on unassignable data, and it
+      # un-cancels a further nine assertions across the route-walk and geodesic-cache suites too. Ordering is
+      # load-bearing in both directions: it must follow the PublicApiSpec step, whose app boot is what brings the
+      # template schema up to evolution HEAD (the seed writes street_edge.status, which the pre-evolution template
+      # lacks), and precede the specs that read it. Shared with test/e2e rather than duplicated — one definition of
+      # what a minimally-servable city is.
+      - name: Seed minimal explore data
+        run: docker compose exec -T db psql -v ON_ERROR_STOP=1 -U postgres -d sidewalk < test/e2e/fixtures/ci-seed.sql
+
       # Gating/auth specs. Run in a SEPARATE sbt invocation from PublicApiSpec above — a second concurrent app would
       # double the pool draw against CI Postgres — and `set Test / parallelExecution := false` so these suites boot one
       # app at a time within this invocation, the same single-app-at-a-time discipline the PublicApiSpec note above
@@ -267,12 +277,12 @@ jobs:
       #   report as CANCELED against this job's empty city schema rather than passing vacuously.
       # - GeodesicDistanceSpec (#4641): street lengths must be geodesic, not projected to a fixed CRS. Its synthetic-
       #   fixture tests (analytic WGS84 arc lengths, the #4774 nightly-refresh regression) seed every row they read,
-      #   so they are meaningful even here — a reintroduced projection fails by double digits. Its cache-freshness
-      #   comparisons need real data and CANCEL on this empty schema, same as RouteAuthPostureSpec's shape checks.
+      #   so they are meaningful even here — a reintroduced projection fails by double digits. The street and region
+      #   the seed above adds carry most of its cache-freshness comparisons too; the two that need a labelled user or
+      #   a built route still CANCEL.
       # - ExploreTutorialRouteSpec (#4816): a resumable route walk must not surface while the session is the tutorial.
-      #   It seeds its own users and route walks, but hangs them on an existing street/region and needs a configured
-      #   tutorial street, so all four tests CANCEL on this empty schema — listed here so they run the moment the job
-      #   has a seeded DB, and so the cancel is visible rather than the suite silently not existing.
+      #   It seeds its own users and route walks but hangs them on an existing street/region, which the seed above
+      #   supplies, so all four tests run here.
       # - MobileDetectionSpec (#4887): the layout must stamp ControllerUtils.isMobile's verdict on
       #   <html data-mobile-device>, the single mobile definition util.isMobile() reads back; also pins the landing
       #   page's navbar-padding opt-out to request.path. Fetches /signIn and the landing page, which render without
@@ -284,8 +294,15 @@ jobs:
       #   fan-out reads other schemas mid-rollout). Self-seeding in rolled-back transactions, meaningful even here.
       # - StatsApiSpec (#3871/#3981): the stats endpoints' snake_case output contract and total/breakdown
       #   reconciliation — the HTTP surface over the aggregate queries above. Shape-only, data-independent.
+      # - ExploreSubmissionSpec / ValidateSubmissionSpec (#4777): the submission write paths (POST /task,
+      #   /validationTask, /labelmap/validate). ExploreSubmissionSpec runs in full against the seed above — the audit
+      #   tutorial and the first real audit mission both write their rows here, so a regression in POST /task fails the
+      #   build. ValidateSubmissionSpec's row-writing cases still CANCEL: a validation mission needs >= 10 validatable
+      #   labels of one type and the seed has none, so only its auth and malformed-payload cases run. Both suites'
+      #   data preconditions check for an assignable region rather than a bare street count, because the template's
+      #   lone tutorial street belongs to no region and /explore 500s on that (#4748) instead of answering.
       - name: Run gating/auth tests (health dashboard + route auth posture + geodesic distances)
-        run: sbt 'set Test / parallelExecution := false' 'testOnly controllers.HealthDashboardSpec service.HealthServiceSpec controllers.RouteAuthPostureSpec models.street.GeodesicDistanceSpec service.ExploreTutorialRouteSpec controllers.MobileDetectionSpec service.PanoDataServiceSpec models.utils.ConfigTableVoidedArchiveSpec controllers.api.StatsApiSpec'
+        run: sbt 'set Test / parallelExecution := false' 'testOnly controllers.HealthDashboardSpec service.HealthServiceSpec controllers.RouteAuthPostureSpec models.street.GeodesicDistanceSpec service.ExploreTutorialRouteSpec controllers.MobileDetectionSpec service.PanoDataServiceSpec models.utils.ConfigTableVoidedArchiveSpec controllers.api.StatsApiSpec controllers.ExploreSubmissionSpec controllers.ValidateSubmissionSpec controllers.ExploreNoImageryRateLimitSpec'
         env:
           DATABASE_URL: jdbc:postgresql://localhost:5432/sidewalk
           DATABASE_USER: sidewalk
