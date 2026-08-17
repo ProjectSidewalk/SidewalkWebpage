@@ -76,6 +76,24 @@ function floorTo(value, decimals) {
 
 util.math.floorTo = floorTo;
 
+/**
+ * Rounds a value up to a number of decimal places.
+ *
+ * The counterpart to floorTo, for the distance still to go rather than the distance covered: rounding a remainder
+ * down can show "0 more miles" beside a badge the user hasn't earned, so what's left is always rounded up.
+ *
+ * @param {number} value - The value to round up.
+ * @param {number} decimals - How many decimal places to keep.
+ * @returns {number} The value rounded up at that precision.
+ */
+function ceilTo(value, decimals) {
+  // Shifts the decimal point through the number's own decimal string for the same reason floorTo does, in the other
+  // direction: 1.1 * 100 is 110.00000000000001, which a plain Math.ceil would turn into 1.11.
+  return Math.ceil(Number(`${value}e${decimals}`)) / 10 ** decimals;
+}
+
+util.math.ceilTo = ceilTo;
+
 function metersToMiles(dist) {
   return dist / 1609.34;
 }

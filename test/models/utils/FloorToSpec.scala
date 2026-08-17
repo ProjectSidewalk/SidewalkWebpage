@@ -8,7 +8,7 @@ import org.scalatest.matchers.should.Matchers
  *
  * A displayed audited distance is truncated rather than rounded so it never reads as a badge threshold the user
  * hasn't crossed (#4404), and the server-rendered pages and Explore's sidebar show the same total — so the two
- * implementations have to land on the same value. The mirror of these cases lives in `test/js/floorTo.test.js`.
+ * implementations have to land on the same value. The mirror of these cases lives in `test/js/mathRounding.test.js`.
  */
 class FloorToSpec extends AnyFunSuite with Matchers {
 
