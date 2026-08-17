@@ -37,7 +37,7 @@ class NeighborhoodProgressBar {
     if (!this.#fillEl || !this.#youEl || !this.#communityEl || !this.#rateEl
       || !('taskContainer' in svl) || !svl.taskContainer) return;
 
-    const unit = { units: i18next.t('common:unit-distance') };
+    const unit = { units: util.turfDistanceUnits() };
     const totalDistance = svl.taskContainer.totalLineDistanceInNeighborhood(unit);
     if (!totalDistance) return;
 

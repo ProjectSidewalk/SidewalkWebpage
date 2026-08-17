@@ -1,6 +1,7 @@
 package controllers
 
 import controllers.base._
+import controllers.helper.ControllerUtils
 import controllers.helper.ControllerUtils.parseIntegerSeq
 import executors.CpuIntensiveExecutionContext
 import formats.json.LabelFormats.labelMetadataUserDashToJson
@@ -273,7 +274,7 @@ class UserProfileController @Inject() (
     val auditedDistance: Future[Double] = userService
       .getDistanceAudited(userId)
       .map(auditedDistance => {
-        if (Messages("measurement.system") == "metric") auditedDistance / 1000d
+        if (ControllerUtils.isMetric) auditedDistance / 1000d
         else auditedDistance * METERS_TO_MILES
       })
     val labelCount: Future[Int]          = userService.countLabelsFromUser(userId)

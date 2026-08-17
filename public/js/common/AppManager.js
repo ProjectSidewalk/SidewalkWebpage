@@ -158,6 +158,8 @@ class AppManager {
    * @param {string} params.defaultNS The default namespace to use if no specific ns is provided, e.g., "common"
    * @param {Array<string>} params.namespaces An array of namespaces to load, e.g., ["common", "explore"]
    * @param {string} params.countryId The server's country ID to determine if we load country-specific overrides
+   * @param {object} params.unitWords The request's distance words (unitAbbr, unitAbbrSmall, unitName,
+   *   unitNameSingular), resolved server-side for its language and measurement system.
    * @returns {Promise} Promise that resolves when i18next is ready.
    * @private
    */
@@ -181,7 +183,17 @@ class AppManager {
       lng: params.language,
       partialBundledLanguages: true,
       debug: false,
+      interpolation: {
+        // Every string may write {{unitName}}, {{unitAbbr}}, … and get this reader's units with no argument at the
+        // call site, so there is nothing a caller can forget and no metric/imperial pair of keys to keep in sync.
+        // These must be plain values: a getter that called i18next.t() here would recurse through interpolation.
+        defaultVariables: params.unitWords,
+      },
     }, (err) => {
+      // Registered before the error check: the formatter doesn't depend on any translation having loaded, and a page
+      // whose namespaces failed should still render its distances converted and labeled rather than as raw meters.
+      this._addDistanceFormatter();
+
       // Ignore errors loading translations, but log any other errors.
       if (err && err.filter((e) => !e.includes('status code: 404')).length > 0) {
         return console.error(err.filter((e) => !e.includes('status code: 404')));
@@ -203,6 +215,39 @@ class AppManager {
       if (typeof window.localizeSubtree === 'function') {
         window.localizeSubtree(document.body);
       }
+    });
+  }
+
+  /**
+   * Registers the `distance` i18next formatter, which renders a distance the way this reader should see it.
+   *
+   * Converting, rounding, and locale-formatting a distance is one job, so a string says `{{meters, distance}}` and
+   * gets all three rather than each call site repeating the metersToFeet / roundToTwentyFive / format-number dance.
+   * The input is always canonical — meters for `small`, kilometers for `large` — never a pre-converted value.
+   *
+   * Params: `style` (`small` → m/ft rounded to the nearest 25, our convention for mission-scale distances; `large` →
+   * km/mi), `precision` (decimal places, `large` only), and `unit: false` to emit the bare number for a string that
+   * names the unit once across several values. Separate multiple params with `;`.
+   *
+   * @private
+   */
+  _addDistanceFormatter() {
+    i18next.services.formatter.add('distance', (value, lng, options) => {
+      const metric = util.isMetric();
+      const small = options.style === 'small';
+      let amount;
+      if (small) {
+        amount = util.math.roundToTwentyFive(metric ? value : util.math.metersToFeet(value));
+      } else {
+        amount = metric ? value : util.math.kmsToMiles(value);
+      }
+      const digits = small ? 0 : Number(options.precision) || 0;
+      const number = new Intl.NumberFormat(lng, {
+        minimumFractionDigits: digits, maximumFractionDigits: digits,
+      }).format(amount);
+      if (options.unit === false) return number;
+      const unitWords = i18next.options.interpolation.defaultVariables;
+      return `${number} ${small ? unitWords.unitAbbrSmall : unitWords.unitAbbr}`;
     });
   }
 
