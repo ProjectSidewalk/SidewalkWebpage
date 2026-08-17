@@ -25,7 +25,7 @@
 
 @* Floored rather than rounded, matching the dashboard and util.math.floorTo, so one total renders one way everywhere. *@
 @distanceLabel(d: Double) = @{
-  f"${Math.floor(d * 10) / 10}%.1f ${distanceUnitWords.abbr}"
+  f"${models.utils.CommonUtils.floorTo(d, 1)}%.1f ${distanceUnitWords.abbr}"
 }
 @accuracyLabel(a: Option[Double]) = @{ a.map(x => f"${x * 100}%.0f%%").getOrElse("—") }
 

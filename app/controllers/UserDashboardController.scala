@@ -136,8 +136,8 @@ class UserDashboardController @Inject() (
    * leave any current team. A username that fails validation (length, allowed characters, profanity, or already taken)
    * aborts the whole save with a 400 and a user-facing message, so nothing is partially applied.
    *
-   * Units are the one setting that isn't a database write: like the language choice it lives in a cookie, so the
-   * response either sets the override or discards it to fall back to the site language (#4404).
+   * Units are the one setting that isn't a database write: like the language choice it lives in a cookie, so a
+   * submitted change either sets the override or discards it to fall back to the site language (#4404).
    */
   def saveSettings = cc.securityService.SecuredAction(WithSignedIn(), parse.json) { implicit request =>
     val user             = request.identity
@@ -146,13 +146,17 @@ class UserDashboardController @Inject() (
     val teamId           = (request.body \ "teamId").asOpt[Int].filter(_ > 0)
     val usernameEdit     = (request.body \ "username").asOpt[String].map(_.trim).filter(_.nonEmpty)
     val communityService = (request.body \ "communityService").asOpt[Boolean]
-    val unitsOverride    = (request.body \ "measurementSystem").asOpt[String].filter(MeasurementSystem.validOverrides)
     val unitsWere        = request.cookies
       .get(MeasurementSystem.CookieName)
       .map(_.value)
       .filter(MeasurementSystem.validOverrides.contains)
       .getOrElse(MeasurementSystem.FollowLanguage)
-    val unitsNow = unitsOverride.getOrElse(MeasurementSystem.FollowLanguage)
+    // Absent field means "this caller isn't touching units", which has to stay distinct from an explicit "auto" —
+    // otherwise any save that omits it silently wipes the reader's stored choice.
+    val unitsSubmitted = (request.body \ "measurementSystem")
+      .asOpt[String]
+      .filter(system => MeasurementSystem.validOverrides(system) || system == MeasurementSystem.FollowLanguage)
+    val unitsNow = unitsSubmitted.getOrElse(unitsWere)
 
     // Only a username change can be rejected, so resolve it first and touch nothing else unless it succeeds.
     val usernameResult: Future[Either[String, Unit]] = usernameEdit match {
@@ -178,9 +182,10 @@ class UserDashboardController @Inject() (
               .insert(user.userId, request.ipAddress, s"Click_module=ChangeUnits_from=${unitsWere}_to=$unitsNow")
           }
           val result = Ok(Json.obj("success" -> true))
-          unitsOverride
-            .map(system => result.withCookies(MeasurementSystem.overrideCookie(system)))
-            .getOrElse(result.discardingCookies(MeasurementSystem.clearOverrideCookie))
+          if (unitsNow == unitsWere) result
+          else if (MeasurementSystem.validOverrides(unitsNow))
+            result.withCookies(MeasurementSystem.overrideCookie(unitsNow))
+          else result.discardingCookies(MeasurementSystem.clearOverrideCookie)
         }
     }
   }

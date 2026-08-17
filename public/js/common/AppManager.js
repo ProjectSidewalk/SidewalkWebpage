@@ -190,12 +190,14 @@ class AppManager {
         defaultVariables: params.unitWords,
       },
     }, (err) => {
+      // Registered before the error check: the formatter doesn't depend on any translation having loaded, and a page
+      // whose namespaces failed should still render its distances converted and labeled rather than as raw meters.
+      this._addDistanceFormatter();
+
       // Ignore errors loading translations, but log any other errors.
       if (err && err.filter((e) => !e.includes('status code: 404')).length > 0) {
         return console.error(err.filter((e) => !e.includes('status code: 404')));
       }
-
-      this._addDistanceFormatter();
 
       // After loading, merge the country-specific override namespaces into the base ones.
       // Going through list of languages so that we still get the en translations when using en-US.

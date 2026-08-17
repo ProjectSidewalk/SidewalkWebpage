@@ -44,6 +44,22 @@ object CommonUtils {
   }
 
   /**
+   * Truncates a value to `decimals` decimal places rather than rounding it.
+   *
+   * The Scala half of `util.math.floorTo`: a displayed total is floored so it never reads as a threshold the user
+   * hasn't crossed, and both halves must agree or one page shows 2.9 km where another shows 2.8. Goes through the
+   * value's shortest decimal form (`BigDecimal.decimal`) because scaling a `Double` by a power of ten lands just
+   * under the intended integer for values binary floating point can't hold exactly — `2.9 * 10` is
+   * `28.999999999999996`, which a plain `Math.floor` turns into 2.8.
+   *
+   * @param value    The value to truncate.
+   * @param decimals How many decimal places to keep.
+   * @return         The value truncated at that precision.
+   */
+  def floorTo(value: Double, decimals: Int): Double =
+    BigDecimal.decimal(value).setScale(decimals, BigDecimal.RoundingMode.FLOOR).toDouble
+
+  /**
    * Calculate a destination point given a starting point, distance, and bearing using the Haversine formula.
    *
    * @param lat Starting latitude in degrees

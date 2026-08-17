@@ -79,12 +79,14 @@ class MeasurementSystemSpec extends PlaySpec with GuiceOneAppPerSuite {
   // isMetric over a second set of message keys, so a page can't label a converted number with the other system's unit.
   "A server-rendered distance" should {
     "carry the abbreviation of the chosen system on the leaderboard" in {
+      // Anchored on the closing tag: a bare " mi" also matches " minutes" and " missions", so it would pass on a page
+      // that rendered no distance at all. The community band always renders one, so both directions have a subject.
       val metric = pageOf("/leaderboard", "en", Some(MeasurementSystem.Metric))
-      metric must include(" km")
+      metric must include(" km<")
       metric must not include " mi<"
 
       val imperial = pageOf("/leaderboard", "en", Some(MeasurementSystem.Imperial))
-      imperial must include(" mi")
+      imperial must include(" mi<")
       imperial must not include " km<"
     }
   }

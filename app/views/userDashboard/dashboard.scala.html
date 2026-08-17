@@ -11,14 +11,16 @@
     trophies: Seq[Trophy], myRoutes: Seq[RouteWithStats]
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
+@* Named once because every distance on the page uses it. Twirl compiles this to a def, so it is not memoized. *@
+@unitAbbr = @{distanceUnitWords.abbr}
+
 @*
 * Formats the already-unit-converted audited distance (km when metric, else miles) with one decimal + unit. Floored
 * rather than rounded, matching util.math.floorTo on the frontend, so the same total can't read as 16.5 here and 16.4
 * in Explore's badge progress — and so it never reads as a badge threshold the user hasn't actually crossed.
 *@
 @distanceLabel = @{
-  val floored = Math.floor(profileData.auditedDistance * 10) / 10
-  f"$floored%.1f ${distanceUnitWords.abbr}"
+  f"${models.utils.CommonUtils.floorTo(profileData.auditedDistance, 1)}%.1f $unitAbbr"
 }
 @accuracyLabel = @{ profileData.accuracy.map(a => f"${a * 100}%.0f%%").getOrElse("—") }
 
@@ -60,7 +62,7 @@
 
 @routeDistanceLabel(meters: Double) = @{
   val dist = if (isMetric) meters / 1000 else meters * models.utils.CommonUtils.METERS_TO_MILES
-  f"$dist%.2f ${distanceUnitWords.abbr}"
+  f"$dist%.2f $unitAbbr"
 }
 
 @routeDateLabel(dt: java.time.OffsetDateTime) = @{

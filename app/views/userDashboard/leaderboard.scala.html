@@ -15,6 +15,9 @@
 * otherwise. `global` is None when the cross-city board is unavailable, which drops the section entirely.
 *@
 
+@* Named once because every distance on the board uses it. Twirl compiles this to a def, so it is not memoized. *@
+@unitWords = @{distanceUnitWords}
+
 @*
 * Unit-aware distance, matching the live leaderboard's formatting (km/m for metric, miles/feet otherwise). The
 * threshold for switching up to the large unit is per-system, since it's about when the small unit's numbers get
@@ -22,10 +25,10 @@
 *@
 @fmtDist(m: Double) = @{
   if (isMetric) {
-    if (m > 2000) f"${m / 1000}%.1f ${distanceUnitWords.abbr}" else f"$m%.0f ${distanceUnitWords.abbrSmall}"
+    if (m > 2000) f"${m / 1000}%.1f ${unitWords.abbr}" else f"$m%.0f ${unitWords.abbrSmall}"
   } else {
     val ft = m * 3.28084
-    if (ft > 2500) f"${ft / 5280}%.1f ${distanceUnitWords.abbr}" else f"$ft%.0f ${distanceUnitWords.abbrSmall}"
+    if (ft > 2500) f"${ft / 5280}%.1f ${unitWords.abbr}" else f"$ft%.0f ${unitWords.abbrSmall}"
   }
 }
 
@@ -38,7 +41,7 @@
 @* Total distance explored across all cities, unit-aware and comma-grouped (kmExplored is stored in km). *@
 @fmtBigDist(km: Double) = @{
   val dist = if (isMetric) km else km * 0.621371
-  s"${"%,.0f".format(dist)} ${distanceUnitWords.abbr}"
+  s"${"%,.0f".format(dist)} ${unitWords.abbr}"
 }
 
 @*

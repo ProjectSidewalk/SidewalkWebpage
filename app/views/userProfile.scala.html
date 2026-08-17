@@ -106,7 +106,7 @@
         <img src='@assets.path("images/icons/noun_target_3485590_cropped.png")' alt="@Messages("accuracy.icon.alt")" title="@Messages("dashboard.accuracy.icon.tooltip")">
 
         <span class="user-stats-stat">@data.missionCount</span>
-        <span class="user-stats-stat">@{s"%.2f ${distanceUnitWords.abbr}".format(Math.floor(data.auditedDistance * 100) / 100)}</span>
+        <span class="user-stats-stat">@{s"%.2f ${distanceUnitWords.abbr}".format(models.utils.CommonUtils.floorTo(data.auditedDistance, 2))}</span>
         <span class="user-stats-stat">@data.labelCount</span>
         <span class="user-stats-stat">@data.validationCount</span>
         <span class="user-stats-stat">@data.accuracy.map(a => "%.1f%%".format(a * 100)).getOrElse("N/A")</span>

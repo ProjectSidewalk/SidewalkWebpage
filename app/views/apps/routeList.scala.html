@@ -17,10 +17,12 @@
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @isMetric = @{ControllerUtils.isMetric}
+@* Named once because every route in the table uses it. Twirl compiles this to a def, so it is not memoized. *@
+@unitAbbr = @{ControllerUtils.distanceUnitWords.abbr}
 
 @distanceLabel(meters: Double) = @{
   val dist = if (isMetric) meters / 1000 else meters * models.utils.CommonUtils.METERS_TO_MILES
-  f"$dist%.2f ${ControllerUtils.distanceUnitWords.abbr}"
+  f"$dist%.2f $unitAbbr"
 }
 
 @dateLabel(dt: java.time.OffsetDateTime) = @{

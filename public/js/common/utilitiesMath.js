@@ -67,10 +67,11 @@ util.math.roundToTwentyFive = roundToTwentyFive;
  * @returns {number} The value truncated toward zero at that precision.
  */
 function floorTo(value, decimals) {
-  const factor = 10 ** decimals;
-  // Scaling first lands just under the intended integer for values binary floating point can't hold exactly
-  // (0.29 * 100 is 28.999999999999996, which would floor to 0.28), so settle that noise before flooring.
-  return Math.floor(Number((value * factor).toFixed(6))) / factor;
+  // Shifts the decimal point by re-parsing the number's own decimal string instead of multiplying by a power of ten,
+  // which lands just under the intended integer for values binary floating point can't hold exactly (0.29 * 100 is
+  // 28.999999999999996, which would floor to 0.28). This is what CommonUtils.floorTo gets from BigDecimal.decimal on
+  // the Scala side, so the two agree on every input rather than only on the ones that aren't near a boundary.
+  return Math.floor(Number(`${value}e${decimals}`)) / 10 ** decimals;
 }
 
 util.math.floorTo = floorTo;

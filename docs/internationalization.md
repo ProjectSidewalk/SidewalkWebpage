@@ -110,7 +110,7 @@ put imperial wording in `messages.en-US` / `locales/en-US/`, which only reaches 
 3. **Default to the generic `en`** files, and add **regional English overrides only where the wording actually
    differs**:
    - **`en-US`** — American spellings and phrasing. **Not** the place for imperial units: those are a measurement-system
-     variant of the key, carried by every locale (see "Measurement units" below), not a regional overlay.
+     variant of the key, carried by every locale (see "Measurement units" above), not a regional overlay.
    - **`en-NZ`** — dialect: curb ramp → *drop kerb*, sidewalk → *footpath*, crosswalk → *pedestrian crossing*,
      neighborhood → *neighbourhood*, organization → *organisation*, meter/kilometre → *metre/kilometre*,
      trash/recycling can → *trash/recycling bin*.

@@ -49,4 +49,11 @@ describe('util.math.floorTo', () => {
     expect(floorTo(1.005, 2)).toBe(1);
     expect(floorTo(8.7, 1)).toBe(8.7);
   });
+
+  // The same total is floored here and by CommonUtils.floorTo on the server, so the two must land on the same value
+  // for every input, not just the ones far from a boundary. Mirrored in test/models/utils/FloorToSpec.scala.
+  it('truncates a value just shy of a boundary rather than absorbing it', () => {
+    expect(floorTo(1.999999999, 1)).toBe(1.9);
+    expect(floorTo(1.9999999, 1)).toBe(1.9);
+  });
 });
