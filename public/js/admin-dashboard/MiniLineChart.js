@@ -9,8 +9,13 @@
 class MiniLineChart {
   /**
    * @param {string[]} categories - x-axis labels (one per data index).
-   * @param {Array<{name: string, key: string, values: Array<number|null>, tooltips?: string[]}>} series -
-   *   each series' values align to `categories`; null = gap. Optional per-point tooltip strings.
+   * @param {Array<{name: string, key: string, values: Array<number|null>, tooltips?: string[],
+   *          tooltipsHtml?: string[]}>} series -
+   *   each series' values align to `categories`; null = gap. Optional per-point tooltip strings, and optional
+   *   per-point rich cards: where `tooltipsHtml` has an entry, the point trades its native `<title>` for a
+   *   `data-ps-tooltip` card and becomes focusable, so the breakdown is reachable by keyboard as well as hover (the
+   *   plain `tooltips` string stays on as its accessible name). Card markup is first-party only — escape any name or
+   *   other data that came from a user before putting it in one.
    * @param {{yMax?: number, tickFormat?: function(number): string, valueFormat?: function(number): string,
    *          ariaLabel?: string, dotRadius?: number, kind?: string, maxXLabels?: number, barValues?: boolean,
    *          emphasisIndex?: number, minMarginL?: number, minMarginR?: number}} [opts] - yMax defaults to a nice
@@ -88,8 +93,8 @@ class MiniLineChart {
           let out = h <= 0
             ? ''
             : `<rect class="mini-bar mini-bar--${s.key}${emph ? ' mini-bar--emphasis' : ''}" x="${bx.toFixed(1)}" `
-              + `y="${top.toFixed(1)}" width="${barW.toFixed(1)}" height="${h.toFixed(1)}">`
-              + `<title>${MiniLineChart.#esc(tip)}</title></rect>`;
+              + `y="${top.toFixed(1)}" width="${barW.toFixed(1)}" height="${h.toFixed(1)}"`
+              + `${MiniLineChart.#pointTip(tip, s.tooltipsHtml?.[i])}</rect>`;
           if (opts.barValues) {
             out += `<text class="mini-value${emph ? ' mini-value--emphasis' : ''}" x="${(bx + barW / 2).toFixed(1)}" `
               + `y="${((h > 0 ? top : yFrac(0)) - 4).toFixed(1)}" text-anchor="middle">`
@@ -114,8 +119,8 @@ class MiniLineChart {
           if (v === null || v === undefined) return '';
           const tip = s.tooltips?.[i] ?? `${categories[i]} · ${s.name}: ${valueFormat(v)}`;
           return `<circle class="mini-pt mini-pt--${s.key}" cx="${x(i).toFixed(1)}" `
-            + `cy="${yFrac(v / yMax).toFixed(1)}" r="${dotRadius}">`
-            + `<title>${MiniLineChart.#esc(tip)}</title></circle>`;
+            + `cy="${yFrac(v / yMax).toFixed(1)}" r="${dotRadius}"`
+            + `${MiniLineChart.#pointTip(tip, s.tooltipsHtml?.[i])}</circle>`;
         }).join('');
         body += `<path class="mini-line mini-line--${s.key}" d="${d.trim()}"/>${dots}`;
       }
@@ -268,6 +273,23 @@ class MiniLineChart {
       else em += 0.58;
     }
     return em * MiniLineChart.#AXIS_FONT_PX;
+  }
+
+  /**
+   * Closes a point's opening tag and gives it a tooltip: a native `<title>` normally, or a psTooltip card plus the
+   * focusability and accessible name that card needs when the caller supplied rich markup for this point.
+   *
+   * The two are exclusive on purpose — a point carrying both would answer a hover with a card and a native tooltip
+   * stacked on top of each other.
+   *
+   * @param {string} tip - Plain-text summary of the point.
+   * @param {string} [html] - Rich card markup for the point; already escaped for any user-supplied text it contains.
+   * @returns {string} Markup closing the point's opening tag, with its `<title>` child when there is one.
+   */
+  static #pointTip(tip, html) {
+    if (!html) return `><title>${MiniLineChart.#esc(tip)}</title>`;
+    return ` tabindex="0" role="img" aria-label="${MiniLineChart.#esc(tip)}" `
+      + `data-ps-tooltip="${MiniLineChart.#esc(html)}">`;
   }
 
   static #esc(s) {

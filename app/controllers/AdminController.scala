@@ -585,16 +585,45 @@ class AdminController @Inject() (
   /**
    * Serializes one rolling week-over-week activity window for the Across Cities page (#4758).
    *
+   * Label and validation counts are what people did; AI-role output is reported in its own `ai_*` fields rather than
+   * folded in, because one pipeline account can dwarf every person in the project (#4931).
+   *
    * @param w The current- and prior-window totals for one city, or summed across all of them.
    * @return  The window as snake_case JSON (v3 API convention).
    */
   private def activityWindowJson(w: ActivityWindowSummary): JsObject = Json.obj(
-    "labels_7d"             -> w.labels7d,
-    "labels_prior_7d"       -> w.labelsPrior7d,
-    "validations_7d"        -> w.validations7d,
-    "validations_prior_7d"  -> w.validationsPrior7d,
-    "contributors_7d"       -> w.contributors7d,
-    "contributors_prior_7d" -> w.contributorsPrior7d
+    "labels_7d"               -> w.labels7d,
+    "labels_prior_7d"         -> w.labelsPrior7d,
+    "validations_7d"          -> w.validations7d,
+    "validations_prior_7d"    -> w.validationsPrior7d,
+    "ai_labels_7d"            -> w.aiLabels7d,
+    "ai_labels_prior_7d"      -> w.aiLabelsPrior7d,
+    "ai_validations_7d"       -> w.aiValidations7d,
+    "ai_validations_prior_7d" -> w.aiValidationsPrior7d,
+    "contributors_7d"         -> w.contributors7d,
+    "contributors_prior_7d"   -> w.contributorsPrior7d,
+    "ai_agents_7d"            -> w.aiAgents7d
+  )
+
+  /**
+   * Serializes one city's window plus the contributors it is made of, for the "Most active cities" hover cards (#4931).
+   *
+   * Contributors are named because the page is Owner-gated; these are the same usernames the admin user table shows.
+   *
+   * @param w One city's rolling windows and its (already capped) contributor list.
+   * @return  The window's fields plus a `contributors` array, busiest first.
+   */
+  private def cityActivityWindowJson(w: CityActivityWindow): JsObject = activityWindowJson(w.summary) ++ Json.obj(
+    "contributors" -> JsArray(w.contributors.map { c =>
+      Json.obj(
+        "username"             -> c.username,
+        "is_ai"                -> c.isAi,
+        "labels_7d"            -> c.labels7d,
+        "labels_prior_7d"      -> c.labelsPrior7d,
+        "validations_7d"       -> c.validations7d,
+        "validations_prior_7d" -> c.validationsPrior7d
+      )
+    })
   )
 
   /**
@@ -732,12 +761,30 @@ class AdminController @Inject() (
       })
 
       // Trailing-7-day cross-city daily series for the "this week" bar charts (#4686); zero-filled, today partial.
+      // Each day also carries the breakdown its hover card shows (#4931): the human/AI split, the day's busiest
+      // cities, and the people who were active, so the card is derived from the same rows the bar is summed from.
       val overTimeDaily = JsArray(dailyTrend.map { d =>
         Json.obj(
-          "day"          -> d.day.toString,
-          "labels"       -> d.labels,
-          "validations"  -> d.validations,
-          "active_users" -> d.activeUsers
+          "day"            -> d.point.day.toString,
+          "labels"         -> d.point.labels,
+          "validations"    -> d.point.validations,
+          "active_users"   -> d.point.activeUsers,
+          "ai_labels"      -> d.point.aiLabels,
+          "ai_validations" -> d.point.aiValidations,
+          "ai_agents"      -> d.point.aiAgents,
+          "top_cities"     -> JsArray(d.topCities.map { city =>
+            val cityName: String = cityInfoById.get(city.cityId).map(_.cityNameShort).getOrElse(city.cityId)
+            Json.obj(
+              "city_id"      -> city.cityId,
+              "city_name"    -> cityName,
+              "labels"       -> city.labels,
+              "validations"  -> city.validations,
+              "contributors" -> city.contributors
+            )
+          }),
+          "contributors" -> JsArray(d.contributors.map { c =>
+            Json.obj("username" -> c.username, "is_ai" -> c.isAi, "labels" -> c.labels, "validations" -> c.validations)
+          })
         )
       })
 
@@ -767,7 +814,7 @@ class AdminController @Inject() (
           // merged into `cities` because the scorecard rows already carry labels_7d/validations_7d on a slightly
           // different basis (see getCityActivityWindowsBySchema) and two same-named fields would invite mixing them.
           "window_by_city" -> JsObject(windowSummary.byCity.toSeq.map { case (cityId, w) =>
-            cityId -> activityWindowJson(w)
+            cityId -> cityActivityWindowJson(w)
           }),
           "summary" -> Json.obj(
             "num_cities"                -> scorecards.length,
