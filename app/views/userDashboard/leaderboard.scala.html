@@ -1,3 +1,4 @@
+@import controllers.helper.ControllerUtils.distanceUnitWords
 @import service.{AggregateStats, CommonPageData, GlobalLeaderboardEntry}
 @import models.user.{LeaderboardStat, SidewalkUserWithRole, UserStanding}
 @import play.api.Configuration
@@ -14,13 +15,17 @@
 * otherwise. `global` is None when the cross-city board is unavailable, which drops the section entirely.
 *@
 
-@* Unit-aware distance, matching the live leaderboard's formatting (km/m for metric, miles/feet otherwise). *@
+@*
+* Unit-aware distance, matching the live leaderboard's formatting (km/m for metric, miles/feet otherwise). The
+* threshold for switching up to the large unit is per-system, since it's about when the small unit's numbers get
+* unwieldy rather than about a fixed distance.
+*@
 @fmtDist(m: Double) = @{
   if (isMetric) {
-    if (m > 2000) f"${m / 1000}%.1f ${Messages("dashboard.unit.km")}" else f"$m%.0f ${Messages("dashboard.unit.m")}"
+    if (m > 2000) f"${m / 1000}%.1f ${distanceUnitWords.abbr}" else f"$m%.0f ${distanceUnitWords.abbrSmall}"
   } else {
     val ft = m * 3.28084
-    if (ft > 2500) f"${ft / 5280}%.1f ${Messages("dashboard.unit.mi")}" else f"$ft%.0f ${Messages("dashboard.unit.ft")}"
+    if (ft > 2500) f"${ft / 5280}%.1f ${distanceUnitWords.abbr}" else f"$ft%.0f ${distanceUnitWords.abbrSmall}"
   }
 }
 
@@ -32,8 +37,8 @@
 
 @* Total distance explored across all cities, unit-aware and comma-grouped (kmExplored is stored in km). *@
 @fmtBigDist(km: Double) = @{
-  if (isMetric) s"${"%,.0f".format(km)} ${Messages("dashboard.unit.km")}"
-  else s"${"%,.0f".format(km * 0.621371)} ${Messages("dashboard.unit.mi")}"
+  val dist = if (isMetric) km else km * 0.621371
+  s"${"%,.0f".format(dist)} ${distanceUnitWords.abbr}"
 }
 
 @*

@@ -27,8 +27,11 @@ class MeasurementSystemSpec extends PlaySpec with GuiceOneAppPerSuite {
       .disable[modules.ActorModule] // No eager background actors during tests.
       .build()
 
-  private def stampOf(langCode: String, override_ : Option[String] = None): String = {
-    val base    = FakeRequest(GET, "/signIn").withHeaders("Accept-Language" -> langCode)
+  private def stampOf(langCode: String, override_ : Option[String] = None): String =
+    pageOf("/signIn", langCode, override_)
+
+  private def pageOf(path: String, langCode: String, override_ : Option[String]): String = {
+    val base    = FakeRequest(GET, path).withHeaders("Accept-Language" -> langCode)
     val request = override_.fold(base)(value => base.withCookies(Cookie(MeasurementSystem.CookieName, value)))
     val resp    = route(app, request).get
     status(resp) mustBe OK
@@ -69,6 +72,20 @@ class MeasurementSystemSpec extends PlaySpec with GuiceOneAppPerSuite {
       stampOf("en", Some(MeasurementSystem.Imperial)) must include("\"unitAbbrSmall\":\"ft\"")
       stampOf("es", Some(MeasurementSystem.Imperial)) must include("\"unitName\":\"millas\"")
       stampOf("es") must include("\"unitNameSingular\":\"kilómetro\"")
+    }
+  }
+
+  // Server-rendered pages read the same words through ControllerUtils.distanceUnitWords rather than branching on
+  // isMetric over a second set of message keys, so a page can't label a converted number with the other system's unit.
+  "A server-rendered distance" should {
+    "carry the abbreviation of the chosen system on the leaderboard" in {
+      val metric = pageOf("/leaderboard", "en", Some(MeasurementSystem.Metric))
+      metric must include(" km")
+      metric must not include " mi<"
+
+      val imperial = pageOf("/leaderboard", "en", Some(MeasurementSystem.Imperial))
+      imperial must include(" mi")
+      imperial must not include " km<"
     }
   }
 }

@@ -3,6 +3,7 @@
 @import models.label.Tag
 @import models.route.RouteWithStats
 @import models.userdashboard.Trophy
+@import controllers.helper.ControllerUtils.distanceUnitWords
 @import models.pano.PanoSource
 @import play.api.Configuration
 @(commonData: CommonPageData, user: SidewalkUserWithRole, profileData: UserProfileData, isMetric: Boolean,
@@ -17,7 +18,7 @@
 *@
 @distanceLabel = @{
   val floored = Math.floor(profileData.auditedDistance * 10) / 10
-  f"$floored%.1f ${if (isMetric) Messages("dashboard.unit.km") else Messages("dashboard.unit.mi")}"
+  f"$floored%.1f ${distanceUnitWords.abbr}"
 }
 @accuracyLabel = @{ profileData.accuracy.map(a => f"${a * 100}%.0f%%").getOrElse("—") }
 
@@ -58,8 +59,8 @@
 }
 
 @routeDistanceLabel(meters: Double) = @{
-  if (isMetric) f"${meters / 1000}%.2f ${Messages("dashboard.unit.km")}"
-  else f"${meters * models.utils.CommonUtils.METERS_TO_MILES}%.2f ${Messages("dashboard.unit.mi")}"
+  val dist = if (isMetric) meters / 1000 else meters * models.utils.CommonUtils.METERS_TO_MILES
+  f"$dist%.2f ${distanceUnitWords.abbr}"
 }
 
 @routeDateLabel(dt: java.time.OffsetDateTime) = @{
