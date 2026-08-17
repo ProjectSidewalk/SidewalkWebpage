@@ -2349,6 +2349,10 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
 
 .ac-tip-row--ai { opacity: 0.75; }
 
+/* The line the hovered bar or cell actually draws. Weight alone carries it — the card is one type size throughout,
+   so a heavier line reads as "this is your number" without breaking the column of figures down the right edge. */
+.ac-tip-row--strong { font: var(--text-caption-semibold); }
+
 .ac-tip-head {
   font: var(--text-tiny-semibold);
   margin-top: 6px;

@@ -682,15 +682,16 @@ class AcrossCitiesPage {
    *
    * All three charts share one card per day (#4931): the three volumes move together, so someone asking why Tuesday's
    * labels spiked wants that day's validations, cities, and people in the same breath — not three separate hovers.
+   * Each chart leans on its own line so the shared card still answers the bar under the cursor first.
    */
   #drawWeekBars() {
     const series = this.#dailyTrend;
     const cats = series.map((d) => AcrossCitiesPage.#weekday(d.day));
-    const tooltipsHtml = series.map((d) => this.#dayTipHtml(d));
     const draw = (id, key, jsonKey, name) => {
       const host = document.getElementById(id);
       if (!host) return;
       const values = series.map((d) => d[jsonKey] || 0);
+      const tooltipsHtml = series.map((d) => this.#dayTipHtml(d, jsonKey));
       const tooltips = series.map((d, i) => `${AcrossCitiesPage.#shortDate(d.day)} · ${name}: ${this.#num(values[i])}`);
       // Compact value labels above each bar (exact counts stay in the cards); the last bar is today, still
       // filling in, so it gets the emphasis treatment.
@@ -1208,10 +1209,13 @@ class AcrossCitiesPage {
    * @param {string} label - Already-escaped line label.
    * @param {string} value - Already-escaped value, set at the right edge.
    * @param {boolean} [muted=false] - True for the AI lines, which sit under the human counts they qualify.
+   * @param {boolean} [strong=false] - True for the line the hovered bar or cell actually draws, so a card shared by
+   *   several charts still answers the one you're on first.
    * @returns {string} The line's markup.
    */
-  static #tipRow(label, value, muted = false) {
-    return `<div class="ac-tip-row${muted ? ' ac-tip-row--ai' : ''}"><span>${label}</span>`
+  static #tipRow(label, value, muted = false, strong = false) {
+    const mod = `${muted ? ' ac-tip-row--ai' : ''}${strong ? ' ac-tip-row--strong' : ''}`;
+    return `<div class="ac-tip-row${mod}"><span>${label}</span>`
       + `<span class="ac-tip-num">${value}</span></div>`;
   }
 
@@ -1255,26 +1259,30 @@ class AcrossCitiesPage {
    * volumes, what AI contributed, which cities were busiest, and who was active (#4931).
    *
    * @param {object} d - A `over_time_daily` entry.
+   * @param {string} [emphasisKey] - The `over_time_daily` key the hovered chart draws ('labels', 'validations',
+   *   'active_users'), whose line the card leans on.
    * @returns {string} The card's markup.
    */
-  #dayTipHtml(d) {
+  #dayTipHtml(d, emphasisKey) {
     const title = `<div class="ac-tip-title">${AcrossCitiesPage.#esc(AcrossCitiesPage.#longDate(d.day))}</div>`;
     const quiet = !d.labels && !d.validations && !d.ai_labels && !d.ai_validations;
     if (quiet) return `<div class="ac-tip">${title}<div class="ac-tip-more">No activity.</div></div>`;
 
     let out = title
-      + AcrossCitiesPage.#tipRow('Labels', this.#num(d.labels))
-      + AcrossCitiesPage.#tipRow('Validations', this.#num(d.validations))
-      + AcrossCitiesPage.#tipRow('Contributors', this.#num(d.active_users));
+      + AcrossCitiesPage.#tipRow('Labels', this.#num(d.labels), false, emphasisKey === 'labels')
+      + AcrossCitiesPage.#tipRow('Validations', this.#num(d.validations), false, emphasisKey === 'validations')
+      + AcrossCitiesPage.#tipRow('Contributors', this.#num(d.active_users), false, emphasisKey === 'active_users');
     if (d.ai_labels) out += AcrossCitiesPage.#tipRow('AI labels', this.#num(d.ai_labels), true);
     if (d.ai_validations) out += AcrossCitiesPage.#tipRow('AI validations', this.#num(d.ai_validations), true);
 
     const cities = d.top_cities || [];
     if (cities.length) {
-      out += AcrossCitiesPage.#tipHead('Busiest cities');
+      // Cities carry the same "labels · validations" pair as the contributor lines below rather than one combined
+      // total: a lone number under a "busiest" heading reads as whichever row above it happens to match that day.
+      out += AcrossCitiesPage.#tipHead('Busiest cities (labels · validations)');
       out += cities.map((city) => AcrossCitiesPage.#tipRow(
         AcrossCitiesPage.#esc(city.city_name || city.city_id),
-        this.#num((city.labels || 0) + (city.validations || 0)),
+        `${this.#num(city.labels || 0)} · ${this.#num(city.validations || 0)}`,
       )).join('');
     }
 

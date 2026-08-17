@@ -233,11 +233,26 @@ describe('Across Cities — human/AI split and hover breakdowns', () => {
       expect(card).toContain('6,420');
     });
 
-    it('gives every chart the same card for a given day, so one hover explains all three', async () => {
+    it('gives every chart the same day, so one hover explains all three', async () => {
       await render({ daily: DAILY });
-      const fromValidations = document.querySelectorAll('#ac-chart-week-validations rect.mini-bar')[1];
+      const fromValidations = document.querySelectorAll('#ac-chart-week-validations rect.mini-bar')[1]
+        .getAttribute('data-ps-tooltip');
+      const strip = (card) => card.replace(/ ac-tip-row--strong/g, '');
 
-      expect(fromValidations.getAttribute('data-ps-tooltip')).toBe(barCard(1));
+      expect(strip(fromValidations)).toBe(strip(barCard(1)));
+    });
+
+    it('leans on the line the hovered chart draws, so a shared card still answers this bar', async () => {
+      await render({ daily: DAILY });
+      const strongRow = (card) => card.match(/ac-tip-row ac-tip-row--strong"><span>([^<]+)/)[1];
+      const fromValidations = document.querySelectorAll('#ac-chart-week-validations rect.mini-bar')[1]
+        .getAttribute('data-ps-tooltip');
+      const fromUsers = document.querySelectorAll('#ac-chart-week-users rect.mini-bar')[1]
+        .getAttribute('data-ps-tooltip');
+
+      expect(strongRow(barCard(1))).toBe('Labels');
+      expect(strongRow(fromValidations)).toBe('Validations');
+      expect(strongRow(fromUsers)).toBe('Contributors');
     });
 
     it('names the day\'s busiest cities and its contributors', async () => {
@@ -248,6 +263,15 @@ describe('Across Cities — human/AI split and hover breakdowns', () => {
       expect(card).toContain('Seattle');
       expect(card).toContain('alice');
       expect(card).toContain('sidewalk-ai');
+    });
+
+    it('splits a busiest city into labels and validations rather than one unlabeled total', async () => {
+      await render({ daily: DAILY });
+      const card = barCard(1);
+
+      expect(card).toContain('Busiest cities (labels · validations)');
+      expect(card).toContain('<span>Chicago</span><span class="ac-tip-num">100 · 20</span>');
+      expect(card).toContain('<span>Seattle</span><span class="ac-tip-num">20 · 10</span>');
     });
 
     it('marks an AI account in the contributor list rather than passing it off as a person', async () => {
