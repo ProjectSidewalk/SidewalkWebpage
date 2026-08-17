@@ -12,22 +12,28 @@ class StreetStatusTrend {
   #trendUrl;
   #weeks;
   #loading = false;
+  #reloadQueued = false;
 
   /**
    * @param {Object} opts
    * @param {string} opts.trendUrl - URL of the trend JSON endpoint, without the `weeks` parameter.
-   * @param {number} [opts.weeks=26] - Initial window size in weeks.
+   * @param {number} [opts.weeks] - Initial window size in weeks, injected from the server's own default so the two
+   *   can't drift. Omitted leaves the window off the request, which lets the server apply that same default.
    */
   constructor(opts = {}) {
     this.#trendUrl = opts.trendUrl;
-    this.#weeks = opts.weeks || 26;
+    this.#weeks = Number(opts.weeks) || null;
   }
 
   /** Loads the initial window and wires the range selector. */
   async init() {
     const range = document.getElementById('trend-range');
     if (range) {
+      // The server's default has to be one of the offered windows for the select to show it; if it ever isn't, the
+      // assignment is a no-op and the select keeps its first option, so take the select's value as authoritative
+      // rather than letting the two disagree silently.
       range.value = String(this.#weeks);
+      this.#weeks = Number(range.value) || this.#weeks;
       range.addEventListener('change', () => {
         this.#weeks = Number(range.value) || this.#weeks;
         this.#load();
@@ -46,19 +52,31 @@ class StreetStatusTrend {
 
   /** Fetches the current window and renders every panel, or reports a failure without touching the page above. */
   async #load() {
-    if (this.#loading) return;
+    // A window picked while a fetch is in flight is queued rather than dropped: returning outright would leave the
+    // <select> showing one window and the charts another, with nothing on the page to say which is which.
+    if (this.#loading) {
+      this.#reloadQueued = true;
+      return;
+    }
     this.#loading = true;
     this.#setStatus('Loading recent changes…', false);
     try {
-      const response = await fetch(`${this.#trendUrl}?weeks=${this.#weeks}`, { headers: { Accept: 'application/json' } });
+      const query = this.#weeks ? `?weeks=${this.#weeks}` : '';
+      const response = await fetch(`${this.#trendUrl}${query}`, { headers: { Accept: 'application/json' } });
       if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
       const data = await response.json();
       this.#render(data);
       this.#setStatus('', false, true);
     } catch (e) {
-      this.#setStatus(`Could not load recent changes: ${StreetStatusTrend.#esc(e.message)}`, true);
+      // #setStatus writes through textContent, which escapes on its own — escaping here too would render the
+      // entities literally.
+      this.#setStatus(`Could not load recent changes: ${e.message}`, true);
     } finally {
       this.#loading = false;
+    }
+    if (this.#reloadQueued) {
+      this.#reloadQueued = false;
+      await this.#load();
     }
   }
 
@@ -102,10 +120,12 @@ class StreetStatusTrend {
       dotRadius: 2,
     });
 
+    // Counted as changes, not streets: the server de-duplicates streets only within a (week, destination) bucket, so
+    // one street that moved in two weeks — or into two statuses — contributes to two rows here.
     const total = rows.reduce((sum, r) => sum + r.street_count, 0);
     this.#setText('trend-status-summary', total === 0
       ? 'No street changed status in this window.'
-      : `${StreetStatusTrend.#num(total)} street${total === 1 ? '' : 's'} changed status in this window.`);
+      : `${StreetStatusTrend.#num(total)} status change${total === 1 ? '' : 's'} in this window.`);
   }
 
   /** Distinct streets reported as having no imagery per week. */
@@ -157,9 +177,10 @@ class StreetStatusTrend {
     const rows = data.corroborated_streets || [];
     const min = data.min_reporters || 2;
     this.#setText('trend-corroborated-intro',
-      `Streets still open for auditing that at least ${min} different labelers independently reported as having no `
-      + 'imagery. A report is evidence, never a verdict, so these stay in the pool until the offline imagery checker '
-      + 'confirms them — run it against these streets first.');
+      `Streets still open for auditing that at least ${min} different labeler accounts independently reported as `
+      + 'having no imagery. Anonymous sessions each count as their own account, so one person returning to a street '
+      + 'can clear that bar on their own. A report is evidence, never a verdict: these stay in the pool until the '
+      + 'offline imagery checker confirms them — run it against these streets first.');
 
     if (rows.length === 0) {
       this.#setHtml('trend-corroborated', '<p class="trend-note">No street has been reported by that many '

@@ -129,8 +129,12 @@ class StreetEdgeIssueTable @Inject() (protected val dbConfigProvider: DatabaseCo
    * corroboration rather than volume that separates that from one labeler's bad session or a transient provider
    * outage. Restricted to `open` streets, since a street already retired needs no further evidence.
    *
+   * Counts distinct `user_id`s, which is distinct *accounts* rather than distinct people: an anonymous sign-up gets
+   * its own user row, so one person returning to a street across two sessions reaches the threshold. That is
+   * tolerable only because this is a review queue — see `StreetLifecycleService.MinCorroboratingReporters`.
+   *
    * @param since         Only reports at or after this instant.
-   * @param minReporters  Distinct labelers a street needs before it appears.
+   * @param minReporters  Distinct labeler accounts a street needs before it appears.
    * @param limit         How many streets to return, worst first.
    */
   def corroboratedOpenStreets(

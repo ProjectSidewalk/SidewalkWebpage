@@ -17,7 +17,7 @@ import scala.concurrent.Await
 import scala.concurrent.duration._
 
 /**
- * DB-backed contract test for the street status-change log (#4928, evolution 359) and the trend it feeds.
+ * DB-backed contract test for the street status-change log (#4928, evolution 358) and the trend it feeds.
  *
  * `street_edge.status` has no application write path, so these rows are the only record that a maintenance script ran
  * at all. The cases here pin what makes that record trustworthy: only real transitions are storable, and the weekly

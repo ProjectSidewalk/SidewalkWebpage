@@ -110,6 +110,9 @@ class BackgroundJobRunTable @Inject() (protected val dbConfigProvider: DatabaseC
     )
   }
 
+  implicit private val getJobSuccess: GetResult[(String, OffsetDateTime)] =
+    GetResult(r => (r.nextString(), r.nextOffsetDateTime()))
+
   /**
    * Opens a run row, before the work starts, so a job that dies mid-run still leaves a trace.
    *
@@ -151,6 +154,24 @@ class BackgroundJobRunTable @Inject() (protected val dbConfigProvider: DatabaseC
                  background_job_run_id, job_name, triggered_by, started_at, finished_at, status, details, error_message
           FROM background_job_run
           ORDER BY job_name, started_at DESC""".as[BackgroundJobRun]
+  }
+
+  /**
+   * When each job's most recent successful *scheduled* run started, which is the clock the overdue check runs on.
+   *
+   * Scoped to scheduled runs because the question the Health panel asks is whether the nightly schedule is still
+   * alive: a sweep an admin kicked off by hand from /adminapi proves the code works, not that anything is firing it,
+   * so it must not be able to clear the alarm. Scoped to successful runs because a job that has failed every night
+   * for a week is overdue for one that worked — and keying on success also means a run still in flight neither sets
+   * nor clears the alarm, leaving the previous night's success to carry the job through its own next run.
+   *
+   * A job absent from the result has never succeeded on schedule, which the caller reads as overdue.
+   */
+  def lastScheduledSuccessPerJob: DBIO[Seq[(String, OffsetDateTime)]] = {
+    sql"""SELECT DISTINCT ON (job_name) job_name, started_at
+          FROM background_job_run
+          WHERE triggered_by = 'scheduled' AND status = 'succeeded'
+          ORDER BY job_name, started_at DESC""".as[(String, OffsetDateTime)]
   }
 
   /**

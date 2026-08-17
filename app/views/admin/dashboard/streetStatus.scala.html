@@ -59,6 +59,7 @@
     <div class="mini-host" id="trend-reports-chart"></div>
 
     <h3 class="trend-chart-heading">Panoramas whose imagery went away</h3>
+    <p class="trend-note">Unlike the two charts above, this one is not an event log: it reads the current expiry date on each panorama, which is cleared if the imagery comes back or a user views the panorama again. A panorama that expired and later returned therefore leaves its old week, so past weeks can shrink between visits. Read it as "panoramas still missing, by when they went" rather than as a record of every expiry.</p>
     <p class="trend-note" id="trend-expiry-note"></p>
     <div class="mini-host" id="trend-expiry-chart"></div>
   </div>
@@ -87,7 +88,8 @@
       new StreetStatusPage({
         mapboxToken: '@commonData.mapboxApiKey',
         streetsUrl: '/v3/api/streets?filetype=geojson',
-        trendUrl: '/adminapi/streetStatusTrend'
+        trendUrl: '/adminapi/streetStatusTrend',
+        trendWeeks: @service.StreetLifecycleService.DefaultTrendWeeks
       }).init();
     });
   </script>

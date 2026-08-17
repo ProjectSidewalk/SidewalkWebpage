@@ -10,6 +10,7 @@ class StreetStatusPage {
   #mapboxToken;
   #streetsUrl;
   #trendUrl;
+  #trendWeeks;
   #map;
   #table = null;
 
@@ -20,20 +21,25 @@ class StreetStatusPage {
   #hoverIds = null; // null = no active hover.
 
   /**
-   * @param {{mapboxToken: string, streetsUrl: string, trendUrl: string}} opts - Mapbox access token, the v3 streets
-   *   endpoint URL, and the trend endpoint URL, all injected from the Twirl template so the JS has no server-config
-   *   coupling.
+   * @param {{mapboxToken: string, streetsUrl: string, trendUrl: string, trendWeeks: number}} opts - Mapbox access
+   *   token, the v3 streets endpoint URL, the trend endpoint URL, and the trend's default window, all injected from
+   *   the Twirl template so the JS has no server-config coupling.
    */
   constructor(opts = {}) {
     this.#mapboxToken = opts.mapboxToken;
     this.#streetsUrl = opts.streetsUrl;
     this.#trendUrl = opts.trendUrl;
+    this.#trendWeeks = opts.trendWeeks;
   }
 
   async init() {
     // Started before the snapshot and deliberately not awaited: the two draw from different endpoints and neither
-    // needs the other, so the whole-city GeoJSON fetch must not hold the trend charts blank behind it.
-    if (this.#trendUrl) new StreetStatusTrend({ trendUrl: this.#trendUrl }).init();
+    // needs the other, so the whole-city GeoJSON fetch must not hold the trend charts blank behind it. Since nothing
+    // awaits it, it needs its own catch — an unhandled rejection here would fail the e2e smoke suite.
+    if (this.#trendUrl) {
+      new StreetStatusTrend({ trendUrl: this.#trendUrl, weeks: this.#trendWeeks }).init()
+        .catch((e) => console.error('Could not initialize the street-status trend section.', e));
+    }
 
     try {
       const geojson = await this.#fetchStreets(this.#streetsUrl);

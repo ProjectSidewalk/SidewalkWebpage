@@ -15,7 +15,7 @@ import scala.concurrent.Await
 import scala.concurrent.duration._
 
 /**
- * DB-backed contract test for `background_job_run` (#4928, evolution 359) and its DAO.
+ * DB-backed contract test for `background_job_run` (#4928, evolution 358) and its DAO.
  *
  * The table exists so that a nightly job which stops firing is distinguishable from one that found nothing to do, so
  * the cases that matter are the ones that keep a row honest: a run is open exactly while it is running, a failure
@@ -114,6 +114,39 @@ class BackgroundJobRunTableSpec extends PlaySpec with BeforeAndAfterAll with Gui
       latest.find(_.jobName == jobName).map(_.backgroundJobRunId) mustBe Some(newest)
       // A job that has only ever started still reports, which is how an abandoned run stays visible.
       latest.find(_.jobName == otherJobName).map(_.status) mustBe Some(JobRunStatus.Running)
+    }
+  }
+
+  "lastScheduledSuccessPerJob" should {
+    "ignore a hand-triggered run, so it can't clear a dead scheduler's overdue alarm" in {
+      cleanUp()
+      val scheduled = run(jobRunTable.insertRunning(jobName, JobRunTrigger.Scheduled, OffsetDateTime.now.minusDays(3)))
+      run(jobRunTable.finish(scheduled, JobRunStatus.Succeeded, OffsetDateTime.now.minusDays(3), None, None))
+      val manual = run(jobRunTable.insertRunning(jobName, JobRunTrigger.Manual, OffsetDateTime.now))
+      run(jobRunTable.finish(manual, JobRunStatus.Succeeded, OffsetDateTime.now, None, None))
+
+      // The three-day-old scheduled run, not today's manual one: an admin running the job by hand says nothing about
+      // whether the schedule is still firing it.
+      val lastGood = run(jobRunTable.lastScheduledSuccessPerJob).toMap.get(jobName)
+      lastGood.map(_.toLocalDate) mustBe Some(OffsetDateTime.now.minusDays(3).toLocalDate)
+    }
+
+    "ignore a run that is still in flight, leaving the previous success standing" in {
+      cleanUp()
+      val done = run(jobRunTable.insertRunning(jobName, JobRunTrigger.Scheduled, OffsetDateTime.now.minusDays(1)))
+      run(jobRunTable.finish(done, JobRunStatus.Succeeded, OffsetDateTime.now.minusDays(1), None, None))
+      run(jobRunTable.insertRunning(jobName, JobRunTrigger.Scheduled, OffsetDateTime.now))
+
+      // Without this the panel would call every job overdue for as long as it was running.
+      val lastGood = run(jobRunTable.lastScheduledSuccessPerJob).toMap.get(jobName)
+      lastGood.map(_.toLocalDate) mustBe Some(OffsetDateTime.now.minusDays(1).toLocalDate)
+    }
+
+    "omit a job whose only scheduled runs failed" in {
+      cleanUp()
+      val failed = run(jobRunTable.insertRunning(jobName, JobRunTrigger.Scheduled, OffsetDateTime.now))
+      run(jobRunTable.finish(failed, JobRunStatus.Failed, OffsetDateTime.now, None, Some("boom")))
+      run(jobRunTable.lastScheduledSuccessPerJob).toMap.get(jobName) mustBe None
     }
   }
 

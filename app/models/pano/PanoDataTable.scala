@@ -139,6 +139,12 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
    * Only counts panos that expired after `expired_at` started being recorded (358.sql): earlier expiries have no
    * flip date to bucket, so they are absent rather than piled onto the first week.
    *
+   * Note that `expired_at` is current state, not an event log — a re-check or a user view that finds the imagery
+   * back clears it — so this reads "panos still missing, by when they went" and a pano that expired and later
+   * returned leaves the week it was counted in. Past weeks can therefore shrink between two loads of the chart,
+   * which the page says out loud. Turning this into a true series would mean logging expiries the way
+   * `street_edge_status_change` logs status moves.
+   *
    * @param since Only expiries at or after this instant.
    */
   def newlyExpiredByWeek(since: OffsetDateTime): DBIO[Seq[PanoExpiryWeek]] = {

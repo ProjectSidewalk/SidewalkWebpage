@@ -16,7 +16,7 @@ import scala.concurrent.Await
 import scala.concurrent.duration._
 
 /**
- * DB-backed contract test for `pano_data.expired_at` (#4928, evolution 359).
+ * DB-backed contract test for `pano_data.expired_at` (#4928, evolution 358).
  *
  * The column answers "when did this pano's imagery go away", which `last_checked` cannot: the nightly sweep re-checks
  * already-expired panos and bumps `last_checked` every time, so only a value written on the false -> true edge can
@@ -122,8 +122,14 @@ class PanoExpiredAtSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneApp
 
     "leave out panos that expired before expiry dates were recorded" in {
       // The whole point of the undated count: those panos are absent from every week rather than piled onto one.
+      val countedBefore = run(panoDataTable.newlyExpiredByWeek(OffsetDateTime.now.minusWeeks(1))).map(_.panoCount).sum
+      val undatedBefore = run(panoDataTable.countExpiredWithoutExpiryDate)
+
       run(sqlu"UPDATE pano_data SET expired_at = NULL WHERE pano_id = $panoId")
-      run(panoDataTable.countExpiredWithoutExpiryDate) must be >= 1
+
+      run(panoDataTable.newlyExpiredByWeek(OffsetDateTime.now.minusWeeks(1))).map(_.panoCount).sum mustBe
+        countedBefore - 1
+      run(panoDataTable.countExpiredWithoutExpiryDate) mustBe undatedBefore + 1
     }
   }
 }

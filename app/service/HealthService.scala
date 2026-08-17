@@ -287,9 +287,11 @@ class HealthServiceImpl @Inject() (
     val windowStart = now.minusDays(HealthService.JobWindowDays.toLong)
     for {
       latestRuns <- db.run(backgroundJobRunTable.latestRunPerJob)
+      lastGood   <- db.run(backgroundJobRunTable.lastScheduledSuccessPerJob)
       counts     <- db.run(backgroundJobRunTable.outcomeCountsSince(windowStart))
     } yield {
-      val latestByJob = latestRuns.map(run => run.jobName -> run).toMap
+      val latestByJob   = latestRuns.map(run => run.jobName -> run).toMap
+      val lastGoodByJob = lastGood.toMap
       ScheduledJobs.All.map { job =>
         val latest       = latestByJob.get(job.name)
         val runsInWindow = counts.filter(_._1 == job.name).map(_._3).sum
@@ -308,12 +310,13 @@ class HealthServiceImpl @Inject() (
           lastDetails = latest.flatMap(_.details),
           lastError = latest.flatMap(_.errorMessage),
           hoursSinceLastRun = hoursSince,
-          // Deliberately keyed on the last run of any outcome: a job failing every night is overdue for a *successful*
-          // run, and reporting it as merely "failed" understates a signal that has been frozen for days.
-          overdue = latest.forall(run =>
-            run.status != JobRunStatus.Succeeded ||
-              ChronoUnit.HOURS.between(run.startedAt, now) > ScheduledJobs.OverdueAfterHours
-          ),
+          // Asked of the *schedule*, so it keys on the last successful scheduled run rather than on `latest`: a run
+          // an admin kicked off by hand must not clear the alarm, and one still in flight must not raise it while
+          // the previous night's success is inside the window. A job failing every night still reads overdue, since
+          // its last success recedes with each failure.
+          overdue = lastGoodByJob
+            .get(job.name)
+            .forall(lastSuccess => ChronoUnit.HOURS.between(lastSuccess, now) > ScheduledJobs.OverdueAfterHours),
           runsInWindow = runsInWindow,
           failuresInWindow = failures
         )

@@ -349,7 +349,13 @@ class HealthPage {
    * @param {Array<Object>} jobs - `nightly_jobs` entries from the health payload.
    */
   #renderNightlyJobs(jobs) {
-    if (jobs.length === 0) return this.#renderEmpty('health-jobs', 'No scheduled jobs are configured.');
+    // The roster is a compile-time constant, so the server always returns a row per job unless the read of
+    // background_job_run failed and was recovered to an empty list. An empty panel is therefore a failure, never a
+    // healthy "nothing scheduled" — rendering it as the latter would be the exact blind spot this panel exists for.
+    if (jobs.length === 0) {
+      return this.#renderProblem('health-jobs',
+        'Could not read the nightly-job history — this panel is blind, not clear.');
+    }
     const t = this.#thresholds;
     const rank = { never_run: 0, abandoned: 1, failed: 2, running: 3, succeeded: 4 };
     const sorted = [...jobs].sort((a, b) => {
@@ -388,13 +394,15 @@ class HealthPage {
     return `<span class="ac-badge ac-badge--${tone}">${HealthPage.#esc(label)}</span>`;
   }
 
-  /** "4h ago" / "3d ago", or an explicit never. */
+  /**
+   * "4h ago" / "3d ago", or an explicit never. A hand-triggered last run says so, because it is the one run that
+   * proves nothing about whether the schedule is still firing.
+   */
   static #jobLastRun(job) {
     if (job.hours_since_last_run === null || job.hours_since_last_run === undefined) return 'never';
     const hours = job.hours_since_last_run;
-    if (hours < 1) return 'under an hour ago';
-    if (hours < 48) return `${hours}h ago`;
-    return `${Math.floor(hours / 24)}d ago`;
+    const when = hours < 1 ? 'under an hour ago' : hours < 48 ? `${hours}h ago` : `${Math.floor(hours / 24)}d ago`;
+    return job.last_triggered_by === 'manual' ? `${when} (manual)` : when;
   }
 
   /** A run's wall-clock duration, or an em dash while it is still open. */
@@ -447,6 +455,12 @@ class HealthPage {
   /** Renders an "all clear" line for an empty panel. */
   #renderEmpty(id, msg) {
     this.#setHtml(id, `<p class="coverage-status"><span class="ac-badge ac-badge--good">✓</span> ${HealthPage.#esc(msg)}</p>`);
+  }
+
+  /** The counterpart to #renderEmpty for a panel with nothing to show *because the read failed*. */
+  #renderProblem(id, msg) {
+    this.#setHtml(id, `<p class="coverage-status"><span class="ac-badge ac-badge--bad">!</span> `
+    + `${HealthPage.#esc(msg)}</p>`);
   }
 
   /** A session state as a toned badge ("idle in transaction" is the notable one). */
