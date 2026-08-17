@@ -89,12 +89,17 @@ class MiniLineChart {
           const h = m.t + ih - top;
           const bx = x(i) - groupW / 2 + si * barW;
           const tip = s.tooltips?.[i] ?? `${categories[i]} · ${s.name}: ${valueFormat(v)}`;
-          // Zero values draw no bar; the x label (and value label, if enabled) still mark the category.
+          // A zero value draws no bar, so the interaction lives on a full-height invisible rect instead of on the bar
+          // itself. Otherwise a zero-value category would have nothing to hover or focus — and a day can read zero here
+          // while still having something to say (an AI-only day, or one whose other charts are non-zero). It doubles as
+          // a bigger target for the non-zero bars.
           let out = h <= 0
             ? ''
             : `<rect class="mini-bar mini-bar--${s.key}${emph ? ' mini-bar--emphasis' : ''}" x="${bx.toFixed(1)}" `
-              + `y="${top.toFixed(1)}" width="${barW.toFixed(1)}" height="${h.toFixed(1)}"`
-              + `${MiniLineChart.#pointTip(tip, s.tooltipsHtml?.[i])}</rect>`;
+              + `y="${top.toFixed(1)}" width="${barW.toFixed(1)}" height="${h.toFixed(1)}"/>`;
+          out += `<rect class="mini-bar-hit" x="${bx.toFixed(1)}" y="${m.t.toFixed(1)}" `
+            + `width="${barW.toFixed(1)}" height="${ih.toFixed(1)}"`
+            + `${MiniLineChart.#pointTip(tip, s.tooltipsHtml?.[i])}</rect>`;
           if (opts.barValues) {
             out += `<text class="mini-value${emph ? ' mini-value--emphasis' : ''}" x="${(bx + barW / 2).toFixed(1)}" `
               + `y="${((h > 0 ? top : yFrac(0)) - 4).toFixed(1)}" text-anchor="middle">`
@@ -132,7 +137,12 @@ class MiniLineChart {
       xlab += `<text class="mini-axis${emph}" x="${x(i).toFixed(1)}" y="${H - 8}" text-anchor="middle">`
         + `${MiniLineChart.#esc(categories[i])}</text>`;
     }
-    const svg = `<svg class="mini-chart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" role="img" `
+    // `role="img"` makes an element's subtree presentational, which would prune the per-point roles and labels below it
+    // out of the accessibility tree. So a chart whose points are individually focusable is a `group` instead, leaving
+    // them reachable and announced; a chart that is just a picture keeps `img`.
+    const hasFocusablePoints = series.some((s) => s.tooltipsHtml?.some(Boolean));
+    const svg = `<svg class="mini-chart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" `
+      + `role="${hasFocusablePoints ? 'group' : 'img'}" `
       + `aria-label="${MiniLineChart.#esc(opts.ariaLabel || 'Line chart')}"><g>${grid}</g>${body}<g>${xlab}</g></svg>`;
     const legendItems = series.map((s) =>
       `<span class="mini-legend-item"><span class="mini-swatch mini-swatch--${s.key}"></span>`

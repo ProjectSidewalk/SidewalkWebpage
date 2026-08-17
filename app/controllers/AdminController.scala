@@ -602,6 +602,8 @@ class AdminController @Inject() (
     "ai_validations_prior_7d" -> w.aiValidationsPrior7d,
     "contributors_7d"         -> w.contributors7d,
     "contributors_prior_7d"   -> w.contributorsPrior7d,
+    "anon_sessions_7d"        -> w.anonSessions7d,
+    "anon_sessions_prior_7d"  -> w.anonSessionsPrior7d,
     "ai_agents_7d"            -> w.aiAgents7d
   )
 
@@ -609,15 +611,18 @@ class AdminController @Inject() (
    * Serializes one city's window plus the contributors it is made of, for the "Most active cities" hover cards (#4931).
    *
    * Contributors are named because the page is Owner-gated; these are the same usernames the admin user table shows.
+   * `contributor_total` is how many the capped array was drawn from, which is what lets a card say how many people it
+   * is not showing — counting that from the array itself would be bounded by the cap.
    *
    * @param w One city's rolling windows and its (already capped) contributor list.
-   * @return  The window's fields plus a `contributors` array, busiest first.
+   * @return  The window's fields plus a `contributors` array, busiest first, and the untruncated count.
    */
   private def cityActivityWindowJson(w: CityActivityWindow): JsObject = activityWindowJson(w.summary) ++ Json.obj(
-    "contributors" -> JsArray(w.contributors.map { c =>
+    "contributor_total" -> w.contributorTotal,
+    "contributors"      -> JsArray(w.contributors.map { c =>
       Json.obj(
         "username"             -> c.username,
-        "is_ai"                -> c.isAi,
+        "kind"                 -> c.kind.toString,
         "labels_7d"            -> c.labels7d,
         "labels_prior_7d"      -> c.labelsPrior7d,
         "validations_7d"       -> c.validations7d,
@@ -765,14 +770,16 @@ class AdminController @Inject() (
       // cities, and the people who were active, so the card is derived from the same rows the bar is summed from.
       val overTimeDaily = JsArray(dailyTrend.map { d =>
         Json.obj(
-          "day"            -> d.point.day.toString,
-          "labels"         -> d.point.labels,
-          "validations"    -> d.point.validations,
-          "active_users"   -> d.point.activeUsers,
-          "ai_labels"      -> d.point.aiLabels,
-          "ai_validations" -> d.point.aiValidations,
-          "ai_agents"      -> d.point.aiAgents,
-          "top_cities"     -> JsArray(d.topCities.map { city =>
+          "day"               -> d.point.day.toString,
+          "labels"            -> d.point.labels,
+          "validations"       -> d.point.validations,
+          "contributors"      -> d.point.contributors,
+          "anon_sessions"     -> d.point.anonSessions,
+          "ai_labels"         -> d.point.aiLabels,
+          "ai_validations"    -> d.point.aiValidations,
+          "ai_agents"         -> d.point.aiAgents,
+          "contributor_total" -> d.contributorTotal,
+          "top_cities"        -> JsArray(d.topCities.map { city =>
             val cityName: String = cityInfoById.get(city.cityId).map(_.cityNameShort).getOrElse(city.cityId)
             Json.obj(
               "city_id"      -> city.cityId,
@@ -782,8 +789,13 @@ class AdminController @Inject() (
               "contributors" -> city.contributors
             )
           }),
-          "contributors" -> JsArray(d.contributors.map { c =>
-            Json.obj("username" -> c.username, "is_ai" -> c.isAi, "labels" -> c.labels, "validations" -> c.validations)
+          "contributor_list" -> JsArray(d.contributors.map { c =>
+            Json.obj(
+              "username"    -> c.username,
+              "kind"        -> c.kind.toString,
+              "labels"      -> c.labels,
+              "validations" -> c.validations
+            )
           })
         )
       })
@@ -808,11 +820,13 @@ class AdminController @Inject() (
           "over_time_all_time" -> overTimeAllTime,
           "over_time_daily"    -> overTimeDaily,
           // Rolling week-over-week windows (trailing 7 days vs the 7 before) for the "Today & this week" tiles
-          // (#4758). Contributors are distinct per city per window, summed across cities (no cross-city dedup).
+          // (#4758). Headcounts here are distinct across every city, so they can come out below the same column
+          // summed down `window_by_city` — someone who mapped in three cities is one contributor here.
           "window_summary" -> activityWindowJson(windowSummary.total),
           // The same windows kept per city, for the "Most active cities" table. Emitted as its own block rather than
           // merged into `cities` because the scorecard rows already carry labels_7d/validations_7d on a slightly
-          // different basis (see getCityActivityWindowsBySchema) and two same-named fields would invite mixing them.
+          // different basis (see getCityWindowActivityByUserBySchema) and two same-named fields would invite mixing
+          // them.
           "window_by_city" -> JsObject(windowSummary.byCity.toSeq.map { case (cityId, w) =>
             cityId -> cityActivityWindowJson(w)
           }),

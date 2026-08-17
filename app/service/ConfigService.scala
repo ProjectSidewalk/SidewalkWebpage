@@ -137,12 +137,28 @@ case class AggregateStats(
 case class WeeklyPoint(weekStart: LocalDate, labels: Int, validations: Int, activeUsers: Int, newUsers: Int)
 
 /**
+ * How one account's contribution is attributed on the Across Cities page (#4931).
+ *
+ * The distinction is what lets the page report community activity honestly. `Ai` output can dwarf everything people
+ * did — one pipeline account was 80% of prod's weekly validations — and an `Anonymous` account is a per-cookie
+ * identity, so a repeat visitor without an account shows up as several of them and cannot be counted as a person.
+ *
+ * String values match the labels [[models.utils.ConfigTable]]'s `account_kinds` CTE emits, which is how a row is
+ * parsed back into this type.
+ */
+object ContributorKind extends Enumeration {
+  val Registered: ContributorKind.Value = Value("registered")
+  val Anonymous: ContributorKind.Value  = Value("anonymous")
+  val Ai: ContributorKind.Value         = Value("ai")
+}
+
+/**
  * One person's contribution to one city on one day, the grain the "this week" bar charts are built from (#4931).
  *
  * @param day         Calendar day (Pacific).
  * @param userId      The contributor's user id, which identifies them across cities when their days are merged.
  * @param username    Their display name, empty when `sidewalk_login` has no row for the id.
- * @param isAi        Whether the account carries the shared `AI` role, i.e. this is pipeline output, not a person.
+ * @param kind        How this account's activity is attributed — a person, a cookie identity, or the pipeline.
  * @param labels      Non-tutorial, non-excluded labels they created that day.
  * @param validations Validations they submitted that day.
  */
@@ -150,7 +166,7 @@ case class DailyContributorActivity(
     day: LocalDate,
     userId: String,
     username: String,
-    isAi: Boolean,
+    kind: ContributorKind.Value,
     labels: Int,
     validations: Int
 )
@@ -160,7 +176,7 @@ case class DailyContributorActivity(
  *
  * @param userId              The contributor's user id.
  * @param username            Their display name, empty when `sidewalk_login` has no row for the id.
- * @param isAi                Whether the account carries the shared `AI` role.
+ * @param kind                How this account's activity is attributed.
  * @param labels7d            Labels they created in the trailing 7 days.
  * @param labelsPrior7d       Labels they created 7–14 days ago.
  * @param validations7d       Validations they submitted in the trailing 7 days.
@@ -169,7 +185,7 @@ case class DailyContributorActivity(
 case class ContributorWindowActivity(
     userId: String,
     username: String,
-    isAi: Boolean,
+    kind: ContributorKind.Value,
     labels7d: Int,
     labelsPrior7d: Int,
     validations7d: Int,
@@ -177,25 +193,27 @@ case class ContributorWindowActivity(
 )
 
 /**
- * One day's contribution volume summed across cities, for the Across Cities "this week" bar charts (#4686, #4931).
+ * One day's contribution volume across cities, for the Across Cities "this week" bar charts (#4686, #4931).
  *
- * Human and AI work is counted separately rather than pooled: one AI account can out-produce every person in the
- * project on a given day, so a blended total describes the pipeline's schedule, not the community's week.
+ * Counted on the same two bases as [[ActivityWindowSummary]] — volumes are human work with pipeline work beside it,
+ * headcounts are distinct and split registered / anonymous / AI. One AI account can out-produce every person in the
+ * project on a given day, so a blended total would describe the pipeline's schedule, not the community's day.
  *
  * @param day           Calendar day (Pacific).
- * @param labels        Non-tutorial, non-excluded labels people created that day.
+ * @param labels        Non-tutorial, non-excluded labels people created that day (registered and anonymous).
  * @param validations   Validations people submitted that day.
- * @param activeUsers   Distinct people who labeled or validated that day, summed per city (a person active in two
- *                      cities is counted in each).
+ * @param contributors  Distinct registered people who labeled or validated that day, across all cities.
+ * @param anonSessions  Distinct anonymous (per-cookie) identities active that day, across all cities.
  * @param aiLabels      Labels created that day by accounts holding the `AI` role.
  * @param aiValidations Validations submitted that day by accounts holding the `AI` role.
- * @param aiAgents      Distinct AI accounts active that day, summed per city.
+ * @param aiAgents      Distinct AI accounts active that day, across all cities.
  */
 case class DailyPoint(
     day: LocalDate,
     labels: Int,
     validations: Int,
-    activeUsers: Int,
+    contributors: Int,
+    anonSessions: Int,
     aiLabels: Int,
     aiValidations: Int,
     aiAgents: Int
@@ -204,11 +222,21 @@ case class DailyPoint(
 /**
  * One day's cross-city activity: the volumes behind that day's bars, plus the breakdown its hover card shows (#4931).
  *
- * @param point        The day's totals.
- * @param topCities    The day's busiest cities, most human activity first.
- * @param contributors The day's busiest contributors, merged across cities so a person active in two shows up once.
+ * @param point            The day's totals.
+ * @param topCities        The day's busiest cities, most human activity first.
+ * @param contributors     The day's busiest *nameable* contributors — registered accounts and AI, merged across cities
+ *                         so a person active in two shows up once, capped at [[ConfigService.DayContributorLimit]].
+ *                         Anonymous contributors are counted in `point.anonSessions` but never listed, because their
+ *                         usernames are generated cookie ids rather than names.
+ * @param contributorTotal How many contributors the capped list was drawn from, on the same nameable basis, so a card
+ *                         can say exactly how many it is not showing.
  */
-case class DailyActivity(point: DailyPoint, topCities: Seq[CityDayTotals], contributors: Seq[DailyContributor])
+case class DailyActivity(
+    point: DailyPoint,
+    topCities: Seq[CityDayTotals],
+    contributors: Seq[DailyContributor],
+    contributorTotal: Int
+)
 
 /**
  * One city's share of a single day, for the "top cities" line of a day's hover card (#4931).
@@ -224,11 +252,11 @@ case class CityDayTotals(cityId: String, labels: Int, validations: Int, contribu
  * One contributor's day, merged across every city they were active in (#4931).
  *
  * @param username    Their display name, empty when `sidewalk_login` has no row for the id.
- * @param isAi        Whether the account carries the shared `AI` role.
+ * @param kind        How this account's activity is attributed.
  * @param labels      Labels they created that day.
  * @param validations Validations they submitted that day.
  */
-case class DailyContributor(username: String, isAi: Boolean, labels: Int, validations: Int)
+case class DailyContributor(username: String, kind: ContributorKind.Value, labels: Int, validations: Int)
 
 /**
  * Cross-city rolling week-over-week activity — the trailing 7 days vs the 7 before — for the "Today & this week"
@@ -236,10 +264,18 @@ case class DailyContributor(username: String, isAi: Boolean, labels: Int, valida
  *
  * Windows are exact rolling 168-hour spans (the same basis as [[CityScorecard]]'s labels7d/validations7d), not
  * Pacific calendar days, so the tiles agree with the per-city 7d columns. Same activity definition, exclusions, and
- * human/AI separation as [[DailyPoint]]: the label and validation counts are what people did, with AI output reported
- * beside them, and contributors are people (`AI`-role accounts are counted as agents instead).
+ * attribution split as [[DailyPoint]].
  *
- * @param labels7d              Labels people created in the trailing 7 days.
+ * The two families of number here are counted differently, and the difference is the whole point. **Volumes** are
+ * human work with pipeline work reported beside it: `labels7d`/`validations7d` cover registered *and* anonymous
+ * contributors, because an anonymous visitor's label is still a person's label, while `ai*` is the pipeline's.
+ * **Headcounts** split three ways, because only a registered account reliably denotes one person: an anonymous account
+ * is a per-cookie identity that a repeat visitor mints again, so it is reported as a session, not a contributor.
+ *
+ * Every headcount is *distinct* at whatever scope the instance describes — see [[ActivityWindowSummary.fromContributors]]
+ * for the one-row-per-person precondition that guarantees it.
+ *
+ * @param labels7d              Labels people created in the trailing 7 days (registered and anonymous).
  * @param labelsPrior7d         Labels people created 7–14 days ago.
  * @param validations7d         Validations people submitted in the trailing 7 days.
  * @param validationsPrior7d    Validations people submitted 7–14 days ago.
@@ -247,10 +283,11 @@ case class DailyContributor(username: String, isAi: Boolean, labels: Int, valida
  * @param aiLabelsPrior7d       Labels created 7–14 days ago by `AI`-role accounts.
  * @param aiValidations7d       Validations submitted in the trailing 7 days by `AI`-role accounts.
  * @param aiValidationsPrior7d  Validations submitted 7–14 days ago by `AI`-role accounts.
- * @param contributors7d        Distinct people who labeled or validated in the trailing 7 days, summed per city (a
- *                              person active in two cities is counted in each, as with [[DailyPoint]] active users).
+ * @param contributors7d        Distinct registered people who labeled or validated in the trailing 7 days.
  * @param contributorsPrior7d   Same, for 7–14 days ago.
- * @param aiAgents7d            Distinct `AI`-role accounts active in the trailing 7 days, summed per city.
+ * @param anonSessions7d        Distinct anonymous (per-cookie) identities active in the trailing 7 days.
+ * @param anonSessionsPrior7d   Same, for 7–14 days ago.
+ * @param aiAgents7d            Distinct `AI`-role accounts active in the trailing 7 days.
  */
 case class ActivityWindowSummary(
     labels7d: Int,
@@ -263,26 +300,37 @@ case class ActivityWindowSummary(
     aiValidationsPrior7d: Int,
     contributors7d: Int,
     contributorsPrior7d: Int,
+    anonSessions7d: Int,
+    anonSessionsPrior7d: Int,
     aiAgents7d: Int
 )
 
 object ActivityWindowSummary {
 
-  /** A window with nothing in it — the fallback for a city whose schema read failed, and the fold's starting point. */
-  val empty: ActivityWindowSummary = ActivityWindowSummary(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+  /** A window with nothing in it — the fallback for a city whose schema read failed. */
+  val empty: ActivityWindowSummary = ActivityWindowSummary(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 
   /**
-   * Rolls one city's per-person rows up into its window totals.
+   * Rolls per-person rows up into window totals.
    *
    * Every count the page shows comes from this one derivation, so a headline number and the contributor list behind it
-   * can't drift apart. Contributor counts are distinct people with activity in that window; AI accounts are excluded
-   * from them and counted as agents.
+   * can't drift apart.
    *
-   * @param rows One city's contributors, as returned by the DAO.
-   * @return     That city's window totals.
+   * **Precondition: `rows` holds at most one row per person.** Headcounts here are `count`s of matching rows, so they
+   * are distinct people exactly as far as that holds. It holds per city because the DAO groups by user; to summarize
+   * across cities, merge a person's rows first (see [[ConfigService.mergeByContributor]]) rather than summing
+   * per-city summaries — summing would count someone active in three cities as three contributors. There is
+   * deliberately no `add` on this type: field-wise addition is correct for the volumes and wrong for every headcount,
+   * and a single combinator can't be both.
+   *
+   * @param rows Contributors, at most one row each.
+   * @return     Their window totals.
    */
   def fromContributors(rows: Seq[ContributorWindowActivity]): ActivityWindowSummary = {
-    val (ai, people) = rows.partition(_.isAi)
+    val byKind = rows.groupBy(_.kind).withDefaultValue(Seq.empty)
+    val ai     = byKind(ContributorKind.Ai)
+    val anon   = byKind(ContributorKind.Anonymous)
+    val people = byKind(ContributorKind.Registered) ++ anon
     ActivityWindowSummary(
       labels7d = people.map(_.labels7d).sum,
       labelsPrior7d = people.map(_.labelsPrior7d).sum,
@@ -292,45 +340,44 @@ object ActivityWindowSummary {
       aiLabelsPrior7d = ai.map(_.labelsPrior7d).sum,
       aiValidations7d = ai.map(_.validations7d).sum,
       aiValidationsPrior7d = ai.map(_.validationsPrior7d).sum,
-      contributors7d = people.count(c => c.labels7d + c.validations7d > 0),
-      contributorsPrior7d = people.count(c => c.labelsPrior7d + c.validationsPrior7d > 0),
+      contributors7d = byKind(ContributorKind.Registered).count(c => c.labels7d + c.validations7d > 0),
+      contributorsPrior7d = byKind(ContributorKind.Registered).count(c => c.labelsPrior7d + c.validationsPrior7d > 0),
+      anonSessions7d = anon.count(c => c.labels7d + c.validations7d > 0),
+      anonSessionsPrior7d = anon.count(c => c.labelsPrior7d + c.validationsPrior7d > 0),
       aiAgents7d = ai.count(c => c.labels7d + c.validations7d > 0)
     )
   }
-
-  /** Adds two windows field by field, for summing per-city windows into the cross-city total. */
-  def add(a: ActivityWindowSummary, b: ActivityWindowSummary): ActivityWindowSummary = ActivityWindowSummary(
-    a.labels7d + b.labels7d,
-    a.labelsPrior7d + b.labelsPrior7d,
-    a.validations7d + b.validations7d,
-    a.validationsPrior7d + b.validationsPrior7d,
-    a.aiLabels7d + b.aiLabels7d,
-    a.aiLabelsPrior7d + b.aiLabelsPrior7d,
-    a.aiValidations7d + b.aiValidations7d,
-    a.aiValidationsPrior7d + b.aiValidationsPrior7d,
-    a.contributors7d + b.contributors7d,
-    a.contributorsPrior7d + b.contributorsPrior7d,
-    a.aiAgents7d + b.aiAgents7d
-  )
 }
 
 /**
  * One city's rolling weekly windows, with the people whose work they are made of (#4758, #4931).
  *
- * @param summary      The city's window totals.
- * @param contributors Its contributors, busiest first and capped at [[ConfigService.WindowContributorLimit]], for the
- *                     "Most active cities" hover cards.
+ * @param summary          The city's window totals.
+ * @param contributors     Its nameable contributors — registered accounts and AI — busiest first and capped at
+ *                         [[ConfigService.WindowContributorLimit]], for the "Most active cities" hover cards.
+ *                         Anonymous contributors are counted in the summary but never listed (generated cookie ids).
+ * @param contributorTotal How many contributors the capped list was drawn from, on the same nameable basis, so a card
+ *                         can say exactly how many it is not showing.
  */
-case class CityActivityWindow(summary: ActivityWindowSummary, contributors: Seq[ContributorWindowActivity])
+case class CityActivityWindow(
+    summary: ActivityWindowSummary,
+    contributors: Seq[ContributorWindowActivity],
+    contributorTotal: Int
+)
 
 /**
  * Rolling week-over-week activity for every available city plus the cross-city total (#4758).
  *
- * The per-city rows and the total come from one pass: each city is queried once, and `total` is those rows summed. So
- * the "Most active cities" table costs nothing beyond the "Today & this week" tiles that need the total anyway.
+ * The per-city rows and the total come from one pass: each city is queried once, and `total` is derived from those same
+ * rows. So the "Most active cities" table costs nothing beyond the "Today & this week" tiles that need the total anyway.
+ *
+ * `total` is **not** the per-city summaries added up. Volumes would survive that, but headcounts would not: someone who
+ * mapped in three cities is three per-city contributors and one person. So the total re-derives from every city's rows
+ * merged by person, which is why it can be smaller than the same column summed down the table — worth a note wherever
+ * the two appear together.
  *
  * @param byCity Per-city windows, keyed by city id. Cities whose query failed carry zeros rather than being dropped.
- * @param total  The per-city rows summed; contributor counts are summed, not deduplicated across cities.
+ * @param total  Cross-city totals: volumes summed, headcounts distinct across all cities.
  */
 case class CrossCityActivityWindows(byCity: Map[String, CityActivityWindow], total: ActivityWindowSummary)
 
@@ -494,62 +541,143 @@ object ConfigService {
   val ActiveWithinDays: Long = 30
 
   /**
+   * Age beyond which a cross-city read is refreshed in the background when served (#4931).
+   *
+   * One `/admin/across-cities` request triggers five of these reads, and each fans a query out to every city schema —
+   * ~280 queries against a 25-connection pool at ~56 deployments. What `staleWhileRevalidate` buys over a plain
+   * expiring cache is that **no request ever waits on that fan-out**: past this age the cached copy is still served
+   * immediately and the refresh runs behind it, whereas an expiring entry makes whichever request arrives first pay
+   * for the whole thing while holding pool connections that Explore and Validate share. (Coalescing concurrent
+   * callers is not the difference — Caffeine's `get(key, mappingFunction)` under `getOrElseUpdate` is already atomic
+   * per key. `refreshCachedValue` keeps that property for background refreshes.)
+   */
+  val CrossCityFreshFor: FiniteDuration = Duration(10, "minutes")
+
+  /**
+   * How long a cross-city read may be served at all; past this a request blocks on recomputing it.
+   *
+   * Far above [[CrossCityFreshFor]] because staleness is much cheaper here than a blocking fan-out: these numbers are
+   * for an overview page, and a background refresh runs every time one is served past the fresh window anyway. So this
+   * bound only decides how old the page may get while refreshes keep failing — not how fresh it normally is.
+   */
+  val CrossCityMaxAge: FiniteDuration = Duration(2, "hours")
+
+  /**
+   * How long the cross-city labeling-speed read may be served, and when it refreshes.
+   *
+   * Its own pair because it scans the interaction tables — by far the heaviest of the fan-outs, and the least volatile:
+   * labeling speed barely moves day to day.
+   */
+  val LabelingSpeedFreshFor: FiniteDuration = Duration(24, "hours")
+
+  /** How long a labeling-speed read may be served at all; see [[LabelingSpeedFreshFor]]. */
+  val LabelingSpeedMaxAge: FiniteDuration = Duration(7, "days")
+
+  /**
    * How many contributors each city ships for its "Most active cities" hover cards (#4931).
    *
-   * Generous rather than tight: the cards rank by labels in one place and by validations in another, so a cap that
-   * only just covered one list would drop people from the other. Across all 56 deployments a busy week runs to a few
-   * dozen contributors total, so this bounds a pathological mapathon rather than trimming the normal case.
+   * Sized to what the cards can draw, not to the population. The untruncated count travels separately as
+   * `CityActivityWindow.contributorTotal`, so this list only has to cover what is rendered: ~5 rows per card, plus
+   * headroom because the cards rank by labels in one column and validations in another and so draw different people
+   * from the same list. This ships per city for every deployment, so each unit of it is paid ~56 times.
    */
-  val WindowContributorLimit: Int = 25
+  val WindowContributorLimit: Int = 10
 
   /** How many cities a day's hover card lists. The card draws every one it is sent, so this is the only cap. */
   val DayTopCityLimit: Int = 3
 
-  /** How many contributors a day's hover card lists. */
+  /** How many contributors a day's hover card lists, with the untruncated count sent alongside as a total. */
   val DayContributorLimit: Int = 8
+
+  /**
+   * Merges a person's rows from several cities into one row per person, summing their volumes.
+   *
+   * The precondition [[ActivityWindowSummary.fromContributors]] needs in order to count distinct people: without this,
+   * summarizing across cities counts someone who mapped in three cities three times. Sorted busiest-first with the user
+   * id breaking ties, so a caller that truncates keeps a reproducible list across cache refreshes rather than one that
+   * depends on `HashMap` iteration order.
+   *
+   * @param rows Per-city, per-person rows from any number of cities.
+   * @return     One row per person, volumes summed, busiest first.
+   */
+  def mergeByContributor(rows: Seq[ContributorWindowActivity]): Seq[ContributorWindowActivity] = rows
+    .groupBy(_.userId)
+    .values
+    .map(userRows =>
+      userRows.head.copy(
+        labels7d = userRows.map(_.labels7d).sum,
+        labelsPrior7d = userRows.map(_.labelsPrior7d).sum,
+        validations7d = userRows.map(_.validations7d).sum,
+        validationsPrior7d = userRows.map(_.validationsPrior7d).sum
+      )
+    )
+    .toSeq
+    .sortBy(c => (-(c.labels7d + c.validations7d), c.userId))
 
   /**
    * Rolls one day's per-city, per-person rows up into the day's bars and the breakdown behind them (#4931).
    *
    * Every figure the day's hover card shows is derived here, from the same rows the bars are summed from, so the card
-   * can't contradict the bar it explains. Contributors merge across cities (one person, one entry, counts added up),
-   * while the day's `activeUsers` stays per-city-summed to match the counting basis the rest of the section uses.
+   * can't contradict the bar it explains. That includes the headcounts: they are derived from the *merged* rows, the
+   * same ones the card names, so the day's contributor count and the list under it can never disagree about how many
+   * people there were.
    *
    * @param day  The Pacific calendar day being summarized.
    * @param rows That day's (cityId, contributor-activity) rows; empty for a day nobody was active.
    * @return     The day's totals, its busiest cities, and its busiest contributors.
    */
   def summarizeDay(day: LocalDate, rows: Seq[(String, DailyContributorActivity)]): DailyActivity = {
-    val (aiRows, peopleRows) = rows.partition(_._2.isAi)
-    val point                = DailyPoint(
+    val byKind     = rows.groupBy(_._2.kind).withDefaultValue(Seq.empty)
+    val aiRows     = byKind(ContributorKind.Ai)
+    val peopleRows = byKind(ContributorKind.Registered) ++ byKind(ContributorKind.Anonymous)
+    // Ranked and truncated below, so ties break on a stable key rather than on HashMap iteration order.
+    val merged = rows
+      .groupBy(_._2.userId)
+      .toSeq
+      .map { case (userId, userRows) =>
+        val first = userRows.head._2
+        (
+          userId,
+          DailyContributor(
+            first.username,
+            first.kind,
+            userRows.map(_._2.labels).sum,
+            userRows.map(_._2.validations).sum
+          )
+        )
+      }
+      .sortBy { case (userId, c) => (-(c.labels + c.validations), userId) }
+      .map(_._2)
+    def activeOfKind(kind: ContributorKind.Value): Int =
+      merged.count(c => c.kind == kind && c.labels + c.validations > 0)
+    // Anonymous contributors are counted (as sessions, on the point) but not listed: their usernames are generated
+    // cookie ids, so naming them fills the card with hex and implies a person behind each one.
+    val named = merged.filter(_.kind != ContributorKind.Anonymous)
+    val point = DailyPoint(
       day = day,
       labels = peopleRows.map(_._2.labels).sum,
       validations = peopleRows.map(_._2.validations).sum,
-      activeUsers = peopleRows.size,
+      contributors = activeOfKind(ContributorKind.Registered),
+      anonSessions = activeOfKind(ContributorKind.Anonymous),
       aiLabels = aiRows.map(_._2.labels).sum,
       aiValidations = aiRows.map(_._2.validations).sum,
-      aiAgents = aiRows.size
+      aiAgents = activeOfKind(ContributorKind.Ai)
     )
     // Cities are ranked and listed by what people did there; AI output belongs to the pipeline, not to a community.
     val topCities = peopleRows
       .groupBy(_._1)
+      .toSeq
       .map { case (cityId, cityRows) =>
-        CityDayTotals(cityId, cityRows.map(_._2.labels).sum, cityRows.map(_._2.validations).sum, cityRows.size)
+        CityDayTotals(
+          cityId,
+          cityRows.map(_._2.labels).sum,
+          cityRows.map(_._2.validations).sum,
+          cityRows.map(_._2.userId).distinct.size
+        )
       }
-      .toSeq
-      .sortBy(city => -(city.labels + city.validations))
+      .sortBy(city => (-(city.labels + city.validations), city.cityId))
       .take(DayTopCityLimit)
-    val contributors = rows
-      .groupBy(_._2.userId)
-      .values
-      .map { userRows =>
-        val first = userRows.head._2
-        DailyContributor(first.username, first.isAi, userRows.map(_._2.labels).sum, userRows.map(_._2.validations).sum)
-      }
-      .toSeq
-      .sortBy(c => -(c.labels + c.validations))
-      .take(DayContributorLimit)
-    DailyActivity(point, topCities, contributors)
+    DailyActivity(point, topCities, named.take(DayContributorLimit), named.size)
   }
 
   /**
@@ -1203,8 +1331,11 @@ class ConfigServiceImpl @Inject() (
   }
 
   def getCityScorecards(): Future[Seq[CityScorecardWithFlags]] = {
-    // Heavier than getAggregateStats (a multi-subquery per city) and only viewed by Owners, so cache a bit longer.
-    cacheApi.getOrElseUpdate[Seq[CityScorecardWithFlags]]("getCityScorecards", Duration(10, "minutes")) {
+    staleWhileRevalidate[Seq[CityScorecardWithFlags]](
+      "getCityScorecards",
+      ConfigService.CrossCityFreshFor,
+      ConfigService.CrossCityMaxAge
+    ) {
       availableCityIds().flatMap { availableCities =>
         // Query each available city in parallel; one failing schema yields None rather than sinking the whole page.
         val scorecardFutures: Seq[Future[Option[CityScorecard]]] = availableCities.map { cityId =>
@@ -1224,7 +1355,7 @@ class ConfigServiceImpl @Inject() (
 
   def getCrossCityWeeklyTrend(weeks: Option[Int]): Future[Seq[WeeklyPoint]] = {
     val cacheKey = s"getCrossCityWeeklyTrend_${weeks.map(_.toString).getOrElse("all")}"
-    cacheApi.getOrElseUpdate[Seq[WeeklyPoint]](cacheKey, Duration(10, "minutes")) {
+    staleWhileRevalidate[Seq[WeeklyPoint]](cacheKey, ConfigService.CrossCityFreshFor, ConfigService.CrossCityMaxAge) {
       availableCityIds().flatMap { availableCities =>
         val perCityFutures = availableCities.map { cityId =>
           db.run(configTable.getCityWeeklyTrendBySchema(getCitySchema(cityId), weeks))
@@ -1254,7 +1385,11 @@ class ConfigServiceImpl @Inject() (
   }
 
   def getCrossCityDailyTrend(days: Int): Future[Seq[DailyActivity]] = {
-    cacheApi.getOrElseUpdate[Seq[DailyActivity]](s"getCrossCityDailyTrend_$days", Duration(10, "minutes")) {
+    staleWhileRevalidate[Seq[DailyActivity]](
+      s"getCrossCityDailyTrend_$days",
+      ConfigService.CrossCityFreshFor,
+      ConfigService.CrossCityMaxAge
+    ) {
       availableCityIds().flatMap { availableCities =>
         val perCityFutures = availableCities.map { cityId =>
           db.run(configTable.getCityDailyActivityByUserBySchema(getCitySchema(cityId), days))
@@ -1281,7 +1416,11 @@ class ConfigServiceImpl @Inject() (
   }
 
   def getCrossCityActivitySummary(): Future[CrossCityActivityWindows] = {
-    cacheApi.getOrElseUpdate[CrossCityActivityWindows]("getCrossCityActivitySummary", Duration(10, "minutes")) {
+    staleWhileRevalidate[CrossCityActivityWindows](
+      "getCrossCityActivitySummary",
+      ConfigService.CrossCityFreshFor,
+      ConfigService.CrossCityMaxAge
+    ) {
       availableCityIds().flatMap { availableCities =>
         val perCityFutures = availableCities.map { cityId =>
           db.run(configTable.getCityWindowActivityByUserBySchema(getCitySchema(cityId)))
@@ -1289,20 +1428,25 @@ class ConfigServiceImpl @Inject() (
               logger.warn(s"Failed to fetch activity windows for city $cityId: ${e.getMessage}")
               Seq.empty[ContributorWindowActivity]
             }
-            .map { rows =>
-              // The DAO returns every contributor because the totals are summed from them; only the list the page
-              // renders is capped, and it is capped after the summing so a long tail can't skew a headline count.
-              cityId -> CityActivityWindow(
-                ActivityWindowSummary.fromContributors(rows),
-                rows.filter(c => c.labels7d + c.validations7d > 0).take(ConfigService.WindowContributorLimit)
-              )
-            }
+            .map(cityId -> _)
         }
         Future.sequence(perCityFutures).map { perCity =>
-          val total = perCity.foldLeft(ActivityWindowSummary.empty) { case (acc, (_, city)) =>
-            ActivityWindowSummary.add(acc, city.summary)
+          val byCity = perCity.map { case (cityId, rows) =>
+            // The DAO returns every contributor because the city's totals are derived from all of them; only the list
+            // the page renders is capped, and capping after the derivation keeps a long tail out of a headline count.
+            val named = rows.filter(c => c.labels7d + c.validations7d > 0 && c.kind != ContributorKind.Anonymous)
+            cityId -> CityActivityWindow(
+              ActivityWindowSummary.fromContributors(rows),
+              named.take(ConfigService.WindowContributorLimit),
+              named.size
+            )
           }
-          CrossCityActivityWindows(perCity.toMap, total)
+          // Merging every city's rows by person before summarizing is what makes the cross-city headcounts distinct
+          // people rather than per-city contributor slots added up.
+          val total = ActivityWindowSummary.fromContributors(
+            ConfigService.mergeByContributor(perCity.flatMap { case (_, rows) => rows })
+          )
+          CrossCityActivityWindows(byCity.toMap, total)
         }
       }
     }
@@ -1328,8 +1472,11 @@ class ConfigServiceImpl @Inject() (
   }
 
   def getCrossCityLabelingSpeed(): Future[Map[String, Double]] = {
-    // Daily cache: this is the heavy interaction-table scan, and labeling speed barely moves day to day.
-    cacheApi.getOrElseUpdate[Map[String, Double]]("getCrossCityLabelingSpeed", Duration(24, "hours")) {
+    staleWhileRevalidate[Map[String, Double]](
+      "getCrossCityLabelingSpeed",
+      ConfigService.LabelingSpeedFreshFor,
+      ConfigService.LabelingSpeedMaxAge
+    ) {
       availableCityIds().flatMap { availableCities =>
         val perCityFutures: Seq[Future[Option[(String, Double)]]] = availableCities.map { cityId =>
           labelingSpeedForSchema(getCitySchema(cityId)).map(_.map(cityId -> _))

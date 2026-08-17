@@ -1,10 +1,11 @@
 /**
- * Tests for the human/AI split and the hover breakdown cards on /admin/across-cities (#4931).
+ * Tests for the attribution split and the hover breakdown cards on /admin/across-cities (#4931).
  *
- * Two contracts worth pinning. First, every count in the "Today & this week" section is what people did, with AI
- * output reported on its own line — one pipeline account can out-produce the whole community, so a blended count
- * would describe the pipeline. Second, the cards that explain those counts name the contributors behind them, which
- * means they carry user-supplied text into markup and must escape it.
+ * Three contracts worth pinning. First, every volume in the "Today & this week" section is what people did, with AI
+ * output reported on its own line — one pipeline account can out-produce the whole community, so a blended count would
+ * describe the pipeline. Second, every headcount is registered people, with anonymous cookie identities and AI accounts
+ * counted beside them rather than folded in. Third, the cards that explain those counts name the contributors behind
+ * them, which means they carry user-supplied text into markup and must escape it twice (see psTooltip's header).
  *
  * Runs under jsdom (jest.config.js). AcrossCitiesPage is a bare top-level class in a concatenated bundle, so it is
  * eval'd into global scope rather than required; MiniLineChart has to be present first, since the page draws with it.
@@ -25,12 +26,13 @@ function loadPage() {
 const MARKUP = `
   <span id="now-labels-today">—</span><span id="now-labels-today-ai"></span>
   <span id="now-validations-today">—</span><span id="now-validations-today-ai"></span>
-  <span id="now-contributors-today">—</span><span id="now-contributors-today-ai"></span>
+  <span id="now-contributors-today">—</span><span id="now-contributors-today-anon"></span>
+  <span id="now-contributors-today-ai"></span>
   <span id="now-labels-7d">—</span><span id="now-labels-7d-delta"></span><span id="now-labels-7d-ai"></span>
   <span id="now-validations-7d">—</span><span id="now-validations-7d-delta"></span>
   <span id="now-validations-7d-ai"></span>
   <span id="now-contributors-7d">—</span><span id="now-contributors-7d-delta"></span>
-  <span id="now-contributors-7d-ai"></span>
+  <span id="now-contributors-7d-anon"></span><span id="now-contributors-7d-ai"></span>
   <span id="now-cities-active">—</span><span id="now-top-city">—</span><span id="now-top-city-count"></span>
   <div class="mini-chart" id="ac-chart-week-labels"></div>
   <div class="mini-chart" id="ac-chart-week-validations"></div>
@@ -57,12 +59,14 @@ function makeDay(day, d = {}) {
     day,
     labels: 0,
     validations: 0,
-    active_users: 0,
+    contributors: 0,
+    anon_sessions: 0,
     ai_labels: 0,
     ai_validations: 0,
     ai_agents: 0,
+    contributor_total: 0,
     top_cities: [],
-    contributors: [],
+    contributor_list: [],
     ...d,
   };
 }
@@ -82,7 +86,10 @@ function makeCity(id, w) {
       ai_validations_prior_7d: 0,
       contributors_7d: 0,
       contributors_prior_7d: 0,
+      anon_sessions_7d: 0,
+      anon_sessions_prior_7d: 0,
       ai_agents_7d: 0,
+      contributor_total: (w?.contributors || []).length,
       contributors: [],
       ...w,
     },
@@ -90,10 +97,10 @@ function makeCity(id, w) {
 }
 
 /** One entry of a city window's contributor list. */
-function contributor(username, labels, validations, isAi = false) {
+function contributor(username, labels, validations, kind = 'registered') {
   return {
     username,
-    is_ai: isAi,
+    kind,
     labels_7d: labels,
     labels_prior_7d: 0,
     validations_7d: validations,
@@ -101,7 +108,12 @@ function contributor(username, labels, validations, isAi = false) {
   };
 }
 
-describe('Across Cities — human/AI split and hover breakdowns', () => {
+/** One entry of a day's contributor list. */
+function dayContributor(username, labels, validations, kind = 'registered') {
+  return { username, kind, labels, validations };
+}
+
+describe('Across Cities — attribution split and hover breakdowns', () => {
   let AcrossCitiesPage;
 
   /**
@@ -135,9 +147,14 @@ describe('Across Cities — human/AI split and hover breakdowns', () => {
     return document.querySelectorAll('#ac-top-tbody tr')[0].cells[index].getAttribute('data-ps-tooltip');
   }
 
+  /** The hover/focus target for the bar at `index` of a per-day chart. */
+  function barTarget(index, chart = 'labels') {
+    return document.querySelectorAll(`#ac-chart-week-${chart} rect.mini-bar-hit`)[index];
+  }
+
   /** The hover-card markup on the bar at `index` of the labels-per-day chart. */
-  function barCard(index) {
-    return document.querySelectorAll('#ac-chart-week-labels rect.mini-bar')[index].getAttribute('data-ps-tooltip');
+  function barCard(index, chart = 'labels') {
+    return barTarget(index, chart).getAttribute('data-ps-tooltip');
   }
 
   beforeEach(() => {
@@ -158,6 +175,27 @@ describe('Across Cities — human/AI split and hover breakdowns', () => {
       expect(document.getElementById('now-validations-7d-ai').textContent).toBe('+ 6,420 by AI');
       expect(document.getElementById('now-contributors-7d').textContent).toBe('64');
       expect(document.getElementById('now-contributors-7d-ai').textContent).toBe('+ 1 AI account');
+    });
+
+    it('reports anonymous sessions beside the contributor count, not inside it', async () => {
+      await render({
+        summary: {
+          labels_7d: 100, validations_7d: 50, contributors_7d: 41, contributors_prior_7d: 40,
+          anon_sessions_7d: 23, ai_agents_7d: 1,
+        },
+      });
+
+      expect(document.getElementById('now-contributors-7d').textContent).toBe('41');
+      expect(document.getElementById('now-contributors-7d-anon').textContent).toBe('+ 23 anonymous sessions');
+      expect(document.getElementById('now-contributors-7d-anon').getAttribute('data-ps-tooltip'))
+        .toContain('browser cookie');
+    });
+
+    it('leaves the anonymous line empty when no anonymous visitor contributed', async () => {
+      await render({ summary: { labels_7d: 10, contributors_7d: 3, anon_sessions_7d: 0 } });
+
+      expect(document.getElementById('now-contributors-7d-anon').textContent).toBe('');
+      expect(document.getElementById('now-contributors-7d-anon').hasAttribute('data-ps-tooltip')).toBe(false);
     });
 
     it('measures the week-over-week delta on the human count, not the blended one', async () => {
@@ -190,32 +228,36 @@ describe('Across Cities — human/AI split and hover breakdowns', () => {
 
     it('reports today from the daily series on the same split', async () => {
       await render({
-        daily: [makeDay('2026-08-12', { labels: 12, validations: 3, active_users: 2, ai_validations: 400,
-          ai_agents: 1 })],
+        daily: [makeDay('2026-08-12', { labels: 12, validations: 3, contributors: 2, anon_sessions: 5,
+          ai_validations: 400, ai_agents: 1 })],
       });
 
       expect(document.getElementById('now-labels-today').textContent).toBe('12');
+      expect(document.getElementById('now-contributors-today').textContent).toBe('2');
       expect(document.getElementById('now-validations-today-ai').textContent).toBe('+ 400 by AI');
+      expect(document.getElementById('now-contributors-today-anon').textContent).toBe('+ 5 anonymous sessions');
       expect(document.getElementById('now-contributors-today-ai').textContent).toBe('+ 1 AI account');
     });
   });
 
   describe('day bars', () => {
     const DAILY = [
-      makeDay('2026-08-11', { labels: 40, validations: 10, active_users: 3 }),
+      makeDay('2026-08-11', { labels: 40, validations: 10, contributors: 3, contributor_total: 3 }),
       makeDay('2026-08-12', {
         labels: 120,
         validations: 30,
-        active_users: 4,
+        contributors: 4,
+        anon_sessions: 6,
         ai_validations: 6420,
         ai_agents: 1,
+        contributor_total: 5,
         top_cities: [
           { city_id: 'chicago-il', city_name: 'Chicago', labels: 100, validations: 20, contributors: 3 },
           { city_id: 'seattle-wa', city_name: 'Seattle', labels: 20, validations: 10, contributors: 1 },
         ],
-        contributors: [
-          { username: 'alice', is_ai: false, labels: 100, validations: 20 },
-          { username: 'sidewalk-ai', is_ai: true, labels: 0, validations: 6420 },
+        contributor_list: [
+          dayContributor('alice', 100, 20),
+          dayContributor('sidewalk-ai', 0, 6420, 'ai'),
         ],
       }),
     ];
@@ -233,26 +275,28 @@ describe('Across Cities — human/AI split and hover breakdowns', () => {
       expect(card).toContain('6,420');
     });
 
-    it('gives every chart the same day, so one hover explains all three', async () => {
+    it('reports the day\'s anonymous sessions as their own line', async () => {
       await render({ daily: DAILY });
-      const fromValidations = document.querySelectorAll('#ac-chart-week-validations rect.mini-bar')[1]
-        .getAttribute('data-ps-tooltip');
-      const strip = (card) => card.replace(/ ac-tip-row--strong/g, '');
 
-      expect(strip(fromValidations)).toBe(strip(barCard(1)));
+      expect(barCard(1)).toContain('Anonymous sessions');
+      expect(barCard(1)).toContain('<span>Anonymous sessions</span><span class="ac-tip-num">6</span>');
+    });
+
+    it('gives every chart the identical card, so one hover explains all three', async () => {
+      await render({ daily: DAILY });
+      const strip = (card) => card.replace(/ data-emph="[a-z]*"/, '');
+
+      expect(strip(barCard(1, 'validations'))).toBe(strip(barCard(1)));
+      expect(strip(barCard(1, 'users'))).toBe(strip(barCard(1)));
     });
 
     it('leans on the line the hovered chart draws, so a shared card still answers this bar', async () => {
       await render({ daily: DAILY });
-      const strongRow = (card) => card.match(/ac-tip-row ac-tip-row--strong"><span>([^<]+)/)[1];
-      const fromValidations = document.querySelectorAll('#ac-chart-week-validations rect.mini-bar')[1]
-        .getAttribute('data-ps-tooltip');
-      const fromUsers = document.querySelectorAll('#ac-chart-week-users rect.mini-bar')[1]
-        .getAttribute('data-ps-tooltip');
+      const emph = (card) => card.match(/data-emph="([a-z]*)"/)[1];
 
-      expect(strongRow(barCard(1))).toBe('Labels');
-      expect(strongRow(fromValidations)).toBe('Validations');
-      expect(strongRow(fromUsers)).toBe('Contributors');
+      expect(emph(barCard(1))).toBe('labels');
+      expect(emph(barCard(1, 'validations'))).toBe('validations');
+      expect(emph(barCard(1, 'users'))).toBe('contributors');
     });
 
     it('names the day\'s busiest cities and its contributors', async () => {
@@ -280,9 +324,33 @@ describe('Across Cities — human/AI split and hover breakdowns', () => {
       expect(barCard(1)).toContain('ac-tip-tag');
     });
 
+    it('counts "+N more" from the untruncated total the server sent, not from the capped list', async () => {
+      // The server caps the list it ships, so a count derived from the list can never exceed (cap - shown) and would
+      // silently understate a busy day. 40 contributors, 8 shipped, 5 shown → "+ 35 more", not "+ 3 more".
+      const people = Array.from({ length: 8 }, (_, i) => dayContributor(`user${i}`, 10 - i, 0));
+      await render({
+        daily: [makeDay('2026-08-12', {
+          labels: 100, contributors: 40, contributor_total: 40, contributor_list: people,
+        })],
+      });
+
+      expect(barCard(0)).toContain('+ 35 more');
+    });
+
+    it('omits "+N more" when the list is complete', async () => {
+      await render({
+        daily: [makeDay('2026-08-12', {
+          labels: 10, contributors: 2, contributor_total: 2,
+          contributor_list: [dayContributor('a', 8, 0), dayContributor('b', 2, 0)],
+        })],
+      });
+
+      expect(barCard(0)).not.toContain('more');
+    });
+
     it('makes each bar focusable and named, so the card is reachable without a pointer', async () => {
       await render({ daily: DAILY });
-      const bar = document.querySelectorAll('#ac-chart-week-labels rect.mini-bar')[1];
+      const bar = barTarget(1);
 
       expect(bar.getAttribute('tabindex')).toBe('0');
       expect(bar.getAttribute('aria-label')).toContain('Labels');
@@ -290,15 +358,55 @@ describe('Across Cities — human/AI split and hover breakdowns', () => {
       expect(bar.querySelector('title')).toBeNull();
     });
 
-    it('says so plainly when nothing happened that day', async () => {
-      await render({
-        daily: [makeDay('2026-08-11'), makeDay('2026-08-12', { labels: 5, active_users: 1 })],
-      });
-      // The quiet day draws no bar, so its card rides the value label; assert through the chart's own series data.
-      const bars = document.querySelectorAll('#ac-chart-week-labels rect.mini-bar');
+    it('gives a zero-value day a hover target too, so no day is unreachable', async () => {
+      // A bar of height zero draws no rect, so the interaction has to live on a full-height hit area instead.
+      await render({ daily: [makeDay('2026-08-11'), makeDay('2026-08-12', { labels: 5, contributors: 1 })] });
 
-      expect(bars.length).toBe(1);
-      expect(bars[0].getAttribute('data-ps-tooltip')).toContain('5');
+      expect(document.querySelectorAll('#ac-chart-week-labels rect.mini-bar').length).toBe(1);
+      expect(document.querySelectorAll('#ac-chart-week-labels rect.mini-bar-hit').length).toBe(2);
+      expect(barTarget(0).getAttribute('tabindex')).toBe('0');
+    });
+
+    it('still reports an AI-only day, whose every bar reads zero', async () => {
+      // The pipeline runs on its own schedule, so this is a real day in prod — and the card is the only place its work
+      // can show up. Treating it as quiet would hide 6,420 validations behind an empty slot.
+      await render({
+        daily: [makeDay('2026-08-12', { ai_validations: 6420, ai_agents: 1, contributor_total: 1,
+          contributor_list: [dayContributor('sidewalk-ai', 0, 6420, 'ai')] })],
+      });
+      const card = barCard(0);
+
+      expect(card).not.toContain('No activity.');
+      expect(card).toContain('AI validations');
+      expect(card).toContain('6,420');
+      expect(card).toContain('sidewalk-ai');
+    });
+
+    it('says so plainly when nothing happened that day', async () => {
+      await render({ daily: [makeDay('2026-08-11'), makeDay('2026-08-12', { labels: 5, contributors: 1 })] });
+
+      expect(barCard(0)).toContain('No activity.');
+    });
+
+    it('escapes usernames in a day card, which is markup carrying user-supplied text', async () => {
+      await render({
+        daily: [makeDay('2026-08-12', {
+          labels: 2, contributors: 1, contributor_total: 1,
+          contributor_list: [dayContributor('<img src=x onerror=alert(1)>', 2, 0)],
+        })],
+      });
+      // Two levels of escaping: attribute parsing consumes one, psTooltip's innerHTML the other. Reading the attribute
+      // back through the DOM has already consumed the first, so rendering it as HTML models exactly what psTooltip does.
+      document.body.insertAdjacentHTML('beforeend', `<div id="probe">${barCard(0)}</div>`);
+
+      expect(document.querySelectorAll('#probe img').length).toBe(0);
+    });
+
+    it('groups a chart whose bars are individually focusable, so their names survive in the a11y tree', async () => {
+      // role="img" on the <svg> would make its subtree presentational and prune the per-bar roles and labels.
+      await render({ daily: DAILY });
+
+      expect(document.querySelector('#ac-chart-week-labels svg').getAttribute('role')).toBe('group');
     });
   });
 
@@ -311,12 +419,14 @@ describe('Across Cities — human/AI split and hover breakdowns', () => {
       ai_validations_7d: 6420,
       contributors_7d: 3,
       contributors_prior_7d: 2,
+      anon_sessions_7d: 4,
       ai_agents_7d: 1,
+      contributor_total: 4,
       contributors: [
         contributor('carol', 5, 25),
         contributor('alice', 100, 2),
         contributor('bob', 15, 3),
-        contributor('sidewalk-ai', 0, 6420, true),
+        contributor('sidewalk-ai', 0, 6420, 'ai'),
       ],
     })];
 
@@ -355,14 +465,44 @@ describe('Across Cities — human/AI split and hover breakdowns', () => {
 
       // alice labels most; carol validates most among people — one "busiest overall" list would bury one of them.
       expect(cellCard(2).indexOf('alice')).toBeLessThan(cellCard(2).indexOf('carol'));
-      expect(cellCard(3).indexOf('sidewalk-ai')).toBeLessThan(cellCard(3).indexOf('carol'));
       expect(cellCard(3).indexOf('carol')).toBeLessThan(cellCard(3).indexOf('bob'));
+    });
+
+    it('lists AI after the people, since the count above it excludes AI', async () => {
+      // Ranked together, the pipeline sorts first and reads as the top contributor to a number it is not part of: the
+      // card's headline says 30 validations while the AI line says 6,420.
+      await render({ cities: CITIES });
+
+      expect(cellCard(3).indexOf('carol')).toBeLessThan(cellCard(3).indexOf('sidewalk-ai'));
+    });
+
+    it('keeps "+N more" about the people it ranks, discounting the AI lines it also shows', async () => {
+      const people = Array.from({ length: 10 }, (_, i) => contributor(`user${i}`, 20 - i, 0));
+      const cities = [makeCity('busy', {
+        labels_7d: 500,
+        contributors_7d: 30,
+        ai_agents_7d: 1,
+        contributor_total: 31,
+        contributors: [...people, contributor('sidewalk-ai', 999, 0, 'ai')],
+      })];
+      await render({ cities });
+
+      // 31 nameable contributors, one of which is the AI listed separately → 30 people, 5 shown.
+      expect(cellCard(2)).toContain('+ 25 more');
+    });
+
+    it('reports a city\'s anonymous sessions in its contributors card', async () => {
+      await render({ cities: CITIES });
+
+      expect(cellCard(4)).toContain('Anonymous sessions');
+      expect(cellCard(4)).toContain('<span>Anonymous sessions</span><span class="ac-tip-num">4</span>');
     });
 
     it('leaves out anyone with no activity in the window the column is about', async () => {
       const cities = [makeCity('quiet', {
         labels_7d: 4,
         contributors_7d: 2,
+        contributor_total: 2,
         contributors: [contributor('labeler', 4, 0), contributor('validator-only', 0, 0)],
       })];
       await render({ cities });
@@ -375,6 +515,7 @@ describe('Across Cities — human/AI split and hover breakdowns', () => {
       const cities = [makeCity('city', {
         labels_7d: 2,
         contributors_7d: 1,
+        contributor_total: 1,
         contributors: [contributor('<img src=x onerror=alert(1)>', 2, 0)],
       })];
       await render({ cities });

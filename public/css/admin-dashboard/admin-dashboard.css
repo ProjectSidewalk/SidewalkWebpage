@@ -713,6 +713,19 @@
   stroke-width: 1.5;
 }
 
+/* Full-plot-height hover/focus target for each bar, so a zero-value category is still reachable. Must be
+   `transparent` and not `none`: `fill: none` makes an SVG shape ignore pointer events entirely. */
+.mini-bar-hit {
+  fill: transparent;
+}
+
+.mini-bar-hit:focus-visible {
+  outline: none;
+  stroke: var(--color-text-primary, #222222);
+  stroke-dasharray: 3 2;
+  stroke-width: 1.5;
+}
+
 .mini-line {
   fill: none;
   stroke-width: 2;
@@ -2298,7 +2311,7 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
 .ac-hero-ai,
 .ac-cell-ai {
   display: block;
-  font-size: var(--font-size-xs, 0.8125rem);
+  font: var(--text-caption-regular);
   color: var(--color-text-tertiary, #88a1ad);
   white-space: nowrap;
 }
@@ -2350,8 +2363,13 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
 .ac-tip-row--ai { opacity: 0.75; }
 
 /* The line the hovered bar or cell actually draws. Weight alone carries it — the card is one type size throughout,
-   so a heavier line reads as "this is your number" without breaking the column of figures down the right edge. */
-.ac-tip-row--strong { font: var(--text-caption-semibold); }
+   so a heavier line reads as "this is your number" without breaking the column of figures down the right edge.
+   Selected by the card's `data-emph` rather than baked into the row's class, so the three per-day charts can share one
+   built card and each still emphasize its own line. */
+.ac-tip-row--strong,
+.ac-tip[data-emph="labels"] [data-tip-row="labels"],
+.ac-tip[data-emph="validations"] [data-tip-row="validations"],
+.ac-tip[data-emph="contributors"] [data-tip-row="contributors"] { font: var(--text-caption-semibold); }
 
 .ac-tip-head {
   font: var(--text-tiny-semibold);

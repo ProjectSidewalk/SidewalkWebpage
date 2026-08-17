@@ -289,9 +289,15 @@ jobs:
       #   data (the landing shows zeros/NaN stats), so both are meaningful on this empty schema.
       # - PanoDataServiceSpec (#4765/#4766): pure unit tests (no DB, no app boot) pinning the label lat/lng estimator
       #   against research-derived constants — costs nothing here and otherwise runs nowhere in CI.
-      # - ActivityBreakdownSpec (#4931): pure unit tests (no DB, no app boot) pinning the rule that keeps AI-role
-      #   output out of the Across Cities "this week" counts. It has to be synthetic — this job's schema has no
-      #   AI-role accounts, so a DB-backed version of these assertions would pass without exercising one.
+      # - ActivityBreakdownSpec (#4931): pure unit tests (no DB, no app boot) pinning the rules that keep AI-role output
+      #   out of the Across Cities "this week" counts, anonymous cookie identities out of its headcounts, and a person
+      #   who mapped in several cities counted once. It has to be synthetic — this job's schema has no AI-role or
+      #   anonymous accounts, so a DB-backed version of these assertions would pass without exercising one.
+      # - ConfigServiceTrendSpec + CityScorecardSpec (#4931): the DB-backed half of the same section. These are what
+      #   connect the new SQL to the summaries above — that volumes sum across cities while headcounts dedupe, that the
+      #   untruncated contributor total bounds the capped list, and that no anonymous cookie id reaches a hover card.
+      #   Shape and invariant assertions rather than data values, so they hold on this job's near-empty schema, and they
+      #   are the only coverage of the per-schema query's column order, which GetResult reads positionally.
       # - ConfigTableVoidedArchiveSpec (#4842): the voided-vote archive must count as work credit in the per-schema
       #   aggregate queries AND those queries must survive a schema that hasn't applied evolution 355 (the cross-city
       #   fan-out reads other schemas mid-rollout). Self-seeding in rolled-back transactions, meaningful even here.
@@ -305,7 +311,7 @@ jobs:
       #   data preconditions check for an assignable region rather than a bare street count, because the template's
       #   lone tutorial street belongs to no region and /explore 500s on that (#4748) instead of answering.
       - name: Run gating/auth tests (health dashboard + route auth posture + geodesic distances)
-        run: sbt 'set Test / parallelExecution := false' 'testOnly controllers.HealthDashboardSpec service.HealthServiceSpec controllers.RouteAuthPostureSpec models.street.GeodesicDistanceSpec service.ExploreTutorialRouteSpec controllers.MobileDetectionSpec service.PanoDataServiceSpec service.ActivityBreakdownSpec models.utils.ConfigTableVoidedArchiveSpec controllers.api.StatsApiSpec controllers.ExploreSubmissionSpec controllers.ValidateSubmissionSpec controllers.ExploreNoImageryRateLimitSpec'
+        run: sbt 'set Test / parallelExecution := false' 'testOnly controllers.HealthDashboardSpec service.HealthServiceSpec controllers.RouteAuthPostureSpec models.street.GeodesicDistanceSpec service.ExploreTutorialRouteSpec controllers.MobileDetectionSpec service.PanoDataServiceSpec service.ActivityBreakdownSpec service.ConfigServiceTrendSpec models.utils.CityScorecardSpec models.utils.ConfigTableVoidedArchiveSpec controllers.api.StatsApiSpec controllers.ExploreSubmissionSpec controllers.ValidateSubmissionSpec controllers.ExploreNoImageryRateLimitSpec'
         env:
           DATABASE_URL: jdbc:postgresql://localhost:5432/sidewalk
           DATABASE_USER: sidewalk

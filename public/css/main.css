@@ -2067,6 +2067,12 @@ kbd {
   clip-path: polygon(0 100%, 100% 100%, 50% 0);
 }
 
+/* A card too tall to fit on either side of its trigger gets clamped into the viewport, which leaves its edges away
+   from the trigger — a tail would point at nothing, so there is none. */
+.ps-tooltip--untailed::after {
+  display: none;
+}
+
 .ps-tooltip--visible {
   opacity: 1;
   visibility: visible;

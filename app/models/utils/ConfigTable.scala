@@ -7,6 +7,7 @@ import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import service.{
   AggregateStats,
   CityScorecard,
+  ContributorKind,
   ContributorWindowActivity,
   DailyContributorActivity,
   LabelTypeStats,
@@ -737,19 +738,46 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
   }
 
   /**
-   * The `ai_users` CTE body: every user id carrying the shared `AI` role.
+   * The `account_kinds` CTE body: how each already-selected contributor's activity should be attributed.
    *
-   * AI authorship is a `sidewalk_login` role, not anything in the city schema, so every per-schema activity query
-   * resolves it the same way. `DISTINCT` matters — a user with more than one role row would otherwise fan its
-   * activity out through the join and double-count it.
+   * Authorship kind is a `sidewalk_login` role, not anything in the city schema, so every per-schema activity query
+   * resolves it the same way: `AI` marks pipeline output, `Anonymous` marks a per-cookie identity that is not
+   * necessarily a distinct person, and everything else is a registered account.
+   *
+   * **This CTE must be driven from the caller's already-narrowed set of active users, which is why it takes the
+   * driving CTE's name rather than being a constant.** `user_role` runs to millions of rows and is ~99.9% `Anonymous`
+   * (5.73M of 5.74M in prod), so a body that grouped every user — or even filtered on the role names — would aggregate
+   * millions of rows, and these queries run once per city schema across ~56 schemas per cache refresh. Restricting to
+   * the handful of users active in the window keeps it index lookups on `user_role_user_id_idx` instead.
+   *
+   * `BOOL_OR` + `GROUP BY` rather than a join on role name: a user with several role rows must yield exactly one row
+   * here, or the join would fan their activity out and double-count it.
+   *
+   * @param activityCte Name of the preceding CTE holding the active users, with an `activity_user_id` column.
+   * @return            The CTE body, for interpolation into a `WITH` list after `activityCte`.
    */
-  private val aiUsersCte: String =
-    """ai_users AS (
-          SELECT DISTINCT user_role.user_id
+  private def accountKindsCte(activityCte: String): String =
+    s"""account_kinds AS (
+          SELECT user_role.user_id,
+                 BOOL_OR(role.role = 'AI')        AS is_ai,
+                 BOOL_OR(role.role = 'Anonymous') AS is_anonymous
           FROM sidewalk_login.user_role
           INNER JOIN sidewalk_login.role ON user_role.role_id = role.role_id
-          WHERE role.role = 'AI'
+          WHERE user_role.user_id IN (SELECT activity_user_id FROM $activityCte)
+          GROUP BY user_role.user_id
       )"""
+
+  /**
+   * The `account_kind` SELECT expression pairing with [[accountKindsCte]].
+   *
+   * `AI` outranks `Anonymous` so an account carrying both resolves deterministically to pipeline output. A contributor
+   * with no `user_role` row at all leaves both flags NULL and falls through to `registered`, matching how the rest of
+   * the app treats a role-less account.
+   */
+  private val accountKindSelect: String =
+    """CASE WHEN account_kinds.is_ai THEN 'ai'
+                  WHEN account_kinds.is_anonymous THEN 'anonymous'
+                  ELSE 'registered' END"""
 
   /**
    * Per-person daily label/validation volume for one city's trailing window, for the "this week" bar charts (#4686)
@@ -773,13 +801,13 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
     implicit val getResult: GetResult[DailyContributorActivity] =
       GetResult(r =>
         DailyContributorActivity(
-          LocalDate.parse(r.nextString()), r.nextString(), r.nextString(), r.nextBoolean(), r.nextInt(), r.nextInt()
+          LocalDate.parse(r.nextString()), r.nextString(), r.nextString(), ContributorKind.withName(r.nextString()),
+          r.nextInt(), r.nextInt()
         )
       )
 
     sql"""
-      WITH #$aiUsersCte,
-      activity AS (
+      WITH activity AS (
           SELECT label.time_created AS activity_ts, label.user_id AS activity_user_id, 'label' AS kind
           FROM "#$schema".label
           INNER JOIN "#$schema".user_stat ON label.user_id = user_stat.user_id
@@ -798,14 +826,15 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
                  COUNT(*) FILTER (WHERE kind = 'validation') AS validations
           FROM activity
           GROUP BY day, activity_user_id
-      )
+      ),
+      #${accountKindsCte("per_day_user")}
       SELECT CAST(per_day_user.day AS TEXT), per_day_user.activity_user_id,
-             COALESCE(sidewalk_user.username, ''), (ai_users.user_id IS NOT NULL),
+             COALESCE(sidewalk_user.username, ''), #$accountKindSelect,
              per_day_user.labels, per_day_user.validations
       FROM per_day_user
       LEFT JOIN sidewalk_login.sidewalk_user ON per_day_user.activity_user_id = sidewalk_user.user_id
-      LEFT JOIN ai_users ON per_day_user.activity_user_id = ai_users.user_id
-      ORDER BY per_day_user.day ASC;
+      LEFT JOIN account_kinds ON per_day_user.activity_user_id = account_kinds.user_id
+      ORDER BY per_day_user.day ASC, per_day_user.activity_user_id ASC;
     """.as[DailyContributorActivity]
   }
 
@@ -835,13 +864,13 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
     implicit val getResult: GetResult[ContributorWindowActivity] =
       GetResult(r =>
         ContributorWindowActivity(
-          r.nextString(), r.nextString(), r.nextBoolean(), r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()
+          r.nextString(), r.nextString(), ContributorKind.withName(r.nextString()), r.nextInt(), r.nextInt(),
+          r.nextInt(), r.nextInt()
         )
       )
 
     sql"""
-      WITH #$aiUsersCte,
-      activity AS (
+      WITH activity AS (
           SELECT label.time_created AS activity_ts, label.user_id AS activity_user_id, 'label' AS kind
           FROM "#$schema".label
           INNER JOIN "#$schema".user_stat ON label.user_id = user_stat.user_id
@@ -862,13 +891,14 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
                  COUNT(*) FILTER (WHERE kind = 'validation' AND activity_ts < NOW() - INTERVAL '7 days')  AS validations_prior_7d
           FROM activity
           GROUP BY activity_user_id
-      )
-      SELECT per_user.activity_user_id, COALESCE(sidewalk_user.username, ''), (ai_users.user_id IS NOT NULL),
+      ),
+      #${accountKindsCte("per_user")}
+      SELECT per_user.activity_user_id, COALESCE(sidewalk_user.username, ''), #$accountKindSelect,
              per_user.labels_7d, per_user.labels_prior_7d, per_user.validations_7d, per_user.validations_prior_7d
       FROM per_user
       LEFT JOIN sidewalk_login.sidewalk_user ON per_user.activity_user_id = sidewalk_user.user_id
-      LEFT JOIN ai_users ON per_user.activity_user_id = ai_users.user_id
-      ORDER BY per_user.labels_7d + per_user.validations_7d DESC;
+      LEFT JOIN account_kinds ON per_user.activity_user_id = account_kinds.user_id
+      ORDER BY per_user.labels_7d + per_user.validations_7d DESC, per_user.activity_user_id ASC;
     """.as[ContributorWindowActivity]
   }
 

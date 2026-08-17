@@ -87,6 +87,7 @@ class AcrossCitiesPage {
   #summary = {};         // The summary block (thresholds + cross-city median + hero totals).
   #allTimeTrend = [];    // Cross-city weekly series for the full project history (the "All time" toggle).
   #dailyTrend = [];      // Cross-city daily series for the trailing 7 days (the "this week" bar charts, #4686).
+  #dayTipCards = new Map(); // day → its built hover card, shared by all three per-day charts (#4931).
   #windowSummary = null; // Rolling 7d-vs-prior-7d totals for the "Today & this week" tiles (#4758).
   #windowByCity = {};    // The same rolling windows per city id, for the "Most active cities" table (#4758).
   #trendSeries = {};     // { recent: [...], all: [...] } weekly aggregates for the over-time charts.
@@ -123,6 +124,7 @@ class AcrossCitiesPage {
       this.#summary = (data && data.summary) || {};
       this.#allTimeTrend = (data && data.over_time_all_time) || [];
       this.#dailyTrend = (data && data.over_time_daily) || [];
+      this.#dayTipCards.clear(); // Cards are keyed by day, and a reload can bring new numbers for the same day.
       this.#windowSummary = (data && data.window_summary) || null;
       this.#windowByCity = (data && data.window_by_city) || {};
       this.#joinActivityWindows();
@@ -229,9 +231,10 @@ class AcrossCitiesPage {
     if (today) {
       this.#setText('now-labels-today', this.#num(today.labels));
       this.#setText('now-validations-today', this.#num(today.validations));
-      this.#setText('now-contributors-today', this.#num(today.active_users));
+      this.#setText('now-contributors-today', this.#num(today.contributors));
       this.#renderAiNote('now-labels-today-ai', today.ai_labels, today.labels, 'labels', 'today');
       this.#renderAiNote('now-validations-today-ai', today.ai_validations, today.validations, 'validations', 'today');
+      this.#renderAnonNote('now-contributors-today-anon', today.anon_sessions, 'today');
       this.#renderAgentNote('now-contributors-today-ai', today.ai_agents, 'today');
     }
 
@@ -248,6 +251,7 @@ class AcrossCitiesPage {
       const period = 'in the last 7 days';
       this.#renderAiNote('now-labels-7d-ai', ws.ai_labels_7d, ws.labels_7d, 'labels', period);
       this.#renderAiNote('now-validations-7d-ai', ws.ai_validations_7d, ws.validations_7d, 'validations', period);
+      this.#renderAnonNote('now-contributors-7d-anon', ws.anon_sessions_7d, period);
       this.#renderAgentNote('now-contributors-7d-ai', ws.ai_agents_7d, period);
     }
 
@@ -293,10 +297,36 @@ class AcrossCitiesPage {
   }
 
   /**
+   * Reports the anonymous sessions beside a tile's contributor count, or clears the line when there were none.
+   *
+   * Kept out of the contributor count rather than folded in: an anonymous account is minted per browser cookie, so one
+   * person who visits from two browsers — or clears their cookies — is several of these. Counting them as contributors
+   * would inflate a headline that reads as a headcount, and the work itself is already in the label and validation
+   * totals either way.
+   *
+   * @param {string} id - Element id of the tile's anonymous line.
+   * @param {number} anonCount - Distinct anonymous identities active in the period.
+   * @param {string} period - Phrase naming the period, e.g. 'today' or 'in the last 7 days'.
+   */
+  #renderAnonNote(id, anonCount, period) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const anon = anonCount || 0;
+    el.textContent = anon ? `+ ${this.#num(anon)} anonymous ${anon === 1 ? 'session' : 'sessions'}` : '';
+    if (anon) {
+      el.setAttribute('data-ps-tooltip', AcrossCitiesPage.#esc('The contributor count is registered accounts. '
+        + `${this.#num(anon)} anonymous ${anon === 1 ? 'session' : 'sessions'} also contributed ${period}; each is a `
+        + 'browser cookie rather than a known person, so they are counted separately.'));
+    } else {
+      el.removeAttribute('data-ps-tooltip');
+    }
+  }
+
+  /**
    * Reports the AI accounts active alongside a tile's contributor count, or clears the line when there were none.
    *
    * @param {string} id - Element id of the tile's AI line.
-   * @param {number} agentCount - Distinct AI-role accounts active in the period.
+   * @param {number} agentCount - Distinct AI-role accounts active in the period, across all cities.
    * @param {string} period - Phrase naming the period, e.g. 'today' or 'in the last 7 days'.
    */
   #renderAgentNote(id, agentCount, period) {
@@ -701,7 +731,7 @@ class AcrossCitiesPage {
     };
     draw('ac-chart-week-labels', 'aclabels', 'labels', 'Labels');
     draw('ac-chart-week-validations', 'acvals', 'validations', 'Validations');
-    draw('ac-chart-week-users', 'acusers', 'active_users', 'Active users');
+    draw('ac-chart-week-users', 'acusers', 'contributors', 'Contributors');
   }
 
   // --- Scorecard table --------------------------------------------------------------------------------------------
@@ -1208,14 +1238,15 @@ class AcrossCitiesPage {
    *
    * @param {string} label - Already-escaped line label.
    * @param {string} value - Already-escaped value, set at the right edge.
-   * @param {boolean} [muted=false] - True for the AI lines, which sit under the human counts they qualify.
-   * @param {boolean} [strong=false] - True for the line the hovered bar or cell actually draws, so a card shared by
-   *   several charts still answers the one you're on first.
+   * @param {boolean} [muted=false] - True for the AI and anonymous lines, which qualify the human counts above them.
+   * @param {string} [rowKey] - Names this row so a card can emphasize it via its own `data-emph`, which is what lets
+   *   the three per-day charts share one built card and each still lean on the line it draws.
    * @returns {string} The line's markup.
    */
-  static #tipRow(label, value, muted = false, strong = false) {
-    const mod = `${muted ? ' ac-tip-row--ai' : ''}${strong ? ' ac-tip-row--strong' : ''}`;
-    return `<div class="ac-tip-row${mod}"><span>${label}</span>`
+  static #tipRow(label, value, muted = false, rowKey = null) {
+    const mod = muted ? ' ac-tip-row--ai' : '';
+    const key = rowKey ? ` data-tip-row="${rowKey}"` : '';
+    return `<div class="ac-tip-row${mod}"${key}><span>${label}</span>`
       + `<span class="ac-tip-num">${value}</span></div>`;
   }
 
@@ -1236,21 +1267,22 @@ class AcrossCitiesPage {
    * sites — one place to get right. AI accounts keep their line but are marked, so a card that looks like a busy week
    * can't hide that a pipeline produced it.
    *
-   * @param {Array<{username: string, isAi: boolean, labels: number, validations: number}>} people - Sorted, busiest
-   *   first.
-   * @param {number} limit - How many lines to draw before collapsing the rest into a "+N more" line. That count is of
-   *   the list the endpoint sent, which it caps (ConfigService.WindowContributorLimit) far above a normal week — so
-   *   the only case it understates is a city with more contributors in one week than the project has ever had.
+   * @param {Array<{username: string, kind: string, labels: number, validations: number}>} people - Sorted, busiest
+   *   first. Already filtered to nameable accounts by the endpoint.
+   * @param {number} limit - How many lines to draw before collapsing the rest into a "+N more" line.
+   * @param {number} total - How many contributors the endpoint's list was drawn from before it capped it. The "+N more"
+   *   count must come from this and not from `people.length`, which is bounded by that cap and would silently
+   *   understate a busy day by an unlimited amount.
    * @returns {string} The lines' markup, empty when nobody qualifies.
    */
-  #tipPeople(people, limit) {
+  #tipPeople(people, limit, total) {
     if (!people.length) return '';
     const shown = people.slice(0, limit).map((p) => {
       const name = p.username ? AcrossCitiesPage.#esc(p.username) : 'unknown user';
-      const tag = p.isAi ? '<span class="ac-tip-tag">AI</span>' : '';
+      const tag = p.kind === 'ai' ? '<span class="ac-tip-tag">AI</span>' : '';
       return AcrossCitiesPage.#tipRow(`${name}${tag}`, `${this.#num(p.labels)} · ${this.#num(p.validations)}`);
     }).join('');
-    const rest = people.length - limit;
+    const rest = Math.max(0, (total ?? people.length) - Math.min(limit, people.length));
     return rest > 0 ? `${shown}<div class="ac-tip-more">+ ${this.#num(rest)} more</div>` : shown;
   }
 
@@ -1258,20 +1290,45 @@ class AcrossCitiesPage {
    * The hover card for one day's bar: the day's whole picture rather than the one number the bar draws — all three
    * volumes, what AI contributed, which cities were busiest, and who was active (#4931).
    *
+   * The card body is built once per day and cached: all three charts show the same day the same way, differing only in
+   * which line they lean on, and that is a `data-emph` on the card root the CSS keys off — so hovering three charts
+   * costs one card, and the three can't drift apart in content.
+   *
    * @param {object} d - A `over_time_daily` entry.
    * @param {string} [emphasisKey] - The `over_time_daily` key the hovered chart draws ('labels', 'validations',
-   *   'active_users'), whose line the card leans on.
+   *   'contributors'), whose line the card leans on.
    * @returns {string} The card's markup.
    */
   #dayTipHtml(d, emphasisKey) {
+    let card = this.#dayTipCards.get(d.day);
+    if (card === undefined) {
+      card = this.#buildDayTip(d);
+      this.#dayTipCards.set(d.day, card);
+    }
+    return emphasisKey ? card.replace('data-emph=""', `data-emph="${AcrossCitiesPage.#esc(emphasisKey)}"`) : card;
+  }
+
+  /**
+   * Builds one day's hover card, with an empty `data-emph` for [[#dayTipHtml]] to fill in per chart.
+   *
+   * @param {object} d - A `over_time_daily` entry.
+   * @returns {string} The card's markup.
+   */
+  #buildDayTip(d) {
     const title = `<div class="ac-tip-title">${AcrossCitiesPage.#esc(AcrossCitiesPage.#longDate(d.day))}</div>`;
-    const quiet = !d.labels && !d.validations && !d.ai_labels && !d.ai_validations;
-    if (quiet) return `<div class="ac-tip">${title}<div class="ac-tip-more">No activity.</div></div>`;
+    // A day with no human work can still have plenty to report — the AI pipeline runs on its own schedule — so the
+    // quiet case is "nothing at all happened", not "the bar this chart draws is zero".
+    const quiet = !d.labels && !d.validations && !d.contributors && !d.anon_sessions
+      && !d.ai_labels && !d.ai_validations;
+    if (quiet) return `<div class="ac-tip" data-emph="">${title}<div class="ac-tip-more">No activity.</div></div>`;
 
     let out = title
-      + AcrossCitiesPage.#tipRow('Labels', this.#num(d.labels), false, emphasisKey === 'labels')
-      + AcrossCitiesPage.#tipRow('Validations', this.#num(d.validations), false, emphasisKey === 'validations')
-      + AcrossCitiesPage.#tipRow('Contributors', this.#num(d.active_users), false, emphasisKey === 'active_users');
+      + AcrossCitiesPage.#tipRow('Labels', this.#num(d.labels), false, 'labels')
+      + AcrossCitiesPage.#tipRow('Validations', this.#num(d.validations), false, 'validations')
+      + AcrossCitiesPage.#tipRow('Contributors', this.#num(d.contributors), false, 'contributors');
+    if (d.anon_sessions) {
+      out += AcrossCitiesPage.#tipRow('Anonymous sessions', this.#num(d.anon_sessions), true);
+    }
     if (d.ai_labels) out += AcrossCitiesPage.#tipRow('AI labels', this.#num(d.ai_labels), true);
     if (d.ai_validations) out += AcrossCitiesPage.#tipRow('AI validations', this.#num(d.ai_validations), true);
 
@@ -1286,14 +1343,14 @@ class AcrossCitiesPage {
       )).join('');
     }
 
-    const people = (d.contributors || []).map((c) => ({
-      username: c.username, isAi: c.is_ai, labels: c.labels || 0, validations: c.validations || 0,
+    const people = (d.contributor_list || []).map((c) => ({
+      username: c.username, kind: c.kind, labels: c.labels || 0, validations: c.validations || 0,
     }));
     if (people.length) {
       out += AcrossCitiesPage.#tipHead('Who was active (labels · validations)');
-      out += this.#tipPeople(people, 5);
+      out += this.#tipPeople(people, 5, d.contributor_total);
     }
-    return `<div class="ac-tip">${out}</div>`;
+    return `<div class="ac-tip" data-emph="">${out}</div>`;
   }
 
   /**
@@ -1313,6 +1370,9 @@ class AcrossCitiesPage {
     let out = `<div class="ac-tip-title">${title}</div>`;
     out += AcrossCitiesPage.#tipRow('Last 7 days', this.#num(current));
     out += AcrossCitiesPage.#tipRow('7 days before', this.#num(prior));
+    if (metric === 'contributors' && w.anon_sessions_7d) {
+      out += AcrossCitiesPage.#tipRow('Anonymous sessions', this.#num(w.anon_sessions_7d), true);
+    }
     if (ai) {
       out += AcrossCitiesPage.#tipRow(metric === 'contributors' ? 'AI accounts' : 'By AI', this.#num(ai), true);
     }
@@ -1320,15 +1380,24 @@ class AcrossCitiesPage {
     // The Labels and Validations columns each rank people by the work that column is about; a top labeler and a top
     // validator are usually different people, and a single "busiest overall" list would bury one of them.
     const all = (w.contributors || []).map((c) => ({
-      username: c.username, isAi: c.is_ai, labels: c.labels_7d || 0, validations: c.validations_7d || 0,
+      username: c.username, kind: c.kind, labels: c.labels_7d || 0, validations: c.validations_7d || 0,
     }));
     const rank = { labels: (p) => p.labels, validations: (p) => p.validations }[metric]
       ?? ((p) => p.labels + p.validations);
-    const people = all.filter((p) => rank(p) > 0).sort((a, b) => rank(b) - rank(a));
-    if (people.length) {
+    // The rows above this list count people only, with AI reported separately, so the list has to be on that basis too.
+    // Ranked together, one pipeline account sorts above every person and reads as the top contributor to a number it is
+    // explicitly excluded from — so AI lines sit after the people, not among them.
+    const ranked = all.filter((p) => rank(p) > 0).sort((a, b) => rank(b) - rank(a));
+    const people = ranked.filter((p) => p.kind !== 'ai');
+    const agents = ranked.filter((p) => p.kind === 'ai');
+    if (people.length || agents.length) {
       const head = { labels: 'Top labelers', validations: 'Top validators' }[metric] ?? 'Contributors';
       out += AcrossCitiesPage.#tipHead(`${head} (labels · validations)`);
-      out += this.#tipPeople(people, 5);
+      // `contributor_total` counts AI alongside people, so discount the agents listed below to keep "+N more" about
+      // the people this list is ranking.
+      const peopleTotal = Math.max(people.length, (w.contributor_total ?? people.length) - agents.length);
+      out += this.#tipPeople(people, 5, peopleTotal);
+      out += this.#tipPeople(agents, agents.length, agents.length);
     }
     return `<div class="ac-tip">${out}</div>`;
   }
