@@ -178,9 +178,8 @@ class StreetStatusTrend {
     const min = data.min_reporters || 2;
     this.#setText('trend-corroborated-intro',
       `Streets still open for auditing that at least ${min} different labeler accounts independently reported as `
-      + 'having no imagery. Anonymous sessions each count as their own account, so one person returning to a street '
-      + 'can clear that bar on their own. A report is evidence, never a verdict: these stay in the pool until the '
-      + 'offline imagery checker confirms them — run it against these streets first.');
+      + 'having no imagery. A report is evidence, never a verdict: these stay in the pool until the offline imagery '
+      + 'checker confirms them — run it against these streets first.');
 
     if (rows.length === 0) {
       this.#setHtml('trend-corroborated', '<p class="trend-note">No street has been reported by that many '
