@@ -443,6 +443,18 @@ Implementation: `tools/qa-worktree.sh` — both targets run the **worktree's own
 make reports `No rule to make target 'qa-worktree'`. Either check out a branch that has it, or run the worktree's script
 directly: `docker exec -it projectsidewalk-web bash /home/.claude/worktrees/<name>/tools/qa-worktree.sh <name>`.
 
+**Disposing of a worktree entirely** is **`make worktree-remove wt=<name>`** (`tools/worktree-remove.sh`): it stops any
+QA session, deletes the directory *and* git's registration under `.git/worktrees/`, then deletes the branch if every
+commit on it is already in `develop` (otherwise it names the branch and leaves it). `rm -rf` on the directory alone is
+**not** equivalent — the registration survives and the worktree keeps showing up in `git worktree list` until something
+prunes it; the target recognizes and cleans up that half-removed state too. Unlike the QA targets it runs **host-side**:
+a worktree's `.git` file points at the main repo's `.git/worktrees/<name>` by absolute host path, which doesn't exist
+inside the container, so git can't touch the worktree from in there. It stops before doing anything if the worktree has
+uncommitted or untracked files (`force=1` deletes them along with it) or if the worktree is **locked** — an active
+Claude Code worktree session holds a lock, and git refuses a locked worktree even with `--force`. The main-checkout
+caveat above applies here too; the direct invocation is host-side rather than through docker:
+`bash .claude/worktrees/<name>/tools/worktree-remove.sh <name>`.
+
 **Admin-authenticated QA:** the dev DB is seeded from a dump that includes real accounts and their bcrypt password
 hashes, and password verification is config-independent (plain bcrypt, no server-side pepper), so if your own account is
 in the dump you can just sign in with your normal credentials. If you don't have credentials for a seeded account — or
