@@ -6,7 +6,7 @@ import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
 import models.utils.MyPostgresProfile.api._
-import service.{ActivityWindowSummary, AggregateStats, CityScorecard}
+import service.{AggregateStats, CityScorecard}
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -81,8 +81,11 @@ class CityScorecardSpec extends PlaySpec with GuiceOneAppPerSuite {
       run(configTable.getCityWeeklyTrendBySchema(schema, None)) mustBe a[Seq[_]]
       run(configTable.getCityWeeklyTrendBySchema(schema, Some(4))) mustBe a[Seq[_]]
     }
-    "execute getCityActivityWindowsBySchema" in {
-      run(configTable.getCityActivityWindowsBySchema(schema)) mustBe a[ActivityWindowSummary]
+    "execute getCityWindowActivityByUserBySchema" in {
+      run(configTable.getCityWindowActivityByUserBySchema(schema)) mustBe a[Seq[_]]
+    }
+    "execute getCityDailyActivityByUserBySchema" in {
+      run(configTable.getCityDailyActivityByUserBySchema(schema, 7)) mustBe a[Seq[_]]
     }
     "execute getCityContributorOutputBySchema" in {
       run(configTable.getCityContributorOutputBySchema(schema)) mustBe a[Product] // 7-tuple

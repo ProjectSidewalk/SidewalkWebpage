@@ -21,8 +21,8 @@
   "badge-type-validations": "Validierungen",
   "badge-missions-singular": "Mission",
   "badge-missions-plural": "Missionen",
-  "badge-distance-singular": "km",
-  "badge-distance-plural": "km",
+  "badge-distance-singular": "{{unitNameSingular}}",
+  "badge-distance-plural": "{{unitName}}",
   "badge-labels-singular": "Beschriftung",
   "badge-labels-plural": "Beschriftungen",
   "badge-validations-singular": "Validierung",
@@ -47,8 +47,7 @@
     "remaining-missions_other": "Noch {{count}} Missionen",
     "remaining-validations_one": "Noch {{count}} Validierung",
     "remaining-validations_other": "Noch {{count}} Validierungen",
-    "remaining-distance-km": "Noch {{dist}} km",
-    "remaining-distance-mi": "Noch {{dist}} mi"
+    "remaining-distance": "Noch {{dist}} {{unitAbbr}}"
   },
   "mistake-cards": {
     "empty": "🎉 Keine Fehler zu überprüfen — Ihre Beschriftungen halten stand. Weiter so!",

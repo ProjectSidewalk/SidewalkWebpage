@@ -1,5 +1,6 @@
 @import controllers.helper.ControllerUtils
 @import play.api.Configuration
+@import play.api.libs.json.Json
 @import service.CommonPageData
 @import play.filters.csrf.CSRF
 @(commonData: CommonPageData, title: String, defaultI18nNamespace: String = "common", i18Namespaces: Seq[String] = Seq("common"), url: String = "/", extraHead: Html = Html(""), pageMeta: service.PageMeta = service.PageMeta()
@@ -15,6 +16,7 @@
    NOT the url parameter: url defaults to "/", so the ~50 views that omit it would otherwise all be classified as
    the landing page and lose their navbar padding. MobileDetectionSpec pins this. *@
 @bodyClass = @{if (request.path == "/" || request.path == "/home") "no-navbar-offset" else ""}
+@unitWords = @{ControllerUtils.distanceUnitWords}
 
 @* The one moment locale this request needs. Locale files register lowercase names ('zh-tw', 'pt-br') matching their
    filenames, and moment lowercases the code it's given, so a language code maps straight to a filename (#4486).
@@ -30,8 +32,10 @@
 
 <!DOCTYPE html>
 @* data-mobile-device is the server's mobile verdict (ControllerUtils.isMobile, the single mobile definition) for
-   this request; util.isMobile() reads it back so client and server always agree on which UI variant is running. *@
-<html lang="@messages.lang.code" data-mobile-device="@ControllerUtils.isMobile">
+   this request; util.isMobile() reads it back so client and server always agree on which UI variant is running.
+   data-measurement-system does the same for units (ControllerUtils.measurementSystem): the user's override if they
+   set one, else the language default, resolved once here so util.isMetric() can't disagree with the server. *@
+<html lang="@messages.lang.code" data-mobile-device="@ControllerUtils.isMobile" data-measurement-system="@ControllerUtils.measurementSystem">
   <head>
       <!-- Global site tag (gtag.js) - Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=@commonData.googleAnalyticsId"></script>
@@ -103,7 +107,13 @@
           language: "@messages.lang.code",
           defaultNS: "@defaultI18nNamespace",
           namespaces: @Html(i18Namespaces.map(namespace => s""""$namespace"""").mkString("[", ",", "]")),
-          countryId: "@currentCity.countryId"
+          countryId: "@currentCity.countryId",
+          // The distance words for this request's language and measurement system, resolved once on the server so the
+          // locale files don't carry a second copy of them. AppManager makes them i18next interpolation defaults.
+          unitWords: @Html(Json.stringify(Json.toJson(Map(
+            "unitAbbr" -> unitWords.abbr, "unitAbbrSmall" -> unitWords.abbrSmall,
+            "unitName" -> unitWords.name, "unitNameSingular" -> unitWords.nameSingular
+          ))))
         };
         const globals = {
           cityId: "@commonData.cityId",

@@ -62,7 +62,6 @@ class RouteBuilder {
     pendingRouteRestored: false,
   };
 
-  #units;
   #minutesPer100m;
 
   #mapboxApiKey;
@@ -124,7 +123,6 @@ class RouteBuilder {
   constructor(mapboxApiKey, mapParams, isSignedIn, minutesPer100m) {
     this.#mapboxApiKey = mapboxApiKey;
     this.#isSignedIn = isSignedIn === true;
-    this.#units = i18next.t('common:unit-distance');
     this.#minutesPer100m = minutesPer100m;
 
     // Get the DOM elements.
@@ -1071,8 +1069,7 @@ class RouteBuilder {
    * @returns {string}
    */
   #formatDistance(km) {
-    const dist = this.#units === 'miles' ? util.math.kmsToMiles(km) : km;
-    return i18next.t('route-length', { dist: dist.toFixed(2) });
+    return util.longDistanceToString(km, 2);
   }
 
   /**

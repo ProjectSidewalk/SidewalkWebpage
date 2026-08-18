@@ -18,7 +18,7 @@ function addNeighborhoodsToMap(map, neighborhoodGeoJSON, completionRates, params
   const NEIGHBORHOOD_OUTLINE_LAYER_NAME = 'neighborhood-polygons-outline';
 
   // Add the completion rates, label counts, and styling info to the neighborhood GeoJSON.
-  const measurementSystem = i18next.t('measurement-system');
+  const isMetric = util.isMetric();
   for (const neighborhood of neighborhoodGeoJSON.features) {
     const compRate = completionRates.find((r) => {
       return r.region_id === neighborhood.properties.region_id;
@@ -28,7 +28,7 @@ function addNeighborhoodsToMap(map, neighborhoodGeoJSON, completionRates, params
     neighborhood.properties.total_distance_m = compRate.total_distance_m;
     neighborhood.properties.outdated_distance_m = compRate.outdated_distance_m || 0;
     neighborhood.dist_remaining_m = compRate.total_distance_m - compRate.completed_distance_m;
-    if (measurementSystem === 'metric') {
+    if (isMetric) {
       neighborhood.properties.dist_remaining_converted = neighborhood.dist_remaining_m * 0.001; // Kilometers.
       neighborhood.properties.outdated_dist_converted = neighborhood.properties.outdated_distance_m * 0.001;
     } else {
@@ -160,15 +160,10 @@ function addNeighborhoodsToMap(map, neighborhoodGeoJSON, completionRates, params
             ${i18next.t('common:map.percent-complete', { percent: compRateRounded })}<br>
             ${i18next.t('common:map.less-than-one-unit-left')}<br>
             ${reauditLine}${i18next.t('common:map.click-to-help', { url, regionId: hoveredRegionId })}`;
-        } else if (distanceLeftRounded === 1) {
-          popupContent = `<strong>${regionName}</strong>:
-            ${i18next.t('common:map.percent-complete', { percent: compRateRounded })}<br>
-            ${i18next.t('common:map.distance-left-one-unit')}<br>
-            ${reauditLine}${i18next.t('common:map.click-to-help', { url, regionId: hoveredRegionId })}`;
         } else {
           popupContent = `<strong>${regionName}</strong>:
             ${i18next.t('common:map.percent-complete', { percent: compRateRounded })}<br>
-            ${i18next.t('common:map.distance-left', { n: distanceLeftRounded })}<br>
+            ${i18next.t('common:map.distance-left', { count: distanceLeftRounded })}<br>
             ${reauditLine}${i18next.t('common:map.click-to-help', { url, regionId: hoveredRegionId })}`;
         }
 

@@ -19,7 +19,6 @@
   "saved-view-title": "在編輯器中開啟此路線",
   "route-usage": "{{started}} 人探索過 · {{completed}} 人完成",
   "route-usage-tooltip": "探索過：開始探索此路線的人數。完成：走完整條路線的人數。",
-  "route-length": "{{dist}} $t(common:unit-distance-abbreviation)",
   "est-time-minutes": "{{min}} 分鐘",
   "est-time-hours": "{{hours}} 小時 {{min}} 分鐘",
   "street-count_other": "{{count}} 條街道",

@@ -170,7 +170,8 @@ class ExploreNoImageryRateLimitSpec
 
     "budget one user at a time, so a single runaway session can't lock everyone else out" in {
       val exhausted = freshAnonSession()
-      for (_ <- 1 to MaxReports + 1) postReport(exhausted, Json.obj("nonsense" -> true))
+      // Each spend must be awaited, or the assertion below races the requests meant to precede it.
+      for (_ <- 1 to MaxReports) status(postReport(exhausted, Json.obj("nonsense" -> true))) mustBe BAD_REQUEST
       status(postReport(exhausted, Json.obj("nonsense" -> true))) mustBe TOO_MANY_REQUESTS
 
       // A different user, same loopback IP: keying the limit per user is what keeps a classroom behind one NAT (or
