@@ -46,13 +46,15 @@ into 3.8, `requirements-offline-tools.txt` (`shapely`, `geopy`, ...) into 3.13, 
 into both. To run a half directly, or on the host:
 
 ```bash
-docker exec -it projectsidewalk-web sh -c "cd /home && python3.13 -m pytest test/python/test_check_streets_for_imagery.py"
+docker exec -it -e COVERAGE_OMIT=scripts/label_clustering.py projectsidewalk-web \
+  sh -c "cd /home && python3.13 -m pytest test/python/test_check_streets_for_imagery.py"
 
 pip install -r requirements-offline-tools.txt -r requirements-dev.txt
-pytest test/python/test_check_streets_for_imagery.py
+COVERAGE_OMIT=scripts/label_clustering.py pytest test/python/test_check_streets_for_imagery.py
 ```
 
-No coverage flags to remember — `pyproject.toml` turns coverage on for every invocation; see [Coverage](#coverage).
+Coverage is always on and always gated, so there are no `--cov` flags to pass; `COVERAGE_OMIT` is the one thing a
+direct invocation needs, and omitting it fails the run rather than skipping the gate. See [Coverage](#coverage).
 
 Config lives in [`pyproject.toml`](../../pyproject.toml) (`[tool.pytest.ini_options]` + `[tool.coverage.*]`): it scopes
 collection to `test/python/` and puts `scripts/` and `tools/` on `sys.path` so the tests can `import label_clustering` /
@@ -73,12 +75,13 @@ uncovered branch fails the suite. The HTTP/file I/O in `main` is exercised by mo
 narrow exclusions are documented where they sit: the `if __name__ == '__main__'` entrypoint guards (never run under
 pytest) and one provably-unreachable loop-exit branch in `check_streets` (`# pragma: no branch`, justified inline).
 
-Scoping is a bare `--cov` in `addopts` plus `include = ["scripts/*"]`, not `--cov=scripts`. The difference matters
-because of the interpreter split: coverage's `source` reports files it never saw imported as 0%, so `--cov=scripts`
-would score each half on the other half's module and fail the gate on both, whereas `include` only filters what was
-actually measured. Each half therefore reports exactly the script it exercised, and — since nothing has to be passed
-per run — no invocation can quietly lose the gate. (`tools/` is outside `include`: those are one-off utilities, not
-held to 100%.)
+The gate has two arms, and the interpreter split makes keeping both slightly fiddly. Scoping is a bare `--cov` in
+`addopts` plus `source = ["scripts"]`: `source` is what makes coverage report a file it never saw imported as 0%, so a
+script that shows up with no tests at all fails the gate instead of going unmeasured — the arm a plain `include` would
+drop. The catch is that it applies to the script the running interpreter *cannot* import too, so each half sets
+**`COVERAGE_OMIT`** to that one file (`cov-omit-*` in the [`Makefile`](../../Makefile), `coverage-omit` in the CI
+matrix). Leave it unset and nothing is omitted, so a hand-run fails the gate loudly rather than quietly measuring less
+than it looks like it did. (`tools/` is outside `source` entirely: those are one-off utilities, not held to 100%.)
 
 If you add logic, add a test — keep new code pure where possible (or hide I/O behind a thin wrapper and mock it) so the
 100% gate stays meaningful rather than something to lower.

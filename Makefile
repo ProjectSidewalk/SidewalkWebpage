@@ -128,16 +128,24 @@ import-street-imagery:
 # the same `python3` (3.8) prod runs it on, while the offline tooling needs >= 3.11 for its libraries. Each half runs
 # the whole directory minus the one file the other interpreter owns, rather than listing what to include — so a new
 # test file runs in both halves by default, and a misplaced one fails loudly on import instead of never running.
+# COVERAGE_OMIT drops the script this half's interpreter cannot import; see pyproject.toml.
 pytest-args-app   = test/python --ignore=test/python/test_check_streets_for_imagery.py
 pytest-args-tools = test/python --ignore=test/python/test_label_clustering.py
+cov-omit-app      = -e COVERAGE_OMIT=scripts/check_streets_for_imagery.py
+cov-omit-tools    = -e COVERAGE_OMIT=scripts/label_clustering.py
 
-test-python: test-python-app test-python-tools
+# Run both halves even when the first fails, matching CI's `fail-fast: false` — one interpreter's breakage shouldn't
+# hide the other's result. Prerequisites would stop at the first failure instead.
+test-python:
+	@$(MAKE) --no-print-directory test-python-app || fail=1; \
+	$(MAKE) --no-print-directory test-python-tools || fail=1; \
+	exit $${fail:-0}
 
 test-python-app:
-	@docker exec -it $(web-container) sh -c "cd /home && python3 -m pytest $(pytest-args-app) $(args)"
+	@docker exec -it $(cov-omit-app) $(web-container) sh -c "cd /home && python3 -m pytest $(pytest-args-app) $(args)"
 
 test-python-tools:
-	@docker exec -it $(web-container) sh -c "cd /home && python3.13 -m pytest $(pytest-args-tools) $(args)"
+	@docker exec -it $(cov-omit-tools) $(web-container) sh -c "cd /home && python3.13 -m pytest $(pytest-args-tools) $(args)"
 
 # Browser smoke tests (test/e2e/) HOST-side against an already-running app at localhost:9000 (override with
 # BASE_URL=). Unlike the other targets this doesn't docker exec — Playwright drives a host browser. One-time

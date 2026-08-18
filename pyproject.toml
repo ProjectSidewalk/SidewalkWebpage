@@ -18,9 +18,13 @@ addopts = "--cov --cov-branch --cov-report=term-missing --cov-fail-under=100"
 
 [tool.coverage.run]
 branch = true
-# `include`, not `source`: `source` additionally reports files it never saw imported as 0%, which is what would break
-# the split above. Kept to scripts/ so tools/ (one-off utilities, not held to the gate) stays out.
-include = ["scripts/*"]
+# `source`, not `include`: source also reports a file nothing imported as 0%, so a new script that arrives with no
+# tests at all fails the gate rather than going unmeasured. tools/ stays out — those are one-off utilities.
+source = ["scripts"]
+# The cost of `source` under the interpreter split is that each half would score the script it *cannot* import as 0%,
+# so each half names that one file here (`make test-python` sets it). Unset, nothing is omitted and a hand-run fails
+# the gate loudly instead of quietly measuring less than it looks like it did.
+omit = ["${COVERAGE_OMIT-}"]
 
 [tool.coverage.report]
 show_missing = true
