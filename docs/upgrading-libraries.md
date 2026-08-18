@@ -215,3 +215,46 @@ matching it.
 > **jQuery / Bootstrap removal:** several entries above (Bootstrap, dataTables, magnific-popup, selectize) are part of
 > a slow, deliberate transition *off* jQuery and Bootstrap toward native JS/CSS. Prefer native alternatives in new
 > code rather than leaning further on these. See the coding guidance in [`CONTRIBUTING.md`](../CONTRIBUTING.md).
+
+## Python
+
+Only the standalone utilities in [`scripts/`](../scripts) are Python; the app itself is Scala. Versions are pinned in
+the `requirements*.txt` files at the repo root and installed by the [`Dockerfile`](../Dockerfile). After a bump,
+rebuild the web image (`docker compose build web`) and run `make test-python`.
+
+### Interpreters
+
+The web image carries two, and **which one a package targets decides which file it goes in**
+([#4396](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4396)):
+
+- **Python 3.8** (`python3`) — the `eclipse-temurin:17-jdk-focal` base image's own. **Note:** EOL since October 2024,
+  kept only because the deployed app shells out to it for in-band clustering (prod runs on Rocky's system Python).
+  Retiring it means changing the base image, gated on the prod-environment audit
+  ([#4385](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4385)) — until then, don't add libraries to
+  `requirements.txt`, because current releases have all dropped 3.8.
+- **Python 3.13.15** (`python3.13`) — a [python-build-standalone](https://github.com/astral-sh/python-build-standalone)
+  CPython fetched by **uv 0.12.5** at image build time, since no PPA carries 3.13 for focal. Where offline tooling
+  runs. Both versions are pinned exactly in the `Dockerfile` (the installer URL and the `uv python install` argument),
+  so bump them there and here together. [Python releases](https://www.python.org/downloads/) ·
+  [uv releases](https://github.com/astral-sh/uv/releases)
+
+### Packages
+
+- **`requirements.txt`** (3.8, the in-band `label_clustering.py`) — **pandas 2.0.3**, **scipy 1.10.1**,
+  **haversine 2.8.1**, **requests 2.32.4**. **Note:** these are the last releases that install on 3.8, so they are
+  frozen until the interpreter moves. [pandas](https://pandas.pydata.org/docs/whatsnew/) ·
+  [scipy](https://docs.scipy.org/doc/scipy/release.html) ·
+  [haversine](https://github.com/mapado/haversine/releases) · [requests](https://github.com/psf/requests/releases)
+- **`requirements-offline-tools.txt`** (3.13, `check_streets_for_imagery.py`) — **pandas 3.0.5**,
+  **requests 2.34.2**, **shapely 2.1.2**, **geopy 2.5.0**, **tenacity 9.1.4**, **tqdm 4.70.0**. Self-contained rather
+  than layered on `requirements.txt`, since the two files target different interpreters and so can't share a pin.
+  **Note:** requires **Python ≥ 3.11**, and pandas is what sets that floor — re-check it when bumping pandas, and
+  update the docs that quote it. [shapely](https://github.com/shapely/shapely/releases) ·
+  [geopy](https://github.com/geopy/geopy/releases) · [tenacity](https://github.com/jd/tenacity/releases) ·
+  [tqdm](https://github.com/tqdm/tqdm/releases)
+- **`requirements-dev.txt`** (both) — **pytest 9.1.1** / **pytest-cov 7.1.0** on 3.10+, **pytest 8.3.5** /
+  **pytest-cov 5.0.0** below, by environment marker. **Note:** the boundary is pytest 9's own floor, not the 3.8 side
+  — 8.3.5 is both the last pytest supporting 3.8 and the first supporting 3.13, so it covers the 3.8–3.9 gap. Keep the
+  ranges adjacent and re-check that overlap before changing either.
+  [pytest](https://docs.pytest.org/en/stable/changelog.html) ·
+  [pytest-cov](https://github.com/pytest-dev/pytest-cov/blob/master/CHANGELOG.rst)

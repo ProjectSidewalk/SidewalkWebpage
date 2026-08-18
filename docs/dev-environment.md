@@ -248,6 +248,10 @@ The dev server hot-reloads, so you rarely restart it.
   `src/` file isn't picked up, check that its path matches a glob in `Gruntfile.js`.
 - **`build.sbt` or config changes** — these aren't hot-reloaded. In the Docker shell press `Ctrl+D`, then run
   `sbt clean`, then `npm start` again.
+- **Python** (the standalone utilities in `scripts/`) — the container has **two** interpreters. `python3` is the base
+  image's 3.8, kept because the app shells out to it for in-band clustering; `python3.13` is where the offline tooling
+  and its libraries live. Run offline scripts as `python3.13 scripts/...`. Details in
+  [`scripts/README.md`](../scripts/README.md); pins in [`docs/upgrading-libraries.md`](upgrading-libraries.md).
 
 ### Checking that backend changes compile
 
