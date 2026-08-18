@@ -281,6 +281,18 @@ repo's `node_modules`, builds that branch's JS/CSS bundles, frees `:9000`, and l
 worktree's own config while reusing the main repo's warm sbt caches. The first request triggers the dev compile;
 `Ctrl+C` stops it. It behaves the same on macOS, Linux, and WSL because the work runs inside the web container.
 
+When you're done with a worktree for good, remove it with:
+
+```bash
+make worktree-remove wt=<worktree-name>
+```
+
+That stops its QA session, deletes the directory and the registration git keeps for it, and deletes its branch once
+that branch is fully merged into `develop` — it tells you what it kept otherwise. Deleting the directory yourself
+leaves the registration behind, so the worktree lingers in `git worktree list`; run the target and it cleans that up
+instead. It stops and tells you if the worktree still has uncommitted or untracked files; add `force=1` to delete
+those along with it.
+
 To QA admin-only pages you need an account with a role. The dev database is seeded from a dump that includes real
 accounts, so if your own account is in it you can sign in normally — password checks work the same locally as in
 production. Otherwise — or if you'd rather use a throwaway account — create a fresh one through the sign-up form and
