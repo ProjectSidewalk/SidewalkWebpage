@@ -325,7 +325,7 @@ Roughly ordered by when you'd hit them during setup.
 | `pg_restore: ... schema "public" already exists` | Safe to ignore — no effect. |
 | `import-dump` otherwise errors | Don't skip ahead. Re-check the dump filename and `db=` value, then see the [Troubleshooting wiki](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Troubleshooting-Dev-Environment) and ask. |
 | `Execution exception [NoSuchElementException: None.get]` at runtime | The data wasn't imported — run `make import-dump` (the init only creates the schema, not the data). |
-| Database suddenly looks empty (`role "sidewalk_<city>" does not exist`, no city schemas) | Your data is most likely parked on an orphaned Docker volume, not gone — `docker volume ls -qf dangling=true` lists the candidates, and you can copy one back onto this project's data volume (`<project>_pgdata`, where `<project>` is your checkout directory lowercased). Don't run `docker volume prune` while you're looking; that is what actually destroys them. |
+| Database suddenly looks empty (`role "sidewalk_<city>" does not exist`, no city schemas) | Your data is most likely parked on an orphaned Docker volume, not gone. **Don't run `docker volume prune`** — that is what actually destroys it. See [Recovering an orphaned database volume](#recovering-an-orphaned-database-volume). |
 | `Cannot create container for service web: Conflict ... name "/projectsidewalk-web" already in use` | A prior `web` container wasn't shut down cleanly: `docker container rm /projectsidewalk-web`. |
 | Errors after the computer was shut off mid-run (WSL) | Run `wsl --shutdown`; when Docker offers to restart WSL, accept. Otherwise restart Docker manually. |
 | Can't connect to the database | The db container may not be listening on all addresses. `make ssh target=db`, edit `/var/lib/postgresql/data/postgresql.conf`, set `listen_addresses = '*'`. |
@@ -338,6 +338,60 @@ Roughly ordered by when you'd hit them during setup.
 - `value transactionally is not a member of slick.dbio.DBIOAction...` → add `import models.utils.MyPostgresProfile.api._`.
 - `type mismatch ... NoStream,Nothing ...` (often misleading) → try wrapping the queries in `.transactionally`, or
   use `DBIO.seq().andThen()`.
+
+### Recovering an orphaned database volume
+
+An orphaned Docker volume is **detached, not erased**. Removing a container — `make docker-stop`, which runs
+`docker compose rm -f`, or `docker compose down` — leaves any volume that isn't referenced elsewhere sitting on disk
+with nothing pointing at it, and the next `up` starts on an empty one. So a database that looks lost is usually still
+there. It stays recoverable until something deletes it, which is why **`docker volume prune` is the one command not to
+reach for** while you're looking.
+
+**1. Find the volume the database is *supposed* to be on.** It is not a fixed name: Compose namespaces volumes by
+project, and the project defaults to your checkout directory (lowercased, with anything outside `a-z0-9_-` stripped),
+so it's `<project>_pgdata`. Don't derive it — the db container's name is pinned in `docker-compose.yml`, so ask it:
+
+```bash
+make docker-up-db     # if there's no db container right now; it will come up empty, which is fine
+docker inspect projectsidewalk-db --format '{{range .Mounts}}{{.Name}}{{end}}'
+```
+
+Only volume mounts have a `.Name` (the bind mounts don't), so that prints exactly one thing: your copy destination.
+
+**2. List the orphans and work out which one is yours.** The hashes tell you nothing on their own, so look inside
+each. A Postgres data directory has a `PG_VERSION` file at its root, and size distinguishes a real city database
+(gigabytes) from a volume that only ever ran `init.sh` (~60 MB):
+
+```bash
+for v in $(docker volume ls -qf dangling=true); do
+  printf '%s  %s  ' "${v:0:12}" "$(docker volume inspect "$v" --format '{{.CreatedAt}}')"
+  docker run --rm -v "$v":/v:ro --entrypoint sh projectsidewalk/db -c \
+    'if [ -f /v/PG_VERSION ]; then printf "postgres %-4s" "$(cat /v/PG_VERSION)"; else printf "%-13s" not-postgres; fi
+     du -sh /v | cut -f1'
+done
+```
+
+Note that `<project>_pgdata` from step 1 is itself unreferenced whenever the db container is gone, so it can appear
+in this list too — it's the destination, not a candidate.
+
+**3. Stop the database, then copy.** Copying a data directory out from under a running server gives you a torn
+snapshot. Substitute the orphan's hash and the destination name step 1 printed:
+
+```bash
+docker compose stop db
+docker run --rm -v <hash>:/from:ro -v <destination>:/to --entrypoint sh projectsidewalk/db -c 'cp -a /from/. /to/'
+```
+
+The source is mounted read-only, so a failed copy can't damage the original — it is safe to retry. Destination
+ownership sorts itself out: the Postgres entrypoint `chown`s and `chmod 00700`s `$PGDATA` at boot.
+
+Let Compose create that destination (step 1) rather than typing a name here and letting `docker run` create it. Docker
+would make the volume, but without the labels Compose stamps on its own, so every later `up` warns that the volume
+"already exists but was not created by Docker Compose" — and a typo'd name copies your database somewhere nothing ever
+mounts, which looks exactly like the recovery having failed.
+
+**4. Verify before reclaiming the space.** `make docker-up-db`, then check your schemas are back (`\dn` in `psql`)
+and spot-check a row count. Only once you're satisfied, `docker volume rm <hash>`.
 
 ---
 

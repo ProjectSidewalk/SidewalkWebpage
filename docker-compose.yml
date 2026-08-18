@@ -52,6 +52,7 @@ services:
       - POSTGRES_PASSWORD=sidewalk
 
 volumes:
-  # Leave this unprefixed. Compose namespaces it per project — your checkout directory, lowercased — so an explicit
-  # `name:` would point every Sidewalk checkout on the machine at one shared database.
+  # Leave this unprefixed. Compose namespaces the key per project (-> <project>_pgdata), so an explicit `name:` would
+  # point every Sidewalk checkout on the machine at one shared database. To find the resolved name for a checkout, ask
+  # the container rather than deriving it: docker inspect projectsidewalk-db --format '{{range .Mounts}}{{.Name}}{{end}}'
   pgdata:
