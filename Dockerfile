@@ -32,20 +32,29 @@ COPY requirements-offline-tools.txt ./
 # get 3.13). `python3` is the base image's 3.8 and is the one the app shells out to, so it gets requirements.txt — the
 # in-band label_clustering.py deps — plus pytest for that script's tests. Nothing else should be added here: 3.8 is EOL
 # (#4396) and every library worth having has dropped it.
-RUN python3 -m pip install --upgrade pip
-RUN python3 -m pip install -r requirements.txt -r requirements-dev.txt
-RUN python3 -m pip install --upgrade setuptools
+RUN python3 -m pip install --no-cache-dir --upgrade pip
+RUN python3 -m pip install --no-cache-dir -r requirements.txt -r requirements-dev.txt
+RUN python3 -m pip install --no-cache-dir --upgrade setuptools
 
-# `python3.13` is where offline tooling lives, because its dependencies (requirements-offline-tools.txt) need >= 3.10.
+# `python3.13` is where offline tooling lives, because its dependencies (requirements-offline-tools.txt) need >= 3.11.
 # The interpreter is a prebuilt python-build-standalone CPython fetched by uv: no PPA carries 3.13 for focal, and uv
-# resolves the right build per architecture. Its EXTERNALLY-MANAGED marker is removed so plain
-# `python3.13 -m pip install` works, as it would on a normal system interpreter.
-RUN curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR=/usr/local/bin sh && \
-  uv python install 3.13 && \
-  ln -s "$(uv python find 3.13)" /usr/local/bin/python3.13 && \
-  rm "$(python3.13 -c 'import sysconfig; print(sysconfig.get_path("stdlib"))')/EXTERNALLY-MANAGED" && \
+# resolves the right build per architecture. Both uv and the interpreter are pinned to exact versions so every build
+# of this image produces the same pair — docs/upgrading-libraries.md records them, and bumping means editing here.
+#
+# It installs to /opt rather than uv's default under $HOME: root's home is mode 700, so an interpreter symlinked into
+# it is unusable by any other user (`docker exec -u ...`, or a future USER line), which would leave one of the two
+# documented interpreters silently root-only. `rm -f` because the EXTERNALLY-MANAGED marker — removed so that plain
+# `python3.13 -m pip install` works, as it would on a normal system interpreter — is an implementation detail of the
+# current python-build-standalone build, not a stable contract; if it ever stops being shipped, the image should
+# still build.
+ENV UV_PYTHON_INSTALL_DIR=/opt/uv-python
+RUN curl -LsSf https://astral.sh/uv/0.12.5/install.sh | env UV_INSTALL_DIR=/usr/local/bin sh && \
+  uv python install 3.13.15 && \
+  ln -s "$(uv python find 3.13.15)" /usr/local/bin/python3.13 && \
+  rm -f "$(python3.13 -c 'import sysconfig; print(sysconfig.get_path("stdlib"))')/EXTERNALLY-MANAGED" && \
   python3.13 -m ensurepip && \
-  python3.13 -m pip install --upgrade pip
-RUN python3.13 -m pip install -r requirements-offline-tools.txt -r requirements-dev.txt
+  python3.13 -m pip install --no-cache-dir --upgrade pip && \
+  uv cache clean
+RUN python3.13 -m pip install --no-cache-dir -r requirements-offline-tools.txt -r requirements-dev.txt
 
 RUN npm install

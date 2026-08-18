@@ -2,7 +2,8 @@
 # street-view imagery — see scripts/README.md). It is not on the running app's request path, so these are kept out of
 # requirements.txt, which is pinned to what the app's in-band Python (3.8) can install.
 #
-# These need Python >= 3.10, so they install into the container's second interpreter and the tool runs as:
+# These need Python >= 3.11 (pandas is the binding constraint; shapely/requests/tenacity want >= 3.10), so they
+# install into the container's second interpreter and the tool runs as:
 #
 #   python3.13 -m pip install -r requirements-offline-tools.txt
 #   python3.13 scripts/check_streets_for_imagery.py --gsv

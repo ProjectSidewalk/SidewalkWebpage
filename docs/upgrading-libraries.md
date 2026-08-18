@@ -233,8 +233,10 @@ The web image carries two, and **which one a package targets decides which file 
   ([#4385](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4385)) — until then, don't add libraries to
   `requirements.txt`, because current releases have all dropped 3.8.
 - **Python 3.13.15** (`python3.13`) — a [python-build-standalone](https://github.com/astral-sh/python-build-standalone)
-  CPython fetched by [uv](https://github.com/astral-sh/uv) at image build time; no PPA carries 3.13 for focal. This is
-  where offline tooling runs. Bump it by changing the version in the `uv python install` line of the `Dockerfile`.
+  CPython fetched by **uv 0.12.5** at image build time; no PPA carries 3.13 for focal. This is where offline tooling
+  runs. Both versions are pinned exactly in the `Dockerfile` (the `astral.sh/uv/<version>/install.sh` URL and the
+  `uv python install` argument) so every build of the image produces the same pair; bump them there and here together.
+  [Python releases](https://www.python.org/downloads/) · [uv releases](https://github.com/astral-sh/uv/releases)
 
 ### Packages
 
@@ -246,10 +248,13 @@ The web image carries two, and **which one a package targets decides which file 
 - **`requirements-offline-tools.txt`** (3.13, `check_streets_for_imagery.py`) — **pandas 3.0.5**,
   **requests 2.34.2**, **shapely 2.1.2**, **geopy 2.5.0**, **tenacity 9.1.4**, **tqdm 4.70.0**. Self-contained rather
   than layered on `requirements.txt`, since the two files target different interpreters and so can't share a pin.
+  **Note:** this set requires **Python ≥ 3.11** — pandas is the binding constraint (the rest want ≥ 3.10 or lower), so
+  re-check the floor when bumping pandas and update the docs that quote it.
   [shapely](https://github.com/shapely/shapely/releases) · [geopy](https://github.com/geopy/geopy/releases) ·
   [tenacity](https://github.com/jd/tenacity/releases) · [tqdm](https://github.com/tqdm/tqdm/releases)
-- **`requirements-dev.txt`** (both) — **pytest 9.1.1** / **pytest-cov 7.1.0** on 3.13, **pytest 8.3.5** /
-  **pytest-cov 5.0.0** on 3.8, selected by environment marker. **Note:** 8.3.5 is both the last pytest supporting 3.8
-  and the first supporting 3.13, so the legacy pin is not simply an older one — check that overlap still holds before
-  changing either. [pytest](https://docs.pytest.org/en/stable/changelog.html) ·
+- **`requirements-dev.txt`** (both) — **pytest 9.1.1** / **pytest-cov 7.1.0** on 3.10+, **pytest 8.3.5** /
+  **pytest-cov 5.0.0** below that, selected by environment marker. **Note:** the marker boundary is pytest 9's own
+  floor (3.10), not the 3.8 side — 8.3.5 is both the last pytest supporting 3.8 and the first supporting 3.13, so it
+  covers the whole 3.8–3.9 gap and the legacy pin is not simply an older one. Keep the two ranges adjacent and check
+  that overlap still holds before changing either. [pytest](https://docs.pytest.org/en/stable/changelog.html) ·
   [pytest-cov](https://github.com/pytest-dev/pytest-cov/blob/master/CHANGELOG.rst)

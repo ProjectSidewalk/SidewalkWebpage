@@ -125,11 +125,11 @@ import-street-imagery:
 
 # Python utility tests (test/python/) in the web container; extra pytest flags via args=, e.g. args="-k bbox -v".
 # Split by interpreter, because the scripts are: label_clustering.py is shelled out to by the app, so it is tested on
-# the same `python3` (3.8) prod runs it on, while the offline tooling needs >= 3.10 for its libraries. Each half scopes
-# --cov to the module its interpreter can import, so the 100% gate in pyproject.toml stays honest on both.
-pytest-args-app   = test/python/test_label_clustering.py --cov=label_clustering
-pytest-args-tools = test/python/test_check_streets_for_imagery.py test/python/test_verify_latlng_backfill.py \
-                    --cov=check_streets_for_imagery
+# the same `python3` (3.8) prod runs it on, while the offline tooling needs >= 3.11 for its libraries. Each half runs
+# the whole directory minus the one file the other interpreter owns, rather than listing what to include — so a new
+# test file runs in both halves by default, and a misplaced one fails loudly on import instead of never running.
+pytest-args-app   = test/python --ignore=test/python/test_check_streets_for_imagery.py
+pytest-args-tools = test/python --ignore=test/python/test_label_clustering.py
 
 test-python: test-python-app test-python-tools
 

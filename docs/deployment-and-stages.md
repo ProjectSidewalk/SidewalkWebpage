@@ -258,7 +258,7 @@ A deploy builds the app essentially the same way you do locally, in this order:
    **in-band** during clustering. These must land in the `python3` interpreter the app shells out to, or clustering
    fails at import time (e.g. `ModuleNotFoundError: No module named 'haversine'`). That interpreter is the server's
    system Python (3.8), which is why `requirements.txt` stays pinned to 3.8-installable versions (#4396). The
-   out-of-band utilities are **not** part of the deploy: `requirements-offline-tools.txt` needs Python ≥ 3.10, so it
+   out-of-band utilities are **not** part of the deploy: `requirements-offline-tools.txt` needs Python ≥ 3.11, so it
    is installed by hand into the 3.13 on the user account that runs those scripts.
 2. `npm install`, then **Grunt** to concatenate/build the frontend bundles.
 3. **sbt** `clean stage` to compile the Scala/Play backend into a runnable package. This also bundles the `scripts/`

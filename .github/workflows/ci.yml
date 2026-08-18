@@ -488,20 +488,19 @@ jobs:
       fail-fast: false
       # One leg per interpreter in the web container, testing each script on the Python that actually runs it (#4396).
       # label_clustering.py is shelled out to by the app, so it stays on prod's EOL 3.8; the offline tooling's
-      # libraries need >= 3.10, so it runs on 3.13. --cov is scoped per leg to the module that leg can import, which
-      # keeps the 100% gate in pyproject.toml meaningful on both halves rather than counting the other as 0%.
+      # libraries need >= 3.11, so it runs on 3.13. Each leg runs the whole directory minus the one file the other
+      # interpreter owns (mirroring the `pytest-args-*` variables in the Makefile), so a new test file runs in both
+      # legs by default rather than silently running in neither.
       matrix:
         include:
           - half: in-band script
             python: '3.8'
             requirements: -r requirements.txt -r requirements-dev.txt
-            pytest-args: test/python/test_label_clustering.py --cov=label_clustering
+            pytest-args: test/python --ignore=test/python/test_check_streets_for_imagery.py
           - half: offline tooling
             python: '3.13'
             requirements: -r requirements-offline-tools.txt -r requirements-dev.txt
-            pytest-args: >-
-              test/python/test_check_streets_for_imagery.py test/python/test_verify_latlng_backfill.py
-              --cov=check_streets_for_imagery
+            pytest-args: test/python --ignore=test/python/test_label_clustering.py
     steps:
       - uses: actions/checkout@v7
 

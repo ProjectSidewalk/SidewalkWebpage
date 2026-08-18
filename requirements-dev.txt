@@ -7,9 +7,11 @@
 #   python3    -m pip install -r requirements.txt -r requirements-dev.txt
 #   python3.13 -m pip install -r requirements-offline-tools.txt -r requirements-dev.txt
 #
-# 8.3.5 / 5.0.0 are the last releases supporting 3.8; they are also the first pytest line that supports 3.13, which is
-# why the legacy pin is not simply older.
-pytest==8.3.5; python_version < "3.9"
-pytest-cov==5.0.0; python_version < "3.9"
-pytest==9.1.1; python_version >= "3.9"
-pytest-cov==7.1.0; python_version >= "3.9"
+# The boundary is 3.10 because that is pytest 9's floor, not because of anything on the 3.8 side: 8.3.5 / 5.0.0 are
+# the last releases supporting 3.8 *and* the first pytest line supporting 3.13, so they cover the whole 3.8–3.9 gap
+# and the legacy pin is not simply an older one. Keep the two ranges adjacent — a gap would leave an interpreter with
+# no pin at all, and a marker that hands pytest 9 to something below 3.10 hard-errors instead of falling back.
+pytest==8.3.5; python_version < "3.10"
+pytest-cov==5.0.0; python_version < "3.10"
+pytest==9.1.1; python_version >= "3.10"
+pytest-cov==7.1.0; python_version >= "3.10"

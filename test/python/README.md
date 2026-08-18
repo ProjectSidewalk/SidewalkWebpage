@@ -38,7 +38,7 @@ make test-python
 That runs `pytest` inside the running `projectsidewalk-web` container — **twice**, once per interpreter the image
 carries, because the two scripts run on different ones (#4396). `label_clustering.py` is shelled out to by the app, so
 it is tested on the same `python3` (3.8) the deployed server uses; `check_streets_for_imagery.py`'s libraries need
-≥ 3.10, so it is tested on `python3.13`. `make test-python-app` and `make test-python-tools` run one half each, and
+≥ 3.11, so it is tested on `python3.13`. `make test-python-app` and `make test-python-tools` run one half each, and
 both take `args=` for extra pytest flags.
 
 The dependencies are preinstalled in the container: `requirements.txt` (the app's in-band deps: `pandas`, `scipy`, ...)
@@ -46,22 +46,23 @@ into 3.8, `requirements-offline-tools.txt` (`shapely`, `geopy`, ...) into 3.13, 
 into both. To run a half directly, or on the host:
 
 ```bash
-docker exec -it projectsidewalk-web sh -c "cd /home && python3.13 -m pytest test/python/test_check_streets_for_imagery.py --cov=check_streets_for_imagery"
+docker exec -it projectsidewalk-web sh -c "cd /home && python3.13 -m pytest test/python/test_check_streets_for_imagery.py"
 
 pip install -r requirements-offline-tools.txt -r requirements-dev.txt
-pytest test/python/test_check_streets_for_imagery.py --cov=check_streets_for_imagery
+pytest test/python/test_check_streets_for_imagery.py
 ```
 
-The `--cov=` is not optional: see [Coverage](#coverage).
+No coverage flags to remember — `pyproject.toml` turns coverage on for every invocation; see [Coverage](#coverage).
 
 Config lives in [`pyproject.toml`](../../pyproject.toml) (`[tool.pytest.ini_options]` + `[tool.coverage.*]`): it scopes
 collection to `test/python/` and puts `scripts/` and `tools/` on `sys.path` so the tests can `import label_clustering` /
 `import check_streets_for_imagery` directly.
 
-**Adding a test file:** it must be named in one of the two `pytest-args-*` lists in the [`Makefile`](../../Makefile)
-*and* in the `python-tests` matrix in [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml). Neither half
-collects the whole directory — under 3.8 the offline tooling isn't even importable — so a file listed in neither is
-silently never run.
+**Adding a test file:** nothing to register — each half runs the whole directory *minus* the single file the other
+interpreter owns (`--ignore`, in the [`Makefile`](../../Makefile)'s `pytest-args-*` and the `python-tests` matrix in
+[`.github/workflows/ci.yml`](../../.github/workflows/ci.yml)), so a new file runs in **both** halves. If it can only
+work on one — it imports something the other interpreter can't — add an `--ignore` for it to the other half. Until you
+do, that half fails on import, which is the intended way to find out.
 
 ## Coverage
 
@@ -72,9 +73,12 @@ uncovered branch fails the suite. The HTTP/file I/O in `main` is exercised by mo
 narrow exclusions are documented where they sit: the `if __name__ == '__main__'` entrypoint guards (never run under
 pytest) and one provably-unreachable loop-exit branch in `check_streets` (`# pragma: no branch`, justified inline).
 
-*Which* module is measured is passed per run (`--cov=label_clustering` / `--cov=check_streets_for_imagery`) rather than
-set in `pyproject.toml`, because a blanket `--cov=scripts` would count the half the running interpreter can't import as
-0% and fail the gate on both halves. That is also why the `--cov=` flag has to be part of any hand-run command.
+Scoping is a bare `--cov` in `addopts` plus `include = ["scripts/*"]`, not `--cov=scripts`. The difference matters
+because of the interpreter split: coverage's `source` reports files it never saw imported as 0%, so `--cov=scripts`
+would score each half on the other half's module and fail the gate on both, whereas `include` only filters what was
+actually measured. Each half therefore reports exactly the script it exercised, and — since nothing has to be passed
+per run — no invocation can quietly lose the gate. (`tools/` is outside `include`: those are one-off utilities, not
+held to 100%.)
 
 If you add logic, add a test — keep new code pure where possible (or hide I/O behind a thin wrapper and mock it) so the
 100% gate stays meaningful rather than something to lower.

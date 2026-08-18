@@ -8,13 +8,19 @@ testpaths = ["test/python"]
 # without packaging.
 pythonpath = ["scripts", "tools"]
 python_files = ["test_*.py"]
-# Branch coverage, so both sides of every decision must be exercised, and a hard gate at full coverage. Which module
-# is measured is *not* set here: the suite is split across the container's two interpreters (see `make test-python`),
-# and each run passes its own `--cov=` so the gate covers exactly the module that run can import.
-addopts = "--cov-branch --cov-report=term-missing --cov-fail-under=100"
+# Always measure correctness coverage and fail the run if it regresses below the gate. Branch coverage is on so both
+# sides of every decision must be exercised, not just every line. Bare `--cov` (no value) rather than `--cov=scripts`
+# is deliberate: the suite is split across the container's two interpreters (see `make test-python`), and naming a
+# directory would make coverage report the half the running interpreter *cannot* import as 0% and fail the gate on
+# both halves. Scoping is left to `include` below, which filters what was measured instead of enumerating what should
+# have been — so each half reports exactly the script it exercised, and no invocation can lose the gate.
+addopts = "--cov --cov-branch --cov-report=term-missing --cov-fail-under=100"
 
 [tool.coverage.run]
 branch = true
+# `include`, not `source`: `source` additionally reports files it never saw imported as 0%, which is what would break
+# the split above. Kept to scripts/ so tools/ (one-off utilities, not held to the gate) stays out.
+include = ["scripts/*"]
 
 [tool.coverage.report]
 show_missing = true

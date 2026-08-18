@@ -17,7 +17,7 @@ accounts have a current one), and each script runs on one of them:
 
 `label_clustering.py` is shelled out to by the running app, so it has to work on whatever `python3` the deployed server
 has — currently 3.8, which is EOL (#4396). Everything offline is free of that constraint and runs on `python3.13`,
-where its libraries (which dropped 3.8 long ago) are installed. Host-side, anything ≥ 3.10 works for the offline tool.
+where its libraries (which dropped 3.8 long ago) are installed. Host-side, the offline tool needs Python ≥ 3.11.
 
 ## `label_clustering.py`
 
