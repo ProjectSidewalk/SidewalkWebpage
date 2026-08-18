@@ -9,7 +9,8 @@ name: CI
 #                      the app, which auto-applies pending evolutions -- so it doubles as the forward-apply gate.
 #   - e2e-smoke:       Playwright browser smoke tests (test/e2e/) against a staged app + the CI database (ADVISORY for
 #                      now). Loads each core page in headless Chromium and fails on uncaught console/page errors.
-#   - python-tests:    pytest unit tests for the standalone scripts in scripts/ (ADVISORY for now).
+#   - python-tests:    pytest unit tests for the standalone scripts in scripts/ (ADVISORY for now). One leg per
+#                      interpreter the web container ships — 3.8 for the in-band script, 3.13 for the offline tooling.
 # ESLint (JavaScript), Stylelint (CSS), and htmlhint (HTML) are all wired into the `frontend` job as blocking steps now
 # that their trees are lint-clean (#2487).
 
@@ -479,24 +480,41 @@ jobs:
           retention-days: 7
 
   python-tests:
-    name: Python tests (scripts)
+    name: Python tests (${{ matrix.half }})
     runs-on: ubuntu-latest
     # ADVISORY while the suite is young (plan: ramp to blocking once stable). Does not block PRs yet.
     continue-on-error: true
+    strategy:
+      fail-fast: false
+      # One leg per interpreter the web container ships, testing each script on the Python that runs it (#4396):
+      # label_clustering.py is shelled out to by the app, so it stays on prod's EOL 3.8; the offline tooling needs
+      # >= 3.11. Mirrors the `pytest-args-*` and `cov-omit-*` variables in the Makefile — each leg takes the whole
+      # directory minus the one file the other owns, so a new test file runs in both rather than in neither.
+      matrix:
+        include:
+          - half: in-band script
+            python: '3.8'
+            requirements: -r requirements.txt -r requirements-dev.txt
+            pytest-args: test/python --ignore=test/python/test_check_streets_for_imagery.py
+            coverage-omit: scripts/check_streets_for_imagery.py
+          - half: offline tooling
+            python: '3.13'
+            requirements: -r requirements-offline-tools.txt -r requirements-dev.txt
+            pytest-args: test/python --ignore=test/python/test_label_clustering.py
+            coverage-omit: scripts/label_clustering.py
     steps:
       - uses: actions/checkout@v7
 
-      # Match the web container's interpreter (Dockerfile base eclipse-temurin:17-jdk-focal ships Python 3.8). 3.8 is
-      # EOL; bumping the container's Python is tracked separately and intentionally out of scope here.
-      - name: Set up Python 3.8
+      - name: Set up Python ${{ matrix.python }}
         uses: actions/setup-python@v7
         with:
-          python-version: '3.8'
+          python-version: ${{ matrix.python }}
 
-      # The pure-logic unit tests need no DB and no network, only the scripts' runtime deps plus pytest. The suite
-      # imports both scripts, so the offline check_streets deps (requirements-offline-tools.txt) are required too.
+      # The pure-logic unit tests need no DB and no network, only this half's runtime deps plus pytest.
       - name: Install dependencies
-        run: pip install -r requirements.txt -r requirements-dev.txt -r requirements-offline-tools.txt
+        run: pip install ${{ matrix.requirements }}
 
       - name: Run pytest
-        run: pytest test/python
+        run: pytest ${{ matrix['pytest-args'] }}
+        env:
+          COVERAGE_OMIT: ${{ matrix['coverage-omit'] }}
