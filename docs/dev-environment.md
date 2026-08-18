@@ -352,11 +352,17 @@ project, and the project defaults to your checkout directory (lowercased, with a
 so it's `<project>_pgdata`. Don't derive it — the db container's name is pinned in `docker-compose.yml`, so ask it:
 
 ```bash
-make docker-up-db     # if there's no db container right now; it will come up empty, which is fine
+docker compose create db     # creates the container *stopped*, and the volume with it
 docker inspect projectsidewalk-db --format '{{range .Mounts}}{{.Name}}{{end}}'
 ```
 
 Only volume mounts have a `.Name` (the bind mounts don't), so that prints exactly one thing: your copy destination.
+
+Use `create`, not `up`: starting Postgres on a new volume runs `init.sh` against it, and then you are copying a
+database *over* an initialized data directory rather than into an empty one. Letting Compose create the volume also
+beats `docker volume create` — Compose stamps four labels on its own volumes (project, volume, version, config-hash),
+and a hand-made volume carrying some subset makes every later `up` warn that it "already exists but was not created by
+Docker Compose".
 
 **2. List the orphans and work out which one is yours.** The hashes tell you nothing on their own, so look inside
 each. A Postgres data directory has a `PG_VERSION` file at its root, and size distinguishes a real city database
@@ -385,13 +391,17 @@ docker run --rm -v <hash>:/from:ro -v <destination>:/to --entrypoint sh projects
 The source is mounted read-only, so a failed copy can't damage the original — it is safe to retry. Destination
 ownership sorts itself out: the Postgres entrypoint `chown`s and `chmod 00700`s `$PGDATA` at boot.
 
-Let Compose create that destination (step 1) rather than typing a name here and letting `docker run` create it. Docker
-would make the volume, but without the labels Compose stamps on its own, so every later `up` warns that the volume
-"already exists but was not created by Docker Compose" — and a typo'd name copies your database somewhere nothing ever
-mounts, which looks exactly like the recovery having failed.
+Type the destination name from step 1 rather than one you assembled yourself: a typo copies your database into a
+brand-new volume that nothing ever mounts, which looks exactly like the recovery having failed. Expect this to be
+quick — 7.3 GB took about 13 seconds on an M-series Mac.
 
-**4. Verify before reclaiming the space.** `make docker-up-db`, then check your schemas are back (`\dn` in `psql`)
-and spot-check a row count. Only once you're satisfied, `docker volume rm <hash>`.
+**4. Verify before reclaiming the space.** `make docker-up-db`, then confirm the schemas are back (`\dn` in `psql`),
+compare `pg_database_size('sidewalk')` against what the old volume reported, and spot-check a row count or two. It is
+worth confirming the whole point of the exercise as well — `docker compose stop db && docker compose rm -f db`, then
+`make docker-up-db` again, and check the data is still there.
+
+Only once you're satisfied, reclaim the space with `docker volume rm <hash>`. There is no hurry: until you run that,
+you still have two copies.
 
 ---
 
