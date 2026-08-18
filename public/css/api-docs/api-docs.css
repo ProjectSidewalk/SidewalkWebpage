@@ -669,6 +669,45 @@ h6:hover .permalink {
   line-height: 1.4;
 }
 
+/* Map Overlays - Chips and legends layered over a preview map, positioned by the map's own control corners. */
+.map-chip {
+  font: var(--text-caption-regular);
+  background-color: var(--color-neutral-white);
+  padding: 5px 10px;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+}
+
+.map-legend {
+  background-color: var(--color-neutral-white);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  max-width: 200px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.map-legend h4 {
+  margin: 0 0 5px;
+  font: var(--text-small-bold);
+}
+
+.map-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font: var(--text-caption-regular);
+}
+
+.map-legend-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
 /* Counter badge - Used for displaying counts */
 .counter-badge {
   font-size: var(--font-size-xs);
@@ -1054,6 +1093,10 @@ var(--breakpoint-md) → 992px */
   /* Adjust map containers */
   .map-container {
     height: 400px;
+  }
+
+  .map-legend {
+    max-width: 150px;
   }
 }
 

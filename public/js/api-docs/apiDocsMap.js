@@ -1,0 +1,193 @@
+/**
+ * Shared Mapbox GL helpers for the API docs preview maps.
+ *
+ * Building the map, layering chips and legends over it, and reading GeoJSON properties back off a rendered feature
+ * live here. Data fetching, colors, and popup content belong to each page's own `*Preview.js`.
+ *
+ * @requires mapbox-gl, mapbox-gl-language, i18next
+ */
+
+window.ApiDocsMap = (function () {
+  // Our own Studio style, as used by RouteBuilder and the route thumbnails. Left without `?optimize=true`: that
+  // strips data the style doesn't currently draw out of the tiles, breaking anything that reads the basemap back at
+  // runtime — MapboxLanguage swapping `text-field` to another language's name field, most of all.
+  const STYLE_PROJECT_SIDEWALK = 'mapbox://styles/projectsidewalk/cloov4big002801rc0qw75w5g';
+
+  // The preview layers are small dots over a busy street grid, so the basemap is knocked back behind them.
+  const BASEMAP_DIM_OPACITY = 0.5;
+
+  /**
+   * Builds a Mapbox map in the given container and resolves once it has loaded.
+   *
+   * @param {object} options - Map options.
+   * @param {HTMLElement|string} options.container - Map container element, or its element ID.
+   * @param {string} options.mapboxApiKey - Mapbox access token.
+   * @param {string} [options.style=STYLE_PROJECT_SIDEWALK] - Mapbox style URL.
+   * @param {object} [options.bounds] - mapboxgl.LngLatBounds to frame the initial view on.
+   * @param {number} [options.fitPadding=75] - Pixels of padding left around `bounds`.
+   * @param {Array<number>} [options.center] - Initial center as [lng, lat]. Used only when `bounds` is omitted.
+   * @param {number} [options.zoom] - Initial zoom. Used only when `bounds` is omitted.
+   * @param {number} [options.dim=BASEMAP_DIM_OPACITY] - Basemap dimming, 0 (none) to 1 (black).
+   * @returns {Promise<object>} Resolves with the Mapbox map once it has loaded and been dimmed.
+   */
+  function create(options) {
+    mapboxgl.accessToken = options.mapboxApiKey;
+    const map = new mapboxgl.Map({
+      container: options.container,
+      style: options.style || STYLE_PROJECT_SIDEWALK,
+      // Framed at construction rather than by a fitBounds() after load, so the reader never sees the map land
+      // somewhere else first and then jump. Mapbox fits bounds at fractional zoom, so without the padding the
+      // region would touch the frame exactly.
+      ...(options.bounds
+        ? { bounds: options.bounds, fitBoundsOptions: { padding: options.fitPadding ?? 75 } }
+        : { center: options.center, zoom: options.zoom }),
+      // These maps sit mid-article, so wheel-zoom would swallow the scroll of anyone reading past them.
+      scrollZoom: false,
+      // Bottom-left is the legend's, so the logo joins the attribution on the right.
+      logoPosition: 'bottom-right',
+      attributionControl: 'bottom-right',
+    });
+    map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'top-left');
+    map.addControl(new MapboxLanguage({ defaultLanguage: i18next.t('common:mapbox-language-code') }));
+
+    return new Promise((resolve) => {
+      const finish = () => {
+        // Dimmed before the promise resolves, so every layer a caller adds afterwards lands on top of the scrim.
+        const dim = options.dim ?? BASEMAP_DIM_OPACITY;
+        if (dim > 0) {
+          // A `background` layer covers the viewport at any zoom without an extra source, and has no antimeridian
+          // or pole edge cases to get wrong.
+          map.addLayer({
+            id: 'basemap-dim',
+            type: 'background',
+            paint: { 'background-color': '#000000', 'background-opacity': dim },
+          });
+        }
+        resolve(map);
+      };
+      if (map.loaded()) finish();
+      else map.on('load', finish);
+    });
+  }
+
+  /**
+   * Layers an element over the map in one of its four control corners, returning it so callers can fill and refill
+   * it as data arrives.
+   *
+   * @param {object} map - The Mapbox map.
+   * @param {string} position - 'top-left', 'top-right', 'bottom-left', or 'bottom-right'.
+   * @param {string} className - Class(es) to style the overlay with.
+   * @returns {HTMLElement} The overlay element, already added to the map.
+   */
+  function addOverlay(map, position, className) {
+    const element = document.createElement('div');
+    // mapboxgl-ctrl gives the overlay the same margins and pointer handling as the map's built-in controls.
+    element.className = `mapboxgl-ctrl ${className}`;
+    map.addControl({ onAdd: () => element, onRemove: () => element.remove() }, position);
+    return element;
+  }
+
+  /**
+   * Returns the bounds enclosing a GeoJSON geometry, whatever its nesting depth (point through multi-polygon).
+   *
+   * @param {object} geometry - The GeoJSON geometry.
+   * @returns {object} mapboxgl.LngLatBounds covering every coordinate in it.
+   */
+  function geometryBounds(geometry) {
+    const bounds = new mapboxgl.LngLatBounds();
+    const extend = (coords) => {
+      if (typeof coords[0] === 'number') bounds.extend(coords);
+      else coords.forEach(extend);
+    };
+    extend(geometry.coordinates);
+    return bounds;
+  }
+
+  /**
+   * Reads a property off a rendered map feature, undoing Mapbox's flattening of non-scalar values.
+   *
+   * Mapbox GL carries only strings, numbers, and booleans through its feature pipeline, so an array or object in the
+   * source GeoJSON (a label's `tags`) arrives on `e.features[].properties` as a JSON *string* — which reads back as
+   * the string's characters rather than the array's, and looks fine until a popup renders `[` as its first tag.
+   *
+   * @param {object} properties - The `properties` object from a rendered feature.
+   * @param {string} name - Property name.
+   * @returns {*} The value, parsed back into an array/object where Mapbox stringified one.
+   */
+  function featureProp(properties, name) {
+    const value = properties[name];
+    if (typeof value !== 'string') return value;
+    const trimmed = value.trim();
+    if (!trimmed.startsWith('[') && !trimmed.startsWith('{')) return value;
+    try {
+      return JSON.parse(trimmed);
+    } catch {
+      return value;
+    }
+  }
+
+  /**
+   * Fetches JSON from one of our API endpoints, tagging the request as coming from the docs.
+   *
+   * @param {string} url - Endpoint URL, without the utm_source marker.
+   * @returns {Promise<object>} The parsed response body.
+   */
+  async function fetchJson(url) {
+    const response = await fetch(`${url}${url.includes('?') ? '&' : '?'}utm_source=apiDocs`);
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}`);
+    }
+    return response.json();
+  }
+
+  /**
+   * Builds a Mapbox `match` expression that colors a feature by its label type.
+   *
+   * @param {object} labelTypeInfo - Map of label type name to `{color, description}`, from /v3/api/labelTypes.
+   * @param {string} [property=label_type] - Feature property holding the label type name.
+   * @returns {Array} A Mapbox expression usable as a `circle-color` / `line-color` paint value.
+   */
+  function labelTypeColorExpression(labelTypeInfo, property = 'label_type') {
+    const expression = ['match', ['get', property]];
+    Object.entries(labelTypeInfo).forEach(([name, info]) => expression.push(name, info.color));
+    // Mapbox requires a fallback, and a type the API knows about but this page's palette doesn't should still draw.
+    expression.push('#999999');
+    return expression;
+  }
+
+  /**
+   * Fills a legend overlay with one swatch-and-name row per label type present in the rendered data.
+   *
+   * @param {HTMLElement} element - The overlay element to fill.
+   * @param {string} heading - Legend heading.
+   * @param {Array<string>} typeNames - Label type names present in the data.
+   * @param {object} labelTypeInfo - Map of label type name to `{color, description}`, from /v3/api/labelTypes.
+   * @param {string} emptyMessage - Shown in place of the rows when nothing was rendered.
+   */
+  function renderLabelTypeLegend(element, heading, typeNames, labelTypeInfo, emptyMessage) {
+    const rows = typeNames
+      .filter((name) => labelTypeInfo[name])
+      .map((name) => `
+        <div class="map-legend-item">
+          <span class="map-legend-swatch" style="background-color: ${labelTypeInfo[name].color};"></span>
+          ${name}
+        </div>
+      `)
+      .join('');
+    element.innerHTML = `
+      <h4>${heading}</h4>
+      ${rows || `<div>${emptyMessage}</div>`}
+    `;
+  }
+
+  return {
+    STYLE_PROJECT_SIDEWALK,
+    create,
+    addOverlay,
+    geometryBounds,
+    featureProp,
+    fetchJson,
+    labelTypeColorExpression,
+    renderLabelTypeLegend,
+  };
+})();
