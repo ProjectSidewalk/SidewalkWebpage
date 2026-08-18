@@ -327,38 +327,4 @@ class RegionTable @Inject() (
     """.as[(Int, Double)]
   }
 
-  /**
-   * Select region_id of the region containing (or closest to) the lat/lng position for every lat/lng.
-   *
-   * Note that an attempt to take copy the Slick code from the function above and take a union between all the lat/lngs
-   * to turn it into one query was unsuccessful, resulting in a stack overflow error. Maybe there is some other way to
-   * use Slick syntax that more closely mirrors what we're doing in raw SQL below. Ultimately resorted to batching.
-   * @param latLngs Seq of lat/lng pairs to find the closest region for.
-   * @return Seq of region_ids that are the closest region to the corresponding lat/lng in the input Seq.
-   */
-  def getRegionIdClosestToLatLngs(latLngs: Seq[(Double, Double)]): DBIO[Seq[Int]] = {
-    if (latLngs.isEmpty) {
-      DBIO.successful(Seq.empty)
-    } else {
-      // Build a VALUES clause with all points.
-      val pointDataSql = latLngs.zipWithIndex
-        .map { case ((lat, lng), idx) =>
-          s"($idx, ST_SetSRID(ST_MakePoint($lng, $lat), 4326))"
-        }
-        .mkString(", ")
-
-      sql"""
-        SELECT closest_region.region_id
-        FROM (VALUES #$pointDataSql) AS point_data(idx, geom)
-        CROSS JOIN LATERAL (
-          SELECT region_id
-          FROM region
-          WHERE deleted = FALSE
-          ORDER BY geom <-> point_data.geom
-          LIMIT 1
-        ) closest_region
-        ORDER BY point_data.idx;
-      """.as[Int]
-    }
-  }
 }

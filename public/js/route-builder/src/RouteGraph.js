@@ -157,6 +157,57 @@ class RouteGraph {
     return best !== null && best.distanceM <= maxDistanceM ? best : null;
   }
 
+  /**
+   * Point-to-segment distance in meters, computed in a local equirectangular frame centered on the point —
+   * accurate to well under a meter at the sub-kilometer scales this is used at.
+   *
+   * @param {Array<number>} p - [lng, lat] of the point.
+   * @param {Array<number>} a - [lng, lat] of one segment endpoint.
+   * @param {Array<number>} b - [lng, lat] of the other segment endpoint.
+   * @returns {number}
+   */
+  static #pointToSegmentM(p, a, b) {
+    const toRad = Math.PI / 180;
+    const mPerDegLat = toRad * RouteGraph.EARTH_RADIUS_M;
+    const mPerDegLng = mPerDegLat * Math.cos(p[1] * toRad);
+    const ax = (a[0] - p[0]) * mPerDegLng;
+    const ay = (a[1] - p[1]) * mPerDegLat;
+    const bx = (b[0] - p[0]) * mPerDegLng;
+    const by = (b[1] - p[1]) * mPerDegLat;
+    const dx = bx - ax;
+    const dy = by - ay;
+    const lenSq = dx * dx + dy * dy;
+    const t = lenSq === 0 ? 0 : Math.max(0, Math.min(1, -(ax * dx + ay * dy) / lenSq));
+    return Math.hypot(ax + t * dx, ay + t * dy);
+  }
+
+  /**
+   * Whether the point lies within maxDistanceM of a street's line (optionally only streets of one region).
+   *
+   * Unlike snapToStreet's nearest-vertex proxy — which mid-block on a long straight street overshoots by up to
+   * half the street's length — this measures true distance to the street's segments, so it reliably answers
+   * "is this point ON a street".
+   *
+   * @param {Object} point - {lng, lat}.
+   * @param {?number} regionId - When given, only streets in this region are considered.
+   * @param {number} maxDistanceM
+   * @returns {boolean}
+   */
+  isNearStreet(point, regionId, maxDistanceM) {
+    const p = [point.lng, point.lat];
+    for (const [streetId, feature] of this.#features) {
+      if (regionId !== null && feature.properties.region_id !== regionId) continue;
+      const coords = feature.geometry.coordinates;
+      // Same prefilter as snapToStreet: no part of the street is closer than (distance to the first vertex
+      // minus the geometry's length).
+      if (RouteGraph.distanceM(p, coords[0]) - this.#featureLengths.get(streetId) > maxDistanceM) continue;
+      for (let i = 1; i < coords.length; i++) {
+        if (RouteGraph.#pointToSegmentM(p, coords[i - 1], coords[i]) <= maxDistanceM) return true;
+      }
+    }
+    return false;
+  }
+
   /** Returns the existing node key for a coordinate (which was inserted during construction). */
   #findExistingNodeKey(coord) {
     return this.#nodeKeyFor(coord); // Always merges with the node created at build time.
