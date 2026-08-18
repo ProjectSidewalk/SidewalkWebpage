@@ -124,18 +124,15 @@ import-street-imagery:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/import-street-imagery.sh"
 
 # Python utility tests (test/python/) in the web container; extra pytest flags via args=, e.g. args="-k bbox -v".
-# Split by interpreter, because the scripts are: label_clustering.py is shelled out to by the app, so it is tested on
-# the same `python3` (3.8) prod runs it on, while the offline tooling needs >= 3.11 for its libraries. Each half runs
-# the whole directory minus the one file the other interpreter owns, rather than listing what to include — so a new
-# test file runs in both halves by default, and a misplaced one fails loudly on import instead of never running.
-# COVERAGE_OMIT drops the script this half's interpreter cannot import; see pyproject.toml.
+# Split by interpreter because the scripts are: label_clustering.py runs in-band on prod's `python3` (3.8), while the
+# offline tooling needs >= 3.11. Each half runs the whole directory minus the one file the other owns, so a new test
+# file runs in both by default instead of silently in neither. COVERAGE_OMIT is explained in pyproject.toml.
 pytest-args-app   = test/python --ignore=test/python/test_check_streets_for_imagery.py
 pytest-args-tools = test/python --ignore=test/python/test_label_clustering.py
 cov-omit-app      = -e COVERAGE_OMIT=scripts/check_streets_for_imagery.py
 cov-omit-tools    = -e COVERAGE_OMIT=scripts/label_clustering.py
 
-# Run both halves even when the first fails, matching CI's `fail-fast: false` — one interpreter's breakage shouldn't
-# hide the other's result. Prerequisites would stop at the first failure instead.
+# Both halves run even when the first fails, matching CI's `fail-fast: false`; prerequisites would stop at the first.
 test-python:
 	@$(MAKE) --no-print-directory test-python-app || fail=1; \
 	$(MAKE) --no-print-directory test-python-tools || fail=1; \

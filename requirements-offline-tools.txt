@@ -1,15 +1,11 @@
-# Dependencies for the offline check_streets_for_imagery.py utility (run out-of-band to find streets lacking
-# street-view imagery — see scripts/README.md). It is not on the running app's request path, so these are kept out of
+# Dependencies for the offline check_streets_for_imagery.py utility (see scripts/README.md). Kept out of
 # requirements.txt, which is pinned to what the app's in-band Python (3.8) can install.
 #
-# These need Python >= 3.11 (pandas is the binding constraint; shapely/requests/tenacity want >= 3.10), so they
-# install into the container's second interpreter and the tool runs as:
+# These need Python >= 3.11 (pandas sets the floor), so they install into the container's second interpreter:
 #
 #   python3.13 -m pip install -r requirements-offline-tools.txt
-#   python3.13 scripts/check_streets_for_imagery.py --gsv
 #
-# Self-contained (pandas/requests are listed here rather than inherited from requirements.txt) because the two files
-# target different interpreters and so cannot share a pin.
+# Self-contained rather than layered on requirements.txt: the two target different interpreters, so no shared pin.
 pandas==3.0.5
 requests==2.34.2
 shapely==2.1.2

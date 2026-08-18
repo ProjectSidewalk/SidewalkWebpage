@@ -10,9 +10,8 @@ This is a standalone, manually-run utility (it is not invoked by the app). Workf
          python3.13 scripts/check_streets_for_imagery.py --gsv
          python3.13 scripts/check_streets_for_imagery.py --mapillary
 
-     ``--gsv`` needs ``GOOGLE_MAPS_API_KEY``; ``--mapillary`` needs ``MAPILLARY_ACCESS_TOKEN``. The interpreter is
-     ``python3.13``, not the container's default ``python3``: this tool's libraries (requirements-offline-tools.txt)
-     need Python >= 3.11, while ``python3`` is the 3.8 the app shells out to for in-band clustering.
+     ``--gsv`` needs ``GOOGLE_MAPS_API_KEY``; ``--mapillary`` needs ``MAPILLARY_ACCESS_TOKEN``. It is ``python3.13``
+     rather than the container's default ``python3`` because this tool's libraries need Python >= 3.11.
   3. It writes streets without imagery to ``db/streets_with_no_imagery.csv``, and a per-street imagery summary
      (presence + capture-date range) to ``db/street_imagery_summary.csv``.
   4. Run ``make hide-streets-without-imagery`` to mark those streets in the database.

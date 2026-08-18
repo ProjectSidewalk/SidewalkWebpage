@@ -486,13 +486,10 @@ jobs:
     continue-on-error: true
     strategy:
       fail-fast: false
-      # One leg per interpreter in the web container, testing each script on the Python that actually runs it (#4396).
-      # label_clustering.py is shelled out to by the app, so it stays on prod's EOL 3.8; the offline tooling's
-      # libraries need >= 3.11, so it runs on 3.13. Each leg runs the whole directory minus the one file the other
-      # interpreter owns (mirroring the `pytest-args-*` variables in the Makefile), so a new test file runs in both
-      # legs by default rather than silently running in neither. COVERAGE_OMIT drops the script this leg's interpreter
-      # cannot import, which is what lets the coverage gate keep reporting an untested script as 0%; see
-      # pyproject.toml.
+      # One leg per interpreter the web container ships, testing each script on the Python that runs it (#4396):
+      # label_clustering.py is shelled out to by the app, so it stays on prod's EOL 3.8; the offline tooling needs
+      # >= 3.11. Mirrors the `pytest-args-*` and `cov-omit-*` variables in the Makefile — each leg takes the whole
+      # directory minus the one file the other owns, so a new test file runs in both rather than in neither.
       matrix:
         include:
           - half: in-band script

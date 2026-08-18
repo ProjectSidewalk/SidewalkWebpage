@@ -28,25 +28,20 @@ COPY requirements.txt ./
 COPY requirements-dev.txt ./
 COPY requirements-offline-tools.txt ./
 
-# The image carries two Python interpreters, matching prod (makelab1: Rocky's system 3.8 runs the app, user accounts
-# get 3.13). `python3` is the base image's 3.8 and is the one the app shells out to, so it gets requirements.txt — the
-# in-band label_clustering.py deps — plus pytest for that script's tests. Nothing else should be added here: 3.8 is EOL
-# (#4396) and every library worth having has dropped it.
+# Two interpreters, matching prod (makelab1: the app runs on Rocky's system 3.8, user accounts have 3.13). `python3`
+# is the base image's 3.8 and is what the app shells out to, so it gets requirements.txt plus pytest. Add nothing else
+# here: 3.8 is EOL (#4396) and current releases have dropped it.
 RUN python3 -m pip install --no-cache-dir --upgrade pip
 RUN python3 -m pip install --no-cache-dir -r requirements.txt -r requirements-dev.txt
 RUN python3 -m pip install --no-cache-dir --upgrade setuptools
 
-# `python3.13` is where offline tooling lives, because its dependencies (requirements-offline-tools.txt) need >= 3.11.
-# The interpreter is a prebuilt python-build-standalone CPython fetched by uv: no PPA carries 3.13 for focal, and uv
-# resolves the right build per architecture. Both uv and the interpreter are pinned to exact versions so every build
-# of this image produces the same pair — docs/upgrading-libraries.md records them, and bumping means editing here.
+# `python3.13` is where offline tooling lives: its dependencies (requirements-offline-tools.txt) need >= 3.11. The
+# interpreter is a prebuilt python-build-standalone CPython fetched by uv, since no PPA carries 3.13 for focal. Both
+# versions are pinned so every build produces the same pair; docs/upgrading-libraries.md records them.
 #
-# It installs to /opt rather than uv's default under $HOME: root's home is mode 700, so an interpreter symlinked into
-# it is unusable by any other user (`docker exec -u ...`, or a future USER line), which would leave one of the two
-# documented interpreters silently root-only. `rm -f` because the EXTERNALLY-MANAGED marker — removed so that plain
-# `python3.13 -m pip install` works, as it would on a normal system interpreter — is an implementation detail of the
-# current python-build-standalone build, not a stable contract; if it ever stops being shipped, the image should
-# still build.
+# It installs to /opt because root's home is mode 700, which would leave python3.13 unusable by anyone else
+# (`docker exec -u ...`, or a future USER line). Dropping EXTERNALLY-MANAGED makes plain `pip install` work as it
+# would on a system interpreter; `-f` because that marker is a python-build-standalone detail, not a contract.
 ENV UV_PYTHON_INSTALL_DIR=/opt/uv-python
 RUN curl -LsSf https://astral.sh/uv/0.12.5/install.sh | env UV_INSTALL_DIR=/usr/local/bin sh && \
   uv python install 3.13.15 && \

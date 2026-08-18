@@ -3,21 +3,20 @@
 Two standalone Python utilities for Project Sidewalk. They are **not** part of the running web app's request path
 (except as noted below) — they are run out-of-band. `check_streets_for_imagery.py` resolves its data/output paths
 relative to the repo root, so it can be launched from any working directory. Unit tests for both live in
-[`test/python/`](../test/python) — see [Testing](#testing).
+[`test/python/`](../test/python).
 
 ## Which interpreter to use
 
-The web container ships **two** Pythons, mirroring prod (on makelab1 the app runs on the OS's Python while user
-accounts have a current one), and each script runs on one of them:
+The web container ships **two** Pythons, mirroring prod (makelab1 runs the app on the OS's Python; user accounts have
+a current one):
 
 | Script | Interpreter | Dependencies |
 | --- | --- | --- |
 | `label_clustering.py` | `python3` (3.8) | [`requirements.txt`](../requirements.txt) |
 | `check_streets_for_imagery.py` | `python3.13` | [`requirements-offline-tools.txt`](../requirements-offline-tools.txt) |
 
-`label_clustering.py` is shelled out to by the running app, so it has to work on whatever `python3` the deployed server
-has — currently 3.8, which is EOL (#4396). Everything offline is free of that constraint and runs on `python3.13`,
-where its libraries (which dropped 3.8 long ago) are installed. Host-side, the offline tool needs Python ≥ 3.11.
+`label_clustering.py` is shelled out to by the running app, so it must work on whatever `python3` the server has —
+currently 3.8, which is EOL (#4396). Offline tooling has no such tie and runs on `python3.13`; host-side, ≥ 3.11.
 
 ## `label_clustering.py`
 
@@ -132,5 +131,4 @@ make test-python-app      # just label_clustering.py, on python3 (3.8)
 make test-python-tools    # just the offline tooling, on python3.13
 ```
 
-The suite is split the same way the scripts are, so each one is exercised on the interpreter that actually runs it.
 See [`test/python/README.md`](../test/python/README.md) for details and CI status.
