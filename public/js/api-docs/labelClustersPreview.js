@@ -208,20 +208,15 @@
         const validation = `Validation: ${props.agree_count} agree, ${props.disagree_count} disagree, `
           + `${props.unsure_count} unsure`;
 
-        new mapboxgl.Popup({ focusAfterOpen: false })
-          .setLngLat(feature.geometry.coordinates.slice())
-          .setHTML(`
-            <div class="cluster-popup">
-              <h4>${props.label_type}</h4>
-              <p>${labelTypeInfo[props.label_type]?.description || ''}</p>
-              <p>${severity}</p>
-              <p>${clusterSize}</p>
-              <p>${avgLabelDate}</p>
-              <p>${validation}</p>
-              <p>Cluster ID: ${props.label_cluster_id}</p>
-            </div>
-          `)
-          .addTo(map);
+        ApiDocsMap.popup(map, feature.geometry.coordinates.slice(), `
+          <h4>${props.label_type}</h4>
+          <p>${labelTypeInfo[props.label_type]?.description || ''}</p>
+          <p>${severity}</p>
+          <p>${clusterSize}</p>
+          <p>${avgLabelDate}</p>
+          <p>${validation}</p>
+          <p>Cluster ID: ${props.label_cluster_id}</p>
+        `);
       });
 
       map.on('mouseenter', CLUSTERS_LAYER, () => {

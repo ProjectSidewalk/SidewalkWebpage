@@ -64,6 +64,7 @@
   --color-accent-delete: #f93e3e;
   --color-accent-put: #fca130;
   --color-accent-link: #0566f5;
+  --color-accent-link-hover: #1a70d3;
 
   /* Feedback colors */
   --color-success: #4caf50;
@@ -476,8 +477,8 @@ h6:hover .permalink {
 }
 
 .download-btn-primary:hover {
-  background-color: #1a70d3;
-  border-color: #1a70d3;
+  background-color: var(--color-accent-link-hover);
+  border-color: var(--color-accent-link-hover);
   color: var(--color-text-on-accent);
 }
 
@@ -640,7 +641,9 @@ h6:hover .permalink {
   color: var(--color-text-heading);
 }
 
-/* Map Container - Common to various map components */
+/* Map Container - Common to various map components. Also the query container the overlays size themselves against:
+   map width and viewport width come apart in both directions here, since the sidebar and TOC can leave a desktop map
+   barely 500px wide while a phone gets one as wide as the screen. */
 .map-container {
   width: 100%;
   height: 500px;
@@ -648,25 +651,64 @@ h6:hover .permalink {
   border-radius: var(--border-radius);
   overflow: hidden;
   position: relative;
+  container: preview-map / inline-size;
 }
 
-/* Map Popup - Base styles for map popups */
-.map-popup {
-  max-width: 250px;
-  padding: var(--space-xs);
+/* Map Popup - the popup every preview map opens, whatever it's about. ApiDocsMap.popup puts .map-popup on the popup
+   root, so these rules reach Mapbox's own frame as well as the content we hand it. */
+.map-popup .mapboxgl-popup-content {
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--border-radius-lg);
+}
+
+/* Mapbox rounds the close button's corner to match its own 3px frame, so it has to track ours. */
+.map-popup .mapboxgl-popup-close-button {
+  border-radius: 0 var(--border-radius-lg) 0 0;
 }
 
 .map-popup h3,
 .map-popup h4 {
-  margin: 0 0 var(--space-xs) 0;
-  padding-bottom: var(--space-xxs);
+  margin: 0 0 6px;
+  padding-bottom: 4px;
   border-bottom: 1px solid var(--color-border-light);
+  font: var(--text-small-medium);
 }
 
 .map-popup p {
-  margin: var(--space-xxs) 0;
-  font-size: var(--font-size-sm);
-  line-height: 1.4;
+  margin: 4px 0;
+  font: var(--text-caption-regular);
+}
+
+.map-popup strong {
+  font: var(--text-caption-semibold);
+}
+
+/* The call-to-action a popup can end with, e.g. a link out to the label map. */
+.map-popup-link {
+  display: inline-block;
+  margin-top: var(--space-xs);
+  padding: 6px 12px;
+  border: 1px solid var(--color-accent-link);
+  border-radius: var(--border-radius);
+  background-color: var(--color-accent-link);
+  color: var(--color-text-on-accent);
+  font: var(--text-caption-medium);
+  text-align: center;
+  text-decoration: none;
+  transition: background-color var(--transition-fast);
+}
+
+.map-popup-link:hover,
+.map-popup-link:focus {
+  background-color: var(--color-accent-link-hover);
+  border-color: var(--color-accent-link-hover);
+  color: var(--color-text-on-accent);
+  text-decoration: none;
+}
+
+.map-popup-link:focus-visible {
+  outline: 2px solid var(--color-accent-link);
+  outline-offset: 2px;
 }
 
 /* Map Overlays - Chips and legends layered over a preview map, positioned by the map's own control corners. */
@@ -683,7 +725,8 @@ h6:hover .permalink {
   padding: var(--space-xs) var(--space-sm);
   border-radius: var(--border-radius);
   box-shadow: var(--box-shadow);
-  max-width: 200px;
+  min-width: 180px;
+  max-width: 250px;
   max-height: 300px;
   overflow-y: auto;
 }
@@ -700,12 +743,82 @@ h6:hover .permalink {
   font: var(--text-caption-regular);
 }
 
+/* The bar's colors are set from the data in JS; everything else about it lives here. */
+.map-legend-gradient {
+  height: 14px;
+  margin: 5px 0 3px;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--border-radius-sm);
+}
+
+.map-legend-ticks {
+  display: flex;
+  justify-content: space-between;
+  font: var(--text-tiny-regular);
+  color: var(--color-text-secondary);
+}
+
 .map-legend-swatch {
   display: inline-block;
   width: 10px;
   height: 10px;
   border-radius: 50%;
   flex-shrink: 0;
+}
+
+@container preview-map (width < 500px) {
+  .map-chip {
+    padding: 3px 6px;
+    font: var(--text-tiny-regular);
+  }
+
+  .map-legend {
+    padding: var(--space-xxs) var(--space-xs);
+    min-width: 0;
+    max-width: 45cqw;
+    max-height: 150px;
+  }
+
+  .map-legend h4 {
+    font: var(--text-caption-semibold);
+  }
+
+  .map-legend-item {
+    gap: 4px;
+    font: var(--text-tiny-regular);
+  }
+
+  .map-legend-gradient {
+    height: 10px;
+  }
+
+  .map-legend-swatch {
+    width: 8px;
+    height: 8px;
+  }
+
+  .map-popup .mapboxgl-popup-content {
+    padding: var(--space-xxs) var(--space-xs);
+    max-width: 70cqw;
+  }
+
+  .map-popup h3,
+  .map-popup h4 {
+    font: var(--text-caption-semibold);
+  }
+
+  .map-popup p {
+    font: var(--text-tiny-regular);
+  }
+
+  .map-popup strong {
+    font: var(--text-tiny-semibold);
+  }
+
+  .map-popup-link {
+    padding: 4px 8px;
+    font: var(--text-tiny-medium);
+  }
 }
 
 /* Counter badge - Used for displaying counts */
@@ -1093,10 +1206,6 @@ var(--breakpoint-md) → 992px */
   /* Adjust map containers */
   .map-container {
     height: 400px;
-  }
-
-  .map-legend {
-    max-width: 150px;
   }
 }
 

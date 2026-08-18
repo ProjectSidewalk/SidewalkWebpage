@@ -212,21 +212,16 @@
           ? `<p><a href="${props.pano_url}" target="_blank" rel="noopener noreferrer">View panorama</a></p>`
           : '';
 
-        new mapboxgl.Popup({ focusAfterOpen: false })
-          .setLngLat(feature.geometry.coordinates.slice())
-          .setHTML(`
-            <div class="label-popup">
-              <h4>${props.label_type}</h4>
-              <p>${labelTypeInfo[props.label_type]?.description || ''}</p>
-              <p>${severity}</p>
-              <p>${tags}</p>
-              <p>Created: ${timeCreated}</p>
-              <p>${validationStatus}</p>
-              <p>Label ID: ${props.label_id}</p>
-              ${panoLink}
-            </div>
-          `)
-          .addTo(map);
+        ApiDocsMap.popup(map, feature.geometry.coordinates.slice(), `
+          <h4>${props.label_type}</h4>
+          <p>${labelTypeInfo[props.label_type]?.description || ''}</p>
+          <p>${severity}</p>
+          <p>${tags}</p>
+          <p>Created: ${timeCreated}</p>
+          <p>${validationStatus}</p>
+          <p>Label ID: ${props.label_id}</p>
+          ${panoLink}
+        `);
       });
 
       map.on('mouseenter', LABELS_LAYER, () => {

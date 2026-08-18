@@ -24,24 +24,6 @@
    POPUP AND TOOLTIPS
    ========================================================================== */
 
-/* Label popup - extends .map-popup class from api-docs.css */
-.label-popup {
-  max-width: 250px;
-  padding: 2px;
-}
-
-.label-popup h4 {
-  margin: 0 0 6px;
-  font: var(--text-caption-medium);
-  border-bottom: 1px solid var(--color-border-light);
-  padding-bottom: 4px;
-}
-
-.label-popup p {
-  margin: 4px 0;
-  font: var(--text-tiny-regular);
-}
-
 /* ==========================================================================
    STATUS MESSAGES
    ========================================================================== */
@@ -71,9 +53,5 @@
 @media (width <= 768px) {
   #raw-labels-preview {
     height: 400px;
-  }
-
-  .label-popup {
-    max-width: 200px;
   }
 }
