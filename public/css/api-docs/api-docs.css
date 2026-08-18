@@ -766,6 +766,12 @@ h6:hover .permalink {
   flex-shrink: 0;
 }
 
+/* Mapbox's two-finger gesture overlay ships its own system font stack. Its font-size is set inline by the library
+   from the map's width, so that part isn't ours to set. */
+.map-container .mapboxgl-touch-pan-blocker {
+  font-family: var(--font-primary);
+}
+
 @container preview-map (width < 500px) {
   .map-chip {
     padding: 3px 6px;

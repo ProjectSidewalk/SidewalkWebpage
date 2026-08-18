@@ -1,5 +1,6 @@
 {
   "mapbox-language-code": "zh-Hant",
+  "map-two-finger-pan": "使用兩指移動地圖",
   "explore-street-link": "<a href='/explore?streetEdgeId={{streetId}}' class='street-selection-trigger' streetId='{{streetId}}'>點選這裡</a> 探索街道！",
   "distance-progress": "{{done, distance(style: small; unit: false)}}/{{total, distance(style: small)}}",
   "distance-large": "{{dist}} {{unitAbbr}}",

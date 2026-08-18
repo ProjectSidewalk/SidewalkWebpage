@@ -55,6 +55,9 @@ window.ApiDocsMap = (function () {
         : { center: options.center, zoom: options.zoom }),
       // These maps sit mid-article, so wheel-zoom would swallow the scroll of anyone reading past them.
       scrollZoom: false,
+      // The touch counterpart: two fingers to pan instead of one.
+      cooperativeGestures: true,
+      locale: { 'TouchPanBlocker.Message': i18next.t('common:map-two-finger-pan') },
       // Bottom-left is the legend's, so the logo joins the attribution on the right.
       logoPosition: 'bottom-right',
       attributionControl: true,

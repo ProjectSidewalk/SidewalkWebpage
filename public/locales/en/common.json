@@ -1,5 +1,6 @@
 {
   "mapbox-language-code": "en",
+  "map-two-finger-pan": "Use two fingers to move the map",
   "explore-street-link": "<a href='/explore?streetEdgeId={{streetId}}' class='street-selection-trigger' streetId='{{streetId}}'>Click here</a> to explore this street!",
   "distance-progress": "{{done, distance(style: small; unit: false)}}/{{total, distance(style: small)}}",
   "distance-large": "{{dist}} {{unitAbbr}}",
