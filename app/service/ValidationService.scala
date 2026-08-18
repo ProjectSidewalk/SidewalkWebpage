@@ -283,37 +283,43 @@ class ValidationServiceImpl @Inject() (
     val valSubmitActions: Seq[DBIO[Int]] = for (valSubmission <- validationSubmissions) yield {
       val validation: LabelValidation = valSubmission.validation
 
-      // If undoing a validation, delete the validation and the associated comment.
-      val oldValRemoved = if (valSubmission.undone || valSubmission.redone) {
-        for {
-          _ <- validationTaskCommentTable.deleteIfExists(validation.labelId, validation.userId)
-          _ <- deleteLabelValidationIfExists(validation.labelId, validation.userId)
-        } yield true
-      } else DBIO.successful(false)
+      labelValidationTable.getValidation(validation.labelId, validation.userId).flatMap { existingVal =>
+        // The undone/redone flags cover the replacements the client knows about, but a duplicate can arrive without
+        // them: a POST retried after its original committed, or the label served again in a later mission. Removing
+        // any prior validation first makes those a clean replacement (latest verdict wins) rather than a unique
+        // constraint violation that 500s the whole batch, and reuses the redo path so the label's severity/tags,
+        // label_history, and validation counts unwind before the new validation applies (#4377).
+        val oldValRemoved = if (valSubmission.undone || valSubmission.redone || existingVal.isDefined) {
+          for {
+            _ <- validationTaskCommentTable.deleteIfExists(validation.labelId, validation.userId)
+            _ <- deleteLabelValidationIfExists(validation.labelId, validation.userId)
+          } yield true
+        } else DBIO.successful(false)
 
-      // If the validation is new or is an update for an undone label, save it.
-      val newValInserted = if (!valSubmission.undone) {
+        // If the validation is new or is an update for an undone label, save it.
+        val newValInserted = if (!valSubmission.undone) {
+          for {
+            newValId: Int <- insert(validation)
+            // Update the severity and tags in the label table if something changed (only applies if they marked Agree).
+            _ <- {
+              if (validation.validationResult == ValidationOption.Agree) {
+                updateAndSaveLabelHistory(validation.labelId, validation.newSeverity, validation.newTags,
+                  validation.userId, validation.source, newValId)
+              } else DBIO.successful(0)
+            }
+            // Insert the comment if there is one.
+            _ <- valSubmission.comment match {
+              case Some(comment) => validationTaskCommentTable.insert(comment)
+              case None          => DBIO.successful(0)
+            }
+          } yield newValId
+        } else DBIO.successful(0)
+
         for {
-          newValId: Int <- insert(validation)
-          // Update the severity and tags in the label table if something changed (only applies if they marked Agree).
-          _ <- {
-            if (validation.validationResult == ValidationOption.Agree) {
-              updateAndSaveLabelHistory(validation.labelId, validation.newSeverity, validation.newTags,
-                validation.userId, validation.source, newValId)
-            } else DBIO.successful(0)
-          }
-          // Insert the comment if there is one.
-          _ <- valSubmission.comment match {
-            case Some(comment) => validationTaskCommentTable.insert(comment)
-            case None          => DBIO.successful(0)
-          }
+          _        <- oldValRemoved
+          newValId <- newValInserted
         } yield newValId
-      } else DBIO.successful(0)
-
-      for {
-        _        <- oldValRemoved
-        newValId <- newValInserted
-      } yield newValId
+      }
     }
 
     // For any users whose labels have been validated, update their accuracy in the user_stat table.

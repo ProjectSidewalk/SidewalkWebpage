@@ -248,6 +248,12 @@ class ValidateSubmissionSpec
             WHERE label_id = $labelId AND user_id = $userId""".as[(String, Int)]
     ).headOption
 
+  /** How many validations of the label the user holds; the unique constraint means this is only ever 0 or 1. */
+  private def validationCount(labelId: Int, userId: String): Int =
+    run(
+      sql"SELECT count(*) FROM label_validation WHERE label_id = $labelId AND user_id = $userId".as[Int]
+    ).head
+
   /** How many `label_history` rows the label carries; a validation that changes nothing must not add one. */
   private def labelHistoryCount(labelId: Int): Int =
     run(sql"SELECT count(*) FROM label_history WHERE label_id = $labelId".as[Int]).head
@@ -374,6 +380,49 @@ class ValidateSubmissionSpec
       validationRow(labelId, b.userId) mustBe None
       labelState(labelId) mustBe before
       missionProgress(b.missionId) mustBe 0
+    }
+
+    "answer 200 and leave one row when the identical submission arrives twice (#4377)" in {
+      val session      = freshAnonSession()
+      val b            = fetchValidateBootstrap(session)
+      val label        = b.labels.head
+      val labelId      = (label \ "label_id").as[Int]
+      val before       = backupLabel(labelId)
+      val historyCount = labelHistoryCount(labelId)
+      val submission   =
+        taskSubmission(b, Seq(validationJson(label, b.missionId, "Agree")), Some(missionProgressJson(b, 1)))
+
+      status(postValidationTask(session, submission)) mustBe OK
+      // A client that missed the first response resends the same snapshot verbatim. It has to land as a replacement,
+      // not as a unique-constraint violation that rolls the batch back and 500s.
+      status(postValidationTask(session, submission)) mustBe OK
+
+      validationCount(labelId, b.userId) mustBe 1
+      validationRow(labelId, b.userId) mustBe Some(("Agree", b.missionId))
+      // The vote is counted once, not twice — the replacement unwinds the first one's effect before applying itself.
+      labelState(labelId).agreeCount mustBe before.agreeCount + 1
+      labelHistoryCount(labelId) mustBe historyCount
+    }
+
+    "let a second validation of the same label replace the first verdict (#4377)" in {
+      val session = freshAnonSession()
+      val b       = fetchValidateBootstrap(session)
+      val label   = b.labels.head
+      val labelId = (label \ "label_id").as[Int]
+      val before  = backupLabel(labelId)
+
+      val progress = Some(missionProgressJson(b, 1))
+      status(postValidationTask(session, taskSubmission(b, Seq(validationJson(label, b.missionId, "Agree")), progress)))
+        .mustBe(OK)
+      status(
+        postValidationTask(session, taskSubmission(b, Seq(validationJson(label, b.missionId, "Disagree")), progress))
+      ).mustBe(OK)
+
+      validationCount(labelId, b.userId) mustBe 1
+      validationRow(labelId, b.userId).map(_._1) mustBe Some("Disagree")
+      val after = labelState(labelId)
+      after.agreeCount mustBe before.agreeCount
+      after.disagreeCount mustBe before.disagreeCount + 1
     }
   }
 
