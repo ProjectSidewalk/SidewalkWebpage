@@ -158,7 +158,7 @@
             (${p.audited_street_count} of ${p.total_street_count} streets audited)</p>
           <p><strong>Region ID:</strong> ${p.region_id}</p>
           <a href="/v3/api/accessScoreRegions?regionId=${p.region_id}&inline=true"
-            class="map-popup-link" target="_blank">
+            class="button-ps button--primary button--tiny" target="_blank">
             View this region's JSON
           </a>
         `);
@@ -168,7 +168,8 @@
     /** (Re)build the fixed 0→1 gradient legend for the selected metric. */
     updateLegend() {
       const metricCfg = METRICS[this._metric];
-      ApiDocsMap.renderGradientLegend(this._legend, metricCfg.legendTitle, ApiDocsMap.ACCESS_SCORE_RAMP, '0', '1');
+      ApiDocsMap.renderGradientLegend(this._legend, metricCfg.legendTitle, ApiDocsMap.ACCESS_SCORE_RAMP,
+        ['0', '1'], { color: NONE_COLOR, label: 'No audited streets' });
     },
 
     /** Show an on-map message (e.g. when there is no data). */

@@ -26,15 +26,15 @@
   const METRICS = {
     label_count: {
       label: 'Label count', legendTitle: 'Labels per region',
-      none: '#3d3d3d', ramp: ['#440154', '#f0f921'],
+      none: { color: '#3d3d3d', label: 'No labels' }, ramp: ['#440154', '#f0f921'],
     },
     audit_count: {
       label: 'Audit count', legendTitle: 'Completed audits per region',
-      none: '#3d3d3d', ramp: ['#0d3b2e', '#44ff88'],
+      none: { color: '#3d3d3d', label: 'No completed audits' }, ramp: ['#0d3b2e', '#44ff88'],
     },
     user_count: {
       label: 'User count', legendTitle: 'Contributors per region',
-      none: '#3d3d3d', ramp: ['#472c7a', '#ffffff'],
+      none: { color: '#3d3d3d', label: 'No contributors' }, ramp: ['#472c7a', '#ffffff'],
     },
   };
 
@@ -183,7 +183,7 @@
       const metricCfg = METRICS[this._metric];
       return ApiDocsMap.gradientColorExpression(this._metric, metricCfg.ramp, {
         max: this._maxByMetric[this._metric],
-        noneColor: metricCfg.none,
+        noneColor: metricCfg.none.color,
         // Zero gets the "none" color rather than the ramp's low end: a region nobody has touched reads differently
         // from the least-labeled region that someone has.
         noneAtOrBelow: 0,
@@ -213,7 +213,8 @@
           <p><strong>Completed audits:</strong> ${props.audit_count}</p>
           <p><strong>First Label:</strong> ${firstLabelDate}</p>
           <p><strong>Last Label:</strong> ${lastLabelDate}</p>
-          <a href="/labelmap?regions=${props.region_id}" class="map-popup-link" target="_blank">
+          <a href="/labelmap?regions=${props.region_id}" class="button-ps button--primary button--tiny"
+            target="_blank">
             View region on the label map
           </a>
         `);
@@ -226,7 +227,8 @@
     updateLegend() {
       const metricCfg = METRICS[this._metric];
       const max = this._maxByMetric[this._metric];
-      ApiDocsMap.renderGradientLegend(this._legend, metricCfg.legendTitle, metricCfg.ramp, '0', max.toLocaleString());
+      ApiDocsMap.renderGradientLegend(this._legend, metricCfg.legendTitle, metricCfg.ramp,
+        ['1', max.toLocaleString()], metricCfg.none);
     },
 
     /**

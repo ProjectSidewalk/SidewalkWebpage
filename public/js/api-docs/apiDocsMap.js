@@ -272,22 +272,29 @@ window.ApiDocsMap = (function () {
   }
 
   /**
-   * Fills a legend overlay with a continuous color bar and the labels for its two ends.
+   * Fills a legend overlay with a continuous color bar, tick labels spread evenly beneath it, and an optional swatch
+   * row for the features the ramp doesn't cover.
    *
    * @param {HTMLElement} element - The overlay element to fill.
    * @param {string} title - Legend heading.
    * @param {Array<string>} ramp - The colors passed to the matching `gradientColorExpression`.
-   * @param {string} minLabel - Label under the low end.
-   * @param {string} maxLabel - Label under the high end.
+   * @param {Array<string>} tickLabels - Labels under the bar, low end first.
+   * @param {object} [none] - The `{color, label}` for features with no value, matching `gradientColorExpression`'s
+   *                          `noneColor`. Omit when every feature lands somewhere on the ramp.
    */
-  function renderGradientLegend(element, title, ramp, minLabel, maxLabel) {
+  function renderGradientLegend(element, title, ramp, tickLabels, none) {
+    // A discrete category can't sit honestly anywhere on a continuous bar, so it gets its own row below the ticks.
+    const noneRow = none
+      ? `<div class="map-legend-item">
+           <span class="map-legend-swatch" style="background-color: ${none.color};"></span>
+           ${none.label}
+         </div>`
+      : '';
     element.innerHTML = `
       <h4>${title}</h4>
       <div class="map-legend-gradient"></div>
-      <div class="map-legend-ticks">
-        <span>${minLabel}</span>
-        <span>${maxLabel}</span>
-      </div>
+      <div class="map-legend-ticks">${tickLabels.map((label) => `<span>${label}</span>`).join('')}</div>
+      ${noneRow}
     `;
     // The ramp is data, so this one declaration can't live in the stylesheet with the rest of the legend's styling.
     element.querySelector('.map-legend-gradient').style.background = `linear-gradient(to right, ${ramp.join(', ')})`;

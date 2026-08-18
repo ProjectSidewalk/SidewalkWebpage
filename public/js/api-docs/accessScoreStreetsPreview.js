@@ -114,7 +114,7 @@
 
       const legend = ApiDocsMap.addOverlay(map, 'bottom-left', 'map-legend');
       ApiDocsMap.renderGradientLegend(legend, 'AccessScore (0 = low, 1 = high)',
-        ApiDocsMap.ACCESS_SCORE_RAMP, '0', '1');
+        ApiDocsMap.ACCESS_SCORE_RAMP, ['0', '1'], { color: NONE_COLOR, label: 'Unaudited' });
     },
 
     /** Wire up the click popup for the street layer, including a compact per-type cluster breakdown. */

@@ -671,7 +671,7 @@ h6:hover .permalink {
   margin: 0 0 6px;
   padding-bottom: 4px;
   border-bottom: 1px solid var(--color-border-light);
-  font: var(--text-small-medium);
+  font: var(--text-small-bold);
 }
 
 .map-popup p {
@@ -683,32 +683,9 @@ h6:hover .permalink {
   font: var(--text-caption-semibold);
 }
 
-/* The call-to-action a popup can end with, e.g. a link out to the label map. */
-.map-popup-link {
-  display: inline-block;
+/* The call-to-action a popup can end with only has the paragraph's own 4px beneath it otherwise. */
+.map-popup .button-ps {
   margin-top: var(--space-xs);
-  padding: 6px 12px;
-  border: 1px solid var(--color-accent-link);
-  border-radius: var(--border-radius);
-  background-color: var(--color-accent-link);
-  color: var(--color-text-on-accent);
-  font: var(--text-caption-medium);
-  text-align: center;
-  text-decoration: none;
-  transition: background-color var(--transition-fast);
-}
-
-.map-popup-link:hover,
-.map-popup-link:focus {
-  background-color: var(--color-accent-link-hover);
-  border-color: var(--color-accent-link-hover);
-  color: var(--color-text-on-accent);
-  text-decoration: none;
-}
-
-.map-popup-link:focus-visible {
-  outline: 2px solid var(--color-accent-link);
-  outline-offset: 2px;
 }
 
 /* Map Overlays - Chips and legends layered over a preview map, positioned by the map's own control corners. */
@@ -725,13 +702,26 @@ h6:hover .permalink {
   padding: var(--space-xs) var(--space-sm);
   border-radius: var(--border-radius);
   box-shadow: var(--box-shadow);
-  min-width: 180px;
+  min-width: 200px;
   max-width: 250px;
   max-height: 300px;
   overflow-y: auto;
 }
 
-.map-legend h4 {
+/* A label-and-value readout in a map corner, sharing the legend's frame. */
+.map-stats {
+  background-color: var(--color-neutral-white);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+}
+
+.map-stats div {
+  font: var(--text-caption-regular);
+}
+
+.map-legend h4,
+.map-stats h4 {
   margin: 0 0 5px;
   font: var(--text-small-bold);
 }
@@ -785,8 +775,17 @@ h6:hover .permalink {
     max-height: 150px;
   }
 
-  .map-legend h4 {
+  .map-legend h4,
+  .map-stats h4 {
     font: var(--text-caption-semibold);
+  }
+
+  .map-stats {
+    padding: var(--space-xxs) var(--space-xs);
+  }
+
+  .map-stats div {
+    font: var(--text-tiny-regular);
   }
 
   .map-legend-item {
@@ -821,9 +820,10 @@ h6:hover .permalink {
     font: var(--text-tiny-semibold);
   }
 
-  .map-popup-link {
-    padding: 4px 8px;
+  .map-popup .button-ps {
+    padding: 3px 8px;
     font: var(--text-tiny-medium);
+    margin-top: var(--space-xxs);
   }
 }
 
