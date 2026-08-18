@@ -125,11 +125,12 @@ import-street-imagery:
 
 # Python utility tests (test/python/) in the web container; extra pytest flags via args=, e.g. args="-k bbox -v".
 # Split by interpreter because the scripts are: label_clustering.py runs in-band on prod's `python3` (3.8), while the
-# offline tooling needs >= 3.11. Each half runs the whole directory minus the one file the other owns, so a new test
-# file runs in both by default instead of silently in neither. COVERAGE_OMIT is explained in pyproject.toml.
-pytest-args-app   = test/python --ignore=test/python/test_check_streets_for_imagery.py
+# offline tooling needs >= 3.11. Each half runs the whole directory minus the files the other owns, so a new test
+# file runs in both by default instead of silently in neither. COVERAGE_OMIT/COVERAGE_OMIT2 are explained in
+# pyproject.toml.
+pytest-args-app   = test/python --ignore=test/python/test_check_streets_for_imagery.py --ignore=test/python/test_onboard_city.py
 pytest-args-tools = test/python --ignore=test/python/test_label_clustering.py
-cov-omit-app      = -e COVERAGE_OMIT=scripts/check_streets_for_imagery.py
+cov-omit-app      = -e COVERAGE_OMIT=scripts/check_streets_for_imagery.py -e COVERAGE_OMIT2=scripts/onboard_city.py
 cov-omit-tools    = -e COVERAGE_OMIT=scripts/label_clustering.py
 
 # Both halves run even when the first fails, matching CI's `fail-fast: false`; prerequisites would stop at the first.

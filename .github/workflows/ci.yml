@@ -489,14 +489,15 @@ jobs:
       # One leg per interpreter the web container ships, testing each script on the Python that runs it (#4396):
       # label_clustering.py is shelled out to by the app, so it stays on prod's EOL 3.8; the offline tooling needs
       # >= 3.11. Mirrors the `pytest-args-*` and `cov-omit-*` variables in the Makefile — each leg takes the whole
-      # directory minus the one file the other owns, so a new test file runs in both rather than in neither.
+      # directory minus the files the other owns, so a new test file runs in both rather than in neither.
       matrix:
         include:
           - half: in-band script
             python: '3.8'
             requirements: -r requirements.txt -r requirements-dev.txt
-            pytest-args: test/python --ignore=test/python/test_check_streets_for_imagery.py
+            pytest-args: test/python --ignore=test/python/test_check_streets_for_imagery.py --ignore=test/python/test_onboard_city.py
             coverage-omit: scripts/check_streets_for_imagery.py
+            coverage-omit-2: scripts/onboard_city.py
           - half: offline tooling
             python: '3.13'
             requirements: -r requirements-offline-tools.txt -r requirements-dev.txt
@@ -518,3 +519,4 @@ jobs:
         run: pytest ${{ matrix['pytest-args'] }}
         env:
           COVERAGE_OMIT: ${{ matrix['coverage-omit'] }}
+          COVERAGE_OMIT2: ${{ matrix['coverage-omit-2'] }}

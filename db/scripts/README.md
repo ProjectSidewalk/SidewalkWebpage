@@ -61,10 +61,15 @@ make dev  ─▶  init.sh (auto)  ─▶  make import-users  ─▶  make import
 
 ```
 make create-new-schema name=sidewalk_newcity   # empty schema from the template
-# …load qgis_road + qgis_region into that schema (QGIS/OSM export)…
+# …load qgis_road + qgis_region into that schema: either a manual QGIS/OSM export, or the automated
+# scripts/onboard_city.py pipeline (see scripts/README.md), which generates a psql-loadable SQL file…
 make fill-new-schema                            # streets, regions, tutorial, city center
 make hide-streets-without-imagery               # optional: after check_streets_for_imagery.py
 ```
+
+Note: `fill-new-schema.sh` assumes the schema is at the current evolution level, but `create-new-schema.sh` restores
+the template dump as-is — so start the app against the new city once (to apply pending evolutions) before running
+`make fill-new-schema`.
 
 **Ongoing maintenance:**
 

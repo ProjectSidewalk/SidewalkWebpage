@@ -175,13 +175,15 @@ production runtime shape, see [`docs/deployment-and-stages.md`](deployment-and-s
 
 ## Python utilities
 
-Two standalone scripts under [`scripts/`](../scripts) (see [`scripts/README.md`](../scripts/README.md)):
+Three standalone scripts under [`scripts/`](../scripts) (see [`scripts/README.md`](../scripts/README.md)):
 
 - `scripts/label_clustering.py` — clusters nearby labels (used by the clustering flow; see `ClusterService` /
   `app/models/cluster/`). Run as `python3` — the app shells out to it, so it has to work on the deployed server's
   system Python.
 - `scripts/check_streets_for_imagery.py` — checks streets for available street-view imagery. Run as `python3.13`,
   the second interpreter the web image carries for offline tooling whose libraries have moved past 3.8.
+- `scripts/onboard_city.py` — builds a new city's street/region staging data from open sources (#4291), feeding
+  `db/scripts/fill-new-schema.sh`. Also `python3.13`.
 
 Their pure logic is unit-tested under [`test/python/`](../test/python) (`pytest`, advisory in CI) — one run per
 interpreter. See [`docs/testing-and-ci.md`](testing-and-ci.md).

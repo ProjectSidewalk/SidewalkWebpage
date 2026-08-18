@@ -1,9 +1,9 @@
 # Python utility scripts
 
-Two standalone Python utilities for Project Sidewalk. They are **not** part of the running web app's request path
-(except as noted below) — they are run out-of-band. `check_streets_for_imagery.py` resolves its data/output paths
-relative to the repo root, so it can be launched from any working directory. Unit tests for both live in
-[`test/python/`](../test/python).
+Three standalone Python utilities for Project Sidewalk. They are **not** part of the running web app's request path
+(except as noted below) — they are run out-of-band. `check_streets_for_imagery.py` and `onboard_city.py` resolve their
+data/output paths relative to the repo root, so they can be launched from any working directory. Unit tests for all
+three live in [`test/python/`](../test/python).
 
 ## Which interpreter to use
 
@@ -14,6 +14,7 @@ a current one):
 | --- | --- | --- |
 | `label_clustering.py` | `python3` (3.8) | [`requirements.txt`](../requirements.txt) |
 | `check_streets_for_imagery.py` | `python3.13` | [`requirements-offline-tools.txt`](../requirements-offline-tools.txt) |
+| `onboard_city.py` | `python3.13` | [`requirements-offline-tools.txt`](../requirements-offline-tools.txt) |
 
 `label_clustering.py` is shelled out to by the running app, so it must work on whatever `python3` the server has —
 currently 3.8, which is EOL (#4396). Offline tooling has no such tie and runs on `python3.13`; host-side, ≥ 3.11.
@@ -122,6 +123,38 @@ column:
   see them), run `make import-street-imagery` to ingest `db/street_imagery_summary.csv` — the per-street summary the
   scan writes. Rows are tagged `data_source = 'imagery_scan'`, and a scan
   supersedes an existing `pano_data` row for the same street (it's a deliberate, fresher measurement).
+
+## `onboard_city.py`
+
+Builds a new city's street + region staging data (`qgis_road`/`qgis_region`, consumed by
+`db/scripts/fill-new-schema.sh`) from open data sources — the automated replacement for the manual QGIS onboarding
+pipeline (#4291). Standalone and manual; it never writes to the database.
+
+```bash
+docker exec projectsidewalk-web sh -c "cd /home && python3.13 scripts/onboard_city.py \
+    --place 'Newport, Kentucky, USA' --city-id newport-ky"
+```
+
+`--city-id` is the id the deployment will eventually use in `conf/cityparams.conf` (`SIDEWALK_CITY_ID`), so later
+config steps can consume it directly; the suggested schema name / `DATABASE_USER` swaps its hyphens for underscores
+(`sidewalk_newport_ky` — new cities keep the full city id there, unlike older hand-trimmed schemas like
+`sidewalk_newport`).
+
+Streets come from OSM (osmnx, the wiki's highway filter, `--include-alleys` for `service=alley`). Regions come from
+the first source that works: `--regions-file` (bring your own; must carry a `name` column), OSM neighborhood polygons (auto-rejected under 75%
+city coverage), US census tracts (TIGERweb), or the city boundary as a single region. Streets are split at region
+boundaries, then healed so boundary-riding streets aren't shredded or truncated: fragments under `--heal-segment-m`
+are reabsorbed, out-of-coverage gaps/ends riding within `--boundary-merge-tol-m` of the covered area are restored
+(streets may poke slightly outside the city), and boundary-running splits are merged (`rider_merges` QA layer).
+
+Outputs land in `db/onboarding/<city-id>/` (git-ignored; visible in the db container under `/opt`): a QA GeoPackage
+to eyeball in QGIS, the `qgis_tables.sql` load file, and a Markdown report with per-region stats and flags
+(SPARSE/OVERSIZED/EMPTY). The QA loop: rerun with tweaked flags — including
+`--merge-regions "Census Tract 513:Census Tract 523.01"` (region *names*) to fold flagged regions into neighbors;
+structural region changes always go through a full rerun so streets re-split and re-heal against the merged
+boundaries and region ids stay dense. For surgical fixes, hand-edit the GeoPackage layers in QGIS and regenerate the
+SQL with `--from-gpkg <path>` (validates the edited layers first). Schema creation and loading steps:
+[`db/scripts/README.md`](../db/scripts/README.md) → "Standing up a brand-new city".
 
 ## Testing
 

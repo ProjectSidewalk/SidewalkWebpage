@@ -16,6 +16,9 @@ component.json
 docker-compose.override*.yml
 db/*-dump
 
+# Generated per-city artifacts from scripts/onboard_city.py (QA GeoPackage, staging SQL, report)
+db/onboarding/
+
 # Playwright smoke-suite output (test/e2e/)
 playwright-report/
 test-results/
