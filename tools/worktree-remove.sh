@@ -29,7 +29,11 @@ CONTAINER="projectsidewalk-web"
 while [ $# -gt 0 ]; do
   case "$1" in
     --force) FORCE="1" ;;
-    --container) shift; CONTAINER="${1:-}" ;;
+    --container)
+      shift
+      [ $# -gt 0 ] || { echo "error: --container needs a value"; exit 2; }
+      CONTAINER="$1"
+      ;;
     *) echo "error: unknown argument: $1"; exit 2 ;;
   esac
   shift
@@ -115,24 +119,34 @@ clean_up_branch() {
   fi
 }
 
-if [ ! -d "$WT_DIR" ]; then
-  if worktree_is_registered; then
-    echo "==> $WT_DIR is already gone; pruning its stale git registration"
-    BRANCH="$(registered_branch)"
-    git -C "$MAIN_REPO" worktree prune
-    clean_up_branch "$BRANCH"
-    echo "==> done."
-    exit 0
+# Establish that git owns $WT_DIR before touching it. A plain directory that happens to sit under .claude/worktrees/
+# is still *inside* the main repo, so `git -C "$WT_DIR" status` below would report the MAIN repo's changes.
+if ! worktree_is_registered; then
+  if [ -d "$WT_DIR" ]; then
+    echo "error: $WT_DIR exists but git has no worktree registered for it (see: git worktree list)."
+    echo "       It isn't ours to remove — delete it by hand if you're sure."
+  else
+    echo "error: no worktree at $WT_DIR"
   fi
-  echo "error: no worktree at $WT_DIR"
   echo "available worktrees:"; ls "$MAIN_REPO/.claude/worktrees" 2>/dev/null || echo "  (none)"
   exit 1
 fi
 
+# Checked before both teardown paths: `git worktree prune` skips a locked worktree just as `git worktree remove`
+# refuses one, and the branch cleanup would then die on git's "used by worktree" error instead of this message.
 if worktree_is_locked; then
   echo "error: $WT is locked, so git won't remove it. A running Claude Code session in it holds a lock; otherwise"
   echo "       someone locked it deliberately. End that session, or unlock it: git worktree unlock \"$WT_DIR\""
   exit 1
+fi
+
+if [ ! -d "$WT_DIR" ]; then
+  echo "==> $WT_DIR is already gone; pruning its stale git registration"
+  BRANCH="$(registered_branch)"
+  git -C "$MAIN_REPO" worktree prune
+  clean_up_branch "$BRANCH"
+  echo "==> done."
+  exit 0
 fi
 
 # `git worktree remove` makes the same judgement, but only once the QA session is already stopped — checking up front
