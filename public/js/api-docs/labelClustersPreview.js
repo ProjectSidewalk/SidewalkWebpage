@@ -11,11 +11,10 @@
   const CLUSTERS_LAYER = 'label-clusters';
   const REGION_SOURCE = 'preview-region';
 
-  // Outline color for the region the preview is scoped to. Presentational only — it mirrors no backend value, and
-  // is picked to stay distinct from every label type color against the dark basemap.
+  // Presentational only — it mirrors no backend value, and is picked to stay distinct from every label type color
+  // against the dimmed basemap.
   const REGION_COLOR = '#0077cc';
 
-  // Configuration options - can be overridden by calling setup().
   let config = {
     apiBaseUrl: '/v3/api',
     containerId: 'label-clusters-preview',
@@ -25,10 +24,8 @@
     regionWithMostLabelsEndpoint: '/regionWithMostLabels',
   };
 
-  // Store label type information for coloring clusters.
   let labelTypeInfo = {};
 
-  // Public API.
   window.LabelClustersPreview = {
     /**
      * Configure the label clusters preview.
@@ -52,13 +49,11 @@
         return Promise.reject(new Error('Container element not found'));
       }
 
-      // Initialize with loading message.
       const loadingMessage = document.createElement('div');
       loadingMessage.className = 'loading-message';
       loadingMessage.textContent = 'Loading label clusters data...';
       container.appendChild(loadingMessage);
 
-      // First load label types, then get region with most labels, then load clusters.
       try {
         const typeData = await this.fetchLabelTypes();
         labelTypeInfo = typeData.label_types.reduce((acc, type) => {
@@ -182,7 +177,7 @@
       const countChip = ApiDocsMap.addOverlay(map, 'top-right', 'map-chip');
       countChip.textContent = `Showing ${clusters.features.length} clusters`;
 
-      // The legend lists only the types actually drawn, so a region with no signals doesn't advertise them.
+      // The legend lists only the types actually drawn, so it never advertises one this region has none of.
       const typesInData = [...new Set(clusters.features.map((feature) => feature.properties.label_type))];
       const legend = ApiDocsMap.addOverlay(map, 'bottom-left', 'map-legend');
       ApiDocsMap.renderLabelTypeLegend(legend, 'Label Types', typesInData, labelTypeInfo,

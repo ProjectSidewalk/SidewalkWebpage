@@ -641,9 +641,8 @@ h6:hover .permalink {
   color: var(--color-text-heading);
 }
 
-/* Map Container - Common to various map components. Also the query container the overlays size themselves against:
-   map width and viewport width come apart in both directions here, since the sidebar and TOC can leave a desktop map
-   barely 500px wide while a phone gets one as wide as the screen. */
+/* Map Container - Common to various map components, and the query container its overlays size themselves against.
+   Map width and viewport width come apart here: the sidebar and TOC narrow a desktop map, a phone widens it. */
 .map-container {
   width: 100%;
   height: 500px;
@@ -654,8 +653,8 @@ h6:hover .permalink {
   container: preview-map / inline-size;
 }
 
-/* Map Popup - the popup every preview map opens, whatever it's about. ApiDocsMap.popup puts .map-popup on the popup
-   root, so these rules reach Mapbox's own frame as well as the content we hand it. */
+/* Map Popup - ApiDocsMap.popup puts .map-popup on the popup root, so these rules reach Mapbox's own frame as well as
+   the content we hand it. */
 .map-popup .mapboxgl-popup-content {
   padding: var(--space-xs) var(--space-sm);
   border-radius: var(--border-radius-lg);
@@ -683,7 +682,7 @@ h6:hover .permalink {
   font: var(--text-caption-semibold);
 }
 
-/* The call-to-action a popup can end with only has the paragraph's own 4px beneath it otherwise. */
+/* A popup's closing call-to-action would otherwise sit on the last paragraph's own 4px. */
 .map-popup .button-ps {
   margin-top: var(--space-xs);
 }
@@ -756,8 +755,8 @@ h6:hover .permalink {
   flex-shrink: 0;
 }
 
-/* Mapbox's two-finger gesture overlay ships its own system font stack. Its font-size is set inline by the library
-   from the map's width, so that part isn't ours to set. */
+/* Mapbox's two-finger gesture overlay ships a system font stack. Its font-size is inline, set by the library from
+   the map's width, so that part isn't ours to change. */
 .map-container .mapboxgl-touch-pan-blocker {
   font-family: var(--font-primary);
 }

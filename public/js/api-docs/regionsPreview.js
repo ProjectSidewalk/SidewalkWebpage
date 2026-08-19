@@ -21,8 +21,7 @@
     regionsEndpoint: '/regions',
   };
 
-  // The metrics that can be visualized, keyed by the GeoJSON property name. Each defines the color ramp endpoints
-  // (dark-background optimized), a "none" color for regions with a value of zero, and human-readable labels.
+  // Keyed by the GeoJSON property each one colors by. The ramps are picked to read against the dimmed basemap.
   const METRICS = {
     label_count: {
       label: 'Label count', legendTitle: 'Labels per region',
@@ -39,7 +38,6 @@
   };
 
   window.RegionsPreview = {
-    // Internal state, populated during init().
     _legend: null,
     _metric: 'label_count',
     _maxByMetric: {},
@@ -97,8 +95,7 @@
     async renderMap(container, regions) {
       const features = regions.features || [];
 
-      // Each metric's ramp is scaled to its own maximum across the city, so a metric with a small range still
-      // spans the full range of colors.
+      // Each ramp is scaled to its own metric's maximum, so a narrow range still spans every color.
       Object.keys(METRICS).forEach((metric) => {
         this._maxByMetric[metric] = features.reduce((max, f) => Math.max(max, f.properties[metric] || 0), 0);
       });
@@ -184,8 +181,7 @@
       return ApiDocsMap.gradientColorExpression(this._metric, metricCfg.ramp, {
         max: this._maxByMetric[this._metric],
         noneColor: metricCfg.none.color,
-        // Zero gets the "none" color rather than the ramp's low end: a region nobody has touched reads differently
-        // from the least-labeled region that someone has.
+        // A region nobody has touched should read differently from the least-labeled one someone has.
         noneAtOrBelow: 0,
       });
     },

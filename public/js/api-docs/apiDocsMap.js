@@ -15,8 +15,7 @@ window.ApiDocsMap = (function () {
   // The preview layers are small dots over a busy street grid, so the basemap is knocked back behind them.
   const BASEMAP_DIM_OPACITY = 0.5;
 
-  // ColorBrewer RdYlGn, shared by the two AccessScore previews: low accessibility is red, high is green, as in the
-  // paper the score comes from.
+  // ColorBrewer RdYlGn: low accessibility is red and high is green, as in the paper the score comes from.
   const ACCESS_SCORE_RAMP = ['#d7191c', '#fdae61', '#ffffbf', '#a6d96a', '#1a9641'];
 
   /**
@@ -39,16 +38,14 @@ window.ApiDocsMap = (function () {
     const element = typeof options.container === 'string'
       ? document.getElementById(options.container)
       : options.container;
-    // Padding as a share of the map's own width: a flat 75px is breathing room on a desktop map and most of a
-    // phone-width one, which would leave the region a stamp in the middle.
+    // A share of the map's own width, because a flat 75px is breathing room on a desktop map and most of a phone.
     const fitPadding = options.fitPadding ?? Math.min(75, Math.round(element.clientWidth * 0.12));
 
     const map = new mapboxgl.Map({
       container: element,
       style: options.style || STYLE_PROJECT_SIDEWALK,
       // Framed at construction rather than by a fitBounds() after load, so the reader never sees the map land
-      // somewhere else first and then jump. Mapbox fits bounds at fractional zoom, so without the padding the
-      // region would touch the frame exactly.
+      // somewhere else first and then jump. Mapbox fits at fractional zoom, so the padding is the only slack.
       ...(options.bounds
         ? { bounds: options.bounds, fitBoundsOptions: { padding: fitPadding } }
         : { center: options.center, zoom: options.zoom }),
@@ -217,8 +214,7 @@ window.ApiDocsMap = (function () {
    */
   function gradientColorExpression(property, ramp, options = {}) {
     const { min = 0, max = 1, noneColor = '#3d3d3d' } = options;
-    // A null would make `interpolate` throw, so missing values fold to a sentinel below the domain that the `case`
-    // ahead of it catches.
+    // A null would make `interpolate` throw, so missing values fold to a sentinel the `case` ahead of it catches.
     const sentinel = min - 1;
     const value = ['coalesce', ['get', property], sentinel];
     // Every feature sharing one value — a city with no labels yet — would otherwise collapse the domain to zero.
@@ -282,7 +278,7 @@ window.ApiDocsMap = (function () {
    *                          `noneColor`. Omit when every feature lands somewhere on the ramp.
    */
   function renderGradientLegend(element, title, ramp, tickLabels, none) {
-    // A discrete category can't sit honestly anywhere on a continuous bar, so it gets its own row below the ticks.
+    // A discrete category has no honest position on a continuous bar, so it gets its own row below the ticks.
     const noneRow = none
       ? `<div class="map-legend-item">
            <span class="map-legend-swatch" style="background-color: ${none.color};"></span>

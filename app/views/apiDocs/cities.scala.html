@@ -42,8 +42,7 @@
     <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")' defer></script>
     <script src='@assets.path("js/ps-map/build/ps-map.js")' defer></script>
     <script>
-      // This is the same world map of deployment cities the landing page, /about, and /cities draw, so it's built
-      // straight from createPSMap rather than from a preview script of its own.
+      // The same world map of deployment cities the landing page, /about, and /cities draw.
       window.appManager.ready(function() {
         createPSMap($, {
           mapName: 'cities-preview',
