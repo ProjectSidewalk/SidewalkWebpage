@@ -173,14 +173,16 @@ class Form {
       // rather than burn the retry budget (#4377). 408 and 429 are the server asking us to come back later.
       const status = submitError.status;
       const retryable = !(status >= 400 && status < 500) || status === 408 || status === 429;
-      if (svv.tracker) svv.tracker.push('SubmitFailed', { attempt: retryCount, error: submitError.message });
+      // `status` rides along so an abandoned 4xx is separable from a network blip in analytics — both push
+      // SubmitFailed for the attempt that failed, and only the retryable one is followed by another attempt.
+      if (svv.tracker) svv.tracker.push('SubmitFailed', { attempt: retryCount, status, error: submitError.message });
       if (retryable && retryCount < Form.#MAX_SUBMIT_RETRIES) {
         setTimeout(() => {
           this.submit(data, isIntermediateSubmit, retryCount + 1);
         }, Form.#RETRY_BACKOFF_MS * (retryCount + 1));
       } else {
         if (!retryable) console.error('Validation submit rejected by the server:', submitError.message);
-        if (svv.tracker) svv.tracker.push('SubmitFailedGaveUp', { attempts: retryCount });
+        if (svv.tracker) svv.tracker.push('SubmitFailedGaveUp', { attempts: retryCount, retryable });
       }
       return;
     }

@@ -134,10 +134,24 @@ class ValidateSubmissionSpec
       missionId: Int,
       result: String,
       undone: Boolean = false,
-      redone: Boolean = false
+      redone: Boolean = false,
+      comment: Option[String] = None
   ): JsObject = {
-    val now = OffsetDateTime.now
-    Json.obj(
+    val now         = OffsetDateTime.now
+    val commentJson = comment.map { text =>
+      Json.obj(
+        "mission_id" -> missionId,
+        "label_id"   -> (label \ "label_id").as[Int],
+        "comment"    -> text,
+        "pano_id"    -> (label \ "pano_id").as[String],
+        "heading"    -> (label \ "heading").as[Double],
+        "pitch"      -> (label \ "pitch").as[Double],
+        "zoom"       -> (label \ "zoom").as[Double],
+        "lat"        -> (label \ "lat").as[Double],
+        "lng"        -> (label \ "lng").as[Double]
+      )
+    }
+    Json.obj("comment" -> commentJson) ++ Json.obj(
       "label_id"          -> (label \ "label_id").as[Int],
       "mission_id"        -> missionId,
       "validation_result" -> result,
@@ -253,6 +267,12 @@ class ValidateSubmissionSpec
     run(
       sql"SELECT count(*) FROM label_validation WHERE label_id = $labelId AND user_id = $userId".as[Int]
     ).head
+
+  /** The user's free-text comments on the label, which are keyed by (label, user) rather than by validation. */
+  private def commentsOn(labelId: Int, userId: String): Seq[String] =
+    run(
+      sql"SELECT comment FROM validation_task_comment WHERE label_id = $labelId AND user_id = $userId".as[String]
+    )
 
   /** How many `label_history` rows the label carries; a validation that changes nothing must not add one. */
   private def labelHistoryCount(labelId: Int): Int =
@@ -423,6 +443,55 @@ class ValidateSubmissionSpec
       val after = labelState(labelId)
       after.agreeCount mustBe before.agreeCount
       after.disagreeCount mustBe before.disagreeCount + 1
+    }
+
+    "keep the user's earlier comment when a repeat validation carries none (#4377)" in {
+      val session = freshAnonSession()
+      val b       = fetchValidateBootstrap(session)
+      val label   = b.labels.head
+      val labelId = (label \ "label_id").as[Int]
+      val _       = backupLabel(labelId)
+
+      val progress    = Some(missionProgressJson(b, 1))
+      val withComment =
+        Seq(validationJson(label, b.missionId, "Agree", comment = Some("Ramp is behind the parked car.")))
+      status(postValidationTask(session, taskSubmission(b, withComment, progress))) mustBe OK
+      commentsOn(labelId, b.userId) mustBe Seq("Ramp is behind the parked car.")
+
+      // Validating the label again without commenting must not take the free text down with the old vote — comments
+      // are keyed by (label, user), so nothing could restore it.
+      status(
+        postValidationTask(session, taskSubmission(b, Seq(validationJson(label, b.missionId, "Disagree")), progress))
+      ) mustBe OK
+      commentsOn(labelId, b.userId) mustBe Seq("Ramp is behind the parked car.")
+
+      // A repeat that does carry a comment leaves exactly one row, not two stacked ones.
+      val newComment = Seq(validationJson(label, b.missionId, "Agree", comment = Some("Looking again, it is fine.")))
+      status(postValidationTask(session, taskSubmission(b, newComment, progress))) mustBe OK
+      commentsOn(labelId, b.userId) mustBe Seq("Looking again, it is fine.")
+    }
+
+    "answer 200 to a duplicate mission-complete submission and still hand back the next mission (#4377)" in {
+      val session = freshAnonSession()
+      val b       = fetchValidateBootstrap(session)
+      val label   = b.labels.head
+      val labelId = (label \ "label_id").as[Int]
+      val _       = backupLabel(labelId)
+      // completed=true is the submission whose response drives the mission transition, so a 500 here is the one that
+      // strands the UI until a manual refresh — the case the fix is really for.
+      val complete   = missionProgressJson(b, 1) ++ Json.obj("completed" -> true)
+      val submission = taskSubmission(b, Seq(validationJson(label, b.missionId, "Agree")), Some(complete))
+
+      val first = postValidationTask(session, submission)
+      status(first) mustBe OK
+      val retried = postValidationTask(session, submission)
+      status(retried) mustBe OK
+
+      // The retry has to carry the same mission-transition payload the lost response did, or the client has nothing
+      // to advance on.
+      (contentAsJson(retried) \ "has_mission_available").as[Boolean] mustBe
+        (contentAsJson(first) \ "has_mission_available").as[Boolean]
+      validationCount(labelId, b.userId) mustBe 1
     }
   }
 

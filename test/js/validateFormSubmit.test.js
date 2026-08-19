@@ -103,7 +103,11 @@ describe('Form.submit (issue #2745 resilience)', () => {
         await jest.advanceTimersByTimeAsync(60000); // long enough for every retry in the budget to have fired
 
         expect(global.fetch).toHaveBeenCalledTimes(1);
-        expect(svv.tracker.push).toHaveBeenCalledWith('SubmitFailedGaveUp', { attempts: 0 });
+        // The one failed attempt is still logged, tagged with the status that made it unretryable, so an abandoned
+        // 4xx stays separable from a network blip in analytics.
+        expect(svv.tracker.push).toHaveBeenCalledWith('SubmitFailed',
+            expect.objectContaining({ attempt: 0, status: 400 }));
+        expect(svv.tracker.push).toHaveBeenCalledWith('SubmitFailedGaveUp', { attempts: 0, retryable: false });
         expect(errorSpy).toHaveBeenCalled();
         expect(window.location.reload).not.toHaveBeenCalled();
     });
@@ -281,7 +285,8 @@ describe('Form.submit (issue #2745 resilience)', () => {
         for (let attempt = 0; attempt <= 5; attempt++) {
             expect(svv.tracker.push).toHaveBeenCalledWith('SubmitFailed', expect.objectContaining({ attempt }));
         }
-        expect(svv.tracker.push).toHaveBeenCalledWith('SubmitFailedGaveUp', { attempts: 5 });
+        // Exhausting the cap is retryable-but-out-of-budget, unlike the 4xx case that gives up on the first attempt.
+        expect(svv.tracker.push).toHaveBeenCalledWith('SubmitFailedGaveUp', { attempts: 5, retryable: true });
 
         // Once it has given up, no further attempt may ever fire.
         await jest.advanceTimersByTimeAsync(600000);
