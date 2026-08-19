@@ -1,16 +1,20 @@
 package service
 
 import com.google.inject.ImplementedBy
+import executors.BlockingIoExecutionContext
 import models.utils.HealthTable
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.pattern.after
 import play.api.cache.AsyncCacheApi
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json._
-import play.api.{Configuration, Logger}
+import play.api.{Configuration, Environment, Logger}
 import models.utils.MyPostgresProfile
 
+import java.io.File
 import java.time.OffsetDateTime
 import javax.inject._
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration.{Duration, DurationInt, FiniteDuration}
 import scala.concurrent.{ExecutionContext, Future}
 
 /** A session that currently blocks one or more other sessions from acquiring a lock. */
@@ -84,6 +88,87 @@ case class PanoBackupStats(
 /** The connecting role's environment: database, role, and whether it can read every session's statement text. */
 case class DbEnvInfo(database: String, role: String, canSeeAllQueries: Boolean)
 
+/** How many `story_media` rows one schema holds. Internal to the media scan, not part of the dashboard payload. */
+case class SchemaRowCount(schema: String, rows: Int)
+
+/** One `story_media` id, tagged with its schema. Internal to the media scan, not part of the dashboard payload. */
+case class SchemaMediaId(schema: String, storyMediaId: Int)
+
+/**
+ * One persistent media directory as this instance resolves it.
+ *
+ * `label` and `severity` are computed server-side so the page holds no copy of the rules that decide when a
+ * directory is a problem — the same reason [[HealthThresholds]] travels in the payload.
+ *
+ * @param key           Config key naming the directory.
+ * @param envVar        Environment variable a deployment sets it with.
+ * @param irreplaceable Whether its contents are content rather than a rebuildable cache.
+ * @param path          Where it resolves on this instance.
+ * @param status        Machine-readable state: `ok`, `absent`, `not_writable`, `unsafe`, `unresolved`.
+ * @param label         Display text for that state.
+ * @param severity      Badge tone: `good`, `ok`, `warn`, `bad`.
+ * @param detail        Longer explanation when there is one to give.
+ */
+case class MediaDirStatus(
+    key: String,
+    envVar: String,
+    irreplaceable: Boolean,
+    path: String,
+    status: String,
+    label: String,
+    severity: String,
+    detail: Option[String]
+)
+
+/**
+ * One city's `story_media` rows measured against the files in its media directory.
+ *
+ * @param cityId     City the schema belongs to; None when this instance's config doesn't name it.
+ * @param schema     Database schema the rows came from.
+ * @param rows       `story_media` rows in that schema.
+ * @param missing    Rows whose bytes are gone — data loss (#4925).
+ * @param orphans    Files with no row — a retraction whose file delete didn't land (#4054).
+ * @param missingIds Sample of the missing ids, to start looking from.
+ * @param orphanIds  Sample of the orphaned ids.
+ * @param scanned    False when the directory couldn't be located, so the counts mean nothing.
+ */
+case class CityStoryMedia(
+    cityId: Option[String],
+    schema: String,
+    rows: Int,
+    missing: Int,
+    orphans: Int,
+    missingIds: Seq[Int],
+    orphanIds: Seq[Int],
+    scanned: Boolean
+)
+
+/**
+ * The story-media integrity scan across every city schema visible from this instance.
+ *
+ * @param baseDir  The resolved base directory the per-city subdirectories live under.
+ * @param cities   One row per schema holding a `story_media` table, in schema order.
+ * @param missing  Total rows with no file, across every scanned city.
+ * @param orphans  Total files with no row, across every scanned city.
+ */
+case class StoryMediaIntegrity(baseDir: String, cities: Seq[CityStoryMedia], missing: Int, orphans: Int)
+
+/**
+ * The media-storage panel: where this instance keeps persistent media, and whether any of it has gone missing.
+ *
+ * @param directories One status per directory the boot check guards.
+ * @param enforced    Whether `PersistentMediaDirCheck` arms in this run mode; false in dev, where the relative
+ *                    defaults landing in the checkout is the intended behavior rather than a fault.
+ * @param storyMedia  The integrity scan, or None when it couldn't run.
+ * @param unavailable Why the scan couldn't run, when it didn't.
+ */
+case class MediaStorageHealth(
+    directories: Seq[MediaDirStatus],
+    enforced: Boolean,
+    storyMedia: Option[StoryMediaIntegrity],
+    unavailable: Option[String]
+)
+
 /**
  * Server-owned thresholds the dashboard uses to color each panel, echoed in the payload so the frontend never
  * hard-codes them (CLAUDE.md: domain values come from the backend). Seconds unless noted.
@@ -117,6 +202,7 @@ case class DbHealthData(
     tableBloat: Seq[TableBloat],
     connections: Seq[ConnCount],
     panoBackups: Option[PanoBackupStats],
+    mediaStorage: Option[MediaStorageHealth],
     thresholds: HealthThresholds
 )
 
@@ -139,8 +225,11 @@ trait HealthService {
 class HealthServiceImpl @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     config: Configuration,
+    environment: Environment,
     cacheApi: AsyncCacheApi,
-    healthTable: HealthTable
+    healthTable: HealthTable,
+    actorSystem: ActorSystem,
+    blockingIoEc: BlockingIoExecutionContext
 )(implicit val ec: ExecutionContext)
     extends HealthService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
@@ -207,7 +296,8 @@ class HealthServiceImpl @Inject() (
       .recover { case e: Exception =>
         logger.warn(s"Health: failed to read pano backup stats: ${e.getMessage}"); None
       }
-    val evoF = getStuckEvolutions
+    val mediaF = getMediaStorage
+    val evoF   = getStuckEvolutions
 
     for {
       env      <- envF
@@ -218,6 +308,7 @@ class HealthServiceImpl @Inject() (
       bloat    <- bloatF
       conn     <- connF
       pano     <- panoF
+      media    <- mediaF
     } yield DbHealthData(
       generatedAt = OffsetDateTime.now().toString,
       currentDatabase = env.database,
@@ -230,6 +321,7 @@ class HealthServiceImpl @Inject() (
       tableBloat = bloat,
       connections = conn,
       panoBackups = pano,
+      mediaStorage = media,
       thresholds = thresholds
     )
   }
@@ -256,6 +348,112 @@ class HealthServiceImpl @Inject() (
       }
   }
 
+  // Ceiling on `story_media` rows the scan will pull into memory. Prod holds a single-digit number today; this is a
+  // guard against a future where stories take off, not a working limit. Exceeding it reports the scan as unavailable
+  // rather than silently comparing a truncated set, which would invent orphans out of the rows it never fetched.
+  private val maxStoryMediaRows = 200000
+
+  // Wall-clock ceiling on the filesystem half of the scan. The directories can sit on a network mount, and a stat
+  // against a dead mount never returns — the thread stays parked on the blocking pool, but the poll must not.
+  private val mediaScanTimeout: FiniteDuration = 5.seconds
+
+  // Schema -> city id, read from configuration alone. The database knows the schema, the directory is named for the
+  // city, and nothing but this mapping joins them. ConfigService.availableCityIds would do it with one existence
+  // query per city — the ~50-connection fan-out this dashboard exists to catch (#4559).
+  private lazy val cityIdBySchema: Map[String, String] = config
+    .get[Seq[String]]("city-params.city-ids")
+    .flatMap(cityId => config.getOptional[String](s"city-params.db-schema.$cityId").map(_ -> cityId))
+    .toMap
+
+  /**
+   * Where this instance keeps persistent media, and whether any `story_media` row has lost its bytes (#4926).
+   *
+   * The whole signal is cached at the pano TTL: it is the slowest one here (a database round trip plus a directory
+   * listing per city) and the thing it detects — a deploy having deleted a directory — does not change minute to
+   * minute. A failure yields None so the panel can say so, rather than sinking the rest of the dashboard.
+   */
+  private def getMediaStorage: Future[Option[MediaStorageHealth]] = {
+    cacheApi
+      .getOrElseUpdate[Option[MediaStorageHealth]]("health.media", panoTtl) {
+        val scan = for {
+          dirs      <- Future(MediaIntegrity.directoryStatuses(config, environment))(blockingIoEc)
+          integrity <- storyMediaIntegrity
+        } yield Some(MediaStorageHealth(dirs, environment.mode == play.api.Mode.Prod, integrity._1, integrity._2))
+        withTimeout(scan, "media storage scan")
+      }
+      .recover { case e: Exception =>
+        logger.warn(s"Health: failed to read media storage: ${e.getMessage}"); None
+      }
+  }
+
+  /**
+   * Compares every visible city's `story_media` rows against the files on disk.
+   *
+   * Reads the schemas, then their row counts, then their ids — three cheap round trips behind a five-minute cache
+   * rather than one query per city. If the base directory itself is unreadable, the scan reports itself unavailable
+   * instead of declaring every row lost: a monitor that cries data loss over a missing mount would be worse than no
+   * monitor at all.
+   *
+   * @return The scan, or the reason it couldn't run.
+   */
+  private def storyMediaIntegrity: Future[(Option[StoryMediaIntegrity], Option[String])] = {
+    // Resolve inside the blocking future: MediaDirs.baseDir throws on an unusable value, and a synchronous throw
+    // here would escape the caller's `.recover` instead of degrading to an unavailable panel.
+    Future {
+      val baseDir = MediaDirs.baseDir(config, environment, "story.media.directory")
+      (baseDir, baseDir.isDirectory)
+    }(blockingIoEc).flatMap {
+      case (baseDir, false) =>
+        // Nothing has been uploaded on this stage yet, or the directory is gone. Either way there is nothing to
+        // compare against, and the directory panel above already reports the state of the path itself.
+        Future.successful((None, Some(s"No media directory at ${baseDir.getAbsolutePath} to scan.")))
+      case (baseDir, true) =>
+        db.run(healthTable.getStoryMediaSchemas).map(_.filter(_.matches("^[A-Za-z0-9_]+$"))).flatMap { schemas =>
+          if (schemas.isEmpty)
+            Future.successful((Some(StoryMediaIntegrity(baseDir.getAbsolutePath, Seq.empty, 0, 0)), None))
+          else
+            db.run(healthTable.getStoryMediaCounts(schemas)).flatMap { counts =>
+              val total = counts.map(_.rows).sum
+              if (total > maxStoryMediaRows) {
+                Future.successful((None, Some(s"$total story_media rows is more than this scan will load at once.")))
+              } else {
+                val populated = counts.filter(_.rows > 0).map(_.schema)
+                val idsF      =
+                  if (populated.isEmpty) Future.successful(Seq.empty[SchemaMediaId])
+                  else db.run(healthTable.getStoryMediaIds(populated))
+                idsF.flatMap(ids => scanCities(baseDir, counts, ids).map(cities => (Some(cities), None)))
+              }
+            }
+        }
+    }
+  }
+
+  /** Lists each city's directory once and diffs it against that city's ids — one listing per city, whatever the row count. */
+  private def scanCities(
+      baseDir: File,
+      counts: Seq[SchemaRowCount],
+      ids: Seq[SchemaMediaId]
+  ): Future[StoryMediaIntegrity] = {
+    val idsBySchema = ids.groupBy(_.schema).view.mapValues(_.map(_.storyMediaId)).toMap
+    Future {
+      counts.sortBy(_.schema).map { case SchemaRowCount(schema, _) =>
+        val cityId    = cityIdBySchema.get(schema)
+        val fileNames = cityId.flatMap(id => MediaIntegrity.listFileNames(new File(baseDir, id)))
+        MediaIntegrity.compareCity(cityId, schema, idsBySchema.getOrElse(schema, Seq.empty), fileNames)
+      }
+    }(blockingIoEc).map { cities =>
+      StoryMediaIntegrity(baseDir.getAbsolutePath, cities, cities.map(_.missing).sum, cities.map(_.orphans).sum)
+    }
+  }
+
+  /** Fails a future that outlives the media-scan budget, so one unreachable mount can't hold the poll open. */
+  private def withTimeout[T](f: Future[T], label: String): Future[T] = {
+    val timeout = after(mediaScanTimeout, actorSystem.scheduler)(
+      Future.failed(new java.util.concurrent.TimeoutException(s"$label did not finish within $mediaScanTimeout"))
+    )
+    Future.firstCompletedOf(Seq(f, timeout))
+  }
+
   private def logAndEmpty[T](label: String): PartialFunction[Throwable, Seq[T]] = { case e: Exception =>
     logger.warn(s"Health: failed to read $label: ${e.getMessage}")
     Seq.empty[T]
@@ -265,13 +463,17 @@ class HealthServiceImpl @Inject() (
 object HealthService {
   implicit private val jsonConfig: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
 
-  implicit val blockingSessionWrites: Writes[BlockingSession]   = Json.writes[BlockingSession]
-  implicit val idleTxnSessionWrites: Writes[IdleTxnSession]     = Json.writes[IdleTxnSession]
-  implicit val activeQueryWrites: Writes[ActiveQuery]           = Json.writes[ActiveQuery]
-  implicit val stuckEvolutionWrites: Writes[StuckEvolution]     = Json.writes[StuckEvolution]
-  implicit val tableBloatWrites: Writes[TableBloat]             = Json.writes[TableBloat]
-  implicit val connCountWrites: Writes[ConnCount]               = Json.writes[ConnCount]
-  implicit val panoBackupStatsWrites: Writes[PanoBackupStats]   = Json.writes[PanoBackupStats]
-  implicit val healthThresholdsWrites: Writes[HealthThresholds] = Json.writes[HealthThresholds]
-  implicit val dbHealthDataWrites: Writes[DbHealthData]         = Json.writes[DbHealthData]
+  implicit val blockingSessionWrites: Writes[BlockingSession]         = Json.writes[BlockingSession]
+  implicit val idleTxnSessionWrites: Writes[IdleTxnSession]           = Json.writes[IdleTxnSession]
+  implicit val activeQueryWrites: Writes[ActiveQuery]                 = Json.writes[ActiveQuery]
+  implicit val stuckEvolutionWrites: Writes[StuckEvolution]           = Json.writes[StuckEvolution]
+  implicit val tableBloatWrites: Writes[TableBloat]                   = Json.writes[TableBloat]
+  implicit val connCountWrites: Writes[ConnCount]                     = Json.writes[ConnCount]
+  implicit val panoBackupStatsWrites: Writes[PanoBackupStats]         = Json.writes[PanoBackupStats]
+  implicit val mediaDirStatusWrites: Writes[MediaDirStatus]           = Json.writes[MediaDirStatus]
+  implicit val cityStoryMediaWrites: Writes[CityStoryMedia]           = Json.writes[CityStoryMedia]
+  implicit val storyMediaIntegrityWrites: Writes[StoryMediaIntegrity] = Json.writes[StoryMediaIntegrity]
+  implicit val mediaStorageHealthWrites: Writes[MediaStorageHealth]   = Json.writes[MediaStorageHealth]
+  implicit val healthThresholdsWrites: Writes[HealthThresholds]       = Json.writes[HealthThresholds]
+  implicit val dbHealthDataWrites: Writes[DbHealthData]               = Json.writes[DbHealthData]
 }

@@ -9,11 +9,10 @@ import models.story.{Story, StoryMedia, StoryPhotoUpload, StoryRejection}
 import play.api.libs.json.{JsBoolean, Json}
 import play.api.{Configuration, Logger}
 import play.silhouette.api.Silhouette
-import service.{ConfigService, ImageSigningService, RateLimiter, StoryService}
+import service.{ConfigService, ImageSigningService, LostMediaLog, RateLimiter, StoryService}
 
 import java.io.File
 import java.time.{Duration, OffsetDateTime}
-import java.util.concurrent.ConcurrentHashMap
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
@@ -33,6 +32,7 @@ class StoryController @Inject() (
     storyService: StoryService,
     signingService: ImageSigningService,
     rateLimiter: RateLimiter,
+    lostMediaLog: LostMediaLog,
     implicit val ec: ExecutionContext
 ) extends CustomBaseController(cc) {
   private val logger = Logger(this.getClass)
@@ -228,27 +228,22 @@ class StoryController @Inject() (
     }
   }
 
-  // serveStoryMedia's data-loss tripwire (#4925): one entry per media id already reported, so a busy page
-  // re-requesting one lost file reads as one loss in the log, not hundreds.
-  private val lostMediaLogged = ConcurrentHashMap.newKeySet[Int]()
-
   // The upload flow commits the media row before the file move lands (StoryService's place-before-commit windows), so
   // a row this young with no bytes is almost certainly mid-upload, not loss. The window is sub-second; a minute is
   // generous slack.
   private val lostMediaGrace = Duration.ofMinutes(1)
 
   /**
-   * Logs a media row whose bytes are missing from disk. This error is a post-#4925 tripwire someone is expected to
-   * investigate, so it is kept high-signal: skipped inside the upload grace window (a false alarm has real cost) and
-   * logged once per media id per instance.
+   * Reports a media row whose bytes are missing from disk (#4925). Kept high-signal by skipping the upload grace
+   * window, since a false alarm on this tripwire has real cost; `LostMediaLog` handles the rest.
    *
    * @param media The media row whose file is missing.
    * @param file  Where the bytes should have been.
    */
   private def logLostMedia(media: StoryMedia, file: File): Unit = {
     val inUploadWindow = media.createdAt.isAfter(OffsetDateTime.now.minus(lostMediaGrace))
-    if (!inUploadWindow && lostMediaLogged.add(media.storyMediaId)) {
-      logger.error(s"story_media ${media.storyMediaId} has no file on disk at ${file.getAbsolutePath}")
+    if (!inUploadWindow) {
+      lostMediaLog.reportMissing("story_media", media.storyMediaId.toString, file.getAbsolutePath, irreplaceable = true)
     }
   }
 

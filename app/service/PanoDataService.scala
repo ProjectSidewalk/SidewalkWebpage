@@ -328,6 +328,7 @@ trait PanoDataService {
   def cropExists(labelId: Int, labelType: LabelTypeEnum.Base): Boolean
   def cropUrl(labelId: Int, labelType: LabelTypeEnum.Base): Option[String]
   def localBackupImageFile(panoId: String): Option[File]
+  def backupImageDir(panoId: String): File
   def getLocalBackupImage(panoId: String): Future[Option[PanoData]]
 }
 
@@ -704,11 +705,14 @@ class PanoDataServiceImpl @Inject() (
    * `<pano.images.directory>/<city-id>/<panoId[0:2]>/<panoId>.<ext>`. Tries jpg/jpeg/png in order.
    */
   def localBackupImageFile(panoId: String): Option[File] = {
-    val dir = new File(panosBaseDir, panoId.take(2))
+    val dir = backupImageDir(panoId)
     Seq("jpg", "jpeg", "png").iterator
       .map(ext => new File(dir, s"$panoId.$ext"))
       .find(_.exists())
   }
+
+  /** The directory a pano's backup image lives in, whether or not one is there — named so a miss can say where it looked. */
+  def backupImageDir(panoId: String): File = new File(panosBaseDir, panoId.take(2))
 
   /**
    * Returns the pano_data row for a pano if a self-hosted image exists AND all required fields are populated.

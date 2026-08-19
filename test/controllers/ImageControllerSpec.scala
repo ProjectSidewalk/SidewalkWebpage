@@ -10,7 +10,8 @@ import play.api.mvc.Cookie
 import play.api.test.CSRFTokenHelper._
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import service.{PanoDataService, ShareImageCache}
+import models.label.LabelTypeEnum
+import service.{ImageSigningService, PanoDataService, ShareImageCache}
 import util.AnonSession
 
 import java.awt.image.BufferedImage
@@ -42,8 +43,9 @@ class ImageControllerSpec extends PlaySpec with AnonSession with GuiceOneAppPerS
 
   implicit lazy val mat: Materializer = app.materializer
 
-  private val panoDataService: PanoDataService = app.injector.instanceOf[PanoDataService]
-  private val shareImageCache: ShareImageCache = app.injector.instanceOf[ShareImageCache]
+  private val panoDataService: PanoDataService    = app.injector.instanceOf[PanoDataService]
+  private val shareImageCache: ShareImageCache    = app.injector.instanceOf[ShareImageCache]
+  private val signingService: ImageSigningService = app.injector.instanceOf[ImageSigningService]
 
   // Far outside the range of any real label id, so writing a crop here can't clobber one.
   private val syntheticLabelId      = Int.MaxValue - 4726
@@ -141,6 +143,31 @@ class ImageControllerSpec extends PlaySpec with AnonSession with GuiceOneAppPerS
     "reject a request with no JSON body" in {
       val resp = route(app, FakeRequest(POST, "/saveImage").withCookies(freshAnonSession(): _*).withCSRFToken).get
       status(resp) mustBe BAD_REQUEST
+    }
+  }
+
+  // A signed serving URL is only ever minted for a file that was on disk at the time (PanoDataService.cropUrl and
+  // backupImageUrl both check first), so a miss on one of these means the bytes vanished inside the signature's
+  // ~75-minute life. That is the loss #4925 had no way to notice, and #4926 gives it a log line — but the response
+  // still has to stay an ordinary 404, which is what these pin.
+  "Serving media whose bytes are gone" should {
+    "answer a signed crop URL whose file has been deleted with a plain 404" in {
+      val session = freshAnonSession()
+      status(postCrop(session, syntheticLabelId)) mustBe OK
+      val url = panoDataService.cropUrl(syntheticLabelId, LabelTypeEnum.CurbRamp).value
+      cropFileFor(syntheticLabelId).delete() mustBe true
+
+      val resp = route(app, FakeRequest(GET, url).withCookies(session: _*)).get
+      status(resp) mustBe NOT_FOUND
+      cleanUp(syntheticLabelId)
+    }
+
+    "answer a signed pano URL with no backup image with a plain 404, and stay quiet on a repeat" in {
+      // Two requests: the log deduplicates, the responses must not.
+      val panoId = "sidewalkSpecNoSuchPano4926"
+      val url    = signingService.signedUrl(s"/backupImage/$panoId")
+      status(route(app, FakeRequest(GET, url)).get) mustBe NOT_FOUND
+      status(route(app, FakeRequest(GET, url)).get) mustBe NOT_FOUND
     }
   }
 }

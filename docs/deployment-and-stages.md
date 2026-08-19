@@ -307,7 +307,9 @@ forgotten variable surfaces on test long before it can reach prod.
 meaningful while it models the exact resolution the write paths use), add it to `persistentDirs` in
 `PersistentMediaDirCheck`, decide whether its contents are irreplaceable (fatal) or derived (logged), and have the
 deployment tooling export its variable. Losing a story photo this way (#4925) took three weeks to notice, so the
-check — not a comment in `application.conf` — is what holds the contract.
+check — not a comment in `application.conf` — is what holds the contract. Adding it to `persistentDirs` also puts it
+on the **Media storage** panel of the Owner-only `/admin/health` page, which shows where each directory resolves on
+the running instance and counts any `story_media` row whose file has gone missing (#4926).
 
 ### Asset caching
 

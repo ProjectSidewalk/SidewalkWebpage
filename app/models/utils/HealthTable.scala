@@ -54,6 +54,12 @@ class HealthTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
   implicit private val grDbEnvInfo: GetResult[DbEnvInfo] =
     GetResult(r => DbEnvInfo(r.nextString(), r.nextString(), r.nextBoolean()))
 
+  implicit private val grSchemaRowCount: GetResult[SchemaRowCount] =
+    GetResult(r => SchemaRowCount(r.nextString(), r.nextInt()))
+
+  implicit private val grSchemaMediaId: GetResult[SchemaMediaId] =
+    GetResult(r => SchemaMediaId(r.nextString(), r.nextInt()))
+
   /**
    * Caps a health read so it can never hold a pool connection for long. A monitoring query must not add load — least
    * of all when the database is already stressed, which is exactly when this dashboard gets opened. `statement_timeout`
@@ -274,5 +280,56 @@ class HealthTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
       FROM labeled
       LEFT JOIN pano_data pd ON pd.pano_id = labeled.pano_id
     """.as[PanoBackupStats].head
+  }
+
+  /**
+   * Schemas holding a readable `story_media` table, for the cross-city media-integrity scan (#4926).
+   *
+   * Same shape as [[getEvolutionSchemas]], including its trap: the table-privilege check takes the `pg_class` oid
+   * rather than a name, because the planner may evaluate the predicates in any order and the name-based form raises
+   * an error (instead of returning false) on a relation that the other filters would have excluded.
+   */
+  def getStoryMediaSchemas: DBIO[Seq[String]] = bounded {
+    sql"""SELECT nspname FROM pg_catalog.pg_class
+          JOIN pg_catalog.pg_namespace ON pg_namespace.oid = pg_class.relnamespace
+          WHERE relname = 'story_media' AND relkind = 'r'
+            AND has_schema_privilege(nspname, 'USAGE')
+            AND has_table_privilege(pg_class.oid, 'SELECT')
+          ORDER BY nspname""".as[String]
+  }
+
+  /**
+   * How many `story_media` rows each schema holds, in ONE query — the same `UNION ALL` construction and the same
+   * reason as [[getStuckEvolutionsForSchemas]]: a per-schema fan-out would want ~50 pool connections per poll on
+   * prod. Read before the ids so the scan can decline an implausibly large result rather than pulling it into heap.
+   *
+   * Every `schema` MUST already be validated as a bare identifier by the caller; the names are spliced literally.
+   *
+   * @param schemas Validated schema names to count. Must be non-empty.
+   * @return        One row per schema, including the schemas that hold no media at all.
+   */
+  def getStoryMediaCounts(schemas: Seq[String]): DBIO[Seq[SchemaRowCount]] = {
+    require(schemas.nonEmpty, "getStoryMediaCounts requires at least one schema (empty input builds invalid SQL)")
+    val union = schemas
+      .map(schema => s"""SELECT text '$schema' AS schema, count(*)::int AS media_rows FROM "$schema".story_media""")
+      .mkString("\nUNION ALL\n")
+    bounded(sql"""#$union""".as[SchemaRowCount])
+  }
+
+  /**
+   * Every `story_media` id in the given schemas, in ONE `UNION ALL` query. The ids themselves are needed — a count
+   * comparison would call a city with one lost photo and one orphaned file clean.
+   *
+   * Every `schema` MUST already be validated as a bare identifier by the caller; the names are spliced literally.
+   *
+   * @param schemas Validated schema names known to hold at least one row. Must be non-empty.
+   * @return        One row per media id, tagged with its schema.
+   */
+  def getStoryMediaIds(schemas: Seq[String]): DBIO[Seq[SchemaMediaId]] = {
+    require(schemas.nonEmpty, "getStoryMediaIds requires at least one schema (empty input builds invalid SQL)")
+    val union = schemas
+      .map(schema => s"""SELECT text '$schema' AS schema, story_media_id FROM "$schema".story_media""")
+      .mkString("\nUNION ALL\n")
+    bounded(sql"""#$union""".as[SchemaMediaId])
   }
 }

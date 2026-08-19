@@ -9,5 +9,6 @@ import executors._
 class ExecutorsModule extends AbstractModule {
   override def configure(): Unit = {
     bind(classOf[CpuIntensiveExecutionContext]).to(classOf[CpuIntensiveExecutionContext.PekkoBased]).asEagerSingleton()
+    bind(classOf[BlockingIoExecutionContext]).to(classOf[BlockingIoExecutionContext.PekkoBased]).asEagerSingleton()
   }
 }

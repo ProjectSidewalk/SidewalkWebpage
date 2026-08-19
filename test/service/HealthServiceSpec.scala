@@ -76,6 +76,19 @@ class HealthServiceSpec extends PlaySpec with GuiceOneAppPerSuite {
       // The single UNION-ALL query must execute across all discovered schemas at once (the fan-out safety property).
       run(healthTable.getStuckEvolutionsForSchemas(schemas)).size must be >= 0
     }
+    "count and list story_media across every schema in one union query each" in {
+      // Every city schema gets the table from evolution 339, and the app under test applies evolutions on boot, so an
+      // empty result means discovery is broken rather than that this database is unusual.
+      val schemas = run(healthTable.getStoryMediaSchemas).filter(_.matches("^[A-Za-z0-9_]+$"))
+      schemas must not be empty
+      val counts = run(healthTable.getStoryMediaCounts(schemas))
+      counts.map(_.schema) must contain theSameElementsAs schemas
+      // The counts decide which schemas the id read covers, so a disagreement between them would make the scan
+      // report rows it never fetched as missing. What each id/file pairing then *means* is pinned by
+      // MediaIntegritySpec — seeding a story here would need a user, a label and an audit task, none of which the CI
+      // seed has.
+      run(healthTable.getStoryMediaIds(schemas)) must have size counts.map(_.rows).sum.toLong
+    }
   }
 
   "HealthService.getDbHealth" should {
@@ -90,6 +103,26 @@ class HealthServiceSpec extends PlaySpec with GuiceOneAppPerSuite {
       t.idleTxnBadSeconds must be >= t.idleTxnWarnSeconds
       t.lockWaitBadSeconds must be >= t.lockWaitWarnSeconds
       t.bloatBadRatio must be >= t.bloatWarnRatio
+    }
+
+    "report on every media directory the boot check guards" in {
+      val media = await(healthService.getDbHealth).mediaStorage.value
+      media.directories.map(_.key) mustBe modules.PersistentMediaDirCheck.persistentDirs.map(_.key)
+      // Each row has to name the variable that fixes it; a path alone doesn't tell an operator what to change.
+      media.directories.foreach(_.envVar must not be empty)
+    }
+
+    "keep the story-media scan's totals consistent with its per-city rows" in {
+      val media = await(healthService.getDbHealth).mediaStorage.value
+      // The scan reports itself unavailable when there is no media directory to read, which is the normal state of a
+      // dev checkout that has never had an upload. Either way it must never report a total its rows don't support.
+      media.storyMedia match {
+        case None       => media.unavailable mustBe defined
+        case Some(scan) =>
+          scan.missing mustBe scan.cities.map(_.missing).sum
+          scan.orphans mustBe scan.cities.map(_.orphans).sum
+          scan.cities.filterNot(_.scanned).foreach(_.missing mustBe 0)
+      }
     }
 
     "survive a burst of concurrent polls without exhausting the connection pool" in {
