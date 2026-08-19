@@ -17,6 +17,12 @@ It chains every remaining setup step, pausing only where a human is required:
   4. Loads db/onboarding/<city-id>/qgis_tables.sql into the schema.
   5. Runs fill-new-schema.sh non-interactively, answering its prompts from the onboarding report (you pick the
      tutorial region).
+  6. Runs the scripts/check_streets_for_imagery.py scan in the web container (which holds the API keys and the
+     python3.13 deps) against a freshly exported endpoints CSV, hides the no-imagery streets, and imports the
+     imagery-age summary into street_imagery.
+
+A rerun skips whatever already happened: registered configs, an existing schema (answer "n"), applied evolutions,
+and a filled schema (jumping straight to the imagery scan).
 
 Host-side and stdlib-only (it edits repo files and drives docker), unlike scripts/, which runs in the web container.
 Config edits are idempotent — a city already present in cityparams.conf is left alone — and `--dry-run` previews the
@@ -197,6 +203,47 @@ def apply_evolutions(schema, city_id):
         print('  One-shot app stopped; :9000 is free again.')
 
 
+def run_imagery_scan(schema, city_id, pano_type):
+    """Scans the exported street endpoints for imagery (in the web container), hides the no-imagery streets, and
+    imports the imagery-age summary."""
+    flag = {'gsv': '--gsv', 'mapillary': '--mapillary'}.get(pano_type)
+    if flag is None:
+        print(f'  No imagery scan for pano type "{pano_type}"; skipping.')
+        return
+    env_var = 'GOOGLE_MAPS_API_KEY' if flag == '--gsv' else 'MAPILLARY_ACCESS_TOKEN'
+    key = subprocess.run(['docker', 'exec', WEB_CONTAINER, 'printenv', env_var], capture_output=True, text=True)
+    if key.returncode != 0 or not key.stdout.strip():
+        print(f'  {env_var} is not set in the web container; skipping the scan (run it manually later).')
+        return
+
+    export = docker_db('psql', '-U', schema, '-d', 'sidewalk', '-c',
+                       'COPY (SELECT street_edge.street_edge_id, street_edge_region.region_id, x1, y1, x2, y2, geom '
+                       'FROM street_edge JOIN street_edge_region '
+                       'ON street_edge.street_edge_id = street_edge_region.street_edge_id '
+                       'WHERE street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)) '
+                       'TO STDOUT WITH (FORMAT csv, HEADER)',
+                       capture_output=True, text=True, check=True)
+    (REPO_ROOT / f'street_edge_endpoints_{city_id}.csv').write_text(export.stdout)
+    print(f'  Scanning {export.stdout.count(chr(10)) - 1} streets for {pano_type} imagery (resumes this city\'s '
+          'own checkpoint if interrupted)...')
+    # A TTY (when we have one to give) lets the scan's tqdm progress bar render; over a plain pipe it auto-hides.
+    tty = ['-t'] if sys.stdin.isatty() else []
+    subprocess.run(['docker', 'exec', '-i', *tty, WEB_CONTAINER, 'python3.13',
+                    'scripts/check_streets_for_imagery.py', '--city-id', city_id, flag], check=True)
+
+    no_imagery = REPO_ROOT / 'db' / f'streets_with_no_imagery_{city_id}.csv'
+    n_hidden = max(0, len(no_imagery.read_text().strip().split('\n')) - 1) if no_imagery.exists() else 0
+    print(f'  {n_hidden} street(s) without imagery; marking them no_imagery...')
+    docker_db('/opt/scripts/hide-streets-without-imagery.sh',
+              input=f'{schema}\nstreets_with_no_imagery_{city_id}.csv\n', text=True, check=True)
+
+    # On a fresh city the automatic street_imagery feeder (pano_data, via labels) has nothing yet, so the scan's
+    # summary is the only source of imagery-age data (#4348).
+    print('  Importing the imagery-age summary into street_imagery...')
+    docker_db('/opt/scripts/import-street-imagery.sh',
+              input=f'{schema}\nstreet_imagery_summary_{city_id}.csv\n', text=True, check=True)
+
+
 def parse_report(city_id):
     """Pulls the region source and region table out of the onboarding run's report.md."""
     report = (REPO_ROOT / 'db' / 'onboarding' / city_id / 'report.md').read_text()
@@ -231,7 +278,7 @@ def main():
     # The convention drops the state/country qualifier from server names (teaneck-nj -> sidewalk-teaneck).
     url_base = '-'.join(tokens[:-1]) if us_state else city_id
 
-    print('\nStep 1/5 — register the city in conf/...')
+    print('\nStep 1/6 — register the city in conf/...')
     add_cityparams_entries(city_id, [
         (['db-schema'], f'"{schema}"'),
         (['city-short-name'], 'null'),
@@ -264,7 +311,7 @@ def main():
         if subprocess.run(['docker', 'exec', container, 'true'], capture_output=True).returncode != 0:
             sys.exit(f'error: the {container} container is not running (make docker-up / make dev).')
 
-    print(f'\nStep 2/5 — create the empty schema {schema}...')
+    print(f'\nStep 2/6 — create the empty schema {schema}...')
     if db_query(f"SELECT 1 FROM pg_namespace WHERE nspname = '{schema}'"):
         if prompt(f'Schema {schema} already exists. Drop and recreate it? (y/n)', 'n') != 'y':
             print('  Keeping the existing schema.')
@@ -273,31 +320,37 @@ def main():
     else:
         docker_db('/opt/scripts/create-new-schema.sh', schema, check=True)
 
-    print('\nStep 3/5 — apply evolutions via a one-shot app boot...')
+    print('\nStep 3/6 — apply evolutions via a one-shot app boot...')
     apply_evolutions(schema, city_id)
 
-    print(f'\nStep 4/5 — load the staging tables from {sql_file.name}...')
-    docker_db('psql', '-v', 'ON_ERROR_STOP=1', '-U', schema, '-d', 'sidewalk',
-              '-f', f'/opt/onboarding/{city_id}/qgis_tables.sql', check=True)
+    # A filled schema means steps 4-5 already ran (the template alone holds just the tutorial street); rerunning the
+    # fill would collide on street_edge ids.
+    streets = db_query(f'SELECT count(*) FROM {schema}.street_edge')
+    if streets and int(streets) > 1:
+        print(f'\nSteps 4-5/6 — skipped: {schema} already holds {streets} streets.')
+    else:
+        print(f'\nStep 4/6 — load the staging tables from {sql_file.name}...')
+        docker_db('psql', '-v', 'ON_ERROR_STOP=1', '-U', schema, '-d', 'sidewalk',
+                  '-f', f'/opt/onboarding/{city_id}/qgis_tables.sql', check=True)
 
-    print('\nStep 5/5 — fill the schema from the staging tables. Regions:')
-    for region_id, name in regions:
-        print(f'  {region_id}: {name}')
-    tutorial_region = prompt('Tutorial region id (a central region with imagery)', '1')
-    answers = '\n'.join([schema, 'highway', region_source, 'name', tutorial_region, 'y', 'y']) + '\n'
-    docker_db('/opt/scripts/fill-new-schema.sh', input=answers, text=True, check=True)
+        print('\nStep 5/6 — fill the schema from the staging tables. Regions:')
+        for region_id, name in regions:
+            print(f'  {region_id}: {name}')
+        tutorial_region = prompt('Tutorial region id (a central region with imagery)', '1')
+        answers = '\n'.join([schema, 'highway', region_source, 'name', tutorial_region, 'y', 'y']) + '\n'
+        docker_db('/opt/scripts/fill-new-schema.sh', input=answers, text=True, check=True)
+
+    print('\nStep 6/6 — imagery scan (finds streets with no street-view imagery and hides them)...')
+    run_imagery_scan(schema, city_id, pano_type)
 
     print(f'''
 Done — {display_name}'s schema is populated. To develop against it, set SIDEWALK_CITY_ID={city_id} and
 DATABASE_USER={schema} in docker-compose.override.yml and recreate the container (make docker-stop, then make dev) —
 a running container's environment can't be changed in place.
 
-Still manual:
-  - Imagery scan: export street_edge_endpoints.csv, run
-    `python3.13 scripts/check_streets_for_imagery.py --gsv`, then `make hide-streets-without-imagery`.
-  - Real Google Analytics ids in cityparams.conf before deploying (placeholders TODO are in place).
-  - Translated city/state names (e.g. messages.zh-TW) — English fallback works meanwhile.
-  - The City IDs table in docs/dev-environment.md.''')
+Last step: run the `add-city-configs` skill in a Claude Code session (it finishes what a script can't — non-English
+name translations, real Google Analytics ids over the TODO placeholders, a review of the derived cityparams values,
+and the docs/dev-environment.md City IDs row).''')
 
 
 if __name__ == '__main__':

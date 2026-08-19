@@ -160,7 +160,7 @@ SQL with `--from-gpkg <path>` (validates the edited layers first).
 
 Once the GeoPackage passes QA, `make onboard-city id=<city-id>` (host-side, `tools/setup_new_city.py`) chains the
 rest of the setup: config registration, schema creation, evolutions, the staging load, the fill, and the
-`check_streets_for_imagery.py` scan + no-imagery street hiding — see
+`check_streets_for_imagery.py` scan + no-imagery street hiding + imagery-age import — see
 [`db/scripts/README.md`](../db/scripts/README.md) → "Standing up a brand-new city".
 
 ## Testing

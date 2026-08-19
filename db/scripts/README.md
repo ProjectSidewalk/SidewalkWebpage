@@ -61,7 +61,8 @@ make dev  ─▶  init.sh (auto)  ─▶  make import-users  ─▶  make import
 
 With QA'd artifacts from the `scripts/onboard_city.py` pipeline (see [`scripts/README.md`](../../scripts/README.md)),
 one guided command chains everything — cityparams/messages registration, schema creation, a one-shot app boot (with
-the city's env injected) that applies evolutions, the staging-table load, and the fill:
+the city's env injected) that applies evolutions, the staging-table load, the fill, and the
+`check_streets_for_imagery.py` scan + street hiding + imagery-age import:
 
 ```
 make onboard-city id=<city-id>       # host-side + interactive (tools/setup_new_city.py)
