@@ -2,11 +2,9 @@
  * Streets Map Preview Generator.
  *
  * Renders three live maps of one region's street segments, fed directly from /v3/api/streets. The three differ only
- * in what they color and scale the lines by — contributors, audit age, or label count — so they share a source shape,
- * a popup, and a summary panel, and differ by the entries in METRICS.
+ * in what they color and scale the lines by: contributors, audit age, or label count.
  *
- * @requires DOM elements with ids 'streets-user-count-preview', 'streets-audit-age-preview', and
- *           'streets-label-count-preview'
+ * @requires DOM elems with ids streets-user-count-preview, streets-audit-age-preview, and streets-label-count-preview.
  * @requires mapbox-gl and js/api-docs/apiDocsMap.js
  */
 
@@ -243,8 +241,7 @@
         const streets = withAge(await this.fetchStreetsByRegionId(regionData.region_id));
         const stats = summarize(streets.features);
 
-        // Settled rather than all: the three maps share only their data, so one failing to render is no reason to
-        // tear down the two beside it that came up fine.
+        // Settled rather than all so that one failing to render doesn't prevent the others from rendering.
         const rendered = await Promise.allSettled(
           METRICS.map((metric, i) => this.renderMap(containers[i], metric, regionData, streets, stats)));
         rendered.forEach((result, i) => {

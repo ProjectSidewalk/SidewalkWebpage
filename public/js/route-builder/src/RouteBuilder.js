@@ -196,8 +196,6 @@ class RouteBuilder {
     this.#cityView = { center: [mapParams.city_center.lng, mapParams.city_center.lat], zoom: mapParams.default_zoom };
     this.#map = new mapboxgl.Map({
       container: 'routebuilder-map',
-      // `?optimize=true` strips what the style doesn't draw out of the tiles. The POI toggle survives it because the
-      // style ships those layers visible, so their data is in the tile and hiding them is a client-side flip.
       style: 'mapbox://styles/projectsidewalk/cloov4big002801rc0qw75w5g?optimize=true',
       center: [mapParams.city_center.lng, mapParams.city_center.lat],
       zoom: mapParams.default_zoom,

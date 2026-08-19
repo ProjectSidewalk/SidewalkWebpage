@@ -1,13 +1,6 @@
 /**
- * Streets API Documentation - Specific Styles.
- *
- * This stylesheet contains styles specific to the Streets API documentation page, including map preview styling and any
- * custom components. The maps' chips, legends, and popups come from the shared rules in api-docs.css.
+ * Streets API Documentation - Specific Styles. Contains styles specific to the Streets API documentation page.
  */
-
-/* ==========================================================================
-   STREETS API SPECIFIC STYLES
-   ========================================================================== */
 
 /* ---- Visualization Sections ---- */
 
@@ -53,11 +46,6 @@
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-right: 10px;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
 }
 
 /* ---- Download Section Enhancements ---- */

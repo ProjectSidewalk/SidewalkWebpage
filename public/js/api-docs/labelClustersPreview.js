@@ -162,8 +162,7 @@
         type: 'circle',
         source: CLUSTERS_LAYER,
         paint: {
-          // Bigger circle for a cluster more people confirmed, capped so a heavily-labeled corner doesn't swallow
-          // its neighbors.
+          // Bigger circle for a bigger cluster, capped so a heavily-labeled corner doesn't swallow its neighbors.
           'circle-radius': ['min', 8, ['+', 3, ['*', 0.5, ['coalesce', ['get', 'cluster_size'], 1]]]],
           'circle-color': ApiDocsMap.labelTypeColorExpression(labelTypeInfo),
           'circle-opacity': 0.75,

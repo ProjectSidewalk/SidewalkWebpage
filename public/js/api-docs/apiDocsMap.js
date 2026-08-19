@@ -8,8 +8,7 @@
  */
 
 window.ApiDocsMap = (function () {
-  // Our own Studio style, as used by RouteBuilder and the route thumbnails. `?optimize=true` strips what the style
-  // doesn't draw out of the tiles, which holds up as long as nothing here queries or re-filters a basemap layer.
+  // Our own Studio style, as used by RouteBuilder and the route thumbnails.
   const STYLE_PROJECT_SIDEWALK = 'mapbox://styles/projectsidewalk/cloov4big002801rc0qw75w5g?optimize=true';
 
   // The preview layers are small dots over a busy street grid, so the basemap is knocked back behind them.
@@ -72,8 +71,7 @@ window.ApiDocsMap = (function () {
         // Dimmed before the promise resolves, so every layer a caller adds afterwards lands on top of the scrim.
         const dim = options.dim ?? BASEMAP_DIM_OPACITY;
         if (dim > 0) {
-          // A `background` layer covers the viewport at any zoom without an extra source, and has no antimeridian
-          // or pole edge cases to get wrong.
+          // A `background` layer covers the viewport at any zoom.
           map.addLayer({
             id: 'basemap-dim',
             type: 'background',
@@ -88,8 +86,7 @@ window.ApiDocsMap = (function () {
   }
 
   /**
-   * Layers an element over the map in one of its four control corners, returning it so callers can fill and refill
-   * it as data arrives.
+   * Layers an element over the map in one of its four corners, returns it so callers can fill/refill as data arrives.
    *
    * @param {object} map - The Mapbox map.
    * @param {string} position - 'top-left', 'top-right', 'bottom-left', or 'bottom-right'.

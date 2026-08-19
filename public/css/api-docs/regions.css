@@ -5,12 +5,6 @@
  * and its metric toggle, legend, and popups.
  */
 
-/* ==========================================================================
-   REGIONS API SPECIFIC STYLES
-   ========================================================================== */
-
-/* ---- Regions Preview Container ---- */
-
 /* The toolbar stacks above the map inside the shared .map-container frame. */
 #regions-preview {
   display: flex;
@@ -36,7 +30,7 @@
 }
 
 .regions-toolbar select {
-  font-family: var(--font-sans);
+  font-family: var(--font-primary);
   font-size: 13px;
   padding: 2px 4px;
   border: 1px solid #cccccc;
@@ -70,11 +64,6 @@
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-right: 10px;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
 }
 
 /* ---- No Regions Message ---- */

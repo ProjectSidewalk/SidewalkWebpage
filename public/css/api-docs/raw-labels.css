@@ -1,13 +1,8 @@
 /**
  * Project Sidewalk API Documentation - Raw Labels Component Styles
  *
- * This stylesheet contains styles specific to the Raw Labels component and works in conjunction with the main
- * api-docs.css file.
+ * Contains styles specific to the Raw Labels component and works in conjunction with the main api-docs.css file.
  */
-
-/* ==========================================================================
-   COMPONENT CONTAINERS
-   ========================================================================== */
 
 /* Uses the .map-container class from api-docs.css */
 #raw-labels-preview {
@@ -19,18 +14,6 @@
   overflow: hidden;
   position: relative;
 }
-
-/* ==========================================================================
-   POPUP AND TOOLTIPS
-   ========================================================================== */
-
-/* ==========================================================================
-   STATUS MESSAGES
-   ========================================================================== */
-
-/* Uses .message and .message-error classes from api-docs.css */
-
-/* Uses .loading-message class from api-docs.css */
 
 /* No labels message */
 .no-labels-message {
@@ -44,10 +27,6 @@
   box-shadow: var(--box-shadow);
   z-index: var(--z-index-dropdown);
 }
-
-/* ==========================================================================
-   RESPONSIVE ADJUSTMENTS
-   ========================================================================== */
 
 /* Responsive adjustments: var(--breakpoint-sm)). */
 @media (width <= 768px) {

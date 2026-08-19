@@ -71,11 +71,6 @@
   margin-right: 10px;
 }
 
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
 /* ---- Feature Popup ---- */
 
 /* The score is the popup's headline number, so it's set well above the surrounding text. */
