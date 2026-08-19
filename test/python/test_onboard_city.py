@@ -455,8 +455,8 @@ _CITY_GDF = gpd.GeoDataFrame(geometry=[_CITY], crs='EPSG:4326')
 
 
 def _fake_osmnx(monkeypatch, **attrs):
-    """Installs a stand-in for the lazily-imported osmnx module."""
-    fake = SimpleNamespace(**attrs)
+    """Installs a stand-in for the lazily-imported osmnx module (`settings` so _osmnx can point the cache)."""
+    fake = SimpleNamespace(settings=SimpleNamespace(), **attrs)
     monkeypatch.setitem(sys.modules, 'osmnx', fake)
     return fake
 

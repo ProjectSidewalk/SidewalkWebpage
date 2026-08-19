@@ -100,6 +100,13 @@ logger = logging.getLogger(__name__)
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
+
+def _osmnx():
+    """Imports osmnx with its HTTP cache pointed into the git-ignored onboarding dir instead of CWD-relative cache/."""
+    import osmnx as ox
+    ox.settings.cache_folder = str(REPO_ROOT / 'db' / 'onboarding' / 'osmnx-cache')
+    return ox
+
 # The way types we audit — the same filter the manual QGIS flow applies (wiki: "Creating database for a new city").
 # Every value is a label of the DB's way_type enum, so fill-new-schema.sh's ::way_type cast can't fail.
 DEFAULT_WAY_TYPES = (
@@ -698,7 +705,7 @@ def fetch_boundary(place):
     Returns:
         A single-row GeoDataFrame in EPSG:4326.
     """
-    import osmnx as ox
+    ox = _osmnx()
     boundary = ox.geocode_to_gdf(place)
     if boundary.geometry.iloc[0].geom_type not in ('Polygon', 'MultiPolygon'):
         sys.exit(f'error: "{place}" geocoded to a {boundary.geometry.iloc[0].geom_type}, not a boundary polygon. '
@@ -731,7 +738,7 @@ def fetch_osm_neighborhoods(boundary_poly):
     Returns:
         A GeoDataFrame with a ``name`` column (polygonal features only; may be empty).
     """
-    import osmnx as ox
+    ox = _osmnx()
     frames = []
     # Queried separately because osmnx ORs the keys of a multi-key tags dict: a combined
     # {boundary: administrative, admin_level: 10} query would match EVERY admin boundary (city, county, state...).
@@ -827,7 +834,7 @@ def fetch_streets(boundary_poly, include_alleys, fetch_buffer_m):
     Returns:
         A GeoDataFrame of street edges with ``osm_id`` (int) and ``highway`` (single way-type string) columns.
     """
-    import osmnx as ox
+    ox = _osmnx()
     buffer_deg = fetch_buffer_m / (111_320 * cos(radians(boundary_poly.centroid.y)))
     graph = ox.graph_from_polygon(boundary_poly.buffer(buffer_deg), custom_filter=build_osm_filters(include_alleys),
                                   simplify=True, retain_all=True, truncate_by_edge=True)
