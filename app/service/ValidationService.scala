@@ -306,7 +306,8 @@ class ValidationServiceImpl @Inject() (
         // Comments are keyed by (label, user) rather than by validation, so clearing one is only right when this
         // submission accounts for it: an undo/redo retracts the comment that came with the vote, and a submission
         // carrying its own comment replaces it. A repeat validation that carries none must leave the user's earlier
-        // free text alone — there is nothing to restore it from.
+        // free text alone — there is nothing to restore it from. `deleteIfExists` can clear more than one row, which
+        // the app is not supposed to allow but the data does contain (#4942).
         val oldCommentRemoved = if (valSubmission.undone || valSubmission.redone || valSubmission.comment.isDefined) {
           validationTaskCommentTable.deleteIfExists(validation.labelId, validation.userId)
         } else DBIO.successful(0)
