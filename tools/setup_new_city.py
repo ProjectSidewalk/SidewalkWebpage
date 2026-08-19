@@ -277,6 +277,10 @@ def main():
     status = prompt('Visibility status (public, private)', 'public')
     # The convention drops the state/country qualifier from server names (teaneck-nj -> sidewalk-teaneck).
     url_base = '-'.join(tokens[:-1]) if us_state else city_id
+    prod_url = prompt('Prod landing-page URL', f'https://sidewalk-{url_base}.cs.washington.edu')
+    scheme, host = prod_url.rstrip('/').split('://', 1)
+    first_label, _, rest = host.partition('.')
+    test_url = f'{scheme}://{first_label}-test' + (f'.{rest}' if rest else '')
 
     print('\nStep 1/6 — register the city in conf/...')
     add_cityparams_entries(city_id, [
@@ -288,8 +292,8 @@ def main():
         (['launch-date'], f'"{date.today().isoformat()}"'),
         (['skyline-img'], '"skyline1.png"'),
         (['logo-img'], '"sidewalk-logo.png"'),
-        (['landing-page-url', 'prod'], f'"https://sidewalk-{url_base}.cs.washington.edu"'),
-        (['landing-page-url', 'test'], f'"https://sidewalk-{url_base}-test.cs.washington.edu"'),
+        (['landing-page-url', 'prod'], f'"{prod_url}"'),
+        (['landing-page-url', 'test'], f'"{test_url}"'),
         (['google-analytics-4-id', 'prod'], '"TODO"'),
         (['google-analytics-4-id', 'test'], '"TODO"'),
         (['ai-tag-suggestions-enabled'], 'true'),
