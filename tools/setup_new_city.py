@@ -10,7 +10,8 @@ It chains every remaining setup step, pausing only where a human is required:
   1. Registers the city in conf/cityparams.conf (all the per-city maps, with derived defaults and placeholder GA
      ids) and conf/messages (city name; state name if it's a US state we haven't seen before).
   2. Creates the city's GA4 properties and fills the real measurement ids (tools/create_ga_properties.py) — when
-     GA_SERVICE_ACCOUNT_JSON is set and the ids are still placeholders; skipped with a pointer otherwise.
+     the repo-root ga-service-account.json key exists and the ids are still placeholders; skipped with a pointer
+     otherwise.
   3. Creates the empty city schema from the template (db/scripts/create-new-schema.sh).
   4. Boots the app one-shot inside the web container with DATABASE_USER/SIDEWALK_CITY_ID overridden via
      `docker exec -e` (a running container's env is fixed at creation, so editing docker-compose.override.yml can't
@@ -32,7 +33,6 @@ file edits and stops before any docker/db step.
 """
 
 import argparse
-import os
 import re
 import subprocess
 import sys
@@ -316,8 +316,9 @@ def main():
 
     print('\nStep 2/7 — create the Google Analytics properties...')
     import create_ga_properties
-    if not os.environ.get('GA_SERVICE_ACCOUNT_JSON'):
-        print('  GA_SERVICE_ACCOUNT_JSON is not set; skipping — run tools/create_ga_properties.py later.')
+    if not create_ga_properties.KEY_FILE.is_file():
+        print(f'  No {create_ga_properties.KEY_FILE.name} in the repo root; skipping — see '
+              'tools/create_ga_properties.py for the one-time setup, then run it standalone.')
     elif not create_ga_properties.ids_are_todo(city_id):
         print('  GA measurement ids are already filled in; skipping.')
     else:

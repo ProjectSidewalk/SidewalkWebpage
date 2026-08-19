@@ -14,6 +14,7 @@ coverage/
 bower.json
 component.json
 docker-compose.override*.yml
+ga-service-account.json
 db/*-dump
 
 # Generated per-city artifacts from scripts/onboard_city.py (QA GeoPackage, staging SQL, report)

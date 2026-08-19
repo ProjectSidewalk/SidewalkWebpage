@@ -1,9 +1,10 @@
 """
 Creates a new city's Google Analytics 4 properties (prod + test) and writes the measurement ids into cityparams.conf.
 
-Run after `make onboard-city` has registered the city (its GA ids are "TODO" placeholders until this runs):
+`make onboard-city` runs this as its GA step when the key file (below) is present; standalone, for a city whose ids
+are still "TODO" placeholders:
 
-    GA_SERVICE_ACCOUNT_JSON=~/secrets/sidewalk-ga.json python3 tools/create_ga_properties.py newport-ky
+    python3 tools/create_ga_properties.py newport-ky
 
 For each of the two GA accounts (prod and test) it creates, via the Analytics Admin API, a property named per our
 convention — "<City Name>, <ST>" for US cities, "<City Name>, <Country>" otherwise — with the team's standard
@@ -15,8 +16,9 @@ default report collection, so they're skipped.
 One-time setup (fully headless afterward — no GCP roles needed, the service account is authorized on the GA side):
 
   1. In any GCP project (console.cloud.google.com), enable the "Google Analytics Admin API" and create a service
-     account (skip both optional access-grant steps); under its Keys tab, create + download a JSON key. Store it
-     outside the repo (e.g. ~/secrets/, chmod 600) and point GA_SERVICE_ACCOUNT_JSON at it.
+     account (skip both optional access-grant steps); under its Keys tab, create + download a JSON key and save it
+     as ga-service-account.json in the repo root (git-ignored, and deny-listed from Claude, like
+     docker-compose.override.yml).
   2. In GA (Admin → Account access management), add the service account's email as Editor on both accounts.
   3. `pip install google-auth` (signs the service-account JWT; everything else is stdlib).
 
@@ -25,7 +27,6 @@ One-time setup (fully headless afterward — no GCP roles needed, the service ac
 
 import argparse
 import json
-import os
 import re
 import sys
 import time
@@ -43,6 +44,7 @@ API = 'https://analyticsadmin.googleapis.com'
 
 REPO_ROOT = setup_new_city.REPO_ROOT
 CITYPARAMS = setup_new_city.CITYPARAMS
+KEY_FILE = REPO_ROOT / 'ga-service-account.json'
 
 
 def cityparams_value(lines, path, city_id):
@@ -78,9 +80,9 @@ def property_display_name(lines, city_id):
 
 def access_token():
     """A bearer token for the service account, via the signed-JWT grant (no browser, no cached state)."""
-    key_path = Path(os.environ.get('GA_SERVICE_ACCOUNT_JSON', ''))
-    if not key_path.is_file():
-        sys.exit('error: set GA_SERVICE_ACCOUNT_JSON to the service-account key file (see the module docstring).')
+    if not KEY_FILE.is_file():
+        sys.exit(f'error: no {KEY_FILE.name} in the repo root — save the service-account key there '
+                 '(see the module docstring).')
     try:
         from google.auth import crypt, jwt
     except ImportError:
