@@ -283,6 +283,14 @@ class HealthTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
   }
 
   /**
+   * The schema this instance actually reads and writes, which is what the media scan resolves its own city's
+   * directory from. Config alone can't answer it: `city-id` and the connection's schema are separate settings and a
+   * misconfigured instance has them disagreeing, which would make the scan look for files somewhere the app never
+   * writes them.
+   */
+  def getCurrentSchema: DBIO[String] = bounded { sql"""SELECT current_schema()""".as[String].head }
+
+  /**
    * Schemas holding a readable `story_media` table, for the cross-city media-integrity scan (#4926).
    *
    * Same shape as [[getEvolutionSchemas]], including its trap: the table-privilege check takes the `pg_class` oid

@@ -87,6 +87,51 @@ class MediaIntegritySpec extends PlaySpec {
     }
   }
 
+  private val configuredCities = Map("sidewalk_chicago" -> "chicago-il", "sidewalk_seattle" -> "seattle-wa")
+
+  "cityDirsBySchema" should {
+    "use the configured city for every schema when nothing disagrees" in {
+      MediaIntegrity.cityDirsBySchema(
+        Seq("sidewalk_chicago", "sidewalk_seattle"),
+        "sidewalk_chicago",
+        "chicago-il",
+        configuredCities
+      ) mustBe configuredCities
+    }
+
+    "follow this instance's own city-id, since that is what the write path builds its path from" in {
+      // A dev container left with city-id and the connection's schema disagreeing writes media under the city-id.
+      val dirs = MediaIntegrity.cityDirsBySchema(
+        Seq("sidewalk_chicago", "sidewalk_seattle"),
+        "sidewalk_chicago",
+        "seattle-wa",
+        configuredCities
+      )
+      dirs.get("sidewalk_chicago") mustBe Some("seattle-wa")
+    }
+
+    "not let a second schema claim a directory this instance already writes to" in {
+      // Otherwise the other schema lists the same files and reports every one of them as an orphan.
+      val dirs = MediaIntegrity.cityDirsBySchema(
+        Seq("sidewalk_chicago", "sidewalk_seattle"),
+        "sidewalk_chicago",
+        "seattle-wa",
+        configuredCities
+      )
+      dirs.get("sidewalk_seattle") mustBe None
+    }
+
+    "leave out a schema no configured city names, so it is reported unscanned rather than guessed at" in {
+      MediaIntegrity.cityDirsBySchema(
+        Seq("sidewalk_elsewhere"),
+        "sidewalk_chicago",
+        "chicago-il",
+        configuredCities
+      ) mustBe
+        Map.empty
+    }
+  }
+
   "compareCity" should {
     "report a city whose rows all have files as clean" in {
       val result = MediaIntegrity.compareCity(

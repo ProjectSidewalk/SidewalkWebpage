@@ -78,6 +78,34 @@ object MediaIntegrity {
     MediaDirStatus(dir.key, dir.envVar, dir.irreplaceable, path, key, label, severity, detail)
 
   /**
+   * Which city's subdirectory each schema's media lives in.
+   *
+   * This instance's own schema takes `city-id`, because that is what `StoryService` builds its write path from —
+   * the schema and `city-id` are independent settings, so on an instance where they disagree the scan has to look
+   * where the files actually are. That claim is exclusive: no second schema may be pointed at the same directory,
+   * or it would report the first schema's files as orphans. A schema left without a directory is reported unscanned,
+   * which is the truth — nothing here can say where its files are.
+   *
+   * @param schemas       Schemas the scan covers.
+   * @param currentSchema The schema this instance reads and writes.
+   * @param currentCity   The `city-id` this instance writes media under.
+   * @param configured    Schema to city id, from configuration alone.
+   * @return              Schema to city id, for the schemas whose directory can be located.
+   */
+  def cityDirsBySchema(
+      schemas: Seq[String],
+      currentSchema: String,
+      currentCity: String,
+      configured: Map[String, String]
+  ): Map[String, String] = {
+    val others = schemas
+      .filter(_ != currentSchema)
+      .flatMap(schema => configured.get(schema).filter(_ != currentCity).map(schema -> _))
+      .toMap
+    if (schemas.contains(currentSchema)) others + (currentSchema -> currentCity) else others
+  }
+
+  /**
    * Compares one city's `story_media` rows against the files in its media directory.
    *
    * Both directions matter. A row with no file is destroyed content (#4925). A file with no row is the opposite

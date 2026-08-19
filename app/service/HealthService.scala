@@ -421,23 +421,46 @@ class HealthServiceImpl @Inject() (
                 val idsF      =
                   if (populated.isEmpty) Future.successful(Seq.empty[SchemaMediaId])
                   else db.run(healthTable.getStoryMediaIds(populated))
-                idsF.flatMap(ids => scanCities(baseDir, counts, ids).map(cities => (Some(cities), None)))
+                for {
+                  ids     <- idsF
+                  current <- db.run(healthTable.getCurrentSchema)
+                  cities  <- scanCities(baseDir, current, counts, ids)
+                } yield (Some(cities), None)
               }
             }
         }
     }
   }
 
-  /** Lists each city's directory once and diffs it against that city's ids — one listing per city, whatever the row count. */
+  /**
+   * Lists each city's directory once and diffs it against that city's ids — one listing per city, whatever the row
+   * count, which is what keeps this affordable as stories grow.
+   *
+   * This instance's own schema takes its city from `city-id` rather than from the schema mapping, because that is
+   * what `StoryService` builds its write path from: the two settings are independent, and on an instance where they
+   * disagree the scan has to look where the files actually are rather than where the mapping says they should be.
+   *
+   * @param baseDir       Resolved base directory holding the per-city subdirectories.
+   * @param currentSchema The schema this instance reads and writes.
+   * @param counts        Row counts per schema, which decide the rows reported.
+   * @param ids           Every media id, tagged with its schema.
+   */
   private def scanCities(
       baseDir: File,
+      currentSchema: String,
       counts: Seq[SchemaRowCount],
       ids: Seq[SchemaMediaId]
   ): Future[StoryMediaIntegrity] = {
     val idsBySchema = ids.groupBy(_.schema).view.mapValues(_.map(_.storyMediaId)).toMap
+    val cityDirs    = MediaIntegrity.cityDirsBySchema(
+      counts.map(_.schema),
+      currentSchema,
+      config.get[String]("city-id"),
+      cityIdBySchema
+    )
     Future {
       counts.sortBy(_.schema).map { case SchemaRowCount(schema, _) =>
-        val cityId    = cityIdBySchema.get(schema)
+        val cityId    = cityDirs.get(schema)
         val fileNames = cityId.flatMap(id => MediaIntegrity.listFileNames(new File(baseDir, id)))
         MediaIntegrity.compareCity(cityId, schema, idsBySchema.getOrElse(schema, Seq.empty), fileNames)
       }
