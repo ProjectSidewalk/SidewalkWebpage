@@ -194,11 +194,13 @@ production runtime shape, see [`docs/deployment-and-stages.md`](deployment-and-s
 Two standalone scripts under [`scripts/`](../scripts) (see [`scripts/README.md`](../scripts/README.md)):
 
 - `scripts/label_clustering.py` — clusters nearby labels (used by the clustering flow; see `ClusterService` /
-  `app/models/cluster/`).
-- `scripts/check_streets_for_imagery.py` — checks streets for available street-view imagery.
+  `app/models/cluster/`). Run as `python3` — the app shells out to it, so it has to work on the deployed server's
+  system Python.
+- `scripts/check_streets_for_imagery.py` — checks streets for available street-view imagery. Run as `python3.13`,
+  the second interpreter the web image carries for offline tooling whose libraries have moved past 3.8.
 
-Their pure logic is unit-tested under [`test/python/`](../test/python) (`pytest`, advisory in CI). See
-[`docs/testing-and-ci.md`](testing-and-ci.md).
+Their pure logic is unit-tested under [`test/python/`](../test/python) (`pytest`, advisory in CI) — one run per
+interpreter. See [`docs/testing-and-ci.md`](testing-and-ci.md).
 
 ## Label types
 
