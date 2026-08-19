@@ -658,6 +658,9 @@ h6:hover .permalink {
 .map-popup .mapboxgl-popup-content {
   padding: var(--space-xs) var(--space-sm);
   border-radius: var(--border-radius-lg);
+
+  /* Mapbox caps popup width with an inline style, which ApiDocsMap.popup suppresses so this can own it instead. */
+  max-width: 260px;
 }
 
 /* Mapbox rounds the close button's corner to match its own 3px frame, so it has to track ours. */

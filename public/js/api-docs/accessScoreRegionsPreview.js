@@ -24,7 +24,9 @@
   // Metrics that can be visualized. Both are already normalized to [0, 1], so the ramp domain is fixed.
   const METRICS = {
     score: { label: 'AccessScore', legendTitle: 'AccessScore (0 = low, 1 = high)' },
-    coverage: { label: 'Audit coverage', legendTitle: 'Fraction of streets audited' },
+    // Unlike score, coverage is never null: a region with nothing audited comes back as 0, so zero is what marks it
+    // as the "none" category rather than the bottom of the ramp.
+    coverage: { label: 'Audit coverage', legendTitle: 'Fraction of streets audited', noneAtOrBelow: 0 },
   };
 
   const NONE_COLOR = '#3d3d3d'; // Regions with no audited streets (null score).
@@ -141,7 +143,10 @@
 
     /** Fill color for the selected metric, gray where the region has no score at all. */
     colorExpression() {
-      return ApiDocsMap.gradientColorExpression(this._metric, ApiDocsMap.ACCESS_SCORE_RAMP, { noneColor: NONE_COLOR });
+      return ApiDocsMap.gradientColorExpression(this._metric, ApiDocsMap.ACCESS_SCORE_RAMP, {
+        noneColor: NONE_COLOR,
+        noneAtOrBelow: METRICS[this._metric].noneAtOrBelow,
+      });
     },
 
     /** Wire up the click popup for the region layer. */

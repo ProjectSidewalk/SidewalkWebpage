@@ -179,6 +179,8 @@
     colorExpression() {
       const metricCfg = METRICS[this._metric];
       return ApiDocsMap.gradientColorExpression(this._metric, metricCfg.ramp, {
+        // The ramp starts at 1, since 0 is the category below it — keep the legend's low tick in step.
+        min: 1,
         max: this._maxByMetric[this._metric],
         noneColor: metricCfg.none.color,
         // A region nobody has touched should read differently from the least-labeled one someone has.
@@ -222,7 +224,8 @@
      */
     updateLegend() {
       const metricCfg = METRICS[this._metric];
-      const max = this._maxByMetric[this._metric];
+      // Clamped so a city where every region scores 0 on this metric doesn't label the bar 1 down to 0.
+      const max = Math.max(1, this._maxByMetric[this._metric]);
       ApiDocsMap.renderGradientLegend(this._legend, metricCfg.legendTitle, metricCfg.ramp,
         ['1', max.toLocaleString()], metricCfg.none);
     },

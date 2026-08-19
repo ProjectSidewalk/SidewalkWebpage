@@ -243,13 +243,27 @@
         const streets = withAge(await this.fetchStreetsByRegionId(regionData.region_id));
         const stats = summarize(streets.features);
 
-        await Promise.all(METRICS.map((metric, i) => this.renderMap(containers[i], metric, regionData, streets, stats)));
-      } catch (error) {
-        console.error('Streets preview error:', error);
-        containers.forEach((container) => {
-          container.innerHTML = `<div class="message message-error">Failed to load streets: ${error.message}</div>`;
+        // Settled rather than all: the three maps share only their data, so one failing to render is no reason to
+        // tear down the two beside it that came up fine.
+        const rendered = await Promise.allSettled(
+          METRICS.map((metric, i) => this.renderMap(containers[i], metric, regionData, streets, stats)));
+        rendered.forEach((result, i) => {
+          if (result.status === 'rejected') this.showError(containers[i], result.reason);
         });
+      } catch (error) {
+        // Everything ahead of the render is shared, so a failure there is a failure for all three.
+        containers.forEach((container) => this.showError(container, error));
       }
+    },
+
+    /**
+     * Replace a preview's contents with a failure message.
+     * @param {HTMLElement} container - The preview's container
+     * @param {Error} error - What went wrong
+     */
+    showError(container, error) {
+      console.error('Streets preview error:', error);
+      container.innerHTML = `<div class="message message-error">Failed to load streets: ${error.message}</div>`;
     },
 
     /**
@@ -274,14 +288,14 @@
     },
 
     /**
-     * Build one of the three maps: region outline, streets painted per the metric, legend, and summary.
+     * Build one of the three maps, tearing it back down if anything fails to draw.
      *
      * @param {HTMLElement} container - Container element for this map
      * @param {object} metric - The METRICS entry driving this map
      * @param {object} regionData - The region the preview is scoped to
      * @param {object} streets - GeoJSON FeatureCollection of streets
      * @param {object} stats - The rollup from summarize()
-     * @returns {Promise} Resolves once the map has loaded
+     * @returns {Promise} Resolves once the map has loaded and drawn
      */
     async renderMap(container, metric, regionData, streets, stats) {
       container.innerHTML = '';
@@ -290,7 +304,25 @@
         mapboxApiKey: config.mapboxApiKey,
         bounds: ApiDocsMap.geometryBounds(regionData.geometry),
       });
+      try {
+        this.drawMap(map, metric, regionData, streets, stats);
+      } catch (error) {
+        // A half-drawn map still holds a WebGL context, and browsers cap how many can be live. This page wants three.
+        map.remove();
+        throw error;
+      }
+    },
 
+    /**
+     * Draw one map's region outline, streets, legend, and summary onto a loaded map.
+     *
+     * @param {object} map - The loaded Mapbox map
+     * @param {object} metric - The METRICS entry driving this map
+     * @param {object} regionData - The region the preview is scoped to
+     * @param {object} streets - GeoJSON FeatureCollection of streets
+     * @param {object} stats - The rollup from summarize()
+     */
+    drawMap(map, metric, regionData, streets, stats) {
       map.addSource(REGION_SOURCE, {
         type: 'geojson',
         data: { type: 'Feature', geometry: regionData.geometry, properties: {} },

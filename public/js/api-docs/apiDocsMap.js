@@ -61,8 +61,14 @@ window.ApiDocsMap = (function () {
     map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'top-left');
     map.addControl(new MapboxLanguage({ defaultLanguage: i18next.t('common:mapbox-language-code') }));
 
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
+      // A bad token or an unreachable style is reported through `error`, and `load` never follows it. Without this
+      // the promise would hang and the caller's catch would never run, leaving the reader a blank frame.
+      const fail = (e) => reject(e.error ?? new Error('The map failed to load.'));
+      map.once('error', fail);
+
       const finish = () => {
+        map.off('error', fail);
         // Dimmed before the promise resolves, so every layer a caller adds afterwards lands on top of the scrim.
         const dim = options.dim ?? BASEMAP_DIM_OPACITY;
         if (dim > 0) {
