@@ -157,7 +157,9 @@ to eyeball in QGIS, the `qgis_tables.sql` load file, and a Markdown report with 
 structural region changes always go through a full rerun so streets re-split and re-heal against the merged
 boundaries and region ids stay dense. For surgical fixes, hand-edit the GeoPackage layers in QGIS and regenerate the
 SQL with the same target: `make build-city-data id=<city-id> args="--from-gpkg"` (a bare `--from-gpkg` targets the
-city's own QA GeoPackage; validates the edited layers first, and keeps the regions' existing `data_source`).
+city's own QA GeoPackage; validates the edited layers first, and keeps the regions' existing `data_source`). And when
+hand-edited regions should *re-do the streets*, feed the edited GeoPackage back into a fetch rerun as the region
+source — `--regions-file <the QA gpkg> --regions-source "..."` reads its `qgis_region` layer directly.
 
 Once the GeoPackage passes QA, `make onboard-city id=<city-id>` (host-side, `tools/setup_new_city.py`) chains the
 rest of the setup: config registration, schema creation, evolutions, the staging load, the fill, and the

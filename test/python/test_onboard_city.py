@@ -560,6 +560,14 @@ def test_read_regions_file_requires_a_name_column(tmp_path):
         oc.read_regions_file(unnamed_path)
 
 
+def test_read_regions_file_reads_a_qa_geopackages_region_layer(tmp_path):
+    # qgis_road is written first, so a first-layer read would return roads — the qgis_region layer must win.
+    path = _staging_gpkg(tmp_path)
+    regions = oc.read_regions_file(path)
+    assert sorted(regions['name']) == ['east', 'west']
+    assert list(regions.columns) == ['name', 'geometry']
+
+
 def test_fetch_streets_buffers_the_fetch_polygon_and_normalizes_columns(monkeypatch):
     edges = gpd.GeoDataFrame({'osmid': [[100, 101], 200], 'highway': [['track', 'residential'], 'primary']},
                              geometry=[LineString([(0, 0), (0.001, 0)]), LineString([(0.001, 0), (0.002, 0)])],

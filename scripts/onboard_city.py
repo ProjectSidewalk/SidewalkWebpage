@@ -37,6 +37,10 @@ Workflow:
          ``make build-city-data id=<city-id> args="--from-gpkg"`` — it validates the layers (unique ids, region
          references, geometry types) and rewrites ``qgis_tables.sql`` so the load matches exactly what was QA'd.
          Never load a stale SQL file over hand edits.
+       * **Hand-edited regions that should re-do the streets**: when region edits are big enough that streets should
+         re-split/re-heal against them, feed the edited GeoPackage back into a fetch rerun as the region source —
+         ``--regions-file <the QA gpkg> --regions-source "..."`` (its ``qgis_region`` layer is read; street edits in
+         the gpkg don't carry over, and region ids may renumber).
   3. Run ``make onboard-city id=<city-id>`` (tools/setup_new_city.py), which chains the rest of the setup — configs,
      GA properties, schema creation, evolutions, the staging load + fill, and the imagery scan.
 
@@ -796,14 +800,19 @@ def read_regions_file(path):
     """
     Reads a user-supplied region/neighborhood dataset.
 
+    A QA GeoPackage from a previous run works directly — its ``qgis_region`` layer is read — so hand-edited regions
+    can drive a fresh fetch (streets re-split and re-heal against the edited boundaries) without exporting the layer
+    to a separate file first.
+
     Args:
         path: Any OGR-readable file, any CRS. Must carry a ``name`` column — the convention everything downstream
-              (validation, fill-new-schema.sh's prompt default) already assumes.
+              already assumes.
 
     Returns:
         A GeoDataFrame with ``name`` + geometry, in EPSG:4326.
     """
-    regions = gpd.read_file(path).to_crs(epsg=4326)
+    layers = set(gpd.list_layers(path)['name'])
+    regions = gpd.read_file(path, layer='qgis_region' if 'qgis_region' in layers else None).to_crs(epsg=4326)
     if 'name' not in regions.columns:
         sys.exit(f'error: {path} needs a "name" column holding region names (rename yours in QGIS or with ogr2ogr); '
                  f'columns: {list(regions.columns)}')
@@ -1207,7 +1216,8 @@ def parse_args(argv=None):
                                                 're-split and re-heal against the merged boundaries and region ids '
                                                 'come out dense.')
     parser.add_argument('--regions-file', help='Neighborhood boundary dataset to use instead of OSM/census sources '
-                                               '(must carry a "name" column). Requires --regions-source.')
+                                               '(must carry a "name" column; a QA GeoPackage works — its qgis_region '
+                                               'layer is used). Requires --regions-source.')
     parser.add_argument('--regions-source', help='Provenance recorded in region.data_source for a --regions-file: '
                                                  'where the file came from — a source URL, or the supplying '
                                                  'collaborator\'s email.')
