@@ -137,7 +137,7 @@ def create_property(token, account, display_name, default_uri):
         urllib.request.urlopen(request).close()
     except urllib.error.HTTPError as err:
         print(f'  warning: could not confirm enhanced measurement ({err.code}); check it in the GA UI.')
-    return stream['webStreamData']['measurementId']
+    return stream['webStreamData']['measurementId'], prop['name'].split('/')[1]
 
 
 def find_todo_line(lines, stage, city_id):
@@ -172,14 +172,18 @@ def create_for_city(city_id, dry_run=False):
         return
 
     token = access_token()
+    admin_links = []
     for stage, account, url in stages:
-        measurement_id = create_property(token, account, display_name, url)
+        measurement_id, property_id = create_property(token, account, display_name, url)
         i = find_todo_line(lines, stage, city_id)
         lines[i] = lines[i].replace('"TODO"', f'"{measurement_id}"')
+        admin_links.append(f'{stage}: https://analytics.google.com/analytics/web/#/a{account}p{property_id}/admin')
         print(f'  {stage}: created — measurement id {measurement_id}')
     CITYPARAMS.write_text('\n'.join(lines))
     print(f'  Wrote both measurement ids into {CITYPARAMS}. Business size/objectives have no API equivalent; '
-          'set them in the GA UI if you care about the default report collections.')
+          'set them under Admin -> Property -> Business details if you care about the default report collections:')
+    for link in admin_links:
+        print(f'    {link}')
 
 
 def main():
