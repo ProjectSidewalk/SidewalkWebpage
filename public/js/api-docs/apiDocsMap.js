@@ -8,10 +8,9 @@
  */
 
 window.ApiDocsMap = (function () {
-  // Our own Studio style, as used by RouteBuilder and the route thumbnails. Left without `?optimize=true`: that
-  // strips data the style doesn't currently draw out of the tiles, breaking anything that reads the basemap back at
-  // runtime — MapboxLanguage swapping `text-field` to another language's name field, most of all.
-  const STYLE_PROJECT_SIDEWALK = 'mapbox://styles/projectsidewalk/cloov4big002801rc0qw75w5g';
+  // Our own Studio style, as used by RouteBuilder and the route thumbnails. `?optimize=true` strips what the style
+  // doesn't draw out of the tiles, which holds up as long as nothing here queries or re-filters a basemap layer.
+  const STYLE_PROJECT_SIDEWALK = 'mapbox://styles/projectsidewalk/cloov4big002801rc0qw75w5g?optimize=true';
 
   // The preview layers are small dots over a busy street grid, so the basemap is knocked back behind them.
   const BASEMAP_DIM_OPACITY = 0.5;
