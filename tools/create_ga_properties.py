@@ -11,7 +11,8 @@ convention — "<City Name>, <ST>" for US cities, "<City Name>, <Country>" other
 settings (Los Angeles time zone, USD, industry Science), plus a web data stream of the same name pointing at that
 stage's landing-page URL, with enhanced measurement on. The stream's G- measurement id replaces the "TODO" in
 cityparams.conf. Business size/objectives are UI-wizard-only fields with no API equivalent — they only shape the
-default report collection, so they're skipped.
+default report collection, so they're skipped. Reruns are safe: an existing property or stream with the convention
+name is reused rather than duplicated.
 
 One-time setup (fully headless afterward — no GCP roles needed, the service account is authorized on the GA side):
 
@@ -114,30 +115,53 @@ def api_call(method, url, token, payload=None):
         sys.exit(f'error: {method} {url} failed with {err.code}:\n{err.read().decode()}')
 
 
-def create_property(token, account, display_name, default_uri):
-    prop = api_call('POST', f'{API}/v1beta/properties', token, {
-        'parent': f'accounts/{account}',
-        'displayName': display_name,
-        'timeZone': 'America/Los_Angeles',
-        'currencyCode': 'USD',
-        'industryCategory': 'SCIENCE',
-    })
-    stream = api_call('POST', f'{API}/v1beta/{prop["name"]}/dataStreams', token, {
-        'type': 'WEB_DATA_STREAM',
-        'displayName': display_name,
-        'webStreamData': {'defaultUri': default_uri},
-    })
-    # Enhanced measurement defaults on for new web streams; assert it anyway. The endpoint is v1alpha-only, so a
-    # failure here is a warning, not a stop.
+def find_property(token, account, display_name):
+    """The account's (non-trashed) property named ``display_name``, or None."""
+    listing = api_call('GET', f'{API}/v1beta/properties?filter=parent:accounts/{account}&pageSize=200', token)
+    return next((p['name'] for p in listing.get('properties', []) if p['displayName'] == display_name), None)
+
+
+def assert_enhanced_measurement(token, stream_name):
+    """Enhanced measurement defaults on for new web streams; assert it anyway. The endpoint is v1alpha-only, so a
+    failure is a warning, not a stop."""
     try:
-        api_url = f'{API}/v1alpha/{stream["name"]}/enhancedMeasurementSettings?updateMask=streamEnabled'
+        api_url = f'{API}/v1alpha/{stream_name}/enhancedMeasurementSettings?updateMask=streamEnabled'
         request = urllib.request.Request(api_url, data=json.dumps({'streamEnabled': True}).encode(), method='PATCH',
                                          headers={'Authorization': f'Bearer {token}',
                                                   'Content-Type': 'application/json'})
         urllib.request.urlopen(request).close()
     except urllib.error.HTTPError as err:
         print(f'  warning: could not confirm enhanced measurement ({err.code}); check it in the GA UI.')
-    return stream['webStreamData']['measurementId'], prop['name'].split('/')[1]
+
+
+def ensure_property(token, account, display_name, default_uri):
+    """
+    Returns the stage's ``(measurement_id, property_id)``, creating the property and/or web stream only when absent.
+
+    Looking both up by display name first makes reruns idempotent: a crash partway through a previous run can't lead
+    to duplicate properties.
+    """
+    prop_name = find_property(token, account, display_name)
+    if prop_name is None:
+        prop_name = api_call('POST', f'{API}/v1beta/properties', token, {
+            'parent': f'accounts/{account}',
+            'displayName': display_name,
+            'timeZone': 'America/Los_Angeles',
+            'currencyCode': 'USD',
+            'industryCategory': 'SCIENCE',
+        })['name']
+    else:
+        print(f'  Found existing property "{display_name}" ({prop_name}); reusing it.')
+    streams = api_call('GET', f'{API}/v1beta/{prop_name}/dataStreams', token)
+    stream = next((s for s in streams.get('dataStreams', []) if s.get('type') == 'WEB_DATA_STREAM'), None)
+    if stream is None:
+        stream = api_call('POST', f'{API}/v1beta/{prop_name}/dataStreams', token, {
+            'type': 'WEB_DATA_STREAM',
+            'displayName': display_name,
+            'webStreamData': {'defaultUri': default_uri},
+        })
+        assert_enhanced_measurement(token, stream['name'])
+    return stream['webStreamData']['measurementId'], prop_name.split('/')[1]
 
 
 def find_todo_line(lines, stage, city_id):
@@ -165,7 +189,7 @@ def create_for_city(city_id, dry_run=False):
         # Fail loudly on an already-filled id BEFORE anything is created.
         if not dry_run and find_todo_line(lines, stage, city_id) is None:
             sys.exit(f'error: no `{city_id} = "TODO"` line in google-analytics-4-id.{stage} — already filled in? '
-                     'Refusing to create duplicate GA properties.')
+                     'Nothing to do.')
         print(f'  {stage}: property "{display_name}" under accounts/{account}, web stream -> {url}')
     if dry_run:
         print('[dry-run] stopping before auth and API calls.')
@@ -174,12 +198,13 @@ def create_for_city(city_id, dry_run=False):
     token = access_token()
     admin_links = []
     for stage, account, url in stages:
-        measurement_id, property_id = create_property(token, account, display_name, url)
+        measurement_id, property_id = ensure_property(token, account, display_name, url)
         i = find_todo_line(lines, stage, city_id)
         lines[i] = lines[i].replace('"TODO"', f'"{measurement_id}"')
+        # Written per stage so a failure on the second leaves the first's id recorded.
+        CITYPARAMS.write_text('\n'.join(lines))
         admin_links.append(f'{stage}: https://analytics.google.com/analytics/web/#/a{account}p{property_id}/admin')
-        print(f'  {stage}: created — measurement id {measurement_id}')
-    CITYPARAMS.write_text('\n'.join(lines))
+        print(f'  {stage}: measurement id {measurement_id}')
     print(f'  Wrote both measurement ids into {CITYPARAMS}. Business size/objectives have no API equivalent; '
           'set them under Admin -> Property -> Business details if you care about the default report collections:')
     for link in admin_links:
