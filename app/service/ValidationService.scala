@@ -53,7 +53,7 @@ class ValidationServiceImpl @Inject() (
   val labelsUnfiltered = TableQuery[LabelTableDef]
   val labelHistories   = TableQuery[LabelHistoryTableDef]
 
-  /** SQLState for a Postgres unique-constraint violation, the backstop for a concurrent duplicate submission. */
+  /** SQLState for a Postgres unique-constraint violation. */
   private val UniqueViolation: String = "23505"
 
   def countValidations: Future[Int]                 = db.run(labelValidationTable.countValidations)
@@ -115,12 +115,8 @@ class ValidationServiceImpl @Inject() (
 
   /**
    * Deletes a validation in the label_validation table. Also updates validation counts in the label table.
-   *
-   * Takes the row rather than looking it up, because every caller has already had to fetch it to decide whether
-   * there is anything to delete.
-   *
    * @param oldVal The validation to delete.
-   * @return Int count of rows deleted, should be either 0 or 1 because each user should have one validation per label.
+   * @return Int count of rows deleted, either 0 or 1.
    */
   private def deleteLabelValidation(oldVal: LabelValidation): DBIO[Int] = {
     (for {
@@ -271,11 +267,9 @@ class ValidationServiceImpl @Inject() (
    * @return A sequence of the label_validation_ids of the inserted/updated validations.
    */
   def submitValidations(validationSubmissions: Seq[ValidationSubmission]): Future[Seq[Int]] = {
-    // The duplicate check inside submitValidationsDbio reads its own snapshot, so two overlapping submissions of the
-    // same validation can both find nothing and race to insert — a retried POST that overtakes an original still
-    // committing (the flaky-mobile case from #2745). The loser's INSERT waits on the pending index entry and then
-    // fails the unique constraint. Re-running once is enough: the winner has committed by then, so the retry sees
-    // the row and takes the replace path. Deliberately not a loop — a second violation would mean a different cause.
+    // The duplicate check in submitValidationsDbio reads its own snapshot, so two overlapping submissions of the same
+    // validation can both find nothing and race to insert. Re-running once is enough: the winner has committed by
+    // then, so the retry sees the row and takes the replace path (#4377).
     val submission = db.run(submitValidationsDbio(validationSubmissions))
     submission.recoverWith {
       case e: PSQLException if e.getSQLState == UniqueViolation =>
@@ -295,19 +289,17 @@ class ValidationServiceImpl @Inject() (
       labelValidationTable.getValidation(validation.labelId, validation.userId).flatMap { existingVal =>
         // The undone/redone flags cover the replacements the client knows about, but a duplicate can arrive without
         // them: a POST retried after its original committed, or the label served again in a later mission. Removing
-        // any prior validation first makes those a clean replacement (latest verdict wins) rather than a unique
-        // constraint violation that 500s the whole batch, and reuses the redo path so the label's severity/tags,
-        // label_history, and validation counts unwind before the new validation applies (#4377).
+        // first makes those a clean replacement (latest verdict wins) instead of a unique-constraint violation, and
+        // reuses the redo path so severity/tags, label_history, and validation counts unwind first (#4377).
         val oldValRemoved = existingVal match {
           case Some(oldVal) => deleteLabelValidation(oldVal).map(_ > 0)
           case None         => DBIO.successful(false)
         }
 
-        // Comments are keyed by (label, user) rather than by validation, so clearing one is only right when this
-        // submission accounts for it: an undo/redo retracts the comment that came with the vote, and a submission
-        // carrying its own comment replaces it. A repeat validation that carries none must leave the user's earlier
-        // free text alone — there is nothing to restore it from. `deleteIfExists` can clear more than one row, which
-        // the app is not supposed to allow but the data does contain (#4942).
+        // Comments are keyed by (label, user) rather than by validation (and there can be more than one — #4942), so
+        // only clear them when this submission accounts for them: an undo/redo retracts the comment that came with
+        // the vote, and a submission carrying its own replaces it. A repeat validation carrying none must leave the
+        // user's earlier free text alone — nothing could restore it.
         val oldCommentRemoved = if (valSubmission.undone || valSubmission.redone || valSubmission.comment.isDefined) {
           validationTaskCommentTable.deleteIfExists(validation.labelId, validation.userId)
         } else DBIO.successful(0)

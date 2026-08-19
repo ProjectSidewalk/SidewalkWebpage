@@ -262,13 +262,13 @@ class ValidateSubmissionSpec
             WHERE label_id = $labelId AND user_id = $userId""".as[(String, Int)]
     ).headOption
 
-  /** How many validations of the label the user holds; the unique constraint means this is only ever 0 or 1. */
+  /** How many validations of the label the user holds — the unique constraint caps this at 1. */
   private def validationCount(labelId: Int, userId: String): Int =
     run(
       sql"SELECT count(*) FROM label_validation WHERE label_id = $labelId AND user_id = $userId".as[Int]
     ).head
 
-  /** The user's free-text comments on the label, which are keyed by (label, user) rather than by validation. */
+  /** The user's free-text comments on the label. */
   private def commentsOn(labelId: Int, userId: String): Seq[String] =
     run(
       sql"SELECT comment FROM validation_task_comment WHERE label_id = $labelId AND user_id = $userId".as[String]
@@ -413,14 +413,12 @@ class ValidateSubmissionSpec
         taskSubmission(b, Seq(validationJson(label, b.missionId, "Agree")), Some(missionProgressJson(b, 1)))
 
       status(postValidationTask(session, submission)) mustBe OK
-      // A client that missed the first response resends the same snapshot verbatim. It has to land as a replacement,
-      // not as a unique-constraint violation that rolls the batch back and 500s.
+      // A client that missed the first response resends the same snapshot verbatim.
       status(postValidationTask(session, submission)) mustBe OK
 
       validationCount(labelId, b.userId) mustBe 1
       validationRow(labelId, b.userId) mustBe Some(("Agree", b.missionId))
-      // The vote is counted once, not twice — the replacement unwinds the first one's effect before applying itself.
-      labelState(labelId).agreeCount mustBe before.agreeCount + 1
+      labelState(labelId).agreeCount mustBe before.agreeCount + 1 // The replace path nets one vote, not two.
       labelHistoryCount(labelId) mustBe historyCount
     }
 
@@ -458,8 +456,7 @@ class ValidateSubmissionSpec
       status(postValidationTask(session, taskSubmission(b, withComment, progress))) mustBe OK
       commentsOn(labelId, b.userId) mustBe Seq("Ramp is behind the parked car.")
 
-      // Validating the label again without commenting must not take the free text down with the old vote — comments
-      // are keyed by (label, user), so nothing could restore it.
+      // Validating again without commenting must not take the free text down with the old vote.
       status(
         postValidationTask(session, taskSubmission(b, Seq(validationJson(label, b.missionId, "Disagree")), progress))
       ) mustBe OK
@@ -477,8 +474,7 @@ class ValidateSubmissionSpec
       val label   = b.labels.head
       val labelId = (label \ "label_id").as[Int]
       val _       = backupLabel(labelId)
-      // completed=true is the submission whose response drives the mission transition, so a 500 here is the one that
-      // strands the UI until a manual refresh — the case the fix is really for.
+      // completed=true drives the mission transition, so a 500 here is the one that strands the UI.
       val complete   = missionProgressJson(b, 1) ++ Json.obj("completed" -> true)
       val submission = taskSubmission(b, Seq(validationJson(label, b.missionId, "Agree")), Some(complete))
 
@@ -487,8 +483,7 @@ class ValidateSubmissionSpec
       val retried = postValidationTask(session, submission)
       status(retried) mustBe OK
 
-      // The retry has to carry the same mission-transition payload the lost response did, or the client has nothing
-      // to advance on.
+      // The retry must carry the same transition payload the lost response did, or the client can't advance.
       (contentAsJson(retried) \ "has_mission_available").as[Boolean] mustBe
         (contentAsJson(first) \ "has_mission_available").as[Boolean]
       validationCount(labelId, b.userId) mustBe 1

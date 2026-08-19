@@ -169,12 +169,10 @@ class Form {
     } catch (submitError) {
       // Do not reload — retry the same snapshot with backoff so the validations eventually reach the server when
       // connectivity returns. Network errors, timeouts and 5xx are worth retrying; a 4xx means the request itself is
-      // the problem (malformed body, expired session) and would fail identically on a resend, so give up right away
-      // rather than burn the retry budget (#4377). 408 and 429 are the server asking us to come back later.
+      // the problem (malformed body, expired session) and would fail identically on a resend. 408 and 429 are the
+      // server asking us to come back later (#4377).
       const status = submitError.status;
       const retryable = !(status >= 400 && status < 500) || status === 408 || status === 429;
-      // `status` rides along so an abandoned 4xx is separable from a network blip in analytics — both push
-      // SubmitFailed for the attempt that failed, and only the retryable one is followed by another attempt.
       if (svv.tracker) svv.tracker.push('SubmitFailed', { attempt: retryCount, status, error: submitError.message });
       if (retryable && retryCount < Form.#MAX_SUBMIT_RETRIES) {
         setTimeout(() => {
