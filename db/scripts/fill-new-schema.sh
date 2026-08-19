@@ -7,11 +7,13 @@
 # staging data into the app's real tables (street_edge, region, street_edge_region, street_edge_priority, ...),
 # relocates the template's seeded DC tutorial street to sit after the imported streets, sets the city center/bounds in
 # `config`, and drops the staging tables when done.
-# It's interactive: it asks for the column/value details that vary per import, prints a summary, and confirms before
-# touching the DB. Everything runs in one transaction, so a failure rolls the whole thing back.
+# It's interactive: it asks for the schema, tutorial region, and which regions open at launch, prints a summary, and
+# confirms before touching the DB. Everything runs in one transaction, so a failure rolls the whole thing back.
 #
 # HOW IT'S RUN:  make fill-new-schema   →   /opt/scripts/fill-new-schema.sh   (inside projectsidewalk-db).
-# PRECONDITION:  the target schema exists (create-new-schema.sh) and qgis_road + qgis_region are loaded into it.
+# PRECONDITION:  the target schema exists (create-new-schema.sh) and qgis_road + qgis_region are loaded into it, in
+#                the canonical shape scripts/onboard_city.py emits: qgis_road (road_id, osm_id, highway, region_id,
+#                geom) and qgis_region (region_id, name, data_source, geom) — a hand-built export must match it.
 #
 # GOTCHA: prompt answers are interpolated into SQL. Region-id lists must be space-separated integers; the schema must
 # be a real city schema with the QGIS staging tables present.
@@ -22,9 +24,6 @@ source /opt/scripts/helpers.sh
 
 # Prompt for parameters.
 SCHEMA_NAME=$(prompt_with_default "Schema name")
-WAY_TYPE=$(prompt_with_default "OSM way_type column name" "highway")
-REGION_DATA_SOURCE=$(prompt_with_default "Region data source (string)")
-REGION_NAME_COL=$(prompt_with_default "Region name column (all lowercase)" "name")
 TUTORIAL_REGION_ID=$(prompt_with_default "Tutorial region id" "1")
 
 # Ask whether all regions are being included.
@@ -61,9 +60,6 @@ fi
 # Print configs to the user.
 echo -e "\nConfiguration Summary:"
 echo "schema name: $SCHEMA_NAME"
-echo "way_type column: $WAY_TYPE"
-echo "region data source: $REGION_DATA_SOURCE"
-echo "region name column: $REGION_NAME_COL"
 echo "tutorial region id: $TUTORIAL_REGION_ID"
 if [ "$INCLUDE_ALL_REGIONS" = "y" ]; then
     echo "regions to include: all"
@@ -111,7 +107,7 @@ psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" <<-EOSQL
     -- whole neighborhood isn't open yet); everything else starts 'open' (#3888). $REGION_DELETED_Q is a boolean
     -- expression that is TRUE for streets whose region is hidden.
     INSERT INTO street_edge (street_edge_id, geom, way_type, status, timestamp, x1, y1, x2, y2)
-        SELECT road_id, geom, ($WAY_TYPE)::way_type,
+        SELECT road_id, geom, (highway)::way_type,
                (CASE WHEN $REGION_DELETED_Q THEN 'closed' ELSE 'open' END)::street_edge_status, now(),
                ST_X(ST_StartPoint(geom)), ST_Y(ST_StartPoint(geom)), ST_X(ST_EndPoint(geom)), ST_Y(ST_EndPoint(geom))
         FROM qgis_road;
@@ -128,14 +124,14 @@ psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" <<-EOSQL
     -- a name that already carries a lowercase letter is left as provided. Evolution 341 back-fills Houston, the one
     -- existing site imported before this was added.
     INSERT INTO region (region_id, data_source, name, geom, deleted)
-        SELECT region_id, '$REGION_DATA_SOURCE',
-               CASE WHEN $REGION_NAME_COL = upper($REGION_NAME_COL)
-                         AND $REGION_NAME_COL ~ '[[:alpha:]]'
-                         AND $REGION_NAME_COL NOT LIKE '%&%'
-                         AND (char_length($REGION_NAME_COL) - char_length(replace($REGION_NAME_COL, '.', ''))) < 2
-                         AND ($REGION_NAME_COL LIKE '% %' OR char_length($REGION_NAME_COL) >= 5)
-                    THEN initcap($REGION_NAME_COL COLLATE "default")
-                    ELSE $REGION_NAME_COL
+        SELECT region_id, data_source,
+               CASE WHEN name = upper(name)
+                         AND name ~ '[[:alpha:]]'
+                         AND name NOT LIKE '%&%'
+                         AND (char_length(name) - char_length(replace(name, '.', ''))) < 2
+                         AND (name LIKE '% %' OR char_length(name) >= 5)
+                    THEN initcap(name COLLATE "default")
+                    ELSE name
                END,
                geom, $REGION_DELETED_Q
         FROM qgis_region;

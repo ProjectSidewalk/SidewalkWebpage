@@ -46,7 +46,8 @@ Workflow:
 
 The staging tables match what ``db/scripts/fill-new-schema.sh`` consumes: ``qgis_road`` (``road_id`` int PK that
 becomes ``street_edge_id``, ``geom`` LineString 4326 pre-split at intersections, ``highway`` way-type column,
-``osm_id``, ``region_id``) and ``qgis_region`` (``region_id`` int PK, ``name``, ``geom`` MultiPolygon 4326). The
+``osm_id``, ``region_id``) and ``qgis_region`` (``region_id`` int PK, ``name``, ``data_source`` provenance,
+``geom`` MultiPolygon 4326). The
 default column names line up with the fill script's prompt defaults.
 
 Street semantics vs. the manual QGIS flow:
@@ -1057,9 +1058,8 @@ def write_sql(path, roads, regions):
     """
     Writes the SQL file that loads ``qgis_road`` and ``qgis_region`` into a city schema.
 
-    Runs as the city role (whose search_path is its schema), inside one transaction. Column names and types match
-    what fill-new-schema.sh consumes — its way-type and region-name prompts can be answered with their defaults
-    (``highway``, ``name``).
+    Runs as the city role (whose search_path is its schema), inside one transaction. Column names and types are
+    exactly what fill-new-schema.sh consumes; region provenance travels in ``qgis_region.data_source``.
 
     Args:
         path:    Output ``.sql`` path.
@@ -1076,6 +1076,7 @@ def write_sql(path, roads, regions):
         'CREATE TABLE qgis_region (',
         '  region_id integer PRIMARY KEY,',
         '  name text NOT NULL,',
+        '  data_source text NOT NULL,',
         '  geom geometry(MultiPolygon, 4326) NOT NULL',
         ');',
         'CREATE TABLE qgis_road (',
@@ -1085,10 +1086,11 @@ def write_sql(path, roads, regions):
         '  region_id integer NOT NULL REFERENCES qgis_region (region_id),',
         '  geom geometry(LineString, 4326) NOT NULL',
         ');',
-        'COPY qgis_region (region_id, name, geom) FROM stdin;',
+        'COPY qgis_region (region_id, name, data_source, geom) FROM stdin;',
     ]
     for region in regions.itertuples():
-        lines.append(f'{region.region_id}\t{copy_escape(region.name)}\t{ewkb_hex(region.geometry)}')
+        lines.append(f'{region.region_id}\t{copy_escape(region.name)}\t{copy_escape(region.data_source)}'
+                     f'\t{ewkb_hex(region.geometry)}')
     lines.append('\\.')
     lines.append('COPY qgis_road (road_id, osm_id, highway, region_id, geom) FROM stdin;')
     for road in roads.itertuples():
@@ -1261,6 +1263,8 @@ def run_from_gpkg(args):
     logger.info('Read %d streets and %d regions from %s', len(roads), len(regions), gpkg_path)
     # QGIS edits can demote a region to a plain Polygon; promote before validating.
     regions['geometry'] = regions.geometry.map(to_multipolygon)
+    if 'data_source' not in regions.columns:  # A hand-built GeoPackage may not carry the provenance column.
+        regions['data_source'] = f'edited GeoPackage ({gpkg_path.name})'
     roads['length_m'] = [geodesic_length_m(geom) for geom in roads.geometry]
 
     errors = validate_staging(roads, regions)
@@ -1336,6 +1340,8 @@ def main(argv=None):
         # passes see the final boundaries.
         regions = merge_regions(regions, merge_mapping)
         logger.info('Merged regions: %s', ', '.join(f'"{s}" into "{t}"' for s, t in merge_mapping.items()))
+    # Provenance rides in the staging data itself, so fill-new-schema.sh needs no data-source input.
+    regions['data_source'] = region_source
 
     streets = fetch_streets(boundary_poly, args.include_alleys, args.fetch_buffer_m)
     logger.info('OSM street edges fetched: %d', len(streets))

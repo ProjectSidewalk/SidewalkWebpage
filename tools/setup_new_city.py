@@ -19,8 +19,7 @@ It chains every remaining setup step, pausing only where a human is required:
      retarget it), and watches play_evolutions until the schema is current — the template dump is far behind, and
      fill-new-schema.sh needs current columns. The boot is stopped once evolutions land.
   5. Loads db/onboarding/<city-id>/qgis_tables.sql into the schema.
-  6. Runs fill-new-schema.sh non-interactively, answering its prompts from the onboarding report (you pick the
-     tutorial region).
+  6. Runs fill-new-schema.sh non-interactively (you pick the tutorial region).
   7. Runs the scripts/check_streets_for_imagery.py scan in the web container (which holds the API keys and the
      python3.13 deps) against a freshly exported endpoints CSV, hides the no-imagery streets, and imports the
      imagery-age summary into street_imagery.
@@ -274,11 +273,9 @@ def run_imagery_scan(schema, city_id, pano_type):
 
 
 def parse_report(city_id):
-    """Pulls the region source and region table out of the onboarding run's report.md."""
+    """Pulls the region table out of the onboarding run's report.md, for the tutorial-region prompt."""
     report = (REPO_ROOT / 'db' / 'onboarding' / city_id / 'report.md').read_text()
-    source = re.search(r'^- Region source: (.+)$', report, re.MULTILINE).group(1)
-    regions = re.findall(r'^\| (\d+) \| (.+?) \|', report, re.MULTILINE)
-    return source, regions
+    return re.findall(r'^\| (\d+) \| (.+?) \|', report, re.MULTILINE)
 
 
 def main():
@@ -294,7 +291,7 @@ def main():
     sql_file = REPO_ROOT / 'db' / 'onboarding' / city_id / 'qgis_tables.sql'
     if not sql_file.exists():
         sys.exit(f'error: {sql_file} not found — run scripts/onboard_city.py --city-id {city_id} first.')
-    region_source, regions = parse_report(city_id)
+    regions = parse_report(city_id)
 
     tokens = city_id.split('-')
     us_state = US_STATES.get(tokens[-1]) if len(tokens) > 1 else None
@@ -384,7 +381,7 @@ def main():
         for region_id, name in regions:
             print(f'  {region_id}: {name}')
         tutorial_region = prompt('Tutorial region id (a central region with imagery)', '1')
-        answers = '\n'.join([schema, 'highway', region_source, 'name', tutorial_region, 'y', 'y']) + '\n'
+        answers = '\n'.join([schema, tutorial_region, 'y', 'y']) + '\n'
         docker_db('/opt/scripts/fill-new-schema.sh', input=answers, text=True, check=True)
 
     print('\nStep 7/7 — imagery scan (finds streets with no street-view imagery and hides them)...')

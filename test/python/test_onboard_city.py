@@ -632,6 +632,7 @@ def _streets_gdf(lines):
 
 def _city_regions():
     return gpd.GeoDataFrame({'region_id': [1, 2], 'name': ['west', 'east'],
+                             'data_source': ['OpenStreetMap', 'OpenStreetMap'],
                              'geometry': [MultiPolygon([_W]), MultiPolygon([_E])]}, crs='EPSG:4326')
 
 
@@ -688,6 +689,8 @@ def test_write_sql_emits_loadable_copy_blocks(tmp_path):
     assert 'BEGIN;' in sql
     assert sql.rstrip().endswith('COMMIT;')
     assert '0102000020E610' in sql.upper()
+    assert 'COPY qgis_region (region_id, name, data_source, geom)' in sql
+    assert '\twest\tOpenStreetMap\t' in sql
 
 
 def test_parse_args_requires_exactly_one_input_mode():
@@ -735,7 +738,8 @@ def test_write_report_re_export_variant_omits_healing_and_coverage(tmp_path):
 def _staging_gpkg(tmp_path, with_boundary=True):
     path = tmp_path / 'city_qa.gpkg'
     _staged_roads().to_file(path, layer='qgis_road', driver='GPKG')
-    _city_regions().to_file(path, layer='qgis_region', driver='GPKG')
+    # Regions deliberately lack data_source, exercising the hand-built-GeoPackage fallback.
+    _city_regions().drop(columns=['data_source']).to_file(path, layer='qgis_region', driver='GPKG')
     if with_boundary:
         _CITY_GDF.to_file(path, layer='city_boundary', driver='GPKG')
     return path
@@ -744,7 +748,9 @@ def _staging_gpkg(tmp_path, with_boundary=True):
 def test_run_from_gpkg_regenerates_sql_from_edited_layers(tmp_path):
     path = _staging_gpkg(tmp_path)
     oc.run_from_gpkg(oc.parse_args(['--city-id', 'testville', '--from-gpkg', str(path)]))
-    assert 'COPY qgis_road' in (tmp_path / 'qgis_tables.sql').read_text()
+    sql = (tmp_path / 'qgis_tables.sql').read_text()
+    assert 'COPY qgis_road' in sql
+    assert 'edited GeoPackage (city_qa.gpkg)' in sql
     report = (tmp_path / 'report.md').read_text()
     assert 'edited GeoPackage' in report
     assert 'covering' in report
