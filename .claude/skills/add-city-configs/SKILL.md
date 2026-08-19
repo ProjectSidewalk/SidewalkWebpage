@@ -13,10 +13,8 @@ messages.en for US cities). This skill covers what that script can't:
    - The Google Analytics ids are `"TODO"` placeholders — create the real properties and fill the ids with
      `python3 tools/create_ga_properties.py <city-id>` (its docstring covers the one-time service-account setup),
      or flag them as a launch blocker.
-   - `launch-date` was set to the day the script ran; adjust it to the planned launch (convention: the Friday of the
-     following week).
-   - Sanity-check the derived `landing-page-url` (the script drops the state/country qualifier from the server name)
-     and `status`.
+   - Sanity-check the derived `landing-page-url` (the script drops the state/country qualifier from the server name),
+     `launch-date`, and `status`.
 2. Non-English translations in `conf/messages/`:
    - Add a translation line only where a language renders the name differently from English. zh-TW typically needs
      translations for the city, state, and country names; Latin-script languages usually only for well-known places

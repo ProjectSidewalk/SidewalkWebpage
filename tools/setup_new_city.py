@@ -39,7 +39,7 @@ import sys
 import time
 import urllib.error
 import urllib.request
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -278,6 +278,9 @@ def main():
     state = prompt('State id', us_state) if country == 'usa' else None
     pano_type = prompt('Pano viewer type (gsv, mapillary, infra3d)', 'gsv')
     status = prompt('Visibility status (public, private)', 'public')
+    # 11 - weekday() lands on the Friday of the next calendar week (weekday(): Monday = 0).
+    launch_default = (date.today() + timedelta(days=11 - date.today().weekday())).isoformat()
+    launch_date = prompt('Launch date (convention: the Friday of the following week)', launch_default)
     # The convention drops the state/country qualifier from server names (teaneck-nj -> sidewalk-teaneck).
     url_base = '-'.join(tokens[:-1]) if us_state else city_id
     prod_url = prompt('Prod landing-page URL', f'https://sidewalk-{url_base}.cs.washington.edu')
@@ -292,7 +295,7 @@ def main():
         (['state-id'], f'"{state}"' if state else 'null'),
         (['country-id'], f'"{country}"'),
         (['status'], f'"{status}"'),
-        (['launch-date'], f'"{date.today().isoformat()}"'),
+        (['launch-date'], f'"{launch_date}"'),
         (['skyline-img'], '"skyline1.png"'),
         (['logo-img'], '"sidewalk-logo.png"'),
         (['landing-page-url', 'prod'], f'"{prod_url}"'),
