@@ -77,7 +77,24 @@ class ImageryPipelinePanel {
     const jobs = report.jobs || [];
     this.#renderBanner(report, jobs);
     this.#renderJobs(jobs);
+    this.#renderFailures(report);
     this.#renderCharts(report);
+  }
+
+  /**
+   * Failed runs across the window, which the jobs table above cannot show: it reports each job's *last* run, so a
+   * pipeline that fails every other night reads as healthy there whenever the latest run happened to succeed.
+   */
+  #renderFailures(report) {
+    const nights = (report.run_days || []).filter((day) => day.poll_failures > 0 || day.sync_failures > 0);
+    if (nights.length === 0) {
+      this.#setHtml('imagery-failure-note',
+        `No run of either job failed in the last ${report.days} days.`);
+      return;
+    }
+    const dates = nights.map((night) => night.day).join(', ');
+    this.#setHtml('imagery-failure-note', `${nights.length} of the last ${report.days} nights recorded a failed run `
+    + `(${ImageryPipelinePanel.#esc(dates)}). A failed night polls nothing, so its bars below are empty.`);
   }
 
   /**

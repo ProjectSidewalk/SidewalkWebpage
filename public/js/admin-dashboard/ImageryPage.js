@@ -289,11 +289,13 @@ class ImageryPage {
 
   #renderKpis() {
     const counts = this.#tierCounts();
-    const reauditMiles = this.#streets
-      .filter((street) => street.priority_tier === 'reaudit')
-      .reduce((sum, street) => sum + ImageryPage.#miles(street.length_m), 0);
+    // The KPI counts the site-wide re-audit flag (audited, no up-to-date audit left) rather than the map's tier, so
+    // it reads the same as the Overview and Coverage pages. The two differ slightly -- the tier counts only audits
+    // that carry weight in the priority formula -- and the map note below says so when they do.
+    const flagged = this.#streets.filter((street) => street.outdated);
+    const reauditMiles = flagged.reduce((sum, street) => sum + ImageryPage.#miles(street.length_m), 0);
 
-    ImageryPage.#setText('kpi-needs-reaudit', counts.reaudit.toLocaleString());
+    ImageryPage.#setText('kpi-needs-reaudit', flagged.length.toLocaleString());
     ImageryPage.#setText('kpi-needs-reaudit-note', `${reauditMiles.toFixed(1)} mi of audited street with newer `
     + 'imagery');
     ImageryPage.#setText('kpi-unaudited', counts.unaudited.toLocaleString());
@@ -342,9 +344,15 @@ class ImageryPage {
       const values = this.#streets.map((street) => street.priority);
       const min = Math.min(...values);
       const max = Math.max(...values);
+      const flagged = this.#streets.filter((street) => street.outdated).length;
+      const tierGap = counts.reaudit === flagged
+        ? ''
+        : ` ${counts.reaudit.toLocaleString()} streets sit in the `
+          + `re-audit tier while ${flagged.toLocaleString()} carry the site-wide re-audit flag: the tier counts only `
+          + 'the audits that carry weight in the priority formula, the flag counts every completed audit.';
       note.textContent = `Priority currently ranges from ${min.toFixed(3)} to ${max.toFixed(3)} across `
         + `${this.#streets.length.toLocaleString()} routable streets. Audits by excluded or low-quality users still `
-        + 'count, at a quarter weight, which is why two streets in the same tier can carry different values.';
+        + `count, at a quarter weight, which is why two streets in the same tier can carry different values.${tierGap}`;
     }
   }
 
