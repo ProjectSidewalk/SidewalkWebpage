@@ -619,6 +619,10 @@ def validate_staging(roads, regions):
     bad_region_geoms = set(regions.geometry.geom_type) - {'MultiPolygon'}
     if bad_region_geoms:
         errors.append(f'region geometries must be (promotable to) MultiPolygon; found {sorted(bad_region_geoms)}')
+    invalid = sorted(regions.loc[~regions.geometry.is_valid, 'region_id'])
+    if invalid:
+        errors.append(f'region geometries {invalid} are invalid (self-intersection?) — fix in QGIS '
+                      '(Vector > Geometry Tools > Fix Geometries) and re-export')
     if regions['name'].isna().any() or (regions['name'].astype(str).str.strip() == '').any():
         errors.append('every region needs a non-empty name')
     if roads[['osm_id', 'highway', 'region_id']].isna().any().any():
@@ -926,13 +930,17 @@ def prepare_regions(raw_regions, boundary, min_part_m2):
     dissolved['region_id'] = dissolved.index + 1
     dissolved['geometry'] = dissolved.geometry.map(to_multipolygon)
 
-    # Overlapping regions would silently duplicate every street in the overlap during region assignment.
-    area_sum = sum(geodesic_area_m2(geom) for geom in dissolved.geometry)
-    area_union = geodesic_area_m2(dissolved.union_all())
+    warn_if_overlapping(dissolved)
+    return dissolved[['region_id', 'name', 'geometry']]
+
+
+def warn_if_overlapping(regions):
+    """Overlapping regions silently duplicate every street in the overlap during region assignment, so warn loudly."""
+    area_sum = sum(geodesic_area_m2(geom) for geom in regions.geometry)
+    area_union = geodesic_area_m2(regions.union_all())
     if area_sum > area_union * 1.01:
         logger.warning('Regions overlap (%.1f%% of total area) — streets in overlaps will be DUPLICATED. '
                        'Fix the region dataset before loading.', (area_sum / area_union - 1) * 100)
-    return dissolved[['region_id', 'name', 'geometry']]
 
 
 def oriented_piece(edge_geom, piece_geom):
@@ -1263,8 +1271,9 @@ def run_from_gpkg(args):
     The GeoPackage's ``qgis_road``/``qgis_region`` layers are the staging data, so after hand edits in QGIS
     (deleting streets, reassigning a street's ``region_id``, tweaking polygons, renaming regions) this validates the
     result and regenerates ``qgis_tables.sql`` so the load matches what was QA'd. Street lengths are recomputed from
-    the (possibly edited) geometry. Structural changes to the region set belong on a fetch rerun
-    (``--merge-regions``), not here — see :func:`merge_regions`.
+    the (possibly edited) geometry, and the topology checks rerun — invalid region geometry fails validation, region
+    overlaps and boundary-coverage gaps warn — since hand edits are where those get introduced. Structural changes
+    to the region set belong on a fetch rerun (``--merge-regions``), not here — see :func:`merge_regions`.
 
     Args:
         args: The parsed CLI args.
@@ -1290,9 +1299,13 @@ def run_from_gpkg(args):
     stats = region_street_stats(roads, regions, args.max_region_street_km)
     for stat in stats[stats['flag'] != ''].itertuples():
         logger.warning('Region %d (%s): %s', stat.region_id, stat.name, stat.flag)
+    # Hand edits are the likeliest source of topology problems, so the fetch path's warnings run here too.
+    warn_if_overlapping(regions)
     if 'city_boundary' in layers:
         boundary = gpd.read_file(gpkg_path, layer='city_boundary')
         coverage = boundary_coverage(regions, boundary.geometry.iloc[0])
+        if coverage < 0.95:
+            logger.warning('Regions cover only %.1f%% of the city boundary — check for gaps in QGIS.', coverage * 100)
     else:  # A hand-built GeoPackage may not carry the boundary layer.
         coverage = None
 

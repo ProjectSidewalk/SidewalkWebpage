@@ -443,6 +443,15 @@ def test_validate_staging_catches_duplicate_region_ids():
     assert any('duplicate region_id' in error for error in oc.validate_staging(roads, regions))
 
 
+def test_validate_staging_catches_invalid_region_geometry():
+    regions = _region_set()
+    bowtie = MultiPolygon([Polygon([(0, 0), (0.01, 0.01), (0.01, 0), (0, 0.01)])])
+    regions.loc[[0], 'geometry'] = [bowtie]
+    roads = gpd.GeoDataFrame({'road_id': [1], 'osm_id': [11], 'highway': ['residential'], 'region_id': [1],
+                              'geometry': [LineString([(0, 0), (0.001, 0)])]}, crs='EPSG:4326')
+    assert any('invalid' in error for error in oc.validate_staging(roads, regions))
+
+
 # --------------------------------------------------------------------------------------------------------------------
 # Fetch wrappers (osmnx and the TIGERweb API mocked out)
 # --------------------------------------------------------------------------------------------------------------------
@@ -772,6 +781,20 @@ def test_run_from_gpkg_honors_out_dir_and_survives_missing_boundary_layer(tmp_pa
     report = (out / 'report.md').read_text()
     assert 'Regions: **2**' in report
     assert 'covering' not in report
+
+
+def test_run_from_gpkg_warns_on_overlaps_and_gaps(tmp_path, caplog):
+    path = tmp_path / 'edited_qa.gpkg'
+    # Both regions are the same western square: fully overlapping, and covering only half the city.
+    regions = _city_regions()
+    regions['geometry'] = [MultiPolygon([_W]), MultiPolygon([_W])]
+    _staged_roads().to_file(path, layer='qgis_road', driver='GPKG')
+    regions.to_file(path, layer='qgis_region', driver='GPKG')
+    _CITY_GDF.to_file(path, layer='city_boundary', driver='GPKG')
+    with caplog.at_level(logging.WARNING):
+        oc.run_from_gpkg(oc.parse_args(['--city-id', 'testville', '--from-gpkg', str(path)]))
+    assert any('DUPLICATED' in record.message for record in caplog.records)
+    assert any('cover only' in record.message for record in caplog.records)
 
 
 def test_run_from_gpkg_rejects_broken_edits(tmp_path):
