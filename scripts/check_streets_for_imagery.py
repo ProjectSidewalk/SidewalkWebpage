@@ -4,16 +4,16 @@ Finds streets that lack street-view imagery (Google Street View or Mapillary) an
 This is a standalone, manually-run utility (it is not invoked by the app). Workflow:
 
   1. Export a CSV of the ``street_edge`` table with columns ``street_edge_id, region_id, x1, y1, x2, y2, geom`` (geom as
-     WKB hex), named ``street_edge_endpoints.csv``, in the repo root.
+     WKB hex), named ``street_edge_endpoints_<city-id>.csv``, in the repo root.
   2. Run one of (from anywhere — all data files are resolved relative to the repo root, not your working directory):
 
-         python3.13 scripts/check_streets_for_imagery.py --gsv
-         python3.13 scripts/check_streets_for_imagery.py --mapillary
+         python3.13 scripts/check_streets_for_imagery.py --city-id newport-ky --gsv
+         python3.13 scripts/check_streets_for_imagery.py --city-id newport-ky --mapillary
 
      ``--gsv`` needs ``GOOGLE_MAPS_API_KEY``; ``--mapillary`` needs ``MAPILLARY_ACCESS_TOKEN``. It is ``python3.13``
      rather than the container's default ``python3`` because this tool's libraries need Python >= 3.11.
-  3. It writes streets without imagery to ``db/streets_with_no_imagery.csv``, and a per-street imagery summary
-     (presence + capture-date range) to ``db/street_imagery_summary.csv``.
+  3. It writes streets without imagery to ``db/streets_with_no_imagery_<city-id>.csv``, and a per-street imagery
+     summary (presence + capture-date range) to ``db/street_imagery_summary_<city-id>.csv``.
   4. Run ``make hide-streets-without-imagery`` to mark those streets in the database.
 
 For each street it first checks both endpoints; if neither has imagery the street is flagged immediately. Otherwise it
@@ -26,9 +26,10 @@ imagery but how old it is. (Mapillary capture dates are a future enhancement; GS
 
 Resilience (so a long scan survives a flaky network): each request is retried with exponential backoff; a street that
 still fails is logged and the scan continues rather than aborting, and the failed set is retried once at the end (any
-still-failing streets land in ``db/failed_streets.csv``). Progress is checkpointed per street to
-``db/streets_imagery_checkpoint.csv``, so a re-run resumes where it left off and re-attempts only failed/unprocessed
-streets. The final ``db/streets_with_no_imagery.csv`` is derived from the checkpoint, so its schema is unchanged.
+still-failing streets land in ``db/failed_streets_<city-id>.csv``). Progress is checkpointed per street to
+``db/streets_imagery_checkpoint_<city-id>.csv``, so a re-run resumes where it left off and re-attempts only
+failed/unprocessed streets — and because every file carries the city id, a leftover checkpoint from another city can
+never be resumed by mistake. The final no-imagery CSV is derived from the checkpoint, so its schema is unchanged.
 
 The pure functions (``create_bounding_box``, ``redistribute_vertices``, ``gsv_has_imagery``, ``mapillary_has_imagery``,
 ``standardize_capture_date``, ``gsv_capture_date``, ``imagery_verdict``, ``street_has_no_imagery``, ``summarize_dates``)
@@ -82,16 +83,18 @@ logger = logging.getLogger(__name__)
 # surfaced as a confusing traceback after the progress bar had already painted 0% (#4359).
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+# File-name templates, filled with --city-id so scans for different cities can't collide or resume each other's
+# checkpoints.
 # Input CSV export of street_edge endpoints + geom (see module docstring), expected in the repo root.
-INPUT_FILE = 'street_edge_endpoints.csv'
+INPUT_FILE = 'street_edge_endpoints_{}.csv'
 # Final output of streets found to be missing imagery (consumed by `make hide-streets-without-imagery`).
-OUTPUT_FILE = 'db/streets_with_no_imagery.csv'
+OUTPUT_FILE = 'db/streets_with_no_imagery_{}.csv'
 # Per-street imagery summary (presence + capture-date range) for every settled street.
-SUMMARY_FILE = 'db/street_imagery_summary.csv'
+SUMMARY_FILE = 'db/street_imagery_summary_{}.csv'
 # Per-street progress log; enables crash-safe resume and is the source the other outputs are derived from.
-CHECKPOINT_FILE = 'db/streets_imagery_checkpoint.csv'
+CHECKPOINT_FILE = 'db/streets_imagery_checkpoint_{}.csv'
 # Streets that still errored after the end-of-run retry, for follow-up.
-FAILED_FILE = 'db/failed_streets.csv'
+FAILED_FILE = 'db/failed_streets_{}.csv'
 
 # Seconds before a single request to Google/Mapillary is abandoned (each attempt; retries are layered on top).
 REQUEST_TIMEOUT = 30
@@ -489,7 +492,7 @@ def process_street(street, api, fetch, gsv_url, gsv_url_endpoint, mapillary_url)
     return StreetResult(int(street.street_edge_id), int(street.region_id), outcome, oldest, newest, n_panos)
 
 
-def load_processed(checkpoint_file=CHECKPOINT_FILE):
+def load_processed(checkpoint_file):
     """Returns the set of ``street_edge_id`` already settled (failed streets are excluded so they get re-attempted)."""
     if not os.path.isfile(checkpoint_file):
         return set()
@@ -497,7 +500,7 @@ def load_processed(checkpoint_file=CHECKPOINT_FILE):
     return set(checkpoint[checkpoint['outcome'] != FAILED]['street_edge_id'])
 
 
-def append_checkpoint(result, checkpoint_file=CHECKPOINT_FILE):
+def append_checkpoint(result, checkpoint_file):
     """Appends one street's result to the checkpoint (writing the header on first use)."""
     write_header = not os.path.isfile(checkpoint_file)
     with open(checkpoint_file, 'a', newline='') as handle:
@@ -525,8 +528,7 @@ def _write_summary_csv(settled, summary_file):
     summary[SUMMARY_COLUMNS].to_csv(summary_file, index=False)
 
 
-def finalize_outputs(checkpoint_file=CHECKPOINT_FILE, output_file=OUTPUT_FILE, failed_file=FAILED_FILE,
-                     summary_file=SUMMARY_FILE):
+def finalize_outputs(checkpoint_file, output_file, failed_file, summary_file):
     """
     Derives the final output files from the checkpoint.
 
@@ -558,6 +560,9 @@ def main(argv=None):
     """
     parser = argparse.ArgumentParser(
         description='Loops through streets, outputting any without imagery to a separate file.')
+    parser.add_argument('--city-id', required=True,
+                        help='The cityparams city id being scanned, e.g. "newport-ky"; every data file carries it '
+                             '(street_edge_endpoints_<city-id>.csv, ...).')
     parser.add_argument('--gsv', action='store_true', help='Include if checking for GSV imagery')
     parser.add_argument('--mapillary', action='store_true', help='Include if checking for Mapillary imagery')
     parser.add_argument('--workers', type=int, default=DEFAULT_WORKERS,
@@ -577,11 +582,16 @@ def main(argv=None):
         return 1
 
     # Resolve every data file against the repo root so the script works regardless of the working directory.
-    input_path = os.path.join(REPO_ROOT, INPUT_FILE)
-    checkpoint_path = os.path.join(REPO_ROOT, CHECKPOINT_FILE)
-    output_path = os.path.join(REPO_ROOT, OUTPUT_FILE)
-    failed_path = os.path.join(REPO_ROOT, FAILED_FILE)
-    summary_path = os.path.join(REPO_ROOT, SUMMARY_FILE)
+    input_path = os.path.join(REPO_ROOT, INPUT_FILE.format(args.city_id))
+    checkpoint_path = os.path.join(REPO_ROOT, CHECKPOINT_FILE.format(args.city_id))
+    output_path = os.path.join(REPO_ROOT, OUTPUT_FILE.format(args.city_id))
+    failed_path = os.path.join(REPO_ROOT, FAILED_FILE.format(args.city_id))
+    summary_path = os.path.join(REPO_ROOT, SUMMARY_FILE.format(args.city_id))
+
+    if not os.path.isfile(input_path):
+        print(f"Couldn't find {input_path} — export this city's street_edge endpoints there first "
+              '(see the module docstring).')
+        return 1
 
     # Read street edge data and interpolate vertices roughly every 15 m so we can sample imagery along each street.
     street_data = pd.read_csv(input_path)
