@@ -537,6 +537,16 @@ dashboard.routes.view.title = Diese Route im RouteBuilder ansehen
 dashboard.routes.none = Sie haben noch keine Routen erstellt.
 dashboard.routes.build.one = Erstellen Sie Ihre erste Route →
 
+dashboard.reaudit.title = Straßen mit neueren Bildern
+dashboard.reaudit.intro.one = Für 1 von Ihnen kartierte Straße gibt es neue Street-View-Bilder. Ihre Markierungen zählen weiterhin — dies ist eine Gelegenheit zu sehen, was sich verändert hat.
+dashboard.reaudit.intro.many = Für {0} von Ihnen kartierte Straßen gibt es neue Street-View-Bilder. Ihre Markierungen zählen weiterhin — dies ist eine Gelegenheit zu sehen, was sich verändert hat.
+dashboard.reaudit.imagery = neue Bilder von {0}
+dashboard.reaudit.audited = Von Ihnen kartiert am {0}
+dashboard.reaudit.revisit = Erneut besuchen
+dashboard.reaudit.showing = {0} von {1} werden angezeigt.
+dashboard.reaudit.see.map = Alle auf Ihrer Karte ansehen →
+dashboard.reaudit.none = Jede von Ihnen kartierte Straße ist mit den neuesten Bildern aktuell.
+
 footer.logo.nsf.alt = Logo der National Science Foundation
 footer.logo.google.alt = Google-Logo
 footer.logo.sloan.alt = Logo der Alfred P. Sloan Foundation

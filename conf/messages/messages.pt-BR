@@ -542,6 +542,16 @@ dashboard.routes.view.title = Ver esta rota no RouteBuilder
 dashboard.routes.none = Você ainda não criou nenhuma rota.
 dashboard.routes.build.one = Crie sua primeira rota →
 
+dashboard.reaudit.title = Ruas com imagens mais recentes
+dashboard.reaudit.intro.one = Chegaram novas imagens do Street View em 1 rua que você mapeou. Seus rótulos continuam valendo — esta é uma chance de ver o que mudou.
+dashboard.reaudit.intro.many = Chegaram novas imagens do Street View em {0} ruas que você mapeou. Seus rótulos continuam valendo — esta é uma chance de ver o que mudou.
+dashboard.reaudit.imagery = imagens novas de {0}
+dashboard.reaudit.audited = Você mapeou em {0}
+dashboard.reaudit.revisit = Revisitar
+dashboard.reaudit.showing = Mostrando {0} de {1}.
+dashboard.reaudit.see.map = Ver todas no seu mapa →
+dashboard.reaudit.none = Todas as ruas que você mapeou estão atualizadas com as imagens mais recentes.
+
 footer.logo.nsf.alt = Logotipo da National Science Foundation
 footer.logo.google.alt = Logotipo do Google
 footer.logo.sloan.alt = Logotipo da Alfred P. Sloan Foundation

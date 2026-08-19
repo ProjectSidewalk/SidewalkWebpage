@@ -1,7 +1,7 @@
 package service
 
 import com.google.inject.ImplementedBy
-import models.audit.{AuditTaskComment, AuditTaskInteractionTable, AuditTaskTable}
+import models.audit.{AuditTaskComment, AuditTaskInteractionTable, AuditTaskTable, OutdatedStreetForUser}
 import models.label.{LabelLocation, LabelTable}
 import models.mission.{MissionTable, RegionalMission}
 import models.region.Region
@@ -291,7 +291,8 @@ trait UserService {
   def getAccuracyByType(userId: String): Future[Seq[AccuracyByType]]
   def getTrophies(userId: String, cityName: String, messages: Messages): Future[Seq[Trophy]]
   def getHoursAuditingAndValidating(userId: String): Future[Double]
-  def getAuditedStreets(userId: String): Future[Seq[StreetEdge]]
+  def getAuditedStreets(userId: String): Future[Seq[(StreetEdge, Boolean)]]
+  def getOutdatedStreetsForUser(userId: String, limit: Int): Future[(Seq[OutdatedStreetForUser], Int)]
   def getLabelLocations(userId: String, regionId: Option[Int] = None): Future[Seq[LabelLocation]]
   def updateTaskFlag(auditTaskId: Int, flag: String, state: Boolean): Future[Int]
   def updateTaskFlagsBeforeDate(userId: String, date: OffsetDateTime, flag: String, state: Boolean): Future[Int]
@@ -650,7 +651,24 @@ class UserServiceImpl @Inject() (
   def getHoursAuditingAndValidating(userId: String): Future[Double] =
     db.run(auditTaskInteractionTable.getHoursAuditingAndValidating(userId))
 
-  def getAuditedStreets(userId: String): Future[Seq[StreetEdge]] = db.run(auditTaskTable.getAuditedStreets(userId))
+  def getAuditedStreets(userId: String): Future[Seq[(StreetEdge, Boolean)]] =
+    db.run(auditTaskTable.getAuditedStreets(userId))
+
+  /**
+   * The user's streets that still need a re-audit, capped for display, plus how many there are in total (#4896).
+   *
+   * @param limit Most rows to return; the total is counted separately so the list can say "showing 12 of 40".
+   * @return      (rows, total). Both are empty/zero for a user who has never completed an audit.
+   */
+  def getOutdatedStreetsForUser(userId: String, limit: Int): Future[(Seq[OutdatedStreetForUser], Int)] = {
+    // Independent queries, so they're started before the for-comprehension sequences them.
+    val streetsFuture = db.run(auditTaskTable.getOutdatedStreetsForUser(userId, limit))
+    val countFuture   = db.run(auditTaskTable.countOutdatedStreetsForUser(userId))
+    for {
+      streets <- streetsFuture
+      count   <- countFuture
+    } yield (streets, count)
+  }
 
   def getLabelLocations(userId: String, regionId: Option[Int] = None): Future[Seq[LabelLocation]] =
     db.run(labelTable.getLabelLocations(userId, regionId))

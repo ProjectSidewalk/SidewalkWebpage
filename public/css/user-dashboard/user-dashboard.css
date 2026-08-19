@@ -1835,3 +1835,69 @@
   padding: 4px 10px;
   font-size: var(--font-size-sm, 0.875rem);
 }
+
+/* ---- Streets with newer imagery (#4896): the mapper's own streets whose audits the imagery has outrun. ---- */
+.ud-reaudit {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.ud-reaudit-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm, 12px);
+  padding: 12px 0;
+  border-bottom: 1px solid var(--color-neutral-200, #e1e1e1);
+}
+
+/* Rows carry no thumbnail, so the hover tint is the only feedback that a row is the one brushing the map above. */
+.ud-reaudit-row:hover,
+.ud-reaudit-row:focus-within {
+  background: var(--color-bg-hover, #e9ecef);
+}
+
+.ud-reaudit-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1 1 220px;
+}
+
+.ud-reaudit-place {
+  font-weight: 600;
+  color: var(--color-text-heading, #263238);
+  overflow-wrap: anywhere;
+}
+
+.ud-reaudit-meta {
+  font-size: var(--font-size-md, 1rem);
+  color: var(--color-text-secondary, #5a7785);
+}
+
+.ud-reaudit-audited {
+  font-size: var(--font-size-md, 1rem);
+  color: var(--color-text-secondary, #5a7785);
+}
+
+.ud-reaudit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs, 8px);
+}
+
+.ud-reaudit-actions .ud-btn-secondary {
+  padding: 4px 10px;
+  font-size: var(--font-size-sm, 0.875rem);
+  text-decoration: none;
+}
+
+.ud-reaudit-more {
+  font-size: var(--font-size-md, 1rem);
+  color: var(--color-text-secondary, #5a7785);
+}
