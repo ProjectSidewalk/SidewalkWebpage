@@ -17,15 +17,9 @@ docker-compose.override*.yml
 ga-service-account.json
 db/*-dump
 
-# Generated per-city artifacts from scripts/onboard_city.py (QA GeoPackage, staging SQL, report)
+# Generated per-city artifacts from scripts/onboard_city.py and check_streets_for_imagery.py (QA GeoPackage,
+# staging SQL, report, imagery-scan CSVs, osmnx cache)
 db/onboarding/
-
-# Per-city data files of the scripts/check_streets_for_imagery.py scan
-street_edge_endpoints_*.csv
-db/streets_with_no_imagery_*.csv
-db/street_imagery_summary_*.csv
-db/streets_imagery_checkpoint_*.csv
-db/failed_streets_*.csv
 
 # Playwright smoke-suite output (test/e2e/)
 playwright-report/

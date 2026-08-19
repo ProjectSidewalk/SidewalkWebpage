@@ -51,7 +51,7 @@ Finds streets lacking street-view imagery (Google Street View or Mapillary) and 
 manual — nothing in the app calls it.
 
 1. Export a CSV of the `street_edge` table with columns `street_edge_id, region_id, x1, y1, x2, y2, geom` (geom as WKB
-   hex), named `street_edge_endpoints_<city-id>.csv`, in the repo root. Every data file carries the city id, so scans
+   hex) to `db/onboarding/<city-id>/street_edge_endpoints.csv`. Every scan file lives in that per-city dir, so scans
    for different cities can't collide or resume each other's checkpoints.
 2. Run **one** of (from any directory — paths resolve relative to the repo root):
    ```bash
@@ -59,8 +59,8 @@ manual — nothing in the app calls it.
    python3.13 scripts/check_streets_for_imagery.py --city-id newport-ky --mapillary   # needs MAPILLARY_ACCESS_TOKEN
    ```
    It checks each street's endpoints first, then samples points along the street, and flags streets where enough points
-   lack imagery. It writes streets without imagery to `db/streets_with_no_imagery_<city-id>.csv`, and a per-street
-   imagery summary (presence + capture-date range) to `db/street_imagery_summary_<city-id>.csv`.
+   lack imagery. It writes streets without imagery to `streets_with_no_imagery.csv`, and a per-street imagery summary
+   (presence + capture-date range) to `street_imagery_summary.csv`, both in the same dir.
 3. Run `make hide-streets-without-imagery` to mark those streets in the database.
 
 Optional flags: `--workers N` (streets checked concurrently, default 8) and `--max-qps F` (global cap on requests per
@@ -69,7 +69,7 @@ second across all workers, default 10 — deliberately conservative; Google allo
 ### Imagery age
 
 The GSV metadata responses we already fetch also carry an imagery capture `date`, so — for **no extra API calls** — the
-scan records each street's capture-date range (oldest/newest) and pano count into `db/street_imagery_summary_<city-id>.csv`
+scan records each street's capture-date range (oldest/newest) and pano count into `street_imagery_summary.csv`
 (`street_edge_id, region_id, has_imagery, oldest_capture, newest_capture, n_panos`). That tells us not just whether a
 street has imagery but how old it is. Mapillary capture dates are a future enhancement (GSV only for now). Persisting
 this into the database — to power a "stale imagery" signal alongside the `street_edge_status` work (#3888) — is tracked
@@ -84,10 +84,9 @@ The scan is built to survive a flaky network over a long run, and to scan a whol
   the sequential endpoint→points early-exit, so concurrency doesn't inflate the number of API calls.
 - **Retry:** each request is retried with exponential backoff + jitter (`tenacity`) before giving up.
 - **Fail-soft:** a street that still errors is logged and the scan **continues** (it no longer aborts the whole run);
-  the failed set is retried once at the end, and any still-failing streets are written to
-  `db/failed_streets_<city-id>.csv`.
-- **Resume:** progress is checkpointed per street to `db/streets_imagery_checkpoint_<city-id>.csv`, so a re-run resumes
-  where it left off and re-attempts only failed/unprocessed streets — and since every file carries the city id, a
+  the failed set is retried once at the end, and any still-failing streets are written to `failed_streets.csv`.
+- **Resume:** progress is checkpointed per street to `streets_imagery_checkpoint.csv`, so a re-run resumes where it
+  left off and re-attempts only failed/unprocessed streets — and since every city's files live in its own dir, a
   leftover checkpoint from another city can never be resumed by mistake. The final no-imagery CSV is derived from
   the checkpoint at the end — its schema is unchanged, so `make hide-streets-without-imagery` is unaffected.
 - **Progress:** a `tqdm` progress bar (count, %, rate, and ETA) renders to stderr as streets complete. It tracks the
@@ -123,8 +122,8 @@ column:
   zero API cost and covers every **audited** street, including Mapillary/Infra3d panos. Rows are tagged
   `data_source = 'pano_data'`.
 - **Feeder 2 — the imagery scan (manual).** For streets a scan reached but that have no labels yet (so Feeder 1 can't
-  see them), run `make import-street-imagery` to ingest `db/street_imagery_summary_<city-id>.csv` — the per-street summary the
-  scan writes. Rows are tagged `data_source = 'imagery_scan'`, and a scan
+  see them), run `make import-street-imagery` to ingest `db/onboarding/<city-id>/street_imagery_summary.csv` — the
+  per-street summary the scan writes. Rows are tagged `data_source = 'imagery_scan'`, and a scan
   supersedes an existing `pano_data` row for the same street (it's a deliberate, fresher measurement).
 
 ## `onboard_city.py`

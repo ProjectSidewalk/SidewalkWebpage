@@ -393,7 +393,7 @@ def test_finalize_outputs_without_checkpoint_writes_empty(tmp_path):
 # main (HTTP mocked)
 # --------------------------------------------------------------------------------------------------------------------
 
-# Every data file carries the scanned city's id, so main() tests pass this everywhere.
+# Every city's data files live in their own db/onboarding/<city-id>/ dir, so main() tests pass this everywhere.
 _CITY = 'testville-wa'
 
 
@@ -404,12 +404,13 @@ def _write_street_csv(directory, streets):
         x2, y2 = line.coords[-1]
         rows.append({'street_edge_id': street_edge_id, 'region_id': region_id,
                      'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2, 'geom': wkb.dumps(line, hex=True)})
-    pd.DataFrame(rows).to_csv(directory / cs.INPUT_FILE.format(_CITY), index=False)
+    path = directory / cs.INPUT_FILE.format(_CITY)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    pd.DataFrame(rows).to_csv(path, index=False)
 
 
 def _setup(monkeypatch, tmp_path, streets, env_var='GOOGLE_MAPS_API_KEY'):
     _write_street_csv(tmp_path, streets)
-    (tmp_path / 'db').mkdir()
     # Point the script's repo root at tmp_path, then run from an unrelated CWD that has neither the input CSV nor a
     # db/ dir. This makes every main() test a regression check that the script resolves its files against the repo
     # root rather than the working directory (running from scripts/ used to fail at 0% progress, #4359).
@@ -482,7 +483,6 @@ def test_main_runs_from_a_different_working_directory(monkeypatch, tmp_path):
     # because the first checkpoint write hit a CWD-relative db/ path that didn't exist. Anchoring to the repo root
     # fixes it: here we run from a scripts/ dir that has neither the input CSV nor db/, and the scan still completes.
     _write_street_csv(tmp_path, [(100, 1, _LINE_60)])
-    (tmp_path / 'db').mkdir()
     monkeypatch.setattr(cs, 'REPO_ROOT', str(tmp_path))
     scripts_dir = tmp_path / 'scripts'
     scripts_dir.mkdir()

@@ -7,7 +7,7 @@
 # applies that CSV by setting street_edge.status = 'no_imagery' and dropping the streets' priority rows (see #4348/#4335).
 #
 # HOW IT'S RUN:  make hide-streets-without-imagery   →   /opt/scripts/hide-streets-without-imagery.sh   (in projectsidewalk-db).
-# INPUT:         a headered CSV whose first column is street_edge_id (db/streets_with_no_imagery_<city-id>.csv).
+# INPUT:         a headered CSV whose first column is street_edge_id (db/onboarding/<city-id>/streets_with_no_imagery.csv).
 #
 # The actual UPDATE/DELETE lives in mark_streets_no_imagery() in helpers.sh, shared with reveal-or-hide-neighborhoods.sh
 # so the two can't drift. It's idempotent, so re-running on an already-processed region is safe.
@@ -19,8 +19,8 @@ source /opt/scripts/helpers.sh
 SCHEMA_NAME=$(prompt_with_default "Schema name")
 
 # Prompt user for path to CSV file and prepend the container working dir (/opt == ./db on the host). No default:
-# the scan names its outputs per city (streets_with_no_imagery_<city-id>.csv).
-CSV_FILENAME=$(prompt_with_default "Path to CSV file (relative to db dir, e.g. streets_with_no_imagery_newport-ky.csv)")
+# the scan writes its outputs into each city's own onboarding dir.
+CSV_FILENAME=$(prompt_with_default "Path to CSV file (relative to db dir, e.g. onboarding/newport-ky/streets_with_no_imagery.csv)")
 CSV_FILENAME=/opt/$CSV_FILENAME
 if [[ ! -f "$CSV_FILENAME" ]]; then
     echo "Error: CSV not found at $CSV_FILENAME. Generate it with check_streets_for_imagery.py first." >&2

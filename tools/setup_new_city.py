@@ -252,7 +252,7 @@ def run_imagery_scan(schema, city_id, pano_type):
                        'WHERE street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)) '
                        'TO STDOUT WITH (FORMAT csv, HEADER)',
                        capture_output=True, text=True, check=True)
-    (REPO_ROOT / f'street_edge_endpoints_{city_id}.csv').write_text(export.stdout)
+    (REPO_ROOT / 'db' / 'onboarding' / city_id / 'street_edge_endpoints.csv').write_text(export.stdout)
     print(f'  Scanning {export.stdout.count(chr(10)) - 1} streets for {pano_type} imagery (resumes this city\'s '
           'own checkpoint if interrupted)...')
     # A TTY (when we have one to give) lets the scan's tqdm progress bar render; over a plain pipe it auto-hides.
@@ -260,17 +260,17 @@ def run_imagery_scan(schema, city_id, pano_type):
     subprocess.run(['docker', 'exec', '-i', *tty, WEB_CONTAINER, 'python3.13',
                     'scripts/check_streets_for_imagery.py', '--city-id', city_id, flag], check=True)
 
-    no_imagery = REPO_ROOT / 'db' / f'streets_with_no_imagery_{city_id}.csv'
+    no_imagery = REPO_ROOT / 'db' / 'onboarding' / city_id / 'streets_with_no_imagery.csv'
     n_hidden = max(0, len(no_imagery.read_text().strip().split('\n')) - 1) if no_imagery.exists() else 0
     print(f'  {n_hidden} street(s) without imagery; marking them no_imagery...')
     docker_db('/opt/scripts/hide-streets-without-imagery.sh',
-              input=f'{schema}\nstreets_with_no_imagery_{city_id}.csv\n', text=True, check=True)
+              input=f'{schema}\nonboarding/{city_id}/streets_with_no_imagery.csv\n', text=True, check=True)
 
     # On a fresh city the automatic street_imagery feeder (pano_data, via labels) has nothing yet, so the scan's
     # summary is the only source of imagery-age data (#4348).
     print('  Importing the imagery-age summary into street_imagery...')
     docker_db('/opt/scripts/import-street-imagery.sh',
-              input=f'{schema}\nstreet_imagery_summary_{city_id}.csv\n', text=True, check=True)
+              input=f'{schema}\nonboarding/{city_id}/street_imagery_summary.csv\n', text=True, check=True)
 
 
 def parse_report(city_id):
