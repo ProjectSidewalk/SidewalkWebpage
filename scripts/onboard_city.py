@@ -9,10 +9,10 @@ eyeball in QGIS plus a SQL file that loads the two staging tables, and loading t
 
 Workflow:
 
-  1. Run (from anywhere — output paths are resolved relative to the repo root; in the web container or on any
-     host Python that has requirements-offline-tools.txt installed):
+  1. Run (`make build-city-data` wraps the script in the web container; it also runs on any host Python that has
+     requirements-offline-tools.txt installed, from anywhere — output paths are resolved relative to the repo root):
 
-         python3.13 scripts/onboard_city.py --place "Newport, Kentucky, USA" --city-id newport-ky
+         make build-city-data id=newport-ky args="--place 'Newport, Kentucky, USA'"
 
      ``--city-id`` is the id the deployment will eventually use in ``conf/cityparams.conf`` (``SIDEWALK_CITY_ID``),
      so later config steps can consume it as-is; it also names the outputs and, with hyphens swapped for
@@ -34,7 +34,7 @@ Workflow:
          re-split and re-heal against the final boundaries and region ids come out dense.
        * **Hand edits**: edit the ``qgis_road``/``qgis_region`` layers directly in QGIS (delete streets, reassign a
          street's ``region_id``, tweak/rename regions), then regenerate the SQL from the edited file with
-         ``make reexport-city-data id=<city-id>`` (``--from-gpkg``) — it validates the layers (unique ids, region
+         ``make build-city-data id=<city-id> args="--from-gpkg"`` — it validates the layers (unique ids, region
          references, geometry types) and rewrites ``qgis_tables.sql`` so the load matches exactly what was QA'd.
          Never load a stale SQL file over hand edits.
   3. Run ``make onboard-city id=<city-id>`` (tools/setup_new_city.py), which chains the rest of the setup — configs,
@@ -1166,7 +1166,8 @@ def write_report(path, args, region_source, roads, regions, dropped, stats, cove
         '## Next steps',
         '',
         '1. QA the GeoPackage in QGIS (regions: slivers/gaps/overlaps; streets: boundary clipping, dropped segments).',
-        '2. Rerun with tweaked flags (or hand-edit + re-export) until it looks right.',
+        f'2. Rerun with tweaked flags (or hand-edit + `make build-city-data id={args.city_id} args="--from-gpkg"`) '
+        'until it looks right.',
         f'3. `make onboard-city id={args.city_id}` — chains the remaining setup: configs, GA properties, schema, '
         'evolutions, the staging load + fill, and the imagery scan.',
         '',
@@ -1196,9 +1197,10 @@ def parse_args(argv=None):
     boundary = parser.add_mutually_exclusive_group(required=False)
     boundary.add_argument('--place', help='Nominatim-geocodable city name, e.g. "Newport, Kentucky, USA".')
     boundary.add_argument('--boundary-file', help='Local city-boundary file (any OGR-readable format/CRS).')
-    parser.add_argument('--from-gpkg', help='Re-export mode: skip all fetching and rebuild the SQL load file (and '
-                                            'report) from a hand-edited QA GeoPackage\'s qgis_road/qgis_region '
-                                            'layers, after validating them.')
+    parser.add_argument('--from-gpkg', nargs='?', const='',
+                        help='Re-export mode: skip all fetching and rebuild the SQL load file (and report) from a '
+                             'hand-edited QA GeoPackage\'s qgis_road/qgis_region layers, after validating them. '
+                             'With no path, targets the city\'s own db/onboarding/<city-id>/<city-id>_qa.gpkg.')
     parser.add_argument('--merge-regions', help='Fold regions into others, as comma-separated source:target NAME '
                                                 'pairs (e.g. "Census Tract 513:Census Tract 523.01"). Fetch runs '
                                                 'only: merging happens before street assignment, so streets '
@@ -1231,6 +1233,8 @@ def parse_args(argv=None):
                                           'visible inside the db container under /opt; with --from-gpkg, the '
                                           'GeoPackage\'s own directory).')
     args = parser.parse_args(argv)
+    if args.from_gpkg == '':  # Bare --from-gpkg: the fetch run's own output path.
+        args.from_gpkg = str(REPO_ROOT / 'db' / 'onboarding' / args.city_id / f'{args.city_id}_qa.gpkg')
     if bool(args.from_gpkg) == bool(args.place or args.boundary_file):
         parser.error('provide either --place/--boundary-file (fetch run) or --from-gpkg (re-export run).')
     if args.from_gpkg and args.merge_regions:

@@ -133,8 +133,7 @@ Builds a new city's street + region staging data (`qgis_road`/`qgis_region`, con
 pipeline (#4291). Standalone and manual; it never writes to the database.
 
 ```bash
-docker exec projectsidewalk-web sh -c "cd /home && python3.13 scripts/onboard_city.py \
-    --place 'Newport, Kentucky, USA' --city-id newport-ky"
+make build-city-data id=newport-ky args="--place 'Newport, Kentucky, USA'"
 ```
 
 `--city-id` is the id the deployment will eventually use in `conf/cityparams.conf` (`SIDEWALK_CITY_ID`), so later
@@ -157,8 +156,8 @@ to eyeball in QGIS, the `qgis_tables.sql` load file, and a Markdown report with 
 `--merge-regions "Census Tract 513:Census Tract 523.01"` (region *names*) to fold flagged regions into neighbors;
 structural region changes always go through a full rerun so streets re-split and re-heal against the merged
 boundaries and region ids stay dense. For surgical fixes, hand-edit the GeoPackage layers in QGIS and regenerate the
-SQL with `make reexport-city-data id=<city-id>` (`--from-gpkg`; validates the edited layers first, and keeps the
-regions' existing `data_source`).
+SQL with the same target: `make build-city-data id=<city-id> args="--from-gpkg"` (a bare `--from-gpkg` targets the
+city's own QA GeoPackage; validates the edited layers first, and keeps the regions' existing `data_source`).
 
 Once the GeoPackage passes QA, `make onboard-city id=<city-id>` (host-side, `tools/setup_new_city.py`) chains the
 rest of the setup: config registration, schema creation, evolutions, the staging load, the fill, and the

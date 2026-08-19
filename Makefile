@@ -1,6 +1,6 @@
 .PHONY: dev docker-up docker-up-db docker-run docker-stop ssh qa-worktree qa-worktree-stop worktree-remove test-e2e \
         test-python test-python-app test-python-tools \
-        import-users import-dump create-new-schema fill-new-schema onboard-city reexport-city-data \
+        import-users import-dump create-new-schema fill-new-schema onboard-city build-city-data \
         hide-streets-without-imagery \
         import-street-imagery reveal-or-hide-neighborhoods \
         lint lint-fix lint-evolutions lint-locales scalafmt scalafmt-fix \
@@ -132,10 +132,13 @@ fill-new-schema:
 onboard-city:
 	@python3 tools/setup_new_city.py $(id)
 
-# Regenerate a city's staging SQL + report from its hand-edited QA GeoPackage (e.g. after renaming regions in QGIS).
-# Extra scripts/onboard_city.py flags via args=. e.g. `make reexport-city-data id=newport-ky`.
-reexport-city-data:
-	@docker exec -it $(web-container) sh -c "cd /home && python3.13 scripts/onboard_city.py --city-id $(id) --from-gpkg db/onboarding/$(id)/$(id)_qa.gpkg $(args)"
+# Build a city's street/region staging data + QA GeoPackage (scripts/onboard_city.py, in the web container), passing
+# the script's flags via args=. The same target re-exports the SQL after hand edits: a bare --from-gpkg targets the
+# city's own QA GeoPackage.
+# e.g. `make build-city-data id=newport-ky args="--place 'Newport, Kentucky, USA'"`
+#      `make build-city-data id=newport-ky args="--from-gpkg"`
+build-city-data:
+	@docker exec -it $(web-container) sh -c "cd /home && python3.13 scripts/onboard_city.py --city-id $(id) $(args)"
 
 hide-streets-without-imagery:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/hide-streets-without-imagery.sh"

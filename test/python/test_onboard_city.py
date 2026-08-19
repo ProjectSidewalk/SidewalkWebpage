@@ -831,6 +831,11 @@ def test_main_uses_regions_file_and_warns_on_low_coverage(tmp_path, monkeypatch,
     assert 'https://data.testville.gov/hoods' in (tmp_path / 'out' / 'qgis_tables.sql').read_text()
 
 
+def test_parse_args_bare_from_gpkg_targets_the_citys_qa_geopackage():
+    args = oc.parse_args(['--city-id', 'newport-ky', '--from-gpkg'])
+    assert args.from_gpkg.endswith('db/onboarding/newport-ky/newport-ky_qa.gpkg')
+
+
 def test_parse_args_pairs_regions_file_with_regions_source():
     with pytest.raises(SystemExit):
         oc.parse_args(['--city-id', 'x', '--place', 'a', '--regions-file', 'hoods.geojson'])
