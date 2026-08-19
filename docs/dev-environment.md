@@ -283,6 +283,18 @@ repo's `node_modules`, builds that branch's JS/CSS bundles, frees `:9000`, and l
 worktree's own config while reusing the main repo's warm sbt caches. The first request triggers the dev compile;
 `Ctrl+C` stops it. It behaves the same on macOS, Linux, and WSL because the work runs inside the web container.
 
+When you're done with a worktree for good, remove it with:
+
+```bash
+make worktree-remove wt=<worktree-name>
+```
+
+That stops its QA session, deletes the directory and the registration git keeps for it, and deletes its branch once
+that branch is fully merged into `develop` — it tells you what it kept otherwise. Deleting the directory yourself
+leaves the registration behind, so the worktree lingers in `git worktree list`; run the target and it cleans that up
+instead. It stops and tells you if the worktree still has uncommitted or untracked files; add `force=1` to delete
+those along with it.
+
 To QA admin-only pages you need an account with a role. The dev database is seeded from a dump that includes real
 accounts, so if your own account is in it you can sign in normally — password checks work the same locally as in
 production. Otherwise — or if you'd rather use a throwaway account — create a fresh one through the sign-up form and
@@ -327,7 +339,7 @@ Roughly ordered by when you'd hit them during setup.
 | `pg_restore: ... schema "public" already exists` | Safe to ignore — no effect. |
 | `import-dump` otherwise errors | Don't skip ahead. Re-check the dump filename and `db=` value, then see the [Troubleshooting wiki](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Troubleshooting-Dev-Environment) and ask. |
 | `Execution exception [NoSuchElementException: None.get]` at runtime | The data wasn't imported — run `make import-dump` (the init only creates the schema, not the data). |
-| Database suddenly looks empty (`role "sidewalk_<city>" does not exist`, no city schemas) | Your data is most likely parked on an orphaned Docker volume, not gone — `docker volume ls -qf dangling=true` lists the candidates, and you can copy one back onto `sidewalk_pgdata`. Don't run `docker volume prune` while you're looking; that is what actually destroys them. |
+| Database suddenly looks empty (`role "sidewalk_<city>" does not exist`, no city schemas) | Your data is most likely parked on an orphaned Docker volume, not gone — `docker volume ls -qf dangling=true` lists the candidates, and you can copy one back onto this project's data volume (`<project>_pgdata`, where `<project>` is your checkout directory lowercased). Don't run `docker volume prune` while you're looking; that is what actually destroys them. |
 | `Cannot create container for service web: Conflict ... name "/projectsidewalk-web" already in use` | A prior `web` container wasn't shut down cleanly: `docker container rm /projectsidewalk-web`. |
 | Errors after the computer was shut off mid-run (WSL) | Run `wsl --shutdown`; when Docker offers to restart WSL, accept. Otherwise restart Docker manually. |
 | Can't connect to the database | The db container may not be listening on all addresses. `make ssh target=db`, edit `/var/lib/postgresql/data/postgresql.conf`, set `listen_addresses = '*'`. |

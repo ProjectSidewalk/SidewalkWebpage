@@ -52,6 +52,6 @@ services:
       - POSTGRES_PASSWORD=sidewalk
 
 volumes:
-  # Leave this unprefixed. Compose namespaces it per project (-> sidewalk_pgdata), so an explicit `name:` would point
-  # every Sidewalk checkout on the machine at one shared database.
+  # Leave this unprefixed. Compose namespaces it per project — your checkout directory, lowercased — so an explicit
+  # `name:` would point every Sidewalk checkout on the machine at one shared database.
   pgdata:

@@ -201,7 +201,7 @@ class RouteBuilder {
     this.#cityView = { center: [mapParams.city_center.lng, mapParams.city_center.lat], zoom: mapParams.default_zoom };
     this.#map = new mapboxgl.Map({
       container: 'routebuilder-map',
-      style: 'mapbox://styles/projectsidewalk/cloov4big002801rc0qw75w5g',
+      style: 'mapbox://styles/projectsidewalk/cloov4big002801rc0qw75w5g?optimize=true',
       center: [mapParams.city_center.lng, mapParams.city_center.lat],
       zoom: mapParams.default_zoom,
       minZoom: 8.25,

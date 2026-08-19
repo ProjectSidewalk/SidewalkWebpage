@@ -1,5 +1,6 @@
 {
   "mapbox-language-code": "en",
+  "map-two-finger-pan": "Gebruik twee vingers om de kaart te verplaatsen",
   "explore-street-link": "<a href='/explore?streetEdgeId={{streetId}}' class='street-selection-trigger' streetId='{{streetId}}'>Klik hier</a> om de straat te verkennen!",
   "distance-progress": "{{done, distance(style: small; unit: false)}}/{{total, distance(style: small)}}",
   "distance-large": "{{dist}} {{unitAbbr}}",

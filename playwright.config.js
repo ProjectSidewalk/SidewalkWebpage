@@ -12,7 +12,7 @@ module.exports = defineConfig({
   testDir: 'test/e2e',
   timeout: 60_000,
   forbidOnly: !!process.env.CI,
-  // One CI retry absorbs one-off network flake (e.g. the api-docs pages load Leaflet from the unpkg CDN).
+  // One CI retry absorbs one-off network flake (e.g. the api-docs previews fetch their style and tiles from Mapbox).
   retries: process.env.CI ? 1 : 0,
   workers: process.env.CI ? 2 : undefined,
   reporter: process.env.CI ? [['list'], ['html', {open: 'never'}]] : 'list',
