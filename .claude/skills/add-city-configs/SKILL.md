@@ -1,14 +1,29 @@
 ---
 name: add-city-configs
-description: Adds configs for a new city, filling in the cityparams.conf file. Also adds any necessary translations to the messages files.
+description: Finishes a new city's configs after `make onboard-city` — non-English translations, a review of the derived cityparams values, and the docs City IDs row.
 ---
 
 # Add City Configs
 
-1. Fill in a new entry for every config in conf/cityparams.conf for the new city.
-    - Set the launch date to be the Friday of the following week.
-    - You can use an empty string for the Google Analytics IDs.
-2. Add text translations to `conf/messages/`.
-   - In `conf/messages/messages`, a city name is required. If it's in the US and the state isn't already listed, add the new state. If the country isn't listed, add that as well.
-   - In `conf/messages/messages.en`, add the state abbreviation if it's in the US.
-   - In the remaining messages files, add a translation line only if the given language uses text that's different from the US translation. zh-TW typically requires translations for all city, state, and country text. I typically use Google Translate for this.
+`make onboard-city id=<city-id>` (tools/setup_new_city.py) already registers the city in conf/cityparams.conf with
+derived values, and adds the English name lines to conf/messages/messages (plus the state abbreviation in
+messages.en for US cities). This skill covers what that script can't:
+
+1. Review the generated cityparams.conf entry:
+   - The Google Analytics ids are `"TODO"` placeholders — fill in real ids if they exist yet, otherwise flag them as
+     a launch blocker.
+   - `launch-date` was set to the day the script ran; adjust it to the planned launch (convention: the Friday of the
+     following week).
+   - Sanity-check the derived `landing-page-url` (the script drops the state/country qualifier from the server name)
+     and `status`.
+2. Non-English translations in `conf/messages/`:
+   - Add a translation line only where a language renders the name differently from English. zh-TW typically needs
+     translations for the city, state, and country names; Latin-script languages usually only for well-known places
+     (see the existing `state.name.*` entries for the pattern).
+   - If the country is new to the platform, add its name keys across the message files too.
+3. Append the city to the City IDs table in docs/dev-environment.md (city id + database user, e.g. `newport-ky` /
+   `sidewalk_newport_ky`).
+
+If the city was set up manually (without `make onboard-city`), first do everything that script would have: the full
+cityparams.conf entry set and the English city/state name lines (see tools/setup_new_city.py for the field list and
+derivations).
