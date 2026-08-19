@@ -19,7 +19,7 @@ It chains every remaining setup step, pausing only where a human is required:
      retarget it), and watches play_evolutions until the schema is current — the template dump is far behind, and
      fill-new-schema.sh needs current columns. The boot is stopped once evolutions land.
   5. Loads db/onboarding/<city-id>/qgis_tables.sql into the schema.
-  6. Runs fill-new-schema.sh non-interactively (you pick the tutorial region).
+  6. Runs fill-new-schema.sh non-interactively (you pick the tutorial region and which regions open at launch).
   7. Runs the scripts/check_streets_for_imagery.py scan in the web container (which holds the API keys and the
      python3.13 deps) against a freshly exported endpoints CSV, hides the no-imagery streets, and imports the
      imagery-age summary into street_imagery.
@@ -381,7 +381,13 @@ def main():
         for region_id, name in regions:
             print(f'  {region_id}: {name}')
         tutorial_region = prompt('Tutorial region id (a central region with imagery)', '1')
-        docker_db('/opt/scripts/fill-new-schema.sh', schema, tutorial_region, 'all', check=True)
+        # Phased launches start with only some regions open (streets in the others are seeded 'closed'; open them
+        # later with reveal-or-hide-neighborhoods.sh). The imagery scan below covers the whole city either way.
+        regions_spec = prompt('Regions to open at launch ("all", "include:<ids>", or "exclude:<ids>", '
+                              'ids space-separated)', 'all')
+        while not re.fullmatch(r'all|(include|exclude):\d+( \d+)*', regions_spec):
+            regions_spec = prompt('Invalid — use "all", "include:1 2 3", or "exclude:4 5"', 'all')
+        docker_db('/opt/scripts/fill-new-schema.sh', schema, tutorial_region, regions_spec, check=True)
 
     print('\nStep 7/7 — imagery scan (finds streets with no street-view imagery and hides them)...')
     run_imagery_scan(schema, city_id, pano_type)
