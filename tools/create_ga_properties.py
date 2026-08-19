@@ -88,7 +88,7 @@ def access_token():
     except ImportError:
         sys.exit('error: google-auth is not installed (`pip install google-auth`) — it signs the service-account '
                  'JWT, which the stdlib cannot.')
-    key = json.loads(key_path.read_text())
+    key = json.loads(KEY_FILE.read_text())
     now = int(time.time())
     assertion = jwt.encode(crypt.RSASigner.from_service_account_info(key), {
         'iss': key['client_email'], 'scope': SCOPE, 'aud': 'https://oauth2.googleapis.com/token',
