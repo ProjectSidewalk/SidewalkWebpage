@@ -11,8 +11,8 @@ messages.en for US cities). This skill covers what that script can't:
 
 1. Review the generated cityparams.conf entry:
    - The Google Analytics ids are `"TODO"` placeholders — create the real properties and fill the ids with
-     `python3 tools/create_ga_properties.py <city-id>` (its docstring covers the one-time OAuth setup), or flag them
-     as a launch blocker.
+     `python3 tools/create_ga_properties.py <city-id>` (its docstring covers the one-time service-account setup),
+     or flag them as a launch blocker.
    - `launch-date` was set to the day the script ran; adjust it to the planned launch (convention: the Friday of the
      following week).
    - Sanity-check the derived `landing-page-url` (the script drops the state/country qualifier from the server name)

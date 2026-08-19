@@ -3,7 +3,7 @@ Creates a new city's Google Analytics 4 properties (prod + test) and writes the 
 
 Run after `make onboard-city` has registered the city (its GA ids are "TODO" placeholders until this runs):
 
-    GA_OAUTH_CLIENT_JSON=~/secrets/ga-oauth-client.json python3 tools/create_ga_properties.py newport-ky
+    GA_SERVICE_ACCOUNT_JSON=~/secrets/sidewalk-ga.json python3 tools/create_ga_properties.py newport-ky
 
 For each of the two GA accounts (prod and test) it creates, via the Analytics Admin API, a property named per our
 convention — "<City Name>, <ST>" for US cities, "<City Name>, <Country>" otherwise — with the team's standard
@@ -12,13 +12,13 @@ stage's landing-page URL, with enhanced measurement on. The stream's G- measurem
 cityparams.conf. Business size/objectives are UI-wizard-only fields with no API equivalent — they only shape the
 default report collection, so they're skipped.
 
-One-time OAuth setup (the API needs a signed-in user with edit rights on the GA accounts — we use
-makeability.sidewalk@gmail.com):
+One-time setup (fully headless afterward — no GCP roles needed, the service account is authorized on the GA side):
 
-  1. In any GCP project (console.cloud.google.com), enable the "Google Analytics Admin API".
-  2. Under APIs & Services → Credentials, create an OAuth client ID of type "Desktop app" and download its JSON.
-  3. Point GA_OAUTH_CLIENT_JSON at that file. First run opens a browser sign-in (choose the makeability account);
-     the refresh token is cached in ~/.config/sidewalk-ga-oauth.json, so later runs are non-interactive.
+  1. In any GCP project (console.cloud.google.com), enable the "Google Analytics Admin API" and create a service
+     account (skip both optional access-grant steps); under its Keys tab, create + download a JSON key. Store it
+     outside the repo (e.g. ~/secrets/, chmod 600) and point GA_SERVICE_ACCOUNT_JSON at it.
+  2. In GA (Admin → Account access management), add the service account's email as Editor on both accounts.
+  3. `pip install google-auth` (signs the service-account JWT; everything else is stdlib).
 
 `--dry-run` prints the derived names/payloads and stops before any auth, API call, or file write.
 """
@@ -28,19 +28,17 @@ import json
 import os
 import re
 import sys
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
-import webbrowser
-from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
 import setup_new_city
 
 PROD_ACCOUNT = '405043145'
 TEST_ACCOUNT = '405079387'
-OAUTH_SCOPE = 'https://www.googleapis.com/auth/analytics.edit'
-TOKEN_CACHE = Path.home() / '.config' / 'sidewalk-ga-oauth.json'
+SCOPE = 'https://www.googleapis.com/auth/analytics.edit'
 API = 'https://analyticsadmin.googleapis.com'
 
 REPO_ROOT = setup_new_city.REPO_ROOT
@@ -78,53 +76,29 @@ def property_display_name(lines, city_id):
     return f'{city_name}, {country.replace("-", " ").title()}'
 
 
-def oauth_access_token():
-    client_path = Path(os.environ.get('GA_OAUTH_CLIENT_JSON', ''))
-    if not client_path.is_file():
-        sys.exit('error: set GA_OAUTH_CLIENT_JSON to the downloaded OAuth client JSON (see the module docstring).')
-    client = json.loads(client_path.read_text())['installed']
-
-    def exchange(params):
-        data = urllib.parse.urlencode({'client_id': client['client_id'], 'client_secret': client['client_secret'],
-                                       **params}).encode()
+def access_token():
+    """A bearer token for the service account, via the signed-JWT grant (no browser, no cached state)."""
+    key_path = Path(os.environ.get('GA_SERVICE_ACCOUNT_JSON', ''))
+    if not key_path.is_file():
+        sys.exit('error: set GA_SERVICE_ACCOUNT_JSON to the service-account key file (see the module docstring).')
+    try:
+        from google.auth import crypt, jwt
+    except ImportError:
+        sys.exit('error: google-auth is not installed (`pip install google-auth`) — it signs the service-account '
+                 'JWT, which the stdlib cannot.')
+    key = json.loads(key_path.read_text())
+    now = int(time.time())
+    assertion = jwt.encode(crypt.RSASigner.from_service_account_info(key), {
+        'iss': key['client_email'], 'scope': SCOPE, 'aud': 'https://oauth2.googleapis.com/token',
+        'iat': now, 'exp': now + 3600,
+    })
+    data = urllib.parse.urlencode({'grant_type': 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+                                   'assertion': assertion.decode()}).encode()
+    try:
         with urllib.request.urlopen('https://oauth2.googleapis.com/token', data=data) as resp:
-            return json.load(resp)
-
-    if TOKEN_CACHE.is_file():
-        refresh_token = json.loads(TOKEN_CACHE.read_text()).get('refresh_token')
-        if refresh_token:
-            try:
-                return exchange({'grant_type': 'refresh_token', 'refresh_token': refresh_token})['access_token']
-            except urllib.error.HTTPError:
-                print('  Cached token no longer works; re-authorizing.')
-
-    code_holder = {}
-
-    class Catcher(BaseHTTPRequestHandler):
-        def do_GET(self):
-            code_holder['code'] = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query).get('code', [''])[0]
-            self.send_response(200)
-            self.end_headers()
-            self.wfile.write(b'Authorized - you can close this tab and return to the terminal.')
-
-        def log_message(self, *args):
-            pass
-
-    server = HTTPServer(('localhost', 0), Catcher)
-    redirect_uri = f'http://localhost:{server.server_address[1]}'
-    auth_url = 'https://accounts.google.com/o/oauth2/v2/auth?' + urllib.parse.urlencode({
-        'client_id': client['client_id'], 'redirect_uri': redirect_uri, 'response_type': 'code',
-        'scope': OAUTH_SCOPE, 'access_type': 'offline', 'prompt': 'consent'})
-    print(f'\nAuthorize as makeability.sidewalk@gmail.com:\n  {auth_url}\n')
-    webbrowser.open(auth_url)
-    while 'code' not in code_holder:
-        server.handle_request()
-    tokens = exchange({'grant_type': 'authorization_code', 'code': code_holder['code'],
-                       'redirect_uri': redirect_uri})
-    TOKEN_CACHE.parent.mkdir(parents=True, exist_ok=True)
-    TOKEN_CACHE.write_text(json.dumps({'refresh_token': tokens['refresh_token']}))
-    TOKEN_CACHE.chmod(0o600)
-    return tokens['access_token']
+            return json.load(resp)['access_token']
+    except urllib.error.HTTPError as err:
+        sys.exit(f'error: token exchange failed with {err.code}:\n{err.read().decode()}')
 
 
 def api_call(method, url, token, payload=None):
@@ -195,7 +169,7 @@ def main():
         print('[dry-run] stopping before auth and API calls.')
         return
 
-    token = oauth_access_token()
+    token = access_token()
     for stage, account, url in stages:
         measurement_id = create_property(token, account, display_name, url)
         i = todo_line(lines, stage, city_id)
