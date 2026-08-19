@@ -8,7 +8,8 @@ Run after scripts/onboard_city.py has produced db/onboarding/<city-id>/ and the 
 It chains every remaining setup step, pausing only where a human is required:
 
   1. Registers the city in conf/cityparams.conf (all the per-city maps, with derived defaults and placeholder GA
-     ids) and conf/messages (city name; state name if it's a US state we haven't seen before).
+     ids), conf/messages (city name; state name if it's a US state we haven't seen before), and the City IDs table
+     in docs/dev-environment.md.
   2. Creates the city's GA4 properties and fills the real measurement ids (tools/create_ga_properties.py) — when
      the repo-root ga-service-account.json key exists and the ids are still placeholders; skipped with a pointer
      otherwise.
@@ -150,6 +151,31 @@ def add_message_line(file_name, key, value, dry_run):
         return
     path.write_text('\n'.join(lines))
     print(f'  Added "{key} = {value}" to {file_name}.')
+
+
+def add_docs_city_row(city_id, schema, dry_run):
+    """Adds the city to docs/dev-environment.md's two-pairs-per-row City IDs table; no-op if it's already there."""
+    path = REPO_ROOT / 'docs' / 'dev-environment.md'
+    lines = path.read_text().split('\n')
+    if any(f'| {city_id} |' in line for line in lines):
+        return
+    header = next((i for i, line in enumerate(lines) if line.startswith('| City ID |')), None)
+    if header is None:
+        print(f'  Could not find the City IDs table in docs/dev-environment.md; add {city_id} there by hand.')
+        return
+    last = header
+    while lines[last + 1].startswith('|'):
+        last += 1
+    cells = [cell.strip() for cell in lines[last].strip('|').split('|')]
+    if len(cells) == 5 and not cells[3]:
+        lines[last] = f'| {cells[0]} | {cells[1]} | | {city_id} | {schema} |'
+    else:
+        lines.insert(last + 1, f'| {city_id} | {schema} | | | |')
+    if dry_run:
+        print(f'  [dry-run] would add {city_id} to the City IDs table in docs/dev-environment.md')
+        return
+    path.write_text('\n'.join(lines))
+    print(f'  Added {city_id} to the City IDs table in docs/dev-environment.md.')
 
 
 def docker_db(*args, **kwargs):
@@ -312,6 +338,7 @@ def main():
         add_message_line('messages', f'state.name.{state}', state.replace('-', ' ').title(), args.dry_run)
         abbrev = next(k for k, v in US_STATES.items() if v == state).upper()
         add_message_line('messages.en', f'state.name.{state}', abbrev, args.dry_run)
+    add_docs_city_row(city_id, schema, args.dry_run)
 
     if args.dry_run:
         print('\n[dry-run] stopping before the docker/db steps.')
@@ -369,8 +396,7 @@ DATABASE_USER={schema} in docker-compose.override.yml and recreate the container
 a running container's environment can't be changed in place.
 
 Last step: run the `add-city-configs` skill in a Claude Code session (it finishes what a script can't — non-English
-name translations, a review of the derived cityparams values, the docs/dev-environment.md City IDs row, and the
-Google Analytics ids if step 2 was skipped).''')
+name translations, a review of the derived cityparams values, and the Google Analytics ids if step 2 was skipped).''')
 
 
 if __name__ == '__main__':

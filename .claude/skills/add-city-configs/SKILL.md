@@ -1,13 +1,13 @@
 ---
 name: add-city-configs
-description: Finishes a new city's configs after `make onboard-city` — non-English translations, a review of the derived cityparams values, and the docs City IDs row.
+description: Finishes a new city's configs after `make onboard-city` — non-English translations and a review of the derived cityparams values.
 ---
 
 # Add City Configs
 
 `make onboard-city id=<city-id>` (tools/setup_new_city.py) already registers the city in conf/cityparams.conf with
-derived values, and adds the English name lines to conf/messages/messages (plus the state abbreviation in
-messages.en for US cities). This skill covers what that script can't:
+derived values, adds the English name lines to conf/messages/messages (plus the state abbreviation in messages.en
+for US cities), and appends the docs/dev-environment.md City IDs row. This skill covers what that script can't:
 
 1. Review the generated cityparams.conf entry:
    - The Google Analytics ids are `"TODO"` placeholders — create the real properties and fill the ids with
@@ -20,9 +20,7 @@ messages.en for US cities). This skill covers what that script can't:
      translations for the city, state, and country names; Latin-script languages usually only for well-known places
      (see the existing `state.name.*` entries for the pattern).
    - If the country is new to the platform, add its name keys across the message files too.
-3. Append the city to the City IDs table in docs/dev-environment.md (city id + database user, e.g. `newport-ky` /
-   `sidewalk_newport_ky`).
 
 If the city was set up manually (without `make onboard-city`), first do everything that script would have: the full
-cityparams.conf entry set and the English city/state name lines (see tools/setup_new_city.py for the field list and
-derivations).
+cityparams.conf entry set, the English city/state name lines, and the docs/dev-environment.md City IDs row (see
+tools/setup_new_city.py for the field list and derivations).
