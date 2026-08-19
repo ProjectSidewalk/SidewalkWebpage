@@ -6,14 +6,47 @@ import models.user.UserStatTableDef
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+import slick.jdbc.GetResult
 
-import java.time.OffsetDateTime
+import java.time.{LocalDate, OffsetDateTime}
 import javax.inject.{Inject, Singleton}
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext
 
 case class StreetEdgePriorityParameter(streetEdgeId: Int, priorityParameter: Double)
 case class StreetEdgePriority(streetEdgePriorityId: Int, streetEdgeId: Int, priority: Double)
+
+/**
+ * One open street's routing priority alongside the audit counts the priority formula derives it from (#4908).
+ *
+ * The stored priority alone says which street Explore serves next but not why; carrying the same three counts the
+ * formula consumes makes the value explainable on the admin map, and lets a spec assert the two still agree.
+ *
+ * @param priority            The stored `street_edge_priority.priority`, not a recomputation.
+ * @param freshGoodCount      Good-user audits on current imagery.
+ * @param outdatedGoodCount   Good-user audits flagged `outdated_imagery`; contributes a flat capped 0.5.
+ * @param badCount            Audits by low-quality or flagged users; contributes 0.25 each.
+ * @param outdated            Audited, with no up-to-date audit left -- the same definition `/v3/api/streets` reports,
+ *                            so the page's re-audit counts match the Coverage KPI rather than the priority counts.
+ * @param lastAuditDate       UTC date of the most recent completed audit, if any.
+ * @param medianNewestCapture The street's polled median newest capture, NULL when never polled conclusively.
+ * @param imageryUpdatedAt    When any feeder last wrote this street's `street_imagery` row.
+ * @param lengthMeters        Geodesic length, for distance roll-ups.
+ */
+case class StreetPriorityForAdmin(
+    streetEdgeId: Int,
+    regionId: Int,
+    regionName: String,
+    priority: Double,
+    freshGoodCount: Int,
+    outdatedGoodCount: Int,
+    badCount: Int,
+    outdated: Boolean,
+    lastAuditDate: Option[LocalDate],
+    medianNewestCapture: Option[LocalDate],
+    imageryUpdatedAt: Option[OffsetDateTime],
+    lengthMeters: Double
+)
 
 class StreetEdgePriorityTableDef(tag: slick.lifted.Tag) extends Table[StreetEdgePriority](tag, "street_edge_priority") {
   def streetEdgePriorityId: Rep[Int] = column[Int]("street_edge_priority_id", O.PrimaryKey, O.AutoInc)
@@ -59,6 +92,94 @@ class StreetEdgePriorityTable @Inject() (
 
     // Sum the lengths and convert from meters to miles.
     edgeLengths.sum.result.map(x => x.getOrElse(0.0d))
+  }
+
+  /**
+   * Every routable street's priority with the audit counts behind it, for the admin imagery panel (#4908).
+   *
+   * Scoped to open, non-tutorial streets because the question it answers is "where will Explore send people next",
+   * and those are the only streets it can send them to.
+   *
+   * The three counts reproduce `selectGoodBadUserCompletionCountPriority` in SQL, including its dedupe: that query
+   * groups completed audits by (street, user, low_quality, incomplete, stale, outdated_imagery) before counting, so
+   * one user's repeat audits of a street collapse unless their flags differ. Keep the DISTINCT column list in step
+   * with that groupBy -- `StreetPriorityAdminSpec` recomputes the formula from these counts and requires the result to
+   * match what `selectGoodBadUserCompletionCountPriority` produces, so a divergence fails there rather than silently
+   * mislabeling the map.
+   */
+  def getPriorityWithInputs: DBIO[Seq[StreetPriorityForAdmin]] = {
+    implicit val getStreetPriorityForAdmin: GetResult[StreetPriorityForAdmin] = GetResult { r =>
+      StreetPriorityForAdmin(
+        r.nextInt(),
+        r.nextInt(),
+        r.nextString(),
+        r.nextDouble(),
+        r.nextInt(),
+        r.nextInt(),
+        r.nextInt(),
+        r.nextBoolean(),
+        r.nextDateOption().map(_.toLocalDate),
+        r.nextDateOption().map(_.toLocalDate),
+        r.nextOffsetDateTimeOption(),
+        r.nextDouble()
+      )
+    }
+    sql"""
+      WITH completions AS (
+          SELECT DISTINCT audit_task.street_edge_id, audit_task.user_id, audit_task.low_quality,
+                 audit_task.incomplete, audit_task.stale, audit_task.outdated_imagery, user_stat.high_quality
+          FROM audit_task
+          INNER JOIN user_stat ON user_stat.user_id = audit_task.user_id
+          WHERE audit_task.completed = TRUE
+              AND user_stat.excluded = FALSE
+      ), priority_inputs AS (
+          SELECT street_edge_id,
+                 COUNT(*) FILTER (
+                     WHERE high_quality AND NOT (low_quality OR incomplete OR stale) AND NOT outdated_imagery
+                 ) AS fresh_good_count,
+                 COUNT(*) FILTER (
+                     WHERE high_quality AND NOT (low_quality OR incomplete OR stale) AND outdated_imagery
+                 ) AS outdated_good_count,
+                 COUNT(*) FILTER (
+                     WHERE NOT (high_quality AND NOT (low_quality OR incomplete OR stale))
+                 ) AS bad_count
+          FROM completions
+          GROUP BY street_edge_id
+      ), audit_activity AS (
+          -- Unfiltered by user quality on purpose: this is the audited/outdated bookkeeping the rest of the app
+          -- reports, not the priority formula's weighted view of the same audits.
+          SELECT street_edge_id,
+                 COUNT(*) AS audit_count,
+                 COUNT(*) FILTER (WHERE NOT outdated_imagery) AS up_to_date_audit_count,
+                 MAX((task_end AT TIME ZONE 'UTC')::date) AS last_audit_date
+          FROM audit_task
+          WHERE completed = TRUE
+          GROUP BY street_edge_id
+      )
+      SELECT street_edge.street_edge_id,
+             street_edge_region.region_id,
+             region.name,
+             COALESCE(street_edge_priority.priority, 1.0),
+             COALESCE(priority_inputs.fresh_good_count, 0),
+             COALESCE(priority_inputs.outdated_good_count, 0),
+             COALESCE(priority_inputs.bad_count, 0),
+             COALESCE(audit_activity.audit_count, 0) > 0
+                 AND COALESCE(audit_activity.up_to_date_audit_count, 0) = 0 AS outdated,
+             audit_activity.last_audit_date,
+             street_imagery.median_newest_capture,
+             street_imagery.updated_at,
+             ST_Length(street_edge.geom::geography)
+      FROM street_edge
+      INNER JOIN street_edge_region ON street_edge_region.street_edge_id = street_edge.street_edge_id
+      INNER JOIN region ON region.region_id = street_edge_region.region_id
+      LEFT JOIN street_edge_priority ON street_edge_priority.street_edge_id = street_edge.street_edge_id
+      LEFT JOIN priority_inputs ON priority_inputs.street_edge_id = street_edge.street_edge_id
+      LEFT JOIN audit_activity ON audit_activity.street_edge_id = street_edge.street_edge_id
+      LEFT JOIN street_imagery ON street_imagery.street_edge_id = street_edge.street_edge_id
+      WHERE street_edge.status = 'open'
+          AND street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
+      ORDER BY street_edge.street_edge_id;
+    """.as[StreetPriorityForAdmin]
   }
 
   /**

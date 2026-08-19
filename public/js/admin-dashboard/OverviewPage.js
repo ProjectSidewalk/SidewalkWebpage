@@ -260,7 +260,7 @@ class OverviewPage {
     if (s.reaudit_streets > 0) {
       const reaudit = this.#num(s.reaudit_streets);
       const reauditMi = s.reaudit_distance_mi > 0 ? ` (${this.#num(Math.round(s.reaudit_distance_mi))} mi)` : '';
-      items.push({ sev: 'info', action: 'Coverage', href: '/admin/coverage',
+      items.push({ sev: 'info', action: 'Imagery', href: '/admin/imagery',
         html: `<strong>${reaudit}</strong> audited streets${reauditMi} have newer imagery and need re-auditing` });
     }
     // Stalled activity — only one of these, the more fundamental gap first.
