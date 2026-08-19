@@ -1,6 +1,7 @@
 .PHONY: dev docker-up docker-up-db docker-run docker-stop ssh qa-worktree qa-worktree-stop worktree-remove test-e2e \
         test-python test-python-app test-python-tools \
-        import-users import-dump create-new-schema fill-new-schema onboard-city hide-streets-without-imagery \
+        import-users import-dump create-new-schema fill-new-schema onboard-city reexport-city-data \
+        hide-streets-without-imagery \
         import-street-imagery reveal-or-hide-neighborhoods \
         lint lint-fix lint-evolutions lint-locales scalafmt scalafmt-fix \
         eslint htmlhint stylelint eslint-fix stylelint-fix \
@@ -130,6 +131,11 @@ fill-new-schema:
 # Host-side (edits conf/ and pauses for you to start the app), so no docker exec wrapper.
 onboard-city:
 	@python3 tools/setup_new_city.py $(id)
+
+# Regenerate a city's staging SQL + report from its hand-edited QA GeoPackage (e.g. after renaming regions in QGIS).
+# Extra scripts/onboard_city.py flags via args=. e.g. `make reexport-city-data id=newport-ky`.
+reexport-city-data:
+	@docker exec -it $(web-container) sh -c "cd /home && python3.13 scripts/onboard_city.py --city-id $(id) --from-gpkg db/onboarding/$(id)/$(id)_qa.gpkg $(args)"
 
 hide-streets-without-imagery:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/hide-streets-without-imagery.sh"

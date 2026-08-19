@@ -825,9 +825,17 @@ def test_main_uses_regions_file_and_warns_on_low_coverage(tmp_path, monkeypatch,
     gpd.GeoDataFrame({'name': ['west']}, geometry=[_W], crs='EPSG:4326').to_file(regions_path, driver='GeoJSON')
     with caplog.at_level(logging.WARNING):
         oc.main(['--city-id', 'testville', '--boundary-file', str(boundary_path), '--regions-file', str(regions_path),
-                 '--out-dir', str(tmp_path / 'out')])
+                 '--regions-source', 'https://data.testville.gov/hoods', '--out-dir', str(tmp_path / 'out')])
     assert any('cover only' in record.message for record in caplog.records)
-    assert 'hoods.geojson' in (tmp_path / 'out' / 'report.md').read_text()
+    assert 'https://data.testville.gov/hoods' in (tmp_path / 'out' / 'report.md').read_text()
+    assert 'https://data.testville.gov/hoods' in (tmp_path / 'out' / 'qgis_tables.sql').read_text()
+
+
+def test_parse_args_pairs_regions_file_with_regions_source():
+    with pytest.raises(SystemExit):
+        oc.parse_args(['--city-id', 'x', '--place', 'a', '--regions-file', 'hoods.geojson'])
+    with pytest.raises(SystemExit):
+        oc.parse_args(['--city-id', 'x', '--place', 'a', '--regions-source', 'someone@example.com'])
 
 
 def test_main_applies_region_merges_before_assignment(tmp_path, monkeypatch):

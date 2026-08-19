@@ -20,7 +20,8 @@ Workflow:
 
      Streets always come from OSM (fetched with osmnx). Region boundaries come from the first source that works:
        * ``--regions-file <path>`` — bring your own neighborhood dataset (any OGR-readable format, any CRS; must
-         carry a ``name`` column). Best quality when a municipal dataset exists.
+         carry a ``name`` column). Best quality when a municipal dataset exists. ``--regions-source`` records where
+         it came from (a source URL, or the supplying collaborator's email) in ``region.data_source``.
        * OSM neighbourhood polygons (``place=neighbourhood``/``quarter``, or ``admin_level=10`` boundaries).
        * US Census tracts from the Census Bureau's TIGERweb ArcGIS REST API — the fallback we've used for cities
          without a neighborhood dataset.
@@ -33,16 +34,11 @@ Workflow:
          re-split and re-heal against the final boundaries and region ids come out dense.
        * **Hand edits**: edit the ``qgis_road``/``qgis_region`` layers directly in QGIS (delete streets, reassign a
          street's ``region_id``, tweak/rename regions), then regenerate the SQL from the edited file with
-         ``--from-gpkg <path>`` — it validates the layers (unique ids, region references, geometry types) and
-         rewrites ``qgis_tables.sql`` so the load matches exactly what was QA'd. Never load a stale SQL file over
-         hand edits.
-  3. Create the schema and load the staging tables (the SQL file is under ``db/``, which is bind-mounted into the db
-     container at ``/opt``; the report prints these commands with the names filled in):
-
-         make create-new-schema name=sidewalk_newport_ky
-         docker exec -i projectsidewalk-db psql -v ON_ERROR_STOP=1 -U sidewalk_newport_ky -d sidewalk \\
-             -f /opt/onboarding/newport-ky/qgis_tables.sql
-         make fill-new-schema
+         ``make reexport-city-data id=<city-id>`` (``--from-gpkg``) — it validates the layers (unique ids, region
+         references, geometry types) and rewrites ``qgis_tables.sql`` so the load matches exactly what was QA'd.
+         Never load a stale SQL file over hand edits.
+  3. Run ``make onboard-city id=<city-id>`` (tools/setup_new_city.py), which chains the rest of the setup — configs,
+     GA properties, schema creation, evolutions, the staging load + fill, and the imagery scan.
 
 The staging tables match what ``db/scripts/fill-new-schema.sh`` consumes: ``qgis_road`` (``road_id`` int PK that
 becomes ``street_edge_id``, ``geom`` LineString 4326 pre-split at intersections, ``highway`` way-type column,
@@ -1209,7 +1205,10 @@ def parse_args(argv=None):
                                                 're-split and re-heal against the merged boundaries and region ids '
                                                 'come out dense.')
     parser.add_argument('--regions-file', help='Neighborhood boundary dataset to use instead of OSM/census sources '
-                                               '(must carry a "name" column).')
+                                               '(must carry a "name" column). Requires --regions-source.')
+    parser.add_argument('--regions-source', help='Provenance recorded in region.data_source for a --regions-file: '
+                                                 'where the file came from — a source URL, or the supplying '
+                                                 'collaborator\'s email.')
     parser.add_argument('--include-alleys', action='store_true', help='Also include service=alley ways.')
     parser.add_argument('--fetch-buffer-m', type=float, default=50,
                         help='Fetch streets from the boundary buffered by this many meters, so boundary-hugging '
@@ -1237,6 +1236,9 @@ def parse_args(argv=None):
     if args.from_gpkg and args.merge_regions:
         parser.error('--merge-regions needs a fetch run (--place/--boundary-file): streets must be re-assigned and '
                      're-healed against the merged boundaries, which a re-export cannot do.')
+    if bool(args.regions_file) != bool(args.regions_source):
+        parser.error('--regions-file and --regions-source go together: a supplied file needs its provenance '
+                     '(a source URL, or the supplying collaborator\'s email) recorded in region.data_source.')
     return args
 
 
@@ -1313,7 +1315,7 @@ def main(argv=None):
     # trimmed — so a sparse OSM neighborhood set falls through to census tracts.
     if args.regions_file:
         raw_regions = read_regions_file(args.regions_file)
-        region_source = Path(args.regions_file).name
+        region_source = args.regions_source
     else:
         raw_regions = fetch_osm_neighborhoods(boundary_poly)
         region_source = 'OpenStreetMap'

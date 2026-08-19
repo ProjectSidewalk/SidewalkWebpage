@@ -143,8 +143,10 @@ config steps can consume it directly; the suggested schema name / `DATABASE_USER
 `sidewalk_newport`).
 
 Streets come from OSM (osmnx, the wiki's highway filter, `--include-alleys` for `service=alley`). Regions come from
-the first source that works: `--regions-file` (bring your own; must carry a `name` column), OSM neighborhood polygons (auto-rejected under 75%
-city coverage), US census tracts (TIGERweb), or the city boundary as a single region. Streets are split at region
+the first source that works: `--regions-file` (bring your own; must carry a `name` column, and `--regions-source`
+records its provenance — a source URL or the supplying collaborator's email — in `region.data_source`), OSM
+neighborhood polygons (auto-rejected under 75% city coverage), US census tracts (TIGERweb), or the city boundary as
+a single region. Streets are split at region
 boundaries, then healed so boundary-riding streets aren't shredded or truncated: fragments under `--heal-segment-m`
 are reabsorbed, out-of-coverage gaps/ends riding within `--boundary-merge-tol-m` of the covered area are restored
 (streets may poke slightly outside the city), and boundary-running splits are merged (`rider_merges` QA layer).
@@ -155,7 +157,8 @@ to eyeball in QGIS, the `qgis_tables.sql` load file, and a Markdown report with 
 `--merge-regions "Census Tract 513:Census Tract 523.01"` (region *names*) to fold flagged regions into neighbors;
 structural region changes always go through a full rerun so streets re-split and re-heal against the merged
 boundaries and region ids stay dense. For surgical fixes, hand-edit the GeoPackage layers in QGIS and regenerate the
-SQL with `--from-gpkg <path>` (validates the edited layers first).
+SQL with `make reexport-city-data id=<city-id>` (`--from-gpkg`; validates the edited layers first, and keeps the
+regions' existing `data_source`).
 
 Once the GeoPackage passes QA, `make onboard-city id=<city-id>` (host-side, `tools/setup_new_city.py`) chains the
 rest of the setup: config registration, schema creation, evolutions, the staging load, the fill, and the
