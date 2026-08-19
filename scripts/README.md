@@ -153,7 +153,10 @@ to eyeball in QGIS, the `qgis_tables.sql` load file, and a Markdown report with 
 `--merge-regions "Census Tract 513:Census Tract 523.01"` (region *names*) to fold flagged regions into neighbors;
 structural region changes always go through a full rerun so streets re-split and re-heal against the merged
 boundaries and region ids stay dense. For surgical fixes, hand-edit the GeoPackage layers in QGIS and regenerate the
-SQL with `--from-gpkg <path>` (validates the edited layers first). Schema creation and loading steps:
+SQL with `--from-gpkg <path>` (validates the edited layers first).
+
+Once the GeoPackage passes QA, `make onboard-city id=<city-id>` (host-side, `tools/setup_new_city.py`) chains the
+rest of the setup: config registration, schema creation, evolutions, the staging load, and the fill — see
 [`db/scripts/README.md`](../db/scripts/README.md) → "Standing up a brand-new city".
 
 ## Testing

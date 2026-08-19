@@ -1,0 +1,304 @@
+"""
+Guided end-to-end setup of a new city from its onboarding artifacts (issue #4291).
+
+Run after scripts/onboard_city.py has produced db/onboarding/<city-id>/ and the GeoPackage has been QA'd:
+
+    make onboard-city id=newport-ky        (host-side; wraps `python3 tools/setup_new_city.py newport-ky`)
+
+It chains every remaining setup step, pausing only where a human is required:
+
+  1. Registers the city in conf/cityparams.conf (all the per-city maps, with derived defaults and placeholder GA
+     ids) and conf/messages (city name; state name if it's a US state we haven't seen before).
+  2. Creates the empty city schema from the template (db/scripts/create-new-schema.sh).
+  3. Boots the app one-shot inside the web container with DATABASE_USER/SIDEWALK_CITY_ID overridden via
+     `docker exec -e` (a running container's env is fixed at creation, so editing docker-compose.override.yml can't
+     retarget it), and watches play_evolutions until the schema is current — the template dump is far behind, and
+     fill-new-schema.sh needs current columns. The boot is stopped once evolutions land.
+  4. Loads db/onboarding/<city-id>/qgis_tables.sql into the schema.
+  5. Runs fill-new-schema.sh non-interactively, answering its prompts from the onboarding report (you pick the
+     tutorial region).
+
+Host-side and stdlib-only (it edits repo files and drives docker), unlike scripts/, which runs in the web container.
+Config edits are idempotent — a city already present in cityparams.conf is left alone — and `--dry-run` previews the
+file edits and stops before any docker/db step.
+"""
+
+import argparse
+import re
+import subprocess
+import sys
+import time
+import urllib.error
+import urllib.request
+from datetime import date
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+CITYPARAMS = REPO_ROOT / 'conf' / 'cityparams.conf'
+MESSAGES_DIR = REPO_ROOT / 'conf' / 'messages'
+DB_CONTAINER = 'projectsidewalk-db'
+WEB_CONTAINER = 'projectsidewalk-web'
+
+# The same sbt invocation `npm start` uses, minus `~` (one-shot, no watch). The tail pipe keeps stdin open — Play's
+# dev server stops on stdin EOF, which a detached `docker exec` would deliver immediately.
+BOOT_CMD = ("cd /home && tail -f /dev/null | sbt -Dconfig.file=/home/conf/application.local.conf "
+            "-Dsbt.coursier.home='.coursier' -Dsbt.global.base='.sbt' -Dsbt.boot.directory='.sbt/boot' "
+            "-Dsbt.repository.config='.sbt/repositories' -J-Xmx1536m run > /tmp/onboard-city-boot.log 2>&1")
+
+US_STATES = {
+    'al': 'alabama', 'ak': 'alaska', 'az': 'arizona', 'ar': 'arkansas', 'ca': 'california', 'co': 'colorado',
+    'ct': 'connecticut', 'de': 'delaware', 'fl': 'florida', 'ga': 'georgia', 'hi': 'hawaii', 'id': 'idaho',
+    'il': 'illinois', 'in': 'indiana', 'ia': 'iowa', 'ks': 'kansas', 'ky': 'kentucky', 'la': 'louisiana',
+    'me': 'maine', 'md': 'maryland', 'ma': 'massachusetts', 'mi': 'michigan', 'mn': 'minnesota',
+    'ms': 'mississippi', 'mo': 'missouri', 'mt': 'montana', 'ne': 'nebraska', 'nv': 'nevada',
+    'nh': 'new-hampshire', 'nj': 'new-jersey', 'nm': 'new-mexico', 'ny': 'new-york', 'nc': 'north-carolina',
+    'nd': 'north-dakota', 'oh': 'ohio', 'ok': 'oklahoma', 'or': 'oregon', 'pa': 'pennsylvania',
+    'ri': 'rhode-island', 'sc': 'south-carolina', 'sd': 'south-dakota', 'tn': 'tennessee', 'tx': 'texas',
+    'ut': 'utah', 'vt': 'vermont', 'va': 'virginia', 'wa': 'washington', 'wv': 'west-virginia',
+    'wi': 'wisconsin', 'wy': 'wyoming', 'dc': 'district-of-columbia',
+}
+
+
+def schema_name(city_id):
+    """Same derivation as scripts/onboard_city.py: full city id, hyphens as underscores."""
+    return 'sidewalk_' + city_id.replace('-', '_')
+
+
+def prompt(text, default=None):
+    """Prompts on the terminal; empty input takes the default (re-prompts when there is none)."""
+    suffix = f' [{default}]' if default is not None else ''
+    while True:
+        value = input(f'{text}{suffix}: ').strip()
+        if value:
+            return value
+        if default is not None:
+            return default
+
+
+def find_block(lines, name, start=0):
+    """
+    Locates a `<name> {`/`<name> = {`/`<name> = [` block at or after ``start``.
+
+    Returns:
+        A ``(open_idx, close_idx)`` line-index pair (the close line holds the matching brace/bracket).
+    """
+    open_re = re.compile(r'^(\s*)' + re.escape(name) + r'\s*=?\s*([\[{])\s*$')
+    for i in range(start, len(lines)):
+        match = open_re.match(lines[i])
+        if not match:
+            continue
+        opener = match.group(2)
+        closer = ']' if opener == '[' else '}'
+        depth = 1
+        for j in range(i + 1, len(lines)):
+            depth += lines[j].count('[' if opener == '[' else '{')
+            depth -= lines[j].count(closer)
+            if depth == 0:
+                return i, j
+        break
+    sys.exit(f'error: could not find block "{name}" in {CITYPARAMS} — has its structure changed?')
+
+
+def insert_entry(lines, path, entry):
+    """Inserts ``entry`` (unindented) as the last item of the (possibly nested) block at ``path``."""
+    start = 0
+    close = None
+    for name in path:
+        start, close = find_block(lines, name, start)
+        start += 1
+    indent = re.match(r'\s*', lines[close - 1]).group(0) if lines[close - 1].strip() else '    '
+    lines.insert(close, f'{indent}{entry}')
+
+
+def add_cityparams_entries(city_id, values, dry_run):
+    """Registers the city in every per-city map of cityparams.conf; no-op if the id is already present."""
+    text = CITYPARAMS.read_text()
+    if re.search(rf'^\s*("?){re.escape(city_id)}\1\s*(=|$)', text, re.MULTILINE):
+        print(f'  cityparams.conf already knows {city_id}; leaving it alone.')
+        return
+    lines = text.split('\n')
+    insert_entry(lines, ['city-ids'], f'"{city_id}"')
+    for path, value in values:
+        insert_entry(lines, path, f'{city_id} = {value}')
+    if dry_run:
+        print(f'  [dry-run] would add {1 + len(values)} entries to {CITYPARAMS}')
+        return
+    CITYPARAMS.write_text('\n'.join(lines))
+    print(f'  Registered {city_id} in {CITYPARAMS.name} ({1 + len(values)} entries).')
+
+
+def add_message_line(file_name, key, value, dry_run):
+    """Appends `key = value` right after the file's last key of the same family; no-op if the key exists."""
+    path = MESSAGES_DIR / file_name
+    lines = path.read_text().split('\n')
+    if any(line.startswith(f'{key} ') or line.startswith(f'{key}=') for line in lines):
+        return
+    family = key.rsplit('.', 1)[0] + '.'
+    last = max(i for i, line in enumerate(lines) if line.startswith(family))
+    lines.insert(last + 1, f'{key} = {value}')
+    if dry_run:
+        print(f'  [dry-run] would add "{key} = {value}" to {file_name}')
+        return
+    path.write_text('\n'.join(lines))
+    print(f'  Added "{key} = {value}" to {file_name}.')
+
+
+def docker_db(*args, **kwargs):
+    return subprocess.run(['docker', 'exec', '-i', DB_CONTAINER, *args], **kwargs)
+
+
+def db_query(sql):
+    """One value from psql as postgres (readonly_user may lack rights on a brand-new schema)."""
+    result = docker_db('psql', '-U', 'postgres', '-d', 'sidewalk', '-tAc', sql, capture_output=True, text=True)
+    return result.stdout.strip() if result.returncode == 0 else None
+
+
+def sbt_running():
+    return subprocess.run(['docker', 'exec', WEB_CONTAINER, 'pgrep', '-f', 'sbt-launch'],
+                          capture_output=True).returncode == 0
+
+
+def apply_evolutions(schema, city_id):
+    """Boots the app one-shot as the new city and blocks until play_evolutions reaches the repo's latest."""
+    latest = max(int(p.stem) for p in (REPO_ROOT / 'conf' / 'evolutions' / 'default').glob('*.sql')
+                 if p.stem.isdigit())
+    applied = db_query(f'SELECT max(id) FROM {schema}.play_evolutions')
+    if applied and int(applied) >= latest:
+        print(f'  Schema is already at evolution {applied}; no app boot needed.')
+        return
+    while sbt_running():
+        input('  An app/sbt is already running in the web container; it would fight the one-shot boot over :9000 '
+              'and the build locks. Ctrl-C your `npm start`, then press Enter... ')
+    subprocess.run(['docker', 'exec', '-d', '-e', f'DATABASE_USER={schema}', '-e', f'SIDEWALK_CITY_ID={city_id}',
+                    WEB_CONTAINER, 'bash', '-c', BOOT_CMD], check=True)
+    print(f'  Booting the app as {city_id} to apply evolutions (needs {latest}; the dev compile takes a while)...')
+    try:
+        deadline = time.monotonic() + 30 * 60
+        while time.monotonic() < deadline:
+            # Any HTTP response (even an error page) means the app booted; the evolutions check is the real gate.
+            try:
+                urllib.request.urlopen('http://localhost:9000/', timeout=240).close()
+            except urllib.error.HTTPError:
+                pass
+            except (urllib.error.URLError, OSError):
+                time.sleep(10)
+                continue
+            applied = db_query(f'SELECT max(id) FROM {schema}.play_evolutions')
+            if applied and int(applied) >= latest:
+                print(f'  Evolutions applied (at {applied}).')
+                return
+            print(f'  ...at {applied or "?"} of {latest}')
+            time.sleep(10)
+        sys.exit(f'error: evolutions never reached {latest}. Check the boot log: '
+                 f'docker exec {WEB_CONTAINER} tail -50 /tmp/onboard-city-boot.log — then rerun.')
+    finally:
+        for pattern in ('sbt-launch', 'tail -f /dev/null'):
+            subprocess.run(['docker', 'exec', WEB_CONTAINER, 'pkill', '-f', pattern], capture_output=True)
+        print('  One-shot app stopped; :9000 is free again.')
+
+
+def parse_report(city_id):
+    """Pulls the region source and region table out of the onboarding run's report.md."""
+    report = (REPO_ROOT / 'db' / 'onboarding' / city_id / 'report.md').read_text()
+    source = re.search(r'^- Region source: (.+)$', report, re.MULTILINE).group(1)
+    regions = re.findall(r'^\| (\d+) \| (.+?) \|', report, re.MULTILINE)
+    return source, regions
+
+
+def main():
+    parser = argparse.ArgumentParser(description='Guided end-to-end new-city setup from onboarding artifacts.')
+    parser.add_argument('city_id', help='The cityparams city id, e.g. "newport-ky" (must match the '
+                                        'scripts/onboard_city.py --city-id used to generate the artifacts).')
+    parser.add_argument('--dry-run', action='store_true',
+                        help='Preview the config-file edits and stop before any docker/db step.')
+    args = parser.parse_args()
+    city_id = args.city_id
+    schema = schema_name(city_id)
+
+    sql_file = REPO_ROOT / 'db' / 'onboarding' / city_id / 'qgis_tables.sql'
+    if not sql_file.exists():
+        sys.exit(f'error: {sql_file} not found — run scripts/onboard_city.py --city-id {city_id} first.')
+    region_source, regions = parse_report(city_id)
+
+    tokens = city_id.split('-')
+    us_state = US_STATES.get(tokens[-1]) if len(tokens) > 1 else None
+    display_default = ' '.join(tokens[:-1] if us_state else tokens).title()
+    display_name = prompt('City display name', display_default)
+    country = prompt('Country id (e.g. usa, mexico, taiwan)', 'usa' if us_state else None)
+    state = prompt('State id', us_state) if country == 'usa' else None
+    pano_type = prompt('Pano viewer type (gsv, mapillary, infra3d)', 'gsv')
+    status = prompt('Visibility status (public, private)', 'public')
+    # The convention drops the state/country qualifier from server names (teaneck-nj -> sidewalk-teaneck).
+    url_base = '-'.join(tokens[:-1]) if us_state else city_id
+
+    print('\nStep 1/5 — register the city in conf/...')
+    add_cityparams_entries(city_id, [
+        (['db-schema'], f'"{schema}"'),
+        (['city-short-name'], 'null'),
+        (['state-id'], f'"{state}"' if state else 'null'),
+        (['country-id'], f'"{country}"'),
+        (['status'], f'"{status}"'),
+        (['launch-date'], f'"{date.today().isoformat()}"'),
+        (['skyline-img'], '"skyline1.png"'),
+        (['logo-img'], '"sidewalk-logo.png"'),
+        (['landing-page-url', 'prod'], f'"https://sidewalk-{url_base}.cs.washington.edu"'),
+        (['landing-page-url', 'test'], f'"https://sidewalk-{url_base}-test.cs.washington.edu"'),
+        (['google-analytics-4-id', 'prod'], '"TODO"'),
+        (['google-analytics-4-id', 'test'], '"TODO"'),
+        (['ai-tag-suggestions-enabled'], 'true'),
+        (['ai-validation-enabled'], 'true'),
+        (['ai-validation-min-accuracy'], '"0.92"'),
+        (['pano-viewer-type'], f'"{pano_type}"'),
+    ], args.dry_run)
+    add_message_line('messages', f'city.name.{city_id}', display_name, args.dry_run)
+    if state and state in US_STATES.values():
+        add_message_line('messages', f'state.name.{state}', state.replace('-', ' ').title(), args.dry_run)
+        abbrev = next(k for k, v in US_STATES.items() if v == state).upper()
+        add_message_line('messages.en', f'state.name.{state}', abbrev, args.dry_run)
+
+    if args.dry_run:
+        print('\n[dry-run] stopping before the docker/db steps.')
+        return
+
+    for container in (DB_CONTAINER, WEB_CONTAINER):
+        if subprocess.run(['docker', 'exec', container, 'true'], capture_output=True).returncode != 0:
+            sys.exit(f'error: the {container} container is not running (make docker-up / make dev).')
+
+    print(f'\nStep 2/5 — create the empty schema {schema}...')
+    if db_query(f"SELECT 1 FROM pg_namespace WHERE nspname = '{schema}'"):
+        if prompt(f'Schema {schema} already exists. Drop and recreate it? (y/n)', 'n') != 'y':
+            print('  Keeping the existing schema.')
+        else:
+            docker_db('/opt/scripts/create-new-schema.sh', schema, check=True)
+    else:
+        docker_db('/opt/scripts/create-new-schema.sh', schema, check=True)
+
+    print('\nStep 3/5 — apply evolutions via a one-shot app boot...')
+    apply_evolutions(schema, city_id)
+
+    print(f'\nStep 4/5 — load the staging tables from {sql_file.name}...')
+    docker_db('psql', '-v', 'ON_ERROR_STOP=1', '-U', schema, '-d', 'sidewalk',
+              '-f', f'/opt/onboarding/{city_id}/qgis_tables.sql', check=True)
+
+    print('\nStep 5/5 — fill the schema from the staging tables. Regions:')
+    for region_id, name in regions:
+        print(f'  {region_id}: {name}')
+    tutorial_region = prompt('Tutorial region id (a central region with imagery)', '1')
+    answers = '\n'.join([schema, 'highway', region_source, 'name', tutorial_region, 'y', 'y']) + '\n'
+    docker_db('/opt/scripts/fill-new-schema.sh', input=answers, text=True, check=True)
+
+    print(f'''
+Done — {display_name}'s schema is populated. To develop against it, set SIDEWALK_CITY_ID={city_id} and
+DATABASE_USER={schema} in docker-compose.override.yml and recreate the container (make docker-stop, then make dev) —
+a running container's environment can't be changed in place.
+
+Still manual:
+  - Imagery scan: export street_edge_endpoints.csv, run
+    `python3.13 scripts/check_streets_for_imagery.py --gsv`, then `make hide-streets-without-imagery`.
+  - Real Google Analytics ids in cityparams.conf before deploying (placeholders TODO are in place).
+  - Translated city/state names (e.g. messages.zh-TW) — English fallback works meanwhile.
+  - The City IDs table in docs/dev-environment.md.''')
+
+
+if __name__ == '__main__':
+    main()

@@ -59,17 +59,27 @@ make dev  ─▶  init.sh (auto)  ─▶  make import-users  ─▶  make import
 
 **Standing up a brand-new city (no dump yet):**
 
+With QA'd artifacts from the `scripts/onboard_city.py` pipeline (see [`scripts/README.md`](../../scripts/README.md)),
+one guided command chains everything — cityparams/messages registration, schema creation, a one-shot app boot (with
+the city's env injected) that applies evolutions, the staging-table load, and the fill:
+
+```
+make onboard-city id=<city-id>       # host-side + interactive (tools/setup_new_city.py)
+```
+
+The equivalent manual steps (also the path for a hand-made QGIS/OSM export):
+
 ```
 make create-new-schema name=sidewalk_newcity   # empty schema from the template
-# …load qgis_road + qgis_region into that schema: either a manual QGIS/OSM export, or the automated
-# scripts/onboard_city.py pipeline (see scripts/README.md), which generates a psql-loadable SQL file…
+# …register the city in conf/cityparams.conf + conf/messages, then load qgis_road + qgis_region into the schema
+# (onboard_city.py generates a psql-loadable SQL file)…
 make fill-new-schema                            # streets, regions, tutorial, city center
 make hide-streets-without-imagery               # optional: after check_streets_for_imagery.py
 ```
 
 Note: `fill-new-schema.sh` assumes the schema is at the current evolution level, but `create-new-schema.sh` restores
 the template dump as-is — so start the app against the new city once (to apply pending evolutions) before running
-`make fill-new-schema`.
+`make fill-new-schema`. (`make onboard-city` handles this ordering for you.)
 
 **Ongoing maintenance:**
 

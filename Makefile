@@ -1,6 +1,6 @@
 .PHONY: dev docker-up docker-up-db docker-run docker-stop ssh qa-worktree qa-worktree-stop test-e2e \
         test-python test-python-app test-python-tools \
-        import-users import-dump create-new-schema fill-new-schema hide-streets-without-imagery \
+        import-users import-dump create-new-schema fill-new-schema onboard-city hide-streets-without-imagery \
         import-street-imagery reveal-or-hide-neighborhoods \
         lint lint-fix lint-evolutions lint-locales scalafmt scalafmt-fix \
         eslint htmlhint stylelint eslint-fix stylelint-fix \
@@ -116,6 +116,10 @@ create-new-schema:
 
 fill-new-schema:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/fill-new-schema.sh"
+
+# Host-side (edits conf/ and pauses for you to start the app), so no docker exec wrapper.
+onboard-city:
+	@python3 tools/setup_new_city.py $(id)
 
 hide-streets-without-imagery:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/hide-streets-without-imagery.sh"

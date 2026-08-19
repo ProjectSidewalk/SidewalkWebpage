@@ -39,6 +39,10 @@ psql -v ON_ERROR_STOP=1 -U postgres -d sidewalk <<-EOSQL
     CREATE USER $NAME;
     GRANT sidewalk TO $NAME;
     ALTER SCHEMA $NAME OWNER TO sidewalk;
+    -- pg_restore keeps the dump's table owners, so some template tables (e.g. auth_tokens) come out owned by the
+    -- sidewalk_init role and would ride along into the renamed schema — blocking the DROP USER sidewalk_init on the
+    -- next run of this script.
+    REASSIGN OWNED BY sidewalk_init TO sidewalk;
     ALTER ROLE $NAME SET search_path = $NAME,sidewalk_login,public;
 
     -- import-dump.sh registered default privileges under the sidewalk_init role; rebind them to the new role
