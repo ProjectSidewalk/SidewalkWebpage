@@ -138,15 +138,46 @@ def create_property(token, account, display_name, default_uri):
     return stream['webStreamData']['measurementId']
 
 
-def todo_line(lines, stage, city_id):
-    """Index of the city's `= "TODO"` GA-id line for the stage; exits when it's absent (already filled in)."""
+def find_todo_line(lines, stage, city_id):
+    """Index of the city's `= "TODO"` GA-id line for the stage, or None when it's already filled in."""
     start, close = setup_new_city.find_block(lines, 'google-analytics-4-id')
     start, close = setup_new_city.find_block(lines, stage, start)
     for i in range(start, close):
         if re.match(rf'\s*{re.escape(city_id)}\s*=\s*"TODO"\s*$', lines[i]):
             return i
-    sys.exit(f'error: no `{city_id} = "TODO"` line in google-analytics-4-id.{stage} — already filled in? '
-             'Refusing to create duplicate GA properties.')
+    return None
+
+
+def ids_are_todo(city_id):
+    lines = CITYPARAMS.read_text().split('\n')
+    return all(find_todo_line(lines, stage, city_id) is not None for stage in ('prod', 'test'))
+
+
+def create_for_city(city_id, dry_run=False):
+    """Creates the prod + test properties and fills the city's cityparams ids."""
+    lines = CITYPARAMS.read_text().split('\n')
+    display_name = property_display_name(lines, city_id)
+    stages = [('prod', PROD_ACCOUNT, cityparams_value(lines, ['landing-page-url', 'prod'], city_id)),
+              ('test', TEST_ACCOUNT, cityparams_value(lines, ['landing-page-url', 'test'], city_id))]
+    for stage, account, url in stages:
+        # Fail loudly on an already-filled id BEFORE anything is created.
+        if not dry_run and find_todo_line(lines, stage, city_id) is None:
+            sys.exit(f'error: no `{city_id} = "TODO"` line in google-analytics-4-id.{stage} — already filled in? '
+                     'Refusing to create duplicate GA properties.')
+        print(f'  {stage}: property "{display_name}" under accounts/{account}, web stream -> {url}')
+    if dry_run:
+        print('[dry-run] stopping before auth and API calls.')
+        return
+
+    token = access_token()
+    for stage, account, url in stages:
+        measurement_id = create_property(token, account, display_name, url)
+        i = find_todo_line(lines, stage, city_id)
+        lines[i] = lines[i].replace('"TODO"', f'"{measurement_id}"')
+        print(f'  {stage}: created — measurement id {measurement_id}')
+    CITYPARAMS.write_text('\n'.join(lines))
+    print(f'  Wrote both measurement ids into {CITYPARAMS}. Business size/objectives have no API equivalent; '
+          'set them in the GA UI if you care about the default report collections.')
 
 
 def main():
@@ -155,29 +186,7 @@ def main():
     parser.add_argument('--dry-run', action='store_true',
                         help='Print the derived names/payloads and stop before auth, API calls, or file writes.')
     args = parser.parse_args()
-    city_id = args.city_id
-
-    lines = CITYPARAMS.read_text().split('\n')
-    display_name = property_display_name(lines, city_id)
-    stages = [('prod', PROD_ACCOUNT, cityparams_value(lines, ['landing-page-url', 'prod'], city_id)),
-              ('test', TEST_ACCOUNT, cityparams_value(lines, ['landing-page-url', 'test'], city_id))]
-    for stage, account, url in stages:
-        if not args.dry_run:
-            todo_line(lines, stage, city_id)  # Fail loudly on an already-filled id BEFORE anything is created.
-        print(f'  {stage}: property "{display_name}" under accounts/{account}, web stream -> {url}')
-    if args.dry_run:
-        print('[dry-run] stopping before auth and API calls.')
-        return
-
-    token = access_token()
-    for stage, account, url in stages:
-        measurement_id = create_property(token, account, display_name, url)
-        i = todo_line(lines, stage, city_id)
-        lines[i] = lines[i].replace('"TODO"', f'"{measurement_id}"')
-        print(f'  {stage}: created — measurement id {measurement_id}')
-    CITYPARAMS.write_text('\n'.join(lines))
-    print(f'\nWrote both measurement ids into {CITYPARAMS}. Business size/objectives have no API equivalent; '
-          'set them in the GA UI if you care about the default report collections.')
+    create_for_city(args.city_id, args.dry_run)
 
 
 if __name__ == '__main__':

@@ -9,15 +9,17 @@ It chains every remaining setup step, pausing only where a human is required:
 
   1. Registers the city in conf/cityparams.conf (all the per-city maps, with derived defaults and placeholder GA
      ids) and conf/messages (city name; state name if it's a US state we haven't seen before).
-  2. Creates the empty city schema from the template (db/scripts/create-new-schema.sh).
-  3. Boots the app one-shot inside the web container with DATABASE_USER/SIDEWALK_CITY_ID overridden via
+  2. Creates the city's GA4 properties and fills the real measurement ids (tools/create_ga_properties.py) — when
+     GA_SERVICE_ACCOUNT_JSON is set and the ids are still placeholders; skipped with a pointer otherwise.
+  3. Creates the empty city schema from the template (db/scripts/create-new-schema.sh).
+  4. Boots the app one-shot inside the web container with DATABASE_USER/SIDEWALK_CITY_ID overridden via
      `docker exec -e` (a running container's env is fixed at creation, so editing docker-compose.override.yml can't
      retarget it), and watches play_evolutions until the schema is current — the template dump is far behind, and
      fill-new-schema.sh needs current columns. The boot is stopped once evolutions land.
-  4. Loads db/onboarding/<city-id>/qgis_tables.sql into the schema.
-  5. Runs fill-new-schema.sh non-interactively, answering its prompts from the onboarding report (you pick the
+  5. Loads db/onboarding/<city-id>/qgis_tables.sql into the schema.
+  6. Runs fill-new-schema.sh non-interactively, answering its prompts from the onboarding report (you pick the
      tutorial region).
-  6. Runs the scripts/check_streets_for_imagery.py scan in the web container (which holds the API keys and the
+  7. Runs the scripts/check_streets_for_imagery.py scan in the web container (which holds the API keys and the
      python3.13 deps) against a freshly exported endpoints CSV, hides the no-imagery streets, and imports the
      imagery-age summary into street_imagery.
 
@@ -30,6 +32,7 @@ file edits and stops before any docker/db step.
 """
 
 import argparse
+import os
 import re
 import subprocess
 import sys
@@ -282,7 +285,7 @@ def main():
     first_label, _, rest = host.partition('.')
     test_url = f'{scheme}://{first_label}-test' + (f'.{rest}' if rest else '')
 
-    print('\nStep 1/6 — register the city in conf/...')
+    print('\nStep 1/7 — register the city in conf/...')
     add_cityparams_entries(city_id, [
         (['db-schema'], f'"{schema}"'),
         (['city-short-name'], 'null'),
@@ -311,11 +314,20 @@ def main():
         print('\n[dry-run] stopping before the docker/db steps.')
         return
 
+    print('\nStep 2/7 — create the Google Analytics properties...')
+    import create_ga_properties
+    if not os.environ.get('GA_SERVICE_ACCOUNT_JSON'):
+        print('  GA_SERVICE_ACCOUNT_JSON is not set; skipping — run tools/create_ga_properties.py later.')
+    elif not create_ga_properties.ids_are_todo(city_id):
+        print('  GA measurement ids are already filled in; skipping.')
+    else:
+        create_ga_properties.create_for_city(city_id)
+
     for container in (DB_CONTAINER, WEB_CONTAINER):
         if subprocess.run(['docker', 'exec', container, 'true'], capture_output=True).returncode != 0:
             sys.exit(f'error: the {container} container is not running (make docker-up / make dev).')
 
-    print(f'\nStep 2/6 — create the empty schema {schema}...')
+    print(f'\nStep 3/7 — create the empty schema {schema}...')
     if db_query(f"SELECT 1 FROM pg_namespace WHERE nspname = '{schema}'"):
         if prompt(f'Schema {schema} already exists. Drop and recreate it? (y/n)', 'n') != 'y':
             print('  Keeping the existing schema.')
@@ -324,27 +336,27 @@ def main():
     else:
         docker_db('/opt/scripts/create-new-schema.sh', schema, check=True)
 
-    print('\nStep 3/6 — apply evolutions via a one-shot app boot...')
+    print('\nStep 4/7 — apply evolutions via a one-shot app boot...')
     apply_evolutions(schema, city_id)
 
-    # A filled schema means steps 4-5 already ran (the template alone holds just the tutorial street); rerunning the
+    # A filled schema means steps 5-6 already ran (the template alone holds just the tutorial street); rerunning the
     # fill would collide on street_edge ids.
     streets = db_query(f'SELECT count(*) FROM {schema}.street_edge')
     if streets and int(streets) > 1:
-        print(f'\nSteps 4-5/6 — skipped: {schema} already holds {streets} streets.')
+        print(f'\nSteps 5-6/7 — skipped: {schema} already holds {streets} streets.')
     else:
-        print(f'\nStep 4/6 — load the staging tables from {sql_file.name}...')
+        print(f'\nStep 5/7 — load the staging tables from {sql_file.name}...')
         docker_db('psql', '-v', 'ON_ERROR_STOP=1', '-U', schema, '-d', 'sidewalk',
                   '-f', f'/opt/onboarding/{city_id}/qgis_tables.sql', check=True)
 
-        print('\nStep 5/6 — fill the schema from the staging tables. Regions:')
+        print('\nStep 6/7 — fill the schema from the staging tables. Regions:')
         for region_id, name in regions:
             print(f'  {region_id}: {name}')
         tutorial_region = prompt('Tutorial region id (a central region with imagery)', '1')
         answers = '\n'.join([schema, 'highway', region_source, 'name', tutorial_region, 'y', 'y']) + '\n'
         docker_db('/opt/scripts/fill-new-schema.sh', input=answers, text=True, check=True)
 
-    print('\nStep 6/6 — imagery scan (finds streets with no street-view imagery and hides them)...')
+    print('\nStep 7/7 — imagery scan (finds streets with no street-view imagery and hides them)...')
     run_imagery_scan(schema, city_id, pano_type)
 
     print(f'''
@@ -353,8 +365,8 @@ DATABASE_USER={schema} in docker-compose.override.yml and recreate the container
 a running container's environment can't be changed in place.
 
 Last step: run the `add-city-configs` skill in a Claude Code session (it finishes what a script can't — non-English
-name translations, real Google Analytics ids over the TODO placeholders, a review of the derived cityparams values,
-and the docs/dev-environment.md City IDs row).''')
+name translations, a review of the derived cityparams values, the docs/dev-environment.md City IDs row, and the
+Google Analytics ids if step 2 was skipped).''')
 
 
 if __name__ == '__main__':
