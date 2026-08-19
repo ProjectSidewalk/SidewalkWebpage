@@ -181,33 +181,35 @@ truth**; the snapshot below is a convenience copy (it may lag as new cities are 
 
 | City ID | Database User | | City ID | Database User |
 | --- | --- | --- | --- | --- |
-| seattle-wa | sidewalk_seattle | | madison-wi | sidewalk_madison |
-| columbus-oh | sidewalk_columbus | | tainan-nj | sidewalk_tainan |
-| cdmx | sidewalk_cdmx | | niagara-falls-nj | sidewalk_niagara_falls |
-| spgg | sidewalk_spgg | | chandigarh-india | sidewalk_chandigarh |
-| pittsburgh-pa | sidewalk_pittsburgh | | vancouver-wa | sidewalk_vancouver |
-| newberg-or | sidewalk_newberg | | rancagua-chile | sidewalk_rancagua |
-| washington-dc | sidewalk | | santiago-chile | sidewalk_santiago |
-| chicago-il | sidewalk_chicago | | tucson-az | sidewalk_tucson |
-| amsterdam | sidewalk_amsterdam | | paterson-nj | sidewalk_paterson |
-| la-piedad | sidewalk_la_piedad | | richmond-va | sidewalk_richmond |
-| oradell-nj | sidewalk_oradell | | fort-wayne-in | sidewalk_fort_wayne |
-| validation-study | sidewalk_validation | | virden-il | sidewalk_virden |
-| zurich | sidewalk_zurich | | gainesville-fl | sidewalk_gainesville |
-| taipei | sidewalk_taipei | | sao-paulo-brazil | sidewalk_sao_paulo |
-| new-taipei-tw | sidewalk_new_taipei | | winterthur-infra3d | sidewalk_winterthur_infra3d |
-| keelung-tw | sidewalk_keelung | | waltham-ma | sidewalk_waltham |
-| auckland | sidewalk_auckland | | knox-oh | sidewalk_knox |
-| cuenca | sidewalk_cuenca | | kaohsiung-tw | sidewalk_kaohsiung |
-| crowdstudy | sidewalk_crowdstudy | | taichung-tw | sidewalk_taichung |
-| burnaby | sidewalk_burnaby | | cliffside-park-nj | sidewalk_cliffside_park |
-| teaneck-nj | sidewalk_teaneck | | blackhawk-hills-il | sidewalk_blackhawk_hills |
-| walla-walla-wa | sidewalk_walla_walla | | columbia-sc | sidewalk_columbia |
-| st-louis-mo | sidewalk_st_louis | | west-chester-pa | sidewalk_west_chester |
-| la-ca | sidewalk_la | | danville-il | sidewalk_danville |
-| mendota-il | sidewalk_mendota | | detroit-mi | sidewalk_detroit |
-| hackensack-nj | sidewalk_hackensack | | clifton-nj | sidewalk_clifton |
-| maywood-nj | sidewalk_maywood | | newport-ky | sidewalk_newport_ky |
+| seattle-wa | sidewalk_seattle | | taichung-tw | sidewalk_taichung |
+| columbus-oh | sidewalk_columbus | | cliffside-park-nj | sidewalk_cliffside_park |
+| cdmx | sidewalk_cdmx | | blackhawk-hills-il | sidewalk_blackhawk_hills |
+| spgg | sidewalk_spgg | | columbia-sc | sidewalk_columbia |
+| pittsburgh-pa | sidewalk_pittsburgh | | west-chester-pa | sidewalk_west_chester |
+| newberg-or | sidewalk_newberg | | danville-il | sidewalk_danville |
+| washington-dc | sidewalk | | detroit-mi | sidewalk_detroit |
+| chicago-il | sidewalk_chicago | | hackensack-nj | sidewalk_hackensack |
+| amsterdam | sidewalk_amsterdam | | clifton-nj | sidewalk_clifton |
+| la-piedad | sidewalk_la_piedad | | maywood-nj | sidewalk_maywood |
+| la-piedad-old | sidewalk_la_piedad_old | | madison-wi | sidewalk_madison |
+| oradell-nj | sidewalk_oradell | | tainan-tw | sidewalk_tainan |
+| validation-study | sidewalk_validation | | niagara-falls-ny | sidewalk_niagara_falls |
+| zurich | sidewalk_zurich | | chandigarh-india | sidewalk_chandigarh |
+| zurich-infra3d | sidewalk_zurich_infra3d | | rancagua-chile | sidewalk_rancagua |
+| taipei | sidewalk_taipei | | vancouver-wa | sidewalk_vancouver |
+| new-taipei-tw | sidewalk_new_taipei | | santiago-chile | sidewalk_santiago |
+| keelung-tw | sidewalk_keelung | | tucson-az | sidewalk_tucson |
+| auckland | sidewalk_auckland | | paterson-nj | sidewalk_paterson |
+| cuenca | sidewalk_cuenca | | staging | sidewalk_zurich |
+| crowdstudy | sidewalk_crowdstudy | | richmond-va | sidewalk_richmond |
+| burnaby | sidewalk_burnaby | | fort-wayne-in | sidewalk_fort_wayne |
+| teaneck-nj | sidewalk_teaneck | | virden-il | sidewalk_virden |
+| walla-walla-wa | sidewalk_walla_walla | | gainesville-fl | sidewalk_gainesville |
+| st-louis-mo | sidewalk_st_louis | | sao-paulo-brazil | sidewalk_sao_paulo |
+| la-ca | sidewalk_la | | winterthur-infra3d | sidewalk_winterthur_infra3d |
+| mendota-il | sidewalk_mendota | | waltham-ma | sidewalk_waltham |
+| knox-oh | sidewalk_knox | | houston-tx | sidewalk_houston |
+| kaohsiung-tw | sidewalk_kaohsiung | | newport-ky | sidewalk_newport_ky |
 
 ---
 
