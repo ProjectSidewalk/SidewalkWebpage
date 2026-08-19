@@ -61,6 +61,7 @@ city.name.sao-paulo-brazil = São Paulo
 city.name.winterthur-infra3d = Winterthur
 city.name.waltham-ma = Waltham
 city.name.houston-tx = Houston
+city.name.newport-ky = Newport
 
 state.name.oregon = Oregon
 state.name.washington = Washington
@@ -80,6 +81,7 @@ state.name.indiana = Indiana
 state.name.florida = Florida
 state.name.massachusetts = Massachusetts
 state.name.texas = Texas
+state.name.kentucky = Kentucky
 
 country.name.usa = USA
 country.name.mexico = Mexico
