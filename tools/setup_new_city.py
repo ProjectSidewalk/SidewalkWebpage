@@ -262,14 +262,14 @@ def run_imagery_scan(schema, city_id, pano_type):
     no_imagery = REPO_ROOT / 'db' / 'onboarding' / city_id / 'streets_with_no_imagery.csv'
     n_hidden = max(0, len(no_imagery.read_text().strip().split('\n')) - 1) if no_imagery.exists() else 0
     print(f'  {n_hidden} street(s) without imagery; marking them no_imagery...')
-    docker_db('/opt/scripts/hide-streets-without-imagery.sh',
-              input=f'{schema}\nonboarding/{city_id}/streets_with_no_imagery.csv\n', text=True, check=True)
+    docker_db('/opt/scripts/hide-streets-without-imagery.sh', schema,
+              f'onboarding/{city_id}/streets_with_no_imagery.csv', check=True)
 
     # On a fresh city the automatic street_imagery feeder (pano_data, via labels) has nothing yet, so the scan's
     # summary is the only source of imagery-age data (#4348).
     print('  Importing the imagery-age summary into street_imagery...')
-    docker_db('/opt/scripts/import-street-imagery.sh',
-              input=f'{schema}\nonboarding/{city_id}/street_imagery_summary.csv\n', text=True, check=True)
+    docker_db('/opt/scripts/import-street-imagery.sh', schema,
+              f'onboarding/{city_id}/street_imagery_summary.csv', check=True)
 
 
 def parse_report(city_id):
@@ -381,8 +381,7 @@ def main():
         for region_id, name in regions:
             print(f'  {region_id}: {name}')
         tutorial_region = prompt('Tutorial region id (a central region with imagery)', '1')
-        answers = '\n'.join([schema, tutorial_region, 'y', 'y']) + '\n'
-        docker_db('/opt/scripts/fill-new-schema.sh', input=answers, text=True, check=True)
+        docker_db('/opt/scripts/fill-new-schema.sh', schema, tutorial_region, 'all', check=True)
 
     print('\nStep 7/7 — imagery scan (finds streets with no street-view imagery and hides them)...')
     run_imagery_scan(schema, city_id, pano_type)

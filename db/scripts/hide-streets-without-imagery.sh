@@ -16,11 +16,11 @@ set -euo pipefail
 
 source /opt/scripts/helpers.sh
 
-SCHEMA_NAME=$(prompt_with_default "Schema name")
-
-# Prompt user for path to CSV file and prepend the container working dir (/opt == ./db on the host). No default:
-# the scan writes its outputs into each city's own onboarding dir.
-CSV_FILENAME=$(prompt_with_default "Path to CSV file (relative to db dir, e.g. onboarding/newport-ky/streets_with_no_imagery.csv)")
+# Optional positional args ($1 schema, $2 CSV path relative to the db dir) so tools/setup_new_city.py can drive the
+# script without faking its prompts; anything omitted is prompted for. The CSV path is prepended with the container
+# working dir (/opt == ./db on the host). No prompt default: the scan writes into each city's own onboarding dir.
+SCHEMA_NAME=${1:-$(prompt_with_default "Schema name")}
+CSV_FILENAME=${2:-$(prompt_with_default "Path to CSV file (relative to db dir, e.g. onboarding/newport-ky/streets_with_no_imagery.csv)")}
 CSV_FILENAME=/opt/$CSV_FILENAME
 if [[ ! -f "$CSV_FILENAME" ]]; then
     echo "Error: CSV not found at $CSV_FILENAME. Generate it with check_streets_for_imagery.py first." >&2

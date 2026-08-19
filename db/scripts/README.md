@@ -15,6 +15,9 @@ maintenance operation.
   `/opt/<name>-dump`. That's why scripts reference `/opt/...` paths and source `/opt/scripts/helpers.sh`.
 - Most scripts are invoked through **`make` targets** that `docker exec` into the running db container. You generally
   run `make <target>` from the **host**, from the repo root.
+- The interactive scripts (`fill-new-schema.sh`, `hide-streets-without-imagery.sh`, `import-street-imagery.sh`) also
+  take their answers as **optional positional args** (each script's header lists them) — that's how
+  `tools/setup_new_city.py` drives them; run without args they prompt as usual.
 - `init.sh` is special: it is **not** a `make` target. Postgres' official image runs it **once, automatically**, on the
   first boot of a fresh data volume (it's mounted into `/docker-entrypoint-initdb.d/`).
 - The data is **seeded from binary `pg_restore` dumps**, not regenerated from Play evolutions. A full city is hundreds

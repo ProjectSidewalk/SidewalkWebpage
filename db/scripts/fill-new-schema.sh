@@ -7,8 +7,9 @@
 # staging data into the app's real tables (street_edge, region, street_edge_region, street_edge_priority, ...),
 # relocates the template's seeded DC tutorial street to sit after the imported streets, sets the city center/bounds in
 # `config`, and drops the staging tables when done.
-# It's interactive: it asks for the schema, tutorial region, and which regions open at launch, prints a summary, and
-# confirms before touching the DB. Everything runs in one transaction, so a failure rolls the whole thing back.
+# It asks for the schema, tutorial region, and which regions open at launch (or takes them as positional args for
+# scripted use), prints a summary, and confirms before touching the DB. Everything runs in one transaction, so a
+# failure rolls the whole thing back.
 #
 # HOW IT'S RUN:  make fill-new-schema   →   /opt/scripts/fill-new-schema.sh   (inside projectsidewalk-db).
 # PRECONDITION:  the target schema exists (create-new-schema.sh) and qgis_road + qgis_region are loaded into it, in
@@ -22,12 +23,12 @@ set -euo pipefail
 
 source /opt/scripts/helpers.sh
 
-# Prompt for parameters.
-SCHEMA_NAME=$(prompt_with_default "Schema name")
-TUTORIAL_REGION_ID=$(prompt_with_default "Tutorial region id" "1")
-
-# Ask whether all regions are being included.
-INCLUDE_ALL_REGIONS=$(prompt_with_default "Including all regions?" "y" "y|n")
+# Optional positional args ($1 schema, $2 tutorial region id, $3 regions to open: 'all', 'include:<ids>', or
+# 'exclude:<ids>', ids space-separated) so tools/setup_new_city.py can drive the script without faking its prompts.
+# Anything omitted is prompted for; the confirmation prompt is skipped only when all three are given.
+SCHEMA_NAME=${1:-$(prompt_with_default "Schema name")}
+TUTORIAL_REGION_ID=${2:-$(prompt_with_default "Tutorial region id" "1")}
+REGIONS_SPEC=${3:-}
 
 # Declared up-front (empty) so references stay valid under `set -u` even when "include all regions" skips the branch
 # that fills them.
@@ -35,26 +36,36 @@ MODE=""
 REGIONS_SHOWN=""
 REGIONS_HIDDEN=""
 
-# If excluding some, ask if we are listing included or listing excluded region ids.
-if [ "$INCLUDE_ALL_REGIONS" = "n" ]; then
-    MODE=$(prompt_with_default "Is it easier to list regions to include or exclude?" "include" "include|exclude")
-
-    # Prompt for REGIONS_HIDDEN/SHOWN list, space-separated.
-    if [ "$MODE" = "include" ]; then
-        REGIONS_SHOWN=$(prompt_with_default "Enter IDs to include (space-separated)" "")
-        # Check if tutorial region is in the include list (space-padded literal containment, not a regex).
-        if [[ " $REGIONS_SHOWN " != *" $TUTORIAL_REGION_ID "* ]]; then
-            echo "Error: Tutorial region $TUTORIAL_REGION_ID must be in the include list"
+if [[ -n "$REGIONS_SPEC" ]]; then
+    case $REGIONS_SPEC in
+        all)       INCLUDE_ALL_REGIONS="y" ;;
+        include:*) INCLUDE_ALL_REGIONS="n"; MODE="include"; REGIONS_SHOWN=${REGIONS_SPEC#include:} ;;
+        exclude:*) INCLUDE_ALL_REGIONS="n"; MODE="exclude"; REGIONS_HIDDEN=${REGIONS_SPEC#exclude:} ;;
+        *)
+            echo "Error: regions spec must be 'all', 'include:<space-separated ids>', or 'exclude:<ids>'" >&2
             exit 1
-        fi
-    else
-        REGIONS_HIDDEN=$(prompt_with_default "Enter IDs to exclude (space-separated)" "")
-        # Check if tutorial region is in the exclude list (space-padded literal containment, not a regex).
-        if [[ " $REGIONS_HIDDEN " == *" $TUTORIAL_REGION_ID "* ]]; then
-            echo "Error: Tutorial region $TUTORIAL_REGION_ID cannot be in the exclude list"
-            exit 1
+            ;;
+    esac
+else
+    INCLUDE_ALL_REGIONS=$(prompt_with_default "Including all regions?" "y" "y|n")
+    if [ "$INCLUDE_ALL_REGIONS" = "n" ]; then
+        MODE=$(prompt_with_default "Is it easier to list regions to include or exclude?" "include" "include|exclude")
+        if [ "$MODE" = "include" ]; then
+            REGIONS_SHOWN=$(prompt_with_default "Enter IDs to include (space-separated)" "")
+        else
+            REGIONS_HIDDEN=$(prompt_with_default "Enter IDs to exclude (space-separated)" "")
         fi
     fi
+fi
+
+# The tutorial region must end up open (space-padded literal containment, not a regex).
+if [ "$MODE" = "include" ] && [[ " $REGIONS_SHOWN " != *" $TUTORIAL_REGION_ID "* ]]; then
+    echo "Error: Tutorial region $TUTORIAL_REGION_ID must be in the include list"
+    exit 1
+fi
+if [ "$MODE" = "exclude" ] && [[ " $REGIONS_HIDDEN " == *" $TUTORIAL_REGION_ID "* ]]; then
+    echo "Error: Tutorial region $TUTORIAL_REGION_ID cannot be in the exclude list"
+    exit 1
 fi
 
 # Print configs to the user.
@@ -69,10 +80,13 @@ else
     echo "regions to exclude: $REGIONS_HIDDEN"
 fi
 
-# Check for confirmation before making changes to the db.
-PROCEED=$(prompt_with_default "Proceed?" "y" "y|n")
-if [ "$PROCEED" = "n" ]; then
-    exit 1
+# Check for confirmation before making changes to the db — skipped when everything was supplied as args (a scripted
+# caller already chose).
+if [[ $# -lt 3 ]]; then
+    PROCEED=$(prompt_with_default "Proceed?" "y" "y|n")
+    if [ "$PROCEED" = "n" ]; then
+        exit 1
+    fi
 fi
 
 # Create some pieces of the queries that change based on user input.
