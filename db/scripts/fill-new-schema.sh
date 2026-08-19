@@ -157,21 +157,25 @@ psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" <<-EOSQL
     -- Update config table's open_status column based on whether regions were removed.
     UPDATE config SET open_status = '$OPEN_STATUS_Q';
 
-    -- Set the city_center lat/lng in the config table using the open regions' geoms. The ±1° boundary box is a rough
-    -- placeholder (~111 km) meant to comfortably contain the city; tighten it per-city later if needed.
+    -- Set the city center and default map zoom in the config table from the open regions' geoms. The ±1° boundary
+    -- box is a rough placeholder (~111 km) meant to comfortably contain the city. The zoom fits the regions to the
+    -- viewport: log2(360 / extent in latitude-equivalent degrees) tracks the zooms from existing cities closely.
     UPDATE config
-    SET city_center_lat = city_lat,
-        city_center_lng = city_lng,
-        southwest_boundary_lat = city_lat - 1,
-        southwest_boundary_lng = city_lng - 1,
-        northeast_boundary_lat = city_lat + 1,
-        northeast_boundary_lng= city_lng + 1
+    SET city_center_lat = (lat_min + lat_max) / 2,
+        city_center_lng = (lng_min + lng_max) / 2,
+        southwest_boundary_lat = (lat_min + lat_max) / 2 - 1,
+        southwest_boundary_lng = (lng_min + lng_max) / 2 - 1,
+        northeast_boundary_lat = (lat_min + lat_max) / 2 + 1,
+        northeast_boundary_lng = (lng_min + lng_max) / 2 + 1,
+        default_map_zoom = least(14, greatest(9,
+            round(log(2, (360 / greatest(lat_max - lat_min,
+                (lng_max - lng_min) * cos(radians((lat_min + lat_max) / 2))))::numeric) * 4) / 4))
     FROM (
-        SELECT (ST_YMin(ST_Extent(geom)) + ST_YMax(ST_Extent(geom))) / 2 AS city_lat,
-               (ST_XMin(ST_Extent(geom)) + ST_XMax(ST_Extent(geom))) / 2 AS city_lng
+        SELECT ST_YMin(ST_Extent(geom)) AS lat_min, ST_YMax(ST_Extent(geom)) AS lat_max,
+               ST_XMin(ST_Extent(geom)) AS lng_min, ST_XMax(ST_Extent(geom)) AS lng_max
         FROM region
         WHERE deleted = FALSE
-    );
+    ) extent;
 
     -- Remove the staging tables — qgis_road first, since onboard_city.py's staging SQL gives it a foreign key to
     -- qgis_region.
