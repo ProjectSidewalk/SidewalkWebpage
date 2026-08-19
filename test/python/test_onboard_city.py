@@ -717,8 +717,7 @@ def test_write_report_summarizes_a_fetch_run(tmp_path):
     report = (tmp_path / 'report.md').read_text()
     assert '98.0%' in report
     assert 'dropped_segments' in report
-    assert 'make create-new-schema name=sidewalk_testville_wa' in report
-    assert '/opt/onboarding/testville-wa/qgis_tables.sql' in report
+    assert 'make onboard-city id=testville-wa' in report
     assert '| residential | 1 |' in report
 
 

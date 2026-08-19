@@ -1162,11 +1162,8 @@ def write_report(path, args, region_source, roads, regions, dropped, stats, cove
         '',
         '1. QA the GeoPackage in QGIS (regions: slivers/gaps/overlaps; streets: boundary clipping, dropped segments).',
         '2. Rerun with tweaked flags (or hand-edit + re-export) until it looks right.',
-        f'3. `make create-new-schema name={schema_name(args.city_id)}`',
-        f'4. `docker exec -i projectsidewalk-db psql -v ON_ERROR_STOP=1 -U {schema_name(args.city_id)} -d sidewalk '
-        f'-f /opt/onboarding/{args.city_id}/qgis_tables.sql`',
-        f'5. `make fill-new-schema` — answer `{schema_name(args.city_id)}`, way-type column `highway` (default), '
-        f'region data source `{region_source}`, region name column `name` (default), and pick the tutorial region.',
+        f'3. `make onboard-city id={args.city_id}` — chains the remaining setup: configs, GA properties, schema, '
+        'evolutions, the staging load + fill, and the imagery scan.',
         '',
     ]
     Path(path).write_text('\n'.join(lines))
