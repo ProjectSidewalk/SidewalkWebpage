@@ -1,7 +1,7 @@
 package controllers
 
-import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
+import models.utils.{BackgroundJobRunTable, JobRunStatus, JobRunTrigger, MyPostgresProfile}
 import org.apache.pekko.stream.Materializer
 import org.scalatest.BeforeAndAfterAll
 import org.scalatestplus.play.PlaySpec
@@ -9,7 +9,8 @@ import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json.{JsObject, JsValue}
+import play.api.cache.AsyncCacheApi
+import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.mvc.Cookie
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
@@ -17,6 +18,7 @@ import service.ImageryFreshnessReportService
 import slick.dbio.DBIO
 import util.AnonSession
 
+import java.time.OffsetDateTime
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
@@ -47,30 +49,43 @@ class ImageryAdminSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppP
 
   implicit lazy val mat: Materializer = app.materializer
 
-  private val dbConfig = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
+  private val dbConfig    = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
+  private val jobRunTable = app.injector.instanceOf[BackgroundJobRunTable]
+  private val cacheApi    = app.injector.instanceOf[AsyncCacheApi]
+  private val pollJob     = ImageryFreshnessReportService.PollJob
 
   private def run[T](action: DBIO[T]): T = Await.result(dbConfig.db.run(action), 60.seconds)
 
   private val XHR = "X-Requested-With" -> "XMLHttpRequest"
 
-  /** A signed-in caller with no admin rights, which is what an ordinary visitor's session is. */
-  private lazy val visitorCookies: Seq[Cookie] = freshAnonSession()
+  /** The accounts promoted for this suite, remembered so they can be demoted again. */
+  private var promotedUserIds: List[String] = Nil
 
-  /** The account promoted for this suite, remembered so it can be demoted again. */
-  private var promotedUserId: Option[String] = None
-
-  /** A fresh session promoted to Administrator, mirroring how a throwaway admin is made for QA. */
-  private lazy val adminCookies: Seq[Cookie] = {
-    // Identified by what the signup created rather than by reading a user id back out of a route: no route publishes
-    // one, and picking the newest row would be a guess in a database other sessions are also writing to.
+  /**
+   * A fresh session holding `role`, mirroring how a throwaway admin is made for QA.
+   *
+   * The account is identified by what the signup created rather than by reading a user id back out of a route: no
+   * route publishes one, and picking the newest row would be a guess in a database other sessions write to too.
+   */
+  private def sessionAs(role: String): Seq[Cookie] = {
     val before  = run(sql"SELECT user_id FROM sidewalk_login.sidewalk_user".as[String]).toSet
     val cookies = freshAnonSession()
     val minted  = run(sql"SELECT user_id FROM sidewalk_login.sidewalk_user".as[String]).toSet -- before
     minted.size mustBe 1
-    promotedUserId = minted.headOption
-    promote(minted.head, "Administrator")
+    promotedUserIds ::= minted.head
+    promote(minted.head, role)
     cookies
   }
+
+  /**
+   * A signed-in caller with no admin rights.
+   *
+   * Registered, not the Anonymous role a bare signup carries: an Anonymous caller is sent to sign in whatever role
+   * the action wants, so only a registered one reaches the branch that refuses by name.
+   */
+  private lazy val visitorCookies: Seq[Cookie] = sessionAs("Registered")
+
+  private lazy val adminCookies: Seq[Cookie] = sessionAs("Administrator")
 
   private def promote(userId: String, role: String): Unit = {
     val _ = run(
@@ -80,9 +95,45 @@ class ImageryAdminSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppP
     )
   }
 
+  /** The runs this suite seeded, deleted afterwards so no later suite reads them as the city's own history. */
+  private var seededRunIds: List[Int] = Nil
+
+  /** Seeds one finished run of the imagery-age poll, giving the row's optional fields something to carry. */
+  private def seedPollRun(
+      status: JobRunStatus.Value,
+      details: Option[JsValue],
+      trigger: JobRunTrigger.Value = JobRunTrigger.Scheduled
+  ): Unit = {
+    val startedAt = OffsetDateTime.now.minusHours(1)
+    val id        = run(jobRunTable.insertRunning(pollJob, trigger, startedAt))
+    seededRunIds ::= id
+    val _ = run(
+      jobRunTable.finish(
+        id,
+        status,
+        startedAt.plusMinutes(1),
+        details,
+        if (status == JobRunStatus.Failed) Some("boom") else None
+      )
+    )
+  }
+
+  /** The poll job's row, read past the report cache so a run seeded after an earlier read is visible. */
+  private def pollJobRow(): JsObject = {
+    Await.result(cacheApi.removeAll(), 60.seconds)
+    (contentAsJson(asAdmin("/adminapi/imageryFreshness")) \ "jobs")
+      .as[Seq[JsObject]]
+      .find(job => (job \ "job_name").as[String] == pollJob)
+      .value
+  }
+
   override def afterAll(): Unit = {
     // Leave no standing admin behind in a shared development database.
-    promotedUserId.foreach(id => promote(id, "Anonymous"))
+    promotedUserIds.foreach(id => promote(id, "Anonymous"))
+    // By id rather than by job name: the name would also take whatever runs the connected city really recorded.
+    if (seededRunIds.nonEmpty) {
+      val _ = run(jobRunTable.backgroundJobRuns.filter(_.backgroundJobRunId.inSet(seededRunIds)).delete)
+    }
     super.afterAll()
   }
 
@@ -151,9 +202,17 @@ class ImageryAdminSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppP
     }
 
     "give every job row the fields the panel renders" in {
-      val job = (contentAsJson(asAdmin("/adminapi/imageryFreshness")) \ "jobs" \ 0).as[JsObject]
-      Seq("job_name", "label", "scheduled_at", "last_status", "overdue", "hours_since_last_run", "last_details",
-        "last_manual_run_at").foreach(key => job.keys must contain(key))
+      // A null field is omitted rather than sent as null, so a job that has never run carries none of these. Seeding
+      // the runs is what makes this an assertion about the contract instead of about the connected city's history.
+      seedPollRun(JobRunStatus.Succeeded, Some(Json.obj("streets_polled" -> 12)))
+      seedPollRun(JobRunStatus.Succeeded, Some(Json.obj("streets_polled" -> 3)), JobRunTrigger.Manual)
+      Seq("job_name", "label", "scheduled_at", "last_status", "overdue", "last_started_at", "hours_since_last_run",
+        "last_details", "last_manual_run_at", "last_manual_status")
+        .foreach(key => pollJobRow().keys must contain(key))
+
+      // `last_error` rides the same row, but only on a failure -- the one state the panel prints in place of counts.
+      seedPollRun(JobRunStatus.Failed, None)
+      pollJobRow().keys must contain("last_error")
     }
 
     "answer the default window when none is asked for" in {

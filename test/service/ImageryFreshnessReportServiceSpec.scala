@@ -169,9 +169,11 @@ class ImageryFreshnessReportServiceSpec extends PlaySpec with BeforeAndAfterAll 
 
     "add a hand-run job to its night rather than letting it stand in for the scheduled run" in {
       cleanUp()
-      val day = OffsetDateTime.now.minusDays(1)
+      // Anchored mid-day, not to the current time: the runs have to land on one calendar day to be one night, and
+      // `now` alone puts the second one on the next date whenever the suite happens to run late in the afternoon.
+      val day = OffsetDateTime.now.minusDays(1).withHour(9).withMinute(0).withSecond(0).withNano(0)
       seed(pollJob, day, Map("streets_polled" -> 400))
-      seed(pollJob, day.plusHours(8), Map("streets_polled" -> 50), trigger = JobRunTrigger.Manual)
+      seed(pollJob, day.plusHours(6), Map("streets_polled" -> 50), trigger = JobRunTrigger.Manual)
       report().runDays.map(_.streetsPolled) mustBe Seq(450)
     }
 
