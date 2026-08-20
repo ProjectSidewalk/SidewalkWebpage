@@ -83,6 +83,10 @@ class StreetEdgeIssueTable @Inject() (protected val dbConfigProvider: DatabaseCo
     (streetEdgeIssues returning streetEdgeIssues.map(_.streetEdgeIssueId)) += issue
   }
 
+  // Spliced rather than bound because Postgres compares an enum column against an enum literal, not a bind parameter
+  // typed as text. Safe to splice: it is a compile-time constant off the enum, never anything a caller supplies.
+  private val NoImageryIssue: String = StreetEdgeIssueType.PanoNotAvailable.toString
+
   /**
    * Labeler reports of missing imagery, bucketed by ISO week (#4928).
    *
@@ -96,7 +100,7 @@ class StreetEdgeIssueTable @Inject() (protected val dbConfigProvider: DatabaseCo
   def reportsByWeek(since: OffsetDateTime): DBIO[Seq[NoImageryReportWeek]] = {
     sql"""SELECT date_trunc('week', timestamp)::date, COUNT(*), COUNT(DISTINCT street_edge_id)
           FROM street_edge_issue
-          WHERE issue = 'PanoNotAvailable'
+          WHERE issue = '#$NoImageryIssue'
               AND timestamp >= $since
           GROUP BY date_trunc('week', timestamp)::date
           ORDER BY date_trunc('week', timestamp)::date""".as[NoImageryReportWeek]
@@ -104,6 +108,10 @@ class StreetEdgeIssueTable @Inject() (protected val dbConfigProvider: DatabaseCo
 
   /**
    * The regions labelers are reporting missing imagery in most, worst first (#4928).
+   *
+   * Deleted regions are excluded, matching `RegionTable.regionsWithoutDeleted`: the page reads this list as "where
+   * the next batch of streets will be lost", and a retired neighborhood still carrying old reports would rank into it
+   * and push a genuinely at-risk live region out.
    *
    * @param since Only reports at or after this instant.
    * @param limit How many regions to return.
@@ -113,8 +121,9 @@ class StreetEdgeIssueTable @Inject() (protected val dbConfigProvider: DatabaseCo
           FROM street_edge_issue
           JOIN street_edge_region ON street_edge_issue.street_edge_id = street_edge_region.street_edge_id
           JOIN region ON street_edge_region.region_id = region.region_id
-          WHERE street_edge_issue.issue = 'PanoNotAvailable'
+          WHERE street_edge_issue.issue = '#$NoImageryIssue'
               AND street_edge_issue.timestamp >= $since
+              AND region.deleted = FALSE
           GROUP BY region.region_id, region.name
           ORDER BY COUNT(DISTINCT street_edge_issue.street_edge_id) DESC, region.name
           LIMIT $limit""".as[NoImageryReportRegion]
@@ -127,7 +136,8 @@ class StreetEdgeIssueTable @Inject() (protected val dbConfigProvider: DatabaseCo
    * a street only leaves the auditing pool once the checker confirms it — but a street several *different* people
    * independently found empty is the strongest evidence the app can offer without asking a provider, and it is
    * corroboration rather than volume that separates that from one labeler's bad session or a transient provider
-   * outage. Restricted to `open` streets, since a street already retired needs no further evidence.
+   * outage. Restricted to `open` streets in live regions, since a street already retired — or sitting in a
+   * neighborhood that was — needs no further evidence.
    *
    * Counts distinct `user_id`s, which is distinct *accounts* rather than distinct people: an anonymous sign-up gets
    * its own user row, so one person returning to a street across two sessions reaches the threshold. That is
@@ -152,9 +162,10 @@ class StreetEdgeIssueTable @Inject() (protected val dbConfigProvider: DatabaseCo
           JOIN street_edge ON street_edge_issue.street_edge_id = street_edge.street_edge_id
           JOIN street_edge_region ON street_edge_issue.street_edge_id = street_edge_region.street_edge_id
           JOIN region ON street_edge_region.region_id = region.region_id
-          WHERE street_edge_issue.issue = 'PanoNotAvailable'
+          WHERE street_edge_issue.issue = '#$NoImageryIssue'
               AND street_edge_issue.timestamp >= $since
               AND street_edge.status = 'open'
+              AND region.deleted = FALSE
           GROUP BY street_edge_issue.street_edge_id, region.region_id, region.name
           HAVING COUNT(DISTINCT street_edge_issue.user_id) >= $minReporters
           ORDER BY COUNT(DISTINCT street_edge_issue.user_id) DESC, MAX(street_edge_issue.timestamp) DESC

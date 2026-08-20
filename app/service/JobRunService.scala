@@ -60,11 +60,28 @@ class JobRunServiceImpl @Inject() (
       // would come from.
       Future.delegate(work).transformWith {
         case Success(result) =>
-          val detailsJson = Try(details(result)).toOption.filter(_.fields.nonEmpty)
-          closeRun(jobName, runId, JobRunStatus.Succeeded, detailsJson, None).map(_ => result)
+          closeRun(jobName, runId, JobRunStatus.Succeeded, buildDetails(jobName, result, details), None)
+            .map(_ => result)
         case Failure(e) =>
           closeRun(jobName, runId, JobRunStatus.Failed, None, Some(describe(e))).flatMap(_ => Future.failed(e))
       }
+    }
+  }
+
+  /**
+   * Runs the caller's details builder, keeping a broken one from costing the job its run record.
+   *
+   * A throw is logged rather than swallowed silently: an empty `details` is also what a job with nothing to report
+   * writes, so without the log line "the builder is broken" and "the job had nothing to say" are the same row.
+   *
+   * @return The details to store, or None when the builder threw or produced nothing.
+   */
+  private def buildDetails[T](jobName: String, result: T, details: T => JsObject): Option[JsObject] = {
+    Try(details(result)) match {
+      case Success(json) => Some(json).filter(_.fields.nonEmpty)
+      case Failure(e)    =>
+        logger.warn(s"Could not build run details for $jobName; recording the run without them.", e)
+        None
     }
   }
 

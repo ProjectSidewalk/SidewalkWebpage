@@ -141,7 +141,8 @@ corresponding Twirl view:
 - **`gallery/`** — browsable, filterable gallery of labels.
 - **`admin/`** — the legacy admin page's maps and dashboards. The redesigned admin dashboard (#4272) lives beside it
   in **`admin-dashboard/`**, which is served file-by-file rather than bundled: one `<PageName>Page.js` per route,
-  loaded by that page's Twirl template.
+  loaded by that page's Twirl template. `AdminShell.js` loads on every one of those pages and holds the shared
+  formatting helpers (escaping, numbers, durations, relative times, the standard table markup).
 - **`user-dashboard/`** — user dashboards.
 - **`ps-map/`** — shared map component used across pages.
 - **`help/`** — help/FAQ page.

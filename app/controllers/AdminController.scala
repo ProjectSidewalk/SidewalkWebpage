@@ -1,6 +1,6 @@
 package controllers
 
-import actor.CheckImageExpiryActor
+import actor.{CheckImageExpiryActor, FunnelStatActor, OsmWayRefreshActor, RecalculateStreetPriorityActor, UserStatActor}
 import controllers.base._
 import controllers.helper.ControllerUtils
 import controllers.helper.ControllerUtils.isAdmin
@@ -326,6 +326,9 @@ class AdminController @Inject() (
 
   /**
    * Updates user_stat table for users who audited in the past `hoursCutoff` hours. Update everyone if no time supplied.
+   *
+   * Recorded in `background_job_run` under the nightly job's name but tagged `Manual`, so the run leaves the same
+   * counts and error trail the scheduler's would without being able to stand in for it (#4928).
    */
   def updateUserStats(hoursCutoff: Option[Int]) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
@@ -334,18 +337,26 @@ class AdminController @Inject() (
       case None        => OffsetDateTime.ofInstant(Instant.EPOCH, ZoneOffset.UTC)
     }
 
-    adminService.updateUserStatTable(cutoffTime).map { usersUpdated: Int =>
-      Ok(s"User stats updated for $usersUpdated users!")
-    }
+    jobRunService
+      .record(UserStatActor.Name, JobRunTrigger.Manual)(adminService.updateUserStatTable(cutoffTime)) { usersUpdated =>
+        Json.obj("users_updated" -> usersUpdated)
+      }
+      .map { usersUpdated: Int => Ok(s"User stats updated for $usersUpdated users!") }
   }
 
   /**
    * Forces an immediate recompute of this deployment's engagement funnel (#288) into `funnel_stat` — the same work the
    * nightly FunnelStatActor does. Handy after a deploy so the Across Cities page shows this city without waiting a day.
+   *
+   * Recorded as a `Manual` run of that nightly job (#4928).
    */
   def updateFunnelStats = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     cc.loggingService.insert(request.identity.userId, request.ipAddress, request.toString)
-    adminService.updateFunnelStatTable().map { rowsUpdated => Ok(s"Funnel stats updated ($rowsUpdated rows)!") }
+    jobRunService
+      .record(FunnelStatActor.Name, JobRunTrigger.Manual)(adminService.updateFunnelStatTable()) { rowsUpdated =>
+        Json.obj("rows_written" -> rowsUpdated)
+      }
+      .map { rowsUpdated => Ok(s"Funnel stats updated ($rowsUpdated rows)!") }
   }
 
   /**
@@ -951,10 +962,18 @@ class AdminController @Inject() (
 
   /**
    * Recalculates street edge priority for all streets.
+   *
+   * Recorded as a `Manual` run of the nightly street-priority job (#4928). Only the recalculation step, not the
+   * imagery-freshness sync and region_completion rebuild the nightly sequence wraps around it, which is why the run
+   * records no counts.
    */
   def recalculateStreetPriority = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
-    streetService.recalculateStreetPriority.map(_ => Ok("Successfully recalculated street priorities"))
+    jobRunService
+      .record(RecalculateStreetPriorityActor.Name, JobRunTrigger.Manual)(streetService.recalculateStreetPriority)(_ =>
+        Json.obj()
+      )
+      .map(_ => Ok("Successfully recalculated street priorities"))
   }
 
   /**
@@ -993,24 +1012,22 @@ class AdminController @Inject() (
   def checkImagery() = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
     jobRunService
-      .record(CheckImageExpiryActor.Name, JobRunTrigger.Manual)(panoDataService.checkForImagery) { result =>
-        Json.obj(
-          "panos_checked" -> result.checked,
-          "still_there"   -> result.stillThere,
-          "gone"          -> result.gone,
-          "errors"        -> result.errors
-        )
-      }
+      .record(CheckImageExpiryActor.Name, JobRunTrigger.Manual)(panoDataService.checkForImagery)(_.runDetails)
       .map { results => Ok(results.summary) }
   }
 
   /**
    * Refreshes the cached OSM way data (speed limits etc.). Same as the nightly process, for QA and initial backfill.
+   *
+   * Recorded as a `Manual` run of that nightly job (#4928). This one runs for tens of minutes and can half-fail, so
+   * the recorded counts and error are the only durable account of what a given trigger did.
    */
   def refreshOsmWayData() = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
-    osmWayService
-      .refreshOsmWayData()
+    jobRunService
+      .record(OsmWayRefreshActor.Name, JobRunTrigger.Manual)(osmWayService.refreshOsmWayData()) { waysRefreshed =>
+        Json.obj("ways_refreshed" -> waysRefreshed)
+      }
       .map { waysRefreshed => Ok(Json.obj("ways_refreshed" -> waysRefreshed)) }
       .recover { case NonFatal(e) =>
         logger.error("OSM way data refresh failed.", e)

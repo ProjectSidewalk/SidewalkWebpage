@@ -110,10 +110,37 @@ class NightlyJobStatusSpec extends PlaySpec with BeforeAndAfterAll with GuiceOne
       seedFinished(JobRunTrigger.Manual, JobRunStatus.Succeeded, OffsetDateTime.now)
 
       val job = jobStatus()
-      // The manual run is still the last run and is still shown as one -- it just can't stand in for the scheduler.
+      // The manual run is reported alongside the scheduled one -- it just can't stand in for the scheduler.
       job.lastStatus mustBe "succeeded"
-      job.lastTriggeredBy mustBe Some("manual")
+      job.lastManualStatus mustBe Some("succeeded")
       job.overdue mustBe true
+    }
+
+    "not let a hand-triggered success paint over the night the job failed" in {
+      clearRuns()
+      // Last night's scheduled run failed; an admin clicked "run it now" this morning and it worked. The badge, the
+      // error and the counts must all still describe the night, or the panel reports health it doesn't have.
+      seedFinished(JobRunTrigger.Scheduled, JobRunStatus.Failed, OffsetDateTime.now.minusHours(9))
+      seedFinished(JobRunTrigger.Manual, JobRunStatus.Succeeded, OffsetDateTime.now)
+
+      val job = jobStatus()
+      job.lastStatus mustBe "failed"
+      job.lastError mustBe Some("seeded failure")
+      job.lastManualStatus mustBe Some("succeeded")
+      job.failuresInWindow mustBe 1
+      // The hand-triggered run is not a scheduled run, so it belongs in neither side of the ratio.
+      job.runsInWindow mustBe 1
+    }
+
+    "count a run the app died inside as a failure rather than as a clean record" in {
+      clearRuns()
+      // Still open long past any plausible duration: nothing ever closed the row, so it recorded no outcome at all.
+      seedRunning(OffsetDateTime.now.minusHours(HealthService.JobAbandonedAfterHours + 6))
+
+      val job = jobStatus()
+      job.lastStatus mustBe "abandoned"
+      job.runsInWindow mustBe 1
+      job.failuresInWindow mustBe 1
     }
 
     "not raise the alarm while a run is in flight, if the last scheduled run succeeded" in {

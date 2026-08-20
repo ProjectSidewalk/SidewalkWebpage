@@ -2,7 +2,7 @@ package service
 
 import actor.ScheduledJobs
 import com.google.inject.ImplementedBy
-import models.utils.{BackgroundJobRun, BackgroundJobRunTable, HealthTable, JobRunStatus}
+import models.utils.{BackgroundJobRun, BackgroundJobRunTable, HealthTable, JobRunStatus, JobRunTrigger}
 import play.api.cache.AsyncCacheApi
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json._
@@ -111,13 +111,20 @@ case class HealthThresholds(
 /**
  * The state of one nightly background job, from its `background_job_run` history (#4928).
  *
+ * Every `last*` field describes the job's last *scheduled* run, because the panel's question is whether the nightly
+ * schedule is alive. A hand-triggered run is reported separately rather than folded in: it proves the code works, not
+ * that anything is still firing it, so letting one supply the badge would let a morning-after "run it now" click
+ * paint over the night the job actually failed.
+ *
  * @param lastStatus         `never_run`, `abandoned` (still open long past any plausible duration, so the app died
  *                           mid-run), or the recorded outcome.
  * @param lastDetails        The job's own counts, shaped by the job.
- * @param hoursSinceLastRun  Age of the last run's start, which is what makes a stalled scheduler visible.
- * @param overdue            No successful run within the roster's overdue window.
- * @param runsInWindow       Runs started within the reporting window, successful or not.
- * @param failuresInWindow   How many of those failed, for the error-rate read.
+ * @param hoursSinceLastRun  Age of the last scheduled run's start, which is what makes a stalled scheduler visible.
+ * @param overdue            No successful scheduled run within the roster's overdue window.
+ * @param lastManualRunAt    When someone last ran this job by hand, if ever.
+ * @param lastManualStatus   How that hand-triggered run ended.
+ * @param runsInWindow       Scheduled runs started within the reporting window, successful or not.
+ * @param failuresInWindow   How many of those failed or were abandoned, for the error-rate read.
  */
 case class NightlyJobStatus(
     jobName: String,
@@ -127,11 +134,12 @@ case class NightlyJobStatus(
     lastFinishedAt: Option[String],
     lastDurationSeconds: Option[Long],
     lastStatus: String,
-    lastTriggeredBy: Option[String],
     lastDetails: Option[JsValue],
     lastError: Option[String],
     hoursSinceLastRun: Option[Long],
     overdue: Boolean,
+    lastManualRunAt: Option[String],
+    lastManualStatus: Option[String],
     runsInWindow: Int,
     failuresInWindow: Int
 )
@@ -283,20 +291,34 @@ class HealthServiceImpl @Inject() (
    * rows-driven listing would render as an empty, healthy-looking panel.
    */
   private def getNightlyJobs: Future[Seq[NightlyJobStatus]] = {
-    val now         = OffsetDateTime.now
-    val windowStart = now.minusDays(HealthService.JobWindowDays.toLong)
+    val now            = OffsetDateTime.now
+    val windowStart    = now.minusDays(HealthService.JobWindowDays.toLong)
+    val abandonedSince = now.minusHours(HealthService.JobAbandonedAfterHours)
+
+    // Bound before the for-comprehension so the three reads run concurrently rather than in sequence.
+    val latestRunsF = db.run(backgroundJobRunTable.latestRunPerJobAndTrigger)
+    val lastGoodF   = db.run(backgroundJobRunTable.lastScheduledSuccessPerJob)
+    val countsF     = db.run(backgroundJobRunTable.outcomeCountsSince(windowStart, abandonedSince))
+
     for {
-      latestRuns <- db.run(backgroundJobRunTable.latestRunPerJob)
-      lastGood   <- db.run(backgroundJobRunTable.lastScheduledSuccessPerJob)
-      counts     <- db.run(backgroundJobRunTable.outcomeCountsSince(windowStart))
+      latestRuns <- latestRunsF
+      lastGood   <- lastGoodF
+      counts     <- countsF
     } yield {
-      val latestByJob   = latestRuns.map(run => run.jobName -> run).toMap
-      val lastGoodByJob = lastGood.toMap
+      val byJobAndTrigger = latestRuns.map(run => (run.jobName, run.triggeredBy) -> run).toMap
+      val lastGoodByJob   = lastGood.toMap
       ScheduledJobs.All.map { job =>
-        val latest       = latestByJob.get(job.name)
-        val runsInWindow = counts.filter(_._1 == job.name).map(_._3).sum
-        val failures     = counts.filter(count => count._1 == job.name && count._2 == JobRunStatus.Failed).map(_._3).sum
-        val hoursSince   = latest.map(run => ChronoUnit.HOURS.between(run.startedAt, now))
+        val latest       = byJobAndTrigger.get((job.name, JobRunTrigger.Scheduled))
+        val lastManual   = byJobAndTrigger.get((job.name, JobRunTrigger.Manual))
+        val jobCounts    = counts.filter(_._1 == job.name)
+        val runsInWindow = jobCounts.map(_._4).sum
+        // An abandoned run — still open long past any plausible duration — is a failure the row never got to record,
+        // so counting only `failed` here would read a job the JVM dies inside every night as a spotless record.
+        val failures = jobCounts.collect {
+          case (_, JobRunStatus.Failed, _, count)     => count
+          case (_, JobRunStatus.Running, true, count) => count
+        }.sum
+        val hoursSince = latest.map(run => ChronoUnit.HOURS.between(run.startedAt, now))
         NightlyJobStatus(
           jobName = job.name,
           label = job.label,
@@ -306,17 +328,19 @@ class HealthServiceImpl @Inject() (
           lastDurationSeconds =
             latest.flatMap(run => run.finishedAt.map(finished => ChronoUnit.SECONDS.between(run.startedAt, finished))),
           lastStatus = describeStatus(latest, hoursSince),
-          lastTriggeredBy = latest.map(_.triggeredBy.toString),
           lastDetails = latest.flatMap(_.details),
           lastError = latest.flatMap(_.errorMessage),
           hoursSinceLastRun = hoursSince,
-          // Asked of the *schedule*, so it keys on the last successful scheduled run rather than on `latest`: a run
-          // an admin kicked off by hand must not clear the alarm, and one still in flight must not raise it while
-          // the previous night's success is inside the window. A job failing every night still reads overdue, since
-          // its last success recedes with each failure.
+          // Asked of the *schedule*, so it keys on the last successful scheduled run: a run an admin kicked off by
+          // hand must not clear the alarm, and one still in flight must not raise it while the previous night's
+          // success is inside the window. A job failing every night still reads overdue, since its last success
+          // recedes with each failure.
           overdue = lastGoodByJob
             .get(job.name)
             .forall(lastSuccess => ChronoUnit.HOURS.between(lastSuccess, now) > ScheduledJobs.OverdueAfterHours),
+          lastManualRunAt = lastManual.map(_.startedAt.toString),
+          lastManualStatus =
+            lastManual.map(run => describeStatus(Some(run), Some(ChronoUnit.HOURS.between(run.startedAt, now)))),
           runsInWindow = runsInWindow,
           failuresInWindow = failures
         )
@@ -324,7 +348,7 @@ class HealthServiceImpl @Inject() (
     }
   }
 
-  /** How the last run reads: never run, abandoned mid-run, or its recorded outcome. */
+  /** How a run reads: never run, abandoned mid-run, or its recorded outcome. */
   private def describeStatus(latest: Option[BackgroundJobRun], hoursSinceStart: Option[Long]): String = {
     latest match {
       case None                                            => "never_run"

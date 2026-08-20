@@ -89,7 +89,7 @@ Each major UI is a self-contained app under `public/js/`, bundled separately by 
 - **`explore/`** — the Explore/Audit tool (users label accessibility issues on street-view panoramas). The largest app; internal namespace global is still `svl`.
 - **`validate/`** — the Validate tool (users confirm/reject others' labels).
 - **`gallery/`** — browsable gallery of labels with filtering; internal namespace global is still `sg`.
-- **`admin/`** — admin dashboards and maps.
+- **`admin/`** — the legacy admin page's maps and dashboards. The redesigned admin dashboard (#4272) lives beside it in **`admin-dashboard/`**, which is served file-by-file rather than bundled: one `<PageName>Page.js` per route, loaded by that page's Twirl template, with shared helpers in `AdminShell.js`.
 - **`user-dashboard/`** — user dashboards.
 - **`ps-map/`** — shared map component used across pages.
 - **`help/`** — help/faq page (rarely used).

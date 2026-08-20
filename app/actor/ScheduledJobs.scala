@@ -33,12 +33,14 @@ object ScheduledJobs {
   val CheckImageryAge: ScheduledJob  = ScheduledJob(CheckImageryAgeActor.Name, "Imagery-age poll", 0, 45)
   val UserStats: ScheduledJob        = ScheduledJob(UserStatActor.Name, "User stats", 1, 30)
 
-  /** Runs inside the street-priority sequence below, so it shares that job's scheduled time. */
-  val ImageryFreshnessSync: ScheduledJob =
-    ScheduledJob(RecalculateStreetPriorityActor.FreshnessSyncJobName, "Imagery freshness sync", 1, 45)
-
   val RecalculateStreetPriority: ScheduledJob =
     ScheduledJob(RecalculateStreetPriorityActor.Name, "Street priority recalculation", 1, 45)
+
+  /** Runs inside the street-priority sequence, so it takes that job's time rather than restating it. */
+  val ImageryFreshnessSync: ScheduledJob = RecalculateStreetPriority.copy(
+    name = RecalculateStreetPriorityActor.FreshnessSyncJobName,
+    label = "Imagery freshness sync"
+  )
 
   val OsmWayRefresh: ScheduledJob    = ScheduledJob(OsmWayRefreshActor.Name, "OSM way refresh", 2, 0)
   val AuthTokenCleaner: ScheduledJob = ScheduledJob(AuthTokenCleanerActor.Name, "Auth token cleanup", 2, 30)

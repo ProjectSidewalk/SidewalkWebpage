@@ -101,7 +101,7 @@ class BackgroundJobRunTableSpec extends PlaySpec with BeforeAndAfterAll with Gui
     }
   }
 
-  "latestRunPerJob" should {
+  "latestRunPerJobAndTrigger" should {
     "return the newest run of each job" in {
       cleanUp()
       val older = run(jobRunTable.insertRunning(jobName, JobRunTrigger.Scheduled, OffsetDateTime.now.minusDays(2)))
@@ -110,10 +110,24 @@ class BackgroundJobRunTableSpec extends PlaySpec with BeforeAndAfterAll with Gui
       run(jobRunTable.finish(newest, JobRunStatus.Succeeded, OffsetDateTime.now, None, None))
       run(jobRunTable.insertRunning(otherJobName, JobRunTrigger.Scheduled, OffsetDateTime.now))
 
-      val latest = run(jobRunTable.latestRunPerJob)
+      val latest = run(jobRunTable.latestRunPerJobAndTrigger)
       latest.find(_.jobName == jobName).map(_.backgroundJobRunId) mustBe Some(newest)
       // A job that has only ever started still reports, which is how an abandoned run stays visible.
       latest.find(_.jobName == otherJobName).map(_.status) mustBe Some(JobRunStatus.Running)
+    }
+
+    "keep a hand-triggered run beside the scheduled one rather than in place of it" in {
+      cleanUp()
+      val scheduled = run(jobRunTable.insertRunning(jobName, JobRunTrigger.Scheduled, OffsetDateTime.now.minusHours(9)))
+      run(jobRunTable.finish(scheduled, JobRunStatus.Failed, OffsetDateTime.now.minusHours(9), None, Some("boom")))
+      val manual = run(jobRunTable.insertRunning(jobName, JobRunTrigger.Manual, OffsetDateTime.now))
+      run(jobRunTable.finish(manual, JobRunStatus.Succeeded, OffsetDateTime.now, None, None))
+
+      // The morning-after "run it now" click is newer, so a single latest-run-per-job read would return only it and
+      // lose the night's failure entirely.
+      val byTrigger = run(jobRunTable.latestRunPerJobAndTrigger).filter(_.jobName == jobName)
+      byTrigger.find(_.triggeredBy == JobRunTrigger.Scheduled).map(_.status) mustBe Some(JobRunStatus.Failed)
+      byTrigger.find(_.triggeredBy == JobRunTrigger.Manual).map(_.status) mustBe Some(JobRunStatus.Succeeded)
     }
   }
 
@@ -151,6 +165,15 @@ class BackgroundJobRunTableSpec extends PlaySpec with BeforeAndAfterAll with Gui
   }
 
   "outcomeCountsSince" should {
+
+    /** The counts for `jobName`, keyed by (status, whether an open run is old enough to read as abandoned). */
+    def counts(): Map[(JobRunStatus.Value, Boolean), Int] = {
+      run(jobRunTable.outcomeCountsSince(OffsetDateTime.now.minusDays(7), OffsetDateTime.now.minusHours(12)))
+        .filter(_._1 == jobName)
+        .map(count => (count._2, count._3) -> count._4)
+        .toMap
+    }
+
     "count runs per job and outcome inside the window, and nothing outside it" in {
       cleanUp()
       val old = run(jobRunTable.insertRunning(jobName, JobRunTrigger.Scheduled, OffsetDateTime.now.minusDays(30)))
@@ -160,12 +183,32 @@ class BackgroundJobRunTableSpec extends PlaySpec with BeforeAndAfterAll with Gui
       val recentBad = run(jobRunTable.insertRunning(jobName, JobRunTrigger.Scheduled, OffsetDateTime.now))
       run(jobRunTable.finish(recentBad, JobRunStatus.Failed, OffsetDateTime.now, None, Some("boom")))
 
-      val counts = run(jobRunTable.outcomeCountsSince(OffsetDateTime.now.minusDays(7)))
-        .filter(_._1 == jobName)
-        .map(count => count._2 -> count._3)
-        .toMap
-      counts.get(JobRunStatus.Succeeded) mustBe Some(1)
-      counts.get(JobRunStatus.Failed) mustBe Some(1)
+      counts().get((JobRunStatus.Succeeded, false)) mustBe Some(1)
+      counts().get((JobRunStatus.Failed, false)) mustBe Some(1)
+    }
+
+    "ignore hand-triggered runs, so a debugging session can't invent or dilute a failure rate" in {
+      cleanUp()
+      val scheduled = run(jobRunTable.insertRunning(jobName, JobRunTrigger.Scheduled, OffsetDateTime.now))
+      run(jobRunTable.finish(scheduled, JobRunStatus.Succeeded, OffsetDateTime.now, None, None))
+      val manual = run(jobRunTable.insertRunning(jobName, JobRunTrigger.Manual, OffsetDateTime.now))
+      run(jobRunTable.finish(manual, JobRunStatus.Failed, OffsetDateTime.now, None, Some("boom")))
+
+      // The column reads as a statement about the nightly schedule, so five failed clicks against a provider outage
+      // must not show up as five failed nights.
+      counts().get((JobRunStatus.Failed, false)) mustBe None
+      counts().values.sum mustBe 1
+    }
+
+    "separate a run abandoned mid-flight from one genuinely still in flight" in {
+      cleanUp()
+      run(jobRunTable.insertRunning(jobName, JobRunTrigger.Scheduled, OffsetDateTime.now.minusDays(2)))
+      run(jobRunTable.insertRunning(jobName, JobRunTrigger.Scheduled, OffsetDateTime.now))
+
+      // Without the split, a job the JVM is killed inside every night lands only in the denominator and reads as a
+      // perfect record.
+      counts().get((JobRunStatus.Running, true)) mustBe Some(1)
+      counts().get((JobRunStatus.Running, false)) mustBe Some(1)
     }
   }
 }

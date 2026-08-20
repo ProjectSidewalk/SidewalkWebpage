@@ -61,7 +61,7 @@ object ImageryFreshnessService {
    * @param streetsSelected Streets the rotation picked for this batch.
    * @param streetsPolled   Streets that answered conclusively and had their street_imagery row refreshed.
    * @param streetsSkipped  Streets left un-bumped after an inconclusive answer, so the next night retries them.
-   * @param notPolledReason Why no street was polled at all (missing key, unsupported provider), if that's the case.
+   * @param notPolledReason Why no street was polled at all, if that's the case.
    */
   case class PollResult(
       provider: Option[String],
@@ -80,9 +80,19 @@ object ImageryFreshnessService {
 
   object PollResult {
 
-    /** A poll that never ran, e.g. because the provider has no API key configured in this deployment. */
+    /** A poll with nothing to do, because this city's imagery provider has no age query to make. */
     def notPolled(reason: String): PollResult = PollResult(None, 0, 0, 0, Some(reason))
   }
+
+  /**
+   * Thrown when the provider this city uses *does* support age polling but its credential is absent.
+   *
+   * Distinguished from [[PollResult.notPolled]] so the run is recorded as a failure rather than a quiet success: a
+   * key that was rotated out or never set is a misconfiguration that stops `street_imagery.newest_capture` advancing
+   * and takes the #4384 re-audit signal with it, and a green Health badge over that is exactly the blind spot the
+   * run log exists to close.
+   */
+  class MissingImageryCredentialException(message: String) extends IllegalStateException(message)
 
   /**
    * One pano seen at a sample point: its provider id, its capture date when one was parseable, and its (lat, lng)
@@ -204,7 +214,12 @@ class ImageryFreshnessServiceImpl @Inject() (
    * skipped entirely and left un-bumped so the next night's rotation retries it; in dev, where dummy API keys make
    * every call inconclusive, the whole poll is a harmless no-op.
    *
-   * @return A human-readable summary for the actor log.
+   * The two ways a poll can cover no streets at all are deliberately not the same outcome. A provider that has no age
+   * query to make is a settled configuration and reports success; a supported provider whose credential is missing
+   * fails, because a rotated-out key silently ends the re-audit signal and a run row saying `succeeded` would hide
+   * that behind a green badge forever.
+   *
+   * @return Counts for the run, or a failed Future when the provider's credential is missing.
    */
   def pollImageryAges(): Future[PollResult] = {
     configService.getPanoSource match {
@@ -214,13 +229,15 @@ class ImageryFreshnessServiceImpl @Inject() (
         config.getOptional[String]("google-maps-api-key") match {
           case Some(key) => pollStreets("GSV")(fetchGsvPointObservations(key))
           case None      =>
-            Future.successful(PollResult.notPolled("No google-maps-api-key configured; skipping imagery-age poll."))
+            Future.failed(new MissingImageryCredentialException("No google-maps-api-key configured for a GSV city."))
         }
       case PanoSource.Mapillary =>
         config.getOptional[String]("mapillary-access-token") match {
           case Some(token) => pollStreets("Mapillary")(fetchMapillaryPointObservations(token))
           case None        =>
-            Future.successful(PollResult.notPolled("No mapillary-access-token configured; skipping imagery-age poll."))
+            Future.failed(
+              new MissingImageryCredentialException("No mapillary-access-token configured for a Mapillary city.")
+            )
         }
       case other =>
         Future.successful(PollResult.notPolled(s"Imagery-age polling isn't supported for provider $other; skipping."))

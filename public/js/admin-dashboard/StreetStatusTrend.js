@@ -42,7 +42,7 @@ class StreetStatusTrend {
     // The status palette is owned by StreetStatusColors, so publish it as custom properties rather than repeating the
     // hex values in CSS — the chart lines and the map legend can then never disagree.
     const root = document.getElementById('street-status-trend-section');
-    if (root && typeof StreetStatusColors !== 'undefined') {
+    if (root) {
       for (const status of StreetStatusColors.STATUSES) {
         root.style.setProperty(`--trend-${StreetStatusTrend.#cssKey(status.key)}`, status.color);
       }
@@ -97,14 +97,10 @@ class StreetStatusTrend {
   /** Streets entering each status per week, one line per status. */
   #renderStatusChanges(data, weekStarts, labels) {
     const rows = data.status_changes || [];
-    const statuses = typeof StreetStatusColors !== 'undefined'
-      ? StreetStatusColors.STATUSES
-      : [{ key: 'open', label: 'Open' }, { key: 'no_imagery', label: 'No imagery' },
-          { key: 'closed', label: 'Closed' }, { key: 'disabled', label: 'Disabled' }];
 
     // Every status keeps its line even when nothing moved into it: a flat zero is the answer to "did anything get
     // retired this quarter", and dropping the series would make that indistinguishable from a missing chart.
-    const series = statuses.map((status) => {
+    const series = StreetStatusColors.STATUSES.map((status) => {
       const byWeek = new Map(rows.filter((r) => r.new_status === status.key)
         .map((r) => [r.week_start, r.street_count]));
       return {
@@ -120,12 +116,16 @@ class StreetStatusTrend {
       dotRadius: 2,
     });
 
+    // Summed over the rendered series rather than over the raw rows, so the headline can only ever describe bars that
+    // are on screen. Totalling the rows instead would quietly report changes the chart has no bucket for — a count
+    // above bars that visibly sum to less, with nothing on the page to explain the gap.
+    //
     // Counted as changes, not streets: the server de-duplicates streets only within a (week, destination) bucket, so
     // one street that moved in two weeks — or into two statuses — contributes to two rows here.
-    const total = rows.reduce((sum, r) => sum + r.street_count, 0);
-    this.#setText('trend-status-summary', total === 0
+    const total = series.reduce((sum, s) => sum + s.values.reduce((a, b) => a + b, 0), 0);
+    AdminShell.setText('trend-status-summary', total === 0
       ? 'No street changed status in this window.'
-      : `${StreetStatusTrend.#num(total)} status change${total === 1 ? '' : 's'} in this window.`);
+      : `${AdminShell.num(total)} status change${total === 1 ? '' : 's'} in this window.`);
   }
 
   /** Distinct streets reported as having no imagery per week. */
@@ -141,8 +141,8 @@ class StreetStatusTrend {
       tooltips: weekStarts.map((week) => {
         const streets = streetsByWeek.get(week) || 0;
         const reports = reportsByWeek.get(week) || 0;
-        return `${StreetStatusTrend.#num(streets)} street${streets === 1 ? '' : 's'}, `
-          + `${StreetStatusTrend.#num(reports)} report${reports === 1 ? '' : 's'}`;
+        return `${AdminShell.num(streets)} street${streets === 1 ? '' : 's'}, `
+          + `${AdminShell.num(reports)} report${reports === 1 ? '' : 's'}`;
       }),
     }], {
       kind: 'bar',
@@ -166,60 +166,69 @@ class StreetStatusTrend {
     });
 
     const undated = data.panos_expired_undated || 0;
-    this.#setText('trend-expiry-note', undated === 0
+    AdminShell.setText('trend-expiry-note', undated === 0
       ? ''
-      : `${StreetStatusTrend.#num(undated)} panos were already expired before expiry dates were recorded, `
+      : `${AdminShell.num(undated)} panos were already expired before expiry dates were recorded, `
         + 'so they appear in no week above.');
   }
 
   /** The review queue: still-open streets that several distinct labelers reported as empty. */
   #renderCorroborated(data) {
     const rows = data.corroborated_streets || [];
-    const min = data.min_reporters || 2;
-    this.#setText('trend-corroborated-intro',
-      `Streets still open for auditing that at least ${min} different labeler accounts independently reported as `
-      + 'having no imagery. A report is evidence, never a verdict: these stay in the pool until the offline imagery '
-      + 'checker confirms them — run it against these streets first.');
+    // The threshold is the server's (StreetLifecycleService.MinCorroboratingReporters) and always travels with the
+    // payload, so it is read rather than mirrored — a local default would silently disagree the day it changed.
+    AdminShell.setText('trend-corroborated-intro', `
+      Streets still open for auditing that at least ${AdminShell.num(data.min_reporters)} different labeler accounts
+      independently reported as having no imagery. A report is evidence, never a verdict: these stay in the pool
+      until the offline imagery checker confirms them — run it against these streets first.`);
 
     if (rows.length === 0) {
-      this.#setHtml('trend-corroborated', '<p class="trend-note">No street has been reported by that many '
-      + 'labelers in this window.</p>');
+      AdminShell.setHtml('trend-corroborated', `
+        <p class="trend-note">No street has been reported by that many labelers in this window.</p>`);
       return;
     }
 
     const body = rows.map((r) => `
       <tr>
-        <td><a href="/explore?streetEdgeId=${encodeURIComponent(r.street_edge_id)}">${StreetStatusTrend.#num(r.street_edge_id)}</a></td>
-        <td>${StreetStatusTrend.#esc(r.region_name)}</td>
-        <td>${StreetStatusTrend.#num(r.reporter_count)}</td>
-        <td>${StreetStatusTrend.#num(r.report_count)}</td>
-        <td class="ac-muted">${StreetStatusTrend.#esc((r.last_reported_at || '').slice(0, 10))}</td>
+        <td>
+          <a href="/explore?streetEdgeId=${encodeURIComponent(r.street_edge_id)}">
+            ${AdminShell.num(r.street_edge_id)}
+          </a>
+        </td>
+        <td>${AdminShell.esc(r.region_name)}</td>
+        <td>${AdminShell.num(r.reporter_count)}</td>
+        <td>${AdminShell.num(r.report_count)}</td>
+        <td class="ac-muted">${AdminShell.esc((r.last_reported_at || '').slice(0, 10))}</td>
       </tr>`).join('');
-    this.#renderTable('trend-corroborated',
-      [['Street', true], 'Region', ['Labelers', true], ['Reports', true], 'Last reported'], body);
+    AdminShell.setHtml('trend-corroborated', AdminShell.tableHtml(
+      [['Street', true], 'Region', ['Labelers', true], ['Reports', true], 'Last reported'], body));
   }
 
   /** Where the reports are coming from, across all reports rather than only corroborated ones. */
   #renderRegions(data) {
     const rows = data.top_report_regions || [];
     if (rows.length === 0) {
-      this.#setHtml('trend-regions', '<p class="trend-note">No missing-imagery reports in this window.</p>');
+      AdminShell.setHtml('trend-regions', '<p class="trend-note">No missing-imagery reports in this window.</p>');
       return;
     }
     const body = rows.map((r) => `
       <tr>
-        <td>${StreetStatusTrend.#esc(r.region_name)}</td>
-        <td>${StreetStatusTrend.#num(r.street_count)}</td>
-        <td>${StreetStatusTrend.#num(r.report_count)}</td>
+        <td>${AdminShell.esc(r.region_name)}</td>
+        <td>${AdminShell.num(r.street_count)}</td>
+        <td>${AdminShell.num(r.report_count)}</td>
       </tr>`).join('');
-    this.#renderTable('trend-regions', ['Region', ['Streets reported', true], ['Reports', true]], body);
+    AdminShell.setHtml('trend-regions',
+      AdminShell.tableHtml(['Region', ['Streets reported', true], ['Reports', true]], body));
   }
 
   /**
    * Every week start in the window, as `YYYY-MM-DD`, so sparse series can be zero-filled.
    *
    * Stepped in UTC: local-time arithmetic across a DST boundary lands on a Sunday or a Tuesday and silently
-   * desynchronizes the labels from the server's ISO week buckets.
+   * desynchronizes the labels from the server's ISO week buckets. Both endpoints are compared as calendar dates
+   * rather than instants for the same reason — the server's buckets are dates in *its* zone, and stopping on
+   * `week.getTime() > Date.now()` would drop the current week for the first hours of every local Monday on any host
+   * running east of UTC, where that Monday's UTC midnight is still in the future.
    *
    * @param {string} sinceIso - Window start, which the server aligns to a Monday.
    * @param {number} weeks - Window size.
@@ -227,13 +236,24 @@ class StreetStatusTrend {
    */
   static #weekStarts(sinceIso, weeks) {
     const start = new Date(`${String(sinceIso).slice(0, 10)}T00:00:00Z`);
+    const today = StreetStatusTrend.#localIsoDate(new Date());
     const out = [];
     for (let i = 0; i <= weeks; i++) {
-      const week = new Date(start.getTime() + i * 7 * 24 * 60 * 60 * 1000);
-      if (week.getTime() > Date.now()) break;
-      out.push(week.toISOString().slice(0, 10));
+      const week = new Date(start.getTime() + i * 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+      // ISO dates sort lexicographically, so a string comparison is a date comparison.
+      if (week > today) break;
+      out.push(week);
     }
     return out;
+  }
+
+  /**
+   * @param {Date} date - Any date.
+   * @returns {string} That date in the viewer's own zone as `YYYY-MM-DD`, not shifted into UTC.
+   */
+  static #localIsoDate(date) {
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
   }
 
   /**
@@ -256,25 +276,6 @@ class StreetStatusTrend {
     return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', timeZone: 'UTC' });
   }
 
-  /**
-   * @param {string} id - Container element id.
-   * @param {Array<string|[string, boolean]>} headers - Column headers; `[label, true]` right-aligns a numeric column.
-   * @param {string} bodyHtml - Pre-rendered `<tr>` rows.
-   */
-  #renderTable(id, headers, bodyHtml) {
-    const head = headers.map((h) => {
-      const [label, num] = Array.isArray(h) ? h : [h, false];
-      return `<th${num ? '' : ' class="ac-th-text"'}>${label}</th>`;
-    }).join('');
-    this.#setHtml(id, `
-      <div class="ac-table-wrap">
-        <table class="ac-table">
-          <thead><tr>${head}</tr></thead>
-          <tbody>${bodyHtml}</tbody>
-        </table>
-      </div>`);
-  }
-
   /** @param {string} message @param {boolean} isError @param {boolean} [hide=false] */
   #setStatus(message, isError, hide = false) {
     const el = document.getElementById('trend-status');
@@ -282,28 +283,5 @@ class StreetStatusTrend {
     el.textContent = message;
     el.classList.toggle('error', Boolean(isError));
     el.classList.toggle('hidden', hide);
-  }
-
-  #setText(id, text) {
-    const el = document.getElementById(id);
-    if (el) el.textContent = text;
-  }
-
-  #setHtml(id, html) {
-    const el = document.getElementById(id);
-    if (el) el.innerHTML = html;
-  }
-
-  /** Thousands-separated integer. */
-  static #num(n) {
-    return Number(n || 0).toLocaleString();
-  }
-
-  /** @param {*} value @returns {string} HTML-escaped text. */
-  static #esc(value) {
-    if (value === null || value === undefined) return '';
-    return String(value)
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 }
