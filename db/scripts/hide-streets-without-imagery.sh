@@ -31,6 +31,6 @@ STREET_IDS=$(read_street_ids_from_csv "$CSV_FILENAME")
 echo "Streets to exclude: $STREET_IDS"
 
 # Mark the streets without imagery (shared with reveal-or-hide-neighborhoods.sh via helpers.sh).
-mark_streets_no_imagery "$STREET_IDS" -d sidewalk -U "$SCHEMA_NAME"
+mark_streets_no_imagery "$STREET_IDS" hide_streets_without_imagery -d sidewalk -U "$SCHEMA_NAME"
 
 echo "Done! You can now safely delete the $CSV_FILENAME file."

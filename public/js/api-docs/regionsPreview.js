@@ -6,59 +6,38 @@
  * contributing-user count. Hover/click a region to see its full statistics.
  *
  * @requires A DOM element with id 'regions-preview'
- * @requires Leaflet.js library
+ * @requires mapbox-gl and js/api-docs/apiDocsMap.js
  */
 
 (function () {
-  // Configuration options - can be overridden by calling setup().
+  const REGION_SOURCE = 'regions';
+  const FILL_LAYER = 'region-fill';
+  const OUTLINE_LAYER = 'region-outline';
+
   let config = {
     apiBaseUrl: '/v3/api',
     mainContainerId: 'regions-preview',
+    mapboxApiKey: '',
     regionsEndpoint: '/regions',
-    mapHeight: 500,
   };
 
-  // The metrics that can be visualized, keyed by the GeoJSON property name. Each defines the color ramp endpoints
-  // (dark-background optimized), a "none" color for regions with a value of zero, and human-readable labels.
+  // Keyed by the GeoJSON property each one colors by. The ramps are picked to read against the dimmed basemap.
   const METRICS = {
     label_count: {
       label: 'Label count', legendTitle: 'Labels per region',
-      none: '#3d3d3d', low: '#440154', high: '#f0f921',
+      none: { color: '#3d3d3d', label: 'No labels' }, ramp: ['#440154', '#f0f921'],
     },
     audit_count: {
       label: 'Audit count', legendTitle: 'Completed audits per region',
-      none: '#3d3d3d', low: '#0d3b2e', high: '#44ff88',
+      none: { color: '#3d3d3d', label: 'No completed audits' }, ramp: ['#0d3b2e', '#44ff88'],
     },
     user_count: {
       label: 'User count', legendTitle: 'Contributors per region',
-      none: '#3d3d3d', low: '#472c7a', high: '#ffffff',
+      none: { color: '#3d3d3d', label: 'No contributors' }, ramp: ['#472c7a', '#ffffff'],
     },
   };
 
-  /**
-   * Interpolate between two hex colors.
-   * @param {string} color1 - First color in hex format
-   * @param {string} color2 - Second color in hex format
-   * @param {number} factor - Interpolation factor (0-1)
-   * @returns {string} Interpolated color in hex format
-   */
-  function interpolateColor(color1, color2, factor) {
-    const c1 = {
-      r: parseInt(color1.slice(1, 3), 16), g: parseInt(color1.slice(3, 5), 16), b: parseInt(color1.slice(5, 7), 16),
-    };
-    const c2 = {
-      r: parseInt(color2.slice(1, 3), 16), g: parseInt(color2.slice(3, 5), 16), b: parseInt(color2.slice(5, 7), 16),
-    };
-    const r = Math.round(c1.r + (c2.r - c1.r) * factor);
-    const g = Math.round(c1.g + (c2.g - c1.g) * factor);
-    const b = Math.round(c1.b + (c2.b - c1.b) * factor);
-    return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-  }
-
   window.RegionsPreview = {
-    // Internal state, populated during init().
-    _map: null,
-    _layer: null,
     _legend: null,
     _metric: 'label_count',
     _maxByMetric: {},
@@ -77,32 +56,26 @@
      * Initialize the regions preview map.
      * @returns {Promise} A promise that resolves when the preview is rendered
      */
-    init() {
+    async init() {
       const container = document.getElementById(config.mainContainerId);
       if (!container) {
         console.error('Regions preview container element not found.');
-        return Promise.reject(new Error('Regions preview container element not found'));
+        return;
       }
 
-      container.style.height = `${config.mapHeight}px`;
       const loading = document.createElement('div');
       loading.className = 'loading-message';
       loading.textContent = 'Loading region data...';
       container.appendChild(loading);
 
-      return this.fetchRegions()
-        .then((regions) => {
-          container.innerHTML = '';
-          this.renderMap(container, regions);
-        })
-        .catch((error) => {
-          console.error('Error rendering regions preview:', error);
-          container.innerHTML = '';
-          const message = document.createElement('div');
-          message.className = 'no-regions-message';
-          message.textContent = 'Unable to load region data for the preview.';
-          container.appendChild(message);
-        });
+      try {
+        const regions = await this.fetchRegions();
+        container.innerHTML = '';
+        await this.renderMap(container, regions);
+      } catch (error) {
+        console.error('Error rendering regions preview:', error);
+        container.innerHTML = '<div class="no-regions-message">Unable to load region data for the preview.</div>';
+      }
     },
 
     /**
@@ -110,30 +83,85 @@
      * @returns {Promise} A promise that resolves with the GeoJSON FeatureCollection
      */
     fetchRegions() {
-      return fetch(`${config.apiBaseUrl}${config.regionsEndpoint}?inline=true&utm_source=apiDocs`)
-        .then((response) => {
-          if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-          }
-          return response.json();
-        });
+      return ApiDocsMap.fetchJson(`${config.apiBaseUrl}${config.regionsEndpoint}?inline=true`);
     },
 
     /**
-     * Build the Leaflet map, draw the region polygons, and wire up the metric toggle and legend.
+     * Build the map, draw the region polygons, and wire up the metric toggle and legend.
      * @param {HTMLElement} container - Container element for the map
      * @param {object} regions - GeoJSON FeatureCollection of regions
+     * @returns {Promise} A promise that resolves once the map has loaded
      */
-    renderMap(container, regions) {
+    async renderMap(container, regions) {
       const features = regions.features || [];
 
-      // Precompute the maximum value of each metric across all regions, used to scale the color ramp.
+      // Each ramp is scaled to its own metric's maximum, so a narrow range still spans every color.
       Object.keys(METRICS).forEach((metric) => {
         this._maxByMetric[metric] = features.reduce((max, f) => Math.max(max, f.properties[metric] || 0), 0);
       });
 
-      // Build the toolbar (with the metric selector) above the map. Keeping it out of the map means region
-      // popups can never render behind it.
+      this.addToolbar(container);
+      const mapElement = document.createElement('div');
+      mapElement.id = 'regions-map';
+      container.appendChild(mapElement);
+
+      const bounds = features.length ? ApiDocsMap.featureCollectionBounds(features) : null;
+      const map = await ApiDocsMap.create({
+        container: mapElement,
+        mapboxApiKey: config.mapboxApiKey,
+        ...(bounds ? { bounds } : { center: [0, 0], zoom: 1 }),
+      });
+
+      if (!features.length) {
+        this.addNoRegionsMessage(map);
+        return;
+      }
+
+      // promoteId lifts region_id into the feature id that setFeatureState needs for the hover styling below.
+      map.addSource(REGION_SOURCE, { type: 'geojson', data: regions, promoteId: 'region_id' });
+      map.addLayer({
+        id: FILL_LAYER,
+        type: 'fill',
+        source: REGION_SOURCE,
+        paint: {
+          'fill-color': this.colorExpression(),
+          'fill-opacity': ApiDocsMap.whenHovered(0.85, 0.7),
+        },
+      });
+      map.addLayer({
+        id: OUTLINE_LAYER,
+        type: 'line',
+        source: REGION_SOURCE,
+        paint: {
+          'line-color': '#ffffff',
+          'line-width': ApiDocsMap.whenHovered(3, 1),
+          'line-opacity': ApiDocsMap.whenHovered(1, 0.7),
+        },
+      });
+      ApiDocsMap.addHoverState(map, FILL_LAYER, REGION_SOURCE);
+      this.addRegionPopups(map);
+
+      const countChip = ApiDocsMap.addOverlay(map, 'top-right', 'map-chip');
+      countChip.textContent = `${features.length} region${features.length === 1 ? '' : 's'}`;
+
+      this._legend = ApiDocsMap.addOverlay(map, 'bottom-left', 'map-legend');
+      this.updateLegend();
+
+      // Wired only now that there is a layer to recolor and a legend to rewrite.
+      const select = document.getElementById('region-metric-select');
+      select.value = this._metric;
+      select.addEventListener('change', (event) => {
+        this._metric = event.target.value;
+        map.setPaintProperty(FILL_LAYER, 'fill-color', this.colorExpression());
+        this.updateLegend();
+      });
+    },
+
+    /**
+     * Add the metric selector above the map, where a region popup can never cover it.
+     * @param {HTMLElement} container - Container element for the whole preview
+     */
+    addToolbar(container) {
       const toolbar = document.createElement('div');
       toolbar.className = 'regions-toolbar';
       const optionsHtml = Object.keys(METRICS)
@@ -142,87 +170,39 @@
       toolbar.innerHTML = `<label for="region-metric-select">Color by</label>
         <select id="region-metric-select">${optionsHtml}</select>`;
       container.appendChild(toolbar);
-
-      const mapElement = document.createElement('div');
-      mapElement.id = 'regions-map';
-      container.appendChild(mapElement);
-
-      const map = L.map('regions-map', { scrollWheelZoom: false });
-      this._map = map;
-
-      // CartoDB Dark Matter tiles, matching the other API doc previews.
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors '
-          + '&copy; <a href="https://carto.com/attributions">CARTO</a>',
-        subdomains: 'abcd',
-        maxZoom: 19,
-      }).addTo(map);
-
-      if (features.length === 0) {
-        map.setView([0, 0], 2);
-        this.addNoRegionsMessage(map);
-        return;
-      }
-
-      this._layer = L.geoJSON(regions, {
-        style: (feature) => this.styleForFeature(feature),
-        onEachFeature: (feature, layer) => this.bindRegionInteractions(feature, layer),
-      }).addTo(map);
-
-      map.fitBounds(this._layer.getBounds(), { padding: [10, 10] });
-
-      // Region counter badge.
-      const countDiv = document.createElement('div');
-      countDiv.className = 'counter-badge';
-      countDiv.textContent = `${features.length} region${features.length === 1 ? '' : 's'}`;
-      map.getContainer().appendChild(countDiv);
-
-      // Wire the metric selector to recolor the regions and update the legend.
-      const select = document.getElementById('region-metric-select');
-      select.value = this._metric;
-      select.addEventListener('change', (event) => {
-        this._metric = event.target.value;
-        this._layer.setStyle((feature) => this.styleForFeature(feature));
-        this.updateLegend();
-      });
-
-      this.updateLegend();
     },
 
     /**
-     * Compute the Leaflet style for a region feature based on the currently selected metric.
-     * @param {object} feature - GeoJSON feature for a region
-     * @returns {object} A Leaflet path style object
+     * Build the fill color expression for the currently selected metric.
+     * @returns {Array} A Mapbox expression for `fill-color`
      */
-    styleForFeature(feature) {
+    colorExpression() {
       const metricCfg = METRICS[this._metric];
-      const value = feature.properties[this._metric] || 0;
-      const max = this._maxByMetric[this._metric];
-      let fillColor;
-      if (value <= 0) {
-        fillColor = metricCfg.none;
-      } else if (max <= 0) {
-        fillColor = metricCfg.low;
-      } else {
-        fillColor = interpolateColor(metricCfg.low, metricCfg.high, value / max);
-      }
-      return { color: '#ffffff', weight: 1, opacity: 0.7, fillColor, fillOpacity: 0.7 };
+      return ApiDocsMap.gradientColorExpression(this._metric, metricCfg.ramp, {
+        // The ramp starts at 1, since 0 is the category below it — keep the legend's low tick in step.
+        min: 1,
+        max: this._maxByMetric[this._metric],
+        noneColor: metricCfg.none.color,
+        // A region nobody has touched should read differently from the least-labeled one someone has.
+        noneAtOrBelow: 0,
+      });
     },
 
     /**
-     * Attach the popup and hover behavior for a single region.
-     * @param {object} feature - GeoJSON feature for a region
-     * @param {object} layer - The Leaflet layer for the feature
+     * Wire up the click popup for the region layer.
+     * @param {object} map - The Mapbox map object
      */
-    bindRegionInteractions(feature, layer) {
-      const props = feature.properties;
-      const firstLabelDate = props.first_label_date
-        ? new Date(props.first_label_date).toLocaleDateString()
-        : 'No labels';
-      const lastLabelDate = props.last_label_date ? new Date(props.last_label_date).toLocaleDateString() : 'No labels';
+    addRegionPopups(map) {
+      map.on('click', FILL_LAYER, (e) => {
+        const props = e.features[0].properties;
+        const firstLabelDate = props.first_label_date
+          ? new Date(props.first_label_date).toLocaleDateString()
+          : 'No labels';
+        const lastLabelDate = props.last_label_date
+          ? new Date(props.last_label_date).toLocaleDateString()
+          : 'No labels';
 
-      layer.bindPopup(`
-        <div class="region-popup">
+        ApiDocsMap.popup(map, e.lngLat, `
           <h4>${props.name || `Region ${props.region_id}`}</h4>
           <p><strong>Region ID:</strong> ${props.region_id}</p>
           <p><strong>Labels:</strong> ${props.label_count}</p>
@@ -231,62 +211,28 @@
           <p><strong>Completed audits:</strong> ${props.audit_count}</p>
           <p><strong>First Label:</strong> ${firstLabelDate}</p>
           <p><strong>Last Label:</strong> ${lastLabelDate}</p>
-          <a href="/labelmap?regions=${props.region_id}" class="explore-region-btn" target="_blank">
+          <a href="/labelmap?regions=${props.region_id}" class="button-ps button--primary button--tiny"
+            target="_blank">
             View region on the label map
           </a>
-        </div>
-      `, {
-        // Pad the auto-pan so an opened popup is nudged clear of the bottom-right legend.
-        autoPanPaddingTopLeft: L.point(10, 10),
-        autoPanPaddingBottomRight: L.point(260, 130),
+        `);
       });
-
-      layer.on('mouseover', function () {
-        this.setStyle({ weight: 3, opacity: 1, fillOpacity: 0.85 });
-        this.bringToFront();
-      });
-      layer.on('mouseout', () => this._layer.resetStyle(layer));
     },
 
     /**
      * (Re)build the continuous gradient legend for the currently selected metric.
      */
     updateLegend() {
-      const map = this._map;
       const metricCfg = METRICS[this._metric];
-      const max = this._maxByMetric[this._metric];
-
-      if (this._legend) {
-        map.removeControl(this._legend);
-      }
-
-      const legend = L.control({ position: 'bottomright' });
-      legend.onAdd = function () {
-        const div = L.DomUtil.create('div', 'info legend continuous-legend');
-        div.innerHTML = `<h4>${metricCfg.legendTitle}</h4>`;
-
-        const gradientContainer = L.DomUtil.create('div', 'gradient-container', div);
-        gradientContainer.style.cssText = 'width: 200px; height: 20px; position: relative; margin: 5px 0;';
-        const gradientBar = L.DomUtil.create('div', 'gradient-bar', gradientContainer);
-        gradientBar.style.cssText = `width: 100%; height: 100%; `
-          + `background: linear-gradient(to right, ${metricCfg.low}, ${metricCfg.high});`;
-
-        const labelsContainer = L.DomUtil.create('div', 'legend-labels', div);
-        labelsContainer.style.cssText = 'display: flex; justify-content: space-between; width: 200px;';
-        const minTick = L.DomUtil.create('div', 'legend-tick', labelsContainer);
-        minTick.textContent = '0';
-        const maxTick = L.DomUtil.create('div', 'legend-tick', labelsContainer);
-        maxTick.textContent = max.toLocaleString();
-
-        return div;
-      };
-      legend.addTo(map);
-      this._legend = legend;
+      // Clamped so a city where every region scores 0 on this metric doesn't label the bar 1 down to 0.
+      const max = Math.max(1, this._maxByMetric[this._metric]);
+      ApiDocsMap.renderGradientLegend(this._legend, metricCfg.legendTitle, metricCfg.ramp,
+        ['1', max.toLocaleString()], metricCfg.none);
     },
 
     /**
      * Show a message when there are no regions to display.
-     * @param {object} map - The Leaflet map object
+     * @param {object} map - The Mapbox map object
      */
     addNoRegionsMessage(map) {
       const div = document.createElement('div');

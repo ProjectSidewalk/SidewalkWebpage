@@ -517,7 +517,7 @@ class ValidateController @Inject() (
   }
 
   /**
-   * Handles a comment POST request. It parses the comment and inserts it into the comment table.
+   * Handles a comment POST request from LabelMap, replacing whatever the user had said about the label before.
    */
   def postLabelMapComment = cc.securityService.SecuredAction(parse.json) { implicit request =>
     val submission = request.body.validate[LabelMapValidationCommentSubmission]
@@ -533,8 +533,7 @@ class ValidateController @Inject() (
             MissionType.LabelmapValidation,
             labelTypeId
           )
-          _              <- validationService.deleteCommentIfExists(submission.labelId, userId)
-          commentId: Int <- validationService.insertComment(
+          commentId: Int <- validationService.replaceComment(
             ValidationTaskComment(0, mission.get.missionId, submission.labelId, userId, request.ipAddress,
               submission.panoId, submission.heading, submission.pitch, submission.zoom, submission.lat, submission.lng,
               OffsetDateTime.now, submission.comment)

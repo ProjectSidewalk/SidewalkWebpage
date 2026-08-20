@@ -88,6 +88,20 @@ actors in `app/actor/`.
 
 **Views** are Twirl templates (`app/views/*.scala.html`).
 
+### Background jobs
+
+Each deployment runs a set of nightly jobs as pekko actors in `app/actor/` — the imagery expiry sweep, the
+imagery-age poll and freshness sync, street-priority recalculation, user and funnel stats, label clustering, OSM way
+refresh, AI validations, and auth-token cleanup. The schedule lives in one place, `app/actor/ScheduledJobs.scala`:
+each actor reads its own time from there, staggered across the small hours and shifted per city by
+`ConfigService.getOffsetHours` so 50+ deployments don't contend for the same database and provider quotas.
+
+Every run is bracketed by `JobRunService.record`, which writes a `background_job_run` row — start, finish, outcome,
+and the job's own counts as JSONB (#4928). Without it, a job that silently stops firing is indistinguishable from one
+that found nothing to do, since the absence of a log line is not something anyone notices. `/admin/health` renders
+the roster, flagging any job that is overdue, failed, or has never run. The wrapper is strictly subordinate to the
+job: a bookkeeping failure is logged and swallowed, and a job's own failure propagates unchanged.
+
 ### The public API (`/v3`)
 
 The `/v3` API is the canonical public surface (handlers in `app/controllers/api/`). Conventions (issue #3871):
@@ -127,7 +141,10 @@ corresponding Twirl view:
 - **`explore/`** — the Explore/Audit tool (label accessibility issues on street-view panoramas). The largest app.
 - **`validate/`** — the Validate tool (confirm/reject others' labels).
 - **`gallery/`** — browsable, filterable gallery of labels.
-- **`admin/`** — admin dashboards and maps.
+- **`admin/`** — the legacy admin page's maps and dashboards. The redesigned admin dashboard (#4272) lives beside it
+  in **`admin-dashboard/`**, which is served file-by-file rather than bundled: one `<PageName>Page.js` per route,
+  loaded by that page's Twirl template. `AdminShell.js` loads on every one of those pages and holds the shared
+  formatting helpers (escaping, numbers, durations, relative times, the standard table markup).
 - **`user-dashboard/`** — user dashboards.
 - **`ps-map/`** — shared map component used across pages.
 - **`help/`** — help/FAQ page.
@@ -180,11 +197,13 @@ production runtime shape, see [`docs/deployment-and-stages.md`](deployment-and-s
 Two standalone scripts under [`scripts/`](../scripts) (see [`scripts/README.md`](../scripts/README.md)):
 
 - `scripts/label_clustering.py` — clusters nearby labels (used by the clustering flow; see `ClusterService` /
-  `app/models/cluster/`).
-- `scripts/check_streets_for_imagery.py` — checks streets for available street-view imagery.
+  `app/models/cluster/`). Run as `python3` — the app shells out to it, so it has to work on the deployed server's
+  system Python.
+- `scripts/check_streets_for_imagery.py` — checks streets for available street-view imagery. Run as `python3.13`,
+  the second interpreter the web image carries for offline tooling whose libraries have moved past 3.8.
 
-Their pure logic is unit-tested under [`test/python/`](../test/python) (`pytest`, advisory in CI). See
-[`docs/testing-and-ci.md`](testing-and-ci.md).
+Their pure logic is unit-tested under [`test/python/`](../test/python) (`pytest`, advisory in CI) — one run per
+interpreter. See [`docs/testing-and-ci.md`](testing-and-ci.md).
 
 ## Label types
 

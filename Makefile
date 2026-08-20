@@ -1,4 +1,5 @@
-.PHONY: dev docker-up docker-up-db docker-run docker-stop ssh qa-worktree qa-worktree-stop test-python test-e2e \
+.PHONY: dev docker-up docker-up-db docker-run docker-stop ssh qa-worktree qa-worktree-stop worktree-remove test-e2e \
+        test-python test-python-app test-python-tools \
         import-users import-dump create-new-schema fill-new-schema hide-streets-without-imagery \
         import-street-imagery reveal-or-hide-neighborhoods \
         lint lint-fix lint-evolutions lint-locales scalafmt scalafmt-fix \
@@ -14,9 +15,12 @@ dir ?= ./
 args ?=
 wt ?=
 clean ?=
+force ?=
 
 # `clean=1` (or true/yes) expands to the qa-worktree-stop --clean flag; anything else (incl. empty) expands to nothing.
 qa-stop-clean-flag = $(if $(filter 1 true yes,$(clean)),--clean,)
+# Same idiom for worktree-remove's `force=1`.
+worktree-force-flag = $(if $(filter 1 true yes,$(force)),--force,)
 
 # Resolve which copy of qa-worktree.sh to run, then exec it with the args in $(1). The main repo is mounted at the
 # container's /home, so /home/tools/qa-worktree.sh is the script as it exists on whatever branch the MAIN checkout
@@ -29,8 +33,8 @@ qa-worktree-exec = script="/home/.claude/worktrees/$(wt)/tools/qa-worktree.sh"; 
   [ -f "$$script" ] || script=/home/tools/qa-worktree.sh; \
   [ -f "$$script" ] || { echo "error: no tools/qa-worktree.sh in worktree $(wt) or in the main checkout"; exit 1; }; \
   exec bash "$$script" $(1)
-# Both qa-worktree targets fail fast on a missing wt= rather than passing an empty name into the container.
-qa-worktree-require-wt = @[ -n "$(wt)" ] || { echo "usage: make $@ wt=<name>   (a dir under .claude/worktrees/)"; exit 2; }
+# Every wt= target fails fast on a missing name rather than passing an empty one along.
+worktree-require-wt = @[ -n "$(wt)" ] || { echo "usage: make $@ wt=<name>   (a dir under .claude/worktrees/)"; exit 2; }
 
 # ANSI colors for the `lint` summary.
 GREEN := \033[0;32m
@@ -95,14 +99,21 @@ ssh:
 # Run an uncommitted git worktree's app on :9000 for QA (not the main repo). See tools/qa-worktree.sh and CLAUDE.md
 # "Running a worktree's app for QA". e.g. `make qa-worktree wt=remove-admin-classic`.
 qa-worktree:
-	$(qa-worktree-require-wt)
+	$(worktree-require-wt)
 	@docker exec -it $(web-container) bash -c '$(call qa-worktree-exec,$(wt))'
 
 # Tear down a qa-worktree session: stop its `~ run` and grunt watch. Add `clean=1` to also drop the node_modules
 # symlink. e.g. `make qa-worktree-stop wt=remove-admin-classic` or `make qa-worktree-stop wt=... clean=1`.
 qa-worktree-stop:
-	$(qa-worktree-require-wt)
+	$(worktree-require-wt)
 	@docker exec $(web-container) bash -c '$(call qa-worktree-exec,$(wt) --stop $(qa-stop-clean-flag))'
+
+# Tear a worktree down for good: its QA session, its directory, its git registration, and its branch once that branch is
+# in develop. Host-side (git can't reach a worktree from inside the container — see tools/worktree-remove.sh). Add
+# `force=1` to discard uncommitted work in it. e.g. `make worktree-remove wt=remove-admin-classic`.
+worktree-remove:
+	$(worktree-require-wt)
+	@bash tools/worktree-remove.sh $(wt) --container $(web-container) $(worktree-force-flag)
 
 import-users:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/import-users.sh"
@@ -123,8 +134,25 @@ import-street-imagery:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/import-street-imagery.sh"
 
 # Python utility tests (test/python/) in the web container; extra pytest flags via args=, e.g. args="-k bbox -v".
+# Split by interpreter because the scripts are: label_clustering.py runs in-band on prod's `python3` (3.8), while the
+# offline tooling needs >= 3.11. Each half runs the whole directory minus the one file the other owns, so a new test
+# file runs in both by default instead of silently in neither. COVERAGE_OMIT is explained in pyproject.toml.
+pytest-args-app   = test/python --ignore=test/python/test_check_streets_for_imagery.py
+pytest-args-tools = test/python --ignore=test/python/test_label_clustering.py
+cov-omit-app      = -e COVERAGE_OMIT=scripts/check_streets_for_imagery.py
+cov-omit-tools    = -e COVERAGE_OMIT=scripts/label_clustering.py
+
+# Both halves run even when the first fails, matching CI's `fail-fast: false`; prerequisites would stop at the first.
 test-python:
-	@docker exec -it $(web-container) sh -c "cd /home && python3 -m pytest test/python $(args)"
+	@$(MAKE) --no-print-directory test-python-app || fail=1; \
+	$(MAKE) --no-print-directory test-python-tools || fail=1; \
+	exit $${fail:-0}
+
+test-python-app:
+	@docker exec -it $(cov-omit-app) $(web-container) sh -c "cd /home && python3 -m pytest $(pytest-args-app) $(args)"
+
+test-python-tools:
+	@docker exec -it $(cov-omit-tools) $(web-container) sh -c "cd /home && python3.13 -m pytest $(pytest-args-tools) $(args)"
 
 # Browser smoke tests (test/e2e/) HOST-side against an already-running app at localhost:9000 (override with
 # BASE_URL=). Unlike the other targets this doesn't docker exec — Playwright drives a host browser. One-time

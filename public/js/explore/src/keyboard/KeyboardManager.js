@@ -89,7 +89,11 @@ class KeyboardManager {
       // moveToLinkedPano() takes a heading offset relative to the current heading, so subtract the current one.
       const routeHeading = svl.compass.getTargetAngle();
       const currHeading = svl.panoViewer.getPov().heading;
-      const moved = await this.#navigationService.moveToLinkedPano(routeHeading - currHeading);
+      // Silent on failure: a link that won't load is not the end of this shortcut, it's the reason for the
+      // moveForward() fallback below — which reports its own outcome. Alerting here would tell the labeler imagery
+      // couldn't be loaded on the same keypress that walked them down the street (#4918).
+      const moved = await this.#navigationService.moveToLinkedPano(routeHeading - currHeading,
+        { alertOnFailure: false });
       if (!moved) {
         await this.#navigationService.moveForward();
       }

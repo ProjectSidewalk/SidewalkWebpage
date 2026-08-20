@@ -21,8 +21,8 @@
   "badge-type-validations": "檢核",
   "badge-missions-singular": "任務",
   "badge-missions-plural": "任務",
-  "badge-distance-singular": "公里",
-  "badge-distance-plural": "公里",
+  "badge-distance-singular": "{{unitNameSingular}}",
+  "badge-distance-plural": "{{unitName}}",
   "badge-labels-singular": "標記",
   "badge-labels-plural": "標記",
   "badge-validations-singular": "檢核",
@@ -44,8 +44,7 @@
     "remaining-labels_other": "再 {{count}} 個標記",
     "remaining-missions_other": "再 {{count}} 個任務",
     "remaining-validations_other": "再 {{count}} 個檢核",
-    "remaining-distance-km": "再 {{dist}} 公里",
-    "remaining-distance-mi": "再 {{dist}} 英里"
+    "remaining-distance": "再 {{dist}} {{unitAbbr}}"
   },
   "mistake-cards": {
     "empty": "🎉 沒有需要檢視的錯誤——您的標記表現很好。繼續保持！",

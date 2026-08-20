@@ -73,11 +73,8 @@ class DashboardBadges {
      */
   #formatRemaining(type, remaining) {
     if (type === 'distance') {
-      if (this.isMetric) {
-        const dist = util.math.milesToKms(remaining).toFixed(1);
-        return i18next.t('dashboard:badges.remaining-distance-km', { dist });
-      }
-      return i18next.t('dashboard:badges.remaining-distance-mi', { dist: remaining.toFixed(1) });
+      const dist = (this.isMetric ? util.math.milesToKms(remaining) : remaining).toFixed(1);
+      return i18next.t('dashboard:badges.remaining-distance', { dist });
     }
     const unit = type === 'missions' ? 'missions' : type === 'validations' ? 'validations' : 'labels';
     return i18next.t(`dashboard:badges.remaining-${unit}`, { count: Math.ceil(remaining) });

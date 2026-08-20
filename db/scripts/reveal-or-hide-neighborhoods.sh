@@ -66,13 +66,24 @@ if [ "$REVEAL_OR_HIDE" = "reveal" ]; then
     # is no longer needed. A one-time no-imagery CSV can still be applied for a first reveal -- see below.
     psql "dbname=$DB_NAME options=--search_path=$SCHEMA_NAME,sidewalk_login,public" -v ON_ERROR_STOP=1 -U "$PSQL_USER" -p $PORT <<EOSQL
         BEGIN;
-        -- Re-open the streets that were closed along with the region (leaves no_imagery/disabled streets alone).
-        UPDATE street_edge
-        SET status = 'open'
-        FROM street_edge_region
-        WHERE street_edge.street_edge_id = street_edge_region.street_edge_id
-            AND street_edge_region.region_id IN (${regions_to_reveal// /,})
-            AND street_edge.status = 'closed';
+        -- Re-open the streets that were closed along with the region (leaves no_imagery/disabled streets alone), and
+        -- record each transition (#4928). The status filter doubles as the guard that keeps the trail honest: only
+        -- streets that actually move from 'closed' get a row.
+        WITH changed AS (
+            UPDATE street_edge
+            SET status = 'open'
+            FROM street_edge_region
+            WHERE street_edge.street_edge_id = street_edge_region.street_edge_id
+                AND street_edge_region.region_id IN (${regions_to_reveal// /,})
+                AND street_edge.status = 'closed'
+            RETURNING street_edge.street_edge_id
+        )
+        INSERT INTO street_edge_status_change (street_edge_id, old_status, new_status, source)
+        SELECT street_edge_id,
+               'closed'::street_edge_status,
+               'open'::street_edge_status,
+               'reveal_neighborhoods'::street_edge_status_change_source
+        FROM changed;
 
         -- Add street_edge_priority entries for the newly re-opened streets that don't have one yet.
         INSERT INTO street_edge_priority (street_edge_id, priority)
@@ -98,7 +109,7 @@ EOSQL
     if [ "$no_imagery_csv" != "none" ]; then
         no_imagery_ids=$(read_street_ids_from_csv "$WORKING_DIR/$no_imagery_csv")
         echo "Marking streets without imagery: $no_imagery_ids"
-        mark_streets_no_imagery "$no_imagery_ids" "dbname=$DB_NAME options=--search_path=$SCHEMA_NAME,sidewalk_login,public" -U "$PSQL_USER" -p $PORT
+        mark_streets_no_imagery "$no_imagery_ids" reveal_neighborhoods "dbname=$DB_NAME options=--search_path=$SCHEMA_NAME,sidewalk_login,public" -U "$PSQL_USER" -p $PORT
     fi
 
 # If hiding neighborhoods.
@@ -151,12 +162,23 @@ EOSQL
         SET deleted = TRUE
         WHERE region_id IN (${regions_to_hide// /,});
 
-        UPDATE street_edge
-        SET status = 'closed'
-        FROM street_edge_region
-        WHERE street_edge.street_edge_id = street_edge_region.street_edge_id
-            AND street_edge_region.region_id IN (${regions_to_hide// /,})
-            AND street_edge.status = 'open';
+        -- Record each transition (#4928). The status filter doubles as the guard that keeps the trail honest: only
+        -- streets that actually move from 'open' get a row.
+        WITH changed AS (
+            UPDATE street_edge
+            SET status = 'closed'
+            FROM street_edge_region
+            WHERE street_edge.street_edge_id = street_edge_region.street_edge_id
+                AND street_edge_region.region_id IN (${regions_to_hide// /,})
+                AND street_edge.status = 'open'
+            RETURNING street_edge.street_edge_id
+        )
+        INSERT INTO street_edge_status_change (street_edge_id, old_status, new_status, source)
+        SELECT street_edge_id,
+               'open'::street_edge_status,
+               'closed'::street_edge_status,
+               'hide_neighborhoods'::street_edge_status_change_source
+        FROM changed;
 
         DELETE FROM user_current_region WHERE region_id IN (${regions_to_hide// /,});
 

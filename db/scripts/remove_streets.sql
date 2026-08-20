@@ -54,13 +54,31 @@ ORDER BY streets_to_soft_delete.street_edge_id;
 
 -- 4. Soft-delete: mark 'disabled' (the manual-removal catch-all in street_edge_status) and drop the priority row so
 --    the street is no longer auditable, while keeping the row for the audit/label/route work that references it (#3888).
-UPDATE street_edge
-SET status = 'disabled'
-WHERE street_edge_id IN (SELECT street_edge_id FROM streets_to_soft_delete);
+--    Each real transition is recorded in street_edge_status_change (#4928); the `status <> 'disabled'` guard keeps a
+--    re-run of this playbook from logging transitions that never happened.
+WITH to_change AS (
+    SELECT street_edge_id, status AS old_status
+    FROM street_edge
+    WHERE street_edge_id IN (SELECT street_edge_id FROM streets_to_soft_delete)
+        AND status <> 'disabled'
+), changed AS (
+    UPDATE street_edge
+    SET status = 'disabled'
+    WHERE street_edge_id IN (SELECT street_edge_id FROM to_change)
+    RETURNING street_edge_id
+)
+INSERT INTO street_edge_status_change (street_edge_id, old_status, new_status, source)
+SELECT changed.street_edge_id,
+       to_change.old_status,
+       'disabled'::street_edge_status,
+       'remove_streets'::street_edge_status_change_source
+FROM changed
+JOIN to_change ON to_change.street_edge_id = changed.street_edge_id;
 
 DELETE FROM street_edge_priority WHERE street_edge_id IN (SELECT street_edge_id FROM streets_to_soft_delete);
 
--- 5. Hard-delete: clear FK-referenced tables, then delete the street_edge rows.
+-- 5. Hard-delete: clear FK-referenced tables, then delete the street_edge rows. street_edge_status_change needs no
+--    line here: its FK cascades, and a status history for a street that is gone describes nothing.
 
 -- cluster_label cascades from cluster via ON DELETE CASCADE, so deleting cluster rows is enough.
 DELETE FROM cluster WHERE street_edge_id IN (SELECT street_edge_id FROM streets_to_hard_delete);

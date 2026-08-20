@@ -77,7 +77,7 @@ class ModalMissionComplete {
    * @param neighborhood The neighborhood the mission was in.
    */
   update(mission, neighborhood) {
-    const unit = { units: i18next.t('common:unit-distance') };
+    const unit = { units: util.turfDistanceUnits() };
     const isRoute = svl.neighborhoodModel.isRoute;
 
     this.#buildLabelLegend();
@@ -404,10 +404,17 @@ class ModalMissionComplete {
     return i18next.t('common:format-number', { val });
   }
 
-  /** Formats a distance (already in the user's unit) to one decimal place with its unit abbreviation. */
+  /**
+   * Formats a distance for the modal's stats table.
+   *
+   * Not `util.longDistanceToString`: these come from turf measured in `util.turfDistanceUnits()`, so they are already
+   * in the reader's units and must not be converted a second time — the string only has to name the unit.
+   *
+   * @param {number} distance The distance, already in the reader's units.
+   * @returns {string}
+   */
   #formatDistance(distance) {
-    const value = this.#formatNumber(distance.toFixed(1));
-    return `${value} ${i18next.t('common:unit-distance-abbreviation')}`;
+    return i18next.t('common:distance-large', { dist: this.#formatNumber(distance.toFixed(1)) });
   }
 
   /**
@@ -416,11 +423,6 @@ class ModalMissionComplete {
    * @returns {string}
    */
   #formatMissionDistance(distanceMiles) {
-    const meters = util.math.milesToMeters(distanceMiles);
-    const unitAbbreviation = i18next.t('common:unit-abbreviation-mission-distance');
-    if (i18next.t('common:measurement-system') === 'metric') {
-      return `${util.math.roundToTwentyFive(meters)} ${unitAbbreviation}`;
-    }
-    return `${util.math.roundToTwentyFive(util.math.metersToFeet(meters))} ${unitAbbreviation}`;
+    return util.distanceToString(util.math.milesToMeters(distanceMiles));
   }
 }

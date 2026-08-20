@@ -178,6 +178,8 @@ module.exports = function (grunt) {
           'public/js/common/pano-viewer/src/PanoData.js',
           'public/js/common/pano-viewer/src/PanoStore.js',
           'public/js/common/pano-viewer/src/panoUtilities.js',
+          // NoImageryError must precede the viewers, which throw it, and PanoViewer, which classifies on it.
+          'public/js/common/pano-viewer/src/NoImageryError.js',
           'public/js/common/pano-viewer/src/PanoViewer.js',
           'public/js/common/pano-viewer/src/GsvViewer.js',
           'public/js/common/pano-viewer/src/MapillaryChunkedDataProvider.js',
