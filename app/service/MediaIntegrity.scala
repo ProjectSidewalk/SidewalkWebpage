@@ -136,6 +136,27 @@ object MediaIntegrity {
     MediaDirStatus(dir.key, dir.envVar, dir.irreplaceable, path, key, label, severity, detail)
 
   /**
+   * Whether the story-media scan can run against this base directory at all, and if not, what to say instead.
+   *
+   * Both refusals report the scan as unavailable rather than as loss, and the second is the one that is easy to get
+   * wrong: `isDirectory` answers true for a directory this process may not read, and every per-city listing beneath
+   * an unreadable base comes back empty — which would announce every story photo on the stage as destroyed. A monitor
+   * that cries data loss over a permissions change gets muted, and a muted monitor leaves us where #4925 found us.
+   *
+   * @param path        Where the base directory resolved, named in the message so an operator knows what to look at.
+   * @param isDirectory Whether a directory is there.
+   * @param canRead     Whether this process may read it.
+   * @return            The reason the scan declined, or None when it can proceed.
+   */
+  def scanRefusal(path: String, isDirectory: Boolean, canRead: Boolean): Option[String] = {
+    // Nothing has been uploaded on this stage yet, or the directory is gone. Either way there is nothing to compare
+    // against, and the directory panel already reports the state of the path itself.
+    if (!isDirectory) Some(s"No media directory at $path to scan.")
+    else if (!canRead) Some(s"Media directory $path is not readable by this process.")
+    else None
+  }
+
+  /**
    * Which city's subdirectory each schema's media lives in, or why it can't be located.
    *
    * This instance's own schema takes `city-id`, because that is what `StoryService` builds its write path from —

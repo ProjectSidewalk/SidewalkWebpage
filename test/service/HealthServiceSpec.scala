@@ -1,6 +1,7 @@
 package service
 
 import models.utils.{HealthTable, MyPostgresProfile}
+import org.scalatest.BeforeAndAfterAll
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
@@ -8,6 +9,8 @@ import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
 import slick.dbio.DBIO
 
+import java.io.File
+import java.nio.file.Files
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
@@ -29,19 +32,51 @@ import scala.concurrent.{Await, Future}
  * Read-only. Requires a Postgres+PostGIS database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI).
  * Scheduling actors are disabled so background actors can't contend for the pool during the run.
  */
-class HealthServiceSpec extends PlaySpec with GuiceOneAppPerSuite {
+class HealthServiceSpec extends PlaySpec with GuiceOneAppPerSuite with BeforeAndAfterAll {
+
+  // The scan compares database rows against files on disk, so a checkout that has never had an upload has no
+  // directory to read and the whole panel degrades to "unavailable" — under which every assertion below would pass
+  // without testing anything. Pointing the app at a directory this spec owns makes the interesting path the only one.
+  private val mediaDir: File = Files.createTempDirectory("health-service-spec-media").toFile
+
+  /** The subdirectory `StoryService` would write this instance's uploads into: named for `city-id`, not the schema. */
+  private lazy val cityDir: File = new File(mediaDir, config.get[String]("city-id"))
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    new GuiceApplicationBuilder()
+      .disable[modules.ActorModule] // No eager background actors during tests.
+      .configure("story.media.directory" -> mediaDir.getAbsolutePath)
+      .build()
 
   private val healthService = app.injector.instanceOf[HealthService]
   private val healthTable   = app.injector.instanceOf[HealthTable]
+  private val config        = app.injector.instanceOf[play.api.Configuration]
   // Keep the DatabaseConfig as a stable val and call .db.run inline; binding .db to its own val would infer a
   // path-dependent existential type that needs -language:existentials.
   private val dbConfig = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
 
   private def await[T](f: Future[T], d: Duration = 60.seconds): T = Await.result(f, d)
   private def run[T](action: DBIO[T]): T                          = Await.result(dbConfig.db.run(action), 60.seconds)
+
+  // A file with no `story_media` row behind it. Whether the scan attributes it to this instance's own schema is the
+  // whole question: it can only do that by naming the directory the way the write path does.
+  private val orphanId: Int         = Int.MaxValue - 4926
+  private lazy val orphanFile: File = new File(cityDir, s"story_$orphanId.jpg")
+
+  // Seeded before any test, because the scan is cached: a first call made against an empty directory would answer
+  // every later assertion from that cached all-clear.
+  override def beforeAll(): Unit = {
+    super.beforeAll()
+    val _ = cityDir.mkdirs()
+    val _ = orphanFile.createNewFile()
+  }
+
+  override def afterAll(): Unit = {
+    val _ = orphanFile.delete()
+    val _ = cityDir.delete()
+    val _ = mediaDir.delete()
+    super.afterAll()
+  }
 
   "HealthTable catalog queries" should {
     // Each of these asserts the SQL executes and maps into its DTO against a real PostGIS DB; the result may legitimately
@@ -128,6 +163,48 @@ class HealthServiceSpec extends PlaySpec with GuiceOneAppPerSuite {
             city.unscannedReason mustBe defined
           }
       }
+    }
+
+    "scan the story-media directory it was configured with" in {
+      val scan = await(healthService.getDbHealth).mediaStorage.value.storyMedia.value
+      scan.baseDir mustBe mediaDir.getAbsolutePath
+    }
+
+    "find this instance's own files under the directory the write path builds, not the one the schema implies" in {
+      // `city-id` and the connection's schema are independent settings, and on an instance where they disagree the
+      // scan has to look where StoryService writes rather than where the schema mapping says it should — resolving
+      // it the other way reported a photo sitting right there as destroyed. The file seeded here has no row, so the
+      // current schema's row can only account for it if the directory was resolved the write path's way.
+      val scan = await(healthService.getDbHealth).mediaStorage.value.storyMedia.value
+      val mine = scan.cities.find(_.schema == run(healthTable.getCurrentSchema)).value
+
+      mine.cityId.value mustBe config.get[String]("city-id")
+      mine.scanned mustBe true
+      mine.orphanIds must contain(orphanId)
+    }
+
+    "claim that directory exclusively, so no other schema reads those same files as its own orphans" in {
+      val scan = await(healthService.getDbHealth).mediaStorage.value
+
+      val claimed = scan.storyMedia.value.cities.flatMap(_.cityId)
+      claimed mustBe claimed.distinct
+      // Every city that lost the directory has to say why, or the operator reading the row has nowhere to start.
+      scan.storyMedia.value.cities.filterNot(_.scanned).foreach(_.unscannedReason mustBe defined)
+    }
+
+    "cover every schema holding a story_media table, in a stable order" in {
+      // The panel is read down the page, and a scan that silently dropped a city would look exactly like a city with
+      // nothing to report.
+      val scan    = await(healthService.getDbHealth).mediaStorage.value.storyMedia.value
+      val schemas = run(healthTable.getStoryMediaSchemas).filter(_.matches("^[A-Za-z0-9_]+$"))
+
+      scan.cities.map(_.schema) mustBe schemas.sorted
+    }
+
+    "agree with the boot check about whether the media-directory contract is being enforced" in {
+      // Two copies of the arming rule would let the page claim a stage is guarded when the check isn't watching.
+      val media = await(healthService.getDbHealth).mediaStorage.value
+      media.enforced mustBe modules.PersistentMediaDirCheck.arms(app.injector.instanceOf[play.api.Environment])
     }
 
     "survive a burst of concurrent polls without exhausting the connection pool" in {

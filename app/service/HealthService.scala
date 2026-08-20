@@ -361,12 +361,9 @@ class HealthServiceImpl @Inject() (
   // against a dead mount never returns — the thread stays parked on the blocking pool, but the poll must not.
   private val mediaScanTimeout: FiniteDuration = 5.seconds
 
-  // One scan at a time. `withTimeout` abandons the future it gave up waiting on, but nothing can cancel the thread
-  // underneath it: a filesystem call against an unreachable mount returns when the mount does, or never. Without this
-  // guard the dashboard's ~20s poll would stack a fresh scan on top of every stuck one and park the whole blocking-io
-  // pool within a couple of minutes, leaving the panel dead even after the mount came back. Parking one thread is the
-  // price of asking at all; parking the pool would cost us the panel exactly when storage is the thing going wrong.
-  private val mediaScanInFlight = new java.util.concurrent.atomic.AtomicBoolean(false)
+  // One scan at a time: `withTimeout` protects the poll from a stuck filesystem call, but only this keeps a stuck one
+  // from being joined by a fresh copy every poll until the whole blocking-io pool is parked. See [[SingleFlightGate]].
+  private val mediaScanGate = new SingleFlightGate
 
   // Schema -> city id, read from configuration alone. The database knows the schema, the directory is named for the
   // city, and nothing but this mapping joins them. ConfigService.availableCityIds would do it with one existence
@@ -386,19 +383,19 @@ class HealthServiceImpl @Inject() (
   private def getMediaStorage: Future[Option[MediaStorageHealth]] = {
     cacheApi
       .getOrElseUpdate[Option[MediaStorageHealth]]("health.media", panoTtl) {
-        if (!mediaScanInFlight.compareAndSet(false, true)) {
-          // A scan is still running past its deadline, which all but always means a filesystem call that will not
-          // return. Reporting that beats both starting another one on top of it and rendering a stale all-clear.
-          Future.successful(Some(unreachableMedia("A previous media scan has not returned; storage may be offline.")))
-        } else {
-          val scan = for {
-            dirs      <- Future(MediaIntegrity.directoryStatuses(config, environment))(blockingIoEc)
-            integrity <- storyMediaIntegrity
-          } yield Some(MediaStorageHealth(dirs, enforced, integrity._1, integrity._2))
-          // Clears on the underlying scan, not on the timeout, so a stuck one keeps the gate shut until it unsticks.
-          scan.onComplete(_ => mediaScanInFlight.set(false))
-          withTimeout(scan, "media storage scan")
-        }
+        // A scan still running past its deadline all but always means a filesystem call that will not return.
+        // Reporting that beats both starting another one on top of it and rendering a stale all-clear.
+        val busy = Some(unreachableMedia("A previous media scan has not returned; storage may be offline."))
+        // The gate opens on the underlying scan, not on the timeout, so a stuck one keeps the next poll out.
+        withTimeout(
+          mediaScanGate.runOrElse(busy) {
+            for {
+              dirs      <- Future(MediaIntegrity.directoryStatuses(config, environment))(blockingIoEc)
+              integrity <- storyMediaIntegrity
+            } yield Some(MediaStorageHealth(dirs, enforced, integrity._1, integrity._2))
+          },
+          "media storage scan"
+        )
       }
       .recover { case e: Exception =>
         logger.warn(s"Health: failed to read media storage: ${e.getMessage}"); None
@@ -427,16 +424,7 @@ class HealthServiceImpl @Inject() (
     // here would escape the caller's `.recover` instead of degrading to an unavailable panel.
     Future {
       val baseDir = MediaDirs.baseDir(config, environment, "story.media.directory")
-      val refusal =
-        // Nothing has been uploaded on this stage yet, or the directory is gone. Either way there is nothing to
-        // compare against, and the directory panel above already reports the state of the path itself.
-        if (!baseDir.isDirectory) Some(s"No media directory at ${baseDir.getAbsolutePath} to scan.")
-        // `isDirectory` is true for a directory this process may not read, and every per-city listing beneath one
-        // comes back empty — which would report every story photo on the stage as destroyed. Decline instead: a
-        // monitor that cries data loss over a permissions change is worse than no monitor at all.
-        else if (!baseDir.canRead) Some(s"Media directory ${baseDir.getAbsolutePath} is not readable by this process.")
-        else None
-      (baseDir, refusal)
+      (baseDir, MediaIntegrity.scanRefusal(baseDir.getAbsolutePath, baseDir.isDirectory, baseDir.canRead))
     }(blockingIoEc).flatMap {
       case (_, Some(refusal)) => Future.successful((None, Some(refusal)))
       case (baseDir, None)    =>

@@ -310,8 +310,17 @@ jobs:
       # - LostMediaLogSpec (#4926): the log line that is the only signal a media file has been destroyed. Both ways
       #   it can fail are silent — announcing every request buries the event, announcing nothing reads as health —
       #   so the lines themselves are asserted. Pure logic, no DB.
+      # - SingleFlightGateSpec (#4926): keeps a stuck media scan from being joined by a fresh copy every poll until
+      #   the blocking-io pool is gone. Its whole job is invisible until storage hangs, and by then the panel that
+      #   would have reported it is the thing that went dark. Pure logic, no DB.
+      # - HealthMediaPayloadSpec (#4926): the field names the health page reads the media panel by. A renamed case
+      #   class field emits a different key, every value goes undefined, and a monitor reporting nothing looks
+      #   exactly like a monitor reporting nothing wrong. Pure logic, no DB.
+      # - ImageControllerSpec (#4415, #4726, #4926): the crop write path and its share-preview invalidation, plus the
+      #   loss lines a signed crop/pano URL emits when the bytes it was signed for are gone. Nothing else asserts the
+      #   controller calls LostMediaLog at all, so without this the tripwire could be deleted with CI still green.
       - name: Run gating/auth tests (health dashboard + route auth posture + geodesic distances)
-        run: sbt 'set Test / parallelExecution := false' 'testOnly controllers.HealthDashboardSpec service.HealthServiceSpec controllers.RouteAuthPostureSpec models.street.GeodesicDistanceSpec service.ExploreTutorialRouteSpec controllers.MobileDetectionSpec service.PanoDataServiceSpec models.utils.ConfigTableVoidedArchiveSpec controllers.api.StatsApiSpec controllers.ExploreSubmissionSpec controllers.ValidateSubmissionSpec modules.PersistentMediaDirCheckSpec service.MediaIntegritySpec service.LostMediaLogSpec'
+        run: sbt 'set Test / parallelExecution := false' 'testOnly controllers.HealthDashboardSpec service.HealthServiceSpec controllers.RouteAuthPostureSpec models.street.GeodesicDistanceSpec service.ExploreTutorialRouteSpec controllers.MobileDetectionSpec service.PanoDataServiceSpec models.utils.ConfigTableVoidedArchiveSpec controllers.api.StatsApiSpec controllers.ExploreSubmissionSpec controllers.ValidateSubmissionSpec modules.PersistentMediaDirCheckSpec service.MediaIntegritySpec service.LostMediaLogSpec service.SingleFlightGateSpec service.HealthMediaPayloadSpec controllers.ImageControllerSpec'
         env:
           DATABASE_URL: jdbc:postgresql://localhost:5432/sidewalk
           DATABASE_USER: sidewalk

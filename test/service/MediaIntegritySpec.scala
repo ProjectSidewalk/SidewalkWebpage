@@ -256,6 +256,28 @@ class MediaIntegritySpec extends PlaySpec {
     }
   }
 
+  "scanRefusal" should {
+    "run the scan against a readable directory" in {
+      MediaIntegrity.scanRefusal("/srv/media", isDirectory = true, canRead = true) mustBe None
+    }
+
+    "decline, naming the path, when there is no directory to compare against" in {
+      // No upload has landed on this stage yet, or the whole directory is gone; the per-directory table above already
+      // reports which, and inventing per-city loss counts from it would say the wrong one.
+      val refusal = MediaIntegrity.scanRefusal("/srv/media", isDirectory = false, canRead = true).value
+      refusal must include("/srv/media")
+      refusal must include("No media directory")
+    }
+
+    "decline rather than report loss when the directory is there but unreadable" in {
+      // The trap this exists for: `isDirectory` is true for a directory this process may not read, and every listing
+      // beneath it comes back empty — which would announce every story photo on the stage as destroyed.
+      val refusal = MediaIntegrity.scanRefusal("/srv/media", isDirectory = true, canRead = false).value
+      refusal must include("/srv/media")
+      refusal must include("not readable")
+    }
+  }
+
   "listing" should {
     "read a directory's contents" in {
       MediaIntegrity.listing(dirContaining("story_3.jpg")) mustBe DirListing.Listed(Seq("story_3.jpg"))
