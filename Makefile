@@ -1,4 +1,5 @@
-.PHONY: dev docker-up docker-up-db docker-run docker-stop ssh qa-worktree qa-worktree-stop worktree-remove test-e2e \
+.PHONY: dev docker-up docker-up-db docker-run docker-stop ssh qa-worktree qa-worktree-stop worktree-remove \
+        test-e2e test-e2e-host \
         test-python test-python-app test-python-tools \
         import-users import-dump create-new-schema fill-new-schema hide-streets-without-imagery \
         import-street-imagery reveal-or-hide-neighborhoods \
@@ -43,6 +44,14 @@ BOLD  := \033[1m
 RESET := \033[0m
 # stylelint only accepts file paths/globs, so a dir= that isn't already a .css file/glob gets /**/*.css appended.
 css-glob = $(if $(filter %.css,$(dir)),$(dir),$(dir)/**/*.css)
+
+# The browser smoke suite's runner image (docker/e2e/Dockerfile), tagged with the @playwright/test version read out
+# of package.json — the base image bundles the matching Chromium, so deriving both from one pin is what keeps the
+# runner and the browser from drifting apart when Dependabot bumps it. The sed expression is plain BRE for macOS.
+pw-version  = $(shell sed -n 's/.*"@playwright\/test"[^0-9]*\([0-9][0-9.]*\)".*/\1/p' package.json)
+e2e-image   = projectsidewalk/e2e
+# The main repo is the container's /home, so a worktree's specs are just a different working directory.
+e2e-workdir = $(if $(wt),/home/.claude/worktrees/$(wt),/home)
 
 dev: | docker-up-db docker-run
 
@@ -154,10 +163,27 @@ test-python-app:
 test-python-tools:
 	@docker exec -it $(cov-omit-tools) $(web-container) sh -c "cd /home && python3.13 -m pytest $(pytest-args-tools) $(args)"
 
-# Browser smoke tests (test/e2e/) HOST-side against an already-running app at localhost:9000 (override with
-# BASE_URL=). Unlike the other targets this doesn't docker exec — Playwright drives a host browser. One-time
-# setup: `npm install && npx playwright install chromium`. Extra flags via args=, e.g. args="-g labelMap --headed".
+# Browser smoke tests (test/e2e/) against an already-running app at localhost:9000. Like every other tooling target
+# this runs in a container, so it behaves the same on Linux, WSL2, and macOS (Intel and Apple Silicon) with no host
+# Node, browser, or `playwright install` — the official Playwright base image ships Chromium plus its OS deps and is
+# multi-arch. Two flags carry the design: `--network container:` puts the runner in the web container's network
+# namespace, so the app answers at localhost:9000 — the only host conf/application.local.conf's
+# play.filters.hosts.allowed permits, and the same URL CI uses; `--volumes-from` gives it the web container's exact
+# filesystem view, so /home is the repo and worktree paths resolve unchanged. Scope with args=, e.g.
+# args="-g labelMap --no-deps". Without wt= it runs the MAIN checkout's specs even when invoked from a worktree
+# (the container sees one filesystem); pass wt=<name> for that worktree's, as with qa-worktree. For --headed/--ui,
+# see test-e2e-host. The image build is a cached no-op after the first run, and re-runs itself on a version bump —
+# it's only verbose when the tag is missing, since that first build downloads the base image.
 test-e2e:
+	@docker inspect -f '{{.State.Running}}' $(web-container) 2>/dev/null | grep -q true || { echo "error: $(web-container) is not running — start it with 'make docker-up', and make sure the app is up on :9000"; exit 2; }
+	@if docker image inspect $(e2e-image):$(pw-version) > /dev/null 2>&1; then docker build --quiet --build-arg PW_VERSION=$(pw-version) -t $(e2e-image):$(pw-version) docker/e2e > /dev/null; else echo "==> building the Playwright runner image (first run for $(pw-version): downloads ~2GB)"; docker build --build-arg PW_VERSION=$(pw-version) -t $(e2e-image):$(pw-version) docker/e2e; fi
+	@docker run --rm --network container:$(web-container) --volumes-from $(web-container) --ipc=host -e FORCE_COLOR=1 -e BASE_URL -e HAS_REAL_GMAPS_KEY -w $(e2e-workdir) $(e2e-image):$(pw-version) playwright test $(args)
+
+# Host-side run of the same suite, for `--headed`, `--ui`, and `show-trace` — those need a display the container
+# doesn't have. Needs a host toolchain the containerized path does not: Node 23, `npm install` at the repo root
+# (the container's node_modules is a Docker volume, invisible from the host), and `npx playwright install chromium`,
+# plus `sudo npx playwright install-deps` on Linux/WSL. See test/e2e/README.md.
+test-e2e-host:
 	@npx playwright test $(args)
 
 reveal-or-hide-neighborhoods:

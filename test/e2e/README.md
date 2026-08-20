@@ -9,23 +9,48 @@ not pixel-level behavior; deep canvas/imagery testing stays manual by design.
 ## Running locally
 
 The suite does **not** boot the app — it runs against whatever `BASE_URL` points at (default
-`http://localhost:9000`, i.e. your running dev app).
+`http://localhost:9000`). So bring an app up first (`npm start` inside `make dev`, or `make qa-worktree
+wt=<name>` for a branch under QA); that occupies a terminal, so run the suite from a second one.
 
 ```bash
-# One-time host setup (node_modules normally lives only in the web container):
-npm install && npx playwright install chromium
-
-# Run against the already-running dev app:
-make test-e2e                       # = npx playwright test
-make test-e2e args="-g labelMap"    # single test; add --headed to watch it
-BASE_URL=http://localhost:9001 npx playwright test   # non-default port
+make test-e2e                                  # the whole suite
+make test-e2e args="-g labelMap --no-deps"     # one page (see the --no-deps note below)
+make test-e2e wt=<worktree-name>               # a worktree's specs instead of the main checkout's
+BASE_URL=http://localhost:9001 make test-e2e   # non-default port
 ```
 
-Works against a populated dev DB or an empty CI-style one — specs tolerate both.
+**There is no setup step.** The runner is a container built from [`docker/e2e/Dockerfile`](../../docker/e2e/Dockerfile)
+on the official Playwright image, which already carries Chromium and its OS libraries — so the same command and
+the same browser build work on Linux, WSL2, and macOS (the image is multi-arch, so Apple Silicon runs Chromium
+natively), with no host Node and no `playwright install`. The image builds on first use and rebuilds itself when
+`package.json`'s `@playwright/test` pin changes, because `make` derives both the image tag and the installed
+runner from that one pin.
+
+Two details worth knowing when something looks odd. The runner joins the **web container's network namespace**,
+which is why `BASE_URL` stays `localhost:9000` — `conf/application.local.conf` allows only that host, so a
+request addressed to `web:9000` would be turned away by Play's host filter. It also inherits the web container's
+mounts, so the repo is at `/home` and worktree paths resolve unchanged. Reports, traces, and screenshots land in
+`test-results/`: gitignored, and root-owned like every other container-produced artifact in this repo.
+
+Works against a populated dev DB or an empty CI-style one — specs tolerate both. `/explore` and `/validate`
+self-skip unless you `export HAS_REAL_GMAPS_KEY=true` (phase 2, below).
 
 Note that a `-g`-scoped run still executes the `setup` project first (Playwright runs project dependencies
 regardless of filters), so every run registers a throwaway `ci-smoke-<timestamp>` user in the dev DB. Add
 `--no-deps` to skip it when your filter doesn't include `/dashboard`: `make test-e2e args="-g labelMap --no-deps"`.
+
+### Watching it run, and debugging a failure
+
+`--headed`, `--ui`, and `show-trace` need a display the container doesn't have, so they run host-side:
+
+```bash
+make test-e2e-host args="-g labelMap --headed"
+```
+
+That path needs a host toolchain the containerized one doesn't: **Node 23**, `npm install` at the repo root (the
+container's `node_modules` is a Docker volume, so the host copy is separate and unpinned — there's no committed
+`package-lock.json`), and `npx playwright install chromium`, plus `sudo npx playwright install-deps` on
+Linux/WSL. Use it for interactive debugging; `make test-e2e` is what a normal run and CI both exercise.
 
 ## How a spec works
 
@@ -87,6 +112,7 @@ local development** — your edit / `grunt watch` / reload loop is untouched.
 | File | Role |
 |---|---|
 | `../../playwright.config.js` | Config: `testDir`, retries, reporters, the `setup` → `chromium` projects |
+| `../../docker/e2e/Dockerfile` | The runner image `make test-e2e` builds and runs (Chromium + the pinned runner) |
 | `fixtures.js` | `consoleErrors` fixture, Mapbox stub, `waitForAppReady`, allowlist |
 | `auth.setup.js` | Registers a throwaway user, saves storageState for registered-user specs |
 | `pages.spec.js` | Table-driven phase-1 anonymous pages |

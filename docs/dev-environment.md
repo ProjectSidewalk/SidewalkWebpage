@@ -265,6 +265,22 @@ docker exec projectsidewalk-web bash -lc "cd /home && sbt --client compile"
 The first call after a container boot starts the compile server (~30s); later calls are near-instant. `build.sbt`
 sets `-Xfatal-warnings`, so a `[success]` is also warning-clean.
 
+### Checking that pages still load in a browser
+
+Compiling and linting can't see a runtime JavaScript error — a stale bundle, a missing global, a method that throws
+only when clicked. The browser smoke suite covers that: it loads every core page in headless Chromium and fails on
+any uncaught page error or console error. With your dev app running, in a second terminal:
+
+```bash
+make test-e2e                               # the whole suite
+make test-e2e args="-g labelMap --no-deps"  # one page
+make test-e2e wt=<worktree-name>            # a worktree's specs
+```
+
+Nothing to install: the runner is a container, so it behaves the same on macOS, Linux, and WSL — including Apple
+Silicon, where it runs a native browser. CI runs the same suite on every PR as the advisory `e2e-smoke` job. Full
+details, including how to watch a test run headed, are in [`test/e2e/README.md`](../test/e2e/README.md).
+
 ### Running a branch from a git worktree
 
 If you keep in-progress branches in **git worktrees** (`.claude/worktrees/<name>`) — for example to review a
