@@ -63,6 +63,9 @@ class OutdatedImageryFlagSyncSpec extends PlaySpec with GuiceOneAppPerSuite with
   private def flagOf(auditTaskId: Int): DBIO[Boolean] =
     auditTasks.filter(_.auditTaskId === auditTaskId).map(_.outdatedImagery).result.head
 
+  private def flaggedAtOf(auditTaskId: Int): DBIO[Option[OffsetDateTime]] =
+    auditTasks.filter(_.auditTaskId === auditTaskId).map(_.outdatedImageryAt).result.head
+
   "syncOutdatedImageryFlags" should {
     "flag a completed audit that predates the street's median newest capture, and be idempotent" in {
       assume(someUserId.isDefined && nonTutorialStreets.nonEmpty)
@@ -166,6 +169,35 @@ class OutdatedImageryFlagSyncSpec extends PlaySpec with GuiceOneAppPerSuite with
       unflaggedCount must be >= 1
     }
 
+    "stamp outdated_imagery_at on the false-to-true edge only, and clear it with the flag" in {
+      assume(someUserId.isDefined && nonTutorialStreets.nonEmpty)
+      val (userId, streetId) = (someUserId.get, nonTutorialStreets.head)
+      // now() is transaction-constant in Postgres and this whole case runs in one rolled-back transaction, so
+      // "unchanged across re-runs" can't be asserted by comparing two reads. Planting a sentinel between runs can
+      // detect a re-stamp: the set-pass writes now(), which can never equal it.
+      val sentinel = OffsetDateTime.parse("2001-01-01T00:00:00Z")
+
+      val (stampAfterFlag, stampAfterRerun, stampAfterClear) = runRolledBack(for {
+        taskId <- auditTaskTable.insert(
+          newTask(streetId, userId, OffsetDateTime.parse("2020-01-15T12:00:00Z"), completed = true)
+        )
+        _ <- setImagery(streetId, Some(LocalDate.parse("2024-06-01")), Some(LocalDate.parse("2024-06-01")), None)
+        _ <- auditTaskTable.syncOutdatedImageryFlags
+        stampAfterFlag  <- flaggedAtOf(taskId)
+        _               <- auditTasks.filter(_.auditTaskId === taskId).map(_.outdatedImageryAt).update(Some(sentinel))
+        _               <- auditTaskTable.syncOutdatedImageryFlags
+        stampAfterRerun <- flaggedAtOf(taskId)
+        // The street's median now predates the audit, so the clear-pass unflags it.
+        _               <- setImagery(streetId, Some(LocalDate.parse("2019-06-01")), None, None)
+        _               <- auditTaskTable.syncOutdatedImageryFlags
+        stampAfterClear <- flaggedAtOf(taskId)
+      } yield (stampAfterFlag, stampAfterRerun, stampAfterClear))
+
+      stampAfterFlag mustBe defined
+      stampAfterRerun.map(_.toInstant) mustBe Some(sentinel.toInstant)
+      stampAfterClear mustBe empty
+    }
+
     "ignore a future median capture date, and clear a flag that a future date would otherwise pin forever" in {
       assume(someUserId.isDefined && nonTutorialStreets.nonEmpty)
       val (userId, streetId) = (someUserId.get, nonTutorialStreets.head)
@@ -218,6 +250,27 @@ class OutdatedImageryFlagSyncSpec extends PlaySpec with GuiceOneAppPerSuite with
     /** Ages every real pano out of the 7-day lookback so the refresh sees only this spec's synthetic pano. */
     def ageOutRealPanos: DBIO[Int] = sqlu"UPDATE pano_data SET last_viewed = now() - interval '30 days'"
 
+    /**
+     * Inserts a street with a geometry nothing else in the connected DB is near, and returns its id.
+     *
+     * The refresh assigns each pano to its *nearest* street via DISTINCT ON, so these cases only mean anything if
+     * exactly one street is nearest to the pano they place. Picking a street out of the connected DB can't promise
+     * that: CI's seeded city clones the tutorial street's geometry onto its one non-tutorial street, which leaves a
+     * pano on that line equidistant from both, the tie broken arbitrarily, and — when it falls to the tutorial
+     * street — the row dropped by the tutorial filter, so the street under test gets no imagery at all. Seeding an
+     * isolated line off the coast of Africa, where no real city has streets, makes the nearest street unambiguous.
+     * Rolled back with the rest of the case.
+     */
+    def insertIsolatedStreet: DBIO[Int] =
+      // The id is taken from MAX rather than the sequence: a dump-restored dev DB leaves street_edge_id_seq behind
+      // the ids actually in the table, so the column default collides on the primary key.
+      sql"""INSERT INTO street_edge (street_edge_id, geom, x1, y1, x2, y2, way_type, status)
+            SELECT COALESCE(MAX(street_edge_id), 0) + 1,
+                   ST_SetSRID(ST_MakeLine(ST_MakePoint(-0.01, 0.01), ST_MakePoint(-0.0098, 0.01)), 4326),
+                   -0.01, 0.01, -0.0098, 0.01, 'residential', 'open'
+            FROM street_edge
+            RETURNING street_edge_id""".as[Int].head
+
     /** (lat, lng) of the street's midpoint: on the street's own line, so this street is its nearest street. */
     def streetMidpoint(streetEdgeId: Int): DBIO[(Double, Double)] =
       sql"""
@@ -231,14 +284,11 @@ class OutdatedImageryFlagSyncSpec extends PlaySpec with GuiceOneAppPerSuite with
         expired = false, OffsetDateTime.now, None, OffsetDateTime.now, PanoSource.Gsv, None, None, None)
 
     "create a street's imagery row from a recently-viewed pano on it" in {
-      assume(nonTutorialStreets.nonEmpty)
-      val streetId = nonTutorialStreets.head
-
       val row = runRolledBack(for {
         _        <- ageOutRealPanos
+        streetId <- insertIsolatedStreet
         midpoint <- streetMidpoint(streetId)
         _        <- panoDataTable.upsert(panoAt(midpoint._1, midpoint._2))
-        _        <- streetImagery.filter(_.streetEdgeId === streetId).delete
         _        <- streetImageryTable.refreshFromPanoData
         row      <- streetImageryTable.getForStreet(streetId)
       } yield row)
@@ -253,16 +303,14 @@ class OutdatedImageryFlagSyncSpec extends PlaySpec with GuiceOneAppPerSuite with
     }
 
     "only widen the capture-date range on conflict, leaving n_panos, data_source, and the median alone" in {
-      assume(nonTutorialStreets.nonEmpty)
-      val streetId   = nonTutorialStreets.head
       val staleStamp = OffsetDateTime.now.minusYears(1)
 
       val row = runRolledBack(for {
         _        <- ageOutRealPanos
+        streetId <- insertIsolatedStreet
         midpoint <- streetMidpoint(streetId)
         _        <- panoDataTable.upsert(panoAt(midpoint._1, midpoint._2))
         // Pre-existing polled row with a wider date range and a richer pano count than the viewed pano provides.
-        _ <- streetImagery.filter(_.streetEdgeId === streetId).delete
         _ <- streetImagery += StreetImagery(streetId, Some(LocalDate.parse("2010-01-01")),
           Some(LocalDate.parse("2030-01-01")), Some(LocalDate.parse("2015-01-01")), 42, StreetImagerySource.ImageryPoll,
           staleStamp)

@@ -112,6 +112,125 @@ class AdminShell {
       });
     });
   }
+
+  // ---- Shared formatting helpers ------------------------------------------------------------------------------
+  //
+  // AdminShell loads on every dashboard page, so one copy of each of these lives here rather than being re-derived
+  // per page. Two pages that format the same seconds or the same timestamp differently is a bug the reader has to
+  // notice for themselves.
+
+  /** True for null or undefined (JSON omits absent Option fields, so they arrive as undefined). */
+  static nil(value) {
+    return value === null || value === undefined;
+  }
+
+  /**
+   * Escapes a value for safe insertion as HTML text.
+   *
+   * @param {*} value - Anything; null and undefined render as the empty string.
+   * @returns {string} The value with HTML metacharacters replaced by entities.
+   */
+  static esc(value) {
+    if (AdminShell.nil(value)) return '';
+    return String(value)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  /**
+   * @param {number|string} n - A number, or anything Number() can read.
+   * @returns {string} Thousands-separated integer.
+   */
+  static num(n) {
+    return Number(n).toLocaleString('en-US');
+  }
+
+  /**
+   * @param {number} seconds - A duration; negatives are clamped to zero.
+   * @returns {string} Short human duration ("3m 20s", "2h 5m", "4d 3h"), or an em dash when absent.
+   */
+  static dur(seconds) {
+    if (AdminShell.nil(seconds)) return '—';
+    const s = Math.max(0, Math.floor(seconds));
+    if (s < 60) return `${s}s`;
+    const m = Math.floor(s / 60);
+    if (m < 60) return `${m}m ${s % 60}s`;
+    const h = Math.floor(m / 60);
+    if (h < 24) return `${h}h ${m % 60}m`;
+    const d = Math.floor(h / 24);
+    return `${d}d ${h % 24}h`;
+  }
+
+  /**
+   * How long ago a timestamp was, falling back to a plain date once "N days ago" stops being the useful reading.
+   *
+   * @param {string|number|Date} ts - Anything the Date constructor accepts.
+   * @param {Object} [opts]
+   * @param {string} [opts.invalid] - What to return for an unparseable timestamp; defaults to echoing the input.
+   * @param {boolean} [opts.withYear=true] - Include the year in the date fallback.
+   * @returns {string} A relative time ("just now", "12m ago", "3h ago", "5d ago") or a formatted date.
+   */
+  static relativeTime(ts, opts = {}) {
+    const date = new Date(ts);
+    if (isNaN(date)) return AdminShell.nil(opts.invalid) ? String(ts) : opts.invalid;
+    const secs = Math.max(0, Math.floor((Date.now() - date.getTime()) / 1000));
+    if (secs < 60) return 'just now';
+    const mins = Math.floor(secs / 60);
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    const days = Math.floor(hrs / 24);
+    if (days < 7) return `${days}d ago`;
+    const dateOpts = { month: 'short', day: 'numeric' };
+    if (opts.withYear !== false) dateOpts.year = 'numeric';
+    return date.toLocaleDateString(undefined, dateOpts);
+  }
+
+  /**
+   * Renders the dashboard's standard table markup. Each header is either a plain string (a text column,
+   * left-aligned) or a `[label, true]` pair marking a numeric column, whose header is right-aligned to sit over its
+   * `.ac-num` cells.
+   *
+   * @param {Array<string|[string, boolean]>} headers - Column headers.
+   * @param {string} bodyHtml - Pre-rendered `<tr>` rows.
+   * @returns {string} The table's HTML, wrapped in its horizontal-scroll container.
+   */
+  static tableHtml(headers, bodyHtml) {
+    const head = headers.map((h) => {
+      const [label, num] = Array.isArray(h) ? h : [h, false];
+      // Default `.ac-table thead th` is right-aligned; a text column opts into left via `ac-th-text`.
+      return `<th${num ? '' : ' class="ac-th-text"'}>${label}</th>`;
+    }).join('');
+    return `
+      <div class="ac-table-wrap">
+        <table class="ac-table">
+          <thead><tr>${head}</tr></thead>
+          <tbody>${bodyHtml}</tbody>
+        </table>
+      </div>`;
+  }
+
+  /**
+   * Sets an element's text content by id, doing nothing when the element isn't on this page.
+   *
+   * @param {string} id - Element id.
+   * @param {string} text - Text to set; escaping is the DOM's job here, not the caller's.
+   */
+  static setText(id, text) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = text;
+  }
+
+  /**
+   * Sets an element's inner HTML by id, doing nothing when the element isn't on this page.
+   *
+   * @param {string} id - Element id.
+   * @param {string} html - Markup whose interpolated values the caller has already escaped.
+   */
+  static setHtml(id, html) {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = html;
+  }
 }
 
 document.addEventListener('DOMContentLoaded', () => {

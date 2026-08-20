@@ -5,7 +5,7 @@ import models.auth.{WithAdmin, WithOwner}
 import play.api.Configuration
 import play.api.libs.json.Json
 import service.HealthService.dbHealthDataWrites
-import service.{ConfigService, HealthService, LabelService}
+import service.{ConfigService, HealthService, LabelService, StreetLifecycleService}
 
 import javax.inject._
 import scala.concurrent.ExecutionContext
@@ -25,7 +25,8 @@ class AdminDashboardController @Inject() (
     implicit val assets: AssetsFinder,
     configService: ConfigService,
     labelService: LabelService,
-    healthService: HealthService
+    healthService: HealthService,
+    streetLifecycleService: StreetLifecycleService
 )(implicit ec: ExecutionContext)
     extends CustomBaseController(cc) {
   implicit val implicitConfig: Configuration = config
@@ -228,5 +229,19 @@ class AdminDashboardController @Inject() (
    */
   def getDbHealth = cc.securityService.SecuredAction(WithOwner()) { _ =>
     healthService.getDbHealth.map(data => Ok(Json.toJson(data)))
+  }
+
+  /**
+   * The Street Status page's trend endpoint: what changed over the last `weeks` weeks, as snake_case JSON (#4928).
+   *
+   * Admin- rather than Owner-gated, and scoped to this city's schema, because it is a per-city operational lens like
+   * the map and table it sits under. Fetched separately from the page's street GeoJSON so a trend failure leaves the
+   * snapshot intact.
+   *
+   * @param weeks Window size; clamped by [[StreetLifecycleService.clampWeeks]], so a junk value is a narrow chart
+   *              rather than an error.
+   */
+  def getStreetStatusTrend(weeks: Int) = cc.securityService.SecuredAction(WithAdmin()) { _ =>
+    streetLifecycleService.getStreetStatusTrend(weeks).map(trend => Ok(Json.toJson(trend)))
   }
 }

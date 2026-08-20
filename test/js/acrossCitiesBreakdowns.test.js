@@ -19,8 +19,10 @@ const JS_DIR = path.resolve(__dirname, '..', '..', 'public/js');
 /** Loads MiniLineChart into global scope and returns the AcrossCitiesPage class. */
 function loadPage() {
   const chart = fs.readFileSync(path.join(JS_DIR, 'admin-dashboard/MiniLineChart.js'), 'utf8');
+  const shell = fs.readFileSync(path.join(JS_DIR, 'admin-dashboard/AdminShell.js'), 'utf8');
   const page = fs.readFileSync(path.join(JS_DIR, 'admin-dashboard/AcrossCitiesPage.js'), 'utf8');
-  return (0, eval)(`${chart}\nglobalThis.MiniLineChart = MiniLineChart;\n${page}\nAcrossCitiesPage;`);
+  return (0, eval)(`${chart}\nglobalThis.MiniLineChart = MiniLineChart;\n`
+    + `${shell}\nglobalThis.AdminShell = AdminShell;\n${page}\nAcrossCitiesPage;`);
 }
 
 const MARKUP = `

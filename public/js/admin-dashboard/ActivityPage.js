@@ -117,7 +117,7 @@ class ActivityPage {
       // The stream is newest-first, so item 0 is the single most recent contribution — name what it was + who.
       html = `Most recent activity: <strong>${ActivityPage.#esc(ActivityPage.#describeItem(top))}</strong> by `
         + `<strong>${ActivityPage.#esc(top.username || 'Unknown')}</strong> `
-        + `${ActivityPage.#esc(ActivityPage.#relativeTime(top.timestamp))}.`;
+        + `${ActivityPage.#esc(AdminShell.relativeTime(top.timestamp, { invalid: '', withYear: false }))}.`;
     } else {
       // No labels/validations/comments, but the series (audits/sign-ins/missions) has dates: fall back to the date.
       const latest = this.#series[this.#series.length - 1].date;
@@ -348,7 +348,7 @@ class ActivityPage {
       const text = ActivityPage.#feedText(it);
       const meta = `${userLink}${roleChip}${link ? ` · ${link}` : ''}`;
       const summary = ActivityPage.#contributionSummary(it);
-      const when = ActivityPage.#relativeTime(it.timestamp);
+      const when = AdminShell.relativeTime(it.timestamp, { invalid: '', withYear: false });
       const fullDate = ActivityPage.#fmtDateTime(it.timestamp);
       // A preview of the label this item is about, when one is available (placements/validations of GSV or
       // locally-cropped labels). Decorative (alt="") since the text already names the type; clickable as a
@@ -547,21 +547,6 @@ class ActivityPage {
       ? String(ts)
       : d.toLocaleString(undefined,
           { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
-  }
-
-  /** Compact relative time ("just now", "5m ago", "3h ago", "2d ago", or a date for older items). */
-  static #relativeTime(ts) {
-    const then = new Date(ts);
-    if (isNaN(then)) return '';
-    const secs = Math.max(0, (Date.now() - then.getTime()) / 1000);
-    if (secs < 60) return 'just now';
-    const mins = Math.floor(secs / 60);
-    if (mins < 60) return `${mins}m ago`;
-    const hrs = Math.floor(mins / 60);
-    if (hrs < 24) return `${hrs}h ago`;
-    const days = Math.floor(hrs / 24);
-    if (days < 7) return `${days}d ago`;
-    return then.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   }
 
   static #esc(s) {
