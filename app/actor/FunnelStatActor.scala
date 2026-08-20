@@ -22,8 +22,8 @@ object FunnelStatActor {
  * Nightly recompute of this deployment's engagement funnel into the local `funnel_stat` table (#288).
  *
  * Mirrors [[UserStatActor]]: each deployment precomputes only its own city's funnel; the cross-city Across Cities page
- * reads every schema's precomputed table. Scheduled at 3:15 am Pacific plus the per-deployment offset (which staggers
- * co-hosted cities), in an empty slot between the user-stat (1:30) and clustering (4:00) jobs.
+ * reads every schema's precomputed table. [[ScheduledJobs]] holds the time, in an empty slot between the user-stat and
+ * clustering jobs, shifted by the per-deployment offset that staggers co-hosted cities.
  *
  * @param adminService Recompute entry point ([[AdminService.updateFunnelStatTable]]).
  */

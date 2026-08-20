@@ -318,6 +318,17 @@ jobs:
       # - NightlyJobStatusSpec (#4928): pins what may clear the Health panel's overdue alarm -- only a scheduled run
       #   that succeeded. A hand-triggered run and an in-flight one are both recorded under the same job_name as the
       #   nightly one, so this rule is the only thing keeping either from masking a scheduler that has stopped.
+      # - NoImageryReportsSpec (#4928): the three street_edge_issue reads behind the missing-imagery views, which
+      #   decide where the offline imagery checker gets pointed next. Seeds its own regions, streets, users and
+      #   reports inside a rolled-back transaction, so it pins corroboration-by-distinct-account and the exclusion of
+      #   retired streets and deleted regions against any seed, empty or not.
+      # - EnumTypeParitySpec (#4928): the three Scala enums added in 358 against the Postgres types they back. Held
+      #   together by a comment otherwise, and drift surfaces at runtime on whichever page reads the row first.
+      # - ScheduledJobsSpec (#4928): roster invariants. A job missing from ScheduledJobs.All is invisible on the
+      #   Health panel, and invisible is indistinguishable from healthy -- the failure this feature exists to close.
+      # - ImageryPollOutcomeSpec (#4928): separates a poll with nothing to do from one that could not run. Recording
+      #   the second as a success is how a rotated-out API key ends the re-audit signal behind a permanently green
+      #   badge.
       # - StreetPriorityAdminSpec (#4908): the admin Imagery map explains each street's priority with the audit counts
       #   the formula consumes, re-expressed in SQL. Its first case recomputes the formula from those counts for every
       #   street and requires the result to equal what the Slick query produces, so re-weighting an audit without
@@ -331,7 +342,7 @@ jobs:
       #   asserts nearest-street attribution, so it is the one to watch against this job's seed (see #4923's note about
       #   the seed cloning the tutorial street's geometry); it passes against a real city schema.
       - name: Run gating/auth tests (health dashboard + route auth posture + geodesic distances)
-        run: sbt 'set Test / parallelExecution := false' 'testOnly controllers.HealthDashboardSpec service.HealthServiceSpec controllers.RouteAuthPostureSpec models.street.GeodesicDistanceSpec service.ExploreTutorialRouteSpec controllers.MobileDetectionSpec service.PanoDataServiceSpec service.ActivityBreakdownSpec service.ConfigServiceTrendSpec models.utils.CityScorecardSpec models.utils.ConfigTableVoidedArchiveSpec controllers.api.StatsApiSpec controllers.ExploreSubmissionSpec controllers.ValidateSubmissionSpec controllers.ExploreNoImageryRateLimitSpec models.pano.PanoExpiredAtSpec models.utils.BackgroundJobRunTableSpec service.JobRunServiceSpec service.NightlyJobStatusSpec service.StreetLifecycleServiceSpec models.audit.OutdatedImageryFlagSyncSpec models.audit.OutdatedImageryRoutingSpec models.street.UpToDateCoverageSpec models.street.StreetPriorityAdminSpec service.ImageryFreshnessReportSpec models.street.StreetImageryPollSpec models.street.StreetImageryTableSpec service.ImageryFreshnessPollSpec'
+        run: sbt 'set Test / parallelExecution := false' 'testOnly controllers.HealthDashboardSpec service.HealthServiceSpec controllers.RouteAuthPostureSpec models.street.GeodesicDistanceSpec service.ExploreTutorialRouteSpec controllers.MobileDetectionSpec service.PanoDataServiceSpec service.ActivityBreakdownSpec service.ConfigServiceTrendSpec models.utils.CityScorecardSpec models.utils.ConfigTableVoidedArchiveSpec controllers.api.StatsApiSpec controllers.ExploreSubmissionSpec controllers.ValidateSubmissionSpec controllers.ExploreNoImageryRateLimitSpec models.pano.PanoExpiredAtSpec models.utils.BackgroundJobRunTableSpec service.JobRunServiceSpec service.NightlyJobStatusSpec service.StreetLifecycleServiceSpec models.audit.OutdatedImageryFlagSyncSpec models.audit.OutdatedImageryRoutingSpec models.street.UpToDateCoverageSpec models.street.NoImageryReportsSpec models.utils.EnumTypeParitySpec actor.ScheduledJobsSpec service.ImageryPollOutcomeSpec models.street.StreetPriorityAdminSpec service.ImageryFreshnessReportSpec models.street.StreetImageryPollSpec models.street.StreetImageryTableSpec service.ImageryFreshnessPollSpec'
         env:
           DATABASE_URL: jdbc:postgresql://localhost:5432/sidewalk
           DATABASE_USER: sidewalk

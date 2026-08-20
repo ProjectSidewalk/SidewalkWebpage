@@ -77,6 +77,19 @@ object PanoDataService {
 
     /** One line for the actor log and the admin endpoint's response body. */
     def summary: String = s"Not expired: $stillThere. Expired: $gone. Errors: $errors."
+
+    /**
+     * The counts as they are stored against a `background_job_run` row.
+     *
+     * Defined on the result rather than at each call site so the nightly sweep and the admin hand-trigger can't
+     * record the same sweep under two different shapes.
+     */
+    def runDetails: JsObject = Json.obj(
+      "panos_checked" -> checked,
+      "still_there"   -> stillThere,
+      "gone"          -> gone,
+      "errors"        -> errors
+    )
   }
 
   /**

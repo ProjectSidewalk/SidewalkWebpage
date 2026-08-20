@@ -94,7 +94,7 @@ class StreetPriorityTable {
 
     tbody.innerHTML = visible.map((row) => {
       const cells = this.#columns
-        .map((c) => `<td>${c.format ? c.format(row) : StreetPriorityTable.esc(row[c.key])}</td>`).join('');
+        .map((c) => `<td>${c.format ? c.format(row) : StreetPriorityTable.#cell(row[c.key])}</td>`).join('');
       return `<tr data-row-id="${row[this.#rowKey]}">${cells}</tr>`;
     }).join('');
 
@@ -177,13 +177,12 @@ class StreetPriorityTable {
   }
 
   /**
-   * Escapes a value for interpolation into row HTML.
+   * Renders a cell with no declared format: escaped text, or an em dash when the row carries nothing there.
    *
    * @param {*} value - Anything renderable; null and undefined become an em dash.
    * @returns {string} HTML-safe text.
    */
-  static esc(value) {
-    if (value === null || value === undefined) return '—';
-    return String(value).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  static #cell(value) {
+    return AdminShell.nil(value) ? '—' : AdminShell.esc(value);
   }
 }

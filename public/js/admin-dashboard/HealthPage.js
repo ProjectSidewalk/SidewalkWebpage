@@ -73,7 +73,7 @@ class HealthPage {
       this.#renderPanos(data.pano_backups || null);
       this.#renderNightlyJobs(data.nightly_jobs || []);
     } catch (e) {
-      this.#setHtml('health-pulse', `<strong>Could not load health data.</strong> ${HealthPage.#esc(e.message)}`);
+      AdminShell.setHtml('health-pulse', `<strong>Could not load health data.</strong> ${AdminShell.esc(e.message)}`);
     } finally {
       this.#loading = false;
     }
@@ -114,9 +114,9 @@ class HealthPage {
     }
     const label = tone === 'good' ? 'All clear' : 'Needs attention';
     const detail = problems.length
-      ? ` — ${problems.map(HealthPage.#esc).join(', ')}`
+      ? ` — ${problems.map((p) => AdminShell.esc(p)).join(', ')}`
       : ' — no blocking locks, stuck evolutions, or long idle transactions right now.';
-    this.#setHtml('health-pulse', `<span class="ac-badge ac-badge--${tone}">${label}</span>${detail}`);
+    AdminShell.setHtml('health-pulse', `<span class="ac-badge ac-badge--${tone}">${label}</span>${detail}`);
   }
 
   /** Fills the top-line KPI numbers. */
@@ -138,15 +138,15 @@ class HealthPage {
     this.#setKpi('kpi-bloat', bloated, bloated > 0 ? 'warn' : 'good');
     this.#setKpi('kpi-connections', conns, 'ok');
     // A missing value ("—") means unknown, not healthy, so tone it neutral ('ok') instead of 'good' (green).
-    const panoTone = HealthPage.#nil(atRisk) ? 'ok' : atRisk > 0 ? 'warn' : 'good';
-    this.#setKpi('kpi-panos', HealthPage.#nil(atRisk) ? '—' : HealthPage.#compact(atRisk), panoTone);
+    const panoTone = AdminShell.nil(atRisk) ? 'ok' : atRisk > 0 ? 'warn' : 'good';
+    this.#setKpi('kpi-panos', AdminShell.nil(atRisk) ? '—' : HealthPage.#compact(atRisk), panoTone);
   }
 
   /** Renders the "updated Ns ago · db · role" meta line, including whether other sessions' query text is visible. */
   #renderMeta(data) {
     const parts = [`updated <span id="health-meta-age">${this.#ageText()}</span>`];
-    if (data.current_database) parts.push(`db <code>${HealthPage.#esc(data.current_database)}</code>`);
-    if (data.current_role) parts.push(`role <code>${HealthPage.#esc(data.current_role)}</code>`);
+    if (data.current_database) parts.push(`db <code>${AdminShell.esc(data.current_database)}</code>`);
+    if (data.current_role) parts.push(`role <code>${AdminShell.esc(data.current_role)}</code>`);
     if (data.can_see_all_queries === false) {
       // Without pg_read_all_stats Postgres nulls out other sessions' state/wait/query, so those rows drop out of the
       // state-filtered panels entirely — say so, rather than implying only the query text is missing.
@@ -154,7 +154,7 @@ class HealthPage {
         sessions' state and query are hidden, so the idle-transaction and long-query panels show only this app's own
         sessions`);
     }
-    this.#setHtml('health-meta', parts.join(' · '));
+    AdminShell.setHtml('health-meta', parts.join(' · '));
   }
 
   // ---- Panel: blocking locks -------------------------------------------------------------------------------------
@@ -168,12 +168,12 @@ class HealthPage {
       return `
         <tr>
           <td class="ac-num">${r.pid}</td>
-          <td>${HealthPage.#esc(r.usename) || '—'}</td>
+          <td>${AdminShell.esc(r.usename) || '—'}</td>
           <td>${this.#stateBadge(r.state)}</td>
-          <td class="ac-num">${HealthPage.#dur(r.xact_seconds)}</td>
+          <td class="ac-num">${AdminShell.dur(r.xact_seconds)}</td>
           <td class="ac-num"><span class="ac-badge ac-badge--${tone}">${r.blocking_count}</span></td>
-          <td class="ac-num">${HealthPage.#dur(r.max_wait_seconds)}</td>
-          <td class="ac-muted">${HealthPage.#esc(r.held_locks) || '—'}</td>
+          <td class="ac-num">${AdminShell.dur(r.max_wait_seconds)}</td>
+          <td class="ac-muted">${AdminShell.esc(r.held_locks) || '—'}</td>
           <td class="ac-muted">${this.#queryCell(r.query)}</td>
         </tr>`;
     }).join('');
@@ -193,10 +193,10 @@ class HealthPage {
       return `
         <tr>
           <td class="ac-num">${r.pid}</td>
-          <td>${HealthPage.#esc(r.usename) || '—'}</td>
-          <td>${HealthPage.#esc(r.application_name) || '—'}</td>
-          <td class="ac-num"><span class="ac-badge ac-badge--${tone}">${HealthPage.#dur(r.query_seconds)}</span></td>
-          <td>${HealthPage.#esc(r.wait_event_type) || '—'}</td>
+          <td>${AdminShell.esc(r.usename) || '—'}</td>
+          <td>${AdminShell.esc(r.application_name) || '—'}</td>
+          <td class="ac-num"><span class="ac-badge ac-badge--${tone}">${AdminShell.dur(r.query_seconds)}</span></td>
+          <td>${AdminShell.esc(r.wait_event_type) || '—'}</td>
           <td class="ac-muted">${this.#queryCell(r.query)}</td>
         </tr>`;
     }).join('');
@@ -215,10 +215,10 @@ class HealthPage {
       return `
         <tr>
           <td class="ac-num">${r.pid}</td>
-          <td>${HealthPage.#esc(r.usename) || '—'}</td>
-          <td>${HealthPage.#esc(r.application_name) || '—'}</td>
-          <td class="ac-num"><span class="ac-badge ac-badge--${tone}">${HealthPage.#dur(r.idle_seconds)}</span></td>
-          <td class="ac-num">${HealthPage.#dur(r.xact_seconds)}</td>
+          <td>${AdminShell.esc(r.usename) || '—'}</td>
+          <td>${AdminShell.esc(r.application_name) || '—'}</td>
+          <td class="ac-num"><span class="ac-badge ac-badge--${tone}">${AdminShell.dur(r.idle_seconds)}</span></td>
+          <td class="ac-num">${AdminShell.dur(r.xact_seconds)}</td>
           <td class="ac-muted">${this.#queryCell(r.query)}</td>
         </tr>`;
     }).join('');
@@ -232,11 +232,11 @@ class HealthPage {
     if (!rows.length) return this.#renderEmpty('health-evolutions', 'All evolutions are applied cleanly.');
     const body = rows.map((r) => `
         <tr class="ac-row--flagged">
-          <td>${HealthPage.#esc(r.schema)}</td>
+          <td>${AdminShell.esc(r.schema)}</td>
           <td class="ac-num">${r.id}</td>
-          <td><span class="ac-badge ac-badge--bad">${HealthPage.#esc(r.state) || 'unknown'}</span></td>
-          <td class="ac-muted">${HealthPage.#esc((r.applied_at || '').slice(0, 19)) || '—'}</td>
-          <td class="ac-muted">${HealthPage.#esc(r.last_problem) || '—'}</td>
+          <td><span class="ac-badge ac-badge--bad">${AdminShell.esc(r.state) || 'unknown'}</span></td>
+          <td class="ac-muted">${AdminShell.esc((r.applied_at || '').slice(0, 19)) || '—'}</td>
+          <td class="ac-muted">${AdminShell.esc(r.last_problem) || '—'}</td>
         </tr>`).join('');
     this.#table('health-evolutions', ['Schema', ['Evolution', true], 'State', 'Applied at', 'Problem'], body);
   }
@@ -247,15 +247,15 @@ class HealthPage {
     if (!rows.length) return this.#renderEmpty('health-bloat', 'No stats for the heavyweight tables.');
     const body = rows.map((r) => {
       const tone = this.#bloatTone(r);
-      const ratioPct = HealthPage.#nil(r.dead_ratio) ? '—' : `${(r.dead_ratio * 100).toFixed(1)}%`;
+      const ratioPct = AdminShell.nil(r.dead_ratio) ? '—' : `${(r.dead_ratio * 100).toFixed(1)}%`;
       return `
         <tr${tone !== 'good' ? ' class="ac-row--flagged"' : ''}>
-          <td>${HealthPage.#esc(r.schema_name)}</td>
-          <td>${HealthPage.#esc(r.rel_name)}</td>
+          <td>${AdminShell.esc(r.schema_name)}</td>
+          <td>${AdminShell.esc(r.rel_name)}</td>
           <td class="ac-num">${HealthPage.#compact(r.live_tuples)}</td>
           <td class="ac-num">${HealthPage.#compact(r.dead_tuples)}</td>
           <td class="ac-num"><span class="ac-badge ac-badge--${tone === 'good' ? 'good' : tone}">${ratioPct}</span></td>
-          <td class="ac-num">${HealthPage.#nil(r.vacuum_age_seconds) ? 'never' : `${HealthPage.#dur(r.vacuum_age_seconds)} ago`}</td>
+          <td class="ac-num">${AdminShell.nil(r.vacuum_age_seconds) ? 'never' : `${AdminShell.dur(r.vacuum_age_seconds)} ago`}</td>
         </tr>`;
     }).join('');
     this.#table('health-bloat',
@@ -266,7 +266,7 @@ class HealthPage {
   /** Bloat is only meaningful with a real absolute dead-tuple count (post-restore estimates read as 0 live rows). */
   #bloatTone(r) {
     const t = this.#thresholds;
-    if (HealthPage.#nil(r.dead_ratio) || (r.dead_tuples || 0) < t.bloat_min_dead_tuples) return 'good';
+    if (AdminShell.nil(r.dead_ratio) || (r.dead_tuples || 0) < t.bloat_min_dead_tuples) return 'good';
     if (r.dead_ratio >= t.bloat_bad_ratio) return 'bad';
     if (r.dead_ratio >= t.bloat_warn_ratio) return 'warn';
     return 'good';
@@ -294,7 +294,7 @@ class HealthPage {
         const tone = e.active >= t.conn_bad_active ? 'bad' : e.active >= t.conn_warn_active ? 'warn' : 'ok';
         return `
         <tr>
-          <td>${HealthPage.#esc(role)}</td>
+          <td>${AdminShell.esc(role)}</td>
           <td class="ac-num"><span class="ac-badge ac-badge--${tone}">${e.active}</span></td>
           <td class="ac-num">${e.idle}</td>
           <td class="ac-num">${e.total}</td>
@@ -328,12 +328,12 @@ class HealthPage {
         title: 'Source imagery has expired and there is no local backup, so these labels can no longer be shown.' },
     ];
     const html = cards.map((c) => `
-        <div class="coverage-kpi" title="${HealthPage.#esc(c.title)}">
+        <div class="coverage-kpi" title="${AdminShell.esc(c.title)}">
           <span class="coverage-kpi-value">${c.value}</span>
           <span class="coverage-kpi-label">${c.label}</span>
         </div>`).join('');
-    this.#setHtml('health-panos', `<div class="coverage-kpis">${html}</div>`);
-    this.#setHtml('health-panos-note',
+    AdminShell.setHtml('health-panos', `<div class="coverage-kpis">${html}</div>`);
+    AdminShell.setHtml('health-panos-note',
       'Backup status is refreshed lazily by the nightly imagery check, so a large "unchecked" count is normal '
       + 'and these figures approximate what is actually on disk.');
   }
@@ -341,7 +341,7 @@ class HealthPage {
   // ---- Panel: nightly jobs ---------------------------------------------------------------------------------------
 
   /**
-   * Every scheduled job and the state of its last run (#4928).
+   * Every scheduled job and the state of its last *scheduled* run (#4928).
    *
    * Ordered worst-first rather than by schedule: on a healthy night every row says the same thing, and the whole point
    * of the panel is the one row that doesn't.
@@ -357,155 +357,83 @@ class HealthPage {
         'Could not read the nightly-job history — this panel is blind, not clear.');
     }
     const t = this.#thresholds;
+    // A status this page has not been taught sorts most-urgent (AdminShell.jobStatusBadge tones it to match):
+    // on a health panel, an unrecognized value is a reason to look, not a reason to relax.
     const rank = { never_run: 0, abandoned: 1, failed: 2, running: 3, succeeded: 4 };
     const sorted = [...jobs].sort((a, b) => {
       if (a.overdue !== b.overdue) return a.overdue ? -1 : 1;
-      return (rank[a.last_status] ?? 9) - (rank[b.last_status] ?? 9);
+      return (rank[a.last_status] ?? -1) - (rank[b.last_status] ?? -1);
     });
 
     const body = sorted.map((job) => `
       <tr>
-        <td>${HealthPage.#esc(job.label)}</td>
-        <td class="ac-muted">${HealthPage.#esc(job.scheduled_at)}</td>
-        <td>${this.#jobStatusBadge(job)}</td>
-        <td>${HealthPage.#esc(HealthPage.#jobLastRun(job))}</td>
-        <td class="ac-num">${HealthPage.#jobDuration(job.last_duration_seconds)}</td>
-        <td class="ac-muted">${HealthPage.#esc(HealthPage.#jobDetails(job))}</td>
+        <td>${AdminShell.esc(job.label)}</td>
+        <td class="ac-muted">${AdminShell.esc(job.scheduled_at)}</td>
+        <td>${AdminShell.jobStatusBadge(job)}</td>
+        <td>${AdminShell.jobLastRun(job)}</td>
+        <td class="ac-num">${AdminShell.dur(job.last_duration_seconds)}</td>
+        <td class="ac-muted">${AdminShell.esc(AdminShell.jobDetails(job))}</td>
         <td class="ac-num">${job.failures_in_window > 0
           ? `<span class="ac-badge ac-badge--warn">${job.failures_in_window}/${job.runs_in_window}</span>`
-          : `${HealthPage.#num(job.failures_in_window)}/${HealthPage.#num(job.runs_in_window)}`}</td>
+          : `${AdminShell.num(job.failures_in_window)}/${AdminShell.num(job.runs_in_window)}`}</td>
       </tr>`).join('');
-    this.#table('health-jobs',
-      ['Job', 'Scheduled', 'Last run', 'When', ['Duration', true], 'Result', [`Failures (${t.job_window_days}d)`, true]],
-      body);
+    const headers = ['Job', 'Scheduled', 'Last run', 'When', ['Duration', true], 'Result',
+      [`Failures (${t.job_window_days}d)`, true]];
+    this.#table('health-jobs', headers, body);
     const overdue = jobs.filter((job) => job.overdue).length;
-    this.#setHtml('health-jobs-note', overdue === 0
-      ? `Every job has succeeded within the last ${t.job_overdue_hours} hours.`
-      : `${overdue} job${overdue === 1 ? ' has' : 's have'} not succeeded in the last ${t.job_overdue_hours} hours.`);
-  }
-
-  /** A job's last-run state as a toned badge, with overdue outranking whatever that last run reported. */
-  #jobStatusBadge(job) {
-    const tones = { never_run: 'bad', abandoned: 'bad', failed: 'bad', running: 'ok', succeeded: 'good' };
-    const labels = { never_run: 'never run', abandoned: 'abandoned', failed: 'failed', running: 'running',
-      succeeded: 'ok' };
-    const tone = job.overdue ? (tones[job.last_status] === 'bad' ? 'bad' : 'warn') : (tones[job.last_status] || 'good');
-    const label = job.overdue && job.last_status === 'succeeded' ? 'overdue' : (labels[job.last_status] || job.last_status);
-    return `<span class="ac-badge ac-badge--${tone}">${HealthPage.#esc(label)}</span>`;
-  }
-
-  /**
-   * "4h ago" / "3d ago", or an explicit never. A hand-triggered last run says so, because it is the one run that
-   * proves nothing about whether the schedule is still firing.
-   */
-  static #jobLastRun(job) {
-    if (job.hours_since_last_run === null || job.hours_since_last_run === undefined) return 'never';
-    const hours = job.hours_since_last_run;
-    const when = hours < 1 ? 'under an hour ago' : hours < 48 ? `${hours}h ago` : `${Math.floor(hours / 24)}d ago`;
-    return job.last_triggered_by === 'manual' ? `${when} (manual)` : when;
-  }
-
-  /** A run's wall-clock duration, or an em dash while it is still open. */
-  static #jobDuration(seconds) {
-    if (seconds === null || seconds === undefined) return '—';
-    if (seconds < 60) return `${seconds}s`;
-    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
-    return `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`;
-  }
-
-  /**
-   * A run's own counts, flattened to `key: value` pairs. Every job reports a different shape, so this renders whatever
-   * it stored rather than naming fields the panel would have to be taught one by one.
-   */
-  static #jobDetails(job) {
-    if (job.last_error) return job.last_error;
-    const details = job.last_details;
-    if (!details || typeof details !== 'object') return '—';
-    const parts = Object.entries(details)
-      .filter(([, value]) => value !== null && value !== undefined)
-      .map(([key, value]) => `${key.replace(/_/g, ' ')}: ${typeof value === 'number' ? value.toLocaleString() : value}`);
-    return parts.length > 0 ? parts.join(', ') : '—';
+    AdminShell.setHtml('health-jobs-note', overdue === 0
+      ? `Every job has succeeded on schedule within the last ${t.job_overdue_hours} hours.`
+      : `${overdue} job${overdue === 1 ? ' has' : 's have'} not succeeded on schedule in the last `
+        + `${t.job_overdue_hours} hours.`);
   }
 
   // ---- Small helpers ---------------------------------------------------------------------------------------------
 
   /**
-   * Renders a standard table into a container. Each header is either a plain string (a text column, left-aligned) or a
-   * `[label, true]` pair marking a numeric column, whose header is right-aligned to sit over its `.ac-num` cells.
+   * Renders the dashboard's standard table into a container.
    *
    * @param {string} id - Container element id.
    * @param {Array<string|[string, boolean]>} headers - Column headers; `[label, true]` right-aligns a numeric column.
    * @param {string} bodyHtml - Pre-rendered `<tr>` rows.
    */
   #table(id, headers, bodyHtml) {
-    const head = headers.map((h) => {
-      const [label, num] = Array.isArray(h) ? h : [h, false];
-      // Default `.ac-table thead th` is right-aligned; a text column opts into left via `ac-th-text`.
-      return `<th${num ? '' : ' class="ac-th-text"'}>${label}</th>`;
-    }).join('');
-    this.#setHtml(id, `
-      <div class="ac-table-wrap">
-        <table class="ac-table">
-          <thead><tr>${head}</tr></thead>
-          <tbody>${bodyHtml}</tbody>
-        </table>
-      </div>`);
+    AdminShell.setHtml(id, AdminShell.tableHtml(headers, bodyHtml));
   }
 
   /** Renders an "all clear" line for an empty panel. */
   #renderEmpty(id, msg) {
-    this.#setHtml(id, `<p class="coverage-status"><span class="ac-badge ac-badge--good">✓</span> ${HealthPage.#esc(msg)}</p>`);
+    AdminShell.setHtml(id, `<p class="coverage-status">
+      <span class="ac-badge ac-badge--good">✓</span> ${AdminShell.esc(msg)}
+    </p>`);
   }
 
   /** The counterpart to #renderEmpty for a panel with nothing to show *because the read failed*. */
   #renderProblem(id, msg) {
-    this.#setHtml(id, `<p class="coverage-status"><span class="ac-badge ac-badge--bad">!</span> `
-    + `${HealthPage.#esc(msg)}</p>`);
+    AdminShell.setHtml(id, `<p class="coverage-status">
+      <span class="ac-badge ac-badge--bad">!</span> ${AdminShell.esc(msg)}
+    </p>`);
   }
 
   /** A session state as a toned badge ("idle in transaction" is the notable one). */
   #stateBadge(state) {
     if (!state) return '—';
     const tone = state.startsWith('idle in transaction') ? 'warn' : state === 'active' ? 'ok' : 'good';
-    return `<span class="ac-badge ac-badge--${tone}">${HealthPage.#esc(state)}</span>`;
+    return `<span class="ac-badge ac-badge--${tone}">${AdminShell.esc(state)}</span>`;
   }
 
   /** A query cell: the statement, or a note when the role can't read another session's statement text. */
   #queryCell(query) {
-    if (HealthPage.#nil(query)) return '<em>hidden</em>';
+    if (AdminShell.nil(query)) return '<em>hidden</em>';
     const q = query.length > 160 ? `${query.slice(0, 160)}…` : query;
-    return `<code>${HealthPage.#esc(q)}</code>`;
+    return `<code>${AdminShell.esc(q)}</code>`;
   }
 
   #setKpi(id, value, tone) {
     const el = document.getElementById(id);
     if (!el) return;
-    el.textContent = typeof value === 'number' ? HealthPage.#num(value) : value;
+    el.textContent = typeof value === 'number' ? AdminShell.num(value) : value;
     el.classList.remove('health-kpi--good', 'health-kpi--warn', 'health-kpi--bad', 'health-kpi--ok');
     el.classList.add(`health-kpi--${tone}`);
-  }
-
-  #setHtml(id, html) {
-    const el = document.getElementById(id);
-    if (el) el.innerHTML = html;
-  }
-
-  /** True for null or undefined (JSON omits absent Option fields, so they arrive as undefined). */
-  static #nil(value) {
-    return value === null || value === undefined;
-  }
-
-  /** Escapes a value for safe insertion as HTML text. */
-  static #esc(value) {
-    if (HealthPage.#nil(value)) return '';
-    return String(value)
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-  }
-
-  /** Thousands-separated integer. */
-  static #num(n) {
-    return Number(n).toLocaleString('en-US');
   }
 
   /** Compact number ("1.2M", "317k"). */
@@ -516,19 +444,6 @@ class HealthPage {
     if (Math.abs(v) >= 999500) return `${(v / 1e6).toFixed(1)}M`;
     if (Math.abs(v) >= 1e3) return `${(v / 1e3).toFixed(0)}k`;
     return String(v);
-  }
-
-  /** Seconds → short human duration ("3m 20s", "2h 5m", "4d 3h"). */
-  static #dur(seconds) {
-    if (HealthPage.#nil(seconds)) return '—';
-    const s = Math.max(0, Math.floor(seconds));
-    if (s < 60) return `${s}s`;
-    const m = Math.floor(s / 60);
-    if (m < 60) return `${m}m ${s % 60}s`;
-    const h = Math.floor(m / 60);
-    if (h < 24) return `${h}h ${m % 60}m`;
-    const d = Math.floor(h / 24);
-    return `${d}d ${h % 24}h`;
   }
 
   /** Repaints just the "updated Ns ago" text; called on a 1s ticker between polls. */
@@ -543,7 +458,7 @@ class HealthPage {
    * @returns {string} The age text, or "—" before the first successful load.
    */
   #ageText() {
-    if (HealthPage.#nil(this.#lastUpdatedMs)) return '—';
+    if (AdminShell.nil(this.#lastUpdatedMs)) return '—';
     const secs = Math.max(0, Math.round((Date.now() - this.#lastUpdatedMs) / 1000));
     return secs < 60 ? `${secs}s ago` : `${Math.round(secs / 60)}m ago`;
   }

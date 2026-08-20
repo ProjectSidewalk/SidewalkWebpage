@@ -243,15 +243,15 @@ class StreetPriorityMap {
       StreetPriorityTiers.colorFor(p.priority_tier)}" aria-hidden="true"></span>`;
     const priority = Number(p.priority);
     return [
-      `<div class="coverage-popup-name">Street ${p.street_edge_id}</div>`,
+      `<div class="coverage-popup-name">Street ${AdminShell.esc(p.street_edge_id)}</div>`,
       '<dl class="coverage-popup-dl">',
-      row('Tier', `${swatch}${StreetPriorityTiers.labelFor(p.priority_tier)}`),
+      row('Tier', `${swatch}${AdminShell.esc(StreetPriorityTiers.labelFor(p.priority_tier))}`),
       row('Priority', Number.isFinite(priority) ? priority.toFixed(3) : '—'),
-      row('Region', p.region_name),
-      row('Audits counted', `${p.fresh_good_count} current, ${p.outdated_good_count} outdated, ${p.bad_count} `
-      + 'low quality'),
-      row('Last audited', p.last_audit_date || 'never'),
-      row('Imagery (median)', p.median_newest_capture || 'not polled'),
+      row('Region', AdminShell.esc(p.region_name)),
+      row('Audits counted', `${AdminShell.num(p.fresh_good_count)} current, `
+      + `${AdminShell.num(p.outdated_good_count)} outdated, ${AdminShell.num(p.bad_count)} low quality`),
+      row('Last audited', AdminShell.esc(p.last_audit_date || 'never')),
+      row('Imagery (median)', AdminShell.esc(p.median_newest_capture || 'not polled')),
       '</dl>',
     ].join('');
   }

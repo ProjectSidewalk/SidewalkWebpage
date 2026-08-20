@@ -88,13 +88,14 @@ class ImageryPipelinePanel {
   #renderFailures(report) {
     const nights = (report.run_days || []).filter((day) => day.poll_failures > 0 || day.sync_failures > 0);
     if (nights.length === 0) {
-      this.#setHtml('imagery-failure-note',
+      AdminShell.setHtml('imagery-failure-note',
         `No run of either job failed in the last ${report.days} days.`);
       return;
     }
     const dates = nights.map((night) => night.day).join(', ');
-    this.#setHtml('imagery-failure-note', `${nights.length} of the last ${report.days} nights recorded a failed run `
-    + `(${ImageryPipelinePanel.#esc(dates)}). A failed night polls nothing, so its bars below are empty.`);
+    AdminShell.setHtml('imagery-failure-note',
+      `${nights.length} of the last ${report.days} nights recorded a failed run (${AdminShell.esc(dates)}). `
+      + 'A failed night polls nothing, so its bars below are empty.');
   }
 
   /**
@@ -140,8 +141,8 @@ class ImageryPipelinePanel {
         + `${flagged.toLocaleString()} audit${flagged === 1 ? '' : 's'} for a re-audit.`;
     }
     const label = tone === 'good' ? 'Running' : 'Needs attention';
-    this.#setHtml('imagery-pipeline-status',
-      `<span class="ac-badge ac-badge--${tone}">${label}</span> ${ImageryPipelinePanel.#esc(message)}`);
+    AdminShell.setHtml('imagery-pipeline-status',
+      `<span class="ac-badge ac-badge--${tone}">${label}</span> ${AdminShell.esc(message)}`);
   }
 
   /** The three jobs' last-run state, in the order they run each night. */
@@ -149,34 +150,21 @@ class ImageryPipelinePanel {
     // The roster is a compile-time constant, so an empty list means the read failed and was recovered — a blind
     // panel, not a healthy one.
     if (jobs.length === 0) {
-      this.#setHtml('imagery-jobs',
+      AdminShell.setHtml('imagery-jobs',
         '<p class="coverage-status error"><span class="ac-badge ac-badge--bad">!</span> '
         + 'Could not read the job history — this panel is blind, not clear.</p>');
       return;
     }
     const rows = jobs.map((job) => `
       <tr>
-        <td>${ImageryPipelinePanel.#esc(job.label)}</td>
-        <td class="ac-muted">${ImageryPipelinePanel.#esc(job.scheduled_at)}</td>
-        <td>${ImageryPipelinePanel.#statusBadge(job)}</td>
-        <td>${ImageryPipelinePanel.#esc(ImageryPipelinePanel.#lastRun(job))}</td>
-        <td class="ac-muted">${ImageryPipelinePanel.#esc(ImageryPipelinePanel.#details(job))}</td>
+        <td>${AdminShell.esc(job.label)}</td>
+        <td class="ac-muted">${AdminShell.esc(job.scheduled_at)}</td>
+        <td>${AdminShell.jobStatusBadge(job)}</td>
+        <td>${AdminShell.jobLastRun(job)}</td>
+        <td class="ac-muted">${AdminShell.esc(AdminShell.jobDetails(job))}</td>
       </tr>`).join('');
-    this.#setHtml('imagery-jobs', `
-      <div class="ac-table-wrap">
-        <table class="ac-table">
-          <thead>
-            <tr>
-              <th class="ac-th-text">Job</th>
-              <th class="ac-th-text">Scheduled</th>
-              <th class="ac-th-text">Status</th>
-              <th class="ac-th-text">Last run</th>
-              <th class="ac-th-text">Result</th>
-            </tr>
-          </thead>
-          <tbody>${rows}</tbody>
-        </table>
-      </div>`);
+    AdminShell.setHtml('imagery-jobs',
+      AdminShell.tableHtml(['Job', 'Scheduled', 'Status', 'Last run', 'Result'], rows));
   }
 
   /** The two per-night bar charts, over a zero-filled day axis so a night with no run is visibly empty. */
@@ -223,56 +211,10 @@ class ImageryPipelinePanel {
     });
   }
 
-  /** A job's last-run state as a toned badge, with overdue outranking whatever that last run reported. */
-  static #statusBadge(job) {
-    const tones = { never_run: 'bad', abandoned: 'bad', failed: 'bad', running: 'ok', succeeded: 'good' };
-    const labels = { never_run: 'never run', abandoned: 'abandoned', failed: 'failed', running: 'running',
-      succeeded: 'ok' };
-    const tone = job.overdue ? (tones[job.last_status] === 'bad' ? 'bad' : 'warn') : (tones[job.last_status] || 'good');
-    const label = job.overdue && job.last_status === 'succeeded'
-      ? 'overdue'
-      : (labels[job.last_status]
-        || job.last_status);
-    return `<span class="ac-badge ac-badge--${tone}">${ImageryPipelinePanel.#esc(label)}</span>`;
-  }
-
-  /** "4h ago" / "3d ago", or never. A hand-run last run says so: it proves the code works, not the schedule. */
-  static #lastRun(job) {
-    if (job.hours_since_last_run === null || job.hours_since_last_run === undefined) return 'never';
-    const hours = job.hours_since_last_run;
-    const when = hours < 1 ? 'under an hour ago' : hours < 48 ? `${hours}h ago` : `${Math.floor(hours / 24)}d ago`;
-    return job.last_triggered_by === 'manual' ? `${when} (manual)` : when;
-  }
-
-  /** A run's own counts, flattened to `key: value` pairs, or its error when it failed. */
-  static #details(job) {
-    if (job.last_error) return job.last_error;
-    const details = job.last_details;
-    if (!details || typeof details !== 'object') return '—';
-    const parts = Object.entries(details)
-      .filter(([, value]) => value !== null && value !== undefined)
-      .map(([key, value]) => {
-        const shown = typeof value === 'number' ? value.toLocaleString() : value;
-        return `${key.replace(/_/g, ' ')}: ${shown}`;
-      });
-    return parts.length > 0 ? parts.join(', ') : '—';
-  }
-
   #setStatus(message, isError) {
     const status = document.getElementById('imagery-pipeline-status');
     if (!status) return;
     status.textContent = message;
     status.classList.toggle('error', !!isError);
-  }
-
-  #setHtml(id, html) {
-    const element = document.getElementById(id);
-    if (element) element.innerHTML = html;
-  }
-
-  /** Escapes text for interpolation into rendered HTML. */
-  static #esc(value) {
-    if (value === null || value === undefined) return '';
-    return String(value).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   }
 }

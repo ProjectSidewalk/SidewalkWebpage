@@ -135,11 +135,39 @@ class StreetLifecycleServiceSpec extends PlaySpec with BeforeAndAfterAll with Gu
       Seq("status_changes", "no_imagery_reports", "panos_expired", "top_report_regions", "corroborated_streets")
         .foreach(key => (json \ key).asOpt[play.api.libs.json.JsArray] mustBe defined)
       (json \ "panos_expired_undated").as[Int] must be >= 0
+      // The window start is what the client steps its week grid from, so it has to stay an ISO string rather than
+      // whatever a serializer's default for a timestamp happens to be.
+      (json \ "since").as[String] must startWith(trend.since.toLocalDate.toString)
+    }
+
+    "name each series row's fields in snake_case" in {
+      assume(streetEdgeId.isDefined, "no streets in the connected database to attach a status change to")
+      cleanUp()
+      seedChange(StreetEdgeStatus.Open, StreetEdgeStatus.NoImagery, OffsetDateTime.now)
+      // Straight through the service so the cached payload is the one being checked; the window is its own key.
+      val trend = Await.result(streetLifecycleService.getStreetStatusTrend(3), 120.seconds)
+
+      val rows = (Json.toJson(trend) \ "status_changes").as[play.api.libs.json.JsArray].value
+      rows.size must be >= 1
+      val first = rows.head
+      (first \ "week_start").as[String] must fullyMatch regex """\d{4}-\d{2}-\d{2}"""
+      (first \ "new_status").asOpt[String] mustBe defined
+      (first \ "street_count").as[Int] must be >= 1
     }
 
     "start the window on a Monday so the oldest bucket is a whole week" in {
       val trend = Await.result(streetLifecycleService.getStreetStatusTrend(4), 120.seconds)
       trend.since.getDayOfWeek mustBe java.time.DayOfWeek.MONDAY
+    }
+
+    "stamp the window start with the offset that date actually had, not today's" in {
+      // A window reaching back across a daylight-saving change starts on a Monday whose offset differs from today's.
+      // Taking today's would place the cutoff late on the preceding Sunday, pulling in rows Postgres then buckets
+      // under a week the client never draws — so they vanish from the charts with nothing to explain the gap.
+      val trend    = Await.result(streetLifecycleService.getStreetStatusTrend(52), 120.seconds)
+      val expected = java.time.ZoneId.systemDefault.getRules.getOffset(trend.since.toLocalDateTime)
+      trend.since.getOffset mustBe expected
+      trend.since.toLocalTime mustBe java.time.LocalTime.MIDNIGHT
     }
   }
 }

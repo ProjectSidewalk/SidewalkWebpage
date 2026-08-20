@@ -22,9 +22,9 @@ object CheckImageryAgeActor {
  * Nightly poll of the city's imagery provider for current capture dates on a batch of streets (#4384).
  *
  * Feeds street_imagery.newest_capture, which the imagery-freshness sync (run later the same night, at the top of
- * RecalculateStreetPriorityActor's 1:45am sequence) compares against audit dates to flag audits performed on
- * since-replaced imagery. Scheduled at 12:45am Pacific + the per-city offset so a night's discoveries propagate to
- * routing and completion the same night.
+ * RecalculateStreetPriorityActor's sequence) compares against audit dates to flag audits performed on since-replaced
+ * imagery. [[ScheduledJobs]] holds the time, chosen so a night's discoveries propagate to routing and completion the
+ * same night.
  */
 @Singleton
 class CheckImageryAgeActor @Inject() (

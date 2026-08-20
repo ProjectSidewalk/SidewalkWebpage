@@ -166,7 +166,6 @@ class ImageryPage {
   }
 
   #buildTables() {
-    const num = (value) => Math.round(value || 0).toLocaleString();
     this.#regionTable = new StreetPriorityTable('imagery-region-table', {
       rowKey: 'region_id',
       searchId: 'imagery-region-search',
@@ -175,12 +174,12 @@ class ImageryPage {
       columns: [
         { key: 'region_name', label: 'Region', numeric: false },
         { key: 'mean_priority', label: 'Mean priority', format: (r) => r.mean_priority.toFixed(3) },
-        { key: 'unaudited', label: 'Never audited', format: (r) => num(r.unaudited) },
+        { key: 'unaudited', label: 'Never audited', format: (r) => AdminShell.num(r.unaudited) },
         { key: 'reaudit', label: 'Needs re-audit', format: (r) => ImageryPage.#tierCell(r.reaudit, 'reaudit') },
         { key: 'reaudit_miles', label: 'Re-audit miles', format: (r) => r.reaudit_miles.toFixed(1) },
-        { key: 'audited_once', label: 'Audited once', format: (r) => num(r.audited_once) },
-        { key: 'audited_multi', label: 'Audited 2+', format: (r) => num(r.audited_multi) },
-        { key: 'streets', label: 'Streets', format: (r) => num(r.streets) },
+        { key: 'audited_once', label: 'Audited once', format: (r) => AdminShell.num(r.audited_once) },
+        { key: 'audited_multi', label: 'Audited 2+', format: (r) => AdminShell.num(r.audited_multi) },
+        { key: 'streets', label: 'Streets', format: (r) => AdminShell.num(r.streets) },
       ],
       onRowClick: (id) => this.#pin([id]),
       onRowHover: (id) => this.#hover([id]),
@@ -206,20 +205,20 @@ class ImageryPage {
           numeric: false,
           format: (r) => ImageryPage.#tierCell(StreetPriorityTiers.labelFor(r.priority_tier), r.priority_tier),
         },
-        { key: 'fresh_good_count', label: 'Current audits', format: (r) => num(r.fresh_good_count) },
-        { key: 'outdated_good_count', label: 'Outdated audits', format: (r) => num(r.outdated_good_count) },
-        { key: 'bad_count', label: 'Low-quality audits', format: (r) => num(r.bad_count) },
+        { key: 'fresh_good_count', label: 'Current audits', format: (r) => AdminShell.num(r.fresh_good_count) },
+        { key: 'outdated_good_count', label: 'Outdated audits', format: (r) => AdminShell.num(r.outdated_good_count) },
+        { key: 'bad_count', label: 'Low-quality audits', format: (r) => AdminShell.num(r.bad_count) },
         {
           key: 'last_audit_date',
           label: 'Last audited',
           numeric: false,
-          format: (r) => StreetPriorityTable.esc(r.last_audit_date || 'never'),
+          format: (r) => AdminShell.esc(r.last_audit_date || 'never'),
         },
         {
           key: 'median_newest_capture',
           label: 'Imagery (median)',
           numeric: false,
-          format: (r) => StreetPriorityTable.esc(r.median_newest_capture || 'not polled'),
+          format: (r) => AdminShell.esc(r.median_newest_capture || 'not polled'),
         },
       ],
     });
@@ -295,17 +294,17 @@ class ImageryPage {
     const flagged = this.#streets.filter((street) => street.outdated);
     const reauditMiles = flagged.reduce((sum, street) => sum + ImageryPage.#miles(street.length_m), 0);
 
-    ImageryPage.#setText('kpi-needs-reaudit', flagged.length.toLocaleString());
-    ImageryPage.#setText('kpi-needs-reaudit-note', `${reauditMiles.toFixed(1)} mi of audited street with newer `
+    AdminShell.setText('kpi-needs-reaudit', flagged.length.toLocaleString());
+    AdminShell.setText('kpi-needs-reaudit-note', `${reauditMiles.toFixed(1)} mi of audited street with newer `
     + 'imagery');
-    ImageryPage.#setText('kpi-unaudited', counts.unaudited.toLocaleString());
-    ImageryPage.#setText('kpi-unaudited-note', `of ${this.#streets.length.toLocaleString()} routable streets`);
+    AdminShell.setText('kpi-unaudited', counts.unaudited.toLocaleString());
+    AdminShell.setText('kpi-unaudited-note', `of ${this.#streets.length.toLocaleString()} routable streets`);
 
     const audited = this.#streets.filter((street) => street.last_audit_date);
     const polled = audited.filter((street) => street.median_newest_capture);
     const share = audited.length ? Math.round((polled.length / audited.length) * 100) : 0;
-    ImageryPage.#setText('kpi-rotation', `${share}%`);
-    ImageryPage.#setText('kpi-rotation-note', `${polled.length.toLocaleString()} of `
+    AdminShell.setText('kpi-rotation', `${share}%`);
+    AdminShell.setText('kpi-rotation-note', `${polled.length.toLocaleString()} of `
     + `${audited.length.toLocaleString()} audited streets have a polled capture date`);
   }
 
@@ -313,17 +312,17 @@ class ImageryPage {
   #renderLastPollKpi() {
     const poll = (this.#report?.jobs || []).find((job) => job.job_name === 'check-imagery-age-actor');
     if (!poll || poll.last_status === 'never_run') {
-      ImageryPage.#setText('kpi-last-poll', 'never');
-      ImageryPage.#setText('kpi-last-poll-note', 'the nightly poll has no recorded run in this deployment');
+      AdminShell.setText('kpi-last-poll', 'never');
+      AdminShell.setText('kpi-last-poll-note', 'the nightly poll has no recorded run in this deployment');
       return;
     }
     const polled = poll.last_details?.streets_polled;
     const selected = poll.last_details?.streets_selected;
     const hours = poll.hours_since_last_run;
-    ImageryPage.#setText('kpi-last-poll', hours === null || hours === undefined
+    AdminShell.setText('kpi-last-poll', hours === null || hours === undefined
       ? '—'
       : (hours < 48 ? `${hours}h ago` : `${Math.floor(hours / 24)}d ago`));
-    ImageryPage.#setText('kpi-last-poll-note', polled === undefined
+    AdminShell.setText('kpi-last-poll-note', polled === undefined
       ? poll.last_details?.not_polled_reason || 'no counts recorded for that run'
       : `${Number(polled).toLocaleString()} of ${Number(selected || 0).toLocaleString()} selected streets refreshed`);
   }
@@ -479,13 +478,8 @@ class ImageryPage {
   static #tierCell(value, tierKey) {
     const swatch = `<span class="street-status-swatch imagery-swatch--${tierKey.replace(/_/g, '-')}"`
       + ' aria-hidden="true"></span>';
-    const text = typeof value === 'number' ? value.toLocaleString() : StreetPriorityTable.esc(value);
+    const text = typeof value === 'number' ? AdminShell.num(value) : AdminShell.esc(value);
     return `${swatch}${text}`;
-  }
-
-  static #setText(id, text) {
-    const element = document.getElementById(id);
-    if (element) element.textContent = text;
   }
 
   /** Updates the status line; pass hide=true to remove it once data has loaded. */

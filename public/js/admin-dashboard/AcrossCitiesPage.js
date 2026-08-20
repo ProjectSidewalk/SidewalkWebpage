@@ -544,7 +544,7 @@ class AcrossCitiesPage {
       ['Labels', this.#num(sc.total_labels)],
       ['Validations', this.#num(sc.total_validations)],
       ['Contributors', this.#num(sc.active_contributors)],
-      ['Last activity', sc.last_activity ? AcrossCitiesPage.#relativeTime(sc.last_activity) : 'never'],
+      ['Last activity', sc.last_activity ? AdminShell.relativeTime(sc.last_activity) : 'never'],
     ].map(([k, v]) => `<tr><td>${k}</td><td>${AcrossCitiesPage.#esc(v)}</td></tr>`).join('');
     return `<div class="coverage-popup-name">${name}</div>`
       + `<table class="coverage-popup-dl">${rows}</table>`;
@@ -787,7 +787,7 @@ class AcrossCitiesPage {
       }).join('');
       const chipsHtml = chips ? ` <span class="ac-chips">${chips}</span>` : '';
       const lastActivity = c.last_activity
-        ? AcrossCitiesPage.#esc(AcrossCitiesPage.#relativeTime(c.last_activity))
+        ? AcrossCitiesPage.#esc(AdminShell.relativeTime(c.last_activity))
         : '<span class="ac-muted">never</span>';
       return `
         <tr class="${needsAttention ? 'ac-row--flagged' : ''}">
@@ -934,7 +934,7 @@ class AcrossCitiesPage {
     const rows = this.#sortedCities(state.key, state.dir);
     tbody.innerHTML = rows.map((c) => {
       const last = c.last_activity
-        ? AcrossCitiesPage.#esc(AcrossCitiesPage.#relativeTime(c.last_activity))
+        ? AcrossCitiesPage.#esc(AdminShell.relativeTime(c.last_activity))
         : '<span class="ac-muted">never</span>';
       const spark = this.#sparkline((c.weekly_trend || []).map((w) => w.labels || 0));
       const flagged = c.lifecycle === 'stalled' || c.lifecycle === 'low_traction';
@@ -1517,20 +1517,5 @@ class AcrossCitiesPage {
     const d = new Date(`${iso}T00:00:00`);
     if (isNaN(d)) return iso;
     return d.toLocaleDateString(undefined, { weekday: 'short' });
-  }
-
-  /** Compact relative time ("just now", "5m ago", "3h ago", "2d ago", or a date for older items). */
-  static #relativeTime(ts) {
-    const d = new Date(ts);
-    if (isNaN(d)) return String(ts);
-    const secs = Math.floor((Date.now() - d.getTime()) / 1000);
-    if (secs < 60) return 'just now';
-    const mins = Math.floor(secs / 60);
-    if (mins < 60) return `${mins}m ago`;
-    const hrs = Math.floor(mins / 60);
-    if (hrs < 24) return `${hrs}h ago`;
-    const days = Math.floor(hrs / 24);
-    if (days < 7) return `${days}d ago`;
-    return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
   }
 }

@@ -113,6 +113,9 @@ class BackgroundJobRunTable @Inject() (protected val dbConfigProvider: DatabaseC
   implicit private val getJobSuccess: GetResult[(String, OffsetDateTime)] =
     GetResult(r => (r.nextString(), r.nextOffsetDateTime()))
 
+  implicit private val getOutcomeCount: GetResult[(String, JobRunStatus.Value, Boolean, Int)] =
+    GetResult(r => (r.nextString(), JobRunStatus.withName(r.nextString()), r.nextBoolean(), r.nextInt()))
+
   /**
    * Opens a run row, before the work starts, so a job that dies mid-run still leaves a trace.
    *
@@ -144,16 +147,21 @@ class BackgroundJobRunTable @Inject() (protected val dbConfigProvider: DatabaseC
   }
 
   /**
-   * The most recent run of each job that has ever run, newest job first.
+   * The most recent run of each job under each trigger, so scheduled and hand-triggered runs stay separable.
    *
-   * DISTINCT ON rather than a group-by-then-join: the (job_name, started_at DESC) index serves it directly, and a job
-   * that has never run simply has no row — the caller decides whether that means "new" or "the scheduler is dead".
+   * Split by trigger rather than collapsed to one row per job because a run someone kicked off by hand is not
+   * evidence about the schedule: with a single latest-run-per-job read, an admin clicking a "run it now" button the
+   * morning after a failed nightly run would replace that failure's status and error in the panel and leave the
+   * night looking healthy.
+   *
+   * DISTINCT ON rather than a group-by-then-join: a job that has never run under a trigger simply has no row — the
+   * caller decides whether that means "new" or "the scheduler is dead".
    */
-  def latestRunPerJob: DBIO[Seq[BackgroundJobRun]] = {
-    sql"""SELECT DISTINCT ON (job_name)
+  def latestRunPerJobAndTrigger: DBIO[Seq[BackgroundJobRun]] = {
+    sql"""SELECT DISTINCT ON (job_name, triggered_by)
                  background_job_run_id, job_name, triggered_by, started_at, finished_at, status, details, error_message
           FROM background_job_run
-          ORDER BY job_name, started_at DESC""".as[BackgroundJobRun]
+          ORDER BY job_name, triggered_by, started_at DESC""".as[BackgroundJobRun]
   }
 
   /**
@@ -175,16 +183,15 @@ class BackgroundJobRunTable @Inject() (protected val dbConfigProvider: DatabaseC
   }
 
   /**
-   * Run counts per (job, outcome) since a cutoff, for the recent-failure-rate column.
-   *
-   * @param since Runs that *started* at or after this instant, so a long run is counted on the night it began.
-   */
-  /**
    * Every run of the named jobs since a cutoff, newest first, for charting a job's history rather than its last run.
    *
    * The per-run `details` is the payload here: the imagery panel reads its nightly poll/flag counts out of it (#4908),
    * which is the only place those numbers survive. Bounded by `since` and by the job list, so it stays a small read
    * even though `background_job_run` is never pruned.
+   *
+   * @param jobNames Jobs to read; an empty list reads nothing rather than everything.
+   * @param since    Runs that *started* at or after this instant, so a long run is counted on the night it began.
+   * @return         Matching runs of any trigger and any status, newest first.
    */
   def runsForJobsSince(jobNames: Seq[String], since: OffsetDateTime): DBIO[Seq[BackgroundJobRun]] = {
     if (jobNames.isEmpty) DBIO.successful(Seq.empty)
@@ -196,11 +203,31 @@ class BackgroundJobRunTable @Inject() (protected val dbConfigProvider: DatabaseC
     }
   }
 
-  def outcomeCountsSince(since: OffsetDateTime): DBIO[Seq[(String, JobRunStatus.Value, Int)]] = {
-    backgroundJobRuns
-      .filter(_.startedAt >= since)
-      .groupBy(run => (run.jobName, run.status))
-      .map { case ((jobName, status), group) => (jobName, status, group.length) }
-      .result
+  /**
+   * Scheduled-run counts per (job, outcome) since a cutoff, for the recent-failure-rate column.
+   *
+   * Scoped to scheduled runs for the same reason [[lastScheduledSuccessPerJob]] is: the column reads as a statement
+   * about the nightly schedule, so a debugging session's worth of hand-triggered clicks must neither invent failures
+   * nor dilute real ones.
+   *
+   * The `stale` flag splits open runs the app never closed from ones genuinely still in flight, which is what lets
+   * the caller count an abandoned run as the failure it is. Without it a job the JVM is killed inside every night
+   * reads as a perfect record — its runs land in the denominator and nothing lands in the numerator.
+   *
+   * @param since          Runs that *started* at or after this instant, so a long run is counted on the night it began.
+   * @param abandonedSince A still-open run that started before this instant is abandoned rather than in flight.
+   * @return               (job name, status, whether an open run is abandoned, count) tuples.
+   */
+  def outcomeCountsSince(
+      since: OffsetDateTime,
+      abandonedSince: OffsetDateTime
+  ): DBIO[Seq[(String, JobRunStatus.Value, Boolean, Int)]] = {
+    // Raw SQL because the staleness flag is a grouped *expression*: Slick emits it in the select list without
+    // repeating it in GROUP BY, which Postgres rejects. The ordinal reference keeps the two in step by construction.
+    sql"""SELECT job_name, status, started_at < $abandonedSince, COUNT(*)
+          FROM background_job_run
+          WHERE started_at >= $since
+              AND triggered_by = 'scheduled'
+          GROUP BY job_name, status, 3""".as[(String, JobRunStatus.Value, Boolean, Int)]
   }
 }

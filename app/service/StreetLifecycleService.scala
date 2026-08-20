@@ -8,6 +8,7 @@ import models.street.{
   NoImageryReportWeek,
   StatusChangeWeek,
   StreetEdgeIssueTable,
+  StreetEdgeStatus,
   StreetEdgeStatusChangeTable
 }
 import models.utils.MyPostgresProfile
@@ -15,7 +16,7 @@ import play.api.cache.AsyncCacheApi
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json._
 
-import java.time.OffsetDateTime
+import java.time.{LocalDate, OffsetDateTime, ZoneId}
 import javax.inject._
 import scala.concurrent.duration.Duration
 import scala.concurrent.{ExecutionContext, Future}
@@ -48,49 +49,23 @@ case class StreetStatusTrend(
 object StreetStatusTrend {
 
   /** snake_case per the admin dashboard convention. Weeks with nothing to report are absent; the client zero-fills. */
-  implicit val writes: Writes[StreetStatusTrend] = Writes { trend =>
-    Json.obj(
-      "weeks"          -> trend.weeks,
-      "since"          -> trend.since.toString,
-      "status_changes" -> JsArray(trend.statusChanges.map { week =>
-        Json.obj(
-          "week_start"   -> week.weekStart.toString,
-          "new_status"   -> week.newStatus.toString,
-          "street_count" -> week.streetCount
-        )
-      }),
-      "no_imagery_reports" -> JsArray(trend.noImageryReports.map { week =>
-        Json.obj(
-          "week_start"   -> week.weekStart.toString,
-          "report_count" -> week.reportCount,
-          "street_count" -> week.streetCount
-        )
-      }),
-      "panos_expired" -> JsArray(trend.panosExpired.map { week =>
-        Json.obj("week_start" -> week.weekStart.toString, "pano_count" -> week.panoCount)
-      }),
-      "top_report_regions" -> JsArray(trend.topReportRegions.map { region =>
-        Json.obj(
-          "region_id"    -> region.regionId,
-          "region_name"  -> region.regionName,
-          "report_count" -> region.reportCount,
-          "street_count" -> region.streetCount
-        )
-      }),
-      "corroborated_streets" -> JsArray(trend.corroboratedStreets.map { street =>
-        Json.obj(
-          "street_edge_id"   -> street.streetEdgeId,
-          "region_id"        -> street.regionId,
-          "region_name"      -> street.regionName,
-          "reporter_count"   -> street.reporterCount,
-          "report_count"     -> street.reportCount,
-          "last_reported_at" -> street.lastReportedAt.toString
-        )
-      }),
-      "min_reporters"         -> trend.minReporters,
-      "panos_expired_undated" -> trend.panosExpiredUndated
-    )
-  }
+  implicit private val jsonConfig: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
+
+  // Dates go out as ISO strings, which is what the charts bucket and label by. Pinned here rather than left to
+  // play-json's defaults so the wire format can't shift under the client with a library upgrade.
+  implicit private val localDateWrites: Writes[LocalDate]           = Writes(date => JsString(date.toString))
+  implicit private val offsetDateTimeWrites: Writes[OffsetDateTime] = Writes(time => JsString(time.toString))
+
+  implicit private val statusWrites: Writes[StreetEdgeStatus.Value] = Writes(status => JsString(status.toString))
+
+  implicit private val statusChangeWeekWrites: Writes[StatusChangeWeek]        = Json.writes[StatusChangeWeek]
+  implicit private val reportWeekWrites: Writes[NoImageryReportWeek]           = Json.writes[NoImageryReportWeek]
+  implicit private val expiryWeekWrites: Writes[PanoExpiryWeek]                = Json.writes[PanoExpiryWeek]
+  implicit private val reportRegionWrites: Writes[NoImageryReportRegion]       = Json.writes[NoImageryReportRegion]
+  implicit private val corroboratedWrites: Writes[CorroboratedNoImageryStreet] =
+    Json.writes[CorroboratedNoImageryStreet]
+
+  implicit val writes: Writes[StreetStatusTrend] = Json.writes[StreetStatusTrend]
 }
 
 @ImplementedBy(classOf[StreetLifecycleServiceImpl])
@@ -106,6 +81,14 @@ object StreetLifecycleService {
   /** Bounds on the requested window: one week is the smallest meaningful bucket, three years the longest we chart. */
   val MinTrendWeeks: Int = 1
   val MaxTrendWeeks: Int = 156
+
+  /**
+   * The windows the page's selector offers, in weeks: a quarter, half a year, a year.
+   *
+   * Lives here rather than in the template so the offered set and [[DefaultTrendWeeks]] can't drift apart — the
+   * selector can only show the default if the default is one of these.
+   */
+  val TrendWeekOptions: Seq[Int] = Seq(13, DefaultTrendWeeks, 52)
 
   /** How many regions the "where are reports coming from" list names. */
   val TopReportRegions: Int = 10
@@ -172,26 +155,39 @@ class StreetLifecycleServiceImpl @Inject() (
   private def assembleTrend(window: Int): Future[StreetStatusTrend] = {
     // Bucket boundaries are ISO weeks, so start the window on one: an inclusive cutoff mid-week would leave the
     // oldest bucket a partial week that reads as a dip.
+    //
+    // Resolved through the zone rather than through today's offset, so a window reaching back across a daylight-saving
+    // change gets the offset that Monday actually had. Stamping today's -07:00 onto a Monday that was -08:00 puts the
+    // cutoff at 23:00 the previous Sunday, and Postgres then buckets those extra rows under the *preceding* Monday —
+    // a week_start the client never generates, so they are silently dropped from every chart.
     val since = OffsetDateTime.now
       .minusWeeks(window.toLong)
       .`with`(java.time.DayOfWeek.MONDAY)
       .toLocalDate
-      .atStartOfDay(OffsetDateTime.now.getOffset)
+      .atStartOfDay(ZoneId.systemDefault)
       .toOffsetDateTime
 
-    for {
-      statusChanges <- db.run(statusChangeTable.transitionsByWeek(since))
-      reports       <- db.run(streetEdgeIssueTable.reportsByWeek(since))
-      expired       <- db.run(panoDataTable.newlyExpiredByWeek(since))
-      regions       <- db.run(streetEdgeIssueTable.topReportRegions(since, StreetLifecycleService.TopReportRegions))
-      corroborated  <- db.run(
-        streetEdgeIssueTable.corroboratedOpenStreets(
-          since,
-          StreetLifecycleService.MinCorroboratingReporters,
-          StreetLifecycleService.MaxCorroboratedStreets
-        )
+    // Bound before the for-comprehension so the six reads run concurrently rather than one after another.
+    val statusChangesF = db.run(statusChangeTable.transitionsByWeek(since))
+    val reportsF       = db.run(streetEdgeIssueTable.reportsByWeek(since))
+    val expiredF       = db.run(panoDataTable.newlyExpiredByWeek(since))
+    val regionsF       = db.run(streetEdgeIssueTable.topReportRegions(since, StreetLifecycleService.TopReportRegions))
+    val corroboratedF  = db.run(
+      streetEdgeIssueTable.corroboratedOpenStreets(
+        since,
+        StreetLifecycleService.MinCorroboratingReporters,
+        StreetLifecycleService.MaxCorroboratedStreets
       )
-      undated <- db.run(panoDataTable.countExpiredWithoutExpiryDate)
+    )
+    val undatedF = db.run(panoDataTable.countExpiredWithoutExpiryDate)
+
+    for {
+      statusChanges <- statusChangesF
+      reports       <- reportsF
+      expired       <- expiredF
+      regions       <- regionsF
+      corroborated  <- corroboratedF
+      undated       <- undatedF
     } yield StreetStatusTrend(window, since, statusChanges, reports, expired, regions, corroborated,
       StreetLifecycleService.MinCorroboratingReporters, undated)
   }

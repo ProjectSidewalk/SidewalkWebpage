@@ -4,7 +4,6 @@ import actor.ActorUtils.{dateFormatter, getTimeToNextUpdate}
 import models.utils.JobRunTrigger
 import org.apache.pekko.actor.{Actor, Cancellable}
 import play.api.Logger
-import play.api.libs.json.Json
 import service.{ConfigService, JobRunService, PanoDataService}
 
 import java.time.Instant
@@ -58,14 +57,7 @@ class CheckImageExpiryActor @Inject() (panoDataService: PanoDataService, jobRunS
     val currentTimeStart: String = dateFormatter.format(Instant.now())
     logger.info(s"Auto-scheduled checking image expiry started at: $currentTimeStart")
     jobRunService
-      .record(CheckImageExpiryActor.Name, JobRunTrigger.Scheduled)(panoDataService.checkForImagery) { result =>
-        Json.obj(
-          "panos_checked" -> result.checked,
-          "still_there"   -> result.stillThere,
-          "gone"          -> result.gone,
-          "errors"        -> result.errors
-        )
-      }
+      .record(CheckImageExpiryActor.Name, JobRunTrigger.Scheduled)(panoDataService.checkForImagery)(_.runDetails)
       .onComplete {
         case Success(results) =>
           logger.info(results.summary)
