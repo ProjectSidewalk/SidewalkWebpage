@@ -66,7 +66,7 @@
 
   <div class="api-section" id="health-media-section">
     <h2 class="api-heading" id="media-storage">Media storage <a href="#media-storage" class="permalink">#</a></h2>
-    <p>Where this stage keeps the media that has to outlive a deploy, and whether any of it has gone missing. A deploy rebuilds the whole build tree, so anything stored inside it is deleted by the next release while its database rows survive &mdash; the failure that destroyed a story photo in <a href="https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4925">#4925</a>. <strong>Missing</strong> means a <code>story_media</code> row whose file is gone; <strong>orphaned</strong> means a file whose row is gone, which is a retraction that only half landed.</p>
+    <p>Media that must outlive a deploy, and whether any of it is gone. A deploy rebuilds the whole build tree, so anything kept inside it dies with the next release while its database rows survive &mdash; how <a href="https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4925">#4925</a> destroyed a story photo. <strong>Missing</strong> is a row with no file; <strong>orphaned</strong> is a file with no row.</p>
     <div id="health-media-dirs"></div>
     <div id="health-media-story"></div>
     <p class="ac-note" id="health-media-note"></p>

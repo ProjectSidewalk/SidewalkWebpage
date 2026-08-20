@@ -388,18 +388,23 @@ class HealthPage {
     }
 
     const dirRows = (media.directories || []).map((d) => {
-      const holds = d.irreplaceable ? '<span class="ac-badge ac-badge--warn">content</span>' : 'rebuildable';
-      const detail = d.detail ? `<br><small>${HealthPage.#esc(d.detail)}</small>` : '';
+      const lost = d.irreplaceable
+        ? '<span class="ac-badge ac-badge--warn">gone for good</span>'
+        : 'rebuildable';
+      // The wipe-zone reason names the key and the path, which are already columns, and then repeats the same
+      // sentence about deploys on every row — four copies of it in the narrowest column is what made these rows six
+      // times taller than every other table on the page. The badge says the state; the note below says the fix once.
+      const detail = d.detail && d.status !== 'unsafe' ? `<br><small>${HealthPage.#esc(d.detail)}</small>` : '';
       return `
         <tr>
           <td><code>${HealthPage.#esc(d.key)}</code></td>
           <td><code>${HealthPage.#esc(d.env_var)}</code></td>
-          <td>${holds}</td>
-          <td><code>${HealthPage.#esc(d.path)}</code></td>
+          <td>${lost}</td>
+          <td class="ac-path"><code>${HealthPage.#esc(d.path)}</code></td>
           <td><span class="ac-badge ac-badge--${d.severity}">${HealthPage.#esc(d.label)}</span>${detail}</td>
         </tr>`;
     }).join('');
-    this.#table('health-media-dirs', ['Config key', 'Env var', 'Holds', 'Resolves to', 'Status'], dirRows);
+    this.#table('health-media-dirs', ['Config key', 'Env var', 'If lost', 'Resolves to', 'Status'], dirRows);
 
     const scan = media.story_media;
     if (!scan) {
@@ -417,15 +422,19 @@ class HealthPage {
           <td>${HealthPage.#mediaDetail(c)}</td>
         </tr>`).join('');
       this.#table('health-media-story',
-        ['City', ['Media rows', true], ['Missing', true], ['Orphaned', true], 'Ids'], rows);
+        ['City', ['Media rows', true], ['Missing', true], ['Orphaned', true], 'Notes'], rows);
     }
 
     const notes = [`Story media lives under <code>${HealthPage.#esc(scan ? scan.base_dir : '—')}</code>, one
-      subdirectory per city, so this covers every city deployed on this stage — a city hosted elsewhere would read as
-      unscanned.`];
+      subdirectory per city; a city hosted elsewhere reads as unscanned.`];
+    // Said once here rather than repeated in every unsafe row, which is where it used to live.
+    if (media.directories.some((d) => d.status === 'unsafe')) {
+      notes.push(`A directory inside the build tree is deleted by the next release: point its environment variable at
+        storage outside the application (<code>docs/deployment-and-stages.md</code>).`);
+    }
     if (!media.enforced) {
-      notes.push(`This instance is not running in production mode, so the boot check that refuses to start on an
-        unsafe directory is inactive here and the relative defaults landing in the checkout are expected.`);
+      notes.push(`Not production mode, so that boot check is inactive here and the relative defaults landing in the
+        checkout are expected.`);
     }
     this.#setHtml('health-media-note', notes.join(' '));
   }
