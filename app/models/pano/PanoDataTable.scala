@@ -62,6 +62,13 @@ object PanoSource extends Enumeration {
   val Infra3d   = Value("infra3d")
 
   /**
+   * The tutorial's locally-served panos ('tutorial', 'afterWalkTutorial'), whose imagery is app assets rather than
+   * provider imagery. They carry pano_data rows so that every label has one (#4587), and this value is what keeps
+   * them out of the scraper's work list and every provider call (#4773).
+   */
+  val Tutorial = Value("tutorial")
+
+  /**
    * Sources whose imagery `PanoDataService.panoExists` can actually verify against a provider API.
    */
   val providerCheckedSources: Set[Value] = Set(Gsv, Mapillary)
@@ -157,10 +164,13 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
 
   /**
    * Get a pano metadata for all panos with a flag indicating whether they have labels.
+   *
+   * Synthetic tutorial panos are excluded: this feeds `/adminapi/panos`, which is the scraper's work list, and their
+   * imagery is app assets with no provider to download from.
    */
   def getAllPanos: DBIO[Seq[PanoDataSlim]] = {
     panoDataRecords
-      .filter(_.panoId =!= "tutorial")
+      .filter(_.source =!= PanoSource.Tutorial)
       .joinLeft(labelTable)
       .on(_.panoId === _.panoId)
       .distinctOn(_._1.panoId)
