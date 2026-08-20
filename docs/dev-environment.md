@@ -207,7 +207,7 @@ truth**; the snapshot below is a convenience copy (it may lag as new cities are 
 | la-ca | sidewalk_la | | danville-il | sidewalk_danville |
 | mendota-il | sidewalk_mendota | | detroit-mi | sidewalk_detroit |
 | hackensack-nj | sidewalk_hackensack | | clifton-nj | sidewalk_clifton |
-| maywood-nj | sidewalk_maywood | | | |
+| maywood-nj | sidewalk_maywood | | newport-ky | sidewalk_newport_ky |
 
 ---
 
