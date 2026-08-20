@@ -255,6 +255,23 @@ describe('ImageryPipelinePanel charts', () => {
     expect(flags.series[0].values).toEqual([0, 6, 0, 0]);
   });
 
+  test('draws the nightly batch size as the line the bars are read against', async () => {
+    // A bar's height says nothing on its own: 400 polled is most of a 500-street batch and a fraction of a 5,000 one.
+    await renderPanel();
+    expect(charts[0].options.refLine).toEqual({ value: 500, key: 'batch', label: 'batch size 500' });
+    expect(charts[0].options.ariaLabel).toContain('500');
+  });
+
+  test('leaves the target off when the server reports no usable batch size', async () => {
+    await renderPanel(report({ poll_batch_size: 0 }));
+    expect(charts[0].options.refLine).toBeUndefined();
+  });
+
+  test('keeps the target off the flag chart, which counts audits rather than streets', async () => {
+    await renderPanel();
+    expect(charts[1].options.refLine).toBeUndefined();
+  });
+
   test('labels both charts for screen readers', async () => {
     await renderPanel();
     charts.forEach((chart) => expect(chart.options.ariaLabel).toBeTruthy());

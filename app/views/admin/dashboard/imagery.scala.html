@@ -24,16 +24,19 @@
 
   <div class="api-section" id="imagery-map-section">
     <h2 class="api-heading" id="reaudit-frontier">Re-audit frontier <a href="#reaudit-frontier" class="permalink">#</a></h2>
-    <p>Every street Explore can currently route to, colored by its priority tier. Priority is a single number per street — higher means served sooner — and the tiers are the shape that number actually takes: a street nobody has audited outranks one whose only audits are on replaced imagery, which in turn outranks a freshly audited street. Streets needing a re-audit are drawn dashed, matching the Label Map. Hover a segment for its priority and the audit counts behind it; click to pin its region here and in the tables below.</p>
+    <p>Every street Explore can currently route to, colored by its priority tier. Hover a segment for its priority and the audit counts behind it; click to pin its region here and in the tables below.</p>
     <div id="imagery-priority-map" class="coverage-map"
     role="img" aria-label="Map of street segments colored by re-audit priority tier"></div>
-    <div class="street-status-legend" id="imagery-legend"></div>
+    <p>The four tiers are not four separate things to track — they are one ordering. Every street carries a single priority number, and higher is served sooner:</p>
+    <p class="imagery-formula"><code>priority = 1 / (1 + current audits + ½ if any audit is on replaced imagery + ¼ per low-quality audit)</code></p>
+    <p>So the tiers read top to bottom as how much <em>current-imagery</em> coverage a street has: none ever, none anymore, one, several.</p>
+    <div id="imagery-legend"></div>
     <p class="ac-note" id="imagery-priority-note"></p>
   </div>
 
   <div class="api-section" id="imagery-regions-section">
-    <h2 class="api-heading" id="where-the-work-is">Where the work is <a href="#where-the-work-is" class="permalink">#</a></h2>
-    <p>Explore picks a region first — among those with the highest mean priority — and only then a street within it, at random among that region's top-priority ties. So the region is the unit that decides where labelers get sent, and this is that ranking. Hover or click a row to brush its streets on the map above.</p>
+    <h2 class="api-heading" id="where-the-work-is">Region ranking <a href="#where-the-work-is" class="permalink">#</a></h2>
+    <p>Explore picks a region before it picks a street, so the region is the unit that decides where labelers get sent, and this is that ranking. It takes the <strong>five</strong> regions with the highest mean priority and chooses one of them at random, then a street within it — again at random among that region's top-priority ties. The four tier columns count streets and add up to <em>Streets</em>. Hover or click a row to brush its streets on the map above.</p>
     <div class="coverage-table-controls">
       <label class="sr-only" for="imagery-region-search">Search regions</label>
       <input type="search" id="imagery-region-search" class="coverage-table-search" placeholder="Search regions…">
@@ -41,6 +44,7 @@
     <div class="coverage-table-wrap">
       <table id="imagery-region-table" class="coverage-table"></table>
     </div>
+    <p class="ac-note" id="imagery-region-note"></p>
   </div>
 
   <div class="api-section" id="imagery-streets-section">
@@ -68,7 +72,7 @@
     <p class="ac-note" id="imagery-failure-note"></p>
 
     <h3 class="trend-chart-heading">Streets polled per night</h3>
-    <p class="trend-note">Polled streets are the ones that answered conclusively and had their imagery dates refreshed; skipped ones gave an inconclusive answer and are retried the next night. A night of zeros with no failure means the poll ran and found nothing to do — check the batch size and the rotation below.</p>
+    <p class="trend-note">The dashed line is the nightly batch size — the number of streets the poll asks for — so polled plus skipped should reach it on a healthy night, or fall short only when fewer streets are eligible. <strong>Polled</strong> means the street answered conclusively and had its imagery dates written, advancing the rotation. <strong>Skipped</strong> means at least one of its three sample points came back inconclusive — an expired or rotated API key, a timeout, an unexpected response — so the street is left un-bumped and retried the next night. A confirmed "no imagery here" is <em>not</em> a skip; that is a conclusive answer. On a dev machine the dummy API keys make every call inconclusive, so everything is skipped by design.</p>
     <div class="mini-host" id="imagery-poll-chart"></div>
 
     <h3 class="trend-chart-heading">Audits flagged and unflagged per night</h3>
@@ -81,8 +85,8 @@
     <p>The poll works through a fixed number of streets a night, audited streets first, so it is a rotation rather than a census: how long it takes to come back around bounds how stale a re-audit flag can be. A street with no capture date polled yet is unmeasured, not up to date — it is counted separately below for exactly that reason.</p>
     <div id="imagery-rotation"></div>
 
-    <h3 class="trend-chart-heading">How much newer the imagery is</h3>
-    <p class="trend-note">For streets that have been both audited and polled: the gap between the polled median capture date and the street's most recent audit. Everything to the right of zero is imagery the city has not been labeled on.</p>
+    <h3 class="trend-chart-heading">How far behind the imagery our audits are</h3>
+    <p class="trend-note">Only the streets whose polled imagery is <em>newer</em> than their most recent audit — the ones that actually need re-driving attention. Every bar is work, and further right means the labels have been out of date longer. Streets whose audits still match their imagery are not plotted; they are the "audits still current" row in the rotation table above.</p>
     <div class="mini-host" id="imagery-freshness-chart"></div>
     <p class="ac-note" id="imagery-freshness-note"></p>
   </div>

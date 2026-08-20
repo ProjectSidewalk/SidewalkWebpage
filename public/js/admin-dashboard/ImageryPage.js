@@ -14,9 +14,11 @@ class ImageryPage {
   /** Rows the "next streets" table shows when no region is pinned; enough to plan from, short enough to read. */
   static #TOP_STREETS = 50;
 
-  /** Buckets for "how much newer is the imagery than the audit", in days. */
+  /**
+   * How far behind the imagery an audit is, in days. Streets whose imagery is not newer than their audit are not
+   * backlog and are reported as a rotation-table row instead, so every bar here is work.
+   */
   static #FRESHNESS_BUCKETS = [
-    { label: 'not newer', max: 0 },
     { label: '≤ 3 months', max: 90 },
     { label: '3–12 months', max: 365 },
     { label: '1–2 years', max: 730 },
@@ -194,6 +196,13 @@ class ImageryPage {
     });
     this.#regionTable.render(this.#regions);
 
+    const regionNote = document.getElementById('imagery-region-note');
+    if (regionNote) {
+      regionNote.textContent = `${this.#regions.length.toLocaleString()} regions, highest mean priority first — `
+        + 'scroll for the rest; sorting and the search box cover all of them. The top five are the pool Explore '
+        + 'draws from, so a region just below the fold is one audit away from being in it.';
+    }
+
     this.#streetTable = new StreetPriorityTable('imagery-street-table', {
       rowKey: 'street_edge_id',
       sortKey: 'priority',
@@ -255,9 +264,11 @@ class ImageryPage {
     }
     const note = document.getElementById('imagery-street-note');
     if (note) {
-      note.textContent = `Showing ${ranked.length.toLocaleString()} of ${pool.length.toLocaleString()} routable `
-        + 'streets. Explore serves the highest-priority street in a region at random among ties, so streets sharing '
-        + 'the top priority are equally likely to come up next.';
+      note.textContent = `The top ${ranked.length.toLocaleString()} by priority, of `
+        + `${pool.length.toLocaleString()} routable streets — capped so the list stays readable in a large city. `
+        + 'Read it as a sample of the frontier rather than a queue: Explore picks a region first, then a street at '
+        + 'random among that region\u2019s top-priority ties, and ties at the top are the norm (every never-audited '
+        + 'street sits at exactly 1.000). Pin a region above to see that region\u2019s own top of the list.';
     }
   }
 
@@ -334,23 +345,72 @@ class ImageryPage {
       : `${Number(polled).toLocaleString()} of ${Number(selected || 0).toLocaleString()} selected streets refreshed`);
   }
 
-  /** Renders the tier legend with a live count per tier, so the legend doubles as the city-wide breakdown. */
+  /**
+   * Renders the tier table under the map: legend, per-tier counts, and the reason the four tiers are one ordering,
+   * in one place. The priority column reports each tier's *observed* range rather than its nominal value, because
+   * low-quality audits pull streets away from it — and that is exactly what makes two tiers' ranges overlap.
+   */
   #renderLegend() {
-    const counts = this.#tierCounts();
+    const stats = this.#tierStats();
     const legend = document.getElementById('imagery-legend');
     if (!legend) return;
-    legend.innerHTML = StreetPriorityTiers.TIERS.map((tier) => `
-      <span class="street-status-legend-item" title="${tier.description}">
-        <span class="street-status-swatch imagery-swatch--${tier.key.replace(/_/g, '-')}" aria-hidden="true"></span>
-        ${tier.label} (${counts[tier.key].toLocaleString()})
-      </span>`).join('');
+    const total = this.#streets.length;
+    const rows = StreetPriorityTiers.TIERS.map((tier) => {
+      const stat = stats[tier.key];
+      const dashed = tier.key === 'reaudit';
+      const swatch = `<span class="imagery-tier-swatch${dashed ? ' imagery-tier-swatch--dashed' : ''}`
+        + `${dashed ? '' : ` imagery-swatch--${tier.key.replace(/_/g, '-')}`}" aria-hidden="true"></span>`;
+      const range = stat.count === 0
+        ? '—'
+        : (stat.min === stat.max ? stat.min.toFixed(3) : `${stat.min.toFixed(3)} – ${stat.max.toFixed(3)}`);
+      return `
+        <tr>
+          <td><span class="imagery-tier-name">${swatch}${AdminShell.esc(tier.label)}</span></td>
+          <td class="imagery-tier-what">${AdminShell.esc(tier.description)}</td>
+          <td class="imagery-tier-num">${range}</td>
+          <td class="imagery-tier-num">${AdminShell.num(stat.count)}</td>
+          <td class="imagery-tier-num">${ImageryPage.#share(stat.count, total)}</td>
+          <td class="imagery-tier-num">${stat.miles.toFixed(1)}</td>
+        </tr>`;
+    }).join('');
+    legend.innerHTML = `
+      <div class="imagery-tier-wrap">
+        <table class="imagery-tier-table">
+        <caption class="sr-only">Street priority tiers, highest priority first</caption>
+        <thead>
+          <tr>
+            <th scope="col">Tier</th>
+            <th scope="col">What it means</th>
+            <th scope="col" class="imagery-tier-num">Priority</th>
+            <th scope="col" class="imagery-tier-num">Streets</th>
+            <th scope="col" class="imagery-tier-num">Share</th>
+            <th scope="col" class="imagery-tier-num">Miles</th>
+          </tr>
+        </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
 
     const note = document.getElementById('imagery-priority-note');
     if (note) {
+      const counts = this.#tierCounts();
       // Folded rather than spread: `Math.min(...values)` passes one argument per street, which overflows the call
       // stack in a city with tens of thousands of them.
       const min = this.#streets.reduce((lowest, street) => Math.min(lowest, street.priority), Infinity);
       const max = this.#streets.reduce((highest, street) => Math.max(highest, street.priority), -Infinity);
+      // Low-quality audits also carry weight, so a tier's range can dip into the one below it. Naming the pair that
+      // actually crosses beats a general warning: the map looks wrong until a reader knows why it can.
+      const crossing = StreetPriorityTiers.TIERS.find((tier, i) => {
+        const below = StreetPriorityTiers.TIERS[i + 1];
+        return below && stats[tier.key].count > 0 && stats[below.key].count > 0
+          && stats[tier.key].min < stats[below.key].max;
+      });
+      const overlap = crossing
+        ? ` Low-quality audits count too, at a quarter weight, so the tiers are not strictly ordered by priority: `
+        + `some ${crossing.label.toLowerCase()} streets sit below some `
+        + `${StreetPriorityTiers.TIERS[StreetPriorityTiers.TIERS.indexOf(crossing) + 1].label.toLowerCase()} ones.`
+        : ' Low-quality audits count too, at a quarter weight, which is why two streets in the same tier can carry '
+          + 'different values.';
       const flagged = this.#streets.filter((street) => street.outdated).length;
       const tierGap = counts.reaudit === flagged
         ? ''
@@ -358,8 +418,9 @@ class ImageryPage {
           + `re-audit tier while ${flagged.toLocaleString()} carry the site-wide re-audit flag: the tier counts only `
           + 'the audits that carry weight in the priority formula, the flag counts every completed audit.';
       note.textContent = `Priority currently ranges from ${min.toFixed(3)} to ${max.toFixed(3)} across `
-        + `${this.#streets.length.toLocaleString()} routable streets. Audits by excluded or low-quality users still `
-        + `count, at a quarter weight, which is why two streets in the same tier can carry different values.${tierGap}`;
+        + `${this.#streets.length.toLocaleString()} routable streets.${overlap} Tier is the honest bucket for what a `
+        + 'street has been audited on; priority is what Explore actually sorts by, so read the number when the two '
+        + `disagree.${tierGap}`;
     }
   }
 
@@ -368,6 +429,32 @@ class ImageryPage {
     const counts = Object.fromEntries(StreetPriorityTiers.TIERS.map((tier) => [tier.key, 0]));
     for (const street of this.#streets) counts[street.priority_tier] += 1;
     return counts;
+  }
+
+  /**
+   * Count, mileage, and observed priority range per tier.
+   *
+   * @returns {Object<string, {count: number, miles: number, min: number, max: number}>} Keyed by tier key; an empty
+   *   tier reports min/max of 0 rather than the +/-Infinity the fold would otherwise leave behind.
+   */
+  #tierStats() {
+    const stats = Object.fromEntries(StreetPriorityTiers.TIERS.map((tier) =>
+      [tier.key, { count: 0, miles: 0, min: Infinity, max: -Infinity }]));
+    for (const street of this.#streets) {
+      const stat = stats[street.priority_tier];
+      if (!stat) continue;
+      stat.count += 1;
+      stat.miles += ImageryPage.#miles(street.length_m);
+      stat.min = Math.min(stat.min, street.priority);
+      stat.max = Math.max(stat.max, street.priority);
+    }
+    for (const stat of Object.values(stats)) {
+      if (stat.count === 0) {
+        stat.min = 0;
+        stat.max = 0;
+      }
+    }
+    return stats;
   }
 
   /**
@@ -382,6 +469,9 @@ class ImageryPage {
     const withRow = this.#streets.filter((street) => street.imagery_updated_at);
     const withMedian = this.#streets.filter((street) => street.median_newest_capture);
     const auditedWithMedian = audited.filter((street) => street.median_newest_capture);
+    const behind = auditedWithMedian.filter((street) =>
+      ImageryPage.#daysBetween(street.last_audit_date, street.median_newest_capture) > 0).length;
+    const stillCurrent = auditedWithMedian.length - behind;
     const recent = ImageryPage.#refreshedWithin(this.#streets, 30);
     // Compared as instants, not as strings: these timestamps carry the server's UTC offset, so "2026-01-01T23:00Z"
     // and "2026-01-02T00:00+02:00" sort the wrong way round lexically.
@@ -421,6 +511,10 @@ class ImageryPage {
             ${row('Audited and polled', auditedWithMedian.length.toLocaleString(),
               `${pct(auditedWithMedian.length, audited.length)} of audited streets; the rest are unmeasured, `
               + 'not up to date')}
+            ${row('Audits still current', stillCurrent.toLocaleString(),
+              'polled imagery is no newer than the last audit, so the labels still describe what is there')}
+            ${row('Audits behind the imagery', behind.toLocaleString(),
+              'the backlog charted below, by how far behind it is')}
             ${row('Refreshed in the last 30 days', recent.toLocaleString(),
               'streets whose imagery record was written or re-confirmed recently')}
             ${row('Full pass over audited streets', rotationNights === null ? '—' : `~${rotationNights} nights`,
@@ -435,11 +529,18 @@ class ImageryPage {
       </div>`;
   }
 
-  /** The histogram of how much newer the polled imagery is than the audit it would invalidate. */
+  /**
+   * The histogram of how far behind their imagery the audits are.
+   *
+   * Only streets whose imagery is genuinely newer are plotted. Including the ones still up to date put the single
+   * largest bar on the outcome that needs no action, which buried the distribution that does.
+   */
   #renderFreshness() {
     const measured = this.#streets.filter((street) => street.median_newest_capture && street.last_audit_date);
+    const behind = measured.filter((street) =>
+      ImageryPage.#daysBetween(street.last_audit_date, street.median_newest_capture) > 0);
     const buckets = ImageryPage.#FRESHNESS_BUCKETS.map((bucket) => ({ ...bucket, count: 0 }));
-    for (const street of measured) {
+    for (const street of behind) {
       const days = ImageryPage.#daysBetween(street.last_audit_date, street.median_newest_capture);
       const bucket = buckets.find((b) => days <= b.max) || buckets[buckets.length - 1];
       bucket.count += 1;
@@ -458,10 +559,11 @@ class ImageryPage {
     const unmeasured = audited.length - measured.length;
     const note = document.getElementById('imagery-freshness-note');
     if (note) {
-      note.textContent = `${measured.length.toLocaleString()} audited streets have a polled capture date to compare; `
-        + `${unmeasured.toLocaleString()} have not been polled conclusively yet and are absent from this chart. `
-        + 'The gap is measured against the street’s most recent audit, while the flag itself is raised per '
-        + 'audit, so an older audit on the same street can be flagged when this reads as "not newer".';
+      note.textContent = `${behind.length.toLocaleString()} audited streets have imagery newer than their last `
+        + `audit. ${(measured.length - behind.length).toLocaleString()} more are still current, and `
+        + `${unmeasured.toLocaleString()} have not been polled conclusively yet, so neither group is plotted here. `
+        + 'The gap is measured against each street’s most recent audit while the flag is raised per audit, so a '
+        + 'street can be absent from this chart and still have an older audit flagged.';
     }
   }
 
@@ -475,6 +577,21 @@ class ImageryPage {
   /** Whole days from `from` to `to`, both YYYY-MM-DD; negative when `to` is the earlier date. */
   static #daysBetween(from, to) {
     return Math.round((Date.parse(to) - Date.parse(from)) / 86400000);
+  }
+
+  /**
+   * A tier's share of the city, rounded but never to a figure that contradicts its own count: a tier holding nine
+   * streets reads "<1%", not "0%".
+   *
+   * @param {number} count - Streets in the tier.
+   * @param {number} total - Routable streets city-wide.
+   * @returns {string} A percentage, or an em dash when there is nothing to divide by.
+   */
+  static #share(count, total) {
+    if (!total) return '—';
+    const pct = (count / total) * 100;
+    if (count > 0 && pct < 0.5) return '<1%';
+    return `${Math.round(pct)}%`;
   }
 
   /** Meters to miles, matching the units the Overview page reports re-audit distance in. */

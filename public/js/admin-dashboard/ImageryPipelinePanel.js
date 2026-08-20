@@ -172,14 +172,20 @@ class ImageryPipelinePanel {
     const valuesOf = (field) => days.map((day) => byDay.get(day)?.[field] || 0);
     const labels = days.map((day) => day.slice(5)); // MM-DD; the year is in the window label.
 
+    // Without the batch size drawn in, a night's bar height is unreadable: 120 polled is either most of the batch or
+    // a fraction of it, and only the target says which.
+    const batchSize = report.poll_batch_size;
     MiniLineChart.renderInto(document.getElementById('imagery-poll-chart'), labels, [
       { name: 'Polled', key: 'polled', values: valuesOf('streets_polled') },
       { name: 'Skipped', key: 'skipped', values: valuesOf('streets_skipped') },
     ], {
       kind: 'bar',
-      ariaLabel: 'Streets polled and skipped per night',
+      ariaLabel: `Streets polled and skipped per night, against a nightly batch size of ${batchSize}`,
       valueFormat: (v) => `${Math.round(v).toLocaleString()} street${Math.round(v) === 1 ? '' : 's'}`,
       maxXLabels: 8,
+      refLine: Number.isFinite(batchSize) && batchSize > 0
+        ? { value: batchSize, key: 'batch', label: `batch size ${batchSize.toLocaleString()}` }
+        : undefined,
     });
 
     MiniLineChart.renderInto(document.getElementById('imagery-flag-chart'), labels, [

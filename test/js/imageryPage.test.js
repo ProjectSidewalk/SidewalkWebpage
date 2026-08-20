@@ -93,6 +93,7 @@ const MARKUP = `
   <p id="imagery-priority-note"></p>
   <input id="imagery-region-search" type="search">
   <table id="imagery-region-table"></table>
+  <p id="imagery-region-note"></p>
   <p id="imagery-street-intro"></p>
   <table id="imagery-street-table"></table>
   <p id="imagery-street-note"></p>
@@ -288,11 +289,86 @@ describe('ImageryPage KPIs', () => {
 describe('ImageryPage legend', () => {
   test('doubles as the city-wide tier breakdown', async () => {
     await renderPage();
-    const items = [...document.querySelectorAll('#imagery-legend .street-status-legend-item')]
-      .map((el) => el.textContent.replace(/\s+/g, ' ').trim());
-    expect(items).toEqual([
-      'Not yet audited (1)', 'Needs re-audit (1)', 'Audited once (1)', 'Audited 2+ times (1)',
+    const rows = [...document.querySelectorAll('#imagery-legend tbody tr')]
+      .map((row) => [...row.querySelectorAll('td')].map((td) => td.textContent.replace(/\s+/g, ' ').trim()));
+    expect(rows.map((cells) => [cells[0], cells[3], cells[4]])).toEqual([
+      ['Not yet audited', '1', '25%'],
+      ['Needs re-audit', '1', '25%'],
+      ['Audited once', '1', '25%'],
+      ['Audited 2+ times', '1', '25%'],
     ]);
+  });
+
+  test('reports each tier\u2019s observed priority range, not its nominal value', async () => {
+    // One street per tier here, so every range collapses to a single value; the spread case is below.
+    await renderPage();
+    const priorities = [...document.querySelectorAll('#imagery-legend tbody tr')]
+      .map((row) => row.querySelectorAll('td')[2].textContent.trim());
+    expect(priorities).toEqual(['1.000', '0.667', '0.500', '0.333']);
+  });
+
+  test('shows a range when a tier holds streets of differing priority', async () => {
+    await renderPage({
+      streets: [
+        street({ street_edge_id: 1, priority: 0.5, fresh_good_count: 1 }),
+        street({ street_edge_id: 2, priority: 0.4, fresh_good_count: 1, bad_count: 2 }),
+      ],
+      features: geojson([1, 2]),
+    });
+    const auditedOnce = [...document.querySelectorAll('#imagery-legend tbody tr')]
+      .find((row) => row.textContent.includes('Audited once'));
+    expect(auditedOnce.querySelectorAll('td')[2].textContent.trim()).toBe('0.400 – 0.500');
+  });
+
+  test('never rounds a tier that holds streets down to 0%', async () => {
+    // Nine never-audited streets in a 2,000-street city is 0.4%; printing "0%" beside the count reads as a bug.
+    const many = Array.from({ length: 300 }, (_, i) =>
+      street({ street_edge_id: i + 2, priority: 0.5, fresh_good_count: 1, last_audit_date: '2026-01-10' }));
+    await renderPage({
+      streets: [street({ street_edge_id: 1, priority: 1 }), ...many],
+      features: geojson([1, ...many.map((s) => s.street_edge_id)]),
+    });
+    const shares = [...document.querySelectorAll('#imagery-legend tbody tr')]
+      .map((row) => [row.querySelectorAll('td')[0].textContent.trim(),
+        row.querySelectorAll('td')[4].textContent.trim()]);
+    expect(shares).toContainEqual(['Not yet audited', '<1%']);
+    expect(shares).toContainEqual(['Needs re-audit', '0%']);
+  });
+
+  test('carries each tier\u2019s mileage so the work has a size, not just a count', async () => {
+    await renderPage();
+    const miles = [...document.querySelectorAll('#imagery-legend tbody tr')]
+      .map((row) => row.querySelectorAll('td')[5].textContent.trim());
+    expect(miles).toEqual(['1.0', '1.0', '1.0', '1.0']);
+  });
+
+  test('marks the re-audit tier dashed, matching how the map draws it', async () => {
+    await renderPage();
+    const dashed = [...document.querySelectorAll('#imagery-legend tbody tr')]
+      .filter((row) => row.querySelector('.imagery-tier-swatch--dashed'))
+      .map((row) => row.querySelectorAll('td')[0].textContent.trim());
+    expect(dashed).toEqual(['Needs re-audit']);
+  });
+
+  test('names the tiers that cross when low-quality audits reorder them', async () => {
+    // A re-audit street with three low-quality audits lands at 0.444, below a cleanly audited-once street at 0.500,
+    // so the map's color order stops matching the routing order — the note has to say so.
+    await renderPage({
+      streets: [
+        street({ street_edge_id: 1, priority: 0.444, outdated_good_count: 1, bad_count: 3, outdated: true,
+          last_audit_date: '2021-05-04' }),
+        street({ street_edge_id: 2, priority: 0.5, fresh_good_count: 1, last_audit_date: '2026-01-10' }),
+      ],
+      features: geojson([1, 2]),
+    });
+    expect(text('imagery-priority-note')).toContain('not strictly ordered by priority');
+    expect(text('imagery-priority-note')).toContain('some needs re-audit streets sit below some audited once ones');
+  });
+
+  test('does not claim a crossing when the tiers are cleanly ordered', async () => {
+    await renderPage();
+    expect(text('imagery-priority-note')).not.toContain('not strictly ordered');
+    expect(text('imagery-priority-note')).toContain('quarter weight');
   });
 
   test('reports the priority range without spreading one argument per street', async () => {
@@ -343,7 +419,7 @@ describe('ImageryPage tables', () => {
   test('lists the highest-priority streets city-wide until a region is pinned', async () => {
     await renderPage();
     expect(streetRows().map((tr) => tr.dataset.rowId)).toEqual(['1', '2', '3', '4']);
-    expect(text('imagery-street-note')).toContain('Showing 4 of 4 routable streets');
+    expect(text('imagery-street-note')).toContain('The top 4 by priority, of 4 routable streets');
     expect(text('imagery-street-intro')).toContain('city-wide');
   });
 
@@ -352,7 +428,7 @@ describe('ImageryPage tables', () => {
     regionRows()[1].dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
     expect(streetRows().map((tr) => tr.dataset.rowId)).toEqual(['4']);
     expect(text('imagery-street-intro')).toContain('Downtown');
-    expect(text('imagery-street-note')).toContain('Showing 1 of 1 routable streets');
+    expect(text('imagery-street-note')).toContain('The top 1 by priority, of 1 routable streets');
   });
 
   test('goes back to the city-wide ranking when the pinned region is clicked again', async () => {
@@ -368,9 +444,18 @@ describe('ImageryPage tables', () => {
     const many = Array.from({ length: 80 }, (_, i) => street({ street_edge_id: i + 1, priority: 1 - i / 1000 }));
     await renderPage({ streets: many, features: geojson(many.map((s) => s.street_edge_id)) });
     expect(streetRows()).toHaveLength(50);
-    expect(text('imagery-street-note')).toContain('Showing 50 of 80 routable streets');
+    expect(text('imagery-street-note')).toContain('The top 50 by priority, of 80 routable streets');
     // Explore picks at random among ties, so the list is a sample of the frontier rather than a running order.
-    expect(text('imagery-street-note')).toContain('at random among ties');
+    expect(text('imagery-street-note')).toContain('sample of the frontier rather than a queue');
+    expect(text('imagery-street-note')).toContain('top-priority ties');
+  });
+
+  test('says how many regions the scroll box holds, and that search covers all of them', async () => {
+    await renderPage();
+    const note = text('imagery-region-note');
+    expect(note).toContain('2 regions');
+    expect(note).toContain('highest mean priority first');
+    expect(note).toContain('top five');
   });
 
   test('links each street into Explore rather than pinning when the link is clicked', async () => {
@@ -460,7 +545,7 @@ describe('ImageryPage rotation roll-up', () => {
 describe('ImageryPage freshness histogram', () => {
   const buckets = () => charts[charts.length - 1];
 
-  test('buckets each audited-and-polled street by how much newer its imagery is', async () => {
+  test('plots only the streets whose imagery is newer than their audit', async () => {
     await renderPage({
       streets: [
         street({ street_edge_id: 1, last_audit_date: '2026-01-01', median_newest_capture: '2025-06-01' }),
@@ -471,10 +556,10 @@ describe('ImageryPage freshness histogram', () => {
       features: geojson([1, 2, 3, 4]),
     });
     const chart = buckets();
-    expect(chart.labels).toEqual(['not newer', '≤ 3 months', '3–12 months', '1–2 years', '2–5 years', '5+ years']);
-    // Imagery older than the audit, and imagery exactly as old, both read as "not newer"; the 2020 audit is six
-    // years behind its imagery and lands in the last bucket.
-    expect(chart.series[0].values).toEqual([2, 1, 0, 0, 0, 1]);
+    expect(chart.labels).toEqual(['≤ 3 months', '3–12 months', '1–2 years', '2–5 years', '5+ years']);
+    // Streets 1 and 2 are not behind at all — imagery older than the audit, and imagery exactly as old — so neither
+    // reaches the chart. The 2020 audit is six years behind its imagery and lands in the last bucket.
+    expect(chart.series[0].values).toEqual([1, 0, 0, 0, 1]);
   });
 
   test('puts each bucket boundary on the lower side, so no street falls between two buckets', async () => {
@@ -482,7 +567,7 @@ describe('ImageryPage freshness histogram', () => {
       street({ street_edge_id: id, last_audit_date: '2020-01-01', median_newest_capture: capture });
     await renderPage({
       streets: [
-        audited(1, '2020-01-01'), // 0 days -> not newer
+        audited(1, '2020-01-01'), // 0 days -> not behind, excluded
         audited(2, '2020-03-31'), // 90 days -> <= 3 months
         audited(3, '2020-04-01'), // 91 days -> 3-12 months
         audited(4, '2020-12-31'), // 365 days -> 3-12 months
@@ -494,14 +579,24 @@ describe('ImageryPage freshness histogram', () => {
       ],
       features: geojson([1, 2, 3, 4, 5, 6, 7, 8, 9]),
     });
-    expect(buckets().series[0].values).toEqual([1, 1, 2, 2, 2, 1]);
+    expect(buckets().series[0].values).toEqual([1, 2, 2, 2, 1]);
   });
 
-  test('says how many audited streets are missing from the chart, and why', async () => {
+  test('accounts for every audited street the chart leaves out', async () => {
     await renderPage();
     const note = text('imagery-freshness-note');
-    expect(note).toContain('3 audited streets have a polled capture date');
+    expect(note).toContain('2 audited streets have imagery newer than their last audit');
+    expect(note).toContain('1 more are still current');
     expect(note).toContain('0 have not been polled conclusively yet');
+  });
+
+  test('reports the same split in the rotation table as the chart plots', async () => {
+    // Two readers of one derived quantity: a rotation row that disagreed with the chart beside it would be worse
+    // than either alone.
+    await renderPage();
+    const rotation = text('imagery-rotation').replace(/\s+/g, ' ');
+    expect(rotation).toContain('Audits still current 1');
+    expect(rotation).toContain('Audits behind the imagery 2');
   });
 });
 
