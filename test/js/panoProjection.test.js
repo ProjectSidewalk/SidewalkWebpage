@@ -85,6 +85,32 @@ describe('util.pano projection', () => {
         });
     });
 
+    // PanoMarker falls back to the 2D projection whenever the browser hands it no WebGL context, so this runs for
+    // real users even though it never executes in a WebGL-capable dev browser. It reaches for helpers on the util.pano
+    // namespace, and a stale reference there is a TypeError on the very first marker draw rather than a bad pixel.
+    describe('centeredPovToCanvasCoord2d (non-WebGL fallback)', () => {
+        it('puts a point at the canvas center when it is already the viewport center', () => {
+            const pov = { heading: 90.5, pitch: -5.9, zoom: 1 };
+            const coord = pano.centeredPovToCanvasCoord2d(pov, pov, CANVAS_WIDTH, CANVAS_HEIGHT, 20);
+
+            expect(coord).not.toBeNull();
+            expect(coord.x).toBeCloseTo(CANVAS_WIDTH / 2, 6);
+            expect(coord.y).toBeCloseTo(CANVAS_HEIGHT / 2, 6);
+        });
+
+        // The heading difference is wrapped, so a point just across the 0°/360° seam stays beside the viewport
+        // center instead of projecting a full turn away.
+        it('wraps the heading difference across the 0/360 seam', () => {
+            const coord = pano.centeredPovToCanvasCoord2d(
+                { heading: 1, pitch: 0 }, { heading: 359, pitch: 0, zoom: 1 }, CANVAS_WIDTH, CANVAS_HEIGHT, 20
+            );
+
+            expect(coord).not.toBeNull();
+            expect(coord.x).toBeGreaterThan(CANVAS_WIDTH / 2);
+            expect(coord.x).toBeLessThan(CANVAS_WIDTH);
+        });
+    });
+
     describe('record consistency with stored pano coordinates', () => {
         // Real rows from the seeded Seattle dev DB (sidewalk_seattle.label_point joined to pano_data). label_point
         // stores the pano's POV at label time plus the canvas coordinate; pano_x/pano_y is what Explore derived from

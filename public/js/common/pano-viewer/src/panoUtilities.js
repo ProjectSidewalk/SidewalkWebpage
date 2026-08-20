@@ -284,7 +284,9 @@ util.pano.wrapHeading = (heading) => {
 /**
  * A simpler version of centeredPovToCanvasCoord which does not have to do the spherical projection because the raw
  * StreetView tiles are just panned around when the user changes the viewport position.
- * TODO not sure if this is used anymore.
+ *
+ * PanoMarker picks this as its projection when the browser gives it no WebGL context, falling back to
+ * centeredPovToCanvasCoord otherwise, so this is the path every marker takes on a WebGL-less browser.
  *
  * @param {{heading: number, pitch: number}} centeredPov Translating the center point at this POV to newPov
  * @param {{heading: number, pitch: number, zoom: number}} newPov The POV within the panorama to use wrt true north
@@ -297,7 +299,7 @@ util.pano.centeredPovToCanvasCoord2d = function (centeredPov, newPov, canvasWidt
   // In the 2D environment, the FOV follows the documented curve.
   const hfov = 180 / Math.pow(2, newPov.zoom);
   const vfov = hfov * (canvasHeight / canvasWidth);
-  const dh = PanoMarker.wrapHeading(centeredPov.heading - newPov.heading);
+  const dh = util.pano.wrapHeading(centeredPov.heading - newPov.heading);
   const dv = centeredPov.pitch - newPov.pitch;
 
   // Use the calculated pixel offsets. Return null if not in the viewport.
