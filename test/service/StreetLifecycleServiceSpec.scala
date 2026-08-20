@@ -132,7 +132,7 @@ class StreetLifecycleServiceSpec extends PlaySpec with BeforeAndAfterAll with Gu
       val json = Json.toJson(trend)
       (json \ "weeks").as[Int] mustBe StreetLifecycleService.MaxTrendWeeks
       (json \ "min_reporters").as[Int] mustBe StreetLifecycleService.MinCorroboratingReporters
-      Seq("status_changes", "no_imagery_reports", "panos_expired", "top_report_regions", "corroborated_streets")
+      Seq("status_changes", "no_imagery_reports", "pano_imagery_changes", "top_report_regions", "corroborated_streets")
         .foreach(key => (json \ key).asOpt[play.api.libs.json.JsArray] mustBe defined)
       (json \ "panos_expired_undated").as[Int] must be >= 0
       // The window start is what the client steps its week grid from, so it has to stay an ISO string rather than

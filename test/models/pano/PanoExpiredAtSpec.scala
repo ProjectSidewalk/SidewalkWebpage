@@ -112,23 +112,15 @@ class PanoExpiredAtSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneApp
     }
   }
 
-  "newlyExpiredByWeek" should {
-    "count a pano in the week its imagery went away" in {
-      val goneAt = OffsetDateTime.now
-      run(panoDataTable.updateExpiredStatus(panoId, expired = true, Some(false), goneAt))
-      val weeks = run(panoDataTable.newlyExpiredByWeek(goneAt.minusDays(1)))
-      weeks.map(_.panoCount).sum must be >= 1
-    }
-
-    "leave out panos that expired before expiry dates were recorded" in {
-      // The whole point of the undated count: those panos are absent from every week rather than piled onto one.
-      val countedBefore = run(panoDataTable.newlyExpiredByWeek(OffsetDateTime.now.minusWeeks(1))).map(_.panoCount).sum
+  "countExpiredWithoutExpiryDate" should {
+    "count an expired pano that carries no expiry date" in {
+      // What the trend page reports as the history it cannot show: these panos expired before 358 added the column,
+      // so 359's backfill had no date to seed a log event from and they belong to no week.
+      run(panoDataTable.updateExpiredStatus(panoId, expired = true, Some(false), OffsetDateTime.now))
       val undatedBefore = run(panoDataTable.countExpiredWithoutExpiryDate)
 
       run(sqlu"UPDATE pano_data SET expired_at = NULL WHERE pano_id = $panoId")
 
-      run(panoDataTable.newlyExpiredByWeek(OffsetDateTime.now.minusWeeks(1))).map(_.panoCount).sum mustBe
-        countedBefore - 1
       run(panoDataTable.countExpiredWithoutExpiryDate) mustBe undatedBefore + 1
     }
   }

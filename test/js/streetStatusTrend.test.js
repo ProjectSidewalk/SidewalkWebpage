@@ -53,7 +53,7 @@ function payload(overrides = {}) {
     since: '2026-07-27T00:00:00-07:00',
     status_changes: [],
     no_imagery_reports: [],
-    panos_expired: [],
+    pano_imagery_changes: [],
     top_report_regions: [],
     corroborated_streets: [],
     min_reporters: 2,
@@ -155,14 +155,58 @@ describe('the status-change chart', () => {
   });
 });
 
+describe('the imagery-change chart', () => {
+  /** Every bar tooltip the chart drew, which is where the per-series values are legible. */
+  function expiryTips() {
+    return [...document.querySelectorAll('#trend-expiry-chart title')].map((t) => t.textContent);
+  }
+
+  test('charts losses and recoveries as separate series', async () => {
+    jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-08-17T12:00:00-07:00'));
+    await render(payload({
+      since: '2026-07-27T00:00:00-07:00',
+      pano_imagery_changes: [{ week_start: '2026-08-10', expired_count: 4, returned_count: 2 }],
+    }));
+    expect(expiryTips()).toContain('Aug 10 · Imagery went away: 4 panos');
+    expect(expiryTips()).toContain('Aug 10 · Imagery came back: 2 panos');
+    // Two series means a legend, which is the only thing naming which colour is which.
+    expect(document.getElementById('trend-expiry-chart').textContent).toContain('Imagery came back');
+  });
+
+  test('leaves a loss in the week it happened when the imagery later comes back', async () => {
+    jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-08-17T12:00:00-07:00'));
+    await render(payload({
+      since: '2026-07-27T00:00:00-07:00',
+      pano_imagery_changes: [
+        { week_start: '2026-07-27', expired_count: 6, returned_count: 0 },
+        { week_start: '2026-08-10', expired_count: 0, returned_count: 6 },
+      ],
+    }));
+    // The whole reason this reads an event log instead of pano_data.expired_at (#4947): under the old shape the
+    // recovery erased the earlier week, so a chart of the same six panos showed nothing at all.
+    expect(expiryTips()).toContain('Jul 27 · Imagery went away: 6 panos');
+    expect(expiryTips()).toContain('Aug 10 · Imagery came back: 6 panos');
+  });
+
+  test('zero-fills a week the server had nothing to report for', async () => {
+    jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-08-17T12:00:00-07:00'));
+    await render(payload({
+      since: '2026-07-27T00:00:00-07:00',
+      pano_imagery_changes: [{ week_start: '2026-08-10', expired_count: 1, returned_count: 0 }],
+    }));
+    expect(expiryTips()).toContain('Aug 3 · Imagery went away: 0 panos');
+    expect(expiryTips()).toContain('Aug 10 · Imagery went away: 1 pano');
+  });
+});
+
 describe('the expiry note', () => {
   test('says how many expired panos the chart cannot account for', async () => {
     await render(payload({ panos_expired_undated: 1234 }));
     expect(document.getElementById('trend-expiry-note').textContent)
-      .toMatch(/^1,234 panos were already expired before expiry dates were recorded/);
+      .toMatch(/^1,234 panos were already expired before any of this was recorded/);
   });
 
-  test('stays silent when every expired pano has a date', async () => {
+  test('stays silent when every expired pano is accounted for', async () => {
     await render(payload({ panos_expired_undated: 0 }));
     expect(document.getElementById('trend-expiry-note').textContent).toBe('');
   });

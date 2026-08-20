@@ -5,7 +5,7 @@ import com.github.tminglei.slickpg._
 import com.github.tminglei.slickpg.geom.PgPostGISExtensions
 import models.label.{AiImageSource, ComputationMethod}
 import models.mission.MissionType
-import models.pano.PanoSource
+import models.pano.{PanoImageryChangeSource, PanoSource}
 import models.street.{StreetEdgeIssueType, StreetEdgeStatus, StreetEdgeStatusChangeSource, StreetImagerySource, WayType}
 import models.utils.CommonUtils.{UiSource, ViewerType}
 import models.validation.ValidationOption
@@ -129,6 +129,15 @@ trait MyPostgresProfile
     // Mapper for pano_source enum type.
     implicit val panoSourceMapper: BaseColumnType[PanoSource.Value] =
       createEnumJdbcType[PanoSource.Value]("pano_source", _.toString, PanoSource.withName, quoteName = false)
+
+    // Mapper for pano_imagery_change_source enum type.
+    implicit val panoImageryChangeSourceMapper: BaseColumnType[PanoImageryChangeSource.Value] =
+      createEnumJdbcType[PanoImageryChangeSource.Value](
+        "pano_imagery_change_source",
+        _.toString,
+        PanoImageryChangeSource.withName,
+        quoteName = false
+      )
 
     // Mapper for ui_source enum type.
     implicit val uiSourceMapper: BaseColumnType[UiSource.Value] =
