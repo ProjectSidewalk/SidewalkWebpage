@@ -3,7 +3,8 @@ package controllers
 import controllers.base.{CustomBaseController, CustomControllerComponents}
 import models.auth.{WithAdmin, WithOwner}
 import play.api.Configuration
-import play.api.libs.json.{JsArray, Json}
+import models.street.StreetPriorityForAdmin
+import play.api.libs.json.Json
 import service.HealthService.dbHealthDataWrites
 import service.{
   ConfigService,
@@ -288,23 +289,6 @@ class AdminDashboardController @Inject() (
    * would freeze it into a public contract that the multi-factor prioritization work (#4894) is expected to change.
    */
   def getStreetPriority = cc.securityService.SecuredAction(WithAdmin()) { _ =>
-    streetService.getPriorityWithInputs.map { streets =>
-      Ok(Json.obj("streets" -> JsArray(streets.map { street =>
-        Json.obj(
-          "street_edge_id"        -> street.streetEdgeId,
-          "region_id"             -> street.regionId,
-          "region_name"           -> street.regionName,
-          "priority"              -> street.priority,
-          "fresh_good_count"      -> street.freshGoodCount,
-          "outdated_good_count"   -> street.outdatedGoodCount,
-          "bad_count"             -> street.badCount,
-          "outdated"              -> street.outdated,
-          "last_audit_date"       -> street.lastAuditDate.map(_.toString),
-          "median_newest_capture" -> street.medianNewestCapture.map(_.toString),
-          "imagery_updated_at"    -> street.imageryUpdatedAt.map(_.toString),
-          "length_m"              -> street.lengthMeters
-        )
-      })))
-    }
+    streetService.getPriorityWithInputs.map(streets => Ok(StreetPriorityForAdmin.payload(streets)))
   }
 }

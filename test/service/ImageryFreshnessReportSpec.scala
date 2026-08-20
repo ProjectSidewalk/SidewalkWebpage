@@ -1,5 +1,6 @@
 package service
 
+import actor.ScheduledJobs
 import models.utils.{BackgroundJobRun, JobRunStatus, JobRunTrigger}
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -16,8 +17,8 @@ import java.time.{OffsetDateTime, ZoneOffset}
  */
 class ImageryFreshnessReportSpec extends AnyWordSpec with Matchers {
 
-  private val pollJob = "check-imagery-age-actor"
-  private val syncJob = "imagery-freshness-sync"
+  private val pollJob = ImageryFreshnessReportService.PollJob
+  private val syncJob = ImageryFreshnessReportService.SyncJob
 
   private def at(day: String, hour: Int): OffsetDateTime =
     OffsetDateTime.of(java.time.LocalDate.parse(day), java.time.LocalTime.of(hour, 0), ZoneOffset.UTC)
@@ -120,6 +121,44 @@ class ImageryFreshnessReportSpec extends AnyWordSpec with Matchers {
     }
   }
 
+  "the charted jobs" should {
+    // Every name here is looked up in the roster the Health panel builds, so one that is not on it silently drops a
+    // job off this page -- an absent row, which reads as a job that does not exist rather than one nothing can find.
+    "all be on the nightly roster" in {
+      val roster = ScheduledJobs.All.map(_.name)
+      ImageryFreshnessReportService.JobNames.foreach(name => roster must contain(name))
+    }
+
+    "name the poll and the sync among them, since the page points at them by role" in {
+      ImageryFreshnessReportService.JobNames must contain(ImageryFreshnessReportService.PollJob)
+      ImageryFreshnessReportService.JobNames must contain(ImageryFreshnessReportService.SyncJob)
+      ImageryFreshnessReportService.PollJob must not be ImageryFreshnessReportService.SyncJob
+    }
+
+    "run the poll earlier in the night than the sync that consumes it" in {
+      val poll = ScheduledJobs.All.find(_.name == ImageryFreshnessReportService.PollJob).get
+      val sync = ScheduledJobs.All.find(_.name == ImageryFreshnessReportService.SyncJob).get
+      (poll.hour * 60 + poll.minute) must be < (sync.hour * 60 + sync.minute)
+    }
+  }
+
+  "reading a run's counts" should {
+    "treat a key the run did not record as zero rather than dropping the night" in {
+      val days = buildDays(Seq(run(pollJob, "2026-08-10", 0, Map("streets_polled" -> 3))))
+      days.head.streetsSelected mustBe 0
+      days.head.streetsSkipped mustBe 0
+    }
+
+    "treat a non-numeric value as zero, since details is free-form JSON" in {
+      // `details` is whatever the job stored; a string where a count is expected must not sink the whole series.
+      val polled = run(pollJob, "2026-08-10", 0, Map.empty)
+        .copy(details = Some(Json.obj("streets_polled" -> "many", "streets_skipped" -> 4)))
+      val days = buildDays(Seq(polled))
+      days.head.streetsPolled mustBe 0
+      days.head.streetsSkipped mustBe 4
+    }
+  }
+
   "the report writer" should {
     "emit snake_case keys, including for nights with no run of one job" in {
       val report = ImageryFreshnessReport(
@@ -128,12 +167,17 @@ class ImageryFreshnessReportSpec extends AnyWordSpec with Matchers {
         jobs = Seq.empty,
         runDays = buildDays(Seq(run(pollJob, "2026-08-10", 0, Map("streets_polled" -> 3)))),
         pollBatchSize = 500,
-        overdueAfterHours = 36L
+        overdueAfterHours = 36L,
+        pollJob = pollJob,
+        syncJob = syncJob
       )
       val json = Json.toJson(report)
 
       (json \ "poll_batch_size").as[Int] mustBe 500
       (json \ "overdue_after_hours").as[Long] mustBe 36L
+      // The client points at the poll and the sync by role rather than keeping its own copy of their names.
+      (json \ "poll_job").as[String] mustBe pollJob
+      (json \ "sync_job").as[String] mustBe syncJob
       val night = (json \ "run_days" \ 0).get
       (night \ "day").as[String] mustBe "2026-08-10"
       (night \ "streets_polled").as[Int] mustBe 3

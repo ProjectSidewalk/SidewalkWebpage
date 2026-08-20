@@ -6,6 +6,7 @@ import models.user.UserStatTableDef
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+import play.api.libs.json.{JsValue, Json, Writes}
 import slick.jdbc.GetResult
 
 import java.time.{LocalDate, OffsetDateTime}
@@ -47,6 +48,36 @@ case class StreetPriorityForAdmin(
     imageryUpdatedAt: Option[OffsetDateTime],
     lengthMeters: Double
 )
+
+object StreetPriorityForAdmin {
+
+  /**
+   * snake_case per the admin dashboard convention, with dates as plain ISO strings.
+   *
+   * Hand-built rather than derived so the column set is stated once, next to the case class it serializes: the page
+   * joins these rows onto street geometry by `street_edge_id` and reads every other field by name, so a field renamed
+   * on one side and not the other is a blank column rather than an error.
+   */
+  implicit val writes: Writes[StreetPriorityForAdmin] = Writes { street =>
+    Json.obj(
+      "street_edge_id"        -> street.streetEdgeId,
+      "region_id"             -> street.regionId,
+      "region_name"           -> street.regionName,
+      "priority"              -> street.priority,
+      "fresh_good_count"      -> street.freshGoodCount,
+      "outdated_good_count"   -> street.outdatedGoodCount,
+      "bad_count"             -> street.badCount,
+      "outdated"              -> street.outdated,
+      "last_audit_date"       -> street.lastAuditDate.map(_.toString),
+      "median_newest_capture" -> street.medianNewestCapture.map(_.toString),
+      "imagery_updated_at"    -> street.imageryUpdatedAt.map(_.toString),
+      "length_m"              -> street.lengthMeters
+    )
+  }
+
+  /** The whole endpoint payload: the rows under one key, so the response stays an object rather than a bare array. */
+  def payload(streets: Seq[StreetPriorityForAdmin]): JsValue = Json.obj("streets" -> Json.toJson(streets))
+}
 
 class StreetEdgePriorityTableDef(tag: slick.lifted.Tag) extends Table[StreetEdgePriority](tag, "street_edge_priority") {
   def streetEdgePriorityId: Rep[Int] = column[Int]("street_edge_priority_id", O.PrimaryKey, O.AutoInc)

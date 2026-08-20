@@ -37,6 +37,8 @@ class StreetPriorityAdminSpec extends PlaySpec with GuiceOneAppPerSuite with Rol
   private val streetEdges  = TableQuery[StreetEdgeTableDef]
   private val streetRegion = TableQuery[StreetEdgeRegionTableDef]
 
+  private val streetEdgePriorities = TableQuery[StreetEdgePriorityTableDef]
+
   /** The priority formula, in the terms the panel exposes: see StreetEdgePriorityTable's ScalaDoc for the weights. */
   private def expectedParameter(fresh: Int, outdated: Int, bad: Int): Double = {
     if (fresh == 0 && outdated == 0) 1.0
@@ -106,6 +108,142 @@ class StreetPriorityAdminSpec extends PlaySpec with GuiceOneAppPerSuite with Rol
       // the flag even though the flagged audit still counts toward the street's audit history.
       fresh.map(_.outdated) mustBe Some(false)
       outdated.map(_.outdated) mustBe Some(true)
+    }
+
+    "weigh an audit by the user who did it, not by the fact it happened" in {
+      assume(someRoutableStreet.isDefined)
+      val streetId = someRoutableStreet.get
+      val userIds  = run(userStats.filterNot(_.excluded).map(_.userId).take(2).result)
+      assume(userIds.size >= 2)
+
+      val row = runRolledBack(
+        for {
+          _ <- auditTasks
+            .filter(task => task.streetEdgeId === streetId && task.completed)
+            .map(_.completed)
+            .update(false)
+          _    <- userStats.filter(_.userId === userIds.head).map(_.highQuality).update(true)
+          _    <- userStats.filter(_.userId === userIds(1)).map(_.highQuality).update(false)
+          _    <- auditTaskTable.insert(newCompletedTask(streetId, userIds.head))
+          _    <- auditTaskTable.insert(newCompletedTask(streetId, userIds(1)))
+          rows <- streetEdgePriorityTable.getPriorityWithInputs
+        } yield rows.find(_.streetEdgeId == streetId)
+      )
+
+      // A low-quality user's audit contributes a quarter weight, so it must land in its own bucket rather than
+      // counting as coverage -- a street whose only walkers were flagged still needs a real audit.
+      row.map(r => (r.freshGoodCount, r.outdatedGoodCount, r.badCount)) mustBe Some((1, 0, 1))
+    }
+
+    "count an incomplete or low-quality audit as a weak one, whoever did it" in {
+      assume(someRoutableStreet.isDefined)
+      val streetId = someRoutableStreet.get
+      val userIds  = run(userStats.filterNot(_.excluded).map(_.userId).take(1).result)
+      assume(userIds.nonEmpty)
+
+      val row = runRolledBack(
+        for {
+          _ <- auditTasks
+            .filter(task => task.streetEdgeId === streetId && task.completed)
+            .map(_.completed)
+            .update(false)
+          _      <- userStats.filter(_.userId === userIds.head).map(_.highQuality).update(true)
+          taskId <- auditTaskTable.insert(newCompletedTask(streetId, userIds.head))
+          _      <- auditTasks.filter(_.auditTaskId === taskId).map(_.incomplete).update(true)
+          rows   <- streetEdgePriorityTable.getPriorityWithInputs
+        } yield rows.find(_.streetEdgeId == streetId)
+      )
+
+      row.map(r => (r.freshGoodCount, r.badCount)) mustBe Some((0, 1))
+    }
+
+    "ignore an excluded user's audits entirely, rather than weighing them lightly" in {
+      assume(someRoutableStreet.isDefined)
+      val streetId = someRoutableStreet.get
+      val userIds  = run(userStats.filterNot(_.excluded).map(_.userId).take(1).result)
+      assume(userIds.nonEmpty)
+
+      val row = runRolledBack(
+        for {
+          _ <- auditTasks
+            .filter(task => task.streetEdgeId === streetId && task.completed)
+            .map(_.completed)
+            .update(false)
+          _    <- auditTaskTable.insert(newCompletedTask(streetId, userIds.head))
+          _    <- userStats.filter(_.userId === userIds.head).map(_.excluded).update(true)
+          rows <- streetEdgePriorityTable.getPriorityWithInputs
+        } yield rows.find(_.streetEdgeId == streetId)
+      )
+
+      // Excluded accounts are removed from the record rather than discounted, which is what the priority formula
+      // does; counting them as bad audits would keep lowering a street's priority for work that was thrown away.
+      row.map(r => (r.freshGoodCount, r.outdatedGoodCount, r.badCount)) mustBe Some((0, 0, 0))
+    }
+
+    "collapse one user's repeat audits of a street, the way the priority formula does" in {
+      assume(someRoutableStreet.isDefined)
+      val streetId = someRoutableStreet.get
+      val userIds  = run(userStats.filterNot(_.excluded).map(_.userId).take(1).result)
+      assume(userIds.nonEmpty)
+
+      val row = runRolledBack(
+        for {
+          _ <- auditTasks
+            .filter(task => task.streetEdgeId === streetId && task.completed)
+            .map(_.completed)
+            .update(false)
+          _    <- userStats.filter(_.userId === userIds.head).map(_.highQuality).update(true)
+          _    <- auditTaskTable.insert(newCompletedTask(streetId, userIds.head))
+          _    <- auditTaskTable.insert(newCompletedTask(streetId, userIds.head))
+          _    <- auditTaskTable.insert(newCompletedTask(streetId, userIds.head))
+          rows <- streetEdgePriorityTable.getPriorityWithInputs
+        } yield rows.find(_.streetEdgeId == streetId)
+      )
+
+      // The formula groups by (street, user, flags) before counting, so one person walking a street three times is
+      // one audit's worth of coverage. Counting three would drop the street off the queue on one labeler's word.
+      row.map(_.freshGoodCount) mustBe Some(1)
+    }
+
+    "report the most recent completed audit, including one flagged for a re-audit" in {
+      assume(someRoutableStreet.isDefined)
+      val streetId = someRoutableStreet.get
+      val userIds  = run(userStats.filterNot(_.excluded).map(_.userId).take(1).result)
+      assume(userIds.nonEmpty)
+      val newest = OffsetDateTime.now
+
+      val row = runRolledBack(
+        for {
+          _ <- auditTasks
+            .filter(task => task.streetEdgeId === streetId && task.completed)
+            .map(_.completed)
+            .update(false)
+          _ <- auditTaskTable.insert(newCompletedTask(streetId, userIds.head).copy(taskEnd = newest.minusDays(400)))
+          taskId <- auditTaskTable.insert(newCompletedTask(streetId, userIds.head).copy(taskEnd = newest))
+          _      <- auditTasks.filter(_.auditTaskId === taskId).map(_.outdatedImagery).update(true)
+          rows   <- streetEdgePriorityTable.getPriorityWithInputs
+        } yield rows.find(_.streetEdgeId == streetId)
+      )
+
+      // The date answers "when was this street last walked", which a flagged audit answers as well as any other --
+      // the flag says the imagery moved on, not that the visit never happened.
+      row.flatMap(_.lastAuditDate) mustBe Some(newest.atZoneSameInstant(java.time.ZoneOffset.UTC).toLocalDate)
+    }
+
+    "read a street with no stored priority as the highest, not as the lowest" in {
+      assume(someRoutableStreet.isDefined)
+      val streetId = someRoutableStreet.get
+
+      val row = runRolledBack(
+        for {
+          _    <- streetEdgePriorities.filter(_.streetEdgeId === streetId).delete
+          rows <- streetEdgePriorityTable.getPriorityWithInputs
+        } yield rows.find(_.streetEdgeId == streetId)
+      )
+
+      // A missing row means the recalculation has never reached this street, which is the state a brand-new street
+      // is in; defaulting to 0 would bury it at the bottom of the queue forever.
+      row.map(_.priority) mustBe Some(1.0)
     }
 
     "return only streets Explore can route to" in {
