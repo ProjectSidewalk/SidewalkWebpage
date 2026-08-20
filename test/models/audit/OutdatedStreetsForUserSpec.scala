@@ -42,9 +42,13 @@ class OutdatedStreetsForUserSpec extends PlaySpec with GuiceOneAppPerSuite with 
   private lazy val twoUserIds: Seq[String] =
     run(TableQuery[models.user.SidewalkUserTableDef].map(_.userId).take(2).result)
 
-  private def newCompletedTask(streetEdgeId: Int, userId: String): AuditTask =
-    AuditTask(0, None, userId, streetEdgeId, OffsetDateTime.now.minusHours(1), OffsetDateTime.now, completed = true,
-      0.0, 0.0, startPointReversed = false, None, None, lowQuality = false, incomplete = false, stale = false,
+  private def newCompletedTask(
+      streetEdgeId: Int,
+      userId: String,
+      taskEnd: OffsetDateTime = OffsetDateTime.now
+  ): AuditTask =
+    AuditTask(0, None, userId, streetEdgeId, taskEnd.minusHours(1), taskEnd, completed = true, 0.0, 0.0,
+      startPointReversed = false, None, None, lowQuality = false, incomplete = false, stale = false,
       auditedDistanceM = None)
 
   private def flagTask(auditTaskId: Int): DBIO[Int] =
@@ -98,6 +102,30 @@ class OutdatedStreetsForUserSpec extends PlaySpec with GuiceOneAppPerSuite with 
 
       mine.map(_.streetEdgeId) must contain(streetId)
       afterTheirs.map(_.streetEdgeId) must not contain streetId
+    }
+
+    "lead with the street the user finished auditing longest ago" in {
+      assume(twoUserIds.nonEmpty)
+      val userId = twoUserIds.head
+
+      val (streetIds, rows) = runRolledBack(
+        for {
+          streetIds <- auditTaskTable.nonDeletedStreetEdgeRegions.map(_.streetEdgeId).take(3).result
+          _         <- DBIO.sequence(streetIds.map(hideExistingAudits))
+          // Seeded youngest-first so an insertion-ordered result would come out backwards, and far enough back that
+          // these three lead the list whatever else the connected DB has the user auditing.
+          taskIds <- DBIO.sequence(streetIds.zipWithIndex.map { case (streetEdgeId, i) =>
+            auditTaskTable.insert(newCompletedTask(streetEdgeId, userId, OffsetDateTime.now.minusYears(28L + i)))
+          })
+          _    <- DBIO.sequence(taskIds.map(flagTask))
+          rows <- auditTaskTable.getOutdatedStreetsForUser(userId, ListLimit)
+        } yield (streetIds, rows)
+      )
+
+      assume(streetIds.size == 3)
+      val auditedAt = rows.flatMap(_.lastAuditedAt).map(_.toInstant)
+      auditedAt mustBe auditedAt.sorted
+      rows.map(_.streetEdgeId).take(3) mustBe streetIds.reverse
     }
 
     "report the capture date that flagged the street, and still list it when there is none" in {

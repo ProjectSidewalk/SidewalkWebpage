@@ -605,12 +605,12 @@ dashboard.routes.none = 您尚未建立任何路線。
 dashboard.routes.build.one = 建立您的第一條路線 →
 
 dashboard.reaudit.title = 有更新影像的街道
-dashboard.reaudit.intro.one = 您標記過的 1 條街道有了新的街景影像。您的標記仍然有效——這是查看有什麼改變的好機會。
-dashboard.reaudit.intro.many = 您標記過的 {0} 條街道有了新的街景影像。您的標記仍然有效——這是查看有什麼改變的好機會。
+dashboard.reaudit.intro.one = 您標記過的 1 條街道有了更新的街景影像。您的標記仍然有效——來看看自您上次查看以來，那裡的步行、輪椅通行與安全狀況改變了多少。
+dashboard.reaudit.intro.many = 您標記過的 {0} 條街道有了更新的街景影像。您的標記仍然有效——來看看自您上次查看以來，這些區域的步行、輪椅通行與安全狀況改變了多少。
 dashboard.reaudit.imagery = {0} 的新影像
 dashboard.reaudit.audited = 您於 {0} 標記
 dashboard.reaudit.revisit = 重新探索
-dashboard.reaudit.showing = 顯示 {1} 條中的 {0} 條。
+dashboard.reaudit.more = 再顯示 {0} 條
 dashboard.reaudit.see.map = 在您的地圖上查看全部 →
 dashboard.reaudit.none = 您標記過的每一條街道都已是最新影像。
 

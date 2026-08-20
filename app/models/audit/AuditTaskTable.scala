@@ -460,7 +460,13 @@ class AuditTaskTable @Inject() (
   }
 
   /**
-   * List the streets a user audited that still need a re-audit, newest imagery first (#4896).
+   * List the streets a user audited that still need a re-audit, the audit they last finished longest ago first
+   * (#4896).
+   *
+   * Ordering on the user's own visit rather than on the capture date is what makes the list discriminate: a city's
+   * capture dates cluster around the handful of dates the imagery provider drove it, while the user's audits spread
+   * across their whole history. Oldest-first also matches what the section asks them to do -- see what has changed
+   * since they last looked -- by leading with the streets they have looked at least recently.
    *
    * @param limit Most rows to return; the caller pairs this with [[countOutdatedStreetsForUser]] for the full total.
    */
@@ -472,7 +478,7 @@ class AuditTaskTable @Inject() (
         (_se.streetEdgeId, _r.regionId, _r.name, _se.geom.lengthGeodesic, _si.flatMap(_.medianNewestCapture),
           lastAudited)
       }
-      .sortBy { case (streetEdgeId, _, _, _, newImagery, _) => (newImagery.desc.nullsLast, streetEdgeId.asc) }
+      .sortBy { case (streetEdgeId, _, _, _, _, lastAudited) => (lastAudited.asc.nullsLast, streetEdgeId.asc) }
       .take(limit)
       .result
       .map(_.map(OutdatedStreetForUser.tupled))

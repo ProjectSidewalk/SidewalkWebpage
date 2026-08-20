@@ -543,12 +543,12 @@ dashboard.routes.none = Você ainda não criou nenhuma rota.
 dashboard.routes.build.one = Crie sua primeira rota →
 
 dashboard.reaudit.title = Ruas com imagens mais recentes
-dashboard.reaudit.intro.one = Chegaram novas imagens do Street View em 1 rua que você mapeou. Seus rótulos continuam valendo — esta é uma chance de ver o que mudou.
-dashboard.reaudit.intro.many = Chegaram novas imagens do Street View em {0} ruas que você mapeou. Seus rótulos continuam valendo — esta é uma chance de ver o que mudou.
+dashboard.reaudit.intro.one = Chegaram imagens do Street View mais recentes em 1 rua que você mapeou. Seus rótulos continuam valendo — vamos ver o quanto a caminhabilidade, a acessibilidade em cadeira de rodas e a segurança desse lugar mudaram desde a última vez que você olhou.
+dashboard.reaudit.intro.many = Chegaram imagens do Street View mais recentes em {0} ruas que você mapeou. Seus rótulos continuam valendo — vamos ver o quanto a caminhabilidade, a acessibilidade em cadeira de rodas e a segurança dessas áreas mudaram desde a última vez que você olhou.
 dashboard.reaudit.imagery = imagens novas de {0}
 dashboard.reaudit.audited = Você mapeou em {0}
 dashboard.reaudit.revisit = Revisitar
-dashboard.reaudit.showing = Mostrando {0} de {1}.
+dashboard.reaudit.more = Mostrar mais {0}
 dashboard.reaudit.see.map = Ver todas no seu mapa →
 dashboard.reaudit.none = Todas as ruas que você mapeou estão atualizadas com as imagens mais recentes.
 

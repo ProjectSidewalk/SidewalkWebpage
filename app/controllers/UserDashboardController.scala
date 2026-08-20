@@ -34,8 +34,10 @@ class UserDashboardController @Inject() (
     extends CustomBaseController(cc) {
   implicit val implicitConfig: Configuration = config
 
-  // How many needs-re-audit streets the dashboard lists before deferring to the map, which draws all of them (#4896).
-  private val ReauditListSize: Int = 12
+  // The dashboard's needs-re-audit list reveals five rows at a time; it fetches three pages' worth up front so
+  // "show more" is a reveal rather than a round trip, and defers the rest to the map, which draws all of them (#4896).
+  private val ReauditPageSize: Int = 5
+  private val ReauditListSize: Int = ReauditPageSize * 3
 
   /**
    * Renders the redesigned User Dashboard prototype: a single page of "your impact" sections (hero stats, activity
@@ -66,7 +68,7 @@ class UserDashboardController @Inject() (
       Ok(
         views.html.userDashboard
           .dashboard(commonData, user, profileData, isMetric, tags, standing, streak, accuracy, trophies, myRoutes,
-            reauditStreets, reauditTotal)
+            reauditStreets, reauditTotal, ReauditPageSize)
       )
     }
   }

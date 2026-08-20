@@ -25,7 +25,10 @@ class OutdatedStreets {
   /** Attaches all row behaviors. */
   init() {
     this.#localizeDates();
+    this.#wireShowMore();
 
+    // Every fetched row is wired here, including the ones still hidden behind "show more", so a revealed row needs
+    // no further setup.
     this.#list.querySelectorAll('.ud-reaudit-row').forEach((row) => {
       const streetEdgeId = Number(row.dataset.streetEdgeId);
       row.addEventListener('mouseenter', () => this.#highlight(streetEdgeId));
@@ -49,6 +52,35 @@ class OutdatedStreets {
       .catch(() => {
         this.#map = null;
       });
+  }
+
+  /**
+   * Wires the "show more" button, which reveals the next page of rows.
+   *
+   * The list is capped at one page on load so a mapper with a long backlog is given a next step rather than a wall
+   * of streets; every fetched row is already in the DOM, so this is a reveal, not a fetch.
+   */
+  #wireShowMore() {
+    const button = document.getElementById('ud-reaudit-show-more');
+    if (!button) return;
+    const pageSize = Number(this.#list.dataset.pageSize) || 5;
+
+    button.addEventListener('click', () => {
+      const stillHidden = [...this.#list.querySelectorAll('.ud-reaudit-row[hidden]')];
+      const revealed = stillHidden.slice(0, pageSize);
+      revealed.forEach((row) => row.removeAttribute('hidden'));
+      window.logWebpageActivity(`Click_module=ReauditShowMore_shown=${revealed.length}`);
+
+      const remaining = stillHidden.length - revealed.length;
+      if (remaining > 0) {
+        button.querySelector('.ud-reaudit-more-count').textContent = Math.min(pageSize, remaining);
+      } else {
+        button.hidden = true;
+        // Keyboard focus would otherwise be stranded on a button that just disappeared, so hand it to the first
+        // row the click produced.
+        revealed[0]?.querySelector('.ud-reaudit-explore')?.focus();
+      }
+    });
   }
 
   /**

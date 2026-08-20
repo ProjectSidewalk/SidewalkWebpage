@@ -534,12 +534,12 @@ dashboard.routes.none = Je hebt nog geen routes gemaakt.
 dashboard.routes.build.one = Maak je eerste route →
 
 dashboard.reaudit.title = Straten met nieuwere beelden
-dashboard.reaudit.intro.one = Er zijn nieuwe street view-beelden voor 1 straat die je hebt gelabeld. Je labels tellen nog steeds mee — dit is een kans om te zien wat er is veranderd.
-dashboard.reaudit.intro.many = Er zijn nieuwe street view-beelden voor {0} straten die je hebt gelabeld. Je labels tellen nog steeds mee — dit is een kans om te zien wat er is veranderd.
+dashboard.reaudit.intro.one = Er zijn nieuwere street view-beelden voor 1 straat die je hebt gelabeld. Je labels tellen nog steeds mee — laten we kijken hoeveel de loopbaarheid, rolstoeltoegankelijkheid en veiligheid daar zijn veranderd sinds je er voor het laatst keek.
+dashboard.reaudit.intro.many = Er zijn nieuwere street view-beelden voor {0} straten die je hebt gelabeld. Je labels tellen nog steeds mee — laten we kijken hoeveel de loopbaarheid, rolstoeltoegankelijkheid en veiligheid in deze gebieden zijn veranderd sinds je er voor het laatst keek.
 dashboard.reaudit.imagery = nieuwe beelden van {0}
 dashboard.reaudit.audited = Je hebt deze gelabeld op {0}
 dashboard.reaudit.revisit = Opnieuw bekijken
-dashboard.reaudit.showing = {0} van {1} weergegeven.
+dashboard.reaudit.more = Toon {0} meer
 dashboard.reaudit.see.map = Bekijk ze allemaal op je kaart →
 dashboard.reaudit.none = Elke straat die je hebt gelabeld is up-to-date met de nieuwste beelden.
 

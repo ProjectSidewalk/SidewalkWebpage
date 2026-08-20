@@ -1855,6 +1855,12 @@
   border-bottom: 1px solid var(--color-neutral-200, #e1e1e1);
 }
 
+/* The row's own `display` beats the UA stylesheet's `[hidden] { display: none }`, so the rows waiting behind
+   "show more" need this to actually stay collapsed. */
+.ud-reaudit-row[hidden] {
+  display: none;
+}
+
 /* Rows carry no thumbnail, so the hover tint is the only feedback that a row is the one brushing the map above. */
 .ud-reaudit-row:hover,
 .ud-reaudit-row:focus-within {
@@ -1898,6 +1904,15 @@
 }
 
 .ud-reaudit-more {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm, 12px);
   font-size: var(--font-size-md, 1rem);
   color: var(--color-text-secondary, #5a7785);
+}
+
+.ud-reaudit-more .ud-btn-secondary {
+  padding: 4px 10px;
+  font-size: var(--font-size-sm, 0.875rem);
 }
