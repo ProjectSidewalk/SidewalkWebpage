@@ -1,75 +1,215 @@
 /**
  * Streets Map Preview Generator.
  *
- * This script generates three live map previews of Project Sidewalk street segments:
- * 1. User Count visualization - colored by number of unique contributors
- * 2. Audit Age visualization - colored by recency of last audit
- * 3. Label Count visualization - colored by number of labels
+ * Renders three live maps of one region's street segments, fed directly from /v3/api/streets. The three differ only
+ * in what they color and scale the lines by: contributors, audit age, or label count.
  *
- * @requires DOM elements with ids 'streets-user-count-preview', 'streets-audit-age-preview', and
- *           'streets-label-count-preview'
- * @requires Leaflet.js library
+ * @requires DOM elems with ids streets-user-count-preview, streets-audit-age-preview, and streets-label-count-preview.
+ * @requires mapbox-gl and js/api-docs/apiDocsMap.js
  */
 
 (function () {
-  // Configuration options - can be overridden by calling setup().
+  const REGION_SOURCE = 'preview-region';
+  const STREET_SOURCE = 'streets';
+  const STREET_LAYER = 'street-lines';
+  const REGION_COLOR = '#ffffff';
+  const DAY_MS = 24 * 60 * 60 * 1000;
+
+  // A street with no labels has no age to place on the ramp, so it's drawn thinner and fainter than one that has.
+  const UNAUDITED = ['<', ['coalesce', ['get', 'days_since_label'], -1], 0];
+
   let config = {
     apiBaseUrl: '/v3/api',
-    mainContainerId: 'streets-preview',
-    mapHeight: 400,
+    mapboxApiKey: '',
     streetsEndpoint: '/streets',
     regionWithMostLabelsEndpoint: '/regionWithMostLabels',
   };
 
-  // Color endpoints for continuous scaling (dark background optimized).
-  const userCountColorEndpoints = {
-    unaudited: '#3d3d3d',  // Dark gray for unaudited streets.
-    minUsers: '#472c7a',   // Dark purple for minimum users.
-    maxUsers: '#ffffff',    // White for maximum users.
-  };
-
-  const labelCountColorEndpoints = {
-    noLabels: '#3d3d3d',   // Dark gray for no labels.
-    minLabels: '#440154',  // Dark purple for minimum labels.
-    maxLabels: '#f0f921',   // Bright yellow for maximum labels.
-  };
-
-  const auditAgeColorEndpoints = {
-    neverAudited: 'lightgray', // Light gray for never audited.
-    newest: '#44ff44',       // Bright green for newest audits.
-    oldest: '#ff4444',        // Bright red for oldest audits.
-  };
-
-  /**
-   * Function to interpolate between two colors.
-   * @param {string} color1 - First color in hex format
-   * @param {string} color2 - Second color in hex format
-   * @param {number} factor - Interpolation factor (0-1)
-   * @returns {string} Interpolated color in hex format
-   */
-  function interpolateColor(color1, color2, factor) {
-    const c1 = {
-      r: parseInt(color1.slice(1, 3), 16),
-      g: parseInt(color1.slice(3, 5), 16),
-      b: parseInt(color1.slice(5, 7), 16),
-    };
-    const c2 = {
-      r: parseInt(color2.slice(1, 3), 16),
-      g: parseInt(color2.slice(3, 5), 16),
-      b: parseInt(color2.slice(5, 7), 16),
-    };
-
-    const r = Math.round(c1.r + (c2.r - c1.r) * factor);
-    const g = Math.round(c1.g + (c2.g - c1.g) * factor);
-    const b = Math.round(c1.b + (c2.b - c1.b) * factor);
-
-    return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+  /** Widens a line by 2px while it's hovered, whatever its base width expression works out to. */
+  function hoverWidth(base) {
+    return ['+', base, ApiDocsMap.whenHovered(2, 0)];
   }
 
-  // Public API.
+  /**
+   * Ticks for a count ramp: the ends, plus a midpoint once the range is wide enough for one to mean anything.
+   *
+   * @param {number} min - Low end of the range.
+   * @param {number} max - High end of the range.
+   * @param {number} midThreshold - Range width above which a midpoint tick is added.
+   * @returns {Array<string>} Tick labels, low to high.
+   */
+  function countTicks(min, max, midThreshold) {
+    if (max <= min) return [String(min)];
+    if (max - min > midThreshold) return [String(min), String(Math.round((min + max) / 2)), String(max)];
+    return [String(min), String(max)];
+  }
+
+  /** Compact age for a legend tick: days, then months, then years. */
+  function formatDaysLabel(days) {
+    if (days < 30) return `${Math.round(days)}d`;
+    if (days < 365) return `${Math.round(days / 30)}m`;
+    return `${Math.round(days / 365)}y`;
+  }
+
+  /** Spelled-out age for the summary panel. */
+  function formatAvgAge(days) {
+    if (days === null) return 'N/A';
+    if (days < 30) return `${days} days`;
+    if (days < 365) return `${Math.round(days / 30)} months`;
+    return `${Math.round(days / 365)} years`;
+  }
+
+  /**
+   * Human-readable age of a street's most recent label.
+   *
+   * @param {string|null} lastLabelDate - ISO date of the last label, or null if never labeled.
+   * @returns {string} e.g. 'Today', '3 weeks ago', 'Never audited'.
+   */
+  function formatAuditAge(lastLabelDate) {
+    if (!lastLabelDate) return 'Never audited';
+
+    const daysDiff = (Date.now() - new Date(lastLabelDate)) / DAY_MS;
+    if (daysDiff < 1) return 'Today';
+    if (daysDiff < 7) {
+      const days = Math.floor(daysDiff);
+      return `${days} ${days === 1 ? 'day' : 'days'} ago`;
+    }
+    if (daysDiff < 30) {
+      const weeks = Math.floor(daysDiff / 7);
+      return `${weeks} ${weeks === 1 ? 'week' : 'weeks'} ago`;
+    }
+    if (daysDiff < 365) {
+      const months = Math.floor(daysDiff / 30);
+      return `${months} ${months === 1 ? 'month' : 'months'} ago`;
+    }
+    const years = Math.floor(daysDiff / 365);
+    return `${years} ${years === 1 ? 'year' : 'years'} ago`;
+  }
+
+  // What each of the three maps colors and scales its lines by. `domain` and `ticks` read the summary built by
+  // summarize(), since both ends of a ramp depend on what this region actually contains.
+  const METRICS = [
+    {
+      containerId: 'streets-user-count-preview',
+      loadingText: 'Loading user count data...',
+      property: 'user_count',
+      legendTitle: 'Users per Street',
+      ramp: ['#472c7a', '#ffffff'],
+      none: { color: '#3d3d3d', label: 'Unaudited' },
+      // Zero contributors is a category of its own rather than the bottom of the ramp.
+      noneAtOrBelow: 0,
+      domain: (stats) => ({ min: 1, max: stats.maxUserCount }),
+      ticks: (stats) => countTicks(1, stats.maxUserCount, 3),
+      width: () => hoverWidth(['max', 2, ['min', 6, ['+', 2, ['coalesce', ['get', 'user_count'], 0]]]]),
+      opacity: () => ApiDocsMap.whenHovered(1, 0.8),
+      statRows: (stats) => [
+        ['Total Streets', stats.total],
+        ['Audited', `${stats.auditedPercent}%`],
+        ['Total Labels', stats.totalLabels],
+        ['Way Types', stats.wayTypes.size],
+      ],
+    },
+    {
+      containerId: 'streets-audit-age-preview',
+      loadingText: 'Loading audit age data...',
+      property: 'days_since_label',
+      legendTitle: 'Audit Age',
+      ramp: ['#44ff44', '#ff4444'],
+      none: { color: '#d3d3d3', label: 'Never audited' },
+      // The ramp runs from today rather than from the freshest street here, so the colors mean the same thing
+      // whichever region the preview lands on.
+      domain: (stats) => ({ min: 0, max: stats.maxDays }),
+      ticks: (stats) => (stats.maxDays > 90
+        ? ['Today', formatDaysLabel(stats.maxDays / 2), formatDaysLabel(stats.maxDays)]
+        : ['Today', formatDaysLabel(stats.maxDays)]),
+      width: () => hoverWidth(['case', UNAUDITED, 1, 3]),
+      opacity: () => ApiDocsMap.whenHovered(1, ['case', UNAUDITED, 0.4, 0.8]),
+      statRows: (stats) => [
+        ['Total Streets', stats.total],
+        ['Audited', `${stats.auditedPercent}%`],
+        ['Avg. Age', formatAvgAge(stats.avgAge)],
+        ['Way Types', stats.wayTypes.size],
+      ],
+    },
+    {
+      containerId: 'streets-label-count-preview',
+      loadingText: 'Loading label count data...',
+      property: 'label_count',
+      legendTitle: 'Labels per Street',
+      ramp: ['#440154', '#f0f921'],
+      none: { color: '#3d3d3d', label: 'No labels' },
+      noneAtOrBelow: 0,
+      domain: (stats) => ({ min: 1, max: stats.maxLabelCount }),
+      ticks: (stats) => countTicks(1, stats.maxLabelCount, 5),
+      width: () => hoverWidth(
+        ['max', 1, ['min', 5, ['+', 1, ['floor', ['/', ['coalesce', ['get', 'label_count'], 0], 5]]]]],
+      ),
+      opacity: () => ApiDocsMap.whenHovered(1, 0.8),
+      statRows: (stats) => [
+        ['Total Streets', stats.total],
+        ['Audited', `${stats.auditedPercent}%`],
+        ['Total Labels', stats.totalLabels],
+        ['Avg. Labels', stats.audited > 0 ? Math.round(stats.totalLabels / stats.audited) : 0],
+      ],
+    },
+  ];
+
+  /**
+   * Stamps each street with its age in days, since Mapbox expressions have no date arithmetic to derive it from
+   * `last_label_date` at paint time.
+   *
+   * @param {object} streets - The GeoJSON FeatureCollection from the API.
+   * @returns {object} The same collection with `days_since_label` on every feature.
+   */
+  function withAge(streets) {
+    const now = Date.now();
+    return {
+      ...streets,
+      features: (streets.features || []).map((feature) => ({
+        ...feature,
+        properties: {
+          ...feature.properties,
+          days_since_label: feature.properties.last_label_date
+            ? (now - new Date(feature.properties.last_label_date)) / DAY_MS
+            : null,
+        },
+      })),
+    };
+  }
+
+  /**
+   * Rolls up the figures the three summary panels and color ramps draw on.
+   *
+   * @param {Array<object>} features - The street features, after withAge().
+   * @returns {object} Totals, maxima, and the way types present.
+   */
+  function summarize(features) {
+    const stats = {
+      total: features.length, audited: 0, totalLabels: 0, wayTypes: new Set(),
+      maxUserCount: 0, maxLabelCount: 0, maxDays: 0, totalDays: 0, datedCount: 0,
+    };
+    features.forEach(({ properties }) => {
+      const userCount = properties.user_count || 0;
+      const labelCount = properties.label_count || 0;
+      if (userCount > 0) stats.audited++;
+      stats.totalLabels += labelCount;
+      stats.wayTypes.add(properties.way_type);
+      stats.maxUserCount = Math.max(stats.maxUserCount, userCount);
+      stats.maxLabelCount = Math.max(stats.maxLabelCount, labelCount);
+      if (properties.days_since_label !== null) {
+        stats.maxDays = Math.max(stats.maxDays, properties.days_since_label);
+        stats.totalDays += properties.days_since_label;
+        stats.datedCount++;
+      }
+    });
+    stats.auditedPercent = stats.total > 0 ? Math.round((stats.audited / stats.total) * 100) : 0;
+    stats.avgAge = stats.datedCount > 0 ? Math.round(stats.totalDays / stats.datedCount) : null;
+    return stats;
+  }
+
   window.StreetsPreview = {
     /**
-     * Configure the streets preview.
+     * Configure the streets previews.
      * @param {object} options - Configuration options
      * @returns {object} The StreetsPreview object for chaining
      */
@@ -79,172 +219,56 @@
     },
 
     /**
-     * Initialize all three streets preview maps.
-     * @returns {Promise} A promise that resolves when all previews are rendered
+     * Build all three preview maps.
+     * @returns {Promise} Resolves once every map has been rendered
      */
-    init() {
-      const mainContainer = document.getElementById(config.mainContainerId);
-
-      if (!mainContainer) {
-        console.error('Main container element not found.');
-        return Promise.reject(new Error('Main container element not found'));
+    async init() {
+      const containers = METRICS.map((metric) => document.getElementById(metric.containerId));
+      if (containers.some((container) => !container)) {
+        console.error('Streets preview container elements not found.');
+        return;
       }
 
-      // Create the HTML structure for all three visualizations.
-      this.createVisualizationStructure(mainContainer);
+      containers.forEach((container, i) => {
+        const loading = document.createElement('div');
+        loading.className = 'loading-message';
+        loading.textContent = METRICS[i].loadingText;
+        container.appendChild(loading);
+      });
 
-      // Get references to the created containers.
-      const userCountContainer = document.getElementById('streets-user-count-preview');
-      const auditAgeContainer = document.getElementById('streets-audit-age-preview');
-      const labelCountContainer = document.getElementById('streets-label-count-preview');
+      try {
+        const regionData = await this.fetchRegionWithMostLabels();
+        const streets = withAge(await this.fetchStreetsByRegionId(regionData.region_id));
+        const stats = summarize(streets.features);
 
-      // Set height for all map containers.
-      userCountContainer.style.height = `${config.mapHeight}px`;
-      auditAgeContainer.style.height = `${config.mapHeight}px`;
-      labelCountContainer.style.height = `${config.mapHeight}px`;
-
-      // Initialize with loading messages.
-      const loadingMessage1 = document.createElement('div');
-      loadingMessage1.className = 'loading-message';
-      loadingMessage1.textContent = 'Loading user count data...';
-      userCountContainer.appendChild(loadingMessage1);
-
-      const loadingMessage2 = document.createElement('div');
-      loadingMessage2.className = 'loading-message';
-      loadingMessage2.textContent = 'Loading audit age data...';
-      auditAgeContainer.appendChild(loadingMessage2);
-
-      const loadingMessage3 = document.createElement('div');
-      loadingMessage3.className = 'loading-message';
-      loadingMessage3.textContent = 'Loading label count data...';
-      labelCountContainer.appendChild(loadingMessage3);
-
-      // First get region with most labels, then load streets for all maps.
-      return this.fetchRegionWithMostLabels()
-        .then((regionData) => {
-          return this.fetchStreetsByRegionId(regionData.region_id)
-            .then((streets) => {
-              // Clear loading messages.
-              userCountContainer.innerHTML = '';
-              auditAgeContainer.innerHTML = '';
-              labelCountContainer.innerHTML = '';
-
-              // Create all three maps.
-              const userCountMap = this.createMap(userCountContainer, regionData, 'user-count');
-              const auditAgeMap = this.createMap(auditAgeContainer, regionData, 'audit-age');
-              const labelCountMap = this.createMap(labelCountContainer, regionData, 'label-count');
-
-              // Display streets on all three maps.
-              this.displayUserCountMap(userCountMap, streets);
-              this.displayAuditAgeMap(auditAgeMap, streets);
-              this.displayLabelCountMap(labelCountMap, streets);
-
-              return Promise.resolve();
-            });
-        })
-        .catch((error) => {
-          const errorMessage = `<div class="message message-error">Failed to load streets: ${error.message}</div>`;
-          userCountContainer.innerHTML = errorMessage;
-          auditAgeContainer.innerHTML = errorMessage;
-          labelCountContainer.innerHTML = errorMessage;
-          console.error('Streets preview error:', error);
-          // The failure is already surfaced in the container above, and init() is fire-and-forget at every call
-          // site (app/views/apiDocs/*), so re-rejecting here can only ever become an unhandled rejection.
+        // Settled rather than all so that one failing to render doesn't prevent the others from rendering.
+        const rendered = await Promise.allSettled(
+          METRICS.map((metric, i) => this.renderMap(containers[i], metric, regionData, streets, stats)));
+        rendered.forEach((result, i) => {
+          if (result.status === 'rejected') this.showError(containers[i], result.reason);
         });
+      } catch (error) {
+        // Everything ahead of the render is shared, so a failure there is a failure for all three.
+        containers.forEach((container) => this.showError(container, error));
+      }
     },
 
     /**
-     * Creates the structure for all three visualization sections with headings, descriptions, and containers.
-     * @param {HTMLElement} mainContainer - The main container element to append visualization sections to
+     * Replace a preview's contents with a failure message.
+     * @param {HTMLElement} container - The preview's container
+     * @param {Error} error - What went wrong
      */
-    createVisualizationStructure(mainContainer) {
-      // Clear existing content.
-      mainContainer.innerHTML = '';
-
-      // Create User Count visualization section.
-      const userCountSection = document.createElement('div');
-      userCountSection.className = 'visualization-section';
-
-      const userCountHeading = document.createElement('h3');
-      userCountHeading.textContent = 'User Count Visualization';
-
-      // Add description for User Count visualization.
-      const userCountDescription = document.createElement('div');
-      userCountDescription.className = 'visualization-description';
-      userCountDescription.textContent = 'Visualizes user counts per street segment. More specifically, streets are '
-        + 'color-coded by the number of users who added at least one label to the segments. You can hover and click '
-        + 'on streets to view more information.';
-
-      const userCountContainer = document.createElement('div');
-      userCountContainer.id = 'streets-user-count-preview';
-      userCountContainer.className = 'streets-map-section';
-
-      userCountSection.appendChild(userCountHeading);
-      userCountSection.appendChild(userCountDescription);
-      userCountSection.appendChild(userCountContainer);
-
-      // Create Audit Age visualization section.
-      const auditAgeSection = document.createElement('div');
-      auditAgeSection.className = 'visualization-section';
-
-      const auditAgeHeading = document.createElement('h3');
-      auditAgeHeading.textContent = 'Audit Age Visualization';
-
-      // Add description for Audit Age visualization.
-      const auditAgeDescription = document.createElement('div');
-      auditAgeDescription.className = 'visualization-description';
-      auditAgeDescription.textContent = 'Displays the age of audits for each street segment. Streets are color-coded '
-        + 'based on how recently they were audited, helping identify areas that may need fresh accessibility '
-        + 'assessments. You can hover and click on streets to view more information.';
-
-      const auditAgeContainer = document.createElement('div');
-      auditAgeContainer.id = 'streets-audit-age-preview';
-      auditAgeContainer.className = 'streets-map-section';
-
-      auditAgeSection.appendChild(auditAgeHeading);
-      auditAgeSection.appendChild(auditAgeDescription);
-      auditAgeSection.appendChild(auditAgeContainer);
-
-      // Create Label Count visualization section.
-      const labelCountSection = document.createElement('div');
-      labelCountSection.className = 'visualization-section';
-
-      const labelCountHeading = document.createElement('h3');
-      labelCountHeading.textContent = 'Label Count Visualization';
-
-      // Add description for Label Count visualization.
-      const labelCountDescription = document.createElement('div');
-      labelCountDescription.className = 'visualization-description';
-      labelCountDescription.textContent = 'Shows the total number of accessibility labels placed on each street '
-        + 'segment. Streets are color-coded by label density, indicating areas with more or fewer accessibility '
-        + 'annotations. You can hover and click on streets to view more information.';
-
-      const labelCountContainer = document.createElement('div');
-      labelCountContainer.id = 'streets-label-count-preview';
-      labelCountContainer.className = 'streets-map-section';
-
-      labelCountSection.appendChild(labelCountHeading);
-      labelCountSection.appendChild(labelCountDescription);
-      labelCountSection.appendChild(labelCountContainer);
-
-      // Add all sections to main container
-      mainContainer.appendChild(userCountSection);
-      mainContainer.appendChild(auditAgeSection);
-      mainContainer.appendChild(labelCountSection);
+    showError(container, error) {
+      console.error('Streets preview error:', error);
+      container.innerHTML = `<div class="message message-error">Failed to load streets: ${error.message}</div>`;
     },
 
     /**
-     * Fetch region with the most labels.
-     * @returns {Promise} A promise that resolves with the region data
+     * Fetch the region the previews are scoped to.
+     * @returns {Promise} Resolves with the region data
      */
     fetchRegionWithMostLabels() {
-      return fetch(`${config.apiBaseUrl}${config.regionWithMostLabelsEndpoint}?utm_source=apiDocs`)
-        .then((response) => {
-          if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-          }
-          return response.json();
-        })
+      return ApiDocsMap.fetchJson(`${config.apiBaseUrl}${config.regionWithMostLabelsEndpoint}`)
         .catch((error) => {
           console.error('Error fetching region with most labels:', error);
           throw new Error('Failed to fetch region with most labels');
@@ -252,1081 +276,145 @@
     },
 
     /**
-     * Calculate center of a region from its geometry.
-     * @param {object} region - Region data with geometry
-     * @returns {Array} [lat, lon] center coordinates
-     */
-    getCenterFromRegion(region) {
-      if (!region || !region.geometry) {
-        throw new Error('Invalid region data');
-      }
-
-      let allCoords = [];
-
-      if (region.geometry.type === 'MultiPolygon') {
-        region.geometry.coordinates.forEach((polygon) => {
-          polygon.forEach((ring) => {
-            allCoords = allCoords.concat(ring);
-          });
-        });
-      } else if (region.geometry.type === 'Polygon') {
-        region.geometry.coordinates.forEach((ring) => {
-          allCoords = allCoords.concat(ring);
-        });
-      }
-
-      const lons = allCoords.map((coord) => coord[0]);
-      const lats = allCoords.map((coord) => coord[1]);
-
-      const minLng = Math.min(...lons);
-      const minLat = Math.min(...lats);
-      const maxLng = Math.max(...lons);
-      const maxLat = Math.max(...lats);
-
-      const centerLon = (minLng + maxLng) / 2;
-      const centerLat = (minLat + maxLat) / 2;
-      return [centerLat, centerLon];
-    },
-
-    /**
-     * Fetch streets by region ID.
+     * Fetch a region's streets as a GeoJSON FeatureCollection.
      * @param {number} regionId - ID of the region
-     * @returns {Promise} A promise that resolves with the streets data
+     * @returns {Promise} Resolves with the streets data
      */
     fetchStreetsByRegionId(regionId) {
-      const url = `${config.apiBaseUrl}${config.streetsEndpoint}?regionId=${regionId}&utm_source=apiDocs`;
-      return fetch(url)
-        .then((response) => {
-          if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-          }
-          return response.json();
-        });
+      return ApiDocsMap.fetchJson(`${config.apiBaseUrl}${config.streetsEndpoint}?regionId=${regionId}`);
     },
 
     /**
-     * Create a Leaflet map with darkened background.
-     * @param {HTMLElement} container - Container element for the map
-     * @param {object} regionData - Data about the region to display
-     * @param {string} mapType - Type identifier for the map
-     * @returns {object} The Leaflet map object
+     * Build one of the three maps, tearing it back down if anything fails to draw.
+     *
+     * @param {HTMLElement} container - Container element for this map
+     * @param {object} metric - The METRICS entry driving this map
+     * @param {object} regionData - The region the preview is scoped to
+     * @param {object} streets - GeoJSON FeatureCollection of streets
+     * @param {object} stats - The rollup from summarize()
+     * @returns {Promise} Resolves once the map has loaded and drawn
      */
-    createMap(container, regionData, mapType) {
-      const mapElement = document.createElement('div');
-      mapElement.id = `streets-${mapType}-map`;
-      mapElement.className = 'map-container';
-      container.appendChild(mapElement);
-
-      const center = this.getCenterFromRegion(regionData);
-
-      const map = L.map(`streets-${mapType}-map`, { scrollWheelZoom: false }).setView(center, 16);
-
-      // Add CartoDB Dark Matter tile layer for better line visibility.
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors '
-          + '&copy; <a href="https://carto.com/attributions">CARTO</a>',
-        subdomains: 'abcd',
-        maxZoom: 19,
-      }).addTo(map);
-
-      // Add region outline.
-      if (regionData.geometry) {
-        const regionLayer = L.geoJSON(regionData.geometry, {
-          style: {
-            color: '#ffffff',
-            weight: 1,
-            opacity: 0.6,
-            fillOpacity: 0.05,
-            fillColor: '#ffffff',
-          },
-        }).addTo(map);
-
-        map.fitBounds(regionLayer.getBounds(), { padding: [10, 10] });
-      }
-
-      // Add region title.
-      const regionTitle = L.control({ position: 'topright' });
-      regionTitle.onAdd = function () {
-        const div = L.DomUtil.create('div', 'region-title');
-        div.innerHTML = `<strong>Region:</strong> ${regionData.name || 'Sample Region'}`;
-        return div;
-      };
-      regionTitle.addTo(map);
-
-      return map;
-    },
-
-    /**
-     * Function to interpolate between two colors (instance method).
-     * @param {string} color1 - First color in hex format
-     * @param {string} color2 - Second color in hex format
-     * @param {number} factor - Interpolation factor (0-1)
-     * @returns {string} Interpolated color in hex format
-     */
-    interpolateColor,
-
-    /**
-     * Get color for street based on user count with truly continuous scaling.
-     * @param {number} userCount - Number of users who labeled the street
-     * @param {number} maxUserCount - Maximum user count in the dataset
-     * @returns {string} Hex color code
-     */
-    getUserCountColor(userCount, maxUserCount) {
-      if (userCount === 0) {
-        return userCountColorEndpoints.unaudited; // Special color for unaudited.
-      }
-
-      if (maxUserCount <= 1) {
-        return userCountColorEndpoints.minUsers;
-      }
-
-      // Continuous interpolation from minUsers to maxUsers based on actual data range.
-      const scaledValue = (userCount - 1) / (maxUserCount - 1);
-      return this.interpolateColor(userCountColorEndpoints.minUsers, userCountColorEndpoints.maxUsers, scaledValue);
-    },
-
-    /**
-     * Get color for street based on label count with truly continuous scaling.
-     * @param {number} labelCount - Number of labels on the street
-     * @param {number} maxLabelCount - Maximum label count in the dataset
-     * @returns {string} Hex color code
-     */
-    getLabelCountColor(labelCount, maxLabelCount) {
-      if (labelCount === 0) {
-        return labelCountColorEndpoints.noLabels; // Special color for no labels.
-      }
-
-      if (maxLabelCount <= 1) {
-        return labelCountColorEndpoints.minLabels;
-      }
-
-      // Continuous interpolation from minLabels to maxLabels based on actual data range.
-      const scaledValue = (labelCount - 1) / (maxLabelCount - 1);
-      return this.interpolateColor(labelCountColorEndpoints.minLabels, labelCountColorEndpoints.maxLabels, scaledValue);
-    },
-
-    /**
-     * Get color for street based on audit age with truly continuous scaling.
-     * @param {string|null} lastLabelDate - ISO date string of last label
-     * @param {number} minDays - Minimum days in the dataset (excluding null)
-     * @param {number} maxDays - Maximum days in the dataset
-     * @returns {string} Hex color code
-     */
-    getAuditAgeColor(lastLabelDate, minDays, maxDays) {
-      if (!lastLabelDate) {
-        return auditAgeColorEndpoints.neverAudited; // Special color for never audited
-      }
-
-      const now = new Date();
-      const labelDate = new Date(lastLabelDate);
-      const daysDiff = (now - labelDate) / (1000 * 60 * 60 * 24);
-
-      if (maxDays <= minDays) {
-        // All audited streets have similar age - use middle color.
-        return this.interpolateColor(
-          auditAgeColorEndpoints.newest,
-          auditAgeColorEndpoints.oldest,
-          0.5,
-        );
-      }
-
-      // Continuous interpolation from newest to oldest based on actual data range.
-      const scaledValue = (daysDiff - minDays) / (maxDays - minDays);
-      return this.interpolateColor(
-        auditAgeColorEndpoints.newest,
-        auditAgeColorEndpoints.oldest,
-        scaledValue,
-      );
-    },
-
-    /**
-     * Format age for display with proper singular/plural handling.
-     * @param {string|null} lastLabelDate - ISO date string of last label
-     * @returns {string} Human readable age string
-     * @example
-     * formatAuditAge('2024-05-18T10:00:00Z') // "1 day ago"
-     * formatAuditAge('2024-05-12T10:00:00Z') // "1 week ago"
-     * formatAuditAge('2023-05-19T10:00:00Z') // "1 year ago"
-     * formatAuditAge(null) // "Never audited"
-     */
-    formatAuditAge(lastLabelDate) {
-      if (!lastLabelDate) {
-        return 'Never audited';
-      }
-
-      const now = new Date();
-      const labelDate = new Date(lastLabelDate);
-      const daysDiff = (now - labelDate) / (1000 * 60 * 60 * 24);
-
-      if (daysDiff < 1) {
-        return 'Today';
-      } else if (daysDiff < 7) {
-        const days = Math.floor(daysDiff);
-        return `${days} ${days === 1 ? 'day' : 'days'} ago`;
-      } else if (daysDiff < 30) {
-        const weeks = Math.floor(daysDiff / 7);
-        return `${weeks} ${weeks === 1 ? 'week' : 'weeks'} ago`;
-      } else if (daysDiff < 365) {
-        const months = Math.floor(daysDiff / 30);
-        return `${months} ${months === 1 ? 'month' : 'months'} ago`;
-      } else {
-        const years = Math.floor(daysDiff / 365);
-        return `${years} ${years === 1 ? 'year' : 'years'} ago`;
+    async renderMap(container, metric, regionData, streets, stats) {
+      container.innerHTML = '';
+      const map = await ApiDocsMap.create({
+        container,
+        mapboxApiKey: config.mapboxApiKey,
+        bounds: ApiDocsMap.geometryBounds(regionData.geometry),
+      });
+      try {
+        this.drawMap(map, metric, regionData, streets, stats);
+      } catch (error) {
+        // A half-drawn map still holds a WebGL context, and browsers cap how many can be live. This page wants three.
+        map.remove();
+        throw error;
       }
     },
 
     /**
-     * Create OSM link for street ID.
-     * @param {number|null} osmWayId - OpenStreetMap way ID
-     * @returns {string} HTML link or plain text
+     * Draw one map's region outline, streets, legend, and summary onto a loaded map.
+     *
+     * @param {object} map - The loaded Mapbox map
+     * @param {object} metric - The METRICS entry driving this map
+     * @param {object} regionData - The region the preview is scoped to
+     * @param {object} streets - GeoJSON FeatureCollection of streets
+     * @param {object} stats - The rollup from summarize()
      */
-    createOsmLink(osmWayId) {
-      if (!osmWayId) {
-        return 'N/A';
-      }
-      return `<a href="https://www.openstreetmap.org/way/${osmWayId}" target="_blank" style="color: #0066cc;">`
-        + `${osmWayId}</a>`;
-    },
-
-    /**
-     * Display streets on the user count map.
-     * @param {object} map - The Leaflet map object
-     * @param {object} streets - GeoJSON data containing the street segments
-     */
-    displayUserCountMap(map, streets) {
-      if (!streets.features || streets.features.length === 0) {
-        this.addNoStreetsMessage(map);
-        return;
-      }
-
-      // Add street count indicator.
-      const countDiv = document.createElement('div');
-      countDiv.className = 'counter-badge';
-      countDiv.textContent = `${streets.features.length} streets`;
-      map.getContainer().appendChild(countDiv);
-
-      // Track statistics and calculate data range.
-      const stats = { unaudited: 0, audited: 0, totalLabels: 0, wayTypes: new Set() };
-      const userCounts = streets.features.map((f) => f.properties.user_count || 0);
-      const maxUserCount = Math.max(...userCounts);
-      const minUserCount = Math.min(...userCounts.filter((c) => c > 0)) || 1;
-      stats.maxUserCount = maxUserCount;
-      stats.minUserCount = minUserCount;
-
-      // Add streets to map.
-      L.geoJSON(streets, {
-        style: (feature) => {
-          const props = feature.properties;
-          const userCount = props.user_count || 0;
-          const labelCount = props.label_count || 0;
-          const wayType = props.way_type;
-
-          // Update statistics.
-          stats.wayTypes.add(wayType);
-          stats.totalLabels += labelCount;
-
-          if (userCount === 0) {
-            stats.unaudited++;
-          } else {
-            stats.audited++;
-          }
-
-          // Style based on user count with adaptive scaling.
-          const color = this.getUserCountColor(userCount, maxUserCount);
-          const weight = Math.max(2, Math.min(6, 2 + userCount));
-
-          return {
-            color,
-            weight,
-            opacity: 0.8,
-            fillOpacity: 0,
-          };
-        },
-        onEachFeature: (feature, layer) => {
-          const props = feature.properties;
-          const userCount = props.user_count || 0;
-          const labelCount = props.label_count || 0;
-          const wayType = props.way_type || 'Unknown';
-          const firstLabelDate = props.first_label_date
-            ? new Date(props.first_label_date).toLocaleDateString()
-            : 'No labels';
-          const lastLabelDate = props.last_label_date
-            ? new Date(props.last_label_date).toLocaleDateString()
-            : 'No labels';
-          const auditAge = this.formatAuditAge(props.last_label_date);
-          const osmLink = this.createOsmLink(props.osm_way_id);
-
-          const auditStatus = userCount === 0
-            ? 'Unaudited'
-            : `Labeled by ${userCount} user${userCount > 1 ? 's' : ''}`;
-
-          layer.bindPopup(`
-            <div class="street-popup">
-              <h4>Street Segment ${props.street_edge_id}</h4>
-              <p><strong>Type:</strong> ${wayType}</p>
-              <p><strong>Status:</strong> ${auditStatus}</p>
-              <p><strong>Labels:</strong> ${labelCount}</p>
-              <p><strong>First Label:</strong> ${firstLabelDate}</p>
-              <p><strong>Last Label:</strong> ${lastLabelDate}</p>
-              <p><strong>Audit Age:</strong> ${auditAge}</p>
-              <p><strong>OSM ID:</strong> ${osmLink}</p>
-              <p><strong>Project Sidewalk Street ID:</strong> ${props.street_edge_id}</p>
-              <a href="/explore?streetEdgeId=${props.street_edge_id}" class="explore-street-btn" target="_blank">
-                Explore Street in Project Sidewalk
-              </a>
-            </div>
-          `);
-
-          // Add hover effects.
-          layer.on('mouseover', function () {
-            this.setStyle({
-              weight: this.options.weight + 2,
-              opacity: 1,
-            });
-          });
-
-          layer.on('mouseout', function () {
-            this.setStyle({
-              weight: this.options.weight - 2,
-              opacity: this.options.opacity,
-            });
-          });
-        },
-      }).addTo(map);
-
-      // Create continuous legend for user count.
-      this.createContinuousUserCountLegend(map, minUserCount, maxUserCount);
-
-      // Add summary statistics.
-      this.addUserCountStats(map, stats);
-    },
-
-    /**
-     * Display streets on the audit age map.
-     * @param {object} map - The Leaflet map object
-     * @param {object} streets - GeoJSON data containing the street segments
-     */
-    displayAuditAgeMap(map, streets) {
-      if (!streets.features || streets.features.length === 0) {
-        this.addNoStreetsMessage(map);
-        return;
-      }
-
-      // Add street count indicator.
-      const countDiv = document.createElement('div');
-      countDiv.className = 'counter-badge';
-      countDiv.textContent = `${streets.features.length} streets`;
-      map.getContainer().appendChild(countDiv);
-
-      // Track statistics and calculate age range.
-      const stats = { unaudited: 0, audited: 0, totalLabels: 0, wayTypes: new Set() };
-      let totalDays = 0;
-      let auditedCount = 0;
-
-      // Calculate min and max days for audited streets.
-      const auditedDays = [];
-      streets.features.forEach((feature) => {
-        const props = feature.properties;
-        if (props.last_label_date) {
-          const daysDiff = (new Date() - new Date(props.last_label_date)) / (1000 * 60 * 60 * 24);
-          auditedDays.push(daysDiff);
-        }
+    drawMap(map, metric, regionData, streets, stats) {
+      map.addSource(REGION_SOURCE, {
+        type: 'geojson',
+        data: { type: 'Feature', geometry: regionData.geometry, properties: {} },
+      });
+      map.addLayer({
+        id: 'region-fill',
+        type: 'fill',
+        source: REGION_SOURCE,
+        paint: { 'fill-color': REGION_COLOR, 'fill-opacity': 0.05 },
+      });
+      map.addLayer({
+        id: 'region-outline',
+        type: 'line',
+        source: REGION_SOURCE,
+        paint: { 'line-color': REGION_COLOR, 'line-width': 1, 'line-opacity': 0.6 },
       });
 
-      // const minDays = auditedDays.length > 0 ? Math.min(...auditedDays) : 0;
-      const minDays = 0; // Always start from today.
-      const maxDays = auditedDays.length > 0 ? Math.max(...auditedDays) : 0;
+      const regionTitle = ApiDocsMap.addOverlay(map, 'top-right', 'map-chip');
+      regionTitle.innerHTML = `<strong>Region:</strong> ${regionData.name || 'Sample Region'}`;
 
-      // Add streets to map.
-      L.geoJSON(streets, {
-        style: (feature) => {
-          const props = feature.properties;
-          const userCount = props.user_count || 0;
-          const labelCount = props.label_count || 0;
-          const wayType = props.way_type;
-
-          // Update statistics.
-          stats.wayTypes.add(wayType);
-          stats.totalLabels += labelCount;
-
-          if (userCount === 0) {
-            stats.unaudited++;
-          } else {
-            stats.audited++;
-          }
-
-          // Calculate age stats.
-          if (props.last_label_date) {
-            const daysDiff = (new Date() - new Date(props.last_label_date)) / (1000 * 60 * 60 * 24);
-            totalDays += daysDiff;
-            auditedCount++;
-          }
-
-          // Style based on audit age with adaptive scaling.
-          const color = this.getAuditAgeColor(props.last_label_date, minDays, maxDays);
-          const weight = props.last_label_date ? 3 : 1;
-          const opacity = props.last_label_date ? 0.8 : 0.4;
-
-          return {
-            color,
-            weight,
-            opacity,
-            fillOpacity: 0,
-          };
-        },
-        onEachFeature: (feature, layer) => {
-          const props = feature.properties;
-          const userCount = props.user_count || 0;
-          const labelCount = props.label_count || 0;
-          const wayType = props.way_type || 'Unknown';
-          const firstLabelDate = props.first_label_date
-            ? new Date(props.first_label_date).toLocaleDateString()
-            : 'No labels';
-          const lastLabelDate = props.last_label_date
-            ? new Date(props.last_label_date).toLocaleDateString()
-            : 'No labels';
-          const auditAge = this.formatAuditAge(props.last_label_date);
-          const osmLink = this.createOsmLink(props.osm_way_id);
-
-          const auditStatus = userCount === 0
-            ? 'Unaudited'
-            : `Labeled by ${userCount} user${userCount > 1 ? 's' : ''}`;
-
-          layer.bindPopup(`
-            <div class="street-popup">
-              <h4>Street Segment ${props.street_edge_id}</h4>
-              <p><strong>Type:</strong> ${wayType}</p>
-              <p><strong>Status:</strong> ${auditStatus}</p>
-              <p><strong>Labels:</strong> ${labelCount}</p>
-              <p><strong>First Label:</strong> ${firstLabelDate}</p>
-              <p><strong>Last Label:</strong> ${lastLabelDate}</p>
-              <p><strong>Audit Age:</strong> ${auditAge}</p>
-              <p><strong>OSM ID:</strong> ${osmLink}</p>
-              <p><strong>Project Sidewalk Street ID:</strong> ${props.street_edge_id}</p>
-              <a href="/explore?streetEdgeId=${props.street_edge_id}" class="explore-street-btn" target="_blank">
-                Explore Street in Project Sidewalk
-              </a>
-            </div>
-          `);
-
-          // Add hover effects.
-          layer.on('mouseover', function () {
-            this.setStyle({
-              weight: this.options.weight + 2,
-              opacity: 1,
-            });
-          });
-
-          layer.on('mouseout', function () {
-            this.setStyle({
-              weight: this.options.weight - 2,
-              opacity: this.options.opacity,
-            });
-          });
-        },
-      }).addTo(map);
-
-      // Calculate average age.
-      const avgAge = auditedCount > 0 ? Math.round(totalDays / auditedCount) : null;
-      stats.avgAge = avgAge;
-
-      // Create continuous legend for audit age.
-      this.createContinuousAuditAgeLegend(map, minDays, maxDays);
-
-      // Add summary statistics.
-      this.addAuditAgeStats(map, stats);
-    },
-
-    /**
-     * Display streets on the label count map.
-     * @param {object} map - The Leaflet map object
-     * @param {object} streets - GeoJSON data containing the street segments
-     */
-    displayLabelCountMap(map, streets) {
-      if (!streets.features || streets.features.length === 0) {
-        this.addNoStreetsMessage(map);
+      if (!streets.features.length) {
+        const message = ApiDocsMap.addOverlay(map, 'top-right', 'map-chip');
+        message.textContent = 'No streets found in this region.';
         return;
       }
 
-      // Add street count indicator.
-      const countDiv = document.createElement('div');
-      countDiv.className = 'counter-badge';
-      countDiv.textContent = `${streets.features.length} streets`;
-      map.getContainer().appendChild(countDiv);
-
-      // Track statistics and calculate data range.
-      const stats = { unaudited: 0, audited: 0, totalLabels: 0, wayTypes: new Set() };
-      const labelCounts = streets.features.map((f) => f.properties.label_count || 0);
-      const maxLabelCount = Math.max(...labelCounts);
-      const minLabelCount = Math.min(...labelCounts.filter((c) => c > 0)) || 1;
-      stats.maxLabelCount = maxLabelCount;
-      stats.minLabelCount = minLabelCount;
-
-      // Add streets to map.
-      L.geoJSON(streets, {
-        style: (feature) => {
-          const props = feature.properties;
-          const userCount = props.user_count || 0;
-          const labelCount = props.label_count || 0;
-          const wayType = props.way_type;
-
-          // Update statistics.
-          stats.wayTypes.add(wayType);
-          stats.totalLabels += labelCount;
-
-          if (userCount === 0) {
-            stats.unaudited++;
-          } else {
-            stats.audited++;
-          }
-
-          // Style based on label count with adaptive scaling.
-          const color = this.getLabelCountColor(labelCount, maxLabelCount);
-          const weight = Math.max(1, Math.min(5, 1 + Math.floor(labelCount / 5)));
-
-          return {
-            color,
-            weight,
-            opacity: 0.8,
-            fillOpacity: 0,
-          };
+      const { min, max } = metric.domain(stats);
+      // promoteId lifts street_edge_id into the feature id that setFeatureState needs for the hover styling below.
+      map.addSource(STREET_SOURCE, { type: 'geojson', data: streets, promoteId: 'street_edge_id' });
+      map.addLayer({
+        id: STREET_LAYER,
+        type: 'line',
+        source: STREET_SOURCE,
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: {
+          'line-color': ApiDocsMap.gradientColorExpression(metric.property, metric.ramp, {
+            min,
+            max,
+            noneColor: metric.none.color,
+            noneAtOrBelow: metric.noneAtOrBelow,
+          }),
+          'line-width': metric.width(),
+          'line-opacity': metric.opacity(),
         },
-        onEachFeature: (feature, layer) => {
-          const props = feature.properties;
-          const userCount = props.user_count || 0;
-          const labelCount = props.label_count || 0;
-          const wayType = props.way_type || 'Unknown';
-          const firstLabelDate = props.first_label_date
-            ? new Date(props.first_label_date).toLocaleDateString()
-            : 'No labels';
-          const lastLabelDate = props.last_label_date
-            ? new Date(props.last_label_date).toLocaleDateString()
-            : 'No labels';
-          const auditAge = this.formatAuditAge(props.last_label_date);
-          const osmLink = this.createOsmLink(props.osm_way_id);
+      });
+      ApiDocsMap.addHoverState(map, STREET_LAYER, STREET_SOURCE);
+      this.addStreetPopups(map);
 
-          const auditStatus = userCount === 0
-            ? 'Unaudited'
-            : `Labeled by ${userCount} user${userCount > 1 ? 's' : ''}`;
+      const legend = ApiDocsMap.addOverlay(map, 'bottom-left', 'map-legend');
+      ApiDocsMap.renderGradientLegend(legend, metric.legendTitle, metric.ramp, metric.ticks(stats), metric.none);
 
-          layer.bindPopup(`
-            <div class="street-popup">
-              <h4>Street Segment ${props.street_edge_id}</h4>
-              <p><strong>Type:</strong> ${wayType}</p>
-              <p><strong>Status:</strong> ${auditStatus}</p>
-              <p><strong>Labels:</strong> ${labelCount}</p>
-              <p><strong>First Label:</strong> ${firstLabelDate}</p>
-              <p><strong>Last Label:</strong> ${lastLabelDate}</p>
-              <p><strong>Audit Age:</strong> ${auditAge}</p>
-              <p><strong>OSM ID:</strong> ${osmLink}</p>
-              <p><strong>Project Sidewalk Street ID:</strong> ${props.street_edge_id}</p>
-              <a href="/explore?streetEdgeId=${props.street_edge_id}" class="explore-street-btn" target="_blank">
-                Explore Street in Project Sidewalk
-              </a>
-            </div>
-          `);
-
-          // Add hover effects.
-          layer.on('mouseover', function () {
-            this.setStyle({
-              weight: this.options.weight + 2,
-              opacity: 1,
-            });
-          });
-
-          layer.on('mouseout', function () {
-            this.setStyle({
-              weight: this.options.weight - 2,
-              opacity: this.options.opacity,
-            });
-          });
-        },
-      }).addTo(map);
-
-      // Create continuous legend for label count.
-      this.createContinuousLabelCountLegend(map, minLabelCount, maxLabelCount);
-
-      // Add summary statistics.
-      this.addLabelCountStats(map, stats);
+      const summary = ApiDocsMap.addOverlay(map, 'top-right', 'map-stats');
+      summary.innerHTML = `
+        <h4>Summary</h4>
+        ${metric.statRows(stats).map(([label, value]) => `<div><strong>${label}:</strong> ${value}</div>`).join('')}
+      `;
     },
 
     /**
-     * Add no streets message to map.
-     * @param {object} map - The Leaflet map object
+     * Wire up the click popup for the street layer.
+     * @param {object} map - The Mapbox map object
      */
-    addNoStreetsMessage(map) {
-      const noStreetsDiv = document.createElement('div');
-      noStreetsDiv.className = 'no-streets-message';
-      noStreetsDiv.textContent = `No streets found in this region.`;
-      noStreetsDiv.style.position = 'absolute';
-      noStreetsDiv.style.top = '10px';
-      noStreetsDiv.style.left = '50%';
-      noStreetsDiv.style.transform = 'translateX(-50%)';
-      noStreetsDiv.style.backgroundColor = 'rgba(255, 255, 255, 0.95)';
-      noStreetsDiv.style.padding = '5px 10px';
-      noStreetsDiv.style.borderRadius = '3px';
-      noStreetsDiv.style.boxShadow = '0 1px 3px rgba(0,0,0,0.3)';
-      noStreetsDiv.style.zIndex = '1000';
-      map.getContainer().appendChild(noStreetsDiv);
-    },
-
-    /**
-     * Create a horizontal continuous legend for the user count map.
-     * @param {object} map - The Leaflet map object
-     * @param {number} minUserCount - Minimum user count found in the data (excluding 0)
-     * @param {number} maxUserCount - Maximum user count found in the data
-     */
-    createContinuousUserCountLegend(map, minUserCount, maxUserCount) {
-      const legend = L.control({ position: 'topright' });
-
-      legend.onAdd = function () {
-        const div = L.DomUtil.create('div', 'info legend continuous-legend');
-
-        // Create horizontal gradient legend.
-        div.innerHTML = '<h4>Users per Street</h4>';
-
-        // Create gradient container.
-        const gradientContainer = L.DomUtil.create('div', 'gradient-container', div);
-        gradientContainer.style.cssText = `
-          width: 200px;
-          height: 20px;
-          position: relative;
-          border: 1px solid #ccc;
-          border-radius: 3px;
-          margin: 5px 0;
-        `;
-
-        // Create gradient bar with continuous interpolation.
-        const gradientBar = L.DomUtil.create('div', 'gradient-bar', gradientContainer);
-
-        // Create smooth gradient from zero (special) to min to max.
-        const gradientStops = [];
-        const numStops = 20; // More stops for smoother gradient.
-
-        // Add unaudited color at start.
-        gradientStops.push(`${userCountColorEndpoints.unaudited} 0%`);
-
-        // Create continuous gradient from min to max users
-        for (let i = 1; i <= numStops; i++) {
-          const factor = (i - 1) / (numStops - 1);
-          const color = window.StreetsPreview.interpolateColor(
-            userCountColorEndpoints.minUsers,
-            userCountColorEndpoints.maxUsers,
-            factor,
-          );
-          const position = 10 + (factor * 90); // Start at 10% to leave room for zero.
-          gradientStops.push(`${color} ${position}%`);
-        }
-
-        gradientBar.style.cssText = `
-          width: 100%;
-          height: 100%;
-          background: linear-gradient(to right, ${gradientStops.join(', ')});
-          border-radius: 2px;
-        `;
-
-        // Add tick marks and labels.
-        const labelsContainer = L.DomUtil.create('div', 'legend-labels', div);
-        labelsContainer.style.cssText = `
-          width: 200px;
-          height: 20px;
-          position: relative;
-          font-size: 11px;
-          color: #222;
-        `;
-
-        // Add special label for 0 users.
-        const zeroLabel = L.DomUtil.create('div', 'legend-tick', labelsContainer);
-        zeroLabel.style.cssText = `
-          position: absolute;
-          left: 0;
-          top: 2px;
-          font-size: 10px;
-          font-weight: bold;
-        `;
-        zeroLabel.textContent = '0';
-
-        // Add tick marks for min and max.
-        if (maxUserCount > minUserCount) {
-          const minLabel = L.DomUtil.create('div', 'legend-tick', labelsContainer);
-          minLabel.style.cssText = `
-            position: absolute;
-            left: 10%;
-            top: 2px;
-            font-size: 10px;
-          `;
-          minLabel.textContent = minUserCount.toString();
-
-          const maxLabel = L.DomUtil.create('div', 'legend-tick', labelsContainer);
-          maxLabel.style.cssText = `
-            position: absolute;
-            right: 0;
-            top: 2px;
-            font-size: 10px;
-          `;
-          maxLabel.textContent = maxUserCount.toString();
-
-          // Add middle tick if range is large enough.
-          if (maxUserCount - minUserCount > 3) {
-            const midUserCount = Math.round((minUserCount + maxUserCount) / 2);
-            const midLabel = L.DomUtil.create('div', 'legend-tick', labelsContainer);
-            midLabel.style.cssText = `
-              position: absolute;
-              left: 55%;
-              top: 2px;
-              font-size: 10px;
-            `;
-            midLabel.textContent = midUserCount.toString();
-          }
-        }
-
-        return div;
-      };
-
-      legend.addTo(map);
-    },
-
-    /**
-     * Create a horizontal continuous legend for the label count map.
-     * @param {object} map - The Leaflet map object
-     * @param {number} minLabelCount - Minimum label count found in the data (excluding 0)
-     * @param {number} maxLabelCount - Maximum label count found in the data
-     */
-    createContinuousLabelCountLegend(map, minLabelCount, maxLabelCount) {
-      const legend = L.control({ position: 'topright' });
-
-      legend.onAdd = function () {
-        const div = L.DomUtil.create('div', 'info legend continuous-legend');
-
-        // Create horizontal gradient legend.
-        div.innerHTML = '<h4>Labels per Street</h4>';
-
-        // Create gradient container.
-        const gradientContainer = L.DomUtil.create('div', 'gradient-container', div);
-        gradientContainer.style.cssText = `
-          width: 200px;
-          height: 20px;
-          position: relative;
-          border: 1px solid #ccc;
-          border-radius: 3px;
-          margin: 5px 0;
-        `;
-
-        // Create gradient bar with continuous interpolation.
-        const gradientBar = L.DomUtil.create('div', 'gradient-bar', gradientContainer);
-
-        // Create smooth gradient from zero (special) to min to max.
-        const gradientStops = [];
-        const numStops = 20; // More stops for smoother gradient.
-
-        // Add no labels color at start.
-        gradientStops.push(`${labelCountColorEndpoints.noLabels} 0%`);
-
-        // Create continuous gradient from min to max labels.
-        for (let i = 1; i <= numStops; i++) {
-          const factor = (i - 1) / (numStops - 1);
-          const color = window.StreetsPreview.interpolateColor(
-            labelCountColorEndpoints.minLabels,
-            labelCountColorEndpoints.maxLabels,
-            factor,
-          );
-          const position = 10 + (factor * 90); // Start at 10% to leave room for zero.
-          gradientStops.push(`${color} ${position}%`);
-        }
-
-        gradientBar.style.cssText = `
-          width: 100%;
-          height: 100%;
-          background: linear-gradient(to right, ${gradientStops.join(', ')});
-          border-radius: 2px;
-        `;
-
-        // Add tick marks and labels
-        const labelsContainer = L.DomUtil.create('div', 'legend-labels', div);
-        labelsContainer.style.cssText = `
-          width: 200px;
-          height: 20px;
-          position: relative;
-          font-size: 11px;
-          color: #222;
-        `;
-
-        // Add special label for 0 labels.
-        const zeroLabel = L.DomUtil.create('div', 'legend-tick', labelsContainer);
-        zeroLabel.style.cssText = `
-          position: absolute;
-          left: 0;
-          top: 2px;
-          font-size: 10px;
-          font-weight: bold;
-        `;
-        zeroLabel.textContent = '0';
-
-        // Add tick marks for min and max.
-        if (maxLabelCount > minLabelCount) {
-          const minLabel = L.DomUtil.create('div', 'legend-tick', labelsContainer);
-          minLabel.style.cssText = `
-            position: absolute;
-            left: 10%;
-            top: 2px;
-            font-size: 10px;
-          `;
-          minLabel.textContent = minLabelCount.toString();
-
-          const maxLabel = L.DomUtil.create('div', 'legend-tick', labelsContainer);
-          maxLabel.style.cssText = `
-            position: absolute;
-            right: 0;
-            top: 2px;
-            font-size: 10px;
-          `;
-          maxLabel.textContent = maxLabelCount.toString();
-
-          // Add middle tick if range is large enough.
-          if (maxLabelCount - minLabelCount > 5) {
-            const midLabelCount = Math.round((minLabelCount + maxLabelCount) / 2);
-            const midLabel = L.DomUtil.create('div', 'legend-tick', labelsContainer);
-            midLabel.style.cssText = `
-              position: absolute;
-              left: 55%;
-              top: 2px;
-              font-size: 10px;
-            `;
-            midLabel.textContent = midLabelCount.toString();
-          }
-        }
-
-        return div;
-      };
-
-      legend.addTo(map);
-    },
-
-    /**
-     * Create a horizontal continuous legend for the audit age map.
-     * @param {object} map - The Leaflet map object
-     * @param {number} minDays - Minimum days since audit found in the data
-     * @param {number} maxDays - Maximum days since audit found in the data
-     */
-    createContinuousAuditAgeLegend(map, minDays, maxDays) {
-      const legend = L.control({ position: 'topright' });
-
-      legend.onAdd = function () {
-        const div = L.DomUtil.create('div', 'info legend continuous-legend');
-
-        // Create horizontal gradient legend.
-        div.innerHTML = '<h4>Audit Age</h4>';
-
-        // Create gradient container
-        const gradientContainer = L.DomUtil.create('div', 'gradient-container', div);
-        gradientContainer.style.cssText = `
-          width: 200px;
-          height: 20px;
-          position: relative;
-          border: 1px solid #ccc;
-          border-radius: 3px;
-          margin: 5px 0;
-        `;
-
-        // Create gradient bar with continuous interpolation.
-        const gradientBar = L.DomUtil.create('div', 'gradient-bar', gradientContainer);
-
-        // Create smooth gradient from newest to oldest
-        const gradientStops = [];
-        const numStops = 20; // More stops for smoother gradient.
-
-        for (let i = 0; i <= numStops; i++) {
-          const factor = i / numStops;
-          const color = window.StreetsPreview.interpolateColor(
-            auditAgeColorEndpoints.newest,
-            auditAgeColorEndpoints.oldest,
-            factor,
-          );
-          const position = factor * 100;
-          gradientStops.push(`${color} ${position}%`);
-        }
-
-        gradientBar.style.cssText = `
-          width: 100%;
-          height: 100%;
-          background: linear-gradient(to right, ${gradientStops.join(', ')});
-          border-radius: 2px;
-        `;
-
-        // Add tick marks and labels.
-        const labelsContainer = L.DomUtil.create('div', 'legend-labels', div);
-        labelsContainer.style.cssText = `
-          width: 200px;
-          height: 20px;
-          position: relative;
-          font-size: 11px;
-          color: #222;
-        `;
-
-        // Helper function to format days to human-readable.
-        const formatDaysLabel = (days) => {
-          if (days < 30) return `${Math.round(days)}d`;
-          if (days < 365) return `${Math.round(days / 30)}m`;
-          return `${Math.round(days / 365)}y`;
-        };
-
-        // Add labels for newest (left) and oldest (right).
-        const newestLabel = L.DomUtil.create('div', 'legend-tick', labelsContainer);
-        newestLabel.style.cssText = `
-          position: absolute;
-          left: 0;
-          top: 2px;
-          font-size: 10px;
-        `;
-        newestLabel.textContent = 'Today'; // formatDaysLabel(minDays);
-
-        const oldestLabel = L.DomUtil.create('div', 'legend-tick', labelsContainer);
-        oldestLabel.style.cssText = `
-          position: absolute;
-          right: 0;
-          top: 2px;
-          font-size: 10px;
-        `;
-        oldestLabel.textContent = formatDaysLabel(maxDays);
-
-        // Add middle tick if range is large enough.
-        if (maxDays - minDays > 90) {
-          const midDays = (minDays + maxDays) / 2;
-          const midLabel = L.DomUtil.create('div', 'legend-tick', labelsContainer);
-          midLabel.style.cssText = `
-            position: absolute;
-            left: 50%;
-            top: 2px;
-            font-size: 10px;
-            transform: translateX(-50%);
-          `;
-          midLabel.textContent = formatDaysLabel(midDays);
-        }
-
-        // Add special indicator for never audited.
-        const specialContainer = L.DomUtil.create('div', 'special-legend-item', div);
-        specialContainer.style.cssText = `
-          display: flex;
-          align-items: center;
-          margin-top: 5px;
-          font-size: 11px;
-        `;
-
-        const neverAuditedColor = L.DomUtil.create('div', 'legend-color', specialContainer);
-        neverAuditedColor.style.cssText = `
-          width: 15px;
-          height: 3px;
-          background-color: ${auditAgeColorEndpoints.neverAudited};
-          margin-right: 5px;
-        `;
-        const neverAuditedLabel = L.DomUtil.create('span', '', specialContainer);
-        neverAuditedLabel.textContent = 'Never audited';
-
-        return div;
-      };
-
-      legend.addTo(map);
-    },
-
-    /**
-     * Add summary statistics panel for user count map.
-     * @param {object} map - The Leaflet map object
-     * @param {object} stats - Statistics about the streets shown
-     */
-    addUserCountStats(map, stats) {
-      const statsControl = L.control({ position: 'bottomright' });
-
-      statsControl.onAdd = function () {
-        const div = L.DomUtil.create('div', 'info stats-summary');
-
-        const totalStreets = stats.unaudited + stats.audited;
-        const auditedPercent = totalStreets > 0
-          ? Math.round((stats.audited / totalStreets) * 100)
-          : 0;
-
-        div.innerHTML = `
-          <h4>Summary</h4>
-          <div><strong>Total Streets:</strong> ${totalStreets}</div>
-          <div><strong>Audited:</strong> ${auditedPercent}%</div>
-          <div><strong>Total Labels:</strong> ${stats.totalLabels}</div>
-          <div><strong>Way Types:</strong> ${stats.wayTypes.size}</div>
-        `;
-
-        return div;
-      };
-
-      statsControl.addTo(map);
-    },
-
-    /**
-     * Add summary statistics panel for label count map.
-     * @param {object} map - The Leaflet map object
-     * @param {object} stats - Statistics about the streets shown
-     */
-    addLabelCountStats(map, stats) {
-      const statsControl = L.control({ position: 'bottomright' });
-
-      statsControl.onAdd = function () {
-        const div = L.DomUtil.create('div', 'info stats-summary');
-
-        const totalStreets = stats.unaudited + stats.audited;
-        const auditedPercent = totalStreets > 0
-          ? Math.round((stats.audited / totalStreets) * 100)
-          : 0;
-        const avgLabels = stats.audited > 0
-          ? Math.round(stats.totalLabels / stats.audited)
-          : 0;
-
-        div.innerHTML = `
-          <h4>Summary</h4>
-          <div><strong>Total Streets:</strong> ${totalStreets}</div>
-          <div><strong>Audited:</strong> ${auditedPercent}%</div>
-          <div><strong>Total Labels:</strong> ${stats.totalLabels}</div>
-          <div><strong>Avg. Labels:</strong> ${avgLabels}</div>
-        `;
-
-        return div;
-      };
-
-      statsControl.addTo(map);
-    },
-
-    /**
-     * Add summary statistics panel for audit age map.
-     * @param {object} map - The Leaflet map object
-     * @param {object} stats - Statistics about the streets shown
-     */
-    addAuditAgeStats(map, stats) {
-      const statsControl = L.control({ position: 'bottomright' });
-
-      statsControl.onAdd = function () {
-        const div = L.DomUtil.create('div', 'info stats-summary');
-
-        const totalStreets = stats.unaudited + stats.audited;
-        const auditedPercent = totalStreets > 0
-          ? Math.round((stats.audited / totalStreets) * 100)
-          : 0;
-
-        const avgAgeText = stats.avgAge !== null
-          ? stats.avgAge < 30
-            ? `${stats.avgAge} days`
-            : stats.avgAge < 365
-              ? `${Math.round(stats.avgAge / 30)} months`
-              : `${Math.round(stats.avgAge / 365)} years`
+    addStreetPopups(map) {
+      map.on('click', STREET_LAYER, (e) => {
+        const props = e.features[0].properties;
+        const userCount = props.user_count || 0;
+        const firstLabelDate = props.first_label_date
+          ? new Date(props.first_label_date).toLocaleDateString()
+          : 'No labels';
+        const lastLabelDate = props.last_label_date
+          ? new Date(props.last_label_date).toLocaleDateString()
+          : 'No labels';
+        const auditStatus = userCount === 0
+          ? 'Unaudited'
+          : `Labeled by ${userCount} user${userCount > 1 ? 's' : ''}`;
+        const osmLink = props.osm_way_id
+          ? `<a href="https://www.openstreetmap.org/way/${props.osm_way_id}" target="_blank"
+              rel="noopener noreferrer">${props.osm_way_id}</a>`
           : 'N/A';
 
-        div.innerHTML = `
-          <h4>Summary</h4>
-          <div><strong>Total Streets:</strong> ${totalStreets}</div>
-          <div><strong>Audited:</strong> ${auditedPercent}%</div>
-          <div><strong>Avg. Age:</strong> ${avgAgeText}</div>
-          <div><strong>Way Types:</strong> ${stats.wayTypes.size}</div>
-        `;
-
-        return div;
-      };
-
-      statsControl.addTo(map);
+        ApiDocsMap.popup(map, e.lngLat, `
+          <h4>Street Segment ${props.street_edge_id}</h4>
+          <p><strong>Type:</strong> ${props.way_type || 'Unknown'}</p>
+          <p><strong>Status:</strong> ${auditStatus}</p>
+          <p><strong>Labels:</strong> ${props.label_count || 0}</p>
+          <p><strong>First Label:</strong> ${firstLabelDate}</p>
+          <p><strong>Last Label:</strong> ${lastLabelDate}</p>
+          <p><strong>Audit Age:</strong> ${formatAuditAge(props.last_label_date)}</p>
+          <p><strong>OSM ID:</strong> ${osmLink}</p>
+          <a href="/explore?streetEdgeId=${props.street_edge_id}" class="button-ps button--primary button--tiny"
+            target="_blank">
+            Explore Street in Project Sidewalk
+          </a>
+        `);
+      });
     },
   };
 })();

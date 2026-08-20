@@ -1,3 +1,4 @@
+@import controllers.helper.ControllerUtils.distanceUnitWords
 @import service.{CommonPageData, PublicProfile, UserProfileData}
 @import models.user.SidewalkUserWithRole
 @import models.label.Tag
@@ -22,8 +23,9 @@
   <h1 class="api-heading" id="overview">@title <a href="#overview" class="permalink">#</a></h1>
 }
 
+@* Floored rather than rounded, matching the dashboard and util.math.floorTo, so one total renders one way everywhere. *@
 @distanceLabel(d: Double) = @{
-  f"$d%.1f ${if (isMetric) Messages("dashboard.unit.km") else Messages("dashboard.unit.mi")}"
+  f"${models.utils.CommonUtils.floorTo(d, 1)}%.1f ${distanceUnitWords.abbr}"
 }
 @accuracyLabel(a: Option[Double]) = @{ a.map(x => f"${x * 100}%.0f%%").getOrElse("—") }
 

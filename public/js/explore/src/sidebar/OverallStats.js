@@ -24,10 +24,10 @@ class OverallStats {
     this.#accuracyHolderEl = document.getElementById('explore-sidebar__stat-accuracy-holder');
     this.#distanceEl = document.getElementById('explore-sidebar__stat-distance');
     this.#distanceUnitEl = document.getElementById('explore-sidebar__stat-distance-unit');
-    this.#isMetric = i18next.t('common:measurement-system') === 'metric';
+    this.#isMetric = util.isMetric();
 
     // The distance unit label ("miles" / "kilometers") is fixed for the session.
-    this.#distanceUnitEl.textContent = i18next.t('common:unit-distance');
+    this.#distanceUnitEl.textContent = util.unitWords().unitName;
 
     this.#fetchBasicStats();
   }
@@ -45,7 +45,7 @@ class OverallStats {
 
   /** Renders the distance stat and refreshes the exploring badge. */
   #renderDistance() {
-    this.#distanceEl.textContent = this.#formatNumber(this.#stats.distance.toFixed(1));
+    this.#distanceEl.textContent = this.#formatNumber(util.math.floorTo(this.#stats.distance, 1).toFixed(1));
     this.#refreshBadges();
   }
 

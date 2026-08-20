@@ -42,7 +42,7 @@ class MissionPanel {
     }
 
     if (missionType === 'audit' && !isRoute) {
-      const distanceString = this.#distanceToString(mission.getDistance('miles'), 'miles');
+      const distanceString = util.distanceToString(util.math.milesToMeters(mission.getDistance('miles')));
       missionMessage = missionMessage.replace('__PLACEHOLDER__', distanceString);
     }
 
@@ -52,20 +52,5 @@ class MissionPanel {
     // available on hover (and leave no redundant tooltip when it already fits).
     const clipped = this.#descriptionEl.scrollWidth > this.#descriptionEl.clientWidth;
     this.#descriptionEl.title = clipped ? this.#descriptionEl.textContent : '';
-  }
-
-  /**
-   * Converts a mission distance to a localized, rounded display string with its unit abbreviation.
-   * @param {number} distance The distance value.
-   * @param {string} unit The unit of the passed distance ("feet", "miles", or "kilometers").
-   * @returns {string}
-   */
-  #distanceToString(distance, unit = 'kilometers') {
-    // Convert to meters first.
-    if (unit === 'feet') distance = util.math.feetToMeters(distance);
-    else if (unit === 'miles') distance = util.math.milesToMeters(distance);
-    else if (unit === 'kilometers') distance = util.math.kmsToMeters(distance);
-
-    return util.misc.distanceToString(distance);
   }
 }

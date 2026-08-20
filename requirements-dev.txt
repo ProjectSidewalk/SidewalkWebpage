@@ -1,9 +1,12 @@
-# Python development/test dependencies. Layers on top of requirements.txt (which holds the runtime deps the two
-# scripts in scripts/ need). Install both to run the suite:
+# Test dependencies for test/python/. The suite runs under both of the container's interpreters (see the Dockerfile),
+# so markers give each the newest release it can take rather than holding 3.13 back to the EOL interpreter's ceiling:
 #
-#   pip install -r requirements.txt -r requirements-dev.txt
-#   pytest
+#   python3    -m pip install -r requirements.txt -r requirements-dev.txt
+#   python3.13 -m pip install -r requirements-offline-tools.txt -r requirements-dev.txt
 #
-# Pinned to versions that support Python 3.8 (the web container's interpreter) and the pyproject `pythonpath` option.
-pytest==7.4.4
-pytest-cov==4.1.0
+# The 3.10 boundary is pytest 9's own floor. 8.3.5 / 5.0.0 are the last releases supporting 3.8 and the first
+# supporting 3.13, so they cover the 3.8–3.9 gap; keep the ranges adjacent or an interpreter is left with no pin.
+pytest==8.3.5; python_version < "3.10"
+pytest-cov==5.0.0; python_version < "3.10"
+pytest==9.1.1; python_version >= "3.10"
+pytest-cov==7.1.0; python_version >= "3.10"

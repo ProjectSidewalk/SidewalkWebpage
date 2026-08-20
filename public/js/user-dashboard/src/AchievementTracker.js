@@ -120,14 +120,18 @@ class AchievementTracker {
       }
 
       // Convert to from miles to kilometers if using metric system.
-      const measurementSystem = i18next.t('common:measurement-system');
-      if (badgeType === BadgeTypes.Distance && measurementSystem === 'metric') {
+      if (badgeType === BadgeTypes.Distance && util.isMetric()) {
         diffValue = util.math.milesToKms(diffValue);
       }
 
-      // Get the appropriate distance unit, e.g., mission/misión, missions/misiones, labels/etiquetas.
+      // Rounded up, not to nearest: the next badge is still locked, so a remainder of 0.004 displayed as "0 more
+      // miles" would claim a completion that hasn't happened.
+      const remaining = util.math.ceilTo(diffValue, 2);
+
+      // Get the appropriate distance unit, e.g., mission/misión, missions/misiones, labels/etiquetas. Keyed off the
+      // displayed number rather than the raw one, which for distance is never exactly 1 and so always read plural.
       let unitTranslation;
-      if (diffValue === 1) unitTranslation = `dashboard:badge-${badgeType}-singular`;
+      if (remaining === 1) unitTranslation = `dashboard:badge-${badgeType}-singular`;
       else unitTranslation = `dashboard:badge-${badgeType}-plural`;
 
       const firstOrNextTranslation = curBadgeLevel === 0 ? 'dashboard:first' : 'dashboard:next';
@@ -135,7 +139,7 @@ class AchievementTracker {
       // Add translation for how much is left before the next achievement. For example, "1 misión más hasta tu
       // próximo logro." or "1.3 more miles until your next achievement."
       htmlStatement += i18next.t('dashboard:more-unit-until-achievement', {
-        n: parseFloat(diffValue.toFixed(2)),
+        n: remaining,
         unit: unitTranslation,
         firstOrNext: firstOrNextTranslation,
       });

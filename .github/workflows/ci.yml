@@ -9,7 +9,8 @@ name: CI
 #                      the app, which auto-applies pending evolutions -- so it doubles as the forward-apply gate.
 #   - e2e-smoke:       Playwright browser smoke tests (test/e2e/) against a staged app + the CI database (ADVISORY for
 #                      now). Loads each core page in headless Chromium and fails on uncaught console/page errors.
-#   - python-tests:    pytest unit tests for the standalone scripts in scripts/ (ADVISORY for now).
+#   - python-tests:    pytest unit tests for the standalone scripts in scripts/ (ADVISORY for now). One leg per
+#                      interpreter the web container ships — 3.8 for the in-band script, 3.13 for the offline tooling.
 # ESLint (JavaScript), Stylelint (CSS), and htmlhint (HTML) are all wired into the `frontend` job as blocking steps now
 # that their trees are lint-clean (#2487).
 
@@ -289,6 +290,15 @@ jobs:
       #   data (the landing shows zeros/NaN stats), so both are meaningful on this empty schema.
       # - PanoDataServiceSpec (#4765/#4766): pure unit tests (no DB, no app boot) pinning the label lat/lng estimator
       #   against research-derived constants — costs nothing here and otherwise runs nowhere in CI.
+      # - ActivityBreakdownSpec (#4931): pure unit tests (no DB, no app boot) pinning the rules that keep AI-role output
+      #   out of the Across Cities "this week" counts, anonymous cookie identities out of its headcounts, and a person
+      #   who mapped in several cities counted once. It has to be synthetic — this job's schema has no AI-role or
+      #   anonymous accounts, so a DB-backed version of these assertions would pass without exercising one.
+      # - ConfigServiceTrendSpec + CityScorecardSpec (#4931): the DB-backed half of the same section. These are what
+      #   connect the new SQL to the summaries above — that volumes sum across cities while headcounts dedupe, that the
+      #   untruncated contributor total bounds the capped list, and that no anonymous cookie id reaches a hover card.
+      #   Shape and invariant assertions rather than data values, so they hold on this job's near-empty schema, and they
+      #   are the only coverage of the per-schema query's column order, which GetResult reads positionally.
       # - ConfigTableVoidedArchiveSpec (#4842): the voided-vote archive must count as work credit in the per-schema
       #   aggregate queries AND those queries must survive a schema that hasn't applied evolution 355 (the cross-city
       #   fan-out reads other schemas mid-rollout). Self-seeding in rolled-back transactions, meaningful even here.
@@ -321,8 +331,26 @@ jobs:
       #   controller calls LostMediaLog at all, so without this the tripwire could be deleted with CI still green.
       # - StoryUploadWindowSpec (#4926): the grace window that stops the loss tripwire firing at its own upload path.
       #   Reporting is once per media id, so a false alarm spends the line a real loss would have needed. Pure logic.
+      # - PanoExpiredAtSpec / BackgroundJobRunTableSpec / JobRunServiceSpec / StreetLifecycleServiceSpec (#4928): the
+      #   transition records the admin trend and nightly-job panels read. Each seeds its own rows rather than hunting
+      #   for them, so they assert real behavior against an empty seed: the expiry stamp only lands on the false ->
+      #   true edge, a run row is open exactly while it is running, and a wrapped job's failure propagates unchanged.
+      # - NightlyJobStatusSpec (#4928): pins what may clear the Health panel's overdue alarm -- only a scheduled run
+      #   that succeeded. A hand-triggered run and an in-flight one are both recorded under the same job_name as the
+      #   nightly one, so this rule is the only thing keeping either from masking a scheduler that has stopped.
+      # - NoImageryReportsSpec (#4928): the three street_edge_issue reads behind the missing-imagery views, which
+      #   decide where the offline imagery checker gets pointed next. Seeds its own regions, streets, users and
+      #   reports inside a rolled-back transaction, so it pins corroboration-by-distinct-account and the exclusion of
+      #   retired streets and deleted regions against any seed, empty or not.
+      # - EnumTypeParitySpec (#4928): the three Scala enums added in 358 against the Postgres types they back. Held
+      #   together by a comment otherwise, and drift surfaces at runtime on whichever page reads the row first.
+      # - ScheduledJobsSpec (#4928): roster invariants. A job missing from ScheduledJobs.All is invisible on the
+      #   Health panel, and invisible is indistinguishable from healthy -- the failure this feature exists to close.
+      # - ImageryPollOutcomeSpec (#4928): separates a poll with nothing to do from one that could not run. Recording
+      #   the second as a success is how a rotated-out API key ends the re-audit signal behind a permanently green
+      #   badge.
       - name: Run gating/auth tests (health dashboard + route auth posture + geodesic distances)
-        run: sbt 'set Test / parallelExecution := false' 'testOnly controllers.HealthDashboardSpec service.HealthServiceSpec controllers.RouteAuthPostureSpec models.street.GeodesicDistanceSpec service.ExploreTutorialRouteSpec controllers.MobileDetectionSpec service.PanoDataServiceSpec models.utils.ConfigTableVoidedArchiveSpec controllers.api.StatsApiSpec controllers.ExploreSubmissionSpec controllers.ValidateSubmissionSpec modules.PersistentMediaDirCheckSpec service.MediaIntegritySpec service.LostMediaLogSpec service.SingleFlightGateSpec service.HealthMediaPayloadSpec controllers.ImageControllerSpec controllers.StoryUploadWindowSpec'
+        run: sbt 'set Test / parallelExecution := false' 'testOnly controllers.HealthDashboardSpec service.HealthServiceSpec controllers.RouteAuthPostureSpec models.street.GeodesicDistanceSpec service.ExploreTutorialRouteSpec controllers.MobileDetectionSpec service.PanoDataServiceSpec service.ActivityBreakdownSpec service.ConfigServiceTrendSpec models.utils.CityScorecardSpec models.utils.ConfigTableVoidedArchiveSpec controllers.api.StatsApiSpec controllers.ExploreSubmissionSpec controllers.ValidateSubmissionSpec controllers.ExploreNoImageryRateLimitSpec models.pano.PanoExpiredAtSpec models.utils.BackgroundJobRunTableSpec service.JobRunServiceSpec service.NightlyJobStatusSpec service.StreetLifecycleServiceSpec models.audit.OutdatedImageryFlagSyncSpec models.audit.OutdatedImageryRoutingSpec models.street.UpToDateCoverageSpec models.street.NoImageryReportsSpec models.utils.EnumTypeParitySpec actor.ScheduledJobsSpec service.ImageryPollOutcomeSpec modules.PersistentMediaDirCheckSpec service.MediaIntegritySpec service.LostMediaLogSpec service.SingleFlightGateSpec service.HealthMediaPayloadSpec controllers.ImageControllerSpec controllers.StoryUploadWindowSpec'
         env:
           DATABASE_URL: jdbc:postgresql://localhost:5432/sidewalk
           DATABASE_USER: sidewalk
@@ -497,24 +525,41 @@ jobs:
           retention-days: 7
 
   python-tests:
-    name: Python tests (scripts)
+    name: Python tests (${{ matrix.half }})
     runs-on: ubuntu-latest
     # ADVISORY while the suite is young (plan: ramp to blocking once stable). Does not block PRs yet.
     continue-on-error: true
+    strategy:
+      fail-fast: false
+      # One leg per interpreter the web container ships, testing each script on the Python that runs it (#4396):
+      # label_clustering.py is shelled out to by the app, so it stays on prod's EOL 3.8; the offline tooling needs
+      # >= 3.11. Mirrors the `pytest-args-*` and `cov-omit-*` variables in the Makefile — each leg takes the whole
+      # directory minus the one file the other owns, so a new test file runs in both rather than in neither.
+      matrix:
+        include:
+          - half: in-band script
+            python: '3.8'
+            requirements: -r requirements.txt -r requirements-dev.txt
+            pytest-args: test/python --ignore=test/python/test_check_streets_for_imagery.py
+            coverage-omit: scripts/check_streets_for_imagery.py
+          - half: offline tooling
+            python: '3.13'
+            requirements: -r requirements-offline-tools.txt -r requirements-dev.txt
+            pytest-args: test/python --ignore=test/python/test_label_clustering.py
+            coverage-omit: scripts/label_clustering.py
     steps:
       - uses: actions/checkout@v7
 
-      # Match the web container's interpreter (Dockerfile base eclipse-temurin:17-jdk-focal ships Python 3.8). 3.8 is
-      # EOL; bumping the container's Python is tracked separately and intentionally out of scope here.
-      - name: Set up Python 3.8
+      - name: Set up Python ${{ matrix.python }}
         uses: actions/setup-python@v7
         with:
-          python-version: '3.8'
+          python-version: ${{ matrix.python }}
 
-      # The pure-logic unit tests need no DB and no network, only the scripts' runtime deps plus pytest. The suite
-      # imports both scripts, so the offline check_streets deps (requirements-offline-tools.txt) are required too.
+      # The pure-logic unit tests need no DB and no network, only this half's runtime deps plus pytest.
       - name: Install dependencies
-        run: pip install -r requirements.txt -r requirements-dev.txt -r requirements-offline-tools.txt
+        run: pip install ${{ matrix.requirements }}
 
       - name: Run pytest
-        run: pytest test/python
+        run: pytest ${{ matrix['pytest-args'] }}
+        env:
+          COVERAGE_OMIT: ${{ matrix['coverage-omit'] }}

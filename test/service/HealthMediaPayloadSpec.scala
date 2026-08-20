@@ -79,7 +79,8 @@ class HealthMediaPayloadSpec extends PlaySpec {
         connections = Seq.empty,
         panoBackups = None,
         mediaStorage = Some(health),
-        thresholds = HealthThresholds(1, 2, 3, 4, 5, 6, 0.2, 0.4, 1000, 60, 40, 20, 30)
+        nightlyJobs = Seq.empty,
+        thresholds = HealthThresholds(1, 2, 3, 4, 5, 6, 0.2, 0.4, 1000, 60, 40, 20, 30, 24, 7)
       )
       (Json.toJson(payload) \ "media_storage" \ "story_media" \ "missing").as[Int] mustBe 1
     }

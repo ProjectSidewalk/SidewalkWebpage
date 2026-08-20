@@ -29,12 +29,16 @@ const VIEWPORT_HEIGHT = 800;
 const CARD_WIDTH = 200;
 const CARD_HEIGHT = 40;
 
-/** Installs a layout stub: the tooltip card reports a fixed size, every other element the rect it was given. */
+// The height the card stub reports. Tests that need a tall card (the Across Cities day breakdown runs to ~250px)
+// reassign this before opening one.
+let cardHeight = CARD_HEIGHT;
+
+/** Installs a layout stub: the tooltip card reports `cardHeight`, every other element the rect it was given. */
 function stubLayout() {
     Element.prototype.getBoundingClientRect = function () {
         if (this.classList.contains('ps-tooltip')) {
             return {
-                left: 0, top: 0, right: CARD_WIDTH, bottom: CARD_HEIGHT, width: CARD_WIDTH, height: CARD_HEIGHT,
+                left: 0, top: 0, right: CARD_WIDTH, bottom: cardHeight, width: CARD_WIDTH, height: cardHeight,
             };
         }
         const r = this._rect || { left: 0, top: 0, width: 0, height: 0 };
@@ -89,6 +93,7 @@ beforeEach(() => {
     document.body.innerHTML = '';
     window.innerWidth = VIEWPORT_WIDTH;
     window.innerHeight = VIEWPORT_HEIGHT;
+    cardHeight = CARD_HEIGHT;
     stubLayout();
     unloadPsTooltip = loadPsTooltip();
 });
@@ -150,6 +155,44 @@ describe('psTooltip placement', () => {
         const card = open(trigger);
 
         expect(card.style.getPropertyValue('--ps-tooltip-tail-left')).toBe(`${CARD_WIDTH - TAIL_INSET}px`);
+    });
+
+    test('keeps a tall card that fits on neither side inside the viewport', () => {
+        // The Across Cities day breakdown is a ~250px card on triggers that sit mid-page. In a short window there is
+        // room for it neither above nor below, and without a vertical clamp its lower rows run off screen unread.
+        cardHeight = 250;
+        window.innerHeight = 400;
+        const trigger = addTrigger({ left: 400, top: 180, width: 100, height: 30 }, 'tall');
+        const card = open(trigger);
+
+        const top = parseFloat(card.style.top);
+        expect(top).toBeGreaterThanOrEqual(VIEWPORT_MARGIN);
+        expect(top + cardHeight).toBeLessThanOrEqual(400 - VIEWPORT_MARGIN);
+    });
+
+    test('drops the tail when the clamp moves the card off its trigger', () => {
+        // A tail is only meaningful while an edge of the card still touches the trigger.
+        cardHeight = 250;
+        window.innerHeight = 400;
+        const trigger = addTrigger({ left: 400, top: 180, width: 100, height: 30 }, 'tall');
+        const card = open(trigger);
+
+        expect(card.classList.contains('ps-tooltip--untailed')).toBe(true);
+    });
+
+    test('pins a card taller than the viewport to the top, so it is read from the beginning', () => {
+        cardHeight = VIEWPORT_HEIGHT + 200;
+        const trigger = addTrigger({ left: 400, top: 400, width: 100, height: 30 }, 'enormous');
+        const card = open(trigger);
+
+        expect(card.style.top).toBe(`${VIEWPORT_MARGIN}px`);
+    });
+
+    test('leaves an ordinary card tailed, since it still sits against its trigger', () => {
+        const trigger = addTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'ordinary');
+        const card = open(trigger);
+
+        expect(card.classList.contains('ps-tooltip--untailed')).toBe(false);
     });
 });
 

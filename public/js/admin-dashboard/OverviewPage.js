@@ -304,7 +304,7 @@ class OverviewPage {
         ? `<img class="ov-recent-thumb" loading="lazy" alt="" src="${OverviewPage.#esc(it.thumbnail_url)}">`
         : '<span class="ov-recent-thumb ov-recent-thumb--none" aria-hidden="true"></span>';
       const who = OverviewPage.#esc(it.username || 'someone');
-      const when = OverviewPage.#esc(OverviewPage.#relativeTime(it.timestamp));
+      const when = OverviewPage.#esc(AdminShell.relativeTime(it.timestamp));
       return [
         '<div class="ov-recent-item">',
         thumb,
@@ -346,7 +346,7 @@ class OverviewPage {
       return;
     }
     const who = OverviewPage.#esc(item.username || 'someone');
-    const when = OverviewPage.#esc(OverviewPage.#relativeTime(item.timestamp));
+    const when = OverviewPage.#esc(AdminShell.relativeTime(item.timestamp));
     const type = item.label_type ? this.#typeName(item.label_type) : null;
     let dot = '';
     if (type && this.#colorByType.has(item.label_type)) {
@@ -439,20 +439,5 @@ class OverviewPage {
   static #esc(s) {
     return String(s).replace(/[&<>"']/g, (c) =>
       ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\'': '&#39;' }[c]));
-  }
-
-  /** Compact relative time ("just now", "5m ago", "3h ago", "2d ago", or a date for older items). */
-  static #relativeTime(ts) {
-    const d = new Date(ts);
-    if (isNaN(d)) return String(ts);
-    const secs = Math.floor((Date.now() - d.getTime()) / 1000);
-    if (secs < 60) return 'just now';
-    const mins = Math.floor(secs / 60);
-    if (mins < 60) return `${mins}m ago`;
-    const hrs = Math.floor(mins / 60);
-    if (hrs < 24) return `${hrs}h ago`;
-    const days = Math.floor(hrs / 24);
-    if (days < 7) return `${days}d ago`;
-    return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
   }
 }

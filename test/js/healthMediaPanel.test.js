@@ -11,16 +11,16 @@
  * and invents nothing: an unscanned city must not read as a clean one, and the KPI must never call an unknown
  * healthy.
  *
- * The class is a plain top-level declaration (no window assignment), so the source is eval'd with an explicit
- * window epilogue, the way the other class suites do it.
+ * HealthPage and AdminShell are plain top-level declarations in a concatenated bundle (no window assignment), so
+ * both are eval'd with an explicit window epilogue, the way the other class suites do it.
  */
 
 const fs = require('fs');
 const path = require('path');
 
-const PAGE_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/admin-dashboard/HealthPage.js'), 'utf8'
-);
+const JS_DIR = path.resolve(__dirname, '..', '..', 'public/js/admin-dashboard');
+const SHELL_SRC = fs.readFileSync(path.join(JS_DIR, 'AdminShell.js'), 'utf8');
+const PAGE_SRC = fs.readFileSync(path.join(JS_DIR, 'HealthPage.js'), 'utf8');
 
 /** The panel's containers, plus the KPI tile it fills. Absent ids are no-ops, so only what's asserted is needed. */
 const MARKUP = `
@@ -71,7 +71,7 @@ describe('HealthPage media storage panel', () => {
         // init() installs poll intervals; fake timers keep them from firing into a torn-down DOM.
         jest.useFakeTimers();
         document.body.innerHTML = MARKUP;
-        window.eval(`${PAGE_SRC}\nwindow.HealthPage = HealthPage;`);
+        window.eval(`${SHELL_SRC}\nwindow.AdminShell = AdminShell;\n${PAGE_SRC}\nwindow.HealthPage = HealthPage;`);
         HealthPage = window.HealthPage;
     });
 

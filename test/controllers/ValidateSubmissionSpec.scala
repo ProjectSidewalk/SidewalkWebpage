@@ -19,9 +19,10 @@ import play.api.test.Helpers._
 import java.time.OffsetDateTime
 
 /**
- * Functional tests for the Validate submission endpoints — `POST /validationTask` (the Validate tool) and
- * `POST /labelmap/validate` (the LabelMap/Gallery path) — the write path that turns a validation into a
- * `label_validation` row and the label's updated agree/disagree/unsure counts (#4777).
+ * Functional tests for the Validate submission endpoints — `POST /validationTask` (the Validate tool),
+ * `POST /labelmap/validate`, and `POST /labelmap/comment` (the LabelMap/Gallery paths) — the write path that turns a
+ * validation into a `label_validation` row and the label's updated agree/disagree/unsure counts (#4777), and the one
+ * that keeps a user to a single comment per label (#4942).
  *
  * Follows the real client bootstrap: GET /validate embeds the assigned mission and label batch as inline page JS
  * (`param.*`), and the spec validates the first label of that real batch. Both tests run the endpoint's own undo flow
@@ -134,10 +135,24 @@ class ValidateSubmissionSpec
       missionId: Int,
       result: String,
       undone: Boolean = false,
-      redone: Boolean = false
+      redone: Boolean = false,
+      comment: Option[String] = None
   ): JsObject = {
-    val now = OffsetDateTime.now
-    Json.obj(
+    val now         = OffsetDateTime.now
+    val commentJson = comment.map { text =>
+      Json.obj(
+        "mission_id" -> missionId,
+        "label_id"   -> (label \ "label_id").as[Int],
+        "comment"    -> text,
+        "pano_id"    -> (label \ "pano_id").as[String],
+        "heading"    -> (label \ "heading").as[Double],
+        "pitch"      -> (label \ "pitch").as[Double],
+        "zoom"       -> (label \ "zoom").as[Double],
+        "lat"        -> (label \ "lat").as[Double],
+        "lng"        -> (label \ "lng").as[Double]
+      )
+    }
+    Json.obj("comment" -> commentJson) ++ Json.obj(
       "label_id"          -> (label \ "label_id").as[Int],
       "mission_id"        -> missionId,
       "validation_result" -> result,
@@ -225,6 +240,20 @@ class ValidateSubmissionSpec
     )
   }
 
+  /** A `POST /labelmap/comment` payload for the given label. */
+  private def labelMapCommentJson(label: JsObject, text: String): JsObject =
+    Json.obj(
+      "label_id"   -> (label \ "label_id").as[Int],
+      "label_type" -> (label \ "label_type").as[String],
+      "comment"    -> text,
+      "pano_id"    -> (label \ "pano_id").as[String],
+      "heading"    -> (label \ "heading").as[Double],
+      "pitch"      -> (label \ "pitch").as[Double],
+      "zoom"       -> (label \ "zoom").as[Double],
+      "lat"        -> (label \ "lat").as[Double],
+      "lng"        -> (label \ "lng").as[Double]
+    )
+
   /** Posts a Validate-tool submission over HTTP as the session's user. */
   private def postValidationTask(session: Seq[Cookie], payload: JsValue) =
     route(app, FakeRequest(POST, "/validationTask").withCookies(session: _*).withJsonBody(payload).withCSRFToken).get
@@ -234,6 +263,13 @@ class ValidateSubmissionSpec
     route(
       app,
       FakeRequest(POST, "/labelmap/validate").withCookies(session: _*).withJsonBody(payload).withCSRFToken
+    ).get
+
+  /** Posts a LabelMap/Gallery comment over HTTP as the session's user. */
+  private def postLabelMapComment(session: Seq[Cookie], payload: JsValue) =
+    route(
+      app,
+      FakeRequest(POST, "/labelmap/comment").withCookies(session: _*).withJsonBody(payload).withCSRFToken
     ).get
 
   /**
@@ -247,6 +283,18 @@ class ValidateSubmissionSpec
       sql"""SELECT validation_result::text, mission_id FROM label_validation
             WHERE label_id = $labelId AND user_id = $userId""".as[(String, Int)]
     ).headOption
+
+  /** How many validations of the label the user holds — the unique constraint caps this at 1. */
+  private def validationCount(labelId: Int, userId: String): Int =
+    run(
+      sql"SELECT count(*) FROM label_validation WHERE label_id = $labelId AND user_id = $userId".as[Int]
+    ).head
+
+  /** The user's free-text comments on the label. */
+  private def commentsOn(labelId: Int, userId: String): Seq[String] =
+    run(
+      sql"SELECT comment FROM validation_task_comment WHERE label_id = $labelId AND user_id = $userId".as[String]
+    )
 
   /** How many `label_history` rows the label carries; a validation that changes nothing must not add one. */
   private def labelHistoryCount(labelId: Int): Int =
@@ -375,6 +423,93 @@ class ValidateSubmissionSpec
       labelState(labelId) mustBe before
       missionProgress(b.missionId) mustBe 0
     }
+
+    "answer 200 and leave one row when the identical submission arrives twice (#4377)" in {
+      val session      = freshAnonSession()
+      val b            = fetchValidateBootstrap(session)
+      val label        = b.labels.head
+      val labelId      = (label \ "label_id").as[Int]
+      val before       = backupLabel(labelId)
+      val historyCount = labelHistoryCount(labelId)
+      val submission   =
+        taskSubmission(b, Seq(validationJson(label, b.missionId, "Agree")), Some(missionProgressJson(b, 1)))
+
+      status(postValidationTask(session, submission)) mustBe OK
+      // A client that missed the first response resends the same snapshot verbatim.
+      status(postValidationTask(session, submission)) mustBe OK
+
+      validationCount(labelId, b.userId) mustBe 1
+      validationRow(labelId, b.userId) mustBe Some(("Agree", b.missionId))
+      labelState(labelId).agreeCount mustBe before.agreeCount + 1 // The replace path nets one vote, not two.
+      labelHistoryCount(labelId) mustBe historyCount
+    }
+
+    "let a second validation of the same label replace the first verdict (#4377)" in {
+      val session = freshAnonSession()
+      val b       = fetchValidateBootstrap(session)
+      val label   = b.labels.head
+      val labelId = (label \ "label_id").as[Int]
+      val before  = backupLabel(labelId)
+
+      val progress = Some(missionProgressJson(b, 1))
+      status(postValidationTask(session, taskSubmission(b, Seq(validationJson(label, b.missionId, "Agree")), progress)))
+        .mustBe(OK)
+      status(
+        postValidationTask(session, taskSubmission(b, Seq(validationJson(label, b.missionId, "Disagree")), progress))
+      ).mustBe(OK)
+
+      validationCount(labelId, b.userId) mustBe 1
+      validationRow(labelId, b.userId).map(_._1) mustBe Some("Disagree")
+      val after = labelState(labelId)
+      after.agreeCount mustBe before.agreeCount
+      after.disagreeCount mustBe before.disagreeCount + 1
+    }
+
+    "keep the user's earlier comment when a repeat validation carries none (#4377)" in {
+      val session = freshAnonSession()
+      val b       = fetchValidateBootstrap(session)
+      val label   = b.labels.head
+      val labelId = (label \ "label_id").as[Int]
+      val _       = backupLabel(labelId)
+
+      val progress    = Some(missionProgressJson(b, 1))
+      val withComment =
+        Seq(validationJson(label, b.missionId, "Agree", comment = Some("Ramp is behind the parked car.")))
+      status(postValidationTask(session, taskSubmission(b, withComment, progress))) mustBe OK
+      commentsOn(labelId, b.userId) mustBe Seq("Ramp is behind the parked car.")
+
+      // Validating again without commenting must not take the free text down with the old vote.
+      status(
+        postValidationTask(session, taskSubmission(b, Seq(validationJson(label, b.missionId, "Disagree")), progress))
+      ) mustBe OK
+      commentsOn(labelId, b.userId) mustBe Seq("Ramp is behind the parked car.")
+
+      // A repeat that does carry a comment leaves exactly one row, not two stacked ones.
+      val newComment = Seq(validationJson(label, b.missionId, "Agree", comment = Some("Looking again, it is fine.")))
+      status(postValidationTask(session, taskSubmission(b, newComment, progress))) mustBe OK
+      commentsOn(labelId, b.userId) mustBe Seq("Looking again, it is fine.")
+    }
+
+    "answer 200 to a duplicate mission-complete submission and still hand back the next mission (#4377)" in {
+      val session = freshAnonSession()
+      val b       = fetchValidateBootstrap(session)
+      val label   = b.labels.head
+      val labelId = (label \ "label_id").as[Int]
+      val _       = backupLabel(labelId)
+      // completed=true drives the mission transition, so a 500 here is the one that strands the UI.
+      val complete   = missionProgressJson(b, 1) ++ Json.obj("completed" -> true)
+      val submission = taskSubmission(b, Seq(validationJson(label, b.missionId, "Agree")), Some(complete))
+
+      val first = postValidationTask(session, submission)
+      status(first) mustBe OK
+      val retried = postValidationTask(session, submission)
+      status(retried) mustBe OK
+
+      // The retry must carry the same transition payload the lost response did, or the client can't advance.
+      (contentAsJson(retried) \ "has_mission_available").as[Boolean] mustBe
+        (contentAsJson(first) \ "has_mission_available").as[Boolean]
+      validationCount(labelId, b.userId) mustBe 1
+    }
   }
 
   "POST /labelmap/validate" should {
@@ -404,6 +539,25 @@ class ValidateSubmissionSpec
       status(undone) mustBe OK
       validationRow(labelId, b.userId) mustBe None
       labelState(labelId) mustBe before
+    }
+  }
+
+  "POST /labelmap/comment" should {
+    "replace the user's earlier comment on the label rather than stacking a second one (#4942)" in {
+      val session = freshAnonSession()
+      val b       = fetchValidateBootstrap(session)
+      val label   = b.labels.head
+      val labelId = (label \ "label_id").as[Int]
+
+      val first = postLabelMapComment(session, labelMapCommentJson(label, "Ramp is behind the parked car."))
+      status(first) mustBe OK
+      (contentAsJson(first) \ "comment_id").as[Int] must be > 0
+      commentsOn(labelId, b.userId) mustBe Seq("Ramp is behind the parked car.")
+
+      // Revising a comment is the flow that has to land on the user's existing row for the label, not beside it.
+      val revised = postLabelMapComment(session, labelMapCommentJson(label, "Looking again, it is fine."))
+      status(revised) mustBe OK
+      commentsOn(labelId, b.userId) mustBe Seq("Looking again, it is fine.")
     }
   }
 }

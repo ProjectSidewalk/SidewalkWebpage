@@ -22,19 +22,21 @@
     <h2 class="api-heading" id="visual-example">Regions API Preview <a href="#visual-example" class="permalink">#</a></h2>
     <p>Below is a live preview of region data from @cityName retrieved directly from the API. Each neighborhood is color-coded by a statistic of your choice—use the <em>Color by</em> dropdown to switch between label count, completed audit count, and contributing user count. Hover and click on a region to view more information.</p>
 
-    <div id="regions-preview">
-        <!-- To be replaced by JavaScript with actual map rendering -->
-    </div>
+    <div id="regions-preview" class="map-container"></div>
 
-    <link rel="stylesheet" href='@assets.path("vendor/leaflet/leaflet-1.9.4.css")'>
-    <script src='@assets.path("vendor/leaflet/leaflet-1.9.4.js")'></script>
-    <link rel="stylesheet" href="@assets.path("css/api-docs/regions.css")">
-    <script src="@routes.Assets.versioned("js/api-docs/regionsPreview.js")"></script>
+    <link rel="stylesheet" href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")'>
+    <link rel="stylesheet" href='@assets.path("css/api-docs/regions.css")'>
+    @* Deferred to keep the ~800KB mapping stack off this article's rendering path. Order still matters within the
+       set: the language plugin and the preview both read the mapboxgl global as they parse. *@
+    <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.js")' defer></script>
+    <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")' defer></script>
+    <script src='@assets.path("js/api-docs/apiDocsMap.js")' defer></script>
+    <script src='@assets.path("js/api-docs/regionsPreview.js")' defer></script>
     <script>
-      // Initialize the regions preview map.
-      document.addEventListener('DOMContentLoaded', function() {
+      // Waits on appManager so the map's language control can read the page's locale out of i18next.
+      window.appManager.ready(function() {
         RegionsPreview.setup({
-          mapHeight: 500
+          mapboxApiKey: '@commonData.mapboxApiKey'
         }).init();
       });
     </script>

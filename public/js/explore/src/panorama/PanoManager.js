@@ -63,6 +63,92 @@ class PanoManager {
     return points;
   }
 
+  // Set when a load gives up on its street, and read once by the load that follows. The reload is what carries the
+  // labeler to a new street, and it also destroys the alert banner, so the explanation has to outlive it (#4918).
+  static #STREET_SKIPPED_KEY = 'sidewalk.streetSkippedOnLoad';
+
+  /** Records that this load gave up on its street, so the next one can say so. */
+  static #rememberStreetSkipped() {
+    try {
+      window.sessionStorage?.setItem(PanoManager.#STREET_SKIPPED_KEY, '1');
+    } catch {
+      // An unwritable store costs the labeler an explanation, which is not worth failing the skip over.
+    }
+  }
+
+  /**
+   * Whether the load before this one moved the labeler off a street it couldn't show.
+   *
+   * Reading clears the notice, so the explanation appears once, on arrival, rather than on every later load.
+   *
+   * @returns {boolean} True when the preceding load gave up on its street.
+   */
+  static consumeStreetSkippedNotice() {
+    try {
+      const skipped = window.sessionStorage?.getItem(PanoManager.#STREET_SKIPPED_KEY) === '1';
+      window.sessionStorage?.removeItem(PanoManager.#STREET_SKIPPED_KEY);
+      return skipped;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Makes a message readable on a load that ends without a panorama.
+   *
+   * Explore's chrome — the alert banner included — sits inside `.tool-ui`, which stays `visibility: hidden` until
+   * `Main.init()` finishes revealing it, and init bails as soon as there is no viewer. So a message shown from here
+   * would otherwise render inside a hidden container, behind a loading animation that never goes away: the labeler
+   * sees a page that looks stuck forever and is told nothing (#4918).
+   *
+   * Only the banner is un-hidden, not the whole tool: `visibility` is the one property a descendant can override
+   * against an inherited `hidden`, and revealing the rest would show a half-initialized UI whose controls are wired
+   * to a viewer that does not exist. The navbar is outside `.tool-ui`, so the labeler still has somewhere to go.
+   */
+  static #revealMessageOnStoppedLoad() {
+    document.getElementById('page-loading')?.style.setProperty('visibility', 'hidden');
+    document.getElementById('alert-holder')?.style.setProperty('visibility', 'visible');
+  }
+
+  /**
+   * Decides what a failure to seed the viewer is allowed to say about the assigned street, and acts on it.
+   *
+   * Three outcomes, in increasing order of what we let ourselves write down (#4918):
+   * - the provider never answered — an SDK, network, quota, or maps-library failure — so the street's imagery is
+   *   unknown and nothing at all is recorded;
+   * - the provider answered "nothing here", but this session has already hit its flag limit, so we treat the run as
+   *   a broken session rather than a run of empty streets and still record nothing;
+   * - otherwise the street really does look imagery-less, so it is reported and the page reloads onto the next one.
+   *
+   * The first two both leave the user on a page with no panorama, so they get told rather than silently stranded.
+   *
+   * @param {Error} err - Whatever `create()` rejected with.
+   * @param {{task: Task, missionId: number}} errorParams - The street and mission the failure happened on.
+   * @returns {Promise<void>} Resolves once any report has been sent. The reload itself never resolves.
+   */
+  static async #handleViewerCreationFailure(err, errorParams) {
+    // Surface the error either way: it is the only record of a transient failure, since nothing is written to the db.
+    console.error('Pano viewer creation failed at the starting location.', err);
+    const streetLooksEmpty = err instanceof NoImageryError;
+
+    if (!streetLooksEmpty || !NoImageryFlagGuard.canFlag()) {
+      svl.tracker?.push(streetLooksEmpty ? 'NoImageryFlagLimitReached' : 'PanoViewerCreateFailed');
+      // Two different things to say. A provider that never answered is a transient failure worth retrying; a run of
+      // streets that all answered "nothing here" is us having stopped trusting the answers, which waiting won't
+      // change (#4918).
+      const message = streetLooksEmpty ? 'popup.imagery-skip-limit' : 'popup.imagery-load-failed';
+      const type = streetLooksEmpty ? 'imagerySkipLimit' : 'imageryLoadFailed';
+      PanoManager.#revealMessageOnStoppedLoad();
+      svl.alertController?.showAlert(i18next.t(message), type, false);
+      return;
+    }
+
+    NoImageryFlagGuard.recordStreetGivenUp();
+    await util.misc.reportNoImagery(errorParams.task, errorParams.missionId);
+    PanoManager.#rememberStreetSkipped();
+    window.location.replace('/explore');
+  }
+
   /**
    * Initializes panoViewer on the Explore page, sets it to the starting location, and sets up listeners.
    * @returns {Promise<void>}
@@ -89,16 +175,13 @@ class PanoManager {
     try {
       svl.panoViewer = await panoViewerType.create(this.panoCanvas, panoOptions);
     } catch (err) {
-      // Surface the error: creation can also fail for reasons beyond missing imagery (e.g. the maps library failing
-      // to load), and the redirect below would otherwise bury it.
-      console.error('Pano viewer creation failed at the starting location.', err);
-      // Record the street as having no usable imagery and refresh the page to get a new street.
-      await util.misc.reportNoImagery(errorParams.task, errorParams.missionId);
-      // window.location.replace() doesn't halt execution, so bail out before the code below dereferences the
-      // missing viewer. Main.js sees the undefined svl.panoViewer and stops its own init the same way.
-      window.location.replace('/explore');
+      // window.location.replace() doesn't halt execution, and neither does the give-up path, so bail out before the
+      // code below dereferences the missing viewer. Main.js sees the undefined svl.panoViewer and stops the same way.
+      await PanoManager.#handleViewerCreationFailure(err, errorParams);
       return;
     }
+    // Reaching a pano ends any run of failures, restoring the session's full flag allowance (#4918).
+    NoImageryFlagGuard.reset();
 
     // If we started from a lat/lng and used a backup point closer to the end of the street, reverse the street
     // direction. An explicitly requested pano that loaded isn't a "couldn't start at the start" signal, so it

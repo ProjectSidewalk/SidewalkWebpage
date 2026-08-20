@@ -150,10 +150,13 @@ class GsvViewer extends PanoViewer {
    * @private
    */
   #getPanoramaCallback = async (newPanoData, excludedPanos = new Set()) => {
-    // If the pano given is in the excluded list, treat it as if the API call itself had returned nothing.
+    // If the pano given is in the excluded list, treat it as if the API call itself had returned nothing. This is a
+    // NoImageryError because the search itself succeeded — the caller asked for imagery it hasn't used yet and there
+    // is none here. A caller deciding whether a street ran out of imagery needs that to count, or a real dead end
+    // whose last panos the user already stood on could never be recognized (#4918).
     const excludedPanoIds = new Set([...excludedPanos].map((p) => p.getPanoId()));
     if (excludedPanoIds.has(newPanoData.data.location.pano)) {
-      throw new Error(`Excluded pano: ${newPanoData.data.location.pano}`);
+      throw new NoImageryError(`Excluded pano: ${newPanoData.data.location.pano}`);
     }
 
     // Package the data into a PanoData object and save it in this.currPanoData.
@@ -197,13 +200,39 @@ class GsvViewer extends PanoViewer {
     });
   }
 
+  /**
+   * Translates a getPanorama() rejection into our own vocabulary.
+   *
+   * Google answers a search that completed and found nothing with `ZERO_RESULTS`; every other status
+   * (`UNKNOWN_ERROR`, an over-quota reply, a transport failure) means the question never got answered. Only the
+   * former may end up recorded against a street, so everything else passes through untyped (#4918). The status is
+   * compared as a string literal — that is the documented `StreetViewStatus` value, and it is readable here without
+   * depending on the maps enum having loaded, which is exactly the case some of these failures represent.
+   *
+   * @param {object} err - Whatever `getPanorama()` rejected with; carries a `code` on a real API reply.
+   * @param {{lat: number, lng: number}} latLng - The location that was searched, for the message.
+   * @returns {Error} A NoImageryError for `ZERO_RESULTS`, otherwise the original error unchanged.
+   */
+  static #asImageryError(err, latLng) {
+    if (err?.code !== 'ZERO_RESULTS') return err;
+    const radius = svl.STREETVIEW_MAX_DISTANCE;
+    return new NoImageryError(
+      `No outdoor GSV imagery within ${radius}m of ${latLng.lat},${latLng.lng}.`, { cause: err },
+    );
+  }
+
   setLocation = async (latLng, excludedPanos = new Set()) => {
     const { LatLng } = await google.maps.importLibrary('core');
     const gLatLng = new LatLng(latLng.lat, latLng.lng);
     this.prevPanoData = this.currPanoData;
     return this.streetViewService.getPanorama(
       { location: gLatLng, radius: svl.STREETVIEW_MAX_DISTANCE, source: google.maps.StreetViewSource.OUTDOOR },
-    ).then((panoData) => this.#getPanoramaCallback(panoData, excludedPanos));
+    ).then(
+      (panoData) => this.#getPanoramaCallback(panoData, excludedPanos),
+      (err) => {
+        throw GsvViewer.#asImageryError(err, latLng);
+      },
+    );
   };
 
   setPano = async (panoId) => {

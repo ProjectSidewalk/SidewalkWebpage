@@ -89,7 +89,7 @@ Each major UI is a self-contained app under `public/js/`, bundled separately by 
 - **`explore/`** — the Explore/Audit tool (users label accessibility issues on street-view panoramas). The largest app; internal namespace global is still `svl`.
 - **`validate/`** — the Validate tool (users confirm/reject others' labels).
 - **`gallery/`** — browsable gallery of labels with filtering; internal namespace global is still `sg`.
-- **`admin/`** — admin dashboards and maps.
+- **`admin/`** — the legacy admin page's maps and dashboards. The redesigned admin dashboard (#4272) lives beside it in **`admin-dashboard/`**, which is served file-by-file rather than bundled: one `<PageName>Page.js` per route, loaded by that page's Twirl template, with shared helpers in `AdminShell.js`.
 - **`user-dashboard/`** — user dashboards.
 - **`ps-map/`** — shared map component used across pages.
 - **`help/`** — help/faq page (rarely used).
@@ -142,12 +142,14 @@ Full details (both systems, regional `en-US`/`en-NZ` rules, adding a new languag
 
 ## Python utilities
 
-Two standalone scripts in **`scripts/`**, invoked out-of-band rather than from the running web app. Python deps are split by who needs them: **`requirements.txt`** holds the app's in-band deps (`label_clustering.py` runs in-band — see below), and **`requirements-offline-tools.txt`** holds the deps used only by the offline `check_streets_for_imagery.py` utility (`shapely`, `geopy`, `tenacity`, `tqdm`). The Docker image installs both (plus `requirements-dev.txt`) since the test suite imports both scripts. Full usage in [`scripts/README.md`](scripts/README.md):
+Two standalone scripts in **`scripts/`**, invoked out-of-band rather than from the running web app. Full usage in [`scripts/README.md`](scripts/README.md):
 
 - `scripts/label_clustering.py` — clusters nearby labels. This one is invoked **in-band**: `ClusterService.runMultiUserClustering` shells out to `scripts/label_clustering.py` per region during admin-triggered `/runClustering` and the nightly `ClusteringActor` run (see `app/service/ClusterService.scala` / `app/models/cluster/`). If you move/rename it, update that invocation path. Because it runs in-band, the deployed app must be able to find it: `scripts/` is bundled into the staged/dist package via `Universal / mappings` in `build.sbt`, and `ClusterService` resolves the script against the app root (Play `Environment`) rather than the process working directory — a staged app runs from the stage dir, not the repo root, so a working-directory-relative path or an unbundled script fails with a cryptic python exit-2 ("can't open file"). Its `requirements.txt` deps must also be installed in the `python3` the app invokes.
 - `scripts/check_streets_for_imagery.py` — checks streets for available street-view imagery (related: `make hide-streets-without-imagery`). Resolves its data files relative to the repo root, so it runs from any working directory.
 
-Each script's pure logic is refactored into importable functions and **unit-tested** under `test/python/` (`pytest`). Keep I/O (HTTP/file) in thin wrappers and `main` so the logic stays testable; run `make test-python`.
+**The web image carries two interpreters, and which one a script uses is a constraint, not a preference (#4396).** `python3` is the base image's **3.8** — EOL, but it is what the deployed app shells out to, so `label_clustering.py` and its `requirements.txt` pins must stay installable there. `python3.13` (a uv-fetched standalone CPython) runs everything offline and holds `requirements-offline-tools.txt`, which needs ≥ 3.11. This mirrors prod: makelab1 runs the app on Rocky's system Python, user accounts have 3.13. So **run offline tooling as `python3.13 scripts/...`, and don't add libraries to `requirements.txt`** — anything current has dropped 3.8. `requirements-dev.txt` installs into both, environment markers giving each its newest usable pytest.
+
+Each script's pure logic is refactored into importable functions and **unit-tested** under `test/python/` (`pytest`). Keep I/O (HTTP/file) in thin wrappers and `main` so the logic stays testable. The suite splits along the same line: `make test-python` runs both halves, each taking the whole directory *minus* the one file the other interpreter owns (`--ignore`, in the `Makefile`'s `pytest-args-*` and mirrored in the CI matrix), so **a new test file runs in both halves by default**. Coverage is always on and gated at 100% via `source = ["scripts"]`, so a script arriving with no tests is reported at 0%; each half sets **`COVERAGE_OMIT`** to the script it can't import.
 
 ## Label Type Colors and Icons
 
@@ -441,6 +443,18 @@ Implementation: `tools/qa-worktree.sh` — both targets run the **worktree's own
 make reports `No rule to make target 'qa-worktree'`. Either check out a branch that has it, or run the worktree's script
 directly: `docker exec -it projectsidewalk-web bash /home/.claude/worktrees/<name>/tools/qa-worktree.sh <name>`.
 
+**Disposing of a worktree entirely** is **`make worktree-remove wt=<name>`** (`tools/worktree-remove.sh`): it stops any
+QA session, deletes the directory *and* git's registration under `.git/worktrees/`, then deletes the branch if every
+commit on it is already in `develop` (otherwise it names the branch and leaves it). `rm -rf` on the directory alone is
+**not** equivalent — the registration survives and the worktree keeps showing up in `git worktree list` until something
+prunes it; the target recognizes and cleans up that half-removed state too. Unlike the QA targets it runs **host-side**:
+a worktree's `.git` file points at the main repo's `.git/worktrees/<name>` by absolute host path, which doesn't exist
+inside the container, so git can't touch the worktree from in there. It stops before doing anything if the worktree has
+uncommitted or untracked files (`force=1` deletes them along with it) or if the worktree is **locked** — an active
+Claude Code worktree session holds a lock, and git refuses a locked worktree even with `--force`. The main-checkout
+caveat above applies here too; the direct invocation is host-side rather than through docker:
+`bash .claude/worktrees/<name>/tools/worktree-remove.sh <name>`.
+
 **Admin-authenticated QA:** the dev DB is seeded from a dump that includes real accounts and their bcrypt password
 hashes, and password verification is config-independent (plain bcrypt, no server-side pepper), so if your own account is
 in the dump you can just sign in with your normal credentials. If you don't have credentials for a seeded account — or
@@ -480,7 +494,7 @@ The API specs **boot the real app against Postgres+PostGIS**, so the `db` contai
 
 A **JS** test layer (jsdom) lives under `test/js/` — run `npm run test:js`. CI runs it as an **advisory** step inside the `frontend` job, so a failure reports but doesn't block a merge while coverage is still thin (sequenced with the ES5→ES2022 migration, #2487); see `test/js/README.md`.
 
-A **Python** unit suite (`pytest`) for the `scripts/` utilities lives under `test/python/` — run `make test-python` (runs pytest in the web container) or `docker exec projectsidewalk-web bash -lc "cd /home && python3 -m pytest test/python"`. It needs no DB/network (pure-logic tests only) and runs as an **advisory** CI job; see `test/python/README.md`.
+A **Python** unit suite (`pytest`) for the `scripts/` utilities lives under `test/python/` — run `make test-python` (runs pytest in the web container, once per interpreter; `make test-python-app` / `make test-python-tools` run one half). It needs no DB/network (pure-logic tests only) and runs as an **advisory** CI job, one matrix leg per interpreter; see `test/python/README.md`.
 
 A **browser smoke suite** (Playwright, #4504) lives under `test/e2e/` — loads each core page in headless Chromium and fails on any uncaught console/page error. Unlike every other frontend tool it runs **host-side** (Playwright drives a host browser; it is not in the web container): one-time setup `npm install && npx playwright install chromium`, then `make test-e2e` against the already-running dev app (`BASE_URL` overrides `http://localhost:9000`; scope with `args="-g labelMap"`). It never runs during local development on its own — CI runs it as the advisory `e2e-smoke` job. The `/explore`/`/validate` specs need a real Maps key, so they self-skip unless `HAS_REAL_GMAPS_KEY=true` (set automatically in CI from the `GOOGLE_MAPS_API_KEY_TEST` secret; export it manually to run them locally); see `test/e2e/README.md`.
 

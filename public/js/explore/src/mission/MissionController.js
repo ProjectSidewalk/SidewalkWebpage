@@ -152,7 +152,7 @@ class MissionController {
     // bar tracks route progress.
     let completionRate;
     if (this.#neighborhoodModel.isRoute) {
-      const unit = { units: i18next.t('common:unit-distance') };
+      const unit = { units: util.turfDistanceUnits() };
       const routeDistance = svl.taskContainer.totalLineDistanceInNeighborhood(unit);
       completionRate = routeDistance ? Math.min(1, distance / routeDistance) : 0;
     } else {

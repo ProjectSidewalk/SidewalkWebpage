@@ -74,6 +74,7 @@ GET     /admin/task/:taskId                             controllers.AdminControl
 GET     /admin/label/:labelId                           controllers.AdminController.label(labelId: Int)
 
 GET     /adminapi/dbHealth                              controllers.AdminDashboardController.getDbHealth
+GET     /adminapi/streetStatusTrend                     controllers.AdminDashboardController.getStreetStatusTrend(weeks: Int ?= service.StreetLifecycleService.DefaultTrendWeeks)
 GET     /adminapi/auditpath/:id                         controllers.AdminController.getAnAuditTaskPath(id: Int)
 GET     /adminapi/auditedStreetTimes                    controllers.AdminController.getAuditedStreetsWithTimestamps
 GET     /adminapi/labels/all                            controllers.AdminController.getAllLabels
