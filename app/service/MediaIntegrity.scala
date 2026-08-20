@@ -4,10 +4,42 @@ package service
 // check can never disagree about which directories matter or which of them is currently unsafe (#4925).
 import modules.PersistentMediaDirCheck
 import modules.PersistentMediaDirCheck.PersistentDir
-import play.api.{Configuration, Environment, Mode}
+import play.api.{Configuration, Environment}
 
 import java.io.File
 import scala.util.{Failure, Success, Try}
+
+/**
+ * What listing one city's media directory found.
+ *
+ * `File.list` answers null for a directory that isn't there and for one this process may not read alike, and those
+ * mean opposite things to a data-loss monitor: nothing uploaded yet, versus no idea what is in there. Collapsing them
+ * would let a permissions change announce a whole city's photos as destroyed, so they stay distinct all the way to
+ * the page.
+ */
+sealed trait DirListing
+object DirListing {
+
+  /** The names the directory holds. */
+  case class Listed(names: Seq[String]) extends DirListing
+
+  /** No directory at that path: no upload has landed for this city yet, or one that had landed is gone. */
+  case object Absent extends DirListing
+
+  /** The path is there but unreadable, so nothing can be concluded about what it holds. */
+  case object Unreadable extends DirListing
+}
+
+/** Where one schema's story media lives on this instance, or why this instance can't say. */
+sealed trait ScanTarget
+object ScanTarget {
+
+  /** The city subdirectory holding that schema's media. */
+  case class Dir(cityId: String) extends ScanTarget
+
+  /** No directory can be attributed to the schema, phrased for the operator reading the panel. */
+  case class Unlocatable(reason: String) extends ScanTarget
+}
 
 /**
  * The pure logic behind the Health dashboard's media-storage panel (#4926): what each persistent media directory
@@ -34,9 +66,7 @@ object MediaIntegrity {
    *                    copy of the rules.
    */
   def directoryStatuses(config: Configuration, environment: Environment): Seq[MediaDirStatus] = {
-    // The check arms only in prod mode, and in a dev checkout the relative defaults are supposed to land in the repo.
-    // Reporting those as failures would make the dev dashboard permanently red and teach everyone to ignore it.
-    val enforced = environment.mode == Mode.Prod
+    val enforced = PersistentMediaDirCheck.arms(environment)
     val unsafe   = PersistentMediaDirCheck.unsafeDirs(config, environment).map(u => u.dir.key -> u.reason).toMap
 
     PersistentMediaDirCheck.persistentDirs.map { dir =>
@@ -44,27 +74,55 @@ object MediaIntegrity {
         case Failure(e) =>
           status(dir, "—", "unresolved", "unusable value", "bad", Some(e.getMessage))
         case Success(resolved) =>
-          val path = resolved.getAbsolutePath
-          unsafe.get(dir.key) match {
-            case Some(reason) =>
-              val severity = if (!enforced) "ok" else if (dir.irreplaceable) "bad" else "warn"
-              val label    = if (enforced) "a deploy will delete this" else "inside the build tree (dev)"
-              status(dir, path, "unsafe", label, severity, Some(reason))
-            // Not created yet is the normal state until the first upload — the write paths mkdirs on demand.
-            case None if !resolved.exists()   => status(dir, path, "absent", "not created yet", "ok", None)
-            case None if !resolved.canWrite() =>
-              status(
-                dir,
-                path,
-                "not_writable",
-                "not writable",
-                "bad",
-                Some(s"${dir.envVar} points at a path this process cannot write to, so uploads will fail.")
-              )
-            case None => status(dir, path, "ok", "ok", "good", None)
-          }
+          val probe = DirProbe(resolved.exists(), resolved.canRead(), resolved.canWrite())
+          dirStatus(dir, resolved.getAbsolutePath, probe, unsafe.get(dir.key), enforced)
       }
     }
+  }
+
+  /**
+   * What a stat of one media directory saw — the only facts about it the status rules turn on.
+   *
+   * @param exists   Whether anything is at the path.
+   * @param readable Whether this process may read it.
+   * @param writable Whether this process may write to it.
+   */
+  case class DirProbe(exists: Boolean, readable: Boolean, writable: Boolean)
+
+  /**
+   * What one directory's observed state means, separated from observing it so every branch is reachable from a spec:
+   * the permission branches can't be provoked from a test that runs as root, which CI and the dev container both do.
+   *
+   * @param dir          The directory being judged.
+   * @param path         Where it resolved, for display.
+   * @param probe        What a stat of it saw.
+   * @param unsafeReason The boot check's objection to it, when it has one.
+   * @param enforced     Whether the boot check arms on this instance. When it doesn't, a directory inside the build
+   *                     tree is the intended dev arrangement rather than a fault, and saying otherwise would make the
+   *                     dev dashboard permanently red and teach everyone to ignore it.
+   * @return             The status, carrying its own display label and severity so the page holds no copy of the
+   *                     rules.
+   */
+  private[service] def dirStatus(
+      dir: PersistentDir,
+      path: String,
+      probe: DirProbe,
+      unsafeReason: Option[String],
+      enforced: Boolean
+  ): MediaDirStatus = unsafeReason match {
+    case Some(reason) =>
+      val severity = if (!enforced) "ok" else if (dir.irreplaceable) "bad" else "warn"
+      val label    = if (enforced) "a deploy will delete this" else "inside the build tree (dev)"
+      status(dir, path, "unsafe", label, severity, Some(reason))
+    // Not created yet is the normal state until the first upload — the write paths mkdirs on demand.
+    case None if !probe.exists   => status(dir, path, "absent", "not created yet", "ok", None)
+    case None if !probe.readable =>
+      val detail = s"${dir.envVar} points at a path this process cannot read, so nothing in it can be verified."
+      status(dir, path, "not_readable", "not readable", "bad", Some(detail))
+    case None if !probe.writable =>
+      val detail = s"${dir.envVar} points at a path this process cannot write to, so uploads will fail."
+      status(dir, path, "not_writable", "not writable", "bad", Some(detail))
+    case None => status(dir, path, "ok", "ok", "good", None)
   }
 
   private def status(
@@ -78,32 +136,41 @@ object MediaIntegrity {
     MediaDirStatus(dir.key, dir.envVar, dir.irreplaceable, path, key, label, severity, detail)
 
   /**
-   * Which city's subdirectory each schema's media lives in.
+   * Which city's subdirectory each schema's media lives in, or why it can't be located.
    *
    * This instance's own schema takes `city-id`, because that is what `StoryService` builds its write path from —
    * the schema and `city-id` are independent settings, so on an instance where they disagree the scan has to look
    * where the files actually are. That claim is exclusive: no second schema may be pointed at the same directory,
-   * or it would report the first schema's files as orphans. A schema left without a directory is reported unscanned,
-   * which is the truth — nothing here can say where its files are.
+   * or it would report the first schema's files as orphans. Every schema that loses a directory that way carries
+   * the reason with it, since "no city configured" and "this instance took that directory" send an operator looking
+   * in very different places.
    *
    * @param schemas       Schemas the scan covers.
    * @param currentSchema The schema this instance reads and writes.
    * @param currentCity   The `city-id` this instance writes media under.
    * @param configured    Schema to city id, from configuration alone.
-   * @return              Schema to city id, for the schemas whose directory can be located.
+   * @return              One target per schema, in no particular order.
    */
-  def cityDirsBySchema(
+  def scanTargets(
       schemas: Seq[String],
       currentSchema: String,
       currentCity: String,
       configured: Map[String, String]
-  ): Map[String, String] = {
-    val others = schemas
-      .filter(_ != currentSchema)
-      .flatMap(schema => configured.get(schema).filter(_ != currentCity).map(schema -> _))
-      .toMap
-    if (schemas.contains(currentSchema)) others + (currentSchema -> currentCity) else others
-  }
+  ): Map[String, ScanTarget] = schemas.map { schema =>
+    schema -> {
+      if (schema == currentSchema) ScanTarget.Dir(currentCity)
+      else
+        configured.get(schema) match {
+          case Some(`currentCity`) =>
+            ScanTarget.Unlocatable(
+              s"this instance writes $currentCity media under schema $currentSchema, so the $currentCity directory " +
+                s"can't also be read as $schema"
+            )
+          case Some(cityId) => ScanTarget.Dir(cityId)
+          case None         => ScanTarget.Unlocatable(s"no city on this stage is configured to use schema $schema")
+        }
+    }
+  }.toMap
 
   /**
    * Compares one city's `story_media` rows against the files in its media directory.
@@ -112,34 +179,62 @@ object MediaIntegrity {
    * failure: a retraction whose row delete landed and whose file delete did not, which leaves a photo on disk that
    * its author believes they deleted — the hard-delete contract stories were built on (#4054).
    *
-   * @param cityId    City the schema belongs to, or None when this instance's config doesn't name it — then the
-   *                  directory can't be located and the row is reported unscanned rather than guessed at.
-   * @param schema    Database schema the rows came from.
-   * @param mediaIds  `story_media` ids in that schema.
-   * @param fileNames Names in the city's media directory, or None when the directory isn't there. An absent
-   *                  directory under a readable base is real loss, not an unknown, so its rows count as missing.
-   * @return          Counts in both directions, with a short sample of ids to start looking from.
+   * @param cityId   City the schema belongs to, which names the directory that was listed.
+   * @param schema   Database schema the rows came from.
+   * @param mediaIds `story_media` ids in that schema.
+   * @param listing  What the city's directory held. An absent directory is real loss — the write path creates it and
+   *                 never removes it — but an unreadable one proves nothing, so it reports unscanned instead.
+   * @return         Counts in both directions, with a short sample of ids to start looking from.
    */
-  def compareCity(
-      cityId: Option[String],
-      schema: String,
-      mediaIds: Seq[Int],
-      fileNames: Option[Seq[String]]
-  ): CityStoryMedia = {
-    val rows = mediaIds.distinct
-    if (cityId.isEmpty) {
-      CityStoryMedia(cityId, schema, rows.size, 0, 0, Seq.empty, Seq.empty, scanned = false)
-    } else {
-      val onDisk =
-        fileNames.getOrElse(Seq.empty).flatMap { case StoryMediaFileName(id) => id.toIntOption; case _ => None }.toSet
-      val rowSet  = rows.toSet
-      val missing = (rowSet -- onDisk).toSeq.sorted
-      val orphans = (onDisk -- rowSet).toSeq.sorted
-      CityStoryMedia(cityId, schema, rows.size, missing.size, orphans.size, missing.take(MaxSampleIds),
-        orphans.take(MaxSampleIds), scanned = true)
+  def compareCity(cityId: String, schema: String, mediaIds: Seq[Int], listing: DirListing): CityStoryMedia = {
+    val rows = mediaIds.distinct.toSet
+    listing match {
+      case DirListing.Unreadable =>
+        unscannedCity(Some(cityId), schema, mediaIds, s"the $cityId media directory is not readable by this process")
+      case DirListing.Absent        => diff(cityId, schema, rows, Set.empty)
+      case DirListing.Listed(names) =>
+        diff(
+          cityId,
+          schema,
+          rows,
+          names.flatMap { case StoryMediaFileName(id) => id.toIntOption; case _ => None }.toSet
+        )
     }
   }
 
-  /** Lists a directory's file names, or None when it isn't a readable directory. Blocking; call on a blocking pool. */
-  def listFileNames(dir: File): Option[Seq[String]] = Option(dir.list()).map(_.toSeq)
+  /**
+   * One city's row whose directory could not be scanned, so its counts stand for nothing and read as blank.
+   *
+   * @param cityId   City the schema belongs to, when one is known.
+   * @param schema   Database schema the rows came from.
+   * @param mediaIds `story_media` ids in that schema, which are still worth reporting as a row count.
+   * @param reason   Why the scan couldn't run, phrased for the operator reading the panel.
+   */
+  def unscannedCity(cityId: Option[String], schema: String, mediaIds: Seq[Int], reason: String): CityStoryMedia =
+    CityStoryMedia(cityId, schema, mediaIds.distinct.size, 0, 0, Seq.empty, Seq.empty, scanned = false, Some(reason))
+
+  private def diff(cityId: String, schema: String, rows: Set[Int], onDisk: Set[Int]): CityStoryMedia = {
+    val missing = (rows -- onDisk).toSeq.sorted
+    val orphans = (onDisk -- rows).toSeq.sorted
+    CityStoryMedia(
+      Some(cityId), schema, rows.size, missing.size, orphans.size, missing.take(MaxSampleIds),
+      orphans.take(MaxSampleIds), scanned = true, None
+    )
+  }
+
+  /**
+   * What a media directory holds, telling an absent directory apart from one this process may not read.
+   *
+   * Blocking; call on a blocking pool.
+   *
+   * @param dir Directory to list.
+   * @return    Its file names, or which of the two null-answering states `File.list` was in.
+   */
+  def listing(dir: File): DirListing = Option(dir.list()) match {
+    case Some(names) => DirListing.Listed(names.toSeq)
+    // `list` also answers null on an I/O error against a directory that is there, which is no more conclusive than a
+    // permissions refusal — so anything that exists but won't list is Unreadable rather than Absent.
+    case None if dir.exists() => DirListing.Unreadable
+    case None                 => DirListing.Absent
+  }
 }

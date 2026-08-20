@@ -162,8 +162,8 @@ class ImageControllerSpec extends PlaySpec with AnonSession with GuiceOneAppPerS
       cleanUp(syntheticLabelId)
     }
 
-    "answer a signed pano URL with no backup image with a plain 404, and stay quiet on a repeat" in {
-      // Two requests: the log deduplicates, the responses must not.
+    "answer a signed pano URL with no backup image with a plain 404, every time it is asked" in {
+      // The log deduplicates a repeat (LostMediaLogSpec pins that); the responses must not.
       val panoId = "sidewalkSpecNoSuchPano4926"
       val url    = signingService.signedUrl(s"/backupImage/$panoId")
       status(route(app, FakeRequest(GET, url)).get) mustBe NOT_FOUND

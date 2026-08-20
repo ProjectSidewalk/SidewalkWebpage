@@ -121,7 +121,12 @@ class HealthServiceSpec extends PlaySpec with GuiceOneAppPerSuite {
         case Some(scan) =>
           scan.missing mustBe scan.cities.map(_.missing).sum
           scan.orphans mustBe scan.cities.map(_.orphans).sum
-          scan.cities.filterNot(_.scanned).foreach(_.missing mustBe 0)
+          // An unscanned city's counts stand for nothing, and the row has to say which of the several reasons put it
+          // there or the operator reading it has nowhere to start.
+          scan.cities.filterNot(_.scanned).foreach { city =>
+            city.missing mustBe 0
+            city.unscannedReason mustBe defined
+          }
       }
     }
 

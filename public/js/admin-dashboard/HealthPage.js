@@ -146,8 +146,10 @@ class HealthPage {
   }
 
   /**
-   * The missing-media KPI: destroyed bytes are the headline, so a directory that a deploy will delete counts as bad
-   * even before anything has been lost from it. Orphans are a lesser fault and only warn.
+   * The missing-media KPI. The value is only ever a count of missing files or "—" for unknown — this tile is labelled
+   * "Missing media files", so putting any other number under it would misreport. A directory a deploy will delete is
+   * bad news before anything has been lost from it, so it colors the tile red without supplying its number, and the
+   * table below names which directory. Orphans are a lesser fault and only warn.
    *
    * @param {?Object} media - The media_storage payload, or null when it couldn't be read.
    * @returns {[(string|number), string]} Value and tone, spread into #setKpi.
@@ -156,7 +158,7 @@ class HealthPage {
     // Unknown is not healthy: tone it neutral rather than green.
     if (!media) return ['—', 'ok'];
     const unsafeDirs = (media.directories || []).filter((d) => d.severity === 'bad').length;
-    if (!media.story_media) return [unsafeDirs > 0 ? unsafeDirs : '—', unsafeDirs > 0 ? 'bad' : 'ok'];
+    if (!media.story_media) return ['—', unsafeDirs > 0 ? 'bad' : 'ok'];
     const { missing, orphans } = media.story_media;
     if (missing > 0 || unsafeDirs > 0) return [HealthPage.#compact(missing), 'bad'];
     return [HealthPage.#compact(missing), orphans > 0 ? 'warn' : 'good'];
@@ -376,6 +378,15 @@ class HealthPage {
       return;
     }
 
+    // A scan that couldn't even stat the directories sends none, and an empty table would read as "none configured".
+    if (!media.directories?.length) {
+      const why = HealthPage.#esc(media.unavailable || 'Media storage status is unavailable.');
+      this.#setHtml('health-media-dirs', `<p class="coverage-status">${why}</p>`);
+      this.#setHtml('health-media-story', '');
+      this.#setHtml('health-media-note', '');
+      return;
+    }
+
     const dirRows = (media.directories || []).map((d) => {
       const holds = d.irreplaceable ? '<span class="ac-badge ac-badge--warn">content</span>' : 'rebuildable';
       const detail = d.detail ? `<br><small>${HealthPage.#esc(d.detail)}</small>` : '';
@@ -440,7 +451,9 @@ class HealthPage {
    * @returns {string} Cell HTML.
    */
   static #mediaDetail(city) {
-    if (!city.scanned) return `<em>no city configured for schema ${HealthPage.#esc(city.schema)}</em>`;
+    // The reason is server-side: "no city configured", "this instance writes that directory under another schema"
+    // and "not readable" send an operator to very different places, and only the backend knows which applies.
+    if (!city.scanned) return `<em>${HealthPage.#esc(city.unscanned_reason || 'not scanned')}</em>`;
     const parts = [];
     if (city.missing_ids?.length) parts.push(`missing ${city.missing_ids.join(', ')}`);
     if (city.orphan_ids?.length) parts.push(`orphaned ${city.orphan_ids.join(', ')}`);

@@ -305,10 +305,13 @@ jobs:
       #   which a deploy rebuilds and deletes. Pure logic, no DB — and the failure it guards against is invisible to
       #   every other test, since the broken config behaves correctly right up until the next release.
       # - MediaIntegritySpec (#4926): the media-storage panel's calls on what counts as data loss. Pure logic, no DB.
-      #   Its false-alarm cases matter as much as its real ones — a monitor that cries loss over an absent directory
-      #   gets ignored, and an ignored monitor leaves us exactly where #4925 found us.
+      #   Its false-alarm cases matter as much as its real ones — a monitor that cries loss over an unreadable
+      #   directory gets ignored, and an ignored monitor leaves us exactly where #4925 found us.
+      # - LostMediaLogSpec (#4926): the log line that is the only signal a media file has been destroyed. Both ways
+      #   it can fail are silent — announcing every request buries the event, announcing nothing reads as health —
+      #   so the lines themselves are asserted. Pure logic, no DB.
       - name: Run gating/auth tests (health dashboard + route auth posture + geodesic distances)
-        run: sbt 'set Test / parallelExecution := false' 'testOnly controllers.HealthDashboardSpec service.HealthServiceSpec controllers.RouteAuthPostureSpec models.street.GeodesicDistanceSpec service.ExploreTutorialRouteSpec controllers.MobileDetectionSpec service.PanoDataServiceSpec models.utils.ConfigTableVoidedArchiveSpec controllers.api.StatsApiSpec controllers.ExploreSubmissionSpec controllers.ValidateSubmissionSpec modules.PersistentMediaDirCheckSpec service.MediaIntegritySpec'
+        run: sbt 'set Test / parallelExecution := false' 'testOnly controllers.HealthDashboardSpec service.HealthServiceSpec controllers.RouteAuthPostureSpec models.street.GeodesicDistanceSpec service.ExploreTutorialRouteSpec controllers.MobileDetectionSpec service.PanoDataServiceSpec models.utils.ConfigTableVoidedArchiveSpec controllers.api.StatsApiSpec controllers.ExploreSubmissionSpec controllers.ValidateSubmissionSpec modules.PersistentMediaDirCheckSpec service.MediaIntegritySpec service.LostMediaLogSpec'
         env:
           DATABASE_URL: jdbc:postgresql://localhost:5432/sidewalk
           DATABASE_USER: sidewalk

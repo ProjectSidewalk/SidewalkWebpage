@@ -128,9 +128,12 @@ case class MediaDirStatus(
  * @param rows       `story_media` rows in that schema.
  * @param missing    Rows whose bytes are gone — data loss (#4925).
  * @param orphans    Files with no row — a retraction whose file delete didn't land (#4054).
- * @param missingIds Sample of the missing ids, to start looking from.
- * @param orphanIds  Sample of the orphaned ids.
- * @param scanned    False when the directory couldn't be located, so the counts mean nothing.
+ * @param missingIds     Sample of the missing ids, to start looking from.
+ * @param orphanIds      Sample of the orphaned ids.
+ * @param scanned        False when the directory couldn't be read, so the counts mean nothing.
+ * @param unscannedReason Why it wasn't scanned, when it wasn't. The reasons differ enough — a schema no city on this
+ *                       stage claims, a directory this instance writes under another schema, one it may not read —
+ *                       that a single "not scanned" would send an operator looking in the wrong place.
  */
 case class CityStoryMedia(
     cityId: Option[String],
@@ -140,7 +143,8 @@ case class CityStoryMedia(
     orphans: Int,
     missingIds: Seq[Int],
     orphanIds: Seq[Int],
-    scanned: Boolean
+    scanned: Boolean,
+    unscannedReason: Option[String]
 )
 
 /**
@@ -357,6 +361,13 @@ class HealthServiceImpl @Inject() (
   // against a dead mount never returns — the thread stays parked on the blocking pool, but the poll must not.
   private val mediaScanTimeout: FiniteDuration = 5.seconds
 
+  // One scan at a time. `withTimeout` abandons the future it gave up waiting on, but nothing can cancel the thread
+  // underneath it: a filesystem call against an unreachable mount returns when the mount does, or never. Without this
+  // guard the dashboard's ~20s poll would stack a fresh scan on top of every stuck one and park the whole blocking-io
+  // pool within a couple of minutes, leaving the panel dead even after the mount came back. Parking one thread is the
+  // price of asking at all; parking the pool would cost us the panel exactly when storage is the thing going wrong.
+  private val mediaScanInFlight = new java.util.concurrent.atomic.AtomicBoolean(false)
+
   // Schema -> city id, read from configuration alone. The database knows the schema, the directory is named for the
   // city, and nothing but this mapping joins them. ConfigService.availableCityIds would do it with one existence
   // query per city — the ~50-connection fan-out this dashboard exists to catch (#4559).
@@ -375,16 +386,31 @@ class HealthServiceImpl @Inject() (
   private def getMediaStorage: Future[Option[MediaStorageHealth]] = {
     cacheApi
       .getOrElseUpdate[Option[MediaStorageHealth]]("health.media", panoTtl) {
-        val scan = for {
-          dirs      <- Future(MediaIntegrity.directoryStatuses(config, environment))(blockingIoEc)
-          integrity <- storyMediaIntegrity
-        } yield Some(MediaStorageHealth(dirs, environment.mode == play.api.Mode.Prod, integrity._1, integrity._2))
-        withTimeout(scan, "media storage scan")
+        if (!mediaScanInFlight.compareAndSet(false, true)) {
+          // A scan is still running past its deadline, which all but always means a filesystem call that will not
+          // return. Reporting that beats both starting another one on top of it and rendering a stale all-clear.
+          Future.successful(Some(unreachableMedia("A previous media scan has not returned; storage may be offline.")))
+        } else {
+          val scan = for {
+            dirs      <- Future(MediaIntegrity.directoryStatuses(config, environment))(blockingIoEc)
+            integrity <- storyMediaIntegrity
+          } yield Some(MediaStorageHealth(dirs, enforced, integrity._1, integrity._2))
+          // Clears on the underlying scan, not on the timeout, so a stuck one keeps the gate shut until it unsticks.
+          scan.onComplete(_ => mediaScanInFlight.set(false))
+          withTimeout(scan, "media storage scan")
+        }
       }
       .recover { case e: Exception =>
         logger.warn(s"Health: failed to read media storage: ${e.getMessage}"); None
       }
   }
+
+  /** Whether the boot check arms on this instance; read from the check itself so the page can't claim a false guard. */
+  private def enforced: Boolean = modules.PersistentMediaDirCheck.arms(environment)
+
+  /** The panel with nothing but a reason on it, for when even stat-ing the directories would block. */
+  private def unreachableMedia(reason: String): MediaStorageHealth =
+    MediaStorageHealth(Seq.empty, enforced, None, Some(reason))
 
   /**
    * Compares every visible city's `story_media` rows against the files on disk.
@@ -401,13 +427,19 @@ class HealthServiceImpl @Inject() (
     // here would escape the caller's `.recover` instead of degrading to an unavailable panel.
     Future {
       val baseDir = MediaDirs.baseDir(config, environment, "story.media.directory")
-      (baseDir, baseDir.isDirectory)
-    }(blockingIoEc).flatMap {
-      case (baseDir, false) =>
+      val refusal =
         // Nothing has been uploaded on this stage yet, or the directory is gone. Either way there is nothing to
         // compare against, and the directory panel above already reports the state of the path itself.
-        Future.successful((None, Some(s"No media directory at ${baseDir.getAbsolutePath} to scan.")))
-      case (baseDir, true) =>
+        if (!baseDir.isDirectory) Some(s"No media directory at ${baseDir.getAbsolutePath} to scan.")
+        // `isDirectory` is true for a directory this process may not read, and every per-city listing beneath one
+        // comes back empty — which would report every story photo on the stage as destroyed. Decline instead: a
+        // monitor that cries data loss over a permissions change is worse than no monitor at all.
+        else if (!baseDir.canRead) Some(s"Media directory ${baseDir.getAbsolutePath} is not readable by this process.")
+        else None
+      (baseDir, refusal)
+    }(blockingIoEc).flatMap {
+      case (_, Some(refusal)) => Future.successful((None, Some(refusal)))
+      case (baseDir, None)    =>
         db.run(healthTable.getStoryMediaSchemas).map(_.filter(_.matches("^[A-Za-z0-9_]+$"))).flatMap { schemas =>
           if (schemas.isEmpty)
             Future.successful((Some(StoryMediaIntegrity(baseDir.getAbsolutePath, Seq.empty, 0, 0)), None))
@@ -452,7 +484,7 @@ class HealthServiceImpl @Inject() (
       ids: Seq[SchemaMediaId]
   ): Future[StoryMediaIntegrity] = {
     val idsBySchema = ids.groupBy(_.schema).view.mapValues(_.map(_.storyMediaId)).toMap
-    val cityDirs    = MediaIntegrity.cityDirsBySchema(
+    val targets     = MediaIntegrity.scanTargets(
       counts.map(_.schema),
       currentSchema,
       config.get[String]("city-id"),
@@ -460,9 +492,13 @@ class HealthServiceImpl @Inject() (
     )
     Future {
       counts.sortBy(_.schema).map { case SchemaRowCount(schema, _) =>
-        val cityId    = cityDirs.get(schema)
-        val fileNames = cityId.flatMap(id => MediaIntegrity.listFileNames(new File(baseDir, id)))
-        MediaIntegrity.compareCity(cityId, schema, idsBySchema.getOrElse(schema, Seq.empty), fileNames)
+        val mediaIds = idsBySchema.getOrElse(schema, Seq.empty)
+        targets.get(schema) match {
+          case Some(ScanTarget.Dir(cityId)) =>
+            MediaIntegrity.compareCity(cityId, schema, mediaIds, MediaIntegrity.listing(new File(baseDir, cityId)))
+          case Some(ScanTarget.Unlocatable(reason)) => MediaIntegrity.unscannedCity(None, schema, mediaIds, reason)
+          case None => MediaIntegrity.unscannedCity(None, schema, mediaIds, s"no scan target for schema $schema")
+        }
       }
     }(blockingIoEc).map { cities =>
       StoryMediaIntegrity(baseDir.getAbsolutePath, cities, cities.map(_.missing).sum, cities.map(_.orphans).sum)

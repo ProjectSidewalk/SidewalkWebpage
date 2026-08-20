@@ -1,6 +1,6 @@
 package modules
 
-import modules.PersistentMediaDirCheck.unsafeDirs
+import modules.PersistentMediaDirCheck.{arms, unsafeDirs}
 import play.api.{Configuration, Environment, Logger, Mode}
 import service.MediaDirs
 
@@ -33,7 +33,7 @@ import scala.util.{Failure, Success, Try}
 class PersistentMediaDirCheck @Inject() (config: Configuration, environment: Environment) {
   private val logger = Logger(this.getClass)
 
-  if (environment.mode == Mode.Prod) {
+  if (arms(environment)) {
     val unsafe = unsafeDirs(config, environment)
     unsafe.foreach(u => logger.error(u.reason))
 
@@ -66,6 +66,17 @@ object PersistentMediaDirCheck {
 
   /** A persistent directory that failed the check, with the loggable reason. */
   case class UnsafeDir(dir: PersistentDir, reason: String)
+
+  /**
+   * Whether the check arms in this run mode. Defined here, next to the `if` it gates, because the Health dashboard
+   * reports what the check makes of each directory and has to agree with it about whether it is even watching — two
+   * copies of the rule would let the page claim a stage is guarded when it isn't.
+   *
+   * @param environment Play environment supplying the run mode.
+   * @return            True in prod mode, which every staged binary runs in; false in the dev and test runs where
+   *                    the application root is a hand-managed checkout and the relative defaults are the point.
+   */
+  def arms(environment: Environment): Boolean = environment.mode == Mode.Prod
 
   val persistentDirs: Seq[PersistentDir] = Seq(
     // Crops and share previews are derived: a crop can be re-cut from pano imagery and a share preview rebuilds on
