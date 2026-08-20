@@ -1,6 +1,6 @@
 # --- !Ups
 -- #4942: one comment per (label_id, user_id) has always been an app invariant. This evolution formalizes this in a
--- constraint, and cleans up the small number of exceptions that slipped through (future issues fixed in for #4942).
+-- constraint, and cleans up the small number of exceptions that slipped through (future issues fixed for #4942).
 --
 -- Prod's duplicates were resolved by hand before this ships, keeping or merging whichever comment the user meant.
 DELETE FROM validation_task_comment

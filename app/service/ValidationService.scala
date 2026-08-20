@@ -58,9 +58,9 @@ class ValidationServiceImpl @Inject() (
   /**
    * Runs a write that replaces a user's earlier row, re-running it once if a concurrent writer got there first.
    *
-   * These write paths decide whether to replace by reading their own snapshot, so two overlapping submissions can
-   * both find nothing and race to insert. Re-running once is enough: the winner has committed by then, so the retry
-   * sees its row and takes the replace path (#4377, #4942).
+   * Neither write path can see a concurrent writer's uncommitted row: one reads its own snapshot to decide whether to
+   * replace and finds nothing, the other deletes and removes nothing, so both go on to insert. Re-running once is
+   * enough: the winner has committed by then, so the retry's read or delete does see its row (#4377, #4942).
    */
   private def runWithUniqueViolationRetry[T](action: => DBIO[T]): Future[T] = {
     db.run(action).recoverWith { case e: PSQLException if e.getSQLState == UniqueViolation => db.run(action) }
