@@ -903,6 +903,54 @@ dialog.au-dialog::backdrop {
   color: var(--color-asphalt-700);
 }
 
+/* Names the scope of the big number when it spans more than one deployment (#4526). */
+.tc-stat-scope {
+  margin: 10px auto 0;
+  max-width: 46ch;
+  font: var(--text-small-regular);
+  color: var(--color-asphalt-500);
+}
+
+/* Per-city breakdown; only rendered when the headline total spans more than one deployment. */
+.tc-cities {
+  max-width: 560px;
+  margin: 20px auto 0;
+}
+
+.tc-cities-title {
+  margin: 0 0 8px;
+  font: var(--text-subtitle-bold);
+  color: var(--color-neutral-800);
+}
+
+.tc-cities-table {
+  width: 100%;
+  border-collapse: collapse;
+  font: var(--text-body-regular);
+}
+
+.tc-cities-table th,
+.tc-cities-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--color-neutral-200);
+  text-align: left;
+}
+
+.tc-cities-table td,
+.tc-cities-table thead th:last-child {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.tc-cities-here {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--color-pine-200);
+  font: var(--text-small-regular);
+}
+
 /* Live opt-in status for the signed-in user: on (pine), off (banana prompt), or an anon sign-up nudge. */
 .sh-track {
   display: flex;

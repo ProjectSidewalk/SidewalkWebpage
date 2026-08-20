@@ -290,12 +290,16 @@ class ApplicationController @Inject() (
   def timeCheck = cc.securityService.SecuredAction(WithSignedIn()) {
     implicit request: SecuredRequest[DefaultEnv, AnyContent] =>
       val isMobile: Boolean = ControllerUtils.isMobile(request)
+      // Not cached, and started together: volunteers reload this page while logging service hours, so a stale total
+      // would be worse than a slow one (#4526).
+      val cityHoursF: Future[Seq[service.CityHours]] =
+        userService.getCrossCityHours(request.identity.userId, request2Messages.lang)
       for {
-        commonData        <- configService.getCommonPageData(request2Messages.lang)
-        timeSpent: Double <- userService.getHoursAuditingAndValidating(request.identity.userId)
+        commonData <- configService.getCommonPageData(request2Messages.lang)
+        cityHours  <- cityHoursF
       } yield {
         cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_TimeCheck")
-        Ok(views.html.timeCheck(commonData, request.identity, isMobile, timeSpent))
+        Ok(views.html.timeCheck(commonData, request.identity, isMobile, cityHours))
       }
   }
 

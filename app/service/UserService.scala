@@ -151,6 +151,16 @@ case class CrossCityUserStats(
     publicCityCount: Int
 )
 
+/**
+ * One city's share of a volunteer's logged hours, for the Time Check page's breakdown (#4526).
+ *
+ * @param cityId        Configured city id.
+ * @param cityName      Short display name in the viewer's language.
+ * @param hours         Hours logged in that city.
+ * @param isCurrentCity True for the deployment being viewed.
+ */
+case class CityHours(cityId: String, cityName: String, hours: Double, isCurrentCity: Boolean)
+
 case class AdminUserProfileData(
     currentRegion: Option[Region],
     numCompletedAudits: Int,
@@ -358,6 +368,18 @@ trait UserService {
   def getAccuracyByType(userId: String): Future[Seq[AccuracyByType]]
   def getTrophies(userId: String, cityName: String, messages: Messages): Future[Seq[Trophy]]
   def getHoursAuditingAndValidating(userId: String): Future[Double]
+
+  /**
+   * Gets a volunteer's logged hours in every Project Sidewalk city they've worked in (#4526).
+   *
+   * Deliberately uncached: volunteers check this page repeatedly in a day while logging service hours, and a total
+   * that lagged their last session would be worse than a slow one.
+   *
+   * @param userId The volunteer, always the signed-in viewer.
+   * @param lang   Language for city display names.
+   * @return       Cities with any logged time, most hours first; empty when nothing has been logged anywhere.
+   */
+  def getCrossCityHours(userId: String, lang: Lang): Future[Seq[CityHours]]
   def getAuditedStreets(userId: String): Future[Seq[StreetEdge]]
   def getLabelLocations(userId: String, regionId: Option[Int] = None): Future[Seq[LabelLocation]]
   def updateTaskFlag(auditTaskId: Int, flag: String, state: Boolean): Future[Int]
@@ -788,6 +810,38 @@ class UserServiceImpl @Inject() (
 
   def getHoursAuditingAndValidating(userId: String): Future[Double] =
     db.run(auditTaskInteractionTable.getHoursAuditingAndValidating(userId))
+
+  def getCrossCityHours(userId: String, lang: Lang): Future[Seq[CityHours]] = {
+    val cityInfoById: Map[String, CityInfo] =
+      configService.getAllCityInfo(lang).map(city => city.cityId -> city).toMap
+
+    for {
+      scope <- configService.getCrossCityHoursScope
+      // A per-city fan-out rather than one union: this query is a window function over the interaction log, so it is
+      // heavy where the volunteer worked and three index misses where they didn't. Running them concurrently makes the
+      // wall clock their single biggest city rather than the sum of every city.
+      currentSchema <- db.run(userStatTable.currentSchema)
+      perCity       <- Future.sequence(scope.map { case (cityId, schema) =>
+        db.run(auditTaskInteractionTable.getHoursAuditingAndValidatingBySchema(userId, schema))
+          .map(hours => Some(cityId -> hours))
+          .recover { case e: Exception =>
+            // One unreadable schema costs its own row, not the volunteer's whole total.
+            logger.warn(s"Could not total hours in $schema, omitting the city: ${e.getMessage}", e)
+            None
+          }
+      })
+    } yield {
+      val schemaByCityId: Map[String, String] = scope.toMap
+      perCity.flatten
+        .filter(_._2 > 0d)
+        .flatMap { case (cityId, hours) =>
+          cityInfoById.get(cityId).map { city =>
+            CityHours(cityId, city.cityNameShort, hours, schemaByCityId.get(cityId).contains(currentSchema))
+          }
+        }
+        .sortBy(city => (-city.hours, city.cityId))
+    }
+  }
 
   def getAuditedStreets(userId: String): Future[Seq[StreetEdge]] = db.run(auditTaskTable.getAuditedStreets(userId))
 

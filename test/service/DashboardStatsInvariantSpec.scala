@@ -37,12 +37,13 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
-  private val userService   = app.injector.instanceOf[UserService]
-  private val messages      = play.api.test.Helpers.stubMessages()
-  private val authService   = app.injector.instanceOf[AuthenticationService]
-  private val configService = app.injector.instanceOf[ConfigService]
-  private val config        = app.injector.instanceOf[Configuration]
-  private val userStatTable = app.injector.instanceOf[UserStatTable]
+  private val userService               = app.injector.instanceOf[UserService]
+  private val messages                  = play.api.test.Helpers.stubMessages()
+  private val authService               = app.injector.instanceOf[AuthenticationService]
+  private val configService             = app.injector.instanceOf[ConfigService]
+  private val config                    = app.injector.instanceOf[Configuration]
+  private val userStatTable             = app.injector.instanceOf[UserStatTable]
+  private val auditTaskInteractionTable = app.injector.instanceOf[models.audit.AuditTaskInteractionTable]
   // Typed explicitly: letting `.db` infer here yields an existential type the compiler rejects under -Xfatal-warnings.
   private val dbConfig: DatabaseConfig[MyPostgresProfile] =
     app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
@@ -504,6 +505,82 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
       stats mustBe defined
       stats.get.cities mustBe empty
       stats.get.totalLabels mustBe 0
+    }
+  }
+
+  "getCrossCityHoursScope" should {
+    "return (cityId, schema) pairs that are configured, queryable, and safe to splice" in {
+      val scope         = await(configService.getCrossCityHoursScope)
+      val configuredIds = config.get[Seq[String]]("city-params.city-ids").toSet
+
+      scope.map(_._1).distinct.length mustBe scope.length
+      scope.foreach { case (cityId, schema) =>
+        configuredIds must contain(cityId)
+        cityId must not be "staging"
+        schema must fullyMatch regex "^[a-z_][a-z0-9_]*$"
+        configService.getCitySchema(cityId) mustBe schema
+      }
+    }
+
+    "gate on the interaction tables, not the contribution tables" in {
+      // The two self-view scopes read different tables, so they may legitimately differ; neither may invent a city.
+      val configuredIds = config.get[Seq[String]]("city-params.city-ids").toSet
+      await(configService.getCrossCityHoursScope).foreach { case (cityId, _) => configuredIds must contain(cityId) }
+    }
+  }
+
+  "getHoursAuditingAndValidatingBySchema" should {
+    "refuse a schema name that isn't a bare identifier" in {
+      Seq("public; DROP TABLE label", "sidewalk_seattle\"", "Sidewalk_Seattle", "").foreach { bad =>
+        an[IllegalArgumentException] must be thrownBy
+          auditTaskInteractionTable.getHoursAuditingAndValidatingBySchema(ghostId, bad)
+      }
+    }
+
+    "agree with the unqualified query when pointed at this connection's own schema" in {
+      // The unqualified one delegates here, so a divergence would mean the delegation broke rather than the SQL.
+      topUser.foreach { user =>
+        val schema = await(dbConfig.db.run(userStatTable.currentSchema))
+        await(
+          dbConfig.db.run(auditTaskInteractionTable.getHoursAuditingAndValidatingBySchema(user.userId, schema))
+        ) mustBe
+          await(dbConfig.db.run(auditTaskInteractionTable.getHoursAuditingAndValidating(user.userId)))
+      }
+    }
+
+    "report zero for an account with no logged activity" in {
+      val schema = await(dbConfig.db.run(userStatTable.currentSchema))
+      await(
+        dbConfig.db.run(auditTaskInteractionTable.getHoursAuditingAndValidatingBySchema(ghostId, schema))
+      ) mustBe 0.0
+    }
+  }
+
+  "getCrossCityHours" should {
+    "list only cities with logged time, most hours first, and include at least this city's own total" in {
+      topUser.foreach { user =>
+        val rows  = await(userService.getCrossCityHours(user.userId, Lang("en")))
+        val local = await(userService.getHoursAuditingAndValidating(user.userId))
+
+        rows.map(_.cityId).distinct.length mustBe rows.length
+        rows.map(_.hours).sliding(2).foreach {
+          case Seq(higher, lower) => higher must be >= lower
+          case _                  => ()
+        }
+        rows.foreach { row =>
+          row.hours must be > 0d
+          row.cityName.trim must not be empty
+        }
+        rows.count(_.isCurrentCity) must be <= 1
+        // Summing per-city totals can only meet or exceed what one city alone reports.
+        rows.map(_.hours).sum must be >= local
+        // The current city's row is that same single-city number, since both run the identical query there.
+        rows.find(_.isCurrentCity).foreach(_.hours mustBe local)
+      }
+    }
+
+    "report nothing for an account that has never worked anywhere" in {
+      await(userService.getCrossCityHours(ghostId, Lang("en"))) mustBe empty
     }
   }
 

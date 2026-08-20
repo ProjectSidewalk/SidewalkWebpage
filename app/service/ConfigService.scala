@@ -699,6 +699,24 @@ object ConfigService {
   )
 
   /**
+   * The (table, column) pairs the cross-city volunteer-hours query reads (#4526).
+   *
+   * A schema missing any of them can't be totalled, and quietly counting it as zero hours would understate a
+   * volunteer's service time — so it is excluded and logged instead.
+   */
+  val CrossCityHoursRequiredColumns: Set[(String, String)] = Set(
+    "label_validation"             -> "user_id",
+    "label_validation"             -> "end_timestamp",
+    "audit_task"                   -> "user_id",
+    "audit_task"                   -> "audit_task_id",
+    "audit_task_interaction_small" -> "audit_task_id",
+    "audit_task_interaction_small" -> "timestamp",
+    "webpage_activity"             -> "user_id",
+    "webpage_activity"             -> "activity",
+    "webpage_activity"             -> "timestamp"
+  )
+
+  /**
    * The (table, column) pairs a user's cross-city stats query reads (#4496).
    *
    * Deliberately smaller than [[LeaderboardRequiredColumns]]: a mapper's own totals need no visibility flags, so a
@@ -990,6 +1008,16 @@ trait ConfigService {
   def getCrossCityUserScope: Future[Seq[(String, String)]]
 
   /**
+   * Which cities a volunteer's hours may be totalled from (#4526).
+   *
+   * Same self-view reasoning as [[getCrossCityUserScope]], but gated on the interaction tables that query reads
+   * rather than the contribution tables.
+   *
+   * @return (cityId, schema) pairs in configured order, or a failed future if readiness can't be determined.
+   */
+  def getCrossCityHoursScope: Future[Seq[(String, String)]]
+
+  /**
    * Retrieves map parameters for a specific city by directly querying that city's database schema.
    *
    * This method attempts to retrieve map parameters (center coordinates, zoom level, and boundary coordinates) for the
@@ -1278,16 +1306,38 @@ class ConfigServiceImpl @Inject() (
     }
   }
 
-  def getCrossCityUserScope: Future[Seq[(String, String)]] = {
+  def getCrossCityUserScope: Future[Seq[(String, String)]] =
+    crossCitySelfViewScope("getCrossCityUserScope", ConfigService.CrossCityUserRequiredColumns, "user stats")
+
+  def getCrossCityHoursScope: Future[Seq[(String, String)]] =
+    crossCitySelfViewScope("getCrossCityHoursScope", ConfigService.CrossCityHoursRequiredColumns, "volunteer hours")
+
+  /**
+   * Which cities one mapper's own data may be gathered from, for a query needing `required`.
+   *
+   * Shared by the self-view fan-outs: they differ only in the columns they read, never in which deployments they are
+   * entitled to see — that is what separates them from [[getGlobalLeaderboardScope]], which withholds cities for
+   * privacy reasons that don't apply to someone reading their own numbers.
+   *
+   * @param cacheKey Cache key for this scope; distinct per column set, since the answers differ.
+   * @param required The (table, column) pairs the caller's query reads.
+   * @param label    Human-readable name of the caller, for the drift warning.
+   * @return         (cityId, schema) pairs in configured order.
+   */
+  private def crossCitySelfViewScope(
+      cacheKey: String,
+      required: Set[(String, String)],
+      label: String
+  ): Future[Seq[(String, String)]] = {
     // Cached for the same reason as the leaderboard scope: it only changes when config or the schema list does, and it
     // gates a per-request query. The recover stays outside so a transient failure isn't memoized as "no cities".
-    cacheApi.getOrElseUpdate[Seq[(String, String)]]("getCrossCityUserScope", Duration(1, "hours")) {
+    cacheApi.getOrElseUpdate[Seq[(String, String)]](cacheKey, Duration(1, "hours")) {
       availableCityIds().flatMap { cityIds =>
         val deployments: Seq[(String, String)] = cityIds.flatMap { cityId =>
           try { Some(cityId -> getCitySchema(cityId)) }
           catch { case _: Exception => None } // A city id with no db-schema entry simply can't be queried.
         }
-        schemasWithColumns(ConfigService.CrossCityUserRequiredColumns).map { ready =>
+        schemasWithColumns(required).map { ready =>
           val (readyDeployments, skipped) = deployments.partition { case (_, schema) =>
             ready.getOrElse(schema, false)
           }
@@ -1295,7 +1345,7 @@ class ConfigServiceImpl @Inject() (
           // absent. availableCityIds already dropped those, so anything here is worth a warning.
           if (skipped.nonEmpty) {
             logger.warn(
-              s"Cross-city user stats excluding ${skipped.size} city schema(s) missing columns they read " +
+              s"Cross-city $label excluding ${skipped.size} city schema(s) missing columns they read " +
                 s"(evolutions likely not yet applied there): ${skipped.map(_._2).mkString(", ")}"
             )
           }
