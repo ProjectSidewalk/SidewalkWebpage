@@ -140,7 +140,7 @@ class ImageController @Inject() (
           case None =>
             // Reaching here means the file was on disk when this URL was signed (backupImageUrl and
             // getBackupImageMetadata both check first) and is gone within the signature's ~75-minute life. For an
-            // expired pano this store holds the only copy left anywhere, so say so (#4926) — the 404 stays bare.
+            // pano the provider no longer serves nothing can re-fetch it, so say so (#4926) — the 404 stays bare.
             lostMediaLog.reportMissing(
               "pano",
               panoId,
@@ -199,8 +199,9 @@ class ImageController @Inject() (
           Future.successful(Ok.sendFile(file, inline = true).as("image/png"))
         } else {
           // Same signed-URL reasoning as serveBackupImage above: cropUrl only signs a crop it just saw on disk, so a
-          // miss here is a file that vanished. A crop can be re-cut from pano imagery, so this is the warning tier.
-          lostMediaLog.reportMissing("crop", s"$labelType/$labelId", file.getAbsolutePath, irreplaceable = false)
+          // miss here is a file that vanished — and nothing recreates it: the crop was captured in the labeler's
+          // browser at labeling time, from a pano the provider may no longer serve.
+          lostMediaLog.reportMissing("crop", s"$labelType/$labelId", file.getAbsolutePath, irreplaceable = true)
           Future.successful(NotFound("Crop image not found"))
         }
     }

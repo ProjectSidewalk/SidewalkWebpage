@@ -196,8 +196,9 @@ class ImageControllerSpec extends PlaySpec with AnonSession with GuiceOneAppPerS
         }
 
         events must have size 1
-        // A crop can be re-cut from pano imagery, so it is the warning tier rather than the paging one.
-        events.head.getLevel mustBe Level.WARN
+        // A crop exists in one place only — it was captured in the labeler's browser as the label was placed — so
+        // its disappearance is the error tier, not a rebuild cost.
+        events.head.getLevel mustBe Level.ERROR
         val message = events.head.getFormattedMessage
         message must include("crop")
         message must include(syntheticLabelId.toString)
@@ -207,8 +208,8 @@ class ImageControllerSpec extends PlaySpec with AnonSession with GuiceOneAppPerS
     }
 
     "answer a signed pano URL with no backup image with a plain 404, every time it is asked" in {
-      // For a pano whose source imagery has expired this store holds the only copy left anywhere, so the loss is the
-      // error tier. The log deduplicates the repeat (LostMediaLogSpec pins that); the responses must not.
+      // Nothing can re-fetch a pano the provider no longer serves, so the loss is the error tier. The log
+      // deduplicates the repeat (LostMediaLogSpec pins that); the responses must not.
       val panoId = "sidewalkSpecNoSuchPano4926"
       val url    = signingService.signedUrl(s"/backupImage/$panoId")
 

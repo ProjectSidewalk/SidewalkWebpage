@@ -82,7 +82,7 @@ class LostMediaLogSpec extends PlaySpec {
       // The tiering is the same call PersistentMediaDirCheck makes, and it is what decides whether anyone is paged.
       val error = captured(_.reportMissing("pano", "abc", "/srv/panos/abc.jpg", irreplaceable = true))
       error.head.getLevel mustBe Level.ERROR
-      val warn = captured(_.reportMissing("crop", "CurbRamp/7", "/srv/crops/crop_7.png", irreplaceable = false))
+      val warn = captured(_.reportMissing("share_image", "7", "/srv/share/share_7.jpg", irreplaceable = false))
       warn.head.getLevel mustBe Level.WARN
     }
 

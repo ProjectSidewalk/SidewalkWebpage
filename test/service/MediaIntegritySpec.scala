@@ -87,7 +87,7 @@ class MediaIntegritySpec extends PlaySpec {
     }
   }
 
-  private val storyDir = persistentDirs.find(_.irreplaceable).value
+  private val irreplaceableDir = persistentDirs.find(_.irreplaceable).value
 
   // The permission branches can't be provoked through the filesystem from a suite that runs as root — which CI and
   // the dev container both do, and where chmod 000 still reads and writes fine — so they are pinned on the rules
@@ -95,22 +95,23 @@ class MediaIntegritySpec extends PlaySpec {
   "dirStatus" should {
     "call a directory this process cannot read bad, since nothing in it can be verified" in {
       val probe  = MediaIntegrity.DirProbe(exists = true, readable = false, writable = true)
-      val status = MediaIntegrity.dirStatus(storyDir, "/srv/media", probe, None, enforced = true)
+      val status = MediaIntegrity.dirStatus(irreplaceableDir, "/srv/media", probe, None, enforced = true)
       status.status mustBe "not_readable"
       status.severity mustBe "bad"
-      status.detail.value must include(storyDir.envVar)
+      status.detail.value must include(irreplaceableDir.envVar)
     }
 
     "call a directory this process cannot write to bad, since uploads will fail against it" in {
       val probe  = MediaIntegrity.DirProbe(exists = true, readable = true, writable = false)
-      val status = MediaIntegrity.dirStatus(storyDir, "/srv/media", probe, None, enforced = true)
+      val status = MediaIntegrity.dirStatus(irreplaceableDir, "/srv/media", probe, None, enforced = true)
       status.status mustBe "not_writable"
       status.severity mustBe "bad"
     }
 
     "report an unsafe directory before either permission, since a deploy deleting it outranks both" in {
       val probe  = MediaIntegrity.DirProbe(exists = true, readable = false, writable = false)
-      val status = MediaIntegrity.dirStatus(storyDir, "/srv/media", probe, Some("in the wipe zone"), enforced = true)
+      val status =
+        MediaIntegrity.dirStatus(irreplaceableDir, "/srv/media", probe, Some("in the wipe zone"), enforced = true)
       status.status mustBe "unsafe"
     }
   }

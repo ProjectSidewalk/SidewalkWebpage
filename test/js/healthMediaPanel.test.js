@@ -115,8 +115,8 @@ describe('HealthPage media storage panel', () => {
         });
 
         it('says of a rebuildable directory that losing it costs a rebuild, not content', async () => {
-            const crops = { ...OK_DIR, key: 'cropped.image.directory', irreplaceable: false };
-            const { dirs } = await render({ directories: [crops], enforced: true, story_media: null });
+            const shareImages = { ...OK_DIR, key: 'share.image.directory', irreplaceable: false };
+            const { dirs } = await render({ directories: [shareImages], enforced: true, story_media: null });
 
             expect(dirs).toContain('Yes — rebuilt on demand');
         });
