@@ -236,7 +236,8 @@ class StreetStatusTrend {
    */
   static #weekStarts(sinceIso, weeks) {
     const start = new Date(`${String(sinceIso).slice(0, 10)}T00:00:00Z`);
-    const today = StreetStatusTrend.#localIsoDate(new Date());
+    // Read the clock through Date.now() rather than `new Date()`, so "now" enters this method in one place.
+    const today = StreetStatusTrend.#localIsoDate(new Date(Date.now()));
     const out = [];
     for (let i = 0; i <= weeks; i++) {
       const week = new Date(start.getTime() + i * 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);

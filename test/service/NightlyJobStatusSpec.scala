@@ -10,6 +10,7 @@ import play.api.Application
 import play.api.cache.AsyncCacheApi
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.libs.json.{JsArray, Json}
 import slick.dbio.DBIO
 
 import java.time.OffsetDateTime
@@ -151,6 +152,39 @@ class NightlyJobStatusSpec extends PlaySpec with BeforeAndAfterAll with GuiceOne
       val job = jobStatus()
       job.lastStatus mustBe "running"
       job.overdue mustBe false
+    }
+
+    "publish every field the panel reads, in snake_case" in {
+      clearRuns()
+      seedFinished(JobRunTrigger.Scheduled, JobRunStatus.Failed, OffsetDateTime.now.minusHours(9))
+      seedFinished(JobRunTrigger.Manual, JobRunStatus.Succeeded, OffsetDateTime.now)
+
+      // The JS renders from its own fixtures, so nothing else would notice a field being renamed here until the
+      // panel quietly started drawing blank cells against a live database.
+      await(cacheApi.removeAll())
+      val row = (Json.toJson(await(healthService.getDbHealth))(HealthService.dbHealthDataWrites) \ "nightly_jobs")
+        .as[JsArray]
+        .value
+        .find(entry => (entry \ "job_name").as[String] == jobName)
+        .getOrElse(fail(s"$jobName is missing from the serialized roster"))
+
+      (row \ "label").as[String] must not be empty
+      (row \ "scheduled_at").as[String] must fullyMatch regex """\d{2}:\d{2}"""
+      (row \ "last_started_at").asOpt[String] mustBe defined
+      (row \ "last_finished_at").asOpt[String] mustBe defined
+      (row \ "last_duration_seconds").asOpt[Long] mustBe defined
+      (row \ "last_status").as[String] mustBe "failed"
+      (row \ "last_error").asOpt[String] mustBe Some("seeded failure")
+      (row \ "hours_since_last_run").asOpt[Long] mustBe defined
+      // True because the only scheduled run in this history failed, so the job has no successful one to date from.
+      (row \ "overdue").as[Boolean] mustBe true
+      (row \ "last_manual_run_at").asOpt[String] mustBe defined
+      (row \ "last_manual_status").as[String] mustBe "succeeded"
+      (row \ "runs_in_window").as[Int] mustBe 1
+      (row \ "failures_in_window").as[Int] mustBe 1
+      // The trigger of the last *scheduled* run is not published: every last_* field is already scoped to it, so a
+      // field saying which trigger it was could only ever say "scheduled".
+      (row \ "last_triggered_by").asOpt[String] mustBe None
     }
 
     "keep the alarm raised for a job that has been failing since its last success" in {
