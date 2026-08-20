@@ -8,7 +8,7 @@ import models.user.SidewalkUserWithRole
 import play.api.Configuration
 import play.api.i18n.Messages
 import play.api.libs.json.Json
-import service.{ConfigService, GlobalLeaderboardEntry, UserService}
+import service.{CityImpact, ConfigService, GlobalLeaderboardEntry, UserService}
 
 import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
@@ -65,8 +65,8 @@ class UserDashboardController @Inject() (
   }
 
   /**
-   * Renders the redesigned Leaderboard prototype: community-impact band, podium, weekly/all-time/team tables, and a
-   * "you vs community" standing widget, sharing the dashboard shell.
+   * Renders the redesigned Leaderboard prototype: this city's impact band, podium, weekly/all-time/team tables, a
+   * "you vs community" standing widget, and the cross-city boards, sharing the dashboard shell.
    *
    * A `UserAwareAction` (#4643), so the general public — including cookie-less visitors and anonymous auto-accounts —
    * can view it without an account being minted. The view shows the community/podium/tables to everyone and gates the
@@ -83,18 +83,20 @@ class UserDashboardController @Inject() (
     for {
       commonData <- configService.getCommonPageData(request2Messages.lang)
       aggregate  <- configService.getAggregateStats()
-      overall    <- userService.getLeaderboardStats(10)
-      weekly     <- userService.getLeaderboardStats(10, "weekly")
-      teams      <- userService.getLeaderboardStats(10, "overall", byTeam = true)
-      standing   <- signedInUser
+      // Reads the same cached fan-out `aggregate` just populated, so this is a cache hit rather than a second query.
+      impact: Option[CityImpact] <- configService.getCurrentCityImpact()
+      overall                    <- userService.getLeaderboardStats(10)
+      weekly                     <- userService.getLeaderboardStats(10, "weekly")
+      teams                      <- userService.getLeaderboardStats(10, "overall", byTeam = true)
+      standing                   <- signedInUser
         .map(u => userService.getUserStanding(u.userId))
         .getOrElse(Future.successful(None))
       global <- globalF
     } yield {
       cc.loggingService.insert(user.map(_.userId), request.ipAddress, "Visit_Leaderboard")
       Ok(
-        views.html.userDashboard.leaderboard(commonData, user, isSignedIn, isMetric, cityName, aggregate, overall,
-          weekly, teams, standing, global)
+        views.html.userDashboard.leaderboard(commonData, user, isSignedIn, isMetric, cityName, aggregate, impact,
+          overall, weekly, teams, standing, global)
       )
     }
   }

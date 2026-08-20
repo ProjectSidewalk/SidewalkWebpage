@@ -123,6 +123,24 @@ case class AggregateStats(
 )
 
 /**
+ * One deployment's headline totals, for the Leaderboard's city-scoped hero band (#4687).
+ *
+ * A slice of the per-city data [[AggregateStats]] already fans out for, so the two bands on the Leaderboard use
+ * identical definitions and every hero number is a strict subset of its cross-city counterpart.
+ *
+ * `kmExploredNoOverlap` is the distance metric here rather than `kmExplored`: the latter sums every completed
+ * `audit_task`, so a street audited by three people counts three times, which on a band that names the city can print
+ * more miles than the city has streets. Only cities where both the stats and the contributor query succeeded get a
+ * `CityImpact`, so a partial failure can't render a tile reading zero next to tiles reading six figures.
+ *
+ * @param contributors        Distinct non-excluded users who added a non-tutorial label or validated one in this city.
+ * @param totalLabels         Non-tutorial, non-deleted labels from non-excluded users.
+ * @param totalValidations    Validations from non-excluded users.
+ * @param kmExploredNoOverlap Kilometers of distinct streets with a completed audit task.
+ */
+case class CityImpact(contributors: Int, totalLabels: Int, totalValidations: Int, kmExploredNoOverlap: Double)
+
+/**
  * One week's contribution volume for a city, for the Across Cities activity trends (#4329).
  *
  * @param weekStart    Monday (Pacific) of the week.
@@ -978,6 +996,17 @@ trait ConfigService {
   def getAggregateStats(): Future[AggregateStats]
 
   /**
+   * This deployment's own headline totals, for the Leaderboard's hero band (#4687).
+   *
+   * Read out of the same cached fan-out as [[getAggregateStats]], so it costs no additional queries and carries the
+   * same staleness.
+   *
+   * @return This city's totals, or None if its schema is unavailable or either of its queries failed — in which case
+   *         the caller should hide the band rather than render zeros.
+   */
+  def getCurrentCityImpact(): Future[Option[CityImpact]]
+
+  /**
    * Returns daily label and validation counts aggregated across all configured cities.
    *
    * Queries each city schema in parallel and sums counts by (date, labelType) across cities.
@@ -1580,6 +1609,14 @@ class ConfigServiceImpl @Inject() (
     }
   }
 
+  /**
+   * One cross-schema fan-out's output: the summed cross-city totals plus each city's own slice, keyed by city id.
+   *
+   * Cached as a unit so the Leaderboard's city hero and its community band come from the same computation, which is
+   * what guarantees every hero number is a strict subset of its cross-city counterpart (#4687).
+   */
+  private case class AggregateStatsBundle(overall: AggregateStats, byCity: Map[String, CityImpact])
+
   /** A cached value plus when it was computed, so stale data can be served while a refresh runs (#4600). */
   private case class Timestamped[T](value: T, computedAt: OffsetDateTime)
 
@@ -1649,10 +1686,31 @@ class ConfigServiceImpl @Inject() (
    *
    * @return A Future containing aggregated statistics across all cities
    */
-  def getAggregateStats(): Future[AggregateStats] =
-    staleWhileRevalidate("getAggregateStats", ConfigService.AggregateStatsFreshFor, ConfigService.AggregateStatsMaxAge)(
-      computeAggregateStats()
-    )
+  def getAggregateStats(): Future[AggregateStats] = aggregateStatsBundle().map(_.overall)
+
+  def getCurrentCityImpact(): Future[Option[CityImpact]] = aggregateStatsBundle().map(_.byCity.get(getCityId))
+
+  /**
+   * The cached cross-schema fan-out that backs both [[getAggregateStats]] and [[getCurrentCityImpact]].
+   *
+   * The computation fans out several aggregate queries to every configured city schema, which can take well over 10s
+   * on a loaded database — long enough that a request hitting an expired cache would time out client-side (#4600). So
+   * cached stats are served immediately for up to [[ConfigService.AggregateStatsMaxAge]], with a single background
+   * recompute triggered once they are older than [[ConfigService.AggregateStatsFreshFor]]. Only the first request
+   * after a JVM start (nothing cached yet) waits for the full computation.
+   *
+   * The cache key is versioned because [[staleWhileRevalidate]] reads `cacheApi.get[Timestamped[T]](key)` and `T`
+   * erases: were the bundle stored under the old plain-`AggregateStats` key, a JVM that stayed warm across a
+   * recompile (i.e. every `sbt ~ run` session) could hand this code an old-shaped value and throw at the use site.
+   *
+   * @return A Future containing the cross-city totals plus each city's own slice of them
+   */
+  private def aggregateStatsBundle(): Future[AggregateStatsBundle] =
+    staleWhileRevalidate(
+      "getAggregateStats:v2-bundle",
+      ConfigService.AggregateStatsFreshFor,
+      ConfigService.AggregateStatsMaxAge
+    )(computeAggregateStats())
 
   /**
    * Runs the full cross-schema fan-out that computes aggregate statistics.
@@ -1661,65 +1719,87 @@ class ConfigServiceImpl @Inject() (
    * cities. Filters out cities whose schemas don't exist in the current environment (so plays nice with localhost dev
    * setups). Additionally, calculates deployment counts for cities, countries, and supported languages.
    *
-   * @return A Future containing freshly computed aggregate statistics across all cities
+   * @return A Future containing freshly computed aggregate statistics across all cities, plus the per-city slices
    */
-  private def computeAggregateStats(): Future[AggregateStats] = {
+  private def computeAggregateStats(): Future[AggregateStatsBundle] = {
     // The public aggregate counts every schema that exists, staging included.
     availableCityIds(excludeStaging = false).flatMap { availableCities =>
       if (availableCities.isEmpty) {
         logger.warn("No cities with valid schemas found")
-        Future.successful(
-          AggregateStats(
-            kmExplored = 0.0, kmExploredNoOverlap = 0.0, totalLabels = 0, tutorialLabels = 0, totalValidations = 0,
-            totalUsers = 0, numCities = 0, numCountries = 0, numLanguages = 0, byLabelType = Map.empty
-          )
-        )
+        Future.successful(AggregateStatsBundle(emptyAggregateStats(0, 0, 0), Map.empty))
       } else {
         // Calculate deployment statistics.
         val numCities    = availableCities.length + 1 // +1 for legacy DC city
         val numCountries = calculateNumCountries(availableCities)
         val numLanguages = calculateNumLanguages()
 
-        // Fetch essential statistics from available cities in parallel.
-        val cityStatsFutures: Seq[Future[Option[AggregateStats]]] = availableCities.map { cityId =>
-          getCityAggregateData(cityId)
+        // Fetch essential statistics from available cities in parallel, tagged by city so the per-city slices the
+        // hero band needs survive the roll-up instead of being summed away (#4687).
+        val cityStatsFutures: Seq[Future[(String, Option[AggregateStats])]] = availableCities.map { cityId =>
+          getCityAggregateData(cityId).map(cityId -> _)
         }
 
-        // Distinct contributors across all live cities, deduped by the global `user_id` then DC added on top (#3976).
-        // Computed by unioning per-city contributor-id sets rather than summing per-city counts, so a user active in
-        // multiple cities is counted once. Each city recovers to an empty set so one bad schema can't sink the count.
-        val distinctUsersFut: Future[Int] = Future
-          .sequence(availableCities.map { cityId =>
+        // Contributor ids per live city. `None` marks a failed query, distinct from a city that genuinely has no
+        // contributors: a failure must drop that city from `byCity` entirely rather than publish a zero next to a
+        // six-figure label count, while both cases contribute nothing to the cross-city union.
+        val contributorIdsFut: Future[Seq[(String, Option[Set[String]])]] = Future.sequence(
+          availableCities.map { cityId =>
             db.run(configTable.getContributorUserIdsBySchema(getCitySchema(cityId)))
-              .map(_.toSet)
+              .map(ids => cityId -> Option(ids.toSet))
               .recover { case e: Exception =>
                 logger.warn(s"Failed to retrieve contributor ids for city $cityId: ${e.getMessage}")
-                Set.empty[String]
+                cityId -> None
               }
-          })
-          .map(perCity => perCity.foldLeft(Set.empty[String])(_ ++ _).size + legacyDCUserCount)
+          }
+        )
 
         // Wait for all futures to complete and aggregate results.
-        Future.sequence(cityStatsFutures).zip(distinctUsersFut).map { case (cityStatsOptions, totalUsers) =>
+        Future.sequence(cityStatsFutures).zip(contributorIdsFut).map { case (cityStats, contributorIds) =>
+          // Distinct contributors across all live cities, deduped by the global `user_id` then DC added on top
+          // (#3976). Computed by unioning per-city contributor-id sets rather than summing per-city counts, so a user
+          // active in multiple cities is counted once.
+          val totalUsers: Int =
+            contributorIds.flatMap(_._2).foldLeft(Set.empty[String])(_ ++ _).size + legacyDCUserCount
+
+          // A city gets a hero slice only when both of its queries succeeded, so every tile in the band is real.
+          val contributorCounts: Map[String, Int] = contributorIds.collect { case (cityId, Some(ids)) =>
+            cityId -> ids.size
+          }.toMap
+          val byCity: Map[String, CityImpact] = cityStats.collect {
+            case (cityId, Some(stats)) if contributorCounts.contains(cityId) =>
+              cityId -> CityImpact(
+                contributorCounts(cityId),
+                stats.totalLabels,
+                stats.totalValidations,
+                stats.kmExploredNoOverlap
+              )
+          }.toMap
+
           // Filter out failed requests and aggregate the successful ones.
-          val validCityStats = cityStatsOptions.flatten
+          val validCityStats = cityStats.flatMap(_._2)
 
           if (validCityStats.isEmpty) {
             logger.warn("No valid city statistics found for aggregate calculation")
             // Return empty aggregate stats if no cities provided data.
-            AggregateStats(
-              kmExplored = 0.0, kmExploredNoOverlap = 0.0, totalLabels = 0, tutorialLabels = 0, totalValidations = 0,
-              totalUsers = 0, numCities = numCities, numCountries = numCountries, numLanguages = numLanguages,
-              byLabelType = Map.empty
-            )
+            AggregateStatsBundle(emptyAggregateStats(numCities, numCountries, numLanguages), byCity)
           } else {
             // Add legacy DC data to the valid city stats before aggregating.
-            aggregateCityData(validCityStats :+ legacyDCData, numCities, numCountries, numLanguages, totalUsers)
+            val overall =
+              aggregateCityData(validCityStats :+ legacyDCData, numCities, numCountries, numLanguages, totalUsers)
+            AggregateStatsBundle(overall, byCity)
           }
         }
       }
     }
   }
+
+  /** Zeroed totals for the two paths where no city produced data, carrying whatever deployment counts are known. */
+  private def emptyAggregateStats(numCities: Int, numCountries: Int, numLanguages: Int): AggregateStats =
+    AggregateStats(
+      kmExplored = 0.0, kmExploredNoOverlap = 0.0, totalLabels = 0, tutorialLabels = 0, totalValidations = 0,
+      totalUsers = 0, numCities = numCities, numCountries = numCountries, numLanguages = numLanguages,
+      byLabelType = Map.empty
+    )
 
   def getAggregateStatsByDay(
       startDate: Option[LocalDate],

@@ -1162,6 +1162,80 @@
   justify-content: center;
 }
 
+/* ---- Leaderboard: this city's hero impact band (#4687) ---------------------------------------------------------- */
+
+/* Small-caps lead-in naming the city, standing in for the h2 this band deliberately doesn't have (it would otherwise
+   claim a row in the right-hand contents list, which starts at "Top of the board"). */
+.ud-impact-caption {
+  margin: var(--space-lg, 24px) 0 var(--space-xs, 8px);
+  font: var(--text-small-bold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary, #5a7785);
+}
+
+/* Quieter than the cross-city band below: no icons, tiles left-aligned, so the page still opens on the podium rather
+   than on a second full-height card. */
+.ud-impact-band {
+  display: grid;
+
+  /* Two up by default, four only once the content column is genuinely wide enough (see the media query below).
+     Fixed counts rather than auto-fit: with exactly four tiles, an intermediate three-column track would orphan the
+     fourth on a row of its own. minmax(0, 1fr) so a long localized label can't push a track past its share. */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-md, 16px) var(--space-lg, 24px);
+  margin: 0;
+  padding: var(--space-lg, 24px);
+  border: 1px solid var(--color-pine-200, #cfe3d4);
+  border-radius: var(--border-radius-lg, 8px);
+  background: linear-gradient(120deg, var(--color-pine-100, #eaf3ec), var(--color-banana-100, #fdf6e3));
+  color: var(--color-text-heading, #263238);
+}
+
+/* Reversed so the value paints above its label while the markup keeps dt-then-dd order, which is what lets a screen
+   reader announce the pair as "Labels placed: 262,453". */
+.ud-impact-stat {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ud-impact-value {
+  margin: 0;
+  font-family: var(--font-primary, "Mulish", sans-serif);
+
+  /* Sized in px, not rem: Bootstrap sets a 10px root here, so a rem clamp silently renders at 62.5% of its intent. */
+  font-size: clamp(24px, 3.5vw, 30px);
+  white-space: nowrap;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+
+.ud-impact-label {
+  font: var(--text-small-medium);
+  color: var(--color-text-secondary, #5a7785);
+}
+
+/* Four across only above 1400px. The content column is not a simple function of viewport width — the right-hand
+   contents rail is present above 992px and squeezes it to ~500px, so a four-track band is narrower at 1200px than it
+   is at 992px, and "2,432 km" wraps mid-value. Below this the 2x2 arrangement has room to spare at every width. */
+@media (width >= 1400px) {
+  .ud-impact-band {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* The one place the cross-city total appears above the fold. Kept to a single sentence so the closing community band
+   stays the section that actually presents those numbers. */
+.ud-impact-bridge {
+  margin: var(--space-sm, 12px) 0 0;
+  font: var(--text-small-regular);
+  color: var(--color-text-secondary, #5a7785);
+}
+
 /* ---- Leaderboard: community band + podium ---------------------------------------------------------------------- */
 .ud-community-band {
   display: grid;
@@ -1197,12 +1271,14 @@
   line-height: 56px;
 }
 
-/* Loud, celebratory community totals — a hero display size (no token goes this big). */
+/* Loud, celebratory community totals — a hero display size (no token goes this big). Primary font, not the accent
+   one: Raleway's old-style figures let 3/4/5/7/9 drop below the baseline, so numbers set in it look uneven. */
 .ud-community-value {
   display: block;
-  font-family: var(--font-accent, "Raleway", sans-serif);
+  font-family: var(--font-primary, "Mulish", sans-serif);
   font-size: clamp(2rem, 3.5vw, 2.75rem);
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
   line-height: 1.1;
 }
 
