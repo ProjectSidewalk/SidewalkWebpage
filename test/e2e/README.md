@@ -99,10 +99,10 @@ local development** — your edit / `grunt watch` / reload loop is untouched.
   error). A reload counter turns Explore's viewer-failure reload loop into a fast, named failure.
   `/validate` accepts either legitimate terminal state error-free: a mission (seeded DBs) or the
   "no new mission" modal (CI's empty city — a mission needs ≥ 10 validatable labels of one type). ✅
-- **Phase 2b (open):** make CI exercise `/validate`'s real mission path — needs a committed seed of ≥ 10
-  non-tutorial labels whose panos are live or locally backed up, and a real `GOOGLE_MAPS_SECRET` for the
-  server-side pano-metadata check; also gallery expanded-card view and api-docs preview content asserts
-  (then drop the `regionWithMostLabels` allowlist entries in `fixtures.js`).
+- **Phase 2b (open):** gallery expanded-card view and api-docs preview content asserts, once CI has label
+  data to render (then drop the `regionWithMostLabels` allowlist entries in `fixtures.js`). Making CI
+  exercise `/validate`'s **real mission path** is deliberately deferred — it needs both a seed of ≥ 10
+  non-tutorial labels whose panos load and a real `GOOGLE_MAPS_SECRET`; see #4948 for the trade.
 - **Phase 3:** primary-control interactions per page (info button, tag menu, mission modal) and a few
   end-to-end flows (place a label + tag; validate a label); admin pages (promote the setup user via a
   superuser `UPDATE user_role` in CI).
