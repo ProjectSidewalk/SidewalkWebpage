@@ -105,7 +105,11 @@ class StreetPriorityTable {
 
   #wireEvents(table, tbody) {
     const refreshHeader = () => {
+      // Replacing the thead detaches the header the keyboard user is standing on, which would drop focus to the top
+      // of the document and make a second sort unreachable without tabbing back (WCAG 2.4.3).
+      const focusedKey = document.activeElement?.closest?.('th[data-key]')?.dataset.key;
       table.querySelector('thead').outerHTML = this.#headerHtml();
+      if (focusedKey) table.querySelector(`th[data-key="${focusedKey}"]`)?.focus();
     };
     const sortHandler = (e) => {
       const th = e.target.closest('th[data-key]');

@@ -90,16 +90,23 @@ class ImageryPage {
       this.#renderRotation();
       this.#renderFreshness();
 
-      this.#map = new StreetPriorityMap('imagery-priority-map', {
-        mapboxToken: this.#mapboxToken,
-        onRegionClick: (id) => this.#pin([id]),
-        onRegionHover: (id) => this.#hover([id]),
-        onRegionHoverEnd: () => this.#hoverEnd(),
-      });
-      await this.#map.init(joined);
+      // A joined set with no geometry would hand Mapbox a bounds box of infinities; the tables still have something
+      // to say, so the page keeps them and explains the missing map rather than failing whole.
+      if (joined.features.length > 0) {
+        this.#map = new StreetPriorityMap('imagery-priority-map', {
+          mapboxToken: this.#mapboxToken,
+          onRegionClick: (id) => this.#pin([id]),
+          onRegionHover: (id) => this.#hover([id]),
+          onRegionHoverEnd: () => this.#hoverEnd(),
+        });
+        await this.#map.init(joined);
+      }
 
       this.#buildTables();
-      this.#setStatus('', false, true);
+      this.#setStatus(joined.features.length > 0
+        ? ''
+        : 'No geometry matched the routable streets, so the map is empty; the tables below still show the ranking.',
+      false, joined.features.length > 0);
     } catch (err) {
       console.error('Imagery page failed to load:', err);
       this.#setStatus('Could not load street priority data. Please try again.', true);
@@ -310,7 +317,7 @@ class ImageryPage {
 
   /** The last-poll KPI, which needs the pipeline report rather than the street rows. */
   #renderLastPollKpi() {
-    const poll = (this.#report?.jobs || []).find((job) => job.job_name === 'check-imagery-age-actor');
+    const poll = (this.#report?.jobs || []).find((job) => job.job_name === this.#report?.poll_job);
     if (!poll || poll.last_status === 'never_run') {
       AdminShell.setText('kpi-last-poll', 'never');
       AdminShell.setText('kpi-last-poll-note', 'the nightly poll has no recorded run in this deployment');
@@ -340,9 +347,10 @@ class ImageryPage {
 
     const note = document.getElementById('imagery-priority-note');
     if (note) {
-      const values = this.#streets.map((street) => street.priority);
-      const min = Math.min(...values);
-      const max = Math.max(...values);
+      // Folded rather than spread: `Math.min(...values)` passes one argument per street, which overflows the call
+      // stack in a city with tens of thousands of them.
+      const min = this.#streets.reduce((lowest, street) => Math.min(lowest, street.priority), Infinity);
+      const max = this.#streets.reduce((highest, street) => Math.max(highest, street.priority), -Infinity);
       const flagged = this.#streets.filter((street) => street.outdated).length;
       const tierGap = counts.reaudit === flagged
         ? ''

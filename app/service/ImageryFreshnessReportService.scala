@@ -50,6 +50,9 @@ case class ImageryRunDay(
  * @param runDays           Per-night counts across the window.
  * @param pollBatchSize     Streets the poll asks for per night, which sets the rotation's pace.
  * @param overdueAfterHours How long without a successful scheduled run before a job reads as overdue.
+ * @param pollJob           Name of the job in `jobs` that polls capture dates, so the page can point at it by role
+ *                          rather than keeping its own copy of the name.
+ * @param syncJob           Name of the job in `jobs` that turns those dates into re-audit flags.
  */
 case class ImageryFreshnessReport(
     days: Int,
@@ -57,7 +60,9 @@ case class ImageryFreshnessReport(
     jobs: Seq[NightlyJobStatus],
     runDays: Seq[ImageryRunDay],
     pollBatchSize: Int,
-    overdueAfterHours: Long
+    overdueAfterHours: Long,
+    pollJob: String,
+    syncJob: String
 )
 
 object ImageryFreshnessReport {
@@ -82,7 +87,9 @@ object ImageryFreshnessReport {
         )
       }),
       "poll_batch_size"     -> report.pollBatchSize,
-      "overdue_after_hours" -> report.overdueAfterHours
+      "overdue_after_hours" -> report.overdueAfterHours,
+      "poll_job"            -> report.pollJob,
+      "sync_job"            -> report.syncJob
     )
   }
 }
@@ -109,12 +116,14 @@ object ImageryFreshnessReportService {
    */
   val CacheTtl: Duration = Duration(10, "minutes")
 
+  /** The job whose capture-date poll is the only thing that can raise a re-audit flag. */
+  val PollJob: String = ScheduledJobs.CheckImageryAge.name
+
+  /** The job that turns the poll's capture dates into per-audit re-audit flags. */
+  val SyncJob: String = ScheduledJobs.ImageryFreshnessSync.name
+
   /** The three jobs that together produce the re-audit signal, in the order they run each night. */
-  val JobNames: Seq[String] = Seq(
-    ScheduledJobs.CheckImageryAge.name,
-    ScheduledJobs.ImageryFreshnessSync.name,
-    ScheduledJobs.RecalculateStreetPriority.name
-  )
+  val JobNames: Seq[String] = Seq(PollJob, SyncJob, ScheduledJobs.RecalculateStreetPriority.name)
 
   /** Clamps a caller-supplied window into the supported range. */
   def clampDays(days: Int): Int = math.max(MinDays, math.min(MaxDays, days))
@@ -208,13 +217,12 @@ class ImageryFreshnessReportServiceImpl @Inject() (
       days = window,
       since = since,
       jobs = ImageryFreshnessReportService.JobNames.flatMap(name => allJobs.find(_.jobName == name)),
-      runDays = ImageryFreshnessReportService.buildRunDays(
-        runs,
-        ScheduledJobs.CheckImageryAge.name,
-        ScheduledJobs.ImageryFreshnessSync.name
-      ),
+      runDays = ImageryFreshnessReportService
+        .buildRunDays(runs, ImageryFreshnessReportService.PollJob, ImageryFreshnessReportService.SyncJob),
       pollBatchSize = pollBatchSize,
-      overdueAfterHours = ScheduledJobs.OverdueAfterHours
+      overdueAfterHours = ScheduledJobs.OverdueAfterHours,
+      pollJob = ImageryFreshnessReportService.PollJob,
+      syncJob = ImageryFreshnessReportService.SyncJob
     )
   }
 }

@@ -7,10 +7,6 @@
  * job did not run" rather than as a hole in the chart.
  */
 class ImageryPipelinePanel {
-  /** Job names, from ScheduledJobs; the poll is the one whose silence hides everything else. */
-  static #POLL_JOB = 'check-imagery-age-actor';
-  static #SYNC_JOB = 'imagery-freshness-sync';
-
   #pipelineUrl;
   #days;
   #onLoaded;
@@ -52,8 +48,12 @@ class ImageryPipelinePanel {
       return;
     }
     this.#loading = true;
+    // The window this pass is fetching, held apart from `#days` because the selector moves `#days` on while the
+    // request is in flight -- comparing the queued window against `#days` at the end would always find them equal and
+    // leave the charts a window behind what the selector says.
+    const requested = this.#days;
     try {
-      const resp = await fetch(`${this.#pipelineUrl}?days=${this.#days}`, { headers: { Accept: 'application/json' } });
+      const resp = await fetch(`${this.#pipelineUrl}?days=${requested}`, { headers: { Accept: 'application/json' } });
       if (!resp.ok) throw new Error(`Pipeline request failed: ${resp.status}`);
       const report = await resp.json();
       this.#render(report);
@@ -63,13 +63,9 @@ class ImageryPipelinePanel {
       this.#setStatus(`Could not load the pipeline history. ${e.message}`, true);
     } finally {
       this.#loading = false;
-      if (this.#pending !== null && this.#pending !== this.#days) {
-        this.#days = this.#pending;
-        this.#pending = null;
-        await this.#load();
-      } else {
-        this.#pending = null;
-      }
+      const queued = this.#pending;
+      this.#pending = null;
+      if (queued !== null && queued !== requested) await this.#load();
     }
   }
 
@@ -105,8 +101,10 @@ class ImageryPipelinePanel {
    * both leave the flags frozen, but only the first is a scheduling problem.
    */
   #renderBanner(report, jobs) {
-    const poll = jobs.find((job) => job.job_name === ImageryPipelinePanel.#POLL_JOB);
-    const sync = jobs.find((job) => job.job_name === ImageryPipelinePanel.#SYNC_JOB);
+    // The report names which of its jobs plays which role, so a job rename can't silently blank this
+    // banner -- the one line that says whether the re-audit signal is being produced at all.
+    const poll = jobs.find((job) => job.job_name === report.poll_job);
+    const sync = jobs.find((job) => job.job_name === report.sync_job);
     const reason = poll?.last_details?.not_polled_reason;
     const recentPolled = (report.run_days || []).reduce((sum, day) => sum + (day.streets_polled || 0), 0);
 
