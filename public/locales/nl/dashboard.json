@@ -91,4 +91,22 @@
   "routes-renamed": "Route hernoemd.",
   "routes-deleted": "\"{{name}}\" verwijderd.",
   "routes-delete-confirm": "\"{{name}}\" verwijderen? Mensen met wie je de link hebt gedeeld, kunnen hem daarna niet meer gebruiken.",
-  "routes-error": "Er ging iets mis. Probeer het opnieuw."}
+  "routes-error": "Er ging iets mis. Probeer het opnieuw.",
+  "cities": {
+    "intro": "Je hebt in {{cities}} Project Sidewalk-steden gewerkt — {{labels}} labels in totaal.",
+    "intro-single": "Je werk in {{city}} tot nu toe. Eén account werkt in elke Project Sidewalk-stad.",
+    "you-are-here": "je bent hier",
+    "col-city": "Stad",
+    "col-labels": "Labels",
+    "col-validations": "Validaties",
+    "col-missions": "Missies",
+    "col-distance": "Afstand",
+    "col-last-active": "Laatst gelabeld",
+    "distance-note": "De afstand buiten {{city}} wordt 's nachts opnieuw berekend en kan dus tot een dag achterlopen.",
+    "nudge": "Project Sidewalk brengt stoepen in kaart in {{cities}} steden, en je account werkt daar al overal.",
+    "nudge-empty": "Project Sidewalk brengt stoepen in kaart in {{cities}} steden. Kies er een en ga op verkenning.",
+    "nudge-link": "Bekijk alle steden",
+    "trophy-sub": "In {{cities}} steden gewerkt",
+    "map-popup": "{{labels}} labels · {{validations}} validaties"
+  }
+}

@@ -91,4 +91,22 @@
   "routes-renamed": "Route renamed.",
   "routes-deleted": "Deleted \"{{name}}\".",
   "routes-delete-confirm": "Delete \"{{name}}\"? Anyone you shared its link with will no longer be able to use it.",
-  "routes-error": "Something went wrong. Please try again."}
+  "routes-error": "Something went wrong. Please try again.",
+  "cities": {
+    "intro": "You've mapped in {{cities}} Project Sidewalk cities — {{labels}} labels in all.",
+    "intro-single": "Your work in {{city}} so far. One account works in every Project Sidewalk city.",
+    "you-are-here": "you're here",
+    "col-city": "City",
+    "col-labels": "Labels",
+    "col-validations": "Validations",
+    "col-missions": "Missions",
+    "col-distance": "Distance",
+    "col-last-active": "Last labeled",
+    "distance-note": "Distance outside {{city}} is recalculated nightly, so it can lag by up to a day.",
+    "nudge": "Project Sidewalk maps sidewalks in {{cities}} cities, and your account already works in every one.",
+    "nudge-empty": "Project Sidewalk maps sidewalks in {{cities}} cities. Pick one and start exploring.",
+    "nudge-link": "See every city",
+    "trophy-sub": "Mapped in {{cities}} cities",
+    "map-popup": "{{labels}} labels · {{validations}} validations"
+  }
+}

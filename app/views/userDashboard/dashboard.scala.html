@@ -14,6 +14,10 @@
 @* Named once because every distance on the page uses it. Twirl compiles this to a def, so it is not memoized. *@
 @unitAbbr = @{distanceUnitWords.abbr}
 
+@* Named once because the scope-carrying copy on this page repeats it: every tile, chart, and list below is this
+ * deployment's data, and the cross-city section is the only place that isn't. *@
+@cityName = @{commonData.currentCity.cityNameShort}
+
 @*
 * Formats the already-unit-converted audited distance (km when metric, else miles) with one decimal + unit. Floored
 * rather than rounded, matching util.math.floorTo on the frontend.
@@ -71,11 +75,12 @@
         @* Usernames predating the charset rule may contain HTML metacharacters, so escape before @Html. *@
         <p class="ud-hero-greeting">@Html(Messages("dashboard.hero.greeting",
           s"<strong>${play.twirl.api.HtmlFormat.escape(user.username)}</strong>"))</p>
-        <p class="ud-hero-headline">@Html(Messages("dashboard.hero.headline", "%,d".format(profileData.labelCount)))</p>
+        <p class="ud-hero-headline">@Html(Messages("dashboard.hero.headline", "%,d".format(profileData.labelCount), cityName))</p>
         <p class="ud-hero-sub">@Messages("dashboard.hero.sub")</p>
       </div>
     </div>
 
+    <p class="ud-kpi-scope">@Messages("dashboard.kpi.scope", cityName)</p>
     <div class="coverage-kpis ud-kpis">
       <div class="coverage-kpi">
         <span class="coverage-kpi-value">@profileData.missionCount</span>
@@ -100,11 +105,50 @@
     </div>
 
     @* Contribution map is part of the hero (no h2, so it doesn't get its own on-this-page entry). *@
-    <p class="ud-map-caption">@Messages("dashboard.map.caption")</p>
+    <p class="ud-map-caption">@Messages("dashboard.map.caption", cityName)</p>
     <div id="user-dashboard-choropleth-holder" class="choropleth-holder">
       <div id="user-dashboard-choropleth" class="choropleth"></div>
       @common.filterSidebar(tags = tags, streetsShownByDefault = true)
     </div>
+  </div>
+
+  @* ---- Cities you've mapped (#4496) --------------------------------------------------------------------
+   * Hidden until /userapi/crossCityStats answers: the fan-out spans every city schema, so blocking page render on
+   * it would cost seconds on a cold cache. CrossCityStats.js fills the band, table, map, and trophy, and leaves the
+   * whole section hidden if the breakdown can't be computed.
+   *@
+  <div class="api-section" id="ud-cities-section" hidden>
+    <h2 class="api-heading" id="cities">@Messages("dashboard.cities.title") <a href="#cities" class="permalink">#</a></h2>
+    <p id="ud-cities-intro"></p>
+
+    @* Same band the leaderboard's community section uses, so "across every city" reads the same in both places. *@
+    <div class="ud-community-band ud-cities-band" id="ud-cities-band" hidden>
+      <div class="ud-community-stat">
+        <span class="ud-community-emoji" aria-hidden="true">🌎</span>
+        <span class="ud-community-value" id="ud-cities-total-cities"></span><span class="ud-community-label">@Messages("leaderboard.community.cities")</span>
+      </div>
+      <div class="ud-community-stat">
+        <img class="ud-community-icon" src="@assets.path("images/icons/noun_pin_location_2342268_cropped.png")" alt="">
+        <span class="ud-community-value" id="ud-cities-total-labels"></span><span class="ud-community-label">@Messages("dashboard.kpi.labels")</span>
+      </div>
+      <div class="ud-community-stat">
+        <img class="ud-community-icon" src="@assets.path("images/icons/noun_validation_1876484_cropped.png")" alt="">
+        <span class="ud-community-value" id="ud-cities-total-validations"></span><span class="ud-community-label">@Messages("dashboard.kpi.validations")</span>
+      </div>
+      <div class="ud-community-stat">
+        <img class="ud-community-icon" src="@assets.path("images/icons/noun_distance_2587675_cropped.png")" alt="">
+        <span class="ud-community-value" id="ud-cities-total-distance"></span><span class="ud-community-label">@Messages("dashboard.kpi.distance")</span>
+      </div>
+    </div>
+
+    @* One dot per city the mapper has worked in, area proportional to their labels there. The caption carries the
+     map's meaning in text, as the hero choropleth's does, since the canvas itself conveys nothing to a reader. *@
+    <p class="ud-map-caption" id="ud-cities-map-caption" hidden>@Messages("dashboard.cities.map.caption")</p>
+    <div class="ud-cities-map" id="ud-cities-map" hidden></div>
+
+    <div id="ud-cities-table-holder"></div>
+    <p class="ud-cities-footnote" id="ud-cities-footnote" hidden></p>
+    <div class="ud-nudge" id="ud-cities-nudge" hidden></div>
   </div>
 
   @* ---- My Routes — routes the user built in RouteBuilder (#3343) ---------------------------------------- *@
@@ -150,7 +194,7 @@
   @* ---- Streak / activity rhythm -------------------------------------------------------------------------- *@
   <div class="api-section" id="ud-streak-section">
     <h2 class="api-heading" id="streak">@Messages("dashboard.streak.title") <a href="#streak" class="permalink">#</a></h2>
-    <p>@Messages("dashboard.streak.intro")
+    <p>@Messages("dashboard.streak.intro", cityName)
       @if(streak.currentStreak > 0){<strong>@Messages("dashboard.streak.keep.alive", streak.currentStreak)</strong>}else{<strong>@Messages("dashboard.streak.start")</strong>} <span aria-hidden="true">🔥</span></p>
 
     <div class="ud-streak">
@@ -209,24 +253,23 @@
 
     <h3 class="api-heading" id="trophy-case">@Messages("dashboard.trophy.title") <a href="#trophy-case" class="permalink">#</a></h3>
     <p>@Messages("dashboard.trophy.intro")</p>
-    @if(trophies.nonEmpty) {
-      @userDashboard._trophyCase(trophies)
-    } else {
-      <div class="ud-nudge">@Messages("dashboard.trophy.none")</div>
-    }
+    @* The grid renders even when empty so CrossCityStats.js has somewhere to append the cross-city trophy; the
+     nudge below it is hidden once anything lands in the grid. *@
+    @userDashboard._trophyCase(trophies)
+    <div class="ud-nudge" id="ud-trophy-none" @if(trophies.nonEmpty) {hidden}>@Messages("dashboard.trophy.none")</div>
   </div>
 
   @* ---- Your standing — compact teaser into the full /leaderboard (Option 2) ----------------------------- *@
   <div class="api-section" id="ud-standing-section">
     <h2 class="api-heading" id="standing">@Messages("dashboard.standing.title") <a href="#standing" class="permalink">#</a></h2>
-    <p>@Html(Messages("dashboard.standing.intro", routes.UserDashboardController.leaderboard))</p>
+    <p>@Html(Messages("dashboard.standing.intro", cityName, routes.UserDashboardController.leaderboard))</p>
     @userDashboard._standing(standing, seeAllLink = true)
   </div>
 
   @* ---- Learning — Recent mistakes gallery ------------------------------------------------------------- *@
   <div class="api-section" id="ud-mistakes-section">
     <h2 class="api-heading" id="mistakes">@Messages("dashboard.mistakes.title") <a href="#mistakes" class="permalink">#</a></h2>
-    <p>@if(accuracyByType.exists(_.weakest)){@Messages("dashboard.mistakes.intro.weakest")}else{@Messages("dashboard.mistakes.intro")}</p>
+    <p>@if(accuracyByType.exists(_.weakest)){@Messages("dashboard.mistakes.intro.weakest", cityName)}else{@Messages("dashboard.mistakes.intro", cityName)}</p>
 
     @if(accuracyByType.nonEmpty) {
       <div class="ud-accuracy-bars">
@@ -343,6 +386,7 @@
   <script src="@assets.path("js/user-dashboard/MistakeGallery.js")"></script>
   <script src="@assets.path("js/user-dashboard/StoriesSection.js")"></script>
   <script src="@assets.path("js/user-dashboard/MyRoutes.js")"></script>
+  <script src="@assets.path("js/user-dashboard/CrossCityStats.js")"></script>
   <script>
     // Deferred handle the contribution map's click adapter awaits; resolved (popup or null) once init finishes.
     let labelPopupReadyResolve;
@@ -373,6 +417,15 @@
         console.error('Label popup init failed; mistake cards will use inline controls only', e);
       }
       labelPopupReadyResolve(labelPopup);
+
+      const citiesSection = document.getElementById('ud-cities-section');
+      if (citiesSection && typeof CrossCityStats !== 'undefined') {
+        // Fire-and-forget: the section stays hidden if this fails, and nothing below it depends on the result.
+        new CrossCityStats(citiesSection, {
+          currentCityName: "@commonData.currentCity.cityNameShort",
+          mapboxApiKey: "@commonData.mapboxApiKey"
+        }).render();
+      }
 
       const routesList = document.getElementById('ud-routes-list');
       if (routesList && typeof MyRoutes !== 'undefined') {

@@ -1835,3 +1835,56 @@
   padding: 4px 10px;
   font-size: var(--font-size-sm, 0.875rem);
 }
+
+/* ---- Cities you've mapped (#4496) ------------------------------------------------------------------------------
+ * The roll-up band reuses .ud-community-band so "across every city" looks the same here as on the leaderboard; only
+ * the table, map, and "you're here" marker are new.
+ */
+
+.ud-cities-table-wrap { margin: var(--space-md, 16px) 0; }
+
+/* The table isn't sortable, so drop the admin header's click affordance. */
+.api-content .ud-cities-table thead th { cursor: default; }
+
+/* Counts and distances read down a column, so right-align them; the shell left-aligns column 2 for name columns. */
+.api-content .ud-cities-table td,
+.api-content .ud-cities-table th:not(:first-child) { text-align: right; }
+.api-content .ud-cities-table th:first-child { text-align: left; }
+
+.ud-cities-current { background: var(--color-pine-100, #eaf3ec); }
+
+/* Marks the deployment the mapper is reading this on, so the row they can verify against the tiles above is obvious. */
+.ud-cities-here {
+  display: inline-block;
+  margin-left: var(--space-xs, 8px);
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--color-pine-200, #cfe3d4);
+  color: var(--color-text-heading, #263238);
+  font-size: var(--font-size-sm, 0.875rem);
+  white-space: nowrap;
+}
+
+.ud-cities-map {
+  height: 340px;
+  margin: var(--space-md, 16px) 0;
+  border: 1px solid var(--color-neutral-200, #e0e0e0);
+  border-radius: var(--border-radius-lg, 8px);
+  overflow: hidden;
+}
+
+.ud-cities-footnote {
+  color: var(--color-text-secondary, #546e7a);
+  font-size: var(--font-size-sm, 0.875rem);
+}
+
+/* Names the deployment the KPI tiles belong to; the cross-city section below is the only part that isn't scoped. */
+.ud-kpi-scope {
+  margin-bottom: var(--space-xs, 8px);
+  color: var(--color-text-secondary, #546e7a);
+  font-size: var(--font-size-sm, 0.875rem);
+}
+
+/* `.ud-community-band` sets `display: grid`, which outranks the UA's `[hidden] { display: none }` — so a band the
+ * script hasn't filled in yet would render as a row of empty stat labels. */
+.ud-community-band[hidden] { display: none; }

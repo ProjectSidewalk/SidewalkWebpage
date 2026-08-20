@@ -91,4 +91,22 @@
   "routes-renamed": "Rota renomeada.",
   "routes-deleted": "\"{{name}}\" excluída.",
   "routes-delete-confirm": "Excluir \"{{name}}\"? As pessoas com quem você compartilhou o link não poderão mais usá-lo.",
-  "routes-error": "Algo deu errado. Tente novamente."}
+  "routes-error": "Algo deu errado. Tente novamente.",
+  "cities": {
+    "intro": "Você mapeou em {{cities}} cidades do Project Sidewalk — {{labels}} rótulos no total.",
+    "intro-single": "Seu trabalho em {{city}} até agora. Uma conta funciona em todas as cidades do Project Sidewalk.",
+    "you-are-here": "você está aqui",
+    "col-city": "Cidade",
+    "col-labels": "Rótulos",
+    "col-validations": "Validações",
+    "col-missions": "Missões",
+    "col-distance": "Distância",
+    "col-last-active": "Último rótulo",
+    "distance-note": "A distância fora de {{city}} é recalculada toda noite, então pode ter até um dia de atraso.",
+    "nudge": "O Project Sidewalk mapeia calçadas em {{cities}} cidades, e sua conta já funciona em todas elas.",
+    "nudge-empty": "O Project Sidewalk mapeia calçadas em {{cities}} cidades. Escolha uma e comece a explorar.",
+    "nudge-link": "Ver todas as cidades",
+    "trophy-sub": "Mapeou em {{cities}} cidades",
+    "map-popup": "{{labels}} rótulos · {{validations}} validações"
+  }
+}
