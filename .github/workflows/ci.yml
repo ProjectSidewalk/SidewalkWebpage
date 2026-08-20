@@ -314,6 +314,23 @@ jobs:
       # - PersistentMediaDirCheckSpec (#4925): user-uploaded media must resolve outside the application directory,
       #   which a deploy rebuilds and deletes. Pure logic, no DB — and the failure it guards against is invisible to
       #   every other test, since the broken config behaves correctly right up until the next release.
+      # - MediaIntegritySpec (#4926): the media-storage panel's calls on what counts as data loss. Pure logic, no DB.
+      #   Its false-alarm cases matter as much as its real ones — a monitor that cries loss over an unreadable
+      #   directory gets ignored, and an ignored monitor leaves us exactly where #4925 found us.
+      # - LostMediaLogSpec (#4926): the log line that is the only signal a media file has been destroyed. Both ways
+      #   it can fail are silent — announcing every request buries the event, announcing nothing reads as health —
+      #   so the lines themselves are asserted. Pure logic, no DB.
+      # - SingleFlightGateSpec (#4926): keeps a stuck media scan from being joined by a fresh copy every poll until
+      #   the blocking-io pool is gone. Its whole job is invisible until storage hangs, and by then the panel that
+      #   would have reported it is the thing that went dark. Pure logic, no DB.
+      # - HealthMediaPayloadSpec (#4926): the field names the health page reads the media panel by. A renamed case
+      #   class field emits a different key, every value goes undefined, and a monitor reporting nothing looks
+      #   exactly like a monitor reporting nothing wrong. Pure logic, no DB.
+      # - ImageControllerSpec (#4415, #4726, #4926): the crop write path and its share-preview invalidation, plus the
+      #   loss lines a signed crop/pano URL emits when the bytes it was signed for are gone. Nothing else asserts the
+      #   controller calls LostMediaLog at all, so without this the tripwire could be deleted with CI still green.
+      # - StoryUploadWindowSpec (#4926): the grace window that stops the loss tripwire firing at its own upload path.
+      #   Reporting is once per media id, so a false alarm spends the line a real loss would have needed. Pure logic.
       # - PanoExpiredAtSpec / BackgroundJobRunTableSpec / JobRunServiceSpec / StreetLifecycleServiceSpec (#4928): the
       #   transition records the admin trend and nightly-job panels read. Each seeds its own rows rather than hunting
       #   for them, so they assert real behavior against an empty seed: the expiry stamp only lands on the false ->
@@ -333,7 +350,7 @@ jobs:
       #   the second as a success is how a rotated-out API key ends the re-audit signal behind a permanently green
       #   badge.
       - name: Run gating/auth tests (health dashboard + route auth posture + geodesic distances)
-        run: sbt 'set Test / parallelExecution := false' 'testOnly controllers.HealthDashboardSpec service.HealthServiceSpec controllers.RouteAuthPostureSpec models.street.GeodesicDistanceSpec service.ExploreTutorialRouteSpec controllers.MobileDetectionSpec service.PanoDataServiceSpec service.ActivityBreakdownSpec service.ConfigServiceTrendSpec models.utils.CityScorecardSpec models.utils.ConfigTableVoidedArchiveSpec controllers.api.StatsApiSpec controllers.ExploreSubmissionSpec controllers.ValidateSubmissionSpec controllers.ExploreNoImageryRateLimitSpec models.pano.PanoExpiredAtSpec models.utils.BackgroundJobRunTableSpec service.JobRunServiceSpec service.NightlyJobStatusSpec service.StreetLifecycleServiceSpec models.audit.OutdatedImageryFlagSyncSpec models.audit.OutdatedImageryRoutingSpec models.street.UpToDateCoverageSpec models.street.NoImageryReportsSpec models.utils.EnumTypeParitySpec actor.ScheduledJobsSpec service.ImageryPollOutcomeSpec modules.PersistentMediaDirCheckSpec'
+        run: sbt 'set Test / parallelExecution := false' 'testOnly controllers.HealthDashboardSpec service.HealthServiceSpec controllers.RouteAuthPostureSpec models.street.GeodesicDistanceSpec service.ExploreTutorialRouteSpec controllers.MobileDetectionSpec service.PanoDataServiceSpec service.ActivityBreakdownSpec service.ConfigServiceTrendSpec models.utils.CityScorecardSpec models.utils.ConfigTableVoidedArchiveSpec controllers.api.StatsApiSpec controllers.ExploreSubmissionSpec controllers.ValidateSubmissionSpec controllers.ExploreNoImageryRateLimitSpec models.pano.PanoExpiredAtSpec models.utils.BackgroundJobRunTableSpec service.JobRunServiceSpec service.NightlyJobStatusSpec service.StreetLifecycleServiceSpec models.audit.OutdatedImageryFlagSyncSpec models.audit.OutdatedImageryRoutingSpec models.street.UpToDateCoverageSpec models.street.NoImageryReportsSpec models.utils.EnumTypeParitySpec actor.ScheduledJobsSpec service.ImageryPollOutcomeSpec modules.PersistentMediaDirCheckSpec service.MediaIntegritySpec service.LostMediaLogSpec service.SingleFlightGateSpec service.HealthMediaPayloadSpec controllers.ImageControllerSpec controllers.StoryUploadWindowSpec'
         env:
           DATABASE_URL: jdbc:postgresql://localhost:5432/sidewalk
           DATABASE_USER: sidewalk

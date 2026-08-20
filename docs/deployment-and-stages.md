@@ -292,9 +292,13 @@ outside the build tree** via its environment variable (a variable that is set bu
 | Config key | Env var | Holds | Missing on a deployed stage |
 |---|---|---|---|
 | `story.media.directory` | `SIDEWALK_STORY_MEDIA_DIR` | User-uploaded story photos (**irreplaceable**) | **App refuses to start** |
-| `pano.images.directory` | `SIDEWALK_PANO_DIR` | Self-hosted pano store — the only copies of GSV imagery Google has expired (**irreplaceable**) | **App refuses to start** |
-| `cropped.image.directory` | `SIDEWALK_IMAGES_DIR` | Label crops (re-derivable from pano imagery) | Error logged at boot |
+| `pano.images.directory` | `SIDEWALK_PANO_DIR` | Locally stored pano imagery the app serves itself (**irreplaceable**) | **App refuses to start** |
+| `cropped.image.directory` | `SIDEWALK_IMAGES_DIR` | Label crops — browser captures of the pano as it was labeled, with no rebuild path (**irreplaceable**) | **App refuses to start** |
 | `share.image.directory` | `SIDEWALK_SHARE_IMAGES_DIR` | Cached social-share previews (regenerable) | Error logged at boot |
+
+Crops sit in the fatal tier because nothing in this app regenerates one: `/saveImage` stores a canvas screenshot the
+labeler's browser took as the label was placed, and the Street View Static still used as a fallback elsewhere is a
+different, smaller image of a pano the provider must still serve — which it often no longer does.
 
 `PersistentMediaDirCheck` enforces this at boot in **prod mode** — what every staged binary runs in — so it covers
 every deployed stage *and* a staged binary run by hand (export the four variables to `/tmp` paths for that; CI's
@@ -310,7 +314,9 @@ forgotten variable surfaces on test long before it can reach prod.
 meaningful while it models the exact resolution the write paths use), add it to `persistentDirs` in
 `PersistentMediaDirCheck`, decide whether its contents are irreplaceable (fatal) or derived (logged), and have the
 deployment tooling export its variable. Losing a story photo this way (#4925) took three weeks to notice, so the
-check — not a comment in `application.conf` — is what holds the contract.
+check — not a comment in `application.conf` — is what holds the contract. Adding it to `persistentDirs` also puts it
+on the **Media storage** panel of the Owner-only `/admin/health` page, which shows where each directory resolves on
+the running instance and counts any `story_media` row whose file has gone missing (#4926).
 
 ### Asset caching
 

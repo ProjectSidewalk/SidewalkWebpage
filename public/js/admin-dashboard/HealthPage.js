@@ -71,6 +71,7 @@ class HealthPage {
       this.#renderBloat(data.table_bloat || []);
       this.#renderConnections(data.connections || []);
       this.#renderPanos(data.pano_backups || null);
+      this.#renderMediaStorage(data.media_storage || null);
       this.#renderNightlyJobs(data.nightly_jobs || []);
     } catch (e) {
       AdminShell.setHtml('health-pulse', `<strong>Could not load health data.</strong> ${AdminShell.esc(e.message)}`);
@@ -128,6 +129,7 @@ class HealthPage {
     const evolutions = data.stuck_evolutions || [];
     const conns = (data.connections || []).reduce((sum, c) => sum + (c.count || 0), 0);
     const atRisk = data.pano_backups?.at_risk;
+    const media = data.media_storage || null;
     const bloated = (data.table_bloat || []).filter((b) => this.#bloatTone(b) !== 'good').length;
     const longIdle = idle.filter((s) => (s.idle_seconds || 0) >= t.idle_txn_warn_seconds).length;
     const activeBad = active.filter((q) => (q.query_seconds || 0) >= t.active_query_bad_seconds).length;
@@ -140,6 +142,27 @@ class HealthPage {
     // A missing value ("—") means unknown, not healthy, so tone it neutral ('ok') instead of 'good' (green).
     const panoTone = AdminShell.nil(atRisk) ? 'ok' : atRisk > 0 ? 'warn' : 'good';
     this.#setKpi('kpi-panos', AdminShell.nil(atRisk) ? '—' : HealthPage.#compact(atRisk), panoTone);
+    const [mediaValue, mediaTone] = HealthPage.#mediaKpi(media);
+    this.#setKpi('kpi-media', mediaValue, mediaTone);
+  }
+
+  /**
+   * The missing-media KPI. The value is only ever a count of missing files or "—" for unknown — this tile is labelled
+   * "Missing media files", so putting any other number under it would misreport. A directory a deploy will delete is
+   * bad news before anything has been lost from it, so it colors the tile red without supplying its number, and the
+   * table below names which directory. Orphans are a lesser fault and only warn.
+   *
+   * @param {?Object} media - The media_storage payload, or null when it couldn't be read.
+   * @returns {[(string|number), string]} Value and tone, spread into #setKpi.
+   */
+  static #mediaKpi(media) {
+    // Unknown is not healthy: tone it neutral rather than green.
+    if (!media) return ['—', 'ok'];
+    const unsafeDirs = (media.directories || []).filter((d) => d.severity === 'bad').length;
+    if (!media.story_media) return ['—', unsafeDirs > 0 ? 'bad' : 'ok'];
+    const { missing, orphans } = media.story_media;
+    if (missing > 0 || unsafeDirs > 0) return [HealthPage.#compact(missing), 'bad'];
+    return [HealthPage.#compact(missing), orphans > 0 ? 'warn' : 'good'];
   }
 
   /** Renders the "updated Ns ago · db · role" meta line, including whether other sessions' query text is visible. */
@@ -336,6 +359,115 @@ class HealthPage {
     AdminShell.setHtml('health-panos-note',
       'Backup status is refreshed lazily by the nightly imagery check, so a large "unchecked" count is normal '
       + 'and these figures approximate what is actually on disk.');
+  }
+
+  // ---- Panel: media storage --------------------------------------------------------------------------------------
+
+  /**
+   * Renders the persistent-media directories and the story-media integrity scan.
+   *
+   * Every label, severity and threshold here is server-computed: the page must not hold its own copy of the rules
+   * that decide when a directory is unsafe, or it would drift from the boot check that enforces them.
+   *
+   * @param {?Object} media - The media_storage payload, or null when it couldn't be read.
+   */
+  #renderMediaStorage(media) {
+    if (!media) {
+      AdminShell.setHtml('health-media-dirs', '<p class="coverage-status">Media storage status is unavailable.</p>');
+      AdminShell.setHtml('health-media-story', '');
+      AdminShell.setHtml('health-media-note', '');
+      return;
+    }
+
+    // A scan that couldn't even stat the directories sends none, and an empty table would read as "none configured".
+    if (!media.directories?.length) {
+      const why = AdminShell.esc(media.unavailable || 'Media storage status is unavailable.');
+      AdminShell.setHtml('health-media-dirs', `<p class="coverage-status">${why}</p>`);
+      AdminShell.setHtml('health-media-story', '');
+      AdminShell.setHtml('health-media-note', '');
+      return;
+    }
+
+    const dirRows = (media.directories || []).map((d) => {
+      // Muted text rather than a badge: this is what losing the contents would cost, not something that has
+      // happened, and an amber badge next to the live Status badge reads as a second alarm on a healthy row.
+      const recoverable = d.irreplaceable ? 'No — nothing to rebuild it from' : 'Yes — rebuilt on demand';
+      // The wipe-zone reason names the key and the path, which are already columns, and then repeats the same
+      // sentence about deploys on every row — four copies of it in the narrowest column is what made these rows six
+      // times taller than every other table on the page. The badge says the state; the note below says the fix once.
+      const detail = d.detail && d.status !== 'unsafe' ? `<br><small>${AdminShell.esc(d.detail)}</small>` : '';
+      return `
+        <tr>
+          <td><code>${AdminShell.esc(d.key)}</code></td>
+          <td><code>${AdminShell.esc(d.env_var)}</code></td>
+          <td class="ac-path"><code>${AdminShell.esc(d.path)}</code></td>
+          <td class="ac-muted">${recoverable}</td>
+          <td><span class="ac-badge ac-badge--${d.severity}">${AdminShell.esc(d.label)}</span>${detail}</td>
+        </tr>`;
+    }).join('');
+    this.#table('health-media-dirs', ['Config key', 'Env var', 'Resolves to', 'Recoverable?', 'Status'], dirRows);
+
+    const scan = media.story_media;
+    if (!scan) {
+      AdminShell.setHtml('health-media-story',
+        `<p class="coverage-status">${AdminShell.esc(media.unavailable || 'Story media was not scanned.')}</p>`);
+    } else if (!scan.cities.length) {
+      this.#renderEmpty('health-media-story', 'No city has any story media yet.');
+    } else {
+      const rows = scan.cities.map((c) => `
+        <tr>
+          <td>${AdminShell.esc(c.city_id || c.schema)}</td>
+          <td class="ac-num">${AdminShell.num(c.rows)}</td>
+          <td class="ac-num">${HealthPage.#mediaCount(c, 'missing', 'bad')}</td>
+          <td class="ac-num">${HealthPage.#mediaCount(c, 'orphans', 'warn')}</td>
+          <td>${HealthPage.#mediaDetail(c)}</td>
+        </tr>`).join('');
+      this.#table('health-media-story',
+        ['City', ['Media rows', true], ['Missing', true], ['Orphaned', true], 'Notes'], rows);
+    }
+
+    const notes = [`Story media lives under <code>${AdminShell.esc(scan ? scan.base_dir : '—')}</code>, one
+      subdirectory per city; a city hosted elsewhere reads as unscanned.`];
+    // Said once here rather than repeated in every unsafe row, which is where it used to live.
+    if (media.directories.some((d) => d.status === 'unsafe')) {
+      notes.push(`A directory inside the build tree is deleted by the next release: point its environment variable at
+        storage outside the application (<code>docs/deployment-and-stages.md</code>).`);
+    }
+    if (!media.enforced) {
+      notes.push(`Not production mode, so that boot check is inactive here and the relative defaults landing in the
+        checkout are expected.`);
+    }
+    AdminShell.setHtml('health-media-note', notes.join(' '));
+  }
+
+  /**
+   * A missing/orphan count cell, badged only when non-zero so a clean fleet reads as quiet.
+   *
+   * @param {Object} city - One city row from the scan.
+   * @param {string} field - Which count to render.
+   * @param {string} tone - Badge tone to use when the count is non-zero.
+   * @returns {string} Cell HTML.
+   */
+  static #mediaCount(city, field, tone) {
+    if (!city.scanned) return '—';
+    const n = city[field] || 0;
+    return n > 0 ? `<span class="ac-badge ac-badge--${tone}">${AdminShell.num(n)}</span>` : AdminShell.num(n);
+  }
+
+  /**
+   * The ids worth looking at for one city, or why it wasn't scanned.
+   *
+   * @param {Object} city - One city row from the scan.
+   * @returns {string} Cell HTML.
+   */
+  static #mediaDetail(city) {
+    // The reason is server-side: "no city configured", "this instance writes that directory under another schema"
+    // and "not readable" send an operator to very different places, and only the backend knows which applies.
+    if (!city.scanned) return `<em>${AdminShell.esc(city.unscanned_reason || 'not scanned')}</em>`;
+    const parts = [];
+    if (city.missing_ids?.length) parts.push(`missing ${city.missing_ids.join(', ')}`);
+    if (city.orphan_ids?.length) parts.push(`orphaned ${city.orphan_ids.join(', ')}`);
+    return parts.length ? `<code>${AdminShell.esc(parts.join(' · '))}</code>` : '—';
   }
 
   // ---- Panel: nightly jobs ---------------------------------------------------------------------------------------

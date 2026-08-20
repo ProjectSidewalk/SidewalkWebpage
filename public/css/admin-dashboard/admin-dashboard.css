@@ -1987,6 +1987,15 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
 }
 .ac-table tbody tr:hover { background: var(--color-neutral-100); }
 
+/* A filesystem path is the only unbounded string in these tables, and a deploy-tree path is long enough to push the
+   Status column past the edge — the one column an operator is reading. Let a path break rather than scroll; scoped to
+   the path cell so the config keys and variable names beside it stay whole. */
+.ac-table td.ac-path code {
+  /* The shared `code` styling is nowrap, which suppresses wrapping outright — overflow-wrap alone can't act. */
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
 .ac-num {
   text-align: right;
   white-space: nowrap;

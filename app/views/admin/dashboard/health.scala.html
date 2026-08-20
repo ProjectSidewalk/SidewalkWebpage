@@ -23,6 +23,7 @@
       <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-bloat">—</span><span class="coverage-kpi-label">Bloated tables</span></div>
       <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-connections">—</span><span class="coverage-kpi-label">DB connections</span></div>
       <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-panos">—</span><span class="coverage-kpi-label">At-risk panos (this city)</span></div>
+      <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-media">—</span><span class="coverage-kpi-label">Missing media files</span></div>
     </div>
     <p class="ac-note" id="health-meta"></p>
   </div>
@@ -68,6 +69,14 @@
     <h2 class="api-heading" id="connections">DB connections <a href="#connections" class="permalink">#</a></h2>
     <p>Client-backend connections grouped by role and state. Each city's app instance connects as its own per-city role with its own pool ceiling, so a role whose active connections approach that ceiling is under pressure.</p>
     <div id="health-connections"></div>
+  </div>
+
+  <div class="api-section" id="health-media-section">
+    <h2 class="api-heading" id="media-storage">Media storage <a href="#media-storage" class="permalink">#</a></h2>
+    <p>Media that must outlive a deploy, and whether any of it is gone. A deploy rebuilds the whole build tree, so anything kept inside it dies with the next release while its database rows survive &mdash; how <a href="https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4925">#4925</a> destroyed a story photo. <strong>Missing</strong> is a row with no file; <strong>orphaned</strong> is a file with no row.</p>
+    <div id="health-media-dirs"></div>
+    <div id="health-media-story"></div>
+    <p class="ac-note" id="health-media-note"></p>
   </div>
 
   <div class="api-section" id="health-panos-section">

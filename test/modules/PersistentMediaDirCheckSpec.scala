@@ -9,8 +9,8 @@ import scala.io.Source
 import scala.util.Using
 
 /**
- * The deployment contract behind the media directories: anything irreplaceable — user uploads, our only copies of
- * provider-expired panos — has to land outside the build output tree, because a deploy deletes that whole tree
+ * The deployment contract behind the media directories: anything irreplaceable — user uploads, imagery that cannot
+ * be re-fetched — has to land outside the build output tree, because a deploy deletes that whole tree
  * (`sbt clean`) and rebuilds it (#4925).
  *
  * Nothing else can catch a violation. The configuration that lost a story photo was correct in dev, correct in CI,
@@ -74,11 +74,12 @@ class PersistentMediaDirCheckSpec extends PlaySpec {
   }
 
   "the fatal set" should {
-    // Refusing to boot is only justified for bytes no rebuild can recreate: the story photos users gave us, and the
-    // self-hosted pano store — it backs up GSV imagery Google has already expired, so for those panos it is the only
-    // copy anywhere. Crops and share previews re-derive from them, so they must stay warn-only.
+    // Refusing to boot is only justified for bytes no rebuild can recreate: the story photos users gave us, imagery
+    // the providers no longer serve, and the label crops, each captured once in a labeler's browser. Cached share
+    // previews rebuild on demand, so that one must stay warn-only.
     "be exactly the irreplaceable directories" in {
-      persistentDirs.filter(_.irreplaceable).map(_.key) mustBe Seq("pano.images.directory", "story.media.directory")
+      persistentDirs.filter(_.irreplaceable).map(_.key) mustBe
+        Seq("cropped.image.directory", "pano.images.directory", "story.media.directory")
     }
 
     // The failure message tells the operator which variable to set. If this mapping drifts from application.conf,

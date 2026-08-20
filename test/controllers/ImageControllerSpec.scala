@@ -10,13 +10,20 @@ import play.api.mvc.Cookie
 import play.api.test.CSRFTokenHelper._
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import service.{PanoDataService, ShareImageCache}
+import models.label.LabelTypeEnum
+import service.{ImageSigningService, PanoDataService, ShareImageCache}
 import util.AnonSession
+
+import ch.qos.logback.classic.spi.ILoggingEvent
+import ch.qos.logback.classic.{Level, Logger => LogbackLogger}
+import ch.qos.logback.core.read.ListAppender
+import org.slf4j.LoggerFactory
 
 import java.awt.image.BufferedImage
 import java.io.{ByteArrayOutputStream, File}
 import java.util.Base64
 import javax.imageio.ImageIO
+import scala.jdk.CollectionConverters._
 
 /**
  * Functional tests for `POST /saveImage` (#4415, #4726). Boots the real app and drives the endpoint over HTTP through
@@ -42,8 +49,9 @@ class ImageControllerSpec extends PlaySpec with AnonSession with GuiceOneAppPerS
 
   implicit lazy val mat: Materializer = app.materializer
 
-  private val panoDataService: PanoDataService = app.injector.instanceOf[PanoDataService]
-  private val shareImageCache: ShareImageCache = app.injector.instanceOf[ShareImageCache]
+  private val panoDataService: PanoDataService    = app.injector.instanceOf[PanoDataService]
+  private val shareImageCache: ShareImageCache    = app.injector.instanceOf[ShareImageCache]
+  private val signingService: ImageSigningService = app.injector.instanceOf[ImageSigningService]
 
   // Far outside the range of any real label id, so writing a crop here can't clobber one.
   private val syntheticLabelId      = Int.MaxValue - 4726
@@ -141,6 +149,98 @@ class ImageControllerSpec extends PlaySpec with AnonSession with GuiceOneAppPerS
     "reject a request with no JSON body" in {
       val resp = route(app, FakeRequest(POST, "/saveImage").withCookies(freshAnonSession(): _*).withCSRFToken).get
       status(resp) mustBe BAD_REQUEST
+    }
+  }
+
+  /**
+   * Runs `f` with an appender on `LostMediaLog`'s logger and returns every line it wrote.
+   *
+   * The level is forced rather than inherited so these cases pin the controller's own severity choice instead of
+   * whatever the ambient logback config permits, and the console is detached for the duration so a suite that
+   * deliberately provokes data-loss alarms doesn't print any.
+   */
+  private def capturedLoss(f: => Any): Seq[ILoggingEvent] = {
+    val logger   = LoggerFactory.getLogger(classOf[service.LostMediaLog]).asInstanceOf[LogbackLogger]
+    val appender = new ListAppender[ILoggingEvent]
+    val original = logger.getLevel
+    appender.start()
+    logger.addAppender(appender)
+    logger.setLevel(Level.WARN)
+    logger.setAdditive(false)
+    try { val _ = f }
+    finally {
+      logger.setAdditive(true)
+      logger.setLevel(original)
+      logger.detachAppender(appender)
+      appender.stop()
+    }
+    appender.list.asScala.toSeq
+  }
+
+  // A signed serving URL is only ever minted for a file that was on disk at the time (PanoDataService.cropUrl and
+  // backupImageUrl both check first), so a miss on one of these means the bytes vanished inside the signature's
+  // ~75-minute life. That is the loss #4925 had no way to notice: the response has to stay an ordinary 404, since
+  // telling a prober which ids exist would be worse, which leaves the log as the only place it can be said (#4926).
+  "Serving media whose bytes are gone" should {
+    "answer a signed crop URL whose file has been deleted with a plain 404, and say the crop is gone" in {
+      val session = freshAnonSession()
+      status(postCrop(session, syntheticLabelId)) mustBe OK
+      val url  = panoDataService.cropUrl(syntheticLabelId, LabelTypeEnum.CurbRamp).value
+      val file = cropFileFor(syntheticLabelId)
+      file.delete() mustBe true
+
+      try {
+        val events = capturedLoss {
+          val resp = route(app, FakeRequest(GET, url).withCookies(session: _*)).get
+          status(resp) mustBe NOT_FOUND
+        }
+
+        events must have size 1
+        // A crop exists in one place only — it was captured in the labeler's browser as the label was placed — so
+        // its disappearance is the error tier, not a rebuild cost.
+        events.head.getLevel mustBe Level.ERROR
+        val message = events.head.getFormattedMessage
+        message must include("crop")
+        message must include(syntheticLabelId.toString)
+        // Whoever reads this line goes looking on disk, so it has to name the exact path that was checked.
+        message must include(file.getAbsolutePath)
+      } finally cleanUp(syntheticLabelId)
+    }
+
+    "answer a signed pano URL with no backup image with a plain 404, every time it is asked" in {
+      // Nothing can re-fetch a pano the provider no longer serves, so the loss is the error tier. The log
+      // deduplicates the repeat (LostMediaLogSpec pins that); the responses must not.
+      val panoId = "sidewalkSpecNoSuchPano4926"
+      val url    = signingService.signedUrl(s"/backupImage/$panoId")
+
+      val events = capturedLoss {
+        status(route(app, FakeRequest(GET, url)).get) mustBe NOT_FOUND
+        status(route(app, FakeRequest(GET, url)).get) mustBe NOT_FOUND
+      }
+
+      events must have size 1
+      events.head.getLevel mustBe Level.ERROR
+      val message = events.head.getFormattedMessage
+      message must include("pano")
+      message must include(panoId)
+      // The store sharded by the pano id's first two characters, which is where someone restoring a backup must look.
+      message must include(panoDataService.backupImageDir(panoId).getAbsolutePath)
+    }
+
+    "stay silent when the crop is where it should be, so the log holds losses and nothing else" in {
+      // A different label id from the case above: reporting is once per item, so reusing one would let dedup supply
+      // the silence this is trying to check for. And a false alarm is worse than noise here — it burns the single
+      // line that item will ever get.
+      val session = freshAnonSession()
+      try {
+        status(postCrop(session, otherSyntheticLabelId)) mustBe OK
+        val url = panoDataService.cropUrl(otherSyntheticLabelId, LabelTypeEnum.CurbRamp).value
+
+        val events = capturedLoss {
+          status(route(app, FakeRequest(GET, url).withCookies(session: _*)).get) mustBe OK
+        }
+        events mustBe empty
+      } finally cleanUp(otherSyntheticLabelId)
     }
   }
 }

@@ -1,6 +1,6 @@
 package modules
 
-import modules.PersistentMediaDirCheck.unsafeDirs
+import modules.PersistentMediaDirCheck.{arms, unsafeDirs}
 import play.api.{Configuration, Environment, Logger, Mode}
 import service.MediaDirs
 
@@ -23,17 +23,17 @@ import scala.util.{Failure, Success, Try}
  * incomplete file (the #4925 failure) would disarm the guard exactly when it is needed. Dev and test runs skip it;
  * there the application root is the hand-managed repo checkout, where the relative defaults are the point.
  *
- * A directory holding irreplaceable bytes — user uploads, or our only copies of provider-expired imagery — is
- * **fatal**: refusing to boot is far cheaper than accepting content we already know will be destroyed, and the test
- * stage redeploys on every push to `develop` while prod waits for a release tag, so a missing variable surfaces on
- * test long before it can reach prod. The rest is derived data whose loss costs rebuild time, so it logs and lets
+ * A directory holding irreplaceable bytes — user uploads, label crops, or imagery that cannot be re-fetched — is
+ * **fatal**: refusing to boot is far cheaper than accepting content we already know will be destroyed,
+ * and the test stage redeploys on every push to `develop` while prod waits for a release tag, so a missing variable
+ * surfaces on test long before it can reach prod. Cached share previews rebuild on demand, so that one logs and lets
  * the app run.
  */
 @Singleton
 class PersistentMediaDirCheck @Inject() (config: Configuration, environment: Environment) {
   private val logger = Logger(this.getClass)
 
-  if (environment.mode == Mode.Prod) {
+  if (arms(environment)) {
     val unsafe = unsafeDirs(config, environment)
     unsafe.foreach(u => logger.error(u.reason))
 
@@ -59,23 +59,37 @@ object PersistentMediaDirCheck {
    * @param key           Config key naming the directory.
    * @param envVar        Environment variable a deployment sets it with, named in the failure message so the fix
    *                      doesn't require reading the config.
-   * @param irreplaceable Whether it holds bytes no rebuild can recreate — user uploads, or the only surviving copy
-   *                      of provider-expired imagery. These form the fatal tier; the rest only log.
+   * @param irreplaceable Whether it holds bytes no rebuild can recreate. These form the fatal tier; the rest only
+   *                      log.
    */
   case class PersistentDir(key: String, envVar: String, irreplaceable: Boolean)
 
   /** A persistent directory that failed the check, with the loggable reason. */
   case class UnsafeDir(dir: PersistentDir, reason: String)
 
+  /**
+   * Whether the check arms in this run mode. Defined here, next to the `if` it gates, because the Health dashboard
+   * reports what the check makes of each directory and has to agree with it about whether it is even watching — two
+   * copies of the rule would let the page claim a stage is guarded when it isn't.
+   *
+   * @param environment Play environment supplying the run mode.
+   * @return            True in prod mode, which every staged binary runs in; false in the dev and test runs where
+   *                    the application root is a hand-managed checkout and the relative defaults are the point.
+   */
+  def arms(environment: Environment): Boolean = environment.mode == Mode.Prod
+
   val persistentDirs: Seq[PersistentDir] = Seq(
-    // Crops and share previews are derived: a crop can be re-cut from pano imagery and a share preview rebuilds on
-    // demand, so losing them costs rebuild time, not content.
-    PersistentDir("cropped.image.directory", "SIDEWALK_IMAGES_DIR", irreplaceable = false),
-    PersistentDir("share.image.directory", "SIDEWALK_SHARE_IMAGES_DIR", irreplaceable = false),
-    // The self-hosted pano store backs up GSV imagery Google has already expired (pano_data.has_backup) — for those
-    // panos it is the only copy left anywhere, as unrecoverable as a user upload.
+    // A crop is a screenshot of the pano canvas taken in the labeler's browser as the label was placed
+    // (Canvas.saveCanvasScreenshot); nothing here rebuilds one, and the Static API still we fall back to is a
+    // different image that only exists while the provider still serves that pano — about half the labels on prod sit
+    // on panos already marked expired.
+    PersistentDir("cropped.image.directory", "SIDEWALK_IMAGES_DIR", irreplaceable = true),
+    // Locally stored pano imagery (pano_data.has_backup) the providers no longer serve, so it cannot be re-fetched.
     PersistentDir("pano.images.directory", "SIDEWALK_PANO_DIR", irreplaceable = true),
-    PersistentDir("story.media.directory", "SIDEWALK_STORY_MEDIA_DIR", irreplaceable = true)
+    PersistentDir("story.media.directory", "SIDEWALK_STORY_MEDIA_DIR", irreplaceable = true),
+    // Share previews are the one cache here: each rebuilds on demand from the label's crop, or from a Street View
+    // still when the crop is gone.
+    PersistentDir("share.image.directory", "SIDEWALK_SHARE_IMAGES_DIR", irreplaceable = false)
   )
 
   /**
