@@ -255,8 +255,8 @@ The dev server hot-reloads, so you rarely restart it.
 
 ### Checking that backend changes compile
 
-There's no backend test suite — validate Scala changes by compiling. The sbt **thin client** uses its own server,
-so it won't collide with a running `sbt ~ run`:
+The quickest pass/fail on a Scala change is a compile. The sbt **thin client** uses its own server, so it won't
+collide with a running `sbt ~ run`:
 
 ```bash
 docker exec projectsidewalk-web bash -lc "cd /home && sbt --client compile"
@@ -264,6 +264,21 @@ docker exec projectsidewalk-web bash -lc "cd /home && sbt --client compile"
 
 The first call after a container boot starts the compile server (~30s); later calls are near-instant. `build.sbt`
 sets `-Xfatal-warnings`, so a `[success]` is also warning-clean.
+
+### Running the backend tests
+
+ScalaTest specs live under `test/` — mostly functional specs for the public API, plus service and submission
+specs. They boot the real app against Postgres+PostGIS, so the `db` container has to be up:
+
+```bash
+docker exec projectsidewalk-web bash -lc "cd /home && sbt --client test"
+docker exec projectsidewalk-web bash -lc "cd /home && sbt --client \"testOnly controllers.api.PublicApiSpec\""
+```
+
+CI runs them on every PR as the advisory `backend-tests` job. There are also Python unit tests for the
+`scripts/` utilities (`make test-python`) and a jsdom Jest suite for frontend modules
+(`docker exec projectsidewalk-web bash -lc "cd /home && npm run test:js"` — Jest's `node_modules` are in the
+container, not on your host). [`docs/testing-and-ci.md`](testing-and-ci.md) covers what each layer is for.
 
 ### Checking that pages still load in a browser
 
