@@ -228,11 +228,6 @@ class StoryController @Inject() (
     }
   }
 
-  // The upload flow commits the media row before the file move lands (StoryService's place-before-commit windows), so
-  // a row this young with no bytes is almost certainly mid-upload, not loss. The window is sub-second; a minute is
-  // generous slack.
-  private val lostMediaGrace = Duration.ofMinutes(1)
-
   /**
    * Reports a media row whose bytes are missing from disk (#4925). Kept high-signal by skipping the upload grace
    * window, since a false alarm on this tripwire has real cost; `LostMediaLog` handles the rest.
@@ -241,8 +236,7 @@ class StoryController @Inject() (
    * @param file  Where the bytes should have been.
    */
   private def logLostMedia(media: StoryMedia, file: File): Unit = {
-    val inUploadWindow = media.createdAt.isAfter(OffsetDateTime.now.minus(lostMediaGrace))
-    if (!inUploadWindow) {
+    if (!StoryController.withinUploadWindow(media.createdAt, OffsetDateTime.now)) {
       lostMediaLog.reportMissing("story_media", media.storyMediaId.toString, file.getAbsolutePath, irreplaceable = true)
     }
   }
@@ -307,4 +301,22 @@ object StoryController {
 
   /** Cap on the stories the /stories page renders, so the page stays bounded as a city's story count grows. */
   val ListingMax: Int = 500
+
+  // The upload flow commits the media row before the file move lands (StoryService's place-before-commit windows),
+  // so a row this young with no bytes is almost certainly mid-upload. The window is sub-second; a minute is generous
+  // slack.
+  private val lostMediaGrace = Duration.ofMinutes(1)
+
+  /**
+   * Whether a media row is young enough that missing bytes read as an upload in progress rather than as loss.
+   *
+   * The data-loss log deduplicates per item, so a false alarm doesn't merely add noise — it spends the one line that
+   * media id will ever get, and a real loss discovered later says nothing at all.
+   *
+   * @param createdAt When the media row was committed.
+   * @param now       The instant to judge it against.
+   * @return          True while the row is inside the upload window and its file may still be landing.
+   */
+  private[controllers] def withinUploadWindow(createdAt: OffsetDateTime, now: OffsetDateTime): Boolean =
+    createdAt.isAfter(now.minus(lostMediaGrace))
 }
