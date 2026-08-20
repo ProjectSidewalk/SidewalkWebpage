@@ -388,9 +388,9 @@ class HealthPage {
     }
 
     const dirRows = (media.directories || []).map((d) => {
-      const lost = d.irreplaceable
-        ? '<span class="ac-badge ac-badge--warn">gone for good</span>'
-        : 'rebuildable';
+      // Muted text rather than a badge: this is what losing the contents would cost, not something that has
+      // happened, and an amber badge next to the live Status badge reads as a second alarm on a healthy row.
+      const recoverable = d.irreplaceable ? 'No — nothing to rebuild it from' : 'Yes — rebuilt on demand';
       // The wipe-zone reason names the key and the path, which are already columns, and then repeats the same
       // sentence about deploys on every row — four copies of it in the narrowest column is what made these rows six
       // times taller than every other table on the page. The badge says the state; the note below says the fix once.
@@ -399,12 +399,12 @@ class HealthPage {
         <tr>
           <td><code>${HealthPage.#esc(d.key)}</code></td>
           <td><code>${HealthPage.#esc(d.env_var)}</code></td>
-          <td>${lost}</td>
           <td class="ac-path"><code>${HealthPage.#esc(d.path)}</code></td>
+          <td class="ac-muted">${recoverable}</td>
           <td><span class="ac-badge ac-badge--${d.severity}">${HealthPage.#esc(d.label)}</span>${detail}</td>
         </tr>`;
     }).join('');
-    this.#table('health-media-dirs', ['Config key', 'Env var', 'If lost', 'Resolves to', 'Status'], dirRows);
+    this.#table('health-media-dirs', ['Config key', 'Env var', 'Resolves to', 'Recoverable?', 'Status'], dirRows);
 
     const scan = media.story_media;
     if (!scan) {

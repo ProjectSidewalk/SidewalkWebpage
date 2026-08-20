@@ -112,7 +112,9 @@ object MediaIntegrity {
   ): MediaDirStatus = unsafeReason match {
     case Some(reason) =>
       val severity = if (!enforced) "ok" else if (dir.irreplaceable) "bad" else "warn"
-      val label    = if (enforced) "a deploy will delete this" else "inside the build tree (dev)"
+      // The dev label leads with the verdict, because a status that only names a location leaves the reader to work
+      // out whether it is a problem — and here it isn't one.
+      val label = if (enforced) "a deploy will delete this" else "ok for dev (inside the build tree)"
       status(dir, path, "unsafe", label, severity, Some(reason))
     // Not created yet is the normal state until the first upload — the write paths mkdirs on demand.
     case None if !probe.exists   => status(dir, path, "absent", "not created yet", "ok", None)

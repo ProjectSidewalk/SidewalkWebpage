@@ -105,6 +105,30 @@ describe('HealthPage media storage panel', () => {
             expect(dirs).toContain('/srv/sidewalk/story-media');
         });
 
+        it('states recoverability as flat text, since it is a consequence and not a live alarm', async () => {
+            // An amber badge here sat beside the Status badge on a perfectly healthy row and read as a second alarm,
+            // which is what made the column unreadable.
+            const { dirs } = await render({ directories: [OK_DIR], enforced: true, story_media: null });
+
+            expect(dirs).toContain('No — nothing to rebuild it from');
+            expect(dirs).not.toContain('ac-badge--warn');
+        });
+
+        it('says of a rebuildable directory that losing it costs a rebuild, not content', async () => {
+            const crops = { ...OK_DIR, key: 'cropped.image.directory', irreplaceable: false };
+            const { dirs } = await render({ directories: [crops], enforced: true, story_media: null });
+
+            expect(dirs).toContain('Yes — rebuilt on demand');
+        });
+
+        it('leads a dev checkout\'s status with the verdict, not with the location', async () => {
+            // "inside the build tree" alone left the reader to work out whether that was a problem.
+            const devUnsafe = { ...UNSAFE_DIR, label: 'ok for dev (inside the build tree)', severity: 'ok' };
+            const { dirs } = await render({ directories: [devUnsafe], enforced: false, story_media: null });
+
+            expect(dirs).toContain('ok for dev');
+        });
+
         it('shows the server\'s own label and severity rather than deciding either here', async () => {
             const { dirs } = await render({ directories: [UNSAFE_DIR], enforced: true, story_media: null });
 
