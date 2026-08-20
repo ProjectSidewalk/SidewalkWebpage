@@ -342,12 +342,16 @@ describe('ImageryPage legend', () => {
     expect(miles).toEqual(['1.0', '1.0', '1.0', '1.0']);
   });
 
-  test('marks the re-audit tier dashed, matching how the map draws it', async () => {
+  test('gives every tier its own swatch class, so the legend reads the same palette the map does', async () => {
     await renderPage();
-    const dashed = [...document.querySelectorAll('#imagery-legend tbody tr')]
-      .filter((row) => row.querySelector('.imagery-tier-swatch--dashed'))
-      .map((row) => row.querySelectorAll('td')[0].textContent.trim());
-    expect(dashed).toEqual(['Needs re-audit']);
+    const swatches = [...document.querySelectorAll('#imagery-legend tbody tr')]
+      .map((row) => row.querySelector('.imagery-tier-swatch').className);
+    expect(swatches).toEqual([
+      'imagery-tier-swatch imagery-swatch--unaudited',
+      'imagery-tier-swatch imagery-swatch--reaudit',
+      'imagery-tier-swatch imagery-swatch--audited-once',
+      'imagery-tier-swatch imagery-swatch--audited-multi',
+    ]);
   });
 
   test('names the tiers that cross when low-quality audits reorder them', async () => {

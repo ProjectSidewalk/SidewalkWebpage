@@ -2901,7 +2901,6 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
   min-width: 220px;
 }
 
-/* Re-audit streets are dashed on the map; the swatch says so rather than making the reader infer it. */
 .imagery-tier-swatch {
   display: inline-block;
   width: 22px;
@@ -2911,20 +2910,14 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
   flex: none;
 }
 
-.imagery-tier-swatch--dashed {
-  border: 0;
-  background: repeating-linear-gradient(90deg,
-  var(--priority-reaudit) 0 5px, transparent 5px 9px);
-}
-
 /* Polled/flagged are the pipeline doing its job; skipped/unflagged are the counterpart it also reports, so each pair
    is one hue apart rather than a green/red judgement — a night of unflagging is not a failure. */
 .mini-bar--polled { fill: var(--color-primary, #4a90d9); }
 .mini-bar--skipped { fill: var(--color-neutral-400, #c9c9c9); }
-.mini-bar--flagged { fill: var(--priority-reaudit, #fc8d59); }
+.mini-bar--flagged { fill: var(--priority-reaudit, #f28e2b); }
 .mini-bar--unflagged { fill: var(--color-pine-600, #60a189); }
 .mini-bar--freshness { fill: var(--color-primary, #4a90d9); }
 .mini-swatch--polled { background: var(--color-primary, #4a90d9); }
 .mini-swatch--skipped { background: var(--color-neutral-400, #c9c9c9); }
-.mini-swatch--flagged { background: var(--priority-reaudit, #fc8d59); }
+.mini-swatch--flagged { background: var(--priority-reaudit, #f28e2b); }
 .mini-swatch--unflagged { background: var(--color-pine-600, #60a189); }

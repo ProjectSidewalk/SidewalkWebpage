@@ -4,8 +4,9 @@
  * Presentational source of truth for the Imagery page: map colors, legend, table badges, and the tier counts all read
  * TIERS so they can never disagree. Tiers are derived from a street's audit *counts* rather than from cutoffs on the
  * priority value: the counts are what the backend formula consumes, so a change to how priority is weighted (#4894)
- * moves the numbers without silently mis-bucketing the map. Colors are a ColorBrewer OrRd sequence rather than design
- * tokens because this is a data ramp — hotter means served sooner — and the token set has no sequential scale.
+ * moves the numbers without silently mis-bucketing the map. Colors are Tableau 10 rather than design tokens: the
+ * token set has no categorical scale, and a sequential ramp's light end disappears at the 2px width these segments
+ * are drawn at. Warm hues are the two tiers that need labeler work, cool the two that are covered.
  */
 class StreetPriorityTiers {
   /** @type {Array<{key: string, label: string, color: string, description: string}>} highest priority first. */
@@ -13,25 +14,25 @@ class StreetPriorityTiers {
     {
       key: 'unaudited',
       label: 'Not yet audited',
-      color: '#D7301F',
+      color: '#E15759',
       description: 'No completed audit counts toward priority yet, so these are served first.',
     },
     {
       key: 'reaudit',
       label: 'Needs re-audit',
-      color: '#FC8D59',
+      color: '#F28E2B',
       description: 'Audited, but every counted audit is on imagery that has since been replaced.',
     },
     {
       key: 'audited_once',
       label: 'Audited once',
-      color: '#FDCC8A',
+      color: '#76B7B2',
       description: 'One audit on current imagery.',
     },
     {
       key: 'audited_multi',
       label: 'Audited 2+ times',
-      color: '#BDBDBD',
+      color: '#BAB0AC',
       description: 'Two or more audits on current imagery; served last.',
     },
   ];
@@ -91,10 +92,6 @@ class StreetPriorityTiers {
  * Renders the per-segment re-audit priority map with Mapbox GL and exposes the same coordination hooks as the Street
  * Status map: hover shows a tooltip and brushes the segment's region, clicking fires onRegionClick, and
  * highlightSegments()/clearHighlight() drive the pinned outline from the outside.
- *
- * Streets needing a re-audit are drawn dashed as well as colored, matching how the Label Map marks them (#4650) —
- * the one distinction an admin is most likely to be looking for stays legible at any zoom, and to anyone who reads
- * the two maps together.
  */
 class StreetPriorityMap {
   static #SOURCE = 'imagery-priority-streets';
@@ -162,12 +159,8 @@ class StreetPriorityMap {
       layout: { 'line-cap': 'butt' },
       paint: {
         'line-color': StreetPriorityTiers.mapboxExpression(),
-        'line-width': ['case', ['boolean', ['feature-state', 'hover'], false], 4, 1.8],
-        // A dash pattern is in line-width units, so it has to stay constant while the hovered line thickens —
-        // otherwise the hovered segment's dashes stretch and it reads as a different tier.
-        'line-dasharray': [
-          'case', ['==', ['get', 'priority_tier'], 'reaudit'], ['literal', [2, 2]], ['literal', [1, 0]],
-        ],
+        // 2.2px is the floor at which these hues stay separable against the basemap's own grey roads.
+        'line-width': ['case', ['boolean', ['feature-state', 'hover'], false], 4.4, 2.2],
       },
     });
     this.#map.addLayer({

@@ -2,7 +2,7 @@
  * Tests for the Imagery page's segment map (#4908).
  *
  * The map is the page's headline, and everything interesting about it is arranged before a tile is ever drawn: the
- * bounds it opens on, the paint expressions that turn a tier into a color and a dash, the hover/click plumbing that
+ * bounds it opens on, the paint expressions that turn a tier into a color, the hover/click plumbing that
  * brushes a region across the rest of the page, and the popup that explains one street's priority. Mapbox GL cannot
  * run under jsdom (no WebGL), so this stands up a `mapboxgl` double that records what the map was asked to do — the
  * arrangement is ours to get right, the rendering is Mapbox's.
@@ -187,16 +187,19 @@ describe('StreetPriorityMap layers', () => {
     expect(paint['line-color']).toEqual(StreetPriorityTiers.mapboxExpression());
   });
 
-  test('dashes only the re-audit tier, and keeps the dash constant while a line thickens on hover', () => {
+  test('carries the tier in color alone, so no second channel can disagree with the legend', () => {
     const paint = state.layers['imagery-priority-line'].paint;
-    const dash = paint['line-dasharray'];
-    expect(dash[0]).toBe('case');
-    expect(dash[1]).toEqual(['==', ['get', 'priority_tier'], 'reaudit']);
-    expect(dash[2]).toEqual(['literal', [2, 2]]);
-    expect(dash[3]).toEqual(['literal', [1, 0]]);
-    // A dash length is in line-width units, so making it depend on hover would stretch the hovered segment's dashes
-    // and make it read as a different tier.
-    expect(JSON.stringify(dash)).not.toContain('feature-state');
+    expect(paint['line-dasharray']).toBeUndefined();
+    expect(JSON.stringify(paint['line-width'])).not.toContain('priority_tier');
+  });
+
+  test('draws segments wide enough for the palette to separate against the basemap, and thickens them on hover', () => {
+    // Below ~2px the tier hues collapse into the basemap's own grey roads, which is what the palette assumes.
+    const width = state.layers['imagery-priority-line'].paint['line-width'];
+    expect(width[0]).toBe('case');
+    expect(width[1]).toEqual(['boolean', ['feature-state', 'hover'], false]);
+    expect(width[3]).toBeGreaterThanOrEqual(2);
+    expect(width[2]).toBeGreaterThan(width[3]);
   });
 
   test('draws the pinned outline from feature state, not from a filtered second source', () => {

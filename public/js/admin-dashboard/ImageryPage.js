@@ -357,9 +357,8 @@ class ImageryPage {
     const total = this.#streets.length;
     const rows = StreetPriorityTiers.TIERS.map((tier) => {
       const stat = stats[tier.key];
-      const dashed = tier.key === 'reaudit';
-      const swatch = `<span class="imagery-tier-swatch${dashed ? ' imagery-tier-swatch--dashed' : ''}`
-        + `${dashed ? '' : ` imagery-swatch--${tier.key.replace(/_/g, '-')}`}" aria-hidden="true"></span>`;
+      const swatch = `<span class="imagery-tier-swatch imagery-swatch--${tier.key.replace(/_/g, '-')}"`
+        + ' aria-hidden="true"></span>';
       const range = stat.count === 0
         ? '—'
         : (stat.min === stat.max ? stat.min.toFixed(3) : `${stat.min.toFixed(3)} – ${stat.max.toFixed(3)}`);
