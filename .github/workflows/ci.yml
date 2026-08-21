@@ -332,8 +332,30 @@ jobs:
       # - ImageryPollOutcomeSpec (#4928): separates a poll with nothing to do from one that could not run. Recording
       #   the second as a success is how a rotated-out API key ends the re-audit signal behind a permanently green
       #   badge.
+      # - StreetPriorityAdminSpec (#4908): the admin Imagery map explains each street's priority with the audit counts
+      #   the formula consumes, re-expressed in SQL. Its first case recomputes the formula from those counts for every
+      #   street and requires the result to equal what the Slick query produces, so re-weighting an audit without
+      #   updating both fails here instead of silently mislabeling the map. Self-seeds its other cases.
+      # - ImageryFreshnessReportSpec (#4908): pure unit tests (no DB, no app boot) over the fold that turns recorded
+      #   job runs into the page's per-night series -- a poll and a sync recording an hour apart merge into one night,
+      #   a hand-run job adds to it rather than replacing it, and a failed run with no counts still reads as a failure.
+      # - ImageryFreshnessReportServiceSpec (#4908): the assembly around that fold -- which jobs are charted and in
+      #   what order, where the window and the batch size come from, and that a job with no recorded run is reported
+      #   as never-run rather than omitted. The omission is the failure the whole panel exists to prevent: a scheduler
+      #   that stopped firing leaves no rows, which a rows-driven listing renders as a clean panel. Seeds its own runs.
+      # - ImageryAdminSpec (#4908): the guard on /admin/imagery and the two endpoints, plus their field contracts. The
+      #   anonymous namespace check above cannot tell WithAdmin from WithOwner, so this signs in for real -- and seeds
+      #   its own admin through the anonymous-signup route rather than hunting the schema for one, which would cancel
+      #   (and so read as passing) against a database with no admin in it.
+      # - StreetPriorityForAdminSpec (#4908): the exact field set of /adminapi/streetPriority, without a DB. The page
+      #   indexes into these rows by name and degrades silently on a miss, so a rename shows up as a blank column.
+      # - StreetImageryPollSpec / StreetImageryTableSpec / ImageryFreshnessPollSpec (#4384): the imagery-age poll's own
+      #   coverage, which ran nowhere in CI until now -- the rotation's ordering, the per-point median, the
+      #   nearest-street attribution rule, and the pure date/geometry parsers. StreetImageryPollSpec seeds streets and
+      #   asserts nearest-street attribution, so it is the one to watch against this job's seed (see #4923's note about
+      #   the seed cloning the tutorial street's geometry); it passes against a real city schema.
       - name: Run gating/auth tests (health dashboard + route auth posture + geodesic distances)
-        run: sbt 'set Test / parallelExecution := false' 'testOnly controllers.HealthDashboardSpec service.HealthServiceSpec controllers.RouteAuthPostureSpec models.street.GeodesicDistanceSpec service.ExploreTutorialRouteSpec controllers.MobileDetectionSpec service.PanoDataServiceSpec service.ActivityBreakdownSpec service.ConfigServiceTrendSpec models.utils.CityScorecardSpec models.utils.ConfigTableVoidedArchiveSpec controllers.api.StatsApiSpec controllers.ExploreSubmissionSpec controllers.ValidateSubmissionSpec controllers.ExploreNoImageryRateLimitSpec models.pano.PanoExpiredAtSpec models.utils.BackgroundJobRunTableSpec service.JobRunServiceSpec service.NightlyJobStatusSpec service.StreetLifecycleServiceSpec models.audit.OutdatedImageryFlagSyncSpec models.audit.OutdatedImageryRoutingSpec models.street.UpToDateCoverageSpec models.street.NoImageryReportsSpec models.utils.EnumTypeParitySpec actor.ScheduledJobsSpec service.ImageryPollOutcomeSpec modules.PersistentMediaDirCheckSpec'
+        run: sbt 'set Test / parallelExecution := false' 'testOnly controllers.HealthDashboardSpec service.HealthServiceSpec controllers.RouteAuthPostureSpec models.street.GeodesicDistanceSpec service.ExploreTutorialRouteSpec controllers.MobileDetectionSpec service.PanoDataServiceSpec service.ActivityBreakdownSpec service.ConfigServiceTrendSpec models.utils.CityScorecardSpec models.utils.ConfigTableVoidedArchiveSpec controllers.api.StatsApiSpec controllers.ExploreSubmissionSpec controllers.ValidateSubmissionSpec controllers.ExploreNoImageryRateLimitSpec models.pano.PanoExpiredAtSpec models.utils.BackgroundJobRunTableSpec service.JobRunServiceSpec service.NightlyJobStatusSpec service.StreetLifecycleServiceSpec models.audit.OutdatedImageryFlagSyncSpec models.audit.OutdatedImageryRoutingSpec models.street.UpToDateCoverageSpec models.street.NoImageryReportsSpec models.utils.EnumTypeParitySpec actor.ScheduledJobsSpec service.ImageryPollOutcomeSpec models.street.StreetPriorityAdminSpec service.ImageryFreshnessReportSpec models.street.StreetImageryPollSpec models.street.StreetImageryTableSpec service.ImageryFreshnessPollSpec service.ImageryFreshnessReportServiceSpec controllers.ImageryAdminSpec models.street.StreetPriorityForAdminSpec modules.PersistentMediaDirCheckSpec'
         env:
           DATABASE_URL: jdbc:postgresql://localhost:5432/sidewalk
           DATABASE_USER: sidewalk
