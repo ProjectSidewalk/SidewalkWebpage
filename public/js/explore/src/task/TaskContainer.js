@@ -150,7 +150,7 @@ class TaskContainer {
    * @returns {number} distance in unit.
    */
   getCompletedTaskDistance(units) {
-    if (!units) units = { units: i18next.t('common:unit-distance') };
+    if (!units) units = { units: util.turfDistanceUnits() };
     const completedTasks = this.getCompletedTasks();
     let feature;
     let distance = 0;
@@ -172,7 +172,7 @@ class TaskContainer {
    * @returns {number} distance in unit.
    */
   getCompletedTaskDistanceAcrossAllUsersUsingPriority() {
-    const unit = { units: i18next.t('common:unit-distance') };
+    const unit = { units: util.turfDistanceUnits() };
     const tasks = this.getTasks().filter((t) => t.getStreetPriority() < 1);
     let feature;
     let distance = 0;
@@ -269,6 +269,30 @@ class TaskContainer {
   }
 
   /**
+   * The route's start and finish coordinates in walking order: the first street's start and the last street's end.
+   * Coordinates are already oriented to the walking direction on each task, so start/end are the true
+   * origin/destination.
+   * @returns {?{start: {lat: number, lng: number}, finish: {lat: number, lng: number}}} null if no tasks loaded.
+   */
+  getRouteEndpoints() {
+    const tasks = this.getTasks();
+    if (tasks.length === 0) return null;
+    const ordered = [...tasks].sort((t1, t2) => t1.getWalkOrder() - t2.getWalkOrder());
+    return { start: ordered[0].getStartCoordinate(), finish: ordered[ordered.length - 1].getEndCoordinate() };
+  }
+
+  /**
+   * The route's full path as a flat list of [lng, lat] coordinates in walking order: every street's LineString
+   * concatenated by walk order (matching getRouteEndpoints/nextTask), each oriented to the walking direction. Adjacent
+   * streets share a junction point, keeping the path continuous — suitable for direction arrows and the explorer walk.
+   * @returns {number[][]} [] if no tasks are loaded.
+   */
+  getRoutePathCoordinates() {
+    const ordered = [...this.getTasks()].sort((t1, t2) => t1.getWalkOrder() - t2.getWalkOrder());
+    return ordered.flatMap((task) => task.getGeoJSON().geometry.coordinates);
+  }
+
+  /**
    * Checks if the neighborhood is complete across all users; if so, displays the relevant overlay.
    */
   #updateNeighborhoodCompleteAcrossAllUsersStatus() {
@@ -303,18 +327,25 @@ class TaskContainer {
     const svl = this.#svl;
     let newTask;
 
-    // Check if user has audited entire region or route.
-    const tasksNotCompletedByUser = this.getTasks().filter((t) => {
-      return !t.isComplete() && t.getStreetEdgeId() !== (finishedTask ? finishedTask.getStreetEdgeId() : null);
-    });
+    // Check if user has audited entire region or route. On a route, a street can legitimately appear twice
+    // (out-and-back), so the just-finished task is excluded by its route_street row rather than by its street —
+    // excluding by street would silently drop the return leg.
+    const sameAsFinished = (t) => {
+      if (!finishedTask) return false;
+      const finishedWalkOrder = finishedTask.getWalkOrder();
+      return svl.neighborhoodModel.isRoute && finishedWalkOrder !== null && finishedWalkOrder !== undefined
+        ? t.getWalkOrder() === finishedWalkOrder
+        : t.getStreetEdgeId() === finishedTask.getStreetEdgeId();
+    };
+    const tasksNotCompletedByUser = this.getTasks().filter((t) => !t.isComplete() && !sameAsFinished(t));
     if (tasksNotCompletedByUser.length === 0) {
       return null;
     }
 
     if (svl.neighborhoodModel.isRoute) {
-      // For a route, the user will go to the street with the next highest routeStreetId.
+      // For a route, the user walks the streets in the route's saved order.
       newTask = tasksNotCompletedByUser.reduce((min, current) => {
-        return current.getProperty('routeStreetId') < min.getProperty('routeStreetId') ? current : min;
+        return current.getWalkOrder() < min.getWalkOrder() ? current : min;
       }, tasksNotCompletedByUser[0]);
     } else {
       // If not part of a route, check for a connected task with a high priority. If none, jump to the highest
@@ -439,7 +470,7 @@ class TaskContainer {
     const neighborhood = this.#svl.neighborhoodModel.currentNeighborhood();
 
     if (neighborhood) {
-      distance = this.getCompletedTaskDistance({ units: i18next.t('common:unit-distance') });
+      distance = this.getCompletedTaskDistance({ units: util.turfDistanceUnits() });
     }
     this.#svl.overallStats.setNeighborhoodAuditedDistance(distance);
     return this;
@@ -461,5 +492,7 @@ class TaskContainer {
     for (const task of this._tasks) {
       task.render();
     }
+    // Keep the route overview inset's explored/ahead colors in sync as streets complete (routes only; no-op otherwise).
+    if (svl.routeOverview) svl.routeOverview.render();
   }
 }

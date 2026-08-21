@@ -17,8 +17,10 @@ class LabelTypeEnumSpec extends PlaySpec {
     "be true for exactly the accessibility-problem label types" in {
       val issueTypes = LabelTypeEnum.values.filter(_.isAccessProblem)
       issueTypes mustBe Set(
-        LabelTypeEnum.NoCurbRamp, LabelTypeEnum.Obstacle, LabelTypeEnum.SurfaceProblem, LabelTypeEnum.NoSidewalk,
-        LabelTypeEnum.Problem
+        LabelTypeEnum.NoCurbRamp,
+        LabelTypeEnum.Obstacle,
+        LabelTypeEnum.SurfaceProblem,
+        LabelTypeEnum.NoSidewalk
       )
     }
   }
@@ -42,14 +44,13 @@ class LabelTypeEnumSpec extends PlaySpec {
   }
 
   "label type icons" should {
-    "exist on disk in all three sizes for every valid label type" in {
+    "exist on disk in every variant for every label type" in {
       // Share-image compositing resolves public/images/icons/label_type_icons/<name>_small.png (the colored marker)
-      // by convention, and the enum exposes paths for all three sizes; a missing file degrades silently to a
-      // markerless preview, so pin the convention here. The internal-only Problem type (excluded from
-      // validLabelTypes) ships no icons, matching its lack of a name message key.
-      for (lt <- LabelTypeEnum.values if LabelTypeEnum.validLabelTypes.contains(lt.name)) {
-        for (suffix <- Seq("", "_small", "_tiny")) {
-          val icon = new File(s"public/images/icons/label_type_icons/${lt.name}$suffix.png")
+      // by convention, and the enum exposes paths for the scalable marker and all three raster sizes; a missing file
+      // degrades silently to a markerless preview, so pin the convention here.
+      for (lt <- LabelTypeEnum.values) {
+        for (variant <- Seq(".png", "_small.png", "_tiny.png", "_small.svg")) {
+          val icon = new File(s"public/images/icons/label_type_icons/${lt.name}$variant")
           assert(icon.exists(), s"missing icon for ${lt.name}: ${icon.getPath}")
         }
       }

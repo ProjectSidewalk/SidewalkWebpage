@@ -21,8 +21,8 @@
   "badge-type-validations": "Validierungen",
   "badge-missions-singular": "Mission",
   "badge-missions-plural": "Missionen",
-  "badge-distance-singular": "km",
-  "badge-distance-plural": "km",
+  "badge-distance-singular": "{{unitNameSingular}}",
+  "badge-distance-plural": "{{unitName}}",
   "badge-labels-singular": "Beschriftung",
   "badge-labels-plural": "Beschriftungen",
   "badge-validations-singular": "Validierung",
@@ -47,8 +47,7 @@
     "remaining-missions_other": "Noch {{count}} Missionen",
     "remaining-validations_one": "Noch {{count}} Validierung",
     "remaining-validations_other": "Noch {{count}} Validierungen",
-    "remaining-distance-km": "Noch {{dist}} km",
-    "remaining-distance-mi": "Noch {{dist}} mi"
+    "remaining-distance": "Noch {{dist}} {{unitAbbr}}"
   },
   "mistake-cards": {
     "empty": "🎉 Keine Fehler zu überprüfen — Ihre Beschriftungen halten stand. Weiter so!",
@@ -83,6 +82,13 @@
     "network-error": "Netzwerkfehler — bitte versuchen Sie es erneut."
   },
   "stories": {
-    "none": "Sie haben noch keine Geschichten geteilt. Öffnen Sie eine Beschriftung auf der Karte und wählen Sie „Geschichte teilen“."
-  }
-}
+    "none": "Sie haben noch keine Geschichten geschrieben. Öffnen Sie eine Beschriftung auf der Karte und wählen Sie „Geschichte schreiben“."
+  },
+  "routes-link-copied": "Link kopiert!",
+  "routes-rename-aria": "Neuer Routenname",
+  "routes-rename-save": "Speichern",
+  "routes-rename-cancel": "Abbrechen",
+  "routes-renamed": "Route umbenannt.",
+  "routes-deleted": "\"{{name}}\" gelöscht.",
+  "routes-delete-confirm": "\"{{name}}\" löschen? Personen, mit denen Sie den Link geteilt haben, können ihn dann nicht mehr verwenden.",
+  "routes-error": "Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut."}

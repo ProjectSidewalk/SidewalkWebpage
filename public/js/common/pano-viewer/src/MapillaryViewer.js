@@ -29,12 +29,16 @@ class MapillaryViewer extends PanoViewer {
     // TODO Need to define a set of options and then find a nice way to map them onto viewer-specific configs.
     const disableDefaultUi = 'disableDefaultUi' in panoOptions ? panoOptions.disableDefaultUi : true;
     const defaultNavigation = 'defaultNavigation' in panoOptions ? panoOptions.defaultNavigation : false;
+    const preloadNeighbors = 'preloadNeighbors' in panoOptions ? panoOptions.preloadNeighbors : false;
     let panoOpts = {
       dataProvider: createMapillaryChunkedDataProvider({ accessToken: panoOptions.accessToken }),
       container: canvasElem.id,
       component: {
         bearing: !disableDefaultUi, // Shows heading viewer orb thing
-        cache: false, // TODO should make this true on Explore
+        // Pre-downloads assets (texture + mesh) for panos linked to the current one, so nearby moves load fast.
+        // Only worth it when navigation mostly follows those links (Explore); a jump to an unrelated pano
+        // (Validate, label popups) never hits the cache, so the prefetch bandwidth would be wasted there.
+        cache: preloadNeighbors,
         direction: defaultNavigation, // Shows Mapillary's navigation arrows
         keyboard: false,
         marker: true, // TODO "Enable an interface for showing 3D markers in the viewer"
@@ -287,31 +291,57 @@ class MapillaryViewer extends PanoViewer {
     return { pitch, roll };
   };
 
+  /**
+   * Builds sets of excluded pano IDs and captured_at timestamps. Mapillary has an issue where duplicate images
+   * can exist with different IDs but the same captured_at, so searches filter on both.
+   *
+   * @param {Set<PanoData>} excludedPanos Panos to exclude from a search.
+   * @returns {{ excludedPanoIds: Set<string>, excludedTimestamps: Set<number> }}
+   */
+  #buildExclusionSets = (excludedPanos) => {
+    return {
+      excludedPanoIds: new Set([...excludedPanos].map((p) => p.getPanoId())),
+      excludedTimestamps: new Set([...excludedPanos].map((p) => p.getProperty('captureDate').valueOf())),
+    };
+  };
+
+  /**
+   * Searches for images near a point and picks the best viable candidate. Uses a prefetched search result if one
+   * exists near the location, otherwise fetches from the API and caches it. If a prefetched search yields no
+   * viable candidate (e.g. all excluded), falls back to a fresh API call centered exactly on the target, storing
+   * those results in case they're useful later as well.
+   *
+   * @param {turf.Point} center The target location.
+   * @param {number} radius Search radius in kilometers.
+   * @param {Set<PanoData>} excludedPanos Panos that are not viable candidates.
+   * @returns {Promise<Object|null>} The best candidate pano from the Mapillary API, or null if none are viable.
+   */
+  #searchAndSelectPano = async (center, radius, excludedPanos) => {
+    const currSequenceId = this.currImage ? this.currImage.sequenceId : null;
+    const { excludedPanoIds, excludedTimestamps } = this.#buildExclusionSets(excludedPanos);
+
+    const prefetch = this.#findNearestPrefetch(center);
+    let panos = await (prefetch ?? this.#storePrefetch(center, radius)).promise;
+    let bestPano = this.#selectBestPano(panos, excludedPanoIds, excludedTimestamps, center, currSequenceId);
+
+    if (!bestPano && prefetch) {
+      panos = await this.#storePrefetch(center, radius).promise;
+      bestPano = this.#selectBestPano(panos, excludedPanoIds, excludedTimestamps, center, currSequenceId);
+    }
+    return bestPano;
+  };
+
   setLocation = async (latLng, excludedPanos = new Set()) => {
     const center = turf.point([latLng.lng, latLng.lat]);
     const radius = svl.STREETVIEW_MAX_DISTANCE / 1000.0; // Convert search radius to kms.
-    const currSequenceId = this.currImage ? this.currImage.sequenceId : null;
-
-    // Build sets of excluded pano IDs and captured_at timestamps. Mapillary has an issue where duplicate images
-    // can exist with different IDs but the same captured_at, so we filter on both.
-    const excludedPanoIds = new Set([...excludedPanos].map((p) => p.getPanoId()));
-    const excludedTimestamps = new Set([...excludedPanos].map((p) => p.getProperty('captureDate').valueOf()));
 
     try {
-      // Use a prefetched result if one exists near this location, otherwise fetch from the API and cache it.
-      // If the prefetch yields no viable candidates (e.g. all excluded), fall back to a fresh API call.
-      const prefetch = this.#findNearestPrefetch(center);
-      let panos = await (prefetch ?? this.#storePrefetch(center, radius)).promise;
-      let bestPano = this.#selectBestPano(panos, excludedPanoIds, excludedTimestamps, center, currSequenceId);
-
-      if (!bestPano && prefetch) {
-        // Making fresh API call. Store the results in case they're useful later as well.
-        panos = await this.#storePrefetch(center, radius).promise;
-        bestPano = this.#selectBestPano(panos, excludedPanoIds, excludedTimestamps, center, currSequenceId);
-      }
-
+      const bestPano = await this.#searchAndSelectPano(center, radius, excludedPanos);
       if (!bestPano) {
-        throw new Error('No images found near this location');
+        // The search ran and came back with nothing the caller can use — either the location is genuinely empty or
+        // its only images are ones already excluded. Both are answers, so both are NoImageryError; a failure to
+        // reach Mapillary at all propagates untyped from the calls above instead (#4918).
+        throw new NoImageryError(`No usable Mapillary image within ${radius * 1000}m of ${latLng.lat},${latLng.lng}.`);
       }
 
       // Load the pano. Say that it failed if it doesn't work after 10 seconds.
@@ -337,6 +367,37 @@ class MapillaryViewer extends PanoViewer {
     if (!this.#findNearestPrefetch(centerPoint)) {
       this.#storePrefetch(centerPoint, radius);
     }
+  };
+
+  /**
+   * Pre-downloads the pano that setLocation() would pick so a subsequent move there doesn't wait on the network. Runs
+   * the same search + scoring as setLocation() (reusing prefetched search results when available) and warms
+   * mapillary-js's cache with the winner.
+   *
+   * @param {{lat: number, lng: number}} latLng The location the next move is expected to target.
+   * @param {Set<PanoData>} [excludedPanos] Panos the next move is expected to exclude.
+   * @returns {Promise<void>}
+   */
+  preloadPanoNear = async (latLng, excludedPanos = new Set()) => {
+    try {
+      const center = turf.point([latLng.lng, latLng.lat]);
+      const radius = svl.STREETVIEW_MAX_DISTANCE / 1000.0; // Convert search radius to kms.
+      const bestPano = await this.#searchAndSelectPano(center, radius, excludedPanos);
+      if (bestPano) this.#cachePanoAssets(bestPano.id);
+    } catch (err) {
+      console.warn('Failed to preload pano near', latLng, err);
+    }
+  };
+
+  /**
+   * Warms mapillary-js's cache for the given image: downloads its metadata, texture, and mesh so that a later moveTo()
+   * doesn't hit the network. Uses the same internal graphService call that mapillary-js's own cache component uses for
+   * neighbor prefetching — there is no public API for caching an arbitrary image.
+   *
+   * @param {string} panoId The Mapillary image ID to cache.
+   */
+  #cachePanoAssets = (panoId) => {
+    this.viewer._navigator.graphService.cacheImage$(panoId).subscribe({ error: () => {} });
   };
 
   /**

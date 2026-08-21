@@ -3,7 +3,17 @@ package controllers
 import controllers.base.{CustomBaseController, CustomControllerComponents}
 import models.auth.{WithAdmin, WithOwner}
 import play.api.Configuration
-import service.{ConfigService, LabelService}
+import models.street.StreetPriorityForAdmin
+import play.api.libs.json.Json
+import service.HealthService.dbHealthDataWrites
+import service.{
+  ConfigService,
+  HealthService,
+  ImageryFreshnessReportService,
+  LabelService,
+  StreetLifecycleService,
+  StreetService
+}
 
 import javax.inject._
 import scala.concurrent.ExecutionContext
@@ -22,7 +32,11 @@ class AdminDashboardController @Inject() (
     val config: Configuration,
     implicit val assets: AssetsFinder,
     configService: ConfigService,
-    labelService: LabelService
+    labelService: LabelService,
+    healthService: HealthService,
+    streetLifecycleService: StreetLifecycleService,
+    imageryFreshnessReportService: ImageryFreshnessReportService,
+    streetService: StreetService
 )(implicit ec: ExecutionContext)
     extends CustomBaseController(cc) {
   implicit val implicitConfig: Configuration = config
@@ -201,5 +215,80 @@ class AdminDashboardController @Inject() (
       cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Admin_AcrossCities")
       Ok(views.html.admin.dashboard.acrossCities(commonData, request.identity))
     }
+  }
+
+  /**
+   * Renders the Health page: an at-a-glance view of database and application operational-health signals (#4561).
+   *
+   * Surfaces the class of problem that is invisible in the app log and otherwise only found by hand-inspecting server
+   * logs — blocking locks, idle-in-transaction sessions, stuck evolutions, table bloat, and connection pressure.
+   * Owner-gated because the signals are cluster-wide (all cities share one database). Driven client-side by a poller
+   * hitting `/adminapi/dbHealth`.
+   */
+  def health = cc.securityService.SecuredAction(WithOwner()) { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Admin_Health")
+      Ok(views.html.admin.dashboard.health(commonData, request.identity))
+    }
+  }
+
+  /**
+   * The Health dashboard's data endpoint: the current database/app health payload as snake_case JSON, polled by the
+   * page. Owner-gated like the page itself. Deliberately NOT activity-logged: the page polls this every ~20s, so
+   * logging each hit would flood `webpage_activity`; the one-time page visit is logged by [[health]] instead.
+   */
+  def getDbHealth = cc.securityService.SecuredAction(WithOwner()) { _ =>
+    healthService.getDbHealth.map(data => Ok(Json.toJson(data)))
+  }
+
+  /**
+   * The Street Status page's trend endpoint: what changed over the last `weeks` weeks, as snake_case JSON (#4928).
+   *
+   * Admin- rather than Owner-gated, and scoped to this city's schema, because it is a per-city operational lens like
+   * the map and table it sits under. Fetched separately from the page's street GeoJSON so a trend failure leaves the
+   * snapshot intact.
+   *
+   * @param weeks Window size; clamped by [[StreetLifecycleService.clampWeeks]], so a junk value is a narrow chart
+   *              rather than an error.
+   */
+  def getStreetStatusTrend(weeks: Int) = cc.securityService.SecuredAction(WithAdmin()) { _ =>
+    streetLifecycleService.getStreetStatusTrend(weeks).map(trend => Ok(Json.toJson(trend)))
+  }
+
+  /**
+   * Renders the Imagery page: where the re-audit work sits, and whether the pipeline that finds it is alive (#4908).
+   *
+   * The #4384 pipeline surfaces which streets need a re-audit but not the ranking Explore actually routes on, and its
+   * nightly poll — the only thing that can raise a re-audit flag — reports solely to the application log, where a
+   * poller that stopped firing leaves no evidence at all. This page renders both: a priority-colored street map with
+   * the audit counts behind each value, and the poll's own recorded rotation and flag counts.
+   */
+  def imagery = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Admin_Imagery")
+      Ok(views.html.admin.dashboard.imagery(commonData, request.identity))
+    }
+  }
+
+  /**
+   * The Imagery page's pipeline endpoint: nightly poll/flag counts and job state as snake_case JSON (#4908).
+   *
+   * @param days Window size; clamped by [[ImageryFreshnessReportService.clampDays]], so a junk value narrows the
+   *             chart rather than erroring.
+   */
+  def getImageryFreshness(days: Int) = cc.securityService.SecuredAction(WithAdmin()) { _ =>
+    imageryFreshnessReportService.getReport(days).map(report => Ok(Json.toJson(report)))
+  }
+
+  /**
+   * The Imagery page's per-street endpoint: every routable street's priority plus the audit counts it derives from.
+   *
+   * Geometry is deliberately absent — the page joins these rows to the street GeoJSON it already fetches from
+   * `/v3/api/streets`, which keeps this payload small enough to also drive the tables and the rotation roll-ups.
+   * Admin-only rather than published on the v3 API: priority is an internal routing weight, and exposing it there
+   * would freeze it into a public contract that the multi-factor prioritization work (#4894) is expected to change.
+   */
+  def getStreetPriority = cc.securityService.SecuredAction(WithAdmin()) { _ =>
+    streetService.getPriorityWithInputs.map(streets => Ok(StreetPriorityForAdmin.payload(streets)))
   }
 }

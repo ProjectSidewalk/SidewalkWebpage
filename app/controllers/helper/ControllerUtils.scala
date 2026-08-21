@@ -2,8 +2,9 @@ package controllers.helper
 
 import models.label.LabelTypeEnum
 import models.user.{RoleTable, SidewalkUserWithRole}
-import play.api.mvc.Results.Redirect
-import play.api.mvc.{Request, RequestHeader, Result}
+import play.api.i18n.Messages
+import play.api.mvc.Results.{Redirect, Unauthorized}
+import play.api.mvc.{Cookie, DiscardingCookie, RequestHeader, Result}
 
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
@@ -13,19 +14,121 @@ import scala.util.matching.Regex
 object ControllerUtils {
 
   /**
-   * Returns true if the user is on mobile, false if the user is not on mobile.
+   * The user id to query with on behalf of a request that carries no identity.
+   *
+   * Label reads compute per-user columns — "you already validated this", "this is your own label" — by comparing rows
+   * against a user id, and a cookie-less visitor doesn't have one. An id that belongs to nobody makes every such
+   * comparison false, which is exactly the answer a brand-new account gets, so the query shape stays the same for both
+   * (#4643). Empty string is safe because `user_id` is a text column; it lives here so the read endpoints that need it
+   * can't drift apart.
    */
-  def isMobile[A](implicit request: Request[A]): Boolean = {
-    val mobileOS: Regex =
-      "(iPhone|webOS|iPod|Android|BlackBerry|mobile|SAMSUNG|IEMobile|OperaMobi|BB10|iPad|Tablet)".r.unanchored
+  val NoUserId: String = ""
+
+  /** Mobile OS/device tokens in a User-Agent. Compiled once: isMobile runs on every page render (the layout stamp). */
+  private val mobileOsRegex: Regex =
+    "(iPhone|webOS|iPod|Android|BlackBerry|mobile|SAMSUNG|IEMobile|OperaMobi|BB10|iPad|Tablet)".r.unanchored
+
+  /**
+   * Whether the request comes from a mobile device, judged by matching its User-Agent against a list of mobile OS
+   * and device tokens.
+   *
+   * Accepts a `RequestHeader`, the widest type carrying headers, so Twirl templates can ask as well — the navbar drops
+   * the destinations that would only redirect a mobile visitor to /mobileLanding, and a template holds nothing but the
+   * header. A controller's `Request[A]` satisfies it unchanged, being one.
+   *
+   * @param request The request whose User-Agent header is inspected.
+   * @return        True if that header is present and matches a mobile token; false if it is absent or matches none.
+   */
+  def isMobile(implicit request: RequestHeader): Boolean = {
     request.headers
       .get("User-Agent")
       .exists(agent => {
         agent match {
-          case mobileOS(a) => true
-          case _           => false
+          case mobileOsRegex(_) => true
+          case _                => false
         }
       })
+  }
+
+  /**
+   * The two measurement systems the site renders distances in, and the cookie that pins a request to one of them.
+   *
+   * Units can be specified on the User Dashboard, or defaults to the site language (the `measurement.system` message).
+   */
+  object MeasurementSystem {
+    val Metric: String   = "metric"
+    val Imperial: String = "imperial"
+
+    /** What the settings form submits, and the select's value, for "follow the site language". */
+    val FollowLanguage: String = "auto"
+
+    val CookieName: String = "PS_UNITS"
+
+    /** A display preference rather than a credential, so it outlives the browser session; a year is effectively forever. */
+    private val cookieMaxAge: Int = 365 * 24 * 60 * 60
+
+    /** The values `CookieName` may hold. Anything else is treated as absent. */
+    val validOverrides: Set[String] = Set(Metric, Imperial)
+
+    /** The cookie that pins requests to `system`. HttpOnly: client code reads the `<html>` stamp, never the cookie. */
+    def overrideCookie(system: String): Cookie =
+      Cookie(CookieName, system, maxAge = Some(cookieMaxAge), httpOnly = true)
+
+    /** Clears any override, returning the user to language-derived units. */
+    def clearOverrideCookie: DiscardingCookie = DiscardingCookie(CookieName)
+  }
+
+  /**
+   * The measurement system this request should render distances in: users can override on their dashboard settings.
+   *
+   * @param request  The request whose override cookie is inspected.
+   * @param messages The request's messages, supplying the language default when there is no override.
+   * @return         Either `MeasurementSystem.Metric` or `MeasurementSystem.Imperial` — never a language's own wording.
+   */
+  def measurementSystem(implicit request: RequestHeader, messages: Messages): String = {
+    request.cookies
+      .get(MeasurementSystem.CookieName)
+      .map(_.value)
+      .filter(MeasurementSystem.validOverrides.contains)
+      .getOrElse {
+        if (messages("measurement.system") == MeasurementSystem.Metric) MeasurementSystem.Metric
+        else MeasurementSystem.Imperial
+      }
+  }
+
+  /**
+   * Whether this request renders distances in kilometers and meters rather than miles and feet.
+   *
+   * The one way anything — controller, template, or (via the `<html>` stamp `main.scala.html` writes) client code —
+   * should ask, so a user's unit override can't be honored on some pages and ignored on others.
+   */
+  def isMetric(implicit request: RequestHeader, messages: Messages): Boolean = {
+    measurementSystem == MeasurementSystem.Metric
+  }
+
+  /**
+   * The words this request names distances with, resolved for its measurement system.
+   *
+   * These are the *only* translated unit words in the app: `main.scala.html` hands them to i18next as interpolation
+   * defaults, so a client-side string embeds `{{unitName}}` instead of the locale files carrying their own metric and
+   * imperial copies of every unit word (#4404). Server-rendered templates read the same fields.
+   *
+   * @param abbr         Distance abbreviation, e.g. "km" / "mi".
+   * @param abbrSmall    Abbreviation for the short distances missions are measured in, e.g. "m" / "ft".
+   * @param name         Plural distance noun, e.g. "kilometers" / "miles".
+   * @param nameSingular Singular distance noun, e.g. "kilometer" / "mile".
+   */
+  case class DistanceUnitWords(abbr: String, abbrSmall: String, name: String, nameSingular: String)
+
+  /** The distance-unit words for this request, in its measurement system and language. */
+  def distanceUnitWords(implicit request: RequestHeader, messages: Messages): DistanceUnitWords = {
+    val system = measurementSystem
+    DistanceUnitWords(
+      abbr = messages(s"unit.distance.abbr.$system"),
+      abbrSmall = messages(s"unit.distance.abbr.small.$system"),
+      name = messages(s"unit.distance.name.$system"),
+      nameSingular = messages(s"unit.distance.name.singular.$system")
+    )
   }
 
   /**
@@ -147,10 +250,33 @@ object ControllerUtils {
   }
 
   /**
-   * Sets up a redirect to /anonSignUp while keeping track of the current URL and query string.
+   * Result for an unauthenticated request to a secured action: create an anonymous account and return here.
+   *
+   * A top-level navigation is 303-redirected to /anonSignUp (carrying the original path as `url`), which mints an
+   * anonymous account and sends the browser back. That's wrong for a fetch/XHR call: a 303 turns it into a GET of the
+   * original path, so a POST-only API route (e.g. `POST /task`) dead-ends at a 404, and the client re-fires and loops.
+   * Such requests get a plain `401` instead, letting the client's fetch fail cleanly.
+   *
+   * We distinguish the two by the `Sec-Fetch-Mode` fetch-metadata header, which browsers send on trustworthy origins
+   * (https and localhost): `navigate` for top-level navigations (including no-JS form posts), `cors`/`same-origin`/
+   * `no-cors` for fetch/XHR/subresource requests.
+   *
+   * When the header is absent — curl, crawlers, the test suite, browsers predating fetch metadata such as Safari
+   * before 16.4 — the method decides. A GET falls through to the redirect, the conservative default that preserves
+   * the anonymous-signup-on-navigation flow. A write does not: it would be redirected, followed, and land on a 200
+   * HTML page, so the caller reads success while the submission was silently dropped. A 401 instead lets the client
+   * see the failure and mint a session (`util.lazyIdentityFetch`, #4442).
+   *
+   * @param request The unauthenticated request header.
+   * @return        `401 Unauthorized` for a non-navigation fetch/XHR request, otherwise a 303 redirect to /anonSignUp.
    */
   def anonSignupRedirect(request: RequestHeader): Result = {
-    Redirect("/anonSignUp", request.queryString + ("url" -> Seq(request.path)))
+    val isNavigation = request.headers.get("Sec-Fetch-Mode") match {
+      case Some(mode) => mode == "navigate"
+      case None       => request.method == "GET"
+    }
+    if (isNavigation) Redirect("/anonSignUp", request.queryString + ("url" -> Seq(request.path)))
+    else Unauthorized("Not authenticated")
   }
 
   /**

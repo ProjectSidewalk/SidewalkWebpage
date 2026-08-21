@@ -30,6 +30,45 @@
   opacity: 1;
 }
 
+/* Dark variant, for toasts that float over street imagery (Validate). A white card there reads as a piece of the
+   tool's chrome that has appeared over the photo; a dark one reads as a note laid on top of it, and stays legible
+   against a bright sky or a snow-covered sidewalk without needing a heavier border. */
+.ps-toast--dark {
+  background: var(--color-asphalt-500);
+  border-color: var(--color-asphalt-500);
+  color: var(--color-neutral-white);
+}
+
+.ps-toast--dark .ps-toast__title {
+  color: var(--color-neutral-white);
+}
+
+/* Higher resting opacity than the light toast: the same 0.85 over dark imagery muddies the text rather than
+   politely getting out of the way. */
+.ps-toast--dark.ps-toast--visible {
+  opacity: 0.94;
+}
+
+/* Compact variant, for a one-line aside rather than an announcement. The default toast is sized to carry a bold
+   title, a message, and an action button; at that size a single sentence laid over a 720x480 pano covers a good
+   part of the thing it is telling you to look at.
+
+   One line wherever it fits: max-content sizes the box to the unwrapped sentence no matter how little room the
+   shrink-to-fit would otherwise give it, so it stays a slim bar over the imagery instead of growing into a block.
+   The viewport cap is what keeps that from running off the edge — a translation long enough to hit it wraps to a
+   second line, which is worth more than a first line whose end is cut off. Callers still owe it a short sentence. */
+.ps-toast--compact {
+  gap: calc(12px * var(--ui-scale, 1));
+  width: max-content;
+  max-width: calc(100vw - 24px * var(--ui-scale, 1));
+  padding: calc(6px * var(--ui-scale, 1)) calc(14px * var(--ui-scale, 1));
+  border-radius: calc(14px * var(--ui-scale, 1));
+}
+
+.ps-toast--compact .ps-toast__message {
+  font: var(--text-caption-regular);
+}
+
 .ps-toast__icon {
   flex: 0 0 auto;
   width: calc(50px * var(--ui-scale, 1));

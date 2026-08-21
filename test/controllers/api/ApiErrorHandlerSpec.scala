@@ -4,15 +4,15 @@ import modules.CustomErrorHandler
 import org.apache.pekko.stream.Materializer
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
-import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.{Application, Mode}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 
 /**
  * Verifies that framework-level errors (unknown route, malformed typed param, unhandled exception) on the public
  * `/v3/api` surface are rendered as RFC 7807 `application/problem+json` by `CustomErrorHandler` — consistent with
- * the controller-level errors — while non-API routes keep the site's HTML error handling (#3931).
+ * the controller-level errors (#3931) — while non-API routes render the branded HTML error pages (#3954).
  *
  * These exercise the error handler directly: Play's `route()` test helper returns `None` for an unmatched path
  * (it never invokes the error handler), so an unknown-route 404 can't be asserted through `route()`.
@@ -50,10 +50,14 @@ class ApiErrorHandlerSpec extends PlaySpec with GuiceOneAppPerSuite {
       contentType(resp) mustBe Some("text/html")
     }
 
-    "keep HTML error handling for non-API paths" in {
+    "render the branded 404 page with the requested path for non-API paths" in {
       val resp = handler.onClientError(FakeRequest(GET, "/some-web-page"), NOT_FOUND, "")
       status(resp) mustBe NOT_FOUND
       contentType(resp) mustBe Some("text/html")
+      val body = contentAsString(resp)
+      body must include("404")
+      body must include("Page not found")
+      body must include("/some-web-page")
     }
   }
 
@@ -66,6 +70,34 @@ class ApiErrorHandlerSpec extends PlaySpec with GuiceOneAppPerSuite {
       val json = contentAsJson(resp)
       (json \ "code").as[String] mustBe "INTERNAL_SERVER_ERROR"
       (json \ "detail").as[String] must not include "secret-internal-detail"
+    }
+
+    "render the branded 500 page with an error id for non-API paths in prod mode" in {
+      // The branded 500 only dispatches in prod (dev/test show Play's stack-trace page), so this needs its own
+      // prod-mode app. Prod refuses the default application secret, so one is set explicitly; evolutions are
+      // disabled because the handler renders without touching the schema. StartupChecksModule is disabled because
+      // prod mode arms PersistentMediaDirCheck, which would refuse this checkout's relative media dirs (#4925).
+      val prodApp = new GuiceApplicationBuilder()
+        .in(Mode.Prod)
+        .configure(
+          "play.http.secret.key"    -> "prod-mode-test-secret-0123456789abcdef0123456789abcdef0123456789",
+          "play.evolutions.enabled" -> false
+        )
+        .disable[modules.ActorModule]
+        .disable[modules.StartupChecksModule]
+        .build()
+      try {
+        val resp = prodApp.injector
+          .instanceOf[CustomErrorHandler]
+          .onServerError(FakeRequest(GET, "/some-web-page"), new RuntimeException("secret-internal-detail"))
+        status(resp) mustBe INTERNAL_SERVER_ERROR
+        contentType(resp) mustBe Some("text/html")
+        val body = contentAsString(resp)
+        body must include("500")
+        body must include("Something went wrong")
+        body must include("Error ID:")
+        body must not include "secret-internal-detail"
+      } finally { await(prodApp.stop()); () }
     }
   }
 }

@@ -5,12 +5,15 @@ import controllers.helper.ControllerUtils.isAdmin
 import controllers.helper.SignedMediaUtils
 import formats.json.StoryFormats
 import models.auth.{DefaultEnv, WithAdmin}
-import models.story.{Story, StoryPhotoUpload, StoryRejection}
+import models.story.{Story, StoryMedia, StoryPhotoUpload, StoryRejection}
 import play.api.libs.json.{JsBoolean, Json}
 import play.api.{Configuration, Logger}
 import play.silhouette.api.Silhouette
-import service.{ImageSigningService, RateLimiter, StoryService}
+import service.{ConfigService, ImageSigningService, RateLimiter, StoryService}
 
+import java.io.File
+import java.time.{Duration, OffsetDateTime}
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
@@ -24,7 +27,9 @@ import scala.util.Try
 class StoryController @Inject() (
     cc: CustomControllerComponents,
     val silhouette: Silhouette[DefaultEnv],
-    config: Configuration,
+    implicit val config: Configuration,
+    implicit val assets: AssetsFinder,
+    configService: ConfigService,
     storyService: StoryService,
     signingService: ImageSigningService,
     rateLimiter: RateLimiter,
@@ -33,6 +38,22 @@ class StoryController @Inject() (
   private val logger = Logger(this.getClass)
 
   private val photoMaxBytes: Long = config.get[Long]("stories.photo-max-bytes")
+
+  /**
+   * Renders the public /stories page: the city's community stories, newest first (#4688).
+   *
+   * A bare SecuredAction (anonymous auto-accounts included) like /leaderboard, so anyone browsing the site can read
+   * the stories that are already public on every label card.
+   */
+  def storiesPage = cc.securityService.SecuredAction { implicit request =>
+    for {
+      commonData <- configService.getCommonPageData(request2Messages.lang)
+      stories    <- storyService.getStoriesForCity(StoryController.ListingMax)
+    } yield {
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Stories")
+      Ok(views.html.apps.storyList(commonData, request.identity, stories))
+    }
+  }
 
   /**
    * All stories for a label, shaped for the viewer. Public read: the share landing (/label/:id) opens the card with
@@ -73,12 +94,12 @@ class StoryController @Inject() (
       def dataPart(name: String): Option[String] = request.body.dataParts.get(name).flatMap(_.headOption)
 
       // Inert-until-enabled IP burst layer on top of the always-on per-user DB limit in StoryService.
+      val ipKey   = s"story-submit:ip:${request.ipAddress}"
       val ipLimit = rateLimiter.limit("story-submit")
-      if (!rateLimiter.allow(s"story-submit:ip:${request.ipAddress}", ipLimit)) {
-        Future.successful(
-          TooManyRequests(StoryFormats.rejectionToJson(StoryRejection.RateLimited))
-            .withHeaders("Retry-After" -> ipLimit.window.toSeconds.toString)
-        )
+      if (!rateLimiter.allow(ipKey, ipLimit)) {
+        // Time left in this IP's window, not the whole window length — the caller is already partway through it.
+        val retryAfter = rateLimiter.retryAfterSeconds(ipKey).orElse(Some(ipLimit.window.toSeconds))
+        Future.successful(rejectionResult(StoryRejection.RateLimitedIp(retryAfter)))
       } else {
         dataPart("label_id").flatMap(s => Try(s.toInt).toOption) match {
           case None          => Future.successful(BadRequest(Json.obj("error" -> "story.error.label-id-missing")))
@@ -113,12 +134,12 @@ class StoryController @Inject() (
 
       def dataPart(name: String): Option[String] = request.body.dataParts.get(name).flatMap(_.headOption)
 
+      val ipKey   = s"story-submit:ip:${request.ipAddress}"
       val ipLimit = rateLimiter.limit("story-submit")
-      if (!rateLimiter.allow(s"story-submit:ip:${request.ipAddress}", ipLimit)) {
-        Future.successful(
-          TooManyRequests(StoryFormats.rejectionToJson(StoryRejection.RateLimited))
-            .withHeaders("Retry-After" -> ipLimit.window.toSeconds.toString)
-        )
+      if (!rateLimiter.allow(ipKey, ipLimit)) {
+        // Time left in this IP's window, not the whole window length — the caller is already partway through it.
+        val retryAfter = rateLimiter.retryAfterSeconds(ipKey).orElse(Some(ipLimit.window.toSeconds))
+        Future.successful(rejectionResult(StoryRejection.RateLimitedIp(retryAfter)))
       } else {
         val text            = dataPart("text").getOrElse("")
         val displayNameMode = dataPart("display_name_mode").getOrElse(Story.DisplayNameAnonymous)
@@ -152,7 +173,13 @@ class StoryController @Inject() (
   /** The signed-in user's own stories (hidden ones included), for the dashboard management list. */
   def getMyStories = cc.securityService.SecuredAction { implicit request =>
     storyService.getStoriesForUser(request.identity.userId).map { stories =>
-      Ok(Json.obj("stories" -> stories.map(StoryFormats.storyForOwnerToJson)))
+      Ok(
+        Json.obj(
+          // The dashboard's edit composer needs the same cap the card's does; sourced here, never a JS literal.
+          "max_text_length" -> storyService.maxTextLength,
+          "stories"         -> stories.map(StoryFormats.storyForOwnerToJson)
+        )
+      )
     }
   }
 
@@ -175,19 +202,53 @@ class StoryController @Inject() (
     earlyReject match {
       case Some(result) => Future.successful(result)
       case None         =>
+        // The three misses below — no such row, hidden from this viewer, bytes gone — must stay externally
+        // indistinguishable, so a prober can't tell which ids exist or are hidden; the one shared value keeps a
+        // future reword from splitting them apart.
+        val notFound = NotFound("Story media not found.")
         storyService.getMediaForServing(storyMediaId).map {
-          case None                 => NotFound("Story media not found.")
+          case None                 => notFound
           case Some((media, story)) =>
             val file = storyService.storyMediaFile(storyMediaId)
-            if (!story.viewableBy(request.identity.map(_.userId), isAdmin(request.identity)) || !file.exists())
-              NotFound("Story media not found.")
-            else
+            if (!file.exists()) {
+              // Missing bytes are data loss, not an ordinary miss, and the response has to stay a plain 404, so the
+              // log is the only place it can be said. Checked before viewability so hidden stories count too —
+              // otherwise a loss inventory built from this log would silently exclude every moderated story.
+              logLostMedia(media, file)
+              notFound
+            } else if (!story.viewableBy(request.identity.map(_.userId), isAdmin(request.identity))) {
+              notFound
+            } else
               // `private`: whether a hidden story's media serves depends on who's asking, so shared caches must
               // never hold it; the viewer's own browser may, for as long as the signed URL stays valid.
               Ok.sendFile(file, inline = true)
                 .as(media.mimeType)
                 .withHeaders("Cache-Control" -> s"private, max-age=${signingService.expirySeconds}")
         }
+    }
+  }
+
+  // serveStoryMedia's data-loss tripwire (#4925): one entry per media id already reported, so a busy page
+  // re-requesting one lost file reads as one loss in the log, not hundreds.
+  private val lostMediaLogged = ConcurrentHashMap.newKeySet[Int]()
+
+  // The upload flow commits the media row before the file move lands (StoryService's place-before-commit windows), so
+  // a row this young with no bytes is almost certainly mid-upload, not loss. The window is sub-second; a minute is
+  // generous slack.
+  private val lostMediaGrace = Duration.ofMinutes(1)
+
+  /**
+   * Logs a media row whose bytes are missing from disk. This error is a post-#4925 tripwire someone is expected to
+   * investigate, so it is kept high-signal: skipped inside the upload grace window (a false alarm has real cost) and
+   * logged once per media id per instance.
+   *
+   * @param media The media row whose file is missing.
+   * @param file  Where the bytes should have been.
+   */
+  private def logLostMedia(media: StoryMedia, file: File): Unit = {
+    val inUploadWindow = media.createdAt.isAfter(OffsetDateTime.now.minus(lostMediaGrace))
+    if (!inUploadWindow && lostMediaLogged.add(media.storyMediaId)) {
+      logger.error(s"story_media ${media.storyMediaId} has no file on disk at ${file.getAbsolutePath}")
     }
   }
 
@@ -232,13 +293,23 @@ class StoryController @Inject() (
   /** Maps a submission rejection to its HTTP status; the body carries the i18n key + English fallback. */
   private def rejectionResult(rejection: StoryRejection) = {
     val body = StoryFormats.rejectionToJson(rejection)
+    // Retry-After is the standard companion to a 429; the body carries the same number for the composer's copy.
+    def tooMany(retryAfter: Option[Long]) =
+      retryAfter.foldLeft(TooManyRequests(body))((res, secs) => res.withHeaders("Retry-After" -> secs.toString))
     rejection match {
-      case StoryRejection.LabelNotFound => NotFound(body)
-      case StoryRejection.StoryNotFound => NotFound(body)
-      case StoryRejection.AlreadyExists => Conflict(body)
-      case StoryRejection.RateLimited   => TooManyRequests(body)
-      case StoryRejection.PhotoTooLarge => EntityTooLarge(body)
-      case _                            => BadRequest(body)
+      case StoryRejection.LabelNotFound             => NotFound(body)
+      case StoryRejection.StoryNotFound             => NotFound(body)
+      case StoryRejection.AlreadyExists             => Conflict(body)
+      case StoryRejection.RateLimited(retryAfter)   => tooMany(retryAfter)
+      case StoryRejection.RateLimitedIp(retryAfter) => tooMany(retryAfter)
+      case StoryRejection.PhotoTooLarge             => EntityTooLarge(body)
+      case _                                        => BadRequest(body)
     }
   }
+}
+
+object StoryController {
+
+  /** Cap on the stories the /stories page renders, so the page stays bounded as a city's story count grows. */
+  val ListingMax: Int = 500
 }

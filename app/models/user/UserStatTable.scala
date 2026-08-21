@@ -85,6 +85,30 @@ case class LeaderboardStat(
 )
 
 /**
+ * One row of the all-time global leaderboard: a contributor's totals summed across every included city (#3719).
+ *
+ * Ranked by `labelCount` rather than the per-city board's composite score, because that score divides audited distance
+ * by the *current city's* total street distance — a denominator with no cross-city meaning.
+ *
+ * @param userId         The mapper's global user id, so the caller can resolve their profile visibility here.
+ * @param username       Display name (email domain stripped, as on the per-city boards).
+ * @param labelCount     Labels placed across all included cities.
+ * @param missionCount   Missions completed across all included cities.
+ * @param distanceMeters Street distance audited across all included cities.
+ * @param accuracy       Validation agreement rate across all cities, or None below the 10-validated-label threshold.
+ * @param topCitySchema  DB schema of the city where this user placed the most labels; the caller maps it to a city id.
+ */
+case class GlobalLeaderboardStat(
+    userId: String,
+    username: String,
+    labelCount: Int,
+    missionCount: Int,
+    distanceMeters: Double,
+    accuracy: Option[Double],
+    topCitySchema: String
+)
+
+/**
  * One row in a user's "standing" slice — their neighbors on the board, ranked by label count for the period.
  *
  * @param rank       1-based rank among eligible users for the period.
@@ -133,23 +157,26 @@ case class StreakStats(
 )
 
 class UserStatTableDef(tag: Tag) extends Table[UserStat](tag, "user_stat") {
+  // O.Default mirrors the DB default rather than driving it (nothing generates DDL from these definitions), so a
+  // reader can see what a row gets from a partial INSERT — which is what UserStatTable.insertIfNew issues.
   def userStatId: Rep[Int]                    = column[Int]("user_stat_id", O.PrimaryKey, O.AutoInc)
   def userId: Rep[String]                     = column[String]("user_id")
-  def metersAudited: Rep[Double]              = column[Double]("meters_audited")
+  def metersAudited: Rep[Double]              = column[Double]("meters_audited", O.Default(0d))
   def labelsPerMeter: Rep[Option[Double]]     = column[Option[Double]]("labels_per_meter")
-  def highQuality: Rep[Boolean]               = column[Boolean]("high_quality")
+  def highQuality: Rep[Boolean]               = column[Boolean]("high_quality", O.Default(true))
   def highQualityManual: Rep[Option[Boolean]] = column[Option[Boolean]]("high_quality_manual")
-  def ownLabelsValidated: Rep[Int]            = column[Int]("own_labels_validated")
+  def ownLabelsValidated: Rep[Int]            = column[Int]("own_labels_validated", O.Default(0))
   def accuracy: Rep[Option[Double]]           = column[Option[Double]]("accuracy")
-  def excluded: Rep[Boolean]                  = column[Boolean]("excluded")
-  def onLeaderboard: Rep[Boolean]             = column[Boolean]("on_leaderboard")
-  def publicProfile: Rep[Boolean]             = column[Boolean]("public_profile")
+  def excluded: Rep[Boolean]                  = column[Boolean]("excluded", O.Default(false))
+  def onLeaderboard: Rep[Boolean]             = column[Boolean]("on_leaderboard", O.Default(true))
+  def publicProfile: Rep[Boolean]             = column[Boolean]("public_profile", O.Default(true))
 
   override def * =
     (userStatId, userId, metersAudited, labelsPerMeter, highQuality, highQualityManual, ownLabelsValidated, accuracy,
       excluded, onLeaderboard, publicProfile) <> ((UserStat.apply _).tupled, UserStat.unapply)
 
-  def user = foreignKey("user_stat_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
+  def user       = foreignKey("user_stat_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
+  def userUnique = index("user_stat_user_id_key", userId, unique = true)
 }
 
 @ImplementedBy(classOf[UserStatTable])
@@ -247,17 +274,8 @@ class UserStatTable @Inject() (
    * Update meters_audited column in the user_stat table for users who have done any auditing since `cutoffTime`.
    */
   def updateAuditedDistance(cutoffTime: OffsetDateTime): DBIO[Unit] = {
-    // Get the list of users who have done any auditing since the cutoff time.
-    val usersToUpdate: Query[Rep[String], String, Seq] =
-      auditMissions.filter(_.missionEnd > cutoffTime).groupBy(_.userId).map(_._1)
-
-    // Computes the audited distance in meters for each user using the audit_task and street_edge tables.
-    updateAuditedDistanceHelper(usersToUpdate)
+    updateAuditedDistanceHelper(usersThatAuditedSinceCutoffTime(cutoffTime))
   }
-
-  /**
-   * Update the meters_audited column in the user_stat table for users who have done any auditing since `cutoffTime`.
-   */
 
   /**
    * Updates the meters_audited column in the user_stat table for the given users.
@@ -272,7 +290,7 @@ class UserStatTable @Inject() (
       .join(streetEdgeTable.streets)
       .on(_._1.streetEdgeId === _.streetEdgeId)
       .groupBy(_._1._1.userId)
-      .map(x => (x._1, x._2.map(_._2.geom.transform(26918).lengthD).sum))
+      .map(x => (x._1, x._2.map(_._2.geom.lengthGeodesic).sum))
       .result
       .flatMap { auditedDists: Seq[(String, Option[Double])] =>
         // Update the meters_audited column in the user_stat table.
@@ -399,8 +417,11 @@ class UserStatTable @Inject() (
           !x.excluded &&                              // false if excluded=true
           x.highQualityManual.getOrElse(true) && (    // false if high_quality_manual=false
             x.highQualityManual.getOrElse(false) || ( // true if high_quality_manual set to true
+              // 0.6d, not 0.6f: widening the float would compare against 0.60000002, so this path and the bulk
+              // `updateHighQuality` below would disagree for an accuracy in that sliver. Evolution 347 and
+              // GeodesicDistanceSpec both assume the two agree exactly.
               (x.metersAudited === 0d || x.labelsPerMeter.getOrElse(5d) > LABEL_PER_METER_THRESHOLD)
-                && (x.accuracy.getOrElse(1.0d) > 0.6f.asColumnOf[Double] || x.ownLabelsValidated < 50.asColumnOf[Int])
+                && (x.accuracy.getOrElse(1.0d) > 0.6d.asColumnOf[Double] || x.ownLabelsValidated < 50.asColumnOf[Int])
             )
           )
         }
@@ -478,15 +499,23 @@ class UserStatTable @Inject() (
   }
 
   /**
-   * Helper function to get the list of users who have done any auditing since the cutoff time.
+   * The users who have done any auditing since the cutoff time, i.e. whose cached stats may have gone stale.
+   *
+   * Completed audit tasks, not just audit missions, decide this. A user can accumulate completed audit tasks under a
+   * mission of another type — `auditOnboarding`, or the `exploreAddress` drop-ins of #4451 — and a mission-only
+   * selector never reaches them, so `meters_audited` stays at whatever it was, usually 0, forever (#4774). The audit
+   * missions are still unioned in rather than replaced, so a user whose missions moved but whose tasks did not is
+   * still refreshed.
+   *
+   * Deliberately does not require `meters_audited > 0`: that is the value this set exists to correct, so requiring it
+   * would keep exactly the stuck-at-zero users out of the refresh that would unstick them.
    */
   def usersThatAuditedSinceCutoffTime(cutoffTime: OffsetDateTime): Query[Rep[String], String, Seq] = {
-    (for {
-      _userStat <- userStats
-      _mission  <- auditMissions if _mission.userId === _userStat.userId
-      if _userStat.metersAudited > 0d
-      if _mission.missionEnd > cutoffTime
-    } yield _userStat.userId).groupBy(x => x).map(_._1)
+    val fromMissions: Query[Rep[String], String, Seq] = auditMissions.filter(_.missionEnd > cutoffTime).map(_.userId)
+    val fromTasks: Query[Rep[String], String, Seq]    =
+      auditTaskTable.filter(task => task.completed && task.taskEnd > cutoffTime).map(_.userId)
+
+    (fromMissions ++ fromTasks).distinct
   }
 
   /**
@@ -505,9 +534,9 @@ class UserStatTable @Inject() (
    *
    * Interim workaround for #4376 (mirrors `ConfigTable.withJitOff`): the projectsidewalk/db image ships a broken
    * Postgres JIT (PostGIS bitcode built with LLVM 16, runtime llvmjit linked against LLVM 11). A query expensive enough
-   * to cross the JIT inline-cost threshold and inline PostGIS bitcode (ST_TRANSFORM/ST_LENGTH) segfaults the backend,
+   * to cross the JIT inline-cost threshold and inline PostGIS bitcode (e.g. ST_LENGTH) segfaults the backend,
    * dropping the connection (SQLSTATE 08006) and forcing Postgres crash-recovery — which surfaces as a site-wide 502.
-   * `getLeaderboardStats` computes audited distance with ST_LENGTH(ST_TRANSFORM(...)) and is expensive enough to trip
+   * `getLeaderboardStats` computes audited distance with PostGIS ST_Length and is expensive enough to trip
    * this (#4545), so it must run with JIT off. `SET LOCAL` scopes the setting to this one transaction. Remove once #4376
    * disables JIT at the DB config level.
    *
@@ -524,6 +553,11 @@ class UserStatTable @Inject() (
    * Stats can be calculated for individual users or across teams. Overall and weekly are the possible time periods. We
    * only include accuracy if the user has at least 10 validated labels (must have either agree or disagree based off
    * of majority vote; an unsure or tie does not count).
+   *
+   * Qualification is by labels placed in the period: mission count and audited distance are LEFT-joined and default to
+   * 0 when absent, so a user who has placed labels but not yet finished a mission or a street still appears (with those
+   * columns at 0 and a low score). This matches getUserStanding's label-based eligibility, so the board and the "your
+   * standing" widget reconcile — a new mapper with labels but no completed street/mission still shows up (#4533).
    * @param n The number of top users to get stats for
    * @param timePeriod The time period over which to compute stats, either "weekly" or "overall"
    * @param byTeam True if grouping by team instead of by user.
@@ -570,12 +604,12 @@ class UserStatTable @Inject() (
       sql"""
       SELECT usernames.username,
              label_counts.label_count,
-             mission_count,
-             distance_meters,
+             COALESCE(mission_count, 0) AS mission_count,
+             COALESCE(distance_meters, 0) AS distance_meters,
              CASE WHEN validated_count > 9 THEN accuracy_temp ELSE NULL END AS accuracy,
              CASE WHEN accuracy_temp IS NOT NULL
-                 THEN SQRT(label_counts.label_count) * (0.5 * distance_meters / #$streetDistance + 0.5 * accuracy_temp)
-                 ELSE SQRT(label_counts.label_count) * (distance_meters / #$streetDistance)
+                 THEN SQRT(label_counts.label_count) * (0.5 * COALESCE(distance_meters, 0) / #$streetDistance + 0.5 * accuracy_temp)
+                 ELSE SQRT(label_counts.label_count) * (COALESCE(distance_meters, 0) / #$streetDistance)
                  END AS score
       FROM (
           SELECT #$groupingCol, COUNT(label_id) AS label_count
@@ -587,7 +621,7 @@ class UserStatTable @Inject() (
           #$joinUserTeamTable
           WHERE label.deleted = FALSE
               AND label.tutorial = FALSE
-              AND role.role IN ('Registered', 'Administrator', 'Researcher')
+              AND role.role IN (#${RoleTable.LEADERBOARD_ROLES_SQL})
               AND user_stat.excluded = FALSE
               #$leaderboardVisibilityFilter
               AND (label.time_created AT TIME ZONE 'US/Pacific') > #$statStartTime
@@ -597,7 +631,8 @@ class UserStatTable @Inject() (
           LIMIT $n
       ) "label_counts"
       #$usernamesJoin
-      INNER JOIN (
+      -- LEFT joins so mission/distance are supplementary (default 0), not membership gates: labels alone qualify (#4533).
+      LEFT JOIN (
           SELECT #$groupingCol, COUNT(mission_id) AS mission_count
           FROM mission
           INNER JOIN sidewalk_user ON mission.user_id = sidewalk_user.user_id
@@ -605,8 +640,8 @@ class UserStatTable @Inject() (
           WHERE (mission_end AT TIME ZONE 'US/Pacific') > #$statStartTime
           GROUP BY #$groupingCol
       ) "missions_counts" ON label_counts.#$groupingColName = missions_counts.#$groupingColName
-      INNER JOIN (
-          SELECT #$groupingCol, COALESCE(SUM(ST_LENGTH(ST_TRANSFORM(geom, 26918))), 0) AS distance_meters
+      LEFT JOIN (
+          SELECT #$groupingCol, COALESCE(SUM(ST_Length(geom::geography)), 0) AS distance_meters
           FROM street_edge
           INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
           INNER JOIN sidewalk_user ON audit_task.user_id = sidewalk_user.user_id
@@ -624,7 +659,7 @@ class UserStatTable @Inject() (
           WHERE (label.time_created AT TIME ZONE 'US/Pacific') > #$statStartTime
           GROUP BY #$groupingColName
       ) "accuracy" ON label_counts.#$groupingColName = accuracy.#$groupingColName
-      ORDER BY score DESC;
+      ORDER BY score DESC, label_counts.label_count DESC;
     """
         .as[(String, Int, Int, Double, Option[Double], Double)]
         .map(_.map { stat =>
@@ -634,6 +669,148 @@ class UserStatTable @Inject() (
           else LeaderboardStat.tupled(stat)
         })
     )
+  }
+
+  /**
+   * Gets the all-time global leaderboard: the top `n` contributors by labels summed across `citySchemas` (#3719).
+   *
+   * Accounts are global (`sidewalk_login.sidewalk_user` is shared by every city) while contributions are per-city, so
+   * this unions each city schema's per-user totals and rolls them up by the shared `user_id`. That union runs as one
+   * statement rather than a per-city fan-out because all city schemas live in the same database.
+   *
+   * Two deliberate departures from the per-city board, both to keep this cheap enough to run on a page load:
+   *  - Distance sums the nightly-precomputed `user_stat.meters_audited` instead of recomputing geodesic street
+   *    lengths per city. It is the same quantity by the same definition (see
+   *    `updateAuditedDistanceHelper`), just up to a day stale, and it keeps PostGIS out of a 50-way union — which also
+   *    sidesteps the JIT segfault that forces `withJitOff` on the per-city board (#4376/#4545).
+   *  - Ranking is by raw label count, so the rows are in true rank order (the per-city board's composite score has a
+   *    city-relative distance term that cannot be compared across cities).
+   *
+   * Eligibility mirrors the per-city board — role in [[RoleTable.LEADERBOARD_ROLES]], non-excluded,
+   * non-deleted/non-tutorial labels — with two cross-city refinements:
+   *  - `excluded` is per city, so a user flagged low-quality in one city loses *that city's* contribution and keeps the
+   *    rest; the flag describes that city's data, not the person. It is applied as an aggregate FILTER rather than a
+   *    WHERE so the row survives to carry that city's `on_leaderboard` flag into the opt-out roll-up below.
+   *  - `on_leaderboard` is also per city, but opting out is about being *named*, so a single opt-out anywhere hides the
+   *    user from this board entirely rather than just trimming a city.
+   *
+   * @param citySchemas   DB schema names whose contributions count, already vetted by the caller (existence, config
+   *                      opt-out, and having the columns this query needs). Spliced into SQL, so each must be a bare
+   *                      identifier.
+   * @param optOutSchemas Additional schemas to read `on_leaderboard` opt-outs from without counting their
+   *                      contributions, so a mapper who opted out in a city this board excludes still stays unnamed.
+   *                      Same identifier requirement.
+   * @param n             How many rows to return.
+   * @return              Up to `n` rows ordered by descending total label count, ties broken by user id so the board is
+   *                      stable across refreshes.
+   */
+  def getGlobalLeaderboardStats(
+      citySchemas: Seq[String],
+      optOutSchemas: Seq[String],
+      n: Int
+  ): DBIO[Seq[GlobalLeaderboardStat]] = {
+    if (citySchemas.isEmpty) {
+      DBIO.successful(Seq.empty[GlobalLeaderboardStat])
+    } else {
+      // Schema names are spliced, not bound, so reject anything that isn't a bare identifier before building the SQL.
+      val unsafe: Seq[String] = (citySchemas ++ optOutSchemas).filterNot(_.matches("^[a-z_][a-z0-9_]*$"))
+      require(unsafe.isEmpty, s"Refusing to build cross-schema SQL for non-identifier schema names: $unsafe")
+
+      // Per-city totals keyed by the global user_id. MAX(meters_audited) picks the single per-city value (user_stat
+      // holds one row per user per city); the FILTERs zero out a city where the user is excluded while still letting
+      // BOOL_OR see that city's opt-out flag.
+      val labelBlocks: String = citySchemas
+        .map { schema =>
+          s"""  SELECT label.user_id, '$schema'::text AS city_schema,
+         COUNT(*) FILTER (WHERE NOT user_stat.excluded)::int AS labels,
+         COUNT(*) FILTER (WHERE label.correct AND NOT user_stat.excluded)::int AS agreed,
+         COUNT(*) FILTER (WHERE NOT label.correct AND NOT user_stat.excluded)::int AS disagreed,
+         MAX(user_stat.meters_audited) FILTER (WHERE NOT user_stat.excluded) AS meters,
+         BOOL_OR(NOT user_stat.on_leaderboard) AS opted_out
+  FROM "$schema".label
+  INNER JOIN "$schema".user_stat ON user_stat.user_id = label.user_id
+  WHERE label.deleted = FALSE AND label.tutorial = FALSE
+  GROUP BY label.user_id"""
+        }
+        .mkString("\n  UNION ALL\n")
+
+      // Opt-outs from cities that don't contribute rows, so `city_labels` never sees their flags. Read straight from
+      // user_stat rather than off a label join: a mapper can opt out of a city without having labeled in it.
+      val optOutBlocks: String = optOutSchemas
+        .map(schema =>
+          s"""  SELECT user_stat.user_id FROM "$schema".user_stat WHERE user_stat.on_leaderboard = FALSE"""
+        )
+        .mkString("\n  UNION ALL\n")
+      val extraOptOutFilter: String =
+        if (optOutSchemas.isEmpty) ""
+        else "WHERE NOT EXISTS (SELECT 1 FROM extra_opt_outs WHERE extra_opt_outs.user_id = city_labels.user_id)"
+      val extraOptOutCte: String =
+        if (optOutSchemas.isEmpty) "" else s"extra_opt_outs AS (\n$optOutBlocks\n        ),"
+
+      // Missions roll up per output row rather than in a CTE: a CTE would aggregate every mission table in full before
+      // the LIMIT could restrict it, whereas the lateral runs ~one mission_user_id_idx probe per city per shown row.
+      val missionBlocks: String = citySchemas
+        .map { schema =>
+          s"""    SELECT COUNT(*)::int AS missions
+    FROM "$schema".mission
+    INNER JOIN "$schema".user_stat ON user_stat.user_id = mission.user_id
+    WHERE mission.user_id = top_n.user_id AND user_stat.excluded = FALSE"""
+        }
+        .mkString("\n    UNION ALL\n")
+
+      sql"""
+        WITH city_labels AS (
+        #$labelBlocks
+        ),
+        #$extraOptOutCte
+        rolled AS (
+            SELECT city_labels.user_id,
+                   SUM(city_labels.labels)::int AS label_count,
+                   SUM(city_labels.meters) AS distance_meters,
+                   SUM(city_labels.agreed)::int AS agreed,
+                   SUM(city_labels.disagreed)::int AS disagreed
+            FROM city_labels
+            #$extraOptOutFilter
+            GROUP BY city_labels.user_id
+            HAVING BOOL_OR(city_labels.opted_out) = FALSE AND SUM(city_labels.labels) > 0
+        ),
+        top_n AS (
+            SELECT rolled.*
+            FROM rolled
+            INNER JOIN sidewalk_login.user_role ON user_role.user_id = rolled.user_id
+            INNER JOIN sidewalk_login.role ON user_role.role_id = role.role_id
+            WHERE role.role IN (#${RoleTable.LEADERBOARD_ROLES_SQL})
+            ORDER BY rolled.label_count DESC, rolled.user_id
+            LIMIT $n
+        )
+        SELECT top_n.user_id,
+               sidewalk_user.username,
+               top_n.label_count,
+               mission_totals.mission_count,
+               top_n.distance_meters,
+               CASE WHEN top_n.agreed + top_n.disagreed > 9
+                    THEN top_n.agreed::float / (top_n.agreed + top_n.disagreed) END AS accuracy,
+               (SELECT city_labels.city_schema
+                FROM city_labels
+                WHERE city_labels.user_id = top_n.user_id AND city_labels.labels > 0
+                ORDER BY city_labels.labels DESC, city_labels.city_schema
+                LIMIT 1) AS top_city_schema
+        FROM top_n
+        INNER JOIN sidewalk_login.sidewalk_user ON sidewalk_user.user_id = top_n.user_id
+        CROSS JOIN LATERAL (
+          SELECT COALESCE(SUM(per_city.missions), 0)::int AS mission_count
+          FROM (
+        #$missionBlocks
+          ) AS per_city
+        ) AS mission_totals
+        ORDER BY top_n.label_count DESC, top_n.user_id;
+      """
+        .as[(String, String, Int, Int, Double, Option[Double], String)]
+        .map(_.map { stat =>
+          val username: String = if (isValidEmail(stat._2)) stat._2.slice(0, stat._2.lastIndexOf('@')) else stat._2
+          GlobalLeaderboardStat(stat._1, username, stat._3, stat._4, stat._5, stat._6, stat._7)
+        })
+    }
   }
 
   /**
@@ -674,7 +851,7 @@ class UserStatTable @Inject() (
           INNER JOIN label ON sidewalk_user.user_id = label.user_id
           WHERE label.deleted = FALSE
               AND label.tutorial = FALSE
-              AND role.role IN ('Registered', 'Administrator', 'Researcher')
+              AND role.role IN (#${RoleTable.LEADERBOARD_ROLES_SQL})
               AND user_stat.excluded = FALSE
               AND user_stat.on_leaderboard = TRUE
               #$timeFilter
@@ -700,7 +877,9 @@ class UserStatTable @Inject() (
    * Per-day activity counts for a user (US/Pacific calendar days), across labeling, exploring, and validating.
    *
    * A day counts if the user placed a (non-deleted, non-tutorial) label, completed an audit task, or made a
-   * validation on it. Returned as (ISO date string, count) so the streak/heatmap math is done in Scala.
+   * validation on it -- including validations voided by the #4842 repair (evolution 355): the verdicts are dead, but
+   * the work happened, so the archive counts as activity. Returned as (ISO date string, count) so the streak/heatmap
+   * math is done in Scala.
    *
    * @param userId The user whose activity to summarize.
    * @return       One row per active day, ascending by date.
@@ -719,6 +898,10 @@ class UserStatTable @Inject() (
           SELECT (label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date
           FROM label_validation
           WHERE label_validation.user_id = $userId AND label_validation.end_timestamp IS NOT NULL
+          UNION ALL
+          SELECT (voided_label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date
+          FROM voided_label_validation
+          WHERE voided_label_validation.user_id = $userId
       )
       SELECT to_char(d, 'YYYY-MM-DD') AS day, COUNT(*)::int AS c
       FROM activity
@@ -838,14 +1021,19 @@ class UserStatTable @Inject() (
 
     // Add in the task completion logic.
     val auditTaskCompletedSql  = if (taskCompletedOnly) "audit_task.completed = TRUE" else "TRUE"
-    val validationCompletedSql = if (taskCompletedOnly) "label_validation.end_timestamp IS NOT NULL" else "TRUE"
+    val validationCompletedSql = if (taskCompletedOnly) "all_validations.end_timestamp IS NOT NULL" else "TRUE"
 
     sql"""
       SELECT COUNT(DISTINCT(users.user_id))
       FROM (
           SELECT DISTINCT(mission.user_id)
           FROM mission
-          LEFT JOIN label_validation ON mission.mission_id = label_validation.mission_id
+          LEFT JOIN (
+              -- Votes voided by the #4842 repair still count as participation.
+              SELECT mission_id, end_timestamp FROM label_validation
+              UNION ALL
+              SELECT mission_id, end_timestamp FROM voided_label_validation
+          ) AS all_validations ON mission.mission_id = all_validations.mission_id
           WHERE mission.mission_type IN ('validation', 'labelmapValidation')
               AND #$lblValidationTimeIntervalSql
               AND #$validationCompletedSql
@@ -898,7 +1086,7 @@ class UserStatTable @Inject() (
              COALESCE(label_counts.labels_validated_correct, 0) AS labels_validated_correct,
              COALESCE(label_counts.labels_validated_incorrect, 0) AS labels_validated_incorrect,
              COALESCE(label_counts.labels_not_validated, 0) AS labels_not_validated,
-             COALESCE(validations.validations_given, 0) AS validations_given,
+             COALESCE(validations.validations_given, 0) + COALESCE(voided_validations.cnt, 0) AS validations_given,
              COALESCE(validations.dissenting_validations_given, 0) AS dissenting_validations_given,
              COALESCE(validations.agree_validations_given, 0) AS agree_validations_given,
              COALESCE(validations.disagree_validations_given, 0) AS disagree_validations_given,
@@ -955,6 +1143,13 @@ class UserStatTable @Inject() (
           INNER JOIN label ON label_validation.label_id = label.label_id
           GROUP BY label_validation.user_id
       ) AS validations ON user_stat.user_id = validations.user_id
+      -- Votes voided by the #4842 repair: work credit toward validations_given only; the verdict splits
+      -- (agree/disagree/unsure/dissenting) read live votes, so validations_given can exceed their sum.
+      LEFT JOIN (
+          SELECT voided_label_validation.user_id, COUNT(*) AS cnt
+          FROM voided_label_validation
+          GROUP BY voided_label_validation.user_id
+      ) AS voided_validations ON user_stat.user_id = voided_validations.user_id
       -- Label and validation counts
       LEFT JOIN (
           SELECT audit_task.user_id,
@@ -1043,17 +1238,28 @@ class UserStatTable @Inject() (
   }
 
   /**
-   * Insert a new user_stat entry for the given userId.
+   * Insert a user_stat entry for the given userId, doing nothing if the user already has one.
+   *
+   * Raw SQL for the `ON CONFLICT` clause, which Slick can't express: the request path this exists for
+   * ([[service.AuthenticationService.addUserStatEntryIfNew]], run for every request from an identified user) can be
+   * hit by several concurrent requests before the row exists — the parallel requests of a user's first page load in a
+   * city. A read-then-insert lets each of them see "no row" and insert one, so the DB-level conflict on
+   * `user_stat_user_id_key` is what actually makes it insert-once (#4604).
+   *
+   * Only the three columns a caller can vary are named; every other column takes its DB default, so a future column
+   * with a `NOT NULL` default doesn't silently break this statement at runtime.
    *
    * @param userId        The userId to insert a user_stat entry for.
-   * @param onLeaderboard Whether the user appears in leaderboard rankings. Defaults true (public); the sign-up path
-   *                      passes false for private-by-default (school/minor) deployments.
-   * @param publicProfile Whether the user's dashboard is publicly viewable. Defaults true; same private-by-default rule.
-   * @return DBIO action that returns the number of rows inserted (should be 1).
+   * @param onLeaderboard Whether the user appears in leaderboard rankings.
+   * @param publicProfile Whether the user's dashboard is publicly viewable.
+   * @return DBIO action returning the number of rows inserted: 1 for a new user, 0 if they already had a row.
    */
-  def insert(userId: String, onLeaderboard: Boolean = true, publicProfile: Boolean = true): DBIO[Int] = {
-    userStats += UserStat(0, userId, 0d, None, highQuality = true, None, 0, None, excluded = false, onLeaderboard,
-      publicProfile)
+  def insertIfNew(userId: String, onLeaderboard: Boolean, publicProfile: Boolean): DBIO[Int] = {
+    sqlu"""
+      INSERT INTO user_stat (user_id, on_leaderboard, public_profile)
+      VALUES ($userId, $onLeaderboard, $publicProfile)
+      ON CONFLICT (user_id) DO NOTHING
+    """
   }
 
   /**
@@ -1064,6 +1270,21 @@ class UserStatTable @Inject() (
    */
   def getPrivacySettings(userId: String): DBIO[Option[(Boolean, Boolean)]] = {
     userStats.filter(_.userId === userId).map(u => (u.onLeaderboard, u.publicProfile)).result.headOption
+  }
+
+  /**
+   * Of the given users, which have a public profile *in this deployment's city*.
+   *
+   * `user_stat` is per city, so this answers whether `/userProfile/:username` would render anything here. A user with
+   * no row in this schema is absent from the result, matching [[UserService.profileVisible]]'s read of a missing row
+   * as private.
+   *
+   * @param userIds The users to check; an empty input skips the query.
+   * @return        The subset whose profile this deployment may show.
+   */
+  def usersWithPublicProfile(userIds: Seq[String]): DBIO[Set[String]] = {
+    if (userIds.isEmpty) DBIO.successful(Set.empty[String])
+    else userStats.filter(u => u.userId.inSet(userIds) && u.publicProfile).map(_.userId).result.map(_.toSet)
   }
 
   /**

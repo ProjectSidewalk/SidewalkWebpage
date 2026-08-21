@@ -7,12 +7,14 @@ import play.api.libs.concurrent.PekkoGuiceSupport
 class ActorModule extends AbstractModule with PekkoGuiceSupport {
   override def configure() = {
     bindActor[CheckImageExpiryActor]("check-image-expiry-actor")
+    bindActor[CheckImageryAgeActor]("check-imagery-age-actor")
     bindActor[GetAiValidationsActor]("get-ai-validations-actor")
     bindActor[UserStatActor]("user-stats-actor")
     bindActor[FunnelStatActor]("funnel-stat-actor")
     bindActor[RecalculateStreetPriorityActor]("recalculate-street-priority-actor")
     bindActor[AuthTokenCleanerActor]("auth-token-cleaner-actor")
     bindActor[ClusteringActor]("clustering-actor")
+    bindActor[OsmWayRefreshActor]("osm-way-refresh-actor")
     bind(classOf[ActorInitializer]).asEagerSingleton()
   }
 }

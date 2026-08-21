@@ -81,6 +81,12 @@ class CityScorecardSpec extends PlaySpec with GuiceOneAppPerSuite {
       run(configTable.getCityWeeklyTrendBySchema(schema, None)) mustBe a[Seq[_]]
       run(configTable.getCityWeeklyTrendBySchema(schema, Some(4))) mustBe a[Seq[_]]
     }
+    "execute getCityWindowActivityByUserBySchema" in {
+      run(configTable.getCityWindowActivityByUserBySchema(schema)) mustBe a[Seq[_]]
+    }
+    "execute getCityDailyActivityByUserBySchema" in {
+      run(configTable.getCityDailyActivityByUserBySchema(schema, 7)) mustBe a[Seq[_]]
+    }
     "execute getCityContributorOutputBySchema" in {
       run(configTable.getCityContributorOutputBySchema(schema)) mustBe a[Product] // 7-tuple
     }

@@ -27,7 +27,10 @@ class Main {
     svl.isExploreAddressMode = () => this.#params.mission.mission_type === 'exploreAddress';
     svl.regionId = params.regionId;
 
-    svl.LABEL_ICON_RADIUS = 17;
+    // Both are derived from --ui-scale and refreshed by applyExploreScale() below, which owns that variable. They
+    // start at their scale-1 values because the tool renders at scale 1 until that first call (#4838).
+    svl.LABEL_ICON_RADIUS = util.labelIconRadius(1);
+    svl.LABEL_HIT_MARGIN = util.labelHitMargin(1);
     svl.TUTORIAL_PANO_HEIGHT = 6656;
     svl.TUTORIAL_PANO_WIDTH = 13312;
     svl.TUTORIAL_PANO_SCALE_FACTOR = 3.25;
@@ -51,8 +54,12 @@ class Main {
     svl.userHasCompletedAMission = params.hasCompletedAMission;
     svl.routeId = params.routeId;
     svl.userRouteId = params.userRouteId;
+    svl.routeName = params.routeName;
     svl.makeCrops = params.makeCrops;
+    // Lat/lng estimator constants, owned by the backend (PanoDataService.LatLngEstimation) and used by Label.toLatLng.
+    svl.latLngEstimation = params.latLngEstimation;
 
+    svl.mapboxApiKey = params.mapboxApiKey;
     svl.storage = new TemporaryStorage(JSON);
     svl.tracker = new Tracker();
     svl.user = new User(params.user);
@@ -84,6 +91,12 @@ class Main {
     // No viewer means PanoManager found no usable imagery and has already scheduled a redirect; stop initializing
     // so nothing dereferences the missing viewer while the navigation lands.
     if (!svl.panoViewer) return;
+
+    // Arriving here from a load that gave up on its street: that reload is the only thing the labeler saw, and it
+    // took the banner explaining the move down with it, so the explanation is delivered on arrival instead (#4918).
+    if (PanoManager.consumeStreetSkippedNotice()) {
+      svl.stuckAlert.announceSkippedStreetNear(newTask.getMidpoint(), params.mapboxApiKey);
+    }
     const currLatLng = svl.panoViewer.getPosition();
     newTask.updateTheFurthestPointReached(currLatLng);
 
@@ -92,6 +105,9 @@ class Main {
 
     svl.ribbon = new RibbonMenu(svl.tracker);
     svl.canvas = new Canvas(svl.ribbon);
+    // The shared populator for the hover card's content; Label.#updateHoverCard re-points it per label (#4730).
+    // Explore truncates the description because clicking the label reopens the full text in an editable field.
+    svl.labelCardView = new LabelCardView(svl.ui.canvas.hoverCard[0], { descriptionMaxLength: 90 });
 
     // Warm the label-icon cache up front so canvas renders draw icons in the right order. See Label.preloadIcons.
     svl.iconsPreloaded = Label.preloadIcons();
@@ -130,6 +146,8 @@ class Main {
     svl.neighborhoodModel.setCurrentNeighborhood(neighborhood);
 
     svl.observedArea = new ObservedArea(svl.ui.minimap);
+    svl.minimapLegend = new MinimapLegend(svl.ui.minimap, svl.tracker);
+    svl.routeOverview = new RouteOverview(svl.ui.minimap, svl.tracker);
 
     // Mission
     svl.missionContainer = new MissionContainer(svl.missionPanel, svl.missionModel);
@@ -170,12 +188,13 @@ class Main {
     svl.panoOverlayControls = new PanoOverlayControls(svl.tracker, svl.navigationService, svl.stuckAlert,
       svl.keyboardShortcutAlert);
 
-    svl.infoPopover = new PanoInfoPopover(svl.ui.streetview.dateHolder, svl.panoViewer, svl.panoViewer.getPosition,
-      svl.panoViewer.getPanoId, () => svl.taskContainer.getCurrentTaskStreetEdgeId(),
+    svl.infoPopover = new PanoInfoPopover(svl.ui.streetview.dateHolder, () => svl.panoViewer,
+      () => svl.panoViewer.getPosition(), () => svl.panoViewer.getPanoId(),
+      () => svl.taskContainer.getCurrentTaskStreetEdgeId(),
       () => svl.neighborhoodModel.currentNeighborhood().getRegionId(),
       () => svl.panoStore.getPanoData(svl.panoViewer.getPanoId()).getProperty('captureDate'),
       () => svl.panoStore.getPanoData(svl.panoViewer.getPanoId()).getProperty('address'),
-      svl.panoViewer.getPov, true,
+      () => svl.panoViewer.getPov(), true,
       () => {
         svl.tracker.push('PanoInfoButton_Click');
       },
@@ -188,7 +207,8 @@ class Main {
     );
 
     // Speed limit
-    svl.speedLimit = new SpeedLimit(svl.panoViewer, svl.panoViewer.getPosition, svl.isOnboarding, null, null);
+    svl.speedLimit = new SpeedLimit(() => svl.panoViewer, () => svl.panoViewer.getPosition(), svl.isOnboarding,
+      params.countryId, { taskContainer: svl.taskContainer });
 
     // Survey for select users
     svl.modalSurvey = new ModalSurvey();
@@ -234,6 +254,11 @@ class Main {
       taskContainer.fetchTasks().then(() => {
         this.#loadingTasksCompleted = true;
         this.#handleDataLoadComplete();
+        // Plant start/finish flags on the minimap so a route walk shows where it begins and ends.
+        if (svl.neighborhoodModel.isRoute) {
+          const endpoints = taskContainer.getRouteEndpoints();
+          if (endpoints) svl.minimap.showRouteEndpoints(endpoints.start, endpoints.finish);
+        }
       });
     }
 
@@ -309,6 +334,7 @@ class Main {
 
     svl.missionModel.updateMissionProgress(mission, neighborhood);
     svl.missionPanel.setMessage(mission);
+    svl.minimap.updateMissionProgress(mission);
 
     svl.labelContainer.fetchLabelsToResumeMission(neighborhood.getRegionId(), () => {
       svl.canvas.setOnlyLabelsOnPanoAsVisible(svl.panoViewer.getPanoId());
@@ -348,6 +374,9 @@ class Main {
       svl.observedArea.update();
       svl.compass.update();
       svl.compass.enableCompassClick();
+      // Re-render the nav arrows now that the compass and task exist, so the route-forward arrow is highlighted on
+      // the very first pano too — PanoManager's own initial resetNavArrows ran before those were wired up. (#4671)
+      svl.panoManager.resetNavArrows();
 
       // Remove the loading cover page and make the tool visible.
       $('#page-loading').css({ visibility: 'hidden' });
@@ -394,13 +423,21 @@ class Main {
       svl.observedArea.update();
 
       // Uniformly scale the whole tool to fit the viewport (like browser zoom) using var(--ui-scale).
-      const applyExploreScale = () => util.applyToolScale(
-        ['--pano-base-width', '--sidebar-base-gap', '--sidebar-base-width'],
-        ['--ribbon-base-top', '--ribbon-base-height', '--pano-base-height'],
-      );
+      const applyExploreScale = () => {
+        const scale = util.applyToolScale(
+          ['--pano-base-width', '--sidebar-base-gap', '--sidebar-base-width'],
+          ['--ribbon-base-top', '--ribbon-base-height', '--pano-base-height'],
+        );
+        // The label icon and its click target are capped in screen px, so both depend on the scale just applied
+        // (#4838). Cached rather than computed per render: they're read once per label per canvas render, and per
+        // label on every mousemove, and each read would otherwise force a style recalculation.
+        svl.LABEL_ICON_RADIUS = util.labelIconRadius(scale);
+        svl.LABEL_HIT_MARGIN = util.labelHitMargin(scale);
+      };
       applyExploreScale();
       // The canvas was rasterized at scale 1 during init; re-raster it at the chosen scale.
       if (svl.canvas) svl.canvas.resize();
+      if (svl.onboarding) svl.onboarding.resize();
       if (svl.observedArea) svl.observedArea.update();
       // Redraw fog of war after the rescale. Minimap does this async, so we have to listen on this event.
       if (svl.observedArea && svl.minimap) {
@@ -414,6 +451,7 @@ class Main {
         clearTimeout(resizeRasterTimer);
         resizeRasterTimer = setTimeout(() => {
           if (svl.canvas) svl.canvas.resize();
+          if (svl.onboarding) svl.onboarding.resize();
           if (svl.observedArea) svl.observedArea.update();
         }, 150);
       });
@@ -471,11 +509,21 @@ class Main {
     svl.ui.minimap = {};
     svl.ui.minimap.holder = $('#minimap-holder');
     svl.ui.minimap.overlay = $('#minimap-overlay');
-    svl.ui.minimap.message = $('#minimap-message');
     svl.ui.minimap.fogOfWar = $('#minimap-fog-of-war-canvas');
     svl.ui.minimap.fov = $('#minimap-fov-canvas');
     svl.ui.minimap.progressCircle = $('#minimap-progress-circle-canvas');
     svl.ui.minimap.percentObserved = $('#minimap-percent-observed');
+    svl.ui.minimap.missionProgress = $('#minimap-mission-progress');
+    svl.ui.minimap.missionProgressFill = $('#minimap-mission-progress-fill');
+    svl.ui.minimap.missionProgressPercent = $('#minimap-mission-progress-percent');
+    svl.ui.minimap.missionProgressDistance = $('#minimap-mission-progress-distance');
+    svl.ui.minimap.coach = $('#minimap-coach');
+    svl.ui.minimap.coachDismiss = $('#minimap-coach-dismiss');
+    svl.ui.minimap.legendToggle = $('#minimap-legend-toggle');
+    svl.ui.minimap.legendCard = $('#minimap-legend-card');
+    svl.ui.minimap.legendClose = $('#minimap-legend-close');
+    svl.ui.minimap.routeOverview = $('#minimap-route-overview');
+    svl.ui.minimap.routeOverviewCanvas = $('#minimap-route-overview-canvas');
 
     // Street view area DOM elements.
     svl.ui.streetview = {};
@@ -490,15 +538,10 @@ class Main {
     // Canvas for the labeling area.
     svl.ui.canvas = {};
     svl.ui.canvas.drawingLayer = $('#label-drawing-layer');
-    svl.ui.canvas.deleteIconHolder = $('#delete-icon-holder');
-    svl.ui.canvas.severityIconHolder = $('#severity-icon-holder');
-    svl.ui.canvas.deleteIcon = $('#label-delete-icon');
-    svl.ui.canvas.severityIcon = $('#severity-icon');
-    svl.ui.canvas.hoverInfoHolder = $('#label-hover-info');
-    svl.ui.canvas.hoverInfoType = $('#label-hover-info-type');
-    svl.ui.canvas.hoverInfoSeverity = $('#label-hover-info-severity');
-    svl.ui.canvas.hoverInfoSeverityIcon = $('#label-hover-info-severity-icon');
-    svl.ui.canvas.hoverInfoSeverityText = $('#label-hover-info-severity-text');
+    svl.ui.canvas.hoverCard = $('#label-hover-card');
+    svl.ui.canvas.hoverCardDelete = $('#label-hover-card-delete');
+    svl.ui.canvas.hoverCardEdit = $('#label-hover-card-edit');
+    svl.ui.canvas.hoverCardShare = $('#label-hover-card-share');
 
     // Context menu.
     svl.ui.contextMenu = {};
@@ -506,6 +549,7 @@ class Main {
     svl.ui.contextMenu.severityMenu = $('#severity-menu');
     svl.ui.contextMenu.severityRadioHolder = $('#severity-radio-holder');
     svl.ui.contextMenu.radioButtons = $('input[name=\'label-severity\']');
+    svl.ui.contextMenu.tagSection = $('#context-menu-tag-section');
     svl.ui.contextMenu.tagHolder = $('#context-menu-tag-holder');
     svl.ui.contextMenu.tags = $('button[name=\'tag\']');
     svl.ui.contextMenu.textBox = $('#context-menu-description-text-box');

@@ -95,6 +95,42 @@ describe('Form.submit (issue #2745 resilience)', () => {
         expect(svv.tracker.push).toHaveBeenCalledWith('SubmitFailed', expect.anything());
     });
 
+    test('a 4xx response is abandoned immediately instead of being retried (#4377)', async () => {
+        global.fetch = jest.fn(() => Promise.resolve({ ok: false, status: 400, json: () => Promise.resolve({}) }));
+        const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+        await form.submit({});
+        await jest.advanceTimersByTimeAsync(60000); // long enough for every retry in the budget to have fired
+
+        expect(global.fetch).toHaveBeenCalledTimes(1);
+        // Still logged, tagged with the status, so an abandoned 4xx stays separable from a network blip.
+        expect(svv.tracker.push).toHaveBeenCalledWith('SubmitFailed',
+            expect.objectContaining({ attempt: 0, status: 400 }));
+        expect(svv.tracker.push).toHaveBeenCalledWith('SubmitFailedGaveUp', { attempts: 0, retryable: false });
+        expect(errorSpy).toHaveBeenCalled();
+        expect(window.location.reload).not.toHaveBeenCalled();
+    });
+
+    test('408 and 429 are retried even though they are 4xx', async () => {
+        for (const status of [408, 429]) {
+            global.fetch = jest.fn(() => Promise.resolve({ ok: false, status, json: () => Promise.resolve({}) }));
+
+            await form.submit({});
+            await jest.advanceTimersByTimeAsync(2000);
+
+            expect(global.fetch).toHaveBeenCalledTimes(2);
+        }
+    });
+
+    test('a 5xx response is still retried', async () => {
+        global.fetch = jest.fn(() => Promise.resolve({ ok: false, status: 500, json: () => Promise.resolve({}) }));
+
+        await form.submit({});
+        await jest.advanceTimersByTimeAsync(2000);
+
+        expect(global.fetch).toHaveBeenCalledTimes(2);
+    });
+
     test('gives up after the retry cap without ever reloading', async () => {
         global.fetch = jest.fn(() => Promise.reject(new Error('down')));
 
@@ -130,17 +166,19 @@ describe('Form.submit (issue #2745 resilience)', () => {
     });
 
     test('a successful mission-complete submit loads the next mission', async () => {
+        const mission = { mission_id: 2, label_type_id: 3 };
         stubFetchOk({
             has_mission_available: true,
-            mission: { mission_id: 2 },
+            mission,
             progress: { agree_count: 1 },
             labels: [{ label_id: 9 }]
         });
 
         await form.submit({});
 
-        expect(svv.missionContainer.createAMission).toHaveBeenCalledWith({ mission_id: 2 }, { agree_count: 1 });
-        expect(svv.labelContainer.resetLabelList).toHaveBeenCalledWith([{ label_id: 9 }]);
+        expect(svv.missionContainer.createAMission).toHaveBeenCalledWith(mission, { agree_count: 1 });
+        // The label type rides along so the container can ask for replacement labels of the right type (#4810).
+        expect(svv.labelContainer.resetLabelList).toHaveBeenCalledWith([{ label_id: 9 }], 3);
         expect(svv.modalMissionComplete.nextMissionLoaded).toHaveBeenCalled();
         expect(window.location.reload).not.toHaveBeenCalled();
     });
@@ -246,7 +284,8 @@ describe('Form.submit (issue #2745 resilience)', () => {
         for (let attempt = 0; attempt <= 5; attempt++) {
             expect(svv.tracker.push).toHaveBeenCalledWith('SubmitFailed', expect.objectContaining({ attempt }));
         }
-        expect(svv.tracker.push).toHaveBeenCalledWith('SubmitFailedGaveUp', { attempts: 5 });
+        // Out of budget, not unretryable — unlike the 4xx case.
+        expect(svv.tracker.push).toHaveBeenCalledWith('SubmitFailedGaveUp', { attempts: 5, retryable: true });
 
         // Once it has given up, no further attempt may ever fire.
         await jest.advanceTimersByTimeAsync(600000);

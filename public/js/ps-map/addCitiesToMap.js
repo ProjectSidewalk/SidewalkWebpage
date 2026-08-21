@@ -212,10 +212,9 @@ function addCitiesToMap(map, citiesData, params) {
    * @returns {string}
    */
   function formatDistance(km) {
-    const distUnit = i18next.t('common:unit-distance-abbreviation');
-    const dist = i18next.t('common:measurement-system') === 'metric' ? km : util.math.kmsToMiles(km);
-    const roundedDist = Math.round(dist) < 10 ? Math.round(dist * 10) / 10 : Math.round(dist);
-    return `${i18next.t('common:format-number', { val: roundedDist })} ${distUnit}`;
+    // A decimal place only while the figure is small enough for it to say anything.
+    const isSmall = Math.round(util.isMetric() ? km : util.math.kmsToMiles(km)) < 10;
+    return util.longDistanceToString(km, isSmall ? 1 : 0);
   }
 
   /**
@@ -234,7 +233,9 @@ function addCitiesToMap(map, citiesData, params) {
     citiesData.features.forEach((city) => {
       bounds.extend(city.geometry.coordinates);
     });
-    map.fitBounds(bounds, { padding: 50 });
+    // A map that isn't the reason the page was opened shouldn't perform on arrival: pages that build this one
+    // mid-scroll ask for the world view outright rather than flying out to it from the city's own center.
+    map.fitBounds(bounds, { padding: 50, animate: params.animateCityFit !== false });
   }
 
   /**

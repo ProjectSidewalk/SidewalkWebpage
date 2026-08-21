@@ -31,13 +31,12 @@ class PopupPanoManager {
   #cropUrl;
 
   /**
-   * The scalable variant of a label type's canonical marker icon, from util.misc's central label-type registry,
-   * so the in-pano marker stays crisp at any size.
+   * A label type's canonical marker icon, from util.misc's central label-type registry.
    * @param {string} labelType
    * @returns {?string} The icon URL, or null for types without one.
    */
   #iconFor(labelType) {
-    return util.misc.getIconImagePaths(labelType)?.scalableIconImagePath ?? null;
+    return util.misc.getIconImagePaths(labelType)?.iconImagePath ?? null;
   }
 
   /**
@@ -411,8 +410,9 @@ class PopupPanoManager {
       icon: this.#iconFor(label.label_type),
       size: { width: 28, height: 28 },
     });
-    // Halo pulse draws the eye to the (small, often low-contrast) marker when the card opens.
-    panoMarker.marker_.classList.add('label-detail__marker-pulse');
+    // Halo pulse draws the eye to the (small, often low-contrast) marker when the card opens. A marker is built
+    // fresh per render, so the class plays once on a new element and needs no restart.
+    panoMarker.marker_.classList.add('label-detail__marker', 'label-marker-pulse');
     this.#labelMarkers.push({
       panoId: this.panoViewer.getPanoId(),
       marker: panoMarker,

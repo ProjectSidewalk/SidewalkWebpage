@@ -46,6 +46,20 @@ class Form {
   }
 
   /**
+   * The page's label filters, in the shape the backend's `ValidateParams` reads.
+   * @returns {Object} The filters, ready to drop into a request body as `validate_params`.
+   */
+  getValidateParams() {
+    return {
+      admin_version: svv.adminVersion,
+      label_type: svv.validateParams.labelTypeId,
+      user_ids: svv.validateParams.userIds,
+      neighborhood_ids: svv.validateParams.regionIds,
+      unvalidated_only: svv.validateParams.unvalidatedOnly,
+    };
+  }
+
+  /**
    * Compiles data into a format that can be parsed by our back end.
    *
    * @param {boolean} missionComplete - Whether the mission is complete. Ensures we only send once per mission.
@@ -68,7 +82,6 @@ class Form {
         labels_total: mission.getProperty('labelsValidated'),
         label_type_id: mission.getProperty('labelTypeId'),
         completed: missionComplete ? missionComplete : false,
-        skipped: mission.getProperty('skipped'),
       };
     }
 
@@ -95,13 +108,7 @@ class Form {
       css_zoom: 100, // Sent for back-end compatibility; UI scaling is done via real layout sizes (--ui-scale).
     };
 
-    data.validate_params = {
-      admin_version: svv.adminVersion,
-      label_type: svv.validateParams.labelTypeId,
-      user_ids: svv.validateParams.userIds,
-      neighborhood_ids: svv.validateParams.regionIds,
-      unvalidated_only: svv.validateParams.unvalidatedOnly,
-    };
+    data.validate_params = this.getValidateParams();
 
     data.interactions = svv.tracker.getActions();
 
@@ -133,11 +140,11 @@ class Form {
   /**
    * Submits all front-end data to the back end.
    *
-   * Network/parse failures and response-handling errors are handled separately and deliberately: a failed POST is
-   * retried (with the same snapshot, so nothing is lost) and never reloads the page, while an error thrown while
-   * applying the response is logged but never retried (the data already reached the server, so resubmitting would
-   * duplicate it). See #2745 — the previous blanket `catch -> location.reload()` reset users to the first label and
-   * caused a reload/crash loop on mobile.
+   * Network/parse failures and response-handling errors are handled separately and deliberately: a transiently
+   * failed POST is retried (with the same snapshot, so nothing is lost) and never reloads the page, while an error
+   * thrown while applying the response is logged but never retried (the data already reached the server, so
+   * resubmitting would duplicate it). See #2745 — the previous blanket `catch -> location.reload()` reset users to
+   * the first label and caused a reload/crash loop on mobile.
    *
    * @param {Object}  data               - Data object (containing interactions, missions, etc.).
    * @param {boolean} [isIntermediateSubmit=false] - True for the Tracker's mid-mission buffer flush, which only
@@ -153,18 +160,27 @@ class Form {
         headers: { 'Content-Type': 'application/json; charset=utf-8' },
         body: JSON.stringify(data),
       });
-      if (!response.ok) throw new Error(`Validation submit failed with HTTP ${response.status}`);
+      if (!response.ok) {
+        const httpError = new Error(`Validation submit failed with HTTP ${response.status}`);
+        httpError.status = response.status;
+        throw httpError;
+      }
       result = await response.json();
-    } catch (networkError) {
-      // Transient failure (offline, timeout, aborted request, non-OK status). Do not reload — retry the same
-      // snapshot with backoff so the validations eventually reach the server when connectivity returns.
-      if (svv.tracker) svv.tracker.push('SubmitFailed', { attempt: retryCount, error: networkError.message });
-      if (retryCount < Form.#MAX_SUBMIT_RETRIES) {
+    } catch (submitError) {
+      // Do not reload — retry the same snapshot with backoff so the validations eventually reach the server when
+      // connectivity returns. Network errors, timeouts and 5xx are worth retrying; a 4xx means the request itself is
+      // the problem (malformed body, expired session) and would fail identically on a resend. 408 and 429 are the
+      // server asking us to come back later (#4377).
+      const status = submitError.status;
+      const retryable = !(status >= 400 && status < 500) || status === 408 || status === 429;
+      if (svv.tracker) svv.tracker.push('SubmitFailed', { attempt: retryCount, status, error: submitError.message });
+      if (retryable && retryCount < Form.#MAX_SUBMIT_RETRIES) {
         setTimeout(() => {
           this.submit(data, isIntermediateSubmit, retryCount + 1);
         }, Form.#RETRY_BACKOFF_MS * (retryCount + 1));
-      } else if (svv.tracker) {
-        svv.tracker.push('SubmitFailedGaveUp', { attempts: retryCount });
+      } else {
+        if (!retryable) console.error('Validation submit rejected by the server:', submitError.message);
+        if (svv.tracker) svv.tracker.push('SubmitFailedGaveUp', { attempts: retryCount, retryable });
       }
       return;
     }
@@ -178,7 +194,7 @@ class Form {
       if (result.has_mission_available) {
         if (result.mission) {
           svv.missionContainer.createAMission(result.mission, result.progress);
-          svv.labelContainer.resetLabelList(result.labels);
+          svv.labelContainer.resetLabelList(result.labels, result.mission.label_type_id);
           await svv.labelContainer.renderCurrentLabel();
           svv.modalMissionComplete.nextMissionLoaded();
         }

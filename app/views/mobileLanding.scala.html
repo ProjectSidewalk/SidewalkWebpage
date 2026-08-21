@@ -1,7 +1,7 @@
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
 @import service.CommonPageData
-@(title: String, commonData: CommonPageData, user: SidewalkUserWithRole, labelCount: Int, valCount: Int
+@(title: String, commonData: CommonPageData, user: Option[SidewalkUserWithRole], labelCount: Int, valCount: Int
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @currentCity = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId).head}
@@ -10,17 +10,7 @@
 @common.main(commonData, title, url = "/mobileLanding") {
   <link rel="stylesheet" href='@assets.path("css/mobile-landing.css")'>
 
-    <!-- Slim header: logo + sign-in link. No full navbar on mobile landing. -->
-  <header id="mobile-landing-header">
-    <img src='@assets.path("images/" + config.get[String]("city-params.logo-img." + commonData.cityId))'
-    id="mobile-landing-logo-header"
-    alt="Project Sidewalk Logo">
-    @if(user.role == "Anonymous") {
-      <a href='@routes.UserController.signInMobile()' class="mobile-header-signin">@Messages("navbar.signin")</a>
-    } else {
-      <span class="mobile-header-signin">@user.username</span>
-    }
-  </header>
+  @common.navbar(commonData, user)
 
     <!-- Hero section with background video, tagline, and CTA -->
   <section id="mobile-landing-hero">

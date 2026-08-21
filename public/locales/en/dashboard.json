@@ -21,8 +21,8 @@
   "badge-type-validations": "validations",
   "badge-missions-singular": "mission",
   "badge-missions-plural": "missions",
-  "badge-distance-singular": "km",
-  "badge-distance-plural": "km",
+  "badge-distance-singular": "{{unitNameSingular}}",
+  "badge-distance-plural": "{{unitName}}",
   "badge-labels-singular": "label",
   "badge-labels-plural": "labels",
   "badge-validations-singular": "validation",
@@ -47,8 +47,7 @@
     "remaining-missions_other": "{{count}} more missions",
     "remaining-validations_one": "{{count}} more validation",
     "remaining-validations_other": "{{count}} more validations",
-    "remaining-distance-km": "{{dist}} km more",
-    "remaining-distance-mi": "{{dist}} mi more"
+    "remaining-distance": "{{dist}} {{unitAbbr}} more"
   },
   "mistake-cards": {
     "empty": "🎉 No mistakes to review — your labels are holding up great. Keep it up!",
@@ -83,6 +82,13 @@
     "network-error": "Network error — please try again."
   },
   "stories": {
-    "none": "You haven't shared any stories yet. Find a label on the map and choose “Share yours” to add one."
-  }
-}
+    "none": "You haven’t written any stories yet. Find a label on the map and choose “Write your story” to add one."
+  },
+  "routes-link-copied": "Link copied!",
+  "routes-rename-aria": "New route name",
+  "routes-rename-save": "Save",
+  "routes-rename-cancel": "Cancel",
+  "routes-renamed": "Route renamed.",
+  "routes-deleted": "Deleted \"{{name}}\".",
+  "routes-delete-confirm": "Delete \"{{name}}\"? Anyone you shared its link with will no longer be able to use it.",
+  "routes-error": "Something went wrong. Please try again."}

@@ -7,13 +7,16 @@
  * @param {string} params.mapStyle - URL of a Mapbox style.
  * @param {string} [params.mapboxApiKey] - Mapbox API key to use for the map.
  * @param {string} [params.neighborhoodFillMode] - One of 'singleColor' or 'completionRate'.
- * @param {string} [params.neighborhoodsURL] - URL of the endpoint containing neighborhood boundaries.
- * @param {string} params.completionRatesURL - URL of the endpoint containing neighborhood completion rates.
+ * @param {string|URL} [params.neighborhoodsURL] - URL of the endpoint containing neighborhood boundaries.
+ * @param {string|URL} params.completionRatesURL - URL of the endpoint containing neighborhood completion rates.
  * @param {boolean} [params.loadCities] - Whether to load deployment cities on the map.
- * @param {string} [params.streetsURL] - URL of the endpoint containing streets.
- * @param {string} [params.labelsURL] - URL of the endpoint containing labels.
+ * @param {boolean} [params.animateCityFit=true] - Whether the fit to all deployment cities is animated. Set false to
+ *     have the world view simply appear, with no flight out from the city's own center.
+ * @param {string|URL} [params.streetsURL] - URL of the endpoint containing streets.
+ * @param {string|URL} [params.labelsURL] - URL of the endpoint containing labels.
  * @param {number} [params.zoomCorrection=0] - Amount to increase default zoom to account for different map dimensions.
  * @param {boolean} [params.scrollWheelZoom=true] - Whether to allow zooming with the scroll wheel.
+ * @param {boolean} [params.cooperativeGestures=false] - Whether panning on touch takes two fingers.
  * @param {string} [params.mapboxLogoLocation=bottom-left] - 'top-left', 'top-right', 'bottom-left', or 'bottom-right'.
  * @param {string} [params.neighborhoodTooltip='none'] One of 'none' or 'completionRate'.
  * @param {boolean} [params.logClicks=true] - Whether clicks should be logged when it takes you to the explore page.
@@ -49,10 +52,10 @@ function createPSMap($, params) {
 
     // Show the sidebar early (in its disabled/loading state) so it's visible while data loads.
     // Also shift the map center to account for the sidebar covering part of the map.
-    const sidebar = document.getElementById('map-sidebar');
+    const sidebar = document.getElementById('filter-sidebar');
     if (sidebar) {
       sidebar.classList.remove('ps-invisible');
-      sidebar.classList.add('map-sidebar--loading');
+      sidebar.classList.add('filter-sidebar--loading');
       map.setPadding({ left: sidebar.offsetWidth, top: 0, right: 0, bottom: 0 });
     }
 
@@ -96,17 +99,21 @@ function createPSMap($, params) {
   let renderStreets;
   if (params.streetsURL) {
     const loadStreets = $.getJSON(params.streetsURL);
-    renderStreets = Promise.all([mapLoaded, renderNeighborhoods, loadStreets]).then((data) => {
-      addStreetsToMap(map, data[2], params);
-    });
+    renderStreets = Promise.all([mapLoaded, renderNeighborhoods, loadStreets]).then(
+      (data) => addStreetsToMap(map, data[2], params),
+    );
   }
 
   // Render the labels on the map if applicable.
   let renderLabels;
   if (params.labelsURL) {
-    const loadLabels = $.getJSON(params.labelsURL);
-    renderLabels = Promise.all([mapLoaded, renderStreets, loadLabels]).then((data) => {
-      return addLabelsToMap(map, data[2], params);
+    const loadLabels = fetchLabelFeed(params.labelsURL);
+    renderLabels = Promise.all([mapLoaded, renderStreets, loadLabels]).then(async (data) => {
+      const mapData = await addLabelsToMap(map, data[2], params);
+      // Streets carry no label filters, so their counts are settled the moment they load; park them on the tracker
+      // for the sidebar to render alongside the counts it facets itself.
+      mapData.streetCounts = data[1];
+      return mapData;
     });
   }
 
@@ -119,8 +126,35 @@ function createPSMap($, params) {
         window.citiesMap.resize();
       }
     });
+  }, () => {
+    // Failure is the caller's to report — it owns the page's error UI. Handled here as the second argument to
+    // `then` rather than left off, so this branch doesn't become a second, unhandled copy of the same rejection.
+    // Note this handler is on the DERIVED promise, which is discarded: `allLoaded` is returned untouched below
+    // and still rejects. Attaching the same handler to a promise that IS returned would convert its rejection
+    // into a resolution, and callers would receive `undefined` instead of an error.
   });
   return allLoaded;
+
+  /**
+   * Fetches the label feed, rejecting with an error that says what actually went wrong.
+   *
+   * The feed is streamed from the database under a chunked 200 (#3932), so the status and headers are committed
+   * before the rows are read. A mid-flight failure therefore arrives as a *truncated body under a success status* —
+   * `response.ok` cannot see it, and the JSON parse is what throws. jQuery surfaces that as a bare "parsererror"
+   * indistinguishable from a malformed payload, which is why this reports the two cases separately.
+   *
+   * @param {string|URL} url - The label feed endpoint.
+   * @returns {Promise<object>} The parsed GeoJSON FeatureCollection.
+   */
+  async function fetchLabelFeed(url) {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`Label feed ${url} failed with HTTP ${response.status}.`);
+    try {
+      return await response.json();
+    } catch (e) {
+      throw new Error(`Label feed ${url} returned an unreadable body (truncated stream?): ${e.message}`);
+    }
+  }
 
   /**
    * Create the Mapbox map object and attach a custom logging function to it.
@@ -144,6 +178,8 @@ function createPSMap($, params) {
         [mapParamData.northeast_boundary.lng, mapParamData.northeast_boundary.lat],
       ],
       scrollZoom: params.scrollWheelZoom,
+      cooperativeGestures: params.cooperativeGestures,
+      locale: { 'TouchPanBlocker.Message': i18next.t('common:map-two-finger-pan') },
     });
     newMap.addControl(new MapboxLanguage({ defaultLanguage: i18next.t('common:mapbox-language-code') }));
     const navPosition = params.navigationControlPosition || 'top-left';

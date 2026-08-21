@@ -4,7 +4,15 @@ import com.google.inject.ImplementedBy
 import models.street.StreetEdgeTableDef
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import service.{AggregateStats, CityScorecard, LabelTypeStats, WeeklyPoint}
+import service.{
+  AggregateStats,
+  CityScorecard,
+  ContributorKind,
+  ContributorWindowActivity,
+  DailyContributorActivity,
+  LabelTypeStats,
+  WeeklyPoint
+}
 import slick.jdbc.GetResult
 
 import java.time.{LocalDate, OffsetDateTime, ZoneOffset}
@@ -32,6 +40,7 @@ case class Config(
 )
 
 class ConfigTableDef(tag: Tag) extends Table[Config](tag, "config") {
+  // CHECK (open_status IN ('fully', 'partially')) in the DB (no Slick DSL for CHECK constraints).
   def openStatus: Rep[String]                = column[String]("open_status")
   def mapathonEventLink: Rep[Option[String]] = column[Option[String]]("mapathon_event_link")
   def cityCenterLat: Rep[Double]             = column[Double]("city_center_lat")
@@ -43,8 +52,9 @@ class ConfigTableDef(tag: Tag) extends Table[Config](tag, "config") {
   def defaultMapZoom: Rep[Double]            = column[Double]("default_map_zoom")
   def tutorialStreetEdgeID: Rep[Int]         = column[Int]("tutorial_street_edge_id")
   def offsetHours: Rep[Int]                  = column[Int]("update_offset_hours")
-  def makeCrops: Rep[Boolean]                = column[Boolean]("make_crops")
-  def excludedTags: Rep[Seq[ExcludedTag]]    = column[Seq[ExcludedTag]]("excluded_tags", O.Default(List.empty))
+  def makeCrops: Rep[Boolean]                = column[Boolean]("make_crops", O.Default(true))
+  // CHECK (jsonb_typeof(excluded_tags) = 'array') in the DB, so an empty value must be '[]' and not '{}'.
+  def excludedTags: Rep[Seq[ExcludedTag]] = column[Seq[ExcludedTag]]("excluded_tags")
 
   override def * = (
     openStatus,
@@ -90,7 +100,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    *
    * Interim workaround for #4376: the projectsidewalk/db image ships a broken Postgres JIT (PostGIS bitcode built with
    * LLVM 16, runtime llvmjit linked against LLVM 11). An expensive query that JIT-inlines PostGIS function bitcode
-   * (ST_TRANSFORM/ST_LENGTH) segfaults the backend, surfacing as a dropped connection (SQLSTATE 08006). The cross-city
+   * (e.g. ST_LENGTH) segfaults the backend, surfacing as a dropped connection (SQLSTATE 08006). The cross-city
    * scorecard and labeling-speed queries cross the JIT cost thresholds and call those functions, so they trip it.
    * `SET LOCAL` scopes the setting to this one transaction. Remove once #4376 disables JIT at the DB config level.
    *
@@ -132,26 +142,55 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
   }
 
   /**
+   * True iff `voided_label_validation` (created by evolution 355, #4842) exists in the given schema.
+   *
+   * Cross-schema queries must not assume another city's schema is at this instance's evolution level: each city is
+   * its own app instance, so on a rolling release there is a window where this instance (new code) queries a schema
+   * that hasn't applied 354 yet — and a parked deployment (schema present, no running app) may never apply it. A
+   * missing relation would fail the whole query, and the callers' `.recover` would then drop the entire city from
+   * the aggregate surfaces. An unmigrated schema's archive contribution is genuinely 0 (no repair has run there), so
+   * the right behavior is to probe first and skip the archive arm, not to fail. `to_regclass` resolves a relation
+   * name to NULL instead of erroring when absent, which makes it the safe probe.
+   *
+   * @param schema The database schema to probe.
+   * @return       DBIO yielding true when the archive table exists in that schema.
+   */
+  private def schemaHasVoidedValidationArchive(schema: String): DBIO[Boolean] =
+    sql"""SELECT to_regclass('"#$schema".voided_label_validation') IS NOT NULL""".as[Boolean].head
+
+  /**
    * Retrieves essential aggregate data for a specific city schema.
    *
    * @param schema The database schema name for the target city
    * @return DBIO action that yields AggregateStats
    */
-  def getCityAggregateDataBySchema(schema: String): DBIO[AggregateStats] = {
-    sql"""
+  def getCityAggregateDataBySchema(schema: String): DBIO[AggregateStats] = schemaHasVoidedValidationArchive(schema)
+    .flatMap { hasVoidedArchive =>
+      // Work-credit count (#4842): votes voided by the off-target-markers repair are archived in
+      // voided_label_validation, not deleted, so the "how many validations happened" total keeps counting them.
+      // Guarded per-schema because the table may not exist there yet (see schemaHasVoidedValidationArchive).
+      val voidedCountArm =
+        if (hasVoidedArchive) s""" + (
+              SELECT COUNT(*)
+              FROM "$schema".voided_label_validation
+              INNER JOIN "$schema".user_stat ON voided_label_validation.user_id = user_stat.user_id
+              WHERE NOT user_stat.excluded
+          )"""
+        else ""
+      sql"""
       SELECT km_audited.km_audited AS km_explored,
             km_audited_no_overlap.km_audited_no_overlap AS km_explored_no_overlap,
             label_counts.label_count AS total_labels,
             tutorial_label_counts.tutorial_label_count AS tutorial_labels,
             total_val_count.validation_count AS total_validations
       FROM (
-          SELECT SUM(ST_LENGTH(ST_TRANSFORM(geom, 26918))) / 1000 AS km_audited
+          SELECT SUM(ST_Length(geom::geography)) / 1000 AS km_audited
           FROM "#$schema".street_edge
           INNER JOIN "#$schema".audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
           INNER JOIN "#$schema".user_stat ON audit_task.user_id = user_stat.user_id
           WHERE completed = TRUE AND NOT user_stat.excluded
       ) AS km_audited, (
-          SELECT SUM(ST_LENGTH(ST_TRANSFORM(geom, 26918))) / 1000 AS km_audited_no_overlap
+          SELECT SUM(ST_Length(geom::geography)) / 1000 AS km_audited_no_overlap
           FROM (
               SELECT DISTINCT street_edge.street_edge_id, geom
               FROM "#$schema".street_edge
@@ -179,36 +218,39 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
               AND deleted = FALSE
               AND tutorial = TRUE
       ) AS tutorial_label_counts, (
-          SELECT COUNT(*) AS validation_count
-          FROM "#$schema".label_validation
-          INNER JOIN "#$schema".user_stat ON label_validation.user_id = user_stat.user_id
-          WHERE NOT user_stat.excluded
+          SELECT (
+              SELECT COUNT(*)
+              FROM "#$schema".label_validation
+              INNER JOIN "#$schema".user_stat ON label_validation.user_id = user_stat.user_id
+              WHERE NOT user_stat.excluded
+          )#$voidedCountArm AS validation_count
       ) AS total_val_count;
     """
-      .as[(Double, Double, Int, Int, Int)]
-      .head
-      .map { case (kmExplored, kmExploredNoOverlap, totalLabels, tutorialLabels, totalValidations) =>
+        .as[(Double, Double, Int, Int, Int)]
+        .head
+        .map { case (kmExplored, kmExploredNoOverlap, totalLabels, tutorialLabels, totalValidations) =>
 
-        // Now get the label type statistics for this schema.
-        getLabelTypeStatsBySchema(schema).map { labelTypeStats =>
-          AggregateStats(
-            kmExplored = kmExplored, kmExploredNoOverlap = kmExploredNoOverlap, totalLabels = totalLabels,
-            tutorialLabels = tutorialLabels, totalValidations = totalValidations, totalUsers = 0, // Deduped across schemas in ConfigService (getContributorUserIdsBySchema); not a per-city sum
-            numCities = 0,    // Individual cities don't have deployment counts
-            numCountries = 0, // These are calculated at the service level
-            numLanguages = 0, // when aggregating across all cities
-            byLabelType = labelTypeStats
-          )
+          // Now get the label type statistics for this schema.
+          getLabelTypeStatsBySchema(schema).map { labelTypeStats =>
+            AggregateStats(
+              kmExplored = kmExplored, kmExploredNoOverlap = kmExploredNoOverlap, totalLabels = totalLabels,
+              tutorialLabels = tutorialLabels, totalValidations = totalValidations, totalUsers = 0, // Deduped across schemas in ConfigService (getContributorUserIdsBySchema); not a per-city sum
+              numCities = 0,    // Individual cities don't have deployment counts
+              numCountries = 0, // These are calculated at the service level
+              numLanguages = 0, // when aggregating across all cities
+              byLabelType = labelTypeStats
+            )
+          }
         }
-      }
-      .flatten
-  }
+        .flatten
+    }
 
   /**
    * Retrieves the distinct contributor user ids for a single city schema (#3976).
    *
-   * A "contributor" is a non-excluded user who added at least one non-tutorial label OR validated at least one label.
-   * The two arms reuse the EXACT predicates of `getCityAggregateDataBySchema`'s `label_counts` and `total_val_count`
+   * A "contributor" is a non-excluded user who added at least one non-tutorial label OR validated at least one label
+   * (including votes since voided by the #4842 repair — the participation happened). The arms reuse the EXACT
+   * predicates of `getCityAggregateDataBySchema`'s `label_counts` and `total_val_count`
    * subqueries, so the contributing set is consistent with `total_labels` / `total_validations`. The `UNION` dedupes
    * within this city; cross-city dedup (by the global `user_id`) is done by the caller, which unions these id sets
    * across schemas. Returns ids (not a count) precisely so that caller-side cross-schema dedup is possible.
@@ -216,8 +258,18 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    * @param schema The database schema to query.
    * @return DBIO action yielding the distinct contributor `user_id`s (a `text` column) for this schema.
    */
-  def getContributorUserIdsBySchema(schema: String): DBIO[Seq[String]] = {
-    sql"""
+  def getContributorUserIdsBySchema(schema: String): DBIO[Seq[String]] = schemaHasVoidedValidationArchive(schema)
+    .flatMap { hasVoidedArchive =>
+      // Votes voided by the #4842 repair still mark their caster as a contributor — the participation happened.
+      // Guarded per-schema because the archive may not exist there yet (see schemaHasVoidedValidationArchive).
+      val voidedUnionArm =
+        if (hasVoidedArchive) s"""UNION
+      SELECT voided_label_validation.user_id
+      FROM "$schema".voided_label_validation
+      INNER JOIN "$schema".user_stat ON voided_label_validation.user_id = user_stat.user_id
+      WHERE NOT user_stat.excluded"""
+        else ""
+      sql"""
       SELECT label.user_id
       FROM "#$schema".label
       INNER JOIN "#$schema".user_stat ON label.user_id = user_stat.user_id
@@ -231,9 +283,10 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
       SELECT label_validation.user_id
       FROM "#$schema".label_validation
       INNER JOIN "#$schema".user_stat ON label_validation.user_id = user_stat.user_id
-      WHERE NOT user_stat.excluded;
+      WHERE NOT user_stat.excluded
+      #$voidedUnionArm;
     """.as[String]
-  }
+    }
 
   /**
    * Retrieves label type statistics from a specific schema using existing vote counts.
@@ -374,7 +427,42 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
       )
     }
 
-    val coreQuery =
+    // Coverage counts only audits on current imagery (#4384), but this query runs against OTHER cities' schemas,
+    // which may not have applied the evolution adding audit_task.outdated_imagery yet (e.g. mid-deploy). Gate the
+    // filter on the column existing so unmigrated schemas fall back to counting every completed audit instead of
+    // erroring out their whole scorecard. Once every deployed schema has the column this gate (and the branch in
+    // coreQuery) can go away -- tracked in #4705.
+    //
+    // Unlike the `"#$schema".table` splices below, which have to be raw because an identifier can't be a bind
+    // parameter, this one compares against a plain string column, so bind it properly.
+    val upToDateFilterQuery =
+      sql"""
+        SELECT EXISTS (
+            SELECT FROM information_schema.columns
+            WHERE table_schema::text = $schema AND table_name = 'audit_task' AND column_name = 'outdated_imagery'
+        );
+      """.as[Boolean].head
+
+    // Both archive reads are guarded per-schema because voided_label_validation may not exist there yet (see
+    // schemaHasVoidedValidationArchive); an unmigrated schema contributes 0 voided votes and no extra contributors.
+    def coreQuery(upToDateFilter: String, hasVoidedArchive: Boolean) = {
+      // Work-credit add-on (#4842): archived voided votes count toward total_validations (activity volume) but
+      // not the agree/disagree verdict columns. The archive is human-only by construction.
+      val voidedValCountsBody =
+        if (hasVoidedArchive) s"""SELECT COUNT(*) AS cnt
+          FROM "$schema".voided_label_validation
+          INNER JOIN "$schema".user_stat ON voided_label_validation.user_id = user_stat.user_id
+          WHERE NOT user_stat.excluded"""
+        else "SELECT 0 AS cnt"
+      // Voided votes (#4842) still mark their caster as a contributor; the archive is human-only by construction,
+      // so no AI-role filter is needed.
+      val voidedContributorArm =
+        if (hasVoidedArchive) s"""UNION
+              SELECT voided_label_validation.user_id AS contributor_id
+              FROM "$schema".voided_label_validation
+              INNER JOIN "$schema".user_stat ON voided_label_validation.user_id = user_stat.user_id
+              WHERE NOT user_stat.excluded"""
+        else ""
       sql"""
       SELECT total_streets.cnt          AS total_streets,
              audited_streets.cnt        AS audited_streets,
@@ -386,7 +474,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
              label_counts.severity_eligible AS labels_severity_eligible,
              label_counts.with_tags         AS labels_with_tags,
              label_counts.tag_eligible      AS labels_tag_eligible,
-             val_counts.val_count           AS total_validations,
+             val_counts.val_count + voided_val_counts.cnt AS total_validations,
              val_counts.agree_count     AS validations_agree,
              val_counts.disagree_count  AS validations_disagree,
              ai_val_counts.ai_count     AS ai_validations,
@@ -408,19 +496,19 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           FROM "#$schema".street_edge
           INNER JOIN "#$schema".audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
           INNER JOIN "#$schema".user_stat ON audit_task.user_id = user_stat.user_id
-          WHERE completed = TRUE AND NOT user_stat.excluded AND street_edge.status = 'open'
+          WHERE completed = TRUE AND NOT user_stat.excluded AND street_edge.status = 'open' #$upToDateFilter
       ) AS audited_streets, (
-          SELECT SUM(ST_LENGTH(ST_TRANSFORM(geom, 26918))) / 1000 AS km
+          SELECT SUM(ST_Length(geom::geography)) / 1000 AS km
           FROM "#$schema".street_edge WHERE status = 'open'
       ) AS street_km, (
           -- Distinct audited length (no double-counting overlapping audits), open-only (see audited_streets).
-          SELECT SUM(ST_LENGTH(ST_TRANSFORM(geom, 26918))) / 1000 AS km
+          SELECT SUM(ST_Length(geom::geography)) / 1000 AS km
           FROM (
               SELECT DISTINCT street_edge.street_edge_id, geom
               FROM "#$schema".street_edge
               INNER JOIN "#$schema".audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
               INNER JOIN "#$schema".user_stat ON audit_task.user_id = user_stat.user_id
-              WHERE completed = TRUE AND NOT user_stat.excluded AND street_edge.status = 'open'
+              WHERE completed = TRUE AND NOT user_stat.excluded AND street_edge.status = 'open' #$upToDateFilter
           ) AS distinct_audited
       ) AS audited_km, (
           SELECT COUNT(DISTINCT label.label_id) AS label_count,
@@ -480,6 +568,8 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           LEFT  JOIN sidewalk_login.role      ON user_role.role_id        = role.role_id
           WHERE NOT user_stat.excluded AND role.role = 'AI'
       ) AS ai_val_counts, (
+          #$voidedValCountsBody
+      ) AS voided_val_counts, (
           SELECT COUNT(DISTINCT street_edge_id) FILTER (WHERE task_end >= NOW() - INTERVAL '7 days')  AS audits_7d,
                  COUNT(DISTINCT street_edge_id) FILTER (WHERE task_end >= NOW() - INTERVAL '30 days') AS audits_30d
           FROM "#$schema".audit_task
@@ -502,6 +592,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
               LEFT  JOIN sidewalk_login.user_role ON label_validation.user_id = user_role.user_id
               LEFT  JOIN sidewalk_login.role      ON user_role.role_id        = role.role_id
               WHERE NOT user_stat.excluded AND role.role IS DISTINCT FROM 'AI'
+              #$voidedContributorArm
           ) AS contributor_union
       ) AS active_contributors, (
           -- Distinct EXCLUDED (low-quality) users who placed a label — the data-quality "how much got filtered" signal.
@@ -517,13 +608,19 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           ) AS ts
       ) AS last_activity;
     """.as[ScorecardCore].head
+    }
 
     // Fold in the per-label-type breakdown, the weekly trend, and the (cheap) per-user output/speed stats (same
     // connection), then assemble the full scorecard. The expensive labeling-speed query is NOT here — it is computed on
     // a separate long-cached path (getCrossCityLabelingSpeed). Wrapped in withJitOff because coreQuery's km calc uses
     // PostGIS (#4376).
     withJitOff(for {
-      core        <- coreQuery
+      hasOutdatedImageryCol <- upToDateFilterQuery
+      hasVoidedArchive      <- schemaHasVoidedValidationArchive(schema)
+      core                  <- coreQuery(
+        if (hasOutdatedImageryCol) "AND audit_task.outdated_imagery = FALSE" else "",
+        hasVoidedArchive
+      )
       byLabelType <- getLabelTypeStatsBySchema(schema)
       weeklyTrend <- getCityWeeklyTrendBySchema(schema, Some(ScorecardTrendWeeks))
       output      <- getCityContributorOutputBySchema(schema)
@@ -577,23 +674,40 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    *
    * @param schema The database schema to query.
    * @param weeks  Trailing weeks to include, or None for the city's full history (the "All time" toggle).
-   * @return       DBIO yielding (weekStart, labels, validations, activeUsers), ascending by week.
+   * @return       DBIO yielding (weekStart, labels, validations, activeUsers, newUsers), ascending by week; newUsers
+   *               is 0 whenever `weeks` is bounded (see the inline note).
    */
   def getCityWeeklyTrendBySchema(schema: String, weeks: Option[Int]): DBIO[Seq[WeeklyPoint]] = {
     implicit val getResult: GetResult[WeeklyPoint] =
-      GetResult(r => WeeklyPoint(LocalDate.parse(r.nextString()), r.nextInt(), r.nextInt(), r.nextInt()))
+      GetResult(r => WeeklyPoint(LocalDate.parse(r.nextString()), r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()))
 
     // weeks is an Int (safe to interpolate); None drops the lower bound to return the city's full history.
     val labelBound = weeks.map(w => s"AND label.time_created >= NOW() - ($w * INTERVAL '1 week')").getOrElse("")
     val valBound   =
       weeks.map(w => s"AND label_validation.end_timestamp >= NOW() - ($w * INTERVAL '1 week')").getOrElse("")
 
+    // new_users (each user counted in the week of their first-ever activity, for the cumulative users chart, #4686)
+    // is only knowable over the full history — a trailing window would misread "first activity in the window" as
+    // "first ever" — so bounded queries get a literal 0 and skip the extra aggregation.
+    val newUsersCtes =
+      if (weeks.isEmpty) """,
+      first_weeks AS (
+          SELECT DATE_TRUNC('week', MIN(activity_ts AT TIME ZONE 'US/Pacific'))::date AS week_start
+          FROM activity
+          GROUP BY activity_user_id
+      ),
+      new_user_counts AS (
+          SELECT week_start, COUNT(*) AS new_users
+          FROM first_weeks
+          GROUP BY week_start
+      )"""
+      else ""
+    val newUsersSelect = if (weeks.isEmpty) "COALESCE(new_user_counts.new_users, 0)" else "0"
+    val newUsersJoin   =
+      if (weeks.isEmpty) "LEFT JOIN new_user_counts ON weekly.week_start = new_user_counts.week_start" else ""
+
     sql"""
-      SELECT CAST(DATE_TRUNC('week', activity_ts AT TIME ZONE 'US/Pacific')::date AS TEXT) AS week_start,
-             COUNT(*) FILTER (WHERE kind = 'label')      AS labels,
-             COUNT(*) FILTER (WHERE kind = 'validation') AS validations,
-             COUNT(DISTINCT activity_user_id)            AS active_users
-      FROM (
+      WITH activity AS (
           SELECT label.time_created AS activity_ts, label.user_id AS activity_user_id, 'label' AS kind
           FROM "#$schema".label
           INNER JOIN "#$schema".user_stat ON label.user_id = user_stat.user_id
@@ -605,10 +719,187 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           INNER JOIN "#$schema".user_stat ON label_validation.user_id = user_stat.user_id
           WHERE NOT user_stat.excluded
               #$valBound
-      ) AS activity
-      GROUP BY week_start
-      ORDER BY week_start ASC;
+      ),
+      weekly AS (
+          SELECT DATE_TRUNC('week', activity_ts AT TIME ZONE 'US/Pacific')::date AS week_start,
+                 COUNT(*) FILTER (WHERE kind = 'label')      AS labels,
+                 COUNT(*) FILTER (WHERE kind = 'validation') AS validations,
+                 COUNT(DISTINCT activity_user_id)            AS active_users
+          FROM activity
+          GROUP BY week_start
+      )
+      #$newUsersCtes
+      SELECT CAST(weekly.week_start AS TEXT) AS week_start, weekly.labels, weekly.validations, weekly.active_users,
+             #$newUsersSelect AS new_users
+      FROM weekly
+      #$newUsersJoin
+      ORDER BY weekly.week_start ASC;
     """.as[WeeklyPoint]
+  }
+
+  /**
+   * The `account_kinds` CTE body: how each already-selected contributor's activity should be attributed.
+   *
+   * Authorship kind is a `sidewalk_login` role, not anything in the city schema, so every per-schema activity query
+   * resolves it the same way: `AI` marks pipeline output, `Anonymous` marks a per-cookie identity that is not
+   * necessarily a distinct person, and everything else is a registered account.
+   *
+   * **This CTE must be driven from the caller's already-narrowed set of active users, which is why it takes the
+   * driving CTE's name rather than being a constant.** `user_role` runs to millions of rows and is ~99.9% `Anonymous`
+   * (5.73M of 5.74M in prod), so a body that grouped every user — or even filtered on the role names — would aggregate
+   * millions of rows, and these queries run once per city schema across ~56 schemas per cache refresh. Restricting to
+   * the handful of users active in the window keeps it index lookups on `user_role_user_id_idx` instead.
+   *
+   * `BOOL_OR` + `GROUP BY` rather than a join on role name: a user with several role rows must yield exactly one row
+   * here, or the join would fan their activity out and double-count it.
+   *
+   * @param activityCte Name of the preceding CTE holding the active users, with an `activity_user_id` column.
+   * @return            The CTE body, for interpolation into a `WITH` list after `activityCte`.
+   */
+  private def accountKindsCte(activityCte: String): String =
+    s"""account_kinds AS (
+          SELECT user_role.user_id,
+                 BOOL_OR(role.role = 'AI')        AS is_ai,
+                 BOOL_OR(role.role = 'Anonymous') AS is_anonymous
+          FROM sidewalk_login.user_role
+          INNER JOIN sidewalk_login.role ON user_role.role_id = role.role_id
+          WHERE user_role.user_id IN (SELECT activity_user_id FROM $activityCte)
+          GROUP BY user_role.user_id
+      )"""
+
+  /**
+   * The `account_kind` SELECT expression pairing with [[accountKindsCte]].
+   *
+   * `AI` outranks `Anonymous` so an account carrying both resolves deterministically to pipeline output. A contributor
+   * with no `user_role` row at all leaves both flags NULL and falls through to `registered`, matching how the rest of
+   * the app treats a role-less account.
+   */
+  private val accountKindSelect: String =
+    """CASE WHEN account_kinds.is_ai THEN 'ai'
+                  WHEN account_kinds.is_anonymous THEN 'anonymous'
+                  ELSE 'registered' END"""
+
+  /**
+   * Per-person daily label/validation volume for one city's trailing window, for the "this week" bar charts (#4686)
+   * and their hover breakdowns (#4931).
+   *
+   * The daily counterpart of [[getCityWeeklyTrendBySchema]]: identical activity definition and exclusions, bucketed by
+   * calendar day in Pacific time. Reporting at (day, person) grain rather than as day totals lets the service derive
+   * the bars, the human/AI split, and the named contributor list from one scan, so a bar can never disagree with the
+   * card that explains it. Days with no activity are absent (the service zero-fills the window). The time bound is a
+   * raw-timestamp comparison one day wider than the window so it stays index-friendly (no per-row time-zone conversion
+   * in the WHERE); the service trims to the exact Pacific-day window.
+   *
+   * The username join is a LEFT JOIN so a person missing from `sidewalk_user` still contributes their counts to the
+   * day's totals (which the service sums from these rows) instead of vanishing from them.
+   *
+   * @param schema The database schema to query.
+   * @param days   Trailing calendar days to include (the last of them being today, partial).
+   * @return       DBIO yielding one row per (day, person), ascending by day.
+   */
+  def getCityDailyActivityByUserBySchema(schema: String, days: Int): DBIO[Seq[DailyContributorActivity]] = {
+    implicit val getResult: GetResult[DailyContributorActivity] =
+      GetResult(r =>
+        DailyContributorActivity(
+          LocalDate.parse(r.nextString()), r.nextString(), r.nextString(), ContributorKind.withName(r.nextString()),
+          r.nextInt(), r.nextInt()
+        )
+      )
+
+    sql"""
+      WITH activity AS (
+          SELECT label.time_created AS activity_ts, label.user_id AS activity_user_id, 'label' AS kind
+          FROM "#$schema".label
+          INNER JOIN "#$schema".user_stat ON label.user_id = user_stat.user_id
+          WHERE NOT user_stat.excluded AND label.deleted = FALSE AND label.tutorial = FALSE
+              AND label.time_created >= NOW() - ((${days} + 1) * INTERVAL '1 day')
+          UNION ALL
+          SELECT label_validation.end_timestamp AS activity_ts, label_validation.user_id AS activity_user_id, 'validation' AS kind
+          FROM "#$schema".label_validation
+          INNER JOIN "#$schema".user_stat ON label_validation.user_id = user_stat.user_id
+          WHERE NOT user_stat.excluded
+              AND label_validation.end_timestamp >= NOW() - ((${days} + 1) * INTERVAL '1 day')
+      ),
+      per_day_user AS (
+          SELECT DATE_TRUNC('day', activity_ts AT TIME ZONE 'US/Pacific')::date AS day, activity_user_id,
+                 COUNT(*) FILTER (WHERE kind = 'label')      AS labels,
+                 COUNT(*) FILTER (WHERE kind = 'validation') AS validations
+          FROM activity
+          GROUP BY day, activity_user_id
+      ),
+      #${accountKindsCte("per_day_user")}
+      SELECT CAST(per_day_user.day AS TEXT), per_day_user.activity_user_id,
+             COALESCE(sidewalk_user.username, ''), #$accountKindSelect,
+             per_day_user.labels, per_day_user.validations
+      FROM per_day_user
+      LEFT JOIN sidewalk_login.sidewalk_user ON per_day_user.activity_user_id = sidewalk_user.user_id
+      LEFT JOIN account_kinds ON per_day_user.activity_user_id = account_kinds.user_id
+      ORDER BY per_day_user.day ASC, per_day_user.activity_user_id ASC;
+    """.as[DailyContributorActivity]
+  }
+
+  /**
+   * Per-person rolling week-over-week activity for one city — the trailing 7 days vs the 7 before — behind the
+   * "Today & this week" tiles, the "Most active cities" table, and their hover breakdowns (#4758, #4931).
+   *
+   * One bounded scan of the trailing 14 days using the same activity union and exclusions as
+   * [[getCityDailyActivityByUserBySchema]], split into the current and prior window by FILTER clauses. Bounds compare
+   * raw timestamps against NOW() so both legs stay on their btree indexes (label_time_created_idx /
+   * label_validation_end_timestamp_idx, evolution 346). Windows are exact rolling 168-hour spans, deliberately NOT
+   * Pacific calendar days, so these totals line up with each other rather than the daily-trend chart's day buckets.
+   *
+   * Reporting at person grain rather than as city totals is what lets the page name contributors, split human from AI
+   * work, and still guarantee that a headline count equals the breakdown that explains it — the service sums these
+   * same rows for both. The username join is a LEFT JOIN so a person missing from `sidewalk_user` still contributes
+   * their counts to those totals.
+   *
+   * These label counts run ~0.1% above the scorecard's labels_7d, which additionally joins through `audit_task` and
+   * drops the tutorial street. Both are defensible; the page keeps each table on a single basis so a level and its
+   * week-over-week delta never mix the two.
+   *
+   * @param schema The database schema to query.
+   * @return       DBIO yielding one row per person with activity in either window, busiest first.
+   */
+  def getCityWindowActivityByUserBySchema(schema: String): DBIO[Seq[ContributorWindowActivity]] = {
+    implicit val getResult: GetResult[ContributorWindowActivity] =
+      GetResult(r =>
+        ContributorWindowActivity(
+          r.nextString(), r.nextString(), ContributorKind.withName(r.nextString()), r.nextInt(), r.nextInt(),
+          r.nextInt(), r.nextInt()
+        )
+      )
+
+    sql"""
+      WITH activity AS (
+          SELECT label.time_created AS activity_ts, label.user_id AS activity_user_id, 'label' AS kind
+          FROM "#$schema".label
+          INNER JOIN "#$schema".user_stat ON label.user_id = user_stat.user_id
+          WHERE NOT user_stat.excluded AND label.deleted = FALSE AND label.tutorial = FALSE
+              AND label.time_created >= NOW() - INTERVAL '14 days'
+          UNION ALL
+          SELECT label_validation.end_timestamp AS activity_ts, label_validation.user_id AS activity_user_id, 'validation' AS kind
+          FROM "#$schema".label_validation
+          INNER JOIN "#$schema".user_stat ON label_validation.user_id = user_stat.user_id
+          WHERE NOT user_stat.excluded
+              AND label_validation.end_timestamp >= NOW() - INTERVAL '14 days'
+      ),
+      per_user AS (
+          SELECT activity_user_id,
+                 COUNT(*) FILTER (WHERE kind = 'label' AND activity_ts >= NOW() - INTERVAL '7 days')      AS labels_7d,
+                 COUNT(*) FILTER (WHERE kind = 'label' AND activity_ts < NOW() - INTERVAL '7 days')       AS labels_prior_7d,
+                 COUNT(*) FILTER (WHERE kind = 'validation' AND activity_ts >= NOW() - INTERVAL '7 days') AS validations_7d,
+                 COUNT(*) FILTER (WHERE kind = 'validation' AND activity_ts < NOW() - INTERVAL '7 days')  AS validations_prior_7d
+          FROM activity
+          GROUP BY activity_user_id
+      ),
+      #${accountKindsCte("per_user")}
+      SELECT per_user.activity_user_id, COALESCE(sidewalk_user.username, ''), #$accountKindSelect,
+             per_user.labels_7d, per_user.labels_prior_7d, per_user.validations_7d, per_user.validations_prior_7d
+      FROM per_user
+      LEFT JOIN sidewalk_login.sidewalk_user ON per_user.activity_user_id = sidewalk_user.user_id
+      LEFT JOIN account_kinds ON per_user.activity_user_id = account_kinds.user_id
+      ORDER BY per_user.labels_7d + per_user.validations_7d DESC, per_user.activity_user_id ASC;
+    """.as[ContributorWindowActivity]
   }
 
   /**
@@ -705,7 +996,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           ) time_diffs
           WHERE diff < '00:05:00' AND diff > '00:00:00'
       ) AS audit_time, (
-          SELECT SUM(ST_LENGTH(ST_TRANSFORM(geom, 26918))) / 1000 AS km
+          SELECT SUM(ST_Length(geom::geography)) / 1000 AS km
           FROM "#$schema".street_edge
           INNER JOIN "#$schema".audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
           INNER JOIN "#$schema".user_stat ON audit_task.user_id = user_stat.user_id

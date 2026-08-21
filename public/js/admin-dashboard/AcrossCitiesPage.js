@@ -1,8 +1,10 @@
 /**
  * Renders the admin "Across Cities" page (#4329): a cross-deployment overview of every Project Sidewalk city across
  * four lenses — coverage (how much is left), activity (what's happening and when), data patterns (the label-type mix,
- * city vs city), and data quality (how trustworthy the data is). Adds a "needs attention" panel from server-computed
- * anomaly flags and three overview line charts (labels / validations / active users per week, summed across cities).
+ * city vs city), and data quality (how trustworthy the data is). Adds a "Today & this week" band (#4758) of
+ * current-activity tiles (with week-over-week deltas) and rolling-7-day bar charts, a "needs attention" panel from
+ * server-computed anomaly flags, and an over-time section (#4686): weekly line charts (labels / validations / active
+ * users, summed across cities) and cumulative all-time totals.
  *
  * Plain HTML/CSS plus the shared MiniLineChart for the over-time charts and small inline-SVG sparklines for the
  * per-city activity trend. Owner-only; driven entirely from /adminapi/cityScorecards.
@@ -23,6 +25,9 @@ class AcrossCitiesPage {
     stalled:      { label: 'Stalled',      tone: 'warn',  rank: 2, attention: true },
     low_traction: { label: 'Low traction', tone: 'bad',   rank: 3, attention: true },
   };
+
+  /** How many cities the "Most active cities" table shows; the full list lives in the Activity section below it. */
+  static #TOP_CITIES_LIMIT = 5;
 
   /** Canonical label-type order + short display names for the data-patterns bars. */
   static #LABEL_TYPES = [
@@ -81,10 +86,19 @@ class AcrossCitiesPage {
   #cities = [];          // The latest scorecard rows, as returned by the endpoint.
   #summary = {};         // The summary block (thresholds + cross-city median + hero totals).
   #allTimeTrend = [];    // Cross-city weekly series for the full project history (the "All time" toggle).
+  #dailyTrend = [];      // Cross-city daily series for the trailing 7 days (the "this week" bar charts, #4686).
+  #dayTipCards = new Map(); // day → its built hover card, shared by all three per-day charts (#4931).
+  #windowSummary = null; // Rolling 7d-vs-prior-7d totals for the "Today & this week" tiles (#4758).
+  #windowByCity = {};    // The same rolling windows per city id, for the "Most active cities" table (#4758).
   #trendSeries = {};     // { recent: [...], all: [...] } weekly aggregates for the over-time charts.
   #trendRange = 'recent';// Which over-time range is shown: 'recent' (12 wks) | 'all'.
-  #sortKey = 'coverage'; // Current sort column.
-  #sortDir = 'desc';     // 'asc' | 'desc'.
+
+  /** Sort state per sortable table, keyed by table element id; each entry is `{ key, dir }` with dir 'asc' | 'desc'. */
+  #sortState = {
+    'ac-table': { key: 'coverage', dir: 'desc' },
+    'ac-top-table': { key: 'activity_7d', dir: 'desc' },
+    'ac-activity-table': { key: 'days_since_activity', dir: 'asc' },
+  };
 
   #funnelsUrl;
   #funnels = {};         // { mapping: {steps, cities}, contribution: {steps, cities} } for the current window.
@@ -109,14 +123,23 @@ class AcrossCitiesPage {
       this.#cities = (data && data.cities) || [];
       this.#summary = (data && data.summary) || {};
       this.#allTimeTrend = (data && data.over_time_all_time) || [];
+      this.#dailyTrend = (data && data.over_time_daily) || [];
+      this.#dayTipCards.clear(); // Cards are keyed by day, and a reload can bring new numbers for the same day.
+      this.#windowSummary = (data && data.window_summary) || null;
+      this.#windowByCity = (data && data.window_by_city) || {};
+      this.#joinActivityWindows();
       this.#renderHero();
+      this.#renderNow();
       this.#renderMap(citiesGeo);
       this.#renderPulse();
       this.#renderAttention();
       this.#renderTrends();
-      this.#wireSorting();
+      this.#wireSorting('ac-table', () => this.#renderTable());
+      this.#wireSorting('ac-top-table', () => this.#renderTopCities());
+      this.#wireSorting('ac-activity-table', () => this.#renderActivity());
       this.#renderTable();
       this.#renderCoverage();
+      this.#renderTopCities();
       this.#renderActivity();
       this.#renderEffort();
       this.#renderPatterns();
@@ -168,6 +191,247 @@ class AcrossCitiesPage {
     this.#setText('hero-validations', this.#compact(s.total_validations));
     this.#setText('hero-datapoints', this.#compact(s.total_datapoints));
     this.#setText('hero-agreement', s.global_agreement ? this.#pct(s.global_agreement) : '—');
+  }
+
+  /**
+   * Attaches each city's rolling 7d-vs-prior-7d window to its scorecard row, plus the `activity_7d` total that ranks
+   * the "Most active cities" table.
+   *
+   * The window is nested under `activity_window` rather than merged flat because the scorecard row already carries
+   * labels_7d / validations_7d counted on a slightly different basis (the scorecard joins through audit_task and drops
+   * the tutorial street). Keeping them apart is what stops a table from pairing one basis's level with the other's
+   * delta. Cities the endpoint has no window for (a failed schema read) get zeros, so they simply rank last.
+   *
+   * `activity_7d` counts what people did, since it decides which cities the table calls the busiest — ranking by a
+   * total that included AI output would put the pipeline's target city on top of a list about communities (#4931).
+   */
+  #joinActivityWindows() {
+    for (const c of this.#cities) {
+      const w = this.#windowByCity[c.city_id] || null;
+      c.activity_window = w;
+      c.activity_7d = w ? (w.labels_7d || 0) + (w.validations_7d || 0) : 0;
+    }
+  }
+
+  // --- Today & this week ------------------------------------------------------------------------------------------
+
+  /**
+   * Fills the "Today & this week" tiles (#4758): today from the daily series' last (partial) point, the 7-day window
+   * values and week-over-week deltas from the endpoint's window_summary, the cities-active / top-city tiles from the
+   * per-city rolling windows, and the new-contributor tile from the all-time weekly series.
+   *
+   * Every count here is what people did. AI-role output is real work the project depends on, but pooling it with the
+   * community's would let one pipeline account decide what the whole band says, so it is reported on its own line
+   * under the count it accompanies (#4931).
+   */
+  #renderNow() {
+    // Today (so far): the last point of the zero-filled daily series is today, partial. No delta on these tiles —
+    // comparing a partial today against a full yesterday would nearly always read as a drop.
+    const today = this.#dailyTrend.length ? this.#dailyTrend[this.#dailyTrend.length - 1] : null;
+    if (today) {
+      this.#setText('now-labels-today', this.#num(today.labels));
+      this.#setText('now-validations-today', this.#num(today.validations));
+      this.#setText('now-contributors-today', this.#num(today.contributors));
+      this.#renderAiNote('now-labels-today-ai', today.ai_labels, today.labels, 'labels', 'today');
+      this.#renderAiNote('now-validations-today-ai', today.ai_validations, today.validations, 'validations', 'today');
+      this.#renderAnonNote('now-contributors-today-anon', today.anon_sessions, 'today');
+      this.#renderAgentNote('now-contributors-today-ai', today.ai_agents, 'today');
+    }
+
+    // Past 7 days: values AND deltas from window_summary so both share the same exact rolling-window basis (summing
+    // the calendar-day series would disagree with the delta, and per-day distinct users can't be summed).
+    const ws = this.#windowSummary;
+    if (ws) {
+      this.#setText('now-labels-7d', this.#num(ws.labels_7d));
+      this.#setText('now-validations-7d', this.#num(ws.validations_7d));
+      this.#setText('now-contributors-7d', this.#num(ws.contributors_7d));
+      this.#renderDelta('now-labels-7d-delta', ws.labels_7d, ws.labels_prior_7d);
+      this.#renderDelta('now-validations-7d-delta', ws.validations_7d, ws.validations_prior_7d);
+      this.#renderDelta('now-contributors-7d-delta', ws.contributors_7d, ws.contributors_prior_7d);
+      const period = 'in the last 7 days';
+      this.#renderAiNote('now-labels-7d-ai', ws.ai_labels_7d, ws.labels_7d, 'labels', period);
+      this.#renderAiNote('now-validations-7d-ai', ws.ai_validations_7d, ws.validations_7d, 'validations', period);
+      this.#renderAnonNote('now-contributors-7d-anon', ws.anon_sessions_7d, period);
+      this.#renderAgentNote('now-contributors-7d-ai', ws.ai_agents_7d, period);
+    }
+
+    // Cities active / top city, from the same per-city rolling windows as the "Most active cities" table below, so
+    // these tiles can never disagree with the table's rows or its row-count status line (the scorecard's own 7d
+    // fields sit on a slightly different basis — see #joinActivityWindows).
+    const activeCount = this.#cities.filter((c) => c.activity_7d > 0).length;
+    this.#setText('now-cities-active', `${this.#num(activeCount)} of ${this.#num(this.#cities.length)}`);
+    const top = this.#cities.reduce((best, c) =>
+      ((c.activity_window?.labels_7d ?? 0) > (best?.activity_window?.labels_7d ?? 0) ? c : best), null);
+    if ((top?.activity_window?.labels_7d ?? 0) > 0) {
+      this.#setText('now-top-city', top.city_name || top.city_id);
+      this.#setText('now-top-city-count', `${this.#num(top.activity_window.labels_7d)} labels`);
+    }
+
+    // New contributors: the all-time weekly series' last point is the current (partial) Pacific calendar week — the
+    // only series that knows each person's true first-activity week, hence the calendar-week (not rolling) basis.
+    const week = this.#allTimeTrend.length ? this.#allTimeTrend[this.#allTimeTrend.length - 1] : null;
+    if (week) this.#setText('now-new-contributors', this.#num(week.new_users));
+  }
+
+  /**
+   * Reports the AI output beside a tile's human count, or clears the line when no AI account contributed.
+   *
+   * @param {string} id - Element id of the tile's AI line.
+   * @param {number} aiCount - What AI-role accounts produced in the period.
+   * @param {number} humanCount - What people produced in the same period, for the tooltip's share.
+   * @param {string} noun - What is being counted: 'labels' or 'validations'.
+   * @param {string} period - Phrase naming the period, e.g. 'today' or 'in the last 7 days'.
+   */
+  #renderAiNote(id, aiCount, humanCount, noun, period) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const ai = aiCount || 0;
+    const people = humanCount || 0;
+    el.textContent = ai ? `+ ${this.#num(ai)} by AI` : '';
+    if (ai) {
+      el.setAttribute('data-ps-tooltip', AcrossCitiesPage.#esc(`People made ${this.#num(people)} of the `
+        + `${this.#num(people + ai)} ${noun} ${period}; ${this.#num(ai)} came from AI accounts.`));
+    } else {
+      el.removeAttribute('data-ps-tooltip');
+    }
+  }
+
+  /**
+   * Reports the anonymous sessions beside a tile's contributor count, or clears the line when there were none.
+   *
+   * Kept out of the contributor count rather than folded in: an anonymous account is minted per browser cookie, so one
+   * person who visits from two browsers — or clears their cookies — is several of these. Counting them as contributors
+   * would inflate a headline that reads as a headcount, and the work itself is already in the label and validation
+   * totals either way.
+   *
+   * @param {string} id - Element id of the tile's anonymous line.
+   * @param {number} anonCount - Distinct anonymous identities active in the period.
+   * @param {string} period - Phrase naming the period, e.g. 'today' or 'in the last 7 days'.
+   */
+  #renderAnonNote(id, anonCount, period) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const anon = anonCount || 0;
+    el.textContent = anon ? `+ ${this.#num(anon)} anonymous ${anon === 1 ? 'session' : 'sessions'}` : '';
+    if (anon) {
+      el.setAttribute('data-ps-tooltip', AcrossCitiesPage.#esc('The contributor count is registered accounts. '
+        + `${this.#num(anon)} anonymous ${anon === 1 ? 'session' : 'sessions'} also contributed ${period}; each is a `
+        + 'browser cookie rather than a known person, so they are counted separately.'));
+    } else {
+      el.removeAttribute('data-ps-tooltip');
+    }
+  }
+
+  /**
+   * Reports the AI accounts active alongside a tile's contributor count, or clears the line when there were none.
+   *
+   * @param {string} id - Element id of the tile's AI line.
+   * @param {number} agentCount - Distinct AI-role accounts active in the period, across all cities.
+   * @param {string} period - Phrase naming the period, e.g. 'today' or 'in the last 7 days'.
+   */
+  #renderAgentNote(id, agentCount, period) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const agents = agentCount || 0;
+    el.textContent = agents ? `+ ${this.#num(agents)} AI ${agents === 1 ? 'account' : 'accounts'}` : '';
+    if (agents) {
+      el.setAttribute('data-ps-tooltip', AcrossCitiesPage.#esc(`The contributor count is people. `
+        + `${this.#num(agents)} AI ${agents === 1 ? 'account was' : 'accounts were'} also active ${period}.`));
+    } else {
+      el.removeAttribute('data-ps-tooltip');
+    }
+  }
+
+  /**
+   * Computes the week-over-week change between a rolling 7-day count and the 7 days before it. Changes under ±1% read
+   * as flat, so ordinary noise doesn't render as a trend.
+   *
+   * @param {number} current - Trailing-7-day count.
+   * @param {number} prior - Count for the 7 days before that; 0 degrades the wording (a percentage is undefined).
+   * @returns {{dir: string, short: string, long: string, title: string}} Direction ('up' | 'down' | 'flat'), a compact
+   *   arrow+percent for table cells, a full phrase for the tiles, and the raw-count tooltip.
+   */
+  #deltaParts(current, prior) {
+    const title = `${this.#num(current)} in the last 7 days vs ${this.#num(prior)} in the 7 days before`;
+    if (!prior) {
+      const dir = current > 0 ? 'up' : 'flat';
+      return {
+        dir,
+        short: current > 0 ? '▲ new' : '→',
+        long: current > 0 ? '▲ up from 0 the week before' : '→ no recent activity',
+        title,
+      };
+    }
+    const frac = (current - prior) / prior;
+    const dir = Math.abs(frac) < 0.01 ? 'flat' : (frac > 0 ? 'up' : 'down');
+    const arrow = dir === 'up' ? '▲' : (dir === 'down' ? '▼' : '→');
+    const pct = this.#pct(Math.abs(frac));
+    // A flat cell shows the arrow alone: "→ 0%" next to a count reads like a second statistic rather than "unchanged".
+    return { dir, short: dir === 'flat' ? arrow : `${arrow} ${pct}`, long: `${arrow} ${pct} vs prior 7 days`, title };
+  }
+
+  /**
+   * Sets a tile's week-over-week delta line, direction-colored, with the raw counts in the tooltip.
+   *
+   * @param {string} id - Element id of the tile's `.ac-hero-delta` span.
+   * @param {number} current - Trailing-7-day count.
+   * @param {number} prior - Count for the 7 days before that.
+   */
+  #renderDelta(id, current, prior) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const d = this.#deltaParts(current, prior);
+    el.className = `ac-hero-delta ac-hero-delta--${d.dir}`;
+    el.textContent = d.long;
+    el.title = d.title;
+  }
+
+  /**
+   * Pulls one metric's current, prior, and AI counts out of a city's rolling window.
+   *
+   * @param {object} w - The city's `activity_window`.
+   * @param {string} metric - 'activity' | 'labels' | 'validations' | 'contributors'.
+   * @returns {{current: number, prior: number, ai: number}} What people did in each window, and what AI produced in
+   *   the current one (for contributors, the AI figure is accounts rather than output).
+   */
+  #metricCounts(w, metric) {
+    switch (metric) {
+      case 'labels':
+        return { current: w.labels_7d || 0, prior: w.labels_prior_7d || 0, ai: w.ai_labels_7d || 0 };
+      case 'validations':
+        return { current: w.validations_7d || 0, prior: w.validations_prior_7d || 0, ai: w.ai_validations_7d || 0 };
+      case 'contributors':
+        return { current: w.contributors_7d || 0, prior: w.contributors_prior_7d || 0, ai: w.ai_agents_7d || 0 };
+      default: // 'activity' — labels and validations together, the column the table ranks on.
+        return {
+          current: (w.labels_7d || 0) + (w.validations_7d || 0),
+          prior: (w.labels_prior_7d || 0) + (w.validations_prior_7d || 0),
+          ai: (w.ai_labels_7d || 0) + (w.ai_validations_7d || 0),
+        };
+    }
+  }
+
+  /**
+   * A "Most active cities" cell: what people did, the week-over-week chip qualifying it, the AI output alongside, and
+   * a hover card naming the contributors behind the number.
+   *
+   * The chip carries no `title` of its own — the raw counts it would have shown are in the card, and a native tooltip
+   * would open on top of it. The cell takes `tabindex` so the card is reachable by keyboard, since psTooltip opens on
+   * focus too.
+   *
+   * @param {object} city - The scorecard row, carrying `activity_window`.
+   * @param {string} metric - 'activity' | 'labels' | 'validations' | 'contributors'.
+   * @param {boolean} [showDelta=true] - False on the Activity column, where three chipped neighbors are enough.
+   * @returns {string} The cell's markup.
+   */
+  #weekCell(city, metric, showDelta = true) {
+    const { current, prior, ai } = this.#metricCounts(city.activity_window || {}, metric);
+    // A city with no activity in either window gets the bare count, since "→ 0%" is noise.
+    const d = showDelta && (current || prior) ? this.#deltaParts(current, prior) : null;
+    const delta = d ? `<span class="ac-cell-delta ac-cell-delta--${d.dir}">${d.short}</span>` : '';
+    const aiChip = ai ? `<span class="ac-cell-ai">+${this.#compact(ai)} AI</span>` : '';
+    return `<td class="ac-num" tabindex="0" data-ps-tooltip="`
+      + `${AcrossCitiesPage.#esc(this.#cityTipHtml(city, metric))}">${this.#num(current)}${delta}${aiChip}</td>`;
   }
 
   // --- Deployment cities map --------------------------------------------------------------------------------------
@@ -280,7 +544,7 @@ class AcrossCitiesPage {
       ['Labels', this.#num(sc.total_labels)],
       ['Validations', this.#num(sc.total_validations)],
       ['Contributors', this.#num(sc.active_contributors)],
-      ['Last activity', sc.last_activity ? AcrossCitiesPage.#relativeTime(sc.last_activity) : 'never'],
+      ['Last activity', sc.last_activity ? AdminShell.relativeTime(sc.last_activity) : 'never'],
     ].map(([k, v]) => `<tr><td>${k}</td><td>${AcrossCitiesPage.#esc(v)}</td></tr>`).join('');
     return `<div class="coverage-popup-name">${name}</div>`
       + `<table class="coverage-popup-dl">${rows}</table>`;
@@ -365,7 +629,8 @@ class AcrossCitiesPage {
 
   /**
    * Prepares the two over-time datasets (last 12 weeks, summed from each city's trend; and all-time, from the
-   * server-aggregated series), wires the range toggle, and draws the current range.
+   * server-aggregated series), wires the range toggle, and draws the current range. Also draws the toggle-independent
+   * cumulative charts (#4686) and the "Today & this week" section's daily bar charts, all static once loaded.
    */
   #renderTrends() {
     this.#trendSeries = {
@@ -384,6 +649,8 @@ class AcrossCitiesPage {
       });
     }
     this.#drawTrends();
+    this.#drawCumulative();
+    this.#drawWeekBars();
   }
 
   /** Sums a flat list of weekly points into one cross-city series, ascending by week. */
@@ -402,7 +669,9 @@ class AcrossCitiesPage {
   /** Draws the three over-time line charts for the currently selected range. */
   #drawTrends() {
     const series = this.#trendSeries[this.#trendRange] || [];
-    const cats = series.map((w) => AcrossCitiesPage.#shortDate(w.week_start));
+    // Multi-year x-axes carry the year; within 12 weeks "Jun 9" is unambiguous.
+    const fmt = this.#trendRange === 'all' ? AcrossCitiesPage.#shortDateYear : AcrossCitiesPage.#shortDate;
+    const cats = series.map((w) => fmt(w.week_start));
     // Small dots on the short (12-week) view where they aid hover tooltips; none on the dense all-time view, where
     // hundreds of points would just be noise.
     const dotRadius = series.length > 30 ? 0 : 2;
@@ -415,20 +684,86 @@ class AcrossCitiesPage {
     draw('ac-chart-users', 'acusers', 'Active users', series.map((w) => w.active_users));
   }
 
+  /**
+   * Draws the cumulative all-time line charts (#4686) by prefix-summing the server's all-time weekly series. Labels
+   * and validations accumulate their weekly counts; users accumulate new_users (each person's first-activity week),
+   * since summing weekly active_users would re-count returning contributors.
+   */
+  #drawCumulative() {
+    const series = this.#allTimeTrend;
+    const cats = series.map((w) => AcrossCitiesPage.#shortDateYear(w.week_start));
+    const cumulative = (key) => {
+      let total = 0;
+      return series.map((w) => (total += w[key] || 0));
+    };
+    const draw = (id, key, name, values) => {
+      const host = document.getElementById(id);
+      if (host) MiniLineChart.renderInto(host, cats, [{ name, key, values }], { ariaLabel: name, dotRadius: 0 });
+    };
+    draw('ac-chart-cum-labels', 'aclabels', 'Total labels', cumulative('labels'));
+    draw('ac-chart-cum-validations', 'acvals', 'Total validations', cumulative('validations'));
+    draw('ac-chart-cum-users', 'acusers', 'Total users', cumulative('new_users'));
+  }
+
+  /**
+   * Draws the "Today & this week" section's rolling-7-day bar charts (#4686) from the server's zero-filled daily
+   * series. A rolling 7-day window holds exactly one of each weekday, so short weekday names are unambiguous x
+   * labels; the hover card carries the full date.
+   *
+   * All three charts share one card per day (#4931): the three volumes move together, so someone asking why Tuesday's
+   * labels spiked wants that day's validations, cities, and people in the same breath — not three separate hovers.
+   * Each chart leans on its own line so the shared card still answers the bar under the cursor first.
+   */
+  #drawWeekBars() {
+    const series = this.#dailyTrend;
+    const cats = series.map((d) => AcrossCitiesPage.#weekday(d.day));
+    const draw = (id, key, jsonKey, name) => {
+      const host = document.getElementById(id);
+      if (!host) return;
+      const values = series.map((d) => d[jsonKey] || 0);
+      const tooltipsHtml = series.map((d) => this.#dayTipHtml(d, jsonKey));
+      const tooltips = series.map((d, i) => `${AcrossCitiesPage.#shortDate(d.day)} · ${name}: ${this.#num(values[i])}`);
+      // Compact value labels above each bar (exact counts stay in the cards); the last bar is today, still
+      // filling in, so it gets the emphasis treatment.
+      MiniLineChart.renderInto(host, cats, [{ name, key, values, tooltips, tooltipsHtml }],
+        { ariaLabel: name, kind: 'bar', maxXLabels: 7, barValues: true, valueFormat: (v) => this.#compact(v),
+          emphasisIndex: series.length - 1 });
+    };
+    draw('ac-chart-week-labels', 'aclabels', 'labels', 'Labels');
+    draw('ac-chart-week-validations', 'acvals', 'validations', 'Validations');
+    draw('ac-chart-week-users', 'acusers', 'contributors', 'Contributors');
+  }
+
   // --- Scorecard table --------------------------------------------------------------------------------------------
 
-  #wireSorting() {
-    const ths = document.querySelectorAll('#ac-table thead th[data-sort]');
-    ths.forEach((th) => {
+  /**
+   * Wires click-to-sort onto one table's `th[data-sort]` headers. Clicking the active column flips direction;
+   * switching columns starts descending (biggest first) except for the city name, which reads naturally A→Z.
+   *
+   * @param {string} tableId - Element id of the table; must have an entry in `#sortState`.
+   * @param {Function} render - Re-renders that table's body from the updated sort state.
+   */
+  #wireSorting(tableId, render) {
+    const state = this.#sortState[tableId];
+    if (!state) return;
+    document.querySelectorAll(`#${tableId} thead th[data-sort]`).forEach((th) => {
       th.addEventListener('click', () => {
         const key = th.getAttribute('data-sort');
-        if (this.#sortKey === key) {
-          this.#sortDir = this.#sortDir === 'asc' ? 'desc' : 'asc';
+        if (state.key === key) {
+          state.dir = state.dir === 'asc' ? 'desc' : 'asc';
         } else {
-          this.#sortKey = key;
-          this.#sortDir = key === 'city_name' ? 'asc' : 'desc';
+          state.key = key;
+          state.dir = key === 'city_name' ? 'asc' : 'desc';
         }
-        this.#renderTable();
+        render();
+      });
+      // Headers are interactive, so they need to be reachable and operable from the keyboard (WCAG 2.1.1).
+      th.setAttribute('tabindex', '0');
+      th.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          th.click();
+        }
       });
     });
   }
@@ -441,7 +776,8 @@ class AcrossCitiesPage {
       this.#setText('ac-status', '');
       return;
     }
-    const rows = this.#sortedCities(this.#sortKey, this.#sortDir);
+    const state = this.#sortState['ac-table'];
+    const rows = this.#sortedCities(state.key, state.dir);
     tbody.innerHTML = rows.map((c) => {
       const lc = AcrossCitiesPage.#LIFECYCLE[c.lifecycle];
       const needsAttention = (lc && lc.attention) || (c.anomalies || []).length > 0;
@@ -451,7 +787,7 @@ class AcrossCitiesPage {
       }).join('');
       const chipsHtml = chips ? ` <span class="ac-chips">${chips}</span>` : '';
       const lastActivity = c.last_activity
-        ? AcrossCitiesPage.#esc(AcrossCitiesPage.#relativeTime(c.last_activity))
+        ? AcrossCitiesPage.#esc(AdminShell.relativeTime(c.last_activity))
         : '<span class="ac-muted">never</span>';
       return `
         <tr class="${needsAttention ? 'ac-row--flagged' : ''}">
@@ -465,11 +801,20 @@ class AcrossCitiesPage {
           <td class="ac-num">${lastActivity}</td>
         </tr>`;
     }).join('');
-    this.#markSortedHeader();
+    this.#markSortedHeader('ac-table');
     this.#setText('ac-status', `${rows.length} ${rows.length === 1 ? 'city' : 'cities'}.`);
   }
 
-  #sortedCities(key, dirStr) {
+  /**
+   * Sorts cities by one column.
+   *
+   * @param {string} key - Sort key. A dotted key reads into the nested rolling window, e.g.
+   *   `activity_window.labels_7d`.
+   * @param {string} dirStr - 'asc' or 'desc'.
+   * @param {Array} [list] - Rows to sort; defaults to every city.
+   * @returns {Array} A new sorted array; the input is not mutated.
+   */
+  #sortedCities(key, dirStr, list) {
     const dir = dirStr === 'asc' ? 1 : -1;
     const val = (c) => {
       if (key === 'city_name') return (c.city_name || c.city_id || '').toLowerCase();
@@ -477,10 +822,15 @@ class AcrossCitiesPage {
         const lc = AcrossCitiesPage.#LIFECYCLE[c.lifecycle];
         return lc ? lc.rank : 99;
       }
+      // Never-active cities sort last under "most recent first" rather than reading as maximally fresh.
       if (key === 'days_since_activity') return c.days_since_activity ?? Number.MAX_SAFE_INTEGER;
+      if (key.includes('.')) {
+        const [outer, inner] = key.split('.');
+        return (c[outer] && c[outer][inner]) ?? 0;
+      }
       return c[key] ?? 0;
     };
-    return this.#cities.slice().sort((a, b) => {
+    return (list || this.#cities).slice().sort((a, b) => {
       const va = val(a);
       const vb = val(b);
       if (va < vb) return -1 * dir;
@@ -489,13 +839,21 @@ class AcrossCitiesPage {
     });
   }
 
-  #markSortedHeader() {
-    document.querySelectorAll('#ac-table thead th[data-sort]').forEach((th) => {
+  /**
+   * Marks the active sort column on one table for both sighted users (the `ac-sorted` arrow) and assistive tech
+   * (`aria-sort`).
+   *
+   * @param {string} tableId - Element id of the table.
+   */
+  #markSortedHeader(tableId) {
+    const state = this.#sortState[tableId];
+    if (!state) return;
+    document.querySelectorAll(`#${tableId} thead th[data-sort]`).forEach((th) => {
       const key = th.getAttribute('data-sort');
-      th.classList.toggle('ac-sorted', key === this.#sortKey);
-      if (key === this.#sortKey) {
-        th.setAttribute('aria-sort', this.#sortDir === 'asc' ? 'ascending' : 'descending');
-        th.dataset.dir = this.#sortDir;
+      th.classList.toggle('ac-sorted', key === state.key);
+      if (key === state.key) {
+        th.setAttribute('aria-sort', state.dir === 'asc' ? 'ascending' : 'descending');
+        th.dataset.dir = state.dir;
       } else {
         th.removeAttribute('aria-sort');
         delete th.dataset.dir;
@@ -522,16 +880,61 @@ class AcrossCitiesPage {
     ).join('');
   }
 
+  // --- Most active cities -----------------------------------------------------------------------------------------
+
+  /**
+   * Fills the "Most active cities" table (#4758): the busiest handful of the past 7 days, with each count's
+   * week-over-week change.
+   *
+   * The table re-ranks on whatever numeric column is sorted rather than reordering a fixed five, so sorting by
+   * contributors answers "who had the most contributors this week" instead of "which of the five busiest had the
+   * most". Sorting by City instead keeps the five busiest and orders them by name — an alphabetical five isn't a
+   * ranking. Counts come from the rolling windows (`activity_window`), never the scorecard's own 7d fields, so a
+   * level and its delta always share one basis. Cities with no activity at all are excluded, so a quiet week yields
+   * a short table, not five rows of zeros.
+   */
+  #renderTopCities() {
+    const tbody = document.getElementById('ac-top-tbody');
+    if (!tbody) return;
+    const active = this.#cities.filter((c) => c.activity_7d > 0);
+    if (!active.length) {
+      tbody.innerHTML = '<tr><td colspan="7" class="dq-empty">No city recorded activity in the past 7 days.</td></tr>';
+      this.#setText('ac-top-status', '');
+      return;
+    }
+    const state = this.#sortState['ac-top-table'];
+    // A name sort keeps the five busiest and merely orders them; only numeric columns re-rank which five appear.
+    const ranked = state.key === 'city_name'
+      ? this.#sortedCities('activity_7d', 'desc', active)
+      : this.#sortedCities(state.key, state.dir, active);
+    let rows = ranked.slice(0, AcrossCitiesPage.#TOP_CITIES_LIMIT);
+    if (state.key === 'city_name') rows = this.#sortedCities(state.key, state.dir, rows);
+    tbody.innerHTML = rows.map((c) => `
+        <tr>
+          <td class="ac-td-city">${this.#cityLink(c)}</td>
+          ${this.#weekCell(c, 'activity', false)}
+          ${this.#weekCell(c, 'labels')}
+          ${this.#weekCell(c, 'validations')}
+          ${this.#weekCell(c, 'contributors')}
+          <td class="ac-num">${this.#num(c.audits_7d)}</td>
+          <td class="ac-spark-cell">${this.#sparkline((c.weekly_trend || []).map((wk) => wk.labels || 0))}</td>
+        </tr>`).join('');
+    this.#markSortedHeader('ac-top-table');
+    this.#setText('ac-top-status', active.length > rows.length
+      ? `Top ${rows.length} of ${this.#num(active.length)} cities active in the past 7 days.`
+      : `${this.#num(active.length)} ${active.length === 1 ? 'city' : 'cities'} active in the past 7 days.`);
+  }
+
   // --- Activity section -------------------------------------------------------------------------------------------
 
   #renderActivity() {
     const tbody = document.getElementById('ac-activity-tbody');
     if (!tbody) return;
-    // Sort by most-recent activity (freshest first; never-active last).
-    const rows = this.#sortedCities('days_since_activity', 'asc');
+    const state = this.#sortState['ac-activity-table'];
+    const rows = this.#sortedCities(state.key, state.dir);
     tbody.innerHTML = rows.map((c) => {
       const last = c.last_activity
-        ? AcrossCitiesPage.#esc(AcrossCitiesPage.#relativeTime(c.last_activity))
+        ? AcrossCitiesPage.#esc(AdminShell.relativeTime(c.last_activity))
         : '<span class="ac-muted">never</span>';
       const spark = this.#sparkline((c.weekly_trend || []).map((w) => w.labels || 0));
       const flagged = c.lifecycle === 'stalled' || c.lifecycle === 'low_traction';
@@ -545,6 +948,7 @@ class AcrossCitiesPage {
           <td class="ac-spark-cell">${spark}</td>
         </tr>`;
     }).join('');
+    this.#markSortedHeader('ac-activity-table');
   }
 
   // --- Contributors & effort section ------------------------------------------------------------------------------
@@ -827,6 +1231,177 @@ class AcrossCitiesPage {
       + `${legend}${stepRows}</div>`;
   }
 
+  // --- Hover breakdown cards --------------------------------------------------------------------------------------
+
+  /**
+   * One "name — value" line of a hover card.
+   *
+   * @param {string} label - Already-escaped line label.
+   * @param {string} value - Already-escaped value, set at the right edge.
+   * @param {boolean} [muted=false] - True for the AI and anonymous lines, which qualify the human counts above them.
+   * @param {string} [rowKey] - Names this row so a card can emphasize it via its own `data-emph`, which is what lets
+   *   the three per-day charts share one built card and each still lean on the line it draws.
+   * @returns {string} The line's markup.
+   */
+  static #tipRow(label, value, muted = false, rowKey = null) {
+    const mod = muted ? ' ac-tip-row--ai' : '';
+    const key = rowKey ? ` data-tip-row="${rowKey}"` : '';
+    return `<div class="ac-tip-row${mod}"${key}><span>${label}</span>`
+      + `<span class="ac-tip-num">${value}</span></div>`;
+  }
+
+  /**
+   * A section heading inside a hover card.
+   *
+   * @param {string} text - Already-escaped heading text.
+   * @returns {string} The heading's markup.
+   */
+  static #tipHead(text) {
+    return `<div class="ac-tip-head">${text}</div>`;
+  }
+
+  /**
+   * The named-contributor lines of a hover card: one person per line, their labels and validations at the right.
+   *
+   * Usernames are user-supplied and these cards render as HTML, so every name is escaped here rather than at the call
+   * sites — one place to get right. AI accounts keep their line but are marked, so a card that looks like a busy week
+   * can't hide that a pipeline produced it.
+   *
+   * @param {Array<{username: string, kind: string, labels: number, validations: number}>} people - Sorted, busiest
+   *   first. Already filtered to nameable accounts by the endpoint.
+   * @param {number} limit - How many lines to draw before collapsing the rest into a "+N more" line.
+   * @param {number} total - How many contributors the endpoint's list was drawn from before it capped it. The "+N more"
+   *   count must come from this and not from `people.length`, which is bounded by that cap and would silently
+   *   understate a busy day by an unlimited amount.
+   * @returns {string} The lines' markup, empty when nobody qualifies.
+   */
+  #tipPeople(people, limit, total) {
+    if (!people.length) return '';
+    const shown = people.slice(0, limit).map((p) => {
+      const name = p.username ? AcrossCitiesPage.#esc(p.username) : 'unknown user';
+      const tag = p.kind === 'ai' ? '<span class="ac-tip-tag">AI</span>' : '';
+      return AcrossCitiesPage.#tipRow(`${name}${tag}`, `${this.#num(p.labels)} · ${this.#num(p.validations)}`);
+    }).join('');
+    const rest = Math.max(0, (total ?? people.length) - Math.min(limit, people.length));
+    return rest > 0 ? `${shown}<div class="ac-tip-more">+ ${this.#num(rest)} more</div>` : shown;
+  }
+
+  /**
+   * The hover card for one day's bar: the day's whole picture rather than the one number the bar draws — all three
+   * volumes, what AI contributed, which cities were busiest, and who was active (#4931).
+   *
+   * The card body is built once per day and cached: all three charts show the same day the same way, differing only in
+   * which line they lean on, and that is a `data-emph` on the card root the CSS keys off — so hovering three charts
+   * costs one card, and the three can't drift apart in content.
+   *
+   * @param {object} d - A `over_time_daily` entry.
+   * @param {string} [emphasisKey] - The `over_time_daily` key the hovered chart draws ('labels', 'validations',
+   *   'contributors'), whose line the card leans on.
+   * @returns {string} The card's markup.
+   */
+  #dayTipHtml(d, emphasisKey) {
+    let card = this.#dayTipCards.get(d.day);
+    if (card === undefined) {
+      card = this.#buildDayTip(d);
+      this.#dayTipCards.set(d.day, card);
+    }
+    return emphasisKey ? card.replace('data-emph=""', `data-emph="${AcrossCitiesPage.#esc(emphasisKey)}"`) : card;
+  }
+
+  /**
+   * Builds one day's hover card, with an empty `data-emph` for [[#dayTipHtml]] to fill in per chart.
+   *
+   * @param {object} d - A `over_time_daily` entry.
+   * @returns {string} The card's markup.
+   */
+  #buildDayTip(d) {
+    const title = `<div class="ac-tip-title">${AcrossCitiesPage.#esc(AcrossCitiesPage.#longDate(d.day))}</div>`;
+    // A day with no human work can still have plenty to report — the AI pipeline runs on its own schedule — so the
+    // quiet case is "nothing at all happened", not "the bar this chart draws is zero".
+    const quiet = !d.labels && !d.validations && !d.contributors && !d.anon_sessions
+      && !d.ai_labels && !d.ai_validations;
+    if (quiet) return `<div class="ac-tip" data-emph="">${title}<div class="ac-tip-more">No activity.</div></div>`;
+
+    let out = title
+      + AcrossCitiesPage.#tipRow('Labels', this.#num(d.labels), false, 'labels')
+      + AcrossCitiesPage.#tipRow('Validations', this.#num(d.validations), false, 'validations')
+      + AcrossCitiesPage.#tipRow('Contributors', this.#num(d.contributors), false, 'contributors');
+    if (d.anon_sessions) {
+      out += AcrossCitiesPage.#tipRow('Anonymous sessions', this.#num(d.anon_sessions), true);
+    }
+    if (d.ai_labels) out += AcrossCitiesPage.#tipRow('AI labels', this.#num(d.ai_labels), true);
+    if (d.ai_validations) out += AcrossCitiesPage.#tipRow('AI validations', this.#num(d.ai_validations), true);
+
+    const cities = d.top_cities || [];
+    if (cities.length) {
+      // Cities carry the same "labels · validations" pair as the contributor lines below rather than one combined
+      // total: a lone number under a "busiest" heading reads as whichever row above it happens to match that day.
+      out += AcrossCitiesPage.#tipHead('Busiest cities (labels · validations)');
+      out += cities.map((city) => AcrossCitiesPage.#tipRow(
+        AcrossCitiesPage.#esc(city.city_name || city.city_id),
+        `${this.#num(city.labels || 0)} · ${this.#num(city.validations || 0)}`,
+      )).join('');
+    }
+
+    const people = (d.contributor_list || []).map((c) => ({
+      username: c.username, kind: c.kind, labels: c.labels || 0, validations: c.validations || 0,
+    }));
+    if (people.length) {
+      out += AcrossCitiesPage.#tipHead('Who was active (labels · validations)');
+      out += this.#tipPeople(people, 5, d.contributor_total);
+    }
+    return `<div class="ac-tip" data-emph="">${out}</div>`;
+  }
+
+  /**
+   * The hover card for one "Most active cities" cell: both windows' raw counts behind the delta chip, the AI output
+   * beside them, and the people the count is made of — ranked by whichever kind of work the column is about (#4931).
+   *
+   * @param {object} city - The scorecard row, carrying `activity_window`.
+   * @param {string} metric - 'activity' | 'labels' | 'validations' | 'contributors'.
+   * @returns {string} The card's markup.
+   */
+  #cityTipHtml(city, metric) {
+    const w = city.activity_window || {};
+    const { current, prior, ai } = this.#metricCounts(w, metric);
+    const heading = { labels: 'labels', validations: 'validations', contributors: 'contributors' }[metric]
+      ?? 'labels + validations';
+    const title = `${AcrossCitiesPage.#esc(city.city_name || city.city_id)} · ${AcrossCitiesPage.#esc(heading)}`;
+    let out = `<div class="ac-tip-title">${title}</div>`;
+    out += AcrossCitiesPage.#tipRow('Last 7 days', this.#num(current));
+    out += AcrossCitiesPage.#tipRow('7 days before', this.#num(prior));
+    if (metric === 'contributors' && w.anon_sessions_7d) {
+      out += AcrossCitiesPage.#tipRow('Anonymous sessions', this.#num(w.anon_sessions_7d), true);
+    }
+    if (ai) {
+      out += AcrossCitiesPage.#tipRow(metric === 'contributors' ? 'AI accounts' : 'By AI', this.#num(ai), true);
+    }
+
+    // The Labels and Validations columns each rank people by the work that column is about; a top labeler and a top
+    // validator are usually different people, and a single "busiest overall" list would bury one of them.
+    const all = (w.contributors || []).map((c) => ({
+      username: c.username, kind: c.kind, labels: c.labels_7d || 0, validations: c.validations_7d || 0,
+    }));
+    const rank = { labels: (p) => p.labels, validations: (p) => p.validations }[metric]
+      ?? ((p) => p.labels + p.validations);
+    // The rows above this list count people only, with AI reported separately, so the list has to be on that basis too.
+    // Ranked together, one pipeline account sorts above every person and reads as the top contributor to a number it is
+    // explicitly excluded from — so AI lines sit after the people, not among them.
+    const ranked = all.filter((p) => rank(p) > 0).sort((a, b) => rank(b) - rank(a));
+    const people = ranked.filter((p) => p.kind !== 'ai');
+    const agents = ranked.filter((p) => p.kind === 'ai');
+    if (people.length || agents.length) {
+      const head = { labels: 'Top labelers', validations: 'Top validators' }[metric] ?? 'Contributors';
+      out += AcrossCitiesPage.#tipHead(`${head} (labels · validations)`);
+      // `contributor_total` counts AI alongside people, so discount the agents listed below to keep "+N more" about
+      // the people this list is ranking.
+      const peopleTotal = Math.max(people.length, (w.contributor_total ?? people.length) - agents.length);
+      out += this.#tipPeople(people, 5, peopleTotal);
+      out += this.#tipPeople(agents, agents.length, agents.length);
+    }
+    return `<div class="ac-tip">${out}</div>`;
+  }
+
   // --- Shared cell builders ---------------------------------------------------------------------------------------
 
   #cityLink(c) {
@@ -923,18 +1498,24 @@ class AcrossCitiesPage {
     return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   }
 
-  /** Compact relative time ("just now", "5m ago", "3h ago", "2d ago", or a date for older items). */
-  static #relativeTime(ts) {
-    const d = new Date(ts);
-    if (isNaN(d)) return String(ts);
-    const secs = Math.floor((Date.now() - d.getTime()) / 1000);
-    if (secs < 60) return 'just now';
-    const mins = Math.floor(secs / 60);
-    if (mins < 60) return `${mins}m ago`;
-    const hrs = Math.floor(mins / 60);
-    if (hrs < 24) return `${hrs}h ago`;
-    const days = Math.floor(hrs / 24);
-    if (days < 7) return `${days}d ago`;
-    return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+  /** "Jun '19"-style month + year from an ISO date string, for multi-year x-axes. */
+  static #shortDateYear(iso) {
+    const d = new Date(`${iso}T00:00:00`);
+    if (isNaN(d)) return iso;
+    return `${d.toLocaleDateString(undefined, { month: 'short' })} '${String(d.getFullYear()).slice(-2)}`;
+  }
+
+  /** "Thu, Jun 9"-style weekday + date from an ISO date string, for hover cards that have room to be unambiguous. */
+  static #longDate(iso) {
+    const d = new Date(`${iso}T00:00:00`);
+    if (isNaN(d)) return iso;
+    return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+  }
+
+  /** "Thu"-style short weekday from an ISO date string. */
+  static #weekday(iso) {
+    const d = new Date(`${iso}T00:00:00`);
+    if (isNaN(d)) return iso;
+    return d.toLocaleDateString(undefined, { weekday: 'short' });
   }
 }

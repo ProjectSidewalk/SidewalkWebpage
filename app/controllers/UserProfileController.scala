@@ -1,6 +1,7 @@
 package controllers
 
 import controllers.base._
+import controllers.helper.ControllerUtils
 import controllers.helper.ControllerUtils.parseIntegerSeq
 import executors.CpuIntensiveExecutionContext
 import formats.json.LabelFormats.labelMetadataUserDashToJson
@@ -39,8 +40,13 @@ class UserProfileController @Inject() (
   /** Builds the choropleth GeoJSON FeatureCollection for a set of a user's audited streets. */
   private def streetsToGeoJson(streets: Seq[models.street.StreetEdge]): JsObject = {
     val features: Seq[JsObject] = streets.map { street =>
-      val properties: JsObject =
-        Json.obj("street_edge_id" -> street.streetEdgeId, "way_type" -> street.wayType.toString)
+      // Every street in this feed is one the user audited; saying so lets filterStreetLayer's audited checkbox
+      // control these features instead of them falling through to the unaudited arm.
+      val properties: JsObject = Json.obj(
+        "street_edge_id" -> street.streetEdgeId,
+        "way_type"       -> street.wayType.toString,
+        "audited"        -> true
+      )
       Json.obj("type" -> "Feature", "geometry" -> street.geom, "properties" -> properties)
     }
     Json.obj("type" -> "FeatureCollection", "features" -> features)
@@ -109,7 +115,10 @@ class UserProfileController @Inject() (
               "street_edge_id" -> street.streetEdgeId,
               "way_type"       -> street.wayType.toString,
               "region_id"      -> street.regionId,
-              "audited"        -> street.audited
+              "audited"        -> street.audited,
+              // Audited before, but every audit predates newer imagery (needs re-audit, #4384). Never true when
+              // audited is true; a street with neither is unaudited.
+              "outdated" -> street.outdated
             )
             Json.obj("type" -> "Feature", "geometry" -> street.geom, "properties" -> properties)
           }
@@ -265,7 +274,7 @@ class UserProfileController @Inject() (
     val auditedDistance: Future[Double] = userService
       .getDistanceAudited(userId)
       .map(auditedDistance => {
-        if (Messages("measurement.system") == "metric") auditedDistance / 1000d
+        if (ControllerUtils.isMetric) auditedDistance / 1000d
         else auditedDistance * METERS_TO_MILES
       })
     val labelCount: Future[Int]          = userService.countLabelsFromUser(userId)

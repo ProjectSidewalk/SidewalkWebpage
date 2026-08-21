@@ -8,19 +8,15 @@
 
 /* ---- Preview Container ---- */
 
+/* The toolbar stacks above the map inside the shared .map-container frame. */
 #access-score-streets-preview,
 #access-score-regions-preview {
-  position: relative;
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--color-border-light, #e0e0e0);
-  border-radius: var(--border-radius, 4px);
   background-color: white;
-  overflow: hidden;
 }
 
-/* The metric selector lives in a toolbar above the map (not as an on-map Leaflet control) so it can never be overlapped
-   by feature popups (on-map controls sit above the popup pane). */
+/* The metric selector sits above the map rather than on it, so a feature popup can never cover it. */
 .as-toolbar {
   display: flex;
   align-items: center;
@@ -75,97 +71,16 @@
   margin-right: 10px;
 }
 
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-/* ---- Counter Badge ---- */
-
-.counter-badge {
-  position: absolute;
-  bottom: 10px;
-  left: 10px;
-  right: auto;
-  background-color: white;
-  padding: 5px 10px;
-  border-radius: 4px;
-  box-shadow: 0 1px 5px rgb(0 0 0 / 40%);
-  font-size: 12px;
-  font-weight: 500;
-  color: #222222;
-  z-index: 1000;
-}
-
-/* ---- Continuous Legend ---- */
-
-.continuous-legend {
-  background-color: white;
-  padding: 8px 10px;
-  border-radius: 4px;
-  box-shadow: 0 1px 5px rgb(0 0 0 / 40%);
-  line-height: 1.4;
-  color: #555555;
-  font-family: var(--font-sans);
-  max-width: 250px;
-}
-
-.continuous-legend h4 {
-  margin: 0 0 8px;
-  font-size: 14px;
-  font-weight: 600;
-  color: #222222;
-}
-
-.gradient-container {
-  border: 1px solid #cccccc;
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.legend-tick {
-  font-size: 10px;
-  color: #666666;
-  font-weight: 500;
-}
-
 /* ---- Feature Popup ---- */
 
-.as-popup {
-  font-family: var(--font-sans);
-  max-width: 260px;
-  line-height: 1.4;
+/* The score is the popup's headline number, so it's set well above the surrounding text. */
+.as-score {
+  font: var(--text-body-bold);
 }
 
-.as-popup h4 {
-  margin: 0 0 8px;
-  font-size: 16px;
-  font-weight: 600;
-  color: #222222;
-  border-bottom: 1px solid #e0e0e0;
-  padding-bottom: 4px;
-}
-
-.as-popup p {
-  margin: 4px 0;
-  font-size: 13px;
-  color: #555555;
-}
-
-.as-popup strong {
-  color: #222222;
-  font-weight: 500;
-}
-
-.as-popup .as-score {
-  font-size: 20px;
-  font-weight: 700;
-}
-
-.as-popup .as-breakdown {
+.as-breakdown {
   margin: 6px 0 0;
-  font-size: 12px;
-  color: #555555;
+  font: var(--text-caption-regular);
 }
 
 /* ---- No Data Message ---- */
@@ -185,28 +100,3 @@
   white-space: nowrap;
 }
 
-/* ---- Responsive Adjustments ---- */
-
-@media (width <= 768px) {
-  .continuous-legend {
-    max-width: 180px;
-    padding: 6px 8px;
-  }
-
-  .gradient-container,
-  .legend-labels {
-    width: 160px !important;
-  }
-
-  .continuous-legend h4 {
-    font-size: 13px;
-  }
-
-  .legend-tick {
-    font-size: 9px;
-  }
-
-  .as-popup {
-    max-width: 200px;
-  }
-}

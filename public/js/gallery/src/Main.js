@@ -7,8 +7,6 @@ window.sg = window.sg || {};
  * Construct instances via the `static async create()` factory, which initializes the gallery before resolving.
  */
 class Main {
-  #headerSidebarOffset = undefined;
-
   /**
    * Creates and initializes the Gallery Main module.
    * @param {object} params Object passed from gallery.scala.html containing initial values pulled from the database
@@ -23,30 +21,7 @@ class Main {
   }
 
   #initUI() {
-    sg.scrollStatus = {
-      stickySidebar: true,
-    };
-
     sg.ui = {};
-
-    // Initializes filter components in sidebar.
-    sg.ui.cardFilter = {};
-    sg.ui.cardFilter.wrapper = $('.sidebar');
-    sg.ui.cardFilter.holder = $('#card-filter');
-    sg.ui.cardFilter.severity = $('#severity-select');
-    sg.ui.cardFilter.tags = $('#tags');
-    sg.ui.cardFilter.validationOptions = $('#validation-options');
-    sg.ui.cardFilter.clearFilters = $('#clear-filters');
-
-    // Initializes city select component in sidebar.
-    sg.ui.cityMenu = {};
-    sg.ui.cityMenu.holder = $('#city-filter-holder');
-    sg.ui.cityMenu.select = $('#city-select');
-
-    // Initializes label select component in sidebar.
-    sg.ui.labelTypeMenu = {};
-    sg.ui.labelTypeMenu.holder = $('#label-type-filter-holder');
-    sg.ui.labelTypeMenu.select = $('#label-select');
 
     // Initialize card container component.
     sg.ui.cardContainer = {};
@@ -61,24 +36,21 @@ class Main {
 
     // Keep track of some other elements whose status or dimensions are useful.
     sg.ui.pageControl = $('.page-control');
-    sg.ui.navbar = $('#header');
     sg.pageLoading = $('#page-loading');
     sg.labelsNotFound = $('#labels-not-found');
-
-    // Calculate offset between bottom of navbar and sidebar.
-    this.#headerSidebarOffset
-            = sg.ui.cardFilter.wrapper.offset().top - (sg.ui.navbar.offset().top + sg.ui.navbar.outerHeight());
   }
 
   async #init(params) {
     // Seed the all-time counts so validating a card can celebrate a newly unlocked validation badge.
     BadgeAchievements.seedCounts();
 
-    // Initialize functional components of UI elements.
-    sg.cityMenu = new CityMenu(sg.ui.cityMenu);
-    sg.labelTypeMenu = new LabelTypeMenu(sg.ui.labelTypeMenu, params.initialFilters.labelType);
+    // Neighborhood names for the cards' location line, keyed by the region id each label carries.
+    sg.regionNames = params.regionNames ?? {};
 
-    sg.cardFilter = new CardFilter(sg.ui.cardFilter, sg.labelTypeMenu, sg.cityMenu, params.initialFilters);
+    // Initialize functional components of UI elements.
+    sg.cardFilter = new GalleryFilter(
+      document.getElementById('card-filter'), document.getElementById('clear-filters'), params.initialFilters,
+    );
     sg.cardContainer = await CardContainer.create(
       sg.ui.cardContainer, params.initialFilters, params.viewerType, params.viewerAccessToken, params.currUsername,
     );
@@ -90,51 +62,5 @@ class Main {
     // Initialize data collection.
     sg.form = new Form(params.dataStoreUrl);
     sg.tracker = new Tracker();
-
-    const sidebarWrapper = sg.ui.cardFilter.wrapper;
-    const sidebarWidth = sidebarWrapper.css('width');
-
-    sg.ui.labelTypeMenu.select.change();
-
-    // Handle sidebar stickiness while scrolling. (The expanded view is position: fixed and needs no help.)
-    $(window).scroll(() => {
-      // Make sure the page isn't loading.
-      if (!sg.pageLoading.is(':visible') && !sg.labelsNotFound.is(':visible')) {
-        const sidebarBottomOffset = sidebarWrapper.offset().top + sidebarWrapper.outerHeight(true);
-        const cardContainerBottomOffset = sg.ui.cardContainer.holder.offset().top
-          + sg.ui.cardContainer.holder.outerHeight(true) - 5;
-
-        // Handle sidebar stickiness.
-        if (sg.scrollStatus.stickySidebar) {
-          if (cardContainerBottomOffset < sidebarBottomOffset) {
-            const sidebarHeightBeforeRelative = sidebarWrapper.outerHeight(true);
-
-            // Adjust sidebar positioning.
-            sidebarWrapper.css('position', 'relative');
-
-            // Compute the new location for the top of the sidebar, just above the paging arrows.
-            const navbarHeight = sg.ui.navbar.outerHeight(false);
-            const newTop = cardContainerBottomOffset - sidebarHeightBeforeRelative - navbarHeight;
-            sidebarWrapper.css('top', newTop);
-
-            // Adjust card container margin.
-            sg.ui.cardContainer.holder.css('margin-left', '0px');
-            sg.scrollStatus.stickySidebar = false;
-          }
-        } else {
-          const currHeaderSidebarOffset
-                        = sidebarWrapper.offset().top - (sg.ui.navbar.offset().top + sg.ui.navbar.outerHeight(false));
-          if (currHeaderSidebarOffset > this.#headerSidebarOffset) {
-            // Adjust sidebar positioning.
-            sidebarWrapper.css('position', 'fixed');
-            sidebarWrapper.css('top', '');
-
-            // Adjust card container margin.
-            sg.ui.cardContainer.holder.css('margin-left', sidebarWidth);
-            sg.scrollStatus.stickySidebar = true;
-          }
-        }
-      }
-    });
   }
 }

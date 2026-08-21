@@ -26,10 +26,19 @@ Also covered, beyond the api-docs previews:
   fork, the popover's ARIA contract and focus management, clipboard/intents, and activity logging. `ShareWidget` is a
   top-level `class` declaration (not a `window.X = ...` assignment), so the test evals the source into the jsdom
   global scope instead of using `loadGlobalScript`.
-- `common/pano-viewer/src/panoUtilities.js` → `panoProjection.test.js` — the canvas↔POV↔pano projection (#4851): the
-  canvas coordinate is projected with no anchor offset, the canvas→POV→canvas round trip is an identity, real stored
-  `pano_x`/`pano_y` values reproduce from their canvas coordinates, and the non-WebGL 2D fallback projects and wraps
-  headings correctly.
+- `common/AppManager.js` → `appManagerCsrfFetch.test.js` — the `window.fetch` CSRF wrapper (#4232): the token must
+  reach same-origin requests and *only* same-origin requests, across all three argument types `fetch` accepts
+  (string, `URL`, `Request`). jsdom implements neither `fetch` nor `Request`, so the test supplies both.
+- `community/*.js` → `communityListPage.test.js` — the /stories + /routes listing pages' client layer (#4688):
+  search filtering (hidden attr, live count, no-results), sort orders and tie-breaks, localized dates, type-chip
+  tinting, the read-more clamp toggle, view-label popup-vs-navigation routing, and the copy-share-link fallbacks.
+- `common/pano-viewer/src/PanoInfoPopover.js` → `panoInfoViewLink.test.js` — the pano info popover's
+  "view in \<provider\>" link (#4813). Validate and the label card swap the active viewer from label to label, so the
+  popover resolves it on every open and offers the link only when that viewer both publishes a public site and is
+  holding the pano on screen. These pin the link hidden — rather than left pointing at the previous label's pano — on
+  both fallbacks: Pannellum, and the static crop, where the provider's viewer is still loaded but with someone else's
+  pano. Like `ShareWidget` this is a top-level `class`, so the test evals the source instead of using
+  `loadGlobalScript`. jsdom implements neither the Popover API nor `:popover-open`, so the test stands both up.
 
 Each test file has:
 
@@ -84,36 +93,39 @@ The remaining `*Preview.js` modules pull in heavier globals. To bring them under
 - **Chart.js** (`label-types`, `validations`, `street-types`, …): set `window.Chart = jest.fn()` — a constructor
   spy is enough to assert "a chart was constructed with the right data" without rendering a canvas (jsdom has no 2D
   context).
-- **Leaflet** (`label-clusters`, `regions`, map previews): stub `window.L` with the chained no-op factory methods the
-  module calls (`L.map().setView()`, `L.tileLayer().addTo()`, `L.geoJSON()`, …).
+- **Mapbox GL** (every map preview): stub `window.mapboxgl` with no-op `Map` (whose instances need `on`, `addSource`,
+  `addLayer`, `addControl`, `setPaintProperty`, `getCanvas`), `NavigationControl`, `AttributionControl`,
+  `LngLatBounds`, and `Popup`, plus `window.MapboxLanguage`. The previews reach all of it through
+  `js/api-docs/apiDocsMap.js`, which `loadGlobalScript` has to load first.
 - **i18next / `i18next.t`**: stub `window.i18next = { t: (k) => k }` so translation lookups return the key.
 - **`util.*` globals** (e.g. `util.math`, formatting helpers in `common/`): either `loadGlobalScript` the real
   `common/` file first, or stub the specific `util.foo` functions used.
 
 The general recipe stays the same: container div → stub fetch with a captured snake_case fixture → stub libs →
 `loadGlobalScript` → `setup({}).init()` → assert no "Failed to load" + expected content. A shared
-`beforeEach` helper (e.g. `stubChartJs()`, `stubLeaflet()`) can live alongside `loadGlobalScript.js` as coverage grows.
+`beforeEach` helper (e.g. `stubChartJs()`, `stubMapboxGl()`) can live alongside `loadGlobalScript.js` as coverage grows.
 
 `common/aggregateStats.js` (named as a first target in the plan) is a good next addition — it has retry/timeout logic
 worth unit-testing with fake timers.
 
-## Why CI runs this as advisory
+## Why this is opt-in and NOT in CI
 
-Frontend linting and the JS **ES5→ES2022 migration** are owned by a separate in-flight effort, **issue #2487**. Making
-these tests a merge gate mid-migration would create large, conflict-prone churn and risks colliding with that work. So:
+Frontend linting and the JS **ES5→ES2022 migration** are owned by a separate in-flight effort, **issue #2487**. Dropping
+test/lint tooling into CI mid-migration would create large, conflict-prone churn and risks colliding with that work.
+So:
 
 - **No ESLint, no broad config** is introduced here (`jest.config.js` is scoped to `test/js/` only and never touches
   production JS).
-- **CI runs `npm run test:js` in the frontend job with `continue-on-error: true`** — a failure is visible in the run but
-  does not block a merge, the same treatment the Python-tests job gets.
+- **CI runs this suite as an advisory step** in the `frontend` job (`npm run test:js`, `continue-on-error` on the step
+  so a failure never turns the required `Frontend (build)` check red). Promotion to blocking rides #2487's track,
+  once coverage is broad enough that a red suite always means a real regression.
 - The existing `npm test` placeholder is **unchanged** to avoid surprising any tooling that already calls it.
 
-Promoting the step to blocking is part of #2487's track.
+## Complementary E2E
 
-## Complementary E2E (recommendation)
-
-These jsdom tests verify the render contract in isolation. A thin **Playwright** "api-docs smoke" is the natural E2E
-complement: load each `/v3/api-docs/*` page against a running app, **fail on any console error**, and assert each
-preview container is non-empty and contains no "Failed to load" banner. That catches integration-level breakage (real
-endpoint shape, script load order from Grunt, missing globals) that a mocked-`fetch` unit test cannot. Per the plan,
-keep it **advisory/nightly**, never blocking PRs.
+These jsdom tests verify the render contract in isolation. Their E2E complement now exists: the **Playwright browser
+smoke suite in [`test/e2e/`](../e2e)** (#4504) loads core pages — including api-docs pages — against a running app and
+**fails on any uncaught console/page error**, catching integration-level breakage (real endpoint shape, script load
+order from Grunt, missing globals) that a mocked-`fetch` unit test cannot. It runs as the advisory `e2e-smoke` CI job
+on every PR; asserting on the api-docs preview *content* (non-empty container, no "Failed to load" banner) is a
+planned phase-2 extension there.

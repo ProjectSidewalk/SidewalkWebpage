@@ -61,35 +61,7 @@ class Label {
     previousValidations: null,
   };
 
-  #icons;
-
   constructor(params) {
-    this.#icons = {
-      CurbRamp: '/assets/images/icons/AdminTool_CurbRamp.png',
-      NoCurbRamp: '/assets/images/icons/AdminTool_NoCurbRamp.png',
-      Obstacle: '/assets/images/icons/AdminTool_Obstacle.png',
-      SurfaceProblem: '/assets/images/icons/AdminTool_SurfaceProblem.png',
-      Other: '/assets/images/icons/AdminTool_Other.png',
-      Occlusion: '/assets/images/icons/AdminTool_Occlusion.png',
-      NoSidewalk: '/assets/images/icons/AdminTool_NoSidewalk.png',
-      Crosswalk: '/assets/images/icons/AdminTool_Crosswalk.png',
-      Signal: '/assets/images/icons/AdminTool_Signal.png',
-    };
-
-    if (util.isMobile()) {
-      this.#icons = {
-        CurbRamp: '/assets/images/icons/AdminTool_CurbRamp_Mobile.png',
-        NoCurbRamp: '/assets/images/icons/AdminTool_NoCurbRamp_Mobile.png',
-        Obstacle: '/assets/images/icons/AdminTool_Obstacle_Mobile.png',
-        SurfaceProblem: '/assets/images/icons/AdminTool_SurfaceProblem_Mobile.png',
-        Other: '/assets/images/icons/AdminTool_Other_Mobile.png',
-        Occlusion: '/assets/images/icons/AdminTool_Other_Mobile.png',
-        NoSidewalk: '/assets/images/icons/AdminTool_NoSidewalk_Mobile.png',
-        Crosswalk: '/assets/images/icons/AdminTool_Crosswalk_Mobile.png',
-        Signal: '/assets/images/icons/AdminTool_Signal_Mobile.png',
-      };
-    }
-
     this.#init(params);
   }
 
@@ -120,6 +92,7 @@ class Label {
       }
       if ('description' in params) this.setAuditProperty('description', params.description);
       if ('street_edge_id' in params) this.setAuditProperty('streetEdgeId', params.street_edge_id);
+      if ('max_speed' in params) this.setAuditProperty('maxSpeed', params.max_speed);
       if ('region_id' in params) this.setAuditProperty('regionId', params.region_id);
       if ('tags' in params) {
         this.setAuditProperty('tags', params.tags);
@@ -145,11 +118,21 @@ class Label {
   }
 
   /**
-   * Gets the file path associated with the labels' icon type.
-   * @returns {string} Path of image in the directory.
+   * Gets the marker icon for this label's type — the same scalable SVG every other surface draws (#4726). It used to
+   * be a per-type AdminTool_*.png, with a second, larger _Mobile.png set to compensate for the raster's fixed size;
+   * an SVG is sized by PanoMarker.setSize() on both, so the mobile set is gone.
+   * @returns {string} Path of the icon under /assets.
    */
   getIconUrl() {
-    return this.#icons[this.#auditProperties.labelType];
+    return util.misc.getIconImagePaths(this.#auditProperties.labelType).iconImagePath;
+  }
+
+  /**
+   * The label type's canvas colour, used for the dashed ring that marks the marker while the label is hidden.
+   * @returns {string} A CSS colour.
+   */
+  getIconColor() {
+    return util.misc.getLabelColors(this.#auditProperties.labelType);
   }
 
   /**

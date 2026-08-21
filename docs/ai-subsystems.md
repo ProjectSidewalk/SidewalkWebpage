@@ -29,8 +29,8 @@ Gemini at audit-task start (added Aug 2025).
 for CurbRamp, NoCurbRamp, Obstacle, SurfaceProblem, Crosswalk.
 
 **Flow:**
-1. `GetAiValidationsActor` (`app/actor/GetAiValidationsActor.scala`) runs daily (12:30 am
-   Pacific, staggered per city), selecting up to 800 labels/day via
+1. `GetAiValidationsActor` (`app/actor/GetAiValidationsActor.scala`) runs nightly at the time
+   `app/actor/ScheduledJobs.scala` gives it (staggered per city), selecting up to 800 labels/day via
    `LabelTable.getLabelsToValidateWithAi` (unassessed, GSV-only, prioritized).
 2. `AiService.callAiApi` (`app/service/AiService.scala`) POSTs
    `{label_type, panorama_id, x, y, city}` to
@@ -84,9 +84,11 @@ validation.
    for improving the model (continual-improvement roadmap:
    `sidewalk-auto-labeler/docs/design-review-2026-07.md`).
 
-**⚠ City gate:** `submitAiLabel` currently hard-rejects every city except `vancouver-wa`
-(added Sept 2025 for the pilot). Onboarding another city to AI labeling (e.g. Bend) requires
-changing this — ideally to a per-city `cityparams.conf` flag.
+**City gate:** `submitAiLabel` is gated by the per-city `ai-label-submission-enabled` flag in
+`cityparams.conf` (default **false**; unlisted cities reject submissions). Onboarding another
+city to AI labeling (e.g. Bend) means setting the flag to `true` for that city. Note that this
+only opens the gate — submission still requires a valid `INTERNAL_API_KEY` on that instance,
+which fails closed when the key is unset.
 
 **Model** (from [`RampNet`](https://github.com/ProjectSidewalk/RampNet), ICCV'25 workshop
 paper): ConvNeXtV2-Base + heatmap head, input 2048×4096, trained on ~214k panoramas
@@ -120,12 +122,12 @@ historical repos were archived in July 2026 to make the active set obvious).
 | 2019 | [`label-intersection-proximity`](https://github.com/ProjectSidewalk/label-intersection-proximity) | Supporting tool: distance from a label to the nearest OSM intersection — used as a geo feature in the CV work. | — | 🗄 Archived (2026-07) |
 | 2019 | [`sidewalk-cv-tools`](https://github.com/ProjectSidewalk/sidewalk-cv-tools) | First attempt to package CV labeling + validation as reusable functions for production use. **Python 2.7**; superseded by `sidewalk-ai-api`. | — | 🗄 Archived (2026-07) |
 | 2019 | [`cv-siamese-network`](https://github.com/ProjectSidewalk/cv-siamese-network) | Experiment: Siamese networks (+ SVM baseline) for sidewalk-feature detection. Exploratory dead end. | — | 🗄 Archived (2026-07) |
-| 2021 | [`label-latlng-estimation`](https://github.com/ProjectSidewalk/label-latlng-estimation) | Estimating a label's real-world lat/lng from pano placement (no README; regression approach later revisited by `gsv-location-extraction-analysis`). | — | 🗄 Archived (2026-07) |
+| 2021– | [`label-latlng-estimation`](https://github.com/ProjectSidewalk/label-latlng-estimation) | Fits and validates the estimator that places a label's real-world lat/lng from its position in the pano. Its 2026-08 refit is what production runs: a saturating-cotangent distance blend on the label's depression angle over a single camera height, calibrated against depth truth measured on current imagery (0.42 m median on held-out modern truth). Reported under `reports/` and transcribed into `PanoDataService.LatLngEstimation`. | — | ✅ Active |
 | 2021–23 | [`sidewalk-cv-2021`](https://github.com/ProjectSidewalk/sidewalk-cv-2021) | Second-generation **automatic label validation** (better crop quality, multi-size crops, cross-city training), with labeling/segmentation experiments alongside (e.g. `citysurfaces/` surface classification). Direct ancestor of `sidewalk-validator-ai`. | [ASSETS'22 (Duan et al.)](https://doi.org/10.1145/3517428.3550381) | 🗄 Archived (2026-07) |
 | 2023 | [`BusStopCV`](https://github.com/ProjectSidewalk/BusStopCV) | Sibling crowd+AI project: real-time in-browser CV assistant for labeling bus-stop features (seating, shelter, signage, trash cans). | [ASSETS'23 (Kulkarni et al.)](https://doi.org/10.1145/3597638.3614481) | 🗄 Archived (2026-07) |
 | 2024– | [`sidewalk-tagger-ai`](https://github.com/ProjectSidewalk/sidewalk-tagger-ai) | Trains the **tagger** models: DINOv2/CLIP multi-label classifiers, 33 tag classes over label crops; per-tag deployment thresholds at precision ≥ 0.92. | ASSETS'24 (Liu, Wu, et al.) | ✅ Active |
 | 2024– | [`sidewalk-ai-api`](https://github.com/ProjectSidewalk/sidewalk-ai-api) | **The serving layer**: Dockerized GPU API (`/process`) hosting the validator + tagger models from HuggingFace; called daily by SidewalkWebpage for ~55 cities. | — | ✅ Active |
-| 2025 | [`gsv-location-extraction-analysis`](https://github.com/ProjectSidewalk/gsv-location-extraction-analysis) | Completed one-off study: GSV's `fromContainerPixelToLatLng` vs. PS's regression for label lat/lng (verdict: old method slightly better). Conclusions in its README. | — | 🗄 Archived (2026-07) |
+| 2025 | [`gsv-location-extraction-analysis`](https://github.com/ProjectSidewalk/gsv-location-extraction-analysis) | Completed one-off study: GSV's `fromContainerPixelToLatLng` vs. the linear regression PS deployed at the time for label lat/lng (verdict: the regression was slightly better; both are beaten by the cotangent blend `label-latlng-estimation` fit in 2026). Conclusions in its README. | — | ✅ Active |
 | 2025– | [`RampNet`](https://github.com/ProjectSidewalk/RampNet) | Trains the curb-ramp **detector** + auto-generates its 214k-pano dataset from open-gov data. ⚠ Tag an ICCV-paper-state release before changing (issue #2). | [ICCV'25 wksp (O'Meara et al.)](https://arxiv.org/abs/2508.09415) | ✅ Active |
 | 2025– | [`sidewalk-auto-labeler`](https://github.com/ProjectSidewalk/sidewalk-auto-labeler) | Deploys RampNet at city scale: finds every pano in a polygon, runs detection, submits AI labels to PS. | — | ✅ Active |
 | 2025– | [`sidewalk-validator-ai`](https://github.com/ProjectSidewalk/sidewalk-validator-ai) | Trains the **validator** models: DINOv2 binary correct/incorrect per label type, Depth-Anything-V2 depth-aware crops, agreement-based training labels. | — | ✅ Active |
@@ -169,7 +171,6 @@ sidewalk-tagger-ai ────┤ (HF: sidewalk-tagger-ai-models)          Ramp
   endpoints in June 2026 and broke consumers independently (see
   `sidewalk-auto-labeler/docs/design-review-2026-07.md` §3) — worth consolidating on one
   maintained fetch path.
-- The `vancouver-wa` hard gate on `/ai/submitLabelsOnPano` (above).
 - Model provenance (`model_id`, training date) is hardcoded in the auto-labeler rather than
   read from the HF model config.
 - RampNet must get a tagged ICCV'25-state release before any code changes land

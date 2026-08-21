@@ -8,7 +8,6 @@ class RibbonMenu {
   #tracker;
   #properties = {
     buttonDefaultBorderColor: 'transparent',
-    originalBorderColor: 'transparent',
   };
 
   #status = {
@@ -32,7 +31,6 @@ class RibbonMenu {
     selectedLabelType: undefined,
   };
 
-  #blinkInterval;
   #uiRibbonMenu;
 
   /**
@@ -125,6 +123,9 @@ class RibbonMenu {
         this.setStatus('mode', mode);
         this.setStatus('selectedLabelType', mode);
         if (svl.navigationService) svl.navigationService.switchToLabelingMode();
+
+        // A lingering hover card would sit above the drawing layer and swallow the label-placement click.
+        if (svl.canvas) svl.canvas.showLabelHoverInfo(undefined);
 
         // Change cursor before mouse is moved.
         if (svl.ui.canvas.drawingLayer) svl.ui.canvas.drawingLayer.triggerHandler('mousemove');
@@ -405,14 +406,6 @@ class RibbonMenu {
   }
 
   /**
-   * @param {string} key
-   * @returns {*}
-   */
-  #getProperty(key) {
-    return key in this.#properties ? this.#properties[key] : null;
-  }
-
-  /**
    * Sets the given value in the status object.
    *
    * @param {string} name
@@ -452,7 +445,6 @@ class RibbonMenu {
    * @param {string} [subLabelType]
    */
   startBlinking(labelType, subLabelType) {
-    let highlighted = false;
     const button = this.#uiRibbonMenu.holder.find(`[val="${labelType}"]`).get(0).children[0];
     let dropdown;
 
@@ -461,31 +453,17 @@ class RibbonMenu {
     }
 
     this.stopBlinking();
-    if (button) {
-      this.#blinkInterval = window.setInterval(() => {
-        if (highlighted) {
-          highlighted = !highlighted;
-          $(button).css('border-color', 'rgba(255, 255, 0, 1)');
-          if (dropdown) {
-            $(dropdown).css('background', 'rgba(255, 255, 0, 1)');
-          }
-        } else {
-          highlighted = !highlighted;
-          $(button).css('border-color', this.#getProperty('originalBorderColor'));
-          if (dropdown) {
-            $(dropdown).css('background', 'white');
-          }
-        }
-      }, 500);
-    }
+    // The shared pulsing halo (also used on the context menu's enabled section) replaces a 500ms border-color
+    // toggle that was easy to miss and ignored prefers-reduced-motion.
+    if (button) button.classList.add('onboarding-attention');
+    if (dropdown) dropdown.classList.add('onboarding-attention');
   }
 
   stopBlinking() {
-    clearInterval(this.#blinkInterval);
     $.each(this.#uiRibbonMenu.buttons, (i, v) => {
-      $(v.children[0]).css('border-color', this.#getProperty('originalBorderColor'));
+      $(v.children[0]).removeClass('onboarding-attention');
     });
-    this.#uiRibbonMenu.subcategories.css('background', 'white');
+    this.#uiRibbonMenu.subcategories.removeClass('onboarding-attention');
   }
 
   /** @returns {RibbonMenu} this. */

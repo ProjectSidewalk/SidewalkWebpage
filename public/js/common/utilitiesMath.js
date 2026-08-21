@@ -49,24 +49,43 @@ function haversine(latLng1, latLng2) {
 
 util.math.haversine = haversine;
 
-/**
- * Linearly interpolates between two values.
- * @param {number} a Start value
- * @param {number} b End value
- * @param {number} t Interpolation factor (0–1)
- * @returns {number} Interpolated result
- */
-function lerp(a, b, t) {
-  return a + t * (b - a);
-}
-
-util.math.lerp = lerp;
-
 function roundToTwentyFive(num) {
   return Math.round(num / 25) * 25;
 }
 
 util.math.roundToTwentyFive = roundToTwentyFive;
+
+/**
+ * Truncates a value to a number of decimal places, rather than rounding it.
+ *
+ * Progress toward a goal is displayed floored so that it never reads as finished before it is: rounding 16.45 up to
+ * "16.5 / 16.5 mi" claims a badge the user hasn't earned. Every display of an audited distance uses this so the same
+ * total can't render two different ways on two parts of a page.
+ *
+ * @param {number} value - The value to truncate.
+ * @param {number} decimals - How many decimal places to keep.
+ * @returns {number} The value truncated toward zero at that precision.
+ */
+function floorTo(value, decimals) {
+  return Math.floor(Number(`${value}e${decimals}`)) / 10 ** decimals;
+}
+
+util.math.floorTo = floorTo;
+
+/**
+ * Rounds a value up to a number of decimal places; the counterpart to floorTo.
+ *
+ * @param {number} value - The value to round up.
+ * @param {number} decimals - How many decimal places to keep.
+ * @returns {number} The value rounded up at that precision.
+ */
+function ceilTo(value, decimals) {
+  // Shifts the decimal point through the number's own decimal string for the same reason floorTo does, in the other
+  // direction: 1.1 * 100 is 110.00000000000001, which a plain Math.ceil would turn into 1.11.
+  return Math.ceil(Number(`${value}e${decimals}`)) / 10 ** decimals;
+}
+
+util.math.ceilTo = ceilTo;
 
 function metersToMiles(dist) {
   return dist / 1609.34;
@@ -97,7 +116,7 @@ function kmsToMeters(dist) {
 }
 
 function kmsToMiles(dist) {
-  return dist / 1.60934;
+  return dist / 1.609344; // Exact: a mile is defined as 1609.344 m.
 }
 
 function kmsToFeet(dist) {

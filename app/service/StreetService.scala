@@ -1,10 +1,8 @@
 package service
 
 import com.google.inject.ImplementedBy
-import formats.json.RouteBuilderFormats.NewRoute
 import models.audit.{AuditTaskTable, StreetEdgeWithAuditStatus}
-import models.route.{Route, RouteStreet, RouteStreetTable, RouteTable}
-import models.street.{StreetEdgePriorityTable, StreetEdgeTable}
+import models.street.{StreetEdgePriorityTable, StreetEdgeTable, StreetPriorityForAdmin}
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.cache.AsyncCacheApi
@@ -21,7 +19,7 @@ trait StreetService {
   def getTotalStreetDistance(metric: Boolean): Future[Double]
   def getAuditedStreetDistance(metric: Boolean): Future[Double]
   def recalculateStreetPriority: Future[Seq[Int]]
-  def saveRoute(route: NewRoute, userId: String): Future[Int]
+  def getPriorityWithInputs: Future[Seq[StreetPriorityForAdmin]]
   def selectStreetsWithAuditStatus(
       filterLowQuality: Boolean,
       regionIds: Seq[Int],
@@ -36,8 +34,6 @@ class StreetServiceImpl @Inject() (
     configService: ConfigService,
     streetEdgeTable: StreetEdgeTable,
     streetEdgePriorityTable: StreetEdgePriorityTable,
-    routeTable: RouteTable,
-    routeStreetTable: RouteStreetTable,
     auditTaskTable: AuditTaskTable,
     implicit val ec: ExecutionContext
 ) extends StreetService
@@ -75,14 +71,15 @@ class StreetServiceImpl @Inject() (
 
   def recalculateStreetPriority: Future[Seq[Int]] = db.run(streetEdgePriorityTable.recalculateStreetPriority)
 
-  def saveRoute(route: NewRoute, userId: String): Future[Int] = {
-    // Save new route in the database. The order of the streets should be preserved when saving to db.
-    db.run((for {
-      routeId: Int <- routeTable.insert(Route(0, userId, route.regionId, "temp", public = false, deleted = false))
-      newRouteStreets = route.streets.map(street => RouteStreet(0, routeId, street.streetId, street.reverse))
-      _ <- routeStreetTable.insertMultiple(newRouteStreets)
-    } yield routeId).transactionally)
-  }
+  /**
+   * Every routable street's priority with the audit counts behind it, for the admin imagery panel (#4908).
+   *
+   * Deliberately uncached: the result is one row per open street, which is megabytes for a large city and would sit in
+   * the app's heap between the nightly recalcs that are the only thing that changes it. The query is a single pass
+   * over `audit_task`, so re-running it per page load is the cheaper side of that trade.
+   */
+  def getPriorityWithInputs: Future[Seq[StreetPriorityForAdmin]] =
+    db.run(streetEdgePriorityTable.getPriorityWithInputs)
 
   def selectStreetsWithAuditStatus(
       filterLowQuality: Boolean,

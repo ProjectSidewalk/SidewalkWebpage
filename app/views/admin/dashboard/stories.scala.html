@@ -45,6 +45,7 @@
   <script src='@assets.path("js/common/ConfirmDialog.js")'></script>
   <script src='@assets.path("js/common/label-detail/StoryComposer.js")'></script>
   <script src='@assets.path("js/common/label-detail/StorySection.js")'></script>
+  <script src='@assets.path("js/common/share/ShareWidget.js")'></script>
   <script src='@assets.path("js/common/label-detail/LabelDetail.js")'></script>
   <script src='@assets.path("js/common/label-detail/LabelPopup.js")'></script>
 
@@ -71,5 +72,5 @@
 
 @common.main(commonData, "Sidewalk - Admin Stories", i18Namespaces = Seq("common", "labelmap")) {
   @common.navbar(commonData, Some(user))
-  @admin.dashboard.adminLayout("stories", user.role == "Owner")(content)
+  @admin.dashboard.adminLayout("stories", commonData, user)(content)
 }

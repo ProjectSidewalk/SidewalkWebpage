@@ -21,8 +21,8 @@
   "badge-type-validations": "檢核",
   "badge-missions-singular": "任務",
   "badge-missions-plural": "任務",
-  "badge-distance-singular": "公里",
-  "badge-distance-plural": "公里",
+  "badge-distance-singular": "{{unitNameSingular}}",
+  "badge-distance-plural": "{{unitName}}",
   "badge-labels-singular": "標記",
   "badge-labels-plural": "標記",
   "badge-validations-singular": "檢核",
@@ -44,8 +44,7 @@
     "remaining-labels_other": "再 {{count}} 個標記",
     "remaining-missions_other": "再 {{count}} 個任務",
     "remaining-validations_other": "再 {{count}} 個檢核",
-    "remaining-distance-km": "再 {{dist}} 公里",
-    "remaining-distance-mi": "再 {{dist}} 英里"
+    "remaining-distance": "再 {{dist}} {{unitAbbr}}"
   },
   "mistake-cards": {
     "empty": "🎉 沒有需要檢視的錯誤——您的標記表現很好。繼續保持！",
@@ -80,6 +79,13 @@
     "network-error": "網路錯誤——請再試一次。"
   },
   "stories": {
-    "none": "您尚未分享任何故事。在地圖上開啟一個標記，然後選擇「分享您的故事」。"
-  }
-}
+    "none": "您尚未撰寫任何故事。在地圖上開啟一個標記，然後選擇「撰寫您的故事」。"
+  },
+  "routes-link-copied": "已複製連結！",
+  "routes-rename-aria": "新的路線名稱",
+  "routes-rename-save": "儲存",
+  "routes-rename-cancel": "取消",
+  "routes-renamed": "路線已重新命名。",
+  "routes-deleted": "已刪除「{{name}}」。",
+  "routes-delete-confirm": "確定要刪除「{{name}}」嗎？擁有此連結的人將無法再使用它。",
+  "routes-error": "發生錯誤，請再試一次。"}

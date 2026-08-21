@@ -1,5 +1,4 @@
 {
-  "user-description": "Beschrijving van gebruiker: ",
   "top-ui": {
     "title": {
       "curb-ramp": "Is dit een <b>Trottoir Oprit</b>?",
@@ -11,7 +10,9 @@
       "signal": "is dit een <b>Verkeerslicht</b>?"
     },
     "visibility-control-hide": "Verberg Label (<u>H</u>)",
-    "visibility-control-show": "Toon Label (<u>H</u>)"
+    "visibility-control-show": "Toon Label (<u>H</u>)",
+    "visibility-control-tooltip-hide": "Verbergt het label tijdelijk om beter te zien. (<u>H</u>)",
+    "visibility-control-tooltip-show": "Toont het label weer. (<u>H</u>)"
   },
   "validate-menu": {
     "disagree-reason": {
@@ -26,7 +27,9 @@
         "no-button-1": "Dit is een wandelpad in een woonwijk.",
         "no-button-2": "Er is hier geen trottoir.",
         "no-button-3": "Dit zou een trottoir oprit-label moeten zijn.",
-        "no-button-3-tooltip": "Soms wordt een trottoir oprit ten onrechte als ontbrekende helling aangemerkt, vaak omdat er een voelbare waarschuwing ontbreekt."
+        "no-button-3-tooltip": "Soms wordt een trottoir oprit ten onrechte als ontbrekende helling aangemerkt, vaak omdat er een voelbare waarschuwing ontbreekt.",
+        "no-button-4": "Het is hier niet veilig om over te steken.",
+        "no-button-4-tooltip": "Voetgangers horen hier niet over te steken, dus is er geen trottoir oprit te verwachten."
       },
       "obstacle": {
         "no-button-1": "Dit is geen voetpad.",
@@ -89,11 +92,13 @@
     }
   },
   "center-ui": {
-    "no-info": "Geen informatie beschikbaar"
+    "no-info": "Geen informatie beschikbaar",
+    "pano-interactive-message": "Sleep om rond te kijken, scroll om in te zoomen."
   },
-  "mission-start": {
-    "title": "Valideer {{n}} {{label_type}} labels",
-    "body": "Je missie is om de correctheid te bepalen van  __LABELCOUNT_PLACEHOLDER__ __LABELTYPE_PLACEHOLDER__</span> labels geplaatst door andere gebruikers!"
+  "imagery-unavailable": {
+    "title": "Beelden konden niet worden geladen",
+    "body": "We konden de straatbeelden voor de labels in deze missie niet laden, dus er is nu niets om te tonen. Je afgeronde validaties zijn opgeslagen. Dit lost zichzelf meestal op — probeer het opnieuw.",
+    "retry": "Opnieuw proberen"
   },
   "mission-complete": {
     "title": "Goed gedaan!",
@@ -109,7 +114,12 @@
     "explore": "Start een ondtekkingsmissie",
     "no-new-mission-title": "Geen valideermissies meer te gaan",
     "no-new-mission-body": "Klik op de knop om te beginnen met verkennen.",
-    "no-new-mission-button": "Begin met verkennen"
+    "no-new-mission-button": "Begin met verkennen",
+    "all-time_one": "{{count}} validatie in totaal",
+    "all-time_other": "{{count}} validaties in totaal",
+    "next-badge_one": "Nog {{count}} validatie tot {{badge}}",
+    "next-badge_other": "Nog {{count}} validaties tot {{badge}}",
+    "top-badge": "Hoogste badge behaald — je bent een legende!"
   },
   "mobile": {
     "no-new-mission-body": "U kunt meer labels toevoegen met behulp van een laptop / desktopcomputer, of u kunt labels valideren in een andere stad!",
@@ -122,6 +132,7 @@
   "mission-start-tutorial": {
     "mst-instruction-1": "JOUW MISSIE",
     "mst-instruction-2": "Valideer {{nLabels}} {{- labelType}} labels",
+    "examples-label": "Labelvoorbeelden",
     "example-type-label-incorrect": "VERKEERD VOORBEELD",
     "label-on-image-title-incorrect": "Verkeerd etiket",
     "label-on-image-description-correct": "Markeer <b>Akkoord</b>",

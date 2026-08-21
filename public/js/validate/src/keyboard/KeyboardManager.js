@@ -53,8 +53,11 @@ class KeyboardManager {
   }
 
   /**
-   * Handles the logic for the 1, 2, and 3 key shortcuts.
-   * @param {number} n The keyboard shortcut number that was hit (1, 2, or 3).
+   * Handles the logic for the number key shortcuts.
+   *
+   * @param {number} n The keyboard shortcut number that was hit. 1-3 map to a severity, disagree reason, or unsure
+   *                   reason; 4 maps to a fourth disagree reason where one is offered. Any n with no matching option
+   *                   focuses the comment box, which is what makes 5 reach it on a four-reason label type.
    * @param {Event} e The keypress event.
    */
   #handleNumberKeyShortcut(n, e) {
@@ -106,6 +109,30 @@ class KeyboardManager {
    */
   #documentKeyDown = (e) => {
     const validationMenuUi = this.#validationMenuUi;
+
+    // The label's marker and its card form their own keyboard scope (#4729): the marker is a button that toggles
+    // the card, Tab walks through the card's controls, and Escape closes it and puts focus back on the marker.
+    // None of the global shortcuts may fire from inside — Enter especially, which everywhere else submits the
+    // validation and here would submit from a control that means "open". This runs on window with capture, so it
+    // sees the key before the focused control does.
+    const marker = document.getElementById('validate-pano-marker');
+    const card = document.getElementById('label-card');
+    if (e.target === marker || (card && card.contains(e.target))) {
+      if (e.code === 'Escape') {
+        // Guarded, not unconditional: Escape on a focused marker with the card already closed is a common reflex,
+        // and logging a dismissal for it would pad the event with no-ops. Focus still returns to the marker.
+        if (svv.labelVisibilityControl.isCardVisible()) {
+          svv.labelVisibilityControl.hideLabelCard();
+          svv.tracker.push('KeyboardShortcut_HideLabelCard', { keyCode: e.keyCode });
+        }
+        marker?.focus();
+      } else if (e.target === marker && ['Enter', 'NumpadEnter', 'Space'].includes(e.code)) {
+        e.preventDefault(); // Space would otherwise also scroll the page.
+        svv.labelVisibilityControl.toggleLabelCard({ viaKeyboard: true });
+      }
+      return;
+    }
+
     // When the user is typing in a comment box, disable keyboard shortcuts that validate a label.
     this.#checkIfTextAreaSelected();
 
@@ -117,7 +144,7 @@ class KeyboardManager {
     }
 
     if (!this.#disableKeyboard && !this.#addingComment && !e.ctrlKey) {
-      svv.labelVisibilityControl.hideTagsAndDeleteButton();
+      svv.labelVisibilityControl.hideLabelCard();
       switch (e.code) {
         // Validate yes/agree.
         case 'KeyY':
@@ -173,9 +200,21 @@ class KeyboardManager {
         case 'Numpad3':
           this.#handleNumberKeyShortcut(parseInt(e.key, 10), e);
           break;
-          // '4' or 'c' key (Focus comment box)
+          // '4' and '5' keys (Pick the fourth disagree reason, or focus the comment box).
         case 'Digit4':
         case 'Numpad4':
+        case 'Digit5':
+        case 'Numpad5':
+          // The comment box is always the key one past the menu's last reason, so it moves from 4 to 5 on any label
+          // type that offers a fourth reason, handled through #handleNumberKeyShortcut. Routed separately from 1-3 only
+          // because of the Agree verdict, where it would reach for a severity button 4 or 5 that doesn't exist.
+          if (validationMenuUi.noButton.hasClass('chosen')) {
+            this.#handleNumberKeyShortcut(parseInt(e.key, 10), e);
+          } else {
+            this.#handleCommentBoxShortcut(e);
+          }
+          break;
+          // 'c' key (Focus comment box).
         case 'KeyC':
           this.#handleCommentBoxShortcut(e);
           break;

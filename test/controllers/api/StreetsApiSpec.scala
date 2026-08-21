@@ -42,7 +42,13 @@ class StreetsApiSpec extends PlaySpec with GuiceOneAppPerSuite {
 
       val json = contentAsJson(resp)
       (json \ "type").as[String] mustBe "FeatureCollection"
-      (json \ "features").asOpt[Seq[JsObject]] mustBe defined
+      // tinyBbox is deliberately empty, so per-feature checks rarely run; the audited/outdated invariant is
+      // exercised against a populated feed in controllers.StreetAuditStatusSpec.
+      val features = (json \ "features").asOpt[Seq[JsObject]]
+      features mustBe defined
+
+      // If the tiny bbox happens to contain a street, its properties must carry the max_speed key (may be null).
+      features.get.headOption.foreach { feature => (feature \ "properties" \ "max_speed").toOption mustBe defined }
     }
 
     "return CSV with the documented snake_case header when filetype=csv" in {
@@ -53,8 +59,8 @@ class StreetsApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       val body = contentAsString(resp)
       // Header from StreetDataForApi.csvHeader; assert snake_case field names are present and camelCase absent.
       body must include(
-        "street_edge_id,osm_way_id,region_id,region_name,way_type,status,user_ids,label_count,audit_count,user_count," +
-          "first_label_date,last_label_date,start_point,end_point"
+        "street_edge_id,osm_way_id,region_id,region_name,way_type,max_speed,status,user_ids,label_count," +
+          "audit_count,outdated,user_count,first_label_date,last_label_date,start_point,end_point"
       )
       body must not include "streetEdgeId"
       body must not include "labelCount"
@@ -88,6 +94,30 @@ class StreetsApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       val resp = route(app, FakeRequest(GET, "/v3/api/streets?regionId=0")).get
       status(resp) mustBe BAD_REQUEST
       (contentAsJson(resp) \ "parameter").as[String] mustBe "regionId"
+    }
+  }
+
+  "GET /v3/api/streets?filetype=geopackage" should {
+    "return a SQLite GeoPackage whose schema carries outdated and max_speed (#4384, #4654)" in {
+      val resp = route(app, FakeRequest(GET, "/v3/api/streets?filetype=geopackage")).get
+      status(resp) mustBe OK
+
+      val bytes = contentAsBytes(resp)
+      // A GeoPackage is a raw SQLite database; its column names appear as plain text in the schema pages, so a
+      // byte-level search proves the fields reached the export without pulling in a SQLite reader as a test dep.
+      bytes.take(15).utf8String mustBe "SQLite format 3"
+      bytes.containsSlice(org.apache.pekko.util.ByteString("outdated")) mustBe true
+      bytes.containsSlice(org.apache.pekko.util.ByteString("max_speed")) mustBe true
+    }
+  }
+
+  "GET /v3/api/streets?filetype=shapefile" should {
+    "return a nonempty ZIP archive" in {
+      // The DBF field names live inside compressed entries, so this only smoke-tests that the export (including the
+      // outdated featureBuilder wiring, which would 500 on a schema/value mismatch) still assembles end to end.
+      val resp = route(app, FakeRequest(GET, "/v3/api/streets?filetype=shapefile")).get
+      status(resp) mustBe OK
+      contentAsBytes(resp).take(2).utf8String mustBe "PK"
     }
   }
 

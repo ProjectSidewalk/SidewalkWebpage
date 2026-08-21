@@ -37,14 +37,18 @@ object StoryFormats {
 
   def storyForOwnerToJson(s: StoryForOwner): JsObject = {
     Json.obj(
-      "story_id"          -> s.story.storyId,
-      "label_id"          -> s.story.labelId,
-      "label_type"        -> s.labelType,
+      "story_id"   -> s.story.storyId,
+      "label_id"   -> s.story.labelId,
+      "label_type" -> s.labelType,
+      // Flips the edit composer's problem-vs-feature phrasing (LabelTypeEnum-sourced, never re-derived in JS).
+      "is_access_problem" -> s.isAccessProblem,
       "text"              -> s.story.storyText,
       "display_name_mode" -> s.story.displayNameMode,
       "hidden"            -> !s.story.visible,
       "created_at"        -> s.story.createdAt,
-      "media"             -> s.media.map(mediaToJson)
+      "media"             -> s.media.map(mediaToJson),
+      // Photoless stories: a signed label preview (crop, else GSV static) so the row still shows a thumbnail.
+      "label_image_url" -> s.labelImageUrl
     )
   }
 
@@ -72,6 +76,9 @@ object StoryFormats {
       // (the composer may not have fetched /stories — and its max_text_length — before submitting).
       case StoryRejection.TextTooLong(maxLength)    => base + ("max" -> JsNumber(maxLength))
       case StoryRejection.AltTextTooLong(maxLength) => base + ("max" -> JsNumber(maxLength))
+      // How long until the next submission slot opens, so the composer can say it rather than guess "tomorrow".
+      case StoryRejection.RateLimited(Some(secs))   => base + ("retry_after_seconds" -> JsNumber(secs))
+      case StoryRejection.RateLimitedIp(Some(secs)) => base + ("retry_after_seconds" -> JsNumber(secs))
       case _                                        => base
     }
   }

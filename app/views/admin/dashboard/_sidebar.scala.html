@@ -16,10 +16,14 @@
 
     <div class="api-nav-header">Manage</div>
     <a href="@routes.AdminDashboardController.management" class="api-nav-item @if(activePage == "management"){active}" @if(activePage == "management"){aria-current="page"}>Management</a>
+    @if(isOwner) {
+      <a href="@routes.AdminDashboardController.health" class="api-nav-item @if(activePage == "health"){active}" @if(activePage == "health"){aria-current="page"}>Health</a>
+    }
 
     <div class="api-nav-header">Data</div>
     <a href="@routes.AdminDashboardController.coverage" class="api-nav-item @if(activePage == "coverage"){active}" @if(activePage == "coverage"){aria-current="page"}>Coverage</a>
     <a href="@routes.AdminDashboardController.streetStatus" class="api-nav-item @if(activePage == "street-status"){active}" @if(activePage == "street-status"){aria-current="page"}>Street Status</a>
+    <a href="@routes.AdminDashboardController.imagery" class="api-nav-item @if(activePage == "imagery"){active}" @if(activePage == "imagery"){aria-current="page"}>Imagery</a>
     <a href="@routes.AdminDashboardController.labelMap" class="api-nav-item @if(activePage == "label-map"){active}" @if(activePage == "label-map"){aria-current="page"}>Label Map</a>
     <a href="@routes.AdminDashboardController.quality" class="api-nav-item @if(activePage == "quality"){active}" @if(activePage == "quality"){aria-current="page"}>Data Quality</a>
 

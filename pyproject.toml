@@ -4,16 +4,22 @@
 [tool.pytest.ini_options]
 # Only collect the Python utility tests; keep pytest away from the Scala/JS test trees.
 testpaths = ["test/python"]
-# Put scripts/ on sys.path so tests can `import label_clustering` / `import check_streets_for_imagery` without packaging.
-pythonpath = ["scripts"]
+# Put scripts/ and tools/ on sys.path so tests can `import label_clustering` / `import verify_latlng_backfill`
+# without packaging.
+pythonpath = ["scripts", "tools"]
 python_files = ["test_*.py"]
-# Always measure correctness coverage of the scripts and fail the run if it regresses below the gate. Branch coverage
-# is on so both sides of every decision must be exercised, not just every line.
-addopts = "--cov=scripts --cov-branch --cov-report=term-missing --cov-fail-under=100"
+# Coverage is on for every invocation, so no run can quietly skip the gate. Branch coverage means both sides of a
+# decision must be exercised, not just every line. Bare `--cov` defers scoping to [tool.coverage.run] below.
+addopts = "--cov --cov-branch --cov-report=term-missing --cov-fail-under=100"
 
 [tool.coverage.run]
-source = ["scripts"]
 branch = true
+# `source`, not `include`: it also reports a file nothing imported as 0%, so a script arriving with no tests fails the
+# gate rather than going unmeasured. tools/ stays out — one-off utilities, not held to 100%.
+source = ["scripts"]
+# Each half of the interpreter-split suite omits the script it cannot import (`make test-python` sets this). Unset,
+# nothing is omitted and a hand-run fails loudly rather than measuring less than it appears to.
+omit = ["${COVERAGE_OMIT-}"]
 
 [tool.coverage.report]
 show_missing = true

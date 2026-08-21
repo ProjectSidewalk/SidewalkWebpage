@@ -2,7 +2,7 @@ package models.validation
 
 import com.google.inject.ImplementedBy
 import models.api.{ValidationDataForApi, ValidationFiltersForApi, ValidationResultTypeForApi}
-import models.label.LabelTypeEnum.{labelTypeIdToLabelType, validLabelTypeIds, validLabelTypes}
+import models.label.LabelTypeEnum.{labelTypeIdToLabelType, labelTypeIds, labelTypeNames}
 import models.label._
 import models.mission.MissionTableDef
 import models.user._
@@ -50,7 +50,7 @@ case class ValidationCount(
     validationResult: Option[ValidationOption.Value], // None represents the "All" results subtotal.
     validatorType: String
 ) {
-  require((validLabelTypes ++ Seq("All")).contains(labelType))
+  require((labelTypeNames ++ Seq("All")).contains(labelType))
   require(Seq("AI", "Human", "Both").contains(validatorType))
 }
 
@@ -65,8 +65,8 @@ class LabelValidationTableDef(tag: slick.lifted.Tag) extends Table[LabelValidati
   def validationResult: Rep[ValidationOption.Value] = column[ValidationOption.Value]("validation_result")
   def oldSeverity: Rep[Option[Int]]                 = column[Option[Int]]("old_severity")
   def newSeverity: Rep[Option[Int]]                 = column[Option[Int]]("new_severity")
-  def oldTags: Rep[List[String]]                    = column[List[String]]("old_tags")
-  def newTags: Rep[List[String]]                    = column[List[String]]("new_tags")
+  def oldTags: Rep[List[String]]                    = column[List[String]]("old_tags", O.Default(List()))
+  def newTags: Rep[List[String]]                    = column[List[String]]("new_tags", O.Default(List()))
   def userId: Rep[String]                           = column[String]("user_id")
   def missionId: Rep[Int]                           = column[Int]("mission_id")
   def canvasX: Rep[Option[Int]]                     = column[Option[Int]]("canvas_x")
@@ -104,6 +104,7 @@ class LabelValidationTable @Inject() (
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   val validations          = TableQuery[LabelValidationTableDef]
+  val voidedValidations    = TableQuery[VoidedLabelValidationTableDef]
   val users                = TableQuery[SidewalkUserTableDef]
   val userRoles            = TableQuery[UserRoleTableDef]
   val roleTable            = TableQuery[RoleTableDef]
@@ -220,19 +221,45 @@ class LabelValidationTable @Inject() (
   }
 
   /**
-   * @return The total number of validations.
+   * The total number of validations performed, as work credit: votes voided by the #4842 repair (evolution 355) live
+   * in the archive table, but the work happened, so they count here. Verdict-derived stats must not use this.
+   *
+   * @return The total number of validations performed, including archived voided ones.
    */
-  def countValidations: DBIO[Int] = validations.length.result
+  def countValidations: DBIO[Int] = {
+    for {
+      liveCount     <- validations.length.result
+      archivedCount <- voidedValidations.length.result
+    } yield liveCount + archivedCount
+  }
 
   /**
-   * @return The total number of human validations (i.e., excluding AI validations).
+   * The total number of human validations performed (i.e., excluding AI validations), as work credit. The voided-vote
+   * archive counts in full: the #4842 repair voids human votes only, so every archived vote is human. That
+   * human-ness is checked at repair time and not re-derived here — if an archived vote's caster were later granted
+   * the AI role, this count would still (correctly) treat their pre-role-change vote as human work.
+   *
+   * @return The total number of human validations performed, including archived voided ones.
    */
-  def countHumanValidations: DBIO[Int] = humanValidations.length.result
+  def countHumanValidations: DBIO[Int] = {
+    for {
+      liveCount     <- humanValidations.length.result
+      archivedCount <- voidedValidations.length.result
+    } yield liveCount + archivedCount
+  }
 
   /**
-   * @return The number of validations performed by this user.
+   * The number of validations performed by this user, as work credit: votes voided by the #4842 repair (evolution
+   * 354) were deleted from label_validation, but the work happened, so the archive counts here (badges, dashboards).
+   *
+   * @return The number of validations performed by this user, including archived voided ones.
    */
-  def countValidations(userId: String): DBIO[Int] = validations.filter(_.userId === userId).length.result
+  def countValidations(userId: String): DBIO[Int] = {
+    for {
+      liveCount     <- validations.filter(_.userId === userId).length.result
+      archivedCount <- voidedValidations.filter(_.userId === userId).length.result
+    } yield liveCount + archivedCount
+  }
 
   /**
    * Count validations of each label type, result, and human/AI in the time range. Includes counts for all subgroups.
@@ -262,7 +289,7 @@ class LabelValidationTable @Inject() (
         // Let's start by enumerating every subgroup combination. We include None for each of the three fields to
         // allow for "All" entries.
         val subgroupCombinations: Set[(Option[Int], Option[ValidationOption.Value], Option[Boolean])] = for {
-          labelType <- validLabelTypeIds.map(Some(_)) ++ Seq(None)
+          labelType <- labelTypeIds.map(Some(_)) ++ Seq(None)
           valResult <- ValidationOption.values.toSeq.map(Some(_)) ++ Seq(None)
           validator <- Seq(Some(true), Some(false), None)
         } yield (labelType, valResult, validator)

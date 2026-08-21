@@ -1,11 +1,11 @@
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
 @import service.CommonPageData
-@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole
+@(commonData: CommonPageData, title: String, user: Option[SidewalkUserWithRole]
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @common.main(commonData, title) {
-  @common.navbar(commonData, Some(user))
+  @common.navbar(commonData, user)
   <script src='@assets.path("js/common/sidebarSubtopics.js")'></script>
   <script src='@assets.path("js/common/labelingGuidePanelResize.js")'></script>
   <link rel="stylesheet" href='@assets.path("css/help.css")'>

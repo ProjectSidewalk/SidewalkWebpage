@@ -1,32 +1,149 @@
+/* The card shell (surface, hairline, radius, tail) comes from .label-anchored-panel, shared with the hover card
+   this menu opens from; both are positioned by util.anchorPanelToLabel so the panel expands roughly in place. */
 #context-menu-holder {
-  position: absolute;
   z-index: 3;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  padding: calc(12px * var(--ui-scale));
+  align-items: stretch;
   width: calc(380px * var(--ui-scale));
-  background: var(--color-neutral-white);
-  border-radius: calc(8px * var(--ui-scale));
-  border: solid 1px var(--color-neutral-300);
   visibility: hidden;
-  box-sizing: border-box;
+}
+
+/* Same reason as the collapsed card's (svl-canvas.css): the share menu is a child of this panel, so it can only ever
+   paint as high as the panel does — and at z-index 3 the minimap and ribbon (up to 5) are above it. */
+#context-menu-holder:has(.label-detail__share-trigger[aria-expanded="true"]) {
+  z-index: 6;
+}
+
+/* Header / body / footer mirror the collapsed card's three bands, so expanding the panel keeps the same rhythm. */
+.context-menu__header {
+  display: flex;
+  align-items: center;
+  gap: calc(7px * var(--ui-scale));
+  padding: calc(8px * var(--ui-scale)) calc(12px * var(--ui-scale));
+}
+
+.context-menu__icon {
+  width: calc(20px * var(--ui-scale));
+  height: calc(20px * var(--ui-scale));
+  flex: none;
+}
+
+.context-menu__type {
+  flex: 1;
+  font: var(--text-small-bold);
+  color: var(--color-neutral-black);
+  white-space: nowrap;
+}
+
+.context-menu__close {
+  flex: none;
+  width: calc(18px * var(--ui-scale));
+  height: calc(18px * var(--ui-scale));
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--color-asphalt-200);
+  cursor: pointer;
+}
+
+.context-menu__body {
+  display: flex;
+  flex-direction: column;
+  padding: calc(9px * var(--ui-scale)) calc(12px * var(--ui-scale)) calc(10px * var(--ui-scale));
+  border-top: 1px solid var(--color-neutral-200);
+}
+
+.context-menu__actions {
+  display: flex;
+  gap: calc(6px * var(--ui-scale));
+  padding: calc(8px * var(--ui-scale)) calc(12px * var(--ui-scale)) calc(10px * var(--ui-scale));
+  border-top: 1px solid var(--color-neutral-200);
+}
+
+.context-menu__action {
+  flex: 1;
+  justify-content: center;
+  gap: calc(5px * var(--ui-scale));
+}
+
+.context-menu__action svg {
+  flex: none;
+  width: calc(12px * var(--ui-scale));
+  height: calc(12px * var(--ui-scale));
+}
+
+/* Quiet-destructive variant, matching the collapsed card's Delete. */
+.context-menu__delete {
+  background: var(--color-neutral-white);
+  color: var(--color-error-200);
+  outline: 1px solid var(--color-error-200);
+}
+
+.context-menu__delete:hover,
+.context-menu__delete:focus-visible {
+  background: var(--color-error-200);
+  color: var(--color-neutral-white);
+}
+
+/* Share sits left of Close, matching the collapsed card's header. Same quiet icon-only treatment, one step larger
+   because this panel's header type is larger too. */
+.context-menu__share.label-detail__share-trigger {
+  flex: none;
+  gap: 0;
+  padding: calc(4px * var(--ui-scale));
+  background: none;
+  border: none;
+  border-radius: calc(5px * var(--ui-scale));
+  color: var(--color-neutral-700);
+}
+
+.context-menu__share.label-detail__share-trigger:hover {
+  background: var(--color-neutral-100);
+  border: none;
+  color: var(--color-neutral-black);
+}
+
+.context-menu__share svg {
+  width: calc(16px * var(--ui-scale));
+  height: calc(16px * var(--ui-scale));
+}
+
+/* Tutorial labels are never submitted, so they never get the public id a share link needs. */
+.context-menu--no-share .label-detail__share {
+  display: none;
+}
+
+/* The tutorial locks deletion on the label it just had you place. */
+.context-menu--no-delete .context-menu__delete {
+  display: none;
 }
 
 .context-menu-section {
   height: auto;
   width: 100%;
   box-sizing: border-box;
-  margin-bottom: calc(13px * var(--ui-scale));
+  margin-bottom: calc(10px * var(--ui-scale));
 }
 
 .context-menu-section:last-child {
   margin-bottom: 0;
 }
 
+/* Field labels, not steps: the old "1. / 2. / 3." numbering implied a required sequence when all three fields are
+   optional and order-free, and it had to be renumbered in JS whenever a label type had no severity. */
 .context-menu-header {
+  display: flex;
+  align-items: center;
+  gap: calc(5px * var(--ui-scale));
   width: 100%;
-  font: var(--text-small-bold);
+  font: var(--text-tiny-semibold);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--color-neutral-700);
   margin-bottom: calc(5px * var(--ui-scale));
 }
 
@@ -53,9 +170,20 @@
   display: flex;
   flex-flow: row wrap;
   align-items: center;
-  gap: calc(5px * var(--ui-scale)) calc(4px * var(--ui-scale));
+  gap: calc(4px * var(--ui-scale));
   padding: 0;
   white-space: pre;
+}
+
+/* Tighter than the shared pill's default. A label type can offer twenty-odd tags, so this section sets the panel's
+   height more than anything else in it; trimming the padding and dropping the weight takes rows off it without
+   touching the target size much. They keep the interactive pill's fill and outline states. */
+#context-menu-tag-holder .tag-pill {
+  padding: calc(3px * var(--ui-scale)) calc(8px * var(--ui-scale));
+}
+
+#context-menu-tag-holder .tag-pill__label {
+  font: var(--text-tiny-medium);
 }
 
 #severity-menu {
@@ -74,17 +202,69 @@
   overflow: hidden;
 }
 
-#severity-radio-holder {
+/* One enclosure, three equal cells. The shape is the visual half of what the markup already says: a rating is
+   pick-one, where the tags below are pick-any. Equal thirds because the options are peers -- affordable because
+   the labels are short (Low/Medium/High, Good/Okay/Bad); the passability phrases would not fit three fixed cells. */
+.severity-segments {
   display: flex;
-  align-items: flex-start;
-  gap: calc(16px * var(--ui-scale));
-  margin-top: calc(-4px * var(--ui-scale)); /* Makes up for the extra padding around the severity buttons. */
+  width: 100%;
+  border-radius: calc(6px * var(--ui-scale));
+  outline: 1px solid var(--color-neutral-300);
+  overflow: hidden;
+}
+
+.severity-segments .severity-button {
+  flex: 1 1 0;
+  flex-direction: row;
+  justify-content: center;
+  gap: calc(4px * var(--ui-scale));
+  padding: calc(6px * var(--ui-scale)) calc(8px * var(--ui-scale));
+  border-radius: 0;
+  border-right: 1px solid var(--color-neutral-200);
+  white-space: nowrap;
+}
+
+.severity-segments .severity-button:last-child {
+  border-right: none;
+}
+
+.severity-segments .severity-button__icon {
+  width: calc(15px * var(--ui-scale));
+  height: calc(15px * var(--ui-scale));
+}
+
+.severity-segments .severity-button__label {
+  font: var(--text-tiny-medium);
+  color: var(--color-neutral-700);
+}
+
+/* Hovering previews the level you are about to pick, instead of the shared grey from main.css -- the whole point
+   of colouring the scale is seeing which end you are reaching for before you commit. Three classes' worth of
+   specificity, so it beats that grey; .severity-button:hover alone would only tie with the selected rule below. */
+.severity-segments .severity-button:hover {
+  background: var(--level-wash, var(--color-neutral-100));
+}
+
+/* The chosen segment adds the edge on top, so hover reads as a preview and the underline as the commitment. */
+.severity-segments .severity-button--checked,
+.severity-segments .severity-button--checked:hover {
+  background: var(--level-wash, var(--color-neutral-100));
+  box-shadow: inset 0 calc(-2px * var(--ui-scale)) 0 var(--level-edge, var(--color-neutral-700));
+}
+
+.severity-segments .severity-button--checked .severity-button__label {
+  font: var(--text-tiny-semibold);
+  color: var(--color-neutral-900);
+}
+
+.severity-segments .severity-button:has(.severity-button__radio:focus-visible) {
+  outline: 2px solid var(--color-link-100);
+  outline-offset: calc(-2px * var(--ui-scale));
 }
 
 #context-menu-description-section {
   width: 100%;
   height: auto;
-  margin-top: calc(-4px * var(--ui-scale)); /* Makes up for the extra padding around the severity buttons. */
 }
 
 #context-menu-description-text-box {
@@ -100,53 +280,6 @@
 
 #context-menu-description-text-box:not(:placeholder-shown) {
   color: var(--color-neutral-black);
-}
-
-#context-menu-ok-button {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: calc(6px * var(--ui-scale)) calc(8px * var(--ui-scale));
-  width: calc(31px * var(--ui-scale));
-  height: 100%;
-  background: var(--color-pine-400);
-  border-radius: calc(4px * var(--ui-scale));
-  border: none;
-  font: var(--text-caption-semibold);
-}
-
-#context-menu-close-button-holder {
-  position: absolute;
-  width: calc(20px * var(--ui-scale));
-  height: calc(20px * var(--ui-scale));
-  right: calc(10px * var(--ui-scale));
-  top: calc(10px * var(--ui-scale));
-}
-
-#context-menu-close-button {
-  width: calc(20px * var(--ui-scale));
-  height: calc(20px * var(--ui-scale));
-  background: transparent;
-  border: none;
-  color: var(--color-asphalt-200);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  cursor: pointer;
-  overflow: visible;
-}
-
-.description-input-frame {
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  align-items: center;
-  padding: 0;
-  gap: calc(11px * var(--ui-scale));
-  width: 100%;
-  height: calc(23px * var(--ui-scale));
-  box-sizing: border-box;
 }
 
 tag-underline {

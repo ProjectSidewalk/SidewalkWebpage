@@ -3,6 +3,16 @@ window.util = window.util || {};
 util.pano = {};
 
 /**
+ * Ids of the two panoramas the tutorial serves from our own assets instead of a live imagery source. Their metadata
+ * is fabricated in GsvViewer.#getCustomPanoData to drive the local tile viewer, so it describes no real-world
+ * imagery and must never be persisted as though it did. Anything that special-cases the tutorial panos reads this
+ * set rather than repeating the ids, since a mistyped literal fails silently (#4773).
+ *
+ * @type {Set<string>}
+ */
+util.pano.TUTORIAL_PANO_IDS = new Set(['tutorial', 'afterWalkTutorial']);
+
+/**
  * sgn( a ) is +1 if a >= 0 else -1.
  *
  * @param {number} x The number whose sign we're checking

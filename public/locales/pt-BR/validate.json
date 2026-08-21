@@ -1,5 +1,4 @@
 {
-  "user-description": "Descrição do usuário: ",
   "top-ui": {
     "title": {
       "curb-ramp": "Isto é uma <b>Rampa de Calçada</b>?",
@@ -11,7 +10,9 @@
       "signal": "Isto é um <b>Semáforo de Pedestres</b>?"
     },
     "visibility-control-hide": "Ocultar rótulo (<u>H</u>)",
-    "visibility-control-show": "Mostrar rótulo (<u>H</u>)"
+    "visibility-control-show": "Mostrar rótulo (<u>H</u>)",
+    "visibility-control-tooltip-hide": "Oculta temporariamente o rótulo para ver melhor. (<u>H</u>)",
+    "visibility-control-tooltip-show": "Mostra o rótulo novamente. (<u>H</u>)"
   },
   "validate-menu": {
     "disagree-reason": {
@@ -26,7 +27,9 @@
         "no-button-1": "Isto é um passagem residencial",
         "no-button-2": "Não há calçada aqui",
         "no-button-3": "Isto deveria ser um rótulo de Rampa de Calçada",
-        "no-button-3-tooltip": "Às vezes uma rampa de calçada é rotulada como ausente, geralmente porque falta o piso tátil de alerta"
+        "no-button-3-tooltip": "Às vezes uma rampa de calçada é rotulada como ausente, geralmente porque falta o piso tátil de alerta",
+        "no-button-4": "Não é seguro atravessar aqui",
+        "no-button-4-tooltip": "Os pedestres não devem atravessar neste ponto, portanto não se espera uma rampa de calçada"
       },
       "obstacle": {
         "no-button-1": "Isto não está em um caminho de pedestres",
@@ -89,11 +92,13 @@
     }
   },
   "center-ui": {
-    "no-info": "Nenhuma informação disponível"
+    "no-info": "Nenhuma informação disponível",
+    "pano-interactive-message": "Arraste para olhar ao redor, role para aproximar."
   },
-  "mission-start": {
-    "title": "Validar {{n}} {{label_type}} rótulos",
-    "body": "Sua missão é determinar a correção de __LABELCOUNT_PLACEHOLDER__ rótulos __LABELTYPE_PLACEHOLDER__ colocados por outros usuários!"
+  "imagery-unavailable": {
+    "title": "Não foi possível carregar as imagens",
+    "body": "Não conseguimos carregar as imagens de rua dos rótulos desta missão, então não há nada para mostrar agora. Suas validações concluídas estão salvas. Isso costuma se resolver sozinho — tente novamente.",
+    "retry": "Tentar novamente"
   },
   "mission-complete": {
     "title": "Ótimo trabalho!",
@@ -109,7 +114,12 @@
     "explore": "Iniciar uma missão de exploração",
     "no-new-mission-title": "Não há mais missões de validação disponíveis",
     "no-new-mission-body": "Clique no botão para começar a explorar.",
-    "no-new-mission-button": "Começar a explorar"
+    "no-new-mission-button": "Começar a explorar",
+    "all-time_one": "{{count}} validação no total",
+    "all-time_other": "{{count}} validações no total",
+    "next-badge_one": "Mais {{count}} validação para {{badge}}",
+    "next-badge_other": "Mais {{count}} validações para {{badge}}",
+    "top-badge": "Emblema máximo conquistado — você é uma lenda!"
   },
   "mobile": {
     "no-new-mission-body": "Você pode adicionar mais rótulos usando um laptop/computador, ou pode validar rótulos em outra cidade!",
@@ -122,6 +132,7 @@
   "mission-start-tutorial": {
     "mst-instruction-1": "SUA MISSÃO",
     "mst-instruction-2": "Validar {{nLabels}} rótulos {{- labelType}}",
+    "examples-label": "Exemplos de rótulos",
     "example-type-label-incorrect": "EXEMPLO INCORRETO",
     "label-on-image-title-incorrect": "Rótulo incorreto",
     "label-on-image-description-correct": "Marque <b>Concordo</b>",

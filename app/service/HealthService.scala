@@ -1,0 +1,423 @@
+package service
+
+import actor.ScheduledJobs
+import com.google.inject.ImplementedBy
+import models.utils.{BackgroundJobRun, BackgroundJobRunTable, HealthTable, JobRunStatus, JobRunTrigger}
+import play.api.cache.AsyncCacheApi
+import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+import play.api.libs.json._
+import play.api.{Configuration, Logger}
+import models.utils.MyPostgresProfile
+
+import java.time.temporal.ChronoUnit
+import java.time.OffsetDateTime
+import javax.inject._
+import scala.concurrent.duration.Duration
+import scala.concurrent.{ExecutionContext, Future}
+
+/** A session that currently blocks one or more other sessions from acquiring a lock. */
+case class BlockingSession(
+    pid: Int,
+    usename: Option[String],
+    applicationName: Option[String],
+    state: Option[String],
+    xactSeconds: Option[Long],
+    stateSeconds: Option[Long],
+    query: Option[String],
+    blockingCount: Int,
+    maxWaitSeconds: Option[Long],
+    heldLocks: Option[String]
+)
+
+/** A session sitting in an open transaction while idle. */
+case class IdleTxnSession(
+    pid: Int,
+    usename: Option[String],
+    applicationName: Option[String],
+    clientAddr: Option[String],
+    xactSeconds: Option[Long],
+    idleSeconds: Option[Long],
+    query: Option[String]
+)
+
+/** A client query that has been actively executing longer than the reporting floor. */
+case class ActiveQuery(
+    pid: Int,
+    usename: Option[String],
+    applicationName: Option[String],
+    querySeconds: Option[Long],
+    waitEventType: Option[String],
+    query: Option[String]
+)
+
+/** A `play_evolutions` row that is stuck mid-apply or carries a recorded problem, tagged with its schema. */
+case class StuckEvolution(
+    schema: String,
+    id: Int,
+    state: Option[String],
+    lastProblem: Option[String],
+    appliedAt: Option[String]
+)
+
+/** Dead-tuple bloat and last-vacuum age for one heavyweight table in one schema. */
+case class TableBloat(
+    schemaName: String,
+    relName: String,
+    liveTuples: Long,
+    deadTuples: Long,
+    deadRatio: Option[Double],
+    vacuumAgeSeconds: Option[Long],
+    analyzeAgeSeconds: Option[Long],
+    lastVacuum: Option[String]
+)
+
+/** Client-backend connection count for one (role, state) pair. */
+case class ConnCount(usename: Option[String], state: Option[String], count: Int)
+
+/** Backup-coverage counts for the current city's labeled panos. */
+case class PanoBackupStats(
+    labeledPanos: Long,
+    backedUp: Long,
+    noBackup: Long,
+    unchecked: Long,
+    atRisk: Long
+)
+
+/** The connecting role's environment: database, role, and whether it can read every session's statement text. */
+case class DbEnvInfo(database: String, role: String, canSeeAllQueries: Boolean)
+
+/**
+ * Server-owned thresholds the dashboard uses to color each panel, echoed in the payload so the frontend never
+ * hard-codes them (CLAUDE.md: domain values come from the backend). Seconds unless noted.
+ */
+case class HealthThresholds(
+    idleTxnWarnSeconds: Long,
+    idleTxnBadSeconds: Long,
+    lockWaitWarnSeconds: Long,
+    lockWaitBadSeconds: Long,
+    activeQueryWarnSeconds: Long,
+    activeQueryBadSeconds: Long,
+    bloatWarnRatio: Double,
+    bloatBadRatio: Double,
+    bloatMinDeadTuples: Long,
+    vacuumAgeWarnSeconds: Long,
+    connPoolMax: Int,
+    connWarnActive: Int,
+    connBadActive: Int,
+    jobOverdueHours: Long,
+    jobWindowDays: Int
+)
+
+/**
+ * The state of one nightly background job, from its `background_job_run` history (#4928).
+ *
+ * Every `last*` field describes the job's last *scheduled* run, because the panel's question is whether the nightly
+ * schedule is alive. A hand-triggered run is reported separately rather than folded in: it proves the code works, not
+ * that anything is still firing it, so letting one supply the badge would let a morning-after "run it now" click
+ * paint over the night the job actually failed.
+ *
+ * @param lastStatus         `never_run`, `abandoned` (still open long past any plausible duration, so the app died
+ *                           mid-run), or the recorded outcome.
+ * @param lastDetails        The job's own counts, shaped by the job.
+ * @param hoursSinceLastRun  Age of the last scheduled run's start, which is what makes a stalled scheduler visible.
+ * @param overdue            No successful scheduled run within the roster's overdue window.
+ * @param lastManualRunAt    When someone last ran this job by hand, if ever.
+ * @param lastManualStatus   How that hand-triggered run ended.
+ * @param runsInWindow       Scheduled runs started within the reporting window, successful or not.
+ * @param failuresInWindow   How many of those failed or were abandoned, for the error-rate read.
+ */
+case class NightlyJobStatus(
+    jobName: String,
+    label: String,
+    scheduledAt: String,
+    lastStartedAt: Option[String],
+    lastFinishedAt: Option[String],
+    lastDurationSeconds: Option[Long],
+    lastStatus: String,
+    lastDetails: Option[JsValue],
+    lastError: Option[String],
+    hoursSinceLastRun: Option[Long],
+    overdue: Boolean,
+    lastManualRunAt: Option[String],
+    lastManualStatus: Option[String],
+    runsInWindow: Int,
+    failuresInWindow: Int
+)
+
+/** The full Health dashboard payload for `/adminapi/dbHealth`. */
+case class DbHealthData(
+    generatedAt: String,
+    currentDatabase: String,
+    currentRole: String,
+    canSeeAllQueries: Boolean,
+    blockingSessions: Seq[BlockingSession],
+    idleInTransaction: Seq[IdleTxnSession],
+    activeQueries: Seq[ActiveQuery],
+    stuckEvolutions: Seq[StuckEvolution],
+    tableBloat: Seq[TableBloat],
+    connections: Seq[ConnCount],
+    panoBackups: Option[PanoBackupStats],
+    nightlyJobs: Seq[NightlyJobStatus],
+    thresholds: HealthThresholds
+)
+
+/**
+ * Assembles the Owner-only Health dashboard payload (#4561) from a read-only catalog DAO.
+ *
+ * All output field names are snake_case (v3 output convention). Every signal degrades gracefully: a failing sub-query
+ * yields an empty/absent section rather than sinking the whole page, so a partial dashboard is always better than a
+ * blank one. Cross-schema evolution checks fan out over every schema's `play_evolutions`, mirroring the Across Cities
+ * per-city fan-out.
+ */
+@ImplementedBy(classOf[HealthServiceImpl])
+trait HealthService {
+
+  /** Reads every health signal and assembles the dashboard payload. */
+  def getDbHealth: Future[DbHealthData]
+
+  /**
+   * The state of every nightly job, cached. Shared with panels that report on one pipeline's jobs (#4908), so that
+   * "is this job overdue" has one definition rather than one per page.
+   */
+  def getNightlyJobs: Future[Seq[NightlyJobStatus]]
+}
+
+@Singleton
+class HealthServiceImpl @Inject() (
+    protected val dbConfigProvider: DatabaseConfigProvider,
+    config: Configuration,
+    cacheApi: AsyncCacheApi,
+    healthTable: HealthTable,
+    backgroundJobRunTable: BackgroundJobRunTable
+)(implicit val ec: ExecutionContext)
+    extends HealthService
+    with HasDatabaseConfigProvider[MyPostgresProfile] {
+
+  private val logger = Logger(this.getClass)
+
+  // Per-instance Slick/Hikari pool ceiling; a city role whose active backends approach it is saturated (#4559).
+  private val poolMax: Int = config.getOptional[Int]("slick.dbs.default.db.maxConnections").getOrElse(25)
+
+  // Cache each signal so that N Owner tabs polling every ~20s don't each re-run the catalog queries against the one
+  // shared database — the dashboard must never itself become the connection-pressure problem it exists to surface
+  // (#4559). Live signals (an active lock, connection counts) are cheap and want freshness; the cross-schema
+  // evolution/bloat scans and the labeled-pano scan are heavier and change slowly, so they cache longer. Recovery
+  // happens OUTSIDE the cache (see getDbHealth), so a transient query failure is never cached — the next poll retries.
+  private val liveTtl: Duration = Duration(10, "seconds") // blocking locks, idle txns, connection counts
+  private val slowTtl: Duration = Duration(60, "seconds") // cross-schema evolutions + table bloat
+  private val panoTtl: Duration = Duration(5, "minutes")  // labeled-pano scan; changes slowly
+  private val envTtl: Duration  = Duration(10, "minutes") // database/role/superuser status — constant per instance
+
+  private val thresholds: HealthThresholds = HealthThresholds(
+    idleTxnWarnSeconds = 120, // 2 min
+    idleTxnBadSeconds = 600,  // 10 min
+    lockWaitWarnSeconds = 10,
+    lockWaitBadSeconds = 60,
+    activeQueryWarnSeconds = 30, // a query running this long is worth a look; also the panel's reporting floor
+    activeQueryBadSeconds = 120, // 2 min of continuous execution is almost always a problem
+    bloatWarnRatio = 0.2,
+    bloatBadRatio = 0.4,
+    bloatMinDeadTuples = 10000,    // ignore ratios on tables with few dead tuples (stale post-restore estimates)
+    vacuumAgeWarnSeconds = 604800, // 7 days
+    connPoolMax = poolMax,
+    connWarnActive = math.max(1, (poolMax * 0.7).toInt),
+    connBadActive = math.max(1, (poolMax * 0.9).toInt),
+    jobOverdueHours = ScheduledJobs.OverdueAfterHours,
+    jobWindowDays = HealthService.JobWindowDays
+  )
+
+  def getDbHealth: Future[DbHealthData] = {
+    val envF = cacheApi
+      .getOrElseUpdate[DbEnvInfo]("health.env", envTtl)(db.run(healthTable.getDbEnvInfo))
+      .recover { case e: Exception =>
+        logger.warn(s"Health: failed to read db env info: ${e.getMessage}")
+        DbEnvInfo("unknown", "unknown", canSeeAllQueries = false)
+      }
+    val blockingF = cacheApi
+      .getOrElseUpdate[Seq[BlockingSession]]("health.blocking", liveTtl)(db.run(healthTable.getBlockingSessions))
+      .recover(logAndEmpty("blocking sessions"))
+    val idleF = cacheApi
+      .getOrElseUpdate[Seq[IdleTxnSession]]("health.idle", liveTtl)(db.run(healthTable.getIdleInTransactionSessions))
+      .recover(logAndEmpty("idle-in-transaction"))
+    val activeF = cacheApi
+      .getOrElseUpdate[Seq[ActiveQuery]]("health.active", liveTtl)(
+        db.run(healthTable.getActiveQueries(thresholds.activeQueryWarnSeconds))
+      )
+      .recover(logAndEmpty("active queries"))
+    val bloatF = cacheApi
+      .getOrElseUpdate[Seq[TableBloat]]("health.bloat", slowTtl)(db.run(healthTable.getTableBloat))
+      .recover(logAndEmpty("table bloat"))
+    val connF = cacheApi
+      .getOrElseUpdate[Seq[ConnCount]]("health.conn", liveTtl)(db.run(healthTable.getConnectionCounts))
+      .recover(logAndEmpty("connection counts"))
+    val panoF = cacheApi
+      .getOrElseUpdate[Option[PanoBackupStats]]("health.pano", panoTtl)(
+        db.run(healthTable.getPanoBackupStats).map(Option(_))
+      )
+      .recover { case e: Exception =>
+        logger.warn(s"Health: failed to read pano backup stats: ${e.getMessage}"); None
+      }
+    val evoF  = getStuckEvolutions
+    val jobsF = getNightlyJobs.recover(logAndEmpty("nightly jobs"))
+
+    for {
+      env      <- envF
+      blocking <- blockingF
+      idle     <- idleF
+      active   <- activeF
+      evo      <- evoF
+      bloat    <- bloatF
+      conn     <- connF
+      pano     <- panoF
+      jobs     <- jobsF
+    } yield DbHealthData(
+      generatedAt = OffsetDateTime.now().toString,
+      currentDatabase = env.database,
+      currentRole = env.role,
+      canSeeAllQueries = env.canSeeAllQueries,
+      blockingSessions = blocking,
+      idleInTransaction = idle,
+      activeQueries = active,
+      stuckEvolutions = evo,
+      tableBloat = bloat,
+      connections = conn,
+      panoBackups = pano,
+      nightlyJobs = jobs,
+      thresholds = thresholds
+    )
+  }
+
+  /**
+   * The state of every nightly job, one row per job on the [[ScheduledJobs]] roster.
+   *
+   * Driven by the roster rather than by what is in `background_job_run`, so a job that has *never* recorded a run
+   * still gets a row — a scheduler that never started leaves no rows at all, which is precisely the failure a
+   * rows-driven listing would render as an empty, healthy-looking panel.
+   */
+  def getNightlyJobs: Future[Seq[NightlyJobStatus]] = {
+    cacheApi.getOrElseUpdate[Seq[NightlyJobStatus]]("health.jobs", slowTtl)(loadNightlyJobs)
+  }
+
+  /** Assembles the roster's job states from `background_job_run`; cached by [[getNightlyJobs]]. */
+  private def loadNightlyJobs: Future[Seq[NightlyJobStatus]] = {
+    val now            = OffsetDateTime.now
+    val windowStart    = now.minusDays(HealthService.JobWindowDays.toLong)
+    val abandonedSince = now.minusHours(HealthService.JobAbandonedAfterHours)
+
+    // Bound before the for-comprehension so the three reads run concurrently rather than in sequence.
+    val latestRunsF = db.run(backgroundJobRunTable.latestRunPerJobAndTrigger)
+    val lastGoodF   = db.run(backgroundJobRunTable.lastScheduledSuccessPerJob)
+    val countsF     = db.run(backgroundJobRunTable.outcomeCountsSince(windowStart, abandonedSince))
+
+    for {
+      latestRuns <- latestRunsF
+      lastGood   <- lastGoodF
+      counts     <- countsF
+    } yield {
+      val byJobAndTrigger = latestRuns.map(run => (run.jobName, run.triggeredBy) -> run).toMap
+      val lastGoodByJob   = lastGood.toMap
+      ScheduledJobs.All.map { job =>
+        val latest       = byJobAndTrigger.get((job.name, JobRunTrigger.Scheduled))
+        val lastManual   = byJobAndTrigger.get((job.name, JobRunTrigger.Manual))
+        val jobCounts    = counts.filter(_._1 == job.name)
+        val runsInWindow = jobCounts.map(_._4).sum
+        // An abandoned run — still open long past any plausible duration — is a failure the row never got to record,
+        // so counting only `failed` here would read a job the JVM dies inside every night as a spotless record.
+        val failures = jobCounts.collect {
+          case (_, JobRunStatus.Failed, _, count)     => count
+          case (_, JobRunStatus.Running, true, count) => count
+        }.sum
+        val hoursSince = latest.map(run => ChronoUnit.HOURS.between(run.startedAt, now))
+        NightlyJobStatus(
+          jobName = job.name,
+          label = job.label,
+          scheduledAt = job.scheduledAt,
+          lastStartedAt = latest.map(_.startedAt.toString),
+          lastFinishedAt = latest.flatMap(_.finishedAt.map(_.toString)),
+          lastDurationSeconds =
+            latest.flatMap(run => run.finishedAt.map(finished => ChronoUnit.SECONDS.between(run.startedAt, finished))),
+          lastStatus = describeStatus(latest, hoursSince),
+          lastDetails = latest.flatMap(_.details),
+          lastError = latest.flatMap(_.errorMessage),
+          hoursSinceLastRun = hoursSince,
+          // Asked of the *schedule*, so it keys on the last successful scheduled run: a run an admin kicked off by
+          // hand must not clear the alarm, and one still in flight must not raise it while the previous night's
+          // success is inside the window. A job failing every night still reads overdue, since its last success
+          // recedes with each failure.
+          overdue = lastGoodByJob
+            .get(job.name)
+            .forall(lastSuccess => ChronoUnit.HOURS.between(lastSuccess, now) > ScheduledJobs.OverdueAfterHours),
+          lastManualRunAt = lastManual.map(_.startedAt.toString),
+          lastManualStatus =
+            lastManual.map(run => describeStatus(Some(run), Some(ChronoUnit.HOURS.between(run.startedAt, now)))),
+          runsInWindow = runsInWindow,
+          failuresInWindow = failures
+        )
+      }
+    }
+  }
+
+  /** How a run reads: never run, abandoned mid-run, or its recorded outcome. */
+  private def describeStatus(latest: Option[BackgroundJobRun], hoursSinceStart: Option[Long]): String = {
+    latest match {
+      case None                                            => "never_run"
+      case Some(run) if run.status == JobRunStatus.Running =>
+        if (hoursSinceStart.exists(_ > HealthService.JobAbandonedAfterHours)) "abandoned" else "running"
+      case Some(run) => run.status.toString
+    }
+  }
+
+  /**
+   * Collects the stuck/failed evolution rows across every city schema. Discovers the schemas that have a
+   * `play_evolutions` table, then reads them all in a SINGLE union query rather than one query per schema. On prod all
+   * ~50 city schemas live in one shared database, so a per-schema fan-out would demand ~50 pool connections on every
+   * poll — the exact flood (#4559) this dashboard is meant to catch. Cached (`slowTtl`) so the two round-trips are rare.
+   */
+  private def getStuckEvolutions: Future[Seq[StuckEvolution]] = {
+    cacheApi
+      .getOrElseUpdate[Seq[StuckEvolution]]("health.evolutions", slowTtl) {
+        db.run(healthTable.getEvolutionSchemas).flatMap { schemas =>
+          // Defense in depth: names come from the catalog, but they are spliced as identifiers, so validate first.
+          val valid = schemas.filter(_.matches("^[A-Za-z0-9_]+$"))
+          if (valid.isEmpty) Future.successful(Seq.empty[StuckEvolution])
+          else db.run(healthTable.getStuckEvolutionsForSchemas(valid))
+        }
+      }
+      .recover { case e: Exception =>
+        logger.warn(s"Health: failed to read stuck evolutions: ${e.getMessage}")
+        Seq.empty[StuckEvolution]
+      }
+  }
+
+  private def logAndEmpty[T](label: String): PartialFunction[Throwable, Seq[T]] = { case e: Exception =>
+    logger.warn(s"Health: failed to read $label: ${e.getMessage}")
+    Seq.empty[T]
+  }
+}
+
+object HealthService {
+
+  /** How far back the nightly-jobs panel counts runs and failures, in days. A week shows a rate, not one bad night. */
+  val JobWindowDays: Int = 7
+
+  /**
+   * How long a run may stay open before it reads as abandoned rather than in progress, in hours.
+   *
+   * The whole nightly schedule spans under four hours, so a run still open this long after it started means the app
+   * was killed or redeployed mid-run and nothing ever closed the row.
+   */
+  val JobAbandonedAfterHours: Long = 12
+
+  implicit private val jsonConfig: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
+
+  implicit val blockingSessionWrites: Writes[BlockingSession]   = Json.writes[BlockingSession]
+  implicit val idleTxnSessionWrites: Writes[IdleTxnSession]     = Json.writes[IdleTxnSession]
+  implicit val activeQueryWrites: Writes[ActiveQuery]           = Json.writes[ActiveQuery]
+  implicit val stuckEvolutionWrites: Writes[StuckEvolution]     = Json.writes[StuckEvolution]
+  implicit val tableBloatWrites: Writes[TableBloat]             = Json.writes[TableBloat]
+  implicit val connCountWrites: Writes[ConnCount]               = Json.writes[ConnCount]
+  implicit val panoBackupStatsWrites: Writes[PanoBackupStats]   = Json.writes[PanoBackupStats]
+  implicit val nightlyJobStatusWrites: Writes[NightlyJobStatus] = Json.writes[NightlyJobStatus]
+  implicit val healthThresholdsWrites: Writes[HealthThresholds] = Json.writes[HealthThresholds]
+  implicit val dbHealthDataWrites: Writes[DbHealthData]         = Json.writes[DbHealthData]
+}

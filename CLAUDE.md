@@ -15,12 +15,13 @@ Project Sidewalk is a web-based crowdsourcing tool for mapping and assessing sid
 Request flow: **routes → Controller → Service → Table (DAO)**.
 
 - **`conf/routes`** — single routes file mapping URLs to controller methods. The public data API lives under `/v3/api/...` (handlers in `app/controllers/api/`).
+  - **Any server-to-server POST authenticated by the internal key (`ControllerUtils.internalKeyValid`) needs a `+ nocsrf` modifier line** above it. Play's CSRF filter protects every unsafe request carrying an `Authorization` header, and a bearer token is exactly how these callers authenticate — so without the modifier the request 403s before it reaches the controller, and the endpoint looks alive while every real submission is rejected. This is invisible in local testing (a curl without the header 401s the same either way) and cost `/ai/submitLabelsOnPano` a silent outage (#4806). `internalKeyValid` fails closed on an unset key, so it, not CSRF, is the gate. Existing examples: `/clusteringResults`, `/ai/submitLabelsOnPano`.
   - **v3 API naming convention (issue #3871):** query/REST **parameters are camelCase** (`minSeverity`, `regionId`, `validationStatus`); **all output field names are snake_case** — JSON bodies, GeoJSON `properties`, CSV headers, and GeoPackage fields (`label_id`, `region_name`, `city_id`) — one canonical field name across those formats. For macro serializers, use a scoped `JsonConfiguration(JsonNaming.SnakeCase)` so `Json.format`/`Json.writes` emit snake_case. `ApiError.parameter` names a query param, so it stays camelCase. **Known exception — Shapefile/DBF:** shapefile fields stay **camelCase and abbreviated** (`labelId`, `regionName`, `osmWayId`, `neighborhd`, `cameraHdng`) because the DBF format hard-truncates field names to 10 chars, so they can't carry the canonical snake_case names regardless of casing — camelCase reclaims the byte the underscore would waste. Shapefile is a legacy export being phased out; **GeoPackage is the modern GIS export that carries the canonical snake_case names** (decided on #3871, 2026-06-25). v3 is a **preview** surface: breaking changes are made in place rather than minting a new version (precedent: #4223).
 - **`app/controllers/`** — thin HTTP layer. Auth-protected actions use **Silhouette** (`SilhouetteModule.scala`, `app/models/auth/`). `app/controllers/api/` holds the versioned public API controllers.
 - **`app/service/`** — business logic (e.g. `LabelService`, `ValidationService`, `ExploreService`, `AccessScoreService`, `ApiService`). Controllers should delegate here rather than touching tables directly.
 - **`app/models/`** — Slick table definitions and queries, grouped by domain (`label/`, `validation/`, `mission/`, `region/`, `street/`, `route/`, `user/`, `cluster/`, `gallery/`, `api/`, ...). Files named `*Table.scala` define schema + queries (DAO pattern).
 - **`app/models/utils/MyPostgresProfile.scala`** — custom Slick Postgres profile wiring in PostGIS geometry, JSON, and other slick-pg extensions. Spatial query helpers are in `SpatialQueryDefs.scala`.
-- **DI**: Guice. App bootstraps via `app/CustomApplicationLoader.scala`; modules registered in `conf/application.conf` and defined in `app/modules/` (`CustomControllerModule`, `ActorModule`, `ExecutorsModule`, `SilhouetteModule`). Custom execution contexts are in `app/executors/`; background actors in `app/actor/`.
+- **DI**: Guice. App bootstraps via `app/CustomApplicationLoader.scala`; modules registered in `conf/application.conf` and defined in `app/modules/` (`CustomControllerModule`, `ActorModule`, `ExecutorsModule`, `SilhouetteModule`, `StartupChecksModule` — the last is the home for boot-time deployment-misconfiguration checks like `PersistentMediaDirCheck`, #4925). Custom execution contexts are in `app/executors/`; background actors in `app/actor/`.
 - **Views**: Twirl templates (`app/views/*.scala.html`). The sbt build silences warnings in `views/` and the routes file specifically.
 
 ### API data structures (`app/models/api/`)
@@ -53,11 +54,33 @@ Schema changes are **Play evolutions**: numbered SQL files in `conf/evolutions/d
 - **SERIAL / identity sequences** are covered automatically: `ALTER TABLE … OWNER TO` recursively reassigns any sequence a column owns, so no separate statement is needed for them.
 - **Enum types, views, and standalone (non-column-owned) sequences do *not* get an owner change** — the app only needs default `USAGE`/`SELECT` on those, which it already has, and they're never altered at runtime. Don't add `OWNER TO` for them.
 
-**Give every table its full set of constraints — don't lean on the app to enforce integrity.** When you `CREATE TABLE` (or `ALTER` one), add every constraint the data model implies: `NOT NULL` on any column the app never writes null to, `UNIQUE` on a natural key or one-to-one relationship (or make it the `PRIMARY KEY`), a `FOREIGN KEY` for every reference to another table, and a `CHECK` for a bounded domain (a severity `1`–`3`, a non-negative count, a `0`–`1` fraction, a valid lat/lng). A missing constraint silently rots into bad data — backfilling ones that should have been there from the start has cost whole PRs (#3574 for FKs, #3944 for NOT NULL/UNIQUE/PK/CHECK). **Mirror each in the Slick model** so schema and code agree: a non-`Option` `column[T]` means `NOT NULL`, `def pk = primaryKey(...)` declares a composite PK (single-column PKs use `O.PrimaryKey` inline), `index(..., unique = true)` a UNIQUE, and `foreignKey(...)` an FK. CHECK constraints have no Slick DSL, so they live only in the evolution — leave a comment noting the invariant.
+**Write evolution SQL for production scale, and finish every evolution with an explicit efficiency pass.** The dev
+DB is small enough that any SQL looks fast; prod tables are not (`label`, `label_validation`, `label_history` run to
+hundreds of thousands of rows per schema, `user_stat` to ~1M, and evolutions apply to **every** city schema in
+sequence on deploy — a slow statement multiplies by 54). Concretely:
+- **Prefer joins to correlated subqueries.** A scalar subquery in a SELECT list or a per-row `IN (SELECT …)` /
+  `NOT IN (SELECT …)` re-executes per outer row; the same lookup as a `JOIN`/`LEFT JOIN` (or `EXISTS`/`NOT EXISTS`,
+  which the planner turns into semi/anti-joins) lets the planner pick a hash join and stays fast when the outer set
+  is large. `NOT IN` also has the NULL trap: one NULL in the subquery result silently empties the whole result set.
+- **A join can keep a scalar subquery's fail-loudly property.** If a scalar subquery is doing double duty as a
+  one-to-one assert ("more than one row returned"), a `LEFT JOIN` that fans out into a PRIMARY KEY/UNIQUE violation
+  on the receiving table fails just as loudly with a better plan — don't let the assert justify the slow form.
+- **Before an evolution is done, walk every statement and name its access path** on the big tables: which index
+  serves each join/filter column (check with `\d` — don't assume), and what the driving row count is at prod scale.
+  A statement with no index behind it on a large table needs a rewrite or a justification comment.
+- This came out of PR #4866 review — reviewer-observed pattern: subquery-shaped SQL that is invisible on dev
+  "can take our evolutions to a crawl when the evolutions run on prod."
+
+**Give every table its full set of constraints — don't lean on the app to enforce integrity.** When you `CREATE TABLE` (or `ALTER` one), add every constraint the data model implies: `NOT NULL` on any column the app never writes null to, `UNIQUE` on a natural key or one-to-one relationship (or make it the `PRIMARY KEY`), a `FOREIGN KEY` for every reference to another table, and a `CHECK` for a bounded domain (a severity `1`–`3`, a non-negative count, a `0`–`1` fraction, a valid lat/lng). A missing constraint silently rots into bad data — backfilling ones that should have been there from the start has cost whole PRs (#3574 for FKs, #3944 for NOT NULL/UNIQUE/PK/CHECK). **Mirror each in the Slick model** so schema and code agree: a non-`Option` `column[T]` means `NOT NULL`, `def pk = primaryKey(...)` declares a composite PK (single-column PKs use `O.PrimaryKey` inline), `index(..., unique = true)` a UNIQUE, and `foreignKey(...)` an FK. A column `DEFAULT` is mirrored with `O.Default(...)` (#4801) — it's DDL-only in Slick and we never generate DDL, so it's documentation, but a `*Table.scala` should say what the schema does. Two things `O.Default` can't express, because it holds a *value* rather than an expression: a **volatile default** (`now()`, `CURRENT_TIMESTAMP`) — mirroring one as `O.Default(OffsetDateTime.now)` freezes an arbitrary instant into the model and re-evaluates it on every query compilation, so write `// DEFAULT now() in the DB` instead; and a **CHECK constraint**, which has no Slick DSL at all — leave a comment noting the invariant.
 
 **Closed value sets: prefer enum types or CHECKs over lookup tables and bare text (#4103).** When a column can only hold a fixed set of values, pick between two tools. Use a **Postgres enum type** when the column is on a high-row-count table, is written at runtime, or is mirrored by a Scala enum — it makes the DB self-describing (readable raw SQL and dumps, no join to a lookup table, no hand-maintained Scala id map that nothing validates) and fails loudly on drift. Wire it up like the existing ones (`pano_source`, `validation_option`, `street_edge_status`, `mission_type`, `way_type`): a Scala `Enumeration` object whose string values match the enum labels, plus a `createEnumJdbcType` mapper in `MyPostgresProfile`. Growing a set later is fine — `ALTER TYPE ... ADD VALUE` has prod precedent (331/332/339). Use a plain **`CHECK (col IN (...))`** instead for tiny script-seeded config/cache tables (e.g. `config.open_status`, `funnel_stat.funnel_type`), where the enum's join/space/mapping benefits are nil. Two gotchas: tables and types share a namespace, so when an enum replaces a lookup table of the same name, `DROP TABLE` must precede `CREATE TYPE`; and enum values are compared as enum literals in SQL, so a raw-SQL filter built from user input must validate values first (an invalid literal is a Postgres error, not an empty result).
 
 **Postgres does *not* rename a table's constraints or indexes when you rename the table or a column** — the old name sticks and silently drifts from what it enforces. So an evolution that renames a column (or table) must also `ALTER TABLE … RENAME CONSTRAINT` / `ALTER INDEX … RENAME` every constraint and index whose name embeds the old identifier, back to the `<table>_<column>_{fkey,key,pkey,check}` convention, and update the matching name string in the Slick model (`foreignKey`/`index`/`primaryKey`). Skipping this forces a later evolution to patch the fossils — 337.sql had to rename three, e.g. `user_org_org_id_fkey` → `user_team_team_id_fkey`, left over from an old `user_org` → `user_team` table rename.
+
+**A new table that `ConfigTable`'s cross-schema fan-out queries read is exposed during the rollout window**, when an
+updated instance can query a city schema that hasn't applied the evolution yet — see
+[`docs/deployment-and-stages.md`](docs/deployment-and-stages.md) → "Adding a table that cross-schema queries read" for
+the two ways to handle it.
 
 ## Frontend architecture
 
@@ -66,7 +89,7 @@ Each major UI is a self-contained app under `public/js/`, bundled separately by 
 - **`explore/`** — the Explore/Audit tool (users label accessibility issues on street-view panoramas). The largest app; internal namespace global is still `svl`.
 - **`validate/`** — the Validate tool (users confirm/reject others' labels).
 - **`gallery/`** — browsable gallery of labels with filtering; internal namespace global is still `sg`.
-- **`admin/`** — admin dashboards and maps.
+- **`admin/`** — the legacy admin page's maps and dashboards. The redesigned admin dashboard (#4272) lives beside it in **`admin-dashboard/`**, which is served file-by-file rather than bundled: one `<PageName>Page.js` per route, loaded by that page's Twirl template, with shared helpers in `AdminShell.js`.
 - **`user-dashboard/`** — user dashboards.
 - **`ps-map/`** — shared map component used across pages.
 - **`help/`** — help/faq page (rarely used).
@@ -74,9 +97,19 @@ Each major UI is a self-contained app under `public/js/`, bundled separately by 
 
 No npm-based module system on the frontend — files are simply concatenated in order. Third-party libraries live under `public/vendor/`, one self-contained folder per library (its JS + CSS + fonts + images together, upstream layout preserved). **Nothing under `vendor/` is edited or linted.**
 
+**Reference every asset through `assets.path("...")` in Twirl, never a hardcoded `/assets/...` string.** `stage`/`dist` content-fingerprints assets (sbt-digest), and only `assets.path` resolves to the fingerprinted URL that gets a one-year `immutable` cache; a hardcoded path falls back to the one-hour default, which is *unsafe for files swapped in place* — its ETag ignores content, so replacing a file's bytes under the same name never invalidates cached copies. Full contract: [`docs/deployment-and-stages.md`](docs/deployment-and-stages.md) → "Asset caching".
+
 **Asset layout (going-forward invariant, from the #2292 reorg).** First-party assets split **by type**: `public/js/` is JavaScript-only, `public/css/` holds all styles (with per-app subdirs `css/explore/`, `css/validate/`, `css/gallery/`), and media lives in `public/images/`, `public/audio/`, `public/videos/`. There are **no `css/`, `img/`, or `audio/` dirs nested inside an app dir under `js/`** — app-private styles go to `css/<app>/` and app-private images to `images/<app>/`. Third-party code groups by library under `vendor/` (never `js/` or `css/`).
 
 **Naming conventions (from #2292):** directories are **kebab-case**; CSS files are **kebab-case**; JS files follow Airbnb style — **PascalCase** for files that define a class/constructor (`AppManager.js`, `LabelPopup.js`), **camelCase** for function/utility/entry files (`main.js`, `aggregateStats.js`). Kebab-case is not used for JS files. Full write-up in [`docs/style-guide.md`](docs/style-guide.md). **Deferred mismatch:** the app dirs were renamed (`SVLabel → explore`, `SVValidate → validate`, `Progress → user-dashboard`), but the internal JS namespace *identifiers* `svl` (Explore) and `sg` (Gallery) were left as-is — renaming those is a large independent refactor, not part of the file reorg.
+
+**Mobile detection has one definition: `ControllerUtils.isMobile` (server-side UA regex).** It gates which UI a
+request is served (mobile → `/mobileLanding`, `/mobile`, the shared auth pages; other pages redirect), and
+`main.scala.html` stamps its verdict on every page as `<html data-mobile-device>`; client code asks
+`util.isMobile()`, which reads that stamp — never re-sniff the UA in JS (#4887; `MobileDetectionSpec` pins the
+stamp). For touch-vs-hover behavior questions, use a capability query (`pointer: coarse` — see `ShareWidget.js`)
+rather than the mobile flag. The device regex in `FunnelStatTable.scala` classifies stored analytics rows by
+recorded OS name and is analytics-only, never a product gate. (Longer-term direction: #4875.)
 
 ## Internationalization
 Two separate i18n systems:
@@ -109,12 +142,14 @@ Full details (both systems, regional `en-US`/`en-NZ` rules, adding a new languag
 
 ## Python utilities
 
-Two standalone scripts in **`scripts/`**, invoked out-of-band rather than from the running web app. Python deps are split by who needs them: **`requirements.txt`** holds the app's in-band deps (`label_clustering.py` runs in-band — see below), and **`requirements-offline-tools.txt`** holds the deps used only by the offline `check_streets_for_imagery.py` utility (`shapely`, `geopy`, `tenacity`, `tqdm`). The Docker image installs both (plus `requirements-dev.txt`) since the test suite imports both scripts. Full usage in [`scripts/README.md`](scripts/README.md):
+Two standalone scripts in **`scripts/`**, invoked out-of-band rather than from the running web app. Full usage in [`scripts/README.md`](scripts/README.md):
 
 - `scripts/label_clustering.py` — clusters nearby labels. This one is invoked **in-band**: `ClusterService.runMultiUserClustering` shells out to `scripts/label_clustering.py` per region during admin-triggered `/runClustering` and the nightly `ClusteringActor` run (see `app/service/ClusterService.scala` / `app/models/cluster/`). If you move/rename it, update that invocation path. Because it runs in-band, the deployed app must be able to find it: `scripts/` is bundled into the staged/dist package via `Universal / mappings` in `build.sbt`, and `ClusterService` resolves the script against the app root (Play `Environment`) rather than the process working directory — a staged app runs from the stage dir, not the repo root, so a working-directory-relative path or an unbundled script fails with a cryptic python exit-2 ("can't open file"). Its `requirements.txt` deps must also be installed in the `python3` the app invokes.
 - `scripts/check_streets_for_imagery.py` — checks streets for available street-view imagery (related: `make hide-streets-without-imagery`). Resolves its data files relative to the repo root, so it runs from any working directory.
 
-Each script's pure logic is refactored into importable functions and **unit-tested** under `test/python/` (`pytest`). Keep I/O (HTTP/file) in thin wrappers and `main` so the logic stays testable; run `make test-python`.
+**The web image carries two interpreters, and which one a script uses is a constraint, not a preference (#4396).** `python3` is the base image's **3.8** — EOL, but it is what the deployed app shells out to, so `label_clustering.py` and its `requirements.txt` pins must stay installable there. `python3.13` (a uv-fetched standalone CPython) runs everything offline and holds `requirements-offline-tools.txt`, which needs ≥ 3.11. This mirrors prod: makelab1 runs the app on Rocky's system Python, user accounts have 3.13. So **run offline tooling as `python3.13 scripts/...`, and don't add libraries to `requirements.txt`** — anything current has dropped 3.8. `requirements-dev.txt` installs into both, environment markers giving each its newest usable pytest.
+
+Each script's pure logic is refactored into importable functions and **unit-tested** under `test/python/` (`pytest`). Keep I/O (HTTP/file) in thin wrappers and `main` so the logic stays testable. The suite splits along the same line: `make test-python` runs both halves, each taking the whole directory *minus* the one file the other interpreter owns (`--ignore`, in the `Makefile`'s `pytest-args-*` and mirrored in the CI matrix), so **a new test file runs in both halves by default**. Coverage is always on and gated at 100% via `source = ["scripts"]`, so a script arriving with no tests is reported at 0%; each half sets **`COVERAGE_OMIT`** to the script it can't import.
 
 ## Label Type Colors and Icons
 
@@ -131,13 +166,19 @@ Every label type has a **canonical color** and a set of **icon images**. Always 
 | Signal         | `#63C0AB` |
 | Other          | `#B3B3B3` |
 | Occlusion      | `#B3B3B3` |
-| Problem        | `#B3B3B3` |
 
-**Icons** live in `public/images/icons/label_type_icons/` in three PNG sizes — `{LabelType}.png` (large),
-`{LabelType}_small.png`, `{LabelType}_tiny.png` — plus a scalable `{LabelType}_small.svg` variant (used where the
-icon renders at arbitrary size, e.g. the label card's in-pano marker). The canonical source of truth for both
-colors and icon URLs is the `/v3/api/labelTypes` endpoint (PNG paths); frontend code reads all four paths from
-`util.misc.getIconImagePaths(labelType)` rather than hardcoding them.
+**Icons** live in `public/images/icons/label_type_icons/`. The colored marker every label type is drawn with is the
+scalable `{LabelType}_small.svg`, and it is **the only variant our own pages may use** — `util.misc.getIconImagePaths(labelType).iconImagePath`
+returns it, and that accessor is the one way frontend code should name an icon. Reach for it even when the icon is
+going somewhere a raster feels natural: the Explore canvas rasterizes it once at high resolution
+(`Label.preloadIcons`) and the labeling cursor is rasterized from that same cache, because a fixed-size PNG upscales
+badly on the HiDPI canvas.
+
+Three raster sizes sit beside it — `{LabelType}.png` (large; a *different*, grayscale illustration used by the
+ribbon menu, not a bigger copy of the marker), `{LabelType}_small.png`, and `{LabelType}_tiny.png`. They exist only
+for consumers that cannot take vector art: server-side share-image compositing (`ShareController`, via Java
+`ImageIO`) and the `icon_url`/`small_icon_url`/`tiny_icon_url` fields published by `/v3/api/labelTypes`. Adding a
+frontend use of one is a bug. The canonical source of truth for colors and icon URLs remains `/v3/api/labelTypes`.
 
 **In JavaScript:** call `util.misc.getLabelColors(labelType)` — defined in
 `public/js/common/UtilitiesSidewalk.js` and loaded on every page that includes
@@ -174,6 +215,9 @@ When you catch yourself writing a frontend constant that mirrors a backend value
 
 ## Development Guidelines
 - Main development branch is **develop**; **master** is the release branch. PRs target `develop`.
+- **Never open a pull request (or merge/tag/release) without the maintainer's specific OK.** Do the work, run the
+  CI-equivalent checks locally, and push the branch if useful — then stop and ask before running `gh pr create`.
+  Filing GitHub *issues* is fine; the consent gate is at PR creation, and again (separately) at merge.
 - **Deploying to production is tag-triggered, not branch-triggered:** pushing `develop` redeploys the **test** stage, but prod only deploys when a **`vX.Y.Z` GitHub Release/tag** is cut on `master`. Cutting a release also requires bumping `build.sbt` **and** adding a `version`-table evolution (the two are separate: the tag deploys the code, the evolution updates the displayed version). Full step-by-step runbook: [`docs/deployment-and-stages.md`](docs/deployment-and-stages.md) ("Cutting a release").
 - **Maintainers / GitHub @-mentions:** Project Sidewalk is maintained by **@jonfroehlich** (Professor Jon Froehlich) and
   **@misaugstad** (Mikey / Michael Saugstad).
@@ -185,6 +229,16 @@ When you catch yourself writing a frontend constant that mirrors a backend value
 - Update said code to use the native `fetch` API rather than jQuery, and to make use of Promises. But if said refactor would impact many other functions that use it, then wait for a dedicated refactor.
 - Replace uses of Bootstrap with native JS alternatives as you come across them
 - When writing SQL, avoid table aliases
+- **Measure geographic distances geodesically** — `ST_Length(geom::geography)` in raw SQL, the `lengthGeodesic`
+  extension method in Slick (defined in `MyPostgresProfile`), turf.js on the frontend. Never measure by projecting to
+  a fixed SRID: a projection is only accurate near its own meridian, and measuring every city through UTM zone 18N
+  overstated street distances by up to +51% (#4641). Cached distance columns (`user_stat.meters_audited`,
+  `labels_per_meter` and the `high_quality` flag derived from it, `region_completion`, `route.distance_meters`) must
+  equal what their runtime recompute would produce, so changing a distance query means recomputing its caches in the
+  same evolution — and the nightly refresh that maintains them has to reach every row a full recompute would touch
+  (#4774). `GeodesicDistanceSpec` checks both against the connected database. It needs a *seeded* one: its
+  cache-freshness tests `assume` non-empty tables and CANCEL otherwise, so treat a full-suite run against your dev DB
+  as the real gate.
 - After editing any Scala file, run `make scalafmt-fix` (reformats the whole tree in place via the sbt thin client) before treating the change as done — scalafmt is a blocking CI gate, so unformatted Scala fails the build. One run after a batch of edits is enough; no need to format after every single edit.
 - After editing frontend files, lint what you touched and get to zero before the change is done. All four frontend linters are **blocking CI gates** (steps in the `frontend` job — see Continuous integration), the JS/CSS/HTML/i18n counterparts to the scalafmt rule above, so a finding fails the build. The whole tree is lint-clean (#2487), so any finding is from your change.
   - **JavaScript** (`public/js/`): `make eslint-fix dir=<what you touched>`, hand-fix what `--fix` can't, until `make eslint` passes.
@@ -382,7 +436,24 @@ and launch `sbt ~ run` with `-Dconfig.file` at the worktree's own conf and the s
 `.coursier`/`.sbt` (cwd-relative caches from a worktree would re-download gigabytes). The first HTTP request triggers the
 dev compile; **Ctrl-C stops the app and reaps the grunt watch** (a trap, so the watcher never lingers). To tear a session
 down out-of-band, run **`make qa-worktree-stop wt=<name>`** (add `clean=1` to also drop the `node_modules` symlink).
-Implementation: `tools/qa-worktree.sh`.
+Implementation: `tools/qa-worktree.sh` — both targets run the **worktree's own** copy of that script when it has one
+(falling back to the main checkout's), so the branch being QA'd supplies its own tooling.
+
+`make` itself still reads the **main checkout's** Makefile, so when that checkout sits on a branch without the target,
+make reports `No rule to make target 'qa-worktree'`. Either check out a branch that has it, or run the worktree's script
+directly: `docker exec -it projectsidewalk-web bash /home/.claude/worktrees/<name>/tools/qa-worktree.sh <name>`.
+
+**Disposing of a worktree entirely** is **`make worktree-remove wt=<name>`** (`tools/worktree-remove.sh`): it stops any
+QA session, deletes the directory *and* git's registration under `.git/worktrees/`, then deletes the branch if every
+commit on it is already in `develop` (otherwise it names the branch and leaves it). `rm -rf` on the directory alone is
+**not** equivalent — the registration survives and the worktree keeps showing up in `git worktree list` until something
+prunes it; the target recognizes and cleans up that half-removed state too. Unlike the QA targets it runs **host-side**:
+a worktree's `.git` file points at the main repo's `.git/worktrees/<name>` by absolute host path, which doesn't exist
+inside the container, so git can't touch the worktree from in there. It stops before doing anything if the worktree has
+uncommitted or untracked files (`force=1` deletes them along with it) or if the worktree is **locked** — an active
+Claude Code worktree session holds a lock, and git refuses a locked worktree even with `--force`. The main-checkout
+caveat above applies here too; the direct invocation is host-side rather than through docker:
+`bash .claude/worktrees/<name>/tools/worktree-remove.sh <name>`.
 
 **Admin-authenticated QA:** the dev DB is seeded from a dump that includes real accounts and their bcrypt password
 hashes, and password verification is config-independent (plain bcrypt, no server-side pepper), so if your own account is
@@ -421,13 +492,15 @@ docker exec projectsidewalk-web bash -lc "cd /home && sbt --client \"testOnly co
 
 The API specs **boot the real app against Postgres+PostGIS**, so the `db` container must be up; they assert response contract/shape, not data values. There is no `make` target — invoke sbt directly. The phased testing strategy and rationale live in [`docs/testing-and-ci.md`](docs/testing-and-ci.md).
 
-A **JS** test layer (jsdom) lives under `test/js/` — run `npm run test:js`. CI runs it as an **advisory** step in the frontend job; promoting it to blocking is sequenced with the ES5→ES2022 migration (#2487). See `test/js/README.md`.
+A **JS** test layer (jsdom) lives under `test/js/` — run `npm run test:js`. CI runs it as an **advisory** step inside the `frontend` job, so a failure reports but doesn't block a merge while coverage is still thin (sequenced with the ES5→ES2022 migration, #2487); see `test/js/README.md`.
 
-A **Python** unit suite (`pytest`) for the `scripts/` utilities lives under `test/python/` — run `make test-python` (runs pytest in the web container) or `docker exec projectsidewalk-web bash -lc "cd /home && python3 -m pytest test/python"`. It needs no DB/network (pure-logic tests only) and runs as an **advisory** CI job; see `test/python/README.md`.
+A **Python** unit suite (`pytest`) for the `scripts/` utilities lives under `test/python/` — run `make test-python` (runs pytest in the web container, once per interpreter; `make test-python-app` / `make test-python-tools` run one half). It needs no DB/network (pure-logic tests only) and runs as an **advisory** CI job, one matrix leg per interpreter; see `test/python/README.md`.
+
+A **browser smoke suite** (Playwright, #4504) lives under `test/e2e/` — loads each core page in headless Chromium and fails on any uncaught console/page error. Unlike every other frontend tool it runs **host-side** (Playwright drives a host browser; it is not in the web container): one-time setup `npm install && npx playwright install chromium`, then `make test-e2e` against the already-running dev app (`BASE_URL` overrides `http://localhost:9000`; scope with `args="-g labelMap"`). It never runs during local development on its own — CI runs it as the advisory `e2e-smoke` job. The `/explore`/`/validate` specs need a real Maps key, so they self-skip unless `HAS_REAL_GMAPS_KEY=true` (set automatically in CI from the `GOOGLE_MAPS_API_KEY_TEST` secret; export it manually to run them locally); see `test/e2e/README.md`.
 
 ### Continuous integration
 
-`.github/workflows/ci.yml` runs on PRs and pushes to `develop`/`master`: backend **`sbt compile`** (blocking gate), **`scalafmtCheckAll`** (blocking — the tree is kept format-clean; auto-format with `make scalafmt-fix` / `sbt scalafmtAll`, config in `.scalafmt.conf`), the **frontend grunt build** plus the four frontend linters — **ESLint** (JS + translation JSON), **Stylelint** (CSS), **HTMLHint** (HTML), and **locale key-parity** — all **blocking** steps in the `frontend` job, so they ride the required `Frontend (build)` check (each blocks on `error`-severity findings; the lone `warn` rule on ESLint/Stylelint, `max-len`, is advisory so there's no `--max-warnings 0`; the trees are kept lint-clean, auto-fix with `make lint-fix`), the **evolutions lint** (blocking — static checks on `conf/evolutions/default/*.sql`, e.g. a semicolon mid-`--`-comment that Play's parser splits on; run locally with `make lint-evolutions`), and the **DB-backed API tests** (advisory while the suite stabilizes — boots the app, so it also exercises forward evolution application). "Advisory" steps report findings but don't block merges yet. **Branch protection** on `develop` (set 2026-06-29) wires the deterministic blocking jobs as **required status checks** (`Backend (compile + scalafmt)`, `Frontend (build)` — covers all four frontend linters; `Evolutions lint` being added) so a red build can't merge; `enforce_admins=true`, **no required reviews** (self-merge preserved), advisory jobs not required. Full policy: [`docs/testing-and-ci.md`](docs/testing-and-ci.md) and [`CONTRIBUTING.md`](CONTRIBUTING.md).
+`.github/workflows/ci.yml` runs on PRs and pushes to `develop`/`master`: backend **`sbt compile`** (blocking gate), **`scalafmtCheckAll`** (blocking — the tree is kept format-clean; auto-format with `make scalafmt-fix` / `sbt scalafmtAll`, config in `.scalafmt.conf`), the **frontend grunt build** plus the four frontend linters — **ESLint** (JS + translation JSON), **Stylelint** (CSS), **HTMLHint** (HTML), and **locale key-parity** — all **blocking** steps in the `frontend` job, so they ride the required `Frontend (build)` check (each blocks on `error`-severity findings; the lone `warn` rule on ESLint/Stylelint, `max-len`, is advisory so there's no `--max-warnings 0`; the trees are kept lint-clean, auto-fix with `make lint-fix`), the **evolutions lint** (blocking — static checks on `conf/evolutions/default/*.sql`, e.g. a semicolon mid-`--`-comment that Play's parser splits on; run locally with `make lint-evolutions`), the **route reachability lint** (blocking — fails if a `conf/routes` entry is unreachable because an earlier same-method route already matches all its paths; run locally with `python3 tools/check_route_reachability.py`), the **DB-backed API tests** (advisory while the suite stabilizes — boots the app, so it also exercises forward evolution application), and the **browser smoke tests** (`e2e-smoke`, advisory — builds the bundles, stages a prod-mode binary against the CI DB, and runs the Playwright suite in `test/e2e/`; the Explore/Validate specs self-skip until the `GOOGLE_MAPS_API_KEY_TEST` repo secret exists). "Advisory" steps report findings but don't block merges yet. **Branch protection** on `develop` (set 2026-06-29) wires the deterministic blocking jobs as **required status checks** (`Backend (compile + scalafmt)`, `Frontend (build)` — covers all four frontend linters — and `Route reachability lint`; `Evolutions lint` runs on every PR but is not yet required) so a red build can't merge; `enforce_admins=true`, **no required reviews** (self-merge preserved), advisory jobs not required. Because `enforce_admins` is on, **nobody can push directly to `develop`** — a direct push has no PR for the required checks to run against, so it's rejected for maintainers too; all changes go through a PR. Full policy: [`docs/testing-and-ci.md`](docs/testing-and-ci.md) and [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ### Building frontend assets
 
@@ -455,7 +528,26 @@ docker exec projectsidewalk-db psql -U readonly_user -d sidewalk -c "\dt sidewal
 docker exec projectsidewalk-db psql -U readonly_user -d sidewalk -c "SELECT * FROM sidewalk_login.role;"
 ```
 
-Each city has its own schema (`sidewalk_<city>`), and they are essentially identical — `sidewalk_seattle` is a safe default for schema questions; authentication lives in `sidewalk_login`. If you need to query *actual data* (not just structure), **ask which city we're working in first**. Evolutions in `conf/evolutions/default/` are auto-applied when a page loads, so you don't run them manually.
+Each city has its own schema (`sidewalk_<city>`), and they are essentially identical — `sidewalk_seattle` is a safe default for **schema** questions; authentication lives in `sidewalk_login`. Evolutions in `conf/evolutions/default/` are auto-applied when a page loads, so you don't run them manually.
+
+**For anything about *data* or *migration state*, first find out which city is actually running** — don't assume `sidewalk_seattle`:
+
+```bash
+docker exec projectsidewalk-web bash -lc 'echo $DATABASE_USER'   # this value IS the active schema name
+```
+
+`DATABASE_USER` selects the schema and is authoritative; `SIDEWALK_CITY_ID` only selects `cityparams.conf` entries (map center, bounds, display name). The two are *supposed* to correspond (see [`docs/dev-environment.md`](docs/dev-environment.md) → "City IDs"), but a container can be left with them **mismatched**, in which case the app renders one city's params over another city's data — an empty map with no error in any log. Confirm what the app believes it is with `curl -s -b <cookie-jar> localhost:9000/labelmap | grep -oE 'cityId: "[^"]*"'`.
+
+**`readonly_user` cannot see every schema, and the failure is silent.** It is granted per-schema, so it may have no rights on the active city's schema — and `information_schema` / `\dt` simply **omit** what you can't see rather than erroring, which reads as "that schema doesn't exist" or "that evolution never applied". `pg_namespace` is world-readable, so enumerate with it, then query the city as its own role:
+
+```bash
+docker exec projectsidewalk-db psql -U readonly_user -d sidewalk -tAc \
+  "SELECT nspname FROM pg_namespace WHERE nspname LIKE 'sidewalk%' ORDER BY 1"
+docker exec projectsidewalk-db psql -U sidewalk_teaneck -d sidewalk -c \
+  "SELECT max(id) FROM sidewalk_teaneck.play_evolutions"
+```
+
+Never conclude "evolution N didn't apply" from a `readonly_user` query without first confirming which schema the app uses.
 
 **The dev DB is not representative of production size, and some tables may be absent.** The two largest production tables by a wide margin are **`audit_task_interaction`** and **`validation_task_interaction`** (raw per-action interaction logs — pans, zooms, clicks). The dev DB dumps that seed local development **omit** these tables to stay manageable, so locally they are typically empty or missing. Never infer a table's production size or existence from the local DB. When reasoning about query cost or indexes, treat these two interaction tables — not `webpage_activity` — as the heavyweight logs.
 
@@ -487,4 +579,4 @@ Config: `eslint.config.js`, `stylelint.config.mjs`, `.htmlhintrc`; cross-locale 
 
 ### What not to automate
 
-Do **not** attempt live or browser-automated testing of anything that requires viewing or interacting with a GSV (street-view) panorama — placing labels in Explore, validating in Validate, etc. The developer tests those visually. Instead, hand them a short checklist of things to verify or a console snippet to run while reproducing the issue.
+Do **not** attempt live or browser-automated testing of anything that requires viewing or interacting with a GSV (street-view) panorama — placing labels in Explore, validating in Validate, etc. The developer tests those visually. Instead, hand them a short checklist of things to verify or a console snippet to run while reproducing the issue. (Narrow exception: the `test/e2e/` smoke suite *loads* Explore's tutorial — whose pano tiles are local assets, no live GSV — and Validate's landing state, asserting only "no uncaught errors". That load-only boundary is deliberate; don't extend the suite into pano interaction.)

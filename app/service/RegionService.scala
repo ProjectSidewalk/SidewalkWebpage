@@ -18,8 +18,10 @@ trait RegionService {
   def getRegionWithMostLabels: Future[Option[Region]]
   def getNeighborhoodsWithUserCompletionStatus(userId: String, regionIds: Seq[Int]): Future[Seq[(Region, Boolean)]]
   def selectAllNamedNeighborhoodCompletions(regionIds: Seq[Int]): Future[Seq[NamedRegionCompletion]]
+  def getOutdatedDistanceByRegion: Future[Map[Int, Double]]
   def truncateRegionCompletionTable: Future[Int]
   def initializeRegionCompletionTable: Future[Int]
+  def initializeRegionCompletionTableAction: DBIO[Int]
 }
 
 @Singleton
@@ -49,6 +51,10 @@ class RegionServiceImpl @Inject() (
   def selectAllNamedNeighborhoodCompletions(regionIds: Seq[Int]): Future[Seq[NamedRegionCompletion]] =
     db.run(regionCompletionTable.selectAllNamedNeighborhoodCompletions(regionIds))
 
+  /** Distance (meters) of streets needing re-audit per region (#4384); regions with none are absent from the map. */
+  def getOutdatedDistanceByRegion: Future[Map[Int, Double]] =
+    db.run(regionTable.outdatedDistanceByRegion).map(_.toMap)
+
   def truncateRegionCompletionTable: Future[Int] = db.run(regionCompletionTable.truncateTable)
 
   /**
@@ -56,7 +62,15 @@ class RegionServiceImpl @Inject() (
    * @return The number of rows inserted into the region_completion table.
    */
   def initializeRegionCompletionTable: Future[Int] = {
-    val tableInitAction = for {
+    db.run(initializeRegionCompletionTableAction.transactionally)
+  }
+
+  /**
+   * The composable action behind `initializeRegionCompletionTable` — exposed separately so tests can run the real
+   * recompute inside their own (rolled-back) transaction and compare it against the cached values.
+   */
+  def initializeRegionCompletionTableAction: DBIO[Int] = {
+    for {
       count: Int       <- regionCompletionTable.count
       numInserted: Int <-
         if (count == 0) {
@@ -64,14 +78,14 @@ class RegionServiceImpl @Inject() (
             _edgeRegion   <- streetEdgeRegion
             _edges        <- streetEdgeTable.streets if _edges.streetEdgeId === _edgeRegion.streetEdgeId
             _edgePriority <- streetEdgePriorities if _edges.streetEdgeId === _edgePriority.streetEdgeId
-          } yield (_edgeRegion.regionId, _edges.geom.transform(26918), _edgePriority.priority < 1.0)
+          } yield (_edgeRegion.regionId, _edges.geom.lengthGeodesic, _edgePriority.priority < 1.0)
 
           // Get region_id, total_distance, audited_distance for each region.
           val regionsQuery = streetsInRegion.groupBy(_._1).map { case (regionId, group) =>
             (
               regionId,
-              group.map(_._2.lengthD).sum.getOrElse(0.0d),                                    // total distance
-              group.map(s => Case.If(s._3).Then(s._2.lengthD).Else(0.0d)).sum.getOrElse(0.0d) // audited distance
+              group.map(_._2).sum.getOrElse(0.0d),                                    // total distance
+              group.map(s => Case.If(s._3).Then(s._2).Else(0.0d)).sum.getOrElse(0.0d) // audited distance
             )
           }
 
@@ -91,7 +105,5 @@ class RegionServiceImpl @Inject() (
           DBIO.successful(0) // If the table is already initialized, 0 rows inserted.
         }
     } yield numInserted
-
-    db.run(tableInitAction.transactionally)
   }
 }

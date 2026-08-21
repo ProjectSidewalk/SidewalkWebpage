@@ -25,7 +25,13 @@ import java.util.UUID
 class UserAuthControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    new GuiceApplicationBuilder()
+      .disable[modules.ActorModule]
+      // All requests here share FakeRequest's default 127.0.0.1, so the suite's auth POSTs would eat into one shared
+      // per-IP budget. Throttle behavior has its own dedicated coverage (UserAuthRateLimitSpec); keeping the limiter
+      // off here decouples these tests from limit tuning.
+      .configure("rate-limit.enabled" -> false)
+      .build()
 
   implicit lazy val mat: Materializer = app.materializer
 
@@ -189,6 +195,19 @@ class UserAuthControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
       status(signInByUsername) mustBe OK
       (contentAsJson(signInByUsername) \ "redirect").asOpt[String] mustBe defined
       cookies(signInByUsername).exists(_.name.toLowerCase.contains("authenticator")) mustBe true
+    }
+  }
+
+  "GET /signInMobile and /signUpMobile" should {
+    "permanently redirect to the responsive auth pages, preserving the query string (#4884)" in {
+      val signIn = route(app, FakeRequest(GET, "/signInMobile?url=%2Fmobile")).get
+      status(signIn) mustBe MOVED_PERMANENTLY
+      redirectLocation(signIn).get must startWith("/signIn")
+      redirectLocation(signIn).get must include("url=%2Fmobile")
+
+      val signUp = route(app, FakeRequest(GET, "/signUpMobile")).get
+      status(signUp) mustBe MOVED_PERMANENTLY
+      redirectLocation(signUp) mustBe Some("/signUp")
     }
   }
 }

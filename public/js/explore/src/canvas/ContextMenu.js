@@ -4,8 +4,6 @@
  * @memberof svl
  */
 class ContextMenu {
-  static #LABEL_TO_MENU_GAP = 8; // Amount of space between the label and context menu.
-
   labelTags; // Public: read by Keyboard.js. Populated by fetchLabelTags().
 
   #status = {
@@ -19,11 +17,12 @@ class ContextMenu {
   #severityMenu;
   #severityRadioHolder;
   #severityRadios;
-  #descriptionHeaderNumber;
   #descriptionTextBox;
-  #OKButton;
+  #headerIcon;
+  #headerType;
   #tagHolder;
   #tags;
+  #shareWidget = null;
 
   /**
    * @param {Object} uiContextMenu - jQuery-wrapped context menu UI elements.
@@ -33,11 +32,12 @@ class ContextMenu {
     this.#severityMenu = uiContextMenu.severityMenu;
     this.#severityRadioHolder = uiContextMenu.severityRadioHolder;
     this.#severityRadios = uiContextMenu.radioButtons;
-    this.#descriptionHeaderNumber = $('#description-header-num');
     this.#descriptionTextBox = uiContextMenu.textBox;
-    this.#OKButton = this.#menuWindow.find('#context-menu-ok-button');
+    this.#headerIcon = this.#menuWindow.find('#context-menu-icon');
+    this.#headerType = this.#menuWindow.find('#context-menu-type');
     this.#tagHolder = uiContextMenu.tagHolder;
     this.#tags = uiContextMenu.tags;
+    this.#initShareWidget();
 
     document.addEventListener('mousedown', (e) => this.#handleMouseDown(e));
     this.#menuWindow.on('mousedown', (e) => this.#handleMenuWindowMouseDown(e));
@@ -46,7 +46,8 @@ class ContextMenu {
     this.#descriptionTextBox.on('focus', () => this.#handleDescriptionTextBoxFocus());
     this.#descriptionTextBox.on('blur', () => this.#handleDescriptionTextBoxBlur());
     uiContextMenu.closeButton.on('click', () => this.#handleCloseButtonClick());
-    this.#OKButton.on('click', () => this.#handleOKButtonClick());
+    this.#menuWindow.find('#context-menu-done').on('click', () => this.#handleDoneButtonClick());
+    this.#menuWindow.find('#context-menu-delete').on('click', () => this.#handleDeleteButtonClick());
     this.#tags.on('click', (e) => this.#handleTagClick(e));
   }
 
@@ -123,10 +124,27 @@ class ContextMenu {
     this.hide();
   }
 
-  #handleOKButtonClick() {
-    svl.tracker.push('ContextMenu_OKButtonClick');
+  #handleDoneButtonClick() {
+    svl.tracker.push('ContextMenu_DoneButtonClick');
     this.handleSeverityPopup();
-    this.hide(false);
+    this.hide();
+  }
+
+  /**
+   * Deletes the label being edited. The panel opens automatically when a label is placed, so this is the way out
+   * of a misplaced one without closing, re-finding and hovering it first. Mirrors the collapsed card's Delete
+   * (Canvas.js #handleHoverCardDeleteClick), including the tutorial's last-label-only restriction.
+   */
+  #handleDeleteButtonClick() {
+    const label = this.#status.targetLabel;
+    if (!label || svl.canvas.getStatus('disableLabelDelete')) return;
+    if (svl.onboarding && svl.onboarding.getCurrentLabelId() !== label.getProperty('temporaryLabelId')) return;
+
+    svl.tracker.push('ContextMenu_LabelDelete', { labelType: label.getLabelType() });
+    this.hide();
+    svl.labelContainer.removeLabel(label);
+    svl.canvas.hideHoverCard();
+    svl.canvas.setCurrentLabel(undefined);
   }
 
   handleSeverityPopup() {
@@ -183,6 +201,15 @@ class ContextMenu {
       const sev = Number(button.dataset.severity);
       const img = button.querySelector('.severity-button__icon');
       if (img) img.src = util.misc.getSmileyIconPath(sev, labelType, sev === checkedSev);
+      // The chosen segment is washed and underlined in its own level's colour. The selected state is marked with
+      // a class rather than left to CSS to infer from :has(:checked) -- the radio is visually hidden and driven
+      // through jQuery, and this keeps the styling keyed to the same value that picks the smiley above.
+      button.classList.toggle('severity-button--checked', sev === checkedSev);
+      const colors = util.misc.getSeverityLevelColors(sev, labelType);
+      if (colors) {
+        button.style.setProperty('--level-wash', colors.wash);
+        button.style.setProperty('--level-edge', colors.edge);
+      }
     });
   }
 
@@ -198,10 +225,16 @@ class ContextMenu {
 
     const $header = $('#severity-header-text');
     if ($header.length) $header.text(i18next.t(`common:${headerKey}`));
+    // data-original-title only, never title: Bootstrap moves title into data-original-title when it initializes the
+    // tooltip and blanks the attribute, so writing title back here restores the browser's own tooltip on top of
+    // Bootstrap's and both appear at once (#4731). The other info icons set title from Twirl, before that init, so
+    // they never hit this.
     const $info = $('#severity-header-info');
+    // The alt rides along because it is this icon's accessible name, and the markup's static one says "severity"
+    // whichever dimension is on screen.
     if ($info.length) {
-      $info.attr('title', i18next.t(`common:${infoKey}`));
-      $info.attr('data-original-title', i18next.t(`common:${infoKey}`));
+      const info = i18next.t(`common:${infoKey}`);
+      $info.attr({ 'data-original-title': info, 'alt': info });
     }
     for (let sev = 1; sev <= 3; sev++) {
       $(`.severity-button[data-severity="${sev}"] .severity-button__label`)
@@ -290,13 +323,22 @@ class ContextMenu {
    * @returns {ContextMenu} this.
    */
   hide() {
-    if (this.isOpen()) {
+    const wasOpen = this.isOpen();
+    if (wasOpen) {
       this.#descriptionTextBox.blur(); // Force the blur event before the ContextMenu close event.
       svl.tracker.push('ContextMenu_Close');
     }
 
+    // The share popover lives in this panel's header, so it goes too. Hiding the panel around it would leave the
+    // widget believing it is still open, with its document-level ESC and arrow-key handlers still armed.
+    this.#shareWidget?.close();
+
     this.#menuWindow.css('visibility', 'hidden');
     this.#setStatus('visibility', 'hidden');
+
+    // Restore the target label's icon to full opacity (see Label.render). Only when the panel was actually open —
+    // hide() is also called speculatively (navigation, keyboard shortcuts) and shouldn't redraw the canvas then.
+    if (wasOpen) svl.canvas.clear().render();
 
     return this;
   }
@@ -553,6 +595,14 @@ class ContextMenu {
 
     if (labelType !== 'Occlusion') {
       this.#setStatus('targetLabel', targetLabel);
+
+      // Identify the label being edited, the way the collapsed card does. Without this the panel opens on its
+      // first field and never says what it belongs to.
+      this.#headerIcon.attr('src', util.misc.getIconImagePaths(labelType).iconImagePath);
+      this.#headerType.text(i18next.t(`common:${util.camelToKebab(labelType)}`).replace('&shy;', ''));
+      // The tutorial can forbid deleting the label it just had you place.
+      this.#menuWindow.toggleClass('context-menu--no-delete', Boolean(svl.canvas.getStatus('disableLabelDelete')));
+
       this.#setTags(targetLabel);
       this.#setTagColor(targetLabel);
       if (this.#getStatus('disableTagging')) {
@@ -565,26 +615,6 @@ class ContextMenu {
       } else {
         this.#severityMenu.addClass('hidden');
       }
-      // labelCoord is in the logical 720x480 frame; the menu is a DOM element sized in on-screen pixels.
-      // Do the placement math in the logical frame (so the constants below stay valid), converting the
-      // menu's measured height into that frame, then scale the final position to pixels when positioning.
-      const scale = util.exploreDisplayScale();
-      const menuHeight = this.#menuWindow.outerHeight() / scale;
-
-      // Determine coordinates for context menu to display below the label.
-      let topCoordinate = labelCoord.y + svl.LABEL_ICON_RADIUS + ContextMenu.#LABEL_TO_MENU_GAP;
-
-      // The menu may hang below the pano edge, but not past the bottom of the viewport, where it would be cut
-      // off. Measure the space from the pano's top down to the viewport bottom, in the logical frame.
-      const panoTop = document.getElementById('street-view-holder').getBoundingClientRect().top;
-      const spaceBelow = (window.innerHeight - panoTop) / scale;
-
-      // If there isn't enough room to show the context menu below the label, show it above the label instead.
-      // labelCoord.y is top-left of label but is center of rendered label, so we must add the icon radius.
-      if (topCoordinate + menuHeight > spaceBelow) {
-        topCoordinate = labelCoord.y - svl.LABEL_ICON_RADIUS - menuHeight - ContextMenu.#LABEL_TO_MENU_GAP;
-      }
-
       // Set the menu value if label has its value set.
       const severity = targetLabel.getProperty('severity');
       const description = targetLabel.getProperty('description');
@@ -603,14 +633,6 @@ class ContextMenu {
         if (!this.isTaggingDisabled()) this.#showTaggingEnabled();
         else this.#showTaggingDisabled();
       }
-
-      // Read the width fresh (it scales with --ui-scale) so the menu stays centered under the label at any UI scale.
-      const windowWidth = this.#menuWindow.outerWidth();
-      this.#menuWindow.css({
-        visibility: 'visible',
-        left: labelCoord.x * scale - windowWidth / 2,
-        top: topCoordinate * scale,
-      });
 
       this.#setStatus('visibility', 'visible');
 
@@ -631,9 +653,67 @@ class ContextMenu {
       if (labelType !== 'Other') {
         this.#setSeverityTooltips(labelType);
       }
-      this.#descriptionHeaderNumber.text('3.');
-    } else {
-      this.#descriptionHeaderNumber.text('2.');
     }
+
+    // Anchor the menu exactly like the hover card it opens from, so clicking a label expands the card into this
+    // menu roughly in place instead of moving the panel somewhere else. This runs last because the routine measures
+    // the menu, and everything above — which sections are shown, how many tag rows there are — sets its height.
+    // targetLabel is only set for label types that get a menu at all (Occlusion doesn't).
+    if (this.#getStatus('targetLabel')) {
+      this.#pointShareAtLabel(this.#getStatus('targetLabel'));
+      util.anchorPanelToLabel(this.#menuWindow, labelCoord, svl.LABEL_ICON_RADIUS);
+      this.#menuWindow.css('visibility', 'visible');
+
+      // Fade the target label's icon (see Label.render). Not every caller renders after opening the panel, and the
+      // ones that do — the hover card's click handler, for one — render before it, so do it here.
+      svl.canvas.clear().render();
+    }
+  }
+
+  /**
+   * Builds the header's share control. Unlike the hover card's, this one is only ever pointed at a label the menu
+   * has actually opened for, so it re-points once per open rather than per frame.
+   * @private
+   */
+  #initShareWidget() {
+    const trigger = document.getElementById('context-menu-share');
+    if (!trigger || typeof ShareWidget === 'undefined') return;
+    trigger.addEventListener('click', () => {
+      // Only the opening click. The same handler runs on the click that dismisses the popover, which is not a share.
+      if (this.#shareWidget?.isOpen()) return;
+      svl.tracker.push('Click_LabelCardShare', { labelType: this.#getStatus('targetLabel')?.getLabelType() });
+    });
+    // Same submit-then-share path as the collapsed card: this menu opens the moment a label is placed, which is the
+    // most likely moment for it to have no server-side id yet.
+    this.#shareWidget = new ShareWidget(trigger, {
+      // Like the collapsed card, this panel is anchored to a label icon and can sit anywhere in the pano.
+      fitToViewport: true,
+      beforeOpen: async () => {
+        const label = this.#getStatus('targetLabel');
+        await svl.canvas.ensureLabelSaved(label);
+        if (label) this.#pointShareAtLabel(label);
+      },
+    });
+  }
+
+  /**
+   * Points the share control at the label this menu is open for, or hides it when that label can never have a
+   * public URL (tutorial labels are never submitted).
+   * @param {Label} label
+   * @private
+   */
+  #pointShareAtLabel(label) {
+    const shareable = !svl.isOnboarding() && !label.isDeleted();
+    this.#menuWindow.toggleClass('context-menu--no-share', !shareable);
+    if (!this.#shareWidget || !shareable) return;
+
+    const id = label.getProperty('labelId');
+    const labelTypeName = i18next.t(`common:${util.camelToKebab(label.getLabelType())}`).replace('&shy;', '');
+    const text = i18next.t('common:share.text', { labelType: labelTypeName });
+    this.#shareWidget.setTarget({
+      url: Number.isInteger(id) ? `${window.location.origin}/label/${id}` : '',
+      title: text,
+      text,
+    });
   }
 }

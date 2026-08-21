@@ -18,7 +18,12 @@
       "Bash(make lint-evolutions:*)",
       "Bash(make test-python:*)",
       "Bash(git grep:*)",
-      "Bash(git ls-tree:*)"
+      "Bash(git ls-tree:*)",
+      "Bash(make stylelint:*)",
+      "Bash(make htmlhint:*)",
+      "Bash(make lint-locales:*)",
+      "Bash(make lint:*)",
+      "Bash(gh label list:*)"
     ],
     "deny": [
       "Read(docker-compose.override.yml)"
@@ -34,8 +39,13 @@
         "hooks": [
           {
             "type": "command",
-            "command": "m=$(jq -r '[.tool_input.new_string, .tool_input.content, (.tool_input.edits[]?.new_string)] | map(select(. != null)) | .[]' 2>/dev/null | grep -niE '(^[[:space:]]*[*#]|//).*(used to|previously|formerly|replace[sd]? the old|renamed? (to|from)|no longer|was renamed)'); if [ -n \"$m\" ]; then jq -n --arg m \"$m\" '{decision:\"block\", reason:(\"A comment in this edit reads like changelog / what-the-code-USED-TO-do narration. CLAUDE.md bans this (do not describe what code used to do; use git history). Remove the historical framing; state only the current contract. Flagged:\\n\" + $m), systemMessage:\"comment-history hook: flagged a changelog-style comment\"}'; fi",
+            "command": "m=$(jq -r 'if ((.tool_input.file_path // \"\") | ascii_downcase | endswith(\".md\")) then empty else [.tool_input.new_string, .tool_input.content, (.tool_input.edits[]?.new_string)] | map(select(. != null)) | .[] end' 2>/dev/null | grep -niE '(^[[:space:]]*[*#]|//).*(used to|previously|formerly|replace[sd]? the old|renamed? (to|from)|no longer|was renamed)'); if [ -n \"$m\" ]; then jq -n --arg m \"$m\" '{decision:\"block\", reason:(\"A comment in this edit reads like changelog / what-the-code-USED-TO-do narration. CLAUDE.md bans this (do not describe what code used to do; use git history). Remove the historical framing; state only the current contract. Flagged:\\n\" + $m), systemMessage:\"comment-history hook: flagged a changelog-style comment\"}'; fi",
             "statusMessage": "Checking for changelog-style comments"
+          },
+          {
+            "type": "command",
+            "command": "m=$(jq -r 'if ((.tool_input.file_path // \"\") | ascii_downcase | endswith(\".md\")) then empty else [.tool_input.new_string, .tool_input.content, (.tool_input.edits[]?.new_string)] | map(select(. != null)) | .[] end' 2>/dev/null | grep -niE '((^|[^:])//|^[[:space:]]*#)[[:space:]]*((checks? if)|((gets?|sets?|returns?) the)|((loops?|iterates?) (through|over))|((creates?|initializes?) (a|an|the))|((increments?|decrements?) the)|(calls? the)|((adds?|removes?) (a|an|the)))'); if [ -n \"$m\" ]; then jq -n --arg m \"$m\" '{decision:\"block\", reason:(\"A comment in this edit restates what the code does. CLAUDE.md requires comments to say WHY, not WHAT - identifiers already say what. Delete the comment, or rewrite it to give the reason, constraint, or non-obvious tradeoff. Only inline // and # comments are checked, so ScalaDoc/JSDoc summary lines are exempt. Flagged:\\n\" + $m), systemMessage:\"restate-comment hook: flagged a comment that restates the code\"}'; fi",
+            "statusMessage": "Checking for comments that restate the code"
           }
         ]
       },
@@ -46,6 +56,17 @@
             "type": "command",
             "command": "jq -e '(.tool_input.content // \"\") as $c | ($c == \"\" or ($c | endswith(\"\\n\")))' >/dev/null 2>&1 || jq -n '{decision:\"block\", reason:\"This Write produced a file with no final newline. docs/style-guide.md requires every file to end with a single trailing newline (a missing one shows as a red marker on the GitHub diff). Re-run Write with a trailing newline added to the content.\", systemMessage:\"final-newline hook: blocked a Write missing its trailing newline\"}'",
             "statusMessage": "Checking for final newline"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -n '{hookSpecificOutput:{hookEventName:\"UserPromptSubmit\", additionalContext:\"Comment discipline (CLAUDE.md, applies to every edit): write WHY, not WHAT. Before calling an edit done, re-read every comment you added and cut it back - delete ones that restate the code, ones that narrate the change you just made, and doc headers on trivial helpers. One tight line beats three. Keep ScalaDoc/JSDoc on non-trivial functions, but keep the prose minimal.\"}}'",
+            "statusMessage": "Adding comment-conciseness reminder"
           }
         ]
       }

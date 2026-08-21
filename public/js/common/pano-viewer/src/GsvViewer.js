@@ -3,6 +3,10 @@
  * Docs: https://developers.google.com/maps/documentation/javascript/reference/street-view
  */
 class GsvViewer extends PanoViewer {
+  // If GSV's internal pano load never fires position_changed (e.g. its metadata RPC 502s), fail the load after this
+  // long so the in-flight move can recover instead of hanging the UI forever. Generous, so it won't abort slow loads.
+  static #PANO_LOAD_TIMEOUT_MS = 10000;
+
   constructor() {
     super();
     this.streetViewService = undefined;
@@ -37,7 +41,7 @@ class GsvViewer extends PanoViewer {
 
     // Add support for the tutorial panos that we have supplied locally.
     this.gsvPano.registerPanoProvider((pano) => {
-      if (pano === 'tutorial' || pano === 'afterWalkTutorial') {
+      if (util.pano.TUTORIAL_PANO_IDS.has(pano)) {
         return this.#getCustomPanoData(pano);
       }
       return null;
@@ -67,16 +71,21 @@ class GsvViewer extends PanoViewer {
     // If defaultNavigation is enabled, we need a pano_changed listener to record the pano metadata after moving.
     if (panoOpts.defaultNavigation) {
       this.addListener('pano_changed', () => {
-        return this.streetViewService.getPanorama({ pano: this.gsvPano.pano }).then(this.#updateCurrPanoData);
+        return this.streetViewService.getPanorama({ pano: this.gsvPano.pano })
+          .then(this.#updateCurrPanoData)
+          .catch((err) => console.error('Failed to refresh pano metadata after navigation:', err));
       });
     }
   };
 
   getPanoId = () => {
-    return this.currPanoData.getPanoId();
+    // Null until the first pano's metadata has loaded (callers like Tracker log on every input event).
+    return this.currPanoData ? this.currPanoData.getPanoId() : null;
   };
 
   getPosition = () => {
+    // Null until the first pano's metadata has loaded.
+    if (!this.currPanoData) return null;
     return { lat: this.currPanoData.getProperty('lat'), lng: this.currPanoData.getProperty('lng') };
   };
 
@@ -141,32 +150,76 @@ class GsvViewer extends PanoViewer {
    * @private
    */
   #getPanoramaCallback = async (newPanoData, excludedPanos = new Set()) => {
-    // If the pano given is in the excluded list, treat it as if the API call itself had returned nothing.
+    // If the pano given is in the excluded list, treat it as if the API call itself had returned nothing. This is a
+    // NoImageryError because the search itself succeeded — the caller asked for imagery it hasn't used yet and there
+    // is none here. A caller deciding whether a street ran out of imagery needs that to count, or a real dead end
+    // whose last panos the user already stood on could never be recognized (#4918).
     const excludedPanoIds = new Set([...excludedPanos].map((p) => p.getPanoId()));
     if (excludedPanoIds.has(newPanoData.data.location.pano)) {
-      throw new Error(`Excluded pano: ${newPanoData.data.location.pano}`);
+      throw new NoImageryError(`Excluded pano: ${newPanoData.data.location.pano}`);
     }
 
     // Package the data into a PanoData object and save it in this.currPanoData.
     this.#updateCurrPanoData(newPanoData);
 
-    // Now we actually set the pano and wait to resolve until it's finished loading.
+    // If the pano didn't actually change, nothing needs to load.
     const newPano = this.currPanoData.getPanoId();
     const prevPano = this.prevPanoData ? this.prevPanoData.getPanoId() : undefined;
-    return await new Promise((resolve) => {
-      // If the pano didn't actually change, nothing needs to change, so just resolve immediately.
-      if (newPano === prevPano) {
-        resolve(this.currPanoData);
-      } else {
-        // Listen for the position_changed event which fires when the panorama has finished loading.
-        const listener = this.gsvPano.addListener('position_changed', () => {
-          google.maps.event.removeListener(listener);
-          resolve(this.currPanoData);
-        });
-        this.gsvPano.setPano(newPano);
-      }
-    });
+    if (newPano === prevPano) return this.currPanoData;
+
+    // Otherwise set it and wait until it's finished loading (with a hang guard — see _loadPanoWithTimeout).
+    return await this._loadPanoWithTimeout(newPano, this.currPanoData);
   };
+
+  /**
+   * Sets the GSV panorama to `newPano` and resolves once it has finished loading (its position_changed event).
+   *
+   * Guards against a load that never fires position_changed — e.g. GSV's internal metadata RPC 502s — by rejecting
+   * after #PANO_LOAD_TIMEOUT_MS. Without the guard the promise hangs forever and the in-flight move
+   * (NavigationService.moveToPano) never restores the UI it disabled, wedging the tool (frozen pano, dead
+   * minimap/nav); rejecting instead lets moveToPano's catch restore interaction. Underscore-prefixed (not `#private`)
+   * so it can be unit-tested.
+   *
+   * @param {string} newPano       Id of the pano to load.
+   * @param {PanoData} resolveValue Value to resolve with once the pano has loaded (the current PanoData).
+   * @return {Promise<PanoData>}   Resolves with resolveValue on load; rejects if the load times out.
+   */
+  _loadPanoWithTimeout(newPano, resolveValue) {
+    return new Promise((resolve, reject) => {
+      let timeoutId;
+      const listener = this.gsvPano.addListener('position_changed', () => {
+        clearTimeout(timeoutId);
+        google.maps.event.removeListener(listener);
+        resolve(resolveValue);
+      });
+      timeoutId = setTimeout(() => {
+        google.maps.event.removeListener(listener);
+        reject(new Error(`Timed out loading pano ${newPano} (position_changed never fired)`));
+      }, GsvViewer.#PANO_LOAD_TIMEOUT_MS);
+      this.gsvPano.setPano(newPano);
+    });
+  }
+
+  /**
+   * Translates a getPanorama() rejection into our own vocabulary.
+   *
+   * Google answers a search that completed and found nothing with `ZERO_RESULTS`; every other status
+   * (`UNKNOWN_ERROR`, an over-quota reply, a transport failure) means the question never got answered. Only the
+   * former may end up recorded against a street, so everything else passes through untyped (#4918). The status is
+   * compared as a string literal — that is the documented `StreetViewStatus` value, and it is readable here without
+   * depending on the maps enum having loaded, which is exactly the case some of these failures represent.
+   *
+   * @param {object} err - Whatever `getPanorama()` rejected with; carries a `code` on a real API reply.
+   * @param {{lat: number, lng: number}} latLng - The location that was searched, for the message.
+   * @returns {Error} A NoImageryError for `ZERO_RESULTS`, otherwise the original error unchanged.
+   */
+  static #asImageryError(err, latLng) {
+    if (err?.code !== 'ZERO_RESULTS') return err;
+    const radius = svl.STREETVIEW_MAX_DISTANCE;
+    return new NoImageryError(
+      `No outdoor GSV imagery within ${radius}m of ${latLng.lat},${latLng.lng}.`, { cause: err },
+    );
+  }
 
   setLocation = async (latLng, excludedPanos = new Set()) => {
     const { LatLng } = await google.maps.importLibrary('core');
@@ -174,12 +227,17 @@ class GsvViewer extends PanoViewer {
     this.prevPanoData = this.currPanoData;
     return this.streetViewService.getPanorama(
       { location: gLatLng, radius: svl.STREETVIEW_MAX_DISTANCE, source: google.maps.StreetViewSource.OUTDOOR },
-    ).then((panoData) => this.#getPanoramaCallback(panoData, excludedPanos));
+    ).then(
+      (panoData) => this.#getPanoramaCallback(panoData, excludedPanos),
+      (err) => {
+        throw GsvViewer.#asImageryError(err, latLng);
+      },
+    );
   };
 
   setPano = async (panoId) => {
     this.prevPanoData = this.currPanoData;
-    if (panoId === 'tutorial' || panoId === 'afterWalkTutorial') {
+    if (util.pano.TUTORIAL_PANO_IDS.has(panoId)) {
       // For locally stored tutorial panos, skip the getPanorama step and continue w/ our saved data.
       return this.#getPanoramaCallback({ data: this.#getCustomPanoData(panoId) }, new Set());
     } else {
@@ -248,8 +306,11 @@ class GsvViewer extends PanoViewer {
   };
 
   getPov = () => {
-    // Get POV and adjust heading to be between 0 and 360.
-    const pov = this.gsvPano.getPov();
+    // GSV's getPov() returns undefined until the first pano finishes loading, and input-event logging can fire
+    // before then — report null rather than throwing.
+    const pov = this.gsvPano?.getPov();
+    if (!pov || typeof pov.heading !== 'number') return null;
+    // Adjust heading to be between 0 and 360.
     while (pov.heading < 0) pov.heading += 360;
     while (pov.heading > 360) pov.heading -= 360;
     return pov;

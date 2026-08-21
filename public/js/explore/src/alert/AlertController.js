@@ -64,6 +64,10 @@ class AlertController {
    * @param {Function} [callback] - Called once the banner has finished fading in.
    */
   showAlert(msg, type, dontShow = false, callback) {
+    // An opt-out binds only while the opt-out is still on offer. A message shown without the link is one the labeler
+    // is meant to see, so a choice made back when it was optional is discarded rather than honored forever — which
+    // matters because these are stored per browser and never expire (#4918).
+    if (!dontShow) this.#reofferMessageType(type);
     if (type !== null && type !== undefined && this.#dontShowList.includes(type)) return;
 
     this.#ui.dontShow.style.display = dontShow ? '' : 'none';
@@ -84,6 +88,17 @@ class AlertController {
   hideAlert(callback) {
     this.#fadeOut(this.#ui.holder, callback);
     clearTimeout(this.#hideTimeout);
+  }
+
+  /**
+   * Drops a stored opt-out for a message type, so a message shown without the opt-out link reaches a labeler who
+   * had silenced it.
+   * @param {string} type - Message type identifier.
+   */
+  #reofferMessageType(type) {
+    if (type === null || type === undefined || !this.#dontShowList.includes(type)) return;
+    this.#dontShowList = this.#dontShowList.filter((silenced) => silenced !== type);
+    svl.storage.set('alertDontShowList', this.#dontShowList);
   }
 
   /**

@@ -63,6 +63,92 @@ class PanoManager {
     return points;
   }
 
+  // Set when a load gives up on its street, and read once by the load that follows. The reload is what carries the
+  // labeler to a new street, and it also destroys the alert banner, so the explanation has to outlive it (#4918).
+  static #STREET_SKIPPED_KEY = 'sidewalk.streetSkippedOnLoad';
+
+  /** Records that this load gave up on its street, so the next one can say so. */
+  static #rememberStreetSkipped() {
+    try {
+      window.sessionStorage?.setItem(PanoManager.#STREET_SKIPPED_KEY, '1');
+    } catch {
+      // An unwritable store costs the labeler an explanation, which is not worth failing the skip over.
+    }
+  }
+
+  /**
+   * Whether the load before this one moved the labeler off a street it couldn't show.
+   *
+   * Reading clears the notice, so the explanation appears once, on arrival, rather than on every later load.
+   *
+   * @returns {boolean} True when the preceding load gave up on its street.
+   */
+  static consumeStreetSkippedNotice() {
+    try {
+      const skipped = window.sessionStorage?.getItem(PanoManager.#STREET_SKIPPED_KEY) === '1';
+      window.sessionStorage?.removeItem(PanoManager.#STREET_SKIPPED_KEY);
+      return skipped;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Makes a message readable on a load that ends without a panorama.
+   *
+   * Explore's chrome — the alert banner included — sits inside `.tool-ui`, which stays `visibility: hidden` until
+   * `Main.init()` finishes revealing it, and init bails as soon as there is no viewer. So a message shown from here
+   * would otherwise render inside a hidden container, behind a loading animation that never goes away: the labeler
+   * sees a page that looks stuck forever and is told nothing (#4918).
+   *
+   * Only the banner is un-hidden, not the whole tool: `visibility` is the one property a descendant can override
+   * against an inherited `hidden`, and revealing the rest would show a half-initialized UI whose controls are wired
+   * to a viewer that does not exist. The navbar is outside `.tool-ui`, so the labeler still has somewhere to go.
+   */
+  static #revealMessageOnStoppedLoad() {
+    document.getElementById('page-loading')?.style.setProperty('visibility', 'hidden');
+    document.getElementById('alert-holder')?.style.setProperty('visibility', 'visible');
+  }
+
+  /**
+   * Decides what a failure to seed the viewer is allowed to say about the assigned street, and acts on it.
+   *
+   * Three outcomes, in increasing order of what we let ourselves write down (#4918):
+   * - the provider never answered — an SDK, network, quota, or maps-library failure — so the street's imagery is
+   *   unknown and nothing at all is recorded;
+   * - the provider answered "nothing here", but this session has already hit its flag limit, so we treat the run as
+   *   a broken session rather than a run of empty streets and still record nothing;
+   * - otherwise the street really does look imagery-less, so it is reported and the page reloads onto the next one.
+   *
+   * The first two both leave the user on a page with no panorama, so they get told rather than silently stranded.
+   *
+   * @param {Error} err - Whatever `create()` rejected with.
+   * @param {{task: Task, missionId: number}} errorParams - The street and mission the failure happened on.
+   * @returns {Promise<void>} Resolves once any report has been sent. The reload itself never resolves.
+   */
+  static async #handleViewerCreationFailure(err, errorParams) {
+    // Surface the error either way: it is the only record of a transient failure, since nothing is written to the db.
+    console.error('Pano viewer creation failed at the starting location.', err);
+    const streetLooksEmpty = err instanceof NoImageryError;
+
+    if (!streetLooksEmpty || !NoImageryFlagGuard.canFlag()) {
+      svl.tracker?.push(streetLooksEmpty ? 'NoImageryFlagLimitReached' : 'PanoViewerCreateFailed');
+      // Two different things to say. A provider that never answered is a transient failure worth retrying; a run of
+      // streets that all answered "nothing here" is us having stopped trusting the answers, which waiting won't
+      // change (#4918).
+      const message = streetLooksEmpty ? 'popup.imagery-skip-limit' : 'popup.imagery-load-failed';
+      const type = streetLooksEmpty ? 'imagerySkipLimit' : 'imageryLoadFailed';
+      PanoManager.#revealMessageOnStoppedLoad();
+      svl.alertController?.showAlert(i18next.t(message), type, false);
+      return;
+    }
+
+    NoImageryFlagGuard.recordStreetGivenUp();
+    await util.misc.reportNoImagery(errorParams.task, errorParams.missionId);
+    PanoManager.#rememberStreetSkipped();
+    window.location.replace('/explore');
+  }
+
   /**
    * Initializes panoViewer on the Explore page, sets it to the starting location, and sets up listeners.
    * @returns {Promise<void>}
@@ -72,6 +158,7 @@ class PanoManager {
     const panoOptions = {
       accessToken: viewerAccessToken,
       defaultNavigation: false, // We create our own navigation arrows.
+      preloadNeighbors: true, // Pre-download linked panos so walking down the street doesn't wait on the network.
     };
 
     // Add the starting location to panoOptions. A pano seed is tried first; the lat/lng (plus backups sampled along
@@ -88,16 +175,13 @@ class PanoManager {
     try {
       svl.panoViewer = await panoViewerType.create(this.panoCanvas, panoOptions);
     } catch (err) {
-      // Surface the error: creation can also fail for reasons beyond missing imagery (e.g. the maps library failing
-      // to load), and the redirect below would otherwise bury it.
-      console.error('Pano viewer creation failed at the starting location.', err);
-      // Record the street as having no usable imagery and refresh the page to get a new street.
-      await util.misc.reportNoImagery(errorParams.task, errorParams.missionId);
-      // window.location.replace() doesn't halt execution, so bail out before the code below dereferences the
-      // missing viewer. Main.js sees the undefined svl.panoViewer and stops its own init the same way.
-      window.location.replace('/explore');
+      // window.location.replace() doesn't halt execution, and neither does the give-up path, so bail out before the
+      // code below dereferences the missing viewer. Main.js sees the undefined svl.panoViewer and stops the same way.
+      await PanoManager.#handleViewerCreationFailure(err, errorParams);
       return;
     }
+    // Reaching a pano ends any run of failures, restoring the session's full flag allowance (#4918).
+    NoImageryFlagGuard.reset();
 
     // If we started from a lat/lng and used a backup point closer to the end of the street, reverse the street
     // direction. An explicitly requested pano that loaded isn't a "couldn't start at the start" signal, so it
@@ -137,8 +221,18 @@ class PanoManager {
     // Adds event listeners to the navigation arrows.
     svl.ui.streetview.navArrows.on('click', (event) => {
       event.stopPropagation();
+      // A highlighted forward arrow that still carries a pano-id is a real link (just recolored to mark the route),
+      // so it navigates like any link. Only the synthesized route-forward arrow (no pano-id, drawn when the link
+      // graph offers nothing along the route) walks the compass's "straight" path via moveForward. (#4671)
       const targetPanoId = event.target.getAttribute('pano-id');
-      if (targetPanoId) svl.navigationService.moveToPano(event.target.getAttribute('pano-id'));
+      if (targetPanoId) {
+        svl.navigationService.moveToPano(targetPanoId);
+      } else if (event.target.classList.contains('route-forward-arrow')) {
+        svl.tracker.push('Click_RouteForwardArrow');
+        svl.navigationService.moveForward()
+          .then(() => svl.tracker.push('RouteForwardArrow_Success'))
+          .catch(() => svl.tracker.push('RouteForwardArrow_PanoNotAvailable'));
+      }
     });
 
     const panoViewerLogo = createPanoViewerLogo(this.panoCanvas.parentElement, panoViewerType);
@@ -338,6 +432,10 @@ class PanoManager {
 
   /**
    * Removes old navigation arrows and creates new ones based on available links from the current pano.
+   *
+   * The arrow pointing the way the route wants the user to go is highlighted in the navigation blue (#4671): normally
+   * that is the forward link arrow, recolored; where the link graph offers nothing along the route (a dead-end), a
+   * blue arrow is synthesized at the route heading and its click walks the route (moveForward) instead of a link.
    */
   resetNavArrows() {
     const arrowGroup = svl.ui.streetview.navArrows[0];
@@ -347,23 +445,78 @@ class PanoManager {
       arrowGroup.removeChild(arrowGroup.firstChild);
     }
 
-    // Create an arrow for each link, rotated to its direction.
+    // Highlight the link that best heads the route's way: forward when on route, back toward the route when off route
+    // (getTargetAngle is measured from the current position). Following the blue link arrows then walks the user
+    // along — or back to — the route one pano at a time.
     const links = svl.panoViewer.getLinkedPanos();
-    links.forEach((link) => {
-      const arrow = this.#createArrow();
-      const normalizedHeading = (link.heading + 360) % 360;
-      arrow.setAttribute('transform', `translate(15, 0) rotate(${normalizedHeading}, 15, 30)`);
+    const targetHeading = this.#routeForwardHeading();
+    const forwardIndex = targetHeading === null ? -1 : this.#closestForwardLinkIndex(links, targetHeading);
+
+    // Create an arrow for each link, rotated to its direction; the forward one is drawn in the highlight color.
+    links.forEach((link, i) => {
+      const arrow = i === forwardIndex ? this.#createForwardArrow() : this.#createArrow();
+      arrow.setAttribute('transform', `translate(15, 0) rotate(${(link.heading + 360) % 360}, 15, 30)`);
       arrow.setAttribute('pano-id', link.panoId);
       arrowGroup.appendChild(arrow);
     });
+
+    // With no link the route's way, synthesize a forward arrow at the route heading — but only on route, where
+    // moveForward steps forward along the street. Off route, moveForward would teleport back to the route rather than
+    // step, so leave the user their link arrows to walk back one pano at a time instead. (#4671)
+    if (targetHeading !== null && forwardIndex === -1 && svl.compass.isEnRoute()) {
+      const arrow = this.#createForwardArrow();
+      arrow.classList.add('route-forward-arrow');
+      arrow.setAttribute('transform', `translate(15, 0) rotate(${targetHeading}, 15, 30)`);
+      arrowGroup.appendChild(arrow);
+    }
 
     const heading = svl.panoViewer.getPov().heading;
     arrowGroup.setAttribute('transform', `rotate(${-heading})`);
   }
 
   /**
+   * The absolute heading (degrees, wrt true north) toward the route's next goal — the compass's target direction.
+   * On route this is the way forward; off route it points back toward the route, since getTargetAngle is measured
+   * from the current position. Null only when there is no route at all: free exploration, the scripted tutorial, no
+   * current task, or before the task's geometry is ready. Drives which on-pano arrow is highlighted forward. (#4671)
+   * @returns {?number}
+   * @private
+   */
+  #routeForwardHeading() {
+    if (!svl.compass || svl.isExploreAddressMode() || svl.isOnboarding()) return null;
+    if (!svl.taskContainer || !svl.taskContainer.tasksLoaded() || !svl.taskContainer.getCurrentTask()) return null;
+    try {
+      return (svl.compass.getTargetAngle() + 360) % 360;
+    } catch {
+      return null; // Route geometry not ready yet (e.g. mid-initialization).
+    }
+  }
+
+  /**
+   * Index of the link whose heading is closest to the route direction, if one is within FORWARD_LINK_THRESHOLD
+   * degrees of it; -1 otherwise (a link-graph dead-end, where the caller synthesizes a forward arrow instead). (#4671)
+   * @param {Array<{panoId: string, heading: number}>} links - The current pano's linked panos.
+   * @param {number} targetHeading - The route's forward heading in degrees.
+   * @returns {number}
+   * @private
+   */
+  #closestForwardLinkIndex(links, targetHeading) {
+    const FORWARD_LINK_THRESHOLD = 45;
+    let bestDelta = FORWARD_LINK_THRESHOLD;
+    let bestIndex = -1;
+    links.forEach((link, i) => {
+      const delta = Math.abs(((((link.heading - targetHeading) % 360) + 540) % 360) - 180);
+      if (delta < bestDelta) {
+        bestDelta = delta;
+        bestIndex = i;
+      }
+    });
+    return bestIndex;
+  }
+
+  /**
    * Create svg navigation arrow, setting its width.
-   * @returns {SVGPathElement}
+   * @returns {SVGImageElement}
    * @private
    */
   #createArrow() {
@@ -373,6 +526,27 @@ class PanoManager {
     image.setAttribute('height', '20');
     image.setAttribute('x', '5');  // ((areaWidth / 2)  - iconWidth) / 2 = ((60 / 2 - 20) / 2 = 5
 
+    return image;
+  }
+
+  /**
+   * Create the blue "go this way" forward arrow: the same chevron as a link arrow, filled with the navigation blue
+   * (MinimapStyle.pegColor() — the --color-link-100 peg/"you" token) via an inline data-URI SVG, so the color stays
+   * sourced from the design token rather than a hardcoded hex. Carries route-forward-highlight for its hover style;
+   * the caller either keeps its pano-id (a highlighted real link) or adds route-forward-arrow (a synthesized
+   * moveForward arrow at a dead-end). (#4671)
+   * @returns {SVGImageElement}
+   * @private
+   */
+  #createForwardArrow() {
+    const image = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 -960 960 960">
+      <path d="m 885.5,-315.5 -71,71 -329,-329 -329,329 -71,-71 400,-400 z" fill="${MinimapStyle.pegColor()}"/></svg>`;
+    image.setAttributeNS('http://www.w3.org/1999/xlink', 'href', `data:image/svg+xml,${encodeURIComponent(svg)}`);
+    image.setAttribute('width', '20');
+    image.setAttribute('height', '20');
+    image.setAttribute('x', '5');
+    image.classList.add('route-forward-highlight');
     return image;
   }
 
@@ -395,10 +569,11 @@ class PanoManager {
     if (svl.compass) svl.compass.update();
 
     // Skip the heading-dependent viz while the heading is still settling; NavigationService's settle poll handles
-    // the final update so these don't swing through the mid-animation heading. (#4174)
+    // the final update so it doesn't swing through the mid-animation heading. (#4174)
     if (!svl.navigationService || !svl.navigationService.getStatus('headingSettling')) {
       if (svl.observedArea) svl.observedArea.update();
-      if (svl.peg) svl.peg.setHeading(heading);
+      // Once at the route's last pano, auto-finish as soon as the user has looked all the way around it.
+      if (svl.missionController) svl.missionController.maybeAutoCompleteRoute();
     }
 
     const arrowGroup = svl.ui.streetview.navArrows[0];
@@ -477,6 +652,7 @@ class PanoManager {
    */
   updatePov(dx, dy) {
     let pov = svl.panoViewer.getPov();
+    if (!pov) return; // Drag events can fire before the first pano has loaded.
     const viewerScaling = 0.375;
     pov.heading -= dx * viewerScaling;
     pov.pitch += dy * viewerScaling;
@@ -498,7 +674,9 @@ class PanoManager {
     // Pov restriction.
     pov = this.#restrictViewport(pov);
 
-    if (durationMs) {
+    // Animating needs a current POV to interpolate from; before the first pano loads there is none, so fall
+    // through to an immediate set.
+    if (durationMs && currentPov) {
       const timeSegment = 25; // 25 milliseconds.
 
       // Get how much angle you change over timeSegment of time.

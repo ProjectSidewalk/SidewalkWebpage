@@ -1,0 +1,192 @@
+/* The read-only label card, shared by Explore and Validate. The shell — white card, neutral hairline, 8px radius,
+   tail at the icon — comes from .label-anchored-panel, shared in turn with Explore's context menu (the card's
+   editable state). What's specific here is the caption scale and the absence of any form affordance, so it stays
+   unmistakably read-only. The label color lives in the type icon rather than the card surface: white text on a raw
+   label color runs 1.68-2.75:1, under the 4.5:1 AA floor for every label type (#4719, #4726).
+
+   Populated by Explore's Label.js #updateHoverCard() and Validate's LabelCard, positioned by both through
+   util.anchorPanelToLabel. Each tool sets its own stacking position and hosts its own footer actions: Explore
+   Delete/Edit, Validate a single Hide-label toggle. */
+.label-hover-card {
+  left: 0;
+  top: 0;
+  visibility: hidden;
+  width: max-content;
+  max-width: calc(240px * var(--ui-scale));
+  box-shadow: 0 calc(2px * var(--ui-scale)) calc(10px * var(--ui-scale)) rgb(45 42 63 / 28%);
+}
+
+.label-hover-card__header {
+  display: flex;
+  align-items: center;
+  gap: calc(7px * var(--ui-scale));
+  padding: calc(6px * var(--ui-scale)) calc(10px * var(--ui-scale));
+}
+
+.label-hover-card__icon {
+  width: calc(20px * var(--ui-scale));
+  height: calc(20px * var(--ui-scale));
+}
+
+.label-hover-card__type {
+  flex: 1;
+  font: var(--text-caption-semibold);
+  color: var(--color-neutral-black);
+  white-space: nowrap;
+}
+
+/* Share, in the header rather than the footer: the footer is where a panel's actions on *this* label live (Explore's
+   Delete/Edit, Validate's Hide), and at the card's 240px width a third button there would leave all three too narrow
+   to read. Icon-only for the same reason — the label beside it would double the header's width. Its accessible name
+   comes from aria-label, and the popover it opens says "Share this label" at the top. */
+.label-hover-card__share.label-detail__share-trigger {
+  flex: none;
+  gap: 0;
+  padding: calc(3px * var(--ui-scale));
+  background: none;
+  border: none;
+  border-radius: calc(5px * var(--ui-scale));
+  color: var(--color-neutral-700);
+}
+
+.label-hover-card__share.label-detail__share-trigger:hover {
+  background: var(--color-neutral-100);
+  border: none;
+  color: var(--color-neutral-black);
+}
+
+.label-hover-card__share svg {
+  width: calc(14px * var(--ui-scale));
+  height: calc(14px * var(--ui-scale));
+}
+
+.label-hover-card__body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: calc(6px * var(--ui-scale));
+  padding: calc(7px * var(--ui-scale)) calc(10px * var(--ui-scale)) calc(8px * var(--ui-scale));
+  border-top: 1px solid var(--color-neutral-200);
+}
+
+/* The severity, not-rated, tags, and description rows are shown/hidden per label by the populating JS.
+
+   Severity and not-rated are drawn as filled chips that enclose their icon and text, so the rating reads as one
+   object instead of a loose icon-plus-sentence row. They match the tag chips below in height, type, and text color
+   and differ only by their fill, which keeps the body one uniform stack of read-only chips rather than a ladder of
+   competing sizes. The fill stays neutral: the level's color already comes from the smiley asset, and a
+   level-to-color map in CSS would be a hardcoded copy of it. */
+.label-hover-card__severity,
+.label-hover-card__not-rated {
+  display: none;
+  align-items: center;
+  gap: calc(4px * var(--ui-scale));
+
+  /* Tighter on the icon side so the icon sits just inside the chip's edge. */
+  padding: calc(2px * var(--ui-scale)) calc(7px * var(--ui-scale)) calc(2px * var(--ui-scale))
+    calc(3px * var(--ui-scale));
+  border-radius: 200px;
+  background: var(--level-wash, var(--color-neutral-100));
+  font: var(--text-tiny-medium);
+
+  /* neutral-800, not the neutral-700 the tag chips use: on a level wash rather than flat neutral-100 this text
+     falls to 4.35-4.42:1 for levels 2 and 3, under the AA floor. neutral-800 holds 7.5-8.7:1 on every level. */
+  color: var(--color-neutral-800);
+}
+
+.label-hover-card__severity-icon {
+  flex: none;
+  width: calc(12px * var(--ui-scale));
+  height: calc(12px * var(--ui-scale));
+
+  /* The smiley is the same asset the context menu uses as a rating button, so it's held back here to read as a
+     status glyph rather than something to click. */
+  opacity: 0.75;
+}
+
+/* Mirrors the red "?" alert drawn on the canvas next to unrated labels (see Label.js #showSeverityAlert). Unlike the
+   severity smiley this one keeps its full strength — it's flagging something still to do. Explore only: a validator
+   can't rate from this card, so Validate leaves the chip out of its markup rather than nudging about a gap it
+   offers no way to close. */
+.label-hover-card__not-rated-icon {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(12px * var(--ui-scale));
+  height: calc(12px * var(--ui-scale));
+  border-radius: 50%;
+  background: var(--color-error-200);
+  color: var(--color-neutral-white);
+  font: var(--text-tiny-semibold);
+}
+
+.label-hover-card__tags {
+  display: none;
+  flex-wrap: wrap;
+  gap: calc(4px * var(--ui-scale));
+}
+
+/* A hairline between the rating and the tags, when there is a rating above them to separate from. The two rows are
+   both chips, so without it they read as one wrapped set rather than two different kinds of fact. The JS adds the
+   class, because the rating is hidden with an inline display:none that no sibling selector can see. */
+.label-hover-card__tags--divided {
+  align-self: stretch;
+  padding-top: calc(7px * var(--ui-scale));
+  border-top: 1px solid var(--color-neutral-200);
+}
+
+/* The shared pill shape, shrunk and quieted down: these tags are read-only metadata, so they must not carry the
+   context menu's tappable-button look (dark outline, roomy padding). The hairline stays — several tags sit side by
+   side and need an edge to tell them apart — but drops to neutral-300 with 10px gray text. */
+.label-hover-card__tags .tag-pill {
+  padding: calc(2px * var(--ui-scale)) calc(7px * var(--ui-scale));
+  outline-color: var(--color-neutral-300);
+}
+
+.label-hover-card__tags .tag-pill__label {
+  font: var(--text-tiny-medium);
+  color: var(--color-neutral-700);
+}
+
+/* Tiny, matching the chips above it — at caption size it was the largest thing in a body made of 10px chips, so
+   the least important field read as the most prominent. The token's own 12px line-height is too tight for a
+   description that wraps, so only that is overridden. */
+.label-hover-card__description {
+  display: none;
+  font: var(--text-tiny-regular);
+  line-height: 1.45;
+  font-style: italic;
+  color: var(--color-neutral-700);
+  overflow-wrap: anywhere;
+}
+
+/* Empty state: no rating, no tags, no description. Validate always has a body to fill because it names the label it
+   is asking about; Explore collapses the body instead, since a label with nothing in it is one the user just placed
+   and is about to fill in. */
+.label-hover-card__no-info {
+  display: none;
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-700);
+}
+
+/* Footer action buttons (design-system button-ps/button--tiny). */
+.label-hover-card__actions {
+  display: flex;
+  gap: calc(6px * var(--ui-scale));
+  padding: calc(6px * var(--ui-scale)) calc(10px * var(--ui-scale)) calc(8px * var(--ui-scale));
+  border-top: 1px solid var(--color-neutral-200);
+}
+
+.label-hover-card__action-button {
+  flex: 1;
+  justify-content: center;
+  gap: calc(5px * var(--ui-scale));
+}
+
+.label-hover-card__action-button svg,
+.label-hover-card__action-button img {
+  flex: none;
+  width: calc(12px * var(--ui-scale));
+  height: calc(12px * var(--ui-scale));
+}

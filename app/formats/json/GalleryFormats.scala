@@ -30,11 +30,12 @@ object GalleryFormats {
   )
   case class GalleryLabelsRequest(
       n: Int,
-      labelTypeId: Option[Int],
+      labelTypeIds: Option[Seq[Int]],
       validationOptions: Option[Seq[String]],
       regionIds: Option[Seq[Int]],
       severities: Option[Seq[String]],
-      tags: Option[Seq[String]],
+      // Tags narrow the label type they belong to, so they arrive keyed by type name rather than as one flat list.
+      tagsByLabelType: Option[Map[String, Seq[String]]],
       aiValidationOptions: Option[Seq[String]],
       loadedLabels: Seq[Int],
       sort: Option[String],
@@ -68,11 +69,11 @@ object GalleryFormats {
 
   implicit val galleryLabelsRequestReads: Reads[GalleryLabelsRequest] = (
     (JsPath \ "n").read[Int] and
-      (JsPath \ "label_type_id").readNullable[Int] and
+      (JsPath \ "label_type_ids").readNullable[Seq[Int]] and
       (JsPath \ "validation_options").readNullable[Seq[String]] and
       (JsPath \ "neighborhoods").readNullable[Seq[Int]] and
       (JsPath \ "severities").readNullable[Seq[String]] and
-      (JsPath \ "tags").readNullable[Seq[String]] and
+      (JsPath \ "tags_by_label_type").readNullable[Map[String, Seq[String]]] and
       (JsPath \ "ai_validation_options").readNullable[Seq[String]] and
       (JsPath \ "loaded_labels").read[Seq[Int]] and
       (JsPath \ "sort").readNullable[String] and

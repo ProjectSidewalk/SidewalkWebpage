@@ -87,23 +87,28 @@ function filterLabelLayers(checkbox, map, mapData, highQualityFilter) {
 }
 
 /**
- * Filters the street layer based on the audited/unaudited street checkboxes.
+ * Filters the street layer based on the audited/outdated/unaudited street checkboxes.
+ *
+ * Streets carry a three-state status (#4384): audited (has an audit on current imagery), outdated (audited before,
+ * but newer imagery exists), or unaudited (neither property set). On pages without the outdated checkbox, outdated
+ * streets follow the audited checkbox.
  * @param {object} map The Mapbox map object.
  */
 function filterStreetLayer(map) {
   const includeAudited = document.getElementById('audited-street').checked;
+  const includeOutdated = document.getElementById('outdated-street')?.checked ?? includeAudited;
   const includeUnaudited = document.getElementById('unaudited-street').checked;
-  if (includeAudited && includeUnaudited) {
-    map.setLayoutProperty('streets', 'visibility', 'visible');
-    map.setFilter('streets', null);
-  } else if (includeAudited) {
-    map.setLayoutProperty('streets', 'visibility', 'visible');
-    map.setFilter('streets', ['==', 'audited', true]);
-  } else if (includeUnaudited) {
-    map.setLayoutProperty('streets', 'visibility', 'visible');
-    map.setFilter('streets', ['==', 'audited', false]);
-  } else {
+
+  const included = [];
+  if (includeAudited) included.push(['==', ['get', 'audited'], true]);
+  if (includeOutdated) included.push(['==', ['get', 'outdated'], true]);
+  if (includeUnaudited) included.push(['all', ['!=', ['get', 'audited'], true], ['!=', ['get', 'outdated'], true]]);
+
+  if (included.length === 0) {
     map.setLayoutProperty('streets', 'visibility', 'none');
+  } else {
+    map.setLayoutProperty('streets', 'visibility', 'visible');
+    map.setFilter('streets', included.length === 3 ? null : ['any', ...included]);
   }
 }
 
@@ -148,7 +153,7 @@ function CreateMapLayerTracker() {
 }
 
 /**
- * Searches for a region id in the query string. If found, centers the map on that region.
+ * Searches for a region id in the query string. If found, frames the map on that region.
  * @param {object} map The Mapbox map object.
  */
 function setRegionFocus(map) {
@@ -158,10 +163,23 @@ function setRegionFocus(map) {
     if (regionId && map.getLayer('neighborhood-polygons')) {
       const region = map.queryRenderedFeatures({ layers: ['neighborhood-polygons'] })
         .filter((f) => f.id === Number(regionId))[0];
-      if (region) {
-        map.setCenter(turf.center(region).geometry.coordinates);
-        map.zoomTo(13);
-      }
+      // Fitting the region's own bounds frames neighborhoods of every size, where one zoom level can only suit one.
+      if (region) map.fitBounds(geometryBounds(region.geometry), { padding: 40 });
     }
   }, 250);
+}
+
+/**
+ * Returns the bounds enclosing a GeoJSON geometry, whatever its nesting depth (point through multi-polygon).
+ * @param {object} geometry The GeoJSON geometry.
+ * @returns {mapboxgl.LngLatBounds} Bounds covering every coordinate in it.
+ */
+function geometryBounds(geometry) {
+  const bounds = new mapboxgl.LngLatBounds();
+  const extend = (coords) => {
+    if (typeof coords[0] === 'number') bounds.extend(coords);
+    else coords.forEach(extend);
+  };
+  extend(geometry.coordinates);
+  return bounds;
 }

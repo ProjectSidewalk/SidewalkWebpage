@@ -16,11 +16,9 @@ class MissionPanel {
    */
   setMessage(mission) {
     const missionType = mission.getProperty('missionType');
+    const isRoute = svl.neighborhoodModel.isRoute;
 
-    // The header gains a "Route: <route-number>" suffix when on a user-defined route.
-    if (svl.neighborhoodModel.isRoute) {
-      this.#headerEl.innerHTML = i18next.t('right-ui.current-mission.header-route', { route_number: svl.routeId });
-    } else if (missionType === 'exploreAddress') {
+    if (missionType === 'exploreAddress') {
       this.#headerEl.innerHTML = i18next.t('right-ui.current-mission.header-free-explore');
     } else {
       this.#headerEl.innerHTML = i18next.t('right-ui.current-mission.header');
@@ -33,6 +31,9 @@ class MissionPanel {
       missionMessage = i18next.t('tutorial.mission-message');
     } else if (missionType === 'exploreAddress') {
       missionMessage = '';
+    } else if (isRoute) {
+      // On a user-defined route the mission is the route itself, so name it rather than the neighborhood.
+      missionMessage = i18next.t('right-ui.current-mission.message-route', { routeName: svl.routeName });
     } else {
       // The regular mission message names the neighborhood being explored.
       const neighborhood = svl.neighborhoodModel.currentNeighborhood();
@@ -40,8 +41,8 @@ class MissionPanel {
       missionMessage = i18next.t('right-ui.current-mission.message', { neighborhoodName });
     }
 
-    if (missionType === 'audit') {
-      const distanceString = this.#distanceToString(mission.getDistance('miles'), 'miles');
+    if (missionType === 'audit' && !isRoute) {
+      const distanceString = util.distanceToString(util.math.milesToMeters(mission.getDistance('miles')));
       missionMessage = missionMessage.replace('__PLACEHOLDER__', distanceString);
     }
 
@@ -51,24 +52,5 @@ class MissionPanel {
     // available on hover (and leave no redundant tooltip when it already fits).
     const clipped = this.#descriptionEl.scrollWidth > this.#descriptionEl.clientWidth;
     this.#descriptionEl.title = clipped ? this.#descriptionEl.textContent : '';
-  }
-
-  /**
-   * Converts a mission distance to a localized, rounded display string with its unit abbreviation.
-   * @param {number} distance The distance value.
-   * @param {string} unit The unit of the passed distance ("feet", "miles", or "kilometers").
-   * @returns {string}
-   */
-  #distanceToString(distance, unit = 'kilometers') {
-    // Convert to meters first.
-    if (unit === 'feet') distance = util.math.feetToMeters(distance);
-    else if (unit === 'miles') distance = util.math.milesToMeters(distance);
-    else if (unit === 'kilometers') distance = util.math.kmsToMeters(distance);
-
-    const distanceType = i18next.t('common:measurement-system');
-    const unitAbbreviation = i18next.t('common:unit-abbreviation-mission-distance');
-
-    if (distanceType === 'metric') return `${util.math.roundToTwentyFive(distance)} ${unitAbbreviation}`;
-    return `${util.math.roundToTwentyFive(util.math.metersToFeet(distance))} ${unitAbbreviation}`;
   }
 }
