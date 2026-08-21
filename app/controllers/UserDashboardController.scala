@@ -65,8 +65,8 @@ class UserDashboardController @Inject() (
   }
 
   /**
-   * Renders the redesigned Leaderboard prototype: community-impact band, podium, weekly/all-time/team tables, and a
-   * "you vs community" standing widget, sharing the dashboard shell.
+   * Renders the redesigned Leaderboard prototype: this city's impact band, podium, weekly/all-time/team tables, a
+   * "you vs community" standing widget, and the cross-city boards, sharing the dashboard shell.
    *
    * A `UserAwareAction` (#4643), so the general public — including cookie-less visitors and anonymous auto-accounts —
    * can view it without an account being minted. The view shows the community/podium/tables to everyone and gates the
@@ -81,20 +81,20 @@ class UserDashboardController @Inject() (
     // Kicked off before the for-comprehension so the cross-city union overlaps the per-city queries on a cache miss.
     val globalF: Future[Option[Seq[GlobalLeaderboardEntry]]] = userService.getGlobalLeaderboardStats(10)
     for {
-      commonData <- configService.getCommonPageData(request2Messages.lang)
-      aggregate  <- configService.getAggregateStats()
-      overall    <- userService.getLeaderboardStats(10)
-      weekly     <- userService.getLeaderboardStats(10, "weekly")
-      teams      <- userService.getLeaderboardStats(10, "overall", byTeam = true)
-      standing   <- signedInUser
+      commonData          <- configService.getCommonPageData(request2Messages.lang)
+      (aggregate, impact) <- configService.getAggregateStatsWithCurrentCity()
+      overall             <- userService.getLeaderboardStats(10)
+      weekly              <- userService.getLeaderboardStats(10, "weekly")
+      teams               <- userService.getLeaderboardStats(10, "overall", byTeam = true)
+      standing            <- signedInUser
         .map(u => userService.getUserStanding(u.userId))
         .getOrElse(Future.successful(None))
       global <- globalF
     } yield {
       cc.loggingService.insert(user.map(_.userId), request.ipAddress, "Visit_Leaderboard")
       Ok(
-        views.html.userDashboard.leaderboard(commonData, user, isSignedIn, isMetric, cityName, aggregate, overall,
-          weekly, teams, standing, global)
+        views.html.userDashboard.leaderboard(commonData, user, isSignedIn, isMetric, cityName, aggregate, impact,
+          overall, weekly, teams, standing, global)
       )
     }
   }
