@@ -42,18 +42,17 @@
 @fmtBig(n: Int) = @{ if (n >= 1000000) f"${n / 1000000.0}%.1fM" else "%,d".format(n) }
 
 @*
-* A headline count for one of the two impact bands. Once the abbreviation kicks in, "1.6M" is all a screen reader
-* gets, so the exact figure rides along visually hidden.
+* Once the abbreviation kicks in, "1.6M" is all a screen reader gets, so the exact figure rides along visually hidden.
+* A String rather than Html so the bridge can pass it as a Messages arg; it holds only digits and our own tags, so the
+* @@Html that renders it has nothing to escape.
 *@
-@bigCount(n: Int) = {
-  @defining("%,d".format(n)) { exact =>
-    @if(fmtBig(n) != exact) {
-      <span aria-hidden="true">@fmtBig(n)</span><span class="ud-sr-only">@exact</span>
-    } else {
-      @exact
-    }
-  }
+@bigCountMarkup(n: Int) = @{
+  val exact = "%,d".format(n)
+  if (fmtBig(n) != exact) s"""<span aria-hidden="true">${fmtBig(n)}</span><span class="ud-sr-only">$exact</span>"""
+  else exact
 }
+
+@bigCount(n: Int) = { @Html(bigCountMarkup(n)) }
 
 @* Total distance explored across all cities, unit-aware and comma-grouped (kmExplored is stored in km). *@
 @fmtBigDist(km: Double) = @{
@@ -171,8 +170,9 @@
           <dd class="ud-impact-value">@fmtBigDist(cityImpact.kmExploredNoOverlap)</dd>
         </div>
       </dl>
-      @* One line of the cross-city story up top, linking to the full band, so the totals aren't printed twice. *@
-      <p class="ud-impact-bridge">@Messages("leaderboard.hero.bridge", aggregate.numCities, fmtBig(aggregate.totalLabels))
+      @* One line of the cross-city story up top; the full band at #global carries contributors and distance too. *@
+      <p class="ud-impact-bridge">@Html(Messages("leaderboard.hero.bridge", aggregate.numCities,
+        bigCountMarkup(aggregate.totalLabels), bigCountMarkup(aggregate.totalValidations)))
         <a href="#global">@Messages("leaderboard.hero.bridge.link")</a></p>
     }
 
