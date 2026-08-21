@@ -5,12 +5,15 @@ import controllers.helper.ControllerUtils.isAdmin
 import controllers.helper.SignedMediaUtils
 import formats.json.StoryFormats
 import models.auth.{DefaultEnv, WithAdmin}
-import models.story.{Story, StoryPhotoUpload, StoryRejection}
+import models.story.{Story, StoryMedia, StoryPhotoUpload, StoryRejection}
 import play.api.libs.json.{JsBoolean, Json}
 import play.api.{Configuration, Logger}
 import play.silhouette.api.Silhouette
 import service.{ConfigService, ImageSigningService, RateLimiter, StoryService}
 
+import java.io.File
+import java.time.{Duration, OffsetDateTime}
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
@@ -199,19 +202,53 @@ class StoryController @Inject() (
     earlyReject match {
       case Some(result) => Future.successful(result)
       case None         =>
+        // The three misses below — no such row, hidden from this viewer, bytes gone — must stay externally
+        // indistinguishable, so a prober can't tell which ids exist or are hidden; the one shared value keeps a
+        // future reword from splitting them apart.
+        val notFound = NotFound("Story media not found.")
         storyService.getMediaForServing(storyMediaId).map {
-          case None                 => NotFound("Story media not found.")
+          case None                 => notFound
           case Some((media, story)) =>
             val file = storyService.storyMediaFile(storyMediaId)
-            if (!story.viewableBy(request.identity.map(_.userId), isAdmin(request.identity)) || !file.exists())
-              NotFound("Story media not found.")
-            else
+            if (!file.exists()) {
+              // Missing bytes are data loss, not an ordinary miss, and the response has to stay a plain 404, so the
+              // log is the only place it can be said. Checked before viewability so hidden stories count too —
+              // otherwise a loss inventory built from this log would silently exclude every moderated story.
+              logLostMedia(media, file)
+              notFound
+            } else if (!story.viewableBy(request.identity.map(_.userId), isAdmin(request.identity))) {
+              notFound
+            } else
               // `private`: whether a hidden story's media serves depends on who's asking, so shared caches must
               // never hold it; the viewer's own browser may, for as long as the signed URL stays valid.
               Ok.sendFile(file, inline = true)
                 .as(media.mimeType)
                 .withHeaders("Cache-Control" -> s"private, max-age=${signingService.expirySeconds}")
         }
+    }
+  }
+
+  // serveStoryMedia's data-loss tripwire (#4925): one entry per media id already reported, so a busy page
+  // re-requesting one lost file reads as one loss in the log, not hundreds.
+  private val lostMediaLogged = ConcurrentHashMap.newKeySet[Int]()
+
+  // The upload flow commits the media row before the file move lands (StoryService's place-before-commit windows), so
+  // a row this young with no bytes is almost certainly mid-upload, not loss. The window is sub-second; a minute is
+  // generous slack.
+  private val lostMediaGrace = Duration.ofMinutes(1)
+
+  /**
+   * Logs a media row whose bytes are missing from disk. This error is a post-#4925 tripwire someone is expected to
+   * investigate, so it is kept high-signal: skipped inside the upload grace window (a false alarm has real cost) and
+   * logged once per media id per instance.
+   *
+   * @param media The media row whose file is missing.
+   * @param file  Where the bytes should have been.
+   */
+  private def logLostMedia(media: StoryMedia, file: File): Unit = {
+    val inUploadWindow = media.createdAt.isAfter(OffsetDateTime.now.minus(lostMediaGrace))
+    if (!inUploadWindow && lostMediaLogged.add(media.storyMediaId)) {
+      logger.error(s"story_media ${media.storyMediaId} has no file on disk at ${file.getAbsolutePath}")
     }
   }
 

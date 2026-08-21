@@ -10,7 +10,7 @@ import models.utils.MyPostgresProfile.api._
 import models.utils.{CommonUtils, ImageUtils, MyPostgresProfile, ProfanityGuard}
 import org.postgresql.util.PSQLException
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import play.api.{Configuration, Logger}
+import play.api.{Configuration, Environment, Logger}
 
 import java.awt.image.BufferedImage
 import java.io.File
@@ -63,6 +63,7 @@ trait StoryService {
 class StoryServiceImpl @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     config: Configuration,
+    environment: Environment,
     storyTable: models.story.StoryTable,
     labelTable: models.label.LabelTable,
     labelService: LabelService,
@@ -78,8 +79,8 @@ class StoryServiceImpl @Inject() (
   private val maxAltTextLength: Int = config.get[Int]("stories.max-alt-text-length")
   private val maxPerDay: Int        = config.get[Int]("stories.max-per-user-per-day")
   private val photoMaxBytes: Long   = config.get[Long]("stories.photo-max-bytes")
-  private val mediaBaseDir: String  =
-    config.get[String]("story.media.directory") + File.separator + config.get[String]("city-id")
+  // Resolved through MediaDirs, the same resolver PersistentMediaDirCheck models the write path with (#4925).
+  private val mediaBaseDir: File = MediaDirs.cityDir(config, environment, "story.media.directory")
 
   // Upload formats the composer's accept attribute advertises, validated against the SNIFFED format (never the
   // client-declared MIME type). Deliberately narrow: the stock JVM ImageIO has no WebP/HEIC reader, so widening this

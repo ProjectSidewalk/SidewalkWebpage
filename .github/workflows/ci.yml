@@ -311,6 +311,9 @@ jobs:
       #   labels of one type and the seed has none, so only its auth and malformed-payload cases run. Both suites'
       #   data preconditions check for an assignable region rather than a bare street count, because the template's
       #   lone tutorial street belongs to no region and /explore 500s on that (#4748) instead of answering.
+      # - PersistentMediaDirCheckSpec (#4925): user-uploaded media must resolve outside the application directory,
+      #   which a deploy rebuilds and deletes. Pure logic, no DB — and the failure it guards against is invisible to
+      #   every other test, since the broken config behaves correctly right up until the next release.
       # - PanoExpiredAtSpec / BackgroundJobRunTableSpec / JobRunServiceSpec / StreetLifecycleServiceSpec (#4928): the
       #   transition records the admin trend and nightly-job panels read. Each seeds its own rows rather than hunting
       #   for them, so they assert real behavior against an empty seed: the expiry stamp only lands on the false ->
@@ -352,7 +355,7 @@ jobs:
       #   asserts nearest-street attribution, so it is the one to watch against this job's seed (see #4923's note about
       #   the seed cloning the tutorial street's geometry); it passes against a real city schema.
       - name: Run gating/auth tests (health dashboard + route auth posture + geodesic distances)
-        run: sbt 'set Test / parallelExecution := false' 'testOnly controllers.HealthDashboardSpec service.HealthServiceSpec controllers.RouteAuthPostureSpec models.street.GeodesicDistanceSpec service.ExploreTutorialRouteSpec controllers.MobileDetectionSpec service.PanoDataServiceSpec service.ActivityBreakdownSpec service.ConfigServiceTrendSpec models.utils.CityScorecardSpec models.utils.ConfigTableVoidedArchiveSpec controllers.api.StatsApiSpec controllers.ExploreSubmissionSpec controllers.ValidateSubmissionSpec controllers.ExploreNoImageryRateLimitSpec models.pano.PanoExpiredAtSpec models.utils.BackgroundJobRunTableSpec service.JobRunServiceSpec service.NightlyJobStatusSpec service.StreetLifecycleServiceSpec models.audit.OutdatedImageryFlagSyncSpec models.audit.OutdatedImageryRoutingSpec models.street.UpToDateCoverageSpec models.street.NoImageryReportsSpec models.utils.EnumTypeParitySpec actor.ScheduledJobsSpec service.ImageryPollOutcomeSpec models.street.StreetPriorityAdminSpec service.ImageryFreshnessReportSpec models.street.StreetImageryPollSpec models.street.StreetImageryTableSpec service.ImageryFreshnessPollSpec service.ImageryFreshnessReportServiceSpec controllers.ImageryAdminSpec models.street.StreetPriorityForAdminSpec'
+        run: sbt 'set Test / parallelExecution := false' 'testOnly controllers.HealthDashboardSpec service.HealthServiceSpec controllers.RouteAuthPostureSpec models.street.GeodesicDistanceSpec service.ExploreTutorialRouteSpec controllers.MobileDetectionSpec service.PanoDataServiceSpec service.ActivityBreakdownSpec service.ConfigServiceTrendSpec models.utils.CityScorecardSpec models.utils.ConfigTableVoidedArchiveSpec controllers.api.StatsApiSpec controllers.ExploreSubmissionSpec controllers.ValidateSubmissionSpec controllers.ExploreNoImageryRateLimitSpec models.pano.PanoExpiredAtSpec models.utils.BackgroundJobRunTableSpec service.JobRunServiceSpec service.NightlyJobStatusSpec service.StreetLifecycleServiceSpec models.audit.OutdatedImageryFlagSyncSpec models.audit.OutdatedImageryRoutingSpec models.street.UpToDateCoverageSpec models.street.NoImageryReportsSpec models.utils.EnumTypeParitySpec actor.ScheduledJobsSpec service.ImageryPollOutcomeSpec models.street.StreetPriorityAdminSpec service.ImageryFreshnessReportSpec models.street.StreetImageryPollSpec models.street.StreetImageryTableSpec service.ImageryFreshnessPollSpec service.ImageryFreshnessReportServiceSpec controllers.ImageryAdminSpec models.street.StreetPriorityForAdminSpec modules.PersistentMediaDirCheckSpec'
         env:
           DATABASE_URL: jdbc:postgresql://localhost:5432/sidewalk
           DATABASE_USER: sidewalk
@@ -407,7 +410,14 @@ jobs:
       INFRA3D_CLIENT_SECRET_ZURICH: DUMMY_INFRA3D_CLIENT_SECRET
       INFRA3D_CLIENT_SECRET_WINTERTHUR: DUMMY_INFRA3D_CLIENT_SECRET
       ENV_TYPE: local
-      SIDEWALK_IMAGES_DIR: .crops
+      # The staged app runs in prod mode, which arms PersistentMediaDirCheck (#4925): every media directory must
+      # resolve outside the build tree or the app refuses to boot. Literal paths, not ${{ runner.temp }} — the
+      # `runner` context is unavailable in a job-level `env:`, and referencing it there fails the whole workflow at
+      # load time, which shows up as a run with no jobs rather than as a failing check.
+      SIDEWALK_IMAGES_DIR: /tmp/sidewalk-media/crops
+      SIDEWALK_PANO_DIR: /tmp/sidewalk-media/panos
+      SIDEWALK_SHARE_IMAGES_DIR: /tmp/sidewalk-media/share-images
+      SIDEWALK_STORY_MEDIA_DIR: /tmp/sidewalk-media/story-media
     steps:
       - uses: actions/checkout@v7
 
