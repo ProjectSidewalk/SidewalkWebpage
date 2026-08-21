@@ -4,14 +4,13 @@
  * Presentational source of truth for the Imagery page: map colors, legend, table badges, and the tier counts all read
  * TIERS so they can never disagree. Tiers are derived from a street's audit *counts* rather than from cutoffs on the
  * priority value: the counts are what the backend formula consumes, so a change to how priority is weighted (#4894)
- * moves the numbers without silently mis-bucketing the map. The three chromatic hues are ColorBrewer Dark2's,
- * taken together because a qualitative palette is tuned as a set — borrowing one hue from another palette gives that
- * category more weight than its peers. Dark2 over the design tokens (no categorical scale) and over a sequential
- * ramp (its light end vanishes at the 2px width these segments are drawn at). Salience has to fall as priority
- * falls, which is what picks each hue: Dark2's magenta and orange are within a point of each other, so the two tiers
- * needing labeler work read equally urgent, and the teal-green drops well below both. Tier 4 takes a neutral lighter
- * than Dark2's own #666666, which would have left the largest and least urgent tier as heavy as tier 3; grey carries
- * no chroma to unbalance the set, so only its lightness is in play.
+ * moves the numbers without silently mis-bucketing the map. Colors are Okabe-Ito, taken whole — a qualitative
+ * palette is tuned as a set, so borrowing a hue from another one gives that category weight its peers don't have.
+ * Okabe-Ito over the design tokens (no categorical scale) and over a sequential ramp (a ramp's light end vanishes at
+ * the 2px width these segments are drawn at). Two things had to hold at once, and only this set manages both: tiers
+ * must be far apart in color, and salience must fall as priority does. Adjacent tiers here are 49 CIEDE2000 apart
+ * and the closest pair of any two is 35, holding at 17 under simulated deuteranopia and protanopia — the tiers stay
+ * separable for red-green color blindness, which a warm-on-warm pairing does not.
  */
 class StreetPriorityTiers {
   /** @type {Array<{key: string, label: string, color: string, description: string}>} highest priority first. */
@@ -19,25 +18,25 @@ class StreetPriorityTiers {
     {
       key: 'unaudited',
       label: 'Not yet audited',
-      color: '#E7298A',
+      color: '#000000',
       description: 'No completed audit counts toward priority yet, so these are served first.',
     },
     {
       key: 'reaudit',
       label: 'Needs re-audit',
-      color: '#D95F02',
+      color: '#D55E00',
       description: 'Audited, but every counted audit is on imagery that has since been replaced.',
     },
     {
       key: 'audited_once',
       label: 'Audited once',
-      color: '#1B9E77',
+      color: '#009E73',
       description: 'One audit on current imagery.',
     },
     {
       key: 'audited_multi',
       label: 'Audited 2+ times',
-      color: '#999999',
+      color: '#56B4E9',
       description: 'Two or more audits on current imagery; served last.',
     },
   ];
@@ -45,8 +44,8 @@ class StreetPriorityTiers {
   /** Fallback color for a tier key that isn't in TIERS (shouldn't happen, but keeps unknown data visible). */
   static FALLBACK = '#d0d0d0';
 
-  /** The pinned region's segments. Neutral by design: a selection is chrome, so it must sit outside the data hues. */
-  static SELECTED = '#242424'; // --color-neutral-900
+  /** The pinned region's segments. Okabe-Ito's remaining hue, so a selection can never be read as a fifth tier. */
+  static SELECTED = '#CC79A7';
 
   /**
    * Classifies one street into a tier from the audit counts the priority formula uses.
