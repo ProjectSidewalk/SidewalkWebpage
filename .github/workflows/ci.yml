@@ -111,6 +111,14 @@ jobs:
         if: always()
         run: node tools/check-locale-parity.mjs
 
+      # Advisory while the jsdom layer grows toward the Phase 1 bar (#2487) — findings report but don't block, matching
+      # the Python-tests job. jest.config.js scopes the run to test/js/, so it never touches production JS. Run locally
+      # with `npm run test:js`.
+      - name: Jest (frontend unit, advisory)
+        if: always()
+        continue-on-error: true
+        run: npm run test:js
+
   evolutions-lint:
     name: Evolutions lint
     runs-on: ubuntu-latest
