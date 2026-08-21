@@ -14,13 +14,16 @@ FROM mcr.microsoft.com/playwright:v${PW_VERSION}-noble
 ARG PW_VERSION
 
 # Installed under our own prefix rather than into the image's global root, because NODE_PATH must name a
-# literal directory and the base image's global root has moved between releases. The repo is mounted at /home,
-# whose node_modules is the web container's volume — it holds the app's dev tooling but not @playwright/test,
-# so NODE_PATH is what lets playwright.config.js and the specs resolve require('@playwright/test').
+# literal directory and the base image's global root has moved between releases. NODE_PATH is what lets
+# playwright.config.js and the specs, which live in the mounted repo at /home, resolve require('@playwright/test').
+# It is a fallback, though — Node reaches it only after the node_modules walk comes up empty, and the repo's own
+# node_modules does carry @playwright/test. `make test-e2e` masks that directory with a tmpfs for exactly this
+# reason; see the note on the target. The npm cache is dropped so it doesn't ride along in the layer.
 RUN mkdir -p /opt/pw \
   && cd /opt/pw \
   && npm init -y > /dev/null \
-  && npm install --no-fund --no-audit "@playwright/test@${PW_VERSION}"
+  && npm install --no-fund --no-audit "@playwright/test@${PW_VERSION}" \
+  && npm cache clean --force
 
 ENV NODE_PATH=/opt/pw/node_modules
 ENV PATH=/opt/pw/node_modules/.bin:${PATH}

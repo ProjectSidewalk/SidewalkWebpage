@@ -16,7 +16,6 @@ wt=<name>` for a branch under QA); that occupies a terminal, so run the suite fr
 make test-e2e                                  # the whole suite
 make test-e2e args="-g labelMap --no-deps"     # one page (see the --no-deps note below)
 make test-e2e wt=<worktree-name>               # a worktree's specs instead of the main checkout's
-BASE_URL=http://localhost:9001 make test-e2e   # non-default port
 ```
 
 **There is no setup step.** The runner is a container built from [`docker/e2e/Dockerfile`](../../docker/e2e/Dockerfile)
@@ -26,11 +25,19 @@ natively), with no host Node and no `playwright install`. The image builds on fi
 `package.json`'s `@playwright/test` pin changes, because `make` derives both the image tag and the installed
 runner from that one pin.
 
-Two details worth knowing when something looks odd. The runner joins the **web container's network namespace**,
-which is why `BASE_URL` stays `localhost:9000` — `conf/application.local.conf` allows only that host, so a
-request addressed to `web:9000` would be turned away by Play's host filter. It also inherits the web container's
-mounts, so the repo is at `/home` and worktree paths resolve unchanged. Reports, traces, and screenshots land in
-`test-results/`: gitignored, and root-owned like every other container-produced artifact in this repo.
+Three details worth knowing when something looks odd:
+
+- The runner joins the **web container's network namespace**, so `localhost:9000` inside it is the dev app.
+  `BASE_URL` exists mainly for CI; locally there is little to point it at, because
+  `conf/application.local.conf` sets `play.filters.hosts.allowed = ["localhost:9000"]` and Play's host filter
+  400s anything else — including `web:9000` and any other port — and because `localhost` now resolves inside
+  the web container rather than on your host.
+- It inherits the web container's **mounts** (not its image filesystem), so the repo is at `/home` and worktree
+  paths resolve unchanged. The one exception is `/home/node_modules`, which is deliberately masked with an empty
+  tmpfs so `require('@playwright/test')` resolves to the runner in the image instead of the repo's own copy —
+  two copies in one process makes Playwright abort with *"did not expect `test()` to be called here"*.
+- Reports, traces, and screenshots land in gitignored `test-results/`, written as **your** uid (the runner passes
+  `--user`), so you can read and delete them from the host like any other file.
 
 Works against a populated dev DB or an empty CI-style one — specs tolerate both. `/explore` and `/validate`
 self-skip unless you `export HAS_REAL_GMAPS_KEY=true` (phase 2, below).
