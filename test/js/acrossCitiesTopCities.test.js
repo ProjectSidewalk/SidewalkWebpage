@@ -14,12 +14,13 @@
 const fs = require('fs');
 const path = require('path');
 
-const PAGE_PATH = path.resolve(__dirname, '..', '..', 'public/js/admin-dashboard/AcrossCitiesPage.js');
+const JS_DIR = path.resolve(__dirname, '..', '..', 'public/js/admin-dashboard');
 
-/** Load AcrossCitiesPage.js and return the class binding. */
+/** Load AcrossCitiesPage.js, plus the AdminShell helpers every dashboard page reads, and return the class binding. */
 function loadPage() {
-  const src = fs.readFileSync(PAGE_PATH, 'utf8');
-  return (0, eval)(`${src}\nAcrossCitiesPage;`);
+  const shell = fs.readFileSync(path.join(JS_DIR, 'AdminShell.js'), 'utf8');
+  const src = fs.readFileSync(path.join(JS_DIR, 'AcrossCitiesPage.js'), 'utf8');
+  return (0, eval)(`${shell}\nglobalThis.AdminShell = AdminShell;\n${src}\nAcrossCitiesPage;`);
 }
 
 /**

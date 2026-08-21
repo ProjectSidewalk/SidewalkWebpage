@@ -21,7 +21,7 @@ Request flow: **routes → Controller → Service → Table (DAO)**.
 - **`app/service/`** — business logic (e.g. `LabelService`, `ValidationService`, `ExploreService`, `AccessScoreService`, `ApiService`). Controllers should delegate here rather than touching tables directly.
 - **`app/models/`** — Slick table definitions and queries, grouped by domain (`label/`, `validation/`, `mission/`, `region/`, `street/`, `route/`, `user/`, `cluster/`, `gallery/`, `api/`, ...). Files named `*Table.scala` define schema + queries (DAO pattern).
 - **`app/models/utils/MyPostgresProfile.scala`** — custom Slick Postgres profile wiring in PostGIS geometry, JSON, and other slick-pg extensions. Spatial query helpers are in `SpatialQueryDefs.scala`.
-- **DI**: Guice. App bootstraps via `app/CustomApplicationLoader.scala`; modules registered in `conf/application.conf` and defined in `app/modules/` (`CustomControllerModule`, `ActorModule`, `ExecutorsModule`, `SilhouetteModule`). Custom execution contexts are in `app/executors/`; background actors in `app/actor/`.
+- **DI**: Guice. App bootstraps via `app/CustomApplicationLoader.scala`; modules registered in `conf/application.conf` and defined in `app/modules/` (`CustomControllerModule`, `ActorModule`, `ExecutorsModule`, `SilhouetteModule`, `StartupChecksModule` — the last is the home for boot-time deployment-misconfiguration checks like `PersistentMediaDirCheck`, #4925). Custom execution contexts are in `app/executors/`; background actors in `app/actor/`.
 - **Views**: Twirl templates (`app/views/*.scala.html`). The sbt build silences warnings in `views/` and the routes file specifically.
 
 ### API data structures (`app/models/api/`)
@@ -89,7 +89,7 @@ Each major UI is a self-contained app under `public/js/`, bundled separately by 
 - **`explore/`** — the Explore/Audit tool (users label accessibility issues on street-view panoramas). The largest app; internal namespace global is still `svl`.
 - **`validate/`** — the Validate tool (users confirm/reject others' labels).
 - **`gallery/`** — browsable gallery of labels with filtering; internal namespace global is still `sg`.
-- **`admin/`** — admin dashboards and maps.
+- **`admin/`** — the legacy admin page's maps and dashboards. The redesigned admin dashboard (#4272) lives beside it in **`admin-dashboard/`**, which is served file-by-file rather than bundled: one `<PageName>Page.js` per route, loaded by that page's Twirl template, with shared helpers in `AdminShell.js`.
 - **`user-dashboard/`** — user dashboards.
 - **`ps-map/`** — shared map component used across pages.
 - **`help/`** — help/faq page (rarely used).

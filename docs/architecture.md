@@ -82,9 +82,25 @@ The backend follows a consistent layering: **routes → Controller → Service �
 
 DI is Guice. The app bootstraps via `app/CustomApplicationLoader.scala`; modules are registered in
 `conf/application.conf` and defined in `app/modules/` (`CustomControllerModule`, `ActorModule`, `ExecutorsModule`,
-`SilhouetteModule`). Custom execution contexts live in `app/executors/`; background actors in `app/actor/`.
+`SilhouetteModule`, and `StartupChecksModule` — the home for boot-time checks that surface deployment-level
+misconfiguration, like `PersistentMediaDirCheck`). Custom execution contexts live in `app/executors/`; background
+actors in `app/actor/`.
 
 **Views** are Twirl templates (`app/views/*.scala.html`).
+
+### Background jobs
+
+Each deployment runs a set of nightly jobs as pekko actors in `app/actor/` — the imagery expiry sweep, the
+imagery-age poll and freshness sync, street-priority recalculation, user and funnel stats, label clustering, OSM way
+refresh, AI validations, and auth-token cleanup. The schedule lives in one place, `app/actor/ScheduledJobs.scala`:
+each actor reads its own time from there, staggered across the small hours and shifted per city by
+`ConfigService.getOffsetHours` so 50+ deployments don't contend for the same database and provider quotas.
+
+Every run is bracketed by `JobRunService.record`, which writes a `background_job_run` row — start, finish, outcome,
+and the job's own counts as JSONB (#4928). Without it, a job that silently stops firing is indistinguishable from one
+that found nothing to do, since the absence of a log line is not something anyone notices. `/admin/health` renders
+the roster, flagging any job that is overdue, failed, or has never run. The wrapper is strictly subordinate to the
+job: a bookkeeping failure is logged and swallowed, and a job's own failure propagates unchanged.
 
 ### The public API (`/v3`)
 
@@ -125,7 +141,10 @@ corresponding Twirl view:
 - **`explore/`** — the Explore/Audit tool (label accessibility issues on street-view panoramas). The largest app.
 - **`validate/`** — the Validate tool (confirm/reject others' labels).
 - **`gallery/`** — browsable, filterable gallery of labels.
-- **`admin/`** — admin dashboards and maps.
+- **`admin/`** — the legacy admin page's maps and dashboards. The redesigned admin dashboard (#4272) lives beside it
+  in **`admin-dashboard/`**, which is served file-by-file rather than bundled: one `<PageName>Page.js` per route,
+  loaded by that page's Twirl template. `AdminShell.js` loads on every one of those pages and holds the shared
+  formatting helpers (escaping, numbers, durations, relative times, the standard table markup).
 - **`user-dashboard/`** — user dashboards.
 - **`ps-map/`** — shared map component used across pages.
 - **`help/`** — help/FAQ page.

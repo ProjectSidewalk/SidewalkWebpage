@@ -3,7 +3,9 @@ package actor
 import actor.ActorUtils.{dateFormatter, getTimeToNextUpdate}
 import org.apache.pekko.actor.{Actor, Cancellable}
 import play.api.Logger
-import service.{ClusterService, ConfigService}
+import models.utils.JobRunTrigger
+import play.api.libs.json.Json
+import service.{ClusterService, ConfigService, JobRunService}
 
 import java.time.Instant
 import javax.inject._
@@ -17,7 +19,7 @@ object ClusteringActor {
 }
 
 @Singleton
-class ClusteringActor @Inject() (clusterService: ClusterService)(implicit
+class ClusteringActor @Inject() (clusterService: ClusterService, jobRunService: JobRunService)(implicit
     ec: ExecutionContext,
     configService: ConfigService
 ) extends Actor {
@@ -29,10 +31,14 @@ class ClusteringActor @Inject() (clusterService: ClusterService)(implicit
     super.preStart()
     // Get the number of hours later to run the code in this city. Used to stagger computation/resource use.
     configService.getOffsetHours.foreach { hoursOffset =>
-      // Target time is 4:00 am Pacific + offset.
+      // Scheduled time comes from ScheduledJobs, shifted by this city's offset.
       cancellable = Some(
         context.system.scheduler.scheduleAtFixedRate(
-          getTimeToNextUpdate(4, 0, hoursOffset).toMillis.millis,
+          getTimeToNextUpdate(
+            ScheduledJobs.Clustering.hour,
+            ScheduledJobs.Clustering.minute,
+            hoursOffset
+          ).toMillis.millis,
           24.hours,
           self,
           ClusteringActor.Tick
@@ -51,12 +57,16 @@ class ClusteringActor @Inject() (clusterService: ClusterService)(implicit
   def receive: Receive = { case ClusteringActor.Tick =>
     val currentTimeStart: String = dateFormatter.format(Instant.now())
     logger.info(s"Auto-scheduled clustering of labels starting at: $currentTimeStart")
-    clusterService.runClustering().onComplete {
-      case Success(results) =>
-        val currentEndTime: String = dateFormatter.format(Instant.now())
-        logger.info(s"Label clustering completed at: $currentEndTime")
-        logger.info("Clustering results: " + results)
-      case Failure(e) => logger.error(s"Error clustering labels: ${e.getMessage}")
-    }
+    jobRunService
+      .record(ClusteringActor.Name, JobRunTrigger.Scheduled)(clusterService.runClustering()) { results =>
+        Json.obj("labels_clustered" -> results.labelCount, "clusters_created" -> results.clusterCount)
+      }
+      .onComplete {
+        case Success(results) =>
+          val currentEndTime: String = dateFormatter.format(Instant.now())
+          logger.info(s"Label clustering completed at: $currentEndTime")
+          logger.info("Clustering results: " + results)
+        case Failure(e) => logger.error(s"Error clustering labels: ${e.getMessage}")
+      }
   }
 }

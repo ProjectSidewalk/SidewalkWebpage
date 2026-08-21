@@ -28,8 +28,7 @@ trait ValidationService {
   def countValidations(userId: String): Future[Int]
   def insertEnvironment(env: ValidationTaskEnvironment): Future[Int]
   def insertMultipleInteractions(interactions: Seq[ValidationTaskInteraction]): Future[Seq[Int]]
-  def insertComment(comment: ValidationTaskComment): Future[Int]
-  def deleteCommentIfExists(labelId: Int, userId: String): Future[Int]
+  def replaceComment(comment: ValidationTaskComment): Future[Int]
   def submitValidations(validationSubmissions: Seq[ValidationSubmission]): Future[Seq[Int]]
   def submitValidationsDbio(validationSubmissions: Seq[ValidationSubmission]): DBIO[Seq[Int]]
 }
@@ -55,6 +54,17 @@ class ValidationServiceImpl @Inject() (
 
   /** SQLState for a Postgres unique-constraint violation. */
   private val UniqueViolation: String = "23505"
+
+  /**
+   * Runs a write that replaces a user's earlier row, re-running it once if a concurrent writer got there first.
+   *
+   * Neither write path can see a concurrent writer's uncommitted row: one reads its own snapshot to decide whether to
+   * replace and finds nothing, the other deletes and removes nothing, so both go on to insert. Re-running once is
+   * enough: the winner has committed by then, so the retry's read or delete does see its row (#4377, #4942).
+   */
+  private def runWithUniqueViolationRetry[T](action: => DBIO[T]): Future[T] = {
+    db.run(action).recoverWith { case e: PSQLException if e.getSQLState == UniqueViolation => db.run(action) }
+  }
 
   def countValidations: Future[Int]                 = db.run(labelValidationTable.countValidations)
   def countHumanValidations: Future[Int]            = db.run(labelValidationTable.countHumanValidations)
@@ -216,10 +226,17 @@ class ValidationServiceImpl @Inject() (
   def insertMultipleInteractions(interactions: Seq[ValidationTaskInteraction]): Future[Seq[Int]] =
     db.run(validationTaskInteractionTable.insertMultiple(interactions))
 
-  def insertComment(comment: ValidationTaskComment): Future[Int] = db.run(validationTaskCommentTable.insert(comment))
-
-  def deleteCommentIfExists(labelId: Int, userId: String): Future[Int] =
-    db.run(validationTaskCommentTable.deleteIfExists(labelId, userId))
+  /**
+   * Records the user's comment on a label, replacing whatever they had said about it before.
+   *
+   * @return The validation_task_comment_id of the comment that was stored.
+   */
+  def replaceComment(comment: ValidationTaskComment): Future[Int] = runWithUniqueViolationRetry {
+    (for {
+      _         <- validationTaskCommentTable.deleteIfExists(comment.labelId, comment.userId)
+      commentId <- validationTaskCommentTable.insert(comment)
+    } yield commentId).transactionally
+  }
 
   /**
    * Updates severity and tags in the label table and saves the change in the label_history table. Called from Validate.
@@ -266,16 +283,8 @@ class ValidationServiceImpl @Inject() (
    * @param validationSubmissions A sequence of ValidationSubmission objects
    * @return A sequence of the label_validation_ids of the inserted/updated validations.
    */
-  def submitValidations(validationSubmissions: Seq[ValidationSubmission]): Future[Seq[Int]] = {
-    // The duplicate check in submitValidationsDbio reads its own snapshot, so two overlapping submissions of the same
-    // validation can both find nothing and race to insert. Re-running once is enough: the winner has committed by
-    // then, so the retry sees the row and takes the replace path (#4377).
-    val submission = db.run(submitValidationsDbio(validationSubmissions))
-    submission.recoverWith {
-      case e: PSQLException if e.getSQLState == UniqueViolation =>
-        db.run(submitValidationsDbio(validationSubmissions))
-    }
-  }
+  def submitValidations(validationSubmissions: Seq[ValidationSubmission]): Future[Seq[Int]] =
+    runWithUniqueViolationRetry(submitValidationsDbio(validationSubmissions))
 
   /**
    * Submits a set of validations from a POST request on Validate.
