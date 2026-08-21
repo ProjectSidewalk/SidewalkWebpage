@@ -174,6 +174,12 @@ trait HealthService {
 
   /** Reads every health signal and assembles the dashboard payload. */
   def getDbHealth: Future[DbHealthData]
+
+  /**
+   * The state of every nightly job, cached. Shared with panels that report on one pipeline's jobs (#4908), so that
+   * "is this job overdue" has one definition rather than one per page.
+   */
+  def getNightlyJobs: Future[Seq[NightlyJobStatus]]
 }
 
 @Singleton
@@ -252,9 +258,7 @@ class HealthServiceImpl @Inject() (
         logger.warn(s"Health: failed to read pano backup stats: ${e.getMessage}"); None
       }
     val evoF  = getStuckEvolutions
-    val jobsF = cacheApi
-      .getOrElseUpdate[Seq[NightlyJobStatus]]("health.jobs", slowTtl)(getNightlyJobs)
-      .recover(logAndEmpty("nightly jobs"))
+    val jobsF = getNightlyJobs.recover(logAndEmpty("nightly jobs"))
 
     for {
       env      <- envF
@@ -290,7 +294,12 @@ class HealthServiceImpl @Inject() (
    * still gets a row — a scheduler that never started leaves no rows at all, which is precisely the failure a
    * rows-driven listing would render as an empty, healthy-looking panel.
    */
-  private def getNightlyJobs: Future[Seq[NightlyJobStatus]] = {
+  def getNightlyJobs: Future[Seq[NightlyJobStatus]] = {
+    cacheApi.getOrElseUpdate[Seq[NightlyJobStatus]]("health.jobs", slowTtl)(loadNightlyJobs)
+  }
+
+  /** Assembles the roster's job states from `background_job_run`; cached by [[getNightlyJobs]]. */
+  private def loadNightlyJobs: Future[Seq[NightlyJobStatus]] = {
     val now            = OffsetDateTime.now
     val windowStart    = now.minusDays(HealthService.JobWindowDays.toLong)
     val abandonedSince = now.minusHours(HealthService.JobAbandonedAfterHours)

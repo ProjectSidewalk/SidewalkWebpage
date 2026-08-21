@@ -1,22 +1,32 @@
 @import controllers.helper.ControllerUtils.distanceUnitWords
-@import service.{AggregateStats, CommonPageData, GlobalLeaderboardEntry}
+@import service.{AggregateStats, CityImpact, CommonPageData, GlobalLeaderboardEntry}
 @import models.user.{LeaderboardStat, SidewalkUserWithRole, UserStanding}
 @import play.api.Configuration
 @(commonData: CommonPageData, user: Option[SidewalkUserWithRole], isSignedIn: Boolean, isMetric: Boolean, cityName: String,
-    aggregate: AggregateStats, overall: Seq[LeaderboardStat], weekly: Seq[LeaderboardStat],
-    teams: Seq[LeaderboardStat], standing: Option[UserStanding], global: Option[Seq[GlobalLeaderboardEntry]]
+    aggregate: AggregateStats, impact: Option[CityImpact], overall: Seq[LeaderboardStat],
+    weekly: Seq[LeaderboardStat], teams: Seq[LeaderboardStat], standing: Option[UserStanding],
+    global: Option[Seq[GlobalLeaderboardEntry]]
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @*
-* Redesigned Leaderboard, all real data. Sections run this-city first, then all-cities: the podium + this-week + teams
-* tables and "your place" (getLeaderboardStats / getUserStanding), then the all-time board spanning every deployment
-* (getGlobalLeaderboardStats, a cross-schema union) and the community-impact band (getAggregateStats).
+* Redesigned Leaderboard, all real data. Sections run this-city first, then all-cities: the hero impact band
+* (getCurrentCityImpact), the podium + this-week + teams tables and "your place" (getLeaderboardStats /
+* getUserStanding), then the all-time board spanning every deployment (getGlobalLeaderboardStats, a cross-schema
+* union) and the community-impact band (getAggregateStats). The hero and that closing band read the same cached
+* fan-out, so every hero number is a strict subset of its cross-city counterpart rather than a second opinion (#4687).
 * PUBLIC page: anyone incl. anonymous can view; personal "you" pieces render only when signed in, with a sign-up CTA
-* otherwise. `global` is None when the cross-city board is unavailable, which drops the section entirely.
+* otherwise. `impact` and `global` are None when their data is unavailable, which drops those sections entirely.
 *@
 
 @* Named once because every distance on the board uses it. Twirl compiles this to a def, so it is not memoized. *@
 @unitWords = @{distanceUnitWords}
+
+@*
+* Every figure below groups and rounds through `formatLocal` rather than plain `format`/`f""`, which would use the
+* server JVM's default locale — so a German page would read "1,600,000" and "2.4M" instead of "1.600.000" and "2,4M".
+* MessageFormat already formats the args it interpolates this way; this is the same rule for the ones we pre-format.
+*@
+@locale = @{messages.lang.toLocale}
 
 @*
 * Unit-aware distance, matching the live leaderboard's formatting (km/m for metric, miles/feet otherwise). The
@@ -25,23 +35,42 @@
 *@
 @fmtDist(m: Double) = @{
   if (isMetric) {
-    if (m > 2000) f"${m / 1000}%.1f ${unitWords.abbr}" else f"$m%.0f ${unitWords.abbrSmall}"
+    if (m > 2000) "%.1f %s".formatLocal(locale, m / 1000, unitWords.abbr)
+    else "%.0f %s".formatLocal(locale, m, unitWords.abbrSmall)
   } else {
     val ft = m * 3.28084
-    if (ft > 2500) f"${ft / 5280}%.1f ${unitWords.abbr}" else f"$ft%.0f ${unitWords.abbrSmall}"
+    if (ft > 2500) "%.1f %s".formatLocal(locale, ft / 5280, unitWords.abbr)
+    else "%.0f %s".formatLocal(locale, ft, unitWords.abbrSmall)
   }
 }
 
 @* Accuracy as a whole percent, or "N/A" when there aren't enough validated labels to be meaningful. *@
-@fmtAcc(a: Option[Double]) = @{ a.map(x => f"${x * 100}%.0f%%").getOrElse(Messages("not.applicable.abbr")) }
+@fmtAcc(a: Option[Double]) = @{
+  a.map(x => "%.0f%%".formatLocal(locale, x * 100)).getOrElse(Messages("not.applicable.abbr"))
+}
+
+@* A plain grouped count (19,343), for the table cells that print one directly. *@
+@fmtCount(n: Int) = @{ "%,d".formatLocal(locale, n) }
 
 @* Big community numbers: abbreviate at a million (1.6M), otherwise comma-group (19,343) — matches the comps. *@
-@fmtBig(n: Int) = @{ if (n >= 1000000) f"${n / 1000000.0}%.1fM" else "%,d".format(n) }
+@fmtBig(n: Int) = @{ if (n >= 1000000) "%.1fM".formatLocal(locale, n / 1000000.0) else fmtCount(n) }
 
-@* Total distance explored across all cities, unit-aware and comma-grouped (kmExplored is stored in km). *@
+@*
+* Once the abbreviation kicks in, "1.6M" is all a screen reader gets, so the exact figure rides along visually hidden.
+* A String rather than Html so the bridge can pass it as a Messages arg; it holds only digits and our own tags, so the
+* @@Html that renders it has nothing to escape.
+*@
+@bigCountMarkup(n: Int) = @{
+  if (n >= 1000000) s"""<span aria-hidden="true">${fmtBig(n)}</span><span class="ud-sr-only">${fmtCount(n)}</span>"""
+  else fmtCount(n)
+}
+
+@bigCount(n: Int) = @{Html(bigCountMarkup(n))}
+
+@* Whole-unit distance for the impact bands, unit-aware (both bands' values are stored in km). *@
 @fmtBigDist(km: Double) = @{
   val dist = if (isMetric) km else km * 0.621371
-  s"${"%,.0f".format(dist)} ${unitWords.abbr}"
+  s"${"%,.0f".formatLocal(locale, dist)} ${unitWords.abbr}"
 }
 
 @*
@@ -71,7 +100,7 @@
       <td>@if(you){<strong>@Messages("dashboard.you")</strong>}else{
         @if(linkUser){<a href="@routes.UserDashboardController.publicProfile(stat.username)" class="ud-lb-user">@stat.username</a>}else{@stat.username}
       }</td>
-      <td>@{"%,d".format(stat.labelCount)}</td>
+      <td>@{fmtCount(stat.labelCount)}</td>
       <td>@stat.missionCount</td>
       <td>@fmtDist(stat.distanceMeters)</td>
       <td>@fmtAcc(stat.accuracy)</td>
@@ -104,7 +133,7 @@
         }
       }</td>
       <td>@topCityCell(entry.topCityId)</td>
-      <td>@{"%,d".format(entry.labelCount)}</td>
+      <td>@{fmtCount(entry.labelCount)}</td>
       <td>@entry.missionCount</td>
       <td>@fmtDist(entry.distanceMeters)</td>
       <td>@fmtAcc(entry.accuracy)</td>
@@ -115,7 +144,7 @@
 @podiumSpot(stat: LeaderboardStat, place: Int, medal: String) = {
   <div class="ud-podium-spot ud-podium-@place">
     <div class="ud-podium-name"><a href="@routes.UserDashboardController.publicProfile(stat.username)" class="ud-lb-user">@stat.username</a></div>
-    <div class="ud-podium-score">@Messages("leaderboard.podium.labels", "%,d".format(stat.labelCount))</div>
+    <div class="ud-podium-score">@Messages("leaderboard.podium.labels", fmtCount(stat.labelCount))</div>
     <div class="ud-podium-block"><span aria-hidden="true">@medal</span><span class="ud-sr-only">@Messages(s"dashboard.rank.place.${Seq("one", "two", "three")(place - 1)}")</span></div>
   </div>
 }
@@ -124,6 +153,52 @@
   <div class="api-section" id="lb-intro-section">
     <h1 class="api-heading" id="leaderboard">@Messages("navbar.leaderboard") <a href="#leaderboard" class="permalink">#</a></h1>
     <p>@if(isSignedIn){@Messages("leaderboard.intro.you")}else{@Messages("leaderboard.intro")}</p>
+
+    @*
+    * ---- Hero: this city's totals (#4687) ------------------------------------------------------------------
+    * The h2 carries neither `api-heading` nor an id, which is exactly what AdminShell.js selects on, so the band
+    * gets a real place in the document outline without claiming a row in the right-hand contents list. Naming the
+    * city in it also satisfies the rule that a city-scoped section says which city it is (#3719).
+    *
+    * Marked up as a description list so a screen reader announces the label with its number rather than two loose
+    * spans; the value is painted above its label by the CSS, which is why the dt comes first in the markup.
+    *
+    * The streets tile carries a tooltip because the closing band prints the same words over a different measure:
+    * this one counts a re-audited street once, that one counts every completed audit of it.
+    *@
+    @impact.map { cityImpact =>
+      <h2 class="ud-impact-caption">@Messages("leaderboard.hero.caption", cityName)</h2>
+      <dl class="ud-impact-band">
+        <div class="ud-impact-stat">
+          <dt class="ud-impact-label">@Messages("leaderboard.community.contributors")</dt>
+          <dd class="ud-impact-value">@bigCount(cityImpact.contributors)</dd>
+        </div>
+        <div class="ud-impact-stat">
+          <dt class="ud-impact-label">@Messages("leaderboard.community.labels")</dt>
+          <dd class="ud-impact-value">@bigCount(cityImpact.totalLabels)</dd>
+        </div>
+        <div class="ud-impact-stat">
+          <dt class="ud-impact-label">@Messages("validations")</dt>
+          <dd class="ud-impact-value">@bigCount(cityImpact.totalValidations)</dd>
+        </div>
+        <div class="ud-impact-stat">
+          <dt class="ud-impact-label">
+            <span class="ud-th-tip" tabindex="0" role="note"
+                aria-label="@Messages("leaderboard.community.streets") @Messages("leaderboard.hero.streets.detail")"
+                data-tooltip="@Messages("leaderboard.hero.streets.detail")">@Messages("leaderboard.community.streets")<span class="ud-th-info" aria-hidden="true">&#9432;</span></span>
+          </dt>
+          <dd class="ud-impact-value">@fmtBigDist(cityImpact.kmExploredNoOverlap)</dd>
+        </div>
+      </dl>
+    }
+
+    @*
+    * One line of the cross-city story up top; the full band at #global carries contributors and distance too. Outside
+    * the block above because it reads `aggregate`, which is still good when this city's own slice is missing.
+    *@
+    <p class="ud-impact-bridge">@Html(Messages("leaderboard.hero.bridge", aggregate.numCities,
+      bigCountMarkup(aggregate.totalLabels), bigCountMarkup(aggregate.totalValidations)))
+      <a href="#global">@Messages("leaderboard.hero.bridge.link")</a></p>
 
     @if(!isSignedIn) {
       <div class="ud-cta">
@@ -269,15 +344,15 @@
     <div class="ud-community-band">
       <div class="ud-community-stat">
         <img class="ud-community-icon" src="@assets.path("images/icons/project_sidewalk_flag.png")" alt="">
-        <span class="ud-community-value">@fmtBig(aggregate.totalUsers)</span><span class="ud-community-label">@Messages("leaderboard.community.contributors")</span>
+        <span class="ud-community-value">@bigCount(aggregate.totalUsers)</span><span class="ud-community-label">@Messages("leaderboard.community.contributors")</span>
       </div>
       <div class="ud-community-stat">
         <img class="ud-community-icon" src="@assets.path("images/icons/noun_pin_location_2342268_cropped.png")" alt="">
-        <span class="ud-community-value">@fmtBig(aggregate.totalLabels)</span><span class="ud-community-label">@Messages("leaderboard.community.labels")</span>
+        <span class="ud-community-value">@bigCount(aggregate.totalLabels)</span><span class="ud-community-label">@Messages("leaderboard.community.labels")</span>
       </div>
       <div class="ud-community-stat">
         <img class="ud-community-icon" src="@assets.path("images/icons/noun_validation_1876484_cropped.png")" alt="">
-        <span class="ud-community-value">@fmtBig(aggregate.totalValidations)</span><span class="ud-community-label">@Messages("validations")</span>
+        <span class="ud-community-value">@bigCount(aggregate.totalValidations)</span><span class="ud-community-label">@Messages("validations")</span>
       </div>
       <div class="ud-community-stat">
         <img class="ud-community-icon" src="@assets.path("images/icons/noun_distance_2587675_cropped.png")" alt="">
