@@ -4,11 +4,12 @@
  * Presentational source of truth for the Imagery page: map colors, legend, table badges, and the tier counts all read
  * TIERS so they can never disagree. Tiers are derived from a street's audit *counts* rather than from cutoffs on the
  * priority value: the counts are what the backend formula consumes, so a change to how priority is weighted (#4894)
- * moves the numbers without silently mis-bucketing the map. Colors are a qualitative palette rather than design
- * tokens: the token set has no categorical scale, and a sequential ramp's light end disappears at the 2px width
- * these segments are drawn at. Warm hues are the two tiers that need labeler work, cool the two that are covered.
- * Unaudited is a rare tier — a few streets in a city — so it takes the highest-salience hue rather than a near
- * neighbor of the orange it has to be found against.
+ * moves the numbers without silently mis-bucketing the map. Colors are four hues from ColorBrewer Set1, taken whole
+ * rather than assembled: a qualitative palette is tuned as a set, so borrowing one hue from another palette gives
+ * that category more visual weight than its peers. Set1 over the design tokens because the token set has no
+ * categorical scale, and over a sequential ramp because a ramp's light end disappears at the 2px width these
+ * segments are drawn at. Warm reads as needing labeler work, cool as covered, and Set1's grey is light enough to
+ * let the largest tier recede.
  */
 class StreetPriorityTiers {
   /** @type {Array<{key: string, label: string, color: string, description: string}>} highest priority first. */
@@ -16,25 +17,25 @@ class StreetPriorityTiers {
     {
       key: 'unaudited',
       label: 'Not yet audited',
-      color: '#E7298A',
+      color: '#984EA3',
       description: 'No completed audit counts toward priority yet, so these are served first.',
     },
     {
       key: 'reaudit',
       label: 'Needs re-audit',
-      color: '#F28E2B',
+      color: '#FF7F00',
       description: 'Audited, but every counted audit is on imagery that has since been replaced.',
     },
     {
       key: 'audited_once',
       label: 'Audited once',
-      color: '#76B7B2',
+      color: '#377EB8',
       description: 'One audit on current imagery.',
     },
     {
       key: 'audited_multi',
       label: 'Audited 2+ times',
-      color: '#BAB0AC',
+      color: '#999999',
       description: 'Two or more audits on current imagery; served last.',
     },
   ];
@@ -42,8 +43,8 @@ class StreetPriorityTiers {
   /** Fallback color for a tier key that isn't in TIERS (shouldn't happen, but keeps unknown data visible). */
   static FALLBACK = '#d0d0d0';
 
-  /** High-contrast color for the pinned region's segments, distinct from all four tier colors. */
-  static SELECTED = '#0566f5'; // --color-accent-link
+  /** The pinned region's segments. Neutral by design: a selection is chrome, so it must sit outside the data hues. */
+  static SELECTED = '#242424'; // --color-neutral-900
 
   /**
    * Classifies one street into a tier from the audit counts the priority formula uses.
