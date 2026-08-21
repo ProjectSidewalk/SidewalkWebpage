@@ -1,13 +1,12 @@
 package controllers.api
 
 import controllers.base.CustomControllerComponents
-import models.api.ApiModelUtils.toSnakeKey
-import models.api.{ApiError, DailyStatRecord, ProjectSidewalkStats, UserStatForApi}
+import models.api.{AggregateStats, ApiError, DailyStatRecord, ProjectSidewalkStats, UserStatForApi}
 import play.api.Logger
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.Json
 import play.api.mvc.Result
 import play.silhouette.api.Silhouette
-import service.{AggregateStats, ApiService, ConfigService}
+import service.{ApiService, ConfigService}
 
 import java.time.LocalDate
 import javax.inject.{Inject, Singleton}
@@ -115,19 +114,18 @@ class StatsApiController @Inject() (
         // Generate response in the requested format.
         filetype match {
           case Some("csv") =>
-            val csvContent   = generateAggregateStatsCsv(aggregateStats)
             val baseFileName = timestampedFilename("aggregateStats")
 
             // Create temporary CSV file (following the same pattern as other endpoints).
             val aggregateStatsFile = new java.io.File(s"$baseFileName.csv")
             val writer             = new java.io.PrintStream(aggregateStatsFile)
-            writer.print(csvContent)
+            writer.print((AggregateStats.csvHeader +: aggregateStats.toCsvRows).mkString("\n"))
             writer.close()
 
             Ok.sendFile(content = aggregateStatsFile, onClose = () => { aggregateStatsFile.delete(); () })
 
           case _ => // Default to JSON
-            Ok(aggregateStatsToJson(aggregateStats))
+            Ok(aggregateStats.toJson)
         }
 
       }
@@ -135,82 +133,6 @@ class StatsApiController @Inject() (
         logger.error(s"Failed to retrieve aggregate statistics: ${e.getMessage}", e)
         ApiError.toResult(ApiError.internalServerError(s"Failed to retrieve aggregate statistics: ${e.getMessage}"))
       }
-  }
-
-  /**
-   * Converts aggregate statistics to JSON format.
-   *
-   * This method creates a JSON representation of the aggregate statistics that matches the expected format for the
-   * frontend aggregator replacement, now including deployment counts for cities, countries, and languages.
-   *
-   * @param stats The aggregate statistics to convert
-   * @return JSON representation of the statistics
-   */
-  private def aggregateStatsToJson(stats: AggregateStats): JsObject = {
-
-    // Convert label type statistics to JSON. Field names are snake_case per the v3 API convention (#3871).
-    val labelTypeJson = stats.byLabelType.map { case (labelType, labelStats) =>
-      labelType -> Json.obj(
-        "labels"                    -> labelStats.labels,
-        "labels_validated"          -> labelStats.labelsValidated,
-        "labels_validated_agree"    -> labelStats.labelsValidatedAgree,
-        "labels_validated_disagree" -> labelStats.labelsValidatedDisagree
-      )
-    }
-
-    // Create the main JSON response (following the same pattern as other endpoints).
-    Json.obj(
-      "status"                 -> "OK",
-      "km_explored"            -> stats.kmExplored,
-      "km_explored_no_overlap" -> stats.kmExploredNoOverlap,
-      "total_labels"           -> stats.totalLabels,
-      "tutorial_labels"        -> stats.tutorialLabels,
-      "total_validations"      -> stats.totalValidations,
-      "total_users"            -> stats.totalUsers,
-      "num_cities"             -> stats.numCities,
-      "num_countries"          -> stats.numCountries,
-      "num_languages"          -> stats.numLanguages,
-      "by_label_type"          -> labelTypeJson
-    )
-  }
-
-  /**
-   * Generates CSV format for aggregate statistics.
-   *
-   * This method creates a CSV representation of the aggregate statistics suitable for data analysis and reporting
-   * purposes. It follows the same pattern as other CSV generation methods in the controller.
-   *
-   * @param stats The aggregate statistics to convert
-   * @return CSV formatted string
-   */
-  private def generateAggregateStatsCsv(stats: AggregateStats): String = {
-    // Keys are snake_case per the v3 API convention (#3871); toSnakeKey normalizes the labels.
-    val header     = "metric,value\n"
-    val basicStats = Seq(
-      s"${toSnakeKey("KM Explored")},${stats.kmExplored}",
-      s"${toSnakeKey("KM Explored No Overlap")},${stats.kmExploredNoOverlap}",
-      s"${toSnakeKey("Total Labels")},${stats.totalLabels}",
-      s"${toSnakeKey("Tutorial Labels")},${stats.tutorialLabels}",
-      s"${toSnakeKey("Total Validations")},${stats.totalValidations}",
-      s"${toSnakeKey("Total Users")},${stats.totalUsers}",
-      s"${toSnakeKey("Number of Cities")},${stats.numCities}",
-      s"${toSnakeKey("Number of Countries")},${stats.numCountries}",
-      s"${toSnakeKey("Number of Languages")},${stats.numLanguages}"
-    )
-
-    // Add label-specific statistics.
-    val labelTypeStats = stats.byLabelType.flatMap { case (labelType, labelStats) =>
-      Seq(
-        s"${toSnakeKey(s"$labelType Labels")},${labelStats.labels}",
-        s"${toSnakeKey(s"$labelType Labels Validated")},${labelStats.labelsValidated}",
-        s"${toSnakeKey(s"$labelType Labels Validated Agree")},${labelStats.labelsValidatedAgree}",
-        s"${toSnakeKey(s"$labelType Labels Validated Disagree")},${labelStats.labelsValidatedDisagree}"
-      )
-    }
-
-    // Combine all statistics
-    val allStats = basicStats ++ labelTypeStats
-    header + allStats.mkString("\n")
   }
 
   /**

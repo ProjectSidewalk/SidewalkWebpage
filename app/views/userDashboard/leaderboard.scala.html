@@ -1,5 +1,6 @@
 @import controllers.helper.ControllerUtils.distanceUnitWords
-@import service.{AggregateStats, CityImpact, CommonPageData, GlobalLeaderboardEntry}
+@import service.{CityImpact, CommonPageData, GlobalLeaderboardEntry}
+@import models.api.AggregateStats
 @import models.user.{LeaderboardStat, SidewalkUserWithRole, UserStanding}
 @import play.api.Configuration
 @(commonData: CommonPageData, user: Option[SidewalkUserWithRole], isSignedIn: Boolean, isMetric: Boolean, cityName: String,
