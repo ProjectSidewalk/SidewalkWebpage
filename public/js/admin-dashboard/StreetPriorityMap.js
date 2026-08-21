@@ -4,12 +4,14 @@
  * Presentational source of truth for the Imagery page: map colors, legend, table badges, and the tier counts all read
  * TIERS so they can never disagree. Tiers are derived from a street's audit *counts* rather than from cutoffs on the
  * priority value: the counts are what the backend formula consumes, so a change to how priority is weighted (#4894)
- * moves the numbers without silently mis-bucketing the map. Colors are four hues from ColorBrewer Set1, taken whole
- * rather than assembled: a qualitative palette is tuned as a set, so borrowing one hue from another palette gives
- * that category more visual weight than its peers. Set1 over the design tokens because the token set has no
- * categorical scale, and over a sequential ramp because a ramp's light end disappears at the 2px width these
- * segments are drawn at. Warm reads as needing labeler work, cool as covered, and Set1's grey is light enough to
- * let the largest tier recede.
+ * moves the numbers without silently mis-bucketing the map. The three chromatic hues are ColorBrewer Dark2's,
+ * taken together because a qualitative palette is tuned as a set — borrowing one hue from another palette gives that
+ * category more weight than its peers. Dark2 over the design tokens (no categorical scale) and over a sequential
+ * ramp (its light end vanishes at the 2px width these segments are drawn at). Salience has to fall as priority
+ * falls, which is what picks each hue: Dark2's magenta and orange are within a point of each other, so the two tiers
+ * needing labeler work read equally urgent, and the teal-green drops well below both. Tier 4 takes a neutral lighter
+ * than Dark2's own #666666, which would have left the largest and least urgent tier as heavy as tier 3; grey carries
+ * no chroma to unbalance the set, so only its lightness is in play.
  */
 class StreetPriorityTiers {
   /** @type {Array<{key: string, label: string, color: string, description: string}>} highest priority first. */
@@ -17,19 +19,19 @@ class StreetPriorityTiers {
     {
       key: 'unaudited',
       label: 'Not yet audited',
-      color: '#984EA3',
+      color: '#E7298A',
       description: 'No completed audit counts toward priority yet, so these are served first.',
     },
     {
       key: 'reaudit',
       label: 'Needs re-audit',
-      color: '#FF7F00',
+      color: '#D95F02',
       description: 'Audited, but every counted audit is on imagery that has since been replaced.',
     },
     {
       key: 'audited_once',
       label: 'Audited once',
-      color: '#377EB8',
+      color: '#1B9E77',
       description: 'One audit on current imagery.',
     },
     {
