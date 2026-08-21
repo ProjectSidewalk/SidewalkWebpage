@@ -21,6 +21,10 @@
     </button>
   }
   <div class="label-detail__pano"></div>
+  @* Hide-label toggle (#2477): steps the marker aside so the feature under it can be seen, leaving a dashed ring.
+     LabelDetail fills in the icon and wording, which reverse with the state. Tooltip below — the button is at the
+     pano's top edge. *@
+  <button type="button" class="label-detail__hide-label" data-ps-tooltip-placement="bottom"></button>
   @* Hover overlay with Agree/Disagree/Unsure buttons. Toggle buttons: clicking the pressed one clears the vote
      (#4653), so `aria-pressed` is what tells assistive tech that, and LabelDetail keeps it in sync per label. *@
   <div class="label-detail__pano-overlay" role="group" aria-label="Validate label">

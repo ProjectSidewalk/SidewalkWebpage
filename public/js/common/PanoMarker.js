@@ -104,7 +104,7 @@ class PanoMarker {
    */
   createMarker = function () {
     const marker = document.createElement('div');
-    marker.classList.add('icon-outline');
+    marker.classList.add('icon-outline', 'label-marker');
 
     // Basic style attributes for every marker.
     marker.style.position = 'absolute';
@@ -129,13 +129,17 @@ class PanoMarker {
     if (this.title_) {
       marker.title = this.title_;
     }
+    // --label-icon rather than the element's own background, so hiding the label can crossfade just the icon
+    // (.label-marker::before) while the ring around it stays to mark the spot.
     if (this.icon_) {
-      marker.style.backgroundImage = `url(${this.icon_})`;
+      marker.style.setProperty('--label-icon', `url(${this.icon_})`);
     }
 
     // If neither icon, class nor id is specified, assign the basic Google Maps marker image to the marker.
     if (!(this.id_ || this.className_ || this.icon_)) {
-      marker.style.backgroundImage = 'url(https://www.google.com/intl/en_us/mapfiles/ms/micons/red-dot.png)';
+      marker.style.setProperty(
+        '--label-icon', 'url(https://www.google.com/intl/en_us/mapfiles/ms/micons/red-dot.png)',
+      );
     }
 
     this.marker_ = marker;
@@ -361,7 +365,7 @@ class PanoMarker {
   setIcon = function (icon) {
     this.icon_ = icon;
     if (this.marker_) {
-      this.marker_.style.backgroundImage = icon ? `url(${icon})` : '';
+      this.marker_.style.setProperty('--label-icon', icon ? `url(${icon})` : '');
     }
   };
 
