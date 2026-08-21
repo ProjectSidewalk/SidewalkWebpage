@@ -1,10 +1,8 @@
 package controllers.api
 
 import controllers.base.CustomControllerComponents
-import controllers.helper.ControllerUtils.labelTypeOrdering
-import formats.json.ApiFormats._
-import models.api.{ApiError, DailyStatRecord, UserStatForApi}
-import models.label.ProjectSidewalkStats
+import models.api.ApiModelUtils.toSnakeKey
+import models.api.{ApiError, DailyStatRecord, ProjectSidewalkStats, UserStatForApi}
 import play.api.Logger
 import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.Result
@@ -25,18 +23,6 @@ class StatsApiController @Inject() (
     extends BaseApiController(cc) {
 
   private val logger = Logger(this.getClass)
-
-  /**
-   * Converts a human-readable or camelCase/PascalCase label into a snake_case CSV key (#3871).
-   *
-   * @param label The label to convert, e.g. "KM Explored" or "CurbRamp Count".
-   * @return The snake_case key, e.g. "km_explored" or "curb_ramp_count".
-   */
-  private def toSnakeKey(label: String): String =
-    label.trim
-      .replaceAll("([a-z\\d])([A-Z])", "$1_$2") // split camelCase/PascalCase boundaries
-      .replaceAll("\\s+", "_")                  // spaces to underscores
-      .toLowerCase
 
   /**
    * Returns statistics for registered users in either JSON or CSV format with optional filtering.
@@ -96,75 +82,11 @@ class StatsApiController @Inject() (
           case Some("csv") =>
             val sidewalkStatsFile = new java.io.File(s"$baseFileName.csv")
             val writer            = new java.io.PrintStream(sidewalkStatsFile, "UTF-8")
-
-            // Each row is "snake_case_key,value" per the v3 API convention (#3871); toSnakeKey normalizes the label.
-            def row(label: String, value: Any): Unit = writer.println(s"${toSnakeKey(label)},$value")
-
-            row("Launch Date", stats.launchDate)
-            row("Recent Labels Average Timestamp", stats.avgTimestampLast100Labels.getOrElse("NA"))
-            row("KM Explored", stats.kmExplored)
-            row("KM Explored Without Overlap", stats.kmExploreNoOverlap)
-            row("KM Explored Multiple Users", stats.kmExploredMultipleUsers)
-            row("KM Explored Single User", stats.kmExploredSingleUser)
-            row("KM Needs Reaudit", stats.kmNeedsReaudit)
-            row("KM Explorable", stats.kmOpen) // Auditable-now network (status = open); alias of KM Open below.
-            row("KM Open", stats.kmOpen)
-            row("KM No Imagery", stats.kmNoImagery)
-            row("KM Closed", stats.kmClosed)
-            row("KM Disabled", stats.kmDisabled)
-            row("Total User Count", stats.nUsers)
-            row("Explore User Count", stats.nExplorers)
-            row("Validate User Count", stats.nValidators)
-            row("Registered User Count", stats.nRegistered)
-            row("Anonymous User Count", stats.nAnon)
-            row("Turker User Count", stats.nTurker)
-            row("Researcher User Count", stats.nResearcher)
-            row("Total Label Count", stats.nLabels)
-            row("Total Label Count With Severity", stats.nLabelsWithSeverity)
-            row("Average Label Timestamp", stats.avgLabelTimestamp.getOrElse("NA"))
-            val avgImgAge: String = stats.avgImageAgeByLabel.map(avg => s"${avg.toDays} Days").getOrElse("NA")
-            row("Average Age of Image When Labeled", avgImgAge)
-            val stddevLabelTs: String = stats.stddevLabelTimestamp.map(sd => s"${sd.toDays} Days").getOrElse("NA")
-            row("Stddev Label Timestamp", stddevLabelTs)
-            val stddevImgAge: String = stats.stddevImageAgeByLabel.map(sd => s"${sd.toDays} Days").getOrElse("NA")
-            row("Stddev Age of Image When Labeled", stddevImgAge)
-            for ((labType, sevStats) <- stats.severityByLabelType.toSeq.sorted(labelTypeOrdering)) {
-              row(s"$labType Count", sevStats.n)
-              row(s"$labType Count With Severity", sevStats.nWithSeverity.getOrElse("NA"))
-              row(s"$labType Severity Mean", sevStats.severityMean.map(_.toString).getOrElse("NA"))
-              row(s"$labType Severity SD", sevStats.severitySD.map(_.toString).getOrElse("NA"))
-            }
-            // Validation stats split three ways: combined (all votes), human (non-AI votes), and AI (AI votes).
-            val validationSources = Seq(
-              ("Combined", stats.validations.combined),
-              ("Human", stats.validations.human),
-              ("AI", stats.validations.ai)
-            )
-            for ((srcLabel, srcStats) <- validationSources) {
-              row(s"$srcLabel Total Validations", srcStats.nValidations)
-              for ((labType, accStats) <- srcStats.accuracyByLabelType.toSeq.sorted(labelTypeOrdering)) {
-                row(s"$srcLabel $labType Labels Validated", accStats.n)
-                row(s"$srcLabel $labType Agreed Count", accStats.nAgree)
-                row(s"$srcLabel $labType Disagreed Count", accStats.nDisagree)
-                row(s"$srcLabel $labType Accuracy", accStats.accuracy.map(_.toString).getOrElse("NA"))
-                row(s"$srcLabel $labType Labels With a Validation", accStats.nWithValidation)
-              }
-            }
-            for ((labelType, aiStatsMap) <- stats.aiPerformance.toSeq.sorted(labelTypeOrdering)) {
-              for ((voteType, aiStats) <- aiStatsMap) {
-                val voteTypeText: String =
-                  if (voteType == "human_majority_vote") "Human Majority Vote" else "Admin Majority Vote"
-                row(s"$labelType AI Yes and $voteTypeText Concurs", aiStats.aiYesHumanConcurs)
-                row(s"$labelType AI Yes but $voteTypeText Differs", aiStats.aiYesHumanDiffers)
-                row(s"$labelType AI No but $voteTypeText Differs", aiStats.aiNoHumanDiffers)
-                row(s"$labelType AI No and $voteTypeText Concurs", aiStats.aiNoHumanConcurs)
-              }
-            }
-
+            stats.toCsvRows.foreach(writer.println)
             writer.close()
             Ok.sendFile(content = sidewalkStatsFile, onClose = () => { sidewalkStatsFile.delete(); () })
           case _ =>
-            Ok(projectSidewalkStatsToJson(stats))
+            Ok(stats.toJson)
         }
       }
   }

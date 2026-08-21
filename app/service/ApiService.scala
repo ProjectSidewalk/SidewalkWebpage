@@ -109,11 +109,11 @@ trait ApiService {
   /**
    * Retrieves the region with the most labels from the database.
    *
-   * @return A `Future` containing an `Option` of `Region`. The `Option` will be:
+   * @return A `Future` containing an `Option` of `RegionDataForApi`. The `Option` will be:
    *         - `Some(region)` if a region with the most labels exists.
-   *         - `None` if no regions are found.
+   *         - `None` if no region has any labels.
    */
-  def getRegionWithMostLabels: Future[Option[Region]]
+  def getRegionWithMostLabels: Future[Option[RegionDataForApi]]
 
   /**
    * Retrieves label clusters based on the provided filters and returns them as a reactive stream source.
@@ -237,8 +237,8 @@ class ApiServiceImpl @Inject() (
     setUpStreamFromDb(clusterTable.getLabelClustersV3(filters), batchSize)
   }
 
-  def getRegionWithMostLabels: Future[Option[Region]] =
-    db.run(regionTable.getRegionWithMostLabels)
+  def getRegionWithMostLabels: Future[Option[RegionDataForApi]] =
+    db.run(regionTable.getRegionWithMostLabelsForApi)
 
   def getRawLabels(filters: RawLabelFiltersForApi, batchSize: Int): Source[LabelDataForApi, _] = {
     setUpStreamFromDb(labelTable.getLabelDataWithFilters(filters), batchSize)
