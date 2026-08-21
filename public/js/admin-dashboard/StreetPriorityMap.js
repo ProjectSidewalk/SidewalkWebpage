@@ -4,9 +4,11 @@
  * Presentational source of truth for the Imagery page: map colors, legend, table badges, and the tier counts all read
  * TIERS so they can never disagree. Tiers are derived from a street's audit *counts* rather than from cutoffs on the
  * priority value: the counts are what the backend formula consumes, so a change to how priority is weighted (#4894)
- * moves the numbers without silently mis-bucketing the map. Colors are Tableau 10 rather than design tokens: the
- * token set has no categorical scale, and a sequential ramp's light end disappears at the 2px width these segments
- * are drawn at. Warm hues are the two tiers that need labeler work, cool the two that are covered.
+ * moves the numbers without silently mis-bucketing the map. Colors are a qualitative palette rather than design
+ * tokens: the token set has no categorical scale, and a sequential ramp's light end disappears at the 2px width
+ * these segments are drawn at. Warm hues are the two tiers that need labeler work, cool the two that are covered.
+ * Unaudited is a rare tier — a few streets in a city — so it takes the highest-salience hue rather than a near
+ * neighbor of the orange it has to be found against.
  */
 class StreetPriorityTiers {
   /** @type {Array<{key: string, label: string, color: string, description: string}>} highest priority first. */
@@ -14,7 +16,7 @@ class StreetPriorityTiers {
     {
       key: 'unaudited',
       label: 'Not yet audited',
-      color: '#E15759',
+      color: '#E7298A',
       description: 'No completed audit counts toward priority yet, so these are served first.',
     },
     {
