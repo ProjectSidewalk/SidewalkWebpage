@@ -111,11 +111,11 @@ util.pano.povToPanoCoord = (pov, cameraHeading, panoWidth, panoHeight) => {
 /**
  * Returns the centered pov of a point on the canvas based on panorama's POV and the canvas coordinate.
  *
- * The canvas coordinate is used exactly as given — no anchor or padding offset (#4851). Every renderer centers its
- * icon on the projected point (Explore's canvas drawImage, Validate's PanoMarker.draw), and a label's stored
- * pano_x/pano_y is derived from this function's output, so an offset here would put each consumer out of step with
- * the record it reads. AI labels lean on the same identity: they're written at the canvas center specifically so
- * this returns the submitted POV unchanged. test/js/panoProjection.test.js pins both properties.
+ * The canvas coordinate is used exactly as given — no anchor or padding offset (#4851, pinned by
+ * test/js/panoProjection.test.js). Both renderers center their icon on the projected point (Explore's drawImage,
+ * Validate's PanoMarker.draw); Explore derives a label's stored pano_x/pano_y from this output and every consumer
+ * re-derives the POV from that record, so an offset here desyncs each reader from the writer. AI labels need the
+ * identity directly — submitAiLabelData writes them at the canvas center so this returns the submitted POV unchanged.
  *
  * @param {{heading: number, pitch: number, zoom: number}} pov The POV within the panorama to use wrt true north
  * @param {number} canvasX X-coordinate of the point of interest
@@ -269,7 +269,7 @@ util.pano.centeredPovToCanvasCoord = (centeredPov, newPov, canvasWidth, canvasHe
  * Helper function that converts the heading to be in the range [-180,180).
  *
  * @param {number} heading The heading to convert.
- * @return {number} The heading converted to the range [-180,180).
+ * @returns {number} The heading converted to the range [-180,180).
  */
 util.pano.wrapHeading = (heading) => {
   // We shift to the range [0,360) because of the way JS behaves for modulos of negative numbers.
@@ -285,8 +285,8 @@ util.pano.wrapHeading = (heading) => {
  * A simpler version of centeredPovToCanvasCoord which does not have to do the spherical projection because the raw
  * StreetView tiles are just panned around when the user changes the viewport position.
  *
- * PanoMarker picks this as its projection when the browser gives it no WebGL context, falling back to
- * centeredPovToCanvasCoord otherwise, so this is the path every marker takes on a WebGL-less browser.
+ * PanoMarker starts here and upgrades to centeredPovToCanvasCoord only once the browser hands it a WebGL context,
+ * so this is the projection every marker uses on a WebGL-less browser.
  *
  * @param {{heading: number, pitch: number}} centeredPov Translating the center point at this POV to newPov
  * @param {{heading: number, pitch: number, zoom: number}} newPov The POV within the panorama to use wrt true north
@@ -295,7 +295,7 @@ util.pano.wrapHeading = (heading) => {
  * @param {number} margin The extra pixels around canvas width/height where we don't return null, usually label radius
  * @returns {{x: number, y: number}|null} Canvas coordinates for the point at `newPov`; null if not on the canvas
  */
-util.pano.centeredPovToCanvasCoord2d = function (centeredPov, newPov, canvasWidth, canvasHeight, margin) {
+util.pano.centeredPovToCanvasCoord2d = (centeredPov, newPov, canvasWidth, canvasHeight, margin) => {
   // In the 2D environment, the FOV follows the documented curve.
   const hfov = 180 / Math.pow(2, newPov.zoom);
   const vfov = hfov * (canvasHeight / canvasWidth);

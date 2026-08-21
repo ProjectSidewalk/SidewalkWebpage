@@ -26,6 +26,10 @@ Also covered, beyond the api-docs previews:
   fork, the popover's ARIA contract and focus management, clipboard/intents, and activity logging. `ShareWidget` is a
   top-level `class` declaration (not a `window.X = ...` assignment), so the test evals the source into the jsdom
   global scope instead of using `loadGlobalScript`.
+- `common/pano-viewer/src/panoUtilities.js` → `panoProjection.test.js` — the canvas↔POV↔pano projection (#4851): the
+  canvas coordinate is projected with no anchor offset, the canvas→POV→canvas round trip is an identity, real stored
+  `pano_x`/`pano_y` values reproduce from their canvas coordinates, and the non-WebGL 2D fallback projects and wraps
+  headings correctly.
 
 Each test file has:
 
@@ -93,19 +97,18 @@ The general recipe stays the same: container div → stub fetch with a captured 
 `common/aggregateStats.js` (named as a first target in the plan) is a good next addition — it has retry/timeout logic
 worth unit-testing with fake timers.
 
-## Why this is opt-in and NOT in CI
+## Why CI runs this as advisory
 
-Frontend linting and the JS **ES5→ES2022 migration** are owned by a separate in-flight effort, **issue #2487**. Dropping
-test/lint tooling into CI mid-migration would create large, conflict-prone churn and risks colliding with that work.
-So:
+Frontend linting and the JS **ES5→ES2022 migration** are owned by a separate in-flight effort, **issue #2487**. Making
+these tests a merge gate mid-migration would create large, conflict-prone churn and risks colliding with that work. So:
 
 - **No ESLint, no broad config** is introduced here (`jest.config.js` is scoped to `test/js/` only and never touches
   production JS).
-- **Nothing is wired into CI.** Per `docs/testing-and-ci.md`, the frontend CI ramp is deferred to #2487's track.
+- **CI runs `npm run test:js` in the frontend job with `continue-on-error: true`** — a failure is visible in the run but
+  does not block a merge, the same treatment the Python-tests job gets.
 - The existing `npm test` placeholder is **unchanged** to avoid surprising any tooling that already calls it.
 
-When #2487 lands, this prototype is ready to be promoted into the frontend CI job (`npx jest` / `npm run test:js`)
-described in the plan.
+Promoting the step to blocking is part of #2487's track.
 
 ## Complementary E2E (recommendation)
 

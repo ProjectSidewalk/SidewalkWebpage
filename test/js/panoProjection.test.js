@@ -8,28 +8,15 @@
  * this function silently desyncs every reader from the record the writer produced. AI labels depend on the same
  * identity from the other direction: ExploreService.submitAiLabelData writes them at the canvas center precisely so
  * that this function hands back the submitted POV untouched.
- *
- * panoUtilities.js is a plain global script (`util.pano.* = ...`) built for Grunt concatenation, so the source is
- * eval'd into the jsdom global scope against a fresh `util`.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadGlobalScript } = require('./loadGlobalScript');
 
-const PANO_UTILITIES_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/common/pano-viewer/src/panoUtilities.js'), 'utf8'
-);
+const PANO_UTILITIES_PATH = 'public/js/common/pano-viewer/src/panoUtilities.js';
 
 // Explore's authoring canvas, the frame every stored canvas_x/canvas_y is expressed in (util.EXPLORE_CANVAS_*).
 const CANVAS_WIDTH = 720;
 const CANVAS_HEIGHT = 480;
-
-/** Loads a fresh copy of panoUtilities.js into the jsdom global scope and returns its `util.pano` namespace. */
-function loadPanoUtilities() {
-    window.util = {};
-    window.eval(PANO_UTILITIES_SRC);
-    return window.util.pano;
-}
 
 /**
  * Normalizes a heading to [0, 360) so bearings can be compared. The projection derives heading with atan2, which
@@ -46,7 +33,8 @@ describe('util.pano projection', () => {
 
     // The module is a set of pure functions with no state, so one load serves every test.
     beforeAll(() => {
-        pano = loadPanoUtilities();
+        loadGlobalScript(PANO_UTILITIES_PATH);
+        pano = window.util.pano;
     });
 
     describe('canvasCoordToCenteredPov', () => {
@@ -98,16 +86,16 @@ describe('util.pano projection', () => {
             expect(coord.y).toBeCloseTo(CANVAS_HEIGHT / 2, 6);
         });
 
-        // The heading difference is wrapped, so a point just across the 0°/360° seam stays beside the viewport
-        // center instead of projecting a full turn away.
+        // Without wrapping, the 2° gap across the seam reads as -358° and projects a full turn off-canvas (null).
         it('wraps the heading difference across the 0/360 seam', () => {
             const coord = pano.centeredPovToCanvasCoord2d(
                 { heading: 1, pitch: 0 }, { heading: 359, pitch: 0, zoom: 1 }, CANVAS_WIDTH, CANVAS_HEIGHT, 20
             );
 
+            // hfov is 90° at zoom 1, so a wrapped +2° lands 2/90 of the canvas width right of center.
             expect(coord).not.toBeNull();
-            expect(coord.x).toBeGreaterThan(CANVAS_WIDTH / 2);
-            expect(coord.x).toBeLessThan(CANVAS_WIDTH);
+            expect(coord.x).toBeCloseTo(CANVAS_WIDTH / 2 + (2 / 90) * CANVAS_WIDTH, 6);
+            expect(coord.y).toBeCloseTo(CANVAS_HEIGHT / 2, 6);
         });
     });
 
@@ -127,9 +115,10 @@ describe('util.pano projection', () => {
                 const centered = pano.canvasCoordToCenteredPov(pov, canvasX, canvasY, CANVAS_WIDTH, CANVAS_HEIGHT);
                 const coord = pano.povToPanoCoord(centered, cameraHeading, panoWidth, panoHeight);
 
-                // The stored columns are integers, so allow the rounding the database applied and nothing more.
-                expect(Math.abs(coord.x - panoX)).toBeLessThanOrEqual(1);
-                expect(Math.abs(coord.y - panoY)).toBeLessThanOrEqual(1);
+                // Form.js submits Math.round(panoXY), so half a pixel is the whole error budget — anything more
+                // means the projection itself moved.
+                expect(Math.abs(coord.x - panoX)).toBeLessThanOrEqual(0.5);
+                expect(Math.abs(coord.y - panoY)).toBeLessThanOrEqual(0.5);
             });
     });
 });
