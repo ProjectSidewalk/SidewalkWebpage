@@ -124,7 +124,9 @@ class PanoMarker {
       marker.id = this.id_;
     }
     if (this.className_) {
-      marker.className = this.className_;
+      // Added, not assigned: .label-marker above is what draws the icon, so replacing the list renders an empty
+      // marker.
+      marker.classList.add(...this.className_.split(' '));
     }
     if (this.title_) {
       marker.title = this.title_;
@@ -358,6 +360,7 @@ class PanoMarker {
     this.className_ = className;
     if (this.marker_) {
       this.marker_.className = className;
+      this.marker_.classList.add('icon-outline', 'label-marker'); // Structural; .label-marker draws the icon.
     }
   };
 
