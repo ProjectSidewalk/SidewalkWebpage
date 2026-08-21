@@ -16,22 +16,29 @@
 -- evolution 179 converted them against the row this replaces, so they disagree with it by 3.25x in width. Nothing
 -- reads tutorial label positions, so the ~98k rows are left alone (#4587 discussion, 2026-08-20).
 
--- Rebuild rather than ALTER TYPE ... ADD VALUE: evolutions share one transaction, so a value added here could not
+-- Rebuild rather than ALTER TYPE ... ADD VALUE: evolutions share one transaction, so a value added that way could not
 -- be used by the upsert below -- "unsafe use of new value". A type created in the same transaction carries no such
--- restriction (342.sql/352.sql mechanics). pano_data.source is the type's only column anywhere.
-ALTER TABLE pano_data ALTER COLUMN source TYPE TEXT USING source::text;
-DROP TYPE pano_source;
+-- restriction (342.sql/352.sql mechanics). Renaming the old type aside, rather than casting the column out to TEXT
+-- and back, keeps it to one rewrite of pano_data: no enum cast is binary-coercible, so each direction rewrites the
+-- whole table under a lock held to commit, on all 54 schemas. source is the type's only column anywhere.
+ALTER TYPE pano_source RENAME TO pano_source_old;
 CREATE TYPE pano_source AS ENUM ('gsv', 'mapillary', 'infra3d', 'tutorial');
+ALTER TABLE pano_data ALTER COLUMN source TYPE pano_source USING source::text::pano_source;
+DROP TYPE pano_source_old;
 
 -- Insert where absent (34 cities lack the 'tutorial' row, 1 lacks 'afterWalkTutorial'), correct where present --
--- every existing row predates the current tutorial imagery. Only the imagery columns are overwritten: last_viewed,
--- has_backup, pano_history_saved and source_metadata record real usage and on-disk state.
-INSERT INTO pano_data (pano_id, width, height, tile_width, tile_height, capture_date, copyright, expired, lat, lng,
-                       camera_heading, camera_pitch, source)
-VALUES ('tutorial', 4096, 2048, 2048, 1024, '2014-05', 'Imagery (c) 2010 Google', FALSE,
-        38.94042608, -77.06766133, 50.3866, 1.13769, 'tutorial'),
-       ('afterWalkTutorial', 3400, 1700, 1700, 850, '2014-05', 'Imagery (c) 2010 Google', FALSE,
-        38.94061618, -77.06768201, 344, 0, 'tutorial')
+-- every existing row predates the current tutorial imagery. Only the imagery columns are overwritten, because
+-- last_viewed, has_backup, pano_history_saved, source_metadata and last_checked record real usage -- which is also
+-- what lets the Down tell a row inserted here from one that was already present.
+--
+-- expired_at has to be cleared alongside expired: pano_data_expired_at_check is CHECK (expired OR expired_at IS
+-- NULL), so clearing one without the other aborts the deploy on the first city whose row the sweep has stamped.
+INSERT INTO pano_data (pano_id, width, height, tile_width, tile_height, capture_date, copyright, expired, expired_at,
+                       lat, lng, camera_heading, camera_pitch, source, last_checked)
+VALUES ('tutorial', 4096, 2048, 2048, 1024, '2014-05', 'Imagery (c) 2010 Google', FALSE, NULL,
+        38.94042608, -77.06766133, 50.3866, 1.13769, 'tutorial', '2026-08-21'),
+       ('afterWalkTutorial', 3400, 1700, 1700, 850, '2014-05', 'Imagery (c) 2010 Google', FALSE, NULL,
+        38.94061618, -77.06768201, 344, 0, 'tutorial', '2026-08-21')
 ON CONFLICT (pano_id) DO UPDATE
 SET width          = EXCLUDED.width,
     height         = EXCLUDED.height,
@@ -40,19 +47,21 @@ SET width          = EXCLUDED.width,
     capture_date   = EXCLUDED.capture_date,
     copyright      = EXCLUDED.copyright,
     expired        = EXCLUDED.expired,
+    expired_at     = EXCLUDED.expired_at,
     lat            = EXCLUDED.lat,
     lng            = EXCLUDED.lng,
     camera_heading = EXCLUDED.camera_heading,
     camera_pitch   = EXCLUDED.camera_pitch,
     source         = EXCLUDED.source;
 
-ALTER TABLE pano_data ALTER COLUMN source TYPE pano_source USING source::pano_source;
-
 -- 181 labels across 14 cities sit on a synthetic pano with tutorial = FALSE, from two causes, both since fixed: 89
 -- (2023-2026) were placed while auditing the DC tutorial street, which #4179 stopped serving, and 92 (2019-2020) are
 -- the opening labels of a first audit mission, saved before the viewer's pano id caught up. `tutorial` is what every
--- consumer filters on and these are not real-world observations, deleted ones included. Their users' user_stat
--- counts are computed with tutorial = FALSE and want a recompute on rollout, which the nightly refresh also does.
+-- consumer filters on and these are not real-world observations, deleted ones included.
+--
+-- Their 31 users' user_stat.labels_per_meter (and the high_quality derived from it) still counts these labels. The
+-- nightly job won't fix that -- it scopes both columns to users who audited in the last 36 hours -- so rollout needs
+-- GET /adminapi/updateUserStats with no hoursCutoff. Accuracy self-heals: updateAccuracy ignores the cutoff.
 UPDATE label SET tutorial = TRUE WHERE pano_id IN ('tutorial', 'afterWalkTutorial') AND NOT tutorial;
 
 
@@ -187,6 +196,8 @@ FROM (VALUES
     ('0g-6z5F8OmrP6Bk9VrJf0Q', 13312, 6656, 512, 512, 25.643199920654297, -100.37848663330078, 287.04656982421875, -0.5410308837890625, '2014-10', '229 Moralillo', 'gsv', FALSE, TRUE, NULL),
     ('6wUK3_fIoHfIBysXOuYpXw', 16384, 8192, 512, 512, 25.644357681274414, -100.38330841064453, 5.145268440246582, 5.8901824951171875, '2019-08', '913 Convento, Monterrey, Nuevo Leon', 'gsv', FALSE, FALSE, NULL),
     ('AnxxpLJBUGPQDqYNYvRskA', 16384, 8192, 512, 512, 25.644149780273438, -100.32453155517578, 302.09527587890625, -0.6859664916992188, '2019-07', '329 José Clemente Orozco, San Pedro Garza García, Nuevo Leon', 'gsv', FALSE, FALSE, NULL),
+    -- Washington DC, not Monterrey: labeled on the DC tutorial street while auditing spgg, the same #4179 cause as
+    -- part 1's 89 flagged labels. All three sources agree on it.
     ('DGSyoGxrJhnc_m2ZFM_BUg', 16384, 8192, 512, 512, 38.940547943115234, -77.06410217285156, 302.13409423828125, -1.996551513671875, '2019-06', '3099 Sedgwick St NW', 'gsv', FALSE, TRUE, NULL),
     ('KXZHOh-NdsaEWyaw3S6zgw', 13312, 6656, 512, 512, 25.64383316040039, -100.38078308105469, 84.19290161132812, 0.8477554321289062, '2019-04', '111 Moralillo', 'gsv', FALSE, TRUE, NULL),
     ('MIRxuKxQ5bv2Yx2Aby36fQ', 16384, 8192, 512, 512, 25.680326461791992, -100.41394805908203, 282.2384338378906, -0.9594039916992188, '2019-08', '801 Av. Manuel J. Clouthier', 'gsv', TRUE, TRUE, NULL),
@@ -229,54 +240,31 @@ ALTER TABLE label ADD CONSTRAINT label_pano_id_fkey FOREIGN KEY (pano_id) REFERE
 
 
 # --- !Downs
--- First, so the deletes below can put the labels back to referencing panos that have no row.
+-- First, so the delete below is free to leave its tutorial labels referencing a pano with no row again.
 ALTER TABLE label DROP CONSTRAINT label_pano_id_fkey;
 
--- last_checked is what distinguishes the rows this evolution wrote from ones a client wrote for the same pano: the
--- Up stamps its own literal, a live write stamps now(). Without that guard a pano someone visits between now and
--- deploy -- whose row the Up then skips via ON CONFLICT -- would be deleted here, losing real metadata and failing
--- outright against pano_link's foreign key. If the expiry sweep has since restamped last_checked the row is left
--- behind instead, which is the safe direction to err.
-DELETE FROM pano_data
-WHERE last_checked = '2026-08-21'
-  AND pano_id IN (
-    'IU6xDOn1LzV6WnYPg7R4uw', 'UPxzd1SPIA5o4udTq_qp3A', 'ZnN1k5cb8jn8x-DT4p51wQ', '_bo4xBh2TEw5odDce9nAvQ',
-    'CJ-QFkxbDhjftegCSpcSFw', 'SQEvsqD7xBEbvBS8lBZhog', 'V2eMH3rj_m8FaMQvAh-qkg', 'k3xWZof11YvVJ3cpOaPotA',
-    'rFnokTwtWlFqZJb0xWtRrQ', 'uZ1jHx62NoDiEM3VBAAy6g', 'x9n7BzN6G-8DytRqgszuzg', '99AnoYWD5cp5H3lP1bmK7Q',
-    'AP7knM-He3aCfhM07x4F8A', 'N-sqXHmUyEIEh7eQ7iLclA', 'N6wBj0m4ssrd5SNy8Q8TIw', 'vxb4UcwquGq2lxLfUO3pkA',
-    'w2UeYrc0gXBzu-JAklOFyA', 'C2If792tPUzWMGyr6r82Ig', 'tWmYM9hAKJ0EJ7rZv-IDKQ', 'E_88NCDwjxY5DsGxBMyJ_g',
-    'DrUDuDms60T5w1GkuuUGLA', 'Jv2v3MvzOAwigHwVnlUkWQ', 'YqBHER_txEVysk6JiOMj0A', '_yK0yAc9IDoRc9FwLRMyNg',
-    'fnb5GJbzBKNYkTbiJsCTJw', '13Ry-9C6VcZfJZDvYZ8Akg', 'zFozhKJOeXovqj_lQAhWpg', '1CyCSX-ZcgaOSbf71Hc2XQ',
-    'ZDivi4KZ-NZoXklA1_gznA', 'ua5L1w72YO7EfGkCzsImAQ', 'rVjnY_Xz7gHyJsKd7xpZ0A', 'HUyAJCgNt4BiU8Y9YuTgUw',
-    '8SrDQivpzea9sNRW5jPSuQ', '163cn2Zsro6U9cYN5Ghq5w', '19eciAwZwhYM09v6tFMsZg', '2eTTyIzHKuN40UA6NMXblg',
-    '33UyDGRktYrpaFYeUCksIw', '3fsdgjVI9LG0Oti1_HQQQg', '3tWwSd-yj5vEp_ACSmB-BA', '5WR1D3KWHQArOCOrExNu-A',
-    '6Gm_rYwqyRuNTvGSO5F9Fw', '7SOz85f6ntBS4-fyC5lglw', '7gbiyTCCwaRGtxT1gihwiw', '8EfkRGVrcWhnIYEQq71RmQ',
-    'AsoOfUJMMp8e_1-VF5eZ_w', 'HEeOEO9QkHQTsTcJhkolEQ', 'HuZgK8m1RhSJHwY6jSxLFg', 'JRVRDCgg7KaRkyS54ogj_w',
-    'Kqr-5D8D3f5AyeYpzC-RWA', 'LUBbUk8l7UEDUyM9WxQNkw', 'NQyrpvQLCPAwbdCHmCZpQA', 'Naa3G5wf62hWam9OvLndHA',
-    'OaRYqAIyAWnBh697UeMAwA', 'OlKcvA2oHMeKnMSgrwPzUg', 'Q2jHOi8UYG6cstdjBxYRiQ', 'R3dahHNP_JQQKBdJvxtK8w',
-    'RM5ynT38lQZXXoDq-Y15Ww', 'RT_TOBm4DR_P8Ngb9tvZQA', 'WyoEFmZH9TUmA-1nnTnHDA', 'Y5w1LkzWxDeCnGZ46bMv_Q',
-    'YO-6JIKAjzWBc2zDIDjeUA', 'Ye9h8vshRd7dfBnlkZNz9w', 'Z_NoruJ0co4-SzBnIWG1eQ', 'b20aBLpJEOAvXsenV76cRQ',
-    'cDckO6g_Lx4vjqIWaYwceg', 'fzXxhDXdxC3FAcIoIMoixQ', 'iEnlNsenAb-0k-HJLaYB3A', 'kr6Vi6M-ZSkDlNJiOd8X3Q',
-    'mRm3DmJJVL0vq8RrI_3eDA', 'nMbinrJwvbe9PSk4-ttiwA', 'pWV3kGtu0cU_WObd1XI7TQ', 'ut-7ZUPPSOXQFgV7vTWnPQ',
-    'wDYBnhAHVGwJmJB6XGKYlA', 'xUdYQ-if1m-pBtQqVQkXnQ', '09KBXXHZb5gxExZ8_E7VDQ', '0g-6z5F8OmrP6Bk9VrJf0Q',
-    '6wUK3_fIoHfIBysXOuYpXw', 'AnxxpLJBUGPQDqYNYvRskA', 'DGSyoGxrJhnc_m2ZFM_BUg', 'KXZHOh-NdsaEWyaw3S6zgw',
-    'MIRxuKxQ5bv2Yx2Aby36fQ', 'OH77Pz49WJDrNGkvY-I3yA', 'U-Y6a8H2jUVGYZG0VSkpDw', 'Vsl0VUCglz4b9QoMh087JQ',
-    '_5WmUTyJ0Wf27M4uMlotEw', 'kM40VuLkfC55W6l2nDZWSg', 'r5KKjGPvnopdtE3ijdMGCg', 'uswgjnwrL8ITnfgfekWqnA',
-    '79BRT9XMouA8Td-itqa38A', 'Ltl-yoTsk2kpxcrXNsHAmg', 'b-Dt6YG8Gy45D3AB8RoAQg', 'cpOyVRzm51PeOVvbvxu2DA',
-    'jQi5BwjIo37VItW8mayJ-w', 'o1BlH_25423Ctt_O0-4qzw', 'vCVdq9koLiDFYM1rN_GNDw', 'vHe-cpDwK5tkhO7bu7sYow',
-    'F3-YO9gBYSCFOn1hVaOspQ', '649bb964-d0d9-1b13-04de-84858aaf667b'
-);
-
--- The tutorial rows stay, reassigned to the source they all held before -- dropping the enum value only requires
--- that nothing uses it, and deleting a pano_data row that an interaction table may reference is a worse trade than
--- leaving two harmless rows of fabricated metadata behind. Their pre-Up values aren't restored either: the 20
--- cities that had a 'tutorial' row held four different value sets between them, all stale. So a rollback lands on
--- the old filters' behavior, #4773's leak of 'afterWalkTutorial' into /adminapi/panos included.
+-- Part 2's 98 rows stay: they are accurate metadata for real panos, nothing needs them gone once the foreign key is,
+-- and re-applying the Up skips them via ON CONFLICT. Deleting them could fail outright instead, since a label on one
+-- of the 45 with a backup image is viewable now and Validate and Gallery write interaction rows keyed on the pano --
+-- and validation_task_interaction, one of the two largest tables in prod, has no index on pano_id to check cheaply.
 --
--- The tutorial flag also stays set. Which labels held FALSE isn't recoverable without a backup of the 181 ids, and
--- the flag is a correction: leaving them out of the API errs toward hiding data we know is wrong.
-ALTER TABLE pano_data ALTER COLUMN source TYPE TEXT USING source::text;
-UPDATE pano_data SET source = 'gsv' WHERE pano_id IN ('tutorial', 'afterWalkTutorial');
-DROP TYPE pano_source;
+-- The two tutorial rows do go, because leaving them is worse than the state being returned to: reassigned to 'gsv'
+-- they would sit in all 54 cities rather than 20, and the id literals the old code comes back with exclude only
+-- 'tutorial', so 'afterWalkTutorial' would reach /adminapi/panos everywhere -- #4773's leak, wider than it was. A
+-- synthetic pano never reaches an interaction table, but a tutorial run gives it links, history and comments, so a
+-- row any of those match is left behind instead (all three indexed on pano_id).
+DELETE FROM pano_data
+WHERE pano_id IN ('tutorial', 'afterWalkTutorial')
+  AND last_checked = '2026-08-21'
+  AND NOT EXISTS (SELECT 1 FROM pano_link WHERE pano_link.pano_id = pano_data.pano_id)
+  AND NOT EXISTS (SELECT 1 FROM pano_history WHERE pano_history.location_curr_pano_id = pano_data.pano_id)
+  AND NOT EXISTS (SELECT 1 FROM validation_task_comment WHERE validation_task_comment.pano_id = pano_data.pano_id);
+
+-- Any tutorial row still standing goes back to the source they all held before, but not to its pre-Up imagery values:
+-- the 20 cities that had a 'tutorial' row held four different value sets between them, all stale. The tutorial flag
+-- stays set too -- which labels held FALSE isn't recoverable, and the flag is a correction either way.
+UPDATE pano_data SET source = 'gsv' WHERE source = 'tutorial';
+ALTER TYPE pano_source RENAME TO pano_source_old;
 CREATE TYPE pano_source AS ENUM ('gsv', 'mapillary', 'infra3d');
-ALTER TABLE pano_data ALTER COLUMN source TYPE pano_source USING source::pano_source;
+ALTER TABLE pano_data ALTER COLUMN source TYPE pano_source USING source::text::pano_source;
+DROP TYPE pano_source_old;
