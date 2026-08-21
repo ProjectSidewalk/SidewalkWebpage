@@ -1,39 +1,31 @@
 # --- !Ups
--- #4587/#4773: close most of the gap between `label` and `pano_data`, in two independent parts -- the synthetic
--- tutorial panos (below) and 45 real panos recovered from the image store (further down).
+-- #4587/#4773, part 1: give the two locally-served tutorial panos real pano_data rows under a `tutorial` source.
 --
--- PART 1: give the two locally-served tutorial panos real pano_data rows, marked with a `tutorial` pano_source.
+-- #4773 kept these synthetic panos out of pano_data entirely, which makes the FK label.pano_id -> pano_data.pano_id
+-- unreachable: 8,803 of the 8,910 prod labels with no pano_data row are tutorial labels, regenerated on every
+-- tutorial run. The leak it was closing -- a synthetic pano reaching /adminapi/panos and being handed to the scraper
+-- as real imagery -- is a filtering problem, and `source` filters it in a way a mistyped id literal cannot defeat.
+-- PanoSource.providerCheckedSources already gates every provider-facing path, so the new value also stops
+-- CheckImageExpiryActor asking Google about an id that cannot exist. It has been asking: 19 of the 20 existing
+-- 'tutorial' rows are marked expired from its ZERO_RESULTS answers.
 --
--- The tutorial runs on synthetic panos ('tutorial', 'afterWalkTutorial') whose imagery is app assets, not provider
--- imagery. #4773 kept them out of pano_data entirely, but that makes the FK label.pano_id -> pano_data.pano_id
--- unreachable: 8,803 of the 8,910 prod labels with no pano_data row are tutorial labels, and the rule regenerates
--- them on every tutorial run. The leak #4773 was closing -- a synthetic pano reaching /adminapi/panos and being
--- handed to the scraper as real imagery -- is a filtering problem, and `source` filters it in a way a mistyped id
--- literal cannot defeat. PanoSource.providerCheckedSources = {Gsv, Mapillary} already gates every provider-facing
--- path, so the new value keeps CheckImageExpiryActor from asking Google about an id that cannot exist. It has been
--- asking: 19 of the 20 existing 'tutorial' rows are marked expired from its ZERO_RESULTS answers.
+-- Values are GsvViewer.#getCustomPanoData's, which is what the viewer serves and what the client computes each
+-- label's pano_x/pano_y against. The client negates originPitch, so -1.13769 is stored as 1.13769.
 --
--- Values come from GsvViewer.#getCustomPanoData, which is what the viewer serves and what the client computes each
--- label's pano_x/pano_y against. camera_pitch is negated there (cameraPitch = -originPitch), so originPitch
--- -1.13769 is stored as 1.13769. expired is FALSE: the imagery is ours and cannot go away.
---
--- KNOWN AND DELIBERATELY NOT FIXED: tutorial labels created before ~2023-05 hold pano_x/pano_y on a 13312x6656
--- grid, because evolution 179 converted them against the row this one replaces. Their coordinates therefore
--- disagree with the row by 3.25x in width. Re-projecting them from label_point's viewport record would fix it, but
--- nothing reads tutorial label positions -- the LabelDetail popup included -- so the ~98k affected rows are left
--- alone rather than rewritten across 54 schemas (#4587 discussion, 2026-08-20).
+-- Not fixed, deliberately: tutorial labels from before ~2023-05 hold pano_x/pano_y on a 13312x6656 grid, because
+-- evolution 179 converted them against the row this replaces, so they disagree with it by 3.25x in width. Nothing
+-- reads tutorial label positions, so the ~98k rows are left alone (#4587 discussion, 2026-08-20).
 
--- Rebuild the type rather than ALTER TYPE ... ADD VALUE: evolutions share one transaction (autocommit=false in
--- application.conf), so a value added here could not be used by the upsert below -- "unsafe use of new value". A type
--- created inside the current transaction carries no such restriction (342.sql/352.sql mechanics). pano_data.source is
--- the type's only column anywhere, so this is the whole rebuild.
+-- Rebuild rather than ALTER TYPE ... ADD VALUE: evolutions share one transaction, so a value added here could not
+-- be used by the upsert below -- "unsafe use of new value". A type created in the same transaction carries no such
+-- restriction (342.sql/352.sql mechanics). pano_data.source is the type's only column anywhere.
 ALTER TABLE pano_data ALTER COLUMN source TYPE TEXT USING source::text;
 DROP TYPE pano_source;
 CREATE TYPE pano_source AS ENUM ('gsv', 'mapillary', 'infra3d', 'tutorial');
 
--- Insert where absent (34 cities lack the 'tutorial' row, 1 lacks 'afterWalkTutorial'), correct where present. Only
--- the columns describing the imagery are overwritten: last_viewed and has_backup record real usage and on-disk state,
--- and pano_history_saved/source_metadata are untouched for the same reason.
+-- Insert where absent (34 cities lack the 'tutorial' row, 1 lacks 'afterWalkTutorial'), correct where present --
+-- every existing row predates the current tutorial imagery. Only the imagery columns are overwritten: last_viewed,
+-- has_backup, pano_history_saved and source_metadata record real usage and on-disk state.
 INSERT INTO pano_data (pano_id, width, height, tile_width, tile_height, capture_date, copyright, expired, lat, lng,
                        camera_heading, camera_pitch, source)
 VALUES ('tutorial', 4096, 2048, 2048, 1024, '2014-05', 'Imagery (c) 2010 Google', FALSE,
@@ -57,11 +49,10 @@ SET width          = EXCLUDED.width,
 ALTER TABLE pano_data ALTER COLUMN source TYPE pano_source USING source::pano_source;
 
 -- 181 labels across 14 cities sit on a synthetic pano with tutorial = FALSE, from two causes, both since fixed: 89
--- of them (2023-2026) were placed while auditing the DC tutorial street, which #4179 stopped serving during normal
--- missions, and 92 (2019-2020) are the opening labels of a first audit mission, saved before the viewer's pano id
--- caught up. `tutorial` is what every consumer filters on, and these are not real-world observations -- flag them.
--- Deleted ones included, so that no label on a synthetic pano claims to be one. Their users' user_stat counts are
--- computed with tutorial = FALSE and want a recompute on rollout, which the nightly refresh also does.
+-- (2023-2026) were placed while auditing the DC tutorial street, which #4179 stopped serving, and 92 (2019-2020) are
+-- the opening labels of a first audit mission, saved before the viewer's pano id caught up. `tutorial` is what every
+-- consumer filters on and these are not real-world observations, deleted ones included. Their users' user_stat
+-- counts are computed with tutorial = FALSE and want a recompute on rollout, which the nightly refresh also does.
 UPDATE label SET tutorial = TRUE WHERE pano_id IN ('tutorial', 'afterWalkTutorial') AND NOT tutorial;
 
 
@@ -69,28 +60,22 @@ UPDATE label SET tutorial = TRUE WHERE pano_id IN ('tutorial', 'afterWalkTutoria
 --
 -- Until v11.8.1 (#4869) the pano metadata write was fire-and-forget, so a label could be committed while its
 -- pano_data row was silently dropped. 157 labels on 98 panos across prod still carry the damage. These 45 are the
--- ones we can recover offline: their metadata survives as cbk XML sidecars in the pano image store, because until
--- 2022-03-14 (aac479231) the scraper's work list came from the label table rather than from pano_data, so panos
--- with no row were still scraped. Every pano first labeled before that date has a sidecar, and none after it does.
+-- ones recoverable offline: their metadata survives as cbk XML sidecars in the pano image store, because until
+-- 2022-03-14 (aac479231) the scraper's work list came from the label table rather than pano_data, so panos with no
+-- row were still scraped. Every pano first labeled before that date has a sidecar, and none after it does.
 --
--- Provenance and accuracy, from a 300-pano calibration against panos that have both a sidecar and a known-good row
--- (scratchpad/4587-store-calibration-list.sql):
---   * lat/lng come from the sidecar's `original_*` pair, which is the raw camera position pano_data stores --
---     median 0.256 m from the live value, against 2.421 m for the `lat`/`lng` pair, which is road-snapped.
---   * camera_heading is `pano_yaw_deg` unmodified -- median 0.011 deg, 263 of 300 within the 0.18 deg record
---     tolerance.
---   * width, height and capture_date matched exactly on all 300.
--- camera_pitch is left NULL: the sidecar carries a tilt vector (tilt_pitch_deg/tilt_yaw_deg), not the JS API's
--- originPitch that pano_data holds, and no conversion between them is established. Nothing needs it here -- the
--- position estimator uses lat/lng, camera_heading and the image dimensions.
+-- Which sidecar fields to trust comes from a 300-pano calibration against panos holding both a sidecar and a
+-- known-good row (scratchpad/4587-store-calibration-list.sql). lat/lng are the sidecar's `original_*` pair, the raw
+-- camera position pano_data stores, median 0.256 m from the live value against 2.421 m for the road-snapped
+-- `lat`/`lng`. camera_heading is `pano_yaw_deg` unmodified, median 0.011 deg. width, height and capture_date matched
+-- exactly on all 300. camera_pitch stays NULL -- the sidecar carries a tilt vector, not the originPitch pano_data
+-- holds, and nothing here needs it.
 --
--- has_backup is TRUE because the store scan found the image for all 45, so a label on an expired pano still renders.
--- expired stays FALSE ("not known to be expired") with last_checked set to when the pano was last labeled, which is
--- the last time we know someone saw it. That date is years old, so CheckImageExpiryActor picks these up in its next
--- sweep and settles the question rather than this evolution guessing.
+-- has_backup is TRUE because the store scan found an image for all 45, so a label on an expired pano still renders.
+-- expired stays FALSE ("not known to be expired") with last_checked set to when the pano was last labeled, years
+-- ago, so CheckImageExpiryActor settles the question on its next sweep rather than this evolution guessing.
 --
--- The EXISTS-style join on label is what keeps each schema to its own panos: pano ids are global, so an unguarded
--- insert would seed every city with all 45.
+-- Pano ids are global, so the join against label is what keeps each schema to its own panos.
 INSERT INTO pano_data (pano_id, width, height, tile_width, tile_height, lat, lng, camera_heading, capture_date,
                        address, source, expired, has_backup, last_viewed, last_checked)
 SELECT recovered.pano_id, recovered.width, recovered.height, recovered.tile_width, recovered.tile_height,
@@ -151,8 +136,8 @@ ON CONFLICT (pano_id) DO NOTHING;
 
 
 # --- !Downs
--- Safe as a plain delete: every row above went into a schema where the pano had no row, and nothing can have come
--- to reference one since -- a label already pointing at it is what selected it, and labels are never deleted here.
+-- Safe as a plain delete: each row went into a schema where the pano had no row, and nothing has had the chance to
+-- reference one since.
 DELETE FROM pano_data WHERE pano_id IN (
     'ZnN1k5cb8jn8x-DT4p51wQ', 'CJ-QFkxbDhjftegCSpcSFw', 'k3xWZof11YvVJ3cpOaPotA', 'uZ1jHx62NoDiEM3VBAAy6g',
     'x9n7BzN6G-8DytRqgszuzg', 'C2If792tPUzWMGyr6r82Ig', 'fnb5GJbzBKNYkTbiJsCTJw', '163cn2Zsro6U9cYN5Ghq5w',
@@ -168,15 +153,14 @@ DELETE FROM pano_data WHERE pano_id IN (
     'kM40VuLkfC55W6l2nDZWSg'
 );
 
--- The rows stay, reassigned to the source they all held before. Dropping the `tutorial` enum value only requires
--- that nothing uses it, and the rows themselves are fabricated metadata for panos we serve as app assets -- there is
--- no observation here to lose, and deleting a pano_data row that gallery_task_interaction or
--- validation_task_interaction may reference is a worse trade than leaving two harmless rows behind. Restoring the
--- pre-Up values isn't attempted either: the 20 cities that had a 'tutorial' row held four different value sets
--- between them, all of them stale (see above). A rollback therefore lands on the old filters' behavior, including
--- #4773's leak of 'afterWalkTutorial' into /adminapi/panos.
--- The tutorial flag stays set. Which labels held FALSE isn't recoverable without a backup of the 181 ids, and the
--- flag is a correction: a rollback that leaves them out of the API errs toward hiding data we know is wrong.
+-- The tutorial rows stay, reassigned to the source they all held before -- dropping the enum value only requires
+-- that nothing uses it, and deleting a pano_data row that an interaction table may reference is a worse trade than
+-- leaving two harmless rows of fabricated metadata behind. Their pre-Up values aren't restored either: the 20
+-- cities that had a 'tutorial' row held four different value sets between them, all stale. So a rollback lands on
+-- the old filters' behavior, #4773's leak of 'afterWalkTutorial' into /adminapi/panos included.
+--
+-- The tutorial flag also stays set. Which labels held FALSE isn't recoverable without a backup of the 181 ids, and
+-- the flag is a correction: leaving them out of the API errs toward hiding data we know is wrong.
 ALTER TABLE pano_data ALTER COLUMN source TYPE TEXT USING source::text;
 UPDATE pano_data SET source = 'gsv' WHERE pano_id IN ('tutorial', 'afterWalkTutorial');
 DROP TYPE pano_source;

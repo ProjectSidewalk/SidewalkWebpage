@@ -261,8 +261,8 @@ class HealthTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    * has no viewable imagery). `has_backup` is refreshed lazily by the imagery check, so a large `unchecked` (NULL)
    * count is normal and these counts approximate on-disk truth. Schema-local (resolves via the connection search_path).
    *
-   * Synthetic tutorial panos are excluded — their imagery is app assets, so backup coverage is meaningless for them.
-   * `IS DISTINCT FROM` rather than `<>` so that a label whose pano has no row at all still counts as unchecked.
+   * Tutorial panos are excluded, since backup coverage is meaningless for app assets. `IS DISTINCT FROM` rather than
+   * `<>` so a label whose pano has no row at all still counts as unchecked.
    */
   def getPanoBackupStats: DBIO[PanoBackupStats] = bounded {
     sql"""

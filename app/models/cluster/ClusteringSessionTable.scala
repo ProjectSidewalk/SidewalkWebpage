@@ -127,7 +127,7 @@ class ClusteringSessionTable @Inject() (protected val dbConfigProvider: Database
     lt  <- labelTypes if l.labelTypeId === lt.labelTypeId
     if r.deleted === false
     // Tutorial labels were kept out only by accident: auditOnboarding missions have a NULL region_id, so the
-    // mission -> region join dropped them. That misses a label flagged tutorial inside a real audit mission (#4587).
+    // mission -> region join dropped them. That misses one flagged tutorial inside a real audit mission (#4587).
     if l.tutorial === false
     if l.correct || (us.highQuality && l.correct.isEmpty && !at.lowQuality)
     if lp.lat.isDefined && lp.lng.isDefined
