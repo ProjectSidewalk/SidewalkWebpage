@@ -667,6 +667,16 @@ dashboard.routes.stats.tooltip = Explored: how many people have started explorin
 dashboard.routes.view.title = View this route in RouteBuilder
 dashboard.routes.none = You haven''t built any routes yet.
 dashboard.routes.build.one = Build your first route →
+
+dashboard.reaudit.title = Streets with newer imagery
+dashboard.reaudit.intro.one = Newer street view imagery has landed on 1 street you mapped. Your labels still count — let''s see how much the walkability, rollability, and safety there have changed since you last examined it.
+dashboard.reaudit.intro.many = Newer street view imagery has landed on {0} streets you mapped. Your labels still count — let''s see how much the walkability, rollability, and safety in these areas have changed since you last examined them.
+dashboard.reaudit.imagery = new imagery from {0}
+dashboard.reaudit.audited = You mapped it on {0}
+dashboard.reaudit.revisit = Revisit
+dashboard.reaudit.more = Show {0} more
+dashboard.reaudit.see.map = See them all on your map →
+dashboard.reaudit.none = Every street you''ve mapped is up to date with the latest imagery.
 dashboard.team.dialog.sub = Start a team for your class, club, or friends — you''ll join it automatically.
 dashboard.team.dialog.name = Team name
 dashboard.team.dialog.name.placeholder = e.g. Ms. Rivera''s 7th Grade

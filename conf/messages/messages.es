@@ -546,6 +546,16 @@ dashboard.routes.view.title = Ver esta ruta en RouteBuilder
 dashboard.routes.none = Aún no has creado ninguna ruta.
 dashboard.routes.build.one = Crea tu primera ruta →
 
+dashboard.reaudit.title = Calles con imágenes más recientes
+dashboard.reaudit.intro.one = Han llegado imágenes de Street View más recientes a 1 calle que mapeaste. Tus etiquetas siguen contando: veamos cuánto han cambiado la accesibilidad a pie, en silla de ruedas y la seguridad de ese lugar desde la última vez que lo revisaste.
+dashboard.reaudit.intro.many = Han llegado imágenes de Street View más recientes a {0} calles que mapeaste. Tus etiquetas siguen contando: veamos cuánto han cambiado la accesibilidad a pie, en silla de ruedas y la seguridad de esas zonas desde la última vez que las revisaste.
+dashboard.reaudit.imagery = imágenes nuevas de {0}
+dashboard.reaudit.audited = La mapeaste el {0}
+dashboard.reaudit.revisit = Volver a visitar
+dashboard.reaudit.more = Mostrar {0} más
+dashboard.reaudit.see.map = Verlas todas en tu mapa →
+dashboard.reaudit.none = Todas las calles que has mapeado están al día con las imágenes más recientes.
+
 footer.logo.nsf = Logotipo de la Fundación Nacional de Ciencias
 footer.logo.google = Logotipo de Google
 footer.logo.sloan = Logotipo de la Fundación Alfred P. Sloan

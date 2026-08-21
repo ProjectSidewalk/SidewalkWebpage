@@ -34,9 +34,15 @@ class UserDashboardController @Inject() (
     extends CustomBaseController(cc) {
   implicit val implicitConfig: Configuration = config
 
+  // The dashboard's needs-re-audit list reveals five rows at a time; it fetches three pages' worth up front so
+  // "show more" is a reveal rather than a round trip, and defers the rest to the map, which draws all of them (#4896).
+  private val ReauditPageSize: Int = 5
+  private val ReauditListSize: Int = ReauditPageSize * 3
+
   /**
    * Renders the redesigned User Dashboard prototype: a single page of "your impact" sections (hero stats, activity
-   * streak, badges + trophies, your standing, learning/mistakes, map, team) on the shared shell.
+   * streak, badges + trophies, your standing, learning/mistakes, map, team, streets needing a re-audit) on the shared
+   * shell.
    *
    * Secured to any signed-in user, matching the real `/dashboard`.
    */
@@ -44,22 +50,25 @@ class UserDashboardController @Inject() (
     val user     = request.identity
     val isMetric = ControllerUtils.isMetric
     val cityName = configService.getCityName(request2Messages.lang)
-    // Kicked off before the for-comprehension so it runs concurrently with the chain below.
-    val myRoutesF = routeService.getRoutesForUser(user.userId)
+    // Kicked off before the for-comprehension so they run concurrently with the chain below.
+    val myRoutesF       = routeService.getRoutesForUser(user.userId)
+    val reauditStreetsF = userService.getOutdatedStreetsForUser(user.userId, ReauditListSize)
     for {
-      profileData <- userService.getUserProfileData(user.userId, isMetric)
-      commonData  <- configService.getCommonPageData(request2Messages.lang)
-      tags        <- labelService.getTagsForCurrentCity
-      standing    <- userService.getUserStanding(user.userId)
-      streak      <- userService.getActivityStreak(user.userId, request2Messages.lang.toLocale)
-      accuracy    <- userService.getAccuracyByType(user.userId)
-      trophies    <- userService.getTrophies(user.userId, cityName, request2Messages)
-      myRoutes    <- myRoutesF
+      profileData                    <- userService.getUserProfileData(user.userId, isMetric)
+      commonData                     <- configService.getCommonPageData(request2Messages.lang)
+      tags                           <- labelService.getTagsForCurrentCity
+      standing                       <- userService.getUserStanding(user.userId)
+      streak                         <- userService.getActivityStreak(user.userId, request2Messages.lang.toLocale)
+      accuracy                       <- userService.getAccuracyByType(user.userId)
+      trophies                       <- userService.getTrophies(user.userId, cityName, request2Messages)
+      myRoutes                       <- myRoutesF
+      (reauditStreets, reauditTotal) <- reauditStreetsF
     } yield {
       cc.loggingService.insert(user.userId, request.ipAddress, "Visit_UserDashboard")
       Ok(
         views.html.userDashboard
-          .dashboard(commonData, user, profileData, isMetric, tags, standing, streak, accuracy, trophies, myRoutes)
+          .dashboard(commonData, user, profileData, isMetric, tags, standing, streak, accuracy, trophies, myRoutes,
+            reauditStreets, reauditTotal, ReauditPageSize)
       )
     }
   }

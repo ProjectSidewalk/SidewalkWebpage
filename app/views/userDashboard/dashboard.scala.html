@@ -1,6 +1,7 @@
 @import service.{AccuracyByType, CommonPageData, UserProfileData}
 @import models.user.{SidewalkUserWithRole, StreakCell, StreakStats, UserStanding}
 @import models.label.Tag
+@import models.audit.OutdatedStreetForUser
 @import models.route.RouteWithStats
 @import models.userdashboard.Trophy
 @import controllers.helper.ControllerUtils.distanceUnitWords
@@ -8,11 +9,13 @@
 @import play.api.Configuration
 @(commonData: CommonPageData, user: SidewalkUserWithRole, profileData: UserProfileData, isMetric: Boolean,
     tags: Seq[Tag], standing: Option[UserStanding], streak: StreakStats, accuracyByType: Seq[AccuracyByType],
-    trophies: Seq[Trophy], myRoutes: Seq[RouteWithStats]
+    trophies: Seq[Trophy], myRoutes: Seq[RouteWithStats], reauditStreets: Seq[OutdatedStreetForUser],
+    reauditTotal: Int, reauditPageSize: Int
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @* Named once because every distance on the page uses it. Twirl compiles this to a def, so it is not memoized. *@
 @unitAbbr = @{distanceUnitWords.abbr}
+@unitAbbrSmall = @{distanceUnitWords.abbrSmall}
 
 @*
 * Formats the already-unit-converted audited distance (km when metric, else miles) with one decimal + unit. Floored
@@ -50,14 +53,34 @@
   if (cssKey == "no-curb-ramp") "missing.ramp" else cssKey.replace("-", ".")
 }
 
-@routeDistanceLabel(meters: Double) = @{
+@metersLabel(meters: Double) = @{
   val dist = if (isMetric) meters / 1000 else meters * models.utils.CommonUtils.METERS_TO_MILES
   f"$dist%.2f $unitAbbr"
 }
 
-@routeDateLabel(dt: java.time.OffsetDateTime) = @{
+@*
+* Unit-aware distance for a single street, matching the leaderboard's formatting (km/m for metric, miles/feet
+* otherwise). A street averages under 100 m and can be a metre or two long (#4670), so the large unit alone would
+* round most of them to "0.00 km"; the threshold for switching up is per-system, since it's about when the small
+* unit's numbers get unwieldy rather than about a fixed distance.
+*@
+@streetLengthLabel(meters: Double) = @{
+  if (isMetric) {
+    if (meters > 2000) f"${meters / 1000}%.1f $unitAbbr" else f"$meters%.0f $unitAbbrSmall"
+  } else {
+    val ft = meters * 3.28084
+    if (ft > 2500) f"${ft / 5280}%.1f $unitAbbr" else f"$ft%.0f $unitAbbrSmall"
+  }
+}
+
+@mediumDateLabel(dt: java.time.OffsetDateTime) = @{
   dt.format(java.time.format.DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.MEDIUM)
     .withLocale(messages.lang.toLocale))
+}
+
+@* Capture dates are month-granular in practice, so a full date would over-claim precision. *@
+@imageryMonthLabel(d: java.time.LocalDate) = @{
+  d.format(java.time.format.DateTimeFormatter.ofPattern("LLLL yyyy", messages.lang.toLocale))
 }
 
 @content = {
@@ -103,7 +126,7 @@
     <p class="ud-map-caption">@Messages("dashboard.map.caption")</p>
     <div id="user-dashboard-choropleth-holder" class="choropleth-holder">
       <div id="user-dashboard-choropleth" class="choropleth"></div>
-      @common.filterSidebar(tags = tags, streetsShownByDefault = true)
+      @common.filterSidebar(tags = tags, streetsShownByDefault = true, showOutdatedStreetFilter = true)
     </div>
   </div>
 
@@ -124,10 +147,10 @@
             @r.description.map { desc =>
               <span class="ud-route-desc">@desc</span>
             }
-            <span class="ud-route-meta">@r.regionName · @routeDistanceLabel(r.distanceMeters) ·
+            <span class="ud-route-meta">@r.regionName · @metersLabel(r.distanceMeters) ·
               @* A timestamp's calendar date depends on the reader's timezone, which only the browser knows;
                  MyRoutes rewrites this to the local date, leaving the UTC rendering as the no-JS fallback. *@
-              <time class="ud-route-date" datetime="@r.createdAt.toInstant.toString">@routeDateLabel(r.createdAt)</time>
+              <time class="ud-route-date" datetime="@r.createdAt.toInstant.toString">@mediumDateLabel(r.createdAt)</time>
             </span>
             <span class="ud-route-usage" title="@Messages("dashboard.routes.stats.tooltip")">@Messages("dashboard.routes.stats", r.startedCount, r.completedCount)</span>
           </div>
@@ -299,6 +322,60 @@
     <div class="ud-nudge">@Messages("dashboard.team.nudge")</div>
   </div>
 
+  @* ---- Streets with newer imagery — the user's audits the imagery has outrun (#4896) -------------------- *@
+  @* Shown to anyone who has finished an audit, so "all up to date" reads as praise; a user with nothing mapped yet
+     has nothing to be told about, so the section is absent entirely for them. *@
+  @if(reauditTotal > 0 || profileData.auditedDistance > 0) {
+    <div class="api-section" id="ud-reaudit-section">
+      <h2 class="api-heading" id="reaudit">@Messages("dashboard.reaudit.title") <a href="#reaudit" class="permalink">#</a></h2>
+      @if(reauditTotal > 0) {
+        <p>@if(reauditTotal == 1) {@Messages("dashboard.reaudit.intro.one")} else {@Messages("dashboard.reaudit.intro.many", reauditTotal)}</p>
+        <ul class="ud-reaudit" id="ud-reaudit-list" data-page-size="@reauditPageSize">
+          @* Every fetched street is in the DOM; the ones past the first page start hidden so "show more" reveals
+             rather than fetches, and so OutdatedStreets can wire them all up once. *@
+          @for((street, i) <- reauditStreets.zipWithIndex) {
+            <li class="ud-reaudit-row" data-street-edge-id="@street.streetEdgeId" @if(i >= reauditPageSize) {hidden}>
+              <div class="ud-reaudit-info">
+                <span class="ud-reaudit-place">@street.regionName</span>
+                <span class="ud-reaudit-meta">
+                  @streetLengthLabel(street.distanceMeters)
+                  @for(captured <- street.newImageryDate) {
+                    · @Messages("dashboard.reaudit.imagery", imageryMonthLabel(captured))
+                  }
+                </span>
+                @for(audited <- street.lastAuditedAt) {
+                  @* The calendar date of a timestamp depends on the reader's timezone, which only the browser knows;
+                     OutdatedStreets rewrites this to the local date, leaving the UTC rendering as the no-JS fallback. *@
+                  <span class="ud-reaudit-audited">@Html(Messages("dashboard.reaudit.audited",
+                    s"""<time class="ud-reaudit-date" datetime="${audited.toInstant.toString}">${mediumDateLabel(audited)}</time>"""))</span>
+                }
+              </div>
+              <div class="ud-reaudit-actions">
+                <a class="ud-btn-secondary ud-reaudit-explore" data-street-edge-id="@street.streetEdgeId" href="/explore?streetEdgeId=@street.streetEdgeId">@Messages("dashboard.reaudit.revisit")</a>
+              </div>
+            </li>
+          }
+        </ul>
+        @* Only reachable when more streets need a re-audit than one page shows; the map link appears once even
+           the fetched set runs out, since the map is the only place that draws every flagged street. *@
+        @if(reauditTotal > reauditPageSize) {
+          <p class="ud-reaudit-more">
+            @if(reauditStreets.size > reauditPageSize) {
+              @* The count is its own element so OutdatedStreets can update it without re-translating the sentence. *@
+              <button type="button" class="ud-btn-secondary" id="ud-reaudit-show-more">@Html(Messages("dashboard.reaudit.more",
+                s"""<span class="ud-reaudit-more-count">${math.min(reauditPageSize, reauditStreets.size - reauditPageSize)}</span>"""))</button>
+            }
+            @if(reauditTotal > reauditStreets.size) {
+              <a class="ud-see-all" href="#overview">@Messages("dashboard.reaudit.see.map")</a>
+            }
+          </p>
+        }
+      } else {
+        <div class="ud-nudge" id="ud-reaudit-empty">@Messages("dashboard.reaudit.none")</div>
+      }
+    </div>
+  }
+
   @* Contribution map: the shared PSMap choropleth wired to the signed-in user's own streets/labels. Map labels
    open the same label-detail popup the mistake cards use (window.udLabelPopupReady is resolved below). *@
   @userDashboard._contributionMapScript("user-dashboard-choropleth", commonData.mapboxApiKey,
@@ -343,6 +420,7 @@
   <script src="@assets.path("js/user-dashboard/MistakeGallery.js")"></script>
   <script src="@assets.path("js/user-dashboard/StoriesSection.js")"></script>
   <script src="@assets.path("js/user-dashboard/MyRoutes.js")"></script>
+  <script src="@assets.path("js/user-dashboard/OutdatedStreets.js")"></script>
   <script>
     // Deferred handle the contribution map's click adapter awaits; resolved (popup or null) once init finishes.
     let labelPopupReadyResolve;
@@ -377,6 +455,11 @@
       const routesList = document.getElementById('ud-routes-list');
       if (routesList && typeof MyRoutes !== 'undefined') {
         new MyRoutes(routesList).init();
+      }
+
+      const reauditList = document.getElementById('ud-reaudit-list');
+      if (reauditList && typeof OutdatedStreets !== 'undefined') {
+        new OutdatedStreets(reauditList, { mapReady: window.udContributionMapReady }).init();
       }
 
       var mistakes = document.getElementById('ud-mistakes');
