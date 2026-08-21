@@ -996,15 +996,16 @@ trait ConfigService {
   def getAggregateStats(): Future[AggregateStats]
 
   /**
-   * This deployment's own headline totals, for the Leaderboard's hero band (#4687).
+   * The cross-city totals plus this deployment's own slice of them, for the Leaderboard's two bands (#4687).
    *
-   * Read out of the same cached fan-out as [[getAggregateStats]], so it costs no additional queries and carries the
-   * same staleness.
+   * Both come out of one cache read of the same fan-out, so the city numbers are a slice of exactly the computation
+   * the totals summarize — not of a neighbouring one a background refresh landed in between. Costs no queries beyond
+   * what [[getAggregateStats]] already runs, and carries the same staleness.
    *
-   * @return This city's totals, or None if its schema is unavailable or either of its queries failed — in which case
-   *         the caller should hide the band rather than render zeros.
+   * @return The cross-city aggregate, and this city's totals — None if its schema is unavailable or either of its
+   *         queries failed, in which case the caller should hide the band rather than render zeros.
    */
-  def getCurrentCityImpact(): Future[Option[CityImpact]]
+  def getAggregateStatsWithCurrentCity(): Future[(AggregateStats, Option[CityImpact])]
 
   /**
    * Returns daily label and validation counts aggregated across all configured cities.
@@ -1675,23 +1676,13 @@ class ConfigServiceImpl @Inject() (
       }
     }
 
-  /**
-   * Calculates aggregate statistics across all Project Sidewalk deployments, serving cached results when available.
-   *
-   * The computation fans out several aggregate queries to every configured city schema, which can take well over 10s
-   * on a loaded database — long enough that a request hitting an expired cache would time out client-side (#4600). So
-   * cached stats are served immediately for up to [[ConfigService.AggregateStatsMaxAge]], with a single background
-   * recompute triggered once they are older than [[ConfigService.AggregateStatsFreshFor]]. Only the first request
-   * after a JVM start (nothing cached yet) waits for the full computation.
-   *
-   * @return A Future containing aggregated statistics across all cities
-   */
   def getAggregateStats(): Future[AggregateStats] = aggregateStatsBundle().map(_.overall)
 
-  def getCurrentCityImpact(): Future[Option[CityImpact]] = aggregateStatsBundle().map(_.byCity.get(getCityId))
+  def getAggregateStatsWithCurrentCity(): Future[(AggregateStats, Option[CityImpact])] =
+    aggregateStatsBundle().map(bundle => (bundle.overall, bundle.byCity.get(getCityId)))
 
   /**
-   * The cached cross-schema fan-out that backs both [[getAggregateStats]] and [[getCurrentCityImpact]].
+   * The cached cross-schema fan-out that backs [[getAggregateStats]] and [[getAggregateStatsWithCurrentCity]].
    *
    * The computation fans out several aggregate queries to every configured city schema, which can take well over 10s
    * on a loaded database — long enough that a request hitting an expired cache would time out client-side (#4600). So
@@ -1699,9 +1690,8 @@ class ConfigServiceImpl @Inject() (
    * recompute triggered once they are older than [[ConfigService.AggregateStatsFreshFor]]. Only the first request
    * after a JVM start (nothing cached yet) waits for the full computation.
    *
-   * The cache key is versioned because [[staleWhileRevalidate]] reads `cacheApi.get[Timestamped[T]](key)` and `T`
-   * erases: were the bundle stored under the old plain-`AggregateStats` key, a JVM that stayed warm across a
-   * recompile (i.e. every `sbt ~ run` session) could hand this code an old-shaped value and throw at the use site.
+   * The cache key names the value's shape because [[staleWhileRevalidate]] reads `cacheApi.get[Timestamped[T]](key)`
+   * and `T` erases, so nothing would catch a differently-shaped value stored under the same key by other code.
    *
    * @return A Future containing the cross-city totals plus each city's own slice of them
    */

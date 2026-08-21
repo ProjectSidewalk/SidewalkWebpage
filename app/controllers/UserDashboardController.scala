@@ -8,7 +8,7 @@ import models.user.SidewalkUserWithRole
 import play.api.Configuration
 import play.api.i18n.Messages
 import play.api.libs.json.Json
-import service.{CityImpact, ConfigService, GlobalLeaderboardEntry, UserService}
+import service.{ConfigService, GlobalLeaderboardEntry, UserService}
 
 import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
@@ -81,14 +81,12 @@ class UserDashboardController @Inject() (
     // Kicked off before the for-comprehension so the cross-city union overlaps the per-city queries on a cache miss.
     val globalF: Future[Option[Seq[GlobalLeaderboardEntry]]] = userService.getGlobalLeaderboardStats(10)
     for {
-      commonData <- configService.getCommonPageData(request2Messages.lang)
-      aggregate  <- configService.getAggregateStats()
-      // Reads the same cached fan-out `aggregate` just populated, so this is a cache hit rather than a second query.
-      impact: Option[CityImpact] <- configService.getCurrentCityImpact()
-      overall                    <- userService.getLeaderboardStats(10)
-      weekly                     <- userService.getLeaderboardStats(10, "weekly")
-      teams                      <- userService.getLeaderboardStats(10, "overall", byTeam = true)
-      standing                   <- signedInUser
+      commonData          <- configService.getCommonPageData(request2Messages.lang)
+      (aggregate, impact) <- configService.getAggregateStatsWithCurrentCity()
+      overall             <- userService.getLeaderboardStats(10)
+      weekly              <- userService.getLeaderboardStats(10, "weekly")
+      teams               <- userService.getLeaderboardStats(10, "overall", byTeam = true)
+      standing            <- signedInUser
         .map(u => userService.getUserStanding(u.userId))
         .getOrElse(Future.successful(None))
       global <- globalF
