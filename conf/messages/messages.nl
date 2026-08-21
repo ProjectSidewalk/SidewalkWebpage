@@ -721,6 +721,7 @@ leaderboard.cta.signup = Account aanmaken
 leaderboard.hero.caption = {0} tot nu toe
 leaderboard.hero.bridge = In alle {0} Project Sidewalk-steden samen heeft de gemeenschap {1} labels en {2} validaties bijgedragen.
 leaderboard.hero.bridge.link = Bekijk de impact van de gemeenschap
+leaderboard.hero.streets.detail = Elke straat telt één keer mee, hoeveel mensen die ook hebben verkend. Het cijfer voor alle steden hieronder telt elke verkenning apart.
 leaderboard.podium.title = Bovenaan het bord
 leaderboard.podium.intro = De koplopers aller tijden van {0}. 🏆
 leaderboard.podium.labels = {0} labels

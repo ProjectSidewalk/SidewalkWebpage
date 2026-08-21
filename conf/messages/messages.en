@@ -733,6 +733,7 @@ leaderboard.cta.signup = Create an account
 leaderboard.hero.caption = {0} so far
 leaderboard.hero.bridge = Across all {0} Project Sidewalk cities, the community has contributed {1} labels and {2} validations.
 leaderboard.hero.bridge.link = See community impact
+leaderboard.hero.streets.detail = Each street counted once, however many people have explored it. The all-cities figure below counts every exploration separately.
 leaderboard.podium.title = Top of the board
 leaderboard.podium.intro = {0}''s all-time leaders. 🏆
 leaderboard.podium.labels = {0} labels

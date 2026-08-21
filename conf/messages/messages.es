@@ -734,6 +734,7 @@ leaderboard.cta.signup = Crear una cuenta
 leaderboard.hero.caption = {0} hasta ahora
 leaderboard.hero.bridge = En las {0} ciudades de Project Sidewalk, la comunidad ha aportado {1} etiquetas y {2} validaciones.
 leaderboard.hero.bridge.link = Ver el impacto comunitario
+leaderboard.hero.streets.detail = Cada calle se cuenta una sola vez, sin importar cuántas personas la hayan explorado. La cifra de todas las ciudades más abajo cuenta cada exploración por separado.
 leaderboard.podium.title = Lo más alto del tablero
 leaderboard.podium.intro = Los líderes históricos de {0}. 🏆
 leaderboard.podium.labels = {0} etiquetas
