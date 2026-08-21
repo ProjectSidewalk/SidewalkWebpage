@@ -62,10 +62,10 @@ UPDATE label SET tutorial = TRUE WHERE pano_id IN ('tutorial', 'afterWalkTutoria
 -- pano_data row was silently dropped. Values come from four sources, in precedence order (derivation and the
 -- cross-source validation are in scratchpad/4587-generate-backfill-values.py and the plan doc):
 --
---   1. old_label_metadata, each label's copy of its pano's camera_heading, camera_pitch and position from before
---      those columns left label_point in March 2023. It describes the imagery the labeller actually saw, so it wins
---      outright: on 5 of the 45 panos below, the scrape in (3) had caught different imagery, off by up to 8.9 deg
---      and 14.6 m. Covers 61 of the 98.
+--   1. old_label_metadata, which evolution 179 filled from label.photographer_heading/photographer_pitch and
+--      label.panorama_lat/lng as it moved those per-label copies onto the pano table. They describe the imagery the
+--      labeller actually saw, so they win outright: on 5 of the 45 panos below, the scrape in (3) had caught
+--      different imagery, off by up to 8.9 deg and 14.6 m. Covers 61 of the 98 -- every label predating v7.12.2.
 --   2. Google's photometa endpoint, for the 49 panos still served (the legacy cbk endpoint now 404s).
 --   3. cbk XML sidecars in the pano image store, for the 45 scraped before 2022-03-14 (aac479231), while the
 --      scraper's work list still came from the label table rather than pano_data.
