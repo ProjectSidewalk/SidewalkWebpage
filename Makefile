@@ -184,10 +184,11 @@ test-python-tools:
 # Browser smoke tests (test/e2e/) against an already-running app at localhost:9000. Like every other tooling target
 # this runs in a container, so it behaves the same on Linux, WSL2, and macOS (Intel and Apple Silicon) with no host
 # Node, browser, or `playwright install` — the official Playwright base image ships Chromium plus its OS deps and is
-# multi-arch. Two flags carry the design: `--network container:` puts the runner in the web container's network
+# multi-arch. Two flags place the runner: `--network container:` puts it in the web container's network
 # namespace, so the app answers at localhost:9000 — the only host conf/application.local.conf's
 # play.filters.hosts.allowed permits, and the same URL CI uses; `--volumes-from` gives it the web container's
-# mounts, so /home is the repo and worktree paths resolve unchanged. Scope with args=, e.g.
+# mounts, so /home is the repo and worktree paths resolve unchanged. Two more make it behave: see the notes on
+# `--tmpfs` below and on e2e-user above. Scope with args=, e.g.
 # args="-g labelMap --no-deps". Without wt= it runs the MAIN checkout's specs even when invoked from a worktree
 # (the container sees one filesystem); pass wt=<name> for that worktree's, as with qa-worktree. For --headed/--ui,
 # see test-e2e-host. The image build is a cached no-op after the first run, and re-runs itself on a version bump —
