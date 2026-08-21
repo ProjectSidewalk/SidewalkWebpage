@@ -122,10 +122,11 @@ util.pano.povToPanoCoord = (pov, cameraHeading, panoWidth, panoHeight) => {
  * Returns the centered pov of a point on the canvas based on panorama's POV and the canvas coordinate.
  *
  * The canvas coordinate is used exactly as given — no anchor or padding offset (#4851, pinned by
- * test/js/panoProjection.test.js). Both renderers center their icon on the projected point (Explore's drawImage,
- * Validate's PanoMarker.draw); Explore derives a label's stored pano_x/pano_y from this output and every consumer
- * re-derives the POV from that record, so an offset here desyncs each reader from the writer. AI labels need the
- * identity directly — submitAiLabelData writes them at the canvas center so this returns the submitted POV unchanged.
+ * test/js/panoProjection.test.js). Neither renderer wants one: PanoMarker.draw centers on the projected point
+ * exactly, Explore's canvas draw to within half a pixel. Explore derives a label's stored pano_x/pano_y from this
+ * output and every consumer re-derives the POV from that record, so an offset here desyncs each reader from the
+ * writer. AI labels need the identity directly — submitAiLabelData writes them at the canvas center so this returns
+ * the submitted POV unchanged.
  *
  * @param {{heading: number, pitch: number, zoom: number}} pov The POV within the panorama to use wrt true north
  * @param {number} canvasX X-coordinate of the point of interest
