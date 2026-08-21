@@ -36,7 +36,8 @@ case class AuditTask(
     stale: Boolean,
     auditedDistanceM: Option[Double],
     startOffsetM: Option[Double] = None, // Meters from the street's start to where a free-exploration drop-in began.
-    outdatedImagery: Boolean = false     // Machine-managed (#4384); mirrors the column's DEFAULT FALSE.
+    outdatedImagery: Boolean = false,    // Machine-managed (#4384); mirrors the column's DEFAULT FALSE.
+    outdatedImageryAt: Option[OffsetDateTime] = None // When the sync last flipped the flag on; NULL while unflagged.
 )
 case class NewTask(
     edgeId: Int,
@@ -125,10 +126,12 @@ class AuditTaskTableDef(tag: slick.lifted.Tag) extends Table[AuditTask](tag, "au
   // Partial index in the DB (356.sql, no Slick DSL for partial indexes):
   // audit_task_street_edge_id_outdated_idx ON audit_task (street_edge_id) WHERE outdated_imagery.
   def outdatedImagery: Rep[Boolean] = column[Boolean]("outdated_imagery", O.Default(false))
+  // CHECK (outdated_imagery OR outdated_imagery_at IS NULL) in the DB (no Slick DSL for CHECK constraints).
+  def outdatedImageryAt: Rep[Option[OffsetDateTime]] = column[Option[OffsetDateTime]]("outdated_imagery_at")
 
   def * = (auditTaskId, amtAssignmentId, userId, streetEdgeId, taskStart, taskEnd, completed, currentLat, currentLng,
     startPointReversed, currentMissionId, currentMissionStart, lowQuality, incomplete, stale, auditedDistanceM,
-    startOffsetM, outdatedImagery) <> (
+    startOffsetM, outdatedImagery, outdatedImageryAt) <> (
     (AuditTask.apply _).tupled,
     AuditTask.unapply
   )
@@ -845,7 +848,10 @@ class AuditTaskTable @Inject() (
    *
    * Sets the flag on completed audits that ended before their street's median_newest_capture -- i.e. at least half
    * the street's sampled points show imagery newer than the audit -- and clears it on flagged audits that fail that
-   * test (e.g. after corrected imagery data), so the sync is idempotent in both directions. The comparison is
+   * test (e.g. after corrected imagery data), so the sync is idempotent in both directions. The set-pass also stamps
+   * outdated_imagery_at and the clear-pass nulls it (#4928); since the set-pass only touches unflagged rows, the
+   * stamp marks the false-to-true edge and survives re-runs, so "flagged since when" reads straight off the column.
+   * The comparison is
    * deliberately NOT against newest_capture: a single newer pano (a partial re-drive, one stray corner pano) doesn't
    * invalidate the audit of a whole street, and re-audits are expensive enough that we err toward flagging too few
    * streets rather than too many (review consensus on #4649). Streets with no street_imagery row (or a NULL
@@ -874,7 +880,7 @@ class AuditTaskTable @Inject() (
   def syncOutdatedImageryFlags: DBIO[(Int, Int)] = {
     val setPass = sqlu"""
       UPDATE audit_task
-      SET outdated_imagery = TRUE
+      SET outdated_imagery = TRUE, outdated_imagery_at = now()
       FROM street_imagery
       WHERE audit_task.street_edge_id = street_imagery.street_edge_id
           AND audit_task.completed
@@ -886,7 +892,7 @@ class AuditTaskTable @Inject() (
     """
     val clearPass = sqlu"""
       UPDATE audit_task
-      SET outdated_imagery = FALSE
+      SET outdated_imagery = FALSE, outdated_imagery_at = NULL
       WHERE audit_task.outdated_imagery
           AND (
               audit_task.street_edge_id = (SELECT tutorial_street_edge_id FROM config)

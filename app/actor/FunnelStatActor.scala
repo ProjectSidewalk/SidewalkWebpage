@@ -3,7 +3,9 @@ package actor
 import actor.ActorUtils.{dateFormatter, getTimeToNextUpdate}
 import org.apache.pekko.actor.{Actor, Cancellable}
 import play.api.Logger
-import service.{AdminService, ConfigService}
+import models.utils.JobRunTrigger
+import play.api.libs.json.Json
+import service.{AdminService, ConfigService, JobRunService}
 
 import java.time.Instant
 import javax.inject._
@@ -20,13 +22,13 @@ object FunnelStatActor {
  * Nightly recompute of this deployment's engagement funnel into the local `funnel_stat` table (#288).
  *
  * Mirrors [[UserStatActor]]: each deployment precomputes only its own city's funnel; the cross-city Across Cities page
- * reads every schema's precomputed table. Scheduled at 3:15 am Pacific plus the per-deployment offset (which staggers
- * co-hosted cities), in an empty slot between the user-stat (1:30) and clustering (4:00) jobs.
+ * reads every schema's precomputed table. [[ScheduledJobs]] holds the time, in an empty slot between the user-stat and
+ * clustering jobs, shifted by the per-deployment offset that staggers co-hosted cities.
  *
  * @param adminService Recompute entry point ([[AdminService.updateFunnelStatTable]]).
  */
 @Singleton
-class FunnelStatActor @Inject() (adminService: AdminService)(implicit
+class FunnelStatActor @Inject() (adminService: AdminService, jobRunService: JobRunService)(implicit
     ec: ExecutionContext,
     configService: ConfigService
 ) extends Actor {
@@ -38,10 +40,14 @@ class FunnelStatActor @Inject() (adminService: AdminService)(implicit
     super.preStart()
     // Per-city offset staggers computation/resource use across co-hosted deployments.
     configService.getOffsetHours.foreach { hoursOffset =>
-      // Target time is 3:15 am Pacific + offset.
+      // Scheduled time comes from ScheduledJobs, shifted by this city's offset.
       cancellable = Some(
         context.system.scheduler.scheduleAtFixedRate(
-          getTimeToNextUpdate(3, 15, hoursOffset).toMillis.millis,
+          getTimeToNextUpdate(
+            ScheduledJobs.FunnelStats.hour,
+            ScheduledJobs.FunnelStats.minute,
+            hoursOffset
+          ).toMillis.millis,
           24.hours,
           self,
           FunnelStatActor.Tick
@@ -60,11 +66,15 @@ class FunnelStatActor @Inject() (adminService: AdminService)(implicit
   def receive: Receive = { case FunnelStatActor.Tick =>
     val currentTimeStart: String = dateFormatter.format(Instant.now())
     logger.info(s"Auto-scheduled computation of engagement funnel starting at: $currentTimeStart")
-    adminService.updateFunnelStatTable().onComplete {
-      case Success(nRows) =>
-        val currentEndTime: String = dateFormatter.format(Instant.now())
-        logger.info(s"Funnel stats updated ($nRows rows) completed at: $currentEndTime")
-      case Failure(e) => logger.error(s"Error updating funnel stats: ${e.getMessage}")
-    }
+    jobRunService
+      .record(FunnelStatActor.Name, JobRunTrigger.Scheduled)(adminService.updateFunnelStatTable()) { nRows =>
+        Json.obj("rows_written" -> nRows)
+      }
+      .onComplete {
+        case Success(nRows) =>
+          val currentEndTime: String = dateFormatter.format(Instant.now())
+          logger.info(s"Funnel stats updated ($nRows rows) completed at: $currentEndTime")
+        case Failure(e) => logger.error(s"Error updating funnel stats: ${e.getMessage}")
+      }
   }
 }

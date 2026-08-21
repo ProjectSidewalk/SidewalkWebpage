@@ -82,6 +82,7 @@ state.name.indiana = IN
 state.name.florida = FL
 state.name.massachusetts = MA
 state.name.texas = TX
+state.name.kentucky = KY
 
 navbar.explore = Explore
 navbar.validate = Validate
