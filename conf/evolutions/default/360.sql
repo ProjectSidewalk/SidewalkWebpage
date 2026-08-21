@@ -217,10 +217,29 @@ WHERE seen.last_labeled IS NOT NULL
 ON CONFLICT (pano_id) DO NOTHING;
 
 
+-- PART 3 (#4587): the point of the two parts above. Every label now has a pano_data row, so make it structural
+-- rather than merely true -- a label written without its pano metadata was silently accepted for years.
+--
+-- Validated inline rather than added NOT VALID and validated later. The NOT VALID split exists to keep a
+-- write-blocking lock short on a large table, but it cannot help here: evolutions share one transaction, so the
+-- ADD's lock is held to commit either way, and the split would only pay off across two deploys at the cost of
+-- shipping an unproven constraint. The scan is 210 ms on seattle, the largest schema at 319k labels, since
+-- label_pano_id_idx and pano_data's primary key both back it.
+ALTER TABLE label ADD CONSTRAINT label_pano_id_fkey FOREIGN KEY (pano_id) REFERENCES pano_data (pano_id);
+
+
 # --- !Downs
--- Safe as a plain delete: each row went into a schema where the pano had no row, and nothing has had the chance to
--- reference one since.
-DELETE FROM pano_data WHERE pano_id IN (
+-- First, so the deletes below can put the labels back to referencing panos that have no row.
+ALTER TABLE label DROP CONSTRAINT label_pano_id_fkey;
+
+-- last_checked is what distinguishes the rows this evolution wrote from ones a client wrote for the same pano: the
+-- Up stamps its own literal, a live write stamps now(). Without that guard a pano someone visits between now and
+-- deploy -- whose row the Up then skips via ON CONFLICT -- would be deleted here, losing real metadata and failing
+-- outright against pano_link's foreign key. If the expiry sweep has since restamped last_checked the row is left
+-- behind instead, which is the safe direction to err.
+DELETE FROM pano_data
+WHERE last_checked = '2026-08-21'
+  AND pano_id IN (
     'IU6xDOn1LzV6WnYPg7R4uw', 'UPxzd1SPIA5o4udTq_qp3A', 'ZnN1k5cb8jn8x-DT4p51wQ', '_bo4xBh2TEw5odDce9nAvQ',
     'CJ-QFkxbDhjftegCSpcSFw', 'SQEvsqD7xBEbvBS8lBZhog', 'V2eMH3rj_m8FaMQvAh-qkg', 'k3xWZof11YvVJ3cpOaPotA',
     'rFnokTwtWlFqZJb0xWtRrQ', 'uZ1jHx62NoDiEM3VBAAy6g', 'x9n7BzN6G-8DytRqgszuzg', '99AnoYWD5cp5H3lP1bmK7Q',
