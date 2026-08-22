@@ -76,7 +76,7 @@ class ApplicationController @Inject() (
         } else {
           cc.loggingService.insert(user.map(_.userId), ipAddress, "Visit_Index", timestamp)
           // Get names and URLs for other cities so we can link to them on landing page.
-          val metric: Boolean = Messages("measurement.system") == "metric"
+          val metric: Boolean = ControllerUtils.isMetric
           for {
             commonData                   <- configService.getCommonPageData(request2Messages.lang)
             openStatus: String           <- configService.getOpenStatus

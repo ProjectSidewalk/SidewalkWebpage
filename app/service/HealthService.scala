@@ -1,13 +1,15 @@
 package service
 
+import actor.ScheduledJobs
 import com.google.inject.ImplementedBy
-import models.utils.HealthTable
+import models.utils.{BackgroundJobRun, BackgroundJobRunTable, HealthTable, JobRunStatus, JobRunTrigger}
 import play.api.cache.AsyncCacheApi
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json._
 import play.api.{Configuration, Logger}
 import models.utils.MyPostgresProfile
 
+import java.time.temporal.ChronoUnit
 import java.time.OffsetDateTime
 import javax.inject._
 import scala.concurrent.duration.Duration
@@ -101,7 +103,45 @@ case class HealthThresholds(
     vacuumAgeWarnSeconds: Long,
     connPoolMax: Int,
     connWarnActive: Int,
-    connBadActive: Int
+    connBadActive: Int,
+    jobOverdueHours: Long,
+    jobWindowDays: Int
+)
+
+/**
+ * The state of one nightly background job, from its `background_job_run` history (#4928).
+ *
+ * Every `last*` field describes the job's last *scheduled* run, because the panel's question is whether the nightly
+ * schedule is alive. A hand-triggered run is reported separately rather than folded in: it proves the code works, not
+ * that anything is still firing it, so letting one supply the badge would let a morning-after "run it now" click
+ * paint over the night the job actually failed.
+ *
+ * @param lastStatus         `never_run`, `abandoned` (still open long past any plausible duration, so the app died
+ *                           mid-run), or the recorded outcome.
+ * @param lastDetails        The job's own counts, shaped by the job.
+ * @param hoursSinceLastRun  Age of the last scheduled run's start, which is what makes a stalled scheduler visible.
+ * @param overdue            No successful scheduled run within the roster's overdue window.
+ * @param lastManualRunAt    When someone last ran this job by hand, if ever.
+ * @param lastManualStatus   How that hand-triggered run ended.
+ * @param runsInWindow       Scheduled runs started within the reporting window, successful or not.
+ * @param failuresInWindow   How many of those failed or were abandoned, for the error-rate read.
+ */
+case class NightlyJobStatus(
+    jobName: String,
+    label: String,
+    scheduledAt: String,
+    lastStartedAt: Option[String],
+    lastFinishedAt: Option[String],
+    lastDurationSeconds: Option[Long],
+    lastStatus: String,
+    lastDetails: Option[JsValue],
+    lastError: Option[String],
+    hoursSinceLastRun: Option[Long],
+    overdue: Boolean,
+    lastManualRunAt: Option[String],
+    lastManualStatus: Option[String],
+    runsInWindow: Int,
+    failuresInWindow: Int
 )
 
 /** The full Health dashboard payload for `/adminapi/dbHealth`. */
@@ -117,6 +157,7 @@ case class DbHealthData(
     tableBloat: Seq[TableBloat],
     connections: Seq[ConnCount],
     panoBackups: Option[PanoBackupStats],
+    nightlyJobs: Seq[NightlyJobStatus],
     thresholds: HealthThresholds
 )
 
@@ -133,6 +174,12 @@ trait HealthService {
 
   /** Reads every health signal and assembles the dashboard payload. */
   def getDbHealth: Future[DbHealthData]
+
+  /**
+   * The state of every nightly job, cached. Shared with panels that report on one pipeline's jobs (#4908), so that
+   * "is this job overdue" has one definition rather than one per page.
+   */
+  def getNightlyJobs: Future[Seq[NightlyJobStatus]]
 }
 
 @Singleton
@@ -140,7 +187,8 @@ class HealthServiceImpl @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     config: Configuration,
     cacheApi: AsyncCacheApi,
-    healthTable: HealthTable
+    healthTable: HealthTable,
+    backgroundJobRunTable: BackgroundJobRunTable
 )(implicit val ec: ExecutionContext)
     extends HealthService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
@@ -173,7 +221,9 @@ class HealthServiceImpl @Inject() (
     vacuumAgeWarnSeconds = 604800, // 7 days
     connPoolMax = poolMax,
     connWarnActive = math.max(1, (poolMax * 0.7).toInt),
-    connBadActive = math.max(1, (poolMax * 0.9).toInt)
+    connBadActive = math.max(1, (poolMax * 0.9).toInt),
+    jobOverdueHours = ScheduledJobs.OverdueAfterHours,
+    jobWindowDays = HealthService.JobWindowDays
   )
 
   def getDbHealth: Future[DbHealthData] = {
@@ -207,7 +257,8 @@ class HealthServiceImpl @Inject() (
       .recover { case e: Exception =>
         logger.warn(s"Health: failed to read pano backup stats: ${e.getMessage}"); None
       }
-    val evoF = getStuckEvolutions
+    val evoF  = getStuckEvolutions
+    val jobsF = getNightlyJobs.recover(logAndEmpty("nightly jobs"))
 
     for {
       env      <- envF
@@ -218,6 +269,7 @@ class HealthServiceImpl @Inject() (
       bloat    <- bloatF
       conn     <- connF
       pano     <- panoF
+      jobs     <- jobsF
     } yield DbHealthData(
       generatedAt = OffsetDateTime.now().toString,
       currentDatabase = env.database,
@@ -230,8 +282,89 @@ class HealthServiceImpl @Inject() (
       tableBloat = bloat,
       connections = conn,
       panoBackups = pano,
+      nightlyJobs = jobs,
       thresholds = thresholds
     )
+  }
+
+  /**
+   * The state of every nightly job, one row per job on the [[ScheduledJobs]] roster.
+   *
+   * Driven by the roster rather than by what is in `background_job_run`, so a job that has *never* recorded a run
+   * still gets a row — a scheduler that never started leaves no rows at all, which is precisely the failure a
+   * rows-driven listing would render as an empty, healthy-looking panel.
+   */
+  def getNightlyJobs: Future[Seq[NightlyJobStatus]] = {
+    cacheApi.getOrElseUpdate[Seq[NightlyJobStatus]]("health.jobs", slowTtl)(loadNightlyJobs)
+  }
+
+  /** Assembles the roster's job states from `background_job_run`; cached by [[getNightlyJobs]]. */
+  private def loadNightlyJobs: Future[Seq[NightlyJobStatus]] = {
+    val now            = OffsetDateTime.now
+    val windowStart    = now.minusDays(HealthService.JobWindowDays.toLong)
+    val abandonedSince = now.minusHours(HealthService.JobAbandonedAfterHours)
+
+    // Bound before the for-comprehension so the three reads run concurrently rather than in sequence.
+    val latestRunsF = db.run(backgroundJobRunTable.latestRunPerJobAndTrigger)
+    val lastGoodF   = db.run(backgroundJobRunTable.lastScheduledSuccessPerJob)
+    val countsF     = db.run(backgroundJobRunTable.outcomeCountsSince(windowStart, abandonedSince))
+
+    for {
+      latestRuns <- latestRunsF
+      lastGood   <- lastGoodF
+      counts     <- countsF
+    } yield {
+      val byJobAndTrigger = latestRuns.map(run => (run.jobName, run.triggeredBy) -> run).toMap
+      val lastGoodByJob   = lastGood.toMap
+      ScheduledJobs.All.map { job =>
+        val latest       = byJobAndTrigger.get((job.name, JobRunTrigger.Scheduled))
+        val lastManual   = byJobAndTrigger.get((job.name, JobRunTrigger.Manual))
+        val jobCounts    = counts.filter(_._1 == job.name)
+        val runsInWindow = jobCounts.map(_._4).sum
+        // An abandoned run — still open long past any plausible duration — is a failure the row never got to record,
+        // so counting only `failed` here would read a job the JVM dies inside every night as a spotless record.
+        val failures = jobCounts.collect {
+          case (_, JobRunStatus.Failed, _, count)     => count
+          case (_, JobRunStatus.Running, true, count) => count
+        }.sum
+        val hoursSince = latest.map(run => ChronoUnit.HOURS.between(run.startedAt, now))
+        NightlyJobStatus(
+          jobName = job.name,
+          label = job.label,
+          scheduledAt = job.scheduledAt,
+          lastStartedAt = latest.map(_.startedAt.toString),
+          lastFinishedAt = latest.flatMap(_.finishedAt.map(_.toString)),
+          lastDurationSeconds =
+            latest.flatMap(run => run.finishedAt.map(finished => ChronoUnit.SECONDS.between(run.startedAt, finished))),
+          lastStatus = describeStatus(latest, hoursSince),
+          lastDetails = latest.flatMap(_.details),
+          lastError = latest.flatMap(_.errorMessage),
+          hoursSinceLastRun = hoursSince,
+          // Asked of the *schedule*, so it keys on the last successful scheduled run: a run an admin kicked off by
+          // hand must not clear the alarm, and one still in flight must not raise it while the previous night's
+          // success is inside the window. A job failing every night still reads overdue, since its last success
+          // recedes with each failure.
+          overdue = lastGoodByJob
+            .get(job.name)
+            .forall(lastSuccess => ChronoUnit.HOURS.between(lastSuccess, now) > ScheduledJobs.OverdueAfterHours),
+          lastManualRunAt = lastManual.map(_.startedAt.toString),
+          lastManualStatus =
+            lastManual.map(run => describeStatus(Some(run), Some(ChronoUnit.HOURS.between(run.startedAt, now)))),
+          runsInWindow = runsInWindow,
+          failuresInWindow = failures
+        )
+      }
+    }
+  }
+
+  /** How a run reads: never run, abandoned mid-run, or its recorded outcome. */
+  private def describeStatus(latest: Option[BackgroundJobRun], hoursSinceStart: Option[Long]): String = {
+    latest match {
+      case None                                            => "never_run"
+      case Some(run) if run.status == JobRunStatus.Running =>
+        if (hoursSinceStart.exists(_ > HealthService.JobAbandonedAfterHours)) "abandoned" else "running"
+      case Some(run) => run.status.toString
+    }
   }
 
   /**
@@ -263,6 +396,18 @@ class HealthServiceImpl @Inject() (
 }
 
 object HealthService {
+
+  /** How far back the nightly-jobs panel counts runs and failures, in days. A week shows a rate, not one bad night. */
+  val JobWindowDays: Int = 7
+
+  /**
+   * How long a run may stay open before it reads as abandoned rather than in progress, in hours.
+   *
+   * The whole nightly schedule spans under four hours, so a run still open this long after it started means the app
+   * was killed or redeployed mid-run and nothing ever closed the row.
+   */
+  val JobAbandonedAfterHours: Long = 12
+
   implicit private val jsonConfig: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
 
   implicit val blockingSessionWrites: Writes[BlockingSession]   = Json.writes[BlockingSession]
@@ -272,6 +417,7 @@ object HealthService {
   implicit val tableBloatWrites: Writes[TableBloat]             = Json.writes[TableBloat]
   implicit val connCountWrites: Writes[ConnCount]               = Json.writes[ConnCount]
   implicit val panoBackupStatsWrites: Writes[PanoBackupStats]   = Json.writes[PanoBackupStats]
+  implicit val nightlyJobStatusWrites: Writes[NightlyJobStatus] = Json.writes[NightlyJobStatus]
   implicit val healthThresholdsWrites: Writes[HealthThresholds] = Json.writes[HealthThresholds]
   implicit val dbHealthDataWrites: Writes[DbHealthData]         = Json.writes[DbHealthData]
 }

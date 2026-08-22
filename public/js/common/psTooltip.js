@@ -8,9 +8,18 @@
  * places it, and main.css draws it. Escape dismisses it (WCAG 1.4.13). Set the attribute directly, or via i18nDom's
  * `data-i18n-tooltip="ns:key"` so the text stays translated.
  *
- * The attribute value renders as HTML so translation strings can carry inline emphasis (<b>, <i>). That makes it a
- * hard rule that `data-ps-tooltip` only ever holds first-party strings (our translation files) — never user-supplied
- * or third-party text.
+ * **The attribute value renders as HTML** (`innerHTML`), so translation strings can carry inline emphasis (<b>, <i>)
+ * and a caller can build a small rich card. That makes escaping the caller's responsibility, and the requirement is
+ * *double* escaping for anything user-supplied — a username, a label description, any third-party text:
+ *
+ *   1. Escape the value, and interpolate it into the card markup.
+ *   2. Escape that whole markup string again when writing it into the `data-ps-tooltip` attribute.
+ *
+ * Parsing the attribute consumes one level and `innerHTML` here consumes the other, so a username of
+ * `<img onerror=...>` arrives as text. One level of escaping is a stored-XSS hole, not a cosmetic bug: skip step 2 and
+ * the attribute closes early, letting the value inject arbitrary markup into the host page.
+ * `AcrossCitiesPage.#dayTipHtml` is the worked example, and `test/js/acrossCitiesBreakdowns.test.js` pins it.
+ * Plain-text callers need none of this — pass first-party text and it renders as-is.
  *
  * Loaded globally from main.scala.html (like i18nDom.js); no per-app setup needed — listeners are delegated on the
  * document, so triggers added at any time just work.
@@ -70,7 +79,8 @@
     // dialog sets no transform/filter, so the card stays fixed to the viewport and escapes the dialog's overflow.
     const host = trigger.closest('dialog[open]') ?? document.body;
     if (card.parentElement !== host) host.appendChild(card);
-    // Rendered as HTML per the header contract: tooltip strings are first-party translations, never user input.
+    // Rendered as HTML per the header contract, which is also why that contract requires callers to double-escape any
+    // user-supplied text they interpolate: this is the second of the two levels being consumed.
     card.innerHTML = trigger.getAttribute('data-ps-tooltip');
     card.classList.remove('ps-tooltip--flipped'); // Reset before measuring; the flip below re-adds it if needed.
 
@@ -96,8 +106,18 @@
       top = below;
       card.classList.add('ps-tooltip--flipped');
     }
+    // Clamp vertically the same way as horizontally, because a tall card near the middle of a short viewport fits on
+    // neither side and would otherwise run off the bottom with its lower rows unreachable. A card taller than the
+    // viewport still overflows, but pins to the top so it is read from the beginning.
+    const clampedTop = Math.max(
+      VIEWPORT_MARGIN_PX,
+      Math.min(top, window.innerHeight - cardRect.height - VIEWPORT_MARGIN_PX),
+    );
+    // A clamp moves the card off the trigger's edge, so its tail would point at empty space; drop the tail instead.
+    if (clampedTop !== top) card.classList.add('ps-tooltip--untailed');
+    else card.classList.remove('ps-tooltip--untailed');
     card.style.left = `${left}px`;
-    card.style.top = `${top}px`;
+    card.style.top = `${clampedTop}px`;
 
     // Aim the tail at the trigger's center, not the card's: the clamp above slides the card sideways near a viewport
     // edge, and a tail pinned to the card's middle would then point at empty space.

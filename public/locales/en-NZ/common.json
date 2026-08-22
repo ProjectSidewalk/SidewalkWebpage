@@ -5,9 +5,6 @@
   "no-sidewalk": "No Footpath",
   "crosswalk": "Marked Pedestrian crossing",
   "map": {
-    "distance-left": "Only {{n}} kilometres left!",
-    "distance-left-one-unit": "Only 1 kilometres left!",
-    "less-than-one-unit-left": "Less than a kilometre left!",
     "click-to-help": "<a href='{{url}}' class='region-selection-trigger' regionId='{{regionId}}'>Click here</a> to help finish this neighbourhood"
   },
   "tag": {

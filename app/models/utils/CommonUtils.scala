@@ -44,6 +44,16 @@ object CommonUtils {
   }
 
   /**
+   * Truncates a value to `decimals` decimal places rather than rounding it.
+   *
+   * @param value    The value to truncate.
+   * @param decimals How many decimal places to keep.
+   * @return         The value truncated at that precision.
+   */
+  def floorTo(value: Double, decimals: Int): Double =
+    BigDecimal.decimal(value).setScale(decimals, BigDecimal.RoundingMode.FLOOR).toDouble
+
+  /**
    * Calculate a destination point given a starting point, distance, and bearing using the Haversine formula.
    *
    * @param lat Starting latitude in degrees

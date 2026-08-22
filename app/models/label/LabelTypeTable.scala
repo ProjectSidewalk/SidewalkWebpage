@@ -38,7 +38,7 @@ object LabelTypeEnum {
     override def toString: String = name
 
     // Messages key for this label type's short human-readable name (e.g. "curb.ramp"), derived from descriptionKey so
-    // the two can't drift. Note: the internal-only "Problem" type has no name message key.
+    // the two can't drift.
     val nameKey: String = descriptionKey.stripSuffix(".description")
 
     // Paths to the icon images for this label type. The scalable marker is what our own pages render; the rasters are
@@ -60,13 +60,12 @@ object LabelTypeEnum {
   case object Other      extends Base(5, "Other", "other.description", "#B3B3B3", isAccessProblem = false)
   case object Occlusion  extends Base(6, "Occlusion", "occlusion.description", "#B3B3B3", isAccessProblem = false)
   case object NoSidewalk extends Base(7, "NoSidewalk", "no.sidewalk.description", "#BE87D8", isAccessProblem = true)
-  case object Problem    extends Base(8, "Problem", "problem.description", "#B3B3B3", isAccessProblem = true)
   case object Crosswalk  extends Base(9, "Crosswalk", "crosswalk.description", "#FABF1C", isAccessProblem = false)
   case object Signal     extends Base(10, "Signal", "signal.description", "#63C0AB", isAccessProblem = false)
 
   // Complete set of all label type enum values. Used as the source for generating other collections.
   lazy val values: Set[Base] = Set(
-    CurbRamp, NoCurbRamp, Obstacle, SurfaceProblem, Other, Occlusion, NoSidewalk, Problem, Crosswalk, Signal
+    CurbRamp, NoCurbRamp, Obstacle, SurfaceProblem, Other, Occlusion, NoSidewalk, Crosswalk, Signal
   )
 
   // Lookup map for finding a label type by its string name.
@@ -84,9 +83,9 @@ object LabelTypeEnum {
   // Maps label type names to their associated colors. Used for retrieving colors by label type name.
   lazy val labelTypeToColor: Map[String, String] = values.map(lt => lt.name -> lt.color).toMap
 
-  // Set of all valid label types that can be used in the application, excluding internal-only types like "Problem".
-  lazy val validLabelTypes: Set[String] = values.map(_.name) - Problem.name
-  lazy val validLabelTypeIds: Set[Int]  = validLabelTypes.map(labelTypeToId)
+  // Names/ids of every label type, for allowlisting a caller-supplied label type.
+  lazy val labelTypeNames: Set[String] = values.map(_.name)
+  lazy val labelTypeIds: Set[Int]      = values.map(_.id)
 
   // Set of primary label types used for main categorization.
   lazy val primaryLabelTypes: Set[Base] =

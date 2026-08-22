@@ -21,8 +21,8 @@
   "badge-type-validations": "validaties",
   "badge-missions-singular": "missie",
   "badge-missions-plural": "missies",
-  "badge-distance-singular": "km",
-  "badge-distance-plural": "km",
+  "badge-distance-singular": "{{unitNameSingular}}",
+  "badge-distance-plural": "{{unitName}}",
   "badge-labels-singular": "label",
   "badge-labels-plural": "labels",
   "badge-validations-singular": "validatie",
@@ -47,8 +47,7 @@
     "remaining-missions_other": "Nog {{count}} missies",
     "remaining-validations_one": "Nog {{count}} validatie",
     "remaining-validations_other": "Nog {{count}} validaties",
-    "remaining-distance-km": "Nog {{dist}} km",
-    "remaining-distance-mi": "Nog {{dist}} mi"
+    "remaining-distance": "Nog {{dist}} {{unitAbbr}}"
   },
   "mistake-cards": {
     "empty": "🎉 Geen fouten om te bekijken — je labels houden goed stand. Ga zo door!",

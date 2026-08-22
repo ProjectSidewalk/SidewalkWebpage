@@ -317,11 +317,14 @@
     "label-shortcuts-signal": "Você também pode pressionar a tecla <kbd>{{key}}</kbd> key para selecionar o rótulo Semáforo de Pedestres.",
     "label-shortcuts-occlusion": "Você também pode pressionar a tecla <kbd>{{key}}</kbd> para selecionar o rótulo Não Consigo Ver a Calçada.",
     "still-stuck": "Se você ainda estiver preso, clique no botão Preso novamente.",
-    "stuck-skipped-street": "Não conseguimos encontrar um lugar para você naquela rua, então o movemos para uma nova rua.",
+    "stuck-skipped-street": "Essa rua não tinha imagens que pudéssemos mostrar, então movemos você para uma nova rua.",
+    "stuck-skipped-street-named": "Essa rua não tinha imagens que pudéssemos mostrar, então movemos você para <b>{{streetName}}</b>.",
     "free-explore-start": "Você foi colocado perto do endereço pesquisado. Olhe ao redor e rotule o que encontrar!",
     "free-explore-start-named": "Você chegou perto de <b>{{placeName}}</b>. Olhe ao redor e rotule o que encontrar!",
     "free-explore-no-imagery": "Não há mais imagens da rua nesta direção. Tente olhar ao redor ou seguir para o outro lado.",
-    "stuck-suggestion": "Se você não conseguir se mover com as setas, tente clicar nas direções de navegação no canto inferior direito. Ou tente clicar no botão Preso à esquerda."
+    "stuck-suggestion": "Se você não conseguir se mover com as setas, tente clicar nas direções de navegação no canto inferior direito. Ou tente clicar no botão Preso à esquerda.",
+    "imagery-skip-limit": "Várias ruas seguidas não tinham imagens, então paramos de mover você automaticamente. Tente outra parte do mapa ou recarregue a página para começar de novo.",
+    "imagery-load-failed": "Não conseguimos carregar as imagens da rua agora. Tente novamente em alguns minutos."
   },
   "mission-start-tutorial": {
     "mst-instruction-1": "EXPLORAR MISSÃO",

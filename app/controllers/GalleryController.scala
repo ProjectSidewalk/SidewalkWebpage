@@ -55,7 +55,7 @@ class GalleryController @Inject() (
         // The label type filter is a list, and an empty one means every type — which is what the legacy "Assorted"
         // value, and anything else unrecognized, falls back to.
         val labTypes: Seq[String] =
-          labelType.split(",").map(_.trim).filter(LabelTypeEnum.validLabelTypes.contains).toSeq
+          labelType.split(",").map(_.trim).filter(LabelTypeEnum.labelTypeNames.contains).toSeq
 
         for {
           regions: Seq[Region] <- regionService.getAllRegions

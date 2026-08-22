@@ -3,13 +3,11 @@ package controllers
 import models.label.LabelTableDef
 import models.pano.{PanoDataTableDef, PanoSource}
 import models.story.Story
-import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import org.apache.pekko.stream.Materializer
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
-import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.Files.SingletonTemporaryFileCreator
 import play.api.libs.json.{JsArray, JsObject, JsValue}
@@ -18,6 +16,7 @@ import play.api.test.CSRFTokenHelper._
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import service.{LabelService, StoryService}
+import util.{AnonSession, RolledBackDb}
 
 import java.awt.image.BufferedImage
 import javax.imageio.ImageIO
@@ -35,7 +34,7 @@ import scala.concurrent.duration._
  *
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env, as in dev/CI).
  */
-class StoryControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
+class StoryControllerSpec extends PlaySpec with RolledBackDb with AnonSession with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder()
@@ -52,23 +51,14 @@ class StoryControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
   private val labelTable                 = app.injector.instanceOf[models.label.LabelTable]
 
   // Direct table access for the listing-page fixtures (seed/restore a pano address), per ExploreAddressServiceSpec.
-  private val dbConfig                   = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
-  private def run[T](action: DBIO[T]): T = Await.result(dbConfig.db.run(action), 60.seconds)
-  private val labelsQ                    = TableQuery[LabelTableDef]
-  private val panoDataQ                  = TableQuery[PanoDataTableDef]
-  private val maxTextLength: Int         = app.configuration.get[Int]("stories.max-text-length")
-  private val maxAltTextLength: Int      = app.configuration.get[Int]("stories.max-alt-text-length")
-  private val maxPerDay: Int             = app.configuration.get[Int]("stories.max-per-user-per-day")
+  private val labelsQ               = TableQuery[LabelTableDef]
+  private val panoDataQ             = TableQuery[PanoDataTableDef]
+  private val maxTextLength: Int    = app.configuration.get[Int]("stories.max-text-length")
+  private val maxAltTextLength: Int = app.configuration.get[Int]("stories.max-alt-text-length")
+  private val maxPerDay: Int        = app.configuration.get[Int]("stories.max-per-user-per-day")
 
   private lazy val labelIds: Seq[Int] =
     Await.result(labelService.getRecentLabelMetadata(50), 60.seconds).map(_.labelId).distinct
-
-  /** Mints a fresh anonymous session (a distinct persistent user per call) and returns its cookies. */
-  private def freshAnonSession(): Seq[Cookie] = {
-    val resp = route(app, FakeRequest(GET, "/anonSignUp?url=%2F")).get
-    status(resp) mustBe SEE_OTHER
-    cookies(resp).toSeq
-  }
 
   private def multipartBody(
       dataParts: Map[String, Seq[String]],
@@ -682,7 +672,7 @@ class StoryControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
  * person — a shared NAT can trip this for someone who published nothing, so its error key differs from the per-user
  * cap's — and must say how long is left in the IP's window, in the body and on the standard Retry-After header.
  */
-class StoryControllerIpLimitSpec extends PlaySpec with GuiceOneAppPerSuite {
+class StoryControllerIpLimitSpec extends PlaySpec with AnonSession with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder()
@@ -698,9 +688,7 @@ class StoryControllerIpLimitSpec extends PlaySpec with GuiceOneAppPerSuite {
 
   "POST /userapi/stories under the IP burst limit" should {
     "429 with the network-scoped error and the time left in the window" in {
-      val sessionResp = route(app, FakeRequest(GET, "/anonSignUp?url=%2F")).get
-      status(sessionResp) mustBe SEE_OTHER
-      val session = cookies(sessionResp).toSeq
+      val session = freshAnonSession()
 
       // The limiter charges every attempt before the body's fields are even read, so a bodyless POST exercises it
       // without creating a story (nothing to clean up, no dependence on labels in the test DB).

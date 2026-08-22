@@ -373,6 +373,19 @@ class Task {
   }
 
   /**
+   * The point halfway along the street.
+   *
+   * Preferred over either endpoint when asking a geocoder what this street is called: endpoints sit at
+   * intersections, where the nearest named thing is as likely to be the cross street.
+   *
+   * @returns {{lat: number, lng: number}} The midpoint of the street geometry.
+   */
+  getMidpoint() {
+    const midpoint = turf.along(this.#geojson, this.lineDistance() / 2);
+    return { lat: midpoint.geometry.coordinates[1], lng: midpoint.geometry.coordinates[0] };
+  }
+
+  /**
    * TODO This should go to the Minimap.
    */
   eraseFromMinimap() {

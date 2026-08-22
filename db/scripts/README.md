@@ -45,7 +45,7 @@ are **git-ignored** and must be placed in `db/` yourself; see [`docs/dev-environ
 | `reveal-or-hide-neighborhoods.sh` | `make reveal-or-hide-neighborhoods` | Opens or closes whole **regions** for auditing (flips `region.deleted` + street status between `open`/`closed`); relocates the tutorial street if its region is hidden. | Phased city launches; pulling a region back. |
 | `import-street-imagery.sh` | `make import-street-imagery` | Ingests `check_streets_for_imagery.py`'s per-street imagery summary CSV into the `street_imagery` table. | When backfilling imagery-age data for a city (#4348). |
 | `lint-evolutions.sh` | `make lint-evolutions` | **Static lint** for `conf/evolutions/default/*.sql` (catches semicolons mid-comment and missing `!Ups`/`!Downs` markers). Runs in CI. | Automatically in CI; run locally before pushing an evolution. |
-| `helpers.sh` | _(sourced, not run)_ | Shared bash functions: `prompt_with_default`, `read_street_ids_from_csv`, `mark_streets_no_imagery`, and `run_with_progress` (the spinner/clock used by the restore scripts). | Never directly — it's `source`d by the others. |
+| `helpers.sh` | _(sourced, not run)_ | Shared bash functions: `prompt_with_default`, `read_street_ids_from_csv`, `mark_streets_no_imagery` (which takes a `street_edge_status_change_source` value as its second argument), and `run_with_progress` (the spinner/clock used by the restore scripts). | Never directly — it's `source`d by the others. |
 | `remove_streets.sql` | _(run by hand in psql)_ | **Playbook** to remove a set of `street_edge`s (soft-delete if they have work, hard-delete otherwise), with a preview and `ROLLBACK` guard. | One-off cleanup of bad/duplicate streets. |
 | `remove_validations.sql` | _(run by hand in psql)_ | **Playbook** to remove a set of `label_validation`s and reconcile the derived counts, with a preview and `ROLLBACK` guard. | One-off cleanup (e.g. self-validations from a past bug). |
 
@@ -104,6 +104,13 @@ or `ROLLBACK`. Edit the candidate-id list and the `search_path` (target city sch
   `import-dump`, a script like `reveal-or-hide-neighborhoods.sh` can fail with `column ... does not exist` (e.g.
   `street_edge.status` from evolution 325 / #3888) because the dump is older. Start the app once against that city to
   apply pending evolutions, then re-run the script. (These run in a transaction, so such a failure rolls back cleanly.)
+- **Every script that writes `street_edge.status` records the transition** in `street_edge_status_change` — old status,
+  new status, and which script did it (#4928). `street_edge.status` has no application write path, so these rows are
+  the only trace a run leaves, and `/admin/street-status` charts them as "what was newly identified this week". Two
+  rules when editing one of these scripts: guard the `UPDATE` with `AND status <> '<new value>'` (without it, a re-run
+  over the same CSV logs thousands of transitions that never happened), and write the history row in the same
+  transaction as the status change. A new writer needs its own value added to the
+  `street_edge_status_change_source` enum.
 
 ## Conventions for editing these scripts
 

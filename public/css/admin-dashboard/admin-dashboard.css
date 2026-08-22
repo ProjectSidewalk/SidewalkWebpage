@@ -703,6 +703,21 @@
 /* Emphasized category (opts.emphasisIndex — e.g. the in-progress "today" bar): bolder, darker text; the bar itself
    renders with a lighter fill + solid outline so a partial period reads as still accumulating. */
 .mini-axis--emphasis,
+/* Reference line: a target the bars are read against (e.g. the poll's nightly batch size), not a data series. */
+.mini-ref {
+  stroke: var(--color-text-secondary, #5a7785);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 4;
+  opacity: 0.75;
+}
+
+.mini-ref-label {
+  fill: var(--color-text-secondary, #5a7785);
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--font-sans, sans-serif);
+}
+
 .mini-value--emphasis {
   fill: var(--color-text-primary, #222222);
   font-weight: 700;
@@ -710,6 +725,19 @@
 
 .mini-bar--emphasis {
   fill-opacity: 0.45;
+  stroke-width: 1.5;
+}
+
+/* Full-plot-height hover/focus target for each bar, so a zero-value category is still reachable. Must be
+   `transparent` and not `none`: `fill: none` makes an SVG shape ignore pointer events entirely. */
+.mini-bar-hit {
+  fill: transparent;
+}
+
+.mini-bar-hit:focus-visible {
+  outline: none;
+  stroke: var(--color-text-primary, #222222);
+  stroke-dasharray: 3 2;
   stroke-width: 1.5;
 }
 
@@ -2292,6 +2320,104 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
 .ac-cell-delta--down { color: #c0392b; }
 .ac-cell-delta--flat { color: var(--color-text-tertiary, #88a1ad); }
 
+/* AI output reported beside the human count it accompanies, on a tile and in a table cell (#4931). Deliberately
+   quieter than the delta chips: it qualifies the number above it rather than competing with it, and it is dotted-
+   underlined because it carries its own tooltip explaining the split. */
+.ac-hero-ai,
+.ac-cell-ai {
+  display: block;
+  font: var(--text-caption-regular);
+  color: var(--color-text-tertiary, #88a1ad);
+  white-space: nowrap;
+}
+
+.ac-hero-ai {
+  margin-top: 2px;
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+}
+
+.ac-hero-ai:empty,
+.ac-cell-ai:empty { display: none; }
+
+.ac-cell-ai { margin-top: 1px; }
+
+/* A cell whose hover card is also keyboard reachable: it takes focus, so it needs a focus ring (WCAG 2.4.7) and a
+   cursor that says there is more here than the number. */
+.ac-table td[data-ps-tooltip] { cursor: help; }
+
+.ac-table td[data-ps-tooltip]:focus-visible {
+  outline: 2px solid var(--color-accent-link, #0566f5);
+  outline-offset: -2px;
+}
+
+/* Hover-card contents (#4931). The card itself is styled in main.css (.ps-tooltip); these are the rows inside it,
+   which is why they live outside any page-scoped selector — psTooltip parks its card on <body>. */
+.ac-tip {
+  display: block;
+  min-width: 168px;
+}
+
+.ac-tip-title {
+  font: var(--text-caption-semibold);
+  margin-bottom: 3px;
+}
+
+.ac-tip-row {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+/* Tabular figures so the right-hand numbers line up column-wise down the card. */
+.ac-tip-num {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.ac-tip-row--ai { opacity: 0.75; }
+
+/* The line the hovered bar or cell actually draws. Weight alone carries it — the card is one type size throughout,
+   so a heavier line reads as "this is your number" without breaking the column of figures down the right edge.
+   Selected by the card's `data-emph` rather than baked into the row's class, so the three per-day charts can share one
+   built card and each still emphasize its own line. */
+.ac-tip-row--strong,
+.ac-tip[data-emph="labels"] [data-tip-row="labels"],
+.ac-tip[data-emph="validations"] [data-tip-row="validations"],
+.ac-tip[data-emph="contributors"] [data-tip-row="contributors"] { font: var(--text-caption-semibold); }
+
+.ac-tip-head {
+  font: var(--text-tiny-semibold);
+  margin-top: 6px;
+  margin-bottom: 1px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+.ac-tip-more {
+  opacity: 0.7;
+  font-style: italic;
+}
+
+/* Marks a contributor line as pipeline output rather than a person. */
+.ac-tip-tag {
+  margin-left: 4px;
+  padding: 0 3px;
+  border: 1px solid currentcolor;
+  border-radius: 3px;
+  font: var(--text-tiny-semibold);
+  opacity: 0.8;
+}
+
+/* Bars carrying a hover card take focus so the card is reachable by keyboard. `outline` on an SVG shape is unreliable
+   across engines, so the ring is drawn as a stroke on the bar itself. */
+.mini-bar[data-ps-tooltip]:focus-visible {
+  outline: none;
+  stroke: var(--color-text-primary, #1c3644);
+  stroke-width: 2;
+}
+
 /* Row-count status and the link out to the full city list, on one line under a table. */
 .ac-table-foot {
   display: flex;
@@ -2653,3 +2779,145 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
     grid-template-columns: 1fr;
   }
 }
+
+/* --- Street Status: recently-changed trends (#4928) ------------------------------------------------------------
+   Line/bar colors for the status series come from StreetStatusColors.STATUSES, published onto the section as
+   --trend-<status> custom properties by StreetStatusTrend so the charts and the map legend can't disagree. */
+
+/* Sized in em, not the --font-size-* tokens: those are rem-based but the document root is 62.5%, so they render at
+   ~8-10px here rather than the 13-16px they name. em inherits the 16px body size and stays legible. */
+.trend-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs, 8px);
+  margin-bottom: var(--space-sm, 12px);
+  font-size: 0.875em;
+  color: var(--color-text-secondary, #5a7785);
+}
+
+.trend-note {
+  margin: 0 0 var(--space-xs, 8px);
+  font-size: 0.875em;
+  color: var(--color-text-secondary, #5a7785);
+}
+
+.trend-range {
+  font: inherit;
+  padding: 4px 8px;
+  border: 1px solid var(--color-border, #d7dee2);
+  border-radius: 4px;
+  background: var(--color-surface, #ffffff);
+  color: var(--color-text-primary, #222222);
+}
+
+.trend-chart-heading {
+  margin: var(--space-md, 16px) 0 var(--space-xxs, 4px);
+  font-size: 1.125em;
+  font-weight: 600;
+  color: var(--color-text-primary, #222222);
+}
+
+.mini-line--open { stroke: var(--trend-open); }             .mini-pt--open { fill: var(--trend-open); }
+.mini-line--no-imagery { stroke: var(--trend-no-imagery); } .mini-pt--no-imagery { fill: var(--trend-no-imagery); }
+.mini-line--closed { stroke: var(--trend-closed); }         .mini-pt--closed { fill: var(--trend-closed); }
+.mini-line--disabled { stroke: var(--trend-disabled); }     .mini-pt--disabled { fill: var(--trend-disabled); }
+.mini-swatch--open { background: var(--trend-open); }
+.mini-swatch--no-imagery { background: var(--trend-no-imagery); }
+.mini-swatch--closed { background: var(--trend-closed); }
+.mini-swatch--disabled { background: var(--trend-disabled); }
+
+/* Reports are activity (a neutral accent); expiries are imagery loss, so they carry the no-imagery orange. */
+.mini-bar--reports { fill: var(--color-primary, #4a90d9); }
+.mini-bar--expired { fill: var(--color-orange-500, #eb724e); }
+
+/* --- Imagery: re-audit priority + pipeline health (#4908) ------------------------------------------------------
+   Tier colors come from StreetPriorityTiers.TIERS, published as --priority-<tier> custom properties by
+   StreetPriorityMap, so the map, the legend, and the table badges read one palette. */
+
+.imagery-swatch--unaudited { background: var(--priority-unaudited); }
+.imagery-swatch--reaudit { background: var(--priority-reaudit); }
+.imagery-swatch--audited-once { background: var(--priority-audited-once); }
+.imagery-swatch--audited-multi { background: var(--priority-audited-multi); }
+
+/* The priority formula reads as a definition, not as prose: centering it stops it from breaking a sentence in half
+   at whatever width the viewport happens to be. */
+.imagery-formula {
+  margin: var(--space-sm, 12px) 0;
+  text-align: center;
+}
+
+/* The API-docs stylesheet sets `code` to nowrap, which pushes this formula ~100px past the content column at every
+   width and clips the tail. It reads fine broken at its spaces. */
+.imagery-formula code {
+  white-space: normal;
+}
+
+/* Tier table under the priority map: the legend, the per-tier counts, and the explanation of the single ordering
+   they sit on, in one place so a reader never has to pair a color with prose somewhere else. */
+.imagery-tier-wrap {
+  overflow-x: auto;
+}
+
+.imagery-tier-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: var(--space-sm, 12px);
+  font-size: var(--font-size-sm, 0.875rem);
+}
+
+.imagery-tier-table th {
+  text-align: left;
+  padding: 8px 10px;
+  color: var(--color-text-heading, #263238);
+  font-weight: 600;
+  border-bottom: 1px solid var(--color-neutral-200);
+  white-space: nowrap;
+}
+
+.imagery-tier-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--color-neutral-100);
+  vertical-align: top;
+}
+
+.imagery-tier-table th.imagery-tier-num,
+.imagery-tier-table td.imagery-tier-num {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.imagery-tier-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  font-weight: 600;
+  color: var(--color-text-heading, #263238);
+}
+
+.imagery-tier-what {
+  color: var(--color-text-secondary, #5a7785);
+  min-width: 220px;
+}
+
+.imagery-tier-swatch {
+  display: inline-block;
+  width: 22px;
+  height: 6px;
+  border-radius: 2px;
+  border: 1px solid rgb(0 0 0 / 15%);
+  flex: none;
+}
+
+/* Polled/flagged are the pipeline doing its job; skipped/unflagged are the counterpart it also reports, so each pair
+   is one hue apart rather than a green/red judgement — a night of unflagging is not a failure. */
+.mini-bar--polled { fill: var(--color-primary, #4a90d9); }
+.mini-bar--skipped { fill: var(--color-neutral-400, #c9c9c9); }
+.mini-bar--flagged { fill: var(--priority-reaudit, #d55e00); }
+.mini-bar--unflagged { fill: var(--color-pine-600, #60a189); }
+.mini-bar--freshness { fill: var(--color-primary, #4a90d9); }
+.mini-swatch--polled { background: var(--color-primary, #4a90d9); }
+.mini-swatch--skipped { background: var(--color-neutral-400, #c9c9c9); }
+.mini-swatch--flagged { background: var(--priority-reaudit, #d55e00); }
+.mini-swatch--unflagged { background: var(--color-pine-600, #60a189); }

@@ -1,6 +1,8 @@
 package controllers
 
+import actor.{CheckImageExpiryActor, FunnelStatActor, OsmWayRefreshActor, RecalculateStreetPriorityActor, UserStatActor}
 import controllers.base._
+import controllers.helper.ControllerUtils
 import controllers.helper.ControllerUtils.isAdmin
 import formats.json.AdminFormats._
 import formats.json.LabelFormats._
@@ -8,10 +10,10 @@ import formats.json.UserFormats._
 import models.auth.{DefaultEnv, WithAdmin, WithOwner}
 import models.label.LabelTypeEnum
 import models.user.{RoleTable, SidewalkUserWithRole}
+import models.utils.JobRunTrigger
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.dispatch.Dispatcher
 import play.api.cache.AsyncCacheApi
-import play.api.i18n.Messages
 import play.api.libs.json.{JsArray, JsError, JsObject, Json}
 import play.api.{Configuration, Logger}
 import play.silhouette.api.Silhouette
@@ -41,6 +43,7 @@ class AdminController @Inject() (
     panoDataService: PanoDataService,
     osmWayService: service.OsmWayService,
     userService: service.UserService,
+    jobRunService: JobRunService,
     actorSystem: ActorSystem
 )(implicit ec: ExecutionContext, assets: AssetsFinder)
     extends CustomBaseController(cc) {
@@ -54,7 +57,7 @@ class AdminController @Inject() (
   def userProfile(username: String) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     authenticationService.findByUsername(username).flatMap {
       case Some(user) =>
-        val metricSystem: Boolean = Messages("measurement.system") == "metric"
+        val metricSystem: Boolean = ControllerUtils.isMetric
         for {
           userProfileData: UserProfileData <- userService.getUserProfileData(user.userId, metricSystem)
           adminData                        <- adminService.getAdminUserProfileData(user.userId)
@@ -323,6 +326,9 @@ class AdminController @Inject() (
 
   /**
    * Updates user_stat table for users who audited in the past `hoursCutoff` hours. Update everyone if no time supplied.
+   *
+   * Recorded in `background_job_run` under the nightly job's name but tagged `Manual`, so the run leaves the same
+   * counts and error trail the scheduler's would without being able to stand in for it (#4928).
    */
   def updateUserStats(hoursCutoff: Option[Int]) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
@@ -331,18 +337,26 @@ class AdminController @Inject() (
       case None        => OffsetDateTime.ofInstant(Instant.EPOCH, ZoneOffset.UTC)
     }
 
-    adminService.updateUserStatTable(cutoffTime).map { usersUpdated: Int =>
-      Ok(s"User stats updated for $usersUpdated users!")
-    }
+    jobRunService
+      .record(UserStatActor.Name, JobRunTrigger.Manual)(adminService.updateUserStatTable(cutoffTime)) { usersUpdated =>
+        Json.obj("users_updated" -> usersUpdated)
+      }
+      .map { usersUpdated: Int => Ok(s"User stats updated for $usersUpdated users!") }
   }
 
   /**
    * Forces an immediate recompute of this deployment's engagement funnel (#288) into `funnel_stat` — the same work the
    * nightly FunnelStatActor does. Handy after a deploy so the Across Cities page shows this city without waiting a day.
+   *
+   * Recorded as a `Manual` run of that nightly job (#4928).
    */
   def updateFunnelStats = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     cc.loggingService.insert(request.identity.userId, request.ipAddress, request.toString)
-    adminService.updateFunnelStatTable().map { rowsUpdated => Ok(s"Funnel stats updated ($rowsUpdated rows)!") }
+    jobRunService
+      .record(FunnelStatActor.Name, JobRunTrigger.Manual)(adminService.updateFunnelStatTable()) { rowsUpdated =>
+        Json.obj("rows_written" -> rowsUpdated)
+      }
+      .map { rowsUpdated => Ok(s"Funnel stats updated ($rowsUpdated rows)!") }
   }
 
   /**
@@ -436,7 +450,7 @@ class AdminController @Inject() (
    */
   private def thumbnailUrl(item: RecentActivityItem, metaById: Map[Int, LabelThumbnailMeta]): Option[String] = {
     (item.labelId, item.labelType) match {
-      case (Some(id), Some(labelType)) if LabelTypeEnum.validLabelTypes.contains(labelType) =>
+      case (Some(id), Some(labelType)) if LabelTypeEnum.labelTypeNames.contains(labelType) =>
         panoDataService
           .cropUrl(id, LabelTypeEnum.byName(labelType))
           .orElse(metaById.get(id).flatMap { m =>
@@ -585,16 +599,50 @@ class AdminController @Inject() (
   /**
    * Serializes one rolling week-over-week activity window for the Across Cities page (#4758).
    *
+   * Label and validation counts are what people did; AI-role output is reported in its own `ai_*` fields rather than
+   * folded in, because one pipeline account can dwarf every person in the project (#4931).
+   *
    * @param w The current- and prior-window totals for one city, or summed across all of them.
    * @return  The window as snake_case JSON (v3 API convention).
    */
   private def activityWindowJson(w: ActivityWindowSummary): JsObject = Json.obj(
-    "labels_7d"             -> w.labels7d,
-    "labels_prior_7d"       -> w.labelsPrior7d,
-    "validations_7d"        -> w.validations7d,
-    "validations_prior_7d"  -> w.validationsPrior7d,
-    "contributors_7d"       -> w.contributors7d,
-    "contributors_prior_7d" -> w.contributorsPrior7d
+    "labels_7d"               -> w.labels7d,
+    "labels_prior_7d"         -> w.labelsPrior7d,
+    "validations_7d"          -> w.validations7d,
+    "validations_prior_7d"    -> w.validationsPrior7d,
+    "ai_labels_7d"            -> w.aiLabels7d,
+    "ai_labels_prior_7d"      -> w.aiLabelsPrior7d,
+    "ai_validations_7d"       -> w.aiValidations7d,
+    "ai_validations_prior_7d" -> w.aiValidationsPrior7d,
+    "contributors_7d"         -> w.contributors7d,
+    "contributors_prior_7d"   -> w.contributorsPrior7d,
+    "anon_sessions_7d"        -> w.anonSessions7d,
+    "anon_sessions_prior_7d"  -> w.anonSessionsPrior7d,
+    "ai_agents_7d"            -> w.aiAgents7d
+  )
+
+  /**
+   * Serializes one city's window plus the contributors it is made of, for the "Most active cities" hover cards (#4931).
+   *
+   * Contributors are named because the page is Owner-gated; these are the same usernames the admin user table shows.
+   * `contributor_total` is how many the capped array was drawn from, which is what lets a card say how many people it
+   * is not showing — counting that from the array itself would be bounded by the cap.
+   *
+   * @param w One city's rolling windows and its (already capped) contributor list.
+   * @return  The window's fields plus a `contributors` array, busiest first, and the untruncated count.
+   */
+  private def cityActivityWindowJson(w: CityActivityWindow): JsObject = activityWindowJson(w.summary) ++ Json.obj(
+    "contributor_total" -> w.contributorTotal,
+    "contributors"      -> JsArray(w.contributors.map { c =>
+      Json.obj(
+        "username"             -> c.username,
+        "kind"                 -> c.kind.toString,
+        "labels_7d"            -> c.labels7d,
+        "labels_prior_7d"      -> c.labelsPrior7d,
+        "validations_7d"       -> c.validations7d,
+        "validations_prior_7d" -> c.validationsPrior7d
+      )
+    })
   )
 
   /**
@@ -732,12 +780,37 @@ class AdminController @Inject() (
       })
 
       // Trailing-7-day cross-city daily series for the "this week" bar charts (#4686); zero-filled, today partial.
+      // Each day also carries the breakdown its hover card shows (#4931): the human/AI split, the day's busiest
+      // cities, and the people who were active, so the card is derived from the same rows the bar is summed from.
       val overTimeDaily = JsArray(dailyTrend.map { d =>
         Json.obj(
-          "day"          -> d.day.toString,
-          "labels"       -> d.labels,
-          "validations"  -> d.validations,
-          "active_users" -> d.activeUsers
+          "day"               -> d.point.day.toString,
+          "labels"            -> d.point.labels,
+          "validations"       -> d.point.validations,
+          "contributors"      -> d.point.contributors,
+          "anon_sessions"     -> d.point.anonSessions,
+          "ai_labels"         -> d.point.aiLabels,
+          "ai_validations"    -> d.point.aiValidations,
+          "ai_agents"         -> d.point.aiAgents,
+          "contributor_total" -> d.contributorTotal,
+          "top_cities"        -> JsArray(d.topCities.map { city =>
+            val cityName: String = cityInfoById.get(city.cityId).map(_.cityNameShort).getOrElse(city.cityId)
+            Json.obj(
+              "city_id"      -> city.cityId,
+              "city_name"    -> cityName,
+              "labels"       -> city.labels,
+              "validations"  -> city.validations,
+              "contributors" -> city.contributors
+            )
+          }),
+          "contributor_list" -> JsArray(d.contributors.map { c =>
+            Json.obj(
+              "username"    -> c.username,
+              "kind"        -> c.kind.toString,
+              "labels"      -> c.labels,
+              "validations" -> c.validations
+            )
+          })
         )
       })
 
@@ -761,13 +834,15 @@ class AdminController @Inject() (
           "over_time_all_time" -> overTimeAllTime,
           "over_time_daily"    -> overTimeDaily,
           // Rolling week-over-week windows (trailing 7 days vs the 7 before) for the "Today & this week" tiles
-          // (#4758). Contributors are distinct per city per window, summed across cities (no cross-city dedup).
+          // (#4758). Headcounts here are distinct across every city, so they can come out below the same column
+          // summed down `window_by_city` — someone who mapped in three cities is one contributor here.
           "window_summary" -> activityWindowJson(windowSummary.total),
           // The same windows kept per city, for the "Most active cities" table. Emitted as its own block rather than
           // merged into `cities` because the scorecard rows already carry labels_7d/validations_7d on a slightly
-          // different basis (see getCityActivityWindowsBySchema) and two same-named fields would invite mixing them.
+          // different basis (see getCityWindowActivityByUserBySchema) and two same-named fields would invite mixing
+          // them.
           "window_by_city" -> JsObject(windowSummary.byCity.toSeq.map { case (cityId, w) =>
-            cityId -> activityWindowJson(w)
+            cityId -> cityActivityWindowJson(w)
           }),
           "summary" -> Json.obj(
             "num_cities"                -> scorecards.length,
@@ -887,10 +962,18 @@ class AdminController @Inject() (
 
   /**
    * Recalculates street edge priority for all streets.
+   *
+   * Recorded as a `Manual` run of the nightly street-priority job (#4928). Only the recalculation step, not the
+   * imagery-freshness sync and region_completion rebuild the nightly sequence wraps around it, which is why the run
+   * records no counts.
    */
   def recalculateStreetPriority = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
-    streetService.recalculateStreetPriority.map(_ => Ok("Successfully recalculated street priorities"))
+    jobRunService
+      .record(RecalculateStreetPriorityActor.Name, JobRunTrigger.Manual)(streetService.recalculateStreetPriority)(_ =>
+        Json.obj()
+      )
+      .map(_ => Ok("Successfully recalculated street priorities"))
   }
 
   /**
@@ -922,19 +1005,29 @@ class AdminController @Inject() (
 
   /**
    * Checks for imagery that might be missing. Same as nightly process.
+   *
+   * Recorded in `background_job_run` like the nightly sweep, but tagged `Manual` so a run someone kicked off by hand
+   * can't stand in for one the scheduler never fired (#4928).
    */
   def checkImagery() = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
-    panoDataService.checkForImagery.map { results => Ok(results) }
+    jobRunService
+      .record(CheckImageExpiryActor.Name, JobRunTrigger.Manual)(panoDataService.checkForImagery)(_.runDetails)
+      .map { results => Ok(results.summary) }
   }
 
   /**
    * Refreshes the cached OSM way data (speed limits etc.). Same as the nightly process, for QA and initial backfill.
+   *
+   * Recorded as a `Manual` run of that nightly job (#4928). This one runs for tens of minutes and can half-fail, so
+   * the recorded counts and error are the only durable account of what a given trigger did.
    */
   def refreshOsmWayData() = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
-    osmWayService
-      .refreshOsmWayData()
+    jobRunService
+      .record(OsmWayRefreshActor.Name, JobRunTrigger.Manual)(osmWayService.refreshOsmWayData()) { waysRefreshed =>
+        Json.obj("ways_refreshed" -> waysRefreshed)
+      }
       .map { waysRefreshed => Ok(Json.obj("ways_refreshed" -> waysRefreshed)) }
       .recover { case NonFatal(e) =>
         logger.error("OSM way data refresh failed.", e)

@@ -39,6 +39,12 @@ Also covered, beyond the api-docs previews:
   both fallbacks: Pannellum, and the static crop, where the provider's viewer is still loaded but with someone else's
   pano. Like `ShareWidget` this is a top-level `class`, so the test evals the source instead of using
   `loadGlobalScript`. jsdom implements neither the Popover API nor `:popover-open`, so the test stands both up.
+- `common/pano-viewer/src/panoUtilities.js` → `panoProjection.test.js` — the canvas↔POV↔pano projection (#4851): the
+  canvas coordinate carries no anchor offset, the canvas→POV→canvas round trip is an identity (and returns null
+  behind the camera), Validate's `getOriginalPov` call site passes the stored coordinate through untouched, and the
+  non-WebGL 2D fallback projects both axes and wraps headings. Record fixtures are shared with
+  `test/service/PanoDataServiceSpec.scala`, so the JS and Scala ports are pinned to one external oracle
+  (`pov_replay.py`) rather than to each other.
 
 Each test file has:
 
@@ -93,15 +99,17 @@ The remaining `*Preview.js` modules pull in heavier globals. To bring them under
 - **Chart.js** (`label-types`, `validations`, `street-types`, …): set `window.Chart = jest.fn()` — a constructor
   spy is enough to assert "a chart was constructed with the right data" without rendering a canvas (jsdom has no 2D
   context).
-- **Leaflet** (`label-clusters`, `regions`, map previews): stub `window.L` with the chained no-op factory methods the
-  module calls (`L.map().setView()`, `L.tileLayer().addTo()`, `L.geoJSON()`, …).
+- **Mapbox GL** (every map preview): stub `window.mapboxgl` with no-op `Map` (whose instances need `on`, `addSource`,
+  `addLayer`, `addControl`, `setPaintProperty`, `getCanvas`), `NavigationControl`, `AttributionControl`,
+  `LngLatBounds`, and `Popup`, plus `window.MapboxLanguage`. The previews reach all of it through
+  `js/api-docs/apiDocsMap.js`, which `loadGlobalScript` has to load first.
 - **i18next / `i18next.t`**: stub `window.i18next = { t: (k) => k }` so translation lookups return the key.
 - **`util.*` globals** (e.g. `util.math`, formatting helpers in `common/`): either `loadGlobalScript` the real
   `common/` file first, or stub the specific `util.foo` functions used.
 
 The general recipe stays the same: container div → stub fetch with a captured snake_case fixture → stub libs →
 `loadGlobalScript` → `setup({}).init()` → assert no "Failed to load" + expected content. A shared
-`beforeEach` helper (e.g. `stubChartJs()`, `stubLeaflet()`) can live alongside `loadGlobalScript.js` as coverage grows.
+`beforeEach` helper (e.g. `stubChartJs()`, `stubMapboxGl()`) can live alongside `loadGlobalScript.js` as coverage grows.
 
 `common/aggregateStats.js` (named as a first target in the plan) is a good next addition — it has retry/timeout logic
 worth unit-testing with fake timers.

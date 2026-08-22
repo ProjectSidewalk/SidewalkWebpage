@@ -143,7 +143,7 @@ case class ProjectSidewalkStats(
 case class LabelTypeValidationsLeft(labelType: LabelTypeEnum.Base, validationsAvailable: Int, validationsNeeded: Int)
 
 case class LabelCount(count: Int, timeInterval: TimeInterval, labelType: String) {
-  require((validLabelTypes ++ Seq("All")).contains(labelType))
+  require((labelTypeNames ++ Seq("All")).contains(labelType))
 }
 
 // Defines some common fields for a label metadata, which allows us to create generic functions using these fields.
@@ -280,6 +280,7 @@ class LabelTableDef(tag: slick.lifted.Tag) extends Table[Label](tag, "label") {
   def labelType  = foreignKey("label_label_type_id_fkey", labelTypeId, TableQuery[LabelTypeTableDef])(_.labelTypeId)
   def streetEdge =
     foreignKey("label_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTableDef])(_.streetEdgeId)
+  def panoData = foreignKey("label_pano_id_fkey", panoId, TableQuery[PanoDataTableDef])(_.panoId)
 }
 
 /**
@@ -908,7 +909,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       .result
       .map { labelCounts =>
         // Put data into LabelCount objects, and add an entry for any nonexistent label types with count=0.
-        val countsByType: Seq[LabelCount] = validLabelTypes.map { labelType =>
+        val countsByType: Seq[LabelCount] = labelTypeNames.map { labelType =>
           LabelCount(labelCounts.find(_._1 == labelType).map(_._2).getOrElse(0), timeInterval, labelType)
         }.toSeq
 

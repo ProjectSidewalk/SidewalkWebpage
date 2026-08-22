@@ -16,6 +16,7 @@
  * @param {string|URL} [params.labelsURL] - URL of the endpoint containing labels.
  * @param {number} [params.zoomCorrection=0] - Amount to increase default zoom to account for different map dimensions.
  * @param {boolean} [params.scrollWheelZoom=true] - Whether to allow zooming with the scroll wheel.
+ * @param {boolean} [params.cooperativeGestures=false] - Whether panning on touch takes two fingers.
  * @param {string} [params.mapboxLogoLocation=bottom-left] - 'top-left', 'top-right', 'bottom-left', or 'bottom-right'.
  * @param {string} [params.neighborhoodTooltip='none'] One of 'none' or 'completionRate'.
  * @param {boolean} [params.logClicks=true] - Whether clicks should be logged when it takes you to the explore page.
@@ -177,6 +178,8 @@ function createPSMap($, params) {
         [mapParamData.northeast_boundary.lng, mapParamData.northeast_boundary.lat],
       ],
       scrollZoom: params.scrollWheelZoom,
+      cooperativeGestures: params.cooperativeGestures,
+      locale: { 'TouchPanBlocker.Message': i18next.t('common:map-two-finger-pan') },
     });
     newMap.addControl(new MapboxLanguage({ defaultLanguage: i18next.t('common:mapbox-language-code') }));
     const navPosition = params.navigationControlPosition || 'top-left';

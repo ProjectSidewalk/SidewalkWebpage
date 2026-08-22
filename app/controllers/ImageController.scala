@@ -150,10 +150,10 @@ class ImageController @Inject() (
   def getCropImageMetadata(labelType: String, labelId: Int) = cc.securityService.UserAwareAction { implicit request =>
     if (!refererAllowed(request)) {
       Future.successful(Forbidden("Request origin not allowed."))
-    } else if (!LabelTypeEnum.validLabelTypes.contains(labelType)) {
+    } else if (!LabelTypeEnum.labelTypeNames.contains(labelType)) {
       Future.successful(
         BadRequest(
-          s"Invalid label type provided: $labelType. Valid label types are: ${LabelTypeEnum.validLabelTypes.mkString(", ")}."
+          s"Invalid label type provided: $labelType. Valid label types are: ${LabelTypeEnum.labelTypeNames.mkString(", ")}."
         )
       )
     } else {
@@ -173,10 +173,10 @@ class ImageController @Inject() (
   def serveCropImage(labelType: String, labelId: Int) = cc.securityService.UserAwareAction { implicit request =>
     val earlyReject =
       if (!refererAllowed(request)) Some(Forbidden("Request origin not allowed."))
-      else if (!LabelTypeEnum.validLabelTypes.contains(labelType))
+      else if (!LabelTypeEnum.labelTypeNames.contains(labelType))
         Some(
           BadRequest(
-            s"Invalid label type provided: $labelType. Valid label types are: ${LabelTypeEnum.validLabelTypes.mkString(", ")}."
+            s"Invalid label type provided: $labelType. Valid label types are: ${LabelTypeEnum.labelTypeNames.mkString(", ")}."
           )
         )
       else verifySignature(request, s"/cropImage/$labelType/$labelId")
@@ -203,7 +203,7 @@ class ImageController @Inject() (
         val labelType: String = (json \ "label_type").as[String]
         val labelId: Int      = (json \ "label_id").as[Int]
         // Validate the label type (matching serveCropImage) before using it to build a filesystem path.
-        if (!LabelTypeEnum.validLabelTypes.contains(labelType)) {
+        if (!LabelTypeEnum.labelTypeNames.contains(labelType)) {
           Future.successful(BadRequest(s"Invalid label type provided: $labelType."))
         } else {
           initializeDirIfNeeded(labelType)

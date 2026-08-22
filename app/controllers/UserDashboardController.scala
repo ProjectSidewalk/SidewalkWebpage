@@ -1,6 +1,8 @@
 package controllers
 
 import controllers.base.{CustomBaseController, CustomControllerComponents}
+import controllers.helper.ControllerUtils
+import controllers.helper.ControllerUtils.MeasurementSystem
 import models.auth.WithSignedIn
 import models.user.SidewalkUserWithRole
 import play.api.Configuration
@@ -32,39 +34,48 @@ class UserDashboardController @Inject() (
     extends CustomBaseController(cc) {
   implicit val implicitConfig: Configuration = config
 
+  // The dashboard's needs-re-audit list reveals five rows at a time; it fetches three pages' worth up front so
+  // "show more" is a reveal rather than a round trip, and defers the rest to the map, which draws all of them (#4896).
+  private val ReauditPageSize: Int = 5
+  private val ReauditListSize: Int = ReauditPageSize * 3
+
   /**
    * Renders the redesigned User Dashboard prototype: a single page of "your impact" sections (hero stats, activity
-   * streak, badges + trophies, your standing, learning/mistakes, map, team) on the shared shell.
+   * streak, badges + trophies, your standing, learning/mistakes, map, team, streets needing a re-audit) on the shared
+   * shell.
    *
    * Secured to any signed-in user, matching the real `/dashboard`.
    */
   def dashboard = cc.securityService.SecuredAction(WithSignedIn()) { implicit request =>
     val user     = request.identity
-    val isMetric = Messages("measurement.system") == "metric"
+    val isMetric = ControllerUtils.isMetric
     val cityName = configService.getCityName(request2Messages.lang)
-    // Kicked off before the for-comprehension so it runs concurrently with the chain below.
-    val myRoutesF = routeService.getRoutesForUser(user.userId)
+    // Kicked off before the for-comprehension so they run concurrently with the chain below.
+    val myRoutesF       = routeService.getRoutesForUser(user.userId)
+    val reauditStreetsF = userService.getOutdatedStreetsForUser(user.userId, ReauditListSize)
     for {
-      profileData <- userService.getUserProfileData(user.userId, isMetric)
-      commonData  <- configService.getCommonPageData(request2Messages.lang)
-      tags        <- labelService.getTagsForCurrentCity
-      standing    <- userService.getUserStanding(user.userId)
-      streak      <- userService.getActivityStreak(user.userId, request2Messages.lang.toLocale)
-      accuracy    <- userService.getAccuracyByType(user.userId)
-      trophies    <- userService.getTrophies(user.userId, cityName, request2Messages)
-      myRoutes    <- myRoutesF
+      profileData                    <- userService.getUserProfileData(user.userId, isMetric)
+      commonData                     <- configService.getCommonPageData(request2Messages.lang)
+      tags                           <- labelService.getTagsForCurrentCity
+      standing                       <- userService.getUserStanding(user.userId)
+      streak                         <- userService.getActivityStreak(user.userId, request2Messages.lang.toLocale)
+      accuracy                       <- userService.getAccuracyByType(user.userId)
+      trophies                       <- userService.getTrophies(user.userId, cityName, request2Messages)
+      myRoutes                       <- myRoutesF
+      (reauditStreets, reauditTotal) <- reauditStreetsF
     } yield {
       cc.loggingService.insert(user.userId, request.ipAddress, "Visit_UserDashboard")
       Ok(
         views.html.userDashboard
-          .dashboard(commonData, user, profileData, isMetric, tags, standing, streak, accuracy, trophies, myRoutes)
+          .dashboard(commonData, user, profileData, isMetric, tags, standing, streak, accuracy, trophies, myRoutes,
+            reauditStreets, reauditTotal, ReauditPageSize)
       )
     }
   }
 
   /**
-   * Renders the redesigned Leaderboard prototype: community-impact band, podium, weekly/all-time/team tables, and a
-   * "you vs community" standing widget, sharing the dashboard shell.
+   * Renders the redesigned Leaderboard prototype: this city's impact band, podium, weekly/all-time/team tables, a
+   * "you vs community" standing widget, and the cross-city boards, sharing the dashboard shell.
    *
    * A `UserAwareAction` (#4643), so the general public — including cookie-less visitors and anonymous auto-accounts —
    * can view it without an account being minted. The view shows the community/podium/tables to everyone and gates the
@@ -74,39 +85,42 @@ class UserDashboardController @Inject() (
     val user                                       = request.identity
     val signedInUser: Option[SidewalkUserWithRole] = user.filter(_.role != "Anonymous")
     val isSignedIn: Boolean                        = signedInUser.isDefined
-    val isMetric: Boolean                          = Messages("measurement.system") == "metric"
+    val isMetric: Boolean                          = ControllerUtils.isMetric
     val cityName                                   = configService.getCityName(request2Messages.lang)
     // Kicked off before the for-comprehension so the cross-city union overlaps the per-city queries on a cache miss.
     val globalF: Future[Option[Seq[GlobalLeaderboardEntry]]] = userService.getGlobalLeaderboardStats(10)
     for {
-      commonData <- configService.getCommonPageData(request2Messages.lang)
-      aggregate  <- configService.getAggregateStats()
-      overall    <- userService.getLeaderboardStats(10)
-      weekly     <- userService.getLeaderboardStats(10, "weekly")
-      teams      <- userService.getLeaderboardStats(10, "overall", byTeam = true)
-      standing   <- signedInUser
+      commonData          <- configService.getCommonPageData(request2Messages.lang)
+      (aggregate, impact) <- configService.getAggregateStatsWithCurrentCity()
+      overall             <- userService.getLeaderboardStats(10)
+      weekly              <- userService.getLeaderboardStats(10, "weekly")
+      teams               <- userService.getLeaderboardStats(10, "overall", byTeam = true)
+      standing            <- signedInUser
         .map(u => userService.getUserStanding(u.userId))
         .getOrElse(Future.successful(None))
       global <- globalF
     } yield {
       cc.loggingService.insert(user.map(_.userId), request.ipAddress, "Visit_Leaderboard")
       Ok(
-        views.html.userDashboard.leaderboard(commonData, user, isSignedIn, isMetric, cityName, aggregate, overall,
-          weekly, teams, standing, global)
+        views.html.userDashboard.leaderboard(commonData, user, isSignedIn, isMetric, cityName, aggregate, impact,
+          overall, weekly, teams, standing, global)
       )
     }
   }
 
   /**
-   * Renders the Settings page: editable username, read-only email + measurement units (units follow the site
-   * language), team membership, and the two privacy toggles ("Show me on the leaderboard" and "Make my dashboard
-   * public"). Secured to a signed-in user (settings are personal). The toggles reflect the user's real flags;
-   * `privateByDefault` tells the view whether this deployment starts users private (school/minor cities) so it can
-   * explain the default.
+   * Renders the user's Settings page: editable username, read-only email, a measurement-units choice, team membership,
+   * and the two privacy toggles ("Show me on the leaderboard" and "Make my dashboard public"). The toggles reflect the
+   * user's real flags; `privateByDefault` tells the view whether this deployment starts users private (school/minor
+   * cities) so it can explain the default.
    */
   def settings = cc.securityService.SecuredAction(WithSignedIn()) { implicit request =>
-    val user     = request.identity
-    val isMetric = Messages("measurement.system") == "metric"
+    val user        = request.identity
+    val unitsChoice = request.cookies
+      .get(MeasurementSystem.CookieName)
+      .map(_.value)
+      .filter(MeasurementSystem.validOverrides.contains)
+      .getOrElse(MeasurementSystem.FollowLanguage)
     for {
       commonData <- configService.getCommonPageData(request2Messages.lang)
       openTeams  <- userService.getAllOpenTeams
@@ -116,17 +130,20 @@ class UserDashboardController @Inject() (
       cc.loggingService.insert(user.userId, request.ipAddress, "Visit_Settings")
       val (onLeaderboard, publicProfile) = privacy.getOrElse((true, true))
       Ok(
-        views.html.userDashboard.settings(commonData, user, openTeams, currTeam, onLeaderboard, publicProfile, isMetric,
-          configService.getPrivateProfilesByDefault)
+        views.html.userDashboard.settings(commonData, user, openTeams, currTeam, onLeaderboard, publicProfile,
+          unitsChoice, configService.getPrivateProfilesByDefault)
       )
     }
   }
 
   /**
-   * Persists the Settings form in one save: an optional username change (validated) plus the two privacy flags and
-   * the user's team. `teamId` is a positive id to join/switch or absent/non-positive to leave any current team. A
-   * username that fails validation (length, allowed characters, profanity, or already taken) aborts the whole save
-   * with a 400 and a user-facing message, so nothing is partially applied.
+   * Persists the Settings form in one save: an optional username change (validated) plus the two privacy flags, the
+   * measurement-units choice, and the user's team. `teamId` is a positive id to join/switch or absent/non-positive to
+   * leave any current team. A username that fails validation (length, allowed characters, profanity, or already taken)
+   * aborts the whole save with a 400 and a user-facing message, so nothing is partially applied.
+   *
+   * Units are the one setting that isn't a database write: like the language choice it lives in a cookie, so a
+   * submitted change either sets the override or discards it to fall back to the site language (#4404).
    */
   def saveSettings = cc.securityService.SecuredAction(WithSignedIn(), parse.json) { implicit request =>
     val user             = request.identity
@@ -135,6 +152,17 @@ class UserDashboardController @Inject() (
     val teamId           = (request.body \ "teamId").asOpt[Int].filter(_ > 0)
     val usernameEdit     = (request.body \ "username").asOpt[String].map(_.trim).filter(_.nonEmpty)
     val communityService = (request.body \ "communityService").asOpt[Boolean]
+    val unitsWere        = request.cookies
+      .get(MeasurementSystem.CookieName)
+      .map(_.value)
+      .filter(MeasurementSystem.validOverrides.contains)
+      .getOrElse(MeasurementSystem.FollowLanguage)
+    // Absent field means "this caller isn't touching units", which has to stay distinct from an explicit "auto" —
+    // otherwise any save that omits it silently wipes the reader's stored choice.
+    val unitsSubmitted = (request.body \ "measurementSystem")
+      .asOpt[String]
+      .filter(system => MeasurementSystem.validOverrides(system) || system == MeasurementSystem.FollowLanguage)
+    val unitsNow = unitsSubmitted.getOrElse(unitsWere)
 
     // Only a username change can be rejected, so resolve it first and touch nothing else unless it succeeds.
     val usernameResult: Future[Either[String, Unit]] = usernameEdit match {
@@ -153,7 +181,17 @@ class UserDashboardController @Inject() (
             .getOrElse(Future.successful(0))
         } yield {
           cc.loggingService.insert(user.userId, request.ipAddress, "Click_module=SaveSettings")
-          Ok(Json.obj("success" -> true))
+          // Logged separately from the save, and only on a real change, so units can be analyzed the way the navbar's
+          // ChangeLanguage already is rather than being buried in every settings save.
+          if (unitsNow != unitsWere) {
+            cc.loggingService
+              .insert(user.userId, request.ipAddress, s"Click_module=ChangeUnits_from=${unitsWere}_to=$unitsNow")
+          }
+          val result = Ok(Json.obj("success" -> true))
+          if (unitsNow == unitsWere) result
+          else if (MeasurementSystem.validOverrides(unitsNow))
+            result.withCookies(MeasurementSystem.overrideCookie(unitsNow))
+          else result.discardingCookies(MeasurementSystem.clearOverrideCookie)
         }
     }
   }
@@ -171,7 +209,7 @@ class UserDashboardController @Inject() (
   def publicProfile(username: String) = cc.securityService.SecuredAction { implicit request =>
     val viewer   = request.identity
     val isOwner  = viewer.username == username
-    val isMetric = Messages("measurement.system") == "metric"
+    val isMetric = ControllerUtils.isMetric
     val cityName = configService.getCityName(request2Messages.lang)
     for {
       commonData <- configService.getCommonPageData(request2Messages.lang)

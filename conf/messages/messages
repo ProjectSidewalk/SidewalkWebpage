@@ -61,6 +61,7 @@ city.name.sao-paulo-brazil = São Paulo
 city.name.winterthur-infra3d = Winterthur
 city.name.waltham-ma = Waltham
 city.name.houston-tx = Houston
+city.name.newport-ky = Newport
 
 state.name.oregon = Oregon
 state.name.washington = Washington
@@ -80,6 +81,7 @@ state.name.indiana = Indiana
 state.name.florida = Florida
 state.name.massachusetts = Massachusetts
 state.name.texas = Texas
+state.name.kentucky = Kentucky
 
 country.name.usa = USA
 country.name.mexico = Mexico
@@ -116,7 +118,6 @@ crosswalk.description = Marked pedestrian crossing
 signal.description = Pedestrian signal or button to aid in crossing a street
 occlusion.description = View obscured
 other.description = Other accessibility issue
-problem.description = General problem
 
 # Tag descriptions. Note that tags 41 and 42 were removed in previous updates, and thus lack descriptions here.
 tag.description.1 = The ramp is not wide enough for a wheelchair to safely use it

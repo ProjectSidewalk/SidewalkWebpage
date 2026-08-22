@@ -37,18 +37,60 @@
     </div>
   </div>
 
+  <div class="api-section" id="street-status-trend-section">
+    <h2 class="api-heading" id="recently-changed">Recently changed <a href="#recently-changed" class="permalink">#</a></h2>
+    <p>Everything above is a snapshot of right now. These are the changes behind it: which streets moved between statuses, where labelers are reporting missing imagery, and how many panoramas the nightly sweep found gone. Street status is written by the maintenance scripts in <code>db/scripts</code>, so a spike here is a script run; reports and expiries accumulate on their own.</p>
+    <div class="trend-controls">
+      <label for="trend-range">Window</label>
+      @* Windows come from StreetLifecycleService so the offered set and the server's default can't drift apart. *@
+      <select id="trend-range" class="trend-range">
+        @for(weeks <- service.StreetLifecycleService.TrendWeekOptions) {
+          <option value="@weeks">Last @weeks weeks</option>
+        }
+      </select>
+    </div>
+    <div class="coverage-status" id="trend-status" role="status" aria-live="polite">Loading recent changes…</div>
+
+    <h3 class="trend-chart-heading">Streets changing status</h3>
+    <p class="trend-note" id="trend-status-summary"></p>
+    <div class="mini-host" id="trend-status-chart"></div>
+
+    <h3 class="trend-chart-heading">Streets reported as having no imagery</h3>
+    <p class="trend-note">Counted as distinct streets per week; hover a bar for the raw report count, which also moves when several labelers report the same street.</p>
+    <div class="mini-host" id="trend-reports-chart"></div>
+
+    <h3 class="trend-chart-heading">Panoramas whose imagery went away</h3>
+    <p class="trend-note">Unlike the two charts above, this one is not an event log: it reads the current expiry date on each panorama, which is cleared if the imagery comes back or a user views the panorama again. A panorama that expired and later returned therefore leaves its old week, so past weeks can shrink between visits. Read it as "panoramas still missing, by when they went" rather than as a record of every expiry.</p>
+    <p class="trend-note" id="trend-expiry-note"></p>
+    <div class="mini-host" id="trend-expiry-chart"></div>
+  </div>
+
+  <div class="api-section" id="street-status-queue-section">
+    <h2 class="api-heading" id="awaiting-confirmation">Awaiting confirmation <a href="#awaiting-confirmation" class="permalink">#</a></h2>
+    <p id="trend-corroborated-intro"></p>
+    <div id="trend-corroborated"></div>
+
+    <h3 class="trend-chart-heading">Reports by region</h3>
+    <p class="trend-note">All missing-imagery reports in the window, not only corroborated ones — the regions most likely to lose streets next.</p>
+    <div id="trend-regions"></div>
+  </div>
+
     <!-- Page-specific library: Mapbox for the segment map (Vega isn't needed here). Loaded only on this page. -->
   <link rel="stylesheet" href="@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")">
   <script src="@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.js")"></script>
 
+  <script src="@assets.path("js/admin-dashboard/MiniLineChart.js")"></script>
   <script src="@assets.path("js/admin-dashboard/StreetStatusMap.js")"></script>
   <script src="@assets.path("js/admin-dashboard/StreetStatusTable.js")"></script>
+  <script src="@assets.path("js/admin-dashboard/StreetStatusTrend.js")"></script>
   <script src="@assets.path("js/admin-dashboard/StreetStatusPage.js")"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       new StreetStatusPage({
         mapboxToken: '@commonData.mapboxApiKey',
-        streetsUrl: '/v3/api/streets?filetype=geojson'
+        streetsUrl: '/v3/api/streets?filetype=geojson',
+        trendUrl: '/adminapi/streetStatusTrend',
+        trendWeeks: @service.StreetLifecycleService.DefaultTrendWeeks
       }).init();
     });
   </script>
