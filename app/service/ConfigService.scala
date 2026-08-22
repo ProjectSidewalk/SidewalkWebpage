@@ -2,7 +2,7 @@ package service
 
 import com.google.inject.ImplementedBy
 import com.typesafe.config.ConfigException
-import models.api.DailyStatRecord
+import models.api.{AggregateStats, DailyStatRecord, LabelTypeStats}
 import models.label.LabelTypeEnum
 import models.pano.PanoSource
 import models.pano.PanoSource.PanoSource
@@ -73,54 +73,6 @@ case class CommonPageData(
   /** The deployment city's info; cityId always comes from the same config that builds allCityInfo. */
   def currentCity: CityInfo = allCityInfo.find(_.cityId == cityId).get
 }
-
-/**
- * Represents label statistics for a specific label type.
- *
- * @param labels Total number of labels for this type
- * @param labelsValidated Total number of labels validated for this type
- * @param labelsValidatedAgree Number of validated labels that were agreed upon
- * @param labelsValidatedDisagree Number of validated labels that were disagreed upon
- */
-case class LabelTypeStats(
-    labels: Int,
-    labelsValidated: Int,
-    labelsValidatedAgree: Int,
-    labelsValidatedDisagree: Int
-)
-
-/**
- * Represents aggregate statistics across all Project Sidewalk deployments.
- *
- * @param kmExplored Total kilometers explored across all cities
- * @param kmExploredNoOverlap Total kilometers explored without overlap across all cities
- * @param totalLabels Total number of (non-tutorial) labels across all cities. Equals the sum of `byLabelType` label
- *                    counts by construction (#3981), so the per-type breakdown always reconciles with this total.
- * @param tutorialLabels Total number of practice/tutorial labels across all cities. Tracked separately because tutorial
- *                       labels are excluded from `totalLabels` and `byLabelType` (they would skew the per-type ratios).
- * @param totalValidations Total number of validations across all cities
- * @param totalUsers Number of distinct contributors across all cities — users who added at least one (non-tutorial)
- *                   label or validated at least one label. Counted as distinct people: because `user_id` is a global
- *                   identifier shared across city schemas, a user active in multiple cities is counted once (the union
- *                   of contributor ids, not the sum of per-city counts). The legacy DC deployment contributes a fixed
- *                   historical estimate (`legacyDCUserCount`) since it has no per-user records.
- * @param numCities Number of cities where Project Sidewalk is deployed
- * @param numCountries Number of countries where Project Sidewalk is deployed
- * @param numLanguages Number of distinct languages supported
- * @param byLabelType Map of label type to its statistics
- */
-case class AggregateStats(
-    kmExplored: Double,
-    kmExploredNoOverlap: Double,
-    totalLabels: Int,
-    tutorialLabels: Int,
-    totalValidations: Int,
-    totalUsers: Int,
-    numCities: Int,
-    numCountries: Int,
-    numLanguages: Int,
-    byLabelType: Map[String, LabelTypeStats]
-)
 
 /**
  * One deployment's headline totals, for the Leaderboard's city-scoped hero band (#4687).

@@ -1,18 +1,11 @@
 package models.utils
 
 import com.google.inject.ImplementedBy
+import models.api.{AggregateStats, LabelTypeStats}
 import models.street.StreetEdgeTableDef
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import service.{
-  AggregateStats,
-  CityScorecard,
-  ContributorKind,
-  ContributorWindowActivity,
-  DailyContributorActivity,
-  LabelTypeStats,
-  WeeklyPoint
-}
+import service.{CityScorecard, ContributorKind, ContributorWindowActivity, DailyContributorActivity, WeeklyPoint}
 import slick.jdbc.GetResult
 
 import java.time.{LocalDate, OffsetDateTime, ZoneOffset}

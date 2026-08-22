@@ -65,7 +65,7 @@
         container.innerHTML = '';
         const map = await this.createMap(container, regionData);
 
-        const clusters = await this.fetchClustersByRegionId(regionData.region_id);
+        const clusters = await this.fetchClustersByRegionId(regionData.properties.region_id);
         this.displayClustersOnMap(map, clusters);
       } catch (error) {
         container.innerHTML = `<div class="message message-error">Failed to load label clusters: `
@@ -108,7 +108,7 @@
     /**
      * Create the map, framed on the region the preview is scoped to and with that region outlined.
      * @param {HTMLElement} container - Container element for the map
-     * @param {object} regionData - Data about the region to display
+     * @param {object} regionData - GeoJSON Feature for the region to display
      * @returns {Promise<object>} A promise that resolves with the loaded Mapbox map
      */
     async createMap(container, regionData) {
@@ -119,10 +119,7 @@
       });
 
       // Outline the region so it's clear which slice of the city the clusters below are drawn from.
-      map.addSource(REGION_SOURCE, {
-        type: 'geojson',
-        data: { type: 'Feature', geometry: regionData.geometry, properties: {} },
-      });
+      map.addSource(REGION_SOURCE, { type: 'geojson', data: regionData });
       map.addLayer({
         id: 'region-fill',
         type: 'fill',
@@ -137,7 +134,7 @@
       });
 
       const regionTitle = ApiDocsMap.addOverlay(map, 'top-right', 'map-chip');
-      regionTitle.innerHTML = `<strong>Region:</strong> ${regionData.name || 'Sample Region'}`;
+      regionTitle.innerHTML = `<strong>Region:</strong> ${regionData.properties.name || 'Sample Region'}`;
 
       return map;
     },
