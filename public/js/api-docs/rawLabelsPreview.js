@@ -57,7 +57,7 @@
       try {
         const typeData = await this.fetchLabelTypes();
         labelTypeInfo = typeData.label_types.reduce((acc, type) => {
-          acc[type.name] = { color: type.color, description: type.description };
+          acc[type.name] = { color: type.color, display: type.display_name, description: type.description };
           return acc;
         }, {});
 
@@ -205,7 +205,7 @@
           : '';
 
         ApiDocsMap.popup(map, feature.geometry.coordinates.slice(), `
-          <h4>${props.label_type}</h4>
+          <h4>${labelTypeInfo[props.label_type]?.display || props.label_type}</h4>
           <p>${labelTypeInfo[props.label_type]?.description || ''}</p>
           <p>${severity}</p>
           <p>${tags}</p>
