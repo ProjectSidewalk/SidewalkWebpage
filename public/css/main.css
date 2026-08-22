@@ -1627,6 +1627,40 @@ kbd {
   .labelmap-beacon::after { animation: none; }
 }
 
+/* A label marker on a panorama (PanoMarker). The type icon is drawn by ::before from --label-icon rather than as
+   the element's own background, so hiding the label can fade the icon independently of the ring around it. */
+.label-marker {
+  transition: border-color 0.5s ease, outline-color 0.5s ease, outline-width 0.5s ease;
+}
+
+.label-marker::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background-image: var(--label-icon);
+  background-size: 100% 100%;
+  transition: opacity 0.5s ease;
+}
+
+/* Hidden state, from the Hide-label toggle on Validate and on the label detail card (#2477). */
+.label-marker--hidden::before {
+  opacity: 0;
+}
+
+.label-marker--hidden {
+  border-color: transparent;
+  outline: calc(2px * var(--ui-scale, 1)) dashed rgb(from var(--label-color, #ffffff) r g b / 70%);
+  outline-offset: calc(1px * var(--ui-scale, 1));
+}
+
+/* The eye on every Hide-label button (LabelVisibilityToggle), sized to sit with the type beside it. */
+.hide-label-button-icon {
+  flex-shrink: 0;
+  width: calc(14px * var(--ui-scale, 1));
+  height: calc(14px * var(--ui-scale, 1));
+}
+
 /* One-shot halo drawing the eye to a label marker on a panorama: Validate replays it on every new label (#4790),
    the Label Detail Card plays it when the card opens (#4572). Both markers are small and easy to lose against a
    busy streetscape.

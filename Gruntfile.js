@@ -38,6 +38,7 @@ module.exports = function (grunt) {
           'public/js/common/label-detail/LabelPopup.js',
           'public/js/validate/src/util/*.js',
           'public/js/common/PanoMarker.js',
+          'public/js/common/LabelVisibilityToggle.js',
           // Toast must be concatenated before BadgeAchievements, which builds badge-unlock toasts.
           'public/js/common/Toast.js',
           'public/js/common/BadgeAchievements.js',
@@ -65,6 +66,7 @@ module.exports = function (grunt) {
           'public/js/common/label-detail/LabelPopup.js',
           'public/js/common/utilitiesSidewalk.js',
           'public/js/common/PanoMarker.js',
+          'public/js/common/LabelVisibilityToggle.js',
         ],
         dest: 'public/js/admin/build/admin.js'
       },
@@ -91,6 +93,7 @@ module.exports = function (grunt) {
           'public/js/validate/src/zoom/*.js',
           'public/js/common/ProgressBar.js',
           'public/js/common/PanoMarker.js',
+          'public/js/common/LabelVisibilityToggle.js',
           'public/js/common/LabelCardView.js',
           'public/js/common/utilitiesSidewalk.js',
           'public/js/common/SpeedLimit.js',
@@ -129,6 +132,7 @@ module.exports = function (grunt) {
           'public/js/gallery/src/expandedview/*.js',
           'public/js/gallery/src/*.js',
           'public/js/common/PanoMarker.js',
+          'public/js/common/LabelVisibilityToggle.js',
           'public/js/common/utilitiesSidewalk.js'
         ],
         dest: 'public/js/gallery/build/gallery.js'
@@ -162,6 +166,7 @@ module.exports = function (grunt) {
           'public/js/common/Toast.js',
           'public/js/common/BadgeAchievements.js',
           'public/js/common/PanoMarker.js',
+          'public/js/common/LabelVisibilityToggle.js',
           // PopupPanoManager + LabelDetail must precede anything that uses them.
           'public/js/common/label-detail/PopupPanoManager.js',
           'public/js/common/ConfirmDialog.js',
