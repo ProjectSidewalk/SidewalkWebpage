@@ -28,6 +28,12 @@
   font-size: var(--font-size-sm);
 }
 
+/* Inside the shared scroller (#4883) the wrapper owns the vertical rhythm, so the table's own margin would
+   just push the scrollbar away from the content. */
+.api-table-wrapper > .label-types-table {
+  margin: 0;
+}
+
 .label-types-table th:not(:last-child),
 .label-types-table td:not(:last-child) {
   padding-right: 6px; /* Add spacing between columns */

@@ -345,6 +345,15 @@ pre > code.language-csv {
   white-space: nowrap;
 }
 
+/* On a phone-width viewport a long inline code token (an endpoint URL) has nowhere to go but past the screen
+   edge, so wrapping must win over the nowrap look; wider viewports keep code tokens on one line (#4883). */
+@media (width <= 600px) {
+  :not(pre) > code {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+}
+
 /* ---- Permalink Style ---- */
 
 .permalink {

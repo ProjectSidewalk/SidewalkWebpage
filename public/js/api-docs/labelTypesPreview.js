@@ -182,9 +182,15 @@
 
       table.appendChild(tbody);
 
+      // The shared horizontal scroller: on a phone-width viewport the seven-column table scrolls inside it
+      // instead of pushing the whole page wider than the screen (#4883).
+      const wrapper = document.createElement('div');
+      wrapper.className = 'api-table-wrapper';
+      wrapper.appendChild(table);
+
       // Clear container and add table.
       container.innerHTML = '';
-      container.appendChild(table);
+      container.appendChild(wrapper);
 
       return table;
     },
