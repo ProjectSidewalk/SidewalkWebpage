@@ -4,7 +4,7 @@
 @(commonData: CommonPageData, user: SidewalkUserWithRole
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
-@* Across Cities page for the redesigned admin dashboard (#4329). A cross-deployment overview comparing every Project Sidewalk city across four lenses — coverage (how much is left), activity (what's happening and when), data patterns (the label-type mix, city vs city), and data quality (how trustworthy the data is) — plus a "Today & this week" band of current-activity tiles, a top-cities table, and daily bar charts (#4758), a "needs attention" panel of server-computed anomalies, and overview line charts of labels / validations / active users over time. Owner-only. Driven entirely client-side from /adminapi/cityScorecards. *@
+@* Across Cities page for the redesigned admin dashboard (#4329). A cross-deployment overview comparing every Project Sidewalk city across four lenses — coverage (how much is left), activity (what's happening and when), data patterns (the label-type mix, city vs city), and data quality (how trustworthy the data is) — plus a "Today & this week" band of current-activity tiles, a top-cities table, and daily bar charts (#4758), a GA-backed web-traffic table (Planning#8), a "needs attention" panel of server-computed anomalies, and overview line charts of labels / validations / active users over time. Owner-only. Driven entirely client-side from /adminapi/cityScorecards (traffic from /adminapi/cityTraffic). *@
 
 @content = {
   <div class="api-section" id="ac-intro-section">
@@ -112,6 +112,27 @@
     <h2 class="api-heading" id="needs-attention">Needs attention <a href="#needs-attention" class="permalink">#</a></h2>
     <p>Deployments flagged by an automatic check. Each links out to that city's site.</p>
     <div class="ov-attention" id="ac-attention"></div>
+  </div>
+
+  <div class="api-section" id="ac-traffic-section">
+    <h2 class="api-heading" id="traffic">Traffic — who's arriving <a href="#traffic" class="permalink">#</a></h2>
+    <p>Website traffic per deployment, from Google Analytics — the one lens our own database can't provide, since it only sees people who contribute. Sessions and visitors are the trailing 7 days with their change from the 7 before; mobile share covers the last 28 days. A city is flagged when this week's sessions are far outside its own trailing 8-week baseline — in either direction, since a spike (press, a class assignment) is as worth knowing about as a drop. Numbers refresh about hourly and count the deployment's production site.</p>
+    <div class="ac-table-wrap" id="ac-traffic-wrap">
+      <table class="ac-table" id="ac-traffic-table">
+        <thead>
+          <tr>
+            <th data-sort="city_name" class="ac-th-text">City</th>
+            <th data-sort="traffic.sessions_7d" title="Visits in the last 7 days; the chip is the change vs the 7 days before.">Sessions 7d</th>
+            <th data-sort="traffic.active_users_7d" title="Distinct people (per GA) active in the last 7 days.">Visitors 7d</th>
+            <th data-sort="traffic.engagement_rate_7d" title="Share of the last 7 days' sessions that engaged: 10+ seconds, a conversion, or 2+ pageviews.">Engagement</th>
+            <th data-sort="traffic.mobile_share_28d" title="Share of the last 28 days' sessions from mobile or tablet devices.">Mobile share</th>
+            <th>Trend (sessions, 13 wk)</th>
+          </tr>
+        </thead>
+        <tbody id="ac-traffic-tbody"></tbody>
+      </table>
+    </div>
+    <div class="coverage-status" id="ac-traffic-status" role="status" aria-live="polite"></div>
   </div>
 
   <div class="api-section" id="ac-trends-section">
@@ -303,6 +324,7 @@
         scorecardsUrl: '/adminapi/cityScorecards',
         citiesUrl: '/v3/api/cities',
         funnelsUrl: '/adminapi/cityFunnels',
+        trafficUrl: '/adminapi/cityTraffic',
         mapboxToken: '@commonData.mapboxApiKey'
       }).init();
     });

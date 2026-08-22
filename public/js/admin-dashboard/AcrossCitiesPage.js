@@ -4,15 +4,19 @@
  * city vs city), and data quality (how trustworthy the data is). Adds a "Today & this week" band (#4758) of
  * current-activity tiles (with week-over-week deltas) and rolling-7-day bar charts, a "needs attention" panel from
  * server-computed anomaly flags, and an over-time section (#4686): weekly line charts (labels / validations / active
- * users, summed across cities) and cumulative all-time totals.
+ * users, summed across cities) and cumulative all-time totals. A Traffic section (Planning#8) joins per-city web
+ * analytics from /adminapi/cityTraffic — sessions/visitors with week-over-week deltas, device mix, and
+ * baseline-relative anomaly flags — degrading to "unavailable" when GA isn't configured or reachable.
  *
  * Plain HTML/CSS plus the shared MiniLineChart for the over-time charts and small inline-SVG sparklines for the
  * per-city activity trend. Owner-only; driven entirely from /adminapi/cityScorecards.
  */
 class AcrossCitiesPage {
-  /** Human-friendly label + severity for each data-quality anomaly flag key the endpoint can emit. */
+  /** Human-friendly label + severity for each anomaly flag key the endpoints can emit (scorecard or traffic). */
   static #ANOMALY = {
     high_disagreement: { label: 'High disagreement', sev: 'warn' },
+    traffic_spike: { label: 'Traffic spike', sev: 'info' },
+    traffic_drop: { label: 'Traffic drop', sev: 'warn' },
   };
 
   /**
@@ -98,19 +102,26 @@ class AcrossCitiesPage {
     'ac-table': { key: 'coverage', dir: 'desc' },
     'ac-top-table': { key: 'activity_7d', dir: 'desc' },
     'ac-activity-table': { key: 'days_since_activity', dir: 'asc' },
+    'ac-traffic-table': { key: 'traffic.sessions_7d', dir: 'desc' },
   };
+
+  #trafficUrl;
 
   #funnelsUrl;
   #funnels = {};         // { mapping: {steps, cities}, contribution: {steps, cities} } for the current window.
   #funnelWindow = '30d'; // '30d' | '90d' | 'all'.
   #funnelDim = 'all';    // 'all' | 'role' | 'device'.
 
-  /** @param {{scorecardsUrl: string, citiesUrl?: string, mapboxToken?: string, funnelsUrl?: string}} opts */
+  /**
+   * @param {{scorecardsUrl: string, citiesUrl?: string, mapboxToken?: string, funnelsUrl?: string,
+   *   trafficUrl?: string}} opts
+   */
   constructor(opts = {}) {
     this.#scorecardsUrl = opts.scorecardsUrl;
     this.#citiesUrl = opts.citiesUrl;
     this.#mapboxToken = opts.mapboxToken;
     this.#funnelsUrl = opts.funnelsUrl;
+    this.#trafficUrl = opts.trafficUrl;
   }
 
   async init() {
@@ -149,6 +160,11 @@ class AcrossCitiesPage {
       if (this.#funnelsUrl) {
         this.#wireFunnelControls();
         await this.#loadFunnels();
+      }
+      // Traffic likewise: GA being unconfigured or down renders one section unavailable, never a broken page.
+      if (this.#trafficUrl) {
+        this.#wireSorting('ac-traffic-table', () => this.#renderTraffic());
+        await this.#loadTraffic();
       }
     } catch (err) {
       console.error('Across Cities page failed to load:', err);
@@ -572,6 +588,12 @@ class AcrossCitiesPage {
         const meta = AcrossCitiesPage.#ANOMALY[flag] || { label: flag, sev: 'info' };
         items.push({ sev: meta.sev, city: c, label: meta.label, reason: this.#anomalyReason(flag, c) });
       }
+      // Traffic anomalies ride the traffic payload, so they join the panel on its (later) load, not the first render.
+      const trafficFlag = c.traffic && c.traffic.anomaly;
+      if (trafficFlag) {
+        const meta = AcrossCitiesPage.#ANOMALY[trafficFlag] || { label: trafficFlag, sev: 'info' };
+        items.push({ sev: meta.sev, city: c, label: meta.label, reason: this.#trafficAnomalyReason(c) });
+      }
     }
     const order = { bad: 0, warn: 1, info: 2 };
     items.sort((a, b) => (order[a.sev] - order[b.sev]));
@@ -949,6 +971,109 @@ class AcrossCitiesPage {
         </tr>`;
     }).join('');
     this.#markSortedHeader('ac-activity-table');
+  }
+
+  // --- Traffic section (Planning#8) -------------------------------------------------------------------------------
+
+  /**
+   * Fetches the GA traffic payload, joins it onto the scorecard rows as `c.traffic`, and renders the section. Any
+   * failure — endpoint error, or a deployment where GA isn't configured (`available: false`) — collapses the section
+   * to an "unavailable" note; the rest of the page is already rendered and untouched.
+   */
+  async #loadTraffic() {
+    this.#setText('ac-traffic-status', 'Loading traffic…');
+    try {
+      const data = await this.#fetchJson(this.#trafficUrl);
+      if (!data || data.available === false) {
+        this.#setTrafficUnavailable();
+        return;
+      }
+      const byCity = data.traffic_by_city || {};
+      for (const c of this.#cities) c.traffic = byCity[c.city_id] || null;
+      this.#renderTraffic();
+      this.#renderAttention(); // Traffic anomalies join the "needs attention" panel now that they're known.
+    } catch (err) {
+      console.error('Traffic load failed:', err);
+      this.#setTrafficUnavailable();
+    }
+  }
+
+  /** Collapses the Traffic section to a one-line note (GA unconfigured, unreachable, or mid-outage). */
+  #setTrafficUnavailable() {
+    const wrap = document.getElementById('ac-traffic-wrap');
+    if (wrap) wrap.style.display = 'none';
+    this.#setText('ac-traffic-status', 'Traffic data unavailable.');
+  }
+
+  /** Fills the traffic table: one row per city with GA data, sessions-first, anomaly-flagged rows highlighted. */
+  #renderTraffic() {
+    const tbody = document.getElementById('ac-traffic-tbody');
+    if (!tbody) return;
+    const withTraffic = this.#cities.filter((c) => c.traffic);
+    if (!withTraffic.length) {
+      tbody.innerHTML = '<tr><td colspan="6" class="dq-empty">No traffic data to show.</td></tr>';
+      this.#setText('ac-traffic-status', '');
+      return;
+    }
+    const state = this.#sortState['ac-traffic-table'];
+    const rows = this.#sortedCities(state.key, state.dir, withTraffic);
+    tbody.innerHTML = rows.map((c) => {
+      const t = c.traffic;
+      let chips = '';
+      if (t.anomaly) {
+        const meta = AcrossCitiesPage.#ANOMALY[t.anomaly] || { label: t.anomaly, sev: 'info' };
+        chips = ` <span class="ac-chips"><span class="ac-chip ac-chip--${meta.sev}">`
+          + `${AcrossCitiesPage.#esc(meta.label)}</span></span>`;
+      }
+      const engagementTitle = `${this.#num(t.engaged_sessions_7d)} of ${this.#num(t.sessions_7d)} sessions engaged`;
+      return `
+        <tr class="${t.anomaly ? 'ac-row--flagged' : ''}">
+          <td class="ac-td-city">${this.#cityLink(c)}${chips}</td>
+          ${this.#trafficCell(t.sessions_7d, t.sessions_prior_7d, 'sessions')}
+          ${this.#trafficCell(t.active_users_7d, t.active_users_prior_7d, 'visitors')}
+          <td class="ac-num" title="${engagementTitle}">${this.#pct(t.engagement_rate_7d)}</td>
+          <td class="ac-num">${this.#pct(t.mobile_share_28d)}</td>
+          <td class="ac-spark-cell">${this.#sparkline(t.weekly_sessions || [])}</td>
+        </tr>`;
+    }).join('');
+    this.#markSortedHeader('ac-traffic-table');
+    const total = this.#cities.length;
+    this.#setText('ac-traffic-status', withTraffic.length < total
+      ? `${withTraffic.length} of ${this.#num(total)} cities with traffic data.`
+      : `${this.#num(withTraffic.length)} ${withTraffic.length === 1 ? 'city' : 'cities'}.`);
+  }
+
+  /**
+   * A traffic count cell: the trailing-7-day count with its week-over-week chip and both windows' raw counts as the
+   * tooltip.
+   *
+   * @param {number} current - Trailing-7-day count.
+   * @param {number} prior - Count for the 7 days before that.
+   * @param {string} noun - What is being counted, for the tooltip: 'sessions' or 'visitors'.
+   * @returns {string} The cell's markup.
+   */
+  #trafficCell(current, prior, noun) {
+    const cur = current || 0;
+    const pri = prior || 0;
+    // A city with nothing in either window gets the bare zero, since "→ 0%" is noise.
+    const d = (cur || pri) ? this.#deltaParts(cur, pri) : null;
+    const delta = d ? `<span class="ac-cell-delta ac-cell-delta--${d.dir}">${d.short}</span>` : '';
+    const title = `${this.#num(cur)} ${noun} in the last 7 days vs ${this.#num(pri)} in the 7 days before`;
+    return `<td class="ac-num" title="${title}">${this.#num(cur)}${delta}</td>`;
+  }
+
+  /** Explanation for a traffic anomaly: this week's sessions against the city's own trailing 8-week baseline. */
+  #trafficAnomalyReason(c) {
+    const weekly = c.traffic.weekly_sessions || [];
+    const current = weekly.length ? weekly[weekly.length - 1] : 0;
+    // Median of the 8 buckets before the current one — the same baseline the server flagged against.
+    const base = weekly.slice(-9, -1).slice().sort((a, b) => a - b);
+    let mid = 0;
+    if (base.length) {
+      mid = base.length % 2 ? base[(base.length - 1) / 2] : (base[base.length / 2 - 1] + base[base.length / 2]) / 2;
+    }
+    const dirText = c.traffic.anomaly === 'traffic_spike' ? 'up from' : 'down from';
+    return `${this.#num(current)} sessions this week, ${dirText} a typical ${this.#num(Math.round(mid))}`;
   }
 
   // --- Contributors & effort section ------------------------------------------------------------------------------
