@@ -205,8 +205,7 @@ class LabelDetail {
   }
 
   /**
-   * Wires the pano's Hide-label toggle (#2477), which steps the marker aside so the feature under it can be
-   * judged or screenshotted. Built after the pano manager, which is what its changes act on.
+   * Wires the pano's Hide-label toggle (#2477). Built after the pano manager, which is what its changes act on.
    */
   #initHideLabelToggle() {
     const button = this.#els.hideLabelButton;

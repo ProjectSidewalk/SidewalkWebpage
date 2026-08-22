@@ -3,8 +3,7 @@
  * someone sees what it covers. This owns the state and the buttons' wording; moving the markers is the host's job.
  */
 class LabelVisibilityToggle {
-  // Inline rather than image files so each icon takes its button's own colour: one home is a dark overlay pill,
-  // the other a light chip (#4726).
+  // Inline rather than image files so each icon takes its button's own color (#4726).
   static #ICON_EYE_OFF = `<svg class="hide-label-button-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
     stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
     <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1
@@ -29,8 +28,7 @@ class LabelVisibilityToggle {
   /**
    * @param {Object} opts
    * @param {HTMLElement[]} opts.buttons - Every button that runs the toggle; they always read the same.
-   * @param {{hide: string, show: string, hideTooltip: string, showTooltip: string}} opts.text - Translated
-   *     wording for each direction.
+   * @param {{hide: string, show: string, hideTooltip: string, showTooltip: string}} opts.text - Translated wording.
    * @param {function(boolean, {viaClick: boolean}): void} opts.onChange - Handed each applied visibility, for the
    *     host to move its markers and log the interaction.
    */

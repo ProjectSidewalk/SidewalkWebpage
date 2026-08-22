@@ -124,8 +124,7 @@ class PanoMarker {
       marker.id = this.id_;
     }
     if (this.className_) {
-      // Added, not assigned: .label-marker above is what draws the icon, so replacing the list renders an empty
-      // marker.
+      // Added, not assigned: .label-marker is what draws the icon, so replacing the list renders an empty marker.
       marker.classList.add(...this.className_.split(' '));
     }
     if (this.title_) {

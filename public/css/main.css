@@ -1643,12 +1643,7 @@ kbd {
   transition: opacity 0.5s ease;
 }
 
-/* Hidden state, from the Hide-label toggle on Validate and on the label detail card (#2477). The icon goes away
-   entirely — even at low opacity it tints the very pixels the viewer asked to look at — leaving a crossfaded dashed
-   ring in the label type's colour to say where the label is and which type it is.
-
-   An outline, not the border, so it takes no part in layout and can't nudge the icon it surrounds; .icon-outline's
-   black border goes transparent because a hard edge around something receded defeats the point. */
+/* Hidden state, from the Hide-label toggle on Validate and on the label detail card (#2477). */
 .label-marker--hidden::before {
   opacity: 0;
 }

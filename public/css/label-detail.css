@@ -204,9 +204,7 @@ dialog.label-detail[open]::backdrop {
   .label-detail__pan-hint { transition: none; }
 }
 
-/* Hide-label toggle (#2477) in the pano's top-left. Wears the paging arrows' chip treatment and is revealed on the
-   same hover, so the imagery carries one family of floating controls. A pill because it keeps its wording — an eye
-   icon alone wouldn't explain the action. */
+/* Hide-label toggle (#2477) in the pano's top-left. Revealed on hover like the paging arrows. */
 .label-detail__hide-label {
   position: absolute;
   top: 10px;
