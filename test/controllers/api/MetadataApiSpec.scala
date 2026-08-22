@@ -1,5 +1,6 @@
 package controllers.api
 
+import models.label.LabelTypeEnum
 import org.apache.pekko.stream.Materializer
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
@@ -44,8 +45,8 @@ class MetadataApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       types.foreach { lt =>
         val display = (lt \ "display_name").as[String]
         display.trim must not be empty
-        // An unresolved Messages key comes back as the raw dotted key, which would silently look like a valid name.
-        display must not include "."
+        // An unresolved Messages key comes back as the raw key, which would silently look like a valid name.
+        display must not be LabelTypeEnum.byName((lt \ "name").as[String]).nameKey
         display must not be (lt \ "description").as[String]
       }
 
