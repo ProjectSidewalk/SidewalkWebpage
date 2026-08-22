@@ -104,6 +104,47 @@ async function waitForAppReady(page) {
   await page.waitForFunction(() => window.appManager && window.appManager.isReady === true);
 }
 
+/**
+ * Measures horizontal overflow at the current viewport width (issue #4883): every element whose border box
+ * extends past the right edge of the layout viewport, except content inside an `overflow-x: auto|scroll`
+ * ancestor — a horizontal scroller is the sanctioned way to present wide content (tables, code) on a phone.
+ *
+ * Measuring layout (bounding boxes) rather than scrollbars is the point: `body {overflow-x: clip}` in
+ * main.css means an overflowing page never shows a scrollbar, and a `position: fixed` element sized off the
+ * overflowed initial containing block (the #4857 footer bug) never widens `scrollWidth` at all. The page-level
+ * `scrollWidth` is still reported as a second, cheaper signal.
+ *
+ * @param {import('@playwright/test').Page} page - The page to measure, already loaded and settled.
+ * @returns {Promise<{viewportWidth: number, pageScrollWidth: number, offenders: string[], offenderCount: number}>}
+ *   Offenders are CSS-selector-ish descriptions (`div#gallery.sidebar right=612px`), capped at 10; offenderCount
+ *   is the uncapped total.
+ */
+async function horizontalOverflowReport(page) {
+  return page.evaluate(() => {
+    const TOLERANCE_PX = 1; // Sub-pixel rounding at fractional device-pixel-ratios is not overflow.
+    const viewportWidth = document.documentElement.clientWidth;
+    const offenders = [];
+    for (const el of document.querySelectorAll('body *')) {
+      const rect = el.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0 || rect.right <= viewportWidth + TOLERANCE_PX) continue;
+      let inScroller = false;
+      for (let a = el.parentElement; a && !inScroller; a = a.parentElement) {
+        inScroller = ['auto', 'scroll'].includes(getComputedStyle(a).overflowX);
+      }
+      if (inScroller) continue;
+      const id = el.id ? `#${el.id}` : '';
+      const cls = el.classList.length ? `.${[...el.classList].join('.')}` : '';
+      offenders.push(`${el.tagName.toLowerCase()}${id}${cls} right=${Math.round(rect.right)}px`);
+    }
+    return {
+      viewportWidth,
+      pageScrollWidth: document.scrollingElement.scrollWidth,
+      offenders: offenders.slice(0, 10),
+      offenderCount: offenders.length,
+    };
+  });
+}
+
 const test = base.test.extend({
   /**
    * Collects uncaught exceptions and non-allowlisted console errors for the test's page. Specs assert
@@ -122,4 +163,4 @@ const test = base.test.extend({
   },
 });
 
-module.exports = {test, expect: base.expect, stubMapbox, waitForAppReady, STORAGE_STATE};
+module.exports = {test, expect: base.expect, stubMapbox, waitForAppReady, horizontalOverflowReport, STORAGE_STATE};
