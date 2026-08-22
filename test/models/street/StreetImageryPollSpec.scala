@@ -4,10 +4,12 @@ import models.audit.{AuditTask, AuditTaskTableDef}
 import models.user.UserStatTableDef
 import models.utils.ConfigTableDef
 import models.utils.MyPostgresProfile.api._
+import org.locationtech.jts.geom.LineString
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
+import slick.jdbc.GetResult
 import util.RolledBackDb
 
 import java.time.{LocalDate, OffsetDateTime}
@@ -32,6 +34,57 @@ class StreetImageryPollSpec extends PlaySpec with GuiceOneAppPerSuite with Rolle
 
   private lazy val tutorialStreetId: Int      = run(configTable.map(_.tutorialStreetEdgeID).result.head)
   private lazy val someUserId: Option[String] = run(userStats.map(_.userId).result.headOption)
+
+  /**
+   * Inserts an open street in empty ocean and returns it as a [[StreetToPoll]], sample points and all.
+   *
+   * upsertFromPoll attributes an observation to the street NEAREST it, so a fixture street must be the unambiguous
+   * nearest to its own sample points. Polling whatever `streetsToPoll` hands back does not give that: against a seed
+   * that clones geometry across streets, the polled street ties at distance 0 with its clones, the tie resolves
+   * elsewhere, and every capture column comes back NULL (#4955). Open ocean has nothing to tie with, so this holds
+   * against any schema. Ids are MAX+1 because seeded dumps insert explicit ids without advancing the sequences; only
+   * safe inside `runRolledBack`.
+   */
+  private def seedIsolatedStreet: DBIO[StreetToPoll] = {
+    implicit val getStreetToPoll: GetResult[StreetToPoll] = GetResult { r =>
+      val id     = r.nextInt()
+      val points = Seq.fill(3)((r.nextDouble(), r.nextDouble()))
+      StreetToPoll(id, points, r.nextGeometry[LineString]())
+    }
+    // South Atlantic, ~1000 km off Brazil. The 0.001 degrees of longitude is ~105 m of street, so the 20/50/80%
+    // sample points land ~21 m apart -- far enough not to be each other's nearest pano source.
+    val (lng1, lat1, lng2, lat2) = (-30.0, -20.0, -29.999, -20.0)
+    for {
+      id <- sql"""
+        INSERT INTO street_edge (street_edge_id, geom, x1, y1, x2, y2, way_type, status)
+        VALUES ((SELECT COALESCE(MAX(street_edge_id), 0) + 1 FROM street_edge),
+                ST_SetSRID(ST_MakeLine(ST_MakePoint($lng1, $lat1), ST_MakePoint($lng2, $lat2)), 4326),
+                $lng1, $lat1, $lng2, $lat2, 'residential', 'open')
+        RETURNING street_edge_id""".as[Int].head
+      // Fails loudly here rather than as three NULL capture columns if a city is ever mapped onto this spot. The
+      // 0.001-degree radius (~111 m) is index-backed and a superset of upsertFromPoll's 15 m tolerance.
+      neighbors <- sql"""
+        SELECT COUNT(*)
+        FROM street_edge
+        WHERE street_edge.street_edge_id <> $id
+            AND ST_DWithin(street_edge.geom, (SELECT geom FROM street_edge WHERE street_edge_id = $id), 0.001)
+      """.as[Int].head
+      _ = withClue("seeded fixture street is not the unambiguous nearest to its own sample points: ")(
+        neighbors mustBe 0
+      )
+      street <- sql"""
+        SELECT street_edge.street_edge_id,
+               ST_Y(ST_LineInterpolatePoint(street_edge.geom, 0.2)),
+               ST_X(ST_LineInterpolatePoint(street_edge.geom, 0.2)),
+               ST_Y(ST_LineInterpolatePoint(street_edge.geom, 0.5)),
+               ST_X(ST_LineInterpolatePoint(street_edge.geom, 0.5)),
+               ST_Y(ST_LineInterpolatePoint(street_edge.geom, 0.8)),
+               ST_X(ST_LineInterpolatePoint(street_edge.geom, 0.8)),
+               street_edge.geom
+        FROM street_edge
+        WHERE street_edge.street_edge_id = $id""".as[StreetToPoll].head
+    } yield street
+  }
 
   "streetsToPoll" should {
     "return open non-tutorial streets with three sample points each, respecting the limit" in {
@@ -75,8 +128,8 @@ class StreetImageryPollSpec extends PlaySpec with GuiceOneAppPerSuite with Rolle
     val newest = LocalDate.parse("2025-05-01")
     val oldest = LocalDate.parse("2015-05-01")
 
-    // A sample point sits ON the polled street's line (distance 0), so the polled street is its nearest street and
-    // an observation placed there must always be attributed.
+    // A sample point sits ON the polled street's line (distance 0). Paired with a fixture street that has no
+    // neighbors to tie with, that makes the polled street its nearest and the observation always attributable.
     def onStreet(street: StreetToPoll, pointIdx: Int, capture: Option[LocalDate]): PolledPano = {
       val (lat, lng) = street.points(pointIdx)
       PolledPano(lat, lng, capture, pointIdx)
@@ -84,8 +137,7 @@ class StreetImageryPollSpec extends PlaySpec with GuiceOneAppPerSuite with Rolle
 
     "insert a fresh row with the observed range, per-point median, and the imagery_poll source" in {
       val row = runRolledBack(for {
-        street <- streetImageryTable.streetsToPoll(1).map(_.head)
-        _      <- streetImagery.filter(_.streetEdgeId === street.streetEdgeId).delete
+        street <- seedIsolatedStreet
         _      <- streetImageryTable.upsertFromPoll(
           street.streetEdgeId,
           3,
@@ -104,8 +156,7 @@ class StreetImageryPollSpec extends PlaySpec with GuiceOneAppPerSuite with Rolle
 
     "leave the median NULL when fewer than half the sampled points have dated imagery" in {
       val (oneDated, sharedPano) = runRolledBack(for {
-        street <- streetImageryTable.streetsToPoll(1).map(_.head)
-        _      <- streetImagery.filter(_.streetEdgeId === street.streetEdgeId).delete
+        street <- seedIsolatedStreet
         // Only 1 of 3 points shows dated imagery: no "half the street" claim can be made.
         _        <- streetImageryTable.upsertFromPoll(street.streetEdgeId, 3, Seq(onStreet(street, 0, Some(newest))))
         oneDated <- streetImageryTable.getForStreet(street.streetEdgeId)
@@ -127,8 +178,7 @@ class StreetImageryPollSpec extends PlaySpec with GuiceOneAppPerSuite with Rolle
 
     "not attribute an observation whose nearest street is not the polled street" in {
       val row = runRolledBack(for {
-        street <- streetImageryTable.streetsToPoll(1).map(_.head)
-        _      <- streetImagery.filter(_.streetEdgeId === street.streetEdgeId).delete
+        street <- seedIsolatedStreet
         // ~1.1 km north of the street's midpoint: whatever street is nearest there, it isn't the polled one.
         farAway = PolledPano(street.points(1)._1 + 0.01, street.points(1)._2, Some(newest), 1)
         _   <- streetImageryTable.upsertFromPoll(street.streetEdgeId, 3, Seq(farAway))
@@ -146,8 +196,7 @@ class StreetImageryPollSpec extends PlaySpec with GuiceOneAppPerSuite with Rolle
     "widen the range, replace the median (NULL on an empty poll), keep n_panos/data_source, and bump updated_at" in {
       val staleStamp                 = OffsetDateTime.now.minusYears(1)
       val (afterDatedPoll, finalRow) = runRolledBack(for {
-        street <- streetImageryTable.streetsToPoll(1).map(_.head)
-        _      <- streetImagery.filter(_.streetEdgeId === street.streetEdgeId).delete
+        street <- seedIsolatedStreet
         _      <- streetImagery += StreetImagery(street.streetEdgeId, Some(LocalDate.parse("2010-01-01")),
           Some(LocalDate.parse("2030-01-01")), None, 42, StreetImagerySource.ImageryScan, staleStamp)
         // This poll's narrower range must not shrink the stored one. Its median (2 of 3 points dated -> the older
