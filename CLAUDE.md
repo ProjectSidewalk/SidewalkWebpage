@@ -48,7 +48,21 @@ convention above.
 
 ### Database & evolutions
 
-Schema changes are **Play evolutions**: numbered SQL files in `conf/evolutions/default/`. Add the next-numbered file for schema changes; each has `# --- !Ups` and `# --- !Downs` sections. **One evolution file per PR:** all of a PR's schema changes go in a single file, even when they land in separate commits or feel like separate concerns — until the PR merges, nothing has shipped, so fold later changes into the existing file instead of minting the next number (which also collides faster with other in-flight PRs). The dev DB is seeded from a dump — see [`db/scripts/README.md`](db/scripts/README.md) for the full DB lifecycle/maintenance scripts (`import-dump`, `create-new-schema`, etc., exposed as `make` targets). Connection config is env-driven (`DATABASE_URL`, `DATABASE_USER`, `DATABASE_PASSWORD`) in `conf/application.conf`.
+Schema changes are **Play evolutions**: numbered SQL files in `conf/evolutions/default/`. Add the next-numbered file for schema changes; each has `# --- !Ups` and `# --- !Downs` sections. **One evolution file per PR:** all of a PR's schema changes go in a single file, even when they land in separate commits or feel like separate concerns — until the PR merges, nothing has shipped, so fold later changes into the existing file instead of minting the next number (which also collides faster with other in-flight PRs).
+
+**Renumbering after a merge from `develop`.** In-flight PRs claim numbers concurrently, so a merge routinely lands
+someone else's file on the number yours is using. Renumber yours (never theirs — theirs has shipped):
+1. `git mv conf/evolutions/default/<old>.sql conf/evolutions/default/<new>.sql`, where `<new>` is one past the highest
+   number now in the directory. Grep the repo for the old number and update every reference — evolution comments, PR
+   description, planning docs, the branch's own commit messages if you're rewriting them.
+2. Load any page. The local DB needs no manual cleanup: Play stores each applied evolution's `revert_script` in
+   `<schema>.play_evolutions`, so when develop's file lands on the id yours was applied under, the hash mismatch makes
+   it run *your* saved downs and then develop's ups, followed by your new number's ups. `autoApply` and
+   `autoApplyDowns` are both on, so this is silent. It does mean **your Down has to actually work** — a broken one
+   fails here and leaves the row in `applying_down`, which is the state that produces Play's "inconsistent state"
+   error and does need hand-fixing.
+
+The dev DB is seeded from a dump — see [`db/scripts/README.md`](db/scripts/README.md) for the full DB lifecycle/maintenance scripts (`import-dump`, `create-new-schema`, etc., exposed as `make` targets). Connection config is env-driven (`DATABASE_URL`, `DATABASE_USER`, `DATABASE_PASSWORD`) in `conf/application.conf`.
 
 **Every `CREATE TABLE` must be followed by `ALTER TABLE <name> OWNER TO sidewalk;`** in the same evolution (see 309.sql for the pattern). On the prod server, evolutions run as an admin role, so a new table would otherwise be owned by that role and the `sidewalk` app role would lack permissions on it. This applies to **tables only** — it's easy to forget, and a missed one has to be patched by a later evolution (e.g. 321.sql fixed 314.sql; 329.sql fixed 326.sql/327.sql). Note:
 - **SERIAL / identity sequences** are covered automatically: `ALTER TABLE … OWNER TO` recursively reassigns any sequence a column owns, so no separate statement is needed for them.
