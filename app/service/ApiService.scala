@@ -136,7 +136,7 @@ trait ApiService {
   /**
    * Gets all label types and transforms them into LabelTypeForApi objects, including icon paths and colors.
    *
-   * @param lang The language to use for localized descriptions
+   * @param lang The language to use for the localized display name and description
    * @return A future containing a set of label type details
    */
   def getLabelTypes(lang: Lang): Set[LabelTypeForApi]
@@ -246,13 +246,15 @@ class ApiServiceImpl @Inject() (
 
   def getLabelTypes(lang: Lang): Set[LabelTypeForApi] = {
     LabelTypeEnum.values.map { labelType =>
-      // Get the localized description for the label type.
-      val description = messagesApi(labelType.descriptionKey)(lang)
-
-      // Create a LabelTypeForApi object with the necessary details.
       LabelTypeForApi(
-        id = labelType.id, name = labelType.name, description = description, iconUrl = labelType.iconPath,
-        smallIconUrl = labelType.smallIconPath, tinyIconUrl = labelType.tinyIconPath, color = labelType.color,
+        id = labelType.id,
+        name = labelType.name,
+        displayName = messagesApi(labelType.nameKey)(lang),
+        description = messagesApi(labelType.descriptionKey)(lang),
+        iconUrl = labelType.iconPath,
+        smallIconUrl = labelType.smallIconPath,
+        tinyIconUrl = labelType.tinyIconPath,
+        color = labelType.color,
         isPrimary = LabelTypeEnum.primaryLabelTypes.contains(labelType),
         isPrimaryValidate = LabelTypeEnum.primaryValidateLabelTypes.contains(labelType)
       )

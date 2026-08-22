@@ -36,6 +36,22 @@ class MetadataApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       (first \ "iconUrl").toOption mustBe None
       (first \ "isPrimary").toOption mustBe None
     }
+
+    "publish a localized short display name alongside the machine name" in {
+      val json  = contentAsJson(route(app, FakeRequest(GET, "/v3/api/labelTypes")).get)
+      val types = (json \ "label_types").as[Seq[JsObject]]
+
+      types.foreach { lt =>
+        val display = (lt \ "display_name").as[String]
+        display.trim must not be empty
+        // An unresolved Messages key comes back as the raw dotted key, which would silently look like a valid name.
+        display must not include "."
+        display must not be (lt \ "description").as[String]
+      }
+
+      types.find(lt => (lt \ "name").as[String] == "NoCurbRamp").map(lt => (lt \ "display_name").as[String]) mustBe
+        Some("Missing Curb Ramp")
+    }
   }
 
   "GET /v3/api/cities" should {
