@@ -126,6 +126,8 @@ class ClusteringSessionTable @Inject() (protected val dbConfigProvider: Database
     lp  <- labelPoints if l.labelId === lp.labelId
     lt  <- labelTypes if l.labelTypeId === lt.labelTypeId
     if r.deleted === false
+    if l.deleted === false
+    if us.excluded === false
     if l.correct || (us.highQuality && l.correct.isEmpty && !at.lowQuality)
     if lp.lat.isDefined && lp.lng.isDefined
   } yield (ser.regionId, us.userId, l.panoId, l.labelId, lt.labelType, lp.lat.ifNull(-1d), lp.lng.ifNull(-1d),
