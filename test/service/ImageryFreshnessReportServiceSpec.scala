@@ -103,7 +103,9 @@ class ImageryFreshnessReportServiceSpec extends PlaySpec with BeforeAndAfterAll 
 
     "fold a night's poll and sync runs into one row of the series" in {
       cleanUp()
-      val night = OffsetDateTime.now.minusDays(2)
+      // Anchored to the small hours rather than to `now`: the two runs have to land on one calendar day to be one
+      // night, and `now` alone puts the sync on the next date whenever the suite happens to run in the last hour.
+      val night = OffsetDateTime.now.minusDays(2).withHour(2).withMinute(0).withSecond(0).withNano(0)
       seed(pollJob, night, Map("streets_selected" -> 500, "streets_polled" -> 480, "streets_skipped" -> 20))
       seed(syncJob, night.plusHours(1), Map("audits_flagged" -> 7, "audits_unflagged" -> 2))
 
