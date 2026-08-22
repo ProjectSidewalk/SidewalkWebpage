@@ -52,6 +52,34 @@ util.pano.zoomToFov = (zoom) => {
 };
 
 /**
+ * Converts a vertical field of view to the horizontal field of view a viewport of the given aspect ratio renders.
+ *
+ * Some imagery SDKs (Mapillary, Infra3D) express their camera in vertical fov, while our zoom levels are defined
+ * in horizontal-fov terms (zoomToFov/fovToZoom). The two are linked through the viewport's width:height ratio, so
+ * the conversion must use the *live* ratio of the element the pano renders in — a fixed constant is only correct
+ * for viewports that happen to match it (#4852).
+ *
+ * @param {number} verticalFov - The vertical field of view angle in degrees.
+ * @param {number} aspect - The viewport's width:height aspect ratio.
+ * @returns {number} The horizontal field of view angle in degrees.
+ */
+util.pano.vFovToHFov = (verticalFov, aspect) => {
+  return util.math.toDegrees(2 * Math.atan(Math.tan(util.math.toRadians(verticalFov / 2)) * aspect));
+};
+
+/**
+ * Converts a horizontal field of view to the vertical field of view a viewport of the given aspect ratio renders.
+ * Inverse of vFovToHFov(); see it for why the aspect ratio must be the viewport's live one.
+ *
+ * @param {number} horizontalFov - The horizontal field of view angle in degrees.
+ * @param {number} aspect - The viewport's width:height aspect ratio.
+ * @returns {number} The vertical field of view angle in degrees.
+ */
+util.pano.hFovToVFov = (horizontalFov, aspect) => {
+  return util.math.toDegrees(2 * Math.atan(Math.tan(util.math.toRadians(horizontalFov / 2)) / aspect));
+};
+
+/**
  * Calculates the zoom level from a given horizontal field of view. This is the inverse of zoomToFov().
  *
  * TODO Maybe we should decide on our own zoom levels rather than using Google's.

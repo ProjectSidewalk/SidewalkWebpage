@@ -14,6 +14,11 @@ class MapillaryViewer extends PanoViewer {
     this.currCenter = undefined;
     this.currVerticalFov = undefined;
 
+    // The render camera's width:height ratio, cached from the same subscription as currVerticalFov. It is what
+    // Mapillary actually renders with, so preferring it over a DOM measurement keeps getPov() (called per pan
+    // frame) free of layout reads; _viewportAspect() is the fallback until the first render tick (#4852).
+    this.currAspect = undefined;
+
     // Used to differentiate between pano changing from Mapillary's nav arrows vs calling setPano/setLocation.
     this.changingPanoOurselves = undefined;
 
@@ -95,6 +100,11 @@ class MapillaryViewer extends PanoViewer {
       const currImageId = this.currPanoData ? this.currPanoData.getPanoId() : undefined;
       if (!currImageId || currImageId === rc._currentImageId) {
         this.currVerticalFov = rc.perspective.fov;
+      }
+      // The aspect is container geometry, not image state, so cache it on every tick regardless of which image
+      // the camera is on; a container resize/rotation fires this subscription, keeping the cache current (#4852).
+      if (rc.perspective.aspect > 0) {
+        this.currAspect = rc.perspective.aspect;
       }
     });
 
@@ -522,11 +532,9 @@ class MapillaryViewer extends PanoViewer {
     const currHeading = ((360 * this.currCenter[0]) + headingPixelZero + 360) % 360;
     const currPitch = -180 * (this.currCenter[1] - 0.5);
 
-    // Use this.currVerticalFov and the canvas aspect ratio to calculate the horizontal fov. Can then convert this
-    // into the zoom level that we use throughout our system.
-    const horizontalFov = util.math.toDegrees(
-      2 * Math.atan(Math.tan(util.math.toRadians(this.currVerticalFov / 2)) * util.EXPLORE_CANVAS_ASPECT_RATIO),
-    );
+    // Use this.currVerticalFov and the viewport's live aspect ratio to calculate the horizontal fov. Can then
+    // convert this into the zoom level that we use throughout our system.
+    const horizontalFov = util.pano.vFovToHFov(this.currVerticalFov, this.currAspect || this._viewportAspect());
 
     return {
       heading: currHeading,
@@ -552,12 +560,13 @@ class MapillaryViewer extends PanoViewer {
     // Convert zoom to a horizontal fov, and then convert to the vertical fov used by Mapillary.
     pov.zoom = pov.zoom || this.getPov().zoom || 1;
     const horizontalFov = util.pano.zoomToFov(pov.zoom);
-    const verticalFov = util.math.toDegrees(
-      2 * Math.atan(Math.tan(util.math.toRadians(horizontalFov / 2)) / util.EXPLORE_CANVAS_ASPECT_RATIO),
-    );
+    const verticalFov = util.pano.hFovToVFov(horizontalFov, this.currAspect || this._viewportAspect());
     // NOTE despite not returning a Promise, setFieldOfView() happens async, so we save it in this.currVerticalFov.
+    // Mapillary clamps the fov it accepts to [0, 90]°, so mirror that clamp in the cache — on a narrow (portrait)
+    // viewport a wide zoom converts to a vertical fov beyond 90°, and caching the unclamped request would make
+    // getPov() report a zoom the viewer isn't actually showing (#4852).
     this.viewer.setFieldOfView(verticalFov);
-    this.currVerticalFov = verticalFov;
+    this.currVerticalFov = Math.min(90, Math.max(0, verticalFov));
   };
 
   hideNavigationArrows = () => {

@@ -265,9 +265,7 @@ class Infra3dViewer extends PanoViewer {
     const verticalAzimuth = (verticalOrientation + currentView.lat) % 360;
 
     // Convert from vertical fov to horizontal fov, then convert to a zoom level that you'd see in GSV.
-    const horizontalFov = util.math.toDegrees(
-      2 * Math.atan(Math.tan(util.math.toRadians(currentView.fov) / 2) * util.EXPLORE_CANVAS_ASPECT_RATIO),
-    );
+    const horizontalFov = util.pano.vFovToHFov(currentView.fov, this._viewportAspect());
     const zoom = util.pano.fovToZoom(horizontalFov);
 
     return { heading: horizontalAzimuth, pitch: verticalAzimuth, zoom };
@@ -293,9 +291,7 @@ class Infra3dViewer extends PanoViewer {
     let verticalFov;
     if (pov.zoom) {
       const horizontalFov = util.pano.zoomToFov(pov.zoom);
-      verticalFov = util.math.toDegrees(
-        2 * Math.atan(Math.tan(util.math.toRadians(horizontalFov / 2)) / util.EXPLORE_CANVAS_ASPECT_RATIO),
-      );
+      verticalFov = util.pano.hFovToVFov(horizontalFov, this._viewportAspect());
     } else {
       verticalFov = this.viewer.getCameraView().fov;
     }
