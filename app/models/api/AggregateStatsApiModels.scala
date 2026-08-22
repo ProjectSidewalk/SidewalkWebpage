@@ -4,7 +4,7 @@
  */
 package models.api
 
-import models.api.ApiModelUtils.toSnakeKey
+import models.api.ApiModelUtils.{labelTypeOrdering, toSnakeKey}
 import play.api.libs.json.{JsObject, Json}
 
 /**
@@ -56,14 +56,14 @@ case class AggregateStats(
 ) {
 
   def toJson: JsObject = {
-    val labelTypeJson = byLabelType.map { case (labelType, labelStats) =>
+    val labelTypeJson = JsObject(byLabelType.toSeq.sorted(labelTypeOrdering).map { case (labelType, labelStats) =>
       labelType -> Json.obj(
         "labels"                    -> labelStats.labels,
         "labels_validated"          -> labelStats.labelsValidated,
         "labels_validated_agree"    -> labelStats.labelsValidatedAgree,
         "labels_validated_disagree" -> labelStats.labelsValidatedDisagree
       )
-    }
+    })
 
     Json.obj(
       "status"                 -> "OK",
@@ -101,7 +101,7 @@ case class AggregateStats(
       row("Number of Languages", numLanguages)
     )
 
-    val labelTypeStats = byLabelType.toSeq.flatMap { case (labelType, labelStats) =>
+    val labelTypeStats = byLabelType.toSeq.sorted(labelTypeOrdering).flatMap { case (labelType, labelStats) =>
       Seq(
         row(s"$labelType Labels", labelStats.labels),
         row(s"$labelType Labels Validated", labelStats.labelsValidated),

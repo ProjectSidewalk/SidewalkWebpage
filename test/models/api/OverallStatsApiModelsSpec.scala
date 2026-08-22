@@ -74,7 +74,17 @@ class OverallStatsApiModelsSpec extends AnyFunSuite with Matchers {
           LabelAccuracy(0, 0, 0, None, 0)
         )
       ),
-      aiPerformance = Map.empty
+      // Inserted CurbRamp-before-Overall and admin-before-human so the ordering test can't pass on insertion order.
+      aiPerformance = Map(
+        "CurbRamp" -> Map(
+          "admin_majority_vote" -> AiConcurrence(4, 3, 2, 1),
+          "human_majority_vote" -> AiConcurrence(8, 7, 6, 5)
+        ),
+        "Overall" -> Map(
+          "admin_majority_vote" -> AiConcurrence(40, 30, 20, 10),
+          "human_majority_vote" -> AiConcurrence(80, 70, 60, 50)
+        )
+      )
     )
   }
 
@@ -151,5 +161,16 @@ class OverallStatsApiModelsSpec extends AnyFunSuite with Matchers {
 
     rows should contain("combined_other_accuracy,NA")
     rows should contain("average_label_timestamp,NA")
+  }
+
+  test("ai_stats orders label types and vote types the same way in JSON and CSV") {
+    val aiStats = (sampleStats.toJson \ "ai_stats").as[JsObject]
+    aiStats.fields.map(_._1) shouldBe Seq("Overall", "CurbRamp")
+    (aiStats \ "Overall").as[JsObject].fields.map(_._1) shouldBe Seq("human_majority_vote", "admin_majority_vote")
+
+    val rows         = sampleStats.toCsvRows
+    val overallHuman = rows.indexOf("overall_ai_yes_and_human_majority_vote_concurs,80")
+    overallHuman should be < rows.indexOf("overall_ai_yes_and_admin_majority_vote_concurs,40")
+    overallHuman should be < rows.indexOf("curb_ramp_ai_yes_and_human_majority_vote_concurs,8")
   }
 }

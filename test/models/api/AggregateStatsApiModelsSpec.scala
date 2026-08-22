@@ -2,6 +2,7 @@ package models.api
 
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
+import play.api.libs.json.JsObject
 
 /**
  * Pure (no DB, no app boot) contract test for the `/v3/api/aggregateStats` JSON and CSV shapes.
@@ -21,7 +22,8 @@ class AggregateStatsApiModelsSpec extends AnyFunSuite with Matchers {
     numCities = 12,
     numCountries = 5,
     numLanguages = 8,
-    byLabelType = Map("CurbRamp" -> LabelTypeStats(200, 150, 140, 10), "NoSidewalk" -> LabelTypeStats(100, 50, 45, 5))
+    // Inserted NoSidewalk-first (it has the higher label_type_id) so the ordering test can't pass on insertion order.
+    byLabelType = Map("NoSidewalk" -> LabelTypeStats(100, 50, 45, 5), "CurbRamp" -> LabelTypeStats(200, 150, 140, 10))
   )
 
   test("JSON uses snake_case keys and nests per-label-type counts under by_label_type") {
@@ -57,5 +59,12 @@ class AggregateStatsApiModelsSpec extends AnyFunSuite with Matchers {
     // Label type names are split on their camelCase boundary, matching the JSON's per-type block.
     rows should contain("curb_ramp_labels,200")
     rows should contain("no_sidewalk_labels_validated_disagree,5")
+  }
+
+  test("per-label-type blocks are ordered by label type id in both formats") {
+    (sampleStats.toJson \ "by_label_type").as[JsObject].fields.map(_._1) shouldBe Seq("CurbRamp", "NoSidewalk")
+
+    val rows = sampleStats.toCsvRows
+    rows.indexOf("curb_ramp_labels,200") should be < rows.indexOf("no_sidewalk_labels,100")
   }
 }

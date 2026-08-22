@@ -36,6 +36,16 @@ object LabelAccuracy {
 case class AiConcurrence(aiYesHumanConcurs: Int, aiYesHumanDiffers: Int, aiNoHumanDiffers: Int, aiNoHumanConcurs: Int)
 
 object AiConcurrence {
+  private val voteTypeOrder: Seq[String] = Seq("human_majority_vote", "admin_majority_vote")
+
+  /**
+   * Sorts (vote type, _) pairs of an `ai_stats` inner map. Unrecognized keys sort last rather than being dropped.
+   */
+  val voteTypeOrdering: Ordering[(String, Any)] = Ordering.by { case (voteType, _) =>
+    val i = voteTypeOrder.indexOf(voteType)
+    if (i < 0) Int.MaxValue else i
+  }
+
   implicit val aiConcurrenceWrites: Writes[AiConcurrence] = (
     (__ \ "ai_yes_human_concurs").write[Int] and
       (__ \ "ai_yes_human_differs").write[Int] and
@@ -152,8 +162,10 @@ case class ProjectSidewalkStats(
       ),
       "ai_stats" -> JsObject(
         // { "Overall" -> "human_maj_vote" -> { "ai_yes_human_concurs": ###, ... }, ... }, "CurbRamp" -> { ... }, ... }.
-        aiPerformance.map { case (lType, statsMap) =>
-          lType -> JsObject(statsMap.toSeq.sorted(labelTypeOrdering).map(stats => stats._1 -> Json.toJson(stats._2)))
+        aiPerformance.toSeq.sorted(labelTypeOrdering).map { case (lType, statsMap) =>
+          lType -> JsObject(
+            statsMap.toSeq.sorted(AiConcurrence.voteTypeOrdering).map(stats => stats._1 -> Json.toJson(stats._2))
+          )
         }
       )
     )
@@ -222,7 +234,7 @@ case class ProjectSidewalkStats(
       }
 
     val aiRows: Seq[String] = aiPerformance.toSeq.sorted(labelTypeOrdering).flatMap { case (labelType, aiStatsMap) =>
-      aiStatsMap.toSeq.flatMap { case (voteType, aiStats) =>
+      aiStatsMap.toSeq.sorted(AiConcurrence.voteTypeOrdering).flatMap { case (voteType, aiStats) =>
         val voteTypeText: String =
           if (voteType == "human_majority_vote") "Human Majority Vote" else "Admin Majority Vote"
         Seq(
