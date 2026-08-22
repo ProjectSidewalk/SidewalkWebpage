@@ -106,6 +106,21 @@ class TrafficMathSpec extends PlaySpec {
     }
   }
 
+  "cityTrafficWrites" should {
+    // The page's renderer and jsdom fixtures read these exact names; JsonNaming.SnakeCase can't produce them
+    // (it never breaks before digits), which live QA caught — so the wire contract gets pinned here.
+    "emit the page convention's snake_case field names, digits included" in {
+      val json = Json.toJson(
+        CityTraffic("seattle-wa", 100, 90, 80, 70, 40, 0.4, 0.05, Seq(1, 2, 3), Some("traffic_spike"))
+      )
+      json.as[play.api.libs.json.JsObject].keys mustBe Set("city_id", "sessions_7d", "sessions_prior_7d",
+        "active_users_7d", "active_users_prior_7d", "engaged_sessions_7d", "engagement_rate_7d", "mobile_share_28d",
+        "weekly_sessions", "anomaly")
+      (json \ "sessions_7d").as[Int] mustBe 100
+      (json \ "anomaly").as[String] mustBe "traffic_spike"
+    }
+  }
+
   "parseServiceAccountKey" should {
     "extract the client email and a working private key from a service-account JSON blob" in {
       // A line-wrapped PEM inside a JSON string, the shape Google's key files use.

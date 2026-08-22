@@ -116,7 +116,7 @@
 
   <div class="api-section" id="ac-traffic-section">
     <h2 class="api-heading" id="traffic">Traffic — who's arriving <a href="#traffic" class="permalink">#</a></h2>
-    <p>Website traffic per deployment, from Google Analytics — the one lens our own database can't provide, since it only sees people who contribute. Sessions and visitors are the trailing 7 days with their change from the 7 before; mobile share covers the last 28 days. A city is flagged when this week's sessions are far outside its own trailing 8-week baseline — in either direction, since a spike (press, a class assignment) is as worth knowing about as a drop. Numbers refresh about hourly and count the deployment's production site.</p>
+    <p>Website traffic per deployment, from Google Analytics — the one lens our own database can't provide, since it only sees people who contribute. Sessions and visitors are the trailing 7 days with their change from the 7 before; mobile share covers the last 28 days. A city is flagged when this week's sessions are far outside its own trailing 8-week baseline — in either direction, since a spike (press, a class assignment) is as worth knowing about as a drop. Numbers refresh about hourly and cover this stage's own GA properties — the production server reads the production sites, while the test server and localhost read the <code>-test</code> sites (whose traffic includes developers' local page loads).</p>
     <div class="ac-table-wrap" id="ac-traffic-wrap">
       <table class="ac-table" id="ac-traffic-table">
         <thead>
