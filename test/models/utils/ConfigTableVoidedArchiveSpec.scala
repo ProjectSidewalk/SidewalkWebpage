@@ -63,7 +63,7 @@ class ConfigTableVoidedArchiveSpec extends PlaySpec with GuiceOneAppPerSuite {
 
   /**
    * Seeds the minimal FK chain for one archived voided vote — user (+ non-excluded user_stat), street, audit task,
-   * mission, label, then the `voided_label_validation` row itself — and returns the seeded caster's user id.
+   * mission, pano, label, then the `voided_label_validation` row itself — and returns the seeded caster's user id.
    *
    * Unqualified table names resolve through the app role's search_path, i.e. the same schema `currentSchema` reports.
    * Ids are explicit MAX+1 because seeded dev dumps insert rows with explicit ids without advancing the sequences, so
@@ -73,6 +73,7 @@ class ConfigTableVoidedArchiveSpec extends PlaySpec with GuiceOneAppPerSuite {
     val userId   = java.util.UUID.randomUUID().toString
     val username = "ci-voided-" + userId.take(8)
     val email    = username + "@test.invalid"
+    val panoId   = "ci-voided-pano-" + userId.take(8)
     for {
       _ <- sqlu"""INSERT INTO sidewalk_login.sidewalk_user (user_id, username, email)
                   VALUES ($userId, $username, $email)"""
@@ -94,11 +95,14 @@ class ConfigTableVoidedArchiveSpec extends PlaySpec with GuiceOneAppPerSuite {
               VALUES ((SELECT COALESCE(MAX(mission_id), 0) + 1 FROM mission),
                       'validation', $userId, FALSE, FALSE, FALSE)
               RETURNING mission_id""".as[Int].head
+      // label.pano_id references pano_data (#4587), so the label's pano has to exist before the label does.
+      _ <- sqlu"""INSERT INTO pano_data (pano_id, capture_date, source)
+                  VALUES ($panoId, '2020-01', 'gsv')"""
       labelId <-
         sql"""INSERT INTO label (label_id, audit_task_id, pano_id, label_type_id, temporary_label_id, mission_id,
                                  street_edge_id, user_id)
               VALUES ((SELECT COALESCE(MAX(label_id), 0) + 1 FROM label),
-                      $auditTaskId, 'ci-voided-archive-pano', (SELECT MIN(label_type_id) FROM label_type), 1,
+                      $auditTaskId, $panoId, (SELECT MIN(label_type_id) FROM label_type), 1,
                       $missionId, $streetEdgeId, $userId)
               RETURNING label_id""".as[Int].head
       _ <- sqlu"""INSERT INTO voided_label_validation (label_validation_id, label_id, validation_result, user_id,
