@@ -185,6 +185,7 @@ class LabelDetail {
     );
 
     this.#initInfoPopover();
+    this.#initHideLabelToggle();
     this.#initShareWidget();
     this.#initStorySection();
 
@@ -201,6 +202,27 @@ class LabelDetail {
 
     // Seed the all-time counts so a validation here can celebrate a newly unlocked validation badge.
     BadgeAchievements.seedCounts();
+  }
+
+  /**
+   * Wires the pano's Hide-label toggle (#2477). Built after the pano manager, which is what its changes act on.
+   */
+  #initHideLabelToggle() {
+    const button = this.#els.hideLabelButton;
+    if (!button) return;
+    new LabelVisibilityToggle({
+      buttons: [button],
+      text: {
+        hide: i18next.t('common:hide-label'),
+        show: i18next.t('common:show-label'),
+        hideTooltip: i18next.t('common:hide-label-tooltip'),
+        showTooltip: i18next.t('common:show-label-tooltip'),
+      },
+      onChange: (visible, { viaClick }) => {
+        this.panoManager.setLabelsHidden(!visible);
+        if (viaClick) this.#logClick(visible ? 'ShowLabel' : 'HideLabel');
+      },
+    });
   }
 
   /**
@@ -311,6 +333,7 @@ class LabelDetail {
     els.commentsCount = this.#q('.label-detail__comments-count');
     els.descComments = this.#q('.label-detail__desc-comments');
     els.panHint = this.#q('.label-detail__pan-hint');
+    els.hideLabelButton = this.#q('.label-detail__hide-label');
     els.labelMapLink = this.#q('.label-detail__labelmap-link');
     els.exploreHereLink = this.#q('.label-detail__explore-link');
     els.commentRow = this.#q('.label-detail__comment-row');
@@ -1035,6 +1058,8 @@ class LabelDetail {
     const tip = this.#lockReason() ?? '';
 
     this.#renderVoteTooltips();
+    // The toggle goes with the marker it acts on; a load still in flight keeps it, since a marker is coming.
+    if (els.hideLabelButton) els.hideLabelButton.hidden = this.#noImagery;
     for (const btn of Object.values(els.panoOverlayButtons)) btn.disabled = blocked;
     for (const btn of Object.values(els.voteButtons)) btn.disabled = blocked;
 

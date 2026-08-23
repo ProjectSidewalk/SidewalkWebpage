@@ -23,18 +23,8 @@
     chartBorderColor: '#e0e0e0',
   };
 
-  // Label type mapping (API field name to display name). This will be populated from the labelTypes API.
-  const labelTypeMapping = {
-    curb_ramp: 'Curb Ramp',
-    no_curb_ramp: 'Missing Curb Ramp',
-    obstacle: 'Obstacle',
-    surface_problem: 'Surface Problem',
-    no_sidewalk: 'No Sidewalk',
-    marked_crosswalk: 'Marked Crosswalk',
-    pedestrian_signal: 'Pedestrian Signal',
-    cant_see_sidewalk: 'Can\'t See Sidewalk',
-    other: 'Other',
-  };
+  // userStats field name (snake_case) -> localized display name (populated from the labelTypes API).
+  const labelTypeMapping = {};
 
   // Map from API response name (PascalCase) to userStats field name (snake_case).
   const labelTypeAPIMapping = {
@@ -140,7 +130,7 @@
               config.colors[snakeCaseKey] = labelType.color;
 
               // Update the label type mapping.
-              labelTypeMapping[snakeCaseKey] = labelType.description;
+              labelTypeMapping[snakeCaseKey] = labelType.display_name;
             });
           }
 

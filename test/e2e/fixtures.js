@@ -91,6 +91,19 @@ async function stubMapbox(context) {
 }
 
 /**
+ * Stubs the Makeability Lab API that /about hydrates its team/publications/grants sections from. The empty
+ * listing keeps every section on its server-rendered fallback, so the suite measures a deterministic DOM in
+ * both environments — and an ML-site outage can't fail the run (Chromium logs its own console error for any
+ * failed fetch, which no allowlist entry covers).
+ *
+ * @param {import('@playwright/test').BrowserContext} context - The context whose requests to intercept.
+ */
+async function stubMakeabilityLab(context) {
+  await context.route('https://makeabilitylab.cs.washington.edu/**', (route) =>
+    route.fulfill({json: {results: [], next: null}}));
+}
+
+/**
  * Waits until the shared AppManager (public/js/common/AppManager.js, wired into every page by
  * app/views/common/main.scala.html) reports initialization complete.
  *
@@ -102,6 +115,88 @@ async function stubMapbox(context) {
  */
 async function waitForAppReady(page) {
   await page.waitForFunction(() => window.appManager && window.appManager.isReady === true);
+}
+
+/**
+ * Navigates to a page-table entry and waits for it to settle — the one load protocol shared by
+ * pages.spec.js, dashboard.spec.js, and phone-viewport.spec.js, so it can't drift between them.
+ *
+ * @param {import('@playwright/test').Page} page - The test's page.
+ * @param {import('@playwright/test').BrowserContext} context - The page's context (route stubs are per-context).
+ * @param {{path: string, mapbox?: boolean, makeabilityLab?: boolean, loadingOverlay?: boolean,
+ *   waitFor?: function(import('@playwright/test').Page): Promise<void>}} p - The page-table entry: `mapbox` /
+ *   `makeabilityLab` install the stubs above before navigating, `loadingOverlay` waits for the shared
+ *   #page-loading overlay to hide, and `waitFor` is an extra page-specific readiness wait.
+ */
+async function loadAndSettle(page, context, p) {
+  if (p.mapbox) await stubMapbox(context);
+  if (p.makeabilityLab) await stubMakeabilityLab(context);
+  const response = await page.goto(p.path);
+  base.expect(response.status(), `${p.path} responded ${response.status()}`).toBeLessThan(400);
+  // Asserted before any waiting so a redirected load fails fast and legibly: a bounced session lands on
+  // /signIn, and a page that gained a mobile-UA redirect lands on /mobileLanding — both with a clean console.
+  base.expect(page.url(), `${p.path} landed on ${page.url()}`).toContain(p.path);
+  await waitForAppReady(page);
+  // The landing page defers its maps and validation grid behind util.onFirstInteractionOrIdle (#4486).
+  // Headless Chromium generates no input events, so without a nudge deferred init would only start on the 5s
+  // fallback — after the settle window below, silently costing coverage rather than failing.
+  await page.mouse.move(10, 10);
+  if (p.waitFor) await p.waitFor(page);
+  if (p.loadingOverlay) await page.locator('#page-loading').waitFor({state: 'hidden'});
+  // Settle window: errors from late async work (post-ready fetches, image/map callbacks) land here.
+  await page.waitForTimeout(1000);
+}
+
+/**
+ * Measures horizontal overflow at the current viewport width (issue #4883): every element whose border box
+ * extends past the right edge of the layout viewport, except content inside an `overflow-x: auto|scroll`
+ * ancestor — a horizontal scroller is the sanctioned way to present wide content (tables, code) on a phone.
+ *
+ * Measuring layout (bounding boxes) rather than scrollbars is the point: `body {overflow-x: clip}` in
+ * main.css means an overflowing page never shows a scrollbar, and a `position: fixed` element sized off the
+ * overflowed initial containing block (the #4857 footer bug) never widens `scrollWidth` at all. The page-level
+ * `scrollWidth` is still reported as a second, cheaper signal.
+ *
+ * Deliberately strict: content laid out wider than the viewport but clipped by an `overflow: hidden|clip`
+ * ancestor is still reported — unreachable-but-laid-out-wide content is the #4883 bug class itself. UI
+ * deliberately parked off-screen (an off-canvas drawer) should be display: none / visibility: hidden while
+ * closed rather than exempted here. Known blind spot: `overflow-y: auto` computes `overflow-x: auto` on the
+ * same box, so a vertical-only scroll pane (e.g. the auth pages' .au-body) exempts its descendants.
+ *
+ * @param {import('@playwright/test').Page} page - The page to measure, already loaded and settled.
+ * @returns {Promise<{viewportWidth: number, pageScrollWidth: number, offenders: string[], offenderCount: number}>}
+ *   Offenders are CSS-selector-ish descriptions (`div#gallery.sidebar right=612px`), capped at 10; offenderCount
+ *   is the uncapped total.
+ */
+async function horizontalOverflowReport(page) {
+  return page.evaluate(() => {
+    const TOLERANCE_PX = 1; // Sub-pixel rounding at fractional device-pixel-ratios is not overflow.
+    const viewportWidth = document.documentElement.clientWidth;
+    const offenders = [];
+    for (const el of document.querySelectorAll('body *')) {
+      const rect = el.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0 || rect.right <= viewportWidth + TOLERANCE_PX) continue;
+      let inScroller = false;
+      // A fixed element's containing block is the viewport, so no ancestor scrolls or clips it (the #4857
+      // footer bug shape); and the walk stops before body so a horizontally scrollable page can't exempt
+      // everything on it.
+      if (getComputedStyle(el).position !== 'fixed') {
+        for (let a = el.parentElement; a && a !== document.body && !inScroller; a = a.parentElement) {
+          inScroller = ['auto', 'scroll'].includes(getComputedStyle(a).overflowX);
+        }
+      }
+      if (inScroller) continue;
+      const id = el.id ? `#${el.id}` : '';
+      const cls = el.classList.length ? `.${[...el.classList].join('.')}` : '';
+      offenders.push(`${el.tagName.toLowerCase()}${id}${cls} right=${Math.round(rect.right)}px`);
+    }
+    return {
+      viewportWidth,
+      pageScrollWidth: document.scrollingElement.scrollWidth,
+      offenders: offenders.slice(0, 10),
+      offenderCount: offenders.length,
+    };
+  });
 }
 
 const test = base.test.extend({
@@ -122,4 +217,13 @@ const test = base.test.extend({
   },
 });
 
-module.exports = {test, expect: base.expect, stubMapbox, waitForAppReady, STORAGE_STATE};
+module.exports = {
+  test,
+  expect: base.expect,
+  stubMapbox,
+  stubMakeabilityLab,
+  waitForAppReady,
+  loadAndSettle,
+  horizontalOverflowReport,
+  STORAGE_STATE,
+};

@@ -6,7 +6,8 @@ import models.pano.PanoSource.PanoSource
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import play.api.libs.json.{JsValue, Json}
+import play.api.libs.functional.syntax._
+import play.api.libs.json.{__, JsValue, Json, Writes}
 import slick.jdbc.GetResult
 
 import java.time.{LocalDate, OffsetDateTime}
@@ -90,6 +91,21 @@ case class PanoDataSlim(
     cameraRoll: Option[Double],
     source: PanoSource
 )
+
+object PanoDataSlim {
+  implicit val panoDataSlimWrites: Writes[PanoDataSlim] = (
+    (__ \ "pano_id").write[String] and
+      (__ \ "has_labels").write[Boolean] and
+      (__ \ "width").writeNullable[Int] and
+      (__ \ "height").writeNullable[Int] and
+      (__ \ "lat").writeNullable[Double] and
+      (__ \ "lng").writeNullable[Double] and
+      (__ \ "camera_heading").writeNullable[Double] and
+      (__ \ "camera_pitch").writeNullable[Double] and
+      (__ \ "camera_roll").writeNullable[Double] and
+      (__ \ "source").write[PanoSource.Value]
+  )(unlift(PanoDataSlim.unapply))
+}
 
 class PanoDataTableDef(tag: Tag) extends Table[PanoData](tag, "pano_data") {
   def panoId: Rep[String]                = column[String]("pano_id", O.PrimaryKey)
@@ -182,7 +198,7 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
         (g.panoId, l.isDefined, g.width, g.height, g.lat, g.lng, g.cameraHeading, g.cameraPitch, g.cameraRoll, g.source)
       }
       .result
-      .map(_.map(PanoDataSlim.tupled))
+      .map(_.map((PanoDataSlim.apply _).tupled))
   }
 
   /**

@@ -238,7 +238,7 @@
 
       try {
         const regionData = await this.fetchRegionWithMostLabels();
-        const streets = withAge(await this.fetchStreetsByRegionId(regionData.region_id));
+        const streets = withAge(await this.fetchStreetsByRegionId(regionData.properties.region_id));
         const stats = summarize(streets.features);
 
         // Settled rather than all so that one failing to render doesn't prevent the others from rendering.
@@ -289,7 +289,7 @@
      *
      * @param {HTMLElement} container - Container element for this map
      * @param {object} metric - The METRICS entry driving this map
-     * @param {object} regionData - The region the preview is scoped to
+     * @param {object} regionData - GeoJSON Feature for the region the preview is scoped to
      * @param {object} streets - GeoJSON FeatureCollection of streets
      * @param {object} stats - The rollup from summarize()
      * @returns {Promise} Resolves once the map has loaded and drawn
@@ -315,15 +315,12 @@
      *
      * @param {object} map - The loaded Mapbox map
      * @param {object} metric - The METRICS entry driving this map
-     * @param {object} regionData - The region the preview is scoped to
+     * @param {object} regionData - GeoJSON Feature for the region the preview is scoped to
      * @param {object} streets - GeoJSON FeatureCollection of streets
      * @param {object} stats - The rollup from summarize()
      */
     drawMap(map, metric, regionData, streets, stats) {
-      map.addSource(REGION_SOURCE, {
-        type: 'geojson',
-        data: { type: 'Feature', geometry: regionData.geometry, properties: {} },
-      });
+      map.addSource(REGION_SOURCE, { type: 'geojson', data: regionData });
       map.addLayer({
         id: 'region-fill',
         type: 'fill',
@@ -338,7 +335,7 @@
       });
 
       const regionTitle = ApiDocsMap.addOverlay(map, 'top-right', 'map-chip');
-      regionTitle.innerHTML = `<strong>Region:</strong> ${regionData.name || 'Sample Region'}`;
+      regionTitle.innerHTML = `<strong>Region:</strong> ${regionData.properties.name || 'Sample Region'}`;
 
       if (!streets.features.length) {
         const message = ApiDocsMap.addOverlay(map, 'top-right', 'map-chip');

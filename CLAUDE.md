@@ -39,12 +39,12 @@ file produces its DTOs but the DTO *definitions* belong in `models.api`. The con
 - **Companion object** holds the `csvHeader` string (keep it next to `toCsvRow` so columns can't drift) and JSON writers.
 - **snake_case JSON** per #3871: derive writers with a scoped `JsonConfiguration(JsonNaming.SnakeCase)` +
   `Json.format`/`Json.writes`, or hand-build the `JsObject` with snake_case keys for nested/custom shapes.
-- **Shared helpers**: reuse `ApiModelUtils` (`escapeCsvField`, `createGeoJsonPointGeometry`, ...) rather than re-rolling
-  CSV/GeoJSON logic.
+- **Shared helpers**: reuse `ApiModelUtils` (`escapeCsvField`, `createGeoJsonPointGeometry`, `labelTypeOrdering`,
+  `toSnakeKey`, ...) rather than re-rolling CSV/GeoJSON logic.
 
-`app/formats/json/ApiFormats.scala` still holds assorted older non-DTO writes (the v2 access-score serializers and the
-`ClusterForApi` stack were removed in #3864); new API DTOs should not add to it — define them in `models.api` per the
-convention above.
+**Every `/v3` DTO's serialization lives in `models.api` — there is no shared formats object for API output, and no
+API serialization inline in a controller.** The `app/formats/json/*Formats.scala` files serve the internal (non-`/v3`)
+endpoints only; don't route API writers through them (issue #3891).
 
 ### Database & evolutions
 
