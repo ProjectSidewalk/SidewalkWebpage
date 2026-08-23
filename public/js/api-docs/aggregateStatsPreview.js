@@ -163,7 +163,7 @@
         tbody.appendChild(row);
       });
       table.appendChild(tbody);
-      container.appendChild(table);
+      container.appendChild(window.createApiTableWrapper(table, 'Labels by label type'));
     },
   };
 })();

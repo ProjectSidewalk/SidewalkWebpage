@@ -10,14 +10,17 @@
  * Registered-user pages live in dashboard.spec.js; /explore and /validate (which need working street-view
  * imagery) are phase 2 — see explore-validate.spec.js.
  */
-const {test, expect, stubMapbox, waitForAppReady} = require('./fixtures');
+const {test, expect, loadAndSettle} = require('./fixtures');
 
 // mapbox: page builds a Mapbox map at init — stub it (see fixtures.js) so a dummy CI key can't hang init.
 // loadingOverlay: page uses the shared #page-loading overlay — wait for it to hide before the error check.
 const PAGES = [
-  {path: '/', mapbox: true},
+  // Deferred landing maps (#4486): wait until they're built so their init errors land inside the settle window.
+  {path: '/', mapbox: true, waitFor: (page) => page.waitForFunction(() => window.choropleth && window.deploymentMap)},
   {path: '/signIn'},
   {path: '/signUp'},
+  // /about hydrates from the Makeability Lab API (stubbed for determinism) and lazy-builds a Mapbox map.
+  {path: '/about', makeabilityLab: true, mapbox: true},
   {path: '/leaderboard'},
   {path: '/routes'},
   {path: '/stories'},
@@ -35,18 +38,7 @@ const PAGES = [
 
 for (const p of PAGES) {
   test(`${p.path} loads without console errors`, async ({page, context, consoleErrors}) => {
-    if (p.mapbox) await stubMapbox(context);
-    const response = await page.goto(p.path);
-    expect(response.status(), `${p.path} responded ${response.status()}`).toBeLessThan(400);
-    await waitForAppReady(page);
-    // The landing page defers its maps and validation grid behind util.onFirstInteractionOrIdle (#4486). Headless
-    // Chromium generates no input events, so without a nudge they'd only start on the 5s fallback — after the settle
-    // window below, silently costing this spec its coverage of map init rather than failing it.
-    await page.mouse.move(10, 10);
-    if (p.path === '/') await page.waitForFunction(() => window.choropleth && window.deploymentMap);
-    if (p.loadingOverlay) await page.locator('#page-loading').waitFor({state: 'hidden'});
-    // Settle window: init errors from late async work (post-ready fetches, map callbacks) land here.
-    await page.waitForTimeout(1000);
+    await loadAndSettle(page, context, p);
     expect(consoleErrors).toEqual([]);
   });
 }

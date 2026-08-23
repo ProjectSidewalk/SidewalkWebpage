@@ -166,14 +166,10 @@ dialog.label-detail[open]::backdrop {
   cursor: grabbing;
 }
 
-/* The label marker on the card's pano. The background sizing scales the SVG marker to whatever box PanoMarker
-   sets. The halo that draws the eye to it is main.css's .label-marker-pulse, which PopupPanoManager adds
-   alongside this class. */
+/* The label marker on the card's pano. Its icon, hidden state, and the halo that draws the eye to it are main.css's
+   shared .label-marker / .label-marker-pulse rules, both added by PopupPanoManager alongside this class. */
 .label-detail__marker {
   border-radius: 50%;
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: center;
 
   /* Visual only: let a click-and-drag pass through to the pano so the streetscape still pans when the drag
      starts over the marker (#4574, Mikey #6) — matching the crop fallback marker, which is already pass-through. */
@@ -206,6 +202,52 @@ dialog.label-detail[open]::backdrop {
 
 @media (prefers-reduced-motion: reduce) {
   .label-detail__pan-hint { transition: none; }
+}
+
+/* Hide-label toggle (#2477) in the pano's top-left. Revealed on hover like the paging arrows. */
+.label-detail__hide-label {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 6; /* Above the validation ring (5), below the info popover (10). */
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border: none;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 85%);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 25%);
+  color: var(--color-asphalt-500);
+  font: var(--text-caption-semibold);
+  white-space: nowrap;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 150ms ease;
+}
+
+.label-detail__pano-wrap:hover .label-detail__hide-label,
+.label-detail__hide-label:focus-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.label-detail__hide-label:hover {
+  background: var(--color-neutral-white);
+  color: var(--color-neutral-black);
+}
+
+.label-detail__hide-label:focus-visible {
+  outline: 2px solid var(--color-link-100);
+  outline-offset: 2px;
+}
+
+/* Optical centering. Flex centers the label's line box, but "Hide Label" / "Show Label" have no descenders, so
+   the glyphs sit ~0.05em above the pill's middle — visibly high beside the icon, which centers exactly. */
+.label-detail__hide-label span {
+  position: relative;
+  top: 0.05em;
 }
 
 /* GSV sets a plain cursor inline on its own drag surface, so it needs !important to lose. */

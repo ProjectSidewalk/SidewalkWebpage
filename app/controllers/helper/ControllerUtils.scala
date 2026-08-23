@@ -1,6 +1,5 @@
 package controllers.helper
 
-import models.label.LabelTypeEnum
 import models.user.{RoleTable, SidewalkUserWithRole}
 import play.api.i18n.Messages
 import play.api.mvc.Results.{Redirect, Unauthorized}
@@ -178,12 +177,6 @@ object ControllerUtils {
 
   def parseIntegerSeq(listOfInts: Option[String]): Seq[Int] = {
     listOfInts.map(parseIntegerSeq).getOrElse(Seq())
-  }
-
-  // Provides a sorting function to sort by label_type_id if given the label_type string, with "Overall" going first.
-  // This is used by our APIs to show output in a consistent order.
-  val labelTypeOrdering: Ordering[(String, Any)] = Ordering.by { case (labelType, _) =>
-    (labelType != "Overall", LabelTypeEnum.labelTypeToId.getOrElse(labelType, Int.MaxValue))
   }
 
   /**

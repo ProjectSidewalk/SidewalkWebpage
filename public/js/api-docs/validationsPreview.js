@@ -128,7 +128,7 @@
           if (data && data.label_types && Array.isArray(data.label_types)) {
             data.label_types.forEach((labelType) => {
               labelTypeColors[labelType.id] = labelType.color;
-              labelTypeMapping[labelType.id] = labelType.description;
+              labelTypeMapping[labelType.id] = labelType.display_name;
             });
           }
           return data;

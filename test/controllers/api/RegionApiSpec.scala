@@ -111,8 +111,12 @@ class RegionApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       httpStatus match {
         case 200 =>
           contentType(resp) mustBe Some("application/json")
-          // The region object should have at minimum a region_id field.
-          (contentAsJson(resp) \ "region_id").asOpt[Int] mustBe defined
+          // A GeoJSON Feature, matching how /v3/api/regions represents a region.
+          val json = contentAsJson(resp)
+          (json \ "type").as[String] mustBe "Feature"
+          (json \ "geometry" \ "type").asOpt[String] mustBe defined
+          (json \ "properties" \ "region_id").asOpt[Int] mustBe defined
+          (json \ "properties" \ "label_count").as[Int] must be > 0
 
         case 404 =>
           // Must use the standard RFC 7807 problem+json envelope, NOT an ad-hoc Json.obj (#3931).
