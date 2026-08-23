@@ -100,6 +100,9 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
                                (user_id, street_edge_id, task_start, task_end, completed, current_lat, current_lng)
                            VALUES ($FixtureUserId, $streetEdge, now(), now(), FALSE, 0, 0)
                            RETURNING audit_task_id""".as[Int].head
+      // label.pano_id references pano_data (#4587), so the label's pano has to exist before the label does.
+      _ <- sqlu"""INSERT INTO pano_data (pano_id, capture_date, source)
+                  VALUES ('fixture_pano', '2020-01', 'gsv')"""
       _ <- sqlu"""INSERT INTO label
                       (audit_task_id, pano_id, label_type_id, deleted, temporary_label_id, time_created, mission_id,
                        tutorial, street_edge_id, agree_count, disagree_count, unsure_count, tags, user_id)
