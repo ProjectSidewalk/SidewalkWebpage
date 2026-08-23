@@ -59,9 +59,8 @@
 
     /** Pick a sample region (the one with the most labels) to keep the preview focused. Null = whole city. */
     fetchSampleRegionId() {
-      // getRegionWithMostLabels returns a flat Region object (region_id at the top level), not a GeoJSON Feature.
       return ApiDocsMap.fetchJson(`${config.apiBaseUrl}/regionWithMostLabels`)
-        .then((region) => (region ? region.region_id : null))
+        .then((region) => (region ? region.properties.region_id : null))
         .catch(() => null);
     },
 

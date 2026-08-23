@@ -6,7 +6,8 @@ import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
 import models.utils.MyPostgresProfile.api._
-import service.{AggregateStats, CityScorecard}
+import models.api.AggregateStats
+import service.CityScorecard
 
 import scala.concurrent.Await
 import scala.concurrent.duration._

@@ -244,7 +244,7 @@
         });
 
         table.appendChild(tbody);
-        section.appendChild(table);
+        section.appendChild(window.createApiTableWrapper(table, `${labelType} tags`));
 
         container.appendChild(section);
       });
@@ -323,7 +323,7 @@
       });
 
       table.appendChild(tbody);
-      container.appendChild(table);
+      container.appendChild(window.createApiTableWrapper(table, 'Label tags by label type'));
     },
   };
 })();

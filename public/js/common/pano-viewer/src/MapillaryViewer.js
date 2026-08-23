@@ -3,6 +3,13 @@
  * Docs: https://mapillary.github.io/mapillary-js/api/classes/viewer.Viewer
  */
 class MapillaryViewer extends PanoViewer {
+  // The vertical fov Mapillary can actually render a spherical image at: it renders fov = 2·atan(2^−zoom) and
+  // clamps zoom to [0, 3], giving [14.25°, 90°]. Requests outside that are silently clamped by the SDK (#4852).
+  // Plain Math rather than util.math.toDegrees: these evaluate at bundle load, and util ships in a separate
+  // bundle with no guaranteed ordering against this one.
+  static #MIN_VERTICAL_FOV = 2 * Math.atan(1 / 8) * 180 / Math.PI;
+  static #MAX_VERTICAL_FOV = 90;
+
   constructor() {
     super();
     this.viewer = undefined;
@@ -13,6 +20,11 @@ class MapillaryViewer extends PanoViewer {
     this.currCameraHeading = undefined;
     this.currCenter = undefined;
     this.currVerticalFov = undefined;
+
+    // The render camera's width:height ratio, cached from the same subscription as currVerticalFov. It is what
+    // Mapillary actually renders with, so preferring it over a DOM measurement keeps getPov() (called per pan
+    // frame) free of layout reads; _viewportAspect() is the fallback until the first render tick (#4852).
+    this.currAspect = undefined;
 
     // Used to differentiate between pano changing from Mapillary's nav arrows vs calling setPano/setLocation.
     this.changingPanoOurselves = undefined;
@@ -95,6 +107,11 @@ class MapillaryViewer extends PanoViewer {
       const currImageId = this.currPanoData ? this.currPanoData.getPanoId() : undefined;
       if (!currImageId || currImageId === rc._currentImageId) {
         this.currVerticalFov = rc.perspective.fov;
+      }
+      // The aspect is container geometry, not image state, so cache it on every tick regardless of which image
+      // the camera is on; a container resize/rotation fires this subscription, keeping the cache current (#4852).
+      if (rc.perspective.aspect > 0) {
+        this.currAspect = rc.perspective.aspect;
       }
     });
 
@@ -522,11 +539,9 @@ class MapillaryViewer extends PanoViewer {
     const currHeading = ((360 * this.currCenter[0]) + headingPixelZero + 360) % 360;
     const currPitch = -180 * (this.currCenter[1] - 0.5);
 
-    // Use this.currVerticalFov and the canvas aspect ratio to calculate the horizontal fov. Can then convert this
-    // into the zoom level that we use throughout our system.
-    const horizontalFov = util.math.toDegrees(
-      2 * Math.atan(Math.tan(util.math.toRadians(this.currVerticalFov / 2)) * util.EXPLORE_CANVAS_ASPECT_RATIO),
-    );
+    // Use this.currVerticalFov and the viewport's live aspect ratio to calculate the horizontal fov. Can then
+    // convert this into the zoom level that we use throughout our system.
+    const horizontalFov = util.pano.vFovToHFov(this.currVerticalFov, this.currAspect || this._viewportAspect());
 
     return {
       heading: currHeading,
@@ -552,12 +567,14 @@ class MapillaryViewer extends PanoViewer {
     // Convert zoom to a horizontal fov, and then convert to the vertical fov used by Mapillary.
     pov.zoom = pov.zoom || this.getPov().zoom || 1;
     const horizontalFov = util.pano.zoomToFov(pov.zoom);
-    const verticalFov = util.math.toDegrees(
-      2 * Math.atan(Math.tan(util.math.toRadians(horizontalFov / 2)) / util.EXPLORE_CANVAS_ASPECT_RATIO),
-    );
+    const verticalFov = util.pano.hFovToVFov(horizontalFov, this.currAspect || this._viewportAspect());
     // NOTE despite not returning a Promise, setFieldOfView() happens async, so we save it in this.currVerticalFov.
+    // Mirror the SDK's own clamp into that cache, or getPov() reports a zoom the viewer isn't showing: a portrait
+    // viewport asks for more than 90° at wide zooms, a landscape one for less than 14.25° at zoom 3. It only has
+    // to bridge one frame — the renderCamera$ subscription replaces it with the rendered fov on the next tick.
     this.viewer.setFieldOfView(verticalFov);
-    this.currVerticalFov = verticalFov;
+    this.currVerticalFov = Math.min(MapillaryViewer.#MAX_VERTICAL_FOV,
+      Math.max(MapillaryViewer.#MIN_VERTICAL_FOV, verticalFov));
   };
 
   hideNavigationArrows = () => {

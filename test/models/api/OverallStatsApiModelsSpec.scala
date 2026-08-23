@@ -1,6 +1,5 @@
-package formats.json
+package models.api
 
-import models.label.{LabelAccuracy, ProjectSidewalkStats, ValidationSourceStats, ValidationStats}
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 import play.api.libs.json.{JsObject, JsValue}
@@ -8,12 +7,12 @@ import play.api.libs.json.{JsObject, JsValue}
 import java.time.Duration
 
 /**
- * Pure (no DB, no app boot) contract test for the `/v3/api/overallStats` JSON shape.
+ * Pure (no DB, no app boot) contract test for the `/v3/api/overallStats` JSON and CSV shapes.
  *
  * Guards the breaking response-shape change from #4223: the `validations` block splits into combined/human/ai. This
- * is the kind of regression the compiler cannot catch — a JSON-shape change is invisible to the type system.
+ * is the kind of regression the compiler cannot catch — a serialization-shape change is invisible to the type system.
  */
-class ApiFormatsSpec extends AnyFunSuite with Matchers {
+class OverallStatsApiModelsSpec extends AnyFunSuite with Matchers {
 
   /** Builds a ProjectSidewalkStats with distinct combined/human/ai values so the test can tell the blocks apart. */
   private def sampleStats: ProjectSidewalkStats = {
@@ -75,12 +74,22 @@ class ApiFormatsSpec extends AnyFunSuite with Matchers {
           LabelAccuracy(0, 0, 0, None, 0)
         )
       ),
-      aiPerformance = Map.empty
+      // Inserted CurbRamp-before-Overall and admin-before-human so the ordering test can't pass on insertion order.
+      aiPerformance = Map(
+        "CurbRamp" -> Map(
+          "admin_majority_vote" -> AiConcurrence(4, 3, 2, 1),
+          "human_majority_vote" -> AiConcurrence(8, 7, 6, 5)
+        ),
+        "Overall" -> Map(
+          "admin_majority_vote" -> AiConcurrence(40, 30, 20, 10),
+          "human_majority_vote" -> AiConcurrence(80, 70, 60, 50)
+        )
+      )
     )
   }
 
   test("overallStats validations block splits into combined/human/ai, each with total + per-type accuracy") {
-    val json: JsValue        = ApiFormats.projectSidewalkStatsToJson(sampleStats)
+    val json: JsValue        = sampleStats.toJson
     val validations: JsValue = (json \ "validations").get
 
     (validations.as[JsObject].keys) shouldBe Set("combined", "human", "ai")
@@ -103,14 +112,14 @@ class ApiFormatsSpec extends AnyFunSuite with Matchers {
   }
 
   test("old flat validations shape is gone (breaking-change guard)") {
-    val json = ApiFormats.projectSidewalkStatsToJson(sampleStats)
+    val json = sampleStats.toJson
     // Pre-#4223 these lived directly under `validations`; they must now only exist under a source block.
     (json \ "validations" \ "Overall").toOption shouldBe None
     (json \ "validations" \ "total_validations").toOption shouldBe None
   }
 
   test("km-by-status + redundant-coverage km serialize, with km_explorable aliasing the open bucket (#3080)") {
-    val json = ApiFormats.projectSidewalkStatsToJson(sampleStats)
+    val json = sampleStats.toJson
     (json \ "km_explored_multiple_users").as[Double] shouldBe 3.0
     (json \ "km_explored_single_user").as[Double] shouldBe 5.0
     (json \ "km_needs_reaudit").as[Double] shouldBe 1.5
@@ -122,16 +131,46 @@ class ApiFormatsSpec extends AnyFunSuite with Matchers {
   }
 
   test("stddev of label/image dates serialize as day-valued durations (#3031)") {
-    val labels = ApiFormats.projectSidewalkStatsToJson(sampleStats) \ "labels"
+    val labels = sampleStats.toJson \ "labels"
     (labels \ "stddev_label_timestamp").as[String] shouldBe "120 days"
     (labels \ "stddev_age_of_image_when_labeled").as[String] shouldBe "365 days"
   }
 
   test("null accuracy is omitted, but the other fields remain") {
-    val json  = ApiFormats.projectSidewalkStatsToJson(sampleStats)
+    val json  = sampleStats.toJson
     val other = json \ "validations" \ "combined" \ "Other"
     (other \ "accuracy").toOption shouldBe None
     (other \ "validated").as[Int] shouldBe 0
     (other \ "has_a_validation").as[Int] shouldBe 0
+  }
+
+  test("CSV output is snake_case key/value rows covering the same stats as the JSON (#3871)") {
+    val rows = sampleStats.toCsvRows
+
+    rows.head shouldBe "launch_date,2021-06-15"
+    rows should contain("km_explored,10.0")
+    rows should contain("km_needs_reaudit,1.5")
+    rows should contain("registered_user_count,2")
+    rows should contain("stddev_label_timestamp,120 Days")
+
+    // Each validation source is prefixed, so the three blocks stay distinguishable in the flat CSV.
+    rows should contain("combined_total_validations,100")
+    rows should contain("human_total_validations,90")
+    rows should contain("ai_total_validations,10")
+    rows should contain("combined_curb_ramp_labels_validated,40")
+
+    rows should contain("combined_other_accuracy,NA")
+    rows should contain("average_label_timestamp,NA")
+  }
+
+  test("ai_stats orders label types and vote types the same way in JSON and CSV") {
+    val aiStats = (sampleStats.toJson \ "ai_stats").as[JsObject]
+    aiStats.fields.map(_._1) shouldBe Seq("Overall", "CurbRamp")
+    (aiStats \ "Overall").as[JsObject].fields.map(_._1) shouldBe Seq("human_majority_vote", "admin_majority_vote")
+
+    val rows         = sampleStats.toCsvRows
+    val overallHuman = rows.indexOf("overall_ai_yes_and_human_majority_vote_concurs,80")
+    overallHuman should be < rows.indexOf("overall_ai_yes_and_admin_majority_vote_concurs,40")
+    overallHuman should be < rows.indexOf("curb_ramp_ai_yes_and_human_majority_vote_concurs,8")
   }
 }

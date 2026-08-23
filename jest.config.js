@@ -2,9 +2,10 @@
  * Jest configuration for Project Sidewalk's prototype frontend test layer.
  *
  * Deliberately scoped to test/js/ ONLY so Jest never tries to collect or transform production JavaScript under
- * public/js/ (which is a no-module-system, globals-and-concatenation world that Jest would choke on). This
- * is an opt-in prototype (`npm run test:js`) and is intentionally NOT wired into CI yet — see test/js/README.md and
- * docs/testing-and-ci.md (frontend lint/CI sequencing is owned by issue #2487).
+ * public/js/ (which is a no-module-system, globals-and-concatenation world that Jest would choke on).
+ *
+ * Run it with `npm run test:js`; CI runs the same command as an advisory step in the frontend job, non-blocking until
+ * the layer reaches the Phase 1 bar (#2487). See test/js/README.md and docs/testing-and-ci.md.
  */
 
 /** @type {import('jest').Config} */
