@@ -7,8 +7,8 @@
   padding: 32px 24px 48px;
 }
 
-/* On a phone the 24px gutters would leave a 320px-minimum card only 342px of room in a 390px viewport —
-   tight for the photo + tag-pill rows inside. Trimming the gutters gives the single column that room back. */
+/* At 390px the 24px gutters leave the single column 342px — tight for the photo + tag-pill rows inside; trimming
+   them to 16px gives it 358px. The vertical padding comes down with them so the first card starts higher. */
 @media (width <= 480px) {
   .community-page {
     padding: 24px 16px 40px;
@@ -286,6 +286,7 @@
 .story-card__author {
   font: var(--text-small-medium);
   color: var(--color-neutral-800);
+  overflow-wrap: anywhere; /* Display names are usernames, which can be one long token. */
 }
 
 /* One combined place line: "address · neighborhood", or just the neighborhood when the address is unknown.
@@ -320,7 +321,7 @@
   white-space: nowrap;
 }
 
-/* Single line always: chips ellipsize (see .community-chip) rather than wrapping under the button. */
+/* One line from 361px up: the type chip ellipsizes (see .community-chip) rather than wrapping under the button. */
 .story-card__foot {
   display: flex;
   flex-wrap: nowrap;
@@ -328,6 +329,14 @@
   align-items: center;
   margin-top: auto;
   padding-top: 12px;
+}
+
+/* Narrower than that, one line leaves the chip almost nothing — 41px of "Curb Ramp"'s 63px in a 320px card, about
+   one character of a German label — so the button and share chip drop below it rather than crushing the label. */
+@media (width <= 360px) {
+  .story-card__foot {
+    flex-wrap: wrap;
+  }
 }
 
 .story-card__label-link {
