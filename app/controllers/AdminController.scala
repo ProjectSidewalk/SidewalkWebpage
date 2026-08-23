@@ -7,7 +7,6 @@ import controllers.helper.ControllerUtils.isAdmin
 import formats.json.AdminFormats._
 import formats.json.LabelFormats._
 import formats.json.UserFormats._
-import service.TrafficService.cityTrafficWrites
 import models.auth.{DefaultEnv, WithAdmin, WithOwner}
 import models.label.LabelTypeEnum
 import models.user.{RoleTable, SidewalkUserWithRole}

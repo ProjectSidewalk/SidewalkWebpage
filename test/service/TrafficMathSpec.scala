@@ -106,7 +106,7 @@ class TrafficMathSpec extends PlaySpec {
     }
   }
 
-  "cityTrafficWrites" should {
+  "CityTraffic's Writes" should {
     // The page's renderer and jsdom fixtures read these exact names; JsonNaming.SnakeCase can't produce them
     // (it never breaks before digits), which live QA caught — so the wire contract gets pinned here.
     "emit the page convention's snake_case field names, digits included" in {

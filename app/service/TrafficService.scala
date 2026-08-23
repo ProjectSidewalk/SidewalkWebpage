@@ -47,6 +47,25 @@ case class CityTraffic(
     anomaly: Option[String]
 )
 
+object CityTraffic {
+
+  // Hand-written rather than JsonNaming.SnakeCase: the macro renders `sessions7d`, not the page convention's
+  // `sessions_7d` — it only breaks words before uppercase letters, never before digits.
+  implicit val cityTrafficWrites: Writes[CityTraffic] = (t: CityTraffic) =>
+    Json.obj(
+      "city_id"               -> t.cityId,
+      "sessions_7d"           -> t.sessions7d,
+      "sessions_prior_7d"     -> t.sessionsPrior7d,
+      "active_users_7d"       -> t.activeUsers7d,
+      "active_users_prior_7d" -> t.activeUsersPrior7d,
+      "engaged_sessions_7d"   -> t.engagedSessions7d,
+      "engagement_rate_7d"    -> t.engagementRate7d,
+      "mobile_share_28d"      -> t.mobileShare28d,
+      "weekly_sessions"       -> t.weeklySessions,
+      "anomaly"               -> t.anomaly
+    )
+}
+
 /** Every fetched city's [[CityTraffic]] plus when the fan-out ran, so the page can show a "data as of" label. */
 case class TrafficSnapshot(fetchedAt: OffsetDateTime, cities: Seq[CityTraffic])
 
@@ -94,22 +113,6 @@ object TrafficService {
 
   /** The parsed service-account identity: who to claim to be (`iss`) and the key that proves it. */
   case class GaCredentials(clientEmail: String, privateKey: PrivateKey)
-
-  // Hand-written rather than JsonNaming.SnakeCase: the macro renders `sessions7d`, not the page convention's
-  // `sessions_7d` — it only breaks words before uppercase letters, never before digits.
-  implicit val cityTrafficWrites: Writes[CityTraffic] = (t: CityTraffic) =>
-    Json.obj(
-      "city_id"               -> t.cityId,
-      "sessions_7d"           -> t.sessions7d,
-      "sessions_prior_7d"     -> t.sessionsPrior7d,
-      "active_users_7d"       -> t.activeUsers7d,
-      "active_users_prior_7d" -> t.activeUsersPrior7d,
-      "engaged_sessions_7d"   -> t.engagedSessions7d,
-      "engagement_rate_7d"    -> t.engagementRate7d,
-      "mobile_share_28d"      -> t.mobileShare28d,
-      "weekly_sessions"       -> t.weeklySessions,
-      "anomaly"               -> t.anomaly
-    )
 
   /**
    * Extracts the client email and RSA private key from a Google service-account key JSON blob.
