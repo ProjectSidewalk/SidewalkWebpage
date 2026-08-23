@@ -189,9 +189,8 @@
 
       table.appendChild(tbody);
 
-      // Clear container and add table.
       container.innerHTML = '';
-      container.appendChild(table);
+      container.appendChild(window.createApiTableWrapper(table, 'Label types'));
 
       return table;
     },
