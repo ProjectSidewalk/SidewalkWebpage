@@ -93,8 +93,9 @@
   "routes-delete-confirm": "¿Eliminar \"{{name}}\"? Las personas con las que compartiste el enlace ya no podrán usarlo.",
   "routes-error": "Algo salió mal. Inténtalo de nuevo.",
   "cities": {
-    "intro": "Has mapeado en {{cities}} ciudades de Project Sidewalk: {{labels}} etiquetas en total.",
+    "intro": "Has contribuido en {{cities}} ciudades de Project Sidewalk: {{labels}} etiquetas en total.",
     "intro-single": "Tu trabajo en {{city}} hasta ahora. Una sola cuenta funciona en todas las ciudades de Project Sidewalk.",
+    "intro-empty": "Una sola cuenta funciona en todas las ciudades de Project Sidewalk. Tu trabajo aparecerá aquí en cuanto empieces a mapear.",
     "you-are-here": "estás aquí",
     "col-city": "Ciudad",
     "col-labels": "Etiquetas",
@@ -102,11 +103,13 @@
     "col-missions": "Misiones",
     "col-distance": "Distancia",
     "col-last-active": "Última etiqueta",
+    "table-caption": "Tus contribuciones en cada ciudad de Project Sidewalk",
     "distance-note": "La distancia fuera de {{city}} se recalcula cada noche, así que puede tener hasta un día de retraso.",
     "nudge": "Project Sidewalk mapea banquetas en {{cities}} ciudades, y tu cuenta ya funciona en todas ellas.",
     "nudge-empty": "Project Sidewalk mapea banquetas en {{cities}} ciudades. Elige una y empieza a explorar.",
     "nudge-link": "Ver todas las ciudades",
-    "trophy-sub": "Mapeaste en {{cities}} ciudades",
-    "map-popup": "{{labels}} etiquetas · {{validations}} validaciones"
+    "trophy-sub": "Activo en {{cities}} ciudades",
+    "map-popup": "{{labels}} etiquetas · {{validations}} validaciones",
+    "section-added": "Nueva sección disponible: {{section}}."
   }
 }

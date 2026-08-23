@@ -1851,7 +1851,7 @@
 .api-content .ud-cities-table th:not(:first-child) { text-align: right; }
 .api-content .ud-cities-table th:first-child { text-align: left; }
 
-.ud-cities-current { background: var(--color-pine-100, #eaf3ec); }
+.ud-cities-current { background: var(--color-pine-100, #e4f4ee); }
 
 /* Marks the deployment the mapper is reading this on, so the row they can verify against the tiles above is obvious. */
 .ud-cities-here {
@@ -1859,7 +1859,7 @@
   margin-left: var(--space-xs, 8px);
   padding: 1px 8px;
   border-radius: 999px;
-  background: var(--color-pine-200, #cfe3d4);
+  background: var(--color-pine-200, #c9e9dd);
   color: var(--color-text-heading, #263238);
   font-size: var(--font-size-sm, 0.875rem);
   white-space: nowrap;
@@ -1868,7 +1868,7 @@
 .ud-cities-map {
   height: 340px;
   margin: var(--space-md, 16px) 0;
-  border: 1px solid var(--color-neutral-200, #e0e0e0);
+  border: 1px solid var(--color-neutral-200, #e1e1e1);
   border-radius: var(--border-radius-lg, 8px);
   overflow: hidden;
 }

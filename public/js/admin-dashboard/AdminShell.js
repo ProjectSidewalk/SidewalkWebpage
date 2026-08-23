@@ -14,6 +14,7 @@ class AdminShell {
   #tocList;
   #headings = [];
   #tocLinks = [];
+  #scrollSpyAttached = false;
 
   init() {
     this.#content = document.querySelector('.api-content');
@@ -87,11 +88,19 @@ class AdminShell {
    */
   refreshTableOfContents() {
     this.#buildTableOfContents();
+    // A page whose only headings arrive asynchronously had nothing to spy on at load, so the listener was skipped.
+    this.#setupScrollSpy();
   }
 
-  /** Highlights the TOC entry for whichever heading is currently at the top of the viewport. */
+  /**
+   * Highlights the TOC entry for whichever heading is currently at the top of the viewport.
+   *
+   * The listener reads #headings and #tocLinks on each tick rather than closing over them, so it keeps working across
+   * a refreshTableOfContents(); attaching a second one would just duplicate the work.
+   */
   #setupScrollSpy() {
-    if (this.#headings.length === 0) return;
+    if (this.#scrollSpyAttached || this.#headings.length === 0) return;
+    this.#scrollSpyAttached = true;
 
     let ticking = false;
     const onScroll = () => {

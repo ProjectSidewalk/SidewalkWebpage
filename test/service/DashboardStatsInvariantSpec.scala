@@ -490,6 +490,26 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
       }
     }
 
+    "answer in the caller's units and language, not whichever request warmed the cache" in {
+      // Only the fan-out is cached; units and names are applied per response. Measurement system is a cookie the
+      // mapper can flip mid-session, so a cached rendering would leave the table in miles under a "km" header.
+      topUser.foreach { user =>
+        val km      = await(userService.getCrossCityUserStats(user.userId, metricSystem = true, Lang("en"))).get
+        val miles   = await(userService.getCrossCityUserStats(user.userId, metricSystem = false, Lang("en"))).get
+        val spanish = await(userService.getCrossCityUserStats(user.userId, metricSystem = true, Lang("es"))).get
+
+        km.cities.map(_.cityId) mustBe miles.cities.map(_.cityId)
+        km.cities.zip(miles.cities).foreach { case (inKm, inMiles) =>
+          if (inKm.distance > 0) inMiles.distance must be < inKm.distance
+        }
+        if (km.totalDistance > 0) miles.totalDistance must be < km.totalDistance
+
+        val spanishNames: Map[String, String] =
+          configService.getAllCityInfo(Lang("es")).map(city => city.cityId -> city.cityNameShort).toMap
+        spanish.cities.foreach(city => city.cityName mustBe spanishNames(city.cityId))
+      }
+    }
+
     "credit a mapper with at least what they did in this city alone" in {
       topUser.foreach { user =>
         val profile = await(userService.getUserProfileData(user.userId, metricSystem = true))

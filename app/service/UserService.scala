@@ -151,6 +151,24 @@ case class CrossCityUserStats(
     publicCityCount: Int
 )
 
+/**
+ * The cacheable half of [[UserServiceImpl.getCrossCityUserStats]]: the cross-schema fan-out's raw output (#4496).
+ *
+ * Everything here is viewer-independent — meters, schema names, counts — so one cached copy per mapper serves every
+ * combination of measurement system and language. Caching the *rendered* [[CrossCityUserStats]] instead would freeze
+ * both: measurement system is a cookie the mapper can flip at any moment, so a toggle followed by a reload inside the
+ * TTL would leave the table holding miles under a header that now says "km".
+ *
+ * @param rows          One row per queried schema, most labels first.
+ * @param currentSchema The schema this connection reads, identifying which row is the city being viewed.
+ * @param liveMeters    Distance audited in the current city, recomputed live so its row matches the hero KPI exactly.
+ */
+private[service] case class CrossCityFanOut(
+    rows: Seq[CrossCityUserStat],
+    currentSchema: String,
+    liveMeters: Double
+)
+
 case class AdminUserProfileData(
     currentRegion: Option[Region],
     numCompletedAudits: Int,
@@ -625,8 +643,10 @@ class UserServiceImpl @Inject() (
         // Keyed per user and short-lived: this is one mapper's own data, and it should reflect a label they placed a
         // minute ago. The TTL exists to absorb a reload, not to keep the number stale. As elsewhere, the recover sits
         // outside the cache so a transient DB failure isn't memoized as "no cities" (Play only caches a success).
+        //
+        // Only the fan-out is cached; units and language are applied to every response. See [[CrossCityFanOut]].
         cacheApi
-          .getOrElseUpdate[Option[CrossCityUserStats]](s"getCrossCityUserStats_$userId", Duration(60, "seconds")) {
+          .getOrElseUpdate[CrossCityFanOut](s"getCrossCityUserStats_$userId", Duration(60, "seconds")) {
             for {
               // Identifies the current city by the schema the connection actually reads, so the row marked "you're
               // here" is the one the hero KPIs above it were computed from.
@@ -639,45 +659,46 @@ class UserServiceImpl @Inject() (
               // 50-way union is what the cross-schema query exists to avoid.
               liveMeters <- db.run(auditTaskTable.getDistanceAudited(userId))
               rows       <- db.run(userStatTable.getCrossCityUserStats(scope.map(_._2), archiveSchemas, userId))
-            } yield {
-              val cityIdBySchema: Map[String, String] = scope.map { case (cityId, schema) => schema -> cityId }.toMap
-              val cities: Seq[CityUserStat]           = rows.flatMap { row =>
-                cityIdBySchema.get(row.citySchema).flatMap(cityInfoById.get).flatMap { city =>
-                  val isCurrent: Boolean   = row.citySchema == currentSchema
-                  val meters: Double       = if (isCurrent) liveMeters else row.metersAudited.getOrElse(0d)
-                  val hasActivity: Boolean = row.labels > 0 || row.validations > 0 || row.missions > 0 || meters > 0d
-                  if (!hasActivity) None
-                  else {
-                    val isPublic: Boolean = city.visibility == "public"
-                    Some(
-                      CityUserStat(
-                        city.cityId,
-                        city.cityNameShort,
-                        if (isPublic) city.URL else "",
-                        isPublic,
-                        isCurrent,
-                        row.labels,
-                        row.validations,
-                        row.missions,
-                        UserService.convertDistance(meters, metricSystem),
-                        isCurrent,
-                        row.lastActivity
-                      )
+            } yield CrossCityFanOut(rows, currentSchema, liveMeters)
+          }
+          .map { fanOut =>
+            val cityIdBySchema: Map[String, String] = scope.map { case (cityId, schema) => schema -> cityId }.toMap
+            val cities: Seq[CityUserStat]           = fanOut.rows.flatMap { row =>
+              cityIdBySchema.get(row.citySchema).flatMap(cityInfoById.get).flatMap { city =>
+                val isCurrent: Boolean   = row.citySchema == fanOut.currentSchema
+                val meters: Double       = if (isCurrent) fanOut.liveMeters else row.metersAudited.getOrElse(0d)
+                val hasActivity: Boolean = row.labels > 0 || row.validations > 0 || row.missions > 0 || meters > 0d
+                if (!hasActivity) None
+                else {
+                  val isPublic: Boolean = city.visibility == "public"
+                  Some(
+                    CityUserStat(
+                      city.cityId,
+                      city.cityNameShort,
+                      if (isPublic) city.URL else "",
+                      isPublic,
+                      isCurrent,
+                      row.labels,
+                      row.validations,
+                      row.missions,
+                      UserService.convertDistance(meters, metricSystem),
+                      isCurrent,
+                      row.lastActivity
                     )
-                  }
+                  )
                 }
               }
-              Some(
-                CrossCityUserStats(
-                  cities,
-                  cities.map(_.labels).sum,
-                  cities.map(_.validations).sum,
-                  cities.map(_.missions).sum,
-                  cities.map(_.distance).sum,
-                  publicCityCount
-                )
-              )
             }
+            Some(
+              CrossCityUserStats(
+                cities,
+                cities.map(_.labels).sum,
+                cities.map(_.validations).sum,
+                cities.map(_.missions).sum,
+                cities.map(_.distance).sum,
+                publicCityCount
+              )
+            )
           }
       }
       .recover { case e: Exception =>

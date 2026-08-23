@@ -90,8 +90,9 @@
   "routes-delete-confirm": "確定要刪除「{{name}}」嗎？擁有此連結的人將無法再使用它。",
   "routes-error": "發生錯誤，請再試一次。",
   "cities": {
-    "intro": "您已在 {{cities}} 個 Project Sidewalk 城市標記，共 {{labels}} 個標記。",
+    "intro": "您已在 {{cities}} 個 Project Sidewalk 城市貢獻，共 {{labels}} 個標記。",
     "intro-single": "您目前在 {{city}} 的成果。一個帳號可在每一個 Project Sidewalk 城市使用。",
+    "intro-empty": "一個帳號可在每一個 Project Sidewalk 城市使用。您開始標記後，成果就會顯示在這裡。",
     "you-are-here": "您在這裡",
     "col-city": "城市",
     "col-labels": "標記",
@@ -99,11 +100,13 @@
     "col-missions": "任務",
     "col-distance": "距離",
     "col-last-active": "最後標記",
+    "table-caption": "您在每一個 Project Sidewalk 城市的貢獻",
     "distance-note": "{{city}} 以外的距離每晚重新計算，因此最多可能延遲一天。",
     "nudge": "Project Sidewalk 在 {{cities}} 個城市標記人行道，您的帳號在每一個都能使用。",
     "nudge-empty": "Project Sidewalk 在 {{cities}} 個城市標記人行道。挑一個開始探索吧。",
     "nudge-link": "查看所有城市",
-    "trophy-sub": "已在 {{cities}} 個城市標記",
-    "map-popup": "{{labels}} 個標記 · {{validations}} 次檢核"
+    "trophy-sub": "已在 {{cities}} 個城市活動",
+    "map-popup": "{{labels}} 個標記 · {{validations}} 次檢核",
+    "section-added": "新區段已可使用：{{section}}。"
   }
 }

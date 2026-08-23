@@ -117,6 +117,9 @@
    * it would cost seconds on a cold cache. CrossCityStats.js fills the band, table, map, and trophy, and leaves the
    * whole section hidden if the breakdown can't be computed.
    *@
+  @* Outside the section, because a live region that was display:none at load isn't reliably watched — and this one
+   has to announce the arrival of the very element it would otherwise sit inside. *@
+  <span id="ud-cities-status" class="ud-sr-only" role="status" aria-live="polite"></span>
   <div class="api-section" id="ud-cities-section" hidden>
     <h2 class="api-heading" id="cities">@Messages("dashboard.cities.title") <a href="#cities" class="permalink">#</a></h2>
     <p id="ud-cities-intro"></p>
