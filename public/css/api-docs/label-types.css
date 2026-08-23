@@ -24,14 +24,7 @@
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-  margin: var(--space-lg) 0;
   font-size: var(--font-size-sm);
-}
-
-/* Inside the shared scroller (#4883) the wrapper owns the vertical rhythm, so the table's own margin would
-   just push the scrollbar away from the content. */
-.api-table-wrapper > .label-types-table {
-  margin: 0;
 }
 
 .label-types-table th:not(:last-child),

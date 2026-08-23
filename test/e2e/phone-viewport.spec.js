@@ -9,13 +9,14 @@
  *
  * Coverage is the pages that are already responsive, so today's good state is locked in. As #4875's phases
  * convert the UA-redirected pages (/gallery, /labelMap, landing, …), each conversion PR adds its page here —
- * on a mobile UA those pages currently redirect to /mobileLanding, so listing them today would only re-test it.
+ * on a mobile UA those pages currently redirect to /mobileLanding, so listing them today would only re-test it
+ * (loadAndSettle's stayed-put URL assert catches a covered page joining that redirect set later).
  *
  * Lives apart from explore-validate.spec.js on purpose: that file skips wholesale without a real Google Maps
  * key (absent on fork PRs), and nothing here needs one.
  */
 const {devices} = require('@playwright/test');
-const {test, expect, stubMapbox, waitForAppReady, horizontalOverflowReport, STORAGE_STATE} = require('./fixtures');
+const {test, expect, loadAndSettle, horizontalOverflowReport, STORAGE_STATE} = require('./fixtures');
 
 // devices['iPhone 13'] supplies the mobile UA, touch support and DPR. defaultBrowserType is dropped because the
 // suite's chromium project already fixes the browser, and the viewport is widened to the full 390×844 screen.
@@ -23,19 +24,15 @@ const IPHONE = {...devices['iPhone 13'], viewport: {width: 390, height: 844}};
 delete IPHONE.defaultBrowserType;
 
 /**
- * Loads a page, waits for it to settle, and runs the shared no-errors + no-horizontal-overflow assertions.
+ * Loads a page-table entry and runs the shared no-errors + no-horizontal-overflow assertions.
  *
  * @param {import('@playwright/test').Page} page - The test's page, already configured with the phone viewport.
+ * @param {import('@playwright/test').BrowserContext} context - The page's context.
  * @param {string[]} consoleErrors - The consoleErrors fixture's collector for this page.
- * @param {{path: string, loadingOverlay?: boolean}} p - The page table entry being checked.
+ * @param {object} p - The page table entry being checked (see loadAndSettle for the flags).
  */
-async function checkPhoneViewport(page, consoleErrors, p) {
-  const response = await page.goto(p.path);
-  expect(response.status(), `${p.path} responded ${response.status()}`).toBeLessThan(400);
-  await waitForAppReady(page);
-  if (p.loadingOverlay) await page.locator('#page-loading').waitFor({state: 'hidden'});
-  // Settle window, matching pages.spec.js: late async work (post-ready fetches, image/map callbacks) lands here.
-  await page.waitForTimeout(1000);
+async function checkPhoneViewport(page, context, consoleErrors, p) {
+  await loadAndSettle(page, context, p);
 
   const report = await horizontalOverflowReport(page);
   expect(report.offenders, `${p.path}: ${report.offenderCount} element(s) overflow the ` +
@@ -48,14 +45,16 @@ async function checkPhoneViewport(page, consoleErrors, p) {
 test.describe('phone viewport (390px)', () => {
   test.use(IPHONE);
 
-  // mapbox / loadingOverlay flags as in pages.spec.js. Pages that UA-redirect mobile visitors are deliberately
-  // absent (see the header comment); /labelingGuide serves phones but is not yet responsive, so it joins with
-  // its #4875 phase-2 conversion.
+  // mapbox / makeabilityLab / loadingOverlay flags as in pages.spec.js. Pages that UA-redirect mobile visitors
+  // are deliberately absent (see the header comment); /labelingGuide serves phones but is not yet responsive,
+  // so it joins with its #4875 phase-2 conversion. Caveat: against CI's near-empty seed the data-driven pages
+  // (/leaderboard, /routes, /stories, the rawLabels preview) render empty shells, so content-driven overflow
+  // (a long username, a story title) is only exercised by a local run against a seeded DB.
   const PAGES = [
     {path: '/mobileLanding'},
     {path: '/signIn'},
     {path: '/signUp'},
-    {path: '/about'},
+    {path: '/about', makeabilityLab: true, mapbox: true},
     {path: '/leaderboard'},
     {path: '/routes'},
     {path: '/stories'},
@@ -66,8 +65,7 @@ test.describe('phone viewport (390px)', () => {
 
   for (const p of PAGES) {
     test(`${p.path} fits without horizontal overflow`, async ({page, context, consoleErrors}) => {
-      if (p.mapbox) await stubMapbox(context);
-      await checkPhoneViewport(page, consoleErrors, p);
+      await checkPhoneViewport(page, context, consoleErrors, p);
     });
   }
 });
@@ -76,9 +74,6 @@ test.describe('phone viewport (390px), registered user', () => {
   test.use({...IPHONE, storageState: STORAGE_STATE});
 
   test('/dashboard fits without horizontal overflow', async ({page, context, consoleErrors}) => {
-    await stubMapbox(context); // The contribution choropleth is a Mapbox map.
-    await checkPhoneViewport(page, consoleErrors, {path: '/dashboard'});
-    // A bounced anonymous/expired session would land on /signIn with a clean console — assert we stayed put.
-    expect(page.url()).toContain('/dashboard');
+    await checkPhoneViewport(page, context, consoleErrors, {path: '/dashboard', mapbox: true});
   });
 });

@@ -253,6 +253,12 @@ a:hover {
   box-shadow: var(--box-shadow-sm);
 }
 
+/* Inside the scroller the wrapper owns the vertical rhythm; a table margin would just push the scrollbar
+   away from the content. */
+.api-table-wrapper > table {
+  margin: 0;
+}
+
 .api-table {
   width: 100%;
   border-collapse: collapse;
@@ -345,12 +351,15 @@ pre > code.language-csv {
   white-space: nowrap;
 }
 
-/* On a phone-width viewport a long inline code token (an endpoint URL) has nowhere to go but past the screen
-   edge, so wrapping must win over the nowrap look; wider viewports keep code tokens on one line (#4883). */
-@media (width <= 600px) {
+/* On a single-column viewport (var(--breakpoint-sm)) a long inline code token (an endpoint URL) has nowhere
+   to go but past the screen edge, so wrapping must win over the nowrap look; wider viewports keep code tokens
+   on one line (#4883). break-word rather than anywhere: anywhere feeds its break points into min-content
+   sizing, letting code-bearing table columns squash below token width instead of engaging the
+   .api-table-wrapper scroller. */
+@media (width <= 768px) {
   :not(pre) > code {
     white-space: normal;
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
   }
 }
 
