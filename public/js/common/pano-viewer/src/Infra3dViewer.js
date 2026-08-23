@@ -265,6 +265,9 @@ class Infra3dViewer extends PanoViewer {
     const verticalAzimuth = (verticalOrientation + currentView.lat) % 360;
 
     // Convert from vertical fov to horizontal fov, then convert to a zoom level that you'd see in GSV.
+    // Unlike Mapillary this reads the DOM on a hot path (getPov runs on every pov_changed): Infra3D's SDK has no
+    // render camera to cache an aspect from. The read lands in the same layout batch as PanoMarker.draw()'s own
+    // container measurement, so it forces no extra reflow; if that changes, cache it and refresh on resize.
     const horizontalFov = util.pano.vFovToHFov(currentView.fov, this._viewportAspect());
     const zoom = util.pano.fovToZoom(horizontalFov);
 

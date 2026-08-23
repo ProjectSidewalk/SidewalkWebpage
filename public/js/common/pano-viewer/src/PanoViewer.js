@@ -99,7 +99,12 @@ class PanoViewer {
    * `display: none` — e.g. the label-detail popup pano while hidden), which keeps the conversion stable until a
    * real measurement exists.
    *
+   * Measures the mount container, which every call site can treat as the render canvas because they all pass
+   * `disableDefaultUi: true`. A viewer showing in-container chrome (Infra3D's topbar/toolbar/cockpit) renders
+   * into a shorter canvas than this, and would need to measure `canvasElem.querySelector('.' + canvasClass)`.
+   *
    * @returns {number} The viewport aspect ratio, or util.EXPLORE_CANVAS_ASPECT_RATIO if it can't be measured.
+   * @protected
    */
   _viewportAspect() {
     const rect = this.canvasElem?.getBoundingClientRect();

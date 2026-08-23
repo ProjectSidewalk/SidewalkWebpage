@@ -42,6 +42,11 @@ util.pano.sgn = (x) => (x >= 0 ? 1 : -1);
  * exponential. In practice, the produced values are good enough to result in stable marker positioning, even
  * for intermediate zoom values.
  *
+ * The curve is in *horizontal* fov, which is the fov the projection helpers below feed into
+ * `f = (canvasWidth / 2) / tan(fov / 2)`. GSV's own pov.zoom rides this same horizontal curve and Pannellum
+ * speaks horizontal fov directly, so neither viewer needs an aspect correction; Mapillary and Infra3D express
+ * their camera in *vertical* fov, so they bridge through vFovToHFov()/hFovToVFov() (#4852).
+ *
  * @param {number} zoom The zoom level according to GSV
  * @return {number} The (horizontal) field of view angle for the given zoom
  */
@@ -84,8 +89,14 @@ util.pano.hFovToVFov = (horizontalFov, aspect) => {
  *
  * TODO Maybe we should decide on our own zoom levels rather than using Google's.
  *
+ * The result is deliberately not clamped to the 0–5 range zoomToFov()'s table covers. Its linear branch crosses
+ * zero at 126.5°, so a viewport wide enough to render a wider horizontal field than that — aspect > ~1.98 at
+ * Mapillary's widest, i.e. a phone in landscape — yields a negative zoom. That is the honest encoding of what is
+ * on screen: it round-trips through zoomToFov(), so the marker projection and the zoom we persist alongside it
+ * (label_validation.zoom, the v3 API) agree with each other, which a clamp would break (#4852).
+ *
  * @param {number} fov - The field of view angle in degrees.
- * @returns {number} The corresponding zoom level.
+ * @returns {number} The corresponding zoom level; negative on viewports wider than ~2:1.
  */
 util.pano.fovToZoom = (fov) => {
   // The transition point is at zoom = 2, where fov = 126.5 - 2 * 36.75 = 53

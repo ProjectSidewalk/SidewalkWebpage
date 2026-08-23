@@ -3,6 +3,13 @@
  * Docs: https://mapillary.github.io/mapillary-js/api/classes/viewer.Viewer
  */
 class MapillaryViewer extends PanoViewer {
+  // The vertical fov Mapillary can actually render a spherical image at: it renders fov = 2·atan(2^−zoom) and
+  // clamps zoom to [0, 3], giving [14.25°, 90°]. Requests outside that are silently clamped by the SDK (#4852).
+  // Plain Math rather than util.math.toDegrees: these evaluate at bundle load, and util ships in a separate
+  // bundle with no guaranteed ordering against this one.
+  static #MIN_VERTICAL_FOV = 2 * Math.atan(1 / 8) * 180 / Math.PI;
+  static #MAX_VERTICAL_FOV = 90;
+
   constructor() {
     super();
     this.viewer = undefined;
@@ -562,11 +569,12 @@ class MapillaryViewer extends PanoViewer {
     const horizontalFov = util.pano.zoomToFov(pov.zoom);
     const verticalFov = util.pano.hFovToVFov(horizontalFov, this.currAspect || this._viewportAspect());
     // NOTE despite not returning a Promise, setFieldOfView() happens async, so we save it in this.currVerticalFov.
-    // Mapillary clamps the fov it accepts to [0, 90]°, so mirror that clamp in the cache — on a narrow (portrait)
-    // viewport a wide zoom converts to a vertical fov beyond 90°, and caching the unclamped request would make
-    // getPov() report a zoom the viewer isn't actually showing (#4852).
+    // Mirror the SDK's own clamp into that cache, or getPov() reports a zoom the viewer isn't showing: a portrait
+    // viewport asks for more than 90° at wide zooms, a landscape one for less than 14.25° at zoom 3. It only has
+    // to bridge one frame — the renderCamera$ subscription replaces it with the rendered fov on the next tick.
     this.viewer.setFieldOfView(verticalFov);
-    this.currVerticalFov = Math.min(90, Math.max(0, verticalFov));
+    this.currVerticalFov = Math.min(MapillaryViewer.#MAX_VERTICAL_FOV,
+      Math.max(MapillaryViewer.#MIN_VERTICAL_FOV, verticalFov));
   };
 
   hideNavigationArrows = () => {
