@@ -5,7 +5,8 @@
  * no uncaught/console errors — the standard smoke assertion — and (b) show no horizontal overflow: no element's
  * border box past the right edge of the viewport (except inside a horizontal scroller — see
  * horizontalOverflowReport in fixtures.js for why layout is measured instead of scrollbars) and no page-level
- * scrollWidth beyond the viewport.
+ * scrollWidth beyond the viewport. The community pages repeat both checks at 320px, the narrowest phone width we
+ * serve (Galaxy Fold cover display, older SE class), where their card grid's own minimum is what has to give.
  *
  * Coverage is the pages that are already responsive, so today's good state is locked in. As #4875's phases
  * convert the UA-redirected pages (/gallery, /labelMap, landing, …), each conversion PR adds its page here —
@@ -64,6 +65,19 @@ test.describe('phone viewport (390px)', () => {
   ];
 
   for (const p of PAGES) {
+    test(`${p.path} fits without horizontal overflow`, async ({page, context, consoleErrors}) => {
+      await checkPhoneViewport(page, context, consoleErrors, p);
+    });
+  }
+});
+
+// The card grid's minimum only binds below ~368px, so the 390px block above cannot see it (#4691). Same seed
+// caveat as there, and it bites harder: with no stories or routes in CI's DB these load the empty shell, which
+// fits at any width — the cards are exercised by a local run against a seeded DB.
+test.describe('narrow phone viewport (320px)', () => {
+  test.use({...IPHONE, viewport: {width: 320, height: 653}});
+
+  for (const p of [{path: '/routes'}, {path: '/stories'}]) {
     test(`${p.path} fits without horizontal overflow`, async ({page, context, consoleErrors}) => {
       await checkPhoneViewport(page, context, consoleErrors, p);
     });
