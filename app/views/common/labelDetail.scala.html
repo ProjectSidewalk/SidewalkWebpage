@@ -10,9 +10,9 @@
 <header class="label-detail__header">
   <div class="label-detail__title-wrap">
     <h2 class="label-detail__title"><!-- populated by JS --></h2>
-    @* Own-label chip (#2575). The glyph is images/icons/user-feather.svg inlined so it takes the chip's color. *@
+    @* Own-label chip (#2575); LabelDetail sets its aria-label and tooltip. *@
     <span class="label-detail__own-badge" role="img" hidden>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <img src="@assets.path("images/icons/user-feather.svg")" alt="" aria-hidden="true">
     </span>
   </div>
   <button type="button" class="label-detail__close" aria-label="Close" data-action="close-label-detail">

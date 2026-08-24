@@ -110,10 +110,9 @@ dialog.label-detail[open]::backdrop {
   border-radius: 50%;
   background: var(--color-pine-100);
   border: 1px solid var(--color-pine-500);
-  color: var(--color-pine-800);
 }
 
-.label-detail__own-badge svg {
+.label-detail__own-badge img {
   width: 14px;
   height: 14px;
 }
