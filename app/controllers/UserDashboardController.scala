@@ -3,11 +3,12 @@ package controllers
 import controllers.base.{CustomBaseController, CustomControllerComponents}
 import controllers.helper.ControllerUtils
 import controllers.helper.ControllerUtils.MeasurementSystem
+import formats.json.UserFormats.{settingsSubmissionReads, SettingsSubmission}
 import models.auth.{DefaultEnv, WithAdmin, WithSignedIn}
 import models.user.SidewalkUserWithRole
 import play.api.Configuration
 import play.api.i18n.Messages
-import play.api.libs.json.Json
+import play.api.libs.json.{JsError, JsSuccess, Json}
 import play.api.mvc.{AnyContent, Result}
 import play.silhouette.api.actions.SecuredRequest
 import service.{AdminService, ConfigService, GlobalLeaderboardEntry, UserService}
@@ -57,7 +58,7 @@ class UserDashboardController @Inject() (
   /**
    * The admin's view of another user's dashboard (`/admin/user/:username`): the same page the user sees, with the
    * admin-mode affordances the view gates on `adminView` (admin label popup, read-only mistake/route controls, the
-   * user's stories editable for moderation) and an "Admin" page beside it in the sidebar (`adminUser`).
+   * user's stories editable for moderation) and a "Manage user" page beside it in the sidebar (`adminUser`).
    *
    * @param username The user whose dashboard to show; 404 if no such account.
    */
@@ -205,60 +206,67 @@ class UserDashboardController @Inject() (
 
   /**
    * Persists the Settings form in one save: an optional username change (validated) plus the two privacy flags, the
-   * measurement-units choice, and the user's team. `teamId` is a positive id to join/switch or absent/non-positive to
-   * leave any current team. A username that fails validation (length, allowed characters, profanity, or already taken)
-   * aborts the whole save with a 400 and a user-facing message, so nothing is partially applied.
+   * measurement-units choice, and the user's team. The body is a `SettingsSubmission` (a missing privacy flag is a
+   * 400, never a reset); `teamId` is a positive id to join/switch or null/non-positive to leave any current team. A
+   * username that fails validation (length, allowed characters, profanity, or already taken) refuses the whole save
+   * with a 400 and a user-facing message before anything is written; the rename itself is the last write.
    *
    * Units are the one setting that isn't a database write: like the language choice it lives in a cookie, so a
    * submitted change either sets the override or discards it to fall back to the site language (#4404).
    */
   def saveSettings = cc.securityService.SecuredAction(WithSignedIn(), parse.json) { implicit request =>
-    val user             = request.identity
-    val onLeaderboard    = (request.body \ "onLeaderboard").asOpt[Boolean].getOrElse(true)
-    val publicProfile    = (request.body \ "publicProfile").asOpt[Boolean].getOrElse(true)
-    val teamId           = (request.body \ "teamId").asOpt[Int].filter(_ > 0)
-    val usernameEdit     = (request.body \ "username").asOpt[String].map(_.trim).filter(_.nonEmpty)
-    val communityService = (request.body \ "communityService").asOpt[Boolean]
-    val unitsWere        = request.cookies
-      .get(MeasurementSystem.CookieName)
-      .map(_.value)
-      .filter(MeasurementSystem.validOverrides.contains)
-      .getOrElse(MeasurementSystem.FollowLanguage)
-    // Absent field means "this caller isn't touching units", which has to stay distinct from an explicit "auto" —
-    // otherwise any save that omits it silently wipes the reader's stored choice.
-    val unitsSubmitted = (request.body \ "measurementSystem")
-      .asOpt[String]
-      .filter(system => MeasurementSystem.validOverrides(system) || system == MeasurementSystem.FollowLanguage)
-    val unitsNow = unitsSubmitted.getOrElse(unitsWere)
+    val user                    = request.identity
+    def reject(message: String) = Future.successful(BadRequest(Json.obj("success" -> false, "error" -> message)))
 
-    // Only a username change can be rejected, so resolve it first and touch nothing else unless it succeeds.
-    val usernameResult: Future[Either[String, Unit]] = usernameEdit match {
-      case Some(name) if name != user.username => userService.changeUsername(user.userId, name).map(_.map(_ => ()))
-      case _                                   => Future.successful(Right(()))
-    }
-    usernameResult.flatMap {
-      // The service returns an i18n key; localize it for the viewer here at the HTTP boundary.
-      case Left(errorKey) => Future.successful(BadRequest(Json.obj("success" -> false, "error" -> Messages(errorKey))))
-      case Right(_)       =>
-        for {
-          _ <- userService.updatePrivacySettings(user.userId, onLeaderboard, publicProfile)
-          _ <- teamId.map(id => userService.setUserTeam(user.userId, id)).getOrElse(userService.leaveTeam(user.userId))
-          _ <- communityService
-            .map(cs => authenticationService.setCommunityServiceStatus(user.userId, cs))
-            .getOrElse(Future.successful(0))
-        } yield {
-          cc.loggingService.insert(user.userId, request.ipAddress, "Click_module=SaveSettings")
-          // Logged separately from the save, and only on a real change, so units can be analyzed the way the navbar's
-          // ChangeLanguage already is rather than being buried in every settings save.
-          if (unitsNow != unitsWere) {
-            cc.loggingService
-              .insert(user.userId, request.ipAddress, s"Click_module=ChangeUnits_from=${unitsWere}_to=$unitsNow")
-          }
-          val result = Ok(Json.obj("success" -> true))
-          if (unitsNow == unitsWere) result
-          else if (MeasurementSystem.validOverrides(unitsNow))
-            result.withCookies(MeasurementSystem.overrideCookie(unitsNow))
-          else result.discardingCookies(MeasurementSystem.clearOverrideCookie)
+    request.body.validate[SettingsSubmission] match {
+      case JsError(errors) => reject(s"Invalid settings: ${JsError.toJson(errors).keys.mkString(", ")}")
+      case JsSuccess(s, _) =>
+        val teamId       = s.teamId.filter(_ > 0)
+        val usernameEdit = s.username.filter(_ != user.username)
+        val unitsWere    = request.cookies
+          .get(MeasurementSystem.CookieName)
+          .map(_.value)
+          .filter(MeasurementSystem.validOverrides.contains)
+          .getOrElse(MeasurementSystem.FollowLanguage)
+        // Absent field means "this caller isn't touching units", which has to stay distinct from an explicit "auto" —
+        // otherwise any save that omits it silently wipes the reader's stored choice.
+        val unitsSubmitted = s.measurementSystem
+          .filter(system => MeasurementSystem.validOverrides(system) || system == MeasurementSystem.FollowLanguage)
+        val unitsNow = unitsSubmitted.getOrElse(unitsWere)
+
+        // Only the username can be refused, so it's checked before the first write and renamed after the last one.
+        val usernameCheck: Future[Either[String, Unit]] = usernameEdit
+          .map(name => userService.validateUsername(user.userId, name).map(_.map(_ => ())))
+          .getOrElse(Future.successful(Right(())))
+        usernameCheck.flatMap {
+          // The service returns an i18n key; localize it for the viewer here at the HTTP boundary.
+          case Left(errorKey) => reject(Messages(errorKey))
+          case Right(_)       =>
+            for {
+              _ <- userService.updatePrivacySettings(user.userId, s.onLeaderboard, s.publicProfile)
+              _ <- teamId
+                .map(id => userService.setUserTeam(user.userId, id))
+                .getOrElse(userService.leaveTeam(user.userId))
+              _ <- s.communityService
+                .map(cs => authenticationService.setCommunityServiceStatus(user.userId, cs))
+                .getOrElse(Future.successful(0))
+              _ <- usernameEdit
+                .map(name => userService.changeUsername(user.userId, name))
+                .getOrElse(Future.successful(Right(user.username)))
+            } yield {
+              cc.loggingService.insert(user.userId, request.ipAddress, "Click_module=SaveSettings")
+              // Logged separately from the save, and only on a real change, so units can be analyzed the way the
+              // navbar's ChangeLanguage already is rather than being buried in every settings save.
+              if (unitsNow != unitsWere) {
+                cc.loggingService
+                  .insert(user.userId, request.ipAddress, s"Click_module=ChangeUnits_from=${unitsWere}_to=$unitsNow")
+              }
+              val result = Ok(Json.obj("success" -> true))
+              if (unitsNow == unitsWere) result
+              else if (MeasurementSystem.validOverrides(unitsNow))
+                result.withCookies(MeasurementSystem.overrideCookie(unitsNow))
+              else result.discardingCookies(MeasurementSystem.clearOverrideCookie)
+            }
         }
     }
   }
