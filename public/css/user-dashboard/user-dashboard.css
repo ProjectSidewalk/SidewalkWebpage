@@ -1127,6 +1127,24 @@
   text-decoration: none;
 }
 
+/* Inert controls on an admin's view of someone else's dashboard (route/team actions, an Owner's settings). */
+.ud-btn-secondary:disabled,
+.ud-btn-secondary:disabled:hover {
+  background: var(--color-neutral-100, #f2f5f6);
+  border-color: var(--color-neutral-200, #dfe5e8);
+  color: var(--color-text-secondary, #5a7785);
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.ud-btn-primary:disabled,
+.ud-btn-primary:disabled:hover {
+  background: var(--color-neutral-200, #dfe5e8);
+  color: var(--color-text-secondary, #5a7785);
+  opacity: 0.8;
+  cursor: not-allowed;
+}
+
 /* "Create a team" sits below the teams table / empty-state banner, so give it breathing room. */
 .ud-btn-primary.ud-create-team-btn { margin-top: var(--space-md, 16px); }
 
