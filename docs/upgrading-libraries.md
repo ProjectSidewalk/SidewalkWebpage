@@ -136,8 +136,6 @@ matching it.
 - **bootstrap-accessibility-plugin** (bundles Bootstrap 3.1.1 + jQuery 1.12.2) — accessibility patches for our
   Bootstrap 3 UI; lives in `public/vendor/bootstrap-accessibility/` (with the bundled Bootstrap 3.1.1 JS and jQuery
   1.12.2 split out into `public/vendor/bootstrap/` and `public/vendor/jquery/`). Tied to the Bootstrap-removal effort.
-- **bootstrap-slider: 7.1.1** — slider UI control; in `public/vendor/bootstrap-slider/`.
-  [Changelog](https://github.com/seiyria/bootstrap-slider/releases)
 - **bowser: 2.14.1** — browser detection.
   [Versions](https://www.npmjs.com/package/bowser?activeTab=versions) ·
   [Changelog](https://github.com/bowser-js/bowser/releases)

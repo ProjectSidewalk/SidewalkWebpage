@@ -45,11 +45,6 @@
   margin-top: 24px;
 }
 
-/* Spacer that fills the single-label admin page to a natural height at the default zoom. */
-.label-page-spacer {
-  height: 237px;
-}
-
 .table-fixed thead {
   width: 97%;
 }

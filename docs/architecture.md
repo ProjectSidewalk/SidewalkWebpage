@@ -141,10 +141,10 @@ corresponding Twirl view:
 - **`explore/`** — the Explore/Audit tool (label accessibility issues on street-view panoramas). The largest app.
 - **`validate/`** — the Validate tool (confirm/reject others' labels).
 - **`gallery/`** — browsable, filterable gallery of labels.
-- **`admin/`** — the legacy admin page's maps and dashboards. The redesigned admin dashboard (#4272) lives beside it
-  in **`admin-dashboard/`**, which is served file-by-file rather than bundled: one `<PageName>Page.js` per route,
-  loaded by that page's Twirl template. `AdminShell.js` loads on every one of those pages and holds the shared
-  formatting helpers (escaping, numbers, durations, relative times, the standard table markup).
+- **`admin-dashboard/`** — the admin dashboard (#4272), served file-by-file rather than bundled: one
+  `<PageName>Page.js` per route, loaded by that page's Twirl template. `AdminShell.js` loads on every one of those
+  pages and holds the shared formatting helpers (escaping, numbers, durations, relative times, the standard table
+  markup).
 - **`user-dashboard/`** — the redesigned user dashboard, settings, leaderboard, and public profiles, plus the admin's view of a user's dashboard (`/admin/user/:username`). Served file-by-file like `admin-dashboard/` — no Grunt bundle.
 - **`ps-map/`** — shared map component used across pages.
 - **`help/`** — help/FAQ page.

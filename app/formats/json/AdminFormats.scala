@@ -1,6 +1,6 @@
 package formats.json
 
-import models.audit.{AuditedStreetWithTimestamp, ContributionTimeStat, GenericComment, InteractionWithLabel}
+import models.audit.{AuditedStreetWithTimestamp, ContributionTimeStat, GenericComment}
 import models.label.LabelCount
 import models.user.UserCount
 import models.utils.MyPostgresProfile.api._
@@ -128,43 +128,5 @@ object AdminFormats {
         "task_end"          -> street.taskEnd
       )
     )
-  }
-  def auditTaskInteractionsToGeoJSON(interactions: Seq[InteractionWithLabel]): JsObject = {
-    val features: Seq[JsObject] = interactions.filter(_.lat.isDefined).sortBy(_.timestamp).map { interaction =>
-      val geom = Json.obj(
-        "type"        -> "Point",
-        "coordinates" -> Json.arr(interaction.lng.get, interaction.lat.get)
-      )
-      val properties = if (interaction.labelType.isEmpty) {
-        Json.obj(
-          "panoId"    -> interaction.panoId,
-          "heading"   -> interaction.heading.get,
-          "pitch"     -> interaction.pitch,
-          "zoom"      -> interaction.zoom,
-          "timestamp" -> interaction.timestamp,
-          "action"    -> interaction.action,
-          "note"      -> interaction.note
-        )
-      } else {
-        Json.obj(
-          "panoId"    -> interaction.panoId,
-          "heading"   -> interaction.heading.get,
-          "pitch"     -> interaction.pitch,
-          "zoom"      -> interaction.zoom,
-          "timestamp" -> interaction.timestamp,
-          "action"    -> interaction.action,
-          "note"      -> interaction.note,
-          "label"     -> Json.obj(
-            "label_id"    -> interaction.labelId,
-            "label_type"  -> interaction.labelType,
-            "coordinates" -> Seq(interaction.labelLng, interaction.labelLat),
-            "canvasX"     -> interaction.canvasX,
-            "canvasY"     -> interaction.canvasY
-          )
-        )
-      }
-      Json.obj("type" -> "Feature", "geometry" -> geom, "properties" -> properties)
-    }
-    Json.obj("type" -> "FeatureCollection", "features" -> features)
   }
 }

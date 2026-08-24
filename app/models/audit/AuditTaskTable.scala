@@ -225,13 +225,6 @@ class AuditTaskTable @Inject() (
   /**
    * Find a task.
    */
-  def find(auditTaskId: Int): DBIO[Option[AuditTask]] = {
-    auditTasks.filter(_.auditTaskId === auditTaskId).result.headOption
-  }
-
-  /**
-   * Find a task.
-   */
   def find(userId: String, streetEdgeId: Int): DBIO[Option[AuditTask]] = {
     auditTasks.filter(a => a.userId === userId && a.streetEdgeId === streetEdgeId).result.headOption
   }

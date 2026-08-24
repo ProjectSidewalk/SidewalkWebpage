@@ -22,29 +22,6 @@ module.exports = function (grunt) {
         ],
         dest: 'public/js/explore/build/explore.js'
       },
-      dist_admin: {
-        src: [
-          // Shared deep-link query rules; every reader/writer of the URL's filter params depends on it.
-          'public/js/common/urlQuery.js',
-          'public/js/common/aiLabelIndicator.js',
-          // Toast must be concatenated before BadgeAchievements, which LabelDetail uses for validation badges.
-          'public/js/common/Toast.js',
-          'public/js/common/BadgeAchievements.js',
-          'public/js/admin/src/*.js',
-          // PopupPanoManager and LabelDetail must be concatenated before LabelPopup.
-          'public/js/common/label-detail/PopupPanoManager.js',
-          'public/js/common/ConfirmDialog.js',
-          'public/js/common/label-detail/StoryComposer.js',
-          'public/js/common/label-detail/StorySection.js',
-          'public/js/common/label-detail/LabelDetail.js',
-          'public/js/common/share/ShareWidget.js',
-          'public/js/common/label-detail/LabelPopup.js',
-          'public/js/common/utilitiesSidewalk.js',
-          'public/js/common/PanoMarker.js',
-          'public/js/common/LabelVisibilityToggle.js',
-        ],
-        dest: 'public/js/admin/build/admin.js'
-      },
       dist_help: {
         src: [
           'public/js/help/src/*.js'
@@ -216,7 +193,6 @@ module.exports = function (grunt) {
           'public/js/explore/src/*.js',
           'public/js/explore/src/**/*.js',
           'public/css/explore/*.css',
-          'public/js/admin/src/**/*.js',
           'public/js/help/src/*.js',
           'public/js/validate/src/*.js',
           'public/js/validate/src/**/*.js',
@@ -247,5 +223,5 @@ module.exports = function (grunt) {
 
   // 4. Where we tell Grunt what to do when we type "grunt" into the terminal.
   grunt.registerTask('default', ['concat', 'concat_css']);
-  grunt.registerTask('dist', ['concat:dist_audit', 'concat:dist_admin', 'concat:dist_validate', 'concat:dist_gallery']);
+  grunt.registerTask('dist', ['concat:dist_audit', 'concat:dist_validate', 'concat:dist_gallery']);
 };
