@@ -146,8 +146,6 @@ matching it.
 - **d3: 3.5.6** — **note:** we're several major versions behind; it's a big library and the upgrade hasn't been
   prioritized. [Versions](https://www.npmjs.com/package/d3?activeTab=versions) ·
   [Changelog](https://github.com/d3/d3/releases)
-- **dataTables.bootstrap / jquery.dataTables** — **TODO:** clarify these and their relationship to jQuery/Bootstrap.
-  Tied to the jQuery/Bootstrap removal effort.
 - **floating-ui: 1.7.6 (`@floating-ui/dom`), 1.7.5 (`@floating-ui/core`)** — **note:** start from the newest `dom`
   version, then pick a `core` version that satisfies its dependency.
   [Changelog](https://github.com/floating-ui/floating-ui/releases) ·
@@ -202,7 +200,7 @@ matching it.
   [Changelog](https://github.com/Turfjs/turf/releases)
 - **jquery.magnific-popup** — **TODO:** unclear status; resolve the jQuery situation first. Tied to jQuery removal.
 
-> **jQuery / Bootstrap removal:** several entries above (Bootstrap, dataTables, magnific-popup, selectize) are part of
+> **jQuery / Bootstrap removal:** several entries above (Bootstrap, magnific-popup, selectize) are part of
 > a slow, deliberate transition *off* jQuery and Bootstrap toward native JS/CSS. Prefer native alternatives in new
 > code rather than leaning further on these. See the coding guidance in [`CONTRIBUTING.md`](../CONTRIBUTING.md).
 
