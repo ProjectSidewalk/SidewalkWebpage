@@ -1,8 +1,7 @@
 # --- !Ups
--- Register the label detail card's remaining host pages as ui_source values, kept in sync with the UiSource Scala
--- enum in CommonUtils.scala. A vote or edit whose source isn't a member fails UiSource.withName and is dropped with a
--- 400, which the votes from these pages were. Adding a value inside a transaction is fine on PG 12+ as long as the
--- same transaction doesn't use it, and this evolution doesn't. Enum types need no OWNER TO (339.sql precedent).
+-- The label detail card's remaining host pages, mirrored in the UiSource enum in CommonUtils.scala -- a source that
+-- isn't a member fails UiSource.withName with a 400. Adding a value in a transaction is fine as long as the
+-- transaction doesn't use it (339.sql precedent).
 ALTER TYPE ui_source ADD VALUE IF NOT EXISTS 'GalleryExpanded';
 ALTER TYPE ui_source ADD VALUE IF NOT EXISTS 'AdminLabelMap';
 ALTER TYPE ui_source ADD VALUE IF NOT EXISTS 'AdminActivity';
@@ -96,8 +95,7 @@ ALTER TABLE label_validation
   DROP COLUMN new_tags;
 
 # --- !Downs
--- The ui_source values are intentionally not reverted: Postgres can't drop an enum value without rebuilding the type
--- and recasting every column using it, and an unused extra value is harmless (331/339 precedent).
+-- The ui_source values stay: Postgres can't drop an enum value without rebuilding the type (331/339 precedent).
 ALTER TABLE label_validation
   ADD COLUMN old_severity INTEGER,
   ADD COLUMN new_severity INTEGER,

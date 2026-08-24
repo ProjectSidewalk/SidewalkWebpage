@@ -344,7 +344,7 @@ class Card {
       cardSeverity.replaceChildren();
       new SeverityDisplay(cardSeverity, severity, this.getLabelType());
     }
-    // TagDisplay leaves an empty list untouched, so an edit down to no tags has to clear the old ones itself.
+    // TagDisplay leaves an empty list untouched; clear the old tags here.
     this.#card.querySelector('.card-tags').innerHTML = `<div class="label-tags-header"></div>`;
     this.#renderTags();
   }

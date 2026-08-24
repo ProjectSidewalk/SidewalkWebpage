@@ -3,8 +3,7 @@
 --
 -- Tables with a FK to label_validation:
 --   label_edit              (label_validation_id nullable; the edit submitted with the validation, if it changed
---                            severity/tags; its label_history row hangs off label_edit.label_edit_id, and the edits
---                            after it in the label's chain start from its new state)
+--                            severity/tags; its label_history row hangs off label_edit.label_edit_id)
 --   label_ai_assessment     (label_validation_id nullable)
 --
 -- Other tables touched by this script (no FK to label_validation, but logically tied):
@@ -76,8 +75,7 @@ SET label_validation_id = NULL
 WHERE label_validation_id IN (SELECT label_validation_id FROM validations_to_remove);
 
 -- ---------------------------------------------------------------------
--- 4. Delete the edits these validations were submitted with, and the label_history rows recording them. Step 7
---    then repairs the affected labels' edit chains, as LabelEditService.revertEdit does for a single undo.
+-- 4. Delete the edits these validations were submitted with and their label_history rows. Step 7 repairs the chains.
 -- ---------------------------------------------------------------------
 CREATE TEMP TABLE edits_to_remove (label_edit_id INT PRIMARY KEY, label_id INT NOT NULL) ON COMMIT DROP;
 INSERT INTO edits_to_remove (label_edit_id, label_id)
@@ -107,10 +105,9 @@ DELETE FROM label_validation
 WHERE label_validation_id IN (SELECT label_validation_id FROM validations_to_remove);
 
 -- ---------------------------------------------------------------------
--- 7. Repair the affected labels' edit chains. Each surviving edit's old state must be the state the label_history
---    row before it recorded (its creation row, or the previous edit). An edit that now changes nothing is removed
---    with its history row -- its new state equals that old state, so the edits after it are unaffected -- and each
---    label is set to the state its latest surviving history row records.
+-- 7. Repair the affected labels' edit chains, as LabelEditService.revertEdit does for one undo: each surviving edit
+--    starts from the label_history row before it, an edit that now changes nothing is removed with its history row,
+--    and the label takes the state of its latest surviving history row.
 -- ---------------------------------------------------------------------
 CREATE TEMP TABLE rebased_edits ON COMMIT DROP AS
 SELECT label_edit.label_edit_id,

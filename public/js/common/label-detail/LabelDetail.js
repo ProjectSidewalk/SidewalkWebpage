@@ -95,7 +95,7 @@ class LabelDetail {
   #canEdit = false;         // Set per-label in #handleData() from meta.can_edit (#2575).
   #tagEditor;
   #editStatusTimer;
-  #editQueue = Promise.resolve(); // Saves run one at a time, in click order, so the last response is the one shown.
+  #editQueue = Promise.resolve(); // Saves run in click order, so the last response is the one shown.
   #noImagery = false;  // Set per-label once setPano() resolves; true when no navigable imagery could be loaded.
   #panoLoading = false;     // True from #handleData() until this label's setPano() resolves. See #interactionBlocked.
   #validationCounts = { Agree: null, Disagree: null, Unsure: null };
@@ -1357,8 +1357,7 @@ class LabelDetail {
   }
 
   /**
-   * Queues a change to the current label's severity and/or tags for saving. Queuing keeps two quick clicks from
-   * racing each other's responses; each save starts from the state the one before it left.
+   * Queues a change for saving; serializing keeps two quick clicks from racing each other's responses.
    * @param {{severity?: ?number, tags?: string[]}} change - The fields to change; an omitted one keeps its value.
    * @returns {Promise<void>}
    */
@@ -1380,7 +1379,7 @@ class LabelDetail {
     const tags = change.tags ?? meta.tags ?? [];
     const prev = { severity: meta.severity ?? null, tags: meta.tags ?? [] };
     const sameTags = tags.length === prev.tags.length && tags.every((t) => prev.tags.includes(t));
-    // While the tag editor is open its pills are the tag display; redrawing the read-only list would wipe the picks.
+    // The tag editor's pills are the tag display while it's open; redrawing would wipe the picks.
     const render = () => {
       this.#renderSeverity(meta.severity, meta.label_type);
       if (!this.#tagEditor.isOpen) this.#renderTags(meta.tags);

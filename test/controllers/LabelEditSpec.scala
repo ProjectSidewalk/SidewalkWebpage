@@ -103,10 +103,7 @@ class LabelEditSpec extends PlaySpec with BeforeAndAfterAll with SubmissionSpecH
   private def editBody(labelId: Int, severity: Option[Int], tags: Seq[String], source: String = "LabelMap"): JsObject =
     Json.obj("label_id" -> labelId, "severity" -> severity, "tags" -> tags, "source" -> source)
 
-  /**
-   * The source each host passes to `showLabel()` in `public/js` (the second argument, or `uiSource` for the ps-map
-   * hosts). An edit is submitted with that string, so every one has to be a `UiSource` member.
-   */
+  /** Every source string a host passes to `showLabel()` in `public/js`; each has to be a `UiSource` member. */
   private val cardHostSources = Seq(
     "LabelMap", "UserMap", "SharedLabel", "LabelSearchPage", "GalleryExpanded", "AdminLabelMap", "AdminActivity",
     "AdminStories", "DashboardStories", "StoryListPage", "UserDashboard"
