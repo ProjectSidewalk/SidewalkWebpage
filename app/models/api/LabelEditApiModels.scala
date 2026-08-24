@@ -17,7 +17,7 @@ import java.time.OffsetDateTime
  * @param userId         Only edits made by this user
  * @param labelTypeId    Only edits to labels of this type
  * @param editTimestamp  Only edits made at or after this time
- * @param source         Only edits made in this interface (UiSource), e.g. Validate, LabelMap, GalleryExpandedImage
+ * @param source         Only edits made in this interface (UiSource), e.g. Validate, LabelMap, GalleryExpanded
  * @param withValidation True for only edits submitted with a validation, false for only standalone edits
  */
 case class LabelEditFiltersForApi(

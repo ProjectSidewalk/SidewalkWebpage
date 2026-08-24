@@ -30,7 +30,7 @@ class LabelEditApiController @Inject() (
    * @param userId         Only edits made by this user
    * @param labelTypeId    Only edits to labels of this type
    * @param editTimestamp  Only edits made at or after this ISO 8601 timestamp
-   * @param source         Only edits made in this interface (e.g. "Validate", "LabelMap", "GalleryExpandedImage")
+   * @param source         Only edits made in this interface (e.g. "Validate", "LabelMap", "GalleryExpanded")
    * @param withValidation true for only edits submitted with a validation, false for only standalone edits
    * @param filetype       Output format: "json" (default), "csv"
    * @param inline         Whether to display the file inline or as an attachment
@@ -58,7 +58,7 @@ class LabelEditApiController @Inject() (
             Left(
               ApiError.invalidParameter(
                 s"Invalid source value '$s'. Must be one of the interface names, e.g. Validate, LabelMap, " +
-                  "GalleryExpandedImage.",
+                  "GalleryExpanded.",
                 "source"
               )
             )

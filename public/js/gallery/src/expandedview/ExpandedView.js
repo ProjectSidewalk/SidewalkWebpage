@@ -104,7 +104,7 @@ class ExpandedView {
     if (this.leftArrow) this.leftArrow.disabled = true;
     this.leftArrowDisabled = true;
     LabelDetail.syncUrlLabelId(labelId); // refreshUI's close scrubbed the param; put it back for refresh/re-share.
-    this.labelDetail.showLabel(labelId, 'Gallery')
+    this.labelDetail.showLabel(labelId, 'GalleryExpanded')
       .catch(() => this.closeExpandedViewAndRemoveCardTransparency());
   }
 
@@ -163,13 +163,12 @@ class ExpandedView {
   };
 
   /**
-   * Called by LabelDetail after a successful edit (#2575), so paging back to this card shows the label as it now is.
+   * Called by LabelDetail after a successful edit (#2575). Syncs the new severity and tags onto the small card.
    * @param {Object} meta - The label's metadata with its new severity and tags.
    */
   #handleEdit = (meta) => {
     if (this.refCard) {
-      this.refCard.setProperty('severity', meta.severity);
-      this.refCard.setProperty('tags', meta.tags);
+      this.refCard.updateSeverityAndTags(meta.severity, meta.tags);
     }
   };
 
@@ -182,7 +181,7 @@ class ExpandedView {
     if (panoEl) delete panoEl.dataset.closedDuringLoad;
 
     const meta = this.#cardToMeta(this.refCard);
-    this.labelDetail.showLabel(meta, 'Gallery');
+    this.labelDetail.showLabel(meta, 'GalleryExpanded');
 
     // Highlight selected card thumbnail.
     this.#highlightThumbnail(document.getElementById(`gallery_card_${this.refCard.getLabelId()}`));

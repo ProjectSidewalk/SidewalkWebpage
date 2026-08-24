@@ -95,6 +95,7 @@ class LabelDetail {
   #canEdit = false;         // Set per-label in #handleData() from meta.can_edit (#2575).
   #tagEditor;
   #editStatusTimer;
+  #editQueue = Promise.resolve(); // Saves run one at a time, in click order, so the last response is the one shown.
   #noImagery = false;  // Set per-label once setPano() resolves; true when no navigable imagery could be loaded.
   #panoLoading = false;     // True from #handleData() until this label's setPano() resolves. See #interactionBlocked.
   #validationCounts = { Agree: null, Disagree: null, Unsure: null };
@@ -1356,26 +1357,39 @@ class LabelDetail {
   }
 
   /**
-   * Saves a change to the current label through /label/edit, rendering it optimistically and rolling back on failure.
-   * The server's response is what's rendered in the end, since it may drop tags invalid for the label type.
+   * Queues a change to the current label's severity and/or tags for saving. Queuing keeps two quick clicks from
+   * racing each other's responses; each save starts from the state the one before it left.
    * @param {{severity?: ?number, tags?: string[]}} change - The fields to change; an omitted one keeps its value.
+   * @returns {Promise<void>}
    */
-  async #submitEdit(change) {
+  #submitEdit(change) {
+    const save = () => this.#saveEdit(change);
+    this.#editQueue = this.#editQueue.then(save, save);
+    return this.#editQueue;
+  }
+
+  /**
+   * Saves a change through /label/edit, rendering it optimistically and rolling back on failure. The server's
+   * response is what's rendered in the end, since it may drop tags invalid for the label type.
+   * @param {{severity?: ?number, tags?: string[]}} change
+   */
+  async #saveEdit(change) {
     const meta = this.#currentLabelMeta;
     if (!meta || !this.#canEdit) return;
     const severity = Object.hasOwn(change, 'severity') ? change.severity : meta.severity;
     const tags = change.tags ?? meta.tags ?? [];
     const prev = { severity: meta.severity ?? null, tags: meta.tags ?? [] };
     const sameTags = tags.length === prev.tags.length && tags.every((t) => prev.tags.includes(t));
+    // While the tag editor is open its pills are the tag display; redrawing the read-only list would wipe the picks.
+    const render = () => {
+      this.#renderSeverity(meta.severity, meta.label_type);
+      if (!this.#tagEditor.isOpen) this.#renderTags(meta.tags);
+    };
     if (severity === prev.severity && sameTags) {
-      this.#renderTags(prev.tags); // The tag editor may have just closed over an unchanged pick.
+      render(); // The tag editor may have just closed over an unchanged pick.
       return;
     }
 
-    const render = () => {
-      this.#renderSeverity(meta.severity, meta.label_type);
-      this.#renderTags(meta.tags);
-    };
     meta.severity = severity;
     meta.tags = tags;
     render();

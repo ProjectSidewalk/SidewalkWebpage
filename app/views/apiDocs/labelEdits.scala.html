@@ -86,7 +86,7 @@
           <tr>
             <td><code>source</code></td>
             <td><code>string</code></td>
-            <td>Only edits made in this interface (matches the <code>source</code> field in the response), e.g. <code>Validate</code>, <code>ExpertValidate</code>, <code>LabelMap</code>, <code>GalleryExpandedImage</code>, <code>UserMap</code>.</td>
+            <td>Only edits made in this interface (matches the <code>source</code> field in the response), e.g. <code>Validate</code>, <code>ExpertValidate</code>, <code>LabelMap</code>, <code>GalleryExpanded</code>, <code>UserMap</code>.</td>
           </tr>
           <tr>
             <td><code>withValidation</code></td>
@@ -167,7 +167,7 @@
           <tr><td><code>new_severity</code></td><td><code>integer | null</code></td><td>Severity (1-3) after the edit, or null if it was cleared or the label type has no severity.</td></tr>
           <tr><td><code>old_tags</code></td><td><code>array[string]</code></td><td>Tags before the edit.</td></tr>
           <tr><td><code>new_tags</code></td><td><code>array[string]</code></td><td>Tags after the edit.</td></tr>
-          <tr><td><code>source</code></td><td><code>string</code></td><td>The interface the edit was made in: a validation tool (<code>Validate</code>, <code>ExpertValidate</code>, <code>ValidateMobile</code>, ...) or a surface hosting the label detail card (<code>LabelMap</code>, <code>GalleryExpandedImage</code>, <code>UserMap</code>, ...).</td></tr>
+          <tr><td><code>source</code></td><td><code>string</code></td><td>The interface the edit was made in: a validation tool (<code>Validate</code>, <code>ExpertValidate</code>, <code>ValidateMobile</code>, ...) or a surface hosting the label detail card (<code>LabelMap</code>, <code>GalleryExpanded</code>, <code>UserMap</code>, ...).</td></tr>
           <tr><td><code>edit_time</code></td><td><code>string</code></td><td>ISO 8601 timestamp of the edit. A user's consecutive changes to a label from the card within a few minutes are recorded as one edit; this is the time of the last of them.</td></tr>
           <tr><td><code>label_validation_id</code></td><td><code>integer | null</code></td><td>The validation the edit was submitted with (see the <a href="@routes.ApiDocsController.validations">Validations API</a>), or null for an edit made directly from the label detail card.</td></tr>
         </tbody>

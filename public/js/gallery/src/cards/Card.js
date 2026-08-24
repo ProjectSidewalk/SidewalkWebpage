@@ -41,6 +41,7 @@ class Card {
     ai_generated: false,
     comments: [],
     from_current_user: false,
+    can_edit: false,
   };
 
   // Status to determine if static imagery has been loaded.
@@ -328,6 +329,24 @@ class Card {
   setProperty(key, value) {
     this.#properties[key] = value;
     return this;
+  }
+
+  /**
+   * Applies an edit made in the expanded view (#2575) to the small card, redrawing its severity and tag displays.
+   * @param {?number} severity
+   * @param {string[]} tags
+   */
+  updateSeverityAndTags(severity, tags) {
+    this.#properties.severity = severity;
+    this.#properties.tags = tags;
+    const cardSeverity = this.#card.querySelector('.card-severity');
+    if (cardSeverity) {
+      cardSeverity.replaceChildren();
+      new SeverityDisplay(cardSeverity, severity, this.getLabelType());
+    }
+    // TagDisplay leaves an empty list untouched, so an edit down to no tags has to clear the old ones itself.
+    this.#card.querySelector('.card-tags').innerHTML = `<div class="label-tags-header"></div>`;
+    this.#renderTags();
   }
 
   /**

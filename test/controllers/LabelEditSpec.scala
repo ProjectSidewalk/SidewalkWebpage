@@ -100,8 +100,17 @@ class LabelEditSpec extends PlaySpec with BeforeAndAfterAll with SubmissionSpecH
     )
   }
 
-  private def editBody(labelId: Int, severity: Option[Int], tags: Seq[String]): JsObject =
-    Json.obj("label_id" -> labelId, "severity" -> severity, "tags" -> tags, "source" -> "LabelMap")
+  private def editBody(labelId: Int, severity: Option[Int], tags: Seq[String], source: String = "LabelMap"): JsObject =
+    Json.obj("label_id" -> labelId, "severity" -> severity, "tags" -> tags, "source" -> source)
+
+  /**
+   * The source each host passes to `showLabel()` in `public/js` (the second argument, or `uiSource` for the ps-map
+   * hosts). An edit is submitted with that string, so every one has to be a `UiSource` member.
+   */
+  private val cardHostSources = Seq(
+    "LabelMap", "UserMap", "SharedLabel", "LabelSearchPage", "GalleryExpanded", "AdminLabelMap", "AdminActivity",
+    "AdminStories", "DashboardStories", "StoryListPage", "UserDashboard"
+  )
 
   private def postEdit(session: Seq[Cookie], body: JsValue) =
     route(app, FakeRequest(POST, "/label/edit").withCookies(session: _*).withJsonBody(body).withCSRFToken).get
@@ -207,6 +216,19 @@ class LabelEditSpec extends PlaySpec with BeforeAndAfterAll with SubmissionSpecH
       val target       = pickLabel()
       val (_, session) = signUpFreshUser()
       status(postEdit(session, editBody(target.labelId, Some(5), target.tags))) mustBe BAD_REQUEST
+    }
+
+    "accept the source string of every page that hosts the card" in {
+      val target            = pickLabel()
+      val (userId, session) = signUpFreshUser()
+      grantAdmin(userId)
+      // Re-sending the label's own values writes nothing, so only the body's validation is exercised.
+      cardHostSources.foreach { source =>
+        withClue(s"source $source: ") {
+          status(postEdit(session, editBody(target.labelId, target.severity, target.tags, source))) mustBe OK
+        }
+      }
+      editsBy(target.labelId, userId) mustBe empty
     }
 
     "403 a non-admin editing someone else's label, and flag the label as not editable" in {

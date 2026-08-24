@@ -1,4 +1,14 @@
 # --- !Ups
+-- Register the label detail card's remaining host pages as ui_source values, kept in sync with the UiSource Scala
+-- enum in CommonUtils.scala. A vote or edit whose source isn't a member fails UiSource.withName and is dropped with a
+-- 400, which the votes from these pages were. Adding a value inside a transaction is fine on PG 12+ as long as the
+-- same transaction doesn't use it, and this evolution doesn't. Enum types need no OWNER TO (339.sql precedent).
+ALTER TYPE ui_source ADD VALUE IF NOT EXISTS 'GalleryExpanded';
+ALTER TYPE ui_source ADD VALUE IF NOT EXISTS 'AdminLabelMap';
+ALTER TYPE ui_source ADD VALUE IF NOT EXISTS 'AdminActivity';
+ALTER TYPE ui_source ADD VALUE IF NOT EXISTS 'StoryListPage';
+ALTER TYPE ui_source ADD VALUE IF NOT EXISTS 'UserDashboard';
+
 -- #2575: label_edit is the source of truth for every change to a label's severity or tags after its creation -- who,
 -- from what, to what, and where -- whether submitted with a vote (label_validation_id set, so the vote's undo unwinds
 -- it) or made on its own from the label popup. label_history stays the derived state log, linked by label_edit_id.
@@ -86,6 +96,8 @@ ALTER TABLE label_validation
   DROP COLUMN new_tags;
 
 # --- !Downs
+-- The ui_source values are intentionally not reverted: Postgres can't drop an enum value without rebuilding the type
+-- and recasting every column using it, and an unused extra value is harmless (331/339 precedent).
 ALTER TABLE label_validation
   ADD COLUMN old_severity INTEGER,
   ADD COLUMN new_severity INTEGER,
