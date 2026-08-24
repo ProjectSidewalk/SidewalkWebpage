@@ -304,4 +304,47 @@ class UserProfileController @Inject() (
       )
     )
   }
+
+  /**
+   * The signed-in mapper's own contribution totals in every Project Sidewalk city they've worked in (#4496).
+   *
+   * Takes no user parameter: the dashboard section it feeds is a self-view, and a mapper's activity in another city is
+   * not something this deployment's `public_profile` flag can consent to disclosing.
+   *
+   * @return Per-city rows plus the roll-up, or an empty payload when the breakdown can't be computed so the section
+   *         hides itself rather than showing zeros.
+   */
+  def getCrossCityStats = cc.securityService.SecuredAction(WithSignedIn()) { implicit request =>
+    userService
+      .getCrossCityUserStats(request.identity.userId, ControllerUtils.isMetric, request2Messages.lang)
+      .map {
+        case Some(stats) =>
+          Ok(
+            Json.obj(
+              "cities" -> stats.cities.map { city =>
+                Json.obj(
+                  "city_id"         -> city.cityId,
+                  "city_name"       -> city.cityName,
+                  "city_url"        -> city.cityUrl,
+                  "linkable"        -> city.linkable,
+                  "is_current_city" -> city.isCurrentCity,
+                  "labels"          -> city.labels,
+                  "validations"     -> city.validations,
+                  "missions"        -> city.missions,
+                  "distance"        -> city.distance,
+                  "live_distance"   -> city.liveDistance,
+                  "last_activity"   -> city.lastActivity.map(_.toString)
+                )
+              },
+              "total_labels"      -> stats.totalLabels,
+              "total_validations" -> stats.totalValidation,
+              "total_missions"    -> stats.totalMissions,
+              "total_distance"    -> stats.totalDistance,
+              "public_city_count" -> stats.publicCityCount,
+              "distance_unit"     -> ControllerUtils.distanceUnitWords.abbr
+            )
+          )
+        case None => Ok(Json.obj("unavailable" -> true))
+      }
+  }
 }

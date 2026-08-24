@@ -14,6 +14,7 @@ class AdminShell {
   #tocList;
   #headings = [];
   #tocLinks = [];
+  #scrollSpyAttached = false;
 
   init() {
     this.#content = document.querySelector('.api-content');
@@ -51,13 +52,17 @@ class AdminShell {
      */
   #buildTableOfContents() {
     if (!this.#tocList) return;
-    this.#headings = Array.from(this.#content.querySelectorAll('h2.api-heading[id], h3.api-heading[id]'));
+    this.#tocList.replaceChildren();
+    this.#tocLinks = [];
+    this.#headings = Array.from(this.#content.querySelectorAll('h2.api-heading[id], h3.api-heading[id]'))
+      .filter((heading) => !heading.closest('[hidden]'));
 
+    const toc = document.querySelector('.api-toc');
     if (this.#headings.length === 0) {
-      const toc = document.querySelector('.api-toc');
       if (toc) toc.style.display = 'none';
       return;
     }
+    if (toc) toc.style.removeProperty('display');
 
     const frag = document.createDocumentFragment();
     for (const heading of this.#headings) {
@@ -69,13 +74,33 @@ class AdminShell {
       li.appendChild(a);
       frag.appendChild(li);
       this.#tocLinks.push(a);
+      this.#bindSmoothScroll(a);
     }
     this.#tocList.appendChild(frag);
   }
 
-  /** Highlights the TOC entry for whichever heading is currently at the top of the viewport. */
+  /**
+   * Rebuilds the TOC from the headings currently visible on the page.
+   *
+   * A section that loads asynchronously starts hidden, so it is absent from the TOC built at load. It calls this once
+   * it renders (or decides not to). Without it a hidden section leaves a TOC entry that scrolls nowhere — and, since
+   * a hidden heading reports offsetTop 0, one that wedges the scroll-spy on itself.
+   */
+  refreshTableOfContents() {
+    this.#buildTableOfContents();
+    // A page whose only headings arrive asynchronously had nothing to spy on at load, so the listener was skipped.
+    this.#setupScrollSpy();
+  }
+
+  /**
+   * Highlights the TOC entry for whichever heading is currently at the top of the viewport.
+   *
+   * The listener reads #headings and #tocLinks on each tick rather than closing over them, so it keeps working across
+   * a refreshTableOfContents(); attaching a second one would just duplicate the work.
+   */
   #setupScrollSpy() {
-    if (this.#headings.length === 0) return;
+    if (this.#scrollSpyAttached || this.#headings.length === 0) return;
+    this.#scrollSpyAttached = true;
 
     let ticking = false;
     const onScroll = () => {
@@ -95,21 +120,27 @@ class AdminShell {
     onScroll();
   }
 
-  /** Smooth-scrolls clicks on TOC / in-page anchors, accounting for the fixed navbar. */
+  /**
+   * Smooth-scrolls clicks on in-page anchors, accounting for the fixed navbar. TOC links are bound as they are
+   * created, so a rebuilt TOC picks this up without re-binding anchors that already have it.
+   */
   #setupSmoothScrolling() {
-    const anchors = document.querySelectorAll('.api-toc a[href^="#"], .api-content a.permalink[href^="#"]');
-    anchors.forEach((anchor) => {
-      anchor.addEventListener('click', (e) => {
-        const id = anchor.getAttribute('href').slice(1);
-        const target = document.getElementById(id);
-        if (!target) return;
-        e.preventDefault();
-        const top = target.offsetTop - AdminShell.#NAVBAR_OFFSET;
-        // Jump instantly for users who prefer reduced motion (WCAG 2.3.3).
-        const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        window.scrollTo({ top, behavior: reduceMotion ? 'auto' : 'smooth' });
-        history.replaceState(null, '', `#${id}`);
-      });
+    document.querySelectorAll('.api-content a.permalink[href^="#"]')
+      .forEach((anchor) => this.#bindSmoothScroll(anchor));
+  }
+
+  /** @param {HTMLAnchorElement} anchor - An in-page anchor whose href is a fragment. */
+  #bindSmoothScroll(anchor) {
+    anchor.addEventListener('click', (e) => {
+      const id = anchor.getAttribute('href').slice(1);
+      const target = document.getElementById(id);
+      if (!target) return;
+      e.preventDefault();
+      const top = target.offsetTop - AdminShell.#NAVBAR_OFFSET;
+      // Jump instantly for users who prefer reduced motion (WCAG 2.3.3).
+      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      window.scrollTo({ top, behavior: reduceMotion ? 'auto' : 'smooth' });
+      history.replaceState(null, '', `#${id}`);
     });
   }
 
@@ -297,5 +328,7 @@ class AdminShell {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  new AdminShell().init();
+  // Kept on window so an async section can ask for a TOC rebuild once it knows whether it renders.
+  window.adminShell = new AdminShell();
+  window.adminShell.init();
 });

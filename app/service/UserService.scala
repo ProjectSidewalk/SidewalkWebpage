@@ -15,7 +15,7 @@ import models.validation.LabelValidationTable
 import play.api.Logger
 import play.api.cache.AsyncCacheApi
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import play.api.i18n.Messages
+import play.api.i18n.{Lang, Messages}
 import slick.dbio.DBIO
 
 import java.time.format.DateTimeFormatter
@@ -100,6 +100,75 @@ case class GlobalLeaderboardEntry(
     profileLinked: Boolean
 )
 
+/**
+ * One city in a mapper's cross-city breakdown, ready to render (#4496).
+ *
+ * @param cityId        Configured city id.
+ * @param cityName      Short display name in the viewer's language.
+ * @param cityUrl       That deployment's base URL; empty when the city isn't publicly launched.
+ * @param linkable      Whether to offer a click-through. False for a city that isn't publicly launched — the mapper's
+ *                      own numbers there are still theirs to see, but we don't publish an unlaunched URL.
+ * @param isCurrentCity True for the deployment being viewed, so the UI can mark it.
+ * @param labels        Labels placed here.
+ * @param validations   Validations given here.
+ * @param missions      Missions completed here.
+ * @param distance      Distance audited here, already converted to the viewer's units (km or miles).
+ * @param liveDistance  Whether `distance` was computed live. True only for the current city; elsewhere it comes from
+ *                      the nightly `user_stat.meters_audited` and can lag by up to a day.
+ * @param lastActivity  When the mapper last labeled here, or None if they only validated.
+ */
+case class CityUserStat(
+    cityId: String,
+    cityName: String,
+    cityUrl: String,
+    linkable: Boolean,
+    isCurrentCity: Boolean,
+    labels: Int,
+    validations: Int,
+    missions: Int,
+    distance: Double,
+    liveDistance: Boolean,
+    lastActivity: Option[OffsetDateTime]
+)
+
+/**
+ * A mapper's totals across every Project Sidewalk city they've contributed to (#4496).
+ *
+ * @param cities          Cities with any contribution, most labels first. Empty is possible (a brand-new account).
+ * @param totalLabels     Labels across all of them.
+ * @param totalValidation Validations across all of them.
+ * @param totalMissions   Missions across all of them.
+ * @param totalDistance   Distance across all of them, in the viewer's units.
+ * @param publicCityCount How many publicly launched deployments exist, for the "try another city" nudge shown to
+ *                        mappers who have only worked in one.
+ */
+case class CrossCityUserStats(
+    cities: Seq[CityUserStat],
+    totalLabels: Int,
+    totalValidation: Int,
+    totalMissions: Int,
+    totalDistance: Double,
+    publicCityCount: Int
+)
+
+/**
+ * The cacheable half of [[UserServiceImpl.getCrossCityUserStats]]: the cross-schema fan-out's raw output (#4496).
+ *
+ * Everything here is viewer-independent — meters, schema names, counts — so one cached copy per mapper serves every
+ * combination of measurement system and language. Caching the *rendered* [[CrossCityUserStats]] instead would freeze
+ * both: measurement system is a cookie the mapper can flip at any moment, so a toggle followed by a reload inside the
+ * TTL would leave the table holding miles under a header that now says "km".
+ *
+ * @param rows          One row per queried schema, most labels first.
+ * @param currentSchema The schema this connection reads, identifying which row is the city being viewed.
+ * @param liveMeters    Distance audited in the current city, recomputed live so its row matches the hero KPI exactly.
+ */
+private[service] case class CrossCityFanOut(
+    rows: Seq[CrossCityUserStat],
+    currentSchema: String,
+    liveMeters: Double
+)
+
 case class AdminUserProfileData(
     currentRegion: Option[Region],
     numCompletedAudits: Int,
@@ -129,6 +198,10 @@ object UserService {
    * type off one or two validations). Public because the dashboard copy states the rule — source of truth for the UI.
    */
   val MinValidatedForWeakest: Int = 5
+
+  /** Meters to the viewer's units. Shared so the hero KPI and the per-city row below it can't round differently. */
+  def convertDistance(meters: Double, metricSystem: Boolean): Double =
+    if (metricSystem) meters / 1000d else meters * METERS_TO_MILES
 
   /**
    * The public-profile visibility decision, isolated so it can be unit-tested without a DB. A profile is shown only if
@@ -287,6 +360,18 @@ trait UserService {
    *          community has no labels.
    */
   def getGlobalLeaderboardStats(n: Int): Future[Option[Seq[GlobalLeaderboardEntry]]]
+
+  /**
+   * Gets one mapper's own totals in every city they've contributed to (#4496).
+   *
+   * @param userId       The mapper, always the signed-in viewer — this is a self-view, not a public profile.
+   * @param metricSystem Whether to report distances in kilometers rather than miles.
+   * @param lang         Language for city display names.
+   * @return             `Some` of their breakdown, `Some` with an empty city list for an account that has yet to
+   *                     contribute anywhere, or `None` when it can't be computed so the page can omit the section
+   *                     rather than claim the mapper has done nothing.
+   */
+  def getCrossCityUserStats(userId: String, metricSystem: Boolean, lang: Lang): Future[Option[CrossCityUserStats]]
   def getActivityStreak(userId: String, locale: Locale = Locale.ENGLISH): Future[StreakStats]
   def getAccuracyByType(userId: String): Future[Seq[AccuracyByType]]
   def getTrophies(userId: String, cityName: String, messages: Messages): Future[Seq[Trophy]]
@@ -337,10 +422,7 @@ class UserServiceImpl @Inject() (
       valCount: Int                 <- labelValidationTable.countValidations(userId)
       accuracy: Option[Double]      <- labelValidationTable.getUserAccuracy(userId)
     } yield {
-      val auditedDistance: Double = {
-        if (metricSystem) auditedDistanceMeters / 1000d
-        else auditedDistanceMeters * METERS_TO_MILES
-      }
+      val auditedDistance: Double = UserService.convertDistance(auditedDistanceMeters, metricSystem)
       UserProfileData(userId, userTeam, teams, missionCount, auditedDistance, labelCount, valCount, accuracy)
     })
   }
@@ -545,6 +627,84 @@ class UserServiceImpl @Inject() (
       .recover { case e: Exception =>
         // The section is supplementary, so a failure here drops it rather than taking down the whole leaderboard page.
         logger.warn(s"Failed to compute the global leaderboard, omitting the section: ${e.getMessage}", e)
+        None
+      }
+  }
+
+  def getCrossCityUserStats(userId: String, metricSystem: Boolean, lang: Lang): Future[Option[CrossCityUserStats]] = {
+    val cityInfoById: Map[String, CityInfo] =
+      configService.getAllCityInfo(lang).map(city => city.cityId -> city).toMap
+    val publicCityCount: Int = cityInfoById.values.count(_.visibility == "public")
+
+    // The scope is resolved BEFORE the cache block, not inside it. Both are backed by the same Caffeine cache, and
+    // Caffeine's computeIfAbsent refuses to be re-entered on the same thread — a nested getOrElseUpdate throws
+    // "Recursive update" whenever the inner key happens to be cold.
+    configService.getCrossCityUserScope
+      .flatMap { scope =>
+        // Keyed per user and short-lived: this is one mapper's own data, and it should reflect a label they placed a
+        // minute ago. The TTL exists to absorb a reload, not to keep the number stale. As elsewhere, the recover sits
+        // outside the cache so a transient DB failure isn't memoized as "no cities" (Play only caches a success).
+        //
+        // Only the fan-out is cached; units and language are applied to every response. See [[CrossCityFanOut]].
+        cacheApi
+          .getOrElseUpdate[CrossCityFanOut](s"getCrossCityUserStats_$userId", Duration(60, "seconds")) {
+            for {
+              // Identifies the current city by the schema the connection actually reads, so the row marked "you're
+              // here" is the one the hero KPIs above it were computed from.
+              // Both in one round trip; neither depends on the other.
+              (currentSchema, archiveSchemas) <- db.run(
+                userStatTable.currentSchema.zip(userStatTable.schemasWithVoidedValidationArchive)
+              )
+              // That city's distance is recomputed live rather than read from the nightly user_stat value, so its row
+              // matches the hero KPI exactly. Other cities keep the nightly value — recomputing geodesic lengths in a
+              // 50-way union is what the cross-schema query exists to avoid.
+              liveMeters <- db.run(auditTaskTable.getDistanceAudited(userId))
+              rows       <- db.run(userStatTable.getCrossCityUserStats(scope.map(_._2), archiveSchemas, userId))
+            } yield CrossCityFanOut(rows, currentSchema, liveMeters)
+          }
+          .map { fanOut =>
+            val cityIdBySchema: Map[String, String] = scope.map { case (cityId, schema) => schema -> cityId }.toMap
+            val cities: Seq[CityUserStat]           = fanOut.rows.flatMap { row =>
+              cityIdBySchema.get(row.citySchema).flatMap(cityInfoById.get).flatMap { city =>
+                val isCurrent: Boolean   = row.citySchema == fanOut.currentSchema
+                val meters: Double       = if (isCurrent) fanOut.liveMeters else row.metersAudited.getOrElse(0d)
+                val hasActivity: Boolean = row.labels > 0 || row.validations > 0 || row.missions > 0 || meters > 0d
+                if (!hasActivity) None
+                else {
+                  val isPublic: Boolean = city.visibility == "public"
+                  Some(
+                    CityUserStat(
+                      city.cityId,
+                      city.cityNameShort,
+                      if (isPublic) city.URL else "",
+                      isPublic,
+                      isCurrent,
+                      row.labels,
+                      row.validations,
+                      row.missions,
+                      UserService.convertDistance(meters, metricSystem),
+                      isCurrent,
+                      row.lastActivity
+                    )
+                  )
+                }
+              }
+            }
+            Some(
+              CrossCityUserStats(
+                cities,
+                cities.map(_.labels).sum,
+                cities.map(_.validations).sum,
+                cities.map(_.missions).sum,
+                cities.map(_.distance).sum,
+                publicCityCount
+              )
+            )
+          }
+      }
+      .recover { case e: Exception =>
+        // Supplementary section: a failure hides it rather than breaking the dashboard the mapper came for.
+        logger.warn(s"Failed to compute cross-city user stats, omitting the section: ${e.getMessage}", e)
         None
       }
   }

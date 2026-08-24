@@ -181,6 +181,7 @@ POST    /userapi/mistakeVote                             controllers.UserProfile
 POST    /userapi/mistakeNote                             controllers.UserProfileController.mistakeNote()
 
 GET     /userapi/basicStats                             controllers.UserProfileController.getBasicUserStats
+GET     /userapi/crossCityStats                         controllers.UserProfileController.getCrossCityStats
 GET     /userapi/labels                                 controllers.UserProfileController.getSubmittedLabels(userId: String, regionId: Option[Int] ?= None)
 
 POST    /userapi/logWebpageActivity                     controllers.UserController.logWebpageActivity()
