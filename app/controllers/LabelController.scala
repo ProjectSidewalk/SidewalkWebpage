@@ -65,7 +65,7 @@ class LabelController @Inject() (
             Json.obj(
               "crop_url"         -> panoDataService.cropUrl(metadata.labelId, metadata.labelType),
               "backup_image_url" -> panoDataService.backupImageUrl(metadata.panoId),
-              "can_edit" -> (metadata.fromCurrentUser || isAdmin(request.identity))
+              "can_edit"         -> (metadata.fromCurrentUser || isAdmin(request.identity))
             )
         )
       case None => NotFound(s"No label found with ID: $labelId")
