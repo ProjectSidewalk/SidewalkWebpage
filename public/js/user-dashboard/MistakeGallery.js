@@ -16,6 +16,8 @@ class MistakeGallery {
      * @param {HTMLElement} [opts.seeAllEl] - Optional "see all" link, shown only when there are mistakes.
      * @param {object} [opts.labelPopup] - Optional shared LabelPopup instance; when present, clicking a card image
      *      opens the interactive pano + detail view and the vote/note controls are mirrored inside it.
+     * @param {boolean} [opts.readOnly=false] - Render the vote/note controls disabled. Set for an admin viewing
+     *      another user's dashboard: the vote/note endpoints act as the signed-in user, so a click would be rejected.
      */
   constructor(rootEl, opts) {
     this.root = rootEl;
@@ -23,6 +25,7 @@ class MistakeGallery {
     this.limit = opts.limit || 6;
     this.seeAllEl = opts.seeAllEl || null;
     this.labelPopup = opts.labelPopup || null;
+    this.readOnly = Boolean(opts.readOnly);
     // Per-label response state shared between a card and the popup so they stay in sync in-session.
     this.responses = new Map(); // label_id -> { agrees: boolean|null, note: string }
     this.popupPanel = null; // the vote/note panel injected into the popup dialog
@@ -232,6 +235,7 @@ class MistakeGallery {
         i18next.t('dashboard:mistake-cards.vote-no-title'));
       agreeBtn.addEventListener('click', () => this.#vote(m, sec, true));
       contestBtn.addEventListener('click', () => this.#vote(m, sec, false));
+      if (this.readOnly) [agreeBtn, contestBtn].forEach((b) => b.setAttribute('disabled', 'disabled'));
       actions.append(agreeBtn, contestBtn);
       sec.append(prompt, actions);
     } else {
@@ -304,6 +308,11 @@ class MistakeGallery {
     link.textContent = note
       ? i18next.t('dashboard:mistake-cards.edit-note')
       : i18next.t('dashboard:mistake-cards.add-note');
+    if (this.readOnly) {
+      // A link has no disabled state, so it's taken out of the tab order and told to screen readers instead.
+      link.setAttribute('aria-disabled', 'true');
+      link.setAttribute('tabindex', '-1');
+    }
     sec.appendChild(link);
 
     const wrap = document.createElement('div');
@@ -323,6 +332,7 @@ class MistakeGallery {
 
     link.addEventListener('click', (e) => {
       e.preventDefault();
+      if (this.readOnly) return;
       wrap.hidden = !wrap.hidden;
       if (!wrap.hidden) textarea.focus();
     });

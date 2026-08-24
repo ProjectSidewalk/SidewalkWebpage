@@ -63,7 +63,7 @@
         <p class="ud-hero-greeting"><span class="ud-public-tag">@Messages("dashboard.profile.tag")</span></p>
         @* profileName comes from the URL, so escape it before it goes through @Html. *@
         <p class="ud-hero-headline">@Html(Messages("dashboard.profile.headline",
-          s"<strong>$escapedName</strong>", "%,d".format(pd.labelCount)))</p>
+          s"<strong>$escapedName</strong>", "%,d".format(pd.labelCount), commonData.currentCity.cityNameShort))</p>
       </div>
     </div>
 

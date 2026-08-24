@@ -22,31 +22,6 @@ module.exports = function (grunt) {
         ],
         dest: 'public/js/explore/build/explore.js'
       },
-      dist_progress: {
-        src: [
-          // Shared deep-link query rules; every reader/writer of the URL's filter params depends on it.
-          'public/js/common/urlQuery.js',
-          'public/js/common/aiLabelIndicator.js',
-          'public/js/admin/src/*.js',
-          // PopupPanoManager and LabelDetail must be concatenated before LabelPopup.
-          'public/js/common/label-detail/PopupPanoManager.js',
-          'public/js/common/ConfirmDialog.js',
-          'public/js/common/label-detail/StoryComposer.js',
-          'public/js/common/label-detail/StorySection.js',
-          'public/js/common/label-detail/LabelDetail.js',
-          'public/js/common/share/ShareWidget.js',
-          'public/js/common/label-detail/LabelPopup.js',
-          'public/js/validate/src/util/*.js',
-          'public/js/common/PanoMarker.js',
-          'public/js/common/LabelVisibilityToggle.js',
-          // Toast must be concatenated before BadgeAchievements, which builds badge-unlock toasts.
-          'public/js/common/Toast.js',
-          'public/js/common/BadgeAchievements.js',
-          'public/js/user-dashboard/src/*.js',
-          'public/js/common/utilitiesSidewalk.js',
-        ],
-        dest: 'public/js/user-dashboard/build/user-dashboard.js'
-      },
       dist_admin: {
         src: [
           // Shared deep-link query rules; every reader/writer of the URL's filter params depends on it.
@@ -241,7 +216,6 @@ module.exports = function (grunt) {
           'public/js/explore/src/*.js',
           'public/js/explore/src/**/*.js',
           'public/css/explore/*.css',
-          'public/js/user-dashboard/src/**/*.js',
           'public/js/admin/src/**/*.js',
           'public/js/help/src/*.js',
           'public/js/validate/src/*.js',
@@ -273,5 +247,5 @@ module.exports = function (grunt) {
 
   // 4. Where we tell Grunt what to do when we type "grunt" into the terminal.
   grunt.registerTask('default', ['concat', 'concat_css']);
-  grunt.registerTask('dist', ['concat:dist_audit', 'concat:dist_progress', 'concat:dist_admin', 'concat:dist_validate', 'concat:dist_gallery']);
+  grunt.registerTask('dist', ['concat:dist_audit', 'concat:dist_admin', 'concat:dist_validate', 'concat:dist_gallery']);
 };

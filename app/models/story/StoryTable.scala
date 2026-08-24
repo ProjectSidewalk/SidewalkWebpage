@@ -261,6 +261,11 @@ class StoryTable @Inject() (
     stories.filter(s => s.storyId === storyId && s.userId === userId).result.headOption
   }
 
+  /** The story regardless of owner — the admin edit path, where moderation rather than ownership is the gate. */
+  def getById(storyId: Int): DBIO[Option[Story]] = {
+    stories.filter(_.storyId === storyId).result.headOption
+  }
+
   /**
    * Updates the author-editable fields only; visibility/moderation columns are deliberately untouched, so a
    * moderator-hidden story stays hidden through an edit.

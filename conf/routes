@@ -43,7 +43,6 @@ POST    /signUp                                         controllers.UserControll
 POST    /authenticate/credentials                       controllers.UserController.authenticate()
 POST    /forgotPassword                                 controllers.UserController.submitForgottenPassword
 POST    /resetPassword                                  controllers.UserController.resetPassword(token: String)
-PUT     /updateVolunteerStatus                          controllers.UserController.updateVolunteerStatus(userId: String, communityService: Boolean)
 POST    /serviceHours/set                               controllers.UserController.setServiceHours(enabled: Boolean, next: Option[String] ?= None)
 
 # Security policy endpoints.
@@ -70,7 +69,9 @@ GET     /admin/api-analytics                            controllers.AdminDashboa
 GET     /admin/management                               controllers.AdminDashboardController.management
 GET     /admin/across-cities                            controllers.AdminDashboardController.acrossCities
 GET     /admin/health                                   controllers.AdminDashboardController.health
-GET     /admin/user/:username                           controllers.AdminController.userProfile(username: String)
+# The admin's view of a user's dashboard (#4964): the redesigned dashboard plus an admin-only page beside it.
+GET     /admin/user/:username                           controllers.UserDashboardController.adminDashboard(username: String)
+GET     /admin/user/:username/admin                     controllers.UserDashboardController.adminUser(username: String)
 GET     /admin/task/:taskId                             controllers.AdminController.task(taskId: Int)
 GET     /admin/label/:labelId                           controllers.AdminController.label(labelId: Int)
 
@@ -102,8 +103,7 @@ GET     /adminapi/cityScorecards                        controllers.AdminControl
 GET     /adminapi/cityFunnels                           controllers.AdminController.getCityFunnels(window: Option[String])
 
 PUT     /adminapi/setRole                               controllers.AdminController.setUserRole
-PUT     /adminapi/setUserQualityManual                  controllers.AdminController.setUserQualityManual
-PUT     /adminapi/setInfra3dAccess                      controllers.AdminController.setInfra3dAccess
+PUT     /adminapi/saveUserSettings                      controllers.AdminController.saveUserSettings
 PUT     /adminapi/setTaskFlagsBeforeDate                controllers.AdminController.setTaskFlagsBeforeDate()
 PUT     /adminapi/setTaskFlag                           controllers.AdminController.setTaskFlag()
 PUT     /adminapi/updateTeamStatus/:teamId              controllers.AdminController.updateTeamStatus(teamId: Int)
@@ -228,7 +228,10 @@ PUT     /userapi/stories/:storyId                       controllers.StoryControl
 DELETE  /userapi/stories/:storyId                       controllers.StoryController.deleteOwnStory(storyId: Int)
 GET     /userapi/stories/mine                           controllers.StoryController.getMyStories
 GET     /adminapi/stories                               controllers.StoryController.getRecentStories(n: Int ?= 50)
+GET     /adminapi/users/:userId/stories                 controllers.StoryController.getUserStories(userId: String)
+GET     /adminapi/users/:userId/crossCityStats          controllers.UserProfileController.adminGetCrossCityStats(userId: String)
 PUT     /adminapi/stories/:storyId/visibility           controllers.StoryController.setStoryVisibility(storyId: Int)
+PUT     /adminapi/stories/:storyId                      controllers.StoryController.adminUpdateStory(storyId: Int)
 DELETE  /adminapi/stories/:storyId                      controllers.StoryController.adminDeleteStory(storyId: Int)
 
 # AI

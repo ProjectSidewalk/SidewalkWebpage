@@ -3,20 +3,23 @@ package controllers
 import controllers.base.{CustomBaseController, CustomControllerComponents}
 import controllers.helper.ControllerUtils
 import controllers.helper.ControllerUtils.MeasurementSystem
-import models.auth.WithSignedIn
+import models.auth.{DefaultEnv, WithAdmin, WithSignedIn}
 import models.user.SidewalkUserWithRole
 import play.api.Configuration
 import play.api.i18n.Messages
 import play.api.libs.json.Json
-import service.{ConfigService, GlobalLeaderboardEntry, UserService}
+import play.api.mvc.{AnyContent, Result}
+import play.silhouette.api.actions.SecuredRequest
+import service.{AdminService, ConfigService, GlobalLeaderboardEntry, UserService}
 
 import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
 
 /**
- * Controller for the User Dashboard, Leaderboard, Settings, and public profiles (#4323 redesign, cut over in #4474).
+ * Controller for the User Dashboard, Leaderboard, Settings, and public profiles (#4323 redesign, cut over in #4474),
+ * plus the admin's view of another user's dashboard (#4964).
  *
- * The four pages share the API-docs/admin shell (left nav + content + right "On this page" TOC). The pre-cutover
+ * The pages share the API-docs/admin shell (left nav + content + right "On this page" TOC). The pre-cutover
  * `/preview` URLs permanently redirect to the production ones. Unlike the pre-redesign dashboard, mobile visitors are
  * served the page itself (it is responsive) rather than being redirected to /mobileLanding.
  */
@@ -27,6 +30,7 @@ class UserDashboardController @Inject() (
     implicit val assets: AssetsFinder,
     configService: ConfigService,
     userService: UserService,
+    adminService: AdminService,
     labelService: service.LabelService,
     routeService: service.RouteService,
     authenticationService: service.AuthenticationService
@@ -40,14 +44,78 @@ class UserDashboardController @Inject() (
   private val ReauditListSize: Int = ReauditPageSize * 3
 
   /**
-   * Renders the redesigned User Dashboard prototype: a single page of "your impact" sections (hero stats, activity
-   * streak, badges + trophies, your standing, learning/mistakes, map, team, streets needing a re-audit) on the shared
-   * shell.
+   * Renders the redesigned User Dashboard: a single page of "your impact" sections (hero stats, activity streak,
+   * badges + trophies, your standing, learning/mistakes, map, team, streets needing a re-audit) on the shared shell.
    *
-   * Secured to any signed-in user, matching the real `/dashboard`.
+   * Secured to any signed-in user.
    */
   def dashboard = cc.securityService.SecuredAction(WithSignedIn()) { implicit request =>
-    val user     = request.identity
+    cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_UserDashboard")
+    renderDashboard(request.identity, adminView = false)
+  }
+
+  /**
+   * The admin's view of another user's dashboard (`/admin/user/:username`): the same page the user sees, with the
+   * admin-mode affordances the view gates on `adminView` (admin label popup, read-only mistake/route controls, the
+   * user's stories editable for moderation) and an "Admin" page beside it in the sidebar (`adminUser`).
+   *
+   * @param username The user whose dashboard to show; 404 if no such account.
+   */
+  def adminDashboard(username: String) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    withUser(username) { subject =>
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, s"Visit_AdminUserDashboard_User=$username")
+      renderDashboard(subject, adminView = true)
+    }
+  }
+
+  /**
+   * The admin-only page beside a user's dashboard (`/admin/user/:username/admin`): account settings an admin may
+   * change (username, role, team, manual quality, service hours, privacy, infra3D access), the stats the dashboard
+   * doesn't show (current neighborhood, hours worked, labeling frequency), marking their work by date, and their
+   * Explore comments.
+   *
+   * @param username The user to administer; 404 if no such account.
+   */
+  def adminUser(username: String) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    withUser(username) { subject =>
+      for {
+        commonData <- configService.getCommonPageData(request2Messages.lang)
+        adminData  <- adminService.getAdminUserProfileData(subject.userId)
+        team       <- userService.getUserTeam(subject.userId)
+        teams      <- userService.getAllTeams
+      } yield {
+        cc.loggingService.insert(request.identity.userId, request.ipAddress, s"Visit_AdminUser_User=$username")
+        Ok(views.html.userDashboard.adminUser(commonData, request.identity, subject, adminData, team, teams))
+      }
+    }
+  }
+
+  /** Resolves a username for the admin pages, rendering the branded 404 when it matches no account. */
+  private def withUser(username: String)(
+      render: SidewalkUserWithRole => Future[Result]
+  )(implicit request: SecuredRequest[DefaultEnv, AnyContent]): Future[Result] = {
+    authenticationService.findByUsername(username).flatMap {
+      case Some(subject) => render(subject)
+      case None          =>
+        Future.successful(
+          NotFound(
+            views.html.errors.errorPage(
+              NOT_FOUND,
+              Messages("error.404.heading"),
+              Messages("error.404.message"),
+              requestedPath = Some(request.path)
+            )
+          )
+        )
+    }
+  }
+
+  /**
+   * Assembles and renders the dashboard for `user`, viewed by `request.identity` (the same person unless `adminView`).
+   */
+  private def renderDashboard(user: SidewalkUserWithRole, adminView: Boolean)(implicit
+      request: SecuredRequest[DefaultEnv, AnyContent]
+  ): Future[Result] = {
     val isMetric = ControllerUtils.isMetric
     val cityName = configService.getCityName(request2Messages.lang)
     // Kicked off before the for-comprehension so they run concurrently with the chain below.
@@ -64,11 +132,10 @@ class UserDashboardController @Inject() (
       myRoutes                       <- myRoutesF
       (reauditStreets, reauditTotal) <- reauditStreetsF
     } yield {
-      cc.loggingService.insert(user.userId, request.ipAddress, "Visit_UserDashboard")
       Ok(
         views.html.userDashboard
-          .dashboard(commonData, user, profileData, isMetric, tags, standing, streak, accuracy, trophies, myRoutes,
-            reauditStreets, reauditTotal, ReauditPageSize)
+          .dashboard(commonData, request.identity, user, adminView, profileData, isMetric, tags, standing, streak,
+            accuracy, trophies, myRoutes, reauditStreets, reauditTotal, ReauditPageSize)
       )
     }
   }

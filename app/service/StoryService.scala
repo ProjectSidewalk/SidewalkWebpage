@@ -44,6 +44,14 @@ trait StoryService {
       removePhoto: Boolean,
       altText: Option[String]
   ): Future[Either[StoryRejection, Unit]]
+  def adminUpdateStory(
+      storyId: Int,
+      storyText: String,
+      displayNameMode: String,
+      newPhoto: Option[StoryPhotoUpload],
+      removePhoto: Boolean,
+      altText: Option[String]
+  ): Future[Either[StoryRejection, Unit]]
   def deleteOwnStory(storyId: Int, userId: String): Future[Boolean]
   def getStoriesForUser(userId: String): Future[Seq[StoryForOwner]]
   def getStoriesForCity(n: Int): Future[Seq[StoryForListing]]
@@ -214,6 +222,31 @@ class StoryServiceImpl @Inject() (
       newPhoto: Option[StoryPhotoUpload],
       removePhoto: Boolean,
       altText: Option[String]
+  ): Future[Either[StoryRejection, Unit]] =
+    updateStory(storyTable.getOwned(storyId, userId), storyText, displayNameMode, newPhoto, removePhoto, altText)
+
+  /** An admin editing any user's story (content moderation from the user's admin dashboard); no ownership gate. */
+  def adminUpdateStory(
+      storyId: Int,
+      storyText: String,
+      displayNameMode: String,
+      newPhoto: Option[StoryPhotoUpload],
+      removePhoto: Boolean,
+      altText: Option[String]
+  ): Future[Either[StoryRejection, Unit]] =
+    updateStory(storyTable.getById(storyId), storyText, displayNameMode, newPhoto, removePhoto, altText)
+
+  /**
+   * The shared edit path: `lookup` decides who may reach the story (owner-only or any admin); the content rules and
+   * photo semantics are the same either way.
+   */
+  private def updateStory(
+      lookup: DBIO[Option[Story]],
+      storyText: String,
+      displayNameMode: String,
+      newPhoto: Option[StoryPhotoUpload],
+      removePhoto: Boolean,
+      altText: Option[String]
   ): Future[Either[StoryRejection, Unit]] = {
     val text = storyText.trim
     // The alt text is validated whether it rides a replacement photo (newPhoto) or re-applies to the kept one; the
@@ -221,9 +254,11 @@ class StoryServiceImpl @Inject() (
     contentRejection(text, displayNameMode, if (removePhoto) None else altText) match {
       case Some(rejection) => Future.successful(Left(rejection))
       case None            =>
-        db.run(storyTable.getOwned(storyId, userId)).flatMap {
+        db.run(lookup).flatMap {
           case None        => Future.successful(Left(StoryRejection.StoryNotFound))
           case Some(story) =>
+            val storyId = story.storyId
+            val userId  = story.userId
             newPhoto match {
               case Some(upload) =>
                 labelService.getLabelLatLng(story.labelId).flatMap { labelLatLng =>

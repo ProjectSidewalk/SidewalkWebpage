@@ -2,7 +2,6 @@ package controllers
 
 import actor.{CheckImageExpiryActor, FunnelStatActor, OsmWayRefreshActor, RecalculateStreetPriorityActor, UserStatActor}
 import controllers.base._
-import controllers.helper.ControllerUtils
 import controllers.helper.ControllerUtils.isAdmin
 import formats.json.AdminFormats._
 import formats.json.LabelFormats._
@@ -14,6 +13,7 @@ import models.utils.JobRunTrigger
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.dispatch.Dispatcher
 import play.api.cache.AsyncCacheApi
+import play.api.i18n.Messages
 import play.api.libs.json.{JsArray, JsError, JsObject, Json}
 import play.api.{Configuration, Logger}
 import play.silhouette.api.Silhouette
@@ -50,29 +50,6 @@ class AdminController @Inject() (
 
   implicit val implicitConfig: Configuration = config
   private val logger                         = Logger(this.getClass)
-
-  /**
-   * Loads the admin version of the user dashboard page.
-   */
-  def userProfile(username: String) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-    authenticationService.findByUsername(username).flatMap {
-      case Some(user) =>
-        val metricSystem: Boolean = ControllerUtils.isMetric
-        for {
-          userProfileData: UserProfileData <- userService.getUserProfileData(user.userId, metricSystem)
-          adminData                        <- adminService.getAdminUserProfileData(user.userId)
-          commonData                       <- configService.getCommonPageData(request2Messages.lang)
-          tags                             <- labelService.getTagsForCurrentCity
-        } yield {
-          cc.loggingService.insert(user.userId, request.ipAddress, s"Visit_AdminUserDashboard_User=$username")
-          Ok(
-            views.html.userProfile(commonData, "Sidewalk - Dashboard", request.identity, user, tags, userProfileData,
-              Some(adminData))
-          )
-        }
-      case _ => Future.failed(new IdentityNotFoundException("Username not found."))
-    }
-  }
 
   /**
    * Loads the page that shows a single label with a search box to view others.
@@ -248,74 +225,100 @@ class AdminController @Inject() (
   }
 
   /**
-   * Updates high_quality_manual and high_quality in the database for the given user.
+   * Saves the admin-editable account settings for another user in one request, from the Manage user tab of their dashboard
+   * (`/admin/user/:username/admin`): username, role, team, manual quality flag, service-hours opt-in, the two privacy
+   * flags, and (on infra3D deployments) infra3D access.
+   *
+   * Every field is required except `infra3dAccess`, whose absence means "not touching it". Permission rules — an
+   * Owner can't be changed, only an Owner can set an admin's quality, only someone with infra3D access can grant it —
+   * are all checked before anything is written, so a rejected save applies nothing. Role and quality changes log
+   * `UpdateRole_*` / `UpdateUserManualQuality_*` beside the save event, matching `setUserRole`.
    */
-  def setUserQualityManual = cc.securityService.SecuredAction(WithAdmin(), parse.json) { implicit request =>
-    val submission = request.body.validate[UserQualitySubmission]
-    submission.fold(
-      errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
-      submission => {
-        val userId: String                  = submission.userId
-        val newUserQuality: Option[Boolean] = submission.userQualityManual
+  def saveUserSettings = cc.securityService.SecuredAction(WithAdmin(), parse.json) { implicit request =>
+    val body             = request.body
+    val userId           = (body \ "userId").asOpt[String].getOrElse("")
+    val username         = (body \ "username").asOpt[String].map(_.trim).getOrElse("")
+    val role             = (body \ "role").asOpt[String].getOrElse("")
+    val teamId           = (body \ "teamId").asOpt[Int].filter(_ > 0)
+    val qualityManual    = (body \ "highQualityManual").asOpt[Boolean]
+    val communityService = (body \ "communityService").asOpt[Boolean].getOrElse(false)
+    val onLeaderboard    = (body \ "onLeaderboard").asOpt[Boolean].getOrElse(true)
+    val publicProfile    = (body \ "publicProfile").asOpt[Boolean].getOrElse(true)
+    val infra3dAccess    = (body \ "infra3dAccess").asOpt[Boolean]
+    val admin            = request.identity
 
-        authenticationService.findByUserId(userId) flatMap {
-          case Some(user) =>
-            if (user.role == "Owner") {
-              Future.successful(
-                BadRequest(Json.obj("status" -> "Error", "message" -> "Owner's quality cannot be changed"))
-              )
-            } else if (user.role == "Administrator" && request.identity.role != "Owner") {
-              Future.successful(
-                BadRequest(Json.obj("status" -> "Error", "message" -> "Admin's quality can only be set by an Owner"))
-              )
-            } else {
-              // Update the high_quality_manual and high_quality columns. Recomputes high_quality if input is None.
-              userService
-                .setManualUserQuality(userId, newUserQuality)
-                .map {
-                  case Some(newQuality) =>
-                    val logText = s"UpdateUserManualQuality_User=${userId}_Manual=${newUserQuality}_New=$newQuality"
-                    cc.loggingService.insert(request.identity.userId, request.ipAddress, logText)
-                    Ok(Json.obj("new_user_quality" -> newQuality))
-                  case None => BadRequest(Json.obj("status" -> "Error", "message" -> "Likely an excluded user"))
-                }
-            }
-          case None =>
-            Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> "No user has this user_id")))
-        }
-      }
-    )
-  }
+    def reject(message: String) = Future.successful(BadRequest(Json.obj("success" -> false, "error" -> message)))
 
-  /**
-   * Updates <city>_infra3d_access column in the database for the given user.
-   */
-  def setInfra3dAccess = cc.securityService.SecuredAction(WithAdmin(), parse.json) { implicit request =>
-    val submission = request.body.validate[UserInfra3dAccess]
-    submission.fold(
-      errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
-      submission => {
-        authenticationService.findByUserId(submission.userId) flatMap {
-          case Some(user) =>
-            if (user.role == "Owner") {
-              Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> "Owner access can't be changed")))
-            } else if (!request.identity.infra3dAccess) {
-              Future.successful(
-                BadRequest(Json.obj("status" -> "Error", "message" -> "Lacking permission to grant access"))
-              )
-            } else {
-              authenticationService
-                .setInfra3dAccess(submission.userId, submission.access)
-                .map { rowsUpdated =>
-                  if (rowsUpdated > 0) Ok(Json.obj("message" -> "infra3D access updated successfully"))
-                  else BadRequest(Json.obj("error" -> "Failed to update infra3D access"))
-                }
-            }
-          case None =>
-            Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> "No user has this user_id")))
+    authenticationService.findByUserId(userId).flatMap {
+      case None       => reject("No user has this user ID")
+      case Some(user) =>
+        userService.getUserStats(userId).flatMap { stats =>
+          val roleChanged    = role != user.role
+          val qualityChanged = stats.exists(_.highQualityManual != qualityManual)
+          val infra3dChanged = infra3dAccess.exists(_ != user.infra3dAccess)
+          val isOwner        = user.role == "Owner"
+
+          // Fail-loud checks, ordered from the broadest refusal to the narrowest; nothing is written past them.
+          val firstError: Option[String] =
+            if ((roleChanged || qualityChanged || infra3dChanged) && isOwner)
+              Some("An Owner's settings can't be changed")
+            else if (roleChanged && !RoleTable.ADMIN_ASSIGNABLE_ROLES.contains(role)) Some(s"Can't assign role $role")
+            else if (roleChanged && !RoleTable.ADMIN_ASSIGNABLE_ROLES.contains(user.role))
+              Some(s"A ${user.role} account's role can't be changed")
+            else if (qualityChanged && user.role == "Administrator" && admin.role != "Owner")
+              Some("An admin's quality can only be set by an Owner")
+            else if (infra3dChanged && !admin.infra3dAccess) Some("Only a user with infra3D access can grant it")
+            else None
+
+          firstError match {
+            case Some(message) => reject(message)
+            case None          =>
+              // Only the username can still be rejected after the checks above, so it goes first.
+              val usernameResult: Future[Either[String, Unit]] =
+                if (username.nonEmpty && username != user.username)
+                  userService.changeUsername(userId, username).map(_.map(_ => ()))
+                else Future.successful(Right(()))
+              usernameResult.flatMap {
+                case Left(errorKey) => reject(Messages(errorKey))
+                case Right(_)       =>
+                  for {
+                    _ <- userService.updatePrivacySettings(userId, onLeaderboard, publicProfile)
+                    _ <- teamId.map(id => userService.setUserTeam(userId, id)).getOrElse(userService.leaveTeam(userId))
+                    _ <- authenticationService.setCommunityServiceStatus(userId, communityService)
+                    _ <- if (roleChanged) authenticationService.updateRole(userId, role) else Future.successful(0)
+                    _ <- infra3dAccess
+                      .filter(_ => infra3dChanged)
+                      .map(access => authenticationService.setInfra3dAccess(userId, access))
+                      .getOrElse(Future.successful(0))
+                    newQuality <-
+                      if (qualityChanged) userService.setManualUserQuality(userId, qualityManual)
+                      else Future.successful(stats.map(_.highQuality))
+                  } yield {
+                    cc.loggingService.insert(
+                      admin.userId,
+                      request.ipAddress,
+                      s"Click_module=AdminSaveUserSettings_User=$userId"
+                    )
+                    if (roleChanged) {
+                      cc.loggingService
+                        .insert(
+                          admin.userId,
+                          request.ipAddress,
+                          s"UpdateRole_User=${userId}_Old=${user.role}_New=$role"
+                        )
+                    }
+                    if (qualityChanged) {
+                      val logText = s"UpdateUserManualQuality_User=${userId}_Manual=${qualityManual}_New=$newQuality"
+                      cc.loggingService.insert(admin.userId, request.ipAddress, logText)
+                    }
+                    // The page's URL is keyed by username, so the client needs the saved name to re-point itself.
+                    val savedName = if (username.nonEmpty) username else user.username
+                    Ok(Json.obj("success" -> true, "high_quality" -> newQuality, "username" -> savedName))
+                  }
+              }
+          }
         }
-      }
-    )
+    }
   }
 
   /* Clears all cached values. Should only be called from the Admin page. */

@@ -3,7 +3,7 @@ package service
 import com.google.inject.ImplementedBy
 import models.audit.{AuditTaskComment, AuditTaskInteractionTable, AuditTaskTable, OutdatedStreetForUser}
 import models.label.{LabelLocation, LabelTable}
-import models.mission.{MissionTable, RegionalMission}
+import models.mission.MissionTable
 import models.region.Region
 import models.street.StreetEdge
 import models.user._
@@ -169,12 +169,11 @@ private[service] case class CrossCityFanOut(
     liveMeters: Double
 )
 
+/** The admin-only additions to a user's dashboard (`/admin/user/:username/admin`). */
 case class AdminUserProfileData(
     currentRegion: Option[Region],
-    numCompletedAudits: Int,
     hoursWorked: Double,
     userStats: UserStat,
-    completedMissions: Seq[RegionalMission],
     exploreComments: Seq[AuditTaskComment]
 )
 
@@ -325,6 +324,7 @@ trait UserService {
    * @return The user's new value in the high_quality column; None if user marked excluded or no user found
    */
   def setManualUserQuality(userId: String, highQualityManual: Option[Boolean]): Future[Option[Boolean]]
+  def getUserStats(userId: String): Future[Option[UserStat]]
   def getPrivacySettings(userId: String): Future[Option[(Boolean, Boolean)]]
   def updatePrivacySettings(userId: String, onLeaderboard: Boolean, publicProfile: Boolean): Future[Int]
   def getPublicProfile(
@@ -364,7 +364,7 @@ trait UserService {
   /**
    * Gets one mapper's own totals in every city they've contributed to (#4496).
    *
-   * @param userId       The mapper, always the signed-in viewer — this is a self-view, not a public profile.
+   * @param userId       The mapper: the signed-in viewer, or the user an admin is looking at — never a public profile.
    * @param metricSystem Whether to report distances in kilometers rather than miles.
    * @param lang         Language for city display names.
    * @return             `Some` of their breakdown, `Some` with an empty city list for an account that has yet to
@@ -444,6 +444,8 @@ class UserServiceImpl @Inject() (
       }
     } yield currUserStats.map(_.highQuality))
   }
+
+  def getUserStats(userId: String): Future[Option[UserStat]] = db.run(userStatTable.getStatsFromUserId(userId))
 
   /**
    * Calls functions to update all columns in user_stat table for the given user.

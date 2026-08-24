@@ -3,7 +3,7 @@ package service
 import com.google.inject.ImplementedBy
 import models.audit._
 import models.label.{LabelAiAssessmentTable, LabelCount, LabelTable, TagCount}
-import models.mission.{MissionTable, RegionalMission}
+import models.mission.MissionTable
 import models.pano.PanoSource.PanoSource
 import models.region.Region
 import models.street.StreetEdgeTable
@@ -435,18 +435,16 @@ class AdminServiceImpl @Inject() (
     val (onLeaderboard, publicProfile)          = configService.defaultPrivacyFlags
     val profileData: DBIO[AdminUserProfileData] = for {
       currRegion: Option[Region] <- userCurrentRegionTable.getCurrentRegion(userId)
-      completedAudits: Int       <- auditTaskTable.countCompletedAuditsForUser(userId)
       hoursWorked: Double        <- auditTaskInteractionTable.getHoursAuditingAndValidating(userId)
       // Insert a user_stat if the user hasn't visited this server before, allowing this page to load. Unconditional
       // rather than read-then-insert: this comprehension isn't transactional, so two admins opening the page at once
       // would both read "no row" and both insert. The privacy flags must be the deployment's defaults, since the user
       // hasn't opted into anything — and with UNIQUE (user_id) in place this is the only row they'll ever get here.
-      _                                       <- userStatTable.insertIfNew(userId, onLeaderboard, publicProfile)
-      userStats: UserStat                     <- userStatTable.getStatsFromUserId(userId).map(_.get)
-      completedMissions: Seq[RegionalMission] <- missionTable.selectCompletedRegionalMission(userId)
-      comments: Seq[AuditTaskComment]         <- auditTaskCommentTable.all(userId)
+      _                               <- userStatTable.insertIfNew(userId, onLeaderboard, publicProfile)
+      userStats: UserStat             <- userStatTable.getStatsFromUserId(userId).map(_.get)
+      comments: Seq[AuditTaskComment] <- auditTaskCommentTable.forUser(userId)
     } yield {
-      AdminUserProfileData(currRegion, completedAudits, hoursWorked, userStats, completedMissions, comments)
+      AdminUserProfileData(currRegion, hoursWorked, userStats, comments)
     }
     db.run(profileData)
   }
