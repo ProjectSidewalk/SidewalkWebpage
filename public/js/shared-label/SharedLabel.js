@@ -63,8 +63,6 @@ class SharedLabelPage {
         viewerType: this.#viewerType(),
         viewerAccessToken: this.#data.imageryAccessToken,
         currUsername: this.#data.username,
-        // Admin-mode validations record LabelSearchPage as their source, keeping the admin surface
-        // distinguishable from public share-page validations.
         panoOverlaySource: admin ? 'LabelSearchPage' : 'SharedLabelImage',
         voteColumnSource: admin ? 'LabelSearchPage' : 'SharedLabelThumbs',
         showLabelMapLink: true,

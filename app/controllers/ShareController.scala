@@ -88,9 +88,7 @@ class ShareController @Inject() (
   }
 
   /**
-   * The admin's view of a single label at `/admin/label/:labelId`: the same spotlight page, with the label detail
-   * card in admin mode (username, audit task, previous validations, and the task's work-quality flags). Admin-only,
-   * since the card's admin payload carries personal identifiers.
+   * Admin view of a label at /admin/label/:labelId: same as /label/:labelId, with the label detail card in admin mode.
    *
    * @param labelId The label to show.
    * @return `Ok` with the spotlight page in admin mode, or `NotFound` if no such label exists.
