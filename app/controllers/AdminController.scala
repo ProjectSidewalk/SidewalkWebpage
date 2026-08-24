@@ -2,13 +2,12 @@ package controllers
 
 import actor._
 import controllers.base._
-import controllers.helper.ControllerUtils.isAdmin
 import formats.json.AdminFormats._
 import formats.json.LabelFormats._
 import formats.json.UserFormats._
 import models.auth.{DefaultEnv, WithAdmin, WithOwner}
 import models.label.LabelTypeEnum
-import models.user.{RoleTable, SidewalkUserWithRole}
+import models.user.RoleTable
 import models.utils.JobRunTrigger
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.dispatch.Dispatcher
@@ -45,43 +44,11 @@ class AdminController @Inject() (
     userService: service.UserService,
     jobRunService: JobRunService,
     actorSystem: ActorSystem
-)(implicit ec: ExecutionContext, assets: AssetsFinder)
+)(implicit ec: ExecutionContext)
     extends CustomBaseController(cc) {
 
   implicit val implicitConfig: Configuration = config
   private val logger                         = Logger(this.getClass)
-
-  /**
-   * Loads the page that shows a single label with a search box to view others.
-   */
-  def label(labelId: Int) = cc.securityService.SecuredAction { implicit request =>
-    configService.getCommonPageData(request2Messages.lang).map { commonData =>
-      val user: SidewalkUserWithRole = request.identity
-      val admin: Boolean             = isAdmin(request.identity)
-      cc.loggingService.insert(user.userId, request.ipAddress, s"Visit_LabelView_Label=${labelId}_Admin=$admin")
-      Ok(views.html.admin.label(commonData, "Sidewalk - LabelView", user, admin, labelId))
-    }
-  }
-
-  /**
-   * Loads the page that replays an audit task.
-   */
-  def task(taskId: Int) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-    for {
-      commonData <- configService.getCommonPageData(request2Messages.lang)
-      maybeTask  <- adminService.findAuditTask(taskId)
-    } yield {
-      val user: SidewalkUserWithRole = request.identity
-      maybeTask match {
-        case Some(task) =>
-          cc.loggingService.insert(user.userId, request.ipAddress, s"Visit_AdminTask_TaskId=$taskId")
-          Ok(views.html.admin.task(commonData, "Sidewalk - TaskView", user, task))
-        case None =>
-          cc.loggingService.insert(user.userId, request.ipAddress, s"Visit_AdminTask_TaskId=${taskId}_NotFound")
-          NotFound(s"Task with ID $taskId not found.")
-      }
-    }
-  }
 
   /**
    * Get a list of all labels for the admin page, as a GeoJSON FeatureCollection of points.
@@ -132,14 +99,6 @@ class AdminController @Inject() (
     adminService.getAuditedStreetsWithTimestamps.map { streets =>
       Ok(Json.obj("type" -> "FeatureCollection", "features" -> streets.map(auditedStreetWithTimestampToGeoJSON)))
     }
-  }
-
-  /**
-   * Get the list of interactions logged for the given audit task. Used to reconstruct the task for playback.
-   */
-  def getAnAuditTaskPath(taskId: Int) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
-    adminService.getAuditInteractionsWithLabels(taskId).map { actions => Ok(auditTaskInteractionsToGeoJSON(actions)) }
   }
 
   /**

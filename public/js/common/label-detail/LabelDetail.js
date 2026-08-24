@@ -698,11 +698,7 @@ class LabelDetail {
     // Fill in some admin-only fields at the bottom if applicable.
     if (this.#admin) {
       this.#taskId = meta.audit_task_id;
-
-      const taskLink = document.createElement('a');
-      taskLink.href = `/admin/task/${meta.audit_task_id}`;
-      taskLink.textContent = meta.audit_task_id;
-      els.adminTask.replaceChildren(taskLink);
+      els.adminTask.textContent = meta.audit_task_id;
 
       const userLink = document.createElement('a');
       userLink.href = `/admin/user/${encodeURI(meta.username)}`;
