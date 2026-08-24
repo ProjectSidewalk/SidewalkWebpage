@@ -113,7 +113,8 @@ class AdminController @Inject() (
             labelMetadataWithValidationToJsonAdmin(metadata, adminData.head) ++
               Json.obj(
                 "crop_url"         -> panoDataService.cropUrl(metadata.labelId, metadata.labelType),
-                "backup_image_url" -> panoDataService.backupImageUrl(metadata.panoId)
+                "backup_image_url" -> panoDataService.backupImageUrl(metadata.panoId),
+                "can_edit"         -> true
               )
           )
         }

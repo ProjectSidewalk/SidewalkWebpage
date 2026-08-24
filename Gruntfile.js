@@ -71,6 +71,7 @@ module.exports = function (grunt) {
           'public/js/common/ConfirmDialog.js',
           'public/js/common/label-detail/StoryComposer.js',
           'public/js/common/label-detail/StorySection.js',
+          'public/js/common/label-detail/TagEditor.js',
           'public/js/common/label-detail/LabelDetail.js',
           'public/js/common/share/ShareWidget.js',
           // The shared filter sidebar owns the sidebar controls; GalleryFilter is the Gallery's adapter for it.
@@ -124,6 +125,7 @@ module.exports = function (grunt) {
           'public/js/common/ConfirmDialog.js',
           'public/js/common/label-detail/StoryComposer.js',
           'public/js/common/label-detail/StorySection.js',
+          'public/js/common/label-detail/TagEditor.js',
           'public/js/common/label-detail/LabelDetail.js',
           'public/js/common/share/ShareWidget.js',
           'public/js/shared-label/*.js'
