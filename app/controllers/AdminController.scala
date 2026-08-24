@@ -1,8 +1,7 @@
 package controllers
 
-import actor.{CheckImageExpiryActor, FunnelStatActor, OsmWayRefreshActor, RecalculateStreetPriorityActor, UserStatActor}
+import actor._
 import controllers.base._
-import controllers.helper.ControllerUtils
 import controllers.helper.ControllerUtils.isAdmin
 import formats.json.AdminFormats._
 import formats.json.LabelFormats._
@@ -14,7 +13,8 @@ import models.utils.JobRunTrigger
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.dispatch.Dispatcher
 import play.api.cache.AsyncCacheApi
-import play.api.libs.json.{JsArray, JsError, JsObject, Json}
+import play.api.i18n.Messages
+import play.api.libs.json._
 import play.api.{Configuration, Logger}
 import play.silhouette.api.Silhouette
 import play.silhouette.impl.exceptions.IdentityNotFoundException
@@ -50,29 +50,6 @@ class AdminController @Inject() (
 
   implicit val implicitConfig: Configuration = config
   private val logger                         = Logger(this.getClass)
-
-  /**
-   * Loads the admin version of the user dashboard page.
-   */
-  def userProfile(username: String) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-    authenticationService.findByUsername(username).flatMap {
-      case Some(user) =>
-        val metricSystem: Boolean = ControllerUtils.isMetric
-        for {
-          userProfileData: UserProfileData <- userService.getUserProfileData(user.userId, metricSystem)
-          adminData                        <- adminService.getAdminUserProfileData(user.userId)
-          commonData                       <- configService.getCommonPageData(request2Messages.lang)
-          tags                             <- labelService.getTagsForCurrentCity
-        } yield {
-          cc.loggingService.insert(user.userId, request.ipAddress, s"Visit_AdminUserDashboard_User=$username")
-          Ok(
-            views.html.userProfile(commonData, "Sidewalk - Dashboard", request.identity, user, tags, userProfileData,
-              Some(adminData))
-          )
-        }
-      case _ => Future.failed(new IdentityNotFoundException("Username not found."))
-    }
-  }
 
   /**
    * Loads the page that shows a single label with a search box to view others.
@@ -248,74 +225,112 @@ class AdminController @Inject() (
   }
 
   /**
-   * Updates high_quality_manual and high_quality in the database for the given user.
+   * Saves the admin-editable account settings for another user in one request, from the Manage user tab of their
+   * dashboard (`/admin/user/:username/admin`): username, role, team, manual quality flag, service-hours opt-in, the two
+   * privacy flags, and (on infra3D deployments) infra3D access.
+   *
+   * Every setting is required (a missing one is a 400, never a reset to a default). Every check that can refuse the
+   * save — an Owner can't be changed at all, only an Owner can set an admin's quality, only someone with infra3D access
+   * can grant it, the username rules — runs before the first write, so a refused save applies nothing.
    */
-  def setUserQualityManual = cc.securityService.SecuredAction(WithAdmin(), parse.json) { implicit request =>
-    val submission = request.body.validate[UserQualitySubmission]
-    submission.fold(
-      errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
-      submission => {
-        val userId: String                  = submission.userId
-        val newUserQuality: Option[Boolean] = submission.userQualityManual
+  def saveUserSettings = cc.securityService.SecuredAction(WithAdmin(), parse.json) { implicit request =>
+    val admin                   = request.identity
+    def reject(message: String) = Future.successful(BadRequest(Json.obj("success" -> false, "error" -> message)))
 
-        authenticationService.findByUserId(userId) flatMap {
+    request.body.validate[AdminUserSettingsSubmission] match {
+      case JsError(errors) => reject(s"Invalid settings: ${JsError.toJson(errors).keys.mkString(", ")}")
+      case JsSuccess(s, _) =>
+        val userId = s.userId
+        val teamId = s.teamId.filter(_ > 0)
+        authenticationService.findByUserId(userId).flatMap {
+          case None       => reject("No user has this user ID")
           case Some(user) =>
-            if (user.role == "Owner") {
-              Future.successful(
-                BadRequest(Json.obj("status" -> "Error", "message" -> "Owner's quality cannot be changed"))
-              )
-            } else if (user.role == "Administrator" && request.identity.role != "Owner") {
-              Future.successful(
-                BadRequest(Json.obj("status" -> "Error", "message" -> "Admin's quality can only be set by an Owner"))
-              )
-            } else {
-              // Update the high_quality_manual and high_quality columns. Recomputes high_quality if input is None.
-              userService
-                .setManualUserQuality(userId, newUserQuality)
-                .map {
-                  case Some(newQuality) =>
-                    val logText = s"UpdateUserManualQuality_User=${userId}_Manual=${newUserQuality}_New=$newQuality"
-                    cc.loggingService.insert(request.identity.userId, request.ipAddress, logText)
-                    Ok(Json.obj("new_user_quality" -> newQuality))
-                  case None => BadRequest(Json.obj("status" -> "Error", "message" -> "Likely an excluded user"))
-                }
-            }
-          case None =>
-            Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> "No user has this user_id")))
-        }
-      }
-    )
-  }
+            for {
+              // A user who has never visited this city has no user_stat row yet; without one the privacy and quality
+              // writes below would match nothing and the save would report success having changed nothing.
+              _        <- authenticationService.addUserStatEntryIfNew(userId)
+              stats    <- userService.getUserStats(userId)
+              currTeam <- userService.getUserTeam(userId)
+              response <- {
+                val usernameChanged = s.username != user.username
+                val roleChanged     = s.role != user.role
+                val teamChanged     = currTeam.map(_.teamId) != teamId
+                val serviceChanged  = s.communityService != user.communityService
+                val privacyChanged  =
+                  stats.exists(st => st.onLeaderboard != s.onLeaderboard || st.publicProfile != s.publicProfile)
+                val qualityChanged = stats.exists(_.highQualityManual != s.highQualityManual)
+                val infra3dChanged = s.infra3dAccess.exists(_ != user.infra3dAccess)
+                val anyChanged     = usernameChanged || roleChanged || teamChanged || serviceChanged ||
+                  privacyChanged || qualityChanged || infra3dChanged
 
-  /**
-   * Updates <city>_infra3d_access column in the database for the given user.
-   */
-  def setInfra3dAccess = cc.securityService.SecuredAction(WithAdmin(), parse.json) { implicit request =>
-    val submission = request.body.validate[UserInfra3dAccess]
-    submission.fold(
-      errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
-      submission => {
-        authenticationService.findByUserId(submission.userId) flatMap {
-          case Some(user) =>
-            if (user.role == "Owner") {
-              Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> "Owner access can't be changed")))
-            } else if (!request.identity.infra3dAccess) {
-              Future.successful(
-                BadRequest(Json.obj("status" -> "Error", "message" -> "Lacking permission to grant access"))
-              )
-            } else {
-              authenticationService
-                .setInfra3dAccess(submission.userId, submission.access)
-                .map { rowsUpdated =>
-                  if (rowsUpdated > 0) Ok(Json.obj("message" -> "infra3D access updated successfully"))
-                  else BadRequest(Json.obj("error" -> "Failed to update infra3D access"))
+                // Ordered from the broadest refusal to the narrowest.
+                val firstError: Option[String] =
+                  if (anyChanged && user.role == "Owner") Some("An Owner's settings can't be changed")
+                  else if (roleChanged && !RoleTable.ADMIN_ASSIGNABLE_ROLES.contains(s.role))
+                    Some(s"Can't assign role ${s.role}")
+                  else if (roleChanged && !RoleTable.ADMIN_ASSIGNABLE_ROLES.contains(user.role))
+                    Some(s"A ${user.role} account's role can't be changed")
+                  else if (qualityChanged && user.role == "Administrator" && admin.role != "Owner")
+                    Some("An admin's quality can only be set by an Owner")
+                  else if (infra3dChanged && !admin.infra3dAccess) Some("Only a user with infra3D access can grant it")
+                  else None
+
+                val usernameCheck: Future[Either[String, Unit]] =
+                  if (firstError.isDefined) Future.successful(Left(firstError.get))
+                  else if (usernameChanged) userService.validateUsername(userId, s.username).map {
+                    case Left(errorKey) => Left(Messages(errorKey))
+                    case Right(_)       => Right(())
+                  }
+                  else Future.successful(Right(()))
+
+                usernameCheck.flatMap {
+                  case Left(message) => reject(message)
+                  case Right(_)      =>
+                    for {
+                      _ <- userService.updatePrivacySettings(userId, s.onLeaderboard, s.publicProfile)
+                      _ <- teamId
+                        .map(id => userService.setUserTeam(userId, id))
+                        .getOrElse(userService.leaveTeam(userId))
+                      _ <- authenticationService.setCommunityServiceStatus(userId, s.communityService)
+                      _ <- if (roleChanged) authenticationService.updateRole(userId, s.role) else Future.successful(0)
+                      _ <- s.infra3dAccess
+                        .filter(_ => infra3dChanged)
+                        .map(access => authenticationService.setInfra3dAccess(userId, access))
+                        .getOrElse(Future.successful(0))
+                      newQuality <-
+                        if (qualityChanged) userService.setManualUserQuality(userId, s.highQualityManual)
+                        else Future.successful(stats.map(_.highQuality))
+                      _ <-
+                        if (usernameChanged) userService.changeUsername(userId, s.username)
+                        else Future.successful(Right(user.username))
+                    } yield {
+                      cc.loggingService.insert(
+                        admin.userId,
+                        request.ipAddress,
+                        s"Click_module=AdminSaveUserSettings_User=$userId"
+                      )
+                      if (roleChanged) {
+                        cc.loggingService.insert(
+                          admin.userId,
+                          request.ipAddress,
+                          s"UpdateRole_User=${userId}_Old=${user.role}_New=${s.role}"
+                        )
+                      }
+                      if (qualityChanged) {
+                        cc.loggingService.insert(
+                          admin.userId,
+                          request.ipAddress,
+                          s"UpdateUserManualQuality_User=${userId}_Manual=${s.highQualityManual}_New=$newQuality"
+                        )
+                      }
+                      // The page's URL is keyed by username, so the client needs the saved name to re-point itself.
+                      Ok(Json.obj("success" -> true, "high_quality" -> newQuality, "username" -> s.username))
+                    }
                 }
-            }
-          case None =>
-            Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> "No user has this user_id")))
+              }
+            } yield response
         }
-      }
-    )
+    }
   }
 
   /* Clears all cached values. Should only be called from the Admin page. */

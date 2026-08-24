@@ -12,6 +12,7 @@
  */
 class CrossCityStats {
   #section;
+  #statsUrl;
   #currentCityName;
   #mapboxToken;
 
@@ -19,10 +20,13 @@ class CrossCityStats {
    * @param {HTMLElement} section - The #ud-cities-section element.
    * @param {Object} opts
    * @param {string} opts.currentCityName - Display name of the deployment being viewed.
+   * @param {string} [opts.statsUrl='/userapi/crossCityStats'] - Endpoint to fetch; the admin's view of a user's
+   *     dashboard points it at that user's breakdown instead of the viewer's own.
    * @param {string} [opts.mapboxApiKey] - Mapbox token; without it the map is skipped and the rest still renders.
    */
   constructor(section, opts) {
     this.#section = section;
+    this.#statsUrl = opts.statsUrl || '/userapi/crossCityStats';
     this.#currentCityName = opts.currentCityName || '';
     this.#mapboxToken = opts.mapboxApiKey || '';
   }
@@ -31,7 +35,7 @@ class CrossCityStats {
   async render() {
     let data;
     try {
-      const res = await fetch('/userapi/crossCityStats', { headers: { Accept: 'application/json' } });
+      const res = await fetch(this.#statsUrl, { headers: { Accept: 'application/json' } });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       data = await res.json();
     } catch (e) {

@@ -43,7 +43,6 @@ POST    /signUp                                         controllers.UserControll
 POST    /authenticate/credentials                       controllers.UserController.authenticate()
 POST    /forgotPassword                                 controllers.UserController.submitForgottenPassword
 POST    /resetPassword                                  controllers.UserController.resetPassword(token: String)
-PUT     /updateVolunteerStatus                          controllers.UserController.updateVolunteerStatus(userId: String, communityService: Boolean)
 POST    /serviceHours/set                               controllers.UserController.setServiceHours(enabled: Boolean, next: Option[String] ?= None)
 
 # Security policy endpoints.
@@ -58,7 +57,7 @@ GET     /cityMapParams                                  controllers.ConfigContro
 GET     /admin                                          controllers.AdminDashboardController.overview
 GET     /admin/overview                                 controllers.AdminDashboardController.overview
 GET     /admin/coverage                                 controllers.AdminDashboardController.coverage
-GET     /admin/street-status                             controllers.AdminDashboardController.streetStatus
+GET     /admin/street-status                            controllers.AdminDashboardController.streetStatus
 GET     /admin/imagery                                  controllers.AdminDashboardController.imagery
 GET     /admin/label-map                                controllers.AdminDashboardController.labelMap
 GET     /admin/quality                                  controllers.AdminDashboardController.quality
@@ -70,7 +69,8 @@ GET     /admin/api-analytics                            controllers.AdminDashboa
 GET     /admin/management                               controllers.AdminDashboardController.management
 GET     /admin/across-cities                            controllers.AdminDashboardController.acrossCities
 GET     /admin/health                                   controllers.AdminDashboardController.health
-GET     /admin/user/:username                           controllers.AdminController.userProfile(username: String)
+GET     /admin/user/:username                           controllers.UserDashboardController.adminDashboard(username: String)
+GET     /admin/user/:username/admin                     controllers.UserDashboardController.adminUser(username: String)
 GET     /admin/task/:taskId                             controllers.AdminController.task(taskId: Int)
 GET     /admin/label/:labelId                           controllers.AdminController.label(labelId: Int)
 
@@ -82,7 +82,7 @@ GET     /adminapi/auditpath/:id                         controllers.AdminControl
 GET     /adminapi/auditedStreetTimes                    controllers.AdminController.getAuditedStreetsWithTimestamps
 GET     /adminapi/labels/all                            controllers.AdminController.getAllLabels
 GET     /adminapi/labelTags                             controllers.AdminController.getTagCounts
-GET     /adminapi/tagSeverity                            controllers.AdminController.getTagSeverityCounts
+GET     /adminapi/tagSeverity                           controllers.AdminController.getTagSeverityCounts
 GET     /adminapi/label/id/:labelId                     controllers.AdminController.getAdminLabelData(labelId: Int)
 GET     /adminapi/panos                                 controllers.api.LabelApiController.getAllPanoIdsWithLabels
 GET     /adminapi/labels/cvMetadata                     controllers.api.LabelApiController.getAllLabelMetadataForCV(filetype: Option[String], inline: Option[Boolean])
@@ -95,15 +95,14 @@ GET     /adminapi/getUserStats                          controllers.AdminControl
 GET     /adminapi/contributorLeaderboards               controllers.AdminController.getContributorLeaderboards(n: Int ?= 15)
 GET     /adminapi/funnels                               controllers.AdminController.getCurrentCityFunnels(window: Option[String])
 GET     /adminapi/apiAnalyticsBySource                  controllers.AdminController.getApiAnalyticsBySource(days: Int ?= 30)
-GET     /adminapi/activityByDay                          controllers.AdminController.getActivityByDay
-GET     /adminapi/humanVsAi                              controllers.AdminController.getHumanVsAiStats
+GET     /adminapi/activityByDay                         controllers.AdminController.getActivityByDay
+GET     /adminapi/humanVsAi                             controllers.AdminController.getHumanVsAiStats
 GET     /adminapi/overviewSummary                       controllers.AdminController.getOverviewSummary
 GET     /adminapi/cityScorecards                        controllers.AdminController.getCityScorecards
 GET     /adminapi/cityFunnels                           controllers.AdminController.getCityFunnels(window: Option[String])
 
 PUT     /adminapi/setRole                               controllers.AdminController.setUserRole
-PUT     /adminapi/setUserQualityManual                  controllers.AdminController.setUserQualityManual
-PUT     /adminapi/setInfra3dAccess                      controllers.AdminController.setInfra3dAccess
+PUT     /adminapi/saveUserSettings                      controllers.AdminController.saveUserSettings
 PUT     /adminapi/setTaskFlagsBeforeDate                controllers.AdminController.setTaskFlagsBeforeDate()
 PUT     /adminapi/setTaskFlag                           controllers.AdminController.setTaskFlag()
 PUT     /adminapi/updateTeamStatus/:teamId              controllers.AdminController.updateTeamStatus(teamId: Int)
@@ -177,8 +176,8 @@ GET     /leaderboard/preview                            controllers.UserDashboar
 GET     /userapi/public/:username/streets               controllers.UserProfileController.getPublicAuditedStreets(username: String)
 GET     /userapi/public/:username/labels                controllers.UserProfileController.getPublicSubmittedLabels(username: String)
 GET     /userapi/mistakes                               controllers.UserProfileController.getRecentMistakes(userId: String, n: Int ?= 5)
-POST    /userapi/mistakeVote                             controllers.UserProfileController.mistakeVote()
-POST    /userapi/mistakeNote                             controllers.UserProfileController.mistakeNote()
+POST    /userapi/mistakeVote                            controllers.UserProfileController.mistakeVote()
+POST    /userapi/mistakeNote                            controllers.UserProfileController.mistakeNote()
 
 GET     /userapi/basicStats                             controllers.UserProfileController.getBasicUserStats
 GET     /userapi/crossCityStats                         controllers.UserProfileController.getCrossCityStats
@@ -228,7 +227,10 @@ PUT     /userapi/stories/:storyId                       controllers.StoryControl
 DELETE  /userapi/stories/:storyId                       controllers.StoryController.deleteOwnStory(storyId: Int)
 GET     /userapi/stories/mine                           controllers.StoryController.getMyStories
 GET     /adminapi/stories                               controllers.StoryController.getRecentStories(n: Int ?= 50)
+GET     /adminapi/users/:userId/stories                 controllers.StoryController.getUserStories(userId: String)
+GET     /adminapi/users/:userId/crossCityStats          controllers.UserProfileController.adminGetCrossCityStats(userId: String)
 PUT     /adminapi/stories/:storyId/visibility           controllers.StoryController.setStoryVisibility(storyId: Int)
+PUT     /adminapi/stories/:storyId                      controllers.StoryController.adminUpdateStory(storyId: Int)
 DELETE  /adminapi/stories/:storyId                      controllers.StoryController.adminDeleteStory(storyId: Int)
 
 # AI

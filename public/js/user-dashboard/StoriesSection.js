@@ -14,7 +14,9 @@ class StoriesSection {
   #container;
   #labelPopup;
   #composer = null;
-  #maxTextLength = null; // From /userapi/stories/mine (backend source of truth), passed to the composer.
+  #storiesUrl;
+  #storyUrlFor;
+  #maxTextLength = null; // From the stories endpoint (backend source of truth), passed to the composer.
 
   /**
    * @param {HTMLElement} container - The #ud-stories element.
@@ -22,15 +24,21 @@ class StoriesSection {
    * @param {?Object} opts.labelPopup - A LabelPopup instance, or null (links then navigate to /label/:id).
    * @param {?HTMLDialogElement} [opts.composerDialog] - The dashboard's `.story-composer` dialog; without it, rows
    *     render without an Edit control (editing stays available on the label card).
-   * @param {string} [opts.currUsername] - The viewer's username, for the composer's post-as options.
+   * @param {string} [opts.currUsername] - The story owner's username, for the composer's post-as options.
+   * @param {string} [opts.storiesUrl] - Endpoint listing the stories; defaults to the signed-in user's own.
+   * @param {(storyId: number) => string} [opts.storyUrlFor] - URL a story is edited (PUT) and deleted (DELETE) at;
+   *     defaults to the owner's own-story routes. An admin's dashboard view points both at the /adminapi routes.
    */
   constructor(container, opts) {
     this.#container = container;
     this.#labelPopup = opts.labelPopup || null;
+    this.#storiesUrl = opts.storiesUrl || '/userapi/stories/mine';
+    this.#storyUrlFor = opts.storyUrlFor || ((storyId) => `/userapi/stories/${storyId}`);
     if (opts.composerDialog && typeof StoryComposer !== 'undefined') {
       this.#composer = new StoryComposer(opts.composerDialog, {
         currUsername: opts.currUsername,
         omitDashboardLink: true, // The privacy note's "from your dashboard" link would point at this very page.
+        updateUrlFor: this.#storyUrlFor,
       });
     }
     // A save can change any rendered field (text, photo, byline) — and can come from the label popup's own
@@ -53,7 +61,7 @@ class StoriesSection {
 
   async render() {
     try {
-      const res = await fetch('/userapi/stories/mine');
+      const res = await fetch(this.#storiesUrl);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       this.#maxTextLength = data.max_text_length;
@@ -189,7 +197,7 @@ class StoriesSection {
     if (!confirmed) return;
     window.logWebpageActivity?.(`Click_module=StoryDeleteClient_storyId=${story.story_id}`);
     try {
-      const res = await fetch(`/userapi/stories/${story.story_id}`, { method: 'DELETE' });
+      const res = await fetch(this.#storyUrlFor(story.story_id), { method: 'DELETE' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       row.remove();
       if (this.#container.childElementCount === 0) this.#renderStories([]);

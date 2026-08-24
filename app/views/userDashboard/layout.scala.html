@@ -1,4 +1,4 @@
-@(activePage: String, isSignedIn: Boolean = true)(content: Html)(implicit request: RequestHeader, assets: AssetsFinder, messages: Messages)
+@(activePage: String, isSignedIn: Boolean = true, adminSubject: Option[String] = None)(content: Html)(implicit request: RequestHeader, assets: AssetsFinder, messages: Messages)
 
 @*
 * Shared shell for the redesigned User Dashboard + Leaderboard. Deliberately reuses the API-docs/admin-dashboard
@@ -8,6 +8,8 @@
 *
 * Unlike the admin dashboard (one page per route), the user surface is a small set of pages — Dashboard and
 * Leaderboard — so the left nav lists those surfaces and the right TOC handles within-page section navigation.
+*
+* @param adminSubject The username of the user an admin is viewing (#4964); swaps the sidebar for the admin-view nav.
 *@
 
 <link rel="stylesheet" href="@assets.path("css/api-docs/api-docs.css")">
@@ -15,7 +17,7 @@
 <link rel="stylesheet" href="@assets.path("css/user-dashboard/user-dashboard.css")">
 
 <div class="api-container">
-  @userDashboard._sidebar(activePage, isSignedIn)
+  @userDashboard._sidebar(activePage, isSignedIn, adminSubject)
 
   <main class="api-content">
     @content
