@@ -11,9 +11,7 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 /**
- * v3 API for label edits (#2575): every change made to a label's severity or tags after it was placed, whether
- * submitted with a validation or made on its own from the label popup. JSON or CSV; no spatial formats, since an edit
- * carries no coordinates of its own.
+ * v3 API for label edits (#2575): every change made to a label's severity or tags after it was placed.
  */
 @Singleton
 class LabelEditApiController @Inject() (
@@ -57,8 +55,7 @@ class LabelEditApiController @Inject() (
           case None           =>
             Left(
               ApiError.invalidParameter(
-                s"Invalid source value '$s'. Must be one of the interface names, e.g. Validate, LabelMap, " +
-                  "GalleryExpanded.",
+                s"Invalid source value '$s'. Must be one of the interface names, e.g. Validate, LabelMap, GalleryExpanded.",
                 "source"
               )
             )

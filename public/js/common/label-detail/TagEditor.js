@@ -1,10 +1,9 @@
 /**
  * Inline tag editor for the label detail card (#2575).
  *
- * While open, it fills the card's tag area with every tag the label's type offers, as the toggle pills Explore's
- * context menu uses, with the label's current tags pressed. Toggling a tag that is mutually exclusive with a pressed
- * one releases the other, as in Explore. The host reads `selectedTags` when the user is done and decides whether
- * anything changed; the editor never talks to the server itself.
+ * While open, it fills the card's tag area with every tag the label's type offers with the label's current tags
+ * pressed. Toggling a tag that is mutually exclusive with a pressed. The host reads `selectedTags` when the user is
+ * done and decides whether anything changed; the editor never talks to the server itself.
  */
 class TagEditor {
   /** @type {?Promise<Map<string, Object[]>>} The city's tags grouped by label type; fetched once per page. */

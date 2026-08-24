@@ -607,7 +607,7 @@ button.label-detail__meta-cell:focus-visible {
 /* A light dim is the only cue that severity and tags aren't controls for a viewer who can't edit them (#2575). */
 .label-detail:not(.label-detail--editable) .label-detail__severity-faces,
 .label-detail:not(.label-detail--editable) .label-detail__tags {
-  opacity: 0.7;
+  opacity: 0.6;
 }
 
 /* Editable faces (#2575): dropping --static restores the shared hover wash; the ring marks keyboard focus. */

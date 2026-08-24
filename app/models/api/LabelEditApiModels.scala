@@ -30,8 +30,7 @@ case class LabelEditFiltersForApi(
 )
 
 /**
- * One edit to a label's severity and/or tags, for the API. Edits carry no geographic coordinates of their own (those
- * belong to the label), so there is no GeoJSON form.
+ * One edit to a label's severity and/or tags, for the API. No GeoJSON form, as edits carry no geographic coordinates.
  *
  * @param labelEditId       Unique identifier for the edit
  * @param labelId           The edited label

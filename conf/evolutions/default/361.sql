@@ -33,8 +33,7 @@ CREATE TABLE label_edit (
   CONSTRAINT label_edit_old_severity_check CHECK (old_severity IS NULL OR old_severity BETWEEN 1 AND 3),
   CONSTRAINT label_edit_new_severity_check CHECK (new_severity IS NULL OR new_severity BETWEEN 1 AND 3),
   -- An edit must change something, with tags compared as sets because their stored order is client-driven. The app
-  -- keeps this true by folding a user's consecutive edits to a label into one row and deleting the row if they net
-  -- out.
+  -- keeps this true by folding a user's consecutive edits to a label into one row and deleting the row if they net out.
   CONSTRAINT label_edit_not_noop_check
     CHECK (old_severity IS DISTINCT FROM new_severity OR NOT (old_tags <@ new_tags AND new_tags <@ old_tags))
 );

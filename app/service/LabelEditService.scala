@@ -51,10 +51,9 @@ trait LabelEditService {
 /**
  * Records changes to a label's severity and tags (#2575).
  *
- * Every change after a label's creation is a `label_edit` row (who, from what, to what, where) with a matching
- * `label_history` row recording the resulting state; the label row itself is updated alongside. An edit submitted
- * with a validation is linked to it and is unwound when the vote is; a standalone edit from the label popup stands
- * on its own, whatever the editor later votes.
+ * Every change after a label's creation is a `label_edit` row with a matching `label_history` row recording the
+ * resulting state; the label row itself is updated alongside. An edit submitted with a validation is linked to it and
+ * is unwound when the vote is; a standalone edit from the label popup stands on its own.
  */
 @Singleton
 class LabelEditServiceImpl @Inject() (

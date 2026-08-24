@@ -65,7 +65,6 @@ class LabelController @Inject() (
             Json.obj(
               "crop_url"         -> panoDataService.cropUrl(metadata.labelId, metadata.labelType),
               "backup_image_url" -> panoDataService.backupImageUrl(metadata.panoId),
-              // Mirrors LabelEditService.editLabel's authorization, so the popup shows edit controls only where they work.
               "can_edit" -> (metadata.fromCurrentUser || isAdmin(request.identity))
             )
         )
@@ -74,9 +73,8 @@ class LabelController @Inject() (
   }
 
   /**
-   * Edits a label's severity and tags from the label popup (#2575). Allowed to the labeler and to admins; the body
-   * is a `LabelEditSubmission`. Responds with the label's resulting severity and tags, which can differ from what
-   * was sent when tags invalid for the label type were dropped.
+   * Edits a label's severity and tags from the label popup (#2575). Allowed to the labeler and to admins. Responds
+   * with the label's resulting severity and tags, which can differ from what was sent if invalid tags were dropped.
    */
   def editLabel = cc.securityService.SecuredAction(parse.json) { implicit request =>
     request.body
