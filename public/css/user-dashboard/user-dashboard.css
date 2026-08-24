@@ -25,7 +25,9 @@
   font-size: var(--font-size-lg, 1.125rem);
   padding: 10px 16px;
 }
-.api-content .coverage-table tbody td { padding: 14px 16px; }
+
+.api-content .coverage-table tbody td,
+.api-content .coverage-table tbody th { padding: 14px 16px; }
 
 /* Leaderboard tables are capped at ~10 rows, so show them in full — no inner scroll (admin tables keep theirs), and
    overflow visible so the Accuracy header tooltip can escape the wrap. The responsive rule restores mobile scroll. */
@@ -35,9 +37,10 @@
 }
 
 /* The admin tables right-align every non-first column (numeric); on the leaderboard the name column — and the
-   all-time "Most active in" city column — are text, so left-align them. */
-.api-content .coverage-table td:nth-child(2),
-.api-content .coverage-table th:nth-child(2) { text-align: left; }
+   all-time "Most active in" city column — are text, so left-align them. Scoped to the ranked boards: other tables in
+   .api-content (the cities-you've-mapped one) carry a number in column 2 and want the right-aligned default. */
+.api-content .ud-lb-table td:nth-child(2),
+.api-content .ud-lb-table th:nth-child(2) { text-align: left; }
 
 /* The global board's "Top city" is a name, so it reads left-aligned like Mapper rather than right like the numbers. */
 .api-content .ud-lb-global td:nth-child(3),
@@ -1991,10 +1994,9 @@
 /* The table isn't sortable, so drop the admin header's click affordance. */
 .api-content .ud-cities-table thead th { cursor: default; }
 
-/* Counts and distances read down a column, so right-align them; the shell left-aligns column 2 for name columns. */
-.api-content .ud-cities-table td,
-.api-content .ud-cities-table th:not(:first-child) { text-align: right; }
-.api-content .ud-cities-table th:first-child { text-align: left; }
+/* The shell right-aligns every column past the first, which is what the counts and distances want. The city cell is a
+   row header, and a <th> defaults to centered, so it's the one that needs saying. */
+.api-content .ud-cities-table tbody th { text-align: left; }
 
 .ud-cities-current { background: var(--color-pine-100, #e4f4ee); }
 

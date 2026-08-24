@@ -339,7 +339,6 @@ class UserProfileController @Inject() (
                   "city_id"         -> city.cityId,
                   "city_name"       -> city.cityName,
                   "city_url"        -> city.cityUrl,
-                  "linkable"        -> city.linkable,
                   "is_current_city" -> city.isCurrentCity,
                   "labels"          -> city.labels,
                   "validations"     -> city.validations,

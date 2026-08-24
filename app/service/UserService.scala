@@ -105,9 +105,8 @@ case class GlobalLeaderboardEntry(
  *
  * @param cityId        Configured city id.
  * @param cityName      Short display name in the viewer's language.
- * @param cityUrl       That deployment's base URL; empty when the city isn't publicly launched.
- * @param linkable      Whether to offer a click-through. False for a city that isn't publicly launched — the mapper's
- *                      own numbers there are still theirs to see, but we don't publish an unlaunched URL.
+ * @param cityUrl       That deployment's base URL. Given even for a city that isn't publicly launched: this breakdown
+ *                      only lists cities the mapper has already contributed to (#4979).
  * @param isCurrentCity True for the deployment being viewed, so the UI can mark it.
  * @param labels        Labels placed here.
  * @param validations   Validations given here.
@@ -121,7 +120,6 @@ case class CityUserStat(
     cityId: String,
     cityName: String,
     cityUrl: String,
-    linkable: Boolean,
     isCurrentCity: Boolean,
     labels: Int,
     validations: Int,
@@ -686,13 +684,11 @@ class UserServiceImpl @Inject() (
                 val hasActivity: Boolean = row.labels > 0 || row.validations > 0 || row.missions > 0 || meters > 0d
                 if (!hasActivity) None
                 else {
-                  val isPublic: Boolean = city.visibility == "public"
                   Some(
                     CityUserStat(
                       city.cityId,
                       city.cityNameShort,
-                      if (isPublic) city.URL else "",
-                      isPublic,
+                      city.URL,
                       isCurrent,
                       row.labels,
                       row.validations,
