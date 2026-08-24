@@ -72,8 +72,7 @@ class UserDashboardController @Inject() (
   /**
    * The admin-only page beside a user's dashboard (`/admin/user/:username/admin`): account settings an admin may
    * change (username, role, team, manual quality, service hours, privacy, infra3D access), the stats the dashboard
-   * doesn't show (current neighborhood, hours worked, labeling frequency), marking their work by date, and their
-   * Explore comments.
+   * doesn't show (curr region, hours worked, labeling frequency), marking their work by date, & their Explore comments.
    *
    * @param username The user to administer; 404 if no such account.
    */

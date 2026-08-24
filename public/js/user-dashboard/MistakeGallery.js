@@ -16,8 +16,7 @@ class MistakeGallery {
      * @param {HTMLElement} [opts.seeAllEl] - Optional "see all" link, shown only when there are mistakes.
      * @param {object} [opts.labelPopup] - Optional shared LabelPopup instance; when present, clicking a card image
      *      opens the interactive pano + detail view and the vote/note controls are mirrored inside it.
-     * @param {boolean} [opts.readOnly=false] - Render the vote/note controls disabled. Set for an admin viewing
-     *      another user's dashboard: the vote/note endpoints act as the signed-in user, so a click would be rejected.
+     * @param {boolean} [opts.readOnly=false] - Render the vote/note controls disabled (used for admin view).
      */
   constructor(rootEl, opts) {
     this.root = rootEl;

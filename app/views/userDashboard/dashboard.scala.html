@@ -17,8 +17,7 @@
 * The signed-in user's dashboard. `user` is whose dashboard this is and `viewer` who is looking at it — the same
 * person except under `adminView` (#4964), where an admin sees `user`'s dashboard as they would: the same sections,
 * with the admin label popup, the vote/note and route-edit controls disabled (those endpoints act as the viewer), the
-* user's stories editable for moderation, and the sidebar swapped for the admin-view nav. The admin-only copy is
-* English-only by convention.
+* user's stories editable for moderation, and the sidebar swapped for the admin-view nav.
 *@
 
 @escapedName = @{ play.twirl.api.HtmlFormat.escape(user.username).toString }

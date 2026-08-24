@@ -140,8 +140,7 @@ class StoryController @Inject() (
     }
 
   /**
-   * An admin editing any user's story from that user's admin dashboard (content moderation). Same form contract and
-   * photo semantics as `updateOwnStory`, minus the ownership gate.
+   * An admin editing any user's story from that user's admin dashboard (content moderation).
    *
    * Parsed as `anyContent` rather than multipart: the body parser runs before the auth guard, and a typed multipart
    * parser answers a non-multipart body with a 400 — so an anonymous caller would get a parser error where every

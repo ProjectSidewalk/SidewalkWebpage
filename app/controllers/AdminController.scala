@@ -1,6 +1,6 @@
 package controllers
 
-import actor.{CheckImageExpiryActor, FunnelStatActor, OsmWayRefreshActor, RecalculateStreetPriorityActor, UserStatActor}
+import actor._
 import controllers.base._
 import controllers.helper.ControllerUtils.isAdmin
 import formats.json.AdminFormats._
@@ -14,7 +14,7 @@ import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.dispatch.Dispatcher
 import play.api.cache.AsyncCacheApi
 import play.api.i18n.Messages
-import play.api.libs.json.{JsArray, JsError, JsObject, JsSuccess, Json}
+import play.api.libs.json._
 import play.api.{Configuration, Logger}
 import play.silhouette.api.Silhouette
 import play.silhouette.impl.exceptions.IdentityNotFoundException
@@ -225,15 +225,13 @@ class AdminController @Inject() (
   }
 
   /**
-   * Saves the admin-editable account settings for another user in one request, from the Manage user tab of their dashboard
-   * (`/admin/user/:username/admin`): username, role, team, manual quality flag, service-hours opt-in, the two privacy
-   * flags, and (on infra3D deployments) infra3D access.
+   * Saves the admin-editable account settings for another user in one request, from the Manage user tab of their
+   * dashboard (`/admin/user/:username/admin`): username, role, team, manual quality flag, service-hours opt-in, the two
+   * privacy flags, and (on infra3D deployments) infra3D access.
    *
-   * The body is an `AdminUserSettingsSubmission`: every setting is required (a missing one is a 400, never a reset to
-   * a default). Every check that can refuse the save — an Owner can't be changed at all, only an Owner can set an
-   * admin's quality, only someone with infra3D access can grant it, the username rules — runs before the first write,
-   * so a refused save applies nothing. The writes themselves are separate statements, applied in order. Role and
-   * quality changes log `UpdateRole_*` / `UpdateUserManualQuality_*` beside the save event, matching `setUserRole`.
+   * Every setting is required (a missing one is a 400, never a reset to a default). Every check that can refuse the
+   * save — an Owner can't be changed at all, only an Owner can set an admin's quality, only someone with infra3D access
+   * can grant it, the username rules — runs before the first write, so a refused save applies nothing.
    */
   def saveUserSettings = cc.securityService.SecuredAction(WithAdmin(), parse.json) { implicit request =>
     val admin                   = request.identity
@@ -312,17 +310,18 @@ class AdminController @Inject() (
                         s"Click_module=AdminSaveUserSettings_User=$userId"
                       )
                       if (roleChanged) {
-                        cc.loggingService
-                          .insert(
-                            admin.userId,
-                            request.ipAddress,
-                            s"UpdateRole_User=${userId}_Old=${user.role}_New=${s.role}"
-                          )
+                        cc.loggingService.insert(
+                          admin.userId,
+                          request.ipAddress,
+                          s"UpdateRole_User=${userId}_Old=${user.role}_New=${s.role}"
+                        )
                       }
                       if (qualityChanged) {
-                        val logText =
+                        cc.loggingService.insert(
+                          admin.userId,
+                          request.ipAddress,
                           s"UpdateUserManualQuality_User=${userId}_Manual=${s.highQualityManual}_New=$newQuality"
-                        cc.loggingService.insert(admin.userId, request.ipAddress, logText)
+                        )
                       }
                       // The page's URL is keyed by username, so the client needs the saved name to re-point itself.
                       Ok(Json.obj("success" -> true, "high_quality" -> newQuality, "username" -> s.username))
