@@ -454,8 +454,8 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
           city.missions must be >= 0
           city.distance must be >= 0.0
           city.cityName.trim must not be empty
-          // A deployment that isn't publicly launched still reports the mapper's numbers, but publishes no URL.
-          if (city.linkable) city.cityUrl.trim must not be empty else city.cityUrl mustBe ""
+          // Every row is a city the mapper has worked in, so every row is linkable.
+          city.cityUrl.trim must not be empty
         }
         stats.totalLabels mustBe stats.cities.map(_.labels).sum
         stats.totalValidation mustBe stats.cities.map(_.validations).sum

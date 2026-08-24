@@ -381,7 +381,9 @@
 }
 .coverage-table th:not(:first-child), .coverage-table td:not(:first-child) { text-align: right; }
 
-.coverage-table tbody td {
+/* Row headers (<th scope="row">) are body cells too, so they carry the same padding and row rule as the data cells. */
+.coverage-table tbody td,
+.coverage-table tbody th {
   padding: 6px 10px;
   border-bottom: 1px solid var(--color-neutral-100);
 }

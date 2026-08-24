@@ -121,10 +121,9 @@ class CrossCityStats {
 
     const rows = cities.map((c) => {
       const name = CrossCityStats.#esc(c.city_name);
-      // A city that isn't publicly launched still shows the mapper's own numbers, but we don't publish its URL.
-      const nameCell = c.linkable && c.city_url
-        ? `<a href="${CrossCityStats.#esc(c.city_url)}/dashboard">${name}</a>`
-        : name;
+      // Cities that aren't publicly launched are linked here too: every row is a deployment this mapper has already
+      // worked in, so its URL is nothing they don't have (#4979).
+      const nameCell = c.city_url ? `<a href="${CrossCityStats.#esc(c.city_url)}/dashboard">${name}</a>` : name;
       const here = c.is_current_city
         ? `<span class="ud-cities-here">${CrossCityStats.#tEsc('dashboard:cities.you-are-here')}</span>`
         : '';
