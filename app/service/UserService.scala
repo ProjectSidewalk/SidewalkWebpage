@@ -105,8 +105,9 @@ case class GlobalLeaderboardEntry(
  *
  * @param cityId        Configured city id.
  * @param cityName      Short display name in the viewer's language.
- * @param cityUrl       That deployment's base URL. Given even for a city that isn't publicly launched: this breakdown
- *                      only lists cities the mapper has already contributed to (#4979).
+ * @param cityUrl       That deployment's base URL, given even for a city that isn't publicly launched: every row is a
+ *                      city this mapper has already worked in, so its URL is nothing they don't have. The global
+ *                      leaderboard withholds those same URLs because it shows one mapper's city to everyone (#4979).
  * @param isCurrentCity True for the deployment being viewed, so the UI can mark it.
  * @param labels        Labels placed here.
  * @param validations   Validations given here.
