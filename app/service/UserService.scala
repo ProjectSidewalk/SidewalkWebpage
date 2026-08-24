@@ -335,6 +335,7 @@ trait UserService {
       messages: Messages
   ): Future[Option[PublicProfile]]
   def resolveVisibleUser(username: String, isOwner: Boolean): Future[Option[String]]
+  def validateUsername(userId: String, newUsername: String): Future[Either[String, String]]
   def changeUsername(userId: String, newUsername: String): Future[Either[String, String]]
   def getUserTeam(userId: String): Future[Option[Team]]
   def setUserTeam(userId: String, newTeamId: Int): Future[Int]
@@ -522,17 +523,17 @@ class UserServiceImpl @Inject() (
   }
 
   /**
-   * Validates and applies a username change (#4373), enforcing the same rules the Settings UI advertises.
+   * Checks a requested username without applying it (#4373), enforcing the same rules the Settings UI advertises.
    *
    * Rejects (returns `Left(messageKey)`) empty/too-short/too-long names, disallowed characters, profanity, and names
-   * already taken by another user. A no-op change to the user's current name is allowed. Usernames are display-only
-   * (everything keys on user_id), so no downstream references need updating.
+   * already taken by another user. A no-op change to the user's current name is allowed. Separate from the write so a
+   * save that also touches other settings can refuse before it writes any of them.
    *
    * @param userId      The user changing their name.
    * @param newUsername The requested new username (leading/trailing whitespace is trimmed).
-   * @return `Right(trimmedUsername)` on success, or `Left(i18nKey)` if rejected — the caller localizes the key.
+   * @return `Right(trimmedUsername)` if acceptable, or `Left(i18nKey)` if rejected — the caller localizes the key.
    */
-  def changeUsername(userId: String, newUsername: String): Future[Either[String, String]] = {
+  def validateUsername(userId: String, newUsername: String): Future[Either[String, String]] = {
     val name = newUsername.trim
     // Bounds/charset come from UsernamePolicy so rename and sign-up enforce the same contract (#4375); the caller
     // localizes the returned i18n key at the HTTP boundary.
@@ -543,11 +544,23 @@ class UserServiceImpl @Inject() (
     else if (!ProfanityGuard.isClean(name))
       Future.successful(Left("dashboard.settings.username.error.allowed"))
     else
-      sidewalkUserTable.findByUsername(name).flatMap {
-        case Some(existing) if existing.userId != userId =>
-          Future.successful(Left("dashboard.settings.username.error.taken"))
-        case _ => db.run(sidewalkUserTable.updateUsername(userId, name)).map(_ => Right(name))
+      sidewalkUserTable.findByUsername(name).map {
+        case Some(existing) if existing.userId != userId => Left("dashboard.settings.username.error.taken")
+        case _                                           => Right(name)
       }
+  }
+
+  /**
+   * Validates and applies a username change. Usernames are display-only (everything keys on user_id), so no
+   * downstream references need updating.
+   *
+   * @return `Right(trimmedUsername)` on success, or `Left(i18nKey)` from [[validateUsername]] if rejected.
+   */
+  def changeUsername(userId: String, newUsername: String): Future[Either[String, String]] = {
+    validateUsername(userId, newUsername).flatMap {
+      case Right(name) => db.run(sidewalkUserTable.updateUsername(userId, name)).map(_ => Right(name))
+      case left        => Future.successful(left)
+    }
   }
 
   def getUserTeam(userId: String): Future[Option[Team]] = db.run(userTeamTable.getTeam(userId))

@@ -133,7 +133,7 @@ class StoryController @Inject() (
    */
   def updateOwnStory(storyId: Int) =
     cc.securityService.SecuredAction(parse.multipartFormData(photoMaxBytes + (1L << 20))) { implicit request =>
-      updateStory(storyId, "StoryUpdate") { edit =>
+      updateStory(storyId, "StoryUpdate", request.body) { edit =>
         storyService.updateOwnStory(storyId, request.identity.userId, edit.text, edit.displayNameMode, edit.photo,
           edit.removePhoto, edit.altText)
       }
@@ -142,13 +142,21 @@ class StoryController @Inject() (
   /**
    * An admin editing any user's story from that user's admin dashboard (content moderation). Same form contract and
    * photo semantics as `updateOwnStory`, minus the ownership gate.
+   *
+   * Parsed as `anyContent` rather than multipart: the body parser runs before the auth guard, and a typed multipart
+   * parser answers a non-multipart body with a 400 — so an anonymous caller would get a parser error where every
+   * other `/adminapi/` write gives a 401 (`RouteAuthPostureSpec`).
    */
   def adminUpdateStory(storyId: Int) =
-    cc.securityService.SecuredAction(WithAdmin(), parse.multipartFormData(photoMaxBytes + (1L << 20))) {
+    cc.securityService.SecuredAction(WithAdmin(), parse.anyContent(Some(photoMaxBytes + (1L << 20)))) {
       implicit request =>
-        updateStory(storyId, "AdminStoryUpdate") { edit =>
-          storyService.adminUpdateStory(storyId, edit.text, edit.displayNameMode, edit.photo, edit.removePhoto,
-            edit.altText)
+        request.body.asMultipartFormData match {
+          case None       => Future.successful(BadRequest(Json.obj("success" -> false, "error" -> "Expected a form")))
+          case Some(body) =>
+            updateStory(storyId, "AdminStoryUpdate", body) { edit =>
+              storyService.adminUpdateStory(storyId, edit.text, edit.displayNameMode, edit.photo, edit.removePhoto,
+                edit.altText)
+            }
         }
     }
 
@@ -165,10 +173,10 @@ class StoryController @Inject() (
    * Shared body of the two story-edit actions: the IP burst check, form parsing, the server-side `Click_module=<event>`
    * log, and mapping the service's outcome to a response. `save` is the owner-gated or admin service call.
    */
-  private def updateStory(storyId: Int, event: String)(save: StoryEdit => Future[Either[StoryRejection, Unit]])(implicit
-      request: SecuredRequest[DefaultEnv, MultipartFormData[TemporaryFile]]
-  ): Future[Result] = {
-    def dataPart(name: String): Option[String] = request.body.dataParts.get(name).flatMap(_.headOption)
+  private def updateStory(storyId: Int, event: String, body: MultipartFormData[TemporaryFile])(
+      save: StoryEdit => Future[Either[StoryRejection, Unit]]
+  )(implicit request: SecuredRequest[DefaultEnv, _]): Future[Result] = {
+    def dataPart(name: String): Option[String] = body.dataParts.get(name).flatMap(_.headOption)
 
     val ipKey   = s"story-submit:ip:${request.ipAddress}"
     val ipLimit = rateLimiter.limit("story-submit")
@@ -181,7 +189,7 @@ class StoryController @Inject() (
       val edit    = StoryEdit(
         text = dataPart("text").getOrElse(""),
         displayNameMode = dataPart("display_name_mode").getOrElse(Story.DisplayNameAnonymous),
-        photo = request.body.file("photo").map { filePart => StoryPhotoUpload(filePart.ref.path.toFile, altText) },
+        photo = body.file("photo").map { filePart => StoryPhotoUpload(filePart.ref.path.toFile, altText) },
         removePhoto = dataPart("remove_photo").contains("true"),
         altText = altText
       )

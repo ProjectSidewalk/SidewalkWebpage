@@ -35,10 +35,13 @@
 
   <div class="api-section" id="admin-user-account-section">
     <h2 class="api-heading" id="account">Account <a href="#account" class="permalink">#</a></h2>
+    @if(isOwner) {
+      <div class="ud-nudge">An Owner's account can't be changed from here.</div>
+    }
     <div class="ud-form">
       <div class="ud-field">
         <label class="ud-label" for="au-username">Username</label>
-        <input class="ud-input" id="au-username" type="text" value="@user.username" maxlength="30" autocomplete="off" spellcheck="false">
+        <input class="ud-input" id="au-username" type="text" value="@user.username" maxlength="30" autocomplete="off" spellcheck="false" @disabledIf(isOwner)>
         <span class="ud-field-help">@Messages("dashboard.settings.username.help")</span>
       </div>
       <div class="ud-field">
@@ -66,7 +69,7 @@
       </div>
       <div class="ud-field">
         <label class="ud-label" for="au-team">Team</label>
-        <select class="ud-input" id="au-team">
+        <select class="ud-input" id="au-team" @disabledIf(isOwner)>
           <option value="" @selectedIf(currTeam.isEmpty)>No team</option>
           @for(t <- teams.sortBy(_.name)) {
             <option value="@t.teamId" @selectedIf(currTeam.exists(_.teamId==t.teamId))>@t.name@if(!t.open){ (closed)}</option>
@@ -90,21 +93,21 @@
         </span>
       </div>
       <label class="ud-check" for="au-community-service">
-        <input type="checkbox" id="au-community-service" @if(user.communityService){checked}>
+        <input type="checkbox" id="au-community-service" @if(user.communityService){checked} @disabledIf(isOwner)>
         <span class="ud-check-text">
           <strong>Community service hours</strong>
           <span class="ud-field-help">Opts them in to official service-hour recognition and adds "Service hours" and "Time check" to their account menu.</span>
         </span>
       </label>
       <label class="ud-check" for="au-on-leaderboard">
-        <input type="checkbox" id="au-on-leaderboard" @if(adminData.userStats.onLeaderboard){checked}>
+        <input type="checkbox" id="au-on-leaderboard" @if(adminData.userStats.onLeaderboard){checked} @disabledIf(isOwner)>
         <span class="ud-check-text">
           <strong>Show on the leaderboard</strong>
           <span class="ud-field-help">@Messages("dashboard.settings.leaderboard.help")</span>
         </span>
       </label>
       <label class="ud-check" for="au-public-profile">
-        <input type="checkbox" id="au-public-profile" @if(adminData.userStats.publicProfile){checked}>
+        <input type="checkbox" id="au-public-profile" @if(adminData.userStats.publicProfile){checked} @disabledIf(isOwner)>
         <span class="ud-check-text">
           <strong>Public dashboard</strong>
           <span class="ud-field-help">When on, anyone can open their public profile from the leaderboard; when off, it shows as "kept private".</span>
@@ -122,7 +125,7 @@
         </label>
       }
       <div>
-        <button type="button" class="ud-btn-primary" id="au-save-btn">Save</button>
+        <button type="button" class="ud-btn-primary" id="au-save-btn" @disabledIf(isOwner)>Save</button>
         <span class="ud-save-status" id="au-save-status" role="status" aria-live="polite"></span>
       </div>
     </div>

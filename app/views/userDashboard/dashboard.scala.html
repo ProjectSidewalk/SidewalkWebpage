@@ -379,7 +379,8 @@
             </div>
           }
         }
-        <button type="button" class="ud-btn-primary ud-create-team-btn"><span class="ud-btn-plus" aria-hidden="true">+</span> @Messages("dashboard.create.team")</button>
+        @* Creating a team auto-joins the creator — the signed-in admin, not the viewed user — so it's off here. *@
+        <button type="button" class="ud-btn-primary ud-create-team-btn" @if(adminView){disabled}><span class="ud-btn-plus" aria-hidden="true">+</span> @Messages("dashboard.create.team")</button>
         @profileData.userTeam.map { _ =>
           <a class="ud-see-all" href="@routes.UserDashboardController.leaderboard#teams">@Messages("dashboard.team.see.board")</a>
         }
