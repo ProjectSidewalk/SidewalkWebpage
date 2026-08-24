@@ -61,6 +61,7 @@ class ExpandedView {
       viewerAccessToken: this.#viewerAccessToken,
       currUsername: this.#currUsername,
       onVote: this.#handleVote,
+      onEdit: this.#handleEdit,
       panoOverlaySource: 'GalleryExpandedImage',
       voteColumnSource: 'GalleryExpandedThumbs',
       showLabelMapLink: true,
@@ -145,6 +146,7 @@ class ExpandedView {
       backup_image: card.getBackupImageData(),
       pano_data: p.pano_data,
       from_current_user: p.from_current_user,
+      can_edit: p.can_edit,
       expired: p.expired,
       comments: p.comments,
     };
@@ -157,6 +159,17 @@ class ExpandedView {
   #handleVote = (action) => {
     if (this.refCard) {
       this.refCard.updateUserValidation(action);
+    }
+  };
+
+  /**
+   * Called by LabelDetail after a successful edit (#2575), so paging back to this card shows the label as it now is.
+   * @param {Object} meta - The label's metadata with its new severity and tags.
+   */
+  #handleEdit = (meta) => {
+    if (this.refCard) {
+      this.refCard.setProperty('severity', meta.severity);
+      this.refCard.setProperty('tags', meta.tags);
     }
   };
 

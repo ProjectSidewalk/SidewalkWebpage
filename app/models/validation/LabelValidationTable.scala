@@ -23,10 +23,6 @@ case class LabelValidation(
     labelValidationId: Int,
     labelId: Int,
     validationResult: ValidationOption.Value,
-    oldSeverity: Option[Int],
-    newSeverity: Option[Int],
-    oldTags: List[String],
-    newTags: List[String],
     userId: String,
     missionId: Int,
     // NOTE: canvas_x and canvas_y are null when the label is not visible when validation occurs.
@@ -63,10 +59,6 @@ class LabelValidationTableDef(tag: slick.lifted.Tag) extends Table[LabelValidati
   def labelValidationId: Rep[Int]                   = column[Int]("label_validation_id", O.AutoInc)
   def labelId: Rep[Int]                             = column[Int]("label_id")
   def validationResult: Rep[ValidationOption.Value] = column[ValidationOption.Value]("validation_result")
-  def oldSeverity: Rep[Option[Int]]                 = column[Option[Int]]("old_severity")
-  def newSeverity: Rep[Option[Int]]                 = column[Option[Int]]("new_severity")
-  def oldTags: Rep[List[String]]                    = column[List[String]]("old_tags", O.Default(List()))
-  def newTags: Rep[List[String]]                    = column[List[String]]("new_tags", O.Default(List()))
   def userId: Rep[String]                           = column[String]("user_id")
   def missionId: Rep[Int]                           = column[Int]("mission_id")
   def canvasX: Rep[Option[Int]]                     = column[Option[Int]]("canvas_x")
@@ -81,9 +73,11 @@ class LabelValidationTableDef(tag: slick.lifted.Tag) extends Table[LabelValidati
   def source: Rep[UiSource]                         = column[UiSource]("source")
   def viewerType: Rep[ViewerType]                   = column[ViewerType]("viewer_type")
 
-  def * = (labelValidationId, labelId, validationResult, oldSeverity, newSeverity, oldTags, newTags, userId, missionId,
-    canvasX, canvasY, heading, pitch, zoom, canvasHeight, canvasWidth, startTimestamp, endTimestamp, source,
-    viewerType) <> ((LabelValidation.apply _).tupled, LabelValidation.unapply)
+  def * = (labelValidationId, labelId, validationResult, userId, missionId, canvasX, canvasY, heading, pitch, zoom,
+    canvasHeight, canvasWidth, startTimestamp, endTimestamp, source, viewerType) <> (
+    (LabelValidation.apply _).tupled,
+    LabelValidation.unapply
+  )
 
   def label   = foreignKey("label_validation_label_id_fkey", labelId, TableQuery[LabelTableDef])(_.labelId)
   def user    = foreignKey("label_validation_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
@@ -402,22 +396,6 @@ class LabelValidationTable @Inject() (
         filters.labelTypeId.map(label.labelTypeId === _).getOrElse(true: Rep[Boolean]) &&
         filters.validationTimestamp.map(validation.startTimestamp >= _).getOrElse(true: Rep[Boolean]) &&
         filters.source.map(validation.source === _).getOrElse(true: Rep[Boolean])
-
-      // Apply changed tags filter (oldTags != newTags or oldTags == newTags).
-      // Filter on whether tags were changed during the validations (oldTags != newTags).
-      if filters.changedTags
-        .map { changed => (validation.oldTags =!= validation.newTags) === changed }
-        .getOrElse(true: Rep[Boolean])
-
-      // Apply changed severity levels filter (oldSeverity != newSeverity or oldSeverity == newSeverity).
-      // Note: Works slightly different from tags because oldSeverity and newSeverity are Options.
-      if filters.changedSeverityLevels
-        .map { changed =>
-          val severityChanged = (validation.oldSeverity =!= validation.newSeverity).getOrElse(false: Rep[Boolean])
-          severityChanged === changed
-        }
-        .getOrElse(true: Rep[Boolean])
-
     } yield (validation, label, labelType, role)
   }
 
@@ -436,10 +414,6 @@ class LabelValidationTable @Inject() (
       labelTypeId = label.labelTypeId,
       labelType = labelType.labelType,
       validationResult = validation.validationResult,
-      oldSeverity = validation.oldSeverity,
-      newSeverity = validation.newSeverity,
-      oldTags = validation.oldTags,
-      newTags = validation.newTags,
       userId = validation.userId,
       validatorType = if (role.role == "AI") "AI" else "Human",
       missionId = validation.missionId,

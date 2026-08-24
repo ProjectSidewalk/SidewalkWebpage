@@ -1,7 +1,7 @@
 package controllers
 
 import controllers.base._
-import controllers.helper.ControllerUtils.{isMobile, parseIntegerSeq, NoUserId}
+import controllers.helper.ControllerUtils.{isAdmin, isMobile, parseIntegerSeq, NoUserId}
 import formats.json.GalleryFormats._
 import formats.json.LabelFormats
 import models.auth.DefaultEnv
@@ -144,11 +144,11 @@ class GalleryController @Inject() (
           .map { labels =>
             val jsonList = labels.map { l =>
               Json.obj(
-                "label" -> LabelFormats.validationLabelMetadataToJson(
+                "label" -> (LabelFormats.validationLabelMetadataToJson(
                   l,
                   panoDataService.backupImageUrl(l.panoId),
                   currUsername = request.identity.map(_.username)
-                ),
+                ) + ("can_edit" -> Json.toJson(l.fromCurrentUser || isAdmin(request.identity)))),
                 "cropUrl"     -> panoDataService.cropUrl(l.labelId, l.labelType),
                 "gsvImageUrl" ->
                   panoDataService.getImageUrl(l.panoId, l.panoSource, l.pov.heading, l.pov.pitch, l.pov.zoom)

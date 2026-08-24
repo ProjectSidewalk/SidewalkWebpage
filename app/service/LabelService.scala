@@ -19,7 +19,6 @@ import play.api.Logger
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.dbio.DBIO
 
-import java.time.OffsetDateTime
 import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Random
@@ -100,13 +99,6 @@ trait LabelService {
   def recordMistakeNote(labelId: Int, userId: String, comment: Option[String]): Future[Boolean]
   def getLabelsFromUserInRegion(regionId: Int, userId: String): Future[Seq[ResumeLabelMetadata]]
   def insertLabel(label: Label): DBIO[Int]
-  def updateLabelFromExplore(
-      labelId: Int,
-      deleted: Boolean,
-      severity: Option[Int],
-      description: Option[String],
-      tags: List[String]
-  ): DBIO[Int]
 }
 
 @Singleton
@@ -681,53 +673,4 @@ class LabelServiceImpl @Inject() (
     }
   }
 
-  /**
-   * Update the metadata that users might change on the Explore page after initially placing a label.
-   * @param labelId ID of the label to update
-   * @param deleted Whether the label is deleted or not
-   * @param severity Optional severity of the label, None if not set
-   * @param description Optional description of the label, None if not set
-   * @param tags List of tags associated with the label
-   * @return
-   */
-  def updateLabelFromExplore(
-      labelId: Int,
-      deleted: Boolean,
-      severity: Option[Int],
-      description: Option[String],
-      tags: List[String]
-  ): DBIO[Int] = {
-    val labelToUpdateQuery = labelTable.labelsUnfiltered.filter(_.labelId === labelId)
-
-    for {
-      labelToUpdate: Label      <- labelToUpdateQuery.result.head
-      cleanedTags: List[String] <- cleanTagList(tags, labelToUpdate.labelTypeId).map(_.toList)
-
-      // If the severity or tags have been changed, we need to update the label_history table as well.
-      _ <-
-        if (labelToUpdate.severity != severity || labelToUpdate.tags.toSet != cleanedTags.toSet) {
-          // If there are multiple entries in the label_history table, then the label has been edited before, and we need
-          // to add an entirely new entry to the table, otherwise we can just update the existing entry.
-          labelHistoryTable.labelHistory.filter(_.labelId === labelId).length.result.flatMap {
-            case labelHistoryCount if labelHistoryCount > 1 =>
-              labelHistoryTable.insert(
-                LabelHistory(0, labelId, severity, cleanedTags, labelToUpdate.userId, OffsetDateTime.now,
-                  UiSource.Explore, None)
-              )
-            case _ =>
-              labelHistoryTable.labelHistory
-                .filter(_.labelId === labelId)
-                .map(l => (l.severity, l.tags))
-                .update((severity, cleanedTags))
-          }
-        } else DBIO.successful(())
-
-      // Finally, update the label table.
-      rowsUpdated: Int <- labelToUpdateQuery
-        .map(l => (l.deleted, l.severity, l.description, l.tags))
-        .update((deleted, severity, description, cleanedTags))
-    } yield {
-      rowsUpdated
-    }
-  }
 }

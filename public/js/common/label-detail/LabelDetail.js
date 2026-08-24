@@ -76,6 +76,7 @@ class LabelDetail {
   #viewerAccessToken;
   #currUsername;
   #onVote;
+  #onEdit;
   #panoOverlaySource;
   #voteColumnSource;
   #showLabelMapLink;
@@ -91,6 +92,9 @@ class LabelDetail {
 
   #source = undefined;      // Set in showLabel().
   #readonly = false;        // Set per-label in #handleData() based on meta.from_current_user.
+  #canEdit = false;         // Set per-label in #handleData() from meta.can_edit (#2575).
+  #tagEditor;
+  #editStatusTimer;
   #noImagery = false;  // Set per-label once setPano() resolves; true when no navigable imagery could be loaded.
   #panoLoading = false;     // True from #handleData() until this label's setPano() resolves. See #interactionBlocked.
   #validationCounts = { Agree: null, Disagree: null, Unsure: null };
@@ -116,6 +120,8 @@ class LabelDetail {
    * @param {(action: ?('Agree'|'Disagree'|'Unsure'), meta: Object) => void} [opts.onVote] - Fired after a vote is
    *      successfully submitted, with null when the user cleared their vote (#4653). Hosts use this to sync upstream
    *      UI (e.g. recolor a Gallery card).
+   * @param {(meta: Object) => void} [opts.onEdit] - Fired with the updated metadata after an edit to the label's
+   *      severity or tags is saved (#2575), so hosts that cache label data (Gallery's cards) can stay in sync.
    * @param {string} [opts.panoOverlaySource] - Source recorded when voting via the pano overlay buttons.
    * @param {string} [opts.voteColumnSource] - Source recorded when voting via the column vote buttons.
    * @param {boolean} [opts.showLabelMapLink] - Show a footer link to this label on /labelMap (for hosts that
@@ -132,6 +138,7 @@ class LabelDetail {
     this.#viewerAccessToken = opts.viewerAccessToken;
     this.#currUsername = opts.currUsername;
     this.#onVote = opts.onVote;
+    this.#onEdit = opts.onEdit;
     this.#panoOverlaySource = opts.panoOverlaySource;
     this.#voteColumnSource = opts.voteColumnSource;
     this.#showLabelMapLink = !!opts.showLabelMapLink;
@@ -172,6 +179,7 @@ class LabelDetail {
    */
   async #init() {
     this.#cacheElements();
+    this.#tagEditor = new TagEditor(this.#els.tags);
     this.#wireHandlers();
 
     // Pano viewer needs a visible host element on init. The wrapping host (LabelPopup or Gallery) is responsible
@@ -316,6 +324,7 @@ class LabelDetail {
     els.panoWrap = this.#q('.label-detail__pano-wrap');
     els.panoOverlay = this.#q('.label-detail__pano-overlay');
     els.title = this.#q('.label-detail__title');
+    els.ownBadge = this.#q('.label-detail__own-badge');
     els.metaRow = this.#q('.label-detail__meta-row');
     els.timestamp = this.#q('.label-detail__timestamp');
     els.imageDate = this.#q('.label-detail__image-capture-date');
@@ -326,6 +335,8 @@ class LabelDetail {
     els.severity = this.#q('.label-detail__severity-faces');
     els.severityTitle = this.#q('.label-detail__severity-title');
     els.tags = this.#q('.label-detail__tags');
+    els.tagsEdit = this.#q('.label-detail__tags-edit');
+    els.editStatus = this.#q('.label-detail__edit-status');
     els.descriptionSection = this.#q('.label-detail__description-section');
     els.description = this.#q('.label-detail__description');
     els.commentsSection = this.#q('.label-detail__comments-section');
@@ -425,6 +436,21 @@ class LabelDetail {
       });
     }
 
+    // Editing (#2575): a face click saves that severity; the Tags control opens the tag editor and saves on close.
+    els.severity.querySelectorAll('.severity-button').forEach((face) => {
+      face.addEventListener('click', () => {
+        if (!this.#canEdit) return;
+        this.#submitEdit({ severity: Number(face.dataset.severity) });
+      });
+    });
+    if (els.tagsEdit) {
+      els.tagsEdit.addEventListener('click', () => {
+        if (!this.#canEdit) return;
+        if (this.#tagEditor.isOpen) this.#finishTagEditing();
+        else this.#startTagEditing();
+      });
+    }
+
     els.commentInput.addEventListener('input', () => {
       els.commentButton.classList.toggle('is-active', els.commentInput.value.trim().length > 0);
     });
@@ -513,10 +539,23 @@ class LabelDetail {
     this.#panoLoading = true;
     this.#applyInteractionLock();
 
+    // The server decides who may edit (the labeler and admins, #2575); the card only mirrors its answer.
+    this.#canEdit = !!meta.can_edit;
+    this.#root.classList.toggle('label-detail--editable', this.#canEdit);
+    if (this.#tagEditor.isOpen) this.#tagEditor.close(); // Paging away abandons an unfinished tag pick.
+    this.#setTagsEditLabel(false);
+    if (els.tagsEdit) els.tagsEdit.hidden = !this.#canEdit;
+    this.#showEditStatus('');
+    if (els.ownBadge) {
+      els.ownBadge.hidden = !meta.from_current_user;
+      const ownLabel = i18next.t('labelmap:own-label');
+      els.ownBadge.setAttribute('aria-label', ownLabel);
+      LabelDetail.#setTooltip(els.ownBadge, ownLabel);
+    }
+
     const labelPov = { heading: meta.heading, pitch: meta.pitch, zoom: meta.zoom };
 
-    // Plain-object label shape consumed by PopupPanoManager. The old/new severity + tags split exists so
-    // the popup can track edits to those fields against the original values from the API payload.
+    // Plain-object label shape consumed by PopupPanoManager.
     const popupLabel = {
       labelId: meta.label_id,
       label_type: meta.label_type,
@@ -526,10 +565,6 @@ class LabelDetail {
       originalCanvasHeight: util.EXPLORE_CANVAS_HEIGHT,
       pov: labelPov,
       streetEdgeId: meta.street_edge_id,
-      oldSeverity: meta.severity,
-      newSeverity: meta.severity,
-      oldTags: meta.tags,
-      newTags: meta.tags,
       aiGenerated: meta.ai_generated,
     };
     this.panoManager.setLabel(popupLabel);
@@ -636,26 +671,8 @@ class LabelDetail {
       });
     }
 
-    // Severity faces.
     this.#renderSeverity(meta.severity, meta.label_type);
-
-    // Tag pills.
-    els.tags.replaceChildren();
-    els.tags.classList.remove('label-detail__empty');
-    if (meta.tags && meta.tags.length) {
-      for (const tag of meta.tags) {
-        const pill = document.createElement('span');
-        pill.className = 'tag-pill';
-        const pillLabel = document.createElement('span');
-        pillLabel.className = 'tag-pill__label';
-        pillLabel.textContent = i18next.t(`common:tag.${tag.replace(/:/g, '-')}`);
-        pill.appendChild(pillLabel);
-        els.tags.appendChild(pill);
-      }
-    } else {
-      els.tags.classList.add('label-detail__empty');
-      els.tags.textContent = i18next.t('common:none');
-    }
+    this.#renderTags(meta.tags);
 
     // Description text; #updateCommentRow shows or hides the section based on whether the labeler wrote one.
     els.description.textContent = meta.description ?? '';
@@ -850,10 +867,9 @@ class LabelDetail {
       label_id: this.panoManager.label.labelId,
       label_type: this.panoManager.label.label_type,
       validation_result: action,
-      old_severity: this.panoManager.label.oldSeverity,
-      new_severity: this.panoManager.label.newSeverity,
-      old_tags: this.panoManager.label.oldTags,
-      new_tags: this.panoManager.label.newTags,
+      // A vote from the card never carries a change: edits go through /label/edit on their own (#2575).
+      severity: this.#currentLabelMeta?.severity ?? null,
+      tags: this.#currentLabelMeta?.tags ?? [],
       canvas_x: pixelCoordinates ? Math.round(pixelCoordinates.x) : null,
       canvas_y: pixelCoordinates ? Math.round(pixelCoordinates.y) : null,
       heading: userPov.heading,
@@ -1249,7 +1265,145 @@ class LabelDetail {
       face.title = `${i18next.t(`common:${titleKey}`)}: ${i18next.t(`common:${levelKeys[faceSev]}`)}`;
       const labelSpan = face.querySelector('.severity-button__label');
       if (labelSpan) labelSpan.textContent = i18next.t(`common:${levelKeys[faceSev]}`);
+
+      // Editable faces are a focusable pick-one control (#2575); read-only ones stay out of the tab order.
+      face.classList.toggle('severity-button--static', !this.#canEdit);
+      face.setAttribute('aria-pressed', String(selected));
+      if (this.#canEdit) {
+        face.removeAttribute('aria-disabled');
+        face.removeAttribute('tabindex');
+      } else {
+        face.setAttribute('aria-disabled', 'true');
+        face.setAttribute('tabindex', '-1');
+      }
     });
+  }
+
+  /**
+   * Renders the label's tags as read-only pills, or "None".
+   * @param {string[]} tags
+   */
+  #renderTags(tags) {
+    const els = this.#els;
+    els.tags.replaceChildren();
+    els.tags.classList.remove('label-detail__empty');
+    if (tags && tags.length) {
+      for (const tag of tags) {
+        const pill = document.createElement('span');
+        pill.className = 'tag-pill';
+        const pillLabel = document.createElement('span');
+        pillLabel.className = 'tag-pill__label';
+        pillLabel.textContent = i18next.t(`common:tag.${tag.replace(/:/g, '-')}`);
+        pill.appendChild(pillLabel);
+        els.tags.appendChild(pill);
+      }
+    } else {
+      els.tags.classList.add('label-detail__empty');
+      els.tags.textContent = i18next.t('common:none');
+    }
+  }
+
+  // ───────────────────────────────────────────────────────────────────
+  // Editing severity and tags (#2575)
+  // ───────────────────────────────────────────────────────────────────
+
+  /** @param {boolean} editing - Whether the Tags control reads "Done" (editor open) or "Edit". */
+  #setTagsEditLabel(editing) {
+    const btn = this.#els.tagsEdit;
+    if (!btn) return;
+    btn.textContent = i18next.t(editing ? 'labelmap:done-editing-tags' : 'labelmap:edit-tags');
+    btn.setAttribute('aria-expanded', String(editing));
+  }
+
+  /**
+   * Shows a short status beside the Tags heading (a failed save), clearing it after a few seconds.
+   * @param {string} text - Empty to clear.
+   */
+  #showEditStatus(text) {
+    const el = this.#els.editStatus;
+    if (!el) return;
+    clearTimeout(this.#editStatusTimer);
+    el.textContent = text;
+    if (text) {
+      this.#editStatusTimer = setTimeout(() => {
+        el.textContent = '';
+      }, 5000);
+    }
+  }
+
+  /** Replaces the read-only pills with the tag editor's pick-any pills for this label's type. */
+  #startTagEditing() {
+    const meta = this.#currentLabelMeta;
+    if (!meta) return;
+    this.#logClick('EditTagsOpen');
+    this.#setTagsEditLabel(true);
+    this.#els.tags.classList.remove('label-detail__empty');
+    this.#els.tags.textContent = '';
+    this.#tagEditor.open(meta.label_type, meta.tags || []).catch((err) => {
+      console.error('Could not load the tag list for editing:', err);
+      this.#tagEditor.close();
+      this.#setTagsEditLabel(false);
+      this.#renderTags(meta.tags);
+      this.#showEditStatus(i18next.t('labelmap:edit-failed'));
+    });
+  }
+
+  /** Closes the tag editor and saves the picked tags if they differ from the label's. */
+  #finishTagEditing() {
+    const picked = this.#tagEditor.close();
+    this.#setTagsEditLabel(false);
+    this.#submitEdit({ tags: picked });
+  }
+
+  /**
+   * Saves a change to the current label through /label/edit, rendering it optimistically and rolling back on failure.
+   * The server's response is what's rendered in the end, since it may drop tags invalid for the label type.
+   * @param {{severity?: ?number, tags?: string[]}} change - The fields to change; an omitted one keeps its value.
+   */
+  async #submitEdit(change) {
+    const meta = this.#currentLabelMeta;
+    if (!meta || !this.#canEdit) return;
+    const severity = Object.hasOwn(change, 'severity') ? change.severity : meta.severity;
+    const tags = change.tags ?? meta.tags ?? [];
+    const prev = { severity: meta.severity ?? null, tags: meta.tags ?? [] };
+    const sameTags = tags.length === prev.tags.length && tags.every((t) => prev.tags.includes(t));
+    if (severity === prev.severity && sameTags) {
+      this.#renderTags(prev.tags); // The tag editor may have just closed over an unchanged pick.
+      return;
+    }
+
+    const render = () => {
+      this.#renderSeverity(meta.severity, meta.label_type);
+      this.#renderTags(meta.tags);
+    };
+    meta.severity = severity;
+    meta.tags = tags;
+    render();
+
+    try {
+      const res = await this.#postJson('/label/edit', {
+        label_id: meta.label_id, severity, tags, source: this.#source,
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const body = await res.json();
+      // Paging isn't blocked while the save is in flight; a newer label's card must not be rewritten with this one.
+      if (this.#currentLabelMeta !== meta) return;
+      meta.severity = body.severity ?? null;
+      meta.tags = body.tags ?? [];
+      render();
+      if (meta.severity !== prev.severity) {
+        this.#logClick(`EditSeverity_old=${prev.severity}_new=${meta.severity}`);
+      }
+      if (!sameTags) this.#logClick(`EditTags_old=${prev.tags.join('|')}_new=${meta.tags.join('|')}`);
+      if (typeof this.#onEdit === 'function') this.#onEdit(meta);
+    } catch (err) {
+      console.error(err);
+      if (this.#currentLabelMeta !== meta) return;
+      meta.severity = prev.severity;
+      meta.tags = prev.tags;
+      render();
+      this.#showEditStatus(i18next.t('labelmap:edit-failed'));
+    }
   }
 
   // ───────────────────────────────────────────────────────────────────

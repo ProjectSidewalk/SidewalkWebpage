@@ -186,6 +186,14 @@ trait ApiService {
   def getValidations(filters: ValidationFiltersForApi, batchSize: Int): Source[ValidationDataForApi, _]
 
   /**
+   * Streams edits to labels' severity and tags (#2575) matching the filters.
+   *
+   * @param filters   The filters to apply when retrieving edits.
+   * @param batchSize The number of records to fetch in each batch from the database.
+   */
+  def getLabelEdits(filters: LabelEditFiltersForApi, batchSize: Int): Source[LabelEditDataForApi, _]
+
+  /**
    * Retrieves all validation result types with their counts.
    * @return A future containing a sequence of ValidationResultTypeForApi objects
    */
@@ -205,6 +213,7 @@ class ApiServiceImpl @Inject() (
     clusteringSessionTable: ClusteringSessionTable,
     clusterLabelTable: ClusterLabelTable,
     labelValidationTable: LabelValidationTable,
+    labelEditTable: LabelEditTable,
     implicit val ec: ExecutionContext
 ) extends ApiService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
@@ -418,6 +427,18 @@ class ApiServiceImpl @Inject() (
           .transactionally
           .withStatementParameters(fetchSize = batchSize)
       ).mapResult(labelValidationTable.tupleToValidationDataForApi)
+    )
+  }
+
+  def getLabelEdits(filters: LabelEditFiltersForApi, batchSize: Int): Source[LabelEditDataForApi, _] = {
+    Source.fromPublisher(
+      db.stream(
+        labelEditTable
+          .getLabelEditsForApi(filters)
+          .result
+          .transactionally
+          .withStatementParameters(fetchSize = batchSize)
+      ).mapResult(labelEditTable.tupleToLabelEditDataForApi)
     )
   }
 

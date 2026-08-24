@@ -2,7 +2,8 @@
 -- Remove a set of label_validations from the DB.
 --
 -- Tables with a FK to label_validation:
---   label_history           (label_validation_id nullable; only set when the validation changed severity/tags)
+--   label_edit              (label_validation_id nullable; the edit submitted with the validation, if it changed
+--                            severity/tags; its label_history row hangs off label_edit.label_edit_id)
 --   label_ai_assessment     (label_validation_id nullable)
 --
 -- Other tables touched by this script (no FK to label_validation, but logically tied):
@@ -53,7 +54,7 @@ UNION ALL
 SELECT 'distinct_affected_labels', COUNT(DISTINCT lv.label_id) FROM label_validation lv
     JOIN validations_to_remove USING (label_validation_id)
 UNION ALL
-SELECT 'matching_label_history',   COUNT(*) FROM label_history
+SELECT 'matching_label_edits',     COUNT(*) FROM label_edit
     WHERE label_validation_id IN (SELECT label_validation_id FROM validations_to_remove)
 UNION ALL
 SELECT 'matching_ai_assessments',  COUNT(*) FROM label_ai_assessment
@@ -74,9 +75,16 @@ SET label_validation_id = NULL
 WHERE label_validation_id IN (SELECT label_validation_id FROM validations_to_remove);
 
 -- ---------------------------------------------------------------------
--- 4. Delete the matching label_history rows (the ones recorded by these validations).
+-- 4. Delete the edits these validations were submitted with, and the label_history rows recording them. The label's
+--    severity/tags are NOT rolled back here (a later edit may stand on top); recompute from label_history if needed.
 -- ---------------------------------------------------------------------
 DELETE FROM label_history
+WHERE label_edit_id IN (
+    SELECT label_edit_id FROM label_edit
+    WHERE label_validation_id IN (SELECT label_validation_id FROM validations_to_remove)
+);
+
+DELETE FROM label_edit
 WHERE label_validation_id IN (SELECT label_validation_id FROM validations_to_remove);
 
 -- ---------------------------------------------------------------------
@@ -178,7 +186,7 @@ WHERE user_stat.user_id = accuracy_subquery.user_id
 SELECT 'still_in_label_validation'     AS where_found, COUNT(*) FROM label_validation
     WHERE label_validation_id IN (SELECT label_validation_id FROM validations_to_remove)
 UNION ALL
-SELECT 'still_linked_in_label_history',                COUNT(*) FROM label_history
+SELECT 'still_linked_in_label_edit',                   COUNT(*) FROM label_edit
     WHERE label_validation_id IN (SELECT label_validation_id FROM validations_to_remove)
 UNION ALL
 SELECT 'still_linked_in_ai_assessment',               COUNT(*) FROM label_ai_assessment

@@ -400,7 +400,7 @@ class PopupPanoManager {
    * Renders a PanoMarker (label) onto a Streetview Panorama.
    * @param {Object} label - Plain-object label shape produced by LabelPopup.
    *   Expected fields: labelId, label_type, canvasX, canvasY, originalCanvasWidth, originalCanvasHeight, pov,
-   *   streetEdgeId, oldSeverity, newSeverity, oldTags, newTags, aiGenerated.
+   *   streetEdgeId, aiGenerated.
    */
   renderLabel(label) {
     const pos = util.pano.canvasCoordToCenteredPov(
