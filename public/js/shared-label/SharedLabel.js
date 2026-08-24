@@ -56,7 +56,6 @@ class SharedLabelPage {
     // A story share links /label/:id?storyId=<id> (#4722); the story section scrolls to and highlights that story
     // once its list loads. Parsed leniently — an unusable value just renders the plain label page.
     const storyIdParam = Number(new URLSearchParams(window.location.search).get('storyId'));
-    // Validations from the admin page keep the source the old /admin/label page recorded.
     const admin = !!this.#data.admin;
     try {
       this.#detail = await LabelDetail.create(root, {
@@ -64,6 +63,8 @@ class SharedLabelPage {
         viewerType: this.#viewerType(),
         viewerAccessToken: this.#data.imageryAccessToken,
         currUsername: this.#data.username,
+        // Admin-mode validations record LabelSearchPage as their source, keeping the admin surface
+        // distinguishable from public share-page validations.
         panoOverlaySource: admin ? 'LabelSearchPage' : 'SharedLabelImage',
         voteColumnSource: admin ? 'LabelSearchPage' : 'SharedLabelThumbs',
         showLabelMapLink: true,

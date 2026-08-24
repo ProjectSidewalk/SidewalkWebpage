@@ -1,20 +1,15 @@
 package controllers
 
 import models.label.LabelMetadata
-import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
-import org.scalatest.BeforeAndAfterAll
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
-import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.mvc.Cookie
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import service.LabelService
-import slick.dbio.DBIO
-import util.AnonSession
+import util.{AnonSession, RoleSession}
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -27,12 +22,9 @@ import scala.concurrent.duration._
  * logged-out caller is refused identically whatever role an action wants). The rest pins what admin mode adds to the
  * page — and that the public page doesn't get it.
  *
- * Seeds its own callers the way ImageryAdminSpec does: a session minted through the real anonymous-signup route and
- * promoted with a DB write, undone afterwards.
- *
  * Requires a Postgres+PostGIS database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI).
  */
-class AdminLabelPageSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPerSuite with AnonSession {
+class AdminLabelPageSpec extends PlaySpec with RoleSession with GuiceOneAppPerSuite with AnonSession {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder()
@@ -40,46 +32,14 @@ class AdminLabelPageSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAp
       .configure("rate-limit.anon-signup.enabled" -> false)
       .build()
 
-  private val dbConfig = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
-
-  private def run[T](action: DBIO[T]): T = Await.result(dbConfig.db.run(action), 60.seconds)
-
   private lazy val validLabelId: Option[Int] =
     Await
       .result(app.injector.instanceOf[LabelService].getRecentLabelMetadata(1), 60.seconds)
       .headOption
       .map((l: LabelMetadata) => l.labelId)
 
-  private var promotedUserIds: List[String] = Nil
-
-  /** A fresh session holding `role`; the account is identified by what the signup created. */
-  private def sessionAs(role: String): Seq[Cookie] = {
-    val before  = run(sql"SELECT user_id FROM sidewalk_login.sidewalk_user".as[String]).toSet
-    val cookies = freshAnonSession()
-    val minted  = run(sql"SELECT user_id FROM sidewalk_login.sidewalk_user".as[String]).toSet -- before
-    minted.size mustBe 1
-    promotedUserIds ::= minted.head
-    promote(minted.head, role)
-    cookies
-  }
-
-  private def promote(userId: String, role: String): Unit = {
-    val _ = run(
-      sqlu"""UPDATE sidewalk_login.user_role
-             SET role_id = (SELECT role_id FROM sidewalk_login.role WHERE role = $role)
-             WHERE user_id = $userId"""
-    )
-  }
-
-  // Registered rather than Anonymous: an Anonymous caller is sent to sign in, so only a registered one reaches the
-  // branch that refuses by role name.
   private lazy val visitorCookies: Seq[Cookie] = sessionAs("Registered")
   private lazy val adminCookies: Seq[Cookie]   = sessionAs("Administrator")
-
-  override def afterAll(): Unit = {
-    promotedUserIds.foreach(id => promote(id, "Anonymous"))
-    super.afterAll()
-  }
 
   private def as(cookies: Seq[Cookie], path: String) = route(app, FakeRequest(GET, path).withCookies(cookies: _*)).get
 
