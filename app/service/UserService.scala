@@ -24,6 +24,7 @@ import java.util.Locale
 import javax.inject._
 import scala.concurrent.duration.Duration
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Try
 
 case class UserProfileData(
     userId: String,
@@ -152,15 +153,32 @@ case class CrossCityUserStats(
 )
 
 /**
-/**
  * One city's share of a volunteer's logged hours, for the Time Check page's breakdown (#4526).
  *
  * @param cityId        Configured city id.
  * @param cityName      Short display name in the viewer's language.
- * @param hours         Hours logged in that city.
+ * @param hours         Hours logged in that city, already rounded to the tenth the page displays.
  * @param isCurrentCity True for the deployment being viewed.
  */
 case class CityHours(cityId: String, cityName: String, hours: Double, isCurrentCity: Boolean)
+
+/**
+ * A volunteer's logged hours across every city, and what the total could not reach (#4526).
+ *
+ * Hours arrive pre-rounded so that [[totalHours]] is exactly the sum of the rows a reader can see. Rounding each row
+ * for display and the total separately lets the two disagree — 0.25 + 0.25 renders as `0.3 + 0.3` under a headline of
+ * `0.5` — and a breakdown that visibly fails to add up undermines the one job this page has, which is making the
+ * headline credible to a supervisor.
+ *
+ * @param cities            Cities with logged time, most hours first.
+ * @param unreachableCities How many deployments could not be totalled at all. Any of them may have held hours, so a
+ *                          nonzero count means the total is a floor rather than an answer, and the page says so.
+ */
+case class CrossCityHours(cities: Seq[CityHours], unreachableCities: Int) {
+
+  /** The figure a volunteer reports: the sum of the rows shown beneath it, to the tenth. */
+  def totalHours: Double = cities.map(_.hours).sum
+}
 
 /**
  * The cacheable half of [[UserServiceImpl.getCrossCityUserStats]]: the cross-schema fan-out's raw output (#4496).
@@ -199,6 +217,16 @@ object UserService {
 
   /** Number of weeks shown in the activity heatmap (~4 months — enough to read a rhythm without lots of empty cells). */
   val HeatmapWeeks: Int = 18
+
+  /**
+   * How many cities the volunteer-hours fan-out queries at once (#4526).
+   *
+   * Chosen against the pool rather than the city count: `numThreads`/`maxConnections` are both 25, and one page load
+   * taking every connection would stall every other request on the instance for the duration. Six keeps most of the
+   * parallelism win — the wall clock stays near the volunteer's single heaviest city rather than the sum of 52 — while
+   * leaving the pool with room to serve everyone else.
+   */
+  val CrossCityHoursBatchSize: Int = 6
 
   /** Label types shown in the per-type accuracy bars (the ones with canonical `--color-label-*` colors), in order. */
   private val PrimaryLabelTypes: Seq[String] =
@@ -394,11 +422,14 @@ trait UserService {
    * Deliberately uncached: volunteers check this page repeatedly in a day while logging service hours, and a total
    * that lagged their last session would be worse than a slow one.
    *
+   * Never fails: if the fan-out can't run at all, it degrades to this city's own total, which is what the page
+   * reported before it learned to look further.
+   *
    * @param userId The volunteer, always the signed-in viewer.
    * @param lang   Language for city display names.
    * @return       Cities with any logged time, most hours first; empty when nothing has been logged anywhere.
    */
-  def getCrossCityHours(userId: String, lang: Lang): Future[Seq[CityHours]]
+  def getCrossCityHours(userId: String, lang: Lang): Future[CrossCityHours]
   def getAuditedStreets(userId: String): Future[Seq[(StreetEdge, Boolean)]]
   def getOutdatedStreetsForUser(userId: String, limit: Int): Future[(Seq[OutdatedStreetForUser], Int)]
   def getLabelLocations(userId: String, regionId: Option[Int] = None): Future[Seq[LabelLocation]]
@@ -834,36 +865,105 @@ class UserServiceImpl @Inject() (
   def getHoursAuditingAndValidating(userId: String): Future[Double] =
     db.run(auditTaskInteractionTable.getHoursAuditingAndValidating(userId))
 
-  def getCrossCityHours(userId: String, lang: Lang): Future[Seq[CityHours]] = {
+  /**
+   * Runs `work` over `items` `batchSize` at a time, each batch concurrently and the batches one after another.
+   *
+   * Caps how many connections a wide fan-out can hold at once. Each batch is started inside the previous batch's
+   * continuation, so the futures don't all begin the moment this is called.
+   *
+   * @param items     Items to process; order is preserved in the result.
+   * @param batchSize How many to run concurrently. Must be positive.
+   * @param work      What to run per item.
+   * @return          One result per item, in the order given.
+   */
+  private def inBatches[A, B](items: Seq[A], batchSize: Int)(work: A => Future[B]): Future[Seq[B]] = {
+    require(batchSize > 0, s"Batch size must be positive, got $batchSize")
+    items.grouped(batchSize).foldLeft(Future.successful(Seq.empty[B])) { (soFar, batch) =>
+      soFar.flatMap(done => Future.sequence(batch.map(work)).map(done ++ _))
+    }
+  }
+
+  /**
+   * Rounds hours to the tenth the Time Check page displays, half-up to match `"%.1f".format` (#4526).
+   *
+   * Applied before the rows and the headline are derived, so the two can't round to figures that disagree.
+   *
+   * @param hours Unrounded hours.
+   * @return      The same value to one decimal place.
+   */
+  private def toDisplayedTenth(hours: Double): Double =
+    java.math.BigDecimal.valueOf(hours).setScale(1, java.math.RoundingMode.HALF_UP).doubleValue
+
+  def getCrossCityHours(userId: String, lang: Lang): Future[CrossCityHours] = {
     val cityInfoById: Map[String, CityInfo] =
       configService.getAllCityInfo(lang).map(city => city.cityId -> city).toMap
 
-    for {
-      scope <- configService.getCrossCityHoursScope
-      // A per-city fan-out rather than one union: this query is a window function over the interaction log, so it is
-      // heavy where the volunteer worked and three index misses where they didn't. Running them concurrently makes the
-      // wall clock their single biggest city rather than the sum of every city.
-      currentSchema <- db.run(userStatTable.currentSchema)
-      perCity       <- Future.sequence(scope.map { case (cityId, schema) =>
-        db.run(auditTaskInteractionTable.getHoursAuditingAndValidatingBySchema(userId, schema))
-          .map(hours => Some(cityId -> hours))
-          .recover { case e: Exception =>
-            // One unreadable schema costs its own row, not the volunteer's whole total.
-            logger.warn(s"Could not total hours in $schema, omitting the city: ${e.getMessage}", e)
-            None
+    configService.getCrossCityHoursScope
+      .flatMap { scope =>
+        val currentSchema: String = configService.getCitySchema(configService.getCityId)
+
+        // A per-city fan-out rather than one union: this query is a window function over the interaction log, so it is
+        // heavy where the volunteer worked and three index misses where they didn't, and a 52-arm union serializes.
+        // Batched rather than started all at once, because the pool has 25 connections and this page is both uncached
+        // and reload-heavy — an unbounded fan-out would park every connection and stall the whole instance.
+        inBatches(scope.cities, UserService.CrossCityHoursBatchSize) { case (cityId, schema) =>
+          // Building the query can throw on a malformed schema name, and that happens while the argument is evaluated,
+          // so it has to be caught here rather than by a recover hung off the db.run future.
+          Future
+            .fromTry(Try(auditTaskInteractionTable.getHoursAuditingAndValidatingBySchema(userId, schema)))
+            .flatMap(db.run)
+            .map(hours => Right(cityId -> hours))
+            .recover { case e: Exception =>
+              // One unreadable schema costs its own row, not the volunteer's whole total.
+              logger.warn(s"Could not total hours in $schema, omitting the city: ${e.getMessage}", e)
+              Left(schema)
+            }
+        }.map { perCity =>
+          val (failedSchemas, totals) = perCity.partitionMap(identity)
+          val schemaByCityId          = scope.cities.toMap
+          val worked                  = totals.filter { case (_, hours) => toDisplayedTenth(hours) > 0d }
+
+          // A city with hours but no config entry can't be named in the table, so it drops out the same way an
+          // unreadable schema does — and has to be counted the same way too.
+          val (nameable, unnameable) = worked.partition { case (cityId, _) => cityInfoById.contains(cityId) }
+          if (unnameable.nonEmpty) {
+            logger.warn(s"No city info for ${unnameable.map(_._1).mkString(", ")}, omitting from the hours breakdown")
           }
-      })
-    } yield {
-      val schemaByCityId: Map[String, String] = scope.toMap
-      perCity.flatten
-        .filter(_._2 > 0d)
-        .flatMap { case (cityId, hours) =>
-          cityInfoById.get(cityId).map { city =>
-            CityHours(cityId, city.cityNameShort, hours, schemaByCityId.get(cityId).contains(currentSchema))
-          }
+
+          val rows = nameable
+            .flatMap { case (cityId, hours) =>
+              cityInfoById.get(cityId).map { city =>
+                CityHours(
+                  cityId,
+                  city.cityNameShort,
+                  toDisplayedTenth(hours),
+                  schemaByCityId.get(cityId).contains(currentSchema)
+                )
+              }
+            }
+            .sortBy(city => (-city.hours, city.cityId))
+
+          CrossCityHours(rows, scope.skippedSchemas.size + failedSchemas.size + unnameable.size)
         }
-        .sortBy(city => (-city.hours, city.cityId))
-    }
+      }
+      .recoverWith { case e: Exception =>
+        // Degrade to this city's own total rather than 500 a page a volunteer may be mid-way through logging hours
+        // from. If even that fails there is nothing left to show, and it fails the way it always has.
+        logger.warn(s"Cross-city hours failed for $userId, falling back to this city alone: ${e.getMessage}", e)
+        getHoursAuditingAndValidating(userId).map { hours =>
+          val allCities = configService.getAllCityInfo(lang)
+          val rows      = Seq(
+            CityHours(
+              configService.getCityId,
+              allCities.find(_.cityId == configService.getCityId).map(_.cityNameShort).getOrElse(""),
+              toDisplayedTenth(hours),
+              isCurrentCity = true
+            )
+          ).filter(_.hours > 0d)
+          // Every other deployment went unchecked, not just one — the reader is owed the real size of the gap.
+          CrossCityHours(rows, allCities.count(_.cityId != configService.getCityId))
+        }
+      }
   }
 
   def getAuditedStreets(userId: String): Future[Seq[(StreetEdge, Boolean)]] =

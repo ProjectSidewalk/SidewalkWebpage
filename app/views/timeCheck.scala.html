@@ -1,7 +1,7 @@
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
 @import service.CommonPageData
-@(commonData: CommonPageData, user: SidewalkUserWithRole, isMobile: Boolean, cityHours: Seq[service.CityHours]
+@(commonData: CommonPageData, user: SidewalkUserWithRole, isMobile: Boolean, cityHours: service.CrossCityHours
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @*
@@ -14,8 +14,18 @@
 * the time came from whenever it came from more than one place.
 *@
 
-@* Total across every city — the figure a volunteer reports. *@
-@timeSpent = @{cityHours.map(_.hours).sum}
+@* Total across every city — the figure a volunteer reports. Pre-rounded by the service, so it is exactly the sum of
+ * the rows below and the table can never visibly fail to add up. *@
+@timeSpent = @{cityHours.totalHours}
+
+@cities = @{cityHours.cities}
+
+@* Shown for a lone city too when it isn't this deployment, so the number is never unattributed. *@
+@showBreakdown = @{cities.nonEmpty && (cities.length > 1 || !cities.exists(_.isCurrentCity))}
+
+@missedCities = @{
+  if (cityHours.unreachableCities == 1) "1 city" else s"${cityHours.unreachableCities} cities"
+}
 
 @* One encouraging line, scaled to how much the user has contributed. *@
 @cheer = @{
@@ -42,22 +52,22 @@
     <div class="tc-stat">
       <span class="tc-stat-num">@{"%.1f".format(timeSpent)}</span>
       <span class="tc-stat-unit">@{if (timeSpent == 1.0) "hour" else "hours"} mapping &amp; validating</span>
-      @if(cityHours.length > 1) {
-        <p class="tc-stat-scope">Across @cityHours.length Project Sidewalk cities — your account is the same one in
+      @if(cities.length > 1) {
+        <p class="tc-stat-scope">Across @cities.length Project Sidewalk cities — your account is the same one in
         every city, so this is your full total.</p>
       }
       <p class="tc-stat-cheer">@cheer</p>
     </div>
 
-    @if(cityHours.length > 1) {
+    @if(showBreakdown) {
       <div class="tc-cities">
-        <h2 class="tc-cities-title">Where your time came from</h2>
-        <table class="tc-cities-table">
+        <h2 class="tc-cities-title" id="tc-cities-title">Where your time came from</h2>
+        <table class="tc-cities-table" aria-labelledby="tc-cities-title">
           <thead>
             <tr><th scope="col">City</th><th scope="col">Hours</th></tr>
           </thead>
           <tbody>
-            @for(city <- cityHours) {
+            @for(city <- cities) {
               <tr>
                 <th scope="row">@city.cityName@if(city.isCurrentCity){ <span class="tc-cities-here">you're here</span>}</th>
                 <td>@{"%.1f".format(city.hours)}</td>
@@ -66,6 +76,14 @@
           </tbody>
         </table>
       </div>
+    }
+
+    @* A city we couldn't reach may have held hours, so the total is a floor. Saying so beats handing a supervisor a
+     * quietly smaller number, which is the bug this page was fixed for in the first place (#4526). *@
+    @if(cityHours.unreachableCities > 0) {
+      <p class="tc-incomplete" role="status">Heads up: we couldn't check @missedCities just now, so your total may be
+      low. Try reloading in a few minutes, or email
+      <a href="mailto:volunteer.sidewalk@@gmail.com">volunteer.sidewalk@@gmail.com</a> if it doesn't sort itself out.</p>
     }
 
     <div class="sh-main">

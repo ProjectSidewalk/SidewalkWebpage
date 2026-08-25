@@ -219,11 +219,13 @@ class AuditTaskInteractionTable @Inject() (protected val dbConfigProvider: Datab
    * volunteer who mapped in more than one city see their true total. Each source table is keyed on the user through
    * its own `user_id` index, so a city they never touched costs three index misses rather than a scan.
    *
-   * Summing the per-city results slightly undercounts a session that crossed cities inside the five-minute gap cap:
-   * that gap spans two cities' event streams and is invisible to either query. Closing it would need one global
-   * interaction timeline, which no query can assemble from per-city tables.
+   * Two distortions come with summing per-city results, in opposite directions. A session that crossed cities inside
+   * the five-minute gap cap is *under*counted: that gap spans two cities' event streams and is invisible to either
+   * query. Two deployments worked in the same wall-clock minutes are *over*counted, since each schema's gap-fill runs
+   * independently of the other. Both would need one global interaction timeline to close, which no query can assemble
+   * from per-city tables.
    *
-   * @param userId The volunteer whose hours to total; bound once and referenced by each arm.
+   * @param userId The volunteer whose hours to total.
    * @param schema The city schema to read. Spliced into SQL, so it must be a bare identifier.
    * @return       Hours, or 0 when nothing is logged for them there.
    */
@@ -233,7 +235,6 @@ class AuditTaskInteractionTable @Inject() (protected val dbConfigProvider: Datab
       s"Refusing to build schema-qualified SQL for a non-identifier schema name: $schema"
     )
     sql"""
-      WITH me AS (SELECT CAST($userId AS text) AS user_id)
       SELECT CAST(extract( second from SUM(diff) ) / 60 +
              extract( minute from SUM(diff) ) +
              extract( hour from SUM(diff) ) * 60 AS decimal(10,2)) / 60.0 AS hours_volunteered
@@ -242,17 +243,17 @@ class AuditTaskInteractionTable @Inject() (protected val dbConfigProvider: Datab
       FROM (
           SELECT user_id, end_timestamp AS timestamp
           FROM "#$schema".label_validation
-          WHERE user_id = (SELECT user_id FROM me)
+          WHERE user_id = $userId
           UNION
           SELECT audit_task.user_id, timestamp
           FROM "#$schema".audit_task_interaction_small
           INNER JOIN "#$schema".audit_task
                   ON audit_task.audit_task_id = audit_task_interaction_small.audit_task_id
-          WHERE audit_task.user_id = (SELECT user_id FROM me)
+          WHERE audit_task.user_id = $userId
           UNION
           SELECT user_id, timestamp
           FROM "#$schema".webpage_activity
-          WHERE user_id = (SELECT user_id FROM me)
+          WHERE user_id = $userId
               AND (
                   activity LIKE 'Visit_Labeling_Guide%'
                   OR activity = 'Visit_ServiceHourInstructions'
@@ -263,7 +264,7 @@ class AuditTaskInteractionTable @Inject() (protected val dbConfigProvider: Datab
           ) timestamps
       ) time_diffs
       WHERE diff < '00:05:00.000' AND diff > '00:00:00.000'
-    """.as[Double].head
+    """.as[Option[Double]].head.map(_.getOrElse(0d))
   }
 
   /**

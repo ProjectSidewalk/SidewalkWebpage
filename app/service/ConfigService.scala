@@ -42,6 +42,15 @@ import scala.reflect.ClassTag
  */
 case class GlobalLeaderboardScope(cities: Seq[(String, String)], optOutSchemas: Seq[String])
 
+/**
+ * Which cities a self-view fan-out may read, and which it had to leave out (#4526).
+ *
+ * @param cities         (cityId, schema) pairs in configured order.
+ * @param skippedSchemas Schemas held back because they lack a column the query reads. A volunteer's hours page reports
+ *                       this count to the reader, since a dropped city can only ever make their total look smaller.
+ */
+case class SelfViewScope(cities: Seq[(String, String)], skippedSchemas: Seq[String])
+
 case class CityInfo(
     cityId: String,
     stateId: Option[String],
@@ -981,11 +990,12 @@ trait ConfigService {
    * Which cities a volunteer's hours may be totalled from (#4526).
    *
    * Same self-view reasoning as [[getCrossCityUserScope]], but gated on the interaction tables that query reads
-   * rather than the contribution tables.
+   * rather than the contribution tables. Carries the excluded schemas too, which its caller shows the volunteer:
+   * a hours total that silently dropped a city is the very bug #4526 exists to fix.
    *
-   * @return (cityId, schema) pairs in configured order, or a failed future if readiness can't be determined.
+   * @return The scope, or a failed future if readiness can't be determined.
    */
-  def getCrossCityHoursScope: Future[Seq[(String, String)]]
+  def getCrossCityHoursScope: Future[SelfViewScope]
 
   /**
    * Retrieves map parameters for a specific city by directly querying that city's database schema.
@@ -1290,8 +1300,9 @@ class ConfigServiceImpl @Inject() (
 
   def getCrossCityUserScope: Future[Seq[(String, String)]] =
     crossCitySelfViewScope("getCrossCityUserScope", ConfigService.CrossCityUserRequiredColumns, "user stats")
+      .map(_.cities)
 
-  def getCrossCityHoursScope: Future[Seq[(String, String)]] =
+  def getCrossCityHoursScope: Future[SelfViewScope] =
     crossCitySelfViewScope("getCrossCityHoursScope", ConfigService.CrossCityHoursRequiredColumns, "volunteer hours")
 
   /**
@@ -1304,16 +1315,16 @@ class ConfigServiceImpl @Inject() (
    * @param cacheKey Cache key for this scope; distinct per column set, since the answers differ.
    * @param required The (table, column) pairs the caller's query reads.
    * @param label    Human-readable name of the caller, for the drift warning.
-   * @return         (cityId, schema) pairs in configured order.
+   * @return         The readable cities in configured order, and the schemas held back.
    */
   private def crossCitySelfViewScope(
       cacheKey: String,
       required: Set[(String, String)],
       label: String
-  ): Future[Seq[(String, String)]] = {
+  ): Future[SelfViewScope] = {
     // Cached for the same reason as the leaderboard scope: it only changes when config or the schema list does, and it
     // gates a per-request query. The recover stays outside so a transient failure isn't memoized as "no cities".
-    cacheApi.getOrElseUpdate[Seq[(String, String)]](cacheKey, Duration(1, "hours")) {
+    cacheApi.getOrElseUpdate[SelfViewScope](cacheKey, Duration(1, "hours")) {
       availableCityIds().flatMap { cityIds =>
         val deployments: Seq[(String, String)] = cityIds.flatMap { cityId =>
           try { Some(cityId -> getCitySchema(cityId)) }
@@ -1331,7 +1342,7 @@ class ConfigServiceImpl @Inject() (
                 s"(evolutions likely not yet applied there): ${skipped.map(_._2).mkString(", ")}"
             )
           }
-          readyDeployments
+          SelfViewScope(readyDeployments, skipped.map(_._2))
         }
       }
     }

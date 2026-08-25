@@ -52,6 +52,10 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
 
   private def await[T](f: => scala.concurrent.Future[T]): T = Await.result(f, 60.seconds)
 
+  /** The one-decimal rounding `getCrossCityHours` applies before the Time Check page ever sees a number. */
+  private def toTenth(hours: Double): Double =
+    java.math.BigDecimal.valueOf(hours).setScale(1, java.math.RoundingMode.HALF_UP).doubleValue
+
   // Carries a successful result out through the forced-rollback failure path of `runRolledBack`.
   private case class RollbackWithResult(result: Any) extends RuntimeException with scala.util.control.NoStackTrace
 
@@ -536,8 +540,8 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
       val scope         = await(configService.getCrossCityHoursScope)
       val configuredIds = config.get[Seq[String]]("city-params.city-ids").toSet
 
-      scope.map(_._1).distinct.length mustBe scope.length
-      scope.foreach { case (cityId, schema) =>
+      scope.cities.map(_._1).distinct.length mustBe scope.cities.length
+      scope.cities.foreach { case (cityId, schema) =>
         configuredIds must contain(cityId)
         cityId must not be "staging"
         schema must fullyMatch regex "^[a-z_][a-z0-9_]*$"
@@ -545,10 +549,23 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
       }
     }
 
-    "gate on the interaction tables, not the contribution tables" in {
-      // The two self-view scopes read different tables, so they may legitimately differ; neither may invent a city.
-      val configuredIds = config.get[Seq[String]]("city-params.city-ids").toSet
-      await(configService.getCrossCityHoursScope).foreach { case (cityId, _) => configuredIds must contain(cityId) }
+    "gate on the interaction tables the hours query reads, not the contribution tables" in {
+      // The two self-view scopes exist separately only because they read different tables. If the column sets ever
+      // converged, one of the fan-outs would be gating on readiness it doesn't actually need.
+      val hoursTables = ConfigService.CrossCityHoursRequiredColumns.map(_._1)
+      val statsTables = ConfigService.CrossCityUserRequiredColumns.map(_._1)
+
+      hoursTables must contain("audit_task_interaction_small")
+      hoursTables must contain("webpage_activity")
+      statsTables must not contain "audit_task_interaction_small"
+      hoursTables must not contain "user_stat"
+    }
+
+    "account for every deployment it considered, so an excluded city is never simply lost" in {
+      // The count of skipped schemas is what the Time Check page shows the volunteer, so it has to be complete.
+      val scope = await(configService.getCrossCityHoursScope)
+      scope.skippedSchemas.toSet intersect scope.cities.map(_._2).toSet mustBe empty
+      scope.skippedSchemas.distinct.length mustBe scope.skippedSchemas.length
     }
   }
 
@@ -582,8 +599,9 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
   "getCrossCityHours" should {
     "list only cities with logged time, most hours first, and include at least this city's own total" in {
       topUser.foreach { user =>
-        val rows  = await(userService.getCrossCityHours(user.userId, Lang("en")))
-        val local = await(userService.getHoursAuditingAndValidating(user.userId))
+        val result = await(userService.getCrossCityHours(user.userId, Lang("en")))
+        val rows   = result.cities
+        val local  = await(userService.getHoursAuditingAndValidating(user.userId))
 
         rows.map(_.cityId).distinct.length mustBe rows.length
         rows.map(_.hours).sliding(2).foreach {
@@ -595,15 +613,33 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
           row.cityName.trim must not be empty
         }
         rows.count(_.isCurrentCity) must be <= 1
-        // Summing per-city totals can only meet or exceed what one city alone reports.
-        rows.map(_.hours).sum must be >= local
-        // The current city's row is that same single-city number, since both run the identical query there.
-        rows.find(_.isCurrentCity).foreach(_.hours mustBe local)
+        // Summing per-city totals can only fall below one city's own by that city's rounding, and only ever gains
+        // from the others.
+        result.totalHours must be >= local - 0.05001
+        // The current city's row is the single-city number to the tenth, since both run the identical query there.
+        rows.find(_.isCurrentCity).foreach(_.hours mustBe toTenth(local))
+      }
+    }
+
+    "hand the page hours already rounded, so its rows and its headline cannot disagree" in {
+      topUser.foreach { user =>
+        val result = await(userService.getCrossCityHours(user.userId, Lang("en")))
+        result.cities.foreach(row => row.hours mustBe toTenth(row.hours))
+        result.totalHours mustBe result.cities.map(_.hours).sum
       }
     }
 
     "report nothing for an account that has never worked anywhere" in {
-      await(userService.getCrossCityHours(ghostId, Lang("en"))) mustBe empty
+      val result = await(userService.getCrossCityHours(ghostId, Lang("en")))
+      result.cities mustBe empty
+      result.totalHours mustBe 0d
+    }
+
+    "count every city it couldn't total, so the page can admit the number is a floor" in {
+      val result = await(userService.getCrossCityHours(ghostId, Lang("en")))
+      val scope  = await(configService.getCrossCityHoursScope)
+      // Nothing is unreachable beyond what the scope already held back, on a database that is answering queries.
+      result.unreachableCities must be >= scope.skippedSchemas.size
     }
   }
 

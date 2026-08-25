@@ -292,7 +292,7 @@ class ApplicationController @Inject() (
       val isMobile: Boolean = ControllerUtils.isMobile(request)
       // Not cached, and started together: volunteers reload this page while logging service hours, so a stale total
       // would be worse than a slow one (#4526).
-      val cityHoursF: Future[Seq[service.CityHours]] =
+      val cityHoursF: Future[service.CrossCityHours] =
         userService.getCrossCityHours(request.identity.userId, request2Messages.lang)
       for {
         commonData <- configService.getCommonPageData(request2Messages.lang)
