@@ -55,6 +55,8 @@ describe('ValidationResultTypesPreview', () => {
         // The module assigns window.ValidationResultTypesPreview as a singleton; load a clean copy each time so that
         // config mutations from setup() in one test don't bleed into the next.
         delete window.ValidationResultTypesPreview;
+        // apiDocs/layout.scala.html loads the shared table-wrapper helper ahead of every preview script.
+        loadGlobalScript('public/js/api-docs/apiTableWrapper.js');
         loadGlobalScript(MODULE_PATH);
     });
 

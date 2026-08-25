@@ -75,6 +75,8 @@ describe('AggregateStatsPreview', () => {
     beforeEach(() => {
         document.body.innerHTML = `<div id="${CONTAINER_ID}"></div>`;
         delete window.AggregateStatsPreview;
+        // apiDocs/layout.scala.html loads the shared table-wrapper helper ahead of every preview script.
+        loadGlobalScript('public/js/api-docs/apiTableWrapper.js');
         loadGlobalScript(MODULE_PATH);
     });
 
