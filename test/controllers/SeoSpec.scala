@@ -192,8 +192,10 @@ class SeoProdSpec extends PlaySpec with GuiceOneAppPerSuite with SeoSpecHelpers 
     "lay out at the device's own width" in {
       val (sc, body) = getMobilePage("/mobile")
       sc mustBe OK
-      body must include("content=\"width=device-width, initial-scale=1\"")
-      // The viewport meta must appear before </head> so browsers apply it during initial layout.
+      // The whole tag, so the width can't come from some other element's attributes. No maximum-scale or
+      // user-scalable=no either: pinch zoom is a WCAG 1.4.4 affordance.
+      body must include("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">")
+      // Must appear before </head> so browsers apply it during initial layout.
       body.indexOf("name=\"viewport\"") must be < body.indexOf("</head>")
     }
   }

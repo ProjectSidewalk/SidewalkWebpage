@@ -16,12 +16,22 @@ html {
 body {
   /* ---- Shared geometry -------------------------------------------------------------------------------------------
      The verdict row, the notch that points at it, and the reason panels that stack above it all measure from these,
-     so they can't drift apart. Widths stay in vw with a ceiling: proportional on a phone, bounded on a tablet. */
-  --mobile-header-height: 40px;              /* Progress bar (8px) + mission title (32px). */
+     so they can't drift apart. Widths stay in vw with a ceiling: proportional on a phone, bounded on a tablet.
+
+     The header band is the progress bar with the mission title below it, and the pano, the banner and the reason
+     panels all measure down from its total — so it is summed here and the two rules that draw it read their sizes
+     back out, rather than a hand-added 40px drifting from whatever they happen to say.
+
+     The verdict row's side padding is kept small on purpose: every px it takes is a px the three buttons don't get,
+     and they are what has to hold a translated word. */
+  --mobile-progress-bar-height: 8px;
+  --mobile-title-height: 32px;
+  --mobile-header-height: calc(var(--mobile-progress-bar-height) + var(--mobile-title-height));
+
   --verdict-row-height: clamp(44px, 12vw, 48px);
   --verdict-row-bottom: min(6vw, 24px);
-  --verdict-side-pad: 7vw;
-  --verdict-btn-width: min(25vw, 150px);
+  --verdict-side-pad: min(4vw, 24px);
+  --verdict-btn-width: min(28vw, 150px);
   --notch-height: 10px;
 
   width: 100%;
@@ -565,7 +575,7 @@ body {
 }
 
 #mission-progress-bar-section {
-  --ps-progress-bar-height: 8px;
+  --ps-progress-bar-height: var(--mobile-progress-bar-height);
 
   top: 0;
   left: 0;
@@ -583,10 +593,10 @@ body {
 /* Fills the rest of the header band, under the progress bar. Mulish rather than the accent face: the title counts
    the mission's labels, and Raleway sets digits as old-style figures that wander off the baseline. */
 #mission-title {
-  top: 8px;
+  top: var(--mobile-progress-bar-height);
   left: 0;
   width: 100%;
-  height: 32px;
+  height: var(--mobile-title-height);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -605,13 +615,52 @@ body {
   pointer-events: auto;
 }
 
-/* The card is authored for a desktop tool, where the smallest type it uses (--text-tiny-*, 10px) sits under a
-   pointer rather than at arm's length. A modest bump carries it, and everything sized against it, to a legible
-   size without a second set of dimensions; the cap keeps it inside a narrow phone. */
+/* And reached at 44px, this file's floor, rather than the 24px svv-panorama.css sets for a mouse. The mark itself
+   stays 32px across, because a bigger one hides the imagery being judged — decoupling the two is what that
+   transparent ::after target is for. */
+#validate-pano-marker::after {
+  --label-min-target: 44px;
+}
+
+/* ---- The label card ----------------------------------------------------------------------------------------------
+   Authored for a desktop tool, where the smallest type it uses (--text-tiny-*, 10px) sits under a pointer rather than
+   at arm's length. A 1.2x bump carries it to a legible size on a phone; the cap keeps it inside a narrow one.
+
+   --ui-scale alone would only carry the geometry. The --text-* tokens substitute it where they are declared, on
+   :root, so what inherits into the card already has :root's scale baked in — override it here and the padding grows
+   around type that stays 10px. So each token the card uses is stepped up a size in the rules below, which at these
+   sizes is the same 1.2x. */
 #label-card {
   --ui-scale: 1.2;
 
   max-width: min(calc(240px * var(--ui-scale)), calc(100vw - 24px));
+}
+
+#label-card .label-hover-card__type {
+  font: var(--text-small-bold);
+}
+
+#label-card .label-hover-card__severity,
+#label-card .label-hover-card__tags .tag-pill__label {
+  font: var(--text-caption-medium);
+}
+
+#label-card .label-hover-card__no-info {
+  font: var(--text-caption-regular);
+}
+
+/* Line-height overridden for the same reason label-hover-card.css overrides it: the token's is too tight for a
+   description that wraps. */
+#label-card .label-hover-card__description {
+  font: var(--text-caption-regular);
+  line-height: 1.45;
+}
+
+/* The card's one action is a touch target like any other here, so it takes the 44px floor rather than the tiny
+   button's pointer-sized box. */
+#label-card .label-hover-card__action-button {
+  min-height: 44px;
+  font: var(--text-small-medium);
 }
 
 /* Touch-sized: the shared pill (css/pano-overlay-buttons.css) is drawn for a pointer, and 44px is the floor a
@@ -674,9 +723,21 @@ body {
   padding: 0 var(--verdict-side-pad);
 }
 
+/* A size down from the type the reason panels' buttons keep. Three verdicts across a phone leave each about 90px, of
+   which the thumb takes 20, and the longest translation of Unsure — pt-BR's "Não tenho certeza" — has to wrap inside
+   a 44-48px row: at 16px it took three lines and spilled over the pano and the notch below. */
 #validation-button-holder .validate-page-button {
   width: var(--verdict-btn-width);
   height: 100%;
+  font: var(--text-small-bold);
+}
+
+/* A narrow phone leaves ~66px of text column once the thumb has its 20, which is under what 14px needs for the same
+   two lines. Every supported language fits at both sizes; pt-BR is the one that decides them. */
+@media (width <= 360px) {
+  #validation-button-holder .validate-page-button {
+    font: var(--text-caption-semibold);
+  }
 }
 
 /* Shared with the disagree/unsure reason panels' own buttons, which override the box but not the type. */
@@ -901,7 +962,8 @@ body {
 }
 
 /* Sits under the tool's header band rather than over it — the mission title and its progress bar are pinned to the
-   top of the screen. Its type and narrow-screen layout come from main.css, which now matches on a phone. */
+   top of the screen. Its type comes from main.css, as does its stacked narrow-screen layout once a portrait phone is
+   inside that block's 600px. */
 .test-server-banner {
   position: absolute;
   top: var(--mobile-header-height);

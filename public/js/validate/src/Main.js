@@ -147,8 +147,8 @@ class Main {
     // Label projection math and the canvas_width/height submitted with each validation follow the on-screen size.
     svv.canvasWidth = () => Math.round(svv.ui.viewer.controlLayer[0].getBoundingClientRect().width);
     svv.canvasHeight = () => Math.round(svv.ui.viewer.controlLayer[0].getBoundingClientRect().height);
-    // A phone activates the marker by pointer — it is what opens the label card — so it is floored at WCAG 2.5.8's
-    // 24px, here 32px across (2 * radius + 2). Bigger than that starts hiding the very imagery being judged.
+    // A phone activates the marker by pointer — it is what opens the label card — so mobile-validate.css floors its
+    // target at 44px. The mark itself stays 32px across (2 * radius + 2): bigger hides the imagery being judged.
     svv.labelRadius = util.isMobile() ? 15 : 10;
 
     const labelType = svv.labelTypes[param.mission.label_type_id];
@@ -240,7 +240,7 @@ class Main {
 
         svv.panoManager.sizePano();
         svv.panoViewer.resize();
-        svv.tracker?.push('Window_Resized', {
+        svv.tracker.push('Window_Resized', {
           width, height, orientation: width > height ? 'landscape' : 'portrait', rotated,
         });
       };
