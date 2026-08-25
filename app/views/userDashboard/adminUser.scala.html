@@ -4,7 +4,7 @@
 @import play.api.Configuration
 @import service.{AdminUserProfileData, CommonPageData}
 @(commonData: CommonPageData, viewer: SidewalkUserWithRole, user: SidewalkUserWithRole, adminData: AdminUserProfileData,
-    currTeam: Option[Team], teams: Seq[Team]
+    cityHours: service.CrossCityHours, currTeam: Option[Team], teams: Seq[Team]
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @*
@@ -26,6 +26,11 @@
   dt.format(java.time.format.DateTimeFormatter.ofLocalizedDateTime(java.time.format.FormatStyle.MEDIUM,
     java.time.format.FormatStyle.SHORT).withLocale(messages.lang.toLocale))
 }
+@* Shown for a lone city too when it isn't this deployment, so the hours are never unattributed. *@
+@showHoursBreakdown = @{
+  cityHours.cities.nonEmpty && (cityHours.cities.length > 1 || !cityHours.cities.exists(_.isCurrentCity))
+}
+@missedCities = @{if (cityHours.unreachableCities == 1) "1 city" else s"${cityHours.unreachableCities} cities"}
 
 @content = {
   <div class="api-section" id="admin-user-intro-section">
@@ -134,9 +139,11 @@
   <div class="api-section" id="admin-user-stats-section">
     <h2 class="api-heading" id="stats">Stats <a href="#stats" class="permalink">#</a></h2>
     <div class="coverage-kpis ud-kpis">
+      @* The user's total across every deployment: the same figure they read on /timeCheck. An admin checks a
+         service-hours claim against this, so a per-deployment number here reads as an inflated claim (#4986). *@
       <div class="coverage-kpi">
-        <span class="coverage-kpi-value">@{"%.1f".format(adminData.hoursWorked)} h</span>
-        <span class="coverage-kpi-label">Exploring &amp; validating</span>
+        <span class="coverage-kpi-value">@{"%.1f".format(cityHours.totalHours)} h</span>
+        <span class="coverage-kpi-label">Exploring &amp; validating@if(cityHours.cities.length > 1){, all cities}</span>
       </div>
       <div class="coverage-kpi">
         <span class="coverage-kpi-value">@adminData.userStats.labelsPerMeter.map(f => "%.1f".format(f * 1000)).getOrElse("—")</span>
@@ -151,6 +158,29 @@
         <span class="coverage-kpi-label">Current neighborhood@adminData.currentRegion.map(r => s" (ID ${r.regionId})")</span>
       </div>
     </div>
+    @if(showHoursBreakdown) {
+      <h3 class="dq-subhead" id="au-hours-cities-title">Where their time came from</h3>
+      <div class="mgmt-table-scroll ud-admin-hours-cities">
+        <table class="contrib-table" aria-labelledby="au-hours-cities-title">
+          <thead>
+            <tr><th scope="col">City</th><th scope="col">Hours</th></tr>
+          </thead>
+          <tbody>
+            @for(city <- cityHours.cities) {
+              <tr>
+                <th scope="row">@city.cityName@if(city.isCurrentCity){ (this deployment)}</th>
+                <td>@{"%.1f".format(city.hours)}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+    @* An unreached city may have held hours, so the total above is a floor. An admin verifying a claim needs to know
+       that before deciding the user overstated it. *@
+    @if(cityHours.unreachableCities > 0) {
+      <div class="ud-nudge">Couldn't total @missedCities just now, so these hours may read low. Reload in a few minutes; if it persists, those deployments aren't answering.</div>
+    }
     <p class="ud-field-help">A labeling frequency under 37.5 labels per km marks a user low quality automatically; the nightly job recomputes it, or run "Recalculate user stats" on the <a href="@routes.AdminDashboardController.management">Management</a> page.</p>
   </div>
 
