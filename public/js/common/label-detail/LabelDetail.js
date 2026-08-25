@@ -638,7 +638,11 @@ class LabelDetail {
     // skipped when known-expired; either way the coordinates are the fallback if it fails to load (#4635). Paging
     // can move between labels with and without coordinates, so the link re-hides when there's nothing to seed.
     if (els.exploreHereLink) {
-      const canExploreHere = this.#showExploreHereLink && Number.isFinite(meta.lat) && Number.isFinite(meta.lng);
+      // /explore still bounces mobile visitors to /mobileLanding, and this card ships on pages phones do reach
+      // (/stories, /dashboard, /profile), so offering the link there can only throw the reader off what they
+      // are looking at.
+      const canExploreHere = this.#showExploreHereLink && !util.isMobile()
+        && Number.isFinite(meta.lat) && Number.isFinite(meta.lng);
       if (canExploreHere) {
         const exploreParams = new URLSearchParams({ lat: meta.lat, lng: meta.lng });
         // The POV rides along even without the pano: it's Explore's signal to face the label (rather than the

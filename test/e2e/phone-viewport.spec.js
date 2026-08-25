@@ -94,4 +94,19 @@ test.describe('phone viewport (390px), registered user', () => {
   test('/dashboard fits without horizontal overflow', async ({page, context, consoleErrors}) => {
     await checkPhoneViewport(page, context, consoleErrors, {path: '/dashboard', mapbox: true});
   });
+
+  // The drawer is parked off-canvas at this width, so the walk above never sees the layout the breakpoint
+  // actually authors: a full-bleed panel over the map. Opening it is the only way to measure that, and it
+  // doubles as proof the reopen control is wired — it is built at map-ready, well before the label feed lands.
+  test('/dashboard fits with the filter drawer open', async ({page, context, consoleErrors}) => {
+    await loadAndSettle(page, context, {path: '/dashboard', mapbox: true});
+
+    await page.locator('#filter-sidebar-open').click();
+    await expect(page.locator('#filter-sidebar')).toBeVisible();
+
+    const report = await horizontalOverflowReport(page);
+    expect(report.offenders, `open filter drawer: ${report.offenderCount} element(s) overflow the ` +
+      `${report.viewportWidth}px viewport`).toEqual([]);
+    expect(consoleErrors).toEqual([]);
+  });
 });

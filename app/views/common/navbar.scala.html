@@ -94,7 +94,11 @@
           <ul id="nav-tools-menu" class="dropdown-menu" aria-label="@Messages("navbar.tools")">
             <li class="dropdown-section">@Messages("navbar.tools.analyze")</li>
             <li><a id="navbar-gallery-btn" href="@routes.GalleryController.gallery()"@if(curPath == "/gallery"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("grid")@Messages("gallery")</a></li>
-            <li><a id="navbar-labelmap-btn-tools" href="@routes.ApplicationController.labelMap(None)"@if(curPath == "/labelmap"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("map")@Messages("navbar.labelmap")</a></li>
+            @* Label Map has a top-level row of its own, and the stacked panel shows every row, so on a phone this
+               copy would be the same destination listed twice — under two different click-analytics ids. *@
+            @if(!isMobileDevice) {
+              <li><a id="navbar-labelmap-btn-tools" href="@routes.ApplicationController.labelMap(None)"@if(curPath == "/labelmap"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("map")@Messages("navbar.labelmap")</a></li>
+            }
             <li class="dropdown-section">@Messages("navbar.tools.community")</li>
             <li><a id="navbar-leaderboard-btn" href='@routes.UserDashboardController.leaderboard'@if(curPath == "/leaderboard"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("award")@Messages("navbar.leaderboard")</a></li>
             <li><a id="navbar-stories-btn" href='@routes.StoryController.storiesPage'@if(curPath == "/stories"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("message-circle")@Messages("navbar.stories")</a></li>

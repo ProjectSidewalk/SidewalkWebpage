@@ -18,8 +18,7 @@
   box-sizing: border-box;
   width: 650px;
   max-width: calc(100vw - 32px);
-  max-height: calc(100vh - 32px);
-  max-height: calc(100dvh - 32px); /* Track the visible viewport under mobile toolbars; vh is the fallback. */
+  max-height: calc(100dvh - 32px); /* dvh, so the dialog tracks the viewport under a collapsing mobile toolbar. */
   padding: 22px;
   border: none;
   border-radius: 12px;
@@ -334,6 +333,10 @@ dialog.label-detail[open]::backdrop {
   transition: opacity 120ms ease;
 }
 
+/* display: inline-flex above outranks the UA's [hidden] rule, and this panel is not always a .label-detail
+   descendant, so it can't lean on the !important guard at the top of this file. */
+.pano-not-avail__cta[hidden] { display: none; }
+
 .pano-not-avail__cta:hover { opacity: 0.9; }
 
 .pano-not-avail__cta:focus-visible {
@@ -512,9 +515,16 @@ button.label-detail__meta-cell:focus-visible {
 
 /* ─── Three-column row: Validations / Severity / Tags ─────────────────── */
 
+/* Wrapping is keyed to the columns' own width, not the viewport's: three hosts size this card independently of
+   the window (the 650px modal, the Gallery's 52vw expanded view, the share page's grid track), and a translated
+   "Disagree" widens the two fixed columns well past their English measurement. Since neither of those can shrink,
+   the zero basis + floor on tags below breaks the line exactly when they stop fitting — whatever the host, width,
+   or language. */
 .label-detail__columns {
   display: flex;
+  flex-wrap: wrap;
   gap: 32px;
+  row-gap: 16px;
   align-items: flex-start;
   margin-bottom: 16px;
 }
@@ -532,9 +542,10 @@ button.label-detail__meta-cell:focus-visible {
 .label-detail__col--severity    { flex: 0 0 auto; }
 
 .label-detail__col--tags        {
-  flex: 1 1 auto;
-  min-width: 0;
+  flex: 1 1 0;
+  min-width: 120px;
 }
+
 
 /* Validation count display — non-interactive icon + count groups, modeled on the Figma redesign
    (LabelMap-Redesign frame 537:17). The actual validate action lives on the pano hover overlay. */
@@ -977,9 +988,12 @@ button.label-detail__meta-cell:focus-visible {
 
 /* Hover can't reveal controls on a touch-primary device, so the pano's hover-revealed controls stay visible
    ([hidden] and :disabled states still win), and the sub-44px targets grow: the paging chips outright, the
-   close button via padding (its svg fills the 24px content box that remains). */
+   close button via padding (its svg fills the 24px content box that remains).
+   The vote overlay is deliberately NOT among them: it is a full-width 56px bar pinned to the bottom of the
+   pano, so revealing it permanently would cover a quarter of a phone-sized image, kill drag-to-look across
+   that strip, and turn a stray tap into a validation write. Nothing is lost by leaving it to hover — the vote
+   column carries the same three actions through the same handler, and it is always visible. */
 @media (pointer: coarse) {
-  .label-detail__pano-overlay,
   .label-detail__paging,
   .label-detail__hide-label {
     opacity: 1;
@@ -998,14 +1012,6 @@ button.label-detail__meta-cell:focus-visible {
   }
 }
 
-/* A 390px phone leaves ~314px of dialog content, less than the fixed-width Validations + Severity columns
-   plus their 32px gap — the row has to be allowed to wrap. */
-@media (width <= 480px) {
-  .label-detail__columns {
-    flex-wrap: wrap;
-    row-gap: 16px;
-  }
-}
 
 /* ─── Share control (#456) ────────────────────────────────────────────────
    Subtle, YouTube-style share button anchored bottom-right, with an accessible popover. */
