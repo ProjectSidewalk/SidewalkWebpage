@@ -85,7 +85,10 @@ local development** — your edit / `grunt watch` / reload loop is untouched.
   CI seeds the one region it requires (`fixtures/ci-seed.sql` — with zero regions `/explore` is a server
   error). A reload counter turns Explore's viewer-failure reload loop into a fast, named failure.
   `/validate` accepts either legitimate terminal state error-free: a mission (seeded DBs) or the
-  "no new mission" modal (CI's empty city — a mission needs ≥ 10 validatable labels of one type). ✅
+  "no new mission" modal (CI's empty city — a mission needs ≥ 10 validatable labels of one type). `/mobile`
+  runs the same two-terminal-state check under an iPhone descriptor (the server serves that page by UA and
+  redirects a desktop one to `/`), in portrait and in landscape, each pinning the layout viewport to the
+  device's own width — the #4891 contract. ✅
 - **Phase 2b (open):** make CI exercise `/validate`'s real mission path — needs a committed seed of ≥ 10
   non-tutorial labels whose panos are live or locally backed up, and a real `GOOGLE_MAPS_SECRET` for the
   server-side pano-metadata check; also gallery expanded-card view and api-docs preview content asserts
@@ -106,5 +109,5 @@ local development** — your edit / `grunt watch` / reload loop is untouched.
 | `pages.spec.js` | Table-driven phase-1 anonymous pages |
 | `phone-viewport.spec.js` | The same pages at a 390×844 phone viewport: no horizontal overflow (#4883) |
 | `dashboard.spec.js` | Registered-user pages |
-| `explore-validate.spec.js` | Phase-2 Explore/Validate specs (skip without the real GSV key) |
+| `explore-validate.spec.js` | Phase-2 Explore/Validate/mobile-Validate specs (skip without the real GSV key) |
 | `labelmap-feed-failure.spec.js` | What `/labelMap` shows when its label feed fails (intercepted, so DB-independent) |
