@@ -268,8 +268,8 @@ class PanoManager {
     }
 
     // The icon is handed to CSS rather than set as the marker's own background, so that hiding the label can
-    // crossfade it out (svv-panorama.css) while the ring around it stays put to mark the spot. The colour rides
-    // along for the dashed ring that ring becomes while hidden.
+    // crossfade it out (main.css's .label-marker) while the ring around it stays put to mark the spot. The colour
+    // rides along for the dashed ring that ring becomes while hidden.
     const marker = this.labelMarker.marker_;
     marker.style.setProperty('--label-icon', `url(${currentLabel.getIconUrl()})`);
     marker.style.setProperty('--label-color', currentLabel.getIconColor());

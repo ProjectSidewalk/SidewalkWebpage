@@ -7,15 +7,28 @@
 @import controllers.helper.ControllerUtils.distanceUnitWords
 @import models.pano.PanoSource
 @import play.api.Configuration
-@(commonData: CommonPageData, user: SidewalkUserWithRole, profileData: UserProfileData, isMetric: Boolean,
-    tags: Seq[Tag], standing: Option[UserStanding], streak: StreakStats, accuracyByType: Seq[AccuracyByType],
-    trophies: Seq[Trophy], myRoutes: Seq[RouteWithStats], reauditStreets: Seq[OutdatedStreetForUser],
-    reauditTotal: Int, reauditPageSize: Int
+@(commonData: CommonPageData, viewer: SidewalkUserWithRole, user: SidewalkUserWithRole, adminView: Boolean,
+    profileData: UserProfileData, isMetric: Boolean, tags: Seq[Tag], standing: Option[UserStanding],
+    streak: StreakStats, accuracyByType: Seq[AccuracyByType], trophies: Seq[Trophy], myRoutes: Seq[RouteWithStats],
+    reauditStreets: Seq[OutdatedStreetForUser], reauditTotal: Int, reauditPageSize: Int
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
+@*
+* The signed-in user's dashboard. `user` is whose dashboard this is and `viewer` who is looking at it — the same
+* person except under `adminView` (#4964), where an admin sees `user`'s dashboard as they would: the same sections,
+* with the admin label popup, the vote/note and route-edit controls disabled (those endpoints act as the viewer), the
+* user's stories editable for moderation, and the sidebar swapped for the admin-view nav.
+*@
+
+@escapedName = @{ play.twirl.api.HtmlFormat.escape(user.username).toString }
 
 @* Named once because every distance on the page uses it. Twirl compiles this to a def, so it is not memoized. *@
 @unitAbbr = @{distanceUnitWords.abbr}
 @unitAbbrSmall = @{distanceUnitWords.abbrSmall}
+
+@* Named once because the scope-carrying copy on this page repeats it: every tile, chart, and list below is this
+ * deployment's data, and the cross-city section is the only place that isn't. *@
+@cityName = @{commonData.currentCity.cityNameShort}
 
 @*
 * Formats the already-unit-converted audited distance (km when metric, else miles) with one decimal + unit. Floored
@@ -86,19 +99,25 @@
 @content = {
   @* ---- Hero / "Your impact" ----------------------------------------------------------------------------- *@
   <div class="api-section" id="ud-hero-section">
-    <h1 class="api-heading" id="overview">@Messages("dashboard.title") <a href="#overview" class="permalink">#</a></h1>
+    <h1 class="api-heading" id="overview">@if(adminView){@{user.username}'s dashboard}else{@Messages("dashboard.title")} <a href="#overview" class="permalink">#</a></h1>
 
     <div class="ud-hero">
       <div class="ud-hero-avatar" aria-hidden="true">@user.username.take(2).toUpperCase</div>
       <div class="ud-hero-text">
         @* Usernames predating the charset rule may contain HTML metacharacters, so escape before @Html. *@
-        <p class="ud-hero-greeting">@Html(Messages("dashboard.hero.greeting",
-          s"<strong>${play.twirl.api.HtmlFormat.escape(user.username)}</strong>"))</p>
-        <p class="ud-hero-headline">@Html(Messages("dashboard.hero.headline", "%,d".format(profileData.labelCount)))</p>
-        <p class="ud-hero-sub">@Messages("dashboard.hero.sub")</p>
+        @if(adminView) {
+          <p class="ud-hero-greeting"><span class="ud-public-tag">Admin view</span></p>
+          <p class="ud-hero-headline">@Html(Messages("dashboard.profile.headline",
+            s"<strong>$escapedName</strong>", "%,d".format(profileData.labelCount), cityName))</p>
+        } else {
+          <p class="ud-hero-greeting">@Html(Messages("dashboard.hero.greeting", s"<strong>$escapedName</strong>"))</p>
+          <p class="ud-hero-headline">@Html(Messages("dashboard.hero.headline", "%,d".format(profileData.labelCount), cityName))</p>
+          <p class="ud-hero-sub">@Messages("dashboard.hero.sub")</p>
+        }
       </div>
     </div>
 
+    <p class="ud-kpi-scope">@Messages("dashboard.kpi.scope", cityName)</p>
     <div class="coverage-kpis ud-kpis">
       <div class="coverage-kpi">
         <span class="coverage-kpi-value">@profileData.missionCount</span>
@@ -123,11 +142,54 @@
     </div>
 
     @* Contribution map is part of the hero (no h2, so it doesn't get its own on-this-page entry). *@
-    <p class="ud-map-caption">@Messages("dashboard.map.caption")</p>
+    <p class="ud-map-caption">@if(adminView){@Messages("dashboard.profile.map.caption", user.username)}else{@Messages("dashboard.map.caption", cityName)}</p>
     <div id="user-dashboard-choropleth-holder" class="choropleth-holder">
       <div id="user-dashboard-choropleth" class="choropleth"></div>
       @common.filterSidebar(tags = tags, streetsShownByDefault = true, showOutdatedStreetFilter = true)
     </div>
+  </div>
+
+  @* ---- Cities you've mapped (#4496) --------------------------------------------------------------------
+   * Hidden until /userapi/crossCityStats answers: the fan-out spans every city schema, so blocking page render on
+   * it would cost seconds on a cold cache. CrossCityStats.js fills the band, table, map, and trophy, and leaves the
+   * whole section hidden if the breakdown can't be computed.
+   *@
+  @* Outside the section, because a live region that was display:none at load isn't reliably watched — and this one
+   has to announce the arrival of the very element it would otherwise sit inside. *@
+  <span id="ud-cities-status" class="ud-sr-only" role="status" aria-live="polite"></span>
+  <div class="api-section" id="ud-cities-section" hidden
+       data-stats-url="@if(adminView){/adminapi/users/@{user.userId}/crossCityStats}else{/userapi/crossCityStats}">
+    <h2 class="api-heading" id="cities">@Messages("dashboard.cities.title") <a href="#cities" class="permalink">#</a></h2>
+    <p id="ud-cities-intro"></p>
+
+    @* Same band the leaderboard's community section uses, so "across every city" reads the same in both places. *@
+    <div class="ud-community-band ud-cities-band" id="ud-cities-band" hidden>
+      <div class="ud-community-stat">
+        <span class="ud-community-emoji" aria-hidden="true">🌎</span>
+        <span class="ud-community-value" id="ud-cities-total-cities"></span><span class="ud-community-label">@Messages("leaderboard.community.cities")</span>
+      </div>
+      <div class="ud-community-stat">
+        <img class="ud-community-icon" src="@assets.path("images/icons/noun_pin_location_2342268_cropped.png")" alt="">
+        <span class="ud-community-value" id="ud-cities-total-labels"></span><span class="ud-community-label">@Messages("dashboard.kpi.labels")</span>
+      </div>
+      <div class="ud-community-stat">
+        <img class="ud-community-icon" src="@assets.path("images/icons/noun_validation_1876484_cropped.png")" alt="">
+        <span class="ud-community-value" id="ud-cities-total-validations"></span><span class="ud-community-label">@Messages("dashboard.kpi.validations")</span>
+      </div>
+      <div class="ud-community-stat">
+        <img class="ud-community-icon" src="@assets.path("images/icons/noun_distance_2587675_cropped.png")" alt="">
+        <span class="ud-community-value" id="ud-cities-total-distance"></span><span class="ud-community-label">@Messages("dashboard.kpi.distance")</span>
+      </div>
+    </div>
+
+    @* One dot per city the mapper has worked in, area proportional to their labels there. The caption carries the
+     map's meaning in text, as the hero choropleth's does, since the canvas itself conveys nothing to a reader. *@
+    <p class="ud-map-caption" id="ud-cities-map-caption" hidden>@Messages("dashboard.cities.map.caption")</p>
+    <div class="ud-cities-map" id="ud-cities-map" hidden></div>
+
+    <div id="ud-cities-table-holder"></div>
+    <p class="ud-cities-footnote" id="ud-cities-footnote" hidden></p>
+    <div class="ud-nudge" id="ud-cities-nudge" hidden></div>
   </div>
 
   @* ---- My Routes — routes the user built in RouteBuilder (#3343) ---------------------------------------- *@
@@ -157,9 +219,10 @@
           <div class="ud-route-actions">
             <a class="ud-btn-secondary ud-route-explore" data-route-id="@r.routeId" href="/explore?routeId=@r.routeId">@Messages("dashboard.routes.explore")</a>
             <a class="ud-btn-secondary ud-route-labelmap" data-route-id="@r.routeId" href="/labelMap?routes=@r.routeId" target="_blank" rel="noopener">@Messages("dashboard.routes.labelmap")</a>
-            <button type="button" class="ud-btn-secondary ud-route-copy" data-route-id="@r.routeId">@Messages("dashboard.routes.copy")</button>
-            <button type="button" class="ud-btn-secondary ud-route-rename" data-route-id="@r.routeId">@Messages("dashboard.routes.rename")</button>
-            <button type="button" class="ud-btn-secondary ud-route-delete" data-route-id="@r.routeId">@Messages("dashboard.routes.delete")</button>
+            @* Route edits act on the signed-in user's own routes, so an admin viewing someone else's are shown inert. *@
+            <button type="button" class="ud-btn-secondary ud-route-copy" data-route-id="@r.routeId" @if(adminView){disabled}>@Messages("dashboard.routes.copy")</button>
+            <button type="button" class="ud-btn-secondary ud-route-rename" data-route-id="@r.routeId" @if(adminView){disabled}>@Messages("dashboard.routes.rename")</button>
+            <button type="button" class="ud-btn-secondary ud-route-delete" data-route-id="@r.routeId" @if(adminView){disabled}>@Messages("dashboard.routes.delete")</button>
           </div>
         </li>
       }
@@ -173,7 +236,7 @@
   @* ---- Streak / activity rhythm -------------------------------------------------------------------------- *@
   <div class="api-section" id="ud-streak-section">
     <h2 class="api-heading" id="streak">@Messages("dashboard.streak.title") <a href="#streak" class="permalink">#</a></h2>
-    <p>@Messages("dashboard.streak.intro")
+    <p>@Messages("dashboard.streak.intro", cityName)
       @if(streak.currentStreak > 0){<strong>@Messages("dashboard.streak.keep.alive", streak.currentStreak)</strong>}else{<strong>@Messages("dashboard.streak.start")</strong>} <span aria-hidden="true">🔥</span></p>
 
     <div class="ud-streak">
@@ -232,24 +295,23 @@
 
     <h3 class="api-heading" id="trophy-case">@Messages("dashboard.trophy.title") <a href="#trophy-case" class="permalink">#</a></h3>
     <p>@Messages("dashboard.trophy.intro")</p>
-    @if(trophies.nonEmpty) {
-      @userDashboard._trophyCase(trophies)
-    } else {
-      <div class="ud-nudge">@Messages("dashboard.trophy.none")</div>
-    }
+    @* The grid renders even when empty so CrossCityStats.js has somewhere to append the cross-city trophy; the
+     nudge below it is hidden once anything lands in the grid. *@
+    @userDashboard._trophyCase(trophies)
+    <div class="ud-nudge" id="ud-trophy-none" @if(trophies.nonEmpty) {hidden}>@Messages("dashboard.trophy.none")</div>
   </div>
 
   @* ---- Your standing — compact teaser into the full /leaderboard (Option 2) ----------------------------- *@
   <div class="api-section" id="ud-standing-section">
     <h2 class="api-heading" id="standing">@Messages("dashboard.standing.title") <a href="#standing" class="permalink">#</a></h2>
-    <p>@Html(Messages("dashboard.standing.intro", routes.UserDashboardController.leaderboard))</p>
+    <p>@Html(Messages("dashboard.standing.intro", cityName, routes.UserDashboardController.leaderboard))</p>
     @userDashboard._standing(standing, seeAllLink = true)
   </div>
 
   @* ---- Learning — Recent mistakes gallery ------------------------------------------------------------- *@
   <div class="api-section" id="ud-mistakes-section">
     <h2 class="api-heading" id="mistakes">@Messages("dashboard.mistakes.title") <a href="#mistakes" class="permalink">#</a></h2>
-    <p>@if(accuracyByType.exists(_.weakest)){@Messages("dashboard.mistakes.intro.weakest")}else{@Messages("dashboard.mistakes.intro")}</p>
+    <p>@if(accuracyByType.exists(_.weakest)){@Messages("dashboard.mistakes.intro.weakest", cityName)}else{@Messages("dashboard.mistakes.intro", cityName)}</p>
 
     @if(accuracyByType.nonEmpty) {
       <div class="ud-accuracy-bars">
@@ -273,8 +335,9 @@
 
     <h3 class="api-heading" id="recent-mistakes">@Messages("dashboard.mistakes.recent.title") <a href="#recent-mistakes" class="permalink">#</a></h3>
     <p>@Messages("dashboard.mistakes.recent.intro")</p>
-    @* Cards are rendered from /userapi/mistakes by MistakeGallery.js (empty -> encouraging state). *@
-    <div class="ud-mistake-cards" id="ud-mistakes" data-user-id="@user.userId" data-limit="6"></div>
+    @* Cards are rendered from /userapi/mistakes by MistakeGallery.js (empty -> encouraging state). The vote/note
+       controls act as the signed-in user, so under adminView they render disabled. *@
+    <div class="ud-mistake-cards" id="ud-mistakes" data-user-id="@user.userId" data-limit="6" data-read-only="@adminView"></div>
     <a class="ud-see-all" id="ud-mistakes-seeall" href="#" hidden>@Messages("dashboard.mistakes.see.all")</a>
   </div>
 
@@ -282,8 +345,11 @@
   <div class="api-section" id="ud-stories-section">
     <h2 class="api-heading" id="your-stories">@Messages("dashboard.stories.title") <a href="#your-stories" class="permalink">#</a></h2>
     <p>@Messages("dashboard.stories.intro")</p>
-    @* Rows are rendered from /userapi/stories/mine by StoriesSection.js (empty -> quiet nudge). *@
-    <div class="ud-stories" id="ud-stories"></div>
+    @* Rows are rendered from /userapi/stories/mine by StoriesSection.js (empty -> quiet nudge); an admin reads and
+       edits the user's stories through the /adminapi moderation routes instead. *@
+    <div class="ud-stories" id="ud-stories"
+       data-stories-url="@if(adminView){/adminapi/users/@{user.userId}/stories}else{/userapi/stories/mine}"
+       data-story-url-base="@if(adminView){/adminapi/stories}else{/userapi/stories}"></div>
   </div>
 
   @* ---- Team / class --------------------------------------------------------------------------------- *@
@@ -312,7 +378,8 @@
             </div>
           }
         }
-        <button type="button" class="ud-btn-primary ud-create-team-btn"><span class="ud-btn-plus" aria-hidden="true">+</span> @Messages("dashboard.create.team")</button>
+        @* Creating a team auto-joins the creator — the signed-in admin, not the viewed user — so it's off here. *@
+        <button type="button" class="ud-btn-primary ud-create-team-btn" @if(adminView){disabled}><span class="ud-btn-plus" aria-hidden="true">+</span> @Messages("dashboard.create.team")</button>
         @profileData.userTeam.map { _ =>
           <a class="ud-see-all" href="@routes.UserDashboardController.leaderboard#teams">@Messages("dashboard.team.see.board")</a>
         }
@@ -384,7 +451,7 @@
 
   @* Interactive label popup (shared common/label-detail stack) so a mistake card expands into the pano + detail,
    reusing what LabelMap/Gallery use. Loaded directly (not a Grunt bundle) like the redesign's other src. *@
-  @common.labelPopup(admin = false)
+  @common.labelPopup(admin = adminView)
   @* Second composer instance (#4656), for editing a story straight from the list above; the popup's own instance
      belongs to the card it's inside, and its save would refresh that card rather than this list. *@
   @common.storyComposer("ud-story-composer")
@@ -404,11 +471,13 @@
   <script src='@assets.path("js/common/aiLabelIndicator.js")'></script>
   <script src='@assets.path("js/common/PanoMarker.js")'></script>
   <script src='@assets.path("js/common/Toast.js")'></script>
+  <script src='@assets.path("js/common/LabelVisibilityToggle.js")'></script>
   <script src='@assets.path("js/common/label-detail/PopupPanoManager.js")'></script>
   <script src='@assets.path("js/common/ConfirmDialog.js")'></script>
   <script src='@assets.path("js/common/label-detail/StoryComposer.js")'></script>
   <script src='@assets.path("js/common/label-detail/StorySection.js")'></script>
   <script src='@assets.path("js/common/share/ShareWidget.js")'></script>
+  <script src='@assets.path("js/common/label-detail/TagEditor.js")'></script>
   <script src='@assets.path("js/common/label-detail/LabelDetail.js")'></script>
   <script src='@assets.path("js/common/label-detail/LabelPopup.js")'></script>
 
@@ -421,6 +490,7 @@
   <script src="@assets.path("js/user-dashboard/StoriesSection.js")"></script>
   <script src="@assets.path("js/user-dashboard/MyRoutes.js")"></script>
   <script src="@assets.path("js/user-dashboard/OutdatedStreets.js")"></script>
+  <script src="@assets.path("js/user-dashboard/CrossCityStats.js")"></script>
   <script>
     // Deferred handle the contribution map's click adapter awaits; resolved (popup or null) once init finishes.
     let labelPopupReadyResolve;
@@ -444,13 +514,24 @@
       try {
         const src = "@commonData.imagerySource.toString";
         const viewerType = src === 'mapillary' ? MapillaryViewer : src === 'infra3d' ? Infra3dViewer : GsvViewer;
-        @* Anonymous sessions have autogenerated usernames, so only a real account's name reaches the story composer. *@
-        labelPopup = await LabelPopup(false, viewerType, "@commonData.imageryAccessToken",
-                                      @if(user.role != "Anonymous") {"@user.username"} else {null});
+        @* The popup's username marks the viewer's own comments/stories; anonymous sessions have autogenerated
+           usernames, so only a real account's name reaches it. *@
+        labelPopup = await LabelPopup(@adminView, viewerType, "@commonData.imageryAccessToken",
+                                      @if(viewer.role != "Anonymous") {"@viewer.username"} else {null});
       } catch (e) {
         console.error('Label popup init failed; mistake cards will use inline controls only', e);
       }
       labelPopupReadyResolve(labelPopup);
+
+      const citiesSection = document.getElementById('ud-cities-section');
+      if (citiesSection && typeof CrossCityStats !== 'undefined') {
+        // Fire-and-forget: the section stays hidden if this fails, and nothing below it depends on the result.
+        new CrossCityStats(citiesSection, {
+          statsUrl: citiesSection.dataset.statsUrl,
+          currentCityName: "@commonData.currentCity.cityNameShort",
+          mapboxApiKey: "@commonData.mapboxApiKey"
+        }).render();
+      }
 
       const routesList = document.getElementById('ud-routes-list');
       if (routesList && typeof MyRoutes !== 'undefined') {
@@ -468,7 +549,8 @@
           userId: mistakes.dataset.userId,
           limit: parseInt(mistakes.dataset.limit, 10) || 6,
           seeAllEl: document.getElementById('ud-mistakes-seeall'),
-          labelPopup: labelPopup
+          labelPopup: labelPopup,
+          readOnly: mistakes.dataset.readOnly === 'true'
         }).render();
       }
 
@@ -477,7 +559,10 @@
         new StoriesSection(stories, {
           labelPopup: labelPopup,
           composerDialog: document.getElementById('ud-story-composer'),
-          @* Anonymous sessions have autogenerated usernames, so only a real account's name reaches the composer. *@
+          storiesUrl: stories.dataset.storiesUrl,
+          storyUrlFor: (storyId) => `${stories.dataset.storyUrlBase}/${storyId}`,
+          @* The stories belong to `user`, so their byline option is that name (the admin edits on their behalf).
+             Anonymous sessions have autogenerated usernames, so only a real account's name reaches the composer. *@
           currUsername: @if(user.role != "Anonymous") {"@user.username"} else {null}
         }).render();
       }
@@ -487,7 +572,8 @@
 
 @* labelmap: the reused label-detail popup's strings; dashboard: the mistake-card/badge strings MistakeGallery.js and
  DashboardBadges.js render client-side. *@
-@common.main(commonData, Messages("seo.title.dashboard"), i18Namespaces = Seq("common", "labelmap", "dashboard")) {
-  @common.navbar(commonData, Some(user))
-  @userDashboard.layout("dashboard")(content)
+@common.main(commonData, if (adminView) s"${user.username} — Project Sidewalk" else Messages("seo.title.dashboard"),
+  i18Namespaces = Seq("common", "labelmap", "dashboard")) {
+  @common.navbar(commonData, Some(viewer))
+  @userDashboard.layout("dashboard", adminSubject = if (adminView) Some(user.username) else None)(content)
 }

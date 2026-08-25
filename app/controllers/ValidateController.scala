@@ -314,10 +314,11 @@ class ValidateController @Inject() (
       // Insert validations and comments (if there are any).
       _ <- validationService.submitValidations(data.validations.map { newVal =>
         ValidationSubmission(
-          LabelValidation(0, newVal.labelId, newVal.validationResult, newVal.oldSeverity, newVal.newSeverity,
-            newVal.oldTags, newVal.newTags, user.userId, newVal.missionId, newVal.canvasX, newVal.canvasY,
-            newVal.heading, newVal.pitch, newVal.zoom, newVal.canvasHeight, newVal.canvasWidth, newVal.startTimestamp,
-            newVal.endTimestamp, newVal.source, newVal.viewerType),
+          LabelValidation(0, newVal.labelId, newVal.validationResult, user.userId, newVal.missionId, newVal.canvasX,
+            newVal.canvasY, newVal.heading, newVal.pitch, newVal.zoom, newVal.canvasHeight, newVal.canvasWidth,
+            newVal.startTimestamp, newVal.endTimestamp, newVal.source, newVal.viewerType),
+          newVal.severity,
+          newVal.tags,
           newVal.comment.map(c =>
             ValidationTaskComment(
               0, c.missionId, c.labelId, user.userId, ipAddress, c.panoId, c.heading, c.pitch, c.zoom, c.lat, c.lng,
@@ -499,10 +500,11 @@ class ValidateController @Inject() (
           newValIds <- validationService.submitValidations(
             Seq(
               ValidationSubmission(
-                LabelValidation(0, newVal.labelId, newVal.validationResult, newVal.oldSeverity, newVal.newSeverity,
-                  newVal.oldTags, newVal.newTags, userId, mission.get.missionId, newVal.canvasX, newVal.canvasY,
-                  newVal.heading, newVal.pitch, newVal.zoom, newVal.canvasHeight, newVal.canvasWidth,
-                  newVal.startTimestamp, newVal.endTimestamp, newVal.source, newVal.viewerType),
+                LabelValidation(0, newVal.labelId, newVal.validationResult, userId, mission.get.missionId,
+                  newVal.canvasX, newVal.canvasY, newVal.heading, newVal.pitch, newVal.zoom, newVal.canvasHeight,
+                  newVal.canvasWidth, newVal.startTimestamp, newVal.endTimestamp, newVal.source, newVal.viewerType),
+                newVal.severity,
+                newVal.tags,
                 comment = None,
                 newVal.undone,
                 newVal.redone

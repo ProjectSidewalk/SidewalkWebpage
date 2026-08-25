@@ -163,6 +163,7 @@ class ExploreServiceImpl @Inject() (
     routeTable: RouteTable,
     userRouteTable: UserRouteTable,
     labelService: LabelService,
+    labelEditService: LabelEditService,
     auditTaskTable: AuditTaskTable,
     auditTaskEnvironmentTable: AuditTaskEnvironmentTable,
     auditTaskInteractionTable: AuditTaskInteractionTable,
@@ -938,7 +939,7 @@ class ExploreServiceImpl @Inject() (
                       tagStrings: List[String] = label.tagIds.distinct
                         .flatMap(t => allTags.filter(_.tagId == t).map(_.tag).headOption)
                         .toList
-                      _ <- labelService.updateLabelFromExplore(existingLabel.labelId, label.deleted, label.severity,
+                      _ <- labelEditService.updateLabelFromExplore(existingLabel.labelId, label.deleted, label.severity,
                         label.description, tagStrings)
                     } yield None
                   }

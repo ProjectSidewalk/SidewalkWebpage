@@ -109,6 +109,29 @@ case class GlobalLeaderboardStat(
 )
 
 /**
+ * One user's contribution totals in one city, for the dashboard's cross-city breakdown (#4496).
+ *
+ * Every count matches the definition the single-city dashboard already uses for the same tile, so the row for the
+ * city being viewed reconciles exactly with the hero KPIs above it.
+ *
+ * @param citySchema    DB schema the totals came from; the caller maps it back to a city id.
+ * @param labels        Labels placed here, on [[LabelTable.labelsWithExcludedUsers]]'s definition.
+ * @param validations   Validations given here.
+ * @param missions      Completed, non-skipped missions here (onboarding included).
+ * @param metersAudited Street distance audited here from the nightly `user_stat.meters_audited`, or None if this city
+ *                      has no `user_stat` row for the user.
+ * @param lastActivity  When the user last placed a label here, or None if they have never labeled here.
+ */
+case class CrossCityUserStat(
+    citySchema: String,
+    labels: Int,
+    validations: Int,
+    missions: Int,
+    metersAudited: Option[Double],
+    lastActivity: Option[OffsetDateTime]
+)
+
+/**
  * One row in a user's "standing" slice — their neighbors on the board, ranked by label count for the period.
  *
  * @param rank       1-based rank among eligible users for the period.
@@ -810,6 +833,119 @@ class UserStatTable @Inject() (
           val username: String = if (isValidEmail(stat._2)) stat._2.slice(0, stat._2.lastIndexOf('@')) else stat._2
           GlobalLeaderboardStat(stat._1, username, stat._3, stat._4, stat._5, stat._6, stat._7)
         })
+    }
+  }
+
+  /**
+   * The schema this connection reads, i.e. the city every other dashboard query returns data for.
+   *
+   * Taken from the connection rather than `city-id` config because a box whose `DATABASE_USER` and `SIDEWALK_CITY_ID`
+   * name different cities would otherwise credit one city's live distance to another city's row.
+   */
+  def currentSchema: DBIO[String] = sql"SELECT current_schema()".as[String].head
+
+  /**
+   * Which schemas have the `voided_label_validation` archive, so the cross-city query knows where it may read it.
+   *
+   * Every city is its own app instance at its own evolution level, so a schema without the archive is normal rather
+   * than broken (#4878) — and referencing a missing relation would fail the whole union, dropping every city rather
+   * than one. An unmigrated schema's archive contribution is genuinely zero, so the arm is simply left out there.
+   * Read from `information_schema` in one shot rather than probed per schema, so nothing is spliced into SQL.
+   */
+  def schemasWithVoidedValidationArchive: DBIO[Set[String]] =
+    sql"""SELECT table_schema FROM information_schema.tables WHERE table_name = 'voided_label_validation'"""
+      .as[String]
+      .map(_.toSet)
+
+  /**
+   * One user's contribution totals in each of `citySchemas`, for the dashboard's cross-city section (#4496).
+   *
+   * Accounts are global while contributions are per-city, so a mapper's real Project Sidewalk totals only exist as a
+   * roll-up across schemas. All city schemas live in one database, so this is a single statement rather than a fan-out.
+   *
+   * Shaped as scalar subqueries per city rather than grouped scans because the whole query is keyed on one `user_id`:
+   * every subquery is an index seek, so a city the user never touched costs an index miss instead of a table scan.
+   * Measured on production (51 schemas, heaviest multi-city account): ~9 s cold, ~200 ms warm.
+   *
+   * Three deliberate choices:
+   *  - Counts mirror the single-city dashboard's own definitions rather than the global leaderboard's looser ones. The
+   *    row for the city being viewed sits inches below the hero KPIs, so any divergence reads as a bug (#4699).
+   *  - Distance reads the nightly `user_stat.meters_audited` — `MAX`, not `SUM`, because `user_stat.user_id` carries no
+   *    unique constraint and duplicate rows exist in the wild. It also keeps PostGIS out of a 51-way union, which is
+   *    what forces `withJitOff` elsewhere (#4376/#4545).
+   *  - Nothing here reads `excluded`, `on_leaderboard` or `public_profile`. This is a mapper looking at their own data,
+   *    so no visibility flag applies — and a schema behind on evolutions may not have those columns at all, which
+   *    would fail the entire union rather than one city.
+   *
+   * @param citySchemas    DB schema names to report on, already vetted by the caller for existence and required
+   *                       columns. Spliced into SQL, so each must be a bare identifier.
+   * @param archiveSchemas Which of those schemas have `voided_label_validation`, from
+   *                       [[schemasWithVoidedValidationArchive]]; the archive arm is omitted for the rest.
+   * @param userId         The mapper whose totals to gather; bound once and referenced by every block.
+   * @return               One row per schema, including cities where the user did nothing (the caller drops those),
+   *                       most labels first.
+   */
+  def getCrossCityUserStats(
+      citySchemas: Seq[String],
+      archiveSchemas: Set[String],
+      userId: String
+  ): DBIO[Seq[CrossCityUserStat]] = {
+    if (citySchemas.isEmpty) {
+      DBIO.successful(Seq.empty[CrossCityUserStat])
+    } else {
+      // Schema names are spliced, not bound, so reject anything that isn't a bare identifier before building the SQL.
+      val unsafe: Seq[String] = citySchemas.filterNot(_.matches("^[a-z_][a-z0-9_]*$"))
+      require(unsafe.isEmpty, s"Refusing to build cross-schema SQL for non-identifier schema names: $unsafe")
+
+      // The user id is bound once in a CTE and read back as `(SELECT user_id FROM me)`; the per-schema blocks are
+      // built as plain strings, so an interpolated `$userId` inside them would be spliced rather than bound.
+      val blocks: String = citySchemas
+        .map { schema =>
+          // Validations count as work credit: the #4842 repair deleted voided votes from label_validation but archived
+          // them, and the work happened, so countValidations adds the archive back. This mirrors it per schema.
+          val archiveArm: String =
+            if (!archiveSchemas.contains(schema)) ""
+            else s""" + (SELECT COUNT(*)::int FROM "$schema".voided_label_validation
+           WHERE voided_label_validation.user_id = (SELECT user_id FROM me))"""
+          // Label filters mirror LabelTable.labelsWithExcludedUsers: joined to audit_task, not deleted, not tutorial,
+          // and on neither the label's nor the task's tutorial street. "Excluded" users are counted on purpose — this
+          // is their own dashboard, and countLabelsFromUser makes the same call.
+          s"""  SELECT '$schema'::text AS city_schema,
+         (SELECT COUNT(*)::int
+            FROM "$schema".label
+            INNER JOIN "$schema".audit_task ON audit_task.audit_task_id = label.audit_task_id
+           WHERE label.user_id = (SELECT user_id FROM me)
+             AND label.deleted = FALSE AND label.tutorial = FALSE
+             AND label.street_edge_id NOT IN (SELECT tutorial_street_edge_id FROM "$schema".config)
+             AND audit_task.street_edge_id NOT IN (SELECT tutorial_street_edge_id FROM "$schema".config)
+         ) AS labels,
+         (SELECT COUNT(*)::int FROM "$schema".label_validation
+           WHERE label_validation.user_id = (SELECT user_id FROM me))$archiveArm AS validations,
+         (SELECT COUNT(*)::int FROM "$schema".mission
+           WHERE mission.user_id = (SELECT user_id FROM me)
+             AND mission.completed = TRUE AND mission.skipped = FALSE) AS missions,
+         (SELECT MAX(user_stat.meters_audited) FROM "$schema".user_stat
+           WHERE user_stat.user_id = (SELECT user_id FROM me)) AS meters_audited,
+         (SELECT MAX(label.time_created) FROM "$schema".label
+           WHERE label.user_id = (SELECT user_id FROM me) AND label.deleted = FALSE) AS last_activity"""
+        }
+        .mkString("\n  UNION ALL\n")
+
+      val union =
+        sql"""
+        WITH me AS (SELECT CAST($userId AS text) AS user_id)
+        #$blocks
+        ORDER BY labels DESC, city_schema;
+      """
+          .as[(String, Int, Int, Int, Option[Double], Option[OffsetDateTime])]
+          .map(_.map(CrossCityUserStat.tupled))
+
+      // Bounded because this fires on every dashboard load, holds one of the app's 25 pooled connections for its whole
+      // run, and is the one query here whose plan can't be predicted from dev: the arm count is however many cities are
+      // deployed. 30s leaves generous room over the ~9s cold measurement while still capping a pathological plan, and
+      // the caller degrades to hiding the section rather than failing the page. `SET LOCAL` + `.transactionally` scopes
+      // the setting to this statement and auto-commits, so it never lingers as an idle-in-transaction of its own.
+      (sqlu"SET LOCAL statement_timeout = 30000" >> union).transactionally
     }
   }
 

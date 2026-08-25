@@ -42,14 +42,17 @@ object ValidateFormats {
       note: Option[String],
       timestamp: OffsetDateTime
   )
+
+  /**
+   * A vote from the Validate tool. `severity` and `tags` are what the validator wants the label to have; the server
+   * compares them to the label's current values and records a change only for an Agree (#2575).
+   */
   case class LabelValidationSubmission(
       labelId: Int,
       missionId: Int,
       validationResult: ValidationOption.Value,
-      oldSeverity: Option[Int],
-      newSeverity: Option[Int],
-      oldTags: List[String],
-      newTags: List[String],
+      severity: Option[Int],
+      tags: List[String],
       comment: Option[ValidationCommentSubmission],
       canvasX: Option[Int],
       canvasY: Option[Int],
@@ -99,14 +102,14 @@ object ValidateFormats {
       source: UiSource,
       timestamp: OffsetDateTime
   )
+
+  /** A vote from the label popup (LabelMap, Gallery, share page); severity/tags as in LabelValidationSubmission. */
   case class LabelMapValidationSubmission(
       labelId: Int,
       labelType: LabelTypeEnum.Base,
       validationResult: ValidationOption.Value,
-      oldSeverity: Option[Int],
-      newSeverity: Option[Int],
-      oldTags: List[String],
-      newTags: List[String],
+      severity: Option[Int],
+      tags: List[String],
       canvasX: Option[Int],
       canvasY: Option[Int],
       heading: Double,
@@ -121,6 +124,9 @@ object ValidateFormats {
       redone: Boolean,
       viewerType: ViewerType
   )
+
+  /** An edit to a label from the label popup: the severity and tags the label should now have (#2575). */
+  case class LabelEditSubmission(labelId: Int, severity: Option[Int], tags: List[String], source: UiSource)
 
   implicit val uiSourceReads: Reads[UiSource.Value] = Reads { json =>
     json.validate[String].flatMap { uiSource =>
@@ -187,10 +193,8 @@ object ValidateFormats {
     (JsPath \ "label_id").read[Int] and
       (JsPath \ "mission_id").read[Int] and
       (JsPath \ "validation_result").read[ValidationOption.Value] and
-      (JsPath \ "old_severity").readNullable[Int] and
-      (JsPath \ "new_severity").readNullable[Int] and
-      (JsPath \ "old_tags").read[List[String]] and
-      (JsPath \ "new_tags").read[List[String]] and
+      (JsPath \ "severity").readNullable[Int] and
+      (JsPath \ "tags").read[List[String]] and
       (JsPath \ "comment").readNullable[ValidationCommentSubmission] and
       (JsPath \ "canvas_x").readNullable[Int] and
       (JsPath \ "canvas_y").readNullable[Int] and
@@ -239,10 +243,8 @@ object ValidateFormats {
     (JsPath \ "label_id").read[Int] and
       (JsPath \ "label_type").read[LabelTypeEnum.Base] and
       (JsPath \ "validation_result").read[ValidationOption.Value] and
-      (JsPath \ "old_severity").readNullable[Int] and
-      (JsPath \ "new_severity").readNullable[Int] and
-      (JsPath \ "old_tags").read[List[String]] and
-      (JsPath \ "new_tags").read[List[String]] and
+      (JsPath \ "severity").readNullable[Int] and
+      (JsPath \ "tags").read[List[String]] and
       (JsPath \ "canvas_x").readNullable[Int] and
       (JsPath \ "canvas_y").readNullable[Int] and
       (JsPath \ "heading").read[Double] and
@@ -257,6 +259,13 @@ object ValidateFormats {
       (JsPath \ "redone").read[Boolean] and
       (JsPath \ "viewer_type").read[ViewerType.Value]
   )(LabelMapValidationSubmission.apply _)
+
+  implicit val labelEditSubmissionReads: Reads[LabelEditSubmission] = (
+    (JsPath \ "label_id").read[Int] and
+      (JsPath \ "severity").readNullable[Int] and
+      (JsPath \ "tags").read[List[String]] and
+      (JsPath \ "source").read[UiSource.Value]
+  )(LabelEditSubmission.apply _)
 
   implicit val moreLabelsRequestReads: Reads[MoreLabelsRequest] = (
     (JsPath \ "label_type_id").read[Int] and

@@ -1,5 +1,6 @@
 @import controllers.helper.ControllerUtils.distanceUnitWords
-@import service.{AggregateStats, CityImpact, CommonPageData, GlobalLeaderboardEntry}
+@import service.{CityImpact, CommonPageData, GlobalLeaderboardEntry}
+@import models.api.AggregateStats
 @import models.user.{LeaderboardStat, SidewalkUserWithRole, UserStanding}
 @import play.api.Configuration
 @(commonData: CommonPageData, user: Option[SidewalkUserWithRole], isSignedIn: Boolean, isMetric: Boolean, cityName: String,
@@ -239,7 +240,7 @@
     </details>
     @if(overall.nonEmpty) {
       <div class="coverage-table-wrap">
-        <table class="coverage-table">
+        <table class="coverage-table ud-lb-table">
           <thead>
             @lbHead(Messages("leaderboard.header.mapper"))
           </thead>
@@ -259,7 +260,7 @@
     <p>@Messages("leaderboard.thisweek.intro")</p>
     @if(weekly.nonEmpty) {
       <div class="coverage-table-wrap">
-        <table class="coverage-table">
+        <table class="coverage-table ud-lb-table">
           <thead>
             @lbHead(Messages("leaderboard.header.mapper"))
           </thead>
@@ -288,7 +289,7 @@
     <p>@Messages("leaderboard.teams.intro")</p>
     @if(teams.nonEmpty) {
       <div class="coverage-table-wrap">
-        <table class="coverage-table">
+        <table class="coverage-table ud-lb-table">
           <thead>
             @lbHead(Messages("leaderboard.header.team"))
           </thead>
@@ -321,7 +322,7 @@
       <p>@Messages("leaderboard.allcities.intro")</p>
       @if(entries.nonEmpty) {
         <div class="coverage-table-wrap">
-          <table class="coverage-table ud-lb-global">
+          <table class="coverage-table ud-lb-table ud-lb-global">
             <thead>
               @lbHead(Messages("leaderboard.header.mapper"), Some(Messages("leaderboard.header.topcity")))
             </thead>

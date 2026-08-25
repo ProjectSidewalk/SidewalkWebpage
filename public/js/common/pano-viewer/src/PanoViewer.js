@@ -34,6 +34,14 @@ class PanoViewer {
   initialSeed;
 
   /**
+   * The element the viewer renders into. create() sets this before initialize() runs so that it is available to
+   * any code the initialization path calls (e.g. an early getPov()). _viewportAspect() measures it to derive the
+   * live aspect ratio for fov↔zoom conversion (#4852).
+   * @type {(Element|undefined)}
+   */
+  canvasElem;
+
+  /**
    * Private constructor to prevent direct instantiation.
    */
   constructor() {
@@ -79,8 +87,28 @@ class PanoViewer {
    */
   static async create(canvasElem, panoOptions = {}) {
     const newViewer = new this();
+    newViewer.canvasElem = canvasElem;
     await newViewer.initialize(canvasElem, panoOptions);
     return newViewer;
+  }
+
+  /**
+   * The live width:height aspect ratio of the element the pano renders in, for fov↔zoom conversion (#4852).
+   *
+   * Falls back to the fixed Explore-canvas ratio when the element has no measurable box yet (not laid out, or
+   * `display: none` — e.g. the label-detail popup pano while hidden), which keeps the conversion stable until a
+   * real measurement exists.
+   *
+   * Measures the mount container, which every call site can treat as the render canvas because they all pass
+   * `disableDefaultUi: true`. A viewer showing in-container chrome (Infra3D's topbar/toolbar/cockpit) renders
+   * into a shorter canvas than this, and would need to measure `canvasElem.querySelector('.' + canvasClass)`.
+   *
+   * @returns {number} The viewport aspect ratio, or util.EXPLORE_CANVAS_ASPECT_RATIO if it can't be measured.
+   * @protected
+   */
+  _viewportAspect() {
+    const rect = this.canvasElem?.getBoundingClientRect();
+    return rect && rect.width > 0 && rect.height > 0 ? rect.width / rect.height : util.EXPLORE_CANVAS_ASPECT_RATIO;
   }
 
   /**

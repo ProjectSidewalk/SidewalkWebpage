@@ -108,17 +108,6 @@ lang.name.pt-BR = Português
 ## Text that requires non-English translations. Using this file until we add those translations.
 ##
 
-# Label type descriptions.
-curb.ramp.description = Curb ramp connecting sidewalk to street
-missing.ramp.description = Missing curb ramp
-obstacle.description = Obstacle in the path
-surface.problem.description = Problem with sidewalk surface
-no.sidewalk.description = No sidewalk present on this side of the street
-crosswalk.description = Marked pedestrian crossing
-signal.description = Pedestrian signal or button to aid in crossing a street
-occlusion.description = View obscured
-other.description = Other accessibility issue
-
 # Tag descriptions. Note that tags 41 and 42 were removed in previous updates, and thus lack descriptions here.
 tag.description.1 = The ramp is not wide enough for a wheelchair to safely use it
 tag.description.2 = The ramp is angled towards cross traffic

@@ -3,7 +3,6 @@ package controllers
 import models.utils.MyPostgresProfile.api._
 import models.utils.{BackgroundJobRunTable, JobRunStatus, JobRunTrigger, MyPostgresProfile}
 import org.apache.pekko.stream.Materializer
-import org.scalatest.BeforeAndAfterAll
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
@@ -16,7 +15,7 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import service.ImageryFreshnessReportService
 import slick.dbio.DBIO
-import util.AnonSession
+import util.{AnonSession, RoleSession}
 
 import java.time.OffsetDateTime
 import scala.concurrent.Await
@@ -31,14 +30,10 @@ import scala.concurrent.duration._
  * client indexes into these payloads by name and degrades silently on a miss, so a renamed field would show up as a
  * blank panel rather than as an error.
  *
- * Seeds its own caller rather than hunting the schema for an existing admin: a spec that `assume`s one away cancels
- * on an empty CI database, which reads as passing. The session is minted through the real anonymous-signup route and
- * then promoted with a DB write, mirroring how a throwaway admin is made for QA; the promotion is undone afterwards.
- *
  * Requires a Postgres+PostGIS database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI); the
  * scheduling actors are disabled so nightly jobs can't race the tests.
  */
-class ImageryAdminSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPerSuite with AnonSession {
+class ImageryAdminSpec extends PlaySpec with RoleSession with GuiceOneAppPerSuite with AnonSession {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder()
@@ -58,42 +53,10 @@ class ImageryAdminSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppP
 
   private val XHR = "X-Requested-With" -> "XMLHttpRequest"
 
-  /** The accounts promoted for this suite, remembered so they can be demoted again. */
-  private var promotedUserIds: List[String] = Nil
-
-  /**
-   * A fresh session holding `role`, mirroring how a throwaway admin is made for QA.
-   *
-   * The account is identified by what the signup created rather than by reading a user id back out of a route: no
-   * route publishes one, and picking the newest row would be a guess in a database other sessions write to too.
-   */
-  private def sessionAs(role: String): Seq[Cookie] = {
-    val before  = run(sql"SELECT user_id FROM sidewalk_login.sidewalk_user".as[String]).toSet
-    val cookies = freshAnonSession()
-    val minted  = run(sql"SELECT user_id FROM sidewalk_login.sidewalk_user".as[String]).toSet -- before
-    minted.size mustBe 1
-    promotedUserIds ::= minted.head
-    promote(minted.head, role)
-    cookies
-  }
-
-  /**
-   * A signed-in caller with no admin rights.
-   *
-   * Registered, not the Anonymous role a bare signup carries: an Anonymous caller is sent to sign in whatever role
-   * the action wants, so only a registered one reaches the branch that refuses by name.
-   */
+  /** A signed-in caller with no admin rights. */
   private lazy val visitorCookies: Seq[Cookie] = sessionAs("Registered")
 
   private lazy val adminCookies: Seq[Cookie] = sessionAs("Administrator")
-
-  private def promote(userId: String, role: String): Unit = {
-    val _ = run(
-      sqlu"""UPDATE sidewalk_login.user_role
-             SET role_id = (SELECT role_id FROM sidewalk_login.role WHERE role = $role)
-             WHERE user_id = $userId"""
-    )
-  }
 
   /** The runs this suite seeded, deleted afterwards so no later suite reads them as the city's own history. */
   private var seededRunIds: List[Int] = Nil
@@ -128,8 +91,6 @@ class ImageryAdminSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppP
   }
 
   override def afterAll(): Unit = {
-    // Leave no standing admin behind in a shared development database.
-    promotedUserIds.foreach(id => promote(id, "Anonymous"))
     // By id rather than by job name: the name would also take whatever runs the connected city really recorded.
     if (seededRunIds.nonEmpty) {
       val _ = run(jobRunTable.backgroundJobRuns.filter(_.backgroundJobRunId.inSet(seededRunIds)).delete)

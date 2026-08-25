@@ -8,7 +8,13 @@
 @(admin: Boolean = false, withPaging: Boolean = false)(implicit assets: AssetsFinder)
 
 <header class="label-detail__header">
-  <h2 class="label-detail__title"><!-- populated by JS --></h2>
+  <div class="label-detail__title-wrap">
+    <h2 class="label-detail__title"><!-- populated by JS --></h2>
+    @* Own-label chip (#2575); LabelDetail sets its aria-label and tooltip. *@
+    <span class="label-detail__own-badge" role="img" hidden>
+      <img src="@assets.path("images/icons/user-feather.svg")" alt="" aria-hidden="true">
+    </span>
+  </div>
   <button type="button" class="label-detail__close" aria-label="Close" data-action="close-label-detail">
     <img src="@assets.path("images/icons/cross.svg")" alt="Close">
   </button>
@@ -21,6 +27,9 @@
     </button>
   }
   <div class="label-detail__pano"></div>
+  @* Hide-label toggle (#2477): steps the marker aside so the feature under it can be seen, leaving a dashed ring.
+     LabelDetail fills in the icon and wording, which reverse with the state  . *@
+  <button type="button" class="label-detail__hide-label" data-ps-tooltip-placement="bottom"></button>
   @* Hover overlay with Agree/Disagree/Unsure buttons. Toggle buttons: clicking the pressed one clears the vote
      (#4653), so `aria-pressed` is what tells assistive tech that, and LabelDetail keeps it in sync per label. *@
   <div class="label-detail__pano-overlay" role="group" aria-label="Validate label">
@@ -104,24 +113,30 @@
   <section class="label-detail__col label-detail__col--severity">
     @* Title and severity level labels are swapped by LabelDetail JS based on current label type. *@
     <h3 class="label-detail__col-title label-detail__severity-title">Severity</h3>
-    <div class="label-detail__severity-faces" role="img" aria-label="Severity">
-      <div class="severity-button severity-button--static" data-severity="1">
+    @* Read-only unless LabelDetail drops `--static`/`aria-disabled` for the labeler or an admin (#2575). *@
+    <div class="label-detail__severity-faces" role="group" aria-label="Severity">
+      <button type="button" class="severity-button severity-button--static" data-severity="1" aria-disabled="true" aria-pressed="false" tabindex="-1">
         <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" class="severity-button__icon">
         <span class="severity-button__label">Low</span>
-      </div>
-      <div class="severity-button severity-button--static" data-severity="2">
+      </button>
+      <button type="button" class="severity-button severity-button--static" data-severity="2" aria-disabled="true" aria-pressed="false" tabindex="-1">
         <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" class="severity-button__icon">
         <span class="severity-button__label">Medium</span>
-      </div>
-      <div class="severity-button severity-button--static" data-severity="3">
+      </button>
+      <button type="button" class="severity-button severity-button--static" data-severity="3" aria-disabled="true" aria-pressed="false" tabindex="-1">
         <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" class="severity-button__icon">
         <span class="severity-button__label">High</span>
-      </div>
+      </button>
     </div>
   </section>
 
   <section class="label-detail__col label-detail__col--tags">
-    <h3 class="label-detail__col-title" data-i18n="common:tags">Tags</h3>
+    @* Edit/Done toggles TagEditor's pills in place of the read-only list (#2575); the status span voices a failed save. *@
+    <div class="label-detail__col-header">
+      <h3 class="label-detail__col-title" data-i18n="common:tags">Tags</h3>
+      <button type="button" class="label-detail__tags-edit" hidden aria-expanded="false" data-i18n="labelmap:edit-tags">Edit</button>
+      <span class="label-detail__edit-status" role="status" aria-live="polite"></span>
+    </div>
     <div class="label-detail__tags"></div>
   </section>
 </div>

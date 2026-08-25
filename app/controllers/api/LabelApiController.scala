@@ -2,7 +2,6 @@ package controllers.api
 
 import controllers.base.CustomControllerComponents
 import controllers.helper.ShapefilesCreatorHelper
-import formats.json.ApiFormats._
 import models.api._
 import models.label.LabelTypeEnum
 import org.apache.pekko.stream.scaladsl.Source

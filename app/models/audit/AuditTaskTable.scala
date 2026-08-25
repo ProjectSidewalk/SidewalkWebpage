@@ -223,20 +223,6 @@ class AuditTaskTable @Inject() (
   }
 
   /**
-   * Returns the number of tasks completed by the given user.
-   */
-  def countCompletedAuditsForUser(userId: String): DBIO[Int] = {
-    completedTasks.filter(_.userId === userId).length.result
-  }
-
-  /**
-   * Find a task.
-   */
-  def find(auditTaskId: Int): DBIO[Option[AuditTask]] = {
-    auditTasks.filter(_.auditTaskId === auditTaskId).result.headOption
-  }
-
-  /**
    * Find a task.
    */
   def find(userId: String, streetEdgeId: Int): DBIO[Option[AuditTask]] = {

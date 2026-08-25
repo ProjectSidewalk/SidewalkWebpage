@@ -19,7 +19,7 @@
 
   <div class="api-section" id="label-types-intro-section">
     <h1 class="api-heading" id="label-types-api">Label Types API <a href="#label-types-api" class="permalink">#</a></h1>
-    <p>The Label Types API lists the different types of labels used in Project Sidewalk, including the name, description, associated icon images, and color codes. For each label, users can also assign one or more optional <a href="@routes.ApiDocsController.labelTags">tags</a>, which provides additional information about the sidewalk feature or barrier.</p>
+    <p>The Label Types API lists the different types of labels used in Project Sidewalk, including the machine name, localized display name and description, associated icon images, and color codes. For each label, users can also assign one or more optional <a href="@routes.ApiDocsController.labelTags">tags</a>, which provides additional information about the sidewalk feature or barrier.</p>
     <p>This Label Types API endpoint is useful for applications that want to display Project Sidewalk data with consistent styling, or for developers who need to understand the classification system used in our other APIs.</p>
   </div>
 
@@ -81,6 +81,7 @@
     {
       "id": 1,
       "name": "CurbRamp",
+      "display_name": "@Messages("curb.ramp")",
       "description": "@Messages("curb.ramp.description")",
       "icon_url": "/assets/images/icons/label_type_icons/CurbRamp.png",
       "small_icon_url": "/assets/images/icons/label_type_icons/CurbRamp_small.png",
@@ -92,6 +93,7 @@
     {
       "id": 2,
       "name": "NoCurbRamp",
+      "display_name": "@Messages("missing.ramp")",
       "description": "@Messages("missing.ramp.description")",
       "icon_url": "/assets/images/icons/label_type_icons/NoCurbRamp.png",
       "small_icon_url": "/assets/images/icons/label_type_icons/NoCurbRamp_small.png",
@@ -133,12 +135,17 @@
           <tr>
             <td><code>label_types[].name</code></td>
             <td><code>string</code></td>
-            <td>Name of the label type (e.g., "CurbRamp", "Obstacle").</td>
+            <td>Machine name of the label type (e.g., "CurbRamp", "Obstacle"). Stable across languages.</td>
+          </tr>
+          <tr>
+            <td><code>label_types[].display_name</code></td>
+            <td><code>string</code></td>
+            <td>Short human-readable name of the label type (e.g., "Curb Ramp"), localized to the request language.</td>
           </tr>
           <tr>
             <td><code>label_types[].description</code></td>
             <td><code>string</code></td>
-            <td>Human-readable description of the label type.</td>
+            <td>Human-readable description of the label type, localized to the request language.</td>
           </tr>
           <tr>
             <td><code>label_types[].icon_url</code></td>

@@ -19,7 +19,7 @@
 
   <div class="api-section" id="validations-intro-section">
     <h1 class="api-heading" id="validations-api">Validations API <a href="#validations-api" class="permalink">#</a></h1>
-    <p>The Validations API provides access to validation data from Project Sidewalk, where community members review and validate labels placed by other users. Each validation record includes the validator's judgment (Agree, Disagree, or Unsure), any changes made to tags or severity levels, and associated metadata.</p>
+    <p>The Validations API provides access to validation data from Project Sidewalk, where community members review and validate labels placed by other users. Each validation record includes the validator's judgment (Agree, Disagree, or Unsure) and associated metadata. A change the validator made to the label's tags or severity alongside an Agree is a separate record in the <a href="@routes.ApiDocsController.labelEdits">Label Edits API</a>, linked to the vote by <code>label_validation_id</code>.</p>
     <p>This API is useful for researchers studying data quality, community validation patterns, and the reliability of crowdsourced accessibility data. The validation process helps ensure the accuracy and consistency of Project Sidewalk's accessibility information.</p>
   </div>
 
@@ -53,7 +53,7 @@
       <p><code><a href="/v3/api/validations">/v3/api/validations</a></code> Get all validations in JSON (default)</p>
       <p><code><a href="/v3/api/validations?filetype=csv">/v3/api/validations?filetype=csv</a></code> Get all validations in CSV format</p>
       <p><code><a href="/v3/api/validations?validationResult=Agree">/v3/api/validations?validationResult=Agree</a></code> Get only "Agree" validations</p>
-      <p><code><a href="/v3/api/validations?labelTypeId=2&changedTags=true">/v3/api/validations?labelTypeId=2&changedTags=true</a></code> Get validations for label type 2 where tags were changed</p>
+      <p><code><a href="/v3/api/validations?labelTypeId=2">/v3/api/validations?labelTypeId=2</a></code> Get validations of labels of type 2</p>
       <p><code><a href="/v3/api/validations?source=ExpertValidate">/v3/api/validations?source=ExpertValidate</a></code> Get only validations made through the Expert Validate interface</p>
     </div>
   </div>
@@ -114,16 +114,6 @@
             <td>Filter validations performed after this ISO 8601 timestamp (e.g., "2023-01-01T00:00:00Z").</td>
           </tr>
           <tr>
-            <td><code>changedTags</code></td>
-            <td><code>boolean</code></td>
-            <td>Filter validations where tags were changed (<code>true</code>) or not changed (<code>false</code>).</td>
-          </tr>
-          <tr>
-            <td><code>changedSeverityLevels</code></td>
-            <td><code>boolean</code></td>
-            <td>Filter validations where severity levels were changed (<code>true</code>) or not changed (<code>false</code>).</td>
-          </tr>
-          <tr>
             <td><code>source</code></td>
             <td><code>string</code></td>
             <td>Filter by the interface in which the validation occurred (matches the <code>source</code> field in the response): <code>Validate</code>, <code>ValidateMobile</code>, <code>ExpertValidate</code>, <code>LabelMap</code>, <code>GalleryImage</code>, <code>GalleryExpandedImage</code>, <code>GalleryThumbs</code>, <code>GalleryExpandedThumbs</code>, <code>SidewalkAI</code>, <code>AdminUserDashboard</code>, <code>AdminLabelSearchTab</code>, <code>ExternalTagValidationASSETS2024</code>.</td>
@@ -158,10 +148,6 @@
     "label_type_id": 2,
     "label_type": "NoCurbRamp",
     "validation_result": "Agree",
-    "old_severity": 2,
-    "new_severity": 3,
-    "old_tags": ["narrow"],
-    "new_tags": ["narrow", "steep"],
     "user_id": "user_abc123",
     "validator_type": "Human",
     "mission_id": 1234,
@@ -177,15 +163,11 @@
     "source": "ExpertValidate"
   },
   {
-    "validation_id": 12346,
+    "label_validation_id": 12346,
     "label_id": 67891,
     "label_type_id": 1,
     "label_type": "CurbRamp",
     "validation_result": "Disagree",
-    "old_severity": 2,
-    "new_severity": 2,
-    "old_tags": ["wide"],
-    "new_tags": ["wide"],
     "user_id": "user_def456",
     "validator_type": "AI",
     "mission_id": 1235,
@@ -218,10 +200,6 @@
           <tr><td><code>label_type_id</code></td><td><code>integer</code></td><td>ID of the label type (e.g., 1 for CurbRamp, 2 for NoCurbRamp).</td></tr>
           <tr><td><code>label_type</code></td><td><code>string</code></td><td>Name of the label type (e.g., "CurbRamp", "Obstacle").</td></tr>
           <tr><td><code>validation_result</code></td><td><code>string</code></td><td>Validation judgment: Agree, Disagree, Unsure.</td></tr>
-          <tr><td><code>old_severity</code></td><td><code>integer | null</code></td><td>Severity rating before validation (1-3 scale), or null if not applicable.</td></tr>
-          <tr><td><code>new_severity</code></td><td><code>integer | null</code></td><td>Severity rating after validation (1-3 scale), or null if not applicable.</td></tr>
-          <tr><td><code>old_tags</code></td><td><code>array[string]</code></td><td>Array of tag names before validation.</td></tr>
-          <tr><td><code>new_tags</code></td><td><code>array[string]</code></td><td>Array of tag names after validation.</td></tr>
           <tr><td><code>user_id</code></td><td><code>string</code></td><td>ID of the user who performed the validation.</td></tr>
           <tr><td><code>validator_type</code></td><td><code>string</code></td><td>One of: Human, AI.</td></tr>
           <tr><td><code>mission_id</code></td><td><code>integer</code></td><td>The mission ID associated with the validation.</td></tr>
@@ -292,7 +270,7 @@
     <p>The Validations API provides rich data for understanding community consensus and data quality. Here are some suggestions for effectively using this data:</p>
     <ul>
       <li><strong>Analyze agreement patterns by label type</strong> to identify which accessibility features are easier or harder for the community to classify consistently</li>
-      <li><strong>Track tag and severity changes</strong> to understand how validation improves label accuracy and completeness</li>
+      <li><strong>Track tag and severity changes</strong> through the <a href="@routes.ApiDocsController.labelEdits">Label Edits API</a> to understand how validation improves label accuracy and completeness</li>
       <li><strong>Use temporal filtering</strong> to study validation patterns over time</li>
       <li><strong>Cross-reference with user data</strong> to analyze validation behavior across different user types and experience levels</li>
       <li><strong>Map validation results geographically</strong> to identify neighborhoods or street types where labels are more controversial</li>
@@ -303,6 +281,7 @@
       <h3><i class="icon icon-code"></i> Related APIs</h3>
       <p>For comprehensive validation analysis, consider using the Validations API alongside:</p>
       <ul>
+        <li><a href="@routes.ApiDocsController.labelEdits">Label Edits API</a> - The severity and tag changes validators submitted with their votes</li>
         <li><a href="@routes.ApiDocsController.rawLabels">Raw Labels API</a> - Get the original labels that were validated</li>
         <li><a href="@routes.ApiDocsController.labelTypes">Label Types API</a> - Understand the classification system used for validations</li>
         <li><a href="@routes.ApiDocsController.labelTags">Label Tags API</a> - Learn about the tag system that validators can modify</li>
