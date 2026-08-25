@@ -157,6 +157,34 @@ describe('util.pano projection', () => {
         });
     });
 
+    // horizonRelativeCoordToPov is deliberately NOT the inverse of povToPanoCoord (#4957): it decodes the Explore
+    // tutorial's angular annotation coordinates — x in pano pixels east of true north, y in pano pixels above the
+    // horizon — not stored label_point rows. These pin that convention, because the tutorial's arrows are authored
+    // against it: a well-meaning "fix" toward inverse symmetry would silently move every one of them.
+    describe('horizonRelativeCoordToPov (tutorial annotation convention)', () => {
+        // svl.TUTORIAL_PANO_WIDTH/HEIGHT — the dimensions every tutorial annotation is authored against.
+        const PANO_WIDTH = 13312;
+        const PANO_HEIGHT = 6656;
+
+        it('decodes the first curb-ramp arrow of OnboardingStates.js to just below eye level', () => {
+            const pov = pano.horizonRelativeCoordToPov(9730, -350, PANO_WIDTH, PANO_HEIGHT);
+
+            expect(pov.heading).toBeCloseTo(263.131, 3); // 9730 / 13312 of a full turn from north.
+            expect(pov.pitch).toBeCloseTo(-9.4651, 3); // -350 px of 3328 px per 90°, NOT a row index.
+        });
+
+        it('puts the horizon at y = 0 and north at x = 0, where povToPanoCoord puts neither', () => {
+            expect(pano.horizonRelativeCoordToPov(0, 0, PANO_WIDTH, PANO_HEIGHT)).toEqual({heading: 0, pitch: 0});
+
+            // The same POV as a real image coordinate: horizon at row panoHeight / 2, column set by the camera
+            // heading — so composing the two functions does not round-trip. With the camera at 100°, column 0
+            // faces heading -80°, putting north 80° (of 360°) into the image.
+            const coord = pano.povToPanoCoord({heading: 0, pitch: 0}, 100, PANO_WIDTH, PANO_HEIGHT);
+            expect(coord.y).toBeCloseTo(PANO_HEIGHT / 2, 6);
+            expect(coord.x).toBeCloseTo(PANO_WIDTH * 80 / 360, 6);
+        });
+    });
+
     // The shared function is only half the invariant. The 5-px fudge #4851 chased never lived in the projection
     // itself — it lived in each consumer's copy, and today's equivalent is a nudge on the arguments at a call site.
     // So pin the consumer too: a label stored at the canvas center must read back as the POV it was authored at.
