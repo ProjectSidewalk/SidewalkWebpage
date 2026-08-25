@@ -19,6 +19,7 @@
   width: 650px;
   max-width: calc(100vw - 32px);
   max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px); /* Track the visible viewport under mobile toolbars; vh is the fallback. */
   padding: 22px;
   border: none;
   border-radius: 12px;
@@ -971,6 +972,40 @@ button.label-detail__meta-cell:focus-visible {
 }
 .label-detail__paging--prev { left: 10px; }
 .label-detail__paging--next { right: 10px; }
+
+/* ─── Touch and narrow viewports ──────────────────────────────────────── */
+
+/* Hover can't reveal controls on a touch-primary device, so the pano's hover-revealed controls stay visible
+   ([hidden] and :disabled states still win), and the sub-44px targets grow: the paging chips outright, the
+   close button via padding (its svg fills the 24px content box that remains). */
+@media (pointer: coarse) {
+  .label-detail__pano-overlay,
+  .label-detail__paging,
+  .label-detail__hide-label {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .label-detail__paging {
+    width: 44px;
+    height: 44px;
+  }
+
+  .label-detail__close {
+    width: 44px;
+    height: 44px;
+    padding: 10px;
+  }
+}
+
+/* A 390px phone leaves ~314px of dialog content, less than the fixed-width Validations + Severity columns
+   plus their 32px gap — the row has to be allowed to wrap. */
+@media (width <= 480px) {
+  .label-detail__columns {
+    flex-wrap: wrap;
+    row-gap: 16px;
+  }
+}
 
 /* ─── Share control (#456) ────────────────────────────────────────────────
    Subtle, YouTube-style share button anchored bottom-right, with an accessible popover. */

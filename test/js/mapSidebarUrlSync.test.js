@@ -144,6 +144,8 @@ describe('MapSidebarUrlSync', () => {
 
     beforeAll(() => {
         window.i18next = { t: (key) => key, language: 'en' };
+        // jsdom has no matchMedia; act as a desktop-width viewport.
+        window.matchMedia = jest.fn().mockReturnValue({ matches: false, addEventListener: jest.fn() });
         window.filterLabelLayers = jest.fn();
         window.filterStreetLayer = jest.fn();
         window.toggleLabelLayer = jest.fn();

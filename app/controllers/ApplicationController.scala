@@ -237,39 +237,32 @@ class ApplicationController @Inject() (
 
   /**
    * Returns the LabelMap page that contains a cool visualization.
+   *
+   * Mobile visitors are served the page itself (it is responsive) rather than being redirected to /mobileLanding.
    */
   def labelMap(regions: Option[String], routes: Option[String], aiValidationOptions: Option[String]) =
     cc.securityService.UserAwareAction { implicit request =>
-      if (ControllerUtils.isMobile(request)) {
-        cc.loggingService.insert(
-          request.identity.map(_.userId),
-          request.ipAddress,
-          "Visit_LabelMap_RedirectMobileLanding"
-        )
-        Future.successful(Redirect("/mobileLanding"))
-      } else {
-        val regionIds: Seq[Int]    = parseIntegerSeq(regions)
-        val routeIds: Seq[Int]     = parseIntegerSeq(routes)
-        val aiValOpts: Seq[String] = aiValidationOptions.map(_.split(",").toSeq.distinct).getOrElse(Seq())
-        val activityStr: String    = if (regions.isEmpty) "Visit_LabelMap" else s"Visit_LabelMap_Regions=$regions"
+      val regionIds: Seq[Int]    = parseIntegerSeq(regions)
+      val routeIds: Seq[Int]     = parseIntegerSeq(routes)
+      val aiValOpts: Seq[String] = aiValidationOptions.map(_.split(",").toSeq.distinct).getOrElse(Seq())
+      val activityStr: String    = if (regions.isEmpty) "Visit_LabelMap" else s"Visit_LabelMap_Regions=$regions"
 
-        for {
-          commonData <- configService.getCommonPageData(request2Messages.lang)
-          tags       <- labelService.getTagsForCurrentCity
-        } yield {
-          cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, activityStr)
-          Ok(
-            views.html.apps.labelMap(
-              commonData,
-              Messages("seo.title.label.map", commonData.currentCity.cityNameShort),
-              request.identity,
-              tags,
-              regionIds,
-              routeIds,
-              aiValOpts
-            )
+      for {
+        commonData <- configService.getCommonPageData(request2Messages.lang)
+        tags       <- labelService.getTagsForCurrentCity
+      } yield {
+        cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, activityStr)
+        Ok(
+          views.html.apps.labelMap(
+            commonData,
+            Messages("seo.title.label.map", commonData.currentCity.cityNameShort),
+            request.identity,
+            tags,
+            regionIds,
+            routeIds,
+            aiValOpts
           )
-        }
+        )
       }
     }
 

@@ -56,7 +56,14 @@ function createPSMap($, params) {
     if (sidebar) {
       sidebar.classList.remove('ps-invisible');
       sidebar.classList.add('filter-sidebar--loading');
-      map.setPadding({ left: sidebar.offsetWidth, top: 0, right: 0, bottom: 0 });
+      // On narrow viewports the open drawer would cover the whole map, so it starts collapsed and the map
+      // keeps its natural center. MapSidebarFilter syncs the open/close chrome once it constructs; keep the
+      // query in sync with its narrowMq and filter-sidebar.css's breakpoint.
+      if (window.matchMedia('(width <= 600px)').matches) {
+        sidebar.classList.add('filter-sidebar--hidden');
+      } else {
+        map.setPadding({ left: sidebar.offsetWidth, top: 0, right: 0, bottom: 0 });
+      }
     }
 
     // Mount map-bound UI (e.g. the LabelMap search box) now, while the map is ready but the data

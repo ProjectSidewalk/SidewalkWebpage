@@ -94,7 +94,7 @@
   position: absolute;
   top: 20px; /* Matches .filter-sidebar margin-top so the handle aligns with the visible edge. */
   bottom: 0;
-  left: 315px; /* Matches .filter-sidebar default width; updated by JS on drag. */
+  left: 315px; /* Placeholder until MapSidebarFilter syncs it to the sidebar's rendered width on init/drag. */
   width: 6px;
   cursor: col-resize;
   z-index: 11;
@@ -137,6 +137,35 @@ body.filter-sidebar-resizing {
 .filter-sidebar-open-btn img {
   width: 24px;
   height: 24px;
+}
+
+/*
+ * Below ~600px a 350px panel leaves no usable map beside it (its 280px drag minimum can't coexist with one
+ * either), so the open drawer covers the map instead. Keep the breakpoint in sync with the matchMedia in
+ * createPSMap.js / MapSidebarFilter.js, which skip the map's left padding for the same reason. The Gallery
+ * is unaffected: it renders the filter sections without this panel chrome (withMapChrome = false).
+ */
+@media (width <= 600px) {
+  .filter-sidebar {
+    width: 100%;
+  }
+
+  .filter-sidebar__resize-handle {
+    display: none;
+  }
+}
+
+/* Touch: grow the open/close hit targets to >= 44px (the icons stay 24px). */
+@media (pointer: coarse) {
+  .filter-sidebar__close {
+    top: 0;
+    right: 0;
+    padding: 10px;
+  }
+
+  .filter-sidebar-open-btn {
+    padding: 10px;
+  }
 }
 
 /* ---- Sections ---- */

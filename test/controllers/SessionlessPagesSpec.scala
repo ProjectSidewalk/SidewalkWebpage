@@ -57,6 +57,13 @@ class SessionlessPagesSpec extends PlaySpec with GuiceOneAppPerSuite {
       redirectLocation(resp).value mustBe "/mobileLanding"
       cookies(resp).get(authCookieName) mustBe None
     }
+
+    "serve /labelMap to a mobile visitor instead of redirecting to /mobileLanding" in {
+      val mobileUa = "User-Agent" -> "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)"
+      val resp     = route(app, FakeRequest(GET, "/labelMap").withHeaders(mobileUa)).get
+      status(resp) mustBe OK
+      cookies(resp).get(authCookieName) mustBe None
+    }
   }
 
   "Data endpoints the public pages call on load" should {

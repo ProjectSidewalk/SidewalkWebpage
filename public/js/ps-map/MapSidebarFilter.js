@@ -210,6 +210,8 @@ class MapSidebarFilter {
     const closeBtn = document.getElementById('filter-sidebar-close');
     const openBtn = document.getElementById('filter-sidebar-open');
     const handle = document.getElementById('filter-sidebar-resize-handle');
+    // Keep in sync with filter-sidebar.css's narrow breakpoint and the matchMedia in createPSMap.js.
+    const narrowMq = window.matchMedia('(width <= 600px)');
 
     closeBtn.addEventListener('click', () => {
       this.#sidebar.classList.add('filter-sidebar--hidden');
@@ -219,12 +221,34 @@ class MapSidebarFilter {
       this.#logActivity('Click_module=MapSidebar_Close');
     });
     openBtn.addEventListener('click', () => {
-      const width = this.#sidebar.offsetWidth;
       this.#sidebar.classList.remove('filter-sidebar--hidden');
       handle.style.display = '';
       openBtn.style.display = 'none';
-      this.#map.easeTo({ padding: { left: width, top: 0, right: 0, bottom: 0 } });
+      // On narrow viewports the open drawer covers the map, so the camera stays put — padding of nearly the
+      // map's whole width would push the center off-canvas.
+      if (!narrowMq.matches) {
+        this.#map.easeTo({ padding: { left: this.#sidebar.offsetWidth, top: 0, right: 0, bottom: 0 } });
+      }
       this.#logActivity('Click_module=MapSidebar_Open');
+    });
+
+    // createPSMap starts the drawer collapsed on narrow viewports; mirror that in the chrome. Not logged —
+    // it's an initial state, not a user action.
+    if (this.#sidebar.classList.contains('filter-sidebar--hidden')) {
+      handle.style.display = 'none';
+      openBtn.style.display = 'block';
+    }
+
+    narrowMq.addEventListener('change', (e) => {
+      const isOpen = !this.#sidebar.classList.contains('filter-sidebar--hidden');
+      if (e.matches) {
+        // An inline width from a desktop drag session would beat the media query's full-width rule.
+        this.#sidebar.style.width = '';
+        if (isOpen) this.#map.setPadding({ left: 0, top: 0, right: 0, bottom: 0 });
+      } else {
+        handle.style.left = `${this.#sidebar.offsetWidth}px`;
+        if (isOpen) this.#map.setPadding({ left: this.#sidebar.offsetWidth, top: 0, right: 0, bottom: 0 });
+      }
     });
   }
 
