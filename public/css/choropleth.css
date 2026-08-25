@@ -157,12 +157,6 @@
   }
 }
 
-#admin-task-choropleth {
-  width: 360px;
-  height: 360px;
-  margin-top: 50px;
-}
-
 /* Overwriting Mapbox popup styling. */
 .mapboxgl-popup-content {
   padding: 12px; /* Default 10px 10px 15px */

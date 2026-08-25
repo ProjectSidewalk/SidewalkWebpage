@@ -191,7 +191,7 @@ window.ApiDocsMap = (function () {
   /**
    * Builds a Mapbox `match` expression that colors a feature by its label type.
    *
-   * @param {object} labelTypeInfo - Map of label type name to `{color, description}`, from /v3/api/labelTypes.
+   * @param {object} labelTypeInfo - Map of label type name to `{color, display, description}`, from /v3/api/labelTypes.
    * @param {string} [property=label_type] - Feature property holding the label type name.
    * @returns {Array} A Mapbox expression usable as a `circle-color` / `line-color` paint value.
    */
@@ -304,7 +304,7 @@ window.ApiDocsMap = (function () {
    * @param {HTMLElement} element - The overlay element to fill.
    * @param {string} heading - Legend heading.
    * @param {Array<string>} typeNames - Label type names present in the data.
-   * @param {object} labelTypeInfo - Map of label type name to `{color, description}`, from /v3/api/labelTypes.
+   * @param {object} labelTypeInfo - Map of label type name to `{color, display, description}`, from /v3/api/labelTypes.
    * @param {string} emptyMessage - Shown in place of the rows when nothing was rendered.
    */
   function renderLabelTypeLegend(element, heading, typeNames, labelTypeInfo, emptyMessage) {
@@ -313,7 +313,7 @@ window.ApiDocsMap = (function () {
       .map((name) => `
         <div class="map-legend-item">
           <span class="map-legend-swatch" style="background-color: ${labelTypeInfo[name].color};"></span>
-          ${name}
+          ${labelTypeInfo[name].display || name}
         </div>
       `)
       .join('');

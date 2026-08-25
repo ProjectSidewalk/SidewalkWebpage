@@ -2,10 +2,8 @@ package controllers.api
 
 import controllers.base.CustomControllerComponents
 import controllers.helper.ShapefilesCreatorHelper
-import formats.json.ApiFormats._
 import models.api.{ApiError, RegionDataForApi, RegionFiltersForApi}
 import org.apache.pekko.stream.scaladsl.Source
-import play.api.libs.json.Json
 import play.silhouette.api.Silhouette
 import service.{ApiService, ConfigService}
 
@@ -95,7 +93,7 @@ class RegionApiController @Inject() (
   }
 
   /**
-   * Returns the region with the highest number of labels.
+   * Returns the region with the highest number of labels, as a GeoJSON Feature.
    *
    * @return A JSON response with the region data or a 404 if no region is found
    */
@@ -103,7 +101,7 @@ class RegionApiController @Inject() (
     apiService.getRegionWithMostLabels.map {
       case Some(region) =>
         cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
-        Ok(Json.toJson(region))
+        Ok(region.toJson)
       case None =>
         ApiError.toResult(ApiError.notFound("No region found with labels"))
     }

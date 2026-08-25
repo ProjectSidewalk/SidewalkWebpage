@@ -3,11 +3,6 @@ function updateTimestamps(locale) {
   $(document).ready(() => {
     processTimestamps();
 
-    // Set up for DataTables. This will run when DataTables draws or redraws the table.
-    $(document).on('draw.dt', () => {
-      processTimestamps();
-    });
-
     function processTimestamps() {
       $('.timestamp').each(function () {
         if ($(this).hasClass('local')) {
@@ -21,10 +16,6 @@ function updateTimestamps(locale) {
         }
 
         const timestampText = this.textContent;
-
-        // Adds a sorting attribute, if it's part of a table it will be sorted by this instead of the nicely
-        // formatted timestamp.
-        $(this).attr('data-order', timestampText);
 
         // Converts to local time and changes to local date format.
         moment.locale(locale);

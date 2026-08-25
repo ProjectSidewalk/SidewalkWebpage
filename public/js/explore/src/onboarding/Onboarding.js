@@ -382,9 +382,9 @@ class Onboarding {
       imY = annotation.y;
       centeredPov = null;
 
-      // Setting the original POV and mapping an image coordinate to a canvas coordinate.
+      // Decode the annotation's angular coordinate (see OnboardingStates.js) and map it to a canvas coordinate.
       imX = util.misc.unwrapPanoX(imX, currentPov.heading, svl.TUTORIAL_PANO_WIDTH);
-      centeredPov = util.pano.panoCoordToPov(imX, imY, svl.TUTORIAL_PANO_WIDTH, svl.TUTORIAL_PANO_HEIGHT);
+      centeredPov = util.pano.horizonRelativeCoordToPov(imX, imY, svl.TUTORIAL_PANO_WIDTH, svl.TUTORIAL_PANO_HEIGHT);
       const canvasCoord = util.pano.centeredPovToCanvasCoord(
         centeredPov, currentPov, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS,
       ) || { x: null, y: null };
@@ -650,16 +650,18 @@ class Onboarding {
   }
 
   /**
-   * Pins the message box just above a pano-image coordinate (a step's annotation arrow), so the instruction and
+   * Pins the message box just above an annotation coordinate (a step's annotation arrow), so the instruction and
    * the arrow read as one unit. Computed once per message: the steps that use this clamp panning to a few
    * degrees, so the arrow cannot drift far from the box.
-   * @param {{x: number, y: number}} panoCoord - Pano image coordinates, as used by state annotations.
+   * @param {{x: number, y: number}} panoCoord - Angular annotation coordinates (see OnboardingStates.js).
    */
   #positionMessageAtPanoCoord(panoCoord) {
     const svl = this.#svl;
     const currentPov = svl.panoViewer.getPov();
     const imX = util.misc.unwrapPanoX(panoCoord.x, currentPov.heading, svl.TUTORIAL_PANO_WIDTH);
-    const centeredPov = util.pano.panoCoordToPov(imX, panoCoord.y, svl.TUTORIAL_PANO_WIDTH, svl.TUTORIAL_PANO_HEIGHT);
+    const centeredPov = util.pano.horizonRelativeCoordToPov(
+      imX, panoCoord.y, svl.TUTORIAL_PANO_WIDTH, svl.TUTORIAL_PANO_HEIGHT,
+    );
     const canvasCoord = util.pano.centeredPovToCanvasCoord(
       centeredPov, currentPov, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS,
     );

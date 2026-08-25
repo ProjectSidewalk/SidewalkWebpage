@@ -1,7 +1,7 @@
 package controllers
 
 import controllers.base._
-import models.auth.DefaultEnv
+import models.auth.{DefaultEnv, WithAdmin}
 import models.label.{LabelMetadata, LabelPointTable, LabelTypeEnum, LocationXY}
 import models.pano.PanoSource.PanoSource
 import models.story.StoryForView
@@ -33,6 +33,8 @@ import scala.util.Try
  * city's single most expensive endpoint, so pointing bot-crawled share URLs at it is wasteful (#456, Mikey review). The
  * nearby-labels map instead reads the cheap, bbox-bounded public `/v3/api/rawLabels` API. Neither endpoint creates a
  * user or sets a cookie; when there is no signed-in identity the shared default "anonymous" user is used for display.
+ *
+ * The admin's view of a label, `/admin/label/:labelId`, is the same page rendered in admin mode (#4633).
  */
 @Singleton
 class ShareController @Inject() (
@@ -82,36 +84,61 @@ class ShareController @Inject() (
   def label(labelId: Int) = silhouette.UserAwareAction.async { implicit request =>
     val displayUser: Future[SidewalkUserWithRole] =
       request.identity.map(Future.successful).getOrElse(authenticationService.getDefaultAnonUser)
+    displayUser.flatMap { user => renderLabelPage(labelId, user, request.identity.map(_.userId), isAdmin = false) }
+  }
+
+  /**
+   * Admin view of a label at /admin/label/:labelId: same as /label/:labelId, with the label detail card in admin mode.
+   *
+   * @param labelId The label to show.
+   * @return `Ok` with the spotlight page in admin mode, or `NotFound` if no such label exists.
+   */
+  def adminLabel(labelId: Int) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    renderLabelPage(labelId, request.identity, Some(request.identity.userId), isAdmin = true)
+  }
+
+  /**
+   * Renders the spotlight page for a label, shared by the public share route and the admin's view of a label.
+   *
+   * @param labelId  The label to show.
+   * @param user     The display user (the signed-in identity, or the shared anonymous user for a logged-out visit).
+   * @param viewerId The signed-in user's id, if any, for the visit log.
+   * @param isAdmin  Whether to render the label detail card in admin mode.
+   * @return `Ok` with the page, or `NotFound` if no such label exists.
+   */
+  private def renderLabelPage(labelId: Int, user: SidewalkUserWithRole, viewerId: Option[String], isAdmin: Boolean)(
+      implicit request: RequestHeader
+  ): Future[Result] = {
     val storyIdOpt: Option[Int] =
       request.getQueryString("storyId").flatMap(s => Try(s.trim.toInt).toOption).filter(_ > 0)
 
-    displayUser.flatMap { user =>
-      labelService.getSingleLabelMetadata(labelId, user.userId).flatMap {
-        case None       => Future.successful(NotFound(s"No label found with ID: $labelId"))
-        case Some(meta) =>
-          for {
-            commonData  <- configService.getCommonPageData(request2Messages.lang)
-            labelLatLng <- labelService.getLabelLatLng(labelId)
-            // Resolved anonymously: the linked story feeds crawler-visible meta, so an author-only (hidden) story
-            // must not surface even if its author is the one loading the page.
-            linkedStory <- storyIdOpt
-              .map(sid =>
-                storyService
-                  .getStoriesForLabel(labelId, viewerUserId = None, isAdmin = false)
-                  .map(_.find(s => s.storyId == sid && !s.hidden))
-              )
-              .getOrElse(Future.successful(None))
-          } yield {
-            val visitSuffix: String = linkedStory.map(s => s"_storyId=${s.storyId}").getOrElse("")
-            cc.loggingService
-              .insert(request.identity.map(_.userId), request.ipAddress, s"Visit_SharedLabel=$labelId$visitSuffix")
-            val shareMeta: Html = buildShareMeta(commonData, meta, linkedStory)
-            val title: String   = shareTitle(meta)
-            Ok(
-              views.html.apps.sharedLabel(commonData, title, user, meta, labelLatLng, cityNameOf(commonData), shareMeta)
+    labelService.getSingleLabelMetadata(labelId, user.userId).flatMap {
+      case None       => Future.successful(NotFound(s"No label found with ID: $labelId"))
+      case Some(meta) =>
+        for {
+          commonData  <- configService.getCommonPageData(request2Messages.lang)
+          labelLatLng <- labelService.getLabelLatLng(labelId)
+          // Resolved anonymously: the linked story feeds crawler-visible meta, so an author-only (hidden) story
+          // must not surface even if its author is the one loading the page.
+          linkedStory <- storyIdOpt
+            .map(sid =>
+              storyService
+                .getStoriesForLabel(labelId, viewerUserId = None, isAdmin = false)
+                .map(_.find(s => s.storyId == sid && !s.hidden))
             )
-          }
-      }
+            .getOrElse(Future.successful(None))
+        } yield {
+          val visitSuffix: String = linkedStory.map(s => s"_storyId=${s.storyId}").getOrElse("")
+          val visitEvent: String  =
+            if (isAdmin) s"Visit_LabelView_Label=${labelId}_Admin=true" else s"Visit_SharedLabel=$labelId$visitSuffix"
+          cc.loggingService.insert(viewerId, request.ipAddress, visitEvent)
+          val shareMeta: Html = buildShareMeta(commonData, meta, linkedStory)
+          val title: String   = if (isAdmin) s"Sidewalk - Label $labelId" else shareTitle(meta)
+          Ok(
+            views.html.apps
+              .sharedLabel(commonData, title, user, meta, labelLatLng, cityNameOf(commonData), shareMeta, isAdmin)
+          )
+        }
     }
   }
 

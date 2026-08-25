@@ -91,4 +91,25 @@
   "routes-renamed": "Route umbenannt.",
   "routes-deleted": "\"{{name}}\" gelöscht.",
   "routes-delete-confirm": "\"{{name}}\" löschen? Personen, mit denen Sie den Link geteilt haben, können ihn dann nicht mehr verwenden.",
-  "routes-error": "Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut."}
+  "routes-error": "Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut.",
+  "cities": {
+    "intro": "Sie haben in {{cities}} Project-Sidewalk-Städten beigetragen — insgesamt {{labels}} Beschriftungen.",
+    "intro-single": "Ihre bisherige Arbeit in {{city}}. Ein Konto funktioniert in jeder Project-Sidewalk-Stadt.",
+    "intro-empty": "Ein Konto funktioniert in jeder Project-Sidewalk-Stadt. Ihre Arbeit erscheint hier, sobald Sie mit dem Kartieren beginnen.",
+    "you-are-here": "Sie sind hier",
+    "col-city": "Stadt",
+    "col-labels": "Beschriftungen",
+    "col-validations": "Validierungen",
+    "col-missions": "Missionen",
+    "col-distance": "Distanz",
+    "col-last-active": "Zuletzt beschriftet",
+    "table-caption": "Ihre Beiträge in jeder Project-Sidewalk-Stadt",
+    "distance-note": "Die Distanz außerhalb von {{city}} wird nächtlich neu berechnet und kann daher bis zu einen Tag alt sein.",
+    "nudge": "Project Sidewalk kartiert Gehwege in {{cities}} Städten, und Ihr Konto funktioniert bereits in jeder davon.",
+    "nudge-empty": "Project Sidewalk kartiert Gehwege in {{cities}} Städten. Wählen Sie eine aus und legen Sie los.",
+    "nudge-link": "Alle Städte ansehen",
+    "trophy-sub": "In {{cities}} Städten aktiv",
+    "map-popup": "{{labels}} Beschriftungen · {{validations}} Validierungen",
+    "section-added": "Neuer Abschnitt verfügbar: {{section}}."
+  }
+}

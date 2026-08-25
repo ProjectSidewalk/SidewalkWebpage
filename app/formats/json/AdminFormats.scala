@@ -1,6 +1,6 @@
 package formats.json
 
-import models.audit.{AuditedStreetWithTimestamp, ContributionTimeStat, GenericComment, InteractionWithLabel}
+import models.audit.{AuditedStreetWithTimestamp, ContributionTimeStat, GenericComment}
 import models.label.LabelCount
 import models.user.UserCount
 import models.utils.MyPostgresProfile.api._
@@ -13,27 +13,32 @@ import java.time.OffsetDateTime
 
 object AdminFormats {
   case class UserRoleSubmission(userId: String, roleId: String)
-  case class UserQualitySubmission(userId: String, userQualityManual: Option[Boolean])
-  case class UserInfra3dAccess(userId: String, access: Boolean)
   case class TaskFlagsByDateSubmission(userId: String, date: OffsetDateTime, flag: String, state: Boolean)
   case class TaskFlagSubmission(auditTaskId: Int, flag: String, state: Boolean) {
     require(flag == "low_quality" || flag == "incomplete" || flag == "stale")
   }
 
+  /**
+   * The Manage user page's save (`/adminapi/saveUserSettings`, #4964). Every setting is required so a partial body
+   * can't silently reset the ones it left out; the three nullable fields each mean something when null/absent —
+   * `teamId`: no team, `highQualityManual`: automatic, `infra3dAccess`: leave as is.
+   */
+  case class AdminUserSettingsSubmission(
+      userId: String,
+      username: String,
+      role: String,
+      teamId: Option[Int],
+      highQualityManual: Option[Boolean],
+      communityService: Boolean,
+      onLeaderboard: Boolean,
+      publicProfile: Boolean,
+      infra3dAccess: Option[Boolean]
+  )
+
   implicit val userRoleSubmissionReads: Reads[UserRoleSubmission] = (
     (JsPath \ "user_id").read[String] and
       (JsPath \ "role_id").read[String]
   )(UserRoleSubmission.apply _)
-
-  implicit val userQualitySubmissionReads: Reads[UserQualitySubmission] = (
-    (JsPath \ "user_id").read[String] and
-      (JsPath \ "quality").readNullable[Boolean]
-  )(UserQualitySubmission.apply _)
-
-  implicit val userInfra3dAccessReads: Reads[UserInfra3dAccess] = (
-    (JsPath \ "user_id").read[String] and
-      (JsPath \ "access").read[Boolean]
-  )(UserInfra3dAccess.apply _)
 
   implicit val taskFlagsByDateSubmissionReads: Reads[TaskFlagsByDateSubmission] = (
     (JsPath \ "userId").read[String] and
@@ -41,6 +46,18 @@ object AdminFormats {
       (JsPath \ "flag").read[String] and
       (JsPath \ "state").read[Boolean]
   )(TaskFlagsByDateSubmission.apply _)
+
+  implicit val adminUserSettingsSubmissionReads: Reads[AdminUserSettingsSubmission] = (
+    (JsPath \ "userId").read[String] and
+      (JsPath \ "username").read[String].map(_.trim) and
+      (JsPath \ "role").read[String] and
+      (JsPath \ "teamId").readNullable[Int] and
+      (JsPath \ "highQualityManual").readNullable[Boolean] and
+      (JsPath \ "communityService").read[Boolean] and
+      (JsPath \ "onLeaderboard").read[Boolean] and
+      (JsPath \ "publicProfile").read[Boolean] and
+      (JsPath \ "infra3dAccess").readNullable[Boolean]
+  )(AdminUserSettingsSubmission.apply _)
 
   implicit val taskFlagSubmissionReads: Reads[TaskFlagSubmission] = (
     (JsPath \ "auditTaskId").read[Int] and
@@ -111,43 +128,5 @@ object AdminFormats {
         "task_end"          -> street.taskEnd
       )
     )
-  }
-  def auditTaskInteractionsToGeoJSON(interactions: Seq[InteractionWithLabel]): JsObject = {
-    val features: Seq[JsObject] = interactions.filter(_.lat.isDefined).sortBy(_.timestamp).map { interaction =>
-      val geom = Json.obj(
-        "type"        -> "Point",
-        "coordinates" -> Json.arr(interaction.lng.get, interaction.lat.get)
-      )
-      val properties = if (interaction.labelType.isEmpty) {
-        Json.obj(
-          "panoId"    -> interaction.panoId,
-          "heading"   -> interaction.heading.get,
-          "pitch"     -> interaction.pitch,
-          "zoom"      -> interaction.zoom,
-          "timestamp" -> interaction.timestamp,
-          "action"    -> interaction.action,
-          "note"      -> interaction.note
-        )
-      } else {
-        Json.obj(
-          "panoId"    -> interaction.panoId,
-          "heading"   -> interaction.heading.get,
-          "pitch"     -> interaction.pitch,
-          "zoom"      -> interaction.zoom,
-          "timestamp" -> interaction.timestamp,
-          "action"    -> interaction.action,
-          "note"      -> interaction.note,
-          "label"     -> Json.obj(
-            "label_id"    -> interaction.labelId,
-            "label_type"  -> interaction.labelType,
-            "coordinates" -> Seq(interaction.labelLng, interaction.labelLat),
-            "canvasX"     -> interaction.canvasX,
-            "canvasY"     -> interaction.canvasY
-          )
-        )
-      }
-      Json.obj("type" -> "Feature", "geometry" -> geom, "properties" -> properties)
-    }
-    Json.obj("type" -> "FeatureCollection", "features" -> features)
   }
 }

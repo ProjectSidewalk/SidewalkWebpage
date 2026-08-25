@@ -311,6 +311,9 @@ jobs:
       #   labels of one type and the seed has none, so only its auth and malformed-payload cases run. Both suites'
       #   data preconditions check for an assignable region rather than a bare street count, because the template's
       #   lone tutorial street belongs to no region and /explore 500s on that (#4748) instead of answering.
+      # - PersistentMediaDirCheckSpec (#4925): user-uploaded media must resolve outside the application directory,
+      #   which a deploy rebuilds and deletes. Pure logic, no DB — and the failure it guards against is invisible to
+      #   every other test, since the broken config behaves correctly right up until the next release.
       # - PanoExpiredAtSpec / BackgroundJobRunTableSpec / JobRunServiceSpec / StreetLifecycleServiceSpec (#4928): the
       #   transition records the admin trend and nightly-job panels read. Each seeds its own rows rather than hunting
       #   for them, so they assert real behavior against an empty seed: the expiry stamp only lands on the false ->
@@ -334,8 +337,53 @@ jobs:
       # - ImageryPollOutcomeSpec (#4928): separates a poll with nothing to do from one that could not run. Recording
       #   the second as a success is how a rotated-out API key ends the re-audit signal behind a permanently green
       #   badge.
+      # - StreetPriorityAdminSpec (#4908): the admin Imagery map explains each street's priority with the audit counts
+      #   the formula consumes, re-expressed in SQL. Its first case recomputes the formula from those counts for every
+      #   street and requires the result to equal what the Slick query produces, so re-weighting an audit without
+      #   updating both fails here instead of silently mislabeling the map. Self-seeds its other cases.
+      # - ImageryFreshnessReportSpec (#4908): pure unit tests (no DB, no app boot) over the fold that turns recorded
+      #   job runs into the page's per-night series -- a poll and a sync recording an hour apart merge into one night,
+      #   a hand-run job adds to it rather than replacing it, and a failed run with no counts still reads as a failure.
+      # - ImageryFreshnessReportServiceSpec (#4908): the assembly around that fold -- which jobs are charted and in
+      #   what order, where the window and the batch size come from, and that a job with no recorded run is reported
+      #   as never-run rather than omitted. The omission is the failure the whole panel exists to prevent: a scheduler
+      #   that stopped firing leaves no rows, which a rows-driven listing renders as a clean panel. Seeds its own runs.
+      # - ImageryAdminSpec (#4908): the guard on /admin/imagery and the two endpoints, plus their field contracts. The
+      #   anonymous namespace check above cannot tell WithAdmin from WithOwner, so this signs in for real -- and seeds
+      #   its own admin through the anonymous-signup route rather than hunting the schema for one, which would cancel
+      #   (and so read as passing) against a database with no admin in it.
+      # - StreetPriorityForAdminSpec (#4908): the exact field set of /adminapi/streetPriority, without a DB. The page
+      #   indexes into these rows by name and degrades silently on a miss, so a rename shows up as a blank column.
+      # - StreetImageryPollSpec / StreetImageryTableSpec / ImageryFreshnessPollSpec (#4384): the imagery-age poll's own
+      #   coverage, which ran nowhere in CI until now -- the rotation's ordering, the per-point median, the
+      #   nearest-street attribution rule, and the pure date/geometry parsers. StreetImageryPollSpec seeds streets and
+      #   asserts nearest-street attribution, so it is the one to watch against this job's seed (see #4923's note about
+      #   the seed cloning the tutorial street's geometry); it passes against a real city schema.
+      # - OutdatedStreetsForUserSpec / UserStreetsFreshnessSpec / DashboardReauditSectionSpec (#4896): the dashboard's
+      #   per-mapper re-audit list, the street feed its map draws, and the rendered section itself. All three seed
+      #   everything they read -- their own users, region, streets, and audits -- rather than looking for flagged
+      #   rows, which nothing in this job's schema (or a fresh dev dump) has: a hunting version would pass vacuously
+      #   on an all-fresh feed, and that is precisely the state a regression back to a hardcoded `audited = true`
+      #   would leave it in. So every case runs here, and each asserts an exact set rather than a bound. The section
+      #   spec signs its mappers up over /signUp because /dashboard turns anonymous sessions away, and is the only
+      #   coverage of the page-size constants and the two empty states, which live in the view rather than a query.
+      # - HoursApportionmentSpec / InBatchesSpec (#4526): pure unit tests (no DB, no app boot) over the two pieces of
+      #   /timeCheck's cross-city hours that nothing else guards. The first pins that the per-city rows sum to the
+      #   rounded true total; rounding each row on its own makes the breakdown contradict the headline a volunteer
+      #   hands a supervisor, and reconciling is the only reason the breakdown is on the page. The second parks twenty
+      #   items on promises and requires peak in-flight to equal the batch size, so a regression to an unbounded
+      #   fan-out -- 52 city schemas against a 25-connection pool -- fails here rather than surfacing as prod latency.
+      # - TimeCheckViewSpec (#4526): renders the multi-city branch of the page directly, which no route spec can reach:
+      #   /timeCheck is a SecuredAction and no multi-city volunteer can be signed in from a test. Supplies its own
+      #   breakdowns rather than reading any, so it is exactly as meaningful against this job's empty schema.
+      # - CrossCityHoursResilienceSpec (#4526): the failure paths, reached by handing the real fan-out a deliberately
+      #   broken scope (a schema that does not exist, a name the query builder refuses, gate exclusions, a scope
+      #   lookup that fails outright). Asserts exact unreachable-city counts, so a city dropped silently -- the
+      #   undercount #4526 exists to fix -- fails here instead of just making a volunteer's total smaller. Every case
+      #   supplies its own scope except the fallback-against-real-hours one, which needs a seeded leaderboard and is a
+      #   no-op here.
       - name: Run gating/auth tests (health dashboard + route auth posture + geodesic distances)
-        run: sbt 'set Test / parallelExecution := false' 'testOnly controllers.HealthDashboardSpec service.HealthServiceSpec controllers.RouteAuthPostureSpec models.street.GeodesicDistanceSpec service.ExploreTutorialRouteSpec controllers.MobileDetectionSpec service.PanoDataServiceSpec service.ActivityBreakdownSpec service.ConfigServiceTrendSpec models.utils.CityScorecardSpec models.utils.ConfigTableVoidedArchiveSpec controllers.api.StatsApiSpec controllers.ExploreSubmissionSpec controllers.ValidateSubmissionSpec controllers.ExploreNoImageryRateLimitSpec models.pano.PanoExpiredAtSpec models.pano.PanoImageryLogSpec models.utils.BackgroundJobRunTableSpec service.JobRunServiceSpec service.NightlyJobStatusSpec service.StreetLifecycleServiceSpec models.audit.OutdatedImageryFlagSyncSpec models.audit.OutdatedImageryRoutingSpec models.street.UpToDateCoverageSpec models.street.NoImageryReportsSpec models.utils.EnumTypeParitySpec actor.ScheduledJobsSpec service.ImageryPollOutcomeSpec'
+        run: sbt 'set Test / parallelExecution := false' 'testOnly controllers.HealthDashboardSpec service.HealthServiceSpec controllers.RouteAuthPostureSpec models.street.GeodesicDistanceSpec service.ExploreTutorialRouteSpec controllers.MobileDetectionSpec service.PanoDataServiceSpec service.ActivityBreakdownSpec service.ConfigServiceTrendSpec models.utils.CityScorecardSpec models.utils.ConfigTableVoidedArchiveSpec controllers.api.StatsApiSpec controllers.ExploreSubmissionSpec controllers.ValidateSubmissionSpec controllers.ExploreNoImageryRateLimitSpec models.pano.PanoExpiredAtSpec models.pano.PanoImageryLogSpec models.utils.BackgroundJobRunTableSpec service.JobRunServiceSpec service.NightlyJobStatusSpec service.StreetLifecycleServiceSpec models.audit.OutdatedImageryFlagSyncSpec models.audit.OutdatedImageryRoutingSpec models.street.UpToDateCoverageSpec models.street.NoImageryReportsSpec models.utils.EnumTypeParitySpec actor.ScheduledJobsSpec service.ImageryPollOutcomeSpec models.street.StreetPriorityAdminSpec service.ImageryFreshnessReportSpec models.street.StreetImageryPollSpec models.street.StreetImageryTableSpec service.ImageryFreshnessPollSpec service.ImageryFreshnessReportServiceSpec controllers.ImageryAdminSpec models.street.StreetPriorityForAdminSpec modules.PersistentMediaDirCheckSpec models.audit.OutdatedStreetsForUserSpec controllers.UserStreetsFreshnessSpec controllers.DashboardReauditSectionSpec service.HoursApportionmentSpec service.InBatchesSpec views.TimeCheckViewSpec service.CrossCityHoursResilienceSpec'
         env:
           DATABASE_URL: jdbc:postgresql://localhost:5432/sidewalk
           DATABASE_USER: sidewalk
@@ -390,7 +438,14 @@ jobs:
       INFRA3D_CLIENT_SECRET_ZURICH: DUMMY_INFRA3D_CLIENT_SECRET
       INFRA3D_CLIENT_SECRET_WINTERTHUR: DUMMY_INFRA3D_CLIENT_SECRET
       ENV_TYPE: local
-      SIDEWALK_IMAGES_DIR: .crops
+      # The staged app runs in prod mode, which arms PersistentMediaDirCheck (#4925): every media directory must
+      # resolve outside the build tree or the app refuses to boot. Literal paths, not ${{ runner.temp }} — the
+      # `runner` context is unavailable in a job-level `env:`, and referencing it there fails the whole workflow at
+      # load time, which shows up as a run with no jobs rather than as a failing check.
+      SIDEWALK_IMAGES_DIR: /tmp/sidewalk-media/crops
+      SIDEWALK_PANO_DIR: /tmp/sidewalk-media/panos
+      SIDEWALK_SHARE_IMAGES_DIR: /tmp/sidewalk-media/share-images
+      SIDEWALK_STORY_MEDIA_DIR: /tmp/sidewalk-media/story-media
     steps:
       - uses: actions/checkout@v7
 

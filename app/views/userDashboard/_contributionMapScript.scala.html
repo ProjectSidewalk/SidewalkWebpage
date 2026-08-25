@@ -21,6 +21,11 @@
 <script src="@assets.path("vendor/turf/turf-7.3.4.min.js")"></script>
 <script src="@assets.path("js/ps-map/build/ps-map.js")"></script>
 <script>
+  // Deferred handle for page sections that brush the map (the needs-re-audit list, #4896); resolved with the map,
+  // or null if it failed to load, so an awaiting caller is never left hanging.
+  let contributionMapReadyResolve;
+  window.udContributionMapReady = new Promise((resolve) => { contributionMapReadyResolve = resolve; });
+
   window.appManager.ready(async function () {
     const params = {
       mapName: '@mapId',
@@ -37,7 +42,10 @@
       neighborhoodFillColor: '#5d6d6b',
       neighborhoodFillOpacity: 0.1,
       uiSource: 'UserMap',
-      navigationControlPosition: 'top-right'
+      navigationControlPosition: 'top-right',
+      // Every street in this feed is one the mapper audited, so there is no unaudited arm to grey out here; the
+      // flag's only effect is turning on the dashed rendering for streets that need a re-audit (#4384).
+      differentiateUnauditedStreets: true
     };
     @if(wireLabelPopup) {
       // Label hover/click in AddLabelsToMap only activates when a popupLabelViewer is present. This thin
@@ -56,6 +64,7 @@
     try {
       const m = await createPSMap($, params);
       new MapSidebarFilter(m[0], m[4], { highQualityFilter: false });
+      contributionMapReadyResolve(m[0]);
       // Wheel/trackpad zooms the map whenever the pointer is over it, and scrolls the page everywhere else.
       const map = m[0];
       if (map && map.scrollZoom) {
@@ -71,6 +80,7 @@
       if (closeBtn) closeBtn.click();
     } catch (e) {
       console.error('Contribution map failed to load', e);
+      contributionMapReadyResolve(null);
     }
   });
 </script>

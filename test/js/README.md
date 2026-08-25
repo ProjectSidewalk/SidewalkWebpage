@@ -39,6 +39,12 @@ Also covered, beyond the api-docs previews:
   both fallbacks: Pannellum, and the static crop, where the provider's viewer is still loaded but with someone else's
   pano. Like `ShareWidget` this is a top-level `class`, so the test evals the source instead of using
   `loadGlobalScript`. jsdom implements neither the Popover API nor `:popover-open`, so the test stands both up.
+- `common/pano-viewer/src/panoUtilities.js` → `panoProjection.test.js` — the canvas↔POV↔pano projection (#4851): the
+  canvas coordinate carries no anchor offset, the canvas→POV→canvas round trip is an identity (and returns null
+  behind the camera), Validate's `getOriginalPov` call site passes the stored coordinate through untouched, and the
+  non-WebGL 2D fallback projects both axes and wraps headings. Record fixtures are shared with
+  `test/service/PanoDataServiceSpec.scala`, so the JS and Scala ports are pinned to one external oracle
+  (`pov_replay.py`) rather than to each other.
 
 Each test file has:
 

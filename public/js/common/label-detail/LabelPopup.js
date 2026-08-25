@@ -5,7 +5,7 @@
  * labelDetail partial). This module just opens/closes the dialog and forwards showLabel() calls to the host-agnostic
  * LabelDetail controller. All rendering, fetching, validation, commenting, & admin-flag logic lives in LabelDetail.js.
  *
- * Used by LabelMap, the User Dashboard, and admin pages (admin/index, admin/label).
+ * Used by LabelMap, the User Dashboard, and the admin Label Map.
  *
  * @param {boolean} admin If true, this is an admin UI, so additional info can be shown.
  * @param {typeof PanoViewer} viewerType The type of pano viewer to initialize.

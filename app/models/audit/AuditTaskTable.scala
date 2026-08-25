@@ -14,7 +14,7 @@ import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import service.TimeInterval
 import service.TimeInterval.TimeInterval
 
-import java.time.OffsetDateTime
+import java.time.{LocalDate, OffsetDateTime}
 import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -84,6 +84,25 @@ case class StreetEdgeWithAuditStatus(
     outdated: Boolean
 )
 
+/**
+ * One street a given user audited that still needs a re-audit, for the dashboard's re-audit list (#4896).
+ *
+ * @param distanceMeters Geodesic length of the whole street, not of the user's walk along it.
+ * @param newImageryDate The capture date that flagged the street: the median of its sample points' newest captures
+ *                       (#4384). `None` when the latest poll of the street came back empty, which clears the median
+ *                       while the flags it created stand until the next sync.
+ * @param lastAuditedAt  When the user last completed an audit of the street. `None` is unreachable for a listed
+ *                       street -- a street is only here because the user completed an audit of it.
+ */
+case class OutdatedStreetForUser(
+    streetEdgeId: Int,
+    regionId: Int,
+    regionName: String,
+    distanceMeters: Double,
+    newImageryDate: Option[LocalDate],
+    lastAuditedAt: Option[OffsetDateTime]
+)
+
 class AuditTaskTableDef(tag: slick.lifted.Tag) extends Table[AuditTask](tag, "audit_task") {
   def auditTaskId: Rep[Int]             = column[Int]("audit_task_id", O.PrimaryKey, O.AutoInc)
   def amtAssignmentId: Rep[Option[Int]] = column[Option[Int]]("amt_assignment_id")
@@ -150,6 +169,7 @@ class AuditTaskTable @Inject() (
   val routeStreets          = TableQuery[RouteStreetTableDef]
   val userRoutes            = TableQuery[UserRouteTableDef]
   val auditTaskUserRoutes   = TableQuery[AuditTaskUserRouteTableDef]
+  val streetImagery         = TableQuery[StreetImageryTableDef]
 
   val activeTasks    = auditTasks.filterNot(_.completed)
   val completedTasks = auditTasks.filter(_.completed)
@@ -200,20 +220,6 @@ class AuditTaskTable @Inject() (
     }
 
     tasksInTimeInterval.length.result
-  }
-
-  /**
-   * Returns the number of tasks completed by the given user.
-   */
-  def countCompletedAuditsForUser(userId: String): DBIO[Int] = {
-    completedTasks.filter(_.userId === userId).length.result
-  }
-
-  /**
-   * Find a task.
-   */
-  def find(auditTaskId: Int): DBIO[Option[AuditTask]] = {
-    auditTasks.filter(_.auditTaskId === auditTaskId).result.headOption
   }
 
   /**
@@ -378,16 +384,93 @@ class AuditTaskTable @Inject() (
   }
 
   /**
-   * Return street edges audited by the given user.
+   * Return street edges audited by the given user, each with whether it still needs a re-audit (#4384).
+   *
+   * The flag is the same three-state notion the city-wide maps use: a street is outdated when no completed audit of
+   * it -- this user's or anyone else's -- was made against the current imagery. So a street another mapper has
+   * already refreshed reads as up to date here, and nobody is sent back to work someone else has redone.
+   *
+   * @return (street, needs re-audit) pairs, one per distinct street.
    */
-  def getAuditedStreets(userId: String): DBIO[Seq[StreetEdge]] = {
+  def getAuditedStreets(userId: String): DBIO[Seq[(StreetEdge, Boolean)]] = {
     completedTasks
       .join(streetEdgeTable.streets)
       .on(_.streetEdgeId === _.streetEdgeId)
       .filter(_._1.userId === userId)
       .map(_._2)
       .distinct
+      .map(street => (street, !hasUpToDateAudit(street.streetEdgeId)))
       .result
+  }
+
+  /**
+   * Whether any completed audit of the street was made against the current imagery (#4384).
+   *
+   * Correlated on purpose: it compiles to an EXISTS that Postgres serves from audit_task's street_edge_id index,
+   * driven by the handful of streets the outer query already narrowed to. The set-membership form ("street_edge_id
+   * NOT IN (SELECT ...)") reads the same but builds its hash over every completed audit in the city first.
+   */
+  private def hasUpToDateAudit(streetEdgeId: Rep[Int]): Rep[Boolean] = {
+    upToDateCompletedTasks.filter(_.streetEdgeId === streetEdgeId).exists
+  }
+
+  /**
+   * The streets a user audited that still need a re-audit, joined to the region and imagery data the list renders.
+   *
+   * Selecting on "no up-to-date audit exists" rather than on the user's own `outdated_imagery` flag is equivalent --
+   * a street with no up-to-date audit necessarily has all of its audits flagged -- but it is the condition that has
+   * to still hold for the re-audit to be worth doing, so a street another mapper refreshes drops out of everyone's
+   * list. Streets that are closed or missing imagery, and the tutorial street, are excluded by `streets`.
+   */
+  private def outdatedStreetsForUserQuery(userId: String) = {
+    // The user's streets, each with when they last finished auditing it, minus the ones already refreshed.
+    val userStreets = completedTasks
+      .filter(_.userId === userId)
+      .groupBy(_.streetEdgeId)
+      .map { case (streetEdgeId, tasks) => (streetEdgeId, tasks.map(_.taskEnd).max) }
+      .filterNot { case (streetEdgeId, _) => hasUpToDateAudit(streetEdgeId) }
+
+    for {
+      (streetEdgeId, lastAudited) <- userStreets
+      _se                         <- streetEdgeTable.streets if _se.streetEdgeId === streetEdgeId
+      _ser                        <- streetEdgeRegionTable if _ser.streetEdgeId === streetEdgeId
+      _r                          <- regionsWithoutDeleted if _r.regionId === _ser.regionId
+    } yield (_se, _r, lastAudited)
+  }
+
+  /**
+   * Count the streets a user audited that still need a re-audit (#4896).
+   *
+   * Shares [[outdatedStreetsForUserQuery]] with [[getOutdatedStreetsForUser]] so the count can't disagree with the
+   * list it heads.
+   */
+  def countOutdatedStreetsForUser(userId: String): DBIO[Int] = {
+    outdatedStreetsForUserQuery(userId).length.result
+  }
+
+  /**
+   * List the streets a user audited that still need a re-audit, the audit they last finished longest ago first
+   * (#4896).
+   *
+   * Ordering on the user's own visit rather than on the capture date is what makes the list discriminate: a city's
+   * capture dates cluster around the handful of dates the imagery provider drove it, while the user's audits spread
+   * across their whole history. Oldest-first also matches what the section asks them to do -- see what has changed
+   * since they last looked -- by leading with the streets they have looked at least recently.
+   *
+   * @param limit Most rows to return; the caller pairs this with [[countOutdatedStreetsForUser]] for the full total.
+   */
+  def getOutdatedStreetsForUser(userId: String, limit: Int): DBIO[Seq[OutdatedStreetForUser]] = {
+    outdatedStreetsForUserQuery(userId)
+      .joinLeft(streetImagery)
+      .on(_._1.streetEdgeId === _.streetEdgeId)
+      .map { case ((_se, _r, lastAudited), _si) =>
+        (_se.streetEdgeId, _r.regionId, _r.name, _se.geom.lengthGeodesic, _si.flatMap(_.medianNewestCapture),
+          lastAudited)
+      }
+      .sortBy { case (streetEdgeId, _, _, _, _, lastAudited) => (lastAudited.asc.nullsLast, streetEdgeId.asc) }
+      .take(limit)
+      .result
+      .map(_.map(OutdatedStreetForUser.tupled))
   }
 
   /**

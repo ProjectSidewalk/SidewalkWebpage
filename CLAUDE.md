@@ -21,7 +21,7 @@ Request flow: **routes → Controller → Service → Table (DAO)**.
 - **`app/service/`** — business logic (e.g. `LabelService`, `ValidationService`, `ExploreService`, `AccessScoreService`, `ApiService`). Controllers should delegate here rather than touching tables directly.
 - **`app/models/`** — Slick table definitions and queries, grouped by domain (`label/`, `validation/`, `mission/`, `region/`, `street/`, `route/`, `user/`, `cluster/`, `gallery/`, `api/`, ...). Files named `*Table.scala` define schema + queries (DAO pattern).
 - **`app/models/utils/MyPostgresProfile.scala`** — custom Slick Postgres profile wiring in PostGIS geometry, JSON, and other slick-pg extensions. Spatial query helpers are in `SpatialQueryDefs.scala`.
-- **DI**: Guice. App bootstraps via `app/CustomApplicationLoader.scala`; modules registered in `conf/application.conf` and defined in `app/modules/` (`CustomControllerModule`, `ActorModule`, `ExecutorsModule`, `SilhouetteModule`). Custom execution contexts are in `app/executors/`; background actors in `app/actor/`.
+- **DI**: Guice. App bootstraps via `app/CustomApplicationLoader.scala`; modules registered in `conf/application.conf` and defined in `app/modules/` (`CustomControllerModule`, `ActorModule`, `ExecutorsModule`, `SilhouetteModule`, `StartupChecksModule` — the last is the home for boot-time deployment-misconfiguration checks like `PersistentMediaDirCheck`, #4925). Custom execution contexts are in `app/executors/`; background actors in `app/actor/`.
 - **Views**: Twirl templates (`app/views/*.scala.html`). The sbt build silences warnings in `views/` and the routes file specifically.
 
 ### API data structures (`app/models/api/`)
@@ -39,16 +39,30 @@ file produces its DTOs but the DTO *definitions* belong in `models.api`. The con
 - **Companion object** holds the `csvHeader` string (keep it next to `toCsvRow` so columns can't drift) and JSON writers.
 - **snake_case JSON** per #3871: derive writers with a scoped `JsonConfiguration(JsonNaming.SnakeCase)` +
   `Json.format`/`Json.writes`, or hand-build the `JsObject` with snake_case keys for nested/custom shapes.
-- **Shared helpers**: reuse `ApiModelUtils` (`escapeCsvField`, `createGeoJsonPointGeometry`, ...) rather than re-rolling
-  CSV/GeoJSON logic.
+- **Shared helpers**: reuse `ApiModelUtils` (`escapeCsvField`, `createGeoJsonPointGeometry`, `labelTypeOrdering`,
+  `toSnakeKey`, ...) rather than re-rolling CSV/GeoJSON logic.
 
-`app/formats/json/ApiFormats.scala` still holds assorted older non-DTO writes (the v2 access-score serializers and the
-`ClusterForApi` stack were removed in #3864); new API DTOs should not add to it — define them in `models.api` per the
-convention above.
+**Every `/v3` DTO's serialization lives in `models.api` — there is no shared formats object for API output, and no
+API serialization inline in a controller.** The `app/formats/json/*Formats.scala` files serve the internal (non-`/v3`)
+endpoints only; don't route API writers through them (issue #3891).
 
 ### Database & evolutions
 
-Schema changes are **Play evolutions**: numbered SQL files in `conf/evolutions/default/`. Add the next-numbered file for schema changes; each has `# --- !Ups` and `# --- !Downs` sections. **One evolution file per PR:** all of a PR's schema changes go in a single file, even when they land in separate commits or feel like separate concerns — until the PR merges, nothing has shipped, so fold later changes into the existing file instead of minting the next number (which also collides faster with other in-flight PRs). The dev DB is seeded from a dump — see [`db/scripts/README.md`](db/scripts/README.md) for the full DB lifecycle/maintenance scripts (`import-dump`, `create-new-schema`, etc., exposed as `make` targets). Connection config is env-driven (`DATABASE_URL`, `DATABASE_USER`, `DATABASE_PASSWORD`) in `conf/application.conf`.
+Schema changes are **Play evolutions**: numbered SQL files in `conf/evolutions/default/`. Add the next-numbered file for schema changes; each has `# --- !Ups` and `# --- !Downs` sections. **One evolution file per PR:** all of a PR's schema changes go in a single file, even when they land in separate commits or feel like separate concerns — until the PR merges, nothing has shipped, so fold later changes into the existing file instead of minting the next number (which also collides faster with other in-flight PRs).
+
+**Renumbering after a merge from `develop`.** In-flight PRs claim numbers concurrently, so a merge routinely lands
+someone else's file on the number yours is using. Renumber yours (never theirs — theirs has shipped):
+1. `git mv conf/evolutions/default/<old>.sql conf/evolutions/default/<new>.sql`, where `<new>` is one past the highest
+   number now in the directory. Grep the repo for the old number and update every reference — evolution comments, PR
+   description, planning docs, the branch's own commit messages if you're rewriting them.
+2. Load any page. The local DB needs no manual cleanup: Play stores each applied evolution's `revert_script` in
+   `<schema>.play_evolutions`, so when develop's file lands on the id yours was applied under, the hash mismatch makes
+   it run *your* saved downs and then develop's ups, followed by your new number's ups. `autoApply` and
+   `autoApplyDowns` are both on, so this is silent. It does mean **your Down has to actually work** — a broken one
+   fails here and leaves the row in `applying_down`, which is the state that produces Play's "inconsistent state"
+   error and does need hand-fixing.
+
+The dev DB is seeded from a dump — see [`db/scripts/README.md`](db/scripts/README.md) for the full DB lifecycle/maintenance scripts (`import-dump`, `create-new-schema`, etc., exposed as `make` targets). Connection config is env-driven (`DATABASE_URL`, `DATABASE_USER`, `DATABASE_PASSWORD`) in `conf/application.conf`.
 
 **Every `CREATE TABLE` must be followed by `ALTER TABLE <name> OWNER TO sidewalk;`** in the same evolution (see 309.sql for the pattern). On the prod server, evolutions run as an admin role, so a new table would otherwise be owned by that role and the `sidewalk` app role would lack permissions on it. This applies to **tables only** — it's easy to forget, and a missed one has to be patched by a later evolution (e.g. 321.sql fixed 314.sql; 329.sql fixed 326.sql/327.sql). Note:
 - **SERIAL / identity sequences** are covered automatically: `ALTER TABLE … OWNER TO` recursively reassigns any sequence a column owns, so no separate statement is needed for them.
@@ -89,8 +103,8 @@ Each major UI is a self-contained app under `public/js/`, bundled separately by 
 - **`explore/`** — the Explore/Audit tool (users label accessibility issues on street-view panoramas). The largest app; internal namespace global is still `svl`.
 - **`validate/`** — the Validate tool (users confirm/reject others' labels).
 - **`gallery/`** — browsable gallery of labels with filtering; internal namespace global is still `sg`.
-- **`admin/`** — the legacy admin page's maps and dashboards. The redesigned admin dashboard (#4272) lives beside it in **`admin-dashboard/`**, which is served file-by-file rather than bundled: one `<PageName>Page.js` per route, loaded by that page's Twirl template, with shared helpers in `AdminShell.js`.
-- **`user-dashboard/`** — user dashboards.
+- **`admin-dashboard/`** — the admin dashboard (#4272), served file-by-file rather than bundled: one `<PageName>Page.js` per route, loaded by that page's Twirl template, with shared helpers in `AdminShell.js`.
+- **`user-dashboard/`** — the redesigned user dashboard, settings, leaderboard, and public profiles (#4323), plus the admin's view of a user's dashboard (`/admin/user/:username` and its `/admin` page, #4964). Served file-by-file like `admin-dashboard/` — no Grunt bundle.
 - **`ps-map/`** — shared map component used across pages.
 - **`help/`** — help/faq page (rarely used).
 - **`common/`** — shared modules pulled into multiple bundles: `pano-viewer/` (abstraction over GSV / Mapillary / Infra3d / Pannellum imagery providers), `label-detail/` (label popups), and various utilities.

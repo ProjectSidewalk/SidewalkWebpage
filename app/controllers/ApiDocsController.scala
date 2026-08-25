@@ -161,6 +161,16 @@ class ApiDocsController @Inject() (
   }
 
   /**
+   * Displays API documentation for label edits.
+   */
+  def labelEdits = cc.securityService.UserAwareAction { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_APIDocs_LabelEdits")
+      Ok(views.html.apiDocs.labelEdits(commonData, request.identity))
+    }
+  }
+
+  /**
    * Displays API documentation for the validation result types.
    */
   def validationResultTypes = cc.securityService.UserAwareAction { implicit request =>
