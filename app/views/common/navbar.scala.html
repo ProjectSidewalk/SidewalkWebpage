@@ -13,9 +13,9 @@
    city is pinned separately at the top of the switcher. Country order is alphabetical by country id. *@
 @otherCitiesByCountry = @{cityInfo.filter(_.cityId != commonData.cityId).sortBy(c => (c.countryId, c.stateId, c.cityId)).groupBy(_.countryId).toSeq.sortBy(_._1)}
 @isAdmin = @{user.isDefined && (user.get.role == "Administrator" || user.get.role == "Owner")}
-@* Destinations that redirect a mobile visitor to /mobileLanding (Explore, Gallery, Route Builder) or to /mobile
-   (Expert Validate) are left out of the menu on those devices: a link that can only bounce you somewhere else is
-   worse than no link. This is deliberately the same user-agent test the controllers redirect on, not a width
+@* Destinations that redirect a mobile visitor to /mobileLanding (Explore, Label Map, Gallery, Route Builder) or to
+   /mobile (Expert Validate) are left out of the menu on those devices: a link that can only bounce you somewhere else
+   is worse than no link. This is deliberately the same user-agent test the controllers redirect on, not a width
    breakpoint — a narrow desktop window still reaches all of them (#4857). *@
 @isMobileDevice = @{ControllerUtils.isMobile}
 @isLanding = @{request.path == "/" || request.path == "/home"}
@@ -64,9 +64,11 @@
         @* Label Map is the results/output view — a top-level peer of the Explore (contribute) + Validate (verify) loop.
            `data-nav-shed` marks it droppable when the bar runs out of room (it stays reachable under Tools ▸ Analyze);
            see the shed order in Navbar.js. *@
-        <li class="navbar-lnk" data-nav-shed="5">
-          <a class="navbar-button@if(request.path.toLowerCase == "/labelmap"){ is-active}" id="navbar-labelmap-btn" href="@routes.ApplicationController.labelMap(None)"@if(request.path.toLowerCase == "/labelmap"){ aria-current="page"}>@common.navbarLnkIcon("map")@Messages("navbar.labelmap")</a>
-        </li>
+        @if(!isMobileDevice) {
+          <li class="navbar-lnk" data-nav-shed="5">
+            <a class="navbar-button@if(request.path.toLowerCase == "/labelmap"){ is-active}" id="navbar-labelmap-btn" href="@routes.ApplicationController.labelMap(None)"@if(request.path.toLowerCase == "/labelmap"){ aria-current="page"}>@common.navbarLnkIcon("map")@Messages("navbar.labelmap")</a>
+          </li>
+        }
         @* Retake Tutorial and Help are genuine /explore-only features, not the current page hidden. *@
         @if(isExplore) {
           <li class="navbar-lnk">
@@ -91,14 +93,15 @@
           <button type="button" id="nav-tools-dropdown" class="navbar-button navbar-dropdown-toggle@if(toolsToggleActive){ is-active}" data-nav-dropdown aria-haspopup="true" aria-expanded="false" aria-controls="nav-tools-menu">
             @common.navbarLnkIcon("tool")@Messages("navbar.tools")<b class="caret" aria-hidden="true"></b>
           </button>
+          @* On a mobile device only the Community group survives, so its section header would be labelling the whole
+             menu; the headers are what make three groups scannable, not one. *@
           <ul id="nav-tools-menu" class="dropdown-menu" aria-label="@Messages("navbar.tools")">
-            <li class="dropdown-section">@Messages("navbar.tools.analyze")</li>
-            @* Gallery still UA-redirects mobile visitors, so it stays desktop-only until its own conversion. *@
             @if(!isMobileDevice) {
+              <li class="dropdown-section">@Messages("navbar.tools.analyze")</li>
               <li><a id="navbar-gallery-btn" href="@routes.GalleryController.gallery()"@if(curPath == "/gallery"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("grid")@Messages("gallery")</a></li>
+              <li><a id="navbar-labelmap-btn-tools" href="@routes.ApplicationController.labelMap(None)"@if(curPath == "/labelmap"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("map")@Messages("navbar.labelmap")</a></li>
+              <li class="dropdown-section">@Messages("navbar.tools.community")</li>
             }
-            <li><a id="navbar-labelmap-btn-tools" href="@routes.ApplicationController.labelMap(None)"@if(curPath == "/labelmap"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("map")@Messages("navbar.labelmap")</a></li>
-            <li class="dropdown-section">@Messages("navbar.tools.community")</li>
             <li><a id="navbar-leaderboard-btn" href='@routes.UserDashboardController.leaderboard'@if(curPath == "/leaderboard"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("award")@Messages("navbar.leaderboard")</a></li>
             <li><a id="navbar-stories-btn" href='@routes.StoryController.storiesPage'@if(curPath == "/stories"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("message-circle")@Messages("navbar.stories")</a></li>
             <li><a id="navbar-routes-btn" href='@routes.RouteBuilderController.routesPage'@if(curPath == "/routes"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("flag")@Messages("navbar.routes")</a></li>
