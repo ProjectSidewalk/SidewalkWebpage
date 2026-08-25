@@ -21,8 +21,8 @@
   "badge-type-validations": "validations",
   "badge-missions-singular": "mission",
   "badge-missions-plural": "missions",
-  "badge-distance-singular": "km",
-  "badge-distance-plural": "km",
+  "badge-distance-singular": "{{unitNameSingular}}",
+  "badge-distance-plural": "{{unitName}}",
   "badge-labels-singular": "label",
   "badge-labels-plural": "labels",
   "badge-validations-singular": "validation",
@@ -47,8 +47,7 @@
     "remaining-missions_other": "{{count}} more missions",
     "remaining-validations_one": "{{count}} more validation",
     "remaining-validations_other": "{{count}} more validations",
-    "remaining-distance-km": "{{dist}} km more",
-    "remaining-distance-mi": "{{dist}} mi more"
+    "remaining-distance": "{{dist}} {{unitAbbr}} more"
   },
   "mistake-cards": {
     "empty": "🎉 No mistakes to review — your labels are holding up great. Keep it up!",
@@ -92,4 +91,25 @@
   "routes-renamed": "Route renamed.",
   "routes-deleted": "Deleted \"{{name}}\".",
   "routes-delete-confirm": "Delete \"{{name}}\"? Anyone you shared its link with will no longer be able to use it.",
-  "routes-error": "Something went wrong. Please try again."}
+  "routes-error": "Something went wrong. Please try again.",
+  "cities": {
+    "intro": "You've contributed in {{cities}} Project Sidewalk cities — {{labels}} labels in all.",
+    "intro-single": "Your work in {{city}} so far. One account works in every Project Sidewalk city.",
+    "intro-empty": "One account works in every Project Sidewalk city. Your work will show up here once you start mapping.",
+    "you-are-here": "you're here",
+    "col-city": "City",
+    "col-labels": "Labels",
+    "col-validations": "Validations",
+    "col-missions": "Missions",
+    "col-distance": "Distance",
+    "col-last-active": "Last labeled",
+    "table-caption": "Your contributions in each Project Sidewalk city",
+    "distance-note": "Distance outside {{city}} is recalculated nightly, so it can lag by up to a day.",
+    "nudge": "Project Sidewalk maps sidewalks in {{cities}} cities, and your account already works in every one.",
+    "nudge-empty": "Project Sidewalk maps sidewalks in {{cities}} cities. Pick one and start exploring.",
+    "nudge-link": "See every city",
+    "trophy-sub": "Active in {{cities}} cities",
+    "map-popup": "{{labels}} labels · {{validations}} validations",
+    "section-added": "New section available: {{section}}."
+  }
+}

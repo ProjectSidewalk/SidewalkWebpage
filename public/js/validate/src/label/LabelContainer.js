@@ -326,10 +326,9 @@ class LabelContainer {
       pitch: labelMetadata.pitch,
       start_timestamp: labelMetadata.startTimestamp,
       validation_result: labelMetadata.validationResult,
-      old_severity: labelMetadata.oldSeverity,
-      new_severity: labelMetadata.newSeverity,
-      old_tags: labelMetadata.oldTags,
-      new_tags: labelMetadata.newTags,
+      // What the validator wants the label to have; the server records an edit only if it differs from the label.
+      severity: labelMetadata.newSeverity,
+      tags: labelMetadata.newTags,
       comment: commentData,
       zoom: labelMetadata.zoom,
       source: svv.form.getSource(),

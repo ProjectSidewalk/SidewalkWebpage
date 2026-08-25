@@ -49,21 +49,10 @@
   user-select: none;
 }
 
-/* The label marker (created by PanoMarker with a base px size that is multiplied by the UI scale in JS).
+/* The label marker is created by PanoMarker at a base px size multiplied by the UI scale in JS; its icon and hidden
+   state are main.css's shared .label-marker rules, off the --label-icon / --label-color PanoManager writes.
 
-   The type icon is drawn by ::before from --label-icon rather than as the marker's own background, so that hiding
-   the label can fade the icon independently of the ring around it. PanoManager writes both custom properties. */
-#validate-pano-marker::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  background-image: var(--label-icon);
-  background-size: 100% 100%;
-  transition: opacity 0.5s ease;
-}
-
-/* Pointer-target floor. The marker is what opens the label card — on desktop by hover and as a keyboard stop
+   Pointer-target floor. The marker is what opens the label card — on desktop by hover and as a keyboard stop
    (PanoMarker, #4729), on mobile by touch — but the mark itself is 22px at --ui-scale 1 and shrinks to 14px at the
    0.65x end.
 
@@ -100,32 +89,6 @@
   transform: translate(-50%, -50%);
   border-radius: 50%;
   z-index: -1;
-}
-
-/* Hidden state (the H key / either Hide-label toggle). The point of hiding is to see the sidewalk the marker is
-   sitting on, so the icon goes away entirely — even at low opacity it still tints the very pixels the validator
-   asked to look at. What remains is a dashed ring in the label type's own colour, which says where the label is
-   and which type it belongs to without covering anything. It crossfades rather than cutting, so the label reads as
-   stepping aside rather than being replaced by a different object.
-
-   This replaced Label_Outline.svg, an Illustrator export whose artwork mostly sat outside its own viewBox (#4726). */
-#validate-pano-marker {
-  transition: border-color 0.5s ease, outline-color 0.5s ease, outline-width 0.5s ease;
-}
-
-#validate-pano-marker.label-marker--hidden::before {
-  opacity: 0;
-}
-
-/* The ring is an outline, not the border, so it takes no part in layout and can't nudge the icon it surrounds.
-   .icon-outline's black border goes transparent rather than away: it belongs to the solid marker, and leaving it
-   would keep drawing a hard edge around something that is supposed to have receded. What's left is the label type's
-   own colour at 70% — held back enough to read as receded, but the only cue left now that the icon is gone
-   entirely, so it can't go as faint as it would if it were merely outlining something. */
-#validate-pano-marker.label-marker--hidden {
-  border-color: transparent;
-  outline: calc(2px * var(--ui-scale)) dashed rgb(from var(--label-color, #ffffff) r g b / 70%);
-  outline-offset: calc(1px * var(--ui-scale));
 }
 
 /* Sits in the top-right just left of the stacked zoom control, scaled down to match its height. transform-origin keeps
@@ -262,14 +225,7 @@
   left: calc(7px * var(--ui-scale));
 }
 
-/* Sized to sit with the type beside it in both homes: the dark overlay pill above, and the label card's tiny
-   footer button. currentColor, so it takes each one's text colour. */
-.hide-label-button-icon {
-  flex-shrink: 0;
-  width: calc(14px * var(--ui-scale));
-  height: calc(14px * var(--ui-scale));
-}
-
+/* A notch smaller than the shared base size (main.css) for the label card's tiny footer button. */
 .label-hover-card__action-button .hide-label-button-icon {
   width: calc(12px * var(--ui-scale));
   height: calc(12px * var(--ui-scale));

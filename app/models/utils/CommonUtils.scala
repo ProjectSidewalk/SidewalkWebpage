@@ -31,6 +31,11 @@ object CommonUtils {
     val SharedLabelThumbs               = Value("SharedLabelThumbs")
     val DashboardStories                = Value("DashboardStories")
     val AdminStories                    = Value("AdminStories")
+    val GalleryExpanded                 = Value("GalleryExpanded")
+    val AdminLabelMap                   = Value("AdminLabelMap")
+    val AdminActivity                   = Value("AdminActivity")
+    val StoryListPage                   = Value("StoryListPage")
+    val UserDashboard                   = Value("UserDashboard")
     val OldDataUnknownSource            = Value("Old data, unknown source")
   }
 
@@ -42,6 +47,16 @@ object CommonUtils {
     val StaticApi  = Value("StaticApi")  // Static image fetched from the imagery provider's API.
     val StaticCrop = Value("StaticCrop") // Locally-saved crop image.
   }
+
+  /**
+   * Truncates a value to `decimals` decimal places rather than rounding it.
+   *
+   * @param value    The value to truncate.
+   * @param decimals How many decimal places to keep.
+   * @return         The value truncated at that precision.
+   */
+  def floorTo(value: Double, decimals: Int): Double =
+    BigDecimal.decimal(value).setScale(decimals, BigDecimal.RoundingMode.FLOOR).toDouble
 
   /**
    * Calculate a destination point given a starting point, distance, and bearing using the Haversine formula.

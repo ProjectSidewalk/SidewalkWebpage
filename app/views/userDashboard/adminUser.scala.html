@@ -1,0 +1,223 @@
+@import models.audit.AuditTaskComment
+@import models.pano.PanoSource
+@import models.user.{RoleTable, SidewalkUserWithRole, Team}
+@import play.api.Configuration
+@import service.{AdminUserProfileData, CommonPageData}
+@(commonData: CommonPageData, viewer: SidewalkUserWithRole, user: SidewalkUserWithRole, adminData: AdminUserProfileData,
+    currTeam: Option[Team], teams: Seq[Team]
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
+@*
+* The Manage user page beside a user's dashboard (`/admin/user/:username/admin`, #4964): the account settings an admin may
+* change for them (saved together through /adminapi/saveUserSettings by AdminUser.js), the stats their dashboard
+* doesn't show, marking their work as low quality/incomplete by date, and their Explore comments. Admin-only, so
+* English-only by convention.
+*@
+
+@isInfra3d = @{commonData.imagerySource == PanoSource.Infra3d}
+@roleLocked = @{!RoleTable.ADMIN_ASSIGNABLE_ROLES.contains(user.role)}
+@isOwner = @{user.role == "Owner"}
+@qualityLocked = @{isOwner || (user.role == "Administrator" && viewer.role != "Owner")}
+@qualityWord(high: Boolean) = @{if (high) "High" else "Low"}
+@selectedIf(cond: Boolean) = @{if (cond) Html("selected") else Html("")}
+@disabledIf(cond: Boolean) = @{if (cond) Html("disabled") else Html("")}
+@isoTimestamp(dt: java.time.OffsetDateTime) = @{dt.toInstant.toString}
+@mediumDateTime(dt: java.time.OffsetDateTime) = @{
+  dt.format(java.time.format.DateTimeFormatter.ofLocalizedDateTime(java.time.format.FormatStyle.MEDIUM,
+    java.time.format.FormatStyle.SHORT).withLocale(messages.lang.toLocale))
+}
+
+@content = {
+  <div class="api-section" id="admin-user-intro-section">
+    <h1 class="api-heading" id="admin">Manage user <a href="#admin" class="permalink">#</a></h1>
+    <p>Admin-only settings and stats for <strong>@user.username</strong>. Changes take effect as soon as they're saved.</p>
+  </div>
+
+  <div class="api-section" id="admin-user-account-section">
+    <h2 class="api-heading" id="account">Account <a href="#account" class="permalink">#</a></h2>
+    @if(isOwner) {
+      <div class="ud-nudge">An Owner's account can't be changed from here.</div>
+    }
+    <div class="ud-form">
+      <div class="ud-field">
+        <label class="ud-label" for="au-username">Username</label>
+        <input class="ud-input" id="au-username" type="text" value="@user.username" maxlength="30" autocomplete="off" spellcheck="false" @disabledIf(isOwner)>
+        <span class="ud-field-help">@Messages("dashboard.settings.username.help")</span>
+      </div>
+      <div class="ud-field">
+        <label class="ud-label" for="au-email">Email</label>
+        <input class="ud-input" id="au-email" type="email" value="@user.email" readonly disabled>
+      </div>
+      <div class="ud-field">
+        <label class="ud-label" for="au-user-id">User ID</label>
+        <input class="ud-input" id="au-user-id" type="text" value="@user.userId" readonly disabled>
+      </div>
+      <div class="ud-field">
+        <label class="ud-label" for="au-role">Role</label>
+        <select class="ud-input" id="au-role" @disabledIf(roleLocked)>
+          @if(roleLocked) {
+            <option value="@user.role" selected>@user.role</option>
+          } else {
+            @for(r <- RoleTable.ADMIN_ASSIGNABLE_ROLES) {
+              <option value="@r" @selectedIf(r==user.role)>@r</option>
+            }
+          }
+        </select>
+        @if(roleLocked) {
+          <span class="ud-field-help">@user.role accounts can't be moved to another role.</span>
+        }
+      </div>
+      <div class="ud-field">
+        <label class="ud-label" for="au-team">Team</label>
+        <select class="ud-input" id="au-team" @disabledIf(isOwner)>
+          <option value="" @selectedIf(currTeam.isEmpty)>No team</option>
+          @for(t <- teams.sortBy(_.name)) {
+            <option value="@t.teamId" @selectedIf(currTeam.exists(_.teamId==t.teamId))>@t.name@if(!t.open){ (closed)}</option>
+          }
+        </select>
+        <span class="ud-field-help">Closed teams are listed too, so a user can be placed on one that isn't taking new members.</span>
+      </div>
+      <div class="ud-field">
+        <label class="ud-label" for="au-quality">Work quality</label>
+        <select class="ud-input" id="au-quality" @disabledIf(qualityLocked)>
+          <option value="auto" @selectedIf(adminData.userStats.highQualityManual.isEmpty)>Automatic (currently @qualityWord(adminData.userStats.highQuality).toLowerCase)</option>
+          <option value="true" @selectedIf(adminData.userStats.highQualityManual.contains(true))>High quality</option>
+          <option value="false" @selectedIf(adminData.userStats.highQualityManual.contains(false))>Low quality</option>
+        </select>
+        <span class="ud-field-help">
+          @if(qualityLocked) {
+            @if(isOwner) {An Owner's quality can't be set.} else {An admin's quality can only be set by an Owner.}
+          } else {
+            Overrides the automatic high/low-quality flag. Low-quality users' labels are partially hidden in the APIs and validated less often. "Automatic" recomputes it from their labeling frequency.
+          }
+        </span>
+      </div>
+      <label class="ud-check" for="au-community-service">
+        <input type="checkbox" id="au-community-service" @if(user.communityService){checked} @disabledIf(isOwner)>
+        <span class="ud-check-text">
+          <strong>Community service hours</strong>
+          <span class="ud-field-help">Opts them in to official service-hour recognition and adds "Service hours" and "Time check" to their account menu.</span>
+        </span>
+      </label>
+      <label class="ud-check" for="au-on-leaderboard">
+        <input type="checkbox" id="au-on-leaderboard" @if(adminData.userStats.onLeaderboard){checked} @disabledIf(isOwner)>
+        <span class="ud-check-text">
+          <strong>Show on the leaderboard</strong>
+          <span class="ud-field-help">@Messages("dashboard.settings.leaderboard.help")</span>
+        </span>
+      </label>
+      <label class="ud-check" for="au-public-profile">
+        <input type="checkbox" id="au-public-profile" @if(adminData.userStats.publicProfile){checked} @disabledIf(isOwner)>
+        <span class="ud-check-text">
+          <strong>Public dashboard</strong>
+          <span class="ud-field-help">When on, anyone can open their public profile from the leaderboard; when off, it shows as "kept private".</span>
+        </span>
+      </label>
+      @if(isInfra3d) {
+        <label class="ud-check" for="au-infra3d-access">
+          <input type="checkbox" id="au-infra3d-access" @if(user.infra3dAccess){checked} @disabledIf(isOwner || !viewer.infra3dAccess)>
+          <span class="ud-check-text">
+            <strong>infra3D access</strong>
+            <span class="ud-field-help">
+              @if(!viewer.infra3dAccess) {Only a user with infra3D access can grant it.} else {Lets them use the infra3D imagery on this deployment.}
+            </span>
+          </span>
+        </label>
+      }
+      <div>
+        <button type="button" class="ud-btn-primary" id="au-save-btn" @disabledIf(isOwner)>Save</button>
+        <span class="ud-save-status" id="au-save-status" role="status" aria-live="polite"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="api-section" id="admin-user-stats-section">
+    <h2 class="api-heading" id="stats">Stats <a href="#stats" class="permalink">#</a></h2>
+    <div class="coverage-kpis ud-kpis">
+      <div class="coverage-kpi">
+        <span class="coverage-kpi-value">@{"%.1f".format(adminData.hoursWorked)} h</span>
+        <span class="coverage-kpi-label">Exploring &amp; validating</span>
+      </div>
+      <div class="coverage-kpi">
+        <span class="coverage-kpi-value">@adminData.userStats.labelsPerMeter.map(f => "%.1f".format(f * 1000)).getOrElse("—")</span>
+        <span class="coverage-kpi-label">Labels per km</span>
+      </div>
+      <div class="coverage-kpi">
+        <span class="coverage-kpi-value" id="au-high-quality">@qualityWord(adminData.userStats.highQuality)</span>
+        <span class="coverage-kpi-label">Work quality@if(adminData.userStats.highQualityManual.isDefined){ (manual)}</span>
+      </div>
+      <div class="coverage-kpi">
+        <span class="coverage-kpi-value">@adminData.currentRegion.map(_.name).getOrElse("Unassigned")</span>
+        <span class="coverage-kpi-label">Current neighborhood@adminData.currentRegion.map(r => s" (ID ${r.regionId})")</span>
+      </div>
+    </div>
+    <p class="ud-field-help">A labeling frequency under 37.5 labels per km marks a user low quality automatically; the nightly job recomputes it, or run "Recalculate user stats" on the <a href="@routes.AdminDashboardController.management">Management</a> page.</p>
+  </div>
+
+  <div class="api-section" id="admin-user-flags-section">
+    <h2 class="api-heading" id="task-flags">Mark work by date <a href="#task-flags" class="permalink">#</a></h2>
+    <p>Flag every street this user audited before a date. Useful after training a new user: if their early work was low quality, mark it so — those labels are partially hidden in the APIs and validated less often. If it was good but they skipped label types or didn't finish streets, mark it <em>incomplete</em> so those streets get re-audited while the labels stay visible.</p>
+    <div class="ud-admin-flags">
+      @for((flag, title) <- Seq(("low_quality", "Low quality"), ("incomplete", "Incomplete"))) {
+        <div class="ud-form ud-admin-flag" data-flag="@flag">
+          <div class="ud-field">
+            <label class="ud-label" for="au-date-@flag">@title before</label>
+            <input class="ud-input ud-admin-flag-date" id="au-date-@flag" type="date">
+          </div>
+          <div class="ud-field-inline">
+            <button type="button" class="ud-btn-secondary ud-admin-flag-set">Set flags</button>
+            <button type="button" class="ud-btn-secondary ud-admin-flag-remove">Remove flags</button>
+          </div>
+          <span class="ud-save-status ud-admin-flag-status" role="status" aria-live="polite"></span>
+        </div>
+      }
+    </div>
+  </div>
+
+  <div class="api-section" id="admin-user-comments-section">
+    <h2 class="api-heading" id="comments">Explore comments <a href="#comments" class="permalink">#</a></h2>
+    @if(adminData.exploreComments.isEmpty) {
+      <div class="ud-nudge">No comments left while exploring.</div>
+    } else {
+      <details class="ud-admin-details">
+        <summary>@adminData.exploreComments.size @if(adminData.exploreComments.size == 1){comment}else{comments}</summary>
+        <div class="mgmt-table-scroll">
+          <table class="contrib-table">
+            <thead>
+              <tr><th scope="col">When</th><th scope="col">Panorama</th><th scope="col">Comment</th></tr>
+            </thead>
+            <tbody>
+              @for(c: AuditTaskComment <- adminData.exploreComments) {
+                <tr>
+                  @* The calendar date depends on the reader's timezone, which only the browser knows; AdminUser.js
+                     rewrites this to local time, leaving the UTC rendering as the no-JS fallback. *@
+                  <td><time class="ud-admin-ts" datetime="@isoTimestamp(c.timestamp)">@mediumDateTime(c.timestamp)</time></td>
+                  <td>@c.panoId</td>
+                  <td>@c.comment</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </details>
+    }
+  </div>
+
+  <script src="@assets.path("js/user-dashboard/AdminUser.js")"></script>
+  <script>
+    window.appManager.ready(() => {
+      new AdminUser({
+        userId: '@user.userId',
+        username: '@user.username',
+        saveUrl: '@routes.AdminController.saveUserSettings',
+        flagsUrl: '@routes.AdminController.setTaskFlagsBeforeDate()',
+        pageUrlFor: (username) => `/admin/user/${encodeURIComponent(username)}/admin`
+      });
+    });
+  </script>
+}
+
+@common.main(commonData, s"Manage ${user.username} — Project Sidewalk", i18Namespaces = Seq("common", "dashboard")) {
+  @common.navbar(commonData, Some(viewer))
+  @userDashboard.layout("admin-user", adminSubject = Some(user.username))(content)
+}

@@ -23,6 +23,8 @@ object RoleTable {
   val RESEARCHER_ROLES: Seq[String] = Seq("Researcher", "Administrator", "Owner")
   val ADMIN_ROLES: Seq[String]      = Seq("Administrator", "Owner")
   val VALID_ROLES: Seq[String] = Seq("Registered", "Turker", "Researcher", "Administrator", "Owner", "Anonymous", "AI")
+  // Roles an admin may move a user into or out of; Owner is fixed, Anonymous/AI are system-assigned.
+  val ADMIN_ASSIGNABLE_ROLES: Seq[String]     = Seq("Registered", "Turker", "Researcher", "Administrator")
   val ROLES_RESEARCHER_COLLAPSED: Seq[String] = Seq("Registered", "Turker", "Researcher", "Anonymous", "AI")
 
   /**

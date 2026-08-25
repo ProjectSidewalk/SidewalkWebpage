@@ -209,8 +209,7 @@ class ExploreNoImageryRateLimitSpec
 
     "budget one user at a time, so a single runaway session can't lock everyone else out" in {
       val exhausted = freshAnonSession()
-      // Each request is awaited through `status`, not just fired: `route` hands back a Future, so discarding it lets
-      // the assertion below race the very attempts that are supposed to have spent the budget.
+      // Each spend must be awaited, or the assertion below races the requests meant to precede it.
       for (_ <- 1 to MaxReports) status(postReport(exhausted, Json.obj("nonsense" -> true))) mustBe BAD_REQUEST
       status(postReport(exhausted, Json.obj("nonsense" -> true))) mustBe TOO_MANY_REQUESTS
 

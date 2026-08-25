@@ -1,7 +1,7 @@
 /**
  * Saves the User Dashboard Settings form (#4323) in one request: an optional username change plus the two privacy
- * flags, the service-hours opt-in (#4375), and the user's team. Posts JSON to the settings save endpoint; CSRF is
- * added by the global fetch wrapper.
+ * flags, the service-hours opt-in (#4375), the measurement-units choice (#4404), and the user's team. Posts JSON to
+ * the settings save endpoint; CSRF is added by the global fetch wrapper.
  * A rejected username (taken, too short, disallowed characters, profanity) comes back as a 400 with a message that
  * is shown inline without applying the rest.
  */
@@ -10,10 +10,13 @@ class Settings {
      * @param {Object} opts - Configuration.
      * @param {string} opts.saveUrl - Endpoint the form POSTs to.
      * @param {string} opts.currentUsername - The user's existing username, so an edit to the same value is a no-op.
+     * @param {string} opts.currentUnits - The user's existing units choice ('auto', 'metric', or 'imperial'), so a
+     *   save that changes it can reload the page onto the new units.
      */
   constructor(opts) {
     this.saveUrl = opts.saveUrl;
     this.currentUsername = opts.currentUsername;
+    this.currentUnits = opts.currentUnits;
     this.saveBtn = document.getElementById('set-save-btn');
     this.status = document.getElementById('set-save-status');
     if (this.saveBtn) this.saveBtn.addEventListener('click', () => this.#save());
@@ -28,11 +31,14 @@ class Settings {
     const teamEl = document.getElementById('set-team');
     const username = (usernameEl?.value || '').trim();
     const teamVal = teamEl ? teamEl.value : '';
+    const units = document.getElementById('set-units')?.value ?? 'auto';
     const payload = {
       username,
       onLeaderboard: document.getElementById('set-on-leaderboard')?.checked ?? true,
       publicProfile: document.getElementById('set-public-profile')?.checked ?? true,
       communityService: document.getElementById('set-community-service')?.checked ?? false,
+      // 'auto' = follow the site language; the server clears the override cookie rather than setting one.
+      measurementSystem: units,
       // Empty string = "No team"; send null so the server leaves any current team.
       teamId: teamVal === '' ? null : parseInt(teamVal, 10),
     };
@@ -48,6 +54,12 @@ class Settings {
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.success) {
         this.currentUsername = username || this.currentUsername;
+        // Units are read from a stamp the server writes into the page, so a change only takes effect on the next
+        // render. Reload rather than leave every distance on screen in the units the user just moved away from.
+        if (units !== this.currentUnits) {
+          window.location.reload();
+          return;
+        }
         this.#setStatus(i18next.t('dashboard:settings-form.saved'), true);
       } else {
         // Server errors arrive already localized (Play messages keyed off the request language).

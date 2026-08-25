@@ -254,9 +254,12 @@ Data isolation matches the per-city model described in [`docs/architecture.md`](
 
 A deploy builds the app essentially the same way you do locally, in this order:
 
-1. Install Python deps (`requirements.txt`) — needed both by the out-of-band utilities and by `label_clustering.py`,
-   which the running app invokes **in-band** during clustering. These must land in the `python3` interpreter the app
-   shells out to, or clustering fails at import time (e.g. `ModuleNotFoundError: No module named 'haversine'`).
+1. Install Python deps (`requirements.txt`) — needed by `label_clustering.py`, which the running app invokes
+   **in-band** during clustering. These must land in the `python3` interpreter the app shells out to, or clustering
+   fails at import time (e.g. `ModuleNotFoundError: No module named 'haversine'`). That interpreter is the server's
+   system Python (3.8), which is why `requirements.txt` stays pinned to 3.8-installable versions (#4396). The
+   out-of-band utilities are **not** deployed: `requirements-offline-tools.txt` needs ≥ 3.11 and is installed by hand
+   into the 3.13 on whichever user account runs those scripts.
 2. `npm install`, then **Grunt** to concatenate/build the frontend bundles.
 3. **sbt** `clean stage` to compile the Scala/Play backend into a runnable package. This also bundles the `scripts/`
    directory into the staged app (via `Universal / mappings` in `build.sbt`) so the in-band `label_clustering.py` is
@@ -273,6 +276,41 @@ the build.
 Because the build is identical in spirit to local dev, **a change that fails to compile or bundle locally will fail
 the deploy.** The backend is built with `-Xfatal-warnings`, so warnings block the build too. See
 [`docs/testing-and-ci.md`](testing-and-ci.md) and [`docs/dev-environment.md`](dev-environment.md).
+
+### Directories that must survive a deploy
+
+Note the `clean` in step 3: **the deploy deletes the entire `target/` build tree and rebuilds it**, and the staged
+app then runs from inside it (`target/universal/stage`). So any file the app writes to a path that resolves *within*
+that tree is destroyed by the next release — silently, because the database rows that point at it survive. That
+includes paths that merely climb out of the stage directory: `../media` lands in `target/universal/`, which
+`sbt clean` deletes just the same.
+
+Everything users upload or that cannot be recreated therefore lives on storage the deploy never touches. The relative
+defaults in `application.conf` are for local dev only; **every deployed stage must point each of these at a path
+outside the build tree** via its environment variable (a variable that is set but blank is rejected too):
+
+| Config key | Env var | Holds | Missing on a deployed stage |
+|---|---|---|---|
+| `story.media.directory` | `SIDEWALK_STORY_MEDIA_DIR` | User-uploaded story photos (**irreplaceable**) | **App refuses to start** |
+| `pano.images.directory` | `SIDEWALK_PANO_DIR` | Self-hosted pano store — the only copies of GSV imagery Google has expired (**irreplaceable**) | **App refuses to start** |
+| `cropped.image.directory` | `SIDEWALK_IMAGES_DIR` | Label crops (re-derivable from pano imagery) | Error logged at boot |
+| `share.image.directory` | `SIDEWALK_SHARE_IMAGES_DIR` | Cached social-share previews (regenerable) | Error logged at boot |
+
+`PersistentMediaDirCheck` enforces this at boot in **prod mode** — what every staged binary runs in — so it covers
+every deployed stage *and* a staged binary run by hand (export the four variables to `/tmp` paths for that; CI's
+`e2e-smoke` job does exactly this). It deliberately does not key on `ENV_TYPE`: that variable arrives through the
+same env file as the media paths, so the incomplete-env-file mistake behind #4925 would disarm the guard exactly when
+it is needed. Dev and test runs (`sbt run`, the test suites) skip the check.
+
+The fatal tier is deliberate for irreplaceable content: accepting a photo we already know the next release will
+delete is worse than not starting, and since `develop` redeploys **test** while prod waits for a release tag, a
+forgotten variable surfaces on test long before it can reach prod.
+
+**Adding a fifth one?** Resolve it through `MediaDirs` (never a hand-rolled path concat — the check's verdict is only
+meaningful while it models the exact resolution the write paths use), add it to `persistentDirs` in
+`PersistentMediaDirCheck`, decide whether its contents are irreplaceable (fatal) or derived (logged), and have the
+deployment tooling export its variable. Losing a story photo this way (#4925) took three weeks to notice, so the
+check — not a comment in `application.conf` — is what holds the contract.
 
 ### Asset caching
 
@@ -360,7 +398,7 @@ plumbed through both this app's config *and* the deployment tooling, or it will 
 | Group | Variables (names only) |
 |-------|------------------------|
 | **Database** | `DATABASE_USER`, `DATABASE_PASSWORD`, `DATABASE_DB`, `DATABASE_URL` |
-| **Environment / city** | `ENV_TYPE`, `SIDEWALK_CITY_ID`, image/panorama storage directories |
+| **Environment / city** | `ENV_TYPE`, `SIDEWALK_CITY_ID`, the media storage directories ([above](#directories-that-must-survive-a-deploy)) |
 | **App secrets** | `SIDEWALK_APPLICATION_SECRET`, `SILHOUETTE_SIGNER_KEY`, `SILHOUETTE_CRYPTER_KEY` |
 | **Email** | `SIDEWALK_EMAIL_ADDRESS`, `SIDEWALK_EMAIL_PASSWORD` |
 | **Imagery / maps** | `GOOGLE_MAPS_API_KEY`, `GOOGLE_MAPS_SECRET`, `MAPBOX_API_KEY`, `MAPILLARY_ACCESS_TOKEN`, Infra3d client id/secret (including per-city credentials) |

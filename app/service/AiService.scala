@@ -130,14 +130,18 @@ class AiServiceImpl @Inject() (
               aiMissionId: Int <- getAiValidateMissionId(labelData.labelTypeId)
               label: Label     <- labelTable.find(labelId).map(_.get) // If we got this far, we know label exists.
               validation: LabelValidation = LabelValidation(
-                0, labelId, aiValResult, label.severity, label.severity, label.tags, label.tags,
-                SidewalkUserTable.aiUserId, aiMissionId, Some(labelPoint.canvasX), Some(labelPoint.canvasY),
-                labelPoint.heading, labelPoint.pitch, labelPoint.zoom, LabelPointTable.canvasWidth,
-                LabelPointTable.canvasHeight, startTime, aiResults.timestamp, UiSource.SidewalkAI, ViewerType.Default
+                0, labelId, aiValResult, SidewalkUserTable.aiUserId, aiMissionId, Some(labelPoint.canvasX),
+                Some(labelPoint.canvasY), labelPoint.heading, labelPoint.pitch, labelPoint.zoom,
+                LabelPointTable.canvasWidth, LabelPointTable.canvasHeight, startTime, aiResults.timestamp,
+                UiSource.SidewalkAI, ViewerType.Default
               )
+              // The AI only votes; resubmitting the label's own severity and tags records no edit.
               valId: Option[Int] <- validationService
                 .submitValidationsDbio(
-                  Seq(ValidationSubmission(validation, comment = None, undone = false, redone = false))
+                  Seq(
+                    ValidationSubmission(validation, label.severity, label.tags, comment = None, undone = false,
+                      redone = false)
+                  )
                 )
                 .map(_.headOption)
             } yield valId

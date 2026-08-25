@@ -61,6 +61,7 @@ class ExpandedView {
       viewerAccessToken: this.#viewerAccessToken,
       currUsername: this.#currUsername,
       onVote: this.#handleVote,
+      onEdit: this.#handleEdit,
       panoOverlaySource: 'GalleryExpandedImage',
       voteColumnSource: 'GalleryExpandedThumbs',
       showLabelMapLink: true,
@@ -103,7 +104,7 @@ class ExpandedView {
     if (this.leftArrow) this.leftArrow.disabled = true;
     this.leftArrowDisabled = true;
     LabelDetail.syncUrlLabelId(labelId); // refreshUI's close scrubbed the param; put it back for refresh/re-share.
-    this.labelDetail.showLabel(labelId, 'Gallery')
+    this.labelDetail.showLabel(labelId, 'GalleryExpanded')
       .catch(() => this.closeExpandedViewAndRemoveCardTransparency());
   }
 
@@ -145,6 +146,7 @@ class ExpandedView {
       backup_image: card.getBackupImageData(),
       pano_data: p.pano_data,
       from_current_user: p.from_current_user,
+      can_edit: p.can_edit,
       expired: p.expired,
       comments: p.comments,
     };
@@ -161,6 +163,16 @@ class ExpandedView {
   };
 
   /**
+   * Called by LabelDetail after a successful edit (#2575). Syncs the new severity and tags onto the small card.
+   * @param {Object} meta - The label's metadata with its new severity and tags.
+   */
+  #handleEdit = (meta) => {
+    if (this.refCard) {
+      this.refCard.updateSeverityAndTags(meta.severity, meta.tags);
+    }
+  };
+
+  /**
    * Opens the expanded view for the current refCard by passing the card data to LabelDetail.
    */
   #openExpandedView() {
@@ -169,7 +181,7 @@ class ExpandedView {
     if (panoEl) delete panoEl.dataset.closedDuringLoad;
 
     const meta = this.#cardToMeta(this.refCard);
-    this.labelDetail.showLabel(meta, 'Gallery');
+    this.labelDetail.showLabel(meta, 'GalleryExpanded');
 
     // Highlight selected card thumbnail.
     this.#highlightThumbnail(document.getElementById(`gallery_card_${this.refCard.getLabelId()}`));

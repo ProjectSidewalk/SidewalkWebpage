@@ -1,3 +1,4 @@
+@import controllers.helper.ControllerUtils.distanceUnitWords
 @import service.{CommonPageData, PublicProfile, UserProfileData}
 @import models.user.SidewalkUserWithRole
 @import models.label.Tag
@@ -22,8 +23,9 @@
   <h1 class="api-heading" id="overview">@title <a href="#overview" class="permalink">#</a></h1>
 }
 
+@* Floored rather than rounded, matching the dashboard and util.math.floorTo, so one total renders one way everywhere. *@
 @distanceLabel(d: Double) = @{
-  f"$d%.1f ${if (isMetric) Messages("dashboard.unit.km") else Messages("dashboard.unit.mi")}"
+  f"${models.utils.CommonUtils.floorTo(d, 1)}%.1f ${distanceUnitWords.abbr}"
 }
 @accuracyLabel(a: Option[Double]) = @{ a.map(x => f"${x * 100}%.0f%%").getOrElse("—") }
 
@@ -61,7 +63,7 @@
         <p class="ud-hero-greeting"><span class="ud-public-tag">@Messages("dashboard.profile.tag")</span></p>
         @* profileName comes from the URL, so escape it before it goes through @Html. *@
         <p class="ud-hero-headline">@Html(Messages("dashboard.profile.headline",
-          s"<strong>$escapedName</strong>", "%,d".format(pd.labelCount)))</p>
+          s"<strong>$escapedName</strong>", "%,d".format(pd.labelCount), commonData.currentCity.cityNameShort))</p>
       </div>
     </div>
 
@@ -78,7 +80,7 @@
     <p class="ud-map-caption">@Messages("dashboard.profile.map.caption", profileName)</p>
     <div id="public-profile-choropleth-holder" class="choropleth-holder">
       <div id="public-profile-choropleth" class="choropleth"></div>
-      @common.filterSidebar(tags = tags, streetsShownByDefault = true)
+      @common.filterSidebar(tags = tags, streetsShownByDefault = true, showOutdatedStreetFilter = true)
     </div>
   </div>
 
@@ -127,11 +129,13 @@
   <script src='@assets.path("js/common/aiLabelIndicator.js")'></script>
   <script src='@assets.path("js/common/PanoMarker.js")'></script>
   <script src='@assets.path("js/common/Toast.js")'></script>
+  <script src='@assets.path("js/common/LabelVisibilityToggle.js")'></script>
   <script src='@assets.path("js/common/label-detail/PopupPanoManager.js")'></script>
   <script src='@assets.path("js/common/ConfirmDialog.js")'></script>
   <script src='@assets.path("js/common/label-detail/StoryComposer.js")'></script>
   <script src='@assets.path("js/common/label-detail/StorySection.js")'></script>
   <script src='@assets.path("js/common/share/ShareWidget.js")'></script>
+  <script src='@assets.path("js/common/label-detail/TagEditor.js")'></script>
   <script src='@assets.path("js/common/label-detail/LabelDetail.js")'></script>
   <script src='@assets.path("js/common/label-detail/LabelPopup.js")'></script>
 

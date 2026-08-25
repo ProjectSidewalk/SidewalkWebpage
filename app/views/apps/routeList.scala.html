@@ -1,3 +1,4 @@
+@import controllers.helper.ControllerUtils
 @import models.route.RouteWithStats
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
@@ -15,11 +16,13 @@
 @(commonData: CommonPageData, user: SidewalkUserWithRole, cityRoutes: Seq[RouteWithStats]
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
-@isMetric = @{Messages("measurement.system") == "metric"}
+@isMetric = @{ControllerUtils.isMetric}
+@* Named once because every route in the table uses it. Twirl compiles this to a def, so it is not memoized. *@
+@unitAbbr = @{ControllerUtils.distanceUnitWords.abbr}
 
 @distanceLabel(meters: Double) = @{
-  if (isMetric) f"${meters / 1000}%.2f ${Messages("dashboard.unit.km")}"
-  else f"${meters * models.utils.CommonUtils.METERS_TO_MILES}%.2f ${Messages("dashboard.unit.mi")}"
+  val dist = if (isMetric) meters / 1000 else meters * models.utils.CommonUtils.METERS_TO_MILES
+  f"$dist%.2f $unitAbbr"
 }
 
 @dateLabel(dt: java.time.OffsetDateTime) = @{

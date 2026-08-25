@@ -9,11 +9,17 @@
 class MiniLineChart {
   /**
    * @param {string[]} categories - x-axis labels (one per data index).
-   * @param {Array<{name: string, key: string, values: Array<number|null>, tooltips?: string[]}>} series -
-   *   each series' values align to `categories`; null = gap. Optional per-point tooltip strings.
+   * @param {Array<{name: string, key: string, values: Array<number|null>, tooltips?: string[],
+   *          tooltipsHtml?: string[]}>} series -
+   *   each series' values align to `categories`; null = gap. Optional per-point tooltip strings, and optional
+   *   per-point rich cards: where `tooltipsHtml` has an entry, the point trades its native `<title>` for a
+   *   `data-ps-tooltip` card and becomes focusable, so the breakdown is reachable by keyboard as well as hover (the
+   *   plain `tooltips` string stays on as its accessible name). Card markup is first-party only — escape any name or
+   *   other data that came from a user before putting it in one.
    * @param {{yMax?: number, tickFormat?: function(number): string, valueFormat?: function(number): string,
    *          ariaLabel?: string, dotRadius?: number, kind?: string, maxXLabels?: number, barValues?: boolean,
-   *          emphasisIndex?: number, minMarginL?: number, minMarginR?: number}} [opts] - yMax defaults to a nice
+   *          emphasisIndex?: number, minMarginL?: number, minMarginR?: number,
+   *          refLine?: {value: number, label?: string, key?: string}}} [opts] - yMax defaults to a nice
    *   rounded max above the data; tickFormat labels the y-axis (abbreviated by default, e.g. "1.6M") while
    *   valueFormat formats values in the default tooltip and in bar value labels, so hovering still gives the exact
    *   count;
@@ -21,7 +27,8 @@ class MiniLineChart {
    *   x labels are drawn (default 6); barValues draws each bar's value above it (meant for single-series bar charts —
    *   grouped bars would collide); emphasisIndex marks that index's bar and labels with `--emphasis` classes (e.g. an
    *   in-progress "today" bar); minMarginL/minMarginR raise the axis margins, which renderInto uses to redraw at
-   *   measured label widths.
+   *   measured label widths; refLine draws a labeled horizontal target the bars are read against, and is included in
+   *   the y scale.
    * @returns {string} SVG markup plus an optional HTML legend.
    */
   static svg(categories, series, opts = {}) {
@@ -30,10 +37,14 @@ class MiniLineChart {
     const n = categories.length;
     const isBar = opts.kind === 'bar';
     const allVals = series.flatMap((s) => s.values.filter((v) => v !== null && v !== undefined));
+    // The reference line joins the data in setting the scale, or a target above every bar would be drawn off the top
+    // of the plot and read as absent rather than as unmet.
+    const refLine = opts.refLine && Number.isFinite(opts.refLine.value) ? opts.refLine : null;
+    const scaleVals = refLine ? [...allVals, refLine.value] : allVals;
     // Scaling the axis to the exact data max makes every gridline an arbitrary number (350,037 · 700,073 · 1,050,110);
     // rounding the top up to a nice step lands them on values a reader can compare at a glance. Tooltips keep the
     // exact counts, so the axis can trade precision for legibility.
-    const yMax = opts.yMax || MiniLineChart.#niceMax(Math.max(1, ...allVals), allVals.every(Number.isInteger));
+    const yMax = opts.yMax || MiniLineChart.#niceMax(Math.max(1, ...scaleVals), scaleVals.every(Number.isInteger));
     const tickFormat = opts.tickFormat || MiniLineChart.#compact;
     const valueFormat = opts.valueFormat || ((v) => Math.round(v).toLocaleString());
     const dotRadius = opts.dotRadius ?? 3;
@@ -84,12 +95,17 @@ class MiniLineChart {
           const h = m.t + ih - top;
           const bx = x(i) - groupW / 2 + si * barW;
           const tip = s.tooltips?.[i] ?? `${categories[i]} · ${s.name}: ${valueFormat(v)}`;
-          // Zero values draw no bar; the x label (and value label, if enabled) still mark the category.
+          // A zero value draws no bar, so the interaction lives on a full-height invisible rect instead of on the bar
+          // itself. Otherwise a zero-value category would have nothing to hover or focus — and a day can read zero here
+          // while still having something to say (an AI-only day, or one whose other charts are non-zero). It doubles as
+          // a bigger target for the non-zero bars.
           let out = h <= 0
             ? ''
             : `<rect class="mini-bar mini-bar--${s.key}${emph ? ' mini-bar--emphasis' : ''}" x="${bx.toFixed(1)}" `
-              + `y="${top.toFixed(1)}" width="${barW.toFixed(1)}" height="${h.toFixed(1)}">`
-              + `<title>${MiniLineChart.#esc(tip)}</title></rect>`;
+              + `y="${top.toFixed(1)}" width="${barW.toFixed(1)}" height="${h.toFixed(1)}"/>`;
+          out += `<rect class="mini-bar-hit" x="${bx.toFixed(1)}" y="${m.t.toFixed(1)}" `
+            + `width="${barW.toFixed(1)}" height="${ih.toFixed(1)}"`
+            + `${MiniLineChart.#pointTip(tip, s.tooltipsHtml?.[i])}</rect>`;
           if (opts.barValues) {
             out += `<text class="mini-value${emph ? ' mini-value--emphasis' : ''}" x="${(bx + barW / 2).toFixed(1)}" `
               + `y="${((h > 0 ? top : yFrac(0)) - 4).toFixed(1)}" text-anchor="middle">`
@@ -114,10 +130,22 @@ class MiniLineChart {
           if (v === null || v === undefined) return '';
           const tip = s.tooltips?.[i] ?? `${categories[i]} · ${s.name}: ${valueFormat(v)}`;
           return `<circle class="mini-pt mini-pt--${s.key}" cx="${x(i).toFixed(1)}" `
-            + `cy="${yFrac(v / yMax).toFixed(1)}" r="${dotRadius}">`
-            + `<title>${MiniLineChart.#esc(tip)}</title></circle>`;
+            + `cy="${yFrac(v / yMax).toFixed(1)}" r="${dotRadius}"`
+            + `${MiniLineChart.#pointTip(tip, s.tooltipsHtml?.[i])}</circle>`;
         }).join('');
         body += `<path class="mini-line mini-line--${s.key}" d="${d.trim()}"/>${dots}`;
+      }
+    }
+
+    // Drawn after the series so the target stays visible over a bar that reaches it.
+    if (refLine) {
+      const refY = yFrac(Math.min(1, refLine.value / yMax));
+      const refKey = refLine.key || 'ref';
+      body += `<line class="mini-ref mini-ref--${refKey}" x1="${m.l}" y1="${refY.toFixed(1)}" `
+        + `x2="${W - m.r}" y2="${refY.toFixed(1)}"/>`;
+      if (refLine.label) {
+        body += `<text class="mini-ref-label mini-ref-label--${refKey}" x="${W - m.r}" `
+          + `y="${(refY - 4).toFixed(1)}" text-anchor="end">${MiniLineChart.#esc(refLine.label)}</text>`;
       }
     }
 
@@ -127,7 +155,12 @@ class MiniLineChart {
       xlab += `<text class="mini-axis${emph}" x="${x(i).toFixed(1)}" y="${H - 8}" text-anchor="middle">`
         + `${MiniLineChart.#esc(categories[i])}</text>`;
     }
-    const svg = `<svg class="mini-chart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" role="img" `
+    // `role="img"` makes an element's subtree presentational, which would prune the per-point roles and labels below it
+    // out of the accessibility tree. So a chart whose points are individually focusable is a `group` instead, leaving
+    // them reachable and announced; a chart that is just a picture keeps `img`.
+    const hasFocusablePoints = series.some((s) => s.tooltipsHtml?.some(Boolean));
+    const svg = `<svg class="mini-chart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" `
+      + `role="${hasFocusablePoints ? 'group' : 'img'}" `
       + `aria-label="${MiniLineChart.#esc(opts.ariaLabel || 'Line chart')}"><g>${grid}</g>${body}<g>${xlab}</g></svg>`;
     const legendItems = series.map((s) =>
       `<span class="mini-legend-item"><span class="mini-swatch mini-swatch--${s.key}"></span>`
@@ -268,6 +301,23 @@ class MiniLineChart {
       else em += 0.58;
     }
     return em * MiniLineChart.#AXIS_FONT_PX;
+  }
+
+  /**
+   * Closes a point's opening tag and gives it a tooltip: a native `<title>` normally, or a psTooltip card plus the
+   * focusability and accessible name that card needs when the caller supplied rich markup for this point.
+   *
+   * The two are exclusive on purpose — a point carrying both would answer a hover with a card and a native tooltip
+   * stacked on top of each other.
+   *
+   * @param {string} tip - Plain-text summary of the point.
+   * @param {string} [html] - Rich card markup for the point; already escaped for any user-supplied text it contains.
+   * @returns {string} Markup closing the point's opening tag, with its `<title>` child when there is one.
+   */
+  static #pointTip(tip, html) {
+    if (!html) return `><title>${MiniLineChart.#esc(tip)}</title>`;
+    return ` tabindex="0" role="img" aria-label="${MiniLineChart.#esc(tip)}" `
+      + `data-ps-tooltip="${MiniLineChart.#esc(html)}">`;
   }
 
   static #esc(s) {

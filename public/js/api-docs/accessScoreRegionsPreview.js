@@ -6,53 +6,32 @@
  * needed. Hover/click a region to see its score, coverage, and audited-street counts.
  *
  * @requires A DOM element with id 'access-score-regions-preview'
- * @requires Leaflet.js
+ * @requires mapbox-gl and js/api-docs/apiDocsMap.js
  */
 
 (function () {
+  const REGION_SOURCE = 'access-score-regions';
+  const FILL_LAYER = 'access-score-region-fill';
+  const OUTLINE_LAYER = 'access-score-region-outline';
+
   let config = {
     apiBaseUrl: '/v3/api',
     mainContainerId: 'access-score-regions-preview',
+    mapboxApiKey: '',
     endpoint: '/accessScoreRegions',
-    mapHeight: 500,
   };
 
   // Metrics that can be visualized. Both are already normalized to [0, 1], so the ramp domain is fixed.
   const METRICS = {
     score: { label: 'AccessScore', legendTitle: 'AccessScore (0 = low, 1 = high)' },
-    coverage: { label: 'Audit coverage', legendTitle: 'Fraction of streets audited' },
+    // Unlike score, coverage is never null: a region with nothing audited comes back as 0, so zero is what marks it
+    // as the "none" category rather than the bottom of the ramp.
+    coverage: { label: 'Audit coverage', legendTitle: 'Fraction of streets audited', noneAtOrBelow: 0 },
   };
 
-  // A diverging red→yellow→green ramp (ColorBrewer RdYlGn): low accessibility is red, high is green (per the paper).
-  const RAMP = ['#d7191c', '#fdae61', '#ffffbf', '#a6d96a', '#1a9641'];
   const NONE_COLOR = '#3d3d3d'; // Regions with no audited streets (null score).
 
-  /** Interpolates between two hex colors by a 0–1 factor. */
-  function interpolateColor(color1, color2, factor) {
-    const c1 = {
-      r: parseInt(color1.slice(1, 3), 16), g: parseInt(color1.slice(3, 5), 16), b: parseInt(color1.slice(5, 7), 16),
-    };
-    const c2 = {
-      r: parseInt(color2.slice(1, 3), 16), g: parseInt(color2.slice(3, 5), 16), b: parseInt(color2.slice(5, 7), 16),
-    };
-    const r = Math.round(c1.r + (c2.r - c1.r) * factor);
-    const g = Math.round(c1.g + (c2.g - c1.g) * factor);
-    const b = Math.round(c1.b + (c2.b - c1.b) * factor);
-    return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-  }
-
-  /** Maps a value in [0, 1] to a color along the multi-stop RAMP. */
-  function rampColor(value) {
-    const v = Math.max(0, Math.min(1, value));
-    const segments = RAMP.length - 1;
-    const scaled = v * segments;
-    const i = Math.min(Math.floor(scaled), segments - 1);
-    return interpolateColor(RAMP[i], RAMP[i + 1], scaled - i);
-  }
-
   window.AccessScoreRegionsPreview = {
-    _map: null,
-    _layer: null,
     _legend: null,
     _metric: 'score',
 
@@ -63,46 +42,96 @@
     },
 
     /** Fetch the data and render the map (or a friendly message on failure). */
-    init() {
+    async init() {
       const container = document.getElementById(config.mainContainerId);
       if (!container) {
         console.error('AccessScore regions preview container not found.');
-        return Promise.reject(new Error('container not found'));
+        return;
       }
-      container.style.height = `${config.mapHeight}px`;
+
       const loading = document.createElement('div');
       loading.className = 'loading-message';
       loading.textContent = 'Loading AccessScore data...';
       container.appendChild(loading);
 
-      return this.fetchRegions()
-        .then((regions) => {
-          container.innerHTML = '';
-          this.renderMap(container, regions);
-        })
-        .catch((error) => {
-          console.error('Error rendering AccessScore regions preview:', error);
-          container.innerHTML = '';
-          const message = document.createElement('div');
-          message.className = 'no-data-message';
-          message.textContent = 'Unable to load AccessScore data for the preview.';
-          container.appendChild(message);
-        });
+      try {
+        const regions = await this.fetchRegions();
+        container.innerHTML = '';
+        await this.renderMap(container, regions);
+      } catch (error) {
+        console.error('Error rendering AccessScore regions preview:', error);
+        container.innerHTML = '<div class="no-data-message">Unable to load AccessScore data for the preview.</div>';
+      }
     },
 
     /** Fetch region AccessScores as a GeoJSON FeatureCollection. */
     fetchRegions() {
-      return fetch(`${config.apiBaseUrl}${config.endpoint}?inline=true&utm_source=apiDocs`)
-        .then((response) => {
-          if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-          return response.json();
-        });
+      return ApiDocsMap.fetchJson(`${config.apiBaseUrl}${config.endpoint}?inline=true`);
     },
 
     /** Build the map, draw region polygons, and wire the metric toggle and legend. */
-    renderMap(container, regions) {
+    async renderMap(container, regions) {
       const features = regions.features || [];
 
+      this.addToolbar(container);
+      const mapElement = document.createElement('div');
+      mapElement.id = 'access-score-regions-map';
+      container.appendChild(mapElement);
+
+      const bounds = features.length ? ApiDocsMap.featureCollectionBounds(features) : null;
+      const map = await ApiDocsMap.create({
+        container: mapElement,
+        mapboxApiKey: config.mapboxApiKey,
+        ...(bounds ? { bounds } : { center: [0, 0], zoom: 1 }),
+      });
+
+      if (!features.length) {
+        this.addNoDataMessage(map, 'No regions found for this city.');
+        return;
+      }
+
+      // promoteId lifts region_id into the feature id that setFeatureState needs for the hover styling below.
+      map.addSource(REGION_SOURCE, { type: 'geojson', data: regions, promoteId: 'region_id' });
+      map.addLayer({
+        id: FILL_LAYER,
+        type: 'fill',
+        source: REGION_SOURCE,
+        paint: {
+          'fill-color': this.colorExpression(),
+          'fill-opacity': ApiDocsMap.whenHovered(0.9, 0.75),
+        },
+      });
+      map.addLayer({
+        id: OUTLINE_LAYER,
+        type: 'line',
+        source: REGION_SOURCE,
+        paint: {
+          'line-color': '#ffffff',
+          'line-width': ApiDocsMap.whenHovered(3, 1),
+          'line-opacity': ApiDocsMap.whenHovered(1, 0.7),
+        },
+      });
+      ApiDocsMap.addHoverState(map, FILL_LAYER, REGION_SOURCE);
+      this.addRegionPopups(map);
+
+      const countChip = ApiDocsMap.addOverlay(map, 'top-right', 'map-chip');
+      countChip.textContent = `${features.length} region${features.length === 1 ? '' : 's'}`;
+
+      this._legend = ApiDocsMap.addOverlay(map, 'bottom-left', 'map-legend');
+      this.updateLegend();
+
+      // Wired only now that there is a layer to recolor and a legend to rewrite.
+      const select = document.getElementById('as-region-metric-select');
+      select.value = this._metric;
+      select.addEventListener('change', (event) => {
+        this._metric = event.target.value;
+        map.setPaintProperty(FILL_LAYER, 'fill-color', this.colorExpression());
+        this.updateLegend();
+      });
+    },
+
+    /** Add the metric selector above the map, where a region popup can never cover it. */
+    addToolbar(container) {
       const toolbar = document.createElement('div');
       toolbar.className = 'as-toolbar';
       const optionsHtml = Object.keys(METRICS)
@@ -110,102 +139,42 @@
       toolbar.innerHTML = `<label for="as-region-metric-select">Color by</label>
         <select id="as-region-metric-select">${optionsHtml}</select>`;
       container.appendChild(toolbar);
+    },
 
-      const mapElement = document.createElement('div');
-      mapElement.id = 'access-score-regions-map';
-      container.appendChild(mapElement);
-
-      const map = L.map('access-score-regions-map', { scrollWheelZoom: false });
-      this._map = map;
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors '
-          + '&copy; <a href="https://carto.com/attributions">CARTO</a>',
-        subdomains: 'abcd', maxZoom: 19,
-      }).addTo(map);
-
-      if (features.length === 0) {
-        map.setView([0, 0], 2);
-        this.addNoDataMessage(map, 'No regions found for this city.');
-        return;
-      }
-
-      this._layer = L.geoJSON(regions, {
-        style: (feature) => this.styleForFeature(feature),
-        onEachFeature: (feature, layer) => this.bindInteractions(feature, layer),
-      }).addTo(map);
-      map.fitBounds(this._layer.getBounds(), { padding: [10, 10] });
-
-      const countDiv = document.createElement('div');
-      countDiv.className = 'counter-badge';
-      countDiv.textContent = `${features.length} region${features.length === 1 ? '' : 's'}`;
-      map.getContainer().appendChild(countDiv);
-
-      const select = document.getElementById('as-region-metric-select');
-      select.value = this._metric;
-      select.addEventListener('change', (event) => {
-        this._metric = event.target.value;
-        this._layer.setStyle((feature) => this.styleForFeature(feature));
-        this.updateLegend();
+    /** Fill color for the selected metric, gray where the region has no score at all. */
+    colorExpression() {
+      return ApiDocsMap.gradientColorExpression(this._metric, ApiDocsMap.ACCESS_SCORE_RAMP, {
+        noneColor: NONE_COLOR,
+        noneAtOrBelow: METRICS[this._metric].noneAtOrBelow,
       });
-      this.updateLegend();
     },
 
-    /** Leaflet style for a region based on the selected metric (gray when the value is null). */
-    styleForFeature(feature) {
-      const value = feature.properties[this._metric];
-      const fillColor = (value === null || value === undefined) ? NONE_COLOR : rampColor(value);
-      return { color: '#ffffff', weight: 1, opacity: 0.7, fillColor, fillOpacity: 0.75 };
-    },
+    /** Wire up the click popup for the region layer. */
+    addRegionPopups(map) {
+      map.on('click', FILL_LAYER, (e) => {
+        const p = e.features[0].properties;
+        const score = (p.score === null || p.score === undefined) ? 'N/A (no audited streets)' : p.score.toFixed(3);
+        const coverage = `${Math.round((p.coverage || 0) * 100)}%`;
 
-    /** Popup + hover behavior for a region. */
-    bindInteractions(feature, layer) {
-      const p = feature.properties;
-      const score = (p.score === null || p.score === undefined) ? 'N/A (no audited streets)' : p.score.toFixed(3);
-      const coverage = `${Math.round((p.coverage || 0) * 100)}%`;
-      layer.bindPopup(`
-        <div class="as-popup">
+        ApiDocsMap.popup(map, e.lngLat, `
           <h4>${p.name || `Region ${p.region_id}`}</h4>
           <p><span class="as-score">${score}</span> AccessScore</p>
           <p><strong>Coverage:</strong> ${coverage}
             (${p.audited_street_count} of ${p.total_street_count} streets audited)</p>
           <p><strong>Region ID:</strong> ${p.region_id}</p>
           <a href="/v3/api/accessScoreRegions?regionId=${p.region_id}&inline=true"
-            class="explore-region-btn" target="_blank">
+            class="button-ps button--primary button--tiny" target="_blank">
             View this region's JSON
           </a>
-        </div>
-      `, { autoPanPaddingTopLeft: L.point(10, 10), autoPanPaddingBottomRight: L.point(260, 130) });
-
-      layer.on('mouseover', function () {
-        this.setStyle({ weight: 3, opacity: 1, fillOpacity: 0.9 });
-        this.bringToFront();
+        `);
       });
-      layer.on('mouseout', () => this._layer.resetStyle(layer));
     },
 
     /** (Re)build the fixed 0→1 gradient legend for the selected metric. */
     updateLegend() {
-      const map = this._map;
       const metricCfg = METRICS[this._metric];
-      if (this._legend) map.removeControl(this._legend);
-
-      const legend = L.control({ position: 'bottomright' });
-      legend.onAdd = function () {
-        const div = L.DomUtil.create('div', 'info legend continuous-legend');
-        div.innerHTML = `<h4>${metricCfg.legendTitle}</h4>`;
-        const gradientContainer = L.DomUtil.create('div', 'gradient-container', div);
-        gradientContainer.style.cssText = 'width: 200px; height: 20px; position: relative; margin: 5px 0;';
-        const gradientBar = L.DomUtil.create('div', 'gradient-bar', gradientContainer);
-        gradientBar.style.cssText
-                    = `width: 100%; height: 100%; background: linear-gradient(to right, ${RAMP.join(', ')});`;
-        const labelsContainer = L.DomUtil.create('div', 'legend-labels', div);
-        labelsContainer.style.cssText = 'display: flex; justify-content: space-between; width: 200px;';
-        L.DomUtil.create('div', 'legend-tick', labelsContainer).textContent = '0';
-        L.DomUtil.create('div', 'legend-tick', labelsContainer).textContent = '1';
-        return div;
-      };
-      legend.addTo(map);
-      this._legend = legend;
+      ApiDocsMap.renderGradientLegend(this._legend, metricCfg.legendTitle, ApiDocsMap.ACCESS_SCORE_RAMP,
+        ['0', '1'], { color: NONE_COLOR, label: 'No audited streets' });
     },
 
     /** Show an on-map message (e.g. when there is no data). */

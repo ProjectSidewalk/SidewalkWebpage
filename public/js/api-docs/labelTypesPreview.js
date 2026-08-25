@@ -100,7 +100,8 @@
       const headerRow = document.createElement('tr');
 
       const headers = [
-        'Name', 'Description', 'Standard Icon', 'Small Icon', 'Tiny Icon', 'Color Preview', 'Color Code',
+        'Name', 'Display Name', 'Description', 'Standard Icon', 'Small Icon', 'Tiny Icon', 'Color Preview',
+        'Color Code',
       ];
       headers.forEach((text) => {
         const th = document.createElement('th');
@@ -122,6 +123,12 @@
         nameCell.textContent = type.name;
         nameCell.className = 'label-name';
         row.appendChild(nameCell);
+
+        // Display name cell.
+        const displayNameCell = document.createElement('td');
+        displayNameCell.textContent = type.display_name;
+        displayNameCell.className = 'label-name';
+        row.appendChild(displayNameCell);
 
         // Description cell.
         const descCell = document.createElement('td');
@@ -182,9 +189,8 @@
 
       table.appendChild(tbody);
 
-      // Clear container and add table.
       container.innerHTML = '';
-      container.appendChild(table);
+      container.appendChild(window.createApiTableWrapper(table, 'Label types'));
 
       return table;
     },

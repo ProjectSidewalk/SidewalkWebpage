@@ -21,8 +21,8 @@
   "badge-type-validations": "validaties",
   "badge-missions-singular": "missie",
   "badge-missions-plural": "missies",
-  "badge-distance-singular": "km",
-  "badge-distance-plural": "km",
+  "badge-distance-singular": "{{unitNameSingular}}",
+  "badge-distance-plural": "{{unitName}}",
   "badge-labels-singular": "label",
   "badge-labels-plural": "labels",
   "badge-validations-singular": "validatie",
@@ -47,8 +47,7 @@
     "remaining-missions_other": "Nog {{count}} missies",
     "remaining-validations_one": "Nog {{count}} validatie",
     "remaining-validations_other": "Nog {{count}} validaties",
-    "remaining-distance-km": "Nog {{dist}} km",
-    "remaining-distance-mi": "Nog {{dist}} mi"
+    "remaining-distance": "Nog {{dist}} {{unitAbbr}}"
   },
   "mistake-cards": {
     "empty": "🎉 Geen fouten om te bekijken — je labels houden goed stand. Ga zo door!",
@@ -92,4 +91,25 @@
   "routes-renamed": "Route hernoemd.",
   "routes-deleted": "\"{{name}}\" verwijderd.",
   "routes-delete-confirm": "\"{{name}}\" verwijderen? Mensen met wie je de link hebt gedeeld, kunnen hem daarna niet meer gebruiken.",
-  "routes-error": "Er ging iets mis. Probeer het opnieuw."}
+  "routes-error": "Er ging iets mis. Probeer het opnieuw.",
+  "cities": {
+    "intro": "Je hebt in {{cities}} Project Sidewalk-steden bijgedragen — {{labels}} labels in totaal.",
+    "intro-single": "Je werk in {{city}} tot nu toe. Eén account werkt in elke Project Sidewalk-stad.",
+    "intro-empty": "Eén account werkt in elke Project Sidewalk-stad. Je werk verschijnt hier zodra je begint met karteren.",
+    "you-are-here": "je bent hier",
+    "col-city": "Stad",
+    "col-labels": "Labels",
+    "col-validations": "Validaties",
+    "col-missions": "Missies",
+    "col-distance": "Afstand",
+    "col-last-active": "Laatst gelabeld",
+    "table-caption": "Je bijdragen in elke Project Sidewalk-stad",
+    "distance-note": "De afstand buiten {{city}} wordt 's nachts opnieuw berekend en kan dus tot een dag achterlopen.",
+    "nudge": "Project Sidewalk brengt stoepen in kaart in {{cities}} steden, en je account werkt daar al overal.",
+    "nudge-empty": "Project Sidewalk brengt stoepen in kaart in {{cities}} steden. Kies er een en ga op verkenning.",
+    "nudge-link": "Bekijk alle steden",
+    "trophy-sub": "Actief in {{cities}} steden",
+    "map-popup": "{{labels}} labels · {{validations}} validaties",
+    "section-added": "Nieuwe sectie beschikbaar: {{section}}."
+  }
+}

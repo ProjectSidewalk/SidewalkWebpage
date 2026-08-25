@@ -1,10 +1,11 @@
 package models.utils
 
 import com.google.inject.ImplementedBy
+import models.api.{AggregateStats, LabelTypeStats}
 import models.street.StreetEdgeTableDef
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import service.{ActivityWindowSummary, AggregateStats, CityScorecard, DailyPoint, LabelTypeStats, WeeklyPoint}
+import service.{CityScorecard, ContributorKind, ContributorWindowActivity, DailyContributorActivity, WeeklyPoint}
 import slick.jdbc.GetResult
 
 import java.time.{LocalDate, OffsetDateTime, ZoneOffset}
@@ -730,27 +731,76 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
   }
 
   /**
-   * Daily label/validation/active-user volume for one city's trailing window, for the "this week" bar charts (#4686).
+   * The `account_kinds` CTE body: how each already-selected contributor's activity should be attributed.
+   *
+   * Authorship kind is a `sidewalk_login` role, not anything in the city schema, so every per-schema activity query
+   * resolves it the same way: `AI` marks pipeline output, `Anonymous` marks a per-cookie identity that is not
+   * necessarily a distinct person, and everything else is a registered account.
+   *
+   * **This CTE must be driven from the caller's already-narrowed set of active users, which is why it takes the
+   * driving CTE's name rather than being a constant.** `user_role` runs to millions of rows and is ~99.9% `Anonymous`
+   * (5.73M of 5.74M in prod), so a body that grouped every user — or even filtered on the role names — would aggregate
+   * millions of rows, and these queries run once per city schema across ~56 schemas per cache refresh. Restricting to
+   * the handful of users active in the window keeps it index lookups on `user_role_user_id_idx` instead.
+   *
+   * `BOOL_OR` + `GROUP BY` rather than a join on role name: a user with several role rows must yield exactly one row
+   * here, or the join would fan their activity out and double-count it.
+   *
+   * @param activityCte Name of the preceding CTE holding the active users, with an `activity_user_id` column.
+   * @return            The CTE body, for interpolation into a `WITH` list after `activityCte`.
+   */
+  private def accountKindsCte(activityCte: String): String =
+    s"""account_kinds AS (
+          SELECT user_role.user_id,
+                 BOOL_OR(role.role = 'AI')        AS is_ai,
+                 BOOL_OR(role.role = 'Anonymous') AS is_anonymous
+          FROM sidewalk_login.user_role
+          INNER JOIN sidewalk_login.role ON user_role.role_id = role.role_id
+          WHERE user_role.user_id IN (SELECT activity_user_id FROM $activityCte)
+          GROUP BY user_role.user_id
+      )"""
+
+  /**
+   * The `account_kind` SELECT expression pairing with [[accountKindsCte]].
+   *
+   * `AI` outranks `Anonymous` so an account carrying both resolves deterministically to pipeline output. A contributor
+   * with no `user_role` row at all leaves both flags NULL and falls through to `registered`, matching how the rest of
+   * the app treats a role-less account.
+   */
+  private val accountKindSelect: String =
+    """CASE WHEN account_kinds.is_ai THEN 'ai'
+                  WHEN account_kinds.is_anonymous THEN 'anonymous'
+                  ELSE 'registered' END"""
+
+  /**
+   * Per-person daily label/validation volume for one city's trailing window, for the "this week" bar charts (#4686)
+   * and their hover breakdowns (#4931).
    *
    * The daily counterpart of [[getCityWeeklyTrendBySchema]]: identical activity definition and exclusions, bucketed by
-   * calendar day in Pacific time. Days with no activity are absent (the service zero-fills the window). The time bound
-   * is a raw-timestamp comparison one day wider than the window so it stays index-friendly (no per-row time-zone
-   * conversion in the WHERE); the service trims to the exact Pacific-day window.
+   * calendar day in Pacific time. Reporting at (day, person) grain rather than as day totals lets the service derive
+   * the bars, the human/AI split, and the named contributor list from one scan, so a bar can never disagree with the
+   * card that explains it. Days with no activity are absent (the service zero-fills the window). The time bound is a
+   * raw-timestamp comparison one day wider than the window so it stays index-friendly (no per-row time-zone conversion
+   * in the WHERE); the service trims to the exact Pacific-day window.
+   *
+   * The username join is a LEFT JOIN so a person missing from `sidewalk_user` still contributes their counts to the
+   * day's totals (which the service sums from these rows) instead of vanishing from them.
    *
    * @param schema The database schema to query.
    * @param days   Trailing calendar days to include (the last of them being today, partial).
-   * @return       DBIO yielding (day, labels, validations, activeUsers), ascending by day.
+   * @return       DBIO yielding one row per (day, person), ascending by day.
    */
-  def getCityDailyTrendBySchema(schema: String, days: Int): DBIO[Seq[DailyPoint]] = {
-    implicit val getResult: GetResult[DailyPoint] =
-      GetResult(r => DailyPoint(LocalDate.parse(r.nextString()), r.nextInt(), r.nextInt(), r.nextInt()))
+  def getCityDailyActivityByUserBySchema(schema: String, days: Int): DBIO[Seq[DailyContributorActivity]] = {
+    implicit val getResult: GetResult[DailyContributorActivity] =
+      GetResult(r =>
+        DailyContributorActivity(
+          LocalDate.parse(r.nextString()), r.nextString(), r.nextString(), ContributorKind.withName(r.nextString()),
+          r.nextInt(), r.nextInt()
+        )
+      )
 
     sql"""
-      SELECT CAST(DATE_TRUNC('day', activity_ts AT TIME ZONE 'US/Pacific')::date AS TEXT) AS day,
-             COUNT(*) FILTER (WHERE kind = 'label')      AS labels,
-             COUNT(*) FILTER (WHERE kind = 'validation') AS validations,
-             COUNT(DISTINCT activity_user_id)            AS active_users
-      FROM (
+      WITH activity AS (
           SELECT label.time_created AS activity_ts, label.user_id AS activity_user_id, 'label' AS kind
           FROM "#$schema".label
           INNER JOIN "#$schema".user_stat ON label.user_id = user_stat.user_id
@@ -762,43 +812,58 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           INNER JOIN "#$schema".user_stat ON label_validation.user_id = user_stat.user_id
           WHERE NOT user_stat.excluded
               AND label_validation.end_timestamp >= NOW() - ((${days} + 1) * INTERVAL '1 day')
-      ) AS activity
-      GROUP BY day
-      ORDER BY day ASC;
-    """.as[DailyPoint]
+      ),
+      per_day_user AS (
+          SELECT DATE_TRUNC('day', activity_ts AT TIME ZONE 'US/Pacific')::date AS day, activity_user_id,
+                 COUNT(*) FILTER (WHERE kind = 'label')      AS labels,
+                 COUNT(*) FILTER (WHERE kind = 'validation') AS validations
+          FROM activity
+          GROUP BY day, activity_user_id
+      ),
+      #${accountKindsCte("per_day_user")}
+      SELECT CAST(per_day_user.day AS TEXT), per_day_user.activity_user_id,
+             COALESCE(sidewalk_user.username, ''), #$accountKindSelect,
+             per_day_user.labels, per_day_user.validations
+      FROM per_day_user
+      LEFT JOIN sidewalk_login.sidewalk_user ON per_day_user.activity_user_id = sidewalk_user.user_id
+      LEFT JOIN account_kinds ON per_day_user.activity_user_id = account_kinds.user_id
+      ORDER BY per_day_user.day ASC, per_day_user.activity_user_id ASC;
+    """.as[DailyContributorActivity]
   }
 
   /**
-   * Rolling week-over-week activity for one city: the trailing 7 days vs the 7 before, for the "Today & this week"
-   * tiles and "Most active cities" table on the Across Cities page (#4758).
+   * Per-person rolling week-over-week activity for one city — the trailing 7 days vs the 7 before — behind the
+   * "Today & this week" tiles, the "Most active cities" table, and their hover breakdowns (#4758, #4931).
    *
    * One bounded scan of the trailing 14 days using the same activity union and exclusions as
-   * [[getCityDailyTrendBySchema]], split into the current and prior window by FILTER clauses. Bounds compare raw
-   * timestamps against NOW() so both legs stay on their btree indexes (label_time_created_idx /
+   * [[getCityDailyActivityByUserBySchema]], split into the current and prior window by FILTER clauses. Bounds compare
+   * raw timestamps against NOW() so both legs stay on their btree indexes (label_time_created_idx /
    * label_validation_end_timestamp_idx, evolution 346). Windows are exact rolling 168-hour spans, deliberately NOT
    * Pacific calendar days, so these totals line up with each other rather than the daily-trend chart's day buckets.
+   *
+   * Reporting at person grain rather than as city totals is what lets the page name contributors, split human from AI
+   * work, and still guarantee that a headline count equals the breakdown that explains it — the service sums these
+   * same rows for both. The username join is a LEFT JOIN so a person missing from `sidewalk_user` still contributes
+   * their counts to those totals.
    *
    * These label counts run ~0.1% above the scorecard's labels_7d, which additionally joins through `audit_task` and
    * drops the tutorial street. Both are defensible; the page keeps each table on a single basis so a level and its
    * week-over-week delta never mix the two.
    *
    * @param schema The database schema to query.
-   * @return       DBIO yielding one [[ActivityWindowSummary]]; contributors are counted distinct within each window.
+   * @return       DBIO yielding one row per person with activity in either window, busiest first.
    */
-  def getCityActivityWindowsBySchema(schema: String): DBIO[ActivityWindowSummary] = {
-    implicit val getResult: GetResult[ActivityWindowSummary] =
+  def getCityWindowActivityByUserBySchema(schema: String): DBIO[Seq[ContributorWindowActivity]] = {
+    implicit val getResult: GetResult[ContributorWindowActivity] =
       GetResult(r =>
-        ActivityWindowSummary(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt())
+        ContributorWindowActivity(
+          r.nextString(), r.nextString(), ContributorKind.withName(r.nextString()), r.nextInt(), r.nextInt(),
+          r.nextInt(), r.nextInt()
+        )
       )
 
     sql"""
-      SELECT COUNT(*) FILTER (WHERE kind = 'label' AND activity_ts >= NOW() - INTERVAL '7 days')      AS labels_7d,
-             COUNT(*) FILTER (WHERE kind = 'label' AND activity_ts < NOW() - INTERVAL '7 days')       AS labels_prior_7d,
-             COUNT(*) FILTER (WHERE kind = 'validation' AND activity_ts >= NOW() - INTERVAL '7 days') AS validations_7d,
-             COUNT(*) FILTER (WHERE kind = 'validation' AND activity_ts < NOW() - INTERVAL '7 days')  AS validations_prior_7d,
-             COUNT(DISTINCT activity_user_id) FILTER (WHERE activity_ts >= NOW() - INTERVAL '7 days') AS contributors_7d,
-             COUNT(DISTINCT activity_user_id) FILTER (WHERE activity_ts < NOW() - INTERVAL '7 days')  AS contributors_prior_7d
-      FROM (
+      WITH activity AS (
           SELECT label.time_created AS activity_ts, label.user_id AS activity_user_id, 'label' AS kind
           FROM "#$schema".label
           INNER JOIN "#$schema".user_stat ON label.user_id = user_stat.user_id
@@ -810,8 +875,24 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           INNER JOIN "#$schema".user_stat ON label_validation.user_id = user_stat.user_id
           WHERE NOT user_stat.excluded
               AND label_validation.end_timestamp >= NOW() - INTERVAL '14 days'
-      ) AS activity;
-    """.as[ActivityWindowSummary].head
+      ),
+      per_user AS (
+          SELECT activity_user_id,
+                 COUNT(*) FILTER (WHERE kind = 'label' AND activity_ts >= NOW() - INTERVAL '7 days')      AS labels_7d,
+                 COUNT(*) FILTER (WHERE kind = 'label' AND activity_ts < NOW() - INTERVAL '7 days')       AS labels_prior_7d,
+                 COUNT(*) FILTER (WHERE kind = 'validation' AND activity_ts >= NOW() - INTERVAL '7 days') AS validations_7d,
+                 COUNT(*) FILTER (WHERE kind = 'validation' AND activity_ts < NOW() - INTERVAL '7 days')  AS validations_prior_7d
+          FROM activity
+          GROUP BY activity_user_id
+      ),
+      #${accountKindsCte("per_user")}
+      SELECT per_user.activity_user_id, COALESCE(sidewalk_user.username, ''), #$accountKindSelect,
+             per_user.labels_7d, per_user.labels_prior_7d, per_user.validations_7d, per_user.validations_prior_7d
+      FROM per_user
+      LEFT JOIN sidewalk_login.sidewalk_user ON per_user.activity_user_id = sidewalk_user.user_id
+      LEFT JOIN account_kinds ON per_user.activity_user_id = account_kinds.user_id
+      ORDER BY per_user.labels_7d + per_user.validations_7d DESC, per_user.activity_user_id ASC;
+    """.as[ContributorWindowActivity]
   }
 
   /**

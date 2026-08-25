@@ -25,7 +25,9 @@
   font-size: var(--font-size-lg, 1.125rem);
   padding: 10px 16px;
 }
-.api-content .coverage-table tbody td { padding: 14px 16px; }
+
+.api-content .coverage-table tbody td,
+.api-content .coverage-table tbody th { padding: 14px 16px; }
 
 /* Leaderboard tables are capped at ~10 rows, so show them in full — no inner scroll (admin tables keep theirs), and
    overflow visible so the Accuracy header tooltip can escape the wrap. The responsive rule restores mobile scroll. */
@@ -35,9 +37,10 @@
 }
 
 /* The admin tables right-align every non-first column (numeric); on the leaderboard the name column — and the
-   all-time "Most active in" city column — are text, so left-align them. */
-.api-content .coverage-table td:nth-child(2),
-.api-content .coverage-table th:nth-child(2) { text-align: left; }
+   all-time "Most active in" city column — are text, so left-align them. Scoped to the ranked boards: other tables in
+   .api-content (the cities-you've-mapped one) carry a number in column 2 and want the right-aligned default. */
+.api-content .ud-lb-table td:nth-child(2),
+.api-content .ud-lb-table th:nth-child(2) { text-align: left; }
 
 /* The global board's "Top city" is a name, so it reads left-aligned like Mapper rather than right like the numbers. */
 .api-content .ud-lb-global td:nth-child(3),
@@ -80,8 +83,7 @@
   border-radius: var(--border-radius, 4px);
   background: var(--color-asphalt-700, #2d2a3f);
   color: var(--color-neutral-white, #ffffff);
-  font-size: var(--font-size-sm, 0.875rem);
-  font-weight: 400;
+  font: var(--text-small-regular);
   line-height: 1.35;
   text-align: left;
   white-space: normal;
@@ -551,10 +553,11 @@
   margin-bottom: var(--space-xs, 8px);
 }
 
+/* Primary font, not the accent one: this prints a rank and a percentage, and Raleway's old-style figures drop
+   3/4/5/7/9 below the baseline. */
 .ud-standing-rank {
-  font-family: var(--font-accent, "Raleway", sans-serif);
-  font-size: var(--font-size-xxl, 1.5rem);
-  font-weight: 700;
+  font: var(--text-h3-bold);
+  font-variant-numeric: tabular-nums;
   color: var(--color-text-heading, #263238);
 }
 
@@ -820,6 +823,16 @@
   border-color: var(--color-orange-300, #f4b277);
 }
 
+/* Inert on an admin's view of someone else's dashboard: the vote acts as the signed-in user, so it can't be cast. */
+.ud-chip:disabled,
+.ud-chip:disabled:hover {
+  background: var(--color-neutral-100, #f2f5f6);
+  border-color: var(--color-neutral-200, #dfe5e8);
+  color: var(--color-text-secondary, #5a7785);
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .ud-card-note-link {
   display: inline-block;
   margin-top: 6px;
@@ -830,6 +843,14 @@
 }
 
 .ud-card-note-link:hover { text-decoration: underline; }
+
+.ud-card-note-link[aria-disabled="true"],
+.ud-card-note-link[aria-disabled="true"]:hover {
+  color: var(--color-text-secondary, #5a7785);
+  opacity: 0.6;
+  text-decoration: none;
+  cursor: not-allowed;
+}
 
 .ud-card-comment-input {
   width: 100%;
@@ -1109,6 +1130,24 @@
   text-decoration: none;
 }
 
+/* Inert controls on an admin's view of someone else's dashboard (route/team actions, an Owner's settings). */
+.ud-btn-secondary:disabled,
+.ud-btn-secondary:disabled:hover {
+  background: var(--color-neutral-100, #f2f5f6);
+  border-color: var(--color-neutral-200, #dfe5e8);
+  color: var(--color-text-secondary, #5a7785);
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.ud-btn-primary:disabled,
+.ud-btn-primary:disabled:hover {
+  background: var(--color-neutral-200, #dfe5e8);
+  color: var(--color-text-secondary, #5a7785);
+  opacity: 0.8;
+  cursor: not-allowed;
+}
+
 /* "Create a team" sits below the teams table / empty-state banner, so give it breathing room. */
 .ud-btn-primary.ud-create-team-btn { margin-top: var(--space-md, 16px); }
 
@@ -1162,6 +1201,84 @@
   justify-content: center;
 }
 
+/* ---- Leaderboard: this city's hero impact band (#4687) ---------------------------------------------------------- */
+
+/* Small-caps lead-in naming the city, standing in for the h2 this band deliberately doesn't have (it would otherwise
+   claim a row in the right-hand contents list, which starts at "Top of the board"). */
+.ud-impact-caption {
+  margin: var(--space-lg, 24px) 0 var(--space-xs, 8px);
+  font: var(--text-small-bold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary, #5a7785);
+}
+
+/* Quieter than the cross-city band below: no icons, tiles left-aligned, so the page still opens on the podium rather
+   than on a second full-height card. */
+.ud-impact-band {
+  display: grid;
+
+  /* Two up by default, four only once the content column is genuinely wide enough (see the media query below).
+     Fixed counts rather than auto-fit: with exactly four tiles, an intermediate three-column track would orphan the
+     fourth on a row of its own. minmax(0, 1fr) so a long localized label can't push a track past its share. */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-md, 16px) var(--space-lg, 24px);
+  margin: 0;
+  padding: var(--space-lg, 24px);
+  border: 1px solid var(--color-pine-200, #cfe3d4);
+  border-radius: var(--border-radius-lg, 8px);
+  background: linear-gradient(120deg, var(--color-pine-100, #eaf3ec), var(--color-banana-100, #fdf6e3));
+  color: var(--color-text-heading, #263238);
+}
+
+/* Reversed so the value paints above its label while the markup keeps dt-then-dd order, which is what lets a screen
+   reader announce the pair as "Labels placed: 262,453". */
+.ud-impact-stat {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ud-impact-value {
+  margin: 0;
+  font-family: var(--font-primary, "Mulish", sans-serif);
+
+  /* Sized in px, not rem: Bootstrap sets a 10px root here, so a rem clamp silently renders at 62.5% of its intent.
+     nowrap means an over-long value overflows its tile rather than breaking mid-number, so the floor is set low
+     enough for a five-digit distance to fit the ~108px each tile gets at 320px. */
+  font-size: clamp(22px, 5vw, 30px);
+  white-space: nowrap;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+
+/* Darker than the secondary text elsewhere on the page: the band's tint leaves that color at 4.2:1 here, under the
+   4.5:1 AA needs at this size. Asphalt keeps the slate cast. */
+.ud-impact-label {
+  font: var(--text-small-medium);
+  color: var(--color-asphalt-300, #615e78);
+}
+
+/* Four across only above 1400px. The content column is not a simple function of viewport width — the right-hand
+   contents rail is present above 992px and squeezes it to ~500px, so a four-track band is narrower at 1200px than it
+   is at 992px, and "2,432 km" wraps mid-value. Below this the 2x2 arrangement has room to spare at every width. */
+@media (width >= 1400px) {
+  .ud-impact-band {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* The one place the cross-city total appears above the fold. Kept to a single sentence so the closing community band
+   stays the section that actually presents those numbers. */
+.ud-impact-bridge {
+  margin: var(--space-sm, 12px) 0 0;
+  font: var(--text-small-regular);
+  color: var(--color-text-secondary, #5a7785);
+}
+
 /* ---- Leaderboard: community band + podium ---------------------------------------------------------------------- */
 .ud-community-band {
   display: grid;
@@ -1197,19 +1314,24 @@
   line-height: 56px;
 }
 
-/* Loud, celebratory community totals — a hero display size (no token goes this big). */
+/* Loud, celebratory community totals. Primary font, not the accent one: Raleway's old-style figures let 3/4/5/7/9
+   drop below the baseline, so numbers set in it look uneven. */
 .ud-community-value {
   display: block;
-  font-family: var(--font-accent, "Raleway", sans-serif);
-  font-size: clamp(2rem, 3.5vw, 2.75rem);
+  font-family: var(--font-primary, "Mulish", sans-serif);
+
+  /* px, not rem, for the reason given on .ud-impact-value above. Capped at 30 because five tiles share the content
+     column here, leaving tracks as narrow as ~150px — enough for "11,635 km" on one line at this size, not more. */
+  font-size: clamp(24px, 3.5vw, 30px);
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
   line-height: 1.1;
 }
 
 .ud-community-label {
   display: block;
-  font-size: var(--font-size-md, 1rem);
-  color: var(--color-text-secondary, #5a7785);
+  font: var(--text-body-regular);
+  color: var(--color-asphalt-300, #615e78);
 }
 
 .ud-podium {
@@ -1355,13 +1477,6 @@
   gap: 2px;
 }
 
-/* Read-only setting value (e.g. measurement units, which follow the site language). */
-.ud-static-value {
-  margin: 0;
-  font-size: var(--font-size-lg, 1.125rem);
-  color: var(--color-text-heading, #263238);
-}
-
 .ud-input[readonly] {
   background: var(--color-neutral-100, #f2f5f6);
   color: var(--color-text-secondary, #5a7785);
@@ -1375,6 +1490,32 @@
 }
 .ud-save-status.ud-save-ok { color: var(--color-success, #2e7d32); }
 .ud-save-status.ud-save-err { color: var(--color-error, #d32f2f); }
+
+/* ---- Admin page beside a user's dashboard (#4964) ----------------------------------------------------------- */
+.ud-admin-flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xl, 32px);
+}
+
+.ud-admin-flag {
+  flex: 1 1 260px;
+  max-width: 360px;
+  gap: var(--space-sm, 12px);
+}
+
+.ud-admin-flag .ud-save-status { margin-left: 0; }
+
+.ud-admin-details { margin-top: var(--space-md, 16px); }
+
+.ud-admin-details summary {
+  cursor: pointer;
+  font-size: var(--font-size-lg, 1.125rem);
+  font-weight: 600;
+  color: var(--color-text-heading, #263238);
+}
+
+.ud-admin-details .mgmt-table-scroll { margin-top: var(--space-sm, 12px); }
 
 /* "Kept private" state on a public profile whose owner turned off public_profile. */
 .ud-empty-state {
@@ -1839,6 +1980,139 @@
 }
 
 .ud-route-rename-form .ud-btn-primary {
+  padding: 4px 10px;
+  font-size: var(--font-size-sm, 0.875rem);
+}
+
+/* ---- Cities you've mapped (#4496) ------------------------------------------------------------------------------
+ * The roll-up band reuses .ud-community-band so "across every city" looks the same here as on the leaderboard; only
+ * the table, map, and "you're here" marker are new.
+ */
+
+.ud-cities-table-wrap { margin: var(--space-md, 16px) 0; }
+
+/* The table isn't sortable, so drop the admin header's click affordance. */
+.api-content .ud-cities-table thead th { cursor: default; }
+
+/* The shell right-aligns every column past the first, which is what the counts and distances want. The city cell is a
+   row header, and a <th> defaults to centered, so it's the one that needs saying. */
+.api-content .ud-cities-table tbody th { text-align: left; }
+
+.ud-cities-current { background: var(--color-pine-100, #e4f4ee); }
+
+/* Marks the deployment the mapper is reading this on, so the row they can verify against the tiles above is obvious. */
+.ud-cities-here {
+  display: inline-block;
+  margin-left: var(--space-xs, 8px);
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--color-pine-200, #c9e9dd);
+  color: var(--color-text-heading, #263238);
+  font-size: var(--font-size-sm, 0.875rem);
+  white-space: nowrap;
+}
+
+.ud-cities-map {
+  height: 340px;
+  margin: var(--space-md, 16px) 0;
+  border: 1px solid var(--color-neutral-200, #e1e1e1);
+  border-radius: var(--border-radius-lg, 8px);
+  overflow: hidden;
+}
+
+.ud-cities-footnote {
+  color: var(--color-text-secondary, #546e7a);
+  font-size: var(--font-size-sm, 0.875rem);
+}
+
+/* Names the deployment the KPI tiles belong to; the cross-city section below is the only part that isn't scoped. */
+.ud-kpi-scope {
+  margin-bottom: var(--space-xs, 8px);
+  color: var(--color-text-secondary, #546e7a);
+  font-size: var(--font-size-sm, 0.875rem);
+}
+
+/* `.ud-community-band` sets `display: grid`, which outranks the UA's `[hidden] { display: none }` — so a band the
+ * script hasn't filled in yet would render as a row of empty stat labels. */
+.ud-community-band[hidden] { display: none; }
+
+/* ---- Streets with newer imagery (#4896): the mapper's own streets whose audits the imagery has outrun. ---- */
+.ud-reaudit {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.ud-reaudit-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm, 12px);
+  padding: 12px 0;
+  border-bottom: 1px solid var(--color-neutral-200, #e1e1e1);
+}
+
+/* The row's own `display` beats the UA stylesheet's `[hidden] { display: none }`, so the rows waiting behind
+   "show more" need this to actually stay collapsed. */
+.ud-reaudit-row[hidden] {
+  display: none;
+}
+
+/* Rows carry no thumbnail, so the hover tint is the only feedback that a row is the one brushing the map above. */
+.ud-reaudit-row:hover,
+.ud-reaudit-row:focus-within {
+  background: var(--color-bg-hover, #e9ecef);
+}
+
+.ud-reaudit-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1 1 220px;
+}
+
+.ud-reaudit-place {
+  font-weight: 600;
+  color: var(--color-text-heading, #263238);
+  overflow-wrap: anywhere;
+}
+
+.ud-reaudit-meta {
+  font-size: var(--font-size-md, 1rem);
+  color: var(--color-text-secondary, #5a7785);
+}
+
+.ud-reaudit-audited {
+  font-size: var(--font-size-md, 1rem);
+  color: var(--color-text-secondary, #5a7785);
+}
+
+.ud-reaudit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs, 8px);
+}
+
+.ud-reaudit-actions .ud-btn-secondary {
+  padding: 4px 10px;
+  font-size: var(--font-size-sm, 0.875rem);
+  text-decoration: none;
+}
+
+.ud-reaudit-more {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm, 12px);
+  font-size: var(--font-size-md, 1rem);
+  color: var(--color-text-secondary, #5a7785);
+}
+
+.ud-reaudit-more .ud-btn-secondary {
   padding: 4px 10px;
   font-size: var(--font-size-sm, 0.875rem);
 }

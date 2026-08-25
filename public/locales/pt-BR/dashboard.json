@@ -21,8 +21,8 @@
   "badge-type-validations": "validações",
   "badge-missions-singular": "missão",
   "badge-missions-plural": "missões",
-  "badge-distance-singular": "km",
-  "badge-distance-plural": "km",
+  "badge-distance-singular": "{{unitNameSingular}}",
+  "badge-distance-plural": "{{unitName}}",
   "badge-labels-singular": "rótulo",
   "badge-labels-plural": "rótulos",
   "badge-validations-singular": "validação",
@@ -47,8 +47,7 @@
     "remaining-missions_other": "Mais {{count}} missões",
     "remaining-validations_one": "Mais {{count}} validação",
     "remaining-validations_other": "Mais {{count}} validações",
-    "remaining-distance-km": "Mais {{dist}} km",
-    "remaining-distance-mi": "Mais {{dist}} mi"
+    "remaining-distance": "Mais {{dist}} {{unitAbbr}}"
   },
   "mistake-cards": {
     "empty": "🎉 Nenhum erro para revisar — seus rótulos estão indo muito bem. Continue assim!",
@@ -92,4 +91,25 @@
   "routes-renamed": "Rota renomeada.",
   "routes-deleted": "\"{{name}}\" excluída.",
   "routes-delete-confirm": "Excluir \"{{name}}\"? As pessoas com quem você compartilhou o link não poderão mais usá-lo.",
-  "routes-error": "Algo deu errado. Tente novamente."}
+  "routes-error": "Algo deu errado. Tente novamente.",
+  "cities": {
+    "intro": "Você contribuiu em {{cities}} cidades do Project Sidewalk — {{labels}} rótulos no total.",
+    "intro-single": "Seu trabalho em {{city}} até agora. Uma conta funciona em todas as cidades do Project Sidewalk.",
+    "intro-empty": "Uma conta funciona em todas as cidades do Project Sidewalk. Seu trabalho aparecerá aqui assim que você começar a mapear.",
+    "you-are-here": "você está aqui",
+    "col-city": "Cidade",
+    "col-labels": "Rótulos",
+    "col-validations": "Validações",
+    "col-missions": "Missões",
+    "col-distance": "Distância",
+    "col-last-active": "Último rótulo",
+    "table-caption": "Suas contribuições em cada cidade do Project Sidewalk",
+    "distance-note": "A distância fora de {{city}} é recalculada toda noite, então pode ter até um dia de atraso.",
+    "nudge": "O Project Sidewalk mapeia calçadas em {{cities}} cidades, e sua conta já funciona em todas elas.",
+    "nudge-empty": "O Project Sidewalk mapeia calçadas em {{cities}} cidades. Escolha uma e comece a explorar.",
+    "nudge-link": "Ver todas as cidades",
+    "trophy-sub": "Ativo em {{cities}} cidades",
+    "map-popup": "{{labels}} rótulos · {{validations}} validações",
+    "section-added": "Nova seção disponível: {{section}}."
+  }
+}

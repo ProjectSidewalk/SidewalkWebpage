@@ -19,7 +19,6 @@
   "saved-view-title": "Open deze route in de editor",
   "route-usage": "Door {{started}} verkend · Door {{completed}} voltooid",
   "route-usage-tooltip": "Verkend: hoeveel mensen deze route zijn gaan verkennen. Voltooid: hoeveel mensen de hele route hebben afgerond.",
-  "route-length": "{{dist}} $t(common:unit-distance-abbreviation)",
   "est-time-minutes": "{{min}} min",
   "est-time-hours": "{{hours}} u {{min}} min",
   "street-count_one": "{{count}} straat",

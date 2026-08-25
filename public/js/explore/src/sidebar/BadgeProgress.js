@@ -143,7 +143,8 @@ class BadgeProgress {
     const distanceThresholds = isMetric
       ? BadgeAchievements.THRESHOLDS.distance.map(util.math.milesToKms)
       : BadgeAchievements.THRESHOLDS.distance;
-    const distanceUnit = i18next.t('common:unit-distance-abbreviation');
+    // Thresholds are converted above, so these are already in the reader's units: name the unit, don't re-convert.
+    const distanceUnit = util.unitWords().unitAbbr;
     this.#renderRow(this.#distanceRow, {
       value: distance,
       thresholds: distanceThresholds,
@@ -199,9 +200,7 @@ class BadgeProgress {
     row.icon.setAttribute('aria-label', `${badgeName}. ${row.tooltipDesc}`);
 
     // Floor (don't round) the displayed value so it never shows the target before the bar is actually full.
-    const factor = 10 ** decimals;
-    const flooredValue = (Math.floor(value * factor) / factor).toFixed(decimals);
-    const valueText = this.#formatNumber(flooredValue);
+    const valueText = this.#formatNumber(util.math.floorTo(value, decimals).toFixed(decimals));
     const targetText = this.#formatNumber(Number(target.toFixed(1)));
     row.bar.setLabel(unit ? `${valueText} / ${targetText} ${unit}` : `${valueText} / ${targetText}`);
   }

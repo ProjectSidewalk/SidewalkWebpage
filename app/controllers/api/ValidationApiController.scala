@@ -42,8 +42,6 @@ class ValidationApiController @Inject() (
    * @param validationResult Optional validation result (Agree, Disagree, or Unsure)
    * @param labelTypeId Optional label type ID to filter by type of validated label
    * @param validationTimestamp Optional ISO 8601 timestamp to filter validations after this time
-   * @param changedTags Optional boolean to filter validations where tags were changed (true) or not changed (false)
-   * @param changedSeverityLevels Optional boolean to filter validations where severity was changed (true) or not changed (false)
    * @param source Optional validation interface to filter by (e.g. "Validate", "ValidateMobile", "ExpertValidate")
    * @param filetype Output format: "json" (default), "csv"
    * @param inline Whether to display the file inline or as an attachment
@@ -54,8 +52,6 @@ class ValidationApiController @Inject() (
       validationResult: Option[String],
       labelTypeId: Option[Int],
       validationTimestamp: Option[String],
-      changedTags: Option[Boolean],
-      changedSeverityLevels: Option[Boolean],
       source: Option[String],
       filetype: Option[String],
       inline: Option[Boolean]
@@ -113,8 +109,7 @@ class ValidationApiController @Inject() (
         // Create filters object and get the data stream.
         val filters = ValidationFiltersForApi(
           labelId = labelId, userId = userId, validationResult = parsedValidationResult, labelTypeId = labelTypeId,
-          validationTimestamp = parsedTimestamp.toOption.flatten, changedTags = changedTags,
-          changedSeverityLevels = changedSeverityLevels, source = parsedSource.toOption.flatten
+          validationTimestamp = parsedTimestamp.toOption.flatten, source = parsedSource.toOption.flatten
         )
         val dbDataStream: Source[ValidationDataForApi, _] = apiService.getValidations(filters, DEFAULT_BATCH_SIZE)
         val baseFileName: String                          = timestampedFilename("validations")

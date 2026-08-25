@@ -132,7 +132,7 @@ describe('DashboardBadges', () => {
         render({distance: 3}, true); // District Rambler at 5 miles: 2 miles short, i.e. ~3.2 km.
 
         const next = track('distance').querySelector('[data-next]');
-        expect(next.textContent).toContain('remaining-distance-km');
+        expect(next.textContent).toContain('remaining-distance');
         expect(next.textContent).toContain('"dist":"3.2"');
         // The tier itself is still judged against the mile thresholds, not the converted number.
         expect(track('distance').querySelector('[data-tier]').textContent).toBe('II: Neighborhood Nomad');
