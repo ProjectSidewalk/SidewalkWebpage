@@ -182,8 +182,8 @@ describe('the imagery-change chart', () => {
         { week_start: '2026-08-10', expired_count: 0, returned_count: 6 },
       ],
     }));
-    // The whole reason this reads an event log instead of pano_data.expired_at (#4947): under the old shape the
-    // recovery erased the earlier week, so a chart of the same six panos showed nothing at all.
+    // Why the series reads an event log rather than pano_data.expired_at (#4947): a recovery clears that column, so
+    // reading it would empty the week the loss belongs to and these six panos would chart as nothing at all.
     expect(expiryTips()).toContain('Jul 27 · Imagery went away: 6 panos');
     expect(expiryTips()).toContain('Aug 10 · Imagery came back: 6 panos');
   });

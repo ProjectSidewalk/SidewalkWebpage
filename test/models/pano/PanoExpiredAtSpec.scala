@@ -115,7 +115,7 @@ class PanoExpiredAtSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneApp
   "countExpiredWithoutExpiryDate" should {
     "count an expired pano that carries no expiry date" in {
       // What the trend page reports as the history it cannot show: these panos expired before 358 added the column,
-      // so 359's backfill had no date to seed a log event from and they belong to no week.
+      // so 363's backfill had no date to seed a log event from and they belong to no week.
       run(panoDataTable.updateExpiredStatus(panoId, expired = true, Some(false), OffsetDateTime.now))
       val undatedBefore = run(panoDataTable.countExpiredWithoutExpiryDate)
 

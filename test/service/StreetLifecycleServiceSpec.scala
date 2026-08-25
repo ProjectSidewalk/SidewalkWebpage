@@ -62,8 +62,24 @@ class StreetLifecycleServiceSpec extends PlaySpec with BeforeAndAfterAll with Gu
     val _ = run(sqlu"DELETE FROM street_edge_status_change WHERE street_edge_id = $streetId")
   }
 
-  override def beforeAll(): Unit = { super.beforeAll(); cleanUp() }
-  override def afterAll(): Unit  = { cleanUp(); super.afterAll() }
+  private val panoId = "test-4947-trend-payload"
+
+  /** A pano and one crossing in each direction, so the imagery series has both counts to report. */
+  private def seedImageryChanges(changedAt: OffsetDateTime): Unit = {
+    run(sqlu"""INSERT INTO pano_data (pano_id, capture_date, expired, last_viewed, last_checked, source)
+               VALUES ($panoId, '2020-06', FALSE, $changedAt, $changedAt, 'gsv'::pano_source)
+               ON CONFLICT (pano_id) DO NOTHING""")
+    val _ = run(sqlu"""INSERT INTO pano_imagery_change (pano_id, expired, changed_at, source)
+                       VALUES ($panoId, TRUE, $changedAt, 'provider_check'::pano_imagery_change_source),
+                              ($panoId, FALSE, $changedAt, 'provider_check'::pano_imagery_change_source)""")
+  }
+
+  private def cleanUpPano(): Unit = {
+    val _ = run(sqlu"DELETE FROM pano_data WHERE pano_id = $panoId")
+  }
+
+  override def beforeAll(): Unit = { super.beforeAll(); cleanUp(); cleanUpPano() }
+  override def afterAll(): Unit  = { cleanUp(); cleanUpPano(); super.afterAll() }
 
   "street_edge_status_change" should {
     "refuse a row whose old and new status are the same" in {
@@ -153,6 +169,20 @@ class StreetLifecycleServiceSpec extends PlaySpec with BeforeAndAfterAll with Gu
       (first \ "week_start").as[String] must fullyMatch regex """\d{4}-\d{2}-\d{2}"""
       (first \ "new_status").asOpt[String] mustBe defined
       (first \ "street_count").as[Int] must be >= 1
+    }
+
+    "report both directions of the imagery series under the names the chart reads" in {
+      cleanUpPano()
+      seedImageryChanges(OffsetDateTime.now)
+      // Its own window so the assertion reads the payload it seeded rather than one cached by an earlier case.
+      val trend = Await.result(streetLifecycleService.getStreetStatusTrend(5), 120.seconds)
+
+      val rows = (Json.toJson(trend) \ "pano_imagery_changes").as[play.api.libs.json.JsArray].value
+      rows.size must be >= 1
+      // The client indexes these by name and silently draws zeros on a miss, so a rename shows up as an empty chart.
+      rows.map(row => (row \ "expired_count").as[Int]).sum must be >= 1
+      rows.map(row => (row \ "returned_count").as[Int]).sum must be >= 1
+      (rows.head \ "week_start").as[String] must fullyMatch regex """\d{4}-\d{2}-\d{2}"""
     }
 
     "start the window on a Monday so the oldest bucket is a whole week" in {

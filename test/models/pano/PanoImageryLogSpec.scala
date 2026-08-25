@@ -15,7 +15,7 @@ import scala.concurrent.Await
 import scala.concurrent.duration._
 
 /**
- * DB-backed contract test for `pano_imagery_change`, the imagery-transition log (#4947, evolution 359).
+ * DB-backed contract test for `pano_imagery_change`, the imagery-transition log (#4947, evolution 363).
  *
  * `pano_data.expired_at` cannot answer "what went away in March": it is cleared when the imagery returns, so the
  * recovery retroactively empties the week the pano expired in. The log exists to survive that round trip, and these
