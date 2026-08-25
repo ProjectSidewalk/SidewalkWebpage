@@ -234,6 +234,26 @@ object UserService {
   val CrossCityHoursBatchSize: Int = 6
 
   /**
+   * Runs `work` over `items` `batchSize` at a time, each batch concurrently and the batches one after another.
+   *
+   * Caps how many connections a wide fan-out can hold at once. Each batch is started inside the previous batch's
+   * continuation, so the futures don't all begin the moment this is called.
+   *
+   * @param items     Items to process; order is preserved in the result.
+   * @param batchSize How many to run concurrently. Must be positive.
+   * @param work      What to run per item.
+   * @return          One result per item, in the order given.
+   */
+  def inBatches[A, B](items: Seq[A], batchSize: Int)(work: A => Future[B])(implicit
+      ec: ExecutionContext
+  ): Future[Seq[B]] = {
+    require(batchSize > 0, s"Batch size must be positive, got $batchSize")
+    items.grouped(batchSize).foldLeft(Future.successful(Seq.empty[B])) { (soFar, batch) =>
+      soFar.flatMap(done => Future.sequence(batch.map(work)).map(done ++ _))
+    }
+  }
+
+  /**
    * Rounds hours to the tenth the Time Check page displays, half-up to match `"%.1f".format` (#4526).
    *
    * @param hours Unrounded hours.
@@ -925,24 +945,6 @@ class UserServiceImpl @Inject() (
   def getHoursAuditingAndValidating(userId: String): Future[Double] =
     db.run(auditTaskInteractionTable.getHoursAuditingAndValidating(userId))
 
-  /**
-   * Runs `work` over `items` `batchSize` at a time, each batch concurrently and the batches one after another.
-   *
-   * Caps how many connections a wide fan-out can hold at once. Each batch is started inside the previous batch's
-   * continuation, so the futures don't all begin the moment this is called.
-   *
-   * @param items     Items to process; order is preserved in the result.
-   * @param batchSize How many to run concurrently. Must be positive.
-   * @param work      What to run per item.
-   * @return          One result per item, in the order given.
-   */
-  private def inBatches[A, B](items: Seq[A], batchSize: Int)(work: A => Future[B]): Future[Seq[B]] = {
-    require(batchSize > 0, s"Batch size must be positive, got $batchSize")
-    items.grouped(batchSize).foldLeft(Future.successful(Seq.empty[B])) { (soFar, batch) =>
-      soFar.flatMap(done => Future.sequence(batch.map(work)).map(done ++ _))
-    }
-  }
-
   def getCrossCityHours(userId: String, lang: Lang): Future[CrossCityHours] = {
     val cityInfoById: Map[String, CityInfo] =
       configService.getAllCityInfo(lang).map(city => city.cityId -> city).toMap
@@ -955,44 +957,46 @@ class UserServiceImpl @Inject() (
         // heavy where the volunteer worked and three index misses where they didn't, and a 52-arm union serializes.
         // Batched rather than started all at once, because the pool has 25 connections and this page is both uncached
         // and reload-heavy — an unbounded fan-out would park every connection and stall the whole instance.
-        inBatches(scope.cities, UserService.CrossCityHoursBatchSize) { case (cityId, schema) =>
-          // Building the query can throw on a malformed schema name, and that happens while the argument is evaluated,
-          // so it has to be caught here rather than by a recover hung off the db.run future.
-          Future
-            .fromTry(Try(auditTaskInteractionTable.getHoursAuditingAndValidatingBySchema(userId, schema)))
-            .flatMap(db.run)
-            .map(hours => Right(cityId -> hours))
-            .recover { case e: Exception =>
-              // One unreadable schema costs its own row, not the volunteer's whole total.
-              logger.warn(s"Could not total hours in $schema, omitting the city: ${e.getMessage}", e)
-              Left(schema)
-            }
-        }.map { perCity =>
-          val (failedSchemas, totals) = perCity.partitionMap(identity)
-          val schemaByCityId          = scope.cities.toMap
-          val worked                  = totals.filter { case (_, hours) => hours > 0d }
-
-          // A city with hours but no config entry can't be named in the table, so it drops out the same way an
-          // unreadable schema does — and has to be counted the same way too.
-          val (nameable, unnameable) = worked.partition { case (cityId, _) => cityInfoById.contains(cityId) }
-          if (unnameable.nonEmpty) {
-            logger.warn(s"No city info for ${unnameable.map(_._1).mkString(", ")}, omitting from the hours breakdown")
-          }
-
-          // Sorted on full precision, so the order reflects the real amounts rather than whichever way a tie rounded.
-          val rows = nameable
-            .flatMap { case (cityId, hours) =>
-              cityInfoById.get(cityId).map { city =>
-                CityHours(cityId, city.cityNameShort, hours, schemaByCityId.get(cityId).contains(currentSchema))
+        UserService
+          .inBatches(scope.cities, UserService.CrossCityHoursBatchSize) { case (cityId, schema) =>
+            // Building the query can throw on a malformed schema name, and that happens while the argument is evaluated,
+            // so it has to be caught here rather than by a recover hung off the db.run future.
+            Future
+              .fromTry(Try(auditTaskInteractionTable.getHoursAuditingAndValidatingBySchema(userId, schema)))
+              .flatMap(db.run)
+              .map(hours => Right(cityId -> hours))
+              .recover { case e: Exception =>
+                // One unreadable schema costs its own row, not the volunteer's whole total.
+                logger.warn(s"Could not total hours in $schema, omitting the city: ${e.getMessage}", e)
+                Left(schema)
               }
-            }
-            .sortBy(city => (-city.hours, city.cityId))
+          }
+          .map { perCity =>
+            val (failedSchemas, totals) = perCity.partitionMap(identity)
+            val schemaByCityId          = scope.cities.toMap
+            val worked                  = totals.filter { case (_, hours) => hours > 0d }
 
-          CrossCityHours(
-            UserService.apportionToTenths(rows),
-            scope.skippedSchemas.size + failedSchemas.size + unnameable.size
-          )
-        }
+            // A city with hours but no config entry can't be named in the table, so it drops out the same way an
+            // unreadable schema does — and has to be counted the same way too.
+            val (nameable, unnameable) = worked.partition { case (cityId, _) => cityInfoById.contains(cityId) }
+            if (unnameable.nonEmpty) {
+              logger.warn(s"No city info for ${unnameable.map(_._1).mkString(", ")}, omitting from the hours breakdown")
+            }
+
+            // Sorted on full precision, so the order reflects the real amounts rather than whichever way a tie rounded.
+            val rows = nameable
+              .flatMap { case (cityId, hours) =>
+                cityInfoById.get(cityId).map { city =>
+                  CityHours(cityId, city.cityNameShort, hours, schemaByCityId.get(cityId).contains(currentSchema))
+                }
+              }
+              .sortBy(city => (-city.hours, city.cityId))
+
+            CrossCityHours(
+              UserService.apportionToTenths(rows),
+              scope.skippedSchemas.size + failedSchemas.size + unnameable.size
+            )
+          }
       }
       .recoverWith { case e: Exception =>
         // Degrade to this city's own total rather than 500 a page a volunteer may be mid-way through logging hours
