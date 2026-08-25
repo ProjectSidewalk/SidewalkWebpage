@@ -8,6 +8,10 @@ class Main {
   // Long enough to read two lines and try the drag it suggests, without sitting on the imagery it is describing.
   static #PANO_HINT_MS = 6000;
 
+  // Re-sizing the pano is a layout and a viewer redraw, and a rotation fires resize several times as the device
+  // settles. Coalescing at about a frame's worth keeps the pano tracking the screen without doing it every event.
+  static #RESIZE_THROTTLE_MS = 150;
+
   #param;
 
   /**
@@ -85,11 +89,6 @@ class Main {
     svv.ui.undoValidation = {};
     svv.ui.undoValidation.undoButton = $('#validate-undo-button');
 
-    svv.ui.modalLandscape = {};
-    svv.ui.modalLandscape.holder = $('#modal-landscape-holder');
-    svv.ui.modalLandscape.foreground = $('#modal-landscape-foreground');
-    svv.ui.modalLandscape.background = $('#modal-landscape-background');
-
     svv.ui.modalMission = {};
     svv.ui.modalMission.holder = $('#modal-mission-holder');
     svv.ui.modalMission.foreground = $('#modal-mission-foreground');
@@ -143,15 +142,14 @@ class Main {
   async #init() {
     const param = this.#param;
 
-    // On desktop the pano's display size is scaled to fit the viewport, so measure it live; label projection
-    // math and the canvas_width/height submitted with each validation always reflect the on-screen size.
-    svv.canvasWidth = () => (util.isMobile()
-      ? window.innerWidth
-      : Math.round(svv.ui.viewer.controlLayer[0].getBoundingClientRect().width));
-    svv.canvasHeight = () => (util.isMobile()
-      ? window.innerHeight
-      : Math.round(svv.ui.viewer.controlLayer[0].getBoundingClientRect().height));
-    svv.labelRadius = util.isMobile() ? 25 : 10;
+    // Measured live off the layer the imagery is actually drawn in, on both platforms: desktop scales the pano to
+    // fit the viewport and mobile sizes it to the screen below the header, and either can change under a resize.
+    // Label projection math and the canvas_width/height submitted with each validation follow the on-screen size.
+    svv.canvasWidth = () => Math.round(svv.ui.viewer.controlLayer[0].getBoundingClientRect().width);
+    svv.canvasHeight = () => Math.round(svv.ui.viewer.controlLayer[0].getBoundingClientRect().height);
+    // A phone activates the marker by pointer — it is what opens the label card — so mobile-validate.css floors its
+    // target at 44px. The mark itself stays 32px across (2 * radius + 2): bigger hides the imagery being judged.
+    svv.labelRadius = util.isMobile() ? 15 : 10;
 
     const labelType = svv.labelTypes[param.mission.label_type_id];
 
@@ -223,6 +221,32 @@ class Main {
       };
       applyValidateScale();
       window.addEventListener('resize', applyValidateScale);
+    } else {
+      // The pano is sized to the viewport, so a rotation (or an on-screen keyboard opening) leaves it the wrong
+      // shape. Re-size it in place: a reload would be the only alternative, and it would cost the validator their
+      // place in the mission and a fresh round of imagery loading every time they turned the phone.
+      let lastWidth = document.documentElement.clientWidth;
+      let lastHeight = document.documentElement.clientHeight;
+      const resizePano = () => {
+        const width = document.documentElement.clientWidth;
+        const height = document.documentElement.clientHeight;
+        // A pinch fires resize on iOS but only moves the *visual* viewport: the layout is the shape it always was,
+        // and re-sizing the pano to a zoomed-into region is exactly the wrong answer.
+        if (width === lastWidth && height === lastHeight) return;
+
+        const rotated = (width > height) !== (lastWidth > lastHeight);
+        lastWidth = width;
+        lastHeight = height;
+
+        svv.panoManager.sizePano();
+        svv.panoViewer.resize();
+        svv.tracker.push('Window_Resized', {
+          width, height, orientation: width > height ? 'landscape' : 'portrait', rotated,
+        });
+      };
+      // Leading + trailing edges both matter: iOS settles on its post-rotation dimensions over several events, so
+      // the first one keeps the pano from sitting visibly wrong and the last one is the size that sticks.
+      window.addEventListener('resize', util.throttle(resizePano, Main.#RESIZE_THROTTLE_MS));
     }
 
     svv.labelVisibilityControl = new LabelVisibilityControl();
@@ -273,7 +297,6 @@ class Main {
     }
 
     svv.modalMissionComplete = new ModalMissionComplete(svv.ui.modalMissionComplete, svv.user);
-    svv.modalLandscape = new ModalLandscape(svv.ui.modalLandscape);
 
     // Logs when the page's focus changes.
     function logPageFocus() {
@@ -323,9 +346,8 @@ class Main {
    * mouse is what someone who hasn't found either will already have their hand on.
    *
    * Desktop only, for that same reason: the gestures it names are a mouse's, where touch pans with a drag and zooms
-   * with a pinch. Size rules it out too — the toast mounts on <body>, outside .tool-ui, so its --ui-scale can only
-   * come from the document root, which util.applyToolScale writes and mobile never runs. It would arrive at desktop
-   * size on a page the browser then shrinks to the screen.
+   * with a pinch. A phone also has nowhere to put it — the toast would cover a strip of the very pano the validator
+   * is being asked to judge, on a screen where that pano is the whole page.
    *
    * Held until the mission-start tutorial's overlay clears, since anything shown before that lands underneath it.
    * A mission that doesn't open with one gets the hint immediately.

@@ -58,8 +58,8 @@
 
    This is about *acquisition*, not conformance. WCAG 2.5.8 Target Size (Minimum), AA, sizes targets for pointer
    activation, and desktop has no pointer activation here: nothing binds click to the marker (#4843). So the SC does
-   not actually reach it, and mobile — which does activate by pointer — is already well past 24px at 52px. But a
-   hover target is if anything the harder case, since it has to be found and then held, and 14px is small for that.
+   not actually reach it, and mobile — which does activate by pointer — is already past 24px at 32px. But a hover
+   target is if anything the harder case, since it has to be found and then held, and 14px is small for that.
    24px is still the right number to floor at: it is what 2.5.8 asks of every other target on the page, and it is
    what Explore's placed-label target already uses.
 
@@ -69,10 +69,9 @@
 
    max(), not a fixed size, so this only ever adds area — above ~1.09x the mark is already past 24px and the target
    is exactly the mark. Round, matching the mark: browsers hit-test through border-radius, and at every size the
-   *desktop* marker is drawn at (22px base, 38px ceiling) .icon-outline's 25px radius clamps to 50%, so its target
-   is a circle today. Squaring it off here would change that at every scale rather than only flooring it where it is
-   too small — opening the card on a hover several px off the visible marker. (Mobile's 52px marker is the one size
-   where that radius does not clamp, but there the mark is already wider than this floor, so nothing below applies.)
+   marker is drawn at (22px desktop base, 38px ceiling, 32px on a phone) .icon-outline's 25px radius clamps to 50%,
+   so its target is a circle. Squaring it off here would change that at every scale rather than only flooring it
+   where it is too small — opening the card on a hover several px off the visible marker.
    z-index keeps it under the icon and the AI badge; it takes the pointer for the marker either way, since all three
    are the same element as far as the hover handlers are concerned. */
 #validate-pano-marker::after {

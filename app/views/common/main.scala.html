@@ -46,11 +46,9 @@
       gtag('config', '@commonData.googleAnalyticsId');
     </script>
     <meta charset="utf-8">
-    @* The mobile Validate page (url == "/mobile") deliberately gets no viewport meta: mobile-validate.css is tuned
-       for the ~980px legacy viewport that phones fall back to, and device-width would blow up its fixed sizes. *@
-    @if(url != "/mobile") {
-      <meta name="viewport" content="width=device-width, initial-scale=1">
-    }
+    @* No maximum-scale/user-scalable=no: pinch zoom is a WCAG 1.4.4 (Resize Text) affordance, not a nuisance. *@
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
     <title>@title</title>
     @common.seoHead(commonData, title, pageMeta)
     @* Per-page <head> injection point, e.g. Open Graph / Twitter Card meta for social sharing (#456). *@
