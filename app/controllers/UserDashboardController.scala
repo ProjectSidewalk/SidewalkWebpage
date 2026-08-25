@@ -34,9 +34,15 @@ class UserDashboardController @Inject() (
     extends CustomBaseController(cc) {
   implicit val implicitConfig: Configuration = config
 
+  // The dashboard's needs-re-audit list reveals five rows at a time; it fetches three pages' worth up front so
+  // "show more" is a reveal rather than a round trip, and defers the rest to the map, which draws all of them (#4896).
+  private val ReauditPageSize: Int = 5
+  private val ReauditListSize: Int = ReauditPageSize * 3
+
   /**
    * Renders the redesigned User Dashboard prototype: a single page of "your impact" sections (hero stats, activity
-   * streak, badges + trophies, your standing, learning/mistakes, map, team) on the shared shell.
+   * streak, badges + trophies, your standing, learning/mistakes, map, team, streets needing a re-audit) on the shared
+   * shell.
    *
    * Secured to any signed-in user, matching the real `/dashboard`.
    */
@@ -44,29 +50,32 @@ class UserDashboardController @Inject() (
     val user     = request.identity
     val isMetric = ControllerUtils.isMetric
     val cityName = configService.getCityName(request2Messages.lang)
-    // Kicked off before the for-comprehension so it runs concurrently with the chain below.
-    val myRoutesF = routeService.getRoutesForUser(user.userId)
+    // Kicked off before the for-comprehension so they run concurrently with the chain below.
+    val myRoutesF       = routeService.getRoutesForUser(user.userId)
+    val reauditStreetsF = userService.getOutdatedStreetsForUser(user.userId, ReauditListSize)
     for {
-      profileData <- userService.getUserProfileData(user.userId, isMetric)
-      commonData  <- configService.getCommonPageData(request2Messages.lang)
-      tags        <- labelService.getTagsForCurrentCity
-      standing    <- userService.getUserStanding(user.userId)
-      streak      <- userService.getActivityStreak(user.userId, request2Messages.lang.toLocale)
-      accuracy    <- userService.getAccuracyByType(user.userId)
-      trophies    <- userService.getTrophies(user.userId, cityName, request2Messages)
-      myRoutes    <- myRoutesF
+      profileData                    <- userService.getUserProfileData(user.userId, isMetric)
+      commonData                     <- configService.getCommonPageData(request2Messages.lang)
+      tags                           <- labelService.getTagsForCurrentCity
+      standing                       <- userService.getUserStanding(user.userId)
+      streak                         <- userService.getActivityStreak(user.userId, request2Messages.lang.toLocale)
+      accuracy                       <- userService.getAccuracyByType(user.userId)
+      trophies                       <- userService.getTrophies(user.userId, cityName, request2Messages)
+      myRoutes                       <- myRoutesF
+      (reauditStreets, reauditTotal) <- reauditStreetsF
     } yield {
       cc.loggingService.insert(user.userId, request.ipAddress, "Visit_UserDashboard")
       Ok(
         views.html.userDashboard
-          .dashboard(commonData, user, profileData, isMetric, tags, standing, streak, accuracy, trophies, myRoutes)
+          .dashboard(commonData, user, profileData, isMetric, tags, standing, streak, accuracy, trophies, myRoutes,
+            reauditStreets, reauditTotal, ReauditPageSize)
       )
     }
   }
 
   /**
-   * Renders the redesigned Leaderboard prototype: community-impact band, podium, weekly/all-time/team tables, and a
-   * "you vs community" standing widget, sharing the dashboard shell.
+   * Renders the redesigned Leaderboard prototype: this city's impact band, podium, weekly/all-time/team tables, a
+   * "you vs community" standing widget, and the cross-city boards, sharing the dashboard shell.
    *
    * A `UserAwareAction` (#4643), so the general public — including cookie-less visitors and anonymous auto-accounts —
    * can view it without an account being minted. The view shows the community/podium/tables to everyone and gates the
@@ -81,20 +90,20 @@ class UserDashboardController @Inject() (
     // Kicked off before the for-comprehension so the cross-city union overlaps the per-city queries on a cache miss.
     val globalF: Future[Option[Seq[GlobalLeaderboardEntry]]] = userService.getGlobalLeaderboardStats(10)
     for {
-      commonData <- configService.getCommonPageData(request2Messages.lang)
-      aggregate  <- configService.getAggregateStats()
-      overall    <- userService.getLeaderboardStats(10)
-      weekly     <- userService.getLeaderboardStats(10, "weekly")
-      teams      <- userService.getLeaderboardStats(10, "overall", byTeam = true)
-      standing   <- signedInUser
+      commonData          <- configService.getCommonPageData(request2Messages.lang)
+      (aggregate, impact) <- configService.getAggregateStatsWithCurrentCity()
+      overall             <- userService.getLeaderboardStats(10)
+      weekly              <- userService.getLeaderboardStats(10, "weekly")
+      teams               <- userService.getLeaderboardStats(10, "overall", byTeam = true)
+      standing            <- signedInUser
         .map(u => userService.getUserStanding(u.userId))
         .getOrElse(Future.successful(None))
       global <- globalF
     } yield {
       cc.loggingService.insert(user.map(_.userId), request.ipAddress, "Visit_Leaderboard")
       Ok(
-        views.html.userDashboard.leaderboard(commonData, user, isSignedIn, isMetric, cityName, aggregate, overall,
-          weekly, teams, standing, global)
+        views.html.userDashboard.leaderboard(commonData, user, isSignedIn, isMetric, cityName, aggregate, impact,
+          overall, weekly, teams, standing, global)
       )
     }
   }

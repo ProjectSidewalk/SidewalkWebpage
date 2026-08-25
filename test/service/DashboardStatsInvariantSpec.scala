@@ -101,6 +101,9 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
                                (user_id, street_edge_id, task_start, task_end, completed, current_lat, current_lng)
                            VALUES ($FixtureUserId, $streetEdge, now(), now(), FALSE, 0, 0)
                            RETURNING audit_task_id""".as[Int].head
+      // label.pano_id references pano_data (#4587), so the label's pano has to exist before the label does.
+      _ <- sqlu"""INSERT INTO pano_data (pano_id, capture_date, source)
+                  VALUES ('fixture_pano', '2020-01', 'gsv')"""
       _ <- sqlu"""INSERT INTO label
                       (audit_task_id, pano_id, label_type_id, deleted, temporary_label_id, time_created, mission_id,
                        tutorial, street_edge_id, agree_count, disagree_count, unsure_count, tags, user_id)
@@ -488,6 +491,26 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
           here.missions mustBe profile.missionCount
           here.distance mustBe profile.auditedDistance
         }
+      }
+    }
+
+    "answer in the caller's units and language, not whichever request warmed the cache" in {
+      // Only the fan-out is cached; units and names are applied per response. Measurement system is a cookie the
+      // mapper can flip mid-session, so a cached rendering would leave the table in miles under a "km" header.
+      topUser.foreach { user =>
+        val km      = await(userService.getCrossCityUserStats(user.userId, metricSystem = true, Lang("en"))).get
+        val miles   = await(userService.getCrossCityUserStats(user.userId, metricSystem = false, Lang("en"))).get
+        val spanish = await(userService.getCrossCityUserStats(user.userId, metricSystem = true, Lang("es"))).get
+
+        km.cities.map(_.cityId) mustBe miles.cities.map(_.cityId)
+        km.cities.zip(miles.cities).foreach { case (inKm, inMiles) =>
+          if (inKm.distance > 0) inMiles.distance must be < inKm.distance
+        }
+        if (km.totalDistance > 0) miles.totalDistance must be < km.totalDistance
+
+        val spanishNames: Map[String, String] =
+          configService.getAllCityInfo(Lang("es")).map(city => city.cityId -> city.cityNameShort).toMap
+        spanish.cities.foreach(city => city.cityName mustBe spanishNames(city.cityId))
       }
     }
 

@@ -50,37 +50,54 @@ class CrossCityStats {
     this.#renderTable(cities, data.distance_unit);
 
     if (cities.length >= 2) {
-      this.#renderBand(cities.length, data);
+      this.#renderBand(cities, data);
       this.#renderFootnote(cities);
       this.#renderTrophy(cities.length);
       await this.#renderMap(cities);
     } else {
       this.#renderNudge(cities, data.public_city_count);
     }
+    this.#announce();
   }
 
   // --- Sections ---------------------------------------------------------------------------------------------------
 
-  /** Intro line: a roll-up sentence for a multi-city mapper, an invitation for everyone else. */
+  /**
+   * Intro line: a roll-up sentence for a multi-city mapper, an invitation for everyone else.
+   *
+   * An account with no contributions anywhere gets its own string rather than the single-city one, which would assert
+   * work ("Your work in Seattle so far") that hasn't happened yet.
+   */
   #renderIntro(cities, data) {
     const intro = this.#section.querySelector('#ud-cities-intro');
     if (!intro) return;
     if (cities.length >= 2) {
-      intro.textContent = i18next.t('dashboard:cities.intro', {
+      intro.textContent = CrossCityStats.#t('dashboard:cities.intro', {
         cities: CrossCityStats.#num(cities.length),
         labels: CrossCityStats.#num(data.total_labels),
       });
+    } else if (cities.length === 1) {
+      intro.textContent = CrossCityStats.#t('dashboard:cities.intro-single', { city: this.#cityHereName(cities) });
     } else {
-      intro.textContent = i18next.t('dashboard:cities.intro-single', { city: this.#cityHereName(cities) });
+      intro.textContent = CrossCityStats.#t('dashboard:cities.intro-empty');
     }
   }
 
-  /** Fills the shared community band with the mapper's own cross-city totals. */
-  #renderBand(cityCount, data) {
-    this.#setText('ud-cities-total-cities', CrossCityStats.#num(cityCount));
+  /**
+   * Fills the shared community band with the mapper's own cross-city totals.
+   *
+   * @param {Array<Object>} cities - Per-city rows from the endpoint.
+   * @param {Object} data - The endpoint payload; its integer totals are exactly the row sums.
+   */
+  #renderBand(cities, data) {
+    this.#setText('ud-cities-total-cities', CrossCityStats.#num(cities.length));
     this.#setText('ud-cities-total-labels', CrossCityStats.#num(data.total_labels));
     this.#setText('ud-cities-total-validations', CrossCityStats.#num(data.total_validations));
-    this.#setText('ud-cities-total-distance', CrossCityStats.#dist(data.total_distance, data.distance_unit));
+    // Distance is the one total that can't come from the payload: the rows are each floored for display, and
+    // floor(Σ) can land a tenth above Σ floor. A band that doesn't add up to the column beneath it undercuts the one
+    // thing this section is for.
+    const distance = cities.reduce((sum, c) => sum + CrossCityStats.#floorDist(c.distance), 0);
+    this.#setText('ud-cities-total-distance', CrossCityStats.#fmtDist(distance, data.distance_unit));
     const band = this.#section.querySelector('#ud-cities-band');
     if (band) band.hidden = false;
   }
@@ -105,7 +122,7 @@ class CrossCityStats {
         ? `<a href="${CrossCityStats.#esc(c.city_url)}/dashboard">${name}</a>`
         : name;
       const here = c.is_current_city
-        ? `<span class="ud-cities-here">${CrossCityStats.#esc(i18next.t('dashboard:cities.you-are-here'))}</span>`
+        ? `<span class="ud-cities-here">${CrossCityStats.#tEsc('dashboard:cities.you-are-here')}</span>`
         : '';
       return `
         <tr${c.is_current_city ? ' class="ud-cities-current"' : ''}>
@@ -113,23 +130,26 @@ class CrossCityStats {
           <td>${CrossCityStats.#num(c.labels)}</td>
           <td>${CrossCityStats.#num(c.validations)}</td>
           <td>${CrossCityStats.#num(c.missions)}</td>
-          <td>${CrossCityStats.#esc(CrossCityStats.#dist(c.distance, unit))}</td>
+          <td>${CrossCityStats.#esc(CrossCityStats.#fmtDist(CrossCityStats.#floorDist(c.distance), unit))}</td>
           <td>${CrossCityStats.#esc(CrossCityStats.#lastActive(c.last_activity))}</td>
         </tr>`;
     }).join('');
 
-    // Reuses the shell's shared table styling (and its responsive horizontal scroll) rather than a private one.
+    // Reuses the shell's shared table styling (and its responsive horizontal scroll) rather than a private one. The
+    // caption is visually hidden because the <h2> and intro above already say this in the page's own voice; it exists
+    // so the table names itself when a screen reader pulls it out of that context in a table list.
     holder.innerHTML = `
       <div class="coverage-table-wrap ud-cities-table-wrap">
       <table class="coverage-table ud-cities-table">
+        <caption class="ud-sr-only">${CrossCityStats.#tEsc('dashboard:cities.table-caption')}</caption>
         <thead>
           <tr>
-            <th scope="col">${CrossCityStats.#esc(i18next.t('dashboard:cities.col-city'))}</th>
-            <th scope="col">${CrossCityStats.#esc(i18next.t('dashboard:cities.col-labels'))}</th>
-            <th scope="col">${CrossCityStats.#esc(i18next.t('dashboard:cities.col-validations'))}</th>
-            <th scope="col">${CrossCityStats.#esc(i18next.t('dashboard:cities.col-missions'))}</th>
-            <th scope="col">${CrossCityStats.#esc(i18next.t('dashboard:cities.col-distance'))}</th>
-            <th scope="col">${CrossCityStats.#esc(i18next.t('dashboard:cities.col-last-active'))}</th>
+            <th scope="col">${CrossCityStats.#tEsc('dashboard:cities.col-city')}</th>
+            <th scope="col">${CrossCityStats.#tEsc('dashboard:cities.col-labels')}</th>
+            <th scope="col">${CrossCityStats.#tEsc('dashboard:cities.col-validations')}</th>
+            <th scope="col">${CrossCityStats.#tEsc('dashboard:cities.col-missions')}</th>
+            <th scope="col">${CrossCityStats.#tEsc('dashboard:cities.col-distance')}</th>
+            <th scope="col">${CrossCityStats.#tEsc('dashboard:cities.col-last-active')}</th>
           </tr>
         </thead>
         <tbody>${rows}</tbody>
@@ -146,7 +166,7 @@ class CrossCityStats {
   #renderFootnote(cities) {
     const note = this.#section.querySelector('#ud-cities-footnote');
     if (!note || !cities.some((c) => !c.live_distance)) return;
-    note.textContent = i18next.t('dashboard:cities.distance-note', { city: this.#cityHereName(cities) });
+    note.textContent = CrossCityStats.#t('dashboard:cities.distance-note', { city: this.#cityHereName(cities) });
     note.hidden = false;
   }
 
@@ -155,8 +175,9 @@ class CrossCityStats {
     const nudge = this.#section.querySelector('#ud-cities-nudge');
     if (!nudge) return;
     const key = cities.length ? 'dashboard:cities.nudge' : 'dashboard:cities.nudge-empty';
-    nudge.innerHTML = `${CrossCityStats.#esc(i18next.t(key, { cities: CrossCityStats.#num(publicCityCount) }))} `
-      + `<a href="/cities">${CrossCityStats.#esc(i18next.t('dashboard:cities.nudge-link'))}</a>`;
+    nudge.innerHTML = `
+      ${CrossCityStats.#tEsc(key, { cities: CrossCityStats.#num(publicCityCount) })}
+      <a href="/cities">${CrossCityStats.#tEsc('dashboard:cities.nudge-link')}</a>`;
     nudge.hidden = false;
   }
 
@@ -177,8 +198,8 @@ class CrossCityStats {
     card.innerHTML = `
       <span class="ud-trophy-medal" aria-hidden="true">🌍</span>
       <span class="ud-trophy-title">Globetrotter</span>
-      <span class="ud-trophy-sub">${CrossCityStats.#esc(i18next.t('dashboard:cities.trophy-sub',
-        { cities: CrossCityStats.#num(cityCount) }))}</span>`;
+      <span class="ud-trophy-sub">${CrossCityStats.#tEsc('dashboard:cities.trophy-sub',
+        { cities: CrossCityStats.#num(cityCount) })}</span>`;
     grid.prepend(card);
     const none = document.getElementById('ud-trophy-none');
     if (none) none.hidden = true;
@@ -222,9 +243,10 @@ class CrossCityStats {
         properties: {
           // sqrt scaling so circle AREA (not radius) tracks the label count — perceptually honest.
           radius: n > 0 ? 6 + (Math.sqrt(n) / Math.sqrt(maxLabels)) * 18 : 6,
-          popup: `<div class="coverage-popup-name">${CrossCityStats.#esc(stat.city_name)}</div>`
-            + `<div>${CrossCityStats.#esc(i18next.t('dashboard:cities.map-popup',
-              { labels: CrossCityStats.#num(n), validations: CrossCityStats.#num(stat.validations || 0) }))}</div>`,
+          popup: `
+            <div class="coverage-popup-name">${CrossCityStats.#esc(stat.city_name)}</div>
+            <div>${CrossCityStats.#tEsc('dashboard:cities.map-popup',
+              { labels: CrossCityStats.#num(n), validations: CrossCityStats.#num(stat.validations || 0) })}</div>`,
         },
       });
     }
@@ -276,6 +298,22 @@ class CrossCityStats {
     });
   }
 
+  /**
+   * Tells assistive tech that a section has appeared, since the page was already readable and navigable when it did —
+   * and the "On this page" list silently grew an entry at the same moment.
+   *
+   * The live region lives outside the section rather than in it: this section starts hidden, and a region that was
+   * `display: none` when the page loaded isn't reliably watched.
+   */
+  #announce() {
+    const status = document.getElementById('ud-cities-status');
+    const heading = this.#section.querySelector('.api-heading');
+    if (!status || !heading) return;
+    // Trailing '#' is the permalink anchor, which the shell strips the same way when it builds the TOC.
+    const section = heading.textContent.replace(/#$/, '').trim();
+    status.textContent = CrossCityStats.#t('dashboard:cities.section-added', { section });
+  }
+
   // --- Helpers ----------------------------------------------------------------------------------------------------
 
   /**
@@ -294,17 +332,56 @@ class CrossCityStats {
     if (el) el.textContent = value;
   }
 
+  /**
+   * Translates with i18next's HTML-escaping off.
+   *
+   * Every string in this file either lands in textContent or is escaped by #esc on its way into innerHTML, so the
+   * default escapeValue is wrong both ways: a city named "Coeur d'Alene" would show a literal `&#39;` in the first
+   * case and a double-escaped `&amp;#39;` in the second.
+   *
+   * @param {string} key - Namespaced i18next key.
+   * @param {Object} [vars] - Interpolation values.
+   * @returns {string} The translated string, unescaped.
+   */
+  static #t(key, vars) {
+    return i18next.t(key, { ...vars, interpolation: { escapeValue: false } });
+  }
+
+  /**
+   * {@link CrossCityStats.#t}, escaped once for insertion into innerHTML.
+   *
+   * @param {string} key - Namespaced i18next key.
+   * @param {Object} [vars] - Interpolation values.
+   * @returns {string} The translated string with HTML metacharacters replaced by entities.
+   */
+  static #tEsc(key, vars) {
+    return CrossCityStats.#esc(CrossCityStats.#t(key, vars));
+  }
+
   /** Thousands-separated integer in the viewer's locale. */
   static #num(n) {
     return Number(n || 0).toLocaleString();
   }
 
   /**
-   * Distance with one decimal, floored — matching the hero KPI's formatting so the current city's row and the tile
+   * Truncates a distance to one decimal — matching the hero KPI's formatting so the current city's row and the tile
    * above it never differ in the last digit.
+   *
+   * @param {number} value - Distance in the viewer's units.
+   * @returns {number} The distance as it will be displayed.
    */
-  static #dist(value, unit) {
-    return `${util.math.floorTo(Number(value || 0), 1).toFixed(1)} ${unit || ''}`.trim();
+  static #floorDist(value) {
+    return util.math.floorTo(Number(value || 0), 1);
+  }
+
+  /**
+   * @param {number} floored - An already-floored distance; flooring again would shave a digit off a summed value
+   *                           that floating-point left a hair under its decimal (0.7 + 0.1 is 0.7999999999999999).
+   * @param {string} unit - Distance abbreviation for this viewer ("km" / "mi").
+   * @returns {string} The distance with one decimal and its unit.
+   */
+  static #fmtDist(floored, unit) {
+    return `${floored.toFixed(1)} ${unit || ''}`.trim();
   }
 
   /** Localized month-and-year for a last-labeled timestamp, or a dash when the mapper only validated there. */

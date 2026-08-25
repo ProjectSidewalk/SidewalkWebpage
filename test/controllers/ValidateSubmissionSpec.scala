@@ -19,9 +19,10 @@ import play.api.test.Helpers._
 import java.time.OffsetDateTime
 
 /**
- * Functional tests for the Validate submission endpoints — `POST /validationTask` (the Validate tool) and
- * `POST /labelmap/validate` (the LabelMap/Gallery path) — the write path that turns a validation into a
- * `label_validation` row and the label's updated agree/disagree/unsure counts (#4777).
+ * Functional tests for the Validate submission endpoints — `POST /validationTask` (the Validate tool),
+ * `POST /labelmap/validate`, and `POST /labelmap/comment` (the LabelMap/Gallery paths) — the write path that turns a
+ * validation into a `label_validation` row and the label's updated agree/disagree/unsure counts (#4777), and the one
+ * that keeps a user to a single comment per label (#4942).
  *
  * Follows the real client bootstrap: GET /validate embeds the assigned mission and label batch as inline page JS
  * (`param.*`), and the spec validates the first label of that real batch. Both tests run the endpoint's own undo flow
@@ -239,6 +240,20 @@ class ValidateSubmissionSpec
     )
   }
 
+  /** A `POST /labelmap/comment` payload for the given label. */
+  private def labelMapCommentJson(label: JsObject, text: String): JsObject =
+    Json.obj(
+      "label_id"   -> (label \ "label_id").as[Int],
+      "label_type" -> (label \ "label_type").as[String],
+      "comment"    -> text,
+      "pano_id"    -> (label \ "pano_id").as[String],
+      "heading"    -> (label \ "heading").as[Double],
+      "pitch"      -> (label \ "pitch").as[Double],
+      "zoom"       -> (label \ "zoom").as[Double],
+      "lat"        -> (label \ "lat").as[Double],
+      "lng"        -> (label \ "lng").as[Double]
+    )
+
   /** Posts a Validate-tool submission over HTTP as the session's user. */
   private def postValidationTask(session: Seq[Cookie], payload: JsValue) =
     route(app, FakeRequest(POST, "/validationTask").withCookies(session: _*).withJsonBody(payload).withCSRFToken).get
@@ -248,6 +263,13 @@ class ValidateSubmissionSpec
     route(
       app,
       FakeRequest(POST, "/labelmap/validate").withCookies(session: _*).withJsonBody(payload).withCSRFToken
+    ).get
+
+  /** Posts a LabelMap/Gallery comment over HTTP as the session's user. */
+  private def postLabelMapComment(session: Seq[Cookie], payload: JsValue) =
+    route(
+      app,
+      FakeRequest(POST, "/labelmap/comment").withCookies(session: _*).withJsonBody(payload).withCSRFToken
     ).get
 
   /**
@@ -517,6 +539,25 @@ class ValidateSubmissionSpec
       status(undone) mustBe OK
       validationRow(labelId, b.userId) mustBe None
       labelState(labelId) mustBe before
+    }
+  }
+
+  "POST /labelmap/comment" should {
+    "replace the user's earlier comment on the label rather than stacking a second one (#4942)" in {
+      val session = freshAnonSession()
+      val b       = fetchValidateBootstrap(session)
+      val label   = b.labels.head
+      val labelId = (label \ "label_id").as[Int]
+
+      val first = postLabelMapComment(session, labelMapCommentJson(label, "Ramp is behind the parked car."))
+      status(first) mustBe OK
+      (contentAsJson(first) \ "comment_id").as[Int] must be > 0
+      commentsOn(labelId, b.userId) mustBe Seq("Ramp is behind the parked car.")
+
+      // Revising a comment is the flow that has to land on the user's existing row for the label, not beside it.
+      val revised = postLabelMapComment(session, labelMapCommentJson(label, "Looking again, it is fine."))
+      status(revised) mustBe OK
+      commentsOn(labelId, b.userId) mustBe Seq("Looking again, it is fine.")
     }
   }
 }

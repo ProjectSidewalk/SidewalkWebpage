@@ -14,6 +14,7 @@ class AdminShell {
   #tocList;
   #headings = [];
   #tocLinks = [];
+  #scrollSpyAttached = false;
 
   init() {
     this.#content = document.querySelector('.api-content');
@@ -87,11 +88,19 @@ class AdminShell {
    */
   refreshTableOfContents() {
     this.#buildTableOfContents();
+    // A page whose only headings arrive asynchronously had nothing to spy on at load, so the listener was skipped.
+    this.#setupScrollSpy();
   }
 
-  /** Highlights the TOC entry for whichever heading is currently at the top of the viewport. */
+  /**
+   * Highlights the TOC entry for whichever heading is currently at the top of the viewport.
+   *
+   * The listener reads #headings and #tocLinks on each tick rather than closing over them, so it keeps working across
+   * a refreshTableOfContents(); attaching a second one would just duplicate the work.
+   */
   #setupScrollSpy() {
-    if (this.#headings.length === 0) return;
+    if (this.#scrollSpyAttached || this.#headings.length === 0) return;
+    this.#scrollSpyAttached = true;
 
     let ticking = false;
     const onScroll = () => {
@@ -230,6 +239,69 @@ class AdminShell {
           <tbody>${bodyHtml}</tbody>
         </table>
       </div>`;
+  }
+
+  // ---- Nightly-job row formatters -----------------------------------------------------------------------------
+  //
+  // Two panels report the same `nightly_jobs` entries -- the Health dashboard over the whole roster, the Imagery page
+  // over the three jobs of one pipeline. They read the same fields and must reach the same verdict, so the formatting
+  // lives here rather than once per panel.
+
+  /**
+   * A job's last-run state as a toned badge, with overdue outranking whatever that last run reported.
+   *
+   * @param {Object} job - One `nightly_jobs` entry.
+   * @returns {string} The badge's HTML.
+   */
+  static jobStatusBadge(job) {
+    const tones = { never_run: 'bad', abandoned: 'bad', failed: 'bad', running: 'ok', succeeded: 'good' };
+    const labels = { never_run: 'never run', abandoned: 'abandoned', failed: 'failed', running: 'running',
+      succeeded: 'ok' };
+    // An unknown status defaults to `warn`, not `good`: a status the server grew and this page hasn't learned yet
+    // would otherwise render as a clean bill of health, which is the one direction a health panel must never drift.
+    const known = tones[job.last_status] || 'warn';
+    const tone = job.overdue ? (known === 'bad' ? 'bad' : 'warn') : known;
+    const label = job.overdue && job.last_status === 'succeeded'
+      ? 'overdue'
+      : (labels[job.last_status] || job.last_status);
+    return `<span class="ac-badge ac-badge--${tone}">${AdminShell.esc(label)}</span>`;
+  }
+
+  /**
+   * When the schedule last fired this job, plus the last hand-triggered run when there is one.
+   *
+   * The two are kept apart rather than merged into a single "last run": a run someone kicked off by hand proves the
+   * code works, not that anything is still firing it, so it is reported beside the schedule's record instead of in
+   * place of it.
+   *
+   * @param {Object} job - One `nightly_jobs` entry.
+   * @returns {string} HTML: the scheduled run's age, with a muted manual-run note appended when one exists.
+   */
+  static jobLastRun(job) {
+    const scheduled = job.last_started_at ? AdminShell.relativeTime(job.last_started_at) : 'never';
+    if (!job.last_manual_run_at) return AdminShell.esc(scheduled);
+    const manual = `manual ${AdminShell.relativeTime(job.last_manual_run_at)}: ${job.last_manual_status}`;
+    return `${AdminShell.esc(scheduled)}<span class="ac-muted"> · ${AdminShell.esc(manual)}</span>`;
+  }
+
+  /**
+   * A run's own counts, flattened to `key: value` pairs. Every job reports a different shape, so this renders whatever
+   * it stored rather than naming fields a panel would have to be taught one by one.
+   *
+   * @param {Object} job - One `nightly_jobs` entry.
+   * @returns {string} Plain text (the caller escapes it): the error when the run failed, else its counts.
+   */
+  static jobDetails(job) {
+    if (job.last_error) return job.last_error;
+    const details = job.last_details;
+    if (!details || typeof details !== 'object') return '—';
+    const parts = Object.entries(details)
+      .filter(([, value]) => !AdminShell.nil(value))
+      .map(([key, value]) => {
+        const shown = typeof value === 'number' ? AdminShell.num(value) : value;
+        return `${key.replace(/_/g, ' ')}: ${shown}`;
+      });
+    return parts.length > 0 ? parts.join(', ') : '—';
   }
 
   /**

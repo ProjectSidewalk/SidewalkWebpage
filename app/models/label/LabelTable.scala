@@ -2,11 +2,17 @@ package models.label
 
 import com.google.inject.ImplementedBy
 import models.api.{
+  AiConcurrence,
+  LabelAccuracy,
   LabelDataForApi,
+  LabelSevStats,
   LabelValidationSummaryForApi,
+  ProjectSidewalkStats,
   RawLabelFiltersForApi,
   RawLabelValidationStatus,
-  TagFilterForApi
+  TagFilterForApi,
+  ValidationSourceStats,
+  ValidationStats
 }
 import models.audit.AuditTaskTableDef
 import models.label.LabelTable._
@@ -98,48 +104,6 @@ case class LabelForLabelMap(
 )
 
 case class TagCount(labelType: String, tag: String, count: Int)
-case class LabelSevStats(n: Int, nWithSeverity: Option[Int], severityMean: Option[Double], severitySD: Option[Double])
-case class LabelAccuracy(n: Int, nAgree: Int, nDisagree: Int, accuracy: Option[Double], nWithValidation: Int)
-case class AiConcurrence(aiYesHumanConcurs: Int, aiYesHumanDiffers: Int, aiNoHumanDiffers: Int, aiNoHumanConcurs: Int)
-
-// Validation stats for a single source of votes (combined = all votes, human = non-AI votes, ai = AI votes). Each
-// source has a raw count of validations (label_validation rows) plus a per-label-type majority-vote breakdown.
-case class ValidationSourceStats(nValidations: Int, accuracyByLabelType: Map[String, LabelAccuracy])
-case class ValidationStats(
-    combined: ValidationSourceStats,
-    human: ValidationSourceStats,
-    ai: ValidationSourceStats
-)
-
-case class ProjectSidewalkStats(
-    launchDate: String,
-    avgTimestampLast100Labels: Option[OffsetDateTime],
-    kmExplored: Double,
-    kmExploreNoOverlap: Double,
-    kmExploredMultipleUsers: Double,
-    kmExploredSingleUser: Double,
-    kmNeedsReaudit: Double,
-    kmOpen: Double,
-    kmNoImagery: Double,
-    kmClosed: Double,
-    kmDisabled: Double,
-    nUsers: Int,
-    nExplorers: Int,
-    nValidators: Int,
-    nRegistered: Int,
-    nAnon: Int,
-    nTurker: Int,
-    nResearcher: Int,
-    nLabels: Int,
-    nLabelsWithSeverity: Int,
-    avgLabelTimestamp: Option[OffsetDateTime],
-    avgImageAgeByLabel: Option[Duration],
-    stddevLabelTimestamp: Option[Duration],
-    stddevImageAgeByLabel: Option[Duration],
-    severityByLabelType: Map[String, LabelSevStats],
-    validations: ValidationStats,
-    aiPerformance: Map[String, Map[String, AiConcurrence]]
-)
 case class LabelTypeValidationsLeft(labelType: LabelTypeEnum.Base, validationsAvailable: Int, validationsNeeded: Int)
 
 case class LabelCount(count: Int, timeInterval: TimeInterval, labelType: String) {
@@ -280,6 +244,7 @@ class LabelTableDef(tag: slick.lifted.Tag) extends Table[Label](tag, "label") {
   def labelType  = foreignKey("label_label_type_id_fkey", labelTypeId, TableQuery[LabelTypeTableDef])(_.labelTypeId)
   def streetEdge =
     foreignKey("label_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTableDef])(_.streetEdgeId)
+  def panoData = foreignKey("label_pano_id_fkey", panoId, TableQuery[PanoDataTableDef])(_.panoId)
 }
 
 /**

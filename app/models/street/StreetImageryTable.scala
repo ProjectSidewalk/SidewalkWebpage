@@ -335,7 +335,7 @@ class StreetImageryTable @Inject() (protected val dbConfigProvider: DatabaseConf
                       ST_SetSRID(ST_MakePoint(pano_data.lng, pano_data.lat), 4326)::geography,
                       ${StreetImageryTable.PanoStreetToleranceMeters}
                   )
-          WHERE pano_data.pano_id <> 'tutorial'
+          WHERE pano_data.source <> 'tutorial'
               AND pano_data.lat IS NOT NULL
               AND pano_data.lng IS NOT NULL
               AND pano_data.last_viewed > now() - interval '7 days'

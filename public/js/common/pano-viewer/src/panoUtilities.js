@@ -42,6 +42,11 @@ util.pano.sgn = (x) => (x >= 0 ? 1 : -1);
  * exponential. In practice, the produced values are good enough to result in stable marker positioning, even
  * for intermediate zoom values.
  *
+ * The curve is in *horizontal* fov, which is the fov the projection helpers below feed into
+ * `f = (canvasWidth / 2) / tan(fov / 2)`. GSV's own pov.zoom rides this same horizontal curve and Pannellum
+ * speaks horizontal fov directly, so neither viewer needs an aspect correction; Mapillary and Infra3D express
+ * their camera in *vertical* fov, so they bridge through vFovToHFov()/hFovToVFov() (#4852).
+ *
  * @param {number} zoom The zoom level according to GSV
  * @return {number} The (horizontal) field of view angle for the given zoom
  */
@@ -52,12 +57,46 @@ util.pano.zoomToFov = (zoom) => {
 };
 
 /**
+ * Converts a vertical field of view to the horizontal field of view a viewport of the given aspect ratio renders.
+ *
+ * Some imagery SDKs (Mapillary, Infra3D) express their camera in vertical fov, while our zoom levels are defined
+ * in horizontal-fov terms (zoomToFov/fovToZoom). The two are linked through the viewport's width:height ratio, so
+ * the conversion must use the *live* ratio of the element the pano renders in — a fixed constant is only correct
+ * for viewports that happen to match it (#4852).
+ *
+ * @param {number} verticalFov - The vertical field of view angle in degrees.
+ * @param {number} aspect - The viewport's width:height aspect ratio.
+ * @returns {number} The horizontal field of view angle in degrees.
+ */
+util.pano.vFovToHFov = (verticalFov, aspect) => {
+  return util.math.toDegrees(2 * Math.atan(Math.tan(util.math.toRadians(verticalFov / 2)) * aspect));
+};
+
+/**
+ * Converts a horizontal field of view to the vertical field of view a viewport of the given aspect ratio renders.
+ * Inverse of vFovToHFov(); see it for why the aspect ratio must be the viewport's live one.
+ *
+ * @param {number} horizontalFov - The horizontal field of view angle in degrees.
+ * @param {number} aspect - The viewport's width:height aspect ratio.
+ * @returns {number} The vertical field of view angle in degrees.
+ */
+util.pano.hFovToVFov = (horizontalFov, aspect) => {
+  return util.math.toDegrees(2 * Math.atan(Math.tan(util.math.toRadians(horizontalFov / 2)) / aspect));
+};
+
+/**
  * Calculates the zoom level from a given horizontal field of view. This is the inverse of zoomToFov().
  *
  * TODO Maybe we should decide on our own zoom levels rather than using Google's.
  *
+ * The result is deliberately not clamped to the 0–5 range zoomToFov()'s table covers. Its linear branch crosses
+ * zero at 126.5°, so a viewport wide enough to render a wider horizontal field than that — aspect > ~1.98 at
+ * Mapillary's widest, i.e. a phone in landscape — yields a negative zoom. That is the honest encoding of what is
+ * on screen: it round-trips through zoomToFov(), so the marker projection and the zoom we persist alongside it
+ * (label_validation.zoom, the v3 API) agree with each other, which a clamp would break (#4852).
+ *
  * @param {number} fov - The field of view angle in degrees.
- * @returns {number} The corresponding zoom level.
+ * @returns {number} The corresponding zoom level; negative on viewports wider than ~2:1.
  */
 util.pano.fovToZoom = (fov) => {
   // The transition point is at zoom = 2, where fov = 126.5 - 2 * 36.75 = 53
@@ -120,6 +159,13 @@ util.pano.povToPanoCoord = (pov, cameraHeading, panoWidth, panoHeight) => {
 
 /**
  * Returns the centered pov of a point on the canvas based on panorama's POV and the canvas coordinate.
+ *
+ * The canvas coordinate is used exactly as given — no anchor or padding offset (#4851, pinned by
+ * test/js/panoProjection.test.js). Neither renderer wants one: PanoMarker.draw centers on the projected point
+ * exactly, Explore's canvas draw to within half a pixel. Explore derives a label's stored pano_x/pano_y from this
+ * output and every consumer re-derives the POV from that record, so an offset here desyncs each reader from the
+ * writer. AI labels need the identity directly — submitAiLabelData writes them at the canvas center so this returns
+ * the submitted POV unchanged.
  *
  * @param {{heading: number, pitch: number, zoom: number}} pov The POV within the panorama to use wrt true north
  * @param {number} canvasX X-coordinate of the point of interest
@@ -273,7 +319,7 @@ util.pano.centeredPovToCanvasCoord = (centeredPov, newPov, canvasWidth, canvasHe
  * Helper function that converts the heading to be in the range [-180,180).
  *
  * @param {number} heading The heading to convert.
- * @return {number} The heading converted to the range [-180,180).
+ * @returns {number} The heading converted to the range [-180,180).
  */
 util.pano.wrapHeading = (heading) => {
   // We shift to the range [0,360) because of the way JS behaves for modulos of negative numbers.
@@ -288,7 +334,9 @@ util.pano.wrapHeading = (heading) => {
 /**
  * A simpler version of centeredPovToCanvasCoord which does not have to do the spherical projection because the raw
  * StreetView tiles are just panned around when the user changes the viewport position.
- * TODO not sure if this is used anymore.
+ *
+ * PanoMarker starts here and upgrades to centeredPovToCanvasCoord only once the browser hands it a WebGL context,
+ * so this is the projection every marker uses on a WebGL-less browser.
  *
  * @param {{heading: number, pitch: number}} centeredPov Translating the center point at this POV to newPov
  * @param {{heading: number, pitch: number, zoom: number}} newPov The POV within the panorama to use wrt true north
@@ -297,7 +345,7 @@ util.pano.wrapHeading = (heading) => {
  * @param {number} margin The extra pixels around canvas width/height where we don't return null, usually label radius
  * @returns {{x: number, y: number}|null} Canvas coordinates for the point at `newPov`; null if not on the canvas
  */
-util.pano.centeredPovToCanvasCoord2d = function (centeredPov, newPov, canvasWidth, canvasHeight, margin) {
+util.pano.centeredPovToCanvasCoord2d = (centeredPov, newPov, canvasWidth, canvasHeight, margin) => {
   // In the 2D environment, the FOV follows the documented curve.
   const hfov = 180 / Math.pow(2, newPov.zoom);
   const vfov = hfov * (canvasHeight / canvasWidth);

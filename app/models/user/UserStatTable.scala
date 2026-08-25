@@ -931,13 +931,21 @@ class UserStatTable @Inject() (
         }
         .mkString("\n  UNION ALL\n")
 
-      sql"""
+      val union =
+        sql"""
         WITH me AS (SELECT CAST($userId AS text) AS user_id)
         #$blocks
         ORDER BY labels DESC, city_schema;
       """
-        .as[(String, Int, Int, Int, Option[Double], Option[OffsetDateTime])]
-        .map(_.map(CrossCityUserStat.tupled))
+          .as[(String, Int, Int, Int, Option[Double], Option[OffsetDateTime])]
+          .map(_.map(CrossCityUserStat.tupled))
+
+      // Bounded because this fires on every dashboard load, holds one of the app's 25 pooled connections for its whole
+      // run, and is the one query here whose plan can't be predicted from dev: the arm count is however many cities are
+      // deployed. 30s leaves generous room over the ~9s cold measurement while still capping a pathological plan, and
+      // the caller degrades to hiding the section rather than failing the page. `SET LOCAL` + `.transactionally` scopes
+      // the setting to this statement and auto-commits, so it never lingers as an idle-in-transaction of its own.
+      (sqlu"SET LOCAL statement_timeout = 30000" >> union).transactionally
     }
   }
 

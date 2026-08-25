@@ -6,17 +6,11 @@
  * trends, and deep links.
  *
  * Data: /adminapi/overviewSummary (headline numbers + attention counts), /adminapi/activityByDay (daily series →
- * weekly trends/sparklines), /adminapi/recentActivity (the strip + pulse), and /v3/api/labelTypes (pulse dot color).
+ * weekly trends/sparklines), /adminapi/recentActivity (the strip + pulse), and /v3/api/labelTypes (pulse dot color
+ * and localized label-type names).
  * Every percentage is shown with the N it's based on.
  */
 class OverviewPage {
-  /** Short, human-friendly label-type names (the v3 API exposes a machine name + long description, no short label). */
-  static #DISPLAY = {
-    CurbRamp: 'curb ramp', NoCurbRamp: 'missing curb ramp', Obstacle: 'obstacle',
-    SurfaceProblem: 'surface problem', NoSidewalk: 'no sidewalk', Crosswalk: 'crosswalk',
-    Signal: 'signal', Occlusion: 'occlusion', Other: 'other',
-  };
-
   /** Number of trailing weeks shown in each card sparkline. */
   static #SPARK_WEEKS = 12;
 
@@ -24,7 +18,8 @@ class OverviewPage {
   #activityByDayUrl;
   #recentActivityUrl;
   #labelTypesUrl;
-  #colorByType = new Map();   // labelType name -> canonical color (for the pulse dot)
+  #colorByType = new Map();     // labelType name -> canonical color (for the pulse dot)
+  #displayByType = new Map();   // labelType name -> localized short name from /v3/api/labelTypes
 
   /** @param {{summaryUrl: string, activityByDayUrl: string, recentActivityUrl: string, labelTypesUrl: string}} opts */
   constructor(opts = {}) {
@@ -43,7 +38,7 @@ class OverviewPage {
         this.#fetchJson(this.#recentActivityUrl).catch(() => ({ activity: [] })),
         this.#fetchJson(this.#labelTypesUrl).catch(() => null),
       ]);
-      this.#buildColors(labelTypes);
+      this.#buildMeta(labelTypes);
       this.#renderCards(summary);
       this.#renderTrends((activity && activity.series) || []);
       this.#renderAttention(summary);
@@ -62,8 +57,8 @@ class OverviewPage {
     return resp.json();
   }
 
-  /** Builds the label-type → canonical color lookup used only for the pulse line's dot. */
-  #buildColors(labelTypes) {
+  /** Builds the label-type → canonical color and localized display-name lookups used by the pulse line. */
+  #buildMeta(labelTypes) {
     const list = (labelTypes && labelTypes.label_types) || [];
     for (const lt of list) {
       let color = lt.color || '#999999';
@@ -71,6 +66,7 @@ class OverviewPage {
         if (window.util && util.misc && util.misc.getLabelColors(lt.name)) color = util.misc.getLabelColors(lt.name);
       } catch { /* fall back to the API color */ }
       this.#colorByType.set(lt.name, color);
+      this.#displayByType.set(lt.name, lt.display_name || lt.name);
     }
   }
 
@@ -260,7 +256,7 @@ class OverviewPage {
     if (s.reaudit_streets > 0) {
       const reaudit = this.#num(s.reaudit_streets);
       const reauditMi = s.reaudit_distance_mi > 0 ? ` (${this.#num(Math.round(s.reaudit_distance_mi))} mi)` : '';
-      items.push({ sev: 'info', action: 'Coverage', href: '/admin/coverage',
+      items.push({ sev: 'info', action: 'Imagery', href: '/admin/imagery',
         html: `<strong>${reaudit}</strong> audited streets${reauditMi} have newer imagery and need re-auditing` });
     }
     // Stalled activity — only one of these, the more fundamental gap first.
@@ -368,7 +364,7 @@ class OverviewPage {
   // --- Helpers ----------------------------------------------------------------------------------------------------
 
   #typeName(machineName) {
-    return OverviewPage.#DISPLAY[machineName] || machineName;
+    return this.#displayByType.get(machineName) || machineName;
   }
 
   /**

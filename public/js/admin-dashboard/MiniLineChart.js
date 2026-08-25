@@ -18,7 +18,8 @@ class MiniLineChart {
    *   other data that came from a user before putting it in one.
    * @param {{yMax?: number, tickFormat?: function(number): string, valueFormat?: function(number): string,
    *          ariaLabel?: string, dotRadius?: number, kind?: string, maxXLabels?: number, barValues?: boolean,
-   *          emphasisIndex?: number, minMarginL?: number, minMarginR?: number}} [opts] - yMax defaults to a nice
+   *          emphasisIndex?: number, minMarginL?: number, minMarginR?: number,
+   *          refLine?: {value: number, label?: string, key?: string}}} [opts] - yMax defaults to a nice
    *   rounded max above the data; tickFormat labels the y-axis (abbreviated by default, e.g. "1.6M") while
    *   valueFormat formats values in the default tooltip and in bar value labels, so hovering still gives the exact
    *   count;
@@ -26,7 +27,8 @@ class MiniLineChart {
    *   x labels are drawn (default 6); barValues draws each bar's value above it (meant for single-series bar charts —
    *   grouped bars would collide); emphasisIndex marks that index's bar and labels with `--emphasis` classes (e.g. an
    *   in-progress "today" bar); minMarginL/minMarginR raise the axis margins, which renderInto uses to redraw at
-   *   measured label widths.
+   *   measured label widths; refLine draws a labeled horizontal target the bars are read against, and is included in
+   *   the y scale.
    * @returns {string} SVG markup plus an optional HTML legend.
    */
   static svg(categories, series, opts = {}) {
@@ -35,10 +37,14 @@ class MiniLineChart {
     const n = categories.length;
     const isBar = opts.kind === 'bar';
     const allVals = series.flatMap((s) => s.values.filter((v) => v !== null && v !== undefined));
+    // The reference line joins the data in setting the scale, or a target above every bar would be drawn off the top
+    // of the plot and read as absent rather than as unmet.
+    const refLine = opts.refLine && Number.isFinite(opts.refLine.value) ? opts.refLine : null;
+    const scaleVals = refLine ? [...allVals, refLine.value] : allVals;
     // Scaling the axis to the exact data max makes every gridline an arbitrary number (350,037 · 700,073 · 1,050,110);
     // rounding the top up to a nice step lands them on values a reader can compare at a glance. Tooltips keep the
     // exact counts, so the axis can trade precision for legibility.
-    const yMax = opts.yMax || MiniLineChart.#niceMax(Math.max(1, ...allVals), allVals.every(Number.isInteger));
+    const yMax = opts.yMax || MiniLineChart.#niceMax(Math.max(1, ...scaleVals), scaleVals.every(Number.isInteger));
     const tickFormat = opts.tickFormat || MiniLineChart.#compact;
     const valueFormat = opts.valueFormat || ((v) => Math.round(v).toLocaleString());
     const dotRadius = opts.dotRadius ?? 3;
@@ -128,6 +134,18 @@ class MiniLineChart {
             + `${MiniLineChart.#pointTip(tip, s.tooltipsHtml?.[i])}</circle>`;
         }).join('');
         body += `<path class="mini-line mini-line--${s.key}" d="${d.trim()}"/>${dots}`;
+      }
+    }
+
+    // Drawn after the series so the target stays visible over a bar that reaches it.
+    if (refLine) {
+      const refY = yFrac(Math.min(1, refLine.value / yMax));
+      const refKey = refLine.key || 'ref';
+      body += `<line class="mini-ref mini-ref--${refKey}" x1="${m.l}" y1="${refY.toFixed(1)}" `
+        + `x2="${W - m.r}" y2="${refY.toFixed(1)}"/>`;
+      if (refLine.label) {
+        body += `<text class="mini-ref-label mini-ref-label--${refKey}" x="${W - m.r}" `
+          + `y="${(refY - 4).toFixed(1)}" text-anchor="end">${MiniLineChart.#esc(refLine.label)}</text>`;
       }
     }
 

@@ -93,8 +93,9 @@
   "routes-delete-confirm": "Delete \"{{name}}\"? Anyone you shared its link with will no longer be able to use it.",
   "routes-error": "Something went wrong. Please try again.",
   "cities": {
-    "intro": "You've mapped in {{cities}} Project Sidewalk cities — {{labels}} labels in all.",
+    "intro": "You've contributed in {{cities}} Project Sidewalk cities — {{labels}} labels in all.",
     "intro-single": "Your work in {{city}} so far. One account works in every Project Sidewalk city.",
+    "intro-empty": "One account works in every Project Sidewalk city. Your work will show up here once you start mapping.",
     "you-are-here": "you're here",
     "col-city": "City",
     "col-labels": "Labels",
@@ -102,11 +103,13 @@
     "col-missions": "Missions",
     "col-distance": "Distance",
     "col-last-active": "Last labeled",
+    "table-caption": "Your contributions in each Project Sidewalk city",
     "distance-note": "Distance outside {{city}} is recalculated nightly, so it can lag by up to a day.",
     "nudge": "Project Sidewalk maps sidewalks in {{cities}} cities, and your account already works in every one.",
     "nudge-empty": "Project Sidewalk maps sidewalks in {{cities}} cities. Pick one and start exploring.",
     "nudge-link": "See every city",
-    "trophy-sub": "Mapped in {{cities}} cities",
-    "map-popup": "{{labels}} labels · {{validations}} validations"
+    "trophy-sub": "Active in {{cities}} cities",
+    "map-popup": "{{labels}} labels · {{validations}} validations",
+    "section-added": "New section available: {{section}}."
   }
 }

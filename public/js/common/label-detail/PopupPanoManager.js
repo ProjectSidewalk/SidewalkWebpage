@@ -29,6 +29,7 @@ class PopupPanoManager {
   #fallbackPanzoom;
   #logo;
   #cropUrl;
+  #labelsHidden = false;
 
   /**
    * A label type's canonical marker icon, from util.misc's central label-type registry.
@@ -123,7 +124,9 @@ class PopupPanoManager {
       'user-select': 'none',
       'pointer-events': 'none',
     })[0];
-    this.#fallbackMarker = $('<img id="pano-fallback-marker">').addClass('icon-outline').css({
+    // A div, not an img, so it wears the shared .label-marker styles — including the hidden state, which fades an
+    // icon drawn by ::before and so can't reach into an <img> (#2477).
+    this.#fallbackMarker = $('<div id="pano-fallback-marker">').addClass('icon-outline label-marker').css({
       'position': 'absolute',
       'width': '28px',
       'height': '28px',
@@ -338,7 +341,9 @@ class PopupPanoManager {
       // Position the label icon on the fallback image.
       const fallbackIcon = this.label && this.#iconFor(this.label.label_type);
       if (fallbackIcon) {
-        $(this.#fallbackMarker).attr('src', fallbackIcon).css('display', 'block');
+        this.#fallbackMarker.style.setProperty('--label-icon', `url(${fallbackIcon})`);
+        this.#fallbackMarker.style.setProperty('--label-color', util.misc.getLabelColors(this.label.label_type));
+        $(this.#fallbackMarker).css('display', 'block');
         this.#updateFallbackMarkerPosition();
       } else {
         $(this.#fallbackMarker).css('display', 'none');
@@ -413,11 +418,26 @@ class PopupPanoManager {
     // Halo pulse draws the eye to the (small, often low-contrast) marker when the card opens. A marker is built
     // fresh per render, so the class plays once on a new element and needs no restart.
     panoMarker.marker_.classList.add('label-detail__marker', 'label-marker-pulse');
+    // The colour the ring takes once the label is hidden.
+    panoMarker.marker_.style.setProperty('--label-color', util.misc.getLabelColors(label.label_type));
+    panoMarker.marker_.classList.toggle(LabelVisibilityToggle.HIDDEN_CLASS, this.#labelsHidden);
     this.#labelMarkers.push({
       panoId: this.panoViewer.getPanoId(),
       marker: panoMarker,
     });
     if (label.aiGenerated) this.#attachAiIndicatorToMarker(panoMarker);
+  }
+
+  /**
+   * Hides or shows the label markers on both views — the pano's and the crop fallback's. The state is remembered
+   * because a marker is rebuilt per label, and hiding is meant to carry to the next one paged to (#2477).
+   *
+   * @param {boolean} hidden - Whether the markers should step aside.
+   */
+  setLabelsHidden(hidden) {
+    this.#labelsHidden = hidden;
+    const markers = this.#labelMarkers.map((entry) => entry.marker.marker_).concat(this.#fallbackMarker);
+    for (const marker of markers) marker.classList.toggle(LabelVisibilityToggle.HIDDEN_CLASS, hidden);
   }
 
   /**
