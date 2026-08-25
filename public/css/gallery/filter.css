@@ -34,3 +34,63 @@
 #clear-filters[hidden] {
   display: none;
 }
+
+/* Mobile disclosure toggle standing in for the "Filter By" heading; shown only under the shell breakpoint. */
+.gallery-filter-toggle {
+  display: none;
+}
+
+@media (width <= 768px) {
+  /* The 40px of map-aligned headroom is for the side-by-side layout; stacked, the column hugs the navbar. */
+  #card-filter {
+    padding: 8px 10px;
+  }
+
+  .gallery-filter-header {
+    margin-bottom: 0;
+  }
+
+  /* The toggle button carries the same "Filter By" text, so the heading would duplicate it. */
+  #filter-header {
+    display: none;
+  }
+
+  .gallery-filter-toggle {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    gap: 6px;
+    min-height: 44px;
+    padding: 0;
+    border: none;
+    background: none;
+    font: var(--text-subtitle-bold);
+    color: var(--color-neutral-black);
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .gallery-filter-toggle__icon {
+    width: 16px;
+    flex: none;
+    transition: transform 150ms ease;
+  }
+
+  .gallery-filter-toggle[aria-expanded="true"] .gallery-filter-toggle__icon {
+    transform: rotate(180deg);
+  }
+
+  #gallery-filter-sections {
+    display: none;
+  }
+
+  .sidebar.mobile-visible #gallery-filter-sections {
+    display: block;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gallery-filter-toggle__icon {
+    transition: none;
+  }
+}

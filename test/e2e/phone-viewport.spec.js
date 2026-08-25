@@ -9,7 +9,7 @@
  * serve (Galaxy Fold cover display, older SE class), where their card grid's own minimum is what has to give.
  *
  * Coverage is the pages that are already responsive, so today's good state is locked in. As #4875's phases
- * convert the UA-redirected pages (/gallery, landing, …), each conversion PR adds its page here — on a mobile
+ * convert the UA-redirected pages (the landing page, …), each conversion PR adds its page here — on a mobile
  * UA those pages currently redirect to /mobileLanding, so listing them today would only re-test it
  * (loadAndSettle's stayed-put URL assert catches a covered page joining that redirect set later).
  *
@@ -61,6 +61,7 @@ test.describe('phone viewport (390px)', () => {
     {path: '/stories'},
     {path: '/cities', mapbox: true},
     {path: '/labelMap', mapbox: true, loadingOverlay: true},
+    {path: '/gallery', loadingOverlay: true},
     {path: '/api'},
     {path: '/v3/api-docs/rawLabels'},
   ];
@@ -72,13 +73,14 @@ test.describe('phone viewport (390px)', () => {
   }
 });
 
-// The card grid's minimum only binds below ~368px, so the 390px block above cannot see it (#4691). Same seed
-// caveat as there, and it bites harder: with no stories or routes in CI's DB these load the empty shell, which
-// fits at any width — the cards are exercised by a local run against a seeded DB.
+// The card grids' minimums only bind below ~368px, so the 390px block above cannot see them (#4691) — the
+// community pages' 320px track floor, and the Gallery's min()-guarded card track. Same seed caveat as there,
+// and it bites harder: with nothing in CI's DB these load the empty shell, which fits at any width — the
+// cards are exercised by a local run against a seeded DB.
 test.describe('narrow phone viewport (320px)', () => {
   test.use({...IPHONE, viewport: {width: 320, height: 653}});
 
-  for (const p of [{path: '/routes'}, {path: '/stories'}]) {
+  for (const p of [{path: '/routes'}, {path: '/stories'}, {path: '/gallery', loadingOverlay: true}]) {
     test(`${p.path} fits without horizontal overflow`, async ({page, context, consoleErrors}) => {
       await checkPhoneViewport(page, context, consoleErrors, p);
     });

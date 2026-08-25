@@ -1,11 +1,14 @@
 .gallery-card {
   position: relative;
-  display: inline-block;
+  display: block;
   padding: 0;
-  margin: 0.6vw;
   border-radius: 20px;
-  width: 25vw;
+  width: auto; /* The .cards grid sizes the card. */
   height: fit-content;
+
+  /* Interior type/spacing is sized in cqw against this container, so a card reads the same at any grid width —
+     one wide column on a phone, three across on a desktop (where a card is ~25vw, making 4cqw ≈ 1vw). */
+  container-type: inline-size;
 }
 
 .gallery-card:hover {
@@ -33,7 +36,7 @@ with respect to the image holder. This allows the validation menu to be placed o
   position: relative;
   overflow: hidden;
   aspect-ratio: 3 / 2; /* Match the Explore canvas ratio (720x480). */
-  --gallery-marker-size: clamp(16px, 1.1vw, 22px);
+  --gallery-marker-size: clamp(16px, 4.4cqw, 22px);
 }
 
 .gallery-card:hover::after {
@@ -85,10 +88,10 @@ with respect to the image holder. This allows the validation menu to be placed o
   /* Baseline, not centered: the two sit at different sizes, so lining up the text they sit on reads as one line. */
   align-items: baseline;
   justify-content: space-between;
-  gap: 0.4vw;
+  gap: 1.6cqw;
   padding: 5px 5px 3px 7px;
   font: var(--text-body-bold);
-  font-size: 1vw;
+  font-size: 4cqw;
 }
 
 /* The label type is what the card is about, so it keeps its width and the neighborhood beside it gives way. */
@@ -104,9 +107,9 @@ with respect to the image holder. This allows the validation menu to be placed o
 
   /* The pin's bottom edge is its baseline, so baseline alignment stands it on the text's baseline. */
   align-items: baseline;
-  gap: 0.2vw;
+  gap: 0.8cqw;
   font: var(--text-small-regular);
-  font-size: 0.72vw;
+  font-size: 2.88cqw;
   font-weight: 400;
   line-height: 1.2;
   color: var(--color-neutral-600);
@@ -150,9 +153,9 @@ with respect to the image holder. This allows the validation menu to be placed o
 }
 
 .card-info {
-  padding-bottom: 0.5vw;
-  padding-left: 0.5vw;
-  padding-right: 0.5vw;
+  padding-bottom: 2cqw;
+  padding-left: 2cqw;
+  padding-right: 2cqw;
   color: var(--color-asphalt-500);
   border-width: 0 1px 1px;
   border-color: #dcdbdb;
@@ -172,8 +175,11 @@ with respect to the image holder. This allows the validation menu to be placed o
   justify-content: center;
   flex-direction: row;
   font: var(--text-small-regular);
-  font-size: 0.6vw;
-  height: 2.5vh;
+  font-size: 2.4cqw;
+
+  /* A definite height (the vote icons fill it via height: 100%), card-relative rather than viewport-relative;
+     5.6cqw matches the old 2.5vh at a typical 16:9 desktop window. */
+  height: 5.6cqw;
 }
 
 .card-severity {
@@ -186,7 +192,7 @@ with respect to the image holder. This allows the validation menu to be placed o
 }
 
 .label-severity-header {
-  padding-right: .25vw;
+  padding-right: 1cqw;
 }
 
 .label-severity-content {
@@ -209,7 +215,7 @@ with respect to the image holder. This allows the validation menu to be placed o
 }
 
 .label-tags-header {
-  padding-right: .25vw;
+  padding-right: 1cqw;
 }
 
 .label-tags-holder {
@@ -303,7 +309,7 @@ with respect to the image holder. This allows the validation menu to be placed o
 .validation-button, .validation-button-selected {
   opacity: 0;
   font: var(--text-body-bold);
-  font-size: 0.75vw;
+  font-size: 3cqw;
   background-color: var(--color-neutral-white);
   border-style: none;
   color: var(--color-asphalt-500);
@@ -349,6 +355,18 @@ with respect to the image holder. This allows the validation menu to be placed o
   pointer-events: none;
 }
 
+/* Hover can't reveal the vote row on a touch-primary device, so it stays visible; readonly styling still wins. */
+@media (pointer: coarse) {
+  .validation-button {
+    opacity: 0.75;
+  }
+
+  .validation-button-selected {
+    opacity: 1;
+    background-color: gray;
+  }
+}
+
 .expanded-view-background-card {
   opacity: 0.5;
 }
@@ -356,12 +374,12 @@ with respect to the image holder. This allows the validation menu to be placed o
 .severity-circle {
   color: var(--color-neutral-white);
   border: 1px solid var(--color-asphalt-500);
-  width: 0.7vw;
-  height: 0.7vw;
+  width: 2.8cqw;
+  height: 2.8cqw;
   border-radius: 50%;
   text-align: center;
   margin: 2px;
-  font-size: 0.9vw;
+  font-size: 3.6cqw;
 }
 
 .no-severity-circle {

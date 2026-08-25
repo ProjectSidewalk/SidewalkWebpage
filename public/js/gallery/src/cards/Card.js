@@ -319,6 +319,11 @@ class Card {
     new TagDisplay(selector, this.#properties.tags);
   }
 
+  /** Re-runs the pixel-measured tag fit against the card's current width (see CardContainer's ResizeObserver). */
+  refitTags() {
+    this.#renderTags();
+  }
+
   /**
    * Sets a property.
    *

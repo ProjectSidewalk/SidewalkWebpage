@@ -77,5 +77,11 @@ class GalleryPageSpec extends PlaySpec with GuiceOneAppPerSuite {
     "drop a tag the city does not have, rather than failing the page" in {
       activeTags(galleryPage("?tags=definitely-not-a-real-tag")) mustBe empty
     }
+
+    "serve the page to a mobile visitor instead of redirecting to /mobileLanding" in {
+      val mobileUa = "User-Agent" -> "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)"
+      val resp     = route(app, FakeRequest(GET, "/gallery").withHeaders(mobileUa)).get
+      status(resp) mustBe OK
+    }
   }
 }

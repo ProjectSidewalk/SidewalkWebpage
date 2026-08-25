@@ -13,7 +13,7 @@
    city is pinned separately at the top of the switcher. Country order is alphabetical by country id. *@
 @otherCitiesByCountry = @{cityInfo.filter(_.cityId != commonData.cityId).sortBy(c => (c.countryId, c.stateId, c.cityId)).groupBy(_.countryId).toSeq.sortBy(_._1)}
 @isAdmin = @{user.isDefined && (user.get.role == "Administrator" || user.get.role == "Owner")}
-@* Destinations that redirect a mobile visitor to /mobileLanding (Explore, Gallery, Route Builder) or to /mobile
+@* Destinations that redirect a mobile visitor to /mobileLanding (Explore, Route Builder) or to /mobile
    (Expert Validate) are left out of the menu on those devices: a link that can only bounce you somewhere else is
    worse than no link. This is deliberately the same user-agent test the controllers redirect on, not a width
    breakpoint — a narrow desktop window still reaches all of them (#4857). *@
@@ -93,10 +93,7 @@
           </button>
           <ul id="nav-tools-menu" class="dropdown-menu" aria-label="@Messages("navbar.tools")">
             <li class="dropdown-section">@Messages("navbar.tools.analyze")</li>
-            @* Gallery still UA-redirects mobile visitors, so it stays desktop-only until its own conversion. *@
-            @if(!isMobileDevice) {
-              <li><a id="navbar-gallery-btn" href="@routes.GalleryController.gallery()"@if(curPath == "/gallery"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("grid")@Messages("gallery")</a></li>
-            }
+            <li><a id="navbar-gallery-btn" href="@routes.GalleryController.gallery()"@if(curPath == "/gallery"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("grid")@Messages("gallery")</a></li>
             <li><a id="navbar-labelmap-btn-tools" href="@routes.ApplicationController.labelMap(None)"@if(curPath == "/labelmap"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("map")@Messages("navbar.labelmap")</a></li>
             <li class="dropdown-section">@Messages("navbar.tools.community")</li>
             <li><a id="navbar-leaderboard-btn" href='@routes.UserDashboardController.leaderboard'@if(curPath == "/leaderboard"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("award")@Messages("navbar.leaderboard")</a></li>

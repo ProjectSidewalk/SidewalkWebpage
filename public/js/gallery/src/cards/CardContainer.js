@@ -155,6 +155,20 @@ class CardContainer {
       // Sets/Updates the label being displayed in the expanded view.
       this.#expandedView.updateCardIndex(this.#findCardIndex(cardId));
     });
+
+    // Tag pills are fitted in measured pixels at render time (TagDisplay), so a card-column width change
+    // (rotation, the narrow-layout re-stack, a desktop resize) leaves stale fits; re-fit the visible cards.
+    // TagDisplay rebuilds from scratch, so re-running is idempotent; the width guard plus trailing debounce
+    // keep it quiet during continuous resizes and height-only changes (which ResizeObserver also reports).
+    let lastTagFitWidth = uiCardContainer.holder.width();
+    let tagRefitTimer = null;
+    new ResizeObserver(() => {
+      const width = uiCardContainer.holder.width();
+      if (width === lastTagFitWidth) return;
+      lastTagFitWidth = width;
+      clearTimeout(tagRefitTimer);
+      tagRefitTimer = setTimeout(() => this.getCurrentPageCards().forEach((card) => card.refitTags()), 150);
+    }).observe(uiCardContainer.holder[0]);
   }
 
   /**

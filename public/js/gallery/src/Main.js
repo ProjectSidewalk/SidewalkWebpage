@@ -62,5 +62,13 @@ class Main {
     // Initialize data collection.
     sg.form = new Form(params.dataStoreUrl);
     sg.tracker = new Tracker();
+
+    // Narrow-layout filter disclosure (button in gallery.scala.html; filter.css shows it under the breakpoint).
+    const filterToggle = document.getElementById('gallery-filter-toggle');
+    filterToggle?.addEventListener('click', () => {
+      const open = filterToggle.closest('.sidebar').classList.toggle('mobile-visible');
+      filterToggle.setAttribute('aria-expanded', String(open));
+      sg.tracker.push(open ? 'FilterDisclosureOpen' : 'FilterDisclosureClose');
+    });
   }
 }

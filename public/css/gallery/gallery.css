@@ -57,7 +57,7 @@
   display: flex;
   justify-content: center;
   margin: auto;
-  width: 25%;
+  width: fit-content;
 }
 
 .gallery-footer {
@@ -74,23 +74,11 @@
   font-family: raleway, sans-serif;
 }
 
-#footer-spacing {
-  padding-top: 100px;
-}
-
-.grid-container {
-  display: grid;
-  grid-template-areas:
-    "main"
-    "paging";
-  gap: 2px;
-  padding: 0 10px 10px;
-}
-
 /* Takes the rest of the flex row beside the sidebar; min-width: 0 lets it shrink instead of forcing #gallery wider. */
 #gallery-content {
   flex: 1;
   min-width: 0;
+  padding: 10px;
 }
 
 /* Gallery's inline expanded view — a fixed overlay floating over the card grid (the grid never reflows around it;
@@ -116,8 +104,13 @@
 }
 
 .cards {
-  display: flex;
-  flex-flow: row wrap;
+  display: grid;
+
+  /* The 23vw floor keeps desktop at ~3 cards across; narrower windows fall to 2 then 1 columns, and the inner
+     min() lets the track shrink below 280px so a 320px phone still fits. auto-fill (not auto-fit) keeps a short
+     last page's cards at normal width. */
+  grid-template-columns: repeat(auto-fill, minmax(min(max(280px, 23vw), 100%), 1fr));
+  gap: clamp(10px, 1.2vw, 24px);
 }
 
 /* There is no specific intended function for hover/click on labels on the gallery page.
@@ -128,8 +121,8 @@ We should allow the pointer events to pass through and behave the same way as th
 
 .ai-icon-marker {
   position: absolute;
-  width: clamp(12px, 0.75vw, 16px);
-  height: clamp(12px, 0.75vw, 16px);
+  width: clamp(12px, 3cqw, 16px);
+  height: clamp(12px, 3cqw, 16px);
   z-index: 3;
   pointer-events: auto;
   cursor: pointer;
@@ -140,3 +133,43 @@ We should allow the pointer events to pass through and behave the same way as th
   left: -5px;
 }
 
+/*
+ * Phone / narrow layout: the filter column stacks above the cards (its sections behind a disclosure — see
+ * filter.css) and the expanded view becomes a full-screen sheet. 768px is the shell breakpoint the dashboard
+ * and API docs use.
+ */
+@media (width <= 768px) {
+  #gallery {
+    flex-direction: column;
+  }
+
+  /* Sticky is for the side-by-side layout; stacked, the column scrolls with the page at full width. */
+  .sidebar {
+    position: static;
+    width: 100%;
+    padding-left: 0;
+  }
+
+  /* Resolves against the initial containing block, which the stacked sidebar now overlaps. */
+  #labels-not-found-text {
+    position: static;
+  }
+
+  .paging {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* Full-screen sheet below the navbar (and test banner). dvh tracks the visible viewport under mobile
+     toolbars. Kept visibility-toggled like the desktop overlay; left/right: 0 also keeps the closed sheet
+     inside the viewport for the e2e overflow walk, which measures hidden-but-laid-out boxes. */
+  .gallery-expanded-view {
+    top: calc(var(--navbar-height) + var(--test-banner-height, 0px));
+    right: 0;
+    left: 0;
+    width: auto;
+    max-width: none;
+    max-height: calc(100dvh - var(--navbar-height) - var(--test-banner-height, 0px));
+    border-radius: 0;
+  }
+}
