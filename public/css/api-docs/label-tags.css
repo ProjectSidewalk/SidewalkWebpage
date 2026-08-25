@@ -29,7 +29,8 @@
   border-collapse: separate;
   border-spacing: 0;
   margin: var(--space-sm) 0 var(--space-lg) 0;
-  font-size: var(--font-size-sm);
+  font: var(--text-small-regular);
+  line-height: 1.65;
   box-shadow: var(--box-shadow-sm);
   border-radius: var(--border-radius);
   overflow: hidden;
@@ -37,14 +38,15 @@
 
 .tags-table th,
 .tags-table td {
-  padding: 12px 16px;
+  padding: var(--space-sm) var(--space-md);
   text-align: left;
-  border-bottom: 1px solid var(--color-border-light);
+  border-bottom: 1px solid var(--color-neutral-200);
 }
 
 .tags-table th {
-  background-color: var(--color-bg-table-header);
-  font-weight: 600;
+  background-color: var(--color-neutral-100);
+  font: var(--text-small-bold);
+  line-height: 1.65;
 }
 
 .tags-table tr:last-child td {
@@ -52,7 +54,7 @@
 }
 
 .tags-table tr:hover {
-  background-color: var(--color-bg-hover);
+  background-color: var(--color-neutral-100);
 }
 
 /* Summary Table - could be refactored further if more similar tables are needed */
@@ -61,7 +63,8 @@
   border-collapse: separate;
   border-spacing: 0;
   margin: var(--space-sm) 0 var(--space-lg) 0;
-  font-size: var(--font-size-sm);
+  font: var(--text-small-regular);
+  line-height: 1.65;
   box-shadow: var(--box-shadow-sm);
   border-radius: var(--border-radius);
   overflow: hidden;
@@ -69,14 +72,15 @@
 
 .tags-summary-table th,
 .tags-summary-table td {
-  padding: 12px 16px;
+  padding: var(--space-sm) var(--space-md);
   text-align: left;
-  border-bottom: 1px solid var(--color-border-light);
+  border-bottom: 1px solid var(--color-neutral-200);
 }
 
 .tags-summary-table th {
-  background-color: var(--color-bg-table-header);
-  font-weight: 600;
+  background-color: var(--color-neutral-100);
+  font: var(--text-small-bold);
+  line-height: 1.65;
 }
 
 .tags-summary-table tr:last-child td {
@@ -84,7 +88,7 @@
 }
 
 .tags-summary-table tr:hover {
-  background-color: var(--color-bg-hover);
+  background-color: var(--color-neutral-100);
 }
 
 /* ==========================================================================
@@ -93,7 +97,7 @@
 
 /* Tag Name */
 .tag-name {
-  font-weight: 600;
+  font: var(--text-small-bold);
 }
 
 /* Tag Image */
@@ -103,19 +107,19 @@
 
 /* Tag Description */
 .tag-description {
-  color: var(--color-text-secondary);
+  color: var(--color-neutral-700);
   max-width: 300px;
 }
 
 /* Tag Exclusions */
 .tag-exclusions {
-  color: var(--color-text-tertiary);
-  font-size: var(--font-size-xs);
+  color: var(--color-neutral-700);
+  font: var(--text-caption-regular);
 }
 
 .tag-exclusions span {
   display: inline-block;
-  background-color: var(--color-bg-code);
+  background-color: var(--color-neutral-100);
   border-radius: var(--border-radius-sm);
   padding: 2px 6px;
   margin: 2px;
@@ -123,18 +127,18 @@
 
 .tag-exclusions:empty::after {
   content: "None";
-  color: var(--color-text-light);
+  color: var(--color-neutral-700);
   font-style: italic;
 }
 
 /* Label Type Column */
 .label-type {
-  font-weight: 600;
+  font: var(--text-small-bold);
   width: 20%;
 }
 
 .label-type a {
-  color: var(--color-accent-link);
+  color: var(--color-link-200);
   text-decoration: none;
 }
 
@@ -144,6 +148,5 @@
 
 /* Label Tags List */
 .label-tags-list {
-  color: var(--color-text-secondary);
-  line-height: 1.5;
+  color: var(--color-neutral-700);
 }

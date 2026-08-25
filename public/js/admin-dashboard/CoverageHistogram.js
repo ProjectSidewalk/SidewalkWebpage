@@ -50,7 +50,10 @@ class CoverageHistogram {
           { field: 'count', type: 'quantitative', title: 'Regions' },
         ],
       },
-      config: { view: { stroke: null }, axis: { labelFont: 'Inter, sans-serif' } },
+      config: {
+        view: { stroke: null },
+        axis: { labelFont: getComputedStyle(document.documentElement).getPropertyValue('--font-primary') },
+      },
     };
 
     const result = await vegaEmbed(`#${this.#containerId}`, spec, { actions: false, renderer: 'svg' });

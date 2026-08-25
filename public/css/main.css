@@ -126,7 +126,10 @@
   --color-warning-200: #FFDE24;
 
   --color-link-100: #3E8BD9;
-  --color-link-200: #0F5FAF;
+
+  /* Sits in the band a text link needs to go without an underline (WCAG 1.4.1): 4.5:1 on white and 3.5:1 against
+     neutral-900 body text. Darker blues clear white by more but drop under 3:1 against the text. */
+  --color-link-200: #0D6EFD;
 
   /* Project Sidewalk label-type color palette. The canonical color for each accessibility label type. */
   --color-label-curb-ramp: var(--color-lime-500);
@@ -146,9 +149,8 @@
   --font-primary: "Mulish", "PingFang TC", "Microsoft JhengHei", sans-serif;
   --font-accent:  "Raleway", sans-serif;
 
-  /* Monospace, for content whose alignment carries meaning: code, BibTeX, fixed-width identifiers. JetBrains Mono
-       is self-hosted in css/fonts.css, which every page links, so this resolves to it site-wide; the platform faces
-       behind it cover the scripts its Latin subsets don't. */
+  /* Monospace, for content whose alignment carries meaning: code, BibTeX, fixed-width identifiers. The platform faces
+       behind JetBrains Mono cover the scripts its Latin subsets don't. */
   --font-mono:    "JetBrains Mono", sfmono-regular, consolas, "Liberation Mono", menlo, monospace;
 
   /* Typography scale: mirrors the Figma Design System Tokens file.
@@ -175,7 +177,11 @@
   --text-body-medium:      500 calc(16px * var(--ui-scale, 1))/calc(22px * var(--ui-scale, 1)) var(--font-primary);
   --text-body-regular:     400 calc(16px * var(--ui-scale, 1))/calc(22px * var(--ui-scale, 1)) var(--font-primary);
 
-  --text-small-bold:       700 calc(14px * var(--ui-scale, 1))/calc(18px * var(--ui-scale, 1)) var(--font-primary);
+  /* Body size with the looser leading long-form reading wants (documentation, articles, multi-paragraph copy);
+       --text-body-* stays the token for UI copy — labels, cells, cards, short blurbs. Not yet in the Figma file. */
+  --text-prose-regular:    400 calc(16px * var(--ui-scale, 1))/calc(26px * var(--ui-scale, 1)) var(--font-primary);
+
+  --text-small-bold:      700 calc(14px * var(--ui-scale, 1))/calc(18px * var(--ui-scale, 1)) var(--font-primary);
   --text-small-medium:     500 calc(14px * var(--ui-scale, 1))/calc(18px * var(--ui-scale, 1)) var(--font-primary);
   --text-small-regular:    400 calc(14px * var(--ui-scale, 1))/calc(18px * var(--ui-scale, 1)) var(--font-primary);
   --text-small-accent:     400 calc(14px * var(--ui-scale, 1))/calc(18px * var(--ui-scale, 1)) var(--font-accent);
@@ -190,9 +196,56 @@
   --text-tiny-medium:   500 calc(10px * var(--ui-scale, 1))/calc(12px * var(--ui-scale, 1)) var(--font-primary);
   --text-tiny-regular:  400 calc(10px * var(--ui-scale, 1))/calc(12px * var(--ui-scale, 1)) var(--font-primary);
 
+  /* Code blocks. Inline code keeps a relative size instead (font-family + 0.9em), so it tracks whatever text it
+       sits in. Not yet in the Figma file. */
+  --text-code-regular:  400 calc(14px * var(--ui-scale, 1))/calc(21px * var(--ui-scale, 1)) var(--font-mono);
+
+  /* Spacing scale. Scales with --ui-scale like the type tokens, so it's safe inside tool UI too. */
+  --space-xxs:  calc(4px * var(--ui-scale, 1));
+  --space-xs:   calc(8px * var(--ui-scale, 1));
+  --space-sm:   calc(12px * var(--ui-scale, 1));
+  --space-md:   calc(16px * var(--ui-scale, 1));
+  --space-lg:   calc(24px * var(--ui-scale, 1));
+  --space-xl:   calc(32px * var(--ui-scale, 1));
+  --space-xxl:  calc(48px * var(--ui-scale, 1));
+  --space-xxxl: calc(64px * var(--ui-scale, 1));
+
+  /* Corner radii. These are the values the docs/dashboard surfaces settled on; the DST buttons use larger ones
+       (8–16px, see .button--*), so the set still needs reconciling against the Figma file (#4300). */
+  --border-radius-sm: calc(3px * var(--ui-scale, 1));
+  --border-radius:    calc(4px * var(--ui-scale, 1));
+  --border-radius-lg: calc(8px * var(--ui-scale, 1));
+
+  /* Elevation. */
+  --box-shadow-sm: 0 1px 3px rgb(0 0 0 / 10%);
+  --box-shadow:    0 2px 5px rgb(0 0 0 / 15%);
+  --box-shadow-lg: 0 4px 12px rgb(0 0 0 / 15%);
+
+  /* Motion. */
+  --transition-fast:   0.15s ease;
+  --transition-medium: 0.3s ease;
+  --transition-slow:   0.5s ease;
+
+  /* Stacking layers, lowest to highest. */
+  --z-index-dropdown:       1000;
+  --z-index-sticky:         1020;
+  --z-index-fixed:          1030;
+  --z-index-modal-backdrop: 1040;
+  --z-index-modal:          1050;
+  --z-index-popover:        1060;
+  --z-index-tooltip:        1070;
+
+  /* Responsive breakpoints. var() can't be used inside a media query, so these are the reference values — write the
+       pixel value in the @media rule and name the token in a comment beside it. */
+  --breakpoint-xs: 480px;
+  --breakpoint-sm: 768px;
+  --breakpoint-md: 992px;
+  --breakpoint-lg: 1200px;
+  --breakpoint-xl: 1400px;
+
   /* Other globals. */
   --navbar-height: 38px;
-  --navbar-z-index: 1030;
+  --navbar-z-index: var(--z-index-fixed);
 }
 
 
@@ -286,13 +339,13 @@ footer {
  * Accessibility styling updates.
  */
 a {
-  color: #0d6efd;
+  color: var(--color-link-200);
 }
 
 /* Replacing bootstrap 3 colors with bootstrap 5, which have a better color contrast. */
 .btn-primary {
-  background-color: #0D6EFD;
-  border: #0D6EFD;
+  background-color: var(--color-link-200);
+  border: var(--color-link-200);
 }
 
 
@@ -306,7 +359,7 @@ a {
   display: inline-flex;
   align-items: center;
   font-weight: 500;
-  font-family: Raleway, sans-serif;
+  font-family: var(--font-primary);
   text-decoration: none;
   transition: background-color 0.4s ease 0s;
   cursor: pointer;

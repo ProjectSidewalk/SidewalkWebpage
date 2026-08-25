@@ -15,10 +15,9 @@
 .visualization-section h3 {
   margin: var(--space-lg) 0 var(--space-sm);
   padding-bottom: var(--space-xxs);
-  font-size: 1.2em;
-  font-weight: 600;
-  color: var(--color-text-primary);
-  border-bottom: 1px solid var(--color-border-light);
+  font: var(--text-title-bold);
+  color: var(--color-neutral-900);
+  border-bottom: 1px solid var(--color-neutral-200);
 }
 
 .visualization-description {
@@ -32,17 +31,17 @@
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: #666666;
+  color: var(--color-neutral-700);
   font-style: italic;
-  background-color: #f8f9fa;
+  background-color: var(--color-neutral-100);
 }
 
 .loading-message::before {
   content: "";
   width: 20px;
   height: 20px;
-  border: 2px solid #e0e0e0;
-  border-top: 2px solid var(--color-accent-link);
+  border: 2px solid var(--color-neutral-200);
+  border-top: 2px solid var(--color-link-200);
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-right: 10px;
@@ -50,11 +49,7 @@
 
 /* ---- Download Section Enhancements ---- */
 
-.download-buttons .download-btn[data-format="geopackage"] .format-icon {
-  font-size: 1.5em;
-}
-
 .download-buttons .download-btn[data-format="geopackage"]:hover {
-  background-color: #e8f4f8;
-  border-color: #2196f3;
+  background-color: var(--color-blue-300);
+  border-color: var(--color-link-200);
 }

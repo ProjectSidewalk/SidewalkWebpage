@@ -19,6 +19,12 @@
  * - Follows web standards and best practices
  */
 
+// Chart.js paints its labels onto a canvas, so they can't inherit the page font. The pages that chart load Chart.js
+// ahead of this script, and build their charts once their data arrives.
+if (window.Chart) {
+  window.Chart.defaults.font.family = getComputedStyle(document.documentElement).getPropertyValue('--font-primary');
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const enableLeftSidebarAccordions = false; // Flag to disable left sidebar accordions.
 

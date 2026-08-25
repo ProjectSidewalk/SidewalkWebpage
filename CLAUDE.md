@@ -263,15 +263,23 @@ When you catch yourself writing a frontend constant that mirrors a backend value
 - User interactions are logged (clicks, key presses, mode switches, pano changes, mission/task events, etc.) to the activity/interaction tables. When you **add or change an interaction**, add or adjust the corresponding logging so analytics stay complete; keep event names consistent with the existing ones, and update [`docs/logged-events.md`](docs/logged-events.md) (how logging works + the event reference).
 - Ensure WCAG 2.1/2.2 Level AA accessibility standards are met
 - **Style all UI from the design-system tokens in `main.css` `:root`** — colors (`--color-*`), type (`--text-*`),
-  and button styles. They mirror our "Design System Tokens" Figma and are the default for any new or refactored UI:
-  a hardcoded hex color or hand-assembled font stack is a bug unless the token set genuinely has no fit. For type
-  specifically:
+  spacing (`--space-*`), radii (`--border-radius*`), elevation (`--box-shadow*`), motion (`--transition-*`),
+  stacking (`--z-index-*`), breakpoints (`--breakpoint-*`, reference values — `var()` can't appear in a media query,
+  so write the px and name the token in a comment), and button styles. They mirror our "Design System Tokens" Figma
+  and are the default for any new or refactored UI: a hardcoded hex color or hand-assembled font stack is a bug
+  unless the token set genuinely has no fit. For type specifically:
   - **Set type with a composite `--text-*` token, not the raw font variables.** Write
     `font: var(--text-body-regular);` — never `font-family: var(--font-primary)` plus hand-picked
     size/weight/line-height. The `--text-*` tokens are complete `font` shorthands (weight, size/line-height, family)
     and already bake in `var(--ui-scale)`. If one aspect of the token doesn't suit the design — usually line-height —
     keep the token and override just that property after it (`font: var(--text-body-regular); line-height: 1.5;`)
-    rather than dropping to raw `font-*` properties.
+    rather than dropping to raw `font-*` properties. Long-form reading text (documentation, multi-paragraph copy)
+    takes `--text-prose-regular`, the body size with looser leading; `--text-body-*` is for UI copy. Code blocks take
+    `--text-code-regular`; inline `code` keeps `font-family: var(--font-mono)` at a relative `em` size so it tracks
+    the text it sits in.
+  - **Size in px, never `rem`.** Bootstrap 3 sets `html { font-size: 62.5% }`, so `1rem` is 10px on every page and a
+    `0.875rem` "14px" renders at 8.75px. The `--text-*` tokens are px for this reason; the legacy `--font-size-*`
+    rem aliases in `admin-dashboard.css` are the last holdouts (#4300).
   - **Default to the primary font (Mulish).** The accent font (`--font-accent`, Raleway) is display-only and already
     scoped to the few tokens that carry it (`--text-h1-bold`, `--text-h2-bold`, `--text-small-accent`) — don't
     introduce it elsewhere.

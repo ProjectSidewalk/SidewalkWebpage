@@ -28,8 +28,8 @@
 
 /* Individual chart container */
 .validation-chart-container {
-  background-color: #f9f9f9;
-  border: 1px solid var(--color-border-light);
+  background-color: var(--color-neutral-100);
+  border: 1px solid var(--color-neutral-200);
   border-radius: var(--border-radius);
   padding: var(--space-md);
   text-align: center;
@@ -43,11 +43,10 @@
 
 /* Chart title styling */
 .chart-title {
-  font-size: var(--font-size-lg);
-  font-weight: 600;
+  font: var(--text-subtitle-bold);
   margin-bottom: var(--space-md);
-  color: var(--color-text-heading);
-  border-bottom: 1px solid var(--color-border-light);
+  color: var(--color-neutral-900);
+  border-bottom: 1px solid var(--color-neutral-200);
   padding-bottom: var(--space-xs);
 }
 
@@ -64,8 +63,8 @@
 
 /* Summary statistics container */
 .validation-summary {
-  background-color: var(--color-bg-callout);
-  border: 1px solid var(--color-border-light);
+  background-color: var(--color-blue-300);
+  border: 1px solid var(--color-neutral-200);
   border-radius: var(--border-radius);
   padding: var(--space-lg);
   margin: var(--space-lg) 0;
@@ -75,7 +74,7 @@
 .validation-summary h3 {
   margin-top: 0;
   margin-bottom: var(--space-md);
-  color: var(--color-text-heading);
+  color: var(--color-neutral-900);
 }
 
 /* Summary stats grid */
@@ -89,19 +88,18 @@
 .summary-stat-item {
   padding: var(--space-sm);
   border-radius: var(--border-radius-sm);
-  background-color: var(--color-bg-body);
-  border: 1px solid var(--color-border-light);
+  background-color: var(--color-neutral-white);
+  border: 1px solid var(--color-neutral-200);
 }
 
 .summary-stat-value {
-  font-size: var(--font-size-xl);
-  font-weight: 600;
-  color: var(--color-text-heading);
+  font: var(--text-title-bold);
+  color: var(--color-neutral-900);
 }
 
 .summary-stat-label {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
   margin-top: var(--space-xs);
 }
 
@@ -115,7 +113,7 @@
   align-items: center;
   justify-content: center;
   padding: var(--space-xxl);
-  color: var(--color-text-secondary);
+  color: var(--color-neutral-700);
 }
 
 .validation-loading .loading-spinner {
@@ -123,11 +121,11 @@
 }
 
 .validation-error {
-  color: var(--color-error);
+  color: var(--color-error-200);
   text-align: center;
   padding: var(--space-xxl);
-  background-color: var(--color-error-light);
-  border: 1px solid var(--color-error);
+  background-color: rgb(from var(--color-error-200) r g b / 10%);
+  border: 1px solid var(--color-error-200);
   border-radius: var(--border-radius);
   margin: var(--space-lg) 0;
 }
@@ -138,9 +136,9 @@
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: var(--color-text-light);
+  color: var(--color-neutral-700);
+  font: var(--text-small-regular);
   font-style: italic;
-  font-size: var(--font-size-sm);
 }
 
 /* ==========================================================================
@@ -160,34 +158,34 @@
   display: flex;
   align-items: center;
   gap: var(--space-xs);
-  font-size: var(--font-size-sm);
+  font: var(--text-small-regular);
 }
 
 .validation-legend-color {
   width: 16px;
   height: 16px;
   border-radius: var(--border-radius-sm);
-  border: 1px solid var(--color-border-medium);
+  border: 1px solid var(--color-neutral-200);
 }
 
-/* Color indicators for validation results */
+/* Color indicators for validation results, matching the Validate tool's agree/disagree/unsure palette. */
 .result-agree {
-  background-color: #4caf50;
+  background-color: var(--color-pine-500);
 }
 
 .result-disagree {
-  background-color: #f44336;
+  background-color: var(--color-orange-500);
 }
 
 .result-unsure {
-  background-color: #ff9800;
+  background-color: var(--color-banana-500);
 }
 
 /* ==========================================================================
    RESPONSIVE DESIGN
    ========================================================================== */
 
-/* Tablet adjustments */
+/* var(--breakpoint-md) */
 @media (width <= 992px) {
   .validation-charts-grid {
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -199,7 +197,7 @@
   }
 }
 
-/* Mobile adjustments */
+/* var(--breakpoint-sm) */
 @media (width <= 768px) {
   .validation-charts-grid {
     grid-template-columns: 1fr;
@@ -215,7 +213,7 @@
   }
 
   .chart-title {
-    font-size: var(--font-size-md);
+    font: var(--text-body-bold);
   }
 
   .validation-legend {
@@ -229,7 +227,7 @@
   }
 }
 
-/* Extra small screens */
+/* var(--breakpoint-xs) */
 @media (width <= 480px) {
   .validation-charts-grid {
     gap: var(--space-sm);

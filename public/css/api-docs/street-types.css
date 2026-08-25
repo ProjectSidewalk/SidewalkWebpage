@@ -25,7 +25,8 @@
   border-collapse: separate;
   border-spacing: 0;
   margin: var(--space-lg) 0;
-  font-size: var(--font-size-sm);
+  font: var(--text-small-regular);
+  line-height: 1.65;
 }
 
 .street-types-table th:not(:last-child),
@@ -34,15 +35,16 @@
 }
 
 .street-types-table th {
-  background-color: rgb(245 245 245);
-  font-weight: bold;
+  background-color: var(--color-neutral-100);
+  font: var(--text-small-bold);
+  line-height: 1.65;
   text-align: left;
 }
 
 .street-types-table th, .street-types-table td {
   text-align: left;
-  padding: 12px 16px;
-  border-bottom: 1px solid rgb(238 238 238);
+  padding: var(--space-sm) var(--space-md);
+  border-bottom: 1px solid var(--color-neutral-200);
 }
 
 /* Make the description column wider */
@@ -56,21 +58,20 @@
 
 /* Street Type Name */
 .street-name {
-  font-weight: 600;
+  font: var(--text-small-bold);
   white-space: nowrap;
 }
 
 /* Street Type Description */
 .street-description {
-  color: var(--color-text-secondary);
-  line-height: 1.5;
+  color: var(--color-neutral-700);
 }
 
 /* Street Count - right-aligned for better readability */
 .street-count {
   text-align: right;
+  font: var(--text-small-medium);
   font-variant-numeric: tabular-nums;
-  font-weight: 500;
 }
 
 /* ==========================================================================
@@ -80,8 +81,8 @@
 /* Progress bar container */
 .count-bar-container {
   width: 100%;
-  background-color: #f5f5f5;
-  border-radius: 4px;
+  background-color: var(--color-neutral-200);
+  border-radius: var(--border-radius);
   height: 8px;
   margin-top: 4px;
   overflow: hidden;
@@ -90,14 +91,15 @@
 /* Progress bar fill */
 .count-bar-fill {
   height: 100%;
-  background-color: var(--color-accent-link);
-  border-radius: 4px;
+  background-color: var(--color-link-100);
+  border-radius: var(--border-radius);
 }
 
 /* ==========================================================================
     RESPONSIVE ADAPTATIONS
     ========================================================================== */
 
+/* var(--breakpoint-sm) */
 @media (width <= 768px) {
   .street-types-table .street-description {
     max-width: 300px;
@@ -110,6 +112,7 @@
   }
 }
 
+/* var(--breakpoint-xs) */
 @media (width <= 480px) {
   .street-types-table .street-description {
     max-width: 200px;

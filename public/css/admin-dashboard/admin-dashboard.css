@@ -3,13 +3,37 @@
  *
  * The three-column shell (sidebar / content / TOC) is inherited wholesale from api-docs.css via shared .api-* class
  * names. This file only adds what the docs don't have: the "coming soon" nav treatment and the Coverage page's
- * map, legend, KPIs, chart, and details panel. Colors/spacing come from the design-system tokens in main.css and
- * api-docs.css — avoid hardcoding values that already exist as tokens.
+ * map, legend, KPIs, chart, and details panel. Colors/spacing come from the design-system tokens in main.css (plus
+ * the alias block below) — avoid hardcoding values that already exist as tokens.
  *
- * Coverage sequential color scale (ColorBrewer "Blues", colorblind-safe). Keep these in sync with
+ * Coverage sequential color scale (--coverage-*: ColorBrewer "Blues", colorblind-safe). Keep these in sync with
  * CoverageColors.STOPS in coverage-map.js so the map, legend, and bar chart all agree.
  */
+
+/* Token aliases this file and user-dashboard.css still reference; the docs shell itself uses the main.css tokens
+   directly, and migrating the dashboards to them is the remaining half of #4300 — resolve uses to the main.css token
+   rather than adding to this block. The --font-size-* values are rem, and Bootstrap 3's reset makes 1rem = 10px, so
+   each renders at 62.5% of the size its name suggests (--font-size-sm is 8.75px, --font-size-xxl 15px). */
 :root {
+  --font-size-xxs: 0.75rem;
+  --font-size-xs: 0.8125rem;
+  --font-size-sm: 0.875rem;
+  --font-size-md: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-xxl: 1.5rem;
+  --color-text-primary: var(--color-neutral-900);
+  --color-text-secondary: var(--color-neutral-700);
+  --color-text-tertiary: var(--color-neutral-700);
+  --color-text-heading: var(--color-neutral-900);
+  --color-accent-link: var(--color-link-200);
+  --color-accent-delete: var(--color-error-200);
+  --color-bg-hover: var(--color-neutral-100);
+  --color-success: var(--color-success-200);
+  --color-warning: var(--color-warning-200);
+  --color-error: var(--color-error-200);
+  --color-error-light: rgb(from var(--color-error-200) r g b / 10%);
+
   --coverage-c0: #eff3ff; /* ~0%   */
   --coverage-c1: #bdd7e7; /* ~33%  */
   --coverage-c2: #6baed6; /* ~66%  */
@@ -219,7 +243,7 @@
 
 /* Mapbox popup tweaks so the tooltip matches the dashboard type. */
 .coverage-map .mapboxgl-popup-content {
-  font-family: var(--font-sans, sans-serif);
+  font-family: var(--font-primary);
   font-size: var(--font-size-xs, 0.8125rem);
   padding: 8px 10px;
 }
@@ -691,7 +715,7 @@
 .mini-axis {
   fill: var(--color-text-secondary, #5a7785);
   font-size: 11px;
-  font-family: var(--font-sans, sans-serif);
+  font-family: var(--font-primary);
 }
 
 /* Per-bar value labels (opts.barValues). Text tokens, not the series color, so the numbers stay readable. */
@@ -699,7 +723,7 @@
   fill: var(--color-text-secondary, #5a7785);
   font-size: 11px;
   font-weight: 600;
-  font-family: var(--font-sans, sans-serif);
+  font-family: var(--font-primary);
 }
 
 /* Emphasized category (opts.emphasisIndex — e.g. the in-progress "today" bar): bolder, darker text; the bar itself
@@ -717,7 +741,7 @@
   fill: var(--color-text-secondary, #5a7785);
   font-size: 11px;
   font-weight: 600;
-  font-family: var(--font-sans, sans-serif);
+  font-family: var(--font-primary);
 }
 
 .mini-value--emphasis {
