@@ -78,9 +78,8 @@ class AdminUser {
     const total = Number(data.total_hours) || 0;
     value.textContent = `${total.toFixed(1)} h`;
     kpi.removeAttribute('aria-busy');
-    if (cities.length > 1) {
-      document.getElementById('au-hours-label').textContent = 'Exploring & validating, all cities';
-    }
+    const label = document.getElementById('au-hours-label');
+    if (cities.length > 1 && label) label.textContent = 'Exploring & validating, all cities';
     if (data.show_breakdown) AdminUser.#renderHoursCities(cities);
 
     // An unreached city may have held hours, so the total is a floor. An admin verifying a claim needs to know that
