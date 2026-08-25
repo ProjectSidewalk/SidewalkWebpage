@@ -700,7 +700,7 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
       val roleId          = registeredRoleId.getOrElse(cancel("no Registered role in this database"))
       val (first, second) = runRolledBack(for {
         _ <- sqlu"""INSERT INTO sidewalk_user (user_id, username, email)
-                         VALUES ($FixtureUserId, $FixtureUsername, 'zz_fixture_4533@example.com')"""
+                    VALUES ($FixtureUserId, $FixtureUsername, 'zz_fixture_4533@example.com')"""
         _      <- sqlu"INSERT INTO user_role (user_id, role_id) VALUES ($FixtureUserId, $roleId)"
         first  <- userStatTable.insertIfNew(FixtureUserId, onLeaderboard = true, publicProfile = true)
         second <- userStatTable.insertIfNew(FixtureUserId, onLeaderboard = false, publicProfile = false)

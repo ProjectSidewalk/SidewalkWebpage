@@ -379,8 +379,9 @@ jobs:
       #   no-op here.
       # - AdminUserViewSpec (#4986): the admin's view of a user's hours must be the same figure that user reads on
       #   /timeCheck -- an admin checking a service-hours claim against a per-deployment number sees a multi-city
-      #   volunteer's honest total as inflated. Renders both templates against one breakdown and compares what each
-      #   displays, so the agreement is pinned where it is visible rather than at the service call both happen to make.
+      #   volunteer's honest total as inflated. The admin side fills its KPI from adminGetCrossCityHours after the page
+      #   renders, so this compares that payload against what the volunteer's page displays, and separately pins that
+      #   the page ships the endpoint URL and element ids its script needs. The client half is test/js/.
       # - DashboardStatsInvariantSpec (#4496/#4526/#4533/#4604): the contract/shape invariants behind every dashboard,
       #   leaderboard, and profile stat -- ordering, caps, ranges, the cross-schema SQL's refusal of a non-identifier
       #   schema name, and the reconciliations that keep the cross-city sections agreeing with the KPIs above them.

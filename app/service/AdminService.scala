@@ -426,7 +426,7 @@ class AdminServiceImpl @Inject() (
    * Gets the additional data to show on the admin view of a user's dashboard.
    *
    * Hours are not among it: the page reports the user's total across every city, which only the cross-schema fan-out
-   * in `UserService.getCrossCityHours` can produce, so the controller fetches that alongside this (#4986).
+   * in `UserService.getCrossCityHours` can produce, and the page fetches that after it renders (#4986).
    *
    * @param userId ID of the user whose data we're getting.
    */

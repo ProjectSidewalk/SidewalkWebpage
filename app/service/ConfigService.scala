@@ -1306,11 +1306,15 @@ class ConfigServiceImpl @Inject() (
     crossCitySelfViewScope("getCrossCityHoursScope", ConfigService.CrossCityHoursRequiredColumns, "volunteer hours")
 
   /**
-   * Which cities one mapper's own data may be gathered from, for a query needing `required`.
+   * Which cities one mapper's data may be gathered from, for a query needing `required`.
    *
-   * Shared by the self-view fan-outs: they differ only in the columns they read, never in which deployments they are
-   * entitled to see — that is what separates them from [[getGlobalLeaderboardScope]], which withholds cities for
-   * privacy reasons that don't apply to someone reading their own numbers.
+   * Shared by these fan-outs: they differ only in the columns they read, never in which deployments they are entitled
+   * to see — that is what separates them from [[getGlobalLeaderboardScope]], which withholds unlaunched and
+   * private-by-default cities so a public by-name board can't advertise them.
+   *
+   * Those exclusions stay off here even on the admin surfaces that read *another* user's breakdown
+   * (`adminGetCrossCityStats`, `adminGetCrossCityHours`): both are gated on `WithAdmin`, and an admin who can already
+   * read the account is not who the leaderboard rules withhold it from. Any surface past that gate needs a fresh look.
    *
    * @param cacheKey Cache key for this scope; distinct per column set, since the answers differ.
    * @param required The (table, column) pairs the caller's query reads.

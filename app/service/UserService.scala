@@ -184,6 +184,15 @@ case class CrossCityHours(cities: Seq[CityHours], unreachableCities: Int) {
    * instead of an ulp either side of it.
    */
   def totalHours: Double = cities.map(city => BigDecimal.decimal(city.hours)).sum.toDouble
+
+  /**
+   * Whether the per-city rows are worth showing beneath the total.
+   *
+   * True for a lone city too when it isn't this deployment, so hours earned elsewhere are never left looking like they
+   * were earned here. Lives here rather than in each surface because the volunteer's page and the admin's view of it
+   * must not diverge on it (#4986).
+   */
+  def showBreakdown: Boolean = cities.nonEmpty && (cities.length > 1 || !cities.exists(_.isCurrentCity))
 }
 
 /**
@@ -207,7 +216,7 @@ private[service] case class CrossCityFanOut(
 /**
  * The admin-only additions to a user's dashboard (`/admin/user/:username/admin`).
  *
- * Hours are not here: the page reports the user's cross-city total, which the controller fetches separately (#4986).
+ * Hours are not here: the page reports the user's cross-city total, which it fetches after rendering (#4986).
  */
 case class AdminUserProfileData(
     currentRegion: Option[Region],

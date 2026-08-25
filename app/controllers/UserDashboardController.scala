@@ -78,23 +78,14 @@ class UserDashboardController @Inject() (
    */
   def adminUser(username: String) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     withUser(username) { subject =>
-      // The same cross-city total the user reads on /timeCheck, and fetched the same way: uncached, and started here
-      // so the fan-out overlaps the lookups below rather than following them. An admin opens this page to check a
-      // figure the user just reported, so the two have to agree at that moment (#4986).
-      val cityHoursF: Future[service.CrossCityHours] =
-        userService.getCrossCityHours(subject.userId, request2Messages.lang)
       for {
         commonData <- configService.getCommonPageData(request2Messages.lang)
         adminData  <- adminService.getAdminUserProfileData(subject.userId)
         team       <- userService.getUserTeam(subject.userId)
         teams      <- userService.getAllTeams
-        cityHours  <- cityHoursF
       } yield {
         cc.loggingService.insert(request.identity.userId, request.ipAddress, s"Visit_AdminUser_User=$username")
-        Ok(
-          views.html.userDashboard
-            .adminUser(commonData, request.identity, subject, adminData, cityHours, team, teams)
-        )
+        Ok(views.html.userDashboard.adminUser(commonData, request.identity, subject, adminData, team, teams))
       }
     }
   }
