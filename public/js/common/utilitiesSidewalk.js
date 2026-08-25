@@ -459,7 +459,8 @@ function UtilitiesMisc(JSON) {
    * representation puts an annotation — or a callout anchored to one — a full pano-width away from where the user is
    * looking. Only a point within a quarter-width of the seam is ambiguous; everything else is returned unchanged.
    *
-   * @param {number} panoX - Pano image x-coordinate, as stored on tutorial state annotations.
+   * @param {number} panoX - Tutorial annotation x-coordinate; x = 0 faces true north, so it compares directly
+   *                          against the heading (see util.pano.horizonRelativeCoordToPov).
    * @param {number} heading - The camera's current heading, in degrees.
    * @param {number} panoWidth - Full width of the pano image in pixels.
    * @returns {number} The equivalent x-coordinate nearest the current view; may be negative or exceed panoWidth.
