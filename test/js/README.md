@@ -67,7 +67,7 @@ npm run test:js    # runs Jest against test/js/ only
 
 `npm run test:js` is a **new** script; the existing placeholder `npm test` is left untouched.
 
-> Node note: the dev DB / Scala app run in Docker, but Jest runs on the host with plain Node (the plan targets Node 23).
+> Node note: the dev DB / Scala app run in Docker, but Jest runs on the host with plain Node (the plan targets Node 24).
 > No Docker is needed for these tests.
 
 ## How it works (no module system)

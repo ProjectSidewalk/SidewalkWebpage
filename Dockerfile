@@ -2,7 +2,7 @@ FROM eclipse-temurin:17-jdk-focal
 
 RUN apt-get update && apt-get upgrade -y
 
-RUN curl -sL https://deb.nodesource.com/setup_23.x | bash -
+RUN curl -sL https://deb.nodesource.com/setup_24.x | bash -
 
 # Add repository for sbt.
 RUN echo "deb https://repo.scala-sbt.org/scalasbt/debian all main" | tee /etc/apt/sources.list.d/sbt.list
