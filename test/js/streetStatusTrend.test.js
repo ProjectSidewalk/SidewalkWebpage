@@ -206,6 +206,13 @@ describe('the expiry note', () => {
       .toMatch(/^1,234 panos were already expired before any of this was recorded/);
   });
 
+  test('warns that those panos can still chart a recovery with no loss before it', async () => {
+    await render(payload({ panos_expired_undated: 1234 }));
+    // Losses that predate the log, recoveries that don't: the page has to own the asymmetry or it reads as a bug.
+    expect(document.getElementById('trend-expiry-note').textContent)
+      .toMatch(/recovery, with no matching loss before it/);
+  });
+
   test('stays silent when every expired pano is accounted for', async () => {
     await render(payload({ panos_expired_undated: 0 }));
     expect(document.getElementById('trend-expiry-note').textContent).toBe('');

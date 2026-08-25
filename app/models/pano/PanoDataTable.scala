@@ -149,8 +149,9 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
   /**
    * Panos that were already expired before any of this was recorded, so the trend can say how much it can't show.
    *
-   * These are the rows `pano_imagery_change` has no event for and never will: they expired before 358 added
-   * `expired_at`, so 363's backfill of the log from that column had no date to seed them with.
+   * These are the rows `pano_imagery_change` has no loss event for: they expired before 358 added `expired_at`, so
+   * 363's backfill of the log from that column had no date to seed them with. If one regains imagery it still logs
+   * the recovery, so the chart can show more recoveries than losses until this count drains.
    */
   def countExpiredWithoutExpiryDate: DBIO[Int] = {
     panoDataRecords.filter(pano => pano.expired && pano.expiredAt.isEmpty).length.result
@@ -205,6 +206,12 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
    * expiring branch's other constraint: `pano_data_expired_at_check` is evaluated per statement, so stamping in a
    * separate statement first fails on a row that is still unexpired, and flipping first destroys the very condition
    * the stamp depends on.
+   *
+   * That snapshot is also the limit of what `edge` can see: a flip committed by another connection mid-statement is
+   * invisible to it, so a sweep expiring a pano while a labeler's `upsert` is in flight can leave a loss with no
+   * matching recovery. The window is one autocommit statement, which is rare enough to accept. Do not reach for
+   * `FOR UPDATE` on `edge` to close it — that collides with the same statement's own write of the row, so `edge`
+   * comes back empty and the ordinary uncontended case silently stops logging (verified on PG 16).
    *
    * @param panoId The ID of the pano
    * @param expired Whether the original source for the image has expired
@@ -331,7 +338,7 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
    * so it records one in `pano_imagery_change` (#4947). The `edge` CTE is what keeps it to the transition: it sees
    * the statement's snapshot, so it holds the pano's state before the upsert, and the common case of viewing a pano
    * that was never expired logs nothing. New panos match nothing there either, so the log row can't precede the row
-   * it references.
+   * it references. It inherits the snapshot race and the `FOR UPDATE` trap described on `updateExpiredStatus`.
    *
    * @param data The pano metadata to save.
    * @return Number of rows inserted/updated (always 1).

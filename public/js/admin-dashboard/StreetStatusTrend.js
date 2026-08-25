@@ -172,11 +172,13 @@ class StreetStatusTrend {
       ariaLabel: 'Panoramas whose imagery went away, and whose imagery came back, per week',
     });
 
+    // These panos have no logged loss but do log their recovery, so "came back" can outrun "went away" until the
+    // count drains. Unexplained, that reads as a broken chart.
     const undated = data.panos_expired_undated || 0;
     AdminShell.setText('trend-expiry-note', undated === 0
       ? ''
-      : `${AdminShell.num(undated)} panos were already expired before any of this was recorded, `
-        + 'so they appear in no week above.');
+      : `${AdminShell.num(undated)} panos were already expired before any of this was recorded, so they appear in `
+        + 'no week above. If one regains imagery it still charts as a recovery, with no matching loss before it.');
   }
 
   /** The review queue: still-open streets that several distinct labelers reported as empty. */

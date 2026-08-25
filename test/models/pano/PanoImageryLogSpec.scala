@@ -106,7 +106,18 @@ class PanoImageryLogSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAp
       reset()
       run(panoDataTable.updateExpiredStatus(panoId, expired = true, Some(false), OffsetDateTime.now))
       run(panoDataTable.upsert(freshPano(OffsetDateTime.now)))
+      // Also the guard on the tempting "fix" for the snapshot race: `FOR UPDATE` on the upsert's `edge` collides
+      // with the same statement's own write of the row, and this uncontended case silently stops logging.
       events mustBe Seq(true -> "provider_check", false -> "pano_view")
+    }
+
+    "record the recovery of a pano that expired before expiry dates were kept" in {
+      reset()
+      run(sqlu"UPDATE pano_data SET expired = TRUE, expired_at = NULL WHERE pano_id = $panoId")
+      run(panoDataTable.updateExpiredStatus(panoId, expired = false, Some(false), OffsetDateTime.now))
+      // Pre-358 expiries have no date for 363's backfill to seed a loss from, so their recoveries arrive unpaired.
+      // That is why the chart can show more recoveries than losses, and why the page says so out loud.
+      events mustBe Seq(false -> "provider_check")
     }
 
     "record nothing when a labeler views a pano that was never expired" in {
@@ -142,6 +153,31 @@ class PanoImageryLogSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAp
       run(panoDataTable.updateExpiredStatus(panoId, expired = true, Some(false), OffsetDateTime.now))
       run(sqlu"DELETE FROM pano_data WHERE pano_id = $panoId")
       // ON DELETE CASCADE: the history of a deleted pano describes nothing, and would hold an orphan reference.
+      events mustBe empty
+    }
+  }
+
+  "the writers' row counts" should {
+
+    // The CTEs put two more statements in front of the one the DBIO[Int] comes from. Were a rewrite to take the
+    // count from the log INSERT, a write would report 0 rows touched on the very transitions it exists to record.
+    "count the pano row the flip touched, not the log row it wrote" in {
+      reset()
+      run(panoDataTable.updateExpiredStatus(panoId, expired = true, Some(false), OffsetDateTime.now)) mustBe 1
+      run(panoDataTable.updateExpiredStatus(panoId, expired = true, Some(false), OffsetDateTime.now)) mustBe 1
+      run(panoDataTable.updateExpiredStatus(panoId, expired = false, Some(false), OffsetDateTime.now)) mustBe 1
+    }
+
+    "report an upsert as one row whether or not it logged a recovery" in {
+      reset()
+      run(panoDataTable.upsert(freshPano(OffsetDateTime.now))) mustBe 1
+      run(panoDataTable.updateExpiredStatus(panoId, expired = true, Some(false), OffsetDateTime.now))
+      run(panoDataTable.upsert(freshPano(OffsetDateTime.now))) mustBe 1
+    }
+
+    "report no rows touched for a pano that isn't there" in {
+      run(sqlu"DELETE FROM pano_data WHERE pano_id = $panoId")
+      run(panoDataTable.updateExpiredStatus(panoId, expired = true, Some(false), OffsetDateTime.now)) mustBe 0
       events mustBe empty
     }
   }

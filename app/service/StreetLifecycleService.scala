@@ -111,9 +111,10 @@ object StreetLifecycleService {
   /**
    * How long an assembled trend is served from cache.
    *
-   * Six aggregate scans back one payload — most of them unindexed, over `street_edge_issue` and `pano_data` — and
-   * the page re-fires all of them on load and on every window change. Nothing here moves faster than the nightly
-   * jobs that feed it, so ten minutes costs the reader no freshness they could act on.
+   * Six aggregate scans back one payload — the four over `street_edge_issue` and `pano_data` unindexed, the two
+   * over the change logs served by an index on the timestamp they filter — and the page re-fires all of them on
+   * load and on every window change. Nothing here moves faster than the nightly jobs that feed it, so ten minutes
+   * costs the reader no freshness they could act on.
    */
   val TrendCacheTtl: Duration = Duration(10, "minutes")
 
