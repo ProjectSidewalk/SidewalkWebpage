@@ -5,8 +5,7 @@
  * and common components used throughout the Project Sidewalk API documentation.
  */
 
-/* Import Google Fonts: Inter for body, JetBrains Mono for code */
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
+/* Inter and JetBrains Mono are declared in css/fonts.css, which every page links (common/main.scala.html). */
 
 /* ==========================================================================
    CSS VARIABLES - Single source of truth for the entire application
@@ -65,6 +64,7 @@
   --color-accent-delete: #f93e3e;
   --color-accent-put: #fca130;
   --color-accent-link: #0566f5;
+  --color-accent-link-hover: #1a70d3;
 
   /* Feedback colors */
   --color-success: #4caf50;
@@ -253,6 +253,12 @@ a:hover {
   box-shadow: var(--box-shadow-sm);
 }
 
+/* Inside the scroller the wrapper owns the vertical rhythm; a table margin would just push the scrollbar
+   away from the content. */
+.api-table-wrapper > table {
+  margin: 0;
+}
+
 .api-table {
   width: 100%;
   border-collapse: collapse;
@@ -345,6 +351,18 @@ pre > code.language-csv {
   white-space: nowrap;
 }
 
+/* On a single-column viewport (var(--breakpoint-sm)) a long inline code token (an endpoint URL) has nowhere
+   to go but past the screen edge, so wrapping must win over the nowrap look; wider viewports keep code tokens
+   on one line (#4883). break-word rather than anywhere: anywhere feeds its break points into min-content
+   sizing, letting code-bearing table columns squash below token width instead of engaging the
+   .api-table-wrapper scroller. */
+@media (width <= 768px) {
+  :not(pre) > code {
+    white-space: normal;
+    overflow-wrap: break-word;
+  }
+}
+
 /* ---- Permalink Style ---- */
 
 .permalink {
@@ -411,20 +429,6 @@ h6:hover .permalink {
   height: 100px;
 }
 
-.loading-spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid rgb(0 0 0 / 10%);
-  border-top: 4px solid var(--color-accent-link);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
 .loading-message {
   display: flex;
   align-items: center;
@@ -477,8 +481,8 @@ h6:hover .permalink {
 }
 
 .download-btn-primary:hover {
-  background-color: #1a70d3;
-  border-color: #1a70d3;
+  background-color: var(--color-accent-link-hover);
+  border-color: var(--color-accent-link-hover);
   color: var(--color-text-on-accent);
 }
 
@@ -641,7 +645,8 @@ h6:hover .permalink {
   color: var(--color-text-heading);
 }
 
-/* Map Container - Common to various map components */
+/* Map Container - Common to various map components, and the query container its overlays size themselves against.
+   Map width and viewport width come apart here: the sidebar and TOC narrow a desktop map, a phone widens it. */
 .map-container {
   width: 100%;
   height: 500px;
@@ -649,25 +654,183 @@ h6:hover .permalink {
   border-radius: var(--border-radius);
   overflow: hidden;
   position: relative;
+  container: preview-map / inline-size;
 }
 
-/* Map Popup - Base styles for map popups */
-.map-popup {
-  max-width: 250px;
-  padding: var(--space-xs);
+/* Map Popup - ApiDocsMap.popup puts .map-popup on the popup root, so these rules reach Mapbox's own frame as well as
+   the content we hand it. */
+.map-popup .mapboxgl-popup-content {
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--border-radius-lg);
+
+  /* Mapbox caps popup width with an inline style, which ApiDocsMap.popup suppresses so this can own it instead. */
+  max-width: 260px;
+}
+
+/* Mapbox rounds the close button's corner to match its own 3px frame, so it has to track ours. */
+.map-popup .mapboxgl-popup-close-button {
+  border-radius: 0 var(--border-radius-lg) 0 0;
 }
 
 .map-popup h3,
 .map-popup h4 {
-  margin: 0 0 var(--space-xs) 0;
-  padding-bottom: var(--space-xxs);
+  margin: 0 0 6px;
+  padding-bottom: 4px;
   border-bottom: 1px solid var(--color-border-light);
+  font: var(--text-small-bold);
 }
 
 .map-popup p {
-  margin: var(--space-xxs) 0;
-  font-size: var(--font-size-sm);
-  line-height: 1.4;
+  margin: 4px 0;
+  font: var(--text-caption-regular);
+}
+
+.map-popup strong {
+  font: var(--text-caption-semibold);
+}
+
+/* A popup's closing call-to-action would otherwise sit on the last paragraph's own 4px. */
+.map-popup .button-ps {
+  margin-top: var(--space-xs);
+}
+
+/* Map Overlays - Chips and legends layered over a preview map, positioned by the map's own control corners. */
+.map-chip {
+  font: var(--text-caption-regular);
+  background-color: var(--color-neutral-white);
+  padding: 5px 10px;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+}
+
+.map-legend {
+  background-color: var(--color-neutral-white);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  min-width: 200px;
+  max-width: 250px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+/* A label-and-value readout in a map corner, sharing the legend's frame. */
+.map-stats {
+  background-color: var(--color-neutral-white);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+}
+
+.map-stats div {
+  font: var(--text-caption-regular);
+}
+
+.map-legend h4,
+.map-stats h4 {
+  margin: 0 0 5px;
+  font: var(--text-small-bold);
+}
+
+.map-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font: var(--text-caption-regular);
+}
+
+/* The bar's colors are set from the data in JS; everything else about it lives here. */
+.map-legend-gradient {
+  height: 14px;
+  margin: 5px 0 3px;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--border-radius-sm);
+}
+
+.map-legend-ticks {
+  display: flex;
+  justify-content: space-between;
+  font: var(--text-tiny-regular);
+  color: var(--color-text-secondary);
+}
+
+.map-legend-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Mapbox's two-finger gesture overlay ships a system font stack. Its font-size is inline, set by the library from
+   the map's width, so that part isn't ours to change. */
+.map-container .mapboxgl-touch-pan-blocker {
+  font-family: var(--font-primary);
+}
+
+@container preview-map (width < 500px) {
+  .map-chip {
+    padding: 3px 6px;
+    font: var(--text-tiny-regular);
+  }
+
+  .map-legend {
+    padding: var(--space-xxs) var(--space-xs);
+    min-width: 0;
+    max-width: 45cqw;
+    max-height: 150px;
+  }
+
+  .map-legend h4,
+  .map-stats h4 {
+    font: var(--text-caption-semibold);
+  }
+
+  .map-stats {
+    padding: var(--space-xxs) var(--space-xs);
+  }
+
+  .map-stats div {
+    font: var(--text-tiny-regular);
+  }
+
+  .map-legend-item {
+    gap: 4px;
+    font: var(--text-tiny-regular);
+  }
+
+  .map-legend-gradient {
+    height: 10px;
+  }
+
+  .map-legend-swatch {
+    width: 8px;
+    height: 8px;
+  }
+
+  .map-popup .mapboxgl-popup-content {
+    padding: var(--space-xxs) var(--space-xs);
+    max-width: 70cqw;
+  }
+
+  .map-popup h3,
+  .map-popup h4 {
+    font: var(--text-caption-semibold);
+  }
+
+  .map-popup p {
+    font: var(--text-tiny-regular);
+  }
+
+  .map-popup strong {
+    font: var(--text-tiny-semibold);
+  }
+
+  .map-popup .button-ps {
+    padding: 3px 8px;
+    font: var(--text-tiny-medium);
+    margin-top: var(--space-xxs);
+  }
 }
 
 /* Counter badge - Used for displaying counts */
@@ -793,20 +956,52 @@ h6:hover .permalink {
 
 /* ---- Sidebar Toggle ---- */
 
+/*
+ * Disclosure that opens the section nav on narrow screens. It is the first child of .api-sidebar and shares the
+ * sidebar's in-flow strip, so the nav it controls opens directly beneath it and pushes the page down rather than
+ * covering it. Hidden at widths where the sidebar is a real column.
+ */
 .api-sidebar-toggle {
   display: none;
-  background-color: var(--color-accent-link);
-  color: var(--color-text-on-accent);
-  border: none;
+  width: 100%;
+  align-items: center;
+  gap: var(--space-xs);
   padding: var(--space-sm) var(--space-md);
-  margin: var(--space-sm);
-  border-radius: var(--border-radius);
-  cursor: pointer;
+  border: none;
+  background-color: transparent;
+  color: var(--color-text-heading);
+  font-family: var(--font-sans);
   font-size: var(--font-size-md);
-  position: fixed;
-  top: calc(var(--navbar-height) + 10px);
-  left: var(--space-sm);
-  z-index: var(--z-index-sticky);
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.api-sidebar-toggle:hover {
+  background-color: var(--color-bg-hover);
+}
+
+.api-sidebar-toggle:focus-visible {
+  outline: 2px solid var(--color-accent-link);
+  outline-offset: -2px;
+}
+
+.api-sidebar-toggle-icon {
+  flex: none;
+  width: 12px;
+  transition: transform var(--transition-fast);
+}
+
+.api-sidebar-toggle[aria-expanded="true"] .api-sidebar-toggle-icon {
+  transform: rotate(180deg);
+}
+
+/* Pushes the chevron to the trailing edge so the label reads as a heading and the affordance sits where a thumb is. */
+.api-sidebar-toggle-label {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ==========================================================================
@@ -967,6 +1162,11 @@ var(--breakpoint-md) → 992px */
     flex-direction: column;
   }
 
+  /*
+   * The sidebar stops being a column and becomes an in-flow strip between the navbar and the content, holding the
+   * disclosure button; its nav list collapses into that disclosure. The strip itself always renders, so nothing has to
+   * be floated over the page to reach the nav (#4856).
+   */
   .api-sidebar {
     flex: 0 0 auto;
     height: auto;
@@ -974,11 +1174,22 @@ var(--breakpoint-md) → 992px */
     width: 100%;
     border-right: none;
     border-bottom: 1px solid var(--color-border-light);
-    display: none;
+    display: block;
+    overflow: visible;
   }
 
-  .api-sidebar.mobile-visible {
+  .api-sidebar .api-nav {
+    display: none;
+    padding: 0 0 var(--space-sm);
+  }
+
+  .api-sidebar.mobile-visible .api-nav {
     display: block;
+  }
+
+  /* The strip already separates the nav from the page, so the desktop spacing above the first group is dead space. */
+  .api-sidebar .api-nav-header:first-child {
+    margin-top: 0;
   }
 
   .api-content {
@@ -987,7 +1198,7 @@ var(--breakpoint-md) → 992px */
   }
 
   .api-sidebar-toggle {
-    display: block;
+    display: flex;
   }
 
   /* Adjust heading sizes */

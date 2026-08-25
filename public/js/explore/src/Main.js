@@ -59,6 +59,7 @@ class Main {
     // Lat/lng estimator constants, owned by the backend (PanoDataService.LatLngEstimation) and used by Label.toLatLng.
     svl.latLngEstimation = params.latLngEstimation;
 
+    svl.mapboxApiKey = params.mapboxApiKey;
     svl.storage = new TemporaryStorage(JSON);
     svl.tracker = new Tracker();
     svl.user = new User(params.user);
@@ -90,6 +91,15 @@ class Main {
     // No viewer means PanoManager found no usable imagery and has already scheduled a redirect; stop initializing
     // so nothing dereferences the missing viewer while the navigation lands.
     if (!svl.panoViewer) return;
+
+    // Arriving here from a load that gave up on its street: that reload is the only thing the labeler saw, and it
+    // took the banner explaining the move down with it, so the explanation is delivered on arrival instead (#4918).
+    // The reported street stays in the pool and assignment picks at random, so the fresh one can be the same street
+    // again (#4922) — announce the move only when the labeler actually landed somewhere else.
+    const skippedStreetId = PanoManager.consumeStreetSkippedNotice();
+    if (skippedStreetId !== null && skippedStreetId !== newTask.getStreetEdgeId()) {
+      svl.stuckAlert.announceSkippedStreetNear(newTask.getMidpoint(), params.mapboxApiKey);
+    }
     const currLatLng = svl.panoViewer.getPosition();
     newTask.updateTheFurthestPointReached(currLatLng);
 

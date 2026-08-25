@@ -14,8 +14,6 @@
 @common.main(commonData, title, defaultI18nNamespace = "validate", i18Namespaces = Seq("validate", "common"), "/mobile") {
   @common.icons()
 
-  <script src='@assets.path("vendor/i18next/i18next-23.16.8.min.js")'></script>
-  <script src='@assets.path("vendor/i18next-http-backend/i18nextHttpBackend-3.0.4.min.js")'></script>
   @if(commonData.imagerySource == PanoSource.Infra3d) {
     <script src='@assets.path("vendor/proj4/proj4-2.19.10.js")'></script>
     <script src='@assets.path("vendor/infra3d/infra3dapi-1.8.0.js")'></script>
@@ -48,7 +46,8 @@
     </div>
   </div>
 
-  <div class="container tool-ui">
+  @* ps-invisible until loading completes (Main.js unhides), so the raw UI never flashes. *@
+  <div class="container tool-ui ps-invisible">
     @components.progressBar(
       rootId = "mission-progress-bar-section",
       fillId = "mission-progress-bar-complete"
@@ -68,10 +67,21 @@
         <img src='@assets.path("images/icons/undo-icon.svg")' class="hide-label-button-icon" alt="undo">
         <span>@Messages("undo")</span>
       </button>
+      @* The verdict buttons carry the same thumbs the mission-complete counts do. Plain labels, not the underlined
+         `.shortcut` ones the desktop uses: there is no keyboard here to press the underlined letter on. *@
       <div id="validation-button-holder">
-        <button type="button" id="validate-no-button"class="validate-page-button button-ps button--small">@Html(Messages("no.caps.shortcut"))</button>
-        <button type="button" id="validate-unsure-button"class="validate-page-button button-ps button--small">@Html(Messages("unsure.caps.shortcut"))</button>
-        <button type="button" id="validate-yes-button"class="validate-page-button button-ps button--small">@Html(Messages("yes.caps.shortcut"))</button>
+        <button type="button" id="validate-no-button" class="validate-page-button button-ps button--small">
+          <img src='@assets.path("images/icons/validation/disagree-filled.svg")' class="validate-page-button__icon" alt="">
+          @Messages("no.caps")
+        </button>
+        <button type="button" id="validate-unsure-button" class="validate-page-button button-ps button--small">
+          <img src='@assets.path("images/icons/validation/unsure-filled.svg")' class="validate-page-button__icon" alt="">
+          @Messages("unsure.caps")
+        </button>
+        <button type="button" id="validate-yes-button" class="validate-page-button button-ps button--small">
+          <img src='@assets.path("images/icons/validation/agree-filled.svg")' class="validate-page-button__icon" alt="">
+          @Messages("yes.caps")
+        </button>
       </div>
       <img src='@assets.path("images/icons/mobile-popup-notch.svg")' id="mobile-popup-notch" alt=""></img>
       <div id="validate-why-no-section" class="validation-menu-section">
@@ -109,72 +119,101 @@
 
     <div id="modal-mission-holder">
       <div id="modal-mission-background" class="modal-background"></div>
-      <div id="modal-mission-foreground" class="modal-foreground">
-        @if(user.role != "Anonymous") {
-          <button type="button" data-au-open="signIn" class="sign-in-up-button-mobile">@{user.username}</button>
-        } else {
-          <button type="button" id="mobile-validate-sign-in-btn" data-au-open="signIn" class="sign-in-up-button-mobile">@Messages("navbar.signin")</button>
-        }
-        <img src='@assets.path("images/" + config.get[String]("city-params.logo-img." + commonData.cityId))' id="ps-logo-mission" alt="Project Sidewalk logo"></img>
-        <h1 id="modal-mission-header" class="text-center"></h1>
-        <div id="modal-mission-instruction"></div>
-        <button type="button" class="validate-page-button" id="modal-mission-close-button">OK</button>
+      <div id="modal-mission-foreground" class="modal-foreground mv-modal">
+        <div class="mv-modal__header">
+          <img src='@assets.path("images/" + config.get[String]("city-params.logo-img." + commonData.cityId))' id="ps-logo-mission" class="mv-modal__logo" alt="Project Sidewalk logo">
+          @* Signed-in users get a plain username badge: the auth dialog only renders for signed-out users, so a
+             data-au-open control here would be a focusable button that does nothing. *@
+          @if(user.role != "Anonymous") {
+            <span class="sign-in-up-button-mobile">@{user.username}</span>
+          } else {
+            <button type="button" data-au-open="signIn" class="sign-in-up-button-mobile button-ps">@Messages("navbar.signin")</button>
+          }
+        </div>
+        <div class="mv-modal__content">
+          @* Both filled by ModalMission (the label type's icon over "YOUR MISSION", then what to validate) — and
+             emptied/overwritten by ModalNoNewMission, which takes this screen over on a dead end. *@
+          <div id="modal-mission-eyebrow" class="mv-eyebrow"></div>
+          <h1 id="modal-mission-header"></h1>
+          @* The label type's examples, swipeable — the same ones the desktop tutorial teaches from. *@
+          <div id="modal-mission-instruction"></div>
+        </div>
+        <div class="mv-modal__actions">
+          <button type="button" class="button-ps" id="modal-mission-close-button">@Messages("ok")</button>
+        </div>
       </div>
     </div>
 
     <div id="modal-mission-complete-holder">
       <div id="modal-mission-complete-background" class="modal-background"></div>
-      <div id="modal-mission-complete-foreground" class="modal-foreground">
-        <img src='@assets.path("images/" + config.get[String]("city-params.logo-img." + commonData.cityId))' id="ps-logo-mission-complete" alt="Project Sidewalk logo"></img>
-        <h1 class="normal" id="modal-mission-complete-title"></h1>
-        <p><div id="modal-mission-complete-message"></div></p>
-        <div id="modal-mission-complete-table">
-          <div class="col-sm-10">
-            <h3>@Messages("validate.mission.complete.category")</h3>
-            <table class="table">
-              <tr>
-                <th>@Messages("yes.caps")</th>
-                <td id="modal-mission-complete-agree-count" class="col-right text-right"></td>
-              </tr>
-              <tr>
-                <th>@Messages("no.caps")</th>
-                <td id="modal-mission-complete-disagree-count" class="col-right text-right"></td>
-              </tr>
-              <tr>
-                <th>@Messages("unsure.caps")</th>
-                <td id="modal-mission-complete-unsure-count" class="col-right text-right"></td>
-              </tr>
-              <tr id="your-overall-total">
-                <th>@Messages("validate.mission.complete.your.overall.total")</th>
-                <td id="modal-mission-complete-your-overall-total-count" class="col-right text-right"></td>
-              </tr>
-            </table>
-            <button type="button" class="btn btn-primary" id="modal-mission-complete-close-button-primary"></button>
-            <button type="button" class="btn btn-secondary" id="modal-mission-complete-close-button-secondary"></button>
+      <div id="modal-mission-complete-foreground" class="modal-foreground mv-modal">
+        <div class="mv-modal__header">
+          <img src='@assets.path("images/" + config.get[String]("city-params.logo-img." + commonData.cityId))' id="ps-logo-mission-complete" class="mv-modal__logo" alt="Project Sidewalk logo">
+        </div>
+        <div class="mv-modal__content">
+          @* Fireworks flank the congratulations, the way they do on the tutorial's own "You did it!" screen.
+             ModalMissionComplete replays their pop each time the screen comes up. *@
+          <div id="mission-complete-celebration" class="mv-celebrate">
+            <img src='@assets.path("images/icons/fireworks.svg")' class="mv-celebrate__burst mv-celebrate__burst--left" alt="">
+            <h1 id="modal-mission-complete-title"></h1>
+            <img src='@assets.path("images/icons/fireworks.svg")' class="mv-celebrate__burst mv-celebrate__burst--right" alt="">
+          </div>
+          @* What was just validated, behind that label type's own marker. ModalMissionComplete picks the marker
+             (a background, like the badge below, so nothing is fetched before a mission ends). *@
+          <div class="mv-summary">
+            <span id="mission-complete-label-icon" class="mv-summary__icon"></span>
+            <div id="modal-mission-complete-message" class="mv-summary__text"></div>
+          </div>
+          @* The three counts echo the validation buttons they came from, with that button's thumb and color. *@
+          <div class="mv-stats">
+            <div class="mv-stat mv-stat--agree">
+              <img src='@assets.path("images/icons/validation/agree-filled.svg")' class="mv-stat__icon" alt="">
+              <span class="mv-stat__count" id="modal-mission-complete-agree-count"></span>
+              <span class="mv-stat__label">@Messages("yes.caps")</span>
+            </div>
+            <div class="mv-stat mv-stat--disagree">
+              <img src='@assets.path("images/icons/validation/disagree-filled.svg")' class="mv-stat__icon" alt="">
+              <span class="mv-stat__count" id="modal-mission-complete-disagree-count"></span>
+              <span class="mv-stat__label">@Messages("no.caps")</span>
+            </div>
+            <div class="mv-stat mv-stat--unsure">
+              <img src='@assets.path("images/icons/validation/unsure-filled.svg")' class="mv-stat__icon" alt="">
+              <span class="mv-stat__count" id="modal-mission-complete-unsure-count"></span>
+              <span class="mv-stat__label">@Messages("unsure.caps")</span>
+            </div>
+          </div>
+          @* Where this mission leaves them overall: their validation badge, if they've earned one, and their all-time
+             count. ModalMissionComplete fills all three and hides the badge for anyone who has none yet. *@
+          <div id="mission-complete-standing" class="mv-standing">
+            @* Decorative — the level beside it says the same thing — and drawn as a background so the page doesn't
+               fetch a badge for someone who hasn't earned one. ModalMissionComplete picks the artwork. *@
+            <span id="mission-complete-badge-icon" class="mv-standing__badge ps-hidden"></span>
+            <div class="mv-standing__text">
+              <span id="mission-complete-badge-name" class="mv-standing__level"></span>
+              <span id="modal-mission-complete-your-overall-total-count" class="mv-standing__total"></span>
+              @* How far this validator is along the badge they're working toward, and what it is. *@
+              @components.progressBar(
+                rootId = "mission-complete-badge-progress",
+                fillId = "mission-complete-badge-progress-fill"
+              )
+              <span id="mission-complete-badge-next" class="mv-standing__next"></span>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
-    <div id="modal-landscape-holder">
-      <div id="modal-landscape-background" class="modal-background"></div>
-      <div id="modal-landscape-foreground" class="modal-foreground">
-        <img src='@assets.path("images/" + config.get[String]("city-params.logo-img." + commonData.cityId))' id="ps-logo-landscape" alt="Project Sidewalk logo"></img>
-        <div>
-          <p id="modal-landscape-header">Welcome to Project Sidewalk!</p>
-          <p id="modal-landscape-description">We do not currently support landscape mode on mobile or tablet devices. Please use portrait mode to proceed to Project Sidewalk.</p>
+        <div class="mv-modal__actions">
+          <button type="button" class="button-ps btn-primary" id="modal-mission-complete-close-button-primary"></button>
+          <button type="button" class="button-ps btn-secondary" id="modal-mission-complete-close-button-secondary"></button>
         </div>
-        <br>
       </div>
     </div>
   </div>
 
+  @* For anonymous users, the mission modal's sign-in button opens this via its data-au-open hook (AuthModal.js);
+     for signed-in users neither the dialog nor any opener renders. *@
+  @common.authDialog(Some(user))
+
   <script>
     window.appManager.ready(function() {
-      // Only rendered for anonymous users, so it may be absent.
-      document.getElementById('mobile-validate-sign-in-btn')?.addEventListener('click', function() {
-        window.location.href = '@routes.UserController.signInMobile()';
-      });
-
       const param = {};
 
       const userParam = {

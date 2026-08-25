@@ -27,6 +27,13 @@
     <p class="ac-note" id="health-meta"></p>
   </div>
 
+  <div class="api-section" id="health-jobs-section">
+    <h2 class="api-heading" id="nightly-jobs">Nightly jobs <a href="#nightly-jobs" class="permalink">#</a></h2>
+    <p>Every background job this city runs overnight, with its last recorded run. A job whose results only ever reached the log left no evidence when it stopped firing — a silently dead poller looks exactly like a quiet night — so each run is recorded as it happens. Watch the <em>Last run</em> column: anything overdue, failed, or never run means that pipeline has stopped feeding whatever depends on it. Times are Pacific, before this city's scheduling offset.</p>
+    <div id="health-jobs"></div>
+    <p class="ac-note" id="health-jobs-note"></p>
+  </div>
+
   <div class="api-section" id="health-locks-section">
     <h2 class="api-heading" id="blocking-locks">Blocking locks <a href="#blocking-locks" class="permalink">#</a></h2>
     <p>Sessions that are currently blocking one or more others from acquiring a lock. A session that holds a strong lock (for example on <code>street_edge</code>) while idle in a transaction can silently stall every reader of that table. Ordered worst-first.</p>
@@ -83,5 +90,5 @@
 
 @common.main(commonData, "Sidewalk - Health") {
   @common.navbar(commonData, Some(user))
-  @admin.dashboard.adminLayout("health", commonData, user.role == "Owner")(content)
+  @admin.dashboard.adminLayout("health", commonData, user)(content)
 }

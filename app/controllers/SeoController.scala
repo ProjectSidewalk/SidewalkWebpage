@@ -76,9 +76,7 @@ class SeoController @Inject() (cc: CustomControllerComponents, config: Configura
          |Disallow: /userapi/
          |Disallow: /anonSignUp
          |Disallow: /signIn
-         |Disallow: /signInMobile
          |Disallow: /signUp
-         |Disallow: /signUpMobile
          |Disallow: /signOut
          |Disallow: /forgotPassword
          |Disallow: /resetPassword

@@ -3,8 +3,9 @@
 A thin headless-browser suite (issue #4504) that loads each core page and **fails on any uncaught page
 error or non-allowlisted `console.error`**. It exists to catch the class of regression that compile, the
 grunt build, and all four linters are blind to: runtime-only JS errors — a stale bundle, a missing global,
-an unbound-method `this` bug, a route-ordering 400 breaking a fetch. It asserts *pages initialize cleanly*,
-not pixel-level behavior; deep canvas/imagery testing stays manual by design.
+an unbound-method `this` bug, a route-ordering 400 breaking a fetch. It asserts *pages initialize cleanly*
+plus one piece of layout geometry — `phone-viewport.spec.js` re-loads the responsive pages at a 390×844
+phone viewport and fails on horizontal overflow (#4883). Deep canvas/imagery testing stays manual by design.
 
 ## Running locally
 
@@ -41,13 +42,24 @@ regardless of filters), so every run registers a throwaway `ci-smoke-<timestamp>
    them, and flips `isReady` anyway — a broken page still "becomes ready".
 3. Assert the collected `pageerror` + `console.error` list (the `consoleErrors` fixture) is empty.
 
+Steps 1–2 (plus a stayed-put URL assert and a 1s settle window for late async work) live in the shared
+`loadAndSettle()` helper in `fixtures.js`, driven by per-entry flags in each spec's page table — the load
+protocol is defined once so the table-driven specs can't drift apart.
+
 ### Mapbox stub
 
-Pages that build a Mapbox map at init (`/`, `/labelMap`, `/routeBuilder`, `/cities`, `/dashboard`) get
-`stubMapbox()`: all `api.mapbox.com` traffic is intercepted and the style request answered with a minimal
+Pages that build a Mapbox map at init (`/`, `/about`, `/labelMap`, `/routeBuilder`, `/cities`, `/dashboard`)
+get `stubMapbox()`: all `api.mapbox.com` traffic is intercepted and the style request answered with a minimal
 valid empty style. Without it, CI's dummy `MAPBOX_API_KEY` 401s the style request, the map's `load` event
 never fires, and `#page-loading` hangs forever. The stub runs even against a real local key so behavior is
 identical in both environments.
+
+### Makeability Lab API stub
+
+`/about` hydrates its team/publications/grants sections from the live ML API, so it gets
+`stubMakeabilityLab()`: every `makeabilitylab.cs.washington.edu` request is answered with an empty listing,
+keeping each section on its server-rendered fallback. That makes the measured DOM deterministic and keeps an
+ML-site outage from failing the run.
 
 ### Console-error allowlist
 
@@ -73,11 +85,16 @@ local development** — your edit / `grunt watch` / reload loop is untouched.
   CI seeds the one region it requires (`fixtures/ci-seed.sql` — with zero regions `/explore` is a server
   error). A reload counter turns Explore's viewer-failure reload loop into a fast, named failure.
   `/validate` accepts either legitimate terminal state error-free: a mission (seeded DBs) or the
-  "no new mission" modal (CI's empty city — a mission needs ≥ 10 validatable labels of one type). ✅
+  "no new mission" modal (CI's empty city — a mission needs ≥ 10 validatable labels of one type). `/mobile`
+  runs the same two-terminal-state check under an iPhone descriptor (the server serves that page by UA and
+  redirects a desktop one to `/`), in portrait and in landscape, each pinning the layout viewport to the
+  device's own width — the #4891 contract. ✅
 - **Phase 2b (open):** make CI exercise `/validate`'s real mission path — needs a committed seed of ≥ 10
   non-tutorial labels whose panos are live or locally backed up, and a real `GOOGLE_MAPS_SECRET` for the
   server-side pano-metadata check; also gallery expanded-card view and api-docs preview content asserts
-  (then drop the `regionWithMostLabels` allowlist entries in `fixtures.js`).
+  (then drop the `regionWithMostLabels` allowlist entries in `fixtures.js`). `/v3/api-docs/labelTags` can't
+  join the page tables until its missing tag example images (ids 43, 76–79) are added — each 404 is a
+  console error.
 - **Phase 3:** primary-control interactions per page (info button, tag menu, mission modal) and a few
   end-to-end flows (place a label + tag; validate a label); admin pages (promote the setup user via a
   superuser `UPDATE user_role` in CI).
@@ -87,9 +104,10 @@ local development** — your edit / `grunt watch` / reload loop is untouched.
 | File | Role |
 |---|---|
 | `../../playwright.config.js` | Config: `testDir`, retries, reporters, the `setup` → `chromium` projects |
-| `fixtures.js` | `consoleErrors` fixture, Mapbox stub, `waitForAppReady`, allowlist |
+| `fixtures.js` | `consoleErrors` fixture, Mapbox + ML-API stubs, `loadAndSettle`, `waitForAppReady`, `horizontalOverflowReport`, allowlist |
 | `auth.setup.js` | Registers a throwaway user, saves storageState for registered-user specs |
 | `pages.spec.js` | Table-driven phase-1 anonymous pages |
+| `phone-viewport.spec.js` | The same pages at a 390×844 phone viewport: no horizontal overflow (#4883) |
 | `dashboard.spec.js` | Registered-user pages |
-| `explore-validate.spec.js` | Phase-2 Explore/Validate specs (skip without the real GSV key) |
+| `explore-validate.spec.js` | Phase-2 Explore/Validate/mobile-Validate specs (skip without the real GSV key) |
 | `labelmap-feed-failure.spec.js` | What `/labelMap` shows when its label feed fails (intercepted, so DB-independent) |

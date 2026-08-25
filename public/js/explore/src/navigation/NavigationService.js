@@ -34,6 +34,8 @@ class NavigationService {
    */
   #missionJump = undefined;
   #stuckPanos = new Set([]);
+  // Street the #stuckPanos set belongs to; see the reset in moveForward().
+  #stuckPanosStreetId = null;
   #positionUpdateCallbacks = [];
   #povSettlePoll = null; // Interval id; see #refreshHeadingViewsAfterPovSettles.
 
@@ -122,45 +124,113 @@ class NavigationService {
 
   /**
    * Handle no remaining imagery on current street. Log it if no imagery at all, or let them finish if near the end.
+   *
+   * @param {boolean} streetLooksEmpty - Whether the search that ran out actually established anything about the
+   *     street: true when every sampled point along it got a clean "nothing usable here" from the provider, false
+   *     when any of them failed to get an answer at all (a provider error, a blocked or unreachable API). Only the
+   *     true case may report the street as imagery-less, or move the labeler off it — see the bail-out below.
    * @returns {Promise<null>}
    */
-  async #handleImageryNotFound() {
+  async #handleImageryNotFound(streetLooksEmpty) {
     const currentTask = svl.taskContainer.getCurrentTask();
     const currentMission = svl.missionContainer.getCurrentMission();
 
     // In free exploration (#4451) there is no task to finish and no street to advance to: don't report the street as
-    // imagery-less (the user is mid-street by design), just tell them there's nothing further in this direction.
+    // imagery-less (the user is mid-street by design), just tell them why they can't go further. Which reason that is
+    // depends on whether the provider actually answered — "there's nothing more this way" is a claim about the world
+    // that a failed lookup can't support.
     if (svl.isExploreAddressMode()) {
-      this.#status.movingToNewLocation = false;
-      this.#status.headingSettling = false;
-      svl.alertController.showAlert(i18next.t('popup.free-explore-no-imagery'), 'exploreAddressNoImagery', false);
+      this.#restoreUiAfterFailedMove();
+      const key = streetLooksEmpty ? 'popup.free-explore-no-imagery' : 'popup.imagery-load-failed';
+      const type = streetLooksEmpty ? 'exploreAddressNoImagery' : 'imageryLoadFailed';
+      svl.alertController.showAlert(i18next.t(key), type, false);
       return Promise.resolve(null);
     }
 
-    // If the user is relatively close to the end of the street, tell them to finish labeling before jumping.
+    // If the user is relatively close to the end of the street, tell them to finish labeling before jumping. This is
+    // checked before the provider-failure bail-out below because it rests on where the labeler actually walked, not
+    // on anything the provider said: they covered the street, so a lookup that failed at the far end is no reason to
+    // withhold credit for work that was really done. It is also unreachable by the runaway loop #4918 is about,
+    // which never moves off a street's start point.
     if (currentTask.isAtEnd(svl.panoViewer.getPosition(), NavigationService.#NEAR_END_NO_IMAGERY_THRESHOLD)) {
       this.#endTheCurrentTask(currentTask, currentMission);
       this.#updateUiAfterMove();
       return Promise.resolve(null);
-    } else {
-      // If they are nowhere near the end, log the street as having no imagery and move them to a new street.
-      await util.misc.reportNoImagery(currentTask, currentMission.getProperty('missionId'));
+    }
 
-      // Get a new task and jump to the new task location.
-      this.#finishCurrentTaskBeforeJumping(currentMission);
-      const newTask = svl.taskContainer.nextTask(currentTask);
-      if (newTask) {
-        svl.taskContainer.setCurrentTask(newTask);
-        svl.stuckAlert.stuckSkippedStreet();
-        return this.moveForward();
-      } else {
-        // No new task: complete the neighborhood. This path skips #updateUiAfterMove(), so clear the flags here.
-        this.#status.movingToNewLocation = false;
-        this.#status.headingSettling = false;
-        svl.neighborhoodModel.setComplete();
-        svl.missionController.wrapUpRouteOrNeighborhood();
-        return Promise.resolve(null);
-      }
+    // The search never got an answer, so nothing is known about this street's imagery: don't report it and don't move
+    // on to the next one. Just say so and let the user retry once the provider recovers. This is the same distinction
+    // the page-load path draws, and it has to be drawn here too — otherwise a provider outage still walks the
+    // neighborhood, just three streets at a time instead of unbounded (#4918).
+    if (!streetLooksEmpty) {
+      svl.tracker.push('PanoSearchFailed');
+      // moveForward() locked the UI for a move that isn't going to happen, and this branch leaves the user standing
+      // where they were, so hand the controls back — otherwise the alert is the last thing they can interact with.
+      this.#restoreUiAfterFailedMove();
+      svl.alertController.showAlert(i18next.t('popup.imagery-load-failed'), 'imageryLoadFailed', false);
+      return Promise.resolve(null);
+    }
+
+    // Nowhere near the end, so the street really does look like it runs out of imagery ahead of the user. Two
+    // separable decisions follow: whether to *write down* that the street looks imagery-less, and whether to move
+    // the labeler somewhere they can keep working (#4918).
+    //
+    // Writing it down records evidence and nothing else: the task is not completed or submitted, and the street
+    // keeps its priority and its place in the rotation until the offline imagery checker confirms the reports and
+    // retires it (#4922) — one session's verdict is never enough to move coverage. Even as pure evidence, an
+    // unbroken run of reports is far better explained by one broken session than by a run of empty streets, so
+    // reporting stops at MAX_CONSECUTIVE_FLAGS. Moving on costs nothing, so it continues past that point: a labeler
+    // working a patchy area shouldn't be stranded just because we stopped trusting what we're seeing.
+    const mayFlag = NoImageryFlagGuard.canFlag();
+    NoImageryFlagGuard.recordStreetGivenUp();
+    if (mayFlag) {
+      await util.misc.reportNoImagery(currentTask, currentMission.getProperty('missionId'));
+    } else {
+      svl.tracker.push('NoImageryFlagLimitReached');
+    }
+
+    // Every given-up street stays incomplete, which leaves it eligible for nextTask() — only the street just left is
+    // excluded — so the run can cycle between the same few streets. The advance ceiling is what ends it.
+    if (!NoImageryFlagGuard.canAdvance()) {
+      svl.tracker.push('NoImageryAdvanceLimitReached');
+      // The run is over, so the budget goes back: what follows can only be the labeler deciding to try again, which
+      // is a fresh decision rather than a continuation of the automatic run this bounds (#4918).
+      NoImageryFlagGuard.reset();
+      this.#restoreUiAfterFailedMove();
+      // Its own message rather than the imagery-load-failed one: nothing failed to load here — the provider answered
+      // every time, and we are the ones who stopped believing it. "Try again in a few minutes" would be wrong
+      // advice, since waiting changes nothing about a run of streets that all read as empty (#4918).
+      svl.alertController.showAlert(i18next.t('popup.imagery-skip-limit'), 'imagerySkipLimit', false);
+      return Promise.resolve(null);
+    }
+
+    // Get a new task and jump to the new task location. The task being left is deliberately not finished — finishing
+    // it submits completed=true, and the regular submission path credits that as a full audit, which is exactly the
+    // claim a no-imagery verdict cannot support (#4922).
+    const newTask = svl.taskContainer.nextTask(currentTask);
+    if (newTask) {
+      // Flush what the labeler did here before the current task changes under the buffer. Interactions carry no task
+      // id of their own — the server files them against whichever audit_task the submission names — so anything still
+      // queued would land on the street they are about to be moved to. This is a plain submission, not endTask(): the
+      // task is left unfinished, since finishing it submits completed=true and credits a full audit (#4922).
+      await svl.form.submitData(currentTask);
+      svl.taskContainer.setCurrentTask(newTask);
+      // Not awaited: naming the destination takes a network round trip, and the move should not wait on decoration.
+      svl.stuckAlert.announceSkippedStreetNear(newTask.getMidpoint(), svl.mapboxApiKey);
+      // The failed search that brought us here left walking disabled, and moveForward() returns immediately in that
+      // state — so without this the advance silently does nothing: the labeler is left standing on the old street's
+      // pano with the panorama pane inert (no walking, panning, labeling, or keyboard) while the current task has
+      // already been switched out from under them, and only a page reload gets them out (#4921). jumpToANewTask()
+      // re-enables walking before its own moveForward() for the same reason.
+      this.enableWalking();
+      return this.moveForward();
+    } else {
+      // No new task: complete the neighborhood. This path skips #updateUiAfterMove(), so clear the flags here.
+      this.#status.movingToNewLocation = false;
+      this.#status.headingSettling = false;
+      svl.neighborhoodModel.setComplete();
+      svl.missionController.wrapUpRouteOrNeighborhood();
+      return Promise.resolve(null);
     }
   }
 
@@ -529,6 +599,17 @@ class NavigationService {
     const currentTask = svl.taskContainer.getCurrentTask();
     const streetEndpoint = turf.point([currentTask.getEndCoordinate().lng, currentTask.getEndCoordinate().lat]);
 
+    // The stuck set exists to stop the user cycling among panos they have already stood at on *this* street.
+    // Carrying it onto the next street poisons the search there: the nearest pano to a new street's start is
+    // routinely one visited on the street just finished, and setLocation() rejects an excluded pano exactly as it
+    // rejects empty ground — so a street with perfectly good imagery can scan as having none, and then be falsely
+    // reported on that basis (#4918). Short streets are the worst case, since every sample point on them can fall
+    // within range of the same already-visited pano.
+    if (currentTask.getStreetEdgeId() !== this.#stuckPanosStreetId) {
+      this.#stuckPanos.clear();
+      this.#stuckPanosStreetId = currentTask.getStreetEdgeId();
+    }
+
     // Prefetch images for the full street geometry. Using the full street (not just the remainder) ensures the
     // sampled points are identical on every moveForward() call, so the dedup in prefetchLocation() makes this
     // effectively a no-op after the first call on a given street.
@@ -545,11 +626,18 @@ class NavigationService {
       // Save current pano as one that doesn't work in case they try to move before clicking 'stuck' again.
       const newPanoId = svl.panoViewer.getPanoId();
       this.#stuckPanos.add(svl.panoStore.getPanoData(newPanoId));
+      // A move that lands ends any run of imagery failures, restoring the session's full flag allowance (#4918).
+      NoImageryFlagGuard.reset();
       this.#updateUiAfterMove();
       return Promise.resolve(newPanoId);
     };
 
-    const failureCallback = () => {
+    // Every rejection from the walk down the street, so the end of the search can tell an empty street from a
+    // provider that stopped answering (#4918).
+    const searchFailures = [];
+
+    const failureCallback = (err) => {
+      searchFailures.push(err);
       // If there is room to move forward then try again, recursively calling getPanorama with this callback.
       if (turf.length(remainder) > 0) {
         // Try `DIST_INCREMENT` further down the street.
@@ -558,7 +646,7 @@ class NavigationService {
         currLoc = { lat: remainder.geometry.coordinates[0][1], lng: remainder.geometry.coordinates[0][0] };
         return svl.panoManager.setLocation(currLoc, this.#stuckPanos).then(successCallback, failureCallback);
       } else {
-        return this.#handleImageryNotFound();
+        return this.#handleImageryNotFound(NoImageryError.allNoImagery(searchFailures));
       }
     };
 
@@ -569,9 +657,10 @@ class NavigationService {
   /**
    * Move to the linked pano closest to the given heading angle.
    * @param {number} heading - The user's heading in degrees.
+   * @param {{alertOnFailure?: boolean}} [options] - Passed through to moveToPano; see its `alertOnFailure`.
    * @returns {Promise<boolean>}
    */
-  moveToLinkedPano(heading) {
+  moveToLinkedPano(heading, options) {
     if (this.#status.disableWalking) return Promise.resolve(false);
 
     // Figure out if there's a link close to the given heading.
@@ -583,7 +672,7 @@ class NavigationService {
     });
     const maxIndex = cosines.indexOf(Math.max.apply(null, cosines));
     if (cosines[maxIndex] > 0.5) {
-      return this.moveToPano(linkedPanos[maxIndex].panoId);
+      return this.moveToPano(linkedPanos[maxIndex].panoId, false, options);
     } else {
       return Promise.resolve(false);
     }
@@ -592,11 +681,14 @@ class NavigationService {
   /**
    * Move to a specific pano ID.
    * @param {string} panoId - The string ID of the pano that we want to move to.
-   * @param {boolean} [force] - If true, force a move despite walking being disabled. Used in tutorial.
+   * @param {boolean} [force=false] - If true, force a move despite walking being disabled. Used in tutorial.
+   * @param {{alertOnFailure?: boolean}} [options] - `alertOnFailure` (default true) shows the labeler a message when
+   *     the pano won't load. Pass false when the caller has a fallback that may still move them: a failure the
+   *     caller recovers from isn't one the labeler needs to hear about, and reporting it anyway means a banner
+   *     saying imagery couldn't be loaded on a step that did in fact happen.
    * @returns {Promise<boolean>}
    */
-  async moveToPano(panoId, force) {
-    if (force === undefined) force = false;
+  async moveToPano(panoId, force = false, { alertOnFailure = true } = {}) {
     if (this.#status.disableWalking && !force) return Promise.resolve(false);
 
     this.#updateUiBeforeMove();
@@ -606,8 +698,17 @@ class NavigationService {
       // The move failed, so we haven't actually moved: re-enable the UI so that the user can try something else.
       this.#restoreUiAfterFailedMove();
       console.error(err);
+      // Tell the user, so a step that goes nowhere reads as a failure rather than as a dead page. This targets one
+      // specific pano that wouldn't load, which says nothing about the street, so nothing is recorded (#4918).
+      if (alertOnFailure) {
+        svl.alertController.showAlert(i18next.t('popup.imagery-load-failed'), 'imageryLoadFailed', false);
+      }
       return false;
     }
+    // A pano that loads ends any run of imagery failures, wherever the move came from, so the session gets its full
+    // flag allowance back (#4918). Walking on via the link graph is as much evidence that imagery is fine as the
+    // street-sweeping move in moveForward() is.
+    NoImageryFlagGuard.reset();
     this.#updateUiAfterMove();
 
     return true;

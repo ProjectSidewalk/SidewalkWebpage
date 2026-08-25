@@ -56,7 +56,7 @@ class RouteAuthPostureSpec extends PlaySpec with GuiceOneAppPerSuite {
 
   /** Every key `/neighborhoods/completionRate` publishes per region. */
   private val CompletionRateKeys: Set[String] =
-    Set("region_id", "total_distance_m", "completed_distance_m", "rate", "name")
+    Set("region_id", "total_distance_m", "completed_distance_m", "outdated_distance_m", "rate", "name")
 
   /**
    * /adminapi/ routes that still answer anonymously, exempted from the namespace check below.

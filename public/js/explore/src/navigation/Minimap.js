@@ -224,14 +224,13 @@ class Minimap {
 
     const fraction = mission.getMissionCompletionRate();
     const doneMeters = Math.min(Math.max(mission.getProperty('distanceProgress') || 0, 0), totalMeters);
-    const metric = i18next.t('common:measurement-system') === 'metric';
-    const unit = i18next.t('common:unit-abbreviation-mission-distance');
-    const toDisplay = (meters) => util.math.roundToTwentyFive(metric ? meters : util.math.metersToFeet(meters));
     const percent = Math.round(fraction * 100);
 
     svl.ui.minimap.missionProgressFill.css('width', `${percent}%`);
     svl.ui.minimap.missionProgressPercent.text(`${percent}%`);
-    svl.ui.minimap.missionProgressDistance.text(`${toDisplay(doneMeters)}/${toDisplay(totalMeters)} ${unit}`);
+    svl.ui.minimap.missionProgressDistance.text(
+      i18next.t('common:distance-progress', { done: doneMeters, total: totalMeters }),
+    );
     svl.ui.minimap.missionProgress.attr('aria-valuenow', percent);
   }
 
@@ -246,10 +245,9 @@ class Minimap {
     svl.ui.minimap.missionProgress.attr('aria-valuenow', 0);
     if (mission) {
       const totalMeters = mission.getDistance('meters');
-      const metric = i18next.t('common:measurement-system') === 'metric';
-      const unit = i18next.t('common:unit-abbreviation-mission-distance');
-      const total = util.math.roundToTwentyFive(metric ? totalMeters : util.math.metersToFeet(totalMeters));
-      svl.ui.minimap.missionProgressDistance.text(`0/${total} ${unit}`);
+      svl.ui.minimap.missionProgressDistance.text(
+        i18next.t('common:distance-progress', { done: 0, total: totalMeters }),
+      );
     } else {
       svl.ui.minimap.missionProgressDistance.text('');
     }

@@ -339,7 +339,37 @@ class MobileValidationMenu {
 
     // If enough time has passed between validations, log the new validation.
     if (timestamp - svv.labelContainer.getProperty('validationTimestamp') > 800) {
+      MobileValidationMenu.#floatVerdict(action);
       svv.labelContainer.validateCurrentLabel(action, timestamp, comment);
     }
+  }
+
+  /**
+   * Sends the verdict's own thumb floating up off the button that cast it, confirming the tap where the thumb already
+   * is. The icon is cloned from the button so the two can never drift apart, and it takes itself off the page when
+   * the animation ends. Nothing happens for a visitor who asked for less motion — the button's chosen state, which
+   * they keep, already says what was picked.
+   *
+   * @param {string} action The verdict cast: 'Agree', 'Disagree', or 'Unsure'.
+   */
+  static #floatVerdict(action) {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const buttonIds = {
+      Agree: 'validate-yes-button', Disagree: 'validate-no-button', Unsure: 'validate-unsure-button',
+    };
+    const button = document.getElementById(buttonIds[action]);
+    const icon = button?.querySelector('.validate-page-button__icon');
+    if (!icon) return;
+
+    // One at a time: a quick second verdict should replace the last one's thumb, not race it up the screen.
+    document.querySelectorAll('.validate-verdict-float').forEach((stale) => stale.remove());
+
+    const floater = icon.cloneNode();
+    floater.className = 'validate-verdict-float';
+    const box = button.getBoundingClientRect();
+    floater.style.left = `${box.left + box.width / 2}px`;
+    floater.style.top = `${box.top}px`;
+    floater.addEventListener('animationend', () => floater.remove());
+    document.body.appendChild(floater);
   }
 }

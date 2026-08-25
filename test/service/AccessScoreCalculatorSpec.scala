@@ -54,7 +54,7 @@ class AccessScoreCalculatorSpec extends AnyFunSuite with Matchers {
   }
 
   test("unscored label types contribute exactly zero") {
-    Seq("Occlusion", "Other", "Problem", "NotARealType").foreach { lt =>
+    Seq("Occlusion", "Other", "NotARealType").foreach { lt =>
       AccessScoreCalculator.scoreCluster(cluster(lt, Some(3))) shouldBe (0.0 +- eps)
     }
   }

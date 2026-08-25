@@ -30,15 +30,19 @@
 
     <div id="raw-labels-preview" class="map-container">Loading raw labels data...</div>
 
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-    <script src="https://unpkg.com/leaflet@@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-    <link rel="stylesheet" href="@assets.path("css/api-docs/raw-labels.css")">
-    <script src="@routes.Assets.versioned("js/api-docs/rawLabelsPreview.js")"></script>
+    <link rel="stylesheet" href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")'>
+    <link rel="stylesheet" href='@assets.path("css/api-docs/raw-labels.css")'>
+    @* Deferred to keep the ~800KB mapping stack off this article's rendering path. Order still matters within the
+       set: the language plugin and the preview both read the mapboxgl global as they parse. *@
+    <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.js")' defer></script>
+    <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")' defer></script>
+    <script src='@assets.path("js/api-docs/apiDocsMap.js")' defer></script>
+    <script src='@assets.path("js/api-docs/rawLabelsPreview.js")' defer></script>
     <script>
-      // Initialize the raw labels preview map
-      document.addEventListener('DOMContentLoaded', function() {
+      // Waits on appManager so the map's language control can read the page's locale out of i18next.
+      window.appManager.ready(function() {
         RawLabelsPreview.setup({
-          mapHeight: 500
+          mapboxApiKey: '@commonData.mapboxApiKey'
         }).init();
       });
     </script>

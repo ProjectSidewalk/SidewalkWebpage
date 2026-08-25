@@ -189,22 +189,35 @@ class ExploreController @Inject() (
 
   /**
    * This method handles a POST request in which user reports missing imagery.
+   *
+   * An accepted report records a street_edge_issue row and nothing else — evidence for the offline imagery checker,
+   * never an audit credit (#4922). The per-user limit bounds how much junk evidence a client stuck in a loop (a
+   * flaky imagery provider, a viewer that will not initialize) can file at one street per round trip, and no
+   * client-side guard protects the ~1 hour of cached bundles still running without one after a deploy (#4918).
    */
   def postNoImagery = cc.securityService.SecuredAction(parse.json) { implicit request =>
-    val submission = request.body.validate[NoStreetViewSubmission]
-    submission.fold(
-      errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
-      noSv => {
-        exploreService
-          .insertNoImagery(
-            noSv.task,
-            StreetEdgeIssue(0, noSv.task.streetEdgeId, StreetEdgeIssueType.PanoNotAvailable, request.identity.userId,
-              request.ipAddress, OffsetDateTime.now),
-            noSv.missionId
-          )
-          .map(_ => Ok(Json.obj("success" -> noSv.task.streetEdgeId)))
-      }
-    )
+    val limit  = rateLimiter.limit("no-imagery")
+    val userId = request.identity.userId
+    if (!rateLimiter.allow(s"no-imagery:user:$userId", limit)) {
+      logger.warn(s"User $userId exceeded the missing-imagery report limit; refusing to record more reports.")
+      Future.successful(
+        TooManyRequests(Json.obj("status" -> "Error", "message" -> "Too many missing-imagery reports."))
+          .withHeaders("Retry-After" -> limit.window.toSeconds.toString)
+      )
+    } else {
+      val submission = request.body.validate[NoStreetViewSubmission]
+      submission.fold(
+        errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
+        noSv => {
+          exploreService
+            .insertNoImagery(
+              StreetEdgeIssue(0, noSv.task.streetEdgeId, StreetEdgeIssueType.PanoNotAvailable, request.identity.userId,
+                request.ipAddress, OffsetDateTime.now)
+            )
+            .map(_ => Ok(Json.obj("success" -> noSv.task.streetEdgeId)))
+        }
+      )
+    }
   }
 
   /**

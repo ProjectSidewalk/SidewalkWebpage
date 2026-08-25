@@ -108,14 +108,12 @@ trait ExploreService {
   def insertComment(comment: AuditTaskComment): Future[Int]
 
   /**
-   * Logs to the street_edge_issue table and, for regular audit missions, marks the task as complete as if it were
-   * completed normally. For exploreAddress missions only the issue is logged — the task never completes (#4451).
-   * @param taskSubmission The audit task associated with the imagery issue
+   * Logs a labeler's report of missing imagery to the street_edge_issue table. Evidence only: the task stays
+   * incomplete and the street keeps its priority, whatever the mission type (#4918, #4922).
    * @param streetIssue The StreetIssue object to submit
-   * @param missionId The mission_id for the task
    * @return The number of rows added to the street_edge_issue table (should always be 1)
    */
-  def insertNoImagery(taskSubmission: TaskSubmission, streetIssue: StreetEdgeIssue, missionId: Int): Future[Int]
+  def insertNoImagery(streetIssue: StreetEdgeIssue): Future[Int]
 
   /**
    * Inserts a set of AI-generated labels into the database, filling in appropriate tables with dummy data.
@@ -163,6 +161,7 @@ class ExploreServiceImpl @Inject() (
     routeTable: RouteTable,
     userRouteTable: UserRouteTable,
     labelService: LabelService,
+    labelEditService: LabelEditService,
     auditTaskTable: AuditTaskTable,
     auditTaskEnvironmentTable: AuditTaskEnvironmentTable,
     auditTaskInteractionTable: AuditTaskInteractionTable,
@@ -272,10 +271,18 @@ class ExploreServiceImpl @Inject() (
         } else if (routeOption.isDefined) {
           userRouteTable.getRouteTask(userRoute.get, mission.missionId)
         } else if (mission.currentAuditTaskId.isDefined) {
-          // If we find no task with the given ID, try to get any new task in the neighborhood.
-          auditTaskTable.selectTaskFromTaskId(mission.currentAuditTaskId.get).flatMap { currTask =>
-            if (currTask.isDefined) DBIO.successful(currTask)
-            else auditTaskTable.selectANewTaskInARegion(regionId, userId, mission.missionId)
+          // If we find no task with the given ID, try to get any new task in the neighborhood. A task the labeler has
+          // just reported for missing imagery is passed over the same way: the report leaves it incomplete (#4922),
+          // so resuming it would hand back the street whose imagery would not load, on this load and every reload
+          // after it. The street keeps its place in the pool for the offline checker to settle (#4918); this only
+          // declines to serve it to the labeler who just bounced off it.
+          auditTaskTable.selectTaskFromTaskId(mission.currentAuditTaskId.get).flatMap {
+            case Some(currTask) =>
+              streetEdgeIssueTable.reportedNoImagerySince(currTask.edgeId, userId, currTask.taskStart).flatMap {
+                case true  => auditTaskTable.selectANewTaskInARegion(regionId, userId, mission.missionId)
+                case false => DBIO.successful(Some(currTask))
+              }
+            case None => auditTaskTable.selectANewTaskInARegion(regionId, userId, mission.missionId)
           }
         } else {
           auditTaskTable.selectANewTaskInARegion(regionId, userId, mission.missionId)
@@ -614,6 +621,8 @@ class ExploreServiceImpl @Inject() (
       _lng <- point.lng
     } yield gf.createPoint(new Coordinate(_lng, _lat))
 
+    warnIfRecordStale(label, userId)
+
     for {
       // Use label's lat/lng to determine street_edge_id. If lat/lng isn't defined, use audit_task's as backup.
       calculatedStreetEdgeId: Int <- (point.lat, point.lng) match {
@@ -654,6 +663,57 @@ class ExploreServiceImpl @Inject() (
     } yield {
       NewLabelData(newLabelId, label.temporaryLabelId, LabelTypeEnum.byName(label.labelType), label.panoSource,
         label.tutorial, timeCreated)
+    }
+  }
+
+  /**
+   * Record-consistency tripwire (#4842): warn if a label's viewport record fails to reproduce its own pano_x/pano_y.
+   *
+   * The client derives pano_x/pano_y from this same record at click time, so a record that replays somewhere else
+   * means a field went stale between click and submission -- the client-side race that silently corrupted records
+   * for 18 months (2023-03 -> 2024-09) and that no test can reproduce, because it only exists in live client timing.
+   * This is production telemetry, not validation: log-only by design, because a false positive must never cost a
+   * contributor their label. Tutorial panos carry fabricated metadata and are skipped, as are submissions without a
+   * pano metadata block. AI labels pass through: their records are computed by the inverse of this replay, so a
+   * warning from them would flag drift between the two projections.
+   *
+   * The log line's `Label record mismatch (#4842):` prefix is a grep contract: a tripwire is only worth having if
+   * something watches for it, so the sidewalk-panorama-tools log analyzer must track that exact signature (a rollout
+   * prerequisite of the #4842 repair — "quiet for N months" is unmeasurable otherwise, see sunset review #4872).
+   * Changing the prefix means updating the analyzer in the same change.
+   *
+   * @param label  The label submission to check, including its pano metadata block.
+   * @param userId The submitting user, included in the log line for triage.
+   */
+  private def warnIfRecordStale(label: LabelSubmission, userId: String): Unit = {
+    val point: LabelPointSubmission = label.point
+    if (!label.tutorial) {
+      for {
+        panoData   <- label.pano
+        width      <- panoData.width
+        height     <- panoData.height
+        camHeading <- panoData.cameraHeading
+        if width > 0 && height > 0
+      } {
+        val labelPov =
+          PanoDataService.calculatePovIfCentered(
+            POV(point.heading, point.pitch, point.zoom),
+            point.canvasX.toDouble,
+            point.canvasY.toDouble
+          )
+        val (expectedX, expectedY) = PanoDataService.calculatePanoXYFromPov(labelPov, camHeading, width, height)
+        val dxPx                   = { val d = math.abs(point.panoX - expectedX); math.min(d, width - d) }
+        val mismatchDeg            = math.hypot(dxPx * 360.0 / width, (point.panoY - expectedY) * 180.0 / height)
+        if (mismatchDeg > PanoDataService.RECORD_MISMATCH_TOLERANCE_DEG) {
+          logger.warn(
+            s"Label record mismatch (#4842): user=$userId tempLabelId=${label.temporaryLabelId} " +
+              s"pano=${label.panoId} stored pano_x/y=(${point.panoX}, ${point.panoY}) " +
+              s"record replays to=($expectedX, $expectedY) mismatch=${f"$mismatchDeg%.3f"}deg " +
+              s"record=(h=${point.heading}, p=${point.pitch}, z=${point.zoom}, " +
+              s"canvas=${point.canvasX},${point.canvasY})"
+          )
+        }
+      }
     }
   }
 
@@ -706,27 +766,25 @@ class ExploreServiceImpl @Inject() (
     db.run(auditTaskCommentTable.insert(comment))
   }
 
-  def insertNoImagery(taskSubmission: TaskSubmission, streetIssue: StreetEdgeIssue, missionId: Int): Future[Int] = {
-    // Record the imagery issue for any mission type, but only mark the street complete (with the priority update that
-    // entails) for regular audits: an exploreAddress task must never complete, so that a drop-in session at a spot
-    // with no imagery can't mark the whole street as audited (#4451).
-    def completeTaskAction(auditTaskId: Int, missionType: Option[MissionType.Value]): DBIO[Int] = {
-      if (missionType.contains(MissionType.ExploreAddress)) DBIO.successful(0)
-      else {
-        for {
-          _                  <- updateStreetPriority(streetIssue.streetEdgeId, streetIssue.userId)
-          atRowsUpdated: Int <- auditTaskTable.updateCompleted(auditTaskId, completed = true)
-        } yield atRowsUpdated
-      }
-    }
-
-    db.run(missionTable.getMissionType(missionId).flatMap { missionType: Option[MissionType.Value] =>
-      updateAuditTaskTable(streetIssue.userId, taskSubmission, missionId).flatMap { auditTaskId: Int =>
-        completeTaskAction(auditTaskId, missionType)
-          .zip(streetEdgeIssueTable.insert(streetIssue))
-          .map(_._2)
-      }
-    })
+  /**
+   * Records a labeler's report that a street's imagery failed to load, without crediting anyone with an audit.
+   *
+   * The report is evidence, not a verdict: one session's failure to load imagery is unreliable (transient GSV
+   * failures forge it wholesale, #4918), so it must not complete the task, drop the street's priority, or count
+   * toward region completion or the user's audited distance. The street stays open and un-audited for everyone.
+   * Streets that genuinely lack imagery leave the pool when the offline checker (check_streets_for_imagery.py ->
+   * street_edge.status = 'no_imagery') confirms the accumulated street_edge_issue reports (#4922).
+   *
+   * The issue row is the whole write. The audit task is deliberately left alone: it stays live and resumable now that
+   * a report doesn't complete it, and the report carries no record of where the labeler had walked to — so writing
+   * the task's progress from it would rewind their position to the street's start and null out the distance they had
+   * covered. street_edge_issue references the street and the user directly, so it stands on its own.
+   *
+   * @param streetIssue The report itself, one street_edge_issue row.
+   * @return The number of street_edge_issue rows inserted (1).
+   */
+  def insertNoImagery(streetIssue: StreetEdgeIssue): Future[Int] = {
+    db.run(streetEdgeIssueTable.insert(streetIssue))
   }
 
   /**
@@ -885,7 +943,7 @@ class ExploreServiceImpl @Inject() (
                       tagStrings: List[String] = label.tagIds.distinct
                         .flatMap(t => allTags.filter(_.tagId == t).map(_.tag).headOption)
                         .toList
-                      _ <- labelService.updateLabelFromExplore(existingLabel.labelId, label.deleted, label.severity,
+                      _ <- labelEditService.updateLabelFromExplore(existingLabel.labelId, label.deleted, label.severity,
                         label.description, tagStrings)
                     } yield None
                   }

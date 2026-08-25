@@ -6,7 +6,7 @@ import com.github.tminglei.slickpg.geom.PgPostGISExtensions
 import models.label.{AiImageSource, ComputationMethod}
 import models.mission.MissionType
 import models.pano.PanoSource
-import models.street.{StreetEdgeIssueType, StreetEdgeStatus, WayType}
+import models.street.{StreetEdgeIssueType, StreetEdgeStatus, StreetEdgeStatusChangeSource, StreetImagerySource, WayType}
 import models.utils.CommonUtils.{UiSource, ViewerType}
 import models.validation.ValidationOption
 import org.locationtech.jts.geom.{Geometry, LineString, MultiPolygon, Point}
@@ -160,6 +160,23 @@ trait MyPostgresProfile
         quoteName = false
       )
 
+    // Mapper for street_edge_status_change_source enum type.
+    implicit val streetEdgeStatusChangeSourceMapper: BaseColumnType[StreetEdgeStatusChangeSource.Value] =
+      createEnumJdbcType[StreetEdgeStatusChangeSource.Value](
+        "street_edge_status_change_source",
+        _.toString,
+        StreetEdgeStatusChangeSource.withName,
+        quoteName = false
+      )
+
+    // Mapper for job_run_status enum type.
+    implicit val jobRunStatusMapper: BaseColumnType[JobRunStatus.Value] =
+      createEnumJdbcType[JobRunStatus.Value]("job_run_status", _.toString, JobRunStatus.withName, quoteName = false)
+
+    // Mapper for job_run_trigger enum type.
+    implicit val jobRunTriggerMapper: BaseColumnType[JobRunTrigger.Value] =
+      createEnumJdbcType[JobRunTrigger.Value]("job_run_trigger", _.toString, JobRunTrigger.withName, quoteName = false)
+
     // Mapper for mission_type enum type.
     implicit val missionTypeMapper: BaseColumnType[MissionType.Value] =
       createEnumJdbcType[MissionType.Value]("mission_type", _.toString, MissionType.withName, quoteName = false)
@@ -183,6 +200,15 @@ trait MyPostgresProfile
         "street_edge_issue_type",
         _.toString,
         StreetEdgeIssueType.withName,
+        quoteName = false
+      )
+
+    // Mapper for street_imagery_source enum type.
+    implicit val streetImagerySourceMapper: BaseColumnType[StreetImagerySource.Value] =
+      createEnumJdbcType[StreetImagerySource.Value](
+        "street_imagery_source",
+        _.toString,
+        StreetImagerySource.withName,
         quoteName = false
       )
   }

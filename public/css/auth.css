@@ -165,6 +165,10 @@ dialog.au-dialog::backdrop {
   width: 100%;
   padding: 11px 14px;
   font: var(--text-body-regular);
+
+  /* iOS Safari auto-zooms the page when a focused input renders below 16px, so floor the token's size — the
+     dialog can sit over a tool page whose --ui-scale shrinks --text-body-regular below that (#4884). */
+  font-size: max(16px, calc(16px * var(--ui-scale, 1)));
   color: var(--color-neutral-900);
   background: var(--color-neutral-white);
   border: 1.5px solid var(--color-neutral-400);
@@ -897,6 +901,73 @@ dialog.au-dialog::backdrop {
   max-width: 44ch;
   font: var(--text-body-regular);
   color: var(--color-asphalt-700);
+}
+
+/* Names the scope of the big number when it spans more than one deployment (#4526). */
+.tc-stat-scope {
+  margin: 10px auto 0;
+  max-width: 46ch;
+  font: var(--text-small-regular);
+  color: var(--color-asphalt-500);
+}
+
+/* Per-city breakdown; only rendered when the headline total spans more than one deployment. */
+.tc-cities {
+  max-width: 560px;
+  margin: 20px auto 0;
+}
+
+.tc-cities-title {
+  margin: 0 0 8px;
+  font: var(--text-subtitle-bold);
+  color: var(--color-neutral-800);
+}
+
+.tc-cities-table {
+  width: 100%;
+  border-collapse: collapse;
+  font: var(--text-body-regular);
+  color: var(--color-asphalt-700);
+}
+
+.tc-cities-table th,
+.tc-cities-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--color-neutral-200);
+  text-align: left;
+}
+
+.tc-cities-table td,
+.tc-cities-table thead th:last-child {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Pinned rather than inherited: the badge sits on pine-200, so its contrast can't be left to the page cascade. */
+.tc-cities-here {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--color-pine-200);
+  font: var(--text-small-regular);
+  color: var(--color-pine-800);
+}
+
+/* Says out loud that a city was missed, so a total that is only a floor never reads as a final answer (#4526). */
+.tc-incomplete {
+  max-width: 560px;
+  margin: 16px auto 0;
+  padding: 12px 16px;
+  background: var(--color-banana-100);
+  border: 1px solid var(--color-banana-300);
+  border-radius: 12px;
+  font: var(--text-small-regular);
+  color: var(--color-asphalt-700);
+}
+
+.tc-incomplete a {
+  color: var(--color-link-200);
 }
 
 /* Live opt-in status for the signed-in user: on (pine), off (banana prompt), or an anon sign-up nudge. */

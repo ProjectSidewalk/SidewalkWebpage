@@ -29,19 +29,37 @@
 
     <p class="download-note">Note: In these examples, we are visualizing Project Sidewalk data only in a single region; however, the Streets API can return data from all regions in the city or just a selected region—see the <a href="#query-parameters">API Query Parameters</a> below.</p>
 
-    <div id="streets-preview">
-        <!-- To be replaced by JavaScript with actual map rendering -->
+    <div class="visualization-section">
+      <h3>User Count Visualization</h3>
+      <p class="visualization-description">Visualizes user counts per street segment. More specifically, streets are color-coded by the number of users who added at least one label to the segments. You can hover and click on streets to view more information.</p>
+      <div id="streets-user-count-preview" class="map-container"></div>
     </div>
 
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-    <script src="https://unpkg.com/leaflet@@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-    <link rel="stylesheet" href="@assets.path("css/api-docs/streets.css")">
-    <script src="@routes.Assets.versioned("js/api-docs/streetsPreview.js")"></script>
+    <div class="visualization-section">
+      <h3>Audit Age Visualization</h3>
+      <p class="visualization-description">Displays the age of audits for each street segment. Streets are color-coded based on how recently they were audited, helping identify areas that may need fresh accessibility assessments. You can hover and click on streets to view more information.</p>
+      <div id="streets-audit-age-preview" class="map-container"></div>
+    </div>
+
+    <div class="visualization-section">
+      <h3>Label Count Visualization</h3>
+      <p class="visualization-description">Shows the total number of accessibility labels placed on each street segment. Streets are color-coded by label density, indicating areas with more or fewer accessibility annotations. You can hover and click on streets to view more information.</p>
+      <div id="streets-label-count-preview" class="map-container"></div>
+    </div>
+
+    <link rel="stylesheet" href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")'>
+    <link rel="stylesheet" href='@assets.path("css/api-docs/streets.css")'>
+    @* Deferred to keep the ~800KB mapping stack off this article's rendering path. Order still matters within the
+       set: the language plugin and the preview both read the mapboxgl global as they parse. *@
+    <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.js")' defer></script>
+    <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")' defer></script>
+    <script src='@assets.path("js/api-docs/apiDocsMap.js")' defer></script>
+    <script src='@assets.path("js/api-docs/streetsPreview.js")' defer></script>
     <script>
-      // Initialize the streets preview map
-      document.addEventListener('DOMContentLoaded', function() {
+      // Waits on appManager so the maps' language controls can read the page's locale out of i18next.
+      window.appManager.ready(function() {
         StreetsPreview.setup({
-          mapHeight: 500
+          mapboxApiKey: '@commonData.mapboxApiKey'
         }).init();
       });
     </script>
@@ -200,6 +218,7 @@
         ],
         "label_count": 23,
         "audit_count": 5,
+        "outdated": false,
         "user_count": 2,
         "first_label_date": "2023-06-20T14:32:45Z",
         "last_label_date": "2023-08-15T10:22:18Z"
@@ -227,6 +246,7 @@
         ],
         "label_count": 8,
         "audit_count": 1,
+        "outdated": false,
         "user_count": 1,
         "first_label_date": "2023-06-22T11:12:24Z",
         "last_label_date": "2023-06-22T11:45:33Z"
@@ -312,6 +332,11 @@
             <td>Number of times this street segment has been audited (virtually walked through) by users.</td>
           </tr>
           <tr>
+            <td><code>properties.outdated</code></td>
+            <td><code>boolean</code></td>
+            <td>Whether this street was audited before but every audit predates newer street-view imagery, so it needs re-auditing. Always <code>false</code> when <code>audit_count</code> is <code>0</code>.</td>
+          </tr>
+          <tr>
             <td><code>properties.user_count</code></td>
             <td><code>integer</code></td>
             <td>Number of unique users who have contributed labels to this street segment (derived from <code>user_ids.length</code>).</td>
@@ -334,9 +359,9 @@
 
     <h4 id="response-csv">CSV Format <a href="#response-csv" class="permalink">#</a></h4>
     <p>If <code>filetype=csv</code> is specified, the response body will be CSV data. The first row contains the headers, corresponding to the fields in the GeoJSON properties object, plus geometry representation. CRS is WGS84 (EPSG:4326).</p>
-    <pre tabindex="0"><code class="language-csv">street_edge_id,osm_way_id,region_id,region_name,way_type,max_speed,status,user_ids,label_count,audit_count,user_count,first_label_date,last_label_date,start_point,end_point
-951,11584845,8,Teaneck Community Charter School,residential,25 mph,open,"[18b26a38-24ab-402d-a64e-158fc0bb8a8a,53ad4d79-9a7b-4d3c-a753-63bbfca34c9b]",23,5,2,2023-06-20T14:32:45Z,2023-08-15T10:22:18Z,"-74.0243606567383,40.8839912414551","-74.0245123456789,40.8836789012345"
-952,11566031,8,Teaneck Community Charter School,primary,,open,[8af92eb8-fb84-4aa6-9539-abc95216dcd7],8,1,1,2023-06-22T11:12:24Z,2023-06-22T11:45:33Z,"-74.0245835449219,40.8835416503906","-74.0246123456789,40.8833789012345"
+    <pre tabindex="0"><code class="language-csv">street_edge_id,osm_way_id,region_id,region_name,way_type,max_speed,status,user_ids,label_count,audit_count,outdated,user_count,first_label_date,last_label_date,start_point,end_point
+951,11584845,8,Teaneck Community Charter School,residential,25 mph,open,"[18b26a38-24ab-402d-a64e-158fc0bb8a8a,53ad4d79-9a7b-4d3c-a753-63bbfca34c9b]",23,5,false,2,2023-06-20T14:32:45Z,2023-08-15T10:22:18Z,"-74.0243606567383,40.8839912414551","-74.0245123456789,40.8836789012345"
+952,11566031,8,Teaneck Community Charter School,primary,,open,[8af92eb8-fb84-4aa6-9539-abc95216dcd7],8,1,false,1,2023-06-22T11:12:24Z,2023-06-22T11:45:33Z,"-74.0245835449219,40.8835416503906","-74.0246123456789,40.8833789012345"
 ...</code></pre>
 
     <p>Note: The complete LineString geometry is simplified to start and end points in the CSV format due to the tabular nature of CSV. For full geometry data, use the GeoJSON format.</p>

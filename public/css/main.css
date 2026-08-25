@@ -146,8 +146,9 @@
   --font-primary: "Mulish", "PingFang TC", "Microsoft JhengHei", sans-serif;
   --font-accent:  "Raleway", sans-serif;
 
-  /* Monospace, for content whose alignment carries meaning: code, BibTeX, fixed-width identifiers. JetBrains Mono is
-       only webfont-loaded on the API docs pages, so everywhere else this resolves to the platform's own mono face. */
+  /* Monospace, for content whose alignment carries meaning: code, BibTeX, fixed-width identifiers. JetBrains Mono
+       is self-hosted in css/fonts.css, which every page links, so this resolves to it site-wide; the platform faces
+       behind it cover the scripts its Latin subsets don't. */
   --font-mono:    "JetBrains Mono", sfmono-regular, consolas, "Liberation Mono", menlo, monospace;
 
   /* Typography scale: mirrors the Figma Design System Tokens file.
@@ -207,19 +208,49 @@
 
 
 /* General styles */
+
+/* Raleway's three weights, as weights of one family — which is what lets `font-weight: 700` on --font-accent pick
+   Raleway Bold. A weight the family doesn't declare is drawn by smearing the regular outlines instead, so the
+   --text-h1-bold / --text-h2-bold headings are the ones this is here for.
+   The raleway-bold and raleway-extrabold families below name the same two files, for the older rules that select a
+   weight by family name; prefer the weight on this family in anything new.
+   `swap` on all of them: Raleway sets headings, and the alternative is a heading that is simply absent until the
+   face arrives. The flash of fallback it trades that for is short — these are same-origin now, not a round trip to
+   Google — and it matches what the Mulish/Inter/JetBrains Mono faces in css/fonts.css already do. */
 @font-face {
   font-family: raleway;
-  src: url("../fonts/Raleway/Raleway-Regular.ttf");
+  src: url("../fonts/Raleway/Raleway-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: raleway;
+  src: url("../fonts/Raleway/Raleway-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: raleway;
+  src: url("../fonts/Raleway/Raleway-ExtraBold.woff2") format("woff2");
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
 }
 
 @font-face {
   font-family: raleway-bold;
-  src: url("../fonts/Raleway/Raleway-Bold.ttf");
+  src: url("../fonts/Raleway/Raleway-Bold.woff2") format("woff2");
+  font-display: swap;
 }
 
 @font-face {
   font-family: raleway-extrabold;
-  src: url("../fonts/Raleway/Raleway-ExtraBold.ttf");
+  src: url("../fonts/Raleway/Raleway-ExtraBold.woff2") format("woff2");
+  font-display: swap;
 }
 
 
@@ -236,6 +267,12 @@ body {
   /* Offsets content below the fixed navbar, plus the test-server banner when present. --test-banner-height is
      published by the banner's inline script and defaults to 0 (banner absent/dismissed, and always on prod). */
   padding-top: calc(var(--navbar-height) + var(--test-banner-height, 0px));
+}
+
+/* The landing page draws its hero under the fixed navbar and pads itself (homepage.css), so main.scala.html gives
+   its <body> this class to opt out of the navbar offset above. */
+body.no-navbar-offset {
+  padding-top: 0;
 }
 
 .spacer10 { height: 10px; }
@@ -420,6 +457,14 @@ a {
   display: block;
   width: 24px;
   height: 24px;
+}
+
+/* Holds the collapsed bar's icon-only links; empty and hidden until the breakpoint below fills it. */
+.navbar-quick {
+  display: none;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 #language-icon {
@@ -688,10 +733,31 @@ a {
   min-height: 20px;
 }
 
+/* The three columns don't fill the 900px evenly, so centering the row alone leaves the group visibly left of centre;
+   the offset is what makes the *content* read as centered. */
 #footer-container .footer-links-row {
   width: 900px;
   position: relative;
   left: 80px;
+}
+
+/*
+ * Below the width that fits 900px plus that 80px offset, both turn into overflow: the row is laid out past the right
+ * edge, which widens the page. Every page carries this footer, so every page scrolled sideways on a phone — and since
+ * the navbar is fixed to the initial containing block that the overflow widens, the navbar was laid out wider than
+ * the screen too, pushing the hamburger off it (#4857).
+ *
+ * Bootstrap's gutters have to go with it: .row pulls itself 15px wider on each side expecting a block container to
+ * absorb the difference, and #footer-container is a flex container, so that width lands outside the viewport instead.
+ * The columns keep their own padding, which is what still indents the text once the row stops overhanging.
+ */
+@media (width <= 1060px) {
+  #footer-container .footer-links-row {
+    width: 100%;
+    left: 0;
+    margin-left: 0;
+    margin-right: 0;
+  }
 }
 
 #info-footer .footer-logos-row {
@@ -887,25 +953,27 @@ a {
   outline-offset: 2px;
 }
 
-@media only screen and (device-width <= 500px) {
-  #award-num {
-    width: 100% !important;
-    right: 0% !important;
-  }
-}
-
-@media only screen and (device-width <= 800px) and (device-width >= 500px) {
-  #award-num {
-    width: 350% !important;
-    right: 45% !important;
-  }
-}
-
+/* Sized as a multiple of its own column because the award text is far wider than the narrow .col-sm-1 it sits under,
+   and pulled back left by the matching offset so it stays under the NSF logo. */
 #award-num {
   font-size:10px;
   color:#c0becf;
   width: 220%;
   right: 35%;
+}
+
+/*
+ * Below Bootstrap's sm breakpoint the columns stop floating and stack full-width, so a percentage picked for a narrow
+ * column becomes multiples of the viewport — 220% of 737px is 1621px of page, and the fixed navbar is sized from the
+ * containing block that widens with it (#4857). Keyed on `width` because the viewport is what the columns lay out
+ * against: `device-width` is the physical screen, which ignores a resized desktop window entirely and reports the
+ * wrong dimension on a rotated tablet.
+ */
+@media (width <= 767px) {
+  #award-num {
+    width: 100%;
+    right: 0;
+  }
 }
 
 #funding-title {
@@ -924,6 +992,21 @@ kbd {
   font-size: 0.9em; /* Scale with surrounding text rather than a fixed size. */
   padding: 2px 6px;
   vertical-align: middle; /* Center the pill on the text line instead of hanging it off the baseline. */
+}
+
+/* The site's one loading spinner, so the pages that render it don't each arrive at their own size and color. */
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid var(--color-neutral-100);
+  border-top: 4px solid var(--color-pine-500);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 #page-loading {
@@ -1103,8 +1186,9 @@ kbd {
 }
 
 /*
- * Test server warning banner on narrow screens. This applies to all pages except the default /mobile page, whose
- * banner overrides live in mobile-validate.css.
+ * Test server warning banner on narrow screens. mobile-validate.css only repositions the banner on /mobile — under
+ * that tool's own header band rather than over it — so a phone held in portrait gets this stacked layout there too.
+ * Landscape is wider than the query, and keeps the one-row layout at that same offset.
  */
 @media only screen and (width <= 600px) {
   /* Top-align so the icon sits on the first line once the message wraps to several lines. */
@@ -1544,6 +1628,40 @@ kbd {
   .labelmap-beacon::after { animation: none; }
 }
 
+/* A label marker on a panorama (PanoMarker). The type icon is drawn by ::before from --label-icon rather than as
+   the element's own background, so hiding the label can fade the icon independently of the ring around it. */
+.label-marker {
+  transition: border-color 0.5s ease, outline-color 0.5s ease, outline-width 0.5s ease;
+}
+
+.label-marker::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background-image: var(--label-icon);
+  background-size: 100% 100%;
+  transition: opacity 0.5s ease;
+}
+
+/* Hidden state, from the Hide-label toggle on Validate and on the label detail card (#2477). */
+.label-marker--hidden::before {
+  opacity: 0;
+}
+
+.label-marker--hidden {
+  border-color: transparent;
+  outline: calc(2px * var(--ui-scale, 1)) dashed rgb(from var(--label-color, #ffffff) r g b / 70%);
+  outline-offset: calc(1px * var(--ui-scale, 1));
+}
+
+/* The eye on every Hide-label button (LabelVisibilityToggle), sized to sit with the type beside it. */
+.hide-label-button-icon {
+  flex-shrink: 0;
+  width: calc(14px * var(--ui-scale, 1));
+  height: calc(14px * var(--ui-scale, 1));
+}
+
 /* One-shot halo drawing the eye to a label marker on a panorama: Validate replays it on every new label (#4790),
    the Label Detail Card plays it when the card opens (#4572). Both markers are small and easy to lose against a
    busy streetscape.
@@ -1616,9 +1734,16 @@ kbd {
   .navbar-brand-area {
     display: flex;
     align-items: center;
-    justify-content: space-between;
     width: 100%;
     min-height: var(--navbar-height);
+  }
+
+  /* None of the three may shrink: Navbar.js decides how many quick links fit by comparing their summed widths against
+     the row, and a shrunk child would always measure as fitting. */
+  .navbar-logo,
+  .navbar-quick,
+  .navbar-toggle {
+    flex: none;
   }
 
   .navbar-toggle {
@@ -1640,16 +1765,22 @@ kbd {
     margin-left: 0;
   }
 
+  /* Wide enough to read as the page's whole navigation rather than a 220px card hanging off one corner, but capped
+     so it stays under the hamburger that opened it instead of stretching across a tablet. On a phone the cap is
+     wider than the screen, so it goes full-bleed. */
   #navbar {
     position: absolute;
     top: var(--navbar-height);
-    right: 4.5%;
-    min-width: 220px;
+    right: 0;
+    left: auto;
+    width: 100%;
+    max-width: 420px;
     padding: 6px 0;
     z-index: var(--navbar-z-index);
     background-color: var(--color-neutral-white);
-    box-shadow: 0 1px 8px 0 #999999;
-    border-radius: 5px;
+    border-bottom: 1px solid var(--color-neutral-300);
+    border-radius: 0 0 8px 8px;
+    box-shadow: 0 6px 16px rgb(0 0 0 / 17.5%);
   }
 
   #header.header--tall #navbar {
@@ -1665,7 +1796,8 @@ kbd {
     overflow: hidden !important;
   }
 
-  .navbar-nav {
+  /* Scoped to the panel: the quick strip is a .navbar-nav too, and it stays a horizontal row in the bar. */
+  #navbar .navbar-nav {
     display: block !important;
     width: 100%;
     margin: 0;
@@ -1727,6 +1859,100 @@ kbd {
 
   .navbar-lnk.is-open > .dropdown-menu.nav-city-panel {
     width: 100%;
+  }
+
+  /*
+   * Quick strip: the destinations worth one tap, shown as icons between the logo and the hamburger. Navbar.js moves
+   * as many `data-nav-quick` items here as fit and leaves the rest in the panel, so this styles whichever it picked.
+   */
+  .navbar-quick {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    margin: 0 4px 0 auto; /* auto pushes the strip and the hamburger to the trailing edge. */
+    padding: 0;
+    list-style: none;
+  }
+
+  .navbar-quick > .navbar-lnk {
+    display: block;
+    margin-left: 0;
+  }
+
+  /*
+   * Destinations keep their labels here: an icon alone is only reliable for glyphs people have already learned, and
+   * "About" and "API" aren't among them. Labelling costs width, which is why Navbar.js measures — fewer items reach
+   * the bar on a small phone, and the rest stay one tap away in the panel.
+   */
+  .navbar-nav.navbar-quick > li > .navbar-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: auto;
+    min-width: 40px;
+    height: 36px;
+    padding: 0 10px;
+    gap: 4px;
+    border: none;
+    border-radius: 8px;
+
+    /* The panel lets labels wrap onto a second line; in this single-line bar that would break the row. */
+    white-space: nowrap;
+  }
+
+  .navbar-quick .navbar-lnk-icon,
+  .navbar-quick .navbar-select-icon {
+    display: block;
+    width: 18px;
+    height: 18px;
+  }
+
+  /*
+   * The signed-in account control is the exception, and only because the person glyph is one of the learned ones. A
+   * username is also the longest, least predictable label in the bar — showing it would crowd out the destinations on
+   * a phone, and the button's aria-label still names it.
+   *
+   * Scoped to that one button rather than the <li>, which also wraps the signed-out sign-in link: a log-in arrow is
+   * not a learned glyph, "Sign in" is short and predictable, and the label is that link's whole accessible name. It
+   * keeps its text and the shared pill padding above; Navbar.js measures, so the wider pill just means one fewer
+   * destination fits.
+   */
+  #navbar-quick #nav-user-dropdown {
+    min-width: 40px;
+    padding: 0;
+  }
+
+  .navbar-quick .navbar-user-name {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .navbar-quick .caret {
+    display: none;
+  }
+
+  /* Current page: a filled pill, since the underline the inline bar uses has no room under a 20px icon. */
+  .navbar-nav.navbar-quick > li > .navbar-button.is-active {
+    background-color: var(--color-banana-300);
+    color: var(--color-neutral-black);
+  }
+
+  /* The panel's rules above flatten dropdowns into the stacked list; a strip dropdown is a real popover again,
+     anchored to its icon and kept inside the viewport. */
+  .navbar-quick .navbar-lnk.is-open > .dropdown-menu {
+    position: absolute;
+    width: max-content;
+    max-width: min(320px, calc(100vw - 24px));
+    border: 1px solid rgb(0 0 0 / 15%);
+    border-radius: 8px;
+    box-shadow: 0 6px 16px rgb(0 0 0 / 17.5%);
   }
 }
 
@@ -1889,6 +2115,12 @@ kbd {
   top: auto;
   bottom: 100%;
   clip-path: polygon(0 100%, 100% 100%, 50% 0);
+}
+
+/* A card too tall to fit on either side of its trigger gets clamped into the viewport, which leaves its edges away
+   from the trigger — a tail would point at nothing, so there is none. */
+.ps-tooltip--untailed::after {
+  display: none;
 }
 
 .ps-tooltip--visible {

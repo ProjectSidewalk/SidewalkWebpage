@@ -2,7 +2,6 @@ package controllers.api
 
 import controllers.base.CustomControllerComponents
 import controllers.helper.ShapefilesCreatorHelper
-import formats.json.ApiFormats._
 import models.api._
 import models.label.LabelTypeEnum
 import org.apache.pekko.stream.scaladsl.Source
@@ -162,7 +161,7 @@ class LabelApiController @Inject() (
     val parsedStartDate          = parseDateTimeParam(startDate, "startDate")
     val parsedEndDate            = parseDateTimeParam(endDate, "endDate")
     val parsedValidationStatuses = parseValidationStatuses(validationStatus)
-    val parsedLabelTypes         = parseAllowlistedList(labelType, LabelTypeEnum.validLabelTypes, "labelType")
+    val parsedLabelTypes         = parseAllowlistedList(labelType, LabelTypeEnum.labelTypeNames, "labelType")
     val parsedSeverity           = parseSeverityParam(severity, minSeverity, maxSeverity)
 
     // Tag values are validated against the city's full tag list (cached), not the UI-facing one: a tag a city hides
@@ -172,7 +171,7 @@ class LabelApiController @Inject() (
         cityTags.groupMap(t => LabelTypeEnum.labelTypeIdToLabelType(t.labelTypeId))(_.tag).map { case (lt, tagNames) =>
           lt -> tagNames.toSet
         }
-      val parsedTags = TagFilterForApi.parse(tags, LabelTypeEnum.validLabelTypes, tagsByLabelType)
+      val parsedTags = TagFilterForApi.parse(tags, LabelTypeEnum.labelTypeNames, tagsByLabelType)
 
       // Collect the first invalid-parameter error, if any.
       val firstError: Option[ApiError] = Seq(

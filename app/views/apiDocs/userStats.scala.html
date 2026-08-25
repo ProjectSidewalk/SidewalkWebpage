@@ -223,7 +223,7 @@
           <tr><td><code>labels_validated_correct</code></td><td><code>integer</code></td><td>Number of the user's labels validated as correct.</td></tr>
           <tr><td><code>labels_validated_incorrect</code></td><td><code>integer</code></td><td>Number of the user's labels validated as incorrect.</td></tr>
           <tr><td><code>labels_not_validated</code></td><td><code>integer</code></td><td>Number of the user's labels that have not been validated.</td></tr>
-          <tr><td><code>validations_given</code></td><td><code>integer</code></td><td>Total number of validations performed by the user on others' labels.</td></tr>
+          <tr><td><code>validations_given</code></td><td><code>integer</code></td><td>Total number of validations performed by the user on others' labels. Votes later voided by data repairs still count as work performed, so this can exceed the sum of the agree/disagree/unsure fields.</td></tr>
           <tr><td><code>dissenting_validations_given</code></td><td><code>integer</code></td><td>Number of validations where the user disagreed with the majority.</td></tr>
           <tr><td><code>agree_validations_given</code></td><td><code>integer</code></td><td>Number of validations where the user agreed with the label.</td></tr>
           <tr><td><code>disagree_validations_given</code></td><td><code>integer</code></td><td>Number of validations where the user disagreed with the label.</td></tr>

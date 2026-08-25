@@ -94,7 +94,6 @@ project/.sbtserver.lock
 
 # JavaScript and Node
 public/js/explore/build/*
-public/js/admin/build/*
 public/js/help/build/*
 public/js/user-dashboard/build/*
 public/js/validate/build/*
@@ -153,3 +152,6 @@ CLAUDE.local.md
 project/.bloop/
 project/project/
 .claude/worktrees/
+
+# CSV downloads written to the project root by the aggregate-stats endpoints during local test runs.
+projectSidewalkStats_*.csv

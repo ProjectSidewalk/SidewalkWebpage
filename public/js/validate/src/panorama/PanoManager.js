@@ -97,7 +97,7 @@ class PanoManager {
     this.#watchViewerPov(this.#primaryViewer);
 
     if (util.isMobile()) {
-      this.#sizePano();
+      this.sizePano();
       svv.panoViewer.resize(); // Necessary for PannellumViewer for correct vertical position of the label.
     }
 
@@ -268,8 +268,8 @@ class PanoManager {
     }
 
     // The icon is handed to CSS rather than set as the marker's own background, so that hiding the label can
-    // crossfade it out (svv-panorama.css) while the ring around it stays put to mark the spot. The colour rides
-    // along for the dashed ring that ring becomes while hidden.
+    // crossfade it out (main.css's .label-marker) while the ring around it stays put to mark the spot. The colour
+    // rides along for the dashed ring that ring becomes while hidden.
     const marker = this.labelMarker.marker_;
     marker.style.setProperty('--label-icon', `url(${currentLabel.getIconUrl()})`);
     marker.style.setProperty('--label-color', currentLabel.getIconColor());
@@ -425,6 +425,9 @@ class PanoManager {
     }
     this.#watchViewerPov(this.#pannellumViewer);
     svv.panoViewer = this.#pannellumViewer;
+    // As #teardownPannellum does on the way back: a viewer only measures its container when told to, and this one
+    // has been sitting hidden — since a rotation, in the mobile case, which resized every canvas underneath it.
+    svv.panoViewer.resize();
     svv.tracker.push('Viewer_Pannellum');
     this.#logo.showSourceLogo();
     return svv.panoViewer.currPanoData;
@@ -495,15 +498,20 @@ class PanoManager {
   }
 
   /**
-   * Sets the size of the panorama and panorama holder depending on the size of the mobile phone.
-   * @private
+   * Fills the screen below the tool's header with the panorama. Mobile only; desktop sizes the pano from CSS.
+   *
+   * Measured from documentElement rather than window.innerWidth/innerHeight, which on iOS track the *visual*
+   * viewport: called after a pinch, those report the zoomed-into region and would size the pano to it.
+   *
+   * The header's height is read off the holder's own top edge, so this follows whatever mobile-validate.css puts
+   * above it rather than repeating the number.
    */
-  #sizePano() {
+  sizePano() {
     const panoHolderElem = document.getElementById('svv-panorama-holder');
     const controlLayerElem = document.getElementById('view-control-layer');
     const heightOffset = panoHolderElem.getBoundingClientRect().top;
-    const h = window.innerHeight - heightOffset;
-    const w = window.innerWidth;
+    const h = document.documentElement.clientHeight - heightOffset;
+    const w = document.documentElement.clientWidth;
     const left = 0;
     this.#panoCanvas.style.height = `${h}px`;
     this.#pannellumCanvas.style.height = `${h}px`;
@@ -516,6 +524,11 @@ class PanoManager {
     this.#panoCanvas.style.left = `${left}px`;
     panoHolderElem.style.left = `${left}px`;
     controlLayerElem.style.left = `${left}px`;
+
+    // The marker positions itself from the pano's size. It redraws on window resize too, but that listener is
+    // older than the one that calls this and runs unthrottled — so on a rotation it has already drawn against the
+    // dimensions being replaced here, and nothing would move it again until the next pan.
+    this.labelMarker?.draw();
   }
 
   /**

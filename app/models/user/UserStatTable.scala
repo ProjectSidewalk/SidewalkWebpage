@@ -109,6 +109,29 @@ case class GlobalLeaderboardStat(
 )
 
 /**
+ * One user's contribution totals in one city, for the dashboard's cross-city breakdown (#4496).
+ *
+ * Every count matches the definition the single-city dashboard already uses for the same tile, so the row for the
+ * city being viewed reconciles exactly with the hero KPIs above it.
+ *
+ * @param citySchema    DB schema the totals came from; the caller maps it back to a city id.
+ * @param labels        Labels placed here, on [[LabelTable.labelsWithExcludedUsers]]'s definition.
+ * @param validations   Validations given here.
+ * @param missions      Completed, non-skipped missions here (onboarding included).
+ * @param metersAudited Street distance audited here from the nightly `user_stat.meters_audited`, or None if this city
+ *                      has no `user_stat` row for the user.
+ * @param lastActivity  When the user last placed a label here, or None if they have never labeled here.
+ */
+case class CrossCityUserStat(
+    citySchema: String,
+    labels: Int,
+    validations: Int,
+    missions: Int,
+    metersAudited: Option[Double],
+    lastActivity: Option[OffsetDateTime]
+)
+
+/**
  * One row in a user's "standing" slice — their neighbors on the board, ranked by label count for the period.
  *
  * @param rank       1-based rank among eligible users for the period.
@@ -157,15 +180,17 @@ case class StreakStats(
 )
 
 class UserStatTableDef(tag: Tag) extends Table[UserStat](tag, "user_stat") {
+  // O.Default mirrors the DB default rather than driving it (nothing generates DDL from these definitions), so a
+  // reader can see what a row gets from a partial INSERT — which is what UserStatTable.insertIfNew issues.
   def userStatId: Rep[Int]                    = column[Int]("user_stat_id", O.PrimaryKey, O.AutoInc)
   def userId: Rep[String]                     = column[String]("user_id")
-  def metersAudited: Rep[Double]              = column[Double]("meters_audited")
+  def metersAudited: Rep[Double]              = column[Double]("meters_audited", O.Default(0d))
   def labelsPerMeter: Rep[Option[Double]]     = column[Option[Double]]("labels_per_meter")
-  def highQuality: Rep[Boolean]               = column[Boolean]("high_quality")
+  def highQuality: Rep[Boolean]               = column[Boolean]("high_quality", O.Default(true))
   def highQualityManual: Rep[Option[Boolean]] = column[Option[Boolean]]("high_quality_manual")
   def ownLabelsValidated: Rep[Int]            = column[Int]("own_labels_validated", O.Default(0))
   def accuracy: Rep[Option[Double]]           = column[Option[Double]]("accuracy")
-  def excluded: Rep[Boolean]                  = column[Boolean]("excluded")
+  def excluded: Rep[Boolean]                  = column[Boolean]("excluded", O.Default(false))
   def onLeaderboard: Rep[Boolean]             = column[Boolean]("on_leaderboard", O.Default(true))
   def publicProfile: Rep[Boolean]             = column[Boolean]("public_profile", O.Default(true))
 
@@ -173,7 +198,8 @@ class UserStatTableDef(tag: Tag) extends Table[UserStat](tag, "user_stat") {
     (userStatId, userId, metersAudited, labelsPerMeter, highQuality, highQualityManual, ownLabelsValidated, accuracy,
       excluded, onLeaderboard, publicProfile) <> ((UserStat.apply _).tupled, UserStat.unapply)
 
-  def user = foreignKey("user_stat_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
+  def user       = foreignKey("user_stat_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
+  def userUnique = index("user_stat_user_id_key", userId, unique = true)
 }
 
 @ImplementedBy(classOf[UserStatTable])
@@ -811,6 +837,119 @@ class UserStatTable @Inject() (
   }
 
   /**
+   * The schema this connection reads, i.e. the city every other dashboard query returns data for.
+   *
+   * Taken from the connection rather than `city-id` config because a box whose `DATABASE_USER` and `SIDEWALK_CITY_ID`
+   * name different cities would otherwise credit one city's live distance to another city's row.
+   */
+  def currentSchema: DBIO[String] = sql"SELECT current_schema()".as[String].head
+
+  /**
+   * Which schemas have the `voided_label_validation` archive, so the cross-city query knows where it may read it.
+   *
+   * Every city is its own app instance at its own evolution level, so a schema without the archive is normal rather
+   * than broken (#4878) — and referencing a missing relation would fail the whole union, dropping every city rather
+   * than one. An unmigrated schema's archive contribution is genuinely zero, so the arm is simply left out there.
+   * Read from `information_schema` in one shot rather than probed per schema, so nothing is spliced into SQL.
+   */
+  def schemasWithVoidedValidationArchive: DBIO[Set[String]] =
+    sql"""SELECT table_schema FROM information_schema.tables WHERE table_name = 'voided_label_validation'"""
+      .as[String]
+      .map(_.toSet)
+
+  /**
+   * One user's contribution totals in each of `citySchemas`, for the dashboard's cross-city section (#4496).
+   *
+   * Accounts are global while contributions are per-city, so a mapper's real Project Sidewalk totals only exist as a
+   * roll-up across schemas. All city schemas live in one database, so this is a single statement rather than a fan-out.
+   *
+   * Shaped as scalar subqueries per city rather than grouped scans because the whole query is keyed on one `user_id`:
+   * every subquery is an index seek, so a city the user never touched costs an index miss instead of a table scan.
+   * Measured on production (51 schemas, heaviest multi-city account): ~9 s cold, ~200 ms warm.
+   *
+   * Three deliberate choices:
+   *  - Counts mirror the single-city dashboard's own definitions rather than the global leaderboard's looser ones. The
+   *    row for the city being viewed sits inches below the hero KPIs, so any divergence reads as a bug (#4699).
+   *  - Distance reads the nightly `user_stat.meters_audited` — `MAX`, not `SUM`, because `user_stat.user_id` carries no
+   *    unique constraint and duplicate rows exist in the wild. It also keeps PostGIS out of a 51-way union, which is
+   *    what forces `withJitOff` elsewhere (#4376/#4545).
+   *  - Nothing here reads `excluded`, `on_leaderboard` or `public_profile`. This is a mapper looking at their own data,
+   *    so no visibility flag applies — and a schema behind on evolutions may not have those columns at all, which
+   *    would fail the entire union rather than one city.
+   *
+   * @param citySchemas    DB schema names to report on, already vetted by the caller for existence and required
+   *                       columns. Spliced into SQL, so each must be a bare identifier.
+   * @param archiveSchemas Which of those schemas have `voided_label_validation`, from
+   *                       [[schemasWithVoidedValidationArchive]]; the archive arm is omitted for the rest.
+   * @param userId         The mapper whose totals to gather; bound once and referenced by every block.
+   * @return               One row per schema, including cities where the user did nothing (the caller drops those),
+   *                       most labels first.
+   */
+  def getCrossCityUserStats(
+      citySchemas: Seq[String],
+      archiveSchemas: Set[String],
+      userId: String
+  ): DBIO[Seq[CrossCityUserStat]] = {
+    if (citySchemas.isEmpty) {
+      DBIO.successful(Seq.empty[CrossCityUserStat])
+    } else {
+      // Schema names are spliced, not bound, so reject anything that isn't a bare identifier before building the SQL.
+      val unsafe: Seq[String] = citySchemas.filterNot(_.matches("^[a-z_][a-z0-9_]*$"))
+      require(unsafe.isEmpty, s"Refusing to build cross-schema SQL for non-identifier schema names: $unsafe")
+
+      // The user id is bound once in a CTE and read back as `(SELECT user_id FROM me)`; the per-schema blocks are
+      // built as plain strings, so an interpolated `$userId` inside them would be spliced rather than bound.
+      val blocks: String = citySchemas
+        .map { schema =>
+          // Validations count as work credit: the #4842 repair deleted voided votes from label_validation but archived
+          // them, and the work happened, so countValidations adds the archive back. This mirrors it per schema.
+          val archiveArm: String =
+            if (!archiveSchemas.contains(schema)) ""
+            else s""" + (SELECT COUNT(*)::int FROM "$schema".voided_label_validation
+           WHERE voided_label_validation.user_id = (SELECT user_id FROM me))"""
+          // Label filters mirror LabelTable.labelsWithExcludedUsers: joined to audit_task, not deleted, not tutorial,
+          // and on neither the label's nor the task's tutorial street. "Excluded" users are counted on purpose — this
+          // is their own dashboard, and countLabelsFromUser makes the same call.
+          s"""  SELECT '$schema'::text AS city_schema,
+         (SELECT COUNT(*)::int
+            FROM "$schema".label
+            INNER JOIN "$schema".audit_task ON audit_task.audit_task_id = label.audit_task_id
+           WHERE label.user_id = (SELECT user_id FROM me)
+             AND label.deleted = FALSE AND label.tutorial = FALSE
+             AND label.street_edge_id NOT IN (SELECT tutorial_street_edge_id FROM "$schema".config)
+             AND audit_task.street_edge_id NOT IN (SELECT tutorial_street_edge_id FROM "$schema".config)
+         ) AS labels,
+         (SELECT COUNT(*)::int FROM "$schema".label_validation
+           WHERE label_validation.user_id = (SELECT user_id FROM me))$archiveArm AS validations,
+         (SELECT COUNT(*)::int FROM "$schema".mission
+           WHERE mission.user_id = (SELECT user_id FROM me)
+             AND mission.completed = TRUE AND mission.skipped = FALSE) AS missions,
+         (SELECT MAX(user_stat.meters_audited) FROM "$schema".user_stat
+           WHERE user_stat.user_id = (SELECT user_id FROM me)) AS meters_audited,
+         (SELECT MAX(label.time_created) FROM "$schema".label
+           WHERE label.user_id = (SELECT user_id FROM me) AND label.deleted = FALSE) AS last_activity"""
+        }
+        .mkString("\n  UNION ALL\n")
+
+      val union =
+        sql"""
+        WITH me AS (SELECT CAST($userId AS text) AS user_id)
+        #$blocks
+        ORDER BY labels DESC, city_schema;
+      """
+          .as[(String, Int, Int, Int, Option[Double], Option[OffsetDateTime])]
+          .map(_.map(CrossCityUserStat.tupled))
+
+      // Bounded because this fires on every dashboard load, holds one of the app's 25 pooled connections for its whole
+      // run, and is the one query here whose plan can't be predicted from dev: the arm count is however many cities are
+      // deployed. 30s leaves generous room over the ~9s cold measurement while still capping a pathological plan, and
+      // the caller degrades to hiding the section rather than failing the page. `SET LOCAL` + `.transactionally` scopes
+      // the setting to this statement and auto-commits, so it never lingers as an idle-in-transaction of its own.
+      (sqlu"SET LOCAL statement_timeout = 30000" >> union).transactionally
+    }
+  }
+
+  /**
    * Computes a user's standing (rank by label count) among eligible contributors for a period, plus a slice of
    * neighbors around them.
    *
@@ -874,7 +1013,9 @@ class UserStatTable @Inject() (
    * Per-day activity counts for a user (US/Pacific calendar days), across labeling, exploring, and validating.
    *
    * A day counts if the user placed a (non-deleted, non-tutorial) label, completed an audit task, or made a
-   * validation on it. Returned as (ISO date string, count) so the streak/heatmap math is done in Scala.
+   * validation on it -- including validations voided by the #4842 repair (evolution 355): the verdicts are dead, but
+   * the work happened, so the archive counts as activity. Returned as (ISO date string, count) so the streak/heatmap
+   * math is done in Scala.
    *
    * @param userId The user whose activity to summarize.
    * @return       One row per active day, ascending by date.
@@ -893,6 +1034,10 @@ class UserStatTable @Inject() (
           SELECT (label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date
           FROM label_validation
           WHERE label_validation.user_id = $userId AND label_validation.end_timestamp IS NOT NULL
+          UNION ALL
+          SELECT (voided_label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date
+          FROM voided_label_validation
+          WHERE voided_label_validation.user_id = $userId
       )
       SELECT to_char(d, 'YYYY-MM-DD') AS day, COUNT(*)::int AS c
       FROM activity
@@ -1012,14 +1157,19 @@ class UserStatTable @Inject() (
 
     // Add in the task completion logic.
     val auditTaskCompletedSql  = if (taskCompletedOnly) "audit_task.completed = TRUE" else "TRUE"
-    val validationCompletedSql = if (taskCompletedOnly) "label_validation.end_timestamp IS NOT NULL" else "TRUE"
+    val validationCompletedSql = if (taskCompletedOnly) "all_validations.end_timestamp IS NOT NULL" else "TRUE"
 
     sql"""
       SELECT COUNT(DISTINCT(users.user_id))
       FROM (
           SELECT DISTINCT(mission.user_id)
           FROM mission
-          LEFT JOIN label_validation ON mission.mission_id = label_validation.mission_id
+          LEFT JOIN (
+              -- Votes voided by the #4842 repair still count as participation.
+              SELECT mission_id, end_timestamp FROM label_validation
+              UNION ALL
+              SELECT mission_id, end_timestamp FROM voided_label_validation
+          ) AS all_validations ON mission.mission_id = all_validations.mission_id
           WHERE mission.mission_type IN ('validation', 'labelmapValidation')
               AND #$lblValidationTimeIntervalSql
               AND #$validationCompletedSql
@@ -1072,7 +1222,7 @@ class UserStatTable @Inject() (
              COALESCE(label_counts.labels_validated_correct, 0) AS labels_validated_correct,
              COALESCE(label_counts.labels_validated_incorrect, 0) AS labels_validated_incorrect,
              COALESCE(label_counts.labels_not_validated, 0) AS labels_not_validated,
-             COALESCE(validations.validations_given, 0) AS validations_given,
+             COALESCE(validations.validations_given, 0) + COALESCE(voided_validations.cnt, 0) AS validations_given,
              COALESCE(validations.dissenting_validations_given, 0) AS dissenting_validations_given,
              COALESCE(validations.agree_validations_given, 0) AS agree_validations_given,
              COALESCE(validations.disagree_validations_given, 0) AS disagree_validations_given,
@@ -1129,6 +1279,13 @@ class UserStatTable @Inject() (
           INNER JOIN label ON label_validation.label_id = label.label_id
           GROUP BY label_validation.user_id
       ) AS validations ON user_stat.user_id = validations.user_id
+      -- Votes voided by the #4842 repair: work credit toward validations_given only; the verdict splits
+      -- (agree/disagree/unsure/dissenting) read live votes, so validations_given can exceed their sum.
+      LEFT JOIN (
+          SELECT voided_label_validation.user_id, COUNT(*) AS cnt
+          FROM voided_label_validation
+          GROUP BY voided_label_validation.user_id
+      ) AS voided_validations ON user_stat.user_id = voided_validations.user_id
       -- Label and validation counts
       LEFT JOIN (
           SELECT audit_task.user_id,
@@ -1217,17 +1374,28 @@ class UserStatTable @Inject() (
   }
 
   /**
-   * Insert a new user_stat entry for the given userId.
+   * Insert a user_stat entry for the given userId, doing nothing if the user already has one.
+   *
+   * Raw SQL for the `ON CONFLICT` clause, which Slick can't express: the request path this exists for
+   * ([[service.AuthenticationService.addUserStatEntryIfNew]], run for every request from an identified user) can be
+   * hit by several concurrent requests before the row exists — the parallel requests of a user's first page load in a
+   * city. A read-then-insert lets each of them see "no row" and insert one, so the DB-level conflict on
+   * `user_stat_user_id_key` is what actually makes it insert-once (#4604).
+   *
+   * Only the three columns a caller can vary are named; every other column takes its DB default, so a future column
+   * with a `NOT NULL` default doesn't silently break this statement at runtime.
    *
    * @param userId        The userId to insert a user_stat entry for.
-   * @param onLeaderboard Whether the user appears in leaderboard rankings. Defaults true (public); the sign-up path
-   *                      passes false for private-by-default (school/minor) deployments.
-   * @param publicProfile Whether the user's dashboard is publicly viewable. Defaults true; same private-by-default rule.
-   * @return DBIO action that returns the number of rows inserted (should be 1).
+   * @param onLeaderboard Whether the user appears in leaderboard rankings.
+   * @param publicProfile Whether the user's dashboard is publicly viewable.
+   * @return DBIO action returning the number of rows inserted: 1 for a new user, 0 if they already had a row.
    */
-  def insert(userId: String, onLeaderboard: Boolean = true, publicProfile: Boolean = true): DBIO[Int] = {
-    userStats += UserStat(0, userId, 0d, None, highQuality = true, None, 0, None, excluded = false, onLeaderboard,
-      publicProfile)
+  def insertIfNew(userId: String, onLeaderboard: Boolean, publicProfile: Boolean): DBIO[Int] = {
+    sqlu"""
+      INSERT INTO user_stat (user_id, on_leaderboard, public_profile)
+      VALUES ($userId, $onLeaderboard, $publicProfile)
+      ON CONFLICT (user_id) DO NOTHING
+    """
   }
 
   /**

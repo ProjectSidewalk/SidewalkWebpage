@@ -1,9 +1,9 @@
 package controllers.helper
 
-import models.label.LabelTypeEnum
 import models.user.{RoleTable, SidewalkUserWithRole}
+import play.api.i18n.Messages
 import play.api.mvc.Results.{Redirect, Unauthorized}
-import play.api.mvc.{Request, RequestHeader, Result}
+import play.api.mvc.{Cookie, DiscardingCookie, RequestHeader, Result}
 
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
@@ -23,20 +23,111 @@ object ControllerUtils {
    */
   val NoUserId: String = ""
 
+  /** Mobile OS/device tokens in a User-Agent. Compiled once: isMobile runs on every page render (the layout stamp). */
+  private val mobileOsRegex: Regex =
+    "(iPhone|webOS|iPod|Android|BlackBerry|mobile|SAMSUNG|IEMobile|OperaMobi|BB10|iPad|Tablet)".r.unanchored
+
   /**
-   * Returns true if the user is on mobile, false if the user is not on mobile.
+   * Whether the request comes from a mobile device, judged by matching its User-Agent against a list of mobile OS
+   * and device tokens.
+   *
+   * Accepts a `RequestHeader`, the widest type carrying headers, so Twirl templates can ask as well — the navbar drops
+   * the destinations that would only redirect a mobile visitor to /mobileLanding, and a template holds nothing but the
+   * header. A controller's `Request[A]` satisfies it unchanged, being one.
+   *
+   * @param request The request whose User-Agent header is inspected.
+   * @return        True if that header is present and matches a mobile token; false if it is absent or matches none.
    */
-  def isMobile[A](implicit request: Request[A]): Boolean = {
-    val mobileOS: Regex =
-      "(iPhone|webOS|iPod|Android|BlackBerry|mobile|SAMSUNG|IEMobile|OperaMobi|BB10|iPad|Tablet)".r.unanchored
+  def isMobile(implicit request: RequestHeader): Boolean = {
     request.headers
       .get("User-Agent")
       .exists(agent => {
         agent match {
-          case mobileOS(a) => true
-          case _           => false
+          case mobileOsRegex(_) => true
+          case _                => false
         }
       })
+  }
+
+  /**
+   * The two measurement systems the site renders distances in, and the cookie that pins a request to one of them.
+   *
+   * Units can be specified on the User Dashboard, or defaults to the site language (the `measurement.system` message).
+   */
+  object MeasurementSystem {
+    val Metric: String   = "metric"
+    val Imperial: String = "imperial"
+
+    /** What the settings form submits, and the select's value, for "follow the site language". */
+    val FollowLanguage: String = "auto"
+
+    val CookieName: String = "PS_UNITS"
+
+    /** A display preference rather than a credential, so it outlives the browser session; a year is effectively forever. */
+    private val cookieMaxAge: Int = 365 * 24 * 60 * 60
+
+    /** The values `CookieName` may hold. Anything else is treated as absent. */
+    val validOverrides: Set[String] = Set(Metric, Imperial)
+
+    /** The cookie that pins requests to `system`. HttpOnly: client code reads the `<html>` stamp, never the cookie. */
+    def overrideCookie(system: String): Cookie =
+      Cookie(CookieName, system, maxAge = Some(cookieMaxAge), httpOnly = true)
+
+    /** Clears any override, returning the user to language-derived units. */
+    def clearOverrideCookie: DiscardingCookie = DiscardingCookie(CookieName)
+  }
+
+  /**
+   * The measurement system this request should render distances in: users can override on their dashboard settings.
+   *
+   * @param request  The request whose override cookie is inspected.
+   * @param messages The request's messages, supplying the language default when there is no override.
+   * @return         Either `MeasurementSystem.Metric` or `MeasurementSystem.Imperial` — never a language's own wording.
+   */
+  def measurementSystem(implicit request: RequestHeader, messages: Messages): String = {
+    request.cookies
+      .get(MeasurementSystem.CookieName)
+      .map(_.value)
+      .filter(MeasurementSystem.validOverrides.contains)
+      .getOrElse {
+        if (messages("measurement.system") == MeasurementSystem.Metric) MeasurementSystem.Metric
+        else MeasurementSystem.Imperial
+      }
+  }
+
+  /**
+   * Whether this request renders distances in kilometers and meters rather than miles and feet.
+   *
+   * The one way anything — controller, template, or (via the `<html>` stamp `main.scala.html` writes) client code —
+   * should ask, so a user's unit override can't be honored on some pages and ignored on others.
+   */
+  def isMetric(implicit request: RequestHeader, messages: Messages): Boolean = {
+    measurementSystem == MeasurementSystem.Metric
+  }
+
+  /**
+   * The words this request names distances with, resolved for its measurement system.
+   *
+   * These are the *only* translated unit words in the app: `main.scala.html` hands them to i18next as interpolation
+   * defaults, so a client-side string embeds `{{unitName}}` instead of the locale files carrying their own metric and
+   * imperial copies of every unit word (#4404). Server-rendered templates read the same fields.
+   *
+   * @param abbr         Distance abbreviation, e.g. "km" / "mi".
+   * @param abbrSmall    Abbreviation for the short distances missions are measured in, e.g. "m" / "ft".
+   * @param name         Plural distance noun, e.g. "kilometers" / "miles".
+   * @param nameSingular Singular distance noun, e.g. "kilometer" / "mile".
+   */
+  case class DistanceUnitWords(abbr: String, abbrSmall: String, name: String, nameSingular: String)
+
+  /** The distance-unit words for this request, in its measurement system and language. */
+  def distanceUnitWords(implicit request: RequestHeader, messages: Messages): DistanceUnitWords = {
+    val system = measurementSystem
+    DistanceUnitWords(
+      abbr = messages(s"unit.distance.abbr.$system"),
+      abbrSmall = messages(s"unit.distance.abbr.small.$system"),
+      name = messages(s"unit.distance.name.$system"),
+      nameSingular = messages(s"unit.distance.name.singular.$system")
+    )
   }
 
   /**
@@ -86,12 +177,6 @@ object ControllerUtils {
 
   def parseIntegerSeq(listOfInts: Option[String]): Seq[Int] = {
     listOfInts.map(parseIntegerSeq).getOrElse(Seq())
-  }
-
-  // Provides a sorting function to sort by label_type_id if given the label_type string, with "Overall" going first.
-  // This is used by our APIs to show output in a consistent order.
-  val labelTypeOrdering: Ordering[(String, Any)] = Ordering.by { case (labelType, _) =>
-    (labelType != "Overall", LabelTypeEnum.labelTypeToId.getOrElse(labelType, Int.MaxValue))
   }
 
   /**

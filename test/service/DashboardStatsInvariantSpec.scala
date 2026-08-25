@@ -8,6 +8,7 @@ import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.db.slick.DatabaseConfigProvider
 import slick.basic.DatabaseConfig
 import slick.dbio.DBIO
+import play.api.i18n.Lang
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.{Application, Configuration}
 
@@ -36,12 +37,13 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
-  private val userService   = app.injector.instanceOf[UserService]
-  private val messages      = play.api.test.Helpers.stubMessages()
-  private val authService   = app.injector.instanceOf[AuthenticationService]
-  private val configService = app.injector.instanceOf[ConfigService]
-  private val config        = app.injector.instanceOf[Configuration]
-  private val userStatTable = app.injector.instanceOf[UserStatTable]
+  private val userService               = app.injector.instanceOf[UserService]
+  private val messages                  = play.api.test.Helpers.stubMessages()
+  private val authService               = app.injector.instanceOf[AuthenticationService]
+  private val configService             = app.injector.instanceOf[ConfigService]
+  private val config                    = app.injector.instanceOf[Configuration]
+  private val userStatTable             = app.injector.instanceOf[UserStatTable]
+  private val auditTaskInteractionTable = app.injector.instanceOf[models.audit.AuditTaskInteractionTable]
   // Typed explicitly: letting `.db` infer here yields an existential type the compiler rejects under -Xfatal-warnings.
   private val dbConfig: DatabaseConfig[MyPostgresProfile] =
     app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
@@ -49,6 +51,10 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
   private val ghostId = "00000000-0000-0000-0000-000000000000"
 
   private def await[T](f: => scala.concurrent.Future[T]): T = Await.result(f, 60.seconds)
+
+  /** The one-decimal rounding `getCrossCityHours` applies before the Time Check page ever sees a number. */
+  private def toTenth(hours: Double): Double =
+    java.math.BigDecimal.valueOf(hours).setScale(1, java.math.RoundingMode.HALF_UP).doubleValue
 
   // Carries a successful result out through the forced-rollback failure path of `runRolledBack`.
   private case class RollbackWithResult(result: Any) extends RuntimeException with scala.util.control.NoStackTrace
@@ -99,6 +105,9 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
                                (user_id, street_edge_id, task_start, task_end, completed, current_lat, current_lng)
                            VALUES ($FixtureUserId, $streetEdge, now(), now(), FALSE, 0, 0)
                            RETURNING audit_task_id""".as[Int].head
+      // label.pano_id references pano_data (#4587), so the label's pano has to exist before the label does.
+      _ <- sqlu"""INSERT INTO pano_data (pano_id, capture_date, source)
+                  VALUES ('fixture_pano', '2020-01', 'gsv')"""
       _ <- sqlu"""INSERT INTO label
                       (audit_task_id, pano_id, label_type_id, deleted, temporary_label_id, time_created, mission_id,
                        tutorial, street_edge_id, agree_count, disagree_count, unsure_count, tags, user_id)
@@ -375,6 +384,265 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
     }
   }
 
+  "getCrossCityUserScope" should {
+    "return (cityId, schema) pairs that are configured, queryable, and safe to splice" in {
+      val scope         = await(configService.getCrossCityUserScope)
+      val configuredIds = config.get[Seq[String]]("city-params.city-ids").toSet
+
+      scope.map(_._1).distinct.length mustBe scope.length // a city can't be counted twice in the totals
+      scope.map(_._2).distinct.length mustBe scope.length
+      scope.foreach { case (cityId, schema) =>
+        configuredIds must contain(cityId)
+        cityId must not be "staging" // not a real deployment
+        schema must fullyMatch regex "^[a-z_][a-z0-9_]*$"
+        configService.getCitySchema(cityId) mustBe schema
+      }
+    }
+
+    "include this deployment, so a mapper always sees the city they are reading the dashboard on" in {
+      // Whatever else the scope drops for evolution drift, the schema serving this page is queryable by definition.
+      await(configService.getCrossCityUserScope).map(_._1) must contain(configService.getCityId)
+    }
+
+    "keep cities the by-name leaderboard excludes, since a mapper's own totals are not a public board" in {
+      val selfView    = await(configService.getCrossCityUserScope).map(_._1).toSet
+      val boardCities = await(configService.getGlobalLeaderboardScope).cities.map(_._1).toSet
+      boardCities.subsetOf(selfView) mustBe true
+    }
+  }
+
+  "the cross-city stats' cross-schema SQL" should {
+    "refuse a schema name that isn't a bare identifier" in {
+      // Guards the one place this query interpolates rather than binds; a thrown error beats a crafted query.
+      Seq("public; DROP TABLE label", "sidewalk_seattle\"", "Sidewalk_Seattle", "").foreach { bad =>
+        an[IllegalArgumentException] must be thrownBy userStatTable.getCrossCityUserStats(
+          Seq(bad),
+          Set.empty[String],
+          ghostId
+        )
+      }
+    }
+
+    "return nothing at all when no city qualifies, rather than building an empty union" in {
+      await(
+        dbConfig.db.run(userStatTable.getCrossCityUserStats(Seq.empty[String], Set.empty[String], ghostId))
+      ) mustBe empty
+    }
+
+    "report every queried schema, so the service can tell 'no activity' from 'not queried'" in {
+      val schemas = await(configService.getCrossCityUserScope).map(_._2)
+      val rows    = await(dbConfig.db.run(userStatTable.getCrossCityUserStats(schemas, Set.empty[String], ghostId)))
+      rows.map(_.citySchema).toSet mustBe schemas.toSet
+      // A user id that belongs to nobody: every count is zero, and none of them is negative or null-shaped.
+      rows.foreach { row =>
+        row.labels mustBe 0
+        row.validations mustBe 0
+        row.missions mustBe 0
+        row.lastActivity mustBe None
+      }
+    }
+  }
+
+  "getCrossCityUserStats" should {
+    "list only cities with real activity, most labels first, and total them exactly" in {
+      topUser.foreach { user =>
+        val stats = await(userService.getCrossCityUserStats(user.userId, metricSystem = true, Lang("en"))).get
+        stats.cities.map(_.cityId).distinct.length mustBe stats.cities.length
+        stats.cities.map(_.labels).sliding(2).foreach {
+          case Seq(higher, lower) => higher must be >= lower
+          case _                  => ()
+        }
+        stats.cities.foreach { city =>
+          (city.labels + city.validations + city.missions) > 0 || city.distance > 0 mustBe true
+          city.labels must be >= 0
+          city.validations must be >= 0
+          city.missions must be >= 0
+          city.distance must be >= 0.0
+          city.cityName.trim must not be empty
+          // Every row is a city the mapper has worked in, so every row is linkable.
+          city.cityUrl.trim must not be empty
+        }
+        stats.totalLabels mustBe stats.cities.map(_.labels).sum
+        stats.totalValidation mustBe stats.cities.map(_.validations).sum
+        stats.totalMissions mustBe stats.cities.map(_.missions).sum
+        stats.publicCityCount must be >= 0
+      }
+    }
+
+    "mark exactly one row as the current city, and only when the mapper has worked here" in {
+      topUser.foreach { user =>
+        val stats = await(userService.getCrossCityUserStats(user.userId, metricSystem = true, Lang("en"))).get
+        stats.cities.count(_.isCurrentCity) must be <= 1
+        // Against the schema the connection reads, not `city-id` config: a dev box can have the two point at
+        // different cities, and the row that must match the hero KPIs is the one the KPIs were computed from.
+        val currentSchema = await(dbConfig.db.run(userStatTable.currentSchema))
+        stats.cities
+          .filter(_.isCurrentCity)
+          .foreach(city => configService.getCitySchema(city.cityId) mustBe currentSchema)
+        // Distance is recomputed live for this city only; every other row carries the nightly value.
+        stats.cities.filterNot(_.isCurrentCity).foreach(_.liveDistance mustBe false)
+      }
+    }
+
+    "reconcile the current city's row with the hero KPIs it sits under (#4699)" in {
+      // The whole point of the section is comparability; a divergence here is the bug the issue describes.
+      topUser.foreach { user =>
+        val profile = await(userService.getUserProfileData(user.userId, metricSystem = true))
+        val stats   = await(userService.getCrossCityUserStats(user.userId, metricSystem = true, Lang("en"))).get
+        stats.cities.find(_.isCurrentCity).foreach { here =>
+          here.labels mustBe profile.labelCount
+          here.validations mustBe profile.validationCount
+          here.missions mustBe profile.missionCount
+          here.distance mustBe profile.auditedDistance
+        }
+      }
+    }
+
+    "answer in the caller's units and language, not whichever request warmed the cache" in {
+      // Only the fan-out is cached; units and names are applied per response. Measurement system is a cookie the
+      // mapper can flip mid-session, so a cached rendering would leave the table in miles under a "km" header.
+      topUser.foreach { user =>
+        val km      = await(userService.getCrossCityUserStats(user.userId, metricSystem = true, Lang("en"))).get
+        val miles   = await(userService.getCrossCityUserStats(user.userId, metricSystem = false, Lang("en"))).get
+        val spanish = await(userService.getCrossCityUserStats(user.userId, metricSystem = true, Lang("es"))).get
+
+        km.cities.map(_.cityId) mustBe miles.cities.map(_.cityId)
+        km.cities.zip(miles.cities).foreach { case (inKm, inMiles) =>
+          if (inKm.distance > 0) inMiles.distance must be < inKm.distance
+        }
+        if (km.totalDistance > 0) miles.totalDistance must be < km.totalDistance
+
+        val spanishNames: Map[String, String] =
+          configService.getAllCityInfo(Lang("es")).map(city => city.cityId -> city.cityNameShort).toMap
+        spanish.cities.foreach(city => city.cityName mustBe spanishNames(city.cityId))
+      }
+    }
+
+    "credit a mapper with at least what they did in this city alone" in {
+      topUser.foreach { user =>
+        val profile = await(userService.getUserProfileData(user.userId, metricSystem = true))
+        val stats   = await(userService.getCrossCityUserStats(user.userId, metricSystem = true, Lang("en"))).get
+        stats.totalLabels must be >= profile.labelCount
+        stats.totalValidation must be >= profile.validationCount
+      }
+    }
+
+    "report an account that has done nothing as empty rather than unavailable" in {
+      val stats = await(userService.getCrossCityUserStats(ghostId, metricSystem = true, Lang("en")))
+      stats mustBe defined
+      stats.get.cities mustBe empty
+      stats.get.totalLabels mustBe 0
+    }
+  }
+
+  "getCrossCityHoursScope" should {
+    "return (cityId, schema) pairs that are configured, queryable, and safe to splice" in {
+      val scope         = await(configService.getCrossCityHoursScope)
+      val configuredIds = config.get[Seq[String]]("city-params.city-ids").toSet
+
+      scope.cities.map(_._1).distinct.length mustBe scope.cities.length
+      scope.cities.foreach { case (cityId, schema) =>
+        configuredIds must contain(cityId)
+        cityId must not be "staging"
+        schema must fullyMatch regex "^[a-z_][a-z0-9_]*$"
+        configService.getCitySchema(cityId) mustBe schema
+      }
+    }
+
+    "gate on the interaction tables the hours query reads, not the contribution tables" in {
+      // The two self-view scopes exist separately only because they read different tables. If the column sets ever
+      // converged, one of the fan-outs would be gating on readiness it doesn't actually need.
+      val hoursTables = ConfigService.CrossCityHoursRequiredColumns.map(_._1)
+      val statsTables = ConfigService.CrossCityUserRequiredColumns.map(_._1)
+
+      hoursTables must contain("audit_task_interaction_small")
+      hoursTables must contain("webpage_activity")
+      statsTables must not contain "audit_task_interaction_small"
+      hoursTables must not contain "user_stat"
+    }
+
+    "account for every deployment it considered, so an excluded city is never simply lost" in {
+      // The count of skipped schemas is what the Time Check page shows the volunteer, so it has to be complete.
+      val scope = await(configService.getCrossCityHoursScope)
+      scope.skippedSchemas.toSet intersect scope.cities.map(_._2).toSet mustBe empty
+      scope.skippedSchemas.distinct.length mustBe scope.skippedSchemas.length
+    }
+  }
+
+  "getHoursAuditingAndValidatingBySchema" should {
+    "refuse a schema name that isn't a bare identifier" in {
+      Seq("public; DROP TABLE label", "sidewalk_seattle\"", "Sidewalk_Seattle", "").foreach { bad =>
+        an[IllegalArgumentException] must be thrownBy
+          auditTaskInteractionTable.getHoursAuditingAndValidatingBySchema(ghostId, bad)
+      }
+    }
+
+    "agree with the unqualified query when pointed at this connection's own schema" in {
+      // The unqualified one delegates here, so a divergence would mean the delegation broke rather than the SQL.
+      topUser.foreach { user =>
+        val schema = await(dbConfig.db.run(userStatTable.currentSchema))
+        await(
+          dbConfig.db.run(auditTaskInteractionTable.getHoursAuditingAndValidatingBySchema(user.userId, schema))
+        ) mustBe
+          await(dbConfig.db.run(auditTaskInteractionTable.getHoursAuditingAndValidating(user.userId)))
+      }
+    }
+
+    "report zero for an account with no logged activity" in {
+      val schema = await(dbConfig.db.run(userStatTable.currentSchema))
+      await(
+        dbConfig.db.run(auditTaskInteractionTable.getHoursAuditingAndValidatingBySchema(ghostId, schema))
+      ) mustBe 0.0
+    }
+  }
+
+  "getCrossCityHours" should {
+    "list only cities with logged time, most hours first, and include at least this city's own total" in {
+      topUser.foreach { user =>
+        val result = await(userService.getCrossCityHours(user.userId, Lang("en")))
+        val rows   = result.cities
+        val local  = await(userService.getHoursAuditingAndValidating(user.userId))
+
+        rows.map(_.cityId).distinct.length mustBe rows.length
+        rows.map(_.hours).sliding(2).foreach {
+          case Seq(higher, lower) => higher must be >= lower
+          case _                  => ()
+        }
+        rows.foreach { row =>
+          row.hours must be >= 0d
+          row.cityName.trim must not be empty
+        }
+        rows.count(_.isCurrentCity) must be <= 1
+        // The total rounds the full-precision sum, so it can only fall below one city's own by that rounding.
+        result.totalHours must be >= local - 0.05001
+        // Apportionment can move the current city's row a tenth off its own value to make the table reconcile, so
+        // this is the tightest bound that still holds.
+        rows.find(_.isCurrentCity).foreach(row => (row.hours - local).abs must be <= 0.10001)
+      }
+    }
+
+    "hand the page whole tenths, so its one-decimal rendering loses nothing" in {
+      // That these tenths reconcile with the headline is arithmetic, covered exhaustively in HoursApportionmentSpec.
+      topUser.foreach { user =>
+        await(userService.getCrossCityHours(user.userId, Lang("en"))).cities
+          .foreach(row => row.hours mustBe toTenth(row.hours))
+      }
+    }
+
+    "report nothing for an account that has never worked anywhere" in {
+      val result = await(userService.getCrossCityHours(ghostId, Lang("en")))
+      result.cities mustBe empty
+      result.totalHours mustBe 0d
+    }
+
+    "count every city it couldn't total, so the page can admit the number is a floor" in {
+      val result = await(userService.getCrossCityHours(ghostId, Lang("en")))
+      val scope  = await(configService.getCrossCityHoursScope)
+      // Nothing is unreachable beyond what the scope already held back, on a database that is answering queries.
+      result.unreachableCities must be >= scope.skippedSchemas.size
+    }
+  }
+
   "the on_leaderboard opt-out" should {
     "hide the user by name from the individual boards, and persist through getPrivacySettings" in {
       for {
@@ -390,6 +658,40 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
         }
         await(userService.getPrivacySettings(u.userId)) mustBe Some((origOnBoard, origPublic))
       }
+    }
+  }
+
+  "user_stat's one-row-per-user invariant (#4604)" should {
+    "hold in the connected database" in {
+      // Every read of a user's stats takes the first row it finds, so a second row is a silent wrong answer rather
+      // than an error. Catches an evolution or hand fix-up that drops user_stat_user_id_key.
+      val dupeCount = await(
+        dbConfig.db.run(
+          sql"SELECT count(*) FROM (SELECT 1 FROM user_stat GROUP BY user_id HAVING count(*) > 1) duplicated"
+            .as[Int]
+            .head
+        )
+      )
+      dupeCount mustBe 0
+    }
+
+    "make a second insertIfNew for the same user a no-op" in {
+      // The behavior every caller now leans on instead of a read-then-insert. Also fails loudly if the constraint is
+      // ever renamed out from under insertIfNew's ON CONFLICT (user_id) inference.
+      val (first, second) = runRolledBack(for {
+        roleId <- sql"SELECT role_id FROM role WHERE role = 'Registered'".as[Int].head
+        _      <- sqlu"""INSERT INTO sidewalk_user (user_id, username, email)
+                         VALUES ($FixtureUserId, $FixtureUsername, 'zz_fixture_4533@example.com')"""
+        _      <- sqlu"INSERT INTO user_role (user_id, role_id) VALUES ($FixtureUserId, $roleId)"
+        first  <- userStatTable.insertIfNew(FixtureUserId, onLeaderboard = true, publicProfile = true)
+        second <- userStatTable.insertIfNew(FixtureUserId, onLeaderboard = false, publicProfile = false)
+        rows   <- sql"SELECT count(*) FROM user_stat WHERE user_id = $FixtureUserId".as[Int].head
+      } yield {
+        rows mustBe 1
+        (first, second)
+      })
+      first mustBe 1
+      second mustBe 0
     }
   }
 }

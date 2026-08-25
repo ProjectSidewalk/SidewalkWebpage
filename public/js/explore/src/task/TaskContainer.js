@@ -150,7 +150,7 @@ class TaskContainer {
    * @returns {number} distance in unit.
    */
   getCompletedTaskDistance(units) {
-    if (!units) units = { units: i18next.t('common:unit-distance') };
+    if (!units) units = { units: util.turfDistanceUnits() };
     const completedTasks = this.getCompletedTasks();
     let feature;
     let distance = 0;
@@ -172,7 +172,7 @@ class TaskContainer {
    * @returns {number} distance in unit.
    */
   getCompletedTaskDistanceAcrossAllUsersUsingPriority() {
-    const unit = { units: i18next.t('common:unit-distance') };
+    const unit = { units: util.turfDistanceUnits() };
     const tasks = this.getTasks().filter((t) => t.getStreetPriority() < 1);
     let feature;
     let distance = 0;
@@ -470,7 +470,7 @@ class TaskContainer {
     const neighborhood = this.#svl.neighborhoodModel.currentNeighborhood();
 
     if (neighborhood) {
-      distance = this.getCompletedTaskDistance({ units: i18next.t('common:unit-distance') });
+      distance = this.getCompletedTaskDistance({ units: util.turfDistanceUnits() });
     }
     this.#svl.overallStats.setNeighborhoodAuditedDistance(distance);
     return this;

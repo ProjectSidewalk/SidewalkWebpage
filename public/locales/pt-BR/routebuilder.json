@@ -19,7 +19,6 @@
   "saved-view-title": "Abrir esta rota no editor",
   "route-usage": "Explorada por {{started}} · Concluída por {{completed}}",
   "route-usage-tooltip": "Explorada: quantas pessoas começaram a explorar esta rota. Concluída: quantas terminaram a rota inteira.",
-  "route-length": "{{dist}} $t(common:unit-distance-abbreviation)",
   "est-time-minutes": "{{min}} min",
   "est-time-hours": "{{hours}} h {{min}} min",
   "street-count_one": "{{count}} rua",

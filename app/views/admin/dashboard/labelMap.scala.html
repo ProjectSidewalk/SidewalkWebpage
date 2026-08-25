@@ -22,7 +22,7 @@
 
   <div class="api-section" id="label-map-section">
     <div id="admin-labelmap-choropleth-holder" class="choropleth-holder label-map-holder">
-      <div id="admin-labelmap-choropleth" class="choropleth"></div>@common.filterSidebar(tags = tags, sections = Seq("severity", "label-type", "validations", "admin", "streets"))@common.mapLoadingOverlay()</div>
+      <div id="admin-labelmap-choropleth" class="choropleth"></div>@common.filterSidebar(tags = tags, sections = Seq("severity", "label-type", "validations", "admin", "streets"), showOutdatedStreetFilter = true)@common.mapLoadingOverlay()</div>
   </div>
 
   @* Label-detail popup + PSMap dependencies. The label-detail modules are pulled in individually (not via the legacy Admin.js bundle) to keep with the dashboard's standalone-script convention; i18next, AppManager, util, jQuery and the Google Maps loader are already loaded by common.main / adminLayout. *@
@@ -51,11 +51,13 @@
   <script src='@assets.path("js/common/Toast.js")'></script>
   <script src='@assets.path("js/common/BadgeAchievements.js")'></script>
   <script src='@assets.path("js/common/PanoMarker.js")'></script>
+  <script src='@assets.path("js/common/LabelVisibilityToggle.js")'></script>
   <script src='@assets.path("js/common/label-detail/PopupPanoManager.js")'></script>
   <script src='@assets.path("js/common/ConfirmDialog.js")'></script>
   <script src='@assets.path("js/common/label-detail/StoryComposer.js")'></script>
   <script src='@assets.path("js/common/label-detail/StorySection.js")'></script>
   <script src='@assets.path("js/common/share/ShareWidget.js")'></script>
+  <script src='@assets.path("js/common/label-detail/TagEditor.js")'></script>
   <script src='@assets.path("js/common/label-detail/LabelDetail.js")'></script>
   <script src='@assets.path("js/common/label-detail/LabelPopup.js")'></script>
 
@@ -83,5 +85,5 @@
 
 @common.main(commonData, "Sidewalk - Admin Label Map", i18Namespaces = Seq("common", "labelmap")) {
   @common.navbar(commonData, Some(user))
-  @admin.dashboard.adminLayout("label-map", commonData, user.role == "Owner")(content)
+  @admin.dashboard.adminLayout("label-map", commonData, user)(content)
 }

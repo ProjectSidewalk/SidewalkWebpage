@@ -1,17 +1,47 @@
 /**
- Most of this file contains overrides to elements/classes used in Validate on desktop.
+ Overrides for the Validate UI when it runs on a touch device (app/views/apps/mobileValidate.scala.html).
+
+ The page lays out at the device's own width, so everything here is authored in real CSS px and the design system's
+ --text-* tokens read at their native size (--ui-scale is 1 on this page; util.applyToolScale is desktop-only).
+ Fixed sizes are capped with min()/clamp() so that a landscape phone or a tablet — a short or a wide viewport, not a
+ layout of its own — sizes the same chrome sensibly instead of inflating it. Touch targets are floored at 44px.
  */
 
 html {
-  position: fixed;
+  position: fixed; /* Keeps the page from scrolling or rubber-banding under the fixed tool chrome. */
+  width: 100%;
+  height: 100%;
 }
 
 body {
-  height: 100vh;
-  width: 100vw;
+  /* ---- Shared geometry -------------------------------------------------------------------------------------------
+     The verdict row, the notch that points at it, and the reason panels that stack above it all measure from these,
+     so they can't drift apart. Widths stay in vw with a ceiling: proportional on a phone, bounded on a tablet.
+
+     The header band is the progress bar with the mission title below it, and the pano, the banner and the reason
+     panels all measure down from its total — so it is summed here and the two rules that draw it read their sizes
+     back out, rather than a hand-added 40px drifting from whatever they happen to say.
+
+     The verdict row's side padding is kept small on purpose: every px it takes is a px the three buttons don't get,
+     and they are what has to hold a translated word. */
+  --mobile-progress-bar-height: 8px;
+  --mobile-title-height: 32px;
+  --mobile-header-height: calc(var(--mobile-progress-bar-height) + var(--mobile-title-height));
+
+  --verdict-row-height: clamp(44px, 12vw, 48px);
+  --verdict-row-bottom: min(6vw, 24px);
+  --verdict-side-pad: min(4vw, 24px);
+  --verdict-btn-width: min(28vw, 150px);
+  --notch-height: 10px;
+
+  width: 100%;
+  height: 100%;
+
+  /* main.css offsets every page below the fixed navbar; this one renders no navbar, and the tool is sized to fill
+     the screen exactly, so the offset would only push it into a scroll. */
+  padding: 0;
   text-align: center;
-  padding: 2vh 10vw;
-  font-family: raleway, sans-serif;
+  font: var(--text-body-regular);
   color: var(--color-neutral-black);
 }
 
@@ -20,11 +50,14 @@ body {
   width: unset;
 }
 
+/* Centered on the screen rather than offset from its top-left corner, so a short landscape viewport doesn't push it
+   off the bottom. The image is capped against the viewport's *height* as well, for that same case. */
 #page-loading {
   max-width: unset;
   max-height: unset;
-  top: 40vw;
-  left: 20vw;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 
 #loading-animation {
@@ -34,90 +67,516 @@ body {
 }
 
 #loading-animation img {
-  width: 55vw;
-  height: 55vw;
+  width: min(55vw, 40vh, 220px);
+  height: min(55vw, 40vh, 220px);
 }
 
 .loading-text {
-  font-size: 10vw;
+  font-size: min(10vw, 40px);
 }
 
 .loading-sub-text {
-  font-size: 5vw;
+  font-size: min(5vw, 20px);
 }
 
-.modal-foreground {
-  top: 0;
-  height: 100%;
-  width: 100%;
-  font-size: 40pt;
-  line-height: 125%;
-}
-
-#modal-landscape-description {
-  font-size: 20pt;
-}
-
-#modal-landscape-holder {
-  visibility: hidden;
-}
-
+/* ---- Mission start + mission complete ---------------------------------------------------------------------------
+   Both screens cover the page, and both scroll: a long briefing (or a verbose translation) is routine, and a short
+   landscape viewport makes it the common case rather than the exception. */
+#modal-mission-foreground,
 #modal-mission-complete-foreground {
   top: 0;
-  padding-top: 8vw;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 24px 24px 0; /* The bottom edge belongs to the sticky actions' padding — see .mv-modal__actions. */
+  border: none;
+  border-radius: 0;
+  background: var(--color-neutral-white);
+  font: var(--text-subtitle-regular);
+  color: var(--color-neutral-800);
+  text-align: center;
+  overflow-y: auto;
 }
 
-#ps-logo-mission {
-  width: calc(80vw - 40px);
-  margin-left: calc(10vw - 20px); /* Subtracting modal padding. */
+/* Brand line: the city's logo, and on the mission briefing the sign-in (or username) pill beside it. */
+.mv-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
 }
 
-#ps-logo-mission-complete {
-  width: 80vw;
+/* Centers the screen's content in whatever room the header and the pinned call-to-action leave it. It grows but never
+   shrinks: a shrunken box would center its children outside itself, and overflow above a scroll container can't be
+   scrolled to. */
+.mv-modal__content {
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
 }
 
-#modal-mission-close-button {
-  font-size: 50pt;
-  height: 80pt;
+.mv-modal__logo {
+  width: 150px;
+  height: auto;
 }
 
-#modal-mission-header {
-  font-size: 46pt;
-  line-height: 110%;
-  margin: 5vw;
-}
-
+/* The id is here to outrank svv-modal.css, which spaces the desktop title off a taller modal. The full width is what
+   lets ModalMission measure the mission title against the screen and shrink it onto one line. */
+.mv-modal h1,
 #modal-mission-complete-title {
-  font-size: 50pt;
-  line-height: 100%;
+  width: 100%;
+  margin: 0;
+  font: var(--text-h3-bold);
+  color: var(--color-neutral-900);
 }
 
-.modal-foreground .btn-primary {
-  line-height: 125%;
+/* "YOUR MISSION", behind the marker of the label type this mission is about. */
+.mv-eyebrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font: var(--text-small-bold);
+  letter-spacing: 0.08em;
+  color: var(--color-neutral-700);
 }
 
-#modal-mission-complete-message {
-  width: 84%;
-  margin-left: 8%;
+.mv-eyebrow img {
+  width: 22px;
+  height: 22px;
 }
 
-#modal-mission-complete-table {
-  width: 94%;
-  margin-left: 11%;
-  padding-left: 0;
+/* Pinned to the screen's width, not sized to its contents: as a centered flex item this box would otherwise take a
+   fit-content width — which the examples' longest line can push past the screen, taking the carousel's own 100% with
+   it, so a wordy label type overflowed and a terse one didn't. */
+#modal-mission-instruction {
+  width: 100%;
 }
 
-#ps-logo-landscape {
-  width: 350px;
+/* The dead end (ModalNoNewMission) takes this same box over, and paints an illustration and a sentence into it. */
+#modal-mission-instruction .modal-mission-images {
+  width: 62%;
+  max-width: 240px;
+  height: auto;
 }
 
+/* The dead end's own figure only. The carousel's slides are figures too, one level further in, and they space
+   themselves with the strip's gap. */
+#modal-mission-instruction > figure {
+  margin: 0 0 12px;
+}
+
+#modal-mission-instruction p {
+  margin: 0;
+  font: var(--text-subtitle-regular);
+}
+
+/* ---- The mission briefing's examples ----------------------------------------------------------------------------
+   One example fills the screen's width and the next is a swipe away, which is the phone reading of the desktop
+   tutorial's arrow-stepped carousel — same examples, same order, same lesson (MissionStartTutorial.slidesFor). */
+.mv-examples {
+  display: flex;
+  width: 100%;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  gap: 12px;
+}
+
+.mv-example {
+  flex: 0 0 100%;
+  scroll-snap-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+}
+
+.mv-example__photo {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--color-neutral-100);
+}
+
+/* The example photos are all screenshots of the same 3:2 frame; declaring it keeps the caption from jumping when a
+   lazily-loaded one arrives. */
+.mv-example__photo img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1316 / 872;
+  object-fit: cover;
+}
+
+.mv-example__verdict {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px 4px 6px;
+  border-radius: 999px;
+  background: var(--color-neutral-white);
+  font: var(--text-caption-semibold);
+  letter-spacing: 0.04em;
+}
+
+/* The shared smiley is drawn in strokes, so it takes the chip's own ink and would otherwise fill in solid black. */
+.mv-example__verdict-icon {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentcolor;
+}
+
+.mv-example--correct .mv-example__verdict {
+  color: var(--color-pine-800);
+}
+
+.mv-example--incorrect .mv-example__verdict {
+  color: var(--color-orange-700);
+}
+
+.mv-example__caption {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+}
+
+.mv-example__title {
+  font: var(--text-title-bold);
+  color: var(--color-neutral-900);
+}
+
+.mv-example__text {
+  font: var(--text-body-regular);
+  color: var(--color-neutral-800);
+}
+
+/* What the example is worth on the buttons below — "Mark Agree" / "Mark Disagree" — sitting in the callout frame the
+   photo draws for it, at the end of the dotted line from the label. Sized to cover that frame: the desktop tutorial's
+   own callout is at most 220x90 of the 658x436 the photo is laid out in, and ModalMission places this one at the same
+   spot in percentages. */
+.mv-example__callout {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 33.5%;
+  min-height: 20.7%;
+  padding: 4px 6px;
+  border: 2px solid;
+  border-radius: 8px;
+  background: var(--color-neutral-white);
+  font: var(--text-caption-semibold);
+  text-align: center;
+}
+
+.mv-example--correct .mv-example__callout {
+  border-color: var(--color-pine-700);
+  color: var(--color-pine-800);
+}
+
+.mv-example--incorrect .mv-example__callout {
+  border-color: var(--color-orange-700);
+  color: var(--color-orange-700);
+}
+
+.mv-dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+
+.mv-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-neutral-300);
+  transition: background-color 0.2s ease;
+}
+
+.mv-dot--current {
+  background: var(--color-neutral-800);
+}
+
+/* ---- Mission complete ------------------------------------------------------------------------------------------ */
+
+/* The end of a mission is the one heading on this page worth setting in the display face — and it carries no digits,
+   which is what the accent font can't set. */
+#modal-mission-complete-title {
+  font: var(--text-h1-bold);
+}
+
+/* What was validated, read as one unit: the label type's marker, then the sentence, in a column narrow enough to
+   break evenly rather than spanning the full screen. */
+.mv-summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 300px;
+  margin: 0 auto;
+}
+
+.mv-summary__icon {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
+/* The id outranks svv-modal.css, which centers this sentence for a screen that has no icon beside it. */
+#modal-mission-complete-message.mv-summary__text {
+  flex: 1;
+  min-width: 0;
+  font: var(--text-subtitle-regular);
+  text-align: left;
+}
+
+/* Fireworks flanking the congratulations, as on the tutorial's "You did it!" screen. */
+.mv-celebrate {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.mv-celebrate__burst {
+  width: 46px;
+  height: 46px;
+}
+
+/* ModalMissionComplete adds the class on every mission, which is what restarts the burst. It leaves the class off
+   entirely for a visitor who asked for less motion, who gets the fireworks sitting still. */
+@media (prefers-reduced-motion: no-preference) {
+  .mv-celebrate--play .mv-celebrate__burst {
+    animation: mv-burst 0.7s ease-out;
+  }
+
+  .mv-celebrate--play .mv-celebrate__burst--right {
+    animation-delay: 0.12s;
+  }
+
+  @keyframes mv-burst {
+    0% {
+      opacity: 0;
+      transform: scale(0.4) rotate(-12deg);
+    }
+
+    60% {
+      opacity: 1;
+      transform: scale(1.12) rotate(4deg);
+    }
+
+    100% {
+      opacity: 1;
+      transform: scale(1) rotate(0deg);
+    }
+  }
+}
+
+.mv-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  width: 100%;
+}
+
+.mv-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 12px 6px;
+  border-radius: 14px;
+}
+
+/* The same thumb the validation button carried, in the same color it was drawn in. */
+.mv-stat__icon {
+  width: 22px;
+  height: 22px;
+}
+
+.mv-stat__count {
+  font: var(--text-h3-bold);
+}
+
+.mv-stat__label {
+  font: var(--text-small-medium);
+  color: var(--color-neutral-800);
+}
+
+.mv-stat--agree {
+  background: var(--color-pine-100);
+}
+
+.mv-stat--agree .mv-stat__count {
+  color: var(--color-pine-800);
+}
+
+.mv-stat--disagree {
+  background: var(--color-orange-100);
+}
+
+.mv-stat--disagree .mv-stat__count {
+  color: var(--color-orange-700);
+}
+
+.mv-stat--unsure {
+  background: var(--color-neutral-100);
+}
+
+.mv-stat--unsure .mv-stat__count {
+  color: var(--color-neutral-800);
+}
+
+/* Where the mission leaves them: the badge their validations have earned, and how many that is in total. The badge
+   half is empty until someone has earned one, so the row centers on whatever it holds. */
+
+/* Squared off with the counts above it, rather than shrunk to its contents. */
+.mv-standing {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 16px;
+  border-radius: 14px;
+  background: var(--color-neutral-100);
+}
+
+.mv-standing__badge {
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
+.mv-standing__text {
+  flex: 1;
+  min-width: 0; /* Lets a long "N more to …" line wrap instead of stretching the row. */
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.mv-standing__level {
+  font: var(--text-body-bold);
+  color: var(--color-neutral-900);
+}
+
+/* Empty for anyone without a badge, which leaves the count alone in the row — so it can't sit on a stray line. */
+.mv-standing__level:empty {
+  display: none;
+}
+
+.mv-standing__total {
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+}
+
+/* How far along the next badge is, and what it is — what makes the badge read as a level rather than a decoration. */
+.mv-standing #mission-complete-badge-progress {
+  --ps-progress-bar-height: 7px;
+
+  width: 100%;
+  margin: 6px 0 4px;
+}
+
+.mv-standing__next {
+  font: var(--text-caption-medium);
+  color: var(--color-neutral-700);
+}
+
+/* The way forward stays put while a long briefing — or a verbose translation — scrolls behind it, so it is never
+   below the fold. It paints, because content passing underneath would otherwise show through the gap below the
+   button and around its rounded corners — in exactly the long-content case this was added for. The padding is what
+   the screen's own bottom padding would have been, and holds that gap open in both the stuck and resting states
+   while staying part of what the bar paints. */
+.mv-modal__actions {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  padding-bottom: 24px;
+  background: var(--color-neutral-white);
+}
+
+/* The design system's largest button is sized for a mouse; a thumb wants a taller target and bigger type, so the
+   call-to-action takes the subtitle token and its own padding — about 50px tall on the screen. The id selector
+   outranks svv-modal.css, which sizes these same buttons for a desktop Validate. */
+#modal-mission-close-button,
+#modal-mission-complete-close-button-primary,
+#modal-mission-complete-close-button-secondary {
+  display: flex;
+  width: 100%;
+  justify-content: center;
+  margin: 0;
+  padding: 15px 24px;
+  border: none;
+  border-radius: 14px;
+  font: var(--text-subtitle-bold);
+  background: var(--color-banana-500);
+  color: var(--color-neutral-black);
+}
+
+/* Waiting on the next mission to load, which the primary button starts every mission-complete screen doing. */
+#modal-mission-complete-close-button-primary.btn-loading {
+  background: var(--color-neutral-200);
+  color: var(--color-neutral-700);
+  cursor: wait;
+  opacity: 1;
+}
+
+/* Only the desktop three-missions-done screen offers a second action (ModalMissionComplete keys it on !isMobile), so
+   here the button would just hold empty space open under the primary one. */
+#modal-mission-complete-close-button-secondary {
+  display: none;
+}
+
+/* Opposite the logo on the mission briefing: a button for signed-out users, a name badge once signed in. */
+.sign-in-up-button-mobile {
+  flex: 0 0 auto;
+  max-width: 180px;
+  min-height: 44px;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 12px;
+  background: var(--color-banana-500);
+  font: var(--text-subtitle-medium);
+  color: var(--color-asphalt-500);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---- The tool itself -------------------------------------------------------------------------------------------- */
+
+/* PanoManager.sizePano() gives this its width and height, measuring down from wherever this rule puts its top edge —
+   so the pano follows the header without repeating its number. */
 #svv-panorama-holder {
   position: absolute;
-  top: 80px;
+  top: var(--mobile-header-height);
 }
 
 #mission-progress-bar-section {
-  --ps-progress-bar-height: 20px;
+  --ps-progress-bar-height: var(--mobile-progress-bar-height);
+
   top: 0;
   left: 0;
   width: 100%;
@@ -131,51 +590,102 @@ body {
   border-radius: 0 10px 10px 0;
 }
 
+/* Fills the rest of the header band, under the progress bar. Mulish rather than the accent face: the title counts
+   the mission's labels, and Raleway sets digits as old-style figures that wander off the baseline. */
 #mission-title {
-  font-size: 38px;
-  color: var(--color-neutral-white);
-  top: 20px;
+  top: var(--mobile-progress-bar-height);
   left: 0;
-  height: 60px;
   width: 100%;
-  background-color: #2C293E;
+  height: var(--mobile-title-height);
   display: flex;
   align-items: center;
   justify-content: center;
+  background-color: var(--color-asphalt-500);
+  font: var(--text-body-bold);
+  color: var(--color-neutral-white);
 }
 
 #view-control-layer {
   pointer-events: none; /* For now, just letting the SV viewer handle panning on it's own. */
 }
 
-/* Mobile has no --ui-scale, so the shared pano-overlay pill (sized for a scaled desktop tool) needs its own
-   touch-sized dimensions here. */
+/* The one thing in that click-through layer a finger has to reach: tapping the label opens its card, the way
+   hovering it does on desktop. Without this the tap lands on the imagery canvas underneath and nothing happens. */
+#validate-pano-marker {
+  pointer-events: auto;
+}
+
+/* And reached at 44px, this file's floor, rather than the 24px svv-panorama.css sets for a mouse. The mark itself
+   stays 32px across, because a bigger one hides the imagery being judged — decoupling the two is what that
+   transparent ::after target is for. */
+#validate-pano-marker::after {
+  --label-min-target: 44px;
+}
+
+/* ---- The label card ----------------------------------------------------------------------------------------------
+   Authored for a desktop tool, where the smallest type it uses (--text-tiny-*, 10px) sits under a pointer rather than
+   at arm's length. A 1.2x bump carries it to a legible size on a phone; the cap keeps it inside a narrow one.
+
+   --ui-scale alone would only carry the geometry. The --text-* tokens substitute it where they are declared, on
+   :root, so what inherits into the card already has :root's scale baked in — override it here and the padding grows
+   around type that stays 10px. So each token the card uses is stepped up a size in the rules below, which at these
+   sizes is the same 1.2x. */
+#label-card {
+  --ui-scale: 1.2;
+
+  max-width: min(calc(240px * var(--ui-scale)), calc(100vw - 24px));
+}
+
+#label-card .label-hover-card__type {
+  font: var(--text-small-bold);
+}
+
+#label-card .label-hover-card__severity,
+#label-card .label-hover-card__tags .tag-pill__label {
+  font: var(--text-caption-medium);
+}
+
+#label-card .label-hover-card__no-info {
+  font: var(--text-caption-regular);
+}
+
+/* Line-height overridden for the same reason label-hover-card.css overrides it: the token's is too tight for a
+   description that wraps. */
+#label-card .label-hover-card__description {
+  font: var(--text-caption-regular);
+  line-height: 1.45;
+}
+
+/* The card's one action is a touch target like any other here, so it takes the 44px floor rather than the tiny
+   button's pointer-sized box. */
+#label-card .label-hover-card__action-button {
+  min-height: 44px;
+  font: var(--text-small-medium);
+}
+
+/* Touch-sized: the shared pill (css/pano-overlay-buttons.css) is drawn for a pointer, and 44px is the floor a
+   thumb wants. */
 .pano-overlay-button {
-  height: 66px;
-  padding: 0 18px;
-  gap: 16px;
-  border-radius: 12px;
-  font-size: 26px;
+  height: 44px;
+  padding: 0 12px;
+  gap: 6px;
+  border-radius: 10px;
+  font: var(--text-small-bold);
 }
 
 /* Both float over the pano's top corners. The holder is what's positioned for the visibility control, since the
    button itself now sits inside the shared .pano-overlay-button-group (#4726). */
 #label-visibility-control-holder {
-  top: 20px;
-  left: 20px;
+  top: 8px;
+  left: 8px;
   right: auto;
 }
 
 #validate-undo-button {
   position: absolute;
   z-index: 2;
-  top: 20px;
-  right: 20px;
-}
-
-.hide-label-button-icon {
-  width: 26px;
-  height: 26px;
+  top: 8px;
+  right: 8px;
 }
 
 .animate-button:active {
@@ -199,67 +709,168 @@ body {
   }
 }
 
+/* ---- The verdict row -------------------------------------------------------------------------------------------
+   Full-bleed in both orientations rather than capped and centered: on a wide landscape screen that puts Agree and
+   Disagree under the thumbs of a two-handed grip, and it keeps the notch's arithmetic below exact — the first
+   button starts at the padding edge, and the middle one is centered by construction. */
 #validation-button-holder {
   z-index: 1;
   position: absolute;
-  height: 9vw;
-  bottom: 6vw;
+  height: var(--verdict-row-height);
+  bottom: var(--verdict-row-bottom);
   left: 0;
   right: 0;
-  padding: 0 7vw;
+  padding: 0 var(--verdict-side-pad);
 }
 
+/* A size down from the type the reason panels' buttons keep. Three verdicts across a phone leave each about 90px, of
+   which the thumb takes 20, and the longest translation of Unsure — pt-BR's "Não tenho certeza" — has to wrap inside
+   a 44-48px row: at 16px it took three lines and spilled over the pano and the notch below. */
+#validation-button-holder .validate-page-button {
+  width: var(--verdict-btn-width);
+  height: 100%;
+  font: var(--text-small-bold);
+}
+
+/* A narrow phone leaves ~66px of text column once the thumb has its 20, which is under what 14px needs for the same
+   two lines. Every supported language fits at both sizes; pt-BR is the one that decides them. */
+@media (width <= 360px) {
+  #validation-button-holder .validate-page-button {
+    font: var(--text-caption-semibold);
+  }
+}
+
+/* Shared with the disagree/unsure reason panels' own buttons, which override the box but not the type. */
 .validate-page-button {
-  width: 25vw;
-  height: inherit;
-  border-radius: 16px;
-  font-size: 28px;
+  border-radius: 8px;
+  font: var(--text-body-bold);
+}
+
+/* Each verdict wears the thumb it will be counted under on the mission-complete screen, over the color it is drawn
+   in — an outline until it's the chosen one, then filled. */
+#validate-no-button,
+#validate-unsure-button,
+#validate-yes-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 0;
+  border: 2px solid var(--color-neutral-300);
+  background: var(--color-neutral-white);
+  color: var(--color-neutral-900);
+}
+
+.validate-page-button__icon {
+  width: 16px;
+  height: 16px;
+}
+
+#validate-yes-button {
+  border-color: var(--color-pine-500);
+}
+
+#validate-no-button {
+  border-color: var(--color-orange-400);
+}
+
+#validate-unsure-button {
+  border-color: var(--color-asphalt-200);
 }
 
 #validate-yes-button.chosen {
-  background: #76C9AB;
+  background: var(--color-pine-300);
 }
 
 #validate-no-button.chosen {
-  background: var(--color-orange-400);
+  background: var(--color-orange-300);
 }
 
+/* The ink comes with it: svv-validation-menu.css pairs its own near-black chosen background with white type, and
+   this background is a pale one. */
 #validate-unsure-button.chosen {
-  background: #1A1A1A;
+  background: var(--color-asphalt-100);
+  color: var(--color-neutral-900);
 }
 
+/* The tapped verdict's thumb, rising away from its button — the tap is confirmed where the eye already is, rather
+   than only in the count on a screen two taps later. ModalMissionComplete's celebration is the same idea at the end
+   of a mission. MobileValidationMenu positions it over the button it came from. */
+.validate-verdict-float {
+  position: fixed;
+  z-index: 3;
+  width: 48px;
+  height: 48px;
+  margin-left: -24px;
+  pointer-events: none;
+
+  /* One knob, to taste. The next label lands about 120ms after the tap, so the thumb spends most of any longer
+     flourish over imagery it has nothing to do with — which reads as a verdict cast on the new label. */
+  --verdict-float-duration: 0.6s;
+
+  animation: validate-verdict-rise var(--verdict-float-duration) ease-out forwards;
+}
+
+/* Most of the time is spent legible rather than travelling: it pops, holds where it can be read, then leaves. A long
+   climb over the pano is what made this feel like it belonged to the next label; a short one keeps it on its
+   button. */
+@keyframes validate-verdict-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(0.6);
+  }
+
+  25% {
+    opacity: 1;
+    transform: translateY(-18px) scale(1.12);
+  }
+
+  55% {
+    opacity: 1;
+    transform: translateY(-28px) scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(-48px) scale(0.95);
+  }
+}
+
+/* Points from the open reason panel down at the verdict that raised it. Centered on its button with a half-width
+   translate, so the notch art's own aspect ratio never has to be worked into the offset. */
 #mobile-popup-notch {
   visibility: hidden;
   position: absolute;
-  height: 21px;
-  bottom: 15vw; /* = 6vw (button holder bottom) + 9vw (button holder height) */
+  height: var(--notch-height);
+  bottom: calc(var(--verdict-row-bottom) + var(--verdict-row-height));
   z-index: 1;
+  transform: translateX(-50%);
 }
 
 .mobile-popup-notch-no {
   visibility: visible !important;
-  left: calc(7vw + 12.5vw - 24px); /* Dist to start of no button + no button width / 2 - notch width / 2. */
+  left: calc(var(--verdict-side-pad) + var(--verdict-btn-width) / 2);
 }
 
+/* The middle of three equal buttons spread across the full width is the middle of the screen. */
 .mobile-popup-notch-unsure {
   visibility: visible !important;
-
-  /* Distance to start of buttons + no button width + button gap + unsure button width / 2 - notch width / 2. */
-  left: calc(7vw + 25vw + 5.5vw + 12.5vw - 24px);
+  left: 50%;
 }
 
 .validation-menu-section {
   z-index: 2;
   position: absolute;
-  bottom: calc(15vw + 21px); /* = button holder top (15vw) + notch height (21px) */
+  bottom: calc(var(--verdict-row-bottom) + var(--verdict-row-height) + var(--notch-height));
 
   /* The panel is anchored at the bottom and grows upward, so a label type with more reasons than another pushes its
      own top edge higher. Cap it at the distance from that anchor to the top of the pano holder — which JS sizes to
-     reach the bottom of the screen — so a tall panel scrolls instead of running off the top on a short phone. */
-  max-height: calc(100% - 15vw - 21px);
+     reach the bottom of the screen — so a tall panel scrolls instead of running off the top on a short phone. This
+     is what carries a landscape screen, where the room above the verdict row is a fraction of a portrait one's. */
+  max-height: calc(100% - var(--verdict-row-bottom) - var(--verdict-row-height) - var(--notch-height));
   overflow-y: auto;
-  width: 60vw;
-  padding: 16px 0;
+  width: min(60vw, 400px);
+  padding: 12px 0;
   flex-direction: column;
   align-items: center;
   gap: 8px;
@@ -267,36 +878,42 @@ body {
   background: rgb(255 255 255 / 70%);
 }
 
+/* Each panel sits under the verdict that opened it: the disagree panel aligned to that button's left edge, the
+   unsure panel centered like the button it belongs to. */
 #validate-why-no-section {
-  left: 7vw;
+  left: var(--verdict-side-pad);
 }
 
 #validate-why-unsure-section {
-  left: 20vw;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 .validation-menu-section-header {
-  font-size: 28px;
-  line-height: 100%;
   display: flex;
-  padding: 0 32px;
+  padding: 0 12px;
   align-items: flex-start;
-  gap: 12px;
+  gap: 4px;
   align-self: stretch;
+  font: var(--text-body-bold);
 }
 
 #no-reason-options, #unsure-reason-options {
-  gap: 16px;
-  padding: 0 32px;
+  gap: 6px;
+  padding: 0 12px;
   align-items: flex-start;
   align-self: stretch;
 }
 
+/* min-height rather than height: a long reason — or a long translation of a short one — wraps to a second line, and
+   a fixed box would crop it. */
 .validation-reason-button {
   width: unset;
-  height: 80px;
-  border-radius: 16px;
-  font-size: 24px;
+  min-height: 44px;
+  height: auto;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font: var(--text-small-medium);
   align-self: stretch;
 }
 
@@ -308,10 +925,13 @@ body {
 /* Bootstrap is getting loaded after this file hence overriding this. To avoid it, I am adding important but ideally
   the order of inclusion should be flipped. */
 .validate-text-input input {
-  height: 80px !important;
-  padding: 8px 18px !important;
-  border-radius: 16px !important;
-  font-size: 24px !important;
+  height: 44px !important;
+  padding: 4px 12px !important;
+  border-radius: 8px !important;
+
+  /* Exactly 16px, not a token that might drift under it: iOS Safari zooms the page in on focus for anything
+     smaller, which leaves the validator zoomed into a text field with the pano scrolled off. */
+  font-size: 16px !important;
 }
 
 #no-submit-section, #unsure-submit-section {
@@ -319,53 +939,35 @@ body {
   justify-content: space-between;
   align-items: flex-start;
   align-self: stretch;
-  margin-top: 20px;
-  padding: 0 32px;
+  margin-top: 8px;
+  padding: 0 12px;
 }
 
 #no-menu-skip-reason-button, #unsure-menu-skip-reason-button {
-  height: 76px;
+  min-height: 44px;
   width: auto;
-  padding: 0 12px;
+  padding: 0 8px;
   border: none;
   background: none;
+  font: var(--text-body-medium);
 }
 
 #no-menu-submit-button, #unsure-menu-submit-button {
-  height: 76px;
+  min-height: 44px;
   width: auto;
-  padding: 10px 24px;
-  border-radius: 16px;
-  border: 3px solid #666666;
+  padding: 0 16px;
+  border-radius: 8px;
+  border: 1px solid var(--color-neutral-700);
   background: var(--color-banana-500);
 }
 
-.sign-in-up-button-mobile {
-  position: absolute;
-  background-color: rgb(251 215 139 / 100%);
-  border-radius: 15px;
-  border: none;
-  right: 45px;
-  top: 45px;
-  color: var(--color-asphalt-500);
-  font: normal normal normal 14px/1.4em raleway,sans-serif;
-  font-family: Raleway, sans-serif;
-  font-weight: bolder;
-  font-size: 40px;
-  max-width: 500px;
-  height: 75px;
-  padding: 5px 25px;
-  transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
-}
-
+/* Sits under the tool's header band rather than over it — the mission title and its progress bar are pinned to the
+   top of the screen. Its type comes from main.css, as does its stacked narrow-screen layout once a portrait phone is
+   inside that block's 600px. */
 .test-server-banner {
   position: absolute;
-  top: 80px;
+  top: var(--mobile-header-height);
   width: 100%;
   left: 0;
   z-index: 3;
-}
-
-.test-server-banner-content {
-  font-size: xx-large;
 }

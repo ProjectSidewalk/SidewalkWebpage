@@ -82,9 +82,25 @@ The backend follows a consistent layering: **routes → Controller → Service �
 
 DI is Guice. The app bootstraps via `app/CustomApplicationLoader.scala`; modules are registered in
 `conf/application.conf` and defined in `app/modules/` (`CustomControllerModule`, `ActorModule`, `ExecutorsModule`,
-`SilhouetteModule`). Custom execution contexts live in `app/executors/`; background actors in `app/actor/`.
+`SilhouetteModule`, and `StartupChecksModule` — the home for boot-time checks that surface deployment-level
+misconfiguration, like `PersistentMediaDirCheck`). Custom execution contexts live in `app/executors/`; background
+actors in `app/actor/`.
 
 **Views** are Twirl templates (`app/views/*.scala.html`).
+
+### Background jobs
+
+Each deployment runs a set of nightly jobs as pekko actors in `app/actor/` — the imagery expiry sweep, the
+imagery-age poll and freshness sync, street-priority recalculation, user and funnel stats, label clustering, OSM way
+refresh, AI validations, and auth-token cleanup. The schedule lives in one place, `app/actor/ScheduledJobs.scala`:
+each actor reads its own time from there, staggered across the small hours and shifted per city by
+`ConfigService.getOffsetHours` so 50+ deployments don't contend for the same database and provider quotas.
+
+Every run is bracketed by `JobRunService.record`, which writes a `background_job_run` row — start, finish, outcome,
+and the job's own counts as JSONB (#4928). Without it, a job that silently stops firing is indistinguishable from one
+that found nothing to do, since the absence of a log line is not something anyone notices. `/admin/health` renders
+the roster, flagging any job that is overdue, failed, or has never run. The wrapper is strictly subordinate to the
+job: a bookkeeping failure is logged and swallowed, and a job's own failure propagates unchanged.
 
 ### The public API (`/v3`)
 
@@ -125,8 +141,11 @@ corresponding Twirl view:
 - **`explore/`** — the Explore/Audit tool (label accessibility issues on street-view panoramas). The largest app.
 - **`validate/`** — the Validate tool (confirm/reject others' labels).
 - **`gallery/`** — browsable, filterable gallery of labels.
-- **`admin/`** — admin dashboards and maps.
-- **`user-dashboard/`** — user dashboards.
+- **`admin-dashboard/`** — the admin dashboard (#4272), served file-by-file rather than bundled: one
+  `<PageName>Page.js` per route, loaded by that page's Twirl template. `AdminShell.js` loads on every one of those
+  pages and holds the shared formatting helpers (escaping, numbers, durations, relative times, the standard table
+  markup).
+- **`user-dashboard/`** — the redesigned user dashboard, settings, leaderboard, and public profiles, plus the admin's view of a user's dashboard (`/admin/user/:username`). Served file-by-file like `admin-dashboard/` — no Grunt bundle.
 - **`ps-map/`** — shared map component used across pages.
 - **`help/`** — help/FAQ page.
 - **`common/`** — modules shared across bundles: `pano-viewer/` (an abstraction over the GSV / Mapillary / Infra3d /
@@ -140,6 +159,16 @@ First-party assets split by type: `public/js/` is JavaScript-only, `public/css/`
 `css/explore/`, `css/validate/`, `css/gallery/`), and media lives in `public/images/`, `public/audio/`, and
 `public/videos/`. Directories and CSS files are kebab-case; JS files use Airbnb casing (PascalCase for class files,
 camelCase otherwise). See [`style-guide.md`](style-guide.md) for the full layout and naming conventions.
+
+**Mobile detection has exactly one definition:** `ControllerUtils.isMobile`, a server-side User-Agent check that
+decides which UI a request is served (mobile visitors get `/mobileLanding`, the mobile Validate page at `/mobile`,
+and the shared auth pages; other pages redirect them). The shared layout stamps that verdict on every page as
+`<html data-mobile-device>`, and client code reads it back through `util.isMobile()` — never re-sniff the UA in JS,
+or client and server can disagree about which UI variant is running. Where the real question is touch-vs-hover
+capability rather than "which variant is this page", use a media query (`pointer: coarse`) instead. The device
+regex in the funnel-stats SQL classifies *stored* analytics rows by recorded OS name; it is analytics-only, never a
+product gate. (The longer-term direction — responsive pages replacing the UA fork entirely — is
+[#4875](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4875).)
 
 ## Internationalization
 
@@ -168,11 +197,13 @@ production runtime shape, see [`docs/deployment-and-stages.md`](deployment-and-s
 Two standalone scripts under [`scripts/`](../scripts) (see [`scripts/README.md`](../scripts/README.md)):
 
 - `scripts/label_clustering.py` — clusters nearby labels (used by the clustering flow; see `ClusterService` /
-  `app/models/cluster/`).
-- `scripts/check_streets_for_imagery.py` — checks streets for available street-view imagery.
+  `app/models/cluster/`). Run as `python3` — the app shells out to it, so it has to work on the deployed server's
+  system Python.
+- `scripts/check_streets_for_imagery.py` — checks streets for available street-view imagery. Run as `python3.13`,
+  the second interpreter the web image carries for offline tooling whose libraries have moved past 3.8.
 
-Their pure logic is unit-tested under [`test/python/`](../test/python) (`pytest`, advisory in CI). See
-[`docs/testing-and-ci.md`](testing-and-ci.md).
+Their pure logic is unit-tested under [`test/python/`](../test/python) (`pytest`, advisory in CI) — one run per
+interpreter. See [`docs/testing-and-ci.md`](testing-and-ci.md).
 
 ## Label types
 

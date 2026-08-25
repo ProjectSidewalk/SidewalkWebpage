@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // 4. Initialize other features.
   generateTableOfContents();
   setupScrollSpy();
-  setupMobileNavigation();
+  initSidebarDisclosure();
   setupPermalinkCopying();
   setupSmoothScrolling();
 
@@ -413,42 +413,6 @@ function setupSmoothScrolling() {
       }
     });
   });
-}
-
-/**
- * Sets up mobile-specific navigation behavior (toggle button).
- * @returns {void}
- */
-function setupMobileNavigation() {
-  const sidebar = document.querySelector('.api-sidebar');
-  const toggleButton = document.querySelector('.api-sidebar-toggle');
-
-  // Only create toggle if it doesn't exist and sidebar exists.
-  if (sidebar && !toggleButton) {
-    const button = document.createElement('button');
-    button.className = 'api-sidebar-toggle';
-    button.innerHTML = '☰ Menu';
-    button.setAttribute('aria-label', 'Toggle Navigation Menu');
-    button.setAttribute('aria-expanded', 'false'); // Initial state is closed
-    button.setAttribute('aria-controls', 'api-sidebar-nav'); // Assuming sidebar nav has this ID
-
-    // Add ID to nav container if it doesn't have one.
-    const nav = sidebar.querySelector('.api-nav');
-    if (nav && !nav.id) {
-      nav.id = 'api-sidebar-nav';
-    }
-
-    button.addEventListener('click', function () {
-      const isVisible = sidebar.classList.toggle('mobile-visible');
-      this.setAttribute('aria-expanded', isVisible);
-      this.innerHTML = isVisible ? '✕ Close' : '☰ Menu';
-    });
-
-    // Insert button at the beginning of the body or a designated header area.
-    document.body.insertBefore(button, document.body.firstChild);
-  } else if (toggleButton) {
-    console.log('Mobile navigation toggle already exists.');
-  }
 }
 
 /**

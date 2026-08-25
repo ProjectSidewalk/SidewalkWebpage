@@ -6,50 +6,26 @@
  * Hover/click a street to see its score and per-type cluster breakdown.
  *
  * @requires A DOM element with id 'access-score-streets-preview'
- * @requires Leaflet.js
+ * @requires mapbox-gl and js/api-docs/apiDocsMap.js
  */
 
 (function () {
+  const STREET_SOURCE = 'access-score-streets';
+  const STREET_LAYER = 'access-score-street-lines';
+
   let config = {
     apiBaseUrl: '/v3/api',
     mainContainerId: 'access-score-streets-preview',
+    mapboxApiKey: '',
     endpoint: '/accessScoreStreets',
-    regionsEndpoint: '/regions',
-    mapHeight: 500,
   };
 
-  // Diverging red→yellow→green ramp (ColorBrewer RdYlGn): low accessibility is red, high is green (per the paper).
-  const RAMP = ['#d7191c', '#fdae61', '#ffffbf', '#a6d96a', '#1a9641'];
   const NONE_COLOR = '#888888'; // Unaudited streets (null score).
 
-  /** Interpolates between two hex colors by a 0–1 factor. */
-  function interpolateColor(color1, color2, factor) {
-    const c1 = {
-      r: parseInt(color1.slice(1, 3), 16), g: parseInt(color1.slice(3, 5), 16), b: parseInt(color1.slice(5, 7), 16),
-    };
-    const c2 = {
-      r: parseInt(color2.slice(1, 3), 16), g: parseInt(color2.slice(3, 5), 16), b: parseInt(color2.slice(5, 7), 16),
-    };
-    const r = Math.round(c1.r + (c2.r - c1.r) * factor);
-    const g = Math.round(c1.g + (c2.g - c1.g) * factor);
-    const b = Math.round(c1.b + (c2.b - c1.b) * factor);
-    return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-  }
-
-  /** Maps a value in [0, 1] to a color along the multi-stop RAMP. */
-  function rampColor(value) {
-    const v = Math.max(0, Math.min(1, value));
-    const segments = RAMP.length - 1;
-    const scaled = v * segments;
-    const i = Math.min(Math.floor(scaled), segments - 1);
-    return interpolateColor(RAMP[i], RAMP[i + 1], scaled - i);
-  }
+  // An unaudited street has no score to read, so it's drawn thinner and fainter than one that does.
+  const UNAUDITED = ['<', ['coalesce', ['get', 'score'], -1], 0];
 
   window.AccessScoreStreetsPreview = {
-    _map: null,
-    _layer: null,
-    _legend: null,
-
     /** Apply caller config overrides. */
     setup(options) {
       config = Object.assign(config, options);
@@ -57,143 +33,105 @@
     },
 
     /** Fetch the data and render the map (or a friendly message on failure). */
-    init() {
+    async init() {
       const container = document.getElementById(config.mainContainerId);
       if (!container) {
         console.error('AccessScore streets preview container not found.');
-        return Promise.reject(new Error('container not found'));
+        return;
       }
-      container.style.height = `${config.mapHeight}px`;
+
       const loading = document.createElement('div');
       loading.className = 'loading-message';
       loading.textContent = 'Loading AccessScore data...';
       container.appendChild(loading);
 
-      // Limit the preview to a single region so it stays legible and the response stays small.
-      return this.fetchSampleRegionId()
-        .then((regionId) => this.fetchStreets(regionId))
-        .then((streets) => {
-          container.innerHTML = '';
-          this.renderMap(container, streets);
-        })
-        .catch((error) => {
-          console.error('Error rendering AccessScore streets preview:', error);
-          container.innerHTML = '';
-          const message = document.createElement('div');
-          message.className = 'no-data-message';
-          message.textContent = 'Unable to load AccessScore data for the preview.';
-          container.appendChild(message);
-        });
+      try {
+        // Limit the preview to a single region so it stays legible and the response stays small.
+        const regionId = await this.fetchSampleRegionId();
+        const streets = await this.fetchStreets(regionId);
+        container.innerHTML = '';
+        await this.renderMap(container, streets);
+      } catch (error) {
+        console.error('Error rendering AccessScore streets preview:', error);
+        container.innerHTML = '<div class="no-data-message">Unable to load AccessScore data for the preview.</div>';
+      }
     },
 
     /** Pick a sample region (the one with the most labels) to keep the preview focused. Null = whole city. */
     fetchSampleRegionId() {
-      // getRegionWithMostLabels returns a flat Region object (region_id at the top level), not a GeoJSON Feature.
-      return fetch(`${config.apiBaseUrl}/regionWithMostLabels?utm_source=apiDocs`)
-        .then((response) => (response.ok ? response.json() : null))
-        .then((region) => (region ? region.region_id : null))
+      return ApiDocsMap.fetchJson(`${config.apiBaseUrl}/regionWithMostLabels`)
+        .then((region) => (region ? region.properties.region_id : null))
         .catch(() => null);
     },
 
     /** Fetch street AccessScores (optionally scoped to a region) as a GeoJSON FeatureCollection. */
     fetchStreets(regionId) {
       const regionParam = regionId ? `&regionId=${regionId}` : '';
-      return fetch(`${config.apiBaseUrl}${config.endpoint}?inline=true&utm_source=apiDocs${regionParam}`)
-        .then((response) => {
-          if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-          return response.json();
-        });
+      return ApiDocsMap.fetchJson(`${config.apiBaseUrl}${config.endpoint}?inline=true${regionParam}`);
     },
 
     /** Build the map, draw the street polylines, and add the legend. */
-    renderMap(container, streets) {
+    async renderMap(container, streets) {
       const features = streets.features || [];
 
       const mapElement = document.createElement('div');
       mapElement.id = 'access-score-streets-map';
       container.appendChild(mapElement);
 
-      const map = L.map('access-score-streets-map', { scrollWheelZoom: false });
-      this._map = map;
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors '
-          + '&copy; <a href="https://carto.com/attributions">CARTO</a>',
-        subdomains: 'abcd', maxZoom: 19,
-      }).addTo(map);
+      const bounds = features.length ? ApiDocsMap.featureCollectionBounds(features) : null;
+      const map = await ApiDocsMap.create({
+        container: mapElement,
+        mapboxApiKey: config.mapboxApiKey,
+        ...(bounds ? { bounds } : { center: [0, 0], zoom: 1 }),
+      });
 
-      if (features.length === 0) {
-        map.setView([0, 0], 2);
+      if (!features.length) {
         this.addNoDataMessage(map, 'No streets found for this city.');
         return;
       }
 
-      this._layer = L.geoJSON(streets, {
-        style: (feature) => this.styleForFeature(feature),
-        onEachFeature: (feature, layer) => this.bindInteractions(feature, layer),
-      }).addTo(map);
-      map.fitBounds(this._layer.getBounds(), { padding: [10, 10] });
+      // promoteId lifts street_edge_id into the feature id that setFeatureState needs for the hover styling below.
+      map.addSource(STREET_SOURCE, { type: 'geojson', data: streets, promoteId: 'street_edge_id' });
+      map.addLayer({
+        id: STREET_LAYER,
+        type: 'line',
+        source: STREET_SOURCE,
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: {
+          'line-color': ApiDocsMap.gradientColorExpression('score', ApiDocsMap.ACCESS_SCORE_RAMP, {
+            noneColor: NONE_COLOR,
+          }),
+          'line-width': ApiDocsMap.whenHovered(7, ['case', UNAUDITED, 2, 4]),
+          'line-opacity': ApiDocsMap.whenHovered(1, ['case', UNAUDITED, 0.5, 0.9]),
+        },
+      });
+      ApiDocsMap.addHoverState(map, STREET_LAYER, STREET_SOURCE);
+      this.addStreetPopups(map);
 
-      const countDiv = document.createElement('div');
-      countDiv.className = 'counter-badge';
-      countDiv.textContent = `${features.length} street${features.length === 1 ? '' : 's'}`;
-      map.getContainer().appendChild(countDiv);
+      const countChip = ApiDocsMap.addOverlay(map, 'top-right', 'map-chip');
+      countChip.textContent = `${features.length} street${features.length === 1 ? '' : 's'}`;
 
-      this.updateLegend();
+      const legend = ApiDocsMap.addOverlay(map, 'bottom-left', 'map-legend');
+      ApiDocsMap.renderGradientLegend(legend, 'AccessScore (0 = low, 1 = high)',
+        ApiDocsMap.ACCESS_SCORE_RAMP, ['0', '1'], { color: NONE_COLOR, label: 'Unaudited' });
     },
 
-    /** Leaflet style for a street: stroke colored by score, gray and thinner when unaudited (null). */
-    styleForFeature(feature) {
-      const score = feature.properties.score;
-      if (score === null || score === undefined) {
-        return { color: NONE_COLOR, weight: 2, opacity: 0.5 };
-      }
-      return { color: rampColor(score), weight: 4, opacity: 0.9 };
-    },
+    /** Wire up the click popup for the street layer, including a compact per-type cluster breakdown. */
+    addStreetPopups(map) {
+      map.on('click', STREET_LAYER, (e) => {
+        const p = e.features[0].properties;
+        const score = (p.score === null || p.score === undefined) ? 'N/A (unaudited)' : p.score.toFixed(3);
+        const counts = ApiDocsMap.featureProp(p, 'cluster_counts') || {};
+        const breakdown = Object.keys(counts).filter((k) => counts[k] > 0).map((k) => `${k}: ${counts[k]}`).join(', ')
+          || 'no scored features';
 
-    /** Popup + hover behavior for a street, including a compact per-type cluster breakdown. */
-    bindInteractions(feature, layer) {
-      const p = feature.properties;
-      const score = (p.score === null || p.score === undefined) ? 'N/A (unaudited)' : p.score.toFixed(3);
-      const counts = p.cluster_counts || {};
-      const breakdown = Object.keys(counts).filter((k) => counts[k] > 0).map((k) => `${k}: ${counts[k]}`).join(', ')
-        || 'no scored features';
-      layer.bindPopup(`
-        <div class="as-popup">
+        ApiDocsMap.popup(map, e.lngLat, `
           <h4>Street ${p.street_edge_id}</h4>
           <p><span class="as-score">${score}</span> AccessScore</p>
           <p><strong>Audits:</strong> ${p.audit_count} &nbsp; <strong>Labels:</strong> ${p.label_count}</p>
           <p class="as-breakdown"><strong>Clusters:</strong> ${breakdown}</p>
-        </div>
-      `, { autoPanPaddingTopLeft: L.point(10, 10), autoPanPaddingBottomRight: L.point(260, 130) });
-
-      layer.on('mouseover', function () {
-        this.setStyle({ weight: 7, opacity: 1 });
-        this.bringToFront();
+        `);
       });
-      layer.on('mouseout', () => this._layer.resetStyle(layer));
-    },
-
-    /** Build the fixed 0→1 AccessScore gradient legend. */
-    updateLegend() {
-      const map = this._map;
-      if (this._legend) map.removeControl(this._legend);
-      const legend = L.control({ position: 'bottomright' });
-      legend.onAdd = function () {
-        const div = L.DomUtil.create('div', 'info legend continuous-legend');
-        div.innerHTML = `<h4>AccessScore (0 = low, 1 = high)</h4>`;
-        const gradientContainer = L.DomUtil.create('div', 'gradient-container', div);
-        gradientContainer.style.cssText = 'width: 200px; height: 20px; position: relative; margin: 5px 0;';
-        const gradientBar = L.DomUtil.create('div', 'gradient-bar', gradientContainer);
-        gradientBar.style.cssText
-                    = `width: 100%; height: 100%; background: linear-gradient(to right, ${RAMP.join(', ')});`;
-        const labelsContainer = L.DomUtil.create('div', 'legend-labels', div);
-        labelsContainer.style.cssText = 'display: flex; justify-content: space-between; width: 200px;';
-        L.DomUtil.create('div', 'legend-tick', labelsContainer).textContent = '0';
-        L.DomUtil.create('div', 'legend-tick', labelsContainer).textContent = '1';
-        return div;
-      };
-      legend.addTo(map);
-      this._legend = legend;
     },
 
     /** Show an on-map message (e.g. when there is no data). */

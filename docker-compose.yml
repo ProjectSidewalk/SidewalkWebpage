@@ -43,8 +43,15 @@ services:
     volumes:
       - "./db/scripts/init.sh:/docker-entrypoint-initdb.d/init.sh"
       - "./db:/opt"
+      # Named, so the data survives `make docker-stop`, which runs `docker compose rm -fv`, rather than being deleted.
+      - "pgdata:/var/lib/postgresql/data"
     ports:
       - "5432:5432"
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=sidewalk
+
+volumes:
+  # Leave this unprefixed. Compose namespaces it per project — your checkout directory, lowercased — so an explicit
+  # `name:` would point every Sidewalk checkout on the machine at one shared database.
+  pgdata:

@@ -26,20 +26,41 @@
 
   <div class="api-section" id="cities-preview-section">
     <h2 class="api-heading" id="visual-example">Cities API Preview <a href="#visual-example" class="permalink">#</a></h2>
-    <p>Below is a live preview of the Cities API showing all deployment cities on a map. Hover over a city marker to see its name, and click to visit its Project Sidewalk site.</p>
+    <p>Below is a live preview of the Cities API showing all deployment cities on a map. Hover over a city to highlight it, and click for its headline stats and a link to its Project Sidewalk site.</p>
 
-    <div id="cities-preview" class="map-container">Loading cities data...</div>
+    <div id="cities-preview" class="map-container"></div>
 
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-    <script src="https://unpkg.com/leaflet@@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-    <link rel="stylesheet" href="@assets.path("css/api-docs/cities.css")">
-    <script src="@routes.Assets.versioned("js/api-docs/citiesPreview.js")"></script>
+    @common.cityPopupTemplate()
+
+    <link rel="stylesheet" href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")'>
+    @* Styles the city popups this map shares with the landing page and /cities. *@
+    <link rel="stylesheet" href='@assets.path("css/deployment-map.css")'>
+    <link rel="stylesheet" href='@assets.path("css/api-docs/cities.css")'>
+    @* Deferred to keep the ~800KB mapping stack off this article's rendering path. Order still matters within the
+       set: the language plugin and the ps-map bundle both read the mapboxgl global as they parse. *@
+    <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.js")' defer></script>
+    <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")' defer></script>
+    <script src='@assets.path("js/ps-map/build/ps-map.js")' defer></script>
     <script>
-      // Initialize the cities preview map
-      document.addEventListener('DOMContentLoaded', function() {
-        CitiesPreview.setup({
-          mapHeight: 500
-        }).init();
+      // The same world map of deployment cities the landing page, /about, and /cities draw.
+      window.appManager.ready(function() {
+        createPSMap($, {
+          mapName: 'cities-preview',
+          mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
+          mapboxApiKey: '@commonData.mapboxApiKey',
+          mapboxLogoLocation: 'bottom-left',
+          scrollWheelZoom: false,
+          cooperativeGestures: true,
+          loadCities: true,
+          // The reader is scrolling through docs, not watching the map come up, so it shows the world at once
+          // instead of performing a zoom-out from this city's own center.
+          animateCityFit: false,
+          logClicks: true
+        }).catch(function(error) {
+          console.error('Cities preview error:', error);
+          document.getElementById('cities-preview').innerHTML =
+            '<div class="message message-error">Failed to load cities data.</div>';
+        });
       });
     </script>
   </div>

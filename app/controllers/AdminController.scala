@@ -1,18 +1,19 @@
 package controllers
 
+import actor._
 import controllers.base._
-import controllers.helper.ControllerUtils.isAdmin
 import formats.json.AdminFormats._
 import formats.json.LabelFormats._
 import formats.json.UserFormats._
 import models.auth.{DefaultEnv, WithAdmin, WithOwner}
 import models.label.LabelTypeEnum
-import models.user.{RoleTable, SidewalkUserWithRole}
+import models.user.RoleTable
+import models.utils.JobRunTrigger
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.dispatch.Dispatcher
 import play.api.cache.AsyncCacheApi
 import play.api.i18n.Messages
-import play.api.libs.json.{JsArray, JsError, JsObject, Json}
+import play.api.libs.json._
 import play.api.{Configuration, Logger}
 import play.silhouette.api.Silhouette
 import play.silhouette.impl.exceptions.IdentityNotFoundException
@@ -41,67 +42,13 @@ class AdminController @Inject() (
     panoDataService: PanoDataService,
     osmWayService: service.OsmWayService,
     userService: service.UserService,
+    jobRunService: JobRunService,
     actorSystem: ActorSystem
-)(implicit ec: ExecutionContext, assets: AssetsFinder)
+)(implicit ec: ExecutionContext)
     extends CustomBaseController(cc) {
 
   implicit val implicitConfig: Configuration = config
   private val logger                         = Logger(this.getClass)
-
-  /**
-   * Loads the admin version of the user dashboard page.
-   */
-  def userProfile(username: String) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-    authenticationService.findByUsername(username).flatMap {
-      case Some(user) =>
-        val metricSystem: Boolean = Messages("measurement.system") == "metric"
-        for {
-          userProfileData: UserProfileData <- userService.getUserProfileData(user.userId, metricSystem)
-          adminData                        <- adminService.getAdminUserProfileData(user.userId)
-          commonData                       <- configService.getCommonPageData(request2Messages.lang)
-          tags                             <- labelService.getTagsForCurrentCity
-        } yield {
-          cc.loggingService.insert(user.userId, request.ipAddress, s"Visit_AdminUserDashboard_User=$username")
-          Ok(
-            views.html.userProfile(commonData, "Sidewalk - Dashboard", request.identity, user, tags, userProfileData,
-              Some(adminData))
-          )
-        }
-      case _ => Future.failed(new IdentityNotFoundException("Username not found."))
-    }
-  }
-
-  /**
-   * Loads the page that shows a single label with a search box to view others.
-   */
-  def label(labelId: Int) = cc.securityService.SecuredAction { implicit request =>
-    configService.getCommonPageData(request2Messages.lang).map { commonData =>
-      val user: SidewalkUserWithRole = request.identity
-      val admin: Boolean             = isAdmin(request.identity)
-      cc.loggingService.insert(user.userId, request.ipAddress, s"Visit_LabelView_Label=${labelId}_Admin=$admin")
-      Ok(views.html.admin.label(commonData, "Sidewalk - LabelView", user, admin, labelId))
-    }
-  }
-
-  /**
-   * Loads the page that replays an audit task.
-   */
-  def task(taskId: Int) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-    for {
-      commonData <- configService.getCommonPageData(request2Messages.lang)
-      maybeTask  <- adminService.findAuditTask(taskId)
-    } yield {
-      val user: SidewalkUserWithRole = request.identity
-      maybeTask match {
-        case Some(task) =>
-          cc.loggingService.insert(user.userId, request.ipAddress, s"Visit_AdminTask_TaskId=$taskId")
-          Ok(views.html.admin.task(commonData, "Sidewalk - TaskView", user, task))
-        case None =>
-          cc.loggingService.insert(user.userId, request.ipAddress, s"Visit_AdminTask_TaskId=${taskId}_NotFound")
-          NotFound(s"Task with ID $taskId not found.")
-      }
-    }
-  }
 
   /**
    * Get a list of all labels for the admin page, as a GeoJSON FeatureCollection of points.
@@ -155,14 +102,6 @@ class AdminController @Inject() (
   }
 
   /**
-   * Get the list of interactions logged for the given audit task. Used to reconstruct the task for playback.
-   */
-  def getAnAuditTaskPath(taskId: Int) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
-    adminService.getAuditInteractionsWithLabels(taskId).map { actions => Ok(auditTaskInteractionsToGeoJSON(actions)) }
-  }
-
-  /**
    * Get metadata for a given label ID (for admins; includes personal identifiers like username).
    */
   def getAdminLabelData(labelId: Int) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
@@ -174,7 +113,8 @@ class AdminController @Inject() (
             labelMetadataWithValidationToJsonAdmin(metadata, adminData.head) ++
               Json.obj(
                 "crop_url"         -> panoDataService.cropUrl(metadata.labelId, metadata.labelType),
-                "backup_image_url" -> panoDataService.backupImageUrl(metadata.panoId)
+                "backup_image_url" -> panoDataService.backupImageUrl(metadata.panoId),
+                "can_edit"         -> true
               )
           )
         }
@@ -245,74 +185,112 @@ class AdminController @Inject() (
   }
 
   /**
-   * Updates high_quality_manual and high_quality in the database for the given user.
+   * Saves the admin-editable account settings for another user in one request, from the Manage user tab of their
+   * dashboard (`/admin/user/:username/admin`): username, role, team, manual quality flag, service-hours opt-in, the two
+   * privacy flags, and (on infra3D deployments) infra3D access.
+   *
+   * Every setting is required (a missing one is a 400, never a reset to a default). Every check that can refuse the
+   * save — an Owner can't be changed at all, only an Owner can set an admin's quality, only someone with infra3D access
+   * can grant it, the username rules — runs before the first write, so a refused save applies nothing.
    */
-  def setUserQualityManual = cc.securityService.SecuredAction(WithAdmin(), parse.json) { implicit request =>
-    val submission = request.body.validate[UserQualitySubmission]
-    submission.fold(
-      errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
-      submission => {
-        val userId: String                  = submission.userId
-        val newUserQuality: Option[Boolean] = submission.userQualityManual
+  def saveUserSettings = cc.securityService.SecuredAction(WithAdmin(), parse.json) { implicit request =>
+    val admin                   = request.identity
+    def reject(message: String) = Future.successful(BadRequest(Json.obj("success" -> false, "error" -> message)))
 
-        authenticationService.findByUserId(userId) flatMap {
+    request.body.validate[AdminUserSettingsSubmission] match {
+      case JsError(errors) => reject(s"Invalid settings: ${JsError.toJson(errors).keys.mkString(", ")}")
+      case JsSuccess(s, _) =>
+        val userId = s.userId
+        val teamId = s.teamId.filter(_ > 0)
+        authenticationService.findByUserId(userId).flatMap {
+          case None       => reject("No user has this user ID")
           case Some(user) =>
-            if (user.role == "Owner") {
-              Future.successful(
-                BadRequest(Json.obj("status" -> "Error", "message" -> "Owner's quality cannot be changed"))
-              )
-            } else if (user.role == "Administrator" && request.identity.role != "Owner") {
-              Future.successful(
-                BadRequest(Json.obj("status" -> "Error", "message" -> "Admin's quality can only be set by an Owner"))
-              )
-            } else {
-              // Update the high_quality_manual and high_quality columns. Recomputes high_quality if input is None.
-              userService
-                .setManualUserQuality(userId, newUserQuality)
-                .map {
-                  case Some(newQuality) =>
-                    val logText = s"UpdateUserManualQuality_User=${userId}_Manual=${newUserQuality}_New=$newQuality"
-                    cc.loggingService.insert(request.identity.userId, request.ipAddress, logText)
-                    Ok(Json.obj("new_user_quality" -> newQuality))
-                  case None => BadRequest(Json.obj("status" -> "Error", "message" -> "Likely an excluded user"))
-                }
-            }
-          case None =>
-            Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> "No user has this user_id")))
-        }
-      }
-    )
-  }
+            for {
+              // A user who has never visited this city has no user_stat row yet; without one the privacy and quality
+              // writes below would match nothing and the save would report success having changed nothing.
+              _        <- authenticationService.addUserStatEntryIfNew(userId)
+              stats    <- userService.getUserStats(userId)
+              currTeam <- userService.getUserTeam(userId)
+              response <- {
+                val usernameChanged = s.username != user.username
+                val roleChanged     = s.role != user.role
+                val teamChanged     = currTeam.map(_.teamId) != teamId
+                val serviceChanged  = s.communityService != user.communityService
+                val privacyChanged  =
+                  stats.exists(st => st.onLeaderboard != s.onLeaderboard || st.publicProfile != s.publicProfile)
+                val qualityChanged = stats.exists(_.highQualityManual != s.highQualityManual)
+                val infra3dChanged = s.infra3dAccess.exists(_ != user.infra3dAccess)
+                val anyChanged     = usernameChanged || roleChanged || teamChanged || serviceChanged ||
+                  privacyChanged || qualityChanged || infra3dChanged
 
-  /**
-   * Updates <city>_infra3d_access column in the database for the given user.
-   */
-  def setInfra3dAccess = cc.securityService.SecuredAction(WithAdmin(), parse.json) { implicit request =>
-    val submission = request.body.validate[UserInfra3dAccess]
-    submission.fold(
-      errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
-      submission => {
-        authenticationService.findByUserId(submission.userId) flatMap {
-          case Some(user) =>
-            if (user.role == "Owner") {
-              Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> "Owner access can't be changed")))
-            } else if (!request.identity.infra3dAccess) {
-              Future.successful(
-                BadRequest(Json.obj("status" -> "Error", "message" -> "Lacking permission to grant access"))
-              )
-            } else {
-              authenticationService
-                .setInfra3dAccess(submission.userId, submission.access)
-                .map { rowsUpdated =>
-                  if (rowsUpdated > 0) Ok(Json.obj("message" -> "infra3D access updated successfully"))
-                  else BadRequest(Json.obj("error" -> "Failed to update infra3D access"))
+                // Ordered from the broadest refusal to the narrowest.
+                val firstError: Option[String] =
+                  if (anyChanged && user.role == "Owner") Some("An Owner's settings can't be changed")
+                  else if (roleChanged && !RoleTable.ADMIN_ASSIGNABLE_ROLES.contains(s.role))
+                    Some(s"Can't assign role ${s.role}")
+                  else if (roleChanged && !RoleTable.ADMIN_ASSIGNABLE_ROLES.contains(user.role))
+                    Some(s"A ${user.role} account's role can't be changed")
+                  else if (qualityChanged && user.role == "Administrator" && admin.role != "Owner")
+                    Some("An admin's quality can only be set by an Owner")
+                  else if (infra3dChanged && !admin.infra3dAccess) Some("Only a user with infra3D access can grant it")
+                  else None
+
+                val usernameCheck: Future[Either[String, Unit]] =
+                  if (firstError.isDefined) Future.successful(Left(firstError.get))
+                  else if (usernameChanged) userService.validateUsername(userId, s.username).map {
+                    case Left(errorKey) => Left(Messages(errorKey))
+                    case Right(_)       => Right(())
+                  }
+                  else Future.successful(Right(()))
+
+                usernameCheck.flatMap {
+                  case Left(message) => reject(message)
+                  case Right(_)      =>
+                    for {
+                      _ <- userService.updatePrivacySettings(userId, s.onLeaderboard, s.publicProfile)
+                      _ <- teamId
+                        .map(id => userService.setUserTeam(userId, id))
+                        .getOrElse(userService.leaveTeam(userId))
+                      _ <- authenticationService.setCommunityServiceStatus(userId, s.communityService)
+                      _ <- if (roleChanged) authenticationService.updateRole(userId, s.role) else Future.successful(0)
+                      _ <- s.infra3dAccess
+                        .filter(_ => infra3dChanged)
+                        .map(access => authenticationService.setInfra3dAccess(userId, access))
+                        .getOrElse(Future.successful(0))
+                      newQuality <-
+                        if (qualityChanged) userService.setManualUserQuality(userId, s.highQualityManual)
+                        else Future.successful(stats.map(_.highQuality))
+                      _ <-
+                        if (usernameChanged) userService.changeUsername(userId, s.username)
+                        else Future.successful(Right(user.username))
+                    } yield {
+                      cc.loggingService.insert(
+                        admin.userId,
+                        request.ipAddress,
+                        s"Click_module=AdminSaveUserSettings_User=$userId"
+                      )
+                      if (roleChanged) {
+                        cc.loggingService.insert(
+                          admin.userId,
+                          request.ipAddress,
+                          s"UpdateRole_User=${userId}_Old=${user.role}_New=${s.role}"
+                        )
+                      }
+                      if (qualityChanged) {
+                        cc.loggingService.insert(
+                          admin.userId,
+                          request.ipAddress,
+                          s"UpdateUserManualQuality_User=${userId}_Manual=${s.highQualityManual}_New=$newQuality"
+                        )
+                      }
+                      // The page's URL is keyed by username, so the client needs the saved name to re-point itself.
+                      Ok(Json.obj("success" -> true, "high_quality" -> newQuality, "username" -> s.username))
+                    }
                 }
-            }
-          case None =>
-            Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> "No user has this user_id")))
+              }
+            } yield response
         }
-      }
-    )
+    }
   }
 
   /* Clears all cached values. Should only be called from the Admin page. */
@@ -323,6 +301,9 @@ class AdminController @Inject() (
 
   /**
    * Updates user_stat table for users who audited in the past `hoursCutoff` hours. Update everyone if no time supplied.
+   *
+   * Recorded in `background_job_run` under the nightly job's name but tagged `Manual`, so the run leaves the same
+   * counts and error trail the scheduler's would without being able to stand in for it (#4928).
    */
   def updateUserStats(hoursCutoff: Option[Int]) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
@@ -331,18 +312,26 @@ class AdminController @Inject() (
       case None        => OffsetDateTime.ofInstant(Instant.EPOCH, ZoneOffset.UTC)
     }
 
-    adminService.updateUserStatTable(cutoffTime).map { usersUpdated: Int =>
-      Ok(s"User stats updated for $usersUpdated users!")
-    }
+    jobRunService
+      .record(UserStatActor.Name, JobRunTrigger.Manual)(adminService.updateUserStatTable(cutoffTime)) { usersUpdated =>
+        Json.obj("users_updated" -> usersUpdated)
+      }
+      .map { usersUpdated: Int => Ok(s"User stats updated for $usersUpdated users!") }
   }
 
   /**
    * Forces an immediate recompute of this deployment's engagement funnel (#288) into `funnel_stat` — the same work the
    * nightly FunnelStatActor does. Handy after a deploy so the Across Cities page shows this city without waiting a day.
+   *
+   * Recorded as a `Manual` run of that nightly job (#4928).
    */
   def updateFunnelStats = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     cc.loggingService.insert(request.identity.userId, request.ipAddress, request.toString)
-    adminService.updateFunnelStatTable().map { rowsUpdated => Ok(s"Funnel stats updated ($rowsUpdated rows)!") }
+    jobRunService
+      .record(FunnelStatActor.Name, JobRunTrigger.Manual)(adminService.updateFunnelStatTable()) { rowsUpdated =>
+        Json.obj("rows_written" -> rowsUpdated)
+      }
+      .map { rowsUpdated => Ok(s"Funnel stats updated ($rowsUpdated rows)!") }
   }
 
   /**
@@ -436,7 +425,7 @@ class AdminController @Inject() (
    */
   private def thumbnailUrl(item: RecentActivityItem, metaById: Map[Int, LabelThumbnailMeta]): Option[String] = {
     (item.labelId, item.labelType) match {
-      case (Some(id), Some(labelType)) if LabelTypeEnum.validLabelTypes.contains(labelType) =>
+      case (Some(id), Some(labelType)) if LabelTypeEnum.labelTypeNames.contains(labelType) =>
         panoDataService
           .cropUrl(id, LabelTypeEnum.byName(labelType))
           .orElse(metaById.get(id).flatMap { m =>
@@ -556,8 +545,10 @@ class AdminController @Inject() (
         Json.obj(
           "total_streets"              -> s.totalStreets,
           "audited_streets"            -> s.auditedStreets,
+          "reaudit_streets"            -> s.reauditStreets,
           "total_distance_mi"          -> s.totalDistanceMi,
           "audited_distance_mi"        -> s.auditedDistanceMi,
+          "reaudit_distance_mi"        -> s.reauditDistanceMi,
           "total_labels"               -> s.totalLabels,
           "total_validations"          -> s.totalValidations,
           "labels_past_week"           -> s.labelsPastWeek,
@@ -583,16 +574,50 @@ class AdminController @Inject() (
   /**
    * Serializes one rolling week-over-week activity window for the Across Cities page (#4758).
    *
+   * Label and validation counts are what people did; AI-role output is reported in its own `ai_*` fields rather than
+   * folded in, because one pipeline account can dwarf every person in the project (#4931).
+   *
    * @param w The current- and prior-window totals for one city, or summed across all of them.
    * @return  The window as snake_case JSON (v3 API convention).
    */
   private def activityWindowJson(w: ActivityWindowSummary): JsObject = Json.obj(
-    "labels_7d"             -> w.labels7d,
-    "labels_prior_7d"       -> w.labelsPrior7d,
-    "validations_7d"        -> w.validations7d,
-    "validations_prior_7d"  -> w.validationsPrior7d,
-    "contributors_7d"       -> w.contributors7d,
-    "contributors_prior_7d" -> w.contributorsPrior7d
+    "labels_7d"               -> w.labels7d,
+    "labels_prior_7d"         -> w.labelsPrior7d,
+    "validations_7d"          -> w.validations7d,
+    "validations_prior_7d"    -> w.validationsPrior7d,
+    "ai_labels_7d"            -> w.aiLabels7d,
+    "ai_labels_prior_7d"      -> w.aiLabelsPrior7d,
+    "ai_validations_7d"       -> w.aiValidations7d,
+    "ai_validations_prior_7d" -> w.aiValidationsPrior7d,
+    "contributors_7d"         -> w.contributors7d,
+    "contributors_prior_7d"   -> w.contributorsPrior7d,
+    "anon_sessions_7d"        -> w.anonSessions7d,
+    "anon_sessions_prior_7d"  -> w.anonSessionsPrior7d,
+    "ai_agents_7d"            -> w.aiAgents7d
+  )
+
+  /**
+   * Serializes one city's window plus the contributors it is made of, for the "Most active cities" hover cards (#4931).
+   *
+   * Contributors are named because the page is Owner-gated; these are the same usernames the admin user table shows.
+   * `contributor_total` is how many the capped array was drawn from, which is what lets a card say how many people it
+   * is not showing — counting that from the array itself would be bounded by the cap.
+   *
+   * @param w One city's rolling windows and its (already capped) contributor list.
+   * @return  The window's fields plus a `contributors` array, busiest first, and the untruncated count.
+   */
+  private def cityActivityWindowJson(w: CityActivityWindow): JsObject = activityWindowJson(w.summary) ++ Json.obj(
+    "contributor_total" -> w.contributorTotal,
+    "contributors"      -> JsArray(w.contributors.map { c =>
+      Json.obj(
+        "username"             -> c.username,
+        "kind"                 -> c.kind.toString,
+        "labels_7d"            -> c.labels7d,
+        "labels_prior_7d"      -> c.labelsPrior7d,
+        "validations_7d"       -> c.validations7d,
+        "validations_prior_7d" -> c.validationsPrior7d
+      )
+    })
   )
 
   /**
@@ -730,12 +755,37 @@ class AdminController @Inject() (
       })
 
       // Trailing-7-day cross-city daily series for the "this week" bar charts (#4686); zero-filled, today partial.
+      // Each day also carries the breakdown its hover card shows (#4931): the human/AI split, the day's busiest
+      // cities, and the people who were active, so the card is derived from the same rows the bar is summed from.
       val overTimeDaily = JsArray(dailyTrend.map { d =>
         Json.obj(
-          "day"          -> d.day.toString,
-          "labels"       -> d.labels,
-          "validations"  -> d.validations,
-          "active_users" -> d.activeUsers
+          "day"               -> d.point.day.toString,
+          "labels"            -> d.point.labels,
+          "validations"       -> d.point.validations,
+          "contributors"      -> d.point.contributors,
+          "anon_sessions"     -> d.point.anonSessions,
+          "ai_labels"         -> d.point.aiLabels,
+          "ai_validations"    -> d.point.aiValidations,
+          "ai_agents"         -> d.point.aiAgents,
+          "contributor_total" -> d.contributorTotal,
+          "top_cities"        -> JsArray(d.topCities.map { city =>
+            val cityName: String = cityInfoById.get(city.cityId).map(_.cityNameShort).getOrElse(city.cityId)
+            Json.obj(
+              "city_id"      -> city.cityId,
+              "city_name"    -> cityName,
+              "labels"       -> city.labels,
+              "validations"  -> city.validations,
+              "contributors" -> city.contributors
+            )
+          }),
+          "contributor_list" -> JsArray(d.contributors.map { c =>
+            Json.obj(
+              "username"    -> c.username,
+              "kind"        -> c.kind.toString,
+              "labels"      -> c.labels,
+              "validations" -> c.validations
+            )
+          })
         )
       })
 
@@ -759,13 +809,15 @@ class AdminController @Inject() (
           "over_time_all_time" -> overTimeAllTime,
           "over_time_daily"    -> overTimeDaily,
           // Rolling week-over-week windows (trailing 7 days vs the 7 before) for the "Today & this week" tiles
-          // (#4758). Contributors are distinct per city per window, summed across cities (no cross-city dedup).
+          // (#4758). Headcounts here are distinct across every city, so they can come out below the same column
+          // summed down `window_by_city` — someone who mapped in three cities is one contributor here.
           "window_summary" -> activityWindowJson(windowSummary.total),
           // The same windows kept per city, for the "Most active cities" table. Emitted as its own block rather than
           // merged into `cities` because the scorecard rows already carry labels_7d/validations_7d on a slightly
-          // different basis (see getCityActivityWindowsBySchema) and two same-named fields would invite mixing them.
+          // different basis (see getCityWindowActivityByUserBySchema) and two same-named fields would invite mixing
+          // them.
           "window_by_city" -> JsObject(windowSummary.byCity.toSeq.map { case (cityId, w) =>
-            cityId -> activityWindowJson(w)
+            cityId -> cityActivityWindowJson(w)
           }),
           "summary" -> Json.obj(
             "num_cities"                -> scorecards.length,
@@ -885,10 +937,18 @@ class AdminController @Inject() (
 
   /**
    * Recalculates street edge priority for all streets.
+   *
+   * Recorded as a `Manual` run of the nightly street-priority job (#4928). Only the recalculation step, not the
+   * imagery-freshness sync and region_completion rebuild the nightly sequence wraps around it, which is why the run
+   * records no counts.
    */
   def recalculateStreetPriority = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
-    streetService.recalculateStreetPriority.map(_ => Ok("Successfully recalculated street priorities"))
+    jobRunService
+      .record(RecalculateStreetPriorityActor.Name, JobRunTrigger.Manual)(streetService.recalculateStreetPriority)(_ =>
+        Json.obj()
+      )
+      .map(_ => Ok("Successfully recalculated street priorities"))
   }
 
   /**
@@ -920,19 +980,29 @@ class AdminController @Inject() (
 
   /**
    * Checks for imagery that might be missing. Same as nightly process.
+   *
+   * Recorded in `background_job_run` like the nightly sweep, but tagged `Manual` so a run someone kicked off by hand
+   * can't stand in for one the scheduler never fired (#4928).
    */
   def checkImagery() = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
-    panoDataService.checkForImagery.map { results => Ok(results) }
+    jobRunService
+      .record(CheckImageExpiryActor.Name, JobRunTrigger.Manual)(panoDataService.checkForImagery)(_.runDetails)
+      .map { results => Ok(results.summary) }
   }
 
   /**
    * Refreshes the cached OSM way data (speed limits etc.). Same as the nightly process, for QA and initial backfill.
+   *
+   * Recorded as a `Manual` run of that nightly job (#4928). This one runs for tens of minutes and can half-fail, so
+   * the recorded counts and error are the only durable account of what a given trigger did.
    */
   def refreshOsmWayData() = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
-    osmWayService
-      .refreshOsmWayData()
+    jobRunService
+      .record(OsmWayRefreshActor.Name, JobRunTrigger.Manual)(osmWayService.refreshOsmWayData()) { waysRefreshed =>
+        Json.obj("ways_refreshed" -> waysRefreshed)
+      }
       .map { waysRefreshed => Ok(Json.obj("ways_refreshed" -> waysRefreshed)) }
       .recover { case NonFatal(e) =>
         logger.error("OSM way data refresh failed.", e)

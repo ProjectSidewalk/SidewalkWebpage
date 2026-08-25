@@ -34,6 +34,14 @@ class PanoViewer {
   initialSeed;
 
   /**
+   * The element the viewer renders into. create() sets this before initialize() runs so that it is available to
+   * any code the initialization path calls (e.g. an early getPov()). _viewportAspect() measures it to derive the
+   * live aspect ratio for fov↔zoom conversion (#4852).
+   * @type {(Element|undefined)}
+   */
+  canvasElem;
+
+  /**
    * Private constructor to prevent direct instantiation.
    */
   constructor() {
@@ -79,8 +87,28 @@ class PanoViewer {
    */
   static async create(canvasElem, panoOptions = {}) {
     const newViewer = new this();
+    newViewer.canvasElem = canvasElem;
     await newViewer.initialize(canvasElem, panoOptions);
     return newViewer;
+  }
+
+  /**
+   * The live width:height aspect ratio of the element the pano renders in, for fov↔zoom conversion (#4852).
+   *
+   * Falls back to the fixed Explore-canvas ratio when the element has no measurable box yet (not laid out, or
+   * `display: none` — e.g. the label-detail popup pano while hidden), which keeps the conversion stable until a
+   * real measurement exists.
+   *
+   * Measures the mount container, which every call site can treat as the render canvas because they all pass
+   * `disableDefaultUi: true`. A viewer showing in-container chrome (Infra3D's topbar/toolbar/cockpit) renders
+   * into a shorter canvas than this, and would need to measure `canvasElem.querySelector('.' + canvasClass)`.
+   *
+   * @returns {number} The viewport aspect ratio, or util.EXPLORE_CANVAS_ASPECT_RATIO if it can't be measured.
+   * @protected
+   */
+  _viewportAspect() {
+    const rect = this.canvasElem?.getBoundingClientRect();
+    return rect && rect.width > 0 && rect.height > 0 ? rect.width / rect.height : util.EXPLORE_CANVAS_ASPECT_RATIO;
   }
 
   /**
@@ -90,8 +118,9 @@ class PanoViewer {
    * @param {string} [panoOptions.startPanoId] Pano to start at; tried before the lat/lngs
    * @param {{lat: number, lng: number}} [panoOptions.startLatLng] Preferred starting location
    * @param {Array<{lat: number, lng: number}>} [panoOptions.backupLatLngs=[]] Fallback locations, tried in order
-   * @returns {Promise<void>} Rejects only when every given seed fails: with the last setLocation() error when
-   *     locations were given, otherwise with the setPano() error
+   * @returns {Promise<void>} Rejects only when every given seed fails. The rejection is a NoImageryError only when
+   *     every candidate location answered "nothing here"; if any failed for another reason, that error is rethrown
+   *     as-is so callers can tell "this street is empty" from "we couldn't ask" (#4918)
    * @protected
    */
   async _moveToInitialLocation(panoOptions) {
@@ -107,17 +136,26 @@ class PanoViewer {
     }
     if (panoOptions.startLatLng) {
       const candidates = [panoOptions.startLatLng, ...(panoOptions.backupLatLngs ?? [])];
-      let lastError;
+      const failures = [];
       for (const latLng of candidates) {
         try {
           await this.setLocation(latLng);
           this.initialSeed = 'latLng';
           return;
         } catch (err) {
-          lastError = err;
+          failures.push(err);
         }
       }
-      throw lastError;
+      // One candidate that failed for a non-imagery reason leaves the stretch of street it covered unknown, not
+      // empty, so its error wins over the emptiness the other candidates found. Surfacing the first such failure
+      // rather than the last keeps the root cause (e.g. the maps library never loaded) at the top of the chain.
+      if (!NoImageryError.allNoImagery(failures)) {
+        throw failures.find((err) => !(err instanceof NoImageryError));
+      }
+      throw new NoImageryError(
+        `No imagery at any of the ${candidates.length} candidate points along the street.`,
+        { cause: failures[failures.length - 1] },
+      );
     }
   }
 

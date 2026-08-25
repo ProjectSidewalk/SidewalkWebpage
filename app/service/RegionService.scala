@@ -15,9 +15,9 @@ trait RegionService {
   def getAllRegions: Future[Seq[Region]]
   def getRegion(regionId: Int): Future[Option[Region]]
   def getRegionByName(regionName: String): Future[Option[Region]]
-  def getRegionWithMostLabels: Future[Option[Region]]
   def getNeighborhoodsWithUserCompletionStatus(userId: String, regionIds: Seq[Int]): Future[Seq[(Region, Boolean)]]
   def selectAllNamedNeighborhoodCompletions(regionIds: Seq[Int]): Future[Seq[NamedRegionCompletion]]
+  def getOutdatedDistanceByRegion: Future[Map[Int, Double]]
   def truncateRegionCompletionTable: Future[Int]
   def initializeRegionCompletionTable: Future[Int]
   def initializeRegionCompletionTableAction: DBIO[Int]
@@ -42,13 +42,15 @@ class RegionServiceImpl @Inject() (
 
   def getRegionByName(regionName: String): Future[Option[Region]] = db.run(regionTable.getRegionByName(regionName))
 
-  def getRegionWithMostLabels: Future[Option[Region]] = db.run(regionTable.getRegionWithMostLabels)
-
   def getNeighborhoodsWithUserCompletionStatus(userId: String, regionIds: Seq[Int]): Future[Seq[(Region, Boolean)]] =
     db.run(regionTable.getNeighborhoodsWithUserCompletionStatus(userId, regionIds))
 
   def selectAllNamedNeighborhoodCompletions(regionIds: Seq[Int]): Future[Seq[NamedRegionCompletion]] =
     db.run(regionCompletionTable.selectAllNamedNeighborhoodCompletions(regionIds))
+
+  /** Distance (meters) of streets needing re-audit per region (#4384); regions with none are absent from the map. */
+  def getOutdatedDistanceByRegion: Future[Map[Int, Double]] =
+    db.run(regionTable.outdatedDistanceByRegion).map(_.toMap)
 
   def truncateRegionCompletionTable: Future[Int] = db.run(regionCompletionTable.truncateTable)
 

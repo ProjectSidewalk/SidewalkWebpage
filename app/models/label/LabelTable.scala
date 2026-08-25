@@ -2,11 +2,17 @@ package models.label
 
 import com.google.inject.ImplementedBy
 import models.api.{
+  AiConcurrence,
+  LabelAccuracy,
   LabelDataForApi,
+  LabelSevStats,
   LabelValidationSummaryForApi,
+  ProjectSidewalkStats,
   RawLabelFiltersForApi,
   RawLabelValidationStatus,
-  TagFilterForApi
+  TagFilterForApi,
+  ValidationSourceStats,
+  ValidationStats
 }
 import models.audit.AuditTaskTableDef
 import models.label.LabelTable._
@@ -98,51 +104,10 @@ case class LabelForLabelMap(
 )
 
 case class TagCount(labelType: String, tag: String, count: Int)
-case class LabelSevStats(n: Int, nWithSeverity: Option[Int], severityMean: Option[Double], severitySD: Option[Double])
-case class LabelAccuracy(n: Int, nAgree: Int, nDisagree: Int, accuracy: Option[Double], nWithValidation: Int)
-case class AiConcurrence(aiYesHumanConcurs: Int, aiYesHumanDiffers: Int, aiNoHumanDiffers: Int, aiNoHumanConcurs: Int)
-
-// Validation stats for a single source of votes (combined = all votes, human = non-AI votes, ai = AI votes). Each
-// source has a raw count of validations (label_validation rows) plus a per-label-type majority-vote breakdown.
-case class ValidationSourceStats(nValidations: Int, accuracyByLabelType: Map[String, LabelAccuracy])
-case class ValidationStats(
-    combined: ValidationSourceStats,
-    human: ValidationSourceStats,
-    ai: ValidationSourceStats
-)
-
-case class ProjectSidewalkStats(
-    launchDate: String,
-    avgTimestampLast100Labels: Option[OffsetDateTime],
-    kmExplored: Double,
-    kmExploreNoOverlap: Double,
-    kmExploredMultipleUsers: Double,
-    kmExploredSingleUser: Double,
-    kmOpen: Double,
-    kmNoImagery: Double,
-    kmClosed: Double,
-    kmDisabled: Double,
-    nUsers: Int,
-    nExplorers: Int,
-    nValidators: Int,
-    nRegistered: Int,
-    nAnon: Int,
-    nTurker: Int,
-    nResearcher: Int,
-    nLabels: Int,
-    nLabelsWithSeverity: Int,
-    avgLabelTimestamp: Option[OffsetDateTime],
-    avgImageAgeByLabel: Option[Duration],
-    stddevLabelTimestamp: Option[Duration],
-    stddevImageAgeByLabel: Option[Duration],
-    severityByLabelType: Map[String, LabelSevStats],
-    validations: ValidationStats,
-    aiPerformance: Map[String, Map[String, AiConcurrence]]
-)
 case class LabelTypeValidationsLeft(labelType: LabelTypeEnum.Base, validationsAvailable: Int, validationsNeeded: Int)
 
 case class LabelCount(count: Int, timeInterval: TimeInterval, labelType: String) {
-  require((validLabelTypes ++ Seq("All")).contains(labelType))
+  require((labelTypeNames ++ Seq("All")).contains(labelType))
 }
 
 // Defines some common fields for a label metadata, which allows us to create generic functions using these fields.
@@ -279,6 +244,7 @@ class LabelTableDef(tag: slick.lifted.Tag) extends Table[Label](tag, "label") {
   def labelType  = foreignKey("label_label_type_id_fkey", labelTypeId, TableQuery[LabelTypeTableDef])(_.labelTypeId)
   def streetEdge =
     foreignKey("label_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTableDef])(_.streetEdgeId)
+  def panoData = foreignKey("label_pano_id_fkey", panoId, TableQuery[PanoDataTableDef])(_.panoId)
 }
 
 /**
@@ -787,6 +753,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     val kmExploreNoOverlap        = r.nextDouble()
     val kmExploredMultipleUsers   = r.nextDouble()
     val kmExploredSingleUser      = kmExploreNoOverlap - kmExploredMultipleUsers
+    val kmNeedsReaudit            = r.nextDouble()
     val kmOpen                    = r.nextDouble()
     val kmNoImagery               = r.nextDouble()
     val kmClosed                  = r.nextDouble()
@@ -798,6 +765,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       kmExploreNoOverlap,
       kmExploredMultipleUsers,
       kmExploredSingleUser,
+      kmNeedsReaudit,
       kmOpen,
       kmNoImagery,
       kmClosed,
@@ -905,7 +873,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       .result
       .map { labelCounts =>
         // Put data into LabelCount objects, and add an entry for any nonexistent label types with count=0.
-        val countsByType: Seq[LabelCount] = validLabelTypes.map { labelType =>
+        val countsByType: Seq[LabelCount] = labelTypeNames.map { labelType =>
           LabelCount(labelCounts.find(_._1 == labelType).map(_._2).getOrElse(0), timeInterval, labelType)
         }.toSeq
 
@@ -2215,6 +2183,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              km_audited.km_audited AS km_audited,
              km_audited_no_overlap.km_audited_no_overlap AS km_audited_no_overlap,
              km_explored_multiple_users.km_explored_multiple_users AS km_explored_multiple_users,
+             km_needs_reaudit.km_needs_reaudit AS km_needs_reaudit,
              km_by_status.km_open,
              km_by_status.km_no_imagery,
              km_by_status.km_closed,
@@ -2324,6 +2293,9 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           INNER JOIN user_stat ON audit_task.user_id = user_stat.user_id
           WHERE completed = TRUE AND #$userFilter
       ) AS km_audited, (
+          -- Unique street km with at least one completed audit, regardless of imagery age (#4384): the metric is
+          -- monotonic, so it never dips when newer imagery lands on an audited street. km_needs_reaudit below carries
+          -- the freshness signal as a subset of this.
           SELECT SUM(ST_Length(geom::geography)) / 1000 AS km_audited_no_overlap
           FROM (
               SELECT DISTINCT street_edge.street_edge_id, geom
@@ -2333,9 +2305,10 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
               WHERE completed = TRUE AND #$userFilter
           ) distinct_streets
       ) AS km_audited_no_overlap, (
-          -- Redundant-coverage km: streets with a completed audit by ≥2 distinct (non-excluded) users. Mirrors the
-          -- km_audited_no_overlap subquery but groups per street and keeps only those audited by 2+ people. Single-user
-          -- km is derived (no_overlap − multiple_users) in projectSidewalkStatsConverter, so it is not selected here.
+          -- Redundant-coverage km: streets with completed audits by ≥2 distinct (non-excluded) users. Mirrors the
+          -- km_audited_no_overlap subquery but groups per street and keeps only those audited by 2+ people.
+          -- Single-user km is derived (no_overlap − multiple_users) in projectSidewalkStatsConverter, so it is not
+          -- selected here.
           SELECT COALESCE(SUM(ST_Length(geom::geography)) / 1000, 0) AS km_explored_multiple_users
           FROM (
               SELECT street_edge.street_edge_id, geom
@@ -2347,6 +2320,20 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
               HAVING COUNT(DISTINCT audit_task.user_id) >= 2
           ) multi_user_streets
       ) AS km_explored_multiple_users, (
+          -- Unique street km needing re-audit (#4384): streets audited before, but whose completed audits all predate
+          -- newer imagery. A subset of km_audited_no_overlap, so freshly-covered km is derivable as
+          -- km_audited_no_overlap − km_needs_reaudit.
+          SELECT COALESCE(SUM(ST_Length(geom::geography)) / 1000, 0) AS km_needs_reaudit
+          FROM (
+              SELECT street_edge.street_edge_id, geom
+              FROM street_edge
+              INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
+              INNER JOIN user_stat ON audit_task.user_id = user_stat.user_id
+              WHERE completed = TRUE AND #$userFilter
+              GROUP BY street_edge.street_edge_id, geom
+              HAVING BOOL_AND(audit_task.outdated_imagery)
+          ) outdated_streets
+      ) AS km_needs_reaudit, (
           -- Total street km by availability status (#3888 enum). The `open` bucket is the auditable-now network and is
           -- surfaced as `km_explorable`. The tutorial street is excluded from every bucket. COALESCE guards buckets a
           -- given city may have none of (e.g. no `disabled` streets), since the converter reads non-Option Doubles.
@@ -2372,6 +2359,10 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
               FROM (
                   SELECT DISTINCT(label_validation.user_id), 'validation' AS mission_type
                   FROM label_validation
+                  UNION
+                  -- Votes voided by the #4842 repair still mark their caster as a validation user.
+                  SELECT DISTINCT(voided_label_validation.user_id), 'validation' AS mission_type
+                  FROM voided_label_validation
                   UNION
                   SELECT DISTINCT(user_id), 'audit' AS mission_type
                   FROM audit_task
@@ -2441,9 +2432,15 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
               AND label.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
               AND audit_task.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
       ) AS label_counts_and_severity, (
+          -- Work-credit totals (#4842): votes voided by the off-target-markers repair count toward the per-source
+          -- totals (the archive is human-only by construction). The verdict subqueries below use live votes only.
           SELECT #$validationTotalsCols
-          FROM label_validation
-          INNER JOIN user_stat ON label_validation.user_id = user_stat.user_id
+          FROM (
+              SELECT user_id FROM label_validation
+              UNION ALL
+              SELECT user_id FROM voided_label_validation
+          ) AS all_validations
+          INNER JOIN user_stat ON all_validations.user_id = user_stat.user_id
           INNER JOIN user_role ON user_stat.user_id = user_role.user_id
           INNER JOIN role ON user_role.role_id = role.role_id
           WHERE #$userFilter

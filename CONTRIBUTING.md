@@ -135,7 +135,9 @@ interactions, update the logging accordingly.
   `localhost:9000/?referrer=mturk&hitId=h1&workerId=worker1&assignmentId=a1&minutes=60`. To start a fresh turker,
   change `workerId`/`hitId`/`assignmentId`.
 
-**Test on mobile if you touched the Validate page** (the only page served on mobile). Start with Chrome DevTools
+**Test on mobile if you touched the Validate page or the auth pages** — the pages mobile visitors are actually
+served (`/mobileLanding`, the mobile Validate page at `/mobile`, and the sign-in/sign-up flow; every other page
+redirects them to `/mobileLanding`). Start with Chrome DevTools
 [device mode](https://developer.chrome.com/docs/devtools/device-mode/); if it looks good, test on a real device by
 visiting `<your-computer-ip>:9000` (phone and computer on the same Wi-Fi; this often fails on public/café networks).
 

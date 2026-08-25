@@ -105,7 +105,8 @@ class MapSidebarUrlSync {
     const tags = this.#parseTagPairs(params);
     if (tags) state.tags = tags;
 
-    const streets = this.#parseList(params, 'streets', ['audited', 'unaudited']);
+    const knownStreets = this.#checkboxIds('streets').map((id) => id.replace('-street', ''));
+    const streets = this.#parseList(params, 'streets', knownStreets);
     if (streets) state.streets = streets.map((s) => `${s}-street`);
 
     if (Object.keys(state).length > 0) this.#filter.applyState(state);

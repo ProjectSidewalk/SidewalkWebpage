@@ -31,20 +31,20 @@
 
   <div class="api-section" id="ac-now-section">
     <h2 class="api-heading" id="today-this-week">Today &amp; this week <a href="#today-this-week" class="permalink">#</a></h2>
-    <p>What's happening right now — today so far, and the trailing 7 days compared with the 7 before. Contributor counts are distinct people per city, summed across cities (a person active in two cities is counted in each).</p>
+    <p>What's happening right now — today so far, and the trailing 7 days compared with the 7 before. Every count in this section is what <em>people</em> did; AI-role accounts are reported separately on their own line, because a single pipeline account can out-produce every contributor in the project. Contributor counts are distinct people per city, summed across cities (a person active in two cities is counted in each). Hover a bar or a table cell for the day or city behind it.</p>
 
     <h3 class="ac-chart-group-title" id="today-so-far">Today (so far)</h3>
     <div class="ac-hero-row">
-      <div class="ac-hero-stat"><span class="ac-hero-value" id="now-labels-today">—</span><span class="ac-hero-label">Labels today</span></div>
-      <div class="ac-hero-stat"><span class="ac-hero-value" id="now-validations-today">—</span><span class="ac-hero-label">Validations today</span></div>
-      <div class="ac-hero-stat"><span class="ac-hero-value" id="now-contributors-today">—</span><span class="ac-hero-label">Contributors today</span></div>
+      <div class="ac-hero-stat"><span class="ac-hero-value" id="now-labels-today">—</span><span class="ac-hero-label">Labels today</span><span class="ac-hero-ai" id="now-labels-today-ai"></span></div>
+      <div class="ac-hero-stat"><span class="ac-hero-value" id="now-validations-today">—</span><span class="ac-hero-label">Validations today</span><span class="ac-hero-ai" id="now-validations-today-ai"></span></div>
+      <div class="ac-hero-stat"><span class="ac-hero-value" id="now-contributors-today">—</span><span class="ac-hero-label">Contributors today</span><span class="ac-hero-ai" id="now-contributors-today-anon"></span><span class="ac-hero-ai" id="now-contributors-today-ai"></span></div>
     </div>
 
     <h3 class="ac-chart-group-title" id="past-7-days">Past 7 days</h3>
     <div class="ac-hero-row">
-      <div class="ac-hero-stat"><span class="ac-hero-value" id="now-labels-7d">—</span><span class="ac-hero-label">Labels</span><span class="ac-hero-delta" id="now-labels-7d-delta"></span></div>
-      <div class="ac-hero-stat"><span class="ac-hero-value" id="now-validations-7d">—</span><span class="ac-hero-label">Validations</span><span class="ac-hero-delta" id="now-validations-7d-delta"></span></div>
-      <div class="ac-hero-stat"><span class="ac-hero-value" id="now-contributors-7d">—</span><span class="ac-hero-label">Contributors</span><span class="ac-hero-delta" id="now-contributors-7d-delta"></span></div>
+      <div class="ac-hero-stat"><span class="ac-hero-value" id="now-labels-7d">—</span><span class="ac-hero-label">Labels</span><span class="ac-hero-delta" id="now-labels-7d-delta"></span><span class="ac-hero-ai" id="now-labels-7d-ai"></span></div>
+      <div class="ac-hero-stat"><span class="ac-hero-value" id="now-validations-7d">—</span><span class="ac-hero-label">Validations</span><span class="ac-hero-delta" id="now-validations-7d-delta"></span><span class="ac-hero-ai" id="now-validations-7d-ai"></span></div>
+      <div class="ac-hero-stat"><span class="ac-hero-value" id="now-contributors-7d">—</span><span class="ac-hero-label">Contributors</span><span class="ac-hero-delta" id="now-contributors-7d-delta"></span><span class="ac-hero-ai" id="now-contributors-7d-anon"></span><span class="ac-hero-ai" id="now-contributors-7d-ai"></span></div>
       <div class="ac-hero-stat"><span class="ac-hero-value" id="now-cities-active">—</span><span class="ac-hero-label">Cities active</span></div>
       <div class="ac-hero-stat"><span class="ac-hero-value" id="now-top-city">—</span><span class="ac-hero-label">Top city this week</span><span class="ac-hero-delta" id="now-top-city-count"></span></div>
       <div class="ac-hero-stat"><span class="ac-hero-value" id="now-new-contributors">—</span><span class="ac-hero-label">New contributors this calendar week</span></div>
@@ -61,14 +61,14 @@
         <div class="mini-chart" id="ac-chart-week-validations"></div>
       </div>
       <div class="ac-chart">
-        <h4 class="ac-chart-title">Active users per day</h4>
+        <h4 class="ac-chart-title">Contributors per day</h4>
         <div class="mini-chart" id="ac-chart-week-users"></div>
       </div>
     </div>
-    <p class="ac-note">“Active users” counts distinct people who labeled or validated that day, summed across cities (a person active in two cities is counted in each). The last bar is today, still filling in.</p>
+    <p class="ac-note">“Contributors” counts distinct registered people who labeled or validated that day, deduplicated across cities (someone active in two cities counts once). Anonymous visitors are counted separately as sessions, since each is a browser cookie rather than a known person, and AI accounts separately again — their work is in the label and validation bars but never in this one. The last bar is today, still filling in. Hovering (or tabbing to) any bar shows that day's full breakdown: all three volumes, the anonymous and AI split, the busiest cities, and who was active.</p>
 
     <h3 class="ac-chart-group-title" id="most-active-cities">Most active cities</h3>
-    <p>The busiest deployments of the past 7 days, with each count's change from the 7 days before. Click a column header to re-rank — the table always shows the top five <em>by the column you sort on</em> (sorting by City keeps the busiest five, ordered by name). Cities with no activity this week are left out.</p>
+    <p>The busiest deployments of the past 7 days, with each count's change from the 7 days before. Click a column header to re-rank — the table always shows the top five <em>by the column you sort on</em> (sorting by City keeps the busiest five, ordered by name). Cities with no activity this week are left out. Hover (or tab to) a count for both weeks' raw numbers and the contributors behind them, by name. Each row's Contributors count is that city's own; adding the column up therefore exceeds the project total in the tiles above, which counts someone who mapped in several cities once.</p>
     <div class="ac-table-wrap">
       <table class="ac-table" id="ac-top-table">
         <thead>
@@ -311,5 +311,5 @@
 
 @common.main(commonData, "Sidewalk - Across Cities") {
   @common.navbar(commonData, Some(user))
-  @admin.dashboard.adminLayout("across-cities", commonData, user.role == "Owner")(content)
+  @admin.dashboard.adminLayout("across-cities", commonData, user)(content)
 }

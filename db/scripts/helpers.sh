@@ -71,23 +71,49 @@ read_street_ids_from_csv() {
 }
 
 # Marks a set of streets as having no imagery: sets status='no_imagery', drops their street_edge_priority rows so they
-# aren't assignable for auditing, and truncates region_completion to force distance recalculation. Idempotent, so it's
-# safe to run on a region that's already been processed. Shared by hide-streets-without-imagery.sh and the reveal
-# branch of reveal-or-hide-neighborhoods.sh so the two can't drift (#4335).
+# aren't assignable for auditing, records each real transition in street_edge_status_change, and truncates
+# region_completion to force distance recalculation. Idempotent, so it's safe to run on a region that's already been
+# processed. Shared by hide-streets-without-imagery.sh and the reveal branch of reveal-or-hide-neighborhoods.sh so the
+# two can't drift (#4335).
 # $1:   comma-separated street_edge_id list (e.g. "1,2,3"); a no-op when empty.
-# $2..: psql connection arguments, passed through verbatim (each script supplies its own db/user/port/search_path).
+# $2:   street_edge_status_change_source value naming the caller, so the trail says which script did this (#4928).
+# $3..: psql connection arguments, passed through verbatim (each script supplies its own db/user/port/search_path).
 mark_streets_no_imagery() {
     local street_ids=$1
-    shift
+    local source=$2
+    shift 2
     if [[ -z "$street_ids" ]]; then
         echo "No street IDs provided; skipping no-imagery marking."
         return 0
     fi
+    if [[ -z "$source" ]]; then
+        echo "No change source provided; refusing to mark streets without recording who did it." >&2
+        return 1
+    fi
+    # The `status <> 'no_imagery'` guard is what keeps the trail honest: without it, re-running the same CSV would
+    # rewrite every row and log thousands of transitions that never happened. Every CTE here sees the same snapshot,
+    # so `to_change` holds the pre-update status, and a data-modifying CTE runs to completion whether or not the
+    # primary query reads it.
     psql "$@" -v ON_ERROR_STOP=1 <<EOSQL
         BEGIN;
-        UPDATE street_edge
-        SET status = 'no_imagery'
-        WHERE street_edge_id IN ($street_ids);
+        WITH to_change AS (
+            SELECT street_edge_id, status AS old_status
+            FROM street_edge
+            WHERE street_edge_id IN ($street_ids)
+                AND status <> 'no_imagery'
+        ), changed AS (
+            UPDATE street_edge
+            SET status = 'no_imagery'
+            WHERE street_edge_id IN (SELECT street_edge_id FROM to_change)
+            RETURNING street_edge_id
+        )
+        INSERT INTO street_edge_status_change (street_edge_id, old_status, new_status, source)
+        SELECT changed.street_edge_id,
+               to_change.old_status,
+               'no_imagery'::street_edge_status,
+               '$source'::street_edge_status_change_source
+        FROM changed
+        JOIN to_change ON to_change.street_edge_id = changed.street_edge_id;
 
         -- No-imagery streets should not be assignable for auditing, so remove their priority rows.
         DELETE FROM street_edge_priority

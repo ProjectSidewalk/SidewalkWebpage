@@ -218,7 +218,11 @@ class AuthModal {
    * @param {string} [panel] - 'signIn' or 'signUp'.
    */
   open(panel = 'signIn') {
-    this.#showPanel(panel === 'signUp' ? 'sign-up-modal' : 'sign-in-modal');
+    const signUp = panel === 'signUp';
+    // The dialog keeps the user on the page, so no Visit_* event marks auth intent — the open itself is the
+    // analytics event, whichever trigger requested it (docs/logged-events.md, #4889).
+    window.logWebpageActivity?.(`ModalAuth_Show=${signUp ? 'SignUp' : 'SignIn'}`);
+    this.#showPanel(signUp ? 'sign-up-modal' : 'sign-in-modal');
     this.#modal.open();
     this.#focusFirstField();
   }

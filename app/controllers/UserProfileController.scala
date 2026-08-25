@@ -1,6 +1,7 @@
 package controllers
 
 import controllers.base._
+import controllers.helper.ControllerUtils
 import controllers.helper.ControllerUtils.parseIntegerSeq
 import executors.CpuIntensiveExecutionContext
 import formats.json.LabelFormats.labelMetadataUserDashToJson
@@ -12,8 +13,10 @@ import models.utils.ProfanityGuard
 import models.utils.MyPostgresProfile.api._
 import play.api.i18n.Messages
 import play.api.libs.json.{JsObject, Json}
+import play.api.mvc.AnyContent
 import play.api.{Configuration, Logger}
 import play.silhouette.api.Silhouette
+import play.silhouette.api.actions.SecuredRequest
 import play.silhouette.impl.exceptions.IdentityNotFoundException
 
 import javax.inject._
@@ -36,11 +39,21 @@ class UserProfileController @Inject() (
   implicit val implicitConfig: Configuration = config
   private val logger                         = Logger(this.getClass)
 
-  /** Builds the choropleth GeoJSON FeatureCollection for a set of a user's audited streets. */
-  private def streetsToGeoJson(streets: Seq[models.street.StreetEdge]): JsObject = {
-    val features: Seq[JsObject] = streets.map { street =>
-      val properties: JsObject =
-        Json.obj("street_edge_id" -> street.streetEdgeId, "way_type" -> street.wayType.toString)
+  /**
+   * Builds the choropleth GeoJSON FeatureCollection for a set of a user's audited streets.
+   *
+   * Every street in this feed is one the user audited, so it carries the same mutually exclusive `audited`/`outdated`
+   * pair as `/contribution/streets/all` minus the unaudited arm: `outdated` marks the ones no longer covered by an
+   * audit on current imagery (#4384), which the map draws dashed and the sidebar's needs-re-audit row filters.
+   */
+  private def streetsToGeoJson(streets: Seq[(models.street.StreetEdge, Boolean)]): JsObject = {
+    val features: Seq[JsObject] = streets.map { case (street, outdated) =>
+      val properties: JsObject = Json.obj(
+        "street_edge_id" -> street.streetEdgeId,
+        "way_type"       -> street.wayType.toString,
+        "audited"        -> !outdated,
+        "outdated"       -> outdated
+      )
       Json.obj("type" -> "Feature", "geometry" -> street.geom, "properties" -> properties)
     }
     Json.obj("type" -> "FeatureCollection", "features" -> features)
@@ -109,7 +122,10 @@ class UserProfileController @Inject() (
               "street_edge_id" -> street.streetEdgeId,
               "way_type"       -> street.wayType.toString,
               "region_id"      -> street.regionId,
-              "audited"        -> street.audited
+              "audited"        -> street.audited,
+              // Audited before, but every audit predates newer imagery (needs re-audit, #4384). Never true when
+              // audited is true; a street with neither is unaudited.
+              "outdated" -> street.outdated
             )
             Json.obj("type" -> "Feature", "geometry" -> street.geom, "properties" -> properties)
           }
@@ -265,7 +281,7 @@ class UserProfileController @Inject() (
     val auditedDistance: Future[Double] = userService
       .getDistanceAudited(userId)
       .map(auditedDistance => {
-        if (Messages("measurement.system") == "metric") auditedDistance / 1000d
+        if (ControllerUtils.isMetric) auditedDistance / 1000d
         else auditedDistance * METERS_TO_MILES
       })
     val labelCount: Future[Int]          = userService.countLabelsFromUser(userId)
@@ -289,5 +305,58 @@ class UserProfileController @Inject() (
         "accuracy"         -> accuracy
       )
     )
+  }
+
+  /**
+   * The signed-in mapper's own contribution totals in every Project Sidewalk city they've worked in (#4496).
+   *
+   * Takes no user parameter: the dashboard section it feeds is a self-view, and a mapper's activity in another city is
+   * not something this deployment's `public_profile` flag can consent to disclosing. Admins read another user's
+   * breakdown through [[adminGetCrossCityStats]] instead.
+   *
+   * @return Per-city rows plus the roll-up, or an empty payload when the breakdown can't be computed so the section
+   *         hides itself rather than showing zeros.
+   */
+  def getCrossCityStats = cc.securityService.SecuredAction(WithSignedIn()) { implicit request =>
+    crossCityStatsJson(request.identity.userId)
+  }
+
+  /** [[getCrossCityStats]] for the admin's view of a user's dashboard (`/admin/user/:username`, #4964). */
+  def adminGetCrossCityStats(userId: String) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    crossCityStatsJson(userId)
+  }
+
+  /** The cross-city payload for one user, in the requester's units and language. */
+  private def crossCityStatsJson(userId: String)(implicit request: SecuredRequest[DefaultEnv, AnyContent]) = {
+    userService
+      .getCrossCityUserStats(userId, ControllerUtils.isMetric, request2Messages.lang)
+      .map {
+        case Some(stats) =>
+          Ok(
+            Json.obj(
+              "cities" -> stats.cities.map { city =>
+                Json.obj(
+                  "city_id"         -> city.cityId,
+                  "city_name"       -> city.cityName,
+                  "city_url"        -> city.cityUrl,
+                  "is_current_city" -> city.isCurrentCity,
+                  "labels"          -> city.labels,
+                  "validations"     -> city.validations,
+                  "missions"        -> city.missions,
+                  "distance"        -> city.distance,
+                  "live_distance"   -> city.liveDistance,
+                  "last_activity"   -> city.lastActivity.map(_.toString)
+                )
+              },
+              "total_labels"      -> stats.totalLabels,
+              "total_validations" -> stats.totalValidation,
+              "total_missions"    -> stats.totalMissions,
+              "total_distance"    -> stats.totalDistance,
+              "public_city_count" -> stats.publicCityCount,
+              "distance_unit"     -> ControllerUtils.distanceUnitWords.abbr
+            )
+          )
+        case None => Ok(Json.obj("unavailable" -> true))
+      }
   }
 }

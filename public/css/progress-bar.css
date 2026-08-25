@@ -1,19 +1,23 @@
 /* Shared progress-bar component used by the Explore sidebar (mission, badges, neighborhood), the mission-complete
    modal, and the Validate tools. A rounded track holds either a single fill or two flush color segments (the
    community's audited share, then the current user's), optionally followed by a label. The fill color is the shared
-   pine green. The block is prefixed `ps-` to avoid colliding with Bootstrap's global .progress-bar class. */
+   pine green. The block is prefixed `ps-` to avoid colliding with Bootstrap's global .progress-bar class.
+
+   Every --ui-scale below carries the `, 1` fallback: mobile Validate uses this component and never sets the
+   variable, and calc() on an undefined variable is invalid at computed-value time — which took the track's corners
+   to 0 and drew a bar the design never had. */
 .ps-progress-bar {
   display: flex;
   align-items: center;
-  gap: calc(10px * var(--ui-scale));
+  gap: calc(10px * var(--ui-scale, 1));
 }
 
 .ps-progress-bar__track {
   position: relative;
   flex: 1 1 auto;
-  height: var(--ps-progress-bar-height, calc(12px * var(--ui-scale)));
+  height: var(--ps-progress-bar-height, calc(12px * var(--ui-scale, 1)));
   background: var(--color-neutral-200);
-  border-radius: calc(6px * var(--ui-scale));
+  border-radius: calc(6px * var(--ui-scale, 1));
   overflow: hidden;
 }
 

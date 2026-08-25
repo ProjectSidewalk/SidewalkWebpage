@@ -47,6 +47,10 @@ function OnboardingStates(contextMenu, compass, panoManager) {
   // Inline keycap for teaching keyboard shortcuts (e.g. press C for Curb Ramp).
   const kbdHtml = (key) => `<kbd class="onboarding-kbd">${key}</kbd>`;
 
+  // Annotation and panoAnchor x/y below are angles expressed in tutorial-pano pixel units, not rows/columns of the
+  // tutorial image: x runs east from true north (TUTORIAL_PANO_WIDTH spans 360°) and y from the horizon, positive
+  // up (TUTORIAL_PANO_HEIGHT / 2 spans 90°) — hence the small negative y values, slightly below eye level. They are
+  // decoded by util.pano.horizonRelativeCoordToPov, which is NOT the inverse of povToPanoCoord (#4957).
   this.states = [
     {
       // The welcome/skip UI now lives in the pre-tutorial intro (TutorialIntro), so this first state only positions

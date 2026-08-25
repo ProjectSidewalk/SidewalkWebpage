@@ -21,7 +21,7 @@ Request flow: **routes → Controller → Service → Table (DAO)**.
 - **`app/service/`** — business logic (e.g. `LabelService`, `ValidationService`, `ExploreService`, `AccessScoreService`, `ApiService`). Controllers should delegate here rather than touching tables directly.
 - **`app/models/`** — Slick table definitions and queries, grouped by domain (`label/`, `validation/`, `mission/`, `region/`, `street/`, `route/`, `user/`, `cluster/`, `gallery/`, `api/`, ...). Files named `*Table.scala` define schema + queries (DAO pattern).
 - **`app/models/utils/MyPostgresProfile.scala`** — custom Slick Postgres profile wiring in PostGIS geometry, JSON, and other slick-pg extensions. Spatial query helpers are in `SpatialQueryDefs.scala`.
-- **DI**: Guice. App bootstraps via `app/CustomApplicationLoader.scala`; modules registered in `conf/application.conf` and defined in `app/modules/` (`CustomControllerModule`, `ActorModule`, `ExecutorsModule`, `SilhouetteModule`). Custom execution contexts are in `app/executors/`; background actors in `app/actor/`.
+- **DI**: Guice. App bootstraps via `app/CustomApplicationLoader.scala`; modules registered in `conf/application.conf` and defined in `app/modules/` (`CustomControllerModule`, `ActorModule`, `ExecutorsModule`, `SilhouetteModule`, `StartupChecksModule` — the last is the home for boot-time deployment-misconfiguration checks like `PersistentMediaDirCheck`, #4925). Custom execution contexts are in `app/executors/`; background actors in `app/actor/`.
 - **Views**: Twirl templates (`app/views/*.scala.html`). The sbt build silences warnings in `views/` and the routes file specifically.
 
 ### API data structures (`app/models/api/`)
@@ -39,26 +39,62 @@ file produces its DTOs but the DTO *definitions* belong in `models.api`. The con
 - **Companion object** holds the `csvHeader` string (keep it next to `toCsvRow` so columns can't drift) and JSON writers.
 - **snake_case JSON** per #3871: derive writers with a scoped `JsonConfiguration(JsonNaming.SnakeCase)` +
   `Json.format`/`Json.writes`, or hand-build the `JsObject` with snake_case keys for nested/custom shapes.
-- **Shared helpers**: reuse `ApiModelUtils` (`escapeCsvField`, `createGeoJsonPointGeometry`, ...) rather than re-rolling
-  CSV/GeoJSON logic.
+- **Shared helpers**: reuse `ApiModelUtils` (`escapeCsvField`, `createGeoJsonPointGeometry`, `labelTypeOrdering`,
+  `toSnakeKey`, ...) rather than re-rolling CSV/GeoJSON logic.
 
-`app/formats/json/ApiFormats.scala` still holds assorted older non-DTO writes (the v2 access-score serializers and the
-`ClusterForApi` stack were removed in #3864); new API DTOs should not add to it — define them in `models.api` per the
-convention above.
+**Every `/v3` DTO's serialization lives in `models.api` — there is no shared formats object for API output, and no
+API serialization inline in a controller.** The `app/formats/json/*Formats.scala` files serve the internal (non-`/v3`)
+endpoints only; don't route API writers through them (issue #3891).
 
 ### Database & evolutions
 
-Schema changes are **Play evolutions**: numbered SQL files in `conf/evolutions/default/`. Add the next-numbered file for schema changes; each has `# --- !Ups` and `# --- !Downs` sections. **One evolution file per PR:** all of a PR's schema changes go in a single file, even when they land in separate commits or feel like separate concerns — until the PR merges, nothing has shipped, so fold later changes into the existing file instead of minting the next number (which also collides faster with other in-flight PRs). The dev DB is seeded from a dump — see [`db/scripts/README.md`](db/scripts/README.md) for the full DB lifecycle/maintenance scripts (`import-dump`, `create-new-schema`, etc., exposed as `make` targets). Connection config is env-driven (`DATABASE_URL`, `DATABASE_USER`, `DATABASE_PASSWORD`) in `conf/application.conf`.
+Schema changes are **Play evolutions**: numbered SQL files in `conf/evolutions/default/`. Add the next-numbered file for schema changes; each has `# --- !Ups` and `# --- !Downs` sections. **One evolution file per PR:** all of a PR's schema changes go in a single file, even when they land in separate commits or feel like separate concerns — until the PR merges, nothing has shipped, so fold later changes into the existing file instead of minting the next number (which also collides faster with other in-flight PRs).
+
+**Renumbering after a merge from `develop`.** In-flight PRs claim numbers concurrently, so a merge routinely lands
+someone else's file on the number yours is using. Renumber yours (never theirs — theirs has shipped):
+1. `git mv conf/evolutions/default/<old>.sql conf/evolutions/default/<new>.sql`, where `<new>` is one past the highest
+   number now in the directory. Grep the repo for the old number and update every reference — evolution comments, PR
+   description, planning docs, the branch's own commit messages if you're rewriting them.
+2. Load any page. The local DB needs no manual cleanup: Play stores each applied evolution's `revert_script` in
+   `<schema>.play_evolutions`, so when develop's file lands on the id yours was applied under, the hash mismatch makes
+   it run *your* saved downs and then develop's ups, followed by your new number's ups. `autoApply` and
+   `autoApplyDowns` are both on, so this is silent. It does mean **your Down has to actually work** — a broken one
+   fails here and leaves the row in `applying_down`, which is the state that produces Play's "inconsistent state"
+   error and does need hand-fixing.
+
+The dev DB is seeded from a dump — see [`db/scripts/README.md`](db/scripts/README.md) for the full DB lifecycle/maintenance scripts (`import-dump`, `create-new-schema`, etc., exposed as `make` targets). Connection config is env-driven (`DATABASE_URL`, `DATABASE_USER`, `DATABASE_PASSWORD`) in `conf/application.conf`.
 
 **Every `CREATE TABLE` must be followed by `ALTER TABLE <name> OWNER TO sidewalk;`** in the same evolution (see 309.sql for the pattern). On the prod server, evolutions run as an admin role, so a new table would otherwise be owned by that role and the `sidewalk` app role would lack permissions on it. This applies to **tables only** — it's easy to forget, and a missed one has to be patched by a later evolution (e.g. 321.sql fixed 314.sql; 329.sql fixed 326.sql/327.sql). Note:
 - **SERIAL / identity sequences** are covered automatically: `ALTER TABLE … OWNER TO` recursively reassigns any sequence a column owns, so no separate statement is needed for them.
 - **Enum types, views, and standalone (non-column-owned) sequences do *not* get an owner change** — the app only needs default `USAGE`/`SELECT` on those, which it already has, and they're never altered at runtime. Don't add `OWNER TO` for them.
+
+**Write evolution SQL for production scale, and finish every evolution with an explicit efficiency pass.** The dev
+DB is small enough that any SQL looks fast; prod tables are not (`label`, `label_validation`, `label_history` run to
+hundreds of thousands of rows per schema, `user_stat` to ~1M, and evolutions apply to **every** city schema in
+sequence on deploy — a slow statement multiplies by 54). Concretely:
+- **Prefer joins to correlated subqueries.** A scalar subquery in a SELECT list or a per-row `IN (SELECT …)` /
+  `NOT IN (SELECT …)` re-executes per outer row; the same lookup as a `JOIN`/`LEFT JOIN` (or `EXISTS`/`NOT EXISTS`,
+  which the planner turns into semi/anti-joins) lets the planner pick a hash join and stays fast when the outer set
+  is large. `NOT IN` also has the NULL trap: one NULL in the subquery result silently empties the whole result set.
+- **A join can keep a scalar subquery's fail-loudly property.** If a scalar subquery is doing double duty as a
+  one-to-one assert ("more than one row returned"), a `LEFT JOIN` that fans out into a PRIMARY KEY/UNIQUE violation
+  on the receiving table fails just as loudly with a better plan — don't let the assert justify the slow form.
+- **Before an evolution is done, walk every statement and name its access path** on the big tables: which index
+  serves each join/filter column (check with `\d` — don't assume), and what the driving row count is at prod scale.
+  A statement with no index behind it on a large table needs a rewrite or a justification comment.
+- This came out of PR #4866 review — reviewer-observed pattern: subquery-shaped SQL that is invisible on dev
+  "can take our evolutions to a crawl when the evolutions run on prod."
 
 **Give every table its full set of constraints — don't lean on the app to enforce integrity.** When you `CREATE TABLE` (or `ALTER` one), add every constraint the data model implies: `NOT NULL` on any column the app never writes null to, `UNIQUE` on a natural key or one-to-one relationship (or make it the `PRIMARY KEY`), a `FOREIGN KEY` for every reference to another table, and a `CHECK` for a bounded domain (a severity `1`–`3`, a non-negative count, a `0`–`1` fraction, a valid lat/lng). A missing constraint silently rots into bad data — backfilling ones that should have been there from the start has cost whole PRs (#3574 for FKs, #3944 for NOT NULL/UNIQUE/PK/CHECK). **Mirror each in the Slick model** so schema and code agree: a non-`Option` `column[T]` means `NOT NULL`, `def pk = primaryKey(...)` declares a composite PK (single-column PKs use `O.PrimaryKey` inline), `index(..., unique = true)` a UNIQUE, and `foreignKey(...)` an FK. A column `DEFAULT` is mirrored with `O.Default(...)` (#4801) — it's DDL-only in Slick and we never generate DDL, so it's documentation, but a `*Table.scala` should say what the schema does. Two things `O.Default` can't express, because it holds a *value* rather than an expression: a **volatile default** (`now()`, `CURRENT_TIMESTAMP`) — mirroring one as `O.Default(OffsetDateTime.now)` freezes an arbitrary instant into the model and re-evaluates it on every query compilation, so write `// DEFAULT now() in the DB` instead; and a **CHECK constraint**, which has no Slick DSL at all — leave a comment noting the invariant.
 
 **Closed value sets: prefer enum types or CHECKs over lookup tables and bare text (#4103).** When a column can only hold a fixed set of values, pick between two tools. Use a **Postgres enum type** when the column is on a high-row-count table, is written at runtime, or is mirrored by a Scala enum — it makes the DB self-describing (readable raw SQL and dumps, no join to a lookup table, no hand-maintained Scala id map that nothing validates) and fails loudly on drift. Wire it up like the existing ones (`pano_source`, `validation_option`, `street_edge_status`, `mission_type`, `way_type`): a Scala `Enumeration` object whose string values match the enum labels, plus a `createEnumJdbcType` mapper in `MyPostgresProfile`. Growing a set later is fine — `ALTER TYPE ... ADD VALUE` has prod precedent (331/332/339). Use a plain **`CHECK (col IN (...))`** instead for tiny script-seeded config/cache tables (e.g. `config.open_status`, `funnel_stat.funnel_type`), where the enum's join/space/mapping benefits are nil. Two gotchas: tables and types share a namespace, so when an enum replaces a lookup table of the same name, `DROP TABLE` must precede `CREATE TYPE`; and enum values are compared as enum literals in SQL, so a raw-SQL filter built from user input must validate values first (an invalid literal is a Postgres error, not an empty result).
 
 **Postgres does *not* rename a table's constraints or indexes when you rename the table or a column** — the old name sticks and silently drifts from what it enforces. So an evolution that renames a column (or table) must also `ALTER TABLE … RENAME CONSTRAINT` / `ALTER INDEX … RENAME` every constraint and index whose name embeds the old identifier, back to the `<table>_<column>_{fkey,key,pkey,check}` convention, and update the matching name string in the Slick model (`foreignKey`/`index`/`primaryKey`). Skipping this forces a later evolution to patch the fossils — 337.sql had to rename three, e.g. `user_org_org_id_fkey` → `user_team_team_id_fkey`, left over from an old `user_org` → `user_team` table rename.
+
+**A new table that `ConfigTable`'s cross-schema fan-out queries read is exposed during the rollout window**, when an
+updated instance can query a city schema that hasn't applied the evolution yet — see
+[`docs/deployment-and-stages.md`](docs/deployment-and-stages.md) → "Adding a table that cross-schema queries read" for
+the two ways to handle it.
 
 ## Frontend architecture
 
@@ -67,8 +103,8 @@ Each major UI is a self-contained app under `public/js/`, bundled separately by 
 - **`explore/`** — the Explore/Audit tool (users label accessibility issues on street-view panoramas). The largest app; internal namespace global is still `svl`.
 - **`validate/`** — the Validate tool (users confirm/reject others' labels).
 - **`gallery/`** — browsable gallery of labels with filtering; internal namespace global is still `sg`.
-- **`admin/`** — admin dashboards and maps.
-- **`user-dashboard/`** — user dashboards.
+- **`admin-dashboard/`** — the admin dashboard (#4272), served file-by-file rather than bundled: one `<PageName>Page.js` per route, loaded by that page's Twirl template, with shared helpers in `AdminShell.js`.
+- **`user-dashboard/`** — the redesigned user dashboard, settings, leaderboard, and public profiles (#4323), plus the admin's view of a user's dashboard (`/admin/user/:username` and its `/admin` page, #4964). Served file-by-file like `admin-dashboard/` — no Grunt bundle.
 - **`ps-map/`** — shared map component used across pages.
 - **`help/`** — help/faq page (rarely used).
 - **`common/`** — shared modules pulled into multiple bundles: `pano-viewer/` (abstraction over GSV / Mapillary / Infra3d / Pannellum imagery providers), `label-detail/` (label popups), and various utilities.
@@ -80,6 +116,14 @@ No npm-based module system on the frontend — files are simply concatenated in 
 **Asset layout (going-forward invariant, from the #2292 reorg).** First-party assets split **by type**: `public/js/` is JavaScript-only, `public/css/` holds all styles (with per-app subdirs `css/explore/`, `css/validate/`, `css/gallery/`), and media lives in `public/images/`, `public/audio/`, `public/videos/`. There are **no `css/`, `img/`, or `audio/` dirs nested inside an app dir under `js/`** — app-private styles go to `css/<app>/` and app-private images to `images/<app>/`. Third-party code groups by library under `vendor/` (never `js/` or `css/`).
 
 **Naming conventions (from #2292):** directories are **kebab-case**; CSS files are **kebab-case**; JS files follow Airbnb style — **PascalCase** for files that define a class/constructor (`AppManager.js`, `LabelPopup.js`), **camelCase** for function/utility/entry files (`main.js`, `aggregateStats.js`). Kebab-case is not used for JS files. Full write-up in [`docs/style-guide.md`](docs/style-guide.md). **Deferred mismatch:** the app dirs were renamed (`SVLabel → explore`, `SVValidate → validate`, `Progress → user-dashboard`), but the internal JS namespace *identifiers* `svl` (Explore) and `sg` (Gallery) were left as-is — renaming those is a large independent refactor, not part of the file reorg.
+
+**Mobile detection has one definition: `ControllerUtils.isMobile` (server-side UA regex).** It gates which UI a
+request is served (mobile → `/mobileLanding`, `/mobile`, the shared auth pages; other pages redirect), and
+`main.scala.html` stamps its verdict on every page as `<html data-mobile-device>`; client code asks
+`util.isMobile()`, which reads that stamp — never re-sniff the UA in JS (#4887; `MobileDetectionSpec` pins the
+stamp). For touch-vs-hover behavior questions, use a capability query (`pointer: coarse` — see `ShareWidget.js`)
+rather than the mobile flag. The device regex in `FunnelStatTable.scala` classifies stored analytics rows by
+recorded OS name and is analytics-only, never a product gate. (Longer-term direction: #4875.)
 
 ## Internationalization
 Two separate i18n systems:
@@ -112,12 +156,14 @@ Full details (both systems, regional `en-US`/`en-NZ` rules, adding a new languag
 
 ## Python utilities
 
-Two standalone scripts in **`scripts/`**, invoked out-of-band rather than from the running web app. Python deps are split by who needs them: **`requirements.txt`** holds the app's in-band deps (`label_clustering.py` runs in-band — see below), and **`requirements-offline-tools.txt`** holds the deps used only by the offline `check_streets_for_imagery.py` utility (`shapely`, `geopy`, `tenacity`, `tqdm`). The Docker image installs both (plus `requirements-dev.txt`) since the test suite imports both scripts. Full usage in [`scripts/README.md`](scripts/README.md):
+Two standalone scripts in **`scripts/`**, invoked out-of-band rather than from the running web app. Full usage in [`scripts/README.md`](scripts/README.md):
 
 - `scripts/label_clustering.py` — clusters nearby labels. This one is invoked **in-band**: `ClusterService.runMultiUserClustering` shells out to `scripts/label_clustering.py` per region during admin-triggered `/runClustering` and the nightly `ClusteringActor` run (see `app/service/ClusterService.scala` / `app/models/cluster/`). If you move/rename it, update that invocation path. Because it runs in-band, the deployed app must be able to find it: `scripts/` is bundled into the staged/dist package via `Universal / mappings` in `build.sbt`, and `ClusterService` resolves the script against the app root (Play `Environment`) rather than the process working directory — a staged app runs from the stage dir, not the repo root, so a working-directory-relative path or an unbundled script fails with a cryptic python exit-2 ("can't open file"). Its `requirements.txt` deps must also be installed in the `python3` the app invokes.
 - `scripts/check_streets_for_imagery.py` — checks streets for available street-view imagery (related: `make hide-streets-without-imagery`). Resolves its data files relative to the repo root, so it runs from any working directory.
 
-Each script's pure logic is refactored into importable functions and **unit-tested** under `test/python/` (`pytest`). Keep I/O (HTTP/file) in thin wrappers and `main` so the logic stays testable; run `make test-python`.
+**The web image carries two interpreters, and which one a script uses is a constraint, not a preference (#4396).** `python3` is the base image's **3.8** — EOL, but it is what the deployed app shells out to, so `label_clustering.py` and its `requirements.txt` pins must stay installable there. `python3.13` (a uv-fetched standalone CPython) runs everything offline and holds `requirements-offline-tools.txt`, which needs ≥ 3.11. This mirrors prod: makelab1 runs the app on Rocky's system Python, user accounts have 3.13. So **run offline tooling as `python3.13 scripts/...`, and don't add libraries to `requirements.txt`** — anything current has dropped 3.8. `requirements-dev.txt` installs into both, environment markers giving each its newest usable pytest.
+
+Each script's pure logic is refactored into importable functions and **unit-tested** under `test/python/` (`pytest`). Keep I/O (HTTP/file) in thin wrappers and `main` so the logic stays testable. The suite splits along the same line: `make test-python` runs both halves, each taking the whole directory *minus* the one file the other interpreter owns (`--ignore`, in the `Makefile`'s `pytest-args-*` and mirrored in the CI matrix), so **a new test file runs in both halves by default**. Coverage is always on and gated at 100% via `source = ["scripts"]`, so a script arriving with no tests is reported at 0%; each half sets **`COVERAGE_OMIT`** to the script it can't import.
 
 ## Label Type Colors and Icons
 
@@ -134,7 +180,6 @@ Every label type has a **canonical color** and a set of **icon images**. Always 
 | Signal         | `#63C0AB` |
 | Other          | `#B3B3B3` |
 | Occlusion      | `#B3B3B3` |
-| Problem        | `#B3B3B3` |
 
 **Icons** live in `public/images/icons/label_type_icons/`. The colored marker every label type is drawn with is the
 scalable `{LabelType}_small.svg`, and it is **the only variant our own pages may use** — `util.misc.getIconImagePaths(labelType).iconImagePath`
@@ -412,6 +457,18 @@ Implementation: `tools/qa-worktree.sh` — both targets run the **worktree's own
 make reports `No rule to make target 'qa-worktree'`. Either check out a branch that has it, or run the worktree's script
 directly: `docker exec -it projectsidewalk-web bash /home/.claude/worktrees/<name>/tools/qa-worktree.sh <name>`.
 
+**Disposing of a worktree entirely** is **`make worktree-remove wt=<name>`** (`tools/worktree-remove.sh`): it stops any
+QA session, deletes the directory *and* git's registration under `.git/worktrees/`, then deletes the branch if every
+commit on it is already in `develop` (otherwise it names the branch and leaves it). `rm -rf` on the directory alone is
+**not** equivalent — the registration survives and the worktree keeps showing up in `git worktree list` until something
+prunes it; the target recognizes and cleans up that half-removed state too. Unlike the QA targets it runs **host-side**:
+a worktree's `.git` file points at the main repo's `.git/worktrees/<name>` by absolute host path, which doesn't exist
+inside the container, so git can't touch the worktree from in there. It stops before doing anything if the worktree has
+uncommitted or untracked files (`force=1` deletes them along with it) or if the worktree is **locked** — an active
+Claude Code worktree session holds a lock, and git refuses a locked worktree even with `--force`. The main-checkout
+caveat above applies here too; the direct invocation is host-side rather than through docker:
+`bash .claude/worktrees/<name>/tools/worktree-remove.sh <name>`.
+
 **Admin-authenticated QA:** the dev DB is seeded from a dump that includes real accounts and their bcrypt password
 hashes, and password verification is config-independent (plain bcrypt, no server-side pepper), so if your own account is
 in the dump you can just sign in with your normal credentials. If you don't have credentials for a seeded account — or
@@ -451,7 +508,7 @@ The API specs **boot the real app against Postgres+PostGIS**, so the `db` contai
 
 A **JS** test layer (jsdom) lives under `test/js/` — run `npm run test:js`. CI runs it as an **advisory** step inside the `frontend` job, so a failure reports but doesn't block a merge while coverage is still thin (sequenced with the ES5→ES2022 migration, #2487); see `test/js/README.md`.
 
-A **Python** unit suite (`pytest`) for the `scripts/` utilities lives under `test/python/` — run `make test-python` (runs pytest in the web container) or `docker exec projectsidewalk-web bash -lc "cd /home && python3 -m pytest test/python"`. It needs no DB/network (pure-logic tests only) and runs as an **advisory** CI job; see `test/python/README.md`.
+A **Python** unit suite (`pytest`) for the `scripts/` utilities lives under `test/python/` — run `make test-python` (runs pytest in the web container, once per interpreter; `make test-python-app` / `make test-python-tools` run one half). It needs no DB/network (pure-logic tests only) and runs as an **advisory** CI job, one matrix leg per interpreter; see `test/python/README.md`.
 
 A **browser smoke suite** (Playwright, #4504) lives under `test/e2e/` — loads each core page in headless Chromium and fails on any uncaught console/page error. Unlike every other frontend tool it runs **host-side** (Playwright drives a host browser; it is not in the web container): one-time setup `npm install && npx playwright install chromium`, then `make test-e2e` against the already-running dev app (`BASE_URL` overrides `http://localhost:9000`; scope with `args="-g labelMap"`). It never runs during local development on its own — CI runs it as the advisory `e2e-smoke` job. The `/explore`/`/validate` specs need a real Maps key, so they self-skip unless `HAS_REAL_GMAPS_KEY=true` (set automatically in CI from the `GOOGLE_MAPS_API_KEY_TEST` secret; export it manually to run them locally); see `test/e2e/README.md`.
 

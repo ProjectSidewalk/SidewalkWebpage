@@ -15,8 +15,14 @@ import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.http.ContentTypes
 import play.api.libs.json.{JsObject, Json}
 import play.api.libs.ws.WSClient
-import play.api.{Configuration, Logger}
-import service.PanoDataService.{getFov, ImageryCheckConcurrency, LiveImageryTtlDays, MaxUnexpiredPanosPerSweep}
+import play.api.{Configuration, Environment, Logger}
+import service.PanoDataService.{
+  getFov,
+  ImageryCheckConcurrency,
+  ImageryCheckResult,
+  LiveImageryTtlDays,
+  MaxUnexpiredPanosPerSweep
+}
 import slick.dbio.DBIO
 
 import java.io.{File, IOException}
@@ -54,6 +60,39 @@ object PanoDataService {
   val MaxUnexpiredPanosPerSweep: Int = 5000
 
   /**
+   * Outcome of one nightly expiry sweep.
+   *
+   * `errors` is the number the sweep could not get a conclusive answer for, and is the signal worth watching: a
+   * provider key that has expired or hit its quota turns every check inconclusive, which leaves the expired counts
+   * looking reassuringly quiet while the sweep has in fact stopped learning anything.
+   *
+   * @param stillThere Panos the provider confirmed still serve imagery.
+   * @param gone       Panos the provider confirmed it has no imagery for.
+   * @param errors     Panos the provider gave no usable answer for (timeout, auth failure, unexpected status).
+   */
+  case class ImageryCheckResult(stillThere: Int, gone: Int, errors: Int) {
+
+    /** Total panos the sweep asked the providers about. */
+    def checked: Int = stillThere + gone + errors
+
+    /** One line for the actor log and the admin endpoint's response body. */
+    def summary: String = s"Not expired: $stillThere. Expired: $gone. Errors: $errors."
+
+    /**
+     * The counts as they are stored against a `background_job_run` row.
+     *
+     * Defined on the result rather than at each call site so the nightly sweep and the admin hand-trigger can't
+     * record the same sweep under two different shapes.
+     */
+    def runDetails: JsObject = Json.obj(
+      "panos_checked" -> checked,
+      "still_there"   -> stillThere,
+      "gone"          -> gone,
+      "errors"        -> errors
+    )
+  }
+
+  /**
    * Hacky fix to generate the FOV for an image. Determined experimentally.
    * @param zoom Zoom level of the canvas (for fov calculation).
    * @return FOV of image
@@ -87,6 +126,70 @@ object PanoDataService {
       90d - 180d * y / height,
       1d // Just defaulting to a zoom level of 1 since the AI looked at the whole pano and had no zoom.
     )
+  }
+
+  /**
+   * How far a submitted label record may miss its own pano_x/pano_y before the submission guard logs it, in degrees
+   * of angular disagreement (0.18 deg is ~8 px on a 16384-px pano). Above integer-rounding noise (~0.02 deg) and the
+   * few-hundredths-of-a-degree jitter of Google's metadata, below anything a user could notice on screen.
+   */
+  val RECORD_MISMATCH_TOLERANCE_DEG: Double = 0.18
+
+  /**
+   * The POV at which a canvas click would sit at the viewport's center: the forward projection the Explore client
+   * runs when a label is placed.
+   *
+   * Port of `util.pano.canvasCoordToCenteredPov` (public/js/common/pano-viewer/src/panoUtilities.js) — the viewport
+   * is modeled as a rectilinear camera aimed at (heading, pitch) with focal length `(canvasWidth/2) / tan(fov/2)`,
+   * the click's canvas offset is projected through it, and the result is the label's own direction. Together with
+   * `calculatePanoXYFromPov` this recomputes a label's `pano_x`/`pano_y` from its stored viewport record, which is
+   * how the submission guard detects a record that does not reproduce its own coordinate (issue #4842; the
+   * off-target-markers study in sidewalk-panorama-tools reports/2026-08-10-off-target-markers-validate.md).
+   *
+   * @param viewport Viewport POV when the click happened (heading/pitch in degrees; zoom sets the fov).
+   * @param canvasX  Click x on the logical labeling canvas (720x480, origin top-left).
+   * @param canvasY  Click y on the logical labeling canvas.
+   * @return         The label's own POV: heading in [0, 360), pitch in [-90, 90], zoom carried through.
+   */
+  def calculatePovIfCentered(viewport: POV, canvasX: Double, canvasY: Double): POV = {
+    val fov = math.toRadians(getFov(viewport.zoom))
+    val h0  = math.toRadians(viewport.heading)
+    val p0  = math.toRadians(viewport.pitch)
+    val f   = 0.5 * LabelPointTable.canvasWidth / math.tan(0.5 * fov)
+    val du  = canvasX - LabelPointTable.canvasWidth / 2.0
+    val dv  = LabelPointTable.canvasHeight / 2.0 - canvasY
+    // The sign factor is the JS's beyond-vertical guard; it never fires for real viewer pitch but is kept verbatim.
+    val sg = if (math.cos(p0) >= 0) 1.0 else -1.0
+
+    val x = f * math.cos(p0) * math.sin(h0) + du * sg * math.cos(h0) - dv * math.sin(p0) * math.sin(h0)
+    val y = f * math.cos(p0) * math.cos(h0) - du * sg * math.sin(h0) - dv * math.sin(p0) * math.cos(h0)
+    val z = f * math.sin(p0) + dv * math.cos(p0)
+    val r = math.sqrt(x * x + y * y + z * z)
+
+    val heading = (math.toDegrees(math.atan2(x, y)) % 360 + 360) % 360
+    POV(heading, math.toDegrees(math.asin(z / r)), viewport.zoom)
+  }
+
+  /**
+   * The pano-pixel coordinate a POV points at, on a heading-centred equirectangular pano: the inverse of
+   * `calculatePovFromPanoXY` and the second half of the client's `pano_x`/`pano_y` computation.
+   *
+   * Port of `util.pano.povToPanoCoord` (public/js/common/pano-viewer/src/panoUtilities.js) with the client's
+   * round-then-wrap: column zero sits at bearing `cameraHeading - 180`, and the y mapping is linear in elevation.
+   *
+   * @param pov           The direction to locate (heading wrt true north, pitch positive above the horizon).
+   * @param cameraHeading Bearing of the pano's center column, degrees wrt true north.
+   * @param panoWidth     Width of the full pano image in pixels.
+   * @param panoHeight    Height of the full pano image in pixels.
+   * @return              (pano_x, pano_y) integer pixels; x wrapped into [0, panoWidth).
+   */
+  def calculatePanoXYFromPov(pov: POV, cameraHeading: Double, panoWidth: Int, panoHeight: Int): (Int, Int) = {
+    val headingWrapped   = (pov.heading           % 360 + 360) % 360
+    val headingPixelZero = ((cameraHeading + 180) % 360 + 360) % 360
+    val panoX = (((panoWidth + math.round(panoWidth * (headingWrapped - headingPixelZero) / 360.0)) % panoWidth)
+      + panoWidth) % panoWidth
+    val panoY = panoHeight / 2 - math.round(panoHeight / 2.0 * pov.pitch / 90.0)
+    (panoX.toInt, panoY.toInt)
   }
 
   /**
@@ -249,12 +352,13 @@ trait PanoDataService {
    */
   def getInfra3dToken(cityId: String): Future[String]
   def panoExists(panoId: String, panoSource: PanoSource): Future[Option[Boolean]]
+  def signUrl(urlString: String): String
   def getReusableImageryStatus(panoIds: Set[String]): Future[Map[String, Boolean]]
   def getImageUrl(panoId: String, panoSrc: PanoSource, heading: Double, pitch: Double, zoom: Double): Option[String]
   def getGsvImageUrlsForStreet(streetEdgeId: Int): Future[Seq[String]]
   def insertPanoHistories(histories: Seq[PanoHistorySubmission]): Future[Unit]
   def getAllPanos: Future[Seq[PanoDataSlim]]
-  def checkForImagery: Future[String]
+  def checkForImagery: Future[PanoDataService.ImageryCheckResult]
   def backupExists(panoId: String): Boolean
   def backupImageUrl(panoId: String): Option[String]
   def markHasBackup(panoId: String): Future[Int]
@@ -270,6 +374,7 @@ trait PanoDataService {
 class PanoDataServiceImpl @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     config: Configuration,
+    environment: Environment,
     cacheApi: AsyncCacheApi,
     ws: WSClient,
     implicit val ec: ExecutionContext,
@@ -293,9 +398,9 @@ class PanoDataServiceImpl @Inject() (
   // Get an HMAC-SHA1 signing key from the raw key bytes.
   val sha1Key: SecretKeySpec = new SecretKeySpec(secretKey, "HmacSHA1")
 
-  private val cropsDirName: String = getCropDirectory
-  private val panosBaseDir: String =
-    config.get[String]("pano.images.directory") + File.separator + config.get[String]("city-id")
+  // Both resolved through MediaDirs, the same resolver PersistentMediaDirCheck models the write paths with (#4925).
+  private val cropsDir: File     = MediaDirs.cityDir(config, environment, "cropped.image.directory")
+  private val panosBaseDir: File = MediaDirs.cityDir(config, environment, "pano.images.directory")
 
   def getInfra3dToken(cityId: String): Future[String] = {
     // Token expires after 60 minutes, so we don't need to get a new token every time.
@@ -558,7 +663,7 @@ class PanoDataServiceImpl @Inject() (
    * are already marked as expired to make sure that they weren't marked so incorrectly: a budget of 2.5% or 2500
    * (whichever is smaller) minus the number of unexpired panos checked, but at least `minPanosToCheck`.
    */
-  def checkForImagery: Future[String] = {
+  def checkForImagery: Future[ImageryCheckResult] = {
     // Nightly floor for both sample sizes, so that checking always makes some progress: the percentage-based sizes
     // round to 0 on small corpora, and the expired budget zeroes out on nights when the unexpired queue is full.
     // getPanoIdsToCheckExpiration's take(n) caps at the stale pool, so the floor never overshoots (#4638).
@@ -581,9 +686,13 @@ class PanoDataServiceImpl @Inject() (
       } yield {
         logger.info(s"Checking ${expiredPanosToCheck.length} expired panos.")
 
-        // Check each pano against whichever provider it came from, then log some stats.
+        // Check each pano against whichever provider it came from, then tally the three outcomes.
         checkImageryBounded(panosToCheck ++ expiredPanosToCheck).map { responses =>
-          s"Not expired: ${responses.count(_ == Some(true))}. Expired: ${responses.count(_ == Some(false))}. Errors: ${responses.count(_.isEmpty)}."
+          ImageryCheckResult(
+            stillThere = responses.count(_.contains(true)),
+            gone = responses.count(_.contains(false)),
+            errors = responses.count(_.isEmpty)
+          )
         }
       }
     ).flatten
@@ -608,8 +717,7 @@ class PanoDataServiceImpl @Inject() (
       .runWith(Sink.seq)
   }
 
-  def getCropDirectory: String =
-    config.get[String]("cropped.image.directory") + File.separator + config.get[String]("city-id")
+  def getCropDirectory: String = cropsDir.getPath
 
   /** Checks whether a locally-hosted equirectangular backup image exists for the given pano. */
   def backupExists(panoId: String): Boolean = localBackupImageFile(panoId).isDefined
@@ -623,7 +731,7 @@ class PanoDataServiceImpl @Inject() (
 
   /** Returns the on-disk file where a label's crop image is (or would be) stored. */
   def cropFile(labelId: Int, labelType: String): File =
-    new File(cropsDirName + File.separator + labelType + File.separator + "crop_" + labelId + ".png")
+    new File(new File(cropsDir, labelType), s"crop_$labelId.png")
 
   /** Checks whether a crop image file exists for the given label. */
   def cropExists(labelId: Int, labelType: LabelTypeEnum.Base): Boolean =

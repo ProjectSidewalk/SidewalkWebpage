@@ -1,17 +1,24 @@
+@import controllers.helper.ControllerUtils.MeasurementSystem
 @import service.CommonPageData
 @import models.user.SidewalkUserWithRole
 @import models.user.Team
 @import play.api.Configuration
 @(commonData: CommonPageData, user: SidewalkUserWithRole, openTeams: Seq[Team], currTeam: Option[Team],
-    onLeaderboard: Boolean, publicProfile: Boolean, isMetric: Boolean, privateByDefault: Boolean
+    onLeaderboard: Boolean, publicProfile: Boolean, unitsChoice: String, privateByDefault: Boolean
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @*
-* User Dashboard — Settings page. Editable username (#4373), read-only email and measurement units (units follow the
-* site language), team membership, and the two privacy toggles from #4323 — "Show me on the leaderboard"
-* (on_leaderboard) and "Make my dashboard public" (public_profile). The whole form saves in one POST to
-* /dashboard/settings via Settings.js. Shown on the shared shell as its own nav item (#2545).
+* User Dashboard — Settings page. Editable username (#4373), read-only email, a measurement-units choice (#4404),
+* team membership, and the two privacy toggles from #4323 — "Show me on the leaderboard" (on_leaderboard) and
+* "Make my dashboard public" (public_profile). The whole form saves in one POST to /dashboard/settings via
+* Settings.js. Shown on the shared shell as its own nav item (#2545).
+*
+* @param unitsChoice The user's own units selection: "auto" (follow the site language), "metric", or "imperial".
 *@
+
+@* Kept out of the attribute itself: a spaced `==` inside an attribute position reads to HTMLHint as an attribute name
+   followed by a stray value. *@
+@selectedIfChosen(choice: String) = @{if (unitsChoice == choice) Html("selected") else Html("")}
 
 @content = {
   <div class="api-section" id="settings-section">
@@ -34,8 +41,12 @@
         <span class="ud-field-help">@Html(Messages("dashboard.settings.email.help"))</span>
       </div>
       <div class="ud-field">
-        <span class="ud-label">@Messages("dashboard.settings.units")</span>
-        <p class="ud-static-value">@if(isMetric){@Messages("dashboard.settings.units.metric")}else{@Messages("dashboard.settings.units.imperial")}</p>
+        <label class="ud-label" for="set-units">@Messages("dashboard.settings.units")</label>
+        <select class="ud-input" id="set-units">
+          @for(choice <- Seq(MeasurementSystem.FollowLanguage, MeasurementSystem.Metric, MeasurementSystem.Imperial)) {
+            <option value="@choice" @selectedIfChosen(choice)>@Messages(s"dashboard.settings.units.$choice")</option>
+          }
+        </select>
         <span class="ud-field-help">@Messages("dashboard.settings.units.help")</span>
       </div>
     </div>
@@ -115,7 +126,8 @@
     window.appManager.ready(function () {
       new Settings({
         saveUrl: '@routes.UserDashboardController.saveSettings',
-        currentUsername: '@user.username'
+        currentUsername: '@user.username',
+        currentUnits: '@unitsChoice'
       });
     });
   </script>

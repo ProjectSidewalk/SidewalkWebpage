@@ -8,19 +8,19 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.mvc.Cookie
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
+import util.AnonSession
 
 /**
  * Shared helpers for the SEO surface specs below (issue #4237): an anon session (some pages, e.g. /mobile, are still
  * SecuredActions that bounce cookie-less requests through /anonSignUp) and a page fetch that follows that flow. The
  * public pages themselves render cookie-less since #4643 — SessionlessPagesSpec pins that contract.
  */
-trait SeoSpecHelpers { this: PlaySpec with GuiceOneAppPerSuite =>
+trait SeoSpecHelpers extends AnonSession { this: PlaySpec with GuiceOneAppPerSuite =>
 
   implicit lazy val mat: Materializer = app.materializer
 
   /** Cookies from the anonymous-signup flow, giving subsequent requests an authenticated session. */
-  private lazy val anonCookies: Seq[Cookie] =
-    cookies(route(app, FakeRequest(GET, "/anonSignUp?url=%2F")).get).toSeq
+  private lazy val anonCookies: Seq[Cookie] = freshAnonSession()
 
   /** Fetches a page as an anonymous-but-authenticated user and returns (status, body). */
   def getPage(path: String): (Int, String) = {
@@ -34,7 +34,7 @@ trait SeoSpecHelpers { this: PlaySpec with GuiceOneAppPerSuite =>
    */
   def getMobilePage(path: String): (Int, String) = {
     val mobileUa      = "User-Agent" -> "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)"
-    val mobileCookies = cookies(route(app, FakeRequest(GET, "/anonSignUp?url=%2F").withHeaders(mobileUa)).get).toSeq
+    val mobileCookies = freshAnonSession(mobileUa)
     val resp          = route(app, FakeRequest(GET, path).withCookies(mobileCookies: _*).withHeaders(mobileUa)).get
     (status(resp), contentAsString(resp))
   }
@@ -107,6 +107,9 @@ class SeoProdSpec extends PlaySpec with GuiceOneAppPerSuite with SeoSpecHelpers 
       body must include("Disallow: /anonSignUp")
       // Aliases are prefix matches, so /v3/api-docs must not appear: it would block the /v3/api-docs/* doc pages.
       body must not include "Disallow: /v3/api-docs"
+      // The retired mobile auth routes 301 to the already-disallowed /signIn·/signUp (#4884).
+      body must not include "Disallow: /signInMobile"
+      body must not include "Disallow: /signUpMobile"
       header(CACHE_CONTROL, resp) mustBe defined
     }
   }
@@ -186,11 +189,14 @@ class SeoProdSpec extends PlaySpec with GuiceOneAppPerSuite with SeoSpecHelpers 
   }
 
   "The mobile Validate page" should {
-    "not get the viewport meta tag its fixed-size CSS predates" in {
-      // mobile-validate.css is tuned for the ~980px fallback viewport phones use when no viewport meta is present.
+    "lay out at the device's own width" in {
       val (sc, body) = getMobilePage("/mobile")
       sc mustBe OK
-      body must not include "name=\"viewport\""
+      // The whole tag, so the width can't come from some other element's attributes. No maximum-scale or
+      // user-scalable=no either: pinch zoom is a WCAG 1.4.4 affordance.
+      body must include("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">")
+      // Must appear before </head> so browsers apply it during initial layout.
+      body.indexOf("name=\"viewport\"") must be < body.indexOf("</head>")
     }
   }
 

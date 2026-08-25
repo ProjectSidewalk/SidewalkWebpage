@@ -3,7 +3,7 @@ package service
 import com.google.inject.ImplementedBy
 import models.audit._
 import models.label.{LabelAiAssessmentTable, LabelCount, LabelTable, TagCount}
-import models.mission.{MissionTable, RegionalMission}
+import models.mission.MissionTable
 import models.pano.PanoSource.PanoSource
 import models.region.Region
 import models.street.StreetEdgeTable
@@ -214,7 +214,11 @@ case class HumanVsAiStats(
  * denominator the card needs (e.g. audited *and* total distance, AI *and* human counts) so percentages can show their N.
  *
  * @param totalDistanceMi    Total street distance (miles), matching the legacy admin coverage metric.
- * @param auditedDistanceMi  Audited street distance (miles); the card's coverage % is this over the total.
+ * @param auditedDistanceMi  Distance ever quality-audited (miles), regardless of imagery age; the card's coverage %
+ *                           is this over the total, and it never dips when newer imagery lands (#4384).
+ * @param reauditStreets     Streets audited before whose audits all predate newer imagery (need re-audit, #4384).
+ *                           A subset of the audited count, surfaced as an annotation rather than subtracted from it.
+ * @param reauditDistanceMi  Distance of those needs-re-audit streets (miles).
  * @param totalLabels        All labels placed (includes tutorial labels, matching the by-type admin count).
  * @param labelsPastWeek     Labels placed in the last 7 days — the Activity pulse.
  * @param contributors       Distinct users who have contributed any labels or validations.
@@ -227,8 +231,10 @@ case class HumanVsAiStats(
 case class OverviewSummary(
     totalStreets: Int,
     auditedStreets: Int,
+    reauditStreets: Int,
     totalDistanceMi: Double,
     auditedDistanceMi: Double,
+    reauditDistanceMi: Double,
     totalLabels: Int,
     totalValidations: Int,
     labelsPastWeek: Int,
@@ -252,8 +258,10 @@ case class OverviewSummary(
 private case class OverviewCore(
     totalStreets: Int,
     auditedStreets: Int,
+    reauditStreets: Int,
     totalDistanceMi: Double,
     auditedDistanceMi: Double,
+    reauditDistanceMi: Double,
     totalLabels: Int,
     totalValidations: Int,
     labelsPastWeek: Int,
@@ -274,8 +282,6 @@ trait AdminService {
   def getTagCounts: Future[Seq[TagCount]]
   def getTagSeverityCounts: Future[Seq[TagSeverityCount]]
   def getAuditedStreetsWithTimestamps: Future[Seq[AuditedStreetWithTimestamp]]
-  def findAuditTask(taskId: Int): Future[Option[AuditTask]]
-  def getAuditInteractionsWithLabels(auditTaskId: Int): Future[Seq[InteractionWithLabel]]
   def getAdminUserProfileData(userId: String): Future[AdminUserProfileData]
   def getContributionTimeStats: Future[Seq[ContributionTimeStat]]
   def getRecentExploreAndValidateComments: Future[Seq[GenericComment]]
@@ -415,31 +421,27 @@ class AdminServiceImpl @Inject() (
   }
   def getAuditedStreetsWithTimestamps: Future[Seq[AuditedStreetWithTimestamp]] =
     db.run(auditTaskTable.getAuditedStreetsWithTimestamps)
-  def findAuditTask(taskId: Int): Future[Option[AuditTask]] = db.run(auditTaskTable.find(taskId))
-  def getAuditInteractionsWithLabels(auditTaskId: Int): Future[Seq[InteractionWithLabel]] =
-    db.run(auditTaskInteractionTable.getAuditInteractionsWithLabels(auditTaskId))
 
   /**
    * Gets the additional data to show on the admin view of a user's dashboard.
    * @param userId ID of the user whose data we're getting.
    */
   def getAdminUserProfileData(userId: String): Future[AdminUserProfileData] = {
-    db.run(for {
-      currRegion: Option[Region]      <- userCurrentRegionTable.getCurrentRegion(userId)
-      completedAudits: Int            <- auditTaskTable.countCompletedAuditsForUser(userId)
-      hoursWorked: Double             <- auditTaskInteractionTable.getHoursAuditingAndValidating(userId)
-      existingStats: Option[UserStat] <- userStatTable.getStatsFromUserId(userId)
-      // Insert a user_stat if the user hasn't visited this server before, allowing this page to load.
-      userStats: UserStat <- existingStats match {
-        case Some(stats) => DBIO.successful(stats)
-        case None        =>
-          userStatTable.insert(userId).flatMap(_ => userStatTable.getStatsFromUserId(userId).map(_.get))
-      }
-      completedMissions: Seq[RegionalMission] <- missionTable.selectCompletedRegionalMission(userId)
-      comments: Seq[AuditTaskComment]         <- auditTaskCommentTable.all(userId)
+    val (onLeaderboard, publicProfile)          = configService.defaultPrivacyFlags
+    val profileData: DBIO[AdminUserProfileData] = for {
+      currRegion: Option[Region] <- userCurrentRegionTable.getCurrentRegion(userId)
+      hoursWorked: Double        <- auditTaskInteractionTable.getHoursAuditingAndValidating(userId)
+      // Insert a user_stat if the user hasn't visited this server before, allowing this page to load. Unconditional
+      // rather than read-then-insert: this comprehension isn't transactional, so two admins opening the page at once
+      // would both read "no row" and both insert. The privacy flags must be the deployment's defaults, since the user
+      // hasn't opted into anything — and with UNIQUE (user_id) in place this is the only row they'll ever get here.
+      _                               <- userStatTable.insertIfNew(userId, onLeaderboard, publicProfile)
+      userStats: UserStat             <- userStatTable.getStatsFromUserId(userId).map(_.get)
+      comments: Seq[AuditTaskComment] <- auditTaskCommentTable.forUser(userId)
     } yield {
-      AdminUserProfileData(currRegion, completedAudits, hoursWorked, userStats, completedMissions, comments)
-    })
+      AdminUserProfileData(currRegion, hoursWorked, userStats, comments)
+    }
+    db.run(profileData)
   }
 
   /**
@@ -702,20 +704,24 @@ class AdminServiceImpl @Inject() (
     val hvaFut    = getHumanVsAiStats
     val recentFut = getRecentActivity(1)
     val coreFut   = db.run(for {
-      totalStreets   <- streetService.getStreetCountDBIO
-      auditedStreets <- streetEdgeTable.countDistinctAuditedStreets()
-      totalDist      <- streetService.getTotalStreetDistanceDBIO
-      auditedDist    <- streetEdgeTable.auditedStreetDistance()
-      labelsAll      <- labelTable.countLabelsByType()
-      labelsWeek     <- labelTable.countLabelsByType(TimeInterval.Week)
-      valsAll        <- labelValidationTable.countValidationsByResultAndLabelType()
-      valsWeek       <- labelValidationTable.countValidationsByResultAndLabelType(TimeInterval.Week)
-      contributors   <- userStatTable.countAllUsersContributed()
-      auditsWeek     <- auditTaskTable.countCompletedAudits(TimeInterval.Week)
-      apiExternal    <- webpageActivityTable.getApiEndpointCounts(excludeApiDocs = true, OverviewApiWindowDays)
-      apiClients     <- webpageActivityTable.getApiUniqueIpCount(excludeApiDocs = true, OverviewApiWindowDays)
-      awaitingVal    <- labelTable.countLabelsAwaitingValidation
-      lowQualityUsrs <- userStatTable.countLowQualityUsers
+      totalStreets <- streetService.getStreetCountDBIO
+      // Primary coverage is ever-audited (#4384): it stays monotonic when newer imagery lands. The up-to-date totals
+      // are fetched too so the page can annotate how much of it needs re-auditing (ever − up-to-date).
+      auditedStreets  <- streetEdgeTable.countDistinctAuditedStreets()
+      upToDateStreets <- streetEdgeTable.countDistinctAuditedStreets(upToDateOnly = true)
+      totalDist       <- streetService.getTotalStreetDistanceDBIO
+      auditedDist     <- streetEdgeTable.auditedStreetDistance()
+      upToDateDist    <- streetEdgeTable.auditedStreetDistance(upToDateOnly = true)
+      labelsAll       <- labelTable.countLabelsByType()
+      labelsWeek      <- labelTable.countLabelsByType(TimeInterval.Week)
+      valsAll         <- labelValidationTable.countValidationsByResultAndLabelType()
+      valsWeek        <- labelValidationTable.countValidationsByResultAndLabelType(TimeInterval.Week)
+      contributors    <- userStatTable.countAllUsersContributed()
+      auditsWeek      <- auditTaskTable.countCompletedAudits(TimeInterval.Week)
+      apiExternal     <- webpageActivityTable.getApiEndpointCounts(excludeApiDocs = true, OverviewApiWindowDays)
+      apiClients      <- webpageActivityTable.getApiUniqueIpCount(excludeApiDocs = true, OverviewApiWindowDays)
+      awaitingVal     <- labelTable.countLabelsAwaitingValidation
+      lowQualityUsrs  <- userStatTable.countLowQualityUsers
     } yield {
       // The by-type counts carry an "All" subtotal row; the validation counts carry a grand-total row keyed by the
       // "All"/None/"Both" subgroup. Pull those rather than re-summing so the totals match the detailed pages exactly.
@@ -727,8 +733,10 @@ class AdminServiceImpl @Inject() (
       OverviewCore(
         totalStreets,
         auditedStreets,
+        auditedStreets - upToDateStreets,
         totalDist * METERS_TO_MILES,
         auditedDist * METERS_TO_MILES,
+        (auditedDist - upToDateDist) * METERS_TO_MILES,
         labelTotal(labelsAll),
         valTotal(valsAll),
         labelTotal(labelsWeek),
@@ -750,8 +758,9 @@ class AdminServiceImpl @Inject() (
       def labeler(group: String): Int   = hva.labelers.find(_.group == group).map(_.total).getOrElse(0)
       def validator(group: String): Int = hva.validators.find(_.group == group).map(_.total).getOrElse(0)
       OverviewSummary(
-        totalStreets = core.totalStreets, auditedStreets = core.auditedStreets, totalDistanceMi = core.totalDistanceMi,
-        auditedDistanceMi = core.auditedDistanceMi, totalLabels = core.totalLabels,
+        totalStreets = core.totalStreets, auditedStreets = core.auditedStreets, reauditStreets = core.reauditStreets,
+        totalDistanceMi = core.totalDistanceMi, auditedDistanceMi = core.auditedDistanceMi,
+        reauditDistanceMi = core.reauditDistanceMi, totalLabels = core.totalLabels,
         totalValidations = core.totalValidations, labelsPastWeek = core.labelsPastWeek,
         validationsPastWeek = core.validationsPastWeek, auditsPastWeek = core.auditsPastWeek,
         contributors = core.contributors, humanLabels = labeler("human"), aiLabels = labeler("ai"),

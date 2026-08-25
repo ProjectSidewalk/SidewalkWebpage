@@ -26,17 +26,6 @@ class LabelCard {
     // meant.
     this.#view = new LabelCardView(this.#card[0]);
 
-    // Mobile Validate ships no viewport meta tag, so the page lays out at the browser's ~980px legacy viewport and is
-    // then scaled down to the screen — which leaves the card, sized for a desktop tool, unreadably small. Every
-    // dimension in the card's CSS is calc(Npx * var(--ui-scale)), so one value here grows the padding, radius, type,
-    // tail, and chips together. (Desktop gets its --ui-scale from util.applyToolScale on .tool-ui instead; that never
-    // runs on mobile.) The device pixel ratio approximates the layout-to-screen shrink closely enough on phones, and
-    // is what the box this replaced already keyed its frozen width and 30px font size off.
-    if (util.isMobile()) {
-      const scale = Math.min(Math.max(window.devicePixelRatio || 1, 1), 3);
-      this.#card[0].style.setProperty('--ui-scale', scale.toFixed(4));
-    }
-
     // Built once and re-pointed at each label in render(), the way LabelDetail does it. Every label Validate serves
     // came from the back end, so its id is always real and the button is never in a state where it can't work.
     const trigger = document.getElementById('label-card-share');

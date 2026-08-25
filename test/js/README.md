@@ -39,6 +39,12 @@ Also covered, beyond the api-docs previews:
   both fallbacks: Pannellum, and the static crop, where the provider's viewer is still loaded but with someone else's
   pano. Like `ShareWidget` this is a top-level `class`, so the test evals the source instead of using
   `loadGlobalScript`. jsdom implements neither the Popover API nor `:popover-open`, so the test stands both up.
+- `common/pano-viewer/src/panoUtilities.js` → `panoProjection.test.js` — the canvas↔POV↔pano projection (#4851): the
+  canvas coordinate carries no anchor offset, the canvas→POV→canvas round trip is an identity (and returns null
+  behind the camera), Validate's `getOriginalPov` call site passes the stored coordinate through untouched, and the
+  non-WebGL 2D fallback projects both axes and wraps headings. Record fixtures are shared with
+  `test/service/PanoDataServiceSpec.scala`, so the JS and Scala ports are pinned to one external oracle
+  (`pov_replay.py`) rather than to each other.
 
 Each test file has:
 
@@ -61,7 +67,7 @@ npm run test:js    # runs Jest against test/js/ only
 
 `npm run test:js` is a **new** script; the existing placeholder `npm test` is left untouched.
 
-> Node note: the dev DB / Scala app run in Docker, but Jest runs on the host with plain Node (the plan targets Node 23).
+> Node note: the dev DB / Scala app run in Docker, but Jest runs on the host with plain Node (the plan targets Node 24).
 > No Docker is needed for these tests.
 
 ## How it works (no module system)
@@ -76,32 +82,51 @@ Each test:
 
 1. Sets `document.body.innerHTML` to the container `<div id="...-preview">` the module renders into.
 2. Stubs global `fetch` to resolve a hardcoded fixture object (no network).
-3. Loads the module with `loadGlobalScript(...)`.
-4. Calls `.setup({}).init()` and asserts on the resolved promise + rendered DOM.
+3. Loads the module's one script dependency, `api-docs/apiTableWrapper.js` (see below), with `loadGlobalScript(...)`.
+4. Loads the module with `loadGlobalScript(...)`.
+5. Calls `.setup({}).init()` and asserts on the resolved promise + rendered DOM.
 
-## Globals that had to be stubbed
+## Globals these modules need
 
-For these two modules, almost nothing — they are deliberately dependency-light. The only thing stubbed is **`fetch`**
-(jsdom does not provide a usable one). They otherwise use only `window`, `document`, `console`, `Promise`,
-`Object.assign`, and `Number.prototype.toLocaleString`, all of which jsdom/Node provide.
+Only one thing is **stubbed**: `fetch` (jsdom does not provide a usable one). Otherwise they use just `window`,
+`document`, `console`, `Promise`, `Object.assign`, and `Number.prototype.toLocaleString`, all of which jsdom/Node
+provide.
+
+They do have one script dependency that has to be **loaded**: both renderers wrap their table with
+`window.createApiTableWrapper`, defined in `public/js/api-docs/apiTableWrapper.js`, which
+`apiDocs/layout.scala.html` loads ahead of every preview script. Jest sees no `<script>` tags, so each `beforeEach`
+hand-loads that file before the module. Skip it and the render throws `createApiTableWrapper is not a function` —
+which the module's `.catch` turns into a "Failed to load" banner instead of a stack trace, so the failure reads as a
+bad fixture. Five previews call it: `aggregateStats`, `validationResultTypes`, `labelTypes`, `labelTags`,
+`streetTypes`.
+
+The production half of that wiring — the layout loading the helper ahead of `@content` — is pinned by
+`test/controllers/ApiDocsPreviewWiringSpec.scala`, since these tests supply the helper themselves and so can't
+notice it going missing from the page.
 
 ## Extending to the other previews
 
-The remaining `*Preview.js` modules pull in heavier globals. To bring them under test, stub these in `beforeEach`
-**before** calling `loadGlobalScript`:
+The remaining `*Preview.js` modules pull in heavier globals. To bring them under test, load or stub these in
+`beforeEach` **before** calling `loadGlobalScript` on the module:
 
+- **`window.createApiTableWrapper`** (`label-types`, `label-tags`, `street-types`):
+  `loadGlobalScript('public/js/api-docs/apiTableWrapper.js')`. It is a production file rather than a third-party
+  library, so load it instead of stubbing it, exactly as the two covered suites do.
 - **Chart.js** (`label-types`, `validations`, `street-types`, …): set `window.Chart = jest.fn()` — a constructor
   spy is enough to assert "a chart was constructed with the right data" without rendering a canvas (jsdom has no 2D
   context).
-- **Leaflet** (`label-clusters`, `regions`, map previews): stub `window.L` with the chained no-op factory methods the
-  module calls (`L.map().setView()`, `L.tileLayer().addTo()`, `L.geoJSON()`, …).
+- **Mapbox GL** (every map preview): stub `window.mapboxgl` with no-op `Map` (whose instances need `on`, `addSource`,
+  `addLayer`, `addControl`, `setPaintProperty`, `getCanvas`), `NavigationControl`, `AttributionControl`,
+  `LngLatBounds`, and `Popup`, plus `window.MapboxLanguage`. The previews reach all of it through
+  `js/api-docs/apiDocsMap.js`, which `loadGlobalScript` has to load first.
 - **i18next / `i18next.t`**: stub `window.i18next = { t: (k) => k }` so translation lookups return the key.
 - **`util.*` globals** (e.g. `util.math`, formatting helpers in `common/`): either `loadGlobalScript` the real
   `common/` file first, or stub the specific `util.foo` functions used.
 
-The general recipe stays the same: container div → stub fetch with a captured snake_case fixture → stub libs →
-`loadGlobalScript` → `setup({}).init()` → assert no "Failed to load" + expected content. A shared
-`beforeEach` helper (e.g. `stubChartJs()`, `stubLeaflet()`) can live alongside `loadGlobalScript.js` as coverage grows.
+The general recipe stays the same: container div → stub fetch with a captured snake_case fixture → stub libs and
+`loadGlobalScript` any production dependency → `loadGlobalScript` the module → `setup({}).init()` → assert no
+"Failed to load" + expected content. A shared `beforeEach` helper (e.g. `stubChartJs()`, `stubMapboxGl()`) can live
+alongside `loadGlobalScript.js` as coverage grows.
 
 `common/aggregateStats.js` (named as a first target in the plan) is a good next addition — it has retry/timeout logic
 worth unit-testing with fake timers.

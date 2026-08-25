@@ -1,4 +1,6 @@
+@import controllers.helper.ControllerUtils
 @import play.api.Configuration
+@import play.api.libs.json.Json
 @import service.CommonPageData
 @import play.filters.csrf.CSRF
 @(commonData: CommonPageData, title: String, defaultI18nNamespace: String = "common", i18Namespaces: Seq[String] = Seq("common"), url: String = "/", extraHead: Html = Html(""), pageMeta: service.PageMeta = service.PageMeta()
@@ -7,6 +9,14 @@
 @currentCity = @{commonData.currentCity}
 @* Pages that render the map full-window (no footer, #wrap becomes a fixed-height flex column). *@
 @fullWindow = @{url == "/labelMap" || url == "/routeBuilder"}
+@* Tool pages fill or fix the viewport like the full-window pages do, so none of them render the footer. *@
+@noFooter = @{fullWindow || Seq("/explore", "/validate", "/expertValidate", "/mobile", "/mobileLanding").contains(url)}
+@* The landing page draws its hero under the fixed navbar and pads itself (homepage.css), so it opts out of the
+   global navbar offset that main.css puts on <body>. Keyed on request.path (like navbar.scala.html's isLanding),
+   NOT the url parameter: url defaults to "/", so the ~50 views that omit it would otherwise all be classified as
+   the landing page and lose their navbar padding. MobileDetectionSpec pins this. *@
+@bodyClass = @{if (request.path == "/" || request.path == "/home") "no-navbar-offset" else ""}
+@unitWords = @{ControllerUtils.distanceUnitWords}
 
 @* The one moment locale this request needs. Locale files register lowercase names ('zh-tw', 'pt-br') matching their
    filenames, and moment lowercases the code it's given, so a language code maps straight to a filename (#4486).
@@ -21,7 +31,11 @@
 }
 
 <!DOCTYPE html>
-<html lang="@messages.lang.code">
+@* data-mobile-device is the server's mobile verdict (ControllerUtils.isMobile, the single mobile definition) for
+   this request; util.isMobile() reads it back so client and server always agree on which UI variant is running.
+   data-measurement-system does the same for units (ControllerUtils.measurementSystem): the user's override if they
+   set one, else the language default, resolved once here so util.isMetric() can't disagree with the server. *@
+<html lang="@messages.lang.code" data-mobile-device="@ControllerUtils.isMobile" data-measurement-system="@ControllerUtils.measurementSystem">
   <head>
       <!-- Global site tag (gtag.js) - Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=@commonData.googleAnalyticsId"></script>
@@ -32,11 +46,9 @@
       gtag('config', '@commonData.googleAnalyticsId');
     </script>
     <meta charset="utf-8">
-    @* The mobile Validate page (url == "/mobile") deliberately gets no viewport meta: mobile-validate.css is tuned
-       for the ~980px legacy viewport that phones fall back to, and device-width would blow up its fixed sizes. *@
-    @if(url != "/mobile") {
-      <meta name="viewport" content="width=device-width, initial-scale=1">
-    }
+    @* No maximum-scale/user-scalable=no: pinch zoom is a WCAG 1.4.4 (Resize Text) affordance, not a nuisance. *@
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
     <title>@title</title>
     @common.seoHead(commonData, title, pageMeta)
     @* Per-page <head> injection point, e.g. Open Graph / Twitter Card meta for social sharing (#456). *@
@@ -76,21 +88,16 @@
     @* Navbar interactivity (dropdowns, city search, hamburger, click logging); no-ops on pages without the navbar. *@
     <script src='@assets.path("js/common/Navbar.js")' defer></script>
 
-    <script src='@assets.path("vendor/bowser/bowser-2.14.1.min.js")'></script>
-    <script src='@assets.path("js/common/pagetopPadding.js")' defer></script>
+    @* Deferred: utilities.js only touches the bowser global lazily, from DOMContentLoaded-or-later callers. *@
+    <script src='@assets.path("vendor/bowser/bowser-2.14.1.min.js")' defer></script>
     <script src='@assets.path("js/common/utilities.js")'></script>
     <script src='@assets.path("js/common/utilitiesMath.js")'></script>
     <script src='@assets.path("js/common/i18nDom.js")'></script>
     <script src='@assets.path("js/common/psTooltip.js")'></script>
     <script src='@assets.path("/js/common/AppManager.js")'></script>
   </head>
-  <body>
+  <body class="@bodyClass">
     <script>
-      // Removes top padding on the pages that render without a fixed navbar. Fires on full load to match the old
-      // <body onload>, which ran after all resources settled.
-      @* Lazy lookup: pagetopPadding.js is deferred, so checkIfPaddingNeeded isn't defined at parse time yet. *@
-      window.addEventListener('load', () => checkIfPaddingNeeded());
-
       // Set up AppManager to initialize stuff that we need on every page (CSRF token, i18next, etc.).
       $(document).ready(function() {
         const csrfToken = "@CSRF.getToken.map(_.value)";
@@ -98,7 +105,13 @@
           language: "@messages.lang.code",
           defaultNS: "@defaultI18nNamespace",
           namespaces: @Html(i18Namespaces.map(namespace => s""""$namespace"""").mkString("[", ",", "]")),
-          countryId: "@currentCity.countryId"
+          countryId: "@currentCity.countryId",
+          // The distance words for this request's language and measurement system, resolved once on the server so the
+          // locale files don't carry a second copy of them. AppManager makes them i18next interpolation defaults.
+          unitWords: @Html(Json.stringify(Json.toJson(Map(
+            "unitAbbr" -> unitWords.abbr, "unitAbbrSmall" -> unitWords.abbrSmall,
+            "unitName" -> unitWords.name, "unitNameSingular" -> unitWords.nameSingular
+          ))))
         };
         const globals = {
           cityId: "@commonData.cityId",
@@ -130,20 +143,13 @@
     <div id="wrap" class='@if(fullWindow){wrap--full-window}'>
       @content
     </div>
-    @if(url == "/explore" || url == "/labelMap" || url == "/routeBuilder") {
+    @if(url == "/explore" || fullWindow) {
       <script>
         // Prevents extra whitespace at the bottom of the page, not sure why that's an issue.
         document.getElementsByTagName("body")[0].style.overflow = "hidden";
       </script>
     }
-      <!-- Trying out no footer on Explore or Validate. Mini footer on mobile sign in/up. Code is weird bc "else if" doesn't work in template scala rn. -->
-    @if(url == "/explore" || url == "/validate" || url == "/expertValidate" || url == "/mobile" || url == "/signInMobile" || url == "/signUpMobile" || url == "/mobileLanding" || url == "/labelMap" || url == "/routeBuilder") {
-      @if(url == "/explore" || url == "/validate" || url == "/expertValidate" || url == "/mobile" || url == "/mobileLanding" || url == "/labelMap" || url == "/routeBuilder") {
-      } else {
-        <!-- footer code found in app/views/footer.scala.html -->
-    @common.miniFooter(commonData)
-    }
-    } else {
+    @if(!noFooter) {
 
     <div class="filler"></div>
 

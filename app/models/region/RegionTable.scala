@@ -3,7 +3,6 @@ package models.region
 import com.google.inject.ImplementedBy
 import models.api.{RegionDataForApi, RegionFiltersForApi}
 import models.audit.AuditTaskTableDef
-import models.label.LabelTable
 import models.street.{StreetEdgePriorityTableDef, StreetEdgeRegionTable}
 import models.utils.MyPostgresProfile.api._
 import models.utils.{LatLngBBox, MyPostgresProfile}
@@ -35,8 +34,7 @@ trait RegionTableRepository {}
 @Singleton
 class RegionTable @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
-    streetEdgeRegionTable: StreetEdgeRegionTable,
-    labelTable: LabelTable
+    streetEdgeRegionTable: StreetEdgeRegionTable
 )(implicit val ec: ExecutionContext)
     extends RegionTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
@@ -101,6 +99,8 @@ class RegionTable @Inject() (
    * Gets regions w/ boolean noting if given user fully audited the region. If provided, filter for only given regions.
    */
   def getNeighborhoodsWithUserCompletionStatus(userId: String, regionIds: Seq[Int]): DBIO[Seq[(Region, Boolean)]] = {
+    // Ever-audited on purpose (#4384): this feeds the "you completed this neighborhood" display, and a user's credit
+    // is not revoked when imagery refreshes -- the needs-re-audit prompt carries that signal instead.
     val userTasks = auditTasks.filter(a => a.completed && a.userId === userId)
     // Get regions that the user has not fully audited.
     val incompleteRegionsForUser = streetEdgeRegionTable.nonDeletedStreetEdgeRegions // FROM street_edge_region
@@ -120,25 +120,6 @@ class RegionTable @Inject() (
   }
 
   /**
-   * Returns the non-deleted region with the highest number of labels, if any have labels.
-   *
-   * @return DBIO action containing the region with the most labels
-   */
-  def getRegionWithMostLabels: DBIO[Option[Region]] = {
-    labelTable.labelsWithAuditTasksAndUserStats
-      .join(streetEdgeRegionTable.streetEdgeRegionTable)
-      .on(_._1.streetEdgeId === _.streetEdgeId)
-      .groupBy(_._2.regionId) // Group by region_id
-      .map { case (regionId, group) => (regionId, group.length) } // Count labels per region.
-      .join(regionsWithoutDeleted)
-      .on(_._1 === _.regionId) // Join with regions to get full region info.
-      .sortBy(_._1._2.desc)    // Sort by label count descending.
-      .map(_._2)
-      .result
-      .headOption // Output first region.
-  }
-
-  /**
    * Gets all region (neighborhood) data for the API with filters applied, designed for streaming.
    *
    * @param filters The filters to apply when retrieving regions.
@@ -146,6 +127,30 @@ class RegionTable @Inject() (
    */
   def getRegionsForApi(
       filters: RegionFiltersForApi
+  ): SqlStreamingAction[Vector[RegionDataForApi], RegionDataForApi, Effect.Read] =
+    regionsForApiQuery(filters, "filtered_regions.region_id", None)
+
+  /**
+   * Gets the region with the most labels, in the same shape as the rest of the regions API.
+   *
+   * @return DBIO action containing the region with the most labels, or None if no region has any labels.
+   */
+  def getRegionWithMostLabelsForApi: DBIO[Option[RegionDataForApi]] =
+    // minLabelCount is what makes an unlabeled city return None rather than an arbitrary empty region.
+    regionsForApiQuery(RegionFiltersForApi(minLabelCount = Some(1)), "label_count DESC", Some(1)).headOption
+
+  /**
+   * Builds the regions query shared by the regions API endpoints.
+   *
+   * @param filters The filters to apply when retrieving regions.
+   * @param orderBy SQL ordering expression over the final SELECT's output columns.
+   * @param limit   Optional row cap.
+   * @return        A streaming database action that yields RegionDataForApi objects.
+   */
+  private def regionsForApiQuery(
+      filters: RegionFiltersForApi,
+      orderBy: String,
+      limit: Option[Int]
   ): SqlStreamingAction[Vector[RegionDataForApi], RegionDataForApi, Effect.Read] = {
     // Set up query filters. User-supplied string values (regionName) are single-quote-escaped and numeric filters are
     // safe; see #2756 for migrating these raw builders to bound parameters.
@@ -197,6 +202,35 @@ class RegionTable @Inject() (
         WHERE street_edge_region.region_id IN (SELECT region_id FROM filtered_regions)
         GROUP BY street_edge_region.region_id
       ),
+      -- Get the distance of streets needing re-audit in each region: streets audited before, but whose completed
+      -- audits all predate newer imagery (audit_task.outdated_imagery, #4384).
+      --
+      -- This counts any completed audit, whereas audited_distance below comes from region_completion, which is
+      -- derived from street_edge_priority and so only counts completion-worthy audits. The two are therefore NOT
+      -- exact complements -- a street audited solely by a low-quality or excluded user is in neither -- and the API
+      -- docs say so. Reproducing the priority formula here to force an exact partition would duplicate it in SQL and
+      -- guarantee drift; overallStats already exposes a strictly complementary pair over one population.
+      region_outdated AS (
+        SELECT street_edge_region.region_id,
+               SUM(ST_Length(street_edge.geom::geography)) AS outdated_distance
+        FROM street_edge_region
+        JOIN street_edge ON street_edge_region.street_edge_id = street_edge.street_edge_id
+            AND street_edge.status = 'open'
+            AND street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
+        WHERE street_edge_region.region_id IN (SELECT region_id FROM filtered_regions)
+            AND EXISTS (
+                SELECT FROM audit_task
+                WHERE audit_task.street_edge_id = street_edge_region.street_edge_id
+                    AND audit_task.completed = TRUE
+            )
+            AND NOT EXISTS (
+                SELECT FROM audit_task
+                WHERE audit_task.street_edge_id = street_edge_region.street_edge_id
+                    AND audit_task.completed = TRUE
+                    AND audit_task.outdated_imagery = FALSE
+            )
+        GROUP BY street_edge_region.region_id
+      ),
       -- Get label counts, distinct user counts, and label timestamps for each region.
       region_labels AS (
         SELECT street_edge_region.region_id,
@@ -226,6 +260,7 @@ class RegionTable @Inject() (
              COALESCE(region_audits.audit_count, 0) AS audit_count,
              COALESCE(region_completion.total_distance, 0) AS total_distance_m,
              COALESCE(region_completion.audited_distance, 0) AS audited_distance_m,
+             COALESCE(region_outdated.outdated_distance, 0) AS outdated_distance_m,
              CASE WHEN COALESCE(region_completion.total_distance, 0) > 0
                   THEN region_completion.audited_distance / region_completion.total_distance
                   ELSE 0 END AS completion_rate,
@@ -235,11 +270,13 @@ class RegionTable @Inject() (
       FROM filtered_regions
       LEFT JOIN region_streets ON filtered_regions.region_id = region_streets.region_id
       LEFT JOIN region_audits ON filtered_regions.region_id = region_audits.region_id
+      LEFT JOIN region_outdated ON filtered_regions.region_id = region_outdated.region_id
       LEFT JOIN region_labels ON filtered_regions.region_id = region_labels.region_id
       LEFT JOIN region_completion ON filtered_regions.region_id = region_completion.region_id
       WHERE 1=1
         $minLabelCountFilter
-      ORDER BY filtered_regions.region_id
+      ORDER BY $orderBy
+      ${limit.map(n => s"LIMIT $n").getOrElse("")}
     """
 
     implicit val getRegionDataForApi: GetResult[RegionDataForApi] = GetResult { r =>
@@ -252,6 +289,7 @@ class RegionTable @Inject() (
         auditCount = r.nextInt(),
         totalDistanceM = r.nextDouble(),
         auditedDistanceM = r.nextDouble(),
+        outdatedDistanceM = r.nextDouble(),
         completionRate = r.nextDouble(),
         firstLabelDate = r.nextTimestampOption().map(t => OffsetDateTime.ofInstant(t.toInstant, ZoneOffset.UTC)),
         lastLabelDate = r.nextTimestampOption().map(t => OffsetDateTime.ofInstant(t.toInstant, ZoneOffset.UTC)),
@@ -260,6 +298,37 @@ class RegionTable @Inject() (
     }
 
     sql"""#$queryStr""".as[RegionDataForApi]
+  }
+
+  /**
+   * Distance (meters) of streets needing re-audit in each region: streets audited before, but whose completed audits
+   * all predate newer imagery (audit_task.outdated_imagery, #4384).
+   *
+   * Mirrors the region_outdated CTE in getRegionsForApi above -- keep the two predicates in sync. Regions with no
+   * such streets are simply absent from the result.
+   *
+   * @return (region_id, outdated distance in meters) pairs.
+   */
+  def outdatedDistanceByRegion: DBIO[Seq[(Int, Double)]] = {
+    sql"""
+      SELECT street_edge_region.region_id, SUM(ST_Length(street_edge.geom::geography)) AS outdated_distance_m
+      FROM street_edge_region
+      JOIN street_edge ON street_edge_region.street_edge_id = street_edge.street_edge_id
+          AND street_edge.status = 'open'
+          AND street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
+      WHERE EXISTS (
+              SELECT FROM audit_task
+              WHERE audit_task.street_edge_id = street_edge_region.street_edge_id
+                  AND audit_task.completed = TRUE
+          )
+          AND NOT EXISTS (
+              SELECT FROM audit_task
+              WHERE audit_task.street_edge_id = street_edge_region.street_edge_id
+                  AND audit_task.completed = TRUE
+                  AND audit_task.outdated_imagery = FALSE
+          )
+      GROUP BY street_edge_region.region_id
+    """.as[(Int, Double)]
   }
 
   /**

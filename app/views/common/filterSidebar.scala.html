@@ -6,7 +6,11 @@
  * @param tags                All tags for the city, rendered as per-label-type drawers.
  * @param sections            Which sections to render, in order: "search", "severity", "label-type",
  *                            "validations", "admin", "streets". Anything else is ignored.
- * @param streetsShownByDefault Whether the two street rows start checked.
+ * @param streetsShownByDefault Whether the street rows start checked.
+ * @param showOutdatedStreetFilter Whether the streets section carries the needs-re-audit row (#4384). Only the maps
+ *                            fed by /contribution/streets/all carry the `outdated` property, so elsewhere the control
+ *                            would toggle a distinction the data doesn't make. Where it is absent, filterStreetLayer()
+ *                            folds outdated streets into the audited checkbox.
  * @param showCounts          Whether rows carry a live count slot for the host to fill in.
  * @param withMapChrome       Whether to wrap the sections in the map's panel: collapse button and resize handle.
  *                            Hosts with their own container (the Gallery) pass false and get the sections alone.
@@ -18,6 +22,7 @@
 @(tags: Seq[Tag] = Seq.empty,
   sections: Seq[String] = Seq("severity", "label-type", "validations", "streets"),
   streetsShownByDefault: Boolean = false,
+  showOutdatedStreetFilter: Boolean = false,
   showCounts: Boolean = false,
   withMapChrome: Boolean = true,
   checkedLabelTypes: Seq[String] = Seq.empty,
@@ -203,6 +208,9 @@
           </div>
           <ul class="filter-sidebar__list">
             @streetItem("audited-street", "audited", "labelmap:audited-street", "Audited Street")
+            @if(showOutdatedStreetFilter) {
+              @streetItem("outdated-street", "outdated", "labelmap:outdated-street", "Audited, Newer Imagery Available")
+            }
             @streetItem("unaudited-street", "unaudited", "labelmap:unaudited-street", "Unaudited Street")
           </ul>
         </section>

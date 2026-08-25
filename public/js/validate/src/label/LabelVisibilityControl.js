@@ -7,44 +7,33 @@ class LabelVisibilityControl {
   // over — and the card has a button in it that has to be reachable. Matches Explore's hover card (Canvas.js).
   static #CARD_HIDE_DELAY_MS = 200;
 
-  // Feather-style eye / eye-off, inline so they take the button's colour through currentColor. The two icons this
-  // replaced were exports with a baked-in #2D2A3F fill, which read as a dark smudge on a dark button (#4726).
-  static #ICON_EYE_OFF = `<svg class="hide-label-button-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-    stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1
-      12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
-    <line x1="1" y1="1" x2="23" y2="23"/>
-  </svg>`;
-
-  static #ICON_EYE_ON = `<svg class="hide-label-button-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-    stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-    <circle cx="12" cy="12" r="3"/>
-  </svg>`;
-
-  #visible = true;
   #cardVisible = false;
   #hideCardTimer = null;
-  #labelVisibilityControlButton;
-  #labelVisibilityButtonOnPano;
   #card;
-  #hideText;
-  #showText;
-  #hideTooltip;
-  #showTooltip;
+  #toggle;
 
   constructor() {
-    this.#labelVisibilityControlButton = $('#label-visibility-control-button');
-    this.#labelVisibilityButtonOnPano = $('#label-visibility-button-on-label');
     this.#card = $('#label-card');
-    this.#hideText = i18next.t('top-ui.visibility-control-hide');
-    this.#showText = i18next.t('top-ui.visibility-control-show');
-    this.#hideTooltip = i18next.t('top-ui.visibility-control-tooltip-hide');
-    this.#showTooltip = i18next.t('top-ui.visibility-control-tooltip-show');
 
-    // Set up the event listeners.
-    this.#labelVisibilityControlButton.on('click', this.#clickAdjustLabel);
-    this.#labelVisibilityButtonOnPano.on('click', this.#clickAdjustLabel);
+    // Two buttons, one action: the pill in the pano's top-left and the one in the label card's footer.
+    this.#toggle = new LabelVisibilityToggle({
+      buttons: [
+        document.getElementById('label-visibility-control-button'),
+        document.getElementById('label-visibility-button-on-label'),
+      ],
+      text: {
+        hide: i18next.t('top-ui.visibility-control-hide'),
+        show: i18next.t('top-ui.visibility-control-show'),
+        hideTooltip: i18next.t('top-ui.visibility-control-tooltip-hide'),
+        showTooltip: i18next.t('top-ui.visibility-control-tooltip-show'),
+      },
+      onChange: (visible, { viaClick }) => {
+        if (viaClick) svv.tracker.push(visible ? 'Click_UnhideLabel' : 'Click_HideLabel');
+        // The marker is briefly absent while the viewer swaps (primary ↔ Pannellum); its replacement is read
+        // against the toggle's own state, so nothing is lost by there being none to set here.
+        svv.panoManager.getPanoMarker()?.marker_.classList.toggle(LabelVisibilityToggle.HIDDEN_CLASS, !visible);
+      },
+    });
 
     // Keep the card up while the cursor is on it, so its Hide-label button can actually be clicked.
     this.#card.on('mouseenter', () => this.cancelScheduledCardHide());
@@ -56,75 +45,21 @@ class LabelVisibilityControl {
     this.#card.on('focusout', (e) => {
       if (!this.#card[0].contains(e.relatedTarget)) this.scheduleHideLabelCard();
     });
-
-    // Call unhideLabel() to start the page with showing the 'hide label' button.
-    this.unhideLabel();
   }
 
-  /**
-   * Logs interaction when the hide label button is clicked.
-   */
-  #clickAdjustLabel = () => {
-    if (this.#visible) {
-      svv.tracker.push('Click_HideLabel');
-      this.hideLabel();
-    } else {
-      svv.tracker.push('Click_UnhideLabel');
-      this.unhideLabel();
-    }
-  };
-
-  /**
-   * Unhides label in the panorama depending on current state.
-   */
+  /** Shows the label in the panorama. */
   unhideLabel() {
-    this.#visible = true;
-    this.#setVisibilityButtons(this.#hideText, LabelVisibilityControl.#ICON_EYE_OFF, this.#hideTooltip);
-    // The marker is briefly absent while the viewer swaps (primary ↔ Pannellum); the button state above is what
-    // renderPanoMarker's replacement will be read against, so it is set either way.
-    svv.panoManager.getPanoMarker()?.marker_.classList.remove('label-marker--hidden');
+    this.#toggle.setVisible(true);
   }
 
-  /**
-   * Hides label in the panorama.
-   *
-   * Both directions are a class toggle and nothing else: the icon and its ring live in CSS (see
-   * .label-marker--hidden), which crossfades them rather than swapping one asset for another, so the label visibly
-   * steps aside instead of blinking into a different shape. Hiding is meant to reveal the sidewalk underneath, so
-   * the marker gets out of the way — but not so far that you lose which label you are being asked about, or where to
-   * put the cursor to bring it back.
-   */
+  /** Hides the label in the panorama, leaving the dashed ring main.css's .label-marker--hidden draws. */
   hideLabel() {
-    this.#visible = false;
-    this.#setVisibilityButtons(this.#showText, LabelVisibilityControl.#ICON_EYE_ON, this.#showTooltip);
-    svv.panoManager.getPanoMarker()?.marker_.classList.add('label-marker--hidden');
+    this.#toggle.setVisible(false);
   }
 
-  /**
-   * Relabels both toggles — the always-visible one in the pano's top-left and the one in the label card's footer.
-   * They run the same action, so they always read the same way.
-   *
-   * The label is inserted as HTML, not text: the translations underline the keyboard shortcut inline (the English
-   * ones are "<u>H</u>ide Label" / "S<u>h</u>ow Label"). It is a locale string, not user input.
-   *
-   * The tooltip turns over with them rather than being set once from Twirl: these buttons reverse meaning when the
-   * label is hidden, so a fixed string spends half its life describing the opposite of what clicking now does.
-   *
-   * @param {string} text    The action the buttons now offer, as translated markup.
-   * @param {string} icon    Inline SVG for the eye icon that goes with it.
-   * @param {string} tooltip That same action spelled out, for both buttons' tooltips.
-   */
-  #setVisibilityButtons(text, icon, tooltip) {
-    const htmlString = `${icon}<span>${text}</span>`;
-    this.#labelVisibilityControlButton.html(htmlString).attr('data-ps-tooltip', tooltip);
-    this.#labelVisibilityButtonOnPano.html(htmlString).attr('data-ps-tooltip', tooltip);
-  }
-
-  /**
-   * Returns true if label is currently not hidden, false otherwise.
-   */
+  /** @returns {boolean} True if the label is currently not hidden. */
   isVisible() {
-    return this.#visible;
+    return this.#toggle.isVisible();
   }
 
   /**
@@ -195,8 +130,8 @@ class LabelVisibilityControl {
   }
 
   /**
-   * Toggles the card. The mobile pano has no hover, so a tap on the marker opens and closes it; on desktop this is
-   * Enter/Space on the focused marker.
+   * Toggles the card. The mobile pano has no hover, so activating the marker — a tap, an assistive technology's
+   * press, or Enter/Space — opens and closes it; on desktop this is Enter/Space on the focused marker.
    *
    * @param {Object} [options] Forwarded to showLabelCard — see its viaKeyboard note.
    */
@@ -229,8 +164,8 @@ class LabelVisibilityControl {
    * Mirrors the card's visibility onto the marker's aria-expanded, so a screen reader hears whether pressing the
    * marker will open or close the card. Looked up fresh each time: the marker is recreated on viewer swaps.
    *
-   * Only the desktop marker is a disclosure button (PanoMarker gives it its ARIA); the mobile one is a plain touch
-   * target, and stamping aria-expanded on it would be state for a role it doesn't claim.
+   * Guarded on the role rather than the platform: PanoMarker is what decides whether a given marker claims to be a
+   * disclosure button, and only one that does should carry the state.
    */
   #setMarkerExpanded(expanded) {
     const marker = document.getElementById('validate-pano-marker');

@@ -6,17 +6,11 @@
  * trends, and deep links.
  *
  * Data: /adminapi/overviewSummary (headline numbers + attention counts), /adminapi/activityByDay (daily series →
- * weekly trends/sparklines), /adminapi/recentActivity (the strip + pulse), and /v3/api/labelTypes (pulse dot color).
+ * weekly trends/sparklines), /adminapi/recentActivity (the strip + pulse), and /v3/api/labelTypes (pulse dot color
+ * and localized label-type names).
  * Every percentage is shown with the N it's based on.
  */
 class OverviewPage {
-  /** Short, human-friendly label-type names (the v3 API exposes a machine name + long description, no short label). */
-  static #DISPLAY = {
-    CurbRamp: 'curb ramp', NoCurbRamp: 'missing curb ramp', Obstacle: 'obstacle',
-    SurfaceProblem: 'surface problem', NoSidewalk: 'no sidewalk', Crosswalk: 'crosswalk',
-    Signal: 'signal', Occlusion: 'occlusion', Other: 'other',
-  };
-
   /** Number of trailing weeks shown in each card sparkline. */
   static #SPARK_WEEKS = 12;
 
@@ -24,7 +18,8 @@ class OverviewPage {
   #activityByDayUrl;
   #recentActivityUrl;
   #labelTypesUrl;
-  #colorByType = new Map();   // labelType name -> canonical color (for the pulse dot)
+  #colorByType = new Map();     // labelType name -> canonical color (for the pulse dot)
+  #displayByType = new Map();   // labelType name -> localized short name from /v3/api/labelTypes
 
   /** @param {{summaryUrl: string, activityByDayUrl: string, recentActivityUrl: string, labelTypesUrl: string}} opts */
   constructor(opts = {}) {
@@ -43,7 +38,7 @@ class OverviewPage {
         this.#fetchJson(this.#recentActivityUrl).catch(() => ({ activity: [] })),
         this.#fetchJson(this.#labelTypesUrl).catch(() => null),
       ]);
-      this.#buildColors(labelTypes);
+      this.#buildMeta(labelTypes);
       this.#renderCards(summary);
       this.#renderTrends((activity && activity.series) || []);
       this.#renderAttention(summary);
@@ -62,8 +57,8 @@ class OverviewPage {
     return resp.json();
   }
 
-  /** Builds the label-type → canonical color lookup used only for the pulse line's dot. */
-  #buildColors(labelTypes) {
+  /** Builds the label-type → canonical color and localized display-name lookups used by the pulse line. */
+  #buildMeta(labelTypes) {
     const list = (labelTypes && labelTypes.label_types) || [];
     for (const lt of list) {
       let color = lt.color || '#999999';
@@ -71,6 +66,7 @@ class OverviewPage {
         if (window.util && util.misc && util.misc.getLabelColors(lt.name)) color = util.misc.getLabelColors(lt.name);
       } catch { /* fall back to the API color */ }
       this.#colorByType.set(lt.name, color);
+      this.#displayByType.set(lt.name, lt.display_name || lt.name);
     }
   }
 
@@ -78,11 +74,13 @@ class OverviewPage {
 
   /** Fills each lens card's headline value and secondary line from the summary payload. */
   #renderCards(s) {
-    // Coverage: share of the street network audited, with the distance/street denominators.
+    // Coverage: share of the street network ever quality-audited, with the distance/street denominators. Streets
+    // whose audits predate newer imagery (#4384) stay counted and are annotated separately when present.
     const covPct = s.total_distance_mi > 0 ? s.audited_distance_mi / s.total_distance_mi : 0;
+    const reauditNote = s.reaudit_streets > 0 ? ` · ${this.#num(s.reaudit_streets)} need re-audit` : '';
     this.#setCard('coverage', this.#pct(covPct), s.total_distance_mi > 0
       ? `${this.#mi(s.audited_distance_mi)} of ${this.#mi(s.total_distance_mi)} mi · `
-      + `${this.#num(s.audited_streets)} of ${this.#num(s.total_streets)} streets`
+      + `${this.#num(s.audited_streets)} of ${this.#num(s.total_streets)} streets${reauditNote}`
       : 'no streets loaded');
 
     // Data Quality: labels collected, with validations as the secondary figure.
@@ -247,11 +245,19 @@ class OverviewPage {
       items.push({ sev: 'warn', action: 'Review', href: '/admin/contributors',
         html: `<strong>${this.#num(s.low_quality_users)}</strong> contributors are flagged low-quality` });
     }
+    // audited_streets counts every ever-audited street (re-audit streets included), so no further subtraction: the
+    // row below reports the needs-re-audit subset separately.
     const streetsLeft = (s.total_streets || 0) - (s.audited_streets || 0);
     if (streetsLeft > 0) {
       const pctLeft = s.total_streets > 0 ? Math.round((streetsLeft / s.total_streets) * 100) : 0;
       items.push({ sev: 'info', action: 'Coverage', href: '/admin/coverage',
         html: `<strong>${this.#num(streetsLeft)}</strong> streets aren't audited yet (${pctLeft}% of the network)` });
+    }
+    if (s.reaudit_streets > 0) {
+      const reaudit = this.#num(s.reaudit_streets);
+      const reauditMi = s.reaudit_distance_mi > 0 ? ` (${this.#num(Math.round(s.reaudit_distance_mi))} mi)` : '';
+      items.push({ sev: 'info', action: 'Imagery', href: '/admin/imagery',
+        html: `<strong>${reaudit}</strong> audited streets${reauditMi} have newer imagery and need re-auditing` });
     }
     // Stalled activity — only one of these, the more fundamental gap first.
     if (s.audits_past_week === 0) {
@@ -294,7 +300,7 @@ class OverviewPage {
         ? `<img class="ov-recent-thumb" loading="lazy" alt="" src="${OverviewPage.#esc(it.thumbnail_url)}">`
         : '<span class="ov-recent-thumb ov-recent-thumb--none" aria-hidden="true"></span>';
       const who = OverviewPage.#esc(it.username || 'someone');
-      const when = OverviewPage.#esc(OverviewPage.#relativeTime(it.timestamp));
+      const when = OverviewPage.#esc(AdminShell.relativeTime(it.timestamp));
       return [
         '<div class="ov-recent-item">',
         thumb,
@@ -336,7 +342,7 @@ class OverviewPage {
       return;
     }
     const who = OverviewPage.#esc(item.username || 'someone');
-    const when = OverviewPage.#esc(OverviewPage.#relativeTime(item.timestamp));
+    const when = OverviewPage.#esc(AdminShell.relativeTime(item.timestamp));
     const type = item.label_type ? this.#typeName(item.label_type) : null;
     let dot = '';
     if (type && this.#colorByType.has(item.label_type)) {
@@ -358,7 +364,7 @@ class OverviewPage {
   // --- Helpers ----------------------------------------------------------------------------------------------------
 
   #typeName(machineName) {
-    return OverviewPage.#DISPLAY[machineName] || machineName;
+    return this.#displayByType.get(machineName) || machineName;
   }
 
   /**
@@ -429,20 +435,5 @@ class OverviewPage {
   static #esc(s) {
     return String(s).replace(/[&<>"']/g, (c) =>
       ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\'': '&#39;' }[c]));
-  }
-
-  /** Compact relative time ("just now", "5m ago", "3h ago", "2d ago", or a date for older items). */
-  static #relativeTime(ts) {
-    const d = new Date(ts);
-    if (isNaN(d)) return String(ts);
-    const secs = Math.floor((Date.now() - d.getTime()) / 1000);
-    if (secs < 60) return 'just now';
-    const mins = Math.floor(secs / 60);
-    if (mins < 60) return `${mins}m ago`;
-    const hrs = Math.floor(mins / 60);
-    if (hrs < 24) return `${hrs}h ago`;
-    const days = Math.floor(hrs / 24);
-    if (days < 7) return `${days}d ago`;
-    return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
   }
 }

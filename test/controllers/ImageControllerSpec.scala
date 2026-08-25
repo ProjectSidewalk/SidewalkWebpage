@@ -11,6 +11,7 @@ import play.api.test.CSRFTokenHelper._
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import service.{PanoDataService, ShareImageCache}
+import util.AnonSession
 
 import java.awt.image.BufferedImage
 import java.io.{ByteArrayOutputStream, File}
@@ -32,7 +33,7 @@ import javax.imageio.ImageIO
  *
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env, as in dev/CI).
  */
-class ImageControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
+class ImageControllerSpec extends PlaySpec with AnonSession with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder()
@@ -56,13 +57,6 @@ class ImageControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
     val out = new ByteArrayOutputStream()
     val _   = ImageIO.write(img, "png", out)
     s"data:image/png;base64,${Base64.getEncoder.encodeToString(out.toByteArray)}"
-  }
-
-  /** Mints a fresh anonymous session and returns its cookies; /saveImage is a SecuredAction. */
-  private def anonSession(): Seq[Cookie] = {
-    val resp = route(app, FakeRequest(GET, "/anonSignUp?url=%2F")).get
-    status(resp) mustBe SEE_OTHER
-    cookies(resp).toSeq
   }
 
   private def postCrop(session: Seq[Cookie], labelId: Int, lblType: String = labelType, b64: String = cropDataUrl) =
@@ -111,7 +105,7 @@ class ImageControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
       preview.exists() mustBe true
 
       try {
-        val resp = postCrop(anonSession(), syntheticLabelId)
+        val resp = postCrop(freshAnonSession(), syntheticLabelId)
 
         status(resp) mustBe OK
         contentAsString(resp) must include(s"Got: crop_$syntheticLabelId")
@@ -128,7 +122,7 @@ class ImageControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
       val otherPreview = seedCachedPreview(otherSyntheticLabelId)
 
       try {
-        status(postCrop(anonSession(), syntheticLabelId)) mustBe OK
+        status(postCrop(freshAnonSession(), syntheticLabelId)) mustBe OK
         otherPreview.exists() mustBe true
       } finally {
         cleanUp(syntheticLabelId)
@@ -138,14 +132,14 @@ class ImageControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
 
     "reject an unknown label type without writing anything" in {
       // The label type becomes a filesystem path segment, so it is validated against the enum first.
-      val resp = postCrop(anonSession(), syntheticLabelId, lblType = "../../etc")
+      val resp = postCrop(freshAnonSession(), syntheticLabelId, lblType = "../../etc")
 
       status(resp) mustBe BAD_REQUEST
       contentAsString(resp) must include("Invalid label type")
     }
 
     "reject a request with no JSON body" in {
-      val resp = route(app, FakeRequest(POST, "/saveImage").withCookies(anonSession(): _*).withCSRFToken).get
+      val resp = route(app, FakeRequest(POST, "/saveImage").withCookies(freshAnonSession(): _*).withCSRFToken).get
       status(resp) mustBe BAD_REQUEST
     }
   }
