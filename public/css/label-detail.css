@@ -18,8 +18,7 @@
   box-sizing: border-box;
   width: 650px;
   max-width: calc(100vw - 32px);
-  max-height: calc(100vh - 32px);
-  max-height: calc(100dvh - 32px); /* Track the visible viewport under mobile toolbars; vh is the fallback. */
+  max-height: calc(100dvh - 32px); /* dvh, so the dialog tracks the viewport under a collapsing mobile toolbar. */
   padding: 22px;
   border: none;
   border-radius: 12px;

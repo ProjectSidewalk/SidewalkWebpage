@@ -187,6 +187,19 @@ describe('MapSidebarDrawer', () => {
             expect(drawer.isOpen).toBe(true);
         });
 
+        it('does not animate the camera to padding it already has', () => {
+            const {drawer, map} = build({narrow: true});
+            map.easeTo.mockClear();
+            map.setPadding.mockClear();
+
+            // Both states leave a covering drawer's camera unpadded, so neither move is worth half a second.
+            drawer.open();
+            drawer.close();
+
+            expect(map.easeTo).not.toHaveBeenCalled();
+            expect(map.setPadding).not.toHaveBeenCalled();
+        });
+
         it('hides the resize handle whenever the panel is not a resizable column', () => {
             const {handle, closeBtn} = build();
             expect(handle.style.display).toBe('');
@@ -215,6 +228,17 @@ describe('MapSidebarDrawer', () => {
             viewport.setNarrow(true);
 
             expect(sidebar.style.width).toBe('');
+        });
+
+        it('gives a dragged width back on the way to a wide viewport, rather than losing it to a rotation', () => {
+            const {sidebar, viewport} = build();
+            sidebar.style.width = '520px';
+
+            viewport.setNarrow(true);
+            expect(sidebar.style.width).toBe('');
+
+            viewport.setNarrow(false);
+            expect(sidebar.style.width).toBe('520px');
         });
 
         it('re-derives the padding on the way back to a wide viewport', () => {

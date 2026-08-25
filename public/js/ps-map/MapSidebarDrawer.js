@@ -34,6 +34,10 @@ class MapSidebarDrawer {
   /** @type {MediaQueryList} */
   #narrowMq;
   #open = true;
+  /** Width from a drag session, parked while the panel is full-bleed so a rotation doesn't discard it. */
+  #draggedWidth = null;
+  /** Last padding handed to the map, so an unchanged one doesn't buy a half-second animation to nowhere. */
+  #appliedPaddingLeft = null;
 
   /**
    * @param {mapboxgl.Map} map The Mapbox map the drawer shares the viewport with.
@@ -129,6 +133,8 @@ class MapSidebarDrawer {
   #applyPadding({ animate = true } = {}) {
     // A covering drawer gets no padding: nearly-viewport-wide padding projects the center off the canvas.
     const left = this.#open && !this.#narrowMq.matches ? this.#sidebar.offsetWidth : 0;
+    if (left === this.#appliedPaddingLeft) return;
+    this.#appliedPaddingLeft = left;
     const padding = { left, top: 0, right: 0, bottom: 0 };
     if (animate) this.#map.easeTo({ padding });
     else this.#map.setPadding(padding);
@@ -137,12 +143,15 @@ class MapSidebarDrawer {
   /** Re-derives the drawer and the camera from the new breakpoint. */
   #onBreakpointCross() {
     if (this.#narrowMq.matches) {
-      // An inline width from a drag session would beat the media query's full-width rule.
+      // An inline width from a drag session would beat the media query's full-width rule, but it is the user's
+      // sizing — hold it rather than discarding it over a rotation or a brief window resize.
+      this.#draggedWidth = this.#sidebar.style.width || this.#draggedWidth;
       this.#sidebar.style.width = '';
       // Left open, the drawer would now cover the whole map with no cue that a map is behind it.
       if (this.#open) this.#setOpen(false, { animate: false, moveFocus: false, log: false });
       else this.#applyPadding({ animate: false });
     } else {
+      if (this.#draggedWidth) this.#sidebar.style.width = this.#draggedWidth;
       if (this.#handle) this.#handle.style.left = `${this.#sidebar.offsetWidth}px`;
       this.#setOpen(this.#open, { animate: false, moveFocus: false, log: false });
     }
@@ -163,7 +172,9 @@ class MapSidebarDrawer {
         MapSidebarDrawer.#MIN_WIDTH, Math.min(MapSidebarDrawer.#MAX_WIDTH, e.clientX - rect.left),
       );
       this.#sidebar.style.width = `${newWidth}px`;
+      this.#draggedWidth = `${newWidth}px`;
       handle.style.left = `${newWidth}px`;
+      this.#appliedPaddingLeft = newWidth;
       this.#map.setPadding({ left: newWidth, top: 0, right: 0, bottom: 0 });
     };
 

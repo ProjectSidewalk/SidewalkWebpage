@@ -20,11 +20,16 @@
   /* The panel's inherited face only, deliberately not a --text-* token: each control below sets its own, and a
      composite here would stamp a size onto anything that doesn't. */
   font-family: var(--font-primary);
-  transition: transform 0.2s ease;
+  transition: transform 0.2s ease, visibility 0s;
 }
 
+/* Genuinely not rendered while closed, not merely pushed off-screen: the e2e overflow walk measures laid-out
+   boxes and treats parked-but-laid-out UI as the bug class it hunts (test/e2e/fixtures.js). The delay holds
+   visibility until the slide finishes; opening restores it immediately via the 0s above. */
 .filter-sidebar--hidden {
   transform: translateX(-100%);
+  visibility: hidden;
+  transition: transform 0.2s ease, visibility 0s linear 0.2s;
 }
 
 /* The drawer's initial state is applied at map-ready, one frame after it stops being ps-invisible. Without this
