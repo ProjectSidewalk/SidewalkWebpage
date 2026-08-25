@@ -68,7 +68,6 @@ const city = (overrides) => ({
   city_id: 'seattle',
   city_name: 'Seattle',
   city_url: 'https://sidewalk-sea.cs.washington.edu',
-  linkable: true,
   is_current_city: false,
   labels: 10,
   validations: 5,
@@ -149,6 +148,26 @@ describe('the intro line', () => {
 
     expect(text(section, 'ud-cities-intro')).toBe('Your work in Seattle so far. '
       + 'One account works in every Project Sidewalk city.');
+  });
+});
+
+describe('the city column', () => {
+  test('links every city the mapper has worked in, launched publicly or not', async () => {
+    // An unlaunched deployment reaches the payload with a URL like any other: the mapper has already been there, so
+    // withholding the link only costs them the trip (#4979).
+    const cities = [city(), city({ city_id: 'crowdstudy', city_name: 'Crowd Study', city_url: 'https://study.example' })];
+    const section = await render(payloadOf(cities));
+
+    const hrefs = [...section.querySelectorAll('#ud-cities-table-holder a')].map((a) => a.getAttribute('href'));
+    expect(hrefs).toEqual(['https://sidewalk-sea.cs.washington.edu/dashboard', 'https://study.example/dashboard']);
+  });
+
+  test('leaves a city with no URL as plain text rather than a dead link', async () => {
+    const section = await render(payloadOf([city({ city_url: '' })]));
+    const holder = section.querySelector('#ud-cities-table-holder');
+
+    expect(holder.querySelector('a')).toBeNull();
+    expect(holder.textContent).toContain('Seattle');
   });
 });
 

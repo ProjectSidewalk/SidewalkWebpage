@@ -13,8 +13,10 @@ import models.utils.ProfanityGuard
 import models.utils.MyPostgresProfile.api._
 import play.api.i18n.Messages
 import play.api.libs.json.{JsObject, Json}
+import play.api.mvc.AnyContent
 import play.api.{Configuration, Logger}
 import play.silhouette.api.Silhouette
+import play.silhouette.api.actions.SecuredRequest
 import play.silhouette.impl.exceptions.IdentityNotFoundException
 
 import javax.inject._
@@ -309,14 +311,25 @@ class UserProfileController @Inject() (
    * The signed-in mapper's own contribution totals in every Project Sidewalk city they've worked in (#4496).
    *
    * Takes no user parameter: the dashboard section it feeds is a self-view, and a mapper's activity in another city is
-   * not something this deployment's `public_profile` flag can consent to disclosing.
+   * not something this deployment's `public_profile` flag can consent to disclosing. Admins read another user's
+   * breakdown through [[adminGetCrossCityStats]] instead.
    *
    * @return Per-city rows plus the roll-up, or an empty payload when the breakdown can't be computed so the section
    *         hides itself rather than showing zeros.
    */
   def getCrossCityStats = cc.securityService.SecuredAction(WithSignedIn()) { implicit request =>
+    crossCityStatsJson(request.identity.userId)
+  }
+
+  /** [[getCrossCityStats]] for the admin's view of a user's dashboard (`/admin/user/:username`, #4964). */
+  def adminGetCrossCityStats(userId: String) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    crossCityStatsJson(userId)
+  }
+
+  /** The cross-city payload for one user, in the requester's units and language. */
+  private def crossCityStatsJson(userId: String)(implicit request: SecuredRequest[DefaultEnv, AnyContent]) = {
     userService
-      .getCrossCityUserStats(request.identity.userId, ControllerUtils.isMetric, request2Messages.lang)
+      .getCrossCityUserStats(userId, ControllerUtils.isMetric, request2Messages.lang)
       .map {
         case Some(stats) =>
           Ok(
@@ -326,7 +339,6 @@ class UserProfileController @Inject() (
                   "city_id"         -> city.cityId,
                   "city_name"       -> city.cityName,
                   "city_url"        -> city.cityUrl,
-                  "linkable"        -> city.linkable,
                   "is_current_city" -> city.isCurrentCity,
                   "labels"          -> city.labels,
                   "validations"     -> city.validations,

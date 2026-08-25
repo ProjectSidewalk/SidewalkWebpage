@@ -84,11 +84,37 @@ dialog.label-detail[open]::backdrop {
   margin-bottom: 12px;
 }
 
-.label-detail__title {
+.label-detail__title-wrap {
   flex: 1 0 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.label-detail__title {
+  flex: 0 1 auto;
   margin: 0;
   font: var(--text-h3-bold);
   color: var(--color-neutral-black);
+}
+
+/* "Your label" chip beside the title (#2575); same palette as the own-story chip further down. */
+.label-detail__own-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--color-pine-100);
+  border: 1px solid var(--color-pine-500);
+}
+
+.label-detail__own-badge img {
+  width: 14px;
+  height: 14px;
 }
 
 .label-detail__close {
@@ -576,6 +602,35 @@ button.label-detail__meta-cell:focus-visible {
   grid-template-columns: repeat(3, auto);
   place-items: flex-start start;
   gap: 8px;
+}
+
+/* A light dim is the only cue that severity and tags aren't controls for a viewer who can't edit them (#2575). */
+.label-detail:not(.label-detail--editable) .label-detail__severity-faces,
+.label-detail:not(.label-detail--editable) .label-detail__tags {
+  opacity: 0.6;
+}
+
+/* Editable faces (#2575): dropping --static restores the shared hover wash; the ring marks keyboard focus. */
+.label-detail--editable .label-detail__severity-faces .severity-button:focus-visible {
+  outline: 2px solid var(--color-link-100);
+  outline-offset: 2px;
+}
+
+/* Column eyebrow with an inline control beside it (the Tags "Edit" toggle, #2575). */
+.label-detail__col-header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0 0 8px;
+}
+
+.label-detail__col-header .label-detail__col-title {
+  margin: 0;
+}
+
+.label-detail__edit-status {
+  font: var(--text-tiny-regular);
+  color: var(--color-orange-700);
 }
 
 /* Tag pills — base styles are in tag-pills.css (.tag-pill class). */
@@ -1237,7 +1292,8 @@ button.label-detail__meta-cell:focus-visible {
 }
 
 .label-detail__story-edit,
-.label-detail__story-delete {
+.label-detail__story-delete,
+.label-detail__tags-edit {
   padding: 2px;
   border: none;
   background: none;
@@ -1248,12 +1304,14 @@ button.label-detail__meta-cell:focus-visible {
   text-decoration: underline;
 }
 
-.label-detail__story-edit { color: var(--color-link-200); }
+.label-detail__story-edit,
+.label-detail__tags-edit { color: var(--color-link-200); }
 
 .label-detail__story-delete { color: var(--color-orange-700); }
 
 .label-detail__story-edit:focus-visible,
-.label-detail__story-delete:focus-visible {
+.label-detail__story-delete:focus-visible,
+.label-detail__tags-edit:focus-visible {
   outline: 2px solid #4a90e2;
   outline-offset: 2px;
   border-radius: 4px;

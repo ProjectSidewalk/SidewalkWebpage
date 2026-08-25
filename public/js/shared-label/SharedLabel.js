@@ -3,8 +3,8 @@
  *
  * Composes three reused pieces around a server-rendered shell (sharedLabel.scala.html):
  *   1. The shared LabelDetail component (same as the Gallery expanded view / LabelMap popup) mounted inline as the
- *      hero — interactive pano, agree/disagree/unsure validation, severity/quality, tags, comments, description. Runs
- *      in non-admin mode (no usernames).
+ *      hero — interactive pano, agree/disagree/unsure validation, severity/quality, tags, comments, description. On
+ *      the admin's view of a label (/admin/label/:id) it runs in admin mode, adding the card's "Admin info" section.
  *   2. A "nearby labels" minimap, built from the cheap, bbox-bounded public /v3/api/rawLabels API — deliberately NOT
  *      the city-wide /labels/all layer the full LabelMap loads. Nearby markers open a native popup linking to that
  *      label's own spotlight page.
@@ -56,19 +56,20 @@ class SharedLabelPage {
     // A story share links /label/:id?storyId=<id> (#4722); the story section scrolls to and highlights that story
     // once its list loads. Parsed leniently — an unusable value just renders the plain label page.
     const storyIdParam = Number(new URLSearchParams(window.location.search).get('storyId'));
+    const admin = !!this.#data.admin;
     try {
       this.#detail = await LabelDetail.create(root, {
-        admin: false,
+        admin,
         viewerType: this.#viewerType(),
         viewerAccessToken: this.#data.imageryAccessToken,
         currUsername: this.#data.username,
-        panoOverlaySource: 'SharedLabelImage',
-        voteColumnSource: 'SharedLabelThumbs',
+        panoOverlaySource: admin ? 'LabelSearchPage' : 'SharedLabelImage',
+        voteColumnSource: admin ? 'LabelSearchPage' : 'SharedLabelThumbs',
         showLabelMapLink: true,
         showExploreHereLink: true,
         highlightStoryId: Number.isInteger(storyIdParam) && storyIdParam > 0 ? storyIdParam : null,
       });
-      await this.#detail.showLabel(this.#data.labelId, 'SharedLabel');
+      await this.#detail.showLabel(this.#data.labelId, admin ? 'LabelSearchPage' : 'SharedLabel');
     } catch (err) {
       console.error('SharedLabel: failed to mount label detail', err);
     }

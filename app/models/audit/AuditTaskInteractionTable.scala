@@ -7,9 +7,8 @@ import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import service.TimeInterval
 import service.TimeInterval.TimeInterval
-import slick.jdbc.GetResult
 
-import java.time.{OffsetDateTime, ZoneOffset}
+import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
@@ -27,27 +26,6 @@ case class AuditTaskInteraction(
     note: Option[String],
     temporaryLabelId: Option[Int],
     timestamp: OffsetDateTime
-)
-
-case class InteractionWithLabel(
-    auditTaskInteractionId: Long,
-    auditTaskId: Int,
-    missionId: Int,
-    action: String,
-    panoId: Option[String],
-    lat: Option[Double],
-    lng: Option[Double],
-    heading: Option[Double],
-    pitch: Option[Double],
-    zoom: Option[Int],
-    note: Option[String],
-    timestamp: OffsetDateTime,
-    labelId: Option[Int],
-    labelType: Option[String],
-    labelLat: Option[Double],
-    labelLng: Option[Double],
-    canvasX: Int,
-    canvasY: Int
 )
 
 case class ContributionTimeStat(time: Option[Double], stat: String, timeInterval: TimeInterval) {
@@ -122,29 +100,6 @@ class AuditTaskInteractionTable @Inject() (protected val dbConfigProvider: Datab
 ) extends AuditTaskInteractionTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
-  implicit val interactionWithLabelConverter: GetResult[InteractionWithLabel] = GetResult[InteractionWithLabel](r => {
-    InteractionWithLabel(
-      r.nextLong(),                                                          // audit_task_interaction_id
-      r.nextInt(),                                                           // audit_task_id
-      r.nextInt(),                                                           // mission_id
-      r.nextString(),                                                        // action
-      r.nextStringOption(),                                                  // pano_id
-      r.nextDoubleOption(),                                                  // lat
-      r.nextDoubleOption(),                                                  // lng
-      r.nextDoubleOption(),                                                  // heading
-      r.nextDoubleOption(),                                                  // pitch
-      r.nextIntOption(),                                                     // zoom
-      r.nextStringOption(),                                                  // note
-      OffsetDateTime.ofInstant(r.nextTimestamp().toInstant, ZoneOffset.UTC), // timestamp
-      r.nextIntOption(),                                                     // label_id
-      r.nextStringOption(),                                                  // label_type
-      r.nextDoubleOption(),                                                  // label_lat
-      r.nextDoubleOption(),                                                  // label_lng
-      r.nextInt(),                                                           // canvas_x
-      r.nextInt()                                                            // canvas_y
-    )
-  })
-
   val auditTaskInteractions                  = TableQuery[AuditTaskInteractionTableDef]
   val auditTaskInteractionsSmall             = TableQuery[AuditTaskInteractionSmallTableDef]
   val actionSubsetForSmallTable: Seq[String] =
@@ -159,43 +114,6 @@ class AuditTaskInteractionTable @Inject() (protected val dbConfigProvider: Datab
       subsetToSave = savedActions.filter(action => actionSubsetForSmallTable.contains(action.action))
       subsetSaved <- auditTaskInteractionsSmall ++= subsetToSave
     } yield ()
-  }
-
-  /**
-   * Get a list of audit task interactions with corresponding labels.
-   */
-  def getAuditInteractionsWithLabels(auditTaskId: Int): DBIO[Seq[InteractionWithLabel]] = {
-    sql"""
-      SELECT interaction.audit_task_interaction_id,
-             interaction.audit_task_id,
-             interaction.mission_id,
-             interaction.action,
-             interaction.pano_id,
-             interaction.lat,
-             interaction.lng,
-             interaction.heading,
-             interaction.pitch,
-             interaction.zoom,
-             interaction.note,
-             interaction.timestamp,
-             label.label_id,
-             label_type.label_type,
-             label_point.lat AS label_lat,
-             label_point.lng AS label_lng,
-             label_point.canvas_x AS canvas_x,
-             label_point.canvas_y AS canvas_y
-      FROM audit_task_interaction AS interaction
-      LEFT JOIN label ON interaction.temporary_label_id = label.temporary_label_id
-                               AND interaction.audit_task_id = label.audit_task_id
-      LEFT JOIN label_type ON label.label_type_id = label_type.label_type_id
-      LEFT JOIN label_point ON label.label_id = label_point.label_id
-      WHERE interaction.audit_task_id = $auditTaskId
-          AND interaction.action NOT IN (
-              'LowLevelEvent_mousemove', 'LowLevelEvent_mouseover', 'LowLevelEvent_mouseout', 'LowLevelEvent_click',
-              'LowLevelEvent_mouseup', 'LowLevelEvent_mousedown', 'ViewControl_MouseDown', 'ViewControl_MouseUp',
-              'RefreshTracker', 'ModeSwitch_Walk', 'LowLevelEvent_keydown', 'LabelingCanvas_MouseOut'
-          )
-      ORDER BY interaction.timestamp""".as[InteractionWithLabel].map(_.toSeq)
   }
 
   /**

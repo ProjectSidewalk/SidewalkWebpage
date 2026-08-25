@@ -103,8 +103,8 @@ Each major UI is a self-contained app under `public/js/`, bundled separately by 
 - **`explore/`** — the Explore/Audit tool (users label accessibility issues on street-view panoramas). The largest app; internal namespace global is still `svl`.
 - **`validate/`** — the Validate tool (users confirm/reject others' labels).
 - **`gallery/`** — browsable gallery of labels with filtering; internal namespace global is still `sg`.
-- **`admin/`** — the legacy admin page's maps and dashboards. The redesigned admin dashboard (#4272) lives beside it in **`admin-dashboard/`**, which is served file-by-file rather than bundled: one `<PageName>Page.js` per route, loaded by that page's Twirl template, with shared helpers in `AdminShell.js`.
-- **`user-dashboard/`** — user dashboards.
+- **`admin-dashboard/`** — the admin dashboard (#4272), served file-by-file rather than bundled: one `<PageName>Page.js` per route, loaded by that page's Twirl template, with shared helpers in `AdminShell.js`.
+- **`user-dashboard/`** — the redesigned user dashboard, settings, leaderboard, and public profiles (#4323), plus the admin's view of a user's dashboard (`/admin/user/:username` and its `/admin` page, #4964). Served file-by-file like `admin-dashboard/` — no Grunt bundle.
 - **`ps-map/`** — shared map component used across pages.
 - **`help/`** — help/faq page (rarely used).
 - **`common/`** — shared modules pulled into multiple bundles: `pano-viewer/` (abstraction over GSV / Mapillary / Infra3d / Pannellum imagery providers), `label-detail/` (label popups), and various utilities.

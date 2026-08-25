@@ -80,13 +80,11 @@ class AuditTaskCommentTable @Inject() (
   val auditTaskComments = TableQuery[AuditTaskCommentTableDef]
   val users             = TableQuery[SidewalkUserTableDef]
 
-  /**
-   * Get all task records of the given user.
-   */
-  def all(username: String): DBIO[Seq[AuditTaskComment]] = {
+  /** Every Explore comment the given user has left, newest first. */
+  def forUser(userId: String): DBIO[Seq[AuditTaskComment]] = {
     (for {
       (c, u) <- auditTaskComments.join(users).on(_.userId === _.userId).sortBy(_._1.timestamp.desc)
-      if u.username === username
+      if c.userId === userId
     } yield (c.auditTaskCommentId, c.auditTaskId, c.missionId, c.edgeId, u.username, c.ipAddress, c.panoId, c.heading,
       c.pitch, c.zoom, c.lat, c.lng, c.timestamp, c.comment)).result.map(_.map(AuditTaskComment.tupled))
   }

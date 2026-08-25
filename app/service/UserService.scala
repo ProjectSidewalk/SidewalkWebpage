@@ -3,7 +3,7 @@ package service
 import com.google.inject.ImplementedBy
 import models.audit.{AuditTaskComment, AuditTaskInteractionTable, AuditTaskTable, OutdatedStreetForUser}
 import models.label.{LabelLocation, LabelTable}
-import models.mission.{MissionTable, RegionalMission}
+import models.mission.MissionTable
 import models.region.Region
 import models.street.StreetEdge
 import models.user._
@@ -106,9 +106,9 @@ case class GlobalLeaderboardEntry(
  *
  * @param cityId        Configured city id.
  * @param cityName      Short display name in the viewer's language.
- * @param cityUrl       That deployment's base URL; empty when the city isn't publicly launched.
- * @param linkable      Whether to offer a click-through. False for a city that isn't publicly launched — the mapper's
- *                      own numbers there are still theirs to see, but we don't publish an unlaunched URL.
+ * @param cityUrl       That deployment's base URL, given even for a city that isn't publicly launched: every row is a
+ *                      city this mapper has already worked in, so its URL is nothing they don't have. The global
+ *                      leaderboard withholds those same URLs because it shows one mapper's city to everyone (#4979).
  * @param isCurrentCity True for the deployment being viewed, so the UI can mark it.
  * @param labels        Labels placed here.
  * @param validations   Validations given here.
@@ -122,7 +122,6 @@ case class CityUserStat(
     cityId: String,
     cityName: String,
     cityUrl: String,
-    linkable: Boolean,
     isCurrentCity: Boolean,
     labels: Int,
     validations: Int,
@@ -205,12 +204,11 @@ private[service] case class CrossCityFanOut(
     liveMeters: Double
 )
 
+/** The admin-only additions to a user's dashboard (`/admin/user/:username/admin`). */
 case class AdminUserProfileData(
     currentRegion: Option[Region],
-    numCompletedAudits: Int,
     hoursWorked: Double,
     userStats: UserStat,
-    completedMissions: Seq[RegionalMission],
     exploreComments: Seq[AuditTaskComment]
 )
 
@@ -412,6 +410,7 @@ trait UserService {
    * @return The user's new value in the high_quality column; None if user marked excluded or no user found
    */
   def setManualUserQuality(userId: String, highQualityManual: Option[Boolean]): Future[Option[Boolean]]
+  def getUserStats(userId: String): Future[Option[UserStat]]
   def getPrivacySettings(userId: String): Future[Option[(Boolean, Boolean)]]
   def updatePrivacySettings(userId: String, onLeaderboard: Boolean, publicProfile: Boolean): Future[Int]
   def getPublicProfile(
@@ -422,6 +421,7 @@ trait UserService {
       messages: Messages
   ): Future[Option[PublicProfile]]
   def resolveVisibleUser(username: String, isOwner: Boolean): Future[Option[String]]
+  def validateUsername(userId: String, newUsername: String): Future[Either[String, String]]
   def changeUsername(userId: String, newUsername: String): Future[Either[String, String]]
   def getUserTeam(userId: String): Future[Option[Team]]
   def setUserTeam(userId: String, newTeamId: Int): Future[Int]
@@ -451,7 +451,7 @@ trait UserService {
   /**
    * Gets one mapper's own totals in every city they've contributed to (#4496).
    *
-   * @param userId       The mapper, always the signed-in viewer — this is a self-view, not a public profile.
+   * @param userId       The mapper: the signed-in viewer, or the user an admin is looking at — never a public profile.
    * @param metricSystem Whether to report distances in kilometers rather than miles.
    * @param lang         Language for city display names.
    * @return             `Some` of their breakdown, `Some` with an empty city list for an account that has yet to
@@ -547,6 +547,8 @@ class UserServiceImpl @Inject() (
     } yield currUserStats.map(_.highQuality))
   }
 
+  def getUserStats(userId: String): Future[Option[UserStat]] = db.run(userStatTable.getStatsFromUserId(userId))
+
   /**
    * Calls functions to update all columns in user_stat table for the given user.
    * @param userId The user whose stats should be updated
@@ -622,17 +624,17 @@ class UserServiceImpl @Inject() (
   }
 
   /**
-   * Validates and applies a username change (#4373), enforcing the same rules the Settings UI advertises.
+   * Checks a requested username without applying it (#4373), enforcing the same rules the Settings UI advertises.
    *
    * Rejects (returns `Left(messageKey)`) empty/too-short/too-long names, disallowed characters, profanity, and names
-   * already taken by another user. A no-op change to the user's current name is allowed. Usernames are display-only
-   * (everything keys on user_id), so no downstream references need updating.
+   * already taken by another user. A no-op change to the user's current name is allowed. Separate from the write so a
+   * save that also touches other settings can refuse before it writes any of them.
    *
    * @param userId      The user changing their name.
    * @param newUsername The requested new username (leading/trailing whitespace is trimmed).
-   * @return `Right(trimmedUsername)` on success, or `Left(i18nKey)` if rejected — the caller localizes the key.
+   * @return `Right(trimmedUsername)` if acceptable, or `Left(i18nKey)` if rejected — the caller localizes the key.
    */
-  def changeUsername(userId: String, newUsername: String): Future[Either[String, String]] = {
+  def validateUsername(userId: String, newUsername: String): Future[Either[String, String]] = {
     val name = newUsername.trim
     // Bounds/charset come from UsernamePolicy so rename and sign-up enforce the same contract (#4375); the caller
     // localizes the returned i18n key at the HTTP boundary.
@@ -643,11 +645,23 @@ class UserServiceImpl @Inject() (
     else if (!ProfanityGuard.isClean(name))
       Future.successful(Left("dashboard.settings.username.error.allowed"))
     else
-      sidewalkUserTable.findByUsername(name).flatMap {
-        case Some(existing) if existing.userId != userId =>
-          Future.successful(Left("dashboard.settings.username.error.taken"))
-        case _ => db.run(sidewalkUserTable.updateUsername(userId, name)).map(_ => Right(name))
+      sidewalkUserTable.findByUsername(name).map {
+        case Some(existing) if existing.userId != userId => Left("dashboard.settings.username.error.taken")
+        case _                                           => Right(name)
       }
+  }
+
+  /**
+   * Validates and applies a username change. Usernames are display-only (everything keys on user_id), so no
+   * downstream references need updating.
+   *
+   * @return `Right(trimmedUsername)` on success, or `Left(i18nKey)` from [[validateUsername]] if rejected.
+   */
+  def changeUsername(userId: String, newUsername: String): Future[Either[String, String]] = {
+    validateUsername(userId, newUsername).flatMap {
+      case Right(name) => db.run(sidewalkUserTable.updateUsername(userId, name)).map(_ => Right(name))
+      case left        => Future.successful(left)
+    }
   }
 
   def getUserTeam(userId: String): Future[Option[Team]] = db.run(userTeamTable.getTeam(userId))
@@ -773,13 +787,11 @@ class UserServiceImpl @Inject() (
                 val hasActivity: Boolean = row.labels > 0 || row.validations > 0 || row.missions > 0 || meters > 0d
                 if (!hasActivity) None
                 else {
-                  val isPublic: Boolean = city.visibility == "public"
                   Some(
                     CityUserStat(
                       city.cityId,
                       city.cityNameShort,
-                      if (isPublic) city.URL else "",
-                      isPublic,
+                      city.URL,
                       isCurrent,
                       row.labels,
                       row.validations,

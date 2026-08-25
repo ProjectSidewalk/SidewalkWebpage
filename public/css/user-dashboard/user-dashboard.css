@@ -25,7 +25,9 @@
   font-size: var(--font-size-lg, 1.125rem);
   padding: 10px 16px;
 }
-.api-content .coverage-table tbody td { padding: 14px 16px; }
+
+.api-content .coverage-table tbody td,
+.api-content .coverage-table tbody th { padding: 14px 16px; }
 
 /* Leaderboard tables are capped at ~10 rows, so show them in full — no inner scroll (admin tables keep theirs), and
    overflow visible so the Accuracy header tooltip can escape the wrap. The responsive rule restores mobile scroll. */
@@ -35,9 +37,10 @@
 }
 
 /* The admin tables right-align every non-first column (numeric); on the leaderboard the name column — and the
-   all-time "Most active in" city column — are text, so left-align them. */
-.api-content .coverage-table td:nth-child(2),
-.api-content .coverage-table th:nth-child(2) { text-align: left; }
+   all-time "Most active in" city column — are text, so left-align them. Scoped to the ranked boards: other tables in
+   .api-content (the cities-you've-mapped one) carry a number in column 2 and want the right-aligned default. */
+.api-content .ud-lb-table td:nth-child(2),
+.api-content .ud-lb-table th:nth-child(2) { text-align: left; }
 
 /* The global board's "Top city" is a name, so it reads left-aligned like Mapper rather than right like the numbers. */
 .api-content .ud-lb-global td:nth-child(3),
@@ -820,6 +823,16 @@
   border-color: var(--color-orange-300, #f4b277);
 }
 
+/* Inert on an admin's view of someone else's dashboard: the vote acts as the signed-in user, so it can't be cast. */
+.ud-chip:disabled,
+.ud-chip:disabled:hover {
+  background: var(--color-neutral-100, #f2f5f6);
+  border-color: var(--color-neutral-200, #dfe5e8);
+  color: var(--color-text-secondary, #5a7785);
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .ud-card-note-link {
   display: inline-block;
   margin-top: 6px;
@@ -830,6 +843,14 @@
 }
 
 .ud-card-note-link:hover { text-decoration: underline; }
+
+.ud-card-note-link[aria-disabled="true"],
+.ud-card-note-link[aria-disabled="true"]:hover {
+  color: var(--color-text-secondary, #5a7785);
+  opacity: 0.6;
+  text-decoration: none;
+  cursor: not-allowed;
+}
 
 .ud-card-comment-input {
   width: 100%;
@@ -1107,6 +1128,24 @@
 .ud-btn-primary:hover {
   background: var(--color-pine-700, #3a6347);
   text-decoration: none;
+}
+
+/* Inert controls on an admin's view of someone else's dashboard (route/team actions, an Owner's settings). */
+.ud-btn-secondary:disabled,
+.ud-btn-secondary:disabled:hover {
+  background: var(--color-neutral-100, #f2f5f6);
+  border-color: var(--color-neutral-200, #dfe5e8);
+  color: var(--color-text-secondary, #5a7785);
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.ud-btn-primary:disabled,
+.ud-btn-primary:disabled:hover {
+  background: var(--color-neutral-200, #dfe5e8);
+  color: var(--color-text-secondary, #5a7785);
+  opacity: 0.8;
+  cursor: not-allowed;
 }
 
 /* "Create a team" sits below the teams table / empty-state banner, so give it breathing room. */
@@ -1451,6 +1490,32 @@
 }
 .ud-save-status.ud-save-ok { color: var(--color-success, #2e7d32); }
 .ud-save-status.ud-save-err { color: var(--color-error, #d32f2f); }
+
+/* ---- Admin page beside a user's dashboard (#4964) ----------------------------------------------------------- */
+.ud-admin-flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xl, 32px);
+}
+
+.ud-admin-flag {
+  flex: 1 1 260px;
+  max-width: 360px;
+  gap: var(--space-sm, 12px);
+}
+
+.ud-admin-flag .ud-save-status { margin-left: 0; }
+
+.ud-admin-details { margin-top: var(--space-md, 16px); }
+
+.ud-admin-details summary {
+  cursor: pointer;
+  font-size: var(--font-size-lg, 1.125rem);
+  font-weight: 600;
+  color: var(--color-text-heading, #263238);
+}
+
+.ud-admin-details .mgmt-table-scroll { margin-top: var(--space-sm, 12px); }
 
 /* "Kept private" state on a public profile whose owner turned off public_profile. */
 .ud-empty-state {
@@ -1929,10 +1994,9 @@
 /* The table isn't sortable, so drop the admin header's click affordance. */
 .api-content .ud-cities-table thead th { cursor: default; }
 
-/* Counts and distances read down a column, so right-align them; the shell left-aligns column 2 for name columns. */
-.api-content .ud-cities-table td,
-.api-content .ud-cities-table th:not(:first-child) { text-align: right; }
-.api-content .ud-cities-table th:first-child { text-align: left; }
+/* The shell right-aligns every column past the first, which is what the counts and distances want. The city cell is a
+   row header, and a <th> defaults to centered, so it's the one that needs saying. */
+.api-content .ud-cities-table tbody th { text-align: left; }
 
 .ud-cities-current { background: var(--color-pine-100, #e4f4ee); }
 
