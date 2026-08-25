@@ -1,25 +1,53 @@
 /**
- * Mobile section-nav disclosure for the shared `.api-*` shell (API docs, admin dashboard, user dashboard).
+ * Narrow-viewport sidebar disclosure, shared by the `.api-*` shells (API docs, admin dashboard, user dashboard) and
+ * the Gallery's filter column.
  *
- * At mobile widths api-docs.css turns `.api-sidebar` from a column into an in-flow strip between the navbar and the
- * content, and collapses its `.api-nav`. This adds the button that opens it. The button belongs *inside* the sidebar,
- * sharing that in-flow strip, so the nav it discloses opens directly beneath it and pushes the page down rather than
- * covering the content it lands on (#4856).
+ * Under their breakpoints these sidebars stop being columns and become an in-flow strip between the navbar and the
+ * content, with their contents collapsed. The button that reopens them belongs *inside* that strip, so what it
+ * discloses opens directly beneath it and pushes the page down rather than covering the content it lands on (#4856).
  *
- * The button is labelled with the active nav item, so the strip also answers "which page am I on?" — the thing the
- * collapsed sidebar otherwise takes away.
+ * The two surfaces differ in where the button comes from: the shells have no server-side hook, so
+ * `buildSidebarDisclosure` creates one labelled with the active nav item (the strip then also answers "which page am
+ * I on?"); the Gallery renders its own in Twirl so the label goes through Play's i18n. Both share
+ * `wireSidebarDisclosure` for the part that has to behave identically.
  */
 
 /**
- * Builds the disclosure button for a shell sidebar and wires it to that sidebar's nav.
+ * Wires a disclosure button to the sidebar it opens.
+ *
+ * @param {HTMLButtonElement} toggle - The button. Its `aria-expanded` tracks the open state.
+ * @param {HTMLElement} root - Element carrying `mobile-visible` while open; the CSS keys the reveal off it.
+ * @param {object} [options]
+ * @param {?HTMLElement} [options.controlled] - What the button discloses. Given an id if it has none, so
+ *     `aria-controls` can name it.
+ * @param {string} [options.controlledId] - Id to assign when `controlled` has none.
+ * @param {function(boolean): void} [options.onToggle] - Called with the new open state, for interaction logging.
+ * @returns {HTMLButtonElement} The same button, for chaining.
+ */
+function wireSidebarDisclosure(toggle, root, options = {}) {
+  const { controlled = null, controlledId = 'sidebar-disclosure-target', onToggle = null } = options;
+
+  if (controlled) {
+    if (!controlled.id) controlled.id = controlledId;
+    toggle.setAttribute('aria-controls', controlled.id);
+  }
+  toggle.setAttribute('aria-expanded', String(root.classList.contains('mobile-visible')));
+
+  toggle.addEventListener('click', () => {
+    const open = root.classList.toggle('mobile-visible');
+    toggle.setAttribute('aria-expanded', String(open));
+    onToggle?.(open);
+  });
+  return toggle;
+}
+
+/**
+ * Builds the disclosure button for an `.api-*` shell sidebar and wires it to that sidebar's nav.
  *
  * @param {HTMLElement} sidebar - The `.api-sidebar` whose `.api-nav` the button discloses.
  * @returns {HTMLButtonElement} The wired-up button, not yet inserted into the document.
  */
 function buildSidebarDisclosure(sidebar) {
-  const nav = sidebar.querySelector('.api-nav');
-  if (nav && !nav.id) nav.id = 'api-sidebar-nav';
-
   // The active item names the current page; the first group header is the fallback on a page with no active item.
   const active = sidebar.querySelector('.api-nav-item.active');
   const heading = sidebar.querySelector('.api-nav-header');
@@ -28,8 +56,6 @@ function buildSidebarDisclosure(sidebar) {
   const toggle = document.createElement('button');
   toggle.type = 'button';
   toggle.className = 'api-sidebar-toggle';
-  toggle.setAttribute('aria-expanded', 'false');
-  if (nav) toggle.setAttribute('aria-controls', nav.id);
   toggle.innerHTML = `
     <span class="api-sidebar-toggle-label"></span>
     <svg class="api-sidebar-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -40,11 +66,9 @@ function buildSidebarDisclosure(sidebar) {
   // has to carry both, and has to start with the visible text so speech input still reaches it (WCAG 2.5.3).
   toggle.setAttribute('aria-label', `${label} — section navigation`);
 
-  toggle.addEventListener('click', () => {
-    const open = sidebar.classList.toggle('mobile-visible');
-    toggle.setAttribute('aria-expanded', String(open));
+  return wireSidebarDisclosure(toggle, sidebar, {
+    controlled: sidebar.querySelector('.api-nav'), controlledId: 'api-sidebar-nav',
   });
-  return toggle;
 }
 
 /**
