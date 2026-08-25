@@ -26,6 +26,8 @@
  * @param {boolean} [params.interactiveStreets=false] - Whether to include hover/click interactions on the streets.
  * @param {boolean} [params.includeLabelCounts=false] - Whether to include label counts for each type in the legend.
  * @param {string} [params.navigationControlPosition='top-left'] - Position of the zoom/pitch controls on the map.
+ * @param {boolean} [params.sidebarStartsCollapsed=false] - Open the page with the filter drawer closed. Narrow
+ *     viewports collapse it regardless, since there it covers the map.
  * @param {string} [params.uiSource] - Records the UI used when submitting a validation through the popup.
  * @param {object} [params.popupLabelViewer] - Shows a validation popup on labels on the map.
  * @param {function} [params.onMapReady] - Called with the map as soon as it has loaded, BEFORE the
@@ -50,20 +52,32 @@ function createPSMap($, params) {
   }).then((newMap) => {
     map = newMap; // Assign the returned map to the map variable.
 
+    // mapbox-gl resizes itself only on the window's resize event, but a full-window map is sized in dvh, which
+    // changes when a mobile browser's toolbar collapses — the layout viewport doesn't move, so no resize event
+    // fires and the GL canvas is left at a stale size with mis-hit-tested clicks. Observing the container catches
+    // that as well as every case the window event already covered.
+    const mapContainer = document.getElementById(params.mapName);
+    if (mapContainer && window.ResizeObserver) {
+      let resizeFrame = null;
+      new ResizeObserver(() => {
+        cancelAnimationFrame(resizeFrame);
+        resizeFrame = requestAnimationFrame(() => map.resize());
+      }).observe(mapContainer);
+    }
+
     // Show the sidebar early (in its disabled/loading state) so it's visible while data loads.
     // Also shift the map center to account for the sidebar covering part of the map.
     const sidebar = document.getElementById('filter-sidebar');
     if (sidebar) {
       sidebar.classList.remove('ps-invisible');
       sidebar.classList.add('filter-sidebar--loading');
-      // On narrow viewports the open drawer would cover the whole map, so it starts collapsed and the map
-      // keeps its natural center. MapSidebarFilter syncs the open/close chrome once it constructs; keep the
-      // query in sync with its narrowMq and filter-sidebar.css's breakpoint.
-      if (window.matchMedia('(width <= 600px)').matches) {
-        sidebar.classList.add('filter-sidebar--hidden');
-      } else {
-        map.setPadding({ left: sidebar.offsetWidth, top: 0, right: 0, bottom: 0 });
-      }
+      // Built here, not alongside MapSidebarFilter: that waits on the label feed, and the drawer's reopen button
+      // is the only way back to the filters once it starts collapsed. Suppress the slide for the first frame so
+      // a drawer that opens closed doesn't wipe across the map on load.
+      sidebar.classList.add('filter-sidebar--no-transition');
+      // Not retained: it binds to the sidebar's own controls, which keep it alive.
+      new MapSidebarDrawer(map, sidebar, { startCollapsed: Boolean(params.sidebarStartsCollapsed) });
+      requestAnimationFrame(() => sidebar.classList.remove('filter-sidebar--no-transition'));
     }
 
     // Mount map-bound UI (e.g. the LabelMap search box) now, while the map is ready but the data

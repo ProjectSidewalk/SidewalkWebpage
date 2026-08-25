@@ -27,6 +27,12 @@
   transform: translateX(-100%);
 }
 
+/* The drawer's initial state is applied at map-ready, one frame after it stops being ps-invisible. Without this
+   a page that opens collapsed animates the panel across the map before parking it off-canvas. */
+.filter-sidebar--no-transition {
+  transition: none;
+}
+
 .filter-sidebar--loading {
   pointer-events: none;
 }
@@ -94,7 +100,7 @@
   position: absolute;
   top: 20px; /* Matches .filter-sidebar margin-top so the handle aligns with the visible edge. */
   bottom: 0;
-  left: 315px; /* Placeholder until MapSidebarFilter syncs it to the sidebar's rendered width on init/drag. */
+  left: 350px; /* The sidebar's default width; MapSidebarDrawer restamps it on init and on every drag. */
   width: 6px;
   cursor: col-resize;
   z-index: 11;
@@ -141,9 +147,9 @@ body.filter-sidebar-resizing {
 
 /*
  * Below ~600px a 350px panel leaves no usable map beside it (its 280px drag minimum can't coexist with one
- * either), so the open drawer covers the map instead. Keep the breakpoint in sync with the matchMedia in
- * createPSMap.js / MapSidebarFilter.js, which skip the map's left padding for the same reason. The Gallery
- * is unaffected: it renders the filter sections without this panel chrome (withMapChrome = false).
+ * either), so the open drawer covers the map instead. The JS side reads this same width from
+ * MapSidebarDrawer.NARROW_QUERY, which skips the map's left padding for the same reason — keep the two in step.
+ * The Gallery is unaffected: it renders the filter sections without this panel chrome (withMapChrome = false).
  */
 @media (width <= 600px) {
   .filter-sidebar {
@@ -157,15 +163,19 @@ body.filter-sidebar-resizing {
 
 /* Touch: grow the open/close hit targets to >= 44px (the icons stay 24px). */
 @media (pointer: coarse) {
+  /* Inset to the panel's own 30px gutter, not the padding box: an absolutely positioned child resolves against
+     the padding box, so right: 0 would push a 44px button 14px over the first section's "Deselect all" — which
+     has no positioned competitor there and so loses the hit test. */
   .filter-sidebar__close {
-    top: 0;
-    right: 0;
+    top: 4px;
+    right: 4px;
     padding: 10px;
   }
 
   .filter-sidebar-open-btn {
     padding: 10px;
   }
+
 }
 
 /* ---- Sections ---- */
@@ -610,4 +620,19 @@ body.filter-sidebar-resizing {
 
 .filter-sidebar__tag-pills:not([hidden]) {
   display: flex;
+}
+
+/* WCAG 2.2 SC 2.5.8 wants 24x24 for every target, not just the panel chrome above. These are the controls a phone
+   user actually came for — a 22px chevron and an 18px-tall text action, both authored with no padding. Placed at
+   the end of the file because their base rules come later than the chrome block and would otherwise win. */
+@media (pointer: coarse) {
+  .filter-sidebar__tag-toggle {
+    min-width: 24px;
+    min-height: 24px;
+    justify-content: center;
+  }
+
+  .filter-sidebar__deselect-all {
+    min-height: 24px;
+  }
 }
