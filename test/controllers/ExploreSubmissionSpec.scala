@@ -190,6 +190,40 @@ class ExploreSubmissionSpec
   private def postTask(session: Seq[Cookie], payload: JsValue) =
     route(app, FakeRequest(POST, "/task").withCookies(session: _*).withJsonBody(payload).withCSRFToken).get
 
+  /** Reports the bootstrap's street as having no usable imagery, the way `util.misc.reportNoImagery` does. */
+  private def postNoImagery(session: Seq[Cookie], b: ExploreBootstrap) = {
+    val payload = Json.obj(
+      "audit_task" -> Json.obj(
+        "street_edge_id"            -> b.streetEdgeId,
+        "task_start"                -> b.taskStart,
+        "audit_task_id"             -> b.auditTaskId.map(id => JsNumber(BigDecimal(id))).getOrElse[JsValue](JsNull),
+        "completed"                 -> false,
+        "current_lat"               -> b.currentLat,
+        "current_lng"               -> b.currentLng,
+        "start_point_reversed"      -> b.startPointReversed,
+        "current_mission_start"     -> JsNull,
+        "last_priority_update_time" -> OffsetDateTime.now,
+        "request_updated_street_priority" -> false
+      ),
+      "mission_id" -> b.missionId
+    )
+    route(
+      app,
+      FakeRequest(POST, "/explore/nostreetview").withCookies(session: _*).withJsonBody(payload).withCSRFToken
+    ).get
+  }
+
+  /** How many streets in a region the assignment query can still choose between for a user with no completed tasks. */
+  private def assignableStreetsInRegion(regionId: Int): Int =
+    run(sql"""SELECT count(*)
+              FROM street_edge_region
+              INNER JOIN street_edge ON street_edge_region.street_edge_id = street_edge.street_edge_id
+              INNER JOIN street_edge_priority
+                      ON street_edge.street_edge_id = street_edge_priority.street_edge_id
+              WHERE street_edge_region.region_id = $regionId
+                AND street_edge.status = 'open'
+                AND street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)""".as[Int]).head
+
   /** The `label` columns the assertions read. Field order must track the SELECT in [[labelRows]]. */
   private case class LabelRow(
       labelId: Int,
@@ -246,6 +280,7 @@ class ExploreSubmissionSpec
     val _ = run(
       DBIO.seq(
         sqlu"UPDATE mission SET current_audit_task_id = NULL WHERE user_id = $uId",
+        sqlu"DELETE FROM street_edge_issue WHERE user_id = $uId",
         sqlu"DELETE FROM label_history WHERE label_id IN (SELECT label_id FROM label WHERE user_id = $uId)",
         sqlu"DELETE FROM label_point WHERE label_id IN (SELECT label_id FROM label WHERE user_id = $uId)",
         sqlu"DELETE FROM label WHERE user_id = $uId",
@@ -431,6 +466,38 @@ class ExploreSubmissionSpec
       run(
         sql"SELECT completed FROM audit_task WHERE audit_task_id = $auditTaskId".as[Boolean]
       ).head mustBe true
+    }
+  }
+
+  "GET /explore, after the labeler reports the assigned street's imagery missing" should {
+    "hand out a different street instead of resuming the one that wouldn't load" in {
+      val session = freshAnonSession()
+      val b       = fetchExploreBootstrap(session)
+      if (b.missionType != "auditOnboarding") cancel(s"Fresh user unexpectedly on mission type '${b.missionType}'.")
+      status(postTask(session, submission(b, missionCompleted = true, missionSkipped = true))) mustBe OK
+
+      val b2 = fetchExploreBootstrap(session)
+      b2.missionType mustBe "audit"
+      if (assignableStreetsInRegion(b2.regionId) < 2) cancel("Region holds one assignable street; nothing to move to.")
+
+      // The first submission mints the audit_task row; echoing its id back on the next one is what points the mission
+      // at the task, and that pointer is what makes a later load a resume rather than a fresh assignment. Without
+      // both, this test would pass while exercising nothing.
+      val posted = postTask(session, submission(b2))
+      status(posted) mustBe OK
+      val auditTaskId = (contentAsJson(posted) \ "audit_task_id").as[Int]
+      status(postTask(session, submission(b2, auditTaskId = Some(auditTaskId)))) mustBe OK
+      fetchExploreBootstrap(session).auditTaskId mustBe Some(auditTaskId)
+
+      status(postNoImagery(session, b2)) mustBe OK
+
+      // A report leaves the task incomplete (#4922), so the resume above would otherwise serve this street again on
+      // this load and every reload after it, with nothing the labeler could do to get past it (#4918). Asserting on
+      // the task rather than the street is deliberate: assignment picks at random among the highest-priority streets,
+      // so the reported street can legitimately come back around — as a *new* task, which is not the resume this
+      // declines. The street itself stays in the pool for everyone.
+      fetchExploreBootstrap(session).auditTaskId must not be Some(auditTaskId)
+      run(sql"SELECT completed FROM audit_task WHERE audit_task_id = $auditTaskId".as[Boolean]) must not contain true
     }
   }
 }
