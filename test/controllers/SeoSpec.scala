@@ -8,7 +8,7 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.mvc.Cookie
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import util.AnonSession
+import util.{AnonSession, UserAgents}
 
 /**
  * Shared helpers for the SEO surface specs below (issue #4237): an anon session (some pages, e.g. /mobile, are still
@@ -33,9 +33,8 @@ trait SeoSpecHelpers extends AnonSession { this: PlaySpec with GuiceOneAppPerSui
    * by User-Agent, so the shared desktop-minted cookies are rejected when replayed with a mobile UA.
    */
   def getMobilePage(path: String): (Int, String) = {
-    val mobileUa      = "User-Agent" -> "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)"
-    val mobileCookies = freshAnonSession(mobileUa)
-    val resp          = route(app, FakeRequest(GET, path).withCookies(mobileCookies: _*).withHeaders(mobileUa)).get
+    val mobileCookies = freshAnonSession(UserAgents.mobile)
+    val resp = route(app, FakeRequest(GET, path).withCookies(mobileCookies: _*).withHeaders(UserAgents.mobile)).get
     (status(resp), contentAsString(resp))
   }
 }

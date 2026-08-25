@@ -6,6 +6,7 @@ import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
+import util.UserAgents
 
 import java.net.URLEncoder
 
@@ -79,8 +80,7 @@ class GalleryPageSpec extends PlaySpec with GuiceOneAppPerSuite {
     }
 
     "serve the page to a mobile visitor instead of redirecting to /mobileLanding" in {
-      val mobileUa = "User-Agent" -> "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)"
-      val resp     = route(app, FakeRequest(GET, "/gallery").withHeaders(mobileUa)).get
+      val resp = route(app, FakeRequest(GET, "/gallery").withHeaders(UserAgents.mobile)).get
       status(resp) mustBe OK
     }
   }
