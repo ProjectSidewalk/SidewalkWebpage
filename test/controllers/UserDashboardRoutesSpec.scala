@@ -28,7 +28,7 @@ class UserDashboardRoutesSpec extends PlaySpec with GuiceOneAppPerSuite {
 
   private val getRoutes = Seq(
     "/dashboard", "/dashboard/settings", "/profile/somebody", "/userapi/public/somebody/streets",
-    "/userapi/public/somebody/labels"
+    "/userapi/public/somebody/labels", "/userapi/crossCityStats"
   )
 
   // Pre-cutover URL -> production URL (#4474); each must 301 so old bookmarks and links keep working.
@@ -57,6 +57,16 @@ class UserDashboardRoutesSpec extends PlaySpec with GuiceOneAppPerSuite {
       s"exist for an unauthenticated POST $path (anything but 404)" in {
         status(route(app, FakeRequest(POST, path).withJsonBody(Json.obj())).get) must not be NOT_FOUND
       }
+    }
+
+    "read the cross-city stats subject from the session, never from a parameter (#4496)" in {
+      // A mapper's activity in other cities isn't something this deployment's public_profile flag can consent to, so
+      // the endpoint must have no way to name someone else. A userId query param must simply be ignored.
+      app.injector
+        .instanceOf[play.api.routing.Router]
+        .documentation
+        .find { case (method, path, _) => method == "GET" && path == "/userapi/crossCityStats" }
+        .map(_._3) mustBe Some("controllers.UserProfileController.getCrossCityStats")
     }
 
     previewRedirects.foreach { case (from, to) =>

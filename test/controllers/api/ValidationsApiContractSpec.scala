@@ -56,6 +56,10 @@ class ValidationsApiContractSpec extends PlaySpec with GuiceOneAppPerSuite {
         // Sanity-check that snake_case (not camelCase) keys are emitted.
         (v \ "labelValidationId").toOption mustBe None
         (v \ "validationResult").toOption mustBe None
+
+        // Severity/tag changes are records of the Label Edits API, not fields of a validation (#2575).
+        (v \ "old_severity").toOption mustBe None
+        (v \ "new_tags").toOption mustBe None
       }
     }
 

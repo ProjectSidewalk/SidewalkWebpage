@@ -16,16 +16,6 @@ import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
-case class RegionalMission(
-    missionId: Int,
-    missionType: String,
-    regionId: Option[Int],
-    regionName: Option[String],
-    distanceMeters: Option[Double],
-    labelsValidated: Option[Int],
-    missionEnd: OffsetDateTime
-)
-
 case class Mission(
     missionId: Int,
     missionType: MissionType.Value,
@@ -111,7 +101,6 @@ class MissionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
   val users     = TableQuery[SidewalkUserTableDef]
   val userRoles = TableQuery[UserRoleTableDef]
   val roles     = TableQuery[RoleTableDef]
-  val regions   = TableQuery[RegionTableDef]
 
   val auditMissions = missions.filter(_.missionType === MissionType.Audit)
 
@@ -259,25 +248,6 @@ class MissionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
    */
   def selectCompletedExploreMissions(userId: String, regionId: Int): DBIO[Seq[Mission]] = {
     auditMissions.filter(m => m.completed === true && m.regionId === regionId && m.userId === userId).result
-  }
-
-  /**
-   * Select missions with neighborhood names.
-   */
-  def selectCompletedRegionalMission(userId: String): DBIO[Seq[RegionalMission]] = {
-    // Exclude exploreAddress missions: they never complete and have no region/distance, so they'd render as noise
-    // rows (type 'exploreAddress', Region N/A, Distance 0.0) on the admin user-profile mission table (#4451).
-    val userMissions =
-      missions.filter(m => m.userId === userId && m.missionType =!= MissionType.ExploreAddress)
-
-    val missionsWithRegionName = for {
-      (m, r) <- userMissions.joinLeft(regions).on(_.regionId === _.regionId)
-    } yield (m.missionId, m.missionType, m.regionId, r.map(_.name), m.distanceMeters, m.labelsValidated, m.missionEnd)
-
-    missionsWithRegionName
-      .sortBy(m => (m._3, m._1))
-      .result
-      .map(_.map(m => RegionalMission(m._1, m._2.toString, m._3, m._4, m._5, m._6, m._7)))
   }
 
   /**

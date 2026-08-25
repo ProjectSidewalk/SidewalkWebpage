@@ -6,9 +6,12 @@ import controllers.helper.SignedMediaUtils
 import formats.json.StoryFormats
 import models.auth.{DefaultEnv, WithAdmin}
 import models.story.{Story, StoryMedia, StoryPhotoUpload, StoryRejection}
+import play.api.libs.Files.TemporaryFile
 import play.api.libs.json.{JsBoolean, Json}
+import play.api.mvc.{MultipartFormData, Result}
 import play.api.{Configuration, Logger}
 import play.silhouette.api.Silhouette
+import play.silhouette.api.actions.SecuredRequest
 import service.{ConfigService, ImageSigningService, RateLimiter, StoryService}
 
 import java.io.File
@@ -130,34 +133,76 @@ class StoryController @Inject() (
    */
   def updateOwnStory(storyId: Int) =
     cc.securityService.SecuredAction(parse.multipartFormData(photoMaxBytes + (1L << 20))) { implicit request =>
-      val userId = request.identity.userId
-
-      def dataPart(name: String): Option[String] = request.body.dataParts.get(name).flatMap(_.headOption)
-
-      val ipKey   = s"story-submit:ip:${request.ipAddress}"
-      val ipLimit = rateLimiter.limit("story-submit")
-      if (!rateLimiter.allow(ipKey, ipLimit)) {
-        // Time left in this IP's window, not the whole window length — the caller is already partway through it.
-        val retryAfter = rateLimiter.retryAfterSeconds(ipKey).orElse(Some(ipLimit.window.toSeconds))
-        Future.successful(rejectionResult(StoryRejection.RateLimitedIp(retryAfter)))
-      } else {
-        val text            = dataPart("text").getOrElse("")
-        val displayNameMode = dataPart("display_name_mode").getOrElse(Story.DisplayNameAnonymous)
-        val altText         = dataPart("alt_text").map(_.trim).filter(_.nonEmpty)
-        val removePhoto     = dataPart("remove_photo").contains("true")
-        val photo           =
-          request.body.file("photo").map { filePart => StoryPhotoUpload(filePart.ref.path.toFile, altText) }
-        cc.loggingService.insert(
-          userId,
-          request.ipAddress,
-          s"Click_module=StoryUpdate_storyId=${storyId}_hasPhoto=${photo.isDefined}"
-        )
-        storyService.updateOwnStory(storyId, userId, text, displayNameMode, photo, removePhoto, altText).map {
-          case Right(_)        => Ok(Json.obj("success" -> true))
-          case Left(rejection) => rejectionResult(rejection)
-        }
+      updateStory(storyId, "StoryUpdate", request.body) { edit =>
+        storyService.updateOwnStory(storyId, request.identity.userId, edit.text, edit.displayNameMode, edit.photo,
+          edit.removePhoto, edit.altText)
       }
     }
+
+  /**
+   * An admin editing any user's story from that user's admin dashboard (content moderation).
+   *
+   * Parsed as `anyContent` rather than multipart: the body parser runs before the auth guard, and a typed multipart
+   * parser answers a non-multipart body with a 400 — so an anonymous caller would get a parser error where every
+   * other `/adminapi/` write gives a 401 (`RouteAuthPostureSpec`).
+   */
+  def adminUpdateStory(storyId: Int) =
+    cc.securityService.SecuredAction(WithAdmin(), parse.anyContent(Some(photoMaxBytes + (1L << 20)))) {
+      implicit request =>
+        request.body.asMultipartFormData match {
+          case None       => Future.successful(BadRequest(Json.obj("success" -> false, "error" -> "Expected a form")))
+          case Some(body) =>
+            updateStory(storyId, "AdminStoryUpdate", body) { edit =>
+              storyService.adminUpdateStory(storyId, edit.text, edit.displayNameMode, edit.photo, edit.removePhoto,
+                edit.altText)
+            }
+        }
+    }
+
+  /** The fields of a story edit, parsed off the multipart form. */
+  private case class StoryEdit(
+      text: String,
+      displayNameMode: String,
+      photo: Option[StoryPhotoUpload],
+      removePhoto: Boolean,
+      altText: Option[String]
+  )
+
+  /**
+   * Shared body of the two story-edit actions: the IP burst check, form parsing, the server-side `Click_module=<event>`
+   * log, and mapping the service's outcome to a response. `save` is the owner-gated or admin service call.
+   */
+  private def updateStory(storyId: Int, event: String, body: MultipartFormData[TemporaryFile])(
+      save: StoryEdit => Future[Either[StoryRejection, Unit]]
+  )(implicit request: SecuredRequest[DefaultEnv, _]): Future[Result] = {
+    def dataPart(name: String): Option[String] = body.dataParts.get(name).flatMap(_.headOption)
+
+    val ipKey   = s"story-submit:ip:${request.ipAddress}"
+    val ipLimit = rateLimiter.limit("story-submit")
+    if (!rateLimiter.allow(ipKey, ipLimit)) {
+      // Time left in this IP's window, not the whole window length — the caller is already partway through it.
+      val retryAfter = rateLimiter.retryAfterSeconds(ipKey).orElse(Some(ipLimit.window.toSeconds))
+      Future.successful(rejectionResult(StoryRejection.RateLimitedIp(retryAfter)))
+    } else {
+      val altText = dataPart("alt_text").map(_.trim).filter(_.nonEmpty)
+      val edit    = StoryEdit(
+        text = dataPart("text").getOrElse(""),
+        displayNameMode = dataPart("display_name_mode").getOrElse(Story.DisplayNameAnonymous),
+        photo = body.file("photo").map { filePart => StoryPhotoUpload(filePart.ref.path.toFile, altText) },
+        removePhoto = dataPart("remove_photo").contains("true"),
+        altText = altText
+      )
+      cc.loggingService.insert(
+        request.identity.userId,
+        request.ipAddress,
+        s"Click_module=${event}_storyId=${storyId}_hasPhoto=${edit.photo.isDefined}"
+      )
+      save(edit).map {
+        case Right(_)        => Ok(Json.obj("success" -> true))
+        case Left(rejection) => rejectionResult(rejection)
+      }
+    }
+  }
 
   /**
    * The author's retraction: a real hard delete of the row and any media bytes (#4054). Ownership is enforced in the
@@ -171,8 +216,16 @@ class StoryController @Inject() (
   }
 
   /** The signed-in user's own stories (hidden ones included), for the dashboard management list. */
-  def getMyStories = cc.securityService.SecuredAction { implicit request =>
-    storyService.getStoriesForUser(request.identity.userId).map { stories =>
+  def getMyStories = cc.securityService.SecuredAction { implicit request => userStoriesJson(request.identity.userId) }
+
+  /** Any user's stories in the owner shape, for the admin view of their dashboard (same list they see themselves). */
+  def getUserStories(userId: String) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    logger.debug(request.toString) // The request is unused, but SecuredAction needs it and the compiler wants it read.
+    userStoriesJson(userId)
+  }
+
+  private def userStoriesJson(userId: String): Future[Result] = {
+    storyService.getStoriesForUser(userId).map { stories =>
       Ok(
         Json.obj(
           // The dashboard's edit composer needs the same cap the card's does; sourced here, never a JS literal.

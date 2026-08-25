@@ -39,12 +39,12 @@ file produces its DTOs but the DTO *definitions* belong in `models.api`. The con
 - **Companion object** holds the `csvHeader` string (keep it next to `toCsvRow` so columns can't drift) and JSON writers.
 - **snake_case JSON** per #3871: derive writers with a scoped `JsonConfiguration(JsonNaming.SnakeCase)` +
   `Json.format`/`Json.writes`, or hand-build the `JsObject` with snake_case keys for nested/custom shapes.
-- **Shared helpers**: reuse `ApiModelUtils` (`escapeCsvField`, `createGeoJsonPointGeometry`, ...) rather than re-rolling
-  CSV/GeoJSON logic.
+- **Shared helpers**: reuse `ApiModelUtils` (`escapeCsvField`, `createGeoJsonPointGeometry`, `labelTypeOrdering`,
+  `toSnakeKey`, ...) rather than re-rolling CSV/GeoJSON logic.
 
-`app/formats/json/ApiFormats.scala` still holds assorted older non-DTO writes (the v2 access-score serializers and the
-`ClusterForApi` stack were removed in #3864); new API DTOs should not add to it — define them in `models.api` per the
-convention above.
+**Every `/v3` DTO's serialization lives in `models.api` — there is no shared formats object for API output, and no
+API serialization inline in a controller.** The `app/formats/json/*Formats.scala` files serve the internal (non-`/v3`)
+endpoints only; don't route API writers through them (issue #3891).
 
 ### Database & evolutions
 
@@ -103,8 +103,8 @@ Each major UI is a self-contained app under `public/js/`, bundled separately by 
 - **`explore/`** — the Explore/Audit tool (users label accessibility issues on street-view panoramas). The largest app; internal namespace global is still `svl`.
 - **`validate/`** — the Validate tool (users confirm/reject others' labels).
 - **`gallery/`** — browsable gallery of labels with filtering; internal namespace global is still `sg`.
-- **`admin/`** — the legacy admin page's maps and dashboards. The redesigned admin dashboard (#4272) lives beside it in **`admin-dashboard/`**, which is served file-by-file rather than bundled: one `<PageName>Page.js` per route, loaded by that page's Twirl template, with shared helpers in `AdminShell.js`.
-- **`user-dashboard/`** — user dashboards.
+- **`admin-dashboard/`** — the admin dashboard (#4272), served file-by-file rather than bundled: one `<PageName>Page.js` per route, loaded by that page's Twirl template, with shared helpers in `AdminShell.js`.
+- **`user-dashboard/`** — the redesigned user dashboard, settings, leaderboard, and public profiles (#4323), plus the admin's view of a user's dashboard (`/admin/user/:username` and its `/admin` page, #4964). Served file-by-file like `admin-dashboard/` — no Grunt bundle.
 - **`ps-map/`** — shared map component used across pages.
 - **`help/`** — help/faq page (rarely used).
 - **`common/`** — shared modules pulled into multiple bundles: `pano-viewer/` (abstraction over GSV / Mapillary / Infra3d / Pannellum imagery providers), `label-detail/` (label popups), and various utilities.

@@ -4,7 +4,7 @@ import controllers.base._
 import controllers.helper.ControllerUtils
 import controllers.helper.ControllerUtils.{parseURL, safeLocalPath}
 import forms._
-import models.auth.{DefaultEnv, WithAdminOrIsUser}
+import models.auth.DefaultEnv
 import models.user.{SidewalkUserWithRole, UserUtm}
 import models.utils.ProfanityGuard
 import net.ceedubs.ficus.Ficus._
@@ -221,19 +221,6 @@ class UserController @Inject() (
         }
       )
   }
-
-  // PUT function that receives sets a user's volunteer status.
-  def updateVolunteerStatus(userId: String, communityService: Boolean) =
-    cc.securityService.SecuredAction(WithAdminOrIsUser(userId)) { _ =>
-      authenticationService.findByUserId(userId).flatMap {
-        case Some(user) =>
-          authenticationService.setCommunityServiceStatus(userId, communityService).map { rowsUpdated =>
-            if (rowsUpdated > 0) Ok(Json.obj("message" -> "Volunteer status updated successfully"))
-            else BadRequest(Json.obj("error" -> "Failed to update volunteer status"))
-          }
-        case _ => Future.failed(new IdentityNotFoundException("Username not found."))
-      }
-    }
 
   /**
    * Turns the signed-in user's service-hour tracking on or off, then returns to a same-origin page.

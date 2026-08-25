@@ -11,8 +11,6 @@
 @common.main(commonData, Messages("seo.title.route.builder"), defaultI18nNamespace = "routebuilder", i18Namespaces = Seq("routebuilder", "common"), url = "/routeBuilder") {
   @common.navbar(commonData, user)
 
-  <script src='@assets.path("vendor/i18next/i18next-23.16.8.min.js")'></script>
-  <script src='@assets.path("vendor/i18next-http-backend/i18nextHttpBackend-3.0.4.min.js")'></script>
   <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.js")'></script>
   <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")'></script>
   <link href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")' rel="stylesheet">

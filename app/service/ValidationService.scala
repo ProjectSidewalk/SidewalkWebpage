@@ -3,19 +3,23 @@ package service
 import com.google.inject.ImplementedBy
 import models.label._
 import models.user.UserStatTable
-import models.utils.CommonUtils.UiSource
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import models.validation._
 import org.postgresql.util.PSQLException
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
-import java.time.OffsetDateTime
 import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
 
+/**
+ * One validation as submitted, with the severity and tags the validator wants the label to have. Those are applied as
+ * an edit linked to the vote only for an Agree that changes them (#2575).
+ */
 case class ValidationSubmission(
     validation: LabelValidation,
+    severity: Option[Int],
+    tags: List[String],
     comment: Option[ValidationTaskComment],
     undone: Boolean,
     redone: Boolean
@@ -41,8 +45,7 @@ class ValidationServiceImpl @Inject() (
     validationTaskInteractionTable: ValidationTaskInteractionTable,
     validationTaskCommentTable: ValidationTaskCommentTable,
     labelTable: LabelTable,
-    labelService: LabelService,
-    labelHistoryTable: LabelHistoryTable,
+    labelEditService: LabelEditService,
     userStatTable: UserStatTable,
     implicit val ec: ExecutionContext
 ) extends ValidationService
@@ -50,7 +53,6 @@ class ValidationServiceImpl @Inject() (
 
   val validationLabels = TableQuery[LabelValidationTableDef]
   val labelsUnfiltered = TableQuery[LabelTableDef]
-  val labelHistories   = TableQuery[LabelHistoryTableDef]
 
   /** SQLState for a Postgres unique-constraint violation. */
   private val UniqueViolation: String = "23505"
@@ -124,15 +126,16 @@ class ValidationServiceImpl @Inject() (
   }
 
   /**
-   * Deletes a validation in the label_validation table. Also updates validation counts in the label table.
+   * Deletes a validation in the label_validation table, unwinding the edit it was submitted with. Also updates
+   * validation counts in the label table.
    * @param oldVal The validation to delete.
    * @return Int count of rows deleted, either 0 or 1.
    */
   private def deleteLabelValidation(oldVal: LabelValidation): DBIO[Int] = {
     (for {
-      historyEntryDeleted <- {
+      _ <- {
         if (oldVal.validationResult == ValidationOption.Agree)
-          removeLabelHistoryForValidation(oldVal.labelValidationId)
+          labelEditService.revertEditForValidation(oldVal.labelValidationId)
         else DBIO.successful(false)
       }
       excludedUser <- userStatTable.isExcludedUser(oldVal.userId)
@@ -146,61 +149,6 @@ class ValidationServiceImpl @Inject() (
     } yield {
       rowsAffected
     }).transactionally
-  }
-
-  /**
-   * Updates the label and label_history tables appropriately when a validation is deleted (using the back button).
-   *
-   * If the given validation represents the most recent change to the label, undo this validation's change in the label
-   * table and delete this validation. If there have been subsequent changes to the label, just delete this validation.
-   * However, if the next change to the label reverses the change made by this validation, the subsequent label_history
-   * entry should be deleted as well (so that the history doesn't contain a redundant entry). And if the validation did
-   * not change the severity or tags, then there is nothing to remove from the label_history table.
-   *
-   * @param labelValidationId the label_validation_id of the validation whose history should be removed.
-   * @return
-   */
-  def removeLabelHistoryForValidation(labelValidationId: Int): DBIO[Boolean] = {
-    labelHistoryTable
-      .findByLabelValidationId(labelValidationId)
-      .map(_.headOption)
-      .flatMap {
-        case Some(historyEntry) =>
-          labelHistoryTable.findByLabelId(historyEntry.labelId).map(_.sortBy(_.editTime)).flatMap { fullHistory =>
-            // If the given validation represents the most recent change to the label, undo this validation's change in
-            // the label table and delete this validation from the label_history table.
-            if (fullHistory.indexWhere(_.labelHistoryId == historyEntry.labelHistoryId) == fullHistory.length - 1) {
-              val correctData: LabelHistory = fullHistory(fullHistory.length - 2)
-              val labelToUpdateQuery        = labelsUnfiltered.filter(_.labelId === historyEntry.labelId)
-              for {
-                _ <- labelToUpdateQuery
-                  .map(l => (l.severity, l.tags))
-                  .update((correctData.severity, correctData.tags.toList))
-                deleted <- labelHistories.filter(_.labelValidationId === labelValidationId).delete
-              } yield deleted > 0
-            } else {
-              // If the next history entry reverses this one, we can update the label table and delete both entries.
-              val thisEntryIdx: Int = fullHistory.indexWhere(_.labelValidationId == Some(labelValidationId))
-              if (
-                fullHistory(thisEntryIdx - 1).severity == fullHistory(thisEntryIdx + 1).severity
-                && fullHistory(thisEntryIdx - 1).tags == fullHistory(thisEntryIdx + 1).tags
-              ) {
-                for {
-                  delete1 <- labelHistories.filter(_.labelValidationId === labelValidationId).delete
-                  delete2 <- labelHistories
-                    .filter(_.labelValidationId === fullHistory(thisEntryIdx + 1).labelValidationId)
-                    .delete
-                } yield delete1 > 0 && delete2 > 0
-              } else {
-                labelHistories.filter(_.labelValidationId === labelValidationId).delete.map(_ > 0)
-              }
-            }
-          }
-        case None =>
-          // No label_history entry to delete (this would happen if the validation didn't change severity or tags).
-          DBIO.successful(false)
-      }
-      .transactionally
   }
 
   /**
@@ -236,46 +184,6 @@ class ValidationServiceImpl @Inject() (
       _         <- validationTaskCommentTable.deleteIfExists(comment.labelId, comment.userId)
       commentId <- validationTaskCommentTable.insert(comment)
     } yield commentId).transactionally
-  }
-
-  /**
-   * Updates severity and tags in the label table and saves the change in the label_history table. Called from Validate.
-   * @param labelId the label_id of the label to update.
-   * @param severity the new severity of the label
-   * @param tags the new set of tags for the label
-   * @param userId the user_id of the user making the change
-   * @return Int count of rows updated, either 0 or 1 because labelId is a primary key.
-   */
-  def updateAndSaveLabelHistory(
-      labelId: Int,
-      severity: Option[Int],
-      tags: List[String],
-      userId: String,
-      source: UiSource.Value,
-      labelValidationId: Int
-  ): DBIO[Int] = {
-    val labelToUpdateQuery = labelsUnfiltered.filter(_.labelId === labelId)
-    labelToUpdateQuery.result.headOption.flatMap {
-      case Some(labelToUpdate) =>
-        labelService.cleanTagList(tags, labelToUpdate.labelTypeId).flatMap { cleanedTags: Seq[String] =>
-          // If there's an actual change to the label, update it and add to the label_history table. O/w update nothing.
-          if (labelToUpdate.severity != severity || labelToUpdate.tags.toSet != cleanedTags.toSet) {
-            for {
-              cleanedTags: Seq[String] <- labelService.cleanTagList(tags, labelToUpdate.labelTypeId)
-              _                        <- labelHistoryTable.insert(
-                LabelHistory(0, labelId, severity, cleanedTags, userId, OffsetDateTime.now, source,
-                  Some(labelValidationId))
-              )
-              rowsUpdated <- labelToUpdateQuery.map(l => (l.severity, l.tags)).update((severity, cleanedTags.toList))
-            } yield {
-              rowsUpdated
-            }
-          } else {
-            DBIO.successful(0)
-          }
-        }
-      case None => DBIO.successful(0)
-    }.transactionally
   }
 
   /**
@@ -317,12 +225,12 @@ class ValidationServiceImpl @Inject() (
         val newValInserted = if (!valSubmission.undone) {
           for {
             newValId: Int <- insert(validation)
-            // Update the severity and tags in the label table if something changed (only applies if they marked Agree).
+            // Only an Agree applies the submitted severity and tags; the edit is linked to the vote so an undo unwinds it.
             _ <- {
               if (validation.validationResult == ValidationOption.Agree) {
-                updateAndSaveLabelHistory(validation.labelId, validation.newSeverity, validation.newTags,
-                  validation.userId, validation.source, newValId)
-              } else DBIO.successful(0)
+                labelEditService.applyEdit(validation.labelId, validation.userId, valSubmission.severity,
+                  valSubmission.tags, validation.source, Some(newValId))
+              } else DBIO.successful(None)
             }
             // Insert the comment if there is one.
             _ <- valSubmission.comment match {

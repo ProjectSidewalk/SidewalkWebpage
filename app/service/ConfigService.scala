@@ -2,7 +2,7 @@ package service
 
 import com.google.inject.ImplementedBy
 import com.typesafe.config.ConfigException
-import models.api.DailyStatRecord
+import models.api.{AggregateStats, DailyStatRecord, LabelTypeStats}
 import models.label.LabelTypeEnum
 import models.pano.PanoSource
 import models.pano.PanoSource.PanoSource
@@ -73,54 +73,6 @@ case class CommonPageData(
   /** The deployment city's info; cityId always comes from the same config that builds allCityInfo. */
   def currentCity: CityInfo = allCityInfo.find(_.cityId == cityId).get
 }
-
-/**
- * Represents label statistics for a specific label type.
- *
- * @param labels Total number of labels for this type
- * @param labelsValidated Total number of labels validated for this type
- * @param labelsValidatedAgree Number of validated labels that were agreed upon
- * @param labelsValidatedDisagree Number of validated labels that were disagreed upon
- */
-case class LabelTypeStats(
-    labels: Int,
-    labelsValidated: Int,
-    labelsValidatedAgree: Int,
-    labelsValidatedDisagree: Int
-)
-
-/**
- * Represents aggregate statistics across all Project Sidewalk deployments.
- *
- * @param kmExplored Total kilometers explored across all cities
- * @param kmExploredNoOverlap Total kilometers explored without overlap across all cities
- * @param totalLabels Total number of (non-tutorial) labels across all cities. Equals the sum of `byLabelType` label
- *                    counts by construction (#3981), so the per-type breakdown always reconciles with this total.
- * @param tutorialLabels Total number of practice/tutorial labels across all cities. Tracked separately because tutorial
- *                       labels are excluded from `totalLabels` and `byLabelType` (they would skew the per-type ratios).
- * @param totalValidations Total number of validations across all cities
- * @param totalUsers Number of distinct contributors across all cities — users who added at least one (non-tutorial)
- *                   label or validated at least one label. Counted as distinct people: because `user_id` is a global
- *                   identifier shared across city schemas, a user active in multiple cities is counted once (the union
- *                   of contributor ids, not the sum of per-city counts). The legacy DC deployment contributes a fixed
- *                   historical estimate (`legacyDCUserCount`) since it has no per-user records.
- * @param numCities Number of cities where Project Sidewalk is deployed
- * @param numCountries Number of countries where Project Sidewalk is deployed
- * @param numLanguages Number of distinct languages supported
- * @param byLabelType Map of label type to its statistics
- */
-case class AggregateStats(
-    kmExplored: Double,
-    kmExploredNoOverlap: Double,
-    totalLabels: Int,
-    tutorialLabels: Int,
-    totalValidations: Int,
-    totalUsers: Int,
-    numCities: Int,
-    numCountries: Int,
-    numLanguages: Int,
-    byLabelType: Map[String, LabelTypeStats]
-)
 
 /**
  * One deployment's headline totals, for the Leaderboard's city-scoped hero band (#4687).
@@ -717,6 +669,30 @@ object ConfigService {
   )
 
   /**
+   * The (table, column) pairs a user's cross-city stats query reads (#4496).
+   *
+   * Deliberately smaller than [[LeaderboardRequiredColumns]]: a mapper's own totals need no visibility flags, so a
+   * schema that is behind on the evolutions adding `on_leaderboard`/`public_profile` still reports its numbers.
+   */
+  val CrossCityUserRequiredColumns: Set[(String, String)] = Set(
+    "label"            -> "user_id",
+    "label"            -> "deleted",
+    "label"            -> "tutorial",
+    "label"            -> "street_edge_id",
+    "label"            -> "audit_task_id",
+    "label"            -> "time_created",
+    "audit_task"       -> "audit_task_id",
+    "audit_task"       -> "street_edge_id",
+    "config"           -> "tutorial_street_edge_id",
+    "label_validation" -> "user_id",
+    "mission"          -> "user_id",
+    "mission"          -> "completed",
+    "mission"          -> "skipped",
+    "user_stat"        -> "user_id",
+    "user_stat"        -> "meters_audited"
+  )
+
+  /**
    * Coverage at or above this means a quiet city is treated as having reached its milestone ("wrapped up") rather than
    * having failed — the Oradell case (#4329). Success is judged by street coverage.
    */
@@ -970,6 +946,18 @@ trait ConfigService {
    * @return The scope, or a failed future if schema readiness can't be determined (the caller decides how to degrade).
    */
   def getGlobalLeaderboardScope: Future[GlobalLeaderboardScope]
+
+  /**
+   * Which cities a mapper's own cross-city stats may be gathered from (#4496).
+   *
+   * Every deployment that exists here and is far enough along on evolutions, with none of the leaderboard's privacy
+   * exclusions: those hold a city back from *naming people to strangers*, whereas this is a mapper reading their own
+   * totals, so work they did in a private or unlaunched city is still theirs to see. Privacy re-enters at the link —
+   * only publicly launched cities get a click-through.
+   *
+   * @return (cityId, schema) pairs in configured order, or a failed future if readiness can't be determined.
+   */
+  def getCrossCityUserScope: Future[Seq[(String, String)]]
 
   /**
    * Retrieves map parameters for a specific city by directly querying that city's database schema.
@@ -1248,7 +1236,7 @@ class ConfigServiceImpl @Inject() (
 
       // One metadata query rather than a per-city existence probe: schemas can sit at different evolution levels, and a
       // single missing column would otherwise fail the whole union at query time.
-      leaderboardReadySchemas().map { ready =>
+      schemasWithColumns(ConfigService.LeaderboardRequiredColumns).map { ready =>
         val (readyDeployments, skipped) = deployments.partition { case (_, schema) => ready.getOrElse(schema, false) }
         // A schema with *some* of the columns exists but is behind on evolutions — real, actionable drift, unlike a
         // schema that is simply absent (every dev box and single-city deployment has ~50 of those).
@@ -1269,6 +1257,33 @@ class ConfigServiceImpl @Inject() (
             schema
         }
         GlobalLeaderboardScope(cities, optOutSchemas)
+      }
+    }
+  }
+
+  def getCrossCityUserScope: Future[Seq[(String, String)]] = {
+    // Cached for the same reason as the leaderboard scope: it only changes when config or the schema list does, and it
+    // gates a per-request query. The recover stays outside so a transient failure isn't memoized as "no cities".
+    cacheApi.getOrElseUpdate[Seq[(String, String)]]("getCrossCityUserScope", Duration(1, "hours")) {
+      availableCityIds().flatMap { cityIds =>
+        val deployments: Seq[(String, String)] = cityIds.flatMap { cityId =>
+          try { Some(cityId -> getCitySchema(cityId)) }
+          catch { case _: Exception => None } // A city id with no db-schema entry simply can't be queried.
+        }
+        schemasWithColumns(ConfigService.CrossCityUserRequiredColumns).map { ready =>
+          val (readyDeployments, skipped) = deployments.partition { case (_, schema) =>
+            ready.getOrElse(schema, false)
+          }
+          // A schema with *some* of the columns is behind on evolutions — real drift, unlike a schema that is simply
+          // absent. availableCityIds already dropped those, so anything here is worth a warning.
+          if (skipped.nonEmpty) {
+            logger.warn(
+              s"Cross-city user stats excluding ${skipped.size} city schema(s) missing columns they read " +
+                s"(evolutions likely not yet applied there): ${skipped.map(_._2).mkString(", ")}"
+            )
+          }
+          readyDeployments
+        }
       }
     }
   }
@@ -1303,21 +1318,22 @@ class ConfigServiceImpl @Inject() (
   }
 
   /**
-   * Which schemas have every column the global leaderboard query reads, keyed by schema.
+   * Which schemas have every column in `required`, keyed by schema.
    *
    * Covers every schema rather than filtering to a candidate list in SQL, so the query needs no list binding; the
    * caller intersects. Note `information_schema` only exposes objects the connected role can see, so a schema the app
    * cannot read reports as absent — which is the behavior we want.
    *
-   * The required set is matched in Scala against [[ConfigService.LeaderboardRequiredColumns]] rather than counted in
-   * SQL, so the query and the readiness bar cannot drift apart.
+   * The required set is matched in Scala, and the probe derives its own `table_name` filter from that same set, so a
+   * cross-schema query and the readiness bar guarding it cannot drift apart.
    *
-   * @return Schema name to whether it has all the required columns; a schema with only some appears as false, which is
-   *         what distinguishes "behind on evolutions" from "absent".
+   * @param required The (table, column) pairs a caller's cross-schema query reads.
+   * @return         Schema name to whether it has all the required columns; a schema with only some appears as false,
+   *                 which is what distinguishes "behind on evolutions" from "absent".
    */
-  private def leaderboardReadySchemas(): Future[Map[String, Boolean]] = {
-    // Table names come from the hardcoded required-column set, never from a request, so splicing them is safe.
-    val tables: Set[String] = ConfigService.LeaderboardRequiredColumns.map(_._1)
+  private def schemasWithColumns(required: Set[(String, String)]): Future[Map[String, Boolean]] = {
+    // Table names come from a hardcoded required-column set, never from a request, so splicing them is safe.
+    val tables: Set[String] = required.map(_._1)
     db.run(
       sql"""
         SELECT table_schema, table_name, column_name
@@ -1330,7 +1346,7 @@ class ConfigServiceImpl @Inject() (
         .view
         .mapValues { schemaRows =>
           val present = schemaRows.map { case (_, table, column) => (table, column) }.toSet
-          ConfigService.LeaderboardRequiredColumns.subsetOf(present)
+          required.subsetOf(present)
         }
         .toMap
     }

@@ -24,7 +24,6 @@
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-  margin: var(--space-lg) 0;
   font-size: var(--font-size-sm);
 }
 

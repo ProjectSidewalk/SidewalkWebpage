@@ -143,7 +143,7 @@
       table.appendChild(tbody);
 
       container.innerHTML = '';
-      container.appendChild(table);
+      container.appendChild(window.createApiTableWrapper(table, 'Validation result types'));
       return table;
     },
   };
