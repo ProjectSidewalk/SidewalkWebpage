@@ -51,10 +51,15 @@ class GalleryController @Inject() (
       val labTypes: Seq[String] =
         labelType.split(",").map(_.trim).filter(LabelTypeEnum.labelTypeNames.contains).toSeq
 
+      // Nothing here depends on anything else, so start all three before the for-comprehension sequences them.
+      val regionsF: Future[Seq[Region]] = regionService.getAllRegions
+      val allTagsF: Future[Seq[Tag]]    = labelService.getTagsForCurrentCity
+      val commonDataF                   = configService.getCommonPageData(request2Messages.lang)
+
       for {
-        regions: Seq[Region] <- regionService.getAllRegions
-        allTags: Seq[Tag]    <- labelService.getTagsForCurrentCity
-        commonData           <- configService.getCommonPageData(request2Messages.lang)
+        regions    <- regionsF
+        allTags    <- allTagsF
+        commonData <- commonDataF
       } yield {
         // Cards name the neighborhood a label sits in, so the page carries the id -> name map the labels key into.
         val regionNames: Map[Int, String] = regions.map(r => r.regionId -> r.name).toMap

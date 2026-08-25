@@ -23,7 +23,9 @@
 
 .not-added {
   background-color: var(--color-neutral-white);
-  font-size: 2.4cqw; /* Card-relative like .card-data: the popover renders inside the card (see TagDisplay). */
+
+  /* Card-relative like .card-data: the popover renders inside the card (see TagDisplay). */
+  font-size: max(11px, 2.4cqw);
   margin: 1px;
 }
 

@@ -5,10 +5,6 @@
   overflow-x: clip;
 }
 
-#labels-not-found {
-  display: none;
-}
-
 .paging {
   display: inline-block;
   font-size: 30px;
@@ -21,6 +17,14 @@
 .paging:disabled {
   border-width: 0.2px;
   opacity: 0.5;
+}
+
+/* Same predicate as the cards' vote row: a comfortable target is about the pointer, not the layout width. */
+@media (pointer: coarse) {
+  .paging {
+    min-width: 44px;
+    min-height: 44px;
+  }
 }
 
 #horizontal-line {
@@ -45,7 +49,9 @@
   padding-left: 10px;
 }
 
+/* Hidden as a whole rather than by an inner span, so the padded box takes no room in the stacked phone layout. */
 #labels-not-found-text {
+  display: none;
   position: absolute;
   width: 100%;
   text-align: center;
@@ -55,7 +61,6 @@
 .page-control {
   padding-bottom: 15px;
   display: flex;
-  justify-content: center;
   margin: auto;
   width: fit-content;
 }
@@ -106,9 +111,10 @@
 .cards {
   display: grid;
 
-  /* The 23vw floor keeps desktop at ~3 cards across; narrower windows fall to 2 then 1 columns, and the inner
-     min() lets the track shrink below 280px so a 320px phone still fits. auto-fill (not auto-fit) keeps a short
-     last page's cards at normal width. */
+  /* The 23vw floor keeps desktop at ~3 cards across; narrower windows fall to 2 then 1 columns. The inner min()
+     caps the track at the content box, so a viewport under ~300px — the point where a 280px track stops fitting —
+     shrinks the card rather than overflowing. auto-fill (not auto-fit) keeps a short last page's cards at normal
+     width. */
   grid-template-columns: repeat(auto-fill, minmax(min(max(280px, 23vw), 100%), 1fr));
   gap: clamp(10px, 1.2vw, 24px);
 }
@@ -119,16 +125,11 @@ We should allow the pointer events to pass through and behave the same way as th
   pointer-events: none;
 }
 
-.ai-icon-marker {
-  position: absolute;
+/* Scoped to the card badge, not every .ai-icon-marker on the page: cqw against .gallery-card keeps it proportional
+   to the card, and the expanded view's marker has no size container to resolve against — it keeps main.css's size. */
+.ai-icon-marker-card {
   width: clamp(12px, 3cqw, 16px);
   height: clamp(12px, 3cqw, 16px);
-  z-index: 3;
-  pointer-events: auto;
-  cursor: pointer;
-}
-
-.ai-icon-marker-card {
   top: -6px;
   left: -5px;
 }
@@ -153,11 +154,6 @@ We should allow the pointer events to pass through and behave the same way as th
   /* Resolves against the initial containing block, which the stacked sidebar now overlaps. */
   #labels-not-found-text {
     position: static;
-  }
-
-  .paging {
-    min-width: 44px;
-    min-height: 44px;
   }
 
   /* Full-screen sheet below the navbar (and test banner). dvh tracks the visible viewport under mobile

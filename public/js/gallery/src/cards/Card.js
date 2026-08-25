@@ -315,12 +315,14 @@ class Card {
    * Renders the tags on the card when the card is loaded onto on the DOM.
    */
   #renderTags() {
-    const selector = `.card-tags#${this.#properties.label_id}`;
-    new TagDisplay(selector, this.#properties.tags);
+    new TagDisplay(this.#card.querySelector('.card-tags'), this.#properties.tags);
   }
 
   /** Re-runs the pixel-measured tag fit against the card's current width (see CardContainer's ResizeObserver). */
   refitTags() {
+    // Detaching the page's cards changes the holder's width, so the observer can fire on cards already out of the
+    // DOM, where every tag measures zero and the fit collapses to a bare "+n". They re-fit on re-render anyway.
+    if (!this.#card.isConnected) return;
     this.#renderTags();
   }
 

@@ -1,18 +1,24 @@
 .gallery-card {
+  /* One source for the selected-vote fill, which the hover and coarse-pointer rules below both paint with. */
+  --validation-button-selected-bg: var(--color-neutral-600);
+
   position: relative;
-  display: block;
   padding: 0;
   border-radius: 20px;
-  width: auto; /* The .cards grid sizes the card. */
   height: fit-content;
 
   /* Interior type/spacing is sized in cqw against this container, so a card reads the same at any grid width —
-     one wide column on a phone, three across on a desktop (where a card is ~25vw, making 4cqw ≈ 1vw). */
+     one wide column on a phone, three across on a desktop (where a card is ~25vw, making 4cqw ≈ 1vw). Sizes that
+     have to stay legible or tappable carry a px floor via max(): proportional above it, never below it. */
   container-type: inline-size;
 }
 
 .gallery-card:hover {
   box-shadow: 0 4px 8px 0 rgb(0 0 0 / 10%), 0 6px 20px 0 rgb(0 0 0 / 5%);
+
+  /* Engines before Chrome 129 / Firefox 133 / Safari 18.4 still make container-type: inline-size a stacking
+     context, which paints the "+n" tag popover under the next card in the grid (csswg-drafts#10544). */
+  z-index: 1;
 }
 
 .validate-agree {
@@ -91,7 +97,7 @@ with respect to the image holder. This allows the validation menu to be placed o
   gap: 1.6cqw;
   padding: 5px 5px 3px 7px;
   font: var(--text-body-bold);
-  font-size: 4cqw;
+  font-size: max(12px, 4cqw);
 }
 
 /* The label type is what the card is about, so it keeps its width and the neighborhood beside it gives way. */
@@ -109,7 +115,7 @@ with respect to the image holder. This allows the validation menu to be placed o
   align-items: baseline;
   gap: 0.8cqw;
   font: var(--text-small-regular);
-  font-size: 2.88cqw;
+  font-size: max(11px, 2.88cqw);
   font-weight: 400;
   line-height: 1.2;
   color: var(--color-neutral-600);
@@ -175,11 +181,11 @@ with respect to the image holder. This allows the validation menu to be placed o
   justify-content: center;
   flex-direction: row;
   font: var(--text-small-regular);
-  font-size: 2.4cqw;
+  font-size: max(11px, 2.4cqw);
 
-  /* A definite height (the vote icons fill it via height: 100%), card-relative rather than viewport-relative;
-     5.6cqw matches the old 2.5vh at a typical 16:9 desktop window. */
-  height: 5.6cqw;
+  /* A definite height, card-relative: the vote icons fill it via height: 100%, so the 24px floor is also what keeps
+     them at the WCAG 2.5.8 minimum target size on a narrow card. */
+  height: max(24px, 5.6cqw);
 }
 
 .card-severity {
@@ -309,7 +315,7 @@ with respect to the image holder. This allows the validation menu to be placed o
 .validation-button, .validation-button-selected {
   opacity: 0;
   font: var(--text-body-bold);
-  font-size: 3cqw;
+  font-size: max(11px, 3cqw);
   background-color: var(--color-neutral-white);
   border-style: none;
   color: var(--color-asphalt-500);
@@ -326,7 +332,7 @@ with respect to the image holder. This allows the validation menu to be placed o
 
 .gallery-card:hover .validation-button-selected {
   opacity: 1;
-  background-color: gray;
+  background-color: var(--validation-button-selected-bg);
 }
 
 /* Read-only mode: the card shows the viewer's own label, so validating isn't allowed. The UI stays in place but
@@ -363,7 +369,7 @@ with respect to the image holder. This allows the validation menu to be placed o
 
   .validation-button-selected {
     opacity: 1;
-    background-color: gray;
+    background-color: var(--validation-button-selected-bg);
   }
 }
 
@@ -374,8 +380,8 @@ with respect to the image holder. This allows the validation menu to be placed o
 .severity-circle {
   color: var(--color-neutral-white);
   border: 1px solid var(--color-asphalt-500);
-  width: 2.8cqw;
-  height: 2.8cqw;
+  width: max(11px, 2.8cqw);
+  height: max(11px, 2.8cqw);
   border-radius: 50%;
   text-align: center;
   margin: 2px;

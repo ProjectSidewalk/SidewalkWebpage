@@ -37,7 +37,7 @@ class Main {
     // Keep track of some other elements whose status or dimensions are useful.
     sg.ui.pageControl = $('.page-control');
     sg.pageLoading = $('#page-loading');
-    sg.labelsNotFound = $('#labels-not-found');
+    sg.labelsNotFound = $('#labels-not-found-text');
   }
 
   async #init(params) {

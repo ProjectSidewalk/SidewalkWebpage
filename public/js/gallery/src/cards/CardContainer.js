@@ -160,10 +160,10 @@ class CardContainer {
     // (rotation, the narrow-layout re-stack, a desktop resize) leaves stale fits; re-fit the visible cards.
     // TagDisplay rebuilds from scratch, so re-running is idempotent; the width guard plus trailing debounce
     // keep it quiet during continuous resizes and height-only changes (which ResizeObserver also reports).
-    let lastTagFitWidth = uiCardContainer.holder.width();
+    let lastTagFitWidth = null;
     let tagRefitTimer = null;
-    new ResizeObserver(() => {
-      const width = uiCardContainer.holder.width();
+    new ResizeObserver((entries) => {
+      const width = entries[0].contentRect.width;
       if (width === lastTagFitWidth) return;
       lastTagFitWidth = width;
       clearTimeout(tagRefitTimer);
@@ -283,6 +283,11 @@ class CardContainer {
           }
           if (callback) callback();
         }
+      },
+      // Still run the callback on failure: it is what releases the sidebar's loading state, so skipping it leaves
+      // the filters greyed and unusable for the rest of the page's life.
+      error: () => {
+        if (callback) callback();
       },
     });
   }
