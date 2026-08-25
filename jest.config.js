@@ -22,8 +22,9 @@ module.exports = {
   // No Babel/TS transform — these tests and the modules under test are plain ES6 that Node runs natively.
   transform: {},
 
-  // Keep coverage opt-in; if enabled, only measure the api-docs preview modules the prototype targets.
-  collectCoverageFrom: ['public/js/api-docs/*Preview.js'],
+  // Keep coverage opt-in; if enabled, only measure what the prototype's suites actually execute: the api-docs
+  // preview modules plus the shared table-wrapper helper their renderers call.
+  collectCoverageFrom: ['public/js/api-docs/*Preview.js', 'public/js/api-docs/apiTableWrapper.js'],
 
   verbose: true
 };
