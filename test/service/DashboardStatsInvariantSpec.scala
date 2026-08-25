@@ -609,23 +609,23 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
           case _                  => ()
         }
         rows.foreach { row =>
-          row.hours must be > 0d
+          row.hours must be >= 0d
           row.cityName.trim must not be empty
         }
         rows.count(_.isCurrentCity) must be <= 1
-        // Summing per-city totals can only fall below one city's own by that city's rounding, and only ever gains
-        // from the others.
+        // The total rounds the full-precision sum, so it can only fall below one city's own by that rounding.
         result.totalHours must be >= local - 0.05001
-        // The current city's row is the single-city number to the tenth, since both run the identical query there.
-        rows.find(_.isCurrentCity).foreach(_.hours mustBe toTenth(local))
+        // Apportionment can move the current city's row a tenth off its own value to make the table reconcile, so
+        // this is the tightest bound that still holds.
+        rows.find(_.isCurrentCity).foreach(row => (row.hours - local).abs must be <= 0.10001)
       }
     }
 
-    "hand the page hours already rounded, so its rows and its headline cannot disagree" in {
+    "hand the page whole tenths, so its one-decimal rendering loses nothing" in {
+      // That these tenths reconcile with the headline is arithmetic, covered exhaustively in HoursApportionmentSpec.
       topUser.foreach { user =>
-        val result = await(userService.getCrossCityHours(user.userId, Lang("en")))
-        result.cities.foreach(row => row.hours mustBe toTenth(row.hours))
-        result.totalHours mustBe result.cities.map(_.hours).sum
+        await(userService.getCrossCityHours(user.userId, Lang("en"))).cities
+          .foreach(row => row.hours mustBe toTenth(row.hours))
       }
     }
 

@@ -157,7 +157,9 @@ case class CrossCityUserStats(
  *
  * @param cityId        Configured city id.
  * @param cityName      Short display name in the viewer's language.
- * @param hours         Hours logged in that city, already rounded to the tenth the page displays.
+ * @param hours         Hours logged in that city, to the tenth the page displays, apportioned so the rows reconcile
+ *                      with the headline. May sit a tenth off this city's own value; see
+ *                      [[UserService.apportionToTenths]].
  * @param isCurrentCity True for the deployment being viewed.
  */
 case class CityHours(cityId: String, cityName: String, hours: Double, isCurrentCity: Boolean)
@@ -165,10 +167,10 @@ case class CityHours(cityId: String, cityName: String, hours: Double, isCurrentC
 /**
  * A volunteer's logged hours across every city, and what the total could not reach (#4526).
  *
- * Hours arrive pre-rounded so that [[totalHours]] is exactly the sum of the rows a reader can see. Rounding each row
- * for display and the total separately lets the two disagree — 0.25 + 0.25 renders as `0.3 + 0.3` under a headline of
- * `0.5` — and a breakdown that visibly fails to add up undermines the one job this page has, which is making the
- * headline credible to a supervisor.
+ * [[totalHours]] is the rounded full-precision total *and* exactly the sum of the rows a reader can see, because the
+ * rows are apportioned to it rather than rounded on their own. Rounding both sides independently lets them disagree —
+ * `0.25 + 0.25` renders as `0.3 + 0.3` beneath a headline of `0.5` — and a breakdown that visibly fails to add up
+ * undermines the one job this page has, which is making the headline credible to a supervisor.
  *
  * @param cities            Cities with logged time, most hours first.
  * @param unreachableCities How many deployments could not be totalled at all. Any of them may have held hours, so a
@@ -176,8 +178,13 @@ case class CityHours(cityId: String, cityName: String, hours: Double, isCurrentC
  */
 case class CrossCityHours(cities: Seq[CityHours], unreachableCities: Int) {
 
-  /** The figure a volunteer reports: the sum of the rows shown beneath it, to the tenth. */
-  def totalHours: Double = cities.map(_.hours).sum
+  /**
+   * The figure a volunteer reports: the sum of the rows shown beneath it, to the tenth.
+   *
+   * Summed in decimal rather than binary floating point, so adding a column of tenths lands on the tenth itself
+   * instead of an ulp either side of it.
+   */
+  def totalHours: Double = cities.map(city => BigDecimal.decimal(city.hours)).sum.toDouble
 }
 
 /**
@@ -227,6 +234,47 @@ object UserService {
    * leaving the pool with room to serve everyone else.
    */
   val CrossCityHoursBatchSize: Int = 6
+
+  /**
+   * Rounds hours to the tenth the Time Check page displays, half-up to match `"%.1f".format` (#4526).
+   *
+   * @param hours Unrounded hours.
+   * @return      The same value to one decimal place.
+   */
+  def toDisplayedTenth(hours: Double): Double =
+    BigDecimal.decimal(hours).setScale(1, BigDecimal.RoundingMode.HALF_UP).toDouble
+
+  /**
+   * Rounds each city to a tenth such that the rows still add up to the rounded *true* total (#4526).
+   *
+   * The headline is what a volunteer hands a supervisor, so it is rounded from the full-precision sum rather than
+   * assembled out of already-rounded rows — that keeps it the most accurate figure available. Largest-remainder
+   * apportionment then hands out the tenths: every row lands on the floor or the ceiling of its own value, and the
+   * tenths left over by flooring go to the cities that came nearest to earning one. The breakdown therefore
+   * reconciles with the headline exactly, at a cost of at most a tenth on an individual row.
+   *
+   * Ties break toward the larger city and then the earlier city id, matching the display order, so the same input
+   * always produces the same table.
+   *
+   * @param rows Cities carrying unrounded hours, most hours first.
+   * @return     The same rows in the same order, each to one decimal place, summing to the rounded total of the
+   *             originals.
+   */
+  def apportionToTenths(rows: Seq[CityHours]): Seq[CityHours] = {
+    val tenths: Seq[BigDecimal] = rows.map(row => BigDecimal.decimal(row.hours) * 10)
+    val floors: Seq[Long]       = tenths.map(_.setScale(0, BigDecimal.RoundingMode.FLOOR).toLong)
+    val target: Long            = tenths.sum.setScale(0, BigDecimal.RoundingMode.HALF_UP).toLong
+
+    val spare: Int          = (target - floors.sum).toInt
+    val roundedUp: Set[Int] = rows.indices
+      .sortBy(i => (-(tenths(i) - BigDecimal(floors(i))), -rows(i).hours, rows(i).cityId))
+      .take(spare)
+      .toSet
+
+    rows.zipWithIndex.map { case (row, i) =>
+      row.copy(hours = (floors(i) + (if (roundedUp(i)) 1L else 0L)) / 10d)
+    }
+  }
 
   /** Label types shown in the per-type accuracy bars (the ones with canonical `--color-label-*` colors), in order. */
   private val PrimaryLabelTypes: Seq[String] =
@@ -883,17 +931,6 @@ class UserServiceImpl @Inject() (
     }
   }
 
-  /**
-   * Rounds hours to the tenth the Time Check page displays, half-up to match `"%.1f".format` (#4526).
-   *
-   * Applied before the rows and the headline are derived, so the two can't round to figures that disagree.
-   *
-   * @param hours Unrounded hours.
-   * @return      The same value to one decimal place.
-   */
-  private def toDisplayedTenth(hours: Double): Double =
-    java.math.BigDecimal.valueOf(hours).setScale(1, java.math.RoundingMode.HALF_UP).doubleValue
-
   def getCrossCityHours(userId: String, lang: Lang): Future[CrossCityHours] = {
     val cityInfoById: Map[String, CityInfo] =
       configService.getAllCityInfo(lang).map(city => city.cityId -> city).toMap
@@ -921,7 +958,7 @@ class UserServiceImpl @Inject() (
         }.map { perCity =>
           val (failedSchemas, totals) = perCity.partitionMap(identity)
           val schemaByCityId          = scope.cities.toMap
-          val worked                  = totals.filter { case (_, hours) => toDisplayedTenth(hours) > 0d }
+          val worked                  = totals.filter { case (_, hours) => hours > 0d }
 
           // A city with hours but no config entry can't be named in the table, so it drops out the same way an
           // unreadable schema does — and has to be counted the same way too.
@@ -930,20 +967,19 @@ class UserServiceImpl @Inject() (
             logger.warn(s"No city info for ${unnameable.map(_._1).mkString(", ")}, omitting from the hours breakdown")
           }
 
+          // Sorted on full precision, so the order reflects the real amounts rather than whichever way a tie rounded.
           val rows = nameable
             .flatMap { case (cityId, hours) =>
               cityInfoById.get(cityId).map { city =>
-                CityHours(
-                  cityId,
-                  city.cityNameShort,
-                  toDisplayedTenth(hours),
-                  schemaByCityId.get(cityId).contains(currentSchema)
-                )
+                CityHours(cityId, city.cityNameShort, hours, schemaByCityId.get(cityId).contains(currentSchema))
               }
             }
             .sortBy(city => (-city.hours, city.cityId))
 
-          CrossCityHours(rows, scope.skippedSchemas.size + failedSchemas.size + unnameable.size)
+          CrossCityHours(
+            UserService.apportionToTenths(rows),
+            scope.skippedSchemas.size + failedSchemas.size + unnameable.size
+          )
         }
       }
       .recoverWith { case e: Exception =>
@@ -956,7 +992,7 @@ class UserServiceImpl @Inject() (
             CityHours(
               configService.getCityId,
               allCities.find(_.cityId == configService.getCityId).map(_.cityNameShort).getOrElse(""),
-              toDisplayedTenth(hours),
+              UserService.toDisplayedTenth(hours),
               isCurrentCity = true
             )
           ).filter(_.hours > 0d)
