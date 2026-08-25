@@ -37,12 +37,13 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
-  private val userService   = app.injector.instanceOf[UserService]
-  private val messages      = play.api.test.Helpers.stubMessages()
-  private val authService   = app.injector.instanceOf[AuthenticationService]
-  private val configService = app.injector.instanceOf[ConfigService]
-  private val config        = app.injector.instanceOf[Configuration]
-  private val userStatTable = app.injector.instanceOf[UserStatTable]
+  private val userService               = app.injector.instanceOf[UserService]
+  private val messages                  = play.api.test.Helpers.stubMessages()
+  private val authService               = app.injector.instanceOf[AuthenticationService]
+  private val configService             = app.injector.instanceOf[ConfigService]
+  private val config                    = app.injector.instanceOf[Configuration]
+  private val userStatTable             = app.injector.instanceOf[UserStatTable]
+  private val auditTaskInteractionTable = app.injector.instanceOf[models.audit.AuditTaskInteractionTable]
   // Typed explicitly: letting `.db` infer here yields an existential type the compiler rejects under -Xfatal-warnings.
   private val dbConfig: DatabaseConfig[MyPostgresProfile] =
     app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
@@ -50,6 +51,10 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
   private val ghostId = "00000000-0000-0000-0000-000000000000"
 
   private def await[T](f: => scala.concurrent.Future[T]): T = Await.result(f, 60.seconds)
+
+  /** The one-decimal rounding `getCrossCityHours` applies before the Time Check page ever sees a number. */
+  private def toTenth(hours: Double): Double =
+    java.math.BigDecimal.valueOf(hours).setScale(1, java.math.RoundingMode.HALF_UP).doubleValue
 
   // Carries a successful result out through the forced-rollback failure path of `runRolledBack`.
   private case class RollbackWithResult(result: Any) extends RuntimeException with scala.util.control.NoStackTrace
@@ -527,6 +532,114 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
       stats mustBe defined
       stats.get.cities mustBe empty
       stats.get.totalLabels mustBe 0
+    }
+  }
+
+  "getCrossCityHoursScope" should {
+    "return (cityId, schema) pairs that are configured, queryable, and safe to splice" in {
+      val scope         = await(configService.getCrossCityHoursScope)
+      val configuredIds = config.get[Seq[String]]("city-params.city-ids").toSet
+
+      scope.cities.map(_._1).distinct.length mustBe scope.cities.length
+      scope.cities.foreach { case (cityId, schema) =>
+        configuredIds must contain(cityId)
+        cityId must not be "staging"
+        schema must fullyMatch regex "^[a-z_][a-z0-9_]*$"
+        configService.getCitySchema(cityId) mustBe schema
+      }
+    }
+
+    "gate on the interaction tables the hours query reads, not the contribution tables" in {
+      // The two self-view scopes exist separately only because they read different tables. If the column sets ever
+      // converged, one of the fan-outs would be gating on readiness it doesn't actually need.
+      val hoursTables = ConfigService.CrossCityHoursRequiredColumns.map(_._1)
+      val statsTables = ConfigService.CrossCityUserRequiredColumns.map(_._1)
+
+      hoursTables must contain("audit_task_interaction_small")
+      hoursTables must contain("webpage_activity")
+      statsTables must not contain "audit_task_interaction_small"
+      hoursTables must not contain "user_stat"
+    }
+
+    "account for every deployment it considered, so an excluded city is never simply lost" in {
+      // The count of skipped schemas is what the Time Check page shows the volunteer, so it has to be complete.
+      val scope = await(configService.getCrossCityHoursScope)
+      scope.skippedSchemas.toSet intersect scope.cities.map(_._2).toSet mustBe empty
+      scope.skippedSchemas.distinct.length mustBe scope.skippedSchemas.length
+    }
+  }
+
+  "getHoursAuditingAndValidatingBySchema" should {
+    "refuse a schema name that isn't a bare identifier" in {
+      Seq("public; DROP TABLE label", "sidewalk_seattle\"", "Sidewalk_Seattle", "").foreach { bad =>
+        an[IllegalArgumentException] must be thrownBy
+          auditTaskInteractionTable.getHoursAuditingAndValidatingBySchema(ghostId, bad)
+      }
+    }
+
+    "agree with the unqualified query when pointed at this connection's own schema" in {
+      // The unqualified one delegates here, so a divergence would mean the delegation broke rather than the SQL.
+      topUser.foreach { user =>
+        val schema = await(dbConfig.db.run(userStatTable.currentSchema))
+        await(
+          dbConfig.db.run(auditTaskInteractionTable.getHoursAuditingAndValidatingBySchema(user.userId, schema))
+        ) mustBe
+          await(dbConfig.db.run(auditTaskInteractionTable.getHoursAuditingAndValidating(user.userId)))
+      }
+    }
+
+    "report zero for an account with no logged activity" in {
+      val schema = await(dbConfig.db.run(userStatTable.currentSchema))
+      await(
+        dbConfig.db.run(auditTaskInteractionTable.getHoursAuditingAndValidatingBySchema(ghostId, schema))
+      ) mustBe 0.0
+    }
+  }
+
+  "getCrossCityHours" should {
+    "list only cities with logged time, most hours first, and include at least this city's own total" in {
+      topUser.foreach { user =>
+        val result = await(userService.getCrossCityHours(user.userId, Lang("en")))
+        val rows   = result.cities
+        val local  = await(userService.getHoursAuditingAndValidating(user.userId))
+
+        rows.map(_.cityId).distinct.length mustBe rows.length
+        rows.map(_.hours).sliding(2).foreach {
+          case Seq(higher, lower) => higher must be >= lower
+          case _                  => ()
+        }
+        rows.foreach { row =>
+          row.hours must be >= 0d
+          row.cityName.trim must not be empty
+        }
+        rows.count(_.isCurrentCity) must be <= 1
+        // The total rounds the full-precision sum, so it can only fall below one city's own by that rounding.
+        result.totalHours must be >= local - 0.05001
+        // Apportionment can move the current city's row a tenth off its own value to make the table reconcile, so
+        // this is the tightest bound that still holds.
+        rows.find(_.isCurrentCity).foreach(row => (row.hours - local).abs must be <= 0.10001)
+      }
+    }
+
+    "hand the page whole tenths, so its one-decimal rendering loses nothing" in {
+      // That these tenths reconcile with the headline is arithmetic, covered exhaustively in HoursApportionmentSpec.
+      topUser.foreach { user =>
+        await(userService.getCrossCityHours(user.userId, Lang("en"))).cities
+          .foreach(row => row.hours mustBe toTenth(row.hours))
+      }
+    }
+
+    "report nothing for an account that has never worked anywhere" in {
+      val result = await(userService.getCrossCityHours(ghostId, Lang("en")))
+      result.cities mustBe empty
+      result.totalHours mustBe 0d
+    }
+
+    "count every city it couldn't total, so the page can admit the number is a floor" in {
+      val result = await(userService.getCrossCityHours(ghostId, Lang("en")))
+      val scope  = await(configService.getCrossCityHoursScope)
+      // Nothing is unreachable beyond what the scope already held back, on a database that is answering queries.
+      result.unreachableCities must be >= scope.skippedSchemas.size
     }
   }
 
