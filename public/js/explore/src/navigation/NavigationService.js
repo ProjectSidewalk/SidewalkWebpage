@@ -172,13 +172,15 @@ class NavigationService {
     }
 
     // Nowhere near the end, so the street really does look like it runs out of imagery ahead of the user. Two
-    // separable decisions follow, and conflating them is what made this dangerous: whether to *write down* that the
-    // street has no imagery, and whether to move the labeler somewhere they can keep working (#4918).
+    // separable decisions follow: whether to *write down* that the street looks imagery-less, and whether to move
+    // the labeler somewhere they can keep working (#4918).
     //
-    // Flagging marks the whole street audited and drops it out of the rotation, so an unbroken run of flags — far
-    // better explained by one broken session than by a run of empty streets — stops being written down at
-    // MAX_CONSECUTIVE_FLAGS. Moving on carries no such cost, so it continues past that point: a labeler working a
-    // patchy area shouldn't be stranded just because we stopped trusting what we're seeing.
+    // Writing it down records evidence and nothing else: the task is not completed or submitted, and the street
+    // keeps its priority and its place in the rotation until the offline imagery checker confirms the reports and
+    // retires it (#4922) — one session's verdict is never enough to move coverage. Even as pure evidence, an
+    // unbroken run of reports is far better explained by one broken session than by a run of empty streets, so
+    // reporting stops at MAX_CONSECUTIVE_FLAGS. Moving on costs nothing, so it continues past that point: a labeler
+    // working a patchy area shouldn't be stranded just because we stopped trusting what we're seeing.
     const mayFlag = NoImageryFlagGuard.canFlag();
     NoImageryFlagGuard.recordStreetGivenUp();
     if (mayFlag) {
@@ -187,11 +189,13 @@ class NavigationService {
       svl.tracker.push('NoImageryFlagLimitReached');
     }
 
-    // Past the flag limit the street is left alone entirely — not completed, not submitted — so it stays in the
-    // rotation for someone else to settle. That also leaves it eligible for nextTask(), which only excludes the
-    // street just left, so the run has to end somewhere or it can cycle between the same few streets forever.
+    // Every given-up street stays incomplete, which leaves it eligible for nextTask() — only the street just left is
+    // excluded — so the run can cycle between the same few streets. The advance ceiling is what ends it.
     if (!NoImageryFlagGuard.canAdvance()) {
       svl.tracker.push('NoImageryAdvanceLimitReached');
+      // The run is over, so the budget goes back: what follows can only be the labeler deciding to try again, which
+      // is a fresh decision rather than a continuation of the automatic run this bounds (#4918).
+      NoImageryFlagGuard.reset();
       this.#restoreUiAfterFailedMove();
       // Its own message rather than the imagery-load-failed one: nothing failed to load here — the provider answered
       // every time, and we are the ones who stopped believing it. "Try again in a few minutes" would be wrong
@@ -200,11 +204,16 @@ class NavigationService {
       return Promise.resolve(null);
     }
 
-    // Get a new task and jump to the new task location. Completing the task we're leaving is part of flagging it, so
-    // it only happens while we still trust the signal; past that the labeler is moved on and nothing is recorded.
-    if (mayFlag) this.#finishCurrentTaskBeforeJumping(currentMission);
+    // Get a new task and jump to the new task location. The task being left is deliberately not finished — finishing
+    // it submits completed=true, and the regular submission path credits that as a full audit, which is exactly the
+    // claim a no-imagery verdict cannot support (#4922).
     const newTask = svl.taskContainer.nextTask(currentTask);
     if (newTask) {
+      // Flush what the labeler did here before the current task changes under the buffer. Interactions carry no task
+      // id of their own — the server files them against whichever audit_task the submission names — so anything still
+      // queued would land on the street they are about to be moved to. This is a plain submission, not endTask(): the
+      // task is left unfinished, since finishing it submits completed=true and credits a full audit (#4922).
+      await svl.form.submitData(currentTask);
       svl.taskContainer.setCurrentTask(newTask);
       // Not awaited: naming the destination takes a network round trip, and the move should not wait on decoration.
       svl.stuckAlert.announceSkippedStreetNear(newTask.getMidpoint(), svl.mapboxApiKey);
@@ -593,9 +602,9 @@ class NavigationService {
     // The stuck set exists to stop the user cycling among panos they have already stood at on *this* street.
     // Carrying it onto the next street poisons the search there: the nearest pano to a new street's start is
     // routinely one visited on the street just finished, and setLocation() rejects an excluded pano exactly as it
-    // rejects empty ground — so a street with perfectly good imagery can scan as having none, and then be reported
-    // and marked audited on that basis (#4918). Short streets are the worst case, since every sample point on them
-    // can fall within range of the same already-visited pano.
+    // rejects empty ground — so a street with perfectly good imagery can scan as having none, and then be falsely
+    // reported on that basis (#4918). Short streets are the worst case, since every sample point on them can fall
+    // within range of the same already-visited pano.
     if (currentTask.getStreetEdgeId() !== this.#stuckPanosStreetId) {
       this.#stuckPanos.clear();
       this.#stuckPanosStreetId = currentTask.getStreetEdgeId();

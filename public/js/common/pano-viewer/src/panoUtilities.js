@@ -115,18 +115,26 @@ util.pano.fovToZoom = (fov) => {
 };
 
 /**
- * Returns the panorama's pov if this label were centered using pano XY coordinates.
+ * Decodes the Explore tutorial's angular annotation coordinates into the POV at which the annotation is centered.
  *
- * @param {number} panoX The x-coordinate within the panorama image
- * @param {number} panoY The y-coordinate within the panorama image
+ * Despite the parallel shape, this is NOT the inverse of povToPanoCoord, and must never be fed a real image
+ * coordinate such as a stored label's pano_x/pano_y (the true inverse of povToPanoCoord is the Scala
+ * PanoDataService.calculatePovFromPanoXY). The inputs here are angles merely *expressed in* pano-pixel units:
+ * x runs east from true north (x = 0 is heading 0°; the pano's cameraHeading plays no part), and y is measured
+ * from the horizon, positive up (y = 0 is pitch 0°) — whereas povToPanoCoord's output puts the horizon at row
+ * panoHeight / 2 and column 0 at cameraHeading − 180°. Its only callers are the tutorial's annotation drawing
+ * paths, whose coordinates in OnboardingStates.js are authored in this convention (#4957).
+ *
+ * @param {number} xFromNorth Heading in pano-pixel units east of true north; panoWidth spans 360°.
+ * @param {number} yAboveHorizon Pitch in pano-pixel units above the horizon; panoHeight / 2 spans 90°.
  * @param {number} panoWidth The width of the panorama image
  * @param {number} panoHeight The height of the panorama image
  * @returns {{heading: number, pitch: number}}
  */
-util.pano.panoCoordToPov = (panoX, panoY, panoWidth, panoHeight) => {
+util.pano.horizonRelativeCoordToPov = (xFromNorth, yAboveHorizon, panoWidth, panoHeight) => {
   return {
-    heading: (panoX / panoWidth) * 360 % 360,
-    pitch: (panoY / (panoHeight / 2) * 90),
+    heading: (xFromNorth / panoWidth) * 360 % 360,
+    pitch: (yAboveHorizon / (panoHeight / 2) * 90),
   };
 };
 

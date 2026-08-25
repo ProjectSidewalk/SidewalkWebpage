@@ -94,7 +94,10 @@ class Main {
 
     // Arriving here from a load that gave up on its street: that reload is the only thing the labeler saw, and it
     // took the banner explaining the move down with it, so the explanation is delivered on arrival instead (#4918).
-    if (PanoManager.consumeStreetSkippedNotice()) {
+    // The reported street stays in the pool and assignment picks at random, so the fresh one can be the same street
+    // again (#4922) — announce the move only when the labeler actually landed somewhere else.
+    const skippedStreetId = PanoManager.consumeStreetSkippedNotice();
+    if (skippedStreetId !== null && skippedStreetId !== newTask.getStreetEdgeId()) {
       svl.stuckAlert.announceSkippedStreetNear(newTask.getMidpoint(), params.mapboxApiKey);
     }
     const currLatLng = svl.panoViewer.getPosition();
