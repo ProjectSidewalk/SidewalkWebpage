@@ -13,15 +13,15 @@
 ALTER TYPE pano_imagery_change_source ADD VALUE IF NOT EXISTS 'reconciliation';
 
 -- The reconciliation pass reads the newest log row per pano: DISTINCT ON (pano_id) ordered by pano_id,
--- changed_at DESC, pano_imagery_change_id DESC. This composite serves that as one presorted index scan, joined hash-
--- wise to a single pass over pano_data -- no per-row subqueries. Its pano_id prefix also covers everything the plain
--- pano_id index served (the FK's ON DELETE CASCADE lookups), so that index is dropped rather than kept as a
+-- changed_at DESC, pano_imagery_change_id DESC. This composite serves that as one presorted index scan, left-joined
+-- hash-wise to a single pass over pano_data -- no per-row subqueries. Its pano_id prefix also covers everything the
+-- plain pano_id index served (the FK's ON DELETE CASCADE lookups), so that index is dropped rather than kept as a
 -- redundant copy -- net index count on the table is unchanged.
-CREATE INDEX pano_imagery_change_pano_id_changed_at_idx
+CREATE INDEX IF NOT EXISTS pano_imagery_change_pano_id_changed_at_idx
     ON pano_imagery_change (pano_id, changed_at DESC, pano_imagery_change_id DESC);
-DROP INDEX pano_imagery_change_pano_id_idx;
+DROP INDEX IF EXISTS pano_imagery_change_pano_id_idx;
 
 # --- !Downs
 -- The reconciliation value stays: Postgres can't drop an enum value without rebuilding the type (331/339 precedent).
-CREATE INDEX pano_imagery_change_pano_id_idx ON pano_imagery_change (pano_id);
-DROP INDEX pano_imagery_change_pano_id_changed_at_idx;
+CREATE INDEX IF NOT EXISTS pano_imagery_change_pano_id_idx ON pano_imagery_change (pano_id);
+DROP INDEX IF EXISTS pano_imagery_change_pano_id_changed_at_idx;

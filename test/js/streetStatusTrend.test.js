@@ -58,6 +58,7 @@ function payload(overrides = {}) {
     corroborated_streets: [],
     min_reporters: 2,
     panos_expired_undated: 0,
+    panos_healed: 0,
     ...overrides,
   };
 }
@@ -213,8 +214,21 @@ describe('the expiry note', () => {
       .toMatch(/recovery, with no matching loss before it/);
   });
 
+  test('says how many crossings were healed after the fact', async () => {
+    await render(payload({ panos_healed: 7 }));
+    // Healed rows are left out of the bars; dropped silently, the chart understates the losses it knows about.
+    expect(document.getElementById('trend-expiry-note').textContent)
+      .toMatch(/^7 panos crossed the boundary without the change being logged/);
+  });
+
+  test('reports both gaps together, undated first', async () => {
+    await render(payload({ panos_expired_undated: 1234, panos_healed: 7 }));
+    const note = document.getElementById('trend-expiry-note').textContent;
+    expect(note.indexOf('1,234 panos were already expired')).toBeLessThan(note.indexOf('7 panos crossed'));
+  });
+
   test('stays silent when every expired pano is accounted for', async () => {
-    await render(payload({ panos_expired_undated: 0 }));
+    await render(payload({ panos_expired_undated: 0, panos_healed: 0 }));
     expect(document.getElementById('trend-expiry-note').textContent).toBe('');
   });
 });

@@ -97,34 +97,63 @@ class PanoImageryChangeTable @Inject() (protected val dbConfigProvider: Database
    * that went away and one that came back, not a spike. Weeks with nothing to report are absent — the client
    * zero-fills, matching the other admin time series.
    *
+   * Healed rows are left out: a `reconciliation` row's `changed_at` is when the pass noticed, so charting one would
+   * put a crossing in a week it did not happen in — the rewriting of history this table exists to stop.
+   * `healedSince` counts what the window is therefore missing, and the page owns that gap like the undated one.
+   *
    * @param since Only transitions at or after this instant.
    */
   def transitionsByWeek(since: OffsetDateTime): DBIO[Seq[PanoImageryWeek]] = {
+    val healed = PanoImageryChangeSource.Reconciliation.toString
     sql"""SELECT date_trunc('week', changed_at)::date,
                  COUNT(DISTINCT pano_id) FILTER (WHERE expired),
                  COUNT(DISTINCT pano_id) FILTER (WHERE NOT expired)
           FROM pano_imagery_change
           WHERE changed_at >= $since
+              AND source <> $healed::pano_imagery_change_source
           GROUP BY date_trunc('week', changed_at)::date
           ORDER BY date_trunc('week', changed_at)::date""".as[PanoImageryWeek]
   }
 
   /**
-   * Inserts the missing event for every pano whose newest log row disagrees with its current `pano_data.expired`.
+   * Panos the reconciliation pass healed inside the window: real crossings `transitionsByWeek` cannot place.
+   *
+   * Counts distinct panos, the unit that series reports in, so the page can set the two side by side.
+   *
+   * @param since Only healed rows at or after this instant.
+   */
+  def healedSince(since: OffsetDateTime): DBIO[Int] = {
+    val healed = PanoImageryChangeSource.Reconciliation.toString
+    sql"""SELECT COUNT(DISTINCT pano_id)
+          FROM pano_imagery_change
+          WHERE changed_at >= $since
+              AND source = $healed::pano_imagery_change_source""".as[Int].head
+  }
+
+  /**
+   * Inserts the missing event for every pano whose log disagrees with its current `pano_data.expired`.
    *
    * The log depends on every writer of `pano_data.expired` recording its own transition in-statement, and a miss —
    * a writer that forgets to log, or the snapshot race documented on `PanoDataTable.updateExpiredStatus` — leaves
-   * exactly that footprint. Run nightly after the expiry sweep, this turns each miss into a row marked
-   * `reconciliation`, whose `changed_at` (the column's DEFAULT now()) is detection time rather than the real
-   * transition time — which is why the marker exists. Panos with no log rows at all are left alone: those are the
-   * pre-358 expiries 364's backfill had no date for (the chart's undated-expiries footnote), not missed transitions.
+   * one of two footprints. Run nightly after the expiry sweep, this turns each into a row marked `reconciliation`,
+   * whose `changed_at` (the column's DEFAULT now()) is detection time rather than the real transition time — which
+   * is why the marker exists, and why `transitionsByWeek` leaves these rows out.
    *
-   * One statement means one snapshot, so each pano row and its newest log row are read consistently. A flip
-   * committing concurrently can still make an inserted event stale by the time it lands; the next night's pass
-   * detects and heals that, the same self-correcting posture as the race this exists to repair. Do not add
-   * `FOR UPDATE` — see the trap documented on `updateExpiredStatus`.
+   * The first footprint is a newest log row contradicting the flag. The second is a dated expiry with no log rows
+   * at all: 364 seeded a row for every pano `expired_at` had a date for, so one arriving since then went unlogged.
+   * That second shape is the likelier one — only panos that have already crossed carry log history, so a new
+   * writer's first miss lands on a pano with none.
    *
-   * @return The ids of the panos healed — non-empty is evidence some writer is skipping the log.
+   * Undated expiries stay excluded: those are the pre-358 ones 364 had no date to seed from (the chart's
+   * undated-expiries footnote), where nothing claims a transition happened. A writer that skips `expired_at` too is
+   * indistinguishable from them, so it stays invisible here.
+   *
+   * One statement means one snapshot, so each pano row and its log are read consistently. A flip committing
+   * concurrently can still make an inserted event stale by the time it lands; the next night's pass detects and
+   * heals that, the same self-correcting posture as the race this exists to repair. Do not add `FOR UPDATE` — see
+   * the trap documented on `updateExpiredStatus`.
+   *
+   * @return The ids of the panos healed. Non-empty means a writer skipped the log or the snapshot race fired.
    */
   def reconcile(): DBIO[Seq[String]] = {
     val source = PanoImageryChangeSource.Reconciliation.toString
@@ -136,8 +165,9 @@ class PanoImageryChangeTable @Inject() (protected val dbConfigProvider: Database
           INSERT INTO pano_imagery_change (pano_id, expired, source)
           SELECT pano_data.pano_id, pano_data.expired, $source::pano_imagery_change_source
           FROM pano_data
-          INNER JOIN latest ON pano_data.pano_id = latest.pano_id
-          WHERE latest.expired <> pano_data.expired
+          LEFT JOIN latest ON pano_data.pano_id = latest.pano_id
+          WHERE (latest.pano_id IS NOT NULL AND latest.expired <> pano_data.expired)
+              OR (latest.pano_id IS NULL AND pano_data.expired AND pano_data.expired_at IS NOT NULL)
           RETURNING pano_id""".as[String]
   }
 }
