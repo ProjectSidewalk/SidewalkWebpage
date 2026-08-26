@@ -17,7 +17,8 @@ class Task {
   #missionStarts = {};
   #status = {
     isComplete: false,
-    // Set when this session's imagery sweep ran out and moved the labeler on. Deliberately not isComplete: that
+    // Set when an imagery sweep ran out here and moved the labeler on, either in this session or earlier in this
+    // walk of the route (the server reports the latter as reported_no_imagery). Deliberately not isComplete: that
     // flag is submitted as audit_task.completed (Form.js), and a no-imagery verdict may not claim an audit (#4922).
     givenUpOnImagery: false,
   };
@@ -69,6 +70,9 @@ class Task {
     this.setProperty('taskStart', new Date(this.#geojson.properties.task_start));
     if (this.#geojson.properties.completed) {
       this.#status.isComplete = true;
+    }
+    if (this.#geojson.properties.reported_no_imagery) {
+      this.#status.givenUpOnImagery = true;
     }
     if (this.#geojson.properties.start_point_reversed) {
       this.reverseStreetDirection();
