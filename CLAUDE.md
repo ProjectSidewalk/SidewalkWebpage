@@ -265,7 +265,8 @@ When you catch yourself writing a frontend constant that mirrors a backend value
 - **Style all UI from the design-system tokens in `main.css` `:root`** — colors (`--color-*`), type (`--text-*`),
   spacing (`--space-*`), radii (`--border-radius*`), elevation (`--box-shadow*`), motion (`--transition-*`),
   stacking (`--z-index-*`), breakpoints (`--breakpoint-*`, reference values — `var()` can't appear in a media query,
-  so write the px and name the token in a comment), and button styles. They mirror our "Design System Tokens" Figma
+  so write the px and name the token in a comment), and the control primitives (`.button-ps` + `.button--*`,
+  `.ps-select`). They mirror our "Design System Tokens" Figma
   and are the default for any new or refactored UI: a hardcoded hex color or hand-assembled font stack is a bug
   unless the token set genuinely has no fit. For type specifically:
   - **Set type with a composite `--text-*` token, not the raw font variables.** Write

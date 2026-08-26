@@ -172,7 +172,7 @@
 
         // Create table for tags.
         const table = document.createElement('table');
-        table.className = 'tags-table';
+        table.className = 'api-table';
 
         // Create table header.
         const thead = document.createElement('thead');
@@ -264,7 +264,7 @@
 
       // Create table.
       const table = document.createElement('table');
-      table.className = 'tags-summary-table';
+      table.className = 'api-table';
 
       // Create table header.
       const thead = document.createElement('thead');

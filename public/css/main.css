@@ -447,6 +447,32 @@ a {
   outline: 1px solid var(--color-neutral-500);
 }
 
+/* A native <select>: only the closed control is restyled, the platform keeps its own dropdown and arrow. */
+.ps-select {
+  font: var(--text-small-regular);
+  color: var(--color-neutral-900);
+  background-color: var(--color-neutral-white);
+  border: 1px solid var(--color-neutral-300);
+  border-radius: var(--border-radius);
+  padding: calc(4px * var(--ui-scale, 1)) calc(8px * var(--ui-scale, 1));
+  cursor: pointer;
+}
+
+.ps-select:hover {
+  border-color: var(--color-neutral-400);
+}
+
+.ps-select:focus-visible {
+  outline: 2px solid var(--color-link-100);
+  outline-offset: 1px;
+}
+
+.ps-select:disabled {
+  background-color: var(--color-neutral-100);
+  color: var(--color-neutral-600);
+  cursor: default;
+}
+
 .label-icon {
   position: absolute;
   border: 1px solid var(--color-neutral-black);

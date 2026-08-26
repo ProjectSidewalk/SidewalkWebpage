@@ -1,8 +1,9 @@
 @(activePage: String)(content: Html)(implicit request: RequestHeader, assets: AssetsFinder)
 
 <link rel="stylesheet" href="@assets.path("css/api-docs/api-docs.css")">
-<!-- Loaded ahead of the page content, whose embedded preview scripts call it as soon as their data arrives. -->
+<!-- Loaded ahead of the page content, whose embedded preview scripts call these as soon as their data arrives. -->
 <script src="@assets.path("js/api-docs/apiTableWrapper.js")"></script>
+<script src="@assets.path("js/api-docs/apiDocsTheme.js")"></script>
 
 <div class="api-container">
     <!-- Left Sidebar Navigation -->
@@ -17,7 +18,7 @@
       <p>If you use Project Sidewalk data in your research, please cite the following paper (awarded 🏆 <i>Best Paper</i> at CHI 2019):</p>
       <div class="citation-container">
         <div class="citation">Manaswi Saha, Michael Saugstad, Hanuma Teja Maddali, Aileen Zeng, Ryan Holland, Steven Bower, Aditya Dash, Sage Chen, Anthony Li, Kotaro Hara, and Jon Froehlich. 2019. <i> <a href="https://doi.org/10.1145/3290605.3300292">Project Sidewalk: A Web-based Crowdsourcing Tool for Collecting Sidewalk Accessibility Data At Scale.</a></i> In Proceedings of the 2019 CHI Conference on Human Factors in Computing Systems (CHI '19). Association for Computing Machinery, New York, NY, USA, Paper 62, 1–14.</div>
-        <button type="button" id="download-bibtex" class="bibtex-btn">Download BibTeX</button>
+        <button type="button" id="download-bibtex" class="button-ps button--secondary button--medium bibtex-btn">Download BibTeX</button>
       </div>
     </div>
 

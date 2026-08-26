@@ -1439,6 +1439,11 @@
   border-color: var(--color-accent-link, #0566f5);
 }
 
+select.ud-input:enabled,
+.ud-check input:enabled {
+  cursor: pointer;
+}
+
 .ud-field-inline {
   display: flex;
   flex-wrap: wrap;

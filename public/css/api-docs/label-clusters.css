@@ -71,20 +71,6 @@
   box-shadow: var(--box-shadow);
 }
 
-/* No clusters message */
-.no-clusters-message {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background-color: var(--color-neutral-white);
-  padding: 10px 20px;
-  border-radius: var(--border-radius);
-  box-shadow: var(--box-shadow);
-  z-index: var(--z-index-dropdown);
-  text-align: center;
-}
-
 /* var(--breakpoint-sm) */
 @media (width <= 768px) {
   .filter-example {

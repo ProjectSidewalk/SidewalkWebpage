@@ -92,7 +92,7 @@
 
       // Create table structure.
       const table = document.createElement('table');
-      table.className = 'street-types-table';
+      table.className = 'api-table';
 
       // Create table header.
       const thead = document.createElement('thead');
@@ -128,7 +128,7 @@
 
         // Count cell.
         const countCell = document.createElement('td');
-        countCell.className = 'street-count';
+        countCell.className = 'num';
 
         // Create a container for the count and progress bar.
         const countContainer = document.createElement('div');

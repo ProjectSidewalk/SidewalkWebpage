@@ -1726,19 +1726,35 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
   padding: 6px 12px;
   border: 1px solid var(--color-neutral-400);
   border-radius: 6px;
-  font-size: var(--font-size-sm, 0.875rem);
+  font: var(--text-small-regular);
 }
 
 .mgmt-search:focus-visible {
   outline: 2px solid var(--color-accent-link, #0566f5);
   outline-offset: 1px;
 }
-.mgmt-count { white-space: nowrap; }
+
+.mgmt-count {
+  white-space: nowrap;
+  font: var(--text-small-regular);
+}
 
 /* The directory is wide (13 columns); let it scroll horizontally rather than crush the cells or the page. */
 .mgmt-table-scroll { overflow-x: auto; }
-.mgmt-table { min-width: 100%; }
-.mgmt-table th { white-space: nowrap; }
+
+/* Typed at the design-system small size so the cells match the selects and controls around them, rather than the
+   8.75px the inherited .contrib-table alias renders at. */
+.mgmt-table {
+  min-width: 100%;
+  font: var(--text-small-regular);
+}
+
+.mgmt-table td { font-size: inherit; }
+
+.mgmt-table th {
+  white-space: nowrap;
+  font: var(--text-small-bold);
+}
 
 /* Sortable column headers: the whole header is a button so it's keyboard-operable; aria-sort lives on the th. */
 .mgmt-th { padding: 0; }
@@ -1772,27 +1788,9 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
   color: var(--color-text-secondary, #5a7785);
 }
 
-/* Inline role / team selects sit quietly in their cells until focused. */
+/* Inline role / team selects, capped so a long team name can't widen its column. */
 .mgmt-select {
   max-width: 160px;
-  padding: 3px 6px;
-  border: 1px solid var(--color-neutral-300);
-  border-radius: 5px;
-  background: var(--color-neutral-white);
-  font-size: var(--font-size-sm, 0.875rem);
-  color: var(--color-text-primary, #222222);
-  cursor: pointer;
-}
-
-.mgmt-select:disabled {
-  background: var(--color-neutral-100);
-  color: var(--color-text-secondary, #5a7785);
-  cursor: default;
-}
-
-.mgmt-select:focus-visible {
-  outline: 2px solid var(--color-accent-link, #0566f5);
-  outline-offset: 1px;
 }
 
 /* Team status / visibility toggles: a single pill that states the current value and flips on click. */
@@ -1800,8 +1798,7 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
   padding: 3px 12px;
   border-radius: 12px;
   border: 1px solid transparent;
-  font-size: var(--font-size-sm, 0.875rem);
-  font-weight: 600;
+  font: var(--text-small-bold);
   cursor: pointer;
 }
 
@@ -1884,7 +1881,7 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
 }
 
 .mgmt-page-btn {
-  font-size: var(--font-size-sm, 0.875rem);
+  font: var(--text-small-regular);
   padding: 4px 10px;
   border: 1px solid var(--color-neutral-400);
   background: var(--color-neutral-white);
@@ -1905,24 +1902,17 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
 }
 
 .mgmt-page-info {
-  font-size: var(--font-size-sm, 0.875rem);
+  font: var(--text-small-regular);
   color: var(--color-text-secondary, #5a7785);
   padding: 0 var(--space-xs, 8px);
 }
 
 .mgmt-page-size-label {
-  font-size: var(--font-size-sm, 0.875rem);
+  font: var(--text-small-regular);
   color: var(--color-text-secondary, #5a7785);
   display: inline-flex;
   align-items: center;
   gap: 6px;
-}
-
-.mgmt-page-size {
-  padding: 3px 6px;
-  border: 1px solid var(--color-neutral-300);
-  border-radius: 5px;
-  font-size: var(--font-size-sm, 0.875rem);
 }
 
 /* --- Label Map page ------------------------------------------------------------------------------------------ */
@@ -2825,15 +2815,6 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
   margin: 0 0 var(--space-xs, 8px);
   font-size: 0.875em;
   color: var(--color-text-secondary, #5a7785);
-}
-
-.trend-range {
-  font: inherit;
-  padding: 4px 8px;
-  border: 1px solid var(--color-border, #d7dee2);
-  border-radius: 4px;
-  background: var(--color-surface, #ffffff);
-  color: var(--color-text-primary, #222222);
 }
 
 .trend-chart-heading {

@@ -170,6 +170,12 @@ a:hover {
 .api-type-col { width: 15%; }
 .api-desc-col { width: 55%; }
 
+.api-table th.num,
+.api-table td.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
 /* ---- Code Blocks and Inline Code ---- */
 
 pre {
@@ -254,12 +260,130 @@ h6:hover .permalink {
   height: 100px;
 }
 
+/* Centers itself in whatever it's dropped into — a map frame or a still-empty preview container. */
 .loading-message {
   display: flex;
   align-items: center;
   justify-content: center;
+  height: 100%;
+  padding: var(--space-xxl) 0;
   color: var(--color-neutral-700);
   font-style: italic;
+}
+
+.loading-message::before {
+  content: "";
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--color-neutral-200);
+  border-top: 2px solid var(--color-link-200);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-right: 10px;
+}
+
+/* ---- Preview Sections ---- */
+
+/* A boxed block of a live preview: a chart with its title and blurb, or a grid of headline stats. */
+.preview-section {
+  margin-bottom: var(--space-xl);
+  padding: var(--space-md);
+  background-color: var(--color-neutral-white);
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow-sm);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.preview-section:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--box-shadow);
+}
+
+.preview-title {
+  text-align: center;
+  font: var(--text-title-bold);
+  margin: 0 0 var(--space-sm);
+}
+
+.preview-desc {
+  text-align: center;
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+  margin: 0 0 var(--space-md);
+}
+
+.preview-note {
+  text-align: center;
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+  font-style: italic;
+  margin: var(--space-sm) 0 0;
+}
+
+/* Wide enough per cell for a two-line label ("Distance Explored (No Overlap)") not to break mid-word. */
+.preview-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-md);
+}
+
+.preview-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.preview-stat-value {
+  font: var(--text-h3-bold);
+  color: var(--color-neutral-900);
+}
+
+.preview-stat-label {
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+  margin-top: 4px;
+}
+
+/* Chart.js needs a positioned, sized box to size its responsive canvas against. */
+.chart-container {
+  position: relative;
+  width: 100%;
+  height: 300px;
+}
+
+.download-note {
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+  font-style: italic;
+  margin-top: var(--space-sm);
+}
+
+/* A proportion bar under a count in a table cell. The fill's width is set from the data. */
+.count-bar-container {
+  width: 100%;
+  background-color: var(--color-neutral-200);
+  border-radius: var(--border-radius);
+  height: 8px;
+  margin-top: 4px;
+  overflow: hidden;
+}
+
+.count-bar-fill {
+  height: 100%;
+  background-color: var(--color-pine-500);
+  border-radius: var(--border-radius);
+}
+
+/* A small color chip beside a name. The color is set from the data. */
+.api-swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-right: var(--space-xs);
+  border-radius: var(--border-radius-sm);
+  vertical-align: middle;
 }
 
 /* ---- Download Buttons ---- */
@@ -327,34 +451,11 @@ h6:hover .permalink {
   font-style: italic;
 }
 
+/* Sits at the citation's trailing edge; .button-ps is inline-flex, which auto margins can't push. */
 .bibtex-btn {
-  display: block;
-  margin-left: auto; /* Push button to the right */
-  padding: var(--space-xs) var(--space-sm);
-  background-color: var(--color-neutral-white);
-  border: 1px solid var(--color-neutral-300);
-  border-radius: var(--border-radius);
-  cursor: pointer;
-  font: var(--text-body-medium);
-  transition: all var(--transition-fast);
-  color: var(--color-neutral-700);
-}
-
-.bibtex-btn:hover {
-  background-color: var(--color-neutral-100);
-  border-color: var(--color-link-200);
-  color: var(--color-link-200);
-  transform: translateX(-2px);
-  box-shadow: var(--box-shadow-sm);
-}
-
-/* Mobile responsiveness for citation: var(--breakpoint-sm). */
-@media (width <= 768px) {
-  .bibtex-btn {
-    width: auto; /* Allow button to size to content */
-    margin-left: auto; /* Maintain right alignment */
-    margin-right: 0;
-  }
+  display: flex;
+  width: fit-content;
+  margin-left: auto;
 }
 
 /* ---- Status Indicators ---- */
@@ -377,6 +478,14 @@ h6:hover .permalink {
 .status-message {
   font: var(--text-body-bold);
   margin: 5px 0;
+}
+
+.status-message--warning {
+  color: var(--color-orange-600);
+}
+
+.status-message--error {
+  color: var(--color-error-200);
 }
 
 .status-progress {
@@ -418,6 +527,43 @@ h6:hover .permalink {
 .api-callout h3 {
   margin-top: 0;
   color: var(--color-neutral-900);
+}
+
+/* ---- Map Previews ---- */
+
+/* The metric selector stacks above the map inside the .map-container frame rather than floating on it, so a
+   feature popup can never cover it. */
+.map-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  border-bottom: 1px solid var(--color-neutral-200);
+  background-color: var(--color-neutral-100);
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-900);
+}
+
+/* Bootstrap gives every label a bottom margin, which would lift this one off the select's centerline. */
+.map-toolbar label {
+  font: var(--text-caption-semibold);
+  margin: 0;
+}
+
+/* A "nothing to show" notice floated at the top of a map frame, clear of its controls in the corners. */
+.map-message {
+  position: absolute;
+  top: var(--space-sm);
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: var(--color-neutral-white);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+  text-align: center;
+  z-index: var(--z-index-dropdown);
 }
 
 /* Map Container - Common to various map components, and the query container its overlays size themselves against.
@@ -969,6 +1115,14 @@ var(--breakpoint-md) → 992px */
   outline: 2px solid var(--color-link-200);
   outline-offset: 2px;
   opacity: 1;
+}
+
+.permalink--copied {
+  color: var(--color-jade-700);
+}
+
+.permalink--failed {
+  color: var(--color-error-200);
 }
 
 /* Toast notification styles */

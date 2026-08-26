@@ -43,7 +43,7 @@
     <div class="trend-controls">
       <label for="trend-range">Window</label>
       @* Windows come from StreetLifecycleService so the offered set and the server's default can't drift apart. *@
-      <select id="trend-range" class="trend-range">
+      <select id="trend-range" class="ps-select">
         @for(weeks <- service.StreetLifecycleService.TrendWeekOptions) {
           <option value="@weeks">Last @weeks weeks</option>
         }

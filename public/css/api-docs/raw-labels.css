@@ -15,19 +15,6 @@
   position: relative;
 }
 
-/* No labels message */
-.no-labels-message {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background-color: var(--color-neutral-white);
-  padding: var(--space-sm) var(--space-lg);
-  border-radius: var(--border-radius);
-  box-shadow: var(--box-shadow);
-  z-index: var(--z-index-dropdown);
-}
-
 /* Responsive adjustments: var(--breakpoint-sm)). */
 @media (width <= 768px) {
   #raw-labels-preview {

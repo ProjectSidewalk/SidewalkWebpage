@@ -19,8 +19,6 @@
     minLabels: 10,
     maxUsers: 10, // Max number of users to show in the top contributors chart.
     colors: {}, // Default chart colors (will be overridden by colors from labelTypes API).
-    chartBackgroundColor: '#f9f9f9',
-    chartBorderColor: '#e0e0e0',
   };
 
   // userStats field name (snake_case) -> localized display name (populated from the labelTypes API).
@@ -70,9 +68,6 @@
       const loadingMessage = document.createElement('div');
       loadingMessage.className = 'loading-message';
       loadingMessage.textContent = 'Loading user statistics...';
-      loadingMessage.style.textAlign = 'center';
-      loadingMessage.style.padding = '50px 0';
-      loadingMessage.style.color = '#666';
       container.appendChild(loadingMessage);
 
       // Try to get API URL from page if available.
@@ -100,8 +95,7 @@
             });
         })
         .catch((error) => {
-          container.innerHTML = `<div class="error-message" style="color: red; text-align: center; padding: 50px 0;">`
-            + `Failed to load data: ${error.message}</div>`;
+          container.innerHTML = `<div class="message message-error">Failed to load data: ${error.message}</div>`;
           console.error('User stats preview error:', error);
           // The failure is already surfaced in the container above, and init() is fire-and-forget at every call
           // site (app/views/apiDocs/*), so re-rejecting here can only ever become an unhandled rejection.
@@ -228,11 +222,8 @@
 
       // Add a note about the data.
       const note = document.createElement('p');
+      note.className = 'preview-note';
       note.textContent = `Showing data for ${data.allUsers.length} users with at least ${config.minLabels} labels.`;
-      note.style.textAlign = 'center';
-      note.style.fontSize = '0.8em';
-      note.style.color = '#666';
-      note.style.marginTop = '10px';
       container.appendChild(note);
     },
 
@@ -246,37 +237,25 @@
     createChartSection(container, title, description, chartCreator) {
       // Create section container.
       const section = document.createElement('div');
-      section.className = 'chart-section';
-      section.style.marginBottom = '40px';
-      section.style.padding = '10px';
-      section.style.backgroundColor = config.chartBackgroundColor;
-      section.style.border = `1px solid ${config.chartBorderColor}`;
-      section.style.borderRadius = '4px';
+      section.className = 'preview-section';
       container.appendChild(section);
 
       // Create section header.
       const header = document.createElement('h3');
+      header.className = 'preview-title';
       header.textContent = title;
-      header.style.textAlign = 'center';
-      header.style.margin = '10px 0';
-      header.style.fontSize = '1.2em';
       section.appendChild(header);
 
       // Create description.
       const desc = document.createElement('p');
+      desc.className = 'preview-desc';
       desc.textContent = description;
-      desc.style.textAlign = 'center';
-      desc.style.fontSize = '0.9em';
-      desc.style.color = '#666';
-      desc.style.margin = '0 0 15px 0';
       section.appendChild(desc);
 
       // Create chart container.
       const chartContainer = document.createElement('div');
       chartContainer.className = 'chart-container';
       chartContainer.style.height = `${config.chartHeight}px`;
-      chartContainer.style.width = '100%';
-      chartContainer.style.position = 'relative';
       section.appendChild(chartContainer);
 
       // Create the chart.
@@ -311,8 +290,8 @@
           datasets: [{
             label: 'Total Labels',
             data,
-            backgroundColor: '#42A5F5',
-            borderColor: '#1976D2',
+            backgroundColor: ApiDocsTheme.color('--color-link-100'),
+            borderColor: ApiDocsTheme.color('--color-link-200'),
             borderWidth: 1,
           }],
         },
@@ -388,7 +367,7 @@
         return {
           label: labelTypeMapping[labelType] || labelType,
           data: topUsers.map((user) => user.stats_by_label_type[labelType].labels),
-          backgroundColor: config.colors[labelType] || '#999',
+          backgroundColor: config.colors[labelType] || ApiDocsTheme.color('--color-neutral-500'),
         };
       }).filter((dataset) => {
         // Filter out label types with no data.
@@ -472,10 +451,8 @@
       // If no accuracy data is available, show a message.
       if (!accuracyData || accuracyData.length === 0) {
         const errorMsg = document.createElement('div');
+        errorMsg.className = 'preview-note';
         errorMsg.textContent = 'No users with sufficient validation data available';
-        errorMsg.style.color = '#666';
-        errorMsg.style.textAlign = 'center';
-        errorMsg.style.paddingTop = '20px';
         container.appendChild(errorMsg);
         return;
       }
@@ -497,16 +474,16 @@
           datasets: [{
             label: 'User Accuracy',
             data: dataPoints,
+            // The severity/quality ramp: jade is good, banana middling, orange bad.
             backgroundColor: dataPoints.map((point) => {
-              // Color based on accuracy (red -> yellow -> green)
-              if (point.y > 0.9) return 'rgba(46, 204, 113, 0.6)'; // High accuracy
-              if (point.y > 0.75) return 'rgba(241, 196, 15, 0.6)'; // Medium accuracy
-              return 'rgba(231, 76, 60, 0.6)'; // Low accuracy
+              if (point.y > 0.9) return ApiDocsTheme.color('--color-jade-400', 0.6);
+              if (point.y > 0.75) return ApiDocsTheme.color('--color-banana-600', 0.6);
+              return ApiDocsTheme.color('--color-orange-500', 0.6);
             }),
             borderColor: dataPoints.map((point) => {
-              if (point.y > 0.9) return 'rgba(39, 174, 96, 1)';
-              if (point.y > 0.75) return 'rgba(243, 156, 18, 1)';
-              return 'rgba(192, 57, 43, 1)';
+              if (point.y > 0.9) return ApiDocsTheme.color('--color-jade-700');
+              if (point.y > 0.75) return ApiDocsTheme.color('--color-banana-800');
+              return ApiDocsTheme.color('--color-orange-700');
             }),
             borderWidth: 1,
           }],

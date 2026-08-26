@@ -24,29 +24,6 @@
   margin-bottom: var(--space-sm);
 }
 
-/* ---- Loading Messages ---- */
-
-.loading-message {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  color: var(--color-neutral-700);
-  font-style: italic;
-  background-color: var(--color-neutral-100);
-}
-
-.loading-message::before {
-  content: "";
-  width: 20px;
-  height: 20px;
-  border: 2px solid var(--color-neutral-200);
-  border-top: 2px solid var(--color-link-200);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-right: 10px;
-}
-
 /* ---- Download Section Enhancements ---- */
 
 .download-buttons .download-btn[data-format="geopackage"]:hover {

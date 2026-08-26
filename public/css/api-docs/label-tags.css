@@ -1,13 +1,8 @@
 /**
  * Project Sidewalk API Documentation - Label Tags Component Styles
  *
- * This stylesheet contains styles specific to the Label Tags component and works in conjunction with the main
- * api-docs.css file.
+ * Cell styles for the label-tag tables, which are .api-table instances built by labelTagsPreview.js.
  */
-
-/* ==========================================================================
-  COMPONENT CONTAINERS
-  ========================================================================== */
 
 #label-tags-preview {
   margin: var(--space-lg) 0;
@@ -18,82 +13,6 @@
 .label-tags-section {
   margin-bottom: var(--space-xl);
 }
-
-/* ==========================================================================
-  COMPONENT TABLES
-  ========================================================================== */
-
-/* Tags Table - extends api-table styles with component-specific customizations */
-.tags-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  margin: var(--space-sm) 0 var(--space-lg) 0;
-  font: var(--text-small-regular);
-  line-height: 1.65;
-  box-shadow: var(--box-shadow-sm);
-  border-radius: var(--border-radius);
-  overflow: hidden;
-}
-
-.tags-table th,
-.tags-table td {
-  padding: var(--space-sm) var(--space-md);
-  text-align: left;
-  border-bottom: 1px solid var(--color-neutral-200);
-}
-
-.tags-table th {
-  background-color: var(--color-neutral-100);
-  font: var(--text-small-bold);
-  line-height: 1.65;
-}
-
-.tags-table tr:last-child td {
-  border-bottom: none;
-}
-
-.tags-table tr:hover {
-  background-color: var(--color-neutral-100);
-}
-
-/* Summary Table - could be refactored further if more similar tables are needed */
-.tags-summary-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  margin: var(--space-sm) 0 var(--space-lg) 0;
-  font: var(--text-small-regular);
-  line-height: 1.65;
-  box-shadow: var(--box-shadow-sm);
-  border-radius: var(--border-radius);
-  overflow: hidden;
-}
-
-.tags-summary-table th,
-.tags-summary-table td {
-  padding: var(--space-sm) var(--space-md);
-  text-align: left;
-  border-bottom: 1px solid var(--color-neutral-200);
-}
-
-.tags-summary-table th {
-  background-color: var(--color-neutral-100);
-  font: var(--text-small-bold);
-  line-height: 1.65;
-}
-
-.tags-summary-table tr:last-child td {
-  border-bottom: none;
-}
-
-.tags-summary-table tr:hover {
-  background-color: var(--color-neutral-100);
-}
-
-/* ==========================================================================
-  TABLE CONTENT ELEMENTS
-  ========================================================================== */
 
 /* Tag Name */
 .tag-name {
@@ -135,15 +54,6 @@
 .label-type {
   font: var(--text-small-bold);
   width: 20%;
-}
-
-.label-type a {
-  color: var(--color-link-200);
-  text-decoration: none;
-}
-
-.label-type a:hover {
-  text-decoration: underline;
 }
 
 /* Label Tags List */

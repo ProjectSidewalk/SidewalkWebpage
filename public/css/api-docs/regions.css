@@ -1,8 +1,7 @@
 /**
  * Regions API Documentation - Specific Styles.
  *
- * This stylesheet contains styles specific to the Regions API documentation page, including the choropleth map preview
- * and its metric toggle, legend, and popups.
+ * The choropleth preview's frame; its toolbar, legend, and popups use the shared map classes in api-docs.css.
  */
 
 /* The toolbar stacks above the map inside the shared .map-container frame. */
@@ -12,71 +11,8 @@
   background-color: var(--color-neutral-white);
 }
 
-/* The metric selector sits above the map rather than on it, so a region popup can never cover it. */
-.regions-toolbar {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  padding: var(--space-xs) var(--space-sm);
-  border-bottom: 1px solid var(--color-neutral-200);
-  background-color: var(--color-neutral-100);
-  font: var(--text-caption-regular);
-  color: var(--color-neutral-900);
-}
-
-.regions-toolbar label {
-  font: var(--text-caption-semibold);
-}
-
-.regions-toolbar select {
-  font: var(--text-caption-regular);
-  padding: 2px 4px;
-  border: 1px solid var(--color-neutral-300);
-  border-radius: var(--border-radius-sm);
-}
-
 #regions-map {
   flex: 1 1 auto;
   min-height: 0;
   width: 100%;
-}
-
-/* ---- Loading Message ---- */
-
-.loading-message {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  color: var(--color-neutral-700);
-  font-style: italic;
-  background-color: var(--color-neutral-100);
-}
-
-.loading-message::before {
-  content: "";
-  width: 20px;
-  height: 20px;
-  border: 2px solid var(--color-neutral-200);
-  border-top: 2px solid var(--color-link-200);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-right: 10px;
-}
-
-/* ---- No Regions Message ---- */
-
-.no-regions-message {
-  position: absolute;
-  top: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  background-color: var(--color-neutral-white);
-  padding: var(--space-xs) var(--space-sm);
-  border-radius: var(--border-radius);
-  box-shadow: var(--box-shadow);
-  font: var(--text-small-regular);
-  color: var(--color-neutral-700);
-  z-index: var(--z-index-dropdown);
-  white-space: nowrap;
 }
