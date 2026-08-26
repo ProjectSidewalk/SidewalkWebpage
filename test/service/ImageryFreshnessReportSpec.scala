@@ -110,6 +110,52 @@ class ImageryFreshnessReportSpec extends AnyWordSpec with Matchers {
       val days = buildDays(Seq(run("clustering-actor", "2026-08-10", 4, Map("streets_polled" -> 999))))
       days mustBe empty
     }
+
+    "count the regained-imagery rotation alongside the main batch" in {
+      val days = buildDays(
+        Seq(
+          run(
+            pollJob,
+            "2026-08-10",
+            0,
+            Map(
+              "streets_polled"              -> 480,
+              "no_imagery_streets_selected" -> 25,
+              "no_imagery_streets_polled"   -> 24,
+              "reopen_candidates_found"     -> 2
+            )
+          )
+        )
+      )
+
+      days.head.noImagerySelected mustBe 25
+      days.head.noImageryPolled mustBe 24
+      days.head.reopenCandidates mustBe 2
+    }
+
+    "read back every count the poll actually recorded, key for key" in {
+      // The writer and the reader are the two halves of this pipeline and nothing else holds them together: feeding
+      // a real PollResult's details straight in is what fails if either side renames a key on its own.
+      val details  = ImageryFreshnessService.PollResult(Some("GSV"), 500, 480, 20, None, 25, 24, 2).runDetails
+      val recorded = BackgroundJobRun(
+        0,
+        pollJob,
+        JobRunTrigger.Scheduled,
+        at("2026-08-10", 0),
+        Some(at("2026-08-10", 0).plusMinutes(3)),
+        JobRunStatus.Succeeded,
+        Some(details),
+        None
+      )
+
+      val day = buildDays(Seq(recorded)).head
+      day.streetsSelected mustBe 500
+      day.streetsPolled mustBe 480
+      day.streetsSkipped mustBe 20
+      day.noImagerySelected mustBe 25
+      day.noImageryPolled mustBe 24
+      day.reopenCandidates mustBe 2
+    }
   }
 
   "clampDays" should {
@@ -144,9 +190,14 @@ class ImageryFreshnessReportSpec extends AnyWordSpec with Matchers {
 
   "reading a run's counts" should {
     "treat a key the run did not record as zero rather than dropping the night" in {
+      // This is also what every row already in background_job_run looks like from the day the #4929 rotation ships:
+      // its details carry none of those keys, and reading them as an absent night would blank the run history.
       val days = buildDays(Seq(run(pollJob, "2026-08-10", 0, Map("streets_polled" -> 3))))
       days.head.streetsSelected mustBe 0
       days.head.streetsSkipped mustBe 0
+      days.head.noImagerySelected mustBe 0
+      days.head.noImageryPolled mustBe 0
+      days.head.reopenCandidates mustBe 0
     }
 
     "treat a non-numeric value as zero, since details is free-form JSON" in {

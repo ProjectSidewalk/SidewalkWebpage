@@ -84,6 +84,40 @@ class ImageryPollOutcomeSpec extends PlaySpec with GuiceOneAppPerSuite {
     }
   }
 
+  "PollResult.summary" should {
+    "account for the regained-imagery rotation as well as the main batch" in {
+      // The two rotations are separately sized and separately starved, so one line reporting only the main batch
+      // would read as a healthy night while the #4929 re-check silently covered nothing.
+      val result = PollResult(Some("GSV"), 500, 480, 20, None, 25, 24, 2)
+      result.summary mustBe ("GSV imagery-age poll: 480 streets updated, 20 skipped (of 500 selected); "
+        + "24 of 25 no-imagery streets re-checked, 2 reopen candidate(s) found.")
+    }
+  }
+
+  "PollResult.runDetails" should {
+    "record every count under the key the Imagery page's run history reads it back by" in {
+      // Defined on the result rather than at the actor's call site, so the writer and the reader cannot fork. The
+      // literal key names are the contract: a rename on one side alone reports zeros forever, looking like a quiet
+      // night rather than a broken pipeline.
+      val details = PollResult(Some("GSV"), 500, 480, 20, None, 25, 24, 2).runDetails
+
+      (details \ "provider").as[String] mustBe "GSV"
+      (details \ "streets_selected").as[Int] mustBe 500
+      (details \ "streets_polled").as[Int] mustBe 480
+      (details \ "streets_skipped").as[Int] mustBe 20
+      (details \ "no_imagery_streets_selected").as[Int] mustBe 25
+      (details \ "no_imagery_streets_polled").as[Int] mustBe 24
+      (details \ "reopen_candidates_found").as[Int] mustBe 2
+    }
+
+    "carry the reason a poll covered nothing, so a skipped night isn't recorded as a zero-count one" in {
+      val details =
+        PollResult.notPolled("Imagery-age polling isn't supported for provider Infra3d; skipping.").runDetails
+      (details \ "not_polled_reason").as[String] must include("Infra3d")
+      (details \ "provider").asOpt[String] mustBe None
+    }
+  }
+
   "ImageryCheckResult" should {
     "total the three outcomes it distinguishes" in {
       // `errors` is the signal worth watching: a key at its quota turns every check inconclusive, which leaves the

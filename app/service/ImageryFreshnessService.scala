@@ -7,7 +7,7 @@ import models.street.{PolledPano, StreetImageryTable, StreetReopenCandidateTable
 import models.utils.MyPostgresProfile
 import org.locationtech.jts.geom.LineString
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import play.api.libs.json.{JsArray, Json}
+import play.api.libs.json.{JsArray, JsObject, Json}
 import play.api.libs.ws.WSClient
 import play.api.{Configuration, Logger}
 
@@ -84,6 +84,24 @@ object ImageryFreshnessService {
       s"${provider.getOrElse("Imagery")} imagery-age poll: $streetsPolled streets updated, $streetsSkipped skipped " +
         s"(of $streetsSelected selected); $noImageryStreetsPolled of $noImageryStreetsSelected no-imagery streets " +
         s"re-checked, $reopenCandidatesFound reopen candidate(s) found."
+    )
+
+    /**
+     * What the run recorder stores in background_job_run.details, and the only place these key names are written.
+     *
+     * Defined on the result rather than at the actor's call site, like [[PanoDataService.ImageryCheckResult]]'s: the
+     * Imagery page's run history reads each of these keys back by name in ImageryFreshnessReportService, and a key
+     * that only agrees by coincidence would report zeros forever with nothing to show a night had gone unrecorded.
+     */
+    def runDetails: JsObject = Json.obj(
+      "provider"                    -> provider,
+      "streets_selected"            -> streetsSelected,
+      "streets_polled"              -> streetsPolled,
+      "streets_skipped"             -> streetsSkipped,
+      "not_polled_reason"           -> notPolledReason,
+      "no_imagery_streets_selected" -> noImageryStreetsSelected,
+      "no_imagery_streets_polled"   -> noImageryStreetsPolled,
+      "reopen_candidates_found"     -> reopenCandidatesFound
     )
   }
 
