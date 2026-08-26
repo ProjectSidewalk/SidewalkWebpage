@@ -90,8 +90,85 @@ class StreetStatusTrend {
     this.#renderStatusChanges(data, weekStarts, labels);
     this.#renderReports(data, weekStarts, labels);
     this.#renderImageryChanges(data, weekStarts, labels);
+    this.#renderReopenCandidates(data);
     this.#renderCorroborated(data);
     this.#renderRegions(data);
+  }
+
+  /**
+   * The regained-imagery review queue (#4929): no_imagery streets whose latest nightly poll found panos again, each
+   * with Reopen/Dismiss actions. Tolerates both the payload field and the container being absent, so older fixtures
+   * and pages keep rendering.
+   */
+  #renderReopenCandidates(data) {
+    const container = document.getElementById('trend-reopen-candidates');
+    if (!container) return;
+    const rows = data.reopen_candidates || [];
+
+    if (rows.length === 0) {
+      container.innerHTML = '<p class="trend-note">No retired street currently shows regained imagery. '
+        + 'The nightly poll re-checks a small batch of no-imagery streets and queues any it finds panoramas on.</p>';
+      return;
+    }
+
+    // Buttons are wired after insertion -- listeners can't ride along in an HTML string.
+    const body = rows.map((r) => `
+      <tr data-street-id="${Number(r.street_edge_id)}">
+        <td>
+          <a href="/explore?streetEdgeId=${encodeURIComponent(r.street_edge_id)}">
+            ${AdminShell.num(r.street_edge_id)}
+          </a>
+        </td>
+        <td>${AdminShell.esc(r.region_name)}</td>
+        <td>${AdminShell.num(r.n_panos)}</td>
+        <td class="ac-muted">${AdminShell.esc(r.newest_capture || '—')}</td>
+        <td class="ac-muted">${AdminShell.esc((r.last_detected_at || '').slice(0, 10))}</td>
+        <td class="reopen-queue-actions">
+          <button type="button" class="reopen-queue-btn" data-action="reopen">Reopen</button>
+          <button type="button" class="reopen-queue-btn" data-action="dismiss">Dismiss</button>
+        </td>
+      </tr>`).join('');
+    container.innerHTML = AdminShell.tableHtml(
+      [['Street', true], 'Region', ['Panos found', true], 'Newest capture', 'Last detected', 'Actions'], body);
+    for (const button of container.querySelectorAll('button[data-action]')) {
+      button.addEventListener('click', () => this.#actOnReopenCandidate(button));
+    }
+  }
+
+  /**
+   * Runs one queue action -- Reopen (confirmed first; PUT) or Dismiss (DELETE) -- then reloads the whole trend, since
+   * a reopen also moves the status-change series and the server has just invalidated its cached payload.
+   *
+   * @param {HTMLButtonElement} button - The clicked action button, carrying data-action inside a data-street-id row.
+   */
+  async #actOnReopenCandidate(button) {
+    const row = button.closest('tr');
+    const streetEdgeId = Number(row?.dataset.streetId);
+    if (!Number.isInteger(streetEdgeId)) return;
+    const reopen = button.dataset.action === 'reopen';
+    if (reopen) {
+      const ok = await ConfirmDialog.confirm({
+        message: `Reopen street ${streetEdgeId} for auditing? It returns to the labeling pool at full priority, and `
+          + 'its region\'s completion percentage drops to match.',
+        confirmText: 'Reopen',
+        cancelText: 'Cancel',
+      });
+      if (!ok) return;
+    }
+    const url = reopen
+      ? `/adminapi/streets/${streetEdgeId}/reopen`
+      : `/adminapi/streets/${streetEdgeId}/reopenCandidate`;
+    const buttons = row.querySelectorAll('button');
+    for (const b of buttons) b.disabled = true;
+    try {
+      const response = await fetch(url, { method: reopen ? 'PUT' : 'DELETE' });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      await this.#load();
+    } catch (e) {
+      console.error('Street status: reopen-queue action failed.', e);
+      this.#setStatus(`Could not ${reopen ? 'reopen' : 'dismiss'} street ${streetEdgeId}: ${e.message}`, true);
+      for (const b of buttons) b.disabled = false;
+    }
   }
 
   /** Streets entering each status per week, one line per status. */

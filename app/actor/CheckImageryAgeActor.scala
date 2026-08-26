@@ -71,11 +71,14 @@ class CheckImageryAgeActor @Inject() (
     jobRunService
       .record(CheckImageryAgeActor.Name, JobRunTrigger.Scheduled)(imageryFreshnessService.pollImageryAges()) { result =>
         Json.obj(
-          "provider"          -> result.provider,
-          "streets_selected"  -> result.streetsSelected,
-          "streets_polled"    -> result.streetsPolled,
-          "streets_skipped"   -> result.streetsSkipped,
-          "not_polled_reason" -> result.notPolledReason
+          "provider"                    -> result.provider,
+          "streets_selected"            -> result.streetsSelected,
+          "streets_polled"              -> result.streetsPolled,
+          "streets_skipped"             -> result.streetsSkipped,
+          "not_polled_reason"           -> result.notPolledReason,
+          "no_imagery_streets_selected" -> result.noImageryStreetsSelected,
+          "no_imagery_streets_polled"   -> result.noImageryStreetsPolled,
+          "reopen_candidates_found"     -> result.reopenCandidatesFound
         )
       }
       .onComplete {

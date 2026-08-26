@@ -28,6 +28,10 @@ import scala.concurrent.{ExecutionContext, Future}
  * @param auditsUnflagged  Audits whose re-audit flag cleared.
  * @param pollFailures     Failed poll runs that night; a night of zeros with a failure means "broken", not "quiet".
  * @param syncFailures     Failed sync runs that night.
+ * @param noImagerySelected no_imagery streets picked by the regained-imagery re-check rotation (#4929). Zero for
+ *                          runs recorded before that rotation existed.
+ * @param noImageryPolled   Of those, streets that answered conclusively.
+ * @param reopenCandidates  Of those, streets recorded as reopen candidates for admin review.
  */
 case class ImageryRunDay(
     day: LocalDate,
@@ -38,7 +42,10 @@ case class ImageryRunDay(
     auditsFlagged: Int,
     auditsUnflagged: Int,
     pollFailures: Int,
-    syncFailures: Int
+    syncFailures: Int,
+    noImagerySelected: Int = 0,
+    noImageryPolled: Int = 0,
+    reopenCandidates: Int = 0
 )
 
 /**
@@ -75,15 +82,18 @@ object ImageryFreshnessReport {
       "jobs"     -> JsArray(report.jobs.map(Json.toJson(_)(HealthService.nightlyJobStatusWrites))),
       "run_days" -> JsArray(report.runDays.map { day =>
         Json.obj(
-          "day"               -> day.day.toString,
-          "streets_selected"  -> day.streetsSelected,
-          "streets_polled"    -> day.streetsPolled,
-          "streets_skipped"   -> day.streetsSkipped,
-          "streets_refreshed" -> day.streetsRefreshed,
-          "audits_flagged"    -> day.auditsFlagged,
-          "audits_unflagged"  -> day.auditsUnflagged,
-          "poll_failures"     -> day.pollFailures,
-          "sync_failures"     -> day.syncFailures
+          "day"                 -> day.day.toString,
+          "streets_selected"    -> day.streetsSelected,
+          "streets_polled"      -> day.streetsPolled,
+          "streets_skipped"     -> day.streetsSkipped,
+          "streets_refreshed"   -> day.streetsRefreshed,
+          "audits_flagged"      -> day.auditsFlagged,
+          "audits_unflagged"    -> day.auditsUnflagged,
+          "poll_failures"       -> day.pollFailures,
+          "sync_failures"       -> day.syncFailures,
+          "no_imagery_selected" -> day.noImagerySelected,
+          "no_imagery_polled"   -> day.noImageryPolled,
+          "reopen_candidates"   -> day.reopenCandidates
         )
       }),
       "poll_batch_size"     -> report.pollBatchSize,
@@ -161,7 +171,11 @@ object ImageryFreshnessReportService {
           auditsFlagged = syncs.map(run => count(run.details, "audits_flagged")).sum,
           auditsUnflagged = syncs.map(run => count(run.details, "audits_unflagged")).sum,
           pollFailures = polls.count(_.status == JobRunStatus.Failed),
-          syncFailures = syncs.count(_.status == JobRunStatus.Failed)
+          syncFailures = syncs.count(_.status == JobRunStatus.Failed),
+          // Absent in runs recorded before the #4929 rotation existed; count() reads those as zero.
+          noImagerySelected = polls.map(run => count(run.details, "no_imagery_streets_selected")).sum,
+          noImageryPolled = polls.map(run => count(run.details, "no_imagery_streets_polled")).sum,
+          reopenCandidates = polls.map(run => count(run.details, "reopen_candidates_found")).sum
         )
       }
       .sortBy(_.day)

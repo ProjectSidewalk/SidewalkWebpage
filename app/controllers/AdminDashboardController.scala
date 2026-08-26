@@ -256,6 +256,39 @@ class AdminDashboardController @Inject() (
   }
 
   /**
+   * Reopens a no_imagery street from the Street Status page's "Regained imagery" review queue (#4929).
+   *
+   * Guarded on the street's current status, so a stale queue row can't reopen a street twice (409) or invent
+   * one (404).
+   */
+  def reopenStreet(streetEdgeId: Int) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    streetLifecycleService.reopenStreet(streetEdgeId).map {
+      case StreetLifecycleService.Reopened =>
+        cc.loggingService.insert(request.identity.userId, request.ipAddress, s"ReopenStreet_Street=$streetEdgeId")
+        Ok(Json.obj("status" -> "success", "street_edge_id" -> streetEdgeId))
+      case StreetLifecycleService.NotNoImagery(current) =>
+        Conflict(Json.obj("status" -> "Error", "message" -> s"Street $streetEdgeId is '$current', not 'no_imagery'."))
+      case StreetLifecycleService.StreetNotFound =>
+        NotFound(Json.obj("status" -> "Error", "message" -> s"No street with id $streetEdgeId."))
+    }
+  }
+
+  /**
+   * Dismisses a "Regained imagery" reopen candidate without changing the street (#4929). Idempotent: dismissing a
+   * street that has no candidate row succeeds with `deleted = 0`, since the admin's goal — no queue entry — holds.
+   */
+  def dismissReopenCandidate(streetEdgeId: Int) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    streetLifecycleService.dismissReopenCandidate(streetEdgeId).map { deleted =>
+      cc.loggingService.insert(
+        request.identity.userId,
+        request.ipAddress,
+        s"DismissReopenCandidate_Street=$streetEdgeId"
+      )
+      Ok(Json.obj("status" -> "success", "street_edge_id" -> streetEdgeId, "deleted" -> deleted))
+    }
+  }
+
+  /**
    * Renders the Imagery page: where the re-audit work sits, and whether the pipeline that finds it is alive (#4908).
    *
    * The #4384 pipeline surfaces which streets need a re-audit but not the ranking Explore actually routes on, and its

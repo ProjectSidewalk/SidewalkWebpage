@@ -66,6 +66,10 @@
   </div>
 
   <div class="api-section" id="street-status-queue-section">
+    <h2 class="api-heading" id="regained-imagery">Regained imagery <a href="#regained-imagery" class="permalink">#</a></h2>
+    <p>Streets retired as having no imagery where the nightly poll has since found street-view panoramas again — evidence the provider re-drove them. Reopening returns a street to the auditing pool at full priority and lowers its region's completion percentage to match; dismissing clears the evidence, though a later poll can re-queue the street if it finds imagery again.</p>
+    <div id="trend-reopen-candidates"></div>
+
     <h2 class="api-heading" id="awaiting-confirmation">Awaiting confirmation <a href="#awaiting-confirmation" class="permalink">#</a></h2>
     <p id="trend-corroborated-intro"></p>
     <div id="trend-corroborated"></div>
@@ -79,6 +83,7 @@
   <link rel="stylesheet" href="@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")">
   <script src="@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.js")"></script>
 
+  <script src="@assets.path("js/common/ConfirmDialog.js")"></script>
   <script src="@assets.path("js/admin-dashboard/MiniLineChart.js")"></script>
   <script src="@assets.path("js/admin-dashboard/StreetStatusMap.js")"></script>
   <script src="@assets.path("js/admin-dashboard/StreetStatusTable.js")"></script>

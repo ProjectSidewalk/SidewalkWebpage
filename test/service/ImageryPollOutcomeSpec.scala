@@ -2,7 +2,7 @@ package service
 
 import models.audit.AuditTaskTable
 import models.pano.PanoSource
-import models.street.StreetImageryTable
+import models.street.{StreetImageryTable, StreetReopenCandidateTable}
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.db.slick.DatabaseConfigProvider
@@ -51,6 +51,7 @@ class ImageryPollOutcomeSpec extends PlaySpec with GuiceOneAppPerSuite {
       configService,
       app.injector.instanceOf[PanoDataService],
       app.injector.instanceOf[StreetImageryTable],
+      app.injector.instanceOf[StreetReopenCandidateTable],
       app.injector.instanceOf[AuditTaskTable],
       app.injector.instanceOf[ExecutionContext]
     )

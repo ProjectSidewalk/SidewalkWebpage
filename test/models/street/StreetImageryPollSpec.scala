@@ -16,8 +16,8 @@ import java.time.{LocalDate, OffsetDateTime}
 
 /**
  * DB-backed tests for the imagery-age poller's table methods (#4384): StreetImageryTable.streetsToPoll (rotation
- * order) and upsertFromPoll (widen-only date range, per-point median snapshot). Mutating cases run inside
- * rolled-back transactions, leaving the
+ * order), noImageryStreetsToPoll (the #4929 regained-imagery rotation), and upsertFromPoll (widen-only date range,
+ * per-point median snapshot). Mutating cases run inside rolled-back transactions, leaving the
  * connected DB untouched; requires Postgres+PostGIS like the other DB-backed specs. Actors are disabled.
  */
 class StreetImageryPollSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb {
@@ -45,21 +45,25 @@ class StreetImageryPollSpec extends PlaySpec with GuiceOneAppPerSuite with Rolle
    * against any schema. Ids are MAX+1 because seeded dumps insert explicit ids without advancing the sequences; only
    * safe inside `runRolledBack`.
    */
-  private def seedIsolatedStreet: DBIO[StreetToPoll] = {
+  private def seedIsolatedStreet: DBIO[StreetToPoll] = seedStreet("open", 0.0)
+
+  /** [[seedIsolatedStreet]] with the status and position exposed, so several fixture streets can coexist. */
+  private def seedStreet(status: String, latOffset: Double): DBIO[StreetToPoll] = {
     implicit val getStreetToPoll: GetResult[StreetToPoll] = GetResult { r =>
       val id     = r.nextInt()
       val points = Seq.fill(3)((r.nextDouble(), r.nextDouble()))
       StreetToPoll(id, points, r.nextGeometry[LineString]())
     }
     // South Atlantic, ~1000 km off Brazil. The 0.001 degrees of longitude is ~105 m of street, so the 20/50/80%
-    // sample points land ~21 m apart -- far enough not to be each other's nearest pano source.
-    val (lng1, lat1, lng2, lat2) = (-30.0, -20.0, -29.999, -20.0)
+    // sample points land ~21 m apart -- far enough not to be each other's nearest pano source. latOffset separates
+    // multiple fixture streets by whole kilometers, keeping each the unambiguous nearest to its own points.
+    val (lng1, lat1, lng2, lat2) = (-30.0, -20.0 + latOffset, -29.999, -20.0 + latOffset)
     for {
       id <- sql"""
         INSERT INTO street_edge (street_edge_id, geom, x1, y1, x2, y2, way_type, status)
         VALUES ((SELECT COALESCE(MAX(street_edge_id), 0) + 1 FROM street_edge),
                 ST_SetSRID(ST_MakeLine(ST_MakePoint($lng1, $lat1), ST_MakePoint($lng2, $lat2)), 4326),
-                $lng1, $lat1, $lng2, $lat2, 'residential', 'open')
+                $lng1, $lat1, $lng2, $lat2, 'residential', ${status}::street_edge_status)
         RETURNING street_edge_id""".as[Int].head
       // Fails loudly here rather than as three NULL capture columns if a city is ever mapped onto this spot. The
       // 0.001-degree radius (~111 m) is index-backed and a superset of upsertFromPoll's 15 m tolerance.
@@ -121,6 +125,49 @@ class StreetImageryPollSpec extends PlaySpec with GuiceOneAppPerSuite with Rolle
       first mustBe true
       // The just-polled unaudited streets fall to the back of the rotation (or out of a bounded batch entirely).
       freshlyPolledLast must not be 0
+    }
+  }
+
+  "noImageryStreetsToPoll" should {
+    "return only no_imagery non-tutorial streets, with three sample points each" in {
+      val (seededId, returnedIds, statuses) = runRolledBack(for {
+        street  <- seedStreet("no_imagery", 0.02)
+        _       <- seedStreet("open", 0.04) // Must not appear: open streets belong to the main rotation.
+        streets <- streetImageryTable.noImageryStreetsToPoll(1000000)
+        // Non-empty by construction (the seeded street qualifies), so the IN list can't be empty SQL.
+        statuses <- sql"""
+          SELECT DISTINCT status::text FROM street_edge
+          WHERE street_edge_id IN (#${streets.map(_.streetEdgeId).mkString(",")})
+              AND status <> 'no_imagery'""".as[String]
+        _ = streets.foreach(_.points.size mustBe 3)
+      } yield (street.streetEdgeId, streets.map(_.streetEdgeId), statuses))
+
+      returnedIds must contain(seededId)
+      returnedIds must not contain tutorialStreetId
+      statuses mustBe empty // i.e. every returned street's status is no_imagery.
+    }
+
+    "visit never-polled streets first and freshly-polled streets last" in {
+      val (neverPolledId, freshlyPolledId, ids) = runRolledBack(for {
+        neverPolled   <- seedStreet("no_imagery", 0.02)
+        freshlyPolled <- seedStreet("no_imagery", 0.04)
+        _             <- streetImagery += StreetImagery(freshlyPolled.streetEdgeId, None, None, None, 0,
+          StreetImagerySource.ImageryPoll, OffsetDateTime.now.plusMinutes(1))
+        ids <- streetImageryTable.noImageryStreetsToPoll(1000000).map(_.map(_.streetEdgeId))
+      } yield (neverPolled.streetEdgeId, freshlyPolled.streetEdgeId, ids))
+
+      // No street_imagery row sorts NULLS FIRST; the newest updated_at is the back of the rotation.
+      ids.indexOf(neverPolledId) must be < ids.indexOf(freshlyPolledId)
+      ids.last mustBe freshlyPolledId
+    }
+
+    "respect the limit" in {
+      val ids = runRolledBack(for {
+        _   <- seedStreet("no_imagery", 0.02)
+        _   <- seedStreet("no_imagery", 0.04)
+        ids <- streetImageryTable.noImageryStreetsToPoll(1)
+      } yield ids)
+      ids.size mustBe 1
     }
   }
 

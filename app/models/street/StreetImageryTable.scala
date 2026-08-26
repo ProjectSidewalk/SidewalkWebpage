@@ -184,6 +184,46 @@ class StreetImageryTable @Inject() (protected val dbConfigProvider: DatabaseConf
   }
 
   /**
+   * Picks the no_imagery streets most in need of a regained-imagery re-check (#4929).
+   *
+   * A separate, slower rotation from streetsToPoll on purpose: no_imagery streets are never audited, so folding them
+   * into that query's audited-first ordering would place them dead last and they would never be reached. Ordering is
+   * purely least-recently-polled (no street_imagery row first), and the poller bumps updated_at on every conclusive
+   * poll -- empty results included -- which is what advances this rotation.
+   *
+   * Side effect worth knowing: neither syncOutdatedImageryFlags nor km_needs_reaudit filters by street status, so a
+   * regained street's pre-retirement audits get flagged as outdated_imagery while it still sits in the review queue.
+   * Bounded, self-correcting (a later empty poll NULLs the median and the clear-pass unflags), and it means the
+   * flags are already correct the moment an admin reopens the street.
+   *
+   * @param limit Maximum number of streets to return.
+   */
+  def noImageryStreetsToPoll(limit: Int): DBIO[Seq[StreetToPoll]] = {
+    implicit val getStreetToPoll: GetResult[StreetToPoll] = GetResult { r =>
+      val id     = r.nextInt()
+      val points = Seq.fill(3)((r.nextDouble(), r.nextDouble())) // Each ST_LineInterpolatePoint pair is (lat, lng).
+      StreetToPoll(id, points, r.nextGeometry[LineString]())
+    }
+    sql"""
+      SELECT street_edge.street_edge_id,
+             ST_Y(ST_LineInterpolatePoint(street_edge.geom, 0.2)) AS near_start_lat,
+             ST_X(ST_LineInterpolatePoint(street_edge.geom, 0.2)) AS near_start_lng,
+             ST_Y(ST_LineInterpolatePoint(street_edge.geom, 0.5)) AS mid_lat,
+             ST_X(ST_LineInterpolatePoint(street_edge.geom, 0.5)) AS mid_lng,
+             ST_Y(ST_LineInterpolatePoint(street_edge.geom, 0.8)) AS near_end_lat,
+             ST_X(ST_LineInterpolatePoint(street_edge.geom, 0.8)) AS near_end_lng,
+             street_edge.geom
+      FROM street_edge
+      LEFT JOIN street_imagery ON street_edge.street_edge_id = street_imagery.street_edge_id
+      WHERE street_edge.status = 'no_imagery'
+          AND street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
+      ORDER BY street_imagery.updated_at ASC NULLS FIRST,
+               street_edge.street_edge_id
+      LIMIT $limit;
+    """.as[StreetToPoll]
+  }
+
+  /**
    * Records one poll's result for a street: snapshots median_newest_capture, widens the min/max capture range, and
    * always bumps updated_at (#4384).
    *
