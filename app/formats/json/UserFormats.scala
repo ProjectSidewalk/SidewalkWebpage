@@ -6,6 +6,29 @@ import play.api.libs.json._
 import java.time.OffsetDateTime
 
 object UserFormats {
+
+  /**
+   * The Settings page's save (`POST /dashboard/settings`). The privacy flags are required so a body that omits one
+   * can't silently reset it; `teamId` null means no team, and the other optional fields mean "not touching it".
+   */
+  case class SettingsSubmission(
+      username: Option[String],
+      onLeaderboard: Boolean,
+      publicProfile: Boolean,
+      teamId: Option[Int],
+      communityService: Option[Boolean],
+      measurementSystem: Option[String]
+  )
+
+  implicit val settingsSubmissionReads: Reads[SettingsSubmission] = (
+    (JsPath \ "username").readNullable[String].map(_.map(_.trim)) and
+      (JsPath \ "onLeaderboard").read[Boolean] and
+      (JsPath \ "publicProfile").read[Boolean] and
+      (JsPath \ "teamId").readNullable[Int] and
+      (JsPath \ "communityService").readNullable[Boolean] and
+      (JsPath \ "measurementSystem").readNullable[String]
+  )(SettingsSubmission.apply _)
+
   implicit val sidewalkUserWithRoleReads: Reads[SidewalkUserWithRole] = (
     (JsPath \ "userId").read[String] and
       (JsPath \ "username").read[String] and

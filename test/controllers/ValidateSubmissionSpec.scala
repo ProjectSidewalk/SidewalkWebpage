@@ -19,9 +19,10 @@ import play.api.test.Helpers._
 import java.time.OffsetDateTime
 
 /**
- * Functional tests for the Validate submission endpoints — `POST /validationTask` (the Validate tool) and
- * `POST /labelmap/validate` (the LabelMap/Gallery path) — the write path that turns a validation into a
- * `label_validation` row and the label's updated agree/disagree/unsure counts (#4777).
+ * Functional tests for the Validate submission endpoints — `POST /validationTask` (the Validate tool),
+ * `POST /labelmap/validate`, and `POST /labelmap/comment` (the LabelMap/Gallery paths) — the write path that turns a
+ * validation into a `label_validation` row and the label's updated agree/disagree/unsure counts (#4777), and the one
+ * that keeps a user to a single comment per label (#4942).
  *
  * Follows the real client bootstrap: GET /validate embeds the assigned mission and label batch as inline page JS
  * (`param.*`), and the spec validates the first label of that real batch. Both tests run the endpoint's own undo flow
@@ -123,11 +124,11 @@ class ValidateSubmissionSpec
   /**
    * A single validation as the Validate frontend submits one.
    *
-   * Severity and tags echo the label's current values, which for a well-formed label means the validation makes no
-   * change to the label itself. That is an assumption about the data, not a guarantee from the code — `cleanTagList`
-   * drops tags that are invalid or mutually exclusive for the label type, so a legacy label carrying one would take
-   * the mutation branch — which is why the tests assert the label's severity, tags, and history are untouched rather
-   * than take it on trust.
+   * Severity and tags echo the label's current values unless overridden, which for a well-formed label means the
+   * validation makes no change to the label itself. That is an assumption about the data, not a guarantee from the
+   * code — `cleanTagList` drops tags that are invalid or mutually exclusive for the label type, so a legacy label
+   * carrying one would take the mutation branch — which is why the tests assert the label's severity, tags, and
+   * history are untouched rather than take it on trust.
    */
   private def validationJson(
       label: JsObject,
@@ -135,7 +136,8 @@ class ValidateSubmissionSpec
       result: String,
       undone: Boolean = false,
       redone: Boolean = false,
-      comment: Option[String] = None
+      comment: Option[String] = None,
+      severity: Option[Option[Int]] = None
   ): JsObject = {
     val now         = OffsetDateTime.now
     val commentJson = comment.map { text =>
@@ -155,10 +157,8 @@ class ValidateSubmissionSpec
       "label_id"          -> (label \ "label_id").as[Int],
       "mission_id"        -> missionId,
       "validation_result" -> result,
-      "old_severity"      -> (label \ "severity").asOpt[Int],
-      "new_severity"      -> (label \ "severity").asOpt[Int],
-      "old_tags"          -> (label \ "tags").as[JsArray],
-      "new_tags"          -> (label \ "tags").as[JsArray],
+      "severity"          -> severity.getOrElse[Option[Int]]((label \ "severity").asOpt[Int]),
+      "tags"              -> (label \ "tags").as[JsArray],
       "canvas_x"          -> 355,
       "canvas_y"          -> 242,
       "heading"           -> (label \ "heading").as[Double],
@@ -221,10 +221,8 @@ class ValidateSubmissionSpec
       "label_id"          -> (label \ "label_id").as[Int],
       "label_type"        -> (label \ "label_type").as[String],
       "validation_result" -> result,
-      "old_severity"      -> (label \ "severity").asOpt[Int],
-      "new_severity"      -> (label \ "severity").asOpt[Int],
-      "old_tags"          -> (label \ "tags").as[JsArray],
-      "new_tags"          -> (label \ "tags").as[JsArray],
+      "severity"          -> (label \ "severity").asOpt[Int],
+      "tags"              -> (label \ "tags").as[JsArray],
       "heading"           -> (label \ "heading").as[Double],
       "pitch"             -> (label \ "pitch").as[Double],
       "zoom"              -> (label \ "zoom").as[Double],
@@ -239,6 +237,20 @@ class ValidateSubmissionSpec
     )
   }
 
+  /** A `POST /labelmap/comment` payload for the given label. */
+  private def labelMapCommentJson(label: JsObject, text: String): JsObject =
+    Json.obj(
+      "label_id"   -> (label \ "label_id").as[Int],
+      "label_type" -> (label \ "label_type").as[String],
+      "comment"    -> text,
+      "pano_id"    -> (label \ "pano_id").as[String],
+      "heading"    -> (label \ "heading").as[Double],
+      "pitch"      -> (label \ "pitch").as[Double],
+      "zoom"       -> (label \ "zoom").as[Double],
+      "lat"        -> (label \ "lat").as[Double],
+      "lng"        -> (label \ "lng").as[Double]
+    )
+
   /** Posts a Validate-tool submission over HTTP as the session's user. */
   private def postValidationTask(session: Seq[Cookie], payload: JsValue) =
     route(app, FakeRequest(POST, "/validationTask").withCookies(session: _*).withJsonBody(payload).withCSRFToken).get
@@ -248,6 +260,13 @@ class ValidateSubmissionSpec
     route(
       app,
       FakeRequest(POST, "/labelmap/validate").withCookies(session: _*).withJsonBody(payload).withCSRFToken
+    ).get
+
+  /** Posts a LabelMap/Gallery comment over HTTP as the session's user. */
+  private def postLabelMapComment(session: Seq[Cookie], payload: JsValue) =
+    route(
+      app,
+      FakeRequest(POST, "/labelmap/comment").withCookies(session: _*).withJsonBody(payload).withCSRFToken
     ).get
 
   /**
@@ -278,6 +297,16 @@ class ValidateSubmissionSpec
   private def labelHistoryCount(labelId: Int): Int =
     run(sql"SELECT count(*) FROM label_history WHERE label_id = $labelId".as[Int]).head
 
+  /** The edit submitted with the user's validation of the label, as (old_severity, new_severity), if any. */
+  private def editForValidation(labelId: Int, userId: String): Option[(Option[Int], Option[Int])] =
+    run(
+      sql"""SELECT label_edit.old_severity, label_edit.new_severity
+            FROM label_edit
+            INNER JOIN label_validation ON label_edit.label_validation_id = label_validation.label_validation_id
+            WHERE label_validation.label_id = $labelId AND label_validation.user_id = $userId"""
+        .as[(Option[Int], Option[Int])]
+    ).headOption
+
   /** The mission's recorded progress, which the client reports alongside each validation. */
   private def missionProgress(missionId: Int): Int =
     run(sql"SELECT labels_progress FROM mission WHERE mission_id = $missionId".as[Int]).head
@@ -294,7 +323,8 @@ class ValidateSubmissionSpec
       val _ = run(
         DBIO.seq(
           sqlu"""DELETE FROM label_history
-                 WHERE label_validation_id IN (SELECT label_validation_id FROM label_validation WHERE user_id = $uId)""",
+                 WHERE label_edit_id IN (SELECT label_edit_id FROM label_edit WHERE user_id = $uId)""",
+          sqlu"DELETE FROM label_edit WHERE user_id = $uId",
           sqlu"""DELETE FROM label_ai_assessment
                  WHERE label_validation_id IN (SELECT label_validation_id FROM label_validation WHERE user_id = $uId)""",
           sqlu"DELETE FROM validation_task_comment WHERE mission_id IN (SELECT mission_id FROM mission WHERE user_id = $uId)",
@@ -400,6 +430,74 @@ class ValidateSubmissionSpec
       validationRow(labelId, b.userId) mustBe None
       labelState(labelId) mustBe before
       missionProgress(b.missionId) mustBe 0
+    }
+
+    "record a severity change submitted with an Agree as an edit linked to the vote, and unwind it on undo (#2575)" in {
+      val session = freshAnonSession()
+      val b       = fetchValidateBootstrap(session)
+      // Needs a label whose type carries a severity; Occlusion/Signal labels don't, and their severity stays null.
+      val label = b.labels
+        .find(l => (l \ "severity").asOpt[Int].isDefined)
+        .getOrElse(cancel("No label in the batch carries a severity to change."))
+      val labelId      = (label \ "label_id").as[Int]
+      val before       = backupLabel(labelId)
+      val historyCount = labelHistoryCount(labelId)
+      val newSeverity  = if (before.severity.contains(1)) 2 else 1
+
+      val posted = postValidationTask(
+        session,
+        taskSubmission(
+          b,
+          Seq(validationJson(label, b.missionId, "Agree", severity = Some(Some(newSeverity)))),
+          Some(missionProgressJson(b, 1))
+        )
+      )
+      status(posted) mustBe OK
+
+      // The label takes the new severity; the change is a label_edit tied to the vote, with one history row.
+      labelState(labelId).severity mustBe Some(newSeverity)
+      editForValidation(labelId, b.userId) mustBe Some((before.severity, Some(newSeverity)))
+      labelHistoryCount(labelId) mustBe historyCount + 1
+
+      // A Disagree never applies a change, even when the payload carries one.
+      val disagreed = postValidationTask(
+        session,
+        taskSubmission(
+          b,
+          Seq(validationJson(label, b.missionId, "Disagree", severity = Some(Some(newSeverity)))),
+          Some(missionProgressJson(b, 1))
+        )
+      )
+      status(disagreed) mustBe OK
+      labelState(labelId).severity mustBe before.severity
+      editForValidation(labelId, b.userId) mustBe None
+      labelHistoryCount(labelId) mustBe historyCount
+
+      // Undoing the vote unwinds the edit with it.
+      status(
+        postValidationTask(
+          session,
+          taskSubmission(
+            b,
+            Seq(validationJson(label, b.missionId, "Agree", severity = Some(Some(newSeverity)))),
+            Some(missionProgressJson(b, 1))
+          )
+        )
+      ) mustBe OK
+      labelState(labelId).severity mustBe Some(newSeverity)
+      val undone = postValidationTask(
+        session,
+        taskSubmission(
+          b,
+          Seq(validationJson(label, b.missionId, "Agree", undone = true, severity = Some(Some(newSeverity)))),
+          Some(missionProgressJson(b, 0))
+        )
+      )
+      status(undone) mustBe OK
+      validationRow(labelId, b.userId) mustBe None
+      labelState(labelId) mustBe before
+      editForValidation(labelId, b.userId) mustBe None
+      labelHistoryCount(labelId) mustBe historyCount
     }
 
     "answer 200 and leave one row when the identical submission arrives twice (#4377)" in {
@@ -517,6 +615,25 @@ class ValidateSubmissionSpec
       status(undone) mustBe OK
       validationRow(labelId, b.userId) mustBe None
       labelState(labelId) mustBe before
+    }
+  }
+
+  "POST /labelmap/comment" should {
+    "replace the user's earlier comment on the label rather than stacking a second one (#4942)" in {
+      val session = freshAnonSession()
+      val b       = fetchValidateBootstrap(session)
+      val label   = b.labels.head
+      val labelId = (label \ "label_id").as[Int]
+
+      val first = postLabelMapComment(session, labelMapCommentJson(label, "Ramp is behind the parked car."))
+      status(first) mustBe OK
+      (contentAsJson(first) \ "comment_id").as[Int] must be > 0
+      commentsOn(labelId, b.userId) mustBe Seq("Ramp is behind the parked car.")
+
+      // Revising a comment is the flow that has to land on the user's existing row for the label, not beside it.
+      val revised = postLabelMapComment(session, labelMapCommentJson(label, "Looking again, it is fine."))
+      status(revised) mustBe OK
+      commentsOn(labelId, b.userId) mustBe Seq("Looking again, it is fine.")
     }
   }
 }

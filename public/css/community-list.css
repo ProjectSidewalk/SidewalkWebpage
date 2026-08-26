@@ -7,6 +7,14 @@
   padding: 32px 24px 48px;
 }
 
+/* At 390px the 24px gutters leave the single column 342px — tight for the photo + tag-pill rows inside; trimming
+   them to 16px gives it 358px. The vertical padding comes down with them so the first card starts higher. */
+@media (width <= 480px) {
+  .community-page {
+    padding: 24px 16px 40px;
+  }
+}
+
 .community-page *,
 .community-page *::before,
 .community-page *::after {
@@ -84,7 +92,11 @@
 
 .community-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+
+  /* min(320px, 100%) rather than a bare 320px: on a viewport narrower than 320px-plus-page-padding a fixed
+     minimum would force the track (and the page) wider than the screen; capping it at the container's own
+     width lets the single column shrink instead (#4691). */
+  grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr));
   gap: 20px;
   padding: 0;
   margin: 0;
@@ -274,6 +286,7 @@
 .story-card__author {
   font: var(--text-small-medium);
   color: var(--color-neutral-800);
+  overflow-wrap: anywhere; /* Display names are usernames, which can be one long token. */
 }
 
 /* One combined place line: "address · neighborhood", or just the neighborhood when the address is unknown.
@@ -308,7 +321,7 @@
   white-space: nowrap;
 }
 
-/* Single line always: chips ellipsize (see .community-chip) rather than wrapping under the button. */
+/* One line from 361px up: the type chip ellipsizes (see .community-chip) rather than wrapping under the button. */
 .story-card__foot {
   display: flex;
   flex-wrap: nowrap;
@@ -316,6 +329,14 @@
   align-items: center;
   margin-top: auto;
   padding-top: 12px;
+}
+
+/* Narrower than that, one line leaves the chip almost nothing — 41px of "Curb Ramp"'s 63px in a 320px card, about
+   one character of a German label — so the button and share chip drop below it rather than crushing the label. */
+@media (width <= 360px) {
+  .story-card__foot {
+    flex-wrap: wrap;
+  }
 }
 
 .story-card__label-link {

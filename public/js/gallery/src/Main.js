@@ -37,7 +37,7 @@ class Main {
     // Keep track of some other elements whose status or dimensions are useful.
     sg.ui.pageControl = $('.page-control');
     sg.pageLoading = $('#page-loading');
-    sg.labelsNotFound = $('#labels-not-found');
+    sg.labelsNotFound = $('#labels-not-found-text');
   }
 
   async #init(params) {
@@ -62,5 +62,14 @@ class Main {
     // Initialize data collection.
     sg.form = new Form(params.dataStoreUrl);
     sg.tracker = new Tracker();
+
+    // Narrow-layout filter disclosure (button in gallery.scala.html; filter.css shows it under the breakpoint).
+    const filterToggle = document.getElementById('gallery-filter-toggle');
+    if (filterToggle) {
+      wireSidebarDisclosure(filterToggle, filterToggle.closest('.sidebar'), {
+        controlled: document.getElementById('gallery-filter-sections'),
+        onToggle: (open) => sg.tracker.push(open ? 'FilterDisclosureOpen' : 'FilterDisclosureClose'),
+      });
+    }
   }
 }

@@ -381,7 +381,9 @@
 }
 .coverage-table th:not(:first-child), .coverage-table td:not(:first-child) { text-align: right; }
 
-.coverage-table tbody td {
+/* Row headers (<th scope="row">) are body cells too, so they carry the same padding and row rule as the data cells. */
+.coverage-table tbody td,
+.coverage-table tbody th {
   padding: 6px 10px;
   border-bottom: 1px solid var(--color-neutral-100);
 }
@@ -703,6 +705,21 @@
 /* Emphasized category (opts.emphasisIndex — e.g. the in-progress "today" bar): bolder, darker text; the bar itself
    renders with a lighter fill + solid outline so a partial period reads as still accumulating. */
 .mini-axis--emphasis,
+/* Reference line: a target the bars are read against (e.g. the poll's nightly batch size), not a data series. */
+.mini-ref {
+  stroke: var(--color-text-secondary, #5a7785);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 4;
+  opacity: 0.75;
+}
+
+.mini-ref-label {
+  fill: var(--color-text-secondary, #5a7785);
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--font-sans, sans-serif);
+}
+
 .mini-value--emphasis {
   fill: var(--color-text-primary, #222222);
   font-weight: 700;
@@ -2764,3 +2781,149 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
     grid-template-columns: 1fr;
   }
 }
+
+/* --- Street Status: recently-changed trends (#4928) ------------------------------------------------------------
+   Line/bar colors for the status series come from StreetStatusColors.STATUSES, published onto the section as
+   --trend-<status> custom properties by StreetStatusTrend so the charts and the map legend can't disagree. */
+
+/* Sized in em, not the --font-size-* tokens: those are rem-based but the document root is 62.5%, so they render at
+   ~8-10px here rather than the 13-16px they name. em inherits the 16px body size and stays legible. */
+.trend-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs, 8px);
+  margin-bottom: var(--space-sm, 12px);
+  font-size: 0.875em;
+  color: var(--color-text-secondary, #5a7785);
+}
+
+.trend-note {
+  margin: 0 0 var(--space-xs, 8px);
+  font-size: 0.875em;
+  color: var(--color-text-secondary, #5a7785);
+}
+
+.trend-range {
+  font: inherit;
+  padding: 4px 8px;
+  border: 1px solid var(--color-border, #d7dee2);
+  border-radius: 4px;
+  background: var(--color-surface, #ffffff);
+  color: var(--color-text-primary, #222222);
+}
+
+.trend-chart-heading {
+  margin: var(--space-md, 16px) 0 var(--space-xxs, 4px);
+  font-size: 1.125em;
+  font-weight: 600;
+  color: var(--color-text-primary, #222222);
+}
+
+.mini-line--open { stroke: var(--trend-open); }             .mini-pt--open { fill: var(--trend-open); }
+.mini-line--no-imagery { stroke: var(--trend-no-imagery); } .mini-pt--no-imagery { fill: var(--trend-no-imagery); }
+.mini-line--closed { stroke: var(--trend-closed); }         .mini-pt--closed { fill: var(--trend-closed); }
+.mini-line--disabled { stroke: var(--trend-disabled); }     .mini-pt--disabled { fill: var(--trend-disabled); }
+.mini-swatch--open { background: var(--trend-open); }
+.mini-swatch--no-imagery { background: var(--trend-no-imagery); }
+.mini-swatch--closed { background: var(--trend-closed); }
+.mini-swatch--disabled { background: var(--trend-disabled); }
+
+/* Reports are activity (a neutral accent); expiries are imagery loss, so they carry the no-imagery orange, and
+   recoveries answer them in green. */
+.mini-bar--reports { fill: var(--color-primary, #4a90d9); }
+.mini-bar--expired { fill: var(--color-orange-500, #eb724e); }
+.mini-bar--returned { fill: var(--color-success-200, #11c961); }
+.mini-swatch--expired { background: var(--color-orange-500, #eb724e); }
+.mini-swatch--returned { background: var(--color-success-200, #11c961); }
+
+/* --- Imagery: re-audit priority + pipeline health (#4908) ------------------------------------------------------
+   Tier colors come from StreetPriorityTiers.TIERS, published as --priority-<tier> custom properties by
+   StreetPriorityMap, so the map, the legend, and the table badges read one palette. */
+
+.imagery-swatch--unaudited { background: var(--priority-unaudited); }
+.imagery-swatch--reaudit { background: var(--priority-reaudit); }
+.imagery-swatch--audited-once { background: var(--priority-audited-once); }
+.imagery-swatch--audited-multi { background: var(--priority-audited-multi); }
+
+/* The priority formula reads as a definition, not as prose: centering it stops it from breaking a sentence in half
+   at whatever width the viewport happens to be. */
+.imagery-formula {
+  margin: var(--space-sm, 12px) 0;
+  text-align: center;
+}
+
+/* The API-docs stylesheet sets `code` to nowrap, which pushes this formula ~100px past the content column at every
+   width and clips the tail. It reads fine broken at its spaces. */
+.imagery-formula code {
+  white-space: normal;
+}
+
+/* Tier table under the priority map: the legend, the per-tier counts, and the explanation of the single ordering
+   they sit on, in one place so a reader never has to pair a color with prose somewhere else. */
+.imagery-tier-wrap {
+  overflow-x: auto;
+}
+
+.imagery-tier-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: var(--space-sm, 12px);
+  font-size: var(--font-size-sm, 0.875rem);
+}
+
+.imagery-tier-table th {
+  text-align: left;
+  padding: 8px 10px;
+  color: var(--color-text-heading, #263238);
+  font-weight: 600;
+  border-bottom: 1px solid var(--color-neutral-200);
+  white-space: nowrap;
+}
+
+.imagery-tier-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--color-neutral-100);
+  vertical-align: top;
+}
+
+.imagery-tier-table th.imagery-tier-num,
+.imagery-tier-table td.imagery-tier-num {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.imagery-tier-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  font-weight: 600;
+  color: var(--color-text-heading, #263238);
+}
+
+.imagery-tier-what {
+  color: var(--color-text-secondary, #5a7785);
+  min-width: 220px;
+}
+
+.imagery-tier-swatch {
+  display: inline-block;
+  width: 22px;
+  height: 6px;
+  border-radius: 2px;
+  border: 1px solid rgb(0 0 0 / 15%);
+  flex: none;
+}
+
+/* Polled/flagged are the pipeline doing its job; skipped/unflagged are the counterpart it also reports, so each pair
+   is one hue apart rather than a green/red judgement — a night of unflagging is not a failure. */
+.mini-bar--polled { fill: var(--color-primary, #4a90d9); }
+.mini-bar--skipped { fill: var(--color-neutral-400, #c9c9c9); }
+.mini-bar--flagged { fill: var(--priority-reaudit, #d55e00); }
+.mini-bar--unflagged { fill: var(--color-pine-600, #60a189); }
+.mini-bar--freshness { fill: var(--color-primary, #4a90d9); }
+.mini-swatch--polled { background: var(--color-primary, #4a90d9); }
+.mini-swatch--skipped { background: var(--color-neutral-400, #c9c9c9); }
+.mini-swatch--flagged { background: var(--priority-reaudit, #d55e00); }
+.mini-swatch--unflagged { background: var(--color-pine-600, #60a189); }

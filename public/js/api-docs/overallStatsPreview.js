@@ -30,22 +30,9 @@
     chartBorderColor: '#e0e0e0',
   };
 
-  // Label type mapping (API field name to display name).
-  // This will be populated from the labelTypes API.
-  const labelTypeMapping = {
-    CurbRamp: 'Curb Ramp',
-    NoCurbRamp: 'Missing Curb Ramp',
-    Obstacle: 'Obstacle in a Path',
-    SurfaceProblem: 'Surface Problem',
-    NoSidewalk: 'No Sidewalk',
-    Crosswalk: 'Marked Crosswalk',
-    Signal: 'Pedestrian Signal',
-    Occlusion: 'Can\'t See Sidewalk',
-    Other: 'Other',
-  };
-
-  const labelTypeColors = {}; // Colors map (will be populated from labelTypes API).
-  const labelTypeIcons = {};  // Icons map (will be populated from labelTypes API).
+  const labelTypeMapping = {}; // Machine name -> localized display name (populated from the labelTypes API).
+  const labelTypeColors = {};  // Colors map (will be populated from labelTypes API).
+  const labelTypeIcons = {};   // Icons map (will be populated from labelTypes API).
 
   // Public API.
   window.OverallStatsPreview = {
@@ -133,7 +120,7 @@
               labelTypeColors[labelType.name] = labelType.color;
 
               // Update the label type mapping.
-              labelTypeMapping[labelType.name] = labelType.description;
+              labelTypeMapping[labelType.name] = labelType.display_name;
 
               // Store icon URLs.
               labelTypeIcons[labelType.name] = labelType.small_icon_url;

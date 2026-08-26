@@ -237,39 +237,36 @@ class ApplicationController @Inject() (
 
   /**
    * Returns the LabelMap page that contains a cool visualization.
+   *
+   * Mobile visitors are served the page itself (it is responsive) rather than being redirected to /mobileLanding.
+   * The label feed it loads is still the whole city's, unnarrowed by viewport (#5002).
    */
   def labelMap(regions: Option[String], routes: Option[String], aiValidationOptions: Option[String]) =
     cc.securityService.UserAwareAction { implicit request =>
-      if (ControllerUtils.isMobile(request)) {
-        cc.loggingService.insert(
-          request.identity.map(_.userId),
-          request.ipAddress,
-          "Visit_LabelMap_RedirectMobileLanding"
-        )
-        Future.successful(Redirect("/mobileLanding"))
-      } else {
-        val regionIds: Seq[Int]    = parseIntegerSeq(regions)
-        val routeIds: Seq[Int]     = parseIntegerSeq(routes)
-        val aiValOpts: Seq[String] = aiValidationOptions.map(_.split(",").toSeq.distinct).getOrElse(Seq())
-        val activityStr: String    = if (regions.isEmpty) "Visit_LabelMap" else s"Visit_LabelMap_Regions=$regions"
+      val regionIds: Seq[Int]    = parseIntegerSeq(regions)
+      val routeIds: Seq[Int]     = parseIntegerSeq(routes)
+      val aiValOpts: Seq[String] = aiValidationOptions.map(_.split(",").toSeq.distinct).getOrElse(Seq())
+      // Logged off the parsed ids, not the raw Option: interpolating the latter writes "Regions=Some(5,7)" and
+      // carries through junk the parser already rejected.
+      val activityStr: String =
+        if (regionIds.isEmpty) "Visit_LabelMap" else s"Visit_LabelMap_Regions=${regionIds.mkString(",")}"
 
-        for {
-          commonData <- configService.getCommonPageData(request2Messages.lang)
-          tags       <- labelService.getTagsForCurrentCity
-        } yield {
-          cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, activityStr)
-          Ok(
-            views.html.apps.labelMap(
-              commonData,
-              Messages("seo.title.label.map", commonData.currentCity.cityNameShort),
-              request.identity,
-              tags,
-              regionIds,
-              routeIds,
-              aiValOpts
-            )
+      for {
+        commonData <- configService.getCommonPageData(request2Messages.lang)
+        tags       <- labelService.getTagsForCurrentCity
+      } yield {
+        cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, activityStr)
+        Ok(
+          views.html.apps.labelMap(
+            commonData,
+            Messages("seo.title.label.map", commonData.currentCity.cityNameShort),
+            request.identity,
+            tags,
+            regionIds,
+            routeIds,
+            aiValOpts
           )
-        }
+        )
       }
     }
 
@@ -290,12 +287,16 @@ class ApplicationController @Inject() (
   def timeCheck = cc.securityService.SecuredAction(WithSignedIn()) {
     implicit request: SecuredRequest[DefaultEnv, AnyContent] =>
       val isMobile: Boolean = ControllerUtils.isMobile(request)
+      // Not cached, and started together: volunteers reload this page while logging service hours, so a stale total
+      // would be worse than a slow one (#4526).
+      val cityHoursF: Future[service.CrossCityHours] =
+        userService.getCrossCityHours(request.identity.userId, request2Messages.lang)
       for {
-        commonData        <- configService.getCommonPageData(request2Messages.lang)
-        timeSpent: Double <- userService.getHoursAuditingAndValidating(request.identity.userId)
+        commonData <- configService.getCommonPageData(request2Messages.lang)
+        cityHours  <- cityHoursF
       } yield {
         cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_TimeCheck")
-        Ok(views.html.timeCheck(commonData, request.identity, isMobile, timeSpent))
+        Ok(views.html.timeCheck(commonData, request.identity, isMobile, cityHours))
       }
   }
 

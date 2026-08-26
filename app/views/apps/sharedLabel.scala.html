@@ -9,11 +9,14 @@
  * Public single-label "spotlight" page (issue #456), rendered by ShareController.label for /label/:labelId.
  *
  * The hero REUSES the shared LabelDetail component (the same one the Gallery expanded view and the LabelMap popup use):
- * interactive pano, agree/disagree/unsure validation, severity/quality, tags, comments, and description. It runs in
- * non-admin mode, so no usernames are shown. Below it sits a "nearby labels" minimap fed by the cheap, bbox-bounded
- * public /v3/api/rawLabels API (deliberately NOT the city-wide /labels/all layer the full LabelMap loads), and a
- * city-stats + call-to-action footer that invites the visitor into Explore/Validate. Per-label OG/Twitter meta is
- * server-rendered so crawlers (which don't run JS) get the rich preview.
+ * interactive pano, agree/disagree/unsure validation, severity/quality, tags, comments, and description. Below it sits
+ * a "nearby labels" minimap fed by the cheap, bbox-bounded public /v3/api/rawLabels API (deliberately NOT the
+ * city-wide /labels/all layer the full LabelMap loads), and a city-stats + call-to-action footer that invites the
+ * visitor into Explore/Validate. Per-label OG/Twitter meta is server-rendered so crawlers (which don't run JS) get the
+ * rich preview.
+ *
+ * The admin's view of a label (/admin/label/:labelId, #4633) is this same page with `isAdmin = true`: the card then
+ * shows its "Admin info" section (username, audit task, previous validations, work-quality flags).
  *
  * @param commonData  Per-page config (imagery source/token, Mapbox key, city info).
  * @param title       Localized share title, used for the browser <title>.
@@ -22,9 +25,10 @@
  * @param labelLatLng The label's geographic location, if recorded; centers the minimap. None hides the minimap.
  * @param cityName    Formatted deployment-city name (e.g. "Seattle, WA").
  * @param shareMeta   Pre-built Open Graph / Twitter Card <meta> block, injected into <head>.
+ * @param isAdmin     Render the label detail card in admin mode (only ever true behind the admin-gated route).
  *@
 @(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, meta: LabelMetadata,
-    labelLatLng: Option[LatLng], cityName: String, shareMeta: Html
+    labelLatLng: Option[LatLng], cityName: String, shareMeta: Html, isAdmin: Boolean = false
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @* Config for SharedLabel.js, serialized once so the bundle carries no Twirl interpolation. *@
@@ -32,6 +36,7 @@
   (Json.obj(
     "labelId"            -> meta.labelId,
     "labelType"          -> meta.labelType.name,
+    "admin"              -> isAdmin,
     "lat"                -> labelLatLng.map(_.lat),
     "lng"                -> labelLatLng.map(_.lng),
     "imagerySource"      -> commonData.imagerySource.toString,
@@ -56,10 +61,10 @@
     <div class="spotlight__cols">
       <div class="spotlight__detail-col">
         @* The shared LabelDetail component, mounted inline (like the Gallery expanded view) and driven by
-           SharedLabel.js. Non-admin: no usernames. The close button is hidden via CSS (it's the page's main
-           content, not a dismissable popup). *@
+           SharedLabel.js. The close button is hidden via CSS (it's the page's main content, not a dismissable
+           popup). *@
         <div class="spotlight__detail label-detail label-detail--inline">
-          @common.labelDetail(admin = false)
+          @common.labelDetail(admin = isAdmin)
         </div>
         @common.panoInfoPopover()
       </div>

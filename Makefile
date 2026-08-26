@@ -112,9 +112,10 @@ docker-up:
 docker-up-db:
 	@docker compose up -d db
 
+# `rm -v` drops the removed containers' anonymous volumes only.
 docker-stop:
 	@docker compose stop
-	@docker compose rm -f
+	@docker compose rm -fv
 
 docker-run:
 	@docker compose run --rm --service-ports --name $(web-container) web /bin/bash

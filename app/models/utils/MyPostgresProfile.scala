@@ -5,8 +5,8 @@ import com.github.tminglei.slickpg._
 import com.github.tminglei.slickpg.geom.PgPostGISExtensions
 import models.label.{AiImageSource, ComputationMethod}
 import models.mission.MissionType
-import models.pano.PanoSource
-import models.street.{StreetEdgeIssueType, StreetEdgeStatus, StreetImagerySource, WayType}
+import models.pano.{PanoImageryChangeSource, PanoSource}
+import models.street.{StreetEdgeIssueType, StreetEdgeStatus, StreetEdgeStatusChangeSource, StreetImagerySource, WayType}
 import models.utils.CommonUtils.{UiSource, ViewerType}
 import models.validation.ValidationOption
 import org.locationtech.jts.geom.{Geometry, LineString, MultiPolygon, Point}
@@ -130,6 +130,15 @@ trait MyPostgresProfile
     implicit val panoSourceMapper: BaseColumnType[PanoSource.Value] =
       createEnumJdbcType[PanoSource.Value]("pano_source", _.toString, PanoSource.withName, quoteName = false)
 
+    // Mapper for pano_imagery_change_source enum type.
+    implicit val panoImageryChangeSourceMapper: BaseColumnType[PanoImageryChangeSource.Value] =
+      createEnumJdbcType[PanoImageryChangeSource.Value](
+        "pano_imagery_change_source",
+        _.toString,
+        PanoImageryChangeSource.withName,
+        quoteName = false
+      )
+
     // Mapper for ui_source enum type.
     implicit val uiSourceMapper: BaseColumnType[UiSource.Value] =
       createEnumJdbcType[UiSource.Value]("ui_source", _.toString, UiSource.withName, quoteName = false)
@@ -159,6 +168,23 @@ trait MyPostgresProfile
         StreetEdgeStatus.withName,
         quoteName = false
       )
+
+    // Mapper for street_edge_status_change_source enum type.
+    implicit val streetEdgeStatusChangeSourceMapper: BaseColumnType[StreetEdgeStatusChangeSource.Value] =
+      createEnumJdbcType[StreetEdgeStatusChangeSource.Value](
+        "street_edge_status_change_source",
+        _.toString,
+        StreetEdgeStatusChangeSource.withName,
+        quoteName = false
+      )
+
+    // Mapper for job_run_status enum type.
+    implicit val jobRunStatusMapper: BaseColumnType[JobRunStatus.Value] =
+      createEnumJdbcType[JobRunStatus.Value]("job_run_status", _.toString, JobRunStatus.withName, quoteName = false)
+
+    // Mapper for job_run_trigger enum type.
+    implicit val jobRunTriggerMapper: BaseColumnType[JobRunTrigger.Value] =
+      createEnumJdbcType[JobRunTrigger.Value]("job_run_trigger", _.toString, JobRunTrigger.withName, quoteName = false)
 
     // Mapper for mission_type enum type.
     implicit val missionTypeMapper: BaseColumnType[MissionType.Value] =

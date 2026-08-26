@@ -18,7 +18,7 @@
   box-sizing: border-box;
   width: 650px;
   max-width: calc(100vw - 32px);
-  max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px); /* dvh, so the dialog tracks the viewport under a collapsing mobile toolbar. */
   padding: 22px;
   border: none;
   border-radius: 12px;
@@ -84,11 +84,37 @@ dialog.label-detail[open]::backdrop {
   margin-bottom: 12px;
 }
 
-.label-detail__title {
+.label-detail__title-wrap {
   flex: 1 0 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.label-detail__title {
+  flex: 0 1 auto;
   margin: 0;
   font: var(--text-h3-bold);
   color: var(--color-neutral-black);
+}
+
+/* "Your label" chip beside the title (#2575); same palette as the own-story chip further down. */
+.label-detail__own-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--color-pine-100);
+  border: 1px solid var(--color-pine-500);
+}
+
+.label-detail__own-badge img {
+  width: 14px;
+  height: 14px;
 }
 
 .label-detail__close {
@@ -166,14 +192,10 @@ dialog.label-detail[open]::backdrop {
   cursor: grabbing;
 }
 
-/* The label marker on the card's pano. The background sizing scales the SVG marker to whatever box PanoMarker
-   sets. The halo that draws the eye to it is main.css's .label-marker-pulse, which PopupPanoManager adds
-   alongside this class. */
+/* The label marker on the card's pano. Its icon, hidden state, and the halo that draws the eye to it are main.css's
+   shared .label-marker / .label-marker-pulse rules, both added by PopupPanoManager alongside this class. */
 .label-detail__marker {
   border-radius: 50%;
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: center;
 
   /* Visual only: let a click-and-drag pass through to the pano so the streetscape still pans when the drag
      starts over the marker (#4574, Mikey #6) — matching the crop fallback marker, which is already pass-through. */
@@ -206,6 +228,52 @@ dialog.label-detail[open]::backdrop {
 
 @media (prefers-reduced-motion: reduce) {
   .label-detail__pan-hint { transition: none; }
+}
+
+/* Hide-label toggle (#2477) in the pano's top-left. Revealed on hover like the paging arrows. */
+.label-detail__hide-label {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 6; /* Above the validation ring (5), below the info popover (10). */
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border: none;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 85%);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 25%);
+  color: var(--color-asphalt-500);
+  font: var(--text-caption-semibold);
+  white-space: nowrap;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 150ms ease;
+}
+
+.label-detail__pano-wrap:hover .label-detail__hide-label,
+.label-detail__hide-label:focus-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.label-detail__hide-label:hover {
+  background: var(--color-neutral-white);
+  color: var(--color-neutral-black);
+}
+
+.label-detail__hide-label:focus-visible {
+  outline: 2px solid var(--color-link-100);
+  outline-offset: 2px;
+}
+
+/* Optical centering. Flex centers the label's line box, but "Hide Label" / "Show Label" have no descenders, so
+   the glyphs sit ~0.05em above the pill's middle — visibly high beside the icon, which centers exactly. */
+.label-detail__hide-label span {
+  position: relative;
+  top: 0.05em;
 }
 
 /* GSV sets a plain cursor inline on its own drag surface, so it needs !important to lose. */
@@ -264,6 +332,10 @@ dialog.label-detail[open]::backdrop {
   text-decoration: none;
   transition: opacity 120ms ease;
 }
+
+/* display: inline-flex above outranks the UA's [hidden] rule, and this panel is not always a .label-detail
+   descendant, so it can't lean on the !important guard at the top of this file. */
+.pano-not-avail__cta[hidden] { display: none; }
 
 .pano-not-avail__cta:hover { opacity: 0.9; }
 
@@ -443,9 +515,16 @@ button.label-detail__meta-cell:focus-visible {
 
 /* ─── Three-column row: Validations / Severity / Tags ─────────────────── */
 
+/* Wrapping is keyed to the columns' own width, not the viewport's: three hosts size this card independently of
+   the window (the 650px modal, the Gallery's 52vw expanded view, the share page's grid track), and a translated
+   "Disagree" widens the two fixed columns well past their English measurement. Since neither of those can shrink,
+   the zero basis + floor on tags below breaks the line exactly when they stop fitting — whatever the host, width,
+   or language. */
 .label-detail__columns {
   display: flex;
+  flex-wrap: wrap;
   gap: 32px;
+  row-gap: 16px;
   align-items: flex-start;
   margin-bottom: 16px;
 }
@@ -463,9 +542,10 @@ button.label-detail__meta-cell:focus-visible {
 .label-detail__col--severity    { flex: 0 0 auto; }
 
 .label-detail__col--tags        {
-  flex: 1 1 auto;
-  min-width: 0;
+  flex: 1 1 0;
+  min-width: 120px;
 }
+
 
 /* Validation count display — non-interactive icon + count groups, modeled on the Figma redesign
    (LabelMap-Redesign frame 537:17). The actual validate action lives on the pano hover overlay. */
@@ -534,6 +614,35 @@ button.label-detail__meta-cell:focus-visible {
   grid-template-columns: repeat(3, auto);
   place-items: flex-start start;
   gap: 8px;
+}
+
+/* A light dim is the only cue that severity and tags aren't controls for a viewer who can't edit them (#2575). */
+.label-detail:not(.label-detail--editable) .label-detail__severity-faces,
+.label-detail:not(.label-detail--editable) .label-detail__tags {
+  opacity: 0.6;
+}
+
+/* Editable faces (#2575): dropping --static restores the shared hover wash; the ring marks keyboard focus. */
+.label-detail--editable .label-detail__severity-faces .severity-button:focus-visible {
+  outline: 2px solid var(--color-link-100);
+  outline-offset: 2px;
+}
+
+/* Column eyebrow with an inline control beside it (the Tags "Edit" toggle, #2575). */
+.label-detail__col-header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0 0 8px;
+}
+
+.label-detail__col-header .label-detail__col-title {
+  margin: 0;
+}
+
+.label-detail__edit-status {
+  font: var(--text-tiny-regular);
+  color: var(--color-orange-700);
 }
 
 /* Tag pills — base styles are in tag-pills.css (.tag-pill class). */
@@ -875,6 +984,35 @@ button.label-detail__meta-cell:focus-visible {
 .label-detail__paging--prev { left: 10px; }
 .label-detail__paging--next { right: 10px; }
 
+/* ─── Touch and narrow viewports ──────────────────────────────────────── */
+
+/* Hover can't reveal controls on a touch-primary device, so the pano's hover-revealed controls stay visible
+   ([hidden] and :disabled states still win), and the sub-44px targets grow: the paging chips outright, the
+   close button via padding (its svg fills the 24px content box that remains).
+   The vote overlay is deliberately NOT among them: it is a full-width 56px bar pinned to the bottom of the
+   pano, so revealing it permanently would cover a quarter of a phone-sized image, kill drag-to-look across
+   that strip, and turn a stray tap into a validation write. Nothing is lost by leaving it to hover — the vote
+   column carries the same three actions through the same handler, and it is always visible. */
+@media (pointer: coarse) {
+  .label-detail__paging,
+  .label-detail__hide-label {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .label-detail__paging {
+    width: 44px;
+    height: 44px;
+  }
+
+  .label-detail__close {
+    width: 44px;
+    height: 44px;
+    padding: 10px;
+  }
+}
+
+
 /* ─── Share control (#456) ────────────────────────────────────────────────
    Subtle, YouTube-style share button anchored bottom-right, with an accessible popover. */
 .label-detail__footer {
@@ -1195,7 +1333,8 @@ button.label-detail__meta-cell:focus-visible {
 }
 
 .label-detail__story-edit,
-.label-detail__story-delete {
+.label-detail__story-delete,
+.label-detail__tags-edit {
   padding: 2px;
   border: none;
   background: none;
@@ -1206,12 +1345,14 @@ button.label-detail__meta-cell:focus-visible {
   text-decoration: underline;
 }
 
-.label-detail__story-edit { color: var(--color-link-200); }
+.label-detail__story-edit,
+.label-detail__tags-edit { color: var(--color-link-200); }
 
 .label-detail__story-delete { color: var(--color-orange-700); }
 
 .label-detail__story-edit:focus-visible,
-.label-detail__story-delete:focus-visible {
+.label-detail__story-delete:focus-visible,
+.label-detail__tags-edit:focus-visible {
   outline: 2px solid #4a90e2;
   outline-offset: 2px;
   border-radius: 4px;
