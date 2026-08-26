@@ -40,35 +40,44 @@ class TagDisplay {
       tagContainer.className = 'label-tags-holder';
       $(container).append(tagContainer);
 
+      const orderedTags = this.#orderTags(tags);
+      const tagsText = orderedTags.map((t) => i18next.t(`tag.${t}`));
+
+      // Every pill is built and attached before anything is measured. A pill's width is set by the holder, which
+      // flex sizes from its siblings rather than its contents, so no pill's width depends on the others — which
+      // makes one batched read equivalent to measuring them one at a time, at a single layout instead of N.
+      const tagEls = tagsText.map((text) => {
+        const tagEl = document.createElement('div');
+        tagEl.className = 'gallery-tag thumbnail-tag';
+        tagEl.innerText = text;
+        return tagEl;
+      });
+      $(tagContainer).append(tagEls);
+
       // The width (amount of horizontal space) we have for our tags is the length of the container subtracted by
       // the space taken up by the header. Multiply by 1.25 to deal with the padding from the space between the
       // "Tag" header and the actual list of tags.
       let remainingWidth = $(container).width() - ($(tagHeader).width() * 1.25);
 
+      // Measured off a pill this card owns: a document-wide `.gallery-tag` lookup matches whichever card rendered
+      // first, and matches nothing at all on the first card after a clear — where parseFloat(undefined) then
+      // poisons every comparison below with NaN and buries tags that plainly fit.
       const MARGIN_BW_TAGS
-                = parseFloat($('.gallery-tag').css('marginLeft')) + parseFloat($('.gallery-tag').css('marginRight'));
+                = parseFloat($(tagEls[0]).css('marginLeft')) + parseFloat($(tagEls[0]).css('marginRight'));
       const WIDTH_FOR_PLUS_N = 30;
       const MIN_TAG_WIDTH = 75;
+      const tagWidths = tagEls.map((tagEl) => parseFloat($(tagEl).css('width')));
 
-      const orderedTags = this.#orderTags(tags);
-      const tagsText = orderedTags.map((t) => i18next.t(`tag.${t}`));
       const hiddenTags = [];
       for (let i = 0; i < tagsText.length; i++) {
-        const tagEl = document.createElement('div');
-        tagEl.className = 'gallery-tag thumbnail-tag';
-        tagEl.innerText = tagsText[i];
-        $(tagContainer).append(tagEl);
+        const tagEl = tagEls[i];
 
-        // If there is enough space to fit the full tag, add it. If there isn't enough to show the full tag but
-        // there is still a decent amount of space (75 px if this is the last tag or 105 px if we also need to
-        // add the '+n' text), add the tag with a max-width so that it gets cut off with an ellipsis. If we
-        // can't fit the tag at all, will need to add to the hidden tags in the '+n' popover.
+        // Below MIN_TAG_WIDTH an ellipsized pill reads as nothing, so that budget is the cutoff for showing a tag
+        // at all. Only the last pill can spend the whole remainder: any earlier one has to leave the "+n" its
+        // width, since a tag it pushes out is what puts "+n" there.
         const isLastTag = i === tagsText.length - 1;
-        let tagWidth = parseFloat($(tagEl).css('width'));
+        let tagWidth = tagWidths[i];
 
-        // If this is the last tag and there are hidden tags, then we need to account for the PLUS_N indicator
-        // in addition to the margin between tags in the extra space needed. Otherwise, we just need to account
-        // for the margin between tags.
         const extraSpaceNeeded = (isLastTag && hiddenTags.length === 0)
           ? MARGIN_BW_TAGS
           : MARGIN_BW_TAGS + WIDTH_FOR_PLUS_N;

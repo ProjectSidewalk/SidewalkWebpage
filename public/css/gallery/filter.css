@@ -6,9 +6,7 @@
   /* Fills the column its own padding included, so it still fits once the sidebar shows a scrollbar. */
   box-sizing: border-box;
   width: 100%;
-
-  /* The 40px of headroom matches the map sidebar's, so the two panels start at the same distance from the navbar. */
-  padding: 40px 5px 5px;
+  padding: 0 5px 5px;
 }
 
 .gallery-filter-header {
@@ -16,6 +14,9 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+
+  /* The 40px of headroom matches the map sidebar's, so the two panels start at the same distance from the navbar. */
+  padding: 40px 5px 0;
   margin: 0 0 16px;
 }
 
@@ -33,4 +34,72 @@
    would stay on screen while no filter is applied without this. */
 #clear-filters[hidden] {
   display: none;
+}
+
+/* Mobile disclosure toggle standing in for the "Filter By" heading; shown only under the shell breakpoint. */
+.gallery-filter-toggle {
+  display: none;
+}
+
+@media (width <= 768px) {
+  /* Collapsed, the sections are display: none, so the column leaves no gap above the cards. */
+  #card-filter {
+    padding: 0 10px;
+  }
+
+  /* The 40px of map-aligned headroom is for the side-by-side layout; stacked, the strip hugs the navbar. */
+  .gallery-filter-header {
+    padding: 8px 10px 0;
+    margin-bottom: 0;
+  }
+
+  /* The toggle button carries the same "Filter By" text, so the heading would duplicate it. */
+  #filter-header {
+    display: none;
+  }
+
+  .gallery-filter-toggle {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    gap: 6px;
+    min-height: 44px;
+    padding: 0;
+    border: none;
+    background: none;
+    font: var(--text-subtitle-bold);
+    color: var(--color-neutral-black);
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .gallery-filter-toggle:focus-visible {
+    outline: 2px solid var(--color-asphalt-400);
+    outline-offset: -2px;
+  }
+
+  .gallery-filter-toggle__icon {
+    width: 16px;
+    height: 16px;
+    flex: none;
+    transition: transform 150ms ease;
+  }
+
+  .gallery-filter-toggle[aria-expanded="true"] .gallery-filter-toggle__icon {
+    transform: rotate(180deg);
+  }
+
+  #gallery-filter-sections {
+    display: none;
+  }
+
+  .sidebar.mobile-visible #gallery-filter-sections {
+    display: block;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gallery-filter-toggle__icon {
+    transition: none;
+  }
 }
