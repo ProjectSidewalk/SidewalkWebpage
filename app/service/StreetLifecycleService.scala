@@ -1,7 +1,7 @@
 package service
 
 import com.google.inject.ImplementedBy
-import models.pano.{PanoDataTable, PanoExpiryWeek}
+import models.pano.{PanoDataTable, PanoImageryChangeTable, PanoImageryWeek}
 import models.street.{
   CorroboratedNoImageryStreet,
   NoImageryReportRegion,
@@ -28,7 +28,7 @@ import scala.concurrent.{ExecutionContext, Future}
  * @param since                Start of that window.
  * @param statusChanges        Streets entering each status, by week.
  * @param noImageryReports     Labeler reports of missing imagery, by week.
- * @param panosExpired         Panos whose imagery went away, by week.
+ * @param panoImageryChanges   Panos whose imagery went away, and whose imagery came back, by week.
  * @param topReportRegions     Regions with the most missing-imagery reports over the window.
  * @param corroboratedStreets  Still-open streets several labelers independently reported as having no imagery.
  * @param minReporters         Distinct labelers a street needs to appear in `corroboratedStreets`.
@@ -39,7 +39,7 @@ case class StreetStatusTrend(
     since: OffsetDateTime,
     statusChanges: Seq[StatusChangeWeek],
     noImageryReports: Seq[NoImageryReportWeek],
-    panosExpired: Seq[PanoExpiryWeek],
+    panoImageryChanges: Seq[PanoImageryWeek],
     topReportRegions: Seq[NoImageryReportRegion],
     corroboratedStreets: Seq[CorroboratedNoImageryStreet],
     minReporters: Int,
@@ -60,7 +60,7 @@ object StreetStatusTrend {
 
   implicit private val statusChangeWeekWrites: Writes[StatusChangeWeek]        = Json.writes[StatusChangeWeek]
   implicit private val reportWeekWrites: Writes[NoImageryReportWeek]           = Json.writes[NoImageryReportWeek]
-  implicit private val expiryWeekWrites: Writes[PanoExpiryWeek]                = Json.writes[PanoExpiryWeek]
+  implicit private val imageryWeekWrites: Writes[PanoImageryWeek]              = Json.writes[PanoImageryWeek]
   implicit private val reportRegionWrites: Writes[NoImageryReportRegion]       = Json.writes[NoImageryReportRegion]
   implicit private val corroboratedWrites: Writes[CorroboratedNoImageryStreet] =
     Json.writes[CorroboratedNoImageryStreet]
@@ -111,8 +111,9 @@ object StreetLifecycleService {
   /**
    * How long an assembled trend is served from cache.
    *
-   * Six unindexed scans of `pano_data` and `street_edge_issue` back one payload, and the page re-fires all of them
-   * on load and on every window change. Nothing here moves faster than the nightly jobs that feed it, so ten minutes
+   * Six aggregate scans back one payload — the four over `street_edge_issue` and `pano_data` unindexed, the two
+   * over the change logs served by an index on the timestamp they filter — and the page re-fires all of them on
+   * load and on every window change. Nothing here moves faster than the nightly jobs that feed it, so ten minutes
    * costs the reader no freshness they could act on.
    */
   val TrendCacheTtl: Duration = Duration(10, "minutes")
@@ -126,7 +127,7 @@ object StreetLifecycleService {
  *
  * The page's map and table answer "what is the state of the city right now". These series answer the separate
  * question of what changed and when — which streets were retired, where labelers are reporting missing imagery, and
- * how many panos the nightly sweep found gone — none of which a snapshot can show.
+ * which panos lost or regained their imagery — none of which a snapshot can show.
  */
 @Singleton
 class StreetLifecycleServiceImpl @Inject() (
@@ -134,7 +135,8 @@ class StreetLifecycleServiceImpl @Inject() (
     cacheApi: AsyncCacheApi,
     statusChangeTable: StreetEdgeStatusChangeTable,
     streetEdgeIssueTable: StreetEdgeIssueTable,
-    panoDataTable: PanoDataTable
+    panoDataTable: PanoDataTable,
+    panoImageryChangeTable: PanoImageryChangeTable
 )(implicit ec: ExecutionContext)
     extends StreetLifecycleService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
@@ -170,7 +172,7 @@ class StreetLifecycleServiceImpl @Inject() (
     // Bound before the for-comprehension so the six reads run concurrently rather than one after another.
     val statusChangesF = db.run(statusChangeTable.transitionsByWeek(since))
     val reportsF       = db.run(streetEdgeIssueTable.reportsByWeek(since))
-    val expiredF       = db.run(panoDataTable.newlyExpiredByWeek(since))
+    val imageryF       = db.run(panoImageryChangeTable.transitionsByWeek(since))
     val regionsF       = db.run(streetEdgeIssueTable.topReportRegions(since, StreetLifecycleService.TopReportRegions))
     val corroboratedF  = db.run(
       streetEdgeIssueTable.corroboratedOpenStreets(
@@ -182,13 +184,13 @@ class StreetLifecycleServiceImpl @Inject() (
     val undatedF = db.run(panoDataTable.countExpiredWithoutExpiryDate)
 
     for {
-      statusChanges <- statusChangesF
-      reports       <- reportsF
-      expired       <- expiredF
-      regions       <- regionsF
-      corroborated  <- corroboratedF
-      undated       <- undatedF
-    } yield StreetStatusTrend(window, since, statusChanges, reports, expired, regions, corroborated,
+      statusChanges  <- statusChangesF
+      reports        <- reportsF
+      imageryChanges <- imageryF
+      regions        <- regionsF
+      corroborated   <- corroboratedF
+      undated        <- undatedF
+    } yield StreetStatusTrend(window, since, statusChanges, reports, imageryChanges, regions, corroborated,
       StreetLifecycleService.MinCorroboratingReporters, undated)
   }
 }

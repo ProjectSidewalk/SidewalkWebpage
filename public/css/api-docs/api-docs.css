@@ -996,6 +996,14 @@ h6:hover .permalink {
   transform: rotate(180deg);
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .api-sidebar-toggle-icon,
+  .accordion-arrow,
+  .api-nav-submenu {
+    transition: none;
+  }
+}
+
 /* Pushes the chevron to the trailing edge so the label reads as a heading and the affordance sits where a thumb is. */
 .api-sidebar-toggle-label {
   flex: 1 1 auto;

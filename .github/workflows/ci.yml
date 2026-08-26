@@ -68,7 +68,7 @@ jobs:
       - name: Set up Node 23
         uses: actions/setup-node@v7
         with:
-          node-version: '23'
+          node-version: '24'
           # No npm cache and `npm install` (not `npm ci`) because the repo has no committed package-lock.json yet.
           # Adding a lockfile later enables `npm ci` + caching and tighter Dependabot npm updates.
 
@@ -326,8 +326,13 @@ jobs:
       #   decide where the offline imagery checker gets pointed next. Seeds its own regions, streets, users and
       #   reports inside a rolled-back transaction, so it pins corroboration-by-distinct-account and the exclusion of
       #   retired streets and deleted regions against any seed, empty or not.
-      # - EnumTypeParitySpec (#4928): the three Scala enums added in 358 against the Postgres types they back. Held
-      #   together by a comment otherwise, and drift surfaces at runtime on whichever page reads the row first.
+      # - EnumTypeParitySpec (#4928, #4947): the Scala enums behind the transition logs against the Postgres types
+      #   they back. Held together by a comment otherwise, and drift surfaces at runtime on whichever page reads the
+      #   row first -- or, for pano_imagery_change_source, on the pano upsert every labeler's viewer performs.
+      # - PanoImageryLogSpec (#4947): the imagery-transition log's two halves -- every real crossing recorded once,
+      #   and nothing recorded for the confirmations that dominate the traffic (a nightly re-check of an already-
+      #   expired pano, a labeler loading a pano that was never expired). Getting the second half wrong is a row per
+      #   pano per night rather than a wrong number, so it needs the edge semantics pinned against a real Postgres.
       # - ScheduledJobsSpec (#4928): roster invariants. A job missing from ScheduledJobs.All is invisible on the
       #   Health panel, and invisible is indistinguishable from healthy -- the failure this feature exists to close.
       # - ImageryPollOutcomeSpec (#4928): separates a poll with nothing to do from one that could not run. Recording
@@ -363,8 +368,40 @@ jobs:
       #   would leave it in. So every case runs here, and each asserts an exact set rather than a bound. The section
       #   spec signs its mappers up over /signUp because /dashboard turns anonymous sessions away, and is the only
       #   coverage of the page-size constants and the two empty states, which live in the view rather than a query.
+      # - HoursApportionmentSpec / InBatchesSpec (#4526): pure unit tests (no DB, no app boot) over the two pieces of
+      #   /timeCheck's cross-city hours that nothing else guards. The first pins that the per-city rows sum to the
+      #   rounded true total; rounding each row on its own makes the breakdown contradict the headline a volunteer
+      #   hands a supervisor, and reconciling is the only reason the breakdown is on the page. The second parks twenty
+      #   items on promises and requires peak in-flight to equal the batch size, so a regression to an unbounded
+      #   fan-out -- 52 city schemas against a 25-connection pool -- fails here rather than surfacing as prod latency.
+      # - TimeCheckViewSpec (#4526): renders the multi-city branch of the page directly, which no route spec can reach:
+      #   /timeCheck is a SecuredAction and no multi-city volunteer can be signed in from a test. Supplies its own
+      #   breakdowns rather than reading any, so it is exactly as meaningful against this job's empty schema.
+      # - CrossCityHoursResilienceSpec (#4526): the failure paths, reached by handing the real fan-out a deliberately
+      #   broken scope (a schema that does not exist, a name the query builder refuses, gate exclusions, a scope
+      #   lookup that fails outright). Asserts exact unreachable-city counts, so a city dropped silently -- the
+      #   undercount #4526 exists to fix -- fails here instead of just making a volunteer's total smaller. Every case
+      #   supplies its own scope except the fallback-against-real-hours one, which needs a seeded leaderboard and is a
+      #   no-op here.
+      # - ApiDocsPreviewWiringSpec (#4992): the api-docs layout must load apiTableWrapper.js ahead of the preview
+      #   scripts that call `window.createApiTableWrapper`. Losing that tag breaks five previews in production
+      #   silently -- each preview's `.catch` turns the TypeError into an in-page banner, so no console error reaches
+      #   e2e-smoke, and the jsdom suites hand-load the helper themselves. Reads only rendered markup, so this job's
+      #   empty schema costs it nothing.
+      # - AdminUserViewSpec (#4986): the admin's view of a user's hours must be the same figure that user reads on
+      #   /timeCheck -- an admin checking a service-hours claim against a per-deployment number sees a multi-city
+      #   volunteer's honest total as inflated. The admin side fills its KPI from adminGetCrossCityHours after the page
+      #   renders, so this compares that payload against what the volunteer's page displays, and separately pins that
+      #   the page ships the endpoint URL and element ids its script needs. The client half is test/js/.
+      # - DashboardStatsInvariantSpec (#4496/#4526/#4533/#4604): the contract/shape invariants behind every dashboard,
+      #   leaderboard, and profile stat -- ordering, caps, ranges, the cross-schema SQL's refusal of a non-identifier
+      #   schema name, and the reconciliations that keep the cross-city sections agreeing with the KPIs above them.
+      #   Written to hold against whatever the connected DB holds: the sections needing a real mapper pick one off the
+      #   all-time board and are vacuously green on this job's schema, and the two that synthesize a mapper cancel if
+      #   the schema has no role/label_type/street_edge row to build one from. What runs here regardless is every
+      #   guard that does not need data -- injection refusal, empty-scope handling, the user_stat uniqueness invariant.
       - name: Run gating/auth tests (health dashboard + route auth posture + geodesic distances)
-        run: sbt 'set Test / parallelExecution := false' 'testOnly controllers.HealthDashboardSpec service.HealthServiceSpec controllers.RouteAuthPostureSpec models.street.GeodesicDistanceSpec service.ExploreTutorialRouteSpec controllers.MobileDetectionSpec service.PanoDataServiceSpec service.ActivityBreakdownSpec service.ConfigServiceTrendSpec models.utils.CityScorecardSpec models.utils.ConfigTableVoidedArchiveSpec controllers.api.StatsApiSpec controllers.ExploreSubmissionSpec controllers.ValidateSubmissionSpec controllers.ExploreNoImageryRateLimitSpec models.pano.PanoExpiredAtSpec models.utils.BackgroundJobRunTableSpec service.JobRunServiceSpec service.NightlyJobStatusSpec service.StreetLifecycleServiceSpec models.audit.OutdatedImageryFlagSyncSpec models.audit.OutdatedImageryRoutingSpec models.street.UpToDateCoverageSpec models.street.NoImageryReportsSpec models.utils.EnumTypeParitySpec actor.ScheduledJobsSpec service.ImageryPollOutcomeSpec models.street.StreetPriorityAdminSpec service.ImageryFreshnessReportSpec models.street.StreetImageryPollSpec models.street.StreetImageryTableSpec service.ImageryFreshnessPollSpec service.ImageryFreshnessReportServiceSpec controllers.ImageryAdminSpec models.street.StreetPriorityForAdminSpec modules.PersistentMediaDirCheckSpec models.audit.OutdatedStreetsForUserSpec controllers.UserStreetsFreshnessSpec controllers.DashboardReauditSectionSpec'
+        run: sbt 'set Test / parallelExecution := false' 'testOnly controllers.HealthDashboardSpec service.HealthServiceSpec controllers.RouteAuthPostureSpec models.street.GeodesicDistanceSpec service.ExploreTutorialRouteSpec controllers.MobileDetectionSpec service.PanoDataServiceSpec service.ActivityBreakdownSpec service.ConfigServiceTrendSpec models.utils.CityScorecardSpec models.utils.ConfigTableVoidedArchiveSpec controllers.api.StatsApiSpec controllers.ExploreSubmissionSpec controllers.ValidateSubmissionSpec controllers.ExploreNoImageryRateLimitSpec models.pano.PanoExpiredAtSpec models.pano.PanoImageryLogSpec models.utils.BackgroundJobRunTableSpec service.JobRunServiceSpec service.NightlyJobStatusSpec service.StreetLifecycleServiceSpec models.audit.OutdatedImageryFlagSyncSpec models.audit.OutdatedImageryRoutingSpec models.street.UpToDateCoverageSpec models.street.NoImageryReportsSpec models.utils.EnumTypeParitySpec actor.ScheduledJobsSpec service.ImageryPollOutcomeSpec models.street.StreetPriorityAdminSpec service.ImageryFreshnessReportSpec models.street.StreetImageryPollSpec models.street.StreetImageryTableSpec service.ImageryFreshnessPollSpec service.ImageryFreshnessReportServiceSpec controllers.ImageryAdminSpec models.street.StreetPriorityForAdminSpec modules.PersistentMediaDirCheckSpec models.audit.OutdatedStreetsForUserSpec controllers.UserStreetsFreshnessSpec controllers.DashboardReauditSectionSpec service.HoursApportionmentSpec service.InBatchesSpec views.TimeCheckViewSpec service.CrossCityHoursResilienceSpec controllers.ApiDocsPreviewWiringSpec views.AdminUserViewSpec service.DashboardStatsInvariantSpec'
         env:
           DATABASE_URL: jdbc:postgresql://localhost:5432/sidewalk
           DATABASE_USER: sidewalk
@@ -445,7 +482,7 @@ jobs:
       - name: Set up Node 23
         uses: actions/setup-node@v6
         with:
-          node-version: '23'
+          node-version: '24'
 
       - name: Install npm dependencies
         run: npm install

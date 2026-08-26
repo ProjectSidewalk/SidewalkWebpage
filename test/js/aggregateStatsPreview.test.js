@@ -75,6 +75,8 @@ describe('AggregateStatsPreview', () => {
     beforeEach(() => {
         document.body.innerHTML = `<div id="${CONTAINER_ID}"></div>`;
         delete window.AggregateStatsPreview;
+        // apiDocs/layout.scala.html loads the shared table-wrapper helper ahead of every preview script.
+        loadGlobalScript('public/js/api-docs/apiTableWrapper.js');
         loadGlobalScript(MODULE_PATH);
     });
 
@@ -111,6 +113,34 @@ describe('AggregateStatsPreview', () => {
         expect(container.querySelectorAll('tbody tr')).toHaveLength(2);
         expect(container.textContent).toContain('CurbRamp');
         expect(container.textContent).toContain('Obstacle');
+    });
+
+    test('puts the label-type table inside the shared scroll region', async () => {
+        stubFetch(GOOD_FIXTURE);
+
+        await window.AggregateStatsPreview.setup({}).init();
+
+        // The narrow-viewport scroller (#4883) is styled as `.api-table-wrapper > table`, so the table has to be a
+        // direct child; the region needs a focus stop with a role and a name so its off-screen columns are reachable
+        // and announced without a pointer (WCAG 2.1.1).
+        const container = document.getElementById(CONTAINER_ID);
+        expect(container.querySelector('.api-table-wrapper[role="region"] > table')).not.toBeNull();
+        const wrapper = container.querySelector('.api-table-wrapper');
+        expect(wrapper.getAttribute('tabindex')).toBe('0');
+        expect(wrapper.getAttribute('aria-label')).toBe('Labels by label type');
+    });
+
+    // The wrapper helper arrives as a separate <script> in apiDocs/layout.scala.html, so a render-time throw is a
+    // reachable production failure, not a hypothetical. It has to land in the banner: init() is fire-and-forget at
+    // every call site, so an escaping rejection would leave "Loading..." on screen with nothing to explain it.
+    test('a render-time throw reaches the error banner instead of escaping init()', async () => {
+        stubFetch(GOOD_FIXTURE);
+        delete window.createApiTableWrapper;
+
+        await expect(window.AggregateStatsPreview.setup({}).init()).resolves.toBeUndefined();
+
+        const container = document.getElementById(CONTAINER_ID);
+        expect(container.innerHTML).toContain('Failed to load');
     });
 
     test('fetch is called against the expected endpoint, tagged utm_source=apiDocs', async () => {

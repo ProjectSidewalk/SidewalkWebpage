@@ -42,6 +42,15 @@ import scala.reflect.ClassTag
  */
 case class GlobalLeaderboardScope(cities: Seq[(String, String)], optOutSchemas: Seq[String])
 
+/**
+ * Which cities a self-view fan-out may read, and which it had to leave out (#4526).
+ *
+ * @param cities         (cityId, schema) pairs in configured order.
+ * @param skippedSchemas Schemas held back because they lack a column the query reads. A volunteer's hours page reports
+ *                       this count to the reader, since a dropped city can only ever make their total look smaller.
+ */
+case class SelfViewScope(cities: Seq[(String, String)], skippedSchemas: Seq[String])
+
 case class CityInfo(
     cityId: String,
     stateId: Option[String],
@@ -669,6 +678,24 @@ object ConfigService {
   )
 
   /**
+   * The (table, column) pairs the cross-city volunteer-hours query reads (#4526).
+   *
+   * A schema missing any of them can't be totalled, and quietly counting it as zero hours would understate a
+   * volunteer's service time — so it is excluded and logged instead.
+   */
+  val CrossCityHoursRequiredColumns: Set[(String, String)] = Set(
+    "label_validation"             -> "user_id",
+    "label_validation"             -> "end_timestamp",
+    "audit_task"                   -> "user_id",
+    "audit_task"                   -> "audit_task_id",
+    "audit_task_interaction_small" -> "audit_task_id",
+    "audit_task_interaction_small" -> "timestamp",
+    "webpage_activity"             -> "user_id",
+    "webpage_activity"             -> "activity",
+    "webpage_activity"             -> "timestamp"
+  )
+
+  /**
    * The (table, column) pairs a user's cross-city stats query reads (#4496).
    *
    * Deliberately smaller than [[LeaderboardRequiredColumns]]: a mapper's own totals need no visibility flags, so a
@@ -958,6 +985,17 @@ trait ConfigService {
    * @return (cityId, schema) pairs in configured order, or a failed future if readiness can't be determined.
    */
   def getCrossCityUserScope: Future[Seq[(String, String)]]
+
+  /**
+   * Which cities a volunteer's hours may be totalled from (#4526).
+   *
+   * Same self-view reasoning as [[getCrossCityUserScope]], but gated on the interaction tables that query reads
+   * rather than the contribution tables. Carries the excluded schemas too, which its caller shows the volunteer:
+   * a hours total that silently dropped a city is the very bug #4526 exists to fix.
+   *
+   * @return The scope, or a failed future if readiness can't be determined.
+   */
+  def getCrossCityHoursScope: Future[SelfViewScope]
 
   /**
    * Retrieves map parameters for a specific city by directly querying that city's database schema.
@@ -1261,16 +1299,43 @@ class ConfigServiceImpl @Inject() (
     }
   }
 
-  def getCrossCityUserScope: Future[Seq[(String, String)]] = {
+  def getCrossCityUserScope: Future[Seq[(String, String)]] =
+    crossCitySelfViewScope("getCrossCityUserScope", ConfigService.CrossCityUserRequiredColumns, "user stats")
+      .map(_.cities)
+
+  def getCrossCityHoursScope: Future[SelfViewScope] =
+    crossCitySelfViewScope("getCrossCityHoursScope", ConfigService.CrossCityHoursRequiredColumns, "volunteer hours")
+
+  /**
+   * Which cities one mapper's data may be gathered from, for a query needing `required`.
+   *
+   * Shared by these fan-outs: they differ only in the columns they read, never in which deployments they are entitled
+   * to see — that is what separates them from [[getGlobalLeaderboardScope]], which withholds unlaunched and
+   * private-by-default cities so a public by-name board can't advertise them.
+   *
+   * Those exclusions stay off here even on the admin surfaces that read *another* user's breakdown
+   * (`adminGetCrossCityStats`, `adminGetCrossCityHours`): both are gated on `WithAdmin`, and an admin who can already
+   * read the account is not who the leaderboard rules withhold it from. Any surface past that gate needs a fresh look.
+   *
+   * @param cacheKey Cache key for this scope; distinct per column set, since the answers differ.
+   * @param required The (table, column) pairs the caller's query reads.
+   * @param label    Human-readable name of the caller, for the drift warning.
+   * @return         The readable cities in configured order, and the schemas held back.
+   */
+  private def crossCitySelfViewScope(
+      cacheKey: String,
+      required: Set[(String, String)],
+      label: String
+  ): Future[SelfViewScope] = {
     // Cached for the same reason as the leaderboard scope: it only changes when config or the schema list does, and it
     // gates a per-request query. The recover stays outside so a transient failure isn't memoized as "no cities".
-    cacheApi.getOrElseUpdate[Seq[(String, String)]]("getCrossCityUserScope", Duration(1, "hours")) {
+    cacheApi.getOrElseUpdate[SelfViewScope](cacheKey, Duration(1, "hours")) {
       availableCityIds().flatMap { cityIds =>
         val deployments: Seq[(String, String)] = cityIds.flatMap { cityId =>
           try { Some(cityId -> getCitySchema(cityId)) }
           catch { case _: Exception => None } // A city id with no db-schema entry simply can't be queried.
         }
-        schemasWithColumns(ConfigService.CrossCityUserRequiredColumns).map { ready =>
+        schemasWithColumns(required).map { ready =>
           val (readyDeployments, skipped) = deployments.partition { case (_, schema) =>
             ready.getOrElse(schema, false)
           }
@@ -1278,11 +1343,11 @@ class ConfigServiceImpl @Inject() (
           // absent. availableCityIds already dropped those, so anything here is worth a warning.
           if (skipped.nonEmpty) {
             logger.warn(
-              s"Cross-city user stats excluding ${skipped.size} city schema(s) missing columns they read " +
+              s"Cross-city $label excluding ${skipped.size} city schema(s) missing columns they read " +
                 s"(evolutions likely not yet applied there): ${skipped.map(_._2).mkString(", ")}"
             )
           }
-          readyDeployments
+          SelfViewScope(readyDeployments, skipped.map(_._2))
         }
       }
     }

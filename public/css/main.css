@@ -642,12 +642,13 @@ a {
  * Full-window app pages (e.g. /labelMap) opt in via this class: #wrap becomes a fixed-height flex
  * column so a flex-growing content area (the map) fills the viewport below the navbar and the fixed
  * test-server banner. --test-banner-height is 0 when the banner is absent/dismissed or on prod, so this
- * reduces to 100vh minus the navbar. No effect on other pages, which don't get the class.
+ * reduces to 100dvh minus the navbar. No effect on other pages, which don't get the class. dvh rather than vh
+ * so the map tracks the visible viewport under a mobile browser's collapsing toolbar.
  */
 #wrap.wrap--full-window {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - var(--navbar-height) - var(--test-banner-height, 0px));
+  height: calc(100dvh - var(--navbar-height) - var(--test-banner-height, 0px));
   min-height: 0;
   overflow: hidden;
 }
@@ -1186,8 +1187,9 @@ kbd {
 }
 
 /*
- * Test server warning banner on narrow screens. This applies to all pages except the default /mobile page, whose
- * banner overrides live in mobile-validate.css.
+ * Test server warning banner on narrow screens. mobile-validate.css only repositions the banner on /mobile — under
+ * that tool's own header band rather than over it — so a phone held in portrait gets this stacked layout there too.
+ * Landscape is wider than the query, and keeps the one-row layout at that same offset.
  */
 @media only screen and (width <= 600px) {
   /* Top-align so the icon sits on the first line once the message wraps to several lines. */

@@ -134,9 +134,12 @@
   <div class="api-section" id="admin-user-stats-section">
     <h2 class="api-heading" id="stats">Stats <a href="#stats" class="permalink">#</a></h2>
     <div class="coverage-kpis ud-kpis">
-      <div class="coverage-kpi">
-        <span class="coverage-kpi-value">@{"%.1f".format(adminData.hoursWorked)} h</span>
-        <span class="coverage-kpi-label">Exploring &amp; validating</span>
+      @* The user's total across every deployment, the same figure they read on /timeCheck: an admin checks a
+         service-hours claim against this, so a per-deployment number here reads as an inflated claim (#4986). Filled
+         by AdminUser.js, since totalling one schema per deployment is too slow to hold up the settings above. *@
+      <div class="coverage-kpi" id="au-hours-kpi" aria-busy="true">
+        <span class="coverage-kpi-value" id="au-hours-value">…</span>
+        <span class="coverage-kpi-label" id="au-hours-label">Exploring &amp; validating</span>
       </div>
       <div class="coverage-kpi">
         <span class="coverage-kpi-value">@adminData.userStats.labelsPerMeter.map(f => "%.1f".format(f * 1000)).getOrElse("—")</span>
@@ -151,6 +154,12 @@
         <span class="coverage-kpi-label">Current neighborhood@adminData.currentRegion.map(r => s" (ID ${r.regionId})")</span>
       </div>
     </div>
+    <span id="au-hours-status" class="ud-sr-only" role="status" aria-live="polite"></span>
+    <div id="au-hours-cities" hidden>
+      <h3 class="dq-subhead" id="au-hours-cities-title">Where their time came from</h3>
+      <div class="mgmt-table-scroll ud-admin-hours-cities" id="au-hours-cities-table"></div>
+    </div>
+    <div class="ud-nudge" id="au-hours-note" hidden></div>
     <p class="ud-field-help">A labeling frequency under 37.5 labels per km marks a user low quality automatically; the nightly job recomputes it, or run "Recalculate user stats" on the <a href="@routes.AdminDashboardController.management">Management</a> page.</p>
   </div>
 
@@ -211,6 +220,7 @@
         username: '@user.username',
         saveUrl: '@routes.AdminController.saveUserSettings',
         flagsUrl: '@routes.AdminController.setTaskFlagsBeforeDate()',
+        hoursUrl: '@routes.UserProfileController.adminGetCrossCityHours(user.userId)',
         pageUrlFor: (username) => `/admin/user/${encodeURIComponent(username)}/admin`
       });
     });

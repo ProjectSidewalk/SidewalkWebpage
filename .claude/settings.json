@@ -60,13 +60,13 @@
         ]
       }
     ],
-    "UserPromptSubmit": [
+    "Stop": [
       {
         "hooks": [
           {
             "type": "command",
-            "command": "jq -n '{hookSpecificOutput:{hookEventName:\"UserPromptSubmit\", additionalContext:\"Comment discipline (CLAUDE.md, applies to every edit): write WHY, not WHAT. Before calling an edit done, re-read every comment you added and cut it back - delete ones that restate the code, ones that narrate the change you just made, and doc headers on trivial helpers. One tight line beats three. Keep ScalaDoc/JSDoc on non-trivial functions, but keep the prose minimal.\"}}'",
-            "statusMessage": "Adding comment-conciseness reminder"
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/comment-trim-check.sh\"",
+            "statusMessage": "Checking whether added comments need a trim pass"
           }
         ]
       }

@@ -67,7 +67,7 @@ npm run test:js    # runs Jest against test/js/ only
 
 `npm run test:js` is a **new** script; the existing placeholder `npm test` is left untouched.
 
-> Node note: the dev DB / Scala app run in Docker, but Jest runs on the host with plain Node (the plan targets Node 23).
+> Node note: the dev DB / Scala app run in Docker, but Jest runs on the host with plain Node (the plan targets Node 24).
 > No Docker is needed for these tests.
 
 ## How it works (no module system)
@@ -82,20 +82,36 @@ Each test:
 
 1. Sets `document.body.innerHTML` to the container `<div id="...-preview">` the module renders into.
 2. Stubs global `fetch` to resolve a hardcoded fixture object (no network).
-3. Loads the module with `loadGlobalScript(...)`.
-4. Calls `.setup({}).init()` and asserts on the resolved promise + rendered DOM.
+3. Loads the module's one script dependency, `api-docs/apiTableWrapper.js` (see below), with `loadGlobalScript(...)`.
+4. Loads the module with `loadGlobalScript(...)`.
+5. Calls `.setup({}).init()` and asserts on the resolved promise + rendered DOM.
 
-## Globals that had to be stubbed
+## Globals these modules need
 
-For these two modules, almost nothing — they are deliberately dependency-light. The only thing stubbed is **`fetch`**
-(jsdom does not provide a usable one). They otherwise use only `window`, `document`, `console`, `Promise`,
-`Object.assign`, and `Number.prototype.toLocaleString`, all of which jsdom/Node provide.
+Only one thing is **stubbed**: `fetch` (jsdom does not provide a usable one). Otherwise they use just `window`,
+`document`, `console`, `Promise`, `Object.assign`, and `Number.prototype.toLocaleString`, all of which jsdom/Node
+provide.
+
+They do have one script dependency that has to be **loaded**: both renderers wrap their table with
+`window.createApiTableWrapper`, defined in `public/js/api-docs/apiTableWrapper.js`, which
+`apiDocs/layout.scala.html` loads ahead of every preview script. Jest sees no `<script>` tags, so each `beforeEach`
+hand-loads that file before the module. Skip it and the render throws `createApiTableWrapper is not a function` —
+which the module's `.catch` turns into a "Failed to load" banner instead of a stack trace, so the failure reads as a
+bad fixture. Five previews call it: `aggregateStats`, `validationResultTypes`, `labelTypes`, `labelTags`,
+`streetTypes`.
+
+The production half of that wiring — the layout loading the helper ahead of `@content` — is pinned by
+`test/controllers/ApiDocsPreviewWiringSpec.scala`, since these tests supply the helper themselves and so can't
+notice it going missing from the page.
 
 ## Extending to the other previews
 
-The remaining `*Preview.js` modules pull in heavier globals. To bring them under test, stub these in `beforeEach`
-**before** calling `loadGlobalScript`:
+The remaining `*Preview.js` modules pull in heavier globals. To bring them under test, load or stub these in
+`beforeEach` **before** calling `loadGlobalScript` on the module:
 
+- **`window.createApiTableWrapper`** (`label-types`, `label-tags`, `street-types`):
+  `loadGlobalScript('public/js/api-docs/apiTableWrapper.js')`. It is a production file rather than a third-party
+  library, so load it instead of stubbing it, exactly as the two covered suites do.
 - **Chart.js** (`label-types`, `validations`, `street-types`, …): set `window.Chart = jest.fn()` — a constructor
   spy is enough to assert "a chart was constructed with the right data" without rendering a canvas (jsdom has no 2D
   context).
@@ -107,9 +123,10 @@ The remaining `*Preview.js` modules pull in heavier globals. To bring them under
 - **`util.*` globals** (e.g. `util.math`, formatting helpers in `common/`): either `loadGlobalScript` the real
   `common/` file first, or stub the specific `util.foo` functions used.
 
-The general recipe stays the same: container div → stub fetch with a captured snake_case fixture → stub libs →
-`loadGlobalScript` → `setup({}).init()` → assert no "Failed to load" + expected content. A shared
-`beforeEach` helper (e.g. `stubChartJs()`, `stubMapboxGl()`) can live alongside `loadGlobalScript.js` as coverage grows.
+The general recipe stays the same: container div → stub fetch with a captured snake_case fixture → stub libs and
+`loadGlobalScript` any production dependency → `loadGlobalScript` the module → `setup({}).init()` → assert no
+"Failed to load" + expected content. A shared `beforeEach` helper (e.g. `stubChartJs()`, `stubMapboxGl()`) can live
+alongside `loadGlobalScript.js` as coverage grows.
 
 `common/aggregateStats.js` (named as a first target in the plan) is a good next addition — it has retry/timeout logic
 worth unit-testing with fake timers.

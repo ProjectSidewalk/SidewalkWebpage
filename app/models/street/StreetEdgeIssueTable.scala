@@ -83,6 +83,28 @@ class StreetEdgeIssueTable @Inject() (protected val dbConfigProvider: DatabaseCo
     (streetEdgeIssues returning streetEdgeIssues.map(_.streetEdgeIssueId)) += issue
   }
 
+  /**
+   * Whether this user has reported the street's imagery missing during the given task.
+   *
+   * A true answer disqualifies the task from being resumed. A report leaves the task incomplete (#4922), and the task
+   * the labeler was on is what /explore hands back on the next load — so without this check a street whose imagery
+   * will not load is re-served on every reload, forever, and the labeler has no way past it.
+   *
+   * @param streetEdgeId The street the task covers.
+   * @param userId       The labeler whose own reports count; another user's say nothing about this session.
+   * @param taskStart    When the task began, so only reports from it are considered.
+   * @return True when a matching PanoNotAvailable report exists.
+   */
+  def reportedNoImagerySince(streetEdgeId: Int, userId: String, taskStart: OffsetDateTime): DBIO[Boolean] = {
+    streetEdgeIssues
+      .filter(issue =>
+        issue.streetEdgeId === streetEdgeId && issue.userId === userId &&
+          issue.issue === StreetEdgeIssueType.PanoNotAvailable && issue.timestamp >= taskStart
+      )
+      .exists
+      .result
+  }
+
   // Spliced rather than bound because Postgres compares an enum column against an enum literal, not a bind parameter
   // typed as text. Safe to splice: it is a compile-time constant off the enum, never anything a caller supplies.
   private val NoImageryIssue: String = StreetEdgeIssueType.PanoNotAvailable.toString

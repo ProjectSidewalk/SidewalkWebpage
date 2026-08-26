@@ -35,33 +35,42 @@
 
   <div id="gallery">
     <div class="sidebar">
+      @* Sits outside #card-filter, which wears filter-sidebar--loading while a page of cards loads: the disclosure
+         is the only way to reach the filters on a phone, so it has to stay live through the load that greys them. *@
+      <div class="gallery-filter-header">
+        <h4 id="filter-header" data-i18n="gallery:filter-by">@Messages("gallery.filter.by")</h4>
+        @* Narrow-layout stand-in for the heading: disclosure toggle for the filter sections (see filter.css). *@
+        <button type="button" id="gallery-filter-toggle" class="gallery-filter-toggle" aria-expanded="false" aria-controls="gallery-filter-sections">
+          <span data-i18n="gallery:filter-by">@Messages("gallery.filter.by")</span>
+          <img class="gallery-filter-toggle__icon" src='@assets.path("images/icons/chevron-down-feather.svg")' alt="">
+        </button>
+        @* The global reset, distinct from the per-section "Deselect all" text actions beside it. *@
+        <button type="button" id="clear-filters" class="button-ps button--tiny button--secondary" hidden>
+          <span aria-hidden="true">&#10006;</span>
+          <span data-i18n="gallery:clear-filters">@Messages("gallery.clear.filters")</span>
+        </button>
+      </div>
       @* The shared filter sidebar (#4585). Sections keep the LabelMap's order so the two sidebars read the same.
          Label types are single-select here: a card query fetches one type at a time, so the selected type's tag
          drawer is the only one open. *@
       <div id="card-filter" class="filter-sidebar--loading">
-        <div class="gallery-filter-header">
-          <h4 id="filter-header" data-i18n="gallery:filter-by">@Messages("gallery.filter.by")</h4>
-          @* The global reset, distinct from the per-section "Deselect all" text actions beside it. *@
-          <button type="button" id="clear-filters" class="button-ps button--tiny button--secondary" hidden>
-            <span aria-hidden="true">&#10006;</span>
-            <span data-i18n="gallery:clear-filters">@Messages("gallery.clear.filters")</span>
-          </button>
+        @* The sections render as bare sibling <section>s (withMapChrome = false), so the disclosure needs one
+           wrapper to toggle and point aria-controls at. *@
+        <div id="gallery-filter-sections">
+          @common.filterSidebar(
+            tags = allTags,
+            sections = Seq("severity", "label-type", "validations"),
+            withMapChrome = false,
+            checkedLabelTypes = labelTypes,
+            checkedValidations = valOptions,
+            checkedSeverities = severities.map(s => if(s == "null") "0" else s),
+            activeTags = tags
+          )
         </div>
-        @common.filterSidebar(
-          tags = allTags,
-          sections = Seq("severity", "label-type", "validations"),
-          withMapChrome = false,
-          checkedLabelTypes = labelTypes,
-          checkedValidations = valOptions,
-          checkedSeverities = severities.map(s => if(s == "null") "0" else s),
-          activeTags = tags
-        )
       </div>
     </div>
-    <div id="labels-not-found-text">
-      <span id="labels-not-found">@Html(Messages("gallery.labels.not.found"))</span>
-    </div>
-    <div id="gallery-content" class="grid-container">
+    <div id="labels-not-found-text">@Html(Messages("gallery.labels.not.found"))</div>
+    <div id="gallery-content">
       <div id="image-card-container" class="cards"></div>
       <div class="gallery-expanded-view label-detail label-detail--inline">@common.labelDetail(withPaging = true)</div>
       @common.panoInfoPopover()

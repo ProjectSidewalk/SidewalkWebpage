@@ -1,12 +1,13 @@
 /**
- * The explanation a labeler gets when Explore gives up on a street *at page load* and reloads onto another one
- * (#4918).
+ * The explanation a labeler gets when Explore gives up on a street *at page load* and reloads (#4918).
  *
  * This path is the one that cost production ~3,370 streets, and it is the harder one to say anything on: the reload
- * that carries the labeler to a new street also tears down the page that would have told them about it. So the
- * failing load leaves a note in sessionStorage, and the load that follows reads it and speaks. Without that the
- * labeler is silently somewhere else, which is precisely how a session could walk 44 streets in 33 seconds without
- * anyone in the seat realizing anything had happened.
+ * tears down the page that would have told the labeler what happened. So the failing load leaves a note in
+ * sessionStorage — the given-up street's id — and the load that follows reads it and speaks. The id matters because
+ * the reported street stays in the pool and assignment picks at random among the highest-priority ones (#4922), so
+ * the follow-up load can land back on it: the "you were moved" explanation must only fire when the fresh assignment
+ * really is somewhere else. Without any of this the labeler is silently elsewhere, which is precisely how a session
+ * could walk 44 streets in 33 seconds without anyone in the seat realizing anything had happened.
  */
 
 const fs = require('fs');
@@ -75,18 +76,19 @@ describe('a street given up on at page load', () => {
 
         expect(reportNoImagery).toHaveBeenCalledWith(task, 3);
         expect(window.location.replace).toHaveBeenCalledWith('/explore');
-        expect(window.PanoManager.consumeStreetSkippedNotice()).toBe(true);
+        // The note names the street, so the arrival can tell a retry of this street from a move to another.
+        expect(window.PanoManager.consumeStreetSkippedNotice()).toBe(101);
     });
 
     it('explains the move once, not on every load thereafter', async () => {
         await loadAndFail(new window.NoImageryError('nothing usable here'));
 
-        expect(window.PanoManager.consumeStreetSkippedNotice()).toBe(true);
-        expect(window.PanoManager.consumeStreetSkippedNotice()).toBe(false);
+        expect(window.PanoManager.consumeStreetSkippedNotice()).toBe(101);
+        expect(window.PanoManager.consumeStreetSkippedNotice()).toBeNull();
     });
 
     it('says nothing on an ordinary load', () => {
-        expect(window.PanoManager.consumeStreetSkippedNotice()).toBe(false);
+        expect(window.PanoManager.consumeStreetSkippedNotice()).toBeNull();
     });
 
     it('leaves no note when the provider never answered, since nobody was moved', async () => {
@@ -94,7 +96,7 @@ describe('a street given up on at page load', () => {
 
         expect(reportNoImagery).not.toHaveBeenCalled();
         expect(window.location.replace).not.toHaveBeenCalled();
-        expect(window.PanoManager.consumeStreetSkippedNotice()).toBe(false);
+        expect(window.PanoManager.consumeStreetSkippedNotice()).toBeNull();
         expect(showAlert).toHaveBeenCalledWith('popup.imagery-load-failed', 'imageryLoadFailed', false);
     });
 
@@ -110,6 +112,18 @@ describe('a street given up on at page load', () => {
         expect(reportNoImagery).not.toHaveBeenCalled();
         expect(window.location.replace).not.toHaveBeenCalled();
         expect(showAlert).toHaveBeenCalledWith('popup.imagery-skip-limit', 'imagerySkipLimit', false);
+    });
+
+    it('hands the budget back when it stops, so the reload it suggests actually starts over', async () => {
+        for (let i = 0; i < window.NoImageryFlagGuard.MAX_CONSECUTIVE_FLAGS; i++) {
+            window.NoImageryFlagGuard.recordStreetGivenUp();
+        }
+
+        await loadAndFail(new window.NoImageryError('nothing usable here'));
+
+        // The message tells the labeler to reload to start again. A budget that survived the reload would make that
+        // advice false and leave the tab unable to show them a street ever again.
+        expect(window.NoImageryFlagGuard.count()).toBe(0);
     });
 
     describe('when the load stops instead of reloading', () => {
