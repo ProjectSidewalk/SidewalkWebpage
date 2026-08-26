@@ -1517,6 +1517,12 @@
 
 .ud-admin-details .mgmt-table-scroll { margin-top: var(--space-sm, 12px); }
 
+/* Two narrow columns, so the hours sit beside their city instead of a screen-width away (#4986). */
+.ud-admin-hours-cities {
+  max-width: 420px;
+  margin-bottom: var(--space-md, 16px);
+}
+
 /* "Kept private" state on a public profile whose owner turned off public_profile. */
 .ud-empty-state {
   display: flex;

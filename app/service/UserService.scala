@@ -184,6 +184,15 @@ case class CrossCityHours(cities: Seq[CityHours], unreachableCities: Int) {
    * instead of an ulp either side of it.
    */
   def totalHours: Double = cities.map(city => BigDecimal.decimal(city.hours)).sum.toDouble
+
+  /**
+   * Whether the per-city rows are worth showing beneath the total.
+   *
+   * True for a lone city too when it isn't this deployment, so hours earned elsewhere are never left looking like they
+   * were earned here. Lives here rather than in each surface because the volunteer's page and the admin's view of it
+   * must not diverge on it (#4986).
+   */
+  def showBreakdown: Boolean = cities.nonEmpty && (cities.length > 1 || !cities.exists(_.isCurrentCity))
 }
 
 /**
@@ -204,10 +213,13 @@ private[service] case class CrossCityFanOut(
     liveMeters: Double
 )
 
-/** The admin-only additions to a user's dashboard (`/admin/user/:username/admin`). */
+/**
+ * The admin-only additions to a user's dashboard (`/admin/user/:username/admin`).
+ *
+ * Hours are not here: the page reports the user's cross-city total, which it fetches after rendering (#4986).
+ */
 case class AdminUserProfileData(
     currentRegion: Option[Region],
-    hoursWorked: Double,
     userStats: UserStat,
     exploreComments: Seq[AuditTaskComment]
 )
@@ -488,12 +500,15 @@ trait UserService {
    * Gets a volunteer's logged hours in every Project Sidewalk city they've worked in (#4526).
    *
    * Deliberately uncached: volunteers check this page repeatedly in a day while logging service hours, and a total
-   * that lagged their last session would be worse than a slow one.
+   * that lagged their last session would be worse than a slow one. The admin surface leans on the same freshness —
+   * an admin opens it to check a claim the volunteer just made, so a cached copy would put the two numbers back into
+   * disagreement, which is what #4986 exists to end.
    *
    * Never fails: if the fan-out can't run at all, it degrades to this city's own total, which is what the page
    * reported before it learned to look further.
    *
-   * @param userId The volunteer, always the signed-in viewer.
+   * @param userId The volunteer: the signed-in viewer on `/timeCheck`, or the user being administered on
+   *               `/admin/user/:username/admin`, which must report the same figure (#4986).
    * @param lang   Language for city display names.
    * @return       Cities with any logged time, most hours first; empty when nothing has been logged anywhere.
    */
