@@ -9,8 +9,8 @@
  * serve (Galaxy Fold cover display, older SE class), where their card grid's own minimum is what has to give.
  *
  * Coverage is the pages that are already responsive, so today's good state is locked in. As #4875's phases
- * convert the UA-redirected pages (/gallery, /labelMap, landing, …), each conversion PR adds its page here —
- * on a mobile UA those pages currently redirect to /mobileLanding, so listing them today would only re-test it
+ * convert the UA-redirected pages (/gallery, landing, …), each conversion PR adds its page here — on a mobile
+ * UA those pages currently redirect to /mobileLanding, so listing them today would only re-test it
  * (loadAndSettle's stayed-put URL assert catches a covered page joining that redirect set later).
  *
  * Lives apart from explore-validate.spec.js on purpose: that file skips wholesale without a real Google Maps
@@ -60,6 +60,7 @@ test.describe('phone viewport (390px)', () => {
     {path: '/routes'},
     {path: '/stories'},
     {path: '/cities', mapbox: true},
+    {path: '/labelMap', mapbox: true, loadingOverlay: true},
     {path: '/api'},
     {path: '/v3/api-docs/rawLabels'},
   ];
@@ -89,5 +90,20 @@ test.describe('phone viewport (390px), registered user', () => {
 
   test('/dashboard fits without horizontal overflow', async ({page, context, consoleErrors}) => {
     await checkPhoneViewport(page, context, consoleErrors, {path: '/dashboard', mapbox: true});
+  });
+
+  // The drawer is parked off-canvas at this width, so the walk above never sees the layout the breakpoint
+  // actually authors: a full-bleed panel over the map. Opening it is the only way to measure that, and it
+  // doubles as proof the reopen control is wired — it is built at map-ready, well before the label feed lands.
+  test('/dashboard fits with the filter drawer open', async ({page, context, consoleErrors}) => {
+    await loadAndSettle(page, context, {path: '/dashboard', mapbox: true});
+
+    await page.locator('#filter-sidebar-open').click();
+    await expect(page.locator('#filter-sidebar')).toBeVisible();
+
+    const report = await horizontalOverflowReport(page);
+    expect(report.offenders, `open filter drawer: ${report.offenderCount} element(s) overflow the ` +
+      `${report.viewportWidth}px viewport`).toEqual([]);
+    expect(consoleErrors).toEqual([]);
   });
 });
