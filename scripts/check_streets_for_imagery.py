@@ -65,6 +65,7 @@ import sys
 import threading
 import time
 from collections import namedtuple
+from collections.abc import Callable, Collection, Iterable, Iterator
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 
@@ -157,7 +158,8 @@ class RateLimiter:
     the provider's limit even if responses come back fast. The clock and sleep are injectable for deterministic tests.
     """
 
-    def __init__(self, max_per_second, capacity=None, monotonic=time.monotonic, sleep=time.sleep):
+    def __init__(self, max_per_second: float, capacity: float | None = None,
+                 monotonic: Callable[[], float] = time.monotonic, sleep: Callable[[float], None] = time.sleep) -> None:
         self._rate = max_per_second
         self._capacity = capacity if capacity is not None else max_per_second
         self._tokens = self._capacity
@@ -166,7 +168,7 @@ class RateLimiter:
         self._sleep = sleep
         self._lock = threading.Lock()
 
-    def acquire(self):
+    def acquire(self) -> None:
         """Block until a token is available, then consume it."""
         while True:
             with self._lock:
@@ -180,7 +182,7 @@ class RateLimiter:
             self._sleep(wait)  # Sleep outside the lock so other threads can refill/observe progress.
 
 
-def redistribute_vertices(geom, distance=DISTANCE):
+def redistribute_vertices(geom: LineString, distance: float = DISTANCE) -> LineString:
     """
     Returns a copy of a LineString with extra vertices interpolated along it.
 
@@ -200,7 +202,7 @@ def redistribute_vertices(geom, distance=DISTANCE):
     return LineString([geom.interpolate(float(n) / num_vert, normalized=True) for n in range(num_vert + 1)])
 
 
-def create_bounding_box(lat, lng, radius_km):
+def create_bounding_box(lat: float, lng: float, radius_km: float) -> tuple[float, float, float, float]:
     """
     Builds an axis-aligned bounding box around a point.
 
@@ -220,7 +222,7 @@ def create_bounding_box(lat, lng, radius_km):
     return (west, south, east, north)
 
 
-def gsv_has_imagery(response_json):
+def gsv_has_imagery(response_json: dict) -> bool:
     """
     Interprets a Google Street View metadata response.
 
@@ -234,7 +236,7 @@ def gsv_has_imagery(response_json):
     return status != 'ZERO_RESULTS'
 
 
-def standardize_capture_date(raw):
+def standardize_capture_date(raw: str | float | None) -> str | None:
     """
     Normalizes a GSV capture date to an ISO ``YYYY-MM-DD`` string.
 
@@ -257,7 +259,7 @@ def standardize_capture_date(raw):
     return None
 
 
-def gsv_capture_date(response_json):
+def gsv_capture_date(response_json: dict) -> str | None:
     """
     Extracts the standardized imagery capture date from a GSV metadata response.
 
@@ -273,7 +275,7 @@ def gsv_capture_date(response_json):
     return standardize_capture_date(results['date'][0])
 
 
-def mapillary_has_imagery(response_json):
+def mapillary_has_imagery(response_json: dict) -> bool:
     """
     Interprets a Mapillary images response.
 
@@ -297,7 +299,7 @@ def mapillary_has_imagery(response_json):
     return not no_imagery
 
 
-def mapillary_capture_date(response_json):
+def mapillary_capture_date(response_json: dict) -> str | None:
     """
     Extracts the standardized capture date of the newest image in a Mapillary images response.
 
@@ -319,7 +321,7 @@ def mapillary_capture_date(response_json):
     return datetime.fromtimestamp(max(timestamps) / 1000, tz=timezone.utc).date().isoformat()
 
 
-def imagery_verdict(n_fail, n_success, n_coords, endpoint_failed):
+def imagery_verdict(n_fail: int, n_success: int, n_coords: int, endpoint_failed: bool) -> str | None:
     """
     Decides, from running point counts, whether the street's imagery status is settled yet.
 
@@ -340,7 +342,8 @@ def imagery_verdict(n_fail, n_success, n_coords, endpoint_failed):
     return None
 
 
-def street_has_no_imagery(first_endpoint_fail, second_endpoint_fail, point_has_imagery, n_coords=None):
+def street_has_no_imagery(first_endpoint_fail: bool, second_endpoint_fail: bool,
+                          point_has_imagery: Iterable[bool], n_coords: int | None = None) -> bool:
     """
     Decides whether a street should be flagged as missing imagery.
 
@@ -380,12 +383,13 @@ def street_has_no_imagery(first_endpoint_fail, second_endpoint_fail, point_has_i
     return False
 
 
-def _get_json(url):
+def _get_json(url: str) -> dict:
     """GETs a URL and returns the decoded JSON (with a bounded per-attempt timeout)."""
     return requests.get(url, timeout=REQUEST_TIMEOUT).json()
 
 
-def make_fetch(max_attempts=MAX_ATTEMPTS, sleep=None, rate_limiter=None):
+def make_fetch(max_attempts: int = MAX_ATTEMPTS, sleep: Callable[[float], None] | None = None,
+               rate_limiter: RateLimiter | None = None) -> Callable[[str], dict]:
     """
     Builds a ``fetch(url) -> json`` that retries transient network errors with exponential backoff + jitter.
 
@@ -407,7 +411,7 @@ def make_fetch(max_attempts=MAX_ATTEMPTS, sleep=None, rate_limiter=None):
         reraise=True,
     )
 
-    def attempt(url):
+    def attempt(url: str) -> dict:
         if rate_limiter is not None:
             rate_limiter.acquire()
         return _get_json(url)
@@ -415,13 +419,13 @@ def make_fetch(max_attempts=MAX_ATTEMPTS, sleep=None, rate_limiter=None):
     return lambda url: retryer(lambda: attempt(url))
 
 
-def _mapillary_bbox_url(mapillary_url, lat, lng, radius_km):
+def _mapillary_bbox_url(mapillary_url: str, lat: float, lng: float, radius_km: float) -> str:
     """Appends a ``&bbox=`` query (a box of ``radius_km`` around the point) to the Mapillary base URL."""
     bbox = create_bounding_box(lat, lng, radius_km)
     return mapillary_url + '&bbox=' + ','.join(str(coord) for coord in bbox)
 
 
-def _pano_info(api, response_json):
+def _pano_info(api: str, response_json: dict) -> PanoInfo:
     """
     Builds a ``PanoInfo`` (imagery present? + capture date) from one provider response.
 
@@ -433,14 +437,16 @@ def _pano_info(api, response_json):
     return PanoInfo(mapillary_has_imagery(response_json), mapillary_capture_date(response_json))
 
 
-def _point_pano_info(api, lat, lng, fetch, gsv_url, mapillary_url, mapillary_radius_km):
+def _point_pano_info(api: str, lat: float, lng: float, fetch: Callable[[str], dict], gsv_url: str,
+                     mapillary_url: str, mapillary_radius_km: float) -> PanoInfo:
     """Queries the configured provider at one point (via ``fetch``) and returns its ``PanoInfo``."""
     if api == 'GSV':
         return _pano_info(api, fetch(gsv_url + '&location=' + str(lat) + ',' + str(lng)))
     return _pano_info(api, fetch(_mapillary_bbox_url(mapillary_url, lat, lng, mapillary_radius_km)))
 
 
-def _check_endpoints(street, api, fetch, gsv_url_endpoint, mapillary_url):
+def _check_endpoints(street: pd.Series, api: str, fetch: Callable[[str], dict], gsv_url_endpoint: str,
+                     mapillary_url: str) -> tuple[PanoInfo, PanoInfo]:
     """Checks both of a street's endpoints; returns ``(first_pano_info, second_pano_info)``."""
     if api == 'GSV':
         first = _pano_info(api, fetch(gsv_url_endpoint + '&location=' + str(street.y1) + ',' + str(street.x1)))
@@ -451,7 +457,7 @@ def _check_endpoints(street, api, fetch, gsv_url_endpoint, mapillary_url):
     return first, second
 
 
-def summarize_dates(dates):
+def summarize_dates(dates: Collection[str]) -> tuple[str | None, str | None, int]:
     """
     Summarizes a street's observed imagery capture dates.
 
@@ -466,7 +472,8 @@ def summarize_dates(dates):
     return min(dates), max(dates), len(dates)
 
 
-def process_street(street, api, fetch, gsv_url, gsv_url_endpoint, mapillary_url):
+def process_street(street: pd.Series, api: str, fetch: Callable[[str], dict], gsv_url: str,
+                   gsv_url_endpoint: str, mapillary_url: str) -> StreetResult:
     """
     Checks one street for imagery and returns its outcome (pure of any file/checkpoint I/O, so it is pool-safe).
 
@@ -495,7 +502,7 @@ def process_street(street, api, fetch, gsv_url, gsv_url_endpoint, mapillary_url)
         # Yield the per-point has_imagery booleans to the (unchanged) decision function, recording each point's capture
         # date as a side effect. Because street_has_no_imagery consumes this lazily and stops at the verdict, we only
         # fetch — and only collect dates for — the points actually visited.
-        def has_imagery_stream():
+        def has_imagery_stream() -> Iterator[bool]:
             # `no branch`: street_has_no_imagery settles and stops consuming before this loop is exhausted (for any
             # real street, which has >= 2 points), so the generator is abandoned rather than run to completion.
             for coord in coords:  # pragma: no branch  -- Shapely coords are (x=lng, y=lat).
@@ -514,7 +521,7 @@ def process_street(street, api, fetch, gsv_url, gsv_url_endpoint, mapillary_url)
     return StreetResult(int(street.street_edge_id), int(street.region_id), outcome, oldest, newest, n_panos)
 
 
-def load_processed(checkpoint_file=CHECKPOINT_FILE):
+def load_processed(checkpoint_file: str = CHECKPOINT_FILE) -> set[int]:
     """Returns the set of ``street_edge_id`` already settled (failed streets are excluded so they get re-attempted)."""
     if not os.path.isfile(checkpoint_file):
         return set()
@@ -522,7 +529,7 @@ def load_processed(checkpoint_file=CHECKPOINT_FILE):
     return set(checkpoint[checkpoint['outcome'] != FAILED]['street_edge_id'])
 
 
-def append_checkpoint(result, checkpoint_file=CHECKPOINT_FILE):
+def append_checkpoint(result: StreetResult, checkpoint_file: str = CHECKPOINT_FILE) -> None:
     """Appends one street's result to the checkpoint (writing the header on first use)."""
     write_header = not os.path.isfile(checkpoint_file)
     with open(checkpoint_file, 'a', newline='') as handle:
@@ -532,7 +539,7 @@ def append_checkpoint(result, checkpoint_file=CHECKPOINT_FILE):
         writer.writerow(list(result))
 
 
-def _write_ids_csv(rows, output_file):
+def _write_ids_csv(rows: pd.DataFrame, output_file: str) -> None:
     """Writes a ``(street_edge_id, region_id)`` frame as CSV with integer ids."""
     df = pd.DataFrame(rows, columns=['street_edge_id', 'region_id'])
     df['street_edge_id'] = df['street_edge_id'].astype('int32')
@@ -540,7 +547,7 @@ def _write_ids_csv(rows, output_file):
     df.to_csv(output_file, index=False)
 
 
-def _write_summary_csv(settled, summary_file):
+def _write_summary_csv(settled: pd.DataFrame, summary_file: str) -> None:
     """Writes the per-street imagery summary (presence + capture-date range) for the settled streets."""
     summary = pd.DataFrame(settled, columns=CHECKPOINT_COLUMNS).copy()
     summary['has_imagery'] = summary['outcome'] == HAS_IMAGERY
@@ -550,8 +557,8 @@ def _write_summary_csv(settled, summary_file):
     summary[SUMMARY_COLUMNS].to_csv(summary_file, index=False)
 
 
-def finalize_outputs(checkpoint_file=CHECKPOINT_FILE, output_file=OUTPUT_FILE, failed_file=FAILED_FILE,
-                     summary_file=SUMMARY_FILE):
+def finalize_outputs(checkpoint_file: str = CHECKPOINT_FILE, output_file: str = OUTPUT_FILE,
+                     failed_file: str = FAILED_FILE, summary_file: str = SUMMARY_FILE) -> None:
     """
     Derives the final output files from the checkpoint.
 
@@ -571,7 +578,7 @@ def finalize_outputs(checkpoint_file=CHECKPOINT_FILE, output_file=OUTPUT_FILE, f
         _write_ids_csv(failed, failed_file)
 
 
-def main(argv=None):
+def main(argv: list[str] | None = None) -> int:
     """
     Parses arguments and scans every street for imagery, writing those without it to ``OUTPUT_FILE``.
 
@@ -624,7 +631,7 @@ def main(argv=None):
     fetch = make_fetch(rate_limiter=RateLimiter(args.max_qps))
     checkpoint_lock = threading.Lock()
 
-    def check_and_record(street):
+    def check_and_record(street: pd.Series) -> StreetResult:
         result = process_street(street, api, fetch, gsv_url, gsv_url_endpoint, mapillary_url)
         with checkpoint_lock:  # process_street does no file I/O; only the checkpoint append needs serializing.
             append_checkpoint(result, checkpoint_path)
