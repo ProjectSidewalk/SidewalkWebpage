@@ -15,7 +15,7 @@ import scala.concurrent.Await
 import scala.concurrent.duration._
 
 /**
- * DB-backed contract test for `pano_imagery_change`, the imagery-transition log (#4947, evolution 363).
+ * DB-backed contract test for `pano_imagery_change`, the imagery-transition log (#4947, evolution 364).
  *
  * `pano_data.expired_at` cannot answer "what went away in March": it is cleared when the imagery returns, so the
  * recovery retroactively empties the week the pano expired in. The log exists to survive that round trip, and these
@@ -115,7 +115,7 @@ class PanoImageryLogSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAp
       reset()
       run(sqlu"UPDATE pano_data SET expired = TRUE, expired_at = NULL WHERE pano_id = $panoId")
       run(panoDataTable.updateExpiredStatus(panoId, expired = false, Some(false), OffsetDateTime.now))
-      // Pre-358 expiries have no date for 363's backfill to seed a loss from, so their recoveries arrive unpaired.
+      // Pre-358 expiries have no date for 364's backfill to seed a loss from, so their recoveries arrive unpaired.
       // That is why the chart can show more recoveries than losses, and why the page says so out loud.
       events mustBe Seq(false -> "provider_check")
     }

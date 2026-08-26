@@ -12,7 +12,7 @@ import javax.inject.{Inject, Singleton}
 /**
  * What moved a pano across the expired boundary, backing the `pano_imagery_change_source` Postgres enum type.
  *
- * NOTE: if changing these values, update the `pano_imagery_change_source` Postgres enum type as well (see 363.sql).
+ * NOTE: if changing these values, update the `pano_imagery_change_source` Postgres enum type as well (see 364.sql).
  */
 object PanoImageryChangeSource extends Enumeration {
   type PanoImageryChangeSource = Value

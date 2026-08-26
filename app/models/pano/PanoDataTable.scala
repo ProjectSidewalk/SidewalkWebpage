@@ -150,7 +150,7 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
    * Panos that were already expired before any of this was recorded, so the trend can say how much it can't show.
    *
    * These are the rows `pano_imagery_change` has no loss event for: they expired before 358 added `expired_at`, so
-   * 363's backfill of the log from that column had no date to seed them with. If one regains imagery it still logs
+   * 364's backfill of the log from that column had no date to seed them with. If one regains imagery it still logs
    * the recovery, so the chart can show more recoveries than losses until this count drains.
    */
   def countExpiredWithoutExpiryDate: DBIO[Int] = {
