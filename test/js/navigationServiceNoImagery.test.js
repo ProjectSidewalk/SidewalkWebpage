@@ -89,6 +89,14 @@ function makeTask(streetEdgeId, { lengthKm = 0.1, atEnd = false, walkOrder = nul
         streetEdgeId,
         getStreetEdgeId: () => streetEdgeId,
         getWalkOrder: () => walkOrder,
+        givenUp: false,
+        giveUpOnImagery() {
+          this.givenUp = true;
+        },
+        wasGivenUpOnImagery() {
+          return this.givenUp;
+        },
+        render: jest.fn(),
         getFeature: () => lineFeature([start, end]),
         getEndCoordinate: () => ({ lat: end[1], lng: end[0] }),
         getFurthestPointReached: () => pointFeature(start),
@@ -137,7 +145,7 @@ describe('Explore, when the imagery search runs out along a street', () => {
             keyboard: { setStatus: jest.fn() },
             minimap: { setMinimapLocation: stub() },
             missionContainer: { getCurrentMission: () => ({ getProperty: () => 7, pushATaskToTheRoute: jest.fn() }) },
-            missionController: { wrapUpRouteOrNeighborhood: stub() },
+            missionController: { wrapUpRouteOrNeighborhood: stub(), onRouteReadyToFinish: stub() },
             missionModel: { updateMissionProgress: stub() },
             neighborhoodModel: {
                 currentNeighborhood: () => ({}), isRoute: false, isRouteOrNeighborhoodComplete: () => false,
@@ -440,6 +448,35 @@ describe('Explore, when the imagery search runs out along a street', () => {
 
             expect(svl.neighborhoodModel.setComplete).toHaveBeenCalled();
             expect(svl.missionController.wrapUpRouteOrNeighborhood).toHaveBeenCalled();
+        });
+
+        it('ends a route through its normal finish flow, not by firing the modal mid-stride (#5008)', async () => {
+            svl.neighborhoodModel.isRoute = true;
+            assignStreets(makeTask(101, { walkOrder: 1 }));
+            respondToSearch = emptyGround;
+
+            await nav.moveForward();
+
+            expect(svl.neighborhoodModel.setComplete).toHaveBeenCalled();
+            // The finish toast and its look-around gate, the same ending a route gets when its last street is walked.
+            expect(svl.missionController.onRouteReadyToFinish).toHaveBeenCalled();
+            expect(svl.missionController.wrapUpRouteOrNeighborhood).not.toHaveBeenCalled();
+            // The labeler has to be able to look around for that gate to ever open.
+            expect(nav.getStatus('disableWalking')).toBe(false);
+        });
+
+        it('remembers the street it gave up on, without claiming the labeler audited it (#5008)', async () => {
+            const [dead, live] = [makeTask(101), makeTask(102)];
+            assignStreets(dead, live);
+            respondToSearch = () => (svl.taskContainer.getCurrentTask() === dead ? emptyGround() : foundImagery());
+
+            await nav.moveForward();
+
+            // The flag is what keeps nextTask from handing the street back and the minimap from drawing it as still
+            // to walk; the street stays incomplete, so nothing here reaches audit_task.completed (#4922).
+            expect(dead.wasGivenUpOnImagery()).toBe(true);
+            expect(dead.render).toHaveBeenCalled();
+            expect(svl.taskContainer.endTask).not.toHaveBeenCalled();
         });
     });
 

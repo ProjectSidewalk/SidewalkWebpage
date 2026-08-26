@@ -189,8 +189,13 @@ class NavigationService {
       svl.tracker.push('NoImageryFlagLimitReached');
     }
 
-    // Every given-up street stays incomplete, which leaves it eligible for nextTask() — only the street just left is
-    // excluded — so the run can cycle between the same few streets. The advance ceiling is what ends it.
+    // Client-side only, and separate from the server's notion of completion: it keeps nextTask() from handing the
+    // street back later in the session, and lets the minimap stop drawing it as something still to walk.
+    currentTask.giveUpOnImagery();
+    currentTask.render();
+
+    // The advance ceiling still bounds a run: give-ups leave a street eligible for assignment to everyone else, so a
+    // session that keeps finding empty ones is better explained by a broken session than by an empty neighborhood.
     if (!NoImageryFlagGuard.canAdvance()) {
       svl.tracker.push('NoImageryAdvanceLimitReached');
       // The run is over, so the budget goes back: what follows can only be the labeler deciding to try again, which
@@ -225,11 +230,18 @@ class NavigationService {
       this.enableWalking();
       return this.moveForward();
     } else {
-      // No new task: complete the neighborhood. This path skips #updateUiAfterMove(), so clear the flags here.
+      // Nothing left to walk. This path skips #updateUiAfterMove(), so clear the flags here.
       this.#status.movingToNewLocation = false;
       this.#status.headingSettling = false;
+      this.#restoreUiAfterFailedMove();
       svl.neighborhoodModel.setComplete();
-      svl.missionController.wrapUpRouteOrNeighborhood();
+      // Same ending a route gets when its last street is walked normally: the finish toast, then the celebration once
+      // the labeler has looked around. Firing the modal straight from here made the route end mid-stride (#5008).
+      if (svl.neighborhoodModel.isRoute) {
+        svl.missionController.onRouteReadyToFinish();
+      } else {
+        svl.missionController.wrapUpRouteOrNeighborhood();
+      }
       return Promise.resolve(null);
     }
   }

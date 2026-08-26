@@ -17,6 +17,9 @@ class Task {
   #missionStarts = {};
   #status = {
     isComplete: false,
+    // Set when this session's imagery sweep ran out and moved the labeler on. Deliberately not isComplete: that
+    // flag is submitted as audit_task.completed (Form.js), and a no-imagery verdict may not claim an audit (#4922).
+    givenUpOnImagery: false,
   };
 
   #properties = {
@@ -342,6 +345,21 @@ class Task {
   }
 
   /**
+   * Records that this session's imagery sweep ran out here and the labeler was moved on, so navigation stops
+   * offering the street back and the minimap stops drawing it as unwalked. Nothing about this reaches the server.
+   */
+  giveUpOnImagery() {
+    this.#status.givenUpOnImagery = true;
+  }
+
+  /**
+   * @returns {boolean} Whether this session already gave up on the street for lack of imagery.
+   */
+  wasGivenUpOnImagery() {
+    return this.#status.givenUpOnImagery;
+  }
+
+  /**
    * Checks if the current task is connected to the given task.
    *
    * @param {Task} task The task to check if this task is close to
@@ -413,10 +431,13 @@ class Task {
 
     // If the task has been completed already, or if it has not been completed and is not the current task,
     // render it as a whole street rather than the audited/remaining split used for the current street.
-    if (this.isComplete() || this.getStreetEdgeId() !== svl.taskContainer.getCurrentTaskStreetEdgeId()) {
+    // A street this session gave up on for lack of imagery draws as walked: the labeler did everything the tool let
+    // them, and a grey gap in an otherwise finished route reads as their omission.
+    const drawAsWalked = this.isComplete() || this.wasGivenUpOnImagery();
+    if (drawAsWalked || this.getStreetEdgeId() !== svl.taskContainer.getCurrentTaskStreetEdgeId()) {
       const gCoordinates = this.#geojson.geometry.coordinates
         .map((coord) => new google.maps.LatLng(coord[1], coord[0]));
-      if (this.isComplete()) {
+      if (drawAsWalked) {
         this.#paths = [new google.maps.Polyline(MinimapStyle.completedTask(gCoordinates))];
       } else if (svl.neighborhoodModel.isRoute) {
         // On a designated route every street ahead is part of the planned path, so paint it as the route-to-walk: a

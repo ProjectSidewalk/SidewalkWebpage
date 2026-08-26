@@ -337,7 +337,11 @@ class TaskContainer {
         ? t.getWalkOrder() === finishedWalkOrder
         : t.getStreetEdgeId() === finishedTask.getStreetEdgeId();
     };
-    const tasksNotCompletedByUser = this.getTasks().filter((t) => !t.isComplete() && !sameAsFinished(t));
+    // A street this session gave up on for lack of imagery stays incomplete on purpose (#4922), so "not complete"
+    // alone would keep handing it back — on a route, that means the last street's finish teleports the labeler onto
+    // a dead one. Give-ups are this session's memory of what it already tried (#5008).
+    const tasksNotCompletedByUser = this.getTasks()
+      .filter((t) => !t.isComplete() && !t.wasGivenUpOnImagery() && !sameAsFinished(t));
     if (tasksNotCompletedByUser.length === 0) {
       return null;
     }
