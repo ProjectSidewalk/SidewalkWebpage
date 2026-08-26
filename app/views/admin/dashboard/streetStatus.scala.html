@@ -59,8 +59,8 @@
     <p class="trend-note">Counted as distinct streets per week; hover a bar for the raw report count, which also moves when several labelers report the same street.</p>
     <div class="mini-host" id="trend-reports-chart"></div>
 
-    <h3 class="trend-chart-heading">Panoramas whose imagery went away</h3>
-    <p class="trend-note">Unlike the two charts above, this one is not an event log: it reads the current expiry date on each panorama, which is cleared if the imagery comes back or a user views the panorama again. A panorama that expired and later returned therefore leaves its old week, so past weeks can shrink between visits. Read it as "panoramas still missing, by when they went" rather than as a record of every expiry.</p>
+    <h3 class="trend-chart-heading">Panoramas losing and regaining imagery</h3>
+    <p class="trend-note">Each bar counts panoramas that crossed in that week and stays where it is: a panorama that went away in one week and came back in a later one is counted once in each, rather than being erased from the first. Imagery is found gone by a provider check, and found back either by a later check or by a labeler loading the panorama. A week of losses that the following weeks hand back was a provider hiccup; losses with no recoveries after them are imagery that is really gone.</p>
     <p class="trend-note" id="trend-expiry-note"></p>
     <div class="mini-host" id="trend-expiry-chart"></div>
   </div>

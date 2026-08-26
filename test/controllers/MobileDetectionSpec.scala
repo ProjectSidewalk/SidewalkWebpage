@@ -6,6 +6,7 @@ import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
+import util.UserAgents
 
 /**
  * The single-mobile-definition contract (#4887): `ControllerUtils.isMobile` is the one mobile verdict, and the shared
@@ -23,11 +24,9 @@ class MobileDetectionSpec extends PlaySpec with GuiceOneAppPerSuite {
       .disable[modules.ActorModule] // No eager background actors during tests.
       .build()
 
-  private val mobileUa = "User-Agent" -> "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)"
-
   "The layout's data-mobile-device stamp" should {
     "carry the server's true verdict on a page served to a mobile browser" in {
-      val resp = route(app, FakeRequest(GET, "/signIn").withHeaders(mobileUa)).get
+      val resp = route(app, FakeRequest(GET, "/signIn").withHeaders(UserAgents.mobile)).get
       status(resp) mustBe OK
       contentAsString(resp) must include("data-mobile-device=\"true\"")
     }

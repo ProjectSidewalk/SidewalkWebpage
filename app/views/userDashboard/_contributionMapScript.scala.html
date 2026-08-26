@@ -43,6 +43,8 @@
       neighborhoodFillOpacity: 0.1,
       uiSource: 'UserMap',
       navigationControlPosition: 'top-right',
+      @* The legend is supporting detail on a dashboard, not the point of the page, so the map gets the room. *@
+      sidebarStartsCollapsed: true,
       // Every street in this feed is one the mapper audited, so there is no unaudited arm to grey out here; the
       // flag's only effect is turning on the dashed rendering for streets that need a re-audit (#4384).
       differentiateUnauditedStreets: true
@@ -75,9 +77,6 @@
           holder.addEventListener('mouseleave', () => map.scrollZoom.disable());
         }
       }
-      // Start with the legend drawer closed (re-centers the map via the real close handler).
-      const closeBtn = document.getElementById('filter-sidebar-close');
-      if (closeBtn) closeBtn.click();
     } catch (e) {
       console.error('Contribution map failed to load', e);
       contributionMapReadyResolve(null);

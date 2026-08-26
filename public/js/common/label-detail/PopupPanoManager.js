@@ -355,7 +355,11 @@ class PopupPanoManager {
       // absolute-positioned .pano-not-avail panel fills that box.
       this.svHolder.css('height', '');
       $(this.#fallbackContainer).css('display', 'none');
-      if (this.label) $('#explore-street').attr('href', `/explore?streetEdgeId=${this.label.streetEdgeId}`);
+      // Same reason as LabelDetail's "Explore here": /explore bounces mobile visitors, so the CTA goes away
+      // rather than promising a destination this device can't reach.
+      const exploreStreet = $('#explore-street');
+      exploreStreet.prop('hidden', util.isMobile());
+      if (this.label) exploreStreet.attr('href', `/explore?streetEdgeId=${this.label.streetEdgeId}`);
       $(this.#panoNotAvailable).css('display', 'flex');
       this.#buttonHolder.css('display', 'none');
     }
