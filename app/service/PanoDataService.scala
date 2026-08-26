@@ -66,17 +66,20 @@ object PanoDataService {
    * provider key that has expired or hit its quota turns every check inconclusive, which leaves the expired counts
    * looking reassuringly quiet while the sweep has in fact stopped learning anything.
    *
-   * @param stillThere Panos the provider confirmed still serve imagery.
-   * @param gone       Panos the provider confirmed it has no imagery for.
-   * @param errors     Panos the provider gave no usable answer for (timeout, auth failure, unexpected status).
+   * @param stillThere        Panos the provider confirmed still serve imagery.
+   * @param gone              Panos the provider confirmed it has no imagery for.
+   * @param errors            Panos the provider gave no usable answer for (timeout, auth failure, unexpected status).
+   * @param reconciledPanoIds Panos whose newest `pano_imagery_change` row disagreed with `pano_data.expired`, healed
+   *                          after the checks (#5007). Non-empty means some writer is skipping the log.
    */
-  case class ImageryCheckResult(stillThere: Int, gone: Int, errors: Int) {
+  case class ImageryCheckResult(stillThere: Int, gone: Int, errors: Int, reconciledPanoIds: Seq[String]) {
 
     /** Total panos the sweep asked the providers about. */
     def checked: Int = stillThere + gone + errors
 
     /** One line for the actor log and the admin endpoint's response body. */
-    def summary: String = s"Not expired: $stillThere. Expired: $gone. Errors: $errors."
+    def summary: String =
+      s"Not expired: $stillThere. Expired: $gone. Errors: $errors. Reconciled: ${reconciledPanoIds.length}."
 
     /**
      * The counts as they are stored against a `background_job_run` row.
@@ -88,7 +91,8 @@ object PanoDataService {
       "panos_checked" -> checked,
       "still_there"   -> stillThere,
       "gone"          -> gone,
-      "errors"        -> errors
+      "errors"        -> errors,
+      "reconciled"    -> reconciledPanoIds.length
     )
   }
 
@@ -380,6 +384,7 @@ class PanoDataServiceImpl @Inject() (
     implicit val ec: ExecutionContext,
     panoDataTable: PanoDataTable,
     panoHistoryTable: PanoHistoryTable,
+    panoImageryChangeTable: PanoImageryChangeTable,
     streetEdgeTable: models.street.StreetEdgeTable,
     signingService: ImageSigningService
 )(implicit mat: Materializer)
@@ -687,12 +692,24 @@ class PanoDataServiceImpl @Inject() (
         logger.info(s"Checking ${expiredPanosToCheck.length} expired panos.")
 
         // Check each pano against whichever provider it came from, then tally the three outcomes.
-        checkImageryBounded(panosToCheck ++ expiredPanosToCheck).map { responses =>
-          ImageryCheckResult(
-            stillThere = responses.count(_.contains(true)),
-            gone = responses.count(_.contains(false)),
-            errors = responses.count(_.isEmpty)
-          )
+        checkImageryBounded(panosToCheck ++ expiredPanosToCheck).flatMap { responses =>
+          // After the checks, heal any pano whose newest log row disagrees with pano_data.expired, so a missed
+          // imagery transition dangles for at most a day (#5007).
+          db.run(panoImageryChangeTable.reconcile()).map { healedPanoIds =>
+            if (healedPanoIds.nonEmpty) {
+              val preview = healedPanoIds.take(20).mkString(", ") + (if (healedPanoIds.length > 20) ", ..." else "")
+              logger.warn(
+                s"Healed ${healedPanoIds.length} missed imagery transition(s) — some writer of pano_data.expired " +
+                  s"is skipping the pano_imagery_change log: $preview"
+              )
+            }
+            ImageryCheckResult(
+              stillThere = responses.count(_.contains(true)),
+              gone = responses.count(_.contains(false)),
+              errors = responses.count(_.isEmpty),
+              reconciledPanoIds = healedPanoIds
+            )
+          }
         }
       }
     ).flatten

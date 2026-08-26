@@ -87,18 +87,21 @@ class ImageryPollOutcomeSpec extends PlaySpec with GuiceOneAppPerSuite {
     "total the three outcomes it distinguishes" in {
       // `errors` is the signal worth watching: a key at its quota turns every check inconclusive, which leaves the
       // expired counts looking reassuringly quiet while the sweep has stopped learning anything.
-      val result = ImageryCheckResult(stillThere = 7, gone = 2, errors = 1)
+      val result = ImageryCheckResult(stillThere = 7, gone = 2, errors = 1, reconciledPanoIds = Seq("healed-pano"))
       result.checked mustBe 10
-      result.summary mustBe "Not expired: 7. Expired: 2. Errors: 1."
+      // Reconciled rows are healed log entries, not provider answers, so they don't count toward `checked`.
+      result.summary mustBe "Not expired: 7. Expired: 2. Errors: 1. Reconciled: 1."
     }
 
     "record one shape for both the nightly sweep and the hand-trigger" in {
       // Defined on the result rather than at each call site, so the two callers can't fork the recorded shape.
-      val details = ImageryCheckResult(stillThere = 7, gone = 2, errors = 1).runDetails
+      val details =
+        ImageryCheckResult(stillThere = 7, gone = 2, errors = 1, reconciledPanoIds = Seq("healed-pano")).runDetails
       (details \ "panos_checked").as[Int] mustBe 10
       (details \ "still_there").as[Int] mustBe 7
       (details \ "gone").as[Int] mustBe 2
       (details \ "errors").as[Int] mustBe 1
+      (details \ "reconciled").as[Int] mustBe 1
     }
   }
 }
