@@ -255,8 +255,8 @@ The dev server hot-reloads, so you rarely restart it.
 
 ### Checking that backend changes compile
 
-There's no backend test suite — validate Scala changes by compiling. The sbt **thin client** uses its own server,
-so it won't collide with a running `sbt ~ run`:
+The quickest pass/fail on a Scala change is a compile. The sbt **thin client** uses its own server, so it won't
+collide with a running `sbt ~ run`:
 
 ```bash
 docker exec projectsidewalk-web bash -lc "cd /home && sbt --client compile"
@@ -264,6 +264,41 @@ docker exec projectsidewalk-web bash -lc "cd /home && sbt --client compile"
 
 The first call after a container boot starts the compile server (~30s); later calls are near-instant. `build.sbt`
 sets `-Xfatal-warnings`, so a `[success]` is also warning-clean.
+
+### Running the backend tests
+
+ScalaTest specs live under `test/` — mostly functional specs for the public API, plus service and submission
+specs. They boot the real app against Postgres+PostGIS, so the `db` container has to be up:
+
+```bash
+docker exec projectsidewalk-web bash -lc "cd /home && sbt --client test"
+docker exec projectsidewalk-web bash -lc "cd /home && sbt --client \"testOnly controllers.api.PublicApiSpec\""
+```
+
+The advisory `backend-tests` CI job runs a **named subset** of these specs, not `sbt test` — so a spec that
+nobody adds to that list in `.github/workflows/ci.yml` can rot without CI ever going red. Run the whole suite
+locally before you trust it, and add new specs to the job in the same PR.
+
+There are also Python unit tests for the `scripts/` utilities (`make test-python`) and a jsdom Jest suite for
+frontend modules (`docker exec projectsidewalk-web bash -lc "cd /home && npm run test:js"` — Jest's
+`node_modules` are in the container, not on your host). [`docs/testing-and-ci.md`](testing-and-ci.md) covers
+what each layer is for.
+
+### Checking that pages still load in a browser
+
+Compiling and linting can't see a runtime JavaScript error — a stale bundle, a missing global, a method that throws
+only when clicked. The browser smoke suite covers that: it loads every core page in headless Chromium and fails on
+any uncaught page error or console error. With your dev app running, in a second terminal:
+
+```bash
+make test-e2e                               # the whole suite
+make test-e2e args="-g labelMap --no-deps"  # one page
+make test-e2e wt=<worktree-name>            # a worktree's specs
+```
+
+Nothing to install: the runner is a container, so it behaves the same on macOS, Linux, and WSL — including Apple
+Silicon, where it runs a native browser. CI runs the same suite on every PR as the advisory `e2e-smoke` job. Full
+details, including how to watch a test run headed, are in [`test/e2e/README.md`](../test/e2e/README.md).
 
 ### Running a branch from a git worktree
 
