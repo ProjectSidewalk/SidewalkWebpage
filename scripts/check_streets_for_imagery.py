@@ -20,9 +20,11 @@ For each street it first checks both endpoints; if neither has imagery the stree
 walks points along the street (added roughly every 15 m) and flags the street once enough points lack imagery (see
 ``imagery_verdict`` for the exact thresholds).
 
-Imagery age: the GSV responses we already fetch also carry a capture ``date``, so for no extra API calls we record each
-street's imagery capture-date range (oldest/newest) into the summary file — telling us not just whether a street has
-imagery but how old it is. (Mapillary capture dates are a future enhancement; GSV only for now.)
+Imagery age: the responses we already fetch also carry capture dates (GSV's metadata ``date``; Mapillary's
+``captured_at``, requested via ``fields=``), so for no extra API calls we record each street's imagery capture-date
+range (oldest/newest) into the summary file — telling us not just whether a street has imagery but how old it is. A
+Mapillary bbox query returns many images per point, so each sampled point contributes its **newest** image's date,
+keeping one date per queried location and ``n_panos`` comparable across providers.
 
 Resilience (so a long scan survives a flaky network): each request is retried with exponential backoff; a street that
 still fails is logged and the scan continues rather than aborting, and the failed set is retried once at the end (any
@@ -31,7 +33,8 @@ still-failing streets land in ``db/failed_streets.csv``). Progress is checkpoint
 streets. The final ``db/streets_with_no_imagery.csv`` is derived from the checkpoint, so its schema is unchanged.
 
 The pure functions (``create_bounding_box``, ``redistribute_vertices``, ``gsv_has_imagery``, ``mapillary_has_imagery``,
-``standardize_capture_date``, ``gsv_capture_date``, ``imagery_verdict``, ``street_has_no_imagery``, ``summarize_dates``)
+``standardize_capture_date``, ``gsv_capture_date``, ``mapillary_capture_date``, ``imagery_verdict``,
+``street_has_no_imagery``, ``summarize_dates``)
 are import-safe and unit-tested in ``test/python/test_check_streets_for_imagery.py``; network and file I/O live in thin
 wrappers and ``main``.
 
@@ -63,7 +66,7 @@ import threading
 import time
 from collections import namedtuple
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pandas as pd
 import requests
@@ -294,6 +297,28 @@ def mapillary_has_imagery(response_json):
     return not no_imagery
 
 
+def mapillary_capture_date(response_json):
+    """
+    Extracts the standardized capture date of the newest image in a Mapillary images response.
+
+    A Mapillary bbox query returns many images per sampled point (unlike GSV's one pano per metadata response), so we
+    reduce each point to its **newest** image's ``captured_at`` — one date per queried location, which keeps
+    ``n_panos`` (a count of dated points) comparable between the two providers. ``captured_at`` is a Unix epoch
+    timestamp in **milliseconds**, UTC; it is only present when named in the request's ``fields=`` param.
+
+    Args:
+        response_json: The decoded JSON from the Mapillary images endpoint.
+
+    Returns:
+        An ISO ``YYYY-MM-DD`` string, or ``None`` if the response carries no dated images (an empty ``data`` array, no
+        ``data`` at all — e.g. an error-code-100 response — or images without ``captured_at``).
+    """
+    timestamps = [image['captured_at'] for image in response_json.get('data', []) if 'captured_at' in image]
+    if not timestamps:
+        return None
+    return datetime.fromtimestamp(max(timestamps) / 1000, tz=timezone.utc).date().isoformat()
+
+
 def imagery_verdict(n_fail, n_success, n_coords, endpoint_failed):
     """
     Decides, from running point counts, whether the street's imagery status is settled yet.
@@ -400,12 +425,12 @@ def _pano_info(api, response_json):
     """
     Builds a ``PanoInfo`` (imagery present? + capture date) from one provider response.
 
-    GSV responses carry a capture date; Mapillary capture dates are not yet captured (a future enhancement), so
-    Mapillary panos report ``capture_date=None``.
+    GSV's date comes from the metadata ``date`` field; Mapillary's from the newest image's ``captured_at`` (see
+    ``mapillary_capture_date`` for why newest).
     """
     if api == 'GSV':
         return PanoInfo(gsv_has_imagery(response_json), gsv_capture_date(response_json))
-    return PanoInfo(mapillary_has_imagery(response_json), None)
+    return PanoInfo(mapillary_has_imagery(response_json), mapillary_capture_date(response_json))
 
 
 def _point_pano_info(api, lat, lng, fetch, gsv_url, mapillary_url, mapillary_radius_km):
@@ -592,7 +617,9 @@ def main(argv=None):
     gsv_base_url = 'https://maps.googleapis.com/maps/api/streetview/metadata?source=outdoor&key=' + api_key
     gsv_url = gsv_base_url + '&radius=15'
     gsv_url_endpoint = gsv_base_url + '&radius=25'
-    mapillary_url = 'https://graph.mapillary.com/images?is_pano=true&access_token=' + api_key
+    # fields=captured_at makes each image carry its capture timestamp (default responses hold only `id`) — same
+    # request count, and it's what mapillary_capture_date reads.
+    mapillary_url = 'https://graph.mapillary.com/images?is_pano=true&fields=captured_at&access_token=' + api_key
     # One shared rate limiter caps total request rate across all worker threads.
     fetch = make_fetch(rate_limiter=RateLimiter(args.max_qps))
     checkpoint_lock = threading.Lock()

@@ -66,10 +66,13 @@ second across all workers, default 10 — deliberately conservative; Google allo
 
 ### Imagery age
 
-The GSV metadata responses we already fetch also carry an imagery capture `date`, so — for **no extra API calls** — the
-scan records each street's capture-date range (oldest/newest) and pano count into `db/street_imagery_summary.csv`
+The responses we already fetch also carry capture dates — GSV's metadata `date`, and Mapillary's `captured_at` (a Unix
+epoch timestamp in milliseconds, UTC; requested via `fields=`) — so, for **no extra API calls**, the scan records each
+street's capture-date range (oldest/newest) and pano count into `db/street_imagery_summary.csv`
 (`street_edge_id, region_id, has_imagery, oldest_capture, newest_capture, n_panos`). That tells us not just whether a
-street has imagery but how old it is. Mapillary capture dates are a future enhancement (GSV only for now). Persisting
+street has imagery but how old it is. A Mapillary bbox query returns many images per sampled point, so each point
+contributes its **newest** image's date — one date per queried location, keeping `n_panos` (a count of dated points)
+comparable between providers. Persisting
 this into the database — to power a "stale imagery" signal alongside the `street_edge_status` work (#3888) — is tracked
 as a separate follow-up (#4348).
 

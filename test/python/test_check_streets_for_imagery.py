@@ -89,10 +89,25 @@ def test_gsv_capture_date():
     assert cs.gsv_capture_date({'status': 'OK'}) is None            # imagery but no date
 
 
+def test_mapillary_capture_date_newest_image_wins():
+    # captured_at is a Unix epoch timestamp in **milliseconds**, UTC. 1626307200000 is 2021-07-15T00:00:00Z exactly,
+    # so a seconds-vs-ms mixup or a local-timezone conversion would both produce a different date.
+    assert cs.mapillary_capture_date({'data': [{'id': 1, 'captured_at': 1560000000000},
+                                               {'id': 2, 'captured_at': 1626307200000}]}) == '2021-07-15'
+
+
+def test_mapillary_capture_date_no_dated_images():
+    assert cs.mapillary_capture_date({'data': []}) is None
+    assert cs.mapillary_capture_date({'data': [{'id': 1}]}) is None  # captured_at absent from the response
+    assert cs.mapillary_capture_date({'error': {'code': 100, 'message': 'too many'}}) is None  # no data array
+
+
 def test_pano_info():
     assert cs._pano_info('GSV', {'status': 'OK', 'date': '2019'}) == cs.PanoInfo(True, '2019-01-01')
     assert cs._pano_info('GSV', {'status': 'ZERO_RESULTS'}) == cs.PanoInfo(False, None)
-    assert cs._pano_info('Mapillary', {'data': [{'id': 1}]}) == cs.PanoInfo(True, None)  # Mapillary date not captured
+    assert cs._pano_info('Mapillary', {'data': [{'id': 1, 'captured_at': 1626307200000}]}) == \
+        cs.PanoInfo(True, '2021-07-15')
+    assert cs._pano_info('Mapillary', {'data': [{'id': 1}]}) == cs.PanoInfo(True, None)
 
 
 def test_summarize_dates():
@@ -282,6 +297,22 @@ def test_process_street_mapillary_has_imagery():
 
 def test_process_street_mapillary_no_imagery():
     assert _run_process(_LINE_60, 'Mapillary', lambda url: {'data': []}).outcome == cs.NO_IMAGERY
+
+
+def test_process_street_mapillary_captures_date_range():
+    # The first two fetches are the endpoints (older imagery); along-street points see newer imagery -> a date range.
+    calls = {'n': 0}
+
+    def fetch(url):
+        calls['n'] += 1
+        captured_at = 1560000000000 if calls['n'] <= 2 else 1626307200000
+        return {'data': [{'id': calls['n'], 'captured_at': captured_at}]}
+
+    result = _run_process(_LINE_60, 'Mapillary', fetch)
+    assert result.outcome == cs.HAS_IMAGERY
+    assert result.oldest_capture == '2019-06-08'
+    assert result.newest_capture == '2021-07-15'
+    assert result.n_panos >= 3
 
 
 def test_process_street_request_error_is_failed():
@@ -530,6 +561,24 @@ def test_main_mapillary_branch(monkeypatch, tmp_path):
     monkeypatch.setattr(cs, '_get_json', lambda url: {'data': []})  # no imagery
     assert cs.main(['--mapillary']) == 0
     assert _output(tmp_path)['street_edge_id'].tolist() == [100]
+
+
+def test_main_mapillary_requests_and_records_capture_dates(monkeypatch, tmp_path):
+    _setup(monkeypatch, tmp_path, [(200, 1, _LINE_61)], env_var='MAPILLARY_ACCESS_TOKEN')
+    urls = []
+
+    def fake_get_json(url):
+        urls.append(url)
+        return {'data': [{'id': 1, 'captured_at': 1626307200000}]}
+
+    monkeypatch.setattr(cs, '_get_json', fake_get_json)
+    assert cs.main(['--mapillary', '--max-qps', '1000']) == 0
+    # Every request must name captured_at in fields= — a default response carries only `id`, no dates.
+    assert urls and all('fields=captured_at' in url for url in urls)
+    summary = _summary(tmp_path)
+    assert bool(summary.loc[200, 'has_imagery']) is True
+    assert summary.loc[200, 'newest_capture'] == '2021-07-15'
+    assert summary.loc[200, 'n_panos'] >= 1
 
 
 def test_main_keyboard_interrupt_finalizes_and_returns_1(monkeypatch, tmp_path):
