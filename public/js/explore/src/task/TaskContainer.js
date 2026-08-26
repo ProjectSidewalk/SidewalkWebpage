@@ -145,23 +145,26 @@ class TaskContainer {
   }
 
   /**
-   * Get the total distance of completed segments.
+   * Get the total distance of the segments the labeler is done with — walked, or given up on for lack of imagery —
+   * plus their progress along the street they are on now.
    * @params {{units: string}} [units] Object with field 'units' holding distance unit, default to 'kilometers'
    * @returns {number} distance in unit.
    */
   getCompletedTaskDistance(units) {
     if (!units) units = { units: util.turfDistanceUnits() };
-    const completedTasks = this.getCompletedTasks();
+    const walkedTasks = this.getWalkedTasks();
     let feature;
     let distance = 0;
 
-    if (completedTasks) {
-      for (let i = 0, len = completedTasks.length; i < len; i++) {
-        feature = completedTasks[i].getGeoJSON();
+    if (walkedTasks) {
+      for (let i = 0, len = walkedTasks.length; i < len; i++) {
+        feature = walkedTasks[i].getGeoJSON();
         distance += turf.length(feature, units);
       }
     }
-    if (!this.#currentTask.isComplete()) distance += this.getCurrentTaskDistance(units);
+    if (!this.#currentTask.isComplete() && !this.#currentTask.wasGivenUpOnImagery()) {
+      distance += this.getCurrentTaskDistance(units);
+    }
 
     return distance;
   }
@@ -208,6 +211,18 @@ class TaskContainer {
    */
   getCompletedTasks() {
     return this._tasks.filter((task) => task.isComplete());
+  }
+
+  /**
+   * Tasks the labeler is shown as done with: completed streets, plus the ones this session gave up on for lack of
+   * imagery. The give-ups are not completions — nothing about them reaches audit_task.completed (#4922) — but they
+   * are as finished as the tool will ever let the labeler make them, so the distances and maps they see count them.
+   * Anything reconciled against server-side completion (e.g. the community's share of a neighborhood) wants
+   * getCompletedTasks instead.
+   * @returns {Task[]}
+   */
+  getWalkedTasks() {
+    return this._tasks.filter((task) => task.isComplete() || task.wasGivenUpOnImagery());
   }
 
   /**

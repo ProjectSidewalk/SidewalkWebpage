@@ -222,7 +222,7 @@ class ModalMissionComplete {
 
     // Previous-missions tier: streets the user finished outside this mission, plus the earlier-completed portion of
     // any mission street the user had partly covered before.
-    const userCompletedTasks = [...this.#taskContainer.getCompletedTasks()];
+    const userCompletedTasks = [...this.#taskContainer.getWalkedTasks()];
     const partialCurrentTask = missionTasks.find((task) => !task.isComplete() && task.getMissionStart(missionId));
     if (partialCurrentTask) userCompletedTasks.push(partialCurrentTask);
 

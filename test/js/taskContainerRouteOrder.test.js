@@ -18,12 +18,15 @@ const SRC = fs.readFileSync(
 );
 
 /** A route street at `walkOrder`, in whichever of the three states the route's next-street choice cares about. */
-const makeTask = (walkOrder, { complete = false, givenUp = false } = {}) => ({
+const makeTask = (walkOrder, { complete = false, givenUp = false, km = 1 } = {}) => ({
     walkOrder,
     getWalkOrder: () => walkOrder,
     getStreetEdgeId: () => 100 + walkOrder,
     isComplete: () => complete,
     wasGivenUpOnImagery: () => givenUp,
+    getGeoJSON: () => ({ properties: { km } }),
+    lineDistance: () => km,
+    getAuditedDistance: () => 0,
     setProperty: jest.fn(),
     render: jest.fn(),
 });
@@ -71,5 +74,37 @@ describe('TaskContainer.nextTask on a route', () => {
         container._tasks = [outbound, back];
 
         expect(container.nextTask(outbound)).toBe(back);
+    });
+});
+
+describe('TaskContainer distance credit', () => {
+    let container;
+
+    beforeEach(() => {
+        window.turf = { length: (feature) => feature.properties.km };
+        window.util = { turfDistanceUnits: () => 'kilometers', array: { sum: (a) => a.reduce((x, y) => x + y, 0) } };
+        window.eval(`${SRC}; window.TaskContainer = TaskContainer;`);
+        const neighborhoodModel = { isRoute: true };
+        container = new window.TaskContainer(neighborhoodModel, { neighborhoodModel }, { push: jest.fn() });
+    });
+
+    it('counts a given-up street as walked, so the route can reach 100%', () => {
+        // The labeler walked everything the tool let them, and the minimap already draws it as done — a route that
+        // finishes while its progress bar reads 97% is telling them they left work behind (#5008).
+        const tasks = [makeTask(1, { complete: true }), makeTask(2, { givenUp: true }), makeTask(3, { complete: true })];
+        container._tasks = tasks;
+        container.setCurrentTask(tasks[2]);
+
+        const walked = container.getCompletedTaskDistance({ units: 'kilometers' });
+
+        expect(walked).toBe(container.totalLineDistanceInNeighborhood({ units: 'kilometers' }));
+    });
+
+    it('keeps give-ups out of the completions the community share is reconciled against', () => {
+        // getCompletedTasks mirrors server-side completion; a give-up writes no audit_task.completed (#4922).
+        container._tasks = [makeTask(1, { givenUp: true }), makeTask(2, { complete: true })];
+
+        expect(container.getCompletedTasks()).toHaveLength(1);
+        expect(container.getWalkedTasks()).toHaveLength(2);
     });
 });
