@@ -77,16 +77,18 @@ const turfStub = {
 
 /**
  * A street the sweep can walk down.
- * @param {number} streetEdgeId - Identity the stuck-pano set and the reporting path key off.
- * @param {object} [options] - `lengthKm` (default 100 m, so a sweep samples it in ~10 steps) and `atEnd`, which
- *     stands in for the labeler having already walked to within reach of the street's endpoint.
+ * @param {number} streetEdgeId - Identity the reporting path keys off.
+ * @param {object} [options] - `lengthKm` (default 100 m, so a sweep samples it in ~10 steps), `atEnd`, which
+ *     stands in for the labeler having already walked to within reach of the street's endpoint, and `walkOrder`,
+ *     the route position that identifies this traversal to the stuck-pano set.
  */
-function makeTask(streetEdgeId, { lengthKm = 0.1, atEnd = false } = {}) {
+function makeTask(streetEdgeId, { lengthKm = 0.1, atEnd = false, walkOrder = null } = {}) {
     const start = [-74.0, FIXTURE_LAT];
     const end = [-74.0 + lengthKm * DEG_PER_KM_LNG, FIXTURE_LAT];
     return {
         streetEdgeId,
         getStreetEdgeId: () => streetEdgeId,
+        getWalkOrder: () => walkOrder,
         getFeature: () => lineFeature([start, end]),
         getEndCoordinate: () => ({ lat: end[1], lng: end[0] }),
         getFurthestPointReached: () => pointFeature(start),
@@ -311,6 +313,30 @@ describe('Explore, when the imagery search runs out along a street', () => {
             // rest of the session's visited panos is how a street with perfectly good imagery scans as having none:
             // setLocation() rejects an excluded pano exactly as it rejects empty ground, and the nearest pano to a
             // new street's start is routinely one visited on the street just finished.
+            expect(searches.at(-1).excludedPanos).not.toContain('pano-street-start');
+        });
+
+        it('gives each pass of an out-and-back route its own stuck panos (#5008)', async () => {
+            // The two passes share a street edge id, so keying the reset on the street hands the return leg every
+            // pano the outbound leg banked — on a short street, all of them.
+            svl.neighborhoodModel.isRoute = true;
+            const [outbound, back] = [makeTask(101, { walkOrder: 1 }), makeTask(101, { walkOrder: 2 })];
+            assignStreets(outbound, back);
+            let standingOn = 'pano-street-start';
+            svl.panoViewer.getPanoId = () => standingOn;
+            let walkedOnce = false;
+            respondToSearch = () => {
+                if (svl.taskContainer.getCurrentTask() === back) return foundImagery();
+                if (walkedOnce) return emptyGround();
+                walkedOnce = true;
+                standingOn = 'pano-mid-street';
+                return foundImagery();
+            };
+
+            await nav.moveForward();
+            jest.advanceTimersByTime(1000);
+            await nav.moveForward();
+
             expect(searches.at(-1).excludedPanos).not.toContain('pano-street-start');
         });
     });

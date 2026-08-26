@@ -151,8 +151,11 @@ class Infra3dViewer extends PanoViewer {
    * ('mono'/'stereo'), which the viewer renders as a 2D pan/zoom image. Our POV math assumes a 360° pano (e.g.
    * getCameraView() returns {zoom, panX, panY} instead of {lat, lon, fov} on flat images), so we treat flat images
    * like excluded panos: bounce back and reject so that callers retry elsewhere.
+   *
+   * The SDK answered, so this is a NoImageryError: a street sweep landing here repeatedly may conclude the street
+   * is out of imagery rather than report a provider failure (#4918).
    * @param {object} node Infra3d's internal node object for the image we just moved to
-   * @returns {Promise<void>} Rejects with error if the image isn't panoramic; resolves otherwise
+   * @returns {Promise<void>} Rejects with NoImageryError if the image isn't panoramic; resolves otherwise
    */
   #filterNonPanoramicImages = async (node) => {
     // cameraType can be missing on the first image loaded on a page (its metadata loads progressively); in that
@@ -168,21 +171,25 @@ class Infra3dViewer extends PanoViewer {
       const prevNode = await this.viewer._sdk_viewer.moveToKey(this.prevNode.frame.id);
       await this.#finishRecordingMetadata(prevNode);
     }
-    throw new Error(`Non-panoramic image: ${node.frame.id}`);
+    throw new NoImageryError(`Non-panoramic image: ${node.frame.id}`);
   };
 
   /**
    * If the new pano we arrived at is in the excluded list, go back to the previous one and throw an error.
+   *
+   * NoImageryError, matching GsvViewer: the search succeeded and there is nothing here the caller can use, so a
+   * dead end whose last panos the user already stood on stays recognizable as one (#4918).
    * @param {PanoData} newPanoData The pano data for the new panorama
    * @param {Set<PanoData>} [excludedPanos=new Set()] Set of PanoData objects that are not valid images to move to
-   * @returns {Promise<PanoData>} Rejects with error if new pano in excluded list; resolves with pano data otherwise
+   * @returns {Promise<PanoData>} Rejects with NoImageryError if new pano in excluded list; resolves with pano data
+   *     otherwise
    */
   #filterExcludedPanos = (newPanoData, excludedPanos) => {
     // If the pano given is in the excluded list, treat it as if the API call itself had returned nothing.
     const excludedPanoIds = new Set([...excludedPanos].map((p) => p.getPanoId()));
     if (excludedPanoIds.has(newPanoData.getPanoId())) {
       return this.setPano(this.prevNode.frame.id).then(() => {
-        throw new Error(`Excluded pano: ${newPanoData.getPanoId()}`);
+        throw new NoImageryError(`Excluded pano: ${newPanoData.getPanoId()}`);
       });
     } else {
       return Promise.resolve(newPanoData);

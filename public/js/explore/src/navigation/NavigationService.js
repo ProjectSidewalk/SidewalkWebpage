@@ -34,8 +34,8 @@ class NavigationService {
    */
   #missionJump = undefined;
   #stuckPanos = new Set([]);
-  // Street the #stuckPanos set belongs to; see the reset in moveForward().
-  #stuckPanosStreetId = null;
+  // Traversal the #stuckPanos set belongs to; see the reset in moveForward().
+  #stuckPanosTraversalKey = null;
   #positionUpdateCallbacks = [];
   #povSettlePoll = null; // Interval id; see #refreshHeadingViewsAfterPovSettles.
 
@@ -585,6 +585,20 @@ class NavigationService {
   }
 
   /**
+   * Identity of the walk a #stuckPanos set belongs to. Namespaced because route walk orders and street edge ids are
+   * both small integers from unrelated sequences.
+   *
+   * @param {Task} task - The task being walked.
+   * @returns {string} The route traversal's key, or the street's when not on a route.
+   */
+  #stuckPanosKeyFor(task) {
+    const walkOrder = task.getWalkOrder();
+    return svl.neighborhoodModel.isRoute && walkOrder !== null && walkOrder !== undefined
+      ? `route:${walkOrder}`
+      : `street:${task.getStreetEdgeId()}`;
+  }
+
+  /**
    * Attempts to move the user forward by incrementally checking for imagery every few meters along the route.
    * @returns {Promise<string|null|void>} Resolves with the new pano ID on a successful move, null if the street ran
    *     out of imagery, or undefined if walking is disabled.
@@ -605,9 +619,14 @@ class NavigationService {
     // rejects empty ground — so a street with perfectly good imagery can scan as having none, and then be falsely
     // reported on that basis (#4918). Short streets are the worst case, since every sample point on them can fall
     // within range of the same already-visited pano.
-    if (currentTask.getStreetEdgeId() !== this.#stuckPanosStreetId) {
+    //
+    // A route can walk the same street twice (out-and-back), and those passes are separate walks: keying on the
+    // street would hand pass two every pano pass one banked, leaving the return leg nothing to land on. Walk order
+    // names the traversal, matching TaskContainer.nextTask (#5008).
+    const traversalKey = this.#stuckPanosKeyFor(currentTask);
+    if (traversalKey !== this.#stuckPanosTraversalKey) {
       this.#stuckPanos.clear();
-      this.#stuckPanosStreetId = currentTask.getStreetEdgeId();
+      this.#stuckPanosTraversalKey = traversalKey;
     }
 
     // Prefetch images for the full street geometry. Using the full street (not just the remainder) ensures the
