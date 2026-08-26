@@ -6,6 +6,7 @@ import formats.json.LabelFormats
 import formats.json.ValidateFormats.{labelEditSubmissionReads, LabelEditSubmission}
 import models.auth.DefaultEnv
 import models.label._
+import models.utils.LatLngBBox
 import play.api.Logger
 import play.api.libs.json._
 import play.silhouette.api.Silhouette
@@ -111,17 +112,37 @@ class LabelController @Inject() (
    * @param routes              Comma-separated route IDs to filter by.
    * @param aiValidationOptions Comma-separated AI validation results to filter by. An empty-but-present value matches
    *                            no result, so `?aiValidationOptions=` yields an empty feature collection.
+   * @param bbox                Bounding box to filter by, as "minLng,minLat,maxLng,maxLat" (the v3 API convention).
+   *                            Unlike the params above, a malformed value is a 400 rather than silently ignored:
+   *                            dropping the bbox would stream the whole city — the exact payload the viewport-scoped
+   *                            LabelMap exists to avoid (#5002) — so a client bug should fail loudly.
    * @return                    GeoJSON FeatureCollection of Point features, each carrying the 11 label properties the
    *                            LabelMap renders from.
    */
-  def getAllLabelsForLabelMap(regions: Option[String], routes: Option[String], aiValidationOptions: Option[String]) =
+  def getAllLabelsForLabelMap(
+      regions: Option[String],
+      routes: Option[String],
+      aiValidationOptions: Option[String],
+      bbox: Option[String]
+  ) =
     Action {
-      val regionIds: Seq[Int]    = parseIntegerSeq(regions)
-      val routeIds: Seq[Int]     = parseIntegerSeq(routes)
-      val aiValOpts: Seq[String] = aiValidationOptions.map(_.split(",").toSeq.distinct).getOrElse(Seq())
+      val parsedBbox: Option[Option[LatLngBBox]] = bbox.map(LatLngBBox.fromString)
+      if (parsedBbox.contains(None)) {
+        BadRequest(
+          Json.obj("status" -> "Error", "message" -> "Invalid bbox format. Expected: minLng,minLat,maxLng,maxLat")
+        )
+      } else {
+        val regionIds: Seq[Int]    = parseIntegerSeq(regions)
+        val routeIds: Seq[Int]     = parseIntegerSeq(routes)
+        val aiValOpts: Seq[String] = aiValidationOptions.map(_.split(",").toSeq.distinct).getOrElse(Seq())
 
-      val labels = labelService.getLabelsForLabelMap(regionIds, routeIds, aiValOpts, DEFAULT_BATCH_SIZE)
-      streamGeoJson(labels.map(LabelFormats.labelForLabelMapToGeoJson(_, admin = false)), "labels/all")
+        val labels =
+          labelService.getLabelsForLabelMap(regionIds, routeIds, aiValOpts, parsedBbox.flatten, DEFAULT_BATCH_SIZE)
+        // Short-lived public cache: absorbs reload/back-nav refetches while keeping mapathon "label now, see it on
+        // the map" flows under a minute stale. No auth or identity-varying content here, so `public` is safe.
+        streamGeoJson(labels.map(LabelFormats.labelForLabelMapToGeoJson(_, admin = false)), "labels/all")
+          .withHeaders(CACHE_CONTROL -> "public, max-age=60")
+      }
     }
 
   /**

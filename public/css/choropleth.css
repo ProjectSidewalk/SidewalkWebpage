@@ -157,6 +157,32 @@
   }
 }
 
+/*
+ * Viewport-loading status pill (#5002): "zoom in to see labels" while the zoom floor holds fetches back, and a
+ * brief note during refetches. Bottom-centered so it stays clear of the corner controls, styled like the
+ * loading card above, and pointer-events: none so it never blocks map gestures.
+ */
+.map-status-pill {
+  position: absolute;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 15; /* Above the map, below the loading overlay. */
+  max-width: 90%;
+  padding: 8px 16px;
+  border-radius: 999px;
+  color: #ffffff;
+  background: rgb(0 0 0 / 72%);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 25%);
+  font: var(--text-body-regular);
+  text-align: center;
+  pointer-events: none;
+}
+
+.map-status-pill[hidden] {
+  display: none;
+}
+
 /* Overwriting Mapbox popup styling. */
 .mapboxgl-popup-content {
   padding: 12px; /* Default 10px 10px 15px */

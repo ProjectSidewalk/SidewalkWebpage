@@ -25,7 +25,7 @@ import models.route.RouteStreetTableDef
 import models.street.{StreetEdgeRegionTableDef, StreetEdgeTable, StreetEdgeTableDef}
 import models.user._
 import models.utils.MyPostgresProfile.api._
-import models.utils.{ConfigTableDef, MyPostgresProfile}
+import models.utils.{ConfigTableDef, LatLngBBox, MyPostgresProfile}
 import models.validation.{LabelValidationTableDef, ValidationOption, ValidationTaskCommentTableDef}
 import org.geotools.geometry.jts.JTSFactoryFinder
 import org.locationtech.jts.geom.GeometryFactory
@@ -1631,13 +1631,15 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
 
   /**
    * Query for all submitted labels with the metadata needed for the label map. If provided, filters for only the
-   * given regions/routes/AI-validation results. Returns the tuple-level query so callers can stream it from the db
-   * with `db.stream` (#3932); convert rows to the case class with `tupleToLabelForLabelMap`.
+   * given regions/routes/AI-validation results and/or labels within the given bounding box. Returns the tuple-level
+   * query so callers can stream it from the db with `db.stream` (#3932); convert rows to the case class with
+   * `tupleToLabelForLabelMap`.
    */
   def getLabelsForLabelMap(
       regionIds: Seq[Int],
       routeIds: Seq[Int],
-      aiValOptions: Seq[String]
+      aiValOptions: Seq[String],
+      bbox: Option[LatLngBBox]
   ): Query[_, LabelForLabelMapTuple, Seq] = {
     // Label IDs with at least one validation from an Administrator or Owner.
     val _adminValidatedLabelIds = for {
@@ -1646,10 +1648,18 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _r  <- roleTable if _ur.roleId === _r.roleId && (_r.role === "Administrator" || _r.role === "Owner")
     } yield _lv.labelId
 
+    // Filtering on geom rather than lat/lng so the GIST index (label_point_geom_idx) serves the bbox; safe because
+    // geom is NULL iff lat/lng are NULL (338.sql), which the lat/lng guard below already excludes.
+    val _labelPointsInBbox: Query[LabelPointTableDef, LabelPoint, Seq] = bbox match {
+      case Some(b) =>
+        labelPoints.filter(_.geom.within(makeEnvelope(b.minLng, b.minLat, b.maxLng, b.maxLat, Some(4326))))
+      case None => labelPoints
+    }
+
     val _labels = for {
       (_l, _at, _us) <- labelsWithAuditTasksAndUserStats
       _lt            <- labelTypes if _l.labelTypeId === _lt.labelTypeId
-      _lp            <- labelPoints if _l.labelId === _lp.labelId
+      _lp            <- _labelPointsInBbox if _l.labelId === _lp.labelId
       _pd            <- panoData if _l.panoId === _pd.panoId
       _ser           <- streetEdgeRegions if _l.streetEdgeId === _ser.streetEdgeId
       _ur            <- userRoles if _us.userId === _ur.userId
