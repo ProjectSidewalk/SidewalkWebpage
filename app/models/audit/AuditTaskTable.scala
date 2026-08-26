@@ -703,6 +703,60 @@ class AuditTaskTable @Inject() (
    * Gets a list of tasks associated with a user's route.
    * @param userRouteId ID of the user_route.
    */
+  /**
+   * Streets the route's labeler reported as imagery-less during *this* walk of it.
+   *
+   * Bounded by the walk rather than by the street's whole history: a report from a previous walk is evidence for the
+   * offline checker (#4922), but it is not this walk's decision, and letting it through would skip streets whose
+   * imagery may since have landed. The walk's start is the earliest task_start among its audit_tasks, since
+   * user_route carries no timestamp of its own.
+   *
+   * @param userRouteId The walk of the route to bound reports by.
+   * @return A query of street edge ids, for use as an `in` subquery.
+   */
+  private def streetsReportedNoImageryDuringRoute(userRouteId: Int): Query[Rep[Int], Int, Seq] = {
+    val routeStart = auditTaskUserRoutes
+      .filter(_.userRouteId === userRouteId)
+      .join(auditTasks)
+      .on(_.auditTaskId === _.auditTaskId)
+      .map(_._2.taskStart)
+      .min
+    val routeUserId = userRoutes.filter(_.userRouteId === userRouteId).map(_.userId)
+    streetEdgeIssues
+      .filter(issue =>
+        issue.issue === StreetEdgeIssueType.PanoNotAvailable && (issue.userId in routeUserId) &&
+          issue.timestamp.? >= routeStart
+      )
+      .map(_.streetEdgeId)
+  }
+
+  /**
+   * The route task to resume on, if the labeler has one still open: the furthest along the route they got.
+   *
+   * Streets given up on for missing imagery are excluded. They stay incomplete on purpose (#4922), so without this
+   * they read as "still open" and a reload drops the labeler back onto one — losing the walk they had underway on a
+   * later street (#5008). Ordering by position rather than taking an arbitrary row matters for the same reason:
+   * route streets are walked in order, so the furthest-along open task is the one they were on.
+   *
+   * @param userRouteId The walk of the route being resumed.
+   * @return (auditTaskId, routeStreetId, position) of the task to resume, or None if no open task remains.
+   */
+  def resumableRouteTask(userRouteId: Int): DBIO[Option[(Int, Int, Int)]] = {
+    auditTaskUserRoutes
+      .join(auditTasks)
+      .on(_.auditTaskId === _.auditTaskId)
+      .join(routeStreets)
+      .on(_._1.routeStreetId === _.routeStreetId)
+      .filter { case ((link, auditTask), _) =>
+        !auditTask.completed && link.userRouteId === userRouteId.bind &&
+        !(auditTask.streetEdgeId in streetsReportedNoImageryDuringRoute(userRouteId))
+      }
+      .sortBy { case (_, routeStreet) => routeStreet.position.desc }
+      .map { case ((link, _), routeStreet) => (link.auditTaskId, routeStreet.routeStreetId, routeStreet.position) }
+      .result
+      .headOption
+  }
+
   def selectTasksInRoute(userRouteId: Int): DBIO[Seq[NewTask]] = {
     val timestamp: OffsetDateTime = OffsetDateTime.now
 
@@ -739,24 +793,7 @@ class AuditTaskTable @Inject() (
           auditTask.currentMissionStart)
       }
 
-    // Streets this user reported as imagery-less during *this* walk of the route. Bounded by the walk rather than
-    // by the street's whole history: a report from a previous walk is evidence for the offline checker (#4922), but
-    // it is not this session's decision, and letting it mark today's route done would hide streets whose imagery may
-    // since have landed. The route's start is the earliest task_start among its audit_tasks, since user_route
-    // carries no timestamp of its own.
-    val routeStart = auditTaskUserRoutes
-      .filter(_.userRouteId === userRouteId)
-      .join(auditTasks)
-      .on(_.auditTaskId === _.auditTaskId)
-      .map(_._2.taskStart)
-      .min
-    val routeUserId     = userRoutes.filter(_.userRouteId === userRouteId).map(_.userId)
-    val reportedStreets = streetEdgeIssues
-      .filter(issue =>
-        issue.issue === StreetEdgeIssueType.PanoNotAvailable && (issue.userId in routeUserId) &&
-          issue.timestamp.? >= routeStart
-      )
-      .map(_.streetEdgeId)
+    val reportedStreets = streetsReportedNoImageryDuringRoute(userRouteId)
 
     val tasks = for {
       ((_se1, _rs), ucs) <- edgesInRoute.joinLeft(userCompletedStreets).on(_._2.routeStreetId === _._1)

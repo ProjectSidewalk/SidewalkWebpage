@@ -88,15 +88,8 @@ class UserRouteTable @Inject() (
    * @param missionId
    */
   def getRouteTask(currRoute: UserRoute, missionId: Int): DBIO[Option[NewTask]] = {
-    val possibleTask: DBIO[Option[NewTask]] = auditTaskUserRoutes
-      .join(auditTasks)
-      .on(_.auditTaskId === _.auditTaskId)
-      .join(routeStreets)
-      .on(_._1.routeStreetId === _.routeStreetId)
-      .filter(x => !x._1._2.completed && x._1._1.userRouteId === currRoute.userRouteId.bind)
-      .map(x => (x._1._1.auditTaskId, x._2.routeStreetId, x._2.position))
-      .result
-      .headOption
+    val possibleTask: DBIO[Option[NewTask]] = auditTaskTable
+      .resumableRouteTask(currRoute.userRouteId)
       .flatMap {
         case Some((currTaskId, currRouteStreetId, currPosition)) =>
           auditTaskTable.selectTaskFromTaskId(currTaskId, Some(currRouteStreetId), Some(currPosition))

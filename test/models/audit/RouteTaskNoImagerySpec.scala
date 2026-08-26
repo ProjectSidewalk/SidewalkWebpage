@@ -79,6 +79,11 @@ class RouteTaskNoImagerySpec extends PlaySpec with GuiceOneAppPerSuite with Roll
           RETURNING user_route_id""".as[Int].head
   }
 
+  /** Marks an audit task completed, standing in for a street the labeler walked to its end. */
+  private def completeTask(taskId: Int): DBIO[Int] = {
+    sqlu"""UPDATE audit_task SET completed = true WHERE audit_task_id = $taskId"""
+  }
+
   /** An audit task on the street, started `minutesAgo` ago, linked to the user_route's route_street row. */
   private def insertTask(
       userId: String,
@@ -180,6 +185,72 @@ class RouteTaskNoImagerySpec extends PlaySpec with GuiceOneAppPerSuite with Roll
 
       tasks must have size 2
       all(tasks.map(_.reportedNoImagery)) mustBe true
+    }
+  }
+
+  "resumableRouteTask" should {
+    "resume the street the labeler was walking, not the one they were moved off (#5008)" in {
+      // The shape a reload hits mid-route: an earlier street given up on for missing imagery, and a later one
+      // half-walked. Both audit_tasks are open — the give-up leaves its task unfinished on purpose (#4922) — so
+      // without the exclusion the reload can land on the dead street and discard the walk underway on the live one.
+      val (resumed, liveTaskId) = runRolledBack(for {
+        userId      <- insertUser("resume")
+        regionId    <- insertRegion()
+        deadSt      <- insertStreet(regionId)
+        liveSt      <- insertStreet(regionId)
+        routeId     <- insertRoute(userId, regionId, "5008-spec-resume")
+        deadRs      <- insertRouteStreet(routeId, deadSt, 0)
+        liveRs      <- insertRouteStreet(routeId, liveSt, 1)
+        userRouteId <- insertUserRoute(routeId, userId)
+        _           <- insertTask(userId, deadSt, userRouteId, deadRs, minutesAgo = 30)
+        _           <- insertNoImageryReport(userId, deadSt, minutesAgo = 25)
+        liveTask    <- insertTask(userId, liveSt, userRouteId, liveRs, minutesAgo = 20)
+        resumable   <- auditTaskTable.resumableRouteTask(userRouteId)
+      } yield (resumable, liveTask))
+
+      resumed.value._1 mustBe liveTaskId
+    }
+
+    "have nothing left to resume once the only open tasks are given-up streets" in {
+      // What lets the route finish rather than looping: with the walked streets done and the rest reported, the
+      // resume lookup comes up empty and the caller moves on to the route's own completion path.
+      val resumed = runRolledBack(for {
+        userId      <- insertUser("exhausted")
+        regionId    <- insertRegion()
+        deadSt      <- insertStreet(regionId)
+        walkedSt    <- insertStreet(regionId)
+        routeId     <- insertRoute(userId, regionId, "5008-spec-exhausted")
+        deadRs      <- insertRouteStreet(routeId, deadSt, 0)
+        walkedRs    <- insertRouteStreet(routeId, walkedSt, 1)
+        userRouteId <- insertUserRoute(routeId, userId)
+        _           <- insertTask(userId, deadSt, userRouteId, deadRs, minutesAgo = 30)
+        _           <- insertNoImageryReport(userId, deadSt, minutesAgo = 25)
+        walkedTask  <- insertTask(userId, walkedSt, userRouteId, walkedRs, minutesAgo = 20)
+        _           <- completeTask(walkedTask)
+        resumable   <- auditTaskTable.resumableRouteTask(userRouteId)
+      } yield resumable)
+
+      resumed mustBe None
+    }
+
+    "resume the furthest-along open task when several are open" in {
+      // Route streets are walked in order, so the highest position is where the labeler actually is. The old query
+      // took an arbitrary row, which made the resume point nondeterministic.
+      val (resumed, furthestTaskId) = runRolledBack(for {
+        userId      <- insertUser("furthest")
+        regionId    <- insertRegion()
+        earlySt     <- insertStreet(regionId)
+        lateSt      <- insertStreet(regionId)
+        routeId     <- insertRoute(userId, regionId, "5008-spec-furthest")
+        earlyRs     <- insertRouteStreet(routeId, earlySt, 0)
+        lateRs      <- insertRouteStreet(routeId, lateSt, 1)
+        userRouteId <- insertUserRoute(routeId, userId)
+        _           <- insertTask(userId, earlySt, userRouteId, earlyRs, minutesAgo = 30)
+        lateTask    <- insertTask(userId, lateSt, userRouteId, lateRs, minutesAgo = 20)
+        resumable   <- auditTaskTable.resumableRouteTask(userRouteId)
+      } yield (resumable, lateTask))
+
+      resumed.value._1 mustBe furthestTaskId
     }
   }
 }
