@@ -874,6 +874,29 @@ button.label-detail__meta-cell:focus-visible {
 .label-detail__comment-avatar--4 { background: var(--color-banana-700); }
 .label-detail__comment-avatar--5 { background: var(--color-asphalt-200); }
 
+/* The commenter's current vote (#5015), in the same colors the pano ring and overlay buttons give each vote. */
+.label-detail__comment-vote {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-right: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font: var(--text-tiny-semibold);
+  color: var(--color-neutral-black);
+  vertical-align: middle;
+}
+
+.label-detail__comment-vote img {
+  width: 11px;
+  height: 11px;
+  display: block;
+}
+
+.label-detail__comment-vote--agree    { background: var(--color-pine-500); }
+.label-detail__comment-vote--disagree { background: #eb734d; }
+.label-detail__comment-vote--unsure   { background: var(--color-asphalt-100); }
+
 /* When the comment was left (relative time; exact date in the tooltip). */
 .label-detail__comment-when {
   display: inline-block;

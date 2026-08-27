@@ -293,6 +293,15 @@ class ValidateSubmissionSpec
       sql"SELECT comment FROM validation_task_comment WHERE label_id = $labelId AND user_id = $userId".as[String]
     )
 
+  /** The `validation` chip on the session user's own comment, read back through `GET /label/id/:labelId`. */
+  private def ownCommentValidation(session: Seq[Cookie], labelId: Int): Option[String] = {
+    val res = route(app, FakeRequest(GET, s"/label/id/$labelId").withCookies(session: _*)).get
+    status(res) mustBe OK
+    val own = (contentAsJson(res) \ "comments").as[Seq[JsObject]].filter(c => (c \ "mine").as[Boolean])
+    own must have size 1
+    (own.head \ "validation").asOpt[String]
+  }
+
   /** How many `label_history` rows the label carries; a validation that changes nothing must not add one. */
   private def labelHistoryCount(labelId: Int): Int =
     run(sql"SELECT count(*) FROM label_history WHERE label_id = $labelId".as[Int]).head
@@ -634,6 +643,24 @@ class ValidateSubmissionSpec
       val revised = postLabelMapComment(session, labelMapCommentJson(label, "Looking again, it is fine."))
       status(revised) mustBe OK
       commentsOn(labelId, b.userId) mustBe Seq("Looking again, it is fine.")
+    }
+
+    "pair each comment with the commenter's current vote when read back (#5015)" in {
+      val session = freshAnonSession()
+      val b       = fetchValidateBootstrap(session)
+      val label   = b.labels.head
+      val labelId = (label \ "label_id").as[Int]
+      backupLabel(labelId)
+
+      // A comment needs no vote; the (label_id, user_id) join then has nothing to attach.
+      status(postLabelMapComment(session, labelMapCommentJson(label, "Hard to tell from this angle."))) mustBe OK
+      ownCommentValidation(session, labelId) mustBe None
+
+      // Voting fills the chip in, and a later re-vote moves it: the comment carries the current vote, not a stored one.
+      status(postLabelMapValidation(session, labelMapValidationJson(label, "Unsure"))) mustBe OK
+      ownCommentValidation(session, labelId) mustBe Some("Unsure")
+      status(postLabelMapValidation(session, labelMapValidationJson(label, "Agree"))) mustBe OK
+      ownCommentValidation(session, labelId) mustBe Some("Agree")
     }
   }
 }

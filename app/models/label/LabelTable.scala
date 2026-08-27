@@ -149,7 +149,13 @@ case class LabelMetadata(
     panoMetadata: Option[PanoViewerMetadata]
 )
 
-case class LabelComment(username: String, comment: String, timeCreated: Option[OffsetDateTime])
+// `validation` is the commenter's current vote on the label ("Agree"/"Disagree"/"Unsure"), None if they have none.
+case class LabelComment(
+    username: String,
+    comment: String,
+    timeCreated: Option[OffsetDateTime],
+    validation: Option[String]
+)
 
 // Extra data to include with validations for Expert Validate. Includes usernames and previous validators.
 case class AdminValidationData(
@@ -461,7 +467,8 @@ object LabelTable {
       LabelComment(
         (obj \ "username").as[String],
         (obj \ "comment").as[String],
-        (obj \ "time_created").asOpt[OffsetDateTime]
+        (obj \ "time_created").asOpt[OffsetDateTime],
+        (obj \ "validation").asOpt[String]
       )
     }
   }
@@ -1182,12 +1189,16 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           WHERE role.role = 'AI'
       ) AS ai_val ON lb1.label_id = ai_val.label_id
       LEFT JOIN (
-          SELECT label_id,
-                 json_agg(json_build_object('username', username, 'comment', comment, 'time_created', timestamp)
-                          ORDER BY timestamp)::text AS comments
+          SELECT validation_task_comment.label_id,
+                 json_agg(json_build_object('username', username, 'comment', comment,
+                                            'time_created', validation_task_comment.timestamp,
+                                            'validation', label_validation.validation_result)
+                          ORDER BY validation_task_comment.timestamp)::text AS comments
           FROM validation_task_comment
           INNER JOIN sidewalk_user ON validation_task_comment.user_id = sidewalk_user.user_id
-          GROUP BY label_id
+          LEFT JOIN label_validation ON validation_task_comment.label_id = label_validation.label_id
+              AND validation_task_comment.user_id = label_validation.user_id
+          GROUP BY validation_task_comment.label_id
        ) AS comment ON lb1.label_id = comment.label_id
       WHERE #$labelFilter
           AND #$labelerFilter

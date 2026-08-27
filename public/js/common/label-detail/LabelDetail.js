@@ -778,20 +778,22 @@ class LabelDetail {
   }
 
   /**
-   * Shows the comment box only alongside a Disagree/Unsure vote, prompting for the reasoning behind it (#4572).
-   * Validator comments exist to justify a disputed label; open-ended notes about a place belong to
-   * lived-experience stories (#4054), not here.
+   * Shows the comment box alongside the user's vote, with a per-vote prompt: Disagree/Unsure ask for the
+   * reasoning behind the dispute, Agree invites an optional note (#5015). Comments stay tied to a vote —
+   * open-ended notes about a place belong to lived-experience stories (#4054), not here.
    * @param {boolean} [focusOnReveal=false] - Focus the input when this call reveals the row (fresh-vote flow).
    */
   #updateCommentRow(focusOnReveal = false) {
     const els = this.#els;
     if (!els.commentRow) return;
     const action = this.#prevAction;
-    const show = !this.#locked && (action === 'Disagree' || action === 'Unsure');
+    const show = !this.#locked && (action === 'Agree' || action === 'Disagree' || action === 'Unsure');
     const wasOpen = els.commentRow.classList.contains('is-open');
     els.commentRow.classList.toggle('is-open', show);
     if (show) {
-      const prompt = i18next.t(action === 'Disagree' ? 'labelmap:why-disagree' : 'labelmap:why-unsure');
+      const promptKeys
+              = { Agree: 'labelmap:why-agree', Disagree: 'labelmap:why-disagree', Unsure: 'labelmap:why-unsure' };
+      const prompt = i18next.t(promptKeys[action]);
       els.commentInput.placeholder = prompt;
       if (els.commentLabel) els.commentLabel.textContent = prompt;
       if (!wasOpen && focusOnReveal) els.commentInput.focus();
@@ -931,8 +933,9 @@ class LabelDetail {
       if (undone) this.#logClick(`ClearVote_result=${action}`);
       this.#updateVoteCount(newAction);
       this.#highlightVote(newAction);
-      // Clearing a vote deletes the user's comment on the label server-side, so drop it from the list here too.
-      if (undone) this.#dropOwnComment();
+      // Clearing a vote — and changing one (the `redone` flag) — deletes the user's comment server-side; drop it
+      // here too so the list and its vote chips (#5015) match what a reload would show.
+      if (undone || data.redone) this.#dropOwnComment();
       this.#updateCommentRow(true);
       this.#setVoteButtonsDisabled(false);
       if (isNewValidation) BadgeAchievements.recordValidation(this.panoManager.svHolder[0]);
@@ -1701,6 +1704,21 @@ class LabelDetail {
       return avatar;
     };
 
+    // The commenter's current vote on this label — the server joins it per (label_id, user_id), so a comment from
+    // someone whose vote was since cleared has none (#5015).
+    const voteChipFor = (c) => {
+      const vote = typeof c === 'object' && c !== null ? c.validation : null;
+      if (vote !== 'Agree' && vote !== 'Disagree' && vote !== 'Unsure') return null;
+      const chip = document.createElement('span');
+      chip.className = `label-detail__comment-vote label-detail__comment-vote--${vote.toLowerCase()}`;
+      const icon = document.createElement('img');
+      icon.src = `${this.#iconBase}${vote.toLowerCase()}-outline.svg`;
+      icon.alt = '';
+      chip.appendChild(icon);
+      chip.appendChild(document.createTextNode(i18next.t(`common:${vote.toLowerCase()}`)));
+      return chip;
+    };
+
     // Newest first, so a just-submitted comment lands right beneath the input above the list.
     [...this.#comments].reverse().forEach((c, i) => {
       if (i > 0) els.validatorComments.appendChild(document.createElement('hr'));
@@ -1718,6 +1736,7 @@ class LabelDetail {
         return when;
       };
 
+      const voteChip = voteChipFor(c);
       if (this.#admin && typeof c === 'object' && c !== null) {
         const a = document.createElement('a');
         a.href = `/admin/user/${encodeURI(c.username)}`;
@@ -1726,6 +1745,10 @@ class LabelDetail {
         if (timeCreated) {
           p.appendChild(document.createTextNode(' '));
           p.appendChild(whenPill());
+        }
+        if (voteChip) {
+          if (!timeCreated) p.appendChild(document.createTextNode(' '));
+          p.appendChild(voteChip);
         }
         p.appendChild(document.createTextNode(`: ${c.comment}`));
       } else {
@@ -1739,6 +1762,7 @@ class LabelDetail {
           p.appendChild(you);
         }
         if (timeCreated) p.appendChild(whenPill());
+        if (voteChip) p.appendChild(voteChip);
         p.appendChild(document.createTextNode(typeof c === 'object' && c !== null ? c.comment : c));
       }
       els.validatorComments.appendChild(p);
@@ -1787,9 +1811,11 @@ class LabelDetail {
       const commenter = this.#myCommentIdx >= 0 && this.#comments[this.#myCommentIdx]
         ? this.#comments[this.#myCommentIdx].commenter ?? 0
         : this.#comments.reduce((max, c) => Math.max(max, (c && c.commenter) ?? -1), -1) + 1;
+      // The chip mirrors the server's (label_id, user_id) join: the commenter's current vote, or none.
+      const validation = this.#prevAction ?? null;
       const newEntry = this.#admin
-        ? { username: body.username, comment, time_created: timeCreated, commenter }
-        : { comment, mine: true, time_created: timeCreated, commenter };
+        ? { username: body.username, comment, time_created: timeCreated, commenter, validation }
+        : { comment, mine: true, time_created: timeCreated, commenter, validation };
       if (this.#myCommentIdx >= 0 && this.#myCommentIdx < this.#comments.length) {
         this.#comments[this.#myCommentIdx] = newEntry;
       } else {
