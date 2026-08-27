@@ -14,7 +14,10 @@ class Infra3dViewer extends PanoViewer {
   async initialize(canvasElem, panoOptions = {}) {
     const manager = await infra3dapi.init(canvasElem.id, panoOptions.accessToken);
 
-    // Each city has their own project_UID. Faster to hard code it rather than fetching projects in real time.
+    // Each city has their own project_UID. Faster to hard code it rather than fetching projects in real time. A
+    // project is one commissioned drive (a single campaign), so a city getting new imagery means a new project whose
+    // id has to be swapped in here -- which is also why nothing polls Infra3d for imagery age (see
+    // ImageryFreshnessService.pollImageryAges).
     const projectId = window.cityId === 'winterthur-infra3d'
       ? 'ab6045da-46b4-44d2-8123-e19c7cdbe7ea'
       : 'bd8196f8-dbe5-4e67-849f-977452fe7587';
