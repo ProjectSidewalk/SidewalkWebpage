@@ -146,6 +146,10 @@ corresponding Twirl view:
   pages and holds the shared formatting helpers (escaping, numbers, durations, relative times, the standard table
   markup).
 - **`user-dashboard/`** — the redesigned user dashboard, settings, leaderboard, and public profiles, plus the admin's view of a user's dashboard (`/admin/user/:username`). Served file-by-file like `admin-dashboard/` — no Grunt bundle.
+- **`api-docs/`** — the `/api-docs` reference pages: one `<endpoint>Preview.js` per page renders a live sample of
+  that endpoint, alongside `apiDocs.js` (shell behavior), `apiTableWrapper.js`, and `apiDocsTheme.js`
+  (`ApiDocsTheme.color(token, alpha?)`, the one way preview code reads a CSS color token for Chart.js/Mapbox so
+  chart colors follow the design system). Served file-by-file — no Grunt bundle.
 - **`ps-map/`** — shared map component used across pages.
 - **`help/`** — help/FAQ page.
 - **`common/`** — modules shared across bundles: `pano-viewer/` (an abstraction over the GSV / Mapillary / Infra3d /
@@ -159,6 +163,17 @@ First-party assets split by type: `public/js/` is JavaScript-only, `public/css/`
 `css/explore/`, `css/validate/`, `css/gallery/`), and media lives in `public/images/`, `public/audio/`, and
 `public/videos/`. Directories and CSS files are kebab-case; JS files use Airbnb casing (PascalCase for class files,
 camelCase otherwise). See [`style-guide.md`](style-guide.md) for the full layout and naming conventions.
+
+**Styling comes from the design-system tokens in `main.css` `:root`** — color ramps (`--color-*`), composite type
+tokens (`--text-*`, complete `font` shorthands that bake in the tool-UI zoom factor `--ui-scale`), spacing, radii,
+shadows, motion, and z-index layers — plus the control primitives `.button-ps` and `.ps-select`. They mirror the
+"Design System Tokens" Figma; the rules for using them are in [`style-guide.md`](style-guide.md). One coupling worth
+knowing: **`css/api-docs/api-docs.css` is a shared shell, not a per-app stylesheet.** The API docs, the admin
+dashboard, and the user dashboard all link it for the sidebar + content + TOC layout and the shared components
+(`.api-table`, `.preview-*`, `.map-toolbar`, status messages), so a change there reaches all three. The dashboards'
+own stylesheets still carry a deprecated `:root` alias block at the top of `admin-dashboard.css` (`--font-size-*` in
+rem, `--color-text-*`, …) until they migrate to the tokens directly
+([#4300](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4300)).
 
 **Mobile detection has exactly one definition:** `ControllerUtils.isMobile`, a server-side User-Agent check that
 decides which UI a request is served (mobile visitors get `/mobileLanding`, the mobile Validate page at `/mobile`,

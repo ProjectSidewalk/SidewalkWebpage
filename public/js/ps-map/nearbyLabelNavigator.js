@@ -6,21 +6,30 @@
  * @param {Object} mapData The map layer tracker returned by addLabelsToMap (reads .sortedLabels).
  * @returns {{next: function(number): ?number, prev: function(number): ?number, hasPrev: function(number): boolean,
  *     hasNext: function(number): boolean, getCoords: function(number): ?Array<number>,
- *     getLabelType: function(number): ?string}}
+ *     getLabelType: function(number): ?string, refresh: function(): void}}
  *     Navigator whose paging methods take the currently shown label ID and return the label ID to show (null when
- *     there is nowhere to go); getCoords/getLabelType look up a loaded label's [lng, lat] / label type.
+ *     there is nowhere to go); getCoords/getLabelType look up a loaded label's [lng, lat] / label type; refresh
+ *     re-reads .sortedLabels after a viewport refetch has swapped the loaded labels.
  */
 function createNearbyLabelNavigator(mapData) {
   // label_id -> [lng, lat] and label_id -> label type for every label on the map, flattened across types.
   const coordsById = new Map();
   const typeById = new Map();
-  for (const [labelType, features] of Object.entries(mapData.sortedLabels)) {
-    for (const f of features) {
-      coordsById.set(f.properties.label_id, f.geometry.coordinates);
-      typeById.set(f.properties.label_id, labelType);
+  const rebuild = () => {
+    coordsById.clear();
+    typeById.clear();
+    for (const [labelType, features] of Object.entries(mapData.sortedLabels)) {
+      for (const f of features) {
+        coordsById.set(f.properties.label_id, f.geometry.coordinates);
+        typeById.set(f.properties.label_id, labelType);
+      }
     }
-  }
+  };
+  rebuild();
 
+  // The trail and visited set deliberately survive refresh(): prev() retraces even labels a refetch dropped
+  // (the page falls back to popup-metadata coords for those), and next() from a dropped label returns null,
+  // which the popup already renders as "nowhere to go".
   const trail = [];         // Visited label IDs in visit order; backs prev().
   const visited = new Set(); // next() never revisits, so repeated clicks tour outward instead of ping-ponging.
 
@@ -80,5 +89,6 @@ function createNearbyLabelNavigator(mapData) {
     getLabelType(labelId) {
       return typeById.get(labelId) ?? null;
     },
+    refresh: rebuild,
   };
 }

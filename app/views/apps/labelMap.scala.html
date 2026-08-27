@@ -74,8 +74,15 @@
     const viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer : GsvViewer;
     const accessToken = "@commonData.imageryAccessToken";
 
-    // Shared with /admin/label-map so both label maps report loading and failure identically.
-    const labelMapOverlay = new MapLoadingOverlay();
+    // Shared with /admin/label-map so both label maps report loading and failure identically. Retry re-issues
+    // the viewport feed request in place; the reload fallback covers a failure before the loader exists.
+    const labelMapOverlay = new MapLoadingOverlay({
+      onRetry: () => {
+        const labelLoader = window.map?.mapData?.labelLoader;
+        if (labelLoader) labelLoader.refetch();
+        else window.location.reload();
+      },
+    });
 
     // Gets all translations before loading the choropleth.
     window.appManager.ready(async function () {
@@ -172,6 +179,11 @@
         params.labelsURL.searchParams.append('aiValidationOptions', aiValidationOptionsParam);
       }
 
+      // Labels load scoped to the viewport and refetch as the map moves (#5002); phones additionally open
+      // zoomed in on the city center so the first fetch covers blocks, not the whole city, over cell data.
+      params.viewportLabelLoading = true;
+      params.mobileZoomedStart = true;
+
       // Mount the address search and reveal the loading indicator as soon as the map is ready, not after the (large)
       // label layer finishes loading, so they appear with the sidebar rather than popping in late (#4370/#4447).
       params.onMapReady = (map) => {
@@ -193,36 +205,68 @@
         // A ?regionId= link lands framed on that neighborhood, as it already does on the user dashboard's map —
         // unless the URL carries an explicit viewport, which wins (#4696).
         if (!self.hasUrlViewport) setRegionFocus(self.map);
-        const sidebarFilter = new MapSidebarFilter(self.map, self.mapData, { highQualityFilter: true });
+        // Counts are view-scoped, matching the view-scoped downloads below: the viewport loader only holds a
+        // padded neighborhood of the view, not the whole city, so counting everything loaded would report an
+        // arbitrary area.
+        const sidebarFilter = new MapSidebarFilter(self.map, self.mapData, {
+          highQualityFilter: true,
+          viewportCounts: true,
+        });
         // Restore shared-link filters from the URL and keep the URL updated as filters and viewport change.
         new MapSidebarUrlSync(sidebarFilter, self.map);
-        // "Download" control (#4095), added after the labels stream in so its count is always real. A single
-        // deep-linked region is passed through to the download; the other page-level params (multi-region, routes,
-        // AI validation) have no rawLabels counterpart, so the panel shows a caveat instead.
-        // Only one well-formed region id can be passed through. A malformed one is dropped rather than forwarded:
-        // it would reach rawLabels as a bad value and 400, which a plain anchor download shows as nothing happening.
-        const rawRegionIds = regionsParam ? regionsParam.split(',') : [];
-        const regionIds = rawRegionIds.map(Number).filter(Number.isInteger);
-        const downloadRegionId = rawRegionIds.length === 1 && regionIds.length === 1 ? regionIds[0] : null;
+        // "Download" control (#4095). Downloads follow the current view (GIS "export what you see", #5002): the
+        // same bbox narrows the file that the view narrows the on-screen count by, so the two agree. Page-level
+        // params the download can't carry (regions, routes, AI validation) leave the file wider than the count,
+        // caveat included — bbox supersedes regionId at the endpoint, so a region link can't narrow the file.
         self.map.addControl(new MapDownloadControl({
           getFilterState: () => sidebarFilter.getState(),
           getVisibleLabelCount: () => sidebarFilter.getVisibleLabelCount(),
-          regionId: downloadRegionId,
-          // Any region param the download can't carry verbatim leaves the file wider than the map, caveat included.
-          showsPartialFilterCaveat: (rawRegionIds.length > 0 && downloadRegionId === null)
-            || Boolean(routesParam) || Boolean(aiValidationOptionsParam),
+          getBbox: () => {
+            const b = self.map.getBounds();
+            return [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()].map(v => v.toFixed(5)).join(',');
+          },
+          showsPartialFilterCaveat: Boolean(regionsParam) || Boolean(routesParam)
+            || Boolean(aiValidationOptionsParam),
         }), 'top-right');
         // Popup arrows step through spatially nearby labels using the already-loaded map data.
         self.nearbyNav = createNearbyLabelNavigator(self.mapData);
         params.popupLabelViewer.setNearbyNavigator(self.nearbyNav);
 
-        // Re-spotlight the open (deep-linked) label now that exact coords and the label layers exist — refines
-        // an approximate camera-coords placement and applies the filter bypass so the dot is actually drawn.
-        const openLabelId = spotlight.spotlightedLabelId() || deepLinkLabelId;
-        if (openLabelId && labelModal.open) {
-          spotlight.spotlight(openLabelId, true);
-        }
-        labelMapOverlay.hide();
+        // Viewport label loading (#5002): label data streams in (and refreshes as the map moves) after the map
+        // is ready, so everything reading the loaded label set re-syncs on each data event.
+        const labelLoader = self.mapData.labelLoader;
+        const statusPill = new MapStatusPill(document.getElementById('labelmap-choropleth'), {
+          suppressLoading: () => labelMapOverlay.isVisible(),
+        });
+        let zoomHintLogged = false;
+        labelLoader.onData(() => {
+          sidebarFilter.refresh();
+          self.nearbyNav.refresh();
+          // Re-assert the spotlight for an open (deep-linked) label: the layer filters survive a data swap, but
+          // the label itself may only now be present in the source — and its exact coords refine an approximate
+          // camera-coords placement.
+          const openLabelId = spotlight.spotlightedLabelId() || deepLinkLabelId;
+          if (openLabelId && labelModal.open) spotlight.spotlight(openLabelId, true);
+          labelMapOverlay.hide();
+        });
+        labelLoader.onError(e => {
+          console.error('LabelMap label feed failed', e);
+          labelMapOverlay.showError();
+        });
+        labelLoader.onStateChange(state => {
+          statusPill.setState(state);
+          if (state === 'belowFloor' && !zoomHintLogged) {
+            zoomHintLogged = true;
+            window.logWebpageActivity?.('LabelMap_ZoomHintShown');
+          }
+        });
+        // View-scoped counts also change when a pan stays inside already-fetched data (no data event fires), so
+        // refresh on settled moves too.
+        let countsRefreshTimer = null;
+        self.map.on('moveend', () => {
+          clearTimeout(countsRefreshTimer);
+          countsRefreshTimer = setTimeout(() => sidebarFilter.refresh(), 400);
+        });
       }).catch(e => {
         console.error('LabelMap failed to load', e);
         labelMapOverlay.showError();

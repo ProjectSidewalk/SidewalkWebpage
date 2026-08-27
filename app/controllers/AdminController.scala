@@ -58,7 +58,7 @@ class AdminController @Inject() (
    * response is streamed from the db in a chunked response rather than materialized in memory (#3932).
    */
   def getAllLabels = cc.securityService.SecuredAction(WithAdmin()) { _ =>
-    val labels = labelService.getLabelsForLabelMap(Seq(), Seq(), Seq(), DEFAULT_BATCH_SIZE)
+    val labels = labelService.getLabelsForLabelMap(Seq(), Seq(), Seq(), bbox = None, DEFAULT_BATCH_SIZE)
     Future.successful(streamGeoJson(labels.map(labelForLabelMapToGeoJson(_, admin = true)), "adminapi/labels/all"))
   }
 

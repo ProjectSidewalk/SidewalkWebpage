@@ -216,7 +216,10 @@ with respect to the image holder. This allows the validation menu to be placed o
   height: 100%;
   flex-direction: row;
   flex: 1; /* Takes all remaining space */
-  right: 0;
+
+  /* Without this, the flex item's auto min-width lets nowrap tag pills inflate it past the card — and
+     TagDisplay measures the inflated width, so its fit budget never hides a tag (#5009). */
+  min-width: 0;
   padding-left: 7px;
 }
 

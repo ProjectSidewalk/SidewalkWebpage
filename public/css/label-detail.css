@@ -463,6 +463,19 @@ dialog.label-detail[open]::backdrop {
 .label-detail__meta-row--no-time .label-detail__timestamp-time { display: none; }
 .label-detail__meta-row--compact-details .label-detail__meta-cell--details > span:first-child { display: none; }
 
+/* #fitMetaRow's last resort. The card is a scroll container (overflow-y: auto computes overflow-x to auto), so an
+   unbreakable row that no longer fits scrolls the whole card sideways instead of clipping. */
+.label-detail__meta-row--wrap {
+  flex-wrap: wrap;
+  gap: 4px 16px;
+}
+
+/* Dividers are flex items, so a wrapped row strands one at a line end; key/value pairing separates the facts. */
+.label-detail__meta-row--wrap .label-detail__meta-divider { display: none; }
+
+/* The auto margin would strand Details at the far right of whatever line it lands on. */
+.label-detail__meta-row--wrap .label-detail__meta-cell--details { margin-left: 0; }
+
 /* Addresses can be long; ellipsize instead of widening the row. */
 .label-detail__address {
   min-width: 0;

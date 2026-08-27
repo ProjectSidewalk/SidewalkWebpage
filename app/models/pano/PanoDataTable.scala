@@ -209,7 +209,8 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
    *
    * That snapshot is also the limit of what `edge` can see: a flip committed by another connection mid-statement is
    * invisible to it, so a sweep expiring a pano while a labeler's `upsert` is in flight can leave a loss with no
-   * matching recovery. The window is one autocommit statement, which is rare enough to accept. Do not reach for
+   * matching recovery. The window is one autocommit statement, which is rare enough to accept — and the nightly
+   * reconciliation pass heals what slips through (`PanoImageryChangeTable.reconcile`, #5007). Do not reach for
    * `FOR UPDATE` on `edge` to close it — that collides with the same statement's own write of the row, so `edge`
    * comes back empty and the ordinary uncontended case silently stops logging (verified on PG 16).
    *

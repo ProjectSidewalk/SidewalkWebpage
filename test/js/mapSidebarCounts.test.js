@@ -235,4 +235,51 @@ describe('MapSidebarFilter counts', () => {
             expect(sidebar.getVisibleLabelCount()).toBe(0);
         });
     });
+
+    // Viewport-scoped label loading (#5002): counts restrict to the current view, and refresh() recomputes
+    // after a data swap or pan with no filter interaction.
+    describe('viewportCounts', () => {
+        /** A feature with coordinates, since viewport counting reads geometry. */
+        const placedLabel = (lng, lat, props = {}) => ({ ...label(props), geometry: { coordinates: [lng, lat] } });
+
+        /** Builds the sidebar with viewportCounts on and a map whose bounds contain |lng|,|lat| <= 1. */
+        function buildViewportScoped(labelsByType) {
+            buildFixture();
+            mapData = buildMapData(labelsByType);
+            const map = {
+                getLayer: () => true,
+                easeTo: () => {},
+                setPadding: () => {},
+                getBounds: () => ({
+                    contains: ([lng, lat]) => Math.abs(lng) <= 1 && Math.abs(lat) <= 1,
+                }),
+            };
+            return new window.MapSidebarFilter(map, mapData, { viewportCounts: true });
+        }
+
+        it('counts only labels inside the current view', () => {
+            const sidebar = buildViewportScoped({
+                CurbRamp: [placedLabel(0, 0, { correct: true }), placedLabel(5, 5, { correct: true })],
+            });
+            expect(countFor('CurbRamp')).toBe('1');
+            expect(countFor('correct')).toBe('1');
+            expect(sidebar.getVisibleLabelCount()).toBe(1);
+        });
+
+        it('refresh() recomputes after the loaded labels are swapped in place', () => {
+            const sidebar = buildViewportScoped({ CurbRamp: [placedLabel(0, 0, { correct: true })] });
+            expect(countFor('CurbRamp')).toBe('1');
+
+            // Simulate setLabelData: same arrays, new contents.
+            mapData.sortedLabels.CurbRamp.length = 0;
+            mapData.sortedLabels.CurbRamp.push(
+                placedLabel(0.1, 0.1, { correct: true }),
+                placedLabel(0.2, 0.2, { correct: true }),
+                placedLabel(9, 9, { correct: true }),
+            );
+            sidebar.refresh();
+
+            expect(countFor('CurbRamp')).toBe('2');
+        });
+    });
 });

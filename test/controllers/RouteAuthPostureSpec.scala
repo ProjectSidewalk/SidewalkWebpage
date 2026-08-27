@@ -211,6 +211,39 @@ class RouteAuthPostureSpec extends PlaySpec with GuiceOneAppPerSuite {
       val resp = route(app, FakeRequest(GET, "/labels/all?regions=abc&routes=def")).get
       status(resp) mustBe OK
     }
+
+    "filter the feed to the given bbox" in {
+      // A tiny box far from any city keeps the streamed body cheap regardless of how much data the DB holds.
+      val resp = route(app, FakeRequest(GET, "/labels/all?bbox=0,0,0.001,0.001")).get
+      status(resp) mustBe OK
+      (contentAsJson(resp) \ "features").as[Seq[JsValue]] mustBe empty
+    }
+
+    "normalize an inverted bbox rather than erroring" in {
+      val resp = route(app, FakeRequest(GET, "/labels/all?bbox=0.001,0.001,0,0")).get
+      status(resp) mustBe OK
+      (contentAsJson(resp) \ "features").as[Seq[JsValue]] mustBe empty
+    }
+
+    "stream a bbox-filtered feed as a chunked response too" in {
+      val result = Await.result(route(app, FakeRequest(GET, "/labels/all?bbox=0,0,0.001,0.001")).get, 30.seconds)
+      result.body mustBe a[HttpEntity.Chunked]
+    }
+
+    // Unlike the silently-ignored regions/routes above, a malformed bbox is a 400: dropping it would stream the
+    // whole city — the exact payload the viewport-scoped LabelMap exists to avoid (#5002).
+    "reject a malformed bbox with a 400" in {
+      status(route(app, FakeRequest(GET, "/labels/all?bbox=abc")).get) mustBe BAD_REQUEST
+      status(route(app, FakeRequest(GET, "/labels/all?bbox=1,2,3")).get) mustBe BAD_REQUEST
+      status(route(app, FakeRequest(GET, "/labels/all?bbox=1,2,3,NaN")).get) mustBe BAD_REQUEST
+    }
+
+    // Reload/back-navigation refetch protection (#5002); short enough that a mapathon participant's new label
+    // shows on reload within a minute.
+    "declare a short public cache lifetime" in {
+      val resp = route(app, FakeRequest(GET, "/labels/all")).get
+      header("Cache-Control", resp) mustBe Some("public, max-age=60")
+    }
   }
 
   "GET /neighborhoods/completionRate" should {

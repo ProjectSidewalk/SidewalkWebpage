@@ -13,7 +13,7 @@
 
   // Presentational only — it mirrors no backend value, and is picked to stay distinct from every label type color
   // against the dimmed basemap.
-  const REGION_COLOR = '#0077cc';
+  const REGION_COLOR = ApiDocsTheme.color('--color-link-200');
 
   let config = {
     apiBaseUrl: '/v3/api',
@@ -146,7 +146,7 @@
     displayLabelsOnMap(map, labels) {
       if (!labels.features || labels.features.length === 0) {
         const noLabelsDiv = document.createElement('div');
-        noLabelsDiv.className = 'no-labels-message';
+        noLabelsDiv.className = 'map-message';
         noLabelsDiv.textContent = 'No labels found in this region.';
         map.getContainer().appendChild(noLabelsDiv);
         return;
@@ -161,7 +161,7 @@
           'circle-radius': 4,
           'circle-color': ApiDocsMap.labelTypeColorExpression(labelTypeInfo),
           'circle-opacity': 0.75,
-          'circle-stroke-color': '#000000',
+          'circle-stroke-color': ApiDocsTheme.color('--color-neutral-black'),
           'circle-stroke-width': 1,
         },
       });
