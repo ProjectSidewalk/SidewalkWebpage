@@ -1117,11 +1117,13 @@ var(--breakpoint-md) → 992px */
   opacity: 1;
 }
 
-.permalink--copied {
+.permalink--copied,
+.permalink--copied:hover {
   color: var(--color-jade-700);
 }
 
-.permalink--failed {
+.permalink--failed,
+.permalink--failed:hover {
   color: var(--color-error-200);
 }
 

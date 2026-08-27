@@ -181,7 +181,7 @@
        --text-body-* stays the token for UI copy — labels, cells, cards, short blurbs. Not yet in the Figma file. */
   --text-prose-regular:    400 calc(16px * var(--ui-scale, 1))/calc(26px * var(--ui-scale, 1)) var(--font-primary);
 
-  --text-small-bold:      700 calc(14px * var(--ui-scale, 1))/calc(18px * var(--ui-scale, 1)) var(--font-primary);
+  --text-small-bold:       700 calc(14px * var(--ui-scale, 1))/calc(18px * var(--ui-scale, 1)) var(--font-primary);
   --text-small-medium:     500 calc(14px * var(--ui-scale, 1))/calc(18px * var(--ui-scale, 1)) var(--font-primary);
   --text-small-regular:    400 calc(14px * var(--ui-scale, 1))/calc(18px * var(--ui-scale, 1)) var(--font-primary);
   --text-small-accent:     400 calc(14px * var(--ui-scale, 1))/calc(18px * var(--ui-scale, 1)) var(--font-accent);
