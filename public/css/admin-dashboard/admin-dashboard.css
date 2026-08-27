@@ -1987,11 +1987,12 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
 .ac-table thead th.ac-th-text { text-align: left; }
 .ac-table thead th.ac-sorted { color: var(--color-text-heading, #263238); }
 
-/* Spanning row grouping the traffic table's recent-vs-all-time columns. */
+/* Sized relative to the column-header row it spans rather than from a --text-* token: the group label only reads as
+   a tier above the columns if it stays proportional to them, and .ac-table is on the legacy rem alias (#4300). */
 .ac-table thead tr.ac-th-group th {
   text-align: center;
   border-bottom: 1px solid var(--color-neutral-200);
-  color: var(--color-text-secondary, #5a7785);
+  color: var(--color-neutral-700);
   font-size: 0.85em;
   letter-spacing: 0.04em;
   text-transform: uppercase;
