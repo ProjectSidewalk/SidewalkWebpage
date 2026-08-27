@@ -121,6 +121,12 @@ class UserRouteTable @Inject() (
 
   /**
    * Check if the given user route has been finished based on the audit_task table. Mark as complete if so.
+   *
+   * A street the labeler reported as imagery-less during this walk counts as done. It stays incomplete on purpose
+   * (#4922), so requiring a completed audit for every street would leave the walk active forever: the route is
+   * resumed ahead of any region assignment, and with nothing left to hand out the labeler gets the finished-region
+   * overlay on every visit instead of new work (#5008).
+   *
    * @param userRouteId
    */
   def updateCompleteness(userRouteId: Int): DBIO[Boolean] = {
@@ -129,6 +135,7 @@ class UserRouteTable @Inject() (
       .join(completedTasks)
       .on(_.auditTaskId === _.auditTaskId)
       .filter(_._1.userRouteId === userRouteId)
+    val reportedStreets = auditTaskTable.streetsReportedNoImageryDuringRoute(userRouteId)
 
     // Check if all streets in the route have a completed audit using an outer join. If so, mark as complete in db.
     userRoutes
@@ -136,7 +143,7 @@ class UserRouteTable @Inject() (
       .on(_.routeId === _.routeId)
       .joinLeft(userAudits)
       .on(_._2.routeStreetId === _._1.routeStreetId)
-      .filter(x => x._1._1.userRouteId === userRouteId && x._2.isEmpty)
+      .filter(x => x._1._1.userRouteId === userRouteId && x._2.isEmpty && !(x._1._2.streetEdgeId in reportedStreets))
       .exists
       .result
       .flatMap {

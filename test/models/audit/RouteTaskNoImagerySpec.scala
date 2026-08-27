@@ -1,5 +1,6 @@
 package models.audit
 
+import models.route.UserRouteTable
 import models.utils.MyPostgresProfile.api._
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
@@ -28,6 +29,7 @@ class RouteTaskNoImagerySpec extends PlaySpec with GuiceOneAppPerSuite with Roll
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val auditTaskTable = app.injector.instanceOf[AuditTaskTable]
+  private val userRouteTable = app.injector.instanceOf[UserRouteTable]
 
   // Ids are assigned as MAX + 1 rather than left to the sequences: the dev dump inserts explicit ids without
   // advancing them, so nextval hands back ids that already exist.
@@ -169,6 +171,29 @@ class RouteTaskNoImagerySpec extends PlaySpec with GuiceOneAppPerSuite with Roll
       tasks.filter(_.reportedNoImagery) mustBe empty
     }
 
+    "leave a street unflagged when the report predates the route's own task on it" in {
+      // street_edge_issue names no route, so the report is matched to this walk through the street's own task in it.
+      // A labeler who reports a street while auditing it outside the route has not given up on it within the route,
+      // and their route task on it may not even exist yet.
+      val tasks = runRolledBack(for {
+        userId      <- insertUser("outside")
+        regionId    <- insertRegion()
+        walkedSt    <- insertStreet(regionId)
+        laterSt     <- insertStreet(regionId)
+        routeId     <- insertRoute(userId, regionId, "5008-spec-outside")
+        walkedRs    <- insertRouteStreet(routeId, walkedSt, 0)
+        _           <- insertRouteStreet(routeId, laterSt, 1)
+        userRouteId <- insertUserRoute(routeId, userId)
+        // The walk began 30 minutes ago on the first street; the labeler has not reached the second one. The report
+        // on it lands inside that window, but from somewhere other than this route.
+        _          <- insertTask(userId, walkedSt, userRouteId, walkedRs, minutesAgo = 30)
+        _          <- insertNoImageryReport(userId, laterSt, minutesAgo = 10)
+        routeTasks <- auditTaskTable.selectTasksInRoute(userRouteId)
+      } yield routeTasks)
+
+      tasks.filter(_.reportedNoImagery) mustBe empty
+    }
+
     "flag both passes of an out-and-back street, since neither can be walked" in {
       val tasks = runRolledBack(for {
         userId      <- insertUser("outandback")
@@ -251,6 +276,53 @@ class RouteTaskNoImagerySpec extends PlaySpec with GuiceOneAppPerSuite with Roll
       } yield (resumable, lateTask))
 
       resumed.value._1 mustBe furthestTaskId
+    }
+  }
+
+  "updateCompleteness" should {
+    "complete a route whose only unwalked street was reported as imagery-less (#5008)" in {
+      // A route that cannot complete is never discarded either, and it is resumed ahead of any region assignment —
+      // so with no task left to hand out the labeler gets the finished-region overlay on every later visit.
+      val (completed, storedCompleted) = runRolledBack(for {
+        userId      <- insertUser("completeness")
+        regionId    <- insertRegion()
+        deadSt      <- insertStreet(regionId)
+        walkedSt    <- insertStreet(regionId)
+        routeId     <- insertRoute(userId, regionId, "5008-spec-completeness")
+        deadRs      <- insertRouteStreet(routeId, deadSt, 0)
+        walkedRs    <- insertRouteStreet(routeId, walkedSt, 1)
+        userRouteId <- insertUserRoute(routeId, userId)
+        _           <- insertTask(userId, deadSt, userRouteId, deadRs, minutesAgo = 30)
+        _           <- insertNoImageryReport(userId, deadSt, minutesAgo = 25)
+        walkedTask  <- insertTask(userId, walkedSt, userRouteId, walkedRs, minutesAgo = 20)
+        _           <- completeTask(walkedTask)
+        result      <- userRouteTable.updateCompleteness(userRouteId)
+        stored      <- sql"SELECT completed FROM user_route WHERE user_route_id = $userRouteId".as[Boolean].head
+      } yield (result, stored))
+
+      completed mustBe true
+      storedCompleted mustBe true
+    }
+
+    "leave a route incomplete while a street is neither walked nor reported" in {
+      val (completed, storedCompleted) = runRolledBack(for {
+        userId      <- insertUser("stillopen")
+        regionId    <- insertRegion()
+        openSt      <- insertStreet(regionId)
+        walkedSt    <- insertStreet(regionId)
+        routeId     <- insertRoute(userId, regionId, "5008-spec-stillopen")
+        openRs      <- insertRouteStreet(routeId, openSt, 0)
+        walkedRs    <- insertRouteStreet(routeId, walkedSt, 1)
+        userRouteId <- insertUserRoute(routeId, userId)
+        _           <- insertTask(userId, openSt, userRouteId, openRs, minutesAgo = 30)
+        walkedTask  <- insertTask(userId, walkedSt, userRouteId, walkedRs, minutesAgo = 20)
+        _           <- completeTask(walkedTask)
+        result      <- userRouteTable.updateCompleteness(userRouteId)
+        stored      <- sql"SELECT completed FROM user_route WHERE user_route_id = $userRouteId".as[Boolean].head
+      } yield (result, stored))
+
+      completed mustBe false
+      storedCompleted mustBe false
     }
   }
 }

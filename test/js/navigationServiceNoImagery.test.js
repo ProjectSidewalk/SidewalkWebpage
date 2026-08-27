@@ -414,6 +414,20 @@ describe('Explore, when the imagery search runs out along a street', () => {
             expect(nav.getStatus('disableWalking')).toBe(false);
         });
 
+        it('leaves the street they are left standing on unmarked, having never moved them off it (#5008)', async () => {
+            const streets = Array.from({ length: 9 }, (_unused, i) => makeTask(200 + i));
+            assignStreets(...streets);
+            respondToSearch = emptyGround;
+
+            await nav.moveForward();
+
+            // The flag means "we moved them off this street" — it credits the street's full length toward progress,
+            // draws it as walked, and takes it out of nextTask's rotation. The street the ceiling stops them on is
+            // still theirs to walk if they click stuck and land somewhere.
+            expect(streets[4].wasGivenUpOnImagery()).toBe(true);
+            expect(streets[5].wasGivenUpOnImagery()).toBe(false);
+        });
+
         it('says the run was stopped, not that imagery failed to load', async () => {
             assignStreets(...Array.from({ length: 9 }, (_unused, i) => makeTask(200 + i)));
             respondToSearch = emptyGround;
@@ -463,6 +477,22 @@ describe('Explore, when the imagery search runs out along a street', () => {
             expect(svl.missionController.wrapUpRouteOrNeighborhood).not.toHaveBeenCalled();
             // The labeler has to be able to look around for that gate to ever open.
             expect(nav.getStatus('disableWalking')).toBe(false);
+        });
+
+        it('gives up on a street once, however many times the labeler tries to walk off it (#5008)', async () => {
+            // The route's finish gate needs the labeler able to look around, so the terminal branch hands the controls
+            // back — which also lets them press forward again on the street it just gave up on.
+            svl.neighborhoodModel.isRoute = true;
+            assignStreets(makeTask(101, { walkOrder: 1 }));
+            respondToSearch = emptyGround;
+
+            await nav.moveForward();
+            jest.advanceTimersByTime(1000);
+            await nav.moveForward();
+
+            expect(reportNoImagery).toHaveBeenCalledTimes(1);
+            expect(svl.missionController.onRouteReadyToFinish).toHaveBeenCalledTimes(1);
+            expect(svl.tracker.push.mock.calls.filter(([event]) => event === 'PanoSearchFailed')).toHaveLength(0);
         });
 
         it('remembers the street it gave up on, without claiming the labeler audited it (#5008)', async () => {

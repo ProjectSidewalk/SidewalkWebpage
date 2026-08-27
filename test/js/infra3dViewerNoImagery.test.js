@@ -60,6 +60,13 @@ const nodeFor = (id, cameraType = 'cubemap') => ({
     spatialEdges: { cached: true, edges: [] },
 });
 
+/** A node whose metadata is still loading, so the filter has to guess from the rendered camera mode. */
+const nodeWithoutCameraType = (id) => {
+    const node = nodeFor(id);
+    delete node.cameraType;
+    return node;
+};
+
 const SOMEWHERE = { lat: 47.413137835, lng: 8.4747970537 };
 
 describe('Infra3dViewer.setLocation rejections', () => {
@@ -77,10 +84,11 @@ describe('Infra3dViewer.setLocation rejections', () => {
     /**
      * @param {object|Error} node - The node movePosition resolves with, or an error for it to reject with.
      */
-    const viewerLanding = (node) => {
+    const viewerLanding = (node, cameraViewType = 'flat') => {
         const viewer = new Infra3dViewer();
         viewer.currNode = nodeFor('PREV');
         viewer.viewer = {
+            getCameraView: () => ({ type: cameraViewType }),
             _sdk_viewer: {
                 movePosition: () => (node instanceof Error ? Promise.reject(node) : Promise.resolve(node)),
                 moveToKey: (id) => Promise.resolve(nodeFor(id)),
@@ -100,6 +108,21 @@ describe('Infra3dViewer.setLocation rejections', () => {
         const viewer = viewerLanding(nodeFor('FLAT_PHOTO', 'mono'));
 
         await expect(viewer.setLocation(SOMEWHERE)).rejects.toBeInstanceOf(NoImageryError);
+    });
+
+    it('leaves a guessed non-panoramic verdict untyped, since the SDK never gave us a camera type', async () => {
+        // The seed image on a page load is the case that reaches this: its metadata is still arriving, so the filter
+        // falls back to the rendered camera mode. Typing that guess would let a wrong one report a street with good
+        // imagery and reload the page (#4918).
+        const viewer = viewerLanding(nodeWithoutCameraType('SEED_IMAGE'));
+
+        await expect(viewer.setLocation(SOMEWHERE)).rejects.not.toBeInstanceOf(NoImageryError);
+    });
+
+    it('accepts a guessed panoramic verdict, so a slow-loading seed image is not bounced', async () => {
+        const viewer = viewerLanding(nodeWithoutCameraType('SEED_IMAGE'), 'pano');
+
+        await expect(viewer.setLocation(SOMEWHERE)).resolves.toBeDefined();
     });
 
     it('leaves an SDK failure untyped, so it cannot be recorded against the street', async () => {

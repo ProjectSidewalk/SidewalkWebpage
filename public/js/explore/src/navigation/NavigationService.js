@@ -171,6 +171,14 @@ class NavigationService {
       return Promise.resolve(null);
     }
 
+    // One give-up per street. The terminal branch below hands the controls back — the route's finish gate needs the
+    // labeler able to look around — so they can walk into this path again on the street they are still standing on,
+    // filing a duplicate report and re-firing the finish toast. No other give-up leaves them on a flagged street.
+    if (currentTask.wasGivenUpOnImagery()) {
+      this.#restoreUiAfterFailedMove();
+      return Promise.resolve(null);
+    }
+
     // Nowhere near the end, so the street really does look like it runs out of imagery ahead of the user. Two
     // separable decisions follow: whether to *write down* that the street looks imagery-less, and whether to move
     // the labeler somewhere they can keep working (#4918).
@@ -188,11 +196,6 @@ class NavigationService {
     } else {
       svl.tracker.push('NoImageryFlagLimitReached');
     }
-
-    // Client-side only, and separate from the server's notion of completion: it keeps nextTask() from handing the
-    // street back later in the session, and lets the minimap stop drawing it as something still to walk.
-    currentTask.giveUpOnImagery();
-    currentTask.render();
 
     // The advance ceiling still bounds a run: give-ups leave a street eligible for assignment to everyone else, so a
     // session that keeps finding empty ones is better explained by a broken session than by an empty neighborhood.
@@ -213,6 +216,14 @@ class NavigationService {
     // it submits completed=true, and the regular submission path credits that as a full audit, which is exactly the
     // claim a no-imagery verdict cannot support (#4922).
     const newTask = svl.taskContainer.nextTask(currentTask);
+
+    // Set once the labeler is actually being moved off, not when the street is reported: a run stopped by the advance
+    // ceiling above leaves them standing here, and the flag reads as "done with this street" everywhere — full length
+    // credited toward progress, drawn as walked, never handed back. Client-side only; nothing reaches the server's
+    // notion of completion (#4922).
+    currentTask.giveUpOnImagery();
+    currentTask.render();
+
     if (newTask) {
       // Flush what the labeler did here before the current task changes under the buffer. Interactions carry no task
       // id of their own — the server files them against whichever audit_task the submission names — so anything still

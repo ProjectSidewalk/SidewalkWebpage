@@ -56,10 +56,7 @@ case class NewTask(
     routeStreetId: Option[Int],         // The route_street_id if this task is part of a route.
     routeStreetPosition: Option[Int],   // The street's walking-order position within that route.
     maxSpeed: Option[String],           // Raw OSM maxspeed tag for the street's way (e.g. "25 mph"), if known.
-    // Whether this user reported the street as having no imagery during this walk of the route. Such a street stays
-    // incomplete (#4922), so without this the client cannot tell it apart from one still to walk, and every reload
-    // sends the labeler back to imagery that would not load (#5008). Always false outside a route.
-    reportedNoImagery: Boolean
+    reportedNoImagery: Boolean          // Reported imagery-less during this route walk; false outside a route.
 )
 case class AuditedStreetWithTimestamp(
     streetEdgeId: Int,
@@ -700,43 +697,34 @@ class AuditTaskTable @Inject() (
   }
 
   /**
-   * Gets a list of tasks associated with a user's route.
-   * @param userRouteId ID of the user_route.
-   */
-  /**
    * Streets the route's labeler reported as imagery-less during *this* walk of it.
    *
-   * Bounded by the walk rather than by the street's whole history: a report from a previous walk is evidence for the
-   * offline checker (#4922), but it is not this walk's decision, and letting it through would skip streets whose
-   * imagery may since have landed. The walk's start is the earliest task_start among its audit_tasks, since
-   * user_route carries no timestamp of its own.
+   * A report from a previous walk is evidence for the offline checker (#4922) but not this walk's decision, and
+   * honoring it would skip streets whose imagery has since landed. street_edge_issue records only a user and a
+   * timestamp, so the walk is matched per street: the report must come after that street's own task in this walk.
+   * Bounding by the walk's start instead would pull in reports filed while auditing the same street outside it.
    *
    * @param userRouteId The walk of the route to bound reports by.
    * @return A query of street edge ids, for use as an `in` subquery.
    */
-  private def streetsReportedNoImageryDuringRoute(userRouteId: Int): Query[Rep[Int], Int, Seq] = {
-    val routeStart = auditTaskUserRoutes
-      .filter(_.userRouteId === userRouteId)
+  def streetsReportedNoImageryDuringRoute(userRouteId: Int): Query[Rep[Int], Int, Seq] = {
+    auditTaskUserRoutes
+      .filter(_.userRouteId === userRouteId.bind)
       .join(auditTasks)
       .on(_.auditTaskId === _.auditTaskId)
-      .map(_._2.taskStart)
-      .min
-    val routeUserId = userRoutes.filter(_.userRouteId === userRouteId).map(_.userId)
-    streetEdgeIssues
-      .filter(issue =>
-        issue.issue === StreetEdgeIssueType.PanoNotAvailable && (issue.userId in routeUserId) &&
-          issue.timestamp.? >= routeStart
-      )
-      .map(_.streetEdgeId)
+      .join(streetEdgeIssues.filter(_.issue === StreetEdgeIssueType.PanoNotAvailable))
+      .on { case ((_, auditTask), issue) =>
+        auditTask.streetEdgeId === issue.streetEdgeId && auditTask.userId === issue.userId &&
+        issue.timestamp >= auditTask.taskStart
+      }
+      .map { case (_, issue) => issue.streetEdgeId }
   }
 
   /**
    * The route task to resume on, if the labeler has one still open: the furthest along the route they got.
    *
-   * Streets given up on for missing imagery are excluded. They stay incomplete on purpose (#4922), so without this
-   * they read as "still open" and a reload drops the labeler back onto one — losing the walk they had underway on a
-   * later street (#5008). Ordering by position rather than taking an arbitrary row matters for the same reason:
-   * route streets are walked in order, so the furthest-along open task is the one they were on.
+   * Streets given up on for missing imagery are excluded: they stay incomplete on purpose (#4922), so otherwise a
+   * reload drops the labeler back onto one, losing progress on later streets (#5008).
    *
    * @param userRouteId The walk of the route being resumed.
    * @return (auditTaskId, routeStreetId, position) of the task to resume, or None if no open task remains.
@@ -757,6 +745,10 @@ class AuditTaskTable @Inject() (
       .headOption
   }
 
+  /**
+   * Gets a list of tasks associated with a user's route.
+   * @param userRouteId ID of the user_route.
+   */
   def selectTasksInRoute(userRouteId: Int): DBIO[Seq[NewTask]] = {
     val timestamp: OffsetDateTime = OffsetDateTime.now
 

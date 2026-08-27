@@ -152,17 +152,19 @@ class Infra3dViewer extends PanoViewer {
    * getCameraView() returns {zoom, panX, panY} instead of {lat, lon, fov} on flat images), so we treat flat images
    * like excluded panos: bounce back and reject so that callers retry elsewhere.
    *
-   * The SDK answered, so this is a NoImageryError: a street sweep landing here repeatedly may conclude the street
-   * is out of imagery rather than report a provider failure (#4918).
+   * Only a rejection backed by a real cameraType is a NoImageryError, since that is what lets a sweep conclude the
+   * street is out of imagery rather than report a provider failure (#4918). The guessed case stays an ordinary Error:
+   * this runs on the page's seed image, where a wrong guess would condemn a street with good imagery and reload.
    * @param {object} node Infra3d's internal node object for the image we just moved to
-   * @returns {Promise<void>} Rejects with NoImageryError if the image isn't panoramic; resolves otherwise
+   * @returns {Promise<void>} Rejects if the image isn't panoramic; resolves otherwise
    */
   #filterNonPanoramicImages = async (node) => {
     // cameraType can be missing on the first image loaded on a page (its metadata loads progressively); in that
     // case, decide based on the camera mode that the scene chose for the rendered image (pano vs flat pan/zoom).
-    const isPanoramic = node.cameraType === undefined
-      ? this.viewer.getCameraView().type === 'pano'
-      : ['calotte', 'cubemap'].includes(node.cameraType);
+    const cameraTypeKnown = node.cameraType !== undefined;
+    const isPanoramic = cameraTypeKnown
+      ? ['calotte', 'cubemap'].includes(node.cameraType)
+      : this.viewer.getCameraView().type === 'pano';
     if (isPanoramic) return;
 
     // The viewer is already displaying the flat image, so move the display back to the previous pano. Using the raw
@@ -171,7 +173,8 @@ class Infra3dViewer extends PanoViewer {
       const prevNode = await this.viewer._sdk_viewer.moveToKey(this.prevNode.frame.id);
       await this.#finishRecordingMetadata(prevNode);
     }
-    throw new NoImageryError(`Non-panoramic image: ${node.frame.id}`);
+    const message = `Non-panoramic image: ${node.frame.id}`;
+    throw cameraTypeKnown ? new NoImageryError(message) : new Error(message);
   };
 
   /**
@@ -181,8 +184,7 @@ class Infra3dViewer extends PanoViewer {
    * dead end whose last panos the user already stood on stays recognizable as one (#4918).
    * @param {PanoData} newPanoData The pano data for the new panorama
    * @param {Set<PanoData>} [excludedPanos=new Set()] Set of PanoData objects that are not valid images to move to
-   * @returns {Promise<PanoData>} Rejects with NoImageryError if new pano in excluded list; resolves with pano data
-   *     otherwise
+   * @returns {Promise<PanoData>} The pano data, or a rejection with NoImageryError if the pano is excluded.
    */
   #filterExcludedPanos = (newPanoData, excludedPanos) => {
     // If the pano given is in the excluded list, treat it as if the API call itself had returned nothing.

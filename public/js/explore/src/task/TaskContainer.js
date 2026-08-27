@@ -217,12 +217,19 @@ class TaskContainer {
    * Tasks the labeler is shown as done with: completed streets, plus the ones this session gave up on for lack of
    * imagery. The give-ups are not completions — nothing about them reaches audit_task.completed (#4922) — but they
    * are as finished as the tool will ever let the labeler make them, so the distances and maps they see count them.
-   * Anything reconciled against server-side completion (e.g. the community's share of a neighborhood) wants
-   * getCompletedTasks instead.
    * @returns {Task[]}
    */
   getWalkedTasks() {
     return this._tasks.filter((task) => task.isComplete() || task.wasGivenUpOnImagery());
+  }
+
+  /**
+   * The complement of getWalkedTasks: streets the labeler still has something to do on. Distinct from
+   * getIncompleteTasks, which is server-side completion and so still counts a give-up as outstanding.
+   * @returns {Task[]}
+   */
+  getUnwalkedTasks() {
+    return this._tasks.filter((task) => !task.isComplete() && !task.wasGivenUpOnImagery());
   }
 
   /**
@@ -355,8 +362,7 @@ class TaskContainer {
     // A street this session gave up on for lack of imagery stays incomplete on purpose (#4922), so "not complete"
     // alone would keep handing it back — on a route, that means the last street's finish teleports the labeler onto
     // a dead one. Give-ups are this session's memory of what it already tried (#5008).
-    const tasksNotCompletedByUser = this.getTasks()
-      .filter((t) => !t.isComplete() && !t.wasGivenUpOnImagery() && !sameAsFinished(t));
+    const tasksNotCompletedByUser = this.getUnwalkedTasks().filter((t) => !sameAsFinished(t));
     if (tasksNotCompletedByUser.length === 0) {
       return null;
     }

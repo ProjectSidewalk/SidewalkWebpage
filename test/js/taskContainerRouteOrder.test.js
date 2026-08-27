@@ -107,4 +107,18 @@ describe('TaskContainer distance credit', () => {
         expect(container.getCompletedTasks()).toHaveLength(1);
         expect(container.getWalkedTasks()).toHaveLength(2);
     });
+
+    it('has nothing left unwalked once every street is walked or given up on', () => {
+        // The celebration map draws walked streets in one tier and outstanding ones in another. Splitting them on
+        // server-side completion instead puts a given-up street in both, so a route finished at 100% still shows it
+        // as work left behind (#5008).
+        container._tasks = [
+            makeTask(1, { complete: true }),
+            makeTask(2, { givenUp: true }),
+            makeTask(3, { complete: true }),
+        ];
+
+        expect(container.getIncompleteTasks()).toHaveLength(1);
+        expect(container.getUnwalkedTasks()).toHaveLength(0);
+    });
 });
