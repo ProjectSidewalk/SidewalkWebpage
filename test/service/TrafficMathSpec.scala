@@ -44,33 +44,48 @@ class TrafficMathSpec extends PlaySpec {
     }
   }
 
+  "baselineMedian" should {
+    "take the median of the complete buckets, excluding the one overlapping the current window" in {
+      TrafficService.baselineMedian(Seq.fill(TrafficService.BaselineWeeks)(100) :+ 9999) mustBe Some(100.0)
+    }
+
+    "have no baseline for a series shorter than the baseline plus the current week" in {
+      TrafficService.baselineMedian(Seq.fill(TrafficService.BaselineWeeks)(100)) mustBe None
+    }
+  }
+
   "trafficAnomaly" should {
-    val steadyBaseline = Seq.fill(TrafficService.BaselineWeeks)(100)
+    // The trailing bucket is dropped as the current week's own, so its value never reaches the baseline.
+    val steady = Seq.fill(TrafficService.BaselineWeeks)(100) :+ 0
 
     "flag a spike at or beyond the multiple of the baseline median" in {
-      TrafficService.trafficAnomaly(steadyBaseline :+ 300) mustBe Some("traffic_spike")
-      TrafficService.trafficAnomaly(steadyBaseline :+ 299) mustBe None
+      TrafficService.trafficAnomaly(300, steady) mustBe Some("traffic_spike")
+      TrafficService.trafficAnomaly(299, steady) mustBe None
     }
 
     "flag a drop at or below the inverse multiple of the baseline median" in {
-      val busy = Seq.fill(TrafficService.BaselineWeeks)(300)
-      TrafficService.trafficAnomaly(busy :+ 100) mustBe Some("traffic_drop")
-      TrafficService.trafficAnomaly(busy :+ 101) mustBe None
+      val busy = Seq.fill(TrafficService.BaselineWeeks)(300) :+ 0
+      TrafficService.trafficAnomaly(100, busy) mustBe Some("traffic_drop")
+      TrafficService.trafficAnomaly(101, busy) mustBe None
     }
 
     "never flag a quiet city, where the baseline is too noisy to mean anything" in {
-      val quiet = Seq.fill(TrafficService.BaselineWeeks)(30)
-      TrafficService.trafficAnomaly(quiet :+ 500) mustBe None
+      TrafficService.trafficAnomaly(500, Seq.fill(TrafficService.BaselineWeeks)(30) :+ 0) mustBe None
     }
 
     "use the median, so one earlier spike week can't mask a real change" in {
       // Mean baseline would be 350 (spike threshold 1050); the median stays 100 and catches the 300.
-      val withOutlier = Seq(2100) ++ Seq.fill(TrafficService.BaselineWeeks - 1)(100)
-      TrafficService.trafficAnomaly(withOutlier :+ 300) mustBe Some("traffic_spike")
+      val withOutlier = (Seq(2100) ++ Seq.fill(TrafficService.BaselineWeeks - 1)(100)) :+ 0
+      TrafficService.trafficAnomaly(300, withOutlier) mustBe Some("traffic_spike")
     }
 
     "not flag a series shorter than the baseline plus the current week" in {
-      TrafficService.trafficAnomaly(Seq.fill(TrafficService.BaselineWeeks)(100)) mustBe None
+      TrafficService.trafficAnomaly(300, Seq.fill(TrafficService.BaselineWeeks)(100)) mustBe None
+    }
+
+    "judge the rolling-window count the page displays, not the newest bucket" in {
+      // The page shows the rolling-window figure, so that is what the flag must be about — not the newest bucket.
+      TrafficService.trafficAnomaly(300, Seq.fill(TrafficService.BaselineWeeks)(100) :+ 1) mustBe Some("traffic_spike")
     }
   }
 
@@ -111,12 +126,33 @@ class TrafficMathSpec extends PlaySpec {
     // (it never breaks before digits), which live QA caught — so the wire contract gets pinned here.
     "emit the page convention's snake_case field names, digits included" in {
       val json = Json.toJson(
-        CityTraffic("seattle-wa", 100, 90, 80, 70, 40, 0.4, 0.05, Seq(1, 2, 3), Some("traffic_spike"))
+        CityTraffic(
+          "seattle-wa",
+          100,
+          90,
+          80,
+          70,
+          40,
+          0.4,
+          0.05,
+          32494L,
+          17690L,
+          0.116,
+          Some(LocalDate.of(2021, 10, 27)),
+          Seq(1, 2, 3),
+          Some(33.5),
+          Some("traffic_spike")
+        )
       )
       json.as[play.api.libs.json.JsObject].keys mustBe Set("city_id", "sessions_7d", "sessions_prior_7d",
         "active_users_7d", "active_users_prior_7d", "engaged_sessions_7d", "engagement_rate_7d", "mobile_share_28d",
-        "weekly_sessions", "anomaly")
+        "sessions_all_time", "visitors_all_time", "mobile_share_all_time", "ga_since", "weekly_sessions",
+        "baseline_median", "anomaly")
       (json \ "sessions_7d").as[Int] mustBe 100
+      (json \ "sessions_all_time").as[Long] mustBe 32494L
+      (json \ "visitors_all_time").as[Long] mustBe 17690L
+      (json \ "ga_since").as[String] mustBe "2021-10-27"
+      (json \ "baseline_median").as[Double] mustBe 33.5
       (json \ "anomaly").as[String] mustBe "traffic_spike"
     }
   }

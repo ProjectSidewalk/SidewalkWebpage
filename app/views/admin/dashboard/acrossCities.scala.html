@@ -115,18 +115,27 @@
   </div>
 
   <div class="api-section" id="ac-traffic-section">
-    <h2 class="api-heading" id="traffic">Traffic — who's arriving <a href="#traffic" class="permalink">#</a></h2>
-    <p>Website traffic per deployment, from Google Analytics — the one lens our own database can't provide, since it only sees people who contribute. Sessions and visitors are the trailing 7 days with their change from the 7 before; mobile share covers the last 28 days. A city is flagged when this week's sessions are far outside its own trailing 8-week baseline — in either direction, since a spike (press, a class assignment) is as worth knowing about as a drop. Numbers refresh about hourly and cover this stage's own GA properties — the production server reads the production sites, while the test server and localhost read the <code>-test</code> sites (whose traffic includes developers' local page loads).</p>
+    <h2 class="api-heading" id="traffic">Google Analytics <a href="#traffic" class="permalink">#</a></h2>
+    <p>Website traffic per deployment — the one lens our database can't provide, since it only sees people who contribute. Recent columns cover the trailing 7 days (mobile share, 28); all-time spans each city's GA4 history, which begins when its property was created rather than at launch — hover a figure for the date. A city is flagged when its last 7 days sit far outside its own 8-week baseline, in either direction. Refreshed hourly from this stage's own GA properties, so the test server and localhost read the <code>-test</code> sites.</p>
     <div class="ac-table-wrap" id="ac-traffic-wrap">
       <table class="ac-table" id="ac-traffic-table">
         <thead>
+          <tr class="ac-th-group">
+            <td></td>
+            <th colspan="4" scope="colgroup" title="Rolling windows ending today: 7 days for sessions, visitors and engagement, 28 for mobile share.">Recent</th>
+            <th colspan="3" scope="colgroup" title="Each city's whole GA4 history, which starts when its property was created — hover a figure for that date.">All time</th>
+            <td></td>
+          </tr>
           <tr>
-            <th data-sort="city_name" class="ac-th-text">City</th>
-            <th data-sort="traffic.sessions_7d" title="Visits in the last 7 days; the chip is the change vs the 7 days before.">Sessions 7d</th>
-            <th data-sort="traffic.active_users_7d" title="Distinct people (per GA) active in the last 7 days.">Visitors 7d</th>
-            <th data-sort="traffic.engagement_rate_7d" title="Share of the last 7 days' sessions that engaged: 10+ seconds, a conversion, or 2+ pageviews.">Engagement</th>
-            <th data-sort="traffic.mobile_share_28d" title="Share of the last 28 days' sessions from mobile or tablet devices.">Mobile share</th>
-            <th>Trend (sessions, 13 wk)</th>
+            <th data-sort="city_name" class="ac-th-text" scope="col" title="The deployment. Cities sharing one GA property each get their own row with identical figures.">City</th>
+            <th data-sort="traffic.sessions_7d" scope="col" title="Visits in the last 7 days; the chip is the change vs the 7 days before.">Sessions 7d</th>
+            <th data-sort="traffic.active_users_7d" scope="col" title="Distinct people (per GA) active in the last 7 days.">Visitors 7d</th>
+            <th data-sort="traffic.engagement_rate_7d" scope="col" title="Share of the last 7 days' sessions that engaged: 10+ seconds, a conversion, or 2+ pageviews.">Engagement</th>
+            <th data-sort="traffic.mobile_share_28d" scope="col" title="Share of the last 28 days' sessions from mobile or tablet devices.">Mobile share</th>
+            <th data-sort="traffic.sessions_all_time" scope="col" title="Sessions over the property's whole GA4 history.">Sessions</th>
+            <th data-sort="traffic.visitors_all_time" scope="col" title="Distinct people (per GA) over that history, counted once each across devices.">Visitors</th>
+            <th data-sort="traffic.mobile_share_all_time" scope="col" title="Share of all-time sessions from mobile or tablet devices.">Mobile share</th>
+            <th scope="col" title="Weekly session totals for the last 13 weeks, oldest on the left. Shape only — hover a row's line for its numbers.">Trend (sessions, 13 wk)</th>
           </tr>
         </thead>
         <tbody id="ac-traffic-tbody"></tbody>

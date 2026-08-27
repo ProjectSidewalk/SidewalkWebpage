@@ -13,6 +13,9 @@ import scala.reflect.ClassTag
 /**
  * A stale-while-revalidate layer over the Play cache, for expensive computations that must never block a request
  * (#4600). Extracted from ConfigService so other services (e.g. the GA traffic fan-out) share one implementation.
+ *
+ * One instance serves every caller, so the in-flight map's lock is shared across services. It covers registering a
+ * `Future`, never awaiting one — a `compute` that blocks before returning would stall every other service's cache.
  */
 @Singleton
 class SwrCache @Inject() (cacheApi: AsyncCacheApi)(implicit val ec: ExecutionContext) {

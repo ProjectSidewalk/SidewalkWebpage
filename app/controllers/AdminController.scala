@@ -910,7 +910,8 @@ class AdminController @Inject() (
             Json.obj(
               "available"       -> true,
               "fetched_at"      -> snapshot.fetchedAt,
-              "traffic_by_city" -> JsObject(snapshot.cities.map(c => c.cityId -> Json.toJson(c)))
+              "traffic_by_city" -> JsObject(snapshot.cities.map(c => c.cityId -> Json.toJson(c))),
+              "failed_city_ids" -> snapshot.failedCityIds
             )
           )
         case None => Ok(Json.obj("available" -> false))

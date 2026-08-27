@@ -10,9 +10,9 @@ import scala.concurrent.{Await, ExecutionContext, Future, Promise}
 /**
  * The bound on how wide a fan-out may get (#4526).
  *
- * `getCrossCityHours` queries one schema per deployment, and the connection pool holds 25. Whether the batching
- * actually caps what is in flight is observable with a counter, so it is checked here rather than inferred from a
- * page that happens to load.
+ * `getCrossCityHours` fans out over a 25-connection pool and the GA traffic fetch over the Data API's concurrency
+ * (Planning#8). Whether the batching actually caps what is in flight is observable with a counter, so it is checked
+ * here rather than inferred from a page that happens to load.
  */
 class InBatchesSpec extends PlaySpec {
 
@@ -27,7 +27,7 @@ class InBatchesSpec extends PlaySpec {
       val gates        = Seq.fill(20)(Promise[Int]())
       val firstBatchUp = new CountDownLatch(4)
 
-      val run = UserService.inBatches(gates.indices, batchSize = 4) { i =>
+      val run = Batching.inBatches(gates.indices, batchSize = 4) { i =>
         peak.updateAndGet(_ max inFlight.incrementAndGet())
         firstBatchUp.countDown()
         gates(i).future.map { v => inFlight.decrementAndGet(); v }
@@ -46,7 +46,7 @@ class InBatchesSpec extends PlaySpec {
       val firstBatchUp = new CountDownLatch(2)
       val gate         = Promise[Int]()
 
-      val run = UserService.inBatches(0 until 6, batchSize = 2) { i =>
+      val run = Batching.inBatches(0 until 6, batchSize = 2) { i =>
         started.incrementAndGet()
         firstBatchUp.countDown()
         if (i == 0) gate.future else Future.successful(i)
@@ -62,25 +62,25 @@ class InBatchesSpec extends PlaySpec {
 
     "return one result per item, in the order given" in {
       val out =
-        UserService.inBatches(Seq("a", "b", "c", "d", "e"), batchSize = 2)(s => Future.successful(s.toUpperCase))
+        Batching.inBatches(Seq("a", "b", "c", "d", "e"), batchSize = 2)(s => Future.successful(s.toUpperCase))
       Await.result(out, 30.seconds) mustBe Seq("A", "B", "C", "D", "E")
     }
 
     "handle an empty list and a batch larger than the work" in {
-      Await.result(UserService.inBatches(Seq.empty[Int], batchSize = 6)(Future.successful), 30.seconds) mustBe empty
-      Await.result(UserService.inBatches(Seq(1, 2), batchSize = 99)(Future.successful), 30.seconds) mustBe Seq(1, 2)
+      Await.result(Batching.inBatches(Seq.empty[Int], batchSize = 6)(Future.successful), 30.seconds) mustBe empty
+      Await.result(Batching.inBatches(Seq(1, 2), batchSize = 99)(Future.successful), 30.seconds) mustBe Seq(1, 2)
     }
 
     "refuse a batch size that would never make progress" in {
       Seq(0, -1).foreach { bad =>
-        an[IllegalArgumentException] must be thrownBy UserService.inBatches(Seq(1), bad)(Future.successful)
+        an[IllegalArgumentException] must be thrownBy Batching.inBatches(Seq(1), bad)(Future.successful)
       }
     }
 
     "fail the whole fan-out if an item fails, so a caller can't mistake a partial answer for a complete one" in {
       // getCrossCityHours relies on this: it recovers per city *before* handing work here, precisely so that one
       // unreadable schema costs its own row rather than the volunteer's whole total.
-      val out = UserService.inBatches(0 until 4, batchSize = 2) { i =>
+      val out = Batching.inBatches(0 until 4, batchSize = 2) { i =>
         if (i == 3) Future.failed(new RuntimeException("boom")) else Future.successful(i)
       }
       a[RuntimeException] must be thrownBy Await.result(out, 30.seconds)

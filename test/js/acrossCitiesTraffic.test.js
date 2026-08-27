@@ -44,6 +44,11 @@ function makeTraffic(overrides = {}) {
     engagement_rate_7d: 0.4,
     mobile_share_28d: 0.05,
     weekly_sessions: [100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100],
+    baseline_median: 100,
+    sessions_all_time: 32494,
+    visitors_all_time: 17690,
+    mobile_share_all_time: 0.116,
+    ga_since: '2021-10-27',
     anomaly: null,
     ...overrides,
   };
@@ -60,6 +65,9 @@ const MARKUP = `
           <th data-sort="traffic.active_users_7d">Visitors 7d</th>
           <th data-sort="traffic.engagement_rate_7d">Engagement</th>
           <th data-sort="traffic.mobile_share_28d">Mobile share</th>
+          <th data-sort="traffic.sessions_all_time">Sessions</th>
+          <th data-sort="traffic.visitors_all_time">Visitors</th>
+          <th data-sort="traffic.mobile_share_all_time">Mobile share</th>
           <th>Trend</th>
         </tr>
       </thead>
@@ -155,7 +163,8 @@ describe('Across Cities — traffic section', () => {
         alpha: makeTraffic({
           sessions_7d: 30,
           anomaly: 'traffic_drop',
-          weekly_sessions: [90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 30],
+          baseline_median: 90,
+          weekly_sessions: [90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 28],
         }),
       },
     });
@@ -164,7 +173,90 @@ describe('Across Cities — traffic section', () => {
     expect(row.cells[0].textContent).toContain('Traffic drop');
     const attention = document.getElementById('ac-attention').textContent;
     expect(attention).toContain('alpha');
-    expect(attention).toContain('30 sessions this week, down from a typical 90');
+    // The row's own sessions figure and the server's baseline — never the newest bucket (28 here).
+    expect(attention).toContain('30 sessions in the last 7 days, down from a typical 90');
+    expect(attention).not.toContain('28');
+  });
+
+  it('keeps the loading note when a header is clicked before the traffic fetch lands', async () => {
+    document.body.innerHTML = MARKUP;
+    let releaseTraffic;
+    global.fetch = jest.fn((url) => {
+      if (url === '/adminapi/cityScorecards') {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            cities: [makeCity('alpha')], summary: {}, over_time_all_time: [], over_time_daily: [],
+            window_summary: null, window_by_city: {},
+          }),
+        });
+      }
+      return new Promise((resolve) => { releaseTraffic = resolve; });
+    });
+    const page = new AcrossCitiesPage({
+      scorecardsUrl: '/adminapi/cityScorecards', trafficUrl: '/adminapi/cityTraffic',
+    });
+    const initing = page.init();
+    // init finishes the scorecards fetch and main render first, so wait for the request rather than count microtasks.
+    while (!releaseTraffic) await new Promise((resolve) => { setTimeout(resolve, 0); });
+    document.querySelector('#ac-traffic-table th[data-sort="traffic.sessions_7d"]').click();
+    expect(document.getElementById('ac-traffic-status').textContent).toBe('Loading traffic…');
+    expect(document.querySelectorAll('#ac-traffic-tbody tr')).toHaveLength(0);
+
+    releaseTraffic({
+      ok: true,
+      json: () => Promise.resolve({ available: true, traffic_by_city: { alpha: makeTraffic() } }),
+    });
+    await initing;
+    expect(trafficCityOrder()).toEqual(['alpha']);
+  });
+
+  it('shows all-time totals and dates their window from the property, not the city launch', async () => {
+    await render([makeCity('alpha')], {
+      available: true,
+      traffic_by_city: { alpha: makeTraffic() },
+    });
+    const cells = document.querySelector('#ac-traffic-tbody tr').cells;
+    expect(cells[5].textContent.trim()).toBe('32,494');
+    expect(cells[6].textContent.trim()).toBe('17,690');
+    expect(cells[7].textContent.trim()).toBe('12%');
+    // The window isn't the city's lifetime, so the cell has to date itself.
+    expect(cells[5].getAttribute('title')).toContain('2021');
+    expect(cells[5].getAttribute('title')).toContain("earlier traffic isn't included");
+  });
+
+  it('sorts by an all-time column independently of the recent ones', async () => {
+    await render([makeCity('alpha'), makeCity('bravo')], {
+      available: true,
+      traffic_by_city: {
+        // bravo leads on the last 7 days but trails over all time, so the two orderings must differ.
+        alpha: makeTraffic({ sessions_7d: 10, sessions_all_time: 90000 }),
+        bravo: makeTraffic({ sessions_7d: 900, sessions_all_time: 10 }),
+      },
+    });
+    expect(trafficCityOrder()).toEqual(['bravo', 'alpha']);
+    document.querySelector('#ac-traffic-table th[data-sort="traffic.sessions_all_time"]').click();
+    expect(trafficCityOrder()).toEqual(['alpha', 'bravo']);
+  });
+
+  it('falls back to a generic all-time tooltip when the property start date is missing', async () => {
+    await render([makeCity('alpha')], {
+      available: true,
+      traffic_by_city: { alpha: makeTraffic({ ga_since: null }) },
+    });
+    const title = document.querySelector('#ac-traffic-tbody tr').cells[5].getAttribute('title');
+    expect(title).toBe("Covers this property's whole GA4 history.");
+  });
+
+  it('says so when the server reached some cities but not others', async () => {
+    await render([makeCity('alpha'), makeCity('bravo')], {
+      available: true,
+      traffic_by_city: { alpha: makeTraffic() },
+      failed_city_ids: ['bravo'],
+    });
+    const status = document.getElementById('ac-traffic-status').textContent;
+    expect(status).toContain('1 of 2 cities with traffic data.');
+    expect(status).toContain('1 could not be fetched this round.');
   });
 
   it('collapses to an unavailable note when the deployment has no GA configured', async () => {

@@ -30,8 +30,15 @@ import scala.util.{Failure, Success, Try}
  * @param engagedSessions7d  GA "engaged" sessions (10s+, a conversion, or 2+ pageviews) in the trailing 7 days.
  * @param engagementRate7d   `engagedSessions7d / sessions7d`; 0 when there were no sessions.
  * @param mobileShare28d     Share of the last 28 days' sessions from mobile or tablet devices.
+ * @param sessionsAllTime    Sessions over the property's whole GA4 history.
+ * @param visitorsAllTime    Distinct users over that history, deduplicated by GA across devices.
+ * @param mobileShareAllTime Share of all-time sessions from mobile or tablet devices.
+ * @param gaSince            First day the property reported. "All time" starts here, not at the city's launch — some
+ *                           properties were created years in, so the page has to say when.
  * @param weeklySessions     Trailing 7-day session buckets, oldest first, aligned to the newest reported day.
- * @param anomaly            "traffic_spike" or "traffic_drop" when the current week is an outlier vs the city's own
+ * @param baselineMedian     Median weekly sessions over the trailing baseline; None when the series is too short.
+ *                           Published so the page can explain a flag without re-deriving the rule.
+ * @param anomaly            "traffic_spike" or "traffic_drop" when `sessions7d` is an outlier vs the city's own
  *                           baseline ([[TrafficService.trafficAnomaly]]); None otherwise.
  */
 case class CityTraffic(
@@ -43,7 +50,12 @@ case class CityTraffic(
     engagedSessions7d: Int,
     engagementRate7d: Double,
     mobileShare28d: Double,
+    sessionsAllTime: Long,
+    visitorsAllTime: Long,
+    mobileShareAllTime: Double,
+    gaSince: Option[LocalDate],
     weeklySessions: Seq[Int],
+    baselineMedian: Option[Double],
     anomaly: Option[String]
 )
 
@@ -61,13 +73,23 @@ object CityTraffic {
       "engaged_sessions_7d"   -> t.engagedSessions7d,
       "engagement_rate_7d"    -> t.engagementRate7d,
       "mobile_share_28d"      -> t.mobileShare28d,
+      "sessions_all_time"     -> t.sessionsAllTime,
+      "visitors_all_time"     -> t.visitorsAllTime,
+      "mobile_share_all_time" -> t.mobileShareAllTime,
+      "ga_since"              -> t.gaSince.map(_.toString),
       "weekly_sessions"       -> t.weeklySessions,
+      "baseline_median"       -> t.baselineMedian,
       "anomaly"               -> t.anomaly
     )
 }
 
-/** Every fetched city's [[CityTraffic]] plus when the fan-out ran, so the page can show a "data as of" label. */
-case class TrafficSnapshot(fetchedAt: OffsetDateTime, cities: Seq[CityTraffic])
+/**
+ * Every fetched city's [[CityTraffic]] plus when the fan-out ran, so the page can show a "data as of" label.
+ *
+ * `failedCityIds` is distinct from simple absence: a city missing from `cities` may just have no GA property
+ * configured, which is steady state, rather than having been unreachable this round.
+ */
+case class TrafficSnapshot(fetchedAt: OffsetDateTime, cities: Seq[CityTraffic], failedCityIds: Seq[String])
 
 /**
  * Constants, the service-account JWT assembly, and the (pure) traffic math for the GA traffic reporting, so the
@@ -98,6 +120,15 @@ object TrafficService {
   val FanOutParallelism: Int = 8
 
   val RequestTimeout: FiniteDuration = Duration(10, "seconds")
+
+  /** Start of the all-time window: the earliest date the API accepts, so it resolves to each property's own history. */
+  val AllTimeStart: String = "2015-08-14"
+
+  /**
+   * `batchRunReports` rejects more than 5 requests per batch and [[TrafficServiceImpl.fetchProperty]] sends exactly 5.
+   * A sixth report needs its own HTTP call, multiplied by every configured property.
+   */
+  val MaxReportsPerBatch: Int = 5
 
   /** Trailing 7-day buckets fetched per city: the current week plus [[BaselineWeeks]] and sparkline context. */
   val TrendWeeks: Int = 13
@@ -179,27 +210,40 @@ object TrafficService {
   }
 
   /**
+   * The city's typical weekly sessions: the *median* of the [[BaselineWeeks]] complete buckets before the current one,
+   * so a single earlier spike can't drag the baseline up and mask a real change.
+   *
+   * The newest bucket is dropped — it overlaps the window being judged, which would let that week pull its own
+   * baseline toward itself.
+   *
+   * @param weeklySessions Weekly session buckets, oldest first.
+   * @return               The median, or None when there aren't enough buckets to form a baseline.
+   */
+  def baselineMedian(weeklySessions: Seq[Int]): Option[Double] =
+    if (weeklySessions.length < BaselineWeeks + 1) None
+    else Some(median(weeklySessions.takeRight(BaselineWeeks + 1).dropRight(1)))
+
+  /**
    * Flags the current week as an outlier against the city's own trailing baseline (Planning#8).
    *
-   * The baseline is the *median* of the [[BaselineWeeks]] buckets before the current one, so a single earlier spike
-   * can't drag the baseline up and mask a real change. Quiet cities (baseline median below
-   * [[MinBaselineWeeklySessions]]) are never flagged: at that volume a school assignment doubles "traffic".
+   * Quiet cities (baseline median below [[MinBaselineWeeklySessions]]) are never flagged: at that volume a school
+   * assignment doubles "traffic".
    *
-   * @param weeklySessions Weekly session buckets, oldest first; the last is the current (possibly partial) week.
-   * @return               Some("traffic_spike") / Some("traffic_drop") for an outlier, None otherwise.
+   * `currentSessions` is the rolling-window count the page shows, not the newest bucket: the two differ by a day when
+   * GA's reporting lags, and a drop flag beside an ordinary-looking number reads as a bug. The 3x threshold absorbs
+   * the difference.
+   *
+   * @param currentSessions Sessions in the trailing 7 days — the same figure the page displays.
+   * @param weeklySessions  Weekly session buckets, oldest first, supplying the baseline.
+   * @return                Some("traffic_spike") / Some("traffic_drop") for an outlier, None otherwise.
    */
-  def trafficAnomaly(weeklySessions: Seq[Int]): Option[String] = {
-    if (weeklySessions.length < BaselineWeeks + 1) None
-    else {
-      val current  = weeklySessions.last
-      val baseline = weeklySessions.takeRight(BaselineWeeks + 1).dropRight(1)
-      val med      = median(baseline)
+  def trafficAnomaly(currentSessions: Int, weeklySessions: Seq[Int]): Option[String] =
+    baselineMedian(weeklySessions).flatMap { med =>
       if (med < MinBaselineWeeklySessions) None
-      else if (current >= med * AnomalyMultiple) Some("traffic_spike")
-      else if (current <= med / AnomalyMultiple) Some("traffic_drop")
+      else if (currentSessions >= med * AnomalyMultiple) Some("traffic_spike")
+      else if (currentSessions <= med / AnomalyMultiple) Some("traffic_drop")
       else None
     }
-  }
 
   private def median(values: Seq[Int]): Double = {
     val sorted = values.sorted
@@ -242,7 +286,10 @@ class TrafficServiceImpl @Inject() (
       parseServiceAccountKey(raw) match {
         case Success(creds) => Some(creds)
         case Failure(e)     =>
-          logger.warn(s"GA service-account key is set but unusable; traffic reporting disabled: ${e.getMessage}")
+          // The exception type only: Jackson's message quotes the source it choked on, which is the private key.
+          logger.warn(
+            s"GA service-account key is set but unusable (${e.getClass.getSimpleName}); traffic reporting disabled"
+          )
           None
       }
     }
@@ -251,7 +298,7 @@ class TrafficServiceImpl @Inject() (
    * cityId → numeric GA4 property id for this environment. Cities without an entry are skipped ("staging" always —
    * it aliases a real city's property and has no scorecard row to join to).
    */
-  private def propertyIdsByCity: Map[String, String] =
+  private lazy val propertyIdsByCity: Map[String, String] =
     config
       .get[Seq[String]]("city-params.city-ids")
       .filterNot(_ == "staging")
@@ -279,22 +326,25 @@ class TrafficServiceImpl @Inject() (
     accessToken(creds).flatMap { token =>
       // Cities can share a property (e.g. zurich / zurich-infra3d): fetch each property once, row every city.
       val properties = byCity.toSeq.groupMap(_._2)(_._1).toSeq.sortBy(_._1)
-      inBatches(properties, FanOutParallelism) { case (propertyId, cityIds) =>
-        fetchProperty(token, propertyId)
-          .map(traffic => cityIds.sorted.map(cityId => traffic.copy(cityId = cityId)))
-          .recover { case NonFatal(e) =>
-            logger.warn(
-              s"GA traffic fetch failed for property $propertyId (${cityIds.mkString(", ")}): ${e.getMessage}"
-            )
-            Seq.empty
-          }
-      }.map { perProperty =>
-        val cities = perProperty.flatten
-        // Every property failing signals a systemic problem (auth, quota, outage): fail the refresh so nothing is
-        // cached and the next request retries, instead of pinning an empty snapshot for the whole fresh window.
-        if (cities.isEmpty) throw new RuntimeException(s"All ${properties.size} GA property fetches failed")
-        TrafficSnapshot(OffsetDateTime.now(), cities.sortBy(_.cityId))
-      }
+      Batching
+        .inBatches(properties, FanOutParallelism) { case (propertyId, cityIds) =>
+          fetchProperty(token, propertyId)
+            .map(traffic => (cityIds.sorted.map(cityId => traffic.copy(cityId = cityId)), Seq.empty[String]))
+            .recover { case NonFatal(e) =>
+              logger.warn(
+                s"GA traffic fetch failed for property $propertyId (${cityIds.mkString(", ")}): ${e.getMessage}"
+              )
+              (Seq.empty[CityTraffic], cityIds.sorted)
+            }
+        }
+        .map { perProperty =>
+          val cities = perProperty.flatMap(_._1)
+          val failed = perProperty.flatMap(_._2)
+          // Every property failing signals a systemic problem (auth, quota, outage): fail the refresh so nothing is
+          // cached and the next request retries, instead of pinning an empty snapshot for the whole fresh window.
+          if (cities.isEmpty) throw new RuntimeException(s"All ${properties.size} GA property fetches failed")
+          TrafficSnapshot(OffsetDateTime.now(), cities.sortBy(_.cityId), failed.sorted)
+        }
     }
 
   /** A cached OAuth access token for the service account (the getInfra3dToken pattern). */
@@ -315,15 +365,19 @@ class TrafficServiceImpl @Inject() (
     }
 
   /**
-   * Fetches one GA property's three reports in a single `batchRunReports` call and assembles a [[CityTraffic]]
-   * (with a placeholder cityId — the caller stamps the real one, since properties can serve several cities).
+   * Fetches one GA property's reports in a single `batchRunReports` call and assembles a [[CityTraffic]] (with a
+   * placeholder cityId — the caller stamps the real one, since properties can serve several cities).
    */
   private def fetchProperty(token: String, propertyId: String): Future[CityTraffic] = {
     val body = Json.obj(
       "requests" -> Json.arr(
-        // 91 trailing days of sessions — the weekly sparkline and the anomaly baseline.
+        // Daily sessions for the sparkline and the anomaly baseline, six days wider than the buckets need: GA reports
+        // in the property's own timezone and lags, so the newest reported day can trail the server's and slide the
+        // oldest bucket's start past a range sized to exactly TrendWeeks.
         Json.obj(
-          "dateRanges" -> Json.arr(Json.obj("startDate" -> "90daysAgo", "endDate" -> "today")),
+          "dateRanges" -> Json.arr(
+            Json.obj("startDate" -> s"${TrendWeeks * 7 + 6}daysAgo", "endDate" -> "today")
+          ),
           "dimensions" -> Json.arr(Json.obj("name" -> "date")),
           "metrics"    -> Json.arr(Json.obj("name" -> "sessions"))
         ),
@@ -344,6 +398,22 @@ class TrafficServiceImpl @Inject() (
           "dateRanges" -> Json.arr(Json.obj("startDate" -> "27daysAgo", "endDate" -> "today")),
           "dimensions" -> Json.arr(Json.obj("name" -> "deviceCategory")),
           "metrics"    -> Json.arr(Json.obj("name" -> "sessions"))
+        ),
+        // All-time totals and device split in one report: the TOTAL aggregation deduplicates `totalUsers` across the
+        // device rows, where summing them would double-count anyone who used two device types.
+        Json.obj(
+          "dateRanges"         -> Json.arr(Json.obj("startDate" -> AllTimeStart, "endDate" -> "today")),
+          "dimensions"         -> Json.arr(Json.obj("name" -> "deviceCategory")),
+          "metrics"            -> Json.arr(Json.obj("name" -> "sessions"), Json.obj("name" -> "totalUsers")),
+          "metricAggregations" -> Json.arr("TOTAL")
+        ),
+        // The property's first day with data: GA4 starts at property creation, so "all time" needs a date beside it.
+        Json.obj(
+          "dateRanges" -> Json.arr(Json.obj("startDate" -> AllTimeStart, "endDate" -> "today")),
+          "dimensions" -> Json.arr(Json.obj("name" -> "date")),
+          "metrics"    -> Json.arr(Json.obj("name" -> "sessions")),
+          "orderBys"   -> Json.arr(Json.obj("dimension" -> Json.obj("dimensionName" -> "date"))),
+          "limit"      -> 1
         )
       )
     )
@@ -368,6 +438,7 @@ class TrafficServiceImpl @Inject() (
         def window(range: String, metric: Int): Int =
           windowRows.get(range).map(row => metricValue(row, metric).toInt).getOrElse(0)
         val sessions7d = window("date_range_0", 0)
+        val engaged7d  = window("date_range_0", 2)
 
         val deviceRows    = rows(report(2)).map(row => dimValue(row, 0) -> metricValue(row, 0)).toMap
         val totalSessions = deviceRows.values.sum
@@ -376,17 +447,31 @@ class TrafficServiceImpl @Inject() (
             (deviceRows.getOrElse("mobile", 0L) + deviceRows.getOrElse("tablet", 0L)).toDouble / totalSessions
           else 0.0
 
+        val allTimeDevice   = rows(report(3)).map(row => dimValue(row, 0) -> metricValue(row, 0)).toMap
+        val allTimeSessions = allTimeDevice.values.sum
+        val allTimeMobile   =
+          if (allTimeSessions > 0)
+            (allTimeDevice.getOrElse("mobile", 0L) + allTimeDevice.getOrElse("tablet", 0L)).toDouble / allTimeSessions
+          else 0.0
+        val gaSince = rows(report(4)).headOption
+          .flatMap(row => Try(LocalDate.parse(dimValue(row, 0), DateTimeFormatter.BASIC_ISO_DATE)).toOption)
+
         CityTraffic(
           cityId = "",
           sessions7d = sessions7d,
           sessionsPrior7d = window("date_range_1", 0),
           activeUsers7d = window("date_range_0", 1),
           activeUsersPrior7d = window("date_range_1", 1),
-          engagedSessions7d = window("date_range_0", 2),
-          engagementRate7d = if (sessions7d > 0) window("date_range_0", 2).toDouble / sessions7d else 0.0,
+          engagedSessions7d = engaged7d,
+          engagementRate7d = if (sessions7d > 0) engaged7d.toDouble / sessions7d else 0.0,
           mobileShare28d = mobileShare,
+          sessionsAllTime = allTimeSessions,
+          visitorsAllTime = totalsValue(report(3), 1),
+          mobileShareAllTime = allTimeMobile,
+          gaSince = gaSince,
           weeklySessions = weekly,
-          anomaly = trafficAnomaly(weekly)
+          baselineMedian = baselineMedian(weekly),
+          anomaly = trafficAnomaly(sessions7d, weekly)
         )
       }
   }
@@ -399,9 +484,7 @@ class TrafficServiceImpl @Inject() (
   private def metricValue(row: JsValue, i: Int): Long =
     (row \ "metricValues" \ i \ "value").asOpt[String].flatMap(v => Try(v.toLong).toOption).getOrElse(0L)
 
-  /** Runs `f` over `items` at most `parallelism` at a time, preserving order. */
-  private def inBatches[A, B](items: Seq[A], parallelism: Int)(f: A => Future[B]): Future[Seq[B]] =
-    items.grouped(parallelism).foldLeft(Future.successful(Vector.empty[B])) { (accF, batch) =>
-      accF.flatMap(acc => Future.sequence(batch.map(f)).map(acc ++ _))
-    }
+  /** A metric from a report's `metricAggregations: [TOTAL]` row, which GA deduplicates rather than summing. */
+  private def totalsValue(report: JsValue, i: Int): Long =
+    (report \ "totals" \ 0).toOption.map(metricValue(_, i)).getOrElse(0L)
 }

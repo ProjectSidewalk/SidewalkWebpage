@@ -246,26 +246,6 @@ object UserService {
   val CrossCityHoursBatchSize: Int = 6
 
   /**
-   * Runs `work` over `items` `batchSize` at a time, each batch concurrently and the batches one after another.
-   *
-   * Caps how many connections a wide fan-out can hold at once. Each batch is started inside the previous batch's
-   * continuation, so the futures don't all begin the moment this is called.
-   *
-   * @param items     Items to process; order is preserved in the result.
-   * @param batchSize How many to run concurrently. Must be positive.
-   * @param work      What to run per item.
-   * @return          One result per item, in the order given.
-   */
-  def inBatches[A, B](items: Seq[A], batchSize: Int)(work: A => Future[B])(implicit
-      ec: ExecutionContext
-  ): Future[Seq[B]] = {
-    require(batchSize > 0, s"Batch size must be positive, got $batchSize")
-    items.grouped(batchSize).foldLeft(Future.successful(Seq.empty[B])) { (soFar, batch) =>
-      soFar.flatMap(done => Future.sequence(batch.map(work)).map(done ++ _))
-    }
-  }
-
-  /**
    * Rounds hours to the tenth the Time Check page displays, half-up to match `"%.1f".format` (#4526).
    *
    * @param hours Unrounded hours.
@@ -972,7 +952,7 @@ class UserServiceImpl @Inject() (
         // heavy where the volunteer worked and three index misses where they didn't, and a 52-arm union serializes.
         // Batched rather than started all at once, because the pool has 25 connections and this page is both uncached
         // and reload-heavy — an unbounded fan-out would park every connection and stall the whole instance.
-        UserService
+        Batching
           .inBatches(scope.cities, UserService.CrossCityHoursBatchSize) { case (cityId, schema) =>
             // Building the query can throw on a malformed schema name, and that happens while the argument is evaluated,
             // so it has to be caught here rather than by a recover hung off the db.run future.
