@@ -95,4 +95,40 @@ describe('createNearbyLabelNavigator', () => {
         nav.next(4); // -> 5; every other label is now visited.
         expect(nav.hasNext(5)).toBe(false);
     });
+
+    // A viewport refetch (#5002) swaps mapData.sortedLabels' contents in place; refresh() re-reads them.
+    test('refresh() picks up added labels and drops removed ones', () => {
+        const mapData = mapDataWith({ CurbRamp: [[1, 0, 0], [2, 0.001, 0]] });
+        const nav = loadFactory()(mapData);
+        expect(nav.getCoords(3)).toBeNull();
+
+        // Simulate setLabelData: mutate the arrays in place, as production does, rather than reassigning.
+        mapData.sortedLabels.CurbRamp.length = 0;
+        mapData.sortedLabels.CurbRamp.push(
+            { properties: { label_id: 2 }, geometry: { coordinates: [0.001, 0] } },
+            { properties: { label_id: 3 }, geometry: { coordinates: [0.002, 0] } },
+        );
+        nav.refresh();
+
+        expect(nav.getCoords(3)).toEqual([0.002, 0]);
+        expect(nav.getCoords(1)).toBeNull();
+        expect(nav.next(2)).toBe(3);
+    });
+
+    test('refresh() preserves the prev() trail through labels the refetch dropped', () => {
+        const mapData = mapDataWith({ CurbRamp: [[1, 0, 0], [2, 0.001, 0], [3, 0.002, 0]] });
+        const nav = loadFactory()(mapData);
+        nav.next(1); // -> 2
+        nav.next(2); // -> 3
+
+        mapData.sortedLabels.CurbRamp.length = 0;
+        mapData.sortedLabels.CurbRamp.push({ properties: { label_id: 3 }, geometry: { coordinates: [0.002, 0] } });
+        nav.refresh();
+
+        // The trail retraces even though 1 and 2 are gone from the loaded set (the page falls back to
+        // popup-metadata coords for those), and next() from a dropped label reports nowhere to go.
+        expect(nav.prev(3)).toBe(2);
+        expect(nav.prev(2)).toBe(1);
+        expect(nav.next(1)).toBeNull();
+    });
 });

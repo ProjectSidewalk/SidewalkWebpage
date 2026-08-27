@@ -138,7 +138,7 @@ POST    /labelmap/validate                              controllers.ValidateCont
 POST    /labelmap/comment                               controllers.ValidateController.postLabelMapComment
 
 # Labels
-GET     /labels/all                                     controllers.LabelController.getAllLabelsForLabelMap(regions: Option[String] ?= None, routes: Option[String] ?= None, aiValidationOptions: Option[String] ?= None)
+GET     /labels/all                                     controllers.LabelController.getAllLabelsForLabelMap(regions: Option[String] ?= None, routes: Option[String] ?= None, aiValidationOptions: Option[String] ?= None, bbox: Option[String] ?= None)
 GET     /label/id/:labelId                              controllers.LabelController.getLabelData(labelId: Int)
 POST    /label/edit                                     controllers.LabelController.editLabel
 GET     /label/tags                                     controllers.LabelController.getLabelTags
