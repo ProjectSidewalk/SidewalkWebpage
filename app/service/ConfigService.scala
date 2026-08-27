@@ -1085,7 +1085,8 @@ class ConfigServiceImpl @Inject() (
     configTable: ConfigTable,
     funnelStatTable: FunnelStatTable,
     versionTable: VersionTable,
-    panoDataService: PanoDataService
+    panoDataService: PanoDataService,
+    swrCache: SwrCache
 )(implicit val ec: ExecutionContext)
     extends ConfigService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
@@ -1442,7 +1443,7 @@ class ConfigServiceImpl @Inject() (
   }
 
   def getCityScorecards(): Future[Seq[CityScorecardWithFlags]] = {
-    staleWhileRevalidate[Seq[CityScorecardWithFlags]](
+    swrCache.staleWhileRevalidate[Seq[CityScorecardWithFlags]](
       "getCityScorecards",
       ConfigService.CrossCityFreshFor,
       ConfigService.CrossCityMaxAge
@@ -1466,7 +1467,11 @@ class ConfigServiceImpl @Inject() (
 
   def getCrossCityWeeklyTrend(weeks: Option[Int]): Future[Seq[WeeklyPoint]] = {
     val cacheKey = s"getCrossCityWeeklyTrend_${weeks.map(_.toString).getOrElse("all")}"
-    staleWhileRevalidate[Seq[WeeklyPoint]](cacheKey, ConfigService.CrossCityFreshFor, ConfigService.CrossCityMaxAge) {
+    swrCache.staleWhileRevalidate[Seq[WeeklyPoint]](
+      cacheKey,
+      ConfigService.CrossCityFreshFor,
+      ConfigService.CrossCityMaxAge
+    ) {
       availableCityIds().flatMap { availableCities =>
         val perCityFutures = availableCities.map { cityId =>
           db.run(configTable.getCityWeeklyTrendBySchema(getCitySchema(cityId), weeks))
@@ -1496,7 +1501,7 @@ class ConfigServiceImpl @Inject() (
   }
 
   def getCrossCityDailyTrend(days: Int): Future[Seq[DailyActivity]] = {
-    staleWhileRevalidate[Seq[DailyActivity]](
+    swrCache.staleWhileRevalidate[Seq[DailyActivity]](
       s"getCrossCityDailyTrend_$days",
       ConfigService.CrossCityFreshFor,
       ConfigService.CrossCityMaxAge
@@ -1527,7 +1532,7 @@ class ConfigServiceImpl @Inject() (
   }
 
   def getCrossCityActivitySummary(): Future[CrossCityActivityWindows] = {
-    staleWhileRevalidate[CrossCityActivityWindows](
+    swrCache.staleWhileRevalidate[CrossCityActivityWindows](
       "getCrossCityActivitySummary",
       ConfigService.CrossCityFreshFor,
       ConfigService.CrossCityMaxAge
@@ -1583,7 +1588,7 @@ class ConfigServiceImpl @Inject() (
   }
 
   def getCrossCityLabelingSpeed(): Future[Map[String, Double]] = {
-    staleWhileRevalidate[Map[String, Double]](
+    swrCache.staleWhileRevalidate[Map[String, Double]](
       "getCrossCityLabelingSpeed",
       ConfigService.LabelingSpeedFreshFor,
       ConfigService.LabelingSpeedMaxAge
@@ -1699,64 +1704,6 @@ class ConfigServiceImpl @Inject() (
    */
   private case class AggregateStatsBundle(overall: AggregateStats, byCity: Map[String, CityImpact])
 
-  /** A cached value plus when it was computed, so stale data can be served while a refresh runs (#4600). */
-  private case class Timestamped[T](value: T, computedAt: OffsetDateTime)
-
-  /** In-flight cache recomputes by cache key, so concurrent refreshes of a key share one computation (#4600). */
-  private val refreshesInFlight = scala.collection.mutable.Map.empty[String, Future[_]]
-
-  /**
-   * Serves the cached value for `key` immediately — even when stale — while keeping it fresh in the background.
-   *
-   * When the cached copy is older than `freshFor`, a single background recompute is kicked off and the stale copy is
-   * returned right away; requests arriving while a recompute runs share it rather than piling more load on the
-   * database. Only a request that finds nothing cached at all (first call since JVM start, or the value aged past
-   * `maxAge`) blocks on `compute`.
-   *
-   * @param key      Cache key; must uniquely identify the computation, including any parameters.
-   * @param freshFor Age beyond which serving the cached value also triggers a background recompute.
-   * @param maxAge   Hard cache-eviction bound; past this, a request blocks on recomputing.
-   * @param compute  The expensive computation producing a fresh value.
-   * @return         The cached (possibly stale) value, or the result of `compute` when nothing is cached.
-   */
-  private def staleWhileRevalidate[T: ClassTag](key: String, freshFor: FiniteDuration, maxAge: FiniteDuration)(
-      compute: => Future[T]
-  ): Future[T] = {
-    cacheApi.get[Timestamped[T]](key).flatMap {
-      case Some(cached) =>
-        val ageSeconds = ChronoUnit.SECONDS.between(cached.computedAt, OffsetDateTime.now())
-        if (ageSeconds >= freshFor.toSeconds) { val _ = refreshCachedValue(key, maxAge)(compute) }
-        Future.successful(cached.value)
-      case None => refreshCachedValue(key, maxAge)(compute) // Nothing cached yet: wait for the compute.
-    }
-  }
-
-  /**
-   * Recomputes the value behind `key` and caches it, coalescing concurrent calls into one shared computation.
-   *
-   * @return The freshly computed value, or the computation's failure (already-cached data is left untouched).
-   */
-  private def refreshCachedValue[T](key: String, maxAge: FiniteDuration)(compute: => Future[T]): Future[T] =
-    synchronized {
-      refreshesInFlight.get(key) match {
-        // The cast is safe because a given key is only ever refreshed with one result type.
-        case Some(inFlight) => inFlight.asInstanceOf[Future[T]]
-        case None           =>
-          // Future.delegate guards against `compute` throwing synchronously (before producing a Future): the throw
-          // becomes a failed Future handled by the onComplete logging below, instead of escaping to a caller that
-          // could have been served stale data.
-          val computation = Future.delegate(compute).flatMap { value =>
-            cacheApi.set(key, Timestamped(value, OffsetDateTime.now()), maxAge).map(_ => value)
-          }
-          computation.onComplete { result =>
-            synchronized { val _ = refreshesInFlight.remove(key) }
-            result.failed.foreach(e => logger.warn(s"Recompute of cached '$key' failed: ${e.getMessage}", e))
-          }
-          refreshesInFlight(key) = computation
-          computation
-      }
-    }
-
   def getAggregateStats(): Future[AggregateStats] = aggregateStatsBundle().map(_.overall)
 
   def getAggregateStatsWithCurrentCity(): Future[(AggregateStats, Option[CityImpact])] =
@@ -1771,13 +1718,14 @@ class ConfigServiceImpl @Inject() (
    * recompute triggered once they are older than [[ConfigService.AggregateStatsFreshFor]]. Only the first request
    * after a JVM start (nothing cached yet) waits for the full computation.
    *
-   * The cache key names the value's shape because [[staleWhileRevalidate]] reads `cacheApi.get[Timestamped[T]](key)`
-   * and `T` erases, so nothing would catch a differently-shaped value stored under the same key by other code.
+   * The cache key names the value's shape because [[SwrCache.staleWhileRevalidate]] reads the cached value as
+   * `Timestamped[T]` and `T` erases, so nothing would catch a differently-shaped value stored under the same key by
+   * other code.
    *
    * @return A Future containing the cross-city totals plus each city's own slice of them
    */
   private def aggregateStatsBundle(): Future[AggregateStatsBundle] =
-    staleWhileRevalidate(
+    swrCache.staleWhileRevalidate(
       "getAggregateStats:v2-bundle",
       ConfigService.AggregateStatsFreshFor,
       ConfigService.AggregateStatsMaxAge
@@ -1882,13 +1830,15 @@ class ConfigServiceImpl @Inject() (
     // of it. A per-day row depends only on its own day's data, so slicing cached rows is equivalent to querying with
     // bounds; and because rows are keyed by Pacific date, the slice honors the documented inclusive-Pacific-date
     // window exactly, where the raw-timestamp WHERE it replaced could emit partial edge days outside it.
-    staleWhileRevalidate(
-      s"getAggregateStatsByDay:filterLowQuality=$filterLowQuality",
-      ConfigService.AggregateStatsFreshFor,
-      ConfigService.AggregateStatsMaxAge
-    )(computeAggregateStatsByDay(filterLowQuality)).map { allDays =>
-      allDays.filter(r => startDate.forall(!r.date.isBefore(_)) && endDate.forall(!r.date.isAfter(_)))
-    }
+    swrCache
+      .staleWhileRevalidate(
+        s"getAggregateStatsByDay:filterLowQuality=$filterLowQuality",
+        ConfigService.AggregateStatsFreshFor,
+        ConfigService.AggregateStatsMaxAge
+      )(computeAggregateStatsByDay(filterLowQuality))
+      .map { allDays =>
+        allDays.filter(r => startDate.forall(!r.date.isBefore(_)) && endDate.forall(!r.date.isAfter(_)))
+      }
   }
 
   /**

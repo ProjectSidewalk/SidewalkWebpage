@@ -43,6 +43,7 @@ class AdminController @Inject() (
     osmWayService: service.OsmWayService,
     userService: service.UserService,
     jobRunService: JobRunService,
+    trafficService: TrafficService,
     actorSystem: ActorSystem
 )(implicit ec: ExecutionContext)
     extends CustomBaseController(cc) {
@@ -890,6 +891,35 @@ class AdminController @Inject() (
       })
       Ok(Json.obj("window" -> windowKey, "funnels" -> funnels))
     }
+  }
+
+  /**
+   * Returns every configured city's web-traffic summary from the GA4 Data API (Planning#8), for the Across Cities
+   * page's Traffic section. Owner-only (cross-deployment data). Output is snake_case per the v3 convention.
+   *
+   * GA being unreachable, unconfigured, or mid-outage must never break the dashboard, so every such case degrades to
+   * `available: false` (HTTP 200) and the page renders the section as unavailable.
+   */
+  def getCityTraffic = cc.securityService.SecuredAction(WithOwner()) { implicit request =>
+    cc.loggingService.insert(request.identity.userId, request.ipAddress, request.toString)
+    trafficService
+      .getCityTraffic()
+      .map {
+        case Some(snapshot) =>
+          Ok(
+            Json.obj(
+              "available"       -> true,
+              "fetched_at"      -> snapshot.fetchedAt,
+              "traffic_by_city" -> JsObject(snapshot.cities.map(c => c.cityId -> Json.toJson(c))),
+              "failed_city_ids" -> snapshot.failedCityIds
+            )
+          )
+        case None => Ok(Json.obj("available" -> false))
+      }
+      .recover { case NonFatal(e) =>
+        logger.warn(s"GA traffic unavailable: ${e.getMessage}")
+        Ok(Json.obj("available" -> false))
+      }
   }
 
   /**
