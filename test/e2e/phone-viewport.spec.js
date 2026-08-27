@@ -13,11 +13,15 @@
  * UA those pages currently redirect to /mobileLanding, so listing them today would only re-test it
  * (loadAndSettle's stayed-put URL assert catches a covered page joining that redirect set later).
  *
+ * The label detail card gets its own block at the end, measured against itself: the page walk never opens the
+ * modal, and its `overflow-y: auto` would exempt it from that walk anyway.
+ *
  * Lives apart from explore-validate.spec.js on purpose: that file skips wholesale without a real Google Maps
  * key (absent on fork PRs), and nothing here needs one.
  */
 const {devices} = require('@playwright/test');
-const {test, expect, loadAndSettle, horizontalOverflowReport, STORAGE_STATE} = require('./fixtures');
+const {test, expect, stubMapbox, waitForAppReady, loadAndSettle, horizontalOverflowReport, STORAGE_STATE} =
+  require('./fixtures');
 
 // devices['iPhone 13'] supplies the mobile UA, touch support and DPR. defaultBrowserType is dropped because the
 // suite's chromium project already fixes the browser, and the viewport is widened to the full 390×844 screen.
@@ -86,6 +90,112 @@ test.describe('narrow phone viewport (320px)', () => {
       await checkPhoneViewport(page, context, consoleErrors, p);
     });
   }
+});
+
+/**
+ * Finds a label near the city center from the label feed.
+ *
+ * @param {import('@playwright/test').Page} page - The test's page, used only for its request context.
+ * @returns {Promise<Object|null>} The label's GeoJSON feature, or null when the database has none there (CI's
+ *   near-empty seed).
+ */
+let cachedLabelFeature; // The feed fetch dominates these tests' runtime on a seeded dev DB; one fetch serves all.
+async function findLabelFeature(page) {
+  if (cachedLabelFeature !== undefined) return cachedLabelFeature;
+  const {city_center: center} = await (await page.request.get('/cityMapParams')).json();
+  const pad = 0.05;
+  const bbox = [center.lng - pad, center.lat - pad, center.lng + pad, center.lat + pad].join(',');
+  const feed = await (await page.request.get(`/labels/all?bbox=${bbox}`)).json();
+  cachedLabelFeature = feed.features?.[0] ?? null;
+  return cachedLabelFeature;
+}
+
+/**
+ * Opens a label's detail card by deep link and asserts it doesn't scroll sideways.
+ *
+ * Measured against the card rather than the viewport: horizontalOverflowReport exempts the descendants of a
+ * horizontal scroller, and the card's `overflow-y: auto` computes `overflow-x` to `auto` on the same box. The
+ * meta strip is measured too — it is the row that overflows first, its cells fixed-width but for the address.
+ *
+ * Skips when the database has no label to open (CI's near-empty seed).
+ *
+ * @param {import('@playwright/test').Page} page - The test's page, already at a phone viewport.
+ * @param {Object} [opts] - Options.
+ * @param {boolean} [opts.withoutAddress=false] - Measure with the address cell hidden: the state a label whose
+ *   imagery is gone lands in, leaving no shrinkable cell to absorb a narrow card.
+ */
+async function checkLabelCardFits(page, {withoutAddress = false} = {}) {
+  // Slow from the first step: these load map + modal + pano late in a full run, when the shared browser is heaviest.
+  test.slow();
+  const feature = await findLabelFeature(page);
+  test.skip(!feature, 'the connected database has no labels near the city center');
+  // The page's own feed is stubbed to just this label: the card needs only its one marker, and rendering a
+  // full-city feed can crash the 320px tab outright.
+  await page.route('**/labels/all*', route => route.fulfill({
+    contentType: 'application/json',
+    body: JSON.stringify({type: 'FeatureCollection', features: [feature]}),
+  }));
+  await page.goto(`/labelMap?labelId=${feature.properties.label_id}`);
+  await waitForAppReady(page);
+  await expect(page.locator('#label-modal')).toBeVisible({timeout: 30_000});
+  // The strip refits when the address resolves from the loaded imagery, which is after the card first paints.
+  await page.waitForTimeout(2000);
+
+  if (withoutAddress) {
+    // Hidden rather than stubbed out of the metadata: the loaded imagery re-supplies an address, so a label served
+    // without one still gets one once its pano loads. Hiding the cell is the state #showAddress itself reaches,
+    // and it re-runs the fitter through the same ResizeObserver production uses.
+    await page.evaluate(() => {
+      document.querySelector('.label-detail__meta-cell--address').hidden = true;
+      document.querySelector('.label-detail__meta-divider--address').hidden = true;
+    });
+    await page.waitForTimeout(600);
+  }
+
+  const fit = await page.evaluate(() => {
+    const card = document.getElementById('label-modal');
+    const row = card.querySelector('.label-detail__meta-row');
+    return {
+      cardScrollWidth: card.scrollWidth,
+      cardClientWidth: card.clientWidth,
+      rowScrollWidth: row.scrollWidth,
+      rowClientWidth: row.clientWidth,
+      rowClasses: row.className,
+    };
+  });
+  expect(fit.cardScrollWidth, `the label card scrolls sideways: ${JSON.stringify(fit)}`)
+    .toBeLessThanOrEqual(fit.cardClientWidth + 1);
+  expect(fit.rowScrollWidth, `the meta strip overflows its row: ${JSON.stringify(fit)}`)
+    .toBeLessThanOrEqual(fit.rowClientWidth + 1);
+}
+
+// The label detail card (#4572) is a modal over the map, so the page walk above never opens it. Three cases,
+// because the strip runs out of room two ways: with an address it shrinks that cell and then wraps; without one
+// there is nothing to shrink and the fixed facts have to be trimmed. Same seed caveat as the card grids — with
+// no labels in the database there is nothing to open, and these skip.
+test.describe('phone viewport (390px), label detail card', () => {
+  test.use(IPHONE);
+
+  test('an open label card fits', async ({page, context}) => {
+    await stubMapbox(context);
+    await checkLabelCardFits(page);
+  });
+
+  // The reported case (#5021): the fixed facts needed 388px in a 317px strip, scrolling the whole card ~50px
+  // sideways with its title, section headings and footer buttons clipped off the left edge.
+  test('an open label card fits with no address to shrink', async ({page, context}) => {
+    await stubMapbox(context);
+    await checkLabelCardFits(page, {withoutAddress: true});
+  });
+});
+
+test.describe('narrow phone viewport (320px), label detail card', () => {
+  test.use({...IPHONE, viewport: {width: 320, height: 653}});
+
+  test('an open label card fits', async ({page, context}) => {
+    await stubMapbox(context);
+    await checkLabelCardFits(page);
+  });
 });
 
 test.describe('phone viewport (390px), registered user', () => {
