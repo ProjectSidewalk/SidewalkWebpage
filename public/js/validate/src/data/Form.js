@@ -196,10 +196,11 @@ class Form {
           svv.missionContainer.createAMission(result.mission, result.progress);
           svv.labelContainer.resetLabelList(result.labels, result.mission.label_type_id);
           await svv.labelContainer.renderCurrentLabel();
-          svv.modalMissionComplete.nextMissionLoaded();
+          svv.modalMissionComplete.submissionFinished(true);
         }
       } else {
         // Otherwise, display popup that says there are no more labels left.
+        svv.modalMissionComplete.submissionFinished(false);
         svv.modalMissionComplete.hide();
         svv.modalNoNewMission.show();
       }

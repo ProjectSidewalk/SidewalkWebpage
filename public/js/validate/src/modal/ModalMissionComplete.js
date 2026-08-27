@@ -4,6 +4,8 @@
 class ModalMissionComplete {
   #uiModalMissionComplete;
   #language;
+  #pendingButton;
+  #completedMission;
 
   /**
    * @param {object} uiModalMissionComplete Mission-complete modal UI elements.
@@ -16,28 +18,53 @@ class ModalMissionComplete {
   }
 
   #handleButtonClick = (event) => {
-    // If they've done three missions and clicked the audit button, load the explore page.
-    if (event.data.button === 'primary' && svv.missionsCompleted % 3 === 0 && !util.isMobile()) {
-      window.location.replace('/explore');
-    } else {
-      // If there is a new validate mission available, we should show the mission screens.
-      const newMission = svv.missionContainer.getCurrentMission();
-      if (newMission && newMission.getProperty('missionType') === 'validation') {
-        const labelTypeID = newMission.getProperty('labelTypeId');
-        new MissionStartTutorial(
-          'validate', svv.labelTypes[labelTypeID],
-          { nLabels: newMission.getProperty('labelsValidated') }, svv, this.#language,
-        );
-      }
+    this.#pendingButton = event.data.button;
 
-      this.hide();
+    // Once the user chooses to continue, the completed mission is committed and
+    // can no longer be undone.
+    svv.undoValidation.disableUndo();
 
-      // The new mission's first label rendered while this modal was still up (Form.js loads it before re-enabling
-      // the button), so its halo pulse played unseen. Replay it now that the marker can be seen — or once the
-      // mission-start tutorial raised just above clears (#4790).
-      svv.panoManager.replayMarkerPulse();
-    }
+    this.#setButtonsLoading();
+
+    svv.tracker.push(
+      'MissionComplete',
+      {
+        missionId: this.#completedMission.getProperty('missionId'),
+        missionType: this.#completedMission.getProperty('missionType'),
+        labelTypeId: this.#completedMission.getProperty('labelTypeId'),
+        labelsValidated: this.#completedMission.getProperty('labelsValidated'),
+      },
+    );
+
+    svv.missionContainer.submitCompletedMission();
   };
+
+  #setButtonsLoading() {
+    this.#uiModalMissionComplete.closeButtonPrimary.off('click');
+    this.#uiModalMissionComplete.closeButtonSecondary.off('click');
+
+    this.#uiModalMissionComplete.closeButtonPrimary
+      .removeClass('btn-primary')
+      .addClass('btn-loading');
+
+    this.#uiModalMissionComplete.closeButtonSecondary
+      .removeClass('btn-secondary')
+      .addClass('btn-loading');
+  }
+
+  #enableButtons() {
+    this.#uiModalMissionComplete.closeButtonPrimary
+      .removeClass('btn-loading')
+      .addClass('btn-primary')
+      .off('click')
+      .on('click', { button: 'primary' }, this.#handleButtonClick);
+
+    this.#uiModalMissionComplete.closeButtonSecondary
+      .removeClass('btn-loading')
+      .addClass('btn-secondary')
+      .off('click')
+      .on('click', { button: 'secondary' }, this.#handleButtonClick);
+  }
 
   /**
    * Hides the mission complete menu.
@@ -103,7 +130,6 @@ class ModalMissionComplete {
    */
   show(mission) {
     // Disable keyboard on mobile.
-    svv.undoValidation.disableUndo();
     if (svv.keyboard) {
       svv.keyboard.disableKeyboard();
     }
@@ -113,10 +139,7 @@ class ModalMissionComplete {
 
     // Disable user from clicking the 'Validate next mission' button and set background to gray. When we have a new
     // mission from the back end, nextMissionLoaded() will be called from Form.js to re-enable the button.
-    this.#uiModalMissionComplete.closeButtonPrimary.removeClass('btn-primary');
-    this.#uiModalMissionComplete.closeButtonPrimary.addClass('btn-loading');
-    this.#uiModalMissionComplete.closeButtonSecondary.removeClass('btn-secondary');
-    this.#uiModalMissionComplete.closeButtonSecondary.addClass('btn-loading');
+    this.#enableButtons();
 
     this.#uiModalMissionComplete.background.css('visibility', 'visible');
     this.#uiModalMissionComplete.missionTitle.html(i18next.t('mission-complete.title'));
@@ -153,16 +176,6 @@ class ModalMissionComplete {
       this.#uiModalMissionComplete.closeButtonSecondary.css('visibility', 'hidden');
     }
 
-    svv.tracker.push(
-      'MissionComplete',
-      {
-        missionId: mission.getProperty('missionId'),
-        missionType: mission.getProperty('missionType'),
-        labelTypeId: mission.getProperty('labelTypeId'),
-        labelsValidated: mission.getProperty('labelsValidated'),
-      },
-    );
-
     // Celebrate a newly unlocked mission badge if this completion crossed a threshold.
     BadgeAchievements.recordMissionComplete(document.getElementById('modal-mission-complete-foreground'));
   }
@@ -170,13 +183,34 @@ class ModalMissionComplete {
   /**
    * Re-enables the start next mission button; called once a new mission has loaded from the back end.
    */
-  nextMissionLoaded() {
-    // Enable button clicks, reset the CSS for primary/secondary close buttons.
-    this.#uiModalMissionComplete.closeButtonPrimary.removeClass('btn-loading');
-    this.#uiModalMissionComplete.closeButtonPrimary.addClass('btn-primary');
-    this.#uiModalMissionComplete.closeButtonPrimary.on('click', { button: 'primary' }, this.#handleButtonClick);
-    this.#uiModalMissionComplete.closeButtonSecondary.removeClass('btn-loading');
-    this.#uiModalMissionComplete.closeButtonSecondary.addClass('btn-secondary');
-    this.#uiModalMissionComplete.closeButtonSecondary.on('click', { button: 'secondary' }, this.#handleButtonClick);
+  submissionFinished(hasNextMission) {
+    BadgeAchievements.recordMissionComplete(
+      document.getElementById('modal-mission-complete-foreground'),
+    );
+
+    const button = this.#pendingButton;
+    this.#pendingButton = undefined;
+
+    if (!hasNextMission) return;
+
+    if (button === 'primary' && svv.missionsCompleted % 3 === 0 && !util.isMobile()) {
+      window.location.replace('/explore');
+      return;
+    }
+
+    const newMission = svv.missionContainer.getCurrentMission();
+    if (newMission && newMission.getProperty('missionType') === 'validation') {
+      const labelTypeID = newMission.getProperty('labelTypeId');
+      new MissionStartTutorial(
+        'validate',
+        svv.labelTypes[labelTypeID],
+        { nLabels: newMission.getProperty('labelsValidated') },
+        svv,
+        this.#language,
+      );
+    }
+
+    this.hide();
+    svv.panoManager.replayMarkerPulse();
   }
 }

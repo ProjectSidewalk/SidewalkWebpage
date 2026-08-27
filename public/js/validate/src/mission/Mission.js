@@ -80,36 +80,39 @@ class Mission {
    */
   updateMissionProgress(undo) {
     let labelsProgress = this.getProperty('labelsProgress');
-    if (labelsProgress < this.getProperty('labelsValidated')) {
-      if (undo) {
-        labelsProgress -= 1;
-        const priorLabelFormData = svv.labelContainer.getPriorLabelFormData();
-        this.updateValidationResult(priorLabelFormData.validation_result, true);
-        svv.statusField.decrementLabelCounts();
-        // We either have or have not submitted the last label to the backend.
-        if (svv.labelContainer.getLabelsToSubmit().length > 0) {
-          svv.labelContainer.pop();
-        } else {
-          svv.labelContainer.pushUndoValidation(priorLabelFormData);
-        }
+    const labelsValidated = this.getProperty('labelsValidated');
+
+    if (undo && labelsProgress > 0) {
+      labelsProgress -= 1;
+
+      const priorLabelFormData = svv.labelContainer.getPriorLabelFormData();
+      this.updateValidationResult(priorLabelFormData.validation_result, true);
+      svv.statusField.decrementLabelCounts();
+
+      if (svv.labelContainer.getLabelsToSubmit().length > 0) {
+        svv.labelContainer.pop();
       } else {
-        labelsProgress += 1;
-        svv.statusField.incrementLabelCounts();
+        svv.labelContainer.pushUndoValidation(priorLabelFormData);
       }
 
-      this.setProperty('labelsProgress', labelsProgress);
-      // Submit mission if mission is complete.
-      if (labelsProgress >= this.getProperty('labelsValidated')) {
-        this.setProperty('completed', true);
-        svv.missionContainer.completeAMission();
-        svv.undoValidation.disableUndo();
+      if (this.getProperty('completed')) {
+        this.setProperty('completed', false);
+        svv.missionContainer.cancelMissionCompletion();
       }
+    } else if (!undo && labelsProgress < labelsValidated) {
+      labelsProgress += 1;
+      svv.statusField.incrementLabelCounts();
     }
 
-    // Update progress bar.
-    const labelsInMission = this.getProperty('labelsValidated');
-    svv.statusField.setProgressBar(labelsProgress, labelsInMission);
-    svv.statusField.setProgressText(labelsProgress, labelsInMission);
+    this.setProperty('labelsProgress', labelsProgress);
+
+    if (!undo && labelsProgress >= labelsValidated) {
+      this.setProperty('completed', true);
+      svv.missionContainer.completeAMission();
+    }
+
+    svv.statusField.setProgressBar(labelsProgress, labelsValidated);
+    svv.statusField.setProgressText(labelsProgress, labelsValidated);
   }
 
   /**

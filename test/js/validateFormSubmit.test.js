@@ -47,7 +47,7 @@ describe('Form.submit (issue #2745 resilience)', () => {
                 resetLabelList: jest.fn(),
                 renderCurrentLabel: jest.fn(() => Promise.resolve())
             },
-            modalMissionComplete: { nextMissionLoaded: jest.fn(), hide: jest.fn() },
+            modalMissionComplete: { submissionFinished: jest.fn(), hide: jest.fn() },
             modalNoNewMission: { show: jest.fn() }
         };
 
@@ -179,7 +179,7 @@ describe('Form.submit (issue #2745 resilience)', () => {
         expect(svv.missionContainer.createAMission).toHaveBeenCalledWith(mission, { agree_count: 1 });
         // The label type rides along so the container can ask for replacement labels of the right type (#4810).
         expect(svv.labelContainer.resetLabelList).toHaveBeenCalledWith([{ label_id: 9 }], 3);
-        expect(svv.modalMissionComplete.nextMissionLoaded).toHaveBeenCalled();
+        expect(svv.modalMissionComplete.submissionFinished).toHaveBeenCalledWith(true);
         expect(window.location.reload).not.toHaveBeenCalled();
     });
 
@@ -208,14 +208,15 @@ describe('Form.submit (issue #2745 resilience)', () => {
         expect(global.fetch).toHaveBeenCalledTimes(2);
     });
 
-    test('a non-intermediate submit with no mission available shows the no-new-mission modal', async () => {
-        stubFetchOk({ has_mission_available: false });
+   test('a non-intermediate submit with no mission available shows the no-new-mission modal', async () => {
+      stubFetchOk({ has_mission_available: false });
 
-        await form.submit({});
+      await form.submit({});
 
-        expect(svv.modalMissionComplete.hide).toHaveBeenCalled();
-        expect(svv.modalNoNewMission.show).toHaveBeenCalled();
-    });
+      expect(svv.modalMissionComplete.submissionFinished).toHaveBeenCalledWith(false);
+      expect(svv.modalMissionComplete.hide).toHaveBeenCalled();
+      expect(svv.modalNoNewMission.show).toHaveBeenCalled();
+  });
 
     test('a mission-available response with a null mission is a no-op (mid-mission flush shape)', async () => {
         // The server returns has_mission_available:true with mission:null while a mission is still in progress; the
@@ -314,7 +315,7 @@ describe('Form.submit (issue #2745 resilience)', () => {
 
         expect(global.fetch).toHaveBeenCalledTimes(2);
         expect(svv.missionContainer.createAMission).toHaveBeenCalledWith({ mission_id: 4 }, {});
-        expect(svv.modalMissionComplete.nextMissionLoaded).toHaveBeenCalled();
+        expect(svv.modalMissionComplete.submissionFinished).toHaveBeenCalledWith(true);
         expect(svv.tracker.push).not.toHaveBeenCalledWith('SubmitFailedGaveUp', expect.anything());
     });
 
@@ -327,7 +328,7 @@ describe('Form.submit (issue #2745 resilience)', () => {
         await jest.advanceTimersByTimeAsync(60000);
 
         expect(errorSpy).toHaveBeenCalled();
-        expect(svv.modalMissionComplete.nextMissionLoaded).not.toHaveBeenCalled();
+        expect(svv.modalMissionComplete.submissionFinished).not.toHaveBeenCalled();
         expect(global.fetch).toHaveBeenCalledTimes(1);
         expect(window.location.reload).not.toHaveBeenCalled();
     });

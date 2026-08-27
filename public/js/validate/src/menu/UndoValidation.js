@@ -37,9 +37,13 @@ class UndoValidation {
     svv.tracker.push('ModalUndo_Click');
     svv.validationMenu.saveValidationState();
 
-    // Progress is rolled back only once the previous label is actually on screen, so that an undo the label container
-    // couldn't complete leaves the mission counting the validation the user still has standing.
-    if (await svv.labelContainer.undoLabel()) {
+    const currentMission = svv.missionContainer.getCurrentMission();
+    const missionJustCompleted = currentMission.isComplete();
+
+    // After the final validation, the current label is still on screen, so there is
+    // no need to move back. Otherwise, only roll back progress once the previous
+    // label has been successfully rendered.
+    if (missionJustCompleted || await svv.labelContainer.undoLabel()) {
       svv.missionContainer.updateAMissionUndoValidation();
       this.disableUndo();
     }

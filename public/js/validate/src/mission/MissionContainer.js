@@ -32,14 +32,23 @@ class MissionContainer {
   }
 
   /**
-   * Submits this mission to the backend.
-   */
+  * Shows the mission-complete state while keeping the final validation undoable.
+  */
+
   completeAMission() {
     svv.missionsCompleted += 1;
     svv.modalMissionComplete.show(this.#currentMission);
+  }
+
+  cancelMissionCompletion() {
+    svv.missionsCompleted -= 1;
+    svv.modalMissionComplete.hide();
+  }
+
+  submitCompletedMission() {
     const data = svv.form.compileSubmissionData(true);
-    svv.form.submit(data); // Note that this happens async. Once finished, it enables start next mission button.
     this.#addToCompletedMissions(this.#currentMission);
+    svv.form.submit(data);
   }
 
   /**
