@@ -1213,21 +1213,29 @@ class LabelDetail {
   }
 
   /**
-   * Keeps the meta strip on a single line (#4572, Mikey review). CSS makes the address the row's only shrinkable
-   * cell, so it ellipsizes rather than letting the row wrap. When that clipping kicks in, hand the address more
-   * room by dropping the least useful bits in order: first the clock time, then the "Details" word (the ⓘ and its
-   * aria-label remain). Idempotent — it resets to the roomiest state before measuring, so it's safe to re-run on
-   * every address change and on card resize.
+   * Keeps the meta strip on a single line (#4572, Mikey review), giving up room in order: the clock time, then the
+   * "Details" word (the ⓘ and its aria-label remain), then wrapping.
+   *
+   * Out of room means the address clips or the fixed cells overflow the row outright. With no address only the
+   * row's own overflow reports it — unhandled, it scrolls the whole card sideways (#5021).
+   *
+   * Idempotent: resets to the roomiest state before measuring, so it is safe to re-run on every address change and
+   * card resize. Reset and re-measure are synchronous, so the driving ResizeObserver sees no net size change.
    */
   #fitMetaRow() {
     const els = this.#els;
-    if (!els.metaRow || !els.addressCell) return;
-    els.metaRow.classList.remove('label-detail__meta-row--no-time', 'label-detail__meta-row--compact-details');
-    if (els.addressCell.hidden) return; // No address competing for the row → nothing to trim.
-    // +1 absorbs sub-pixel rounding so a flush-fitting address doesn't flap the classes on and off.
-    const addressClipped = () => els.address.scrollWidth > els.address.clientWidth + 1;
-    if (addressClipped()) els.metaRow.classList.add('label-detail__meta-row--no-time');
-    if (addressClipped()) els.metaRow.classList.add('label-detail__meta-row--compact-details');
+    if (!els.metaRow) return;
+    els.metaRow.classList.remove('label-detail__meta-row--no-time', 'label-detail__meta-row--compact-details',
+      'label-detail__meta-row--wrap');
+    // +1 absorbs sub-pixel rounding so a flush-fitting row doesn't flap the classes on and off.
+    const rowOverflows = () => els.metaRow.scrollWidth > els.metaRow.clientWidth + 1;
+    const addressClipped = () => Boolean(els.address) && !els.addressCell?.hidden
+      && els.address.scrollWidth > els.address.clientWidth + 1;
+    const cramped = () => addressClipped() || rowOverflows();
+
+    if (cramped()) els.metaRow.classList.add('label-detail__meta-row--no-time');
+    if (cramped()) els.metaRow.classList.add('label-detail__meta-row--compact-details');
+    if (rowOverflows()) els.metaRow.classList.add('label-detail__meta-row--wrap');
   }
 
   /**
