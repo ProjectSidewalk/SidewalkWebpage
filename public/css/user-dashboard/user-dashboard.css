@@ -16,10 +16,10 @@
  * leaderboard's daily distance refresh (.ud-lb-note) — both owner calls.
  */
 
-/* Primary-content tables on the user surface are the page, not a data appendix, so their cells read at body size
-   rather than .ps-table's small; the headers keep the primitive's small-bold so the data stays louder than its
-   labels. */
-.api-content .ps-table { font: var(--text-body-regular); }
+/* The ranked boards are the page, not a data appendix, so their cells read at body size rather than .ps-table's
+   small; the headers keep the primitive's small-bold so the data stays louder than its labels. Scoped to the boards
+   so the compact admin tables on /admin/user/:username keep their dense treatment. */
+.api-content .ud-lb-table, .api-content .ud-cities-table { font: var(--text-body-regular); }
 
 /* Leaderboard tables are capped at ~10 rows, so show them in full — no inner scroll (admin tables keep theirs), and
    overflow visible so the Accuracy header tooltip can escape the wrap. The responsive rule restores mobile scroll. */

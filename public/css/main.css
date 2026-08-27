@@ -524,7 +524,7 @@ textarea.ps-input {
 .ps-table td {
   padding: var(--space-sm) var(--space-md);
   text-align: left;
-  vertical-align: top;
+  vertical-align: middle;
   border-bottom: 1px solid var(--color-neutral-200);
 }
 
@@ -534,6 +534,15 @@ textarea.ps-input {
   background-color: var(--color-neutral-100);
   border-bottom-width: 2px;
   white-space: nowrap;
+}
+
+/* A row header (<th scope="row">) is a body cell that happens to label its row, so it keeps the header's weight
+   but none of its column-header chrome: the fill, the heavier rule, and the nowrap that would push a long name out
+   of the table. */
+.ps-table tbody th {
+  background-color: transparent;
+  border-bottom-width: 1px;
+  white-space: normal;
 }
 
 /* A blue wash rather than neutral-100: a link in a hovered row keeps 4.5:1 on it, and drops under on the grey. Set
@@ -557,7 +566,6 @@ textarea.ps-input {
 .ps-table--compact th,
 .ps-table--compact td {
   padding: var(--space-xs) var(--space-sm);
-  vertical-align: middle;
 }
 
 /* Below var(--breakpoint-xs) a cell's padding is a large share of the width, so trade some of it for content. */
