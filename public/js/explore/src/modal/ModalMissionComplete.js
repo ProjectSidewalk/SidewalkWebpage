@@ -222,7 +222,7 @@ class ModalMissionComplete {
 
     // Previous-missions tier: streets the user finished outside this mission, plus the earlier-completed portion of
     // any mission street the user had partly covered before.
-    const userCompletedTasks = [...this.#taskContainer.getCompletedTasks()];
+    const userCompletedTasks = [...this.#taskContainer.getWalkedTasks()];
     const partialCurrentTask = missionTasks.find((task) => !task.isComplete() && task.getMissionStart(missionId));
     if (partialCurrentTask) userCompletedTasks.push(partialCurrentTask);
 
@@ -247,9 +247,11 @@ class ModalMissionComplete {
       }
     }
 
-    // Community tier: on a route, the streets still left to do; otherwise, all streets completed by any user.
+    // Community tier: on a route, the streets still left to do; otherwise, all streets completed by any user. A street
+    // given up on for missing imagery is drawn as walked above, so leaving it in here would draw it twice — done and
+    // outstanding — on the map celebrating a route the labeler just finished.
     const communityTasks = svl.neighborhoodModel.isRoute
-      ? this.#taskContainer.getIncompleteTasks()
+      ? this.#taskContainer.getUnwalkedTasks()
       : this.#taskContainer.getCompletedTasksAllUsersUsingPriority();
 
     return {

@@ -42,8 +42,16 @@ class MissionController {
       this.#completeTheCurrentMission(mission, neighborhood);
     }
 
+    // Reached standing on a given-up street whenever that path found nothing left to walk. Such a street is submitted
+    // but never finished: endTask sends completed=true, crediting a full audit of a street nobody could look at
+    // (#4922). The submission still has to happen — it carries the mission's completed flag to the server.
     const currentTask = svl.taskContainer.getCurrentTask();
-    svl.taskContainer.endTask(currentTask);
+    if (currentTask.wasGivenUpOnImagery()) {
+      svl.form.submitData(currentTask);
+      svl.taskContainer.updateAuditedDistance();
+    } else {
+      svl.taskContainer.endTask(currentTask);
+    }
 
     svl.modalMissionComplete.update(mission, neighborhood);
     svl.modalMissionComplete.show();
