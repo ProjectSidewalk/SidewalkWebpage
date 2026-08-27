@@ -55,7 +55,8 @@ Standalone and manual — nothing in the app calls it.
    ```bash
    python3.13 scripts/check_streets_for_imagery.py --gsv         # needs GOOGLE_MAPS_API_KEY
    python3.13 scripts/check_streets_for_imagery.py --mapillary   # needs MAPILLARY_ACCESS_TOKEN
-   python3.13 scripts/check_streets_for_imagery.py --infra3d     # needs INFRA3D_CLIENT_ID + INFRA3D_CLIENT_SECRET
+   python3.13 scripts/check_streets_for_imagery.py --infra3d     # needs INFRA3D_CLIENT_ID + INFRA3D_CLIENT_SECRET;
+                                                                 # add --campaign <uid> if the tenant has several
    ```
    It checks each street's endpoints first, then samples points along the street, and flags streets where enough points
    lack imagery. It writes streets without imagery to `db/streets_with_no_imagery.csv`, and a per-street imagery
@@ -80,6 +81,11 @@ differ from the other providers:
 - Frames are filtered server-side to 360° types (`calotte`/`cubemap`), matching the viewer's `setFilter` — Infra3d
   datasets mix in flat mono/stereo photos that Explore can't label on, so a street with only flat frames counts as
   having no imagery.
+- Frames are also restricted to a **campaign** (one drive). The viewer restricts every query to its project's
+  campaigns (the `project_uid` hardcoded in `Infra3dViewer.js`), but our credentials can't read the project, so the
+  scan lists the tenant's campaigns at startup instead: with one campaign (every city today) it's used automatically
+  and printed; with several, the scan lists them and stops until you pass `--campaign <uid>` (repeatable). Without
+  this, frames from any other drive in the tenant would count as imagery Explore can't actually reach.
 
 The token lives 60 minutes and is refreshed automatically during a long scan. Infra3d publishes no rate limit; the
 default `--max-qps 10` is in the range of a single busy browser session, so keep it there (or lower) rather than

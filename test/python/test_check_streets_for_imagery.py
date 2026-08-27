@@ -137,10 +137,59 @@ def test_infra3d_pano_info_unexpected_response_raises(response):
         cs.infra3d_pano_info(response, 47.6, -122.3, 0.015)
 
 
-def test_infra3d_knn_url_encodes_pano_filter():
-    url = cs._infra3d_knn_url('uzh', 47.6, -122.3)
+@pytest.mark.parametrize('frame', [
+    {'longitude': -122.3, 'timestamp': 'x'},  # no latitude
+    {'latitude': 'north', 'longitude': -122.3},  # non-numeric coordinate
+    {'latitude': 47.6, 'longitude': -122.3, 'timestamp': 1718622189},  # numeric, not ISO
+    'not a frame',
+])
+def test_infra3d_pano_info_malformed_frame_raises_api_error(frame):
+    # A bad frame must surface as ImageryApiError (-> the street is FAILED), never as a raw KeyError/TypeError that
+    # would escape process_street and kill the whole scan.
+    with pytest.raises(cs.ImageryApiError, match='malformed'):
+        cs.infra3d_pano_info({'value': [frame]}, 47.6, -122.3, 0.015)
+
+
+def test_infra3d_campaigns_parses_uid_and_name():
+    response = {'value': [{'uid': 'c1', 'name': '2024 Zürich'}, {'uid': 'c2'}]}
+    assert cs.infra3d_campaigns(response) == [('c1', '2024 Zürich'), ('c2', None)]
+
+
+@pytest.mark.parametrize('response', [{'message': 'Unauthorized'}, {'value': [{'name': 'no uid'}]}, {'value': ['x']}])
+def test_infra3d_campaigns_unexpected_response_raises(response):
+    with pytest.raises(cs.ImageryApiError):
+        cs.infra3d_campaigns(response)
+
+
+def test_choose_infra3d_campaigns_uses_the_only_campaign():
+    assert cs.choose_infra3d_campaigns([('c1', 'only')], []) == ['c1']
+
+
+def test_choose_infra3d_campaigns_honors_request():
+    assert cs.choose_infra3d_campaigns([('c1', 'a'), ('c2', 'b')], ['c2', 'c1']) == ['c2', 'c1']
+
+
+def test_choose_infra3d_campaigns_several_without_request_lists_them():
+    with pytest.raises(ValueError, match=r'2 campaigns.*\n  c1  a\n  c2  b'):
+        cs.choose_infra3d_campaigns([('c1', 'a'), ('c2', 'b')], [])
+
+
+def test_choose_infra3d_campaigns_none_in_tenant():
+    with pytest.raises(ValueError, match='0 campaigns'):
+        cs.choose_infra3d_campaigns([], [])
+
+
+def test_choose_infra3d_campaigns_unknown_request_rejected():
+    # Filtering on a uid the tenant doesn't hold makes the knn query time out server-side, so catch it up front.
+    with pytest.raises(ValueError, match='not in this tenant: c9'):
+        cs.choose_infra3d_campaigns([('c1', 'a')], ['c1', 'c9'])
+
+
+def test_infra3d_knn_url_encodes_pano_and_campaign_filter():
+    url = cs._infra3d_knn_url('uzh', 47.6, -122.3, ['c1', 'c2'])
     assert url.startswith('https://api.infra3d.com/framegate/frames/uzh/knn/query?longitude=-122.3&latitude=47.6')
-    assert url.endswith('&filter=type%20in%20%27%28calotte%2C%20cubemap%29%27')
+    assert url.endswith('&filter=type%20in%20%27%28calotte%2C%20cubemap%29%27%20and%20campaign_uid%20in%20%27%28c1'
+                        '%2C%20c2%29%27')
 
 
 def _jwt(claims):
@@ -206,10 +255,49 @@ def test_infra3d_auth_non_200_raises():
         auth.headers()
 
 
-def test_infra3d_auth_scope_without_tenant_raises():
-    auth = _auth(lambda url, data, headers, timeout: _TokenResp(200, _jwt({'exp': 9, 'scope': 'role/user'})),
+@pytest.mark.parametrize('scope', ['role/user', 'framegate/uzh framegate/uzh_winterthur'])
+def test_infra3d_auth_scope_without_exactly_one_tenant_raises(scope):
+    auth = _auth(lambda url, data, headers, timeout: _TokenResp(200, _jwt({'exp': 9, 'scope': scope})),
                  now=lambda: 0)
-    with pytest.raises(cs.ImageryApiError, match='framegate'):
+    with pytest.raises(cs.ImageryApiError, match='exactly one framegate'):
+        auth.headers()
+
+
+class _RawTokenResp:
+    status_code = 200
+    text = ''
+
+    def __init__(self, body):
+        self._body = body
+
+    def json(self):
+        return self._body
+
+
+@pytest.mark.parametrize('body', [
+    {'error': 'captive portal'},  # 200 without an access_token
+    {'access_token': 'not-a-jwt'},  # no payload segment
+    {'access_token': 'h.!!!.s'},  # payload isn't base64/JSON
+    {'access_token': _jwt({'scope': 'framegate/uzh'})},  # no exp
+    {'access_token': 42},
+])
+def test_infra3d_auth_unparseable_token_response_is_api_error(body):
+    auth = _auth(lambda url, data, headers, timeout: _RawTokenResp(body), now=lambda: 0)
+    with pytest.raises(cs.ImageryApiError, match='unexpected Infra3d token response'):
+        auth.headers()
+
+
+def test_infra3d_auth_failed_refresh_keeps_raising():
+    # A refresh that fails validation must not commit the new token/expiry: otherwise the next call would see an
+    # unexpired token, skip the refresh, and carry on with the stale tenant.
+    responses = [_TokenResp(200, _jwt({'exp': 4000, 'scope': 'framegate/uzh'})),
+                 _TokenResp(200, _jwt({'exp': 99999, 'scope': 'role/user'}))]
+    auth = _auth(lambda url, data, headers, timeout: responses.pop(0), now=lambda: 5000)
+    auth.headers()  # first token: fine
+    with pytest.raises(cs.ImageryApiError):  # already past its expiry, so this refreshes -> rejected
+        auth.headers()
+    assert auth.tenant == 'uzh'
+    with pytest.raises(IndexError):  # tries to refresh again rather than serving the rejected token
         auth.headers()
 
 
@@ -440,7 +528,8 @@ class _FakeInfra3dAuth:
 
 
 def _run_process_infra3d(line, fetch):
-    return cs.process_street(_street(line), 'Infra3d', fetch, None, None, None, _FakeInfra3dAuth())
+    scan = cs.Infra3dScan(_FakeInfra3dAuth(), ['c1'])
+    return cs.process_street(_street(line), 'Infra3d', fetch, None, None, None, scan)
 
 
 def _frame_at(url, timestamp='2024-06-17T11:23:09.795417+00:00'):
@@ -462,6 +551,7 @@ def test_process_street_infra3d_has_imagery_with_dates():
     assert (result.oldest_capture, result.newest_capture) == ('2024-06-17', '2024-06-17')
     assert result.n_panos >= 3
     assert all(url.startswith('https://api.infra3d.com/framegate/frames/uzh/knn/query?') for url, _ in seen)
+    assert all('campaign_uid%20in%20%27%28c1%29%27' in url for url, _ in seen)
     assert all(kw == {'method': 'POST', 'headers': {'Authorization': 'Bearer t'}} for _, kw in seen)
 
 
@@ -729,13 +819,49 @@ def _infra3d_token_post(status_code=200):
     return post
 
 
-def test_main_infra3d_branch(monkeypatch, tmp_path):
+def _setup_infra3d(monkeypatch, tmp_path, campaigns, seen=None):
+    """Fakes a tenant holding ``campaigns`` (``(uid, name)`` pairs) whose every knn query finds no imagery."""
     _setup(monkeypatch, tmp_path, [(100, 1, _LINE_60)], env_var='INFRA3D_CLIENT_ID')
     monkeypatch.setenv('INFRA3D_CLIENT_SECRET', 'dummy')
     monkeypatch.setattr(cs.requests, 'post', _infra3d_token_post())
-    monkeypatch.setattr(cs, '_get_json', lambda url, **kwargs: {'value': []})  # no imagery
+
+    def get_json(url, **kwargs):
+        if seen is not None:
+            seen.append(url)
+        if url == 'https://api.infra3d.com/framegate/campaigns/uzh/query':
+            return {'value': [{'uid': uid, 'name': name} for uid, name in campaigns]}
+        return {'value': []}
+
+    monkeypatch.setattr(cs, '_get_json', get_json)
+
+
+def test_main_infra3d_branch_scopes_to_the_only_campaign(monkeypatch, tmp_path, capsys):
+    seen = []
+    _setup_infra3d(monkeypatch, tmp_path, [('c1', '2024 Zürich')], seen)
     assert cs.main(['--infra3d']) == 0
     assert _output(tmp_path)['street_edge_id'].tolist() == [100]
+    assert 'tenant uzh, campaign(s): c1 (2024 Zürich)' in capsys.readouterr().out
+    assert all('campaign_uid%20in%20%27%28c1%29%27' in url for url in seen[1:])
+
+
+def test_main_infra3d_several_campaigns_need_a_choice(monkeypatch, tmp_path, capsys):
+    _setup_infra3d(monkeypatch, tmp_path, [('c1', 'a'), ('c2', 'b')])
+    assert cs.main(['--infra3d']) == 1
+    out = capsys.readouterr().out
+    assert '--campaign' in out and 'c1  a' in out and 'c2  b' in out
+
+
+def test_main_infra3d_campaign_flag_selects_scope(monkeypatch, tmp_path):
+    seen = []
+    _setup_infra3d(monkeypatch, tmp_path, [('c1', 'a'), ('c2', 'b')], seen)
+    assert cs.main(['--infra3d', '--campaign', 'c2', '--campaign', 'c1']) == 0
+    assert all('campaign_uid%20in%20%27%28c2%2C%20c1%29%27' in url for url in seen[1:])
+
+
+def test_main_infra3d_unknown_campaign_returns_1(monkeypatch, tmp_path, capsys):
+    _setup_infra3d(monkeypatch, tmp_path, [('c1', 'a')])
+    assert cs.main(['--infra3d', '--campaign', 'nope']) == 1
+    assert 'not in this tenant: nope' in capsys.readouterr().out
 
 
 def test_main_infra3d_missing_credentials_returns_1(monkeypatch):
@@ -749,6 +875,21 @@ def test_main_infra3d_token_failure_returns_1(monkeypatch, tmp_path):
     monkeypatch.setenv('INFRA3D_CLIENT_SECRET', 'dummy')
     monkeypatch.setattr(cs.requests, 'post', _infra3d_token_post(status_code=401))
     assert cs.main(['--infra3d']) == 1
+
+
+def test_main_unexpected_worker_error_still_finalizes_outputs(monkeypatch, tmp_path):
+    _setup(monkeypatch, tmp_path, [(100, 1, _LINE_60), (200, 1, _LINE_61)])
+    monkeypatch.setattr(cs.time, 'sleep', lambda *_a: None)
+
+    def get_json(url):
+        if '47.61' in url:
+            raise RuntimeError('a bug, not a network error')
+        return {'status': 'ZERO_RESULTS'}
+
+    monkeypatch.setattr(cs, '_get_json', get_json)
+    with pytest.raises(RuntimeError):  # not swallowed: a bug should still be loud...
+        cs.main(['--gsv', '--workers', '1', '--max-qps', '1000'])
+    assert _output(tmp_path)['street_edge_id'].tolist() == [100]  # ...but the settled streets are written out.
 
 
 def test_main_keyboard_interrupt_finalizes_and_returns_1(monkeypatch, tmp_path):

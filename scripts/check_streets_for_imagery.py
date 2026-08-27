@@ -13,8 +13,9 @@ This is a standalone, manually-run utility (it is not invoked by the app). Workf
 
      ``--gsv`` needs ``GOOGLE_MAPS_API_KEY``; ``--mapillary`` needs ``MAPILLARY_ACCESS_TOKEN``; ``--infra3d`` needs
      ``INFRA3D_CLIENT_ID`` and ``INFRA3D_CLIENT_SECRET`` (one city's pair — the same OAuth client-credentials the app
-     holds per city as ``INFRA3D_CLIENT_ID_<CITY>``). It is ``python3.13`` rather than the container's default
-     ``python3`` because this tool's libraries need Python >= 3.11.
+     holds per city as ``INFRA3D_CLIENT_ID_<CITY>``), plus ``--campaign <uid>`` if the city's tenant holds more than
+     one campaign. It is ``python3.13`` rather than the container's default ``python3`` because this tool's libraries
+     need Python >= 3.11.
   3. It writes streets without imagery to ``db/streets_with_no_imagery.csv``, and a per-street imagery summary
      (presence + capture-date range) to ``db/street_imagery_summary.csv``.
   4. Run ``make hide-streets-without-imagery`` to mark those streets in the database.
@@ -33,7 +34,10 @@ per-city OAuth token the app fetches in ``PanoDataService.getInfra3dToken``. The
 frame with no distance cap, so "imagery here" is decided client-side: the nearest 360° frame within the same 25 m /
 15 m radius GSV bakes into its URL. Flat mono/stereo frames are filtered out server-side, matching the viewer's
 ``setFilter(['in', 'cameraType', 'calotte', 'cubemap'])`` — an Infra3d street with only flat photos is unusable for
-labeling and should count as having no imagery.
+labeling and should count as having no imagery. The viewer also scopes every frame query to its project's campaigns
+(the ``project_uid`` hardcoded in ``Infra3dViewer.js``); our M2M credentials can't read a project, so the scan scopes
+to the tenant's campaign list instead -- the one campaign a city tenant holds today, or the ``--campaign`` uid(s)
+chosen by the operator once there are several -- so it never counts frames Explore can't navigate to.
 
 Resilience (so a long scan survives a flaky network): each request is retried with exponential backoff; a street that
 still fails is logged and the scan continues rather than aborting, and the failed set is retried once at the end (any
@@ -42,7 +46,7 @@ still-failing streets land in ``db/failed_streets.csv``). Progress is checkpoint
 streets. The final ``db/streets_with_no_imagery.csv`` is derived from the checkpoint, so its schema is unchanged.
 
 The pure functions (``create_bounding_box``, ``redistribute_vertices``, ``gsv_has_imagery``, ``mapillary_has_imagery``,
-``infra3d_pano_info``, ``standardize_capture_date``, ``gsv_capture_date``, ``imagery_verdict``,
+``infra3d_pano_info``, ``infra3d_campaigns``, ``standardize_capture_date``, ``gsv_capture_date``, ``imagery_verdict``,
 ``street_has_no_imagery``, ``summarize_dates``) are import-safe and unit-tested in
 ``test/python/test_check_streets_for_imagery.py``; network and file I/O live in thin wrappers and ``main``.
 
@@ -134,6 +138,9 @@ INFRA3D_API_URL = 'https://api.infra3d.com/framegate'
 INFRA3D_API_KEY = '6zGSQ8u14j3AqL8myGcP54rbXS9aLCpr6lY99B9F'
 # 360° frames only, matching Infra3dViewer's setFilter: Explore can't label on Infra3d's flat mono/stereo photos.
 INFRA3D_PANO_FILTER = "type in '(calotte, cubemap)'"
+# Lists a tenant's campaigns (drives). The viewer restricts frames to its project's campaigns and we can't read the
+# project with M2M credentials, so the campaign list is how the scan learns what to restrict to.
+INFRA3D_CAMPAIGNS_URL = '%s/campaigns/%s/query'
 # Infra3d access tokens live 60 minutes; refresh this many seconds before expiry so a long scan never sends a stale one.
 INFRA3D_TOKEN_REFRESH_MARGIN = 300
 
@@ -165,6 +172,9 @@ StreetResult = namedtuple('StreetResult', CHECKPOINT_COLUMNS)
 
 # Imagery seen at one queried location: whether imagery is present and its (standardized) capture date, if any.
 PanoInfo = namedtuple('PanoInfo', ['has_imagery', 'capture_date'])
+
+# What an Infra3d scan needs per request: the token holder and the campaign uids every frame query is restricted to.
+Infra3dScan = namedtuple('Infra3dScan', ['auth', 'campaign_uids'])
 
 
 class ImageryApiError(Exception):
@@ -203,13 +213,19 @@ class Infra3dAuth:
         if response.status_code != 200:
             raise ImageryApiError('Infra3d token request failed with status %d: %s' % (response.status_code,
                                                                                       response.text))
-        self._token = response.json()['access_token']
-        claims = _jwt_claims(self._token)
-        self._expires_at = claims['exp']
-        tenants = [s.split('/', 1)[1] for s in claims.get('scope', '').split() if s.startswith('framegate/')]
-        if not tenants:
-            raise ImageryApiError('Infra3d token carries no framegate/<tenant> scope: %s' % claims.get('scope'))
-        self.tenant = tenants[0]
+        # Validate everything into locals before touching self: a refresh that fails halfway must not leave a fresh
+        # expiry next to a stale tenant, or the next headers() call would skip the refresh and stop raising.
+        try:
+            token = response.json()['access_token']
+            claims = _jwt_claims(token)
+            expires_at = claims['exp']
+            scope = claims.get('scope', '')
+        except (KeyError, IndexError, TypeError, ValueError, AttributeError) as err:
+            raise ImageryApiError('unexpected Infra3d token response: %r' % err) from err
+        tenants = [s.split('/', 1)[1] for s in scope.split() if s.startswith('framegate/')]
+        if len(tenants) != 1:
+            raise ImageryApiError('Infra3d token must carry exactly one framegate/<tenant> scope, got: %s' % scope)
+        self._token, self._expires_at, self.tenant = token, expires_at, tenants[0]
 
     def headers(self):
         """Returns the auth headers for a framegate request, minting/refreshing the token first if needed."""
@@ -387,17 +403,45 @@ def infra3d_pano_info(response_json, lat, lng, radius_km):
         A ``PanoInfo``: imagery present iff the nearest frame is within the radius, with that frame's capture date.
 
     Raises:
-        ImageryApiError: If the response has no ``value`` list (auth failure, bad request, ...).
+        ImageryApiError: If the response has no ``value`` list (auth failure, bad request, ...) or a frame is malformed.
     """
-    frames = response_json.get('value') if isinstance(response_json, dict) else None
-    if not isinstance(frames, list):
-        raise ImageryApiError('unexpected Infra3d response: ' + json.dumps(response_json)[:200])
+    frames = _infra3d_value_list(response_json)
     if not frames:
         return PanoInfo(False, None)
-    nearest = min(frames, key=lambda f: geodesic((lat, lng), (f['latitude'], f['longitude'])).km)
-    if geodesic((lat, lng), (nearest['latitude'], nearest['longitude'])).km > radius_km:
-        return PanoInfo(False, None)
-    return PanoInfo(True, standardize_capture_date((nearest.get('timestamp') or '')[:10]))
+    try:
+        nearest = min(frames, key=lambda f: geodesic((lat, lng), (f['latitude'], f['longitude'])).km)
+        if geodesic((lat, lng), (nearest['latitude'], nearest['longitude'])).km > radius_km:
+            return PanoInfo(False, None)
+        return PanoInfo(True, standardize_capture_date((nearest.get('timestamp') or '')[:10]))
+    except (KeyError, TypeError, ValueError, AttributeError) as err:
+        raise ImageryApiError('malformed Infra3d frame: %r' % err) from err
+
+
+def infra3d_campaigns(response_json):
+    """
+    Interprets an Infra3d campaign-list (``campaigns/{tenant}/query``) response.
+
+    Args:
+        response_json: The decoded JSON from the framegate campaigns endpoint (``{"value": [campaign, ...]}``).
+
+    Returns:
+        ``(uid, name)`` pairs, one per campaign, in the API's order.
+
+    Raises:
+        ImageryApiError: If the response has no ``value`` list or a campaign has no ``uid``.
+    """
+    try:
+        return [(c['uid'], c.get('name')) for c in _infra3d_value_list(response_json)]
+    except (KeyError, TypeError, AttributeError) as err:
+        raise ImageryApiError('malformed Infra3d campaign: %r' % err) from err
+
+
+def _infra3d_value_list(response_json):
+    """Returns the ``value`` list of a framegate query response, or raises ``ImageryApiError`` if there isn't one."""
+    value = response_json.get('value') if isinstance(response_json, dict) else None
+    if not isinstance(value, list):
+        raise ImageryApiError('unexpected Infra3d response: ' + json.dumps(response_json)[:200])
+    return value
 
 
 def imagery_verdict(n_fail, n_success, n_coords, endpoint_failed):
@@ -508,17 +552,56 @@ def _mapillary_bbox_url(mapillary_url, lat, lng, radius_km):
     return mapillary_url + '&bbox=' + ','.join(str(coord) for coord in bbox)
 
 
-def _infra3d_knn_url(tenant, lat, lng):
-    """Builds the framegate nearest-360°-frame query URL for a point."""
+def _infra3d_frame_filter(campaign_uids):
+    """The framegate ``filter`` restricting frames to 360° types within the given campaigns, as the viewer does."""
+    return "%s and campaign_uid in '(%s)'" % (INFRA3D_PANO_FILTER, ', '.join(campaign_uids))
+
+
+def _infra3d_knn_url(tenant, lat, lng, campaign_uids):
+    """Builds the framegate nearest-360°-frame query URL for a point, scoped to ``campaign_uids``."""
     return '%s/frames/%s/knn/query?longitude=%s&latitude=%s&filter=%s' % (
-        INFRA3D_API_URL, tenant, lng, lat, quote(INFRA3D_PANO_FILTER, safe=''))
+        INFRA3D_API_URL, tenant, lng, lat, quote(_infra3d_frame_filter(campaign_uids), safe=''))
 
 
-def _infra3d_point_pano_info(auth, lat, lng, radius_km, fetch):
+def _infra3d_point_pano_info(infra3d, lat, lng, radius_km, fetch):
     """Queries Infra3d for the nearest 360° frame to a point (via ``fetch``) and returns its ``PanoInfo``."""
-    headers = auth.headers()  # Before the URL: minting the token is what populates auth.tenant.
-    response = fetch(_infra3d_knn_url(auth.tenant, lat, lng), method='POST', headers=headers)
-    return infra3d_pano_info(response, lat, lng, radius_km)
+    headers = infra3d.auth.headers()  # Before the URL: minting the token is what populates auth.tenant.
+    url = _infra3d_knn_url(infra3d.auth.tenant, lat, lng, infra3d.campaign_uids)
+    return infra3d_pano_info(fetch(url, method='POST', headers=headers), lat, lng, radius_km)
+
+
+def _infra3d_list_campaigns(auth, fetch):
+    """Lists the campaigns the token's tenant holds, as ``(uid, name)`` pairs."""
+    headers = auth.headers()
+    return infra3d_campaigns(fetch(INFRA3D_CAMPAIGNS_URL % (INFRA3D_API_URL, auth.tenant), method='POST',
+                                   headers=headers))
+
+
+def choose_infra3d_campaigns(campaigns, requested):
+    """
+    Picks the campaign uids an Infra3d scan is restricted to.
+
+    Args:
+        campaigns: ``(uid, name)`` pairs of every campaign in the tenant.
+        requested: Campaign uids named on the command line (may be empty).
+
+    Returns:
+        ``requested`` if given, else the tenant's only campaign.
+
+    Raises:
+        ValueError: If a requested uid isn't in the tenant, or nothing was requested and the tenant holds zero or
+                    several campaigns (the message lists them, so the operator can pick with ``--campaign``).
+    """
+    known = {uid for uid, _ in campaigns}
+    if requested:
+        unknown = [uid for uid in requested if uid not in known]
+        if unknown:
+            raise ValueError('campaign(s) not in this tenant: %s' % ', '.join(unknown))
+        return list(requested)
+    if len(campaigns) != 1:
+        listing = ''.join('\n  %s  %s' % c for c in campaigns) or ' (none)'
+        raise ValueError('tenant holds %d campaigns; pick with --campaign <uid>:%s' % (len(campaigns), listing))
+    return [campaigns[0][0]]
 
 
 def _pano_info(api, response_json):
@@ -533,26 +616,27 @@ def _pano_info(api, response_json):
     return PanoInfo(mapillary_has_imagery(response_json), None)
 
 
-def _point_pano_info(api, lat, lng, fetch, gsv_url, mapillary_url, radius_km, infra3d_auth=None):
+def _point_pano_info(api, lat, lng, fetch, gsv_url, mapillary_url, radius_km, infra3d=None):
     """
     Queries the configured provider at one point (via ``fetch``) and returns its ``PanoInfo``.
 
     ``radius_km`` is the Mapillary bbox half-extent / Infra3d max frame distance; GSV bakes its radius into ``gsv_url``.
+    ``infra3d`` is the ``Infra3dScan`` (token holder + campaign scope), needed only for that provider.
     """
     if api == 'GSV':
         return _pano_info(api, fetch(gsv_url + '&location=' + str(lat) + ',' + str(lng)))
     if api == 'Infra3d':
-        return _infra3d_point_pano_info(infra3d_auth, lat, lng, radius_km, fetch)
+        return _infra3d_point_pano_info(infra3d, lat, lng, radius_km, fetch)
     return _pano_info(api, fetch(_mapillary_bbox_url(mapillary_url, lat, lng, radius_km)))
 
 
-def _check_endpoints(street, api, fetch, gsv_url_endpoint, mapillary_url, infra3d_auth=None):
+def _check_endpoints(street, api, fetch, gsv_url_endpoint, mapillary_url, infra3d=None):
     """Checks both of a street's endpoints; returns ``(first_pano_info, second_pano_info)``."""
     # GSV carries its radius in the URL, so the endpoint URL goes where the along-street point URL normally would.
     first = _point_pano_info(api, street.y1, street.x1, fetch, gsv_url_endpoint, mapillary_url, ENDPOINT_RADIUS_KM,
-                             infra3d_auth)
+                             infra3d)
     second = _point_pano_info(api, street.y2, street.x2, fetch, gsv_url_endpoint, mapillary_url, ENDPOINT_RADIUS_KM,
-                              infra3d_auth)
+                              infra3d)
     return first, second
 
 
@@ -571,7 +655,7 @@ def summarize_dates(dates):
     return min(dates), max(dates), len(dates)
 
 
-def process_street(street, api, fetch, gsv_url, gsv_url_endpoint, mapillary_url, infra3d_auth=None):
+def process_street(street, api, fetch, gsv_url, gsv_url_endpoint, mapillary_url, infra3d=None):
     """
     Checks one street for imagery and returns its outcome (pure of any file/checkpoint I/O, so it is pool-safe).
 
@@ -586,7 +670,7 @@ def process_street(street, api, fetch, gsv_url, gsv_url_endpoint, mapillary_url,
         gsv_url:          GSV metadata base URL with the along-street radius baked in (GSV only).
         gsv_url_endpoint: GSV metadata base URL with the endpoint radius baked in (GSV only).
         mapillary_url:    Mapillary images base URL (Mapillary only).
-        infra3d_auth:     An ``Infra3dAuth`` supplying the tenant and bearer headers (Infra3d only).
+        infra3d:          An ``Infra3dScan`` (token holder + campaign scope) (Infra3d only).
 
     Returns:
         A ``StreetResult`` with outcome ``NO_IMAGERY`` / ``HAS_IMAGERY`` / ``FAILED`` and, for settled streets, the
@@ -594,7 +678,7 @@ def process_street(street, api, fetch, gsv_url, gsv_url_endpoint, mapillary_url,
         early-exit point sampling means no extra API calls are made.
     """
     try:
-        first, second = _check_endpoints(street, api, fetch, gsv_url_endpoint, mapillary_url, infra3d_auth)
+        first, second = _check_endpoints(street, api, fetch, gsv_url_endpoint, mapillary_url, infra3d)
         coords = list(street['geom'].coords)
         dates = [d for d in (first.capture_date, second.capture_date) if d]
 
@@ -606,7 +690,7 @@ def process_street(street, api, fetch, gsv_url, gsv_url_endpoint, mapillary_url,
             # real street, which has >= 2 points), so the generator is abandoned rather than run to completion.
             for coord in coords:  # pragma: no branch  -- Shapely coords are (x=lng, y=lat).
                 info = _point_pano_info(api, coord[1], coord[0], fetch, gsv_url, mapillary_url, POINT_RADIUS_KM,
-                                        infra3d_auth)
+                                        infra3d)
                 if info.capture_date:
                     dates.append(info.capture_date)
                 yield info.has_imagery
@@ -686,7 +770,7 @@ def main(argv=None):
         argv: Optional argument list (defaults to ``sys.argv``); accepted to make the entrypoint testable.
 
     Returns:
-        Process exit code: 0 on success, 1 on a missing API key or a user interrupt.
+        Process exit code: 0 on success, 1 on a missing API key, an unusable Infra3d setup, or a user interrupt.
     """
     parser = argparse.ArgumentParser(
         description='Loops through streets, outputting any without imagery to a separate file.')
@@ -696,26 +780,37 @@ def main(argv=None):
                           help='Check for Mapillary imagery (needs MAPILLARY_ACCESS_TOKEN)')
     provider.add_argument('--infra3d', action='store_true',
                           help='Check for Infra3d imagery (needs INFRA3D_CLIENT_ID + INFRA3D_CLIENT_SECRET)')
+    parser.add_argument('--campaign', action='append', default=[], metavar='UID',
+                        help='Infra3d campaign to count imagery from (repeatable). Required only when the tenant '
+                             'holds more than one campaign; the scan lists them if so.')
     parser.add_argument('--workers', type=int, default=DEFAULT_WORKERS,
                         help='Number of streets to check concurrently (default: %(default)s).')
     parser.add_argument('--max-qps', type=float, default=DEFAULT_MAX_QPS,
                         help='Global cap on requests per second across all workers (default: %(default)s).')
     args = parser.parse_args(argv)
     api = 'GSV' if args.gsv else 'Mapillary' if args.mapillary else 'Infra3d'
+    # One shared rate limiter caps total request rate across all worker threads.
+    fetch = make_fetch(rate_limiter=RateLimiter(args.max_qps))
 
     api_key = None
-    infra3d_auth = None
+    infra3d = None
     if api == 'Infra3d':
         client_id, client_secret = os.getenv('INFRA3D_CLIENT_ID'), os.getenv('INFRA3D_CLIENT_SECRET')
         if client_id is None or client_secret is None:
             print("Couldn't read INFRA3D_CLIENT_ID / INFRA3D_CLIENT_SECRET environment variables.")
             return 1
-        infra3d_auth = Infra3dAuth(client_id, client_secret)
+        auth = Infra3dAuth(client_id, client_secret)
         try:
-            infra3d_auth.headers()  # Mint the first token up front so bad credentials fail fast, not per street.
-        except (requests.exceptions.RequestException, ImageryApiError) as err:
-            print("Couldn't get an Infra3d access token: %s" % err)
+            # Minting the token and listing campaigns up front makes bad credentials fail fast, not per street.
+            campaigns = _infra3d_list_campaigns(auth, fetch)
+            campaign_uids = choose_infra3d_campaigns(campaigns, args.campaign)
+        except (requests.exceptions.RequestException, ImageryApiError, ValueError) as err:
+            print("Couldn't set up the Infra3d scan: %s" % err)
             return 1
+        infra3d = Infra3dScan(auth, campaign_uids)
+        names = dict(campaigns)
+        print('Checking Infra3d tenant %s, campaign(s): %s' % (
+            auth.tenant, ', '.join('%s (%s)' % (uid, names[uid]) for uid in campaign_uids)))
     else:
         api_key = os.getenv('GOOGLE_MAPS_API_KEY') if api == 'GSV' else os.getenv('MAPILLARY_ACCESS_TOKEN')
         if api_key is None:
@@ -738,12 +833,10 @@ def main(argv=None):
     gsv_url = gsv_base_url + '&radius=15'
     gsv_url_endpoint = gsv_base_url + '&radius=25'
     mapillary_url = 'https://graph.mapillary.com/images?is_pano=true&access_token=%s' % api_key
-    # One shared rate limiter caps total request rate across all worker threads.
-    fetch = make_fetch(rate_limiter=RateLimiter(args.max_qps))
     checkpoint_lock = threading.Lock()
 
     def check_and_record(street):
-        result = process_street(street, api, fetch, gsv_url, gsv_url_endpoint, mapillary_url, infra3d_auth)
+        result = process_street(street, api, fetch, gsv_url, gsv_url_endpoint, mapillary_url, infra3d)
         with checkpoint_lock:  # process_street does no file I/O; only the checkpoint append needs serializing.
             append_checkpoint(result, checkpoint_path)
         return result
@@ -776,10 +869,11 @@ def main(argv=None):
                 future.result()
     except KeyboardInterrupt:
         print("\nInterrupted; progress saved to the checkpoint. Re-run to resume.")
-        finalize_outputs(checkpoint_path, output_path, failed_path, summary_path)
         return 1
-
-    finalize_outputs(checkpoint_path, output_path, failed_path, summary_path)
+    finally:
+        # Derive the outputs however the scan ended -- interrupt, or a bug escaping a worker -- so the streets already
+        # settled in the checkpoint are never lost to a traceback.
+        finalize_outputs(checkpoint_path, output_path, failed_path, summary_path)
     return 0
 
 
