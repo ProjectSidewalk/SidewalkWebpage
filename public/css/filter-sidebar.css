@@ -8,7 +8,6 @@
   top: 0;
   left: 0;
   bottom: 0;
-  margin-top: 15px;
   width: 350px;
   background: #fefefe;
   box-shadow: 2px 0 6px rgb(0 0 0 / 12%);
@@ -103,7 +102,7 @@
 /* Drag handle for resizing the sidebar width. Sits on the right edge of the sidebar. */
 .filter-sidebar__resize-handle {
   position: absolute;
-  top: 20px; /* Matches .filter-sidebar margin-top so the handle aligns with the visible edge. */
+  top: 0;
   bottom: 0;
   left: 350px; /* The sidebar's default width; MapSidebarDrawer restamps it on init and on every drag. */
   width: 6px;
@@ -131,7 +130,6 @@ body.filter-sidebar-resizing {
   position: absolute;
   top: 12px;
   left: 12px;
-  margin-top: 20px;
   z-index: 10;
   background: var(--color-neutral-white);
   border: 1px solid #cccccc;

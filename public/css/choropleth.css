@@ -56,19 +56,6 @@
   margin-top: 0; /* Sit flush under the navbar (overrides the shared 15px above). */
 }
 
-/* Drop the top gap the shared sidebar chrome leaves, so it too sits flush in full-window mode. */
-#labelmap-choropleth-holder .filter-sidebar {
-  margin-top: 0;
-}
-
-#labelmap-choropleth-holder .filter-sidebar__resize-handle {
-  top: 0;
-}
-
-#labelmap-choropleth-holder .filter-sidebar-open-btn {
-  margin-top: 0;
-}
-
 /*
  * Loading indicator shown over the map while the label layer streams in (#4370/#4447). A centered
  * floating card (not a full-map scrim) so it reads over the light basemap without blacking it out, and
