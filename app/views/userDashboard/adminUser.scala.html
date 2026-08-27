@@ -41,20 +41,20 @@
     <div class="ud-form">
       <div class="ud-field">
         <label class="ud-label" for="au-username">Username</label>
-        <input class="ud-input" id="au-username" type="text" value="@user.username" maxlength="30" autocomplete="off" spellcheck="false" @disabledIf(isOwner)>
+        <input class="ps-input ps-input--large" id="au-username" type="text" value="@user.username" maxlength="30" autocomplete="off" spellcheck="false" @disabledIf(isOwner)>
         <span class="ud-field-help">@Messages("dashboard.settings.username.help")</span>
       </div>
       <div class="ud-field">
         <label class="ud-label" for="au-email">Email</label>
-        <input class="ud-input" id="au-email" type="email" value="@user.email" readonly disabled>
+        <input class="ps-input ps-input--large" id="au-email" type="email" value="@user.email" readonly disabled>
       </div>
       <div class="ud-field">
         <label class="ud-label" for="au-user-id">User ID</label>
-        <input class="ud-input" id="au-user-id" type="text" value="@user.userId" readonly disabled>
+        <input class="ps-input ps-input--large" id="au-user-id" type="text" value="@user.userId" readonly disabled>
       </div>
       <div class="ud-field">
         <label class="ud-label" for="au-role">Role</label>
-        <select class="ud-input" id="au-role" @disabledIf(roleLocked)>
+        <select class="ps-select ps-select--large" id="au-role" @disabledIf(roleLocked)>
           @if(roleLocked) {
             <option value="@user.role" selected>@user.role</option>
           } else {
@@ -69,7 +69,7 @@
       </div>
       <div class="ud-field">
         <label class="ud-label" for="au-team">Team</label>
-        <select class="ud-input" id="au-team" @disabledIf(isOwner)>
+        <select class="ps-select ps-select--large" id="au-team" @disabledIf(isOwner)>
           <option value="" @selectedIf(currTeam.isEmpty)>No team</option>
           @for(t <- teams.sortBy(_.name)) {
             <option value="@t.teamId" @selectedIf(currTeam.exists(_.teamId==t.teamId))>@t.name@if(!t.open){ (closed)}</option>
@@ -79,7 +79,7 @@
       </div>
       <div class="ud-field">
         <label class="ud-label" for="au-quality">Work quality</label>
-        <select class="ud-input" id="au-quality" @disabledIf(qualityLocked)>
+        <select class="ps-select ps-select--large" id="au-quality" @disabledIf(qualityLocked)>
           <option value="auto" @selectedIf(adminData.userStats.highQualityManual.isEmpty)>Automatic (currently @qualityWord(adminData.userStats.highQuality).toLowerCase)</option>
           <option value="true" @selectedIf(adminData.userStats.highQualityManual.contains(true))>High quality</option>
           <option value="false" @selectedIf(adminData.userStats.highQualityManual.contains(false))>Low quality</option>
@@ -171,7 +171,7 @@
         <div class="ud-form ud-admin-flag" data-flag="@flag">
           <div class="ud-field">
             <label class="ud-label" for="au-date-@flag">@title before</label>
-            <input class="ud-input ud-admin-flag-date" id="au-date-@flag" type="date">
+            <input class="ps-input ps-input--large ud-admin-flag-date" id="au-date-@flag" type="date">
           </div>
           <div class="ud-field-inline">
             <button type="button" class="ud-btn-secondary ud-admin-flag-set">Set flags</button>
@@ -191,7 +191,7 @@
       <details class="ud-admin-details">
         <summary>@adminData.exploreComments.size @if(adminData.exploreComments.size == 1){comment}else{comments}</summary>
         <div class="mgmt-table-scroll">
-          <table class="contrib-table">
+          <table class="ps-table ps-table--compact contrib-table">
             <thead>
               <tr><th scope="col">When</th><th scope="col">Panorama</th><th scope="col">Comment</th></tr>
             </thead>

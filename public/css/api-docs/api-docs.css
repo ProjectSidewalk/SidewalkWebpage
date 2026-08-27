@@ -119,62 +119,12 @@ a:hover {
   color: var(--color-neutral-900);
 }
 
-/* ---- Common Table Styles ---- */
-
-.api-table-wrapper {
-  overflow-x: auto;
-  margin-bottom: var(--space-lg);
-  border-radius: var(--border-radius);
-  box-shadow: var(--box-shadow-sm);
-}
-
-/* Inside the scroller the wrapper owns the vertical rhythm; a table margin would just push the scrollbar
-   away from the content. */
-.api-table-wrapper > table {
-  margin: 0;
-}
-
-.api-table {
-  width: 100%;
-  border-collapse: collapse;
-  border-spacing: 0;
-  font: var(--text-small-regular);
-
-  /* Cells often hold a paragraph with inline code in it; the token's 18px leading is sized for one-line UI copy. */
-  line-height: 1.65;
-}
-
-.api-table th,
-.api-table td {
-  padding: var(--space-sm) var(--space-md);
-  text-align: left;
-  vertical-align: top;
-  border-bottom: 1px solid var(--color-neutral-200);
-}
-
-.api-table th {
-  font: var(--text-small-bold);
-  line-height: 1.65;
-  background-color: var(--color-neutral-100);
-  border-bottom-width: 2px;
-  white-space: nowrap;
-}
-
-/* A blue wash rather than neutral-100: a link in a hovered row keeps 4.5:1 on it, and drops under on the grey. */
-.api-table tbody tr:hover td {
-  background-color: var(--color-blue-200);
-}
+/* ---- Tables: .ps-table (main.css), plus the docs' own column layout ---- */
 
 /* Column widths for the three-column "Field Path / Type / Description" response-field tables. */
 .api-field-col { width: 30%; }
 .api-type-col { width: 15%; }
 .api-desc-col { width: 55%; }
-
-.api-table th.num,
-.api-table td.num {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
 
 /* ---- Code Blocks and Inline Code ---- */
 
@@ -220,7 +170,7 @@ pre > code.language-csv {
    to go but past the screen edge, so wrapping must win over the nowrap look; wider viewports keep code tokens
    on one line (#4883). break-word rather than anywhere: anywhere feeds its break points into min-content
    sizing, letting code-bearing table columns squash below token width instead of engaging the
-   .api-table-wrapper scroller. */
+   .ps-table-wrapper scroller. */
 @media (width <= 768px) {
   :not(pre) > code {
     white-space: normal;
@@ -1105,11 +1055,6 @@ var(--breakpoint-md) → 992px */
 @media (width <= 480px) {
   .api-content {
     padding: var(--space-md);
-  }
-
-  .api-table th,
-  .api-table td {
-    padding: var(--space-xs) var(--space-sm);
   }
 }
 

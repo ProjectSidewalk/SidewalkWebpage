@@ -240,7 +240,7 @@
     </details>
     @if(overall.nonEmpty) {
       <div class="coverage-table-wrap">
-        <table class="coverage-table ud-lb-table">
+        <table class="ps-table coverage-table ud-lb-table">
           <thead>
             @lbHead(Messages("leaderboard.header.mapper"))
           </thead>
@@ -260,7 +260,7 @@
     <p>@Messages("leaderboard.thisweek.intro")</p>
     @if(weekly.nonEmpty) {
       <div class="coverage-table-wrap">
-        <table class="coverage-table ud-lb-table">
+        <table class="ps-table coverage-table ud-lb-table">
           <thead>
             @lbHead(Messages("leaderboard.header.mapper"))
           </thead>
@@ -289,7 +289,7 @@
     <p>@Messages("leaderboard.teams.intro")</p>
     @if(teams.nonEmpty) {
       <div class="coverage-table-wrap">
-        <table class="coverage-table ud-lb-table">
+        <table class="ps-table coverage-table ud-lb-table">
           <thead>
             @lbHead(Messages("leaderboard.header.team"))
           </thead>
@@ -322,7 +322,7 @@
       <p>@Messages("leaderboard.allcities.intro")</p>
       @if(entries.nonEmpty) {
         <div class="coverage-table-wrap">
-          <table class="coverage-table ud-lb-table ud-lb-global">
+          <table class="ps-table coverage-table ud-lb-table ud-lb-global">
             <thead>
               @lbHead(Messages("leaderboard.header.mapper"), Some(Messages("leaderboard.header.topcity")))
             </thead>

@@ -1184,7 +1184,7 @@ class AcrossCitiesPage {
         ].join('');
       }).join('');
     }
-    return `<table class="ac-table"><thead>${head}</thead><tbody>${body}</tbody></table>`;
+    return `<table class="ps-table ps-table--compact ac-table"><thead>${head}</thead><tbody>${body}</tbody></table>`;
   }
 
   /**

@@ -39,10 +39,10 @@
     <p>Explore picks a region before it picks a street, so the region is the unit that decides where labelers get sent, and this is that ranking. It takes the <strong>five</strong> regions with the highest mean priority and chooses one of them at random, then a street within it — again at random among that region's top-priority ties. The four tier columns count streets and add up to <em>Streets</em>. Hover or click a row to brush its streets on the map above.</p>
     <div class="coverage-table-controls">
       <label class="sr-only" for="imagery-region-search">Search regions</label>
-      <input type="search" id="imagery-region-search" class="coverage-table-search" placeholder="Search regions…">
+      <input type="search" id="imagery-region-search" class="ps-input coverage-table-search" placeholder="Search regions…">
     </div>
     <div class="coverage-table-wrap">
-      <table id="imagery-region-table" class="coverage-table"></table>
+      <table id="imagery-region-table" class="ps-table ps-table--compact coverage-table"></table>
     </div>
     <p class="ac-note" id="imagery-region-note"></p>
   </div>
@@ -51,7 +51,7 @@
     <h2 class="api-heading" id="next-streets">Next streets <a href="#next-streets" class="permalink">#</a></h2>
     <p id="imagery-street-intro">The highest-priority streets, with the audit counts that produced each value. Pin a region above to narrow this to that region's queue.</p>
     <div class="coverage-table-wrap">
-      <table id="imagery-street-table" class="coverage-table"></table>
+      <table id="imagery-street-table" class="ps-table ps-table--compact coverage-table"></table>
     </div>
     <p class="ac-note" id="imagery-street-note"></p>
   </div>

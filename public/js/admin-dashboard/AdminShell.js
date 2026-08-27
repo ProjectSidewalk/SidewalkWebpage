@@ -234,7 +234,7 @@ class AdminShell {
     }).join('');
     return `
       <div class="ac-table-wrap">
-        <table class="ac-table">
+        <table class="ps-table ps-table--compact ac-table">
           <thead><tr>${head}</tr></thead>
           <tbody>${bodyHtml}</tbody>
         </table>

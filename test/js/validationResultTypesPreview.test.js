@@ -55,7 +55,8 @@ describe('ValidationResultTypesPreview', () => {
         // The module assigns window.ValidationResultTypesPreview as a singleton; load a clean copy each time so that
         // config mutations from setup() in one test don't bleed into the next.
         delete window.ValidationResultTypesPreview;
-        // apiDocs/layout.scala.html loads the shared table-wrapper helper ahead of every preview script.
+        // apiDocs/layout.scala.html loads the theme and table-wrapper helpers ahead of every preview script.
+        loadGlobalScript('public/js/api-docs/apiDocsTheme.js');
         loadGlobalScript('public/js/api-docs/apiTableWrapper.js');
         loadGlobalScript(MODULE_PATH);
     });
@@ -96,12 +97,12 @@ describe('ValidationResultTypesPreview', () => {
 
         await window.ValidationResultTypesPreview.setup({}).init();
 
-        // The narrow-viewport scroller (#4883) is styled as `.api-table-wrapper > table`, so the table has to be a
+        // The narrow-viewport scroller (#4883) is styled as `.ps-table-wrapper > table`, so the table has to be a
         // direct child; the region needs a focus stop with a role and a name so its off-screen columns are reachable
         // and announced without a pointer (WCAG 2.1.1).
         const container = document.getElementById(CONTAINER_ID);
-        expect(container.querySelector('.api-table-wrapper[role="region"] > table')).not.toBeNull();
-        const wrapper = container.querySelector('.api-table-wrapper');
+        expect(container.querySelector('.ps-table-wrapper[role="region"] > table')).not.toBeNull();
+        const wrapper = container.querySelector('.ps-table-wrapper');
         expect(wrapper.getAttribute('tabindex')).toBe('0');
         expect(wrapper.getAttribute('aria-label')).toBe('Validation result types');
     });

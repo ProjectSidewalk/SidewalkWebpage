@@ -6,7 +6,7 @@
  */
 
 /**
- * Wraps a preview table in the same `.api-table-wrapper` scroller the server-rendered api-docs tables sit in:
+ * Wraps a preview table in the same `.ps-table-wrapper` scroller the server-rendered api-docs tables sit in:
  * on a narrow viewport a wide table scrolls inside it instead of being clipped unreachable by the page's
  * overflow-x clipping (#4883).
  *
@@ -16,7 +16,7 @@
  */
 window.createApiTableWrapper = (table, label) => {
   const wrapper = document.createElement('div');
-  wrapper.className = 'api-table-wrapper';
+  wrapper.className = 'ps-table-wrapper';
   // A scroll region needs keyboard focus so off-screen columns stay reachable without a pointer (WCAG 2.1.1),
   // and a role + name so the focus stop announces as something rather than nothing.
   wrapper.tabIndex = 0;
