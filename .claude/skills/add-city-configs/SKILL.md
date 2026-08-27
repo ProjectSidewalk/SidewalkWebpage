@@ -8,6 +8,10 @@ description: Adds configs for a new city, filling in the cityparams.conf file. A
 1. Fill in a new entry for every config in conf/cityparams.conf for the new city.
     - Set the launch date to be the Friday of the following week.
     - You can use an empty string for the Google Analytics IDs.
+    - `google-analytics-property-id` holds each GA property's *numeric* id (Admin → Property details in GA, or the
+      GA Admin API), not the `G-…` measurement id from the block above it. New GA properties are created inside the
+      "Project Sidewalk - Prod"/"- Test" accounts (Planning#7) — never as new GA accounts. Omitting a city here is
+      safe: it just has no row in the admin Traffic section until the id is added.
 2. Add text translations to `conf/messages/`.
    - In `conf/messages/messages`, a city name is required. If it's in the US and the state isn't already listed, add the new state. If the country isn't listed, add that as well.
    - In `conf/messages/messages.en`, add the state abbreviation if it's in the US.

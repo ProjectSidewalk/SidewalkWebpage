@@ -402,7 +402,7 @@ plumbed through both this app's config *and* the deployment tooling, or it will 
 | **App secrets** | `SIDEWALK_APPLICATION_SECRET`, `SILHOUETTE_SIGNER_KEY`, `SILHOUETTE_CRYPTER_KEY` |
 | **Email** | `SIDEWALK_EMAIL_ADDRESS`, `SIDEWALK_EMAIL_PASSWORD` |
 | **Imagery / maps** | `GOOGLE_MAPS_API_KEY`, `GOOGLE_MAPS_SECRET`, `MAPBOX_API_KEY`, `MAPILLARY_ACCESS_TOKEN`, Infra3d client id/secret (including per-city credentials) |
-| **Other integrations** | `GEMINI_API_KEY`, `SCISTARTER_API_KEY`, `INTERNAL_API_KEY` |
+| **Other integrations** | `GEMINI_API_KEY`, `SCISTARTER_API_KEY`, `INTERNAL_API_KEY`, `GA_SERVICE_ACCOUNT_KEY` (Google Analytics reader — unset just disables the admin traffic reporting) |
 
 > If this table drifts from reality, the authoritative sources are `conf/application.conf` (+ the stage overlays) in
 > this repo and the deployment tooling in the IT ops repo.
