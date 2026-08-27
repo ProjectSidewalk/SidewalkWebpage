@@ -16,9 +16,10 @@ import java.time.{LocalDate, OffsetDateTime}
 
 /**
  * DB-backed tests for the imagery-age poller's table methods (#4384): StreetImageryTable.streetsToPoll (rotation
- * order), noImageryStreetsToPoll (the #4929 regained-imagery rotation), and upsertFromPoll (widen-only date range,
- * per-point median snapshot). Mutating cases run inside rolled-back transactions, leaving the
- * connected DB untouched; requires Postgres+PostGIS like the other DB-backed specs. Actors are disabled.
+ * order), noImageryStreetsToPoll (the #4929 regained-imagery rotation), attributedImagery (the nearest-street rule
+ * the reopen queue's evidence has to survive), and upsertFromPoll (widen-only date range, per-point median snapshot).
+ * Mutating cases run inside rolled-back transactions, leaving the connected DB untouched; requires Postgres+PostGIS
+ * like the other DB-backed specs. Actors are disabled.
  */
 class StreetImageryPollSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb {
 
@@ -168,6 +169,62 @@ class StreetImageryPollSpec extends PlaySpec with GuiceOneAppPerSuite with Rolle
         ids <- streetImageryTable.noImageryStreetsToPoll(1)
       } yield ids)
       ids.size mustBe 1
+    }
+  }
+
+  /**
+   * A short street laid through one position, so that position's nearest street is this one rather than the fixture
+   * being polled -- the corner-pano-on-the-cross-street case in miniature.
+   */
+  private def seedStreetThrough(lat: Double, lng: Double): DBIO[Int] = {
+    val (west, east) = (lng - 0.00002, lng + 0.00002)
+    sql"""
+      INSERT INTO street_edge (street_edge_id, geom, x1, y1, x2, y2, way_type, status)
+      VALUES ((SELECT COALESCE(MAX(street_edge_id), 0) + 1 FROM street_edge),
+              ST_SetSRID(ST_MakeLine(ST_MakePoint($west, $lat), ST_MakePoint($east, $lat)), 4326),
+              $west, $lat, $east, $lat, 'residential', 'open')
+      RETURNING street_edge_id""".as[Int].head
+  }
+
+  "attributedImagery" should {
+    val capture = LocalDate.parse("2025-05-01")
+
+    "count every attributable pano, dated or not, and report the newest date among them" in {
+      val evidence = runRolledBack(for {
+        street <- seedStreet("no_imagery", 0.06)
+        // ~5.5 m off the street: inside the 15 m tolerance, and with nothing else out here to be nearer.
+        (lat, lng) = street.points(1)
+        evidence <- streetImageryTable.attributedImagery(
+          street.streetEdgeId,
+          Seq(PolledPano(lat + 0.00005, lng, Some(capture), 1), PolledPano(lat + 0.00006, lng, None, 1))
+        )
+      } yield evidence)
+
+      // Undated imagery is still imagery: the question this answers is whether any exists, not how old it is.
+      evidence.nPanos mustBe 2
+      evidence.newestCapture mustBe Some(capture)
+    }
+
+    "refuse a pano whose nearest street is a different one" in {
+      val evidence = runRolledBack(for {
+        street <- seedStreet("no_imagery", 0.08)
+        (lat, lng) = street.points(1)
+        _        <- seedStreetThrough(lat + 0.00005, lng)
+        evidence <- streetImageryTable.attributedImagery(
+          street.streetEdgeId,
+          Seq(PolledPano(lat + 0.00005, lng, Some(capture), 1))
+        )
+      } yield evidence)
+
+      // The whole point of reading evidence back through this rule: a reopen candidate built from the raw proximity
+      // filter would claim a pano the pipeline itself credits to the cross street.
+      evidence.nPanos mustBe 0
+      evidence.newestCapture mustBe None
+    }
+
+    "answer zero without a query when the poll saw nothing" in {
+      val evidence = runRolledBack(streetImageryTable.attributedImagery(1, Seq.empty))
+      evidence mustBe AttributedImagery(0, None)
     }
   }
 

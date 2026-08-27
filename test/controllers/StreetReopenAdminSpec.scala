@@ -98,11 +98,11 @@ class StreetReopenAdminSpec extends PlaySpec with RoleSession with GuiceOneAppPe
       try {
         val first = request(DELETE, s"/adminapi/streets/$streetId/reopenCandidate", adminCookies)
         status(first) mustBe OK
-        contentAsJson(first) mustBe Json.obj("status" -> "success", "street_edge_id" -> streetId, "deleted" -> 1)
+        contentAsJson(first) mustBe Json.obj("status" -> "success", "street_edge_id" -> streetId, "dismissed" -> 1)
 
         val second = request(DELETE, s"/adminapi/streets/$streetId/reopenCandidate", adminCookies)
         status(second) mustBe OK
-        (contentAsJson(second) \ "deleted").as[Int] mustBe 0
+        (contentAsJson(second) \ "dismissed").as[Int] mustBe 0
       } finally {
         val _ = run(sqlu"DELETE FROM street_reopen_candidate WHERE street_edge_id = $streetId")
       }

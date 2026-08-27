@@ -15,7 +15,9 @@ import java.time.LocalDate
  * What matters here is the guard discipline: a candidate can only be minted for a street that is still no_imagery
  * (so a race with a reopen can't resurrect a queue entry), evidence refreshes keep the original detection time, and
  * the review read applies the status filter again so a stale row can never offer the admin a Reopen button for an
- * already-open street.
+ * already-open street. Dismissal gets the most attention, because it is the only judgement the poll has to keep
+ * honouring: the row survives it, its evidence freezes at what the admin rejected, and only strictly better evidence
+ * puts the street back in front of them.
  *
  * All cases run inside rolled-back transactions, leaving the connected DB untouched; requires Postgres+PostGIS like
  * the other DB-backed specs. Actors are disabled.
@@ -94,6 +96,96 @@ class StreetReopenCandidateSpec extends PlaySpec with GuiceOneAppPerSuite with R
 
       deleted mustBe 1
       deletedAgain mustBe 0
+    }
+  }
+
+  "dismiss" should {
+    "keep the row, take it out of the queue, and stay idempotent" in {
+      val (dismissed, again, row, queued) = runRolledBack(for {
+        streetId  <- streetInRegion
+        _         <- setStatus(streetId, "no_imagery")
+        _         <- candidateTable.upsertFromPoll(streetId, 2, Some(capture))
+        dismissed <- candidateTable.dismiss(streetId)
+        again     <- candidateTable.dismiss(streetId)
+        row       <- candidateTable.reopenCandidates.filter(_.streetEdgeId === streetId).result.head
+        queued    <- candidateTable.candidatesForReview(1000000)
+      } yield (dismissed, again, row, queued.find(_.streetEdgeId == streetId)))
+
+      dismissed mustBe 1
+      again mustBe 0
+      // The row is the record of the judgement, so it has to survive it -- that is what upsertFromPoll compares
+      // later evidence against.
+      row.dismissedAt mustBe defined
+      queued mustBe None
+    }
+
+    "hold a dismissed street out of the queue until a poll beats the evidence that was dismissed" in {
+      val (afterWeaker, afterMorePanos, afterNewerCapture) = runRolledBack(
+        for {
+          streetId <- streetInRegion
+          _        <- setStatus(streetId, "no_imagery")
+          _        <- candidateTable.upsertFromPoll(streetId, 2, Some(capture))
+          _        <- candidateTable.dismiss(streetId)
+          // Same evidence again, and fewer panos: neither is a reason to ask the admin a second time.
+          _           <- candidateTable.upsertFromPoll(streetId, 2, Some(capture))
+          _           <- candidateTable.upsertFromPoll(streetId, 1, None)
+          afterWeaker <- candidateTable.candidatesForReview(1000000)
+          // More panos than the admin rejected: worth another look.
+          _              <- candidateTable.upsertFromPoll(streetId, 3, Some(capture))
+          afterMorePanos <- candidateTable.candidatesForReview(1000000)
+          _              <- candidateTable.dismiss(streetId)
+          // So is imagery captured more recently than what was rejected, even with no more panos than before.
+          _                 <- candidateTable.upsertFromPoll(streetId, 3, Some(capture.plusMonths(6)))
+          afterNewerCapture <- candidateTable.candidatesForReview(1000000)
+        } yield (
+          afterWeaker.find(_.streetEdgeId == streetId),
+          afterMorePanos.find(_.streetEdgeId == streetId),
+          afterNewerCapture.find(_.streetEdgeId == streetId)
+        )
+      )
+
+      afterWeaker mustBe None
+      afterMorePanos.map(_.nPanos) mustBe Some(3)
+      afterNewerCapture.map(_.newestCapture) mustBe Some(Some(capture.plusMonths(6)))
+    }
+
+    "leave the dismissed evidence frozen, so the bar for re-surfacing can't creep upward poll by poll" in {
+      val row = runRolledBack(for {
+        streetId <- streetInRegion
+        _        <- setStatus(streetId, "no_imagery")
+        _        <- candidateTable.upsertFromPoll(streetId, 2, Some(capture))
+        _        <- candidateTable.dismiss(streetId)
+        _        <- candidateTable.upsertFromPoll(streetId, 1, None)
+        row      <- candidateTable.reopenCandidates.filter(_.streetEdgeId === streetId).result.head
+      } yield row)
+
+      row.nPanos mustBe 2
+      row.newestCapture mustBe Some(capture)
+    }
+  }
+
+  "deleteForNonRetiredStreets" should {
+    "drop evidence about a street whose status has moved on, and keep a retired street's" in {
+      val (retiredSurvived, movedOnDropped) = runRolledBack(for {
+        retired <- streetInRegion
+        movedOn <- sql"""SELECT street_edge_region.street_edge_id
+                         FROM street_edge_region
+                         JOIN region ON street_edge_region.region_id = region.region_id
+                         WHERE region.deleted = FALSE AND street_edge_region.street_edge_id <> $retired
+                         ORDER BY street_edge_region.street_edge_id
+                         LIMIT 1""".as[Int].head
+        _          <- setStatus(retired, "no_imagery")
+        _          <- setStatus(movedOn, "no_imagery")
+        _          <- candidateTable.upsertFromPoll(retired, 2, Some(capture))
+        _          <- candidateTable.upsertFromPoll(movedOn, 2, Some(capture))
+        _          <- setStatus(movedOn, "closed")
+        _          <- candidateTable.deleteForNonRetiredStreets
+        retiredRow <- candidateTable.reopenCandidates.filter(_.streetEdgeId === retired).result.headOption
+        movedOnRow <- candidateTable.reopenCandidates.filter(_.streetEdgeId === movedOn).result.headOption
+      } yield (retiredRow.isDefined, movedOnRow.isEmpty))
+
+      retiredSurvived mustBe true
+      movedOnDropped mustBe true
     }
   }
 

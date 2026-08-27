@@ -14,8 +14,8 @@ ALTER TYPE street_edge_status_change_source ADD VALUE IF NOT EXISTS 'admin_reope
 -- One row per no_imagery street whose latest conclusive poll found attributable imagery -- the evidence behind the
 -- review queue. The poller upserts on each positive poll (bumping last_detected_at and the evidence columns, keeping
 -- first_detected_at) and deletes the row when a later conclusive poll finds nothing, so the queue's promise is
--- always "the most recent poll of this street found imagery". Rows are also deleted when the admin reopens or
--- dismisses the street, and by mark_streets_no_imagery (checker evidence retracts poll evidence).
+-- always "the most recent poll of this street found imagery". Rows are also deleted when the admin reopens the
+-- street, and by mark_streets_no_imagery (checker evidence retracts poll evidence).
 CREATE TABLE street_reopen_candidate (
     street_edge_id INTEGER PRIMARY KEY REFERENCES street_edge (street_edge_id) ON DELETE CASCADE,
     first_detected_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -23,7 +23,13 @@ CREATE TABLE street_reopen_candidate (
     -- A candidate exists only because panos were found, so a zero count is a bug, not a state.
     n_panos INTEGER NOT NULL CHECK (n_panos > 0),
     -- Newest capture date among the attributable panos (NULL when the provider reported no parseable date).
-    newest_capture DATE
+    newest_capture DATE,
+    -- Set when an admin judged the evidence too weak to reopen on. The row is kept rather than deleted so the poll
+    -- can tell "never judged" from "judged and rejected": while this is set, the row is out of the queue and its
+    -- evidence columns are frozen at what the admin saw, and only a poll finding strictly better evidence (more
+    -- panos, or a newer capture) clears it. Deleting instead would re-queue the same street on the same evidence
+    -- every rotation, forever, which is how a review queue stops being read.
+    dismissed_at TIMESTAMPTZ
 );
 ALTER TABLE street_reopen_candidate OWNER TO sidewalk;
 

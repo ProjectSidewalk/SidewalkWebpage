@@ -275,16 +275,19 @@ class AdminDashboardController @Inject() (
 
   /**
    * Dismisses a "Regained imagery" reopen candidate without changing the street (#4929). Idempotent: dismissing a
-   * street that has no candidate row succeeds with `deleted = 0`, since the admin's goal — no queue entry — holds.
+   * street with no queued candidate succeeds with `dismissed = 0`, since the admin's goal — no queue entry — holds.
+   * Only a dismissal that changed something is logged, so the activity trail counts judgements rather than clicks.
    */
   def dismissReopenCandidate(streetEdgeId: Int) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-    streetLifecycleService.dismissReopenCandidate(streetEdgeId).map { deleted =>
-      cc.loggingService.insert(
-        request.identity.userId,
-        request.ipAddress,
-        s"DismissReopenCandidate_Street=$streetEdgeId"
-      )
-      Ok(Json.obj("status" -> "success", "street_edge_id" -> streetEdgeId, "deleted" -> deleted))
+    streetLifecycleService.dismissReopenCandidate(streetEdgeId).map { dismissed =>
+      if (dismissed > 0) {
+        cc.loggingService.insert(
+          request.identity.userId,
+          request.ipAddress,
+          s"DismissReopenCandidate_Street=$streetEdgeId"
+        )
+      }
+      Ok(Json.obj("status" -> "success", "street_edge_id" -> streetEdgeId, "dismissed" -> dismissed))
     }
   }
 

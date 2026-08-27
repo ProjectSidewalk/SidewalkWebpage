@@ -149,8 +149,8 @@ class ImageryAdminSpec extends PlaySpec with RoleSession with GuiceOneAppPerSuit
       status(resp) mustBe OK
       contentType(resp) mustBe Some("application/json")
       val json = contentAsJson(resp)
-      json.as[JsObject].keys mustBe Set("days", "since", "jobs", "run_days", "poll_batch_size", "overdue_after_hours",
-        "poll_job", "sync_job")
+      json.as[JsObject].keys mustBe Set("days", "since", "jobs", "run_days", "poll_batch_size", "no_imagery_batch_size",
+        "overdue_after_hours", "poll_job", "sync_job")
     }
 
     "chart the pipeline's three jobs, in the order they run" in {

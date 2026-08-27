@@ -56,6 +56,8 @@ case class ImageryRunDay(
  * @param jobs              Roster state for the three jobs that make up the pipeline, including never-run ones.
  * @param runDays           Per-night counts across the window.
  * @param pollBatchSize     Streets the poll asks for per night, which sets the rotation's pace.
+ * @param noImageryBatchSize Retired streets the regained-imagery re-check asks for per night, setting the pace of
+ *                          its own separate rotation (#4929).
  * @param overdueAfterHours How long without a successful scheduled run before a job reads as overdue.
  * @param pollJob           Name of the job in `jobs` that polls capture dates, so the page can point at it by role
  *                          rather than keeping its own copy of the name.
@@ -67,6 +69,7 @@ case class ImageryFreshnessReport(
     jobs: Seq[NightlyJobStatus],
     runDays: Seq[ImageryRunDay],
     pollBatchSize: Int,
+    noImageryBatchSize: Int,
     overdueAfterHours: Long,
     pollJob: String,
     syncJob: String
@@ -96,10 +99,11 @@ object ImageryFreshnessReport {
           "reopen_candidates"   -> day.reopenCandidates
         )
       }),
-      "poll_batch_size"     -> report.pollBatchSize,
-      "overdue_after_hours" -> report.overdueAfterHours,
-      "poll_job"            -> report.pollJob,
-      "sync_job"            -> report.syncJob
+      "poll_batch_size"       -> report.pollBatchSize,
+      "no_imagery_batch_size" -> report.noImageryBatchSize,
+      "overdue_after_hours"   -> report.overdueAfterHours,
+      "poll_job"              -> report.pollJob,
+      "sync_job"              -> report.syncJob
     )
   }
 }
@@ -207,7 +211,8 @@ class ImageryFreshnessReportServiceImpl @Inject() (
 
   // The rotation's pace, from the same config key the poller sizes its batch with, so the page can never quote a
   // batch size the poll doesn't use.
-  private val pollBatchSize: Int = config.get[Int]("street-imagery-poll.batch-size")
+  private val pollBatchSize: Int      = config.get[Int]("street-imagery-poll.batch-size")
+  private val noImageryBatchSize: Int = config.get[Int]("street-imagery-poll.no-imagery-batch-size")
 
   /**
    * @param days How far back the nightly series reaches. Clamped to the supported range.
@@ -234,6 +239,7 @@ class ImageryFreshnessReportServiceImpl @Inject() (
       runDays = ImageryFreshnessReportService
         .buildRunDays(runs, ImageryFreshnessReportService.PollJob, ImageryFreshnessReportService.SyncJob),
       pollBatchSize = pollBatchSize,
+      noImageryBatchSize = noImageryBatchSize,
       overdueAfterHours = ScheduledJobs.OverdueAfterHours,
       pollJob = ImageryFreshnessReportService.PollJob,
       syncJob = ImageryFreshnessReportService.SyncJob

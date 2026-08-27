@@ -2750,18 +2750,27 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
   align-items: flex-start;
 }
 
-.stories-queue-btn {
-  padding: 6px 12px;
+/* Shared by the stories moderation queue and the regained-imagery queue (#4929). Type is set in em by each of them,
+   not from a --font-size-* token: those are rem-based and Bootstrap sets a 62.5% document root, so a token renders
+   these at ~8px. em inherits the 16px body size. */
+.stories-queue-btn,
+.reopen-queue-btn {
   border: 1px solid #999999;
   border-radius: 4px;
   background: #ffffff;
   cursor: pointer;
-  font-size: var(--font-size-xs, 0.8125rem);
 }
 
-.stories-queue-btn:hover { background: #f0f0f0; }
+.stories-queue-btn {
+  padding: 6px 12px;
+  font-size: 0.8125em;
+}
 
-.stories-queue-btn:disabled {
+.stories-queue-btn:hover,
+.reopen-queue-btn:hover { background: #f0f0f0; }
+
+.stories-queue-btn:disabled,
+.reopen-queue-btn:disabled {
   opacity: 0.6;
   cursor: wait;
 }
@@ -2771,7 +2780,9 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
   color: #a31217;
 }
 
-.stories-queue-btn:focus-visible {
+.stories-queue-btn:focus-visible,
+.reopen-queue-btn:focus-visible,
+.reopen-queue-locate:focus-visible {
   outline: 2px solid #4a90e2;
   outline-offset: 2px;
 }
@@ -2786,33 +2797,34 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
    Line/bar colors for the status series come from StreetStatusColors.STATUSES, published onto the section as
    --trend-<status> custom properties by StreetStatusTrend so the charts and the map legend can't disagree. */
 
-/* Regained-imagery review queue (#4929): action buttons, styled like the stories moderation buttons. */
+/* Regained-imagery review queue (#4929): action buttons, sharing the stories moderation buttons' look so the two
+   admin queues read as one thing. Sized in em for the same reason .trend-controls below is -- see that note. */
 .reopen-queue-actions {
   white-space: nowrap;
 }
 
 .reopen-queue-btn {
   padding: 4px 10px;
-  border: 1px solid #999999;
-  border-radius: 4px;
-  background: #ffffff;
-  cursor: pointer;
-  font-size: var(--font-size-xs, 0.8125rem);
-}
-
-.reopen-queue-btn:hover { background: #f0f0f0; }
-
-.reopen-queue-btn:disabled {
-  opacity: 0.6;
-  cursor: wait;
-}
-
-.reopen-queue-btn:focus-visible {
-  outline: 2px solid #4a90e2;
-  outline-offset: 2px;
+  font-size: 0.8125em;
 }
 
 .reopen-queue-btn + .reopen-queue-btn { margin-left: 6px; }
+
+/* The street id: an action rather than a link, since a retired street has nothing to open in Explore. Styled as a
+   link so the column still reads as one. */
+.reopen-queue-locate {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-accent-link, #1c6bb0);
+  cursor: pointer;
+  font: inherit;
+  text-decoration: underline;
+}
+
+.reopen-queue-error {
+  color: var(--color-accent-delete, #f93e3e);
+}
 
 /* Sized in em, not the --font-size-* tokens: those are rem-based but the document root is 62.5%, so they render at
    ~8-10px here rather than the 13-16px they name. em inherits the 16px body size and stays legible. */

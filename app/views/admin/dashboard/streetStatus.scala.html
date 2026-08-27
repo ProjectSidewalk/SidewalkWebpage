@@ -39,7 +39,7 @@
 
   <div class="api-section" id="street-status-trend-section">
     <h2 class="api-heading" id="recently-changed">Recently changed <a href="#recently-changed" class="permalink">#</a></h2>
-    <p>Everything above is a snapshot of right now. These are the changes behind it: which streets moved between statuses, where labelers are reporting missing imagery, and how many panoramas the nightly sweep found gone. Street status is written by the maintenance scripts in <code>db/scripts</code>, so a spike here is a script run; reports and expiries accumulate on their own.</p>
+    <p>Everything above is a snapshot of right now. These are the changes behind it: which streets moved between statuses, where labelers are reporting missing imagery, and how many panoramas the nightly sweep found gone. Street status is written by the maintenance scripts in <code>db/scripts</code> — so a spike here is a script run — and, one street at a time, by the Reopen button below; reports and expiries accumulate on their own.</p>
     <div class="trend-controls">
       <label for="trend-range">Window</label>
       @* Windows come from StreetLifecycleService so the offered set and the server's default can't drift apart. *@
@@ -67,7 +67,7 @@
 
   <div class="api-section" id="street-status-queue-section">
     <h2 class="api-heading" id="regained-imagery">Regained imagery <a href="#regained-imagery" class="permalink">#</a></h2>
-    <p>Streets retired as having no imagery where the nightly poll has since found street-view panoramas again — evidence the provider re-drove them. Reopening returns a street to the auditing pool at full priority and lowers its region's completion percentage to match; dismissing clears the evidence, though a later poll can re-queue the street if it finds imagery again.</p>
+    <p>Streets retired as having no imagery where the nightly poll has since found street-view panoramas again — evidence the provider re-drove them. Select a street id to find it on the status map above; a retired street can't be opened in Explore until it is back in the pool. Reopening returns a street to the auditing pool at full priority and lowers its region's completion percentage to match. Dismissing takes the street off this list for good, unless a later poll turns up better evidence than the evidence you dismissed — more panoramas, or a newer capture date.</p>
     <div id="trend-reopen-candidates"></div>
 
     <h2 class="api-heading" id="awaiting-confirmation">Awaiting confirmation <a href="#awaiting-confirmation" class="permalink">#</a></h2>

@@ -74,6 +74,7 @@
     <h3 class="trend-chart-heading">Streets polled per night</h3>
     <p class="trend-note">The dashed line is the nightly batch size — the number of streets the poll asks for — so polled plus skipped should reach it on a healthy night, or fall short only when fewer streets are eligible. <strong>Polled</strong> means the street answered conclusively and had its imagery dates written, advancing the rotation. <strong>Skipped</strong> means at least one of its three sample points came back inconclusive — an expired or rotated API key, a timeout, an unexpected response — so the street is left un-bumped and retried the next night. A confirmed "no imagery here" is <em>not</em> a skip; that is a conclusive answer. On a dev machine the dummy API keys make every call inconclusive, so everything is skipped by design.</p>
     <div class="mini-host" id="imagery-poll-chart"></div>
+    <p class="trend-note" id="imagery-no-imagery-note"></p>
 
     <h3 class="trend-chart-heading">Audits flagged and unflagged per night</h3>
     <p class="trend-note">Flags are raised when at least half a street's sampled points show imagery newer than the audit, and cleared when a later poll walks that median back. Both directions are normal; a long flat run of zeros while the poll is covering ground is not.</p>

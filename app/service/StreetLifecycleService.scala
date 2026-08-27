@@ -2,6 +2,7 @@ package service
 
 import com.google.inject.ImplementedBy
 import models.pano.{PanoDataTable, PanoImageryChangeTable, PanoImageryWeek}
+import models.region.RegionCompletionTable
 import models.street.{
   CorroboratedNoImageryStreet,
   NoImageryReportRegion,
@@ -160,7 +161,8 @@ class StreetLifecycleServiceImpl @Inject() (
     streetEdgeIssueTable: StreetEdgeIssueTable,
     panoDataTable: PanoDataTable,
     panoImageryChangeTable: PanoImageryChangeTable,
-    streetReopenCandidateTable: StreetReopenCandidateTable
+    streetReopenCandidateTable: StreetReopenCandidateTable,
+    regionCompletionTable: RegionCompletionTable
 )(implicit ec: ExecutionContext)
     extends StreetLifecycleService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
@@ -267,7 +269,7 @@ class StreetLifecycleServiceImpl @Inject() (
               );
             """
             _ <- streetReopenCandidateTable.delete(streetEdgeId)
-            _ <- sqlu"TRUNCATE TABLE region_completion;"
+            _ <- regionCompletionTable.truncateTable
           } yield StreetLifecycleService.Reopened
         }
     } yield outcome
@@ -280,14 +282,30 @@ class StreetLifecycleServiceImpl @Inject() (
 
   /**
    * Dismisses a reopen candidate without changing the street (#4929): the admin looked and judged the evidence not
-   * good enough. The street stays in the slow re-poll rotation, so a later positive poll can legitimately re-queue
-   * it with fresh evidence. Clears the Play cache so the cached trend payload can't keep serving the dismissed row.
+   * good enough. The street stays in the slow re-poll rotation, and the dismissed evidence stays on the row as the
+   * bar a later poll has to beat to re-queue it (StreetReopenCandidateTable.dismiss).
    *
-   * @return Number of candidate rows deleted (0 when the street had none).
+   * Invalidates only the cached trend payloads rather than the whole application cache: nothing outside this page's
+   * queue changes, so flushing landing-page stats and config alongside it would be collateral damage.
+   *
+   * @return Number of candidates dismissed (0 when the street had no queued one).
    */
   def dismissReopenCandidate(streetEdgeId: Int): Future[Int] = {
-    db.run(streetReopenCandidateTable.delete(streetEdgeId)).flatMap { deleted =>
-      if (deleted > 0) cacheApi.removeAll().map(_ => deleted) else Future.successful(deleted)
+    db.run(streetReopenCandidateTable.dismiss(streetEdgeId)).flatMap { dismissed =>
+      if (dismissed > 0) invalidateTrendCache.map(_ => dismissed) else Future.successful(dismissed)
     }
+  }
+
+  /**
+   * Drops every cached trend payload.
+   *
+   * Sweeps the whole clamped window range rather than [[StreetLifecycleService.TrendWeekOptions]]: the key is the
+   * clamped `weeks`, so a hand-typed `?weeks=40` mints a key the page's selector never offers, and skipping those
+   * would leave a dismissed row on screen for whoever asked. The range is small and the cache is in-process, so
+   * removing all of it costs less than the one landing-page stat a blanket flush would recompute.
+   */
+  private def invalidateTrendCache: Future[Unit] = {
+    val windows = StreetLifecycleService.MinTrendWeeks to StreetLifecycleService.MaxTrendWeeks
+    Future.traverse(windows)(weeks => cacheApi.remove(s"streetStatus.trend.$weeks")).map(_ => ())
   }
 }

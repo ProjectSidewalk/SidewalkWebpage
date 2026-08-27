@@ -31,6 +31,14 @@ case class StreetToPoll(streetEdgeId: Int, points: Seq[(Double, Double)], geom: 
 case class PolledPano(lat: Double, lng: Double, capture: Option[LocalDate], pointIndex: Int)
 
 /**
+ * What one poll's observations amount to for a single street once the nearest-street rule has been applied (#4929).
+ *
+ * @param nPanos        Distinct attributable positions, dated or not; 0 means nothing there belonged to this street.
+ * @param newestCapture Newest capture date among them, or None when none of them were dated.
+ */
+case class AttributedImagery(nPanos: Int, newestCapture: Option[LocalDate])
+
+/**
  * Which feeder wrote a street_imagery row. Values match the Postgres `street_imagery_source` enum type (356.sql):
  * `pano_data` is the in-app refresh from panos observed while labeling, `imagery_scan` the offline
  * check_streets_for_imagery.py summary (ingested by db/scripts/import-street-imagery.sh), and `imagery_poll` the
@@ -263,34 +271,8 @@ class StreetImageryTable @Inject() (protected val dbConfigProvider: DatabaseConf
     } else {
       // The (offset+1)-th newest per-point date is the youngest date that at least ceil(n/2) sampled points reach.
       val medianOffset = (nPointsSampled + 1) / 2 - 1
-      // Inlined literals are program-built numerics and ISO dates (never user input), so interpolation is safe here.
-      val valuesList = panos
-        .map { pano =>
-          val capture = pano.capture.map(d => s"'$d'::date").getOrElse("NULL::date")
-          s"(${pano.lat}::float8, ${pano.lng}::float8, $capture, ${pano.pointIndex}::int)"
-        }
-        .mkString(", ")
       sqlu"""
-        WITH observed (lat, lng, capture, point_idx) AS (VALUES #$valuesList),
-        kept AS (
-            SELECT observed.lat, observed.lng, observed.capture, observed.point_idx
-            FROM observed
-            WHERE (
-                SELECT street_edge.street_edge_id
-                FROM street_edge
-                WHERE ST_DWithin(street_edge.geom, ST_SetSRID(ST_MakePoint(observed.lng, observed.lat), 4326), 0.001)
-                    AND ST_DWithin(
-                            street_edge.geom::geography,
-                            ST_SetSRID(ST_MakePoint(observed.lng, observed.lat), 4326)::geography,
-                            ${StreetImageryTable.PanoStreetToleranceMeters}
-                        )
-                ORDER BY ST_Distance(
-                             street_edge.geom::geography,
-                             ST_SetSRID(ST_MakePoint(observed.lng, observed.lat), 4326)::geography
-                         )
-                LIMIT 1
-            ) = $streetEdgeId
-        ),
+        #${observedAndKeptCte(streetEdgeId, panos)},
         per_point AS (
             SELECT MAX(kept.capture) AS newest_at_point
             FROM kept
@@ -321,6 +303,78 @@ class StreetImageryTable @Inject() (protected val dbConfigProvider: DatabaseConf
             median_newest_capture = EXCLUDED.median_newest_capture,
             updated_at            = EXCLUDED.updated_at;
       """
+    }
+  }
+
+  /**
+   * The `observed` + `kept` CTE pair every consumer of a poll's observations starts from: the polled positions,
+   * narrowed to the ones whose NEAREST street within PanoStreetToleranceMeters is this street.
+   *
+   * Built as one string, shared by [[upsertFromPoll]] and [[attributedImagery]], so the two cannot drift apart on the
+   * attribution rule. That mattering is the #4929 lesson: a reopen candidate offered to an admin has to be built from
+   * the same evidence street_imagery records, or the queue claims panos the pipeline itself credited to a cross
+   * street.
+   *
+   * Inlined literals are program-built numerics and ISO dates (never user input), so interpolation is safe here.
+   *
+   * @param streetEdgeId The street the observations are being attributed to.
+   * @param panos        The poll's observations; must be non-empty (an empty VALUES list is invalid SQL).
+   */
+  private def observedAndKeptCte(streetEdgeId: Int, panos: Seq[PolledPano]): String = {
+    val valuesList = panos
+      .map { pano =>
+        val capture = pano.capture.map(d => s"'$d'::date").getOrElse("NULL::date")
+        s"(${pano.lat}::float8, ${pano.lng}::float8, $capture, ${pano.pointIndex}::int)"
+      }
+      .mkString(", ")
+    s"""
+        WITH observed (lat, lng, capture, point_idx) AS (VALUES $valuesList),
+        kept AS (
+            SELECT observed.lat, observed.lng, observed.capture, observed.point_idx
+            FROM observed
+            WHERE (
+                SELECT street_edge.street_edge_id
+                FROM street_edge
+                WHERE ST_DWithin(street_edge.geom, ST_SetSRID(ST_MakePoint(observed.lng, observed.lat), 4326), 0.001)
+                    AND ST_DWithin(
+                            street_edge.geom::geography,
+                            ST_SetSRID(ST_MakePoint(observed.lng, observed.lat), 4326)::geography,
+                            ${StreetImageryTable.PanoStreetToleranceMeters}
+                        )
+                ORDER BY ST_Distance(
+                             street_edge.geom::geography,
+                             ST_SetSRID(ST_MakePoint(observed.lng, observed.lat), 4326)::geography
+                         )
+                LIMIT 1
+            ) = $streetEdgeId
+        )"""
+  }
+
+  /**
+   * What [[upsertFromPoll]] attributes to this street from the same observations, read back without writing (#4929).
+   *
+   * The reopen queue's evidence has to survive the nearest-street rule, not just the 15 m proximity filter the caller
+   * applies against this street's own geometry: on a no_imagery street the panos inside that radius are typically
+   * intersection panos belonging to a cross street, which is precisely what [[upsertFromPoll]] refuses to credit here.
+   *
+   * `nPanos` counts every attributable position, dated or not -- deliberately *not* street_imagery.n_panos, which is
+   * filtered to dated panos because it feeds the capture-age median. An undated pano is still imagery, and the
+   * question this answers is whether any exists.
+   *
+   * @param streetEdgeId The polled street.
+   * @param panos        The poll's observations for it.
+   * @return Distinct attributable positions, and the newest capture date among them (None if none were dated).
+   */
+  def attributedImagery(streetEdgeId: Int, panos: Seq[PolledPano]): DBIO[AttributedImagery] = {
+    if (panos.isEmpty) DBIO.successful(AttributedImagery(0, None))
+    else {
+      implicit val getAttributedImagery: GetResult[AttributedImagery] =
+        GetResult(r => AttributedImagery(r.nextInt(), r.nextDateOption().map(_.toLocalDate)))
+      sql"""
+        #${observedAndKeptCte(streetEdgeId, panos)}
+        SELECT COUNT(DISTINCT (kept.lat, kept.lng))::int, MAX(kept.capture)
+        FROM kept
+      """.as[AttributedImagery].head
     }
   }
 

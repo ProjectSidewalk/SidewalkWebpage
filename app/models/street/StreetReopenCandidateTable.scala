@@ -18,13 +18,15 @@ import javax.inject.{Inject, Singleton}
  * @param lastDetectedAt  When the most recent positive poll ran.
  * @param nPanos          Attributable panos the most recent positive poll saw (> 0 by construction).
  * @param newestCapture   Newest capture date among those panos, when the provider reported a parseable one.
+ * @param dismissedAt     When an admin judged this evidence too weak to reopen on; None while the row is queued.
  */
 case class StreetReopenCandidate(
     streetEdgeId: Int,
     firstDetectedAt: OffsetDateTime,
     lastDetectedAt: OffsetDateTime,
     nPanos: Int,
-    newestCapture: Option[LocalDate]
+    newestCapture: Option[LocalDate],
+    dismissedAt: Option[OffsetDateTime]
 )
 
 /** A reopen candidate as the review queue lists it, with its region named for the admin. */
@@ -42,10 +44,11 @@ class StreetReopenCandidateTableDef(tag: Tag) extends Table[StreetReopenCandidat
   def streetEdgeId: Rep[Int]               = column[Int]("street_edge_id", O.PrimaryKey)
   def firstDetectedAt: Rep[OffsetDateTime] = column[OffsetDateTime]("first_detected_at") // DEFAULT now() in the DB.
   def lastDetectedAt: Rep[OffsetDateTime]  = column[OffsetDateTime]("last_detected_at")  // DEFAULT now() in the DB.
-  def nPanos: Rep[Int]                      = column[Int]("n_panos") // DB CHECK (365.sql): n_panos > 0.
-  def newestCapture: Rep[Option[LocalDate]] = column[Option[LocalDate]]("newest_capture")
+  def nPanos: Rep[Int]                         = column[Int]("n_panos") // DB CHECK (365.sql): n_panos > 0.
+  def newestCapture: Rep[Option[LocalDate]]    = column[Option[LocalDate]]("newest_capture")
+  def dismissedAt: Rep[Option[OffsetDateTime]] = column[Option[OffsetDateTime]]("dismissed_at")
 
-  def * = (streetEdgeId, firstDetectedAt, lastDetectedAt, nPanos, newestCapture) <> (
+  def * = (streetEdgeId, firstDetectedAt, lastDetectedAt, nPanos, newestCapture, dismissedAt) <> (
     (StreetReopenCandidate.apply _).tupled,
     StreetReopenCandidate.unapply
   )
@@ -64,9 +67,10 @@ trait StreetReopenCandidateTableRepository {}
 /**
  * DAO over the regained-imagery review queue (#4929).
  *
- * Rows are written only by the nightly poll's no_imagery rotation and removed three ways: the admin reopens or
- * dismisses the street, a later conclusive poll finds nothing (stale evidence is retracted rather than left under a
- * Reopen button), or mark_streets_no_imagery re-retires the street (checker evidence outranks poll evidence).
+ * Rows are written only by the nightly poll's no_imagery rotation and removed three ways: the admin reopens the
+ * street, a later conclusive poll attributes nothing to it (stale evidence is retracted rather than left under a
+ * Reopen button), or mark_streets_no_imagery re-retires the street (checker evidence outranks poll evidence). A
+ * dismissal is the one judgement that keeps the row: see [[StreetReopenCandidateTable.dismiss]].
  */
 @Singleton
 class StreetReopenCandidateTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)
@@ -94,10 +98,16 @@ class StreetReopenCandidateTable @Inject() (protected val dbConfigProvider: Data
    * batch selection and this write cannot re-mint a candidate. On conflict the evidence columns and lastDetectedAt
    * are refreshed while firstDetectedAt keeps the original detection time.
    *
+   * The `DO UPDATE ... WHERE` is what makes a dismissal stick. A dismissed row is only rewritten -- and so only
+   * returned to the queue -- when this poll's evidence beats what the admin already rejected: more attributable
+   * panos, or a capture date newer than the one on the row (a first-ever date counting as newer). Otherwise nothing
+   * is written at all, which is deliberate: the evidence columns stay frozen at the dismissed snapshot, so the bar
+   * for re-surfacing cannot creep upward poll by poll.
+   *
    * @param streetEdgeId  The polled street.
    * @param nPanos        Attributable panos this poll saw; must be > 0 (a zero-pano poll deletes instead).
    * @param newestCapture Newest capture date among them, if any was parseable.
-   * @return 1 if a row was written, 0 when the guard filtered the street out.
+   * @return 1 if a row was written, 0 when the street-status guard filtered it out or a dismissal outranks it.
    */
   def upsertFromPoll(streetEdgeId: Int, nPanos: Int, newestCapture: Option[LocalDate]): DBIO[Int] = {
     sqlu"""
@@ -108,7 +118,30 @@ class StreetReopenCandidateTable @Inject() (protected val dbConfigProvider: Data
       ON CONFLICT (street_edge_id) DO UPDATE
       SET last_detected_at = now(),
           n_panos          = EXCLUDED.n_panos,
-          newest_capture   = EXCLUDED.newest_capture;
+          newest_capture   = EXCLUDED.newest_capture,
+          dismissed_at     = NULL
+      WHERE street_reopen_candidate.dismissed_at IS NULL
+          OR EXCLUDED.n_panos > street_reopen_candidate.n_panos
+          OR (EXCLUDED.newest_capture IS NOT NULL
+              AND (street_reopen_candidate.newest_capture IS NULL
+                  OR EXCLUDED.newest_capture > street_reopen_candidate.newest_capture));
+    """
+  }
+
+  /**
+   * Marks a candidate dismissed: the admin looked and judged the evidence too weak to reopen on (#4929).
+   *
+   * Keeps the row rather than deleting it, so the poll can distinguish a street it has never queued from one whose
+   * evidence has already been rejected -- see [[upsertFromPoll]] for the bar a later poll has to clear to bring it
+   * back. Idempotent: dismissing an already-dismissed street reports 0 and leaves the original judgement's timestamp.
+   *
+   * @return 1 if a queued row was dismissed, 0 when there was no queued row to dismiss.
+   */
+  def dismiss(streetEdgeId: Int): DBIO[Int] = {
+    sqlu"""
+      UPDATE street_reopen_candidate
+      SET dismissed_at = now()
+      WHERE street_edge_id = $streetEdgeId AND dismissed_at IS NULL;
     """
   }
 
@@ -116,7 +149,26 @@ class StreetReopenCandidateTable @Inject() (protected val dbConfigProvider: Data
   def delete(streetEdgeId: Int): DBIO[Int] = reopenCandidates.filter(_.streetEdgeId === streetEdgeId).delete
 
   /**
-   * The review queue: current candidates with their regions, most recently detected first.
+   * Drops evidence about streets whose status is something other than `no_imagery`, returning how many rows it
+   * removed.
+   *
+   * Every path that retracts a candidate deliberately (reopen, empty poll, mark_streets_no_imagery) covers its own
+   * case, but a street can leave `no_imagery` through a script that knows nothing about this table -- hiding a whole
+   * neighborhood closes its streets, say. `candidatesForReview` filters such rows out, so they are invisible rather
+   * than harmful; they matter only if the street is retired again later, when years-old evidence would reappear
+   * under a Reopen button. The nightly poll runs this to keep that from happening.
+   */
+  def deleteForNonRetiredStreets: DBIO[Int] = {
+    sqlu"""
+      DELETE FROM street_reopen_candidate
+      USING street_edge
+      WHERE street_reopen_candidate.street_edge_id = street_edge.street_edge_id
+          AND street_edge.status <> 'no_imagery';
+    """
+  }
+
+  /**
+   * The review queue: undismissed candidates with their regions, most recently detected first.
    *
    * Joins street_edge and re-checks `status = 'no_imagery'` as a second belt behind the guarded upsert -- a row that
    * somehow survived a reopen must not offer the admin a Reopen button for an already-open street.
@@ -136,6 +188,7 @@ class StreetReopenCandidateTable @Inject() (protected val dbConfigProvider: Data
           JOIN street_edge_region ON street_reopen_candidate.street_edge_id = street_edge_region.street_edge_id
           JOIN region ON street_edge_region.region_id = region.region_id
           WHERE street_edge.status = 'no_imagery'
+              AND street_reopen_candidate.dismissed_at IS NULL
               AND region.deleted = FALSE
           ORDER BY street_reopen_candidate.last_detected_at DESC, street_reopen_candidate.street_edge_id
           LIMIT $limit""".as[ReopenCandidateForReview]

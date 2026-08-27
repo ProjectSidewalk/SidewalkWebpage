@@ -297,6 +297,9 @@ class ImageryFreshnessServiceImpl @Inject() (
           }
         }
       }
+      // Before selecting the batch, so the rotation and the queue agree on which streets are still retired.
+      staleCandidates <- db.run(streetReopenCandidateTable.deleteForNonRetiredStreets)
+      _ = if (staleCandidates > 0) logger.info(s"Dropped $staleCandidates reopen candidate(s) for non-retired streets.")
       noImageryStreets              <- db.run(streetImageryTable.noImageryStreetsToPoll(noImageryPollBatchSize))
       (noImageryPolled, candidates) <- noImageryStreets.foldLeft(Future.successful((0, 0))) {
         case (accFuture, street) =>
@@ -316,11 +319,15 @@ class ImageryFreshnessServiceImpl @Inject() (
    * Re-checks one no_imagery street for regained imagery and maintains its reopen-candidate row (#4929).
    *
    * The poll itself is pollOneStreet unchanged: street_imagery gets the same honest record, and its updated_at bump
-   * is what advances this rotation. Attributable panos upsert a candidate for the review queue; a conclusive poll
-   * with none deletes it -- a Reopen button must never sit next to evidence the latest poll withdrew.
+   * is what advances this rotation. What the candidate is built from is then read back through
+   * StreetImageryTable.attributedImagery rather than taken from pollOneStreet's return: the latter is filtered only by
+   * proximity to this street, while attribution additionally requires this street to be the *nearest* one, and on a
+   * no_imagery street the panos inside the radius are usually intersection panos belonging to a cross street. A
+   * conclusive poll that attributes nothing deletes the candidate -- a Reopen button must never sit next to evidence
+   * the latest poll withdrew.
    *
-   * @return Some(true) when a candidate was recorded, Some(false) on a conclusive poll without attributable panos,
-   *         None when the street was skipped as inconclusive.
+   * @return Some(true) when a candidate was recorded, Some(false) on a conclusive poll that attributed nothing (or
+   *         whose evidence a dismissal already outranks), None when the street was skipped as inconclusive.
    */
   private def recheckOneNoImageryStreet(
       street: StreetToPoll,
@@ -328,15 +335,18 @@ class ImageryFreshnessServiceImpl @Inject() (
   ): Future[Option[Boolean]] = {
     pollOneStreet(street, fetchPoint)
       .flatMap {
-        case None                                       => Future.successful(None)
-        case Some(attributable) if attributable.isEmpty =>
-          db.run(streetReopenCandidateTable.delete(street.streetEdgeId)).map(_ => Some(false))
-        case Some(attributable) =>
-          // Distinct positions stand in for distinct panos, matching upsertFromPoll's n_panos convention.
-          val nPanos        = attributable.map(pano => (pano.lat, pano.lng)).distinct.size
-          val newestCapture = attributable.flatMap(_.capture).maxOption
-          db.run(streetReopenCandidateTable.upsertFromPoll(street.streetEdgeId, nPanos, newestCapture))
-            .map(written => Some(written > 0))
+        case None               => Future.successful(None)
+        case Some(observations) =>
+          db.run(streetImageryTable.attributedImagery(street.streetEdgeId, observations)).flatMap { evidence =>
+            if (evidence.nPanos == 0) {
+              db.run(streetReopenCandidateTable.delete(street.streetEdgeId)).map(_ => Some(false))
+            } else {
+              db.run(
+                streetReopenCandidateTable
+                  .upsertFromPoll(street.streetEdgeId, evidence.nPanos, evidence.newestCapture)
+              ).map(written => Some(written > 0))
+            }
+          }
       }
       // Same never-fail contract as pollOneStreet: one street's candidate bookkeeping failing must not abandon the
       // rest of the batch. The street counts as skipped; its street_imagery upsert already went through.
