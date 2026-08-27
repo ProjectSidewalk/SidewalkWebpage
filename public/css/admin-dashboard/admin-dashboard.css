@@ -1854,13 +1854,12 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
 .ac-table thead th { text-align: right; }
 .ac-table thead th.ac-th-text { text-align: left; }
 
-/* Sized relative to the column-header row it spans rather than from a --text-* token: the group label only reads as
-   a tier above the columns if it stays proportional to them, and .ac-table is on the legacy rem alias (#4300). */
+/* The tier above the column headers: a size down from them, spaced and capitalized like the other small labels. */
 .ac-table thead tr.ac-th-group th {
   text-align: center;
   border-bottom: 1px solid var(--color-neutral-200);
   color: var(--color-neutral-700);
-  font-size: 0.85em;
+  font: var(--text-caption-semibold);
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
