@@ -143,8 +143,13 @@
     "current-mission": {
       "header": "目前的任務",
       "message-route": "探索{{routeName}}",
+      "exit-route": "離開路線",
       "header-free-explore": "自由探索",
       "message": "探索{{neighborhoodName}}的__PLACEHOLDER__"
+    },
+    "route-resume": {
+      "message": "正在從你上次離開的地方繼續路線「{{routeName}}」。",
+      "exit": "離開路線"
     },
     "minimap": {
       "coach-dismiss": "知道了",

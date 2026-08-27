@@ -143,8 +143,13 @@
     "current-mission": {
       "header": "Huidige Missie",
       "message-route": "Verken {{routeName}}",
+      "exit-route": "Route verlaten",
       "header-free-explore": "Vrij verkennen",
       "message": "Zoek __PLACEHOLDER__ voor {{neighborhoodName}}"
+    },
+    "route-resume": {
+      "message": "Je route “{{routeName}}” wordt hervat waar je was gebleven.",
+      "exit": "Route verlaten"
     },
     "minimap": {
       "coach-dismiss": "Begrepen",

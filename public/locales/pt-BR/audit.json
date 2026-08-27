@@ -143,8 +143,13 @@
     "current-mission": {
       "header": "Missão Atual",
       "message-route": "Explore {{routeName}}",
+      "exit-route": "Sair da rota",
       "header-free-explore": "Exploração livre",
       "message": "Explore __PLACEHOLDER__ de {{neighborhoodName}}"
+    },
+    "route-resume": {
+      "message": "Retomando sua rota “{{routeName}}” de onde você parou.",
+      "exit": "Sair da rota"
     },
     "minimap": {
       "coach-dismiss": "Entendi",

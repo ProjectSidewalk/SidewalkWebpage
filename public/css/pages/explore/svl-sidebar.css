@@ -245,6 +245,12 @@
   text-decoration: underline;
 }
 
+/* The display above beats the UA's [hidden] rule, so the exit-route link (hidden outside custom-route walks)
+   needs the toggle restated. */
+.explore-sidebar__see-all[hidden] {
+  display: none;
+}
+
 /* External-link glyph on the CTAs, signalling that they open in a new tab. */
 .explore-sidebar__see-all-icon {
   flex: 0 0 auto;

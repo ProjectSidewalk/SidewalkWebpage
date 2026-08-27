@@ -143,8 +143,13 @@
     "current-mission": {
       "header": "Aktuelle Mission",
       "message-route": "Erkunde {{routeName}}",
+      "exit-route": "Route verlassen",
       "header-free-explore": "Freies Erkunden",
       "message": "Erkunden Sie __PLACEHOLDER__ von {{neighborhoodName}}"
+    },
+    "route-resume": {
+      "message": "Deine Route „{{routeName}}“ wird dort fortgesetzt, wo du aufgehört hast.",
+      "exit": "Route verlassen"
     },
     "minimap": {
       "coach-dismiss": "Verstanden",

@@ -416,6 +416,18 @@ class ExploreServiceImpl @Inject() (
     }
   }
 
+  /**
+   * Resolves which route walk (if any) this Explore session should be in, creating/resuming/pausing as needed.
+   *
+   * Walks are paused rather than discarded wherever the user hasn't explicitly asked for a restart, so their
+   * progress survives and an explicit ?routeId= visit resumes exactly where they left off (#4833). Discarding —
+   * which permanently ends a walk, restarting the route from its first street next time — is reserved for
+   * ?routeId=X&resumeRoute=false.
+   *
+   * @param routeId     Route explicitly requested via ?routeId=, if any.
+   * @param resumeRoute Whether an existing walk may be resumed (the ?resumeRoute= param; defaults to true).
+   * @return            The walk this session should use, or None for normal (non-route) exploration.
+   */
   private def setUpPossibleUserRoute(
       routeId: Option[Int],
       userId: String,
@@ -426,13 +438,13 @@ class ExploreServiceImpl @Inject() (
       case None      => DBIO.successful(false)
     }).flatMap { routeExists =>
       (routeExists, routeId, resumeRoute) match {
-        // Discard routes that don't match routeId, resume route with given routeId if it exists, o/w make a new one.
+        // Pause routes that don't match routeId, resume route with given routeId if it exists, o/w make a new one.
         case (true, Some(rId), true) =>
           for {
-            _      <- userRouteTable.discardOtherActiveRoutes(rId, userId)
+            _      <- userRouteTable.pauseOtherActiveRoutes(rId, userId)
             result <- userRouteTable.getActiveRouteOrCreateNew(rId, userId)
           } yield Some(result)
-        // Discard old routes, save a new one with given routeId.
+        // Explicit restart: discard old walks (including any of this route), save a new one with given routeId.
         case (true, Some(rId), false) =>
           for {
             _      <- userRouteTable.discardAllActiveRoutes(userId)
@@ -441,9 +453,9 @@ class ExploreServiceImpl @Inject() (
         // Get an in progress route (with any routeId) if it exists, otherwise return None.
         case (_, None, true) =>
           userRouteTable.getInProgressRoute(userId)
-        // Discard old routes, return None.
+        // The "exit route" path (/explore?resumeRoute=false): pause old walks, return None.
         case (_, _, _) =>
-          userRouteTable.discardAllActiveRoutes(userId).map(_ => None)
+          userRouteTable.pauseAllActiveRoutes(userId).map(_ => None)
       }
     }
   }

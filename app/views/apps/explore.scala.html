@@ -324,6 +324,17 @@
             </div>
           </div>
 
+          @* Exit link for custom-route walks; unhidden by MissionPanel in route mode. Pauses the walk server-side
+             (/explore?resumeRoute=false), so re-entering the route later resumes where the user left off (#4833). *@
+          <a id="explore-sidebar__exit-route" class="explore-sidebar__see-all" href="/explore?resumeRoute=false" hidden>
+            <span data-i18n="audit:right-ui.current-mission.exit-route">Exit route</span>
+            <svg class="explore-sidebar__see-all-icon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+          </a>
+
           <div id="minimap-holder">
             <div id="minimap" class="minimap-pane"></div>
             <div id="minimap-overlay" class="minimap-pane"></div>

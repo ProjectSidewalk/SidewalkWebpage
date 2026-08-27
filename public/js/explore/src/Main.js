@@ -416,6 +416,28 @@ class Main {
             nLength: svl.missionContainer.getCurrentMission().getDistance('miles'),
             neighborhood: currentNeighborhood.getProperty('name'),
           }, svl, this.#params.language);
+
+          // A bare /explore visit that silently resumed a custom-route walk (no ?routeId= in the URL) tells the
+          // user what happened and offers a way out (#4833). Deferred until the mission-start screen closes so it
+          // isn't missed underneath it. Exiting pauses the walk server-side; re-entering the route resumes it.
+          if (svl.userRouteId && !new URLSearchParams(window.location.search).has('routeId')) {
+            document.addEventListener('ps:mission-start-tutorial:done', () => {
+              svl.tracker.push('RouteResumeToast_Shown');
+              Toast.show({
+                message: i18next.t('right-ui.route-resume.message', { routeName: svl.routeName }),
+                button: {
+                  label: i18next.t('right-ui.route-resume.exit'),
+                  onClick: () => {
+                    svl.tracker.push('Click_ExitRoute', { source: 'toast' });
+                    window.location.href = '/explore?resumeRoute=false';
+                  },
+                },
+                reference: document.getElementById('pano'),
+                dark: true,
+                duration: 10000,
+              });
+            }, { once: true });
+          }
         }
 
         this.#startTheMission(mission, currentNeighborhood);

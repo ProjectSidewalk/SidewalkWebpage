@@ -10,7 +10,14 @@ import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
-case class UserRoute(userRouteId: Int, routeId: Int, userId: String, completed: Boolean, discarded: Boolean)
+case class UserRoute(
+    userRouteId: Int,
+    routeId: Int,
+    userId: String,
+    completed: Boolean,
+    discarded: Boolean,
+    paused: Boolean = false
+)
 
 class UserRouteTableDef(tag: slick.lifted.Tag) extends Table[UserRoute](tag, "user_route") {
   def userRouteId: Rep[Int]   = column[Int]("user_route_id", O.PrimaryKey, O.AutoInc)
@@ -18,8 +25,10 @@ class UserRouteTableDef(tag: slick.lifted.Tag) extends Table[UserRoute](tag, "us
   def userId: Rep[String]     = column[String]("user_id")
   def completed: Rep[Boolean] = column[Boolean]("completed")
   def discarded: Rep[Boolean] = column[Boolean]("discarded")
+  def paused: Rep[Boolean]    = column[Boolean]("paused", O.Default(false))
 
-  def * = (userRouteId, routeId, userId, completed, discarded) <> ((UserRoute.apply _).tupled, UserRoute.unapply)
+  def * =
+    (userRouteId, routeId, userId, completed, discarded, paused) <> ((UserRoute.apply _).tupled, UserRoute.unapply)
 
   def route = foreignKey("user_route_route_id_fkey", routeId, TableQuery[RouteTableDef])(_.routeId)
   def user  = foreignKey("user_route_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
@@ -45,7 +54,10 @@ class UserRouteTable @Inject() (
   val activeRoutes        = userRoutes.filter(ur => !ur.completed && !ur.discarded)
 
   /**
-   * The user's in-progress route walk, if any.
+   * The user's in-progress route walk, if any — the walk that a bare /explore visit silently resumes.
+   *
+   * Paused walks are excluded: the user exited that route, so it only resumes on an explicit ?routeId= visit
+   * (getActiveRouteOrCreateNew), never silently (#4833).
    *
    * Routes soft-deleted by their owner are excluded. A shared route can be deleted while someone else is partway
    * through it, and resuming one builds an inconsistent session — the mission is route-scoped off the user_route
@@ -54,7 +66,7 @@ class UserRouteTable @Inject() (
    */
   def getInProgressRoute(userId: String): DBIO[Option[UserRoute]] = {
     activeRoutes
-      .filter(_.userId === userId)
+      .filter(ur => ur.userId === userId && !ur.paused)
       .join(routes.filter(!_.deleted))
       .on(_.routeId === _.routeId)
       .map(_._1)
@@ -73,8 +85,32 @@ class UserRouteTable @Inject() (
     activeRoutes.filter(x => x.routeId =!= routeId && x.userId === userId).map(_.discarded).update(true)
   }
 
+  /**
+   * Pause all of the user's active route walks. Unlike discarding, a paused walk keeps its progress and resumes
+   * where it left off when the user explicitly re-enters the route via ?routeId= (#4833).
+   */
+  def pauseAllActiveRoutes(userId: String): DBIO[Int] = {
+    activeRoutes.filter(_.userId === userId).map(_.paused).update(true)
+  }
+
+  /**
+   * Pause any active route walks for the given user that don't match the given routeId.
+   */
+  def pauseOtherActiveRoutes(routeId: Int, userId: String): DBIO[Int] = {
+    activeRoutes.filter(x => x.routeId =!= routeId && x.userId === userId).map(_.paused).update(true)
+  }
+
+  /**
+   * The user's active walk of the given route (un-pausing it if they had exited), or a brand new walk of it.
+   */
   def getActiveRouteOrCreateNew(routeId: Int, userId: String): DBIO[UserRoute] = {
     activeRoutes.filter(ar => ar.routeId === routeId && ar.userId === userId).result.headOption.flatMap {
+      case Some(ur) if ur.paused =>
+        userRoutes
+          .filter(_.userRouteId === ur.userRouteId)
+          .map(_.paused)
+          .update(false)
+          .map(_ => ur.copy(paused = false))
       case Some(ur) => DBIO.successful(ur)
       case None     => insert(UserRoute(0, routeId, userId, completed = false, discarded = false))
     }
