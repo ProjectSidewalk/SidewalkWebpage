@@ -116,7 +116,7 @@ No npm-based module system on the frontend — files are simply concatenated in 
 
 **Asset layout (going-forward invariant, from the #2292 reorg).** First-party assets split **by type**: `public/js/` is JavaScript-only, `public/css/` holds all styles (with per-app subdirs `css/explore/`, `css/validate/`, `css/gallery/`), and media lives in `public/images/`, `public/audio/`, `public/videos/`. There are **no `css/`, `img/`, or `audio/` dirs nested inside an app dir under `js/`** — app-private styles go to `css/<app>/` and app-private images to `images/<app>/`. Third-party code groups by library under `vendor/` (never `js/` or `css/`).
 
-**`css/api-docs/api-docs.css` is a shared shell, not a per-app stylesheet.** Three surfaces link it — the API docs (`apiDocs/layout.scala.html`), the admin dashboard (`admin/dashboard/adminLayout.scala.html`), and the user dashboard (`userDashboard/layout.scala.html`) — for the sidebar + content + TOC layout and the shared components (`.api-table`, `.preview-*`, `.map-toolbar`, status messages). A change there is a change to all three; check the dashboards before treating it as a docs-only edit. It styles everything from the `main.css` tokens (see "Style all UI from the design-system tokens" under Development Guidelines); the dashboards' own stylesheets still carry a deprecated `:root` alias block (`--font-size-*` in rem, `--color-text-*`, …) at the top of `admin-dashboard.css` until they migrate (#4300).
+**`css/api-docs/api-docs.css` is a shared shell, not a per-app stylesheet.** Three surfaces link it — the API docs (`apiDocs/layout.scala.html`), the admin dashboard (`admin/dashboard/adminLayout.scala.html`), and the user dashboard (`userDashboard/layout.scala.html`) — for the sidebar + content + TOC layout and the shared components (`.preview-*`, `.map-toolbar`, status messages). A change there is a change to all three; check the dashboards before treating it as a docs-only edit. All three style everything from the `main.css` tokens and primitives (see "Style all UI from the design-system tokens" under Development Guidelines) — a `--font-size-*` / `--color-text-*` name is a leftover from the pre-#4300 alias block, not a token to use.
 
 **Naming conventions (from #2292):** directories are **kebab-case**; CSS files are **kebab-case**; JS files follow Airbnb style — **PascalCase** for files that define a class/constructor (`AppManager.js`, `LabelPopup.js`), **camelCase** for function/utility/entry files (`main.js`, `aggregateStats.js`). Kebab-case is not used for JS files. Full write-up in [`docs/style-guide.md`](docs/style-guide.md). **Deferred mismatch:** the app dirs were renamed (`SVLabel → explore`, `SVValidate → validate`, `Progress → user-dashboard`), but the internal JS namespace *identifiers* `svl` (Explore) and `sg` (Gallery) were left as-is — renaming those is a large independent refactor, not part of the file reorg.
 
@@ -268,8 +268,9 @@ When you catch yourself writing a frontend constant that mirrors a backend value
 - **Style all UI from the design-system tokens in `main.css` `:root`** — colors (`--color-*`), type (`--text-*`),
   spacing (`--space-*`), radii (`--border-radius*`), elevation (`--box-shadow*`), motion (`--transition-*`),
   stacking (`--z-index-*`), breakpoints (`--breakpoint-*`, reference values — `var()` can't appear in a media query,
-  so write the px and name the token in a comment), and the control primitives (`.button-ps` + `.button--*`,
-  `.ps-select`). They mirror our "Design System Tokens" Figma
+  so write the px and name the token in a comment), and the component primitives (`.button-ps` + `.button--*`,
+  `.ps-input` / `.ps-select` (+ `--large`), `.ps-table` (+ `--compact`, `.ps-table-wrapper`)). They mirror our
+  "Design System Tokens" Figma
   and are the default for any new or refactored UI: a hardcoded hex color or hand-assembled font stack is a bug
   unless the token set genuinely has no fit. For type specifically:
   - **Set type with a composite `--text-*` token, not the raw font variables.** Write

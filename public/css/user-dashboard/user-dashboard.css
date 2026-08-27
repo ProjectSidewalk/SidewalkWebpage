@@ -3,31 +3,23 @@
  *
  * Layered on top of api-docs.css and admin-dashboard.css: this file adds ONLY the components those two surfaces don't
  * already provide (hero banner, streak heatmap, badge tracks, trophy case, podium, medals, standing widget, mistake
- * gallery cards). It reuses their design tokens (--space-*, --color-*, --font-size-*, brand ramps from main.css, and
+ * gallery cards). It styles everything from the main.css design-system tokens (--text-*, --space-*, --color-* ramps,
  * label-type colors --color-label-*) rather than introducing new literals, so the three surfaces stay visually unified.
  * Label-type colors come from the --color-label-* tokens (source of truth: /v3/api/labelTypes) — never hardcoded hex.
  *
  * Type scale policy (per design review): ALL content — table cells, badge/trophy detail, card text, stat labels,
- * podium — is at least --font-size-md (16px). The smaller steps (sm/xs/xxs) are reserved for legends
+ * podium — is at least --text-body-* (16px). The smaller steps (small/caption) are reserved for legends
  * (.ud-heatmap-legend), chart captions (.ud-acc-note), and small decorative pills/ribbons (.ud-trophy-tag,
- * .ud-standing-tag, .ud-card-verdict, .ud-public-tag). Never size real content below md — and avoid footnote-style
+ * .ud-standing-tag, .ud-card-verdict, .ud-public-tag). Never size real content below body — and avoid footnote-style
  * asides (design review: if a note matters it belongs in real copy). The sanctioned exceptions are captions that
  * explain the thing they sit under: the accuracy chart's min-validations rule (.ud-acc-note) and the global
  * leaderboard's daily distance refresh (.ud-lb-note) — both owner calls.
  */
 
-/* Primary-content tables on the user surface read much larger than the admin default (which stays --font-size-sm):
-   body cells at xxl so the data is loud, headers at lg. */
-.api-content .coverage-table { font-size: var(--font-size-xxl, 1.5rem); }
-
-/* Header cells must share the body cells' horizontal padding, or every header sits left of its column. */
-.api-content .coverage-table thead th {
-  font-size: var(--font-size-lg, 1.125rem);
-  padding: 10px 16px;
-}
-
-.api-content .coverage-table tbody td,
-.api-content .coverage-table tbody th { padding: 14px 16px; }
+/* The ranked boards are the page, not a data appendix, so their cells read at body size rather than .ps-table's
+   small; the headers keep the primitive's small-bold so the data stays louder than its labels. Scoped to the boards
+   so the compact admin tables on /admin/user/:username keep their dense treatment. */
+.api-content .ud-lb-table, .api-content .ud-cities-table { font: var(--text-body-regular); }
 
 /* Leaderboard tables are capped at ~10 rows, so show them in full — no inner scroll (admin tables keep theirs), and
    overflow visible so the Accuracy header tooltip can escape the wrap. The responsive rule restores mobile scroll. */
@@ -49,7 +41,8 @@
 
 /* Bump only the top-3 medal emoji so they read clearly; plain rank numbers keep the table's font size. */
 .ud-lb-rank .ud-lb-medal {
-  font-size: 2rem;
+  /* px, not rem: Bootstrap sets a 10px root here, so a rem size silently renders at 62.5% of its intent. */
+  font-size: 28px;
   line-height: 1;
 }
 
@@ -60,13 +53,13 @@
 }
 
 .ud-th-tip:focus-visible {
-  outline: 2px solid var(--color-accent-link, #0566f5);
+  outline: 2px solid var(--color-link-200);
   outline-offset: 2px;
 }
 
 .ud-th-info {
   margin-left: 4px;
-  color: var(--color-text-tertiary, #88a1ad);
+  color: var(--color-neutral-700);
   font-size: 0.8em;
   vertical-align: middle;
 }
@@ -80,18 +73,18 @@
   width: max-content;
   max-width: 260px;
   padding: 8px 11px;
-  border-radius: var(--border-radius, 4px);
-  background: var(--color-asphalt-700, #2d2a3f);
-  color: var(--color-neutral-white, #ffffff);
+  border-radius: var(--border-radius);
+  background: var(--color-asphalt-700);
+  color: var(--color-neutral-white);
   font: var(--text-small-regular);
   line-height: 1.35;
   text-align: left;
   white-space: normal;
   text-transform: none;
-  box-shadow: var(--box-shadow-md, 0 2px 8px rgb(0 0 0 / 20%));
+  box-shadow: var(--box-shadow);
   opacity: 0;
   visibility: hidden;
-  transition: opacity var(--transition-fast, 0.15s ease);
+  transition: opacity var(--transition-fast);
   pointer-events: none;
 }
 
@@ -103,7 +96,7 @@
 
 .ud-lb-user,
 .ud-lb-city {
-  color: var(--color-accent-link, #0566f5);
+  color: var(--color-link-200);
   text-decoration: none;
 }
 
@@ -114,12 +107,12 @@
 .ud-hero {
   display: flex;
   align-items: center;
-  gap: var(--space-lg, 24px);
-  padding: var(--space-lg, 24px);
-  margin: var(--space-md, 16px) 0 var(--space-lg, 24px);
-  border: 1px solid var(--color-neutral-200, #e1e1e1);
-  border-radius: var(--border-radius-lg, 8px);
-  background: linear-gradient(120deg, var(--color-pine-100, #eaf3ec), var(--color-banana-100, #fdf6e3));
+  gap: var(--space-lg);
+  padding: var(--space-lg);
+  margin: var(--space-md) 0 var(--space-lg);
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--border-radius-lg);
+  background: linear-gradient(120deg, var(--color-pine-100), var(--color-banana-100));
 }
 
 .ud-hero-avatar {
@@ -130,72 +123,75 @@
   width: 72px;
   height: 72px;
   border-radius: 50%;
-  background: var(--color-pine-600, #4a7c59);
-  color: var(--color-neutral-white, #ffffff);
-  font-family: var(--font-accent, "Raleway", sans-serif);
-  font-size: 1.6rem;
-  font-weight: 700;
+  background: var(--color-pine-600);
+  color: var(--color-neutral-white);
+  font: var(--text-h3-bold);
   letter-spacing: 0.02em;
 }
 
 .ud-hero-greeting {
   margin: 0 0 4px;
-  font-size: var(--font-size-lg, 1.125rem);
-  color: var(--color-text-secondary, #5a7785);
+  font: var(--text-body-regular);
+  color: var(--color-neutral-700);
 }
 
 .ud-hero-headline {
   margin: 0 0 4px;
-  font-family: var(--font-accent, "Raleway", sans-serif);
-  font-size: var(--font-size-xxl, 1.5rem);
-  font-weight: 700;
+  font: var(--text-h3-bold);
   line-height: 1.2;
-  color: var(--color-text-heading, #263238);
+  color: var(--color-neutral-900);
 }
 
 .ud-hero-sub {
   margin: 0;
-  font-size: var(--font-size-md, 1rem);
-  color: var(--color-text-secondary, #5a7785);
+  font: var(--text-body-regular);
+  color: var(--color-neutral-700);
 }
 
 /* Friendly, supportive nudge/encouragement callout — sprinkled through both surfaces. */
 .ud-nudge {
-  margin: var(--space-md, 16px) 0 0;
-  padding: var(--space-sm, 12px) var(--space-md, 16px);
-  border-left: 4px solid var(--color-banana-500, #f3c220);
-  border-radius: var(--border-radius, 4px);
-  background: var(--color-banana-100, #fdf6e3);
-  font-size: var(--font-size-md, 1rem);
-  color: var(--color-text-heading, #263238);
+  margin: var(--space-md) 0 0;
+  padding: var(--space-sm) var(--space-md);
+  border-left: 4px solid var(--color-banana-500);
+  border-radius: var(--border-radius);
+  background: var(--color-banana-100);
+  font: var(--text-small-regular);
+  color: var(--color-neutral-900);
 }
 
 /* ---- Streak / activity heatmap --------------------------------------------------------------------------------- */
 .ud-streak {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-lg, 24px);
+  gap: var(--space-lg);
   align-items: flex-start;
 }
 
 .ud-streak-stats {
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm, 12px);
+  gap: var(--space-sm);
   flex: 0 0 200px;
 }
 
+/* Stacked in a column, so .coverage-kpi's row flex-basis would become a 140px minimum *height*; size to content. */
 .ud-streak-kpi {
+  flex: 0 0 auto;
   margin: 0;
 }
 
 .ud-streak-current {
-  border-color: var(--color-orange-400, #f0913e);
-  background: var(--color-orange-100, #fdeede);
+  border-color: var(--color-orange-400);
+  background: var(--color-orange-100);
 }
 
-/* Fixed-size cells (GitHub-style) so the grid is a compact block instead of stretching to fill the width. */
+/* Fixed-size cells (GitHub-style) so the grid is a compact block instead of stretching to fill the width. The cell
+   size and gap are set once here; the month/day label tracks and the cells themselves all read them, so the grid and
+   its labels can't drift apart. */
 .ud-heatmap {
+  --ud-heat-cell: 18px;
+  --ud-heat-gap: 3px;
+
   flex: 0 1 auto;
   margin: 0;
   overflow-x: auto;
@@ -220,10 +216,10 @@
   grid-row: 1;
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: 15px;
-  gap: 3px;
-  font-size: var(--font-size-xs, 0.8125rem);
-  color: var(--color-text-secondary, #5a7785);
+  grid-auto-columns: var(--ud-heat-cell);
+  gap: var(--ud-heat-gap);
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
 }
 
 /* Each label sits in one cell-column but overflows right over the (empty) following columns, like GitHub. */
@@ -236,40 +232,40 @@
   grid-column: 1;
   grid-row: 2;
   display: grid;
-  grid-template-rows: repeat(7, 15px);
-  gap: 3px;
+  grid-template-rows: repeat(7, var(--ud-heat-cell));
+  gap: var(--ud-heat-gap);
   align-items: center;
-  font-size: var(--font-size-xs, 0.8125rem);
-  color: var(--color-text-secondary, #5a7785);
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
 }
 
 .ud-heatmap-grid {
   grid-column: 2;
   grid-row: 2;
   display: grid;
-  grid-template-rows: repeat(7, 15px);
+  grid-template-rows: repeat(7, var(--ud-heat-cell));
   grid-auto-flow: column;
-  grid-auto-columns: 15px;
-  gap: 3px;
+  grid-auto-columns: var(--ud-heat-cell);
+  gap: var(--ud-heat-gap);
   width: max-content;
 }
 
 .ud-heat {
-  width: 15px;
-  height: 15px;
+  width: var(--ud-heat-cell);
+  height: var(--ud-heat-cell);
   border-radius: 3px;
-  background: var(--color-neutral-100, #f0f0f0);
+  background: var(--color-neutral-100);
 
   /* Subtle inset ring (GitHub-style) so the lightest buckets stay distinguishable from the page background and each
    other (WCAG 1.4.11 non-text contrast; exact counts are in each cell's tooltip/aria-label). */
   box-shadow: inset 0 0 0 1px rgb(0 0 0 / 8%);
 }
 
-.ud-heat-0 { background: var(--color-neutral-200, #e6e6e6); }
-.ud-heat-1 { background: var(--color-pine-200, #cfe3d4); }
-.ud-heat-2 { background: var(--color-pine-400, #8fc09b); }
-.ud-heat-3 { background: var(--color-pine-600, #4a7c59); }
-.ud-heat-4 { background: var(--color-pine-800, #2f5239); }
+.ud-heat-0 { background: var(--color-neutral-200); }
+.ud-heat-1 { background: var(--color-pine-200); }
+.ud-heat-2 { background: var(--color-pine-400); }
+.ud-heat-3 { background: var(--color-pine-600); }
+.ud-heat-4 { background: var(--color-pine-800); }
 
 /* Out-of-window padding cells (before the start / after today): keep the grid shape but invisible. */
 .ud-heat-empty {
@@ -278,25 +274,22 @@
 }
 
 .ud-heat[tabindex]:focus-visible {
-  outline: 2px solid var(--color-accent-link, #0566f5);
+  outline: 2px solid var(--color-link-200);
   outline-offset: 1px;
 }
 
+/* The legend's swatches are a size down from the grid's cells so the key reads as a key, not a stray row. */
 .ud-heatmap-legend {
+  --ud-heat-cell: 12px;
+
   display: flex;
   align-items: center;
   gap: 4px;
-  margin-top: var(--space-sm, 12px);
-  font-size: var(--font-size-xxs, 0.75rem);
+  margin-top: var(--space-sm);
+  font: var(--text-caption-regular);
 
   /* text-secondary, not tertiary: tertiary is ~2.7:1 on white, below the 4.5:1 AA floor for this small text. */
-  color: var(--color-text-secondary, #5a7785);
-}
-
-.ud-heatmap-legend .ud-heat {
-  width: 12px;
-  height: 12px;
-  aspect-ratio: auto;
+  color: var(--color-neutral-700);
 }
 
 /* ---- Badge tracks ---------------------------------------------------------------------------------------------- */
@@ -305,36 +298,35 @@
 
   /* Cap at two tracks per row — at four across, the tier icons and their numbers get too small to read. */
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-md, 16px);
-  margin: var(--space-md, 16px) 0;
+  gap: var(--space-md);
+  margin: var(--space-md) 0;
 }
 
 .ud-badge-track {
-  border: 1px solid var(--color-neutral-200, #e1e1e1);
-  border-radius: var(--border-radius-lg, 8px);
-  padding: var(--space-md, 16px);
-  background: var(--color-neutral-white, #ffffff);
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--border-radius-lg);
+  padding: var(--space-md);
+  background: var(--color-neutral-white);
 }
 
 .ud-badge-track-head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: var(--space-sm, 12px);
-  margin-bottom: var(--space-sm, 12px);
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
 }
 
 .ud-badge-track-name {
-  font-family: var(--font-accent, "Raleway", sans-serif);
-  font-weight: 700;
-  color: var(--color-text-heading, #263238);
+  font: var(--text-title-bold);
+  color: var(--color-neutral-900);
 }
 
 /* One-line explanation of what the track counts — especially useful on another mapper's public profile. */
 .ud-badge-track-desc {
-  margin: 0 0 var(--space-sm, 12px);
-  font-size: var(--font-size-md, 1rem);
-  color: var(--color-text-secondary, #5a7785);
+  margin: 0 0 var(--space-sm);
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
 }
 
 /* The user's current tier name in this track (e.g. "IV: Barrier Buster") — a small pill whose color echoes the badge
@@ -342,50 +334,49 @@
 .ud-badge-track-current {
   padding: 2px 10px;
   border-radius: 12px;
-  font-size: var(--font-size-md, 1rem);
-  font-weight: 600;
+  font: var(--text-caption-semibold);
 }
 
 .ud-tier-0,
 .ud-tier-1 {
-  background: var(--color-neutral-200, #e6e6e6);
-  color: var(--color-text-heading, #263238);
+  background: var(--color-neutral-200);
+  color: var(--color-neutral-900);
 }
 
 .ud-tier-2 {
-  background: var(--color-pine-600, #4a7c59);
-  color: var(--color-neutral-white, #ffffff);
+  background: var(--color-pine-600);
+  color: var(--color-neutral-white);
 }
 
 .ud-tier-3 {
-  background: var(--color-banana-500, #f3c220);
-  color: var(--color-asphalt-900, #2d2a3f);
+  background: var(--color-banana-500);
+  color: var(--color-asphalt-900);
 }
 
 .ud-tier-4 {
-  background: var(--color-orange-500, #e07b2f);
+  background: var(--color-orange-500);
 
   /* Dark text like tier-3: white on orange-500 is ~3:1, below the 4.5:1 AA floor. */
-  color: var(--color-asphalt-900, #2d2a3f);
+  color: var(--color-asphalt-900);
 }
 
 .ud-tier-5 {
-  background: var(--color-asphalt-600, #4a4660);
-  color: var(--color-neutral-white, #ffffff);
+  background: var(--color-asphalt-600);
+  color: var(--color-neutral-white);
 }
 
 .ud-badge-track-next {
   display: block;
-  margin-top: var(--space-sm, 12px);
-  font-size: var(--font-size-md, 1rem);
-  color: var(--color-text-secondary, #5a7785);
+  margin-top: var(--space-sm);
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
 }
 
 .ud-badge-levels {
   display: flex;
   justify-content: space-between; /* spread the five tiers across the full card width */
-  gap: var(--space-xs, 8px);
-  margin-bottom: var(--space-sm, 12px);
+  gap: var(--space-xs);
+  margin-bottom: var(--space-sm);
 }
 
 .ud-badge {
@@ -404,29 +395,29 @@
 .ud-progress {
   height: 8px;
   border-radius: 4px;
-  background: var(--color-neutral-200, #e6e6e6);
+  background: var(--color-neutral-200);
   overflow: hidden;
 }
 
 .ud-progress-lg {
   height: 14px;
   border-radius: 7px;
-  margin: var(--space-sm, 12px) 0;
+  margin: var(--space-sm) 0;
 }
 
 .ud-progress-fill {
   width: 0; /* JS (DashboardBadges) animates this to the real percent. */
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, var(--color-pine-500, #5a8f6a), var(--color-pine-700, #3a6347));
+  background: linear-gradient(90deg, var(--color-pine-500), var(--color-pine-700));
 }
 
 /* ---- Trophy case ----------------------------------------------------------------------------------------------- */
 .ud-trophy-case {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-md, 16px);
-  margin: var(--space-md, 16px) 0;
+  gap: var(--space-md);
+  margin: var(--space-md) 0;
 }
 
 .ud-trophy {
@@ -437,11 +428,11 @@
   text-align: center;
   gap: 4px;
   width: 184px;
-  padding: var(--space-lg, 24px) var(--space-md, 16px);
-  border: 1px solid var(--color-neutral-200, #e1e1e1);
-  border-radius: var(--border-radius-lg, 8px);
-  background: var(--color-neutral-white, #ffffff);
-  border-top: 4px solid var(--color-neutral-300, #c5cdd2);
+  padding: var(--space-lg) var(--space-md);
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--border-radius-lg);
+  background: var(--color-neutral-white);
+  border-top: 4px solid var(--color-neutral-300);
 }
 
 /* Region/pioneer trophies link to Explore that neighborhood: keep the card look, add a lift + reveal the affordance. */
@@ -449,47 +440,46 @@
   text-decoration: none;
   color: inherit;
   cursor: pointer;
-  transition: transform var(--transition-fast, 0.15s ease), box-shadow var(--transition-fast, 0.15s ease);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .ud-trophy-link:hover,
 /* Keyboard focus keeps the hover lift but needs a real indicator — the soft shadow alone isn't visible enough. */
 .ud-trophy-link:focus-visible {
   transform: translateY(-2px);
-  box-shadow: var(--box-shadow-md, 0 2px 8px rgb(0 0 0 / 12%));
-  outline: 2px solid var(--color-accent-link, #0566f5);
+  box-shadow: var(--box-shadow);
+  outline: 2px solid var(--color-link-200);
   outline-offset: 2px;
 }
 
 .ud-trophy-explore {
   margin-top: 4px;
-  font-size: var(--font-size-sm, 0.875rem);
-  font-weight: 600;
-  color: var(--color-accent-link, #0566f5);
+  font: var(--text-tiny-semibold);
+  color: var(--color-link-200);
   opacity: 0;
-  transition: opacity var(--transition-fast, 0.15s ease);
+  transition: opacity var(--transition-fast);
 }
 
 .ud-trophy-link:hover .ud-trophy-explore,
 .ud-trophy-link:focus-visible .ud-trophy-explore { opacity: 1; }
 
-.ud-trophy-1 { border-top-color: var(--color-banana-500, #f3c220); }
-.ud-trophy-2 { border-top-color: var(--color-neutral-400, #a8b0b5); }
-.ud-trophy-3 { border-top-color: var(--color-orange-500, #e07b2f); }
+.ud-trophy-1 { border-top-color: var(--color-banana-500); }
+.ud-trophy-2 { border-top-color: var(--color-neutral-400); }
+.ud-trophy-3 { border-top-color: var(--color-orange-500); }
 
 .ud-trophy-region {
-  border-top-color: var(--color-pine-600, #4a7c59);
-  background: linear-gradient(160deg, var(--color-pine-100, #eaf3ec), var(--color-neutral-white, #ffffff));
+  border-top-color: var(--color-pine-600);
+  background: linear-gradient(160deg, var(--color-pine-100), var(--color-neutral-white));
 }
 
 .ud-trophy-pioneer {
-  border-top-color: var(--color-banana-600, #d9a916);
-  background: linear-gradient(160deg, var(--color-banana-100, #fdf6e3), var(--color-neutral-white, #ffffff));
+  border-top-color: var(--color-banana-600);
+  background: linear-gradient(160deg, var(--color-banana-100), var(--color-neutral-white));
 }
 
 .ud-trophy-free-explore {
-  border-top-color: var(--color-blue-400, #c6e0fa);
-  background: linear-gradient(160deg, var(--color-blue-100, #f6fafe), var(--color-neutral-white, #ffffff));
+  border-top-color: var(--color-blue-400);
+  background: linear-gradient(160deg, var(--color-blue-100), var(--color-neutral-white));
 }
 
 .ud-trophy-tag {
@@ -498,78 +488,74 @@
   right: 8px;
   padding: 1px 7px;
   border-radius: 9px;
-  font-size: var(--font-size-xxs, 0.75rem);
-  font-weight: 700;
+  font: var(--text-tiny-semibold);
   letter-spacing: 0.03em;
   text-transform: uppercase;
-  color: var(--color-pine-800, #2f5239);
-  background: var(--color-pine-200, #cfe3d4);
+  color: var(--color-pine-800);
+  background: var(--color-pine-200);
 }
 
 .ud-trophy-medal {
-  font-size: 3rem;
+  font-size: 40px; /* px, not rem, for the reason given on .ud-lb-medal. */
   line-height: 1;
 }
 
 .ud-trophy-title {
-  font-weight: 700;
-  font-size: var(--font-size-lg, 1.125rem);
-  color: var(--color-text-heading, #263238);
+  font: var(--text-subtitle-bold);
+  color: var(--color-neutral-900);
 }
 
 .ud-trophy-sub {
-  font-size: var(--font-size-md, 1rem);
-
-  /* text-secondary, not tertiary: tertiary is ~2.7:1 on white, below the 4.5:1 AA floor for body text. */
-  color: var(--color-text-secondary, #5a7785);
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
 }
 
 /* ---- Your standing --------------------------------------------------------------------------------------------- */
 .ud-standing-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: var(--space-md, 16px);
-  margin: var(--space-md, 16px) 0;
+  gap: var(--space-md);
+  margin: var(--space-md) 0;
 }
 
 .ud-standing-card {
-  border: 1px solid var(--color-neutral-200, #e1e1e1);
-  border-radius: var(--border-radius-lg, 8px);
-  padding: var(--space-lg, 24px);
-  background: var(--color-neutral-white, #ffffff);
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--border-radius-lg);
+  padding: var(--space-lg);
+  background: var(--color-neutral-white);
 }
 
 .ud-standing-community {
-  background: linear-gradient(120deg, var(--color-pine-100, #eaf3ec), var(--color-neutral-white, #ffffff));
+  background: linear-gradient(120deg, var(--color-pine-100), var(--color-neutral-white));
 }
 
 .ud-standing-card-wide { max-width: 560px; }
 
 .ud-standing-tag {
-  font-size: var(--font-size-xxs, 0.75rem);
+  font: var(--text-caption-regular);
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--color-text-secondary, #5a7785);
-  margin-bottom: var(--space-xs, 8px);
+  color: var(--color-neutral-700);
+  margin-bottom: var(--space-xs);
 }
 
 /* Primary font, not the accent one: this prints a rank and a percentage, and Raleway's old-style figures drop
    3/4/5/7/9 below the baseline. */
 .ud-standing-rank {
-  font: var(--text-h3-bold);
+  font: var(--text-title-bold);
   font-variant-numeric: tabular-nums;
-  color: var(--color-text-heading, #263238);
+  color: var(--color-neutral-900);
 }
 
 .ud-standing-detail {
-  margin-top: var(--space-xs, 8px);
-  font-size: var(--font-size-md, 1rem);
-  color: var(--color-text-secondary, #5a7785);
+  margin-top: var(--space-xs);
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
 }
 
 .ud-standing-of {
   font-weight: 400;
-  color: var(--color-text-secondary, #5a7785);
+  color: var(--color-neutral-700);
 }
 
 /* Week-over-week rank movement: climbed (green) / dropped (red). Deliberate hexes: the design-system success/error
@@ -587,70 +573,70 @@
 
 .ud-standing-slice {
   list-style: none;
-  margin: var(--space-md, 16px) 0 0;
+  margin: var(--space-md) 0 0;
   padding: 0;
 }
 
 .ud-standing-slice li {
   display: flex;
   align-items: center;
-  gap: var(--space-sm, 12px);
+  gap: var(--space-sm);
   padding: 8px 10px;
-  border-radius: var(--border-radius, 4px);
-  font-size: var(--font-size-md, 1rem);
+  border-radius: var(--border-radius);
+  font: var(--text-small-regular);
 }
 
 .ud-rank-you {
-  background: var(--color-banana-100, #fdf6e3);
+  background: var(--color-banana-100);
   font-weight: 700;
 }
 
 .ud-rank {
   flex: 0 0 28px;
-  color: var(--color-text-tertiary, #88a1ad);
+  color: var(--color-neutral-700);
   font-variant-numeric: tabular-nums;
 }
 
 .ud-rank-user {
   flex: 1 1 auto;
-  color: var(--color-text-heading, #263238);
+  color: var(--color-neutral-900);
 }
 
 .ud-rank-val {
   flex: 0 0 auto;
   font-variant-numeric: tabular-nums;
   font-weight: 600;
-  color: var(--color-text-secondary, #5a7785);
+  color: var(--color-neutral-700);
 }
 
 /* ---- Accuracy-by-type bars ------------------------------------------------------------------------------------- */
 .ud-accuracy-bars {
   display: flex;
   flex-direction: column;
-  gap: var(--space-xs, 8px);
-  margin: var(--space-md, 16px) 0;
+  gap: var(--space-xs);
+  margin: var(--space-md) 0;
 }
 
 .ud-acc-row {
   display: flex;
   align-items: center;
-  gap: var(--space-sm, 12px);
+  gap: var(--space-sm);
   padding: 4px 6px;
-  border-radius: var(--border-radius, 4px);
+  border-radius: var(--border-radius);
 }
 
 .ud-acc-weakest {
-  background: var(--color-orange-100, #fdeede);
-  outline: 1px solid var(--color-orange-300, #f4b277);
+  background: var(--color-orange-100);
+  outline: 1px solid var(--color-orange-300);
 }
 
 .ud-acc-label {
   flex: 0 0 170px;
   display: flex;
   align-items: center;
-  gap: var(--space-xs, 8px);
-  font-size: var(--font-size-md, 1rem);
-  color: var(--color-text-heading, #263238);
+  gap: var(--space-xs);
+  font: var(--text-small-regular);
+  color: var(--color-neutral-900);
 }
 
 .ud-acc-swatch {
@@ -658,14 +644,14 @@
   height: 12px;
   border-radius: 3px;
   flex: 0 0 auto;
-  background: var(--label-color, var(--color-neutral-400, #a8b0b5));
+  background: var(--label-color, var(--color-neutral-400));
 }
 
 .ud-acc-bar {
   flex: 1 1 auto;
   height: 10px;
   border-radius: 5px;
-  background: var(--color-neutral-200, #e6e6e6);
+  background: var(--color-neutral-200);
   overflow: hidden;
 }
 
@@ -673,7 +659,7 @@
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: var(--label-color, var(--color-pine-500, #5a8f6a));
+  background: var(--label-color, var(--color-pine-500));
 }
 
 /* Each row sets --label-color from its label type's canonical token (source of truth: /v3/api/labelTypes); the
@@ -689,50 +675,49 @@
 .ud-acc-pct {
   flex: 0 0 48px;
   text-align: right;
+  font: var(--text-small-bold);
   font-variant-numeric: tabular-nums;
-  font-size: var(--font-size-md, 1rem);
-  font-weight: 600;
-  color: var(--color-text-secondary, #5a7785);
+  color: var(--color-neutral-700);
 }
 
 /* The percentage's sample size, e.g. "(32 validated)" — fixed basis so the column lines up across rows. */
 .ud-acc-n {
   flex: 0 0 130px;
+  font: var(--text-small-regular);
   font-variant-numeric: tabular-nums;
-  font-size: var(--font-size-md, 1rem);
-  color: var(--color-text-secondary, #5a7785);
+  color: var(--color-neutral-700);
 }
 
 /* The two sanctioned captions: the accuracy chart's min-validations rule, and the global board's note that its
    Distance column comes from a nightly precompute and so can trail the live per-city boards above. */
 .ud-acc-note,
 .ud-lb-note {
-  margin: var(--space-xs, 8px) 0 0;
-  font-size: var(--font-size-sm, 0.875rem);
-  color: var(--color-text-secondary, #5a7785);
+  margin: var(--space-xs) 0 0;
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
 }
 
 /* ---- Mistake gallery cards (#4388) ----------------------------------------------------------------------------- */
 .ud-mistake-cards {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: var(--space-md, 16px);
-  margin: var(--space-md, 16px) 0;
+  gap: var(--space-md);
+  margin: var(--space-md) 0;
 }
 
 .ud-card {
   margin: 0;
-  border: 1px solid var(--color-neutral-200, #e1e1e1);
-  border-radius: var(--border-radius-lg, 8px);
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--border-radius-lg);
   overflow: hidden;
-  background: var(--color-neutral-white, #ffffff);
+  background: var(--color-neutral-white);
 }
 
 .ud-card-img {
   position: relative;
   aspect-ratio: 3 / 2; /* Match the Explore canvas (720x480) so the label marker lines up, like the Gallery. */
   overflow: hidden;
-  background: linear-gradient(135deg, var(--color-neutral-200, #d7dbde), var(--color-neutral-400, #a8b0b5));
+  background: linear-gradient(135deg, var(--color-neutral-200), var(--color-neutral-400));
   background-size: cover;
   background-position: center;
 }
@@ -754,44 +739,42 @@
   left: 8px;
   padding: 2px 8px;
   border-radius: 10px;
-  font-size: var(--font-size-xxs, 0.75rem);
-  font-weight: 600;
-  color: var(--color-neutral-white, #ffffff);
-  background: var(--color-error, #d32f2f);
+  font: var(--text-caption-semibold);
+  color: var(--color-neutral-white);
+  background: var(--color-error-200);
 }
 
 .ud-card-body {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: var(--space-sm, 12px);
+  padding: var(--space-sm);
 }
 
 .ud-card-title {
-  font-weight: 700;
-  color: var(--color-text-heading, #263238);
+  font: var(--text-body-bold);
+  color: var(--color-neutral-900);
 }
 
 .ud-card-note {
-  font-size: var(--font-size-md, 1rem);
-  color: var(--color-text-secondary, #5a7785);
+  font: var(--text-caption-regular);
   line-height: 1.4;
+  color: var(--color-neutral-700);
 }
 
 /* Applied when there's no validator comment, so the placeholder text reads as an aside. */
 .ud-card-note-muted { font-style: italic; }
 
 .ud-card-prompt {
-  margin: var(--space-sm, 12px) 0 4px;
-  font-size: var(--font-size-md, 1rem);
-  font-weight: 600;
-  color: var(--color-text-heading, #263238);
+  margin: var(--space-sm) 0 4px;
+  font: var(--text-small-bold);
+  color: var(--color-neutral-900);
 }
 
 .ud-card-actions {
   display: flex;
-  gap: var(--space-xs, 8px);
-  margin-top: var(--space-xs, 8px);
+  gap: var(--space-xs);
+  margin-top: var(--space-xs);
 }
 
 /* Two equal buttons side-by-side, each one line (nowrap). Short labels + tight padding keep them on one line. */
@@ -804,31 +787,31 @@
 
 .ud-chip {
   padding: 4px 10px;
-  border: 1px solid var(--color-neutral-300, #c5cdd2);
+  border: 1px solid var(--color-neutral-300);
   border-radius: 14px;
-  background: var(--color-neutral-white, #ffffff);
-  font-size: var(--font-size-md, 1rem);
-  color: var(--color-text-heading, #263238);
+  background: var(--color-neutral-white);
+  font: var(--text-small-regular);
+  color: var(--color-neutral-900);
   cursor: pointer;
-  transition: background var(--transition-fast, 0.15s ease), border-color var(--transition-fast, 0.15s ease);
+  transition: background var(--transition-fast), border-color var(--transition-fast);
 }
 
 .ud-chip-agree:hover {
-  background: var(--color-pine-100, #eaf3ec);
-  border-color: var(--color-pine-400, #8fc09b);
+  background: var(--color-pine-100);
+  border-color: var(--color-pine-400);
 }
 
 .ud-chip-disagree:hover {
-  background: var(--color-orange-100, #fdeede);
-  border-color: var(--color-orange-300, #f4b277);
+  background: var(--color-orange-100);
+  border-color: var(--color-orange-300);
 }
 
 /* Inert on an admin's view of someone else's dashboard: the vote acts as the signed-in user, so it can't be cast. */
 .ud-chip:disabled,
 .ud-chip:disabled:hover {
-  background: var(--color-neutral-100, #f2f5f6);
-  border-color: var(--color-neutral-200, #dfe5e8);
-  color: var(--color-text-secondary, #5a7785);
+  background: var(--color-neutral-100);
+  border-color: var(--color-neutral-200);
+  color: var(--color-neutral-700);
   opacity: 0.6;
   cursor: not-allowed;
 }
@@ -836,8 +819,8 @@
 .ud-card-note-link {
   display: inline-block;
   margin-top: 6px;
-  font-size: var(--font-size-md, 1rem);
-  color: var(--color-accent-link, #0566f5);
+  font: var(--text-caption-regular);
+  color: var(--color-link-200);
   text-decoration: none;
   cursor: pointer;
 }
@@ -846,7 +829,7 @@
 
 .ud-card-note-link[aria-disabled="true"],
 .ud-card-note-link[aria-disabled="true"]:hover {
-  color: var(--color-text-secondary, #5a7785);
+  color: var(--color-neutral-700);
   opacity: 0.6;
   text-decoration: none;
   cursor: not-allowed;
@@ -854,25 +837,14 @@
 
 .ud-card-comment-input {
   width: 100%;
-  margin-top: var(--space-xs, 8px);
-  padding: 8px 10px;
-  border: 1px solid var(--color-neutral-300, #c5cdd2);
-  border-radius: var(--border-radius, 4px);
-  font-size: var(--font-size-md, 1rem);
-  font-family: inherit;
-  resize: vertical;
-}
-
-.ud-card-comment-input:focus-visible {
-  outline: 2px solid var(--color-accent-link, #0566f5);
-  outline-offset: 1px;
+  margin-top: var(--space-xs);
 }
 
 .ud-card-note-wrap {
   display: flex;
   flex-direction: column;
-  gap: var(--space-xs, 8px);
-  margin-top: var(--space-xs, 8px);
+  gap: var(--space-xs);
+  margin-top: var(--space-xs);
 }
 
 /* The `hidden` attribute must win over display:flex, or the note stays open before "Add a note" is clicked. */
@@ -880,28 +852,26 @@
 
 .ud-card-note-submit {
   align-self: flex-start;
-  padding: 6px 14px;
-  font-size: var(--font-size-md, 1rem);
 }
 
 .ud-card-vote {
   display: flex;
   flex-direction: column;
-  gap: var(--space-xs, 8px);
+  gap: var(--space-xs);
 }
 
 /* Voted state tints just the vote section (works on the card and inside the popup panel). */
 .ud-card-vote--done {
-  padding: var(--space-xs, 8px);
-  border-radius: var(--border-radius, 4px);
-  background: var(--color-pine-100, #eaf3ec);
+  padding: var(--space-xs);
+  border-radius: var(--border-radius);
+  background: var(--color-pine-100);
 }
 
 /* Clickable card image opens the interactive label popup. */
 .ud-card-img-clickable { cursor: pointer; }
 
 .ud-card-img-clickable:focus-visible {
-  outline: 2px solid var(--color-accent-link, #0566f5);
+  outline: 2px solid var(--color-link-200);
   outline-offset: 2px;
 }
 
@@ -911,12 +881,11 @@
   right: 8px;
   padding: 2px 8px;
   border-radius: 10px;
-  font-size: var(--font-size-sm, 0.875rem);
-  font-weight: 600;
-  color: var(--color-neutral-white, #ffffff);
+  font: var(--text-caption-semibold);
+  color: var(--color-neutral-white);
   background: rgb(0 0 0 / 55%);
   opacity: 0;
-  transition: opacity var(--transition-fast, 0.15s ease);
+  transition: opacity var(--transition-fast);
   pointer-events: none;
 }
 
@@ -929,20 +898,19 @@
 .ud-mistake-response {
   display: flex;
   flex-direction: column;
-  gap: var(--space-xs, 8px);
-  margin: var(--space-xs, 8px) 0 0;
-  padding: var(--space-md, 16px);
-  border: 1px solid var(--color-pine-200, #cfe3d4);
-  border-radius: var(--border-radius-lg, 8px);
-  background: var(--color-neutral-white, #ffffff);
-  font-size: var(--font-size-lg, 1.125rem);
+  gap: var(--space-xs);
+  margin: var(--space-xs) 0 0;
+  padding: var(--space-md);
+  border: 1px solid var(--color-pine-200);
+  border-radius: var(--border-radius-lg);
+  background: var(--color-neutral-white);
+  font: var(--text-body-regular);
 }
 
 .ud-mistake-response-heading {
   margin: 0;
-  font-size: var(--font-size-lg, 1.125rem);
-  font-weight: 600;
-  color: var(--color-text-heading, #263238);
+  font: var(--text-subtitle-bold);
+  color: var(--color-neutral-900);
 }
 
 /* The panel heading already asks "Do you agree…", so drop the vote section's own prompt inside the popup. */
@@ -950,13 +918,6 @@
 
 .ud-mistake-response .ud-card-vote,
 .ud-mistake-response .ud-card-note-section { margin-top: 0; }
-
-.ud-mistake-response .ud-card-voted-msg,
-.ud-mistake-response .ud-card-your-note,
-.ud-mistake-response .ud-chip,
-.ud-mistake-response .ud-card-note-link,
-.ud-mistake-response .ud-card-note-submit,
-.ud-mistake-response .ud-card-change { font-size: var(--font-size-md, 1rem); }
 
 /* On the dashboard the label popup shows the viewer's OWN labels (mistake cards + their map), so the
    validate-on-hover overlay (Agree/Disagree/Unsure) and the add-a-comment row are never applicable and clash with the
@@ -972,9 +933,8 @@
 
 .ud-card-voted-msg {
   margin: 0;
-  font-size: var(--font-size-md, 1rem);
-  font-weight: 600;
-  color: var(--color-pine-800, #2f5239);
+  font: var(--text-small-bold);
+  color: var(--color-pine-800);
 }
 
 .ud-card-change {
@@ -986,22 +946,21 @@
 .ud-card-note-section {
   display: flex;
   flex-direction: column;
-  margin-top: var(--space-xs, 8px);
+  margin-top: var(--space-xs);
 }
 
 .ud-card-your-note {
   margin: 0 0 4px;
-  font-size: var(--font-size-md, 1rem);
+  font: var(--text-caption-regular);
   font-style: italic;
-  color: var(--color-text-secondary, #5a7785);
+  color: var(--color-neutral-700);
 }
 
 .ud-see-all {
   display: inline-block;
-  margin-top: var(--space-xs, 8px);
-  font-size: var(--font-size-md, 1rem);
-  font-weight: 600;
-  color: var(--color-accent-link, #0566f5);
+  margin-top: var(--space-xs);
+  font: var(--text-body-bold);
+  color: var(--color-link-200);
   text-decoration: none;
 }
 
@@ -1015,18 +974,18 @@
 /* Override choropleth.css's very tall fixed heights so the map is width-responsive and fits without page scroll.
    ID selector matches choropleth.css specificity and wins by load order (this file loads after). */
 .ud-map-caption {
-  margin: var(--space-md, 16px) 0 6px;
-  font-size: var(--font-size-md, 1rem);
-  color: var(--color-text-secondary, #5a7785);
+  margin: var(--space-md) 0 6px;
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
 }
 
 #user-dashboard-choropleth-holder {
   position: relative;
   width: 100%;
   height: 480px;
-  margin: 0 0 var(--space-md, 16px);
-  border: 1px solid var(--color-neutral-200, #e1e1e1);
-  border-radius: var(--border-radius-lg, 8px);
+  margin: 0 0 var(--space-md);
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--border-radius-lg);
   overflow: hidden;
 }
 
@@ -1047,109 +1006,105 @@
   justify-content: center;
   gap: 4px;
   height: 320px;
-  border: 1px dashed var(--color-neutral-300, #c5cdd2);
-  border-radius: var(--border-radius-lg, 8px);
-  background: var(--color-neutral-100, #f5f6f7);
-  color: var(--color-text-tertiary, #88a1ad);
-  font-size: var(--font-size-lg, 1.125rem);
+  border: 1px dashed var(--color-neutral-300);
+  border-radius: var(--border-radius-lg);
+  background: var(--color-neutral-100);
+  color: var(--color-neutral-700);
+  font: var(--text-body-regular);
 }
 
-.ud-map-placeholder small { font-size: var(--font-size-xs, 0.8125rem); }
+.ud-map-placeholder small { font: var(--text-caption-regular); }
 
 /* ---- Team / class ---------------------------------------------------------------------------------------------- */
 .ud-team {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: var(--space-md, 16px);
-  margin: var(--space-md, 16px) 0;
+  gap: var(--space-md);
+  margin: var(--space-md) 0;
 }
 
 .ud-team-card,
 .ud-team-board {
-  border: 1px solid var(--color-neutral-200, #e1e1e1);
-  border-radius: var(--border-radius-lg, 8px);
-  padding: var(--space-md, 16px);
-  background: var(--color-neutral-white, #ffffff);
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--border-radius-lg);
+  padding: var(--space-md);
+  background: var(--color-neutral-white);
 }
 
 .ud-team-card {
   display: flex;
   flex-direction: column;
-  gap: var(--space-xs, 8px);
+  gap: var(--space-xs);
   align-items: flex-start;
 }
 
 .ud-team-name {
-  font-family: var(--font-accent, "Raleway", sans-serif);
-  font-size: var(--font-size-lg, 1.125rem);
-  font-weight: 700;
-  color: var(--color-text-heading, #263238);
+  font: var(--text-title-bold);
+  color: var(--color-neutral-900);
 }
 
 .ud-team-meta {
-  font-size: var(--font-size-md, 1rem);
-  color: var(--color-text-secondary, #5a7785);
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
 }
 
 .ud-team-board-head {
-  font-size: var(--font-size-md, 1rem);
-  font-weight: 600;
-  color: var(--color-text-secondary, #5a7785);
-  margin-bottom: var(--space-xs, 8px);
+  font: var(--text-small-bold);
+  color: var(--color-neutral-700);
+  margin-bottom: var(--space-xs);
 }
 
 .ud-btn-secondary {
   padding: 6px 14px;
-  border: 1px solid var(--color-neutral-300, #c5cdd2);
-  border-radius: var(--border-radius, 4px);
-  background: var(--color-neutral-white, #ffffff);
-  color: var(--color-text-heading, #263238);
-  font-size: var(--font-size-md, 1rem);
+  border: 1px solid var(--color-neutral-300);
+  border-radius: var(--border-radius);
+  background: var(--color-neutral-white);
+  color: var(--color-neutral-900);
+  font: var(--text-small-regular);
   cursor: pointer;
-  transition: background var(--transition-fast, 0.15s ease);
+  transition: background var(--transition-fast);
 }
 
-.ud-btn-secondary:hover { background: var(--color-neutral-100, #f0f0f0); }
+.ud-btn-secondary:hover { background: var(--color-neutral-100); }
 
 .ud-btn-primary {
   display: inline-block;
   padding: 8px 18px;
   border: 1px solid transparent;
-  border-radius: var(--border-radius, 4px);
-  background: var(--color-pine-600, #4a7c59);
-  color: var(--color-neutral-white, #ffffff);
-  font-size: var(--font-size-md, 1rem);
-  font-weight: 600;
+  border-radius: var(--border-radius);
+  background: var(--color-pine-600);
+  color: var(--color-neutral-white);
+  font: var(--text-small-bold);
   text-decoration: none;
   cursor: pointer;
-  transition: background var(--transition-fast, 0.15s ease);
+  transition: background var(--transition-fast);
 }
 
 .ud-btn-primary:hover {
-  background: var(--color-pine-700, #3a6347);
+  background: var(--color-pine-700);
   text-decoration: none;
 }
 
 /* Inert controls on an admin's view of someone else's dashboard (route/team actions, an Owner's settings). */
 .ud-btn-secondary:disabled,
 .ud-btn-secondary:disabled:hover {
-  background: var(--color-neutral-100, #f2f5f6);
-  border-color: var(--color-neutral-200, #dfe5e8);
-  color: var(--color-text-secondary, #5a7785);
+  background: var(--color-neutral-100);
+  border-color: var(--color-neutral-200);
+  color: var(--color-neutral-700);
   opacity: 0.6;
   cursor: not-allowed;
 }
 
 .ud-btn-primary:disabled,
 .ud-btn-primary:disabled:hover {
-  background: var(--color-neutral-200, #dfe5e8);
-  color: var(--color-text-secondary, #5a7785);
+  background: var(--color-neutral-200);
+  color: var(--color-neutral-700);
   opacity: 0.8;
   cursor: not-allowed;
 }
 
 /* "Create a team" sits below the teams table / empty-state banner, so give it breathing room. */
-.ud-btn-primary.ud-create-team-btn { margin-top: var(--space-md, 16px); }
+.ud-btn-primary.ud-create-team-btn { margin-top: var(--space-md); }
 
 /* Plain "+" affordance that inherits the button's white text (a "➕" emoji renders blue and clashes with green). */
 .ud-btn-plus { font-weight: 700; }
@@ -1160,16 +1115,16 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-md, 16px);
-  margin: var(--space-md, 16px) 0;
-  padding: var(--space-lg, 24px);
-  border: 1px solid var(--color-pine-300, #aacdb4);
-  border-radius: var(--border-radius-lg, 8px);
-  background: linear-gradient(120deg, var(--color-pine-100, #eaf3ec), var(--color-banana-100, #fdf6e3));
+  gap: var(--space-md);
+  margin: var(--space-md) 0;
+  padding: var(--space-lg);
+  border: 1px solid var(--color-pine-300);
+  border-radius: var(--border-radius-lg);
+  background: linear-gradient(120deg, var(--color-pine-100), var(--color-banana-100));
 }
 
 /* Warning variant of the CTA banner (e.g. the "sample data" notice on the public profile). */
-.ud-cta-warning { border-color: var(--color-warning, #ff9800); }
+.ud-cta-warning { border-color: var(--color-warning-200); }
 
 .ud-cta-text {
   display: flex;
@@ -1178,18 +1133,18 @@
 }
 
 .ud-cta-text strong {
-  font-size: var(--font-size-lg, 1.125rem);
-  color: var(--color-text-heading, #263238);
+  font: var(--text-subtitle-bold);
+  color: var(--color-neutral-900);
 }
 
 .ud-cta-text span {
-  font-size: var(--font-size-md, 1rem);
-  color: var(--color-text-secondary, #5a7785);
+  font: var(--text-body-regular);
+  color: var(--color-neutral-700);
 }
 
 .ud-cta-actions {
   display: flex;
-  gap: var(--space-sm, 12px);
+  gap: var(--space-sm);
 }
 
 /* Both actions are anchors styled as buttons; the flex row stretches them to equal heights, so without this the
@@ -1206,11 +1161,11 @@
 /* Small-caps lead-in naming the city, standing in for the h2 this band deliberately doesn't have (it would otherwise
    claim a row in the right-hand contents list, which starts at "Top of the board"). */
 .ud-impact-caption {
-  margin: var(--space-lg, 24px) 0 var(--space-xs, 8px);
+  margin: var(--space-lg) 0 var(--space-xs);
   font: var(--text-small-bold);
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--color-text-secondary, #5a7785);
+  color: var(--color-neutral-700);
 }
 
 /* Quieter than the cross-city band below: no icons, tiles left-aligned, so the page still opens on the podium rather
@@ -1222,13 +1177,13 @@
      Fixed counts rather than auto-fit: with exactly four tiles, an intermediate three-column track would orphan the
      fourth on a row of its own. minmax(0, 1fr) so a long localized label can't push a track past its share. */
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-md, 16px) var(--space-lg, 24px);
+  gap: var(--space-md) var(--space-lg);
   margin: 0;
-  padding: var(--space-lg, 24px);
-  border: 1px solid var(--color-pine-200, #cfe3d4);
-  border-radius: var(--border-radius-lg, 8px);
-  background: linear-gradient(120deg, var(--color-pine-100, #eaf3ec), var(--color-banana-100, #fdf6e3));
-  color: var(--color-text-heading, #263238);
+  padding: var(--space-lg);
+  border: 1px solid var(--color-pine-200);
+  border-radius: var(--border-radius-lg);
+  background: linear-gradient(120deg, var(--color-pine-100), var(--color-banana-100));
+  color: var(--color-neutral-900);
 }
 
 /* Reversed so the value paints above its label while the markup keeps dt-then-dd order, which is what lets a screen
@@ -1242,7 +1197,7 @@
 
 .ud-impact-value {
   margin: 0;
-  font-family: var(--font-primary, "Mulish", sans-serif);
+  font-family: var(--font-primary);
 
   /* Sized in px, not rem: Bootstrap sets a 10px root here, so a rem clamp silently renders at 62.5% of its intent.
      nowrap means an over-long value overflows its tile rather than breaking mid-number, so the floor is set low
@@ -1259,7 +1214,7 @@
    4.5:1 AA needs at this size. Asphalt keeps the slate cast. */
 .ud-impact-label {
   font: var(--text-small-medium);
-  color: var(--color-asphalt-300, #615e78);
+  color: var(--color-asphalt-300);
 }
 
 /* Four across only above 1400px. The content column is not a simple function of viewport width — the right-hand
@@ -1274,24 +1229,24 @@
 /* The one place the cross-city total appears above the fold. Kept to a single sentence so the closing community band
    stays the section that actually presents those numbers. */
 .ud-impact-bridge {
-  margin: var(--space-sm, 12px) 0 0;
+  margin: var(--space-sm) 0 0;
   font: var(--text-small-regular);
-  color: var(--color-text-secondary, #5a7785);
+  color: var(--color-neutral-700);
 }
 
 /* ---- Leaderboard: community band + podium ---------------------------------------------------------------------- */
 .ud-community-band {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: var(--space-lg, 24px);
-  padding: var(--space-lg, 24px);
-  margin: var(--space-md, 16px) 0;
-  border: 1px solid var(--color-pine-200, #cfe3d4);
-  border-radius: var(--border-radius-lg, 8px);
+  gap: var(--space-lg);
+  padding: var(--space-lg);
+  margin: var(--space-md) 0;
+  border: 1px solid var(--color-pine-200);
+  border-radius: var(--border-radius-lg);
 
   /* Light, on-brand card so the black line-art stat icons read clearly (they were invisible on the old dark band). */
-  background: linear-gradient(120deg, var(--color-pine-100, #eaf3ec), var(--color-banana-100, #fdf6e3));
-  color: var(--color-text-heading, #263238);
+  background: linear-gradient(120deg, var(--color-pine-100), var(--color-banana-100));
+  color: var(--color-neutral-900);
 }
 
 .ud-community-stat {
@@ -1318,7 +1273,7 @@
    drop below the baseline, so numbers set in it look uneven. */
 .ud-community-value {
   display: block;
-  font-family: var(--font-primary, "Mulish", sans-serif);
+  font-family: var(--font-primary);
 
   /* px, not rem, for the reason given on .ud-impact-value above. Capped at 30 because five tiles share the content
      column here, leaving tracks as narrow as ~150px — enough for "11,635 km" on one line at this size, not more. */
@@ -1331,34 +1286,33 @@
 .ud-community-label {
   display: block;
   font: var(--text-body-regular);
-  color: var(--color-asphalt-300, #615e78);
+  color: var(--color-asphalt-300);
 }
 
 .ud-podium {
   display: flex;
   justify-content: center;
   align-items: flex-end;
-  gap: var(--space-md, 16px);
-  margin: var(--space-lg, 24px) 0;
+  gap: var(--space-md);
+  margin: var(--space-lg) 0;
 }
 
 .ud-podium-spot {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-xs, 8px);
+  gap: var(--space-xs);
   width: 150px;
 }
 
 .ud-podium-name {
-  font-weight: 700;
-  font-size: 1.6rem;
-  color: var(--color-text-heading, #263238);
+  font: var(--text-title-bold);
+  color: var(--color-neutral-900);
 }
 
 .ud-podium-score {
-  font-size: var(--font-size-xl, 1.25rem);
-  color: var(--color-text-secondary, #5a7785);
+  font: var(--text-body-medium);
+  color: var(--color-neutral-700);
 }
 
 .ud-podium-block {
@@ -1366,25 +1320,25 @@
   align-items: flex-start;
   justify-content: center;
   width: 100%;
-  padding-top: var(--space-sm, 12px);
+  padding-top: var(--space-sm);
   border-radius: var(--border-radius) var(--border-radius) 0 0;
-  font-size: 3.4rem;
-  color: var(--color-neutral-white, #ffffff);
+  font-size: 44px; /* px, not rem, for the reason given on .ud-lb-medal. */
+  color: var(--color-neutral-white);
 }
 
 .ud-podium-1 .ud-podium-block {
   height: 128px;
-  background: var(--color-banana-500, #f3c220);
+  background: var(--color-banana-500);
 }
 
 .ud-podium-2 .ud-podium-block {
   height: 98px;
-  background: var(--color-neutral-400, #a8b0b5);
+  background: var(--color-neutral-400);
 }
 
 .ud-podium-3 .ud-podium-block {
   height: 74px;
-  background: var(--color-orange-500, #e07b2f);
+  background: var(--color-orange-500);
 }
 .ud-podium-1 { order: 2; }
 .ud-podium-2 { order: 1; }
@@ -1395,10 +1349,9 @@
   display: inline-block;
   padding: 2px 10px;
   border-radius: 12px;
-  background: var(--color-pine-200, #cfe3d4);
-  color: var(--color-pine-800, #2f5239);
-  font-size: var(--font-size-sm, 0.875rem);
-  font-weight: 700;
+  background: var(--color-pine-200);
+  color: var(--color-pine-800);
+  font: var(--text-caption-semibold);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -1407,9 +1360,9 @@
 .ud-form {
   display: flex;
   flex-direction: column;
-  gap: var(--space-lg, 24px);
+  gap: var(--space-lg);
   max-width: 620px;
-  margin: var(--space-md, 16px) 0;
+  margin: var(--space-md) 0;
 }
 
 .ud-field {
@@ -1419,56 +1372,39 @@
 }
 
 .ud-label {
-  font-size: var(--font-size-lg, 1.125rem);
-  font-weight: 600;
-  color: var(--color-text-heading, #263238);
+  font: var(--text-body-bold);
+  color: var(--color-neutral-900);
 }
 
-.ud-input {
-  padding: 10px 13px;
-  border: 1px solid var(--color-neutral-300, #c5cdd2);
-  border-radius: var(--border-radius, 4px);
-  font-size: var(--font-size-lg, 1.125rem);
-  color: var(--color-text-heading, #263238);
-  background: var(--color-neutral-white, #ffffff);
-}
-
-.ud-input:focus-visible {
-  outline: 2px solid var(--color-accent-link, #0566f5);
-  outline-offset: 1px;
-  border-color: var(--color-accent-link, #0566f5);
-}
-
-select.ud-input:enabled,
-.ud-check input:enabled {
-  cursor: pointer;
-}
+.ud-check input:enabled { cursor: pointer; }
 
 .ud-field-inline {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-sm, 12px);
+  gap: var(--space-sm);
   align-items: center;
 }
-.ud-field-inline .ud-input { flex: 1 1 240px; }
+
+.ud-field-inline .ps-input,
+.ud-field-inline .ps-select { flex: 1 1 240px; }
 
 .ud-field-help {
-  font-size: var(--font-size-md, 1rem);
-  color: var(--color-text-secondary, #5a7785);
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
 }
 
 .ud-radio-row {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-md, 16px);
+  gap: var(--space-md);
 }
 
 .ud-radio,
 .ud-check {
   display: flex;
-  gap: var(--space-xs, 8px);
-  font-size: var(--font-size-lg, 1.125rem);
-  color: var(--color-text-heading, #263238);
+  gap: var(--space-xs);
+  font: var(--text-body-regular);
+  color: var(--color-neutral-900);
   cursor: pointer;
 }
 
@@ -1482,50 +1418,44 @@ select.ud-input:enabled,
   gap: 2px;
 }
 
-.ud-input[readonly] {
-  background: var(--color-neutral-100, #f2f5f6);
-  color: var(--color-text-secondary, #5a7785);
-}
-
 /* Inline "Saved ✓" / error message next to the Save button. */
 .ud-save-status {
-  margin-left: var(--space-sm, 12px);
-  font-size: var(--font-size-md, 1rem);
-  color: var(--color-text-secondary, #5a7785);
+  margin-left: var(--space-sm);
+  font: var(--text-body-regular);
+  color: var(--color-neutral-700);
 }
-.ud-save-status.ud-save-ok { color: var(--color-success, #2e7d32); }
-.ud-save-status.ud-save-err { color: var(--color-error, #d32f2f); }
+.ud-save-status.ud-save-ok { color: var(--color-success-200); }
+.ud-save-status.ud-save-err { color: var(--color-error-200); }
 
 /* ---- Admin page beside a user's dashboard (#4964) ----------------------------------------------------------- */
 .ud-admin-flags {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-xl, 32px);
+  gap: var(--space-xl);
 }
 
 .ud-admin-flag {
   flex: 1 1 260px;
   max-width: 360px;
-  gap: var(--space-sm, 12px);
+  gap: var(--space-sm);
 }
 
 .ud-admin-flag .ud-save-status { margin-left: 0; }
 
-.ud-admin-details { margin-top: var(--space-md, 16px); }
+.ud-admin-details { margin-top: var(--space-md); }
 
 .ud-admin-details summary {
   cursor: pointer;
-  font-size: var(--font-size-lg, 1.125rem);
-  font-weight: 600;
-  color: var(--color-text-heading, #263238);
+  font: var(--text-body-bold);
+  color: var(--color-neutral-900);
 }
 
-.ud-admin-details .mgmt-table-scroll { margin-top: var(--space-sm, 12px); }
+.ud-admin-details .mgmt-table-scroll { margin-top: var(--space-sm); }
 
 /* Two narrow columns, so the hours sit beside their city instead of a screen-width away (#4986). */
 .ud-admin-hours-cities {
   max-width: 420px;
-  margin-bottom: var(--space-md, 16px);
+  margin-bottom: var(--space-md);
 }
 
 /* "Kept private" state on a public profile whose owner turned off public_profile. */
@@ -1533,28 +1463,28 @@ select.ud-input:enabled,
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-xs, 8px);
+  gap: var(--space-xs);
   text-align: center;
-  padding: var(--space-xl, 32px) var(--space-md, 16px);
-  color: var(--color-text-heading, #263238);
+  padding: var(--space-xl) var(--space-md);
+  color: var(--color-neutral-900);
 }
-.ud-empty-emoji { font-size: 2.5rem; }
+.ud-empty-emoji { font-size: 36px; } /* px, not rem, for the reason given on .ud-lb-medal. */
 
 /* ---- "How is this ranked?" explainer --------------------------------------------------------------------------- */
 .ud-explainer {
-  margin: 0 0 var(--space-md, 16px);
-  font-size: var(--font-size-lg, 1.125rem);
-  color: var(--color-text-secondary, #5a7785);
+  margin: 0 0 var(--space-md);
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
 }
 
 .ud-explainer > summary {
   cursor: pointer;
-  color: var(--color-accent-link, #0566f5);
+  color: var(--color-link-200);
   width: fit-content;
 }
 
 .ud-explainer > div {
-  margin-top: var(--space-xs, 8px);
+  margin-top: var(--space-xs);
   line-height: 1.5;
   max-width: 720px;
 }
@@ -1563,8 +1493,8 @@ select.ud-input:enabled,
 .ud-dialog {
   width: min(460px, calc(100vw - 32px));
   padding: 0;
-  border: 1px solid var(--color-neutral-200, #e1e1e1);
-  border-radius: var(--border-radius-lg, 8px);
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--border-radius-lg);
   box-shadow: var(--box-shadow-lg, 0 4px 12px rgb(0 0 0 / 15%));
 }
 
@@ -1574,56 +1504,55 @@ select.ud-input:enabled,
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: var(--space-lg, 24px);
+  padding: var(--space-lg);
 }
 
 .ud-dialog-title {
   margin: 0;
-  font-family: var(--font-accent, "Raleway", sans-serif);
-  font-size: var(--font-size-xl, 1.25rem);
-  color: var(--color-text-heading, #263238);
+  font: var(--text-title-bold);
+  color: var(--color-neutral-900);
 }
 
 .ud-dialog-sub {
-  margin: 0 0 var(--space-sm, 12px);
-  font-size: var(--font-size-md, 1rem);
-  color: var(--color-text-secondary, #5a7785);
+  margin: 0 0 var(--space-sm);
+  font: var(--text-body-regular);
+  color: var(--color-neutral-700);
 }
 
-.ud-dialog-form .ud-label { margin-top: var(--space-sm, 12px); }
+.ud-dialog-form .ud-label { margin-top: var(--space-sm); }
 
 .ud-optional {
   font-weight: 400;
-  color: var(--color-text-tertiary, #88a1ad);
+  color: var(--color-neutral-700);
 }
 
 .ud-dialog-error {
-  margin-top: var(--space-sm, 12px);
+  margin-top: var(--space-sm);
   padding: 8px 12px;
-  border-radius: var(--border-radius, 4px);
-  background: var(--color-error-light, #ffebee);
-  color: var(--color-error, #d32f2f);
-  font-size: var(--font-size-md, 1rem);
+  border-radius: var(--border-radius);
+  background: rgb(from var(--color-error-200) r g b / 10%);
+  color: var(--color-error-200);
+  font: var(--text-body-regular);
 }
 
 .ud-dialog-note {
-  margin: var(--space-sm, 12px) 0 0;
-  font-size: var(--font-size-sm, 0.875rem);
-  color: var(--color-text-tertiary, #88a1ad);
+  margin: var(--space-sm) 0 0;
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
 }
 
 .ud-dialog-actions {
   display: flex;
   justify-content: flex-end;
-  gap: var(--space-sm, 12px);
-  margin-top: var(--space-lg, 24px);
+  gap: var(--space-sm);
+  margin-top: var(--space-lg);
 }
 
 .ud-team-join-label {
   display: block;
-  margin-top: var(--space-sm, 12px);
-  font-size: var(--font-size-md, 1rem);
-  color: var(--color-text-secondary, #5a7785);
+  margin-top: var(--space-xxs);
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
 }
 
 /* ---- Responsive ------------------------------------------------------------------------------------------------ */
@@ -1666,7 +1595,7 @@ select.ud-input:enabled,
   .api-content .ud-lb-global { min-width: 620px; }
 
   /* Podium shrinks to fit a phone: equal-width columns instead of fixed 150px spots. */
-  .ud-podium { gap: var(--space-xs, 8px); }
+  .ud-podium { gap: var(--space-xs); }
 
   .ud-podium-spot {
     width: auto;
@@ -1691,7 +1620,9 @@ select.ud-input:enabled,
     flex-direction: column;
     align-items: stretch;
   }
-  .ud-field-inline .ud-input { flex: 1 1 auto; }
+
+  .ud-field-inline .ps-input,
+  .ud-field-inline .ps-select { flex: 1 1 auto; }
 
   /* Mobile nav: this surface's section nav is two or three links, so it fits inline above the content as a chip row
        and needs no disclosure to open it — unlike the API docs' 18 links and the admin dashboard's 12, which the
@@ -1705,45 +1636,42 @@ select.ud-input:enabled,
     height: auto;
     overflow: visible;
     border-right: none;
-    border-bottom: 1px solid var(--color-neutral-200, #e1e1e1);
-    background: var(--color-neutral-white, #ffffff);
+    border-bottom: 1px solid var(--color-neutral-200);
+    background: var(--color-neutral-white);
   }
 
   .api-container .api-sidebar .api-nav {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--space-xs, 8px);
-    padding: var(--space-sm, 12px) var(--space-md, 16px);
+    gap: var(--space-xs);
+    padding: var(--space-sm) var(--space-md);
   }
 
   .api-container .api-sidebar .api-nav-header { display: none; }
 
   .api-container .api-sidebar .api-nav-item {
     padding: 6px 14px;
-    border: 1px solid var(--color-neutral-200, #e1e1e1);
+    border: 1px solid var(--color-neutral-200);
     border-radius: 16px;
-    background: var(--color-neutral-white, #ffffff);
-    font-size: var(--font-size-md, 1rem);
-    color: var(--color-text-heading, #263238);
+    background: var(--color-neutral-white);
+    font: var(--text-body-regular);
+    color: var(--color-neutral-900);
   }
 
   .api-container .api-sidebar .api-nav-item.active {
-    background: var(--color-pine-600, #4a7c59);
-    border-color: var(--color-pine-600, #4a7c59);
-    color: var(--color-neutral-white, #ffffff);
+    background: var(--color-pine-600);
+    border-color: var(--color-pine-600);
+    color: var(--color-neutral-white);
   }
 
   .api-container .api-sidebar .api-nav-item.disabled {
-    background: var(--color-neutral-100, #f5f6f7);
-    color: var(--color-text-tertiary, #88a1ad);
+    background: var(--color-neutral-100);
+    color: var(--color-neutral-700);
   }
 }
 
 @media (width <= 480px) {
-  .ud-acc-label {
-    flex-basis: 100px;
-    font-size: var(--font-size-md, 1rem);
-  }
+  .ud-acc-label { flex-basis: 100px; }
 
   /* Sample-size column shrinks to fit on phones instead of holding its aligned desktop width. */
   .ud-acc-n { flex: 0 1 auto; }
@@ -1775,7 +1703,7 @@ select.ud-input:enabled,
  prefer reduced motion. Color/opacity transitions stay — they don't move anything. */
 @media (prefers-reduced-motion: reduce) {
   .ud-trophy-link {
-    transition: box-shadow var(--transition-fast, 0.15s ease);
+    transition: box-shadow var(--transition-fast);
   }
 
   .ud-trophy-link:hover,
@@ -1790,7 +1718,7 @@ select.ud-input:enabled,
   gap: 12px;
   align-items: flex-start;
   padding: 12px 0;
-  border-top: 1px solid var(--color-neutral-200, #e1e1e1);
+  border-top: 1px solid var(--color-neutral-200);
 }
 
 .ud-story-row:first-child { border-top: none; }
@@ -1803,13 +1731,13 @@ select.ud-input:enabled,
   height: 72px;
   object-fit: cover;
   border-radius: 6px;
-  border: 1px solid var(--color-neutral-300, #d1d1d1);
+  border: 1px solid var(--color-neutral-300);
 }
 
 /* Imageless rows (no photo, no label preview) keep the thumbnail's box so their text stays column-aligned. */
 .ud-story-thumb--none {
-  background: var(--color-neutral-100, #f5f5f5);
-  border-color: var(--color-neutral-200, #e1e1e1);
+  background: var(--color-neutral-100);
+  border-color: var(--color-neutral-200);
 }
 
 .ud-story-body {
@@ -1837,7 +1765,7 @@ select.ud-input:enabled,
   left: 0;
   z-index: -1;
   font: 700 30px/1 Georgia, serif;
-  color: var(--color-neutral-300, #d1d1d1);
+  color: var(--color-neutral-300);
 }
 
 .ud-story-meta {
@@ -1845,21 +1773,19 @@ select.ud-input:enabled,
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
-  font-size: 13px;
-  color: var(--color-neutral-700, #6b6b6b);
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
 }
 
 .ud-story-chip {
   display: inline-flex;
   align-items: center;
   padding: 3px 8px;
-  border: 1px solid var(--color-banana-700, #f1b12a);
+  border: 1px solid var(--color-banana-700);
   border-radius: 999px;
-  background: var(--color-banana-100, #fef7e8);
-  color: var(--color-banana-900, #a87303);
-  font-family: var(--font-accent, Raleway, sans-serif);
-  font-weight: 600;
-  font-size: 11px;
+  background: var(--color-banana-100);
+  color: var(--color-banana-900);
+  font: var(--text-caption-semibold);
   line-height: 1;
 }
 
@@ -1869,19 +1795,17 @@ select.ud-input:enabled,
   border: none;
   background: none;
   cursor: pointer;
-  font-family: var(--font-accent, Raleway, sans-serif);
-  font-weight: 600;
-  font-size: 12px;
+  font: var(--text-caption-semibold);
   text-decoration: underline;
 }
 
-.ud-story-edit { color: var(--color-link-200, #0f5faf); }
+.ud-story-edit { color: var(--color-link-200); }
 
-.ud-story-delete { color: var(--color-orange-700, #8d442f); }
+.ud-story-delete { color: var(--color-orange-700); }
 
 .ud-story-edit:focus-visible,
 .ud-story-delete:focus-visible {
-  outline: 2px solid var(--color-link-100, #3e8bd9);
+  outline: 2px solid var(--color-link-100);
   outline-offset: 2px;
   border-radius: 4px;
 }
@@ -1905,9 +1829,9 @@ select.ud-input:enabled,
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-sm, 12px);
+  gap: var(--space-sm);
   padding: 12px 0;
-  border-bottom: 1px solid var(--color-neutral-200, #e1e1e1);
+  border-bottom: 1px solid var(--color-neutral-200);
 }
 
 .ud-route-info {
@@ -1928,32 +1852,32 @@ select.ud-input:enabled,
   width: 180px;
   height: 90px;
   object-fit: cover;
-  border: 1px solid var(--color-neutral-200, #e1e1e1);
+  border: 1px solid var(--color-neutral-200);
   border-radius: 8px;
 }
 
 .ud-route-view:hover .ud-route-thumb,
 .ud-route-view:focus-visible .ud-route-thumb {
-  border-color: var(--color-link-100, #3e8bd9);
-  box-shadow: 0 0 0 1px var(--color-link-100, #3e8bd9);
+  border-color: var(--color-link-100);
+  box-shadow: 0 0 0 1px var(--color-link-100);
 }
 
 .ud-route-usage {
-  font-size: var(--font-size-sm, 0.875rem);
-  color: var(--color-text-muted, #546e7a);
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
   cursor: help;
 }
 
 .ud-route-name {
   font-weight: 600;
-  color: var(--color-text-heading, #263238);
+  color: var(--color-neutral-900);
   overflow-wrap: anywhere;
 }
 
 /* The creator's "why this route matters" blurb, clamped so long stories keep the row scannable. */
 .ud-route-desc {
-  font-size: var(--font-size-sm, 0.875rem);
-  color: var(--color-text-muted, #546e7a);
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
   overflow-wrap: anywhere;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -1962,37 +1886,33 @@ select.ud-input:enabled,
 }
 
 .ud-route-meta {
-  font-size: var(--font-size-md, 1rem);
-  color: var(--color-text-muted, #546e7a);
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
 }
 
 .ud-route-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-xs, 8px);
+  gap: var(--space-xs);
 }
 
 .ud-route-actions .ud-btn-secondary {
   padding: 4px 10px;
-  font-size: var(--font-size-sm, 0.875rem);
   text-decoration: none;
 }
 
 .ud-route-rename-form {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-xs, 8px);
+  gap: var(--space-xs);
 }
 
-.ud-route-rename-form .ud-input {
-  padding: 4px 10px;
-  font-size: var(--font-size-md, 1rem);
-}
+.ud-route-rename-form .ps-input { padding: 4px 10px; }
 
 .ud-route-rename-form .ud-btn-primary {
   padding: 4px 10px;
-  font-size: var(--font-size-sm, 0.875rem);
+  font: var(--text-small-bold);
 }
 
 /* ---- Cities you've mapped (#4496) ------------------------------------------------------------------------------
@@ -2000,7 +1920,7 @@ select.ud-input:enabled,
  * the table, map, and "you're here" marker are new.
  */
 
-.ud-cities-table-wrap { margin: var(--space-md, 16px) 0; }
+.ud-cities-table-wrap { margin: var(--space-md) 0; }
 
 /* The table isn't sortable, so drop the admin header's click affordance. */
 .api-content .ud-cities-table thead th { cursor: default; }
@@ -2009,38 +1929,38 @@ select.ud-input:enabled,
    row header, and a <th> defaults to centered, so it's the one that needs saying. */
 .api-content .ud-cities-table tbody th { text-align: left; }
 
-.ud-cities-current { background: var(--color-pine-100, #e4f4ee); }
+.ud-cities-current { background: var(--color-pine-100); }
 
 /* Marks the deployment the mapper is reading this on, so the row they can verify against the tiles above is obvious. */
 .ud-cities-here {
   display: inline-block;
-  margin-left: var(--space-xs, 8px);
+  margin-left: var(--space-xs);
   padding: 1px 8px;
   border-radius: 999px;
-  background: var(--color-pine-200, #c9e9dd);
-  color: var(--color-text-heading, #263238);
-  font-size: var(--font-size-sm, 0.875rem);
+  background: var(--color-pine-200);
+  color: var(--color-neutral-900);
+  font: var(--text-caption-semibold);
   white-space: nowrap;
 }
 
 .ud-cities-map {
   height: 340px;
-  margin: var(--space-md, 16px) 0;
-  border: 1px solid var(--color-neutral-200, #e1e1e1);
-  border-radius: var(--border-radius-lg, 8px);
+  margin: var(--space-md) 0;
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--border-radius-lg);
   overflow: hidden;
 }
 
 .ud-cities-footnote {
-  color: var(--color-text-secondary, #546e7a);
-  font-size: var(--font-size-sm, 0.875rem);
+  color: var(--color-neutral-700);
+  font: var(--text-caption-regular);
 }
 
 /* Names the deployment the KPI tiles belong to; the cross-city section below is the only part that isn't scoped. */
 .ud-kpi-scope {
-  margin-bottom: var(--space-xs, 8px);
-  color: var(--color-text-secondary, #546e7a);
-  font-size: var(--font-size-sm, 0.875rem);
+  margin-bottom: var(--space-xs);
+  color: var(--color-neutral-700);
+  font: var(--text-small-regular);
 }
 
 /* `.ud-community-band` sets `display: grid`, which outranks the UA's `[hidden] { display: none }` — so a band the
@@ -2061,9 +1981,9 @@ select.ud-input:enabled,
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-sm, 12px);
+  gap: var(--space-sm);
   padding: 12px 0;
-  border-bottom: 1px solid var(--color-neutral-200, #e1e1e1);
+  border-bottom: 1px solid var(--color-neutral-200);
 }
 
 /* The row's own `display` beats the UA stylesheet's `[hidden] { display: none }`, so the rows waiting behind
@@ -2075,7 +1995,7 @@ select.ud-input:enabled,
 /* Rows carry no thumbnail, so the hover tint is the only feedback that a row is the one brushing the map above. */
 .ud-reaudit-row:hover,
 .ud-reaudit-row:focus-within {
-  background: var(--color-bg-hover, #e9ecef);
+  background: var(--color-neutral-100);
 }
 
 .ud-reaudit-info {
@@ -2087,30 +2007,29 @@ select.ud-input:enabled,
 
 .ud-reaudit-place {
   font-weight: 600;
-  color: var(--color-text-heading, #263238);
+  color: var(--color-neutral-900);
   overflow-wrap: anywhere;
 }
 
 .ud-reaudit-meta {
-  font-size: var(--font-size-md, 1rem);
-  color: var(--color-text-secondary, #5a7785);
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
 }
 
 .ud-reaudit-audited {
-  font-size: var(--font-size-md, 1rem);
-  color: var(--color-text-secondary, #5a7785);
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
 }
 
 .ud-reaudit-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-xs, 8px);
+  gap: var(--space-xs);
 }
 
 .ud-reaudit-actions .ud-btn-secondary {
   padding: 4px 10px;
-  font-size: var(--font-size-sm, 0.875rem);
   text-decoration: none;
 }
 
@@ -2118,12 +2037,11 @@ select.ud-input:enabled,
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-sm, 12px);
-  font-size: var(--font-size-md, 1rem);
-  color: var(--color-text-secondary, #5a7785);
+  gap: var(--space-sm);
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
 }
 
 .ud-reaudit-more .ud-btn-secondary {
   padding: 4px 10px;
-  font-size: var(--font-size-sm, 0.875rem);
 }

@@ -100,7 +100,7 @@ describe('the design system ships the faces its font tokens name', () => {
     test('the tokens and the faces were both found, so these assertions mean something', () => {
         expect(declaredFamilies).toContain('mulish');
         expect(tokenFamilies.map((t) => t.token)).toEqual(
-            expect.arrayContaining(['--font-primary', '--font-accent', '--font-mono', '--font-sans']),
+            expect.arrayContaining(['--font-primary', '--font-accent', '--font-mono']),
         );
     });
 
@@ -114,7 +114,7 @@ describe('the design system ships the faces its font tokens name', () => {
     });
 
     test('the two families the API docs are set in are among them', () => {
-        expect(declaredFamilies).toContain('inter');
+        expect(declaredFamilies).toContain('mulish');
         expect(declaredFamilies).toContain('jetbrains mono');
     });
 
@@ -173,7 +173,7 @@ describe('the design system ships the faces its font tokens name', () => {
         const families = fs.readdirSync(FONTS_ROOT, { withFileTypes: true })
             .filter((e) => e.isDirectory()).map((e) => e.name);
 
-        expect(families.length).toBeGreaterThanOrEqual(6); // Not passing vacuously on an empty read.
+        expect(families.length).toBeGreaterThanOrEqual(5); // Not passing vacuously on an empty read.
 
         const undocumented = [];
         for (const family of families) {

@@ -166,14 +166,12 @@ camelCase otherwise). See [`style-guide.md`](style-guide.md) for the full layout
 
 **Styling comes from the design-system tokens in `main.css` `:root`** — color ramps (`--color-*`), composite type
 tokens (`--text-*`, complete `font` shorthands that bake in the tool-UI zoom factor `--ui-scale`), spacing, radii,
-shadows, motion, and z-index layers — plus the control primitives `.button-ps` and `.ps-select`. They mirror the
-"Design System Tokens" Figma; the rules for using them are in [`style-guide.md`](style-guide.md). One coupling worth
-knowing: **`css/api-docs/api-docs.css` is a shared shell, not a per-app stylesheet.** The API docs, the admin
-dashboard, and the user dashboard all link it for the sidebar + content + TOC layout and the shared components
-(`.api-table`, `.preview-*`, `.map-toolbar`, status messages), so a change there reaches all three. The dashboards'
-own stylesheets still carry a deprecated `:root` alias block at the top of `admin-dashboard.css` (`--font-size-*` in
-rem, `--color-text-*`, …) until they migrate to the tokens directly
-([#4300](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4300)).
+shadows, motion, and z-index layers — plus the component primitives `.button-ps`, `.ps-input`, `.ps-select`, and
+`.ps-table`. They mirror the "Design System Tokens" Figma; the rules for using them are in
+[`style-guide.md`](style-guide.md). One coupling worth knowing: **`css/api-docs/api-docs.css` is a shared shell, not
+a per-app stylesheet.** The API docs, the admin dashboard, and the user dashboard all link it for the sidebar +
+content + TOC layout and the shared components (`.preview-*`, `.map-toolbar`, status messages), so a change there
+reaches all three.
 
 **Mobile detection has exactly one definition:** `ControllerUtils.isMobile`, a server-side User-Agent check that
 decides which UI a request is served (mobile visitors get `/mobileLanding`, the mobile Validate page at `/mobile`,

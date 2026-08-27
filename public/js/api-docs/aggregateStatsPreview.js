@@ -114,7 +114,7 @@
       const maxLabels = Math.max.apply(null, rows.map((r) => r.labels || 0));
 
       const table = document.createElement('table');
-      table.className = 'api-table';
+      table.className = 'ps-table';
 
       const thead = document.createElement('thead');
       const headerRow = document.createElement('tr');

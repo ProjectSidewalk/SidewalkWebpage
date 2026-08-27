@@ -31,18 +31,18 @@
     <div class="ud-form">
       <div class="ud-field">
         <label class="ud-label" for="set-username">@Messages("username")</label>
-        <input class="ud-input" id="set-username" type="text" value="@user.username"
+        <input class="ps-input ps-input--large" id="set-username" type="text" value="@user.username"
            maxlength="30" autocomplete="off" spellcheck="false">
         <span class="ud-field-help">@Messages("dashboard.settings.username.help")</span>
       </div>
       <div class="ud-field">
         <label class="ud-label" for="set-email">@Messages("dashboard.settings.email")</label>
-        <input class="ud-input" id="set-email" type="email" value="@user.email" readonly disabled>
+        <input class="ps-input ps-input--large" id="set-email" type="email" value="@user.email" readonly disabled>
         <span class="ud-field-help">@Html(Messages("dashboard.settings.email.help"))</span>
       </div>
       <div class="ud-field">
         <label class="ud-label" for="set-units">@Messages("dashboard.settings.units")</label>
-        <select class="ud-input" id="set-units">
+        <select class="ps-select ps-select--large" id="set-units">
           @for(choice <- Seq(MeasurementSystem.FollowLanguage, MeasurementSystem.Metric, MeasurementSystem.Imperial)) {
             <option value="@choice" @selectedIfChosen(choice)>@Messages(s"dashboard.settings.units.$choice")</option>
           }
@@ -72,7 +72,7 @@
       <div class="ud-field">
         <label class="ud-label" for="set-team">@Messages("dashboard.settings.team.label")</label>
         <div class="ud-field-inline">
-          <select class="ud-input" id="set-team">
+          <select class="ps-select ps-select--large" id="set-team">
             @currTeam.map { t =>
               <option value="@t.teamId" selected>@t.name</option>
             }

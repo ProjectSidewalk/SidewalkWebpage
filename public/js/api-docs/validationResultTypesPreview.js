@@ -84,7 +84,7 @@
       const maxCount = types.length > 0 ? Math.max.apply(null, types.map((t) => t.count)) : 0;
 
       const table = document.createElement('table');
-      table.className = 'api-table';
+      table.className = 'ps-table';
 
       // Header.
       const thead = document.createElement('thead');

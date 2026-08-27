@@ -447,30 +447,133 @@ a {
   outline: 1px solid var(--color-neutral-500);
 }
 
-/* A native <select>: only the closed control is restyled, the platform keeps its own dropdown and arrow. */
+/* Form controls. `.ps-input` is a text-like <input> or <textarea>; `.ps-select` a native <select>, where only the
+   closed control is restyled and the platform keeps its own dropdown and arrow. They share one box so a select sits
+   flush beside an input in the same row. `--large` is the size for a settings-style form (body type, roomier
+   padding); the default is the toolbar/filter size that matches .button--medium. */
+.ps-input,
 .ps-select {
   font: var(--text-small-regular);
   color: var(--color-neutral-900);
   background-color: var(--color-neutral-white);
   border: 1px solid var(--color-neutral-300);
   border-radius: var(--border-radius);
-  padding: calc(4px * var(--ui-scale, 1)) calc(8px * var(--ui-scale, 1));
+  padding: calc(6px * var(--ui-scale, 1)) calc(10px * var(--ui-scale, 1));
+}
+
+.ps-input--large,
+.ps-select--large {
+  font: var(--text-body-regular);
+  padding: calc(9px * var(--ui-scale, 1)) calc(12px * var(--ui-scale, 1));
+}
+
+.ps-select {
   cursor: pointer;
 }
 
+textarea.ps-input {
+  resize: vertical;
+}
+
+.ps-input:hover,
 .ps-select:hover {
   border-color: var(--color-neutral-400);
 }
 
+.ps-input:focus-visible,
 .ps-select:focus-visible {
   outline: 2px solid var(--color-link-100);
   outline-offset: 1px;
 }
 
+.ps-input:disabled,
+.ps-input:read-only,
 .ps-select:disabled {
   background-color: var(--color-neutral-100);
   color: var(--color-neutral-600);
   cursor: default;
+}
+
+/* Data table. The API docs and both dashboards draw their tables from this; a page adds only what its own table
+   needs on top (a sticky header, a scrolling wrapper, a row-highlight state). Mark a numeric cell with `.num` so it
+   right-aligns with tabular figures; `.ps-table--compact` tightens the cells for dense admin data. */
+.ps-table-wrapper {
+  overflow-x: auto;
+  margin-bottom: var(--space-lg);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow-sm);
+}
+
+/* Inside the scroller the wrapper owns the vertical rhythm; a table margin would just push the scrollbar away from
+   the content. */
+.ps-table-wrapper > table {
+  margin: 0;
+}
+
+.ps-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-spacing: 0;
+  font: var(--text-small-regular);
+
+  /* Cells often hold a paragraph with inline code in it; the token's 18px leading is sized for one-line UI copy. */
+  line-height: 1.65;
+}
+
+.ps-table th,
+.ps-table td {
+  padding: var(--space-sm) var(--space-md);
+  text-align: left;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--color-neutral-200);
+}
+
+.ps-table th {
+  font: var(--text-small-bold);
+  line-height: 1.65;
+  background-color: var(--color-neutral-100);
+  border-bottom-width: 2px;
+  white-space: nowrap;
+}
+
+/* A row header (<th scope="row">) is a body cell that happens to label its row, so it keeps the header's weight
+   but none of its column-header chrome: the fill, the heavier rule, and the nowrap that would push a long name out
+   of the table. */
+.ps-table tbody th {
+  background-color: transparent;
+  border-bottom-width: 1px;
+  white-space: normal;
+}
+
+/* A blue wash rather than neutral-100: a link in a hovered row keeps 4.5:1 on it, and drops under on the grey. Set
+   on the cells, not the row, so it also paints over a row header (<th scope="row">). */
+.ps-table tbody tr:hover > td,
+.ps-table tbody tr:hover > th {
+  background-color: var(--color-blue-200);
+}
+
+.ps-table th.num,
+.ps-table td.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.ps-table--compact,
+.ps-table--compact th {
+  line-height: 1.3;
+}
+
+.ps-table--compact th,
+.ps-table--compact td {
+  padding: var(--space-xs) var(--space-sm);
+}
+
+/* Below var(--breakpoint-xs) a cell's padding is a large share of the width, so trade some of it for content. */
+@media (width <= 480px) {
+  .ps-table th,
+  .ps-table td {
+    padding: var(--space-xs) var(--space-sm);
+  }
 }
 
 .label-icon {

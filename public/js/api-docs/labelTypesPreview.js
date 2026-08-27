@@ -93,7 +93,7 @@
 
       // Create table structure.
       const table = document.createElement('table');
-      table.className = 'api-table';
+      table.className = 'ps-table';
 
       // Create table header.
       const thead = document.createElement('thead');

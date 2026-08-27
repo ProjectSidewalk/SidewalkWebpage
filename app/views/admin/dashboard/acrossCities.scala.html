@@ -70,7 +70,7 @@
     <h3 class="ac-chart-group-title" id="most-active-cities">Most active cities</h3>
     <p>The busiest deployments of the past 7 days, with each count's change from the 7 days before. Click a column header to re-rank — the table always shows the top five <em>by the column you sort on</em> (sorting by City keeps the busiest five, ordered by name). Cities with no activity this week are left out. Hover (or tab to) a count for both weeks' raw numbers and the contributors behind them, by name. Each row's Contributors count is that city's own; adding the column up therefore exceeds the project total in the tiles above, which counts someone who mapped in several cities once.</p>
     <div class="ac-table-wrap">
-      <table class="ac-table" id="ac-top-table">
+      <table class="ps-table ps-table--compact ac-table" id="ac-top-table">
         <thead>
           <tr>
             <th data-sort="city_name" class="ac-th-text">City</th>
@@ -118,7 +118,7 @@
     <h2 class="api-heading" id="traffic">Google Analytics <a href="#traffic" class="permalink">#</a></h2>
     <p>Website traffic per deployment — the one lens our database can't provide, since it only sees people who contribute. Recent columns cover the trailing 7 days (mobile share, 28); all-time spans each city's GA4 history, which begins when its property was created rather than at launch — hover a figure for the date. A city is flagged when its last 7 days sit far outside its own 8-week baseline, in either direction. Refreshed hourly from this stage's own GA properties, so the test server and localhost read the <code>-test</code> sites.</p>
     <div class="ac-table-wrap" id="ac-traffic-wrap">
-      <table class="ac-table" id="ac-traffic-table">
+      <table class="ps-table ps-table--compact ac-table" id="ac-traffic-table">
         <thead>
           <tr class="ac-th-group">
             <td></td>
@@ -191,7 +191,7 @@
     <h2 class="api-heading" id="scorecard">Scorecard <a href="#scorecard" class="permalink">#</a></h2>
     <p>One row per city — the at-a-glance index. Click a column header to sort; click a city to open its site.</p>
     <div class="ac-table-wrap">
-      <table class="ac-table" id="ac-table">
+      <table class="ps-table ps-table--compact ac-table" id="ac-table">
         <thead>
           <tr>
             <th data-sort="city_name" class="ac-th-text">City</th>
@@ -214,7 +214,7 @@
     <h2 class="api-heading" id="coverage">Coverage — how much is left <a href="#coverage" class="permalink">#</a></h2>
     <p>Audited vs. total street network, and what remains, per city.</p>
     <div class="ac-table-wrap">
-      <table class="ac-table">
+      <table class="ps-table ps-table--compact ac-table">
         <thead>
           <tr>
             <th class="ac-th-text">City</th>
@@ -234,7 +234,7 @@
     <h2 class="api-heading" id="activity">Activity — what &amp; when <a href="#activity" class="permalink">#</a></h2>
     <p>Recent volume (last 7 and 30 days), most recent activity, and a 12-week trend per city. Click a column header to sort; the 7d / 30d columns sort on their 7-day count.</p>
     <div class="ac-table-wrap">
-      <table class="ac-table" id="ac-activity-table">
+      <table class="ps-table ps-table--compact ac-table" id="ac-activity-table">
         <thead>
           <tr>
             <th data-sort="city_name" class="ac-th-text">City</th>
@@ -274,7 +274,7 @@
     <h2 class="api-heading" id="effort">Contributors &amp; effort <a href="#effort" class="permalink">#</a></h2>
     <p>How much each contributor produces and how fast they work. Per-user output is shown as <strong>median</strong> and <strong>p90</strong> (90th percentile), because a handful of power users make the average misleading.</p>
     <div class="ac-table-wrap">
-      <table class="ac-table">
+      <table class="ps-table ps-table--compact ac-table">
         <thead>
           <tr>
             <th class="ac-th-text">City</th>
@@ -303,7 +303,7 @@
     <h2 class="api-heading" id="quality">Data quality — how good <a href="#quality" class="permalink">#</a></h2>
     <p>How much of each city's data has been validated, how often validators agree, and how much was AI-generated or came from users later flagged low-quality.</p>
     <div class="ac-table-wrap">
-      <table class="ac-table">
+      <table class="ps-table ps-table--compact ac-table">
         <thead>
           <tr>
             <th class="ac-th-text">City</th>

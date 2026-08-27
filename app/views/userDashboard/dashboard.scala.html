@@ -370,7 +370,7 @@
           @if(joinable.nonEmpty) {
             <label class="ud-team-join-label" for="ud-team-select">@if(profileData.userTeam.isDefined){@Messages("dashboard.team.switch")}else{@Messages("dashboard.team.join.existing")}</label>
             <div class="ud-field-inline">
-              <select class="ud-input" id="ud-team-select" aria-label="@Messages("dashboard.team.choose.aria")">
+              <select class="ps-select ps-select--large" id="ud-team-select" aria-label="@Messages("dashboard.team.choose.aria")">
                 <option value="0" selected>@Messages("dashboard.team.choose")</option>
                 @for(t <- joinable) { <option value="@t.teamId">@t.name</option> }
               </select>

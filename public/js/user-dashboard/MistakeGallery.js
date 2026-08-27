@@ -318,7 +318,7 @@ class MistakeGallery {
     wrap.className = 'ud-card-note-wrap';
     wrap.hidden = true;
     const textarea = document.createElement('textarea');
-    textarea.className = 'ud-card-comment-input';
+    textarea.className = 'ps-input ud-card-comment-input';
     textarea.rows = 2;
     textarea.placeholder = i18next.t('dashboard:mistake-cards.note-placeholder');
     textarea.value = note;

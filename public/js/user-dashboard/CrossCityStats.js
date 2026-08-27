@@ -143,7 +143,7 @@ class CrossCityStats {
     // so the table names itself when a screen reader pulls it out of that context in a table list.
     holder.innerHTML = `
       <div class="coverage-table-wrap ud-cities-table-wrap">
-      <table class="coverage-table ud-cities-table">
+      <table class="ps-table coverage-table ud-cities-table">
         <caption class="ud-sr-only">${CrossCityStats.#tEsc('dashboard:cities.table-caption')}</caption>
         <thead>
           <tr>
