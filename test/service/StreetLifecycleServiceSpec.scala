@@ -151,6 +151,7 @@ class StreetLifecycleServiceSpec extends PlaySpec with BeforeAndAfterAll with Gu
       Seq("status_changes", "no_imagery_reports", "pano_imagery_changes", "top_report_regions", "corroborated_streets")
         .foreach(key => (json \ key).asOpt[play.api.libs.json.JsArray] mustBe defined)
       (json \ "panos_expired_undated").as[Int] must be >= 0
+      (json \ "panos_healed").as[Int] must be >= 0
       // The window start is what the client steps its week grid from, so it has to stay an ISO string rather than
       // whatever a serializer's default for a timestamp happens to be.
       (json \ "since").as[String] must startWith(trend.since.toLocalDate.toString)

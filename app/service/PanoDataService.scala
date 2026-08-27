@@ -13,7 +13,7 @@ import org.locationtech.jts.geom.Point
 import play.api.cache.AsyncCacheApi
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.http.ContentTypes
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.{JsNull, JsNumber, JsObject, JsValue, Json}
 import play.api.libs.ws.WSClient
 import play.api.{Configuration, Environment, Logger}
 import service.PanoDataService.{
@@ -69,14 +69,19 @@ object PanoDataService {
    * @param stillThere Panos the provider confirmed still serve imagery.
    * @param gone       Panos the provider confirmed it has no imagery for.
    * @param errors     Panos the provider gave no usable answer for (timeout, auth failure, unexpected status).
+   * @param reconciled Panos whose `pano_imagery_change` log disagreed with `pano_data.expired`, healed after the
+   *                   checks (#5007). `None` when the repair itself failed — a plain `0` would file "nothing was
+   *                   wrong" and "we never looked" as the same run.
    */
-  case class ImageryCheckResult(stillThere: Int, gone: Int, errors: Int) {
+  case class ImageryCheckResult(stillThere: Int, gone: Int, errors: Int, reconciled: Option[Int]) {
 
     /** Total panos the sweep asked the providers about. */
     def checked: Int = stillThere + gone + errors
 
     /** One line for the actor log and the admin endpoint's response body. */
-    def summary: String = s"Not expired: $stillThere. Expired: $gone. Errors: $errors."
+    def summary: String =
+      s"Not expired: $stillThere. Expired: $gone. Errors: $errors. " +
+        s"Reconciled: ${reconciled.map(_.toString).getOrElse("failed")}."
 
     /**
      * The counts as they are stored against a `background_job_run` row.
@@ -88,7 +93,8 @@ object PanoDataService {
       "panos_checked" -> checked,
       "still_there"   -> stillThere,
       "gone"          -> gone,
-      "errors"        -> errors
+      "errors"        -> errors,
+      "reconciled"    -> reconciled.fold[JsValue](JsNull)(count => JsNumber(count))
     )
   }
 
@@ -380,6 +386,7 @@ class PanoDataServiceImpl @Inject() (
     implicit val ec: ExecutionContext,
     panoDataTable: PanoDataTable,
     panoHistoryTable: PanoHistoryTable,
+    panoImageryChangeTable: PanoImageryChangeTable,
     streetEdgeTable: models.street.StreetEdgeTable,
     signingService: ImageSigningService
 )(implicit mat: Materializer)
@@ -687,12 +694,34 @@ class PanoDataServiceImpl @Inject() (
         logger.info(s"Checking ${expiredPanosToCheck.length} expired panos.")
 
         // Check each pano against whichever provider it came from, then tally the three outcomes.
-        checkImageryBounded(panosToCheck ++ expiredPanosToCheck).map { responses =>
-          ImageryCheckResult(
-            stillThere = responses.count(_.contains(true)),
-            gone = responses.count(_.contains(false)),
-            errors = responses.count(_.isEmpty)
-          )
+        checkImageryBounded(panosToCheck ++ expiredPanosToCheck).flatMap { responses =>
+          // Heal any pano whose log disagrees with pano_data.expired, so a missed transition dangles for at most a
+          // day (#5007). The sweep's own updates have already committed by here, so a failed repair must not
+          // propagate: that would mark a successful sweep failed on /admin/health and lose the counts it learned.
+          db.run(panoImageryChangeTable.reconcile())
+            .map { healedPanoIds =>
+              if (healedPanoIds.nonEmpty) {
+                val preview = healedPanoIds.take(20).mkString(", ") + (if (healedPanoIds.length > 20) ", ..." else "")
+                logger.warn(
+                  s"Healed ${healedPanoIds.length} missed imagery transition(s) — either a writer of " +
+                    s"pano_data.expired is skipping the pano_imagery_change log, or the snapshot race documented " +
+                    s"on PanoDataTable.updateExpiredStatus fired: $preview"
+                )
+              }
+              Some(healedPanoIds.length)
+            }
+            .recover { case NonFatal(e) =>
+              logger.error("Imagery-log reconciliation failed; the sweep's own results stand.", e)
+              None
+            }
+            .map { reconciled =>
+              ImageryCheckResult(
+                stillThere = responses.count(_.contains(true)),
+                gone = responses.count(_.contains(false)),
+                errors = responses.count(_.isEmpty),
+                reconciled = reconciled
+              )
+            }
         }
       }
     ).flatten
