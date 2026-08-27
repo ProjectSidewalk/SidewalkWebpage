@@ -32,12 +32,22 @@ These apply across every language in the repo.
   ```
 
 - **Accessibility is part of style.** Any UI work must meet **WCAG 2.1/2.2 Level AA**.
-- **Style from the design-system tokens in `main.css` `:root`.** Colors, type, spacing, and button styles come from
-  our Figma "Design System Tokens"; hardcoded values are what we're migrating away from. For type, use the composite
-  `--text-*` tokens (`font: var(--text-body-regular);`) rather than building on the raw `--font-primary`/
-  `--font-accent` stacks — they're complete `font` shorthands (weight, size/line-height, family) and bake in
-  `--ui-scale`. If a token's line-height (or another single aspect) doesn't suit, keep the token and override that
-  one property on the next line instead of hand-assembling the font.
+- **Style from the design-system tokens in `main.css` `:root`.** Colors (`--color-*`), type (`--text-*`), spacing
+  (`--space-*`), radii (`--border-radius*`), elevation (`--box-shadow*`), motion (`--transition-*`), stacking
+  (`--z-index-*`), breakpoints (`--breakpoint-*` — reference values, since `var()` can't appear in a media query;
+  write the px and name the token in a comment) and button styles come from our Figma "Design System Tokens";
+  hardcoded values are what we're migrating away from. For type, use the composite `--text-*` tokens
+  (`font: var(--text-body-regular);`) rather than building on the raw `--font-primary`/`--font-accent` stacks —
+  they're complete `font` shorthands (weight, size/line-height, family) and bake in `--ui-scale`. If a token's
+  line-height (or another single aspect) doesn't suit, keep the token and override that one property on the next
+  line instead of hand-assembling the font. Long-form reading text takes `--text-prose-regular` (body size, looser
+  leading); code blocks take `--text-code-regular`.
+- **Use the control primitives in `main.css` before writing a new one.** Buttons are `.button-ps` with a
+  `.button--<variant>` and `.button--<size>` modifier; `<select>`s are `.ps-select`. A page-scoped class on top for
+  layout (width, margin) is fine; re-declaring the font, border, or hover/focus treatment is not — extend the
+  primitive in `main.css` instead.
+- **Size in px, never `rem`.** Bootstrap 3 sets `html { font-size: 62.5% }`, so `1rem` is 10px everywhere and a
+  `0.875rem` "14px" renders at 8.75px. The `--text-*` tokens are px for this reason.
 - **Raleway (`--font-accent`) is display-only — and never for numbers.** Default to the primary font (Mulish); the
   accent font appears only in the tokens that already carry it (`--text-h1-bold`, `--text-h2-bold`,
   `--text-small-accent`). Raleway defaults to old-style (text) figures — digits vary in height and 3/4/5/7/9 descend

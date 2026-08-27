@@ -86,7 +86,10 @@ class CoverageBars {
           { field: 'user_count', type: 'quantitative', format: ',', title: 'Contributors' },
         ],
       },
-      config: { view: { stroke: null }, axis: { labelFont: 'Inter, sans-serif' } },
+      config: {
+        view: { stroke: null },
+        axis: { labelFont: getComputedStyle(document.documentElement).getPropertyValue('--font-primary') },
+      },
     };
 
     const result = await vegaEmbed(`#${this.#containerId}`, spec, { actions: false, renderer: 'svg' });

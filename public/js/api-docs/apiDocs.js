@@ -19,6 +19,12 @@
  * - Follows web standards and best practices
  */
 
+// Chart.js paints its labels onto a canvas, so they can't inherit the page font. The pages that chart load Chart.js
+// ahead of this script, and build their charts once their data arrives.
+if (window.Chart) {
+  window.Chart.defaults.font.family = getComputedStyle(document.documentElement).getPropertyValue('--font-primary');
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const enableLeftSidebarAccordions = false; // Flag to disable left sidebar accordions.
 
@@ -531,7 +537,7 @@ function setupDownloadButtons() {
         // Hide status if requested.
         if (hideStatus) {
           downloadStatus.classList.add('ps-hidden');
-          if (statusMessage) statusMessage.style.color = ''; // Reset color
+          if (statusMessage) statusMessage.classList.remove('status-message--warning', 'status-message--error');
         }
       }
 
@@ -563,7 +569,7 @@ function setupDownloadButtons() {
         if (!downloadState.started && !downloadState.completed) {
           if (statusMessage) {
             statusMessage.textContent = 'Taking longer than expected.';
-            statusMessage.style.color = '#f39c12'; // Warning color
+            statusMessage.classList.add('status-message--warning');
           }
           if (statusProgress) statusProgress.textContent = 'You can try again or try a different format.';
 
@@ -577,7 +583,7 @@ function setupDownloadButtons() {
           downloadState.timeouts.push(setTimeout(() => {
             if (!downloadState.started && !downloadState.completed) {
               downloadStatus.classList.add('ps-hidden');
-              if (statusMessage) statusMessage.style.color = ''; // Reset color
+              if (statusMessage) statusMessage.classList.remove('status-message--warning', 'status-message--error');
             }
           }, 10000));
         }
@@ -639,7 +645,7 @@ function setupDownloadButtons() {
 
         if (statusMessage) {
           statusMessage.textContent = 'Error starting download.';
-          statusMessage.style.color = 'red';
+          statusMessage.classList.add('status-message--error');
         }
         if (statusProgress) statusProgress.textContent = 'Please try again or try a different format.';
 
@@ -656,7 +662,7 @@ function setupDownloadButtons() {
         // Hide error message after 5 seconds.
         downloadState.timeouts.push(setTimeout(() => {
           downloadStatus.classList.add('ps-hidden');
-          if (statusMessage) statusMessage.style.color = ''; // Reset color
+          if (statusMessage) statusMessage.classList.remove('status-message--warning', 'status-message--error');
         }, 5000));
       };
 
@@ -812,11 +818,7 @@ function showCopyFeedback(permalinkElement, status) {
   }, 2000);
 
   // Add brief visual feedback to the permalink itself.
-  const originalColor = permalinkElement.style.color;
-  permalinkElement.style.color = status === 'success' ? '#4caf50' : '#f44336';
-  permalinkElement.style.transition = 'color 0.2s ease';
-
-  setTimeout(() => {
-    permalinkElement.style.color = originalColor;
-  }, 500);
+  const feedbackClass = status === 'success' ? 'permalink--copied' : 'permalink--failed';
+  permalinkElement.classList.add(feedbackClass);
+  setTimeout(() => permalinkElement.classList.remove(feedbackClass), 500);
 }

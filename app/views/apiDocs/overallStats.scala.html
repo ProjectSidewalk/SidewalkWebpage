@@ -30,7 +30,6 @@
     <div id="overall-stats-preview">Loading project statistics...</div>
 
     <script src='@assets.path("vendor/chart-js/chart-4.5.1.min.js")'></script>
-    <link rel="stylesheet" href="@assets.path("css/api-docs/overall-stats.css")">
     <script src="@routes.Assets.versioned("js/api-docs/overallStatsPreview.js")"></script>
     <script>
       // Initialize the overall stats preview visualization.
@@ -70,7 +69,7 @@
       </button>
     </div>
 
-    <div id="download-status" class="download-status ps-hidden">
+    <div id="download-status" class="status-container status-loading ps-hidden">
       <div class="loading-spinner"></div>
       <div class="status-message">Preparing your download...</div>
       <div class="status-progress">This should only take a few seconds.</div>

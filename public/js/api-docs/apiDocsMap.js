@@ -75,7 +75,7 @@ window.ApiDocsMap = (function () {
           map.addLayer({
             id: 'basemap-dim',
             type: 'background',
-            paint: { 'background-color': '#000000', 'background-opacity': dim },
+            paint: { 'background-color': ApiDocsTheme.color('--color-neutral-black'), 'background-opacity': dim },
           });
         }
         resolve(map);
@@ -199,7 +199,7 @@ window.ApiDocsMap = (function () {
     const expression = ['match', ['get', property]];
     Object.entries(labelTypeInfo).forEach(([name, info]) => expression.push(name, info.color));
     // Mapbox requires a fallback, and a type the API knows about but this page's palette doesn't should still draw.
-    expression.push('#999999');
+    expression.push(ApiDocsTheme.color('--color-neutral-500'));
     return expression;
   }
 
@@ -211,12 +211,12 @@ window.ApiDocsMap = (function () {
    * @param {object} [options] - Domain and empty-value handling.
    * @param {number} [options.min=0] - Value mapped to the first ramp color.
    * @param {number} [options.max=1] - Value mapped to the last ramp color.
-   * @param {string} [options.noneColor=#3d3d3d] - Color for features carrying no value.
+   * @param {string} [options.noneColor] - Color for features carrying no value. Defaults to --color-neutral-800.
    * @param {number} [options.noneAtOrBelow] - Values at or below this get `noneColor` too. Defaults to nulls only.
    * @returns {Array} A Mapbox expression usable as a `fill-color` / `line-color` paint value.
    */
   function gradientColorExpression(property, ramp, options = {}) {
-    const { min = 0, max = 1, noneColor = '#3d3d3d' } = options;
+    const { min = 0, max = 1, noneColor = ApiDocsTheme.color('--color-neutral-800') } = options;
     // A null would make `interpolate` throw, so missing values fold to a sentinel the `case` ahead of it catches.
     const sentinel = min - 1;
     const value = ['coalesce', ['get', property], sentinel];

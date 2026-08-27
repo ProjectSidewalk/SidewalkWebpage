@@ -5,17 +5,6 @@
  * It extends the base api-docs.css with styles specific to the label clusters visualization.
  */
 
-/* Download buttons specific to label clusters */
-.label-clusters-download-btn {
-  background-color: #f5f7f9;
-  border-color: #4a90e2;
-  color: #4a90e2;
-}
-
-.label-clusters-download-btn:hover {
-  background-color: #e9ecef;
-}
-
 /* Severity indicator */
 .severity-indicator {
   display: inline-block;
@@ -23,7 +12,7 @@
   height: 12px;
   margin-right: 5px;
   border-radius: 2px;
-  background: linear-gradient(to right, #4caf50, #ffeb3b, #f44336);
+  background: linear-gradient(to right, var(--color-jade-400), var(--color-banana-600), var(--color-orange-500));
 }
 
 /* Cluster size visualization */
@@ -37,7 +26,7 @@
 .cluster-size-circle {
   display: inline-block;
   border-radius: 50%;
-  background-color: rgb(74 144 226 / 70%);
+  background-color: rgb(from var(--color-link-100) r g b / 70%);
   border: 1px solid var(--color-neutral-black);
 }
 
@@ -57,52 +46,34 @@
 }
 
 .cluster-size-label {
-  font-size: 13px;
-  color: #666666;
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
 }
 
 /* Filter examples section */
 .filter-example {
-  background-color: #f8f9fa;
-  border-left: 3px solid #4a90e2;
+  background-color: var(--color-neutral-100);
+  border-left: 3px solid var(--color-link-200);
   padding: 10px 15px;
   margin: 10px 0;
-  font-size: 14px;
+  font: var(--text-small-regular);
 }
 
 .filter-example .description {
   margin-top: 5px;
-  font-size: 13px;
-  color: #666666;
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
 }
 
 /* Map container specific to label clusters */
 #label-clusters-preview {
   margin: var(--space-lg) 0;
-  box-shadow: 0 1px 5px rgb(0 0 0 / 20%);
+  box-shadow: var(--box-shadow);
 }
 
-/* No clusters message */
-.no-clusters-message {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background-color: var(--color-neutral-white);
-  padding: 10px 20px;
-  border-radius: 4px;
-  box-shadow: 0 1px 5px rgb(0 0 0 / 40%);
-  z-index: 1000;
-  text-align: center;
-}
-
-/* Responsive styles */
+/* var(--breakpoint-sm) */
 @media (width <= 768px) {
   .filter-example {
-    font-size: 12px;
-  }
-
-  .filter-example .description {
-    font-size: 11px;
+    font: var(--text-caption-regular);
   }
 }

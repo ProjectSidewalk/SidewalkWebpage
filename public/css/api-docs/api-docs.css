@@ -1,136 +1,19 @@
 /**
  * Project Sidewalk API Documentation - Core Styles
  *
- * This is the main stylesheet that defines the base styles, variables,
- * and common components used throughout the Project Sidewalk API documentation.
+ * Base styles and the common components used throughout the API documentation. Also the shell (sidebar / content /
+ * TOC) that the admin and user dashboards build on via the same .api-* class names. Everything is styled from the
+ * design-system tokens in main.css; the only custom properties defined here are the shell's own layout dimensions.
  */
-
-/* Inter and JetBrains Mono are declared in css/fonts.css, which every page links (common/main.scala.html). */
-
-/* ==========================================================================
-   CSS VARIABLES - Single source of truth for the entire application
-   ========================================================================== */
-
-:root {
-  /* ---- Typography ---- */
-  --font-sans: "Inter", system-ui, -apple-system, blinkmacsystemfont, "Segoe UI", roboto, oxygen, ubuntu, cantarell,
-    "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
-  --font-mono: "JetBrains Mono", sfmono-regular, consolas, "Liberation Mono", menlo, monospace;
-  --base-font-size: 16px;
-  --code-font-size: 0.9em;
-  --base-line-height: 1.65;
-
-  /* Font sizes for different elements */
-  --font-size-xxs: 0.75rem;    /* 12px */
-  --font-size-xs: 0.8125rem;   /* 13px */
-  --font-size-sm: 0.875rem;    /* 14px */
-  --font-size-md: 1rem;        /* 16px */
-  --font-size-lg: 1.125rem;    /* 18px */
-  --font-size-xl: 1.25rem;     /* 20px */
-  --font-size-xxl: 1.5rem;     /* 24px */
-  --font-size-xxxl: 1.875rem;  /* 30px */
-  --font-size-heading-1: 2.2em;
-  --font-size-heading-2: 1.8em;
-  --font-size-heading-3: 1.5em;
-  --font-size-heading-4: 1.2em;
-  --font-size-heading-5: 1.1em;
-  --font-size-heading-6: 1em;
-
-  /* ---- Colors ---- */
-  --color-text-primary: #222222;
-  --color-text-secondary: #5a7785;
-  --color-text-tertiary: var(--color-neutral-700);
-  --color-text-light: #999999;
-  --color-text-heading: #263238;
-  --color-text-on-accent: var(--color-neutral-white);
-  --color-text-code: #c7254e;
-
-  --color-bg-body: var(--color-neutral-white);
-  --color-bg-sidebar: #f8f9fa;
-  --color-bg-table-header: #f5f5f5;
-  --color-bg-table-row-odd: #fdfdfd;
-  --color-bg-hover: #e9ecef;
-  --color-bg-code: #f5f7f9;
-  --color-bg-callout: #e9f7fe;
-
-  --color-border-light: #e0e0e0;
-  --color-border-medium: #eeeeee;
-  --color-border-table: #e0e0e0;
-  --color-border-code: #e4e9ed;
-
-  /* Function/Method Colors */
-  --color-accent-get: #61affe;
-  --color-accent-post: #49cc90;
-  --color-accent-delete: #f93e3e;
-  --color-accent-put: #fca130;
-  --color-accent-link: #0566f5;
-  --color-accent-link-hover: #1a70d3;
-
-  /* Feedback colors */
-  --color-success: #4caf50;
-  --color-info: #2196f3;
-  --color-warning: #ff9800;
-  --color-error: #d32f2f;
-  --color-error-light: #ffebee;
-
-  /* ---- Spacing ---- */
-  --space-xxs: 4px;
-  --space-xs: 8px;
-  --space-sm: 12px;
-  --space-md: 16px;
-  --space-lg: 24px;
-  --space-xl: 32px;
-  --space-xxl: 48px;
-  --space-xxxl: 64px;
-
-  /* ---- Layout ---- */
-  --sidebar-width: 270px;
-  --toc-width: 250px;
-  --sidebar-height: calc(100vh - var(--navbar-height));
-  --content-max-width: 1200px;
-
-  /* ---- UI Elements ---- */
-  --border-radius-sm: 3px;
-  --border-radius: 4px;
-  --border-radius-lg: 8px;
-  --box-shadow-sm: 0 1px 3px rgb(0 0 0 / 10%);
-  --box-shadow: 0 2px 5px rgb(0 0 0 / 15%);
-  --box-shadow-lg: 0 4px 12px rgb(0 0 0 / 15%);
-
-  /* ---- Transitions ---- */
-  --transition-fast: 0.15s ease;
-  --transition-medium: 0.3s ease;
-  --transition-slow: 0.5s ease;
-
-  /* ---- Z-Index Layers ---- */
-  --z-index-dropdown: 1000;
-  --z-index-sticky: 1020;
-  --z-index-fixed: 1030;
-  --z-index-modal-backdrop: 1040;
-  --z-index-modal: 1050;
-  --z-index-popover: 1060;
-  --z-index-tooltip: 1070;
-
-  /* ---- Responsive Breakpoints ---- */
-
-  /* Defined for media queries, though raw pixel values will ultimately need to be used. */
-  --breakpoint-xs: 480px;
-  --breakpoint-sm: 768px;
-  --breakpoint-md: 992px;
-  --breakpoint-lg: 1200px;
-  --breakpoint-xl: 1400px;
-}
 
 /* ==========================================================================
    BASE STYLES
    ========================================================================== */
 
 body {
-  font-family: var(--font-sans);
-  font-size: var(--base-font-size);
-  line-height: var(--base-line-height);
-  color: var(--color-text-primary);
-  background-color: var(--color-bg-body);
+  font: var(--text-body-regular);
+  color: var(--color-neutral-900);
+  background-color: var(--color-neutral-white);
   margin: 0;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -140,6 +23,10 @@ body {
 /* ---- Layout Containers ---- */
 
 .api-container {
+  --sidebar-width: 270px;
+  --toc-width: 250px;
+  --sidebar-height: calc(100vh - var(--navbar-height));
+
   display: flex;
   min-height: var(--sidebar-height);
 }
@@ -149,6 +36,7 @@ body {
   padding: var(--space-xl);
   max-width: calc(100% - (var(--sidebar-width) + var(--toc-width)));
   overflow-x: hidden;
+  font: var(--text-prose-regular);
 }
 
 /* The content pane's own padding already offsets the page from the navbar; the page's first heading only adds a
@@ -164,32 +52,21 @@ body {
 /* ---- Typography ---- */
 
 h1, h2, h3, h4, h5, h6 {
-  color: var(--color-text-heading);
+  color: var(--color-neutral-900);
   margin-top: var(--space-xl);
   margin-bottom: var(--space-md);
-  line-height: 1.3;
-  font-weight: 600;
   scroll-margin-top: 85px; /* Offset for the fixed navbar plus a little extra. */
 }
 
-h1 { font-size: var(--font-size-heading-1); }
-h2 { font-size: var(--font-size-heading-2); }
-h3 { font-size: var(--font-size-heading-3); }
-
-h4 {
-  font-size: var(--font-size-heading-4);
-  font-weight: 500;
-}
-
-h5 {
-  font-size: var(--font-size-heading-5);
-  font-weight: 500;
-}
+h1 { font: var(--text-h1-bold); }
+h2 { font: var(--text-h2-bold); }
+h3 { font: var(--text-h3-bold); }
+h4 { font: var(--text-title-medium); }
+h5 { font: var(--text-subtitle-medium); }
 
 h6 {
-  font-size: var(--font-size-heading-6);
-  font-weight: 500;
-  color: var(--color-text-secondary);
+  font: var(--text-body-medium);
+  color: var(--color-neutral-700);
 }
 
 p {
@@ -198,7 +75,7 @@ p {
 }
 
 a {
-  color: var(--color-accent-link);
+  color: var(--color-link-200);
   text-decoration: none;
 }
 
@@ -215,7 +92,7 @@ a:hover {
 .api-section {
   margin-bottom: var(--space-xxl);
   padding-bottom: var(--space-lg);
-  border-bottom: 1px solid var(--color-border-medium);
+  border-bottom: 1px solid var(--color-neutral-200);
 }
 
 .api-section:last-of-type {
@@ -225,23 +102,21 @@ a:hover {
 }
 
 .api-heading {
-  color: var(--color-text-heading);
+  color: var(--color-neutral-900);
   margin-top: var(--space-xl);
   margin-bottom: var(--space-md);
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--color-border-medium);
-  font-weight: 600;
+  padding-bottom: var(--space-xs);
+  border-bottom: 1px solid var(--color-neutral-200);
   scroll-margin-top: 85px; /* Offset for the fixed navbar plus a little extra. */
 }
 
 /* Section sub-heading - utility class for component headings */
 .section-subheading {
-  font-size: var(--font-size-xl);
+  font: var(--text-title-bold);
   margin: var(--space-lg) 0 var(--space-md) 0;
   padding-bottom: var(--space-xs);
-  border-bottom: 1px solid var(--color-border-light);
-  font-weight: 600;
-  color: var(--color-text-heading);
+  border-bottom: 1px solid var(--color-neutral-200);
+  color: var(--color-neutral-900);
 }
 
 /* ---- Common Table Styles ---- */
@@ -263,47 +138,31 @@ a:hover {
   width: 100%;
   border-collapse: collapse;
   border-spacing: 0;
-  font-size: var(--code-font-size);
-  line-height: 1.6;
+  font: var(--text-small-regular);
+
+  /* Cells often hold a paragraph with inline code in it; the token's 18px leading is sized for one-line UI copy. */
+  line-height: 1.65;
 }
 
 .api-table th,
 .api-table td {
-  padding: 12px 15px;
+  padding: var(--space-sm) var(--space-md);
   text-align: left;
   vertical-align: top;
-  border-bottom: 1px solid var(--color-border-table);
+  border-bottom: 1px solid var(--color-neutral-200);
 }
 
 .api-table th {
-  font-weight: 600;
-  background-color: var(--color-bg-table-header);
+  font: var(--text-small-bold);
+  line-height: 1.65;
+  background-color: var(--color-neutral-100);
   border-bottom-width: 2px;
   white-space: nowrap;
 }
 
-.api-table tbody tr:nth-child(odd) td {
-  background-color: var(--color-bg-table-row-odd);
-}
-
+/* A blue wash rather than neutral-100: a link in a hovered row keeps 4.5:1 on it, and drops under on the grey. */
 .api-table tbody tr:hover td {
-  background-color: var(--color-bg-hover);
-}
-
-/* Table variants */
-.api-table-compact th,
-.api-table-compact td {
-  padding: 8px 10px;
-  font-size: var(--font-size-sm);
-}
-
-.api-table-bordered {
-  border: 1px solid var(--color-border-table);
-}
-
-.api-table-bordered th,
-.api-table-bordered td {
-  border: 1px solid var(--color-border-table);
+  background-color: var(--color-blue-200);
 }
 
 /* Column widths for the three-column "Field Path / Type / Description" response-field tables. */
@@ -311,19 +170,23 @@ a:hover {
 .api-type-col { width: 15%; }
 .api-desc-col { width: 55%; }
 
+.api-table th.num,
+.api-table td.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
 /* ---- Code Blocks and Inline Code ---- */
 
 pre {
-  background-color: var(--color-bg-code);
-  border: 1px solid var(--color-border-code);
+  background-color: var(--color-neutral-100);
+  border: 1px solid var(--color-neutral-200);
   border-radius: var(--border-radius);
   padding: var(--space-md);
   margin-top: var(--space-sm);
   margin-bottom: var(--space-lg);
   overflow-x: auto;
-  font-family: var(--font-mono);
-  font-size: var(--code-font-size);
-  line-height: 1.5;
+  font: var(--text-code-regular);
   white-space: pre;
 }
 
@@ -340,14 +203,16 @@ pre > code.language-csv {
   white-space: pre;
 }
 
+/* Sized relative to the surrounding text rather than with --text-code-regular, so a code token in a caption or a
+   heading stays in proportion to it. */
 :not(pre) > code {
   font-family: var(--font-mono);
-  font-size: var(--code-font-size);
-  background-color: var(--color-bg-code);
-  color: var(--color-text-code);
+  font-size: 0.9em;
+  background-color: var(--color-neutral-100);
+  color: var(--color-neutral-900);
   padding: 2px 5px;
   border-radius: var(--border-radius-sm);
-  border: 1px solid var(--color-border-code);
+  border: 1px solid var(--color-neutral-200);
   white-space: nowrap;
 }
 
@@ -370,7 +235,7 @@ pre > code.language-csv {
   opacity: 0;
   margin-left: var(--space-sm);
   font-size: 1em;
-  color: var(--color-accent-link);
+  color: var(--color-link-200);
   text-decoration: none;
   cursor: pointer;
   transition: opacity var(--transition-fast), color var(--transition-fast);
@@ -386,40 +251,6 @@ h6:hover .permalink {
   opacity: 1;
 }
 
-/* ---- Badge Styles ---- */
-
-.api-badge {
-  display: inline-block;
-  padding: 3px 8px;
-  border-radius: var(--border-radius-sm);
-  font-size: var(--font-size-xxs);
-  font-weight: 600;
-  margin-right: var(--space-sm);
-  vertical-align: middle;
-  text-transform: uppercase;
-  line-height: 1.5;
-}
-
-.api-badge-get {
-  background-color: var(--color-accent-get);
-  color: var(--color-text-on-accent);
-}
-
-.api-badge-post {
-  background-color: var(--color-accent-post);
-  color: var(--color-text-on-accent);
-}
-
-.api-badge-delete {
-  background-color: var(--color-accent-delete);
-  color: var(--color-text-on-accent);
-}
-
-.api-badge-put {
-  background-color: var(--color-accent-put);
-  color: var(--color-text-on-accent);
-}
-
 /* ---- Loading Animation ---- */
 
 .loading-container {
@@ -429,12 +260,130 @@ h6:hover .permalink {
   height: 100px;
 }
 
+/* Centers itself in whatever it's dropped into — a map frame or a still-empty preview container. */
 .loading-message {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-text-secondary);
+  height: 100%;
+  padding: var(--space-xxl) 0;
+  color: var(--color-neutral-700);
   font-style: italic;
+}
+
+.loading-message::before {
+  content: "";
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--color-neutral-200);
+  border-top: 2px solid var(--color-link-200);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-right: 10px;
+}
+
+/* ---- Preview Sections ---- */
+
+/* A boxed block of a live preview: a chart with its title and blurb, or a grid of headline stats. */
+.preview-section {
+  margin-bottom: var(--space-xl);
+  padding: var(--space-md);
+  background-color: var(--color-neutral-white);
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow-sm);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.preview-section:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--box-shadow);
+}
+
+.preview-title {
+  text-align: center;
+  font: var(--text-title-bold);
+  margin: 0 0 var(--space-sm);
+}
+
+.preview-desc {
+  text-align: center;
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+  margin: 0 0 var(--space-md);
+}
+
+.preview-note {
+  text-align: center;
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+  font-style: italic;
+  margin: var(--space-sm) 0 0;
+}
+
+/* Wide enough per cell for a two-line label ("Distance Explored (No Overlap)") not to break mid-word. */
+.preview-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-md);
+}
+
+.preview-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.preview-stat-value {
+  font: var(--text-h3-bold);
+  color: var(--color-neutral-900);
+}
+
+.preview-stat-label {
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+  margin-top: 4px;
+}
+
+/* Chart.js needs a positioned, sized box to size its responsive canvas against. */
+.chart-container {
+  position: relative;
+  width: 100%;
+  height: 300px;
+}
+
+.download-note {
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+  font-style: italic;
+  margin-top: var(--space-sm);
+}
+
+/* A proportion bar under a count in a table cell. The fill's width is set from the data. */
+.count-bar-container {
+  width: 100%;
+  background-color: var(--color-neutral-200);
+  border-radius: var(--border-radius);
+  height: 8px;
+  margin-top: 4px;
+  overflow: hidden;
+}
+
+.count-bar-fill {
+  height: 100%;
+  background-color: var(--color-pine-500);
+  border-radius: var(--border-radius);
+}
+
+/* A small color chip beside a name. The color is set from the data. */
+.api-swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-right: var(--space-xs);
+  border-radius: var(--border-radius-sm);
+  vertical-align: middle;
 }
 
 /* ---- Download Buttons ---- */
@@ -450,9 +399,11 @@ h6:hover .permalink {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: var(--space-md) var(--space-lg);
-  background-color: var(--color-bg-body);
-  border: 1px solid var(--color-border-light);
+  padding: var(--space-lg);
+  font: var(--text-body-medium);
+  color: var(--color-neutral-900);
+  background-color: var(--color-neutral-white);
+  border: 1px solid var(--color-neutral-300);
   border-radius: var(--border-radius);
   cursor: pointer;
   transition: all var(--transition-fast);
@@ -461,39 +412,21 @@ h6:hover .permalink {
   text-align: center;
 }
 
-/* Download button variants */
-.download-btn-primary {
-  background-color: var(--color-accent-link);
-  color: var(--color-text-on-accent);
-}
-
-.download-btn-secondary {
-  background-color: var(--color-bg-body);
-  color: var(--color-text-primary);
-  border-color: var(--color-accent-link);
-}
-
 .download-btn:hover {
-  background-color: var(--color-bg-hover);
-  border-color: var(--color-border-table);
+  background-color: var(--color-neutral-100);
+  border-color: var(--color-neutral-400);
   transform: translateY(-2px);
   box-shadow: var(--box-shadow);
 }
 
-.download-btn-primary:hover {
-  background-color: var(--color-accent-link-hover);
-  border-color: var(--color-accent-link-hover);
-  color: var(--color-text-on-accent);
-}
-
 .format-icon {
-  font-size: 1.5em;
+  font: var(--text-h3-medium);
   margin-bottom: 5px;
 }
 
 .format-hint {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-secondary);
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
   margin-top: 4px;
 }
 
@@ -505,13 +438,12 @@ h6:hover .permalink {
 }
 
 .citation {
-  background-color: var(--color-bg-callout);
-  border-left: 4px solid var(--color-border-medium);
+  background-color: var(--color-blue-300);
+  border-left: 4px solid var(--color-link-100);
   border-radius: var(--border-radius);
   padding: var(--space-md) var(--space-lg);
-  font-size: var(--base-font-size);
-  line-height: 1.6;
-  color: var(--color-text-primary);
+  font: var(--text-prose-regular);
+  color: var(--color-neutral-900);
   margin-bottom: var(--space-sm); /* Add space between citation and button */
 }
 
@@ -519,34 +451,11 @@ h6:hover .permalink {
   font-style: italic;
 }
 
+/* Sits at the citation's trailing edge; .button-ps is inline-flex, which auto margins can't push. */
 .bibtex-btn {
-  display: block;
-  margin-left: auto; /* Push button to the right */
-  padding: var(--space-xs) var(--space-sm);
-  background-color: var(--color-bg-body);
-  border: 1px solid var(--color-border-light);
-  border-radius: var(--border-radius);
-  cursor: pointer;
-  font-size: var(--base-font-size);
-  transition: all var(--transition-fast);
-  color: var(--color-text-secondary);
-}
-
-.bibtex-btn:hover {
-  background-color: var(--color-bg-hover);
-  border-color: var(--color-accent-link);
-  color: var(--color-accent-link);
-  transform: translateX(-2px);
-  box-shadow: var(--box-shadow-sm);
-}
-
-/* Mobile responsiveness for citation: var(--breakpoint-sm). */
-@media (width <= 768px) {
-  .bibtex-btn {
-    width: auto; /* Allow button to size to content */
-    margin-left: auto; /* Maintain right alignment */
-    margin-right: 0;
-  }
+  display: flex;
+  width: fit-content;
+  margin-left: auto;
 }
 
 /* ---- Status Indicators ---- */
@@ -555,7 +464,7 @@ h6:hover .permalink {
   margin: var(--space-md) 0;
   padding: var(--space-md);
   border-radius: var(--border-radius);
-  background-color: var(--color-bg-callout);
+  background-color: var(--color-blue-300);
   border: 1px solid;
   display: flex;
   flex-direction: column;
@@ -563,38 +472,25 @@ h6:hover .permalink {
 }
 
 .status-loading {
-  border-color: var(--color-info);
-}
-
-.status-success {
-  border-color: var(--color-success);
-  background-color: rgb(76 175 80 / 10%);
-}
-
-.status-error {
-  border-color: var(--color-error);
-  background-color: var(--color-error-light);
-}
-
-.download-status {
-  margin: var(--space-md) 0;
-  padding: var(--space-md);
-  background-color: var(--color-bg-callout);
-  border: 1px solid var(--color-info);
-  border-radius: var(--border-radius);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  border-color: var(--color-link-200);
 }
 
 .status-message {
-  font-weight: bold;
+  font: var(--text-body-bold);
   margin: 5px 0;
 }
 
+.status-message--warning {
+  color: var(--color-orange-600);
+}
+
+.status-message--error {
+  color: var(--color-error-200);
+}
+
 .status-progress {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
 }
 
 /* ---- Message Components ---- */
@@ -607,27 +503,15 @@ h6:hover .permalink {
 }
 
 .message-error {
-  color: var(--color-error);
-  background-color: var(--color-error-light);
-  border-color: var(--color-error);
-}
-
-.message-success {
-  color: var(--color-success);
-  background-color: rgb(76 175 80 / 10%);
-  border-color: var(--color-success);
+  color: var(--color-error-200);
+  background-color: rgb(from var(--color-error-200) r g b / 10%);
+  border-color: var(--color-error-200);
 }
 
 .message-info {
-  color: var(--color-info);
-  background-color: rgb(33 150 243 / 10%);
-  border-color: var(--color-info);
-}
-
-.message-warning {
-  color: var(--color-warning);
-  background-color: rgb(255 152 0 / 10%);
-  border-color: var(--color-warning);
+  color: var(--color-link-200);
+  background-color: rgb(from var(--color-link-200) r g b / 10%);
+  border-color: var(--color-link-200);
 }
 
 /* ---- Callout/Notice Box ---- */
@@ -635,14 +519,51 @@ h6:hover .permalink {
 .api-callout {
   margin: var(--space-lg) 0;
   padding: var(--space-md) var(--space-lg);
-  background-color: var(--color-bg-callout);
-  border-left: 4px solid var(--color-info);
+  background-color: var(--color-blue-300);
+  border-left: 4px solid var(--color-link-200);
   border-radius: var(--border-radius);
 }
 
 .api-callout h3 {
   margin-top: 0;
-  color: var(--color-text-heading);
+  color: var(--color-neutral-900);
+}
+
+/* ---- Map Previews ---- */
+
+/* The metric selector stacks above the map inside the .map-container frame rather than floating on it, so a
+   feature popup can never cover it. */
+.map-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  border-bottom: 1px solid var(--color-neutral-200);
+  background-color: var(--color-neutral-100);
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-900);
+}
+
+/* Bootstrap gives every label a bottom margin, which would lift this one off the select's centerline. */
+.map-toolbar label {
+  font: var(--text-caption-semibold);
+  margin: 0;
+}
+
+/* A "nothing to show" notice floated at the top of a map frame, clear of its controls in the corners. */
+.map-message {
+  position: absolute;
+  top: var(--space-sm);
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: var(--color-neutral-white);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+  text-align: center;
+  z-index: var(--z-index-dropdown);
 }
 
 /* Map Container - Common to various map components, and the query container its overlays size themselves against.
@@ -650,7 +571,7 @@ h6:hover .permalink {
 .map-container {
   width: 100%;
   height: 500px;
-  border: 1px solid var(--color-border-light);
+  border: 1px solid var(--color-neutral-200);
   border-radius: var(--border-radius);
   overflow: hidden;
   position: relative;
@@ -676,7 +597,7 @@ h6:hover .permalink {
 .map-popup h4 {
   margin: 0 0 6px;
   padding-bottom: 4px;
-  border-bottom: 1px solid var(--color-border-light);
+  border-bottom: 1px solid var(--color-neutral-200);
   font: var(--text-small-bold);
 }
 
@@ -743,7 +664,7 @@ h6:hover .permalink {
 .map-legend-gradient {
   height: 14px;
   margin: 5px 0 3px;
-  border: 1px solid var(--color-border-light);
+  border: 1px solid var(--color-neutral-200);
   border-radius: var(--border-radius-sm);
 }
 
@@ -751,7 +672,7 @@ h6:hover .permalink {
   display: flex;
   justify-content: space-between;
   font: var(--text-tiny-regular);
-  color: var(--color-text-secondary);
+  color: var(--color-neutral-700);
 }
 
 .map-legend-swatch {
@@ -833,27 +754,14 @@ h6:hover .permalink {
   }
 }
 
-/* Counter badge - Used for displaying counts */
-.counter-badge {
-  font-size: var(--font-size-xs);
-  background-color: var(--color-neutral-white);
-  padding: var(--space-xs) var(--space-sm);
-  border-radius: var(--border-radius);
-  box-shadow: var(--box-shadow);
-  position: absolute;
-  bottom: var(--space-sm);
-  right: var(--space-sm);
-  z-index: var(--z-index-dropdown);
-}
-
 /* ==========================================================================
    SIDEBAR NAVIGATION
    ========================================================================== */
 
 .api-sidebar {
   flex: 0 0 var(--sidebar-width);
-  background-color: var(--color-bg-sidebar);
-  border-right: 1px solid var(--color-border-light);
+  background-color: var(--color-blue-100);
+  border-right: 1px solid var(--color-neutral-200);
   overflow-y: auto;
   height: var(--sidebar-height);
   position: sticky;
@@ -867,44 +775,43 @@ h6:hover .permalink {
 }
 
 .api-nav-header {
-  font-weight: 600;
-  color: var(--color-text-primary);
+  font: var(--text-small-bold);
+  color: var(--color-neutral-900);
   text-transform: uppercase;
-  font-size: var(--font-size-xxl);
   margin: var(--space-md) var(--space-md) 10px;
 }
 
 .api-nav-item {
   display: block;
   padding: var(--space-sm) var(--space-md);
-  color: var(--color-text-secondary);
+  color: var(--color-neutral-700);
   text-decoration: none;
-  font-size: var(--font-size-xxl);
+  font: var(--text-small-regular);
   transition: background-color var(--transition-fast), color var(--transition-fast);
 }
 
 .api-nav-item:hover, .api-nav-item.active {
-  background-color: var(--color-bg-hover);
-  color: var(--color-text-primary);
+  background-color: var(--color-blue-300);
+  color: var(--color-neutral-900);
   text-decoration: none;
 }
 
 .api-nav-subitem {
-  padding: 8px var(--space-md) 8px var(--space-xl);
-  font-size: var(--font-size-sm);
+  padding: var(--space-xs) var(--space-md) var(--space-xs) var(--space-xl);
+  font: var(--text-caption-regular);
   display: block;
-  color: var(--color-text-secondary);
+  color: var(--color-neutral-700);
   text-decoration: none;
   transition: background-color var(--transition-fast), color var(--transition-fast);
 }
 
 .api-nav-subitem:hover {
-  background-color: var(--color-bg-hover);
-  color: var(--color-text-primary);
+  background-color: var(--color-blue-300);
+  color: var(--color-neutral-900);
 }
 
 .api-nav-subitem.level-h1 {
-  font-weight: 500;
+  font: var(--text-caption-medium);
   padding-left: var(--space-xl);
 }
 
@@ -914,13 +821,12 @@ h6:hover .permalink {
 
 .api-nav-subitem.level-h3 {
   padding-left: calc(var(--space-xl) + 20px);
-  font-size: var(--font-size-xs);
 }
 
 .api-nav-subitem.active {
-  color: var(--color-accent-link);
-  background-color: var(--color-bg-hover);
-  font-weight: 500;
+  color: var(--color-link-200);
+  background-color: var(--color-blue-300);
+  font: var(--text-caption-medium);
 }
 
 /* ---- Accordion Menu ---- */
@@ -932,9 +838,9 @@ h6:hover .permalink {
   align-items: center;
   position: relative;
   padding: var(--space-sm) var(--space-md);
-  color: var(--color-text-secondary);
+  color: var(--color-neutral-700);
   text-decoration: none;
-  font-size: var(--font-size-md);
+  font: var(--text-small-regular);
 }
 
 .api-nav-submenu {
@@ -944,7 +850,6 @@ h6:hover .permalink {
 }
 
 .accordion-arrow {
-  font-size: var(--font-size-md);
   margin-left: var(--space-sm);
   transition: transform var(--transition-medium);
   pointer-events: none;
@@ -969,20 +874,18 @@ h6:hover .permalink {
   padding: var(--space-sm) var(--space-md);
   border: none;
   background-color: transparent;
-  color: var(--color-text-heading);
-  font-family: var(--font-sans);
-  font-size: var(--font-size-md);
-  font-weight: 600;
+  color: var(--color-neutral-900);
+  font: var(--text-body-bold);
   text-align: left;
   cursor: pointer;
 }
 
 .api-sidebar-toggle:hover {
-  background-color: var(--color-bg-hover);
+  background-color: var(--color-blue-300);
 }
 
 .api-sidebar-toggle:focus-visible {
-  outline: 2px solid var(--color-accent-link);
+  outline: 2px solid var(--color-link-200);
   outline-offset: -2px;
 }
 
@@ -1018,9 +921,9 @@ h6:hover .permalink {
 
 .api-toc {
   flex: 0 0 var(--toc-width);
-  border-left: 1px solid var(--color-border-light);
+  border-left: 1px solid var(--color-neutral-200);
   padding: var(--space-xxxl) var(--space-md);
-  background-color: var(--color-bg-sidebar);
+  background-color: var(--color-blue-100);
   overflow-y: auto;
   height: var(--sidebar-height);
   position: sticky;
@@ -1028,10 +931,9 @@ h6:hover .permalink {
 }
 
 .api-toc-header {
-  font-weight: 600;
-  color: var(--color-text-primary);
+  font: var(--text-caption-semibold);
+  color: var(--color-neutral-900);
   margin-bottom: var(--space-md);
-  font-size: var(--font-size-xl);
 }
 
 .api-toc ul {
@@ -1046,9 +948,9 @@ h6:hover .permalink {
 }
 
 .api-toc a {
-  color: var(--color-text-secondary);
+  color: var(--color-neutral-700);
   text-decoration: none;
-  font-size: var(--font-size-xl);
+  font: var(--text-caption-regular);
   display: block;
   padding: 2px 0;
   border-left: 2px solid transparent;
@@ -1056,21 +958,27 @@ h6:hover .permalink {
 }
 
 .api-toc a:hover {
-  color: var(--color-text-primary);
+  color: var(--color-neutral-900);
   text-decoration: none;
   padding-left: 4px;
 }
 
 .api-toc a.active {
-  color: var(--color-accent-link);
-  font-weight: 500;
-  border-left-color: var(--color-accent-link);
+  color: var(--color-link-200);
+  font: var(--text-caption-medium);
+  border-left-color: var(--color-link-200);
   padding-left: 4px;
 }
 
 .api-toc .toc-level-1 {
   margin-left: 0;
-  font-weight: 500;
+}
+
+/* The docs put the level class on the <li>, the admin shell on the <a>; the font has to land on the link either way,
+   since .api-toc a sets its own. */
+.api-toc .toc-level-1 > a,
+.api-toc a.toc-level-1 {
+  font: var(--text-caption-medium);
 }
 
 .api-toc .toc-level-2 {
@@ -1083,50 +991,24 @@ h6:hover .permalink {
 
 .api-toc .toc-level-4 {
   margin-left: 36px;
-  font-size: var(--font-size-xs);
 }
 
 .api-toc .toc-level-5 {
   margin-left: 48px;
-  font-size: var(--font-size-xs);
 }
 
 .api-toc .toc-level-6 {
   margin-left: 60px;
-  font-size: var(--font-size-xxs);
-}
-
-/* ==========================================================================
-   FOOTER
-   ========================================================================== */
-
-.api-footer {
-  margin-top: var(--space-xxl);
-  padding: var(--space-xl) var(--space-md);
-  background-color: var(--color-bg-sidebar);
-  border-top: 1px solid var(--color-border-light);
-}
-
-.api-footer-content {
-  max-width: var(--content-max-width);
-  margin: 0 auto;
-}
-
-.api-footer h3 {
-  font-size: var(--font-size-xxl);
-  margin-top: 0;
-  margin-bottom: var(--space-md);
-  color: var(--color-text-heading);
-  font-weight: 600;
+  font: var(--text-tiny-regular);
 }
 
 /* Video container styling */
 .video-container {
   margin: 20px auto; /* Changed from '20px 0' to '20px auto' to center the container */
   max-width: 800px; /* Set a max-width for the container that matches the video */
-  border-radius: 8px;
+  border-radius: var(--border-radius-lg);
   overflow: hidden;
-  box-shadow: 0 4px 6px rgb(0 0 0 / 10%);
+  box-shadow: var(--box-shadow);
 }
 
 .demo-video {
@@ -1143,15 +1025,6 @@ h6:hover .permalink {
 var(--breakpoint-xs) → 480px
 var(--breakpoint-sm) → 768px
 var(--breakpoint-md) → 992px */
-
-/* Mobile responsiveness for citation */
-@media (width <= 768px) {
-  .bibtex-btn {
-    width: auto; /* Allow button to size to content */
-    margin-left: auto; /* Maintain right alignment */
-    margin-right: 0;
-  }
-}
 
 /* Hide TOC on medium screens */
 @media (width <= 992px) {
@@ -1181,7 +1054,7 @@ var(--breakpoint-md) → 992px */
     position: static;
     width: 100%;
     border-right: none;
-    border-bottom: 1px solid var(--color-border-light);
+    border-bottom: 1px solid var(--color-neutral-200);
     display: block;
     overflow: visible;
   }
@@ -1209,10 +1082,9 @@ var(--breakpoint-md) → 992px */
     display: flex;
   }
 
-  /* Adjust heading sizes */
-  h1.api-heading { font-size: 1.8em; }
-  h2.api-heading { font-size: 1.5em; }
-  h3.api-heading { font-size: 1.3em; }
+  h1.api-heading { font: var(--text-h2-bold); }
+  h2.api-heading { font: var(--text-h3-bold); }
+  h3.api-heading { font: var(--text-title-bold); }
 
   /* Adjust download buttons */
   .download-buttons {
@@ -1237,45 +1109,54 @@ var(--breakpoint-md) → 992px */
 
   .api-table th,
   .api-table td {
-    padding: 8px 10px;
+    padding: var(--space-xs) var(--space-sm);
   }
 }
 
 /* Enhanced permalink hover/focus for clipboard functionality */
 .permalink:hover {
   opacity: 1;
-  color: var(--color-accent-link);
+  color: var(--color-link-200);
 }
 
 .permalink:focus {
-  outline: 2px solid var(--color-accent-link);
+  outline: 2px solid var(--color-link-200);
   outline-offset: 2px;
   opacity: 1;
 }
 
+.permalink--copied,
+.permalink--copied:hover {
+  color: var(--color-jade-700);
+}
+
+.permalink--failed,
+.permalink--failed:hover {
+  color: var(--color-error-200);
+}
+
 /* Toast notification styles */
 .copy-toast {
-  background-color: var(--color-text-heading);
-  color: var(--color-text-on-accent);
+  background-color: var(--color-neutral-900);
+  color: var(--color-neutral-white);
   padding: var(--space-xs) var(--space-sm);
   border-radius: var(--border-radius);
-  font-size: var(--font-size-sm);
-  font-weight: 500;
+  font: var(--text-small-medium);
   box-shadow: var(--box-shadow);
   opacity: 0;
   transform: translateY(-5px);
-  transition: opacity 0.3s ease, transform 0.3s ease;
+  transition: opacity var(--transition-medium), transform var(--transition-medium);
   pointer-events: none;
   white-space: nowrap;
-  z-index: 10000; /* Ensure toasts appear above everything. */
+  z-index: var(--z-index-tooltip);
 }
 
 .copy-toast-success {
-  background-color: var(--color-success);
+  background-color: var(--color-jade-700);
 }
 
 .copy-toast-error {
-  background-color: var(--color-error);
+  background-color: var(--color-error-200);
 }
 
 .copy-toast-visible {

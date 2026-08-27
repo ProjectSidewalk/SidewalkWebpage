@@ -3,7 +3,6 @@
    vertical space the other sections leave. All sizes scale with --ui-scale like the rest of the tool. */
 #explore-sidebar {
   --exp-sidebar-section-gap: calc(18px * var(--ui-scale));
-  --exp-sidebar-link: var(--color-link-200);
 
   position: absolute;
   left: var(--sidebar-left);
@@ -237,12 +236,12 @@
   width: fit-content;
   margin-top: calc(6px * var(--ui-scale));
   font: var(--text-tiny-semibold);
-  color: var(--exp-sidebar-link);
+  color: var(--color-link-200);
   text-decoration: none;
 }
 
 .explore-sidebar__see-all:hover {
-  color: var(--exp-sidebar-link);
+  color: var(--color-link-200);
   text-decoration: underline;
 }
 

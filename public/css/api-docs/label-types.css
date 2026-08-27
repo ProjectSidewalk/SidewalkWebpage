@@ -1,13 +1,8 @@
 /**
  * Project Sidewalk API Documentation - Label Types Component Styles
  *
- * This stylesheet contains styles specific to the Label Types component and works in conjunction with the main
- * api-docs.css file.
+ * Cell styles for the label-types table, an .api-table instance built by labelTypesPreview.js.
  */
-
-/* ==========================================================================
-  COMPONENT CONTAINERS
-  ========================================================================== */
 
 #label-types-preview {
   margin: var(--space-lg) 0;
@@ -15,58 +10,13 @@
   width: 100%;
 }
 
-/* ==========================================================================
-    COMPONENT TABLES
-    ========================================================================== */
-
-/* Label Types Table - component-specific customizations */
-.label-types-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  font-size: var(--font-size-sm);
-}
-
-.label-types-table th:not(:last-child),
-.label-types-table td:not(:last-child) {
-  padding-right: 6px; /* Add spacing between columns */
-}
-
-.label-types-table th {
-  background-color: rgb(245 245 245);
-  font-weight: bold;
-  text-align: left;
-}
-
-.label-types-table th, .label-types-table td {
-  text-align: left;
-  padding: 12px 16px;
-  border-bottom: 1px solid rgb(238 238 238);
-}
-
-/* ==========================================================================
-    TABLE CONTENT ELEMENTS
-    ========================================================================== */
-
-/* Label Name */
 .label-name {
-  font-weight: 600;
+  font: var(--text-small-bold);
 }
 
-/* Label Description */
 .label-description {
-  color: var(--color-text-secondary);
+  color: var(--color-neutral-700);
   max-width: 250px;
-}
-
-/* ==========================================================================
-    COLOR VISUALIZATION ELEMENTS
-    ========================================================================== */
-
-/* Color Preview wrapper */
-.color-preview-wrapper {
-  display: flex;
-  align-items: center;
 }
 
 /* Color Swatch */
@@ -76,19 +26,17 @@
   height: 20px;
   border-radius: 50%;
   margin-right: var(--space-xs);
-  border: 1px solid var(--color-border-light);
+  border: 1px solid var(--color-neutral-200);
 }
 
-/* Color Cell */
+/* The cell is filled with the label type's own color, so the name is drawn in white with a halo. */
 .color-cell {
-  position: relative;
-  padding: 12px 16px;
   color: var(--color-neutral-white);
-  text-shadow: 0 0 2px rgb(0 0 0 / 70%);
+  text-shadow: 0 0 2px rgb(from var(--color-neutral-black) r g b / 70%);
 }
 
 /* Light-colored cells use dark text for contrast */
 .light-color {
-  color: var(--color-text-primary);
-  text-shadow: 0 0 2px rgb(255 255 255 / 70%);
+  color: var(--color-neutral-900);
+  text-shadow: 0 0 2px rgb(from var(--color-neutral-white) r g b / 70%);
 }

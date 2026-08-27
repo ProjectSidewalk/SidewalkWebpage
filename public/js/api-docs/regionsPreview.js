@@ -22,18 +22,19 @@
   };
 
   // Keyed by the GeoJSON property each one colors by. The ramps are picked to read against the dimmed basemap.
+  const NONE_COLOR = ApiDocsTheme.color('--color-neutral-800');
   const METRICS = {
     label_count: {
       label: 'Label count', legendTitle: 'Labels per region',
-      none: { color: '#3d3d3d', label: 'No labels' }, ramp: ['#440154', '#f0f921'],
+      none: { color: NONE_COLOR, label: 'No labels' }, ramp: ['#440154', '#f0f921'],
     },
     audit_count: {
       label: 'Audit count', legendTitle: 'Completed audits per region',
-      none: { color: '#3d3d3d', label: 'No completed audits' }, ramp: ['#0d3b2e', '#44ff88'],
+      none: { color: NONE_COLOR, label: 'No completed audits' }, ramp: ['#0d3b2e', '#44ff88'],
     },
     user_count: {
       label: 'User count', legendTitle: 'Contributors per region',
-      none: { color: '#3d3d3d', label: 'No contributors' }, ramp: ['#472c7a', '#ffffff'],
+      none: { color: NONE_COLOR, label: 'No contributors' }, ramp: ['#472c7a', '#ffffff'],
     },
   };
 
@@ -74,7 +75,7 @@
         await this.renderMap(container, regions);
       } catch (error) {
         console.error('Error rendering regions preview:', error);
-        container.innerHTML = '<div class="no-regions-message">Unable to load region data for the preview.</div>';
+        container.innerHTML = '<div class="map-message">Unable to load region data for the preview.</div>';
       }
     },
 
@@ -133,7 +134,7 @@
         type: 'line',
         source: REGION_SOURCE,
         paint: {
-          'line-color': '#ffffff',
+          'line-color': ApiDocsTheme.color('--color-neutral-white'),
           'line-width': ApiDocsMap.whenHovered(3, 1),
           'line-opacity': ApiDocsMap.whenHovered(1, 0.7),
         },
@@ -163,12 +164,12 @@
      */
     addToolbar(container) {
       const toolbar = document.createElement('div');
-      toolbar.className = 'regions-toolbar';
+      toolbar.className = 'map-toolbar';
       const optionsHtml = Object.keys(METRICS)
         .map((metric) => `<option value="${metric}">${METRICS[metric].label}</option>`)
         .join('');
       toolbar.innerHTML = `<label for="region-metric-select">Color by</label>
-        <select id="region-metric-select">${optionsHtml}</select>`;
+        <select id="region-metric-select" class="ps-select">${optionsHtml}</select>`;
       container.appendChild(toolbar);
     },
 
@@ -236,7 +237,7 @@
      */
     addNoRegionsMessage(map) {
       const div = document.createElement('div');
-      div.className = 'no-regions-message';
+      div.className = 'map-message';
       div.textContent = 'No regions found for this city.';
       map.getContainer().appendChild(div);
     },
