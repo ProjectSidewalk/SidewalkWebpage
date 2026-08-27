@@ -7,6 +7,8 @@ thresholds), the retry/fetch and per-street worker (including imagery-age captur
 flagging, resume, fail-soft + retry, and interrupt). See test/python/README.md.
 """
 
+import base64
+import json
 import os
 
 import pandas as pd
@@ -95,6 +97,122 @@ def test_pano_info():
     assert cs._pano_info('Mapillary', {'data': [{'id': 1}]}) == cs.PanoInfo(True, None)  # Mapillary date not captured
 
 
+# --------------------------------------------------------------------------------------------------------------------
+# Infra3d: nearest-frame interpretation + token handling
+# --------------------------------------------------------------------------------------------------------------------
+
+def _frame(lat, lng, timestamp='2024-06-17T11:23:09.795417+00:00'):
+    return {'latitude': lat, 'longitude': lng, 'timestamp': timestamp, 'type': 'cubemap'}
+
+
+def test_infra3d_pano_info_nearest_within_radius():
+    # ~11 m north of the point, inside the 15 m radius.
+    response = {'value': [_frame(47.6001, -122.3)]}
+    assert cs.infra3d_pano_info(response, 47.6, -122.3, 0.015) == cs.PanoInfo(True, '2024-06-17')
+
+
+def test_infra3d_pano_info_picks_the_nearest_of_several():
+    response = {'value': [_frame(47.61, -122.3, '2020-01-01T00:00:00+00:00'), _frame(47.6001, -122.3)]}
+    assert cs.infra3d_pano_info(response, 47.6, -122.3, 0.015) == cs.PanoInfo(True, '2024-06-17')
+
+
+def test_infra3d_pano_info_nearest_beyond_radius_is_no_imagery():
+    # The endpoint has no distance cap, so a frame 1 km away still comes back; it must not count.
+    response = {'value': [_frame(47.61, -122.3)]}
+    assert cs.infra3d_pano_info(response, 47.6, -122.3, 0.015) == cs.PanoInfo(False, None)
+
+
+def test_infra3d_pano_info_empty_value_is_no_imagery():
+    assert cs.infra3d_pano_info({'value': []}, 47.6, -122.3, 0.015) == cs.PanoInfo(False, None)
+
+
+def test_infra3d_pano_info_missing_timestamp_has_no_date():
+    response = {'value': [{'latitude': 47.6, 'longitude': -122.3, 'timestamp': None}]}
+    assert cs.infra3d_pano_info(response, 47.6, -122.3, 0.015) == cs.PanoInfo(True, None)
+
+
+@pytest.mark.parametrize('response', [{'message': 'Unauthorized'}, {'value': 'nope'}, ['not', 'a', 'dict']])
+def test_infra3d_pano_info_unexpected_response_raises(response):
+    with pytest.raises(cs.ImageryApiError):
+        cs.infra3d_pano_info(response, 47.6, -122.3, 0.015)
+
+
+def test_infra3d_knn_url_encodes_pano_filter():
+    url = cs._infra3d_knn_url('uzh', 47.6, -122.3)
+    assert url.startswith('https://api.infra3d.com/framegate/frames/uzh/knn/query?longitude=-122.3&latitude=47.6')
+    assert url.endswith('&filter=type%20in%20%27%28calotte%2C%20cubemap%29%27')
+
+
+def _jwt(claims):
+    payload = base64.urlsafe_b64encode(json.dumps(claims).encode()).decode().rstrip('=')
+    return 'header.%s.signature' % payload
+
+
+def test_jwt_claims_decodes_unpadded_payload():
+    assert cs._jwt_claims(_jwt({'exp': 1, 'scope': 'a b'})) == {'exp': 1, 'scope': 'a b'}
+
+
+class _TokenResp:
+    def __init__(self, status_code, token=None, text='error body'):
+        self.status_code = status_code
+        self._token = token
+        self.text = text
+
+    def json(self):
+        return {'access_token': self._token}
+
+
+def _auth(post, now):
+    return cs.Infra3dAuth('id', 'secret', post=post, now=now)
+
+
+def test_infra3d_auth_mints_token_and_reads_tenant_from_scope():
+    calls = []
+
+    def post(url, data, headers, timeout):
+        calls.append((url, data))
+        return _TokenResp(200, _jwt({'exp': 4000, 'scope': 'permission/edit framegate/uzh role/user'}))
+
+    auth = _auth(post, now=lambda: 1000)
+    headers = auth.headers()
+    assert auth.tenant == 'uzh'
+    assert headers['Authorization'].startswith('Bearer header.')
+    assert headers['x-api-key'] == cs.INFRA3D_API_KEY
+    assert calls == [(cs.INFRA3D_TOKEN_URL,
+                      {'client_id': 'id', 'client_secret': 'secret', 'grant_type': 'client_credentials'})]
+
+
+def test_infra3d_auth_reuses_token_until_near_expiry():
+    clock = {'t': 1000}
+    calls = {'n': 0}
+
+    def post(url, data, headers, timeout):
+        calls['n'] += 1
+        return _TokenResp(200, _jwt({'exp': clock['t'] + 3600, 'scope': 'framegate/uzh'}))
+
+    auth = _auth(post, now=lambda: clock['t'])
+    auth.headers()
+    clock['t'] += 3600 - cs.INFRA3D_TOKEN_REFRESH_MARGIN - 1  # still (just) outside the refresh margin
+    auth.headers()
+    assert calls['n'] == 1
+    clock['t'] += 1  # now inside the margin -> refreshed
+    auth.headers()
+    assert calls['n'] == 2
+
+
+def test_infra3d_auth_non_200_raises():
+    auth = _auth(lambda url, data, headers, timeout: _TokenResp(401, text='bad client'), now=lambda: 0)
+    with pytest.raises(cs.ImageryApiError, match='401'):
+        auth.headers()
+
+
+def test_infra3d_auth_scope_without_tenant_raises():
+    auth = _auth(lambda url, data, headers, timeout: _TokenResp(200, _jwt({'exp': 9, 'scope': 'role/user'})),
+                 now=lambda: 0)
+    with pytest.raises(cs.ImageryApiError, match='framegate'):
+        auth.headers()
+
+
 def test_summarize_dates():
     assert cs.summarize_dates([]) == (None, None, 0)
     assert cs.summarize_dates(['2020-05-05', '2019-01-01', '2019-06-01']) == ('2019-01-01', '2020-05-05', 3)
@@ -180,13 +298,43 @@ def test_make_fetch_reraises_after_max_attempts(monkeypatch):
         fetch('http://x')
 
 
-def test_get_json(monkeypatch):
+def test_get_json_defaults_to_get(monkeypatch):
     class _Resp:
         def json(self):
             return {'ok': True}
 
-    monkeypatch.setattr(cs.requests, 'get', lambda url, timeout: _Resp())
+    seen = {}
+
+    def request(**kwargs):
+        seen.update(kwargs)
+        return _Resp()
+
+    monkeypatch.setattr(cs.requests, 'request', request)
     assert cs._get_json('http://x') == {'ok': True}
+    assert seen == {'url': 'http://x', 'method': 'GET', 'timeout': cs.REQUEST_TIMEOUT}
+
+
+def test_get_json_passes_method_and_headers_through(monkeypatch):
+    seen = {}
+
+    class _Resp:
+        def json(self):
+            return {}
+
+    def request(**kwargs):
+        seen.update(kwargs)
+        return _Resp()
+
+    monkeypatch.setattr(cs.requests, 'request', request)
+    cs._get_json('http://x', method='POST', headers={'x-api-key': 'k'})
+    assert (seen['method'], seen['headers']) == ('POST', {'x-api-key': 'k'})
+
+
+def test_make_fetch_forwards_kwargs(monkeypatch):
+    seen = {}
+    monkeypatch.setattr(cs, '_get_json', lambda url, **kwargs: seen.update(kwargs) or {'ok': True})
+    assert cs.make_fetch(sleep=lambda _s: None)('http://x', method='POST') == {'ok': True}
+    assert seen == {'method': 'POST'}
 
 
 def test_mapillary_bbox_url_appends_four_coords():
@@ -282,6 +430,49 @@ def test_process_street_mapillary_has_imagery():
 
 def test_process_street_mapillary_no_imagery():
     assert _run_process(_LINE_60, 'Mapillary', lambda url: {'data': []}).outcome == cs.NO_IMAGERY
+
+
+class _FakeInfra3dAuth:
+    tenant = 'uzh'
+
+    def headers(self):
+        return {'Authorization': 'Bearer t'}
+
+
+def _run_process_infra3d(line, fetch):
+    return cs.process_street(_street(line), 'Infra3d', fetch, None, None, None, _FakeInfra3dAuth())
+
+
+def _frame_at(url, timestamp='2024-06-17T11:23:09.795417+00:00'):
+    # Echoing the query point back as the nearest frame means every checked point has imagery.
+    query = dict(part.split('=') for part in url.split('?')[1].split('&'))
+    return {'value': [{'latitude': float(query['latitude']), 'longitude': float(query['longitude']),
+                       'timestamp': timestamp, 'type': 'cubemap'}]}
+
+
+def test_process_street_infra3d_has_imagery_with_dates():
+    seen = []
+
+    def fetch(url, **kwargs):
+        seen.append((url, kwargs))
+        return _frame_at(url)
+
+    result = _run_process_infra3d(_LINE_60, fetch)
+    assert result.outcome == cs.HAS_IMAGERY
+    assert (result.oldest_capture, result.newest_capture) == ('2024-06-17', '2024-06-17')
+    assert result.n_panos >= 3
+    assert all(url.startswith('https://api.infra3d.com/framegate/frames/uzh/knn/query?') for url, _ in seen)
+    assert all(kw == {'method': 'POST', 'headers': {'Authorization': 'Bearer t'}} for _, kw in seen)
+
+
+def test_process_street_infra3d_nearest_frame_too_far_is_no_imagery():
+    # The API answers (nearest frame ~1 km away), but nothing is within radius.
+    far = {'value': [{'latitude': 47.61, 'longitude': -122.3, 'timestamp': '2024-01-01T00:00:00+00:00'}]}
+    assert _run_process_infra3d(_LINE_60, lambda url, **kw: far).outcome == cs.NO_IMAGERY
+
+
+def test_process_street_infra3d_bad_response_is_failed():
+    assert _run_process_infra3d(_LINE_60, lambda url, **kw: {'message': 'Unauthorized'}).outcome == cs.FAILED
 
 
 def test_process_street_request_error_is_failed():
@@ -530,6 +721,34 @@ def test_main_mapillary_branch(monkeypatch, tmp_path):
     monkeypatch.setattr(cs, '_get_json', lambda url: {'data': []})  # no imagery
     assert cs.main(['--mapillary']) == 0
     assert _output(tmp_path)['street_edge_id'].tolist() == [100]
+
+
+def _infra3d_token_post(status_code=200):
+    def post(url, data, headers, timeout):
+        return _TokenResp(status_code, _jwt({'exp': 10 ** 10, 'scope': 'framegate/uzh'}))
+    return post
+
+
+def test_main_infra3d_branch(monkeypatch, tmp_path):
+    _setup(monkeypatch, tmp_path, [(100, 1, _LINE_60)], env_var='INFRA3D_CLIENT_ID')
+    monkeypatch.setenv('INFRA3D_CLIENT_SECRET', 'dummy')
+    monkeypatch.setattr(cs.requests, 'post', _infra3d_token_post())
+    monkeypatch.setattr(cs, '_get_json', lambda url, **kwargs: {'value': []})  # no imagery
+    assert cs.main(['--infra3d']) == 0
+    assert _output(tmp_path)['street_edge_id'].tolist() == [100]
+
+
+def test_main_infra3d_missing_credentials_returns_1(monkeypatch):
+    monkeypatch.setenv('INFRA3D_CLIENT_ID', 'dummy')
+    monkeypatch.delenv('INFRA3D_CLIENT_SECRET', raising=False)
+    assert cs.main(['--infra3d']) == 1
+
+
+def test_main_infra3d_token_failure_returns_1(monkeypatch, tmp_path):
+    _setup(monkeypatch, tmp_path, [(100, 1, _LINE_60)], env_var='INFRA3D_CLIENT_ID')
+    monkeypatch.setenv('INFRA3D_CLIENT_SECRET', 'dummy')
+    monkeypatch.setattr(cs.requests, 'post', _infra3d_token_post(status_code=401))
+    assert cs.main(['--infra3d']) == 1
 
 
 def test_main_keyboard_interrupt_finalizes_and_returns_1(monkeypatch, tmp_path):

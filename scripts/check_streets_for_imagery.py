@@ -1,5 +1,5 @@
 """
-Finds streets that lack street-view imagery (Google Street View or Mapillary) and writes them to a CSV.
+Finds streets that lack street-view imagery (Google Street View, Mapillary, or Infra3d) and writes them to a CSV.
 
 This is a standalone, manually-run utility (it is not invoked by the app). Workflow:
 
@@ -9,9 +9,12 @@ This is a standalone, manually-run utility (it is not invoked by the app). Workf
 
          python3.13 scripts/check_streets_for_imagery.py --gsv
          python3.13 scripts/check_streets_for_imagery.py --mapillary
+         python3.13 scripts/check_streets_for_imagery.py --infra3d
 
-     ``--gsv`` needs ``GOOGLE_MAPS_API_KEY``; ``--mapillary`` needs ``MAPILLARY_ACCESS_TOKEN``. It is ``python3.13``
-     rather than the container's default ``python3`` because this tool's libraries need Python >= 3.11.
+     ``--gsv`` needs ``GOOGLE_MAPS_API_KEY``; ``--mapillary`` needs ``MAPILLARY_ACCESS_TOKEN``; ``--infra3d`` needs
+     ``INFRA3D_CLIENT_ID`` and ``INFRA3D_CLIENT_SECRET`` (one city's pair — the same OAuth client-credentials the app
+     holds per city as ``INFRA3D_CLIENT_ID_<CITY>``). It is ``python3.13`` rather than the container's default
+     ``python3`` because this tool's libraries need Python >= 3.11.
   3. It writes streets without imagery to ``db/streets_with_no_imagery.csv``, and a per-street imagery summary
      (presence + capture-date range) to ``db/street_imagery_summary.csv``.
   4. Run ``make hide-streets-without-imagery`` to mark those streets in the database.
@@ -20,9 +23,17 @@ For each street it first checks both endpoints; if neither has imagery the stree
 walks points along the street (added roughly every 15 m) and flags the street once enough points lack imagery (see
 ``imagery_verdict`` for the exact thresholds).
 
-Imagery age: the GSV responses we already fetch also carry a capture ``date``, so for no extra API calls we record each
-street's imagery capture-date range (oldest/newest) into the summary file — telling us not just whether a street has
-imagery but how old it is. (Mapillary capture dates are a future enhancement; GSV only for now.)
+Imagery age: the GSV and Infra3d responses we already fetch also carry a capture date, so for no extra API calls we
+record each street's imagery capture-date range (oldest/newest) into the summary file — telling us not just whether a
+street has imagery but how old it is. (Mapillary capture dates are a future enhancement.)
+
+Infra3d has no metadata endpoint of its own; the check uses the same nearest-frame query (``framegate``'s
+``knn/query``) that the vendored Infra3d viewer SDK issues on every ``setLocation``, authenticated with the same
+per-city OAuth token the app fetches in ``PanoDataService.getInfra3dToken``. The query returns the single nearest
+frame with no distance cap, so "imagery here" is decided client-side: the nearest 360° frame within the same 25 m /
+15 m radius GSV bakes into its URL. Flat mono/stereo frames are filtered out server-side, matching the viewer's
+``setFilter(['in', 'cameraType', 'calotte', 'cubemap'])`` — an Infra3d street with only flat photos is unusable for
+labeling and should count as having no imagery.
 
 Resilience (so a long scan survives a flaky network): each request is retried with exponential backoff; a street that
 still fails is logged and the scan continues rather than aborting, and the failed set is retried once at the end (any
@@ -31,9 +42,9 @@ still-failing streets land in ``db/failed_streets.csv``). Progress is checkpoint
 streets. The final ``db/streets_with_no_imagery.csv`` is derived from the checkpoint, so its schema is unchanged.
 
 The pure functions (``create_bounding_box``, ``redistribute_vertices``, ``gsv_has_imagery``, ``mapillary_has_imagery``,
-``standardize_capture_date``, ``gsv_capture_date``, ``imagery_verdict``, ``street_has_no_imagery``, ``summarize_dates``)
-are import-safe and unit-tested in ``test/python/test_check_streets_for_imagery.py``; network and file I/O live in thin
-wrappers and ``main``.
+``infra3d_pano_info``, ``standardize_capture_date``, ``gsv_capture_date``, ``imagery_verdict``,
+``street_has_no_imagery``, ``summarize_dates``) are import-safe and unit-tested in
+``test/python/test_check_streets_for_imagery.py``; network and file I/O live in thin wrappers and ``main``.
 
 The paths above are resolved relative to the repo root (this script's parent directory), so the tool works the same no
 matter which directory you launch it from.
@@ -51,11 +62,13 @@ concurrent fetching. We deliberately differ from it in three ways, because the t
   * Concurrency: GSV Tracker uses asyncio/aiohttp tuned for maximum throughput (toward Google's ~500 req/s ceiling). We
     use a small thread pool plus a conservative token-bucket QPS cap, deliberately staying well under the limit; at that
     bounded concurrency, threads are simpler and sufficient, and async's scale advantage would be wasted.
-  * Providers: we support GSV *and* Mapillary (Project Sidewalk uses both); GSV Tracker is GSV-only.
+  * Providers: we support GSV, Mapillary, *and* Infra3d (Project Sidewalk uses all three); GSV Tracker is GSV-only.
 """
 
 import argparse
+import base64
 import csv
+import json
 import logging
 import os
 import sys
@@ -64,6 +77,7 @@ import time
 from collections import namedtuple
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
+from urllib.parse import quote
 
 import pandas as pd
 import requests
@@ -106,10 +120,22 @@ DEFAULT_MAX_QPS = 10.0
 # Spacing between interpolated vertices along a street, in lat/lng degrees (~15 m). Accuracy here is not critical.
 DISTANCE = 0.000135
 
-# Bounding-box half-extents (km) for Mapillary queries: 25 m at endpoints, 15 m at along-street points (a smaller
-# radius along the street avoids picking up imagery from a nearby parallel street). GSV bakes these into the URL.
+# Search radii, in km: 25 m at street endpoints, 15 m at along-street points — the smaller mid-street radius avoids
+# picking up imagery from a nearby parallel street.
 ENDPOINT_RADIUS_KM = 0.025
 POINT_RADIUS_KM = 0.015
+
+# Infra3d: the token grant mirrors PanoDataService.getInfra3dToken; the framegate route is what the vendored viewer SDK
+# calls for setLocation. The route's tenant segment comes from the token's scope, so there is no per-city config.
+INFRA3D_TOKEN_URL = 'https://uzh.auth.eu-west-1.amazoncognito.com/oauth2/token'
+INFRA3D_API_URL = 'https://api.infra3d.com/framegate'
+# The SDK's own API-gateway key, baked into the vendored bundle and sent by every browser session alongside the bearer;
+# it identifies the SDK, not us -- the per-city bearer token is what grants access to a tenant's imagery.
+INFRA3D_API_KEY = '6zGSQ8u14j3AqL8myGcP54rbXS9aLCpr6lY99B9F'
+# 360° frames only, matching Infra3dViewer's setFilter: Explore can't label on Infra3d's flat mono/stereo photos.
+INFRA3D_PANO_FILTER = "type in '(calotte, cubemap)'"
+# Infra3d access tokens live 60 minutes; refresh this many seconds before expiry so a long scan never sends a stale one.
+INFRA3D_TOKEN_REFRESH_MARGIN = 300
 
 # A street is flagged as missing imagery once the fraction of checked points without imagery reaches FAIL_FRACTION, or
 # reaches FAIL_FRACTION_WITH_ENDPOINT when at least one endpoint already lacked imagery. Conversely the check stops
@@ -143,6 +169,55 @@ PanoInfo = namedtuple('PanoInfo', ['has_imagery', 'capture_date'])
 
 class ImageryApiError(Exception):
     """Raised when an imagery provider returns an unexpected error response that should abort checking a street."""
+
+
+def _jwt_claims(token):
+    """Decodes a JWT's payload (no signature check -- we only read our own token's scope/expiry)."""
+    payload = token.split('.')[1]
+    return json.loads(base64.urlsafe_b64decode(payload + '=' * (-len(payload) % 4)))
+
+
+class Infra3dAuth:
+    """
+    Holds an Infra3d access token for the scan, refreshing it before it expires.
+
+    The token is minted with the per-city OAuth client credentials (the same grant ``PanoDataService.getInfra3dToken``
+    uses), and its ``framegate/<tenant>`` scope names the tenant whose frames we may query. ``headers()`` is safe to
+    call from the worker threads; the clock and HTTP ``post`` are injectable for deterministic tests.
+    """
+
+    def __init__(self, client_id, client_secret, post=None, now=time.time):
+        self._client_id = client_id
+        self._client_secret = client_secret
+        self._post = post if post is not None else requests.post
+        self._now = now
+        self._lock = threading.Lock()
+        self._token = None
+        self._expires_at = 0
+        self.tenant = None
+
+    def _refresh(self):
+        body = {'client_id': self._client_id, 'client_secret': self._client_secret, 'grant_type': 'client_credentials'}
+        response = self._post(INFRA3D_TOKEN_URL, data=body, headers={'Accept': 'application/json'},
+                              timeout=REQUEST_TIMEOUT)
+        if response.status_code != 200:
+            raise ImageryApiError('Infra3d token request failed with status %d: %s' % (response.status_code,
+                                                                                      response.text))
+        self._token = response.json()['access_token']
+        claims = _jwt_claims(self._token)
+        self._expires_at = claims['exp']
+        tenants = [s.split('/', 1)[1] for s in claims.get('scope', '').split() if s.startswith('framegate/')]
+        if not tenants:
+            raise ImageryApiError('Infra3d token carries no framegate/<tenant> scope: %s' % claims.get('scope'))
+        self.tenant = tenants[0]
+
+    def headers(self):
+        """Returns the auth headers for a framegate request, minting/refreshing the token first if needed."""
+        with self._lock:
+            if self._now() >= self._expires_at - INFRA3D_TOKEN_REFRESH_MARGIN:
+                self._refresh()
+            return {'Authorization': 'Bearer ' + self._token, 'x-api-key': INFRA3D_API_KEY,
+                    'Accept': 'application/json'}
 
 
 class RateLimiter:
@@ -294,6 +369,37 @@ def mapillary_has_imagery(response_json):
     return not no_imagery
 
 
+def infra3d_pano_info(response_json, lat, lng, radius_km):
+    """
+    Interprets an Infra3d nearest-frame (``knn/query``) response for a query point.
+
+    The endpoint returns the nearest frame(s) with no distance cap -- a point 90 km outside the city still gets the
+    city's closest frame -- so presence means "the nearest frame is within ``radius_km`` of the point". The frames are
+    already filtered to 360° types by the request's ``filter`` param.
+
+    Args:
+        response_json: The decoded JSON from the framegate ``knn/query`` endpoint (``{"value": [frame, ...]}``).
+        lat:           Latitude of the queried point.
+        lng:           Longitude of the queried point.
+        radius_km:     Max distance from the point at which a frame counts as imagery for it.
+
+    Returns:
+        A ``PanoInfo``: imagery present iff the nearest frame is within the radius, with that frame's capture date.
+
+    Raises:
+        ImageryApiError: If the response has no ``value`` list (auth failure, bad request, ...).
+    """
+    frames = response_json.get('value') if isinstance(response_json, dict) else None
+    if not isinstance(frames, list):
+        raise ImageryApiError('unexpected Infra3d response: ' + json.dumps(response_json)[:200])
+    if not frames:
+        return PanoInfo(False, None)
+    nearest = min(frames, key=lambda f: geodesic((lat, lng), (f['latitude'], f['longitude'])).km)
+    if geodesic((lat, lng), (nearest['latitude'], nearest['longitude'])).km > radius_km:
+        return PanoInfo(False, None)
+    return PanoInfo(True, standardize_capture_date((nearest.get('timestamp') or '')[:10]))
+
+
 def imagery_verdict(n_fail, n_success, n_coords, endpoint_failed):
     """
     Decides, from running point counts, whether the street's imagery status is settled yet.
@@ -355,14 +461,20 @@ def street_has_no_imagery(first_endpoint_fail, second_endpoint_fail, point_has_i
     return False
 
 
-def _get_json(url):
-    """GETs a URL and returns the decoded JSON (with a bounded per-attempt timeout)."""
-    return requests.get(url, timeout=REQUEST_TIMEOUT).json()
+def _get_json(url, **kwargs):
+    """
+    Requests a URL and returns the decoded JSON (with a bounded per-attempt timeout).
+
+    GET by default; ``kwargs`` (``method``, ``headers``, ...) pass through to ``requests.request`` for providers that
+    need more, like Infra3d's POST + bearer token.
+    """
+    kwargs.setdefault('method', 'GET')
+    return requests.request(url=url, timeout=REQUEST_TIMEOUT, **kwargs).json()
 
 
 def make_fetch(max_attempts=MAX_ATTEMPTS, sleep=None, rate_limiter=None):
     """
-    Builds a ``fetch(url) -> json`` that retries transient network errors with exponential backoff + jitter.
+    Builds a ``fetch(url, **kwargs) -> json`` that retries transient network errors with exponential backoff + jitter.
 
     The retry/backoff approach is adapted from GSV Tracker (see the module "Design lineage" note).
 
@@ -372,7 +484,7 @@ def make_fetch(max_attempts=MAX_ATTEMPTS, sleep=None, rate_limiter=None):
         rate_limiter: Optional ``RateLimiter``; if given, a token is acquired before every request (including retries).
 
     Returns:
-        A ``fetch`` callable.
+        A ``fetch`` callable; any keyword arguments are passed through to ``_get_json``.
     """
     retryer = tenacity.Retrying(
         stop=tenacity.stop_after_attempt(max_attempts),
@@ -382,18 +494,31 @@ def make_fetch(max_attempts=MAX_ATTEMPTS, sleep=None, rate_limiter=None):
         reraise=True,
     )
 
-    def attempt(url):
+    def attempt(url, **kwargs):
         if rate_limiter is not None:
             rate_limiter.acquire()
-        return _get_json(url)
+        return _get_json(url, **kwargs)
 
-    return lambda url: retryer(lambda: attempt(url))
+    return lambda url, **kwargs: retryer(lambda: attempt(url, **kwargs))
 
 
 def _mapillary_bbox_url(mapillary_url, lat, lng, radius_km):
     """Appends a ``&bbox=`` query (a box of ``radius_km`` around the point) to the Mapillary base URL."""
     bbox = create_bounding_box(lat, lng, radius_km)
     return mapillary_url + '&bbox=' + ','.join(str(coord) for coord in bbox)
+
+
+def _infra3d_knn_url(tenant, lat, lng):
+    """Builds the framegate nearest-360°-frame query URL for a point."""
+    return '%s/frames/%s/knn/query?longitude=%s&latitude=%s&filter=%s' % (
+        INFRA3D_API_URL, tenant, lng, lat, quote(INFRA3D_PANO_FILTER, safe=''))
+
+
+def _infra3d_point_pano_info(auth, lat, lng, radius_km, fetch):
+    """Queries Infra3d for the nearest 360° frame to a point (via ``fetch``) and returns its ``PanoInfo``."""
+    headers = auth.headers()  # Before the URL: minting the token is what populates auth.tenant.
+    response = fetch(_infra3d_knn_url(auth.tenant, lat, lng), method='POST', headers=headers)
+    return infra3d_pano_info(response, lat, lng, radius_km)
 
 
 def _pano_info(api, response_json):
@@ -408,21 +533,26 @@ def _pano_info(api, response_json):
     return PanoInfo(mapillary_has_imagery(response_json), None)
 
 
-def _point_pano_info(api, lat, lng, fetch, gsv_url, mapillary_url, mapillary_radius_km):
-    """Queries the configured provider at one point (via ``fetch``) and returns its ``PanoInfo``."""
+def _point_pano_info(api, lat, lng, fetch, gsv_url, mapillary_url, radius_km, infra3d_auth=None):
+    """
+    Queries the configured provider at one point (via ``fetch``) and returns its ``PanoInfo``.
+
+    ``radius_km`` is the Mapillary bbox half-extent / Infra3d max frame distance; GSV bakes its radius into ``gsv_url``.
+    """
     if api == 'GSV':
         return _pano_info(api, fetch(gsv_url + '&location=' + str(lat) + ',' + str(lng)))
-    return _pano_info(api, fetch(_mapillary_bbox_url(mapillary_url, lat, lng, mapillary_radius_km)))
+    if api == 'Infra3d':
+        return _infra3d_point_pano_info(infra3d_auth, lat, lng, radius_km, fetch)
+    return _pano_info(api, fetch(_mapillary_bbox_url(mapillary_url, lat, lng, radius_km)))
 
 
-def _check_endpoints(street, api, fetch, gsv_url_endpoint, mapillary_url):
+def _check_endpoints(street, api, fetch, gsv_url_endpoint, mapillary_url, infra3d_auth=None):
     """Checks both of a street's endpoints; returns ``(first_pano_info, second_pano_info)``."""
-    if api == 'GSV':
-        first = _pano_info(api, fetch(gsv_url_endpoint + '&location=' + str(street.y1) + ',' + str(street.x1)))
-        second = _pano_info(api, fetch(gsv_url_endpoint + '&location=' + str(street.y2) + ',' + str(street.x2)))
-    else:
-        first = _pano_info(api, fetch(_mapillary_bbox_url(mapillary_url, street.y1, street.x1, ENDPOINT_RADIUS_KM)))
-        second = _pano_info(api, fetch(_mapillary_bbox_url(mapillary_url, street.y2, street.x2, ENDPOINT_RADIUS_KM)))
+    # GSV carries its radius in the URL, so the endpoint URL goes where the along-street point URL normally would.
+    first = _point_pano_info(api, street.y1, street.x1, fetch, gsv_url_endpoint, mapillary_url, ENDPOINT_RADIUS_KM,
+                             infra3d_auth)
+    second = _point_pano_info(api, street.y2, street.x2, fetch, gsv_url_endpoint, mapillary_url, ENDPOINT_RADIUS_KM,
+                              infra3d_auth)
     return first, second
 
 
@@ -441,7 +571,7 @@ def summarize_dates(dates):
     return min(dates), max(dates), len(dates)
 
 
-def process_street(street, api, fetch, gsv_url, gsv_url_endpoint, mapillary_url):
+def process_street(street, api, fetch, gsv_url, gsv_url_endpoint, mapillary_url, infra3d_auth=None):
     """
     Checks one street for imagery and returns its outcome (pure of any file/checkpoint I/O, so it is pool-safe).
 
@@ -451,11 +581,12 @@ def process_street(street, api, fetch, gsv_url, gsv_url_endpoint, mapillary_url)
 
     Args:
         street:           A street row (Series) with ``street_edge_id``, ``region_id``, endpoint x/y, and ``geom``.
-        api:              ``'GSV'`` or ``'Mapillary'``.
-        fetch:            A ``fetch(url) -> json`` (typically from ``make_fetch``, with retry).
+        api:              ``'GSV'``, ``'Mapillary'``, or ``'Infra3d'``.
+        fetch:            A ``fetch(url, **kwargs) -> json`` (typically from ``make_fetch``, with retry).
         gsv_url:          GSV metadata base URL with the along-street radius baked in (GSV only).
         gsv_url_endpoint: GSV metadata base URL with the endpoint radius baked in (GSV only).
         mapillary_url:    Mapillary images base URL (Mapillary only).
+        infra3d_auth:     An ``Infra3dAuth`` supplying the tenant and bearer headers (Infra3d only).
 
     Returns:
         A ``StreetResult`` with outcome ``NO_IMAGERY`` / ``HAS_IMAGERY`` / ``FAILED`` and, for settled streets, the
@@ -463,7 +594,7 @@ def process_street(street, api, fetch, gsv_url, gsv_url_endpoint, mapillary_url)
         early-exit point sampling means no extra API calls are made.
     """
     try:
-        first, second = _check_endpoints(street, api, fetch, gsv_url_endpoint, mapillary_url)
+        first, second = _check_endpoints(street, api, fetch, gsv_url_endpoint, mapillary_url, infra3d_auth)
         coords = list(street['geom'].coords)
         dates = [d for d in (first.capture_date, second.capture_date) if d]
 
@@ -474,7 +605,8 @@ def process_street(street, api, fetch, gsv_url, gsv_url_endpoint, mapillary_url)
             # `no branch`: street_has_no_imagery settles and stops consuming before this loop is exhausted (for any
             # real street, which has >= 2 points), so the generator is abandoned rather than run to completion.
             for coord in coords:  # pragma: no branch  -- Shapely coords are (x=lng, y=lat).
-                info = _point_pano_info(api, coord[1], coord[0], fetch, gsv_url, mapillary_url, POINT_RADIUS_KM)
+                info = _point_pano_info(api, coord[1], coord[0], fetch, gsv_url, mapillary_url, POINT_RADIUS_KM,
+                                        infra3d_auth)
                 if info.capture_date:
                     dates.append(info.capture_date)
                 yield info.has_imagery
@@ -558,23 +690,37 @@ def main(argv=None):
     """
     parser = argparse.ArgumentParser(
         description='Loops through streets, outputting any without imagery to a separate file.')
-    parser.add_argument('--gsv', action='store_true', help='Include if checking for GSV imagery')
-    parser.add_argument('--mapillary', action='store_true', help='Include if checking for Mapillary imagery')
+    provider = parser.add_mutually_exclusive_group(required=True)
+    provider.add_argument('--gsv', action='store_true', help='Check for GSV imagery (needs GOOGLE_MAPS_API_KEY)')
+    provider.add_argument('--mapillary', action='store_true',
+                          help='Check for Mapillary imagery (needs MAPILLARY_ACCESS_TOKEN)')
+    provider.add_argument('--infra3d', action='store_true',
+                          help='Check for Infra3d imagery (needs INFRA3D_CLIENT_ID + INFRA3D_CLIENT_SECRET)')
     parser.add_argument('--workers', type=int, default=DEFAULT_WORKERS,
                         help='Number of streets to check concurrently (default: %(default)s).')
     parser.add_argument('--max-qps', type=float, default=DEFAULT_MAX_QPS,
                         help='Global cap on requests per second across all workers (default: %(default)s).')
     args = parser.parse_args(argv)
-    if not (args.gsv or args.mapillary):
-        parser.error('At least one of --gsv or --mapillary is required')
-    if args.gsv and args.mapillary:
-        parser.error('Please specify only one of --gsv or --mapillary')
-    api = 'GSV' if args.gsv else 'Mapillary'
+    api = 'GSV' if args.gsv else 'Mapillary' if args.mapillary else 'Infra3d'
 
-    api_key = os.getenv('GOOGLE_MAPS_API_KEY') if api == 'GSV' else os.getenv('MAPILLARY_ACCESS_TOKEN')
-    if api_key is None:
-        print("Couldn't read API key environment variable.")
-        return 1
+    api_key = None
+    infra3d_auth = None
+    if api == 'Infra3d':
+        client_id, client_secret = os.getenv('INFRA3D_CLIENT_ID'), os.getenv('INFRA3D_CLIENT_SECRET')
+        if client_id is None or client_secret is None:
+            print("Couldn't read INFRA3D_CLIENT_ID / INFRA3D_CLIENT_SECRET environment variables.")
+            return 1
+        infra3d_auth = Infra3dAuth(client_id, client_secret)
+        try:
+            infra3d_auth.headers()  # Mint the first token up front so bad credentials fail fast, not per street.
+        except (requests.exceptions.RequestException, ImageryApiError) as err:
+            print("Couldn't get an Infra3d access token: %s" % err)
+            return 1
+    else:
+        api_key = os.getenv('GOOGLE_MAPS_API_KEY') if api == 'GSV' else os.getenv('MAPILLARY_ACCESS_TOKEN')
+        if api_key is None:
+            print("Couldn't read API key environment variable.")
+            return 1
 
     # Resolve every data file against the repo root so the script works regardless of the working directory.
     input_path = os.path.join(REPO_ROOT, INPUT_FILE)
@@ -588,17 +734,16 @@ def main(argv=None):
     street_data = street_data.sort_values(by=['region_id', 'street_edge_id'])
     street_data['geom'] = list(map(lambda g: redistribute_vertices(wkb.loads(g, hex=True)), list(street_data['geom'])))
 
-    # GSV bakes the search radius into the URL (25 m at endpoints, 15 m along the street); Mapillary uses a bbox.
-    gsv_base_url = 'https://maps.googleapis.com/maps/api/streetview/metadata?source=outdoor&key=' + api_key
+    gsv_base_url = 'https://maps.googleapis.com/maps/api/streetview/metadata?source=outdoor&key=%s' % api_key
     gsv_url = gsv_base_url + '&radius=15'
     gsv_url_endpoint = gsv_base_url + '&radius=25'
-    mapillary_url = 'https://graph.mapillary.com/images?is_pano=true&access_token=' + api_key
+    mapillary_url = 'https://graph.mapillary.com/images?is_pano=true&access_token=%s' % api_key
     # One shared rate limiter caps total request rate across all worker threads.
     fetch = make_fetch(rate_limiter=RateLimiter(args.max_qps))
     checkpoint_lock = threading.Lock()
 
     def check_and_record(street):
-        result = process_street(street, api, fetch, gsv_url, gsv_url_endpoint, mapillary_url)
+        result = process_street(street, api, fetch, gsv_url, gsv_url_endpoint, mapillary_url, infra3d_auth)
         with checkpoint_lock:  # process_street does no file I/O; only the checkpoint append needs serializing.
             append_checkpoint(result, checkpoint_path)
         return result
