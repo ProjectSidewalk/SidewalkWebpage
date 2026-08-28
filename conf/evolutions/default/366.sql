@@ -467,18 +467,30 @@ SET lat = new_lat,
 FROM new_positions
 WHERE label_point.label_point_id = new_positions.label_point_id;
 
--- Reattach every moved label to the street nearest its corrected position, following 352: both authorship paths pick
--- street_edge_id at submission time as the open street nearest the estimated position, so the attachment follows the
--- position. Labels whose stored position was NULL are skipped -- those took the audit task's own street at insert
--- rather than a computed one, so their attachment never derived from the estimator. The 50-candidate planar
--- prefilter is exact for the reason 352 gives: <-> ranks by degrees while the app ranks by true distance, and no
--- deployed city is far enough from the equator for that to reorder the nearest street.
+-- Reattach labels to the street nearest their position, following 352: both authorship paths pick street_edge_id at
+-- submission time as the open street nearest the estimated position, so the attachment follows the position. Labels
+-- whose stored position was NULL are skipped -- those took the audit task's own street at insert rather than a
+-- computed one, so their attachment never derived from the estimator. The 50-candidate planar prefilter is exact for
+-- the reason 352 gives: <-> ranks by degrees while the app ranks by true distance, and no deployed city is far
+-- enough from the equator for that to reorder the nearest street.
+--
+-- This deliberately sweeps the whole backup rather than only the rows part 3 moved. A 'depth' label keeps its
+-- position here, but if the nearest street is not the one it is filed under then the attachment was already wrong,
+-- and pointing it at the street we actually believe it sits on is an improvement regardless of what moved it.
+--
+-- The distance test is what makes that safe. Candidates are restricted to open streets, so without it a label whose
+-- street was closed AFTER it was audited would be dragged onto a more distant open street purely because its own
+-- street stopped being a candidate -- losing a correct attachment to gain a worse one. Requiring the new street to
+-- be strictly closer than the current one leaves those alone, whether or not the label moved.
 UPDATE label
 SET street_edge_id = nearest_street.street_edge_id
 FROM old_label_point_coords
 INNER JOIN label_point ON old_label_point_coords.label_point_id = label_point.label_point_id
+-- The backup's street_edge_id is the label's current one: nothing above this statement writes that column.
+INNER JOIN street_edge AS current_street
+  ON old_label_point_coords.street_edge_id = current_street.street_edge_id
 CROSS JOIN LATERAL (
-  SELECT candidate_streets.street_edge_id
+  SELECT candidate_streets.street_edge_id, candidate_streets.geom
   FROM (
     SELECT street_edge.street_edge_id, street_edge.geom
     FROM street_edge
@@ -492,13 +504,9 @@ CROSS JOIN LATERAL (
 WHERE label.label_id = old_label_point_coords.label_id
   AND old_label_point_coords.lat IS NOT NULL
   AND old_label_point_coords.lng IS NOT NULL
-  -- Only labels part 3 actually moved. In 352 the backup set and the recompute set were the same rows, so sweeping
-  -- the backup and sweeping the moved labels were one statement. Here the backup also holds the 'depth' labels part
-  -- 3 leaves alone, and re-pointing those would reassign a street for a label whose position never changed. On
-  -- seattle that was 281 labels, 174 of them landing in a different region -- a silent shift in per-region counts,
-  -- and a separate decision from fixing pixel coordinates.
-  AND label_point.lat IS DISTINCT FROM old_label_point_coords.lat
-  AND label.street_edge_id <> nearest_street.street_edge_id;
+  AND label.street_edge_id <> nearest_street.street_edge_id
+  AND ST_DistanceSphere(nearest_street.geom, label_point.geom)
+    < ST_DistanceSphere(current_street.geom, label_point.geom);
 
 DROP INDEX pano_data_capture_date_lat_lng_idx;
 
