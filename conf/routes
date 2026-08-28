@@ -70,7 +70,7 @@ GET     /admin/management                               controllers.AdminDashboa
 GET     /admin/across-cities                            controllers.AdminDashboardController.acrossCities
 GET     /admin/health                                   controllers.AdminDashboardController.health
 GET     /admin/user/:username                           controllers.UserDashboardController.adminDashboard(username: String)
-GET     /admin/user/:username/admin                     controllers.UserDashboardController.adminUser(username: String)
+GET     /admin/user/:username/manage                    controllers.UserDashboardController.manageUser(username: String)
 GET     /admin/label/:labelId                           controllers.ShareController.adminLabel(labelId: Int)
 
 GET     /adminapi/dbHealth                              controllers.AdminDashboardController.getDbHealth

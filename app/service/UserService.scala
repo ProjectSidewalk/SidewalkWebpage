@@ -214,7 +214,7 @@ private[service] case class CrossCityFanOut(
 )
 
 /**
- * The admin-only additions to a user's dashboard (`/admin/user/:username/admin`).
+ * The admin-only additions to a user's dashboard (`/admin/user/:username/manage`).
  *
  * Hours are not here: the page reports the user's cross-city total, which it fetches after rendering (#4986).
  */
@@ -488,7 +488,7 @@ trait UserService {
    * reported before it learned to look further.
    *
    * @param userId The volunteer: the signed-in viewer on `/timeCheck`, or the user being administered on
-   *               `/admin/user/:username/admin`, which must report the same figure (#4986).
+   *               `/admin/user/:username/manage`, which must report the same figure (#4986).
    * @param lang   Language for city display names.
    * @return       Cities with any logged time, most hours first; empty when nothing has been logged anywhere.
    */

@@ -53,7 +53,7 @@ async function load(response) {
     : Promise.resolve({ ok: true, json: () => Promise.resolve(response) })));
   new AdminUser({
     userId: 'u1', username: 'mapper', saveUrl: '/save', flagsUrl: '/flags',
-    hoursUrl: '/adminapi/users/u1/crossCityHours', pageUrlFor: (u) => `/admin/user/${u}/admin`,
+    hoursUrl: '/adminapi/users/u1/crossCityHours', pageUrlFor: (u) => `/admin/user/${u}/manage`,
   });
   await Promise.resolve();
   await Promise.resolve();
