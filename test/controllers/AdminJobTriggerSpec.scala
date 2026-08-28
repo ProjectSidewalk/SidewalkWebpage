@@ -1,9 +1,16 @@
 package controllers
 
-import actor.{CheckImageExpiryActor, FunnelStatActor, OsmWayRefreshActor, RecalculateStreetPriorityActor, UserStatActor}
+import actor.{
+  CheckImageExpiryActor,
+  ClusteringActor,
+  FunnelStatActor,
+  OsmWayRefreshActor,
+  RecalculateStreetPriorityActor,
+  UserStatActor
+}
 import models.street.OsmWayTable
 import models.utils.MyPostgresProfile.api._
-import models.utils.{BackgroundJobRun, BackgroundJobRunTable, JobRunStatus, JobRunTrigger, MyPostgresProfile}
+import models.utils.{BackgroundJobRun, BackgroundJobRunTable, JobRunStatus, JobRunTrigger}
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.stream.Materializer
 import org.scalatestplus.play.PlaySpec
@@ -18,16 +25,14 @@ import play.api.mvc.Cookie
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import service.PanoDataService.ImageryCheckResult
-import service.{AdminService, OsmWayService, PanoDataService, StreetService}
-import slick.dbio.DBIO
-import util.{AnonSession, RoleSession, StubService}
+import service.{AdminService, ClusterService, ClusteringResults, OsmWayService, PanoDataService, StreetService}
+import util.{AnonSession, RoleSession, RolledBackDb, StubService}
 
 import javax.inject.{Inject, Singleton}
-import scala.concurrent.duration._
-import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext, Future}
 
 /**
- * Functional tests for the five admin routes that hand-trigger a nightly job (#4946).
+ * Functional tests for the six admin routes that hand-trigger a nightly job (#4946).
  *
  * Each wraps its service call in `jobRunService.record(..., Manual)` so a hand-run leaves the same counts and error
  * trail the scheduler's run would (#4932). Nothing else asserts that a given controller method still *calls* it: drop
@@ -35,20 +40,26 @@ import scala.concurrent.{Await, ExecutionContext, Future}
  * in `background_job_run` — which is indistinguishable from a job nobody triggered. So these run the routes for real
  * and read the row back.
  *
- * The work itself is stubbed. Left alone these five recompute a whole city's user stats, funnels and street
- * priorities, and call out to Overpass and the imagery providers; the assertion here is about the bookkeeping around
- * the call, not the call's arithmetic, which each service's own spec covers.
+ * The work itself is stubbed. Left alone these recompute a whole city's user stats, funnels and street priorities,
+ * shell out to the Python clusterer, and call out to Overpass and the imagery providers; the assertion here is about
+ * the bookkeeping around the call, not the call's arithmetic, which each service's own spec covers.
  *
  * Requires a Postgres+PostGIS database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI); the
  * scheduling actors are disabled so a nightly run can't be mistaken for a triggered one.
  */
-class AdminJobTriggerSpec extends PlaySpec with RoleSession with GuiceOneAppPerSuite with AnonSession {
+class AdminJobTriggerSpec
+    extends PlaySpec
+    with RoleSession
+    with GuiceOneAppPerSuite
+    with AnonSession
+    with RolledBackDb {
 
   // Distinctive values, so an assertion can tell the stub's answer from anything the connected city really holds.
-  private val UsersUpdated  = 4611
-  private val FunnelRows    = 4612
-  private val WaysRefreshed = 4613
-  private val ImageryResult = ImageryCheckResult(stillThere = 7, gone = 2, errors = 1, reconciled = Some(3))
+  private val UsersUpdated   = 4611
+  private val FunnelRows     = 4612
+  private val WaysRefreshed  = 4613
+  private val ImageryResult  = ImageryCheckResult(stillThere = 7, gone = 2, errors = 1, reconciled = Some(3))
+  private val ClusterResults = ClusteringResults(labelCount = 4614, clusterCount = 4615)
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder()
@@ -76,6 +87,9 @@ class AdminJobTriggerSpec extends PlaySpec with RoleSession with GuiceOneAppPerS
             )
           )
         ),
+        bind[ClusterService].toInstance(
+          StubService.answering[ClusterService](Map("runClustering" -> Future.successful(ClusterResults)))
+        ),
         // A class rather than a trait, so it takes a subclass binding instead of a proxy.
         bind[OsmWayService].to[StubOsmWayService]
       )
@@ -83,12 +97,7 @@ class AdminJobTriggerSpec extends PlaySpec with RoleSession with GuiceOneAppPerS
 
   implicit lazy val mat: Materializer = app.materializer
 
-  private val dbConfig    = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
   private val jobRunTable = app.injector.instanceOf[BackgroundJobRunTable]
-
-  private def run[T](action: DBIO[T]): T = Await.result(dbConfig.db.run(action), 60.seconds)
-
-  private val XHR = "X-Requested-With" -> "XMLHttpRequest"
 
   private lazy val adminCookies: Seq[Cookie]   = sessionAs("Administrator")
   private lazy val visitorCookies: Seq[Cookie] = sessionAs("Registered")
@@ -97,10 +106,10 @@ class AdminJobTriggerSpec extends PlaySpec with RoleSession with GuiceOneAppPerS
   private var triggeredRunIds: List[Int] = Nil
 
   private def asAdmin(path: String) =
-    route(app, FakeRequest(GET, path).withHeaders(XHR).withCookies(adminCookies: _*)).get
+    route(app, FakeRequest(GET, path).withCookies(adminCookies: _*)).get
 
   private def asVisitor(path: String) =
-    route(app, FakeRequest(GET, path).withHeaders(XHR).withCookies(visitorCookies: _*)).get
+    route(app, FakeRequest(GET, path).withCookies(visitorCookies: _*)).get
 
   private def highestRunId: Int =
     run(jobRunTable.backgroundJobRuns.map(_.backgroundJobRunId).max.result).getOrElse(0)
@@ -124,17 +133,22 @@ class AdminJobTriggerSpec extends PlaySpec with RoleSession with GuiceOneAppPerS
     val code     = status(response) // Blocks until the action settles, which is after the run row is closed.
     val body     = contentAsString(response)
 
+    // Claimed for cleanup before anything can fail on them; a row this request wrote is ours to delete either way.
     val runs = runsSince(idFloor, jobName)
-    runs.size mustBe 1
     triggeredRunIds ++= runs.map(_.backgroundJobRunId)
+    runs.size mustBe 1
     (code, body, runs.head)
   }
 
   override def afterAll(): Unit = {
-    if (triggeredRunIds.nonEmpty) {
-      val _ = run(jobRunTable.backgroundJobRuns.filter(_.backgroundJobRunId.inSet(triggeredRunIds)).delete)
-    }
-    super.afterAll()
+    // RoleSession's demotion rides super.afterAll, and leaving an account Administrator in the shared login schema is
+    // worse than leaving rows behind -- so a failed delete must not cost us it.
+    try {
+      StubOsmWayService.answer = () => Future.successful(0)
+      if (triggeredRunIds.nonEmpty) {
+        val _ = run(jobRunTable.backgroundJobRuns.filter(_.backgroundJobRunId.inSet(triggeredRunIds)).delete)
+      }
+    } finally super.afterAll()
   }
 
   "GET /adminapi/updateUserStats" should {
@@ -209,17 +223,32 @@ class AdminJobTriggerSpec extends PlaySpec with RoleSession with GuiceOneAppPerS
     }
   }
 
+  "GET /runClustering" should {
+    "record the clustering as a manual run of the nightly clustering job" in {
+      // The row is closed before the future the last chunk carries resolves, so consuming the body (which `trigger`
+      // does) is what makes it safe to read back -- unlike the others, this response is chunked and returns first.
+      val (code, body, jobRun) = trigger("/runClustering", ClusteringActor.Name)
+      code mustBe OK
+      body must include(ClusterResults.clusterCount.toString)
+      jobRun.triggeredBy mustBe JobRunTrigger.Manual
+      jobRun.status mustBe JobRunStatus.Succeeded
+      (jobRun.details.value \ "labels_clustered").as[Int] mustBe ClusterResults.labelCount
+      (jobRun.details.value \ "clusters_created").as[Int] mustBe ClusterResults.clusterCount
+    }
+  }
+
   "the job triggers" should {
     "refuse a signed-in non-admin, naming the role they want, without starting the job" in {
       // The anonymous checks in RouteAuthPostureSpec cannot tell a guard that is on from one that admits anyone
-      // signed in, and these five each kick off hours of work on a production city.
+      // signed in, and each of these kicks off hours of work on a production city.
       val idFloor = highestRunId
       Seq(
         "/adminapi/updateUserStats"           -> UserStatActor.Name,
         "/adminapi/updateFunnelStats"         -> FunnelStatActor.Name,
         "/adminapi/recalculateStreetPriority" -> RecalculateStreetPriorityActor.Name,
         "/adminapi/checkImagery"              -> CheckImageExpiryActor.Name,
-        "/adminapi/refreshOsmWayData"         -> OsmWayRefreshActor.Name
+        "/adminapi/refreshOsmWayData"         -> OsmWayRefreshActor.Name,
+        "/runClustering"                      -> ClusteringActor.Name
       ).foreach { case (path, jobName) =>
         val response = asVisitor(path)
         status(response) mustBe FORBIDDEN
@@ -250,6 +279,6 @@ class StubOsmWayService @Inject() (
 
 object StubOsmWayService {
 
-  /** Set per test, since this endpoint's failure path is part of its contract. Guice owns the instance, not the spec. */
-  var answer: () => Future[Int] = () => Future.successful(0)
+  /** Set per test: this endpoint's failure path is part of its contract, and Guice owns the instance. */
+  @volatile var answer: () => Future[Int] = () => Future.successful(0)
 }

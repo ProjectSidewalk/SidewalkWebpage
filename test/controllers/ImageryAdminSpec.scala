@@ -91,11 +91,14 @@ class ImageryAdminSpec extends PlaySpec with RoleSession with GuiceOneAppPerSuit
   }
 
   override def afterAll(): Unit = {
-    // By id rather than by job name: the name would also take whatever runs the connected city really recorded.
-    if (seededRunIds.nonEmpty) {
-      val _ = run(jobRunTable.backgroundJobRuns.filter(_.backgroundJobRunId.inSet(seededRunIds)).delete)
-    }
-    super.afterAll()
+    // By id rather than by job name: the name would also take whatever runs the connected city really recorded. In a
+    // `try` because RoleSession's demotion rides super.afterAll, and leaving an account Administrator in the shared
+    // login schema is worse than leaving rows behind.
+    try {
+      if (seededRunIds.nonEmpty) {
+        val _ = run(jobRunTable.backgroundJobRuns.filter(_.backgroundJobRunId.inSet(seededRunIds)).delete)
+      }
+    } finally super.afterAll()
   }
 
   /** Performs an admin GET. */

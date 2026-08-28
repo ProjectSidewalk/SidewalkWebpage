@@ -23,6 +23,13 @@ object StubService {
     val iface = ct.runtimeClass
     require(iface.isInterface, s"${iface.getName} is not an interface, so it cannot be proxied.")
 
+    // A key naming no method answers nothing, and the method it was meant for throws instead -- a failure that reads
+    // as a gap in the interface rather than as the typo it is.
+    val declared = iface.getMethods.map(_.getName).toSet
+    answers.keys.filterNot(declared).foreach { name =>
+      throw new IllegalArgumentException(s"${iface.getSimpleName} declares no method named $name.")
+    }
+
     val handler = new InvocationHandler {
       override def invoke(proxy: AnyRef, method: Method, args: Array[AnyRef]): AnyRef = {
         answers.get(method.getName) match {
