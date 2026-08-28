@@ -45,11 +45,14 @@ ANALYZE pano_data;
 -- The HAVING is the fail-safe. Where neighbours disagree nothing is written, and those labels stay in pre-179
 -- coordinates -- which is where they are today. A label moved to a guessed position would be a new wrong answer.
 -- Longitude is scaled by latitude so the box stays ~50 m wide in every city, not just near seattle's parallel.
+-- Each dimension column is independently nullable and PanoDataTable's upsert COALESCEs them one at a time, so a row
+-- can hold a measured width beside a NULL height. COALESCE keeps whatever was actually observed and fills only what
+-- is missing, rather than letting a neighbour-derived value overwrite a measured one.
 UPDATE pano_data
-SET width = resolved.width,
-    height = resolved.height,
-    tile_width = resolved.tile_width,
-    tile_height = resolved.tile_height
+SET width = COALESCE(pano_data.width, resolved.width),
+    height = COALESCE(pano_data.height, resolved.height),
+    tile_width = COALESCE(pano_data.tile_width, resolved.tile_width),
+    tile_height = COALESCE(pano_data.tile_height, resolved.tile_height)
 FROM (
   SELECT
     blocked.pano_id,
@@ -79,7 +82,10 @@ FROM (
     AND sibling.lng BETWEEN blocked.lng - 0.00045 / cos(radians(blocked.lat))
                         AND blocked.lng + 0.00045 / cos(radians(blocked.lat))
   GROUP BY blocked.pano_id
-  HAVING count(DISTINCT (sibling.width, sibling.height)) = 1
+  -- Tile size is in the key, not just pano size: the min() above would otherwise pick a tile size the neighbours
+  -- never agreed on. They happen to be 1:1 with pano size in seattle today, so this changes nothing there -- it makes
+  -- the guarantee structural rather than a property of the current data.
+  HAVING count(DISTINCT (sibling.width, sibling.height, sibling.tile_width, sibling.tile_height)) = 1
 ) AS resolved
 WHERE pano_data.pano_id = resolved.pano_id;
 
@@ -107,7 +113,7 @@ WHERE pano_data.pano_id = resolved.pano_id;
 
 -- 99 panos at 16384x8192, 512x512 tiles.
 UPDATE pano_data SET width = 16384, height = 8192, tile_width = 512, tile_height = 512
-WHERE pano_id IN (
+WHERE width IS NULL AND pano_id IN (
   '-9tho677BCYAm1ZOrTWQGA', '-C9eB923-ex0-Rrj1mJJCQ', '2DWrRWYCyhGRU470aX0i4A', '384IHTAaQqcKaKHUh0xlhw',
   '3PvWCNqg5vmYjfi4F253ZQ', '4f2sUwpHtF5CS1TVbUY-0w', '5ccs8E1igusoB8OGnufLrA', '5dfiyA8BNWE6cbtem8V1Iw',
   '6gcemkJ5Ztrhvmdd7Umw-A', '7U2Vo_di_ZFNH8CtDDuTzw', '7qR8Rr4eA3NaSO-MhUDm-Q', '7svbDM4Dlm-Cm6q-k5e5-w',
@@ -137,7 +143,7 @@ WHERE pano_id IN (
 
 -- 33 panos at 13312x6656, 512x512 tiles.
 UPDATE pano_data SET width = 13312, height = 6656, tile_width = 512, tile_height = 512
-WHERE pano_id IN (
+WHERE width IS NULL AND pano_id IN (
   '-duUF9NKOGLFuB-3T0svVQ', '17ZMeA_vTXd_zT_wFxRXvw', '1VKwz1E3zYk7ysNzUjnGAA', '3Zj5KugUkbfkExh7CbSqTw',
   '43-6Xcv22HB9Jcksq_6WLg', '6D6F3caQiD4FPPgp7zlnxQ', '9TLkTMtcIEAjCmFutPeVxw', 'AwlgWXzEYYBmv87n46-qZg',
   'EAqwqE0688xPgGVN1xao7g', 'FBQtZtrak9Sjs6rkCkq7IQ', 'FacSX1K1HF6bK0GLDiROcw', 'LnvnP1cug9Mnv7Wu6lD5Iw',
@@ -151,7 +157,7 @@ WHERE pano_id IN (
 
 -- 7 panos at 3328x1664, 512x512 tiles.
 UPDATE pano_data SET width = 3328, height = 1664, tile_width = 512, tile_height = 512
-WHERE pano_id IN (
+WHERE width IS NULL AND pano_id IN (
   'Mzt9ZUb1DBB4Dj-Tc4F5Aw', 'STJSYoKSyjDGRgfxazNIQQ', 'VA4tCTug4FbU5fTbVia1aw', 'ZOceijIWNGzyPsPKrX_qfA',
   'joO4Yz-f5k_BctXuuqYp3Q', 'kpmHwfcFbgLwqewO8_cM7A', 'rAb7u1oYycG-xe5Odk2FJg'
 );
@@ -160,7 +166,7 @@ WHERE pano_id IN (
 
 -- 112 panos at 11000x5500.
 UPDATE pano_data SET width = 11000, height = 5500
-WHERE pano_id IN (
+WHERE width IS NULL AND pano_id IN (
   'CAoSLEFGMVFpcE00ek1NM2RlWTRES0d6UFE1OVU2V2tyb0x2Y05OdE9HMlQwMVVX',
   'CAoSLEFGMVFpcE02T3BJTXR5VjltMmliRzluSk1URWlMUTVjN3ZLT2pnZlJIODI4',
   'CAoSLEFGMVFpcE0tTjJYUkJrOHlYTU1Kck9hM1FFREFud3J2YWs1aFZfbFQ1Vmp0',
@@ -277,7 +283,7 @@ WHERE pano_id IN (
 
 -- 12 panos at 3840x1920.
 UPDATE pano_data SET width = 3840, height = 1920
-WHERE pano_id IN (
+WHERE width IS NULL AND pano_id IN (
   'CAoSLEFGMVFpcE1xT2xTWW5MY3E4SVViUFRUNG40NHBxQWVMTjhhRy05WFhwb1h1',
   'CAoSLEFGMVFpcE4wWl9EX2FjQlprVEhrb1o5VWdDSTBseVhvVmZuX3NEMnNKdEc1',
   'CAoSLEFGMVFpcE52UkpaWG9iSU5NeHllWjduTHNXVjNOQ3J2WFMzMXpoSEhYdUgz',
@@ -294,7 +300,7 @@ WHERE pano_id IN (
 
 -- 4 panos at 5760x2880.
 UPDATE pano_data SET width = 5760, height = 2880
-WHERE pano_id IN (
+WHERE width IS NULL AND pano_id IN (
   'CAoSLEFGMVFpcE5VQUNxdVFNXzlmallhWjFkcURDY3paVks3alp0SHNqdjk4NHk4',
   'CAoSLEFGMVFpcE8wLUM5RkRScjFiQTIzLUwxX0pIV2JldUNZTXRlc2Y5UTdNVEw4',
   'CAoSLEFGMVFpcFBscUljZGtqMl9acUxRa3N2d2thQkRpcEhNWFNmc2lNOVlfRTdE',
@@ -303,32 +309,32 @@ WHERE pano_id IN (
 
 -- 2 panos at 5376x2688.
 UPDATE pano_data SET width = 5376, height = 2688
-WHERE pano_id IN (
+WHERE width IS NULL AND pano_id IN (
   'CAoSLEFGMVFpcE1RdUNtbzA5aWhVQjhhX2tqMEdzck5qWEZZZUI4MTNJUmdrMVBG',
   'CAoSLEFGMVFpcE1ndUdGRDZLZW5Jd0NWelRQMVdLOWxhVldFRjJDN1k1YjJDTE5O'
 );
 
 -- 1 pano at 8704x4352.
 UPDATE pano_data SET width = 8704, height = 4352
-WHERE pano_id IN (
+WHERE width IS NULL AND pano_id IN (
   'CAoSLEFGMVFpcE5HLUtzZkh6VUd2SW9TOWZaWUdSV3h4dndNa1NBcEZZWGZiVmRG'
 );
 
 -- 1 pano at 7744x3872.
 UPDATE pano_data SET width = 7744, height = 3872
-WHERE pano_id IN (
+WHERE width IS NULL AND pano_id IN (
   'CAoSLEFGMVFpcE9CWUpHX0lFXzFpdjQ5dW1Ud0RBb0dWaGxTX1UzeXZ4bnJzcnF5'
 );
 
 -- 1 pano at 7200x3600.
 UPDATE pano_data SET width = 7200, height = 3600
-WHERE pano_id IN (
+WHERE width IS NULL AND pano_id IN (
   'CAoSLEFGMVFpcE9YTWVqS1JSajBXbWRIVnM4blY1QU9OTTNuNlZzSWtoN0J1VlE3'
 );
 
 -- 1 pano at 7168x3584.
 UPDATE pano_data SET width = 7168, height = 3584
-WHERE pano_id IN (
+WHERE width IS NULL AND pano_id IN (
   'CAoSLEFGMVFpcFBEZFQ3bEhvQ3JzNzlTQXQ5eUpoa0hwNjdaRWdnVEYyQ1hkTDJX'
 );
 
@@ -364,8 +370,11 @@ INNER JOIN pano_data ON label.pano_id = pano_data.pano_id
 WHERE NOT label.tutorial
   AND label_point.pano_x = old_label_metadata.old_pano_x
   AND label_point.pano_y = old_label_metadata.old_pano_y
-  AND pano_data.width IS NOT NULL
-  AND pano_data.height IS NOT NULL
+  -- The positive guards are not decoration: the pano_x expression ends in `% pano_data.width`, and pano_data has no
+  -- CHECK keeping these above zero, so a single stored zero would raise division by zero and abort the whole
+  -- evolution -- a failed deploy rather than a skipped row. 352 guarded the same way.
+  AND pano_data.width IS NOT NULL AND pano_data.width > 0
+  AND pano_data.height IS NOT NULL AND pano_data.height > 0
   AND pano_data.camera_heading IS NOT NULL AND pano_data.camera_heading <> 'NaN'
   AND pano_data.camera_pitch IS NOT NULL AND pano_data.camera_pitch <> 'NaN';
 
@@ -403,7 +412,13 @@ WITH constants AS (
   INNER JOIN label_point ON old_label_point_coords.label_point_id = label_point.label_point_id
   INNER JOIN label ON label_point.label_id = label.label_id
   INNER JOIN pano_data ON label.pano_id = pano_data.pano_id
-  WHERE old_label_point_coords.computation_method = 'approximation2'
+  -- 'approximation3' belongs here as much as 'approximation2' does. A label 179 skipped, whose pano later gained
+  -- dimensions from a live fetch, was picked up by 352 as 'approximation2' and recomputed -- from the still-legacy
+  -- pixel coordinates -- then stamped 'approximation3'. Its stored position is meaningless (a negative pano_y drives
+  -- depression_deg to about -110 degrees, off the end of the estimator's domain), and it is precisely a row this
+  -- evolution must redo. Every row here is in the backup, so every one held pre-179 coordinates by construction:
+  -- there is no correctly-computed 'approximation3' to clobber.
+  WHERE old_label_point_coords.computation_method IN ('approximation2', 'approximation3')
     AND pano_data.lat IS NOT NULL
     AND pano_data.lng IS NOT NULL
     AND pano_data.camera_heading IS NOT NULL
@@ -477,6 +492,12 @@ CROSS JOIN LATERAL (
 WHERE label.label_id = old_label_point_coords.label_id
   AND old_label_point_coords.lat IS NOT NULL
   AND old_label_point_coords.lng IS NOT NULL
+  -- Only labels part 3 actually moved. In 352 the backup set and the recompute set were the same rows, so sweeping
+  -- the backup and sweeping the moved labels were one statement. Here the backup also holds the 'depth' labels part
+  -- 3 leaves alone, and re-pointing those would reassign a street for a label whose position never changed. On
+  -- seattle that was 281 labels, 174 of them landing in a different region -- a silent shift in per-region counts,
+  -- and a separate decision from fixing pixel coordinates.
+  AND label_point.lat IS DISTINCT FROM old_label_point_coords.lat
   AND label.street_edge_id <> nearest_street.street_edge_id;
 
 DROP INDEX pano_data_capture_date_lat_lng_idx;
