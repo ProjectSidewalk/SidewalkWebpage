@@ -17,7 +17,7 @@ import service.ImageryFreshnessReportService
 import slick.dbio.DBIO
 import util.{AnonSession, RoleSession}
 
-import java.time.OffsetDateTime
+import java.time.{LocalDate, OffsetDateTime}
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
@@ -149,8 +149,8 @@ class ImageryAdminSpec extends PlaySpec with RoleSession with GuiceOneAppPerSuit
       status(resp) mustBe OK
       contentType(resp) mustBe Some("application/json")
       val json = contentAsJson(resp)
-      json.as[JsObject].keys mustBe Set("days", "since", "jobs", "run_days", "poll_batch_size", "overdue_after_hours",
-        "poll_job", "sync_job")
+      json.as[JsObject].keys mustBe Set("days", "since", "jobs", "run_days", "poll_batch_size", "no_imagery_batch_size",
+        "overdue_after_hours", "poll_job", "sync_job")
     }
 
     "chart the pipeline's three jobs, in the order they run" in {
@@ -174,6 +174,33 @@ class ImageryAdminSpec extends PlaySpec with RoleSession with GuiceOneAppPerSuit
       // `last_error` rides the same row, but only on a failure -- the one state the panel prints in place of counts.
       seedPollRun(JobRunStatus.Failed, None)
       pollJobRow().keys must contain("last_error")
+    }
+
+    "give every night's row a count for both poll rotations, zero-filling one that recorded neither" in {
+      // Unlike the job rows above, a run_days row always carries every count: the fold zero-fills rather than
+      // omitting, so a night recorded before the #4929 rotation existed still answers 0 instead of going absent.
+      seedPollRun(
+        JobRunStatus.Succeeded,
+        Some(
+          Json.obj(
+            "streets_polled"              -> 12,
+            "no_imagery_streets_selected" -> 25,
+            "no_imagery_streets_polled"   -> 24,
+            "reopen_candidates_found"     -> 1
+          )
+        )
+      )
+      Await.result(cacheApi.removeAll(), 60.seconds)
+
+      val today   = LocalDate.now.toString
+      val runDays = (contentAsJson(asAdmin("/adminapi/imageryFreshness")) \ "run_days").as[Seq[JsObject]]
+      val row     = runDays.find(day => (day \ "day").as[String] == today).value
+
+      Seq("day", "streets_selected", "streets_polled", "streets_skipped", "streets_refreshed", "audits_flagged",
+        "audits_unflagged", "poll_failures", "sync_failures", "no_imagery_selected", "no_imagery_polled",
+        "reopen_candidates").foreach(key => row.keys must contain(key))
+      (row \ "no_imagery_selected").as[Int] must be >= 25
+      (row \ "reopen_candidates").as[Int] must be >= 1
     }
 
     "answer the default window when none is asked for" in {

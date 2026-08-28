@@ -12,12 +12,13 @@ import javax.inject.{Inject, Singleton}
 /**
  * What changed a street's status, backing the `street_edge_status_change_source` Postgres enum type.
  *
- * Each value names one of the hand-run scripts in `db/scripts` that write `street_edge.status`. Since those runs are
- * otherwise untraced, this is what tells a later reader whether a batch of streets went dark because the imagery
- * checker found nothing there or because someone closed the whole neighborhood.
+ * Most values name one of the hand-run scripts in `db/scripts` that write `street_edge.status`; `admin_reopen` is
+ * the one in-app writer, the Reopen button on /admin/street-status (#4929). Since script runs are otherwise
+ * untraced, this is what tells a later reader whether a batch of streets went dark because the imagery checker found
+ * nothing there or because someone closed the whole neighborhood.
  *
  * NOTE: if changing these values, update the `street_edge_status_change_source` Postgres enum type as well (see
- * 358.sql) and the script that emits it.
+ * 358.sql and 368.sql) and the script or service that emits it.
  */
 object StreetEdgeStatusChangeSource extends Enumeration {
   type StreetEdgeStatusChangeSource = Value
@@ -25,6 +26,7 @@ object StreetEdgeStatusChangeSource extends Enumeration {
   val RevealNeighborhoods: Value       = Value("reveal_neighborhoods")
   val HideNeighborhoods: Value         = Value("hide_neighborhoods")
   val RemoveStreets: Value             = Value("remove_streets")
+  val AdminReopen: Value               = Value("admin_reopen")
 
   /** Parses a string into a status change source, returning None if it doesn't match a known value. */
   def fromString(name: String): Option[Value] = values.find(_.toString == name)
@@ -73,8 +75,9 @@ trait StreetEdgeStatusChangeTableRepository {}
 /**
  * Read-only DAO over the street status-change log (#4928).
  *
- * `street_edge.status` has no application write path: the rows here are written by the `db/scripts` shell scripts in
- * the same transaction as the status update itself, so the app only ever reads them back for the admin trend charts.
+ * Writers insert their own rows in the same transaction as the status update itself: the `db/scripts` shell scripts
+ * for every transition except `no_imagery -> open`, which the admin Reopen action performs in-app
+ * (StreetLifecycleService.reopenStreet, #4929). This DAO only reads the log back for the admin trend charts.
  */
 @Singleton
 class StreetEdgeStatusChangeTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)
