@@ -8,7 +8,7 @@
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @*
-* The Manage user page beside a user's dashboard (`/admin/user/:username/admin`, #4964): the account settings an admin may
+* The Manage user page beside a user's dashboard (`/admin/user/:username/manage`, #4964): the account settings an admin may
 * change for them (saved together through /adminapi/saveUserSettings by AdminUser.js), the stats their dashboard
 * doesn't show, marking their work as low quality/incomplete by date, and their Explore comments. Admin-only, so
 * English-only by convention.
@@ -221,7 +221,7 @@
         saveUrl: '@routes.AdminController.saveUserSettings',
         flagsUrl: '@routes.AdminController.setTaskFlagsBeforeDate()',
         hoursUrl: '@routes.UserProfileController.adminGetCrossCityHours(user.userId)',
-        pageUrlFor: (username) => `/admin/user/${encodeURIComponent(username)}/admin`
+        pageUrlFor: (username) => `/admin/user/${encodeURIComponent(username)}/manage`
       });
     });
   </script>

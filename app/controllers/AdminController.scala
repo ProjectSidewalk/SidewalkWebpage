@@ -187,7 +187,7 @@ class AdminController @Inject() (
 
   /**
    * Saves the admin-editable account settings for another user in one request, from the Manage user tab of their
-   * dashboard (`/admin/user/:username/admin`): username, role, team, manual quality flag, service-hours opt-in, the two
+   * dashboard (`/admin/user/:username/manage`): username, role, team, manual quality flag, service-hours opt-in, the two
    * privacy flags, and (on infra3D deployments) infra3D access.
    *
    * Every setting is required (a missing one is a 400, never a reset to a default). Every check that can refuse the

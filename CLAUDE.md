@@ -104,7 +104,7 @@ Each major UI is a self-contained app under `public/js/`, bundled separately by 
 - **`validate/`** — the Validate tool (users confirm/reject others' labels).
 - **`gallery/`** — browsable gallery of labels with filtering; internal namespace global is still `sg`.
 - **`admin-dashboard/`** — the admin dashboard (#4272), served file-by-file rather than bundled: one `<PageName>Page.js` per route, loaded by that page's Twirl template, with shared helpers in `AdminShell.js`.
-- **`user-dashboard/`** — the redesigned user dashboard, settings, leaderboard, and public profiles (#4323), plus the admin's view of a user's dashboard (`/admin/user/:username` and its `/admin` page, #4964). Served file-by-file like `admin-dashboard/` — no Grunt bundle.
+- **`user-dashboard/`** — the redesigned user dashboard, settings, leaderboard, and public profiles (#4323), plus the admin's view of a user's dashboard (`/admin/user/:username` and its `/manage` page, #4964). Served file-by-file like `admin-dashboard/` — no Grunt bundle.
 - **`api-docs/`** — the `/api-docs` reference pages: one `<endpoint>Preview.js` per page renders a live sample of that endpoint, with `apiDocs.js` (shell behavior), `apiTableWrapper.js`, and `apiDocsTheme.js` (`ApiDocsTheme.color(token, alpha?)` — the one way preview JS reads a CSS color token for Chart.js/Mapbox, so chart colors follow the design system). Served file-by-file — no Grunt bundle.
 - **`ps-map/`** — shared map component used across pages.
 - **`help/`** — help/faq page (rarely used).
