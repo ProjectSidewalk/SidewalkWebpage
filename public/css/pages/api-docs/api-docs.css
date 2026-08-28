@@ -28,6 +28,33 @@ pre > code.language-csv {
   white-space: pre;
 }
 
+/* ---- Prism syntax highlighting (#5006) ---- */
+
+/* No Prism theme: a stock one restyles the whole block off the design system, so page-shell.css keeps the box and
+   only these token colors are set. Ratios below are against that box's --color-neutral-100. Our ramps darken toward
+   grey, so of the steps saturated enough to read as a color only orange-600 clears 4.5:1 here — --color-link-200
+   fails at 3.95:1 before its resemblance to the links around it is even the problem. */
+
+/* Weighted rather than hued: the last AA-passing hue is spent on the values below. */
+.token.property {
+  color: var(--color-asphalt-500); /* 12.2:1 */
+  font-weight: 600;
+}
+
+/* pine-700 is the more saturated green, but lands at 4.4:1 on this background. */
+.token.string { color: var(--color-pine-800); } /* 7.8:1 */
+.token.number { color: var(--color-orange-600); } /* 4.9:1 */
+
+/* prism-json aliases `null` to keyword. */
+.token.boolean,
+.token.keyword,
+.token.null { color: var(--color-asphalt-300); } /* 5.5:1 */
+
+/* The lightest neutral that clears AA — neutral-600 would recede further but lands at 2.8:1. */
+.token.comment,
+.token.operator,
+.token.punctuation { color: var(--color-neutral-700); } /* 4.7:1 */
+
 /* ---- Loading Animation ---- */
 
 .loading-container {
