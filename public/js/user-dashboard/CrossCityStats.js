@@ -268,7 +268,7 @@ class CrossCityStats {
       projection: 'mercator',
     });
     map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right');
-    const popup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false, className: 'coverage-popup' });
+    const popup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false, className: 'ud-cities-popup' });
 
     map.on('load', () => {
       map.addSource('ud-cities', { type: 'geojson', data: { type: 'FeatureCollection', features } });

@@ -206,7 +206,9 @@ module.exports = function (grunt) {
           'public/js/ps-map/*.js',
           'public/js/route-builder/src/*.js',
           'public/js/shared-label/*.js',
-          'public/css/components/*.css'
+          'public/css/components/label-anchored-panel.css',
+          'public/css/components/label-hover-card.css',
+          'public/css/components/mission-start-tutorial.css'
         ],
         tasks: [
           'concat',

@@ -16,7 +16,6 @@
   --coverage-c1: #bdd7e7; /* ~33%  */
   --coverage-c2: #6baed6; /* ~66%  */
   --coverage-c3: #2171b5; /* ~100% */
-  --coverage-selected: var(--color-label-surface-problem); /* High-contrast highlight against the Blues scale */
 
   /* Shared MiniLineChart series colors (Data Quality agreement trend, API usage trend). Blue/orange =
        colorblind-safe pair; apiDocs muted grey since it's our own traffic. */

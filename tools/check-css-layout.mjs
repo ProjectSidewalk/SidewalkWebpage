@@ -3,11 +3,13 @@
 // a shared component (components/), or a page (pages/ — a single file, or a subdir for a page family such as the
 // API docs or Explore). The tree only stays that way if:
 //
-//   1. A page's stylesheet is linked only by that page's own views — or, for the Grunt-bundled tools, only by that
-//      tool's own bundle in Gruntfile.js. Anything two pages need belongs in css/components/.
+//   1. A page's stylesheet is linked only by the views registered to it below — or, for the Grunt-bundled tools, only
+//      by that tool's own bundle in Gruntfile.js. Anything two pages need belongs in css/components/. Every entry
+//      under pages/ must be registered, so a new page file is covered by construction.
 //   2. A page's class prefix (ud-, svl-, ...) is defined only in that page's stylesheet(s), so a component can't
 //      quietly depend on a page stylesheet it may not be loaded with.
 //   3. Nothing sits at the root but main.css, fonts.css, components/, and pages/.
+//   4. Every stylesheet a bundle concatenates is also in `grunt watch`'s file list, or a save stops rebuilding it.
 //
 // It also checks that every stylesheet a view links exists: assets.path() resolves at render time, so a moved file is
 // a 500 on the page, not a build failure. Exits non-zero with the offending files listed, so it can gate CI.
@@ -20,21 +22,34 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const CSS_DIR = join(ROOT, 'public', 'css');
 const ROOT_ENTRIES = new Set(['main.css', 'fonts.css', 'components', 'pages']);
 
-// The pages with an owner: which views may link them (`[]` = a Grunt-bundled tool, never linked from a view; its
-// bundle is `public/js/<name>/`) and which class prefixes are theirs. A page absent here (about.css, auth.css, ...)
-// may be linked from anywhere. `api-` is deliberately not a prefix: the API docs' own classes carry it, but so does
-// the admin dashboard's API-analytics page.
+// Every entry under pages/ (a file, or a subdir for a page family): which views may link it (a directory prefix or a
+// single view; `[]` = a Grunt-bundled tool, never linked from a view, whose bundle is `public/js/<name>/`) and which
+// class prefixes are its own. homepage.css and auth.css are registered to the site-wide layout, which links them on
+// every page. `api-` is deliberately not a prefix: the API docs' own classes carry it, but so does the admin
+// dashboard's API-analytics page.
 const PAGES = {
-  'pages/api-docs': { views: ['app/views/apiDocs/'], prefixes: [] },
+  'pages/about.css': { views: ['app/views/about.scala.html'] },
   'pages/admin-dashboard.css': {
     views: ['app/views/admin/dashboard/'],
     prefixes: ['ac-', 'ov-', 'dq-', 'hva-', 'mgmt-', 'contrib-', 'coverage-', 'activity-', 'deploy-strip',
       'stories-queue-', 'street-status-', 'imagery-', 'health-kpi'],
   },
-  'pages/user-dashboard.css': { views: ['app/views/userDashboard/'], prefixes: ['ud-'] },
+  'pages/api-docs': { views: ['app/views/apiDocs/'] },
+  'pages/auth.css': { views: ['app/views/common/main.scala.html'] },
+  'pages/community-list.css': { views: ['app/views/apps/routeList.scala.html', 'app/views/apps/storyList.scala.html'] },
+  'pages/errors.css': { views: ['app/views/errors/'] },
   'pages/explore': { views: [], prefixes: ['svl-'] },
-  'pages/validate': { views: [], prefixes: ['svv-'] },
   'pages/gallery': { views: [], prefixes: ['gallery-'] },
+  'pages/help.css': { views: ['app/views/help.scala.html', 'app/views/labelingGuide/'] },
+  'pages/homepage.css': { views: ['app/views/common/main.scala.html'] },
+  'pages/labeling-guide.css': { views: ['app/views/labelingGuide/'] },
+  'pages/maintenance.css': { views: ['app/views/maintenance.scala.html'] },
+  'pages/mobile-landing.css': { views: ['app/views/mobileLanding.scala.html'] },
+  'pages/mobile-validate.css': { views: ['app/views/apps/mobileValidate.scala.html'] },
+  'pages/route-builder.css': { views: ['app/views/apps/routeBuilder.scala.html'] },
+  'pages/shared-label.css': { views: ['app/views/apps/sharedLabel.scala.html'] },
+  'pages/user-dashboard.css': { views: ['app/views/userDashboard/'], prefixes: ['ud-'] },
+  'pages/validate': { views: [], prefixes: ['svv-'] },
 };
 
 const problems = [];
@@ -48,14 +63,27 @@ function walk(dir, keep) {
   });
 }
 
-/** @returns {string|null} The PAGES key that owns a `pages/...` path (a file itself, or the subdir it sits in). */
+/** @returns {string|null} The PAGES key that owns a `pages/...` path (the file itself, or the subdir it sits in). */
 function ownerOf(cssRelPath) {
   return Object.keys(PAGES).find((key) => cssRelPath === key || cssRelPath.startsWith(`${key}/`)) ?? null;
 }
 
+// --- 0. The registry and pages/ agree ----------------------------------------------------------------------------
+
+for (const key of Object.keys(PAGES)) {
+  if (!existsSync(join(CSS_DIR, key))) problems.push(`tools/check-css-layout.mjs: registers ${key}, which does not exist`);
+}
+if (existsSync(join(CSS_DIR, 'pages'))) {
+  for (const entry of readdirSync(join(CSS_DIR, 'pages'))) {
+    if (!(`pages/${entry}` in PAGES)) {
+      problems.push(`public/css/pages/${entry}: not registered in tools/check-css-layout.mjs — add it to PAGES with the views that may link it`);
+    }
+  }
+}
+
 // --- 1. Links from views, and that every linked file exists -------------------------------------------------------
 
-const LINK = /assets\.path\("css\/([^"]+\.css)"\)/g;
+const LINK = /(?:assets\.path|routes\.Assets\.versioned)\("css\/([^"]+\.css)"\)/g;
 for (const view of walk(join(ROOT, 'app', 'views'), (name) => name.endsWith('.scala.html'))) {
   const text = readFileSync(join(ROOT, view), 'utf8');
   for (const [, href] of text.matchAll(LINK)) {
@@ -74,11 +102,16 @@ for (const view of walk(join(ROOT, 'app', 'views'), (name) => name.endsWith('.sc
   }
 }
 
-// --- 1b. Grunt bundles: a tool's stylesheets only feed that tool's own bundle -------------------------------------
+// --- 1b. Grunt: a tool's stylesheets only feed its own bundle, and the watcher covers every bundled file ----------
 
 const grunt = readFileSync(join(ROOT, 'Gruntfile.js'), 'utf8');
+const watched = new Set([...(grunt.match(/files:\s*\[([^\]]*)\]/g) ?? []).join(',').matchAll(/'([^']+)'/g)]
+  .map(([, path]) => path));
 for (const [, srcList, dest] of grunt.matchAll(/src:\s*\[([^\]]*)\]\s*,\s*dest:\s*'([^']+)'/g)) {
   for (const [, src] of srcList.matchAll(/'public\/css\/([^']+)'/g)) {
+    if (!watched.has(`public/css/${src}`)) {
+      problems.push(`Gruntfile.js: ${dest} bundles public/css/${src}, but the watch task's files list does not include it`);
+    }
     const owner = ownerOf(src);
     if (owner === null) continue;
     const tool = owner.slice('pages/'.length);
@@ -98,8 +131,7 @@ for (const entry of readdirSync(CSS_DIR)) {
 
 const stylesheets = walk(CSS_DIR, (name) => name.endsWith('.css'));
 for (const file of stylesheets) {
-  const cssRel = relative(join('public', 'css'), file);
-  const owner = ownerOf(cssRel);
+  const owner = ownerOf(relative(join('public', 'css'), file));
 
   // Selector preludes only: strip comments, then take the text before each `{` that isn't an at-rule.
   const css = readFileSync(join(ROOT, file), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
@@ -108,7 +140,7 @@ for (const file of stylesheets) {
     if (prelude.trim().startsWith('@')) continue;
     for (const [, cls] of prelude.matchAll(/\.(-?[_a-zA-Z][\w-]*)/g)) classes.add(cls);
   }
-  for (const [page, { prefixes }] of Object.entries(PAGES)) {
+  for (const [page, { prefixes = [] }] of Object.entries(PAGES)) {
     if (page === owner) continue;
     const leaked = [...classes].filter((cls) => prefixes.some((p) => cls.startsWith(p)));
     if (leaked.length) {

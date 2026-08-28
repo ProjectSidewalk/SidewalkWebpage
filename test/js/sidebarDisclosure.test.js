@@ -108,7 +108,7 @@ describe('wireSidebarDisclosure', () => {
 });
 
 describe('initSidebarDisclosure', () => {
-    /** Builds an `.api-*` shell sidebar with a nav the button has to discover on its own. */
+    /** Builds a `.page-*` shell sidebar with a nav the button has to discover on its own. */
     function buildShell({active = true} = {}) {
         document.body.innerHTML = `
           <aside class="page-sidebar">
