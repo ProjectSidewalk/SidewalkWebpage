@@ -12,19 +12,19 @@
     document.documentElement.setAttribute('data-api-endpoint', 'labelEdits');
   </script>
 
-  <div class="api-section" id="label-edits-intro-section">
-    <h1 class="api-heading" id="label-edits-api">Label Edits API <a href="#label-edits-api" class="permalink">#</a></h1>
+  <div class="page-section" id="label-edits-intro-section">
+    <h1 class="page-heading" id="label-edits-api">Label Edits API <a href="#label-edits-api" class="permalink">#</a></h1>
     <p>The Label Edits API lists every change made to a label's severity or tags after the label was placed. An edit records who made it, the severity and tags before and after, the interface it was made in, and when. Edits come from two places: a validator who agrees a label is correct can fix its severity or tags as part of their vote (those edits carry the vote's <code>label_validation_id</code>), and the person who placed a label, or an admin, can edit it directly from the label's detail card on the Label Map or Gallery (those have no validation).</p>
     <p>Use it to study how crowd editing refines label metadata, to audit changes to a specific label, or to reconstruct what a label looked like at a point in time. The <a href="@routes.ApiDocsController.rawLabels">Raw Labels API</a> always reflects the current, post-edit state.</p>
   </div>
 
-  <div class="api-section" id="endpoint-section">
-    <h2 class="api-heading" id="endpoint">Endpoint <a href="#endpoint" class="permalink">#</a></h2>
+  <div class="page-section" id="endpoint-section">
+    <h2 class="page-heading" id="endpoint">Endpoint <a href="#endpoint" class="permalink">#</a></h2>
     <p>Retrieve label edits with optional filtering.</p>
     <p><code>GET /v3/api/labelEdits</code></p>
 
     <div class="api-subsection" id="endpoint-example-section">
-      <h3 class="api-heading" id="endpoint-examples">Examples<a href="#endpoint-examples" class="permalink">#</a></h3>
+      <h3 class="page-heading" id="endpoint-examples">Examples<a href="#endpoint-examples" class="permalink">#</a></h3>
       <p><code><a href="/v3/api/labelEdits">/v3/api/labelEdits</a></code> Get all label edits in JSON (default)</p>
       <p><code><a href="/v3/api/labelEdits?filetype=csv">/v3/api/labelEdits?filetype=csv</a></code> Get all label edits in CSV format</p>
       <p><code><a href="/v3/api/labelEdits?labelId=12345">/v3/api/labelEdits?labelId=12345</a></code> Get the edit history of one label</p>
@@ -33,8 +33,8 @@
     </div>
   </div>
 
-  <div class="api-section" id="quick-download-section">
-    <h2 class="api-heading" id="quick-download">Quick Download <a href="#quick-download" class="permalink">#</a></h2>
+  <div class="page-section" id="quick-download-section">
+    <h2 class="page-heading" id="quick-download">Quick Download <a href="#quick-download" class="permalink">#</a></h2>
     <p>Download label edit data directly in your preferred format:</p>
 
     <div class="download-buttons">
@@ -49,12 +49,12 @@
     </div>
   </div>
 
-  <div class="api-section" id="query-parameters-section">
-    <h2 class="api-heading" id="query-parameters">Query Parameters<a href="#query-parameters" class="permalink">#</a></h2>
+  <div class="page-section" id="query-parameters-section">
+    <h2 class="page-heading" id="query-parameters">Query Parameters<a href="#query-parameters" class="permalink">#</a></h2>
     <p>This endpoint accepts the following optional query parameters.</p>
 
-    <div class="api-table-wrapper">
-      <table class="api-table">
+    <div class="ps-table-wrapper">
+      <table class="ps-table">
         <thead>
           <tr>
             <th>Parameter</th>
@@ -108,10 +108,10 @@
     </div>
   </div>
 
-  <div class="api-section" id="responses-section">
-    <h2 class="api-heading" id="responses">Responses<a href="#responses" class="permalink">#</a></h2>
+  <div class="page-section" id="responses-section">
+    <h2 class="page-heading" id="responses">Responses<a href="#responses" class="permalink">#</a></h2>
 
-    <h3 class="api-heading" id="success-response-200-ok">Success Response (200 OK)<a href="#success-response-200-ok" class="permalink">#</a></h3>
+    <h3 class="page-heading" id="success-response-200-ok">Success Response (200 OK)<a href="#success-response-200-ok" class="permalink">#</a></h3>
     <p>On success, the API returns an HTTP <code>200 OK</code> status code and the requested data in the specified format.</p>
 
     <h4 id="response-json">JSON Format (Default) <a href="#response-json" class="permalink">#</a></h4>
@@ -148,8 +148,8 @@
 ]</code></pre>
 
     <h5 id="json-fields">JSON Field Descriptions <a href="#json-fields" class="permalink">#</a></h5>
-    <div class="api-table-wrapper">
-      <table class="api-table">
+    <div class="ps-table-wrapper">
+      <table class="ps-table">
         <thead>
           <tr>
             <th>Field</th>
@@ -180,7 +180,7 @@
 501,67890,2,NoCurbRamp,user_abc123,2,3,"[narrow]","[narrow,steep]",ExpertValidate,2025-08-04T21:52:05.158Z,12345
 502,67891,1,CurbRamp,user_def456,1,2,"[points into traffic]","[points into traffic]",LabelMap,2025-08-05T14:10:41.002Z,</code></pre>
 
-    <h3 class="api-heading" id="error-responses">Error Responses<a href="#error-responses" class="permalink">#</a></h3>
+    <h3 class="page-heading" id="error-responses">Error Responses<a href="#error-responses" class="permalink">#</a></h3>
     <p>If an error occurs, the API will return an appropriate HTTP status code and a JSON response body containing details about the error.</p>
     <ul>
       <li><strong><code>400 Bad Request</code>:</strong> Invalid parameter values (e.g., a malformed editTimestamp, an unknown source, a spatial filetype).</li>
@@ -191,8 +191,8 @@
     @apiDocs.errorResponseBody()
   </div>
 
-  <div class="api-section" id="data-analysis-tips-section">
-    <h2 class="api-heading" id="data-analysis-tips">Data Analysis Tips <a href="#data-analysis-tips" class="permalink">#</a></h2>
+  <div class="page-section" id="data-analysis-tips-section">
+    <h2 class="page-heading" id="data-analysis-tips">Data Analysis Tips <a href="#data-analysis-tips" class="permalink">#</a></h2>
     <ul>
       <li><strong>Reconstruct a label's history</strong> by ordering its edits by <code>edit_time</code>: each edit's <code>old_*</code> values equal the previous edit's <code>new_*</code> values, starting from the label as it was placed.</li>
       <li><strong>Compare validator edits with direct edits</strong> using <code>withValidation</code> to see whether the two paths change labels differently.</li>

@@ -10,20 +10,20 @@
 *@
 
 @content = {
-  <div class="api-section" id="imagery-intro-section">
-    <h1 class="api-heading" id="imagery">Imagery <a href="#imagery" class="permalink">#</a></h1>
+  <div class="page-section" id="imagery-intro-section">
+    <h1 class="page-heading" id="imagery">Imagery <a href="#imagery" class="permalink">#</a></h1>
     <p>Street-view imagery gets re-driven, and an audit performed on imagery that has since been replaced may describe a curb ramp, obstacle, or crosswalk that no longer exists. Each night a rotating batch of streets is polled for current capture dates, audits older than that imagery are flagged, and street priority is recalculated so Explore sends labelers back down those streets — after unaudited ones. This page shows both halves of that: the ranking labelers are actually routed on, and whether the nightly jobs behind it are still running.</p>
-    <div class="coverage-kpis" id="imagery-kpis">
-      <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-needs-reaudit">—</span><span class="coverage-kpi-label">Streets needing re-audit</span><span class="coverage-kpi-note" id="kpi-needs-reaudit-note"></span></div>
-      <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-unaudited">—</span><span class="coverage-kpi-label">Streets never audited</span><span class="coverage-kpi-note" id="kpi-unaudited-note"></span></div>
-      <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-rotation">—</span><span class="coverage-kpi-label">Audited streets ever polled</span><span class="coverage-kpi-note" id="kpi-rotation-note"></span></div>
-      <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-last-poll">—</span><span class="coverage-kpi-label">Last imagery-age poll</span><span class="coverage-kpi-note" id="kpi-last-poll-note"></span></div>
+    <div class="ps-kpis" id="imagery-kpis">
+      <div class="ps-kpi"><span class="ps-kpi-value" id="kpi-needs-reaudit">—</span><span class="ps-kpi-label">Streets needing re-audit</span><span class="ps-kpi-note" id="kpi-needs-reaudit-note"></span></div>
+      <div class="ps-kpi"><span class="ps-kpi-value" id="kpi-unaudited">—</span><span class="ps-kpi-label">Streets never audited</span><span class="ps-kpi-note" id="kpi-unaudited-note"></span></div>
+      <div class="ps-kpi"><span class="ps-kpi-value" id="kpi-rotation">—</span><span class="ps-kpi-label">Audited streets ever polled</span><span class="ps-kpi-note" id="kpi-rotation-note"></span></div>
+      <div class="ps-kpi"><span class="ps-kpi-value" id="kpi-last-poll">—</span><span class="ps-kpi-label">Last imagery-age poll</span><span class="ps-kpi-note" id="kpi-last-poll-note"></span></div>
     </div>
     <div class="coverage-status" id="imagery-status" role="status" aria-live="polite">Loading street priority…</div>
   </div>
 
-  <div class="api-section" id="imagery-map-section">
-    <h2 class="api-heading" id="reaudit-frontier">Re-audit frontier <a href="#reaudit-frontier" class="permalink">#</a></h2>
+  <div class="page-section" id="imagery-map-section">
+    <h2 class="page-heading" id="reaudit-frontier">Re-audit frontier <a href="#reaudit-frontier" class="permalink">#</a></h2>
     <p>Every street Explore can currently route to, colored by its priority tier. Hover a segment for its priority and the audit counts behind it; click to pin its region here and in the tables below.</p>
     <div id="imagery-priority-map" class="coverage-map"
     role="img" aria-label="Map of street segments colored by re-audit priority tier"></div>
@@ -34,34 +34,34 @@
     <p class="ac-note" id="imagery-priority-note"></p>
   </div>
 
-  <div class="api-section" id="imagery-regions-section">
-    <h2 class="api-heading" id="where-the-work-is">Region ranking <a href="#where-the-work-is" class="permalink">#</a></h2>
+  <div class="page-section" id="imagery-regions-section">
+    <h2 class="page-heading" id="where-the-work-is">Region ranking <a href="#where-the-work-is" class="permalink">#</a></h2>
     <p>Explore picks a region before it picks a street, so the region is the unit that decides where labelers get sent, and this is that ranking. It takes the <strong>five</strong> regions with the highest mean priority and chooses one of them at random, then a street within it — again at random among that region's top-priority ties. The four tier columns count streets and add up to <em>Streets</em>. Hover or click a row to brush its streets on the map above.</p>
     <div class="coverage-table-controls">
       <label class="sr-only" for="imagery-region-search">Search regions</label>
-      <input type="search" id="imagery-region-search" class="coverage-table-search" placeholder="Search regions…">
+      <input type="search" id="imagery-region-search" class="ps-input coverage-table-search" placeholder="Search regions…">
     </div>
-    <div class="coverage-table-wrap">
-      <table id="imagery-region-table" class="coverage-table"></table>
+    <div class="ps-table-scroll-box">
+      <table id="imagery-region-table" class="ps-table ps-table--compact ps-table--sticky"></table>
     </div>
     <p class="ac-note" id="imagery-region-note"></p>
   </div>
 
-  <div class="api-section" id="imagery-streets-section">
-    <h2 class="api-heading" id="next-streets">Next streets <a href="#next-streets" class="permalink">#</a></h2>
+  <div class="page-section" id="imagery-streets-section">
+    <h2 class="page-heading" id="next-streets">Next streets <a href="#next-streets" class="permalink">#</a></h2>
     <p id="imagery-street-intro">The highest-priority streets, with the audit counts that produced each value. Pin a region above to narrow this to that region's queue.</p>
-    <div class="coverage-table-wrap">
-      <table id="imagery-street-table" class="coverage-table"></table>
+    <div class="ps-table-scroll-box">
+      <table id="imagery-street-table" class="ps-table ps-table--compact ps-table--sticky"></table>
     </div>
     <p class="ac-note" id="imagery-street-note"></p>
   </div>
 
-  <div class="api-section" id="imagery-pipeline-section">
-    <h2 class="api-heading" id="pipeline-health">Is the pipeline alive? <a href="#pipeline-health" class="permalink">#</a></h2>
+  <div class="page-section" id="imagery-pipeline-section">
+    <h2 class="page-heading" id="pipeline-health">Is the pipeline alive? <a href="#pipeline-health" class="permalink">#</a></h2>
     <p>A re-audit flag can only come from the nightly imagery-age poll, so a poll that stops — an expired API key, a rate limit, an unsupported provider — looks exactly like a city whose imagery never changes. These are the jobs' own recorded runs: if the poll stopped firing, or fired and polled nothing, it shows here rather than only in the server log.</p>
     <div class="trend-controls">
       <label for="imagery-range">Window</label>
-      <select id="imagery-range" class="trend-range">
+      <select id="imagery-range" class="ps-select">
         <option value="30">Last 30 days</option>
         <option value="90">Last 90 days</option>
         <option value="365">Last year</option>
@@ -80,8 +80,8 @@
     <div class="mini-host" id="imagery-flag-chart"></div>
   </div>
 
-  <div class="api-section" id="imagery-rotation-section">
-    <h2 class="api-heading" id="rotation-and-freshness">Rotation and freshness <a href="#rotation-and-freshness" class="permalink">#</a></h2>
+  <div class="page-section" id="imagery-rotation-section">
+    <h2 class="page-heading" id="rotation-and-freshness">Rotation and freshness <a href="#rotation-and-freshness" class="permalink">#</a></h2>
     <p>The poll works through a fixed number of streets a night, audited streets first, so it is a rotation rather than a census: how long it takes to come back around bounds how stale a re-audit flag can be. A street with no capture date polled yet is unmeasured, not up to date — it is counted separately below for exactly that reason.</p>
     <div id="imagery-rotation"></div>
 

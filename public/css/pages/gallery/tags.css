@@ -1,0 +1,47 @@
+.gallery-tag {
+  display: inline-block;
+  margin: 2px;
+  padding: 0 5px;
+  border: 1px solid var(--color-neutral-black);
+  border-radius: 10px;
+  text-align: left;
+  background-color: var(--color-neutral-white);
+  color: var(--color-neutral-black);
+  width: fit-content;
+  white-space: nowrap;
+  max-width: 98%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.thumbnail-tag {
+  cursor: default;
+  font-weight: bold;
+  padding: 1px 5px;
+  color: var(--color-asphalt-500);
+}
+
+.not-added {
+  background-color: var(--color-neutral-white);
+
+  /* Card-relative like .card-data: the popover renders inside the card (see TagDisplay). */
+  font-size: max(11px, 2.4cqw);
+  margin: 1px;
+}
+
+.additional-count {
+  margin: 3px -2px;
+  border-style: none;
+  font-weight: bold;
+  cursor: pointer;
+  background-color: inherit;
+}
+
+.additional-tag-popover {
+  width: fit-content;
+  max-width: 250px;
+}
+
+.additional-tag-popover-content {
+  padding: 5px 10px;
+}

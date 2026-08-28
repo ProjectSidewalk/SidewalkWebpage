@@ -232,8 +232,10 @@ class ExpandedView {
         if (cardEl) {
           const navbar = document.getElementById('header');
           const navbarHeight = navbar ? navbar.offsetHeight : 0;
-          const cardMarginTop = parseFloat(window.getComputedStyle(cardEl).marginTop) || 0;
-          const targetScrollY = cardEl.getBoundingClientRect().top + window.scrollY - navbarHeight - cardMarginTop;
+          // The grid's row gap is the card's breathing room, so leaving it above the card stops it landing flush
+          // against the navbar.
+          const gridRowGap = parseFloat(window.getComputedStyle(cardEl.parentElement).rowGap) || 0;
+          const targetScrollY = cardEl.getBoundingClientRect().top + window.scrollY - navbarHeight - gridRowGap;
           window.scrollTo({ top: targetScrollY, behavior: 'smooth' });
         }
       });

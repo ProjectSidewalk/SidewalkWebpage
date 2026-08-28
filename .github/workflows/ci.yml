@@ -115,6 +115,14 @@ jobs:
         if: always()
         run: node tools/check-locale-parity.mjs
 
+      # Blocking: the public/css/ layout (#5030) -- a page's stylesheet is linked only by that page, page class prefixes
+      # stay in the page's own files, and every stylesheet a view links exists (a moved file is a 500 at render time,
+      # not a build failure). `if: always()` so it reports even when an earlier frontend step failed. Run locally with
+      # `make lint-css-layout`.
+      - name: CSS layout (blocking)
+        if: always()
+        run: node tools/check-css-layout.mjs
+
       # Advisory: the jsdom unit suite (test/js/). Coverage is thin and sequenced with the ES5→ES2022 migration
       # (#2487), so it doesn't gate merges yet — but running it on every PR is what keeps a tested helper's contract
       # from being quietly edited out from under it. `continue-on-error` is on the step, not the job, so a failure
@@ -247,6 +255,7 @@ jobs:
           GEMINI_API_KEY: DUMMY_GEMINI_API_KEY
           SCISTARTER_API_KEY: DUMMY_SCISTARTER_API_KEY
           MAPILLARY_ACCESS_TOKEN: DUMMY_MAPILLARY_ACCESS_TOKEN
+          GA_SERVICE_ACCOUNT_KEY: DUMMY_GA_SERVICE_ACCOUNT_KEY
           INFRA3D_CLIENT_ID_ZURICH: DUMMY_INFRA3D_CLIENT_ID
           INFRA3D_CLIENT_ID_WINTERTHUR: DUMMY_INFRA3D_CLIENT_ID
           INFRA3D_CLIENT_SECRET_ZURICH: DUMMY_INFRA3D_CLIENT_SECRET
@@ -325,8 +334,13 @@ jobs:
       #   decide where the offline imagery checker gets pointed next. Seeds its own regions, streets, users and
       #   reports inside a rolled-back transaction, so it pins corroboration-by-distinct-account and the exclusion of
       #   retired streets and deleted regions against any seed, empty or not.
-      # - EnumTypeParitySpec (#4928): the three Scala enums added in 358 against the Postgres types they back. Held
-      #   together by a comment otherwise, and drift surfaces at runtime on whichever page reads the row first.
+      # - EnumTypeParitySpec (#4928, #4947): the Scala enums behind the transition logs against the Postgres types
+      #   they back. Held together by a comment otherwise, and drift surfaces at runtime on whichever page reads the
+      #   row first -- or, for pano_imagery_change_source, on the pano upsert every labeler's viewer performs.
+      # - PanoImageryLogSpec (#4947): the imagery-transition log's two halves -- every real crossing recorded once,
+      #   and nothing recorded for the confirmations that dominate the traffic (a nightly re-check of an already-
+      #   expired pano, a labeler loading a pano that was never expired). Getting the second half wrong is a row per
+      #   pano per night rather than a wrong number, so it needs the edge semantics pinned against a real Postgres.
       # - ScheduledJobsSpec (#4928): roster invariants. A job missing from ScheduledJobs.All is invisible on the
       #   Health panel, and invisible is indistinguishable from healthy -- the failure this feature exists to close.
       # - ImageryPollOutcomeSpec (#4928): separates a poll with nothing to do from one that could not run. Recording
@@ -377,13 +391,28 @@ jobs:
       #   undercount #4526 exists to fix -- fails here instead of just making a volunteer's total smaller. Every case
       #   supplies its own scope except the fallback-against-real-hours one, which needs a seeded leaderboard and is a
       #   no-op here.
+      # - RouteTaskNoImagerySpec (#5008): a street the labeler reported as imagery-less stays incomplete (#4922), so
+      #   the route tasks must carry a separate flag or every reload walks them back onto it. Seeds its own routes,
+      #   users, and reports, and pins the bound to the current user_route.
       # - ApiDocsPreviewWiringSpec (#4992): the api-docs layout must load apiTableWrapper.js ahead of the preview
       #   scripts that call `window.createApiTableWrapper`. Losing that tag breaks five previews in production
       #   silently -- each preview's `.catch` turns the TypeError into an in-page banner, so no console error reaches
       #   e2e-smoke, and the jsdom suites hand-load the helper themselves. Reads only rendered markup, so this job's
       #   empty schema costs it nothing.
+      # - AdminUserViewSpec (#4986): the admin's view of a user's hours must be the same figure that user reads on
+      #   /timeCheck -- an admin checking a service-hours claim against a per-deployment number sees a multi-city
+      #   volunteer's honest total as inflated. The admin side fills its KPI from adminGetCrossCityHours after the page
+      #   renders, so this compares that payload against what the volunteer's page displays, and separately pins that
+      #   the page ships the endpoint URL and element ids its script needs. The client half is test/js/.
+      # - DashboardStatsInvariantSpec (#4496/#4526/#4533/#4604): the contract/shape invariants behind every dashboard,
+      #   leaderboard, and profile stat -- ordering, caps, ranges, the cross-schema SQL's refusal of a non-identifier
+      #   schema name, and the reconciliations that keep the cross-city sections agreeing with the KPIs above them.
+      #   Written to hold against whatever the connected DB holds: the sections needing a real mapper pick one off the
+      #   all-time board and are vacuously green on this job's schema, and the two that synthesize a mapper cancel if
+      #   the schema has no role/label_type/street_edge row to build one from. What runs here regardless is every
+      #   guard that does not need data -- injection refusal, empty-scope handling, the user_stat uniqueness invariant.
       - name: Run gating/auth tests (health dashboard + route auth posture + geodesic distances)
-        run: sbt 'set Test / parallelExecution := false' 'testOnly controllers.HealthDashboardSpec service.HealthServiceSpec controllers.RouteAuthPostureSpec models.street.GeodesicDistanceSpec service.ExploreTutorialRouteSpec controllers.MobileDetectionSpec service.PanoDataServiceSpec service.ActivityBreakdownSpec service.ConfigServiceTrendSpec models.utils.CityScorecardSpec models.utils.ConfigTableVoidedArchiveSpec controllers.api.StatsApiSpec controllers.ExploreSubmissionSpec controllers.ValidateSubmissionSpec controllers.ExploreNoImageryRateLimitSpec models.pano.PanoExpiredAtSpec models.utils.BackgroundJobRunTableSpec service.JobRunServiceSpec service.NightlyJobStatusSpec service.StreetLifecycleServiceSpec models.audit.OutdatedImageryFlagSyncSpec models.audit.OutdatedImageryRoutingSpec models.street.UpToDateCoverageSpec models.street.NoImageryReportsSpec models.utils.EnumTypeParitySpec actor.ScheduledJobsSpec service.ImageryPollOutcomeSpec models.street.StreetPriorityAdminSpec service.ImageryFreshnessReportSpec models.street.StreetImageryPollSpec models.street.StreetImageryTableSpec service.ImageryFreshnessPollSpec service.ImageryFreshnessReportServiceSpec controllers.ImageryAdminSpec models.street.StreetPriorityForAdminSpec modules.PersistentMediaDirCheckSpec models.audit.OutdatedStreetsForUserSpec controllers.UserStreetsFreshnessSpec controllers.DashboardReauditSectionSpec service.HoursApportionmentSpec service.InBatchesSpec views.TimeCheckViewSpec service.CrossCityHoursResilienceSpec controllers.ApiDocsPreviewWiringSpec'
+        run: sbt 'set Test / parallelExecution := false' 'testOnly controllers.HealthDashboardSpec service.HealthServiceSpec controllers.RouteAuthPostureSpec models.street.GeodesicDistanceSpec service.ExploreTutorialRouteSpec controllers.MobileDetectionSpec service.PanoDataServiceSpec service.ActivityBreakdownSpec service.ConfigServiceTrendSpec models.utils.CityScorecardSpec models.utils.ConfigTableVoidedArchiveSpec controllers.api.StatsApiSpec controllers.ExploreSubmissionSpec controllers.ValidateSubmissionSpec controllers.ExploreNoImageryRateLimitSpec models.pano.PanoExpiredAtSpec models.pano.PanoImageryLogSpec models.utils.BackgroundJobRunTableSpec service.JobRunServiceSpec service.NightlyJobStatusSpec service.StreetLifecycleServiceSpec models.audit.OutdatedImageryFlagSyncSpec models.audit.OutdatedImageryRoutingSpec models.street.UpToDateCoverageSpec models.street.NoImageryReportsSpec models.utils.EnumTypeParitySpec actor.ScheduledJobsSpec service.ImageryPollOutcomeSpec models.street.StreetPriorityAdminSpec service.ImageryFreshnessReportSpec models.street.StreetImageryPollSpec models.street.StreetImageryTableSpec service.ImageryFreshnessPollSpec service.ImageryFreshnessReportServiceSpec controllers.ImageryAdminSpec models.street.StreetPriorityForAdminSpec modules.PersistentMediaDirCheckSpec models.audit.OutdatedStreetsForUserSpec controllers.UserStreetsFreshnessSpec controllers.DashboardReauditSectionSpec service.HoursApportionmentSpec service.InBatchesSpec views.TimeCheckViewSpec service.CrossCityHoursResilienceSpec controllers.ApiDocsPreviewWiringSpec models.audit.RouteTaskNoImagerySpec views.AdminUserViewSpec service.DashboardStatsInvariantSpec'
         env:
           DATABASE_URL: jdbc:postgresql://localhost:5432/sidewalk
           DATABASE_USER: sidewalk
@@ -399,6 +428,7 @@ jobs:
           GEMINI_API_KEY: DUMMY_GEMINI_API_KEY
           SCISTARTER_API_KEY: DUMMY_SCISTARTER_API_KEY
           MAPILLARY_ACCESS_TOKEN: DUMMY_MAPILLARY_ACCESS_TOKEN
+          GA_SERVICE_ACCOUNT_KEY: DUMMY_GA_SERVICE_ACCOUNT_KEY
           INFRA3D_CLIENT_ID_ZURICH: DUMMY_INFRA3D_CLIENT_ID
           INFRA3D_CLIENT_ID_WINTERTHUR: DUMMY_INFRA3D_CLIENT_ID
           INFRA3D_CLIENT_SECRET_ZURICH: DUMMY_INFRA3D_CLIENT_SECRET
@@ -433,6 +463,7 @@ jobs:
       GEMINI_API_KEY: DUMMY_GEMINI_API_KEY
       SCISTARTER_API_KEY: DUMMY_SCISTARTER_API_KEY
       MAPILLARY_ACCESS_TOKEN: DUMMY_MAPILLARY_ACCESS_TOKEN
+      GA_SERVICE_ACCOUNT_KEY: DUMMY_GA_SERVICE_ACCOUNT_KEY
       INFRA3D_CLIENT_ID_ZURICH: DUMMY_INFRA3D_CLIENT_ID
       INFRA3D_CLIENT_ID_WINTERTHUR: DUMMY_INFRA3D_CLIENT_ID
       INFRA3D_CLIENT_SECRET_ZURICH: DUMMY_INFRA3D_CLIENT_SECRET

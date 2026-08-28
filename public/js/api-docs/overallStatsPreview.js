@@ -26,8 +26,6 @@
     chartHeight: 300, // Fixed height for each chart.
     overallStatsEndpoint: '/overallStats',
     labelTypesEndpoint: '/labelTypes',
-    chartBackgroundColor: '#f9f9f9',
-    chartBorderColor: '#e0e0e0',
   };
 
   const labelTypeMapping = {}; // Machine name -> localized display name (populated from the labelTypes API).
@@ -65,9 +63,6 @@
       const loadingMessage = document.createElement('div');
       loadingMessage.className = 'loading-message';
       loadingMessage.textContent = 'Loading overall statistics...';
-      loadingMessage.style.textAlign = 'center';
-      loadingMessage.style.padding = '50px 0';
-      loadingMessage.style.color = '#666';
       container.appendChild(loadingMessage);
 
       // Try to get API URL from page if available.
@@ -92,8 +87,7 @@
             });
         })
         .catch((error) => {
-          container.innerHTML = `<div class="error-message" style="color: red; text-align: center; padding: 50px 0;">`
-            + `Failed to load data: ${error.message}</div>`;
+          container.innerHTML = `<div class="message message-error">Failed to load data: ${error.message}</div>`;
           console.error('Overall stats preview error:', error);
           // The failure is already surfaced in the container above, and init() is fire-and-forget at every call
           // site (app/views/apiDocs/*), so re-rejecting here can only ever become an unhandled rejection.
@@ -189,37 +183,25 @@
     createChartSection(container, title, description, chartCreator) {
       // Create section container.
       const section = document.createElement('div');
-      section.className = 'chart-section';
-      section.style.marginBottom = '40px';
-      section.style.padding = '10px';
-      section.style.backgroundColor = config.chartBackgroundColor;
-      section.style.border = `1px solid ${config.chartBorderColor}`;
-      section.style.borderRadius = '4px';
+      section.className = 'preview-section';
       container.appendChild(section);
 
       // Create section header.
       const header = document.createElement('h3');
+      header.className = 'preview-title';
       header.textContent = title;
-      header.style.textAlign = 'center';
-      header.style.margin = '10px 0';
-      header.style.fontSize = '1.2em';
       section.appendChild(header);
 
       // Create description.
       const desc = document.createElement('p');
+      desc.className = 'preview-desc';
       desc.textContent = description;
-      desc.style.textAlign = 'center';
-      desc.style.fontSize = '0.9em';
-      desc.style.color = '#666';
-      desc.style.margin = '0 0 15px 0';
       section.appendChild(desc);
 
       // Create chart container.
       const chartContainer = document.createElement('div');
       chartContainer.className = 'chart-container';
       chartContainer.style.height = `${config.chartHeight}px`;
-      chartContainer.style.width = '100%';
-      chartContainer.style.position = 'relative';
       section.appendChild(chartContainer);
 
       // Create the chart.
@@ -246,7 +228,7 @@
 
       // Prepare data for chart.
       const counts = labelTypes.map((type) => data.labels[type].count);
-      const colors = labelTypes.map((type) => labelTypeColors[type] || '#999');
+      const colors = labelTypes.map((type) => labelTypeColors[type] || ApiDocsTheme.color('--color-neutral-500'));
 
       // Create chart instance.
       new Chart(canvas.getContext('2d'), {
@@ -327,7 +309,7 @@
 
       // Prepare data for chart.
       const severities = labelTypes.map((type) => data.labels[type].severity_mean);
-      const colors = labelTypes.map((type) => labelTypeColors[type] || '#999');
+      const colors = labelTypes.map((type) => labelTypeColors[type] || ApiDocsTheme.color('--color-neutral-500'));
 
       // Create chart instance.
       new Chart(canvas.getContext('2d'), {
@@ -413,7 +395,7 @@
       // Prepare data for chart.
       // Convert to percentage.
       const accuracies = labelTypes.map((type) => data.validations.combined[type].accuracy * 100);
-      const colors = labelTypes.map((type) => labelTypeColors[type] || '#999');
+      const colors = labelTypes.map((type) => labelTypeColors[type] || ApiDocsTheme.color('--color-neutral-500'));
 
       // Create chart instance.
       new Chart(canvas.getContext('2d'), {
@@ -485,27 +467,18 @@
     createInfoSection(container, data) {
       // Create info section container.
       const section = document.createElement('div');
-      section.className = 'info-section';
-      section.style.marginBottom = '20px';
-      section.style.padding = '15px';
-      section.style.backgroundColor = config.chartBackgroundColor;
-      section.style.border = `1px solid ${config.chartBorderColor}`;
-      section.style.borderRadius = '4px';
+      section.className = 'preview-section';
       container.appendChild(section);
 
       // Create info section header.
       const header = document.createElement('h3');
+      header.className = 'preview-title';
       header.textContent = `Summary Statistics in ${config.cityName}`;
-      header.style.textAlign = 'center';
-      header.style.margin = '0 0 15px 0';
-      header.style.fontSize = '1.2em';
       section.appendChild(header);
 
       // Create grid for stats display.
       const grid = document.createElement('div');
-      grid.style.display = 'grid';
-      grid.style.gridTemplateColumns = 'repeat(auto-fit, minmax(250px, 1fr))';
-      grid.style.gap = '15px';
+      grid.className = 'preview-stat-grid';
       section.appendChild(grid);
 
       // Add stat items.
@@ -521,12 +494,8 @@
 
       // Add last activity info.
       const lastActivity = document.createElement('p');
+      lastActivity.className = 'preview-note';
       lastActivity.textContent = `Last activity: ${this.formatDateTime(data.avg_timestamp_last_100_labels)}`;
-      lastActivity.style.textAlign = 'center';
-      lastActivity.style.fontSize = '0.7em';
-      lastActivity.style.fontStyle = 'italic';
-      lastActivity.style.color = '#666';
-      lastActivity.style.marginTop = '15px';
       section.appendChild(lastActivity);
     },
 
@@ -538,22 +507,17 @@
      */
     addStatItem(grid, label, value) {
       const item = document.createElement('div');
-      item.className = 'stat-item';
-      item.style.textAlign = 'center';
+      item.className = 'preview-stat';
       grid.appendChild(item);
 
       const valueElem = document.createElement('div');
-      valueElem.className = 'stat-value';
+      valueElem.className = 'preview-stat-value';
       valueElem.textContent = value;
-      valueElem.style.fontSize = '1.4em';
-      valueElem.style.fontWeight = 'bold';
       item.appendChild(valueElem);
 
       const labelElem = document.createElement('div');
-      labelElem.className = 'stat-label';
+      labelElem.className = 'preview-stat-label';
       labelElem.textContent = label;
-      labelElem.style.fontSize = '0.9em';
-      labelElem.style.color = '#666';
       item.appendChild(labelElem);
     },
 

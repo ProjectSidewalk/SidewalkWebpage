@@ -55,7 +55,8 @@ case class NewTask(
     currentMissionStart: Option[Point], // If a mission was started mid-task, the loc where it started.
     routeStreetId: Option[Int],         // The route_street_id if this task is part of a route.
     routeStreetPosition: Option[Int],   // The street's walking-order position within that route.
-    maxSpeed: Option[String]            // Raw OSM maxspeed tag for the street's way (e.g. "25 mph"), if known.
+    maxSpeed: Option[String],           // Raw OSM maxspeed tag for the street's way (e.g. "25 mph"), if known.
+    reportedNoImagery: Boolean          // Reported imagery-less during this route walk; false outside a route.
 )
 case class AuditedStreetWithTimestamp(
     streetEdgeId: Int,
@@ -170,6 +171,7 @@ class AuditTaskTable @Inject() (
   val userRoutes            = TableQuery[UserRouteTableDef]
   val auditTaskUserRoutes   = TableQuery[AuditTaskUserRouteTableDef]
   val streetImagery         = TableQuery[StreetImageryTableDef]
+  val streetEdgeIssues      = TableQuery[StreetEdgeIssueTableDef]
 
   val activeTasks    = auditTasks.filterNot(_.completed)
   val completedTasks = auditTasks.filter(_.completed)
@@ -534,7 +536,8 @@ class AuditTaskTable @Inject() (
       None: Option[Point], // currentMissionStart is None for a new task.
       routeStreetId,
       routeStreetPosition,
-      sms._2 // maxSpeed
+      sms._2, // maxSpeed
+      false   // reportedNoImagery is route-scoped; see NewTask.
     )
 
     edges.result.head.map(NewTask.tupled)
@@ -562,10 +565,11 @@ class AuditTaskTable @Inject() (
           false,             // completed is always false for a new task.
           None: Option[Int], // auditTaskId is None for a new task.
           missionId.asColumnOf[Option[Int]],
-          None: Option[Point], // currentMissionStart is None for a new task.
-          None: Option[Int],   // routeStreetId is None for the tutorial task.
-          None: Option[Int],   // routeStreetPosition is None for the tutorial task.
-          None: Option[String] // maxSpeed isn't shown during the tutorial.
+          None: Option[Point],  // currentMissionStart is None for a new task.
+          None: Option[Int],    // routeStreetId is None for the tutorial task.
+          None: Option[Int],    // routeStreetPosition is None for the tutorial task.
+          None: Option[String], // maxSpeed isn't shown during the tutorial.
+          false                 // reportedNoImagery is route-scoped; see NewTask.
         )
       }
       .result
@@ -600,7 +604,8 @@ class AuditTaskTable @Inject() (
       None: Option[Point], // currentMissionStart is None for a new task.
       None: Option[Int],   // routeStreetId
       None: Option[Int],   // routeStreetPosition
-      sms._2               // maxSpeed
+      sms._2,              // maxSpeed
+      false                // reportedNoImagery is route-scoped; see NewTask.
     )
 
     // Get the priority of the highest priority task.
@@ -639,7 +644,7 @@ class AuditTaskTable @Inject() (
     } yield (
       se.streetEdgeId, se.geom, at.currentLng, at.currentLat, se.wayType, at.startPointReversed, at.taskStart, sc._2,
       sp.priority, at.completed, at.auditTaskId.?, at.currentMissionId, at.currentMissionStart, routeStreetId,
-      routeStreetPosition, sms._2
+      routeStreetPosition, sms._2, false // reportedNoImagery is route-scoped; see NewTask.
     )
 
     newTask.result.headOption.map(_.map(NewTask.tupled))
@@ -684,10 +689,60 @@ class AuditTaskTable @Inject() (
       ucs.map(_._5).flatten, // fill currentMissionStart if the user has an existing mission for this street.
       None: Option[Int],     // routeStreetId
       None: Option[Int],     // routeStreetPosition
-      sms._2                 // maxSpeed
+      sms._2,                // maxSpeed
+      false                  // reportedNoImagery is route-scoped; see NewTask.
     )
 
     tasks.result.map(_.map(NewTask.tupled(_)))
+  }
+
+  /**
+   * Streets the route's labeler reported as imagery-less during *this* walk of it.
+   *
+   * A report from a previous walk is evidence for the offline checker (#4922) but not this walk's decision, and
+   * honoring it would skip streets whose imagery has since landed. street_edge_issue records only a user and a
+   * timestamp, so the walk is matched per street: the report must come after that street's own task in this walk.
+   * Bounding by the walk's start instead would pull in reports filed while auditing the same street outside it.
+   *
+   * @param userRouteId The walk of the route to bound reports by.
+   * @return A query of street edge ids, for use as an `in` subquery.
+   */
+  def streetsReportedNoImageryDuringRoute(userRouteId: Int): Query[Rep[Int], Int, Seq] = {
+    auditTaskUserRoutes
+      .filter(_.userRouteId === userRouteId.bind)
+      .join(auditTasks)
+      .on(_.auditTaskId === _.auditTaskId)
+      .join(streetEdgeIssues.filter(_.issue === StreetEdgeIssueType.PanoNotAvailable))
+      .on { case ((_, auditTask), issue) =>
+        auditTask.streetEdgeId === issue.streetEdgeId && auditTask.userId === issue.userId &&
+        issue.timestamp >= auditTask.taskStart
+      }
+      .map { case (_, issue) => issue.streetEdgeId }
+  }
+
+  /**
+   * The route task to resume on, if the labeler has one still open: the furthest along the route they got.
+   *
+   * Streets given up on for missing imagery are excluded: they stay incomplete on purpose (#4922), so otherwise a
+   * reload drops the labeler back onto one, losing progress on later streets (#5008).
+   *
+   * @param userRouteId The walk of the route being resumed.
+   * @return (auditTaskId, routeStreetId, position) of the task to resume, or None if no open task remains.
+   */
+  def resumableRouteTask(userRouteId: Int): DBIO[Option[(Int, Int, Int)]] = {
+    auditTaskUserRoutes
+      .join(auditTasks)
+      .on(_.auditTaskId === _.auditTaskId)
+      .join(routeStreets)
+      .on(_._1.routeStreetId === _.routeStreetId)
+      .filter { case ((link, auditTask), _) =>
+        !auditTask.completed && link.userRouteId === userRouteId.bind &&
+        !(auditTask.streetEdgeId in streetsReportedNoImageryDuringRoute(userRouteId))
+      }
+      .sortBy { case (_, routeStreet) => routeStreet.position.desc }
+      .map { case ((link, _), routeStreet) => (link.auditTaskId, routeStreet.routeStreetId, routeStreet.position) }
+      .result
+      .headOption
   }
 
   /**
@@ -730,6 +785,8 @@ class AuditTaskTable @Inject() (
           auditTask.currentMissionStart)
       }
 
+    val reportedStreets = streetsReportedNoImageryDuringRoute(userRouteId)
+
     val tasks = for {
       ((_se1, _rs), ucs) <- edgesInRoute.joinLeft(userCompletedStreets).on(_._2.routeStreetId === _._1)
       _se2               <- streetEdgeTable.streets if _se1.streetEdgeId === _se2.streetEdgeId
@@ -752,7 +809,8 @@ class AuditTaskTable @Inject() (
       ucs.flatMap(_._5), // fill currentMissionStart if the user has an existing mission for this street.
       _rs.routeStreetId.asColumnOf[Option[Int]],
       _rs.position.asColumnOf[Option[Int]],
-      _sms._2 // maxSpeed
+      _sms._2,                             // maxSpeed
+      _se2.streetEdgeId in reportedStreets // reportedNoImagery
     )
 
     tasks.result.map(_.map(NewTask.tupled(_)))

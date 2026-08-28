@@ -14,6 +14,14 @@
  *     have the world view simply appear, with no flight out from the city's own center.
  * @param {string|URL} [params.streetsURL] - URL of the endpoint containing streets.
  * @param {string|URL} [params.labelsURL] - URL of the endpoint containing labels.
+ * @param {boolean} [params.viewportLabelLoading=false] - Load labels scoped to the viewport via
+ *     ViewportLabelLoader, refetching as the map moves, instead of one up-front whole-feed fetch (#5002). The
+ *     returned mapData carries the loader as `labelLoader` so the page can drive UI off its events. Note the
+ *     all-loaded promise then resolves once the (empty) label layers exist — label data streams in afterward,
+ *     and a feed failure reports through the loader's error event rather than rejecting the promise.
+ * @param {object} [params.viewportLabelOptions] - Options forwarded to ViewportLabelLoader.
+ * @param {boolean} [params.mobileZoomedStart=false] - On mobile devices, open the map zoomed in on the city
+ *     center rather than fitted to the whole city.
  * @param {number} [params.zoomCorrection=0] - Amount to increase default zoom to account for different map dimensions.
  * @param {boolean} [params.scrollWheelZoom=true] - Whether to allow zooming with the scroll wheel.
  * @param {boolean} [params.cooperativeGestures=false] - Whether panning on touch takes two fingers.
@@ -26,6 +34,8 @@
  * @param {boolean} [params.interactiveStreets=false] - Whether to include hover/click interactions on the streets.
  * @param {boolean} [params.includeLabelCounts=false] - Whether to include label counts for each type in the legend.
  * @param {string} [params.navigationControlPosition='top-left'] - Position of the zoom/pitch controls on the map.
+ * @param {boolean} [params.sidebarStartsCollapsed=false] - Open the page with the filter drawer closed. Narrow
+ *     viewports collapse it regardless, since there it covers the map.
  * @param {string} [params.uiSource] - Records the UI used when submitting a validation through the popup.
  * @param {object} [params.popupLabelViewer] - Shows a validation popup on labels on the map.
  * @param {function} [params.onMapReady] - Called with the map as soon as it has loaded, BEFORE the
@@ -50,13 +60,32 @@ function createPSMap($, params) {
   }).then((newMap) => {
     map = newMap; // Assign the returned map to the map variable.
 
+    // mapbox-gl resizes itself only on the window's resize event, but a full-window map is sized in dvh, which
+    // changes when a mobile browser's toolbar collapses — the layout viewport doesn't move, so no resize event
+    // fires and the GL canvas is left at a stale size with mis-hit-tested clicks. Observing the container catches
+    // that as well as every case the window event already covered.
+    const mapContainer = document.getElementById(params.mapName);
+    if (mapContainer && window.ResizeObserver) {
+      let resizeFrame = null;
+      new ResizeObserver(() => {
+        cancelAnimationFrame(resizeFrame);
+        resizeFrame = requestAnimationFrame(() => map.resize());
+      }).observe(mapContainer);
+    }
+
     // Show the sidebar early (in its disabled/loading state) so it's visible while data loads.
     // Also shift the map center to account for the sidebar covering part of the map.
     const sidebar = document.getElementById('filter-sidebar');
     if (sidebar) {
       sidebar.classList.remove('ps-invisible');
       sidebar.classList.add('filter-sidebar--loading');
-      map.setPadding({ left: sidebar.offsetWidth, top: 0, right: 0, bottom: 0 });
+      // Built here, not alongside MapSidebarFilter: that waits on the label feed, and the drawer's reopen button
+      // is the only way back to the filters once it starts collapsed. Suppress the slide for the first frame so
+      // a drawer that opens closed doesn't wipe across the map on load.
+      sidebar.classList.add('filter-sidebar--no-transition');
+      // Not retained: it binds to the sidebar's own controls, which keep it alive.
+      new MapSidebarDrawer(map, sidebar, { startCollapsed: Boolean(params.sidebarStartsCollapsed) });
+      requestAnimationFrame(() => sidebar.classList.remove('filter-sidebar--no-transition'));
     }
 
     // Mount map-bound UI (e.g. the LabelMap search box) now, while the map is ready but the data
@@ -106,7 +135,22 @@ function createPSMap($, params) {
 
   // Render the labels on the map if applicable.
   let renderLabels;
-  if (params.labelsURL) {
+  if (params.labelsURL && params.viewportLabelLoading) {
+    renderLabels = Promise.all([mapLoaded, renderStreets]).then(async (data) => {
+      // Layers are created empty and filled by the loader, so filters, visibility, and the popup handlers bind
+      // once and persist across viewport refetches.
+      const mapData = await addLabelsToMap(map, { type: 'FeatureCollection', features: [] }, params);
+      // Streets carry no label filters, so their counts are settled the moment they load; park them on the tracker
+      // for the sidebar to render alongside the counts it facets itself.
+      mapData.streetCounts = data[1];
+      const loader = new ViewportLabelLoader(map, params.labelsURL, params.viewportLabelOptions);
+      loader.onData((featureCollection) => setLabelData(map, mapData, featureCollection));
+      // The page drives its own UI (loading overlay, counts, retry, zoom hint) off the loader's events.
+      mapData.labelLoader = loader;
+      loader.start();
+      return mapData;
+    });
+  } else if (params.labelsURL) {
     const loadLabels = fetchLabelFeed(params.labelsURL);
     renderLabels = Promise.all([mapLoaded, renderStreets, loadLabels]).then(async (data) => {
       const mapData = await addLabelsToMap(map, data[2], params);
@@ -136,27 +180,6 @@ function createPSMap($, params) {
   return allLoaded;
 
   /**
-   * Fetches the label feed, rejecting with an error that says what actually went wrong.
-   *
-   * The feed is streamed from the database under a chunked 200 (#3932), so the status and headers are committed
-   * before the rows are read. A mid-flight failure therefore arrives as a *truncated body under a success status* —
-   * `response.ok` cannot see it, and the JSON parse is what throws. jQuery surfaces that as a bare "parsererror"
-   * indistinguishable from a malformed payload, which is why this reports the two cases separately.
-   *
-   * @param {string|URL} url - The label feed endpoint.
-   * @returns {Promise<object>} The parsed GeoJSON FeatureCollection.
-   */
-  async function fetchLabelFeed(url) {
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`Label feed ${url} failed with HTTP ${response.status}.`);
-    try {
-      return await response.json();
-    } catch (e) {
-      throw new Error(`Label feed ${url} returned an unreadable body (truncated stream?): ${e.message}`);
-    }
-  }
-
-  /**
    * Create the Mapbox map object and attach a custom logging function to it.
    * @param {object} mapParamData - Map configuration parameters from the /cityMapParams endpoint.
    * @returns {Promise} - Promise that resolves with the Mapbox map once it has loaded.
@@ -164,6 +187,14 @@ function createPSMap($, params) {
   function createMap(mapParamData) {
     params.zoomCorrection = params.zoomCorrection ? params.zoomCorrection : 0;
     mapParamData.default_zoom = mapParamData.default_zoom + params.zoomCorrection;
+
+    // Mobile opens zoomed in on the city center rather than fitted to the whole city: with viewport label
+    // loading the initial fetch then covers a neighborhood, not the entire feed (#5002). 14 shows a few blocks
+    // and sits above ViewportLabelLoader's default zoom floor, so labels are visible immediately. Deep links
+    // still win — the URL viewport is applied after construction (applyUrlViewport in the page's onMapReady).
+    if (params.mobileZoomedStart && util.isMobile()) {
+      mapParamData.default_zoom = Math.max(mapParamData.default_zoom, 14);
+    }
 
     mapboxgl.accessToken = params.mapboxApiKey;
     const newMap = new mapboxgl.Map({

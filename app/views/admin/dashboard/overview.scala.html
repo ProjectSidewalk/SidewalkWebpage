@@ -7,20 +7,20 @@
 @* Overview landing page for the redesigned admin dashboard (#4272). Deliberately built last: it introduces no new analysis, it's the at-a-glance snapshot that routes into the six detailed pages. A "needs attention" panel of deep-linked action items, one KPI card per lens (with a week-over-week trend + sparkline), and a live recent-activity strip. Driven by /adminapi/overviewSummary (headline numbers + attention counts), /adminapi/activityByDay (trends + sparklines), and /adminapi/recentActivity (the strip). *@
 
 @content = {
-  <div class="api-section" id="ov-intro-section">
-    <h1 class="api-heading" id="overview">Overview <a href="#overview" class="permalink">#</a></h1>
+  <div class="page-section" id="ov-intro-section">
+    <h1 class="page-heading" id="overview">Overview <a href="#overview" class="permalink">#</a></h1>
     <p>A one-screen read on the health of this Project Sidewalk deployment — what needs attention, how the key numbers are trending, and what just happened. Each card and action links to the page where you can dig in.</p>
     <div class="ov-pulse" id="ov-pulse" role="status" aria-live="polite">Loading snapshot…</div>
   </div>
 
-  <div class="api-section" id="ov-attention-section">
-    <h2 class="api-heading" id="needs-attention">Needs attention <a href="#needs-attention" class="permalink">#</a></h2>
+  <div class="page-section" id="ov-attention-section">
+    <h2 class="page-heading" id="needs-attention">Needs attention <a href="#needs-attention" class="permalink">#</a></h2>
     <p>Things worth a look right now, each linking to where you can act on them.</p>
     <div class="ov-attention" id="ov-attention"></div>
   </div>
 
-  <div class="api-section" id="ov-health-section">
-    <h2 class="api-heading" id="at-a-glance">At a glance <a href="#at-a-glance" class="permalink">#</a></h2>
+  <div class="page-section" id="ov-health-section">
+    <h2 class="page-heading" id="at-a-glance">At a glance <a href="#at-a-glance" class="permalink">#</a></h2>
     <p>Top-line numbers across the six lenses, with the last-7-days trend. Each card links to the page that owns it.</p>
 
     <div class="ov-cards" id="ov-cards">
@@ -77,8 +77,8 @@
     <div class="coverage-status" id="ov-status" role="status" aria-live="polite"></div>
   </div>
 
-  <div class="api-section" id="ov-recent-section">
-    <h2 class="api-heading" id="latest-activity">Latest activity <a href="#latest-activity" class="permalink">#</a></h2>
+  <div class="page-section" id="ov-recent-section">
+    <h2 class="page-heading" id="latest-activity">Latest activity <a href="#latest-activity" class="permalink">#</a></h2>
     <p>The most recent contributions across the deployment.</p>
     <div class="ov-recent" id="ov-recent"></div>
     <a class="ov-recent-more" href="@routes.AdminDashboardController.activity">View all activity →</a>

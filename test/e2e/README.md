@@ -10,23 +10,55 @@ phone viewport and fails on horizontal overflow (#4883). Deep canvas/imagery tes
 ## Running locally
 
 The suite does **not** boot the app — it runs against whatever `BASE_URL` points at (default
-`http://localhost:9000`, i.e. your running dev app).
+`http://localhost:9000`). So bring an app up first (`npm start` inside `make dev`, or `make qa-worktree
+wt=<name>` for a branch under QA); that occupies a terminal, so run the suite from a second one.
 
 ```bash
-# One-time host setup (node_modules normally lives only in the web container):
-npm install && npx playwright install chromium
-
-# Run against the already-running dev app:
-make test-e2e                       # = npx playwright test
-make test-e2e args="-g labelMap"    # single test; add --headed to watch it
-BASE_URL=http://localhost:9001 npx playwright test   # non-default port
+make test-e2e                                  # the whole suite
+make test-e2e args="-g labelMap --no-deps"     # one page (see the --no-deps note below)
+make test-e2e wt=<worktree-name>               # a worktree's specs instead of the main checkout's
 ```
 
-Works against a populated dev DB or an empty CI-style one — specs tolerate both.
+**There is no setup step.** The runner is a container built from [`docker/e2e/Dockerfile`](../../docker/e2e/Dockerfile)
+on the official Playwright image, which already carries Chromium and its OS libraries — so the same command and
+the same browser build work on Linux, WSL2, and macOS (the image is multi-arch, so Apple Silicon runs Chromium
+natively), with no host Node and no `playwright install`. The image builds on first use and rebuilds itself when
+`package.json`'s `@playwright/test` pin changes, because `make` derives both the image tag and the installed
+runner from that one pin.
+
+Three details worth knowing when something looks odd:
+
+- The runner joins the **web container's network namespace**, so `localhost:9000` inside it is the dev app.
+  `BASE_URL` exists mainly for CI; locally there is little to point it at, because
+  `conf/application.local.conf` sets `play.filters.hosts.allowed = ["localhost:9000"]` and Play's host filter
+  400s anything else — including `web:9000` and any other port — and because `localhost` now resolves inside
+  the web container rather than on your host.
+- It inherits the web container's **mounts** (not its image filesystem), so the repo is at `/home` and worktree
+  paths resolve unchanged. The one exception is `/home/node_modules`, which is deliberately masked with an empty
+  tmpfs so `require('@playwright/test')` resolves to the runner in the image instead of the repo's own copy —
+  two copies in one process makes Playwright abort with *"did not expect `test()` to be called here"*.
+- Reports, traces, and screenshots land in gitignored `test-results/`, written as **your** uid (the runner passes
+  `--user`), so you can read and delete them from the host like any other file.
+
+Works against a populated dev DB or an empty CI-style one — specs tolerate both. `/explore` and `/validate`
+self-skip unless you `export HAS_REAL_GMAPS_KEY=true` (phase 2, below).
 
 Note that a `-g`-scoped run still executes the `setup` project first (Playwright runs project dependencies
 regardless of filters), so every run registers a throwaway `ci-smoke-<timestamp>` user in the dev DB. Add
 `--no-deps` to skip it when your filter doesn't include `/dashboard`: `make test-e2e args="-g labelMap --no-deps"`.
+
+### Watching it run, and debugging a failure
+
+`--headed`, `--ui`, and `show-trace` need a display the container doesn't have, so they run host-side:
+
+```bash
+make test-e2e-host args="-g labelMap --headed"
+```
+
+That path needs a host toolchain the containerized one doesn't: **Node 23**, `npm install` at the repo root (the
+container's `node_modules` is a Docker volume, so the host copy is separate and unpinned — there's no committed
+`package-lock.json`), and `npx playwright install chromium`, plus `sudo npx playwright install-deps` on
+Linux/WSL. Use it for interactive debugging; `make test-e2e` is what a normal run and CI both exercise.
 
 ## How a spec works
 
@@ -91,10 +123,10 @@ local development** — your edit / `grunt watch` / reload loop is untouched.
   device's own width — the #4891 contract. ✅
 - **Phase 2b (open):** make CI exercise `/validate`'s real mission path — needs a committed seed of ≥ 10
   non-tutorial labels whose panos are live or locally backed up, and a real `GOOGLE_MAPS_SECRET` for the
-  server-side pano-metadata check; also gallery expanded-card view and api-docs preview content asserts
-  (then drop the `regionWithMostLabels` allowlist entries in `fixtures.js`). `/v3/api-docs/labelTags` can't
-  join the page tables until its missing tag example images (ids 43, 76–79) are added — each 404 is a
-  console error.
+  server-side pano-metadata check (#4948 records the trade); also gallery expanded-card view and api-docs
+  preview content asserts (then drop the `regionWithMostLabels` allowlist entries in `fixtures.js`).
+  `/v3/api-docs/labelTags` can't join the page tables until its missing tag example images (ids 43, 76–79)
+  are added — each 404 is a console error.
 - **Phase 3:** primary-control interactions per page (info button, tag menu, mission modal) and a few
   end-to-end flows (place a label + tag; validate a label); admin pages (promote the setup user via a
   superuser `UPDATE user_role` in CI).
@@ -104,6 +136,7 @@ local development** — your edit / `grunt watch` / reload loop is untouched.
 | File | Role |
 |---|---|
 | `../../playwright.config.js` | Config: `testDir`, retries, reporters, the `setup` → `chromium` projects |
+| `../../docker/e2e/Dockerfile` | The runner image `make test-e2e` builds and runs (Chromium + the pinned runner) |
 | `fixtures.js` | `consoleErrors` fixture, Mapbox + ML-API stubs, `loadAndSettle`, `waitForAppReady`, `horizontalOverflowReport`, allowlist |
 | `auth.setup.js` | Registers a throwaway user, saves storageState for registered-user specs |
 | `pages.spec.js` | Table-driven phase-1 anonymous pages |

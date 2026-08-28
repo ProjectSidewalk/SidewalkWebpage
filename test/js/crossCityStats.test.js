@@ -46,8 +46,8 @@ const i18nextStub = {
 function buildDom() {
   document.body.innerHTML = `
     <span id="ud-cities-status" role="status" aria-live="polite"></span>
-    <div class="api-section" id="ud-cities-section" hidden>
-      <h2 class="api-heading" id="cities">Cities you've mapped <a href="#cities" class="permalink">#</a></h2>
+    <div class="page-section" id="ud-cities-section" hidden>
+      <h2 class="page-heading" id="cities">Cities you've mapped <a href="#cities" class="permalink">#</a></h2>
       <p id="ud-cities-intro"></p>
       <div class="ud-community-band" id="ud-cities-band" hidden>
         <span id="ud-cities-total-cities"></span>

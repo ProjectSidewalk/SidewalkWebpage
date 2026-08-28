@@ -1,0 +1,641 @@
+/* ============================================================
+   Filter sidebar — the shared filter panel driven by FilterSidebar (common/filter-sidebar/). Today it overlays the
+   left side of the map on LabelMap, Admin, and User Profile; the Gallery adopts the same controls (#4585).
+   ============================================================ */
+
+.filter-sidebar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 350px;
+  background: #fefefe;
+  box-shadow: 2px 0 6px rgb(0 0 0 / 12%);
+  z-index: 10;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  padding: 40px 30px 30px;
+
+  /* The panel's inherited face only, deliberately not a --text-* token: each control below sets its own, and a
+     composite here would stamp a size onto anything that doesn't. */
+  font-family: var(--font-primary);
+  transition: transform 0.2s ease, visibility 0s;
+}
+
+/* Genuinely not rendered while closed, not merely pushed off-screen: the e2e overflow walk measures laid-out
+   boxes and treats parked-but-laid-out UI as the bug class it hunts (test/e2e/fixtures.js). The delay holds
+   visibility until the slide finishes; opening restores it immediately via the 0s above. */
+.filter-sidebar--hidden {
+  transform: translateX(-100%);
+  visibility: hidden;
+  transition: transform 0.2s ease, visibility 0s linear 0.2s;
+}
+
+/* The drawer's initial state is applied at map-ready, one frame after it stops being ps-invisible. Without this
+   a page that opens collapsed animates the panel across the map before parking it off-canvas. */
+.filter-sidebar--no-transition {
+  transition: none;
+}
+
+.filter-sidebar--loading {
+  pointer-events: none;
+}
+
+.filter-sidebar--loading > * {
+  opacity: 0.5;
+  filter: grayscale(1);
+}
+
+/* Close button (top-right corner) */
+.filter-sidebar__close {
+  position: absolute;
+  top: 8px;
+  right: 2px;
+  background: none;
+  border: none;
+  padding: 4px;
+  opacity: 0.75;
+}
+
+.filter-sidebar__close:hover {
+  opacity: 0.8;
+}
+
+.filter-sidebar__close img {
+  width: 24px;
+  height: 24px;
+}
+
+/* Address/place search box mounted at the top of the LabelMap sidebar (#4370). */
+#labelmap-search-section {
+  /*
+     * Raise the section (and its overflowing autocomplete dropdown) above the sibling filter sections
+     * below it. Those sections' controls (e.g. .severity-button) are position: relative, so without this
+     * they'd paint over the earlier-in-DOM dropdown.
+     */
+  position: relative;
+  z-index: 100;
+  margin-top: 18px; /* Breathing room below the collapse-drawer (close) button. */
+  margin-bottom: 28px; /* A bit more space above the Severity section than the standard 25px. */
+}
+
+#labelmap-search-box {
+  width: 100%;
+
+  /*
+     * Reserve the control's height (the Mapbox search input is 36px) so mounting it never nudges the
+     * filter sections below — even in the sub-frame before the search web component finishes upgrading.
+     */
+  min-height: 36px;
+}
+
+/*
+ * The control wraps itself in a .mapboxgl-ctrl div with an inline width: 300px (sized for a floating
+ * map control). Override it so the box fills the sidebar column instead of overflowing its ~290px of
+ * content width. !important is required because 300px is set as an inline style.
+ */
+#labelmap-search-box > .mapboxgl-ctrl {
+  width: 100% !important;
+  margin: 0;
+}
+
+/* Drag handle for resizing the sidebar width. Sits on the right edge of the sidebar. */
+.filter-sidebar__resize-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 350px; /* The sidebar's default width; MapSidebarDrawer restamps it on init and on every drag. */
+  width: 6px;
+  cursor: col-resize;
+  z-index: 11;
+  background: transparent;
+  transition: background 0.15s ease;
+  touch-action: none;
+}
+
+.filter-sidebar__resize-handle:hover,
+.filter-sidebar__resize-handle--dragging {
+  background: rgb(0 0 0 / 15%);
+}
+
+/* Applied to <body> while dragging to suppress text selection and force the resize cursor. */
+body.filter-sidebar-resizing {
+  -webkit-user-select: none;
+  user-select: none;
+  cursor: col-resize;
+}
+
+/* Floating button to reopen the sidebar. */
+.filter-sidebar-open-btn {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 10;
+  background: var(--color-neutral-white);
+  border: 1px solid #cccccc;
+  border-radius: 10px;
+  padding: 6px;
+  box-shadow: 0 2px 4px rgb(0 0 0 / 15%);
+  display: none;
+}
+
+.filter-sidebar-open-btn:hover {
+  background: #f5f5f5;
+}
+
+.filter-sidebar-open-btn img {
+  width: 24px;
+  height: 24px;
+}
+
+/*
+ * Below ~600px a 350px panel leaves no usable map beside it (its 280px drag minimum can't coexist with one
+ * either), so the open drawer covers the map instead. The JS side reads this same width from
+ * MapSidebarDrawer.NARROW_QUERY, which skips the map's left padding for the same reason — keep the two in step.
+ * The Gallery is unaffected: it renders the filter sections without this panel chrome (withMapChrome = false).
+ */
+@media (width <= 600px) {
+  .filter-sidebar {
+    width: 100%;
+  }
+
+  .filter-sidebar__resize-handle {
+    display: none;
+  }
+}
+
+/* Touch: grow the open/close hit targets to >= 44px (the icons stay 24px). */
+@media (pointer: coarse) {
+  /* Inset to the panel's own 30px gutter, not the padding box: an absolutely positioned child resolves against
+     the padding box, so right: 0 would push a 44px button 14px over the first section's "Deselect all" — which
+     has no positioned competitor there and so loses the hit test. */
+  .filter-sidebar__close {
+    top: 4px;
+    right: 4px;
+    padding: 10px;
+  }
+
+  .filter-sidebar-open-btn {
+    padding: 10px;
+  }
+
+}
+
+/* ---- Sections ---- */
+
+.filter-sidebar__section {
+  margin-bottom: 20px;
+}
+
+.filter-sidebar__section:last-child {
+  margin-bottom: 0;
+}
+
+.filter-sidebar__heading {
+  font: var(--text-body-bold);
+  color: var(--color-neutral-black);
+  margin: 0;
+  line-height: normal;
+}
+
+.filter-sidebar__heading-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 9px;
+}
+
+.filter-sidebar__deselect-all {
+  background: none;
+  border: none;
+  color: var(--color-asphalt-400);
+  cursor: pointer;
+  font: var(--text-caption-semibold);
+  padding: 0;
+}
+
+.filter-sidebar__deselect-all:hover {
+  color: var(--color-asphalt-500);
+  text-decoration: underline;
+}
+
+/* ---- Severity toggles ---- */
+
+.filter-sidebar__severity-toggles {
+  display: inline-grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2px;
+  margin-top: 8px;
+}
+
+/* The actual button styles live in main.css under .severity-button (and related). */
+
+/* Each grid cell stacks a severity toggle over its (hover-revealed) "Only" button. */
+.filter-sidebar__severity-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+/* ---- Checkbox list items ---- */
+
+/* Rows sit close together: each already carries 3px of vertical padding for its hover background, so the gap only
+   has to separate those bands, not the text. Rows stay 24px tall (WCAG 2.5.8) — tighten the gap, not the padding. */
+.filter-sidebar__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.filter-sidebar__item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.filter-sidebar__item--expandable {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.filter-sidebar__item-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+/* Whole rows read as clickable: constant padding (negative margin keeps text aligned with the headings) so the
+   hover background doesn't shift layout. Expandable items get this on their inner row, flat items directly. */
+.filter-sidebar__item:not(.filter-sidebar__item--expandable),
+.filter-sidebar__item-row {
+  padding: 3px 6px;
+  margin: 0 -6px;
+  border-radius: 4px;
+}
+
+.filter-sidebar__item:not(.filter-sidebar__item--expandable):hover,
+.filter-sidebar__item-row:hover {
+  background: var(--color-neutral-100);
+}
+
+.filter-sidebar__item input:is([type="checkbox"], [type="radio"]) {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  flex-shrink: 0;
+  cursor: pointer;
+  border: 1.5px solid var(--color-neutral-700);
+  border-radius: 3px;
+  background: var(--color-neutral-white);
+}
+
+.filter-sidebar__item input:is([type="checkbox"], [type="radio"]):checked {
+  background-color: var(--color-asphalt-500);
+  border-color: var(--color-asphalt-500);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23FFFFFF' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round' d='M3.5 8.5l3 3 6-7'/%3E%3C/svg%3E");
+  background-size: 12px;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* Rows whose icon doubles as the checkbox (#4585) hide the native input: it stays in the DOM so assistive tech
+   announces the checked state and Space still toggles, but the filled/hollow icon carries the visual. Rows with no
+   icon of their own (the admin-only filter) keep the rendered checkbox styled above. */
+.filter-sidebar__item input.filter-sidebar__checkbox {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+.filter-sidebar__item input:is([type="checkbox"], [type="radio"]):focus {
+  outline: none; /* Removing some default styling from Bootstrap; :focus-visible below restores a keyboard ring. */
+}
+
+/* The hidden input can't show its own ring, so the ring goes around the icon + name it controls. */
+.filter-sidebar__checkbox:focus-visible + .filter-sidebar__item-label {
+  outline: 2px solid var(--color-asphalt-400);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Keyboard focus ring (WCAG 2.4.7) for every interactive sidebar control. */
+.filter-sidebar__item input:is([type="checkbox"], [type="radio"]):focus-visible,
+.filter-sidebar__severity-cell .severity-button:focus-visible,
+.filter-sidebar__tag-pills .tag-pill:focus-visible,
+.filter-sidebar__only:focus-visible,
+.filter-sidebar__deselect-all:focus-visible,
+.filter-sidebar__tag-toggle:focus-visible {
+  outline: 2px solid var(--color-asphalt-400);
+  outline-offset: 2px;
+}
+
+.filter-sidebar__item label {
+  font: var(--text-body-medium);
+  color: var(--color-neutral-black);
+  margin: 0;
+  cursor: pointer;
+  white-space: nowrap;
+  line-height: normal;
+  flex: 1; /* Fill the middle of the row so the whole hover area toggles the checkbox, not just the text. */
+}
+
+/* Icon + name share one label so clicking either toggles the row natively, no JS forwarding. */
+.filter-sidebar__item-label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+/* Deselected rows read as off at a glance: hollow icon (below) plus a dimmed name. */
+.filter-sidebar__checkbox:not(:checked) + .filter-sidebar__item-label {
+  color: var(--color-neutral-600);
+}
+
+.filter-sidebar__item:has(.filter-sidebar__checkbox:not(:checked)) .filter-sidebar__count {
+  color: var(--color-neutral-500);
+}
+
+/* Label type colors, keyed off the row's type so the sidebar carries its own palette wherever it's mounted. Held as
+   a custom property rather than applied straight to `fill` because the icon doubles as the row's checkbox (#4585):
+   the same color fills the circle when the type is shown and strokes a hollow ring when it's hidden. `--label-ring`
+   overrides the ring for the two grey types.
+   TODO These colors should probably match the colors in our Design System Tokens in main.css. */
+.filter-sidebar__legend-icon[data-label-type="Assorted"] {
+  --label-color: var(--color-asphalt-400);
+}
+
+.filter-sidebar__legend-icon[data-label-type="CurbRamp"] {
+  --label-color: #90C31F;
+}
+
+.filter-sidebar__legend-icon[data-label-type="NoCurbRamp"] {
+  --label-color: #E679B6;
+}
+
+.filter-sidebar__legend-icon[data-label-type="Obstacle"] {
+  --label-color: var(--color-label-obstacle);
+}
+
+.filter-sidebar__legend-icon[data-label-type="SurfaceProblem"] {
+  --label-color: var(--color-label-surface-problem);
+}
+
+.filter-sidebar__legend-icon[data-label-type="NoSidewalk"] {
+  --label-color: var(--color-label-no-sidewalk);
+}
+
+.filter-sidebar__legend-icon[data-label-type="Crosswalk"] {
+  --label-color: var(--color-label-crosswalk);
+}
+
+.filter-sidebar__legend-icon[data-label-type="Signal"] {
+  --label-color: #63C0AB;
+}
+
+.filter-sidebar__legend-icon[data-label-type="Other"] {
+  --label-color: var(--color-neutral-500);
+  --label-ring: #0000FF;
+}
+
+.filter-sidebar__legend-icon[data-label-type="Occlusion"] {
+  --label-color: var(--color-neutral-500);
+  --label-ring: #009902;
+}
+
+/* Label type circle icons — the icon is the checkbox: filled + check when shown, hollow ring when hidden. */
+.filter-sidebar__item .filter-sidebar__legend-icon {
+  flex-shrink: 0;
+}
+
+.filter-sidebar__item .filter-sidebar__legend-icon svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+.filter-sidebar__item .filter-sidebar__legend-icon circle {
+  fill: var(--label-color);
+  stroke: var(--label-ring, none); /* Grey types (Other, Occlusion) carry a distinguishing outline color. */
+}
+
+.filter-sidebar__checkbox:not(:checked) + .filter-sidebar__item-label .filter-sidebar__legend-icon circle {
+  fill: var(--color-neutral-white);
+  stroke: var(--label-ring, var(--label-color));
+  stroke-width: 2;
+}
+
+/* The check is asphalt, not white: half the label colors (crosswalk yellow, curb-ramp green) are too light to
+   carry a white glyph — asphalt clears 4.5:1 on all of them. */
+.filter-sidebar__legend-check,
+.filter-sidebar__legend-dash {
+  display: none;
+  fill: none;
+  stroke: var(--color-asphalt-500);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.filter-sidebar__checkbox:checked + .filter-sidebar__item-label .filter-sidebar__legend-check {
+  display: block;
+}
+
+/* Tag filters narrow a shown type: dash instead of check, the indeterminate-checkbox convention. */
+.filter-sidebar__checkbox.checkbox--partial + .filter-sidebar__item-label .filter-sidebar__legend-check {
+  display: none;
+}
+
+.filter-sidebar__checkbox.checkbox--partial + .filter-sidebar__item-label .filter-sidebar__legend-dash {
+  display: block;
+}
+
+/* Pictogram rows (validations, streets) can't hold a check inside the glyph, so selection shows as a corner badge. */
+.filter-sidebar__icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.filter-sidebar__checkbox:checked + .filter-sidebar__item-label .filter-sidebar__icon--badged::after {
+  content: "";
+  position: absolute;
+  right: -3px;
+  bottom: -2px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--color-asphalt-500) center / 8px no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23FFFFFF' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round' d='M3.5 8.5l3 3 6-7'/%3E%3C/svg%3E");
+  box-shadow: 0 0 0 1.5px var(--color-neutral-white);
+}
+
+/* Validation icons */
+.filter-sidebar__item .filter-sidebar__validation-icon {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+.filter-sidebar__item .filter-sidebar__unvalidated-icon {
+  width: 18px; /* Width needs to be smaller due to it having less space around the icon than the others. */
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.filter-sidebar__checkbox:not(:checked) + .filter-sidebar__item-label .filter-sidebar__validation-icon,
+.filter-sidebar__checkbox:not(:checked) + .filter-sidebar__item-label .filter-sidebar__unvalidated-icon {
+  filter: grayscale(100%);
+  opacity: 0.45;
+}
+
+/* Street line icons */
+.filter-sidebar__item .filter-sidebar__street-icon {
+  width: 17px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.filter-sidebar__checkbox:not(:checked) + .filter-sidebar__item-label .filter-sidebar__street-icon {
+  opacity: 0.4;
+}
+
+.filter-sidebar__item .filter-sidebar__street-icon path {
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.filter-sidebar__item .filter-sidebar__street-icon--audited path {
+  stroke: var(--color-neutral-black);
+}
+
+/* Audited but newer imagery exists (#4384): same color as audited, dashed like the map rendering. */
+.filter-sidebar__item .filter-sidebar__street-icon--outdated path {
+  stroke: var(--color-neutral-black);
+  stroke-dasharray: 4 3;
+  stroke-linecap: butt;
+}
+
+.filter-sidebar__item .filter-sidebar__street-icon--unaudited path {
+  stroke: var(--color-neutral-500);
+}
+
+/* ---- Right-aligned row slot: label count + hover-revealed "Only" ---- */
+
+.filter-sidebar__right-slot {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.filter-sidebar__count {
+  font: var(--text-caption-medium);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-neutral-700);
+}
+
+.filter-sidebar__only {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font: var(--text-caption-semibold);
+  color: var(--color-asphalt-400);
+  display: none;
+}
+
+.filter-sidebar__only:hover {
+  color: var(--color-asphalt-500);
+  text-decoration: underline;
+}
+
+/* Swap the count for "Only" while the pointer is in the row, or a keyboard user is focused there (kayak.com-style
+   exclusive select). Keyed on :focus-visible, not :focus-within — clicking a row focuses its checkbox, and
+   :focus-within would then strand "Only" over the count until focus moved elsewhere. */
+.filter-sidebar__item:hover .filter-sidebar__only,
+.filter-sidebar__item:has(:focus-visible) .filter-sidebar__only {
+  display: inline;
+}
+
+.filter-sidebar__item:hover .filter-sidebar__count,
+.filter-sidebar__item:has(:focus-visible) .filter-sidebar__count {
+  display: none;
+}
+
+/* Severity cells have no count to swap with, so "Only" keeps its space (visibility) to avoid grid reflow. */
+.filter-sidebar__severity-cell .filter-sidebar__only {
+  display: block;
+  visibility: hidden;
+}
+
+.filter-sidebar__severity-cell:hover .filter-sidebar__only,
+.filter-sidebar__severity-cell:has(:focus-visible) .filter-sidebar__only {
+  visibility: visible;
+}
+
+/* ---- Tag expand/collapse toggle ---- */
+
+.filter-sidebar__tag-toggle {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.filter-sidebar__tag-toggle img {
+  width: 22px;
+  height: 22px;
+}
+
+.filter-sidebar__tag-toggle:hover {
+  opacity: 0.7;
+}
+
+/* ---- Tag pills container (collapsible) ---- */
+
+.filter-sidebar__tag-pills {
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px 0 8px 27px; /* Left inset lines pills up under the row's name (18px icon + 9px gap). */
+}
+
+.filter-sidebar__tag-pills[hidden] {
+  display: none;
+}
+
+.filter-sidebar__tag-pills:not([hidden]) {
+  display: flex;
+}
+
+/* WCAG 2.2 SC 2.5.8 wants 24x24 for every target, not just the panel chrome above. These are the controls a phone
+   user actually came for — a 22px chevron and an 18px-tall text action, both authored with no padding. Placed at
+   the end of the file because their base rules come later than the chrome block and would otherwise win. */
+@media (pointer: coarse) {
+  .filter-sidebar__tag-toggle {
+    min-width: 24px;
+    min-height: 24px;
+    justify-content: center;
+  }
+
+  .filter-sidebar__deselect-all {
+    min-height: 24px;
+  }
+}

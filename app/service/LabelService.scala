@@ -12,7 +12,7 @@ import models.pano.PanoSource.PanoSource
 import models.user.SidewalkUserWithRole
 import models.utils.CommonUtils.UiSource
 import models.utils.MyPostgresProfile.api._
-import models.utils.{ExcludedTag, MyPostgresProfile}
+import models.utils.{ExcludedTag, LatLngBBox, MyPostgresProfile}
 import models.validation.LabelValidationTable
 import org.apache.pekko.stream.scaladsl.Source
 import play.api.Logger
@@ -48,6 +48,7 @@ trait LabelService {
       regionIds: Seq[Int],
       routeIds: Seq[Int],
       aiValOptions: Seq[String],
+      bbox: Option[LatLngBBox],
       batchSize: Int
   ): Source[LabelForLabelMap, _]
   def getGalleryLabels(
@@ -188,6 +189,7 @@ class LabelServiceImpl @Inject() (
       regionIds: Seq[Int],
       routeIds: Seq[Int],
       aiValOptions: Seq[String],
+      bbox: Option[LatLngBBox],
       batchSize: Int
   ): Source[LabelForLabelMap, _] =
     // `.transactionally` is required for Postgres to honor fetchSize and stream instead of materializing (#3932). It
@@ -198,7 +200,7 @@ class LabelServiceImpl @Inject() (
     Source.fromPublisher(
       db.stream(
         labelTable
-          .getLabelsForLabelMap(regionIds, routeIds, aiValOptions)
+          .getLabelsForLabelMap(regionIds, routeIds, aiValOptions, bbox)
           .result
           .transactionally
           .withStatementParameters(fetchSize = batchSize)

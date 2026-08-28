@@ -3,8 +3,8 @@
  *
  * The map and table above it are a snapshot: they answer what the city looks like now, and cannot answer what changed
  * or when. This renders the three weekly series that can — streets moving between statuses, labeler reports of
- * missing imagery, and panos whose imagery went away — plus the queue of streets several different labelers have
- * independently reported, which is what the offline imagery checker should be pointed at next.
+ * missing imagery, and panos losing or regaining their imagery — plus the queue of streets several different labelers
+ * have independently reported, which is what the offline imagery checker should be pointed at next.
  *
  * Fetches its own endpoint so a failure here leaves the snapshot above intact. Admin-only surface, English only.
  */
@@ -89,7 +89,7 @@ class StreetStatusTrend {
 
     this.#renderStatusChanges(data, weekStarts, labels);
     this.#renderReports(data, weekStarts, labels);
-    this.#renderExpiries(data, weekStarts, labels);
+    this.#renderImageryChanges(data, weekStarts, labels);
     this.#renderCorroborated(data);
     this.#renderRegions(data);
   }
@@ -150,26 +150,50 @@ class StreetStatusTrend {
     });
   }
 
-  /** Panos whose imagery the nightly sweep found gone, per week. */
-  #renderExpiries(data, weekStarts, labels) {
-    const rows = data.panos_expired || [];
-    const byWeek = new Map(rows.map((r) => [r.week_start, r.pano_count]));
+  /** Panos crossing the expired boundary in each direction, per week. */
+  #renderImageryChanges(data, weekStarts, labels) {
+    const rows = data.pano_imagery_changes || [];
+    const goneByWeek = new Map(rows.map((r) => [r.week_start, r.expired_count]));
+    const backByWeek = new Map(rows.map((r) => [r.week_start, r.returned_count]));
 
+    // Both directions, because the pair is the point: a week of expiries that a later week hands back is a provider
+    // hiccup, and the same bar with no recoveries after it is imagery that is actually gone.
     MiniLineChart.renderInto(document.getElementById('trend-expiry-chart'), labels, [{
-      name: 'Panos expired',
+      name: 'Imagery went away',
       key: 'expired',
-      values: weekStarts.map((week) => byWeek.get(week) || 0),
+      values: weekStarts.map((week) => goneByWeek.get(week) || 0),
+    }, {
+      name: 'Imagery came back',
+      key: 'returned',
+      values: weekStarts.map((week) => backByWeek.get(week) || 0),
     }], {
       kind: 'bar',
       valueFormat: (v) => `${Math.round(v).toLocaleString()} pano${Math.round(v) === 1 ? '' : 's'}`,
-      ariaLabel: 'Panoramas whose imagery went away per week',
+      ariaLabel: 'Panoramas whose imagery went away, and whose imagery came back, per week',
     });
 
+    // Both counts are crossings the bars can't show. Unexplained, the gap reads as a broken chart.
+    const notes = [];
+
+    // These panos have no logged loss but do log their recovery, so "came back" can outrun "went away" until the
+    // count drains.
     const undated = data.panos_expired_undated || 0;
-    AdminShell.setText('trend-expiry-note', undated === 0
-      ? ''
-      : `${AdminShell.num(undated)} panos were already expired before expiry dates were recorded, `
-        + 'so they appear in no week above.');
+    if (undated > 0) {
+      notes.push(`${AdminShell.num(undated)} panos were already expired before any of this was recorded, so they `
+        + 'appear in no week above. If one regains imagery it still charts as a recovery, with no matching loss '
+        + 'before it.');
+    }
+
+    // Healed events carry the night the pass noticed, not the day the imagery moved, so charting one would put a
+    // real crossing in the wrong week.
+    const healed = data.panos_healed || 0;
+    if (healed > 0) {
+      notes.push(`${AdminShell.num(healed)} pano${healed === 1 ? '' : 's'} crossed the boundary without the change `
+        + 'being logged, and the nightly reconciliation pass filled the event in afterwards. Those carry the date '
+        + 'they were noticed rather than the date they moved, so they are left out of the weeks above too.');
+    }
+
+    AdminShell.setText('trend-expiry-note', notes.join(' '));
   }
 
   /** The review queue: still-open streets that several distinct labelers reported as empty. */

@@ -326,6 +326,17 @@ class UserProfileController @Inject() (
     crossCityStatsJson(userId)
   }
 
+  /**
+   * A user's logged hours in every city, for the Manage user page's KPI and breakdown (#4986).
+   *
+   * Fetched after that page renders rather than with it: the fan-out queries one schema per deployment, and an admin
+   * who opened the page to change a role or flag work by date has no reason to wait on it. Uncached for the reason
+   * `/timeCheck` is — an admin opens this to check a figure the volunteer reported moments ago.
+   */
+  def adminGetCrossCityHours(userId: String) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    userService.getCrossCityHours(userId, request2Messages.lang).map(hours => Ok(Json.toJson(hours)))
+  }
+
   /** The cross-city payload for one user, in the requester's units and language. */
   private def crossCityStatsJson(userId: String)(implicit request: SecuredRequest[DefaultEnv, AnyContent]) = {
     userService

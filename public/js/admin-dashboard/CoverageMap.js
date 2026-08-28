@@ -6,7 +6,8 @@ class CoverageColors {
   /** @type {Array<[number, string]>} [rate 0..1, hex] control points, ascending by rate. */
   static STOPS = [[0, '#eff3ff'], [0.33, '#bdd7e7'], [0.66, '#6baed6'], [1, '#2171b5']];
 
-  /** High-contrast color for the currently selected region (matches --coverage-selected). */
+  /** High-contrast color for the currently selected region (--color-label-surface-problem, the same orange the
+   *  .ps-table--sticky row highlight uses). */
   static SELECTED = '#f68d3e';
 
   /**

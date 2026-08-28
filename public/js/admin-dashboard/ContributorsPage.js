@@ -261,7 +261,7 @@ class ContributorsPage {
     const head = `<tr>${headCells}</tr>`;
     const body = rows.map((cells) =>
       `<tr>${cells.map((cell, i) => `<td${cls(columns[i])}>${cell}</td>`).join('')}</tr>`).join('');
-    return `<table class="contrib-table"><thead>${head}</thead><tbody>${body}</tbody></table>`;
+    return `<table class="ps-table ps-table--compact contrib-table"><thead>${head}</thead><tbody>${body}</tbody></table>`;
   }
 
   /** Canonical label-type color via util.misc, with a grey fallback for unknown/odd types. */

@@ -19,7 +19,7 @@ class StreetStatusColors {
   static FALLBACK = '#d0d0d0';
 
   /** High-contrast color for the currently selected region's segments (distinct from all four status colors). */
-  static SELECTED = '#0566f5'; // --color-accent-link
+  static SELECTED = '#0566f5'; // Near --color-link-200, which the dashboard uses for its other selected states.
 
   /** @param {string} status @returns {string} the hex color for a status, or the fallback if unrecognized. */
   static colorFor(status) {

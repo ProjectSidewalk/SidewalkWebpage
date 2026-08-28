@@ -9,28 +9,28 @@
 @* Admin Label Map page (#4272): the redesign's home for the legacy "Map" tab — an interactive per-label point map for spatially exploring and inspecting labels. Reuses the shared PSMap component, the common map sidebar (filters), and the label-detail popup, exactly as the legacy admin map did, but wrapped in the dashboard shell. Loads all labels from /adminapi/labels/all. A label-ID search box jumps straight to any label's popup (replaces the legacy "Label Search" tab and gives /admin/label/:labelId discoverability). *@
 
 @content = {
-  <div class="api-section" id="label-map-intro-section">
-    <h1 class="api-heading" id="label-map">Label Map <a href="#label-map" class="permalink">#</a></h1>
+  <div class="page-section" id="label-map-intro-section">
+    <h1 class="page-heading" id="label-map">Label Map <a href="#label-map" class="permalink">#</a></h1>
     <p>Every label on this deployment, plotted by location and colored by type. Use the sidebar to filter by label type, severity, tags, and validation status — including the admin-only “not validated by an admin” filter — and click any point to open its full detail. To jump straight to a specific label, enter its ID below.</p>
     <form class="label-map-search" id="label-map-search">
       <label for="label-map-search-input" class="label-map-search-label">Go to label ID</label>
-      <input type="number" inputmode="numeric" min="1" step="1" id="label-map-search-input" class="mgmt-search" placeholder="e.g. 12345" aria-label="Label ID to open">
+      <input type="number" inputmode="numeric" min="1" step="1" id="label-map-search-input" class="ps-input mgmt-search" placeholder="e.g. 12345" aria-label="Label ID to open">
       <button type="submit" class="coverage-sort-btn" id="label-map-search-btn">Open</button>
       <span class="label-map-search-msg dq-sub" id="label-map-search-msg" role="status" aria-live="polite"></span>
     </form>
   </div>
 
-  <div class="api-section" id="label-map-section">
+  <div class="page-section" id="label-map-section">
     <div id="admin-labelmap-choropleth-holder" class="choropleth-holder label-map-holder">
       <div id="admin-labelmap-choropleth" class="choropleth"></div>@common.filterSidebar(tags = tags, sections = Seq("severity", "label-type", "validations", "admin", "streets"), showOutdatedStreetFilter = true)@common.mapLoadingOverlay()</div>
   </div>
 
   @* Label-detail popup + PSMap dependencies. The label-detail modules are pulled in individually (not via the legacy Admin.js bundle) to keep with the dashboard's standalone-script convention; i18next, AppManager, util, jQuery and the Google Maps loader are already loaded by common.main / adminLayout. *@
 @common.labelPopup(admin = true)
-  <link href='@assets.path("css/label-detail.css")' rel="stylesheet">
-  <link href='@assets.path("css/tag-pills.css")' rel="stylesheet">
-  <link href='@assets.path("css/choropleth.css")' rel="stylesheet">
-  <link href='@assets.path("css/filter-sidebar.css")' rel="stylesheet">
+  <link href='@assets.path("css/components/label-detail.css")' rel="stylesheet">
+  <link href='@assets.path("css/components/tag-pills.css")' rel="stylesheet">
+  <link href='@assets.path("css/components/choropleth.css")' rel="stylesheet">
+  <link href='@assets.path("css/components/filter-sidebar.css")' rel="stylesheet">
   <link href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")' rel="stylesheet">
   <link rel="stylesheet" href='@assets.path("vendor/pannellum/pannellum-2.5.7.css")'>
 

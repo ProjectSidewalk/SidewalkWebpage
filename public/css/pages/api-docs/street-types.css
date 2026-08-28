@@ -1,0 +1,41 @@
+/**
+ * Project Sidewalk API Documentation - Street Types Component Styles
+ *
+ * Cell styles for the street-types table, a .ps-table instance built by streetTypesPreview.js.
+ */
+
+#street-types-preview {
+  margin: var(--space-lg) 0;
+  max-width: 1000px;
+  width: 100%;
+}
+
+.street-description {
+  color: var(--color-neutral-700);
+  max-width: 600px;
+}
+
+.street-name {
+  font: var(--text-small-bold);
+  white-space: nowrap;
+}
+
+/* var(--breakpoint-sm) */
+@media (width <= 768px) {
+  .street-description {
+    max-width: 300px;
+  }
+
+  .street-count-container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+  }
+}
+
+/* var(--breakpoint-xs) */
+@media (width <= 480px) {
+  .street-description {
+    max-width: 200px;
+  }
+}

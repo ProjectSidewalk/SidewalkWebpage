@@ -1,0 +1,2698 @@
+/*
+ * Styles for the redesigned admin dashboard (#4272).
+ *
+ * The three-column shell (sidebar / content / TOC), the KPI tiles, and the table add-ons come from components/
+ * (page-shell.css, kpi.css, tables.css). This file only adds what those don't have: the "coming soon" nav treatment
+ * and the Coverage page's map, legend, chart, and details panel. Type, color, and spacing come from
+ * the design-system tokens in main.css — avoid hardcoding values that already exist as tokens. Type is set with the
+ * composite --text-* tokens (never a bare rem: Bootstrap 3 makes 1rem = 10px here, so a rem size renders at 62.5%
+ * of what it says).
+ *
+ * Coverage sequential color scale (--coverage-*: ColorBrewer "Blues", colorblind-safe). Keep these in sync with
+ * CoverageColors.STOPS in coverage-map.js so the map, legend, and bar chart all agree.
+ */
+:root {
+  --coverage-c0: #eff3ff; /* ~0%   */
+  --coverage-c1: #bdd7e7; /* ~33%  */
+  --coverage-c2: #6baed6; /* ~66%  */
+  --coverage-c3: #2171b5; /* ~100% */
+
+  /* Shared MiniLineChart series colors (Data Quality agreement trend, API usage trend). Blue/orange =
+       colorblind-safe pair; apiDocs muted grey since it's our own traffic. */
+  --dq-human: #2171b5;
+  --dq-ai: var(--color-label-surface-problem);
+  --api-external: #2171b5;
+  --api-docs: var(--color-neutral-600);
+
+  /* Activity colors, from the Okabe-Ito colorblind-safe qualitative palette. Volume + registered share the blue;
+       anonymous uses vermillion — the blue/orange pairing is maximally distinct in both hue AND luminance (so it
+       survives color-vision deficiency and grayscale), which a blue/purple pairing is not. */
+  --act-accent: #0072b2;
+  --act-registered: #0072b2;
+  --act-anon: #d55e00;
+
+  /* Humans vs AI series colors: Okabe-Ito blue + vermillion (colorblind-safe, distinct in hue AND luminance). */
+  --hva-human: #0072b2;
+  --hva-ai: #d55e00;
+}
+
+/* --- Left nav: disabled "coming soon" items ------------------------------------------------------------------ */
+.page-nav-item.disabled {
+  color: var(--color-neutral-600);
+  cursor: default;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.nav-soon-badge {
+  font: var(--text-tiny-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: var(--color-neutral-200);
+  color: var(--color-neutral-700);
+  border-radius: 10px;
+  padding: 1px 7px;
+  margin-left: var(--space-xs);
+}
+
+/* --- Deployment-info strip (shared by overview, across-cities, management, health) ---------------------------- */
+
+/* Slimmer sibling of .ov-pulse: quiet metadata about the running instance, not a KPI. Rendered by adminLayout
+   above every page's h1, so it opens the content column. */
+.deploy-strip {
+  /* The blue ramp stops at 500 (#78B0EA), which is a fill color — too light to set text on. These two are the
+     ramp continued into text-safe territory, so the strip's type stays blue-toned instead of falling back to
+     neutral gray. Both clear WCAG AA (4.5:1) against the gradient's darkest stop, --color-blue-300. */
+  --deploy-strip-text: #3d5a68;
+  --deploy-strip-link: #1c5c9e;
+
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px var(--space-xs);
+  margin: 0 0 var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--color-blue-400);
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--color-blue-100) 0%, var(--color-blue-300) 100%);
+  font: var(--text-small-regular);
+  color: var(--deploy-strip-text);
+}
+
+.deploy-strip > span {
+  white-space: nowrap;
+}
+
+/* The one identifier an admin is usually here to read, so it gets pill treatment: a white chip lifts off the blue
+   gradient and reads as the strip's primary control. */
+.deploy-strip-version {
+  padding: 2px 10px;
+  border: 1px solid var(--color-blue-400);
+  border-radius: 999px;
+  background: var(--color-neutral-white);
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--deploy-strip-link);
+  text-decoration: none;
+}
+
+.deploy-strip-version:hover,
+.deploy-strip-version:focus-visible {
+  background: var(--color-blue-200);
+  text-decoration: underline;
+}
+
+/* Field labels ("released", "commit", ...). <b> rather than <strong>: these draw the eye so the strip can be
+   scanned by field, but they carry no more importance than the values beside them — <strong> would tell a screen
+   reader the opposite. */
+.deploy-strip-label {
+  font-weight: 700;
+  color: var(--deploy-strip-link);
+}
+
+/* Decorative (aria-hidden) dots, so they sit below text contrast and let the fields themselves lead. */
+.deploy-strip-sep {
+  color: var(--color-blue-500);
+}
+
+.deploy-strip-env {
+  font: var(--text-tiny-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 1px 7px;
+  border: 1px solid var(--color-neutral-300);
+  border-radius: 10px;
+  background: var(--color-neutral-white);
+  color: var(--color-neutral-700);
+}
+
+/* Prod gets the green "live" tint (same pair as .activity-feed-badge.is-validate); test/local stay neutral. */
+.deploy-strip-env-prod {
+  border-color: #bcdcc7;
+  background: #e9f3ec;
+  color: #1f6b3b;
+}
+
+/* Release notes are a full sentence, so they always take their own row rather than wrapping unpredictably and
+   stranding the field before them. Truncates at one line; title attr carries the full text. */
+.deploy-strip-desc {
+  flex: 1 1 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* --- Status / error line ------------------------------------------------------------------------------------- */
+.coverage-status {
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+}
+
+.coverage-status.error {
+  color: var(--color-error-200);
+}
+
+.coverage-status.hidden {
+  display: none;
+}
+
+/* --- Map ----------------------------------------------------------------------------------------------------- */
+.coverage-map {
+  width: 100%;
+  height: 480px;
+  border: 1px solid var(--color-neutral-200);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* Coverage legend: a gradient bar with 0% / 100% end labels. */
+.coverage-legend {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+}
+
+.coverage-legend-gradient {
+  flex: 0 0 220px;
+  height: 12px;
+  border-radius: 6px;
+  background: linear-gradient(to right, var(--coverage-c0), var(--coverage-c1), var(--coverage-c2), var(--coverage-c3));
+  border: 1px solid var(--color-neutral-200);
+}
+
+/* Mapbox popup tweaks so the tooltip matches the dashboard type. */
+.coverage-map .mapboxgl-popup-content {
+  font: var(--text-caption-regular);
+  padding: 8px 10px;
+}
+
+.coverage-popup-name {
+  font-weight: 700;
+  color: var(--color-neutral-900);
+  margin-bottom: 4px;
+}
+
+.coverage-popup-dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 2px var(--space-sm);
+  margin: 0;
+}
+.coverage-popup-dl dt { color: var(--color-neutral-700); }
+
+.coverage-popup-dl dd {
+  margin: 0;
+  color: var(--color-neutral-900);
+  font-weight: 600;
+}
+
+/* --- Bar chart ----------------------------------------------------------------------------------------------- */
+
+/* No overflow-x:auto — a scrollable box lets the Vega SVG keep its natural (slightly-too-wide) size instead of
+   fitting; hiding overflow lets autosize:fit-x size the chart exactly to the container with no sliver scrollbar. */
+.coverage-bars {
+  width: 100%;
+  overflow-x: hidden;
+}
+.coverage-bars .vega-embed { width: 100%; }
+.coverage-bars .vega-embed svg { display: block; }
+
+/* Sort toggle above the chart. */
+.coverage-sort {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-sm);
+}
+
+.coverage-sort-label {
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+}
+
+.coverage-sort-btn {
+  font: var(--text-small-regular);
+  padding: 4px 12px;
+  border: 1px solid var(--color-neutral-400);
+  background: var(--color-neutral-white);
+  color: var(--color-neutral-900);
+  border-radius: 6px;
+  cursor: pointer;
+}
+.coverage-sort-btn:hover { background: var(--color-neutral-100); }
+
+.coverage-sort-btn.active {
+  background: var(--color-asphalt-500);
+  border-color: var(--color-asphalt-500);
+  color: var(--color-neutral-white);
+}
+
+.coverage-sort-btn:focus-visible {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: 2px;
+}
+
+/* --- View toggle (Per region / Distribution) ----------------------------------------------------------------- */
+.coverage-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-md);
+}
+
+.coverage-toggle-btn {
+  font: var(--text-small-regular);
+  padding: 4px 12px;
+  border: 1px solid var(--color-neutral-400);
+  background: var(--color-neutral-white);
+  color: var(--color-neutral-900);
+  border-radius: 6px;
+  cursor: pointer;
+}
+.coverage-toggle-btn:hover { background: var(--color-neutral-100); }
+
+.coverage-toggle-btn.active {
+  background: var(--color-asphalt-500);
+  border-color: var(--color-asphalt-500);
+  color: var(--color-neutral-white);
+}
+
+.coverage-toggle-btn:focus-visible {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: 2px;
+}
+
+/* --- Distribution view: histogram --------------------------------------------------------------------------- */
+.coverage-histogram {
+  width: 100%;
+  overflow-x: hidden;
+  margin-bottom: var(--space-md);
+}
+.coverage-histogram .vega-embed { width: 100%; }
+.coverage-histogram .vega-embed svg { display: block; }
+
+/* --- Distribution view: searchable region table ------------------------------------------------------------- */
+.coverage-table-controls { margin: var(--space-sm) 0; }
+
+.coverage-table-search {
+  width: 100%;
+  max-width: 320px;
+}
+
+/* --- Data Quality scorecard --------------------------------------------------------------------------------- */
+.dq-rows {
+  display: flex;
+  flex-direction: column;
+}
+
+.dq-row {
+  display: grid;
+  grid-template-columns: 22px 10px minmax(120px, 160px) 1fr minmax(120px, 150px);
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 6px 0;
+  border-bottom: 1px solid var(--color-neutral-100);
+}
+
+.dq-icon {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+
+.dq-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.dq-name {
+  font: var(--text-small-regular);
+  color: var(--color-neutral-900);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dq-chart { min-width: 0; }
+
+.dq-value {
+  font: var(--text-small-bold);
+  color: var(--color-neutral-900);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.dq-sub {
+  color: var(--color-neutral-700);
+  font-weight: 400;
+}
+
+.dq-empty {
+  color: var(--color-neutral-700);
+  font: var(--text-small-regular);
+}
+
+/* Horizontal bars (counts + stacked agree/disagree). */
+.dq-bar-track {
+  height: 14px;
+  background: var(--color-neutral-100);
+  border-radius: 7px;
+  overflow: hidden;
+}
+
+.dq-bar {
+  height: 100%;
+  border-radius: 7px;
+}
+.dq-stack { display: flex; }
+
+.dq-bar-agree {
+  height: 100%;
+  background: var(--color-pine-500);
+}
+
+.dq-bar-disagree {
+  height: 100%;
+  background: var(--color-error-200);
+  opacity: 0.8;
+}
+
+/* Severity 1–5 track: translucent ±SD band with a marker at the mean. */
+.dq-sev-track {
+  position: relative;
+  height: 14px;
+  background: var(--color-neutral-100);
+  border-radius: 7px;
+}
+
+.dq-sev-band {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: var(--color-neutral-400);
+  opacity: 0.45;
+  border-radius: 7px;
+}
+
+.dq-sev-marker {
+  position: absolute;
+  top: -2px;
+  width: 4px;
+  height: 18px;
+  border-radius: 2px;
+  transform: translateX(-50%);
+}
+
+.dq-sev-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dq-sev-ends {
+  display: flex;
+  justify-content: space-between;
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+}
+
+/* Tag usage: per-type chip groups. */
+.dq-tag-group { margin-bottom: var(--space-md); }
+
+.dq-tag-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-xs);
+}
+
+.dq-tag-head .dq-name {
+  font-weight: 600;
+  color: var(--color-neutral-900);
+}
+
+.dq-tag-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Tag-severity heatmap: a responsive grid of compact per-label-type matrices (rows = tags, cols = severity 1–3). */
+#dq-tag-severity {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--space-lg);
+}
+
+/* Size the tag-name column to its content (not a flex fraction) so the matrix stays compact and sits directly under
+   its label-type header, instead of stretching across the cell and leaving the header stranded to the left. */
+.dq-heat-grid {
+  display: grid;
+  grid-template-columns: max-content repeat(3, 30px) max-content;
+  gap: 3px;
+  align-items: center;
+  justify-content: start;
+}
+
+.dq-heat-colhead {
+  font: var(--text-caption-semibold);
+  color: var(--color-neutral-700);
+  text-align: center;
+}
+.dq-heat-colhead:last-child { text-align: right; }
+
+.dq-heat-rowlabel {
+  font: var(--text-small-regular);
+  color: var(--color-neutral-900);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: right; /* hug the cells so short tag names don't leave a big gap before the matrix */
+}
+
+.dq-heat-cell {
+  height: 26px;
+  border-radius: 3px;
+  border: 1px solid var(--color-neutral-100);
+}
+
+.dq-heat-total {
+  font: var(--text-small-regular);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-neutral-900);
+  text-align: right;
+}
+
+.dq-tag-row {
+  display: grid;
+  grid-template-columns: minmax(110px, 180px) 1fr 56px;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.dq-tag-name {
+  font: var(--text-small-regular);
+  color: var(--color-neutral-900);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dq-tag-count {
+  font: var(--text-small-bold);
+  color: var(--color-neutral-900);
+  text-align: right;
+}
+
+/* --- Data Quality: severity sub-sections, smiley legend, Validate action -------------------------------------- */
+.dq-sevlegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  margin-bottom: var(--space-sm);
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+}
+
+.dq-smiley {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.dq-smiley img { display: block; }
+
+/* Rows that carry a trailing action button get an extra column. */
+.dq-row--action {
+  grid-template-columns: 22px 10px minmax(110px, 150px) 1fr minmax(88px, 120px) auto;
+}
+
+.dq-validate-btn {
+  display: inline-block;
+  font: var(--text-caption-regular);
+  padding: 3px 10px;
+  border: 1px solid var(--color-asphalt-500);
+  border-radius: 6px;
+  color: var(--color-asphalt-500);
+  background: var(--color-neutral-white);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.dq-validate-btn:hover {
+  background: var(--color-asphalt-500);
+  color: var(--color-neutral-white);
+}
+
+.dq-validate-btn:focus-visible {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: 2px;
+}
+
+/* --- Data Quality: quality-over-time line chart (inline SVG, no charting lib) -------------------------------- */
+.dq-trend { width: 100%; }
+
+.dq-trend-caption {
+  margin-top: var(--space-xs);
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+}
+.dq-trend-caption strong { color: var(--color-neutral-900); }
+
+/* --- Shared MiniLineChart (Data Quality agreement trend, API usage trend) ----------------------------------- */
+
+/* Charts are sized to their container's pixel width by MiniLineChart.renderInto (so text/lines/dots stay constant size
+   while still filling the width); width:100% just lets the rendered SVG occupy its host. */
+.mini-chart-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.mini-host { width: 100%; }
+
+.mini-grid {
+  stroke: var(--color-neutral-200);
+  stroke-width: 1;
+}
+
+.mini-axis {
+  fill: var(--color-neutral-700);
+  font: var(--text-caption-regular);
+}
+
+/* Per-bar value labels (opts.barValues). Text tokens, not the series color, so the numbers stay readable. */
+.mini-value {
+  fill: var(--color-neutral-700);
+  font: var(--text-caption-semibold);
+}
+
+/* Emphasized category (opts.emphasisIndex — e.g. the in-progress "today" bar): bolder, darker text; the bar itself
+   renders with a lighter fill + solid outline so a partial period reads as still accumulating. */
+.mini-axis--emphasis,
+/* Reference line: a target the bars are read against (e.g. the poll's nightly batch size), not a data series. */
+.mini-ref {
+  stroke: var(--color-neutral-700);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 4;
+  opacity: 0.75;
+}
+
+.mini-ref-label {
+  fill: var(--color-neutral-700);
+  font: var(--text-caption-semibold);
+}
+
+.mini-value--emphasis {
+  fill: var(--color-neutral-900);
+  font-weight: 700;
+}
+
+.mini-bar--emphasis {
+  fill-opacity: 0.45;
+  stroke-width: 1.5;
+}
+
+/* Full-plot-height hover/focus target for each bar, so a zero-value category is still reachable. Must be
+   `transparent` and not `none`: `fill: none` makes an SVG shape ignore pointer events entirely. */
+.mini-bar-hit {
+  fill: transparent;
+}
+
+.mini-bar-hit:focus-visible {
+  outline: none;
+  stroke: var(--color-neutral-900);
+  stroke-dasharray: 3 2;
+  stroke-width: 1.5;
+}
+
+.mini-line {
+  fill: none;
+  stroke-width: 2;
+}
+.mini-line--human { stroke: var(--dq-human); }      .mini-pt--human { fill: var(--dq-human); }
+.mini-line--ai { stroke: var(--dq-ai); }            .mini-pt--ai { fill: var(--dq-ai); }
+.mini-line--external { stroke: var(--api-external); } .mini-pt--external { fill: var(--api-external); }
+.mini-line--apidocs { stroke: var(--api-docs); }    .mini-pt--apidocs { fill: var(--api-docs); }
+
+/* Activity page: a single accent for the volume small-multiples; registered/anon pair for active contributors. */
+.mini-line--activity { stroke: var(--act-accent); }       .mini-pt--activity { fill: var(--act-accent); }
+.mini-line--registered { stroke: var(--act-registered); } .mini-pt--registered { fill: var(--act-registered); }
+.mini-line--anon { stroke: var(--act-anon); }             .mini-pt--anon { fill: var(--act-anon); }
+.mini-swatch--registered { background: var(--act-registered); }
+.mini-swatch--anon { background: var(--act-anon); }
+
+.mini-legend {
+  display: flex;
+  gap: var(--space-md);
+  margin-top: var(--space-xs);
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+}
+
+.mini-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mini-swatch {
+  width: 12px;
+  height: 3px;
+  border-radius: 2px;
+  display: inline-block;
+}
+.mini-swatch--human { background: var(--dq-human); }
+.mini-swatch--ai { background: var(--dq-ai); }
+.mini-swatch--external { background: var(--api-external); }
+.mini-swatch--apidocs { background: var(--api-docs); }
+
+/* Square swatch variant for bar-chart legends (the base .mini-swatch is a thin line for the line chart). */
+.mini-swatch--block {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+/* API source-split stacked bars (external = blue, docs = grey; shown when a chart's "docs traffic" switch is on). */
+.api-bar-external {
+  height: 100%;
+  background: var(--api-external, #2171b5);
+}
+
+.api-bar-docs {
+  height: 100%;
+  background: var(--api-docs, var(--color-neutral-600));
+}
+
+/* Per-chart "show docs traffic" control: the active date range, a switch, and a legend that appears once it's on. */
+.api-docs-control {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-sm);
+
+  /* Tight line-height so the caption text's box matches the switch/dot height and align-items truly centers them. */
+  line-height: 1;
+}
+
+/* Active date-range caption shown on each chart so the selected range is always explicit. */
+.api-range-caption {
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+}
+
+.api-range-caption--block {
+  display: block;
+  margin-bottom: var(--space-sm);
+}
+
+/* Dot divider between the date-range caption and the docs-traffic switch (CSS circle so it centers cleanly). */
+.api-control-sep {
+  flex: none;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--color-neutral-400);
+}
+
+.api-docs-legend {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-md);
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+}
+.api-docs-legend.hidden { display: none; }
+
+/* Accessible switch: a visually-hidden checkbox drives a sliding track + knob. */
+.api-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+
+  /* Reset the global Bootstrap `label` margin/weight so the switch centers in the flex row and the text isn't bold. */
+  margin: 0;
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+}
+
+.api-toggle input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.api-toggle-slider {
+  position: relative;
+  flex: none;
+  width: 34px;
+  height: 18px;
+  background: var(--color-neutral-300);
+  border-radius: 9px;
+  transition: background 0.15s ease;
+}
+
+.api-toggle-slider::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  background: var(--color-neutral-white);
+  border-radius: 50%;
+  transition: transform 0.15s ease;
+}
+.api-toggle input:checked + .api-toggle-slider { background: var(--api-external, #2171b5); }
+.api-toggle input:checked + .api-toggle-slider::before { transform: translateX(16px); }
+
+.api-toggle input:focus-visible + .api-toggle-slider {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: 2px;
+}
+
+/* --- Contributors page -------------------------------------------------------------------------------------- */
+.contrib-seg { height: 100%; }
+.contrib-seg--high { background: var(--color-pine-500); }
+
+.contrib-seg--low {
+  background: var(--color-error-200);
+  opacity: 0.8;
+}
+
+.contrib-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  margin-top: var(--space-sm);
+  font: var(--text-small-regular);
+  color: var(--color-neutral-900);
+}
+
+.contrib-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.contrib-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  display: inline-block;
+}
+.contrib-swatch.contrib-seg--high { background: var(--color-pine-500); }
+.contrib-swatch.contrib-seg--low { background: var(--color-error-200); }
+
+.contrib-row {
+  display: grid;
+  grid-template-columns: minmax(110px, 180px) 1fr 56px;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 5px 0;
+}
+
+.contrib-row-label {
+  font: var(--text-small-regular);
+  color: var(--color-neutral-900);
+}
+
+.contrib-row-count {
+  font: var(--text-small-bold);
+  color: var(--color-neutral-900);
+  text-align: right;
+}
+
+/* --- Contributors: Top labelers / Top validators leaderboards ----------------------------------------------- */
+.contrib-table td.num, .contrib-table th.num { white-space: nowrap; }
+.contrib-table .dq-sub { font-weight: 400; }
+
+.contrib-badge {
+  display: inline-block;
+  font: var(--text-caption-semibold);
+  padding: 1px 8px;
+  border-radius: 10px;
+}
+
+.contrib-badge--high {
+  background: #e3f3ea;
+  color: #1f7a47;
+}
+
+.contrib-badge--low {
+  background: #fde3e3;
+  color: #a32020;
+}
+
+/* Label-type mix bar (canonical label-type colors). */
+.contrib-typebar {
+  display: inline-flex;
+  width: 130px;
+  height: 12px;
+  border-radius: 3px;
+  overflow: hidden;
+  vertical-align: middle;
+  background: var(--color-neutral-100);
+}
+.contrib-typeseg { height: 100%; }
+
+/* Severity mini-distribution: fixed 1–3 domain (#3306), bar heights ∝ count within the row. */
+.contrib-sevdist {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 22px;
+  width: 34px;
+  vertical-align: middle;
+}
+
+.contrib-sevbar {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  background: var(--color-neutral-100);
+  border-radius: 1px;
+}
+
+.contrib-sevbar > span {
+  width: 100%;
+  min-height: 1px;
+  background: #5a7785;
+  border-radius: 1px;
+}
+
+/* Validator verdict bar: agree (green) / disagree (red) / unsure (grey), with the split spelled out. */
+.contrib-verdictwrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.contrib-verdictbar {
+  display: inline-flex;
+  width: 120px;
+  height: 12px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--color-neutral-100);
+}
+.contrib-verdictseg { height: 100%; }
+.contrib-verdictseg.is-agree { background: #2e8b57; }
+.contrib-verdictseg.is-disagree { background: #d55e00; }
+.contrib-verdictseg.is-unsure { background: #999999; }
+
+.contrib-verdictpct {
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+  white-space: nowrap;
+}
+
+/* --- API Analytics: endpoint / format rows ------------------------------------------------------------------ */
+.api-ep-row {
+  display: grid;
+  grid-template-columns: minmax(150px, 220px) 1fr minmax(130px, 170px);
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 5px 0;
+}
+
+.api-ep-label {
+  font: var(--text-code-regular);
+  color: var(--color-neutral-900);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.api-ep-value {
+  font: var(--text-small-bold);
+  color: var(--color-neutral-900);
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* --- Activity page: controls, volume small-multiples, active-users chart, recent-activity feed ----------------- */
+
+/* "Last activity" banner: when the deployment was last active + who, with a jump-to-all-time when window is empty. */
+.activity-latest {
+  margin-top: var(--space-sm);
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+}
+.activity-latest:empty { display: none; }
+.activity-latest strong { color: var(--color-neutral-900); }
+
+.activity-latest-warn {
+  color: var(--color-error-200);
+  font-weight: 600;
+}
+
+.activity-link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  margin-left: 2px;
+  color: var(--color-link-200);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.activity-link-btn:focus-visible {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: 2px;
+}
+
+.activity-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+/* One card per metric; they wrap into a responsive grid so each chart keeps a readable width. */
+.activity-smallmultiples {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--space-md);
+}
+
+.activity-card, .activity-chart-card {
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--border-radius-lg);
+  padding: var(--space-md);
+  background: var(--color-blue-100);
+}
+
+/* The active-contributors line: thinner + translucent so the two overlapping series read clearly where they cross. */
+#activity-active .mini-line {
+  stroke-width: 1.5;
+  stroke-opacity: 0.8;
+}
+#activity-active .mini-pt { fill-opacity: 0.85; }
+
+.activity-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-xs);
+}
+
+.activity-card-title {
+  font: var(--text-small-bold);
+  color: var(--color-neutral-900);
+}
+
+.activity-card-total {
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+  white-space: nowrap;
+}
+
+.activity-card-total strong {
+  color: var(--color-neutral-900);
+  font-weight: 700;
+}
+
+/* Recent-activity feed. */
+.activity-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.activity-feed-item {
+  display: grid;
+  grid-template-columns: 104px 92px 1fr auto;
+  align-items: start;
+  gap: var(--space-md);
+  padding: var(--space-md) 0;
+  border-bottom: 1px solid var(--color-neutral-100);
+}
+
+/* Leading preview thumbnail (or an empty placeholder that holds the column so rows stay aligned). */
+.activity-feed-thumb {
+  width: 104px;
+  height: 72px;
+  border-radius: 6px;
+  object-fit: cover;
+  background: var(--color-neutral-100);
+  border: 1px solid var(--color-neutral-200);
+}
+
+.activity-feed-thumb--none {
+  background: transparent;
+  border: 0;
+}
+.activity-feed-thumb.is-broken { visibility: hidden; }
+
+img.activity-feed-thumb {
+  cursor: pointer;
+  transition: box-shadow 0.12s ease;
+}
+img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
+
+/* Contributor identity: a linked username, a role chip, and a quiet all-time totals line. */
+.activity-feed-user {
+  font-weight: 600;
+  color: var(--color-link-200);
+}
+
+.activity-feed-role {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 9px;
+  font: var(--text-caption-semibold);
+  color: var(--color-neutral-700);
+  background: var(--color-neutral-100);
+  vertical-align: 1px;
+}
+
+.activity-feed-sub {
+  margin-top: 3px;
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+}
+
+.activity-feed-badge {
+  font: var(--text-caption-semibold);
+  padding: 2px 8px;
+  border-radius: 10px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.activity-feed-badge.is-label {
+  background: #e3eef8;
+  color: #1a4e7a;
+}
+
+.activity-feed-badge.is-validate {
+  background: #e9f3ec;
+  color: #1f6b3b;
+}
+
+.activity-feed-badge.is-comment {
+  background: #f3eefa;
+  color: #5a3b86;
+}
+.activity-feed-body { min-width: 0; }
+
+.activity-feed-text {
+  color: var(--color-neutral-900);
+  font: var(--text-small-regular);
+  overflow-wrap: anywhere;
+}
+
+.activity-feed-meta {
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+  margin-top: 2px;
+}
+.activity-feed-meta a { color: var(--color-link-200); }
+
+.activity-feed-time {
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+  white-space: nowrap;
+  text-align: right;
+}
+
+/* --- Humans vs AI ------------------------------------------------------------------------------------------- */
+
+.hva-boundary {
+  color: var(--color-neutral-700);
+  font: var(--text-small-regular);
+}
+
+.hva-summary {
+  font-weight: 600;
+  color: var(--color-neutral-900);
+  margin: var(--space-sm) 0 0;
+}
+
+.hva-note {
+  color: var(--color-neutral-700);
+  font: var(--text-small-regular);
+}
+
+.hva-empty {
+  color: var(--color-neutral-700);
+  background: var(--color-blue-100);
+  border: 1px dashed var(--color-neutral-200);
+  border-radius: 6px;
+  padding: var(--space-sm) var(--space-md);
+  font: var(--text-small-regular);
+}
+
+.hva-fill--human { background: var(--hva-human); }
+.hva-fill--ai { background: var(--hva-ai); }
+
+/* Legend atop each grouped viz. */
+.hva-legend {
+  display: flex;
+  gap: var(--space-md);
+  margin-bottom: var(--space-sm);
+}
+
+.hva-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+}
+
+.hva-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  display: inline-block;
+}
+
+/* A label-type / category row with its paired human+AI bars. */
+.hva-group {
+  display: grid;
+  grid-template-columns: minmax(120px, 200px) 1fr;
+  align-items: center;
+  gap: var(--space-md);
+  padding: 8px 0;
+  border-top: 1px solid var(--color-neutral-100);
+}
+.hva-group:first-of-type { border-top: 0; }
+
+.hva-group-label {
+  font: var(--text-small-regular);
+  color: var(--color-neutral-900);
+}
+
+.hva-group-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+/* One human-or-AI bar: side label, track, value. */
+.hva-bar {
+  display: grid;
+  grid-template-columns: 48px 1fr auto;
+  align-items: center;
+  gap: var(--space-sm);
+}
+.hva-bar--muted { opacity: 0.45; }
+
+.hva-bar-side {
+  font: var(--text-caption-semibold);
+  color: var(--color-neutral-700);
+}
+
+.hva-bar-value {
+  font: var(--text-small-bold);
+  color: var(--color-neutral-900);
+  white-space: nowrap;
+}
+
+/* Label-type cell: icon/dot + name. */
+.hva-type {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hva-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+  flex: none;
+}
+
+/* Validator verdict rows. */
+.hva-verdict-row {
+  display: grid;
+  grid-template-columns: 72px 1fr 64px;
+  align-items: center;
+  gap: var(--space-md);
+  padding: 8px 0;
+}
+
+.hva-verdict-name {
+  font-weight: 600;
+  color: var(--color-neutral-900);
+}
+.hva-verdict-n { text-align: right; }
+
+/* Stretch the reused verdict bar full-width here (it's fixed-width in the Contributors tables). */
+.hva-verdict-row .contrib-verdictwrap {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.hva-verdict-row .contrib-verdictbar {
+  width: auto;
+  flex: 1;
+  height: 14px;
+  border-radius: 7px;
+}
+
+/* Tagger: two ranked tag lists side by side. */
+.hva-tags {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--space-lg);
+}
+
+.hva-taglist-title {
+  font: var(--text-small-bold);
+  color: var(--color-neutral-900);
+  margin: 0 0 var(--space-sm);
+}
+
+/* === Overview landing page (#4272) ============================================================================== */
+
+/* The "latest activity" pulse line under the intro: a quiet, single-line read that the deployment is alive. */
+.ov-pulse {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin: var(--space-lg) 0 0;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--color-neutral-200);
+  border-radius: 8px;
+  background: var(--color-blue-100);
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+}
+
+.ov-pulse strong {
+  color: var(--color-neutral-900);
+  font-weight: 600;
+}
+
+.ov-pulse-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+/* The lens cards: a responsive grid of clickable summary tiles, each linking to its detailed page. */
+.ov-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--space-md);
+  margin: var(--space-lg) 0;
+}
+
+.ov-card {
+  display: block;
+  border: 1px solid var(--color-neutral-200);
+  border-radius: 8px;
+  padding: var(--space-md);
+  background: var(--color-neutral-white);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease, transform 0.12s ease;
+}
+
+.ov-card:hover, .ov-card:focus-visible {
+  border-color: var(--color-link-100);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 8%);
+  transform: translateY(-1px);
+  text-decoration: none;
+}
+
+.ov-card:focus-visible {
+  outline: 2px solid var(--color-link-100);
+  outline-offset: 2px;
+}
+
+.ov-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ov-card-title {
+  font: var(--text-small-bold);
+  color: var(--color-neutral-700);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.ov-card-arrow {
+  color: var(--color-neutral-300);
+  font: var(--text-subtitle-regular);
+  transition: color 0.12s ease;
+}
+.ov-card:hover .ov-card-arrow, .ov-card:focus-visible .ov-card-arrow { color: var(--color-link-100); }
+
+.ov-card-value {
+  display: block;
+  margin-top: var(--space-sm);
+  font: var(--text-h3-bold);
+  line-height: 1.05;
+  color: var(--color-neutral-900);
+}
+
+.ov-card-sub {
+  display: block;
+  margin-top: 4px;
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+  min-height: 1.2em;
+}
+
+.ov-card-desc {
+  margin: var(--space-sm) 0 0;
+  font: var(--text-caption-regular);
+  line-height: 1.35;
+  color: var(--color-neutral-700);
+}
+
+/* Week-over-week trend line under the headline value (direction-colored). */
+.ov-card-trend {
+  display: block;
+  margin-top: 4px;
+  font: var(--text-caption-semibold);
+  min-height: 1.1em;
+  color: var(--color-neutral-700);
+}
+.ov-trend--up { color: #1f7a44; }
+.ov-trend--down { color: #c0392b; }
+.ov-trend--flat { color: var(--color-neutral-700); }
+
+/* Compact line-only sparkline. */
+.ov-card-spark {
+  margin-top: var(--space-sm);
+  height: 36px;
+}
+
+.ov-spark-svg {
+  width: 100%;
+  height: 36px;
+  display: block;
+  overflow: visible;
+}
+
+.ov-spark-line {
+  fill: none;
+  stroke: var(--color-link-100);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.ov-spark-dot { fill: var(--color-link-100); }
+
+/* "Needs attention" panel: deep-linked action rows with a severity dot. */
+.ov-attention {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin: var(--space-md) 0;
+}
+
+.ov-attention-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--color-neutral-200);
+  border-left-width: 4px;
+  border-radius: 8px;
+  background: var(--color-neutral-white);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.ov-attention-item:hover, .ov-attention-item:focus-visible {
+  box-shadow: 0 2px 8px rgb(0 0 0 / 8%);
+  text-decoration: none;
+}
+
+.ov-attention-item:focus-visible {
+  outline: 2px solid var(--color-link-100);
+  outline-offset: 2px;
+}
+.ov-attention--warn { border-left-color: #e0a800; }
+.ov-attention--info { border-left-color: var(--color-link-100); }
+
+.ov-attention-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+.ov-attention--warn .ov-attention-dot { background: #e0a800; }
+.ov-attention--info .ov-attention-dot { background: var(--color-link-100); }
+
+.ov-attention-text {
+  font: var(--text-small-regular);
+  color: var(--color-neutral-900);
+}
+.ov-attention-text strong { color: var(--color-neutral-900); }
+
+.ov-attention-go {
+  font: var(--text-small-bold);
+  color: var(--color-link-200);
+  white-space: nowrap;
+}
+
+.ov-attention-clear {
+  margin: var(--space-md) 0;
+  padding: var(--space-md);
+  border: 1px solid var(--color-neutral-200);
+  border-left: 4px solid #1f7a44;
+  border-radius: 8px;
+  background: var(--color-neutral-white);
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+}
+
+/* Live recent-activity strip. */
+.ov-recent {
+  display: flex;
+  flex-direction: column;
+  margin: var(--space-md) 0 var(--space-sm);
+}
+
+.ov-recent-item {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  align-items: center;
+  gap: var(--space-md);
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-neutral-100);
+}
+
+.ov-recent-thumb {
+  width: 72px;
+  height: 50px;
+  border-radius: 5px;
+  object-fit: cover;
+  background: var(--color-neutral-100);
+  border: 1px solid var(--color-neutral-200);
+}
+
+.ov-recent-thumb--none {
+  background: transparent;
+  border: 0;
+}
+.ov-recent-thumb.is-broken { visibility: hidden; }
+
+.ov-recent-text {
+  font: var(--text-small-regular);
+  color: var(--color-neutral-900);
+}
+
+.ov-recent-meta {
+  margin-top: 2px;
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+}
+
+.ov-recent-more {
+  display: inline-block;
+  font: var(--text-small-bold);
+  color: var(--color-link-200);
+  text-decoration: none;
+}
+.ov-recent-more:hover { text-decoration: underline; }
+
+/* --- Management page ----------------------------------------------------------------------------------------- */
+
+/* Toolbar above the user directory: search box + a live count of matching rows. */
+.mgmt-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-sm);
+}
+
+.mgmt-search { flex: 0 1 320px; }
+
+.mgmt-count {
+  white-space: nowrap;
+  font: var(--text-small-regular);
+}
+
+.mgmt-table { min-width: 100%; }
+
+/* Sortable column headers: the whole header is a button so it's keyboard-operable; aria-sort lives on the th. */
+.ps-table th.mgmt-th { padding: 0; }
+
+.mgmt-sort {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  background: none;
+  border: 0;
+
+  /* Match .ps-table--compact cell padding exactly so the header label aligns with the cell content below it. */
+  padding: var(--space-xs) var(--space-sm);
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-align: inherit;
+}
+.mgmt-th.num .mgmt-sort { justify-content: flex-end; }
+.mgmt-sort:hover { color: var(--color-link-200); }
+
+.mgmt-sort:focus-visible {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: -2px;
+}
+
+.mgmt-arrow {
+  font-size: 0.7em;
+  color: var(--color-neutral-700);
+}
+
+/* Inline role / team selects, capped so a long team name can't widen its column. */
+.mgmt-select {
+  max-width: 160px;
+}
+
+/* Team status / visibility toggles: a single pill that states the current value and flips on click. */
+.mgmt-toggle {
+  padding: 3px 12px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  font: var(--text-caption-semibold);
+  cursor: pointer;
+}
+
+.mgmt-toggle.is-on {
+  background: #e3f3ea;
+  color: #1f7a47;
+  border-color: #bfe4cd;
+}
+
+.mgmt-toggle.is-off {
+  background: var(--color-neutral-100);
+  color: var(--color-neutral-700);
+  border-color: var(--color-neutral-300);
+}
+
+.mgmt-toggle:focus-visible {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: 2px;
+}
+
+/* Maintenance jobs: a stack of "label + Run button" rows, with a shared result line beneath. */
+.mgmt-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  max-width: 640px;
+}
+
+.mgmt-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--color-neutral-200);
+  border-radius: 8px;
+}
+
+.mgmt-action-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.mgmt-run { flex: none; }
+
+.mgmt-run:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.mgmt-result {
+  margin-top: var(--space-sm);
+  min-height: 1.2em;
+}
+.mgmt-result.error { color: #a32020; }
+
+/* "manual" tag beside a quality badge when an admin set the flag by hand. */
+.mgmt-manual-tag {
+  font: var(--text-caption-regular);
+  font-style: italic;
+  color: var(--color-neutral-700);
+}
+
+/* Pagination bar beneath the user directory: page controls on the left, rows-per-page on the right. */
+.mgmt-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+}
+#mgmt-pagination-top:not(:empty) { margin-bottom: var(--space-xs); }
+
+.mgmt-page-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+}
+
+.mgmt-page-btn {
+  font: var(--text-small-regular);
+  padding: 4px 10px;
+  border: 1px solid var(--color-neutral-400);
+  background: var(--color-neutral-white);
+  color: var(--color-neutral-900);
+  border-radius: 6px;
+  cursor: pointer;
+}
+.mgmt-page-btn:hover:not(:disabled) { background: var(--color-neutral-100); }
+
+.mgmt-page-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.mgmt-page-btn:focus-visible {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: 2px;
+}
+
+.mgmt-page-info {
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+  padding: 0 var(--space-xs);
+}
+
+.mgmt-page-size-label {
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* --- Label Map page ------------------------------------------------------------------------------------------ */
+
+/* The shared PSMap fills a fixed-height holder; the common map sidebar positions itself absolutely inside it
+   (choropleth.css sets position:relative on .choropleth-holder). */
+.label-map-holder {
+  position: relative;
+  width: 100%;
+  min-height: 460px;
+  border: 1px solid var(--color-neutral-200);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* The holder also carries .choropleth-holder, whose `height: 100%` (choropleth.css, loaded after this
+   file) ties on specificity and would win by source order — collapsing the map div's `height: 100%` to
+   0. Pin the definite height via the holder's id so percentages below it resolve against a real height. */
+#admin-labelmap-choropleth-holder.label-map-holder { height: 72vh; }
+
+#admin-labelmap-choropleth {
+  width: 100%;
+  height: 100%;
+}
+
+/* Label-ID search row above the map. */
+.label-map-search {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin-top: var(--space-sm);
+}
+
+.label-map-search-label {
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+}
+.label-map-search .mgmt-search { flex: 0 1 160px; }
+.label-map-search-msg { margin-left: var(--space-xs); }
+.label-map-search-msg.error { color: #a32020; }
+
+/* --- Across Cities page (#4329) -------------------------------------------------------------------------------------
+ * Per-city scorecard table + anomaly chips. Reuses .ov-attention* for the "needs attention" panel and .dq-empty for
+ * empty states; only the table, coverage mini-bar, and chips are new here. */
+.ac-pulse {
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+  margin-top: var(--space-sm);
+}
+.ac-pulse strong { color: var(--color-neutral-900); }
+
+.ac-table-wrap {
+  overflow-x: auto;
+  margin: var(--space-md) 0;
+}
+
+/* Numeric columns dominate these tables, so right is the header default and a text column opts out. */
+.ac-table thead th { text-align: right; }
+.ac-table thead th.ac-th-text { text-align: left; }
+
+/* The tier above the column headers: a size down from them, spaced and capitalized like the other small labels. */
+.ac-table thead tr.ac-th-group th {
+  text-align: center;
+  border-bottom: 1px solid var(--color-neutral-200);
+  color: var(--color-neutral-700);
+  font: var(--text-caption-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.ac-table thead tr.ac-th-group td { border: 0; }
+
+/* Only the sortable tables' headers advertise themselves as clickable; several ac-tables have a fixed order. */
+.ac-table thead th[data-sort] {
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.ac-table thead th[data-sort]:hover { color: var(--color-link-200); }
+
+/* The active sort column reads a shade darker than its neighbours; the caret alone is too small a cue. */
+.ac-table thead th.ac-sorted { color: var(--color-neutral-900); }
+
+.ac-table thead th[data-sort]:focus-visible {
+  outline: 2px solid var(--color-link-100);
+  outline-offset: -2px;
+}
+
+/* Sort-direction caret on the active column. */
+.ac-table thead th.ac-sorted[data-dir="asc"]::after {
+  content: " \25B2";
+  font-size: 0.7em;
+}
+
+.ac-table thead th.ac-sorted[data-dir="desc"]::after {
+  content: " \25BC";
+  font-size: 0.7em;
+}
+
+
+.ac-num {
+  text-align: right;
+  white-space: nowrap;
+  color: var(--color-neutral-900);
+}
+.ac-muted { color: var(--color-neutral-700); }
+
+.ac-td-city a {
+  color: var(--color-link-200);
+  text-decoration: none;
+}
+.ac-td-city a:hover { text-decoration: underline; }
+
+/* Flagged rows get a subtle warning tint + left accent so they stand out in a long table. */
+.ac-row--flagged { background: #fffaf0; }
+.ps-table tbody tr.ac-row--flagged:hover > td { background: #fff4e0; }
+.ac-row--flagged .ac-td-city { box-shadow: inset 3px 0 0 #e0a800; }
+
+/* Coverage mini-bar: a thin track with a filled portion and the percentage overlaid. */
+.ac-bar {
+  position: relative;
+  width: 120px;
+  height: 16px;
+  background: var(--color-neutral-200);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.ac-bar-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  background: var(--color-link-100);
+  border-radius: 3px;
+}
+
+.ac-bar-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-900);
+}
+
+/* Anomaly chips shown inline next to a city's name. */
+.ac-chips {
+  display: inline-flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.ac-chip {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font: var(--text-caption-semibold);
+  white-space: nowrap;
+}
+
+.ac-chip--warn {
+  background: #fff3cd;
+  color: #8a6d00;
+}
+
+.ac-chip--info {
+  background: #e3f0fb;
+  color: #1c5a91;
+}
+
+/* --- Across Cities: over-time charts, sparklines, patterns (#4329) ----------------------------------------- */
+.ac-charts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: var(--space-lg);
+  margin: var(--space-md) 0;
+}
+.ac-chart { min-width: 0; }
+
+.ac-chart-title {
+  font: var(--text-small-bold);
+  color: var(--color-neutral-900);
+  margin: 0 0 var(--space-xs);
+}
+
+/* Sub-group headings inside the over-time section (weekly / cumulative / this week, #4686). */
+.ac-chart-group-title {
+  font: var(--text-subtitle-bold);
+  color: var(--color-neutral-900);
+  margin: var(--space-lg) 0 var(--space-sm);
+}
+
+.ac-note {
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+}
+
+/* MiniLineChart series colors for the three overview charts (one series each). */
+.mini-line--aclabels {
+  stroke: var(--color-link-100);
+  fill: none;
+  stroke-width: 2;
+}
+.mini-pt--aclabels   { fill: var(--color-link-100); }
+
+.mini-line--acvals   {
+  stroke: #63c0ab;
+  fill: none;
+  stroke-width: 2;
+}
+.mini-pt--acvals     { fill: #63c0ab; }
+
+.mini-line--acusers  {
+  stroke: var(--color-label-no-sidewalk);
+  fill: none;
+  stroke-width: 2;
+}
+.mini-pt--acusers    { fill: var(--color-label-no-sidewalk); }
+
+/* Bar variants for the "this week" charts (#4686), matching the line-series colors. The emphasis outline uses each
+   series' own color so today's lighter bar still reads as part of the series. */
+.mini-bar--aclabels  { fill: var(--color-link-100); }
+.mini-bar--acvals    { fill: #63c0ab; }
+.mini-bar--acusers   { fill: var(--color-label-no-sidewalk); }
+.mini-bar--emphasis.mini-bar--aclabels { stroke: var(--color-link-100); }
+.mini-bar--emphasis.mini-bar--acvals   { stroke: #63c0ab; }
+.mini-bar--emphasis.mini-bar--acusers  { stroke: var(--color-label-no-sidewalk); }
+
+/* Per-city activity sparkline. */
+.ac-spark-cell {
+  width: 100px;
+  color: var(--color-link-100);
+}
+
+.ac-spark {
+  display: block;
+  width: 90px;
+  height: 22px;
+}
+
+/* Data-patterns: legend + normalized stacked bars. */
+.ac-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin: var(--space-sm) 0;
+}
+
+.ac-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+}
+
+.ac-legend-swatch {
+  width: 11px;
+  height: 11px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+.ac-pattern-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin: 6px 0;
+}
+
+.ac-pattern-city {
+  flex: 0 0 200px;
+  font: var(--text-small-regular);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ac-pattern-city a {
+  color: var(--color-link-200);
+  text-decoration: none;
+}
+.ac-pattern-city a:hover { text-decoration: underline; }
+
+.ac-stack {
+  flex: 1 1 auto;
+  display: flex;
+  height: 18px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--color-neutral-100);
+}
+.ac-stack-seg { height: 100%; }
+
+.ac-stack-empty {
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+  padding-left: 6px;
+}
+
+/* --- Across Cities: lifecycle status badges (#4329) -------------------------------------------------------------- */
+.ac-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font: var(--text-caption-semibold);
+  white-space: nowrap;
+}
+
+.ac-badge--ok   {
+  background: #e3f0fb;
+  color: #1c5a91;
+}  /* Active */
+.ac-badge--good {
+  background: #e4f4ec;
+  color: #1f7a4d;
+}  /* Wrapped up (success) */
+.ac-badge--warn {
+  background: #fff3cd;
+  color: #8a6d00;
+}  /* Stalled */
+.ac-badge--bad  {
+  background: #fbe3e3;
+  color: #a32020;
+}  /* Low traction */
+
+/* --- Across Cities: over-time range toggle (#4329) --------------------------------------------------------------- */
+.ac-toggle {
+  display: inline-flex;
+  gap: 0;
+  margin: 0 0 var(--space-sm);
+}
+
+.ac-toggle-btn {
+  font: var(--text-small-regular);
+  padding: 4px 12px;
+  border: 1px solid var(--color-neutral-400);
+  background: var(--color-neutral-white);
+  color: var(--color-neutral-900);
+  cursor: pointer;
+}
+.ac-toggle-btn:first-child { border-radius: 4px 0 0 4px; }
+
+.ac-toggle-btn:last-child {
+  border-radius: 0 4px 4px 0;
+  border-left: none;
+}
+.ac-toggle-btn:hover { background: var(--color-neutral-100); }
+
+.ac-toggle-btn.active {
+  background: var(--color-asphalt-500);
+  border-color: var(--color-asphalt-500);
+  color: #ffffff;
+}
+
+/* --- Across Cities: hero stat band + deployment map (#4329) ------------------------------------------------------ */
+.ac-hero { margin-top: var(--space-lg); }
+
+.ac-hero-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.ac-hero-stat {
+  flex: 1 1 120px;
+  border: 1px solid var(--color-neutral-200);
+  border-radius: 8px;
+  padding: var(--space-md);
+  background: var(--color-neutral-white);
+}
+
+.ac-hero-value {
+  display: block;
+  font: var(--text-h3-bold);
+  line-height: 1.1;
+  color: var(--color-neutral-900);
+}
+
+.ac-hero-label {
+  display: block;
+  margin-top: 4px;
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+}
+
+/* Week-over-week delta line under a "Today & this week" tile (#4758); direction colors mirror .ov-trend--*. */
+.ac-hero-delta {
+  display: block;
+  margin-top: 4px;
+  font: var(--text-caption-semibold);
+  color: var(--color-neutral-700);
+}
+
+.ac-hero-delta--up { color: #1f7a44; }
+.ac-hero-delta--down { color: #c0392b; }
+.ac-hero-delta--flat { color: var(--color-neutral-700); }
+
+/* The same week-over-week signal sized for a table cell, under the count it qualifies (#4758). */
+.ac-cell-delta {
+  display: block;
+  margin-top: 2px;
+  font: var(--text-caption-semibold);
+  white-space: nowrap;
+}
+
+.ac-cell-delta--up { color: #1f7a44; }
+.ac-cell-delta--down { color: #c0392b; }
+.ac-cell-delta--flat { color: var(--color-neutral-700); }
+
+/* AI output reported beside the human count it accompanies, on a tile and in a table cell (#4931). Deliberately
+   quieter than the delta chips: it qualifies the number above it rather than competing with it, and it is dotted-
+   underlined because it carries its own tooltip explaining the split. */
+.ac-hero-ai,
+.ac-cell-ai {
+  display: block;
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+  white-space: nowrap;
+}
+
+.ac-hero-ai {
+  margin-top: 2px;
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+}
+
+.ac-hero-ai:empty,
+.ac-cell-ai:empty { display: none; }
+
+.ac-cell-ai { margin-top: 1px; }
+
+/* A cell whose hover card is also keyboard reachable: it takes focus, so it needs a focus ring (WCAG 2.4.7) and a
+   cursor that says there is more here than the number. */
+.ac-table td[data-ps-tooltip] { cursor: help; }
+
+.ac-table td[data-ps-tooltip]:focus-visible {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: -2px;
+}
+
+/* Hover-card contents (#4931). The card itself is styled in main.css (.ps-tooltip); these are the rows inside it,
+   which is why they live outside any page-scoped selector — psTooltip parks its card on <body>. */
+.ac-tip {
+  display: block;
+  min-width: 168px;
+}
+
+.ac-tip-title {
+  font: var(--text-caption-semibold);
+  margin-bottom: 3px;
+}
+
+.ac-tip-row {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+/* Tabular figures so the right-hand numbers line up column-wise down the card. */
+.ac-tip-num {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.ac-tip-row--ai { opacity: 0.75; }
+
+/* The line the hovered bar or cell actually draws. Weight alone carries it — the card is one type size throughout,
+   so a heavier line reads as "this is your number" without breaking the column of figures down the right edge.
+   Selected by the card's `data-emph` rather than baked into the row's class, so the three per-day charts can share one
+   built card and each still emphasize its own line. */
+.ac-tip-row--strong,
+.ac-tip[data-emph="labels"] [data-tip-row="labels"],
+.ac-tip[data-emph="validations"] [data-tip-row="validations"],
+.ac-tip[data-emph="contributors"] [data-tip-row="contributors"] { font: var(--text-caption-semibold); }
+
+.ac-tip-head {
+  font: var(--text-tiny-semibold);
+  margin-top: 6px;
+  margin-bottom: 1px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+.ac-tip-more {
+  opacity: 0.7;
+  font-style: italic;
+}
+
+/* Marks a contributor line as pipeline output rather than a person. */
+.ac-tip-tag {
+  margin-left: 4px;
+  padding: 0 3px;
+  border: 1px solid currentcolor;
+  border-radius: 3px;
+  font: var(--text-tiny-semibold);
+  opacity: 0.8;
+}
+
+/* Bars carrying a hover card take focus so the card is reachable by keyboard. `outline` on an SVG shape is unreliable
+   across engines, so the ring is drawn as a stroke on the bar itself. */
+.mini-bar[data-ps-tooltip]:focus-visible {
+  outline: none;
+  stroke: var(--color-neutral-900);
+  stroke-width: 2;
+}
+
+/* Row-count status and the link out to the full city list, on one line under a table. */
+.ac-table-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-xs);
+}
+
+.ac-see-all {
+  font: var(--text-small-bold);
+  white-space: nowrap;
+}
+
+.ac-map {
+  width: 100%;
+  height: 460px;
+  border: 1px solid var(--color-neutral-200);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* --- Across Cities: deployment map legend (#4329) ---------------------------------------------------------------- */
+.ac-map-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm) var(--space-md);
+  margin-top: var(--space-sm);
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+}
+
+.ac-legend-dot {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-right: 5px;
+  vertical-align: -2px;
+  border: 1px solid #ffffff;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 12%);
+}
+.ac-legend-dot--nostats { background: #9aa7b0; }
+
+/* Lifecycle status fills — keep in sync with #LIFECYCLE_COLORS in AcrossCitiesPage.js (the map circle colors). */
+.ac-legend-dot--active { background: #4a90d9; }
+.ac-legend-dot--wrapped-up { background: #1f7a4d; }
+.ac-legend-dot--stalled { background: #e0a800; }
+.ac-legend-dot--low-traction { background: #c0392b; }
+
+/* Private marker: neutral fill with the thick dark ring used on the map. */
+.ac-legend-dot--private {
+  background: #9aa7b0;
+  border: 2px solid #33373a;
+  box-shadow: none;
+}
+
+.ac-legend-size {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  margin-right: 5px;
+  vertical-align: -3px;
+  background: rgb(74 144 217 / 35%);
+  border: 1px solid rgb(74 144 217 / 70%);
+}
+
+.ac-legend-sep {
+  width: 1px;
+  height: 16px;
+  background: var(--color-neutral-200);
+}
+
+/* --- Across Cities: footnote marker (#4329) --------------------------------------------------------------------- */
+.ac-fn {
+  color: var(--color-link-200);
+  cursor: help;
+  font-weight: 600;
+}
+
+/* --- Across Cities: effort-table sub-header (#4329) -------------------------------------------------------------- */
+.ac-th-sub {
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+}
+
+/* --- Street Status page (#4331) -------------------------------------------------------------------------------
+ * Reuses the Coverage page's map / KPI / table / status classes; this block only adds the categorical status
+ * legend, the small status swatch (legend + popup), and the per-region 100%-stacked-bar cell. The status colors
+ * are owned by StreetStatusColors.STATUSES in street-status-map.js (no canonical backend color); these tokens
+ * mirror them for the CSS-only swatch borders and must be kept in sync there. */
+.street-status-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+}
+
+.street-status-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Small color chip shared by the legend and the map popup. */
+.street-status-swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  border: 1px solid rgb(0 0 0 / 15%);
+  vertical-align: middle;
+  margin-right: 4px;
+}
+
+/* Per-region 100%-stacked bar: one span per status, sized by share, colored inline from the JS palette. */
+.street-status-bar {
+  display: flex;
+  width: 120px;
+  height: 12px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--color-neutral-100);
+}
+
+.street-status-bar span {
+  display: block;
+  height: 100%;
+}
+
+/* The distribution cell is decorative, so keep it left-aligned and let the count columns stay right-aligned. */
+.street-status-table td:last-child, .street-status-table th:last-child { text-align: left; }
+
+/* --- Across Cities: engagement funnels (#288) ------------------------------------------------------------------- */
+.ac-funnel-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  margin: 0 0 var(--space-md);
+}
+
+/* Each funnel (mapping, contribution) is its own block with a heading, table, and small-multiples. */
+.ac-funnel-block { margin-bottom: var(--space-lg); }
+
+.ac-funnel-block-title {
+  font: var(--text-subtitle-bold);
+  color: var(--color-neutral-900);
+  margin: var(--space-md) 0 var(--space-xs);
+}
+
+/* Responsive small-multiples: one compact funnel card per city. */
+.ac-funnel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--space-md);
+  margin-top: var(--space-md);
+}
+
+.ac-funnel-panel {
+  border: 1px solid var(--color-neutral-200);
+  border-radius: 6px;
+  padding: var(--space-sm);
+  background: var(--color-neutral-white);
+}
+
+.ac-funnel-panel-title {
+  font-weight: 600;
+  color: var(--color-neutral-900);
+  margin-bottom: var(--space-sm);
+}
+
+.ac-funnel-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.ac-funnel-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+}
+
+.ac-funnel-swatch {
+  width: 11px;
+  height: 11px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+.ac-funnel-step { margin-bottom: var(--space-xs); }
+
+.ac-funnel-step-label {
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+  margin-bottom: 2px;
+}
+
+.ac-funnel-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* A single bar: a full-width track with a left-anchored fill and a count/drop-off label that stays legible on top. */
+.ac-funnel-bar {
+  position: relative;
+  height: 16px;
+  background: var(--color-neutral-200);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.ac-funnel-bar-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  border-radius: 3px;
+}
+
+.ac-funnel-bar-val {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  padding-left: 6px;
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-900);
+}
+
+/* Health dashboard (#4561): tint a KPI value by its status so a red/amber count reads at a glance. The design-system
+   status tokens (--color-error/warning/success) are tuned as badge fills, not as text: as text on the light KPI card
+   they fall below the WCAG AA contrast floor (#ff9800 ≈ 2.1:1, #4caf50 ≈ 2.3:1), so use darkened variants here. */
+.health-kpi--bad {
+  color: #c62828;
+}
+
+.health-kpi--warn {
+  color: #a15c00;
+}
+
+.health-kpi--good {
+  color: #2e7d32;
+}
+
+/* ─── Stories moderation queue (#4054) ──────────────────────────────────── */
+.stories-queue-row {
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr) 130px 170px;
+  gap: 14px;
+  align-items: start;
+  padding: 14px 0;
+  border-top: 1px solid var(--color-neutral-200);
+}
+
+.stories-queue-row--hidden {
+  background: var(--color-banana-100);
+  border-radius: 8px;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+.stories-queue-who a {
+  font-weight: 600;
+  overflow-wrap: break-word;
+}
+
+.stories-queue-public-as {
+  display: block;
+  margin-top: 2px;
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+}
+
+.stories-queue-text {
+  margin: 0 0 6px;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+
+.stories-queue-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+}
+
+.stories-queue-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border: 1px solid var(--color-banana-700);
+  border-radius: 999px;
+  background: var(--color-banana-100);
+  color: var(--color-banana-900);
+  font-weight: 600;
+}
+
+.stories-queue-chip[hidden] { display: none; }
+
+.stories-queue-thumb {
+  display: block;
+  width: 120px;
+  height: 90px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid var(--color-neutral-200);
+}
+
+.stories-queue-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+.stories-queue-btn {
+  padding: 6px 12px;
+  border: 1px solid #999999;
+  border-radius: 4px;
+  background: #ffffff;
+  cursor: pointer;
+  font: var(--text-small-regular);
+}
+
+.stories-queue-btn:hover { background: #f0f0f0; }
+
+.stories-queue-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.stories-queue-btn--danger {
+  border-color: #ed1c24;
+  color: #a31217;
+}
+
+.stories-queue-btn:focus-visible {
+  outline: 2px solid #4a90e2;
+  outline-offset: 2px;
+}
+
+@media (width <= 900px) {
+  .stories-queue-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* --- Street Status: recently-changed trends (#4928) ------------------------------------------------------------
+   Line/bar colors for the status series come from StreetStatusColors.STATUSES, published onto the section as
+   --trend-<status> custom properties by StreetStatusTrend so the charts and the map legend can't disagree. */
+
+.trend-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-sm);
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+}
+
+.trend-note {
+  margin: 0 0 var(--space-xs);
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+}
+
+.trend-chart-heading {
+  margin: var(--space-md) 0 var(--space-xxs);
+  font: var(--text-subtitle-bold);
+  color: var(--color-neutral-900);
+}
+
+.mini-line--open { stroke: var(--trend-open); }             .mini-pt--open { fill: var(--trend-open); }
+.mini-line--no-imagery { stroke: var(--trend-no-imagery); } .mini-pt--no-imagery { fill: var(--trend-no-imagery); }
+.mini-line--closed { stroke: var(--trend-closed); }         .mini-pt--closed { fill: var(--trend-closed); }
+.mini-line--disabled { stroke: var(--trend-disabled); }     .mini-pt--disabled { fill: var(--trend-disabled); }
+.mini-swatch--open { background: var(--trend-open); }
+.mini-swatch--no-imagery { background: var(--trend-no-imagery); }
+.mini-swatch--closed { background: var(--trend-closed); }
+.mini-swatch--disabled { background: var(--trend-disabled); }
+
+/* Reports are activity (a neutral accent); expiries are imagery loss, so they carry the no-imagery orange, and
+   recoveries answer them in green. */
+.mini-bar--reports { fill: var(--color-link-100); }
+.mini-bar--expired { fill: var(--color-orange-500); }
+.mini-bar--returned { fill: var(--color-success-200); }
+.mini-swatch--expired { background: var(--color-orange-500); }
+.mini-swatch--returned { background: var(--color-success-200); }
+
+/* --- Imagery: re-audit priority + pipeline health (#4908) ------------------------------------------------------
+   Tier colors come from StreetPriorityTiers.TIERS, published as --priority-<tier> custom properties by
+   StreetPriorityMap, so the map, the legend, and the table badges read one palette. */
+
+.imagery-swatch--unaudited { background: var(--priority-unaudited); }
+.imagery-swatch--reaudit { background: var(--priority-reaudit); }
+.imagery-swatch--audited-once { background: var(--priority-audited-once); }
+.imagery-swatch--audited-multi { background: var(--priority-audited-multi); }
+
+/* The priority formula reads as a definition, not as prose: centering it stops it from breaking a sentence in half
+   at whatever width the viewport happens to be. */
+.imagery-formula {
+  margin: var(--space-sm) 0;
+  text-align: center;
+}
+
+/* The API-docs stylesheet sets `code` to nowrap, which pushes this formula ~100px past the content column at every
+   width and clips the tail. It reads fine broken at its spaces. */
+.imagery-formula code {
+  white-space: normal;
+}
+
+/* Tier table under the priority map: the legend, the per-tier counts, and the explanation of the single ordering
+   they sit on, in one place so a reader never has to pair a color with prose somewhere else. */
+.imagery-tier-wrap {
+  overflow-x: auto;
+}
+
+.imagery-tier-table { margin-top: var(--space-sm); }
+
+/* The "what it means" column wraps to several lines, so the tier name and counts read from the top of the row. */
+.imagery-tier-table td { vertical-align: top; }
+
+.imagery-tier-table th.imagery-tier-num,
+.imagery-tier-table td.imagery-tier-num {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.imagery-tier-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  font-weight: 600;
+  color: var(--color-neutral-900);
+}
+
+.imagery-tier-what {
+  color: var(--color-neutral-700);
+  min-width: 220px;
+}
+
+.imagery-tier-swatch {
+  display: inline-block;
+  width: 22px;
+  height: 6px;
+  border-radius: 2px;
+  border: 1px solid rgb(0 0 0 / 15%);
+  flex: none;
+}
+
+/* Polled/flagged are the pipeline doing its job; skipped/unflagged are the counterpart it also reports, so each pair
+   is one hue apart rather than a green/red judgement — a night of unflagging is not a failure. */
+.mini-bar--polled { fill: var(--color-link-100); }
+.mini-bar--skipped { fill: var(--color-neutral-400); }
+.mini-bar--flagged { fill: var(--priority-reaudit, #d55e00); }
+.mini-bar--unflagged { fill: var(--color-pine-600); }
+.mini-bar--freshness { fill: var(--color-link-100); }
+.mini-swatch--polled { background: var(--color-link-100); }
+.mini-swatch--skipped { background: var(--color-neutral-400); }
+.mini-swatch--flagged { background: var(--priority-reaudit, #d55e00); }
+.mini-swatch--unflagged { background: var(--color-pine-600); }

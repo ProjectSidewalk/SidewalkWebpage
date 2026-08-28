@@ -17,19 +17,19 @@
     });
   </script>
 
-  <div class="api-section" id="label-types-intro-section">
-    <h1 class="api-heading" id="label-types-api">Label Types API <a href="#label-types-api" class="permalink">#</a></h1>
+  <div class="page-section" id="label-types-intro-section">
+    <h1 class="page-heading" id="label-types-api">Label Types API <a href="#label-types-api" class="permalink">#</a></h1>
     <p>The Label Types API lists the different types of labels used in Project Sidewalk, including the machine name, localized display name and description, associated icon images, and color codes. For each label, users can also assign one or more optional <a href="@routes.ApiDocsController.labelTags">tags</a>, which provides additional information about the sidewalk feature or barrier.</p>
     <p>This Label Types API endpoint is useful for applications that want to display Project Sidewalk data with consistent styling, or for developers who need to understand the classification system used in our other APIs.</p>
   </div>
 
-  <div class="api-section" id="visual-example-section">
-    <h2 class="api-heading" id="visual-example">Label Types API Preview <a href="#visual-example" class="permalink">#</a></h2>
+  <div class="page-section" id="visual-example-section">
+    <h2 class="page-heading" id="visual-example">Label Types API Preview <a href="#visual-example" class="permalink">#</a></h2>
     <p>Below is a live preview of the primary label types retrieved directly from the API:</p>
 
     <div id="label-types-preview">Loading label types data...</div>
 
-    <link rel="stylesheet" href="@assets.path("css/api-docs/label-types.css")">
+    <link rel="stylesheet" href="@assets.path("css/pages/api-docs/label-types.css")">
     <script src="@routes.Assets.versioned("js/api-docs/labelTypesPreview.js")"></script>
     <script>
       // Initialize the label types preview.
@@ -41,18 +41,18 @@
     </script>
   </div>
 
-  <div class="api-section" id="endpoint-section">
-    <h2 class="api-heading" id="endpoint">Endpoint <a href="#endpoint" class="permalink">#</a></h2>
+  <div class="page-section" id="endpoint-section">
+    <h2 class="page-heading" id="endpoint">Endpoint <a href="#endpoint" class="permalink">#</a></h2>
     <p>Retrieve a list of all label types with their metadata.</p>
     <p><code>GET /v3/api/labelTypes</code></p>
     <div class="api-subsection" id="endpoint-example-section">
-      <h3 class="api-heading" id="endpoint-examples">Examples<a href="#endpoint-examples" class="permalink">#</a></h3>
+      <h3 class="page-heading" id="endpoint-examples">Examples<a href="#endpoint-examples" class="permalink">#</a></h3>
       <p><code><a target="_blank" href="/v3/api/labelTypes">/v3/api/labelTypes</a></code> Get all label types in JSON</p>
     </div>
   </div>
 
-  <div class="api-section" id="quick-download-section">
-    <h2 class="api-heading" id="quick-download">Quick Download <a href="#quick-download" class="permalink">#</a></h2>
+  <div class="page-section" id="quick-download-section">
+    <h2 class="page-heading" id="quick-download">Quick Download <a href="#quick-download" class="permalink">#</a></h2>
     <p>Download label types data directly in JSON:</p>
 
     <div class="download-buttons">
@@ -69,10 +69,10 @@
     </div>
   </div>
 
-  <div class="api-section" id="responses-section">
-    <h2 class="api-heading" id="responses">Responses<a href="#responses" class="permalink">#</a></h2>
+  <div class="page-section" id="responses-section">
+    <h2 class="page-heading" id="responses">Responses<a href="#responses" class="permalink">#</a></h2>
 
-    <h3 class="api-heading" id="success-response-200-ok">Success Response (200 OK)<a href="#success-response-200-ok" class="permalink">#</a></h3>
+    <h3 class="page-heading" id="success-response-200-ok">Success Response (200 OK)<a href="#success-response-200-ok" class="permalink">#</a></h3>
     <p>On success, the API returns an HTTP <code>200 OK</code> status code and a JSON object containing an array of label types.</p>
 
     <pre><code class="language-json">{
@@ -106,9 +106,9 @@
   ]
 }</code></pre>
 
-    <h4 class="api-heading" id="response-fields">Response Fields <a href="#response-fields" class="permalink">#</a></h4>
-    <div class="api-table-wrapper">
-      <table class="api-table">
+    <h4 class="page-heading" id="response-fields">Response Fields <a href="#response-fields" class="permalink">#</a></h4>
+    <div class="ps-table-wrapper">
+      <table class="ps-table">
         <thead>
           <tr>
             <th>Field</th>
@@ -181,7 +181,7 @@
       </table>
     </div>
 
-    <h3 class="api-heading" id="error-responses">Error Responses<a href="#error-responses" class="permalink">#</a></h3>
+    <h3 class="page-heading" id="error-responses">Error Responses<a href="#error-responses" class="permalink">#</a></h3>
     <p>If an error occurs, the API will return an appropriate HTTP status code and a JSON response body containing details about the error.</p>
     <ul>
       <li><strong><code>500 Internal Server Error</code>:</strong> An unexpected error occurred on the server.</li>
