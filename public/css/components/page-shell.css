@@ -164,7 +164,10 @@ pre {
   white-space: pre;
 }
 
+/* Bootstrap's `code, kbd, pre, samp { font-family: Menlo, ... }` beats the family `pre` inherits down, so without
+   this re-inherit the block renders in Menlo rather than --font-mono. */
 pre > code {
+  font-family: inherit;
   font-size: inherit;
   background: none;
   padding: 0;
