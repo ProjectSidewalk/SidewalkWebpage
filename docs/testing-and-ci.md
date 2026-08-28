@@ -31,7 +31,7 @@ Project Sidewalk is a public civic-tech app with real end users, yet it currentl
 ```scala
 "org.playframework"            %% "play-test"               % "3.0.10" % Test,
 "org.scalatestplus.play"       %% "scalatestplus-play"      % "7.0.1"  % Test,
-"org.playframework.silhouette" %% "play-silhouette-testkit" % "10.0.4" % Test,  // confirm artifact publishes for this line; else hand-roll FakeEnvironment (~20 lines)
+"org.playframework.silhouette" %% "play-silhouette-testkit" % "10.0.4" % Test,  // not needed: sessions come from the real signup route (util/RoleSession.scala)
 "com.dimafeng"                 %% "testcontainers-scala-scalatest"  % "0.43.0" % Test,  // optional local toggle
 "com.dimafeng"                 %% "testcontainers-scala-postgresql" % "0.43.0" % Test,
 "org.mockito"                   % "mockito-core"            % "5.14.2" % Test
@@ -42,10 +42,14 @@ addSbtPlugin("org.scalameta" % "sbt-scalafmt"  % "2.5.4")
 addSbtPlugin("org.scoverage" % "sbt-scoverage" % "2.3.1")
 ```
 
-## Test support harness — `test/` mirrors `app/`, plus `test/support/`
+## Test support harness — `test/` mirrors `app/`, plus `test/util/`
 
-- `support/PostgresTestKit.scala` — DB config, evolutions-applied-once, transaction-rollback helper.
-- `support/FakeAuth.scala` — `FakeEnvironment[DefaultEnv]` + `SidewalkUserWithRole` fixtures. Roles are checked against `RoleTable.ADMIN_ROLES` (`app/models/auth/WithRole.scala`): use an admin role for `WithAdmin`, `"Registered"` for `WithSignedIn`, `"Anonymous"` for negatives. **Gotchas** (from `app/service/CustomSecurityService.scala`): every `SecuredAction` runs `ensureUserStatExists` (so the fixture user row must exist in the test DB) and an Infra3d check — keep `panoSource = GSV` in test config or set `infra3dAccess = true`.
+**Landed as `test/util/`** (the four bullets below; `GuiceTestApp`/`WsStubs` are still proposals). Suites build their own `GuiceApplicationBuilder` with `.disable[modules.ActorModule]` rather than sharing one.
+
+- `util/RolledBackDb.scala` — DB config plus `runRolledBack`, which runs a body inside a transaction that always aborts. For layer (b): the HTTP path can't share a transaction, so a layer-(c) spec that writes rows deletes them by id in `afterAll` instead (`ImageryAdminSpec`, `AdminJobTriggerSpec`).
+- `util/AnonSession.scala` — `freshAnonSession()`, a distinct persistent user per call, minted through the real `/anonSignUp` route. That route is rate-limited per IP and every suite in a run shares loopback, so a suite minting more than a couple of sessions must `.configure("rate-limit.anon-signup.enabled" -> false)`.
+- `util/RoleSession.scala` (#4946) — `sessionAs("Administrator")` / `sessionAs("Registered")`: an anonymous session promoted by a DB write to `sidewalk_login.user_role`, demoted again in `afterAll`. Roles are checked against `RoleTable.ADMIN_ROLES` (`app/models/auth/WithRole.scala`); the anonymous posture checks in `RouteAuthPostureSpec` can't tell `WithAdmin` from `WithOwner`, so pinning a *required role* needs one of these. Seeding its own account is what keeps it honest — a spec that `assume`s an existing admin cancels on CI's account-less schema, which reads as passing. **Gotchas** (from `app/service/CustomSecurityService.scala`): every `SecuredAction` runs `ensureUserStatExists` and an Infra3d check — keep `panoSource = GSV` in test config or set `infra3dAccess = true`.
+- `util/StubService.scala` (#4946) — a reflective stand-in for a service trait that answers named methods and throws on the rest, for specs about what a controller *does* rather than what its collaborator computes. Only works on traits whose members are all abstract (what makes a Scala trait a Java interface).
 - `support/GuiceTestApp.scala` — `GuiceApplicationBuilder` that **neutralizes the eager actors** by overriding `ActorInitializer` (`app/actor/ActorInitializer.scala`) with a no-op (smaller blast radius than `.disable[ActorModule]`, which would also require re-binding the `@Named` `ActorRef`s), and `bind[WSClient].toInstance(stub)`.
 - `support/WsStubs.scala` — canned responses for the external callers: `PanoDataService` (Google SV metadata, Infra3d OAuth), `AiService` (Sidewalk AI), `ConfigService` (SciStarter).
 - ScalaTest **tags** `DbTest` / `Functional` so CI can include/exclude by phase; unit tests untagged (always run).
