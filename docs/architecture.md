@@ -159,19 +159,24 @@ There is **no module system**: files are concatenated in a hand-specified order 
 libraries live under `public/vendor/<lib>/`, one self-contained folder each (never edited or linted). Edit `src/`
 files only — bundles are generated into `public/js/*/build/`.
 
-First-party assets split by type: `public/js/` is JavaScript-only, `public/css/` holds all styles (per-app subdirs
-`css/explore/`, `css/validate/`, `css/gallery/`), and media lives in `public/images/`, `public/audio/`, and
-`public/videos/`. Directories and CSS files are kebab-case; JS files use Airbnb casing (PascalCase for class files,
-camelCase otherwise). See [`style-guide.md`](style-guide.md) for the full layout and naming conventions.
+First-party assets split by type: `public/js/` is JavaScript-only, `public/css/` holds all styles, and media lives in
+`public/images/`, `public/audio/`, and `public/videos/`. Within `public/css/`, files are organized by what they are
+(#5030): `main.css` and `fonts.css` at the root (tokens and `.ps-*` primitives), `css/components/` for anything more
+than one page links (one component per file — the `page-shell.css` sidebar + content + TOC template, `kpi.css`,
+`tables.css`, `label-detail.css`, `toast.css`, …), and `css/pages/` for everything page-specific (a single file per
+page, or a subdir for a multi-file page family such as `pages/explore/` or `pages/api-docs/`). A page's stylesheet is
+linked only by that page, and a page's class prefix (`ud-`, `ac-`, `svl-`, …) is defined only in that page's
+stylesheet(s) — `tools/check-css-layout.mjs` (`make lint-css-layout`) enforces both. Directories and CSS files are kebab-case; JS files use Airbnb casing (PascalCase for class files, camelCase
+otherwise). See [`style-guide.md`](style-guide.md) for the full layout and naming conventions.
 
 **Styling comes from the design-system tokens in `main.css` `:root`** — color ramps (`--color-*`), composite type
 tokens (`--text-*`, complete `font` shorthands that bake in the tool-UI zoom factor `--ui-scale`), spacing, radii,
 shadows, motion, and z-index layers — plus the component primitives `.button-ps`, `.ps-input`, `.ps-select`, and
 `.ps-table`. They mirror the "Design System Tokens" Figma; the rules for using them are in
-[`style-guide.md`](style-guide.md). One coupling worth knowing: **`css/api-docs/api-docs.css` is a shared shell, not
-a per-app stylesheet.** The API docs, the admin dashboard, and the user dashboard all link it for the sidebar +
-content + TOC layout and the shared components (`.preview-*`, `.map-toolbar`, status messages), so a change there
-reaches all three.
+[`style-guide.md`](style-guide.md). One coupling worth knowing: **`css/components/page-shell.css` is the shell
+(`.page-*` classes) that the API docs, the admin dashboard, and the user dashboard all build on** for the sidebar +
+content + TOC layout and the base type, so a change there reaches all three; `css/pages/api-docs/api-docs.css` holds only
+the docs' own components (`.preview-*`, `.map-toolbar`, status messages).
 
 **Mobile detection has exactly one definition:** `ControllerUtils.isMobile`, a server-side User-Agent check that
 decides which UI a request is served (mobile visitors get `/mobileLanding`, the mobile Validate page at `/mobile`,

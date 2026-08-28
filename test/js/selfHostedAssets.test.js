@@ -40,7 +40,7 @@ describe('our stylesheets are self-contained', () => {
     test('there is at least one stylesheet to check, so a broken walk cannot pass vacuously', () => {
         expect(STYLESHEETS.length).toBeGreaterThan(10);
         expect(STYLESHEETS).toContain('public/css/fonts.css');
-        expect(STYLESHEETS).toContain('public/css/api-docs/api-docs.css');
+        expect(STYLESHEETS).toContain('public/css/pages/api-docs/api-docs.css');
     });
 
     test('none of them @imports anything', () => {

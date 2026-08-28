@@ -2,7 +2,7 @@
  * Project Sidewalk API Documentation - Cities Component Styles
  *
  * Contains styles specific to the Cities component and works in conjunction with the main api-docs.css file.
- * The map is the shared deployment-cities map, so its popups are styled by css/deployment-map.css.
+ * The map is the shared deployment-cities map, so its popups are styled by css/components/deployment-map.css.
  */
 
 /* Main container for the cities preview */

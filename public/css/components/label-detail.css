@@ -1126,7 +1126,7 @@ button.label-detail__meta-cell:focus-visible {
   display: block;
 }
 
-/* The share control's own styles (.label-detail__share*) moved to css/common/share-widget.css so Explore and
+/* The share control's own styles (.label-detail__share*) moved to css/components/share-widget.css so Explore and
    Validate can use them too (#4726); that file is linked globally from main.scala.html. The footer layout
    above — including the container query that shrinks the share trigger to icon-only — stays here, because it
    is about this card's footer, not about the widget itself. */

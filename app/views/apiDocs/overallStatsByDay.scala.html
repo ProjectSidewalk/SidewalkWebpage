@@ -11,15 +11,15 @@
     document.documentElement.setAttribute('data-api-endpoint', 'overallStatsByDay');
   </script>
 
-  <div class="api-section" id="overall-stats-by-day-intro-section">
-    <h1 class="api-heading" id="overall-stats-by-day-api">Overall Stats by Day API <a href="#overall-stats-by-day-api" class="permalink">#</a></h1>
+  <div class="page-section" id="overall-stats-by-day-intro-section">
+    <h1 class="page-heading" id="overall-stats-by-day-api">Overall Stats by Day API <a href="#overall-stats-by-day-api" class="permalink">#</a></h1>
     <p>The Overall Stats by Day API provides a <strong>daily time series</strong> of label and validation activity for <strong>@cityName</strong>, broken down by label type and by whether the actor was a human user or an AI. This lets you track productivity trends over time.</p>
     <p>Each record covers one calendar day (US/Pacific time) and one label type. Label counts reflect labels <em>created</em> on that day; validation counts reflect validations <em>completed</em> on that day (on any label, not just ones created that day).</p>
     <p>For aggregate counts across all Project Sidewalk deployments, see the <a href="@routes.ApiDocsController.aggregateStatsByDay">Aggregate Stats by Day API</a>. For a single-number snapshot, see the <a href="@routes.ApiDocsController.overallStats">Overall Stats API</a>.</p>
   </div>
 
-  <div class="api-section" id="overall-stats-by-day-preview-section">
-    <h2 class="api-heading" id="visual-example">Overall Stats by Day API Preview <a href="#visual-example" class="permalink">#</a></h2>
+  <div class="page-section" id="overall-stats-by-day-preview-section">
+    <h2 class="page-heading" id="visual-example">Overall Stats by Day API Preview <a href="#visual-example" class="permalink">#</a></h2>
     <p>Live preview of the most recent 90 days of activity for <strong>@cityName</strong>:</p>
 
     <div id="overall-stats-by-day-preview">Loading…</div>
@@ -36,12 +36,12 @@
     </script>
   </div>
 
-  <div class="api-section" id="endpoint-section">
-    <h2 class="api-heading" id="endpoint">Endpoint <a href="#endpoint" class="permalink">#</a></h2>
+  <div class="page-section" id="endpoint-section">
+    <h2 class="page-heading" id="endpoint">Endpoint <a href="#endpoint" class="permalink">#</a></h2>
     <p>Returns daily label and validation counts for @cityName.</p>
   <p><code>GET /v3/api/overallStatsByDay</code></p>
     <div class="api-subsection" id="endpoint-example-section">
-      <h3 class="api-heading" id="endpoint-examples">Examples <a href="#endpoint-examples" class="permalink">#</a></h3>
+      <h3 class="page-heading" id="endpoint-examples">Examples <a href="#endpoint-examples" class="permalink">#</a></h3>
       <p><code><a target="_blank" href="/v3/api/overallStatsByDay">/v3/api/overallStatsByDay</a></code> All-time data for @cityName in JSON</p>
       <p><code><a target="_blank" href="/v3/api/overallStatsByDay?startDate=2025-01-01&amp;endDate=2025-03-31">/v3/api/overallStatsByDay?startDate=2025-01-01&amp;endDate=2025-03-31</a></code> First quarter of 2025 in JSON</p>
       <p><code><a href="/v3/api/overallStatsByDay?filetype=csv">/v3/api/overallStatsByDay?filetype=csv</a></code> All-time data as CSV</p>
@@ -49,8 +49,8 @@
     </div>
   </div>
 
-  <div class="api-section" id="query-parameters-section">
-    <h2 class="api-heading" id="query-parameters">Query Parameters <a href="#query-parameters" class="permalink">#</a></h2>
+  <div class="page-section" id="query-parameters-section">
+    <h2 class="page-heading" id="query-parameters">Query Parameters <a href="#query-parameters" class="permalink">#</a></h2>
     <div class="ps-table-wrapper">
       <table class="ps-table">
         <thead>
@@ -86,8 +86,8 @@
     </div>
   </div>
 
-  <div class="api-section" id="response-format-section">
-    <h2 class="api-heading" id="response-format">Response Format <a href="#response-format" class="permalink">#</a></h2>
+  <div class="page-section" id="response-format-section">
+    <h2 class="page-heading" id="response-format">Response Format <a href="#response-format" class="permalink">#</a></h2>
     <p>The response is a JSON object with a <code>data</code> array. Each element covers one (date, label_type) combination. Days with no activity for a label type are omitted.</p>
     <pre><code>{
   "status": "OK",
@@ -119,7 +119,7 @@
   ]
 }</code></pre>
 
-    <h3 class="api-heading" id="response-fields">Response Fields <a href="#response-fields" class="permalink">#</a></h3>
+    <h3 class="page-heading" id="response-fields">Response Fields <a href="#response-fields" class="permalink">#</a></h3>
     <div class="ps-table-wrapper">
       <table class="ps-table">
         <thead>
@@ -141,8 +141,8 @@
     </div>
   </div>
 
-  <div class="api-section" id="quick-download-section">
-    <h2 class="api-heading" id="quick-download">Quick Download <a href="#quick-download" class="permalink">#</a></h2>
+  <div class="page-section" id="quick-download-section">
+    <h2 class="page-heading" id="quick-download">Quick Download <a href="#quick-download" class="permalink">#</a></h2>
     <p>Download the full @cityName daily stats time series in your preferred format:</p>
     <div class="download-buttons">
       <button type="button" class="download-btn" data-format="json">

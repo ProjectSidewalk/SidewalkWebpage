@@ -663,7 +663,7 @@ body {
   font: var(--text-small-medium);
 }
 
-/* Touch-sized: the shared pill (css/pano-overlay-buttons.css) is drawn for a pointer, and 44px is the floor a
+/* Touch-sized: the shared pill (css/components/pano-overlay-buttons.css) is drawn for a pointer, and 44px is the floor a
    thumb wants. */
 .pano-overlay-button {
   height: 44px;

@@ -142,8 +142,8 @@ class CrossCityStats {
     // caption is visually hidden because the <h2> and intro above already say this in the page's own voice; it exists
     // so the table names itself when a screen reader pulls it out of that context in a table list.
     holder.innerHTML = `
-      <div class="coverage-table-wrap ud-cities-table-wrap">
-      <table class="ps-table coverage-table ud-cities-table">
+      <div class="ps-table-scroll-box ud-cities-table-wrap">
+      <table class="ps-table ps-table--sticky ud-cities-table">
         <caption class="ud-sr-only">${CrossCityStats.#tEsc('dashboard:cities.table-caption')}</caption>
         <thead>
           <tr>
@@ -247,7 +247,7 @@ class CrossCityStats {
           // sqrt scaling so circle AREA (not radius) tracks the label count — perceptually honest.
           radius: n > 0 ? 6 + (Math.sqrt(n) / Math.sqrt(maxLabels)) * 18 : 6,
           popup: `
-            <div class="coverage-popup-name">${CrossCityStats.#esc(stat.city_name)}</div>
+            <div class="ud-cities-popup-name">${CrossCityStats.#esc(stat.city_name)}</div>
             <div>${CrossCityStats.#tEsc('dashboard:cities.map-popup',
               { labels: CrossCityStats.#num(n), validations: CrossCityStats.#num(stat.validations || 0) })}</div>`,
         },
@@ -268,7 +268,7 @@ class CrossCityStats {
       projection: 'mercator',
     });
     map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right');
-    const popup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false, className: 'coverage-popup' });
+    const popup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false, className: 'ud-cities-popup' });
 
     map.on('load', () => {
       map.addSource('ud-cities', { type: 'geojson', data: { type: 'FeatureCollection', features } });
@@ -310,7 +310,7 @@ class CrossCityStats {
    */
   #announce() {
     const status = document.getElementById('ud-cities-status');
-    const heading = this.#section.querySelector('.api-heading');
+    const heading = this.#section.querySelector('.page-heading');
     if (!status || !heading) return;
     // Trailing '#' is the permalink anchor, which the shell strips the same way when it builds the TOC.
     const section = heading.textContent.replace(/#$/, '').trim();

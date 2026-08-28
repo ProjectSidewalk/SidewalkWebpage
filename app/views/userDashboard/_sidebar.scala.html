@@ -15,38 +15,38 @@
 *@
 
 @adminSection(username: String) = {
-  <div class="api-nav-header">@username</div>
+  <div class="page-nav-header">@username</div>
   <a href="@routes.UserDashboardController.adminDashboard(username)"
-   class="api-nav-item @if(activePage == "dashboard"){active}"
+   class="page-nav-item @if(activePage == "dashboard"){active}"
    @if(activePage == "dashboard"){aria-current="page"}>Dashboard</a>
   <a href="@routes.UserDashboardController.adminUser(username)"
-   class="api-nav-item @if(activePage == "admin-user"){active}"
+   class="page-nav-item @if(activePage == "admin-user"){active}"
    @if(activePage == "admin-user"){aria-current="page"}>Manage user</a>
-  <div class="api-nav-header">Admin dashboard</div>
-  <a href="@routes.AdminDashboardController.management" class="api-nav-item">All users</a>
+  <div class="page-nav-header">Admin dashboard</div>
+  <a href="@routes.AdminDashboardController.management" class="page-nav-item">All users</a>
 }
 
 @youSection = {
   @if(isSignedIn) {
-    <div class="api-nav-header">@Messages("dashboard.nav.you")</div>
+    <div class="page-nav-header">@Messages("dashboard.nav.you")</div>
     <a href="@routes.UserDashboardController.dashboard"
-     class="api-nav-item @if(activePage == "dashboard"){active}"
+     class="page-nav-item @if(activePage == "dashboard"){active}"
      @if(activePage == "dashboard"){aria-current="page"}>@Messages("dashboard.nav.dashboard")</a>
     <a href="@routes.UserDashboardController.settings"
-     class="api-nav-item @if(activePage == "settings"){active}"
+     class="page-nav-item @if(activePage == "settings"){active}"
      @if(activePage == "settings"){aria-current="page"}>@Messages("dashboard.nav.settings")</a>
   }
 }
 
 @communitySection = {
-  <div class="api-nav-header">@Messages("dashboard.nav.community")</div>
+  <div class="page-nav-header">@Messages("dashboard.nav.community")</div>
   <a href="@routes.UserDashboardController.leaderboard"
-   class="api-nav-item @if(activePage == "leaderboard"){active}"
+   class="page-nav-item @if(activePage == "leaderboard"){active}"
    @if(activePage == "leaderboard"){aria-current="page"}>@Messages("navbar.leaderboard")</a>
 }
 
-<div class="api-sidebar">
-  <nav class="api-nav" aria-label="@Messages("dashboard.nav.aria")">
+<div class="page-sidebar">
+  <nav class="page-nav" aria-label="@Messages("dashboard.nav.aria")">
     @if(adminSubject.isDefined) {
       @adminSection(adminSubject.get)
     } else if(activePage == "dashboard" || activePage == "settings") {

@@ -6,21 +6,21 @@
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @content = {
-  <div class="api-section" id="stories-intro-section">
-    <h1 class="api-heading" id="stories">Stories <a href="#stories" class="permalink">#</a></h1>
+  <div class="page-section" id="stories-intro-section">
+    <h1 class="page-heading" id="stories">Stories <a href="#stories" class="permalink">#</a></h1>
     <p>The moderation queue for lived-experience stories (#4054): personal accounts, with optional photos, that community members attach to labels. Stories are <strong>public the moment they're submitted</strong>, so this page is the safety net — every story appears here newest first, hidden ones included. <strong>Hide</strong> quarantines a story (reversible; the author still sees it flagged and can delete it). <strong>Delete permanently</strong> removes the story and its photo bytes for good — reserve it for content that must not survive even as quarantined evidence.</p>
     <div class="coverage-status" id="stories-status" role="status" aria-live="polite">Loading stories…</div>
   </div>
 
-  <div class="api-section" id="stories-queue-section">
-    <h2 class="api-heading" id="queue">Review queue <a href="#queue" class="permalink">#</a></h2>
+  <div class="page-section" id="stories-queue-section">
+    <h2 class="page-heading" id="queue">Review queue <a href="#queue" class="permalink">#</a></h2>
     <div class="stories-queue" id="stories-queue"></div>
   </div>
 
   @* Label-detail popup: lets a story's label open inline (same modal the rest of the app uses) instead of navigating away. Mirrors the Activity page's standalone-script setup. *@
 @common.labelPopup(admin = true)
-  <link href='@assets.path("css/label-detail.css")' rel="stylesheet">
-  <link href='@assets.path("css/tag-pills.css")' rel="stylesheet">
+  <link href='@assets.path("css/components/label-detail.css")' rel="stylesheet">
+  <link href='@assets.path("css/components/tag-pills.css")' rel="stylesheet">
   <link rel="stylesheet" href='@assets.path("vendor/pannellum/pannellum-2.5.7.css")'>
 
   <script src='@assets.path("js/common/timestampLocalization.js")'></script>

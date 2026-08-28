@@ -1,9 +1,10 @@
 @(activePage: String, isSignedIn: Boolean = true, adminSubject: Option[String] = None)(content: Html)(implicit request: RequestHeader, assets: AssetsFinder, messages: Messages)
 
 @*
-* Shared shell for the redesigned User Dashboard + Leaderboard. Deliberately reuses the API-docs/admin-dashboard
-* stylesheets and their .api-* class names so all three surfaces look identical; user-dashboard.css adds only the
-* gamification components (streak heatmap, trophy case, podium, medals, standing widget). The right "On this page" TOC
+* Shared shell for the redesigned User Dashboard + Leaderboard. Built on the shared page shell and components
+* (components/page-shell.css, kpi.css, tables.css) — the same ones the API docs and admin dashboard link, so all three
+* surfaces look identical; user-dashboard.css adds only the gamification components (streak heatmap, trophy case,
+* podium, medals, standing widget). The right "On this page" TOC
 * is populated client-side from the page's h2/h3 headings by admin-shell.js (reused unchanged — it is generic).
 *
 * Unlike the admin dashboard (one page per route), the user surface is a small set of pages — Dashboard and
@@ -12,21 +13,22 @@
 * @param adminSubject The username of the user an admin is viewing (#4964); swaps the sidebar for the admin-view nav.
 *@
 
-<link rel="stylesheet" href="@assets.path("css/api-docs/api-docs.css")">
-<link rel="stylesheet" href="@assets.path("css/admin-dashboard/admin-dashboard.css")">
-<link rel="stylesheet" href="@assets.path("css/user-dashboard/user-dashboard.css")">
+<link rel="stylesheet" href="@assets.path("css/components/page-shell.css")">
+<link rel="stylesheet" href="@assets.path("css/components/kpi.css")">
+<link rel="stylesheet" href="@assets.path("css/components/tables.css")">
+<link rel="stylesheet" href="@assets.path("css/pages/user-dashboard.css")">
 
-<div class="api-container">
+<div class="page-container">
   @userDashboard._sidebar(activePage, isSignedIn, adminSubject)
 
-  <main class="api-content">
+  <main class="page-content">
     @content
   </main>
 
-  <aside class="api-toc" aria-label="@Messages("dashboard.toc.header")">
-    <div class="api-toc-header">@Messages("dashboard.toc.header")</div>
+  <aside class="page-toc" aria-label="@Messages("dashboard.toc.header")">
+    <div class="page-toc-header">@Messages("dashboard.toc.header")</div>
     <ul>
-      @* Populated by admin-shell.js from headings in .api-content. *@
+      @* Populated by admin-shell.js from headings in .page-content. *@
     </ul>
   </aside>
 </div>

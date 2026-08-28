@@ -151,7 +151,7 @@ video#bgvid {
   width: 100%;
   inset: var(--navbar-height) 0 0 0;
   backface-visibility: hidden;
-  background: url("../images/psmockup.jpg") no-repeat scroll 0 0 var(--color-neutral-black);
+  background: url("../../images/psmockup.jpg") no-repeat scroll 0 0 var(--color-neutral-black);
   background-size: cover;
   height: auto;
   perspective: 1000px;

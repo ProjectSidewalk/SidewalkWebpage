@@ -11,14 +11,14 @@
     document.documentElement.setAttribute('data-api-endpoint', 'aggregateStats');
   </script>
 
-  <div class="api-section" id="aggregate-stats-intro-section">
-    <h1 class="api-heading" id="aggregate-stats-api">Aggregate Stats API <a href="#aggregate-stats-api" class="permalink">#</a></h1>
+  <div class="page-section" id="aggregate-stats-intro-section">
+    <h1 class="page-heading" id="aggregate-stats-api">Aggregate Stats API <a href="#aggregate-stats-api" class="permalink">#</a></h1>
     <p>The Aggregate Stats API provides summary statistics <strong>combined across every Project Sidewalk deployment</strong>: total distance explored, labels, validations, and deployment counts (cities, countries, languages), plus a per-label-type breakdown. This is the project-wide rollup that powers the headline numbers on this documentation site.</p>
     <p>For per-deployment statistics for a single city, see the <a href="@routes.ApiDocsController.overallStats">Overall Stats API</a>; for the list of deployments, see the <a href="@routes.ApiDocsController.cities">Cities API</a>.</p>
   </div>
 
-  <div class="api-section" id="visual-example-section">
-    <h2 class="api-heading" id="visual-example">Aggregate Stats API Preview <a href="#visual-example" class="permalink">#</a></h2>
+  <div class="page-section" id="visual-example-section">
+    <h2 class="page-heading" id="visual-example">Aggregate Stats API Preview <a href="#visual-example" class="permalink">#</a></h2>
     <p>Below is a live preview of the project-wide totals across all Project Sidewalk deployments:</p>
 
     <div id="aggregate-stats-preview">Loading aggregate statistics...</div>
@@ -31,19 +31,19 @@
     </script>
   </div>
 
-  <div class="api-section" id="endpoint-section">
-    <h2 class="api-heading" id="endpoint">Endpoint <a href="#endpoint" class="permalink">#</a></h2>
+  <div class="page-section" id="endpoint-section">
+    <h2 class="page-heading" id="endpoint">Endpoint <a href="#endpoint" class="permalink">#</a></h2>
     <p>Retrieve aggregate statistics across all deployments.</p>
     <p><code>GET /v3/api/aggregateStats</code></p>
     <div class="api-subsection" id="endpoint-example-section">
-      <h3 class="api-heading" id="endpoint-examples">Examples<a href="#endpoint-examples" class="permalink">#</a></h3>
+      <h3 class="page-heading" id="endpoint-examples">Examples<a href="#endpoint-examples" class="permalink">#</a></h3>
       <p><code><a target="_blank" href="/v3/api/aggregateStats">/v3/api/aggregateStats</a></code> Get aggregate stats in JSON (default)</p>
       <p><code><a href="/v3/api/aggregateStats?filetype=csv">/v3/api/aggregateStats?filetype=csv</a></code> Get aggregate stats in CSV</p>
     </div>
   </div>
 
-  <div class="api-section" id="query-parameters-section">
-    <h2 class="api-heading" id="query-parameters">Query Parameters <a href="#query-parameters" class="permalink">#</a></h2>
+  <div class="page-section" id="query-parameters-section">
+    <h2 class="page-heading" id="query-parameters">Query Parameters <a href="#query-parameters" class="permalink">#</a></h2>
     <div class="ps-table-wrapper">
       <table class="ps-table">
         <thead>
@@ -60,8 +60,8 @@
     </div>
   </div>
 
-  <div class="api-section" id="quick-download-section">
-    <h2 class="api-heading" id="quick-download">Quick Download <a href="#quick-download" class="permalink">#</a></h2>
+  <div class="page-section" id="quick-download-section">
+    <h2 class="page-heading" id="quick-download">Quick Download <a href="#quick-download" class="permalink">#</a></h2>
     <p>Download aggregate statistics directly in your preferred format:</p>
 
     <div class="download-buttons">
@@ -82,10 +82,10 @@
     </div>
   </div>
 
-  <div class="api-section" id="responses-section">
-    <h2 class="api-heading" id="responses">Responses<a href="#responses" class="permalink">#</a></h2>
+  <div class="page-section" id="responses-section">
+    <h2 class="page-heading" id="responses">Responses<a href="#responses" class="permalink">#</a></h2>
 
-    <h3 class="api-heading" id="success-response-200-ok">Success Response (200 OK)<a href="#success-response-200-ok" class="permalink">#</a></h3>
+    <h3 class="page-heading" id="success-response-200-ok">Success Response (200 OK)<a href="#success-response-200-ok" class="permalink">#</a></h3>
     <p>On success, the API returns an HTTP <code>200 OK</code> status code. In JSON (default) the body is an object of aggregate totals; in CSV the body is a two-column <code>metric,value</code> table.</p>
 
     <pre><code class="language-json">{
@@ -110,7 +110,7 @@
   }
 }</code></pre>
 
-    <h4 class="api-heading" id="response-fields">Response Fields <a href="#response-fields" class="permalink">#</a></h4>
+    <h4 class="page-heading" id="response-fields">Response Fields <a href="#response-fields" class="permalink">#</a></h4>
     <div class="ps-table-wrapper">
       <table class="ps-table">
         <thead>
@@ -136,7 +136,7 @@
       </table>
     </div>
 
-    <h3 class="api-heading" id="error-responses">Error Responses<a href="#error-responses" class="permalink">#</a></h3>
+    <h3 class="page-heading" id="error-responses">Error Responses<a href="#error-responses" class="permalink">#</a></h3>
     <p>If an error occurs, the API will return an appropriate HTTP status code and a JSON response body containing details about the error.</p>
     <ul>
       <li><strong><code>500 Internal Server Error</code>:</strong> An unexpected error occurred on the server.</li>

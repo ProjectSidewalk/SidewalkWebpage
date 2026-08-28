@@ -319,10 +319,10 @@
     <script src='@assets.path("js/common/utilitiesSidewalk.js")' defer></script>
     <script src='@assets.path("js/common/share/ShareWidget.js")' defer></script>
     <script src='@assets.path("js/LandingValidationGrid.js")' defer></script>
-    <link href='@assets.path("css/choropleth.css")' rel="stylesheet">
-    <link href='@assets.path("css/deployment-map.css")' rel="stylesheet">
-    <link href='@assets.path("css/landing-validation-grid.css")' rel="stylesheet">
-    @* The grid cards' share chip + popover (.label-detail__share-*) are styled by css/common/share-widget.css, which common/main.scala.html links on every page — nothing else here needs label-detail.css. *@
+    <link href='@assets.path("css/components/choropleth.css")' rel="stylesheet">
+    <link href='@assets.path("css/components/deployment-map.css")' rel="stylesheet">
+    <link href='@assets.path("css/components/landing-validation-grid.css")' rel="stylesheet">
+    @* The grid cards' share chip + popover (.label-detail__share-*) are styled by css/components/share-widget.css, which common/main.scala.html links on every page — nothing else here needs label-detail.css. *@
 
     <script>
       // The map stack (mapbox-gl + mapbox-gl-language + turf + ps-map) is ~600KB gz — roughly 75% of this page's JS —

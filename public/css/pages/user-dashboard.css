@@ -1,10 +1,10 @@
 /*
  * User Dashboard + Leaderboard redesign — gamification components.
  *
- * Layered on top of api-docs.css and admin-dashboard.css: this file adds ONLY the components those two surfaces don't
- * already provide (hero banner, streak heatmap, badge tracks, trophy case, podium, medals, standing widget, mistake
- * gallery cards). It styles everything from the main.css design-system tokens (--text-*, --space-*, --color-* ramps,
- * label-type colors --color-label-*) rather than introducing new literals, so the three surfaces stay visually unified.
+ * Layered on top of the shared page shell and components (components/page-shell.css, kpi.css, tables.css): this file
+ * adds ONLY what those don't already provide (hero banner, streak heatmap, badge tracks, trophy case, podium, medals,
+ * standing widget, mistake gallery cards). It styles everything from the main.css design-system tokens (--text-*,
+ * --space-*, --color-* ramps) rather than introducing new literals, so the three surfaces stay visually unified.
  * Label-type colors come from the --color-label-* tokens (source of truth: /v3/api/labelTypes) — never hardcoded hex.
  *
  * Type scale policy (per design review): ALL content — table cells, badge/trophy detail, card text, stat labels,
@@ -19,25 +19,25 @@
 /* The ranked boards are the page, not a data appendix, so their cells read at body size rather than .ps-table's
    small; the headers keep the primitive's small-bold so the data stays louder than its labels. Scoped to the boards
    so the compact admin tables on /admin/user/:username keep their dense treatment. */
-.api-content .ud-lb-table, .api-content .ud-cities-table { font: var(--text-body-regular); }
+.page-content .ud-lb-table, .page-content .ud-cities-table { font: var(--text-body-regular); }
 
 /* Leaderboard tables are capped at ~10 rows, so show them in full — no inner scroll (admin tables keep theirs), and
    overflow visible so the Accuracy header tooltip can escape the wrap. The responsive rule restores mobile scroll. */
-.api-content .coverage-table-wrap {
+.page-content .ps-table-scroll-box {
   max-height: none;
   overflow: visible;
 }
 
 /* The admin tables right-align every non-first column (numeric); on the leaderboard the name column — and the
    all-time "Most active in" city column — are text, so left-align them. Scoped to the ranked boards: other tables in
-   .api-content (the cities-you've-mapped one) carry a number in column 2 and want the right-aligned default. */
-.api-content .ud-lb-table td:nth-child(2),
-.api-content .ud-lb-table th:nth-child(2) { text-align: left; }
+   .page-content (the cities-you've-mapped one) carry a number in column 2 and want the right-aligned default. */
+.page-content .ud-lb-table td:nth-child(2),
+.page-content .ud-lb-table th:nth-child(2) { text-align: left; }
 
 /* The global board's "Top city" is a name, so it reads left-aligned like Mapper rather than right like the numbers. */
-.api-content .ud-lb-global td:nth-child(3),
-.api-content .ud-lb-global th:nth-child(3) { text-align: left; }
-.api-content .coverage-table tbody tr { cursor: default; }
+.page-content .ud-lb-global td:nth-child(3),
+.page-content .ud-lb-global th:nth-child(3) { text-align: left; }
+.page-content .ps-table--sticky tbody tr { cursor: default; }
 
 /* Bump only the top-3 medal emoji so they read clearly; plain rank numbers keep the table's font size. */
 .ud-lb-rank .ud-lb-medal {
@@ -174,7 +174,7 @@
   flex: 0 0 200px;
 }
 
-/* Stacked in a column, so .coverage-kpi's row flex-basis would become a 140px minimum *height*; size to content. */
+/* Stacked in a column, so .ps-kpi's row flex-basis would become a 140px minimum *height*; size to content. */
 .ud-streak-kpi {
   flex: 0 0 auto;
   margin: 0;
@@ -893,7 +893,7 @@
 .ud-card-img-clickable:focus-visible .ud-card-expand-hint { opacity: 1; }
 
 /* The mistake vote/note panel injected into the label popup dialog so you can respond from the expanded view. It sits
-   outside .api-content, so set a readable base font here (children inherit it) and size the heading up. Full-width
+   outside .page-content, so set a readable base font here (children inherit it) and size the heading up. Full-width
    (no side margins), a small gap from the content above, and tight internal spacing. */
 .ud-mistake-response {
   display: flex;
@@ -1450,7 +1450,10 @@
   color: var(--color-neutral-900);
 }
 
-.ud-admin-details .mgmt-table-scroll { margin-top: var(--space-sm); }
+.ud-admin-details .ps-table-scroll { margin-top: var(--space-sm); }
+
+/* A number split across two lines reads as two numbers. */
+.ud-admin-table td.num, .ud-admin-table th.num { white-space: nowrap; }
 
 /* Two narrow columns, so the hours sit beside their city instead of a screen-width away (#4986). */
 .ud-admin-hours-cities {
@@ -1557,8 +1560,8 @@
 
 /* ---- Responsive ------------------------------------------------------------------------------------------------ */
 
-/* 768px matches the shell breakpoint (api-docs.css), where the left nav goes off-canvas behind a hamburger and the
-   right TOC is already hidden — so here we just make the content itself stack and stay reachable on a phone. */
+/* 768px matches the shell breakpoint (components/page-shell.css), where the left nav collapses behind a disclosure
+   and the right TOC is already hidden — so here we just make the content itself stack and stay reachable on a phone. */
 @media (width <= 768px) {
   .ud-hero {
     flex-direction: column;
@@ -1585,14 +1588,14 @@
   .ud-acc-label { flex-basis: 120px; }
 
   /* Wide leaderboard tables scroll horizontally instead of overflowing off the screen. */
-  .api-content .coverage-table-wrap {
+  .page-content .ps-table-scroll-box {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
-  .api-content .coverage-table { min-width: 520px; }
+  .page-content .ps-table--sticky { min-width: 520px; }
 
   /* The global board carries an extra "Top city" column, so it needs more room before scrolling horizontally. */
-  .api-content .ud-lb-global { min-width: 620px; }
+  .page-content .ud-lb-global { min-width: 620px; }
 
   /* Podium shrinks to fit a phone: equal-width columns instead of fixed 150px spots. */
   .ud-podium { gap: var(--space-xs); }
@@ -1626,10 +1629,10 @@
 
   /* Mobile nav: this surface's section nav is two or three links, so it fits inline above the content as a chip row
        and needs no disclosure to open it — unlike the API docs' 18 links and the admin dashboard's 12, which the
-       shared shell collapses behind .api-sidebar-toggle. */
-  .api-sidebar-toggle { display: none !important; }
+       shared shell collapses behind .page-sidebar-toggle. */
+  .page-sidebar-toggle { display: none !important; }
 
-  .api-container .api-sidebar {
+  .page-container .page-sidebar {
     display: block;
     position: static;
     width: 100%;
@@ -1640,16 +1643,16 @@
     background: var(--color-neutral-white);
   }
 
-  .api-container .api-sidebar .api-nav {
+  .page-container .page-sidebar .page-nav {
     display: flex;
     flex-wrap: wrap;
     gap: var(--space-xs);
     padding: var(--space-sm) var(--space-md);
   }
 
-  .api-container .api-sidebar .api-nav-header { display: none; }
+  .page-container .page-sidebar .page-nav-header { display: none; }
 
-  .api-container .api-sidebar .api-nav-item {
+  .page-container .page-sidebar .page-nav-item {
     padding: 6px 14px;
     border: 1px solid var(--color-neutral-200);
     border-radius: 16px;
@@ -1658,13 +1661,13 @@
     color: var(--color-neutral-900);
   }
 
-  .api-container .api-sidebar .api-nav-item.active {
+  .page-container .page-sidebar .page-nav-item.active {
     background: var(--color-pine-600);
     border-color: var(--color-pine-600);
     color: var(--color-neutral-white);
   }
 
-  .api-container .api-sidebar .api-nav-item.disabled {
+  .page-container .page-sidebar .page-nav-item.disabled {
     background: var(--color-neutral-100);
     color: var(--color-neutral-700);
   }
@@ -1923,13 +1926,19 @@
 .ud-cities-table-wrap { margin: var(--space-md) 0; }
 
 /* The table isn't sortable, so drop the admin header's click affordance. */
-.api-content .ud-cities-table thead th { cursor: default; }
+.page-content .ud-cities-table thead th { cursor: default; }
 
 /* The shell right-aligns every column past the first, which is what the counts and distances want. The city cell is a
    row header, and a <th> defaults to centered, so it's the one that needs saying. */
-.api-content .ud-cities-table tbody th { text-align: left; }
+.page-content .ud-cities-table tbody th { text-align: left; }
 
 .ud-cities-current { background: var(--color-pine-100); }
+
+.ud-cities-popup-name {
+  font-weight: 700;
+  color: var(--color-neutral-900);
+  margin-bottom: 4px;
+}
 
 /* Marks the deployment the mapper is reading this on, so the row they can verify against the tiles above is obvious. */
 .ud-cities-here {

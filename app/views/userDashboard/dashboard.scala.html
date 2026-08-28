@@ -98,8 +98,8 @@
 
 @content = {
   @* ---- Hero / "Your impact" ----------------------------------------------------------------------------- *@
-  <div class="api-section" id="ud-hero-section">
-    <h1 class="api-heading" id="overview">@if(adminView){@{user.username}'s dashboard}else{@Messages("dashboard.title")} <a href="#overview" class="permalink">#</a></h1>
+  <div class="page-section" id="ud-hero-section">
+    <h1 class="page-heading" id="overview">@if(adminView){@{user.username}'s dashboard}else{@Messages("dashboard.title")} <a href="#overview" class="permalink">#</a></h1>
 
     <div class="ud-hero">
       <div class="ud-hero-avatar" aria-hidden="true">@user.username.take(2).toUpperCase</div>
@@ -118,26 +118,26 @@
     </div>
 
     <p class="ud-kpi-scope">@Messages("dashboard.kpi.scope", cityName)</p>
-    <div class="coverage-kpis ud-kpis">
-      <div class="coverage-kpi">
-        <span class="coverage-kpi-value">@profileData.missionCount</span>
-        <span class="coverage-kpi-label">@Messages("dashboard.kpi.missions")</span>
+    <div class="ps-kpis ud-kpis">
+      <div class="ps-kpi">
+        <span class="ps-kpi-value">@profileData.missionCount</span>
+        <span class="ps-kpi-label">@Messages("dashboard.kpi.missions")</span>
       </div>
-      <div class="coverage-kpi">
-        <span class="coverage-kpi-value">@distanceLabel</span>
-        <span class="coverage-kpi-label">@Messages("dashboard.kpi.distance")</span>
+      <div class="ps-kpi">
+        <span class="ps-kpi-value">@distanceLabel</span>
+        <span class="ps-kpi-label">@Messages("dashboard.kpi.distance")</span>
       </div>
-      <div class="coverage-kpi">
-        <span class="coverage-kpi-value">@{"%,d".format(profileData.labelCount)}</span>
-        <span class="coverage-kpi-label">@Messages("dashboard.kpi.labels")</span>
+      <div class="ps-kpi">
+        <span class="ps-kpi-value">@{"%,d".format(profileData.labelCount)}</span>
+        <span class="ps-kpi-label">@Messages("dashboard.kpi.labels")</span>
       </div>
-      <div class="coverage-kpi">
-        <span class="coverage-kpi-value">@{"%,d".format(profileData.validationCount)}</span>
-        <span class="coverage-kpi-label">@Messages("dashboard.kpi.validations")</span>
+      <div class="ps-kpi">
+        <span class="ps-kpi-value">@{"%,d".format(profileData.validationCount)}</span>
+        <span class="ps-kpi-label">@Messages("dashboard.kpi.validations")</span>
       </div>
-      <div class="coverage-kpi">
-        <span class="coverage-kpi-value">@accuracyLabel</span>
-        <span class="coverage-kpi-label">@Messages("dashboard.kpi.accuracy")</span>
+      <div class="ps-kpi">
+        <span class="ps-kpi-value">@accuracyLabel</span>
+        <span class="ps-kpi-label">@Messages("dashboard.kpi.accuracy")</span>
       </div>
     </div>
 
@@ -157,9 +157,9 @@
   @* Outside the section, because a live region that was display:none at load isn't reliably watched — and this one
    has to announce the arrival of the very element it would otherwise sit inside. *@
   <span id="ud-cities-status" class="ud-sr-only" role="status" aria-live="polite"></span>
-  <div class="api-section" id="ud-cities-section" hidden
+  <div class="page-section" id="ud-cities-section" hidden
        data-stats-url="@if(adminView){/adminapi/users/@{user.userId}/crossCityStats}else{/userapi/crossCityStats}">
-    <h2 class="api-heading" id="cities">@Messages("dashboard.cities.title") <a href="#cities" class="permalink">#</a></h2>
+    <h2 class="page-heading" id="cities">@Messages("dashboard.cities.title") <a href="#cities" class="permalink">#</a></h2>
     <p id="ud-cities-intro"></p>
 
     @* Same band the leaderboard's community section uses, so "across every city" reads the same in both places. *@
@@ -193,8 +193,8 @@
   </div>
 
   @* ---- My Routes — routes the user built in RouteBuilder (#3343) ---------------------------------------- *@
-  <div class="api-section" id="ud-routes-section">
-    <h2 class="api-heading" id="my-routes">@Messages("dashboard.routes.title") <a href="#my-routes" class="permalink">#</a></h2>
+  <div class="page-section" id="ud-routes-section">
+    <h2 class="page-heading" id="my-routes">@Messages("dashboard.routes.title") <a href="#my-routes" class="permalink">#</a></h2>
     <p>@Messages("dashboard.routes.intro")</p>
     <ul class="ud-routes" id="ud-routes-list" data-max-name-length="@models.route.Route.MaxNameLength" @if(myRoutes.isEmpty) {hidden}>
       @for(r <- myRoutes) {
@@ -234,24 +234,24 @@
   </div>
 
   @* ---- Streak / activity rhythm -------------------------------------------------------------------------- *@
-  <div class="api-section" id="ud-streak-section">
-    <h2 class="api-heading" id="streak">@Messages("dashboard.streak.title") <a href="#streak" class="permalink">#</a></h2>
+  <div class="page-section" id="ud-streak-section">
+    <h2 class="page-heading" id="streak">@Messages("dashboard.streak.title") <a href="#streak" class="permalink">#</a></h2>
     <p>@Messages("dashboard.streak.intro", cityName)
       @if(streak.currentStreak > 0){<strong>@Messages("dashboard.streak.keep.alive", streak.currentStreak)</strong>}else{<strong>@Messages("dashboard.streak.start")</strong>} <span aria-hidden="true">🔥</span></p>
 
     <div class="ud-streak">
       <div class="ud-streak-stats">
-        <div class="coverage-kpi ud-streak-kpi ud-streak-current">
-          <span class="coverage-kpi-value"><span aria-hidden="true">🔥</span> @streakDays(streak.currentStreak)</span>
-          <span class="coverage-kpi-label">@Messages("dashboard.streak.current")</span>
+        <div class="ps-kpi ud-streak-kpi ud-streak-current">
+          <span class="ps-kpi-value"><span aria-hidden="true">🔥</span> @streakDays(streak.currentStreak)</span>
+          <span class="ps-kpi-label">@Messages("dashboard.streak.current")</span>
         </div>
-        <div class="coverage-kpi ud-streak-kpi">
-          <span class="coverage-kpi-value">@streakDays(streak.longestStreak)</span>
-          <span class="coverage-kpi-label">@Messages("dashboard.streak.longest")</span>
+        <div class="ps-kpi ud-streak-kpi">
+          <span class="ps-kpi-value">@streakDays(streak.longestStreak)</span>
+          <span class="ps-kpi-label">@Messages("dashboard.streak.longest")</span>
         </div>
-        <div class="coverage-kpi ud-streak-kpi">
-          <span class="coverage-kpi-value">@streak.totalActiveDays</span>
-          <span class="coverage-kpi-label">@Messages("dashboard.streak.active.days")</span>
+        <div class="ps-kpi ud-streak-kpi">
+          <span class="ps-kpi-value">@streak.totalActiveDays</span>
+          <span class="ps-kpi-label">@Messages("dashboard.streak.active.days")</span>
         </div>
       </div>
 
@@ -284,8 +284,8 @@
   </div>
 
   @* ---- Badges + Trophies ------------------------------------------------------------------------------- *@
-  <div class="api-section" id="ud-achievements-section">
-    <h2 class="api-heading" id="achievements">@Messages("dashboard.achievements.title") <a href="#achievements" class="permalink">#</a></h2>
+  <div class="page-section" id="ud-achievements-section">
+    <h2 class="page-heading" id="achievements">@Messages("dashboard.achievements.title") <a href="#achievements" class="permalink">#</a></h2>
     <p>@Messages("dashboard.achievements.intro")</p>
 
     @* Skeleton is server-rendered from real counts (data-value); DashboardBadges.js fills in the earned level,
@@ -293,7 +293,7 @@
     @userDashboard._badgeTracks(profileData.labelCount, profileData.auditedDistance, profileData.missionCount,
       profileData.validationCount, isMetric)
 
-    <h3 class="api-heading" id="trophy-case">@Messages("dashboard.trophy.title") <a href="#trophy-case" class="permalink">#</a></h3>
+    <h3 class="page-heading" id="trophy-case">@Messages("dashboard.trophy.title") <a href="#trophy-case" class="permalink">#</a></h3>
     <p>@Messages("dashboard.trophy.intro")</p>
     @* The grid renders even when empty so CrossCityStats.js has somewhere to append the cross-city trophy; the
      nudge below it is hidden once anything lands in the grid. *@
@@ -302,15 +302,15 @@
   </div>
 
   @* ---- Your standing — compact teaser into the full /leaderboard (Option 2) ----------------------------- *@
-  <div class="api-section" id="ud-standing-section">
-    <h2 class="api-heading" id="standing">@Messages("dashboard.standing.title") <a href="#standing" class="permalink">#</a></h2>
+  <div class="page-section" id="ud-standing-section">
+    <h2 class="page-heading" id="standing">@Messages("dashboard.standing.title") <a href="#standing" class="permalink">#</a></h2>
     <p>@Html(Messages("dashboard.standing.intro", cityName, routes.UserDashboardController.leaderboard))</p>
     @userDashboard._standing(standing, seeAllLink = true)
   </div>
 
   @* ---- Learning — Recent mistakes gallery ------------------------------------------------------------- *@
-  <div class="api-section" id="ud-mistakes-section">
-    <h2 class="api-heading" id="mistakes">@Messages("dashboard.mistakes.title") <a href="#mistakes" class="permalink">#</a></h2>
+  <div class="page-section" id="ud-mistakes-section">
+    <h2 class="page-heading" id="mistakes">@Messages("dashboard.mistakes.title") <a href="#mistakes" class="permalink">#</a></h2>
     <p>@if(accuracyByType.exists(_.weakest)){@Messages("dashboard.mistakes.intro.weakest", cityName)}else{@Messages("dashboard.mistakes.intro", cityName)}</p>
 
     @if(accuracyByType.nonEmpty) {
@@ -333,7 +333,7 @@
       <div class="ud-nudge">@Messages("dashboard.mistakes.accuracy.none")</div>
     }
 
-    <h3 class="api-heading" id="recent-mistakes">@Messages("dashboard.mistakes.recent.title") <a href="#recent-mistakes" class="permalink">#</a></h3>
+    <h3 class="page-heading" id="recent-mistakes">@Messages("dashboard.mistakes.recent.title") <a href="#recent-mistakes" class="permalink">#</a></h3>
     <p>@Messages("dashboard.mistakes.recent.intro")</p>
     @* Cards are rendered from /userapi/mistakes by MistakeGallery.js (empty -> encouraging state). The vote/note
        controls act as the signed-in user, so under adminView they render disabled. *@
@@ -342,8 +342,8 @@
   </div>
 
   @* ---- Your stories (#4054) ------------------------------------------------------------------------- *@
-  <div class="api-section" id="ud-stories-section">
-    <h2 class="api-heading" id="your-stories">@Messages("dashboard.stories.title") <a href="#your-stories" class="permalink">#</a></h2>
+  <div class="page-section" id="ud-stories-section">
+    <h2 class="page-heading" id="your-stories">@Messages("dashboard.stories.title") <a href="#your-stories" class="permalink">#</a></h2>
     <p>@Messages("dashboard.stories.intro")</p>
     @* Rows are rendered from /userapi/stories/mine by StoriesSection.js (empty -> quiet nudge); an admin reads and
        edits the user's stories through the /adminapi moderation routes instead. *@
@@ -353,8 +353,8 @@
   </div>
 
   @* ---- Team / class --------------------------------------------------------------------------------- *@
-  <div class="api-section" id="ud-team-section">
-    <h2 class="api-heading" id="team">@Messages("dashboard.team.title") <a href="#team" class="permalink">#</a></h2>
+  <div class="page-section" id="ud-team-section">
+    <h2 class="page-heading" id="team">@Messages("dashboard.team.title") <a href="#team" class="permalink">#</a></h2>
     <p>@Messages("dashboard.team.intro")</p>
 
     <div class="ud-team">
@@ -393,8 +393,8 @@
   @* Shown to anyone who has finished an audit, so "all up to date" reads as praise; a user with nothing mapped yet
      has nothing to be told about, so the section is absent entirely for them. *@
   @if(reauditTotal > 0 || profileData.auditedDistance > 0) {
-    <div class="api-section" id="ud-reaudit-section">
-      <h2 class="api-heading" id="reaudit">@Messages("dashboard.reaudit.title") <a href="#reaudit" class="permalink">#</a></h2>
+    <div class="page-section" id="ud-reaudit-section">
+      <h2 class="page-heading" id="reaudit">@Messages("dashboard.reaudit.title") <a href="#reaudit" class="permalink">#</a></h2>
       @if(reauditTotal > 0) {
         <p>@if(reauditTotal == 1) {@Messages("dashboard.reaudit.intro.one")} else {@Messages("dashboard.reaudit.intro.many", reauditTotal)}</p>
         <ul class="ud-reaudit" id="ud-reaudit-list" data-page-size="@reauditPageSize">
@@ -455,7 +455,7 @@
   @* Second composer instance (#4656), for editing a story straight from the list above; the popup's own instance
      belongs to the card it's inside, and its save would refresh that card rather than this list. *@
   @common.storyComposer("ud-story-composer")
-  <link href='@assets.path("css/label-detail.css")' rel="stylesheet">
+  <link href='@assets.path("css/components/label-detail.css")' rel="stylesheet">
   @if(commonData.imagerySource == PanoSource.Infra3d) {
     <script src='@assets.path("vendor/proj4/proj4-2.19.10.js")'></script>
     <script src='@assets.path("vendor/infra3d/infra3dapi-1.8.0.js")'></script>

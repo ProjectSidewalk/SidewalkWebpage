@@ -13,7 +13,7 @@
 class LandingValidationGrid {
   static #GRID_SIZE = 6;
   // Cards past the third are hidden by CSS below 650px — keep in sync with the nth-child(n+4) rule in
-  // css/landing-validation-grid.css. Purely a layout breakpoint, so there's no backend value to source it from.
+  // css/components/landing-validation-grid.css. A layout breakpoint, so there's no backend value to source it from.
   static #NARROW_VISIBLE_CARDS = 3;
   // The server splits n across the 6 label types validatable from a static image (static_imagery_only — Signal
   // needs a pan up its pole, so it's excluded server-side), so fetch sizes are multiples of 6: 2 per type up

@@ -2,26 +2,28 @@
 @import service.CommonPageData
 @(activePage: String, commonData: CommonPageData, user: SidewalkUserWithRole)(content: Html)(implicit request: RequestHeader, assets: AssetsFinder)
 
-@* Shared shell for the redesigned admin dashboard (#4272): left nav + main content + right "On this page" TOC. Deliberately reuses the API-docs stylesheet and its .api-* class names so the two surfaces look identical; admin-dashboard.css adds only the components the docs don't have (maps, charts, KPI cards). The right TOC is populated client-side from the page's h2/h3 headings by admin-shell.js. Every page opens with the deployment-info strip so there's never a question of which instance/version you're looking at.
+@* Shared shell for the redesigned admin dashboard (#4272): left nav + main content + right "On this page" TOC. Built on the shared page shell and components (components/page-shell.css, kpi.css, tables.css) — the same ones the API docs and the user dashboard link, so the three surfaces look identical; admin-dashboard.css adds only what is admin-only (maps, charts). The right TOC is populated client-side from the page's h2/h3 headings by admin-shell.js. Every page opens with the deployment-info strip so there's never a question of which instance/version you're looking at.
 *
 * The layout derives the sidebar's Owner-only visibility from the signed-in user rather than taking a boolean, so every page gets the same nav by construction: a page can't quietly render a shorter sidebar by passing the wrong flag or leaning on a default, and the required `user` param makes omitting it a compile error.
 *@
 
-<link rel="stylesheet" href="@assets.path("css/api-docs/api-docs.css")">
-<link rel="stylesheet" href="@assets.path("css/admin-dashboard/admin-dashboard.css")">
+<link rel="stylesheet" href="@assets.path("css/components/page-shell.css")">
+<link rel="stylesheet" href="@assets.path("css/components/kpi.css")">
+<link rel="stylesheet" href="@assets.path("css/components/tables.css")">
+<link rel="stylesheet" href="@assets.path("css/pages/admin-dashboard.css")">
 
-<div class="api-container">
+<div class="page-container">
   @admin.dashboard._sidebar(activePage, user.role == "Owner")
 
-  <main class="api-content">
+  <main class="page-content">
     @admin.dashboard._deploymentInfo(commonData)
     @content
   </main>
 
-  <aside class="api-toc" aria-label="On this page">
-    <div class="api-toc-header">On This Page</div>
+  <aside class="page-toc" aria-label="On this page">
+    <div class="page-toc-header">On This Page</div>
     <ul>
-      @* Populated by admin-shell.js from headings in .api-content. *@
+      @* Populated by admin-shell.js from headings in .page-content. *@
     </ul>
   </aside>
 </div>
