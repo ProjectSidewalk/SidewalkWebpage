@@ -163,32 +163,57 @@ async function loadAndSettle(page, context, p) {
  * closed rather than exempted here. Known blind spot: `overflow-y: auto` computes `overflow-x: auto` on the
  * same box, so a vertical-only scroll pane (e.g. the auth pages' .au-body) exempts its descendants.
  *
+ * `visibility: hidden` is exempt, which is the other half of that same contract: it is a parking mechanism the
+ * walk recommends, so honoring it here is what lets a page use it. Nothing is lost — a hidden box that stretches
+ * a *visible* ancestor still reports that ancestor, and the #4857 shape is visible by definition. It is also what
+ * keeps third-party probes out of the results: the Google Maps SDK measures font metrics with a hidden
+ * `<span style="position:absolute; font-size:300px">BESbswy</span>` on `<body>`, ~1200px wide and parented by an
+ * `overflow-x: hidden` div that the scroller rule above does not exempt. It lives only until the font resolves,
+ * so it lands in some runs and not others — it cost #5025 a full investigation to name.
+ *
  * @param {import('@playwright/test').Page} page - The page to measure, already loaded and settled.
  * @returns {Promise<{viewportWidth: number, pageScrollWidth: number, offenders: string[], offenderCount: number}>}
- *   Offenders are CSS-selector-ish descriptions (`div#gallery.sidebar right=612px`), capped at 10; offenderCount
- *   is the uncapped total.
+ *   Offenders are CSS-selector-ish descriptions with their nearest ancestors
+ *   (`div#gallery.sidebar right=612px width=270px in main.page < body`), capped at 10; offenderCount is the
+ *   uncapped total.
  */
 async function horizontalOverflowReport(page) {
   return page.evaluate(() => {
     const TOLERANCE_PX = 1; // Sub-pixel rounding at fractional device-pixel-ratios is not overflow.
+    const ANCESTORS_SHOWN = 3; // Enough to place an element without turning the line into a full DOM path.
     const viewportWidth = document.documentElement.clientWidth;
+    const describe = (node) => {
+      const id = node.id ? `#${node.id}` : '';
+      const cls = node.classList.length ? `.${[...node.classList].join('.')}` : '';
+      return `${node.tagName.toLowerCase()}${id}${cls}`;
+    };
     const offenders = [];
     for (const el of document.querySelectorAll('body *')) {
       const rect = el.getBoundingClientRect();
       if (rect.width === 0 || rect.height === 0 || rect.right <= viewportWidth + TOLERANCE_PX) continue;
+      const style = getComputedStyle(el);
+      if (style.visibility === 'hidden') continue; // See the header: a parked or third-party-probe box.
       let inScroller = false;
       // A fixed element's containing block is the viewport, so no ancestor scrolls or clips it (the #4857
       // footer bug shape); and the walk stops before body so a horizontally scrollable page can't exempt
       // everything on it.
-      if (getComputedStyle(el).position !== 'fixed') {
+      if (style.position !== 'fixed') {
         for (let a = el.parentElement; a && a !== document.body && !inScroller; a = a.parentElement) {
           inScroller = ['auto', 'scroll'].includes(getComputedStyle(a).overflowX);
         }
       }
       if (inScroller) continue;
-      const id = el.id ? `#${el.id}` : '';
-      const cls = el.classList.length ? `.${[...el.classList].join('.')}` : '';
-      offenders.push(`${el.tagName.toLowerCase()}${id}${cls} right=${Math.round(rect.right)}px`);
+      const ancestry = [];
+      for (let a = el.parentElement; a && ancestry.length < ANCESTORS_SHOWN; a = a.parentElement) {
+        ancestry.push(describe(a));
+        if (a === document.body) break; // Everything is under html; naming it places nothing.
+      }
+      // An element with neither id nor class is unidentifiable from its tag alone, so those carry a text
+      // sample too — that is the whole gap #5025 hit, where `span right=1284px` named no way to find it.
+      const bare = !el.id && !el.classList.length;
+      const text = bare ? (el.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 40) : '';
+      offenders.push(`${describe(el)} right=${Math.round(rect.right)}px width=${Math.round(rect.width)}px` +
+        `${ancestry.length ? ` in ${ancestry.join(' < ')}` : ''}${text ? ` text="${text}"` : ''}`);
     }
     return {
       viewportWidth,

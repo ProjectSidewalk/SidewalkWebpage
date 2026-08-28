@@ -92,12 +92,16 @@ test.describe('narrow phone viewport (320px)', () => {
   }
 });
 
+// A long-but-real street address, written into the card below so the shrinkable cell is always measured at a
+// width worth testing instead of at whatever this database's chosen label happens to carry.
+const LONG_ADDRESS = '1234 Northwest Martin Luther King Jr Boulevard';
+
 /**
- * Finds a label near the city center from the label feed.
+ * Finds the label near the city center that these tests measure.
  *
  * @param {import('@playwright/test').Page} page - The test's page, used only for its request context.
- * @returns {Promise<Object|null>} The label's GeoJSON feature, or null when the database has none there (CI's
- *   near-empty seed).
+ * @returns {Promise<Object|null>} The lowest-numbered label's GeoJSON feature, or null when the database has none
+ *   there (CI's near-empty seed).
  */
 let cachedLabelFeature; // The feed fetch dominates these tests' runtime on a seeded dev DB; one fetch serves all.
 async function findLabelFeature(page) {
@@ -106,7 +110,12 @@ async function findLabelFeature(page) {
   const pad = 0.05;
   const bbox = [center.lng - pad, center.lat - pad, center.lng + pad, center.lat + pad].join(',');
   const feed = await (await page.request.get(`/labels/all?bbox=${bbox}`)).json();
-  cachedLabelFeature = feed.features?.[0] ?? null;
+  // Lowest label_id rather than whatever the feed lists first: the endpoint imposes no order, so features[0]
+  // picked a different label per run, and the card's width follows the label (#5025).
+  const features = feed.features ?? [];
+  cachedLabelFeature = features.length
+    ? features.reduce((lowest, f) => (f.properties.label_id < lowest.properties.label_id ? f : lowest))
+    : null;
   return cachedLabelFeature;
 }
 
@@ -122,7 +131,8 @@ async function findLabelFeature(page) {
  * @param {import('@playwright/test').Page} page - The test's page, already at a phone viewport.
  * @param {Object} [opts] - Options.
  * @param {boolean} [opts.withoutAddress=false] - Measure with the address cell hidden: the state a label whose
- *   imagery is gone lands in, leaving no shrinkable cell to absorb a narrow card.
+ *   imagery is gone lands in, leaving no shrinkable cell to absorb a narrow card. Otherwise the cell is shown
+ *   carrying LONG_ADDRESS.
  */
 async function checkLabelCardFits(page, {withoutAddress = false} = {}) {
   // Slow from the first step: these load map + modal + pano late in a full run, when the shared browser is heaviest.
@@ -141,16 +151,17 @@ async function checkLabelCardFits(page, {withoutAddress = false} = {}) {
   // The strip refits when the address resolves from the loaded imagery, which is after the card first paints.
   await page.waitForTimeout(2000);
 
-  if (withoutAddress) {
-    // Hidden rather than stubbed out of the metadata: the loaded imagery re-supplies an address, so a label served
-    // without one still gets one once its pano loads. Hiding the cell is the state #showAddress itself reaches,
-    // and it re-runs the fitter through the same ResizeObserver production uses.
-    await page.evaluate(() => {
-      document.querySelector('.label-detail__meta-cell--address').hidden = true;
-      document.querySelector('.label-detail__meta-divider--address').hidden = true;
-    });
-    await page.waitForTimeout(600);
-  }
+  // Both cases author the address cell rather than accepting whatever the imagery resolved: whether an address
+  // arrives at all, and how long it is, varies by label and by run, and the strip's width follows it. Authored
+  // through the DOM rather than stubbed out of the metadata because the loaded imagery re-supplies an address
+  // either way; these are the states #showAddress itself reaches, and each re-runs the fitter through the same
+  // ResizeObserver production uses.
+  await page.evaluate(({hide, address}) => {
+    document.querySelector('.label-detail__meta-cell--address').hidden = hide;
+    document.querySelector('.label-detail__meta-divider--address').hidden = hide;
+    if (!hide) document.querySelector('.label-detail__address').textContent = address;
+  }, {hide: withoutAddress, address: LONG_ADDRESS});
+  await page.waitForTimeout(600);
 
   const fit = await page.evaluate(() => {
     const card = document.getElementById('label-modal');
