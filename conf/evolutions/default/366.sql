@@ -28,22 +28,291 @@
 --     Forcing a rebuild means emptying clustering_session, which blanks the Access Score and attribute APIs until
 --     every region is re-clustered -- a deploy-time operator decision, not something to do to 54 schemas here.
 
--- pano_data carries only its primary key, so the neighbour lookup in part 1a has no access path for capture_date or
+-- pano_data carries only its primary key, so the neighbour lookup in part 1b has no access path for capture_date or
 -- position and degrades into repeated scans of the whole table: 34 s on seattle at 183k rows, which the deploy would
 -- pay once per schema. Built and dropped inside this evolution's own transaction. With it the statement is 92 ms.
 CREATE INDEX pano_data_capture_date_lat_lng_idx ON pano_data (capture_date, lat, lng);
 ANALYZE pano_data;
 
--- Part 1a. Street View captures a road in one pass and processes the whole pass alike, so pano size is a property of
+-- Part 1a. The 273 panos our own data cannot answer for, derived offline and listed here. Sources, in precedence
+-- order (scratchpad/4959-derive-dimensions.py, scratchpad/4959-derive-photosphere-dims.py):
+--   * photometa, for street-view panos Google still serves -- what the JS API is backed by.
+--   * A surviving pano of the same drive at the same location, matched on the exact capture month. A nearest-in-time
+--     match is deliberately NOT accepted: seattle's _0bCOrz-hEUd_LByOsN2og, captured 2018-07, sits at a location
+--     whose history skips from 2017-08 to 2019-06, and reaching backwards returned 13312x6656 while five of our own
+--     2018-07 panos within 50 m agree on 16384x8192. Where no capture from the pano's own month survives, the value
+--     is taken only if every surviving capture at that location reports the same size, so no generation boundary can
+--     be crossed.
+--   * For user-contributed photospheres, the source image itself. Their pano id is a base64-wrapped protobuf holding
+--     a Google Photos content id, and that content's pixel dimensions ARE the pano dimensions. photometa answers 400
+--     for them (its selector addresses street-view panos) and so does the tile endpoint, so this is their only
+--     route. Checked against every seattle photosphere whose size we already hold: 26 fetched, 26 exact, 0 wrong.
+--     They are served whole rather than tiled, so tile_width/tile_height are left alone rather than invented.
+--
+-- Grouped by size so this is a handful of checkable claims rather than 273 independent rows. Pano ids are globally
+-- unique, so the same block applies to every schema and touches only the rows that schema holds. 117 panos (248
+-- labels) stay unresolved -- 105 whose location mixes sizes, 12 photospheres Google no longer serves -- and keep
+-- their current coordinates.
+
+-- street-view panos, 139 of them.
+
+-- 99 panos at 16384x8192, 512x512 tiles.
+UPDATE pano_data SET width = COALESCE(width, 16384), height = COALESCE(height, 8192),
+                     tile_width = COALESCE(tile_width, 512), tile_height = COALESCE(tile_height, 512)
+WHERE (width IS NULL OR height IS NULL OR tile_width IS NULL OR tile_height IS NULL)
+  AND pano_id IN (
+    '-9tho677BCYAm1ZOrTWQGA', '-C9eB923-ex0-Rrj1mJJCQ', '2DWrRWYCyhGRU470aX0i4A', '384IHTAaQqcKaKHUh0xlhw',
+    '3PvWCNqg5vmYjfi4F253ZQ', '4f2sUwpHtF5CS1TVbUY-0w', '5ccs8E1igusoB8OGnufLrA', '5dfiyA8BNWE6cbtem8V1Iw',
+    '6gcemkJ5Ztrhvmdd7Umw-A', '7U2Vo_di_ZFNH8CtDDuTzw', '7qR8Rr4eA3NaSO-MhUDm-Q', '7svbDM4Dlm-Cm6q-k5e5-w',
+    '84eV2Np6vQWRklnUOWf6CA', '8zaSPeCiYe4n7C1V_UZ3jA', '965Dv7UN-fG5ZuyDUBRIEg', '9l-OaEHcc5KA4et5pdT_qw',
+    'A4xfL5ThmbBlJladzI5T3A', 'ASmtDv8UwNUv9qLE2ZPDww', 'Afq9yT2fSobbB-TPcqIRhQ', 'CZTHzAB1ad2QYcURS1AM7w',
+    'Cl2XIXoAicmhmQvwfLy1aQ', 'CwQHRQbWDR3s_w8tMoBWRw', 'EI4IFnjiSx2Wa3imXzmInQ', 'ELvJK5SPvL3poCivBV2u3Q',
+    'EgSOWUbYQzHcJYcQ117ilA', 'FCdpQKtBqELhBbkbRrM3Fw', 'FQ0lZQqUW86GBnnoY_kohw', 'GM2T8bjX37-LnqhthzHaWA',
+    'GyDu_0fnces---NPjegOVg', 'HfPc3aw9QaC-uLnOhKQ8rQ', 'Ig6QgwtSqrhYFU80lMSOFw', 'J3WysS_3p3E8PWGhi-Zchw',
+    'J4wukP_qz8gIzmuopfZqaw', 'JJ7yg13pzi0EgJXvpV9mWA', 'JPcJLjBRT6O3LUq5DA0xAQ', 'K-xUjA1qFJX4XmyvGc5oOQ',
+    'KpWbg1FIFyGM2hHnt-l2Mw', 'MZImbuzSdfJj9APmBxKUNg', 'O3emzeK_g3oZqIiyNaWHfA', 'OHIJBBt9NlmAZoVbyT-s7g',
+    'OIk3jwsOxCl-g_xmnix2Jg', 'P6yw9X-eM_znd1nwjmGeqw', 'PHO7i0b_Ki7I_ErDq1BSxg', 'PMmHIFoNSJyJLqJ5pe11uQ',
+    'PcwqZQqb718MkOKEppSjsw', 'Qbp-FOdqGkraCgC-oEI5ig', 'R4XpPIMn0wSG1Bzsc358UA', 'SM3AtDAzyxHVYe2APJ-usQ',
+    'ShA_W1JpLbrHXTklBcmUtg', 'TTmS8EKjtuY1b--174h_qQ', 'Th3Lv8mgre1Cjmn9_kzWng', 'Ti4tC2Ost1c4MhShwud-tw',
+    'TmRQkqZDiawEQDZNPxjFVw', 'TxSnwlCrZhXng1FJ1V9hDg', 'UbRzsy3JH1TTPDq3Gk924w', 'UojOcBk9jSMmEQJHaaJZaw',
+    'UudKW2tDaHS9QLlNrV01nw', 'V6JOxuhDbRPJj9ejle6ynA', 'VxHk--DfiVFKG2sO53TxAw', 'W4ynYh84zv4DjvTl5-5_AQ',
+    'X1zFRS9_QFecD9B2yuxFmA', '_eY4zk4-r9sGlMcqRVHzhg', 'a-BSYPJ-UuDiz5JKlgrfzA', 'b3Bo-8VLLBE-oif1HIo89w',
+    'bbR6_RTcEIJ2fGnsfXY41g', 'bm-Q9KtUbphsgh3UUhHcHA', 'bnaLac41L3KrME_AQLDeYA', 'dmJ-7yydh8Zm5Vr13lW8BQ',
+    'eK7rxO8Y5-Q14ePKwHx-zA', 'eRBE1Gz_UvECQDj_DL5zqA', 'eXF2Tz5Ucd2ZtPdJHZT74w', 'ehCMQe09Sj6LKx3oE2PRpA',
+    'f0fgGHorl0LLL8lCB7fpIQ', 'foBv72h7cV2-hVS1O0XVFw', 'fuB3d_msl2-VK0brGOINXQ', 'gSpOZELMCt546R39QS8msQ',
+    'gZo-9ypAGkDGYv_Z3puWzw', 'gZxN-F2FfJmHdypAgVXE3g', 'hO1flgZ2ZIP8CBBCr1MmPw', 'hr2kiSEaAbQqhxuq98GJJA',
+    'i93wKlvQanzXRYBWpoAzig', 'j2yX2OP9gmBInZEq94hfZQ', 'jUpFtqTUqqwG3zohfvkmGA', 'jlI4k0-RQEM20gSmmz938Q',
+    'l1ZE8EMLH6r13GDTCXaAKQ', 'lVCKT1E42sGy_rJNVdqiMw', 'lnJ85f7tOIOzOODehbnGDA', 'lqVv2t7VwaalOiFX4Tvp4g',
+    'piMcBHOsJXvQuAVtIVJSpw', 'pmqXY6QS5iZSANjjpwLBYA', 'rCahEmHHlx6QEQsYZy5XRg', 'rh3awh6903S7snMWnAOlDQ',
+    'sQsTKSee5egDMhlBwbo5Tg', 'se2G5yTQZ1VrvQ4GPp9adA', 'vkdhWriWge4pvqWLoKMrkQ', 'wwb7ajBdAl2nxpgiz5_0EA',
+    'x3Wefuasf2TjFLWxwijYFQ', 'ypICuAuPrBdj0RJLGRKmIA', 'zXl_i3mc1eObw9vlv8zRvw'
+  );
+
+-- 33 panos at 13312x6656, 512x512 tiles.
+UPDATE pano_data SET width = COALESCE(width, 13312), height = COALESCE(height, 6656),
+                     tile_width = COALESCE(tile_width, 512), tile_height = COALESCE(tile_height, 512)
+WHERE (width IS NULL OR height IS NULL OR tile_width IS NULL OR tile_height IS NULL)
+  AND pano_id IN (
+    '-duUF9NKOGLFuB-3T0svVQ', '17ZMeA_vTXd_zT_wFxRXvw', '1VKwz1E3zYk7ysNzUjnGAA', '3Zj5KugUkbfkExh7CbSqTw',
+    '43-6Xcv22HB9Jcksq_6WLg', '6D6F3caQiD4FPPgp7zlnxQ', '9TLkTMtcIEAjCmFutPeVxw', 'AwlgWXzEYYBmv87n46-qZg',
+    'EAqwqE0688xPgGVN1xao7g', 'FBQtZtrak9Sjs6rkCkq7IQ', 'FacSX1K1HF6bK0GLDiROcw', 'LnvnP1cug9Mnv7Wu6lD5Iw',
+    'R-Bge6u6c-5wXFZo5jysjw', 'RYpZhYP4B1mZbhevHn7MUg', 'SZuEn_u4AsV7ebymX-NgHQ', 'ToEahEYZSuHMzIz13IIAWg',
+    'WlYJynv_etdiZe6_fNnmHg', 'Z5rWTslt9Gm9kn9iEirJ8w', '_nTPTPQBmFZVopcixiC9cQ', 'aTbXDyDG2UtDsfvd1nGAsw',
+    'duUKhGB1pvLlIzlE3UkKRg', 'eAX6oYDLTFWwnwdAg0T_XA', 'fUqp2QTrWV7Vy3kL7YEdpw', 'gEV9QHC3KyaMfoG1zgJE3w',
+    'kCzikjzSy7UYMsiKmIj8zA', 'nrX9Asx-pjCL_6DLeO4iuw', 'qYMNy3yp-JqrzDWVBUvJmw', 'r4rKMt0zAY_L6qVeiKOpAQ',
+    'r_ycsYf31bttF2RgkJKJWw', 'v6rOhbTqinZrtSEumYKPIQ', 'vclYTK5_RW7zM7TLTFLHjQ', 'xrxDoff_Azjjzt8sJUdv5w',
+    'z5ELF-VTkI0RzkpzqH86-g'
+  );
+
+-- 7 panos at 3328x1664, 512x512 tiles.
+UPDATE pano_data SET width = COALESCE(width, 3328), height = COALESCE(height, 1664),
+                     tile_width = COALESCE(tile_width, 512), tile_height = COALESCE(tile_height, 512)
+WHERE (width IS NULL OR height IS NULL OR tile_width IS NULL OR tile_height IS NULL)
+  AND pano_id IN (
+    'Mzt9ZUb1DBB4Dj-Tc4F5Aw', 'STJSYoKSyjDGRgfxazNIQQ', 'VA4tCTug4FbU5fTbVia1aw', 'ZOceijIWNGzyPsPKrX_qfA',
+    'joO4Yz-f5k_BctXuuqYp3Q', 'kpmHwfcFbgLwqewO8_cM7A', 'rAb7u1oYycG-xe5Odk2FJg'
+  );
+
+-- photospheres, 134 of them.
+
+-- 112 panos at 11000x5500.
+UPDATE pano_data SET width = COALESCE(width, 11000), height = COALESCE(height, 5500)
+WHERE (width IS NULL OR height IS NULL)
+  AND pano_id IN (
+    'CAoSLEFGMVFpcE00ek1NM2RlWTRES0d6UFE1OVU2V2tyb0x2Y05OdE9HMlQwMVVX',
+    'CAoSLEFGMVFpcE02T3BJTXR5VjltMmliRzluSk1URWlMUTVjN3ZLT2pnZlJIODI4',
+    'CAoSLEFGMVFpcE0tTjJYUkJrOHlYTU1Kck9hM1FFREFud3J2YWs1aFZfbFQ1Vmp0',
+    'CAoSLEFGMVFpcE0tYzRGR3VScTcwUGNyT1haaWtvWGxyWUlmMXA0OURPX2F3RUhU',
+    'CAoSLEFGMVFpcE0wTmJST3l0X1VwVkkwNXU4V2FObDV1MVlpNXdRM2VJTklFTzh4',
+    'CAoSLEFGMVFpcE0yNUhIckwxU2tmNkhJRkg3d0Q1cUphY0FOZkdNRXItZTNIQ05i',
+    'CAoSLEFGMVFpcE10cDZiN3Y0bDdabTd5V0Mta1JqM0VYRFpUN2ktMWpwUUpUUlRp',
+    'CAoSLEFGMVFpcE11ODhKUGxkUnJOMWlVM2oyeXBacGFJZXFrYUxpajdlYlRnZnk0',
+    'CAoSLEFGMVFpcE12YmNRZkJEOFFXNDBhMWJqN2RUQ05QRFNXYmxxWjBFenh6Z1di',
+    'CAoSLEFGMVFpcE14S0I3VklGRU5FSjJsTVN6RGJHeHdQcmFIYUcxbmd4MktGQjNP',
+    'CAoSLEFGMVFpcE15akVDVVlFRTNjNGRJeTFSd1dvcDVjUEVKZlNyam9vWlM4ZVJz',
+    'CAoSLEFGMVFpcE15eDBqU1NmSktUOVh3RXRteUs1ekhlUlNZUEM2dFh0ZG9faVJz',
+    'CAoSLEFGMVFpcE1BS1hGaDZuMXV6NFV3OWpVRFdUWEhuZmVTeWJIdFllcWpYcHZF',
+    'CAoSLEFGMVFpcE1CeHJTdTFMY1U0b0dOVXkwZEh0RHl1TS1qTWFIOHgxY2x3NWwx',
+    'CAoSLEFGMVFpcE1DQVZrdnhhclQ2VDh2QmpkZldqLUdiakdicFJaalVXcF9sNjQt',
+    'CAoSLEFGMVFpcE1EVHNTUnVwcUhUTzJIbkdxZDNLZkEyWXhpZDlEbFE4eWhvUGQ0',
+    'CAoSLEFGMVFpcE1ONUNzOVF2Y0lpRjJ1ZFlHa2xmQkVrbDQ0TVh1TDlTUlQxeVZp',
+    'CAoSLEFGMVFpcE1PQXZwbm45cnZPbFVRcE5BcHJiR0czOWZVSnhGbkRCZWV2ZUdw',
+    'CAoSLEFGMVFpcE1QMmxVSXJKZVlhZUxBMDFtVVVvX2RZS25fT1g2ZGFETW9sRkxq',
+    'CAoSLEFGMVFpcE1TV1NzSVZaTWpyT29jWDRGSzJTR19vX0x6aEd3dkgybEM0NEZK',
+    'CAoSLEFGMVFpcE1fcFFocW5TSDR2Y045V1VNdVNUMDZjUHVWaENDRzBVQzI3SHJC',
+    'CAoSLEFGMVFpcE1mb2Itcl9HYUVDMW52Z0RfWk5QdW1SSTVEV2x1b2g4RGdpeXpv',
+    'CAoSLEFGMVFpcE1oLXNzdGZEMnpPc3g3bE1RLWNLdmNybXliLXlPRnJSc1E2akZ1',
+    'CAoSLEFGMVFpcE1pUW1EVnRYN1l0S1Y1ek91aGp6R1RuSWU5S2JPaDlxQnBheXZH',
+    'CAoSLEFGMVFpcE1uMUN2RE9URXhJWFgyQnRESjJKTWxzeUtKaFh5ZU50bzhlbVFF',
+    'CAoSLEFGMVFpcE1vSGNsZHRYd2xid3JhOU1OMmxqY0JVdFZKUC1Ha0lDLWxuenlr',
+    'CAoSLEFGMVFpcE1wOGhsdjNMV1pmMVZ0U2otdlBoZnU5ODhudUtMZXptbnZkN3M2',
+    'CAoSLEFGMVFpcE40S3RDOFYwdXd3elZpd29CMHNqWC1lai05NThFaGdEaU9IMXBW',
+    'CAoSLEFGMVFpcE40eDNaNVZzOGJ3V0ZCRERRX3pGSC0zUzVOQ1gtRFp6N1dFUVph',
+    'CAoSLEFGMVFpcE41cFZuUmdlNl9rYkVlRjg5OGl1TU4tdDhKZjRqSS10Yy1xaHdN',
+    'CAoSLEFGMVFpcE43bEc0M01pS21EZkFOemtmNTFyM251VzB3MDR4ZlIwU25GbTZU',
+    'CAoSLEFGMVFpcE45dEdHZWh4bXFXLU9XbkowUGtFWUJkVlpqZFlabms5TURhcEZm',
+    'CAoSLEFGMVFpcE4zRUc5WWZid2t4VVZEVGFJdVRhMDloOWFWaWkxUXU5MXM5Wm44',
+    'CAoSLEFGMVFpcE53NjdvMW5MXzBfZUZoUHlUS3pYQ0Zuenp0U1hoNm1lZFRyRWZw',
+    'CAoSLEFGMVFpcE55alBRVldfMkxuWm5HV19sSXczQkdwbkJBSElpcWFIa3RzNjBH',
+    'CAoSLEFGMVFpcE56R0daeVRJN1U5OEd1MkxnTzY5YkFPUG9DdjNGV2lmRUdOYWRB',
+    'CAoSLEFGMVFpcE5BMmtTeUFZVW5jMXMwaXpEN2trMEpXVVN5N3hRY2VmZjJGN0ZU',
+    'CAoSLEFGMVFpcE5GQld2cXUxWHpWZElfQXZzbkxXaFBiMVkxd0g1QVBoUmNtLURt',
+    'CAoSLEFGMVFpcE5Ga2FPaUtJN3gtNWxVTEJ6Q3VCQ0dkM1pMQWpHQ3FDaUROclp1',
+    'CAoSLEFGMVFpcE5JWWY0S0ZfSXNQc2ZrZzFVVkNHRndrWkU0b1pwaVZ2TEFZUnJr',
+    'CAoSLEFGMVFpcE5JZlVjYnEzSzhrR2hlU1RWVy1rYmNORFNGQjl5YmNRNVFOS1JM',
+    'CAoSLEFGMVFpcE5LX0FaNDdnMGNGLVJmNHRBZmY0N2hCQ3VHdGl0ODgwOURDb1BM',
+    'CAoSLEFGMVFpcE5NQWY2ejZQS1V2S0VWeUJGeXN3RnN0SFQ2Rktqb3VFWmlxeFlE',
+    'CAoSLEFGMVFpcE5NSVVEUjE0a085cWExVmdwbjJLeWRPemRncjVtOTBZM0o4ZWxG',
+    'CAoSLEFGMVFpcE5QLWxFNF9Ham5POXI3MkRYVnh1NjJLNFYtbzJ3VlEyLTRKeHM1',
+    'CAoSLEFGMVFpcE5RRHFWZUd5TFVDcDhLdmJNSzlhXzJ6X1pmaDJ3S2lTMzgtbFBQ',
+    'CAoSLEFGMVFpcE5RX1RTcl9VcW9hMmkyR3BSSW1jQW0tSWZpUmtaUkZid1hHSkl2',
+    'CAoSLEFGMVFpcE5WTUg0ek1LaFBQVkUzZlZyYWpjOWJBZHo3cHZFSTZCdDFPOHMx',
+    'CAoSLEFGMVFpcE5XMERST3ZkNVZ2OHhYRGlnVGg2T01PVXAxZ2U1YUh3ZGNqUHJY',
+    'CAoSLEFGMVFpcE5YVjJmc3Q3cDVBNWlhWFhoejZwdERSWjgtZmhaU2VTczlVM2FB',
+    'CAoSLEFGMVFpcE5aWlNtRklCMVN2ZXhOVkF6TFdKWm9uSnpoaTJFZ2U0UzZ0d0I0',
+    'CAoSLEFGMVFpcE5fV2tCeG9SNWxrMEhoOW9JYXMzZlYtd2dwcUJOb2pnRnRyVEdw',
+    'CAoSLEFGMVFpcE5hRGRWV3lYc2prbHBzQzhtTUtCQmlwQlA3WjRQSUVzM29xSkFO',
+    'CAoSLEFGMVFpcE5qTVdwN01ObkE5UzVpN090bmFqQjdqRkgwMlNUeWlrX2k5aEVS',
+    'CAoSLEFGMVFpcE5wSXc3UDFKVEh5NXhQN0lFZ0N2U25OWlRTVGFqWTYyY3Y0RUst',
+    'CAoSLEFGMVFpcE5zUHhzQ2U0Q0trVkxoM0t0ZGg3Q2ZHS3NGeENjZGktU1NpSDg3',
+    'CAoSLEFGMVFpcE8tMkxRcVRadWVmaW1kVlQyY05nTE05LUtNY0hXS3lWRFh4SGM4',
+    'CAoSLEFGMVFpcE8wQldIX2RnaHBtZkoyNk1Ja215ZkdaemFnMHVISVo5SmpmSlQ1',
+    'CAoSLEFGMVFpcE8xV29EXzFJV3daUTBsOU1XdWtValRYeFpJYnlySXNzUy1KZmx1',
+    'CAoSLEFGMVFpcE8yM3V4Y2FPZU5nTXkxd3RRbHZ6X2JtWXVfdTJHWmhZdnUwS0Fp',
+    'CAoSLEFGMVFpcE90OUd0aGo0blkxcWVwTjRhS0J2Sm9icmR3ZWgyOFRFZ0JDVEg4',
+    'CAoSLEFGMVFpcE90cjVIbHpFcFc4NmI4TGVEbS1WQVhWcHFWMWwxazlITGJjOFRD',
+    'CAoSLEFGMVFpcE91RVd1Sl9hNVJDUURxY1MtNUR4eERGMXBvVXpFWk51UENPVzA2',
+    'CAoSLEFGMVFpcE94LU9vYVg1OXl4XzBXS3hEZ282Y2Ewak1OZ1FRZHFwS25GeHNs',
+    'CAoSLEFGMVFpcE9DTEU1QTBwMmVaMG9sUEE2YmlWTmh5enY3VEFQYkpvVDdPY3BC',
+    'CAoSLEFGMVFpcE9Hbi1MR19TaEtqVVRJTm9WalJQejY1c2U2aW9wVlVncDBhVndD',
+    'CAoSLEFGMVFpcE9JVlFIMjlWVVJ0bC1FSFNIaTJ2ZVh6bEd0TlllVm1xUFpfQlFl',
+    'CAoSLEFGMVFpcE9NRW9LVHhoQlcyLWpHVkVGa2RFeEgwcVBfOTFqRFo0eUNWOVVk',
+    'CAoSLEFGMVFpcE9PemhacmZRMVlub2c3TUg5SUxsc1hZZEdwZHZ6eXJNSE9hOWNI',
+    'CAoSLEFGMVFpcE9QTDc4OGZCU0RnajJWNW5lbUI1Q0NRMWcybGt4amUzQk5Ydm52',
+    'CAoSLEFGMVFpcE9RY2RTdkROdmpQRmg4cDJHcDAzMTMxSTY0MGN5bDNWVGRPWC03',
+    'CAoSLEFGMVFpcE9WYzlpUjVsVFU4ekZublJ0RzNVSEJreUxMQ0JLSXFCZGlPdncx',
+    'CAoSLEFGMVFpcE9Xa3M1MlJ6WldaR3RjZE4xVl9jX09DbG5TYnBVLWEyQUkxT1Zq',
+    'CAoSLEFGMVFpcE9YZ1V0aXhfcFdXNEJqNmJFUVZDbjFIekVEam9TUjdLVUU0ZGJY',
+    'CAoSLEFGMVFpcE9ZTFZ0a3lPUk5QUm5UZWhGTXN4Sjl3bjNEM2dEYlQtcWlBT2VU',
+    'CAoSLEFGMVFpcE9ZVjJlWVFrWXBXWmpHSEU5Y2E0dlBUOENURFB0V2c0VlJlbmti',
+    'CAoSLEFGMVFpcE9ac0lsdFNaMFBvZkJoWDg5TjhPbkQ1bVk4QlllWlNKa2xIMEtP',
+    'CAoSLEFGMVFpcE9fZ2lTYjlOc09kOUpVRWlTQnFaMzFES0NQMkx6WGJpb2VtcWVR',
+    'CAoSLEFGMVFpcE9kTi1xRzRwTnNra2FoTVZLWGxGYnlVM3ltSlF1M0dzYXBmSmM3',
+    'CAoSLEFGMVFpcE9mTmF1LVNJV1VXQ0FUSjdPY2ktR3RWemNlcnpOa0I5cnJxdGlG',
+    'CAoSLEFGMVFpcE9pdFJ1RzdPZEF4ZDhUc1dlMnMzdWNvelpjdjZqaXJuRlJ0Nm45',
+    'CAoSLEFGMVFpcE9tUjk2VTNaUW9XS29xbDVyM3VicWt0YkNsTk00d1dNVHVNTWtE',
+    'CAoSLEFGMVFpcE9uSmdrcVZRZWc3UXhLTXhqY1UxRFlYa1ltVzhoX0lGM2VxRzZU',
+    'CAoSLEFGMVFpcE9uWm1URkpSVG9pTG05LTVUSGZjcWVRSkVJM01Xd2hmUEhYQ0Jt',
+    'CAoSLEFGMVFpcE9zOGQ4eUhSVnZ3OEFUVzJqTHdPU0pKYWs4WVFfbFNUdmVQWXUt',
+    'CAoSLEFGMVFpcFA0Qmxqa3owVklvaHNXeV9VV0Q0LXlxUDJ4emNXWl8xb2l1c2gw',
+    'CAoSLEFGMVFpcFA2c0hpTmpmM0V6QjBnVFRjS0VnV0ZaOTFvZWM2R1UxaER4dzVQ',
+    'CAoSLEFGMVFpcFA5d20xR2dpTkczN2I0al85NjNVVWI4UG9HMmlUYnB3OG1ncFVB',
+    'CAoSLEFGMVFpcFAtSW9MbEV5MHF1RWh6Wm1wa0Q0X3lsd1B1dFI0Y3dwWUEwbWg2',
+    'CAoSLEFGMVFpcFB3Q0ZyaElDYklBcVltc3lPbDhHZTlfMTlUcHpGUkU5LXFveFlj',
+    'CAoSLEFGMVFpcFB4S01MT3ROQXdQYXhJTnJpZTVOMTMtMTZBVklyanprNzRHd3dq',
+    'CAoSLEFGMVFpcFB6TnczVEh5MzUxX3dpdW0zM09Xb3lDSm5KM000VGh4TThVWDlW',
+    'CAoSLEFGMVFpcFBIakNZekZyNUY4QmhEQlpjY2JUdE9zLVo5aXVIYUVJeDNzamhl',
+    'CAoSLEFGMVFpcFBKT3hzdC1Ud1ZjSC1PVnl3cC1YUjNLWjFhWjRadTNZNmVDbTdR',
+    'CAoSLEFGMVFpcFBMcVg0NWZzajJtaEo0LUhwY0xMVzdCN0NNSTNlNTQ3elpVSGU4',
+    'CAoSLEFGMVFpcFBPT1E0NXRCZmIySDZESk9KVUJsRUdLRnZwaGZ6enhILWJTM2My',
+    'CAoSLEFGMVFpcFBQaTRIcG9heGU5ak00TFdLVXp0THpZZFpRVHdxTTQ2RnpmeGt2',
+    'CAoSLEFGMVFpcFBTM0tad1lBVXFqOGZ1cUphbzNoYTltY3B1ZU9pZmExc1ZZZnFf',
+    'CAoSLEFGMVFpcFBXbjN5Uk1KWGhQemdBVzlsekh3RS01VVJ5N1VXcnJtVnVBZ3lH',
+    'CAoSLEFGMVFpcFBaTjBma25DNkh6SzdDdy1BOUhuMU4xTlF0d3NWLXNXUEUySUhk',
+    'CAoSLEFGMVFpcFBaYnB6bTJQV0Z2dzVFc2dTd3RWNmQ1d3REbFZwTnRydGswUkQx',
+    'CAoSLEFGMVFpcFBiV3A0TkxIdDBCSTRMc2Y5Zk1Xd0ZpRUVVTWRoUU5NMk9VNmkx',
+    'CAoSLEFGMVFpcFBkNTRia0F2U0dzR0t1czRqcC1FZ2J0SWxVR2RWd01nd3hLMnV1',
+    'CAoSLEFGMVFpcFBnOVBHVHQzc0FsVm1ULWdoUV9HTGYwOGFweHA3RktNRjl2LUd6',
+    'CAoSLEFGMVFpcFBoU0pFa0dCcnZGaFdZRDlJM3Ytc3h1ajA0NjE0R2xra1o3Y2lR',
+    'CAoSLEFGMVFpcFBod01OTzEteXhuNjNFSldyaFJybVhUN2p3eWlyc0xjWHlXZW12',
+    'CAoSLEFGMVFpcFBpZ0JZeEJtUU9YM0ZDZXZybkxBSlFLRUtlM1BrMnlGX3lQMXhL',
+    'CAoSLEFGMVFpcFBtWjNDVFdmdWJidzV4U214RFF1aXRMc1I5eDRzZGdVVzQwVzhI',
+    'CAoSLEFGMVFpcFBuZUJ5cDNDT0xIN2hDS3RDWEtoRXNXSU8yOG85UHBkUWwyZmhj',
+    'CAoSLEFGMVFpcFBvUmtvbndtWkdYT0hCbGVDNzE0MV9HMnk0czR3VkFjc3FiUEZz',
+    'CAoSLEFGMVFpcFBxQXMzc2JwRmxqdmJyNHBqMVQ4TVdtYVVNTEpHREE3Qy1Iem5r',
+    'CAoSLEFGMVFpcFBxSURvZzNqTngtT0t1M0JEcVpwVWMwZ00zS19oekRoVDhPYnFa'
+  );
+
+-- 12 panos at 3840x1920.
+UPDATE pano_data SET width = COALESCE(width, 3840), height = COALESCE(height, 1920)
+WHERE (width IS NULL OR height IS NULL)
+  AND pano_id IN (
+    'CAoSLEFGMVFpcE1xT2xTWW5MY3E4SVViUFRUNG40NHBxQWVMTjhhRy05WFhwb1h1',
+    'CAoSLEFGMVFpcE4wWl9EX2FjQlprVEhrb1o5VWdDSTBseVhvVmZuX3NEMnNKdEc1',
+    'CAoSLEFGMVFpcE52UkpaWG9iSU5NeHllWjduTHNXVjNOQ3J2WFMzMXpoSEhYdUgz',
+    'CAoSLEFGMVFpcE53YXdYQUhhcmhLQ2Q2b0lJYjhWMlFDT2l2UlRRbmRaRXNCalJ4',
+    'CAoSLEFGMVFpcE56Q21HUEQ3N0dpclh4THFDVEJxdy1EUHdaN0lrN2lyYkI2UWwt',
+    'CAoSLEFGMVFpcE5USjZ1eVI0ZVVqS1RZVDdaZHlvNk1WX2R5NVlGcEFlMjd0bjFk',
+    'CAoSLEFGMVFpcE5qaUFzdGxuc3JWc09GN21qQ3pqZlpILVpucHhoRkpHOHFuYXhm',
+    'CAoSLEFGMVFpcE8wNHZta3RocDQzcEhHQmJlTEJ1NElBa0gwQW5ZWW9RT2JqTlJ3',
+    'CAoSLEFGMVFpcE94cnplUmdXV3kwc1ItazBLdFJ2WEc5My1odW9fR3hJcG40S2h0',
+    'CAoSLEFGMVFpcE9iMGtweGZyQ2QtenRHOTlaOUgzZ3lKdFctTVlFUmI4Z01KYjR2',
+    'CAoSLEFGMVFpcE9uVHU3TTZkSGwyQmNwUjZJN015eHVlMG00RzdLdnF4WFBFSW5D',
+    'CAoSLEFGMVFpcE9yVjVUVjNpanVPVGZrNTFTYlJ3NENmQW9ZZDNjTk5RWmY2Xzds'
+  );
+
+-- 4 panos at 5760x2880.
+UPDATE pano_data SET width = COALESCE(width, 5760), height = COALESCE(height, 2880)
+WHERE (width IS NULL OR height IS NULL)
+  AND pano_id IN (
+    'CAoSLEFGMVFpcE5VQUNxdVFNXzlmallhWjFkcURDY3paVks3alp0SHNqdjk4NHk4',
+    'CAoSLEFGMVFpcE8wLUM5RkRScjFiQTIzLUwxX0pIV2JldUNZTXRlc2Y5UTdNVEw4',
+    'CAoSLEFGMVFpcFBscUljZGtqMl9acUxRa3N2d2thQkRpcEhNWFNmc2lNOVlfRTdE',
+    'CAoSLEFGMVFpcFBwTk8wcERPRnpISVl3RktnNF9BQkdLMW13Y0lvMGJ2Wl8wQ0R0'
+  );
+
+-- 2 panos at 5376x2688.
+UPDATE pano_data SET width = COALESCE(width, 5376), height = COALESCE(height, 2688)
+WHERE (width IS NULL OR height IS NULL)
+  AND pano_id IN (
+    'CAoSLEFGMVFpcE1RdUNtbzA5aWhVQjhhX2tqMEdzck5qWEZZZUI4MTNJUmdrMVBG',
+    'CAoSLEFGMVFpcE1ndUdGRDZLZW5Jd0NWelRQMVdLOWxhVldFRjJDN1k1YjJDTE5O'
+  );
+
+-- 1 pano at 8704x4352.
+UPDATE pano_data SET width = COALESCE(width, 8704), height = COALESCE(height, 4352)
+WHERE (width IS NULL OR height IS NULL)
+  AND pano_id IN (
+    'CAoSLEFGMVFpcE5HLUtzZkh6VUd2SW9TOWZaWUdSV3h4dndNa1NBcEZZWGZiVmRG'
+  );
+
+-- 1 pano at 7744x3872.
+UPDATE pano_data SET width = COALESCE(width, 7744), height = COALESCE(height, 3872)
+WHERE (width IS NULL OR height IS NULL)
+  AND pano_id IN (
+    'CAoSLEFGMVFpcE9CWUpHX0lFXzFpdjQ5dW1Ud0RBb0dWaGxTX1UzeXZ4bnJzcnF5'
+  );
+
+-- 1 pano at 7200x3600.
+UPDATE pano_data SET width = COALESCE(width, 7200), height = COALESCE(height, 3600)
+WHERE (width IS NULL OR height IS NULL)
+  AND pano_id IN (
+    'CAoSLEFGMVFpcE9YTWVqS1JSajBXbWRIVnM4blY1QU9OTTNuNlZzSWtoN0J1VlE3'
+  );
+
+-- 1 pano at 7168x3584.
+UPDATE pano_data SET width = COALESCE(width, 7168), height = COALESCE(height, 3584)
+WHERE (width IS NULL OR height IS NULL)
+  AND pano_id IN (
+    'CAoSLEFGMVFpcFBEZFQ3bEhvQ3JzNzlTQXQ5eUpoa0hwNjdaRWdnVEYyQ1hkTDJX'
+  );
+
+-- Part 1b. Street View captures a road in one pass and processes the whole pass alike, so pano size is a property of
 -- the drive: a pano whose size we never recorded was captured alongside panos whose size we did. Same capture month,
 -- within a ~50 m box, and only where those neighbours agree.
 --
+-- It runs after 1a, not before, so the measured values there always win: this is the weaker evidence of the two, and
+-- both halves fill only columns that are still NULL, so whichever runs first is the one that decides.
+--
 -- Validated on seattle by blanking every pano that has dimensions and re-deriving it from its neighbours: 170,741
 -- correct, 0 wrong, 0 ambiguous, and the only failure mode was having no neighbour to read (11,161). Prod-wide the
--- rule reaches 1,608 of the 1,998 blocking panos and reported 0 ambiguous in every city.
+-- rule reaches 1,608 of the 1,998 blocking panos and reported 0 ambiguous in every city. Splitting that by how many
+-- neighbours each pano had shows the rule does not depend on a quorum: the 9,702 panos with exactly one neighbour --
+-- where the HAVING below cannot fire at all -- were 9,702 correct, 0 wrong.
 --
--- The HAVING is the fail-safe. Where neighbours disagree nothing is written, and those labels stay in pre-179
--- coordinates -- which is where they are today. A label moved to a guessed position would be a new wrong answer.
+-- The HAVING is still the fail-safe where there is more than one. Where neighbours disagree nothing is written, and
+-- those labels stay in pre-179 coordinates -- which is where they are today. A label moved to a guessed position
+-- would be a new wrong answer.
 -- Longitude is scaled by latitude so the box stays ~50 m wide in every city, not just near seattle's parallel.
 -- Each dimension column is independently nullable and PanoDataTable's upsert COALESCEs them one at a time, so a row
 -- can hold a measured width beside a NULL height. COALESCE keeps whatever was actually observed and fills only what
@@ -70,7 +339,14 @@ FROM (
       AND label_point.pano_x = old_label_metadata.old_pano_x
       AND label_point.pano_y = old_label_metadata.old_pano_y
       AND (pano_data.width IS NULL OR pano_data.height IS NULL)
+      -- 22 chars is Google's car imagery, the only kind whose size follows the drive. It is the discriminator here
+      -- rather than source = 'gsv' because that source also covers user photospheres (36/44/64-char ids), whose
+      -- sizes are arbitrary and would poison the pool. Mapillary and infra3d ids are 15-17 or 36, never 22.
       AND length(pano_data.pano_id) = 22
+      -- capture_date is free text and holds whatever the imagery API returned, including the literal 'Invalid date'
+      -- (one such row today, in chicago). Equality on that string would group panos that share nothing but a failed
+      -- parse, so require a real YYYY-MM on the pano being filled. The sibling has to equal it to match.
+      AND pano_data.capture_date ~ '^[0-9]{4}-[0-9]{2}$'
   ) AS blocked
   INNER JOIN pano_data AS sibling
     ON sibling.capture_date = blocked.capture_date
@@ -88,255 +364,6 @@ FROM (
   HAVING count(DISTINCT (sibling.width, sibling.height, sibling.tile_width, sibling.tile_height)) = 1
 ) AS resolved
 WHERE pano_data.pano_id = resolved.pano_id;
-
--- Part 1b. The 273 panos our own data cannot answer for, derived offline and listed here. Sources, in precedence
--- order (scratchpad/4959-derive-dimensions.py, scratchpad/4959-derive-photosphere-dims.py):
---   * photometa, for street-view panos Google still serves -- what the JS API is backed by.
---   * A surviving pano of the same drive at the same location, matched on the exact capture month. A nearest-in-time
---     match is deliberately NOT accepted: seattle's _0bCOrz-hEUd_LByOsN2og, captured 2018-07, sits at a location
---     whose history skips from 2017-08 to 2019-06, and reaching backwards returned 13312x6656 while five of our own
---     2018-07 panos within 50 m agree on 16384x8192. Where no capture from the pano's own month survives, the value
---     is taken only if every surviving capture at that location reports the same size, so no generation boundary can
---     be crossed.
---   * For user-contributed photospheres, the source image itself. Their pano id is a base64-wrapped protobuf holding
---     a Google Photos content id, and that content's pixel dimensions ARE the pano dimensions. photometa answers 400
---     for them (its selector addresses street-view panos) and so does the tile endpoint, so this is their only
---     route. Checked against every seattle photosphere whose size we already hold: 26 fetched, 26 exact, 0 wrong.
---     They are served whole rather than tiled, so tile_width/tile_height are left alone rather than invented.
---
--- Grouped by size so this is a handful of checkable claims rather than 273 independent rows. Pano ids are globally
--- unique, so the same block applies to every schema and touches only the rows that schema holds. 117 panos (248
--- labels) stay unresolved -- 105 whose location mixes sizes, 12 photospheres Google no longer serves -- and keep
--- their current coordinates.
-
--- street-view panos, 139 of them.
-
--- 99 panos at 16384x8192, 512x512 tiles.
-UPDATE pano_data SET width = 16384, height = 8192, tile_width = 512, tile_height = 512
-WHERE width IS NULL AND pano_id IN (
-  '-9tho677BCYAm1ZOrTWQGA', '-C9eB923-ex0-Rrj1mJJCQ', '2DWrRWYCyhGRU470aX0i4A', '384IHTAaQqcKaKHUh0xlhw',
-  '3PvWCNqg5vmYjfi4F253ZQ', '4f2sUwpHtF5CS1TVbUY-0w', '5ccs8E1igusoB8OGnufLrA', '5dfiyA8BNWE6cbtem8V1Iw',
-  '6gcemkJ5Ztrhvmdd7Umw-A', '7U2Vo_di_ZFNH8CtDDuTzw', '7qR8Rr4eA3NaSO-MhUDm-Q', '7svbDM4Dlm-Cm6q-k5e5-w',
-  '84eV2Np6vQWRklnUOWf6CA', '8zaSPeCiYe4n7C1V_UZ3jA', '965Dv7UN-fG5ZuyDUBRIEg', '9l-OaEHcc5KA4et5pdT_qw',
-  'A4xfL5ThmbBlJladzI5T3A', 'ASmtDv8UwNUv9qLE2ZPDww', 'Afq9yT2fSobbB-TPcqIRhQ', 'CZTHzAB1ad2QYcURS1AM7w',
-  'Cl2XIXoAicmhmQvwfLy1aQ', 'CwQHRQbWDR3s_w8tMoBWRw', 'EI4IFnjiSx2Wa3imXzmInQ', 'ELvJK5SPvL3poCivBV2u3Q',
-  'EgSOWUbYQzHcJYcQ117ilA', 'FCdpQKtBqELhBbkbRrM3Fw', 'FQ0lZQqUW86GBnnoY_kohw', 'GM2T8bjX37-LnqhthzHaWA',
-  'GyDu_0fnces---NPjegOVg', 'HfPc3aw9QaC-uLnOhKQ8rQ', 'Ig6QgwtSqrhYFU80lMSOFw', 'J3WysS_3p3E8PWGhi-Zchw',
-  'J4wukP_qz8gIzmuopfZqaw', 'JJ7yg13pzi0EgJXvpV9mWA', 'JPcJLjBRT6O3LUq5DA0xAQ', 'K-xUjA1qFJX4XmyvGc5oOQ',
-  'KpWbg1FIFyGM2hHnt-l2Mw', 'MZImbuzSdfJj9APmBxKUNg', 'O3emzeK_g3oZqIiyNaWHfA', 'OHIJBBt9NlmAZoVbyT-s7g',
-  'OIk3jwsOxCl-g_xmnix2Jg', 'P6yw9X-eM_znd1nwjmGeqw', 'PHO7i0b_Ki7I_ErDq1BSxg', 'PMmHIFoNSJyJLqJ5pe11uQ',
-  'PcwqZQqb718MkOKEppSjsw', 'Qbp-FOdqGkraCgC-oEI5ig', 'R4XpPIMn0wSG1Bzsc358UA', 'SM3AtDAzyxHVYe2APJ-usQ',
-  'ShA_W1JpLbrHXTklBcmUtg', 'TTmS8EKjtuY1b--174h_qQ', 'Th3Lv8mgre1Cjmn9_kzWng', 'Ti4tC2Ost1c4MhShwud-tw',
-  'TmRQkqZDiawEQDZNPxjFVw', 'TxSnwlCrZhXng1FJ1V9hDg', 'UbRzsy3JH1TTPDq3Gk924w', 'UojOcBk9jSMmEQJHaaJZaw',
-  'UudKW2tDaHS9QLlNrV01nw', 'V6JOxuhDbRPJj9ejle6ynA', 'VxHk--DfiVFKG2sO53TxAw', 'W4ynYh84zv4DjvTl5-5_AQ',
-  'X1zFRS9_QFecD9B2yuxFmA', '_eY4zk4-r9sGlMcqRVHzhg', 'a-BSYPJ-UuDiz5JKlgrfzA', 'b3Bo-8VLLBE-oif1HIo89w',
-  'bbR6_RTcEIJ2fGnsfXY41g', 'bm-Q9KtUbphsgh3UUhHcHA', 'bnaLac41L3KrME_AQLDeYA', 'dmJ-7yydh8Zm5Vr13lW8BQ',
-  'eK7rxO8Y5-Q14ePKwHx-zA', 'eRBE1Gz_UvECQDj_DL5zqA', 'eXF2Tz5Ucd2ZtPdJHZT74w', 'ehCMQe09Sj6LKx3oE2PRpA',
-  'f0fgGHorl0LLL8lCB7fpIQ', 'foBv72h7cV2-hVS1O0XVFw', 'fuB3d_msl2-VK0brGOINXQ', 'gSpOZELMCt546R39QS8msQ',
-  'gZo-9ypAGkDGYv_Z3puWzw', 'gZxN-F2FfJmHdypAgVXE3g', 'hO1flgZ2ZIP8CBBCr1MmPw', 'hr2kiSEaAbQqhxuq98GJJA',
-  'i93wKlvQanzXRYBWpoAzig', 'j2yX2OP9gmBInZEq94hfZQ', 'jUpFtqTUqqwG3zohfvkmGA', 'jlI4k0-RQEM20gSmmz938Q',
-  'l1ZE8EMLH6r13GDTCXaAKQ', 'lVCKT1E42sGy_rJNVdqiMw', 'lnJ85f7tOIOzOODehbnGDA', 'lqVv2t7VwaalOiFX4Tvp4g',
-  'piMcBHOsJXvQuAVtIVJSpw', 'pmqXY6QS5iZSANjjpwLBYA', 'rCahEmHHlx6QEQsYZy5XRg', 'rh3awh6903S7snMWnAOlDQ',
-  'sQsTKSee5egDMhlBwbo5Tg', 'se2G5yTQZ1VrvQ4GPp9adA', 'vkdhWriWge4pvqWLoKMrkQ', 'wwb7ajBdAl2nxpgiz5_0EA',
-  'x3Wefuasf2TjFLWxwijYFQ', 'ypICuAuPrBdj0RJLGRKmIA', 'zXl_i3mc1eObw9vlv8zRvw'
-);
-
--- 33 panos at 13312x6656, 512x512 tiles.
-UPDATE pano_data SET width = 13312, height = 6656, tile_width = 512, tile_height = 512
-WHERE width IS NULL AND pano_id IN (
-  '-duUF9NKOGLFuB-3T0svVQ', '17ZMeA_vTXd_zT_wFxRXvw', '1VKwz1E3zYk7ysNzUjnGAA', '3Zj5KugUkbfkExh7CbSqTw',
-  '43-6Xcv22HB9Jcksq_6WLg', '6D6F3caQiD4FPPgp7zlnxQ', '9TLkTMtcIEAjCmFutPeVxw', 'AwlgWXzEYYBmv87n46-qZg',
-  'EAqwqE0688xPgGVN1xao7g', 'FBQtZtrak9Sjs6rkCkq7IQ', 'FacSX1K1HF6bK0GLDiROcw', 'LnvnP1cug9Mnv7Wu6lD5Iw',
-  'R-Bge6u6c-5wXFZo5jysjw', 'RYpZhYP4B1mZbhevHn7MUg', 'SZuEn_u4AsV7ebymX-NgHQ', 'ToEahEYZSuHMzIz13IIAWg',
-  'WlYJynv_etdiZe6_fNnmHg', 'Z5rWTslt9Gm9kn9iEirJ8w', '_nTPTPQBmFZVopcixiC9cQ', 'aTbXDyDG2UtDsfvd1nGAsw',
-  'duUKhGB1pvLlIzlE3UkKRg', 'eAX6oYDLTFWwnwdAg0T_XA', 'fUqp2QTrWV7Vy3kL7YEdpw', 'gEV9QHC3KyaMfoG1zgJE3w',
-  'kCzikjzSy7UYMsiKmIj8zA', 'nrX9Asx-pjCL_6DLeO4iuw', 'qYMNy3yp-JqrzDWVBUvJmw', 'r4rKMt0zAY_L6qVeiKOpAQ',
-  'r_ycsYf31bttF2RgkJKJWw', 'v6rOhbTqinZrtSEumYKPIQ', 'vclYTK5_RW7zM7TLTFLHjQ', 'xrxDoff_Azjjzt8sJUdv5w',
-  'z5ELF-VTkI0RzkpzqH86-g'
-);
-
--- 7 panos at 3328x1664, 512x512 tiles.
-UPDATE pano_data SET width = 3328, height = 1664, tile_width = 512, tile_height = 512
-WHERE width IS NULL AND pano_id IN (
-  'Mzt9ZUb1DBB4Dj-Tc4F5Aw', 'STJSYoKSyjDGRgfxazNIQQ', 'VA4tCTug4FbU5fTbVia1aw', 'ZOceijIWNGzyPsPKrX_qfA',
-  'joO4Yz-f5k_BctXuuqYp3Q', 'kpmHwfcFbgLwqewO8_cM7A', 'rAb7u1oYycG-xe5Odk2FJg'
-);
-
--- photospheres, 134 of them.
-
--- 112 panos at 11000x5500.
-UPDATE pano_data SET width = 11000, height = 5500
-WHERE width IS NULL AND pano_id IN (
-  'CAoSLEFGMVFpcE00ek1NM2RlWTRES0d6UFE1OVU2V2tyb0x2Y05OdE9HMlQwMVVX',
-  'CAoSLEFGMVFpcE02T3BJTXR5VjltMmliRzluSk1URWlMUTVjN3ZLT2pnZlJIODI4',
-  'CAoSLEFGMVFpcE0tTjJYUkJrOHlYTU1Kck9hM1FFREFud3J2YWs1aFZfbFQ1Vmp0',
-  'CAoSLEFGMVFpcE0tYzRGR3VScTcwUGNyT1haaWtvWGxyWUlmMXA0OURPX2F3RUhU',
-  'CAoSLEFGMVFpcE0wTmJST3l0X1VwVkkwNXU4V2FObDV1MVlpNXdRM2VJTklFTzh4',
-  'CAoSLEFGMVFpcE0yNUhIckwxU2tmNkhJRkg3d0Q1cUphY0FOZkdNRXItZTNIQ05i',
-  'CAoSLEFGMVFpcE10cDZiN3Y0bDdabTd5V0Mta1JqM0VYRFpUN2ktMWpwUUpUUlRp',
-  'CAoSLEFGMVFpcE11ODhKUGxkUnJOMWlVM2oyeXBacGFJZXFrYUxpajdlYlRnZnk0',
-  'CAoSLEFGMVFpcE12YmNRZkJEOFFXNDBhMWJqN2RUQ05QRFNXYmxxWjBFenh6Z1di',
-  'CAoSLEFGMVFpcE14S0I3VklGRU5FSjJsTVN6RGJHeHdQcmFIYUcxbmd4MktGQjNP',
-  'CAoSLEFGMVFpcE15akVDVVlFRTNjNGRJeTFSd1dvcDVjUEVKZlNyam9vWlM4ZVJz',
-  'CAoSLEFGMVFpcE15eDBqU1NmSktUOVh3RXRteUs1ekhlUlNZUEM2dFh0ZG9faVJz',
-  'CAoSLEFGMVFpcE1BS1hGaDZuMXV6NFV3OWpVRFdUWEhuZmVTeWJIdFllcWpYcHZF',
-  'CAoSLEFGMVFpcE1CeHJTdTFMY1U0b0dOVXkwZEh0RHl1TS1qTWFIOHgxY2x3NWwx',
-  'CAoSLEFGMVFpcE1DQVZrdnhhclQ2VDh2QmpkZldqLUdiakdicFJaalVXcF9sNjQt',
-  'CAoSLEFGMVFpcE1EVHNTUnVwcUhUTzJIbkdxZDNLZkEyWXhpZDlEbFE4eWhvUGQ0',
-  'CAoSLEFGMVFpcE1ONUNzOVF2Y0lpRjJ1ZFlHa2xmQkVrbDQ0TVh1TDlTUlQxeVZp',
-  'CAoSLEFGMVFpcE1PQXZwbm45cnZPbFVRcE5BcHJiR0czOWZVSnhGbkRCZWV2ZUdw',
-  'CAoSLEFGMVFpcE1QMmxVSXJKZVlhZUxBMDFtVVVvX2RZS25fT1g2ZGFETW9sRkxq',
-  'CAoSLEFGMVFpcE1TV1NzSVZaTWpyT29jWDRGSzJTR19vX0x6aEd3dkgybEM0NEZK',
-  'CAoSLEFGMVFpcE1fcFFocW5TSDR2Y045V1VNdVNUMDZjUHVWaENDRzBVQzI3SHJC',
-  'CAoSLEFGMVFpcE1mb2Itcl9HYUVDMW52Z0RfWk5QdW1SSTVEV2x1b2g4RGdpeXpv',
-  'CAoSLEFGMVFpcE1oLXNzdGZEMnpPc3g3bE1RLWNLdmNybXliLXlPRnJSc1E2akZ1',
-  'CAoSLEFGMVFpcE1pUW1EVnRYN1l0S1Y1ek91aGp6R1RuSWU5S2JPaDlxQnBheXZH',
-  'CAoSLEFGMVFpcE1uMUN2RE9URXhJWFgyQnRESjJKTWxzeUtKaFh5ZU50bzhlbVFF',
-  'CAoSLEFGMVFpcE1vSGNsZHRYd2xid3JhOU1OMmxqY0JVdFZKUC1Ha0lDLWxuenlr',
-  'CAoSLEFGMVFpcE1wOGhsdjNMV1pmMVZ0U2otdlBoZnU5ODhudUtMZXptbnZkN3M2',
-  'CAoSLEFGMVFpcE40S3RDOFYwdXd3elZpd29CMHNqWC1lai05NThFaGdEaU9IMXBW',
-  'CAoSLEFGMVFpcE40eDNaNVZzOGJ3V0ZCRERRX3pGSC0zUzVOQ1gtRFp6N1dFUVph',
-  'CAoSLEFGMVFpcE41cFZuUmdlNl9rYkVlRjg5OGl1TU4tdDhKZjRqSS10Yy1xaHdN',
-  'CAoSLEFGMVFpcE43bEc0M01pS21EZkFOemtmNTFyM251VzB3MDR4ZlIwU25GbTZU',
-  'CAoSLEFGMVFpcE45dEdHZWh4bXFXLU9XbkowUGtFWUJkVlpqZFlabms5TURhcEZm',
-  'CAoSLEFGMVFpcE4zRUc5WWZid2t4VVZEVGFJdVRhMDloOWFWaWkxUXU5MXM5Wm44',
-  'CAoSLEFGMVFpcE53NjdvMW5MXzBfZUZoUHlUS3pYQ0Zuenp0U1hoNm1lZFRyRWZw',
-  'CAoSLEFGMVFpcE55alBRVldfMkxuWm5HV19sSXczQkdwbkJBSElpcWFIa3RzNjBH',
-  'CAoSLEFGMVFpcE56R0daeVRJN1U5OEd1MkxnTzY5YkFPUG9DdjNGV2lmRUdOYWRB',
-  'CAoSLEFGMVFpcE5BMmtTeUFZVW5jMXMwaXpEN2trMEpXVVN5N3hRY2VmZjJGN0ZU',
-  'CAoSLEFGMVFpcE5GQld2cXUxWHpWZElfQXZzbkxXaFBiMVkxd0g1QVBoUmNtLURt',
-  'CAoSLEFGMVFpcE5Ga2FPaUtJN3gtNWxVTEJ6Q3VCQ0dkM1pMQWpHQ3FDaUROclp1',
-  'CAoSLEFGMVFpcE5JWWY0S0ZfSXNQc2ZrZzFVVkNHRndrWkU0b1pwaVZ2TEFZUnJr',
-  'CAoSLEFGMVFpcE5JZlVjYnEzSzhrR2hlU1RWVy1rYmNORFNGQjl5YmNRNVFOS1JM',
-  'CAoSLEFGMVFpcE5LX0FaNDdnMGNGLVJmNHRBZmY0N2hCQ3VHdGl0ODgwOURDb1BM',
-  'CAoSLEFGMVFpcE5NQWY2ejZQS1V2S0VWeUJGeXN3RnN0SFQ2Rktqb3VFWmlxeFlE',
-  'CAoSLEFGMVFpcE5NSVVEUjE0a085cWExVmdwbjJLeWRPemRncjVtOTBZM0o4ZWxG',
-  'CAoSLEFGMVFpcE5QLWxFNF9Ham5POXI3MkRYVnh1NjJLNFYtbzJ3VlEyLTRKeHM1',
-  'CAoSLEFGMVFpcE5RRHFWZUd5TFVDcDhLdmJNSzlhXzJ6X1pmaDJ3S2lTMzgtbFBQ',
-  'CAoSLEFGMVFpcE5RX1RTcl9VcW9hMmkyR3BSSW1jQW0tSWZpUmtaUkZid1hHSkl2',
-  'CAoSLEFGMVFpcE5WTUg0ek1LaFBQVkUzZlZyYWpjOWJBZHo3cHZFSTZCdDFPOHMx',
-  'CAoSLEFGMVFpcE5XMERST3ZkNVZ2OHhYRGlnVGg2T01PVXAxZ2U1YUh3ZGNqUHJY',
-  'CAoSLEFGMVFpcE5YVjJmc3Q3cDVBNWlhWFhoejZwdERSWjgtZmhaU2VTczlVM2FB',
-  'CAoSLEFGMVFpcE5aWlNtRklCMVN2ZXhOVkF6TFdKWm9uSnpoaTJFZ2U0UzZ0d0I0',
-  'CAoSLEFGMVFpcE5fV2tCeG9SNWxrMEhoOW9JYXMzZlYtd2dwcUJOb2pnRnRyVEdw',
-  'CAoSLEFGMVFpcE5hRGRWV3lYc2prbHBzQzhtTUtCQmlwQlA3WjRQSUVzM29xSkFO',
-  'CAoSLEFGMVFpcE5qTVdwN01ObkE5UzVpN090bmFqQjdqRkgwMlNUeWlrX2k5aEVS',
-  'CAoSLEFGMVFpcE5wSXc3UDFKVEh5NXhQN0lFZ0N2U25OWlRTVGFqWTYyY3Y0RUst',
-  'CAoSLEFGMVFpcE5zUHhzQ2U0Q0trVkxoM0t0ZGg3Q2ZHS3NGeENjZGktU1NpSDg3',
-  'CAoSLEFGMVFpcE8tMkxRcVRadWVmaW1kVlQyY05nTE05LUtNY0hXS3lWRFh4SGM4',
-  'CAoSLEFGMVFpcE8wQldIX2RnaHBtZkoyNk1Ja215ZkdaemFnMHVISVo5SmpmSlQ1',
-  'CAoSLEFGMVFpcE8xV29EXzFJV3daUTBsOU1XdWtValRYeFpJYnlySXNzUy1KZmx1',
-  'CAoSLEFGMVFpcE8yM3V4Y2FPZU5nTXkxd3RRbHZ6X2JtWXVfdTJHWmhZdnUwS0Fp',
-  'CAoSLEFGMVFpcE90OUd0aGo0blkxcWVwTjRhS0J2Sm9icmR3ZWgyOFRFZ0JDVEg4',
-  'CAoSLEFGMVFpcE90cjVIbHpFcFc4NmI4TGVEbS1WQVhWcHFWMWwxazlITGJjOFRD',
-  'CAoSLEFGMVFpcE91RVd1Sl9hNVJDUURxY1MtNUR4eERGMXBvVXpFWk51UENPVzA2',
-  'CAoSLEFGMVFpcE94LU9vYVg1OXl4XzBXS3hEZ282Y2Ewak1OZ1FRZHFwS25GeHNs',
-  'CAoSLEFGMVFpcE9DTEU1QTBwMmVaMG9sUEE2YmlWTmh5enY3VEFQYkpvVDdPY3BC',
-  'CAoSLEFGMVFpcE9Hbi1MR19TaEtqVVRJTm9WalJQejY1c2U2aW9wVlVncDBhVndD',
-  'CAoSLEFGMVFpcE9JVlFIMjlWVVJ0bC1FSFNIaTJ2ZVh6bEd0TlllVm1xUFpfQlFl',
-  'CAoSLEFGMVFpcE9NRW9LVHhoQlcyLWpHVkVGa2RFeEgwcVBfOTFqRFo0eUNWOVVk',
-  'CAoSLEFGMVFpcE9PemhacmZRMVlub2c3TUg5SUxsc1hZZEdwZHZ6eXJNSE9hOWNI',
-  'CAoSLEFGMVFpcE9QTDc4OGZCU0RnajJWNW5lbUI1Q0NRMWcybGt4amUzQk5Ydm52',
-  'CAoSLEFGMVFpcE9RY2RTdkROdmpQRmg4cDJHcDAzMTMxSTY0MGN5bDNWVGRPWC03',
-  'CAoSLEFGMVFpcE9WYzlpUjVsVFU4ekZublJ0RzNVSEJreUxMQ0JLSXFCZGlPdncx',
-  'CAoSLEFGMVFpcE9Xa3M1MlJ6WldaR3RjZE4xVl9jX09DbG5TYnBVLWEyQUkxT1Zq',
-  'CAoSLEFGMVFpcE9YZ1V0aXhfcFdXNEJqNmJFUVZDbjFIekVEam9TUjdLVUU0ZGJY',
-  'CAoSLEFGMVFpcE9ZTFZ0a3lPUk5QUm5UZWhGTXN4Sjl3bjNEM2dEYlQtcWlBT2VU',
-  'CAoSLEFGMVFpcE9ZVjJlWVFrWXBXWmpHSEU5Y2E0dlBUOENURFB0V2c0VlJlbmti',
-  'CAoSLEFGMVFpcE9ac0lsdFNaMFBvZkJoWDg5TjhPbkQ1bVk4QlllWlNKa2xIMEtP',
-  'CAoSLEFGMVFpcE9fZ2lTYjlOc09kOUpVRWlTQnFaMzFES0NQMkx6WGJpb2VtcWVR',
-  'CAoSLEFGMVFpcE9kTi1xRzRwTnNra2FoTVZLWGxGYnlVM3ltSlF1M0dzYXBmSmM3',
-  'CAoSLEFGMVFpcE9mTmF1LVNJV1VXQ0FUSjdPY2ktR3RWemNlcnpOa0I5cnJxdGlG',
-  'CAoSLEFGMVFpcE9pdFJ1RzdPZEF4ZDhUc1dlMnMzdWNvelpjdjZqaXJuRlJ0Nm45',
-  'CAoSLEFGMVFpcE9tUjk2VTNaUW9XS29xbDVyM3VicWt0YkNsTk00d1dNVHVNTWtE',
-  'CAoSLEFGMVFpcE9uSmdrcVZRZWc3UXhLTXhqY1UxRFlYa1ltVzhoX0lGM2VxRzZU',
-  'CAoSLEFGMVFpcE9uWm1URkpSVG9pTG05LTVUSGZjcWVRSkVJM01Xd2hmUEhYQ0Jt',
-  'CAoSLEFGMVFpcE9zOGQ4eUhSVnZ3OEFUVzJqTHdPU0pKYWs4WVFfbFNUdmVQWXUt',
-  'CAoSLEFGMVFpcFA0Qmxqa3owVklvaHNXeV9VV0Q0LXlxUDJ4emNXWl8xb2l1c2gw',
-  'CAoSLEFGMVFpcFA2c0hpTmpmM0V6QjBnVFRjS0VnV0ZaOTFvZWM2R1UxaER4dzVQ',
-  'CAoSLEFGMVFpcFA5d20xR2dpTkczN2I0al85NjNVVWI4UG9HMmlUYnB3OG1ncFVB',
-  'CAoSLEFGMVFpcFAtSW9MbEV5MHF1RWh6Wm1wa0Q0X3lsd1B1dFI0Y3dwWUEwbWg2',
-  'CAoSLEFGMVFpcFB3Q0ZyaElDYklBcVltc3lPbDhHZTlfMTlUcHpGUkU5LXFveFlj',
-  'CAoSLEFGMVFpcFB4S01MT3ROQXdQYXhJTnJpZTVOMTMtMTZBVklyanprNzRHd3dq',
-  'CAoSLEFGMVFpcFB6TnczVEh5MzUxX3dpdW0zM09Xb3lDSm5KM000VGh4TThVWDlW',
-  'CAoSLEFGMVFpcFBIakNZekZyNUY4QmhEQlpjY2JUdE9zLVo5aXVIYUVJeDNzamhl',
-  'CAoSLEFGMVFpcFBKT3hzdC1Ud1ZjSC1PVnl3cC1YUjNLWjFhWjRadTNZNmVDbTdR',
-  'CAoSLEFGMVFpcFBMcVg0NWZzajJtaEo0LUhwY0xMVzdCN0NNSTNlNTQ3elpVSGU4',
-  'CAoSLEFGMVFpcFBPT1E0NXRCZmIySDZESk9KVUJsRUdLRnZwaGZ6enhILWJTM2My',
-  'CAoSLEFGMVFpcFBQaTRIcG9heGU5ak00TFdLVXp0THpZZFpRVHdxTTQ2RnpmeGt2',
-  'CAoSLEFGMVFpcFBTM0tad1lBVXFqOGZ1cUphbzNoYTltY3B1ZU9pZmExc1ZZZnFf',
-  'CAoSLEFGMVFpcFBXbjN5Uk1KWGhQemdBVzlsekh3RS01VVJ5N1VXcnJtVnVBZ3lH',
-  'CAoSLEFGMVFpcFBaTjBma25DNkh6SzdDdy1BOUhuMU4xTlF0d3NWLXNXUEUySUhk',
-  'CAoSLEFGMVFpcFBaYnB6bTJQV0Z2dzVFc2dTd3RWNmQ1d3REbFZwTnRydGswUkQx',
-  'CAoSLEFGMVFpcFBiV3A0TkxIdDBCSTRMc2Y5Zk1Xd0ZpRUVVTWRoUU5NMk9VNmkx',
-  'CAoSLEFGMVFpcFBkNTRia0F2U0dzR0t1czRqcC1FZ2J0SWxVR2RWd01nd3hLMnV1',
-  'CAoSLEFGMVFpcFBnOVBHVHQzc0FsVm1ULWdoUV9HTGYwOGFweHA3RktNRjl2LUd6',
-  'CAoSLEFGMVFpcFBoU0pFa0dCcnZGaFdZRDlJM3Ytc3h1ajA0NjE0R2xra1o3Y2lR',
-  'CAoSLEFGMVFpcFBod01OTzEteXhuNjNFSldyaFJybVhUN2p3eWlyc0xjWHlXZW12',
-  'CAoSLEFGMVFpcFBpZ0JZeEJtUU9YM0ZDZXZybkxBSlFLRUtlM1BrMnlGX3lQMXhL',
-  'CAoSLEFGMVFpcFBtWjNDVFdmdWJidzV4U214RFF1aXRMc1I5eDRzZGdVVzQwVzhI',
-  'CAoSLEFGMVFpcFBuZUJ5cDNDT0xIN2hDS3RDWEtoRXNXSU8yOG85UHBkUWwyZmhj',
-  'CAoSLEFGMVFpcFBvUmtvbndtWkdYT0hCbGVDNzE0MV9HMnk0czR3VkFjc3FiUEZz',
-  'CAoSLEFGMVFpcFBxQXMzc2JwRmxqdmJyNHBqMVQ4TVdtYVVNTEpHREE3Qy1Iem5r',
-  'CAoSLEFGMVFpcFBxSURvZzNqTngtT0t1M0JEcVpwVWMwZ00zS19oekRoVDhPYnFa'
-);
-
--- 12 panos at 3840x1920.
-UPDATE pano_data SET width = 3840, height = 1920
-WHERE width IS NULL AND pano_id IN (
-  'CAoSLEFGMVFpcE1xT2xTWW5MY3E4SVViUFRUNG40NHBxQWVMTjhhRy05WFhwb1h1',
-  'CAoSLEFGMVFpcE4wWl9EX2FjQlprVEhrb1o5VWdDSTBseVhvVmZuX3NEMnNKdEc1',
-  'CAoSLEFGMVFpcE52UkpaWG9iSU5NeHllWjduTHNXVjNOQ3J2WFMzMXpoSEhYdUgz',
-  'CAoSLEFGMVFpcE53YXdYQUhhcmhLQ2Q2b0lJYjhWMlFDT2l2UlRRbmRaRXNCalJ4',
-  'CAoSLEFGMVFpcE56Q21HUEQ3N0dpclh4THFDVEJxdy1EUHdaN0lrN2lyYkI2UWwt',
-  'CAoSLEFGMVFpcE5USjZ1eVI0ZVVqS1RZVDdaZHlvNk1WX2R5NVlGcEFlMjd0bjFk',
-  'CAoSLEFGMVFpcE5qaUFzdGxuc3JWc09GN21qQ3pqZlpILVpucHhoRkpHOHFuYXhm',
-  'CAoSLEFGMVFpcE8wNHZta3RocDQzcEhHQmJlTEJ1NElBa0gwQW5ZWW9RT2JqTlJ3',
-  'CAoSLEFGMVFpcE94cnplUmdXV3kwc1ItazBLdFJ2WEc5My1odW9fR3hJcG40S2h0',
-  'CAoSLEFGMVFpcE9iMGtweGZyQ2QtenRHOTlaOUgzZ3lKdFctTVlFUmI4Z01KYjR2',
-  'CAoSLEFGMVFpcE9uVHU3TTZkSGwyQmNwUjZJN015eHVlMG00RzdLdnF4WFBFSW5D',
-  'CAoSLEFGMVFpcE9yVjVUVjNpanVPVGZrNTFTYlJ3NENmQW9ZZDNjTk5RWmY2Xzds'
-);
-
--- 4 panos at 5760x2880.
-UPDATE pano_data SET width = 5760, height = 2880
-WHERE width IS NULL AND pano_id IN (
-  'CAoSLEFGMVFpcE5VQUNxdVFNXzlmallhWjFkcURDY3paVks3alp0SHNqdjk4NHk4',
-  'CAoSLEFGMVFpcE8wLUM5RkRScjFiQTIzLUwxX0pIV2JldUNZTXRlc2Y5UTdNVEw4',
-  'CAoSLEFGMVFpcFBscUljZGtqMl9acUxRa3N2d2thQkRpcEhNWFNmc2lNOVlfRTdE',
-  'CAoSLEFGMVFpcFBwTk8wcERPRnpISVl3RktnNF9BQkdLMW13Y0lvMGJ2Wl8wQ0R0'
-);
-
--- 2 panos at 5376x2688.
-UPDATE pano_data SET width = 5376, height = 2688
-WHERE width IS NULL AND pano_id IN (
-  'CAoSLEFGMVFpcE1RdUNtbzA5aWhVQjhhX2tqMEdzck5qWEZZZUI4MTNJUmdrMVBG',
-  'CAoSLEFGMVFpcE1ndUdGRDZLZW5Jd0NWelRQMVdLOWxhVldFRjJDN1k1YjJDTE5O'
-);
-
--- 1 pano at 8704x4352.
-UPDATE pano_data SET width = 8704, height = 4352
-WHERE width IS NULL AND pano_id IN (
-  'CAoSLEFGMVFpcE5HLUtzZkh6VUd2SW9TOWZaWUdSV3h4dndNa1NBcEZZWGZiVmRG'
-);
-
--- 1 pano at 7744x3872.
-UPDATE pano_data SET width = 7744, height = 3872
-WHERE width IS NULL AND pano_id IN (
-  'CAoSLEFGMVFpcE9CWUpHX0lFXzFpdjQ5dW1Ud0RBb0dWaGxTX1UzeXZ4bnJzcnF5'
-);
-
--- 1 pano at 7200x3600.
-UPDATE pano_data SET width = 7200, height = 3600
-WHERE width IS NULL AND pano_id IN (
-  'CAoSLEFGMVFpcE9YTWVqS1JSajBXbWRIVnM4blY1QU9OTTNuNlZzSWtoN0J1VlE3'
-);
-
--- 1 pano at 7168x3584.
-UPDATE pano_data SET width = 7168, height = 3584
-WHERE width IS NULL AND pano_id IN (
-  'CAoSLEFGMVFpcFBEZFQ3bEhvQ3JzNzlTQXQ5eUpoa0hwNjdaRWdnVEYyQ1hkTDJX'
-);
 
 -- Part 2. Backup of every row parts 2 and 3 modify, so the Down is a restore-from-copy rather than a formula replay
 -- (179 and 352 precedent). The UPDATEs below drive off this table, so backed-up set and modified set are identical
