@@ -1,0 +1,631 @@
+/**
+ * Project Sidewalk API Documentation — the docs' own components.
+ *
+ * The page shell (sidebar / content / TOC) and the base type, link, and code styles come from
+ * components/page-shell.css, which every docs page links first. This file holds only what the documentation adds on
+ * top: response-field tables, download buttons, the citation, status/message boxes, live-preview sections, and the
+ * map previews' toolbar, popup, and overlays. Everything is styled from the design-system tokens in main.css.
+ */
+
+/* ---- Section sub-heading ---- */
+
+.section-subheading {
+  font: var(--text-title-bold);
+  margin: var(--space-lg) 0 var(--space-md) 0;
+  padding-bottom: var(--space-xs);
+  border-bottom: 1px solid var(--color-neutral-200);
+  color: var(--color-neutral-900);
+}
+
+/* ---- Tables: .ps-table (main.css), plus the docs' own column layout ---- */
+
+/* Column widths for the three-column "Field Path / Type / Description" response-field tables. */
+.api-field-col { width: 30%; }
+.api-type-col { width: 15%; }
+.api-desc-col { width: 55%; }
+
+pre > code.language-csv {
+  white-space: pre;
+}
+
+/* ---- Prism syntax highlighting (#5006) ---- */
+
+/* No Prism theme: a stock one restyles the whole block off the design system, so page-shell.css keeps the box and
+   only these token colors are set. Ratios below are against that box's --color-neutral-100. Our ramps darken toward
+   grey, so of the steps saturated enough to read as a color only orange-600 clears 4.5:1 here — --color-link-200
+   fails at 3.95:1 before its resemblance to the links around it is even the problem. */
+
+/* Weighted rather than hued: the last AA-passing hue is spent on the values below. */
+.token.property {
+  color: var(--color-asphalt-500); /* 12.2:1 */
+  font-weight: 600;
+}
+
+/* pine-700 is the more saturated green, but lands at 4.4:1 on this background. */
+.token.string { color: var(--color-pine-800); } /* 7.8:1 */
+.token.number { color: var(--color-orange-600); } /* 4.9:1 */
+
+/* prism-json aliases `null` to keyword. */
+.token.boolean,
+.token.keyword,
+.token.null { color: var(--color-asphalt-300); } /* 5.5:1 */
+
+/* The lightest neutral that clears AA — neutral-600 would recede further but lands at 2.8:1. */
+.token.comment,
+.token.operator,
+.token.punctuation { color: var(--color-neutral-700); } /* 4.7:1 */
+
+/* ---- Loading Animation ---- */
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100px;
+}
+
+/* Centers itself in whatever it's dropped into — a map frame or a still-empty preview container. */
+.loading-message {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: var(--space-xxl) 0;
+  color: var(--color-neutral-700);
+  font-style: italic;
+}
+
+.loading-message::before {
+  content: "";
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--color-neutral-200);
+  border-top: 2px solid var(--color-link-200);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-right: 10px;
+}
+
+/* ---- Preview Sections ---- */
+
+/* A boxed block of a live preview: a chart with its title and blurb, or a grid of headline stats. */
+.preview-section {
+  margin-bottom: var(--space-xl);
+  padding: var(--space-md);
+  background-color: var(--color-neutral-white);
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow-sm);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.preview-section:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--box-shadow);
+}
+
+.preview-title {
+  text-align: center;
+  font: var(--text-title-bold);
+  margin: 0 0 var(--space-sm);
+}
+
+.preview-desc {
+  text-align: center;
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+  margin: 0 0 var(--space-md);
+}
+
+.preview-note {
+  text-align: center;
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+  font-style: italic;
+  margin: var(--space-sm) 0 0;
+}
+
+/* Wide enough per cell for a two-line label ("Distance Explored (No Overlap)") not to break mid-word. */
+.preview-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-md);
+}
+
+.preview-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.preview-stat-value {
+  font: var(--text-h3-bold);
+  color: var(--color-neutral-900);
+}
+
+.preview-stat-label {
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+  margin-top: 4px;
+}
+
+/* Chart.js needs a positioned, sized box to size its responsive canvas against. */
+.chart-container {
+  position: relative;
+  width: 100%;
+  height: 300px;
+}
+
+.download-note {
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+  font-style: italic;
+  margin-top: var(--space-sm);
+}
+
+/* A proportion bar under a count in a table cell. The fill's width is set from the data. */
+.count-bar-container {
+  width: 100%;
+  background-color: var(--color-neutral-200);
+  border-radius: var(--border-radius);
+  height: 8px;
+  margin-top: 4px;
+  overflow: hidden;
+}
+
+.count-bar-fill {
+  height: 100%;
+  background-color: var(--color-pine-500);
+  border-radius: var(--border-radius);
+}
+
+/* A small color chip beside a name. The color is set from the data. */
+.api-swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-right: var(--space-xs);
+  border-radius: var(--border-radius-sm);
+  vertical-align: middle;
+}
+
+/* ---- Download Buttons ---- */
+
+.download-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin: var(--space-lg) 0;
+}
+
+.download-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-lg);
+  font: var(--text-body-medium);
+  color: var(--color-neutral-900);
+  background-color: var(--color-neutral-white);
+  border: 1px solid var(--color-neutral-300);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  flex: 1;
+  min-width: 120px;
+  text-align: center;
+}
+
+.download-btn:hover {
+  background-color: var(--color-neutral-100);
+  border-color: var(--color-neutral-400);
+  transform: translateY(-2px);
+  box-shadow: var(--box-shadow);
+}
+
+.format-icon {
+  font: var(--text-h3-medium);
+  margin-bottom: 5px;
+}
+
+.format-hint {
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+  margin-top: 4px;
+}
+
+/* ---- Citation Styling ---- */
+
+.citation-container {
+  position: relative;
+  margin: var(--space-lg) 0;
+}
+
+.citation {
+  background-color: var(--color-blue-300);
+  border-left: 4px solid var(--color-link-100);
+  border-radius: var(--border-radius);
+  padding: var(--space-md) var(--space-lg);
+  font: var(--text-prose-regular);
+  color: var(--color-neutral-900);
+  margin-bottom: var(--space-sm); /* Add space between citation and button */
+}
+
+.citation i {
+  font-style: italic;
+}
+
+/* Sits at the citation's trailing edge; .button-ps is inline-flex, which auto margins can't push. */
+.bibtex-btn {
+  display: flex;
+  width: fit-content;
+  margin-left: auto;
+}
+
+/* ---- Status Indicators ---- */
+
+.status-container {
+  margin: var(--space-md) 0;
+  padding: var(--space-md);
+  border-radius: var(--border-radius);
+  background-color: var(--color-blue-300);
+  border: 1px solid;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.status-loading {
+  border-color: var(--color-link-200);
+}
+
+.status-message {
+  font: var(--text-body-bold);
+  margin: 5px 0;
+}
+
+.status-message--warning {
+  color: var(--color-orange-600);
+}
+
+.status-message--error {
+  color: var(--color-error-200);
+}
+
+.status-progress {
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+}
+
+/* ---- Message Components ---- */
+
+.message {
+  padding: var(--space-md);
+  border-radius: var(--border-radius);
+  margin: var(--space-md) 0;
+  border-left: 4px solid;
+}
+
+.message-error {
+  color: var(--color-error-200);
+  background-color: rgb(from var(--color-error-200) r g b / 10%);
+  border-color: var(--color-error-200);
+}
+
+.message-info {
+  color: var(--color-link-200);
+  background-color: rgb(from var(--color-link-200) r g b / 10%);
+  border-color: var(--color-link-200);
+}
+
+/* ---- Callout/Notice Box ---- */
+
+.api-callout {
+  margin: var(--space-lg) 0;
+  padding: var(--space-md) var(--space-lg);
+  background-color: var(--color-blue-300);
+  border-left: 4px solid var(--color-link-200);
+  border-radius: var(--border-radius);
+}
+
+.api-callout h3 {
+  margin-top: 0;
+  color: var(--color-neutral-900);
+}
+
+/* ---- Map Previews ---- */
+
+/* The metric selector stacks above the map inside the .map-container frame rather than floating on it, so a
+   feature popup can never cover it. */
+.map-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  border-bottom: 1px solid var(--color-neutral-200);
+  background-color: var(--color-neutral-100);
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-900);
+}
+
+/* Bootstrap gives every label a bottom margin, which would lift this one off the select's centerline. */
+.map-toolbar label {
+  font: var(--text-caption-semibold);
+  margin: 0;
+}
+
+/* A "nothing to show" notice floated at the top of a map frame, clear of its controls in the corners. */
+.map-message {
+  position: absolute;
+  top: var(--space-sm);
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: var(--color-neutral-white);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+  text-align: center;
+  z-index: var(--z-index-dropdown);
+}
+
+/* Map Container - Common to various map components, and the query container its overlays size themselves against.
+   Map width and viewport width come apart here: the sidebar and TOC narrow a desktop map, a phone widens it. */
+.map-container {
+  width: 100%;
+  height: 500px;
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  position: relative;
+  container: preview-map / inline-size;
+}
+
+/* Map Popup - ApiDocsMap.popup puts .map-popup on the popup root, so these rules reach Mapbox's own frame as well as
+   the content we hand it. */
+.map-popup .mapboxgl-popup-content {
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--border-radius-lg);
+
+  /* Mapbox caps popup width with an inline style, which ApiDocsMap.popup suppresses so this can own it instead. */
+  max-width: 260px;
+}
+
+/* Mapbox rounds the close button's corner to match its own 3px frame, so it has to track ours. */
+.map-popup .mapboxgl-popup-close-button {
+  border-radius: 0 var(--border-radius-lg) 0 0;
+}
+
+.map-popup h3,
+.map-popup h4 {
+  margin: 0 0 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--color-neutral-200);
+  font: var(--text-small-bold);
+}
+
+.map-popup p {
+  margin: 4px 0;
+  font: var(--text-caption-regular);
+}
+
+.map-popup strong {
+  font: var(--text-caption-semibold);
+}
+
+/* A popup's closing call-to-action would otherwise sit on the last paragraph's own 4px. */
+.map-popup .button-ps {
+  margin-top: var(--space-xs);
+}
+
+/* Map Overlays - Chips and legends layered over a preview map, positioned by the map's own control corners. */
+.map-chip {
+  font: var(--text-caption-regular);
+  background-color: var(--color-neutral-white);
+  padding: 5px 10px;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+}
+
+.map-legend {
+  background-color: var(--color-neutral-white);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  min-width: 200px;
+  max-width: 250px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+/* A label-and-value readout in a map corner, sharing the legend's frame. */
+.map-stats {
+  background-color: var(--color-neutral-white);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+}
+
+.map-stats div {
+  font: var(--text-caption-regular);
+}
+
+.map-legend h4,
+.map-stats h4 {
+  margin: 0 0 5px;
+  font: var(--text-small-bold);
+}
+
+.map-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font: var(--text-caption-regular);
+}
+
+/* The bar's colors are set from the data in JS; everything else about it lives here. */
+.map-legend-gradient {
+  height: 14px;
+  margin: 5px 0 3px;
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--border-radius-sm);
+}
+
+.map-legend-ticks {
+  display: flex;
+  justify-content: space-between;
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-700);
+}
+
+.map-legend-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Mapbox's two-finger gesture overlay ships a system font stack. Its font-size is inline, set by the library from
+   the map's width, so that part isn't ours to change. */
+.map-container .mapboxgl-touch-pan-blocker {
+  font-family: var(--font-primary);
+}
+
+@container preview-map (width < 500px) {
+  .map-chip {
+    padding: 3px 6px;
+    font: var(--text-tiny-regular);
+  }
+
+  .map-legend {
+    padding: var(--space-xxs) var(--space-xs);
+    min-width: 0;
+    max-width: 45cqw;
+    max-height: 150px;
+  }
+
+  .map-legend h4,
+  .map-stats h4 {
+    font: var(--text-caption-semibold);
+  }
+
+  .map-stats {
+    padding: var(--space-xxs) var(--space-xs);
+  }
+
+  .map-stats div {
+    font: var(--text-tiny-regular);
+  }
+
+  .map-legend-item {
+    gap: 4px;
+    font: var(--text-tiny-regular);
+  }
+
+  .map-legend-gradient {
+    height: 10px;
+  }
+
+  .map-legend-swatch {
+    width: 8px;
+    height: 8px;
+  }
+
+  .map-popup .mapboxgl-popup-content {
+    padding: var(--space-xxs) var(--space-xs);
+    max-width: 70cqw;
+  }
+
+  .map-popup h3,
+  .map-popup h4 {
+    font: var(--text-caption-semibold);
+  }
+
+  .map-popup p {
+    font: var(--text-tiny-regular);
+  }
+
+  .map-popup strong {
+    font: var(--text-tiny-semibold);
+  }
+
+  .map-popup .button-ps {
+    padding: 3px 8px;
+    font: var(--text-tiny-medium);
+    margin-top: var(--space-xxs);
+  }
+}
+
+/* ---- Video ---- */
+
+.video-container {
+  margin: 20px auto; /* Changed from '20px 0' to '20px auto' to center the container */
+  max-width: 800px; /* Set a max-width for the container that matches the video */
+  border-radius: var(--border-radius-lg);
+  overflow: hidden;
+  box-shadow: var(--box-shadow);
+}
+
+.demo-video {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* ---- Responsive (var(--breakpoint-sm) → 768px; var() can't appear in a media query) ---- */
+
+@media (width <= 768px) {
+  .download-buttons {
+    flex-direction: column;
+  }
+
+  .download-btn {
+    width: 100%;
+  }
+
+  .map-container {
+    height: 400px;
+  }
+}
+
+/* ---- Permalink copy feedback (apiDocs.js) ---- */
+
+.permalink--copied,
+.permalink--copied:hover {
+  color: var(--color-jade-700);
+}
+
+.permalink--failed,
+.permalink--failed:hover {
+  color: var(--color-error-200);
+}
+
+.copy-toast {
+  background-color: var(--color-neutral-900);
+  color: var(--color-neutral-white);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--border-radius);
+  font: var(--text-small-medium);
+  box-shadow: var(--box-shadow);
+  opacity: 0;
+  transform: translateY(-5px);
+  transition: opacity var(--transition-medium), transform var(--transition-medium);
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: var(--z-index-tooltip);
+}
+
+.copy-toast-success {
+  background-color: var(--color-jade-700);
+}
+
+.copy-toast-error {
+  background-color: var(--color-error-200);
+}
+
+.copy-toast-visible {
+  opacity: 1;
+  transform: translateY(0);
+}

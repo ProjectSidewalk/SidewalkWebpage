@@ -1,0 +1,2056 @@
+/*
+ * User Dashboard + Leaderboard redesign — gamification components.
+ *
+ * Layered on top of the shared page shell and components (components/page-shell.css, kpi.css, tables.css): this file
+ * adds ONLY what those don't already provide (hero banner, streak heatmap, badge tracks, trophy case, podium, medals,
+ * standing widget, mistake gallery cards). It styles everything from the main.css design-system tokens (--text-*,
+ * --space-*, --color-* ramps) rather than introducing new literals, so the three surfaces stay visually unified.
+ * Label-type colors come from the --color-label-* tokens (source of truth: /v3/api/labelTypes) — never hardcoded hex.
+ *
+ * Type scale policy (per design review): ALL content — table cells, badge/trophy detail, card text, stat labels,
+ * podium — is at least --text-body-* (16px). The smaller steps (small/caption) are reserved for legends
+ * (.ud-heatmap-legend), chart captions (.ud-acc-note), and small decorative pills/ribbons (.ud-trophy-tag,
+ * .ud-standing-tag, .ud-card-verdict, .ud-public-tag). Never size real content below body — and avoid footnote-style
+ * asides (design review: if a note matters it belongs in real copy). The sanctioned exceptions are captions that
+ * explain the thing they sit under: the accuracy chart's min-validations rule (.ud-acc-note) and the global
+ * leaderboard's daily distance refresh (.ud-lb-note) — both owner calls.
+ */
+
+/* The ranked boards are the page, not a data appendix, so their cells read at body size rather than .ps-table's
+   small; the headers keep the primitive's small-bold so the data stays louder than its labels. Scoped to the boards
+   so the compact admin tables on /admin/user/:username keep their dense treatment. */
+.page-content .ud-lb-table, .page-content .ud-cities-table { font: var(--text-body-regular); }
+
+/* Leaderboard tables are capped at ~10 rows, so show them in full — no inner scroll (admin tables keep theirs), and
+   overflow visible so the Accuracy header tooltip can escape the wrap. The responsive rule restores mobile scroll. */
+.page-content .ps-table-scroll-box {
+  max-height: none;
+  overflow: visible;
+}
+
+/* The admin tables right-align every non-first column (numeric); on the leaderboard the name column — and the
+   all-time "Most active in" city column — are text, so left-align them. Scoped to the ranked boards: other tables in
+   .page-content (the cities-you've-mapped one) carry a number in column 2 and want the right-aligned default. */
+.page-content .ud-lb-table td:nth-child(2),
+.page-content .ud-lb-table th:nth-child(2) { text-align: left; }
+
+/* The global board's "Top city" is a name, so it reads left-aligned like Mapper rather than right like the numbers. */
+.page-content .ud-lb-global td:nth-child(3),
+.page-content .ud-lb-global th:nth-child(3) { text-align: left; }
+.page-content .ps-table--sticky tbody tr { cursor: default; }
+
+/* Bump only the top-3 medal emoji so they read clearly; plain rank numbers keep the table's font size. */
+.ud-lb-rank .ud-lb-medal {
+  /* px, not rem: Bootstrap sets a 10px root here, so a rem size silently renders at 62.5% of its intent. */
+  font-size: 28px;
+  line-height: 1;
+}
+
+/* Header tooltip (e.g. Accuracy): a CSS popover shown on hover/focus — more reliable than a native title. */
+.ud-th-tip {
+  position: relative;
+  cursor: help;
+}
+
+.ud-th-tip:focus-visible {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: 2px;
+}
+
+.ud-th-info {
+  margin-left: 4px;
+  color: var(--color-neutral-700);
+  font-size: 0.8em;
+  vertical-align: middle;
+}
+
+.ud-th-tip::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 5;
+  width: max-content;
+  max-width: 260px;
+  padding: 8px 11px;
+  border-radius: var(--border-radius);
+  background: var(--color-asphalt-700);
+  color: var(--color-neutral-white);
+  font: var(--text-small-regular);
+  line-height: 1.35;
+  text-align: left;
+  white-space: normal;
+  text-transform: none;
+  box-shadow: var(--box-shadow);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--transition-fast);
+  pointer-events: none;
+}
+
+.ud-th-tip:hover::after,
+.ud-th-tip:focus-visible::after {
+  opacity: 1;
+  visibility: visible;
+}
+
+.ud-lb-user,
+.ud-lb-city {
+  color: var(--color-link-200);
+  text-decoration: none;
+}
+
+.ud-lb-user:hover,
+.ud-lb-city:hover { text-decoration: underline; }
+
+/* ---- Hero / "Your impact" -------------------------------------------------------------------------------------- */
+.ud-hero {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  padding: var(--space-lg);
+  margin: var(--space-md) 0 var(--space-lg);
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--border-radius-lg);
+  background: linear-gradient(120deg, var(--color-pine-100), var(--color-banana-100));
+}
+
+.ud-hero-avatar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--color-pine-600);
+  color: var(--color-neutral-white);
+  font: var(--text-h3-bold);
+  letter-spacing: 0.02em;
+}
+
+.ud-hero-greeting {
+  margin: 0 0 4px;
+  font: var(--text-body-regular);
+  color: var(--color-neutral-700);
+}
+
+.ud-hero-headline {
+  margin: 0 0 4px;
+  font: var(--text-h3-bold);
+  line-height: 1.2;
+  color: var(--color-neutral-900);
+}
+
+.ud-hero-sub {
+  margin: 0;
+  font: var(--text-body-regular);
+  color: var(--color-neutral-700);
+}
+
+/* Friendly, supportive nudge/encouragement callout — sprinkled through both surfaces. */
+.ud-nudge {
+  margin: var(--space-md) 0 0;
+  padding: var(--space-sm) var(--space-md);
+  border-left: 4px solid var(--color-banana-500);
+  border-radius: var(--border-radius);
+  background: var(--color-banana-100);
+  font: var(--text-small-regular);
+  color: var(--color-neutral-900);
+}
+
+/* ---- Streak / activity heatmap --------------------------------------------------------------------------------- */
+.ud-streak {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-lg);
+  align-items: flex-start;
+}
+
+.ud-streak-stats {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  flex: 0 0 200px;
+}
+
+/* Stacked in a column, so .ps-kpi's row flex-basis would become a 140px minimum *height*; size to content. */
+.ud-streak-kpi {
+  flex: 0 0 auto;
+  margin: 0;
+}
+
+.ud-streak-current {
+  border-color: var(--color-orange-400);
+  background: var(--color-orange-100);
+}
+
+/* Fixed-size cells (GitHub-style) so the grid is a compact block instead of stretching to fill the width. The cell
+   size and gap are set once here; the month/day label tracks and the cells themselves all read them, so the grid and
+   its labels can't drift apart. */
+.ud-heatmap {
+  --ud-heat-cell: 18px;
+  --ud-heat-gap: 3px;
+
+  flex: 0 1 auto;
+  margin: 0;
+  overflow-x: auto;
+}
+
+/* GitHub-style scaffold: month labels across the top, weekday labels down the left, cells bottom-right. */
+.ud-heatmap-scaffold {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  gap: 4px 6px;
+  width: max-content;
+}
+
+.ud-heatmap-corner {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.ud-heatmap-months {
+  grid-column: 2;
+  grid-row: 1;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: var(--ud-heat-cell);
+  gap: var(--ud-heat-gap);
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+}
+
+/* Each label sits in one cell-column but overflows right over the (empty) following columns, like GitHub. */
+.ud-heatmap-months > span {
+  white-space: nowrap;
+  overflow: visible;
+}
+
+.ud-heatmap-days {
+  grid-column: 1;
+  grid-row: 2;
+  display: grid;
+  grid-template-rows: repeat(7, var(--ud-heat-cell));
+  gap: var(--ud-heat-gap);
+  align-items: center;
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+}
+
+.ud-heatmap-grid {
+  grid-column: 2;
+  grid-row: 2;
+  display: grid;
+  grid-template-rows: repeat(7, var(--ud-heat-cell));
+  grid-auto-flow: column;
+  grid-auto-columns: var(--ud-heat-cell);
+  gap: var(--ud-heat-gap);
+  width: max-content;
+}
+
+.ud-heat {
+  width: var(--ud-heat-cell);
+  height: var(--ud-heat-cell);
+  border-radius: 3px;
+  background: var(--color-neutral-100);
+
+  /* Subtle inset ring (GitHub-style) so the lightest buckets stay distinguishable from the page background and each
+   other (WCAG 1.4.11 non-text contrast; exact counts are in each cell's tooltip/aria-label). */
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 8%);
+}
+
+.ud-heat-0 { background: var(--color-neutral-200); }
+.ud-heat-1 { background: var(--color-pine-200); }
+.ud-heat-2 { background: var(--color-pine-400); }
+.ud-heat-3 { background: var(--color-pine-600); }
+.ud-heat-4 { background: var(--color-pine-800); }
+
+/* Out-of-window padding cells (before the start / after today): keep the grid shape but invisible. */
+.ud-heat-empty {
+  background: transparent;
+  box-shadow: none;
+}
+
+.ud-heat[tabindex]:focus-visible {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: 1px;
+}
+
+/* The legend's swatches are a size down from the grid's cells so the key reads as a key, not a stray row. */
+.ud-heatmap-legend {
+  --ud-heat-cell: 12px;
+
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: var(--space-sm);
+  font: var(--text-caption-regular);
+
+  /* text-secondary, not tertiary: tertiary is ~2.7:1 on white, below the 4.5:1 AA floor for this small text. */
+  color: var(--color-neutral-700);
+}
+
+/* ---- Badge tracks ---------------------------------------------------------------------------------------------- */
+.ud-badge-tracks {
+  display: grid;
+
+  /* Cap at two tracks per row — at four across, the tier icons and their numbers get too small to read. */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-md);
+  margin: var(--space-md) 0;
+}
+
+.ud-badge-track {
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--border-radius-lg);
+  padding: var(--space-md);
+  background: var(--color-neutral-white);
+}
+
+.ud-badge-track-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.ud-badge-track-name {
+  font: var(--text-title-bold);
+  color: var(--color-neutral-900);
+}
+
+/* One-line explanation of what the track counts — especially useful on another mapper's public profile. */
+.ud-badge-track-desc {
+  margin: 0 0 var(--space-sm);
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+}
+
+/* The user's current tier name in this track (e.g. "IV: Barrier Buster") — a small pill whose color echoes the badge
+   level's color ramp (white -> green -> yellow -> orange -> legendary), set via a .ud-tier-N modifier. */
+.ud-badge-track-current {
+  padding: 2px 10px;
+  border-radius: 12px;
+  font: var(--text-caption-semibold);
+}
+
+.ud-tier-0,
+.ud-tier-1 {
+  background: var(--color-neutral-200);
+  color: var(--color-neutral-900);
+}
+
+.ud-tier-2 {
+  background: var(--color-pine-600);
+  color: var(--color-neutral-white);
+}
+
+.ud-tier-3 {
+  background: var(--color-banana-500);
+  color: var(--color-asphalt-900);
+}
+
+.ud-tier-4 {
+  background: var(--color-orange-500);
+
+  /* Dark text like tier-3: white on orange-500 is ~3:1, below the 4.5:1 AA floor. */
+  color: var(--color-asphalt-900);
+}
+
+.ud-tier-5 {
+  background: var(--color-asphalt-600);
+  color: var(--color-neutral-white);
+}
+
+.ud-badge-track-next {
+  display: block;
+  margin-top: var(--space-sm);
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+}
+
+.ud-badge-levels {
+  display: flex;
+  justify-content: space-between; /* spread the five tiers across the full card width */
+  gap: var(--space-xs);
+  margin-bottom: var(--space-sm);
+}
+
+.ud-badge {
+  width: 64px;
+  height: 64px;
+  max-width: 18%;
+  object-fit: contain;
+}
+
+.ud-badge-locked {
+  opacity: 0.18;
+  filter: grayscale(1);
+}
+
+/* ---- Progress bar (shared) ------------------------------------------------------------------------------------- */
+.ud-progress {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--color-neutral-200);
+  overflow: hidden;
+}
+
+.ud-progress-lg {
+  height: 14px;
+  border-radius: 7px;
+  margin: var(--space-sm) 0;
+}
+
+.ud-progress-fill {
+  width: 0; /* JS (DashboardBadges) animates this to the real percent. */
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--color-pine-500), var(--color-pine-700));
+}
+
+/* ---- Trophy case ----------------------------------------------------------------------------------------------- */
+.ud-trophy-case {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  margin: var(--space-md) 0;
+}
+
+.ud-trophy {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 4px;
+  width: 184px;
+  padding: var(--space-lg) var(--space-md);
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--border-radius-lg);
+  background: var(--color-neutral-white);
+  border-top: 4px solid var(--color-neutral-300);
+}
+
+/* Region/pioneer trophies link to Explore that neighborhood: keep the card look, add a lift + reveal the affordance. */
+.ud-trophy-link {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.ud-trophy-link:hover,
+/* Keyboard focus keeps the hover lift but needs a real indicator — the soft shadow alone isn't visible enough. */
+.ud-trophy-link:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: var(--box-shadow);
+  outline: 2px solid var(--color-link-200);
+  outline-offset: 2px;
+}
+
+.ud-trophy-explore {
+  margin-top: 4px;
+  font: var(--text-tiny-semibold);
+  color: var(--color-link-200);
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.ud-trophy-link:hover .ud-trophy-explore,
+.ud-trophy-link:focus-visible .ud-trophy-explore { opacity: 1; }
+
+.ud-trophy-1 { border-top-color: var(--color-banana-500); }
+.ud-trophy-2 { border-top-color: var(--color-neutral-400); }
+.ud-trophy-3 { border-top-color: var(--color-orange-500); }
+
+.ud-trophy-region {
+  border-top-color: var(--color-pine-600);
+  background: linear-gradient(160deg, var(--color-pine-100), var(--color-neutral-white));
+}
+
+.ud-trophy-pioneer {
+  border-top-color: var(--color-banana-600);
+  background: linear-gradient(160deg, var(--color-banana-100), var(--color-neutral-white));
+}
+
+.ud-trophy-free-explore {
+  border-top-color: var(--color-blue-400);
+  background: linear-gradient(160deg, var(--color-blue-100), var(--color-neutral-white));
+}
+
+.ud-trophy-tag {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 1px 7px;
+  border-radius: 9px;
+  font: var(--text-tiny-semibold);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--color-pine-800);
+  background: var(--color-pine-200);
+}
+
+.ud-trophy-medal {
+  font-size: 40px; /* px, not rem, for the reason given on .ud-lb-medal. */
+  line-height: 1;
+}
+
+.ud-trophy-title {
+  font: var(--text-subtitle-bold);
+  color: var(--color-neutral-900);
+}
+
+.ud-trophy-sub {
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+}
+
+/* ---- Your standing --------------------------------------------------------------------------------------------- */
+.ud-standing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-md);
+  margin: var(--space-md) 0;
+}
+
+.ud-standing-card {
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--border-radius-lg);
+  padding: var(--space-lg);
+  background: var(--color-neutral-white);
+}
+
+.ud-standing-community {
+  background: linear-gradient(120deg, var(--color-pine-100), var(--color-neutral-white));
+}
+
+.ud-standing-card-wide { max-width: 560px; }
+
+.ud-standing-tag {
+  font: var(--text-caption-regular);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-neutral-700);
+  margin-bottom: var(--space-xs);
+}
+
+/* Primary font, not the accent one: this prints a rank and a percentage, and Raleway's old-style figures drop
+   3/4/5/7/9 below the baseline. */
+.ud-standing-rank {
+  font: var(--text-title-bold);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-neutral-900);
+}
+
+.ud-standing-detail {
+  margin-top: var(--space-xs);
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+}
+
+.ud-standing-of {
+  font-weight: 400;
+  color: var(--color-neutral-700);
+}
+
+/* Week-over-week rank movement: climbed (green) / dropped (red). Deliberate hexes: the design-system success/error
+ tokens are too light to pass 4.5:1 on white, and the movement is also conveyed in words ("Up"/"Down"), not color
+ alone. Both hexes pass AA (~5.4:1). */
+.ud-delta-up {
+  color: #1f7a44;
+  font-weight: 700;
+}
+
+.ud-delta-down {
+  color: #c0392b;
+  font-weight: 700;
+}
+
+.ud-standing-slice {
+  list-style: none;
+  margin: var(--space-md) 0 0;
+  padding: 0;
+}
+
+.ud-standing-slice li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 8px 10px;
+  border-radius: var(--border-radius);
+  font: var(--text-small-regular);
+}
+
+.ud-rank-you {
+  background: var(--color-banana-100);
+  font-weight: 700;
+}
+
+.ud-rank {
+  flex: 0 0 28px;
+  color: var(--color-neutral-700);
+  font-variant-numeric: tabular-nums;
+}
+
+.ud-rank-user {
+  flex: 1 1 auto;
+  color: var(--color-neutral-900);
+}
+
+.ud-rank-val {
+  flex: 0 0 auto;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--color-neutral-700);
+}
+
+/* ---- Accuracy-by-type bars ------------------------------------------------------------------------------------- */
+.ud-accuracy-bars {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin: var(--space-md) 0;
+}
+
+.ud-acc-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 4px 6px;
+  border-radius: var(--border-radius);
+}
+
+.ud-acc-weakest {
+  background: var(--color-orange-100);
+  outline: 1px solid var(--color-orange-300);
+}
+
+.ud-acc-label {
+  flex: 0 0 170px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font: var(--text-small-regular);
+  color: var(--color-neutral-900);
+}
+
+.ud-acc-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  flex: 0 0 auto;
+  background: var(--label-color, var(--color-neutral-400));
+}
+
+.ud-acc-bar {
+  flex: 1 1 auto;
+  height: 10px;
+  border-radius: 5px;
+  background: var(--color-neutral-200);
+  overflow: hidden;
+}
+
+.ud-acc-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--label-color, var(--color-pine-500));
+}
+
+/* Each row sets --label-color from its label type's canonical token (source of truth: /v3/api/labelTypes); the
+   swatch and fill both read it, so the per-type color lives in CSS rather than an inline style. */
+.ud-lt-curb-ramp { --label-color: var(--color-label-curb-ramp); }
+.ud-lt-no-curb-ramp { --label-color: var(--color-label-no-curb-ramp); }
+.ud-lt-obstacle { --label-color: var(--color-label-obstacle); }
+.ud-lt-surface-problem { --label-color: var(--color-label-surface-problem); }
+.ud-lt-no-sidewalk { --label-color: var(--color-label-no-sidewalk); }
+.ud-lt-crosswalk { --label-color: var(--color-label-crosswalk); }
+.ud-lt-signal { --label-color: var(--color-label-signal); }
+
+.ud-acc-pct {
+  flex: 0 0 48px;
+  text-align: right;
+  font: var(--text-small-bold);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-neutral-700);
+}
+
+/* The percentage's sample size, e.g. "(32 validated)" — fixed basis so the column lines up across rows. */
+.ud-acc-n {
+  flex: 0 0 130px;
+  font: var(--text-small-regular);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-neutral-700);
+}
+
+/* The two sanctioned captions: the accuracy chart's min-validations rule, and the global board's note that its
+   Distance column comes from a nightly precompute and so can trail the live per-city boards above. */
+.ud-acc-note,
+.ud-lb-note {
+  margin: var(--space-xs) 0 0;
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+}
+
+/* ---- Mistake gallery cards (#4388) ----------------------------------------------------------------------------- */
+.ud-mistake-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-md);
+  margin: var(--space-md) 0;
+}
+
+.ud-card {
+  margin: 0;
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--border-radius-lg);
+  overflow: hidden;
+  background: var(--color-neutral-white);
+}
+
+.ud-card-img {
+  position: relative;
+  aspect-ratio: 3 / 2; /* Match the Explore canvas (720x480) so the label marker lines up, like the Gallery. */
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--color-neutral-200), var(--color-neutral-400));
+  background-size: cover;
+  background-position: center;
+}
+
+/* The label's own icon, placed over the pano at the label's canvas position (left/top set inline) to mark exactly
+   which feature was labeled. Small, like the Gallery's marker. */
+.ud-card-label-marker {
+  position: absolute;
+  width: clamp(20px, 7%, 30px);
+  height: auto;
+  transform: translate(-50%, -50%);
+  filter: drop-shadow(0 1px 4px rgb(0 0 0 / 55%));
+  pointer-events: none;
+}
+
+.ud-card-verdict {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font: var(--text-caption-semibold);
+  color: var(--color-neutral-white);
+  background: var(--color-error-200);
+}
+
+.ud-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--space-sm);
+}
+
+.ud-card-title {
+  font: var(--text-body-bold);
+  color: var(--color-neutral-900);
+}
+
+.ud-card-note {
+  font: var(--text-caption-regular);
+  line-height: 1.4;
+  color: var(--color-neutral-700);
+}
+
+/* Applied when there's no validator comment, so the placeholder text reads as an aside. */
+.ud-card-note-muted { font-style: italic; }
+
+.ud-card-prompt {
+  margin: var(--space-sm) 0 4px;
+  font: var(--text-small-bold);
+  color: var(--color-neutral-900);
+}
+
+.ud-card-actions {
+  display: flex;
+  gap: var(--space-xs);
+  margin-top: var(--space-xs);
+}
+
+/* Two equal buttons side-by-side, each one line (nowrap). Short labels + tight padding keep them on one line. */
+.ud-card-actions .ud-chip {
+  flex: 1 1 0;
+  text-align: center;
+  white-space: nowrap;
+  padding: 6px 8px;
+}
+
+.ud-chip {
+  padding: 4px 10px;
+  border: 1px solid var(--color-neutral-300);
+  border-radius: 14px;
+  background: var(--color-neutral-white);
+  font: var(--text-small-regular);
+  color: var(--color-neutral-900);
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.ud-chip-agree:hover {
+  background: var(--color-pine-100);
+  border-color: var(--color-pine-400);
+}
+
+.ud-chip-disagree:hover {
+  background: var(--color-orange-100);
+  border-color: var(--color-orange-300);
+}
+
+/* Inert on an admin's view of someone else's dashboard: the vote acts as the signed-in user, so it can't be cast. */
+.ud-chip:disabled,
+.ud-chip:disabled:hover {
+  background: var(--color-neutral-100);
+  border-color: var(--color-neutral-200);
+  color: var(--color-neutral-700);
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.ud-card-note-link {
+  display: inline-block;
+  margin-top: 6px;
+  font: var(--text-caption-regular);
+  color: var(--color-link-200);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.ud-card-note-link:hover { text-decoration: underline; }
+
+.ud-card-note-link[aria-disabled="true"],
+.ud-card-note-link[aria-disabled="true"]:hover {
+  color: var(--color-neutral-700);
+  opacity: 0.6;
+  text-decoration: none;
+  cursor: not-allowed;
+}
+
+.ud-card-comment-input {
+  width: 100%;
+  margin-top: var(--space-xs);
+}
+
+.ud-card-note-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin-top: var(--space-xs);
+}
+
+/* The `hidden` attribute must win over display:flex, or the note stays open before "Add a note" is clicked. */
+.ud-card-note-wrap[hidden] { display: none; }
+
+.ud-card-note-submit {
+  align-self: flex-start;
+}
+
+.ud-card-vote {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+/* Voted state tints just the vote section (works on the card and inside the popup panel). */
+.ud-card-vote--done {
+  padding: var(--space-xs);
+  border-radius: var(--border-radius);
+  background: var(--color-pine-100);
+}
+
+/* Clickable card image opens the interactive label popup. */
+.ud-card-img-clickable { cursor: pointer; }
+
+.ud-card-img-clickable:focus-visible {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: 2px;
+}
+
+.ud-card-expand-hint {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font: var(--text-caption-semibold);
+  color: var(--color-neutral-white);
+  background: rgb(0 0 0 / 55%);
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+  pointer-events: none;
+}
+
+.ud-card-img-clickable:hover .ud-card-expand-hint,
+.ud-card-img-clickable:focus-visible .ud-card-expand-hint { opacity: 1; }
+
+/* The mistake vote/note panel injected into the label popup dialog so you can respond from the expanded view. It sits
+   outside .page-content, so set a readable base font here (children inherit it) and size the heading up. Full-width
+   (no side margins), a small gap from the content above, and tight internal spacing. */
+.ud-mistake-response {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin: var(--space-xs) 0 0;
+  padding: var(--space-md);
+  border: 1px solid var(--color-pine-200);
+  border-radius: var(--border-radius-lg);
+  background: var(--color-neutral-white);
+  font: var(--text-body-regular);
+}
+
+.ud-mistake-response-heading {
+  margin: 0;
+  font: var(--text-subtitle-bold);
+  color: var(--color-neutral-900);
+}
+
+/* The panel heading already asks "Do you agree…", so drop the vote section's own prompt inside the popup. */
+.ud-mistake-response .ud-card-vote .ud-card-prompt { display: none; }
+
+.ud-mistake-response .ud-card-vote,
+.ud-mistake-response .ud-card-note-section { margin-top: 0; }
+
+/* On the dashboard the label popup shows the viewer's OWN labels (mistake cards + their map), so the
+   validate-on-hover overlay (Agree/Disagree/Unsure) and the add-a-comment row are never applicable and clash with the
+   mistake-response panel below — hide both. The public profile shares this rule deliberately: its popup is a
+   view-only showcase of someone's work, not a validation surface (that's LabelMap's job). */
+#label-modal .label-detail__pano-overlay,
+#label-modal .label-detail__comment-row { display: none; }
+
+/* Tighten the Comments heading so its empty "None" doesn't tower over the Description row, and give it a colon so it
+   reads like "Description :". The colon goes on the inner heading-text span so it lands before the count badge. */
+#label-modal .label-detail__comments-section .label-detail__col-title { margin: 0 0 2px; }
+#label-modal .label-detail__comments-section .label-detail__col-title > span:first-child::after { content: ":"; }
+
+.ud-card-voted-msg {
+  margin: 0;
+  font: var(--text-small-bold);
+  color: var(--color-pine-800);
+}
+
+.ud-card-change {
+  align-self: flex-start;
+  padding: 6px 14px;
+}
+
+/* The user's own note, independent of the vote. */
+.ud-card-note-section {
+  display: flex;
+  flex-direction: column;
+  margin-top: var(--space-xs);
+}
+
+.ud-card-your-note {
+  margin: 0 0 4px;
+  font: var(--text-caption-regular);
+  font-style: italic;
+  color: var(--color-neutral-700);
+}
+
+.ud-see-all {
+  display: inline-block;
+  margin-top: var(--space-xs);
+  font: var(--text-body-bold);
+  color: var(--color-link-200);
+  text-decoration: none;
+}
+
+.ud-see-all:hover { text-decoration: underline; }
+
+/* Beat the inline-block display so the `hidden` attribute actually hides the "See all" link until cards load. */
+.ud-see-all[hidden] { display: none; }
+
+/* ---- Contribution map ------------------------------------------------------------------------------------------ */
+
+/* Override choropleth.css's very tall fixed heights so the map is width-responsive and fits without page scroll.
+   ID selector matches choropleth.css specificity and wins by load order (this file loads after). */
+.ud-map-caption {
+  margin: var(--space-md) 0 6px;
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+}
+
+#user-dashboard-choropleth-holder {
+  position: relative;
+  width: 100%;
+  height: 480px;
+  margin: 0 0 var(--space-md);
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--border-radius-lg);
+  overflow: hidden;
+}
+
+#user-dashboard-choropleth-holder .choropleth {
+  width: 100%;
+  height: 100%;
+}
+
+@media (width <= 768px) {
+  #user-dashboard-choropleth-holder { height: 360px; }
+}
+
+/* Placeholder still used on the public profile (its map isn't wired yet). */
+.ud-map-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 320px;
+  border: 1px dashed var(--color-neutral-300);
+  border-radius: var(--border-radius-lg);
+  background: var(--color-neutral-100);
+  color: var(--color-neutral-700);
+  font: var(--text-body-regular);
+}
+
+.ud-map-placeholder small { font: var(--text-caption-regular); }
+
+/* ---- Team / class ---------------------------------------------------------------------------------------------- */
+.ud-team {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--space-md);
+  margin: var(--space-md) 0;
+}
+
+.ud-team-card,
+.ud-team-board {
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--border-radius-lg);
+  padding: var(--space-md);
+  background: var(--color-neutral-white);
+}
+
+.ud-team-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  align-items: flex-start;
+}
+
+.ud-team-name {
+  font: var(--text-title-bold);
+  color: var(--color-neutral-900);
+}
+
+.ud-team-meta {
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+}
+
+.ud-team-board-head {
+  font: var(--text-small-bold);
+  color: var(--color-neutral-700);
+  margin-bottom: var(--space-xs);
+}
+
+.ud-btn-secondary {
+  padding: 6px 14px;
+  border: 1px solid var(--color-neutral-300);
+  border-radius: var(--border-radius);
+  background: var(--color-neutral-white);
+  color: var(--color-neutral-900);
+  font: var(--text-small-regular);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.ud-btn-secondary:hover { background: var(--color-neutral-100); }
+
+.ud-btn-primary {
+  display: inline-block;
+  padding: 8px 18px;
+  border: 1px solid transparent;
+  border-radius: var(--border-radius);
+  background: var(--color-pine-600);
+  color: var(--color-neutral-white);
+  font: var(--text-small-bold);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.ud-btn-primary:hover {
+  background: var(--color-pine-700);
+  text-decoration: none;
+}
+
+/* Inert controls on an admin's view of someone else's dashboard (route/team actions, an Owner's settings). */
+.ud-btn-secondary:disabled,
+.ud-btn-secondary:disabled:hover {
+  background: var(--color-neutral-100);
+  border-color: var(--color-neutral-200);
+  color: var(--color-neutral-700);
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.ud-btn-primary:disabled,
+.ud-btn-primary:disabled:hover {
+  background: var(--color-neutral-200);
+  color: var(--color-neutral-700);
+  opacity: 0.8;
+  cursor: not-allowed;
+}
+
+/* "Create a team" sits below the teams table / empty-state banner, so give it breathing room. */
+.ud-btn-primary.ud-create-team-btn { margin-top: var(--space-md); }
+
+/* Plain "+" affordance that inherits the button's white text (a "➕" emoji renders blue and clashes with green). */
+.ud-btn-plus { font-weight: 700; }
+
+/* Public sign-up call-to-action shown to anonymous leaderboard visitors. */
+.ud-cta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin: var(--space-md) 0;
+  padding: var(--space-lg);
+  border: 1px solid var(--color-pine-300);
+  border-radius: var(--border-radius-lg);
+  background: linear-gradient(120deg, var(--color-pine-100), var(--color-banana-100));
+}
+
+/* Warning variant of the CTA banner (e.g. the "sample data" notice on the public profile). */
+.ud-cta-warning { border-color: var(--color-warning-200); }
+
+.ud-cta-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ud-cta-text strong {
+  font: var(--text-subtitle-bold);
+  color: var(--color-neutral-900);
+}
+
+.ud-cta-text span {
+  font: var(--text-body-regular);
+  color: var(--color-neutral-700);
+}
+
+.ud-cta-actions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+/* Both actions are anchors styled as buttons; the flex row stretches them to equal heights, so without this the
+ shorter "Sign in" link's text sits on the baseline instead of vertically centering in the stretched box. */
+.ud-cta-actions .ud-btn-primary,
+.ud-cta-actions .ud-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ---- Leaderboard: this city's hero impact band (#4687) ---------------------------------------------------------- */
+
+/* Small-caps lead-in naming the city, standing in for the h2 this band deliberately doesn't have (it would otherwise
+   claim a row in the right-hand contents list, which starts at "Top of the board"). */
+.ud-impact-caption {
+  margin: var(--space-lg) 0 var(--space-xs);
+  font: var(--text-small-bold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-neutral-700);
+}
+
+/* Quieter than the cross-city band below: no icons, tiles left-aligned, so the page still opens on the podium rather
+   than on a second full-height card. */
+.ud-impact-band {
+  display: grid;
+
+  /* Two up by default, four only once the content column is genuinely wide enough (see the media query below).
+     Fixed counts rather than auto-fit: with exactly four tiles, an intermediate three-column track would orphan the
+     fourth on a row of its own. minmax(0, 1fr) so a long localized label can't push a track past its share. */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-md) var(--space-lg);
+  margin: 0;
+  padding: var(--space-lg);
+  border: 1px solid var(--color-pine-200);
+  border-radius: var(--border-radius-lg);
+  background: linear-gradient(120deg, var(--color-pine-100), var(--color-banana-100));
+  color: var(--color-neutral-900);
+}
+
+/* Reversed so the value paints above its label while the markup keeps dt-then-dd order, which is what lets a screen
+   reader announce the pair as "Labels placed: 262,453". */
+.ud-impact-stat {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ud-impact-value {
+  margin: 0;
+  font-family: var(--font-primary);
+
+  /* Sized in px, not rem: Bootstrap sets a 10px root here, so a rem clamp silently renders at 62.5% of its intent.
+     nowrap means an over-long value overflows its tile rather than breaking mid-number, so the floor is set low
+     enough for a five-digit distance to fit the ~108px each tile gets at 320px. */
+  font-size: clamp(22px, 5vw, 30px);
+  white-space: nowrap;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+
+/* Darker than the secondary text elsewhere on the page: the band's tint leaves that color at 4.2:1 here, under the
+   4.5:1 AA needs at this size. Asphalt keeps the slate cast. */
+.ud-impact-label {
+  font: var(--text-small-medium);
+  color: var(--color-asphalt-300);
+}
+
+/* Four across only above 1400px. The content column is not a simple function of viewport width — the right-hand
+   contents rail is present above 992px and squeezes it to ~500px, so a four-track band is narrower at 1200px than it
+   is at 992px, and "2,432 km" wraps mid-value. Below this the 2x2 arrangement has room to spare at every width. */
+@media (width >= 1400px) {
+  .ud-impact-band {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* The one place the cross-city total appears above the fold. Kept to a single sentence so the closing community band
+   stays the section that actually presents those numbers. */
+.ud-impact-bridge {
+  margin: var(--space-sm) 0 0;
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+}
+
+/* ---- Leaderboard: community band + podium ---------------------------------------------------------------------- */
+.ud-community-band {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--space-lg);
+  padding: var(--space-lg);
+  margin: var(--space-md) 0;
+  border: 1px solid var(--color-pine-200);
+  border-radius: var(--border-radius-lg);
+
+  /* Light, on-brand card so the black line-art stat icons read clearly (they were invisible on the old dark band). */
+  background: linear-gradient(120deg, var(--color-pine-100), var(--color-banana-100));
+  color: var(--color-neutral-900);
+}
+
+.ud-community-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+}
+
+/* Stat icons: the same line-art PNGs the classic dashboard uses. The emoji placeholder matches their height. */
+.ud-community-icon {
+  height: 56px;
+  width: auto;
+  object-fit: contain;
+}
+
+.ud-community-emoji {
+  font-size: 48px;
+  line-height: 56px;
+}
+
+/* Loud, celebratory community totals. Primary font, not the accent one: Raleway's old-style figures let 3/4/5/7/9
+   drop below the baseline, so numbers set in it look uneven. */
+.ud-community-value {
+  display: block;
+  font-family: var(--font-primary);
+
+  /* px, not rem, for the reason given on .ud-impact-value above. Capped at 30 because five tiles share the content
+     column here, leaving tracks as narrow as ~150px — enough for "11,635 km" on one line at this size, not more. */
+  font-size: clamp(24px, 3.5vw, 30px);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.ud-community-label {
+  display: block;
+  font: var(--text-body-regular);
+  color: var(--color-asphalt-300);
+}
+
+.ud-podium {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: var(--space-md);
+  margin: var(--space-lg) 0;
+}
+
+.ud-podium-spot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+  width: 150px;
+}
+
+.ud-podium-name {
+  font: var(--text-title-bold);
+  color: var(--color-neutral-900);
+}
+
+.ud-podium-score {
+  font: var(--text-body-medium);
+  color: var(--color-neutral-700);
+}
+
+.ud-podium-block {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  width: 100%;
+  padding-top: var(--space-sm);
+  border-radius: var(--border-radius) var(--border-radius) 0 0;
+  font-size: 44px; /* px, not rem, for the reason given on .ud-lb-medal. */
+  color: var(--color-neutral-white);
+}
+
+.ud-podium-1 .ud-podium-block {
+  height: 128px;
+  background: var(--color-banana-500);
+}
+
+.ud-podium-2 .ud-podium-block {
+  height: 98px;
+  background: var(--color-neutral-400);
+}
+
+.ud-podium-3 .ud-podium-block {
+  height: 74px;
+  background: var(--color-orange-500);
+}
+.ud-podium-1 { order: 2; }
+.ud-podium-2 { order: 1; }
+.ud-podium-3 { order: 3; }
+
+/* ---- Public profile -------------------------------------------------------------------------------------------- */
+.ud-public-tag {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 12px;
+  background: var(--color-pine-200);
+  color: var(--color-pine-800);
+  font: var(--text-caption-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ---- Settings form --------------------------------------------------------------------------------------------- */
+.ud-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  max-width: 620px;
+  margin: var(--space-md) 0;
+}
+
+.ud-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ud-label {
+  font: var(--text-body-bold);
+  color: var(--color-neutral-900);
+}
+
+.ud-check input:enabled { cursor: pointer; }
+
+.ud-field-inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  align-items: center;
+}
+
+.ud-field-inline .ps-input,
+.ud-field-inline .ps-select { flex: 1 1 240px; }
+
+.ud-field-help {
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+}
+
+.ud-radio-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+}
+
+.ud-radio,
+.ud-check {
+  display: flex;
+  gap: var(--space-xs);
+  font: var(--text-body-regular);
+  color: var(--color-neutral-900);
+  cursor: pointer;
+}
+
+.ud-radio { align-items: center; }
+.ud-check { align-items: flex-start; }
+.ud-check input { margin-top: 3px; }
+
+.ud-check-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Inline "Saved ✓" / error message next to the Save button. */
+.ud-save-status {
+  margin-left: var(--space-sm);
+  font: var(--text-body-regular);
+  color: var(--color-neutral-700);
+}
+.ud-save-status.ud-save-ok { color: var(--color-success-200); }
+.ud-save-status.ud-save-err { color: var(--color-error-200); }
+
+/* ---- Admin page beside a user's dashboard (#4964) ----------------------------------------------------------- */
+.ud-admin-flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xl);
+}
+
+.ud-admin-flag {
+  flex: 1 1 260px;
+  max-width: 360px;
+  gap: var(--space-sm);
+}
+
+.ud-admin-flag .ud-save-status { margin-left: 0; }
+
+.ud-admin-details { margin-top: var(--space-md); }
+
+.ud-admin-details summary {
+  cursor: pointer;
+  font: var(--text-body-bold);
+  color: var(--color-neutral-900);
+}
+
+.ud-admin-details .ps-table-scroll { margin-top: var(--space-sm); }
+
+/* A number split across two lines reads as two numbers. */
+.ud-admin-table td.num, .ud-admin-table th.num { white-space: nowrap; }
+
+/* Two narrow columns, so the hours sit beside their city instead of a screen-width away (#4986). */
+.ud-admin-hours-cities {
+  max-width: 420px;
+  margin-bottom: var(--space-md);
+}
+
+/* "Kept private" state on a public profile whose owner turned off public_profile. */
+.ud-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+  text-align: center;
+  padding: var(--space-xl) var(--space-md);
+  color: var(--color-neutral-900);
+}
+.ud-empty-emoji { font-size: 36px; } /* px, not rem, for the reason given on .ud-lb-medal. */
+
+/* ---- "How is this ranked?" explainer --------------------------------------------------------------------------- */
+.ud-explainer {
+  margin: 0 0 var(--space-md);
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+}
+
+.ud-explainer > summary {
+  cursor: pointer;
+  color: var(--color-link-200);
+  width: fit-content;
+}
+
+.ud-explainer > div {
+  margin-top: var(--space-xs);
+  line-height: 1.5;
+  max-width: 720px;
+}
+
+/* ---- Create-team dialog ---------------------------------------------------------------------------------------- */
+.ud-dialog {
+  width: min(460px, calc(100vw - 32px));
+  padding: 0;
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--box-shadow-lg, 0 4px 12px rgb(0 0 0 / 15%));
+}
+
+.ud-dialog::backdrop { background: rgb(0 0 0 / 35%); }
+
+.ud-dialog-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: var(--space-lg);
+}
+
+.ud-dialog-title {
+  margin: 0;
+  font: var(--text-title-bold);
+  color: var(--color-neutral-900);
+}
+
+.ud-dialog-sub {
+  margin: 0 0 var(--space-sm);
+  font: var(--text-body-regular);
+  color: var(--color-neutral-700);
+}
+
+.ud-dialog-form .ud-label { margin-top: var(--space-sm); }
+
+.ud-optional {
+  font-weight: 400;
+  color: var(--color-neutral-700);
+}
+
+.ud-dialog-error {
+  margin-top: var(--space-sm);
+  padding: 8px 12px;
+  border-radius: var(--border-radius);
+  background: rgb(from var(--color-error-200) r g b / 10%);
+  color: var(--color-error-200);
+  font: var(--text-body-regular);
+}
+
+.ud-dialog-note {
+  margin: var(--space-sm) 0 0;
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+}
+
+.ud-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-sm);
+  margin-top: var(--space-lg);
+}
+
+.ud-team-join-label {
+  display: block;
+  margin-top: var(--space-xxs);
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+}
+
+/* ---- Responsive ------------------------------------------------------------------------------------------------ */
+
+/* 768px matches the shell breakpoint (components/page-shell.css), where the left nav collapses behind a disclosure
+   and the right TOC is already hidden — so here we just make the content itself stack and stay reachable on a phone. */
+@media (width <= 768px) {
+  .ud-hero {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  /* One badge track per row on phones (two would squeeze the tier icons). */
+  .ud-badge-tracks { grid-template-columns: 1fr; }
+  .ud-hero-text { text-align: center; }
+
+  .ud-streak { flex-direction: column; }
+
+  .ud-streak-stats {
+    flex-flow: row wrap;
+    flex: 1 1 100%;
+  }
+  .ud-streak-kpi { flex: 1 1 140px; }
+
+  .ud-heatmap {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+
+  .ud-acc-label { flex-basis: 120px; }
+
+  /* Wide leaderboard tables scroll horizontally instead of overflowing off the screen. */
+  .page-content .ps-table-scroll-box {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .page-content .ps-table--sticky { min-width: 520px; }
+
+  /* The global board carries an extra "Top city" column, so it needs more room before scrolling horizontally. */
+  .page-content .ud-lb-global { min-width: 620px; }
+
+  /* Podium shrinks to fit a phone: equal-width columns instead of fixed 150px spots. */
+  .ud-podium { gap: var(--space-xs); }
+
+  .ud-podium-spot {
+    width: auto;
+    flex: 1 1 0;
+    min-width: 92px;
+  }
+
+  /* CTA and inline form controls stack full width and stay tappable. */
+  .ud-cta {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .ud-cta-actions { flex-wrap: wrap; }
+
+  .ud-cta-actions .ud-btn-primary,
+  .ud-cta-actions .ud-btn-secondary {
+    flex: 1 1 auto;
+    text-align: center;
+  }
+
+  .ud-field-inline {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .ud-field-inline .ps-input,
+  .ud-field-inline .ps-select { flex: 1 1 auto; }
+
+  /* Mobile nav: this surface's section nav is two or three links, so it fits inline above the content as a chip row
+       and needs no disclosure to open it — unlike the API docs' 18 links and the admin dashboard's 12, which the
+       shared shell collapses behind .page-sidebar-toggle. */
+  .page-sidebar-toggle { display: none !important; }
+
+  .page-container .page-sidebar {
+    display: block;
+    position: static;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+    border-right: none;
+    border-bottom: 1px solid var(--color-neutral-200);
+    background: var(--color-neutral-white);
+  }
+
+  .page-container .page-sidebar .page-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+    padding: var(--space-sm) var(--space-md);
+  }
+
+  .page-container .page-sidebar .page-nav-header { display: none; }
+
+  .page-container .page-sidebar .page-nav-item {
+    padding: 6px 14px;
+    border: 1px solid var(--color-neutral-200);
+    border-radius: 16px;
+    background: var(--color-neutral-white);
+    font: var(--text-body-regular);
+    color: var(--color-neutral-900);
+  }
+
+  .page-container .page-sidebar .page-nav-item.active {
+    background: var(--color-pine-600);
+    border-color: var(--color-pine-600);
+    color: var(--color-neutral-white);
+  }
+
+  .page-container .page-sidebar .page-nav-item.disabled {
+    background: var(--color-neutral-100);
+    color: var(--color-neutral-700);
+  }
+}
+
+@media (width <= 480px) {
+  .ud-acc-label { flex-basis: 100px; }
+
+  /* Sample-size column shrinks to fit on phones instead of holding its aligned desktop width. */
+  .ud-acc-n { flex: 0 1 auto; }
+  .ud-trophy { width: 100%; }
+
+  .ud-badge {
+    width: 38px;
+    height: 38px;
+  }
+  .ud-badge-track-head { flex-wrap: wrap; }
+}
+
+/* ---- Accessibility utilities ------------------------------------------------------------------------------------ */
+
+/* Visually-hidden text for screen readers (e.g. the rank number behind a medal emoji, podium places). */
+.ud-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* The only movement on these pages is the trophy-card hover lift; drop it (and its transition) for users who
+ prefer reduced motion. Color/opacity transitions stay — they don't move anything. */
+@media (prefers-reduced-motion: reduce) {
+  .ud-trophy-link {
+    transition: box-shadow var(--transition-fast);
+  }
+
+  .ud-trophy-link:hover,
+  .ud-trophy-link:focus-visible {
+    transform: none;
+  }
+}
+
+/* ─── Your stories (#4054) ──────────────────────────────────────────────── */
+.ud-story-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px 0;
+  border-top: 1px solid var(--color-neutral-200);
+}
+
+.ud-story-row:first-child { border-top: none; }
+
+.ud-story-row--hidden { opacity: 0.8; }
+
+.ud-story-thumb {
+  flex: none;
+  width: 96px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid var(--color-neutral-300);
+}
+
+/* Imageless rows (no photo, no label preview) keep the thumbnail's box so their text stays column-aligned. */
+.ud-story-thumb--none {
+  background: var(--color-neutral-100);
+  border-color: var(--color-neutral-200);
+}
+
+.ud-story-body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.ud-story-text {
+  position: relative;
+  z-index: 0; /* Own stacking context so the quote-mark pseudo can sit behind the text. */
+  margin: 0 0 4px;
+  padding-left: 18px;
+  font-style: italic;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+
+/* Smaller cousin of the /stories cards' ghosted quote mark (community-list.css): together with the italics it
+   marks this line as the author's own words. Serif deliberately — no design-system token has a serif face, and
+   the classic testimonial glyph needs one (same rationale as the cards). */
+.ud-story-text::before {
+  content: "\201c";
+  position: absolute;
+  top: -2px;
+  left: 0;
+  z-index: -1;
+  font: 700 30px/1 Georgia, serif;
+  color: var(--color-neutral-300);
+}
+
+.ud-story-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+}
+
+.ud-story-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border: 1px solid var(--color-banana-700);
+  border-radius: 999px;
+  background: var(--color-banana-100);
+  color: var(--color-banana-900);
+  font: var(--text-caption-semibold);
+  line-height: 1;
+}
+
+.ud-story-edit,
+.ud-story-delete {
+  padding: 2px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font: var(--text-caption-semibold);
+  text-decoration: underline;
+}
+
+.ud-story-edit { color: var(--color-link-200); }
+
+.ud-story-delete { color: var(--color-orange-700); }
+
+.ud-story-edit:focus-visible,
+.ud-story-delete:focus-visible {
+  outline: 2px solid var(--color-link-100);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ---- My Routes (#3343): server-rendered rows of the user's RouteBuilder routes with inline actions. ---- */
+.ud-routes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* The list's display: flex would otherwise override the hidden attribute's UA display: none. */
+.ud-routes[hidden] {
+  display: none;
+}
+
+.ud-route-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: 12px 0;
+  border-bottom: 1px solid var(--color-neutral-200);
+}
+
+.ud-route-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1 1 220px;
+}
+
+/* Static-map thumbnail of the route; clicking it opens the route preview in RouteBuilder. */
+.ud-route-view {
+  flex-shrink: 0;
+  display: block;
+  line-height: 0;
+}
+
+.ud-route-thumb {
+  width: 180px;
+  height: 90px;
+  object-fit: cover;
+  border: 1px solid var(--color-neutral-200);
+  border-radius: 8px;
+}
+
+.ud-route-view:hover .ud-route-thumb,
+.ud-route-view:focus-visible .ud-route-thumb {
+  border-color: var(--color-link-100);
+  box-shadow: 0 0 0 1px var(--color-link-100);
+}
+
+.ud-route-usage {
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+  cursor: help;
+}
+
+.ud-route-name {
+  font-weight: 600;
+  color: var(--color-neutral-900);
+  overflow-wrap: anywhere;
+}
+
+/* The creator's "why this route matters" blurb, clamped so long stories keep the row scannable. */
+.ud-route-desc {
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.ud-route-meta {
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+}
+
+.ud-route-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.ud-route-actions .ud-btn-secondary {
+  padding: 4px 10px;
+  text-decoration: none;
+}
+
+.ud-route-rename-form {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.ud-route-rename-form .ps-input { padding: 4px 10px; }
+
+.ud-route-rename-form .ud-btn-primary {
+  padding: 4px 10px;
+  font: var(--text-small-bold);
+}
+
+/* ---- Cities you've mapped (#4496) ------------------------------------------------------------------------------
+ * The roll-up band reuses .ud-community-band so "across every city" looks the same here as on the leaderboard; only
+ * the table, map, and "you're here" marker are new.
+ */
+
+.ud-cities-table-wrap { margin: var(--space-md) 0; }
+
+/* The table isn't sortable, so drop the admin header's click affordance. */
+.page-content .ud-cities-table thead th { cursor: default; }
+
+/* The shell right-aligns every column past the first, which is what the counts and distances want. The city cell is a
+   row header, and a <th> defaults to centered, so it's the one that needs saying. */
+.page-content .ud-cities-table tbody th { text-align: left; }
+
+.ud-cities-current { background: var(--color-pine-100); }
+
+.ud-cities-popup-name {
+  font-weight: 700;
+  color: var(--color-neutral-900);
+  margin-bottom: 4px;
+}
+
+/* Marks the deployment the mapper is reading this on, so the row they can verify against the tiles above is obvious. */
+.ud-cities-here {
+  display: inline-block;
+  margin-left: var(--space-xs);
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--color-pine-200);
+  color: var(--color-neutral-900);
+  font: var(--text-caption-semibold);
+  white-space: nowrap;
+}
+
+.ud-cities-map {
+  height: 340px;
+  margin: var(--space-md) 0;
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--border-radius-lg);
+  overflow: hidden;
+}
+
+.ud-cities-footnote {
+  color: var(--color-neutral-700);
+  font: var(--text-caption-regular);
+}
+
+/* Names the deployment the KPI tiles belong to; the cross-city section below is the only part that isn't scoped. */
+.ud-kpi-scope {
+  margin-bottom: var(--space-xs);
+  color: var(--color-neutral-700);
+  font: var(--text-small-regular);
+}
+
+/* `.ud-community-band` sets `display: grid`, which outranks the UA's `[hidden] { display: none }` — so a band the
+ * script hasn't filled in yet would render as a row of empty stat labels. */
+.ud-community-band[hidden] { display: none; }
+
+/* ---- Streets with newer imagery (#4896): the mapper's own streets whose audits the imagery has outrun. ---- */
+.ud-reaudit {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.ud-reaudit-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: 12px 0;
+  border-bottom: 1px solid var(--color-neutral-200);
+}
+
+/* The row's own `display` beats the UA stylesheet's `[hidden] { display: none }`, so the rows waiting behind
+   "show more" need this to actually stay collapsed. */
+.ud-reaudit-row[hidden] {
+  display: none;
+}
+
+/* Rows carry no thumbnail, so the hover tint is the only feedback that a row is the one brushing the map above. */
+.ud-reaudit-row:hover,
+.ud-reaudit-row:focus-within {
+  background: var(--color-neutral-100);
+}
+
+.ud-reaudit-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1 1 220px;
+}
+
+.ud-reaudit-place {
+  font-weight: 600;
+  color: var(--color-neutral-900);
+  overflow-wrap: anywhere;
+}
+
+.ud-reaudit-meta {
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+}
+
+.ud-reaudit-audited {
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+}
+
+.ud-reaudit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.ud-reaudit-actions .ud-btn-secondary {
+  padding: 4px 10px;
+  text-decoration: none;
+}
+
+.ud-reaudit-more {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+}
+
+.ud-reaudit-more .ud-btn-secondary {
+  padding: 4px 10px;
+}

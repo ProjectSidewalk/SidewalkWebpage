@@ -36,6 +36,8 @@ import scala.concurrent.{ExecutionContext, Future}
  * @param corroboratedStreets  Still-open streets several labelers independently reported as having no imagery.
  * @param minReporters         Distinct labelers a street needs to appear in `corroboratedStreets`.
  * @param panosExpiredUndated  Expired panos with no recorded expiry date, i.e. what these series can't account for.
+ * @param panosHealed          Panos the reconciliation pass healed inside the window: crossings that did happen, but
+ *                             carry the date they were noticed, so `panoImageryChanges` can't place them in a week.
  * @param reopenCandidates     no_imagery streets whose latest poll found imagery, awaiting an admin's Reopen (#4929).
  */
 case class StreetStatusTrend(
@@ -48,6 +50,7 @@ case class StreetStatusTrend(
     corroboratedStreets: Seq[CorroboratedNoImageryStreet],
     minReporters: Int,
     panosExpiredUndated: Int,
+    panosHealed: Int,
     reopenCandidates: Seq[ReopenCandidateForReview]
 )
 
@@ -180,7 +183,7 @@ class StreetLifecycleServiceImpl @Inject() (
     )
   }
 
-  /** Runs the six series queries that back one window. */
+  /** Runs the seven series queries that back one window. */
   private def assembleTrend(window: Int): Future[StreetStatusTrend] = {
     // Bucket boundaries are ISO weeks, so start the window on one: an inclusive cutoff mid-week would leave the
     // oldest bucket a partial week that reads as a dip.
@@ -196,7 +199,7 @@ class StreetLifecycleServiceImpl @Inject() (
       .atStartOfDay(ZoneId.systemDefault)
       .toOffsetDateTime
 
-    // Bound before the for-comprehension so the six reads run concurrently rather than one after another.
+    // Bound before the for-comprehension so the seven reads run concurrently rather than one after another.
     val statusChangesF = db.run(statusChangeTable.transitionsByWeek(since))
     val reportsF       = db.run(streetEdgeIssueTable.reportsByWeek(since))
     val imageryF       = db.run(panoImageryChangeTable.transitionsByWeek(since))
@@ -209,6 +212,7 @@ class StreetLifecycleServiceImpl @Inject() (
       )
     )
     val undatedF    = db.run(panoDataTable.countExpiredWithoutExpiryDate)
+    val healedF     = db.run(panoImageryChangeTable.healedSince(since))
     val candidatesF =
       db.run(streetReopenCandidateTable.candidatesForReview(StreetLifecycleService.MaxReopenCandidates))
 
@@ -219,9 +223,10 @@ class StreetLifecycleServiceImpl @Inject() (
       regions        <- regionsF
       corroborated   <- corroboratedF
       undated        <- undatedF
+      healed         <- healedF
       candidates     <- candidatesF
     } yield StreetStatusTrend(window, since, statusChanges, reports, imageryChanges, regions, corroborated,
-      StreetLifecycleService.MinCorroboratingReporters, undated, candidates)
+      StreetLifecycleService.MinCorroboratingReporters, undated, healed, candidates)
   }
 
   /**

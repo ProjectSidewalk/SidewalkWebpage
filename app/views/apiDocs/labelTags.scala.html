@@ -18,19 +18,19 @@
     });
   </script>
 
-  <div class="api-section" id="label-tags-intro-section">
-    <h1 class="api-heading" id="label-tags-api">Label Tags API <a href="#label-tags-api" class="permalink">#</a></h1>
+  <div class="page-section" id="label-tags-intro-section">
+    <h1 class="page-heading" id="label-tags-api">Label Tags API <a href="#label-tags-api" class="permalink">#</a></h1>
     <p>The Label Tags API provides a comprehensive list of tags that can be applied to labels in Project Sidewalk. Each <a href="@routes.ApiDocsController.labelTypes">label type</a> has its own set of tags, which can be used to provide additional information about the sidewalk barrier or feature.</p>
     <p>Each city can also be customized with its own set of label tags, reflecting the unique needs and characteristics of the area.</p>
   </div>
 
-  <div class="api-section" id="visual-example-section">
-    <h2 class="api-heading" id="visual-example">Label Tags API Preview <a href="#visual-example" class="permalink">#</a></h2>
+  <div class="page-section" id="visual-example-section">
+    <h2 class="page-heading" id="visual-example">Label Tags API Preview <a href="#visual-example" class="permalink">#</a></h2>
     <p>Below is a live preview of the label tags available in <strong>@cityName</strong> grouped by label type, retrieved directly from the API:</p>
 
     <div id="label-tags-preview">Loading label tags data...</div>
 
-    <link rel="stylesheet" href="@assets.path("css/api-docs/label-tags.css")">
+    <link rel="stylesheet" href="@assets.path("css/pages/api-docs/label-tags.css")">
     <script src="@routes.Assets.versioned("js/api-docs/labelTagsPreview.js")"></script>
     <script>
       document.addEventListener('DOMContentLoaded', function() {
@@ -58,18 +58,18 @@
     </script>
   </div>
 
-  <div class="api-section" id="endpoint-section">
-    <h2 class="api-heading" id="endpoint">Endpoint <a href="#endpoint" class="permalink">#</a></h2>
+  <div class="page-section" id="endpoint-section">
+    <h2 class="page-heading" id="endpoint">Endpoint <a href="#endpoint" class="permalink">#</a></h2>
     <p>Retrieve a list of all label tags with their metadata.</p>
     <p><code>GET /v3/api/labelTags</code></p>
     <div class="api-subsection" id="endpoint-example-section">
-      <h3 class="api-heading" id="endpoint-examples">Examples<a href="#endpoint-examples" class="permalink">#</a></h3>
+      <h3 class="page-heading" id="endpoint-examples">Examples<a href="#endpoint-examples" class="permalink">#</a></h3>
       <p><code><a target="_blank" href="/v3/api/labelTags">/v3/api/labelTags</a></code> Get all label tags available for @cityName (in JSON)</p>
     </div>
   </div>
 
-  <div class="api-section" id="quick-download-section">
-    <h2 class="api-heading" id="quick-download">Quick Download <a href="#quick-download" class="permalink">#</a></h2>
+  <div class="page-section" id="quick-download-section">
+    <h2 class="page-heading" id="quick-download">Quick Download <a href="#quick-download" class="permalink">#</a></h2>
     <p>Download label tags data directly in JSON:</p>
 
     <div class="download-buttons">
@@ -86,10 +86,10 @@
     </div>
   </div>
 
-  <div class="api-section" id="responses-section">
-    <h2 class="api-heading" id="responses">Responses<a href="#responses" class="permalink">#</a></h2>
+  <div class="page-section" id="responses-section">
+    <h2 class="page-heading" id="responses">Responses<a href="#responses" class="permalink">#</a></h2>
 
-    <h3 class="api-heading" id="success-response-200-ok">Success Response (200 OK)<a href="#success-response-200-ok" class="permalink">#</a></h3>
+    <h3 class="page-heading" id="success-response-200-ok">Success Response (200 OK)<a href="#success-response-200-ok" class="permalink">#</a></h3>
     <p>On success, the API returns an HTTP <code>200 OK</code> status code and a JSON object containing an array of label tags.</p>
 
     <pre><code class="language-json">{
@@ -115,9 +115,9 @@
   ]
 }</code></pre>
 
-    <h4 class="api-heading" id="response-fields">Response Fields <a href="#response-fields" class="permalink">#</a></h4>
-    <div class="api-table-wrapper">
-      <table class="api-table">
+    <h4 class="page-heading" id="response-fields">Response Fields <a href="#response-fields" class="permalink">#</a></h4>
+    <div class="ps-table-wrapper">
+      <table class="ps-table">
         <thead>
           <tr>
             <th>Field</th>
@@ -165,7 +165,7 @@
       </table>
     </div>
 
-    <h3 class="api-heading" id="error-responses">Error Responses<a href="#error-responses" class="permalink">#</a></h3>
+    <h3 class="page-heading" id="error-responses">Error Responses<a href="#error-responses" class="permalink">#</a></h3>
     <p>If an error occurs, the API will return an appropriate HTTP status code and a JSON response body containing details about the error.</p>
     <ul>
       <li><strong><code>500 Internal Server Error</code>:</strong> An unexpected error occurred on the server.</li>

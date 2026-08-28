@@ -104,7 +104,8 @@ Each major UI is a self-contained app under `public/js/`, bundled separately by 
 - **`validate/`** — the Validate tool (users confirm/reject others' labels).
 - **`gallery/`** — browsable gallery of labels with filtering; internal namespace global is still `sg`.
 - **`admin-dashboard/`** — the admin dashboard (#4272), served file-by-file rather than bundled: one `<PageName>Page.js` per route, loaded by that page's Twirl template, with shared helpers in `AdminShell.js`.
-- **`user-dashboard/`** — the redesigned user dashboard, settings, leaderboard, and public profiles (#4323), plus the admin's view of a user's dashboard (`/admin/user/:username` and its `/admin` page, #4964). Served file-by-file like `admin-dashboard/` — no Grunt bundle.
+- **`user-dashboard/`** — the redesigned user dashboard, settings, leaderboard, and public profiles (#4323), plus the admin's view of a user's dashboard (`/admin/user/:username` and its `/manage` page, #4964). Served file-by-file like `admin-dashboard/` — no Grunt bundle.
+- **`api-docs/`** — the `/api-docs` reference pages: one `<endpoint>Preview.js` per page renders a live sample of that endpoint, with `apiDocs.js` (shell behavior), `apiTableWrapper.js`, and `apiDocsTheme.js` (`ApiDocsTheme.color(token, alpha?)` — the one way preview JS reads a CSS color token for Chart.js/Mapbox, so chart colors follow the design system). Served file-by-file — no Grunt bundle.
 - **`ps-map/`** — shared map component used across pages.
 - **`help/`** — help/faq page (rarely used).
 - **`common/`** — shared modules pulled into multiple bundles: `pano-viewer/` (abstraction over GSV / Mapillary / Infra3d / Pannellum imagery providers), `label-detail/` (label popups), and various utilities.
@@ -113,7 +114,11 @@ No npm-based module system on the frontend — files are simply concatenated in 
 
 **Reference every asset through `assets.path("...")` in Twirl, never a hardcoded `/assets/...` string.** `stage`/`dist` content-fingerprints assets (sbt-digest), and only `assets.path` resolves to the fingerprinted URL that gets a one-year `immutable` cache; a hardcoded path falls back to the one-hour default, which is *unsafe for files swapped in place* — its ETag ignores content, so replacing a file's bytes under the same name never invalidates cached copies. Full contract: [`docs/deployment-and-stages.md`](docs/deployment-and-stages.md) → "Asset caching".
 
-**Asset layout (going-forward invariant, from the #2292 reorg).** First-party assets split **by type**: `public/js/` is JavaScript-only, `public/css/` holds all styles (with per-app subdirs `css/explore/`, `css/validate/`, `css/gallery/`), and media lives in `public/images/`, `public/audio/`, `public/videos/`. There are **no `css/`, `img/`, or `audio/` dirs nested inside an app dir under `js/`** — app-private styles go to `css/<app>/` and app-private images to `images/<app>/`. Third-party code groups by library under `vendor/` (never `js/` or `css/`).
+**Asset layout (going-forward invariant, from the #2292 reorg).** First-party assets split **by type**: `public/js/` is JavaScript-only, `public/css/` holds all styles, organized **by what each file is** (#5030) — its root has exactly four entries: `main.css` + `fonts.css` (tokens and `.ps-*` primitives, no layout knowledge); `css/components/` for anything more than one page links — one component per file with a `ps-` or component-named prefix (`page-shell.css`, `kpi.css`, `tables.css`, `label-detail.css`, `toast.css`, …); and `css/pages/` for everything page-specific — a single file for a single page (`about.css`, `auth.css`, `admin-dashboard.css`, `user-dashboard.css`, …) and a subdir for a page family with several files (`pages/explore/`, `pages/validate/`, `pages/gallery/`, `pages/api-docs/`). Media lives in `public/images/`, `public/audio/`, `public/videos/`. There are **no `css/`, `img/`, or `audio/` dirs nested inside an app dir under `js/`** — app-private styles go to `css/pages/` and app-private images to `images/<app>/`. Third-party code groups by library under `vendor/` (never `js/` or `css/`).
+
+**Two rules keep that split honest, and `make lint-css-layout` (`tools/check-css-layout.mjs`, a blocking CI step) enforces them:** every entry under `pages/` is registered in the lint's `PAGES` map with the views that may link it — its own page, or for the Grunt-bundled tools, its own bundle (the two legacy exceptions, `homepage.css` and `auth.css`, are registered to `common/main.scala.html` and so load site-wide) — and an unregistered file fails the lint; the moment a second page needs a rule, it moves to `css/components/`; and a page's class prefix (`ud-`, `ac-`/`ov-`/`dq-`/…, `svl-`, `svv-`, `gallery-`) is defined only in that page's stylesheet(s). Layouts link the shell plus only the component files their pages use — never `@import` (Play fingerprints per file, and an import adds a serial round trip).
+
+**`css/components/page-shell.css` is the sidebar + content + TOC shell (`.page-container`, `.page-content`, `.page-section`, `.page-heading`, `.page-sidebar`/`.page-nav-*`, `.page-toc`, plus the base type/link/code styles).** Three surfaces link it — the API docs (`apiDocs/layout.scala.html`), the admin dashboard (`admin/dashboard/adminLayout.scala.html`), and the user dashboard (`userDashboard/layout.scala.html`) — so a change there is a change to all three. `css/pages/api-docs/api-docs.css` is docs-only (`.preview-*`, `.map-toolbar`, status messages, download buttons). All three style everything from the `main.css` tokens and primitives (see "Style all UI from the design-system tokens" under Development Guidelines) — a `--font-size-*` / `--color-text-*` name is a leftover from the pre-#4300 alias block, not a token to use.
 
 **Naming conventions (from #2292):** directories are **kebab-case**; CSS files are **kebab-case**; JS files follow Airbnb style — **PascalCase** for files that define a class/constructor (`AppManager.js`, `LabelPopup.js`), **camelCase** for function/utility/entry files (`main.js`, `aggregateStats.js`). Kebab-case is not used for JS files. Full write-up in [`docs/style-guide.md`](docs/style-guide.md). **Deferred mismatch:** the app dirs were renamed (`SVLabel → explore`, `SVValidate → validate`, `Progress → user-dashboard`), but the internal JS namespace *identifiers* `svl` (Explore) and `sg` (Gallery) were left as-is — renaming those is a large independent refactor, not part of the file reorg.
 
@@ -259,19 +264,30 @@ When you catch yourself writing a frontend constant that mirrors a backend value
   - **CSS** (`public/css/`): `make stylelint-fix dir=<…>`, then `make stylelint`.
   - **HTML** (Twirl views in `app/views/`): `make htmlhint`.
   - **Translation JSON** (`public/locales/`): `make eslint` (per-file validity/dup-key checks) plus `make lint-locales` (cross-locale key parity).
+  - **CSS layout** (`public/css/` + the views' `<link>`s): `make lint-css-layout` (page stylesheets linked only by their page, page prefixes only in their page's files, every linked file exists).
   - `make lint` runs all of them (plus the evolutions lint) at once; `make lint-fix` autofixes the ESLint + Stylelint mechanical findings.
 - User interactions are logged (clicks, key presses, mode switches, pano changes, mission/task events, etc.) to the activity/interaction tables. When you **add or change an interaction**, add or adjust the corresponding logging so analytics stay complete; keep event names consistent with the existing ones, and update [`docs/logged-events.md`](docs/logged-events.md) (how logging works + the event reference).
 - Ensure WCAG 2.1/2.2 Level AA accessibility standards are met
 - **Style all UI from the design-system tokens in `main.css` `:root`** — colors (`--color-*`), type (`--text-*`),
-  and button styles. They mirror our "Design System Tokens" Figma and are the default for any new or refactored UI:
-  a hardcoded hex color or hand-assembled font stack is a bug unless the token set genuinely has no fit. For type
-  specifically:
+  spacing (`--space-*`), radii (`--border-radius*`), elevation (`--box-shadow*`), motion (`--transition-*`),
+  stacking (`--z-index-*`), breakpoints (`--breakpoint-*`, reference values — `var()` can't appear in a media query,
+  so write the px and name the token in a comment), and the component primitives (`.button-ps` + `.button--*`,
+  `.ps-input` / `.ps-select` (+ `--large`), `.ps-table` (+ `--compact`, `.ps-table-wrapper`)). They mirror our
+  "Design System Tokens" Figma
+  and are the default for any new or refactored UI: a hardcoded hex color or hand-assembled font stack is a bug
+  unless the token set genuinely has no fit. For type specifically:
   - **Set type with a composite `--text-*` token, not the raw font variables.** Write
     `font: var(--text-body-regular);` — never `font-family: var(--font-primary)` plus hand-picked
     size/weight/line-height. The `--text-*` tokens are complete `font` shorthands (weight, size/line-height, family)
     and already bake in `var(--ui-scale)`. If one aspect of the token doesn't suit the design — usually line-height —
     keep the token and override just that property after it (`font: var(--text-body-regular); line-height: 1.5;`)
-    rather than dropping to raw `font-*` properties.
+    rather than dropping to raw `font-*` properties. Long-form reading text (documentation, multi-paragraph copy)
+    takes `--text-prose-regular`, the body size with looser leading; `--text-body-*` is for UI copy. Code blocks take
+    `--text-code-regular`; inline `code` keeps `font-family: var(--font-mono)` at a relative `em` size so it tracks
+    the text it sits in.
+  - **Size in px, never `rem`.** Bootstrap 3 sets `html { font-size: 62.5% }`, so `1rem` is 10px on every page and a
+    `0.875rem` "14px" renders at 8.75px. The `--text-*` tokens are px for this reason; the legacy `--font-size-*`
+    rem aliases in `admin-dashboard.css` are the last holdouts (#4300).
   - **Default to the primary font (Mulish).** The accent font (`--font-accent`, Raleway) is display-only and already
     scoped to the few tokens that carry it (`--text-h1-bold`, `--text-h2-bold`, `--text-small-accent`) — don't
     introduce it elsewhere.
@@ -568,12 +584,13 @@ Never conclude "evolution N didn't apply" from a `readonly_user` query without f
 ### Linting
 
 ```bash
-make lint           # eslint + stylelint + htmlhint + lint-locales + lint-evolutions (all of it)
+make lint           # eslint + stylelint + htmlhint + lint-locales + lint-css-layout + lint-evolutions (all of it)
 make lint-fix       # eslint --fix + stylelint --fix
 make eslint         # JS + translation JSON; defaults to public/js/ + public/locales/ (build/ carved out by config ignores; vendor/ is out of the files glob)
 make stylelint      # CSS; defaults to public/**/*.css (vendor/ carved out by the config's ignoreFiles)
 make htmlhint       # HTML; defaults to app/views/
 make lint-locales   # cross-locale key parity (tools/check-locale-parity.mjs)
+make lint-css-layout # public/css/ layout: page files linked only by their page, prefixes in place (tools/check-css-layout.mjs)
 make lint-evolutions # static checks on conf/evolutions/default/*.sql (host-side bash, no container needed)
 make eslint dir=public/js/validate   # scope any target to a dir/file; also stylelint / htmlhint
 ```

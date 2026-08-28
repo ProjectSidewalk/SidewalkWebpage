@@ -1,6 +1,6 @@
 /**
- * Narrow-viewport sidebar disclosure, shared by the `.api-*` shells (API docs, admin dashboard, user dashboard) and
- * the Gallery's filter column.
+ * Narrow-viewport sidebar disclosure, shared by the `.page-*` shell (components/page-shell.css: API docs, admin
+ * dashboard, user dashboard) and the Gallery's filter column.
  *
  * Under their breakpoints these sidebars stop being columns and become an in-flow strip between the navbar and the
  * content, with their contents collapsed. The button that reopens them belongs *inside* that strip, so what it
@@ -42,32 +42,32 @@ function wireSidebarDisclosure(toggle, root, options = {}) {
 }
 
 /**
- * Builds the disclosure button for an `.api-*` shell sidebar and wires it to that sidebar's nav.
+ * Builds the disclosure button for a `.page-*` shell sidebar and wires it to that sidebar's nav.
  *
- * @param {HTMLElement} sidebar - The `.api-sidebar` whose `.api-nav` the button discloses.
+ * @param {HTMLElement} sidebar - The `.page-sidebar` whose `.page-nav` the button discloses.
  * @returns {HTMLButtonElement} The wired-up button, not yet inserted into the document.
  */
 function buildSidebarDisclosure(sidebar) {
   // The active item names the current page; the first group header is the fallback on a page with no active item.
-  const active = sidebar.querySelector('.api-nav-item.active');
-  const heading = sidebar.querySelector('.api-nav-header');
+  const active = sidebar.querySelector('.page-nav-item.active');
+  const heading = sidebar.querySelector('.page-nav-header');
   const label = (active || heading)?.textContent.trim() || 'Menu';
 
   const toggle = document.createElement('button');
   toggle.type = 'button';
-  toggle.className = 'api-sidebar-toggle';
+  toggle.className = 'page-sidebar-toggle';
   toggle.innerHTML = `
-    <span class="api-sidebar-toggle-label"></span>
-    <svg class="api-sidebar-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+    <span class="page-sidebar-toggle-label"></span>
+    <svg class="page-sidebar-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>`;
   // Assigned as text rather than interpolated into the markup above so a page title can't inject HTML.
-  toggle.querySelector('.api-sidebar-toggle-label').textContent = label;
+  toggle.querySelector('.page-sidebar-toggle-label').textContent = label;
   // The visible text is the page name, which says where you are but not what the control does. The accessible name
   // has to carry both, and has to start with the visible text so speech input still reaches it (WCAG 2.5.3).
   toggle.setAttribute('aria-label', `${label} — section navigation`);
 
   return wireSidebarDisclosure(toggle, sidebar, {
-    controlled: sidebar.querySelector('.api-nav'), controlledId: 'api-sidebar-nav',
+    controlled: sidebar.querySelector('.page-nav'), controlledId: 'page-sidebar-nav',
   });
 }
 
@@ -77,7 +77,7 @@ function buildSidebarDisclosure(sidebar) {
  * @returns {void}
  */
 function initSidebarDisclosure() {
-  const sidebar = document.querySelector('.api-sidebar');
-  if (!sidebar || sidebar.querySelector('.api-sidebar-toggle')) return;
+  const sidebar = document.querySelector('.page-sidebar');
+  if (!sidebar || sidebar.querySelector('.page-sidebar-toggle')) return;
   sidebar.prepend(buildSidebarDisclosure(sidebar));
 }

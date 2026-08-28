@@ -268,6 +268,12 @@ class ImageryFreshnessServiceImpl @Inject() (
               new MissingImageryCredentialException("No mapillary-access-token configured for a Mapillary city.")
             )
         }
+      // Infra3d is deliberately not polled, though it could be: scripts/check_streets_for_imagery.py --infra3d shows
+      // the query (framegate's nearest-frame `knn/query`, with the token PanoDataService.getInfra3dToken mints, and
+      // the frame `timestamp` as the capture date). It isn't worth a nightly run because each Infra3d city is a single
+      // commissioned drive -- one campaign, whose project_uid is hardcoded per city in Infra3dViewer.js -- so the
+      // dates never change on their own. A fresh drive would arrive as a new campaign/project needing that hardcoded
+      // id updated anyway, which is the moment to add a fetchInfra3dPointObservations here.
       case other =>
         Future.successful(PollResult.notPolled(s"Imagery-age polling isn't supported for provider $other; skipping."))
     }

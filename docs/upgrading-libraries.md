@@ -186,6 +186,14 @@ matching it.
   [Changelog](https://github.com/mpetroff/pannellum/blob/2.5.7/changelog.md)
 - **panzoom: 9.4.4** — zoom/pan for static images in LabelMap/Gallery.
   [Download](https://unpkg.com/panzoom@9.4.4/dist/panzoom.min.js) · [Versions](https://github.com/anvaka/panzoom/tags)
+- **prism: 1.30.0** — syntax highlighting for the API docs' code blocks. We ship the core plus only the language
+  components the docs use (`json`, `csv`), so a new `language-*` class in a docs page means adding that component too.
+  **No stock theme:** the `.token.*` colors are ours, in `css/pages/api-docs/api-docs.css`, so the blocks stay on the
+  design-system tokens — an upgrade is the JS files only. **Note:** 1.30.0 is old (March 2025) because v1 is in
+  maintenance while the repo's default branch develops **v2**, an unreleased breaking rewrite (ESM, `src/languages/`,
+  a different dist layout). So 1.x is the stable line to track, and `1.30.0 → 2.x` will be a migration rather than a
+  file swap. [Download (pick components)](https://prismjs.com/download.html) ·
+  [Changelog](https://github.com/PrismJS/prism/releases)
 - **proj4js: 2.19.10** — [Download](https://cdnjs.com/libraries/proj4js) ·
   [Changelog](https://github.com/proj4js/proj4js/releases)
 - **selectize.js: 0.15.2** — **note:** unmaintained (last release 2022). The suggested successor is

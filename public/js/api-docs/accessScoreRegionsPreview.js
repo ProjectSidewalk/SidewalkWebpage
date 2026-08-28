@@ -29,7 +29,7 @@
     coverage: { label: 'Audit coverage', legendTitle: 'Fraction of streets audited', noneAtOrBelow: 0 },
   };
 
-  const NONE_COLOR = '#3d3d3d'; // Regions with no audited streets (null score).
+  const NONE_COLOR = ApiDocsTheme.color('--color-neutral-800'); // Regions with no audited streets (null score).
 
   window.AccessScoreRegionsPreview = {
     _legend: null,
@@ -60,7 +60,7 @@
         await this.renderMap(container, regions);
       } catch (error) {
         console.error('Error rendering AccessScore regions preview:', error);
-        container.innerHTML = '<div class="no-data-message">Unable to load AccessScore data for the preview.</div>';
+        container.innerHTML = '<div class="map-message">Unable to load AccessScore data for the preview.</div>';
       }
     },
 
@@ -106,7 +106,7 @@
         type: 'line',
         source: REGION_SOURCE,
         paint: {
-          'line-color': '#ffffff',
+          'line-color': ApiDocsTheme.color('--color-neutral-white'),
           'line-width': ApiDocsMap.whenHovered(3, 1),
           'line-opacity': ApiDocsMap.whenHovered(1, 0.7),
         },
@@ -133,11 +133,11 @@
     /** Add the metric selector above the map, where a region popup can never cover it. */
     addToolbar(container) {
       const toolbar = document.createElement('div');
-      toolbar.className = 'as-toolbar';
+      toolbar.className = 'map-toolbar';
       const optionsHtml = Object.keys(METRICS)
         .map((metric) => `<option value="${metric}">${METRICS[metric].label}</option>`).join('');
       toolbar.innerHTML = `<label for="as-region-metric-select">Color by</label>
-        <select id="as-region-metric-select">${optionsHtml}</select>`;
+        <select id="as-region-metric-select" class="ps-select">${optionsHtml}</select>`;
       container.appendChild(toolbar);
     },
 
@@ -180,7 +180,7 @@
     /** Show an on-map message (e.g. when there is no data). */
     addNoDataMessage(map, text) {
       const div = document.createElement('div');
-      div.className = 'no-data-message';
+      div.className = 'map-message';
       div.textContent = text;
       map.getContainer().appendChild(div);
     },

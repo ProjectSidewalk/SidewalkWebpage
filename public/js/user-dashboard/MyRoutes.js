@@ -91,7 +91,7 @@ class MyRoutes {
     const form = document.createElement('span');
     form.className = 'ud-route-rename-form';
     form.innerHTML = `
-      <input type="text" class="ud-input ud-route-rename-input" maxlength="${maxLength}"
+      <input type="text" class="ps-input ud-route-rename-input" maxlength="${maxLength}"
              aria-label="${i18next.t('dashboard:routes-rename-aria')}">
       <button type="button" class="ud-btn-primary ud-route-rename-save">${i18next.t('dashboard:routes-rename-save')}</button>
       <button type="button" class="ud-btn-secondary ud-route-rename-cancel">${i18next.t('dashboard:routes-rename-cancel')}</button>`;

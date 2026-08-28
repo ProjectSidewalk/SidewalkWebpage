@@ -46,8 +46,8 @@ dependencies must be installed in the `python3` interpreter the app shells out t
 
 ## `check_streets_for_imagery.py`
 
-Finds streets lacking street-view imagery (Google Street View or Mapillary) and writes them to a CSV. Standalone and
-manual — nothing in the app calls it.
+Finds streets lacking street-view imagery (Google Street View, Mapillary, or Infra3d) and writes them to a CSV.
+Standalone and manual — nothing in the app calls it.
 
 1. Export a CSV of the `street_edge` table with columns `street_edge_id, region_id, x1, y1, x2, y2, geom` (geom as WKB
    hex), named `street_edge_endpoints.csv`, in the repo root.
@@ -55,6 +55,8 @@ manual — nothing in the app calls it.
    ```bash
    python3.13 scripts/check_streets_for_imagery.py --gsv         # needs GOOGLE_MAPS_API_KEY
    python3.13 scripts/check_streets_for_imagery.py --mapillary   # needs MAPILLARY_ACCESS_TOKEN
+   python3.13 scripts/check_streets_for_imagery.py --infra3d     # needs INFRA3D_CLIENT_ID + INFRA3D_CLIENT_SECRET;
+                                                                 # add --campaign <uid> if the tenant has several
    ```
    It checks each street's endpoints first, then samples points along the street, and flags streets where enough points
    lack imagery. It writes streets without imagery to `db/streets_with_no_imagery.csv`, and a per-street imagery
@@ -64,14 +66,39 @@ manual — nothing in the app calls it.
 Optional flags: `--workers N` (streets checked concurrently, default 8) and `--max-qps F` (global cap on requests per
 second across all workers, default 10 — deliberately conservative; Google allows ~500/s).
 
+### Infra3d
+
+Infra3d has no metadata endpoint, so `--infra3d` uses the nearest-frame query (`framegate`'s `knn/query`) that the
+vendored viewer SDK issues on every `setLocation` — the same request a labeler's browser makes as they move — with the
+same per-city OAuth client credentials the app uses (`PanoDataService.getInfra3dToken`). Export **one** city's pair as
+`INFRA3D_CLIENT_ID` / `INFRA3D_CLIENT_SECRET` (in the web container they're `INFRA3D_CLIENT_ID_ZURICH`,
+`..._WINTERTHUR`, etc.); the tenant to query comes from the token's own scope, so nothing else is per-city. Two things
+differ from the other providers:
+
+- The query returns the nearest frame **with no distance cap** (a point far outside the city still gets the city's
+  closest frame), so "has imagery" is decided client-side: the nearest frame within the same 25 m (endpoints) / 15 m
+  (along-street) radius GSV uses.
+- Frames are filtered server-side to 360° types (`calotte`/`cubemap`), matching the viewer's `setFilter` — Infra3d
+  datasets mix in flat mono/stereo photos that Explore can't label on, so a street with only flat frames counts as
+  having no imagery.
+- Frames are also restricted to a **campaign** (one drive). The viewer restricts every query to its project's
+  campaigns (the `project_uid` hardcoded in `Infra3dViewer.js`), but our credentials can't read the project, so the
+  scan lists the tenant's campaigns at startup instead: with one campaign (every city today) it's used automatically
+  and printed; with several, the scan lists them and stops until you pass `--campaign <uid>` (repeatable). Without
+  this, frames from any other drive in the tenant would count as imagery Explore can't actually reach.
+
+The token lives 60 minutes and is refreshed automatically during a long scan. Infra3d publishes no rate limit; the
+default `--max-qps 10` is in the range of a single busy browser session, so keep it there (or lower) rather than
+raising it.
+
 ### Imagery age
 
-The GSV metadata responses we already fetch also carry an imagery capture `date`, so — for **no extra API calls** — the
-scan records each street's capture-date range (oldest/newest) and pano count into `db/street_imagery_summary.csv`
+The GSV and Infra3d responses we already fetch also carry an imagery capture date, so — for **no extra API calls** —
+the scan records each street's capture-date range (oldest/newest) and pano count into `db/street_imagery_summary.csv`
 (`street_edge_id, region_id, has_imagery, oldest_capture, newest_capture, n_panos`). That tells us not just whether a
-street has imagery but how old it is. Mapillary capture dates are a future enhancement (GSV only for now). Persisting
-this into the database — to power a "stale imagery" signal alongside the `street_edge_status` work (#3888) — is tracked
-as a separate follow-up (#4348).
+street has imagery but how old it is. Mapillary capture dates are a future enhancement. Persisting this into the
+database — to power a "stale imagery" signal alongside the `street_edge_status` work (#3888) — is tracked as a
+separate follow-up (#4348).
 
 ### Resilience & resume
 
@@ -105,7 +132,7 @@ from it on purpose, because the two tools answer different questions:
 - **Concurrency — conservative threads, not async.** GSV Tracker uses `asyncio`/`aiohttp` tuned for maximum throughput
   (toward Google's ~500 req/s ceiling). We use a small thread pool + a token-bucket QPS cap and deliberately stay well
   under the limit; at that bounded concurrency, threads are simpler and sufficient and async's scale benefit is wasted.
-- **Providers — GSV *and* Mapillary.** GSV Tracker is GSV-only.
+- **Providers — GSV, Mapillary, *and* Infra3d.** GSV Tracker is GSV-only.
 
 ## Persisting imagery age to the database (#4348)
 

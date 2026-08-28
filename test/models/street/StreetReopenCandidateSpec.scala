@@ -10,7 +10,7 @@ import util.RolledBackDb
 import java.time.LocalDate
 
 /**
- * DB-backed tests for the regained-imagery review queue's DAO (#4929, evolution 365).
+ * DB-backed tests for the regained-imagery review queue's DAO (#4929, evolution 368).
  *
  * What matters here is the guard discipline: a candidate can only be minted for a street that is still no_imagery
  * (so a race with a reopen can't resurrect a queue entry), evidence refreshes keep the original detection time, and

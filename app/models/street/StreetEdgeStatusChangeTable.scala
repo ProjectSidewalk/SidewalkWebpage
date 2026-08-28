@@ -18,7 +18,7 @@ import javax.inject.{Inject, Singleton}
  * nothing there or because someone closed the whole neighborhood.
  *
  * NOTE: if changing these values, update the `street_edge_status_change_source` Postgres enum type as well (see
- * 358.sql and 365.sql) and the script or service that emits it.
+ * 358.sql and 368.sql) and the script or service that emits it.
  */
 object StreetEdgeStatusChangeSource extends Enumeration {
   type StreetEdgeStatusChangeSource = Value

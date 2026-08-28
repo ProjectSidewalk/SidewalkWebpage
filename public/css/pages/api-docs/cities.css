@@ -1,0 +1,24 @@
+/**
+ * Project Sidewalk API Documentation - Cities Component Styles
+ *
+ * Contains styles specific to the Cities component and works in conjunction with the main api-docs.css file.
+ * The map is the shared deployment-cities map, so its popups are styled by css/components/deployment-map.css.
+ */
+
+/* Main container for the cities preview */
+#cities-preview {
+  width: 100%;
+  height: 500px;
+  margin: var(--space-lg) 0;
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  position: relative;
+}
+
+/* Responsive adjustments: var(--breakpoint-sm)). */
+@media (width <= 768px) {
+  #cities-preview {
+    height: 400px;
+  }
+}

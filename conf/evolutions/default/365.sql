@@ -1,39 +1,27 @@
 # --- !Ups
--- #4929: nothing reopens a street that regains imagery after being marked no_imagery. The nightly imagery-age poll
--- (which only covered open streets) now also re-checks a small rotating batch of no_imagery streets. When it finds
--- panos attributable to one, the street is queued here for admin review on /admin/street-status, where a Reopen
--- button flips it back to open. Reopening stays human-gated -- the mirror of the #4928 "Awaiting confirmation"
--- queue for the opposite direction.
+-- #5007: the imagery-change log (364.sql) is only as honest as its writers -- every writer of pano_data.expired must
+-- record its own transition in the same statement, and that invariant can be missed by a writer that forgets to log
+-- or by the READ COMMITTED snapshot race documented on PanoDataTable.updateExpiredStatus. Both misses leave the same
+-- footprint: a pano whose newest log row disagrees with its current pano_data.expired. A nightly reconciliation pass
+-- (PanoImageryChangeTable.reconcile, run with the CheckImageExpiryActor sweep) inserts the missing event, and this
+-- value marks the healed rows. It has to be its own value because a healed event carries detection time, not the
+-- real transition time -- it can land up to a day late, or in the wrong week -- so it must never be mistaken for an
+-- observed one, and unlike scheduled-vs-manual (deliberately not a value here, see 364.sql) the distinction is not
+-- answerable from background_job_run: healed and observed rows land during the same sweep's run.
+-- Adding a value in a transaction is fine as long as the transaction doesn't use it (339/361.sql precedent) -- the
+-- healing happens only at runtime, so nothing in this evolution does.
+ALTER TYPE pano_imagery_change_source ADD VALUE IF NOT EXISTS 'reconciliation';
 
--- The admin Reopen action is the first in-app writer of street_edge.status. Kept in sync with the
--- StreetEdgeStatusChangeSource Scala enum in StreetEdgeStatusChangeTable.scala. Adding a value inside a transaction
--- is fine on PG 12+ as long as the same transaction doesn't use it, and this evolution doesn't. IF NOT EXISTS guards
--- re-application across city schemas. Enum types need no OWNER TO reassignment.
-ALTER TYPE street_edge_status_change_source ADD VALUE IF NOT EXISTS 'admin_reopen';
-
--- One row per no_imagery street whose latest conclusive poll found attributable imagery -- the evidence behind the
--- review queue. The poller upserts on each positive poll (bumping last_detected_at and the evidence columns, keeping
--- first_detected_at) and deletes the row when a later conclusive poll finds nothing, so the queue's promise is
--- always "the most recent poll of this street found imagery". Rows are also deleted when the admin reopens the
--- street, and by mark_streets_no_imagery (checker evidence retracts poll evidence).
-CREATE TABLE street_reopen_candidate (
-    street_edge_id INTEGER PRIMARY KEY REFERENCES street_edge (street_edge_id) ON DELETE CASCADE,
-    first_detected_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    last_detected_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    -- A candidate exists only because panos were found, so a zero count is a bug, not a state.
-    n_panos INTEGER NOT NULL CHECK (n_panos > 0),
-    -- Newest capture date among the attributable panos (NULL when the provider reported no parseable date).
-    newest_capture DATE,
-    -- Set when an admin judged the evidence too weak to reopen on. The row is kept rather than deleted so the poll
-    -- can tell "never judged" from "judged and rejected": while this is set, the row is out of the queue and its
-    -- evidence columns are frozen at what the admin saw, and only a poll finding strictly better evidence (more
-    -- panos, or a newer capture) clears it. Deleting instead would re-queue the same street on the same evidence
-    -- every rotation, forever, which is how a review queue stops being read.
-    dismissed_at TIMESTAMPTZ
-);
-ALTER TABLE street_reopen_candidate OWNER TO sidewalk;
+-- The reconciliation pass reads the newest log row per pano: DISTINCT ON (pano_id) ordered by pano_id,
+-- changed_at DESC, pano_imagery_change_id DESC. This composite serves that as one presorted index scan, left-joined
+-- hash-wise to a single pass over pano_data -- no per-row subqueries. Its pano_id prefix also covers everything the
+-- plain pano_id index served (the FK's ON DELETE CASCADE lookups), so that index is dropped rather than kept as a
+-- redundant copy -- net index count on the table is unchanged.
+CREATE INDEX IF NOT EXISTS pano_imagery_change_pano_id_changed_at_idx
+    ON pano_imagery_change (pano_id, changed_at DESC, pano_imagery_change_id DESC);
+DROP INDEX IF EXISTS pano_imagery_change_pano_id_idx;
 
 # --- !Downs
-DROP TABLE street_reopen_candidate;
--- The 'admin_reopen' enum value stays: Postgres cannot drop an enum value without recreating the type and recasting
--- every column referencing it, and an unused extra value is harmless (331.sql precedent).
+-- The reconciliation value stays: Postgres can't drop an enum value without rebuilding the type (331/339 precedent).
+CREATE INDEX IF NOT EXISTS pano_imagery_change_pano_id_idx ON pano_imagery_change (pano_id);
+DROP INDEX IF EXISTS pano_imagery_change_pano_id_changed_at_idx;

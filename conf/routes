@@ -70,7 +70,7 @@ GET     /admin/management                               controllers.AdminDashboa
 GET     /admin/across-cities                            controllers.AdminDashboardController.acrossCities
 GET     /admin/health                                   controllers.AdminDashboardController.health
 GET     /admin/user/:username                           controllers.UserDashboardController.adminDashboard(username: String)
-GET     /admin/user/:username/admin                     controllers.UserDashboardController.adminUser(username: String)
+GET     /admin/user/:username/manage                    controllers.UserDashboardController.manageUser(username: String)
 GET     /admin/label/:labelId                           controllers.ShareController.adminLabel(labelId: Int)
 
 GET     /adminapi/dbHealth                              controllers.AdminDashboardController.getDbHealth
@@ -100,6 +100,7 @@ GET     /adminapi/humanVsAi                             controllers.AdminControl
 GET     /adminapi/overviewSummary                       controllers.AdminController.getOverviewSummary
 GET     /adminapi/cityScorecards                        controllers.AdminController.getCityScorecards
 GET     /adminapi/cityFunnels                           controllers.AdminController.getCityFunnels(window: Option[String])
+GET     /adminapi/cityTraffic                           controllers.AdminController.getCityTraffic
 
 PUT     /adminapi/setRole                               controllers.AdminController.setUserRole
 PUT     /adminapi/saveUserSettings                      controllers.AdminController.saveUserSettings
@@ -140,7 +141,7 @@ POST    /labelmap/validate                              controllers.ValidateCont
 POST    /labelmap/comment                               controllers.ValidateController.postLabelMapComment
 
 # Labels
-GET     /labels/all                                     controllers.LabelController.getAllLabelsForLabelMap(regions: Option[String] ?= None, routes: Option[String] ?= None, aiValidationOptions: Option[String] ?= None)
+GET     /labels/all                                     controllers.LabelController.getAllLabelsForLabelMap(regions: Option[String] ?= None, routes: Option[String] ?= None, aiValidationOptions: Option[String] ?= None, bbox: Option[String] ?= None)
 GET     /label/id/:labelId                              controllers.LabelController.getLabelData(labelId: Int)
 POST    /label/edit                                     controllers.LabelController.editLabel
 GET     /label/tags                                     controllers.LabelController.getLabelTags

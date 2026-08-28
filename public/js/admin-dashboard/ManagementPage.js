@@ -147,7 +147,7 @@ class ManagementPage {
     }).join('');
 
     document.getElementById('mgmt-users').innerHTML = rows.length
-      ? `<table class="contrib-table mgmt-table"><thead>${head}</thead><tbody>${body}</tbody></table>`
+      ? `<table class="ps-table ps-table--compact contrib-table mgmt-table"><thead>${head}</thead><tbody>${body}</tbody></table>`
       : '<p class="dq-empty">No users match your search.</p>';
 
     this.#renderCount(all.length);
@@ -184,7 +184,7 @@ class ManagementPage {
           btn('last', 'Last »', atEnd),
           '</div>',
           `<label class="mgmt-page-size-label">Rows per page `
-          + `<select class="mgmt-page-size">${sizeOpts}</select></label>`,
+          + `<select class="ps-select mgmt-page-size">${sizeOpts}</select></label>`,
         ].join('');
     for (const id of ManagementPage.#PAGINATION_IDS) {
       const el = document.getElementById(id);
@@ -199,11 +199,12 @@ class ManagementPage {
     const opts = ManagementPage.#ASSIGNABLE_ROLES.map((r) =>
       `<option value="${r}"${r === current ? ' selected' : ''}>${r}</option>`).join('');
     if (assignable) {
-      return `<select class="mgmt-select" data-kind="role" data-user-id="${ManagementPage.#esc(u.userId)}" `
+      return `<select class="ps-select mgmt-select" data-kind="role" data-user-id="${ManagementPage.#esc(u.userId)}" `
         + `aria-label="Role for ${ManagementPage.#esc(u.username)}">${opts}</select>`;
     }
     // Show the locked system role as a disabled, selected option so the column still reads clearly.
-    return `<select class="mgmt-select" disabled aria-label="Role for ${ManagementPage.#esc(u.username)} (locked)">`
+    return `<select class="ps-select mgmt-select" disabled `
+      + `aria-label="Role for ${ManagementPage.#esc(u.username)} (locked)">`
       + `<option selected>${ManagementPage.#esc(current)}</option></select>`;
   }
 
@@ -215,7 +216,7 @@ class ManagementPage {
       `<option value="${t.teamId}"${hasTeam && t.name === u.team ? ' selected' : ''}>`
       + `${ManagementPage.#esc(t.name)}</option>`,
     ).join('');
-    return `<select class="mgmt-select" data-kind="team" data-user-id="${ManagementPage.#esc(u.userId)}" `
+    return `<select class="ps-select mgmt-select" data-kind="team" data-user-id="${ManagementPage.#esc(u.userId)}" `
       + `aria-label="Team for ${ManagementPage.#esc(u.username)}">${placeholder}${opts}</select>`;
   }
 
@@ -322,7 +323,7 @@ class ManagementPage {
         <td>${ManagementPage.#toggle('status', t.teamId, t.open, 'Open', 'Closed')}</td>
         <td>${ManagementPage.#toggle('visibility', t.teamId, t.visible, 'Visible', 'Hidden')}</td>
       </tr>`).join('');
-    el.innerHTML = `<table class="contrib-table mgmt-table"><thead>${head}</thead><tbody>${body}</tbody></table>`;
+    el.innerHTML = `<table class="ps-table ps-table--compact contrib-table mgmt-table"><thead>${head}</thead><tbody>${body}</tbody></table>`;
   }
 
   #wireTeams() {

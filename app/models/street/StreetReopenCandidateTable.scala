@@ -44,7 +44,7 @@ class StreetReopenCandidateTableDef(tag: Tag) extends Table[StreetReopenCandidat
   def streetEdgeId: Rep[Int]               = column[Int]("street_edge_id", O.PrimaryKey)
   def firstDetectedAt: Rep[OffsetDateTime] = column[OffsetDateTime]("first_detected_at") // DEFAULT now() in the DB.
   def lastDetectedAt: Rep[OffsetDateTime]  = column[OffsetDateTime]("last_detected_at")  // DEFAULT now() in the DB.
-  def nPanos: Rep[Int]                         = column[Int]("n_panos") // DB CHECK (365.sql): n_panos > 0.
+  def nPanos: Rep[Int]                         = column[Int]("n_panos") // DB CHECK (368.sql): n_panos > 0.
   def newestCapture: Rep[Option[LocalDate]]    = column[Option[LocalDate]]("newest_capture")
   def dismissedAt: Rep[Option[OffsetDateTime]] = column[Option[OffsetDateTime]]("dismissed_at")
 

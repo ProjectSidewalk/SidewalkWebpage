@@ -1,48 +1,55 @@
 @(activePage: String)(content: Html)(implicit request: RequestHeader, assets: AssetsFinder)
 
-<link rel="stylesheet" href="@assets.path("css/api-docs/api-docs.css")">
-<!-- Loaded ahead of the page content, whose embedded preview scripts call it as soon as their data arrives. -->
+<link rel="stylesheet" href="@assets.path("css/components/page-shell.css")">
+<link rel="stylesheet" href="@assets.path("css/pages/api-docs/api-docs.css")">
+<!-- Loaded ahead of the page content, whose embedded preview scripts call these as soon as their data arrives. -->
 <script src="@assets.path("js/api-docs/apiTableWrapper.js")"></script>
+<script src="@assets.path("js/api-docs/apiDocsTheme.js")"></script>
 
-<div class="api-container">
+<div class="page-container">
     <!-- Left Sidebar Navigation -->
   @apiDocs._sidebar(activePage)
 
     <!-- Main Content Area -->
-  <div class="api-content">
+  <div class="page-content">
     @content
 
-    <div class="api-section api-licensing-footer" id="data-licensing-section">
-      <h2 class="api-heading" id="data-licensing-terms-of-use">Terms of Use <a href="#data-licensing-terms-of-use" class="permalink">#</a></h2>
+    <div class="page-section api-licensing-footer" id="data-licensing-section">
+      <h2 class="page-heading" id="data-licensing-terms-of-use">Terms of Use <a href="#data-licensing-terms-of-use" class="permalink">#</a></h2>
       <p>If you use Project Sidewalk data in your research, please cite the following paper (awarded 🏆 <i>Best Paper</i> at CHI 2019):</p>
       <div class="citation-container">
         <div class="citation">Manaswi Saha, Michael Saugstad, Hanuma Teja Maddali, Aileen Zeng, Ryan Holland, Steven Bower, Aditya Dash, Sage Chen, Anthony Li, Kotaro Hara, and Jon Froehlich. 2019. <i> <a href="https://doi.org/10.1145/3290605.3300292">Project Sidewalk: A Web-based Crowdsourcing Tool for Collecting Sidewalk Accessibility Data At Scale.</a></i> In Proceedings of the 2019 CHI Conference on Human Factors in Computing Systems (CHI '19). Association for Computing Machinery, New York, NY, USA, Paper 62, 1–14.</div>
-        <button type="button" id="download-bibtex" class="bibtex-btn">Download BibTeX</button>
+        <button type="button" id="download-bibtex" class="button-ps button--secondary button--medium bibtex-btn">Download BibTeX</button>
       </div>
     </div>
 
-    <div class="api-section">
-      <h2 class="api-heading" id="contribute-cta">Contribute<a href="#contribute-cta" class="permalink">#</a></h2>
+    <div class="page-section">
+      <h2 class="page-heading" id="contribute-cta">Contribute<a href="#contribute-cta" class="permalink">#</a></h2>
       <p>Project Sidewalk is an open-source project created by the <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> and hosted on <a href="https://github.com/ProjectSidewalk/SidewalkWebpage">GitHub</a>. We welcome your contributions! If you found a bug or have a feature request, please <a href="https://github.com/ProjectSidewalk/SidewalkWebpage/issues"> open an issue on GitHub.</a></p>
       <p>You can also email us at <a href="mailto:sidewalk@@cs.uw.edu">sidewalk@@cs.uw.edu</a></p>
     </div>
 
-    <div class="api-section">
-      <h2 class="api-heading" id="ps-in-your-city">Project Sidewalk in Your City!<a href="#ps-in-your-city" class="permalink">#</a></h2>
+    <div class="page-section">
+      <h2 class="page-heading" id="ps-in-your-city">Project Sidewalk in Your City!<a href="#ps-in-your-city" class="permalink">#</a></h2>
       <p>If you are interested in bringing Project Sidewalk to your city, please <a href="https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Considerations-when-Preparing-for-and-Deploying-to-New-Cities"> read our Wiki page.</a></p>
     </div>
 
   </div>
 
     <!-- Right Sidebar TOC -->
-  <div class="api-toc">
-    <div class="api-toc-header">On This Page</div>
+  <div class="page-toc">
+    <div class="page-toc-header">On This Page</div>
     <ul>
         <!-- To be populated by JavaScript -->
     </ul>
   </div>
 </div>
 
+
+<!-- Prism auto-highlights on DOMContentLoaded, so the language components must be parsed by then; defer keeps order. -->
+<script src="@assets.path("vendor/prism/prism-core-1.30.0.min.js")" defer></script>
+<script src="@assets.path("vendor/prism/prism-json-1.30.0.min.js")" defer></script>
+<script src="@assets.path("vendor/prism/prism-csv-1.30.0.min.js")" defer></script>
 
 <script src="@assets.path("js/common/sidebarDisclosure.js")"></script>
 <script src="@assets.path("js/api-docs/apiDocs.js")"></script>

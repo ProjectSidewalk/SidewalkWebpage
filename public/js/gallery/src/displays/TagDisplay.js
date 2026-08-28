@@ -54,45 +54,65 @@ class TagDisplay {
       });
       $(tagContainer).append(tagEls);
 
-      // The width (amount of horizontal space) we have for our tags is the length of the container subtracted by
-      // the space taken up by the header. Multiply by 1.25 to deal with the padding from the space between the
-      // "Tag" header and the actual list of tags.
-      let remainingWidth = $(container).width() - ($(tagHeader).width() * 1.25);
+      // A pill has to keep a few characters ahead of its ellipsis to say which tag it is; any narrower and it reads
+      // as nothing, so that width is the cutoff for showing the tag at all. Each cutoff is measured off a probe
+      // carrying that tag's own opening characters, since the pill's padding, the card-relative font size, and the
+      // script the tag is written in all feed it — and a cutoff fixed in px tracks none of them: on a phone-width
+      // card it outgrows the entire tag budget, so every card falls back to a bare "+n" (#5009).
+      const MIN_TAG_CHARS = 6;
+      const minWidthProbes = tagsText.map((text) => {
+        const probe = document.createElement('div');
+        probe.className = 'gallery-tag thumbnail-tag';
+        probe.innerText = `${[...text].slice(0, MIN_TAG_CHARS).join('')}…`;
+        return probe;
+      });
+      $(tagContainer).append(minWidthProbes);
+
+      // The "+n" pill is measured rather than estimated, at the widest count it could end up carrying, so the space
+      // held back for it is what the pill actually costs in this locale's font at this card's size. It is the row's
+      // last child either way, so it stays put when the real count is filled in below.
+      const overflowPill = document.createElement('div');
+      overflowPill.className = 'gallery-tag additional-count';
+      overflowPill.innerText = ` + ${tagsText.length}`;
+      $(tagContainer).append(overflowPill);
+
+      // The tags' share of the row is the holder's own width, read rather than derived from the container minus an
+      // estimate of the header: the holder is the flex item that takes whatever the header leaves, so it already
+      // accounts for the header's padding in every locale, however wide that locale writes "Tags".
+      //
+      // Every width is read through outerWidth, which puts the padding, border and margins a pill costs the row
+      // into the one number the fit spends — a computed `width` carries a different box depending on box-sizing.
+      const widthOf = (el) => $(el).outerWidth(true);
+      let remainingWidth = $(tagContainer).width();
+      const tagWidths = tagEls.map(widthOf);
+      const minTagWidths = minWidthProbes.map(widthOf);
+      const widthForPlusN = widthOf(overflowPill);
+      minWidthProbes.forEach((probe) => probe.remove());
 
       // Measured off a pill this card owns: a document-wide `.gallery-tag` lookup matches whichever card rendered
-      // first, and matches nothing at all on the first card after a clear — where parseFloat(undefined) then
-      // poisons every comparison below with NaN and buries tags that plainly fit.
+      // first, and matches nothing at all on the first card after a clear — where parseFloat(undefined) turns the
+      // clamp below into NaN, dropping the one thing keeping an ellipsized pill inside the card.
       const MARGIN_BW_TAGS
                 = parseFloat($(tagEls[0]).css('marginLeft')) + parseFloat($(tagEls[0]).css('marginRight'));
-      const WIDTH_FOR_PLUS_N = 30;
-      const MIN_TAG_WIDTH = 75;
-      const tagWidths = tagEls.map((tagEl) => parseFloat($(tagEl).css('width')));
 
       const hiddenTags = [];
       for (let i = 0; i < tagsText.length; i++) {
         const tagEl = tagEls[i];
 
-        // Below MIN_TAG_WIDTH an ellipsized pill reads as nothing, so that budget is the cutoff for showing a tag
-        // at all. Only the last pill can spend the whole remainder: any earlier one has to leave the "+n" its
-        // width, since a tag it pushes out is what puts "+n" there.
+        // Only the last pill can spend the whole remainder: any earlier one has to leave the "+n" its width, since
+        // a tag it pushes out is what puts "+n" there.
         const isLastTag = i === tagsText.length - 1;
-        let tagWidth = tagWidths[i];
+        const reservedForPlusN = (isLastTag && hiddenTags.length === 0) ? 0 : widthForPlusN;
 
-        const extraSpaceNeeded = (isLastTag && hiddenTags.length === 0)
-          ? MARGIN_BW_TAGS
-          : MARGIN_BW_TAGS + WIDTH_FOR_PLUS_N;
-        const spaceForShortenedTag = (isLastTag && hiddenTags.length === 0)
-          ? MIN_TAG_WIDTH
-          : MIN_TAG_WIDTH + WIDTH_FOR_PLUS_N;
-
-        if ((remainingWidth > tagWidth + extraSpaceNeeded)) {
+        if (remainingWidth > tagWidths[i] + reservedForPlusN) {
           // Show the entire tag if there is enough space.
-          remainingWidth -= (tagWidth + MARGIN_BW_TAGS);
-        } else if (remainingWidth > spaceForShortenedTag) {
-          // Show a tag abbreviated with an ellipsis if there's some space, just not enough for the full tag.
-          $(tagEl).css('maxWidth', remainingWidth - extraSpaceNeeded);
-          tagWidth = parseFloat($(tagEl).css('width'));
-          remainingWidth -= (tagWidth + MARGIN_BW_TAGS);
+          remainingWidth -= tagWidths[i];
+        } else if (remainingWidth > minTagWidths[i] + reservedForPlusN) {
+          // Show a tag abbreviated with an ellipsis if there's some space, just not enough for the full tag. The
+          // pill is clamped to exactly the room it was given, so what is left over is the "+n" reserve — measuring
+          // the clamped pill would spend a second layout to learn that.
+          $(tagEl).css('maxWidth', remainingWidth - reservedForPlusN - MARGIN_BW_TAGS);
+          remainingWidth = reservedForPlusN;
           // Since we cut off with an ellipsis, add a tooltip with the full text.
           tagEl.title = tagsText[i];
         } else {
@@ -105,10 +125,8 @@ class TagDisplay {
 
       // If there was not enough space to display all the tags, show the rest in a popover on the '+n' text.
       if (hiddenTags.length > 0) {
-        const additional = document.createElement('div');
-        additional.className = 'gallery-tag additional-count';
-        additional.innerText = ` + ${hiddenTags.length}`;
-        $(additional).popover('destroy').popover({
+        overflowPill.innerText = ` + ${hiddenTags.length}`;
+        $(overflowPill).popover('destroy').popover({
           placement: 'top',
           html: true,
           delay: { show: 300, hide: 10 },
@@ -116,7 +134,8 @@ class TagDisplay {
           trigger: 'hover',
           template: this.#popoverTemplate,
         }).popover('show').popover('hide');
-        $(tagContainer).append(additional);
+      } else {
+        overflowPill.remove();
       }
     }
   }

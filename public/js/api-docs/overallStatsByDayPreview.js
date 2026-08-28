@@ -17,7 +17,7 @@
 
   /** @param {string} msg */
   function showError(container, msg) {
-    container.innerHTML = `<p style="color:var(--color-danger,#d9534f);text-align:center;padding:40px 0">${msg}</p>`;
+    container.innerHTML = `<div class="message message-error">${msg}</div>`;
   }
 
   /**
@@ -70,8 +70,7 @@
    */
   function render(container, data) {
     if (!data.length) {
-      container.innerHTML = '<p style="text-align:center;color:#888;padding:40px 0">'
-        + 'No data available for this period.</p>';
+      container.innerHTML = '<p class="preview-note">No data available for this period.</p>';
       return;
     }
 
@@ -90,7 +89,7 @@
       : 'N/A';
 
     const summaryEl = document.createElement('div');
-    summaryEl.className = 'preview-summary-grid';
+    summaryEl.className = 'preview-section preview-stat-grid';
     summaryEl.innerHTML = `
       <div class="preview-stat"><span class="preview-stat-value">${dates.length}</span>
         <span class="preview-stat-label">Days shown</span>
@@ -124,8 +123,8 @@
             datasets: [{
               label: 'Human Labels',
               data: dailyTotals(dates, byDay, 'human_labels'),
-              borderColor: 'var(--color-primary, #2c77b1)',
-              backgroundColor: 'rgba(44,119,177,0.12)',
+              borderColor: ApiDocsTheme.color('--color-link-200'),
+              backgroundColor: ApiDocsTheme.color('--color-link-200', 0.12),
               fill: true,
               tension: 0.3,
               pointRadius: dates.length > 60 ? 0 : 3,
@@ -151,19 +150,19 @@
               {
                 label: 'Agree',
                 data: dailyTotals(dates, byDay, 'human_validations_agree'),
-                backgroundColor: 'rgba(92,184,92,0.8)',
+                backgroundColor: ApiDocsTheme.color('--color-pine-500', 0.8),
                 stack: 'val',
               },
               {
                 label: 'Disagree',
                 data: dailyTotals(dates, byDay, 'human_validations_disagree'),
-                backgroundColor: 'rgba(217,83,79,0.8)',
+                backgroundColor: ApiDocsTheme.color('--color-orange-500', 0.8),
                 stack: 'val',
               },
               {
                 label: 'Unsure',
                 data: dailyTotals(dates, byDay, 'human_validations_unsure'),
-                backgroundColor: 'rgba(240,173,78,0.8)',
+                backgroundColor: ApiDocsTheme.color('--color-banana-600', 0.8),
                 stack: 'val',
               },
             ],
@@ -190,7 +189,7 @@
             datasets: labelTypes.map((lt) => ({
               label: lt,
               data: dates.map((d) => ((byDay.get(d) || new Map()).get(lt) || {}).human_labels || 0),
-              borderColor: util.misc.getLabelColors(lt) || '#B3B3B3',
+              borderColor: util.misc.getLabelColors(lt) || ApiDocsTheme.color('--color-neutral-500'),
               backgroundColor: 'transparent',
               tension: 0.3,
               pointRadius: dates.length > 60 ? 0 : 2,
@@ -236,13 +235,13 @@
    */
   function makeChart(title, description, builder) {
     const wrap = document.createElement('div');
-    wrap.className = 'preview-chart-section';
+    wrap.className = 'preview-section';
     wrap.innerHTML = `
-      <h3 class="preview-chart-title">${title}</h3>
-      <p class="preview-chart-desc">${description}</p>
+      <h3 class="preview-title">${title}</h3>
+      <p class="preview-desc">${description}</p>
     `;
     const inner = document.createElement('div');
-    inner.style.cssText = 'position:relative;height:280px;width:100%';
+    inner.className = 'chart-container';
     wrap.appendChild(inner);
     builder(inner);
     return wrap;
@@ -266,7 +265,7 @@
       const container = document.getElementById(config.containerId);
       if (!container) return Promise.reject(new Error('Container not found'));
 
-      container.innerHTML = '<p style="text-align:center;color:#888;padding:40px 0">Loading…</p>';
+      container.innerHTML = '<div class="loading-message">Loading…</div>';
 
       const url = `${config.apiBaseUrl}/overallStatsByDay?utm_source=apiDocs`;
 

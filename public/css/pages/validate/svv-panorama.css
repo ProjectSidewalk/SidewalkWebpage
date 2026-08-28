@@ -1,0 +1,239 @@
+/* Container for the panorama and its overlay controls (zoom, date, speed limit, etc.). */
+#svv-panorama-holder {
+  position: absolute;
+  top: var(--header-height);
+  width: var(--pano-width);
+  height: var(--pano-height);
+}
+
+/* The panorama viewport. It fills the full pano area (no border) so the marker layer, which is the same size,
+   overlays the imagery exactly. The colored frame is drawn on top by #pano-border-frame instead. */
+#svv-panorama {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: var(--pano-height);
+  width: var(--pano-width);
+  border-radius: calc(4px * var(--ui-scale));
+  background-color: var(--color-asphalt-400);
+  overflow: hidden;
+}
+
+/* Colored frame on top of the pano and marker layers. Drawing it above the marker (rather than as the pano's own
+   border underneath) means a label at the very edge is clipped by the frame instead of rendering on top of it. */
+#pano-border-frame {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: var(--pano-height);
+  width: var(--pano-width);
+  z-index: 3;
+  pointer-events: none;
+  box-sizing: border-box;
+  border: calc(3px * var(--ui-scale)) solid var(--color-asphalt-400);
+  border-radius: calc(4px * var(--ui-scale));
+}
+
+#view-control-layer {
+  position: absolute;
+  width: var(--pano-width);
+  height: var(--pano-height);
+  left: 0;
+  top: 0;
+  overflow: hidden;
+  cursor: url("/assets/images/icons/openhand.cur") 4 4, move;
+  z-index: 2;
+
+  /* http://stackoverflow.com/questions/8942805/chrome-bug-cursor-changes-on-mouse-down-move */
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* The label marker is created by PanoMarker at a base px size multiplied by the UI scale in JS; its icon and hidden
+   state are main.css's shared .label-marker rules, off the --label-icon / --label-color PanoManager writes.
+
+   Pointer-target floor. The marker is what opens the label card — on desktop by hover and as a keyboard stop
+   (PanoMarker, #4729), on mobile by touch — but the mark itself is 22px at --ui-scale 1 and shrinks to 14px at the
+   0.65x end.
+
+   This is about *acquisition*, not conformance. WCAG 2.5.8 Target Size (Minimum), AA, sizes targets for pointer
+   activation, and desktop has no pointer activation here: nothing binds click to the marker (#4843). So the SC does
+   not actually reach it, and mobile — which does activate by pointer — is already past 24px at 32px. But a hover
+   target is if anything the harder case, since it has to be found and then held, and 14px is small for that.
+   24px is still the right number to floor at: it is what 2.5.8 asks of every other target on the page, and it is
+   what Explore's placed-label target already uses.
+
+   A transparent ::after widens only the *target*, so the mark stays the size it was drawn: growing the element
+   instead would move the marker (PanoMarker positions it from its own size) and push the label card away from it
+   (LabelVisibilityControl anchors on offsetWidth).
+
+   max(), not a fixed size, so this only ever adds area — above ~1.09x the mark is already past 24px and the target
+   is exactly the mark. Round, matching the mark: browsers hit-test through border-radius, and at every size the
+   marker is drawn at (22px desktop base, 38px ceiling, 32px on a phone) .icon-outline's 25px radius clamps to 50%,
+   so its target is a circle. Squaring it off here would change that at every scale rather than only flooring it
+   where it is too small — opening the card on a hover several px off the visible marker.
+   z-index keeps it under the icon and the AI badge; it takes the pointer for the marker either way, since all three
+   are the same element as far as the hover handlers are concerned. */
+#validate-pano-marker::after {
+  /* Mirrors util.LABEL_MIN_SCREEN_TARGET (public/js/common/utilities.js), which floors Explore's label target. One
+     WCAG number for both tools, so keep the two in step — CSS can't read the JS constant. */
+  --label-min-target: 24px;
+
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: max(100%, var(--label-min-target));
+  height: max(100%, var(--label-min-target));
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  z-index: -1;
+}
+
+/* Sits in the top-right just left of the stacked zoom control, scaled down to match its height. transform-origin keeps
+   the top-right corner pinned so the scaled sign still lines up with the zoom buttons. */
+.speed-limit-sign {
+  display: none;
+  width: calc(60px * var(--ui-scale));
+  height: calc(70px * var(--ui-scale));
+  padding: calc(3px * var(--ui-scale));
+  top: calc(7px * var(--ui-scale));
+  right: calc(36px * var(--ui-scale));
+  border-radius: calc(5px * var(--ui-scale));
+  position: absolute;
+  z-index: 3;
+
+  /* Hover must reach the sign for its title tooltip; `auto` also guards against a no-pointer-events ancestor. */
+  pointer-events: auto;
+  cursor: help;
+  transform: scale(0.657);
+  transform-origin: top right;
+  background: rgb(from var(--color-neutral-white) r g b / 75%);
+}
+
+.speed-limit-sign[data-design-style="non-us-canada"] {
+  width: calc(75px * var(--ui-scale));
+  height: calc(75px * var(--ui-scale));
+  padding: 0;
+  border-radius: 100%;
+  transform: scale(0.613);
+}
+
+.speed-limit-holder {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: calc(5px * var(--ui-scale));
+  border: calc(3px * var(--ui-scale)) solid var(--color-neutral-black);
+}
+
+.speed-limit-sign[data-design-style="non-us-canada"] .speed-limit-holder {
+  border-radius: 100%;
+  border: calc(7px * var(--ui-scale)) solid var(--color-error-200);
+}
+
+.speed-limit-text {
+  display: flex;
+  flex-direction: column;
+  font: var(--text-small-bold);
+  text-align: center;
+}
+
+#speed-limit {
+  font: var(--text-h3-bold);
+  font-size: calc(30px * var(--ui-scale));
+}
+
+/* Shared button look in pano-overlay-buttons.css; this rule only positions the holder in the top-right of the pano. */
+#zoom-buttons-holder {
+  position: absolute;
+  z-index: 3;
+  top: calc(7px * var(--ui-scale));
+  right: calc(7px * var(--ui-scale));
+}
+
+#svv-panorama-date-holder {
+  display: flex;
+  justify-content: flex-start;
+  height: calc(28px * var(--ui-scale));
+  position: absolute;
+  bottom: 0;
+
+  /* Sits 8px right of wherever the imagery-source logo's pixels end. How far that is varies by source (Mapillary's
+     wordmark is the widest), so the offset tracks the logo through --pano-logo-width, which PanoViewerLogo measures
+     and publishes. The fallback covers GSV, which draws its own logo instead of going through that overlay: 66px is
+     where Google's Street View logo ends. */
+  left: calc((var(--pano-logo-width, 66px) + 8px) * var(--ui-scale));
+  z-index: 2;
+  font: var(--text-small-medium);
+  text-shadow:
+    calc(1px * var(--ui-scale)) calc(1px * var(--ui-scale)) calc(1px * var(--ui-scale)) var(--color-neutral-black);
+  color: var(--color-neutral-white);
+}
+
+/* No left padding — the holder's left offset above owns the whole gap to the imagery-source logo. */
+#svv-panorama-date {
+  padding: calc(3px * var(--ui-scale)) calc(3px * var(--ui-scale)) calc(3px * var(--ui-scale)) 0;
+}
+
+#pano-info-button {
+  margin-left: calc(4px * var(--ui-scale));
+  margin-top: calc(4.5px * var(--ui-scale));
+  height: calc(16px * var(--ui-scale));
+}
+
+/* Modify Google's terms / report an issue buttons' color to match our own buttons. */
+.gm-style-cc div { background-color: var(--color-asphalt-400); }
+.gm-style-cc div div { background-color: var(--color-asphalt-400) !important; }
+
+/* Scale Google's terms / report-a-problem links (bottom-right) with the UI. They're Google's own elements with no
+   scale hooks, so we scale them visually, anchored to the bottom-right corner they sit in. Must stay scoped to
+   #view-control-layer (where PanoManager relocates them): unscoped, it also matches a wrapper inside GSV's own DOM
+   and transform-scales the entire street view scene. */
+#view-control-layer div:has(> .gmnoprint) {
+  bottom: calc(3px * var(--ui-scale)) !important;
+  right: calc(2px * var(--ui-scale)) !important;
+  transform: scale(var(--ui-scale));
+  transform-origin: bottom right;
+}
+
+/* Scale Google's own Street View logo with the UI, anchored to its corner. */
+#svv-panorama div:has(> a[aria-label*="Google"]) {
+  left: calc(2px * var(--ui-scale)) !important;
+  bottom: calc(2px * var(--ui-scale)) !important;
+  transform: scale(var(--ui-scale));
+  transform-origin: bottom left;
+}
+
+/* Scale Mapillary's attribution links with the UI. */
+#view-control-layer .mapillary-attribution-container {
+  bottom: calc(3px * var(--ui-scale)) !important;
+  right: calc(2px * var(--ui-scale)) !important;
+  transform: scale(var(--ui-scale));
+  transform-origin: bottom right;
+}
+
+/* Top-left of the pano, where Explore keeps its stuck/sound/feedback controls — and now with the same look, from the
+   shared .pano-overlay-button (css/components/pano-overlay-buttons.css). It used to carry a Validate-only
+   .button-on-pano style (white fill, 1.5px neutral-800 hairline, asphalt-500 text) that matched nothing else on the
+   page (#4726). */
+#label-visibility-control-holder {
+  position: absolute;
+  z-index: 2;
+  top: calc(7px * var(--ui-scale));
+  left: calc(7px * var(--ui-scale));
+}
+
+/* A notch smaller than the shared base size (main.css) for the label card's tiny footer button. */
+.label-hover-card__action-button .hide-label-button-icon {
+  width: calc(12px * var(--ui-scale));
+  height: calc(12px * var(--ui-scale));
+}
+
+/* Validate's copy of the read-only label card (css/components/label-hover-card.css). Unlike Explore's it is not a click
+   target — a validator judges the label, they don't edit it — so it carries no cursor and no Delete/Edit row, only
+   the Hide-label toggle. Above #pano-border-frame (z-index: 3), which is drawn over the marker layer. */
+#label-card {
+  z-index: 4;
+}

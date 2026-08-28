@@ -197,7 +197,7 @@
           validationsByType[typeId] = {
             name: typeName,
             displayName: labelTypeMapping[typeId] || typeName,
-            color: labelTypeColors[typeId] || '#999999',
+            color: labelTypeColors[typeId] || ApiDocsTheme.color('--color-neutral-500'),
             agree: 0,
             disagree: 0,
             unsure: 0,
@@ -408,10 +408,7 @@
      */
     createFooterSummary(container, validationsData, filteredTypes) {
       const summary = document.createElement('p');
-      summary.style.textAlign = 'center';
-      summary.style.fontStyle = 'italic';
-      summary.style.color = '#666';
-      summary.style.marginTop = '20px';
+      summary.className = 'preview-note';
 
       const totalValidations = validationsData.length;
       const shownTypes = filteredTypes.length;

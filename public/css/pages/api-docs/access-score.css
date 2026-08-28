@@ -1,0 +1,35 @@
+/**
+ * AccessScore API Documentation - Specific Styles.
+ *
+ * The AccessScore (streets + regions) preview frames and their feature popups; toolbar, legend, and status messages
+ * use the shared map classes in api-docs.css.
+ */
+
+/* ---- Preview Container ---- */
+
+/* The toolbar stacks above the map inside the shared .map-container frame. */
+#access-score-streets-preview,
+#access-score-regions-preview {
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-neutral-white);
+}
+
+#access-score-streets-map,
+#access-score-regions-map {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+}
+
+/* ---- Feature Popup ---- */
+
+/* The score is the popup's headline number, so it's set well above the surrounding text. */
+.as-score {
+  font: var(--text-body-bold);
+}
+
+.as-breakdown {
+  margin: 6px 0 0;
+  font: var(--text-caption-regular);
+}

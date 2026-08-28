@@ -3,7 +3,7 @@
         test-python test-python-app test-python-tools \
         import-users import-dump create-new-schema fill-new-schema hide-streets-without-imagery \
         import-street-imagery reveal-or-hide-neighborhoods \
-        lint lint-fix lint-evolutions lint-locales scalafmt scalafmt-fix \
+        lint lint-fix lint-evolutions lint-locales lint-css-layout scalafmt scalafmt-fix \
         eslint htmlhint stylelint eslint-fix stylelint-fix \
         lint-eslint lint-htmlhint lint-stylelint lint-fix-eslint lint-fix-stylelint
 
@@ -87,7 +87,7 @@ stylelint-fix: | lint-fix-stylelint
 # then prints a ✓/✗ per linter and a colored summary. Exits non-zero if any failed.
 lint:
 	@fail=0; \
-	for t in lint-eslint lint-htmlhint lint-stylelint lint-locales lint-evolutions; do \
+	for t in lint-eslint lint-htmlhint lint-stylelint lint-locales lint-css-layout lint-evolutions; do \
 		if $(MAKE) --no-print-directory $$t; then \
 			printf "$(GREEN)✓ %s passed$(RESET)\n" "$$t"; \
 		else \
@@ -244,6 +244,14 @@ lint-locales:
 	@echo "Checking locale parity...";
 	@docker exec $(web-container) bash -lc "cd /home && node tools/check-locale-parity.mjs"
 	@echo "Finished checking locale parity";
+
+# Layout of public/css/ (#5030): a page's stylesheet is linked only by that page, page class prefixes stay in the
+# page's own files, and every linked stylesheet exists. Pure node, run in the web container so node is present. Also a
+# blocking CI step.
+lint-css-layout:
+	@echo "Checking CSS layout...";
+	@docker exec $(web-container) bash -lc "cd /home && node tools/check-css-layout.mjs"
+	@echo "Finished checking CSS layout";
 
 # Scala formatting (.scalafmt.conf). The sbt thin client (`--client`) shares the running `sbt ~ run`'s server instead
 # of colliding with it over build locks. `scalafmt` checks (the blocking CI gate); `scalafmt-fix` reformats in place.

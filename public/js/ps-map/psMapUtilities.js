@@ -1,4 +1,28 @@
 /**
+ * Fetches a label feed, rejecting with an error that says what actually went wrong.
+ *
+ * The feed is streamed from the database under a chunked 200 (#3932), so the status and headers are committed
+ * before the rows are read. A mid-flight failure therefore arrives as a *truncated body under a success status* —
+ * `response.ok` cannot see it, and the JSON parse is what throws. jQuery surfaces that as a bare "parsererror"
+ * indistinguishable from a malformed payload, which is why this reports the two cases separately.
+ *
+ * @param {string|URL} url - The label feed endpoint.
+ * @param {object} [options]
+ * @param {AbortSignal} [options.signal] - Optional abort signal, so a superseded viewport fetch can be cancelled.
+ * @returns {Promise<object>} The parsed GeoJSON FeatureCollection.
+ */
+async function fetchLabelFeed(url, { signal } = {}) {
+  const response = await fetch(url, { signal });
+  if (!response.ok) throw new Error(`Label feed ${url} failed with HTTP ${response.status}.`);
+  try {
+    return await response.json();
+  } catch (e) {
+    if (e.name === 'AbortError') throw e; // Cancellation isn't a feed failure; callers must tell them apart.
+    throw new Error(`Label feed ${url} returned an unreadable body (truncated stream?): ${e.message}`);
+  }
+}
+
+/**
  * Toggles the visibility of a label type layer on the map.
  * @param {string} labelType The label type key (e.g., 'CurbRamp').
  * @param {boolean} visible Whether the layer should be visible.

@@ -21,11 +21,15 @@ import scala.concurrent.duration._
  * recovery retroactively empties the week the pano expired in. The log exists to survive that round trip, and these
  * cases are the two halves of the contract that makes it worth having — every real crossing is recorded exactly
  * once, and nothing else is. The second half is what keeps the table small enough to be free: the nightly sweep
- * re-checks every already-expired pano, and a labeler's viewer re-upserts every pano they load.
+ * re-checks every already-expired pano, and a labeler's viewer re-upserts every pano they load. The `reconcile`
+ * cases cover the pass that heals a crossing a writer missed (#5007).
  *
- * Seeds its own pano rather than hunting for one in the connected DB, so it can never pass vacuously. Requires a
- * Postgres+PostGIS database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI); the scheduling actors
- * are disabled so no background sweep touches the row mid-test.
+ * Seeds its own pano rather than hunting for one in the connected DB, so it can never pass vacuously, and every
+ * assertion is scoped to that pano or to a delta. `reconcile` is the exception: it is a whole-table repair, so those
+ * cases also heal any other disagreeing pano in the connected DB — the same write the nightly sweep would make.
+ *
+ * Requires a Postgres+PostGIS database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI); the
+ * scheduling actors are disabled so no background sweep touches the row mid-test.
  */
 class PanoImageryLogSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPerSuite {
 
@@ -182,6 +186,64 @@ class PanoImageryLogSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAp
     }
   }
 
+  "reconcile" should {
+    "heal a loss the log never recorded" in {
+      reset()
+      run(sqlu"""INSERT INTO pano_imagery_change (pano_id, expired, source)
+                 VALUES ($panoId, TRUE, 'provider_check')""")
+      // The pano is unexpired but its newest log row says the imagery went away: the footprint of a writer that
+      // skipped the log, or of the snapshot race documented on updateExpiredStatus.
+      run(imageryChangeTable.reconcile()) must contain(panoId)
+      events mustBe Seq(true -> "provider_check", false -> "reconciliation")
+    }
+
+    "heal a recovery the log never recorded" in {
+      reset()
+      run(sqlu"UPDATE pano_data SET expired = TRUE, expired_at = NULL WHERE pano_id = $panoId")
+      run(sqlu"""INSERT INTO pano_imagery_change (pano_id, expired, source)
+                 VALUES ($panoId, FALSE, 'pano_view')""")
+      run(imageryChangeTable.reconcile()) must contain(panoId)
+      events mustBe Seq(false -> "pano_view", true -> "reconciliation")
+    }
+
+    "insert nothing when the newest log row already agrees, however many times it runs" in {
+      reset()
+      run(panoDataTable.updateExpiredStatus(panoId, expired = true, Some(false), OffsetDateTime.now))
+      run(imageryChangeTable.reconcile()) must not contain panoId
+      run(imageryChangeTable.reconcile()) must not contain panoId
+      events mustBe Seq(true -> "provider_check")
+    }
+
+    "heal a dated expiry the log has no row for at all" in {
+      reset()
+      run(sqlu"""UPDATE pano_data SET expired = TRUE, expired_at = now() WHERE pano_id = $panoId""")
+      // The likelier shape of a missed transition: only panos that have already crossed carry log history, so a
+      // new writer's first miss lands on a pano with none.
+      run(imageryChangeTable.reconcile()) must contain(panoId)
+      events mustBe Seq(true -> "reconciliation")
+    }
+
+    "leave an undated expiry with no log rows alone" in {
+      reset()
+      run(sqlu"UPDATE pano_data SET expired = TRUE, expired_at = NULL WHERE pano_id = $panoId")
+      // No date and no rows is the pre-358 undated-expiries population the chart footnotes: nothing here claims a
+      // transition happened, so there is none to stamp.
+      run(imageryChangeTable.reconcile()) must not contain panoId
+      events mustBe empty
+    }
+
+    "take the newest row by id when timestamps tie" in {
+      reset()
+      run(sqlu"""INSERT INTO pano_imagery_change (pano_id, expired, changed_at, source)
+                 VALUES ($panoId, FALSE, '2026-01-01 00:00:00+00', 'provider_check'),
+                        ($panoId, TRUE,  '2026-01-01 00:00:00+00', 'provider_check')""")
+      // Same instant, so changed_at can't order the two rows; the serial id can, and the later insert says the
+      // imagery went away while pano_data says it is there.
+      run(imageryChangeTable.reconcile()) must contain(panoId)
+      events.last mustBe (false -> "reconciliation")
+    }
+  }
+
   "transitionsByWeek" should {
 
     /** Window totals in each direction. Every case compares a delta, so other panos in the DB can't move a result. */
@@ -224,6 +286,35 @@ class PanoImageryLogSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAp
       // The row is still there — the log is append-only — it is simply outside what this window asks for.
       events.size mustBe 1
       seededCounts(OffsetDateTime.now.minusWeeks(4)) mustBe before
+    }
+
+    "leave out a healed crossing, and count it under healedSince instead" in {
+      reset()
+      val since        = OffsetDateTime.now.minusWeeks(1)
+      val before       = seededCounts(since)
+      val healedBefore = run(imageryChangeTable.healedSince(since))
+      run(sqlu"""INSERT INTO pano_imagery_change (pano_id, expired, source)
+                 VALUES ($panoId, TRUE, 'provider_check')""")
+      run(imageryChangeTable.reconcile()) must contain(panoId)
+
+      // Charting the healed row would put a real crossing in a week it did not happen in — the rewriting of history
+      // this table exists to stop. The count is what lets the page own the gap instead of dropping it silently.
+      seededCounts(since) mustBe (before._1 + 1, before._2)
+      run(imageryChangeTable.healedSince(since)) mustBe healedBefore + 1
+    }
+
+    "leave out a healed crossing older than the window from that count too" in {
+      reset()
+      run(sqlu"""INSERT INTO pano_imagery_change (pano_id, expired, source)
+                 VALUES ($panoId, TRUE, 'provider_check')""")
+      run(imageryChangeTable.reconcile()) must contain(panoId)
+      val since  = OffsetDateTime.now.minusWeeks(4)
+      val before = run(imageryChangeTable.healedSince(since))
+      run(sqlu"""UPDATE pano_imagery_change SET changed_at = now() - INTERVAL '20 weeks'
+                 WHERE pano_id = $panoId AND source = 'reconciliation'""")
+
+      // The footnote counts what this window is missing, so it has to move with the window like the series do.
+      run(imageryChangeTable.healedSince(since)) mustBe before - 1
     }
   }
 }

@@ -2,7 +2,7 @@ import com.typesafe.sbt.packager.MappingsHelper.directory
 
 name := """sidewalk-webpage"""
 
-version := "11.9.0"
+version := "11.10.0"
 
 scalaVersion := "2.13.18"
 

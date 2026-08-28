@@ -7,6 +7,7 @@ import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.libs.json.JsNull
 import play.api.libs.ws.WSClient
 import play.api.{Application, Configuration}
 import service.ImageryFreshnessService.{MissingImageryCredentialException, PollResult}
@@ -122,18 +123,30 @@ class ImageryPollOutcomeSpec extends PlaySpec with GuiceOneAppPerSuite {
     "total the three outcomes it distinguishes" in {
       // `errors` is the signal worth watching: a key at its quota turns every check inconclusive, which leaves the
       // expired counts looking reassuringly quiet while the sweep has stopped learning anything.
-      val result = ImageryCheckResult(stillThere = 7, gone = 2, errors = 1)
+      val result = ImageryCheckResult(stillThere = 7, gone = 2, errors = 1, reconciled = Some(1))
       result.checked mustBe 10
-      result.summary mustBe "Not expired: 7. Expired: 2. Errors: 1."
+      // Reconciled rows are healed log entries, not provider answers, so they don't count toward `checked`.
+      result.summary mustBe "Not expired: 7. Expired: 2. Errors: 1. Reconciled: 1."
     }
 
     "record one shape for both the nightly sweep and the hand-trigger" in {
       // Defined on the result rather than at each call site, so the two callers can't fork the recorded shape.
-      val details = ImageryCheckResult(stillThere = 7, gone = 2, errors = 1).runDetails
+      val details = ImageryCheckResult(stillThere = 7, gone = 2, errors = 1, reconciled = Some(1)).runDetails
       (details \ "panos_checked").as[Int] mustBe 10
       (details \ "still_there").as[Int] mustBe 7
       (details \ "gone").as[Int] mustBe 2
       (details \ "errors").as[Int] mustBe 1
+      (details \ "reconciled").as[Int] mustBe 1
+    }
+
+    "say the repair could not run rather than reporting it healed nothing" in {
+      // The repair is subordinate to the sweep, so its failure leaves the counts standing. Recording that as a 0
+      // would file "nothing was wrong" and "we never looked" under the same row, which is the thing a
+      // background_job_run row exists to tell apart.
+      val failed = ImageryCheckResult(stillThere = 7, gone = 2, errors = 1, reconciled = None)
+      failed.summary mustBe "Not expired: 7. Expired: 2. Errors: 1. Reconciled: failed."
+      (failed.runDetails \ "reconciled").get mustBe JsNull
+      (failed.runDetails \ "panos_checked").as[Int] mustBe 10
     }
   }
 }

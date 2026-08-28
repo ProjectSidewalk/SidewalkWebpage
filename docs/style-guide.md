@@ -9,8 +9,8 @@ ones it can.
 [`eslint.config.js`](../eslint.config.js), [`stylelint.config.mjs`](../stylelint.config.mjs), and
 [`.htmlhintrc`](../.htmlhintrc); Scala formatting lives in [`.scalafmt.conf`](../.scalafmt.conf). When this guide and a
 config disagree, the config wins — fix the config and this doc together. **The linters are all blocking CI gates** —
-ESLint (JS + translation JSON), Stylelint (CSS), HTMLHint (HTML), cross-locale key parity, and `scalafmtCheckAll` for
-Scala. The trees are kept fully lint-clean
+ESLint (JS + translation JSON), Stylelint (CSS), HTMLHint (HTML), cross-locale key parity, the `public/css/` layout
+check, and `scalafmtCheckAll` for Scala. The trees are kept fully lint-clean
 ([#2487](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2487)), so run the relevant linter — or `make lint`
 for all of them — and get to zero before you push: `make lint-fix` autofixes the mechanical JS/CSS findings, hand-fix
 the rest. CI wiring is in [`docs/testing-and-ci.md`](testing-and-ci.md).
@@ -32,12 +32,24 @@ These apply across every language in the repo.
   ```
 
 - **Accessibility is part of style.** Any UI work must meet **WCAG 2.1/2.2 Level AA**.
-- **Style from the design-system tokens in `main.css` `:root`.** Colors, type, spacing, and button styles come from
-  our Figma "Design System Tokens"; hardcoded values are what we're migrating away from. For type, use the composite
-  `--text-*` tokens (`font: var(--text-body-regular);`) rather than building on the raw `--font-primary`/
-  `--font-accent` stacks — they're complete `font` shorthands (weight, size/line-height, family) and bake in
-  `--ui-scale`. If a token's line-height (or another single aspect) doesn't suit, keep the token and override that
-  one property on the next line instead of hand-assembling the font.
+- **Style from the design-system tokens in `main.css` `:root`.** Colors (`--color-*`), type (`--text-*`), spacing
+  (`--space-*`), radii (`--border-radius*`), elevation (`--box-shadow*`), motion (`--transition-*`), stacking
+  (`--z-index-*`), breakpoints (`--breakpoint-*` — reference values, since `var()` can't appear in a media query;
+  write the px and name the token in a comment) and button styles come from our Figma "Design System Tokens";
+  hardcoded values are what we're migrating away from. For type, use the composite `--text-*` tokens
+  (`font: var(--text-body-regular);`) rather than building on the raw `--font-primary`/`--font-accent` stacks —
+  they're complete `font` shorthands (weight, size/line-height, family) and bake in `--ui-scale`. If a token's
+  line-height (or another single aspect) doesn't suit, keep the token and override that one property on the next
+  line instead of hand-assembling the font. Long-form reading text takes `--text-prose-regular` (body size, looser
+  leading); code blocks take `--text-code-regular`.
+- **Use the component primitives in `main.css` before writing a new one.** Buttons are `.button-ps` with a
+  `.button--<variant>` and `.button--<size>` modifier; text inputs and textareas are `.ps-input`, `<select>`s are
+  `.ps-select` (both take `--large` for a settings-style form); data tables are `.ps-table` (`--compact` for dense
+  admin data, `.num` on a numeric cell, `.ps-table-wrapper` for the horizontal scroller). A page-scoped class on top
+  for layout (width, margin, a sticky header, a row-highlight state) is fine; re-declaring the font, border, padding,
+  or hover/focus treatment is not — extend the primitive in `main.css` instead.
+- **Size in px, never `rem`.** Bootstrap 3 sets `html { font-size: 62.5% }`, so `1rem` is 10px everywhere and a
+  `0.875rem` "14px" renders at 8.75px. The `--text-*` tokens are px for this reason.
 - **Raleway (`--font-accent`) is display-only — and never for numbers.** Default to the primary font (Mulish); the
   accent font appears only in the tokens that already carry it (`--text-h1-bold`, `--text-h2-bold`,
   `--text-small-accent`). Raleway defaults to old-style (text) figures — digits vary in height and 3/4/5/7/9 descend
@@ -123,9 +135,22 @@ The `public/` static-asset tree follows an industry-standard layout, settled in 
 consistent with it.
 
 - **First-party assets split by type.** `public/js/` is **JavaScript only** — no `css/`, `img/`, or `audio/` dirs
-  nested inside an app dir. Styles live in `public/css/` (with per-app subdirs `css/explore/`, `css/validate/`,
-  `css/gallery/`); media lives in `public/images/`, `public/audio/`, and `public/videos/`. App-private styles go to
-  `css/<app>/`, app-private images to `images/<app>/`.
+  nested inside an app dir. Styles live in `public/css/`; media lives in `public/images/`, `public/audio/`, and
+  `public/videos/`. App-private styles go to `css/pages/`, app-private images to `images/<app>/`.
+- **`public/css/` is organized by what each file is** (#5030), and its root has exactly four entries. `main.css` and
+  `fonts.css` (tokens and `.ps-*` primitives, no layout knowledge). `css/components/` holds anything more than one
+  page links, one component per file with a `ps-` or component-named class prefix (`page-shell.css` — the sidebar +
+  content + TOC template the API docs and both dashboards build on, `kpi.css`, `tables.css`, `label-detail.css`,
+  `toast.css`, …). `css/pages/` holds everything page-specific: a single file for a single page (`about.css`,
+  `auth.css`, `admin-dashboard.css`, `user-dashboard.css`, …) and a subdir for a page family with several files
+  (`pages/explore/`, `pages/validate/`, `pages/gallery/`, `pages/api-docs/`). Two rules keep the split honest, both
+  enforced by `make lint-css-layout` (`tools/check-css-layout.mjs`, a blocking CI step): every entry under `pages/`
+  is registered in the lint's `PAGES` map with the views that may link it — its own page, or for the Grunt-bundled
+  tools its own bundle (the two legacy exceptions, `homepage.css` and `auth.css`, are registered to the site-wide
+  layout) — and an unregistered file fails the lint, so when a second page needs a rule, it moves to
+  `css/components/`; and a page's class prefix (`ud-`, `ac-`/`ov-`/`dq-`/…, `svl-`, `svv-`, `gallery-`) is defined
+  only in that page's stylesheet(s). Layouts link the shell plus only the component files their pages use;
+  never `@import` (Play fingerprints per file, and an import adds a serial round trip).
 - **Third-party code groups by library** under `public/vendor/<lib>/`, each folder self-contained (its JS + CSS +
   fonts + images together, upstream internal layout preserved so relative `url()` refs keep working). **Nothing under
   `vendor/` is ever edited or linted.** Vendored filenames carry their version (`pannellum-2.5.7.js`) — the app has
