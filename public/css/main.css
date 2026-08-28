@@ -494,9 +494,9 @@ textarea.ps-input {
   cursor: default;
 }
 
-/* Data table. The API docs and both dashboards draw their tables from this; a page adds only what its own table
-   needs on top (a sticky header, a scrolling wrapper, a row-highlight state). Mark a numeric cell with `.num` so it
-   right-aligns with tabular figures; `.ps-table--compact` tightens the cells for dense admin data. */
+/* Data table. The API docs and both dashboards draw their tables from this; the shared sticky-header and scroller
+   variants are in components/tables.css, and a page adds only what its own table needs on top. Mark a numeric cell
+   with `.num` so it right-aligns with tabular figures; `.ps-table--compact` tightens the cells for dense admin data. */
 .ps-table-wrapper {
   overflow-x: auto;
   margin-bottom: var(--space-lg);
@@ -2279,8 +2279,8 @@ kbd {
 
 /* Tail aimed at the trigger. Its x comes from the JS rather than a flat 50%, because the card is clamped to the
    viewport and so does not stay centered on its trigger near a screen edge. One clip-path triangle here, not the
-   label panel's two stacked layers (css/common/label-anchored-panel.css): the fill is solid and borderless, so there
-   is no hairline to carry along the slanted edges and nothing to seam. */
+   label panel's two stacked layers (css/components/label-anchored-panel.css): the fill is solid and borderless, so
+   there is no hairline to carry along the slanted edges and nothing to seam. */
 .ps-tooltip::after {
   content: "";
   position: absolute;

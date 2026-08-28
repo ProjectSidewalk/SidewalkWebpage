@@ -17,8 +17,8 @@ class AdminShell {
   #scrollSpyAttached = false;
 
   init() {
-    this.#content = document.querySelector('.api-content');
-    this.#tocList = document.querySelector('.api-toc ul');
+    this.#content = document.querySelector('.page-content');
+    this.#tocList = document.querySelector('.page-toc ul');
     if (!this.#content) return;
 
     this.#buildTableOfContents();
@@ -46,18 +46,18 @@ class AdminShell {
   }
 
   /**
-     * Builds the TOC from the section headings (h2/h3.api-heading with ids) inside the main content area. Scoped to
-     * .api-heading so headings inside closed <dialog>s (e.g. the dashboard's create-team dialog) stay out — a hidden
+     * Builds the TOC from the section headings (h2/h3.page-heading with ids) inside the main content area. Scoped to
+     * .page-heading so headings inside closed <dialog>s (e.g. the dashboard's create-team dialog) stay out — a hidden
      * heading has offsetTop 0, which would also wedge the scroll-spy on its TOC entry forever.
      */
   #buildTableOfContents() {
     if (!this.#tocList) return;
     this.#tocList.replaceChildren();
     this.#tocLinks = [];
-    this.#headings = Array.from(this.#content.querySelectorAll('h2.api-heading[id], h3.api-heading[id]'))
+    this.#headings = Array.from(this.#content.querySelectorAll('h2.page-heading[id], h3.page-heading[id]'))
       .filter((heading) => !heading.closest('[hidden]'));
 
-    const toc = document.querySelector('.api-toc');
+    const toc = document.querySelector('.page-toc');
     if (this.#headings.length === 0) {
       if (toc) toc.style.display = 'none';
       return;
@@ -125,7 +125,7 @@ class AdminShell {
    * created, so a rebuilt TOC picks this up without re-binding anchors that already have it.
    */
   #setupSmoothScrolling() {
-    document.querySelectorAll('.api-content a.permalink[href^="#"]')
+    document.querySelectorAll('.page-content a.permalink[href^="#"]')
       .forEach((anchor) => this.#bindSmoothScroll(anchor));
   }
 

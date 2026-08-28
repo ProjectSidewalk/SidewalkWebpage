@@ -154,28 +154,28 @@ module.exports = function (grunt) {
     },
     concat_css: {
       // The two label-card files come first so each tool's own stylesheet can override the shared base after it.
-      // public/css/common/ has no glob — every file used from it is named by hand, in each bundle that wants it.
+      // public/css/components/ has no glob — every file used from it is named by hand, in each bundle that wants it.
       dist_audit: {
         src: [
-          'public/css/common/label-anchored-panel.css',
-          'public/css/common/label-hover-card.css',
-          'public/css/explore/*.css',
-          'public/css/common/mission-start-tutorial.css'
+          'public/css/components/label-anchored-panel.css',
+          'public/css/components/label-hover-card.css',
+          'public/css/pages/explore/*.css',
+          'public/css/components/mission-start-tutorial.css'
         ],
         dest: 'public/js/explore/build/explore.css'
       },
       dist_validate: {
         src: [
-          'public/css/common/label-anchored-panel.css',
-          'public/css/common/label-hover-card.css',
-          'public/css/validate/*.css',
-          'public/css/common/mission-start-tutorial.css'
+          'public/css/components/label-anchored-panel.css',
+          'public/css/components/label-hover-card.css',
+          'public/css/pages/validate/*.css',
+          'public/css/components/mission-start-tutorial.css'
         ],
         dest: 'public/js/validate/build/validate.css'
       },
       gallery_all: {
         src: [
-          'public/css/gallery/*.css'
+          'public/css/pages/gallery/*.css'
         ],
         dest: 'public/js/gallery/build/gallery.css'
       }
@@ -195,18 +195,18 @@ module.exports = function (grunt) {
           'public/js/common/*/src/*.js',
           'public/js/explore/src/*.js',
           'public/js/explore/src/**/*.js',
-          'public/css/explore/*.css',
+          'public/css/pages/explore/*.css',
           'public/js/help/src/*.js',
           'public/js/validate/src/*.js',
           'public/js/validate/src/**/*.js',
-          'public/css/validate/*.css',
+          'public/css/pages/validate/*.css',
           'public/js/gallery/src/*.js',
           'public/js/gallery/src/**/*.js',
-          'public/css/gallery/*.css',
+          'public/css/pages/gallery/*.css',
           'public/js/ps-map/*.js',
           'public/js/route-builder/src/*.js',
           'public/js/shared-label/*.js',
-          'public/css/common/*.css'
+          'public/css/components/*.css'
         ],
         tasks: [
           'concat',

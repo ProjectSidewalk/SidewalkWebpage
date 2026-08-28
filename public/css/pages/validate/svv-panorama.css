@@ -215,8 +215,9 @@
 }
 
 /* Top-left of the pano, where Explore keeps its stuck/sound/feedback controls — and now with the same look, from the
-   shared .pano-overlay-button (css/pano-overlay-buttons.css). It used to carry a Validate-only .button-on-pano style
-   (white fill, 1.5px neutral-800 hairline, asphalt-500 text) that matched nothing else on the page (#4726). */
+   shared .pano-overlay-button (css/components/pano-overlay-buttons.css). It used to carry a Validate-only
+   .button-on-pano style (white fill, 1.5px neutral-800 hairline, asphalt-500 text) that matched nothing else on the
+   page (#4726). */
 #label-visibility-control-holder {
   position: absolute;
   z-index: 2;
@@ -230,7 +231,7 @@
   height: calc(12px * var(--ui-scale));
 }
 
-/* Validate's copy of the read-only label card (css/common/label-hover-card.css). Unlike Explore's it is not a click
+/* Validate's copy of the read-only label card (css/components/label-hover-card.css). Unlike Explore's it is not a click
    target — a validator judges the label, they don't edit it — so it carries no cursor and no Delete/Edit row, only
    the Hide-label toggle. Above #pano-border-frame (z-index: 3), which is drawn over the marker layer. */
 #label-card {

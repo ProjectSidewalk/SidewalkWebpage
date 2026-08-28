@@ -26,16 +26,16 @@ beforeAll(() => {
 /** The stats section of adminUser.scala.html, trimmed to what the hours code touches. */
 function buildDom() {
   document.body.innerHTML = `
-    <div class="coverage-kpis">
-      <div class="coverage-kpi" id="au-hours-kpi" aria-busy="true">
-        <span class="coverage-kpi-value" id="au-hours-value">…</span>
-        <span class="coverage-kpi-label" id="au-hours-label">Exploring &amp; validating</span>
+    <div class="ps-kpis">
+      <div class="ps-kpi" id="au-hours-kpi" aria-busy="true">
+        <span class="ps-kpi-value" id="au-hours-value">…</span>
+        <span class="ps-kpi-label" id="au-hours-label">Exploring &amp; validating</span>
       </div>
     </div>
     <span id="au-hours-status" class="ud-sr-only" role="status" aria-live="polite"></span>
     <div id="au-hours-cities" hidden>
-      <h3 class="dq-subhead" id="au-hours-cities-title">Where their time came from</h3>
-      <div class="mgmt-table-scroll ud-admin-hours-cities" id="au-hours-cities-table"></div>
+      <h3 class="page-subhead" id="au-hours-cities-title">Where their time came from</h3>
+      <div class="ps-table-scroll ud-admin-hours-cities" id="au-hours-cities-table"></div>
     </div>
     <div class="ud-nudge" id="au-hours-note" hidden></div>`;
 }

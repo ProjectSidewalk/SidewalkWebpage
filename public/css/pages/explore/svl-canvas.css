@@ -115,7 +115,7 @@
 }
 
 /* Explore's copy of the read-only label card. The card itself — shell, header, chip stack, footer — is shared with
-   Validate and lives in css/common/label-hover-card.css (#4726). What's left here is what only Explore's card does:
+   Validate and lives in css/components/label-hover-card.css (#4726). What's left here is what only Explore's card does:
    sit in this tool's stacking order, act as one big click target that opens the label's context menu, and offer the
    Delete/Edit actions a validator must not have. */
 .label-hover-card {

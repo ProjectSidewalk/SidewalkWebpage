@@ -26,10 +26,10 @@
   @* withPaging renders prev/next arrows; LabelPopup keeps them hidden until the nearby-label navigator is set. *@
   @common.labelPopup(admin = false, withPaging = true)
 
-  <link href='@assets.path("css/label-detail.css")' rel="stylesheet">
-  <link href='@assets.path("css/filter-sidebar.css")' rel="stylesheet">
-  <link href='@assets.path("css/map-download-control.css")' rel="stylesheet">
-  <link href='@assets.path("css/tag-pills.css")' rel="stylesheet">
+  <link href='@assets.path("css/components/label-detail.css")' rel="stylesheet">
+  <link href='@assets.path("css/components/filter-sidebar.css")' rel="stylesheet">
+  <link href='@assets.path("css/components/map-download-control.css")' rel="stylesheet">
+  <link href='@assets.path("css/components/tag-pills.css")' rel="stylesheet">
 
   <script src='@assets.path("vendor/panzoom/panzoom-9.4.4.min.js")'></script>
   @* Label-detail modules (order matters: PopupPanoManager + LabelDetail precede LabelPopup; Toast precedes Badges). *@
@@ -67,7 +67,7 @@
   <link href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")' rel="stylesheet">
   <script src='@assets.path("js/ps-map/build/ps-map.js")'></script>
   <script src='@assets.path("js/labelMapLocationSearch.js")'></script>
-  <link href='@assets.path("css/choropleth.css")' rel="stylesheet">
+  <link href='@assets.path("css/components/choropleth.css")' rel="stylesheet">
 
   <script>
     const imagerySrc = "@commonData.imagerySource.toString";

@@ -111,13 +111,13 @@ describe('initSidebarDisclosure', () => {
     /** Builds an `.api-*` shell sidebar with a nav the button has to discover on its own. */
     function buildShell({active = true} = {}) {
         document.body.innerHTML = `
-          <aside class="api-sidebar">
-            <nav class="api-nav">
-              <div class="api-nav-header">Overview</div>
-              <a class="api-nav-item${active ? ' active' : ''}" href="#">Raw Labels</a>
+          <aside class="page-sidebar">
+            <nav class="page-nav">
+              <div class="page-nav-header">Overview</div>
+              <a class="page-nav-item${active ? ' active' : ''}" href="#">Raw Labels</a>
             </nav>
           </aside>`;
-        return document.querySelector('.api-sidebar');
+        return document.querySelector('.page-sidebar');
     }
 
     it('labels the button with the active nav item and discloses the nav', () => {
@@ -126,11 +126,11 @@ describe('initSidebarDisclosure', () => {
 
         init();
 
-        const toggle = sidebar.querySelector('.api-sidebar-toggle');
+        const toggle = sidebar.querySelector('.page-sidebar-toggle');
         expect(toggle).not.toBeNull();
         expect(sidebar.firstElementChild).toBe(toggle);
-        expect(toggle.querySelector('.api-sidebar-toggle-label').textContent).toBe('Raw Labels');
-        expect(toggle.getAttribute('aria-controls')).toBe('api-sidebar-nav');
+        expect(toggle.querySelector('.page-sidebar-toggle-label').textContent).toBe('Raw Labels');
+        expect(toggle.getAttribute('aria-controls')).toBe('page-sidebar-nav');
         expect(toggle.getAttribute('aria-expanded')).toBe('false');
 
         toggle.click();
@@ -144,7 +144,7 @@ describe('initSidebarDisclosure', () => {
 
         init();
 
-        expect(sidebar.querySelector('.api-sidebar-toggle-label').textContent).toBe('Overview');
+        expect(sidebar.querySelector('.page-sidebar-toggle-label').textContent).toBe('Overview');
     });
 
     it('carries both the page name and the control it is, with the visible text first (WCAG 2.5.3)', () => {
@@ -153,18 +153,18 @@ describe('initSidebarDisclosure', () => {
 
         init();
 
-        expect(sidebar.querySelector('.api-sidebar-toggle').getAttribute('aria-label'))
+        expect(sidebar.querySelector('.page-sidebar-toggle').getAttribute('aria-label'))
             .toBe('Raw Labels — section navigation');
     });
 
     it('renders a page title as text, never as markup', () => {
         const {init} = load();
         const sidebar = buildShell();
-        sidebar.querySelector('.api-nav-item').textContent = '<img src=x onerror=alert(1)>';
+        sidebar.querySelector('.page-nav-item').textContent = '<img src=x onerror=alert(1)>';
 
         init();
 
-        const label = sidebar.querySelector('.api-sidebar-toggle-label');
+        const label = sidebar.querySelector('.page-sidebar-toggle-label');
         expect(label.querySelector('img')).toBeNull();
         expect(label.textContent).toBe('<img src=x onerror=alert(1)>');
     });
@@ -177,6 +177,6 @@ describe('initSidebarDisclosure', () => {
         const sidebar = buildShell();
         init();
         init();
-        expect(sidebar.querySelectorAll('.api-sidebar-toggle')).toHaveLength(1);
+        expect(sidebar.querySelectorAll('.page-sidebar-toggle')).toHaveLength(1);
     });
 });

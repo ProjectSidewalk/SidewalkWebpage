@@ -7,8 +7,8 @@
 @* Across Cities page for the redesigned admin dashboard (#4329). A cross-deployment overview comparing every Project Sidewalk city across four lenses — coverage (how much is left), activity (what's happening and when), data patterns (the label-type mix, city vs city), and data quality (how trustworthy the data is) — plus a "Today & this week" band of current-activity tiles, a top-cities table, and daily bar charts (#4758), a GA-backed web-traffic table (Planning#8), a "needs attention" panel of server-computed anomalies, and overview line charts of labels / validations / active users over time. Owner-only. Driven entirely client-side from /adminapi/cityScorecards (traffic from /adminapi/cityTraffic). *@
 
 @content = {
-  <div class="api-section" id="ac-intro-section">
-    <h1 class="api-heading" id="across-cities">Across Cities <a href="#across-cities" class="permalink">#</a></h1>
+  <div class="page-section" id="ac-intro-section">
+    <h1 class="page-heading" id="across-cities">Across Cities <a href="#across-cities" class="permalink">#</a></h1>
     <p>Every Project Sidewalk deployment at a glance — how each city is doing on coverage, activity, data patterns, and data quality, and which ones need a look right now. Numbers are summarized across all city databases and cached for a few minutes, so they may lag live activity slightly.</p>
     <div class="ac-pulse" id="ac-pulse" role="status" aria-live="polite">Loading cities…</div>
 
@@ -29,8 +29,8 @@
     </div>
   </div>
 
-  <div class="api-section" id="ac-now-section">
-    <h2 class="api-heading" id="today-this-week">Today &amp; this week <a href="#today-this-week" class="permalink">#</a></h2>
+  <div class="page-section" id="ac-now-section">
+    <h2 class="page-heading" id="today-this-week">Today &amp; this week <a href="#today-this-week" class="permalink">#</a></h2>
     <p>What's happening right now — today so far, and the trailing 7 days compared with the 7 before. Every count in this section is what <em>people</em> did; AI-role accounts are reported separately on their own line, because a single pipeline account can out-produce every contributor in the project. Contributor counts are distinct people per city, summed across cities (a person active in two cities is counted in each). Hover a bar or a table cell for the day or city behind it.</p>
 
     <h3 class="ac-chart-group-title" id="today-so-far">Today (so far)</h3>
@@ -91,8 +91,8 @@
     </div>
   </div>
 
-  <div class="api-section" id="ac-map-section">
-    <h2 class="api-heading" id="deployment-map">Deployment cities <a href="#deployment-map" class="permalink">#</a></h2>
+  <div class="page-section" id="ac-map-section">
+    <h2 class="page-heading" id="deployment-map">Deployment cities <a href="#deployment-map" class="permalink">#</a></h2>
     <p>Every deployment on the map — circle area is proportional to label count, color shows lifecycle status. Click a city for its stats.</p>
     <div id="ac-cities-map" class="ac-map"></div>
     <div class="ac-map-legend" aria-label="Map legend">
@@ -108,14 +108,14 @@
     <div class="coverage-status" id="ac-map-status" role="status" aria-live="polite"></div>
   </div>
 
-  <div class="api-section" id="ac-attention-section">
-    <h2 class="api-heading" id="needs-attention">Needs attention <a href="#needs-attention" class="permalink">#</a></h2>
+  <div class="page-section" id="ac-attention-section">
+    <h2 class="page-heading" id="needs-attention">Needs attention <a href="#needs-attention" class="permalink">#</a></h2>
     <p>Deployments flagged by an automatic check. Each links out to that city's site.</p>
     <div class="ov-attention" id="ac-attention"></div>
   </div>
 
-  <div class="api-section" id="ac-traffic-section">
-    <h2 class="api-heading" id="traffic">Google Analytics <a href="#traffic" class="permalink">#</a></h2>
+  <div class="page-section" id="ac-traffic-section">
+    <h2 class="page-heading" id="traffic">Google Analytics <a href="#traffic" class="permalink">#</a></h2>
     <p>Website traffic per deployment — the one lens our database can't provide, since it only sees people who contribute. Recent columns cover the trailing 7 days (mobile share, 28); all-time spans each city's GA4 history, which begins when its property was created rather than at launch — hover a figure for the date. A city is flagged when its last 7 days sit far outside its own 8-week baseline, in either direction. Refreshed hourly from this stage's own GA properties, so the test server and localhost read the <code>-test</code> sites.</p>
     <div class="ac-table-wrap" id="ac-traffic-wrap">
       <table class="ps-table ps-table--compact ac-table" id="ac-traffic-table">
@@ -144,8 +144,8 @@
     <div class="coverage-status" id="ac-traffic-status" role="status" aria-live="polite"></div>
   </div>
 
-  <div class="api-section" id="ac-trends-section">
-    <h2 class="api-heading" id="over-time">Over time <a href="#over-time" class="permalink">#</a></h2>
+  <div class="page-section" id="ac-trends-section">
+    <h2 class="page-heading" id="over-time">Over time <a href="#over-time" class="permalink">#</a></h2>
     <p>How activity is trending across all cities — weekly rates and cumulative growth.</p>
 
     <h3 class="ac-chart-group-title" id="weekly-totals">Weekly totals</h3>
@@ -187,8 +187,8 @@
     <p class="ac-note">“Users” counts each person once per city, in the week of their first label or validation — returning contributors aren't re-counted, but a person who contributes in two cities is counted in each.</p>
   </div>
 
-  <div class="api-section" id="ac-scorecard-section">
-    <h2 class="api-heading" id="scorecard">Scorecard <a href="#scorecard" class="permalink">#</a></h2>
+  <div class="page-section" id="ac-scorecard-section">
+    <h2 class="page-heading" id="scorecard">Scorecard <a href="#scorecard" class="permalink">#</a></h2>
     <p>One row per city — the at-a-glance index. Click a column header to sort; click a city to open its site.</p>
     <div class="ac-table-wrap">
       <table class="ps-table ps-table--compact ac-table" id="ac-table">
@@ -210,8 +210,8 @@
     <div class="coverage-status" id="ac-status" role="status" aria-live="polite"></div>
   </div>
 
-  <div class="api-section" id="ac-coverage-section">
-    <h2 class="api-heading" id="coverage">Coverage — how much is left <a href="#coverage" class="permalink">#</a></h2>
+  <div class="page-section" id="ac-coverage-section">
+    <h2 class="page-heading" id="coverage">Coverage — how much is left <a href="#coverage" class="permalink">#</a></h2>
     <p>Audited vs. total street network, and what remains, per city.</p>
     <div class="ac-table-wrap">
       <table class="ps-table ps-table--compact ac-table">
@@ -230,8 +230,8 @@
     </div>
   </div>
 
-  <div class="api-section" id="ac-activity-section">
-    <h2 class="api-heading" id="activity">Activity — what &amp; when <a href="#activity" class="permalink">#</a></h2>
+  <div class="page-section" id="ac-activity-section">
+    <h2 class="page-heading" id="activity">Activity — what &amp; when <a href="#activity" class="permalink">#</a></h2>
     <p>Recent volume (last 7 and 30 days), most recent activity, and a 12-week trend per city. Click a column header to sort; the 7d / 30d columns sort on their 7-day count.</p>
     <div class="ac-table-wrap">
       <table class="ps-table ps-table--compact ac-table" id="ac-activity-table">
@@ -250,8 +250,8 @@
     </div>
   </div>
 
-  <div class="api-section" id="ac-funnel-section">
-    <h2 class="api-heading" id="funnel">Engagement funnels <a href="#funnel" class="permalink">#</a></h2>
+  <div class="page-section" id="ac-funnel-section">
+    <h2 class="page-heading" id="funnel">Engagement funnels <a href="#funnel" class="permalink">#</a></h2>
     <p>Of the people who arrive, how many make it through each step, for each city. Two funnels: the <strong>mapping</strong> funnel follows the Explore onboarding (tutorial → first label → first mission), and the <strong>contribution</strong> funnel is the broader “did they contribute anything (labeling or validation) and finish a mission”. Bars are normalized to visitors (= 100%); the percentage on each step is its share of the step before it (the drop-off).</p>
     <p class="ac-note">Two caveats. <strong>Anonymous visitors are counted per browser</strong> (a new id each time cookies are cleared), so the top of each funnel counts sessions, not unique people, and headline conversion reads low. <strong>The mapping tool is desktop-only</strong> — mobile visitors are redirected to a landing page and can't proceed, so in the “Desktop vs mobile” view mobile drops off early by design. In the mapping funnel, “took a step” means a user walked some distance in a real (non-tutorial) mission.</p>
     <div class="ac-funnel-controls">
@@ -270,8 +270,8 @@
     <div class="coverage-status" id="ac-funnel-status" role="status" aria-live="polite"></div>
   </div>
 
-  <div class="api-section" id="ac-effort-section">
-    <h2 class="api-heading" id="effort">Contributors &amp; effort <a href="#effort" class="permalink">#</a></h2>
+  <div class="page-section" id="ac-effort-section">
+    <h2 class="page-heading" id="effort">Contributors &amp; effort <a href="#effort" class="permalink">#</a></h2>
     <p>How much each contributor produces and how fast they work. Per-user output is shown as <strong>median</strong> and <strong>p90</strong> (90th percentile), because a handful of power users make the average misleading.</p>
     <div class="ac-table-wrap">
       <table class="ps-table ps-table--compact ac-table">
@@ -292,15 +292,15 @@
     <p class="ac-note"><span class="ac-fn">†</span> <strong>Time to label 100&nbsp;m</strong> is active auditing time (idle gaps over 5&nbsp;minutes excluded) per 100&nbsp;m of street covered, and <strong>time to validate 10</strong> is the median per-validation time ×10. The labeling-speed figure is recomputed about once a day and is blank where a deployment's interaction data isn't available.</p>
   </div>
 
-  <div class="api-section" id="ac-patterns-section">
-    <h2 class="api-heading" id="patterns">Data patterns — city vs city <a href="#patterns" class="permalink">#</a></h2>
+  <div class="page-section" id="ac-patterns-section">
+    <h2 class="page-heading" id="patterns">Data patterns — city vs city <a href="#patterns" class="permalink">#</a></h2>
     <p>The mix of accessibility problems each city has found, as a share of its labels. Comparable across cities.</p>
     <div id="ac-patterns-legend" class="ac-legend"></div>
     <div id="ac-patterns"></div>
   </div>
 
-  <div class="api-section" id="ac-quality-section">
-    <h2 class="api-heading" id="quality">Data quality — how good <a href="#quality" class="permalink">#</a></h2>
+  <div class="page-section" id="ac-quality-section">
+    <h2 class="page-heading" id="quality">Data quality — how good <a href="#quality" class="permalink">#</a></h2>
     <p>How much of each city's data has been validated, how often validators agree, and how much was AI-generated or came from users later flagged low-quality.</p>
     <div class="ac-table-wrap">
       <table class="ps-table ps-table--compact ac-table">

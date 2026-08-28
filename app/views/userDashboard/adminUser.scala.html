@@ -28,13 +28,13 @@
 }
 
 @content = {
-  <div class="api-section" id="admin-user-intro-section">
-    <h1 class="api-heading" id="admin">Manage user <a href="#admin" class="permalink">#</a></h1>
+  <div class="page-section" id="admin-user-intro-section">
+    <h1 class="page-heading" id="admin">Manage user <a href="#admin" class="permalink">#</a></h1>
     <p>Admin-only settings and stats for <strong>@user.username</strong>. Changes take effect as soon as they're saved.</p>
   </div>
 
-  <div class="api-section" id="admin-user-account-section">
-    <h2 class="api-heading" id="account">Account <a href="#account" class="permalink">#</a></h2>
+  <div class="page-section" id="admin-user-account-section">
+    <h2 class="page-heading" id="account">Account <a href="#account" class="permalink">#</a></h2>
     @if(isOwner) {
       <div class="ud-nudge">An Owner's account can't be changed from here.</div>
     }
@@ -131,40 +131,40 @@
     </div>
   </div>
 
-  <div class="api-section" id="admin-user-stats-section">
-    <h2 class="api-heading" id="stats">Stats <a href="#stats" class="permalink">#</a></h2>
-    <div class="coverage-kpis ud-kpis">
+  <div class="page-section" id="admin-user-stats-section">
+    <h2 class="page-heading" id="stats">Stats <a href="#stats" class="permalink">#</a></h2>
+    <div class="ps-kpis ud-kpis">
       @* The user's total across every deployment, the same figure they read on /timeCheck: an admin checks a
          service-hours claim against this, so a per-deployment number here reads as an inflated claim (#4986). Filled
          by AdminUser.js, since totalling one schema per deployment is too slow to hold up the settings above. *@
-      <div class="coverage-kpi" id="au-hours-kpi" aria-busy="true">
-        <span class="coverage-kpi-value" id="au-hours-value">…</span>
-        <span class="coverage-kpi-label" id="au-hours-label">Exploring &amp; validating</span>
+      <div class="ps-kpi" id="au-hours-kpi" aria-busy="true">
+        <span class="ps-kpi-value" id="au-hours-value">…</span>
+        <span class="ps-kpi-label" id="au-hours-label">Exploring &amp; validating</span>
       </div>
-      <div class="coverage-kpi">
-        <span class="coverage-kpi-value">@adminData.userStats.labelsPerMeter.map(f => "%.1f".format(f * 1000)).getOrElse("—")</span>
-        <span class="coverage-kpi-label">Labels per km</span>
+      <div class="ps-kpi">
+        <span class="ps-kpi-value">@adminData.userStats.labelsPerMeter.map(f => "%.1f".format(f * 1000)).getOrElse("—")</span>
+        <span class="ps-kpi-label">Labels per km</span>
       </div>
-      <div class="coverage-kpi">
-        <span class="coverage-kpi-value" id="au-high-quality">@qualityWord(adminData.userStats.highQuality)</span>
-        <span class="coverage-kpi-label">Work quality@if(adminData.userStats.highQualityManual.isDefined){ (manual)}</span>
+      <div class="ps-kpi">
+        <span class="ps-kpi-value" id="au-high-quality">@qualityWord(adminData.userStats.highQuality)</span>
+        <span class="ps-kpi-label">Work quality@if(adminData.userStats.highQualityManual.isDefined){ (manual)}</span>
       </div>
-      <div class="coverage-kpi">
-        <span class="coverage-kpi-value">@adminData.currentRegion.map(_.name).getOrElse("Unassigned")</span>
-        <span class="coverage-kpi-label">Current neighborhood@adminData.currentRegion.map(r => s" (ID ${r.regionId})")</span>
+      <div class="ps-kpi">
+        <span class="ps-kpi-value">@adminData.currentRegion.map(_.name).getOrElse("Unassigned")</span>
+        <span class="ps-kpi-label">Current neighborhood@adminData.currentRegion.map(r => s" (ID ${r.regionId})")</span>
       </div>
     </div>
     <span id="au-hours-status" class="ud-sr-only" role="status" aria-live="polite"></span>
     <div id="au-hours-cities" hidden>
-      <h3 class="dq-subhead" id="au-hours-cities-title">Where their time came from</h3>
-      <div class="mgmt-table-scroll ud-admin-hours-cities" id="au-hours-cities-table"></div>
+      <h3 class="page-subhead" id="au-hours-cities-title">Where their time came from</h3>
+      <div class="ps-table-scroll ud-admin-hours-cities" id="au-hours-cities-table"></div>
     </div>
     <div class="ud-nudge" id="au-hours-note" hidden></div>
     <p class="ud-field-help">A labeling frequency under 37.5 labels per km marks a user low quality automatically; the nightly job recomputes it, or run "Recalculate user stats" on the <a href="@routes.AdminDashboardController.management">Management</a> page.</p>
   </div>
 
-  <div class="api-section" id="admin-user-flags-section">
-    <h2 class="api-heading" id="task-flags">Mark work by date <a href="#task-flags" class="permalink">#</a></h2>
+  <div class="page-section" id="admin-user-flags-section">
+    <h2 class="page-heading" id="task-flags">Mark work by date <a href="#task-flags" class="permalink">#</a></h2>
     <p>Flag every street this user audited before a date. Useful after training a new user: if their early work was low quality, mark it so — those labels are partially hidden in the APIs and validated less often. If it was good but they skipped label types or didn't finish streets, mark it <em>incomplete</em> so those streets get re-audited while the labels stay visible.</p>
     <div class="ud-admin-flags">
       @for((flag, title) <- Seq(("low_quality", "Low quality"), ("incomplete", "Incomplete"))) {
@@ -183,15 +183,15 @@
     </div>
   </div>
 
-  <div class="api-section" id="admin-user-comments-section">
-    <h2 class="api-heading" id="comments">Explore comments <a href="#comments" class="permalink">#</a></h2>
+  <div class="page-section" id="admin-user-comments-section">
+    <h2 class="page-heading" id="comments">Explore comments <a href="#comments" class="permalink">#</a></h2>
     @if(adminData.exploreComments.isEmpty) {
       <div class="ud-nudge">No comments left while exploring.</div>
     } else {
       <details class="ud-admin-details">
         <summary>@adminData.exploreComments.size @if(adminData.exploreComments.size == 1){comment}else{comments}</summary>
-        <div class="mgmt-table-scroll">
-          <table class="ps-table ps-table--compact contrib-table">
+        <div class="ps-table-scroll">
+          <table class="ps-table ps-table--compact ud-admin-table">
             <thead>
               <tr><th scope="col">When</th><th scope="col">Panorama</th><th scope="col">Comment</th></tr>
             </thead>

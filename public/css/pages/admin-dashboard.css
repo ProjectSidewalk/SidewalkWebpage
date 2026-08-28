@@ -1,11 +1,12 @@
 /*
  * Styles for the redesigned admin dashboard (#4272).
  *
- * The three-column shell (sidebar / content / TOC) is inherited wholesale from api-docs.css via shared .api-* class
- * names. This file only adds what the docs don't have: the "coming soon" nav treatment and the Coverage page's
- * map, legend, KPIs, chart, and details panel. Type, color, and spacing come from the design-system tokens in
- * main.css — avoid hardcoding values that already exist as tokens. Type is set with the composite --text-* tokens
- * (never a bare rem: Bootstrap 3 makes 1rem = 10px here, so a rem size renders at 62.5% of what it says).
+ * The three-column shell (sidebar / content / TOC), the KPI tiles, and the table add-ons come from components/
+ * (page-shell.css, kpi.css, tables.css). This file only adds what those don't have: the "coming soon" nav treatment
+ * and the Coverage page's map, legend, chart, and details panel. Type, color, and spacing come from
+ * the design-system tokens in main.css — avoid hardcoding values that already exist as tokens. Type is set with the
+ * composite --text-* tokens (never a bare rem: Bootstrap 3 makes 1rem = 10px here, so a rem size renders at 62.5%
+ * of what it says).
  *
  * Coverage sequential color scale (--coverage-*: ColorBrewer "Blues", colorblind-safe). Keep these in sync with
  * CoverageColors.STOPS in coverage-map.js so the map, legend, and bar chart all agree.
@@ -37,7 +38,7 @@
 }
 
 /* --- Left nav: disabled "coming soon" items ------------------------------------------------------------------ */
-.api-nav-item.disabled {
+.page-nav-item.disabled {
   color: var(--color-neutral-600);
   cursor: default;
   pointer-events: none;
@@ -143,36 +144,6 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-/* --- KPIs ---------------------------------------------------------------------------------------------------- */
-.coverage-kpis {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-md);
-  margin: var(--space-lg) 0;
-}
-
-.coverage-kpi {
-  flex: 1 1 140px;
-  border: 1px solid var(--color-neutral-200);
-  border-radius: 8px;
-  padding: var(--space-md);
-  background: var(--color-neutral-white);
-}
-
-.coverage-kpi-value {
-  display: block;
-  font: var(--text-title-bold);
-  line-height: 1.1;
-  color: var(--color-neutral-900);
-}
-
-.coverage-kpi-label {
-  display: block;
-  margin-top: 4px;
-  font: var(--text-caption-regular);
-  color: var(--color-neutral-700);
 }
 
 /* --- Status / error line ------------------------------------------------------------------------------------- */
@@ -334,40 +305,6 @@
   width: 100%;
   max-width: 320px;
 }
-
-.coverage-table-wrap {
-  max-height: 380px;
-  overflow-y: auto;
-  border: 1px solid var(--color-neutral-200);
-  border-radius: 8px;
-}
-
-/* Sortable header that stays put while the wrapper scrolls; the rows themselves are click targets (they focus the
-   region on the map). */
-.coverage-table thead th {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  cursor: pointer;
-  -webkit-user-select: none;
-  user-select: none;
-}
-
-.coverage-table thead th:focus-visible {
-  outline: 2px solid var(--color-link-200);
-  outline-offset: -2px;
-}
-.coverage-table th:not(:first-child), .coverage-table td:not(:first-child) { text-align: right; }
-
-/* Row headers (<th scope="row">) read as plain cells here: every row is one, so bolding the column adds nothing. */
-.coverage-table tbody th { font: inherit; }
-.coverage-table tbody tr { cursor: pointer; }
-
-.coverage-table tbody tr.highlighted {
-  background: rgb(246 141 62 / 14%);
-  box-shadow: inset 3px 0 0 var(--coverage-selected);
-}
-
 
 /* --- Data Quality scorecard --------------------------------------------------------------------------------- */
 .dq-rows {
@@ -574,20 +511,7 @@
   text-align: right;
 }
 
-/* --- Data Quality: KPI denominator note, severity sub-sections, smiley legend, Validate action ---------------- */
-.coverage-kpi-note {
-  display: block;
-  margin-top: 4px;
-  font: var(--text-caption-regular);
-  color: var(--color-neutral-700);
-}
-
-.dq-subhead {
-  font: var(--text-subtitle-bold);
-  color: var(--color-neutral-900);
-  margin: var(--space-lg) 0 var(--space-xs);
-}
-
+/* --- Data Quality: severity sub-sections, smiley legend, Validate action -------------------------------------- */
 .dq-sevlegend {
   display: flex;
   flex-wrap: wrap;
@@ -1628,9 +1552,6 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
   white-space: nowrap;
   font: var(--text-small-regular);
 }
-
-/* The directory is wide (13 columns); let it scroll horizontally rather than crush the cells or the page. */
-.mgmt-table-scroll { overflow-x: auto; }
 
 .mgmt-table { min-width: 100%; }
 

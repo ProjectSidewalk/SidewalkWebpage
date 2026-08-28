@@ -9,8 +9,8 @@ ones it can.
 [`eslint.config.js`](../eslint.config.js), [`stylelint.config.mjs`](../stylelint.config.mjs), and
 [`.htmlhintrc`](../.htmlhintrc); Scala formatting lives in [`.scalafmt.conf`](../.scalafmt.conf). When this guide and a
 config disagree, the config wins — fix the config and this doc together. **The linters are all blocking CI gates** —
-ESLint (JS + translation JSON), Stylelint (CSS), HTMLHint (HTML), cross-locale key parity, and `scalafmtCheckAll` for
-Scala. The trees are kept fully lint-clean
+ESLint (JS + translation JSON), Stylelint (CSS), HTMLHint (HTML), cross-locale key parity, the `public/css/` layout
+check, and `scalafmtCheckAll` for Scala. The trees are kept fully lint-clean
 ([#2487](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2487)), so run the relevant linter — or `make lint`
 for all of them — and get to zero before you push: `make lint-fix` autofixes the mechanical JS/CSS findings, hand-fix
 the rest. CI wiring is in [`docs/testing-and-ci.md`](testing-and-ci.md).
@@ -135,9 +135,20 @@ The `public/` static-asset tree follows an industry-standard layout, settled in 
 consistent with it.
 
 - **First-party assets split by type.** `public/js/` is **JavaScript only** — no `css/`, `img/`, or `audio/` dirs
-  nested inside an app dir. Styles live in `public/css/` (with per-app subdirs `css/explore/`, `css/validate/`,
-  `css/gallery/`); media lives in `public/images/`, `public/audio/`, and `public/videos/`. App-private styles go to
-  `css/<app>/`, app-private images to `images/<app>/`.
+  nested inside an app dir. Styles live in `public/css/`; media lives in `public/images/`, `public/audio/`, and
+  `public/videos/`. App-private styles go to `css/pages/`, app-private images to `images/<app>/`.
+- **`public/css/` is organized by what each file is** (#5030), and its root has exactly four entries. `main.css` and
+  `fonts.css` (tokens and `.ps-*` primitives, no layout knowledge). `css/components/` holds anything more than one
+  page links, one component per file with a `ps-` or component-named class prefix (`page-shell.css` — the sidebar +
+  content + TOC template the API docs and both dashboards build on, `kpi.css`, `tables.css`, `label-detail.css`,
+  `toast.css`, …). `css/pages/` holds everything page-specific: a single file for a single page (`about.css`,
+  `auth.css`, `admin-dashboard.css`, `user-dashboard.css`, …) and a subdir for a page family with several files
+  (`pages/explore/`, `pages/validate/`, `pages/gallery/`, `pages/api-docs/`). Two rules keep the split honest, both
+  enforced by `make lint-css-layout` (`tools/check-css-layout.mjs`, a blocking CI step): a page's stylesheet is linked
+  only by that page's own views (or, for the Grunt-bundled tools, its own bundle) — when a second page needs a rule,
+  it moves to `css/components/`; and a page's class prefix (`ud-`, `ac-`/`ov-`/`dq-`/…, `svl-`, `svv-`, `gallery-`)
+  is defined only in that page's stylesheet(s). Layouts link the shell plus only the component files their pages use;
+  never `@import` (Play fingerprints per file, and an import adds a serial round trip).
 - **Third-party code groups by library** under `public/vendor/<lib>/`, each folder self-contained (its JS + CSS +
   fonts + images together, upstream internal layout preserved so relative `url()` refs keep working). **Nothing under
   `vendor/` is ever edited or linted.** Vendored filenames carry their version (`pannellum-2.5.7.js`) — the app has

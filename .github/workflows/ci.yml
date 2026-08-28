@@ -115,6 +115,14 @@ jobs:
         if: always()
         run: node tools/check-locale-parity.mjs
 
+      # Blocking: the public/css/ layout (#5030) -- a page's stylesheet is linked only by that page, page class prefixes
+      # stay in the page's own files, and every stylesheet a view links exists (a moved file is a 500 at render time,
+      # not a build failure). `if: always()` so it reports even when an earlier frontend step failed. Run locally with
+      # `make lint-css-layout`.
+      - name: CSS layout (blocking)
+        if: always()
+        run: node tools/check-css-layout.mjs
+
       # Advisory: the jsdom unit suite (test/js/). Coverage is thin and sequenced with the ES5→ES2022 migration
       # (#2487), so it doesn't gate merges yet — but running it on every PR is what keeps a tested helper's contract
       # from being quietly edited out from under it. `continue-on-error` is on the step, not the job, so a failure
