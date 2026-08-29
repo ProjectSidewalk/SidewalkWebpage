@@ -141,6 +141,7 @@ local development** — your edit / `grunt watch` / reload loop is untouched.
 | `auth.setup.js` | Registers a throwaway user, saves storageState for registered-user specs |
 | `pages.spec.js` | Table-driven phase-1 anonymous pages |
 | `phone-viewport.spec.js` | The same pages at a 390×844 phone viewport: no horizontal overflow (#4883) |
+| `overflow-report.spec.js` | `horizontalOverflowReport`'s exemption rules, pinned against synthetic DOM |
 | `dashboard.spec.js` | Registered-user pages |
 | `explore-validate.spec.js` | Phase-2 Explore/Validate/mobile-Validate specs (skip without the real GSV key) |
 | `labelmap-feed-failure.spec.js` | What `/labelMap` shows when its label feed fails (intercepted, so DB-independent) |
