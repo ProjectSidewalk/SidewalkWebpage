@@ -3,6 +3,8 @@ package formats.json
 import models.user._
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
+import service.{CityHours, CrossCityHours}
+
 import java.time.OffsetDateTime
 
 object UserFormats {
@@ -72,4 +74,27 @@ object UserFormats {
       (JsPath \ "open").write[Boolean] and
       (JsPath \ "visible").write[Boolean]
   )(unlift(Team.unapply))
+
+  implicit val cityHoursWrites: Writes[CityHours] = (
+    (JsPath \ "city_id").write[String] and
+      (JsPath \ "city_name").write[String] and
+      (JsPath \ "hours").write[Double] and
+      (JsPath \ "is_current_city").write[Boolean]
+  )(unlift(CityHours.unapply))
+
+  /**
+   * The hours the Manage user page fills its KPI and breakdown from (`/adminapi/users/:userId/crossCityHours`, #4986).
+   *
+   * `total_hours` and `show_breakdown` are carried rather than left for the client to re-derive: `/timeCheck` reads
+   * both straight off the same [[service.CrossCityHours]], and an admin verifying a service-hours claim against a
+   * number assembled a second way is the failure this endpoint exists to prevent.
+   */
+  implicit val crossCityHoursWrites: Writes[CrossCityHours] = Writes { hours =>
+    Json.obj(
+      "total_hours"        -> hours.totalHours,
+      "cities"             -> hours.cities,
+      "show_breakdown"     -> hours.showBreakdown,
+      "unreachable_cities" -> hours.unreachableCities
+    )
+  }
 }

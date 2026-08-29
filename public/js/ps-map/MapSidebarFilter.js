@@ -21,6 +21,8 @@ class MapSidebarFilter {
   #filters;
   /** @type {boolean} */
   #showsCounts;
+  /** @type {boolean} */
+  #viewportCounts;
   /** @type {object} Last-applied per-type layer visibility, so unchanged layers aren't re-set on every click. */
   #layerVisibility = {};
   /** @type {Array<() => void>} */
@@ -32,11 +34,16 @@ class MapSidebarFilter {
    * @param {object} mapData The layer tracker from CreateMapLayerTracker.
    * @param {object} [options] Configuration options.
    * @param {boolean} [options.highQualityFilter=true] Whether to apply the high-quality user filter.
+   * @param {boolean} [options.viewportCounts=false] Count only labels inside the current viewport. For pages
+   *     with viewport-scoped label loading (#5002), where the loaded set is padded beyond the view: the counts
+   *     then mean "in the current view" and agree with a view-scoped download. The host page is responsible for
+   *     calling refresh() when the data or the viewport changes.
    */
-  constructor(map, mapData, { highQualityFilter = true } = {}) {
+  constructor(map, mapData, { highQualityFilter = true, viewportCounts = false } = {}) {
     this.#map = map;
     this.#mapData = mapData;
     this.#highQualityFilter = highQualityFilter;
+    this.#viewportCounts = viewportCounts;
     this.#sidebar = document.getElementById('filter-sidebar');
     this.#showsCounts = this.#sidebar.querySelector('.filter-sidebar__count') !== null;
 
@@ -80,11 +87,13 @@ class MapSidebarFilter {
    * @returns {number} The visible label count across all checked label types.
    */
   getVisibleLabelCount() {
+    const bounds = this.#countBounds();
     let total = 0;
     for (const [labelType, features] of Object.entries(this.#mapData.sortedLabels)) {
       if (!(this.#sidebar.querySelector(`#${labelType}-checkbox`)?.checked ?? false)) continue;
       for (const feature of features) {
         const props = feature.properties;
+        if (bounds && !bounds.contains(feature.geometry.coordinates)) continue;
         if (!this.#passesQualityFilters(props)) continue;
         if (this.#passesSeverity(props) && this.#passesTags(labelType, props)
           && this.#mapData[this.#validationCategory(props)]) {
@@ -93,6 +102,14 @@ class MapSidebarFilter {
       }
     }
     return total;
+  }
+
+  /**
+   * Recomputes the faceted counts — the hook for viewport label loading, where the data (a refetch) or the
+   * counted area (a pan under viewportCounts) changes without a filter interaction.
+   */
+  refresh() {
+    this.#updateCounts();
   }
 
   /**
@@ -215,6 +232,7 @@ class MapSidebarFilter {
   #updateCounts() {
     if (!this.#showsCounts) return;
 
+    const bounds = this.#countBounds();
     const typeCounts = {};
     const validationCounts = { correct: 0, incorrect: 0, unsure: 0, unvalidated: 0 };
     for (const [labelType, features] of Object.entries(this.#mapData.sortedLabels)) {
@@ -222,6 +240,7 @@ class MapSidebarFilter {
       let count = 0;
       for (const feature of features) {
         const props = feature.properties;
+        if (bounds && !bounds.contains(feature.geometry.coordinates)) continue;
         if (!this.#passesQualityFilters(props)) continue;
         const severityOk = this.#passesSeverity(props);
         const tagsOk = this.#passesTags(labelType, props);
@@ -242,6 +261,11 @@ class MapSidebarFilter {
       : {};
 
     this.#filters.setCounts({ ...typeCounts, ...validationCounts, ...streetCounts });
+  }
+
+  /** @returns {?mapboxgl.LngLatBounds} The current viewport under viewportCounts, else null (no restriction). */
+  #countBounds() {
+    return this.#viewportCounts ? this.#map.getBounds() : null;
   }
 
   /**

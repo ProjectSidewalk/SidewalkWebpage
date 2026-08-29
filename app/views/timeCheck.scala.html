@@ -20,8 +20,8 @@
 
 @cities = @{cityHours.cities}
 
-@* Shown for a lone city too when it isn't this deployment, so the number is never unattributed. *@
-@showBreakdown = @{cities.nonEmpty && (cities.length > 1 || !cities.exists(_.isCurrentCity))}
+@* Decided on the service type, so the admin's view of these same hours can't come to a different answer (#4986). *@
+@showBreakdown = @{cityHours.showBreakdown}
 
 @missedCities = @{
   if (cityHours.unreachableCities == 1) "1 city" else s"${cityHours.unreachableCities} cities"

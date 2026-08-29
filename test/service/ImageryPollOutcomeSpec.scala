@@ -2,11 +2,12 @@ package service
 
 import models.audit.AuditTaskTable
 import models.pano.PanoSource
-import models.street.StreetImageryTable
+import models.street.{StreetImageryTable, StreetReopenCandidateTable}
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.libs.json.JsNull
 import play.api.libs.ws.WSClient
 import play.api.{Application, Configuration}
 import service.ImageryFreshnessService.{MissingImageryCredentialException, PollResult}
@@ -51,6 +52,7 @@ class ImageryPollOutcomeSpec extends PlaySpec with GuiceOneAppPerSuite {
       configService,
       app.injector.instanceOf[PanoDataService],
       app.injector.instanceOf[StreetImageryTable],
+      app.injector.instanceOf[StreetReopenCandidateTable],
       app.injector.instanceOf[AuditTaskTable],
       app.injector.instanceOf[ExecutionContext]
     )
@@ -83,22 +85,68 @@ class ImageryPollOutcomeSpec extends PlaySpec with GuiceOneAppPerSuite {
     }
   }
 
+  "PollResult.summary" should {
+    "account for the regained-imagery rotation as well as the main batch" in {
+      // The two rotations are separately sized and separately starved, so one line reporting only the main batch
+      // would read as a healthy night while the #4929 re-check silently covered nothing.
+      val result = PollResult(Some("GSV"), 500, 480, 20, None, 25, 24, 2)
+      result.summary mustBe ("GSV imagery-age poll: 480 streets updated, 20 skipped (of 500 selected); "
+        + "24 of 25 no-imagery streets re-checked, 2 reopen candidate(s) found.")
+    }
+  }
+
+  "PollResult.runDetails" should {
+    "record every count under the key the Imagery page's run history reads it back by" in {
+      // Defined on the result rather than at the actor's call site, so the writer and the reader cannot fork. The
+      // literal key names are the contract: a rename on one side alone reports zeros forever, looking like a quiet
+      // night rather than a broken pipeline.
+      val details = PollResult(Some("GSV"), 500, 480, 20, None, 25, 24, 2).runDetails
+
+      (details \ "provider").as[String] mustBe "GSV"
+      (details \ "streets_selected").as[Int] mustBe 500
+      (details \ "streets_polled").as[Int] mustBe 480
+      (details \ "streets_skipped").as[Int] mustBe 20
+      (details \ "no_imagery_streets_selected").as[Int] mustBe 25
+      (details \ "no_imagery_streets_polled").as[Int] mustBe 24
+      (details \ "reopen_candidates_found").as[Int] mustBe 2
+    }
+
+    "carry the reason a poll covered nothing, so a skipped night isn't recorded as a zero-count one" in {
+      val details =
+        PollResult.notPolled("Imagery-age polling isn't supported for provider Infra3d; skipping.").runDetails
+      (details \ "not_polled_reason").as[String] must include("Infra3d")
+      (details \ "provider").asOpt[String] mustBe None
+    }
+  }
+
   "ImageryCheckResult" should {
     "total the three outcomes it distinguishes" in {
       // `errors` is the signal worth watching: a key at its quota turns every check inconclusive, which leaves the
       // expired counts looking reassuringly quiet while the sweep has stopped learning anything.
-      val result = ImageryCheckResult(stillThere = 7, gone = 2, errors = 1)
+      val result = ImageryCheckResult(stillThere = 7, gone = 2, errors = 1, reconciled = Some(1))
       result.checked mustBe 10
-      result.summary mustBe "Not expired: 7. Expired: 2. Errors: 1."
+      // Reconciled rows are healed log entries, not provider answers, so they don't count toward `checked`.
+      result.summary mustBe "Not expired: 7. Expired: 2. Errors: 1. Reconciled: 1."
     }
 
     "record one shape for both the nightly sweep and the hand-trigger" in {
       // Defined on the result rather than at each call site, so the two callers can't fork the recorded shape.
-      val details = ImageryCheckResult(stillThere = 7, gone = 2, errors = 1).runDetails
+      val details = ImageryCheckResult(stillThere = 7, gone = 2, errors = 1, reconciled = Some(1)).runDetails
       (details \ "panos_checked").as[Int] mustBe 10
       (details \ "still_there").as[Int] mustBe 7
       (details \ "gone").as[Int] mustBe 2
       (details \ "errors").as[Int] mustBe 1
+      (details \ "reconciled").as[Int] mustBe 1
+    }
+
+    "say the repair could not run rather than reporting it healed nothing" in {
+      // The repair is subordinate to the sweep, so its failure leaves the counts standing. Recording that as a 0
+      // would file "nothing was wrong" and "we never looked" under the same row, which is the thing a
+      // background_job_run row exists to tell apart.
+      val failed = ImageryCheckResult(stillThere = 7, gone = 2, errors = 1, reconciled = None)
+      failed.summary mustBe "Not expired: 7. Expired: 2. Errors: 1. Reconciled: failed."
+      (failed.runDetails \ "reconciled").get mustBe JsNull
+      (failed.runDetails \ "panos_checked").as[Int] mustBe 10
     }
   }
 }

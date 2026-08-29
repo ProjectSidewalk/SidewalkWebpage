@@ -424,13 +424,16 @@ class AdminServiceImpl @Inject() (
 
   /**
    * Gets the additional data to show on the admin view of a user's dashboard.
+   *
+   * Hours are not among it: the page reports the user's total across every city, which only the cross-schema fan-out
+   * in `UserService.getCrossCityHours` can produce, and the page fetches that after it renders (#4986).
+   *
    * @param userId ID of the user whose data we're getting.
    */
   def getAdminUserProfileData(userId: String): Future[AdminUserProfileData] = {
     val (onLeaderboard, publicProfile)          = configService.defaultPrivacyFlags
     val profileData: DBIO[AdminUserProfileData] = for {
       currRegion: Option[Region] <- userCurrentRegionTable.getCurrentRegion(userId)
-      hoursWorked: Double        <- auditTaskInteractionTable.getHoursAuditingAndValidating(userId)
       // Insert a user_stat if the user hasn't visited this server before, allowing this page to load. Unconditional
       // rather than read-then-insert: this comprehension isn't transactional, so two admins opening the page at once
       // would both read "no row" and both insert. The privacy flags must be the deployment's defaults, since the user
@@ -439,7 +442,7 @@ class AdminServiceImpl @Inject() (
       userStats: UserStat             <- userStatTable.getStatsFromUserId(userId).map(_.get)
       comments: Seq[AuditTaskComment] <- auditTaskCommentTable.forUser(userId)
     } yield {
-      AdminUserProfileData(currRegion, hoursWorked, userStats, comments)
+      AdminUserProfileData(currRegion, userStats, comments)
     }
     db.run(profileData)
   }

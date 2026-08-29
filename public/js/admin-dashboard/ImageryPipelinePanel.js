@@ -75,6 +75,30 @@ class ImageryPipelinePanel {
     this.#renderJobs(jobs);
     this.#renderFailures(report);
     this.#renderCharts(report);
+    ImageryPipelinePanel.#renderNoImageryRotation(report);
+  }
+
+  /**
+   * The regained-imagery rotation's own coverage (#4929), reported as a line rather than a series: it re-checks tens
+   * of streets a night against the main batch's hundreds, so on a shared axis its bar is a flat smear at zero.
+   *
+   * It earns a line at all for the same reason the poll chart exists — a rotation that quietly stopped looks exactly
+   * like a city whose retired streets never regain imagery, and only the coverage figure tells them apart.
+   */
+  static #renderNoImageryRotation(report) {
+    const days = report.run_days || [];
+    const total = (field) => days.reduce((sum, day) => sum + (day[field] || 0), 0);
+    const selected = total('no_imagery_selected');
+    const polled = total('no_imagery_polled');
+    const candidates = total('reopen_candidates');
+    const batch = report.no_imagery_batch_size;
+    const nightly = Number.isFinite(batch) ? ` The rotation asks for ${AdminShell.num(batch)} a night.` : '';
+
+    AdminShell.setText('imagery-no-imagery-note', selected === 0
+      ? `No retired street was re-checked for regained imagery in this window.${nightly} Nights recorded before that`
+      + ' rotation existed count as zero here.'
+      : `Regained-imagery re-checks over the same window: ${AdminShell.num(polled)} of ${AdminShell.num(selected)}`
+        + ` retired streets answered conclusively, queueing ${AdminShell.num(candidates)} for review.${nightly}`);
   }
 
   /**

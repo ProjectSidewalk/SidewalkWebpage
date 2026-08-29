@@ -16,14 +16,13 @@
     endpoint: '/validationResultTypes',
   };
 
-  // Colors per result type (Project Sidewalk palette).
-  const RESULT_COLORS = { Agree: '#78B9AB', Disagree: '#EB734D', Unsure: '#FBD78B' };
+  // The Validate tool's own agree / disagree / unsure palette.
+  const RESULT_TOKENS = { Agree: '--color-pine-500', Disagree: '--color-orange-500', Unsure: '--color-banana-500' };
 
   /** Builds a right-aligned numeric cell. */
   function numCell(value) {
     const cell = document.createElement('td');
-    cell.style.padding = '8px';
-    cell.style.textAlign = 'right';
+    cell.className = 'num';
     cell.textContent = (value ?? 0).toLocaleString();
     return cell;
   }
@@ -56,7 +55,7 @@
         container.style.margin = '20px 0';
       }
 
-      container.innerHTML = 'Loading validation result types...';
+      container.innerHTML = '<div class="loading-message">Loading validation result types...</div>';
 
       return fetch(`${config.apiBaseUrl}${config.endpoint}?utm_source=apiDocs`)
         .then((response) => {
@@ -85,8 +84,7 @@
       const maxCount = types.length > 0 ? Math.max.apply(null, types.map((t) => t.count)) : 0;
 
       const table = document.createElement('table');
-      table.style.width = '100%';
-      table.style.borderCollapse = 'collapse';
+      table.className = 'ps-table';
 
       // Header.
       const thead = document.createElement('thead');
@@ -94,9 +92,7 @@
       ['Result', 'Total Validations', 'Human', 'AI'].forEach((text, i) => {
         const th = document.createElement('th');
         th.textContent = text;
-        th.style.padding = '8px';
-        th.style.textAlign = i === 0 ? 'left' : 'right';
-        th.style.borderBottom = '2px solid #e0e0e0';
+        if (i > 0) th.className = 'num';
         headerRow.appendChild(th);
       });
       thead.appendChild(headerRow);
@@ -106,30 +102,29 @@
       const tbody = document.createElement('tbody');
       types.forEach((type) => {
         const row = document.createElement('tr');
-        const color = RESULT_COLORS[type.name] || '#999';
+        const color = ApiDocsTheme.color(RESULT_TOKENS[type.name] || '--color-neutral-500');
 
         // Result name with a colored swatch.
         const nameCell = document.createElement('td');
-        nameCell.style.padding = '8px';
         const swatch = document.createElement('span');
-        swatch.style.cssText = `display:inline-block;width:12px;height:12px;border-radius:2px;`
-          + `margin-right:8px;background:${color}`;
+        swatch.className = 'api-swatch';
+        swatch.style.backgroundColor = color;
         nameCell.appendChild(swatch);
         nameCell.appendChild(document.createTextNode(type.name));
         row.appendChild(nameCell);
 
         // Total count with a proportional bar.
         const totalCell = document.createElement('td');
-        totalCell.style.padding = '8px';
-        totalCell.style.textAlign = 'right';
+        totalCell.className = 'num';
         const num = document.createElement('div');
         num.textContent = type.count.toLocaleString();
         totalCell.appendChild(num);
         const barOuter = document.createElement('div');
-        barOuter.style.cssText = 'background:#eee;border-radius:3px;height:8px;margin-top:4px';
+        barOuter.className = 'count-bar-container';
         const barInner = document.createElement('div');
-        barInner.style.cssText = `height:8px;border-radius:3px;background:${color};`
-          + `width:${maxCount > 0 ? (type.count / maxCount) * 100 : 0}%`;
+        barInner.className = 'count-bar-fill';
+        barInner.style.backgroundColor = color;
+        barInner.style.width = `${maxCount > 0 ? (type.count / maxCount) * 100 : 0}%`;
         barOuter.appendChild(barInner);
         totalCell.appendChild(barOuter);
         row.appendChild(totalCell);

@@ -374,7 +374,7 @@ class ImageryPage {
     }).join('');
     legend.innerHTML = `
       <div class="imagery-tier-wrap">
-        <table class="imagery-tier-table">
+        <table class="ps-table ps-table--compact imagery-tier-table">
         <caption class="sr-only">Street priority tiers, highest priority first</caption>
         <thead>
           <tr>
@@ -496,7 +496,7 @@ class ImageryPage {
       </tr>`;
     host.innerHTML = `
       <div class="ac-table-wrap">
-        <table class="ac-table">
+        <table class="ps-table ps-table--compact ac-table">
           <thead>
             <tr><th class="ac-th-text">Rotation</th><th>Streets</th><th class="ac-th-text">Notes</th></tr>
           </thead>

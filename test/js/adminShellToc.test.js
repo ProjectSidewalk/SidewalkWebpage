@@ -31,10 +31,10 @@ beforeAll(() => {
  */
 function buildDom() {
   document.body.innerHTML = `
-    <nav class="api-toc"><ul></ul></nav>
-    <div class="api-content">
-      <div class="api-section" id="async-section" hidden>
-        <h2 class="api-heading" id="cities">Cities you've mapped <a href="#cities" class="permalink">#</a></h2>
+    <nav class="page-toc"><ul></ul></nav>
+    <div class="page-content">
+      <div class="page-section" id="async-section" hidden>
+        <h2 class="page-heading" id="cities">Cities you've mapped <a href="#cities" class="permalink">#</a></h2>
       </div>
     </div>`;
   return document.getElementById('async-section');
@@ -47,7 +47,7 @@ async function scrollAndSettle() {
   await new Promise((resolve) => setTimeout(resolve, 0));
 }
 
-const tocLinks = () => [...document.querySelectorAll('.api-toc ul a')];
+const tocLinks = () => [...document.querySelectorAll('.page-toc ul a')];
 
 describe('refreshTableOfContents', () => {
   test('lists a section that was hidden when the page loaded', () => {

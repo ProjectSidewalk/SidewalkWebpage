@@ -49,7 +49,7 @@
         container.style.margin = '20px 0';
       }
 
-      container.innerHTML = 'Loading aggregate statistics...';
+      container.innerHTML = '<div class="loading-message">Loading aggregate statistics...</div>';
 
       return fetch(`${config.apiBaseUrl}${config.endpoint}?utm_source=apiDocs`)
         .then((response) => {
@@ -88,18 +88,16 @@
       ];
 
       const grid = document.createElement('div');
-      grid.style.cssText
-                = 'display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:0 0 24px';
+      grid.className = 'preview-section preview-stat-grid';
       cards.forEach(([label, value]) => {
         const card = document.createElement('div');
-        card.style.cssText
-                    = 'text-align:center;padding:12px;background:#f9f9f9;border:1px solid #e0e0e0;border-radius:4px';
+        card.className = 'preview-stat';
         const v = document.createElement('div');
+        v.className = 'preview-stat-value';
         v.textContent = value;
-        v.style.cssText = 'font-size:1.4em;font-weight:bold';
         const l = document.createElement('div');
+        l.className = 'preview-stat-label';
         l.textContent = label;
-        l.style.cssText = 'font-size:0.85em;color:#666';
         card.appendChild(v);
         card.appendChild(l);
         grid.appendChild(card);
@@ -116,14 +114,14 @@
       const maxLabels = Math.max.apply(null, rows.map((r) => r.labels || 0));
 
       const table = document.createElement('table');
-      table.style.cssText = 'width:100%;border-collapse:collapse';
+      table.className = 'ps-table';
 
       const thead = document.createElement('thead');
       const headerRow = document.createElement('tr');
       ['Label Type', 'Labels', 'Validated', 'Agreed', 'Disagreed'].forEach((text, i) => {
         const th = document.createElement('th');
         th.textContent = text;
-        th.style.cssText = `padding:8px;border-bottom:2px solid #e0e0e0;text-align:${i === 0 ? 'left' : 'right'}`;
+        if (i > 0) th.className = 'num';
         headerRow.appendChild(th);
       });
       thead.appendChild(headerRow);
@@ -135,27 +133,26 @@
 
         const nameCell = document.createElement('td');
         nameCell.textContent = r.type;
-        nameCell.style.padding = '8px';
         row.appendChild(nameCell);
 
         // Labels with a proportional bar.
         const labelsCell = document.createElement('td');
-        labelsCell.style.cssText = 'padding:8px;text-align:right';
+        labelsCell.className = 'num';
         const num = document.createElement('div');
         num.textContent = fmt(r.labels);
         labelsCell.appendChild(num);
         const barOuter = document.createElement('div');
-        barOuter.style.cssText = 'background:#eee;border-radius:3px;height:8px;margin-top:4px';
+        barOuter.className = 'count-bar-container';
         const barInner = document.createElement('div');
-        barInner.style.cssText = `height:8px;border-radius:3px;background:#78B9AB;`
-          + `width:${maxLabels > 0 ? ((r.labels || 0) / maxLabels) * 100 : 0}%`;
+        barInner.className = 'count-bar-fill';
+        barInner.style.width = `${maxLabels > 0 ? ((r.labels || 0) / maxLabels) * 100 : 0}%`;
         barOuter.appendChild(barInner);
         labelsCell.appendChild(barOuter);
         row.appendChild(labelsCell);
 
         [r.labels_validated, r.labels_validated_agree, r.labels_validated_disagree].forEach((v) => {
           const cell = document.createElement('td');
-          cell.style.cssText = 'padding:8px;text-align:right';
+          cell.className = 'num';
           cell.textContent = fmt(v);
           row.appendChild(cell);
         });

@@ -1,14 +1,16 @@
 /**
  * Drives the Manage user page beside a user's dashboard (#4964): saves the admin-editable account settings in one PUT
  * to /adminapi/saveUserSettings, sets or clears the low-quality/incomplete flags on every task the user completed
- * before a chosen date, and localizes the Explore-comment timestamps. A rejected save (username taken, a permission
- * rule) comes back as a 400 whose message is shown inline without applying anything.
+ * before a chosen date, fills in the user's cross-city logged hours, and localizes the Explore-comment timestamps. A
+ * rejected save (username taken, a permission rule) comes back as a 400 whose message is shown inline without
+ * applying anything.
  */
 class AdminUser {
   #userId;
   #username;
   #saveUrl;
   #flagsUrl;
+  #hoursUrl;
   #pageUrlFor;
   #saveBtn;
   #saveStatus;
@@ -19,6 +21,7 @@ class AdminUser {
    * @param {string} opts.username - Their current username.
    * @param {string} opts.saveUrl - Endpoint the settings form PUTs to.
    * @param {string} opts.flagsUrl - Endpoint the by-date task flags PUT to.
+   * @param {string} opts.hoursUrl - Endpoint serving this user's cross-city logged hours.
    * @param {(username: string) => string} opts.pageUrlFor - This page's URL for a given username; the page is
    *     keyed by username, so a rename navigates to the renamed address.
    */
@@ -27,6 +30,7 @@ class AdminUser {
     this.#username = opts.username;
     this.#saveUrl = opts.saveUrl;
     this.#flagsUrl = opts.flagsUrl;
+    this.#hoursUrl = opts.hoursUrl;
     this.#pageUrlFor = opts.pageUrlFor;
     this.#saveBtn = document.getElementById('au-save-btn');
     this.#saveStatus = document.getElementById('au-save-status');
@@ -41,6 +45,92 @@ class AdminUser {
       const at = new Date(el.getAttribute('datetime'));
       if (!Number.isNaN(at.getTime())) el.textContent = moment(at).format('lll');
     });
+
+    this.#loadHours();
+  }
+
+  /**
+   * Fills the hours KPI and its per-city breakdown from the endpoint (#4986).
+   *
+   * Every displayed number comes from the payload as-sent: `total_hours` is already the sum of the rows to the tenth,
+   * and `show_breakdown` is already decided, so this renders the same figures the volunteer reads on /timeCheck rather
+   * than a second opinion assembled here.
+   */
+  async #loadHours() {
+    const kpi = document.getElementById('au-hours-kpi');
+    const value = document.getElementById('au-hours-value');
+    if (!kpi || !value) return;
+
+    let data;
+    try {
+      const res = await fetch(this.#hoursUrl, { headers: { Accept: 'application/json' } });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      data = await res.json();
+    } catch (e) {
+      console.error('Cross-city hours failed to load', e);
+      value.textContent = '—';
+      kpi.removeAttribute('aria-busy');
+      AdminUser.#showNote('Couldn\'t total this user\'s hours. Reload to try again.');
+      return;
+    }
+
+    const cities = Array.isArray(data.cities) ? data.cities : [];
+    const total = Number(data.total_hours) || 0;
+    value.textContent = `${total.toFixed(1)} h`;
+    kpi.removeAttribute('aria-busy');
+    const label = document.getElementById('au-hours-label');
+    if (cities.length > 1 && label) label.textContent = 'Exploring & validating, all cities';
+    if (data.show_breakdown) AdminUser.#renderHoursCities(cities);
+
+    // An unreached city may have held hours, so the total is a floor. An admin verifying a claim needs to know that
+    // before deciding the user overstated it.
+    const missed = data.unreachable_cities || 0;
+    if (missed > 0) {
+      const cityWord = missed === 1 ? '1 city' : `${missed} cities`;
+      const retry = 'Reload in a few minutes; if it persists, those deployments aren\'t answering.';
+      AdminUser.#showNote(`Couldn't total ${cityWord} just now, so these hours may read low. ${retry}`);
+    }
+
+    const status = document.getElementById('au-hours-status');
+    if (status) status.textContent = `Logged hours loaded: ${total.toFixed(1)} hours.`;
+  }
+
+  /**
+   * Builds the per-city hours table and reveals it.
+   * @param {Array<Object>} cities - Per-city rows from the endpoint, most hours first.
+   */
+  static #renderHoursCities(cities) {
+    const holder = document.getElementById('au-hours-cities-table');
+    const section = document.getElementById('au-hours-cities');
+    if (!holder || !section || !cities.length) return;
+
+    const rows = cities.map((city) => `
+      <tr>
+        <th scope="row">${AdminUser.#esc(city.city_name)}${city.is_current_city ? ' (this deployment)' : ''}</th>
+        <td class="num">${Number(city.hours).toFixed(1)}</td>
+      </tr>`).join('');
+    holder.innerHTML = `
+      <table class="ps-table ps-table--compact ud-admin-table" aria-labelledby="au-hours-cities-title">
+        <thead>
+          <tr><th scope="col">City</th><th scope="col" class="num">Hours</th></tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+    section.hidden = false;
+  }
+
+  /** @param {string} text - Message for the note beneath the hours KPIs. */
+  static #showNote(text) {
+    const note = document.getElementById('au-hours-note');
+    if (!note) return;
+    note.textContent = text;
+    note.hidden = false;
+  }
+
+  /** @param {string} s - Text going into an HTML string. @returns {string} It, with HTML metacharacters escaped. */
+  static #esc(s) {
+    return String(s).replace(/[&<>"']/g, (c) =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\'': '&#39;' }[c]));
   }
 
   /** Reads the form, PUTs it, and reflects the outcome (and any new computed quality) on the page. */

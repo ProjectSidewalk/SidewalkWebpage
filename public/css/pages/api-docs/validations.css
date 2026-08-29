@@ -1,0 +1,243 @@
+/**
+ * Project Sidewalk API Documentation - Validations Component Styles
+ *
+ * This stylesheet contains styles specific to the Validations component and works in conjunction with the main
+ * api-docs.css file.
+ */
+
+/* ==========================================================================
+   COMPONENT CONTAINERS
+   ========================================================================== */
+
+#validations-preview {
+  margin: var(--space-lg) 0;
+  width: 100%;
+}
+
+/* ==========================================================================
+   VALIDATION CHARTS LAYOUT
+   ========================================================================== */
+
+/* Grid layout for validation charts */
+.validation-charts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--space-lg);
+  margin: var(--space-lg) 0;
+}
+
+/* Individual chart container */
+.validation-chart-container {
+  background-color: var(--color-neutral-100);
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--border-radius);
+  padding: var(--space-md);
+  text-align: center;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.validation-chart-container:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--box-shadow);
+}
+
+/* Chart title styling */
+.chart-title {
+  font: var(--text-subtitle-bold);
+  margin-bottom: var(--space-md);
+  color: var(--color-neutral-900);
+  border-bottom: 1px solid var(--color-neutral-200);
+  padding-bottom: var(--space-xs);
+}
+
+/* Chart canvas container */
+.chart-canvas-container {
+  height: 250px;
+  width: 100%;
+  position: relative;
+}
+
+/* ==========================================================================
+   VALIDATION SUMMARY SECTION
+   ========================================================================== */
+
+/* Summary statistics container */
+.validation-summary {
+  background-color: var(--color-blue-300);
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--border-radius);
+  padding: var(--space-lg);
+  margin: var(--space-lg) 0;
+  text-align: center;
+}
+
+.validation-summary h3 {
+  margin-top: 0;
+  margin-bottom: var(--space-md);
+  color: var(--color-neutral-900);
+}
+
+/* Summary stats grid */
+.summary-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--space-md);
+  margin-top: var(--space-md);
+}
+
+.summary-stat-item {
+  padding: var(--space-sm);
+  border-radius: var(--border-radius-sm);
+  background-color: var(--color-neutral-white);
+  border: 1px solid var(--color-neutral-200);
+}
+
+.summary-stat-value {
+  font: var(--text-title-bold);
+  color: var(--color-neutral-900);
+}
+
+.summary-stat-label {
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+  margin-top: var(--space-xs);
+}
+
+/* ==========================================================================
+   LOADING AND ERROR STATES
+   ========================================================================== */
+
+.validation-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xxl);
+  color: var(--color-neutral-700);
+}
+
+.validation-loading .loading-spinner {
+  margin-bottom: var(--space-md);
+}
+
+.validation-error {
+  color: var(--color-error-200);
+  text-align: center;
+  padding: var(--space-xxl);
+  background-color: rgb(from var(--color-error-200) r g b / 10%);
+  border: 1px solid var(--color-error-200);
+  border-radius: var(--border-radius);
+  margin: var(--space-lg) 0;
+}
+
+/* Empty state for charts with no data */
+.chart-empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--color-neutral-700);
+  font: var(--text-small-regular);
+  font-style: italic;
+}
+
+/* ==========================================================================
+   VALIDATION RESULT INDICATORS
+   ========================================================================== */
+
+/* Legend for validation result types */
+.validation-legend {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-lg);
+  margin: var(--space-md) 0;
+  flex-wrap: wrap;
+}
+
+.validation-legend-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font: var(--text-small-regular);
+}
+
+.validation-legend-color {
+  width: 16px;
+  height: 16px;
+  border-radius: var(--border-radius-sm);
+  border: 1px solid var(--color-neutral-200);
+}
+
+/* Color indicators for validation results, matching the Validate tool's agree/disagree/unsure palette. */
+.result-agree {
+  background-color: var(--color-pine-500);
+}
+
+.result-disagree {
+  background-color: var(--color-orange-500);
+}
+
+.result-unsure {
+  background-color: var(--color-banana-500);
+}
+
+/* ==========================================================================
+   RESPONSIVE DESIGN
+   ========================================================================== */
+
+/* var(--breakpoint-md) */
+@media (width <= 992px) {
+  .validation-charts-grid {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--space-md);
+  }
+
+  .summary-stats-grid {
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  }
+}
+
+/* var(--breakpoint-sm) */
+@media (width <= 768px) {
+  .validation-charts-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-md);
+  }
+
+  .validation-chart-container {
+    padding: var(--space-sm);
+  }
+
+  .chart-canvas-container {
+    height: 200px;
+  }
+
+  .chart-title {
+    font: var(--text-body-bold);
+  }
+
+  .validation-legend {
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-sm);
+  }
+
+  .summary-stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* var(--breakpoint-xs) */
+@media (width <= 480px) {
+  .validation-charts-grid {
+    gap: var(--space-sm);
+  }
+
+  .validation-chart-container {
+    padding: var(--space-xs);
+  }
+
+  .chart-canvas-container {
+    height: 180px;
+  }
+}

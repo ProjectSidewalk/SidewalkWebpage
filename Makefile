@@ -1,8 +1,9 @@
-.PHONY: dev docker-up docker-up-db docker-run docker-stop ssh qa-worktree qa-worktree-stop worktree-remove test-e2e \
+.PHONY: dev docker-up docker-up-db docker-run docker-stop ssh qa-worktree qa-worktree-stop worktree-remove \
+        test-e2e test-e2e-host \
         test-python test-python-app test-python-tools \
         import-users import-dump create-new-schema fill-new-schema hide-streets-without-imagery \
         import-street-imagery reveal-or-hide-neighborhoods \
-        lint lint-fix lint-evolutions lint-locales scalafmt scalafmt-fix \
+        lint lint-fix lint-evolutions lint-locales lint-css-layout scalafmt scalafmt-fix \
         eslint htmlhint stylelint eslint-fix stylelint-fix \
         lint-eslint lint-htmlhint lint-stylelint lint-fix-eslint lint-fix-stylelint
 
@@ -44,6 +45,32 @@ RESET := \033[0m
 # stylelint only accepts file paths/globs, so a dir= that isn't already a .css file/glob gets /**/*.css appended.
 css-glob = $(if $(filter %.css,$(dir)),$(dir),$(dir)/**/*.css)
 
+# The browser smoke suite's runner image (docker/e2e/Dockerfile), tagged with the @playwright/test version read out
+# of package.json — the base image bundles the matching Chromium, so deriving both from one pin is what keeps the
+# runner and the browser from drifting apart when Dependabot bumps it. The sed expression is plain BRE for macOS.
+# Simply-expanded so the subprocess runs once per make invocation rather than once per expansion.
+pw-version := $(shell sed -n 's/.*"@playwright\/test"[^0-9]*\([0-9][0-9.]*\)".*/\1/p' package.json)
+e2e-image   = projectsidewalk/e2e
+# The main repo is the container's /home, so a worktree's specs are just a different working directory.
+e2e-workdir = $(if $(wt),/home/.claude/worktrees/$(wt),/home)
+# Playwright writes test-results/ into the bind-mounted repo, and the base image has no USER — so without this the
+# reports, traces, and the setup project's saved storageState all land root-owned, and neither a plain `rm -rf` nor
+# host-side `make worktree-remove` can clear them. HOME goes to /tmp because the invoking uid has no passwd entry.
+e2e-uid    := $(shell id -u)
+e2e-user   := $(e2e-uid):$(shell id -g)
+# Playwright wipes its output directory at the start of every run, so one left root-owned — by a run that predates
+# --user, or by any root container — stops the non-root runner with EACCES before a single test starts. Repair it
+# in place instead of sending the developer to sudo. Held in a variable, not written inline in the recipe, because
+# make condenses a variable's backslash-continuations to spaces at parse time and the container's shell would
+# otherwise receive them literally inside the single-quoted script (same reason as qa-worktree-exec).
+e2e-fix-artifact-owner = cd $(e2e-workdir) 2>/dev/null || exit 0; \
+  for d in test-results playwright-report; do \
+    [ -d "$$d" ] || continue; \
+    [ "$$(stat -c %u "$$d")" = "$(e2e-uid)" ] && continue; \
+    echo "==> repairing ownership of $$d, left root-owned by an earlier run"; \
+    chown -R $(e2e-user) "$$d"; \
+  done
+
 dev: | docker-up-db docker-run
 
 eslint: | lint-eslint
@@ -60,7 +87,7 @@ stylelint-fix: | lint-fix-stylelint
 # then prints a ✓/✗ per linter and a colored summary. Exits non-zero if any failed.
 lint:
 	@fail=0; \
-	for t in lint-eslint lint-htmlhint lint-stylelint lint-locales lint-evolutions; do \
+	for t in lint-eslint lint-htmlhint lint-stylelint lint-locales lint-css-layout lint-evolutions; do \
 		if $(MAKE) --no-print-directory $$t; then \
 			printf "$(GREEN)✓ %s passed$(RESET)\n" "$$t"; \
 		else \
@@ -155,10 +182,53 @@ test-python-app:
 test-python-tools:
 	@docker exec -it $(cov-omit-tools) $(web-container) sh -c "cd /home && python3.13 -m pytest $(pytest-args-tools) $(args)"
 
-# Browser smoke tests (test/e2e/) HOST-side against an already-running app at localhost:9000 (override with
-# BASE_URL=). Unlike the other targets this doesn't docker exec — Playwright drives a host browser. One-time
-# setup: `npm install && npx playwright install chromium`. Extra flags via args=, e.g. args="-g labelMap --headed".
+# Browser smoke tests (test/e2e/) against an already-running app at localhost:9000. Like every other tooling target
+# this runs in a container, so it behaves the same on Linux, WSL2, and macOS (Intel and Apple Silicon) with no host
+# Node, browser, or `playwright install` — the official Playwright base image ships Chromium plus its OS deps and is
+# multi-arch. Two flags place the runner: `--network container:` puts it in the web container's network
+# namespace, so the app answers at localhost:9000 — the only host conf/application.local.conf's
+# play.filters.hosts.allowed permits, and the same URL CI uses; `--volumes-from` gives it the web container's
+# mounts, so /home is the repo and worktree paths resolve unchanged. Two more make it behave: see the notes on
+# `--tmpfs` below and on e2e-user above. Scope with args=, e.g.
+# args="-g labelMap --no-deps". Without wt= it runs the MAIN checkout's specs even when invoked from a worktree
+# (the container sees one filesystem); pass wt=<name> for that worktree's, as with qa-worktree. For --headed/--ui,
+# see test-e2e-host. The image build is a cached no-op after the first run, and re-runs itself on a version bump —
+# it's only verbose when the tag is missing, since that first build downloads the base image.
+#
+# `--tmpfs /home/node_modules` is load-bearing, not tidiness: NODE_PATH is consulted only after the node_modules
+# walk fails, so the repo's own node_modules — which carries @playwright/test, a devDependency installed into the
+# web image — would resolve the specs to a second copy of the module while the CLI keeps the image's. Playwright
+# then aborts with "did not expect test() to be called here ... two different versions of @playwright/test". An
+# empty dir at that path is what makes resolution fall through to the runner we installed. It covers worktrees
+# too, whose node_modules is a symlink to this one.
 test-e2e:
+	@docker inspect -f '{{.State.Running}}' $(web-container) 2>/dev/null | grep -q true \
+	  || { echo "error: $(web-container) is not running — start it with 'make docker-up', and make sure the app is up on :9000"; exit 2; }
+	@[ -n "$(pw-version)" ] \
+	  || { echo "error: no @playwright/test version found in package.json — is it still listed as a devDependency?"; exit 2; }
+	@[ -z "$(wt)" ] || docker exec $(web-container) test -d $(e2e-workdir) \
+	  || { echo "error: no worktree at $(e2e-workdir) (from wt=$(wt))"; exit 2; }
+	@docker exec $(web-container) sh -c '$(e2e-fix-artifact-owner)'
+	@if docker image inspect $(e2e-image):$(pw-version) > /dev/null 2>&1; then \
+	  docker build --quiet --build-arg PW_VERSION=$(pw-version) -t $(e2e-image):$(pw-version) docker/e2e > /dev/null; \
+	else \
+	  echo "==> building the Playwright runner image (first run for $(pw-version): downloads ~2GB)"; \
+	  docker build --build-arg PW_VERSION=$(pw-version) -t $(e2e-image):$(pw-version) docker/e2e; \
+	fi
+	@docker run --rm --init --ipc=host \
+	  --network container:$(web-container) --volumes-from $(web-container) --tmpfs /home/node_modules \
+	  --user $(e2e-user) -e HOME=/tmp -e FORCE_COLOR=1 -e BASE_URL -e HAS_REAL_GMAPS_KEY \
+	  -w $(e2e-workdir) $(e2e-image):$(pw-version) playwright test $(args)
+
+# Host-side run of the same suite, for `--headed`, `--ui`, and `show-trace` — those need a display the container
+# doesn't have. Needs a host toolchain the containerized path does not: Node 23, `npm install` at the repo root
+# (the container's node_modules is a Docker volume, invisible from the host), and `npx playwright install chromium`,
+# plus `sudo npx playwright install-deps` on Linux/WSL. See test/e2e/README.md.
+test-e2e-host:
+	@command -v npx > /dev/null \
+	  || { echo "error: no host Node — this target needs one (see test/e2e/README.md); 'make test-e2e' needs none"; exit 2; }
+	@[ -d node_modules/@playwright/test ] \
+	  || { echo "error: @playwright/test isn't installed on the host — run 'npm install && npx playwright install chromium'"; exit 2; }
 	@npx playwright test $(args)
 
 reveal-or-hide-neighborhoods:
@@ -174,6 +244,14 @@ lint-locales:
 	@echo "Checking locale parity...";
 	@docker exec $(web-container) bash -lc "cd /home && node tools/check-locale-parity.mjs"
 	@echo "Finished checking locale parity";
+
+# Layout of public/css/ (#5030): a page's stylesheet is linked only by that page, page class prefixes stay in the
+# page's own files, and every linked stylesheet exists. Pure node, run in the web container so node is present. Also a
+# blocking CI step.
+lint-css-layout:
+	@echo "Checking CSS layout...";
+	@docker exec $(web-container) bash -lc "cd /home && node tools/check-css-layout.mjs"
+	@echo "Finished checking CSS layout";
 
 # Scala formatting (.scalafmt.conf). The sbt thin client (`--client`) shares the running `sbt ~ run`'s server instead
 # of colliding with it over build locks. `scalafmt` checks (the blocking CI gate); `scalafmt-fix` reformats in place.

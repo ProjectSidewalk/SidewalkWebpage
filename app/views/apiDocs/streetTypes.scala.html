@@ -18,19 +18,19 @@
     });
   </script>
 
-  <div class="api-section" id="street-types-intro-section">
-    <h1 class="api-heading" id="street-types-api">Street Types API <a href="#street-types-api" class="permalink">#</a></h1>
+  <div class="page-section" id="street-types-intro-section">
+    <h1 class="page-heading" id="street-types-api">Street Types API <a href="#street-types-api" class="permalink">#</a></h1>
     <p>The Street Types API provides information about the different types of streets (<a href="https://wiki.openstreetmap.org/wiki/Way">way types</a>) used by Project Sidewalk. Project Sidewalk pre-filters streets based on their <a href="https://wiki.openstreetmap.org/wiki/Key:highway#Roads">OpenStreetMap classification</a> (<i>e.g.,</i> residential, primary, secondary) to ensure that the data collected is relevant and useful for sidewalks. Note: each Project Sidewalk city may have a different set of street types.</p>
     <p>You can filter streets by type or analyze the correspondence between problem labels and street types using the <a href="@routes.ApiDocsController.streets">Streets API</a>.</p>
   </div>
 
-  <div class="api-section" id="visual-example-section">
-    <h2 class="api-heading" id="visual-example">Street Types API Preview <a href="#visual-example" class="permalink">#</a></h2>
+  <div class="page-section" id="visual-example-section">
+    <h2 class="page-heading" id="visual-example">Street Types API Preview <a href="#visual-example" class="permalink">#</a></h2>
     <p>Below is a live Street Types API preview of the distribution of street segments by street type used by Project Sidewalk in <strong>@cityName</strong>, sorted by prevalence:</p>
 
     <div id="street-types-preview">Loading street types data...</div>
 
-    <link rel="stylesheet" href="@assets.path("css/api-docs/street-types.css")">
+    <link rel="stylesheet" href="@assets.path("css/pages/api-docs/street-types.css")">
     <script src="@routes.Assets.versioned("js/api-docs/streetTypesPreview.js")"></script>
     <script>
       // Initialize the street types preview
@@ -42,18 +42,18 @@
     </script>
   </div>
 
-  <div class="api-section" id="endpoint-section">
-    <h2 class="api-heading" id="endpoint">Endpoint <a href="#endpoint" class="permalink">#</a></h2>
+  <div class="page-section" id="endpoint-section">
+    <h2 class="page-heading" id="endpoint">Endpoint <a href="#endpoint" class="permalink">#</a></h2>
     <p>Retrieve a list of all street types with their metadata and counts.</p>
     <p><code>GET /v3/api/streetTypes</code></p>
     <div class="api-subsection" id="endpoint-example-section">
-      <h3 class="api-heading" id="endpoint-examples">Examples<a href="#endpoint-examples" class="permalink">#</a></h3>
+      <h3 class="page-heading" id="endpoint-examples">Examples<a href="#endpoint-examples" class="permalink">#</a></h3>
       <p><code><a target="_blank" href="/v3/api/streetTypes">/v3/api/streetTypes</a></code> Get all street types in JSON</p>
     </div>
   </div>
 
-  <div class="api-section" id="quick-download-section">
-    <h2 class="api-heading" id="quick-download">Quick Download <a href="#quick-download" class="permalink">#</a></h2>
+  <div class="page-section" id="quick-download-section">
+    <h2 class="page-heading" id="quick-download">Quick Download <a href="#quick-download" class="permalink">#</a></h2>
     <p>Download street types data directly in JSON:</p>
 
     <div class="download-buttons">
@@ -70,10 +70,10 @@
     </div>
   </div>
 
-  <div class="api-section" id="responses-section">
-    <h2 class="api-heading" id="responses">Responses<a href="#responses" class="permalink">#</a></h2>
+  <div class="page-section" id="responses-section">
+    <h2 class="page-heading" id="responses">Responses<a href="#responses" class="permalink">#</a></h2>
 
-    <h3 class="api-heading" id="success-response-200-ok">Success Response (200 OK)<a href="#success-response-200-ok" class="permalink">#</a></h3>
+    <h3 class="page-heading" id="success-response-200-ok">Success Response (200 OK)<a href="#success-response-200-ok" class="permalink">#</a></h3>
     <p>On success, the API returns an HTTP <code>200 OK</code> status code and a JSON object containing an array of street types.</p>
 
     <pre><code class="language-json">{
@@ -93,9 +93,9 @@
   ]
 }</code></pre>
 
-    <h4 class="api-heading" id="response-fields">Response Fields <a href="#response-fields" class="permalink">#</a></h4>
-    <div class="api-table-wrapper">
-      <table class="api-table">
+    <h4 class="page-heading" id="response-fields">Response Fields <a href="#response-fields" class="permalink">#</a></h4>
+    <div class="ps-table-wrapper">
+      <table class="ps-table">
         <thead>
           <tr>
             <th>Field</th>
@@ -133,7 +133,7 @@
       </table>
     </div>
 
-    <h3 class="api-heading" id="error-responses">Error Responses<a href="#error-responses" class="permalink">#</a></h3>
+    <h3 class="page-heading" id="error-responses">Error Responses<a href="#error-responses" class="permalink">#</a></h3>
     <p>If an error occurs, the API will return an appropriate HTTP status code and a JSON response body containing details about the error.</p>
     <ul>
       <li><strong><code>500 Internal Server Error</code>:</strong> An unexpected error occurred on the server.</li>
