@@ -874,7 +874,9 @@ button.label-detail__meta-cell:focus-visible {
 .label-detail__comment-avatar--4 { background: var(--color-banana-700); }
 .label-detail__comment-avatar--5 { background: var(--color-asphalt-200); }
 
-/* The commenter's current vote (#5015), in the same colors the pano ring and overlay buttons give each vote. */
+/* The commenter's current vote (#5015), in the same colors the pano ring and overlay buttons give each vote. Black
+   on each of the three backgrounds clears WCAG AAA for text (10.7:1 on pine-500, 7.1:1 on orange-500, 14.3:1 on
+   asphalt-100), and the glyph inherits that same color rather than the icon files' hardcoded #242424. */
 .label-detail__comment-vote {
   display: inline-flex;
   align-items: center;
@@ -887,14 +889,14 @@ button.label-detail__meta-cell:focus-visible {
   vertical-align: middle;
 }
 
-.label-detail__comment-vote img {
-  width: 11px;
-  height: 11px;
+.label-detail__comment-vote svg {
+  width: 12px;
+  height: 12px;
   display: block;
 }
 
 .label-detail__comment-vote--agree    { background: var(--color-pine-500); }
-.label-detail__comment-vote--disagree { background: #eb734d; }
+.label-detail__comment-vote--disagree { background: var(--color-orange-500); }
 .label-detail__comment-vote--unsure   { background: var(--color-asphalt-100); }
 
 /* When the comment was left (relative time; exact date in the tooltip). */

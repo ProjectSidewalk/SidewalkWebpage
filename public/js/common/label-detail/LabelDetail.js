@@ -126,6 +126,7 @@ class LabelDetail {
   #aiValidation;
   #comments;
   #myCommentIdx;
+  #commentStatusTimer = null;
   #shareWidget;
   #storySection;
   #highlightStoryId;
@@ -777,6 +778,13 @@ class LabelDetail {
     this.#updateCommentRow();
   }
 
+  /** The prompt each vote puts on the comment box's label and placeholder. Its keys are also the votes that open it. */
+  static #COMMENT_PROMPT_KEYS = {
+    Agree: 'labelmap:why-agree',
+    Disagree: 'labelmap:why-disagree',
+    Unsure: 'labelmap:why-unsure',
+  };
+
   /**
    * Shows the comment box alongside the user's vote, with a per-vote prompt: Disagree/Unsure ask for the
    * reasoning behind the dispute, Agree invites an optional note (#5015). Comments stay tied to a vote —
@@ -787,13 +795,11 @@ class LabelDetail {
     const els = this.#els;
     if (!els.commentRow) return;
     const action = this.#prevAction;
-    const show = !this.#locked && (action === 'Agree' || action === 'Disagree' || action === 'Unsure');
+    const show = !this.#locked && Object.hasOwn(LabelDetail.#COMMENT_PROMPT_KEYS, action ?? '');
     const wasOpen = els.commentRow.classList.contains('is-open');
     els.commentRow.classList.toggle('is-open', show);
     if (show) {
-      const promptKeys
-              = { Agree: 'labelmap:why-agree', Disagree: 'labelmap:why-disagree', Unsure: 'labelmap:why-unsure' };
-      const prompt = i18next.t(promptKeys[action]);
+      const prompt = i18next.t(LabelDetail.#COMMENT_PROMPT_KEYS[action]);
       els.commentInput.placeholder = prompt;
       if (els.commentLabel) els.commentLabel.textContent = prompt;
       if (!wasOpen && focusOnReveal) els.commentInput.focus();
@@ -934,9 +940,11 @@ class LabelDetail {
       this.#updateVoteCount(newAction);
       this.#highlightVote(newAction);
       // Clearing a vote — and changing one (the `redone` flag) — deletes the user's comment server-side; drop it
-      // here too so the list and its vote chips (#5015) match what a reload would show.
-      if (undone || data.redone) this.#dropOwnComment();
+      // here too so the list and its vote chips (#5015) match what a reload would show. The row has to settle
+      // before the removal is announced, since the announcer lives inside it.
+      const commentDropped = (undone || data.redone) && this.#dropOwnComment();
       this.#updateCommentRow(true);
+      if (commentDropped) this.#flashCommentStatus('labelmap:comment-cleared');
       this.#setVoteButtonsDisabled(false);
       if (isNewValidation) BadgeAchievements.recordValidation(this.panoManager.svHolder[0]);
       if (typeof this.#onVote === 'function') this.#onVote(newAction, this.#currentLabelMeta);
@@ -958,19 +966,43 @@ class LabelDetail {
   }
 
   /**
-   * Removes the current user's validator comment from the rendered list, mirroring the server-side delete that rides
-   * along with clearing a vote. No-op when they hadn't commented.
+   * Removes the current user's validator comments from the rendered list, mirroring the server-side delete that
+   * rides along with clearing or changing a vote. No-op when they hadn't commented.
    *
-   * Re-finds the comment by identity rather than trusting the stored #myCommentIdx: the index is only valid for the
-   * list as it stood when it was computed, and this runs a network round-trip later.
+   * Drops *every* one of their comments, not just the first: comments are keyed by (label, user) and a user can hold
+   * more than one on a label (#4942), which is exactly what `ValidationTaskCommentTable.deleteIfExists` clears. Also
+   * re-finds them by identity rather than trusting the stored #myCommentIdx, since that index is only valid for the
+   * list as it stood when it was computed and this runs a network round-trip later.
+   *
+   * @returns {boolean} Whether anything was actually removed.
    */
   #dropOwnComment() {
-    if (!this.#comments) return;
-    const idx = this.#comments.findIndex((c) => this.#isOwnComment(c));
-    if (idx < 0) return;
-    this.#comments.splice(idx, 1);
+    if (!this.#comments) return false;
+    const remaining = this.#comments.filter((c) => !this.#isOwnComment(c));
+    if (remaining.length === this.#comments.length) return false;
+    this.#comments = remaining;
     this.#myCommentIdx = -1;
     this.#renderComments();
+    return true;
+  }
+
+  /**
+   * Flashes a message in the comment row's polite live region.
+   *
+   * That region carries a `data-i18n` default for the submit case, but setting its text here lets both outcomes
+   * share one announcer rather than adding a second `aria-live` node for them to talk over each other with. It
+   * lives inside the comment row, so a closed row has nowhere to say this — an `aria-live` node in a `display: none`
+   * subtree is announced to no one — and the caller is expected to have settled the row's state first.
+   *
+   * @param {string} key - i18next key for the message to announce.
+   */
+  #flashCommentStatus(key) {
+    const el = this.#els.commentConfirm;
+    if (!el || !this.#els.commentRow?.classList.contains('is-open')) return;
+    clearTimeout(this.#commentStatusTimer);
+    el.textContent = i18next.t(key);
+    el.hidden = false;
+    this.#commentStatusTimer = setTimeout(() => { el.hidden = true; }, 1500);
   }
 
   /**
@@ -1667,8 +1699,80 @@ class LabelDetail {
   // ───────────────────────────────────────────────────────────────────
 
   /**
-   * Renders the validator comments list. In admin mode each entry is an object {username, comment} and the username
-   * is hyperlinked to /admin/user/<username>. Non-admin mode receives bare strings, so we just render the text.
+   * The thumbs-up / thumbs-down / question glyphs the vote chip draws, keyed by vote. These are the path data from
+   * images/icons/validation/{vote}-outline.svg, inlined for the same two reasons AVATAR_SVG below is: the icon files
+   * hardcode their stroke color, and their `stroke-width: 1` over a 20-unit viewBox thins to a sub-pixel hairline at
+   * chip size. Inlined they inherit `currentColor` — so the glyph's contrast is the chip text's contrast — at a
+   * stroke tuned for this size (#5015).
+   */
+  static #VOTE_GLYPH_PATHS = {
+    Agree: ['M7.04837 9.16083L9.48707 3C9.97215 3 10.4374 3.19651 10.7804 3.54631C11.1234 3.8961 11.3161 4.93574 '
+        + '11.3161 5.43042V7.91736H14.7668C14.9436 7.91532 15.1187 7.95249 15.2799 8.0263C15.4412 8.10011 15.5848 '
+        + '8.20879 15.7008 8.34482C15.8168 8.48084 15.9024 8.64095 15.9516 8.81406C16.0009 8.98717 16.0127 9.16914 '
+        + '15.9862 9.34736L15.1448 14.943C15.1008 15.2395 14.9531 15.5097 14.729 15.704C14.5049 15.8982 14.2196 '
+        + '16.0033 13.9255 15.9999H7.04837M7.04837 9.16083V15.9999M7.04837 9.16083H5.21935C4.89596 9.16083 4.58581 '
+        + '9.29184 4.35714 9.52504C4.12847 9.75823 4 10.0745 4 10.4043V14.7565C4 15.0862 4.12847 15.4025 4.35714 '
+        + '15.6357C4.58581 15.8689 4.89596 15.9999 5.21935 15.9999H7.04837'],
+    Disagree: ['M7.04837 10.8392L9.48707 17C9.97215 17 10.4374 16.8035 10.7804 16.4537C11.1234 16.1039 11.3161 '
+        + '15.0643 11.3161 14.5696V12.0826H14.7668C14.9436 12.0847 15.1187 12.0475 15.2799 11.9737C15.4412 11.8999 '
+        + '15.5848 11.7912 15.7008 11.6552C15.8168 11.5192 15.9024 11.359 15.9516 11.1859C16.0009 11.0128 16.0127 '
+        + '10.8309 15.9862 10.6526L15.1448 5.05703C15.1008 4.76052 14.9531 4.49025 14.729 4.29602C14.5049 4.10179 '
+        + '14.2196 3.99669 13.9255 4.00008H7.04837M7.04837 10.8392V4.00008M7.04837 10.8392H5.21935C4.89596 10.8392 '
+        + '4.58581 10.7082 4.35714 10.475C4.12847 10.2418 4 9.92548 4 9.5957V5.24355C4 4.91376 4.12847 4.59748 '
+        + '4.35714 4.36428C4.58581 4.13109 4.89596 4.00008 5.21935 4.00008H7.04837'],
+    Unsure: ['M4.66667 9.25L5.99026 9.25C6.54865 9.25 7.10308 9.34353 7.63056 9.52671L12.1812 11.107C12.8428 '
+        + '11.3368 13.3361 11.896 13.4815 12.5812L13.5848 13.0682M4.66667 9.25V15.2955M4.66667 9.25H3C2.44772 9.25 '
+        + '2 9.69772 2 10.25V14.2955C2 14.8477 2.44772 15.2955 3 15.2955H4.66667M4.66667 15.2955L9.84287 '
+        + '16.0901C10.5297 16.1955 11.2309 16.1567 11.9018 15.976L17.3819 14.5001C17.7447 14.4024 18.0602 14.0948 '
+        + '17.9507 13.7354C17.8166 13.295 17.3792 12.8963 16.2852 13.0682C14.3724 13.2803 10.0743 13.3227 8.18396 '
+        + '11.7955',
+      'M10 5.19823C10.1026 4.87321 10.4787 4.33616 11.2308 4.54819C12.1538 4.80844 12.4615 6.1733 10.9231 '
+        + '6.82334V7.47337M10.9231 8.94841V9'],
+  };
+
+  /**
+   * Builds the chip that pairs a comment with its author's vote on the label.
+   *
+   * The vote is the commenter's *current* one — the server joins it per (label_id, user_id) rather than storing it
+   * with the comment — so a comment from someone whose vote was since cleared gets no chip (#5015).
+   *
+   * @param {Object|string} c - An entry from #comments. Bare strings and entries with no vote yield null.
+   * @returns {?HTMLSpanElement} The chip, or null when there is no vote to show.
+   */
+  static voteChipFor(c) {
+    const vote = typeof c === 'object' && c !== null ? c.validation : null;
+    if (!Object.hasOwn(LabelDetail.#VOTE_GLYPH_PATHS, vote)) return null;
+    const word = i18next.t(`common:${util.camelToKebab(vote)}`);
+
+    const chip = document.createElement('span');
+    chip.className = `label-detail__comment-vote label-detail__comment-vote--${util.camelToKebab(vote)}`;
+    // Read as one labeled node rather than a bare verb running into the comment text: `role="img"` collapses the
+    // glyph and the word into a single announcement, and the label says whose verdict this is.
+    chip.setAttribute('role', 'img');
+    chip.setAttribute('aria-label', i18next.t('labelmap:commenter-voted', { vote: word }));
+
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 20 20');
+    svg.setAttribute('fill', 'none');
+    svg.setAttribute('stroke', 'currentColor');
+    svg.setAttribute('stroke-width', '1.8');
+    svg.setAttribute('stroke-linecap', 'round');
+    svg.setAttribute('stroke-linejoin', 'round');
+    svg.setAttribute('aria-hidden', 'true');
+    for (const d of LabelDetail.#VOTE_GLYPH_PATHS[vote]) {
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', d);
+      svg.appendChild(path);
+    }
+    chip.appendChild(svg);
+    chip.appendChild(document.createTextNode(word));
+    return chip;
+  }
+
+  /**
+   * Renders the validator comments list. Admin mode receives {username, …} entries and hyperlinks the username to
+   * /admin/user/<username>; non-admin mode receives {comment, mine, …} entries with no identifiers on them. Both
+   * carry the commenter's vote, drawn as a chip beside the text.
    */
   #renderComments() {
     const els = this.#els;
@@ -1704,21 +1808,6 @@ class LabelDetail {
       return avatar;
     };
 
-    // The commenter's current vote on this label — the server joins it per (label_id, user_id), so a comment from
-    // someone whose vote was since cleared has none (#5015).
-    const voteChipFor = (c) => {
-      const vote = typeof c === 'object' && c !== null ? c.validation : null;
-      if (vote !== 'Agree' && vote !== 'Disagree' && vote !== 'Unsure') return null;
-      const chip = document.createElement('span');
-      chip.className = `label-detail__comment-vote label-detail__comment-vote--${vote.toLowerCase()}`;
-      const icon = document.createElement('img');
-      icon.src = `${this.#iconBase}${vote.toLowerCase()}-outline.svg`;
-      icon.alt = '';
-      chip.appendChild(icon);
-      chip.appendChild(document.createTextNode(i18next.t(`common:${vote.toLowerCase()}`)));
-      return chip;
-    };
-
     // Newest first, so a just-submitted comment lands right beneath the input above the list.
     [...this.#comments].reverse().forEach((c, i) => {
       if (i > 0) els.validatorComments.appendChild(document.createElement('hr'));
@@ -1736,7 +1825,7 @@ class LabelDetail {
         return when;
       };
 
-      const voteChip = voteChipFor(c);
+      const voteChip = LabelDetail.voteChipFor(c);
       if (this.#admin && typeof c === 'object' && c !== null) {
         const a = document.createElement('a');
         a.href = `/admin/user/${encodeURI(c.username)}`;
@@ -1797,10 +1886,7 @@ class LabelDetail {
       const body = await res.json();
       els.commentInput.value = '';
       els.commentButton.classList.remove('is-active');
-      els.commentConfirm.hidden = false;
-      setTimeout(() => {
-        els.commentConfirm.hidden = true;
-      }, 1500);
+      this.#flashCommentStatus('labelmap:comment-submitted');
 
       // Update the visible list. Admin views render objects with a username; non-admin views render bare comment
       // strings. Replace the user's existing comment (if any) rather than appending — the backend deletes prior

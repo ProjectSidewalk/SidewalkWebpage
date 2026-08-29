@@ -149,7 +149,16 @@ case class LabelMetadata(
     panoMetadata: Option[PanoViewerMetadata]
 )
 
-// `validation` is the commenter's current vote on the label ("Agree"/"Disagree"/"Unsure"), None if they have none.
+/**
+ * A validator comment on a label, as the shared label-detail card consumes it.
+ *
+ * @param username    Who left the comment.
+ * @param comment     The comment text.
+ * @param timeCreated When it was left.
+ * @param validation  The commenter's current vote on the label ("Agree"/"Disagree"/"Unsure"), joined per
+ *                    (label_id, user_id) rather than stored with the comment, so it is `None` when they have no
+ *                    vote on the label.
+ */
 case class LabelComment(
     username: String,
     comment: String,
@@ -1190,7 +1199,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       ) AS ai_val ON lb1.label_id = ai_val.label_id
       LEFT JOIN (
           SELECT validation_task_comment.label_id,
-                 json_agg(json_build_object('username', username, 'comment', comment,
+                 json_agg(json_build_object('username', sidewalk_user.username,
+                                            'comment', validation_task_comment.comment,
                                             'time_created', validation_task_comment.timestamp,
                                             'validation', label_validation.validation_result)
                           ORDER BY validation_task_comment.timestamp)::text AS comments
