@@ -637,8 +637,11 @@ button.label-detail__meta-cell:focus-visible {
   opacity: 0.6;
 }
 
-/* Editable faces (#2575): dropping --static restores the shared hover wash; the ring marks keyboard focus. */
-.label-detail--editable .label-detail__severity-faces .severity-button:focus-visible {
+/* Editable faces (#2575): dropping --static restores the shared hover wash; the ring marks keyboard focus.
+   The ring follows focusability rather than editability: a face locked for want of imagery keeps its place in the
+   tab order so a keyboard user can land on it and hear why (#5047), and needs the same ring when they do. Only the
+   plain read-only faces, which LabelDetail parks at tabindex="-1", are excluded. */
+.label-detail__severity-faces .severity-button:not([tabindex="-1"]):focus-visible {
   outline: 2px solid var(--color-link-100);
   outline-offset: 2px;
 }
@@ -657,7 +660,12 @@ button.label-detail__meta-cell:focus-visible {
 
 /* Save confirmation beside an editable column's heading (#5047). Severity and tags autosave on click, so this line
    is the only acknowledgement the user gets; it reads as quiet confirmation by default and only turns orange when
-   it is carrying a failure the reader has to act on. */
+   it is carrying a failure the reader has to act on.
+
+   Its visible text has to stay to a word or two. .label-detail__col--severity is `flex: 0 0 auto`, so whatever sits
+   in that header sets the column's width outright — a full sentence widened it by about its own length, squeezing
+   the tags column to its 120px floor for as long as the message was up. LabelDetail keeps the long form in an
+   out-of-flow .sr-only node and on the tooltip instead; see #fillEditStatus. */
 .label-detail__edit-status {
   font: var(--text-tiny-regular);
   color: var(--color-neutral-700);
@@ -1385,6 +1393,7 @@ button.label-detail__meta-cell:focus-visible {
 .label-detail__tags-edit[aria-disabled="true"] {
   color: var(--color-neutral-700);
   cursor: default;
+  text-decoration: none; /* The underline is what makes it read as a live control; off means off. */
 }
 
 .label-detail__story-edit:focus-visible,

@@ -66,6 +66,7 @@
   "edit-tags-label": "Edit tags",
   "done-editing-tags-label": "Done editing tags",
   "edit-failed": "Your change couldn't be saved. Please try again.",
+  "edit-failed-short": "Not saved",
   "no-imagery-disabled": "You cannot validate or comment when no imagery is available for this label",
   "no-imagery-edit-disabled": "You cannot rate this label or edit its tags when no imagery is available for it",
   "admin-only": "Admin only",

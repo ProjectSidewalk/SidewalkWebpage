@@ -621,8 +621,18 @@ describe('LabelDetail edit gating (#5047)', () => {
             faces()[2].click();
             await flush();
 
-            expect(status('severity').textContent).toBe('labelmap:edit-failed');
-            expect(status('severity').classList.contains('label-detail__edit-status--error')).toBe(true);
+            const el = status('severity');
+            // Short inline, because the severity column can't shrink: a sentence in its header sets the column's
+            // width outright and squeezes the tags column beside it for as long as the message is up.
+            expect(el.querySelector('[aria-hidden="true"]').textContent).toBe('labelmap:edit-failed-short');
+            // The sentence explaining the rollback is what the live region announces and what hovering shows; it
+            // rides an out-of-flow node so it costs the column no width.
+            expect(el.querySelector('.sr-only').textContent).toBe('labelmap:edit-failed');
+            expect(el.getAttribute('data-ps-tooltip')).toBe('labelmap:edit-failed');
+            expect(el.classList.contains('label-detail__edit-status--error')).toBe(true);
+            // The column this save didn't speak for carries neither the message nor its styling.
+            expect(status('tags').textContent).toBe('');
+            expect(status('tags').classList.contains('label-detail__edit-status--error')).toBe(false);
             consoleError.mockRestore();
         });
 
@@ -682,12 +692,47 @@ describe('LabelDetail edit gating (#5047)', () => {
                 await jest.advanceTimersByTimeAsync(0);
                 await jest.advanceTimersByTimeAsync(2000);
 
-                expect(status('severity').textContent).toBe('labelmap:edit-failed');
+                expect(status('severity').querySelector('.sr-only').textContent).toBe('labelmap:edit-failed');
                 expect(status('severity').classList.contains('label-detail__edit-status--fading')).toBe(false);
+
+                // And it does eventually leave, the same way a confirmation does.
+                await jest.advanceTimersByTimeAsync(3500);
+                expect(status('severity').textContent).toBe('');
+                expect(status('severity').hasAttribute('data-ps-tooltip')).toBe(false);
             } finally {
                 jest.useRealTimers();
                 consoleError.mockRestore();
             }
+        });
+
+        test('an edit queued behind a page-through still saves to the label it was made on', async () => {
+            // #saveEdit resolves the label at its turn in the queue, which can come after the user has paged on:
+            // reading the open label there would write this change onto whichever label that now is.
+            let releaseFirstSave;
+            saveRequest.mockImplementationOnce((url, opts) => new Promise((resolve) => {
+                releaseFirstSave = () => resolve({ ok: true, status: 200, json: async () => JSON.parse(opts.body) });
+            }));
+            await showLabel({ label_id: 42, severity: 1 });
+            await resolveImagery(true);
+
+            faces()[2].click(); // Held open below, so the second click has to queue behind it.
+            faces()[1].click();
+            await flush();
+
+            setPano = deferred();
+            panoManager.setPano.mockImplementation(() => setPano.promise);
+            await showLabel({ label_id: 99, severity: 1 });
+            await resolveImagery(true);
+
+            releaseFirstSave();
+            await flush();
+
+            expect(savedEdits().map((edit) => edit.label_id)).toEqual([42, 42]);
+            expect(savedEdits()[1].severity).toBe(2);
+            // Nothing the late save draws reaches the card, which is showing a different label now.
+            expect(faces()[1].classList.contains('is-selected')).toBe(false);
+            expect(faces()[0].classList.contains('is-selected')).toBe(true);
+            expect(status('severity').textContent).toBe('');
         });
 
         test('paging to another label clears a confirmation left on screen', async () => {

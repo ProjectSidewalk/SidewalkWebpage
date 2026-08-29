@@ -66,6 +66,7 @@
   "edit-tags-label": "Editar etiquetas",
   "done-editing-tags-label": "Concluir a edição das etiquetas",
   "edit-failed": "Não foi possível salvar a alteração. Tente novamente.",
+  "edit-failed-short": "Não salvo",
   "no-imagery-disabled": "Você não pode validar nem comentar quando não há imagens disponíveis para este rótulo",
   "no-imagery-edit-disabled": "Você não pode avaliar este rótulo nem editar suas etiquetas quando não há imagens disponíveis",
   "admin-only": "Apenas administradores",

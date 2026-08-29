@@ -66,6 +66,7 @@
   "edit-tags-label": "Editar etiquetas",
   "done-editing-tags-label": "Terminar de editar las etiquetas",
   "edit-failed": "No se pudo guardar el cambio. Inténtalo de nuevo.",
+  "edit-failed-short": "No guardado",
   "no-imagery-disabled": "No puedes validar ni comentar cuando no hay imágenes disponibles para esta etiqueta",
   "no-imagery-edit-disabled": "No puedes calificar esta etiqueta ni editar sus etiquetas cuando no hay imágenes disponibles",
   "admin-only": "Solo administradores",

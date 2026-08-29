@@ -1478,12 +1478,13 @@ class LabelDetail {
    * A success is held for a fraction of a failure's time: "Saved" is glanced at, if it's read at all, while a
    * failure asks the reader to do something about it.
    *
-   * @param {string} text - Empty to clear every column's status.
+   * @param {string} text - The visible word. Empty to clear every column's status.
    * @param {Object} [opts]
    * @param {string[]} [opts.columns] - Which columns to show it on ('severity' and/or 'tags'); all when omitted.
    * @param {boolean} [opts.error=false] - Style it as a failure rather than a confirmation.
+   * @param {string} [opts.detail=''] - The full sentence, when the visible word is only a summary of it.
    */
-  #showEditStatus(text, { columns, error = false } = {}) {
+  #showEditStatus(text, { columns, error = false, detail = '' } = {}) {
     const spans = this.#els.editStatus;
     if (!spans) return;
     for (const timer of this.#editStatusTimers) clearTimeout(timer);
@@ -1491,8 +1492,9 @@ class LabelDetail {
     const shown = text ? (columns ?? Object.keys(spans)) : [];
     for (const [name, el] of Object.entries(spans)) {
       if (!el) continue;
-      el.textContent = shown.includes(name) ? text : '';
-      el.classList.toggle('label-detail__edit-status--error', !!text && error);
+      const on = shown.includes(name);
+      LabelDetail.#fillEditStatus(el, on ? text : '', on ? detail : '');
+      el.classList.toggle('label-detail__edit-status--error', on && error);
       el.classList.remove('label-detail__edit-status--fading');
     }
     if (!text) return;
@@ -1506,10 +1508,49 @@ class LabelDetail {
     this.#editStatusTimers.push(setTimeout(() => {
       for (const el of Object.values(spans)) {
         if (!el) continue;
-        el.textContent = '';
+        LabelDetail.#fillEditStatus(el, '', '');
         el.classList.remove('label-detail__edit-status--fading');
       }
     }, hold + LabelDetail.#EDIT_STATUS_FADE_MS));
+  }
+
+  /**
+   * Fills one column's status span: a terse word for the eye, the full sentence for the screen reader and the
+   * tooltip.
+   *
+   * The two are separate nodes because the long form cannot sit in the flow. `.label-detail__col--severity` is
+   * `flex: 0 0 auto`, so anything in its header sets the column's width outright — a sentence there widened it by
+   * roughly its own length, squeezing the tags column to its 120px floor (and wrapping the row on a narrow host)
+   * for as long as the message was up. An `sr-only` node is out of flow, so it costs no width at all.
+   *
+   * @param {HTMLElement} el - The column's status span.
+   * @param {string} text - The visible word, or '' to clear.
+   * @param {string} detail - The full sentence, or '' when the visible word is the whole message.
+   */
+  static #fillEditStatus(el, text, detail) {
+    el.replaceChildren();
+    LabelDetail.#setTooltip(el, detail);
+    if (!text) return;
+    if (!detail) {
+      el.textContent = text;
+      return;
+    }
+    // The summary is hidden from the accessibility tree so the live region announces the sentence once rather than
+    // the summary and then a restatement of it.
+    const summary = document.createElement('span');
+    summary.setAttribute('aria-hidden', 'true');
+    summary.textContent = text;
+    const announced = document.createElement('span');
+    announced.className = 'sr-only';
+    announced.textContent = detail;
+    el.append(summary, announced);
+  }
+
+  /** The failure status: a terse word inline, the sentence explaining the rollback announced and on hover. */
+  #showEditFailure(columns) {
+    this.#showEditStatus(i18next.t('labelmap:edit-failed-short'), {
+      columns, error: true, detail: i18next.t('labelmap:edit-failed'),
+    });
   }
 
   /** Replaces the read-only pills with the tag editor's pick-any pills for this label's type. */
@@ -1525,7 +1566,7 @@ class LabelDetail {
       this.#tagEditor.close();
       this.#setTagsEditLabel(false);
       this.#renderTags(meta.tags);
-      this.#showEditStatus(i18next.t('labelmap:edit-failed'), { columns: ['tags'], error: true });
+      this.#showEditFailure(['tags']);
     });
   }
 
@@ -1542,7 +1583,11 @@ class LabelDetail {
    * @returns {Promise<void>}
    */
   #submitEdit(change) {
-    const save = () => this.#saveEdit(change);
+    // The label the change was made on, captured at click time rather than read at the queue's turn: a save can
+    // wait behind an in-flight one for longer than it takes to page to the next label, and #currentLabelMeta by
+    // then names that one — which is the label this change would otherwise be written to.
+    const meta = this.#currentLabelMeta;
+    const save = () => this.#saveEdit(change, meta);
     this.#editQueue = this.#editQueue.then(save, save);
     return this.#editQueue;
   }
@@ -1550,17 +1595,22 @@ class LabelDetail {
   /**
    * Saves a change through /label/edit, rendering it optimistically and rolling back on failure. The server's
    * response is what's rendered in the end, since it may drop tags invalid for the label type.
+   *
+   * The save goes through even if the user has paged on — the edit was made and is theirs to keep — but nothing it
+   * would draw reaches a card showing some other label; see the guard in `render`.
+   *
    * @param {{severity?: ?number, tags?: string[]}} change
+   * @param {Object} meta - The metadata of the label the change was made on.
    */
-  async #saveEdit(change) {
-    const meta = this.#currentLabelMeta;
-    if (!meta || !this.#canEdit) return;
+  async #saveEdit(change, meta) {
+    if (!meta || !meta.can_edit) return;
     const severity = Object.hasOwn(change, 'severity') ? change.severity : meta.severity;
     const tags = change.tags ?? meta.tags ?? [];
     const prev = { severity: meta.severity ?? null, tags: meta.tags ?? [] };
     const sameTags = tags.length === prev.tags.length && tags.every((t) => prev.tags.includes(t));
     // The tag editor's pills are the tag display while it's open; redrawing would wipe the picks.
     const render = () => {
+      if (this.#currentLabelMeta !== meta) return; // Paged on; this label's card isn't the one on screen.
       this.#renderSeverity(meta.severity, meta.label_type);
       if (!this.#tagEditor.isOpen) this.#renderTags(meta.tags);
       // The control reads "Add" or "Edit" by whether the label has tags, so the first tag saved (or a rollback to
@@ -1573,7 +1623,7 @@ class LabelDetail {
     }
 
     // Which columns this save speaks for, so its outcome is announced beside the control the user actually
-    // touched. Both when a tag pick and a rating change ride the same save.
+    // touched. Derived rather than passed in, so a change carrying both fields would name both.
     const columns = [];
     if (severity !== prev.severity) columns.push('severity');
     if (!sameTags) columns.push('tags');
@@ -1605,7 +1655,7 @@ class LabelDetail {
       meta.severity = prev.severity;
       meta.tags = prev.tags;
       render();
-      this.#showEditStatus(i18next.t('labelmap:edit-failed'), { columns, error: true });
+      this.#showEditFailure(columns);
     }
   }
 
