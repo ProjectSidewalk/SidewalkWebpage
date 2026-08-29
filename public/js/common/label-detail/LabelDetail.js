@@ -94,7 +94,27 @@ class LabelDetail {
   #readonly = false;        // Set per-label in #handleData() based on meta.from_current_user.
   #canEdit = false;         // Set per-label in #handleData() from meta.can_edit (#2575).
   #tagEditor;
-  #editStatusTimer;
+  /** @type {number[]} The hold and fade timers for the edit-status line; both are cleared when it is re-shown. */
+  #editStatusTimers = [];
+
+  /**
+   * How long an edit-status message stays fully visible, in ms, before it starts fading.
+   *
+   * A confirmation is short: "Saved" is a glance, and the change it describes is already on screen in the
+   * highlighted face or the new pill, so the line is reassurance rather than information. A failure is held far
+   * longer — it is the only place the rollback is explained, and it asks the reader to try again.
+   */
+  static #EDIT_STATUS_HOLD_MS = 1000;
+  static #EDIT_STATUS_HOLD_ERROR_MS = 5000;
+
+  /**
+   * Fade-out duration in ms; must match the transition on .label-detail__edit-status.
+   *
+   * Also the reason the hold can be as short as it is: the text is not removed until the fade ends, so the node
+   * outlives the hold by this much. Screen readers announce on insertion, but taking the content away within a
+   * beat of adding it has been observed to lose the announcement, and hold + fade stays clear of that.
+   */
+  static #EDIT_STATUS_FADE_MS = 400;
   #editQueue = Promise.resolve(); // Saves run in click order, so the last response is the one shown.
   #noImagery = false;  // Set per-label once setPano() resolves; true when no navigable imagery could be loaded.
   #panoLoading = false;     // True from #handleData() until this label's setPano() resolves. See #interactionBlocked.
@@ -336,8 +356,15 @@ class LabelDetail {
     els.severity = this.#q('.label-detail__severity-faces');
     els.severityTitle = this.#q('.label-detail__severity-title');
     els.tags = this.#q('.label-detail__tags');
+    els.tagsTitle = this.#q('.label-detail__tags-title');
     els.tagsEdit = this.#q('.label-detail__tags-edit');
-    els.editStatus = this.#q('.label-detail__edit-status');
+    els.labeledWord = this.#q('.label-detail__labeled-word');
+    // One status span per editable column, so a save's outcome is announced beside the control that produced it
+    // rather than in a single shared slot the reader has to go looking for.
+    els.editStatus = {
+      severity: this.#q('.label-detail__col--severity .label-detail__edit-status'),
+      tags: this.#q('.label-detail__col--tags .label-detail__edit-status'),
+    };
     els.descriptionSection = this.#q('.label-detail__description-section');
     els.description = this.#q('.label-detail__description');
     els.commentsSection = this.#q('.label-detail__comments-section');
@@ -440,13 +467,13 @@ class LabelDetail {
     // Editing (#2575): a face click saves that severity; the Tags control opens the tag editor and saves on close.
     els.severity.querySelectorAll('.severity-button').forEach((face) => {
       face.addEventListener('click', () => {
-        if (!this.#canEdit) return;
+        if (!this.#editingEnabled) return;
         this.#submitEdit({ severity: Number(face.dataset.severity) });
       });
     });
     if (els.tagsEdit) {
       els.tagsEdit.addEventListener('click', () => {
-        if (!this.#canEdit) return;
+        if (!this.#editingEnabled) return;
         if (this.#tagEditor.isOpen) this.#finishTagEditing();
         else this.#startTagEditing();
       });
@@ -538,15 +565,14 @@ class LabelDetail {
     this.#readonly = !!meta.from_current_user;
     this.#noImagery = false;
     this.#panoLoading = true;
+    // The server decides who may edit (the labeler and admins, #2575); the card only mirrors its answer. Settled
+    // before the lock is applied, since #applyEditLock() reads it.
+    this.#canEdit = !!meta.can_edit;
+    if (this.#tagEditor.isOpen) this.#tagEditor.close(); // Paging away abandons an unfinished tag pick.
     this.#applyInteractionLock();
 
-    // The server decides who may edit (the labeler and admins, #2575); the card only mirrors its answer.
-    this.#canEdit = !!meta.can_edit;
-    this.#root.classList.toggle('label-detail--editable', this.#canEdit);
-    if (this.#tagEditor.isOpen) this.#tagEditor.close(); // Paging away abandons an unfinished tag pick.
-    this.#setTagsEditLabel(false);
-    if (els.tagsEdit) els.tagsEdit.hidden = !this.#canEdit;
     this.#showEditStatus('');
+    this.#applyOwnLabelWording();
     if (els.ownBadge) {
       els.ownBadge.hidden = !meta.from_current_user;
       const ownLabel = i18next.t('labelmap:own-label');
@@ -1064,6 +1090,43 @@ class LabelDetail {
   }
 
   /**
+   * Whether severity and tags are editable on this label: the server let this viewer edit it (the labeler or an
+   * admin) *and* there is an image of it on screen to judge it by.
+   *
+   * The imagery half is deliberately not #locked, because the two locks don't line up (#5047). On the viewer's own
+   * label validating is off but editing stays on — they're its labeler, and re-rating your own label is the point.
+   * No imagery blocks both: rating a label or picking tags for it from nothing is the same problem as validating it
+   * from nothing. The static-crop fallback counts as imagery, so this only bites when nothing loaded at all.
+   * @returns {boolean}
+   */
+  get #editingAllowed() {
+    return this.#canEdit && !this.#noImagery;
+  }
+
+  /**
+   * Whether an edit may actually be saved right now — everything #editingAllowed covers, plus the window where this
+   * label's imagery is still loading and we don't yet know which way it will go.
+   *
+   * Kept out of what #applyEditLock() renders, mirroring the #locked / #interactionBlocked split: this one flips on
+   * every page-through, and dimming the controls for the moment a pano takes to load would flicker them on each
+   * label. Being a click-time guard only, the cost of that is a click in the gap doing nothing.
+   * @returns {boolean}
+   */
+  get #editingEnabled() {
+    return this.#editingAllowed && !this.#panoLoading;
+  }
+
+  /**
+   * The reason editing is blocked, or null when it's allowed. Only a viewer who could otherwise edit gets one — for
+   * everyone else severity and tags were never controls, so naming a lock on them would be noise. The transient
+   * loading window gets none either, for the same reason #lockReason() skips it.
+   * @returns {?string}
+   */
+  #editLockReason() {
+    return this.#canEdit && this.#noImagery ? i18next.t('labelmap:no-imagery-edit-disabled') : null;
+  }
+
+  /**
    * Toggles the disabled state + tooltip on interactive elements based on the current lock reasons. Vote-control
    * tooltips are built by #renderVoteTooltips (they also depend on counts/AI, which change independently of the
    * lock); this just refreshes them and drives the disabled state + comment-box tooltips.
@@ -1077,6 +1140,10 @@ class LabelDetail {
     this.#renderVoteTooltips();
     // The toggle goes with the marker it acts on; a load still in flight keeps it, since a marker is coming.
     if (els.hideLabelButton) els.hideLabelButton.hidden = this.#noImagery;
+    // Your own label is never going to be validatable by you, so the overlay goes away rather than sitting there
+    // greyed across the imagery (#5047). Every other lock keeps the buttons: those are states that pass, and a
+    // disabled control that explains itself is the thing that tells you to come back.
+    if (els.panoOverlay) els.panoOverlay.hidden = this.#readonly;
     for (const btn of Object.values(els.panoOverlayButtons)) btn.disabled = blocked;
     for (const btn of Object.values(els.voteButtons)) btn.disabled = blocked;
 
@@ -1088,6 +1155,54 @@ class LabelDetail {
     // A durable lock also hides the comment box (it only shows with a Disagree/Unsure vote); a load in flight
     // leaves it in place and just disables it, since it's about to be usable again.
     this.#updateCommentRow();
+    this.#applyEditLock(); // Imagery availability drives both locks, so they always settle together.
+  }
+
+  /**
+   * Names the meta strip's date and the two editable columns for whoever is reading (#5047).
+   *
+   * On the viewer's own label the card is showing them their own work, and the own-label chip alone was easy to
+   * miss, so the wording says it where they are already reading: "You labeled: <date>", "Your Rating", "Your Tags".
+   * On anyone else's label all three keep the neutral wording. The severity heading is set in #renderSeverity()
+   * instead, which owns that element and re-runs whenever the rating does.
+   */
+  #applyOwnLabelWording() {
+    const els = this.#els;
+    const own = this.#readonly;
+    if (els.labeledWord) els.labeledWord.textContent = i18next.t(own ? 'labelmap:you-labeled' : 'common:labeled');
+    if (els.tagsTitle) els.tagsTitle.textContent = i18next.t(own ? 'labelmap:your-tags' : 'common:tags');
+  }
+
+  /**
+   * Puts the severity faces and the Tags control into their live or inert state, with the reason on hover (#5047).
+   *
+   * The controls stay in place rather than disappearing when imagery is missing — a viewer who *can* edit needs to
+   * be told why they can't right now, and a hidden control can't say anything. Neither carries the `disabled`
+   * attribute for the same reason: a natively disabled element swallows the hover that opens its tooltip, so both
+   * are marked `aria-disabled` and inert via their click guards instead, which also keeps the Tags button focusable
+   * so keyboard users reach the explanation too.
+   */
+  #applyEditLock() {
+    const els = this.#els;
+    const meta = this.#currentLabelMeta;
+    const allowed = this.#editingAllowed;
+    const tip = this.#editLockReason() ?? '';
+    // Doubles as the dimmed "not a control" cue: the same rule dims severity and tags for a viewer who can't edit.
+    this.#root.classList.toggle('label-detail--editable', allowed);
+
+    // Imagery that resolved to unavailable while the editor was open abandons the pick rather than saving it — the
+    // tags were chosen against an image that turned out not to be there.
+    if (this.#tagEditor.isOpen && !allowed) {
+      this.#tagEditor.close();
+      if (meta) this.#renderTags(meta.tags);
+    }
+    if (els.tagsEdit) {
+      els.tagsEdit.hidden = !this.#canEdit;
+      els.tagsEdit.setAttribute('aria-disabled', String(this.#canEdit && !allowed));
+      LabelDetail.#setTooltip(els.tagsEdit, tip);
+      this.#setTagsEditLabel(this.#tagEditor.isOpen);
+    }
+    if (meta) this.#renderSeverity(meta.severity, meta.label_type);
   }
 
   /**
@@ -1267,28 +1382,37 @@ class LabelDetail {
     const titleKey = positive ? 'quality' : 'severity';
     const levelKeys = util.misc.getRatingLevelKeys(labelType);
 
-    if (els.severityTitle) els.severityTitle.textContent = i18next.t(`common:${titleKey}`);
-    if (els.severity) els.severity.setAttribute('aria-label', i18next.t(`common:${titleKey}`));
+    // On the viewer's own label the column is titled "Your Rating" rather than the per-type "Quality"/"Severity"
+    // (#5047): the point of the heading there is whose rating it is, and the faces and their level words carry the
+    // positive/negative scale the type-specific word would have named.
+    const title = this.#readonly ? i18next.t('labelmap:your-rating') : i18next.t(`common:${titleKey}`);
+    if (els.severityTitle) els.severityTitle.textContent = title;
+    if (els.severity) els.severity.setAttribute('aria-label', title);
+
+    const editable = this.#editingAllowed;
+    // A face that can't be clicked because the imagery didn't load explains that instead of naming its own level:
+    // "Severity: Low" reads like an offer, and the lock is the more useful thing to say (#5047).
+    const lockTip = this.#editLockReason();
 
     els.severity.querySelectorAll('.severity-button').forEach((face) => {
       const faceSev = Number(face.dataset.severity);
       const selected = faceSev === Number(severity);
       face.classList.toggle('is-selected', selected);
       face.querySelector('.severity-button__icon').src = util.misc.getSmileyIconPath(faceSev, labelType, selected);
-      face.title = `${i18next.t(`common:${titleKey}`)}: ${i18next.t(`common:${levelKeys[faceSev]}`)}`;
+      face.title = lockTip ? '' : `${i18next.t(`common:${titleKey}`)}: ${i18next.t(`common:${levelKeys[faceSev]}`)}`;
+      LabelDetail.#setTooltip(face, lockTip ?? '');
       const labelSpan = face.querySelector('.severity-button__label');
       if (labelSpan) labelSpan.textContent = i18next.t(`common:${levelKeys[faceSev]}`);
 
       // Editable faces are a focusable pick-one control (#2575); read-only ones stay out of the tab order.
-      face.classList.toggle('severity-button--static', !this.#canEdit);
+      face.classList.toggle('severity-button--static', !editable);
       face.setAttribute('aria-pressed', String(selected));
-      if (this.#canEdit) {
-        face.removeAttribute('aria-disabled');
-        face.removeAttribute('tabindex');
-      } else {
-        face.setAttribute('aria-disabled', 'true');
-        face.setAttribute('tabindex', '-1');
-      }
+      if (editable) face.removeAttribute('aria-disabled');
+      else face.setAttribute('aria-disabled', 'true');
+      // A face that's off but has a reason to give stays focusable so a keyboard user can land on it and hear the
+      // reason; aria-disabled marks it inert without taking it out of reach. Plain read-only faces say nothing.
+      if (editable || lockTip) face.removeAttribute('tabindex');
+      else face.setAttribute('tabindex', '-1');
     });
   }
 
@@ -1320,28 +1444,113 @@ class LabelDetail {
   // Editing severity and tags (#2575)
   // ───────────────────────────────────────────────────────────────────
 
-  /** @param {boolean} editing - Whether the Tags control reads "Done" (editor open) or "Edit". */
+  /**
+   * Labels the Tags control for the state it's in: "Done" with the editor open, otherwise "Add" over a label with no
+   * tags and "Edit" over one that has some — the list below an untagged label reads "None", so there is nothing to
+   * edit yet (#5047).
+   *
+   * The visible word stays terse because the control sits inline beside the "Tags" heading, so the noun rides an
+   * aria-label instead: a card can show two bare "Edit" buttons (this one and a story's), which is exactly the
+   * ambiguity WCAG 2.4.6 is about.
+   *
+   * @param {boolean} editing - Whether the tag editor is open.
+   */
   #setTagsEditLabel(editing) {
     const btn = this.#els.tagsEdit;
     if (!btn) return;
-    btn.textContent = i18next.t(editing ? 'labelmap:done-editing-tags' : 'labelmap:edit-tags');
+    let key = 'done-editing-tags';
+    if (!editing) key = this.#currentLabelMeta?.tags?.length ? 'edit-tags' : 'add-tags';
+    btn.textContent = i18next.t(`labelmap:${key}`);
+    btn.setAttribute('aria-label', i18next.t(`labelmap:${key}-label`));
     btn.setAttribute('aria-expanded', String(editing));
   }
 
   /**
-   * Shows a short status beside the Tags heading (a failed save), clearing it after a few seconds.
-   * @param {string} text - Empty to clear.
+   * Shows a short status beside an editable column's heading, clearing it after a few seconds.
+   *
+   * Severity and tags save the moment they're clicked, with no button to press and no dialog to dismiss, so the
+   * only thing telling the user their change was kept is this line (#5047). It rides the column's `aria-live`
+   * span, which announces the outcome without moving focus off the control they just used.
+   *
+   * The message is held, then faded out over LabelDetail.#EDIT_STATUS_FADE_MS rather than cut, and the text is
+   * only removed once the fade has finished — long enough that a screen reader has announced it.
+   *
+   * A success is held for a fraction of a failure's time: "Saved" is glanced at, if it's read at all, while a
+   * failure asks the reader to do something about it.
+   *
+   * @param {string} text - The visible word. Empty to clear every column's status.
+   * @param {Object} [opts]
+   * @param {string[]} [opts.columns] - Which columns to show it on ('severity' and/or 'tags'); all when omitted.
+   * @param {boolean} [opts.error=false] - Style it as a failure rather than a confirmation.
+   * @param {string} [opts.detail=''] - The full sentence, when the visible word is only a summary of it.
    */
-  #showEditStatus(text) {
-    const el = this.#els.editStatus;
-    if (!el) return;
-    clearTimeout(this.#editStatusTimer);
-    el.textContent = text;
-    if (text) {
-      this.#editStatusTimer = setTimeout(() => {
-        el.textContent = '';
-      }, 5000);
+  #showEditStatus(text, { columns, error = false, detail = '' } = {}) {
+    const spans = this.#els.editStatus;
+    if (!spans) return;
+    for (const timer of this.#editStatusTimers) clearTimeout(timer);
+    this.#editStatusTimers = [];
+    const shown = text ? (columns ?? Object.keys(spans)) : [];
+    for (const [name, el] of Object.entries(spans)) {
+      if (!el) continue;
+      const on = shown.includes(name);
+      LabelDetail.#fillEditStatus(el, on ? text : '', on ? detail : '');
+      el.classList.toggle('label-detail__edit-status--error', on && error);
+      el.classList.remove('label-detail__edit-status--fading');
     }
+    if (!text) return;
+
+    const hold = error ? LabelDetail.#EDIT_STATUS_HOLD_ERROR_MS : LabelDetail.#EDIT_STATUS_HOLD_MS;
+    this.#editStatusTimers.push(setTimeout(() => {
+      for (const el of Object.values(spans)) {
+        if (el) el.classList.add('label-detail__edit-status--fading');
+      }
+    }, hold));
+    this.#editStatusTimers.push(setTimeout(() => {
+      for (const el of Object.values(spans)) {
+        if (!el) continue;
+        LabelDetail.#fillEditStatus(el, '', '');
+        el.classList.remove('label-detail__edit-status--fading');
+      }
+    }, hold + LabelDetail.#EDIT_STATUS_FADE_MS));
+  }
+
+  /**
+   * Fills one column's status span: a terse word for the eye, the full sentence for the screen reader and the
+   * tooltip.
+   *
+   * The two are separate nodes because the long form cannot sit in the flow. `.label-detail__col--severity` is
+   * `flex: 0 0 auto`, so anything in its header sets the column's width outright — a sentence there widened it by
+   * roughly its own length, squeezing the tags column to its 120px floor (and wrapping the row on a narrow host)
+   * for as long as the message was up. An `sr-only` node is out of flow, so it costs no width at all.
+   *
+   * @param {HTMLElement} el - The column's status span.
+   * @param {string} text - The visible word, or '' to clear.
+   * @param {string} detail - The full sentence, or '' when the visible word is the whole message.
+   */
+  static #fillEditStatus(el, text, detail) {
+    el.replaceChildren();
+    LabelDetail.#setTooltip(el, detail);
+    if (!text) return;
+    if (!detail) {
+      el.textContent = text;
+      return;
+    }
+    // The summary is hidden from the accessibility tree so the live region announces the sentence once rather than
+    // the summary and then a restatement of it.
+    const summary = document.createElement('span');
+    summary.setAttribute('aria-hidden', 'true');
+    summary.textContent = text;
+    const announced = document.createElement('span');
+    announced.className = 'sr-only';
+    announced.textContent = detail;
+    el.append(summary, announced);
+  }
+
+  /** The failure status: a terse word inline, the sentence explaining the rollback announced and on hover. */
+  #showEditFailure(columns) {
+    this.#showEditStatus(i18next.t('labelmap:edit-failed-short'), {
+      columns, error: true, detail: i18next.t('labelmap:edit-failed'),
+    });
   }
 
   /** Replaces the read-only pills with the tag editor's pick-any pills for this label's type. */
@@ -1357,7 +1566,7 @@ class LabelDetail {
       this.#tagEditor.close();
       this.#setTagsEditLabel(false);
       this.#renderTags(meta.tags);
-      this.#showEditStatus(i18next.t('labelmap:edit-failed'));
+      this.#showEditFailure(['tags']);
     });
   }
 
@@ -1374,7 +1583,11 @@ class LabelDetail {
    * @returns {Promise<void>}
    */
   #submitEdit(change) {
-    const save = () => this.#saveEdit(change);
+    // The label the change was made on, captured at click time rather than read at the queue's turn: a save can
+    // wait behind an in-flight one for longer than it takes to page to the next label, and #currentLabelMeta by
+    // then names that one — which is the label this change would otherwise be written to.
+    const meta = this.#currentLabelMeta;
+    const save = () => this.#saveEdit(change, meta);
     this.#editQueue = this.#editQueue.then(save, save);
     return this.#editQueue;
   }
@@ -1382,24 +1595,38 @@ class LabelDetail {
   /**
    * Saves a change through /label/edit, rendering it optimistically and rolling back on failure. The server's
    * response is what's rendered in the end, since it may drop tags invalid for the label type.
+   *
+   * The save goes through even if the user has paged on — the edit was made and is theirs to keep — but nothing it
+   * would draw reaches a card showing some other label; see the guard in `render`.
+   *
    * @param {{severity?: ?number, tags?: string[]}} change
+   * @param {Object} meta - The metadata of the label the change was made on.
    */
-  async #saveEdit(change) {
-    const meta = this.#currentLabelMeta;
-    if (!meta || !this.#canEdit) return;
+  async #saveEdit(change, meta) {
+    if (!meta || !meta.can_edit) return;
     const severity = Object.hasOwn(change, 'severity') ? change.severity : meta.severity;
     const tags = change.tags ?? meta.tags ?? [];
     const prev = { severity: meta.severity ?? null, tags: meta.tags ?? [] };
     const sameTags = tags.length === prev.tags.length && tags.every((t) => prev.tags.includes(t));
     // The tag editor's pills are the tag display while it's open; redrawing would wipe the picks.
     const render = () => {
+      if (this.#currentLabelMeta !== meta) return; // Paged on; this label's card isn't the one on screen.
       this.#renderSeverity(meta.severity, meta.label_type);
       if (!this.#tagEditor.isOpen) this.#renderTags(meta.tags);
+      // The control reads "Add" or "Edit" by whether the label has tags, so the first tag saved (or a rollback to
+      // none) flips it.
+      this.#setTagsEditLabel(this.#tagEditor.isOpen);
     };
     if (severity === prev.severity && sameTags) {
       render(); // The tag editor may have just closed over an unchanged pick.
       return;
     }
+
+    // Which columns this save speaks for, so its outcome is announced beside the control the user actually
+    // touched. Derived rather than passed in, so a change carrying both fields would name both.
+    const columns = [];
+    if (severity !== prev.severity) columns.push('severity');
+    if (!sameTags) columns.push('tags');
 
     meta.severity = severity;
     meta.tags = tags;
@@ -1416,6 +1643,7 @@ class LabelDetail {
       meta.severity = body.severity ?? null;
       meta.tags = body.tags ?? [];
       render();
+      this.#showEditStatus(i18next.t('labelmap:edit-saved'), { columns });
       if (meta.severity !== prev.severity) {
         this.#logClick(`EditSeverity_old=${prev.severity}_new=${meta.severity}`);
       }
@@ -1427,7 +1655,7 @@ class LabelDetail {
       meta.severity = prev.severity;
       meta.tags = prev.tags;
       render();
-      this.#showEditStatus(i18next.t('labelmap:edit-failed'));
+      this.#showEditFailure(columns);
     }
   }
 

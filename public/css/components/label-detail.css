@@ -344,7 +344,9 @@ dialog.label-detail[open]::backdrop {
   outline-offset: 2px;
 }
 
-/* Hover-reveal validation buttons at bottom of pano. Modeled after Gallery's old expanded-view validation buttons. */
+/* Hover-reveal validation buttons at bottom of pano. Modeled after Gallery's old expanded-view validation buttons.
+   Hidden outright on the viewer's own label (#5047); the card-wide `.label-detail [hidden]` guard at the top of
+   this file is what makes that stick against the display: flex below. */
 .label-detail__pano-overlay {
   position: absolute;
   left: 0;
@@ -635,8 +637,11 @@ button.label-detail__meta-cell:focus-visible {
   opacity: 0.6;
 }
 
-/* Editable faces (#2575): dropping --static restores the shared hover wash; the ring marks keyboard focus. */
-.label-detail--editable .label-detail__severity-faces .severity-button:focus-visible {
+/* Editable faces (#2575): dropping --static restores the shared hover wash; the ring marks keyboard focus.
+   The ring follows focusability rather than editability: a face locked for want of imagery keeps its place in the
+   tab order so a keyboard user can land on it and hear why (#5047), and needs the same ring when they do. Only the
+   plain read-only faces, which LabelDetail parks at tabindex="-1", are excluded. */
+.label-detail__severity-faces .severity-button:not([tabindex="-1"]):focus-visible {
   outline: 2px solid var(--color-link-100);
   outline-offset: 2px;
 }
@@ -653,9 +658,28 @@ button.label-detail__meta-cell:focus-visible {
   margin: 0;
 }
 
+/* Save confirmation beside an editable column's heading (#5047). Severity and tags autosave on click, so this line
+   is the only acknowledgement the user gets; it reads as quiet confirmation by default and only turns orange when
+   it is carrying a failure the reader has to act on.
+
+   Its visible text has to stay to a word or two. .label-detail__col--severity is `flex: 0 0 auto`, so whatever sits
+   in that header sets the column's width outright — a full sentence widened it by about its own length, squeezing
+   the tags column to its 120px floor for as long as the message was up. LabelDetail keeps the long form in an
+   out-of-flow .sr-only node and on the tooltip instead; see #fillEditStatus. */
 .label-detail__edit-status {
   font: var(--text-tiny-regular);
-  color: var(--color-orange-700);
+  color: var(--color-neutral-700);
+  transition: opacity 400ms ease; /* Keep in step with LabelDetail's #EDIT_STATUS_FADE_MS. */
+}
+
+.label-detail__edit-status--error { color: var(--color-orange-700); }
+
+/* The message is held, then faded rather than cut, so it leaves the way a confirmation should instead of blinking
+   out mid-glance. The text is only removed once the fade has finished. */
+.label-detail__edit-status--fading { opacity: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .label-detail__edit-status { transition: none; }
 }
 
 /* Tag pills — base styles are in tag-pills.css (.tag-pill class). */
@@ -1362,6 +1386,15 @@ button.label-detail__meta-cell:focus-visible {
 .label-detail__tags-edit { color: var(--color-link-200); }
 
 .label-detail__story-delete { color: var(--color-orange-700); }
+
+/* The Tags control is marked aria-disabled rather than natively disabled when the label's imagery didn't load
+   (#5047), so it still takes the hover and focus that open the tooltip explaining why. This is the matching look:
+   greyed and no longer offering a pointer, but still a focus target. */
+.label-detail__tags-edit[aria-disabled="true"] {
+  color: var(--color-neutral-700);
+  cursor: default;
+  text-decoration: none; /* The underline is what makes it read as a live control; off means off. */
+}
 
 .label-detail__story-edit:focus-visible,
 .label-detail__story-delete:focus-visible,
