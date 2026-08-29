@@ -131,7 +131,9 @@
   </section>
 
   <section class="label-detail__col label-detail__col--tags">
-    @* Edit/Done toggles TagEditor's pills in place of the read-only list (#2575); the status span voices a failed save. *@
+    @* Add/Edit/Done toggles TagEditor's pills in place of the read-only list (#2575); the status span voices a
+       failed save. LabelDetail picks the word and its aria-label per label, and marks the button aria-disabled
+       (never `disabled`, which would swallow the hover its tooltip needs) when there's no imagery to judge by. *@
     <div class="label-detail__col-header">
       <h3 class="label-detail__col-title" data-i18n="common:tags">Tags</h3>
       <button type="button" class="label-detail__tags-edit" hidden aria-expanded="false" data-i18n="labelmap:edit-tags">Edit</button>

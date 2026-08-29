@@ -1363,6 +1363,14 @@ button.label-detail__meta-cell:focus-visible {
 
 .label-detail__story-delete { color: var(--color-orange-700); }
 
+/* The Tags control is marked aria-disabled rather than natively disabled when the label's imagery didn't load
+   (#5047), so it still takes the hover and focus that open the tooltip explaining why. This is the matching look:
+   greyed and no longer offering a pointer, but still a focus target. */
+.label-detail__tags-edit[aria-disabled="true"] {
+  color: var(--color-neutral-700);
+  cursor: default;
+}
+
 .label-detail__story-edit:focus-visible,
 .label-detail__story-delete:focus-visible,
 .label-detail__tags-edit:focus-visible {

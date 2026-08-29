@@ -440,13 +440,13 @@ class LabelDetail {
     // Editing (#2575): a face click saves that severity; the Tags control opens the tag editor and saves on close.
     els.severity.querySelectorAll('.severity-button').forEach((face) => {
       face.addEventListener('click', () => {
-        if (!this.#canEdit) return;
+        if (!this.#editingEnabled) return;
         this.#submitEdit({ severity: Number(face.dataset.severity) });
       });
     });
     if (els.tagsEdit) {
       els.tagsEdit.addEventListener('click', () => {
-        if (!this.#canEdit) return;
+        if (!this.#editingEnabled) return;
         if (this.#tagEditor.isOpen) this.#finishTagEditing();
         else this.#startTagEditing();
       });
@@ -538,14 +538,12 @@ class LabelDetail {
     this.#readonly = !!meta.from_current_user;
     this.#noImagery = false;
     this.#panoLoading = true;
+    // The server decides who may edit (the labeler and admins, #2575); the card only mirrors its answer. Settled
+    // before the lock is applied, since #applyEditLock() reads it.
+    this.#canEdit = !!meta.can_edit;
+    if (this.#tagEditor.isOpen) this.#tagEditor.close(); // Paging away abandons an unfinished tag pick.
     this.#applyInteractionLock();
 
-    // The server decides who may edit (the labeler and admins, #2575); the card only mirrors its answer.
-    this.#canEdit = !!meta.can_edit;
-    this.#root.classList.toggle('label-detail--editable', this.#canEdit);
-    if (this.#tagEditor.isOpen) this.#tagEditor.close(); // Paging away abandons an unfinished tag pick.
-    this.#setTagsEditLabel(false);
-    if (els.tagsEdit) els.tagsEdit.hidden = !this.#canEdit;
     this.#showEditStatus('');
     if (els.ownBadge) {
       els.ownBadge.hidden = !meta.from_current_user;
@@ -1064,6 +1062,43 @@ class LabelDetail {
   }
 
   /**
+   * Whether severity and tags are editable on this label: the server let this viewer edit it (the labeler or an
+   * admin) *and* there is an image of it on screen to judge it by.
+   *
+   * The imagery half is deliberately not #locked, because the two locks don't line up (#5047). On the viewer's own
+   * label validating is off but editing stays on — they're its labeler, and re-rating your own label is the point.
+   * No imagery blocks both: rating a label or picking tags for it from nothing is the same problem as validating it
+   * from nothing. The static-crop fallback counts as imagery, so this only bites when nothing loaded at all.
+   * @returns {boolean}
+   */
+  get #editingAllowed() {
+    return this.#canEdit && !this.#noImagery;
+  }
+
+  /**
+   * Whether an edit may actually be saved right now — everything #editingAllowed covers, plus the window where this
+   * label's imagery is still loading and we don't yet know which way it will go.
+   *
+   * Kept out of what #applyEditLock() renders, mirroring the #locked / #interactionBlocked split: this one flips on
+   * every page-through, and dimming the controls for the moment a pano takes to load would flicker them on each
+   * label. Being a click-time guard only, the cost of that is a click in the gap doing nothing.
+   * @returns {boolean}
+   */
+  get #editingEnabled() {
+    return this.#editingAllowed && !this.#panoLoading;
+  }
+
+  /**
+   * The reason editing is blocked, or null when it's allowed. Only a viewer who could otherwise edit gets one — for
+   * everyone else severity and tags were never controls, so naming a lock on them would be noise. The transient
+   * loading window gets none either, for the same reason #lockReason() skips it.
+   * @returns {?string}
+   */
+  #editLockReason() {
+    return this.#canEdit && this.#noImagery ? i18next.t('labelmap:no-imagery-edit-disabled') : null;
+  }
+
+  /**
    * Toggles the disabled state + tooltip on interactive elements based on the current lock reasons. Vote-control
    * tooltips are built by #renderVoteTooltips (they also depend on counts/AI, which change independently of the
    * lock); this just refreshes them and drives the disabled state + comment-box tooltips.
@@ -1088,6 +1123,39 @@ class LabelDetail {
     // A durable lock also hides the comment box (it only shows with a Disagree/Unsure vote); a load in flight
     // leaves it in place and just disables it, since it's about to be usable again.
     this.#updateCommentRow();
+    this.#applyEditLock(); // Imagery availability drives both locks, so they always settle together.
+  }
+
+  /**
+   * Puts the severity faces and the Tags control into their live or inert state, with the reason on hover (#5047).
+   *
+   * The controls stay in place rather than disappearing when imagery is missing — a viewer who *can* edit needs to
+   * be told why they can't right now, and a hidden control can't say anything. Neither carries the `disabled`
+   * attribute for the same reason: a natively disabled element swallows the hover that opens its tooltip, so both
+   * are marked `aria-disabled` and inert via their click guards instead, which also keeps the Tags button focusable
+   * so keyboard users reach the explanation too.
+   */
+  #applyEditLock() {
+    const els = this.#els;
+    const meta = this.#currentLabelMeta;
+    const allowed = this.#editingAllowed;
+    const tip = this.#editLockReason() ?? '';
+    // Doubles as the dimmed "not a control" cue: the same rule dims severity and tags for a viewer who can't edit.
+    this.#root.classList.toggle('label-detail--editable', allowed);
+
+    // Imagery that resolved to unavailable while the editor was open abandons the pick rather than saving it — the
+    // tags were chosen against an image that turned out not to be there.
+    if (this.#tagEditor.isOpen && !allowed) {
+      this.#tagEditor.close();
+      if (meta) this.#renderTags(meta.tags);
+    }
+    if (els.tagsEdit) {
+      els.tagsEdit.hidden = !this.#canEdit;
+      els.tagsEdit.setAttribute('aria-disabled', String(this.#canEdit && !allowed));
+      LabelDetail.#setTooltip(els.tagsEdit, tip);
+      this.#setTagsEditLabel(this.#tagEditor.isOpen);
+    }
+    if (meta) this.#renderSeverity(meta.severity, meta.label_type);
   }
 
   /**
@@ -1270,25 +1338,30 @@ class LabelDetail {
     if (els.severityTitle) els.severityTitle.textContent = i18next.t(`common:${titleKey}`);
     if (els.severity) els.severity.setAttribute('aria-label', i18next.t(`common:${titleKey}`));
 
+    const editable = this.#editingAllowed;
+    // A face that can't be clicked because the imagery didn't load explains that instead of naming its own level:
+    // "Severity: Low" reads like an offer, and the lock is the more useful thing to say (#5047).
+    const lockTip = this.#editLockReason();
+
     els.severity.querySelectorAll('.severity-button').forEach((face) => {
       const faceSev = Number(face.dataset.severity);
       const selected = faceSev === Number(severity);
       face.classList.toggle('is-selected', selected);
       face.querySelector('.severity-button__icon').src = util.misc.getSmileyIconPath(faceSev, labelType, selected);
-      face.title = `${i18next.t(`common:${titleKey}`)}: ${i18next.t(`common:${levelKeys[faceSev]}`)}`;
+      face.title = lockTip ? '' : `${i18next.t(`common:${titleKey}`)}: ${i18next.t(`common:${levelKeys[faceSev]}`)}`;
+      LabelDetail.#setTooltip(face, lockTip ?? '');
       const labelSpan = face.querySelector('.severity-button__label');
       if (labelSpan) labelSpan.textContent = i18next.t(`common:${levelKeys[faceSev]}`);
 
       // Editable faces are a focusable pick-one control (#2575); read-only ones stay out of the tab order.
-      face.classList.toggle('severity-button--static', !this.#canEdit);
+      face.classList.toggle('severity-button--static', !editable);
       face.setAttribute('aria-pressed', String(selected));
-      if (this.#canEdit) {
-        face.removeAttribute('aria-disabled');
-        face.removeAttribute('tabindex');
-      } else {
-        face.setAttribute('aria-disabled', 'true');
-        face.setAttribute('tabindex', '-1');
-      }
+      if (editable) face.removeAttribute('aria-disabled');
+      else face.setAttribute('aria-disabled', 'true');
+      // A face that's off but has a reason to give stays focusable so a keyboard user can land on it and hear the
+      // reason; aria-disabled marks it inert without taking it out of reach. Plain read-only faces say nothing.
+      if (editable || lockTip) face.removeAttribute('tabindex');
+      else face.setAttribute('tabindex', '-1');
     });
   }
 
@@ -1320,11 +1393,24 @@ class LabelDetail {
   // Editing severity and tags (#2575)
   // ───────────────────────────────────────────────────────────────────
 
-  /** @param {boolean} editing - Whether the Tags control reads "Done" (editor open) or "Edit". */
+  /**
+   * Labels the Tags control for the state it's in: "Done" with the editor open, otherwise "Add" over a label with no
+   * tags and "Edit" over one that has some — the list below an untagged label reads "None", so there is nothing to
+   * edit yet (#5047).
+   *
+   * The visible word stays terse because the control sits inline beside the "Tags" heading, so the noun rides an
+   * aria-label instead: a card can show two bare "Edit" buttons (this one and a story's), which is exactly the
+   * ambiguity WCAG 2.4.6 is about.
+   *
+   * @param {boolean} editing - Whether the tag editor is open.
+   */
   #setTagsEditLabel(editing) {
     const btn = this.#els.tagsEdit;
     if (!btn) return;
-    btn.textContent = i18next.t(editing ? 'labelmap:done-editing-tags' : 'labelmap:edit-tags');
+    let key = 'done-editing-tags';
+    if (!editing) key = this.#currentLabelMeta?.tags?.length ? 'edit-tags' : 'add-tags';
+    btn.textContent = i18next.t(`labelmap:${key}`);
+    btn.setAttribute('aria-label', i18next.t(`labelmap:${key}-label`));
     btn.setAttribute('aria-expanded', String(editing));
   }
 
@@ -1395,6 +1481,9 @@ class LabelDetail {
     const render = () => {
       this.#renderSeverity(meta.severity, meta.label_type);
       if (!this.#tagEditor.isOpen) this.#renderTags(meta.tags);
+      // The control reads "Add" or "Edit" by whether the label has tags, so the first tag saved (or a rollback to
+      // none) flips it.
+      this.#setTagsEditLabel(this.#tagEditor.isOpen);
     };
     if (severity === prev.severity && sameTags) {
       render(); // The tag editor may have just closed over an unchanged pick.
