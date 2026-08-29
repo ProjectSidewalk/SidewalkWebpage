@@ -107,6 +107,17 @@ class Toast {
       this.#startTimer();
     });
 
+    // Focus pauses the timer too, or a toast fades out from under someone tabbing toward its action button — and
+    // the role="status" announcement gives no cue that it is on a clock (WCAG 2.2.1). These bubble from the buttons.
+    el.addEventListener('focusin', () => {
+      el.classList.add('ps-toast--hover');
+      this.#clearTimer();
+    });
+    el.addEventListener('focusout', () => {
+      el.classList.remove('ps-toast--hover');
+      this.#startTimer();
+    });
+
     return el;
   }
 

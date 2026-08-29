@@ -442,8 +442,9 @@ class ExploreServiceImpl @Inject() (
    *
    * @param routeId     Route explicitly requested via ?routeId=, if any.
    * @param resumeRoute Whether an existing walk may be resumed (the ?resumeRoute= param; defaults to true).
-   * @return            The walk this session should use (None for normal exploration), with whether it is a
-   *                    resumed pre-existing walk rather than a brand new one.
+   * @return            The walk this session should use (None for normal exploration), with whether the user is
+   *                    resuming a walk they have already been in. Existence of the row isn't enough — one can be
+   *                    created and never entered, and that user is not resuming anything.
    */
   private def setUpPossibleUserRoute(
       routeId: Option[Int],
@@ -460,7 +461,9 @@ class ExploreServiceImpl @Inject() (
           for {
             _      <- userRouteTable.pauseOtherActiveRoutes(rId, userId)
             result <- userRouteTable.getActiveRouteOrCreateNew(rId, userId)
-          } yield RouteWalkSetup(Some(result._1), resumed = result._2)
+            walked <-
+              if (result._2) userRouteTable.hasBeenWalked(result._1.userRouteId) else DBIO.successful(false)
+          } yield RouteWalkSetup(Some(result._1), resumed = walked)
         // Explicit restart: discard old walks (including any of this route), save a new one with given routeId.
         case (true, Some(rId), false) =>
           for {
@@ -469,7 +472,11 @@ class ExploreServiceImpl @Inject() (
           } yield RouteWalkSetup(Some(result._1), resumed = false)
         // Get an in progress route (with any routeId) if it exists, otherwise return None.
         case (_, None, true) =>
-          userRouteTable.getInProgressRoute(userId).map(walk => RouteWalkSetup(walk, resumed = walk.isDefined))
+          userRouteTable.getInProgressRoute(userId).flatMap {
+            case Some(walk) =>
+              userRouteTable.hasBeenWalked(walk.userRouteId).map(w => RouteWalkSetup(Some(walk), resumed = w))
+            case None => DBIO.successful(RouteWalkSetup(None, resumed = false))
+          }
         // The "exit route" path (/explore?resumeRoute=false): pause old walks, return None.
         case (_, _, _) =>
           userRouteTable.pauseAllActiveRoutes(userId).map(_ => RouteWalkSetup(None, resumed = false))

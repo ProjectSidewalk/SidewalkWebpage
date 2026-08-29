@@ -79,10 +79,14 @@ class UserRouteTable @Inject() (
   }
 
   /**
-   * Discard any active routes for the given user that doesn't match the given routeId.
+   * Whether a street of this walk has ever been served to the user.
+   *
+   * Distance walked is deliberately not the signal: someone who opens a street and labels without moving has been in
+   * the walk. It also separates a real walk from one created but never entered — picking up a route during onboarding
+   * serves a tutorial task instead (see ExploreService), leaving the walk row-less.
    */
-  def discardOtherActiveRoutes(routeId: Int, userId: String): DBIO[Int] = {
-    activeRoutes.filter(x => x.routeId =!= routeId && x.userId === userId).map(_.discarded).update(true)
+  def hasBeenWalked(userRouteId: Int): DBIO[Boolean] = {
+    auditTaskUserRoutes.filter(_.userRouteId === userRouteId).exists.result
   }
 
   /**

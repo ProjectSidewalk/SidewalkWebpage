@@ -39,6 +39,7 @@ import scala.concurrent.duration._
  *   - An explicit `/explore?routeId=X` visit resumes the *same* paused walk (same user_route row, progress intact).
  *   - `/explore?routeId=X&resumeRoute=false` is the one destructive path: it discards the old walk and starts fresh.
  *   - Entering a different route pauses (not discards) the walk being left behind.
+ *   - `routeResumed` (which drives the resume toast) is set only once a street of the walk has been served.
  *
  * Setup/teardown mirror ExploreTutorialRouteSpec: throwaway anonymous users, seeded route walks, all rows swept in
  * afterAll. Requires a Postgres+PostGIS DB with at least one street/region (as in dev/CI); cancels otherwise.
@@ -225,6 +226,38 @@ class ExploreRoutePauseSpec
           val walks = walksFor(user.userId)
           walks must have size 2
           walks.find(_.userRouteId == walkId).value.discarded mustBe true
+      }
+    }
+
+    "not report a walk as resumed until a street of it has actually been served" in {
+      seedStreet match {
+        case None                           => cancel("No street/region rows in the connected DB; nothing to exercise.")
+        case Some((streetEdgeId, regionId)) =>
+          val user = newTutorialGraduate()
+          val _    = seedActiveRouteWalk(user.userId, streetEdgeId, regionId)
+
+          // Never handed a street of it, so picking the walk up is a first entry rather than a resume.
+          val data = pageData(user.userId)
+          data.userRoute mustBe defined
+          data.routeResumed mustBe false
+      }
+    }
+
+    "report a walk as resumed once it has been entered, on a later bare /explore visit" in {
+      seedStreet match {
+        case None                           => cancel("No street/region rows in the connected DB; nothing to exercise.")
+        case Some((streetEdgeId, regionId)) =>
+          val user    = newTutorialGraduate()
+          val routeId = seedActiveRouteWalk(user.userId, streetEdgeId, regionId)
+
+          val firstData = pageData(user.userId, routeId = Some(routeId))
+          firstData.routeResumed mustBe false
+          run(
+            auditTaskUserRoutes.filter(_.userRouteId === firstData.userRoute.value.userRouteId).result
+          ) must not be empty
+
+          // Main#updateURL strips ?routeId= from the address bar, so every later visit arrives bare.
+          pageData(user.userId).routeResumed mustBe true
       }
     }
 

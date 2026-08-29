@@ -441,7 +441,8 @@ class MissionStartTutorial {
     // Event handler to allow selecting between different label types
     $('.explore-mission-start-tab.label').off().click((e) => {
       const labelType = $(e.currentTarget).attr('data-label-type');
-      new MissionStartTutorial('audit', labelType, { neighborhood: this.#data.neighborhood }, svl);
+      // A tab switch only changes which label type is taught, so everything describing the mission has to survive it.
+      new MissionStartTutorial('audit', labelType, this.#data, svl, this.#language);
     });
 
     $('.mission-start-tutorial-done-btn').off().click(hideMST);
