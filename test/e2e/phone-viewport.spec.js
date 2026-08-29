@@ -142,18 +142,26 @@ async function checkLabelCardFits(page, {withoutAddress = false} = {}) {
   await page.goto(`/labelMap?labelId=${feature.properties.label_id}`);
   await waitForAppReady(page);
   await expect(page.locator('#label-modal')).toBeVisible({timeout: 30_000});
-  // The strip refits when the address resolves from the loaded imagery, which is after the card first paints.
-  await page.waitForTimeout(2000);
-
   // Both cases author the address cell rather than accepting whatever the imagery resolved: whether an address
   // arrives at all, and how long it is, varies by label and by run, and the strip's width follows it. Authored
   // through the DOM rather than stubbed out of the metadata because the loaded imagery re-supplies an address
   // either way; these are the states #showAddress itself reaches.
-  await page.evaluate(({hide, address}) => {
-    document.querySelector('.label-detail__meta-cell--address').hidden = hide;
-    document.querySelector('.label-detail__meta-divider--address').hidden = hide;
-    if (!hide) document.querySelector('.label-detail__address').textContent = address;
-  }, {hide: withoutAddress, address: LONG_ADDRESS});
+  //
+  // Re-authored until it sticks, because #showAddress runs again when the pano finishes loading — a fixed wait
+  // for that loses the race whenever the browser is busy, and the state has to hold through the measurement
+  // below, not just at the moment it is written.
+  await expect(async () => {
+    const held = await page.evaluate(async ({hide, address}) => {
+      const cell = document.querySelector('.label-detail__meta-cell--address');
+      const value = document.querySelector('.label-detail__address');
+      cell.hidden = hide;
+      document.querySelector('.label-detail__meta-divider--address').hidden = hide;
+      if (!hide) value.textContent = address;
+      await new Promise(done => setTimeout(done, 500));
+      return cell.hidden === hide && (hide || value.textContent === address);
+    }, {hide: withoutAddress, address: LONG_ADDRESS});
+    expect(held, 'the app overwrote the authored address state').toBe(true);
+  }).toPass({timeout: 30_000});
 
   // Those writes reach the DOM but not the fitter: #fitMetaRow runs from a ResizeObserver on the meta row, and
   // toggling that row's own children never changes its box. Unfitted, the strip keeps whatever trims the real
