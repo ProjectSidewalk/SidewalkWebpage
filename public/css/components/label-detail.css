@@ -344,7 +344,9 @@ dialog.label-detail[open]::backdrop {
   outline-offset: 2px;
 }
 
-/* Hover-reveal validation buttons at bottom of pano. Modeled after Gallery's old expanded-view validation buttons. */
+/* Hover-reveal validation buttons at bottom of pano. Modeled after Gallery's old expanded-view validation buttons.
+   Hidden outright on the viewer's own label (#5047); the card-wide `.label-detail [hidden]` guard at the top of
+   this file is what makes that stick against the display: flex below. */
 .label-detail__pano-overlay {
   position: absolute;
   left: 0;
@@ -653,10 +655,15 @@ button.label-detail__meta-cell:focus-visible {
   margin: 0;
 }
 
+/* Save confirmation beside an editable column's heading (#5047). Severity and tags autosave on click, so this line
+   is the only acknowledgement the user gets; it reads as quiet confirmation by default and only turns orange when
+   it is carrying a failure the reader has to act on. */
 .label-detail__edit-status {
   font: var(--text-tiny-regular);
-  color: var(--color-orange-700);
+  color: var(--color-neutral-700);
 }
+
+.label-detail__edit-status--error { color: var(--color-orange-700); }
 
 /* Tag pills — base styles are in tag-pills.css (.tag-pill class). */
 .label-detail__tags {

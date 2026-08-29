@@ -68,6 +68,7 @@ function buildCard() {
 
         <div class="label-detail__meta-row">
           <div class="label-detail__meta-cell">
+            <span><span class="label-detail__labeled-word" data-i18n="common:labeled">Labeled</span>:</span>
             <span class="label-detail__timestamp label-detail__meta-value"></span>
           </div>
           <div class="label-detail__meta-cell">
@@ -107,7 +108,10 @@ function buildCard() {
           </section>
 
           <section class="label-detail__col label-detail__col--severity">
-            <h3 class="label-detail__col-title label-detail__severity-title">Severity</h3>
+            <div class="label-detail__col-header">
+              <h3 class="label-detail__col-title label-detail__severity-title">Severity</h3>
+              <span class="label-detail__edit-status" role="status" aria-live="polite"></span>
+            </div>
             <div class="label-detail__severity-faces" role="group" aria-label="Severity">
               <button type="button" class="severity-button severity-button--static" data-severity="1" aria-disabled="true" aria-pressed="false" tabindex="-1">
                 <img alt="" class="severity-button__icon">
@@ -126,7 +130,7 @@ function buildCard() {
 
           <section class="label-detail__col label-detail__col--tags">
             <div class="label-detail__col-header">
-              <h3 class="label-detail__col-title">Tags</h3>
+              <h3 class="label-detail__col-title label-detail__tags-title" data-i18n="common:tags">Tags</h3>
               <button type="button" class="label-detail__tags-edit" hidden aria-expanded="false">Edit</button>
               <span class="label-detail__edit-status" role="status" aria-live="polite"></span>
             </div>
@@ -244,6 +248,7 @@ describe('LabelDetail edit gating (#5047)', () => {
     const q = (sel) => card.querySelector(sel);
     const faces = () => [...card.querySelectorAll('.severity-button')];
     const tagsEdit = () => q('.label-detail__tags-edit');
+    const status = (col) => q(`.label-detail__col--${col} .label-detail__edit-status`);
 
     beforeEach(async () => {
         jest.resetModules();
@@ -510,6 +515,143 @@ describe('LabelDetail edit gating (#5047)', () => {
 
             expect(tagsEdit().hidden).toBe(true);
             for (const face of faces()) expect(face.hasAttribute('data-ps-tooltip')).toBe(false);
+        });
+    });
+
+    describe('your own label says so in the wording, not just the chip', () => {
+        test('the meta strip and both editable columns address the labeler', async () => {
+            await showLabel({ from_current_user: true });
+            await resolveImagery(true);
+
+            expect(q('.label-detail__labeled-word').textContent).toBe('labelmap:you-labeled');
+            expect(q('.label-detail__severity-title').textContent).toBe('labelmap:your-rating');
+            expect(q('.label-detail__tags-title').textContent).toBe('labelmap:your-tags');
+        });
+
+        test('the rating heading names the viewer, not the label type', async () => {
+            // Obstacle is a negative type, so someone else's label is headed "Severity"; the own-label heading
+            // deliberately drops that distinction, which the faces and their level words still carry.
+            await showLabel({ from_current_user: false, label_type: 'Obstacle' });
+            await resolveImagery(true);
+            expect(q('.label-detail__severity-title').textContent).toBe('common:severity');
+
+            setPano = deferred();
+            panoManager.setPano.mockImplementation(() => setPano.promise);
+            await showLabel({ label_id: 44, from_current_user: true, label_type: 'Obstacle' });
+            await resolveImagery(true);
+            expect(q('.label-detail__severity-title').textContent).toBe('labelmap:your-rating');
+        });
+
+        test('someone else\'s label keeps the neutral wording', async () => {
+            await showLabel({ from_current_user: false });
+            await resolveImagery(true);
+
+            expect(q('.label-detail__labeled-word').textContent).toBe('common:labeled');
+            expect(q('.label-detail__tags-title').textContent).toBe('common:tags');
+        });
+
+        test('the wording reverts when paging from your own label to someone else\'s', async () => {
+            await showLabel({ from_current_user: true });
+            await resolveImagery(true);
+            expect(q('.label-detail__labeled-word').textContent).toBe('labelmap:you-labeled');
+
+            setPano = deferred();
+            panoManager.setPano.mockImplementation(() => setPano.promise);
+            await showLabel({ label_id: 45, from_current_user: false });
+            await resolveImagery(true);
+
+            expect(q('.label-detail__labeled-word').textContent).toBe('common:labeled');
+            expect(q('.label-detail__tags-title').textContent).toBe('common:tags');
+        });
+
+        test('the validate overlay is gone rather than sitting greyed over the imagery', async () => {
+            await showLabel({ from_current_user: true });
+            await resolveImagery(true);
+
+            expect(q('.label-detail__pano-overlay').hidden).toBe(true);
+        });
+
+        test('every other lock keeps the overlay, disabled, so it can explain itself', async () => {
+            // No imagery is a state that passes — the buttons stay put and carry the reason. Only your own label,
+            // which will never become validatable by you, loses them.
+            await showLabel({ from_current_user: false });
+            await resolveImagery(false);
+
+            expect(q('.label-detail__pano-overlay').hidden).toBe(false);
+            for (const btn of card.querySelectorAll('.label-detail__pano-overlay-button')) {
+                expect(btn.disabled).toBe(true);
+            }
+        });
+    });
+
+    describe('an autosaved edit says so', () => {
+        test('a rating change confirms in the rating column only', async () => {
+            // Nothing was pressed and no dialog closed, so this line is the whole acknowledgement (#5047).
+            await showLabel({ severity: 2, tags: [] });
+            await resolveImagery(true);
+
+            faces()[2].click();
+            await flush();
+
+            expect(status('severity').textContent).toBe('labelmap:edit-saved');
+            expect(status('severity').classList.contains('label-detail__edit-status--error')).toBe(false);
+            expect(status('tags').textContent).toBe('');
+        });
+
+        test('a tag change confirms in the tags column only', async () => {
+            await showLabel({ severity: 2, tags: ['pole'] });
+            await resolveImagery(true);
+
+            tagsEdit().click();
+            await flush();
+            card.querySelector('.label-detail__tags .tag-pill:not(.tag-pill--active)').click();
+            tagsEdit().click();
+            await flush();
+
+            expect(status('tags').textContent).toBe('labelmap:edit-saved');
+            expect(status('severity').textContent).toBe('');
+        });
+
+        test('a failed save says so on the same column, styled as a failure', async () => {
+            const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+            saveRequest.mockResolvedValue({ ok: false, status: 500, json: async () => ({}) });
+            await showLabel({ severity: 2 });
+            await resolveImagery(true);
+
+            faces()[2].click();
+            await flush();
+
+            expect(status('severity').textContent).toBe('labelmap:edit-failed');
+            expect(status('severity').classList.contains('label-detail__edit-status--error')).toBe(true);
+            consoleError.mockRestore();
+        });
+
+        test('a save that changes nothing stays quiet', async () => {
+            // Re-picking the rating the label already has is not news; a "Saved" for it would be a lie about a
+            // request that was never made.
+            await showLabel({ severity: 3 });
+            await resolveImagery(true);
+
+            faces()[2].click();
+            await flush();
+
+            expect(savedEdits()).toEqual([]);
+            expect(status('severity').textContent).toBe('');
+        });
+
+        test('paging to another label clears a confirmation left on screen', async () => {
+            await showLabel({ severity: 2 });
+            await resolveImagery(true);
+            faces()[2].click();
+            await flush();
+            expect(status('severity').textContent).toBe('labelmap:edit-saved');
+
+            setPano = deferred();
+            panoManager.setPano.mockImplementation(() => setPano.promise);
+            await showLabel({ label_id: 46 });
+
+            expect(status('severity').textContent).toBe('');
+            expect(status('tags').textContent).toBe('');
         });
     });
 

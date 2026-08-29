@@ -336,8 +336,15 @@ class LabelDetail {
     els.severity = this.#q('.label-detail__severity-faces');
     els.severityTitle = this.#q('.label-detail__severity-title');
     els.tags = this.#q('.label-detail__tags');
+    els.tagsTitle = this.#q('.label-detail__tags-title');
     els.tagsEdit = this.#q('.label-detail__tags-edit');
-    els.editStatus = this.#q('.label-detail__edit-status');
+    els.labeledWord = this.#q('.label-detail__labeled-word');
+    // One status span per editable column, so a save's outcome is announced beside the control that produced it
+    // rather than in a single shared slot the reader has to go looking for.
+    els.editStatus = {
+      severity: this.#q('.label-detail__col--severity .label-detail__edit-status'),
+      tags: this.#q('.label-detail__col--tags .label-detail__edit-status'),
+    };
     els.descriptionSection = this.#q('.label-detail__description-section');
     els.description = this.#q('.label-detail__description');
     els.commentsSection = this.#q('.label-detail__comments-section');
@@ -545,6 +552,7 @@ class LabelDetail {
     this.#applyInteractionLock();
 
     this.#showEditStatus('');
+    this.#applyOwnLabelWording();
     if (els.ownBadge) {
       els.ownBadge.hidden = !meta.from_current_user;
       const ownLabel = i18next.t('labelmap:own-label');
@@ -1112,6 +1120,10 @@ class LabelDetail {
     this.#renderVoteTooltips();
     // The toggle goes with the marker it acts on; a load still in flight keeps it, since a marker is coming.
     if (els.hideLabelButton) els.hideLabelButton.hidden = this.#noImagery;
+    // Your own label is never going to be validatable by you, so the overlay goes away rather than sitting there
+    // greyed across the imagery (#5047). Every other lock keeps the buttons: those are states that pass, and a
+    // disabled control that explains itself is the thing that tells you to come back.
+    if (els.panoOverlay) els.panoOverlay.hidden = this.#readonly;
     for (const btn of Object.values(els.panoOverlayButtons)) btn.disabled = blocked;
     for (const btn of Object.values(els.voteButtons)) btn.disabled = blocked;
 
@@ -1124,6 +1136,21 @@ class LabelDetail {
     // leaves it in place and just disables it, since it's about to be usable again.
     this.#updateCommentRow();
     this.#applyEditLock(); // Imagery availability drives both locks, so they always settle together.
+  }
+
+  /**
+   * Names the meta strip's date and the two editable columns for whoever is reading (#5047).
+   *
+   * On the viewer's own label the card is showing them their own work, and the own-label chip alone was easy to
+   * miss, so the wording says it where they are already reading: "You labeled: <date>", "Your Rating", "Your Tags".
+   * On anyone else's label all three keep the neutral wording. The severity heading is set in #renderSeverity()
+   * instead, which owns that element and re-runs whenever the rating does.
+   */
+  #applyOwnLabelWording() {
+    const els = this.#els;
+    const own = this.#readonly;
+    if (els.labeledWord) els.labeledWord.textContent = i18next.t(own ? 'labelmap:you-labeled' : 'common:labeled');
+    if (els.tagsTitle) els.tagsTitle.textContent = i18next.t(own ? 'labelmap:your-tags' : 'common:tags');
   }
 
   /**
@@ -1335,8 +1362,12 @@ class LabelDetail {
     const titleKey = positive ? 'quality' : 'severity';
     const levelKeys = util.misc.getRatingLevelKeys(labelType);
 
-    if (els.severityTitle) els.severityTitle.textContent = i18next.t(`common:${titleKey}`);
-    if (els.severity) els.severity.setAttribute('aria-label', i18next.t(`common:${titleKey}`));
+    // On the viewer's own label the column is titled "Your Rating" rather than the per-type "Quality"/"Severity"
+    // (#5047): the point of the heading there is whose rating it is, and the faces and their level words carry the
+    // positive/negative scale the type-specific word would have named.
+    const title = this.#readonly ? i18next.t('labelmap:your-rating') : i18next.t(`common:${titleKey}`);
+    if (els.severityTitle) els.severityTitle.textContent = title;
+    if (els.severity) els.severity.setAttribute('aria-label', title);
 
     const editable = this.#editingAllowed;
     // A face that can't be clicked because the imagery didn't load explains that instead of naming its own level:
@@ -1415,18 +1446,34 @@ class LabelDetail {
   }
 
   /**
-   * Shows a short status beside the Tags heading (a failed save), clearing it after a few seconds.
-   * @param {string} text - Empty to clear.
+   * Shows a short status beside an editable column's heading, clearing it after a few seconds.
+   *
+   * Severity and tags save the moment they're clicked, with no button to press and no dialog to dismiss, so the
+   * only thing telling the user their change was kept is this line (#5047). It rides the column's `aria-live`
+   * span, which announces the outcome without moving focus off the control they just used.
+   *
+   * A success clears faster than a failure: "Saved" has been read by the time the fade ends, while a failure asks
+   * the reader to do something about it.
+   *
+   * @param {string} text - Empty to clear every column's status.
+   * @param {Object} [opts]
+   * @param {string[]} [opts.columns] - Which columns to show it on ('severity' and/or 'tags'); all when omitted.
+   * @param {boolean} [opts.error=false] - Style it as a failure rather than a confirmation.
    */
-  #showEditStatus(text) {
-    const el = this.#els.editStatus;
-    if (!el) return;
+  #showEditStatus(text, { columns, error = false } = {}) {
+    const spans = this.#els.editStatus;
+    if (!spans) return;
     clearTimeout(this.#editStatusTimer);
-    el.textContent = text;
+    const shown = text ? (columns ?? Object.keys(spans)) : [];
+    for (const [name, el] of Object.entries(spans)) {
+      if (!el) continue;
+      el.textContent = shown.includes(name) ? text : '';
+      el.classList.toggle('label-detail__edit-status--error', !!text && error);
+    }
     if (text) {
       this.#editStatusTimer = setTimeout(() => {
-        el.textContent = '';
-      }, 5000);
+        for (const el of Object.values(spans)) if (el) el.textContent = '';
+      }, error ? 5000 : 2500);
     }
   }
 
@@ -1443,7 +1490,7 @@ class LabelDetail {
       this.#tagEditor.close();
       this.#setTagsEditLabel(false);
       this.#renderTags(meta.tags);
-      this.#showEditStatus(i18next.t('labelmap:edit-failed'));
+      this.#showEditStatus(i18next.t('labelmap:edit-failed'), { columns: ['tags'], error: true });
     });
   }
 
@@ -1490,6 +1537,12 @@ class LabelDetail {
       return;
     }
 
+    // Which columns this save speaks for, so its outcome is announced beside the control the user actually
+    // touched. Both when a tag pick and a rating change ride the same save.
+    const columns = [];
+    if (severity !== prev.severity) columns.push('severity');
+    if (!sameTags) columns.push('tags');
+
     meta.severity = severity;
     meta.tags = tags;
     render();
@@ -1505,6 +1558,7 @@ class LabelDetail {
       meta.severity = body.severity ?? null;
       meta.tags = body.tags ?? [];
       render();
+      this.#showEditStatus(i18next.t('labelmap:edit-saved'), { columns });
       if (meta.severity !== prev.severity) {
         this.#logClick(`EditSeverity_old=${prev.severity}_new=${meta.severity}`);
       }
@@ -1516,7 +1570,7 @@ class LabelDetail {
       meta.severity = prev.severity;
       meta.tags = prev.tags;
       render();
-      this.#showEditStatus(i18next.t('labelmap:edit-failed'));
+      this.#showEditStatus(i18next.t('labelmap:edit-failed'), { columns, error: true });
     }
   }
 
