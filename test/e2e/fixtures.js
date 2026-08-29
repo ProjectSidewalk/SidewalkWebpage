@@ -10,6 +10,11 @@ const base = require('@playwright/test');
 // Where auth.setup.js saves the registered user's session for the specs that need one (dashboard.spec.js).
 const STORAGE_STATE = 'test-results/.auth/registered.json';
 
+// The phone profile the viewport specs measure at. defaultBrowserType is dropped because the suite's chromium
+// project already fixes the browser; shared so the page walk and the checks that pin its rules can't drift apart.
+const PHONE_DEVICE = {...base.devices['iPhone 13'], viewport: {width: 390, height: 844}};
+delete PHONE_DEVICE.defaultBrowserType;
+
 // Known-benign console errors ONLY. Keep this tight: every entry needs a comment explaining the cause, and
 // entries are added only for observed, understood noise — never to get a red run green. `pageerror` (an
 // uncaught exception) is NEVER allowlisted.
@@ -163,13 +168,15 @@ async function loadAndSettle(page, context, p) {
  * closed rather than exempted here. Known blind spot: `overflow-y: auto` computes `overflow-x: auto` on the
  * same box, so a vertical-only scroll pane (e.g. the auth pages' .au-body) exempts its descendants.
  *
- * `visibility: hidden` is exempt, which is the other half of that same contract: it is a parking mechanism the
- * walk recommends, so honoring it here is what lets a page use it. Nothing is lost — a hidden box that stretches
- * a *visible* ancestor still reports that ancestor, and the #4857 shape is visible by definition. It is also what
- * keeps third-party probes out of the results: the Google Maps SDK measures font metrics with a hidden
- * `<span style="position:absolute; font-size:300px">BESbswy</span>` on `<body>`, ~1200px wide and parented by an
- * `overflow-x: hidden` div that the scroller rule above does not exempt. It lives only until the font resolves,
- * so it lands in some runs and not others — it cost #5025 a full investigation to name.
+ * `visibility: hidden` (and `collapse`) is exempt, so a page can take the parking advice above —
+ * `.filter-sidebar--hidden` does, citing this file. It also keeps third-party probes out: the Google Maps SDK
+ * measures font metrics with a hidden `<span style="position:absolute; font-size:300px">BESbswy</span>` on
+ * `<body>`, ~1200px wide under an `overflow-x: hidden` div the scroller rule does not exempt, alive only until
+ * the font resolves — so it lands in some runs and not others, and cost #5025 a full investigation to name.
+ *
+ * A hidden `position: fixed` box is reported anyway: that is the #4857 shape itself, and nothing else measures
+ * it. Second known blind spot, therefore: a hidden `absolute` box is measured by nothing — it stretches no
+ * ancestor to report in its place, and `body {overflow-x: clip}` keeps it out of `pageScrollWidth`.
  *
  * @param {import('@playwright/test').Page} page - The page to measure, already loaded and settled.
  * @returns {Promise<{viewportWidth: number, pageScrollWidth: number, offenders: string[], offenderCount: number}>}
@@ -192,7 +199,8 @@ async function horizontalOverflowReport(page) {
       const rect = el.getBoundingClientRect();
       if (rect.width === 0 || rect.height === 0 || rect.right <= viewportWidth + TOLERANCE_PX) continue;
       const style = getComputedStyle(el);
-      if (style.visibility === 'hidden') continue; // See the header: a parked or third-party-probe box.
+      // See the header: a parked or third-party-probe box, unless it is fixed — that one is the #4857 shape.
+      if (['hidden', 'collapse'].includes(style.visibility) && style.position !== 'fixed') continue;
       let inScroller = false;
       // A fixed element's containing block is the viewport, so no ancestor scrolls or clips it (the #4857
       // footer bug shape); and the walk stops before body so a horizontally scrollable page can't exempt
@@ -209,9 +217,10 @@ async function horizontalOverflowReport(page) {
         if (a === document.body) break; // Everything is under html; naming it places nothing.
       }
       // An element with neither id nor class is unidentifiable from its tag alone, so those carry a text
-      // sample too — that is the whole gap #5025 hit, where `span right=1284px` named no way to find it.
+      // sample too — that is the whole gap #5025 hit, where `span right=1284px` named no way to find it. Double
+      // quotes become single so the sample can't close its own quoting mid-line.
       const bare = !el.id && !el.classList.length;
-      const text = bare ? (el.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 40) : '';
+      const text = bare ? (el.textContent || '').trim().replace(/\s+/g, ' ').replace(/"/g, '\'').slice(0, 40) : '';
       offenders.push(`${describe(el)} right=${Math.round(rect.right)}px width=${Math.round(rect.width)}px` +
         `${ancestry.length ? ` in ${ancestry.join(' < ')}` : ''}${text ? ` text="${text}"` : ''}`);
     }
@@ -250,5 +259,6 @@ module.exports = {
   waitForAppReady,
   loadAndSettle,
   horizontalOverflowReport,
+  PHONE_DEVICE,
   STORAGE_STATE,
 };
