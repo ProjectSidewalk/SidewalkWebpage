@@ -147,56 +147,56 @@ async function checkLabelCardFits(page, {withoutAddress = false} = {}) {
   // through the DOM rather than stubbed out of the metadata because the loaded imagery re-supplies an address
   // either way; these are the states #showAddress itself reaches.
   //
-  // Re-authored until it sticks, because #showAddress runs again when the pano finishes loading — a fixed wait
-  // for that loses the race whenever the browser is busy, and the state has to hold through the measurement
-  // below, not just at the moment it is written.
+  // Authoring, re-fitting and measuring share one retry because #showAddress runs again when the pano resolves,
+  // which is network-timed and can land between any two of those steps. Holding the state briefly and then
+  // measuring outside the retry loses that race whenever the pano settles in the gap. Once it has run there is
+  // nothing left to rewrite the cell, so the block converges rather than spinning.
+  let fit;
   await expect(async () => {
-    const held = await page.evaluate(async ({hide, address}) => {
+    await page.evaluate(({hide, address}) => {
       const cell = document.querySelector('.label-detail__meta-cell--address');
-      const value = document.querySelector('.label-detail__address');
       cell.hidden = hide;
       document.querySelector('.label-detail__meta-divider--address').hidden = hide;
-      if (!hide) value.textContent = address;
-      await new Promise(done => setTimeout(done, 500));
-      return cell.hidden === hide && (hide || value.textContent === address);
+      if (!hide) document.querySelector('.label-detail__address').textContent = address;
     }, {hide: withoutAddress, address: LONG_ADDRESS});
-    expect(held, 'the app overwrote the authored address state').toBe(true);
+
+    // Those writes reach the DOM but not the fitter: #fitMetaRow runs from a ResizeObserver on the meta row, and
+    // toggling that row's own children never changes its box. Unfitted, the strip keeps whatever trims the real
+    // address left on it — the per-run variance this helper exists to pin. A 1px viewport round-trip is the
+    // resize path production takes on rotation, and lands back on the width under test.
+    const viewport = page.viewportSize();
+    await page.setViewportSize({...viewport, width: viewport.width - 1});
+    await page.setViewportSize(viewport);
+    // ResizeObserver callbacks land before paint, so two frames covers the re-fit and its relayout.
+    await page.evaluate(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done))));
+
+    fit = await page.evaluate(() => {
+      const card = document.getElementById('label-modal');
+      const row = card.querySelector('.label-detail__meta-row');
+      return {
+        cardScrollWidth: card.scrollWidth,
+        cardClientWidth: card.clientWidth,
+        rowScrollWidth: row.scrollWidth,
+        rowClientWidth: row.clientWidth,
+        rowClasses: row.className,
+        addressHidden: card.querySelector('.label-detail__meta-cell--address').hidden,
+        addressText: card.querySelector('.label-detail__address').textContent,
+      };
+    });
+
+    expect(fit.addressHidden, `the address cell left the state under test: ${JSON.stringify(fit)}`)
+      .toBe(withoutAddress);
+    if (!withoutAddress) {
+      expect(fit.addressText, `the authored address was overwritten: ${JSON.stringify(fit)}`).toBe(LONG_ADDRESS);
+      // LONG_ADDRESS fits no phone-width strip, so the row it is measured on must be in the trimmed state. The
+      // width assertions can't check that: the address cell ellipsizes any length on its own, fitted or not.
+      expect(fit.rowClasses, `the meta strip was never re-fitted: ${JSON.stringify(fit)}`)
+        .toContain('label-detail__meta-row--no-time');
+    }
   }).toPass({timeout: 30_000});
 
-  // Those writes reach the DOM but not the fitter: #fitMetaRow runs from a ResizeObserver on the meta row, and
-  // toggling that row's own children never changes its box. Unfitted, the strip keeps whatever trims the real
-  // address left on it — the per-run variance this helper exists to pin. A 1px viewport round-trip is the resize
-  // path production takes on rotation, and lands back on the width under test.
-  const viewport = page.viewportSize();
-  await page.setViewportSize({...viewport, width: viewport.width - 1});
-  await page.setViewportSize(viewport);
-  // ResizeObserver callbacks land before paint, so two frames covers the re-fit and its relayout.
-  await page.evaluate(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done))));
-
-  const fit = await page.evaluate(() => {
-    const card = document.getElementById('label-modal');
-    const row = card.querySelector('.label-detail__meta-row');
-    return {
-      cardScrollWidth: card.scrollWidth,
-      cardClientWidth: card.clientWidth,
-      rowScrollWidth: row.scrollWidth,
-      rowClientWidth: row.clientWidth,
-      rowClasses: row.className,
-      addressHidden: card.querySelector('.label-detail__meta-cell--address').hidden,
-      addressText: card.querySelector('.label-detail__address').textContent,
-    };
-  });
-  // A late pano load calls #showAddress again, restoring the cell and its own address under us. Fail on that
-  // rather than quietly measuring a different layout than the one the test names.
-  expect(fit.addressHidden, `the address cell left the state under test: ${JSON.stringify(fit)}`)
-    .toBe(withoutAddress);
-  if (!withoutAddress) {
-    expect(fit.addressText, `the authored address was overwritten: ${JSON.stringify(fit)}`).toBe(LONG_ADDRESS);
-    // LONG_ADDRESS fits no phone-width strip, so the row it is measured on must be in the trimmed state. The
-    // width assertions can't check that: the address cell ellipsizes any length on its own, fitted or not.
-    expect(fit.rowClasses, `the meta strip was never re-fitted: ${JSON.stringify(fit)}`)
-      .toContain('label-detail__meta-row--no-time');
-  }
+  // Outside the retry: once the state above holds, a card that still scrolls sideways is a real overflow, not a
+  // race, and re-measuring it until the timeout would only delay the report.
   expect(fit.cardScrollWidth, `the label card scrolls sideways: ${JSON.stringify(fit)}`)
     .toBeLessThanOrEqual(fit.cardClientWidth + 1);
   expect(fit.rowScrollWidth, `the meta strip overflows its row: ${JSON.stringify(fit)}`)
