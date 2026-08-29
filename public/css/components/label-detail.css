@@ -1520,6 +1520,12 @@ dialog.story-lightbox::backdrop { background: rgb(0 0 0 / 45%); }
 
 .story-composer__photo-attach[hidden] { display: none; }
 
+.story-composer__photo-icon {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+
 .story-composer__photo-attach:hover {
   border-color: var(--color-pine-700);
   color: var(--color-pine-800);
