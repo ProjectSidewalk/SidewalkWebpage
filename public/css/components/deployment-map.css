@@ -326,7 +326,8 @@
 
 .deployment-sites-stats-header {
   font-size: 30px;
-  font-family: raleway-extrabold, sans-serif;
+  font-family: var(--font-accent);
+  font-weight: 800;
   color: #2c3e50;
   line-height: 1.2;
 
@@ -391,7 +392,8 @@
 
 .cta-title {
   font-size: 28px;
-  font-family: raleway-extrabold, sans-serif;
+  font-family: var(--font-accent);
+  font-weight: 800;
   color: #2c3e50;
   margin-bottom: 15px;
 }
