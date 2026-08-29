@@ -593,7 +593,11 @@
 
 /* Emphasized category (opts.emphasisIndex — e.g. the in-progress "today" bar): bolder, darker text; the bar itself
    renders with a lighter fill + solid outline so a partial period reads as still accumulating. */
-.mini-axis--emphasis,
+.mini-axis--emphasis {
+  fill: var(--color-neutral-900);
+  font: var(--text-caption-semibold);
+}
+
 /* Reference line: a target the bars are read against (e.g. the poll's nightly batch size), not a data series. */
 .mini-ref {
   stroke: var(--color-neutral-700);
