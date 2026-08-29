@@ -1,10 +1,11 @@
 /**
  * Tests for the label popup's prev/next arrow state (public/js/common/label-detail/LabelPopup.js) when the host's
- * label data arrives after the popup has already opened.
+ * label data changes after the popup has already opened.
  *
  * LabelMap loads labels by viewport (#5002), so a `?labelId=` deep link opens the popup before any label data
- * exists. The arrows are computed from the nearby-label navigator, which is empty at that moment, so the host has
- * to ask the popup to recompute once the data lands — otherwise Next stays disabled forever (#5068).
+ * exists. The arrows are computed from the nearby-label navigator, which is empty at that moment, so the popup
+ * subscribes to the navigator and recomputes whenever the loaded set changes — a single `nav.refresh()` from the
+ * host has to be enough, in both directions (#5068).
  */
 
 const fs = require('fs');
@@ -27,10 +28,15 @@ function renderPopupMarkup() {
 /** A label feature in the shape addLabelsToMap produces. */
 const feature = (id, lng, lat) => ({ properties: { label_id: id }, geometry: { coordinates: [lng, lat] } });
 
+/** Two labels ~111m apart, the shape a viewport fetch lands in. */
+const TWO_LABELS = { CurbRamp: [feature(1, 0, 0), feature(2, 0.001, 0)] };
+
 describe('LabelPopup paging state', () => {
     let popup;
     let mapData;
     let nav;
+    let prevBtn;
+    let nextBtn;
 
     beforeEach(async () => {
         renderPopupMarkup();
@@ -54,28 +60,56 @@ describe('LabelPopup paging state', () => {
         nav = global.createNearbyLabelNavigator(mapData);
         popup = await global.LabelPopup(false, null, null, null, {});
         popup.setNearbyNavigator(nav);
+        prevBtn = document.querySelector('.label-detail__paging--prev');
+        nextBtn = document.querySelector('.label-detail__paging--next');
     });
 
-    test('Next is enabled once the host refreshes the navigator and the paging state', async () => {
-        const nextBtn = document.querySelector('.label-detail__paging--next');
-        await popup.showLabel(1, 'LabelMap');
-        expect(nextBtn.disabled).toBe(true);
-
-        // The viewport's labels land, as labelMap's labelLoader.onData handler sees it.
-        mapData.sortedLabels = { CurbRamp: [feature(1, 0, 0), feature(2, 0.001, 0)] };
+    /** Lands a viewport fetch's worth of labels the way labelMap's labelLoader.onData handler does. */
+    function landViewportData(sortedLabels) {
+        mapData.sortedLabels = sortedLabels;
         nav.refresh();
-        popup.refreshPagingState();
+    }
+
+    test('Next enables on the host\'s nav.refresh() alone, with no second call to the popup', async () => {
+        await popup.showLabel(1, 'LabelMap');
+        expect(nextBtn.disabled).toBe(true); // Nowhere to go while the navigator has never heard of label 1.
+
+        landViewportData(TWO_LABELS);
 
         expect(nextBtn.disabled).toBe(false);
     });
 
-    test('Prev stays disabled on the first label, since nothing has been visited yet', async () => {
-        const prevBtn = document.querySelector('.label-detail__paging--prev');
+    test('Next disables again when a refetch drops every label but the shown one', async () => {
         await popup.showLabel(1, 'LabelMap');
-        mapData.sortedLabels = { CurbRamp: [feature(1, 0, 0), feature(2, 0.001, 0)] };
-        nav.refresh();
-        popup.refreshPagingState();
+        landViewportData(TWO_LABELS);
+        expect(nextBtn.disabled).toBe(false);
 
-        expect(prevBtn.disabled).toBe(true);
+        // The map moved on, so the neighbor is outside the new bbox and the popup can no longer page to it.
+        landViewportData({ CurbRamp: [feature(1, 0, 0)] });
+
+        expect(nextBtn.disabled).toBe(true);
+    });
+
+    test('Prev is disabled on the first label and enables once the tour moves on', async () => {
+        await popup.showLabel(1, 'LabelMap');
+        landViewportData(TWO_LABELS);
+        expect(prevBtn.disabled).toBe(true); // Trail-based: nothing has been visited yet.
+
+        nextBtn.click();
+        await Promise.resolve(); // The click's showLabel() is async; let it settle.
+
+        expect(prevBtn.disabled).toBe(false);
+    });
+
+    test('a refetch that drops the trail\'s labels leaves Prev live', async () => {
+        await popup.showLabel(1, 'LabelMap');
+        landViewportData(TWO_LABELS);
+        nextBtn.click();
+        await Promise.resolve();
+
+        // Label 1 is gone from the loaded set, but it is still where Prev goes back to.
+        landViewportData({ CurbRamp: [feature(2, 0.001, 0)] });
+
+        expect(prevBtn.disabled).toBe(false);
     });
 });
