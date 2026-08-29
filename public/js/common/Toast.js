@@ -2,8 +2,8 @@
  * A generic, reusable toast notification. Renders a small card with an optional icon, a title, a message, an optional
  * action button, and a close (X) button. It lives on <body> (fixed-positioned) and floats over a reference element.
  *
- * Dismiss behavior: the toast starts slightly transparent and fades itself out after `duration` ms. Hovering it makes
- * it fully opaque, reveals the close button, and pauses the auto-dismiss timer until the cursor leaves. Clicking the
+ * Dismiss behavior: the toast starts slightly transparent and fades itself out after `duration` ms. Hovering or
+ * focusing it makes it fully opaque and pauses the auto-dismiss timer until the cursor or focus leaves. Clicking the
  * close button (or calling dismiss()) fades it out immediately.
  *
  * Specialized toasts (e.g. badge-unlock celebrations) should extend or compose this class rather than re-implement it.
