@@ -315,10 +315,13 @@ video#bgvid {
   text-align: center;
 }
 
+/* Digits in Raleway, against the general rule (#4912): these four are the homepage's headline moment, and `lnum` is
+   already a feature of the face we ship, so lining figures cost nothing the rule exists to protect. */
 .ps-skyline-stats-holder-stat-number {
   font-size: 60px;
   font-family: var(--font-accent);
   font-weight: 800;
+  font-variant-numeric: lining-nums;
 }
 
 .ps-skyline-stats-holder-stat-label {
