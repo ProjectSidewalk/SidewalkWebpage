@@ -1,4 +1,5 @@
 services:
+  # No `platform:` — the image is arch-agnostic, so each host builds natively instead of emulating (#5069).
   web:
     image: projectsidewalk/web
     container_name: projectsidewalk-web
@@ -12,7 +13,6 @@ services:
       - "/home/node_modules"
     ports:
       - "9000:9000"
-    platform: linux/x86_64
     environment:
       - DATABASE_USER=sidewalk
       - SIDEWALK_CITY_ID=DUMMY_CITY_ID
