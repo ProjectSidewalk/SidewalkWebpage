@@ -209,6 +209,7 @@
     "label-type-subtitle": "Wieso ist das falsch?",
     "label-on-image-title-correct": "Richtige Beschriftung",
     "start-mission": "Mission starten",
+    "resume-mission": "Mission fortsetzen",
     "curb-ramp": {
       "slide-1": {
         "title": "{{- labelType}}",

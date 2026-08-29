@@ -142,14 +142,18 @@
     "no-accuracy-tooltip": "We hebben meer gegevens nodig om een nauwkeurigheidsbeoordeling voor u te berekenen. Voeg meer labels toe en meld u aan om uw nauwkeurigheidsbeoordeling bij te houden!",
     "current-mission": {
       "header": "Huidige Missie",
+      "header-route": "Aangepaste Route",
       "message-route": "Verken {{routeName}}",
-      "exit-route": "Route verlaten",
+      "exit-route": "Aangepaste route verlaten",
       "header-free-explore": "Vrij verkennen",
       "message": "Zoek __PLACEHOLDER__ voor {{neighborhoodName}}"
     },
     "route-resume": {
-      "message": "Je route “{{routeName}}” wordt hervat waar je was gebleven.",
-      "exit": "Route verlaten"
+      "message": "Je aangepaste route “{{routeName}}” wordt hervat waar je was gebleven.",
+      "exit": "Aangepaste route verlaten"
+    },
+    "mission-resume": {
+      "message": "Je missie in {{neighborhoodName}} wordt hervat — nog {{distanceLeft, distance(style: small)}} te gaan."
     },
     "minimap": {
       "coach-dismiss": "Begrepen",

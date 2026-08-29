@@ -24,6 +24,8 @@ class MissionPanel {
 
     if (missionType === 'exploreAddress') {
       this.#headerEl.innerHTML = i18next.t('right-ui.current-mission.header-free-explore');
+    } else if (isRoute) {
+      this.#headerEl.innerHTML = i18next.t('right-ui.current-mission.header-route');
     } else {
       this.#headerEl.innerHTML = i18next.t('right-ui.current-mission.header');
     }

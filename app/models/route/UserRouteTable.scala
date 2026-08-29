@@ -102,17 +102,19 @@ class UserRouteTable @Inject() (
 
   /**
    * The user's active walk of the given route (un-pausing it if they had exited), or a brand new walk of it.
+   *
+   * @return The walk, paired with whether it already existed (a resumed walk) rather than being created here.
    */
-  def getActiveRouteOrCreateNew(routeId: Int, userId: String): DBIO[UserRoute] = {
+  def getActiveRouteOrCreateNew(routeId: Int, userId: String): DBIO[(UserRoute, Boolean)] = {
     activeRoutes.filter(ar => ar.routeId === routeId && ar.userId === userId).result.headOption.flatMap {
       case Some(ur) if ur.paused =>
         userRoutes
           .filter(_.userRouteId === ur.userRouteId)
           .map(_.paused)
           .update(false)
-          .map(_ => ur.copy(paused = false))
-      case Some(ur) => DBIO.successful(ur)
-      case None     => insert(UserRoute(0, routeId, userId, completed = false, discarded = false))
+          .map(_ => (ur.copy(paused = false), true))
+      case Some(ur) => DBIO.successful((ur, true))
+      case None     => insert(UserRoute(0, routeId, userId, completed = false, discarded = false)).map((_, false))
     }
   }
 

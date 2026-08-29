@@ -142,14 +142,18 @@
     "no-accuracy-tooltip": "Wir benötigen mehr Daten, um Ihre Genauigkeit zu bewerten. Fügen Sie mehr Beschriftungen hinzu und melden Sie sich an, um die Bewertung Ihrer Genauigkeit zu verfolgen!",
     "current-mission": {
       "header": "Aktuelle Mission",
+      "header-route": "Eigene Route",
       "message-route": "Erkunde {{routeName}}",
-      "exit-route": "Route verlassen",
+      "exit-route": "Eigene Route verlassen",
       "header-free-explore": "Freies Erkunden",
       "message": "Erkunden Sie __PLACEHOLDER__ von {{neighborhoodName}}"
     },
     "route-resume": {
-      "message": "Deine Route „{{routeName}}“ wird dort fortgesetzt, wo du aufgehört hast.",
-      "exit": "Route verlassen"
+      "message": "Deine eigene Route „{{routeName}}“ wird dort fortgesetzt, wo du aufgehört hast.",
+      "exit": "Eigene Route verlassen"
+    },
+    "mission-resume": {
+      "message": "Deine Mission in {{neighborhoodName}} wird fortgesetzt — noch {{distanceLeft, distance(style: small)}}."
     },
     "minimap": {
       "coach-dismiss": "Verstanden",

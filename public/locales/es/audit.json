@@ -142,14 +142,18 @@
     "no-accuracy-tooltip": "Necesitamos más datos para calcular una calificación de precisión para usted. ¡Agregue más etiquetas y regístrese para realizar un seguimiento de su calificación de precisión!",
     "current-mission": {
       "header": "Misión actual",
+      "header-route": "Ruta personalizada",
       "message-route": "Explora {{routeName}}",
-      "exit-route": "Salir de la ruta",
+      "exit-route": "Salir de la ruta personalizada",
       "header-free-explore": "Exploración libre",
       "message": "Explora __PLACEHOLDER__ de {{neighborhoodName}}"
     },
     "route-resume": {
-      "message": "Reanudando tu ruta “{{routeName}}” donde la dejaste.",
-      "exit": "Salir de la ruta"
+      "message": "Reanudando tu ruta personalizada “{{routeName}}” donde la dejaste.",
+      "exit": "Salir de la ruta personalizada"
+    },
+    "mission-resume": {
+      "message": "Reanudando tu misión en {{neighborhoodName}}; te quedan {{distanceLeft, distance(style: small)}}."
     },
     "minimap": {
       "coach-dismiss": "Entendido",

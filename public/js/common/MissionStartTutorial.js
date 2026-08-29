@@ -159,7 +159,8 @@ class MissionStartTutorial {
   /**
    * @param {string} missionType Mission type ('validate' or 'audit').
    * @param {string} labelType One of the seven label types for which the tutorial is initialized.
-   * @param {object} data Mission data: `nLabels` (VALIDATE) or `neighborhood` (EXPLORE).
+   * @param {object} data Mission data: `nLabels` (VALIDATE) or `neighborhood` (EXPLORE), plus optional `resuming`
+   *                      (the mission already has progress, so the done button reads "Resume mission").
    * @param {object} svvOrsvl SVValidate or SVLabel object that logs interactions and acts on tutorial close.
    * @param {string} [language] Language code that tweaks spacing for verbose translations.
    */
@@ -232,7 +233,9 @@ class MissionStartTutorial {
     $('.mst-instruction-1').html(this.#labelTypeModule.missionInstruction1);
     $('.mst-instruction-2').html(this.#labelTypeModule.missionInstruction2);
 
-    $('.mission-start-tutorial-done-btn').text(i18next.t('common:mission-start-tutorial.start-mission'));
+    $('.mission-start-tutorial-done-btn').text(i18next.t(this.#data.resuming
+      ? 'common:mission-start-tutorial.resume-mission'
+      : 'common:mission-start-tutorial.start-mission'));
 
     // Show the tab bar to allow selection of different labels in explore mission screens.
     // And set up other UI.
