@@ -661,9 +661,18 @@ button.label-detail__meta-cell:focus-visible {
 .label-detail__edit-status {
   font: var(--text-tiny-regular);
   color: var(--color-neutral-700);
+  transition: opacity 250ms ease;
 }
 
 .label-detail__edit-status--error { color: var(--color-orange-700); }
+
+/* The message is held, then faded rather than cut, so it leaves the way a confirmation should instead of blinking
+   out mid-glance. The text is only removed once the fade has finished. */
+.label-detail__edit-status--fading { opacity: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .label-detail__edit-status { transition: none; }
+}
 
 /* Tag pills — base styles are in tag-pills.css (.tag-pill class). */
 .label-detail__tags {

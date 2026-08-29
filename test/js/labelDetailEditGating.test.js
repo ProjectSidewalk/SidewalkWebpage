@@ -639,6 +639,57 @@ describe('LabelDetail edit gating (#5047)', () => {
             expect(status('severity').textContent).toBe('');
         });
 
+        test('a confirmation is held briefly, then faded rather than cut', async () => {
+            // Timers are faked only after the save path is set up, so showLabel/resolveImagery keep real ones.
+            await showLabel({ severity: 2 });
+            await resolveImagery(true);
+            jest.useFakeTimers();
+            try {
+                faces()[2].click();
+                await jest.advanceTimersByTimeAsync(0);
+                const el = status('severity');
+                expect(el.textContent).toBe('labelmap:edit-saved');
+                expect(el.classList.contains('label-detail__edit-status--fading')).toBe(false);
+
+                // Still fully visible just before the hold is up, so the message can't flash past unread.
+                await jest.advanceTimersByTimeAsync(1400);
+                expect(el.classList.contains('label-detail__edit-status--fading')).toBe(false);
+
+                // Fading, but the text stays in the DOM until the fade finishes — a screen reader is still
+                // reading it, and cutting the node mid-announcement is what the fade exists to avoid.
+                await jest.advanceTimersByTimeAsync(200);
+                expect(el.classList.contains('label-detail__edit-status--fading')).toBe(true);
+                expect(el.textContent).toBe('labelmap:edit-saved');
+
+                await jest.advanceTimersByTimeAsync(300);
+                expect(el.textContent).toBe('');
+                expect(el.classList.contains('label-detail__edit-status--fading')).toBe(false);
+            } finally {
+                jest.useRealTimers();
+            }
+        });
+
+        test('a failure is held far longer than a confirmation', async () => {
+            // The failure line is the only place the rollback is explained, so it outlasts the point where a
+            // "Saved" would already be gone.
+            const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+            saveRequest.mockResolvedValue({ ok: false, status: 500, json: async () => ({}) });
+            await showLabel({ severity: 2 });
+            await resolveImagery(true);
+            jest.useFakeTimers();
+            try {
+                faces()[2].click();
+                await jest.advanceTimersByTimeAsync(0);
+                await jest.advanceTimersByTimeAsync(2000);
+
+                expect(status('severity').textContent).toBe('labelmap:edit-failed');
+                expect(status('severity').classList.contains('label-detail__edit-status--fading')).toBe(false);
+            } finally {
+                jest.useRealTimers();
+                consoleError.mockRestore();
+            }
+        });
+
         test('paging to another label clears a confirmation left on screen', async () => {
             await showLabel({ severity: 2 });
             await resolveImagery(true);

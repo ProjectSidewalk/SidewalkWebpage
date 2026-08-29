@@ -94,7 +94,21 @@ class LabelDetail {
   #readonly = false;        // Set per-label in #handleData() based on meta.from_current_user.
   #canEdit = false;         // Set per-label in #handleData() from meta.can_edit (#2575).
   #tagEditor;
-  #editStatusTimer;
+  /** @type {number[]} The hold and fade timers for the edit-status line; both are cleared when it is re-shown. */
+  #editStatusTimers = [];
+
+  /**
+   * How long an edit-status message stays fully visible, in ms, before it starts fading.
+   *
+   * A confirmation is short: "Saved" is a glance, and the change it describes is already on screen in the
+   * highlighted face or the new pill, so the line is reassurance rather than information. A failure is held far
+   * longer — it is the only place the rollback is explained, and it asks the reader to try again.
+   */
+  static #EDIT_STATUS_HOLD_MS = 1500;
+  static #EDIT_STATUS_HOLD_ERROR_MS = 5000;
+
+  /** Fade-out duration in ms; must match the transition on .label-detail__edit-status. */
+  static #EDIT_STATUS_FADE_MS = 250;
   #editQueue = Promise.resolve(); // Saves run in click order, so the last response is the one shown.
   #noImagery = false;  // Set per-label once setPano() resolves; true when no navigable imagery could be loaded.
   #panoLoading = false;     // True from #handleData() until this label's setPano() resolves. See #interactionBlocked.
@@ -1452,8 +1466,11 @@ class LabelDetail {
    * only thing telling the user their change was kept is this line (#5047). It rides the column's `aria-live`
    * span, which announces the outcome without moving focus off the control they just used.
    *
-   * A success clears faster than a failure: "Saved" has been read by the time the fade ends, while a failure asks
-   * the reader to do something about it.
+   * The message is held, then faded out over LabelDetail.#EDIT_STATUS_FADE_MS rather than cut, and the text is
+   * only removed once the fade has finished — long enough that a screen reader has announced it.
+   *
+   * A success is held for a fraction of a failure's time: "Saved" is glanced at, if it's read at all, while a
+   * failure asks the reader to do something about it.
    *
    * @param {string} text - Empty to clear every column's status.
    * @param {Object} [opts]
@@ -1463,18 +1480,30 @@ class LabelDetail {
   #showEditStatus(text, { columns, error = false } = {}) {
     const spans = this.#els.editStatus;
     if (!spans) return;
-    clearTimeout(this.#editStatusTimer);
+    for (const timer of this.#editStatusTimers) clearTimeout(timer);
+    this.#editStatusTimers = [];
     const shown = text ? (columns ?? Object.keys(spans)) : [];
     for (const [name, el] of Object.entries(spans)) {
       if (!el) continue;
       el.textContent = shown.includes(name) ? text : '';
       el.classList.toggle('label-detail__edit-status--error', !!text && error);
+      el.classList.remove('label-detail__edit-status--fading');
     }
-    if (text) {
-      this.#editStatusTimer = setTimeout(() => {
-        for (const el of Object.values(spans)) if (el) el.textContent = '';
-      }, error ? 5000 : 2500);
-    }
+    if (!text) return;
+
+    const hold = error ? LabelDetail.#EDIT_STATUS_HOLD_ERROR_MS : LabelDetail.#EDIT_STATUS_HOLD_MS;
+    this.#editStatusTimers.push(setTimeout(() => {
+      for (const el of Object.values(spans)) {
+        if (el) el.classList.add('label-detail__edit-status--fading');
+      }
+    }, hold));
+    this.#editStatusTimers.push(setTimeout(() => {
+      for (const el of Object.values(spans)) {
+        if (!el) continue;
+        el.textContent = '';
+        el.classList.remove('label-detail__edit-status--fading');
+      }
+    }, hold + LabelDetail.#EDIT_STATUS_FADE_MS));
   }
 
   /** Replaces the read-only pills with the tag editor's pick-any pills for this label's type. */
