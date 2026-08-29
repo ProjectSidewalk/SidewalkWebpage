@@ -104,11 +104,17 @@ class LabelDetail {
    * highlighted face or the new pill, so the line is reassurance rather than information. A failure is held far
    * longer — it is the only place the rollback is explained, and it asks the reader to try again.
    */
-  static #EDIT_STATUS_HOLD_MS = 1500;
+  static #EDIT_STATUS_HOLD_MS = 1000;
   static #EDIT_STATUS_HOLD_ERROR_MS = 5000;
 
-  /** Fade-out duration in ms; must match the transition on .label-detail__edit-status. */
-  static #EDIT_STATUS_FADE_MS = 250;
+  /**
+   * Fade-out duration in ms; must match the transition on .label-detail__edit-status.
+   *
+   * Also the reason the hold can be as short as it is: the text is not removed until the fade ends, so the node
+   * outlives the hold by this much. Screen readers announce on insertion, but taking the content away within a
+   * beat of adding it has been observed to lose the announcement, and hold + fade stays clear of that.
+   */
+  static #EDIT_STATUS_FADE_MS = 400;
   #editQueue = Promise.resolve(); // Saves run in click order, so the last response is the one shown.
   #noImagery = false;  // Set per-label once setPano() resolves; true when no navigable imagery could be loaded.
   #panoLoading = false;     // True from #handleData() until this label's setPano() resolves. See #interactionBlocked.

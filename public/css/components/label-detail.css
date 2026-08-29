@@ -661,7 +661,7 @@ button.label-detail__meta-cell:focus-visible {
 .label-detail__edit-status {
   font: var(--text-tiny-regular);
   color: var(--color-neutral-700);
-  transition: opacity 250ms ease;
+  transition: opacity 400ms ease; /* Keep in step with LabelDetail's #EDIT_STATUS_FADE_MS. */
 }
 
 .label-detail__edit-status--error { color: var(--color-orange-700); }

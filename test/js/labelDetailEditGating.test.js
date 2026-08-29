@@ -652,16 +652,16 @@ describe('LabelDetail edit gating (#5047)', () => {
                 expect(el.classList.contains('label-detail__edit-status--fading')).toBe(false);
 
                 // Still fully visible just before the hold is up, so the message can't flash past unread.
-                await jest.advanceTimersByTimeAsync(1400);
+                await jest.advanceTimersByTimeAsync(900);
                 expect(el.classList.contains('label-detail__edit-status--fading')).toBe(false);
 
-                // Fading, but the text stays in the DOM until the fade finishes — a screen reader is still
-                // reading it, and cutting the node mid-announcement is what the fade exists to avoid.
+                // Fading, but the text stays in the DOM until the fade finishes — taking live-region content away
+                // within a beat of adding it can cost the screen-reader announcement.
                 await jest.advanceTimersByTimeAsync(200);
                 expect(el.classList.contains('label-detail__edit-status--fading')).toBe(true);
                 expect(el.textContent).toBe('labelmap:edit-saved');
 
-                await jest.advanceTimersByTimeAsync(300);
+                await jest.advanceTimersByTimeAsync(500);
                 expect(el.textContent).toBe('');
                 expect(el.classList.contains('label-detail__edit-status--fading')).toBe(false);
             } finally {
