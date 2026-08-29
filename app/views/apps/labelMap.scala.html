@@ -241,6 +241,7 @@
         let zoomHintLogged = false;
         labelLoader.onData(() => {
           sidebarFilter.refresh();
+          // Also re-evaluates the popup's prev/next arrows, which subscribe to the navigator they page over.
           self.nearbyNav.refresh();
           // Re-assert the spotlight for an open (deep-linked) label: the layer filters survive a data swap, but
           // the label itself may only now be present in the source — and its exact coords refine an approximate

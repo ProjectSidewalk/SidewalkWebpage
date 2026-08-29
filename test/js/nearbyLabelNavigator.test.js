@@ -131,4 +131,21 @@ describe('createNearbyLabelNavigator', () => {
         expect(nav.prev(2)).toBe(1);
         expect(nav.next(1)).toBeNull();
     });
+
+    test('refresh() notifies onRefresh subscribers, after the new label set is readable', () => {
+        const mapData = mapDataWith({ CurbRamp: [[1, 0, 0]] });
+        const nav = loadFactory()(mapData);
+        const seen = [];
+        // Subscribers exist to re-derive state from the label set (the popup's arrow states), so what they can
+        // read when they run is the contract, not just that they ran.
+        nav.onRefresh(() => seen.push(nav.hasNext(1)));
+        nav.onRefresh(() => seen.push('second subscriber'));
+
+        expect(seen).toEqual([]); // Subscribing is not itself a refresh.
+
+        mapData.sortedLabels.CurbRamp.push({ properties: { label_id: 2 }, geometry: { coordinates: [0.001, 0] } });
+        nav.refresh();
+
+        expect(seen).toEqual([true, 'second subscriber']);
+    });
 });
