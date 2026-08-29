@@ -307,10 +307,9 @@
 }
 
 
-/* TODO we should be using Mulish here. */
 html,
 body {
-  font-family:"Open Sans", "Noto Sans", sans-serif;
+  font-family: var(--font-primary);
   color: var(--color-neutral-black);
 }
 

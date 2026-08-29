@@ -338,7 +338,7 @@
 
 .deployment-sites-stats-stat {
   font-size: 30px;
-  font-family: raleway, "Open Sans", "Noto Sans", sans-serif;
+  font-family: var(--font-primary);
   color: #34495e;
   font-weight: 600;
 }
