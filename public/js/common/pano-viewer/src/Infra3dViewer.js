@@ -364,4 +364,11 @@ class Infra3dViewer extends PanoViewer {
   showNavigationArrows = () => {
     this.viewer._sdk_viewer.activateComponent('direction');
   };
+
+  resize = () => {
+    // The SDK's own wrapper watches the container with a *debounced* ResizeObserver, but the PanoViewer contract
+    // promises an immediate re-measure (rotation and viewer-swap paths call this expecting the next frame to be
+    // right), so delegate to the mapillary-js-fork viewer's resize directly rather than waiting out the debounce.
+    this.viewer._sdk_viewer.resize();
+  };
 }
