@@ -303,7 +303,7 @@ class RouteBuilder {
 
   // Confirms a copy-link click with a transient toast over the button (same pattern as the dashboard).
   #setTemporaryTooltip(btn, message) {
-    Toast.show({ message, reference: btn, duration: 1500 });
+    Toast.show({ message, reference: btn, duration: Toast.CONFIRMATION_MS });
   }
 
   /**

@@ -12,6 +12,10 @@ class Toast {
   // Fade-out transition duration (ms). Kept in sync with the CSS opacity transition on `.ps-toast`.
   static #FADE_MS = 300;
 
+  // Duration for a toast that just confirms an action the user took ("Link copied"). It tells them nothing they
+  // don't already know, so it needs only long enough to register before it gets out of the way.
+  static CONFIRMATION_MS = 1000;
+
   #el;
   #reference;
   #duration;
