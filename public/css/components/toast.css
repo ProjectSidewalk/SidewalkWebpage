@@ -30,7 +30,7 @@
   transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
-/* Hovering brings it fully opaque (the auto-dismiss timer is also paused while hovered; see Toast.js). */
+/* Hover or focus brings it fully opaque; whether either also pauses the auto-dismiss timer is Toast.js's call. */
 .ps-toast--visible.ps-toast--hover {
   opacity: 1;
 }
