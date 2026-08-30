@@ -245,6 +245,17 @@
   text-decoration: underline;
 }
 
+/* The display above beats the UA's [hidden] rule, so the exit-route link (hidden outside custom-route walks)
+   needs the toggle restated. */
+.explore-sidebar__see-all[hidden] {
+  display: none;
+}
+
+/* Sits under the heading, not at the CTA position the shared class assumes: no top gap, space before the bars. */
+.explore-sidebar__see-all--exit-route {
+  margin: 0 0 calc(8px * var(--ui-scale));
+}
+
 /* External-link glyph on the CTAs, signalling that they open in a new tab. */
 .explore-sidebar__see-all-icon {
   flex: 0 0 auto;

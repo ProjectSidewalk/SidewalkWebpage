@@ -2,15 +2,19 @@
  * A generic, reusable toast notification. Renders a small card with an optional icon, a title, a message, an optional
  * action button, and a close (X) button. It lives on <body> (fixed-positioned) and floats over a reference element.
  *
- * Dismiss behavior: the toast starts slightly transparent and fades itself out after `duration` ms. Hovering it makes
- * it fully opaque, reveals the close button, and pauses the auto-dismiss timer until the cursor leaves. Clicking the
- * close button (or calling dismiss()) fades it out immediately.
+ * Dismiss behavior: the toast starts slightly transparent and fades itself out after `duration` ms. Hovering or
+ * focusing it makes it fully opaque; focus also pauses the auto-dismiss timer, and so does hover on a toast that
+ * carries an action button. Clicking the close button (or calling dismiss()) fades it out immediately.
  *
  * Specialized toasts (e.g. badge-unlock celebrations) should extend or compose this class rather than re-implement it.
  */
 class Toast {
   // Fade-out transition duration (ms). Kept in sync with the CSS opacity transition on `.ps-toast`.
-  static #FADE_MS = 300;
+  static #FADE_MS = 500;
+
+  // Duration for a toast that just confirms an action the user took ("Link copied"). It tells them nothing they
+  // don't already know, so it needs only long enough to register before it gets out of the way.
+  static CONFIRMATION_MS = 1000;
 
   #el;
   #reference;
@@ -18,6 +22,9 @@ class Toast {
   #timerId = null;
   #dismissed = false;
   #repositionHandler = null;
+  #pauseOnHover;
+  #hovered = false;
+  #focused = false;
 
   /**
    * @param {Object} opts
@@ -27,7 +34,7 @@ class Toast {
    * @param {string} [opts.iconAlt] Alt text for the icon image (defaults to '').
    * @param {Object} [opts.button] Optional action button: { label, href } or { label, onClick }.
    * @param {HTMLElement} [opts.reference] Element the toast floats over (defaults to the viewport).
-   * @param {number} [opts.duration] Milliseconds before auto-dismiss when not hovered (defaults to 5000).
+   * @param {number} [opts.duration] Milliseconds before auto-dismiss (defaults to 5000).
    * @param {boolean} [opts.dark] Dark surface instead of white — for toasts that float over photography, where a
    *      white card glares against the imagery and reads as part of the UI chrome rather than a passing note.
    * @param {boolean} [opts.compact] Tighter padding and smaller type, for a one-line aside rather than an
@@ -36,6 +43,10 @@ class Toast {
   constructor(opts = {}) {
     this.#reference = opts.reference || null;
     this.#duration = opts.duration ?? 5000;
+    // A toast anchored to a small control — a dashboard "Copy link" button — opens under the cursor that just
+    // clicked it, so pausing on hover would strand it on screen until the user happened to move the mouse. Only a
+    // toast with an action button to reach for earns the pause.
+    this.#pauseOnHover = Boolean(opts.button);
     this.#el = this.#build(opts);
   }
 
@@ -97,14 +108,24 @@ class Toast {
     close.addEventListener('click', () => this.dismiss());
     el.appendChild(close);
 
-    // Hovering makes the toast fully opaque and pauses the auto-dismiss timer; leaving restarts it.
     el.addEventListener('mouseenter', () => {
-      el.classList.add('ps-toast--hover');
-      this.#clearTimer();
+      this.#hovered = true;
+      this.#applyHoverFocusState();
     });
     el.addEventListener('mouseleave', () => {
-      el.classList.remove('ps-toast--hover');
-      this.#startTimer();
+      this.#hovered = false;
+      this.#applyHoverFocusState();
+    });
+
+    // Focus always pauses the timer, or a toast fades out from under someone tabbing toward its action button — and
+    // the role="status" announcement gives no cue that it is on a clock (WCAG 2.2.1). These bubble from the buttons.
+    el.addEventListener('focusin', () => {
+      this.#focused = true;
+      this.#applyHoverFocusState();
+    });
+    el.addEventListener('focusout', () => {
+      this.#focused = false;
+      this.#applyHoverFocusState();
     });
 
     return el;
@@ -192,6 +213,18 @@ class Toast {
     if (this.#repositionHandler) window.removeEventListener('resize', this.#repositionHandler);
     this.#el.classList.remove('ps-toast--visible');
     setTimeout(() => this.#el.remove(), Toast.#FADE_MS);
+  }
+
+  /**
+   * Brightens the toast while it is hovered or focused, and stops or resumes the auto-dismiss countdown to match.
+   * A running countdown is left alone rather than restarted, so a cursor passing over a toast that doesn't pause on
+   * hover can't keep extending its life.
+   */
+  #applyHoverFocusState() {
+    if (this.#dismissed) return;
+    this.#el.classList.toggle('ps-toast--hover', this.#hovered || this.#focused);
+    if (this.#focused || (this.#hovered && this.#pauseOnHover)) this.#clearTimer();
+    else if (this.#timerId === null) this.#startTimer();
   }
 
   /** Starts (or restarts) the auto-dismiss countdown. A non-positive duration disables auto-dismiss. */

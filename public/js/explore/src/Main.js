@@ -412,10 +412,51 @@ class Main {
           // them.
           const potentialLabelTypes = util.misc.PRIMARY_LABEL_TYPES;
           const labelType = potentialLabelTypes[Math.floor(Math.random() * potentialLabelTypes.length)];
+          const currentMission = svl.missionContainer.getCurrentMission();
+          const missionProgressM = currentMission.getProperty('distanceProgress') || 0;
+          // A pre-existing in-progress street also counts as resuming — the server sets audit_task_id on the task
+          // only when handing one back — since a labeler mid-street may have zero mission distance banked.
+          const resuming = currentMission.getProperty('missionType') === 'audit'
+            && (missionProgressM > 0 || Boolean(this.#params.task.properties.audit_task_id));
           new MissionStartTutorial('audit', labelType, {
-            nLength: svl.missionContainer.getCurrentMission().getDistance('miles'),
+            nLength: currentMission.getDistance('miles'),
             neighborhood: currentNeighborhood.getProperty('name'),
+            resuming,
           }, svl, this.#params.language);
+
+          // Toasts telling the user this visit resumed something in progress (#4833), deferred until the
+          // mission-start screen closes so they aren't missed underneath it.
+          if (svl.userRouteId && this.#params.routeResumed) {
+            document.addEventListener('ps:mission-start-tutorial:done', () => {
+              svl.tracker.push('RouteResumeToast_Shown');
+              Toast.show({
+                message: i18next.t('right-ui.route-resume.message', { routeName: svl.routeName }),
+                button: {
+                  label: i18next.t('right-ui.route-resume.exit'),
+                  onClick: () => {
+                    svl.tracker.push('Click_ExitRoute', { source: 'toast' });
+                    window.location.href = '/explore?resumeRoute=false';
+                  },
+                },
+                reference: document.getElementById('pano'),
+                dark: true,
+                duration: 10000,
+              });
+            }, { once: true });
+          } else if (!svl.userRouteId && resuming) {
+            document.addEventListener('ps:mission-start-tutorial:done', () => {
+              svl.tracker.push('MissionResumeToast_Shown');
+              Toast.show({
+                message: i18next.t('right-ui.mission-resume.message', {
+                  neighborhoodName: currentNeighborhood.getProperty('name'),
+                  distanceLeft: Math.max(currentMission.getDistance('meters') - missionProgressM, 0),
+                }),
+                reference: document.getElementById('pano'),
+                dark: true,
+                duration: 10000,
+              });
+            }, { once: true });
+          }
         }
 
         this.#startTheMission(mission, currentNeighborhood);

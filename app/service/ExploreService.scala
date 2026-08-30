@@ -30,6 +30,7 @@ case class ExplorePageData(
     region: Region,
     userRoute: Option[UserRoute],
     route: Option[Route],
+    routeResumed: Boolean,
     hasCompletedAMission: Boolean,
     nextTempLabelId: Int,
     surveyData: Seq[SurveyQuestionWithOptions],
@@ -54,6 +55,9 @@ case class ExploreTaskPostReturnValue(
     refreshPage: Boolean
 )
 case class UpdatedStreets(lastPriorityUpdateTime: OffsetDateTime, updatedStreetPriorities: Seq[StreetEdgePriority])
+
+/** Outcome of route-walk setup for an Explore session: the walk to use (if any) and whether it pre-existed. */
+case class RouteWalkSetup(walk: Option[UserRoute], resumed: Boolean)
 
 /**
  * Companion object with constants that are shared throughout codebase.
@@ -201,12 +205,13 @@ class ExploreServiceImpl @Inject() (
       // Check if user has an active route or create a new one if routeId was supplied. If resumeRoute is false and no
       // routeId was supplied, then the function should return None and the user is not sent on a specific route.
       // However, region or street id params take precedence.
-      userRoute: Option[UserRoute] <-
+      routeSetup: RouteWalkSetup <-
         if (regionId.isEmpty && streetEdgeId.isEmpty) {
           setUpPossibleUserRoute(routeId, userId, resumeRoute)
         } else {
-          DBIO.successful(None)
+          DBIO.successful(RouteWalkSetup(None, resumed = false))
         }
+      userRoute = routeSetup.walk
       routeOption: Option[Route] <- userRoute
         .map(ur => routeTable.getRoute(ur.routeId))
         .getOrElse(DBIO.successful(None))
@@ -319,8 +324,19 @@ class ExploreServiceImpl @Inject() (
       // ?routeId= still sets a walk up above, since that is the user asking for one; it just waits for them.)
       val (pageUserRoute, pageRoute) =
         if (updatedMission.missionType == MissionType.AuditOnboarding) (None, None) else (userRoute, routeOption)
-      ExplorePageData(task, updatedMission, region.get, pageUserRoute, pageRoute, hasCompletedAMission, nextTempLabelId,
-        surveyData, tutorialStreetId, makeCrops)
+      ExplorePageData(
+        task,
+        updatedMission,
+        region.get,
+        pageUserRoute,
+        pageRoute,
+        routeResumed = pageUserRoute.isDefined && routeSetup.resumed,
+        hasCompletedAMission,
+        nextTempLabelId,
+        surveyData,
+        tutorialStreetId,
+        makeCrops
+      )
     }
     db.run(getExploreDataAction.transactionally)
   }
@@ -352,8 +368,8 @@ class ExploreServiceImpl @Inject() (
                 makeCrops: Boolean                         <- configTable.getMakeCrops
               } yield {
                 Some(
-                  ExplorePageData(task, updatedMission, region, userRoute = None, route = None, hasCompletedAMission,
-                    nextTempLabelId, surveyData, tutorialStreetId, makeCrops)
+                  ExplorePageData(task, updatedMission, region, userRoute = None, route = None, routeResumed = false,
+                    hasCompletedAMission, nextTempLabelId, surveyData, tutorialStreetId, makeCrops)
                 )
               }
           }
@@ -416,34 +432,54 @@ class ExploreServiceImpl @Inject() (
     }
   }
 
+  /**
+   * Resolves which route walk (if any) this Explore session should be in, creating/resuming/pausing as needed.
+   *
+   * Walks are paused rather than discarded wherever the user hasn't explicitly asked for a restart, so their
+   * progress survives and an explicit ?routeId= visit resumes exactly where they left off (#4833). Discarding —
+   * which permanently ends a walk, restarting the route from its first street next time — is reserved for
+   * ?routeId=X&resumeRoute=false.
+   *
+   * @param routeId     Route explicitly requested via ?routeId=, if any.
+   * @param resumeRoute Whether an existing walk may be resumed (the ?resumeRoute= param; defaults to true).
+   * @return            The walk this session should use (None for normal exploration), with whether the user is
+   *                    resuming a walk they have already been in. Existence of the row isn't enough — one can be
+   *                    created and never entered, and that user is not resuming anything.
+   */
   private def setUpPossibleUserRoute(
       routeId: Option[Int],
       userId: String,
       resumeRoute: Boolean
-  ): DBIO[Option[UserRoute]] = {
+  ): DBIO[RouteWalkSetup] = {
     (routeId match {
       case Some(rId) => routeTable.getRoute(rId).map(_.isDefined)
       case None      => DBIO.successful(false)
     }).flatMap { routeExists =>
       (routeExists, routeId, resumeRoute) match {
-        // Discard routes that don't match routeId, resume route with given routeId if it exists, o/w make a new one.
+        // Pause routes that don't match routeId, resume route with given routeId if it exists, o/w make a new one.
         case (true, Some(rId), true) =>
           for {
-            _      <- userRouteTable.discardOtherActiveRoutes(rId, userId)
+            _      <- userRouteTable.pauseOtherActiveRoutes(rId, userId)
             result <- userRouteTable.getActiveRouteOrCreateNew(rId, userId)
-          } yield Some(result)
-        // Discard old routes, save a new one with given routeId.
+            walked <-
+              if (result._2) userRouteTable.hasBeenWalked(result._1.userRouteId) else DBIO.successful(false)
+          } yield RouteWalkSetup(Some(result._1), resumed = walked)
+        // Explicit restart: discard old walks (including any of this route), save a new one with given routeId.
         case (true, Some(rId), false) =>
           for {
             _      <- userRouteTable.discardAllActiveRoutes(userId)
             result <- userRouteTable.getActiveRouteOrCreateNew(rId, userId)
-          } yield Some(result)
+          } yield RouteWalkSetup(Some(result._1), resumed = false)
         // Get an in progress route (with any routeId) if it exists, otherwise return None.
         case (_, None, true) =>
-          userRouteTable.getInProgressRoute(userId)
-        // Discard old routes, return None.
+          userRouteTable.getInProgressRoute(userId).flatMap {
+            case Some(walk) =>
+              userRouteTable.hasBeenWalked(walk.userRouteId).map(w => RouteWalkSetup(Some(walk), resumed = w))
+            case None => DBIO.successful(RouteWalkSetup(None, resumed = false))
+          }
+        // The "exit route" path (/explore?resumeRoute=false): pause old walks, return None.
         case (_, _, _) =>
-          userRouteTable.discardAllActiveRoutes(userId).map(_ => None)
+          userRouteTable.pauseAllActiveRoutes(userId).map(_ => RouteWalkSetup(None, resumed = false))
       }
     }
   }

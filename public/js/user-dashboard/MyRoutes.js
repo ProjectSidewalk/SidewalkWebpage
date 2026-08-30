@@ -73,7 +73,11 @@ class MyRoutes {
       ? `${window.location.origin}/r/${slug}`
       : `${window.location.origin}/explore?routeId=${btn.dataset.routeId}`;
     navigator.clipboard.writeText(url);
-    Toast.show({ message: i18next.t('dashboard:routes-link-copied'), reference: btn });
+    Toast.show({
+      message: i18next.t('dashboard:routes-link-copied'),
+      reference: btn,
+      duration: Toast.CONFIRMATION_MS,
+    });
     this.#announce(i18next.t('dashboard:routes-link-copied'));
     window.logWebpageActivity(`Click_module=RouteList_Copy_RouteId=${btn.dataset.routeId}`);
   }

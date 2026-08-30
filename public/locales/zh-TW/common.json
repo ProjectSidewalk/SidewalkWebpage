@@ -207,6 +207,7 @@
     "label-type-subtitle": "為什麼是錯的？",
     "label-on-image-title-correct": "正確的標記",
     "start-mission": "開始任務",
+    "resume-mission": "繼續任務",
     "curb-ramp": {
       "slide-1": {
         "title": "{{- labelType}}",

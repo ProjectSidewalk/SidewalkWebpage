@@ -142,9 +142,18 @@
     "no-accuracy-tooltip": "我們需要更多的資料以計算您的精準度。請新增更多的標記並註冊帳號以持續追蹤進度及精準度！",
     "current-mission": {
       "header": "目前的任務",
+      "header-route": "自訂路線",
       "message-route": "探索{{routeName}}",
+      "exit-route": "離開自訂路線",
       "header-free-explore": "自由探索",
       "message": "探索{{neighborhoodName}}的__PLACEHOLDER__"
+    },
+    "route-resume": {
+      "message": "正在從你上次離開的地方繼續自訂路線「{{routeName}}」。",
+      "exit": "離開自訂路線"
+    },
+    "mission-resume": {
+      "message": "正在繼續你在{{neighborhoodName}}的任務 — 還剩 {{distanceLeft, distance(style: small)}}。"
     },
     "minimap": {
       "coach-dismiss": "知道了",
