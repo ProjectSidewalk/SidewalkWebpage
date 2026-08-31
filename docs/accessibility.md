@@ -40,7 +40,7 @@ make test-e2e                               # the whole browser suite, gate incl
 A failure prints one line per offending element — rule id, impact, selector, and the Deque help URL:
 
 ```
-color-contrast [serious] .test-server-banner-link — Elements must meet minimum color contrast ratio
+color-contrast [serious] .some-banner-link — Elements must meet minimum color contrast ratio
   thresholds (https://dequeuniversity.com/rules/axe/4.13/color-contrast)
 ```
 
@@ -76,7 +76,7 @@ queue, not an exemption list.** Every entry needs:
   looked at.
 
 ```js
-{rule: 'color-contrast', selector: '.test-server-banner-link', issue: '#5079',
+{rule: 'color-contrast', selector: '.some-banner-link', issue: '#1234',
   note: 'link blue on the amber band is 3.98:1; the token is tuned for white and fails on any tint'},
 ```
 
@@ -125,7 +125,7 @@ Run this against any page you substantially change, and against the whole set pe
   too.
 - Text contrast: 4.5:1 for body text, 3:1 for large text and for UI component boundaries. Style from the
   `main.css` design tokens and this mostly settles itself; the trap is a token validated on white being reused on a
-  tinted surface, which is exactly [#5079](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/5079).
+  tinted surface. `--color-link-200` in particular sits at exactly 4.5:1 on white, so it fails on any tint.
 
 **Forms:**
 

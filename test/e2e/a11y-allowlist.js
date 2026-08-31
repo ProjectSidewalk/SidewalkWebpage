@@ -12,11 +12,7 @@
 
 /** Known, tracked violations keyed by page path, as `{rule, selector?, issue, note}`. */
 const A11Y_ALLOWLIST = {
-  '/': [
-    // Site-wide chrome, so it reappears on every page added to the table until the token question is settled.
-    {rule: 'color-contrast', selector: '.test-server-banner-link', issue: '#5079',
-      note: 'link blue on the amber band is 3.98:1; the token is tuned for white and fails on any tint'},
-  ],
+  '/': [],
 };
 
 /**

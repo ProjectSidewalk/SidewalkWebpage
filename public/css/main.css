@@ -1282,9 +1282,11 @@ kbd {
   color: var(--color-neutral-900);
 }
 
+/* Takes the band's emphasis color rather than link blue: --color-link-200 sits at exactly 4.5:1 on white, so on any
+   tinted surface it drops under 1.4.3 (3.98:1 here). The bold underline carries "link" without the hue (1.4.1). */
 .test-server-banner-link {
   font-weight: 600;
-  color: var(--color-link-200);
+  color: var(--color-neutral-900);
   text-decoration: underline;
   text-underline-offset: 2px;
   overflow-wrap: anywhere;
