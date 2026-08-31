@@ -161,20 +161,29 @@
   <section class="label-detail__comments-section">
     @* The count badge signals that comments exist before the reader reaches the list; data-i18n lives on the inner
        span so the i18n pass doesn't overwrite the badge. *@
-    <h3 class="label-detail__col-title label-detail__comments-title">
+    @* tabindex="-1" is not for tabbing — it makes the heading a programmatic focus target, so deleting your comment
+       can land focus on the section it was in rather than dropping it to the document (#5015). *@
+    <h3 class="label-detail__col-title label-detail__comments-title" tabindex="-1">
       <span data-i18n="common:comments">Validator Comments</span>
       <span class="label-detail__comments-count" hidden></span>
     </h3>
-    @* The input leads the section it adds to (newest comments render right beneath it). It appears only alongside
-       a Disagree/Unsure vote (#4572); LabelDetail toggles it and sets the per-vote prompt on the label +
-       placeholder, and CSS hides the list's "None" while the input is up. Open-ended notes about a place belong
-       to lived-experience stories (#4054), not here. *@
+    @* The input leads the section it adds to (newest comments render right beneath it). It appears alongside the
+       user's vote (#5015); LabelDetail toggles it and sets the per-vote prompt on the label + placeholder, and
+       CSS hides the list's "None" while the input is up. Open-ended notes about a place belong to
+       lived-experience stories (#4054), not here. *@
     <div class="label-detail__comment-row">
-      <label class="sr-only" for="label-detail-comment-input">Tell us why you disagree…</label>
-      <input type="text" id="label-detail-comment-input" class="label-detail__comment-input" placeholder="Tell us why you disagree…">
+      @* Both strings are placeholders for LabelDetail's per-vote prompt, which replaces them before the row is ever
+         shown. They stay generic so a paint before that runs never contradicts the vote the reader just cast. *@
+      <label class="sr-only" for="label-detail-comment-input">Add a comment…</label>
+      <input type="text" id="label-detail-comment-input" class="label-detail__comment-input" placeholder="Add a comment…">
       <button type="button" class="label-detail__comment-submit" data-action="submit-comment" data-i18n="labelmap:comment">Comment</button>
-      <span class="label-detail__comment-confirmation" role="status" aria-live="polite" hidden data-i18n="labelmap:comment-submitted">Comment submitted</span>
+      @* Only shown while editing an existing comment, so the reader has a way out that isn't "save something". *@
+      <button type="button" class="button-ps button--small button--secondary label-detail__comment-cancel" data-action="cancel-comment-edit" hidden data-i18n="common:cancel">Cancel</button>
     </div>
+    @* Outside the comment row, because saving a comment closes that row: a live region inside it would be collapsed
+       to nothing in the same frame that its message is set, which announces to no one and shows for no one. Its
+       text is set from LabelDetail for every outcome (saved / updated / deleted / cleared / failed). *@
+    <span class="label-detail__comment-confirmation" role="status" aria-live="polite" hidden></span>
     <div class="label-detail__validator-comments"></div>
   </section>
 </div>

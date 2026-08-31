@@ -48,7 +48,7 @@ endpoints only; don't route API writers through them (issue #3891).
 
 ### Database & evolutions
 
-Schema changes are **Play evolutions**: numbered SQL files in `conf/evolutions/default/`. Add the next-numbered file for schema changes; each has `# --- !Ups` and `# --- !Downs` sections. **One evolution file per PR:** all of a PR's schema changes go in a single file, even when they land in separate commits or feel like separate concerns — until the PR merges, nothing has shipped, so fold later changes into the existing file instead of minting the next number (which also collides faster with other in-flight PRs).
+Schema changes are **Play evolutions**: numbered SQL files in `conf/evolutions/default/`. Add the next-numbered file for schema changes; each has `# --- !Ups` and `# --- !Downs` sections. **Numbers must be gapless**: Play's evolutions reader walks 1, 2, 3, … and stops at the first missing file, so a file that skips ahead of a number an in-flight PR "owns" is silently never read — the app boots fine and the evolution just doesn't apply. Always take exactly `highest-on-your-branch + 1` and resolve any collision with other in-flight PRs at merge time via the renumbering flow below. **One evolution file per PR:** all of a PR's schema changes go in a single file, even when they land in separate commits or feel like separate concerns — until the PR merges, nothing has shipped, so fold later changes into the existing file instead of minting the next number (which also collides faster with other in-flight PRs).
 
 **Renumbering after a merge from `develop`.** In-flight PRs claim numbers concurrently, so a merge routinely lands
 someone else's file on the number yours is using. Renumber yours (never theirs — theirs has shipped):
