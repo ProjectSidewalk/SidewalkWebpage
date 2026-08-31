@@ -209,6 +209,7 @@
     "label-type-subtitle": "Waarom is dit verkeerd?",
     "label-on-image-title-correct": "Correct etiket",
     "start-mission": "Missie starten",
+    "resume-mission": "Missie hervatten",
     "curb-ramp": {
       "slide-1": {
         "title": "{{- labelType}}",

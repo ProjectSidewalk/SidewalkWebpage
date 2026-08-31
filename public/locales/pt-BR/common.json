@@ -209,6 +209,7 @@
     "label-type-subtitle": "Por que isso está errado?",
     "label-on-image-title-correct": "Rótulo correto",
     "start-mission": "Iniciar missão",
+    "resume-mission": "Retomar missão",
     "curb-ramp": {
       "slide-1": {
         "title": "{{- labelType}}",

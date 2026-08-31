@@ -20,8 +20,8 @@
   @common.navbar(commonData, Some(user))
 
   <link rel="stylesheet" href='@assets.path("js/explore/build/explore.css")'>
-  <link rel="stylesheet" href='@assets.path("css/progress-bar.css")'>
-  <link rel="stylesheet" href='@assets.path("css/pano-overlay-buttons.css")'>
+  <link rel="stylesheet" href='@assets.path("css/components/progress-bar.css")'>
+  <link rel="stylesheet" href='@assets.path("css/components/pano-overlay-buttons.css")'>
   <link rel="stylesheet" href='@assets.path("vendor/animate-css/animate.css")'>
 
   <script>
@@ -289,6 +289,18 @@
         @* Current mission: header, description, mission progress, plus the neighborhood progress bar and the minimap that fills the remaining sidebar height. *@
         <section id="explore-sidebar__mission" class="explore-sidebar__section explore-sidebar__section--map">
           <h1 id="current-mission-header" class="explore-sidebar__heading"></h1>
+
+          @* Exit link for custom-route walks; unhidden by MissionPanel in route mode. Pauses the walk server-side,
+             so re-entering the route later resumes where the user left off (#4833). *@
+          <a id="explore-sidebar__exit-route" class="explore-sidebar__see-all explore-sidebar__see-all--exit-route"
+             href="/explore?resumeRoute=false" hidden>
+            <span data-i18n="audit:right-ui.current-mission.exit-route">Exit Custom Route</span>
+            <svg class="explore-sidebar__see-all-icon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+          </a>
 
           @* The mission and neighborhood progress bars, each paired with its label. *@
           <div class="explore-sidebar__progress-groups">
@@ -869,7 +881,7 @@
   <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.js")'></script>
   <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")'></script>
   <link href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")' rel="stylesheet">
-  <link href='@assets.path("css/tag-pills.css")' rel="stylesheet">
+  <link href='@assets.path("css/components/tag-pills.css")' rel="stylesheet">
 
   <script>
     $(document).ready(function() {
@@ -963,6 +975,7 @@
     mainParam.routeId = @data.userRoute.get.routeId;
     mainParam.userRouteId = @data.userRoute.get.userRouteId;
     mainParam.routeName = @jsonForScript(data.route.map(_.name).getOrElse(""));
+    mainParam.routeResumed = @data.routeResumed;
     }
 
     @* Optional pano seed: an admin auditing a specific street from a pano/lat-lng, or an address drop-in (#4451). *@

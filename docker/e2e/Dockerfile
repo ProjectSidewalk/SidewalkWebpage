@@ -2,9 +2,8 @@
 #
 # Why its own image rather than the web container: the official Playwright image already carries Chromium and
 # every OS library it needs at PLAYWRIGHT_BROWSERS_PATH=/ms-playwright, and it publishes a multi-arch manifest,
-# so Apple Silicon gets a native browser. The web image installs none of Chromium's runtime libs, pins
-# `platform: linux/x86_64` (an emulated browser on M-series Macs), caps /dev/shm at 256mb, and would lose any
-# browser installed at runtime the next time the container is recreated.
+# so Apple Silicon gets a native browser. The web image installs none of Chromium's runtime libs, caps /dev/shm at
+# 256mb, and would lose any browser installed at runtime the next time the container is recreated.
 #
 # PW_VERSION comes from `make test-e2e`, which reads it out of package.json. The base image tag and the runner
 # installed below therefore both derive from the repo's @playwright/test pin and cannot drift apart.

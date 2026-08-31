@@ -10,12 +10,11 @@ import play.api.libs.json.JsObject
 import java.time.{OffsetDateTime, ZoneOffset}
 
 /**
- * Pure (no DB, no app boot) contract test for the `/v3/api/rawLabels` `pano_url` field (#3853).
+ * Pure (no DB, no app boot) contract tests for `/v3/api/rawLabels` output fields the compiler can't check.
  *
- * Locks the provider-aware behavior the compiler can't see: GSV labels get Google's documented Maps URLs link,
- * Mapillary labels get a Mapillary web-app link, and providers with no shareable viewer (infra3d) get `null` in JSON
- * and an empty CSV column. Also guards that the GSV URL carries no API key and matches the in-app `PanoInfoPopover.js`
- * shape (`map_action=pano`, label heading/pitch passed through unchanged).
+ * `pano_url` (#3853) is provider-aware: GSV gets Google's documented Maps URLs link (no API key, matching the in-app
+ * `PanoInfoPopover.js` shape), Mapillary gets a web-app link, infra3d has no viewer so it is `null` / an empty CSV
+ * column. `high_quality_user` (#5067) must reach both JSON and CSV, under the column its header names.
  */
 class LabelApiModelsSpec extends AnyFunSuite with Matchers with OptionValues {
 
@@ -34,6 +33,7 @@ class LabelApiModelsSpec extends AnyFunSuite with Matchers with OptionValues {
     tags = List.empty,
     description = None,
     timeCreated = OffsetDateTime.of(2023, 8, 16, 0, 0, 0, 0, ZoneOffset.UTC),
+    highQualityUser = true,
     streetEdgeId = 951,
     osmWayId = 11584845L,
     regionId = 1,
@@ -101,5 +101,14 @@ class LabelApiModelsSpec extends AnyFunSuite with Matchers with OptionValues {
 
     // pano_url is the antepenultimate column (followed by latitude,longitude); for infra3d it is empty.
     sampleLabel(PanoSource.Infra3d).toCsvRow should endWith(",,40.8839912414551,-74.0243606567383")
+  }
+
+  test("high_quality_user reaches GeoJSON properties and the CSV column its header names") {
+    val label = sampleLabel(PanoSource.Gsv)
+    (label.toJson \ "properties" \ "high_quality_user").as[Boolean] shouldBe true
+
+    val columnIndex = LabelDataForApi.csvHeader.trim.split(",").indexOf("high_quality_user")
+    columnIndex should be >= 0
+    label.toCsvRow.split(",", -1)(columnIndex) shouldBe "true"
   }
 }

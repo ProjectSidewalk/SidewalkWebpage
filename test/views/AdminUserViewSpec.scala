@@ -55,7 +55,7 @@ class AdminUserViewSpec extends PlaySpec with GuiceOneAppPerSuite {
   )
 
   private val adminPage: String =
-    views.html.userDashboard.adminUser(commonData, admin, subject, adminData, None, Seq.empty).body
+    views.html.userDashboard.manageUser(commonData, admin, subject, adminData, None, Seq.empty).body
 
   private def payload(cities: Seq[CityHours], unreachableCities: Int = 0): JsObject =
     Json.toJson(CrossCityHours(cities, unreachableCities)).as[JsObject]

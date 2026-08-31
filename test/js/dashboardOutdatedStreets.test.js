@@ -16,7 +16,7 @@ const path = require('path');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const SECTION_SRC = fs.readFileSync(path.join(REPO_ROOT, 'public/js/user-dashboard/OutdatedStreets.js'), 'utf8');
-const DASHBOARD_CSS = fs.readFileSync(path.join(REPO_ROOT, 'public/css/user-dashboard/user-dashboard.css'), 'utf8');
+const DASHBOARD_CSS = fs.readFileSync(path.join(REPO_ROOT, 'public/css/pages/user-dashboard.css'), 'utf8');
 
 const PAGE_SIZE = 5;
 

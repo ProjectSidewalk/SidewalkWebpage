@@ -73,7 +73,11 @@ class MyRoutes {
       ? `${window.location.origin}/r/${slug}`
       : `${window.location.origin}/explore?routeId=${btn.dataset.routeId}`;
     navigator.clipboard.writeText(url);
-    Toast.show({ message: i18next.t('dashboard:routes-link-copied'), reference: btn });
+    Toast.show({
+      message: i18next.t('dashboard:routes-link-copied'),
+      reference: btn,
+      duration: Toast.CONFIRMATION_MS,
+    });
     this.#announce(i18next.t('dashboard:routes-link-copied'));
     window.logWebpageActivity(`Click_module=RouteList_Copy_RouteId=${btn.dataset.routeId}`);
   }
@@ -91,7 +95,7 @@ class MyRoutes {
     const form = document.createElement('span');
     form.className = 'ud-route-rename-form';
     form.innerHTML = `
-      <input type="text" class="ud-input ud-route-rename-input" maxlength="${maxLength}"
+      <input type="text" class="ps-input ud-route-rename-input" maxlength="${maxLength}"
              aria-label="${i18next.t('dashboard:routes-rename-aria')}">
       <button type="button" class="ud-btn-primary ud-route-rename-save">${i18next.t('dashboard:routes-rename-save')}</button>
       <button type="button" class="ud-btn-secondary ud-route-rename-cancel">${i18next.t('dashboard:routes-rename-cancel')}</button>`;

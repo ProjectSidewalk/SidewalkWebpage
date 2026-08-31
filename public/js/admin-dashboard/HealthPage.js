@@ -328,11 +328,11 @@ class HealthPage {
         title: 'Source imagery has expired and there is no local backup, so these labels can no longer be shown.' },
     ];
     const html = cards.map((c) => `
-        <div class="coverage-kpi" title="${AdminShell.esc(c.title)}">
-          <span class="coverage-kpi-value">${c.value}</span>
-          <span class="coverage-kpi-label">${c.label}</span>
+        <div class="ps-kpi" title="${AdminShell.esc(c.title)}">
+          <span class="ps-kpi-value">${c.value}</span>
+          <span class="ps-kpi-label">${c.label}</span>
         </div>`).join('');
-    AdminShell.setHtml('health-panos', `<div class="coverage-kpis">${html}</div>`);
+    AdminShell.setHtml('health-panos', `<div class="ps-kpis">${html}</div>`);
     AdminShell.setHtml('health-panos-note',
       'Backup status is refreshed lazily by the nightly imagery check, so a large "unchecked" count is normal '
       + 'and these figures approximate what is actually on disk.');

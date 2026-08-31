@@ -136,10 +136,14 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, currUsername, op
 
   /**
    * Enables the prev/next arrows, stepping through labels via the given navigator (see nearbyLabelNavigator.js).
-   * @param {{next: function, prev: function, hasPrev: function, hasNext: function}} nav Navigator over the
-   *     host's label set.
+   * @param {{next: function, prev: function, hasPrev: function, hasNext: function,
+   *     onRefresh: function}} nav Navigator over the host's label set. Its onRefresh is what keeps the arrows
+   *     honest on a host whose label set changes under them: LabelMap loads labels by viewport (#5002), so a
+   *     deep-linked popup opens over an empty set and has nowhere to page until the set fills (#5068).
    */
   labelDetail.setNearbyNavigator = (nav) => {
+    // Subscribe only for a navigator we haven't seen, so a repeat call can't stack duplicate recomputes.
+    if (nav !== nearbyNav) nav.onRefresh(updatePagingState);
     nearbyNav = nav;
     if (!prevBtn || !nextBtn) return;
     prevBtn.hidden = false;

@@ -1,0 +1,44 @@
+/*
+ * Add-ons for the .ps-table primitive in main.css (#5030), shared by the admin and user dashboards:
+ *
+ *   .ps-table-scroll      horizontal scroller for a table wider than its column (the 13-column user directory).
+ *   .ps-table-scroll-box  capped-height vertical scroller with a frame, for a long region or leaderboard table.
+ *   .ps-table--sticky     the sortable data table: the header stays put while its box scrolls, every column after
+ *                         the first is numeric and right-aligned, rows are click targets, and `.highlighted` marks
+ *                         the row the map is focused on.
+ */
+.ps-table-scroll { overflow-x: auto; }
+
+.ps-table-scroll-box {
+  max-height: 380px;
+  overflow-y: auto;
+  border: 1px solid var(--color-neutral-200);
+  border-radius: 8px;
+}
+
+.ps-table--sticky thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.ps-table--sticky thead th:focus-visible {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: -2px;
+}
+
+.ps-table--sticky th:not(:first-child), .ps-table--sticky td:not(:first-child) { text-align: right; }
+
+/* Row headers (<th scope="row">) read as plain cells here: every row is one, so bolding the column adds nothing. */
+.ps-table--sticky tbody th { font: inherit; }
+.ps-table--sticky tbody tr { cursor: pointer; }
+
+/* The orange is the high-contrast pick against the coverage map's Blues scale, which is where the highlight
+   originates. */
+.ps-table--sticky tbody tr.highlighted {
+  background: rgb(246 141 62 / 14%);
+  box-shadow: inset 3px 0 0 var(--color-label-surface-problem);
+}

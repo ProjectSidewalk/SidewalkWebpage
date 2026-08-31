@@ -119,6 +119,11 @@ mark_streets_no_imagery() {
         DELETE FROM street_edge_priority
         WHERE street_edge_id IN ($street_ids);
 
+        -- The checker's full-street verdict outranks the nightly poll's three-point evidence, so retract any pending
+        -- reopen candidacy (#4929). Street *deletion* needs no line here: that table cascades on street_edge.
+        DELETE FROM street_reopen_candidate
+        WHERE street_edge_id IN ($street_ids);
+
         -- Truncate the region_completion table to force recalculation of distances.
         TRUNCATE TABLE region_completion;
         COMMIT;

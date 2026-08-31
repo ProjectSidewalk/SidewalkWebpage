@@ -83,6 +83,10 @@ class LabelValidationTableDef(tag: slick.lifted.Tag) extends Table[LabelValidati
   def user    = foreignKey("label_validation_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
   def mission = foreignKey("label_validation_mission_id_fkey", missionId, TableQuery[MissionTableDef])(_.missionId)
   def userLabelUnique = index("label_validation_user_id_label_id_unique", (userId, labelId), unique = true)
+
+  // Serves the (label_id, user_id) vote lookup that label_comments_agg joins per comment (#5015). The DB index also
+  // carries INCLUDE (validation_result) so that probe stays index-only -- Slick has no DSL for a covering column.
+  def labelUserIdx = index("label_validation_label_id_user_id_idx", (labelId, userId))
 }
 
 @ImplementedBy(classOf[LabelValidationTable])

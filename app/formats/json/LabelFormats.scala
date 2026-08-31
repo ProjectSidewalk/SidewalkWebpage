@@ -152,10 +152,11 @@ object LabelFormats {
   }
 
   /**
-   * The comment shape the shared label-detail card consumes: the text, whether the requesting user wrote it, and a
-   * per-label commenter index (distinct commenters numbered by first comment). The index lets the card draw a
-   * consistent anonymous avatar per validator within one label without exposing usernames on public surfaces or
-   * creating an identifier that links a validator across labels.
+   * The comment shape the shared label-detail card consumes: the text, whether the requesting user wrote it, the
+   * commenter's current vote on the label (null if they have none), and a per-label commenter index (distinct
+   * commenters numbered by first comment). The index lets the card draw a consistent anonymous avatar per validator
+   * within one label without exposing usernames on public surfaces or creating an identifier that links a validator
+   * across labels.
    */
   private def commentToJson(c: LabelComment, currUsername: Option[String], commenterIdx: Map[String, Int]): JsObject = {
     val idx: Int = commenterIdx.getOrElse(c.username, 0)
@@ -163,6 +164,7 @@ object LabelFormats {
       "comment"      -> c.comment,
       "mine"         -> currUsername.contains(c.username),
       "time_created" -> c.timeCreated,
+      "validation"   -> c.validation,
       "commenter"    -> idx
     )
   }

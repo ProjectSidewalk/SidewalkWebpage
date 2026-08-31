@@ -110,7 +110,7 @@ class AdminUser {
         <td class="num">${Number(city.hours).toFixed(1)}</td>
       </tr>`).join('');
     holder.innerHTML = `
-      <table class="contrib-table" aria-labelledby="au-hours-cities-title">
+      <table class="ps-table ps-table--compact ud-admin-table" aria-labelledby="au-hours-cities-title">
         <thead>
           <tr><th scope="col">City</th><th scope="col" class="num">Hours</th></tr>
         </thead>

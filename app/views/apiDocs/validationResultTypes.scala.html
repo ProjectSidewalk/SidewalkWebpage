@@ -11,14 +11,14 @@
     document.documentElement.setAttribute('data-api-endpoint', 'validationResultTypes');
   </script>
 
-  <div class="api-section" id="validation-result-types-intro-section">
-    <h1 class="api-heading" id="validation-result-types-api">Validation Result Types API <a href="#validation-result-types-api" class="permalink">#</a></h1>
+  <div class="page-section" id="validation-result-types-intro-section">
+    <h1 class="page-heading" id="validation-result-types-api">Validation Result Types API <a href="#validation-result-types-api" class="permalink">#</a></h1>
     <p>The Validation Result Types API lists the possible outcomes of a label validation, along with how many validations of each type exist. When a user validates a label, they indicate whether they <strong>Agree</strong>, <strong>Disagree</strong>, or are <strong>Unsure</strong> that the label is correct.</p>
     <p>Use these result names with the <code>validationResult</code> filter on the <a href="@routes.ApiDocsController.validations">Validations API</a> (for example <code>?validationResult=Agree</code>).</p>
   </div>
 
-  <div class="api-section" id="visual-example-section">
-    <h2 class="api-heading" id="visual-example">Validation Result Types API Preview <a href="#visual-example" class="permalink">#</a></h2>
+  <div class="page-section" id="visual-example-section">
+    <h2 class="page-heading" id="visual-example">Validation Result Types API Preview <a href="#visual-example" class="permalink">#</a></h2>
     <p>Below is a live preview of the validation result types and their counts for Project Sidewalk:</p>
 
     <div id="validation-result-types-preview">Loading validation result types...</div>
@@ -31,20 +31,20 @@
     </script>
   </div>
 
-  <div class="api-section" id="endpoint-section">
-    <h2 class="api-heading" id="endpoint">Endpoint <a href="#endpoint" class="permalink">#</a></h2>
+  <div class="page-section" id="endpoint-section">
+    <h2 class="page-heading" id="endpoint">Endpoint <a href="#endpoint" class="permalink">#</a></h2>
     <p>Retrieve a list of all validation result types with their counts.</p>
     <p><code>GET /v3/api/validationResultTypes</code></p>
     <div class="api-subsection" id="endpoint-example-section">
-      <h3 class="api-heading" id="endpoint-examples">Examples<a href="#endpoint-examples" class="permalink">#</a></h3>
+      <h3 class="page-heading" id="endpoint-examples">Examples<a href="#endpoint-examples" class="permalink">#</a></h3>
       <p><code><a target="_blank" href="/v3/api/validationResultTypes">/v3/api/validationResultTypes</a></code> Get all validation result types in JSON</p>
     </div>
   </div>
 
-  <div class="api-section" id="responses-section">
-    <h2 class="api-heading" id="responses">Responses<a href="#responses" class="permalink">#</a></h2>
+  <div class="page-section" id="responses-section">
+    <h2 class="page-heading" id="responses">Responses<a href="#responses" class="permalink">#</a></h2>
 
-    <h3 class="api-heading" id="success-response-200-ok">Success Response (200 OK)<a href="#success-response-200-ok" class="permalink">#</a></h3>
+    <h3 class="page-heading" id="success-response-200-ok">Success Response (200 OK)<a href="#success-response-200-ok" class="permalink">#</a></h3>
     <p>On success, the API returns an HTTP <code>200 OK</code> status code and a JSON object containing an array of validation result types.</p>
 
     <pre><code class="language-json">{
@@ -71,9 +71,9 @@
   ]
 }</code></pre>
 
-    <h4 class="api-heading" id="response-fields">Response Fields <a href="#response-fields" class="permalink">#</a></h4>
-    <div class="api-table-wrapper">
-      <table class="api-table">
+    <h4 class="page-heading" id="response-fields">Response Fields <a href="#response-fields" class="permalink">#</a></h4>
+    <div class="ps-table-wrapper">
+      <table class="ps-table">
         <thead>
           <tr>
             <th>Field</th>
@@ -116,7 +116,7 @@
       </table>
     </div>
 
-    <h3 class="api-heading" id="error-responses">Error Responses<a href="#error-responses" class="permalink">#</a></h3>
+    <h3 class="page-heading" id="error-responses">Error Responses<a href="#error-responses" class="permalink">#</a></h3>
     <p>If an error occurs, the API will return an appropriate HTTP status code and a JSON response body containing details about the error.</p>
     <ul>
       <li><strong><code>500 Internal Server Error</code>:</strong> An unexpected error occurred on the server.</li>

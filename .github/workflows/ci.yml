@@ -115,6 +115,14 @@ jobs:
         if: always()
         run: node tools/check-locale-parity.mjs
 
+      # Blocking: the public/css/ layout (#5030) -- a page's stylesheet is linked only by that page, page class prefixes
+      # stay in the page's own files, and every stylesheet a view links exists (a moved file is a 500 at render time,
+      # not a build failure). `if: always()` so it reports even when an earlier frontend step failed. Run locally with
+      # `make lint-css-layout`.
+      - name: CSS layout (blocking)
+        if: always()
+        run: node tools/check-css-layout.mjs
+
       # Advisory: the jsdom unit suite (test/js/). Coverage is thin and sequenced with the ES5→ES2022 migration
       # (#2487), so it doesn't gate merges yet — but running it on every PR is what keeps a tested helper's contract
       # from being quietly edited out from under it. `continue-on-error` is on the step, not the job, so a failure
@@ -247,6 +255,7 @@ jobs:
           GEMINI_API_KEY: DUMMY_GEMINI_API_KEY
           SCISTARTER_API_KEY: DUMMY_SCISTARTER_API_KEY
           MAPILLARY_ACCESS_TOKEN: DUMMY_MAPILLARY_ACCESS_TOKEN
+          GA_SERVICE_ACCOUNT_KEY: DUMMY_GA_SERVICE_ACCOUNT_KEY
           INFRA3D_CLIENT_ID_ZURICH: DUMMY_INFRA3D_CLIENT_ID
           INFRA3D_CLIENT_ID_WINTERTHUR: DUMMY_INFRA3D_CLIENT_ID
           INFRA3D_CLIENT_SECRET_ZURICH: DUMMY_INFRA3D_CLIENT_SECRET
@@ -382,6 +391,9 @@ jobs:
       #   undercount #4526 exists to fix -- fails here instead of just making a volunteer's total smaller. Every case
       #   supplies its own scope except the fallback-against-real-hours one, which needs a seeded leaderboard and is a
       #   no-op here.
+      # - RouteTaskNoImagerySpec (#5008): a street the labeler reported as imagery-less stays incomplete (#4922), so
+      #   the route tasks must carry a separate flag or every reload walks them back onto it. Seeds its own routes,
+      #   users, and reports, and pins the bound to the current user_route.
       # - ApiDocsPreviewWiringSpec (#4992): the api-docs layout must load apiTableWrapper.js ahead of the preview
       #   scripts that call `window.createApiTableWrapper`. Losing that tag breaks five previews in production
       #   silently -- each preview's `.catch` turns the TypeError into an in-page banner, so no console error reaches
@@ -399,8 +411,15 @@ jobs:
       #   all-time board and are vacuously green on this job's schema, and the two that synthesize a mapper cancel if
       #   the schema has no role/label_type/street_edge row to build one from. What runs here regardless is every
       #   guard that does not need data -- injection refusal, empty-scope handling, the user_stat uniqueness invariant.
+      # - AdminJobTriggerSpec (#4946): the five admin routes that hand-trigger a nightly job must each record the run.
+      #   Dropping the `record` wrapper leaves the endpoint working and the job running, so the only symptom is a
+      #   missing background_job_run row -- which reads exactly like a job nobody triggered. Stubs the work itself and
+      #   reads the real row back, attributing it by id floor so it can't pass on a run the connected city held.
+      # - AdminLabelPageSpec (#4633): the admin's view of a label. Its guard cases sign in for real, which is the only
+      #   way to separate an admin-only page from one that admits anyone signed in; the case needing a label cancels
+      #   against this job's empty schema.
       - name: Run gating/auth tests (health dashboard + route auth posture + geodesic distances)
-        run: sbt 'set Test / parallelExecution := false' 'testOnly controllers.HealthDashboardSpec service.HealthServiceSpec controllers.RouteAuthPostureSpec models.street.GeodesicDistanceSpec service.ExploreTutorialRouteSpec controllers.MobileDetectionSpec service.PanoDataServiceSpec service.ActivityBreakdownSpec service.ConfigServiceTrendSpec models.utils.CityScorecardSpec models.utils.ConfigTableVoidedArchiveSpec controllers.api.StatsApiSpec controllers.ExploreSubmissionSpec controllers.ValidateSubmissionSpec controllers.ExploreNoImageryRateLimitSpec models.pano.PanoExpiredAtSpec models.pano.PanoImageryLogSpec models.utils.BackgroundJobRunTableSpec service.JobRunServiceSpec service.NightlyJobStatusSpec service.StreetLifecycleServiceSpec models.audit.OutdatedImageryFlagSyncSpec models.audit.OutdatedImageryRoutingSpec models.street.UpToDateCoverageSpec models.street.NoImageryReportsSpec models.utils.EnumTypeParitySpec actor.ScheduledJobsSpec service.ImageryPollOutcomeSpec models.street.StreetPriorityAdminSpec service.ImageryFreshnessReportSpec models.street.StreetImageryPollSpec models.street.StreetImageryTableSpec service.ImageryFreshnessPollSpec service.ImageryFreshnessReportServiceSpec controllers.ImageryAdminSpec models.street.StreetPriorityForAdminSpec modules.PersistentMediaDirCheckSpec models.audit.OutdatedStreetsForUserSpec controllers.UserStreetsFreshnessSpec controllers.DashboardReauditSectionSpec service.HoursApportionmentSpec service.InBatchesSpec views.TimeCheckViewSpec service.CrossCityHoursResilienceSpec controllers.ApiDocsPreviewWiringSpec views.AdminUserViewSpec service.DashboardStatsInvariantSpec'
+        run: sbt 'set Test / parallelExecution := false' 'testOnly controllers.HealthDashboardSpec service.HealthServiceSpec controllers.RouteAuthPostureSpec models.street.GeodesicDistanceSpec service.ExploreTutorialRouteSpec controllers.MobileDetectionSpec service.PanoDataServiceSpec service.ActivityBreakdownSpec service.ConfigServiceTrendSpec models.utils.CityScorecardSpec models.utils.ConfigTableVoidedArchiveSpec controllers.api.StatsApiSpec controllers.ExploreSubmissionSpec controllers.ValidateSubmissionSpec controllers.ExploreNoImageryRateLimitSpec models.pano.PanoExpiredAtSpec models.pano.PanoImageryLogSpec models.utils.BackgroundJobRunTableSpec service.JobRunServiceSpec service.NightlyJobStatusSpec service.StreetLifecycleServiceSpec models.audit.OutdatedImageryFlagSyncSpec models.audit.OutdatedImageryRoutingSpec models.street.UpToDateCoverageSpec models.street.NoImageryReportsSpec models.utils.EnumTypeParitySpec actor.ScheduledJobsSpec service.ImageryPollOutcomeSpec models.street.StreetPriorityAdminSpec service.ImageryFreshnessReportSpec models.street.StreetImageryPollSpec models.street.StreetImageryTableSpec service.ImageryFreshnessPollSpec service.ImageryFreshnessReportServiceSpec controllers.ImageryAdminSpec models.street.StreetPriorityForAdminSpec modules.PersistentMediaDirCheckSpec models.audit.OutdatedStreetsForUserSpec controllers.UserStreetsFreshnessSpec controllers.DashboardReauditSectionSpec service.HoursApportionmentSpec service.InBatchesSpec views.TimeCheckViewSpec service.CrossCityHoursResilienceSpec controllers.ApiDocsPreviewWiringSpec models.audit.RouteTaskNoImagerySpec views.AdminUserViewSpec service.DashboardStatsInvariantSpec controllers.AdminJobTriggerSpec controllers.AdminLabelPageSpec'
         env:
           DATABASE_URL: jdbc:postgresql://localhost:5432/sidewalk
           DATABASE_USER: sidewalk
@@ -416,6 +435,7 @@ jobs:
           GEMINI_API_KEY: DUMMY_GEMINI_API_KEY
           SCISTARTER_API_KEY: DUMMY_SCISTARTER_API_KEY
           MAPILLARY_ACCESS_TOKEN: DUMMY_MAPILLARY_ACCESS_TOKEN
+          GA_SERVICE_ACCOUNT_KEY: DUMMY_GA_SERVICE_ACCOUNT_KEY
           INFRA3D_CLIENT_ID_ZURICH: DUMMY_INFRA3D_CLIENT_ID
           INFRA3D_CLIENT_ID_WINTERTHUR: DUMMY_INFRA3D_CLIENT_ID
           INFRA3D_CLIENT_SECRET_ZURICH: DUMMY_INFRA3D_CLIENT_SECRET
@@ -450,6 +470,7 @@ jobs:
       GEMINI_API_KEY: DUMMY_GEMINI_API_KEY
       SCISTARTER_API_KEY: DUMMY_SCISTARTER_API_KEY
       MAPILLARY_ACCESS_TOKEN: DUMMY_MAPILLARY_ACCESS_TOKEN
+      GA_SERVICE_ACCOUNT_KEY: DUMMY_GA_SERVICE_ACCOUNT_KEY
       INFRA3D_CLIENT_ID_ZURICH: DUMMY_INFRA3D_CLIENT_ID
       INFRA3D_CLIENT_ID_WINTERTHUR: DUMMY_INFRA3D_CLIENT_ID
       INFRA3D_CLIENT_SECRET_ZURICH: DUMMY_INFRA3D_CLIENT_SECRET

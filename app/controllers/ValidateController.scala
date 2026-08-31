@@ -547,4 +547,20 @@ class ValidateController @Inject() (
     )
   }
 
+  /**
+   * Deletes the signed-in user's own comment on a label, from the label card's Delete control (#5015).
+   *
+   * Keyed by label rather than by comment id: the card's comment payload carries no id, and a comment is unique per
+   * (label, user) anyway, so the identity of the row to delete is fully determined by the label and the session.
+   * That also makes the delete inherently scoped to the caller's own comment — there is no id to forge.
+   *
+   * @param labelId The label whose comment should be removed.
+   * @return `Ok` with the number deleted (0 if they had not commented), so a double-click is not an error.
+   */
+  def deleteLabelMapComment(labelId: Int) = cc.securityService.SecuredAction { implicit request =>
+    validationService.deleteComment(labelId, request.identity.userId).map { deleted =>
+      Ok(Json.obj("deleted" -> deleted))
+    }
+  }
+
 }

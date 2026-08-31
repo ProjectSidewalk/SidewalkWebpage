@@ -62,10 +62,10 @@
 @* about.css ships in <head> rather than alongside the markup: this page is one long column of styled bands, so
    loading it at the end of the body paints the whole thing unstyled before it snaps into place. *@
 @extraHeadContent = {
-  <link rel="stylesheet" href='@assets.path("css/about.css")'>
+  <link rel="stylesheet" href='@assets.path("css/pages/about.css")'>
   @* Styles the deployment map's city popups. Small enough to ship up front, unlike the mapping libraries the map
      itself needs, which aboutPage.js only fetches once the section nears the viewport. *@
-  <link rel="stylesheet" href='@assets.path("css/deployment-map.css")'>
+  <link rel="stylesheet" href='@assets.path("css/components/deployment-map.css")'>
   <script type="application/ld+json">@Html(jsonLd)</script>
 }
 

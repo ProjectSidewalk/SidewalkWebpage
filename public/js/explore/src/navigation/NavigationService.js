@@ -34,8 +34,8 @@ class NavigationService {
    */
   #missionJump = undefined;
   #stuckPanos = new Set([]);
-  // Street the #stuckPanos set belongs to; see the reset in moveForward().
-  #stuckPanosStreetId = null;
+  // Traversal the #stuckPanos set belongs to; see the reset in moveForward().
+  #stuckPanosTraversalKey = null;
   #positionUpdateCallbacks = [];
   #povSettlePoll = null; // Interval id; see #refreshHeadingViewsAfterPovSettles.
 
@@ -171,6 +171,14 @@ class NavigationService {
       return Promise.resolve(null);
     }
 
+    // One give-up per street. The terminal branch below hands the controls back — the route's finish gate needs the
+    // labeler able to look around — so they can walk into this path again on the street they are still standing on,
+    // filing a duplicate report and re-firing the finish toast. No other give-up leaves them on a flagged street.
+    if (currentTask.wasGivenUpOnImagery()) {
+      this.#restoreUiAfterFailedMove();
+      return Promise.resolve(null);
+    }
+
     // Nowhere near the end, so the street really does look like it runs out of imagery ahead of the user. Two
     // separable decisions follow: whether to *write down* that the street looks imagery-less, and whether to move
     // the labeler somewhere they can keep working (#4918).
@@ -189,8 +197,8 @@ class NavigationService {
       svl.tracker.push('NoImageryFlagLimitReached');
     }
 
-    // Every given-up street stays incomplete, which leaves it eligible for nextTask() — only the street just left is
-    // excluded — so the run can cycle between the same few streets. The advance ceiling is what ends it.
+    // The advance ceiling still bounds a run: give-ups leave a street eligible for assignment to everyone else, so a
+    // session that keeps finding empty ones is better explained by a broken session than by an empty neighborhood.
     if (!NoImageryFlagGuard.canAdvance()) {
       svl.tracker.push('NoImageryAdvanceLimitReached');
       // The run is over, so the budget goes back: what follows can only be the labeler deciding to try again, which
@@ -208,6 +216,14 @@ class NavigationService {
     // it submits completed=true, and the regular submission path credits that as a full audit, which is exactly the
     // claim a no-imagery verdict cannot support (#4922).
     const newTask = svl.taskContainer.nextTask(currentTask);
+
+    // Set once the labeler is actually being moved off, not when the street is reported: a run stopped by the advance
+    // ceiling above leaves them standing here, and the flag reads as "done with this street" everywhere — full length
+    // credited toward progress, drawn as walked, never handed back. Client-side only; nothing reaches the server's
+    // notion of completion (#4922).
+    currentTask.giveUpOnImagery();
+    currentTask.render();
+
     if (newTask) {
       // Flush what the labeler did here before the current task changes under the buffer. Interactions carry no task
       // id of their own — the server files them against whichever audit_task the submission names — so anything still
@@ -225,11 +241,18 @@ class NavigationService {
       this.enableWalking();
       return this.moveForward();
     } else {
-      // No new task: complete the neighborhood. This path skips #updateUiAfterMove(), so clear the flags here.
+      // Nothing left to walk. This path skips #updateUiAfterMove(), so clear the flags here.
       this.#status.movingToNewLocation = false;
       this.#status.headingSettling = false;
+      this.#restoreUiAfterFailedMove();
       svl.neighborhoodModel.setComplete();
-      svl.missionController.wrapUpRouteOrNeighborhood();
+      // Same ending a route gets when its last street is walked normally: the finish toast, then the celebration once
+      // the labeler has looked around. Firing the modal straight from here made the route end mid-stride (#5008).
+      if (svl.neighborhoodModel.isRoute) {
+        svl.missionController.onRouteReadyToFinish();
+      } else {
+        svl.missionController.wrapUpRouteOrNeighborhood();
+      }
       return Promise.resolve(null);
     }
   }
@@ -585,6 +608,20 @@ class NavigationService {
   }
 
   /**
+   * Identity of the walk a #stuckPanos set belongs to. Namespaced because route walk orders and street edge ids are
+   * both small integers from unrelated sequences.
+   *
+   * @param {Task} task - The task being walked.
+   * @returns {string} The route traversal's key, or the street's when not on a route.
+   */
+  #stuckPanosKeyFor(task) {
+    const walkOrder = task.getWalkOrder();
+    return svl.neighborhoodModel.isRoute && walkOrder !== null && walkOrder !== undefined
+      ? `route:${walkOrder}`
+      : `street:${task.getStreetEdgeId()}`;
+  }
+
+  /**
    * Attempts to move the user forward by incrementally checking for imagery every few meters along the route.
    * @returns {Promise<string|null|void>} Resolves with the new pano ID on a successful move, null if the street ran
    *     out of imagery, or undefined if walking is disabled.
@@ -605,9 +642,14 @@ class NavigationService {
     // rejects empty ground — so a street with perfectly good imagery can scan as having none, and then be falsely
     // reported on that basis (#4918). Short streets are the worst case, since every sample point on them can fall
     // within range of the same already-visited pano.
-    if (currentTask.getStreetEdgeId() !== this.#stuckPanosStreetId) {
+    //
+    // A route can walk the same street twice (out-and-back), and those passes are separate walks: keying on the
+    // street would hand pass two every pano pass one banked, leaving the return leg nothing to land on. Walk order
+    // names the traversal, matching TaskContainer.nextTask (#5008).
+    const traversalKey = this.#stuckPanosKeyFor(currentTask);
+    if (traversalKey !== this.#stuckPanosTraversalKey) {
       this.#stuckPanos.clear();
-      this.#stuckPanosStreetId = currentTask.getStreetEdgeId();
+      this.#stuckPanosTraversalKey = traversalKey;
     }
 
     // Prefetch images for the full street geometry. Using the full street (not just the remainder) ensures the

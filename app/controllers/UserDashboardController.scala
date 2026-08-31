@@ -58,7 +58,7 @@ class UserDashboardController @Inject() (
   /**
    * The admin's view of another user's dashboard (`/admin/user/:username`): the same page the user sees, with the
    * admin-mode affordances the view gates on `adminView` (admin label popup, read-only mistake/route controls, the
-   * user's stories editable for moderation) and a "Manage user" page beside it in the sidebar (`adminUser`).
+   * user's stories editable for moderation) and a "Manage user" page beside it in the sidebar (`manageUser`).
    *
    * @param username The user whose dashboard to show; 404 if no such account.
    */
@@ -70,13 +70,13 @@ class UserDashboardController @Inject() (
   }
 
   /**
-   * The admin-only page beside a user's dashboard (`/admin/user/:username/admin`): account settings an admin may
+   * The admin-only page beside a user's dashboard (`/admin/user/:username/manage`): account settings an admin may
    * change (username, role, team, manual quality, service hours, privacy, infra3D access), the stats the dashboard
    * doesn't show (curr region, hours worked, labeling frequency), marking their work by date, & their Explore comments.
    *
    * @param username The user to administer; 404 if no such account.
    */
-  def adminUser(username: String) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+  def manageUser(username: String) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     withUser(username) { subject =>
       for {
         commonData <- configService.getCommonPageData(request2Messages.lang)
@@ -85,7 +85,7 @@ class UserDashboardController @Inject() (
         teams      <- userService.getAllTeams
       } yield {
         cc.loggingService.insert(request.identity.userId, request.ipAddress, s"Visit_AdminUser_User=$username")
-        Ok(views.html.userDashboard.adminUser(commonData, request.identity, subject, adminData, team, teams))
+        Ok(views.html.userDashboard.manageUser(commonData, request.identity, subject, adminData, team, teams))
       }
     }
   }

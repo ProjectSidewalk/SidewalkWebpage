@@ -2,14 +2,17 @@ package service
 
 import com.google.inject.ImplementedBy
 import models.pano.{PanoDataTable, PanoImageryChangeTable, PanoImageryWeek}
+import models.region.RegionCompletionTable
 import models.street.{
   CorroboratedNoImageryStreet,
   NoImageryReportRegion,
   NoImageryReportWeek,
+  ReopenCandidateForReview,
   StatusChangeWeek,
   StreetEdgeIssueTable,
   StreetEdgeStatus,
-  StreetEdgeStatusChangeTable
+  StreetEdgeStatusChangeTable,
+  StreetReopenCandidateTable
 }
 import models.utils.MyPostgresProfile
 import play.api.cache.AsyncCacheApi
@@ -33,6 +36,9 @@ import scala.concurrent.{ExecutionContext, Future}
  * @param corroboratedStreets  Still-open streets several labelers independently reported as having no imagery.
  * @param minReporters         Distinct labelers a street needs to appear in `corroboratedStreets`.
  * @param panosExpiredUndated  Expired panos with no recorded expiry date, i.e. what these series can't account for.
+ * @param panosHealed          Panos the reconciliation pass healed inside the window: crossings that did happen, but
+ *                             carry the date they were noticed, so `panoImageryChanges` can't place them in a week.
+ * @param reopenCandidates     no_imagery streets whose latest poll found imagery, awaiting an admin's Reopen (#4929).
  */
 case class StreetStatusTrend(
     weeks: Int,
@@ -43,7 +49,9 @@ case class StreetStatusTrend(
     topReportRegions: Seq[NoImageryReportRegion],
     corroboratedStreets: Seq[CorroboratedNoImageryStreet],
     minReporters: Int,
-    panosExpiredUndated: Int
+    panosExpiredUndated: Int,
+    panosHealed: Int,
+    reopenCandidates: Seq[ReopenCandidateForReview]
 )
 
 object StreetStatusTrend {
@@ -64,6 +72,7 @@ object StreetStatusTrend {
   implicit private val reportRegionWrites: Writes[NoImageryReportRegion]       = Json.writes[NoImageryReportRegion]
   implicit private val corroboratedWrites: Writes[CorroboratedNoImageryStreet] =
     Json.writes[CorroboratedNoImageryStreet]
+  implicit private val reopenCandidateWrites: Writes[ReopenCandidateForReview] = Json.writes[ReopenCandidateForReview]
 
   implicit val writes: Writes[StreetStatusTrend] = Json.writes[StreetStatusTrend]
 }
@@ -71,9 +80,23 @@ object StreetStatusTrend {
 @ImplementedBy(classOf[StreetLifecycleServiceImpl])
 trait StreetLifecycleService {
   def getStreetStatusTrend(weeks: Int): Future[StreetStatusTrend]
+  def reopenStreet(streetEdgeId: Int): Future[StreetLifecycleService.ReopenOutcome]
+  def dismissReopenCandidate(streetEdgeId: Int): Future[Int]
 }
 
 object StreetLifecycleService {
+
+  /** Outcome of an admin's attempt to reopen a no_imagery street (#4929). */
+  sealed trait ReopenOutcome
+
+  /** The street was flipped back to open, with its priority row and status-change record written. */
+  case object Reopened extends ReopenOutcome
+
+  /** The street exists but isn't no_imagery (already open, or closed/disabled), so nothing was changed. */
+  case class NotNoImagery(currentStatus: String) extends ReopenOutcome
+
+  /** No street with the given id exists. */
+  case object StreetNotFound extends ReopenOutcome
 
   /** Window the Street Status trend defaults to, in weeks. Half a year reads as a season-scale trend at chart width. */
   val DefaultTrendWeeks: Int = 26
@@ -108,6 +131,9 @@ object StreetLifecycleService {
   /** How many corroborated streets the queue lists. Long enough to be a work list, short enough to read. */
   val MaxCorroboratedStreets: Int = 50
 
+  /** How many regained-imagery reopen candidates the queue lists, sized like [[MaxCorroboratedStreets]]. */
+  val MaxReopenCandidates: Int = 50
+
   /**
    * How long an assembled trend is served from cache.
    *
@@ -123,7 +149,8 @@ object StreetLifecycleService {
 }
 
 /**
- * Assembles the street/imagery lifecycle trends for the admin Street Status page (#4928).
+ * Assembles the street/imagery lifecycle trends for the admin Street Status page (#4928), and performs that page's
+ * one state-changing action: reopening a no_imagery street whose imagery came back (#4929).
  *
  * The page's map and table answer "what is the state of the city right now". These series answer the separate
  * question of what changed and when — which streets were retired, where labelers are reporting missing imagery, and
@@ -136,10 +163,13 @@ class StreetLifecycleServiceImpl @Inject() (
     statusChangeTable: StreetEdgeStatusChangeTable,
     streetEdgeIssueTable: StreetEdgeIssueTable,
     panoDataTable: PanoDataTable,
-    panoImageryChangeTable: PanoImageryChangeTable
+    panoImageryChangeTable: PanoImageryChangeTable,
+    streetReopenCandidateTable: StreetReopenCandidateTable,
+    regionCompletionTable: RegionCompletionTable
 )(implicit ec: ExecutionContext)
     extends StreetLifecycleService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
+  import profile.api._
 
   /**
    * @param weeks How far back the series reach. Clamped to the supported range.
@@ -153,7 +183,7 @@ class StreetLifecycleServiceImpl @Inject() (
     )
   }
 
-  /** Runs the six series queries that back one window. */
+  /** Runs the seven series queries that back one window. */
   private def assembleTrend(window: Int): Future[StreetStatusTrend] = {
     // Bucket boundaries are ISO weeks, so start the window on one: an inclusive cutoff mid-week would leave the
     // oldest bucket a partial week that reads as a dip.
@@ -169,7 +199,7 @@ class StreetLifecycleServiceImpl @Inject() (
       .atStartOfDay(ZoneId.systemDefault)
       .toOffsetDateTime
 
-    // Bound before the for-comprehension so the six reads run concurrently rather than one after another.
+    // Bound before the for-comprehension so the seven reads run concurrently rather than one after another.
     val statusChangesF = db.run(statusChangeTable.transitionsByWeek(since))
     val reportsF       = db.run(streetEdgeIssueTable.reportsByWeek(since))
     val imageryF       = db.run(panoImageryChangeTable.transitionsByWeek(since))
@@ -181,7 +211,10 @@ class StreetLifecycleServiceImpl @Inject() (
         StreetLifecycleService.MaxCorroboratedStreets
       )
     )
-    val undatedF = db.run(panoDataTable.countExpiredWithoutExpiryDate)
+    val undatedF    = db.run(panoDataTable.countExpiredWithoutExpiryDate)
+    val healedF     = db.run(panoImageryChangeTable.healedSince(since))
+    val candidatesF =
+      db.run(streetReopenCandidateTable.candidatesForReview(StreetLifecycleService.MaxReopenCandidates))
 
     for {
       statusChanges  <- statusChangesF
@@ -190,7 +223,94 @@ class StreetLifecycleServiceImpl @Inject() (
       regions        <- regionsF
       corroborated   <- corroboratedF
       undated        <- undatedF
+      healed         <- healedF
+      candidates     <- candidatesF
     } yield StreetStatusTrend(window, since, statusChanges, reports, imageryChanges, regions, corroborated,
-      StreetLifecycleService.MinCorroboratingReporters, undated)
+      StreetLifecycleService.MinCorroboratingReporters, undated, healed, candidates)
+  }
+
+  /**
+   * Reopens a no_imagery street whose imagery came back, from the admin review queue (#4929).
+   *
+   * The only in-app writer of street_edge.status, mirroring mark_streets_no_imagery (db/scripts/helpers.sh) for the
+   * opposite direction, in one transaction. Two steps beyond the status flip + change row are load-bearing: the
+   * street_edge_priority row must be re-inserted if absent (task assignment INNER JOINs on priority and the nightly
+   * recalc only ever updates existing rows, so without it the street is open yet silently unroutable), and
+   * region_completion must be truncated (the reopened street raises its region's total distance; the table is a
+   * cache rebuilt on next read). The Play cache is cleared after commit, never inside: landing-page stats and the
+   * cached trend payloads all embed street counts that just changed.
+   *
+   * @param streetEdgeId The street to reopen.
+   * @return Reopened on success; NotNoImagery with the current status when the street isn't reopenable; or
+   *         StreetNotFound.
+   */
+  def reopenStreet(streetEdgeId: Int): Future[StreetLifecycleService.ReopenOutcome] = {
+    val action = for {
+      flipped <- sqlu"""
+        WITH changed AS (
+            UPDATE street_edge
+            SET status = 'open'
+            WHERE street_edge_id = $streetEdgeId AND status = 'no_imagery'
+            RETURNING street_edge_id
+        )
+        INSERT INTO street_edge_status_change (street_edge_id, old_status, new_status, source)
+        SELECT changed.street_edge_id, 'no_imagery'::street_edge_status, 'open'::street_edge_status,
+               'admin_reopen'::street_edge_status_change_source
+        FROM changed;
+      """
+      outcome <-
+        if (flipped == 0) {
+          sql"SELECT status::text FROM street_edge WHERE street_edge_id = $streetEdgeId".as[String].headOption.map {
+            case Some(status) => StreetLifecycleService.NotNoImagery(status)
+            case None         => StreetLifecycleService.StreetNotFound
+          }
+        } else {
+          for {
+            _ <- sqlu"""
+              INSERT INTO street_edge_priority (street_edge_id, priority)
+              SELECT $streetEdgeId, 1.0
+              WHERE NOT EXISTS (
+                  SELECT 1 FROM street_edge_priority WHERE street_edge_priority.street_edge_id = $streetEdgeId
+              );
+            """
+            _ <- streetReopenCandidateTable.delete(streetEdgeId)
+            _ <- regionCompletionTable.truncateTable
+          } yield StreetLifecycleService.Reopened
+        }
+    } yield outcome
+
+    db.run(action.transactionally).flatMap {
+      case StreetLifecycleService.Reopened => cacheApi.removeAll().map(_ => StreetLifecycleService.Reopened)
+      case other                           => Future.successful(other)
+    }
+  }
+
+  /**
+   * Dismisses a reopen candidate without changing the street (#4929): the admin looked and judged the evidence not
+   * good enough. The street stays in the slow re-poll rotation, and the dismissed evidence stays on the row as the
+   * bar a later poll has to beat to re-queue it (StreetReopenCandidateTable.dismiss).
+   *
+   * Invalidates only the cached trend payloads rather than the whole application cache: nothing outside this page's
+   * queue changes, so flushing landing-page stats and config alongside it would be collateral damage.
+   *
+   * @return Number of candidates dismissed (0 when the street had no queued one).
+   */
+  def dismissReopenCandidate(streetEdgeId: Int): Future[Int] = {
+    db.run(streetReopenCandidateTable.dismiss(streetEdgeId)).flatMap { dismissed =>
+      if (dismissed > 0) invalidateTrendCache.map(_ => dismissed) else Future.successful(dismissed)
+    }
+  }
+
+  /**
+   * Drops every cached trend payload.
+   *
+   * Sweeps the whole clamped window range rather than [[StreetLifecycleService.TrendWeekOptions]]: the key is the
+   * clamped `weeks`, so a hand-typed `?weeks=40` mints a key the page's selector never offers, and skipping those
+   * would leave a dismissed row on screen for whoever asked. The range is small and the cache is in-process, so
+   * removing all of it costs less than the one landing-page stat a blanket flush would recompute.
+   */
+  private def invalidateTrendCache: Future[Unit] = {
+    val windows = StreetLifecycleService.MinTrendWeeks to StreetLifecycleService.MaxTrendWeeks
+    Future.traverse(windows)(weeks => cacheApi.remove(s"streetStatus.trend.$weeks")).map(_ => ())
   }
 }

@@ -25,7 +25,7 @@ import models.route.RouteStreetTableDef
 import models.street.{StreetEdgeRegionTableDef, StreetEdgeTable, StreetEdgeTableDef}
 import models.user._
 import models.utils.MyPostgresProfile.api._
-import models.utils.{ConfigTableDef, MyPostgresProfile}
+import models.utils.{ConfigTableDef, LatLngBBox, MyPostgresProfile}
 import models.validation.{LabelValidationTableDef, ValidationOption, ValidationTaskCommentTableDef}
 import org.geotools.geometry.jts.JTSFactoryFinder
 import org.locationtech.jts.geom.GeometryFactory
@@ -149,7 +149,22 @@ case class LabelMetadata(
     panoMetadata: Option[PanoViewerMetadata]
 )
 
-case class LabelComment(username: String, comment: String, timeCreated: Option[OffsetDateTime])
+/**
+ * A validator comment on a label, as the shared label-detail card consumes it.
+ *
+ * @param username    Who left the comment.
+ * @param comment     The comment text.
+ * @param timeCreated When it was left.
+ * @param validation  The commenter's current vote on the label ("Agree"/"Disagree"/"Unsure"), joined per
+ *                    (label_id, user_id) rather than stored with the comment, so it is `None` when they have no
+ *                    vote on the label.
+ */
+case class LabelComment(
+    username: String,
+    comment: String,
+    timeCreated: Option[OffsetDateTime],
+    validation: Option[String]
+)
 
 // Extra data to include with validations for Expert Validate. Includes usernames and previous validators.
 case class AdminValidationData(
@@ -461,7 +476,8 @@ object LabelTable {
       LabelComment(
         (obj \ "username").as[String],
         (obj \ "comment").as[String],
-        (obj \ "time_created").asOpt[OffsetDateTime]
+        (obj \ "time_created").asOpt[OffsetDateTime],
+        (obj \ "validation").asOpt[String]
       )
     }
   }
@@ -551,6 +567,7 @@ object LabelTable {
           OffsetDateTime.now(ZoneOffset.UTC)
         }
       },
+      highQualityUser = r.nextBoolean(),
       streetEdgeId = r.nextInt(),
       osmWayId = r.nextLong(),
       regionId = r.nextInt(),
@@ -1181,12 +1198,17 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           WHERE role.role = 'AI'
       ) AS ai_val ON lb1.label_id = ai_val.label_id
       LEFT JOIN (
-          SELECT label_id,
-                 json_agg(json_build_object('username', username, 'comment', comment, 'time_created', timestamp)
-                          ORDER BY timestamp)::text AS comments
+          SELECT validation_task_comment.label_id,
+                 json_agg(json_build_object('username', sidewalk_user.username,
+                                            'comment', validation_task_comment.comment,
+                                            'time_created', validation_task_comment.timestamp,
+                                            'validation', label_validation.validation_result)
+                          ORDER BY validation_task_comment.timestamp)::text AS comments
           FROM validation_task_comment
           INNER JOIN sidewalk_user ON validation_task_comment.user_id = sidewalk_user.user_id
-          GROUP BY label_id
+          LEFT JOIN label_validation ON validation_task_comment.label_id = label_validation.label_id
+              AND validation_task_comment.user_id = label_validation.user_id
+          GROUP BY validation_task_comment.label_id
        ) AS comment ON lb1.label_id = comment.label_id
       WHERE #$labelFilter
           AND #$labelerFilter
@@ -1631,13 +1653,15 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
 
   /**
    * Query for all submitted labels with the metadata needed for the label map. If provided, filters for only the
-   * given regions/routes/AI-validation results. Returns the tuple-level query so callers can stream it from the db
-   * with `db.stream` (#3932); convert rows to the case class with `tupleToLabelForLabelMap`.
+   * given regions/routes/AI-validation results and/or labels within the given bounding box. Returns the tuple-level
+   * query so callers can stream it from the db with `db.stream` (#3932); convert rows to the case class with
+   * `tupleToLabelForLabelMap`.
    */
   def getLabelsForLabelMap(
       regionIds: Seq[Int],
       routeIds: Seq[Int],
-      aiValOptions: Seq[String]
+      aiValOptions: Seq[String],
+      bbox: Option[LatLngBBox]
   ): Query[_, LabelForLabelMapTuple, Seq] = {
     // Label IDs with at least one validation from an Administrator or Owner.
     val _adminValidatedLabelIds = for {
@@ -1646,10 +1670,18 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _r  <- roleTable if _ur.roleId === _r.roleId && (_r.role === "Administrator" || _r.role === "Owner")
     } yield _lv.labelId
 
+    // Filtering on geom rather than lat/lng so the GIST index (label_point_geom_idx) serves the bbox; safe because
+    // geom is NULL iff lat/lng are NULL (338.sql), which the lat/lng guard below already excludes.
+    val _labelPointsInBbox: Query[LabelPointTableDef, LabelPoint, Seq] = bbox match {
+      case Some(b) =>
+        labelPoints.filter(_.geom.within(makeEnvelope(b.minLng, b.minLat, b.maxLng, b.maxLat, Some(4326))))
+      case None => labelPoints
+    }
+
     val _labels = for {
       (_l, _at, _us) <- labelsWithAuditTasksAndUserStats
       _lt            <- labelTypes if _l.labelTypeId === _lt.labelTypeId
-      _lp            <- labelPoints if _l.labelId === _lp.labelId
+      _lp            <- _labelPointsInBbox if _l.labelId === _lp.labelId
       _pd            <- panoData if _l.panoId === _pd.panoId
       _ser           <- streetEdgeRegions if _l.streetEdgeId === _ser.streetEdgeId
       _ur            <- userRoles if _us.userId === _ur.userId
@@ -2041,6 +2073,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              array_to_string(label.tags, ','),
              label.description,
              label.time_created,
+             user_stat.high_quality,
              label.street_edge_id,
              osm_way_street_edge.osm_way_id,
              region.region_id,

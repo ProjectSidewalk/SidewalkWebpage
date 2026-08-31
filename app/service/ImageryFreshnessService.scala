@@ -3,11 +3,11 @@ package service
 import com.google.inject.ImplementedBy
 import models.audit.AuditTaskTable
 import models.pano.PanoSource
-import models.street.{PolledPano, StreetImageryTable, StreetToPoll}
+import models.street.{PolledPano, StreetImageryTable, StreetReopenCandidateTable, StreetToPoll}
 import models.utils.MyPostgresProfile
 import org.locationtech.jts.geom.LineString
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import play.api.libs.json.{JsArray, Json}
+import play.api.libs.json.{JsArray, JsObject, Json}
 import play.api.libs.ws.WSClient
 import play.api.{Configuration, Logger}
 
@@ -57,24 +57,51 @@ object ImageryFreshnessService {
    * compares against: a poll that quietly stops looks exactly like a city whose imagery never changes, and the
    * difference is only visible in how much of the rotation each night actually covered.
    *
-   * @param provider        Provider queried, or None when the poll never reached one.
-   * @param streetsSelected Streets the rotation picked for this batch.
-   * @param streetsPolled   Streets that answered conclusively and had their street_imagery row refreshed.
-   * @param streetsSkipped  Streets left un-bumped after an inconclusive answer, so the next night retries them.
-   * @param notPolledReason Why no street was polled at all, if that's the case.
+   * @param provider                 Provider queried, or None when the poll never reached one.
+   * @param streetsSelected          Streets the rotation picked for this batch.
+   * @param streetsPolled            Streets that answered conclusively and had their street_imagery row refreshed.
+   * @param streetsSkipped           Streets left un-bumped after an inconclusive answer, so the next night retries
+   *                                 them.
+   * @param notPolledReason          Why no street was polled at all, if that's the case.
+   * @param noImageryStreetsSelected no_imagery streets picked by the regained-imagery rotation (#4929).
+   * @param noImageryStreetsPolled   Of those, streets that answered conclusively.
+   * @param reopenCandidatesFound    Of those, streets where attributable panos were found and a reopen candidate was
+   *                                 recorded for admin review.
    */
   case class PollResult(
       provider: Option[String],
       streetsSelected: Int,
       streetsPolled: Int,
       streetsSkipped: Int,
-      notPolledReason: Option[String] = None
+      notPolledReason: Option[String] = None,
+      noImageryStreetsSelected: Int = 0,
+      noImageryStreetsPolled: Int = 0,
+      reopenCandidatesFound: Int = 0
   ) {
 
     /** One line for the actor log. */
     def summary: String = notPolledReason.getOrElse(
       s"${provider.getOrElse("Imagery")} imagery-age poll: $streetsPolled streets updated, $streetsSkipped skipped " +
-        s"(of $streetsSelected selected)."
+        s"(of $streetsSelected selected); $noImageryStreetsPolled of $noImageryStreetsSelected no-imagery streets " +
+        s"re-checked, $reopenCandidatesFound reopen candidate(s) found."
+    )
+
+    /**
+     * What the run recorder stores in background_job_run.details, and the only place these key names are written.
+     *
+     * Defined on the result rather than at the actor's call site, like [[PanoDataService.ImageryCheckResult]]'s: the
+     * Imagery page's run history reads each of these keys back by name in ImageryFreshnessReportService, and a key
+     * that only agrees by coincidence would report zeros forever with nothing to show a night had gone unrecorded.
+     */
+    def runDetails: JsObject = Json.obj(
+      "provider"                    -> provider,
+      "streets_selected"            -> streetsSelected,
+      "streets_polled"              -> streetsPolled,
+      "streets_skipped"             -> streetsSkipped,
+      "not_polled_reason"           -> notPolledReason,
+      "no_imagery_streets_selected" -> noImageryStreetsSelected,
+      "no_imagery_streets_polled"   -> noImageryStreetsPolled,
+      "reopen_candidates_found"     -> reopenCandidatesFound
     )
   }
 
@@ -169,6 +196,7 @@ class ImageryFreshnessServiceImpl @Inject() (
     configService: ConfigService,
     panoDataService: PanoDataService,
     streetImageryTable: StreetImageryTable,
+    streetReopenCandidateTable: StreetReopenCandidateTable,
     auditTaskTable: AuditTaskTable,
     implicit val ec: ExecutionContext
 ) extends ImageryFreshnessService
@@ -178,7 +206,8 @@ class ImageryFreshnessServiceImpl @Inject() (
 
   private val logger = Logger(this.getClass)
 
-  private val pollBatchSize: Int = config.get[Int]("street-imagery-poll.batch-size")
+  private val pollBatchSize: Int          = config.get[Int]("street-imagery-poll.batch-size")
+  private val noImageryPollBatchSize: Int = config.get[Int]("street-imagery-poll.no-imagery-batch-size")
 
   // 25m matches check_streets_for_imagery.py's sample radius: wide enough to catch imagery on the roadway around a
   // sample point. Off-street panos inside the radius are rejected by the position filter in pollOneStreet.
@@ -239,6 +268,12 @@ class ImageryFreshnessServiceImpl @Inject() (
               new MissingImageryCredentialException("No mapillary-access-token configured for a Mapillary city.")
             )
         }
+      // Infra3d is deliberately not polled, though it could be: scripts/check_streets_for_imagery.py --infra3d shows
+      // the query (framegate's nearest-frame `knn/query`, with the token PanoDataService.getInfra3dToken mints, and
+      // the frame `timestamp` as the capture date). It isn't worth a nightly run because each Infra3d city is a single
+      // commissioned drive -- one campaign, whose project_uid is hardcoded per city in Infra3dViewer.js -- so the
+      // dates never change on their own. A fresh drive would arrive as a new campaign/project needing that hardcoded
+      // id updated anyway, which is the moment to add a fetchInfra3dPointObservations here.
       case other =>
         Future.successful(PollResult.notPolled(s"Imagery-age polling isn't supported for provider $other; skipping."))
     }
@@ -247,6 +282,10 @@ class ImageryFreshnessServiceImpl @Inject() (
   /**
    * Runs the poll loop for one batch of streets against a provider-specific point fetcher.
    *
+   * The main (open-street) batch runs first, then the regained-imagery re-check of no_imagery streets (#4929) --
+   * in that order so a provider failing mid-run degrades the side quest, not the rotation that feeds the re-audit
+   * flags.
+   *
    * @param providerName Names the provider in the run's summary and recorded counts.
    * @param fetchPoint   Queries one (lat, lng) sample point: Some(panos seen) on a conclusive answer (possibly
    *                     empty = confirmed no imagery), None when inconclusive.
@@ -254,15 +293,73 @@ class ImageryFreshnessServiceImpl @Inject() (
   private def pollStreets(
       providerName: String
   )(fetchPoint: (Double, Double) => Future[Option[Seq[PanoObservation]]]): Future[PollResult] = {
-    db.run(streetImageryTable.streetsToPoll(pollBatchSize)).flatMap { streets =>
-      streets
-        .foldLeft(Future.successful((0, 0))) { case (accFuture, street) =>
-          accFuture.flatMap { case (polled, skipped) =>
-            pollOneStreet(street, fetchPoint).map(ok => if (ok) (polled + 1, skipped) else (polled, skipped + 1))
+    for {
+      streets           <- db.run(streetImageryTable.streetsToPoll(pollBatchSize))
+      (polled, skipped) <- streets.foldLeft(Future.successful((0, 0))) { case (accFuture, street) =>
+        accFuture.flatMap { case (polled, skipped) =>
+          pollOneStreet(street, fetchPoint).map {
+            case Some(_) => (polled + 1, skipped)
+            case None    => (polled, skipped + 1)
           }
         }
-        .map { case (polled, skipped) => PollResult(Some(providerName), streets.size, polled, skipped) }
-    }
+      }
+      // Before selecting the batch, so the rotation and the queue agree on which streets are still retired.
+      staleCandidates <- db.run(streetReopenCandidateTable.deleteForNonRetiredStreets)
+      _ = if (staleCandidates > 0) logger.info(s"Dropped $staleCandidates reopen candidate(s) for non-retired streets.")
+      noImageryStreets              <- db.run(streetImageryTable.noImageryStreetsToPoll(noImageryPollBatchSize))
+      (noImageryPolled, candidates) <- noImageryStreets.foldLeft(Future.successful((0, 0))) {
+        case (accFuture, street) =>
+          accFuture.flatMap { case (noImageryPolled, candidates) =>
+            recheckOneNoImageryStreet(street, fetchPoint).map {
+              case Some(true)  => (noImageryPolled + 1, candidates + 1)
+              case Some(false) => (noImageryPolled + 1, candidates)
+              case None        => (noImageryPolled, candidates)
+            }
+          }
+      }
+    } yield PollResult(Some(providerName), streets.size, polled, skipped, None, noImageryStreets.size, noImageryPolled,
+      candidates)
+  }
+
+  /**
+   * Re-checks one no_imagery street for regained imagery and maintains its reopen-candidate row (#4929).
+   *
+   * The poll itself is pollOneStreet unchanged: street_imagery gets the same honest record, and its updated_at bump
+   * is what advances this rotation. What the candidate is built from is then read back through
+   * StreetImageryTable.attributedImagery rather than taken from pollOneStreet's return: the latter is filtered only by
+   * proximity to this street, while attribution additionally requires this street to be the *nearest* one, and on a
+   * no_imagery street the panos inside the radius are usually intersection panos belonging to a cross street. A
+   * conclusive poll that attributes nothing deletes the candidate -- a Reopen button must never sit next to evidence
+   * the latest poll withdrew.
+   *
+   * @return Some(true) when a candidate was recorded, Some(false) on a conclusive poll that attributed nothing (or
+   *         whose evidence a dismissal already outranks), None when the street was skipped as inconclusive.
+   */
+  private def recheckOneNoImageryStreet(
+      street: StreetToPoll,
+      fetchPoint: (Double, Double) => Future[Option[Seq[PanoObservation]]]
+  ): Future[Option[Boolean]] = {
+    pollOneStreet(street, fetchPoint)
+      .flatMap {
+        case None               => Future.successful(None)
+        case Some(observations) =>
+          db.run(streetImageryTable.attributedImagery(street.streetEdgeId, observations)).flatMap { evidence =>
+            if (evidence.nPanos == 0) {
+              db.run(streetReopenCandidateTable.delete(street.streetEdgeId)).map(_ => Some(false))
+            } else {
+              db.run(
+                streetReopenCandidateTable
+                  .upsertFromPoll(street.streetEdgeId, evidence.nPanos, evidence.newestCapture)
+              ).map(written => Some(written > 0))
+            }
+          }
+      }
+      // Same never-fail contract as pollOneStreet: one street's candidate bookkeeping failing must not abandon the
+      // rest of the batch. The street counts as skipped; its street_imagery upsert already went through.
+      .recover { case e: Throwable =>
+        logger.warn(s"Reopen-candidate bookkeeping failed for street ${street.streetEdgeId}.", e)
+        None
+      }
   }
 
   /**
@@ -285,19 +382,21 @@ class ImageryFreshnessServiceImpl @Inject() (
    * DB or provider error escape would abandon every street after it. An error is logged and counted as a skip, which
    * leaves updated_at un-bumped so the next night's rotation retries the street.
    *
-   * @return true if the street was conclusively polled and upserted, false if it was skipped.
+   * @return The attributable observations when the street was conclusively polled and upserted (empty = confirmed
+   *         nothing attributable there), or None when it was skipped -- observations rather than a bare success
+   *         flag because they are the evidence the #4929 reopen candidacy is built from.
    */
   private def pollOneStreet(
       street: StreetToPoll,
       fetchPoint: (Double, Double) => Future[Option[Seq[PanoObservation]]]
-  ): Future[Boolean] = {
+  ): Future[Option[Seq[PolledPano]]] = {
     Future
       .sequence(street.points.map { case (lat, lng) => fetchPoint(lat, lng) })
       .flatMap { results =>
         // `None` is an inconclusive point (auth failure, timeout); an empty Seq is a conclusive "no imagery here", so
         // these two cases must not be conflated.
         if (results.contains(None)) {
-          Future.successful(false)
+          Future.successful(None)
         } else {
           val polled = results.zipWithIndex.flatMap { case (pointResult, pointIndex) =>
             val nearThisStreet = pointResult.toSeq.flatten.filter(_.location.exists { case (lat, lng) =>
@@ -308,12 +407,13 @@ class ImageryFreshnessServiceImpl @Inject() (
               case PanoObservation(_, capture, Some((lat, lng))) => PolledPano(lat, lng, capture, pointIndex)
             }
           }
-          db.run(streetImageryTable.upsertFromPoll(street.streetEdgeId, street.points.size, polled)).map(_ => true)
+          db.run(streetImageryTable.upsertFromPoll(street.streetEdgeId, street.points.size, polled))
+            .map(_ => Some(polled))
         }
       }
       .recover { case e: Throwable =>
         logger.warn(s"Imagery-age poll failed for street ${street.streetEdgeId}; skipping it this run.", e)
-        false
+        None
       }
   }
 

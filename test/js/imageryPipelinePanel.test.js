@@ -44,6 +44,7 @@ const MARKUP = `
   <div id="imagery-jobs"></div>
   <p id="imagery-failure-note"></p>
   <div id="imagery-poll-chart"></div>
+  <p id="imagery-no-imagery-note"></p>
   <div id="imagery-flag-chart"></div>
 `;
 
@@ -89,6 +90,7 @@ const report = (overrides = {}) => ({
   jobs: [job(), job({ job_name: SYNC, label: 'Imagery freshness sync', scheduled_at: '01:45' })],
   run_days: [night('2026-08-18', { streets_polled: 400, streets_skipped: 100, audits_flagged: 6 })],
   poll_batch_size: 500,
+  no_imagery_batch_size: 25,
   overdue_after_hours: 36,
   poll_job: POLL,
   sync_job: SYNC,
@@ -368,5 +370,29 @@ describe('ImageryPipelinePanel failure handling', () => {
     const onLoaded = jest.fn();
     await renderPanel(report(), { onLoaded });
     expect(onLoaded).toHaveBeenCalledWith(expect.objectContaining({ poll_batch_size: 500 }));
+  });
+});
+
+describe('the regained-imagery rotation line', () => {
+  test('totals the rotation over the window and names its nightly size', async () => {
+    await renderPanel(report({
+      run_days: [
+        night('2026-08-18', { no_imagery_selected: 25, no_imagery_polled: 24, reopen_candidates: 1 }),
+        night('2026-08-19', { no_imagery_selected: 25, no_imagery_polled: 25, reopen_candidates: 0 }),
+      ],
+    }));
+
+    const text = document.getElementById('imagery-no-imagery-note').textContent;
+    expect(text).toContain('49 of 50');
+    expect(text).toContain('1 for review');
+    expect(text).toContain('25 a night');
+  });
+
+  test('says a rotation covered nothing rather than leaving the line blank', async () => {
+    // The counters exist because a rotation that stopped looks exactly like a city whose retired streets never
+    // regain imagery. A blank line here would put that failure mode straight back.
+    await renderPanel(report());
+    expect(document.getElementById('imagery-no-imagery-note').textContent)
+      .toMatch(/No retired street was re-checked/);
   });
 });

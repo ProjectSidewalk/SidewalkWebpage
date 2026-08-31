@@ -126,7 +126,10 @@
   --color-warning-200: #FFDE24;
 
   --color-link-100: #3E8BD9;
-  --color-link-200: #0F5FAF;
+
+  /* Sits in the band a text link needs to go without an underline (WCAG 1.4.1): 4.5:1 on white and 3.5:1 against
+     neutral-900 body text. Darker blues clear white by more but drop under 3:1 against the text. */
+  --color-link-200: #0D6EFD;
 
   /* Project Sidewalk label-type color palette. The canonical color for each accessibility label type. */
   --color-label-curb-ramp: var(--color-lime-500);
@@ -146,9 +149,8 @@
   --font-primary: "Mulish", "PingFang TC", "Microsoft JhengHei", sans-serif;
   --font-accent:  "Raleway", sans-serif;
 
-  /* Monospace, for content whose alignment carries meaning: code, BibTeX, fixed-width identifiers. JetBrains Mono
-       is self-hosted in css/fonts.css, which every page links, so this resolves to it site-wide; the platform faces
-       behind it cover the scripts its Latin subsets don't. */
+  /* Monospace, for content whose alignment carries meaning: code, BibTeX, fixed-width identifiers. The platform faces
+       behind JetBrains Mono cover the scripts its Latin subsets don't. */
   --font-mono:    "JetBrains Mono", sfmono-regular, consolas, "Liberation Mono", menlo, monospace;
 
   /* Typography scale: mirrors the Figma Design System Tokens file.
@@ -175,6 +177,10 @@
   --text-body-medium:      500 calc(16px * var(--ui-scale, 1))/calc(22px * var(--ui-scale, 1)) var(--font-primary);
   --text-body-regular:     400 calc(16px * var(--ui-scale, 1))/calc(22px * var(--ui-scale, 1)) var(--font-primary);
 
+  /* Body size with the looser leading long-form reading wants (documentation, articles, multi-paragraph copy);
+       --text-body-* stays the token for UI copy — labels, cells, cards, short blurbs. Not yet in the Figma file. */
+  --text-prose-regular:    400 calc(16px * var(--ui-scale, 1))/calc(26px * var(--ui-scale, 1)) var(--font-primary);
+
   --text-small-bold:       700 calc(14px * var(--ui-scale, 1))/calc(18px * var(--ui-scale, 1)) var(--font-primary);
   --text-small-medium:     500 calc(14px * var(--ui-scale, 1))/calc(18px * var(--ui-scale, 1)) var(--font-primary);
   --text-small-regular:    400 calc(14px * var(--ui-scale, 1))/calc(18px * var(--ui-scale, 1)) var(--font-primary);
@@ -190,9 +196,56 @@
   --text-tiny-medium:   500 calc(10px * var(--ui-scale, 1))/calc(12px * var(--ui-scale, 1)) var(--font-primary);
   --text-tiny-regular:  400 calc(10px * var(--ui-scale, 1))/calc(12px * var(--ui-scale, 1)) var(--font-primary);
 
+  /* Code blocks. Inline code keeps a relative size instead (font-family + 0.9em), so it tracks whatever text it
+       sits in. Not yet in the Figma file. */
+  --text-code-regular:  400 calc(14px * var(--ui-scale, 1))/calc(21px * var(--ui-scale, 1)) var(--font-mono);
+
+  /* Spacing scale. Scales with --ui-scale like the type tokens, so it's safe inside tool UI too. */
+  --space-xxs:  calc(4px * var(--ui-scale, 1));
+  --space-xs:   calc(8px * var(--ui-scale, 1));
+  --space-sm:   calc(12px * var(--ui-scale, 1));
+  --space-md:   calc(16px * var(--ui-scale, 1));
+  --space-lg:   calc(24px * var(--ui-scale, 1));
+  --space-xl:   calc(32px * var(--ui-scale, 1));
+  --space-xxl:  calc(48px * var(--ui-scale, 1));
+  --space-xxxl: calc(64px * var(--ui-scale, 1));
+
+  /* Corner radii. These are the values the docs/dashboard surfaces settled on; the DST buttons use larger ones
+       (8–16px, see .button--*), so the set still needs reconciling against the Figma file (#4300). */
+  --border-radius-sm: calc(3px * var(--ui-scale, 1));
+  --border-radius:    calc(4px * var(--ui-scale, 1));
+  --border-radius-lg: calc(8px * var(--ui-scale, 1));
+
+  /* Elevation. */
+  --box-shadow-sm: 0 1px 3px rgb(0 0 0 / 10%);
+  --box-shadow:    0 2px 5px rgb(0 0 0 / 15%);
+  --box-shadow-lg: 0 4px 12px rgb(0 0 0 / 15%);
+
+  /* Motion. */
+  --transition-fast:   0.15s ease;
+  --transition-medium: 0.3s ease;
+  --transition-slow:   0.5s ease;
+
+  /* Stacking layers, lowest to highest. */
+  --z-index-dropdown:       1000;
+  --z-index-sticky:         1020;
+  --z-index-fixed:          1030;
+  --z-index-modal-backdrop: 1040;
+  --z-index-modal:          1050;
+  --z-index-popover:        1060;
+  --z-index-tooltip:        1070;
+
+  /* Responsive breakpoints. var() can't be used inside a media query, so these are the reference values — write the
+       pixel value in the @media rule and name the token in a comment beside it. */
+  --breakpoint-xs: 480px;
+  --breakpoint-sm: 768px;
+  --breakpoint-md: 992px;
+  --breakpoint-lg: 1200px;
+  --breakpoint-xl: 1400px;
+
   /* Other globals. */
   --navbar-height: 38px;
-  --navbar-z-index: 1030;
+  --navbar-z-index: var(--z-index-fixed);
 }
 
 
@@ -212,8 +265,6 @@
 /* Raleway's three weights, as weights of one family — which is what lets `font-weight: 700` on --font-accent pick
    Raleway Bold. A weight the family doesn't declare is drawn by smearing the regular outlines instead, so the
    --text-h1-bold / --text-h2-bold headings are the ones this is here for.
-   The raleway-bold and raleway-extrabold families below name the same two files, for the older rules that select a
-   weight by family name; prefer the weight on this family in anything new.
    `swap` on all of them: Raleway sets headings, and the alternative is a heading that is simply absent until the
    face arrives. The flash of fallback it trades that for is short — these are same-origin now, not a round trip to
    Google — and it matches what the Mulish/Inter/JetBrains Mono faces in css/fonts.css already do. */
@@ -241,23 +292,9 @@
   font-display: swap;
 }
 
-@font-face {
-  font-family: raleway-bold;
-  src: url("../fonts/Raleway/Raleway-Bold.woff2") format("woff2");
-  font-display: swap;
-}
-
-@font-face {
-  font-family: raleway-extrabold;
-  src: url("../fonts/Raleway/Raleway-ExtraBold.woff2") format("woff2");
-  font-display: swap;
-}
-
-
-/* TODO we should be using Mulish here. */
 html,
 body {
-  font-family:"Open Sans", "Noto Sans", sans-serif;
+  font-family: var(--font-primary);
   color: var(--color-neutral-black);
 }
 
@@ -286,13 +323,13 @@ footer {
  * Accessibility styling updates.
  */
 a {
-  color: #0d6efd;
+  color: var(--color-link-200);
 }
 
 /* Replacing bootstrap 3 colors with bootstrap 5, which have a better color contrast. */
 .btn-primary {
-  background-color: #0D6EFD;
-  border: #0D6EFD;
+  background-color: var(--color-link-200);
+  border: var(--color-link-200);
 }
 
 
@@ -306,7 +343,7 @@ a {
   display: inline-flex;
   align-items: center;
   font-weight: 500;
-  font-family: Raleway, sans-serif;
+  font-family: var(--font-primary);
   text-decoration: none;
   transition: background-color 0.4s ease 0s;
   cursor: pointer;
@@ -392,6 +429,135 @@ a {
 .button--secondary:disabled {
   color: var(--color-neutral-500);
   outline: 1px solid var(--color-neutral-500);
+}
+
+/* Form controls. `.ps-input` is a text-like <input> or <textarea>; `.ps-select` a native <select>, where only the
+   closed control is restyled and the platform keeps its own dropdown and arrow. They share one box so a select sits
+   flush beside an input in the same row. `--large` is the size for a settings-style form (body type, roomier
+   padding); the default is the toolbar/filter size that matches .button--medium. */
+.ps-input,
+.ps-select {
+  font: var(--text-small-regular);
+  color: var(--color-neutral-900);
+  background-color: var(--color-neutral-white);
+  border: 1px solid var(--color-neutral-300);
+  border-radius: var(--border-radius);
+  padding: calc(6px * var(--ui-scale, 1)) calc(10px * var(--ui-scale, 1));
+}
+
+.ps-input--large,
+.ps-select--large {
+  font: var(--text-body-regular);
+  padding: calc(9px * var(--ui-scale, 1)) calc(12px * var(--ui-scale, 1));
+}
+
+.ps-select {
+  cursor: pointer;
+}
+
+textarea.ps-input {
+  resize: vertical;
+}
+
+.ps-input:hover,
+.ps-select:hover {
+  border-color: var(--color-neutral-400);
+}
+
+.ps-input:focus-visible,
+.ps-select:focus-visible {
+  outline: 2px solid var(--color-link-100);
+  outline-offset: 1px;
+}
+
+.ps-input:disabled,
+.ps-input:read-only,
+.ps-select:disabled {
+  background-color: var(--color-neutral-100);
+  color: var(--color-neutral-600);
+  cursor: default;
+}
+
+/* Data table. The API docs and both dashboards draw their tables from this; the shared sticky-header and scroller
+   variants are in components/tables.css, and a page adds only what its own table needs on top. Mark a numeric cell
+   with `.num` so it right-aligns with tabular figures; `.ps-table--compact` tightens the cells for dense admin data. */
+.ps-table-wrapper {
+  overflow-x: auto;
+  margin-bottom: var(--space-lg);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow-sm);
+}
+
+/* Inside the scroller the wrapper owns the vertical rhythm; a table margin would just push the scrollbar away from
+   the content. */
+.ps-table-wrapper > table {
+  margin: 0;
+}
+
+.ps-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-spacing: 0;
+  font: var(--text-small-regular);
+
+  /* Cells often hold a paragraph with inline code in it; the token's 18px leading is sized for one-line UI copy. */
+  line-height: 1.65;
+}
+
+.ps-table th,
+.ps-table td {
+  padding: var(--space-sm) var(--space-md);
+  text-align: left;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--color-neutral-200);
+}
+
+.ps-table th {
+  font: var(--text-small-bold);
+  line-height: 1.65;
+  background-color: var(--color-neutral-100);
+  border-bottom-width: 2px;
+  white-space: nowrap;
+}
+
+/* A row header (<th scope="row">) is a body cell that happens to label its row, so it keeps the header's weight
+   but none of its column-header chrome: the fill, the heavier rule, and the nowrap that would push a long name out
+   of the table. */
+.ps-table tbody th {
+  background-color: transparent;
+  border-bottom-width: 1px;
+  white-space: normal;
+}
+
+/* A blue wash rather than neutral-100: a link in a hovered row keeps 4.5:1 on it, and drops under on the grey. Set
+   on the cells, not the row, so it also paints over a row header (<th scope="row">). */
+.ps-table tbody tr:hover > td,
+.ps-table tbody tr:hover > th {
+  background-color: var(--color-blue-200);
+}
+
+.ps-table th.num,
+.ps-table td.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.ps-table--compact,
+.ps-table--compact th {
+  line-height: 1.3;
+}
+
+.ps-table--compact th,
+.ps-table--compact td {
+  padding: var(--space-xs) var(--space-sm);
+}
+
+/* Below var(--breakpoint-xs) a cell's padding is a large share of the width, so trade some of it for content. */
+@media (width <= 480px) {
+  .ps-table th,
+  .ps-table td {
+    padding: var(--space-xs) var(--space-sm);
+  }
 }
 
 .label-icon {
@@ -1054,8 +1220,8 @@ kbd {
  * CSS for the footer header
 */
 .footer-header {
-  font-family: raleway-extrabold, sans-serif;
-  font-weight: bold;
+  font-family: var(--font-accent);
+  font-weight: 800;
   color: var(--color-asphalt-500);
   font-size: 12px;
   line-height: 2.1em;
@@ -2097,8 +2263,8 @@ kbd {
 
 /* Tail aimed at the trigger. Its x comes from the JS rather than a flat 50%, because the card is clamped to the
    viewport and so does not stay centered on its trigger near a screen edge. One clip-path triangle here, not the
-   label panel's two stacked layers (css/common/label-anchored-panel.css): the fill is solid and borderless, so there
-   is no hairline to carry along the slanted edges and nothing to seam. */
+   label panel's two stacked layers (css/components/label-anchored-panel.css): the fill is solid and borderless, so
+   there is no hairline to carry along the slanted edges and nothing to seam. */
 .ps-tooltip::after {
   content: "";
   position: absolute;
