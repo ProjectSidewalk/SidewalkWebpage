@@ -61,8 +61,19 @@ e2e-workdir = $(if $(wt),/home/.claude/worktrees/$(wt),/home)
 # Playwright writes test-results/ into the bind-mounted repo, and the base image has no USER — so without this the
 # reports, traces, and the setup project's saved storageState all land root-owned, and neither a plain `rm -rf` nor
 # host-side `make worktree-remove` can clear them. HOME goes to /tmp because the invoking uid has no passwd entry.
-e2e-uid    := $(shell id -u)
-e2e-user   := $(e2e-uid):$(shell id -g)
+#
+# WHICH uid that is depends on the daemon. Rootless Docker runs the engine inside a user namespace where container
+# uid 0 IS the invoking host user, so the runner has to be container-root to write files the host user owns —
+# passing our host uid there lands us at an unmapped subuid that can't even delete Playwright's own output dir
+# (`EACCES: permission denied, rmdir '/home/test-results'`). A rootful daemon maps uids straight through, so there
+# the host uid is exactly right and container-root would be real root. `docker info` naming the answer beats
+# guessing; when docker is unreachable it falls through to the rootful form, which is what the failure message from
+# the running-container check below is about anyway. Unhandled third case: a rootful daemon with `userns-remap`
+# configured, where the right uid is neither — nobody on the team runs one, and it needs the offset from
+# /etc/subuid to compute.
+docker-rootless := $(shell docker info --format '{{.SecurityOptions}}' 2>/dev/null | grep -c rootless)
+e2e-uid    := $(if $(filter 0,$(docker-rootless)),$(shell id -u),0)
+e2e-user   := $(e2e-uid):$(if $(filter 0,$(docker-rootless)),$(shell id -g),0)
 # Playwright wipes its output directory at the start of every run, so one left root-owned — by a run that predates
 # --user, or by any root container — stops the non-root runner with EACCES before a single test starts. Repair it
 # in place instead of sending the developer to sudo. Held in a variable, not written inline in the recipe, because
