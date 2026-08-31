@@ -96,7 +96,8 @@
 }
 
 .activetab {
-  font-family: Raleway-bold, sans-serif;
+  font-family: var(--font-accent);
+  font-weight: 700;
   background-color: var(--color-pine-500);
   overflow: hidden;
 }
@@ -202,12 +203,12 @@ video#bgvid {
 */
 
 .tagline {
-  font-family: raleway-bold, sans-serif;
+  font-family: var(--font-accent);
   font-size: 50px;
   letter-spacing: 0.05em;
   font-style: normal;
   font-variant: normal;
-  font-weight: bold;
+  font-weight: 700;
   line-height: 1em;
   color: var(--color-neutral-white);
 }
@@ -310,14 +311,17 @@ video#bgvid {
 
   display: grid;
   grid-template-columns: 1fr 1fr 1fr 1fr;
-  gap: 8px;
 
   text-align: center;
 }
 
+/* Digits in Raleway, against the general rule: these four are the homepage's headline moment, and `lnum` is already a
+   feature of the face we ship, so lining figures cost nothing the rule exists to protect. */
 .ps-skyline-stats-holder-stat-number {
   font-size: 60px;
-  font-family: raleway-extrabold, sans-serif;
+  font-family: var(--font-accent);
+  font-weight: 800;
+  font-variant-numeric: lining-nums;
 }
 
 .ps-skyline-stats-holder-stat-label {
