@@ -74,6 +74,11 @@
   font: var(--text-subtitle-regular);
 }
 
+/* Link blue is 2.2:1 against the asphalt copy these sit in, under WCAG 1.4.1's 3:1 for a color-only link. */
+.section-subtitle a {
+  text-decoration: underline;
+}
+
 /**** Banner *****/
 #banner {
   width: 100%;

@@ -127,9 +127,11 @@
 
   --color-link-100: #3E8BD9;
 
-  /* Sits in the band a text link needs to go without an underline (WCAG 1.4.1): 4.5:1 on white and 3.5:1 against
-     neutral-900 body text. Darker blues clear white by more but drop under 3:1 against the text. */
-  --color-link-200: #0D6EFD;
+  /* Dark enough for the background floor (1.4.3): 6.4:1 on white, 5.7:1 on the neutral-100 behind code blocks and
+     section containers, where #0D6EFD managed 3.9:1. The cost is the color-only link's other floor, 3:1 against
+     surrounding copy (1.4.1) — met against black, but not neutral-900 (2.4:1) or asphalt-500 (2.2:1), so copy in
+     those colors needs its links underlined. */
+  --color-link-200: #0A58CA;
 
   /* Project Sidewalk label-type color palette. The canonical color for each accessibility label type. */
   --color-label-curb-ramp: var(--color-lime-500);
@@ -322,8 +324,12 @@ footer {
 /*
  * Accessibility styling updates.
  */
+
+/* A hairline sitting clear of the descenders, rather than the browser's thick baseline-hugging default. */
 a {
   color: var(--color-link-200);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
 }
 
 /* Replacing bootstrap 3 colors with bootstrap 5, which have a better color contrast. */

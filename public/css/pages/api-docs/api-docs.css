@@ -164,6 +164,11 @@ pre > code.language-csv {
   margin-top: var(--space-sm);
 }
 
+/* The note's muted grey is 1.2:1 against link blue, so color alone cannot separate the two (WCAG 1.4.1). */
+.download-note a {
+  text-decoration: underline;
+}
+
 /* A proportion bar under a count in a table cell. The fill's width is set from the data. */
 .count-bar-container {
   width: 100%;
