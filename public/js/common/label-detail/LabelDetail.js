@@ -981,7 +981,7 @@ class LabelDetail {
       // here too so the list and its vote chips (#5015) match what a reload would show.
       const commentDropped = (undone || data.redone) && this.#dropOwnComment();
       this.#updateCommentRow(true);
-      if (commentDropped) this.#flashCommentStatus('labelmap:comment-cleared');
+      if (commentDropped) this.#flashCommentStatus('labelmap:comment-cleared', 'removed');
       this.#setVoteButtonsDisabled(false);
       if (isNewValidation) BadgeAchievements.recordValidation(this.panoManager.svHolder[0]);
       if (typeof this.#onVote === 'function') this.#onVote(newAction, this.#currentLabelMeta);
@@ -1089,7 +1089,7 @@ class LabelDetail {
       this.#editingComment = false;
       this.#dropOwnComment();
       this.#updateCommentRow();
-      this.#flashCommentStatus('labelmap:comment-deleted');
+      this.#flashCommentStatus('labelmap:comment-deleted', 'removed');
       this.#logClick('DeleteComment');
       // The Delete button had focus and the re-render above just destroyed it, so focus would otherwise fall back to
       // the document. The reopened box is both the accessible landing spot and the useful one — it is where a
@@ -1101,9 +1101,19 @@ class LabelDetail {
     } catch (err) {
       console.error(err);
       // They confirmed a destructive action in a modal; silence here is indistinguishable from it having worked.
-      this.#flashCommentStatus('labelmap:comment-delete-failed', true);
+      this.#flashCommentStatus('labelmap:comment-delete-failed', 'failed');
     }
   }
+
+  /**
+   * How long a comment-status message holds, by what it is asking of the reader.
+   *
+   * A save can be brief: the comment appears directly below the message, so the message is a second opinion on
+   * something already visible. A removal has no such backstop — it reports an absence, and an absence gives the
+   * reader nothing to check it against — so it holds twice as long. A failure holds longest because it asks for
+   * another attempt rather than confirming one.
+   */
+  static #COMMENT_STATUS_MS = { saved: 1500, removed: 3000, failed: 5000 };
 
   /**
    * Flashes a message in the comment section's polite live region.
@@ -1114,21 +1124,21 @@ class LabelDetail {
    * one and shows for no one.
    *
    * @param {string} key - i18next key for the message to announce.
-   * @param {boolean} [isError=false] - Mark the message as a failure: red rather than green, and held long enough
-   *     to read, since it asks the reader to try again rather than just confirming what they saw happen.
+   * @param {'saved'|'removed'|'failed'} [tone='saved'] - What the message is doing, which sets both its color and
+   *     how long it holds. See #COMMENT_STATUS_MS.
    */
-  #flashCommentStatus(key, isError = false) {
+  #flashCommentStatus(key, tone = 'saved') {
     const el = this.#els.commentConfirm;
     if (!el) return;
     clearTimeout(this.#commentStatusTimer);
-    el.classList.toggle('is-error', isError);
+    el.classList.toggle('is-error', tone === 'failed');
     // Unhidden before the text lands: mutating a live region that is still `hidden` is the case screen readers are
     // least consistent about, and several skip it outright.
     el.hidden = false;
     el.textContent = i18next.t(key);
     this.#commentStatusTimer = setTimeout(() => {
       el.hidden = true;
-    }, isError ? 5000 : 1500);
+    }, LabelDetail.#COMMENT_STATUS_MS[tone]);
   }
 
   /**
@@ -2072,7 +2082,7 @@ class LabelDetail {
       this.#flashCommentStatus(wasEdit ? 'labelmap:comment-updated' : 'labelmap:comment-submitted');
     }).catch((err) => {
       console.error(err);
-      this.#flashCommentStatus('labelmap:comment-save-failed', true);
+      this.#flashCommentStatus('labelmap:comment-save-failed', 'failed');
     }).finally(() => {
       els.commentButton.disabled = false;
     });

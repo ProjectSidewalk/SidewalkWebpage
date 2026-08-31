@@ -620,6 +620,46 @@ describe('the validator comment box (#5015)', () => {
             expect(status().classList.contains('is-error')).toBe(true);
         });
 
+        test('a removal holds on screen longer than a save, and a failure longer still', async () => {
+            // A save is a second opinion on the comment that just appeared below it; a removal reports an absence,
+            // which gives the reader nothing to check it against. So the tiers have to stay ordered.
+            jest.spyOn(window, 'setTimeout');
+
+            /** The hold the flash was scheduled with, found by running pending timers until one hides the region. */
+            const holdMs = () => {
+                for (const [fn, ms] of window.setTimeout.mock.calls) {
+                    if (typeof fn !== 'function' || status().hidden) continue;
+                    fn();
+                    if (status().hidden) return ms;
+                }
+                return null;
+            };
+
+            await showLabel({ user_validation: 'Agree' });
+            await resolveImagery();
+            input().value = 'a curb ramp is under the snow';
+            submitBtn().click();
+            await flush();
+            const saved = holdMs();
+
+            window.setTimeout.mockClear();
+            deleteBtn().click();
+            await flush();
+            const removed = holdMs();
+
+            // The delete left the box open with nothing of theirs in it, so a fresh attempt is one keystroke away.
+            window.setTimeout.mockClear();
+            window.util.lazyIdentityFetch = jest.fn(async () => ({ ok: false, status: 500 }));
+            input().value = 'never lands';
+            submitBtn().click();
+            await flush();
+            const failed = holdMs();
+
+            expect(saved).toBeGreaterThan(0);
+            expect(removed).toBeGreaterThan(saved);
+            expect(failed).toBeGreaterThan(removed);
+        });
+
         test('the message does not outlive the label it was about', async () => {
             await showLabel({ user_validation: 'Agree' });
             await resolveImagery();
