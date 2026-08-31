@@ -480,10 +480,18 @@ p#conditional-text {
   line-height: 1.1;
   font-weight: normal;
   color: var(--color-asphalt-500);
+  text-wrap: balance; /* No single-word widow when the heading wraps. */
+}
+
+#creators-ps-logo {
+  display: block;
+  width: 120px;
+  height: auto;
+  margin: 0 auto var(--space-sm);
 }
 
 /* Breathing room between the community-partners strip and the created-by section, when both render. */
-.partner-logos + #creators-title {
+.partner-logos + #creators-ps-logo {
   margin-top: var(--space-xxl);
 }
 
@@ -492,6 +500,7 @@ p#conditional-text {
   max-width: 640px;
   font: var(--text-small-regular);
   color: var(--color-neutral-700);
+  text-wrap: balance; /* No single-word widow when the tagline wraps. */
 }
 
 .partner-logos {

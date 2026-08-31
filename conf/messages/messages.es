@@ -292,8 +292,8 @@ landing.deployment.map.subtitle = ¡Haga clic en un círculo a continuación par
 landing.partners.title = Socios comunitarios en {0}
 landing.partners.tagline = Este trabajo es posible gracias al increíble esfuerzo de nuestros socios comunitarios en {0}, incluyendo:
 landing.partners.logo.alt = Logotipo de {0}
-landing.partners.created.by = Project Sidewalk fue creado por
-landing.partners.created.credits = …y moldeado por socios comunitarios de todo el mundo — como Liga Peatonal, que ayudó a traducir Project Sidewalk al español, apoyó los despliegues en México y compartió comentarios e ideas de diseño — junto con los cientos de estudiantes, voluntarios y colaboradores que han contribuido a lo largo de los años. <a href="/about" data-partner-source="about-team">Conoce más sobre nuestro equipo</a>.
+landing.partners.created.by = Project Sidewalk fue creado con ❤️ por
+landing.partners.created.credits = …y moldeado por socios de largo plazo como Liga Peatonal, más de 100 estudiantes contribuyentes y miles de mapeadores voluntarios en todo el mundo. <a href="/about" data-partner-source="about-team">Conoce al equipo</a>.
 landing.partners.creator.makeability.alt = Logotipo del Makeability Lab
 landing.partners.creator.uw.alt = Logotipo de la Universidad de Washington
 landing.partners.creator.uic.alt = Logotipo del Instituto sobre Discapacidad y Desarrollo Humano de la Universidad de Illinois en Chicago
