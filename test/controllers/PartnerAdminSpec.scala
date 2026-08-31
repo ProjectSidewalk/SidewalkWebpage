@@ -332,9 +332,12 @@ class PartnerAdminSpec extends PlaySpec with RoleSession with GuiceOneAppPerSuit
   }
 
   "the landing page" should {
-    "always carry the created-by credit line and never the retired hardcoded logos" in {
+    "always carry the created-by strip's creator logos and never the retired hardcoded logos" in {
       val body = landingBody()
       body must include("partners-credit")
+      body must include("makeability-lab-logo")
+      body must include("uw-logo")
+      body must include("uic-idhd-logo")
       body must not include "MakeabilityLogo.png"
       body must not include "collaborators-container"
     }

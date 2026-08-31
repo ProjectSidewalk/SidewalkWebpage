@@ -137,7 +137,9 @@ class PartnersPage {
   #actionButton(label, text, disabled, onClick, danger = false) {
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = danger ? 'partners-row-btn partners-row-btn--danger' : 'partners-row-btn';
+    btn.className = danger
+      ? 'button-ps button--secondary button--small partners-row-btn--danger'
+      : 'button-ps button--secondary button--small';
     btn.textContent = text;
     btn.setAttribute('aria-label', label);
     btn.disabled = disabled;

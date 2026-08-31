@@ -504,10 +504,20 @@ p#conditional-text {
 }
 
 #partners-credit {
-  margin: var(--space-xl) auto 0;
+  margin: var(--space-xl) auto var(--space-md);
   max-width: 600px;
   font: var(--text-small-regular);
   color: var(--color-neutral-700);
+}
+
+/* The static creator logos sit under the partners as a visually subordinate strip. */
+.partner-logos--creators {
+  gap: var(--space-md) var(--space-xl);
+}
+
+.partner-logos--creators img {
+  height: 48px;
+  max-width: 200px;
 }
 
 /* --breakpoint-sm */
@@ -519,5 +529,10 @@ p#conditional-text {
   .partner-logo img {
     height: 44px;
     max-width: 160px;
+  }
+
+  .partner-logos--creators img {
+    height: 36px;
+    max-width: 130px;
   }
 }

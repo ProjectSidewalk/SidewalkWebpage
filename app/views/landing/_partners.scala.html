@@ -1,11 +1,12 @@
 @import models.partner.PartnerMetadata
-@(partners: Seq[PartnerMetadata])(implicit messages: Messages)
+@(partners: Seq[PartnerMetadata])(implicit messages: Messages, assets: AssetsFinder)
 
 @*
 * The landing page's "Community Partners" section (#4516): admin-managed logos (global partners first, then the
-* current city's), served from the DB via /partnerLogo with an updated-at cache buster. With no partners yet, only
-* the created-by credit line renders — never an orphaned heading. Anchors carry data-partner-source so homepage.js
-* can log clicks without per-partner markup.
+* current city's), served from the DB via /partnerLogo with an updated-at cache buster, followed by a "Created by"
+* strip of the three static creator logos (Makeability Lab, UW, UIC IDHD). With no partners yet, only the created-by
+* strip renders — never an orphaned heading. Anchors carry data-partner-source so homepage.js can log clicks
+* without per-partner markup.
 *@
 
 @slug(name: String) = @{name.toLowerCase.replaceAll("[^a-z0-9]+", "-").stripPrefix("-").stripSuffix("-")}
@@ -32,5 +33,25 @@
       }
     </div>
   }
-  <p id="partners-credit">@Html(Messages("landing.partners.credit"))</p>
+  <p id="partners-credit">@Messages("landing.partners.created.by")</p>
+  <div class="partner-logos partner-logos--creators">
+    <div class="partner-logo">
+      <a href="https://makeabilitylab.cs.washington.edu/" data-partner-source="makeability-lab">
+        <img loading="lazy" src='@assets.path("images/logos/makeability-lab-logo.png")' width="524" height="479"
+        alt="@Messages("landing.partners.creator.makeability.alt")">
+      </a>
+    </div>
+    <div class="partner-logo">
+      <a href="https://www.washington.edu/" data-partner-source="university-of-washington">
+        <img loading="lazy" src='@assets.path("images/logos/uw-logo.png")' width="450" height="303"
+        alt="@Messages("landing.partners.creator.uw.alt")">
+      </a>
+    </div>
+    <div class="partner-logo">
+      <a href="https://idhd.ahs.uic.edu/" data-partner-source="uic-idhd">
+        <img loading="lazy" src='@assets.path("images/logos/uic-idhd-logo.png")' width="500" height="196"
+        alt="@Messages("landing.partners.creator.uic.alt")">
+      </a>
+    </div>
+  </div>
 </div>

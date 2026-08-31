@@ -279,7 +279,10 @@ landing.deployment.map.title = Ontdek andere steden
 landing.deployment.map.subtitle = Klik op een cirkel hieronder om andere Project Sidewalk-steden te ontdekken!
 landing.partners.title = Communitypartners
 landing.partners.logo.alt = Logo van {0}
-landing.partners.credit = Project Sidewalk is ontwikkeld door het <a href="https://makeabilitylab.cs.washington.edu/" data-partner-source="makeability-lab">Makeability Lab</a> van de University of Washington en het <a href="https://idhd.ahs.uic.edu/" data-partner-source="uic-idhd">Institute on Disability and Human Development</a> van de University of Illinois Chicago
+landing.partners.created.by = Project Sidewalk is ontwikkeld door
+landing.partners.creator.makeability.alt = Makeability Lab-logo
+landing.partners.creator.uw.alt = Logo van de University of Washington
+landing.partners.creator.uic.alt = Logo van het Institute on Disability and Human Development van de University of Illinois Chicago
 landing.clouds.alt = Witte wolken bedekken de afbeelding hierboven gedeeltelijk, terwijl de statistieken bovenop de wolken worden weergegeven.
 landing.mobile.start.validating = Beginnen met valideren in {0}
 landing.mobile.how.you.help.content = Help de toegankelijkheidsgegevens voor {0} te verbeteren door labels van andere gebruikers te valideren—direct vanuit uw telefoon!

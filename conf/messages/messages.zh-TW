@@ -351,7 +351,10 @@ landing.deployment.map.title = 探索其他城市
 landing.deployment.map.subtitle = 點擊下面的圓圈來探索其他 Project Sidewalk 城市！
 landing.partners.title = 社群合作夥伴
 landing.partners.logo.alt = {0} 標誌
-landing.partners.credit = Project Sidewalk 由華盛頓大學的 <a href="https://makeabilitylab.cs.washington.edu/" data-partner-source="makeability-lab">Makeability Lab</a> 與伊利諾大學芝加哥分校的 <a href="https://idhd.ahs.uic.edu/" data-partner-source="uic-idhd">Institute on Disability and Human Development</a> 共同創建
+landing.partners.created.by = Project Sidewalk 創建單位
+landing.partners.creator.makeability.alt = Makeability 實驗室標誌
+landing.partners.creator.uw.alt = 華盛頓大學標誌
+landing.partners.creator.uic.alt = 伊利諾大學芝加哥分校殘疾與人類發展研究所標誌
 landing.clouds.alt = 白雲部分覆蓋了上圖，統計數據顯示在雲層頂部。
 landing.mobile.start.validating = 開始在{0}驗證
 landing.mobile.how.you.help.content = 直接從您的手機驗證其他用戶放置的標籤，幫助改善{0}的無障礙數據！

@@ -2795,30 +2795,13 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
   justify-content: flex-end;
 }
 
-.partners-row-btn {
-  border: 1px solid #999999;
-  border-radius: 4px;
-  background: #ffffff;
-  cursor: pointer;
-  font: var(--text-small-regular);
-  padding: 6px 12px;
-}
-
-.partners-row-btn:hover { background: #f0f0f0; }
-
-.partners-row-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.partners-row-btn--danger {
-  border-color: #ed1c24;
-  color: #a31217;
-}
-
-.partners-row-btn:focus-visible {
-  outline: 2px solid #4a90e2;
-  outline-offset: 2px;
+/* Rows use the design system's secondary buttons; there's no destructive variant, so tint Delete with the error
+   token (the :hover re-assert wins the cascade over .button--secondary:hover, which would otherwise reset the
+   color; :focus deliberately keeps the system's banana ring). */
+.partners-row-btn--danger,
+.partners-row-btn--danger:hover {
+  color: var(--color-error-200);
+  outline-color: var(--color-error-200);
 }
 
 .partners-add-form {
@@ -2857,6 +2840,11 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
   display: flex;
   gap: var(--space-sm);
   margin-top: var(--space-md);
+}
+
+/* .button-ps's display: inline-flex outranks the UA/Bootstrap [hidden] rule, so re-assert it. */
+.partners-cancel-edit[hidden] {
+  display: none;
 }
 
 .partners-form-error {
