@@ -23,8 +23,16 @@ walks points along the street (added roughly every 15 m) and flags the street on
 Imagery age: the responses we already fetch also carry capture dates (GSV's metadata ``date``; Mapillary's
 ``captured_at``, requested via ``fields=``), so for no extra API calls we record each street's imagery capture-date
 range (oldest/newest) into the summary file — telling us not just whether a street has imagery but how old it is. A
-Mapillary bbox query returns many images per point, so each sampled point contributes its **newest** image's date,
-keeping one date per queried location and ``n_panos`` comparable across providers.
+Mapillary bbox query returns many images per point, so each sampled point contributes exactly one date, keeping
+``n_panos`` comparable across providers. That date is the one belonging to the image the Explore/Validate viewer would
+actually display: ``score_pano`` is a port of ``MapillaryViewer.#scorePano``, sharing its weights through
+``conf/mapillary-pano-scoring.json``. Taking the newest image instead would let us record a fresh date for a street
+whose imagery the viewer never shows, so we would stop flagging it as outdated while users still saw the old panos
+(#4411). Two known differences remain, both deliberate: the viewer's sequence-continuity term has no offline meaning
+(there is no current pano when sampling a street cold) and is a uniform 0, which cannot change a ranking; and the
+viewer always searches a 25 m box, whereas along-street points here use 15 m (see ``POINT_RADIUS_KM``) to avoid
+picking up a parallel street. The narrower box is a subset of the viewer's candidates, so it leaves only near-tie
+disagreement — widening it would change which streets are reported as having imagery at all.
 
 Resilience (so a long scan survives a flaky network): each request is retried with exponential backoff; a street that
 still fails is logged and the scan continues rather than aborting, and the failed set is retried once at the end (any
@@ -33,8 +41,8 @@ still-failing streets land in ``db/failed_streets.csv``). Progress is checkpoint
 streets. The final ``db/streets_with_no_imagery.csv`` is derived from the checkpoint, so its schema is unchanged.
 
 The pure functions (``create_bounding_box``, ``redistribute_vertices``, ``gsv_has_imagery``, ``mapillary_has_imagery``,
-``standardize_capture_date``, ``gsv_capture_date``, ``mapillary_capture_date``, ``imagery_verdict``,
-``street_has_no_imagery``, ``summarize_dates``)
+``standardize_capture_date``, ``gsv_capture_date``, ``score_pano``, ``best_pano``, ``mapillary_capture_date``,
+``imagery_verdict``, ``street_has_no_imagery``, ``summarize_dates``)
 are import-safe and unit-tested in ``test/python/test_check_streets_for_imagery.py``; network and file I/O live in thin
 wrappers and ``main``.
 
@@ -59,7 +67,9 @@ concurrent fetching. We deliberately differ from it in three ways, because the t
 
 import argparse
 import csv
+import json
 import logging
+import math
 import os
 import sys
 import threading
@@ -109,6 +119,18 @@ DEFAULT_MAX_QPS = 10.0
 
 # Spacing between interpolated vertices along a street, in lat/lng degrees (~15 m). Accuracy here is not critical.
 DISTANCE = 0.000135
+
+# Weights and decay scales for ranking the Mapillary panos at a point, shared with MapillaryViewer.#scorePano so the
+# date we record for a street is the date of the pano Explore would actually show (see the JSON file's own comment,
+# and score_pano below). Loaded at import: it is a checked-in repo file, not network or user I/O, and every consumer
+# of this module needs it.
+PANO_SCORING_FILE = 'conf/mapillary-pano-scoring.json'
+with open(os.path.join(REPO_ROOT, PANO_SCORING_FILE), encoding='utf-8') as _pano_scoring_file:
+    PANO_SCORING = json.load(_pano_scoring_file)
+
+# Milliseconds in an average (Julian) year, for converting a captured_at delta into the age in years that the recency
+# term decays over. Matches the constant MapillaryViewer.#scorePano uses.
+MS_PER_YEAR = 365.25 * 24 * 3600 * 1000
 
 # Bounding-box half-extents (km) for Mapillary queries: 25 m at endpoints, 15 m at along-street points (a smaller
 # radius along the street avoids picking up imagery from a nearby parallel street). GSV bakes these into the URL.
@@ -299,26 +321,103 @@ def mapillary_has_imagery(response_json: dict) -> bool:
     return not no_imagery
 
 
-def mapillary_capture_date(response_json: dict) -> str | None:
+def score_pano(image: dict, lat: float, lng: float, now_ms: float) -> float | None:
     """
-    Extracts the standardized capture date of the newest image in a Mapillary images response.
+    Scores one candidate Mapillary image for a location, the way the Explore/Validate viewer does.
 
-    A Mapillary bbox query returns many images per sampled point (unlike GSV's one pano per metadata response), so we
-    reduce each point to its **newest** image's ``captured_at`` — one date per queried location, which keeps
-    ``n_panos`` (a count of dated points) comparable between the two providers. ``captured_at`` is a Unix epoch
-    timestamp in **milliseconds**, UTC; it is only present when named in the request's ``fields=`` param.
+    This is a port of ``MapillaryViewer.#scorePano`` (``public/js/common/pano-viewer/src/MapillaryViewer.js``); the
+    weights and decay scales come from ``conf/mapillary-pano-scoring.json`` so the two can't drift. Recency is only a
+    quarter of the decision and distance dominates it, so the newest image at a point is frequently *not* the one the
+    viewer shows — which is the whole reason this port exists (#4411).
+
+    One term is deliberately absent: the viewer adds ``sequenceWeight`` for staying in the sequence it is already
+    viewing, and sampling a street cold there is no current sequence. Scoring it as 0 for every candidate is a uniform
+    shift, so it cannot change which candidate wins here.
+
+    Distance is measured geodesically (geopy) rather than by turf.js's haversine; over these tens of meters the two
+    agree to well under a percent, far inside the gaps that decide a ranking.
+
+    Args:
+        image:  One entry from the response's ``data`` array.
+        lat:    Latitude of the sampled point.
+        lng:    Longitude of the sampled point.
+        now_ms: Current time as a Unix epoch timestamp in milliseconds, for the recency term.
+
+    Returns:
+        A score in ``[0, 1]``, higher being better, or ``None`` if the image can't be scored (no coordinates or no
+        ``captured_at`` — both are requested via ``fields=``, so this is a defensive path).
+    """
+    geometry = image.get('computed_geometry') or image.get('geometry')
+    if not geometry or 'captured_at' not in image:
+        return None
+
+    # Distance to the sampled point (dominant factor). Exponential decay, so at the default 10 m scale:
+    # 0 m -> 1.0, 10 m -> 0.37, 25 m -> 0.08.
+    image_lng, image_lat = geometry['coordinates']
+    distance_m = geodesic((lat, lng), (image_lat, image_lng)).meters
+    distance_score = math.exp(-distance_m / PANO_SCORING['distanceDecayMeters'])
+
+    # Resolution: linear in width, capped. Against the default 16384 px cap: 2048 -> 0.13, 8192 -> 0.50, 16384 -> 1.0.
+    # A missing width scores 0 rather than dropping the candidate — a real pano with an unknown size still beats none.
+    resolution_score = min((image.get('width') or 0) / PANO_SCORING['maxImageWidthPx'], 1)
+
+    # Recency: exponential decay by age in years, so at the default 5-year scale: fresh -> 1.0, 3 yr -> 0.55.
+    # captured_at is a Unix epoch timestamp in milliseconds, UTC.
+    age_years = (now_ms - image['captured_at']) / MS_PER_YEAR
+    recency_score = math.exp(-age_years / PANO_SCORING['recencyDecayYears'])
+
+    return (PANO_SCORING['distanceWeight'] * distance_score
+            + PANO_SCORING['resolutionWeight'] * resolution_score
+            + PANO_SCORING['recencyWeight'] * recency_score)
+
+
+def best_pano(response_json: dict, lat: float, lng: float, now_ms: float) -> dict | None:
+    """
+    Picks the image in a Mapillary images response that the viewer would display at the sampled point.
 
     Args:
         response_json: The decoded JSON from the Mapillary images endpoint.
+        lat:           Latitude of the sampled point.
+        lng:           Longitude of the sampled point.
+        now_ms:        Current time as a Unix epoch timestamp in milliseconds, for the recency term.
 
     Returns:
-        An ISO ``YYYY-MM-DD`` string, or ``None`` if the response carries no dated images (an empty ``data`` array, no
-        ``data`` at all — e.g. an error-code-100 response — or images without ``captured_at``).
+        The highest-scoring entry of ``data``, or ``None`` if nothing in the response is scorable (an empty ``data``
+        array, or no ``data`` at all — e.g. an error-code-100 response).
     """
-    timestamps = [image['captured_at'] for image in response_json.get('data', []) if 'captured_at' in image]
-    if not timestamps:
+    scored = [(score, image) for score, image
+              in ((score_pano(image, lat, lng, now_ms), image) for image in response_json.get('data', []))
+              if score is not None]
+    if not scored:
         return None
-    return datetime.fromtimestamp(max(timestamps) / 1000, tz=timezone.utc).date().isoformat()
+    return max(scored, key=lambda pair: pair[0])[1]
+
+
+def mapillary_capture_date(response_json: dict, lat: float, lng: float, now_ms: float | None = None) -> str | None:
+    """
+    Extracts the standardized capture date of the image the viewer would show at a Mapillary-sampled point.
+
+    A Mapillary bbox query returns many images per sampled point (unlike GSV's one pano per metadata response), so each
+    point is reduced to a single date — one per queried location, which keeps ``n_panos`` (a count of dated points)
+    comparable between the two providers. That date is the *winner* of ``score_pano``, not the newest image: recording
+    a newer pano than the one Explore serves would stop us flagging a street as outdated while the old imagery is
+    still what users see (#4411).
+
+    Args:
+        response_json: The decoded JSON from the Mapillary images endpoint.
+        lat:           Latitude of the sampled point.
+        lng:           Longitude of the sampled point.
+        now_ms:        Current time as a Unix epoch timestamp in milliseconds; defaults to now.
+
+    Returns:
+        An ISO ``YYYY-MM-DD`` string, or ``None`` if the response carries no scorable images.
+    """
+    if now_ms is None:
+        now_ms = datetime.now(tz=timezone.utc).timestamp() * 1000
+    winner = best_pano(response_json, lat, lng, now_ms)
+    if winner is None:
+        return None
+    return datetime.fromtimestamp(winner['captured_at'] / 1000, tz=timezone.utc).date().isoformat()
 
 
 def imagery_verdict(n_fail: int, n_success: int, n_coords: int, endpoint_failed: bool) -> str | None:
@@ -425,35 +524,39 @@ def _mapillary_bbox_url(mapillary_url: str, lat: float, lng: float, radius_km: f
     return mapillary_url + '&bbox=' + ','.join(str(coord) for coord in bbox)
 
 
-def _pano_info(api: str, response_json: dict) -> PanoInfo:
+def _pano_info(api: str, response_json: dict, lat: float, lng: float) -> PanoInfo:
     """
     Builds a ``PanoInfo`` (imagery present? + capture date) from one provider response.
 
-    GSV's date comes from the metadata ``date`` field; Mapillary's from the newest image's ``captured_at`` (see
-    ``mapillary_capture_date`` for why newest).
+    GSV's date comes from the metadata ``date`` field. Mapillary returns every image in the queried box, so the point
+    it was queried at is needed to rank them; see ``mapillary_capture_date`` for which one wins.
     """
     if api == 'GSV':
         return PanoInfo(gsv_has_imagery(response_json), gsv_capture_date(response_json))
-    return PanoInfo(mapillary_has_imagery(response_json), mapillary_capture_date(response_json))
+    return PanoInfo(mapillary_has_imagery(response_json), mapillary_capture_date(response_json, lat, lng))
 
 
 def _point_pano_info(api: str, lat: float, lng: float, fetch: Callable[[str], dict], gsv_url: str,
                      mapillary_url: str, mapillary_radius_km: float) -> PanoInfo:
     """Queries the configured provider at one point (via ``fetch``) and returns its ``PanoInfo``."""
     if api == 'GSV':
-        return _pano_info(api, fetch(gsv_url + '&location=' + str(lat) + ',' + str(lng)))
-    return _pano_info(api, fetch(_mapillary_bbox_url(mapillary_url, lat, lng, mapillary_radius_km)))
+        return _pano_info(api, fetch(gsv_url + '&location=' + str(lat) + ',' + str(lng)), lat, lng)
+    return _pano_info(api, fetch(_mapillary_bbox_url(mapillary_url, lat, lng, mapillary_radius_km)), lat, lng)
 
 
 def _check_endpoints(street: pd.Series, api: str, fetch: Callable[[str], dict], gsv_url_endpoint: str,
                      mapillary_url: str) -> tuple[PanoInfo, PanoInfo]:
     """Checks both of a street's endpoints; returns ``(first_pano_info, second_pano_info)``."""
     if api == 'GSV':
-        first = _pano_info(api, fetch(gsv_url_endpoint + '&location=' + str(street.y1) + ',' + str(street.x1)))
-        second = _pano_info(api, fetch(gsv_url_endpoint + '&location=' + str(street.y2) + ',' + str(street.x2)))
+        first = _pano_info(api, fetch(gsv_url_endpoint + '&location=' + str(street.y1) + ',' + str(street.x1)),
+                           street.y1, street.x1)
+        second = _pano_info(api, fetch(gsv_url_endpoint + '&location=' + str(street.y2) + ',' + str(street.x2)),
+                            street.y2, street.x2)
     else:
-        first = _pano_info(api, fetch(_mapillary_bbox_url(mapillary_url, street.y1, street.x1, ENDPOINT_RADIUS_KM)))
-        second = _pano_info(api, fetch(_mapillary_bbox_url(mapillary_url, street.y2, street.x2, ENDPOINT_RADIUS_KM)))
+        first = _pano_info(api, fetch(_mapillary_bbox_url(mapillary_url, street.y1, street.x1, ENDPOINT_RADIUS_KM)),
+                           street.y1, street.x1)
+        second = _pano_info(api, fetch(_mapillary_bbox_url(mapillary_url, street.y2, street.x2, ENDPOINT_RADIUS_KM)),
+                            street.y2, street.x2)
     return first, second
 
 
@@ -624,9 +727,12 @@ def main(argv: list[str] | None = None) -> int:
     gsv_base_url = 'https://maps.googleapis.com/maps/api/streetview/metadata?source=outdoor&key=' + api_key
     gsv_url = gsv_base_url + '&radius=15'
     gsv_url_endpoint = gsv_base_url + '&radius=25'
-    # fields=captured_at makes each image carry its capture timestamp (default responses hold only `id`) — same
-    # request count, and it's what mapillary_capture_date reads.
-    mapillary_url = 'https://graph.mapillary.com/images?is_pano=true&fields=captured_at&access_token=' + api_key
+    # fields= is what makes each image carry the attributes score_pano ranks on; a default response holds only `id`.
+    # Same request count either way, so the ranking is free. Both geometry fields are requested because the viewer
+    # prefers computed_geometry (Mapillary's refined position) and falls back to the raw one.
+    mapillary_fields = 'captured_at,geometry,computed_geometry,width'
+    mapillary_url = ('https://graph.mapillary.com/images?is_pano=true&fields=' + mapillary_fields
+                     + '&access_token=' + api_key)
     # One shared rate limiter caps total request rate across all worker threads.
     fetch = make_fetch(rate_limiter=RateLimiter(args.max_qps))
     checkpoint_lock = threading.Lock()

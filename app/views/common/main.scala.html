@@ -1,4 +1,5 @@
 @import controllers.helper.ControllerUtils
+@import models.utils.MapillaryPanoScoring
 @import play.api.Configuration
 @import play.api.libs.json.Json
 @import service.CommonPageData
@@ -34,8 +35,11 @@
 @* data-mobile-device is the server's mobile verdict (ControllerUtils.isMobile, the single mobile definition) for
    this request; util.isMobile() reads it back so client and server always agree on which UI variant is running.
    data-measurement-system does the same for units (ControllerUtils.measurementSystem): the user's override if they
-   set one, else the language default, resolved once here so util.isMetric() can't disagree with the server. *@
-<html lang="@messages.lang.code" data-mobile-device="@ControllerUtils.isMobile" data-measurement-system="@ControllerUtils.measurementSystem">
+   set one, else the language default, resolved once here so util.isMetric() can't disagree with the server.
+   data-mapillary-pano-scoring carries conf/mapillary-pano-scoring.json, which MapillaryViewer.#scorePano reads back
+   and scripts/check_streets_for_imagery.py reads off disk. Stamped here rather than beside each of the dozen
+   pano-viewer.js script tags so a new page that loads the viewer can't forget it (#4411). *@
+<html lang="@messages.lang.code" data-mobile-device="@ControllerUtils.isMobile" data-measurement-system="@ControllerUtils.measurementSystem" data-mapillary-pano-scoring="@MapillaryPanoScoring.json">
   <head>
       <!-- Global site tag (gtag.js) - Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=@commonData.googleAnalyticsId"></script>
