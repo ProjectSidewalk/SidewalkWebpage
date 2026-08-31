@@ -257,17 +257,19 @@
   max-width: 440px;
 }
 
+/* 55% white is the faintest this footnote goes and still clears 1.4.3 against the asphalt band behind it (5.3:1);
+   45% renders as #8c8a95, which is 4.08:1. */
 #mobile-cta-footer-info {
   margin-top: 52px;
   padding-bottom: 0;
   font-family: Raleway, sans-serif;
   font-size: 11px;
   line-height: 1.6;
-  color: rgb(255 255 255 / 45%);
+  color: rgb(255 255 255 / 55%);
 }
 
 #mobile-cta-footer-info a {
-  color: rgb(255 255 255 / 45%);
+  color: rgb(255 255 255 / 55%);
   text-decoration: underline;
 }
 

@@ -13,6 +13,14 @@
 /** Known, tracked violations keyed by page path, as `{rule, selector?, issue, note}`. */
 const A11Y_ALLOWLIST = {
   '/': [],
+  '/signIn': [],
+  '/signUp': [],
+  '/routes': [],
+  '/stories': [],
+  '/labelingGuide': [],
+  '/gallery': [],
+  '/cities': [],
+  '/mobileLanding': [],
 };
 
 /**

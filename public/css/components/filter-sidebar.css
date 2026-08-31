@@ -360,9 +360,10 @@ body.filter-sidebar-resizing {
   min-width: 0;
 }
 
-/* Deselected rows read as off at a glance: hollow icon (below) plus a dimmed name. */
+/* Deselected rows read as off at a glance: hollow icon (below) plus a dimmed name. neutral-700 is the dimmest step
+   that still clears 1.4.3 on the sidebar's white ground — neutral-600 is 3.23:1. */
 .filter-sidebar__checkbox:not(:checked) + .filter-sidebar__item-label {
-  color: var(--color-neutral-600);
+  color: var(--color-neutral-700);
 }
 
 .filter-sidebar__item:has(.filter-sidebar__checkbox:not(:checked)) .filter-sidebar__count {

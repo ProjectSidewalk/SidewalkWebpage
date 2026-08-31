@@ -118,7 +118,9 @@ with respect to the image holder. This allows the validation menu to be placed o
   font-size: max(11px, 2.88cqw);
   font-weight: 400;
   line-height: 1.2;
-  color: var(--color-neutral-600);
+
+  /* neutral-700 is the dimmest step that still clears 1.4.3 on the card's white band — neutral-600 is 3.23:1. */
+  color: var(--color-neutral-700);
   min-width: 0;
   text-decoration: none;
 }
@@ -206,8 +208,9 @@ with respect to the image holder. This allows the validation menu to be placed o
   flex-direction: row;
 }
 
+/* 0.7 is as faint as this dims and still clears 1.4.3 against the card's white band (5.3:1); 0.6 is 3.9:1. */
 .no-severity-header {
-  opacity: 0.6;
+  opacity: 0.7;
 }
 
 .card-tags {

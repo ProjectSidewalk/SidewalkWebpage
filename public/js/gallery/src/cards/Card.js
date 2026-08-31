@@ -103,14 +103,17 @@ class Card {
     else if (param.agree_count + param.disagree_count + param.unsure_count > 0) properties.correctness = 'unsure';
     else properties.correctness = 'unvalidated';
 
-    // Place label icon.
+    const labelTypeName = i18next.t(util.camelToKebab(this.getLabelType()));
+
     labelIcon.src = util.misc.getIconImagePaths(this.getLabelType()).iconImagePath;
     labelIcon.classList.add('label-icon', 'label-icon-gallery');
+    // Decorative: it only marks where in the image the label sits, and its type is already the header's text.
+    labelIcon.alt = '';
 
-    // Create an element for the image in the card.
     this.#imageId = `label_id_${properties.label_id}`;
     panoImage.id = this.#imageId;
     panoImage.className = 'static-gallery-image';
+    panoImage.alt = i18next.t('gallery:card-image-alt', { labelType: labelTypeName });
 
     // Create the container card.
     this.#card = document.createElement('div');
@@ -127,7 +130,7 @@ class Card {
     // Create the div to store the label type, and the neighborhood the label sits in when we know its name.
     const cardHeader = document.createElement('div');
     cardHeader.className = 'card-header';
-    cardHeader.innerHTML = `<div class="card-header__type">${i18next.t(util.camelToKebab(this.getLabelType()))}</div>`;
+    cardHeader.innerHTML = `<div class="card-header__type">${labelTypeName}</div>`;
     const regionName = sg.regionNames?.[properties.region_id];
     if (regionName) {
       // The name is a way out to this label on the LabelMap — the same ?labelId= deep link the expanded view's

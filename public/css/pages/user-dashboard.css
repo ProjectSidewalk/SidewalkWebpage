@@ -1067,12 +1067,14 @@
 
 .ud-btn-secondary:hover { background: var(--color-neutral-100); }
 
+/* pine-700 is the lightest step on the ramp that carries white label text at 1.4.3's 4.5:1 (5.0:1); pine-600 is
+   3.01:1. Hover steps down to 800 so the button still darkens under the cursor. */
 .ud-btn-primary {
   display: inline-block;
   padding: 8px 18px;
   border: 1px solid transparent;
   border-radius: var(--border-radius);
-  background: var(--color-pine-600);
+  background: var(--color-pine-700);
   color: var(--color-neutral-white);
   font: var(--text-small-bold);
   text-decoration: none;
@@ -1081,7 +1083,7 @@
 }
 
 .ud-btn-primary:hover {
-  background: var(--color-pine-700);
+  background: var(--color-pine-800);
   text-decoration: none;
 }
 

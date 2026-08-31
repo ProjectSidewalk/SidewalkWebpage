@@ -17,10 +17,19 @@ const {partitionViolations, formatViolations} = require('./a11y-allowlist');
 // the standard we hold ourselves to, and a gate that fails outside the commitment gets ignored.
 const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21aa'];
 
+// Load flags mirror each page's entry in pages.spec.js.
 const PAGES = [
   // Landing maps are deferred behind util.onFirstInteractionOrIdle (#4486) — without the wait, axe scans a
-  // half-rendered page. Same flags as this page's entry in pages.spec.js.
+  // half-rendered page.
   {path: '/', mapbox: true, waitFor: (page) => page.waitForFunction(() => window.choropleth && window.deploymentMap)},
+  {path: '/signIn'},
+  {path: '/signUp'},
+  {path: '/routes'},
+  {path: '/stories'},
+  {path: '/labelingGuide'},
+  {path: '/gallery', loadingOverlay: true},
+  {path: '/cities', mapbox: true},
+  {path: '/mobileLanding'},
 ];
 
 for (const p of PAGES) {
