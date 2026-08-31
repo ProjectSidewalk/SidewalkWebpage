@@ -551,6 +551,7 @@ object LabelTable {
           OffsetDateTime.now(ZoneOffset.UTC)
         }
       },
+      highQualityUser = r.nextBoolean(),
       streetEdgeId = r.nextInt(),
       osmWayId = r.nextLong(),
       regionId = r.nextInt(),
@@ -2051,6 +2052,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              array_to_string(label.tags, ','),
              label.description,
              label.time_created,
+             user_stat.high_quality,
              label.street_edge_id,
              osm_way_street_edge.osm_way_id,
              region.region_id,
