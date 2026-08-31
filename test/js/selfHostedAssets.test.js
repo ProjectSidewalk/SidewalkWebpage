@@ -170,15 +170,29 @@ describe('the design system ships the faces its font tokens name', () => {
         // applies (its `name` table, IDs 0/13/14) — read it from there rather than from whatever upstream says
         // today, since a family can be relicensed after the copy we ship was taken.
         const FONTS_ROOT = path.join(REPO_ROOT, 'public', 'fonts');
-        const families = fs.readdirSync(FONTS_ROOT, { withFileTypes: true })
-            .filter((e) => e.isDirectory()).map((e) => e.name);
+        // Directory names don't share the CSS's exact casing/spacing (JetBrainsMono vs. "jetbrains mono"), so
+        // compare with punctuation/case stripped rather than pinning either side's formatting.
+        const normalize = (name) => name.replace(/[^a-z0-9]/gi, '').toLowerCase();
+        const directoriesByNormalizedName = new Map(
+            fs.readdirSync(FONTS_ROOT, { withFileTypes: true })
+                .filter((e) => e.isDirectory())
+                .map((e) => [normalize(e.name), e.name]),
+        );
 
-        expect(families.length).toBeGreaterThanOrEqual(5); // Not passing vacuously on an empty read.
+        // Derived from the families the stylesheets actually declare, rather than a count pinned at whatever the
+        // family list happened to be when this test was written — a family retired or added later (as #4904
+        // retired Open Sans and Noto Sans) can't desynchronize a hardcoded number again.
+        expect(declaredFamilies.size).toBeGreaterThan(0); // Not passing vacuously on an empty read.
 
         const undocumented = [];
-        for (const family of families) {
+        for (const family of declaredFamilies) {
+            const dir = directoriesByNormalizedName.get(normalize(family));
+            if (!dir) {
+                undocumented.push(`${family}: no directory under public/fonts/`);
+                continue;
+            }
             const license = ['OFL.txt', 'LICENSE.txt']
-                .map((name) => path.join(FONTS_ROOT, family, name))
+                .map((name) => path.join(FONTS_ROOT, dir, name))
                 .find((candidate) => fs.existsSync(candidate));
             if (!license) {
                 undocumented.push(`${family}: no OFL.txt or LICENSE.txt`);
