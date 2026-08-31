@@ -112,11 +112,12 @@ exception) is never allowlisted.
 
 ## Where it runs in CI
 
-The `e2e-smoke` job in `.github/workflows/ci.yml` — **advisory** (`continue-on-error: true`, like
-`backend-tests`) on every PR, promotable to blocking once proven stable. It builds the bundles, stages the
-app (prod-mode binary against the CI Postgres+PostGIS with the empty `sidewalk_teaneck` schema), and runs
-this suite; on failure it uploads the Playwright report, traces, and `app.log`. **It never runs during
-local development** — your edit / `grunt watch` / reload loop is untouched.
+The `e2e-smoke` job in `.github/workflows/ci.yml`, on every PR. It builds the bundles, stages the app
+(prod-mode binary against the CI Postgres+PostGIS with the empty `sidewalk_teaneck` schema), and runs this
+suite in two steps: the **accessibility gate** (`-g 'a11y:'`) **blocking**, then the smoke half
+(`--grep-invert 'a11y:'`) **advisory** (`continue-on-error` on the step, not the job — on the job it would
+excuse the gate too). On failure it uploads the Playwright report, traces, and `app.log`. **It never runs
+during local development** — your edit / `grunt watch` / reload loop is untouched.
 
 ## Phase roadmap
 

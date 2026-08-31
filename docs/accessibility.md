@@ -74,10 +74,17 @@ fixable: report it upstream, shim it, or replace the widget. The Mapbox search b
 
 ### Where it runs in CI
 
-In the existing `e2e-smoke` job, which is **advisory** today — findings report but don't block a merge. It becomes
-blocking for the open data portal pages ([#5058](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/5058))
-and the `/api` docs pages once those pages are clean, and the blocking set grows from there
-([#5060](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/5060)).
+In the `e2e-smoke` job, as its own **blocking** step. The rest of that job — the runtime-error smoke suite — stays
+advisory, so the `continue-on-error` flag sits on *that* step rather than on the job, where it would excuse the gate
+too.
+
+Gating is safe this early precisely because the page table is opt-in: a page is only in it once its violations are
+fixed or tracked, so a failure is always a regression against a standard we already meet. Adding a page is what takes
+judgment; keeping the ones already there green is not.
+
+Note that a failing job only *blocks a merge* once the check is required in branch protection — see
+[`docs/testing-and-ci.md`](testing-and-ci.md). The open data portal pages
+([#5058](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/5058)) join the table when they land.
 
 ### The allowlist
 

@@ -447,8 +447,8 @@ jobs:
   e2e-smoke:
     name: E2E smoke (Playwright)
     runs-on: ubuntu-latest
-    # ADVISORY while the suite stabilizes (plan: ramp to blocking once it's proven stable). Does not block PRs yet.
-    continue-on-error: true
+    # Mixed: the accessibility gate step is blocking, the smoke half stays advisory while it stabilizes. The flag
+    # therefore lives on that step, not here — a job-level continue-on-error would excuse both.
     timeout-minutes: 30
     # Job-level env (shared by `sbt stage` and the app process), mirroring backend-tests' block with one difference:
     # GOOGLE_MAPS_API_KEY prefers the real referrer/API-restricted test key so the phase-2 Explore/Validate specs can
@@ -580,8 +580,20 @@ jobs:
       - name: Seed minimal explore data
         run: docker compose exec -T db psql -v ON_ERROR_STOP=1 -U postgres -d sidewalk < test/e2e/fixtures/ci-seed.sql
 
-      - name: Run Playwright smoke suite
-        run: npx playwright test
+      # BLOCKING (#5060). Safe to gate on even while the rest of the suite is advisory, because a page only enters
+      # a11y.spec.js's table once its violations are fixed or tracked in a11y-allowlist.js — so a failure here is a
+      # regression against a standard we already meet, never a known gap. Runs first so a red gate heads the log.
+      - name: Run accessibility gate (blocking)
+        run: npx playwright test --grep 'a11y:'
+        env:
+          BASE_URL: http://localhost:9000
+
+      # ADVISORY. `continue-on-error` sits on this step rather than the job so it excuses the smoke half alone and
+      # not the gate above; `if: always()` runs it even when the gate failed, so one run reports both.
+      - name: Run Playwright smoke suite (advisory)
+        if: always()
+        continue-on-error: true
+        run: npx playwright test --grep-invert 'a11y:'
         env:
           BASE_URL: http://localhost:9000
 
