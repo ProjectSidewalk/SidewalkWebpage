@@ -43,9 +43,9 @@
 }
 
 #mobile-landing-tagline {
-  font-family: Raleway-bold, sans-serif;
+  font-family: var(--font-accent);
   font-size: 30px;
-  font-weight: bold;
+  font-weight: 700;
   color: var(--color-neutral-white);
   line-height: 1.2;
   letter-spacing: 0.04em;
@@ -177,11 +177,12 @@
   margin: 24px auto 0;
 }
 
+/* Primary font, not the accent one: Raleway's old-style figures drop 3/4/5/7/9 below the baseline. */
 .mobile-stat-number {
   display: block;
-  font-family: Raleway-extrabold, sans-serif;
+  font-family: var(--font-primary);
   font-size: 36px;
-  font-weight: bold;
+  font-weight: 800;
   color: var(--color-asphalt-500);
   line-height: 1.1;
 }
@@ -241,9 +242,9 @@
 }
 
 .mobile-cta-heading {
-  font-family: Raleway-bold, sans-serif;
+  font-family: var(--font-accent);
   font-size: 26px;
-  font-weight: bold;
+  font-weight: 700;
   color: var(--color-neutral-white);
   margin: 0 0 12px;
   line-height: 1.2;
