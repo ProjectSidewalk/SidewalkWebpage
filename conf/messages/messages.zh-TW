@@ -349,9 +349,11 @@ landing.ml.gif.outcomes = 成果
 landing.ml.gif.explain.alt = GIF 解释了 Project Sidewalk 上的众包和机器学习的成果
 landing.deployment.map.title = 探索其他城市
 landing.deployment.map.subtitle = 點擊下面的圓圈來探索其他 Project Sidewalk 城市！
-landing.partners.title = 社群合作夥伴
+landing.partners.title = {0}的社群合作夥伴
+landing.partners.tagline = 這項工作有賴{0}社群合作夥伴的努力才得以實現，包括：
 landing.partners.logo.alt = {0} 標誌
 landing.partners.created.by = Project Sidewalk 創建單位
+landing.partners.created.credits = …並由世界各地的社群合作夥伴共同形塑 — 例如 Liga Peatonal，他們協助將 Project Sidewalk 翻譯成西班牙文、支援墨西哥的部署，並提供回饋與設計建議 — 以及多年來貢獻心力的數百位學生、志工與合作者。<a href="/about" data-partner-source="about-team">進一步了解我們的團隊</a>。
 landing.partners.creator.makeability.alt = Makeability 實驗室標誌
 landing.partners.creator.uw.alt = 華盛頓大學標誌
 landing.partners.creator.uic.alt = 伊利諾大學芝加哥分校殘疾與人類發展研究所標誌

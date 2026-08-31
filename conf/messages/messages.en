@@ -286,9 +286,11 @@ landing.ml.gif.outcomes = outcomes
 landing.ml.gif.explain.alt = GIF explaining the outcomes of crowdsourcing and machine learning on Project Sidewalk
 landing.deployment.map.title = Explore other cities
 landing.deployment.map.subtitle = Click on a circle below to explore other Project Sidewalk cities!
-landing.partners.title = Community Partners
+landing.partners.title = Community Partners in {0}
+landing.partners.tagline = This work is made possible through the amazing efforts of our community partners in {0}, including:
 landing.partners.logo.alt = {0} logo
 landing.partners.created.by = Project Sidewalk was created by
+landing.partners.created.credits = …and shaped by community partners around the world — like Liga Peatonal, who helped translate Project Sidewalk into Spanish, supported deployments across Mexico, and shared feedback and design ideas — along with the hundreds of students, volunteers, and collaborators who have contributed over the years. <a href="/about" data-partner-source="about-team">Learn more about our team</a>.
 landing.partners.creator.makeability.alt = Makeability Lab logo
 landing.partners.creator.uw.alt = University of Washington logo
 landing.partners.creator.uic.alt = University of Illinois Chicago Institute on Disability and Human Development logo

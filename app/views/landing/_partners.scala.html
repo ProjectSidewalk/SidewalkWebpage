@@ -1,14 +1,15 @@
 @import models.partner.PartnerMetadata
 @import models.utils.SlugUtils
-@(partners: Seq[PartnerMetadata])(implicit messages: Messages, assets: AssetsFinder)
+@(partners: Seq[PartnerMetadata], cityName: String)(implicit messages: Messages, assets: AssetsFinder)
 
 @*
-* The landing page's "Community Partners" section (#4516): admin-managed logos (global partners first, then the
-* current city's), served from the DB via /partnerLogo with a logo-version cache buster, followed by a "Created by"
-* strip of the three static creator logos (Makeability Lab, UW, UIC IDHD). With no partners yet, only the created-by
-* strip renders — never an orphaned heading. Anchors carry data-partner-source so the landing pages' delegated
-* handlers (homepage.js on desktop, mobileLanding's inline script on mobile) can log clicks without per-partner
-* markup.
+* The landing page's partners section (#4516), in two halves: the admin-managed "Community Partners in <city>" logos
+* (global partners first, then the current city's), served from the DB via /partnerLogo with a logo-version cache
+* buster; and a "Project Sidewalk was created by" section — the three static creator logos (Makeability Lab, UW,
+* UIC IDHD) plus a prose credit to the long-time partners, students, and volunteers who shaped the tool. With no
+* partners yet, only the created-by half renders — never an orphaned heading. Anchors carry data-partner-source so
+* the landing pages' delegated handlers (homepage.js on desktop, mobileLanding's inline script on mobile) can log
+* clicks without per-partner markup.
 *@
 
 @logoImg(p: PartnerMetadata) = {
@@ -19,7 +20,8 @@
 
 <div class="container" id="partners-container">
   @if(partners.nonEmpty) {
-    <h2 id="partners-title">@Messages("landing.partners.title")</h2>
+    <h2 class="partners-heading" id="partners-title">@Messages("landing.partners.title", cityName)</h2>
+    <p class="partners-tagline" id="partners-tagline">@Messages("landing.partners.tagline", cityName)</p>
     <div class="partner-logos">
       @for(p <- partners) {
         <div class="partner-logo">
@@ -33,7 +35,7 @@
       }
     </div>
   }
-  <p id="partners-credit">@Messages("landing.partners.created.by")</p>
+  <h2 class="partners-heading" id="creators-title">@Messages("landing.partners.created.by")</h2>
   <div class="partner-logos partner-logos--creators">
     <div class="partner-logo">
       <a href="https://makeabilitylab.cs.washington.edu/" data-partner-source="makeability-lab">
@@ -54,4 +56,5 @@
       </a>
     </div>
   </div>
+  <p class="partners-tagline" id="partners-credit">@Html(Messages("landing.partners.created.credits"))</p>
 </div>

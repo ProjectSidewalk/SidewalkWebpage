@@ -473,13 +473,25 @@ p#conditional-text {
   text-align: center;
 }
 
-#partners-title {
-  margin: 0 auto var(--space-lg);
+.partners-heading {
+  margin: 0 auto var(--space-sm);
   font-family: raleway, sans-serif;
   font-size: 40px;
   line-height: 1.1;
   font-weight: normal;
   color: var(--color-asphalt-500);
+}
+
+/* Breathing room between the community-partners strip and the created-by section, when both render. */
+.partner-logos + #creators-title {
+  margin-top: var(--space-xxl);
+}
+
+.partners-tagline {
+  margin: 0 auto var(--space-lg);
+  max-width: 640px;
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
 }
 
 .partner-logos {
@@ -503,14 +515,13 @@ p#conditional-text {
   object-fit: contain;
 }
 
+/* The wider credit line (long-time partners, students, volunteers) sits under the creator logos. */
 #partners-credit {
-  margin: var(--space-xl) auto var(--space-md);
-  max-width: 600px;
-  font: var(--text-small-regular);
-  color: var(--color-neutral-700);
+  margin-top: var(--space-lg);
+  margin-bottom: 0;
 }
 
-/* The static creator logos sit under the partners as a visually subordinate strip. */
+/* The static creator logos are a visually subordinate strip. */
 .partner-logos--creators {
   gap: var(--space-md) var(--space-xl);
 }
@@ -522,7 +533,7 @@ p#conditional-text {
 
 /* --breakpoint-sm */
 @media (width <= 768px) {
-  #partners-title {
+  .partners-heading {
     font-size: 28px;
   }
 

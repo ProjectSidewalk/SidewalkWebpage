@@ -251,7 +251,7 @@
       @common.cityPopupTemplate()
     </div>
 
-    @landing._partners(partners)
+    @landing._partners(partners, currentCity.cityNameShort)
 
 
     @* Deferred: every reference below sits inside an appManager.ready callback, which runs off $(document).ready and so lands after all deferred scripts. i18next and its http backend are NOT re-included here — common/main.scala.html already loads both, deferred, on every page (#4486). *@
