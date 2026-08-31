@@ -95,7 +95,9 @@ Make sure Docker is running (you'll see the whale icon in your tray; you can set
    edit it for the city you want to run:
    - **`SIDEWALK_CITY_ID`** — the city to run (e.g. `seattle-wa`); see the [City IDs table](#city-ids).
    - **`DATABASE_USER`** — that city's database user, replacing the default `sidewalk` (e.g. `sidewalk_seattle`).
-   - **`platform`** — *Apple Silicon (M-series) only:* uncomment this line.
+   - **`platform`** — leave it commented. Every host builds the web image for its own architecture as of
+     [#5069](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/5069), so Apple Silicon is native
+     without it. Uncomment it *only* if a native build fails, to force an emulated `linux/amd64` build.
 
 2. **Stage the database dumps.** Put the dump files from your maintainer in the **`db/`** directory and rename them
    to the exact names the import scripts expect:
@@ -379,6 +381,7 @@ Roughly ordered by when you'd hit them during setup.
 | `make` commands "just don't work" | Reinstall `make`. As a fallback, run the underlying command from the `Makefile` directly (e.g. `make ssh target=web` ≈ `docker exec -it projectsidewalk-web /bin/bash`). |
 | A new `src/` JS file isn't bundled | Make sure its path matches a glob in `Gruntfile.js`. |
 | First compile seems stuck | It isn't — initial dependency resolution is genuinely slow. Watch the container logs. |
+| Compiles are slow on Apple Silicon | Your `projectsidewalk/web` image may predate [#5069](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/5069) and still be x86_64 — Compose reuses a locally tagged image instead of rebuilding it, so pulling that change alone doesn't help. Check with `docker image inspect projectsidewalk/web --format '{{.Architecture}}'` (expect `arm64`); if it says `amd64`, rebuild with `make docker-stop && docker compose build web`. Also make sure `platform` is commented out in your `docker-compose.override.yml`. |
 
 **Slick query errors while developing:**
 
