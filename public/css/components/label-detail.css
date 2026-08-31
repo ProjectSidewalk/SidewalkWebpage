@@ -787,13 +787,23 @@ button.label-detail__meta-cell:focus-visible {
 }
 
 /* Cancel is a design-system secondary button (.button-ps .button--small .button--secondary); only its height and
-   radius are pinned here, to match the bespoke submit button it stands beside rather than sit a few px shorter. */
+   radius are pinned here, to match the bespoke submit button it stands beside rather than sit a few px shorter.
+   The negative offsets are what make it visible at all: .button--secondary draws its edge as an `outline`, which
+   paints *outside* the border box, and the row above clips to a box exactly as tall as this button — so an
+   outward outline lost its top and bottom and rendered as two floating arcs. Drawing inward costs a pixel of fill
+   and nothing else. Same for the focus ring, which would otherwise be clipped the same way. */
 .label-detail__comment-cancel {
   box-sizing: border-box;
   height: 34px;
   justify-content: center;
   border-radius: 12px;
   flex-shrink: 0;
+  outline-offset: -1px;
+}
+
+.label-detail__comment-cancel:focus-visible {
+  outline: 2px solid var(--color-link-100);
+  outline-offset: -2px;
 }
 
 .label-detail__comment-confirmation {

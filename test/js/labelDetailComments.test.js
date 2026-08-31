@@ -1,14 +1,15 @@
 /**
- * Tests for editing and deleting your own validator comment (public/js/common/label-detail/LabelDetail.js, #5015).
+ * Tests for the validator comment box on the label card (public/js/common/label-detail/LabelDetail.js, #5015).
  *
- * A comment is unique per (label, user) — validation_task_comment_label_id_user_id_unique, added by evolution 359
- * for #4942 — and `ValidationService.replaceComment` enforces that by deleting before inserting. So a second
- * submission overwrote the first, silently. The compose box sat open above your own comment offering exactly the
- * action that destroyed it.
+ * A comment belongs to a vote. All three votes carry one — Disagree and Unsure ask for the reasoning behind the
+ * dispute, Agree invites an optional note — and a vote that moves takes its comment with it, because the server
+ * deletes the comment on a cleared or changed vote and the list has to say so without a reload.
  *
- * The card now mirrors what a story of your own already does (`StorySection`): once yours exists the compose box
- * closes and the comment carries Edit/Delete instead, so changing it is deliberate. The tests below hold that
- * line, plus the two ways out of an edit (Cancel and Escape) that keep the box from being a one-way door.
+ * A comment is also unique per (label, user): validation_task_comment_label_id_user_id_unique, added by evolution
+ * 359 for #4942, which `ValidationService.replaceComment` enforces by deleting before inserting. So the card
+ * mirrors what a story of your own already does (`StorySection`): once yours exists the compose box closes and the
+ * comment carries Edit/Delete instead, which is what keeps a second submission from silently destroying the first.
+ * Cancel and Escape are the two ways out that keep the box from being a one-way door.
  *
  * Fixture and stub strategy follow labelDetailEditGating.test.js: LabelDetail is a top-level `class` written for
  * Grunt concatenation, so its source is eval'd into the jsdom global with an epilogue exposing it, TagEditor rides
@@ -203,7 +204,7 @@ const comment = (text, mine, extra = {}) => (
     { comment: text, mine, time_created: '2026-08-20T10:00:00Z', commenter: 0, validation: 'Disagree', ...extra }
 );
 
-describe('editing your own validator comment (#5015)', () => {
+describe('the validator comment box (#5015)', () => {
     let LabelDetail;
     let card;
     let panoManager;
@@ -280,7 +281,9 @@ describe('editing your own validator comment (#5015)', () => {
                 getPosition: () => ({ lat: 47.61, lng: -122.33 }),
             },
             getPov: () => ({ heading: 250.5, pitch: -12, zoom: 2 }),
-            svHolder: [document.createElement('div')],
+            getOriginalPosition: () => ({ heading: 250.5, pitch: -12 }),
+            // A jQuery object in the real card: indexable, and asked for its size when a vote is submitted.
+            svHolder: Object.assign([document.createElement('div')], { width: () => 720, height: () => 480 }),
             label: { labelId: 42, label_type: 'Obstacle' },
         };
         window.PopupPanoManager = { create: async () => panoManager };
@@ -299,6 +302,71 @@ describe('editing your own validator comment (#5015)', () => {
             currUsername: 'tester',
             panoOverlaySource: 'test',
             voteColumnSource: 'test',
+        });
+    });
+
+    describe('the box opens alongside a vote, with that vote\'s prompt', () => {
+        test.each([
+            ['Agree', 'labelmap:why-agree'],
+            ['Disagree', 'labelmap:why-disagree'],
+            ['Unsure', 'labelmap:why-unsure'],
+        ])('a %s vote opens it asking %s', async (vote, key) => {
+            // All three votes carry a comment (#5015): Disagree/Unsure ask for the reasoning behind the dispute,
+            // Agree invites an optional note.
+            await showLabel({ user_validation: vote });
+            await resolveImagery();
+
+            expect(boxOpen()).toBe(true);
+            expect(input().placeholder).toBe(key);
+            expect(q('.label-detail__comment-row label').textContent).toBe(key);
+        });
+
+        test('no vote leaves it closed', async () => {
+            // Comments stay tied to a vote; open-ended notes about a place are lived-experience stories (#4054).
+            await showLabel({ user_validation: null });
+            await resolveImagery();
+
+            expect(boxOpen()).toBe(false);
+        });
+    });
+
+    describe('a vote that moves takes its comment with it', () => {
+        test('changing your vote drops the comment and reopens the box on the new prompt', async () => {
+            await showLabel({ user_validation: 'Disagree', comments: [comment('because of the snow', true)] });
+            await resolveImagery();
+            expect(q('.label-detail__validator-comments').textContent).toContain('because of the snow');
+
+            // The server deletes the comment on a changed vote; the list has to say so without a reload.
+            card.querySelector('.label-detail__vote--agree').click();
+            await flush();
+
+            expect(q('.label-detail__validator-comments').textContent).not.toContain('because of the snow');
+            expect(boxOpen()).toBe(true);
+            expect(input().placeholder).toBe('labelmap:why-agree');
+            expect(q('.label-detail__comment-confirmation').textContent).toBe('labelmap:comment-cleared');
+        });
+
+        test('clearing your vote drops the comment and closes the box', async () => {
+            await showLabel({ user_validation: 'Disagree', comments: [comment('because of the snow', true)] });
+            await resolveImagery();
+
+            // Re-clicking the vote you already cast clears it.
+            card.querySelector('.label-detail__vote--disagree').click();
+            await flush();
+
+            expect(q('.label-detail__validator-comments').textContent).not.toContain('because of the snow');
+            expect(boxOpen()).toBe(false);
+        });
+
+        test('leaves someone else\'s comment alone', async () => {
+            await showLabel({ user_validation: 'Disagree', comments: [comment('theirs', false), comment('mine', true)] });
+            await resolveImagery();
+            card.querySelector('.label-detail__vote--agree').click();
+            await flush();
+
+            const list = q('.label-detail__validator-comments').textContent;
+            expect(list).toContain('theirs');
+            expect(list).not.toContain('mine');
         });
     });
 

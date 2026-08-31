@@ -269,6 +269,10 @@ class ValidateSubmissionSpec
       FakeRequest(POST, "/labelmap/comment").withCookies(session: _*).withJsonBody(payload).withCSRFToken
     ).get
 
+  /** Deletes the session user's own comment on a label over HTTP, from the card's Delete control (#5015). */
+  private def deleteLabelMapComment(session: Seq[Cookie], labelId: Int) =
+    route(app, FakeRequest(DELETE, s"/labelmap/comment/$labelId").withCookies(session: _*).withCSRFToken).get
+
   /**
    * The user's validation of a label, if any.
    *
@@ -661,6 +665,58 @@ class ValidateSubmissionSpec
       ownCommentValidation(session, labelId) mustBe Some("Unsure")
       status(postLabelMapValidation(session, labelMapValidationJson(label, "Agree"))) mustBe OK
       ownCommentValidation(session, labelId) mustBe Some("Agree")
+    }
+
+    "delete the user's own comment without touching their vote (#5015)" in {
+      val session = freshAnonSession()
+      val b       = fetchValidateBootstrap(session)
+      val label   = b.labels.head
+      val labelId = (label \ "label_id").as[Int]
+      backupLabel(labelId)
+
+      status(postLabelMapValidation(session, labelMapValidationJson(label, "Unsure"))) mustBe OK
+      status(postLabelMapComment(session, labelMapCommentJson(label, "Cannot tell under the snow."))) mustBe OK
+      commentsOn(labelId, b.userId) mustBe Seq("Cannot tell under the snow.")
+
+      val deleted = deleteLabelMapComment(session, labelId)
+      status(deleted) mustBe OK
+      (contentAsJson(deleted) \ "deleted").as[Int] mustBe 1
+      commentsOn(labelId, b.userId) mustBe empty
+
+      // The verdict survives. Removing a comment and retracting a vote are separate acts, which is what this route
+      // is for — the vote-clearing path deletes both together.
+      validationRow(labelId, b.userId).map(_._1) mustBe Some("Unsure")
+    }
+
+    "treat deleting a comment that isn't there as a no-op rather than an error (#5015)" in {
+      val session = freshAnonSession()
+      val b       = fetchValidateBootstrap(session)
+      val labelId = (b.labels.head \ "label_id").as[Int]
+      backupLabel(labelId)
+
+      // A double-click, or a Delete on a comment another tab already removed, must not surface as a failure.
+      val res = deleteLabelMapComment(session, labelId)
+      status(res) mustBe OK
+      (contentAsJson(res) \ "deleted").as[Int] mustBe 0
+    }
+
+    "delete only the caller's own comment, leaving other users' alone (#5015)" in {
+      val mine    = freshAnonSession()
+      val b       = fetchValidateBootstrap(mine)
+      val label   = b.labels.head
+      val labelId = (label \ "label_id").as[Int]
+      backupLabel(labelId)
+
+      val theirs  = freshAnonSession()
+      val theirId = fetchValidateBootstrap(theirs).userId
+
+      status(postLabelMapComment(mine, labelMapCommentJson(label, "Mine."))) mustBe OK
+      status(postLabelMapComment(theirs, labelMapCommentJson(label, "Theirs."))) mustBe OK
+
+      // The route is keyed by label and scoped by session, so there is no id to forge another user's comment with.
+      status(deleteLabelMapComment(mine, labelId)) mustBe OK
+      commentsOn(labelId, b.userId) mustBe empty
+      commentsOn(labelId, theirId) mustBe Seq("Theirs.")
     }
   }
 }
