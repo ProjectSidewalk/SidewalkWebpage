@@ -25,7 +25,8 @@ class ApplicationController @Inject() (
     userService: UserService,
     streetService: StreetService,
     labelService: LabelService,
-    validationService: ValidationService
+    validationService: ValidationService,
+    partnerService: PartnerService
 )(implicit ec: ExecutionContext, assets: AssetsFinder)
     extends CustomBaseController(cc) {
   implicit val implicitConfig: Configuration = config
@@ -85,6 +86,7 @@ class ApplicationController @Inject() (
             streetDist: Double           <- streetService.getTotalStreetDistance(metric)
             labelCount: Int              <- labelService.countLabels
             valCount: Int                <- validationService.countHumanValidations
+            partners                     <- partnerService.getPartnersForLanding
           } yield {
             Ok(
               views.html.index(
@@ -96,7 +98,8 @@ class ApplicationController @Inject() (
                 streetDist,
                 auditedDist,
                 labelCount,
-                valCount
+                valCount,
+                partners
               )
             )
           }
@@ -111,6 +114,7 @@ class ApplicationController @Inject() (
       commonData      <- configService.getCommonPageData(request2Messages.lang)
       labelCount: Int <- labelService.countLabels
       valCount: Int   <- validationService.countHumanValidations
+      partners        <- partnerService.getPartnersForLanding
     } yield {
       Ok(
         views.html.mobileLanding(
@@ -118,7 +122,8 @@ class ApplicationController @Inject() (
           commonData,
           user,
           labelCount,
-          valCount
+          valCount,
+          partners
         )
       )
     }

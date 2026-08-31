@@ -4,7 +4,8 @@
 @import play.api.libs.json.Json
 @import service.CommonPageData
 @(title: String, commonData: CommonPageData, user: Option[SidewalkUserWithRole], openStatus: String,
-  mapathonLink: Option[String], streetDistance: Double, auditedDistance: Double, labelCount: Int, valCount: Int
+  mapathonLink: Option[String], streetDistance: Double, auditedDistance: Double, labelCount: Int, valCount: Int,
+  partners: Seq[models.partner.PartnerMetadata]
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @currentCity = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId).head}
@@ -250,68 +251,7 @@
       @common.cityPopupTemplate()
     </div>
 
-    <div class="container" id="collaborators-container">
-      <div class="row" id="collaborators-row">
-        <div class="im-centered3" id="collaborators-title">
-          <div class="row"><br>@Messages("landing.collaborators.title")<br></div>
-        </div>
-
-        <section class="collaborator-images-container">
-          <div class="collaborator-image">
-            <a id="makeabilitylab-img-link" href="https://makeabilitylab.cs.washington.edu/">
-              <img loading="lazy" src='@assets.path("images/MakeabilityLogo.png")' alt="@Messages("landing.collaborators.logo.makeability.alt")">
-            </a>
-          </div>
-          <div class="collaborator-image">
-            <a id="uic-img-link" href="https://idhd.ahs.uic.edu/">
-              <img loading="lazy" src='@assets.path("images/uic_logo.png")' alt="@Messages("landing.collaborators.logo.uic.alt")">
-            </a>
-          </div>
-
-          @if(currentCity.countryId == "taiwan") {
-            <div class="collaborator-image">
-              <a id="public-nudge-img-link" href="https://peoplenudgeplatform.wixsite.com/people-nudge">
-                <img loading="lazy" src='@assets.path("images/public_nudge_logo.png")' alt='@Messages("landing.collaborators.logo.public.nudge.alt")'>
-              </a>
-            </div>
-          } else {
-            <div class="collaborator-image">
-              <a id="ligapeatonal-img-link" href="https://ligapeatonal.org/">
-                <img loading="lazy" src='@assets.path("images/LigaLogo.png")' alt='@Messages("landing.collaborators.logo.liga.peatonal.alt")'>
-              </a>
-            </div>
-          }
-
-          @if("columbus-oh" == currentCity.cityId) {
-            <div class="collaborator-image">
-              <a id="opencolumbus-img-link">
-                <img loading="lazy" src='@assets.path("images/columbus-oh/open_columbus_logo.png")' alt="@Messages("landing.collaborators.logo.open.columbus.alt")">
-              </a>
-            </div>
-          }
-        </section>
-
-        <section class="collaborator-images-container">
-        @if("amsterdam" == currentCity.cityId) {
-          <div class="collaborator-image">
-            <a id="worldenabled-img-link" href="https://worldenabled.org/">
-              <img loading="lazy" src='@assets.path("images/amsterdam/world_enabled.png")' alt="@Messages("landing.collaborators.logo.world.enabled.alt")">
-            </a>
-          </div>
-          <div class="collaborator-image">
-            <a id="cityofamsterdam-img-link" href="https://www.amsterdam.nl/en/">
-              <img loading="lazy" src='@assets.path("images/amsterdam/city_of_amsterdam.png")' alt="@Messages("landing.collaborators.logo.city.of.amsterdam.alt")">
-            </a>
-          </div>
-          <div class="collaborator-image">
-            <a id="amsterdamintelligence-img-link" href="https://www.amsterdamintelligence.com/">
-              <img loading="lazy" src='@assets.path("images/amsterdam/amsterdam_intelligence.png")' alt="@Messages("landing.collaborators.logo.amsterdam.intelligence.alt")">
-            </a>
-          </div>
-        }
-        </section>
-      </div>
-    </div>
+    @landing._partners(partners)
 
 
     @* Deferred: every reference below sits inside an appManager.ready callback, which runs off $(document).ready and so lands after all deferred scripts. i18next and its http backend are NOT re-included here — common/main.scala.html already loads both, deferred, on every page (#4486). *@

@@ -2737,3 +2737,144 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
 .mini-swatch--skipped { background: var(--color-neutral-400); }
 .mini-swatch--flagged { background: var(--priority-reaudit, #d55e00); }
 .mini-swatch--unflagged { background: var(--color-pine-600); }
+
+/* --- Partners: community-partner logo manager (#4516) --------------------------------------------------------- */
+
+.partners-status {
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+}
+
+.partners-list {
+  margin: var(--space-md) 0;
+}
+
+.partners-empty {
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+}
+
+.partners-owner-note {
+  font: var(--text-small-bold);
+  color: var(--color-neutral-700);
+}
+
+.partners-row {
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr) 220px;
+  gap: 14px;
+  align-items: center;
+  padding: 12px 0;
+  border-top: 1px solid var(--color-neutral-200);
+}
+
+/* The neutral backing keeps white-on-transparent logos visible. */
+.partners-row-thumb {
+  width: 100%;
+  height: 56px;
+  object-fit: contain;
+  background: var(--color-neutral-100);
+  border-radius: var(--border-radius);
+  padding: 4px;
+}
+
+.partners-row-name {
+  font: var(--text-body-bold);
+  overflow-wrap: anywhere;
+}
+
+.partners-row-url {
+  font: var(--text-small-regular);
+  overflow-wrap: anywhere;
+}
+
+.partners-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.partners-row-btn {
+  border: 1px solid #999999;
+  border-radius: 4px;
+  background: #ffffff;
+  cursor: pointer;
+  font: var(--text-small-regular);
+  padding: 6px 12px;
+}
+
+.partners-row-btn:hover { background: #f0f0f0; }
+
+.partners-row-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.partners-row-btn--danger {
+  border-color: #ed1c24;
+  color: #a31217;
+}
+
+.partners-row-btn:focus-visible {
+  outline: 2px solid #4a90e2;
+  outline-offset: 2px;
+}
+
+.partners-add-form {
+  margin-top: var(--space-lg);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--color-neutral-200);
+}
+
+.partners-form-heading {
+  font: var(--text-body-bold);
+  margin: 0 0 var(--space-sm);
+}
+
+.partners-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-sm) var(--space-md);
+}
+
+.partners-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.partners-form-label {
+  font: var(--text-small-medium);
+  margin-bottom: 0; /* Bootstrap 3 gives every <label> a bottom margin. */
+}
+
+.partners-file-input {
+  font: var(--text-small-regular);
+}
+
+.partners-form-actions {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+}
+
+.partners-form-error {
+  font: var(--text-small-regular);
+  color: var(--color-error-200);
+  margin-top: var(--space-sm);
+}
+
+@media (width <= 900px) {
+  .partners-row {
+    grid-template-columns: 1fr;
+  }
+
+  .partners-row-actions {
+    justify-content: flex-start;
+  }
+
+  .partners-form-grid {
+    grid-template-columns: 1fr;
+  }
+}

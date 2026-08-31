@@ -1,0 +1,36 @@
+@import models.partner.PartnerMetadata
+@(partners: Seq[PartnerMetadata])(implicit messages: Messages)
+
+@*
+* The landing page's "Community Partners" section (#4516): admin-managed logos (global partners first, then the
+* current city's), served from the DB via /partnerLogo with an updated-at cache buster. With no partners yet, only
+* the created-by credit line renders — never an orphaned heading. Anchors carry data-partner-source so homepage.js
+* can log clicks without per-partner markup.
+*@
+
+@slug(name: String) = @{name.toLowerCase.replaceAll("[^a-z0-9]+", "-").stripPrefix("-").stripSuffix("-")}
+
+<div class="container" id="partners-container">
+  @if(partners.nonEmpty) {
+    <h2 id="partners-title">@Messages("landing.partners.title")</h2>
+    <div class="partner-logos">
+      @for(p <- partners) {
+        <div class="partner-logo">
+          @* No-URL partners render a bare img — an <a> without href would read as a broken link. *@
+          @if(p.url.isDefined) {
+            <a href="@p.url" data-partner-source="@slug(p.name)">
+              <img loading="lazy" src="@routes.PartnerController.servePartnerLogo(p.partnerId)?v=@p.updatedAt.toEpochSecond"
+              width="@p.logoWidth" height="@p.logoHeight"
+              alt="@p.altText.getOrElse(Messages("landing.partners.logo.alt", p.name))">
+            </a>
+          } else {
+            <img loading="lazy" src="@routes.PartnerController.servePartnerLogo(p.partnerId)?v=@p.updatedAt.toEpochSecond"
+            width="@p.logoWidth" height="@p.logoHeight"
+            alt="@p.altText.getOrElse(Messages("landing.partners.logo.alt", p.name))">
+          }
+        </div>
+      }
+    </div>
+  }
+  <p id="partners-credit">@Html(Messages("landing.partners.credit"))</p>
+</div>

@@ -67,6 +67,7 @@ GET     /admin/stories                                  controllers.AdminDashboa
 GET     /admin/humans-vs-ai                             controllers.AdminDashboardController.humansVsAi
 GET     /admin/api-analytics                            controllers.AdminDashboardController.apiAnalytics
 GET     /admin/management                               controllers.AdminDashboardController.management
+GET     /admin/partners                                 controllers.AdminDashboardController.partners
 GET     /admin/across-cities                            controllers.AdminDashboardController.acrossCities
 GET     /admin/health                                   controllers.AdminDashboardController.health
 GET     /admin/user/:username                           controllers.UserDashboardController.adminDashboard(username: String)
@@ -109,6 +110,16 @@ PUT     /adminapi/setTaskFlag                           controllers.AdminControl
 PUT     /adminapi/updateTeamStatus/:teamId              controllers.AdminController.updateTeamStatus(teamId: Int)
 PUT     /adminapi/updateTeamVisibility/:teamId          controllers.AdminController.updateTeamVisibility(teamId: Int)
 GET     /adminapi/checkImagery                          controllers.AdminController.checkImagery()
+
+# Community-partner logos on the landing page (#4516). Global (all-cities) scope is Owner-only; the reorder routes
+# must precede the :partnerId ones so "order" isn't captured as an id.
+GET     /adminapi/partners                              controllers.PartnerController.getPartners
+POST    /adminapi/partners                              controllers.PartnerController.createCityPartner
+POST    /adminapi/globalPartners                        controllers.PartnerController.createGlobalPartner
+PUT     /adminapi/partners/order                        controllers.PartnerController.reorderCityPartners
+PUT     /adminapi/globalPartners/order                  controllers.PartnerController.reorderGlobalPartners
+PUT     /adminapi/partners/:partnerId                   controllers.PartnerController.updatePartner(partnerId: Int)
+DELETE  /adminapi/partners/:partnerId                   controllers.PartnerController.deletePartner(partnerId: Int)
 GET     /adminapi/refreshOsmWayData                     controllers.AdminController.refreshOsmWayData()
 GET     /adminapi/recalculateStreetPriority             controllers.AdminController.recalculateStreetPriority
 GET     /adminapi/threadPoolStats                       controllers.AdminController.getThreadPoolStats
@@ -224,6 +235,10 @@ GET     /backupImage/:panoId                            controllers.ImageControl
 GET     /stories                                        controllers.StoryController.storiesPage
 GET     /label/:labelId/stories                         controllers.StoryController.getStories(labelId: Int)
 GET     /storyMedia/:storyMediaId                       controllers.StoryController.serveStoryMedia(storyMediaId: Int)
+
+# Community-partner logo bytes (#4516). Public: they render on the public landing page, and the rendered URL's
+# ?v=<updated-at> makes the hard caching safe.
+GET     /partnerLogo/:partnerId                         controllers.PartnerController.servePartnerLogo(partnerId: Int)
 POST    /userapi/stories                                controllers.StoryController.submitStory
 PUT     /userapi/stories/:storyId                       controllers.StoryController.updateOwnStory(storyId: Int)
 DELETE  /userapi/stories/:storyId                       controllers.StoryController.deleteOwnStory(storyId: Int)
