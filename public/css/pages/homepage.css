@@ -473,7 +473,7 @@ p#conditional-text {
   text-align: center;
 }
 
-.partners-heading {
+.partner-section-heading {
   margin: 0 auto var(--space-sm);
   font-family: raleway, sans-serif;
   font-size: 40px;
@@ -483,12 +483,11 @@ p#conditional-text {
   text-wrap: balance; /* No single-word widow when the heading wraps. */
 }
 
-/* The wordmark stands in for the words "Project Sidewalk" at the head of the credit line, so it is sized against
-   the heading's own type rather than in px, and nudged down onto the baseline the surrounding words sit on. */
-#creators-ps-wordmark {
-  height: 1.55em;
-  width: auto;
-  vertical-align: -0.42em;
+#creators-ps-logo {
+  display: block;
+  width: 120px;
+  height: auto;
+  margin: 0 auto var(--space-sm);
 }
 
 /* A flat heart, not the ❤️ emoji: platform emoji render glossy and drop-shadowed, which out-shouted the words
@@ -500,18 +499,12 @@ p#conditional-text {
   vertical-align: -0.06em;
 }
 
-/* The inline wordmark stretches the heading's line box downward, so the credit line needs its own spacing rather
-   than the shared heading margins: more air above it when the community-partners strip renders, and enough below
-   to keep the creator logos from crowding the wordmark's descender. */
-#creators-title {
-  margin-bottom: var(--space-lg);
-}
-
-.partner-logos + #creators-title {
+/* Breathing room between the community-partners strip and the created-by section, when both render. */
+.partner-logos + #creators-ps-logo {
   margin-top: var(--space-xxl);
 }
 
-.partners-tagline {
+.partner-section-tagline {
   margin: 0 auto var(--space-lg);
   max-width: 640px;
   font: var(--text-small-regular);
@@ -540,10 +533,12 @@ p#conditional-text {
   object-fit: contain;
 }
 
-/* The wider credit line (long-time partners, students, volunteers) sits under the creator logos. */
+/* The credit line (long-time partners, students, volunteers) sits under the creator logos, and names enough
+   organizations that it needs a wider measure than the tagline above to stay at three lines. */
 #partners-credit {
   margin-top: var(--space-lg);
   margin-bottom: 0;
+  max-width: 780px;
 }
 
 /* The static creator logos are a visually subordinate strip. */
@@ -558,7 +553,7 @@ p#conditional-text {
 
 /* --breakpoint-sm */
 @media (width <= 768px) {
-  .partners-heading {
+  .partner-section-heading {
     font-size: 28px;
   }
 

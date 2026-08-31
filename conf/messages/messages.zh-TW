@@ -352,9 +352,9 @@ landing.deployment.map.subtitle = 點擊下面的圓圈來探索其他 Project S
 landing.partners.title = {0}的社群合作夥伴
 landing.partners.tagline = 我們在{0}的工作有賴這些出色的社群合作夥伴，包括：
 landing.partners.logo.alt = {0} 標誌
-landing.partners.created.by = 用 {1} 打造 {0} 的團隊
+landing.partners.created.by = 用 {0} 打造 Project Sidewalk 的團隊
 landing.partners.created.heart = 愛
-landing.partners.created.credits = …並由 <a href="https://ligapeatonal.org/" data-partner-source="liga-peatonal">Liga Peatonal</a> 等長期合作夥伴、超過 100 位學生貢獻者，以及全球數千位志工共同形塑。<a href="/about" data-partner-source="about-team">認識我們的團隊</a>。
+landing.partners.created.credits = …並由 <a href="https://ligapeatonal.org/" data-partner-source="liga-peatonal">Liga Peatonal</a>、<a href="https://www.nationalmssociety.org/resources/get-connected/in-your-area/njm/about-this-chapter-njm" data-partner-source="nj-metro-ms-society">New Jersey Metro Chapter of the National Multiple Sclerosis Society</a> 與 <a href="https://hmsom.edu/en" data-partner-source="hackensack-meridian-som">Hackensack Meridian School of Medicine</a> 等長期合作夥伴，以及超過 100 位學生貢獻者和全球數千位志工共同形塑。<a href="/about" data-partner-source="about-team">認識我們的團隊</a>。
 landing.partners.creator.makeability.alt = Makeability 實驗室標誌
 landing.partners.creator.uw.alt = 華盛頓大學標誌
 landing.partners.creator.uic.alt = 伊利諾大學芝加哥分校殘疾與人類發展研究所標誌

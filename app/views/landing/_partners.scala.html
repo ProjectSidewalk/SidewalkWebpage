@@ -5,11 +5,11 @@
 @*
 * The landing page's partners section (#4516), in two halves: the admin-managed "Community Partners in <city>" logos
 * (global partners first, then the current city's), served from the DB via /partnerLogo with a logo-version cache
-* buster; and a "<wordmark> was created with <heart> by" credit — the three static creator logos (Makeability Lab,
-* UW, UIC IDHD) plus a prose credit to the long-time partners, students, and volunteers who shaped the tool. With no
-* partners yet, only the created-by half renders — never an orphaned heading. Anchors carry data-partner-source so
-* the landing pages' delegated handlers (homepage.js on desktop, mobileLanding's inline script on mobile) can log
-* clicks without per-partner markup.
+* buster; and a "Project Sidewalk was created with <heart> by" credit — the three static creator logos (Makeability
+* Lab, UW, UIC IDHD) plus a prose credit to the long-time partners, students, and volunteers who shaped the tool.
+* With no partners yet, only the created-by half renders — never an orphaned heading. Anchors carry
+* data-partner-source so the landing pages' delegated handlers (homepage.js on desktop, mobileLanding's inline
+* script on mobile) can log clicks without per-partner markup.
 *@
 
 @logoImg(p: PartnerMetadata) = {
@@ -17,11 +17,6 @@
   width="@p.logoWidth" height="@p.logoHeight"
   alt="@p.altText.getOrElse(Messages("landing.partners.logo.alt", p.name))">
 }
-
-@* The wordmark stands in for the words "Project Sidewalk" in the credit heading, so it carries them as its alt
-* text and is sized to sit on the heading's baseline. *@
-@psWordmark = {<img id="creators-ps-wordmark" loading="lazy" width="600" height="156"
-  src='@assets.path("images/sidewalk-logo.png")' alt="Project Sidewalk">}
 
 @* A flat heart rather than the ❤️ emoji, whose glossy, drop-shadowed platform rendering out-shouted the words
 * around it. role/aria-label so it is still read as the word it stands in for. *@
@@ -31,8 +26,8 @@
 
 <div class="container" id="partners-container">
   @if(partners.nonEmpty) {
-    <h2 class="partners-heading" id="partners-title">@Messages("landing.partners.title", cityName)</h2>
-    <p class="partners-tagline" id="partners-tagline">@Messages("landing.partners.tagline", cityName)</p>
+    <h2 class="partner-section-heading" id="partners-title">@Messages("landing.partners.title", cityName)</h2>
+    <p class="partner-section-tagline" id="partners-tagline">@Messages("landing.partners.tagline", cityName)</p>
     <div class="partner-logos">
       @for(p <- partners) {
         <div class="partner-logo">
@@ -46,8 +41,11 @@
       }
     </div>
   }
-  <h2 class="partners-heading" id="creators-title">
-    @Html(Messages("landing.partners.created.by", psWordmark, heart))
+  @* Decorative — the heading right under it names the project, so a screen reader needn't hear it twice. *@
+  <img id="creators-ps-logo" loading="lazy" alt=""
+  src='@assets.path("images/logos/ProjectSidewalkLogo_WithCurvedText_1000x1000.png")' width="1000" height="1000">
+  <h2 class="partner-section-heading" id="creators-title">
+    @Html(Messages("landing.partners.created.by", heart))
   </h2>
   <div class="partner-logos partner-logos--creators">
     <div class="partner-logo">
@@ -69,5 +67,5 @@
       </a>
     </div>
   </div>
-  <p class="partners-tagline" id="partners-credit">@Html(Messages("landing.partners.created.credits"))</p>
+  <p class="partner-section-tagline" id="partners-credit">@Html(Messages("landing.partners.created.credits"))</p>
 </div>

@@ -289,9 +289,9 @@ landing.deployment.map.subtitle = Click on a circle below to explore other Proje
 landing.partners.title = Community Partners in {0}
 landing.partners.tagline = Our work in {0} is made possible through our amazing community partners, including:
 landing.partners.logo.alt = {0} logo
-landing.partners.created.by = {0} was created with {1} by
+landing.partners.created.by = Project Sidewalk was created with {0} by
 landing.partners.created.heart = love
-landing.partners.created.credits = …and shaped by longtime partners like <a href="https://ligapeatonal.org/" data-partner-source="liga-peatonal">Liga Peatonal</a>, 100+ student contributors, and thousands of volunteer mappers worldwide. <a href="/about" data-partner-source="about-team">Meet the team</a>.
+landing.partners.created.credits = …and shaped by longtime partners like <a href="https://ligapeatonal.org/" data-partner-source="liga-peatonal">Liga Peatonal</a>, the <a href="https://www.nationalmssociety.org/resources/get-connected/in-your-area/njm/about-this-chapter-njm" data-partner-source="nj-metro-ms-society">New Jersey Metro Chapter of the National Multiple Sclerosis Society</a>, and <a href="https://hmsom.edu/en" data-partner-source="hackensack-meridian-som">Hackensack Meridian School of Medicine</a>, along with 100+ student contributors and thousands of volunteer mappers worldwide. <a href="/about" data-partner-source="about-team">Meet the team</a>.
 landing.partners.creator.makeability.alt = Makeability Lab logo
 landing.partners.creator.uw.alt = University of Washington logo
 landing.partners.creator.uic.alt = University of Illinois Chicago Institute on Disability and Human Development logo

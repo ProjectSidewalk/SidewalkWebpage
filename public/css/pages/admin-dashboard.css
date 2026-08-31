@@ -2832,8 +2832,28 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
   margin-bottom: 0; /* Bootstrap 3 gives every <label> a bottom margin. */
 }
 
+/* The logo picker is the one control on this page the browser draws itself: the field takes the .ps-input box like
+   its neighbors -- on tighter padding, so the button it wraps doesn't make it taller than the fields beside it --
+   and the picker button is dressed as a .button--secondary so it reads as one of our buttons. */
 .partners-file-input {
-  font: var(--text-small-regular);
+  padding: 3px 4px;
+}
+
+.partners-file-input::file-selector-button {
+  font: var(--text-caption-medium);
+  color: var(--color-neutral-900);
+  background-color: var(--color-neutral-white);
+  border: none;
+  outline: 1px solid var(--color-neutral-800);
+  border-radius: 8px;
+  padding: 3px 12px;
+  margin-right: var(--space-sm);
+  cursor: pointer;
+  transition: background-color 0.4s ease 0s;
+}
+
+.partners-file-input::file-selector-button:hover {
+  background-color: var(--color-banana-200);
 }
 
 .partners-form-actions {

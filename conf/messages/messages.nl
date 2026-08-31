@@ -280,9 +280,9 @@ landing.deployment.map.subtitle = Klik op een cirkel hieronder om andere Project
 landing.partners.title = Communitypartners in {0}
 landing.partners.tagline = Ons werk in {0} is mogelijk dankzij onze geweldige communitypartners, waaronder:
 landing.partners.logo.alt = Logo van {0}
-landing.partners.created.by = {0} is met {1} ontwikkeld door
+landing.partners.created.by = Project Sidewalk is met {0} ontwikkeld door
 landing.partners.created.heart = liefde
-landing.partners.created.credits = …en gevormd door langdurige partners zoals <a href="https://ligapeatonal.org/" data-partner-source="liga-peatonal">Liga Peatonal</a>, 100+ studentbijdragers en duizenden vrijwillige mappers wereldwijd. <a href="/about" data-partner-source="about-team">Maak kennis met het team</a>.
+landing.partners.created.credits = …en gevormd door langdurige partners zoals <a href="https://ligapeatonal.org/" data-partner-source="liga-peatonal">Liga Peatonal</a>, het <a href="https://www.nationalmssociety.org/resources/get-connected/in-your-area/njm/about-this-chapter-njm" data-partner-source="nj-metro-ms-society">New Jersey Metro Chapter of the National Multiple Sclerosis Society</a> en de <a href="https://hmsom.edu/en" data-partner-source="hackensack-meridian-som">Hackensack Meridian School of Medicine</a>, samen met 100+ studentbijdragers en duizenden vrijwillige mappers wereldwijd. <a href="/about" data-partner-source="about-team">Maak kennis met het team</a>.
 landing.partners.creator.makeability.alt = Makeability Lab-logo
 landing.partners.creator.uw.alt = Logo van de University of Washington
 landing.partners.creator.uic.alt = Logo van het Institute on Disability and Human Development van de University of Illinois Chicago

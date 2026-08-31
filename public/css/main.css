@@ -485,8 +485,10 @@ textarea.ps-input {
   outline-offset: 1px;
 }
 
+/* :read-only matches any non-editable control, a file input included — exempt it, or the picker would always wear
+   the greyed-out fill this rule is meant to give a locked text field. */
 .ps-input:disabled,
-.ps-input:read-only,
+.ps-input:read-only:not([type="file"]),
 .ps-select:disabled {
   background-color: var(--color-neutral-100);
   color: var(--color-neutral-600);
