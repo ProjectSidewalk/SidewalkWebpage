@@ -1,9 +1,8 @@
 # --- !Ups
 -- Each aggregated comment carries the commenter's current vote so the label-detail card can show it (#5015). The
 -- LEFT JOIN cannot fan out because its right side, label_validation, is unique on (user_id, label_id), and a comment
--- whose vote was since cleared gets a JSON null. Note that validation_task_comment is NOT unique on that pair -- one
--- user can leave several comments on a label (#4942) -- but only the right side of a LEFT JOIN can duplicate rows,
--- so each of those comments simply carries the same vote.
+-- whose vote was since cleared gets a JSON null. The left side is likewise one row per pair
+-- (validation_task_comment_label_id_user_id_unique, added by 359 for #4942), so the join is strictly 1:1.
 CREATE OR REPLACE VIEW label_comments_agg AS
 SELECT validation_task_comment.label_id,
        json_agg(json_build_object('username', sidewalk_user.username, 'comment', validation_task_comment.comment,

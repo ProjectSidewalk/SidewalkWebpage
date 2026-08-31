@@ -1396,6 +1396,8 @@ button.label-detail__meta-cell:focus-visible {
 
 .label-detail__story-edit,
 .label-detail__story-delete,
+.label-detail__comment-edit,
+.label-detail__comment-delete,
 .label-detail__tags-edit {
   padding: 2px;
   border: none;
@@ -1408,9 +1410,24 @@ button.label-detail__meta-cell:focus-visible {
 }
 
 .label-detail__story-edit,
+.label-detail__comment-edit,
 .label-detail__tags-edit { color: var(--color-link-200); }
 
-.label-detail__story-delete { color: var(--color-orange-700); }
+.label-detail__story-delete,
+.label-detail__comment-delete { color: var(--color-orange-700); }
+
+/* The comment controls sit inline between the vote chip and the comment text, so they need the spacing the chips
+   give themselves; the pair also stays together when a long comment wraps. */
+.label-detail__comment-own-control {
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.label-detail__comment-own-control:disabled {
+  color: var(--color-neutral-700);
+  cursor: default;
+  text-decoration: none; /* The underline is what makes it read as a live control; off means off. */
+}
 
 /* The Tags control is marked aria-disabled rather than natively disabled when the label's imagery didn't load
    (#5047), so it still takes the hover and focus that open the tooltip explaining why. This is the matching look:
@@ -1423,6 +1440,8 @@ button.label-detail__meta-cell:focus-visible {
 
 .label-detail__story-edit:focus-visible,
 .label-detail__story-delete:focus-visible,
+.label-detail__comment-edit:focus-visible,
+.label-detail__comment-delete:focus-visible,
 .label-detail__tags-edit:focus-visible {
   outline: 2px solid #4a90e2;
   outline-offset: 2px;
