@@ -786,6 +786,16 @@ button.label-detail__meta-cell:focus-visible {
   outline-offset: 2px;
 }
 
+/* Cancel is a design-system secondary button (.button-ps .button--small .button--secondary); only its height and
+   radius are pinned here, to match the bespoke submit button it stands beside rather than sit a few px shorter. */
+.label-detail__comment-cancel {
+  box-sizing: border-box;
+  height: 34px;
+  justify-content: center;
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+
 .label-detail__comment-confirmation {
   font: var(--text-caption-regular);
   color: var(--color-pine-700);
@@ -1416,10 +1426,9 @@ button.label-detail__meta-cell:focus-visible {
 .label-detail__story-delete,
 .label-detail__comment-delete { color: var(--color-orange-700); }
 
-/* The comment controls sit inline between the vote chip and the comment text, so they need the spacing the chips
-   give themselves; the pair also stays together when a long comment wraps. */
+/* The comment controls trail the comment text, so the spacing leads rather than follows. */
 .label-detail__comment-own-control {
-  margin-right: 6px;
+  margin-left: 6px;
   vertical-align: middle;
 }
 

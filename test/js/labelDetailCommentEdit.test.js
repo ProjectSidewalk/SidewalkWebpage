@@ -132,7 +132,7 @@ function buildCard() {
               <label class="sr-only" for="label-detail-comment-input">Why?</label>
               <input type="text" id="label-detail-comment-input" class="label-detail__comment-input">
               <button type="button" class="label-detail__comment-submit" data-action="submit-comment">Comment</button>
-              <button type="button" class="label-detail__comment-cancel" data-action="cancel-comment-edit" hidden>Cancel</button>
+              <button type="button" class="button-ps button--small button--secondary label-detail__comment-cancel" data-action="cancel-comment-edit" hidden>Cancel</button>
               <span class="label-detail__comment-confirmation" role="status" aria-live="polite" hidden></span>
             </div>
             <div class="label-detail__validator-comments"></div>
@@ -319,6 +319,19 @@ describe('editing your own validator comment (#5015)', () => {
             expect(boxOpen()).toBe(false);
             expect(editBtn().textContent).toBe('labelmap:comment-edit');
             expect(deleteBtn().textContent).toBe('labelmap:comment-delete');
+        });
+
+        test('puts the controls after the comment text, not before it', async () => {
+            await showLabel({ comments: [comment('the snow hides it', true)] });
+            await resolveImagery();
+
+            // The reader meets what was said before what can be done to it, so the buttons trail the text.
+            const row = q('.label-detail__validator-comments p');
+            const nodes = [...row.childNodes];
+            const textIdx = nodes.findIndex((n) => (n.textContent ?? '').includes('the snow hides it'));
+            expect(textIdx).toBeGreaterThanOrEqual(0);
+            expect(nodes.indexOf(editBtn())).toBeGreaterThan(textIdx);
+            expect(nodes.indexOf(deleteBtn())).toBeGreaterThan(nodes.indexOf(editBtn()));
         });
 
         test('puts no controls on someone else\'s comment', async () => {

@@ -1916,9 +1916,10 @@ class LabelDetail {
         return when;
       };
 
-      // Edit/Delete on your own comment, matching the pair a story of your own carries (`StorySection`). Rendered
-      // only while the box is closed: mid-edit the box below is already acting on this comment, and a second Edit
-      // beside it would just reopen what is open.
+      // Edit/Delete on your own comment, matching the pair a story of your own carries (`StorySection`). They trail
+      // the comment text rather than leading it, so the reader meets what was said before what can be done to it.
+      // Rendered only while the box is closed: mid-edit the box below is already acting on this comment, and a
+      // second Edit beside it would just reopen what is open.
       const ownControls = () => {
         if (!this.#isOwnComment(c) || this.#locked || this.#editingComment) return [];
         const make = (cls, key, onClick) => {
@@ -1950,8 +1951,8 @@ class LabelDetail {
           if (!timeCreated) p.appendChild(document.createTextNode(' '));
           p.appendChild(voteChip);
         }
-        for (const btn of ownControls()) p.appendChild(btn);
         p.appendChild(document.createTextNode(`: ${c.comment}`));
+        for (const btn of ownControls()) p.appendChild(btn);
       } else {
         // Non-admin: {comment, mine} objects. A small "You" chip marks the signed-in user's own comment; the
         // admin branch above doesn't need one since it shows usernames. textContent/createTextNode escape — no
@@ -1964,8 +1965,8 @@ class LabelDetail {
         }
         if (timeCreated) p.appendChild(whenPill());
         if (voteChip) p.appendChild(voteChip);
-        for (const btn of ownControls()) p.appendChild(btn);
         p.appendChild(document.createTextNode(typeof c === 'object' && c !== null ? c.comment : c));
+        for (const btn of ownControls()) p.appendChild(btn);
       }
       els.validatorComments.appendChild(p);
     });
