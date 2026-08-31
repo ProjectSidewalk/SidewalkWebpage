@@ -97,12 +97,12 @@ ML-site outage from failing the run.
 
 ### Accessibility gate
 
-`a11y.spec.js` runs axe-core (`@axe-core/playwright`) over each page in its own table, tagged `wcag2a` +
+`a11y.spec.js` runs axe-core (`@axe-core/playwright`) over every page in `pages.js`, tagged `wcag2a` +
 `wcag2aa` + `wcag21aa`, and fails on any violation `a11y-allowlist.js` does not already track — each allowlist
-entry citing the issue that will fix it. Run it alone with `make test-e2e args="-g a11y --no-deps"`. The page
-table is separate from `pages.spec.js`'s on purpose: a page joins once its violations are fixed or tracked, so a
-page missing from it is a page nobody has audited. Policy, the allowlist rules, and the manual checklist that
-covers what axe can't see: [`docs/accessibility.md`](../../docs/accessibility.md).
+entry citing the issue that will fix it. Run it alone with `make test-e2e args="-g a11y --no-deps"`. Coverage is
+**opt-out**: because the page table is shared, a page added for the smoke tests is gated for accessibility too
+unless someone writes it into `EXEMPT_PAGES` with a reason. Policy, the allowlist rules, and the manual checklist
+that covers what axe can't see: [`docs/accessibility.md`](../../docs/accessibility.md).
 
 ### Console-error allowlist
 
@@ -151,6 +151,7 @@ during local development** — your edit / `grunt watch` / reload loop is untouc
 | `../../docker/e2e/Dockerfile` | The runner image `make test-e2e` builds and runs (Chromium + the pinned runner) |
 | `fixtures.js` | `consoleErrors` fixture, Mapbox + ML-API stubs, `loadAndSettle`, `waitForAppReady`, `horizontalOverflowReport`, allowlist |
 | `auth.setup.js` | Registers a throwaway user, saves storageState for registered-user specs |
+| `pages.js` | **The** page table: every anonymous page the suite walks, and how each loads. Adding one here opts it into the smoke tests *and* the accessibility gate |
 | `pages.spec.js` | Table-driven phase-1 anonymous pages |
 | `phone-viewport.spec.js` | The same pages at a 390×844 phone viewport: no horizontal overflow (#4883) |
 | `a11y.spec.js` | The accessibility gate: axe-core over the audited pages, WCAG 2.1 AA (#5060) |

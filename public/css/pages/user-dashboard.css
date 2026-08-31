@@ -159,6 +159,11 @@
   color: var(--color-neutral-900);
 }
 
+/* Link blue is 2.4:1 against the nudge's neutral-900 copy, under WCAG 1.4.1's 3:1 for a color-only link. */
+.ud-nudge a {
+  text-decoration: underline;
+}
+
 /* ---- Streak / activity heatmap --------------------------------------------------------------------------------- */
 .ud-streak {
   display: flex;
@@ -1393,6 +1398,11 @@
 .ud-field-help {
   font: var(--text-small-regular);
   color: var(--color-neutral-700);
+}
+
+/* The help line's muted grey is 1.2:1 against link blue, so color alone cannot separate the two (WCAG 1.4.1). */
+.ud-field-help a {
+  text-decoration: underline;
 }
 
 .ud-radio-row {

@@ -49,11 +49,19 @@ a gate that fails for things outside the commitment gets ignored.
 
 ### Which pages are in the gate
 
-`a11y.spec.js` keeps its own page table rather than sharing `pages.spec.js`'s. A page joins the table once its
-violations are either fixed or tracked, so **a page missing from the table is a page nobody has audited yet** —
-which is information worth being able to read off the file. Pages are added as the
-[`Website Accessibility`](https://github.com/ProjectSidewalk/SidewalkWebpage/labels/Website%20Accessibility) backlog
-closes.
+**All of them, by default.** The gate reads `test/e2e/pages.js` — the one page table the browser suite shares — so
+coverage is **opt-out**: add a page there and it is held to WCAG 2.1 AA from that moment, alongside the
+runtime-error check. Nobody has to remember to opt a new page in, and a page cannot quietly escape the standard by
+not appearing on a second list.
+
+Getting out takes one of two deliberate acts, and the two mean different things:
+
+- **`EXEMPT_PAGES`** (in `a11y-allowlist.js`) drops the whole page. That is a claim that we are not holding the page
+  to AA yet — a big claim, so it wants a reason and a plan. It should stay empty.
+- **The allowlist** forgives specific known violations on a page that is otherwise gated. Almost always the right
+  tool. See below.
+
+Registered-user and admin pages are the current gap: they need a session, so they are not in `pages.js` at all.
 
 ### Third-party embeds
 
