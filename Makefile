@@ -45,12 +45,17 @@ RESET := \033[0m
 # stylelint only accepts file paths/globs, so a dir= that isn't already a .css file/glob gets /**/*.css appended.
 css-glob = $(if $(filter %.css,$(dir)),$(dir),$(dir)/**/*.css)
 
-# The browser smoke suite's runner image (docker/e2e/Dockerfile), tagged with the @playwright/test version read out
-# of package.json — the base image bundles the matching Chromium, so deriving both from one pin is what keeps the
+# The browser smoke suite's runner image (docker/e2e/Dockerfile), tagged from the tool versions read out of
+# package.json — the base image bundles the matching Chromium, so deriving both from one pin is what keeps the
 # runner and the browser from drifting apart when Dependabot bumps it. The sed expression is plain BRE for macOS.
 # Simply-expanded so the subprocess runs once per make invocation rather than once per expansion.
 pw-version := $(shell sed -n 's/.*"@playwright\/test"[^0-9]*\([0-9][0-9.]*\)".*/\1/p' package.json)
+# @axe-core/playwright drives the accessibility gate (a11y.spec.js, #5060) and is installed into the image for the
+# same reason the runner is — the repo's node_modules is masked at run time. Read from the same one pin, and folded
+# into the image tag below so a bump rebuilds the image instead of silently reusing the old axe.
+axe-version := $(shell sed -n 's/.*"@axe-core\/playwright"[^0-9]*\([0-9][0-9.]*\)".*/\1/p' package.json)
 e2e-image   = projectsidewalk/e2e
+e2e-tag      = $(pw-version)-axe$(axe-version)
 # The main repo is the container's /home, so a worktree's specs are just a different working directory.
 e2e-workdir = $(if $(wt),/home/.claude/worktrees/$(wt),/home)
 # Playwright writes test-results/ into the bind-mounted repo, and the base image has no USER — so without this the
@@ -206,19 +211,21 @@ test-e2e:
 	  || { echo "error: $(web-container) is not running — start it with 'make docker-up', and make sure the app is up on :9000"; exit 2; }
 	@[ -n "$(pw-version)" ] \
 	  || { echo "error: no @playwright/test version found in package.json — is it still listed as a devDependency?"; exit 2; }
+	@[ -n "$(axe-version)" ] \
+	  || { echo "error: no @axe-core/playwright version found in package.json — is it still listed as a devDependency?"; exit 2; }
 	@[ -z "$(wt)" ] || docker exec $(web-container) test -d $(e2e-workdir) \
 	  || { echo "error: no worktree at $(e2e-workdir) (from wt=$(wt))"; exit 2; }
 	@docker exec $(web-container) sh -c '$(e2e-fix-artifact-owner)'
-	@if docker image inspect $(e2e-image):$(pw-version) > /dev/null 2>&1; then \
-	  docker build --quiet --build-arg PW_VERSION=$(pw-version) -t $(e2e-image):$(pw-version) docker/e2e > /dev/null; \
+	@if docker image inspect $(e2e-image):$(e2e-tag) > /dev/null 2>&1; then \
+	  docker build --quiet --build-arg PW_VERSION=$(pw-version) --build-arg AXE_VERSION=$(axe-version) -t $(e2e-image):$(e2e-tag) docker/e2e > /dev/null; \
 	else \
-	  echo "==> building the Playwright runner image (first run for $(pw-version): downloads ~2GB)"; \
-	  docker build --build-arg PW_VERSION=$(pw-version) -t $(e2e-image):$(pw-version) docker/e2e; \
+	  echo "==> building the Playwright runner image (first run for $(e2e-tag): downloads ~2GB)"; \
+	  docker build --build-arg PW_VERSION=$(pw-version) --build-arg AXE_VERSION=$(axe-version) -t $(e2e-image):$(e2e-tag) docker/e2e; \
 	fi
 	@docker run --rm --init --ipc=host \
 	  --network container:$(web-container) --volumes-from $(web-container) --tmpfs /home/node_modules \
 	  --user $(e2e-user) -e HOME=/tmp -e FORCE_COLOR=1 -e BASE_URL -e HAS_REAL_GMAPS_KEY \
-	  -w $(e2e-workdir) $(e2e-image):$(pw-version) playwright test $(args)
+	  -w $(e2e-workdir) $(e2e-image):$(e2e-tag) playwright test $(args)
 
 # Host-side run of the same suite, for `--headed`, `--ui`, and `show-trace` — those need a display the container
 # doesn't have. Needs a host toolchain the containerized path does not: Node 23, `npm install` at the repo root

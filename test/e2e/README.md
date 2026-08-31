@@ -5,7 +5,9 @@ error or non-allowlisted `console.error`**. It exists to catch the class of regr
 grunt build, and all four linters are blind to: runtime-only JS errors — a stale bundle, a missing global,
 an unbound-method `this` bug, a route-ordering 400 breaking a fetch. It asserts *pages initialize cleanly*
 plus one piece of layout geometry — `phone-viewport.spec.js` re-loads the responsive pages at a 390×844
-phone viewport and fails on horizontal overflow (#4883). Deep canvas/imagery testing stays manual by design.
+phone viewport and fails on horizontal overflow (#4883) — and one accessibility gate: `a11y.spec.js` runs
+axe-core over each audited page and fails on any untracked WCAG 2.1 AA violation (#5060). Deep
+canvas/imagery testing stays manual by design.
 
 ## Running locally
 
@@ -23,8 +25,8 @@ make test-e2e wt=<worktree-name>               # a worktree's specs instead of t
 on the official Playwright image, which already carries Chromium and its OS libraries — so the same command and
 the same browser build work on Linux, WSL2, and macOS (the image is multi-arch, so Apple Silicon runs Chromium
 natively), with no host Node and no `playwright install`. The image builds on first use and rebuilds itself when
-`package.json`'s `@playwright/test` pin changes, because `make` derives both the image tag and the installed
-runner from that one pin.
+`package.json`'s `@playwright/test` or `@axe-core/playwright` pin changes, because `make` derives both the image
+tag and the tools installed in it from those pins.
 
 Three details worth knowing when something looks odd:
 
@@ -93,6 +95,15 @@ identical in both environments.
 keeping each section on its server-rendered fallback. That makes the measured DOM deterministic and keeps an
 ML-site outage from failing the run.
 
+### Accessibility gate
+
+`a11y.spec.js` runs axe-core (`@axe-core/playwright`) over each page in its own table, tagged `wcag2a` +
+`wcag2aa` + `wcag21aa`, and fails on any violation `a11y-allowlist.js` does not already track — each allowlist
+entry citing the issue that will fix it. Run it alone with `make test-e2e args="-g a11y --no-deps"`. The page
+table is separate from `pages.spec.js`'s on purpose: a page joins once its violations are fixed or tracked, so a
+page missing from it is a page nobody has audited. Policy, the allowlist rules, and the manual checklist that
+covers what axe can't see: [`docs/accessibility.md`](../../docs/accessibility.md).
+
 ### Console-error allowlist
 
 `CONSOLE_ERROR_ALLOWLIST` in `fixtures.js`. Policy: entries are added only for **observed, understood**
@@ -141,6 +152,8 @@ local development** — your edit / `grunt watch` / reload loop is untouched.
 | `auth.setup.js` | Registers a throwaway user, saves storageState for registered-user specs |
 | `pages.spec.js` | Table-driven phase-1 anonymous pages |
 | `phone-viewport.spec.js` | The same pages at a 390×844 phone viewport: no horizontal overflow (#4883) |
+| `a11y.spec.js` | The accessibility gate: axe-core over the audited pages, WCAG 2.1 AA (#5060) |
+| `a11y-allowlist.js` | Per-page allowlist of tracked violations, plus the partition/format helpers |
 | `overflow-report.spec.js` | `horizontalOverflowReport`'s exemption rules, pinned against synthetic DOM |
 | `dashboard.spec.js` | Registered-user pages |
 | `explore-validate.spec.js` | Phase-2 Explore/Validate/mobile-Validate specs (skip without the real GSV key) |

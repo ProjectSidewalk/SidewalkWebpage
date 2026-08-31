@@ -8,7 +8,8 @@ name: CI
 #   - backend-tests:   DB-backed public-API functional tests against a real Postgres+PostGIS (ADVISORY for now). Boots
 #                      the app, which auto-applies pending evolutions -- so it doubles as the forward-apply gate.
 #   - e2e-smoke:       Playwright browser smoke tests (test/e2e/) against a staged app + the CI database (ADVISORY for
-#                      now). Loads each core page in headless Chromium and fails on uncaught console/page errors.
+#                      now). Loads each core page in headless Chromium and fails on uncaught console/page errors;
+#                      also carries the axe-core accessibility gate (a11y.spec.js, #5060).
 #   - python-tests:    pytest unit tests for the standalone scripts in scripts/ (ADVISORY for now). One leg per
 #                      interpreter the web container ships — 3.8 for the in-band script, 3.13 for the offline tooling.
 # ESLint (JavaScript), Stylelint (CSS), and htmlhint (HTML) are all wired into the `frontend` job as blocking steps now
