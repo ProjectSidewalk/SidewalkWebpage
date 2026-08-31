@@ -18,10 +18,8 @@ import java.nio.file.{Files, StandardCopyOption}
 import java.time.temporal.ChronoUnit
 import java.time.{OffsetDateTime, ZoneOffset}
 import javax.imageio.ImageIO
-import javax.imageio.stream.FileImageInputStream
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
-import scala.jdk.CollectionConverters._
 import scala.util.Try
 
 @ImplementedBy(classOf[StoryServiceImpl])
@@ -587,7 +585,9 @@ class StoryServiceImpl @Inject() (
       Left(StoryRejection.PhotoInvalid)
     } else {
       val meta = extractPhotoMetadata(upload.tempFile, labelLatLng)
-      Option(ImageIO.read(upload.tempFile)) match {
+      // The decode sits inside a Try: ImageIO.read can throw (not just return null) on a file whose header sniffs
+      // fine but whose pixel data it can't decode — e.g. a CMYK JPEG or a truncated PNG.
+      Try(Option(ImageIO.read(upload.tempFile))).toOption.flatten match {
         case None      => Left(StoryRejection.PhotoInvalid)
         case Some(src) =>
           try {
@@ -622,28 +622,9 @@ class StoryServiceImpl @Inject() (
     }
   }
 
-  /**
-   * Probes the image header without decoding pixel data: the SNIFFED format must be an accepted one (the declared
-   * MIME type is untrusted and ignored) and the declared dimensions sane (decompression-bomb guard).
-   */
-  private def sourceImageOk(file: File): Boolean = {
-    Try {
-      val stream = new FileImageInputStream(file)
-      try {
-        val readers = ImageIO.getImageReaders(stream).asScala
-        readers.nextOption().exists { reader =>
-          try {
-            reader.setInput(stream)
-            val width  = reader.getWidth(0)
-            val height = reader.getHeight(0)
-            ACCEPTED_FORMATS.contains(reader.getFormatName.toLowerCase) &&
-            width <= MAX_SOURCE_DIMENSION && height <= MAX_SOURCE_DIMENSION &&
-            width.toLong * height.toLong <= MAX_SOURCE_PIXELS
-          } finally reader.dispose()
-        }
-      } finally stream.close()
-    }.getOrElse(false)
-  }
+  /** See [[ImageUtils.sniffAcceptedFormat]] — accepted formats and decompression-bomb caps applied to a photo. */
+  private def sourceImageOk(file: File): Boolean =
+    ImageUtils.sniffAcceptedFormat(file, ACCEPTED_FORMATS, MAX_SOURCE_DIMENSION, MAX_SOURCE_PIXELS).isDefined
 
   /**
    * Reads the EXIF metadata we keep from an upload: the coarse recency bucket + near-label flag that drive the card,

@@ -4,9 +4,15 @@ import java.awt.RenderingHints
 import java.awt.image.BufferedImage
 import java.io.{ByteArrayOutputStream, File}
 import java.nio.file.{Files, StandardCopyOption}
-import javax.imageio.stream.{FileImageOutputStream, ImageOutputStream, MemoryCacheImageOutputStream}
+import javax.imageio.stream.{
+  FileImageInputStream,
+  FileImageOutputStream,
+  ImageOutputStream,
+  MemoryCacheImageOutputStream
+}
 import javax.imageio.{IIOImage, ImageIO, ImageWriteParam}
-import scala.util.Using
+import scala.jdk.CollectionConverters._
+import scala.util.{Try, Using}
 
 /**
  * Shared AWT/ImageIO helpers for the image-producing endpoints (share previews, story photos).
@@ -88,6 +94,36 @@ object ImageUtils {
     val baos = new ByteArrayOutputStream()
     if (!ImageIO.write(img, "png", baos)) throw new IllegalStateException("No PNG writer available")
     baos.toByteArray
+  }
+
+  /**
+   * Probes an image file's header without decoding pixel data — the shared upload guard for user-supplied images
+   * (story photos, partner logos): the SNIFFED format (the client-declared MIME type plays no part) must be one of
+   * `accepted`, and the declared dimensions must pass the decompression-bomb caps before anything decodes the raster.
+   *
+   * @param accepted     Lowercase ImageIO format names to allow (e.g. Set("jpeg", "png")).
+   * @param maxDimension Per-edge cap on the declared dimensions.
+   * @param maxPixels    Cap on declared width x height — a sane per-edge size can still decode to a huge raster.
+   * @return The sniffed format name (lowercase), or None when the file is unreadable or trips a guard.
+   */
+  def sniffAcceptedFormat(file: File, accepted: Set[String], maxDimension: Int, maxPixels: Long): Option[String] = {
+    Try {
+      val stream = new FileImageInputStream(file)
+      try {
+        ImageIO.getImageReaders(stream).asScala.nextOption().flatMap { reader =>
+          try {
+            reader.setInput(stream)
+            val width  = reader.getWidth(0)
+            val height = reader.getHeight(0)
+            val format = reader.getFormatName.toLowerCase
+            Option.when(
+              accepted.contains(format) && width <= maxDimension && height <= maxDimension &&
+                width.toLong * height.toLong <= maxPixels
+            )(format)
+          } finally reader.dispose()
+        }
+      } finally stream.close()
+    }.toOption.flatten
   }
 
   private def writeJpegTo(img: BufferedImage, out: ImageOutputStream, quality: Float): Unit = {

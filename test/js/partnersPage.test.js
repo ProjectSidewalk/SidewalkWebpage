@@ -20,11 +20,12 @@ const PartnersPage = (0, eval)(`${fs.readFileSync(PAGE_PATH, 'utf8')}\nPartnersP
 /** The Twirl page's containers and per-scope add forms, reduced to what the class touches. */
 function buildDom({ ownerForms }) {
   const form = (scope) => `
-    <form class="partners-add-form" data-scope="${scope}">
+    <form class="partners-add-form" data-scope="${scope}" data-max-upload-bytes="5242880"
+      data-max-stored-bytes="1048576">
       <h3 class="partners-form-heading">Add a partner</h3>
-      <input type="text" name="name">
-      <input type="url" name="url">
-      <input type="text" name="alt_text">
+      <input type="text" name="name" maxlength="100">
+      <input type="url" name="url" maxlength="500">
+      <input type="text" name="alt_text" maxlength="300">
       <input type="file" name="logo">
       <button type="submit">Add partner</button>
       <button type="button" class="partners-cancel-edit" hidden>Cancel</button>
@@ -105,6 +106,74 @@ describe('PartnersPage', () => {
     const names = [...document.querySelectorAll('#partners-global-list .partners-row-name')]
       .map((el) => el.textContent);
     expect(names).toEqual(['Global B', 'Global A']);
+  });
+
+  test('a rapid second move click in the same scope is ignored while the first PUT is in flight', async () => {
+    buildDom({ ownerForms: true });
+    // Hold the reorder PUT open so the second click lands while the first is still in flight.
+    let releasePut;
+    const calls = [];
+    global.fetch = jest.fn(async (url, options = {}) => {
+      calls.push({ url, options });
+      if (options.method === 'PUT') await new Promise((resolve) => { releasePut = resolve; });
+      return {
+        ok: true,
+        json: async () => ({
+          city_id: 'seattle',
+          is_owner: true,
+          city_partners: [cityPartner(1, 'City One'), cityPartner(2, 'City Two'), cityPartner(3, 'City Three')],
+          global_partners: [],
+        }),
+      };
+    });
+    new PartnersPage({ isOwner: true }).init();
+    await flush();
+
+    document.querySelector('#partners-city-list .partners-row button[aria-label="Move down"]').click();
+    await flush();
+    // Concurrent full-order PUTs are last-writer-wins, so the arrows must be dead until the first one settles.
+    for (const arrow of document.querySelectorAll(
+      '#partners-city-list button[aria-label="Move up"], #partners-city-list button[aria-label="Move down"]')) {
+      expect(arrow.disabled).toBe(true);
+    }
+    document.querySelectorAll('#partners-city-list .partners-row button[aria-label="Move down"]')[1].click();
+    await flush();
+    expect(calls.filter((c) => c.options.method === 'PUT')).toHaveLength(1);
+    releasePut();
+  });
+
+  test("creating in one scope does not clear the other scope's in-progress edit", async () => {
+    buildDom({ ownerForms: true });
+    Element.prototype.scrollIntoView = jest.fn(); // Not implemented in jsdom; #startEdit scrolls to the form.
+    const calls = stubFetch(() => ({
+      city_id: 'seattle',
+      is_owner: true,
+      city_partners: [cityPartner(1, 'City One')],
+      global_partners: [globalPartner(9, 'Global X')],
+    }));
+    new PartnersPage({ isOwner: true }).init();
+    await flush();
+
+    // Put the global form into edit mode for Global X, then create a city partner from the other form.
+    document.querySelector('#partners-global-list .partners-row button[aria-label="Edit"]').click();
+    const cityForm = document.querySelector('.partners-add-form[data-scope="city"]');
+    cityForm.elements.name.value = 'New City Partner';
+    Object.defineProperty(cityForm.elements.logo, 'files', {
+      value: [new File(['x'], 'logo.png', { type: 'image/png' })],
+    });
+    cityForm.dispatchEvent(new Event('submit', { cancelable: true }));
+    await flush();
+
+    // Saving the global form must still be an update of Global X, never a duplicate global create.
+    document.querySelector('.partners-add-form[data-scope="global"]')
+      .dispatchEvent(new Event('submit', { cancelable: true }));
+    await flush();
+
+    const saves = calls.filter((c) => c.options.method);
+    expect(saves.map((c) => `${c.options.method} ${c.url}`)).toEqual([
+      'POST /adminapi/partners',
+      'PUT /adminapi/partners/9',
+    ]);
   });
 
   test('a create with no logo file is refused inline, without a request', async () => {

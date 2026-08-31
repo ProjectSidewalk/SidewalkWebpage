@@ -88,6 +88,25 @@ class PartnerAdminSpec extends PlaySpec with RoleSession with GuiceOneAppPerSuit
     MultipartFormData.FilePart(key = "logo", filename = "bogus.png", contentType = Some("image/png"), ref = temp)
   }
 
+  /**
+   * A PNG with an intact header but truncated pixel data: the header sniff passes it, but the full decode throws —
+   * the class of file (with e.g. CMYK JPEGs) that must come back 400, not 500.
+   */
+  private def truncatedPngFilePart(): MultipartFormData.FilePart[play.api.libs.Files.TemporaryFile] = {
+    val img = new BufferedImage(400, 200, BufferedImage.TYPE_INT_RGB)
+    val rng = new scala.util.Random(4516) // Noise, so the pixel data far outweighs the header and truncation hits it.
+    for {
+      x <- 0 until 400
+      y <- 0 until 200
+    } img.setRGB(x, y, rng.nextInt())
+    val baos = new java.io.ByteArrayOutputStream()
+    ImageIO.write(img, "png", baos) mustBe true
+    val bytes = baos.toByteArray
+    val temp  = SingletonTemporaryFileCreator.create("partner-truncated", ".png")
+    java.nio.file.Files.write(temp.path, bytes.take(bytes.length / 2))
+    MultipartFormData.FilePart(key = "logo", filename = "truncated.png", contentType = Some("image/png"), ref = temp)
+  }
+
   private def multipartBody(
       dataParts: Map[String, Seq[String]],
       files: Seq[MultipartFormData.FilePart[play.api.libs.Files.TemporaryFile]]
@@ -208,6 +227,32 @@ class PartnerAdminSpec extends PlaySpec with RoleSession with GuiceOneAppPerSuit
     "404 an unknown logo id" in {
       status(route(app, FakeRequest(GET, "/partnerLogo/999999999")).get) mustBe NOT_FOUND
     }
+
+    "version logo URLs at millisecond granularity and answer revalidation with 304" in {
+      val id = createPartner(adminCookies, "/adminapi/partners", "Partner Spec Etag Org")
+
+      val logoUrl = (getAdminLists(adminCookies) \ "city_partners")
+        .as[Seq[JsObject]]
+        .find(p => (p \ "partner_id").as[Int] == id)
+        .value
+        .\("logo_url")
+        .as[String]
+      val version = logoUrl.split("\\?v=").last
+      // Millisecond, not second, granularity: two logo swaps moments apart must mint distinct immutable URLs.
+      version.toLong must be > 1000000000000L
+
+      val first = route(app, FakeRequest(GET, s"/partnerLogo/$id?v=$version")).get
+      status(first) mustBe OK
+      val etag = header("ETag", first).value
+      etag mustBe s""""$version""""
+
+      val revalidated = route(app, FakeRequest(GET, s"/partnerLogo/$id").withHeaders("If-None-Match" -> etag)).get
+      status(revalidated) mustBe NOT_MODIFIED
+      header("Cache-Control", revalidated).value must include("immutable")
+
+      // A stale or garbage version must never 404 or serve mismatched bytes — it reads fresh from the DB.
+      status(route(app, FakeRequest(GET, s"/partnerLogo/$id?v=12345")).get) mustBe OK
+    }
   }
 
   "scope enforcement on update and delete" should {
@@ -287,6 +332,8 @@ class PartnerAdminSpec extends PlaySpec with RoleSession with GuiceOneAppPerSuit
       status(update) mustBe OK
       val names = (getAdminLists(ownerCookies) \ "global_partners").as[Seq[JsObject]].map(p => (p \ "name").as[String])
       names must contain("Partner Spec Global Renamed")
+      // The landing list is cached in-process; a write must invalidate it so the admin sees the change immediately.
+      landingBody() must include("Partner Spec Global Renamed")
     }
   }
 
@@ -328,6 +375,11 @@ class PartnerAdminSpec extends PlaySpec with RoleSession with GuiceOneAppPerSuit
       val bogus = postPartner(adminCookies, "/adminapi/partners", "Partner Spec Bogus", files = Seq(bogusFilePart()))
       status(bogus) mustBe BAD_REQUEST
       (contentAsJson(bogus) \ "error").as[String] mustBe "logo_invalid"
+
+      val truncated =
+        postPartner(adminCookies, "/adminapi/partners", "Partner Spec Truncated", files = Seq(truncatedPngFilePart()))
+      status(truncated) mustBe BAD_REQUEST
+      (contentAsJson(truncated) \ "error").as[String] mustBe "logo_invalid"
     }
   }
 

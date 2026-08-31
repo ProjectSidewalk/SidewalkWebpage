@@ -41,7 +41,21 @@ case class PartnerMetadata(
     logoWidth: Int,
     logoHeight: Int,
     updatedAt: OffsetDateTime
-)
+) {
+
+  /**
+   * The logo URL's `?v=` cache-busting version — the one definition every renderer of the URL uses. Millisecond
+   * granularity, so two logo replacements moments apart still mint distinct URLs (the bytes are served immutable
+   * for a year, so a same-second collision would pin the older logo in caches).
+   */
+  def logoVersion: Long = PartnerMetadata.logoVersionOf(updatedAt)
+}
+
+object PartnerMetadata {
+
+  /** See [[PartnerMetadata.logoVersion]] — for callers holding a bare `updated_at` rather than the metadata row. */
+  def logoVersionOf(updatedAt: OffsetDateTime): Long = updatedAt.toInstant.toEpochMilli
+}
 
 class PartnerTableDef(tag: Tag) extends Table[Partner](tag, "partner") {
   def partnerId: Rep[Int]          = column[Int]("partner_id", O.PrimaryKey, O.AutoInc)
@@ -145,16 +159,24 @@ class PartnerTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
   def delete(partnerId: Int): DBIO[Int] = partners.filter(_.partnerId === partnerId).delete
 
   /**
-   * Rewrites one scope's display order to the given sequence (position = index). The caller has already verified that
-   * `orderedIds` is exactly the scope's id set, so this stays a plain per-row update inside one transaction.
+   * Validates that `orderedIds` is a permutation of exactly the scope's current ids — nothing missing, nothing
+   * foreign, so a reorder can never move a row between scopes or drop one — and rewrites `display_order` to match
+   * (position = index). Check and writes share one transaction, so a create or delete can't slip between them and
+   * leave a half-applied order.
+   *
+   * @return Whether the order was applied; false (with no writes) when the id sets differ.
    */
-  def setDisplayOrders(orderedIds: Seq[Int]): DBIO[Unit] = {
-    DBIO
-      .sequence(orderedIds.zipWithIndex.map { case (id, position) =>
-        partners.filter(_.partnerId === id).map(_.displayOrder).update(position)
-      })
-      .map(_ => ())
-      .transactionally
+  def reorderScope(cityId: Option[String], orderedIds: Seq[Int]): DBIO[Boolean] = {
+    (for {
+      currentIds <- scopeQuery(cityId).map(_.partnerId).result
+      matches = orderedIds.sorted == currentIds.sorted
+      _ <-
+        if (matches) {
+          DBIO.sequence(orderedIds.zipWithIndex.map { case (id, position) =>
+            partners.filter(_.partnerId === id).map(_.displayOrder).update(position)
+          })
+        } else DBIO.successful(Seq.empty[Int])
+    } yield matches).transactionally
   }
 
   private def scopeQuery(cityId: Option[String]): Query[PartnerTableDef, Partner, Seq] = cityId match {

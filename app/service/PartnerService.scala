@@ -5,23 +5,22 @@ import executors.CpuIntensiveExecutionContext
 import models.partner._
 import models.utils.{ImageUtils, MyPostgresProfile}
 import play.api.Configuration
+import play.api.cache.AsyncCacheApi
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
-import java.io.File
 import java.net.URI
 import java.time.OffsetDateTime
 import javax.imageio.ImageIO
-import javax.imageio.stream.FileImageInputStream
 import javax.inject.{Inject, Singleton}
+import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
-import scala.jdk.CollectionConverters._
 import scala.util.Try
 
 @ImplementedBy(classOf[PartnerServiceImpl])
 trait PartnerService {
   def getPartnersForLanding: Future[Seq[PartnerMetadata]]
   def getAdminLists: Future[(Seq[PartnerMetadata], Seq[PartnerMetadata])]
-  def getLogoForServing(partnerId: Int): Future[Option[(Array[Byte], String, OffsetDateTime)]]
+  def getLogoForServing(partnerId: Int, version: Option[String]): Future[Option[(Array[Byte], String, OffsetDateTime)]]
   def createPartner(
       cityId: Option[String],
       name: String,
@@ -52,12 +51,17 @@ trait PartnerService {
  * The authorization matrix lives in `allowedScopes`, computed by the controller from the caller's role: an
  * Administrator may touch only the current city's rows, an Owner also the global (None) scope. A row outside the
  * caller's scopes is reported as NotFound, indistinguishable from a missing id.
+ *
+ * Reads that serve the public landing page are cached in-process: partner data changes only on rare admin writes but
+ * renders on the highest-traffic page. Same-instance writes invalidate immediately; the TTLs bound how stale another
+ * instance can get (a global-partner edit is made on one city's app but rendered by all of them).
  */
 @Singleton
 class PartnerServiceImpl @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     config: Configuration,
     configService: ConfigService,
+    cacheApi: AsyncCacheApi,
     partnerTable: PartnerTable,
     cpuEc: CpuIntensiveExecutionContext,
     implicit val ec: ExecutionContext
@@ -67,8 +71,11 @@ class PartnerServiceImpl @Inject() (
 
   val logoUploadMaxBytes: Long = config.get[Long]("partners.logo-upload-max-bytes")
 
-  def getPartnersForLanding: Future[Seq[PartnerMetadata]] =
-    db.run(partnerTable.getForLanding(configService.getCityId))
+  def getPartnersForLanding: Future[Seq[PartnerMetadata]] = {
+    cacheApi.getOrElseUpdate(LANDING_CACHE_KEY, LANDING_CACHE_TTL) {
+      db.run(partnerTable.getForLanding(configService.getCityId))
+    }
+  }
 
   def getAdminLists: Future[(Seq[PartnerMetadata], Seq[PartnerMetadata])] = {
     for {
@@ -77,8 +84,26 @@ class PartnerServiceImpl @Inject() (
     } yield (city, global)
   }
 
-  def getLogoForServing(partnerId: Int): Future[Option[(Array[Byte], String, OffsetDateTime)]] =
-    db.run(partnerTable.getLogo(partnerId))
+  /**
+   * The logo bytes for one partner. Served from the in-process cache only when `version` matches the cached row's
+   * logo version, so a just-replaced logo's new URL can never be answered with the old bytes — the URL contract is
+   * "these exact bytes, forever" (the controller marks them immutable). Any other request reads fresh from the DB
+   * and refreshes the cache; the cache holds at most one entry per partner, so unmatched `v` spam can't grow it.
+   */
+  def getLogoForServing(
+      partnerId: Int,
+      version: Option[String]
+  ): Future[Option[(Array[Byte], String, OffsetDateTime)]] = {
+    cacheApi.get[(Array[Byte], String, OffsetDateTime)](logoCacheKey(partnerId)).flatMap {
+      case Some(cached) if version.contains(PartnerMetadata.logoVersionOf(cached._3).toString) =>
+        Future.successful(Some(cached))
+      case _ =>
+        db.run(partnerTable.getLogo(partnerId)).map { fresh =>
+          fresh.foreach(cacheApi.set(logoCacheKey(partnerId), _, LOGO_CACHE_TTL))
+          fresh
+        }
+    }
+  }
 
   def createPartner(
       cityId: Option[String],
@@ -103,7 +128,7 @@ class PartnerServiceImpl @Inject() (
                     Partner(0, cityId, cleanName, cleanUrl, alt, 0, bytes, mime, width, height, now, now, userId,
                       userId)
                   )
-                ).map(Right(_))
+                ).flatMap(metadata => invalidate(None).map(_ => Right(metadata)))
             }
         }
     }
@@ -134,7 +159,7 @@ class PartnerServiceImpl @Inject() (
               case Right(logoData) =>
                 db.run(
                   partnerTable.update(partnerId, cleanName, cleanUrl, alt, logoData, userId, OffsetDateTime.now)
-                ).map(_ => Right(()))
+                ).flatMap(_ => invalidate(Some(partnerId)).map(_ => Right(())))
             }
         }
     }
@@ -143,20 +168,22 @@ class PartnerServiceImpl @Inject() (
   def deletePartner(partnerId: Int, allowedScopes: Set[Option[String]]): Future[Either[PartnerRejection, Unit]] = {
     inAllowedScope(partnerId, allowedScopes).flatMap {
       case Left(rejection) => Future.successful(Left(rejection))
-      case Right(_)        => db.run(partnerTable.delete(partnerId)).map(_ => Right(()))
+      case Right(_)        =>
+        db.run(partnerTable.delete(partnerId)).flatMap(_ => invalidate(Some(partnerId)).map(_ => Right(())))
     }
   }
 
   def reorderPartners(cityId: Option[String], orderedIds: Seq[Int]): Future[Either[PartnerRejection, Unit]] = {
-    db.run(partnerTable.getByScope(cityId)).flatMap { current =>
-      // The submitted list must be a permutation of exactly the scope's current ids — nothing missing, nothing
-      // foreign — so a reorder can never move a row between scopes or drop one.
-      if (orderedIds.sorted != current.map(_.partnerId).sorted) {
-        Future.successful(Left(PartnerRejection.BadOrder))
-      } else {
-        db.run(partnerTable.setDisplayOrders(orderedIds)).map(_ => Right(()))
-      }
+    db.run(partnerTable.reorderScope(cityId, orderedIds)).flatMap {
+      case false => Future.successful(Left(PartnerRejection.BadOrder))
+      case true  => invalidate(None).map(_ => Right(()))
     }
+  }
+
+  /** Drops the landing-page cache (and, when given, one partner's logo cache) after a successful write. */
+  private def invalidate(partnerId: Option[Int]): Future[Unit] = {
+    val removals = cacheApi.remove(LANDING_CACHE_KEY) +: partnerId.map(id => cacheApi.remove(logoCacheKey(id))).toSeq
+    Future.sequence(removals).map(_ => ())
   }
 
   /** NotFound for both a missing id and a row outside the caller's scopes, so the two are indistinguishable. */
@@ -204,53 +231,27 @@ class PartnerServiceImpl @Inject() (
   ): Future[Either[PartnerRejection, (Array[Byte], String, Int, Int)]] = Future {
     if (upload.tempFile.length > logoUploadMaxBytes) Left(PartnerRejection.LogoTooLarge)
     else {
-      sniffFormat(upload.tempFile) match {
+      ImageUtils.sniffAcceptedFormat(upload.tempFile, ACCEPTED_FORMATS, MAX_SOURCE_DIMENSION, MAX_SOURCE_PIXELS) match {
         case None         => Left(PartnerRejection.LogoInvalid)
         case Some(format) =>
-          Option(ImageIO.read(upload.tempFile)) match {
-            case None      => Left(PartnerRejection.LogoInvalid)
-            case Some(src) =>
-              Try {
-                val scaled        = ImageUtils.scaleToMaxEdgePreservingAlpha(src, MAX_OUTPUT_EDGE)
-                val (bytes, mime) =
-                  if (format == "png") (ImageUtils.writePngBytes(scaled), "image/png")
-                  else (ImageUtils.writeJpegBytes(scaled, JPEG_QUALITY), "image/jpeg")
-                (bytes, mime, scaled.getWidth, scaled.getHeight)
-              }.toEither.left
-                .map(_ => PartnerRejection.LogoInvalid: PartnerRejection)
-                // At <= 800px even a lossless PNG stays far under the cap, but the DB CHECK is the invariant, so
-                // enforce it here rather than letting the insert blow up.
-                .filterOrElse(_._1.length <= MAX_LOGO_BYTES, PartnerRejection.LogoTooLarge)
-          }
+          // The decode sits inside the Try: ImageIO.read can throw (not just return null) on a file whose header
+          // sniffs fine but whose pixel data it can't decode — e.g. a CMYK JPEG or a truncated PNG.
+          Try {
+            Option(ImageIO.read(upload.tempFile)).map { src =>
+              val scaled        = ImageUtils.scaleToMaxEdgePreservingAlpha(src, MAX_OUTPUT_EDGE)
+              val (bytes, mime) =
+                if (format == "png") (ImageUtils.writePngBytes(scaled), "image/png")
+                else (ImageUtils.writeJpegBytes(scaled, JPEG_QUALITY), "image/jpeg")
+              (bytes, mime, scaled.getWidth, scaled.getHeight)
+            }
+          }.toOption.flatten
+            .toRight(PartnerRejection.LogoInvalid: PartnerRejection)
+            // At <= 800px even a lossless PNG stays far under the cap, but the DB CHECK is the invariant, so
+            // enforce it here rather than letting the insert blow up.
+            .filterOrElse(_._1.length <= MAX_LOGO_BYTES, PartnerRejection.LogoEncodedTooLarge)
       }
     }
   }(cpuEc)
-
-  /**
-   * Probes the image header without decoding pixel data, mirroring StoryService's guard: the SNIFFED format must be
-   * PNG/JPEG and the declared dimensions sane (decompression-bomb guard).
-   *
-   * @return The sniffed format ("png" or "jpeg"), or None when unacceptable.
-   */
-  private def sniffFormat(file: File): Option[String] = {
-    Try {
-      val stream = new FileImageInputStream(file)
-      try {
-        ImageIO.getImageReaders(stream).asScala.nextOption().flatMap { reader =>
-          try {
-            reader.setInput(stream)
-            val width  = reader.getWidth(0)
-            val height = reader.getHeight(0)
-            val format = reader.getFormatName.toLowerCase
-            Option.when(
-              ACCEPTED_FORMATS.contains(format) && width <= MAX_SOURCE_DIMENSION && height <= MAX_SOURCE_DIMENSION &&
-                width.toLong * height.toLong <= MAX_SOURCE_PIXELS
-            )(format)
-          } finally reader.dispose()
-        }
-      } finally stream.close()
-    }.toOption.flatten
-  }
 }
 
 object PartnerServiceImpl {
@@ -272,4 +273,13 @@ object PartnerServiceImpl {
   val MAX_NAME_LENGTH: Int     = 100
   val MAX_ALT_TEXT_LENGTH: Int = 300
   val MAX_URL_LENGTH: Int      = 500
+
+  // Cross-instance staleness bound for the cached landing list (same-instance writes invalidate immediately).
+  private val LANDING_CACHE_TTL = 10.minutes
+  // Logo bytes are only served from cache when the requested ?v= matches, so this TTL is memory hygiene, not a
+  // correctness bound.
+  private val LOGO_CACHE_TTL = 1.hour
+
+  private val LANDING_CACHE_KEY            = "partnersForLanding"
+  private def logoCacheKey(partnerId: Int) = s"partnerLogo_$partnerId"
 }

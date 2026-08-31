@@ -1,4 +1,5 @@
 @import service.CommonPageData
+@import service.PartnerServiceImpl
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
 @(commonData: CommonPageData, user: SidewalkUserWithRole
@@ -13,20 +14,24 @@
 @isOwner = @{user.role == "Owner"}
 
 @addForm(scope: String) = {
-  <form class="partners-add-form" data-scope="@scope">
+  @* The size caps ride along as data-/maxlength attributes so the client's copy is sourced from the backend
+     (the config key the service reads, and the service's own constants) rather than re-declared in JS. *@
+  <form class="partners-add-form" data-scope="@scope"
+  data-max-upload-bytes="@config.get[Long]("partners.logo-upload-max-bytes")"
+  data-max-stored-bytes="@PartnerServiceImpl.MAX_LOGO_BYTES">
     <h3 class="partners-form-heading">Add a partner</h3>
     <div class="partners-form-grid">
       <div class="partners-form-field">
         <label class="partners-form-label" for="partners-@scope-name">Name (required)</label>
-        <input type="text" class="ps-input" id="partners-@scope-name" name="name" maxlength="100" required>
+        <input type="text" class="ps-input" id="partners-@scope-name" name="name" maxlength="@PartnerServiceImpl.MAX_NAME_LENGTH" required>
       </div>
       <div class="partners-form-field">
         <label class="partners-form-label" for="partners-@scope-url">Website URL</label>
-        <input type="url" class="ps-input" id="partners-@scope-url" name="url" maxlength="500" placeholder="https://…">
+        <input type="url" class="ps-input" id="partners-@scope-url" name="url" maxlength="@PartnerServiceImpl.MAX_URL_LENGTH" placeholder="https://…">
       </div>
       <div class="partners-form-field">
         <label class="partners-form-label" for="partners-@scope-alt">Logo alt text</label>
-        <input type="text" class="ps-input" id="partners-@scope-alt" name="alt_text" maxlength="300"
+        <input type="text" class="ps-input" id="partners-@scope-alt" name="alt_text" maxlength="@PartnerServiceImpl.MAX_ALT_TEXT_LENGTH"
         placeholder="e.g. City of Seattle logo">
       </div>
       <div class="partners-form-field">

@@ -78,6 +78,8 @@ class ApplicationController @Inject() (
           cc.loggingService.insert(user.map(_.userId), ipAddress, "Visit_Index", timestamp)
           // Get names and URLs for other cities so we can link to them on landing page.
           val metric: Boolean = ControllerUtils.isMetric
+          // Kicked off eagerly so it overlaps the queries below rather than adding a serial round trip.
+          val partnersFuture = partnerService.getPartnersForLanding
           for {
             commonData                   <- configService.getCommonPageData(request2Messages.lang)
             openStatus: String           <- configService.getOpenStatus
@@ -86,7 +88,7 @@ class ApplicationController @Inject() (
             streetDist: Double           <- streetService.getTotalStreetDistance(metric)
             labelCount: Int              <- labelService.countLabels
             valCount: Int                <- validationService.countHumanValidations
-            partners                     <- partnerService.getPartnersForLanding
+            partners                     <- partnersFuture
           } yield {
             Ok(
               views.html.index(
@@ -110,11 +112,13 @@ class ApplicationController @Inject() (
   def mobileLanding = cc.securityService.UserAwareAction { implicit request =>
     val user: Option[SidewalkUserWithRole] = request.identity
     cc.loggingService.insert(user.map(_.userId), request.ipAddress, "Visit_MobileLanding")
+    // Kicked off eagerly so it overlaps the queries below rather than adding a serial round trip.
+    val partnersFuture = partnerService.getPartnersForLanding
     for {
       commonData      <- configService.getCommonPageData(request2Messages.lang)
       labelCount: Int <- labelService.countLabels
       valCount: Int   <- validationService.countHumanValidations
-      partners        <- partnerService.getPartnersForLanding
+      partners        <- partnersFuture
     } yield {
       Ok(
         views.html.mobileLanding(

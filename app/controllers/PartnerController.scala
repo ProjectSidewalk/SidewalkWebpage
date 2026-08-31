@@ -112,14 +112,18 @@ class PartnerController @Inject() (
 
   /**
    * The logo bytes for one partner. Public and unauthenticated — the landing page it renders on is public — and
-   * cached hard: every rendered URL carries `?v=<updated-at>`, so replacing a logo mints a new URL and the old one
-   * can be cached forever.
+   * cached hard: every rendered URL carries `?v=<logo version>`, so replacing a logo mints a new URL and the old one
+   * can be cached forever. The `v` also gates the service's in-process byte cache, and the version doubles as the
+   * ETag so an un-versioned or revalidating request can still 304.
    */
-  def servePartnerLogo(partnerId: Int) = Action.async {
-    partnerService.getLogoForServing(partnerId).map {
-      case None                   => NotFound("Partner logo not found.")
-      case Some((bytes, mime, _)) =>
-        Ok(bytes).as(mime).withHeaders("Cache-Control" -> "public, max-age=31536000, immutable")
+  def servePartnerLogo(partnerId: Int) = Action.async { implicit request =>
+    partnerService.getLogoForServing(partnerId, request.getQueryString("v")).map {
+      case None                           => NotFound("Partner logo not found.")
+      case Some((bytes, mime, updatedAt)) =>
+        val etag    = "\"" + PartnerMetadata.logoVersionOf(updatedAt) + "\""
+        val headers = Seq(CACHE_CONTROL -> "public, max-age=31536000, immutable", ETAG -> etag)
+        if (request.headers.get(IF_NONE_MATCH).contains(etag)) NotModified.withHeaders(headers: _*)
+        else Ok(bytes).as(mime).withHeaders(headers: _*)
     }
   }
 
@@ -186,13 +190,15 @@ class PartnerController @Inject() (
     "display_order" -> p.displayOrder,
     "logo_width"    -> p.logoWidth,
     "logo_height"   -> p.logoHeight,
-    "logo_url"      -> s"${routes.PartnerController.servePartnerLogo(p.partnerId).url}?v=${p.updatedAt.toEpochSecond}"
+    "logo_url"      -> s"${routes.PartnerController.servePartnerLogo(p.partnerId).url}?v=${p.logoVersion}"
   )
 
   private def rejectionResult(rejection: PartnerRejection): Result = rejection match {
-    case PartnerRejection.NotFound       => NotFound(Json.obj("success" -> false, "error" -> "not_found"))
-    case PartnerRejection.LogoRequired   => BadRequest(Json.obj("success" -> false, "error" -> "logo_required"))
-    case PartnerRejection.LogoTooLarge   => BadRequest(Json.obj("success" -> false, "error" -> "logo_too_large"))
+    case PartnerRejection.NotFound            => NotFound(Json.obj("success" -> false, "error" -> "not_found"))
+    case PartnerRejection.LogoRequired        => BadRequest(Json.obj("success" -> false, "error" -> "logo_required"))
+    case PartnerRejection.LogoTooLarge        => BadRequest(Json.obj("success" -> false, "error" -> "logo_too_large"))
+    case PartnerRejection.LogoEncodedTooLarge =>
+      BadRequest(Json.obj("success" -> false, "error" -> "logo_encoded_too_large"))
     case PartnerRejection.LogoInvalid    => BadRequest(Json.obj("success" -> false, "error" -> "logo_invalid"))
     case PartnerRejection.NameInvalid    => BadRequest(Json.obj("success" -> false, "error" -> "name_invalid"))
     case PartnerRejection.UrlInvalid     => BadRequest(Json.obj("success" -> false, "error" -> "url_invalid"))

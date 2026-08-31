@@ -7,24 +7,14 @@
  * flag here only decides what UI to draw). Admin-only page, English-only by convention.
  */
 class PartnersPage {
-  /** What each rejection code from the partner endpoints should say to the admin. */
-  static #ERROR_MESSAGES = {
-    logo_required: 'Choose a logo image (PNG or JPEG) to upload.',
-    logo_too_large: 'That image is too large — please upload a file under 5 MB.',
-    logo_invalid: 'That file could not be read as a PNG or JPEG image.',
-    name_invalid: 'Enter a partner name (at most 100 characters).',
-    url_invalid: 'The website URL must be a full http(s) address, e.g. https://example.org.',
-    alt_text_invalid: 'Alt text can be at most 300 characters.',
-    bad_order: 'The list changed underneath you — reloading.',
-    not_found: 'That partner no longer exists — reloading.',
-  };
-
   #isOwner;
   #statusEl;
   /** @type {{city: Array<Object>, global: Array<Object>}} The current metadata rows, in display order. */
   #partners = { city: [], global: [] };
   /** @type {?{scope: string, partner: Object}} The row a form is currently editing, or null when adding. */
   #editing = null;
+  /** @type {{city: boolean, global: boolean}} Whether a reorder PUT is in flight, per scope. */
+  #reorderBusy = { city: false, global: false };
 
   /**
    * @param {Object} opts
@@ -114,9 +104,10 @@ class PartnersPage {
     if (this.#canEdit(scope)) {
       const actions = document.createElement('div');
       actions.className = 'partners-row-actions';
+      const reordering = this.#reorderBusy[scope];
       actions.append(
-        this.#actionButton('Move up', '↑', index === 0, () => this.#move(scope, index, -1)),
-        this.#actionButton('Move down', '↓', index === this.#partners[scope].length - 1,
+        this.#actionButton('Move up', '↑', reordering || index === 0, () => this.#move(scope, index, -1)),
+        this.#actionButton('Move down', '↓', reordering || index === this.#partners[scope].length - 1,
           () => this.#move(scope, index, 1)),
         this.#actionButton('Edit', 'Edit', false, () => this.#startEdit(scope, partner)),
         this.#actionButton('Delete', 'Delete', false, () => this.#deletePartner(partner), true),
@@ -153,13 +144,17 @@ class PartnersPage {
   }
 
   /**
-   * Swaps a row with its neighbor and persists the whole scope's new order; a rejected write re-syncs from the
-   * server, since the only cause is a concurrent edit elsewhere.
+   * Swaps a row with its neighbor and persists the whole scope's new order. One reorder per scope runs at a time:
+   * the arrows render disabled while the PUT is in flight, so two rapid clicks can't race their full-order payloads
+   * (concurrent PUTs are last-writer-wins, which can silently commit the older order). A rejected write re-syncs
+   * from the server, since the only cause is a concurrent edit elsewhere.
    */
   async #move(scope, index, delta) {
+    if (this.#reorderBusy[scope]) return;
     const rows = this.#partners[scope];
     const target = index + delta;
     [rows[index], rows[target]] = [rows[target], rows[index]];
+    this.#reorderBusy[scope] = true;
     this.#render(scope);
     try {
       const res = await fetch(scope === 'global' ? '/adminapi/globalPartners/order' : '/adminapi/partners/order', {
@@ -168,8 +163,11 @@ class PartnersPage {
         body: JSON.stringify({ partner_ids: rows.map((p) => p.partner_id) }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      this.#reorderBusy[scope] = false;
+      this.#render(scope);
     } catch (err) {
       console.error('Partners page: reorder failed.', err);
+      this.#reorderBusy[scope] = false;
       this.#load();
     }
   }
@@ -191,9 +189,15 @@ class PartnersPage {
     form.elements.name.focus();
   }
 
-  /** @param {HTMLFormElement} form */
+  /**
+   * Resets a form back to add mode. The shared edit state clears only when it belongs to THIS form's scope — the
+   * other scope's form may be mid-edit, and nulling its state would turn that form's next save into a duplicate
+   * create instead of an update.
+   *
+   * @param {HTMLFormElement} form
+   */
   #cancelEdit(form) {
-    this.#editing = null;
+    if (this.#editing && this.#editing.scope === form.dataset.scope) this.#editing = null;
     form.reset();
     form.querySelector('.partners-form-heading').textContent = 'Add a partner';
     form.querySelector('[type="submit"]').textContent = 'Add partner';
@@ -206,7 +210,7 @@ class PartnersPage {
     const scope = form.dataset.scope;
     const editing = this.#editing && this.#editing.scope === scope ? this.#editing : null;
     if (!editing && form.elements.logo.files.length === 0) {
-      this.#showError(form, PartnersPage.#ERROR_MESSAGES.logo_required);
+      this.#showError(form, this.#errorMessage(form, 'logo_required'));
       return;
     }
     const body = new FormData();
@@ -224,8 +228,7 @@ class PartnersPage {
       const res = await fetch(url, { method: editing ? 'PUT' : 'POST', body });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        this.#showError(form,
-          PartnersPage.#ERROR_MESSAGES[data.error] || 'Something went wrong — please try again.');
+        this.#showError(form, this.#errorMessage(form, data.error));
         return;
       }
       this.#cancelEdit(form);
@@ -259,6 +262,32 @@ class PartnersPage {
   /** @param {string} scope @returns {HTMLFormElement} */
   #formFor(scope) {
     return document.querySelector(`.partners-add-form[data-scope="${scope}"]`);
+  }
+
+  /**
+   * What a rejection code from the partner endpoints should say to the admin. The size and length limits in the
+   * copy are read off the form itself — the maxlength and data-max-*-bytes attributes the Twirl view stamps from
+   * the backend's own constants — so they can't drift from what the server actually enforces.
+   *
+   * @param {HTMLFormElement} form - The form whose backend-stamped limits parameterize the copy.
+   * @param {string} code - The rejection code from the server (or the client-side 'logo_required').
+   * @returns {string}
+   */
+  #errorMessage(form, code) {
+    const mb = (bytes) => `${Math.round(bytes / 1048576)} MB`;
+    const messages = {
+      logo_required: 'Choose a logo image (PNG or JPEG) to upload.',
+      logo_too_large: `That image is too large — please upload a file under ${mb(form.dataset.maxUploadBytes)}.`,
+      logo_encoded_too_large: `Even re-encoded, that image exceeds the ${mb(form.dataset.maxStoredBytes)} storage `
+        + 'cap — try a smaller or simpler image.',
+      logo_invalid: 'That file could not be read as a PNG or JPEG image.',
+      name_invalid: `Enter a partner name (at most ${form.elements.name.maxLength} characters).`,
+      url_invalid: 'The website URL must be a full http(s) address, e.g. https://example.org.',
+      alt_text_invalid: `Alt text can be at most ${form.elements.alt_text.maxLength} characters.`,
+      bad_order: 'The list changed underneath you — reloading.',
+      not_found: 'That partner no longer exists — reloading.',
+    };
+    return messages[code] || 'Something went wrong — please try again.';
   }
 
   /** Shows (or with null, clears) a form's inline error line. */
