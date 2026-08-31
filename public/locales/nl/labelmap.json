@@ -63,6 +63,8 @@
   "comment-delete-confirm": "Je opmerking permanent verwijderen? Dit kan niet ongedaan worden gemaakt.",
   "comment-updated": "Je opmerking is bijgewerkt",
   "comment-deleted": "Je opmerking is verwijderd",
+  "comment-save-failed": "Je opmerking kon niet worden opgeslagen. Probeer het opnieuw.",
+  "comment-delete-failed": "Je opmerking kon niet worden verwijderd. Probeer het opnieuw.",
   "own-label-disabled": "Je kunt je eigen etiket niet valideren of becommentariëren",
   "own-label": "Jouw etiket",
   "you-labeled": "Jij labelde",

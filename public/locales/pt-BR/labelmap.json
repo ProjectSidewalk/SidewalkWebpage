@@ -63,6 +63,8 @@
   "comment-delete-confirm": "Excluir seu comentário permanentemente? Isso não pode ser desfeito.",
   "comment-updated": "Seu comentário foi atualizado",
   "comment-deleted": "Seu comentário foi excluído",
+  "comment-save-failed": "Não foi possível salvar seu comentário. Tente novamente.",
+  "comment-delete-failed": "Não foi possível excluir seu comentário. Tente novamente.",
   "own-label-disabled": "Você não pode validar nem comentar seu próprio rótulo",
   "own-label": "Seu rótulo",
   "you-labeled": "Você rotulou",

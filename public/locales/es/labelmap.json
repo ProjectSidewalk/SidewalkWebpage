@@ -63,6 +63,8 @@
   "comment-delete-confirm": "¿Eliminar tu comentario de forma permanente? Esta acción no se puede deshacer.",
   "comment-updated": "Tu comentario se actualizó",
   "comment-deleted": "Tu comentario se eliminó",
+  "comment-save-failed": "No se pudo guardar tu comentario. Inténtalo de nuevo.",
+  "comment-delete-failed": "No se pudo eliminar tu comentario. Inténtalo de nuevo.",
   "own-label-disabled": "No puedes validar ni comentar tu propia etiqueta",
   "own-label": "Tu etiqueta",
   "you-labeled": "Etiquetaste",

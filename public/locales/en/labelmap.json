@@ -63,6 +63,8 @@
   "comment-delete-confirm": "Permanently delete your comment? This can't be undone.",
   "comment-updated": "Your comment was updated",
   "comment-deleted": "Your comment was deleted",
+  "comment-save-failed": "Your comment couldn't be saved. Please try again.",
+  "comment-delete-failed": "Your comment couldn't be deleted. Please try again.",
   "own-label-disabled": "You cannot validate or comment on your own label",
   "own-label": "Your label",
   "you-labeled": "You labeled",

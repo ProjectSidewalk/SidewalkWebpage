@@ -128,6 +128,7 @@ class LabelDetail {
   #myCommentIdx;
   #commentStatusTimer = null;
   #editingComment = false;
+  #escapeCancelledEdit = false;  // Set on an Escape keydown that ended an edit; read by the matching keyup.
   #shareWidget;
   #storySection;
   #highlightStoryId;
@@ -496,15 +497,26 @@ class LabelDetail {
         e.preventDefault();
         e.stopPropagation();
         // Mid-edit that first Escape does more than blur: it abandons the edit, which is the way out a reader
-        // reaches for when they opened the box by mistake.
-        if (this.#editingComment) this.#cancelCommentEdit();
+        // reaches for when they opened the box by mistake. Focus deliberately stays in the input until the matching
+        // keyup — see the keyup handler below.
+        this.#escapeCancelledEdit = this.#editingComment;
+        if (this.#editingComment) this.#cancelCommentEdit(false);
       }
     });
-    // Same method for swallowing first Escape, but need to use 'keyup' for Gallery.
+    // Same method for swallowing first Escape, but need to use 'keyup' for Gallery — where the shortcut handler is
+    // on `window` and stands down only for an INPUT/TEXTAREA (`KeyboardManager.#documentKeyUp`). So the focus move
+    // that ends an edit has to wait for this event: hand focus to a <button> during keydown and the keyup arrives
+    // here on the button instead, past both this listener and that guard, and Escape closes the whole expanded view
+    // on the same press that cancelled the edit.
     els.commentInput.addEventListener('keyup', (e) => {
       if (e.key === 'Escape') {
         e.stopPropagation();
-        els.commentInput.blur();
+        if (this.#escapeCancelledEdit) {
+          this.#escapeCancelledEdit = false;
+          this.#focusCommentEditButton();
+        } else {
+          els.commentInput.blur();
+        }
       }
     });
     els.commentButton.addEventListener('click', () => {
@@ -741,9 +753,12 @@ class LabelDetail {
     this.#renderComments();
 
     // A typed-but-unsent comment belongs to the label it was typed on, so it doesn't ride along to the next one
-    // (Gallery pages between labels without ever tearing the card down).
+    // (Gallery pages between labels without ever tearing the card down). The status message is per-label for the
+    // same reason: without this, paging within its 1.5s leaves the last label's "Comment Submitted" over this one.
     els.commentInput.value = '';
     els.commentButton.classList.remove('is-active');
+    clearTimeout(this.#commentStatusTimer);
+    if (els.commentConfirm) els.commentConfirm.hidden = true;
 
     // Lived-experience stories (#4054): lazy per-label fetch, so the metadata payload stays untouched. The type name
     // rides along so the composer's title can name the label ("Write your story about this Missing Curb Ramp").
@@ -963,8 +978,7 @@ class LabelDetail {
       this.#updateVoteCount(newAction);
       this.#highlightVote(newAction);
       // Clearing a vote — and changing one (the `redone` flag) — deletes the user's comment server-side; drop it
-      // here too so the list and its vote chips (#5015) match what a reload would show. The row has to settle
-      // before the removal is announced, since the announcer lives inside it.
+      // here too so the list and its vote chips (#5015) match what a reload would show.
       const commentDropped = (undone || data.redone) && this.#dropOwnComment();
       this.#updateCommentRow(true);
       if (commentDropped) this.#flashCommentStatus('labelmap:comment-cleared');
@@ -1019,7 +1033,11 @@ class LabelDetail {
     this.#updateCommentRow();
     this.#renderComments(); // Drops the Edit/Delete pair; the box below now speaks for this comment.
     const els = this.#els;
-    els.commentInput.value = typeof own === 'object' ? own.comment : own;
+    // The last save's confirmation is about to be contradicted by an open box, so it goes now rather than on its timer.
+    clearTimeout(this.#commentStatusTimer);
+    if (els.commentConfirm) els.commentConfirm.hidden = true;
+    // #isOwnComment only ever matches an object, so #myCommentIdx cannot point at a bare comment string.
+    els.commentInput.value = own.comment;
     els.commentButton.classList.toggle('is-active', els.commentInput.value.trim().length > 0);
     els.commentInput.focus();
     els.commentInput.select();
@@ -1027,16 +1045,24 @@ class LabelDetail {
   }
 
   /**
-   * Leaves edit mode without saving, closing the box and returning focus to the Edit button that opened it. Focus
-   * has to move before the button is re-rendered, or it lands on a node that is about to be replaced.
+   * Leaves edit mode without saving, closing the box and returning focus to the Edit button that opened it.
+   *
+   * @param {boolean} [restoreFocus=true] - Whether to move focus to that Edit button now. The Escape path passes
+   *     `false` and defers the move to its own `keyup` handler, because focus has to still be in the input when the
+   *     keyup lands — see the handler for what happens in Gallery otherwise.
    */
-  #cancelCommentEdit() {
+  #cancelCommentEdit(restoreFocus = true) {
     if (!this.#editingComment) return;
     this.#editingComment = false;
     this.#els.commentInput.value = '';
     this.#els.commentButton.classList.remove('is-active');
     this.#updateCommentRow();
     this.#renderComments();
+    if (restoreFocus) this.#focusCommentEditButton();
+  }
+
+  /** Moves focus to the Edit control on the user's own comment, when one is on screen. */
+  #focusCommentEditButton() {
     this.#els.validatorComments.querySelector('.label-detail__comment-edit')?.focus();
   }
 
@@ -1065,30 +1091,44 @@ class LabelDetail {
       this.#updateCommentRow();
       this.#flashCommentStatus('labelmap:comment-deleted');
       this.#logClick('DeleteComment');
+      // The Delete button had focus and the re-render above just destroyed it, so focus would otherwise fall back to
+      // the document. The reopened box is both the accessible landing spot and the useful one — it is where a
+      // replacement comment gets typed. A comment with no vote behind it leaves the box shut, so fall back to the
+      // section heading rather than stranding focus.
+      const els = this.#els;
+      if (els.commentRow?.classList.contains('is-open')) els.commentInput.focus();
+      else this.#q('.label-detail__comments-title')?.focus();
     } catch (err) {
       console.error(err);
+      // They confirmed a destructive action in a modal; silence here is indistinguishable from it having worked.
+      this.#flashCommentStatus('labelmap:comment-delete-failed', true);
     }
   }
 
   /**
-   * Flashes a message in the comment row's polite live region.
+   * Flashes a message in the comment section's polite live region.
    *
-   * That region carries a `data-i18n` default for the submit case, but setting its text here lets both outcomes
-   * share one announcer rather than adding a second `aria-live` node for them to talk over each other with. It
-   * lives inside the comment row, so a closed row has nowhere to say this — an `aria-live` node in a `display: none`
-   * subtree is announced to no one — and the caller is expected to have settled the row's state first.
+   * Every outcome — saved, updated, deleted, cleared by a vote, failed — shares this one announcer rather than each
+   * adding an `aria-live` node for them to talk over each other with. The region sits outside the comment row on
+   * purpose: saving closes that row, and a live region collapsed in the same frame its text is set announces to no
+   * one and shows for no one.
    *
    * @param {string} key - i18next key for the message to announce.
+   * @param {boolean} [isError=false] - Mark the message as a failure: red rather than green, and held long enough
+   *     to read, since it asks the reader to try again rather than just confirming what they saw happen.
    */
-  #flashCommentStatus(key) {
+  #flashCommentStatus(key, isError = false) {
     const el = this.#els.commentConfirm;
-    if (!el || !this.#els.commentRow?.classList.contains('is-open')) return;
+    if (!el) return;
     clearTimeout(this.#commentStatusTimer);
-    el.textContent = i18next.t(key);
+    el.classList.toggle('is-error', isError);
+    // Unhidden before the text lands: mutating a live region that is still `hidden` is the case screen readers are
+    // least consistent about, and several skip it outright.
     el.hidden = false;
+    el.textContent = i18next.t(key);
     this.#commentStatusTimer = setTimeout(() => {
       el.hidden = true;
-    }, 1500);
+    }, isError ? 5000 : 1500);
   }
 
   /**
@@ -2001,8 +2041,6 @@ class LabelDetail {
       const wasEdit = this.#editingComment;
       els.commentInput.value = '';
       els.commentButton.classList.remove('is-active');
-      // Announce before the row settles: a save closes the box, and the live region announcing it lives inside.
-      this.#flashCommentStatus(wasEdit ? 'labelmap:comment-updated' : 'labelmap:comment-submitted');
       if (wasEdit) this.#logClick('EditComment');
 
       // Update the visible list. Admin views render objects with a username; non-admin views render bare comment
@@ -2029,8 +2067,12 @@ class LabelDetail {
       this.#editingComment = false;
       this.#updateCommentRow();
       this.#renderComments();
+      // Announced after the row has settled — the live region sits outside it, so the collapse doesn't take the
+      // message with it, and the reader hears the outcome of a card that is already in its final state.
+      this.#flashCommentStatus(wasEdit ? 'labelmap:comment-updated' : 'labelmap:comment-submitted');
     }).catch((err) => {
       console.error(err);
+      this.#flashCommentStatus('labelmap:comment-save-failed', true);
     }).finally(() => {
       els.commentButton.disabled = false;
     });

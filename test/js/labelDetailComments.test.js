@@ -126,7 +126,7 @@ function buildCard() {
             <div class="label-detail__description"></div>
           </section>
           <section class="label-detail__comments-section">
-            <h3 class="label-detail__col-title label-detail__comments-title">
+            <h3 class="label-detail__col-title label-detail__comments-title" tabindex="-1">
               <span class="label-detail__comments-count" hidden></span>
             </h3>
             <div class="label-detail__comment-row">
@@ -134,8 +134,8 @@ function buildCard() {
               <input type="text" id="label-detail-comment-input" class="label-detail__comment-input">
               <button type="button" class="label-detail__comment-submit" data-action="submit-comment">Comment</button>
               <button type="button" class="button-ps button--small button--secondary label-detail__comment-cancel" data-action="cancel-comment-edit" hidden>Cancel</button>
-              <span class="label-detail__comment-confirmation" role="status" aria-live="polite" hidden></span>
             </div>
+            <span class="label-detail__comment-confirmation" role="status" aria-live="polite" hidden></span>
             <div class="label-detail__validator-comments"></div>
           </section>
         </div>
@@ -234,6 +234,11 @@ describe('the validator comment box (#5015)', () => {
     const cancelBtn = () => q('.label-detail__comment-cancel');
     const editBtn = () => q('.label-detail__comment-edit');
     const deleteBtn = () => q('.label-detail__comment-delete');
+    const status = () => q('.label-detail__comment-confirmation');
+    /** Sends one half of an Escape press to the comment input, the way a browser routes it to the focused element. */
+    const escape = (type) => document.activeElement.dispatchEvent(
+        new window.KeyboardEvent(type, { key: 'Escape', bubbles: true })
+    );
 
     beforeEach(async () => {
         jest.resetModules();
@@ -465,10 +470,38 @@ describe('the validator comment box (#5015)', () => {
             await showLabel({ comments: [comment('unchanged', true)] });
             await resolveImagery();
             editBtn().click();
-            input().dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+            escape('keydown');
 
             expect(boxOpen()).toBe(false);
             expect(editBtn()).not.toBeNull();
+        });
+
+        test('Escape keeps focus in the input until its own keyup, then hands it to Edit', async () => {
+            // Gallery's shortcut handler is on `window` and stands down only for an INPUT/TEXTAREA
+            // (KeyboardManager.#documentKeyUp), and its Escape case closes the expanded view. So the focus move that
+            // ends an edit has to wait for the keyup: hand focus to the Edit <button> during keydown and the keyup
+            // arrives on the button instead, past the input's own listener and that guard, and the single press that
+            // cancelled the edit also closes the card.
+            await showLabel({ comments: [comment('unchanged', true)] });
+            await resolveImagery();
+            editBtn().click();
+
+            escape('keydown');
+            expect(document.activeElement).toBe(input());
+
+            escape('keyup');
+            expect(document.activeElement).toBe(editBtn());
+        });
+
+        test('an Escape that cancels nothing still blurs the input, as it always did', async () => {
+            await showLabel({ user_validation: 'Disagree' });
+            await resolveImagery();
+            input().focus();
+
+            escape('keydown');
+            escape('keyup');
+
+            expect(document.activeElement).not.toBe(input());
         });
 
         test('Cancel returns focus to the Edit button that opened the box', async () => {
@@ -518,6 +551,89 @@ describe('the validator comment box (#5015)', () => {
 
             expect(window.fetch).not.toHaveBeenCalledWith('/labelmap/comment/42', { method: 'DELETE' });
             expect(q('.label-detail__validator-comments').textContent).toContain('kept');
+        });
+
+        test('Delete moves focus into the reopened box rather than dropping it', async () => {
+            // The button that had focus is destroyed by the re-render, so without this focus falls to the document
+            // and a keyboard or screen-reader user loses their place mid-card.
+            await showLabel({ comments: [comment('regrettable', true)] });
+            await resolveImagery();
+            deleteBtn().click();
+            await flush();
+
+            expect(document.activeElement).toBe(input());
+        });
+    });
+
+    describe('every outcome is announced, including the ones that close the box', () => {
+        test('the live region sits outside the row that a save collapses', () => {
+            // Inside the row it would be display-collapsed in the same frame its text is set: shown to no one, and
+            // announced to no one under prefers-reduced-motion, where the row has no transition to linger through.
+            expect(status().closest('.label-detail__comment-row')).toBeNull();
+        });
+
+        test('a saved comment is announced after the box has closed', async () => {
+            await showLabel({ user_validation: 'Agree' });
+            await resolveImagery();
+            input().value = 'a curb ramp is under the snow';
+            submitBtn().click();
+            await flush();
+
+            expect(boxOpen()).toBe(false);
+            expect(status().hidden).toBe(false);
+            expect(status().textContent).toBe('labelmap:comment-submitted');
+        });
+
+        test('a saved edit says so rather than repeating the first-comment wording', async () => {
+            await showLabel({ comments: [comment('before', true)] });
+            await resolveImagery();
+            editBtn().click();
+            input().value = 'after';
+            submitBtn().click();
+            await flush();
+
+            expect(status().textContent).toBe('labelmap:comment-updated');
+        });
+
+        test('a save that fails says so, in the failure colour', async () => {
+            window.util.lazyIdentityFetch = jest.fn(async () => ({ ok: false, status: 500 }));
+            await showLabel({ user_validation: 'Agree' });
+            await resolveImagery();
+            input().value = 'never lands';
+            submitBtn().click();
+            await flush();
+
+            expect(status().textContent).toBe('labelmap:comment-save-failed');
+            expect(status().classList.contains('is-error')).toBe(true);
+        });
+
+        test('a delete that fails says so instead of looking like a no-op', async () => {
+            // They confirmed a destructive action in a modal; silence is indistinguishable from it having worked.
+            window.fetch = jest.fn(async () => ({ ok: false, status: 500 }));
+            await showLabel({ comments: [comment('still here', true)] });
+            await resolveImagery();
+            deleteBtn().click();
+            await flush();
+
+            expect(q('.label-detail__validator-comments').textContent).toContain('still here');
+            expect(status().textContent).toBe('labelmap:comment-delete-failed');
+            expect(status().classList.contains('is-error')).toBe(true);
+        });
+
+        test('the message does not outlive the label it was about', async () => {
+            await showLabel({ user_validation: 'Agree' });
+            await resolveImagery();
+            input().value = 'about this label';
+            submitBtn().click();
+            await flush();
+            expect(status().hidden).toBe(false);
+
+            // Gallery pages between labels without tearing the card down, and the flash runs on a 1.5s timer.
+            setPano = deferred();
+            await showLabel({ user_validation: 'Disagree' });
+            await resolveImagery();
+
+            expect(status().hidden).toBe(true);
         });
     });
 });

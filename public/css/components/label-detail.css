@@ -806,10 +806,20 @@ button.label-detail__meta-cell:focus-visible {
   outline-offset: -2px;
 }
 
+/* Sits between the comment row and the list rather than inside the row, so it survives the row collapsing on save.
+   The explicit [hidden] rule is required: a `display` here would otherwise beat the UA stylesheet's `[hidden]` and
+   leave an empty line holding space whenever there is nothing to announce. */
 .label-detail__comment-confirmation {
+  display: block;
+  margin-bottom: 6px;
   font: var(--text-caption-regular);
   color: var(--color-pine-700);
 }
+
+.label-detail__comment-confirmation[hidden] { display: none; }
+
+/* A failed save or delete is the one outcome the reader has to act on, so it doesn't wear the success green. */
+.label-detail__comment-confirmation.is-error { color: var(--color-orange-700); }
 
 /* ─── Description / comments ──────────────────────────────────────────── */
 

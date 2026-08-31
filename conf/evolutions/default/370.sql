@@ -24,12 +24,15 @@ GROUP BY validation_task_comment.label_id;
 -- label_id leads the new index, so it serves every lookup label_validation_label_id_idx served (a btree answers any
 -- query on a prefix of its columns). Dropping that one keeps the index count flat rather than maintaining two
 -- indexes over the same leading column on a table written once per validation.
+-- IF EXISTS on the drop only: 296 created that index in every schema, but this file applies to all 54 of them in
+-- sequence on deploy, and one that drifted would otherwise abort the deploy at that city. It can't mask a real
+-- problem, since the CREATE above it is unguarded.
 CREATE INDEX label_validation_label_id_user_id_idx
     ON label_validation (label_id, user_id) INCLUDE (validation_result);
-DROP INDEX label_validation_label_id_idx;
+DROP INDEX IF EXISTS label_validation_label_id_idx;
 
 # --- !Downs
-CREATE INDEX label_validation_label_id_idx ON label_validation (label_id);
+CREATE INDEX IF NOT EXISTS label_validation_label_id_idx ON label_validation (label_id);
 DROP INDEX label_validation_label_id_user_id_idx;
 
 CREATE OR REPLACE VIEW label_comments_agg AS
