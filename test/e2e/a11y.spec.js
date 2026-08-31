@@ -17,6 +17,13 @@ const {partitionViolations, formatViolations} = require('./a11y-allowlist');
 // the standard we hold ourselves to, and a gate that fails outside the commitment gets ignored.
 const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21aa'];
 
+// axe descends into same-page frames, so a vendor's player chrome reports as our violations (/help embeds four
+// YouTube players, worth 11 between them) — none of it markup we can change. axe's frame-path exclude syntax
+// (`['iframe…', ':root']`) does not reach these: @axe-core/playwright injects into each frame itself rather than
+// through axe's own frame messaging, so the path never resolves. Excluding the element is what works, and it takes
+// our own <iframe> tag out of scope too — the accessible name that costs us is asserted by its own test below.
+const THIRD_PARTY_FRAMES = 'iframe[src*="youtube.com"]';
+
 // Load flags mirror each page's entry in pages.spec.js.
 const PAGES = [
   // Landing maps are deferred behind util.onFirstInteractionOrIdle (#4486) — without the wait, axe scans a
@@ -27,7 +34,10 @@ const PAGES = [
   {path: '/routes'},
   {path: '/stories'},
   {path: '/labelingGuide'},
+  {path: '/help'},
   {path: '/gallery', loadingOverlay: true},
+  {path: '/labelMap', mapbox: true, loadingOverlay: true},
+  {path: '/routeBuilder', mapbox: true},
   {path: '/cities', mapbox: true},
   {path: '/mobileLanding'},
 ];
@@ -35,7 +45,10 @@ const PAGES = [
 for (const p of PAGES) {
   test(`a11y: ${p.path} meets WCAG 2.1 AA`, async ({page, context}) => {
     await loadAndSettle(page, context, p);
-    const results = await new AxeBuilder({page}).withTags(WCAG_TAGS).analyze();
+    const results = await new AxeBuilder({page})
+      .withTags(WCAG_TAGS)
+      .exclude(THIRD_PARTY_FRAMES)
+      .analyze();
     const {blocking, allowedCount, staleEntries} = partitionViolations(p.path, results.violations);
 
     // Report rather than fail: a violation can stop firing because it was fixed or because the page rendered
@@ -53,3 +66,16 @@ for (const p of PAGES) {
       .toEqual([]);
   });
 }
+
+// Stands in for the frame-title check the exclusion above removes. Nothing inside a YouTube player is ours, but the
+// name on the <iframe> is the whole reason a screen reader user knows which video they landed in — it is announced
+// in place of the frame's contents, and there is no other coverage of it.
+test('a11y: embedded video frames carry an accessible name', async ({page, context}) => {
+  await loadAndSettle(page, context, {path: '/help'});
+  const frames = page.locator(THIRD_PARTY_FRAMES);
+  expect(await frames.count(), '/help no longer embeds video; drop this test').toBeGreaterThan(0);
+  const unnamed = await frames.evaluateAll((els) => els
+    .filter((el) => !(el.getAttribute('aria-label') || el.getAttribute('title') || '').trim())
+    .map((el) => el.src));
+  expect(unnamed, 'embedded videos with no aria-label or title').toEqual([]);
+});

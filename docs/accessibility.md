@@ -55,6 +55,23 @@ which is information worth being able to read off the file. Pages are added as t
 [`Website Accessibility`](https://github.com/ProjectSidewalk/SidewalkWebpage/labels/Website%20Accessibility) backlog
 closes.
 
+### Third-party embeds
+
+axe descends into same-page frames, so an embedded player's own chrome reports as our violations — the four YouTube
+embeds on `/help` were worth 11 findings in markup we cannot touch. Those frames are **excluded** rather than
+allowlisted: an allowlist entry claims a work item, and there is no work to do. `THIRD_PARTY_FRAMES` in
+`a11y.spec.js` holds the selector.
+
+Excluding the frame takes our own `<iframe>` tag out of scope with it, so the accessible name on it — the thing a
+screen reader announces in place of the video — gets its own test in the same file. Add to that test if you exclude
+another kind of embed.
+
+A third-party widget rendered into **our** DOM is a different case and takes an allowlist entry, because it is
+fixable: report it upstream, shim it, or replace the widget. The Mapbox search box is the live example
+([#5087](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/5087)). Its entry is also the one place the
+"always scope with a `selector`" rule is broken on purpose — the component hashes its class names per mount
+(`.mbx0420900a--Input` one load, `.mbx00a6ef43--Input` the next), so no stable selector exists.
+
 ### Where it runs in CI
 
 In the existing `e2e-smoke` job, which is **advisory** today — findings report but don't block a merge. It becomes

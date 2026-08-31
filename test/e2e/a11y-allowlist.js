@@ -18,7 +18,18 @@ const A11Y_ALLOWLIST = {
   '/routes': [],
   '/stories': [],
   '/labelingGuide': [],
+  '/help': [],
   '/gallery': [],
+  // No selector on these two: MapboxSearchBox hashes its class names per mount (.mbx0420900a--Input one load,
+  // .mbx00a6ef43--Input the next), so there is nothing stable to scope the entry to.
+  '/labelMap': [
+    {rule: 'aria-required-attr', issue: '#5087',
+      note: "MapboxSearchBox's input is role=combobox with no aria-expanded; vendor DOM"},
+  ],
+  '/routeBuilder': [
+    {rule: 'aria-required-attr', issue: '#5087',
+      note: "MapboxSearchBox's input is role=combobox with no aria-expanded; vendor DOM"},
+  ],
   '/cities': [],
   '/mobileLanding': [],
 };

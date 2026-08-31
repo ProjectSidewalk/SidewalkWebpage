@@ -230,10 +230,13 @@ with respect to the image holder. This allows the validation menu to be placed o
   padding-right: 1cqw;
 }
 
+/* Clipped, not scrollable: the "+n" pill TagDisplay fits into the row is this row's overflow affordance, so a
+   scrollbar here would be a second one — and an unreachable one, since a scroll container needs its own tab stop
+   (WCAG 2.1.1) and a card grid can't afford one per card. */
 .label-tags-holder {
   display: flex;
   align-items: center;
-  overflow-y: auto;
+  overflow: hidden;
   width: 100%;
   flex-flow: row wrap;
   flex: 1;
