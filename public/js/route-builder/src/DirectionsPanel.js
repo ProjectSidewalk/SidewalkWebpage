@@ -65,7 +65,9 @@ class DirectionsPanel {
       cssText: '.Input { padding-left: 32px; height: 34px; } .SearchIcon { left: 8px; }',
     };
     // onAdd builds the search box's element for this map; we place it in the panel instead of a map corner.
-    document.getElementById(`directions-${which}-slot`).append(box.onAdd(this.#map));
+    const boxElement = box.onAdd(this.#map);
+    document.getElementById(`directions-${which}-slot`).append(boxElement);
+    seedSearchBoxAriaExpanded(boxElement);
     this.#wireEnterToFirstSuggestion(box, which);
 
     box.addEventListener('retrieve', (event) => {
