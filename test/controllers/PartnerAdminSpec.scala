@@ -389,7 +389,7 @@ class PartnerAdminSpec extends PlaySpec with RoleSession with GuiceOneAppPerSuit
       body must include("creators-title")
       body must include("partners-credit")
       body must include("makeability-lab-logo")
-      body must include("uw-logo")
+      body must include("uw-allen-school-logo")
       body must include("uic-idhd-logo")
       body must not include "MakeabilityLogo.png"
       body must not include "collaborators-container"

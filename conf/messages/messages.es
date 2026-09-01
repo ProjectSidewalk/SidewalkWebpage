@@ -296,7 +296,7 @@ landing.partners.created.by = Project Sidewalk fue creado con {0} por
 landing.partners.created.heart = amor
 landing.partners.created.credits = …y moldeado por socios de largo plazo como <a href="https://ligapeatonal.org/" data-partner-source="liga-peatonal">Liga Peatonal</a>, el <a href="https://www.nationalmssociety.org/resources/get-connected/in-your-area/njm/about-this-chapter-njm" data-partner-source="nj-metro-ms-society">New Jersey Metro Chapter of the National Multiple Sclerosis Society</a> y la <a href="https://hmsom.edu/en" data-partner-source="hackensack-meridian-som">Hackensack Meridian School of Medicine</a>, junto con más de 100 estudiantes contribuyentes y miles de mapeadores voluntarios en todo el mundo. <a href="/about" data-partner-source="about-team">Conoce al equipo</a>.
 landing.partners.creator.makeability.alt = Logotipo del Makeability Lab
-landing.partners.creator.uw.alt = Logotipo de la Universidad de Washington
+landing.partners.creator.uw.alt = Logotipo de la Paul G. Allen School of Computer Science & Engineering de la Universidad de Washington
 landing.partners.creator.uic.alt = Logotipo del Instituto sobre Discapacidad y Desarrollo Humano de la Universidad de Illinois en Chicago
 landing.clouds.alt = Nubes blancas que cubren parcialmente la imagen de arriba, con estadísticas mostradas encima de las nubes.
 landing.mobile.start.validating = Comenzar a validar en {0}

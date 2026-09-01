@@ -546,9 +546,11 @@ p#conditional-text {
   gap: var(--space-md) var(--space-xl);
 }
 
+/* The UW mark is the Allen School's horizontal lockup, ~9:1, so the creator strip's width cap has to clear it at
+   the row height or its second line of type stops being readable. */
 .partner-logos--creators img {
   height: 48px;
-  max-width: 200px;
+  max-width: 460px;
 }
 
 /* --breakpoint-sm */
@@ -562,8 +564,10 @@ p#conditional-text {
     max-width: 160px;
   }
 
+  /* The Allen School lockup is wider than a phone at the row height, so let it take the full width -- and its own
+     wrapped row -- rather than squeezing it down to the width of the marks beside it. */
   .partner-logos--creators img {
     height: 36px;
-    max-width: 130px;
+    max-width: 100%;
   }
 }
