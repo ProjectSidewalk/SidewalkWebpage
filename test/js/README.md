@@ -62,7 +62,8 @@ From the repo root:
 
 ```bash
 npm install        # first time only — installs jest + jest-environment-jsdom (devDependencies)
-npm run test:js    # runs Jest against test/js/ only
+npm run test:js    # runs the suites in test/js/
+npm run test:js:coverage    # the same, plus the coverage report and its floor (what CI runs)
 ```
 
 `npm run test:js` is a **new** script; the existing placeholder `npm test` is left untouched.
@@ -153,9 +154,8 @@ ratio. Without that root Jest reports only on files a suite happened to `require
 tested code tested" instead of "how much of the frontend is tested" (#4743).
 
 `coverageThreshold` floors statements and lines just under the measured number — a ratchet, not a target, so **raise
-it in whichever PR earns the headroom.** It stays low because most of the denominator is the Explore/Validate canvas
-and pano code we never unit-test; this suite will never approach the Python layer's 100%. The console shows totals
-only, so open `coverage/lcov-report/index.html` for per-file detail.
+it in whichever PR earns the headroom.** The CI step is advisory (#2487), so a dip reports there without blocking a
+merge. The console shows totals only, so open `coverage/lcov-report/index.html` for per-file detail.
 
 ## Complementary E2E
 

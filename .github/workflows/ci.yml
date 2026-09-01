@@ -3,7 +3,7 @@ name: CI
 #   - backend:         `sbt compile` + `scalafmtCheckAll` (both BLOCKING)
 #   - frontend:        asset build (grunt) + `eslint` (JS) + `stylelint` (CSS) + `htmlhint` (HTML) + locale parity +
 #                      CSS layout + asset paths (all BLOCKING), plus the jsdom `jest` suite in test/js/ (ADVISORY
-#                      step inside the same job).
+#                      step inside the same job; it also carries the JS coverage floor, so that does not block).
 #   - evolutions-lint: static checks on conf/evolutions/default/*.sql (BLOCKING — fast, deterministic, no DB).
 #   - route-lint:      conf/routes reachability — fails if any route is shadowed by an earlier one (BLOCKING — no DB).
 #   - backend-tests:   DB-backed public-API functional tests against a real Postgres+PostGIS (BLOCKING). Boots
@@ -143,7 +143,7 @@ jobs:
       - name: Jest unit tests (advisory)
         if: always()
         continue-on-error: true
-        run: npm run test:js
+        run: npm run test:js:coverage
 
   evolutions-lint:
     name: Evolutions lint
@@ -472,20 +472,32 @@ jobs:
       # Enforces the ratchet in build.sbt (#4743). Deliberately not `if: always()`, unlike the lint steps: a run that
       # aborted partway measures a fraction of the real number, so it would pile a ratchet failure on top of the spec
       # failure that actually needs fixing.
+      #
+      # The guard is what keeps this gate from silently becoming a no-op. `coverageReport` warns and exits 0 when the
+      # data dir is empty, and the compiler plugin empties it on every instrumented compile — so anything that
+      # recompiles after the spec steps (an added sbt step, a plugin bump that invalidates zinc) would turn a required
+      # check green with nothing measured.
       - name: Coverage report (blocking ratchet)
-        run: sbt coverageReport
+        run: |
+          test -s target/scala-2.13/scoverage-data/scoverage.coverage \
+            || { echo "::error::no scoverage data — the spec steps above did not run under \`coverage\`, or something recompiled after them"; exit 1; }
+          sbt coverageReport
         # No app boot and no DB here, but loading the build still evaluates config; these mirror the `backend` job.
         env:
           SIDEWALK_APPLICATION_SECRET: dummy-ci-secret
           INTERNAL_API_KEY: dummy-ci-internal-key
 
+      # `always()` rather than `failure()`: a green run is when you most want this, since raising the floor means
+      # finding where the headroom is, and the console prints only the total. On an earlier-step failure the report
+      # step is skipped and there is nothing to upload, which this tolerates quietly.
       - name: Upload coverage report
-        if: failure()
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: scoverage-report
           path: target/scala-2.13/scoverage-report/
           retention-days: 7
+          if-no-files-found: ignore
 
   e2e-smoke:
     name: E2E smoke (Playwright)

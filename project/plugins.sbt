@@ -14,7 +14,7 @@ addSbtPlugin("org.playframework" % "sbt-plugin" % "3.0.11")
 // plugin fetches it dynamically. Wired into CI as advisory-only for now (no repo-wide reformat pass yet).
 addSbtPlugin("org.scalameta" % "sbt-scalafmt" % "2.5.6")
 
-// Test coverage (scoverage). Used in a later CI phase with a low, ratcheting threshold.
+// Test coverage (scoverage). Threshold and exclusions are in build.sbt; enforced by the `backend-tests` CI job.
 addSbtPlugin("org.scoverage" % "sbt-scoverage" % "2.4.4")
 
 // Content-fingerprints assets so `Assets.versioned` can serve them immutably; wired into the pipeline in build.sbt.

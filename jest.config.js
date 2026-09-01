@@ -18,15 +18,13 @@ module.exports = {
   roots: ['<rootDir>/test/js', '<rootDir>/public/js'],
   testMatch: ['<rootDir>/test/js/**/*.test.js'],
 
-  // Grunt's bundles duplicate every source file they concatenate, and being gitignored they're present in a working
-  // checkout but absent in CI. Excluding them keeps the number the same either way.
-  modulePathIgnorePatterns: ['/public/js/[^/]+/build/'],
-
   // These tests and the modules under test are plain ES6 that Node runs natively. Jest layers coverage
   // instrumentation on top, so an empty transform does not disable it.
   transform: {},
 
-  // The whole first-party frontend, so an untested file counts against the ratio rather than being invisible.
+  // The whole first-party frontend, so an untested file counts against the ratio rather than being invisible. The
+  // build/ exclusion is load-bearing, not tidiness: the frontend CI job runs `npx grunt` before this suite, so the
+  // bundles are on disk here as well as locally, and each one duplicates every source file it concatenates.
   collectCoverageFrom: [
     'public/js/**/*.js',
     '!public/js/**/build/**'
