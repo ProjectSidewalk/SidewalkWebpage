@@ -1,9 +1,8 @@
 # Code style guide
 
 This is the detailed style reference for Project Sidewalk. [`CONTRIBUTING.md`](../CONTRIBUTING.md) lists the
-day-to-day essentials and links here for the full conventions; [`CLAUDE.md`](../CLAUDE.md) holds the architecture and
-the ScalaDoc/JSDoc comment standards. This page explains the conventions a linter can't, and the *why* behind the
-ones it can.
+day-to-day essentials and links here for the full conventions; [`docs/architecture.md`](architecture.md) holds the
+architecture. This page explains the conventions a linter can't, and the *why* behind the ones it can.
 
 **The linters are the source of truth for mechanically-checkable rules.** JavaScript/CSS/HTML rules live in
 [`eslint.config.js`](../eslint.config.js), [`stylelint.config.mjs`](../stylelint.config.mjs), and
@@ -24,7 +23,7 @@ These apply across every language in the repo.
 - **Indent with spaces, never tabs.** Scala, JS, and CSS all use 2-space indent.
 - **End every file with a single newline.** A missing final newline shows up as a red marker on the GitHub diff.
 - **Comments explain _why_, not _what_** — well-named identifiers cover the *what*. Start a comment with a capital
-  letter and end it with a period:
+  letter and end it with a period (full rules and the doc-header templates in [Comments](#comments) below):
 
   ```js
   // This is the correct style.
@@ -110,7 +109,7 @@ Edit files under `src/`; never edit the generated `build/` bundles. Most rules b
   ```
 
 - **Document with JSDoc** (`/** ... */`) on every `class` and non-trivial method, including `#private` ones — type
-  annotations matter because there's no static checker. Full template and rules in [`CLAUDE.md`](../CLAUDE.md).
+  annotations matter because there's no static checker. Full template and rules in [Comments](#comments).
 
 ## HTML / CSS
 
@@ -219,11 +218,146 @@ is a blocking CI gate). Conventions scalafmt doesn't cover:
   loads every row into memory); for CPU-heavy work use the `cpu-intensive` `ExecutionContext` rather than the default
   (see existing usages).
 - **Document with ScalaDoc** (`/** ... */`) on every class/trait/object and non-trivial method, including `private`
-  ones. Full template and rules in [`CLAUDE.md`](../CLAUDE.md).
+  ones. Full template and rules in [Comments](#comments).
+- **Evolutions** have their own rules — numbering, ownership, constraints, prod-scale SQL — in
+  [`docs/evolutions.md`](evolutions.md).
 
 ## Public API (`/v3`)
 
 The API has its own naming contract: **output field names are `snake_case`** (JSON, GeoJSON properties, CSV headers,
-shapefile/geopackage fields) while **query/REST parameters are `camelCase`**. New API DTOs go in `app/models/api/`.
-The full convention — including the snake_case `JsonConfiguration` pattern and the `StreamingApiType` serialization
-shape — is in the API sections of [`CLAUDE.md`](../CLAUDE.md).
+GeoPackage fields) while **query/REST parameters are `camelCase`**; Shapefile is the one exception. New API DTOs go
+in `app/models/api/`. The full convention — including the snake_case `JsonConfiguration` pattern and the
+`StreamingApiType` serialization shape — is in [`docs/architecture.md`](architecture.md) → "The public API".
+
+## Comments
+
+Comments communicate **why** code makes a choice, not **what** it does (well-named identifiers handle that). Follow
+the language-specific conventions below so that IDEs, documentation generators, and the next developer can consume
+them.
+
+### Scala (ScalaDoc)
+
+Use `/** ... */` for all ScalaDoc. Every class, trait, object, and non-trivial method gets one, including `private`
+methods: private methods are read by the next developer, not just public API consumers.
+
+**Method / function:**
+
+```scala
+/**
+ * One-line summary of what this does or returns.
+ *
+ * Longer description when the contract, preconditions, or edge cases need more room.
+ * Separate from the summary with a blank line; keep each line under 120 chars.
+ *
+ * @param name  Description. Don't repeat the type — it is already in the signature.
+ * @param other Description. Align multi-param descriptions for readability.
+ * @return      What is returned and meaningful edge cases (e.g. `None` if absent,
+ *              `Left(ApiError)` if malformed, `Right(Some(...))` if valid).
+ */
+```
+
+**Class / trait / object / companion:**
+
+```scala
+/**
+ * One-line description of this type's single responsibility.
+ *
+ * Longer description if construction semantics, lifecycle, or thread-safety matter.
+ *
+ * @param cc  Description of constructor param (omit implicit/DI-only params).
+ */
+```
+
+Rules:
+
+- Use `@return` (not `@returns`) — that is the ScalaDoc standard.
+- Align `@param` descriptions when there are multiple, consistent with Play/Slick/Scala stdlib style.
+- Omit `@throws` unless the exception is part of the intentional public contract.
+- Do not document implicit params that are pure DI plumbing.
+- Trivial one-line helpers (simple delegators, obvious getters) may omit the header.
+
+### JavaScript (JSDoc)
+
+Use `/** ... */` for all JSDoc. Every `class` and every non-trivial method gets one, including `#private` methods.
+Type annotations in `@param` matter because there is no static type checker.
+
+**Method / function:**
+
+```javascript
+/**
+ * One-line summary.
+ *
+ * Longer description when needed. Keep lines under 120 chars.
+ *
+ * @param {string} name - Description. Mark optional params as {string} [name] = defaultValue.
+ * @param {number} count - Description.
+ * @returns {boolean} What is returned; include edge cases (null if not found, etc.).
+ */
+```
+
+**Class:**
+
+```javascript
+/**
+ * One-line description of the class's single responsibility.
+ */
+class Foo {
+    /**
+     * @param {string} name - Description.
+     */
+    constructor(name) { ... }
+}
+```
+
+Rules:
+
+- Use `@returns` (not `@return`) — that is the JSDoc standard (opposite of ScalaDoc).
+- Always include `{Type}` in `@param` and `@returns`.
+- Use `{Type} [paramName]` (square brackets) for optional parameters, and `{Type} [paramName=default]` when a
+  default exists and is non-obvious.
+- Trivial one-line helpers may omit the header.
+
+### Inline comments
+
+Use `//` for inline comments within a body. Write the **why**, never the what:
+
+```scala
+// bbox takes precedence over region filters per the v3 API contract (#3871).
+val finalBbox = if (bboxActive) parsedBbox else ...
+```
+
+not:
+
+```scala
+// check if bbox is active   ← restates the code; adds no value
+val finalBbox = if (bboxActive) parsedBbox else ...
+```
+
+Good targets for inline comments: non-obvious algorithmic choices or ordering constraints; business rules and domain
+invariants that aren't apparent from identifiers; workarounds for external bugs or framework quirks; why a specific
+constant or threshold was chosen (link the issue); branches where the "looks-wrong" path is actually correct;
+validation sequences where the order of checks matters.
+
+### What not to comment
+
+- Do not restate what the code obviously does.
+- Do not describe what the code *used to* do, or narrate a change — that is changelog, and git history already
+  records it. This is the single most common offender: a diff renames or replaces something, and a comment gets
+  added to explain the *before*. The reader only needs the current contract; if a comment is only meaningful read
+  against the diff, delete it. Applies everywhere, but especially in tests and `models/` DAO/DTO files:
+
+  ```scala
+  // BAD — narrates the rename; only makes sense next to the diff:
+  // region_id + region_name replace the old neighborhood field (#3980).
+  body must not include "neighborhood" // now region_name (#3980)
+
+  // GOOD — the assertions already state the current contract; no comment needed:
+  body must include("region_id,region_name")
+  body must not include "neighborhood"
+  ```
+
+  Tells that you are writing one of these and should stop: *used to*, *previously*, *formerly*, *replaces the old*,
+  *renamed to/from*, *no longer*. A `PostToolUse` hook in `.claude/settings.json` flags these on save.
+- Do not leave `TODO`/`FIXME` in committed code without a linked tracking issue.
+- Do not add a header just because a function was touched; only add one if it is missing and the function is
+  non-trivial.

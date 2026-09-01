@@ -2,8 +2,8 @@
 
 A tour of how Project Sidewalk is put together, for contributors getting oriented. For setup see
 [`docs/dev-environment.md`](dev-environment.md); for the contribution workflow and coding standards see
-[`CONTRIBUTING.md`](../CONTRIBUTING.md). [`CLAUDE.md`](../CLAUDE.md) is the AI-assistant-facing companion to this
-document — same architecture, plus tool/operational notes for coding agents.
+[`CONTRIBUTING.md`](../CONTRIBUTING.md). [`CLAUDE.md`](../CLAUDE.md) is the short AI-assistant-facing index of
+cross-cutting rules; it points here for the architecture.
 
 ## Overview
 
@@ -59,24 +59,11 @@ The backend follows a consistent layering: **routes → Controller → Service �
 - **Per-city schemas** — each city is its own schema (`sidewalk_<city>`); they're essentially identical.
   Authentication lives in `sidewalk_login`.
 - **Evolutions** — schema changes are Play evolutions: numbered SQL files in `conf/evolutions/default/`, each with
-  `# --- !Ups` / `# --- !Downs`. Keep all of a PR's schema changes in **one** evolution file — nothing ships until the
-  PR merges, so fold follow-up changes into the existing file rather than minting the next number. The dev DB is seeded
-  from a dump rather than built up from evolutions; the scripts that
-  do that seeding (and other DB lifecycle/maintenance tasks) live in [`db/scripts/`](../db/scripts/README.md). Every new
-  table must be followed by `ALTER TABLE <name> OWNER TO sidewalk;` (see 309.sql) — on prod, evolutions run as an admin
-  role, so without it the `sidewalk` app role lacks permissions on the table. This applies to tables only; SERIAL
-  sequences follow the table owner automatically, and enum types/views don't need it. Give each table its **full set of
-  constraints** up front — `NOT NULL`, `UNIQUE`/`PRIMARY KEY`, `FOREIGN KEY`, and `CHECK` for bounded domains (severity
-  ranges, non-negative counts, valid coordinates) — and mirror them in the Slick model, rather than leaning on the app
-  to keep data clean; backfilling missing constraints later has taken whole PRs (#3574, #3944). For a column with a
-  **closed set of values**, prefer a **Postgres enum type** when the column is on a high-row-count table, written at
-  runtime, or mapped to a Scala enum (add the mapper in `MyPostgresProfile` via `createEnumJdbcType`; growing a set
-  later is just `ALTER TYPE ... ADD VALUE`), and a plain **`CHECK (col IN (...))`** for tiny script-seeded config/cache
-  tables where an enum buys nothing (#4103). Watch the shared namespace: a lookup *table* being replaced by an enum
-  *type* of the same name must be dropped before the `CREATE TYPE`. And because Postgres
-  keeps a constraint's or index's original name when you rename a table or column, an evolution that renames a column
-  must also `RENAME CONSTRAINT` / rename the affected indexes (and their name strings in the model) back to the
-  `<table>_<column>_{fkey,key,pkey,check}` convention.
+  `# --- !Ups` / `# --- !Downs`, auto-applied at startup to every city schema. Numbers are gapless, a PR's changes go
+  in one file, every new table gets `ALTER TABLE <name> OWNER TO sidewalk;` and its full set of constraints, and the
+  SQL is written for production scale. The full rules are in [`docs/evolutions.md`](evolutions.md). The dev DB is
+  seeded from a dump rather than built up from evolutions; the scripts that do that seeding (and other DB
+  lifecycle/maintenance tasks) live in [`db/scripts/`](../db/scripts/README.md).
 
 ### Dependency injection & runtime
 
@@ -106,19 +93,41 @@ job: a bookkeeping failure is logged and swallowed, and a job's own failure prop
 
 The `/v3` API is the canonical public surface (handlers in `app/controllers/api/`). Conventions (issue #3871):
 
-- **Query/REST parameters are camelCase** (`minSeverity`, `regionId`, `validationStatus`).
+- **Query/REST parameters are camelCase** (`minSeverity`, `regionId`, `validationStatus`). `ApiError.parameter`
+  names a query param, so it stays camelCase too.
 - **All output field names are snake_case** — JSON bodies, GeoJSON `properties`, CSV headers, and
-  GeoPackage fields (`label_id`, `region_name`, `city_id`) — one canonical field name across those formats.
+  GeoPackage fields (`label_id`, `region_name`, `city_id`) — one canonical field name across those formats. For
+  macro serializers, use a scoped `JsonConfiguration(JsonNaming.SnakeCase)` so `Json.format`/`Json.writes` emit
+  snake_case; hand-build the `JsObject` with snake_case keys for nested/custom shapes.
 - **Shapefile is the exception:** its fields stay **camelCase and abbreviated** (`labelId`, `regionName`,
   `neighborhd`, `cameraHdng`). The DBF format hard-truncates field names to 10 chars, so shapefiles can't carry the
   canonical snake_case names regardless of casing; camelCase reclaims the byte the underscore would waste. Shapefile
   is a legacy export being phased out — GeoPackage is the modern GIS export that carries the canonical snake_case names.
-- v3 is a **preview** surface: breaking changes are made in place rather than minting a new version.
+- v3 is a **preview** surface: breaking changes are made in place rather than minting a new version (precedent: #4223).
 
-The response/filter data structures (DTOs) live in **`app/models/api/`** (`package models.api`), in per-domain
-`*ApiModels.scala` files (issue #3885). Response types are named `*ForApi`; parsed query filters are
-`*FiltersForApi`. Response DTOs extend `StreamingApiType` and implement `toJson`/`toCsvRow` inline so the
-`BaseApiController` helpers can serialize a stream of them uniformly.
+**Data structures (DTOs).** The response/filter types live in **`app/models/api/`** (`package models.api`), in
+per-domain `*ApiModels.scala` files (`LabelApiModels.scala`, `StreetsApiModels.scala`, …). That is the canonical
+home: a `*Table.scala` DAO *produces* its DTOs but never *defines* them (issue #3885). The convention:
+
+- **Naming:** response types are `*ForApi` (`LabelDataForApi`, `UserStatForApi`); parsed query filters are
+  `*FiltersForApi` (`RawLabelFiltersForApi`).
+- **Streaming:** response DTOs extend `StreamingApiType` (`app/models/api/StreamingApiType.scala`) and implement
+  `toJson` / `toCsvRow` inline on the case class, so `BaseApiController`'s `outputJSON`/`outputCSV`/`outputGeoJSON`
+  helpers can serialize a stream of them uniformly. Serialization lives *on the DTO*, not as free functions elsewhere.
+- **Companion object** holds the `csvHeader` string (next to `toCsvRow`, so columns can't drift) and the JSON writers.
+- **Shared helpers:** reuse `ApiModelUtils` (`escapeCsvField`, `createGeoJsonPointGeometry`, `labelTypeOrdering`,
+  `toSnakeKey`, …) rather than re-rolling CSV/GeoJSON logic.
+- **Every `/v3` DTO's serialization lives in `models.api`.** There is no shared formats object for API output and no
+  API serialization inline in a controller. The `app/formats/json/*Formats.scala` files serve the internal (non-`/v3`)
+  endpoints only (issue #3891).
+
+**Internal-key routes need `+ nocsrf`.** Any server-to-server POST authenticated by the internal key
+(`ControllerUtils.internalKeyValid`) needs a `+ nocsrf` modifier line above its `conf/routes` entry. Play's CSRF
+filter protects every unsafe request carrying an `Authorization` header, and a bearer token is exactly how these
+callers authenticate, so without the modifier the request 403s before it reaches the controller. This is invisible in
+local testing (a curl without the header 401s the same either way) and cost `/ai/submitLabelsOnPano` a silent outage
+(#4806). `internalKeyValid` fails closed on an unset key, so it, not CSRF, is the gate. Existing examples:
+`/clusteringResults`, `/ai/submitLabelsOnPano`.
 
 ### Public label-share surface (`/label/:id`)
 
@@ -234,8 +243,16 @@ Two standalone scripts under [`scripts/`](../scripts) (see [`scripts/README.md`]
 - `scripts/check_streets_for_imagery.py` — checks streets for available street-view imagery. Run as `python3.13`,
   the second interpreter the web image carries for offline tooling whose libraries have moved past 3.8.
 
-Their pure logic is unit-tested under [`test/python/`](../test/python) (`pytest`) — one CI run per interpreter, the
-in-band leg blocking and the offline-tooling leg advisory. See [`docs/testing-and-ci.md`](testing-and-ci.md).
+`label_clustering.py` is invoked **in-band** (`ClusterService.runMultiUserClustering` shells out to it per region
+during admin-triggered `/runClustering` and the nightly `ClusteringActor` run), so the deployed app must be able to
+find and run it: `scripts/` is bundled into the staged package via `Universal / mappings` in `build.sbt`,
+`ClusterService` resolves the script against the app root rather than the process working directory (a staged app
+runs from the stage dir, not the repo root), and its `requirements.txt` deps must be installable on the `python3` the
+app invokes. Don't add libraries to `requirements.txt` that have dropped 3.8.
+
+Their pure logic is unit-tested under [`test/python/`](../test/python) (`pytest`, coverage gated at 100%) — one CI
+run per interpreter, the in-band leg blocking and the offline-tooling leg advisory. See
+[`docs/testing-and-ci.md`](testing-and-ci.md).
 
 ## Label types
 
@@ -250,5 +267,5 @@ canonical color table and icon locations.
 - [`docs/deployment-and-stages.md`](deployment-and-stages.md) — hosted stages, branch/tag → stage deploys, prod runtime shape.
 - [`CONTRIBUTING.md`](../CONTRIBUTING.md) — workflow, coding standards, i18n, testing.
 - [`docs/testing-and-ci.md`](testing-and-ci.md) — testing strategy and CI.
-- [`CLAUDE.md`](../CLAUDE.md) — the same architecture plus conventions and operational notes, used as AI-assistant
-  context.
+- [`docs/evolutions.md`](evolutions.md) — the rules for writing a schema change.
+- [`CLAUDE.md`](../CLAUDE.md) — the short index of cross-cutting rules used as AI-assistant context.
