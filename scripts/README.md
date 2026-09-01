@@ -139,9 +139,11 @@ largest distance from its centerline among the panos it saw. Once a scan has pro
 threshold for rejecting off-street imagery can be read off real data rather than guessed. The measurements and the
 plan are in #5091.
 
-Changing the radius changes which streets count as having imagery, so a checkpoint written under a different one
-cannot be resumed into the current outputs. The scan warns when it spots one (a checkpoint with no
-`max_cross_track_m` column); delete that provider's `streets_imagery_checkpoint_<provider>.csv` and rescan.
+`--search-radius-m` turns that knob, which is how the two radii get compared on a real city. Changing it changes
+which streets count as having imagery, so a checkpoint written under a different radius cannot be resumed into the
+current outputs — give each radius its own `db/onboarding/<city-id>/` dir, or delete that provider's
+`streets_imagery_checkpoint_<provider>.csv` between runs. The scan warns when it spots a checkpoint written before
+the `max_cross_track_m` column existed.
 
 ### Resilience & resume
 
