@@ -121,7 +121,7 @@
 }
 
 .validation-error {
-  color: var(--color-error-200);
+  color: var(--color-error-300);
   text-align: center;
   padding: var(--space-xxl);
   background-color: rgb(from var(--color-error-200) r g b / 10%);

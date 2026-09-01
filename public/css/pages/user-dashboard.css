@@ -1241,6 +1241,11 @@
   color: var(--color-neutral-700);
 }
 
+/* Link blue reaches only 1.2:1 against this muted copy, so the hue can't be the only thing marking the link (1.4.1). */
+.ud-impact-bridge a {
+  text-decoration: underline;
+}
+
 /* ---- Leaderboard: community band + podium ---------------------------------------------------------------------- */
 .ud-community-band {
   display: grid;
