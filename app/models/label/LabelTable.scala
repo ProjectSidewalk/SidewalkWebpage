@@ -1146,7 +1146,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              lp.lng,
              pano_data.lat AS camera_lat,
              pano_data.lng AS camera_lng,
-             r.role = 'AI' AS ai_generated,
+             ur.role = 'AI' AS ai_generated,
              pano_data.expired,
              #$fromCurrentUserExpr AS from_current_user,
              pano_data.width AS pano_width,
@@ -1164,7 +1164,6 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       INNER JOIN street_edge_region AS ser ON lb1.street_edge_id = ser.street_edge_id
       INNER JOIN sidewalk_user AS u ON at.user_id = u.user_id
       INNER JOIN user_role AS ur ON u.user_id = ur.user_id
-      INNER JOIN role AS r ON ur.role_id = r.role_id
       INNER JOIN label_point AS lp ON lb1.label_id = lp.label_id
       INNER JOIN (
           SELECT lb.label_id,

@@ -794,7 +794,7 @@ class AdminServiceImpl @Inject() (
       signInTimesAndCounts: Map[String, (Int, Option[OffsetDateTime])] <- webpageActivityTable.getSignInTimesAndCounts
         .map(_.toMap)
       // Map(user_id: String -> label_count: Int).
-      labelCounts: Map[String, Int] <- labelTable.countLabelsByUser.map(_.toMap)
+      labelCounts: Map[String, Int]                        <- labelTable.countLabelsByUser.map(_.toMap)
       validatedCounts: Map[String, (Role.Value, Int, Int)] <- labelValidationTable.getValidationCountsByUser
         .map(_.toMap)
       // Map(user_id: String -> (count: Int, agreed: Int, disagreed: Int)).
