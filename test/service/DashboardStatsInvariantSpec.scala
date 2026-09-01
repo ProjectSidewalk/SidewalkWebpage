@@ -1,8 +1,10 @@
 package service
 
+import forms.UsernamePolicy
 import models.user.{LeaderboardStat, SidewalkUserWithRole, UserStatTable}
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
+import models.utils.ProfanityGuard
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.db.slick.DatabaseConfigProvider
@@ -280,9 +282,16 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
     }
 
     "reject a name another user already holds" in {
-      // Legacy usernames may contain characters the charset rule now forbids (that reject fires first), so pick a
-      // board user whose name would pass it.
-      overallBoard.map(_.username).find(_.matches("^[A-Za-z0-9_-]+$")).foreach { takenName =>
+      // Uniqueness is the last rung of the ladder, so the name has to clear every rung above it: existing usernames
+      // predate the policy and can fail any of them (the login migration's `orphan_<uuid>` names are 43 chars, well
+      // over maxLength). Read the rules off the policy rather than restating them, so a bound change can't leave this
+      // asserting against a name the service now rejects earlier.
+      val eligible = overallBoard.map(_.username).find { name =>
+        UsernamePolicy.pattern.findFirstIn(name).isDefined &&
+        name.length >= UsernamePolicy.minLength && name.length <= UsernamePolicy.maxLength &&
+        ProfanityGuard.isClean(name)
+      }
+      eligible.foreach { takenName =>
         await(userService.changeUsername(ghostId, takenName)).left.toOption.get must
           be("dashboard.settings.username.error.taken")
       }
