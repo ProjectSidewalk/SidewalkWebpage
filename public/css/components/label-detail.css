@@ -786,10 +786,40 @@ button.label-detail__meta-cell:focus-visible {
   outline-offset: 2px;
 }
 
+/* Cancel is a design-system secondary button (.button-ps .button--small .button--secondary); only its height and
+   radius are pinned here, to match the bespoke submit button it stands beside rather than sit a few px shorter.
+   The negative offsets are what make it visible at all: .button--secondary draws its edge as an `outline`, which
+   paints *outside* the border box, and the row above clips to a box exactly as tall as this button — so an
+   outward outline lost its top and bottom and rendered as two floating arcs. Drawing inward costs a pixel of fill
+   and nothing else. Same for the focus ring, which would otherwise be clipped the same way. */
+.label-detail__comment-cancel {
+  box-sizing: border-box;
+  height: 34px;
+  justify-content: center;
+  border-radius: 12px;
+  flex-shrink: 0;
+  outline-offset: -1px;
+}
+
+.label-detail__comment-cancel:focus-visible {
+  outline: 2px solid var(--color-link-100);
+  outline-offset: -2px;
+}
+
+/* Sits between the comment row and the list rather than inside the row, so it survives the row collapsing on save.
+   The explicit [hidden] rule is required: a `display` here would otherwise beat the UA stylesheet's `[hidden]` and
+   leave an empty line holding space whenever there is nothing to announce. */
 .label-detail__comment-confirmation {
+  display: block;
+  margin-bottom: 6px;
   font: var(--text-caption-regular);
   color: var(--color-pine-700);
 }
+
+.label-detail__comment-confirmation[hidden] { display: none; }
+
+/* A failed save or delete is the one outcome the reader has to act on, so it doesn't wear the success green. */
+.label-detail__comment-confirmation.is-error { color: var(--color-orange-700); }
 
 /* ─── Description / comments ──────────────────────────────────────────── */
 
@@ -873,6 +903,31 @@ button.label-detail__meta-cell:focus-visible {
 .label-detail__comment-avatar--3 { background: var(--color-link-100); }
 .label-detail__comment-avatar--4 { background: var(--color-banana-700); }
 .label-detail__comment-avatar--5 { background: var(--color-asphalt-200); }
+
+/* The commenter's current vote (#5015), in the same colors the pano ring and overlay buttons give each vote. Black
+   on each of the three backgrounds clears WCAG AAA for text (10.7:1 on pine-500, 7.1:1 on orange-500, 14.3:1 on
+   asphalt-100), and the glyph inherits that same color rather than the icon files' hardcoded #242424. */
+.label-detail__comment-vote {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-right: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font: var(--text-tiny-semibold);
+  color: var(--color-neutral-black);
+  vertical-align: middle;
+}
+
+.label-detail__comment-vote svg {
+  width: 12px;
+  height: 12px;
+  display: block;
+}
+
+.label-detail__comment-vote--agree    { background: var(--color-pine-500); }
+.label-detail__comment-vote--disagree { background: var(--color-orange-500); }
+.label-detail__comment-vote--unsure   { background: var(--color-asphalt-100); }
 
 /* When the comment was left (relative time; exact date in the tooltip). */
 .label-detail__comment-when {
@@ -1371,6 +1426,8 @@ button.label-detail__meta-cell:focus-visible {
 
 .label-detail__story-edit,
 .label-detail__story-delete,
+.label-detail__comment-edit,
+.label-detail__comment-delete,
 .label-detail__tags-edit {
   padding: 2px;
   border: none;
@@ -1383,9 +1440,23 @@ button.label-detail__meta-cell:focus-visible {
 }
 
 .label-detail__story-edit,
+.label-detail__comment-edit,
 .label-detail__tags-edit { color: var(--color-link-200); }
 
-.label-detail__story-delete { color: var(--color-orange-700); }
+.label-detail__story-delete,
+.label-detail__comment-delete { color: var(--color-orange-700); }
+
+/* The comment controls trail the comment text, so the spacing leads rather than follows. */
+.label-detail__comment-own-control {
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.label-detail__comment-own-control:disabled {
+  color: var(--color-neutral-700);
+  cursor: default;
+  text-decoration: none; /* The underline is what makes it read as a live control; off means off. */
+}
 
 /* The Tags control is marked aria-disabled rather than natively disabled when the label's imagery didn't load
    (#5047), so it still takes the hover and focus that open the tooltip explaining why. This is the matching look:
@@ -1398,6 +1469,8 @@ button.label-detail__meta-cell:focus-visible {
 
 .label-detail__story-edit:focus-visible,
 .label-detail__story-delete:focus-visible,
+.label-detail__comment-edit:focus-visible,
+.label-detail__comment-delete:focus-visible,
 .label-detail__tags-edit:focus-visible {
   outline: 2px solid #4a90e2;
   outline-offset: 2px;

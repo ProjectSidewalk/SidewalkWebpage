@@ -33,6 +33,7 @@ trait ValidationService {
   def insertEnvironment(env: ValidationTaskEnvironment): Future[Int]
   def insertMultipleInteractions(interactions: Seq[ValidationTaskInteraction]): Future[Seq[Int]]
   def replaceComment(comment: ValidationTaskComment): Future[Int]
+  def deleteComment(labelId: Int, userId: String): Future[Int]
   def submitValidations(validationSubmissions: Seq[ValidationSubmission]): Future[Seq[Int]]
   def submitValidationsDbio(validationSubmissions: Seq[ValidationSubmission]): DBIO[Seq[Int]]
 }
@@ -187,6 +188,17 @@ class ValidationServiceImpl @Inject() (
   }
 
   /**
+   * Removes the user's comment on a label, if they left one.
+   *
+   * Backs the label card's explicit Delete control (#5015). Deleting is otherwise only reachable by clearing the
+   * vote the comment rode in on, which throws away the verdict along with the text.
+   *
+   * @return Count of comments deleted, 0 or 1.
+   */
+  def deleteComment(labelId: Int, userId: String): Future[Int] =
+    db.run(validationTaskCommentTable.deleteIfExists(labelId, userId))
+
+  /**
    * Submits a set of validations from a POST request on Validate.
    * @param validationSubmissions A sequence of ValidationSubmission objects
    * @return A sequence of the label_validation_ids of the inserted/updated validations.
@@ -213,8 +225,9 @@ class ValidationServiceImpl @Inject() (
           case None         => DBIO.successful(false)
         }
 
-        // Comments are keyed by (label, user) rather than by validation (and there can be more than one — #4942), so
-        // only clear them when this submission accounts for them: an undo/redo retracts the comment that came with
+        // Comments are keyed by (label, user) rather than by validation — one apiece, per
+        // validation_task_comment_label_id_user_id_unique (#4942) — so only clear them when this submission accounts
+        // for them: an undo/redo retracts the comment that came with
         // the vote, and a submission carrying its own replaces it. A repeat validation carrying none must leave the
         // user's earlier free text alone — nothing could restore it.
         val oldCommentRemoved = if (valSubmission.undone || valSubmission.redone || valSubmission.comment.isDefined) {

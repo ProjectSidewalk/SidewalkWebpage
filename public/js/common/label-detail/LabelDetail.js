@@ -126,6 +126,9 @@ class LabelDetail {
   #aiValidation;
   #comments;
   #myCommentIdx;
+  #commentStatusTimer = null;
+  #editingComment = false;
+  #escapeCancelledEdit = false;  // Set on an Escape keydown that ended an edit; read by the matching keyup.
   #shareWidget;
   #storySection;
   #highlightStoryId;
@@ -380,6 +383,7 @@ class LabelDetail {
     els.commentInput = this.#q('.label-detail__comment-input');
     els.commentButton = this.#q('.label-detail__comment-submit');
     els.commentConfirm = this.#q('.label-detail__comment-confirmation');
+    els.commentCancel = this.#q('.label-detail__comment-cancel');
 
     // Validation count display: <img> elements whose `src` is swapped between the four icon variants
     // (outline / filled / outline-ai / filled-ai). The base URL for the icon files is read from a data
@@ -492,13 +496,27 @@ class LabelDetail {
         // Swallow the first Escape so it only blurs the input. Second esc will close the dialog.
         e.preventDefault();
         e.stopPropagation();
+        // Mid-edit that first Escape does more than blur: it abandons the edit, which is the way out a reader
+        // reaches for when they opened the box by mistake. Focus deliberately stays in the input until the matching
+        // keyup — see the keyup handler below.
+        this.#escapeCancelledEdit = this.#editingComment;
+        if (this.#editingComment) this.#cancelCommentEdit(false);
       }
     });
-    // Same method for swallowing first Escape, but need to use 'keyup' for Gallery.
+    // Same method for swallowing first Escape, but need to use 'keyup' for Gallery — where the shortcut handler is
+    // on `window` and stands down only for an INPUT/TEXTAREA (`KeyboardManager.#documentKeyUp`). So the focus move
+    // that ends an edit has to wait for this event: hand focus to a <button> during keydown and the keyup arrives
+    // here on the button instead, past both this listener and that guard, and Escape closes the whole expanded view
+    // on the same press that cancelled the edit.
     els.commentInput.addEventListener('keyup', (e) => {
       if (e.key === 'Escape') {
         e.stopPropagation();
-        els.commentInput.blur();
+        if (this.#escapeCancelledEdit) {
+          this.#escapeCancelledEdit = false;
+          this.#focusCommentEditButton();
+        } else {
+          els.commentInput.blur();
+        }
       }
     });
     els.commentButton.addEventListener('click', () => {
@@ -506,6 +524,7 @@ class LabelDetail {
       const comment = els.commentInput.value.trim();
       if (comment) this.#submitComment(comment);
     });
+    els.commentCancel?.addEventListener('click', () => this.#cancelCommentEdit());
 
     if (this.#admin) {
       for (const flag of this.#FLAG_NAMES) {
@@ -728,12 +747,18 @@ class LabelDetail {
     // Index of the current user's comment in #comments, if any. The backend replaces comments rather than adding
     // new ones, so we mirror that here.
     this.#myCommentIdx = this.#comments.findIndex((c) => this.#isOwnComment(c));
+    // An edit session belongs to the label it was opened on, so paging to the next label ends it. Cleared before
+    // the render so the new label's own comment draws its Edit/Delete rather than an inherited open-box state.
+    this.#editingComment = false;
     this.#renderComments();
 
     // A typed-but-unsent comment belongs to the label it was typed on, so it doesn't ride along to the next one
-    // (Gallery pages between labels without ever tearing the card down).
+    // (Gallery pages between labels without ever tearing the card down). The status message is per-label for the
+    // same reason: without this, paging within its 1.5s leaves the last label's "Comment Submitted" over this one.
     els.commentInput.value = '';
     els.commentButton.classList.remove('is-active');
+    clearTimeout(this.#commentStatusTimer);
+    if (els.commentConfirm) els.commentConfirm.hidden = true;
 
     // Lived-experience stories (#4054): lazy per-label fetch, so the metadata payload stays untouched. The type name
     // rides along so the composer's title can name the label ("Write your story about this Missing Curb Ramp").
@@ -777,25 +802,46 @@ class LabelDetail {
     this.#updateCommentRow();
   }
 
+  /** The prompt each vote puts on the comment box's label and placeholder. Its keys are also the votes that open it. */
+  static #COMMENT_PROMPT_KEYS = {
+    Agree: 'labelmap:why-agree',
+    Disagree: 'labelmap:why-disagree',
+    Unsure: 'labelmap:why-unsure',
+  };
+
   /**
-   * Shows the comment box only alongside a Disagree/Unsure vote, prompting for the reasoning behind it (#4572).
-   * Validator comments exist to justify a disputed label; open-ended notes about a place belong to
-   * lived-experience stories (#4054), not here.
+   * Shows the comment box alongside the user's vote, with a per-vote prompt: Disagree/Unsure ask for the
+   * reasoning behind the dispute, Agree invites an optional note (#5015). Comments stay tied to a vote —
+   * open-ended notes about a place belong to lived-experience stories (#4054), not here.
+   *
+   * Once the user has a comment on this label the box closes and their comment carries Edit/Delete instead, the same
+   * way a story of your own replaces the "share your story" CTA (`StorySection`). A comment is unique per
+   * (label, user), so a second submission silently replaced the first — an open, inviting box above your own comment
+   * offered exactly the action that destroyed it.
+   *
    * @param {boolean} [focusOnReveal=false] - Focus the input when this call reveals the row (fresh-vote flow).
    */
   #updateCommentRow(focusOnReveal = false) {
     const els = this.#els;
     if (!els.commentRow) return;
     const action = this.#prevAction;
-    const show = !this.#locked && (action === 'Disagree' || action === 'Unsure');
+    const voted = Object.hasOwn(LabelDetail.#COMMENT_PROMPT_KEYS, action ?? '');
+    // Editing opens the box even with no vote: clearing a vote deletes its comment, but comments predating that rule
+    // still exist, and their author must be able to reach their own text.
+    const show = !this.#locked && (this.#editingComment || (voted && this.#myCommentIdx < 0));
     const wasOpen = els.commentRow.classList.contains('is-open');
     els.commentRow.classList.toggle('is-open', show);
     if (show) {
-      const prompt = i18next.t(action === 'Disagree' ? 'labelmap:why-disagree' : 'labelmap:why-unsure');
+      // An edit with no vote behind it has no per-vote prompt to show, so it falls back to the neutral one.
+      const prompt = voted
+        ? i18next.t(LabelDetail.#COMMENT_PROMPT_KEYS[action])
+        : i18next.t('labelmap:add-comment');
       els.commentInput.placeholder = prompt;
       if (els.commentLabel) els.commentLabel.textContent = prompt;
       if (!wasOpen && focusOnReveal) els.commentInput.focus();
     }
+    els.commentButton.textContent = i18next.t(this.#editingComment ? 'labelmap:comment-save' : 'labelmap:comment');
+    if (els.commentCancel) els.commentCancel.hidden = !this.#editingComment;
 
     // Show each half of the zone only when it has something to say: the labeler's description when one was
     // written, the validator comments when any exist or the comment box is open. An empty heading over nothing
@@ -931,9 +977,11 @@ class LabelDetail {
       if (undone) this.#logClick(`ClearVote_result=${action}`);
       this.#updateVoteCount(newAction);
       this.#highlightVote(newAction);
-      // Clearing a vote deletes the user's comment on the label server-side, so drop it from the list here too.
-      if (undone) this.#dropOwnComment();
+      // Clearing a vote — and changing one (the `redone` flag) — deletes the user's comment server-side; drop it
+      // here too so the list and its vote chips (#5015) match what a reload would show.
+      const commentDropped = (undone || data.redone) && this.#dropOwnComment();
       this.#updateCommentRow(true);
+      if (commentDropped) this.#flashCommentStatus('labelmap:comment-cleared', 'removed');
       this.#setVoteButtonsDisabled(false);
       if (isNewValidation) BadgeAchievements.recordValidation(this.panoManager.svHolder[0]);
       if (typeof this.#onVote === 'function') this.#onVote(newAction, this.#currentLabelMeta);
@@ -955,19 +1003,142 @@ class LabelDetail {
   }
 
   /**
-   * Removes the current user's validator comment from the rendered list, mirroring the server-side delete that rides
-   * along with clearing a vote. No-op when they hadn't commented.
+   * Removes the current user's validator comments from the rendered list, mirroring the server-side delete that
+   * rides along with clearing or changing a vote. No-op when they hadn't commented.
    *
-   * Re-finds the comment by identity rather than trusting the stored #myCommentIdx: the index is only valid for the
-   * list as it stood when it was computed, and this runs a network round-trip later.
+   * Filters by identity rather than trusting the stored #myCommentIdx, since that index is only valid for the list as
+   * it stood when it was computed and this runs a network round-trip later. Filtering also matches the breadth of
+   * `ValidationTaskCommentTable.deleteIfExists`, which clears by (label, user) rather than by row id.
+   *
+   * @returns {boolean} Whether anything was actually removed.
    */
   #dropOwnComment() {
-    if (!this.#comments) return;
-    const idx = this.#comments.findIndex((c) => this.#isOwnComment(c));
-    if (idx < 0) return;
-    this.#comments.splice(idx, 1);
+    if (!this.#comments) return false;
+    const remaining = this.#comments.filter((c) => !this.#isOwnComment(c));
+    if (remaining.length === this.#comments.length) return false;
+    this.#comments = remaining;
     this.#myCommentIdx = -1;
     this.#renderComments();
+    return true;
+  }
+
+  /**
+   * Opens the comment box on the user's existing comment, prefilled and focused, so changing it is a deliberate act
+   * rather than a side effect of typing into an empty box (#5015).
+   */
+  #startCommentEdit() {
+    const own = this.#comments?.[this.#myCommentIdx];
+    if (!own || this.#interactionBlocked) return;
+    this.#editingComment = true;
+    this.#updateCommentRow();
+    this.#renderComments(); // Drops the Edit/Delete pair; the box below now speaks for this comment.
+    const els = this.#els;
+    // The last save's confirmation is about to be contradicted by an open box, so it goes now rather than on its timer.
+    clearTimeout(this.#commentStatusTimer);
+    if (els.commentConfirm) els.commentConfirm.hidden = true;
+    // #isOwnComment only ever matches an object, so #myCommentIdx cannot point at a bare comment string.
+    els.commentInput.value = own.comment;
+    els.commentButton.classList.toggle('is-active', els.commentInput.value.trim().length > 0);
+    els.commentInput.focus();
+    els.commentInput.select();
+    this.#logClick('EditCommentOpen');
+  }
+
+  /**
+   * Leaves edit mode without saving, closing the box and returning focus to the Edit button that opened it.
+   *
+   * @param {boolean} [restoreFocus=true] - Whether to move focus to that Edit button now. The Escape path passes
+   *     `false` and defers the move to its own `keyup` handler, because focus has to still be in the input when the
+   *     keyup lands — see the handler for what happens in Gallery otherwise.
+   */
+  #cancelCommentEdit(restoreFocus = true) {
+    if (!this.#editingComment) return;
+    this.#editingComment = false;
+    this.#els.commentInput.value = '';
+    this.#els.commentButton.classList.remove('is-active');
+    this.#updateCommentRow();
+    this.#renderComments();
+    if (restoreFocus) this.#focusCommentEditButton();
+  }
+
+  /** Moves focus to the Edit control on the user's own comment, when one is on screen. */
+  #focusCommentEditButton() {
+    this.#els.validatorComments.querySelector('.label-detail__comment-edit')?.focus();
+  }
+
+  /**
+   * Deletes the user's own comment after a confirm, then reopens the box so they can leave a different one.
+   *
+   * Deleting is otherwise only reachable by clearing the vote the comment rode in on, which discards the verdict
+   * along with the text — the two are worth separating (#5015).
+   */
+  async #deleteOwnComment() {
+    if (this.#interactionBlocked) return;
+    const confirmed = await ConfirmDialog.confirm({
+      message: i18next.t('labelmap:comment-delete-confirm'),
+      confirmText: i18next.t('labelmap:comment-delete'),
+      cancelText: i18next.t('common:cancel'),
+      danger: true,
+      confirmIconSrc: '/assets/images/icons/delete-white-material.svg',
+    });
+    if (!confirmed) return;
+    const labelId = this.panoManager.label.labelId;
+    try {
+      const res = await fetch(`/labelmap/comment/${labelId}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      this.#editingComment = false;
+      this.#dropOwnComment();
+      this.#updateCommentRow();
+      this.#flashCommentStatus('labelmap:comment-deleted', 'removed');
+      this.#logClick('DeleteComment');
+      // The Delete button had focus and the re-render above just destroyed it, so focus would otherwise fall back to
+      // the document. The reopened box is both the accessible landing spot and the useful one — it is where a
+      // replacement comment gets typed. A comment with no vote behind it leaves the box shut, so fall back to the
+      // section heading rather than stranding focus.
+      const els = this.#els;
+      if (els.commentRow?.classList.contains('is-open')) els.commentInput.focus();
+      else this.#q('.label-detail__comments-title')?.focus();
+    } catch (err) {
+      console.error(err);
+      // They confirmed a destructive action in a modal; silence here is indistinguishable from it having worked.
+      this.#flashCommentStatus('labelmap:comment-delete-failed', 'failed');
+    }
+  }
+
+  /**
+   * How long a comment-status message holds, by what it is asking of the reader.
+   *
+   * A save can be brief: the comment appears directly below the message, so the message is a second opinion on
+   * something already visible. A removal has no such backstop — it reports an absence, and an absence gives the
+   * reader nothing to check it against — so it holds twice as long. A failure holds longest because it asks for
+   * another attempt rather than confirming one.
+   */
+  static #COMMENT_STATUS_MS = { saved: 1500, removed: 3000, failed: 5000 };
+
+  /**
+   * Flashes a message in the comment section's polite live region.
+   *
+   * Every outcome — saved, updated, deleted, cleared by a vote, failed — shares this one announcer rather than each
+   * adding an `aria-live` node for them to talk over each other with. The region sits outside the comment row on
+   * purpose: saving closes that row, and a live region collapsed in the same frame its text is set announces to no
+   * one and shows for no one.
+   *
+   * @param {string} key - i18next key for the message to announce.
+   * @param {'saved'|'removed'|'failed'} [tone='saved'] - What the message is doing, which sets both its color and
+   *     how long it holds. See #COMMENT_STATUS_MS.
+   */
+  #flashCommentStatus(key, tone = 'saved') {
+    const el = this.#els.commentConfirm;
+    if (!el) return;
+    clearTimeout(this.#commentStatusTimer);
+    el.classList.toggle('is-error', tone === 'failed');
+    // Unhidden before the text lands: mutating a live region that is still `hidden` is the case screen readers are
+    // least consistent about, and several skip it outright.
+    el.hidden = false;
+    el.textContent = i18next.t(key);
+    this.#commentStatusTimer = setTimeout(() => {
+      el.hidden = true;
+    }, LabelDetail.#COMMENT_STATUS_MS[tone]);
   }
 
   /**
@@ -1151,6 +1322,11 @@ class LabelDetail {
     // disabled control swallows the hover that opens a tooltip on it.
     els.commentInput.disabled = blocked;
     els.commentButton.disabled = blocked;
+    if (els.commentCancel) els.commentCancel.disabled = blocked;
+    // The Edit/Delete controls on the user's own comment lead back into that same box, so they follow its lock.
+    for (const btn of els.validatorComments.querySelectorAll('.label-detail__comment-own-control')) {
+      btn.disabled = blocked;
+    }
     LabelDetail.#setTooltip(els.commentRow, tip);
     // A durable lock also hides the comment box (it only shows with a Disagree/Unsure vote); a load in flight
     // leaves it in place and just disables it, since it's about to be usable again.
@@ -1664,8 +1840,80 @@ class LabelDetail {
   // ───────────────────────────────────────────────────────────────────
 
   /**
-   * Renders the validator comments list. In admin mode each entry is an object {username, comment} and the username
-   * is hyperlinked to /admin/user/<username>. Non-admin mode receives bare strings, so we just render the text.
+   * The thumbs-up / thumbs-down / question glyphs the vote chip draws, keyed by vote. These are the path data from
+   * images/icons/validation/{vote}-outline.svg, inlined for the same two reasons AVATAR_SVG below is: the icon files
+   * hardcode their stroke color, and their `stroke-width: 1` over a 20-unit viewBox thins to a sub-pixel hairline at
+   * chip size. Inlined they inherit `currentColor` — so the glyph's contrast is the chip text's contrast — at a
+   * stroke tuned for this size (#5015).
+   */
+  static #VOTE_GLYPH_PATHS = {
+    Agree: ['M7.04837 9.16083L9.48707 3C9.97215 3 10.4374 3.19651 10.7804 3.54631C11.1234 3.8961 11.3161 4.93574 '
+      + '11.3161 5.43042V7.91736H14.7668C14.9436 7.91532 15.1187 7.95249 15.2799 8.0263C15.4412 8.10011 15.5848 '
+      + '8.20879 15.7008 8.34482C15.8168 8.48084 15.9024 8.64095 15.9516 8.81406C16.0009 8.98717 16.0127 9.16914 '
+      + '15.9862 9.34736L15.1448 14.943C15.1008 15.2395 14.9531 15.5097 14.729 15.704C14.5049 15.8982 14.2196 '
+      + '16.0033 13.9255 15.9999H7.04837M7.04837 9.16083V15.9999M7.04837 9.16083H5.21935C4.89596 9.16083 4.58581 '
+      + '9.29184 4.35714 9.52504C4.12847 9.75823 4 10.0745 4 10.4043V14.7565C4 15.0862 4.12847 15.4025 4.35714 '
+      + '15.6357C4.58581 15.8689 4.89596 15.9999 5.21935 15.9999H7.04837'],
+    Disagree: ['M7.04837 10.8392L9.48707 17C9.97215 17 10.4374 16.8035 10.7804 16.4537C11.1234 16.1039 11.3161 '
+      + '15.0643 11.3161 14.5696V12.0826H14.7668C14.9436 12.0847 15.1187 12.0475 15.2799 11.9737C15.4412 11.8999 '
+      + '15.5848 11.7912 15.7008 11.6552C15.8168 11.5192 15.9024 11.359 15.9516 11.1859C16.0009 11.0128 16.0127 '
+      + '10.8309 15.9862 10.6526L15.1448 5.05703C15.1008 4.76052 14.9531 4.49025 14.729 4.29602C14.5049 4.10179 '
+      + '14.2196 3.99669 13.9255 4.00008H7.04837M7.04837 10.8392V4.00008M7.04837 10.8392H5.21935C4.89596 10.8392 '
+      + '4.58581 10.7082 4.35714 10.475C4.12847 10.2418 4 9.92548 4 9.5957V5.24355C4 4.91376 4.12847 4.59748 '
+      + '4.35714 4.36428C4.58581 4.13109 4.89596 4.00008 5.21935 4.00008H7.04837'],
+    Unsure: ['M4.66667 9.25L5.99026 9.25C6.54865 9.25 7.10308 9.34353 7.63056 9.52671L12.1812 11.107C12.8428 '
+      + '11.3368 13.3361 11.896 13.4815 12.5812L13.5848 13.0682M4.66667 9.25V15.2955M4.66667 9.25H3C2.44772 9.25 '
+      + '2 9.69772 2 10.25V14.2955C2 14.8477 2.44772 15.2955 3 15.2955H4.66667M4.66667 15.2955L9.84287 '
+      + '16.0901C10.5297 16.1955 11.2309 16.1567 11.9018 15.976L17.3819 14.5001C17.7447 14.4024 18.0602 14.0948 '
+      + '17.9507 13.7354C17.8166 13.295 17.3792 12.8963 16.2852 13.0682C14.3724 13.2803 10.0743 13.3227 8.18396 '
+      + '11.7955',
+    'M10 5.19823C10.1026 4.87321 10.4787 4.33616 11.2308 4.54819C12.1538 4.80844 12.4615 6.1733 10.9231 '
+    + '6.82334V7.47337M10.9231 8.94841V9'],
+  };
+
+  /**
+   * Builds the chip that pairs a comment with its author's vote on the label.
+   *
+   * The vote is the commenter's *current* one — the server joins it per (label_id, user_id) rather than storing it
+   * with the comment — so a comment from someone whose vote was since cleared gets no chip (#5015).
+   *
+   * @param {Object|string} c - An entry from #comments. Bare strings and entries with no vote yield null.
+   * @returns {?HTMLSpanElement} The chip, or null when there is no vote to show.
+   */
+  static voteChipFor(c) {
+    const vote = typeof c === 'object' && c !== null ? c.validation : null;
+    if (!Object.hasOwn(LabelDetail.#VOTE_GLYPH_PATHS, vote)) return null;
+    const word = i18next.t(`common:${util.camelToKebab(vote)}`);
+
+    const chip = document.createElement('span');
+    chip.className = `label-detail__comment-vote label-detail__comment-vote--${util.camelToKebab(vote)}`;
+    // Read as one labeled node rather than a bare verb running into the comment text: `role="img"` collapses the
+    // glyph and the word into a single announcement, and the label says whose verdict this is.
+    chip.setAttribute('role', 'img');
+    chip.setAttribute('aria-label', i18next.t('labelmap:commenter-voted', { vote: word }));
+
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 20 20');
+    svg.setAttribute('fill', 'none');
+    svg.setAttribute('stroke', 'currentColor');
+    svg.setAttribute('stroke-width', '1.8');
+    svg.setAttribute('stroke-linecap', 'round');
+    svg.setAttribute('stroke-linejoin', 'round');
+    svg.setAttribute('aria-hidden', 'true');
+    for (const d of LabelDetail.#VOTE_GLYPH_PATHS[vote]) {
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', d);
+      svg.appendChild(path);
+    }
+    chip.appendChild(svg);
+    chip.appendChild(document.createTextNode(word));
+    return chip;
+  }
+
+  /**
+   * Renders the validator comments list. Admin mode receives {username, …} entries and hyperlinks the username to
+   * /admin/user/<username>; non-admin mode receives {comment, mine, …} entries with no identifiers on them. Both
+   * carry the commenter's vote, drawn as a chip beside the text.
    */
   #renderComments() {
     const els = this.#els;
@@ -1718,6 +1966,28 @@ class LabelDetail {
         return when;
       };
 
+      // Edit/Delete on your own comment, matching the pair a story of your own carries (`StorySection`). They trail
+      // the comment text rather than leading it, so the reader meets what was said before what can be done to it.
+      // Rendered only while the box is closed: mid-edit the box below is already acting on this comment, and a
+      // second Edit beside it would just reopen what is open.
+      const ownControls = () => {
+        if (!this.#isOwnComment(c) || this.#locked || this.#editingComment) return [];
+        const make = (cls, key, onClick) => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = `label-detail__comment-own-control ${cls}`;
+          btn.textContent = i18next.t(key);
+          btn.disabled = this.#interactionBlocked;
+          btn.addEventListener('click', onClick);
+          return btn;
+        };
+        return [
+          make('label-detail__comment-edit', 'labelmap:comment-edit', () => this.#startCommentEdit()),
+          make('label-detail__comment-delete', 'labelmap:comment-delete', () => this.#deleteOwnComment()),
+        ];
+      };
+
+      const voteChip = LabelDetail.voteChipFor(c);
       if (this.#admin && typeof c === 'object' && c !== null) {
         const a = document.createElement('a');
         a.href = `/admin/user/${encodeURI(c.username)}`;
@@ -1727,7 +1997,12 @@ class LabelDetail {
           p.appendChild(document.createTextNode(' '));
           p.appendChild(whenPill());
         }
+        if (voteChip) {
+          if (!timeCreated) p.appendChild(document.createTextNode(' '));
+          p.appendChild(voteChip);
+        }
         p.appendChild(document.createTextNode(`: ${c.comment}`));
+        for (const btn of ownControls()) p.appendChild(btn);
       } else {
         // Non-admin: {comment, mine} objects. A small "You" chip marks the signed-in user's own comment; the
         // admin branch above doesn't need one since it shows usernames. textContent/createTextNode escape — no
@@ -1739,7 +2014,9 @@ class LabelDetail {
           p.appendChild(you);
         }
         if (timeCreated) p.appendChild(whenPill());
+        if (voteChip) p.appendChild(voteChip);
         p.appendChild(document.createTextNode(typeof c === 'object' && c !== null ? c.comment : c));
+        for (const btn of ownControls()) p.appendChild(btn);
       }
       els.validatorComments.appendChild(p);
     });
@@ -1771,12 +2048,10 @@ class LabelDetail {
     this.#postJson('/labelmap/comment', data).then(async (res) => {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const body = await res.json();
+      const wasEdit = this.#editingComment;
       els.commentInput.value = '';
       els.commentButton.classList.remove('is-active');
-      els.commentConfirm.hidden = false;
-      setTimeout(() => {
-        els.commentConfirm.hidden = true;
-      }, 1500);
+      if (wasEdit) this.#logClick('EditComment');
 
       // Update the visible list. Admin views render objects with a username; non-admin views render bare comment
       // strings. Replace the user's existing comment (if any) rather than appending — the backend deletes prior
@@ -1787,18 +2062,27 @@ class LabelDetail {
       const commenter = this.#myCommentIdx >= 0 && this.#comments[this.#myCommentIdx]
         ? this.#comments[this.#myCommentIdx].commenter ?? 0
         : this.#comments.reduce((max, c) => Math.max(max, (c && c.commenter) ?? -1), -1) + 1;
+      // The chip mirrors the server's (label_id, user_id) join: the commenter's current vote, or none.
+      const validation = this.#prevAction ?? null;
       const newEntry = this.#admin
-        ? { username: body.username, comment, time_created: timeCreated, commenter }
-        : { comment, mine: true, time_created: timeCreated, commenter };
+        ? { username: body.username, comment, time_created: timeCreated, commenter, validation }
+        : { comment, mine: true, time_created: timeCreated, commenter, validation };
       if (this.#myCommentIdx >= 0 && this.#myCommentIdx < this.#comments.length) {
         this.#comments[this.#myCommentIdx] = newEntry;
       } else {
         this.#comments.push(newEntry);
         this.#myCommentIdx = this.#comments.length - 1;
       }
+      // The box closes now that a comment of theirs exists; Edit on the entry below is the way back into it.
+      this.#editingComment = false;
+      this.#updateCommentRow();
       this.#renderComments();
+      // Announced after the row has settled — the live region sits outside it, so the collapse doesn't take the
+      // message with it, and the reader hears the outcome of a card that is already in its final state.
+      this.#flashCommentStatus(wasEdit ? 'labelmap:comment-updated' : 'labelmap:comment-submitted');
     }).catch((err) => {
       console.error(err);
+      this.#flashCommentStatus('labelmap:comment-save-failed', 'failed');
     }).finally(() => {
       els.commentButton.disabled = false;
     });
