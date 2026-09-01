@@ -9,7 +9,10 @@
  *
  * Usage:
  *   node tools/gsv-fov-probe/record.mjs [--control-only] [--configs a,b] [--panos x,y] [--zooms 1,2]
- *     [--loads N] [--maps-version weekly|quarterly] [--headed] [--out DIR]
+ *     [--loads N] [--maps-version weekly|quarterly] [--headed] [--out DIR] [--resume <run-dir|latest>]
+ *
+ * --resume continues an interrupted run in place: loads whose completion marker is already in that run's
+ * manifest are skipped, everything else is (re-)recorded into the same directory.
  *
  * Output: runs/<ISO-timestamp>/<pano>/<container>/load<N>/*.png plus a run-level manifest.json (written
  * incrementally, so an interrupted run keeps its completed captures). Raw screenshots of live imagery stay
@@ -85,6 +88,7 @@ function parseArgs(argv) {
         else if (a === '--loads') out.loads = Number(argv[++i]);
         else if (a === '--maps-version') out.mapsVersion = argv[++i];
         else if (a === '--out') out.out = argv[++i];
+        else if (a === '--resume') out.resume = argv[++i];
         else throw new Error(`Unknown argument: ${a}`);
     }
     return out;
@@ -163,10 +167,21 @@ async function main() {
         .replaceAll('__GMAPS_KEY__', () => apiKey)
         .replaceAll('__MAPS_VERSION__', () => args.mapsVersion);
 
-    const runDir = path.join(args.out, new Date().toISOString().replace(/[:.]/g, '-'));
+    let runDir;
+    if (args.resume) {
+        runDir = args.resume === 'latest'
+            ? path.join(args.out, fs.readdirSync(args.out)
+                .filter((d) => fs.existsSync(path.join(args.out, d, 'manifest.json'))).sort().at(-1))
+            : args.resume;
+    } else {
+        runDir = path.join(args.out, new Date().toISOString().replace(/[:.]/g, '-'));
+    }
     fs.mkdirSync(runDir, { recursive: true });
 
-    const manifest = {
+    const manifest = args.resume ? {
+        ...JSON.parse(fs.readFileSync(path.join(runDir, 'manifest.json'), 'utf8')),
+        resumedAt: new Date().toISOString(),
+    } : {
         startedAt: new Date().toISOString(),
         baseUrl: BASE_URL,
         mapsVersionRequested: args.mapsVersion,
@@ -195,6 +210,10 @@ async function main() {
         for (const container of containers) {
             for (let load = 1; load <= args.loads; load++) {
                 const label = `${pano.name}/${container.name}/load${load}`;
+                if (manifest.loads.some((l) => l.label === label && l.completed)) {
+                    console.log(`=== ${label} already recorded, skipping ===`);
+                    continue;
+                }
                 console.log(`=== ${label} (maps ${args.mapsVersion}) ===`);
                 const dir = path.join(runDir, pano.name, container.name, `load${load}`);
                 for (let attempt = 1; attempt <= 2; attempt++) {
@@ -311,7 +330,9 @@ async function recordLoad(ctx) {
                     { heading: h0, pitch: PITCH_DELTA_DEG / 2, zoom: 2 });
             }
         }
-        manifest.loads.at(-1).consoleErrors = consoleErrors;
+        const entry = manifest.loads.findLast((l) => l.label === label && !l.error);
+        entry.consoleErrors = consoleErrors;
+        entry.completed = true;
     } finally {
         await context.close();
     }
