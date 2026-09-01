@@ -98,16 +98,12 @@ Scala and JS hold **ratchets** — a floor just under the measured number, raise
 Python holds a real **100%** floor (small, pure scripts; see [Python utility testing](#python-utility-testing)).
 
 **Scala — `sbt-scoverage` (#4743).** `backend-tests` runs both spec steps under `coverage` and ends on a blocking
-`coverageReport`; the floor is `coverageMinimumStmtTotal` in `build.sbt`. Instrumentation costs about **+19%** of test
-wall-clock plus ~20s for the report (measured: 9m33s → 11m22s on the full local suite), which is what made it
-affordable on every PR rather than only on pushes to `develop`. Reproduce with `sbt clean coverage test coverageReport`.
+`coverageReport`; the floor is `coverageMinimumStmtTotal` in `build.sbt`. Reproduce with
+`sbt clean coverage test coverageReport`.
 
-**A coverage number is only comparable to one measured the same way**, so re-measure as CI does before moving the
-floor. CI and a local run now execute the same specs (#5042 — before it, CI's hand-listed subset scored 43.24%
-against 62.06% for all of `test/`), but CI's schema is empty where a local one is seeded, so data-dependent paths are
-covered locally and not there. That gap is worth about **16%** of the number: on the enrolled subset CI reported
-36.39% where the same specs scored 43.24% locally. All of `test/` scores **62.60%** locally, so expect CI in the low
-fifties.
+**A coverage number is only comparable to one measured the same way**, so read the new figure off a CI run before
+raising the floor. CI and a local run now execute the same specs (#5042), but CI's schema is empty where a local one
+is seeded, so data-dependent paths are covered locally and not there — expect CI to read well below a local run.
 
 Only `controllers.javascript.*` is excluded: Twirl emits the JS reverse router for the browser, so nothing calls its
 692 statements from Scala. The Scala router and the templates stay in — the functional specs render pages and route
@@ -132,7 +128,7 @@ Explore/Validate canvas and pano code we never unit-test. The step is advisory (
 - **scalafmt: blocking** — the tree is kept format-clean; `make scalafmt-fix` (or `sbt scalafmtAll`) auto-formats before pushing.
 - **E2E: thin & advisory** — a page-load smoke suite ([`test/e2e/`](../test/e2e)) with stubbed Mapbox and skip-guarded Street View specs, run as an advisory PR job (`e2e-smoke`); deep canvas/imagery testing stays manual.
 - **Test DB: GitHub Actions `services:` PostGIS** (Testcontainers optional/local), not Testcontainers-in-CI.
-- **Coverage: a ratchet on every PR** — under the measured number, raised as the suite grows, on PRs rather than pushes because a floor that only reports after merge cannot stop the drop it exists to catch; the +19% it costs made that affordable. The exception is Python, which holds a real 100% floor.
+- **Coverage: a ratchet on every PR** — under the measured number, raised as the suite grows, and on PRs rather than pushes because a floor that only reports after a merge cannot stop the drop it exists to catch. The exception is Python, which holds a real 100% floor.
 
 ## Risks / gotchas
 

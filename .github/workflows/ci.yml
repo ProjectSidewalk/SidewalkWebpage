@@ -277,8 +277,7 @@ jobs:
       # needs the evolved schema and the suite below needs the seed. EvolutionsApplySpec asserts the schema reached
       # HEAD rather than stopping partway.
       #
-      # `coverage` instruments this step and the suite, for the `coverageReport` at the end of the job. Costs about
-      # +19% of test wall-clock (#4743).
+      # `coverage` instruments this step and the suite, for the `coverageReport` at the end of the job (#4743).
       - name: Apply evolutions
         run: sbt coverage "testOnly models.utils.EvolutionsApplySpec"
 
