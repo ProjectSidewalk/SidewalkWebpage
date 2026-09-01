@@ -1,3 +1,74 @@
+/* Page shell: the sticky question panel on the left, the guide content on the right. The panel's position and
+   scrolling classes are toggled by common/labelingGuidePanelResize.js. */
+.help p {
+  font-size: 14px;
+}
+
+.help .maincontent {
+  padding-left: 40px;
+}
+
+figure figcaption {
+  padding-top: 10px;
+  font-style: italic;
+}
+
+.help img {
+  box-shadow: 0 1px 1px rgb(0 0 0 / 5%);
+  border-radius: 4px;
+}
+
+.help .help-item {
+  margin-bottom: 10px;
+}
+
+/* Offsets the heading so a permalink jump clears the fixed navbar.
+   Found recommended fix here: https://github.com/twbs/bootstrap/issues/1768 */
+.help .help-item h2 {
+  margin-top: -70px;
+  margin-bottom: 20px;
+  padding-top: 75px;
+}
+
+.scrollable {
+  height: 500px;
+  overflow-y: scroll;
+}
+
+.not-scrollable {
+  height: auto;
+  overflow-y: hidden;
+}
+
+.sidebar {
+  position: fixed;
+  z-index: 1;
+}
+
+.stuck-sidebar {
+  position: absolute;
+  z-index: 1;
+}
+
+.not-sidebar {
+  position: static;
+}
+
+#help-panel .panel-body {
+  padding: 0;
+}
+
+.help ul#questions-list {
+  padding: 0;
+  list-style-type: none;
+  margin: 0;
+}
+
+.help ul#questions-list li {
+  padding: 10px;
+  border-bottom: 1px solid #dddddd;
+}
+
 .help ul#questions-list #subtopics li {
   padding-left: 40px;
 }

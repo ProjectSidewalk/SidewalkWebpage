@@ -24,7 +24,6 @@ const PAGES = [
   {path: '/leaderboard'},
   {path: '/routes'},
   {path: '/stories'},
-  {path: '/help'},
   {path: '/labelingGuide'},
   {path: '/api'},
   {path: '/v3/api-docs/rawLabels'},

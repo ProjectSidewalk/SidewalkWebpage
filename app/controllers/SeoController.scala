@@ -46,7 +46,7 @@ class SeoController @Inject() (cc: CustomControllerComponents, config: Configura
     if (signInWalled) Seq.empty
     else
       Seq(
-        "/", "/about", "/gallery", "/labelMap", "/help", "/labelingGuide", "/labelingGuide/curbRamps",
+        "/", "/about", "/gallery", "/labelMap", "/labelingGuide", "/labelingGuide/curbRamps",
         "/labelingGuide/surfaceProblems", "/labelingGuide/obstacles", "/labelingGuide/noSidewalk",
         "/labelingGuide/occlusion", "/api", "/leaderboard", "/routeBuilder", "/terms", "/cities"
       ) ++ Seq(

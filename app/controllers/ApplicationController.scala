@@ -142,13 +142,13 @@ class ApplicationController @Inject() (
   }
 
   /**
-   * Returns a help  page.
+   * Permanently redirects /help to the labeling guide.
+   *
+   * The path sat in the sitemap for years and is indexed, linked from outside the site, and bookmarked, so it has to
+   * keep resolving rather than 404 (#5092). The labeling guide is where its still-relevant content lives.
    */
-  def help = cc.securityService.UserAwareAction { implicit request =>
-    configService.getCommonPageData(request2Messages.lang).map { commonData =>
-      cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_Help")
-      Ok(views.html.help(commonData, Messages("seo.title.help"), request.identity))
-    }
+  def helpRedirect = Action {
+    MovedPermanently(routes.ApplicationController.labelingGuide.url)
   }
 
   /**

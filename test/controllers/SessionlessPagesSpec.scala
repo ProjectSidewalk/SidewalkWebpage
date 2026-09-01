@@ -36,7 +36,7 @@ class SessionlessPagesSpec extends PlaySpec with GuiceOneAppPerSuite {
 
   /** A representative set of the converted pages: landing, static/docs pages, and the JS-app pages. */
   private val publicPages: Seq[String] = Seq(
-    "/", "/help", "/about", "/api", "/terms", "/cities", "/leaderboard", "/gallery", "/labelMap", "/routeBuilder",
+    "/", "/about", "/api", "/terms", "/cities", "/leaderboard", "/gallery", "/labelMap", "/routeBuilder",
     "/mobileLanding", "/labelingGuide", "/labelingGuide/curbRamps", "/v3/api-docs/rawLabels"
   )
 
@@ -49,6 +49,13 @@ class SessionlessPagesSpec extends PlaySpec with GuiceOneAppPerSuite {
           cookies(resp).get(authCookieName) mustBe None
         }
       }
+    }
+
+    "permanently redirect /help to the labeling guide without setting the authenticator cookie" in {
+      val resp = route(app, FakeRequest(GET, "/help")).get
+      status(resp) mustBe MOVED_PERMANENTLY
+      redirectLocation(resp).value mustBe "/labelingGuide"
+      cookies(resp).get(authCookieName) mustBe None
     }
 
     "redirect a cookie-less mobile visitor from / to /mobileLanding without setting the authenticator cookie" in {

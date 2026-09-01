@@ -22,12 +22,6 @@ module.exports = function (grunt) {
         ],
         dest: 'public/js/explore/build/explore.js'
       },
-      dist_help: {
-        src: [
-          'public/js/help/src/*.js'
-        ],
-        dest: 'public/js/help/build/help.js'
-      },
       dist_validate: {
         src: [
           'public/js/common/aiLabelIndicator.js',
@@ -196,7 +190,6 @@ module.exports = function (grunt) {
           'public/js/explore/src/*.js',
           'public/js/explore/src/**/*.js',
           'public/css/pages/explore/*.css',
-          'public/js/help/src/*.js',
           'public/js/validate/src/*.js',
           'public/js/validate/src/**/*.js',
           'public/css/pages/validate/*.css',
