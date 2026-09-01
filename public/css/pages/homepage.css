@@ -469,7 +469,7 @@ p#conditional-text {
 #partners-container {
   position: relative;
   max-width: 900px;
-  padding: var(--space-xl) 0;
+  padding: var(--space-xxl) 0;
   text-align: center;
 }
 
@@ -483,11 +483,10 @@ p#conditional-text {
   text-wrap: balance; /* No single-word widow when the heading wraps. */
 }
 
-#creators-ps-logo {
-  display: block;
-  width: 120px;
-  height: auto;
-  margin: 0 auto var(--space-sm);
+/* Nothing sits between this heading and the creator logos, so it carries the gap the tagline provides above the
+   community-partner strip. */
+#creators-title {
+  margin-bottom: var(--space-xl);
 }
 
 /* A flat heart, not the ❤️ emoji: platform emoji render glossy and drop-shadowed, which out-shouted the words
@@ -500,12 +499,12 @@ p#conditional-text {
 }
 
 /* Breathing room between the community-partners strip and the created-by section, when both render. */
-.partner-logos + #creators-ps-logo {
+.partner-logos + #creators-title {
   margin-top: var(--space-xxl);
 }
 
 .partner-section-tagline {
-  margin: 0 auto var(--space-lg);
+  margin: 0 auto var(--space-xl);
   max-width: 640px;
   font: var(--text-small-regular);
   color: var(--color-neutral-700);
@@ -536,21 +535,19 @@ p#conditional-text {
 /* The credit line (long-time partners, students, volunteers) sits under the creator logos, and names enough
    organizations that it needs a wider measure than the tagline above to stay at three lines. */
 #partners-credit {
-  margin-top: var(--space-lg);
+  margin-top: var(--space-xl);
   margin-bottom: 0;
   max-width: 780px;
 }
 
 /* The static creator logos are a visually subordinate strip. */
 .partner-logos--creators {
-  gap: var(--space-md) var(--space-xl);
+  gap: var(--space-lg) var(--space-xxl);
 }
 
-/* The UW mark is the Allen School's horizontal lockup, ~9:1, so the creator strip's width cap has to clear it at
-   the row height or its second line of type stops being readable. */
 .partner-logos--creators img {
-  height: 48px;
-  max-width: 460px;
+  height: 56px;
+  max-width: 240px;
 }
 
 /* --breakpoint-sm */
@@ -564,10 +561,8 @@ p#conditional-text {
     max-width: 160px;
   }
 
-  /* The Allen School lockup is wider than a phone at the row height, so let it take the full width -- and its own
-     wrapped row -- rather than squeezing it down to the width of the marks beside it. */
   .partner-logos--creators img {
-    height: 36px;
-    max-width: 100%;
+    height: 40px;
+    max-width: 160px;
   }
 }
