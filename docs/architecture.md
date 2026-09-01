@@ -220,7 +220,7 @@ Two standalone scripts under [`scripts/`](../scripts) (see [`scripts/README.md`]
 - `scripts/check_streets_for_imagery.py` — checks streets for available street-view imagery. Run as `python3.13`,
   the second interpreter the web image carries for offline tooling whose libraries have moved past 3.8.
 
-Their pure logic is unit-tested under [`test/python/`](../test/python) (`pytest`, advisory in CI) — one run per
+Their pure logic is unit-tested under [`test/python/`](../test/python) (`pytest`, one blocking CI leg per interpreter and one advisory) — one run per
 interpreter. See [`docs/testing-and-ci.md`](testing-and-ci.md).
 
 ## Label types
