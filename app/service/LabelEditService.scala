@@ -2,7 +2,7 @@ package service
 
 import com.google.inject.ImplementedBy
 import models.label._
-import models.user.{RoleTable, SidewalkUserWithRole}
+import models.user.{Role, SidewalkUserWithRole}
 import models.utils.CommonUtils.UiSource
 import models.utils.CommonUtils.UiSource.UiSource
 import models.utils.MyPostgresProfile
@@ -148,7 +148,7 @@ class LabelEditServiceImpl @Inject() (
       tags: Seq[String],
       source: UiSource
   ): Future[LabelEditOutcome] = {
-    val isAdmin: Boolean = RoleTable.ADMIN_ROLES.contains(editor.role)
+    val isAdmin: Boolean = Role.ADMIN_ROLES.contains(editor.role)
     db.run(
       labelTable
         .find(labelId)

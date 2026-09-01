@@ -1,4 +1,4 @@
-@import models.user.SidewalkUserWithRole
+@import models.user.{Role, SidewalkUserWithRole}
 @import views.html.helper.{form, CSRF => htmlCSRF}
 @(user: Option[SidewalkUserWithRole]
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder)
@@ -10,7 +10,7 @@
    that is the caller's call, not a path check here: the same views render from multiple paths (/signIn, /signUp,
    and /authenticate/credentials' no-JS error branch), so those views suppress it via navbar's renderAuthDialog
    parameter (#4889). *@
-@if(!user || user.get.role == "Anonymous") {
+@if(!user || user.get.role == Role.Anonymous) {
   <dialog id="sign-in-modal-container" class="au-dialog" aria-labelledby="sign-in-label">
     <div class="au-body">
         <!-- Sign-in panel -->

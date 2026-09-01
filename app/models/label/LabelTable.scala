@@ -292,8 +292,8 @@ object LabelTable {
   // human (non-AI votes), and ai (AI votes). ORDER MATTERS (see validationStatLabelTypes).
   val validationStatSources: Seq[(String, String)] = Seq(
     "comb"  -> "TRUE",
-    "human" -> "role <> 'AI'",
-    "ai"    -> "role = 'AI'"
+    "human" -> s"user_role.role <> '${Role.Ai}'",
+    "ai"    -> s"user_role.role = '${Role.Ai}'"
   )
 
   /**
@@ -654,7 +654,6 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   val usersUnfiltered        = TableQuery[SidewalkUserTableDef]
   val userStats              = TableQuery[UserStatTableDef]
   val userRoles              = TableQuery[UserRoleTableDef]
-  val roleTable              = TableQuery[RoleTableDef]
   val configTable            = TableQuery[ConfigTableDef]
   val streetEdgeRegions      = TableQuery[StreetEdgeRegionTableDef]
   val routeStreets           = TableQuery[RouteStreetTableDef]
@@ -967,8 +966,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _label     <- labels
       _labelType <- labelTypes if _label.labelTypeId === _labelType.labelTypeId
       _user      <- usersUnfiltered if _label.userId === _user.userId
-      _userRole  <- userRoles if _user.userId === _userRole.userId
-      _role      <- roleTable if _userRole.roleId === _role.roleId && _role.role =!= "AI"
+      _userRole  <- userRoles if _user.userId === _userRole.userId && _userRole.role =!= Role.Ai
     } yield (_label.labelId, _labelType.labelType, _user.username, _label.timeCreated))
       .sortBy(_._4.desc)
       .take(n)
@@ -1026,8 +1024,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _label     <- labelsWithExcludedUsers
       _labelType <- labelTypes if _label.labelTypeId === _labelType.labelTypeId
       _userRole  <- userRoles if _label.userId === _userRole.userId
-      _role      <- roleTable if _userRole.roleId === _role.roleId
-    } yield (_role.role === "AI", _labelType.labelType, _label.correct))
+    } yield (_userRole.role === Role.Ai, _labelType.labelType, _label.correct))
       .groupBy(r => (r._1, r._2))
       .map { case ((isAi, labelType), group) =>
         (
@@ -1053,8 +1050,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     (for {
       _label    <- labelsWithExcludedUsers if _label.severity.isDefined
       _userRole <- userRoles if _label.userId === _userRole.userId
-      _role     <- roleTable if _userRole.roleId === _role.roleId
-    } yield (_role.role === "AI", _label.severity))
+    } yield (_userRole.role === Role.Ai, _label.severity))
       .groupBy(r => (r._1, r._2))
       .map { case ((isAi, severity), group) => (isAi, severity, group.length) }
       .result
@@ -1069,8 +1065,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   def getHumanTagCounts: DBIO[Seq[(String, Int)]] = {
     (for {
       _label    <- labelsWithExcludedUsers
-      _userRole <- userRoles if _label.userId === _userRole.userId
-      _role     <- roleTable if _userRole.roleId === _role.roleId && _role.role =!= "AI"
+      _userRole <- userRoles if _label.userId === _userRole.userId && _userRole.role =!= Role.Ai
     } yield _label.tags.unnest)
       .groupBy(tag => tag)
       .map { case (tag, group) => (tag, group.length) }
@@ -1194,8 +1189,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           SELECT label_id, validation_result
           FROM label_validation
           INNER JOIN user_role ON label_validation.user_id = user_role.user_id
-          INNER JOIN role ON user_role.role_id = role.role_id
-          WHERE role.role = 'AI'
+          WHERE user_role.role = 'AI'
       ) AS ai_val ON lb1.label_id = ai_val.label_id
       LEFT JOIN (
           SELECT validation_task_comment.label_id,
@@ -1301,7 +1295,6 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _pd             <- panoData if _lb.panoId === _pd.panoId
       _ser            <- streetEdgeRegions if _lb.streetEdgeId === _ser.streetEdgeId
       _ur             <- userRoles if _us.userId === _ur.userId
-      _r              <- roleTable if _ur.roleId === _r.roleId
       if _lt.labelTypeId === labelTypeId && _lp.lat.isDefined && _lp.lng.isDefined && _lb.userId =!= userId
       if _pd.source === viewer && imageryViewable(_pd)
       if !unvalidatedOnly.asColumnOf[Boolean] || _lb.correct.isEmpty // Filter out validated labels.
@@ -1310,7 +1303,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       if (if (excludedLabelIds.isEmpty) true: Rep[Boolean] else !(_lb.labelId inSetBind excludedLabelIds))
       if regionIds.map(ids => _ser.regionId inSetBind ids).getOrElse(true: Rep[Boolean]) // Filter by region IDs.
       if userIds.map(ids => _lb.userId inSetBind ids).getOrElse(true: Rep[Boolean])      // Filter by user IDs.
-    } yield (_lb, _lp, _pd, _us, _at, _lt.labelType, _ser.regionId, _r.role === "AI")
+    } yield (_lb, _lp, _pd, _us, _at, _lt.labelType, _ser.regionId, _ur.role === Role.Ai)
 
     // Filter out labels that have already been validated by this user.
     val labelsValidatedByUser = labelValidations.filter(_.userId === userId)
@@ -1476,7 +1469,6 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _us  <- userStats if _lb.userId === _us.userId
       _ser <- streetEdgeRegions if _lb.streetEdgeId === _ser.streetEdgeId
       _ur  <- userRoles if _us.userId === _ur.userId
-      _r   <- roleTable if _ur.roleId === _r.roleId
       if _pd.source === viewer
       if _lp.lat.isDefined && _lp.lng.isDefined
       if _lt.labelTypeId === labelType.id
@@ -1486,7 +1478,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       if (_lb.tags @& tags.toList) || tags.isEmpty // @& is the overlap operator from postgres (&& in postgres).
       if _us.highQuality || (_lb.correct.isDefined && _lb.correct === true)
       if _lb.disagreeCount < 3 || _lb.disagreeCount < _lb.agreeCount * 2
-    } yield (_lb, _lp, _pd, _lt.labelType, _ser.regionId, _r.role === "AI")
+    } yield (_lb, _lp, _pd, _lt.labelType, _ser.regionId, _ur.role === Role.Ai)
 
     val _labelInfoWithAIValidation = _labelInfo
       .joinLeft(aiValidations)
@@ -1666,8 +1658,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     // Label IDs with at least one validation from an Administrator or Owner.
     val _adminValidatedLabelIds = for {
       _lv <- labelValidations
-      _ur <- userRoles if _lv.userId === _ur.userId
-      _r  <- roleTable if _ur.roleId === _r.roleId && (_r.role === "Administrator" || _r.role === "Owner")
+      _ur <- userRoles if _lv.userId === _ur.userId && (_ur.role inSet Role.ADMIN_ROLES)
     } yield _lv.labelId
 
     // Filtering on geom rather than lat/lng so the GIST index (label_point_geom_idx) serves the bbox; safe because
@@ -1685,10 +1676,9 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _pd            <- panoData if _l.panoId === _pd.panoId
       _ser           <- streetEdgeRegions if _l.streetEdgeId === _ser.streetEdgeId
       _ur            <- userRoles if _us.userId === _ur.userId
-      _r             <- roleTable if _ur.roleId === _r.roleId
       if (_ser.regionId inSetBind regionIds) || regionIds.isEmpty
       if _lp.lat.isDefined && _lp.lng.isDefined // Make sure they are NOT NULL so we can safely use .get later.
-    } yield (_l, _lp, _us.highQuality, _lt.labelType, _pd.expired, _pd.hasBackup, _r.role === "AI")
+    } yield (_l, _lp, _us.highQuality, _lt.labelType, _pd.expired, _pd.hasBackup, _ur.role === Role.Ai)
 
     // Get AI validations.
     val _labelInfoWithAIValidation = _labels
@@ -2388,7 +2378,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
                  COUNT(DISTINCT(CASE WHEN role = 'Turker' THEN user_id END)) AS turker_users,
                  COUNT(DISTINCT(CASE WHEN role IN ('Researcher', 'Administrator', 'Owner') THEN user_id END)) AS researcher_users
           FROM (
-              SELECT users_with_type.user_id, mission_type, role.role
+              SELECT users_with_type.user_id, mission_type, user_role.role
               FROM (
                   SELECT DISTINCT(label_validation.user_id), 'validation' AS mission_type
                   FROM label_validation
@@ -2403,7 +2393,6 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
               ) users_with_type
               INNER JOIN user_stat ON users_with_type.user_id = user_stat.user_id
               INNER JOIN user_role ON users_with_type.user_id = user_role.user_id
-              INNER JOIN role ON user_role.role_id = role.role_id
               WHERE #$userFilter
           ) users
       ) AS users, (
@@ -2475,7 +2464,6 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           ) AS all_validations
           INNER JOIN user_stat ON all_validations.user_id = user_stat.user_id
           INNER JOIN user_role ON user_stat.user_id = user_role.user_id
-          INNER JOIN role ON user_role.role_id = role.role_id
           WHERE #$userFilter
       ) AS total_val_count, (
           SELECT #$validationAggCols
@@ -2492,7 +2480,6 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
               INNER JOIN label_validation ON label.label_id = label_validation.label_id
               INNER JOIN user_stat AS validator_stat ON label_validation.user_id = validator_stat.user_id
               INNER JOIN user_role ON validator_stat.user_id = user_role.user_id
-              INNER JOIN role ON user_role.role_id = role.role_id
               WHERE #$labelerFilter
                   AND validator_stat.excluded = FALSE
                   AND label.user_id <> label_validation.user_id -- Exclude users validating their own labels.
@@ -2580,11 +2567,10 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
               INNER JOIN label_validation ON label.label_id = label_validation.label_id
               INNER JOIN user_stat ON label_validation.user_id = user_stat.user_id
               INNER JOIN user_role ON user_stat.user_id = user_role.user_id
-              INNER JOIN role ON user_role.role_id = role.role_id
               WHERE user_stat.excluded = FALSE
                   AND label.user_id <> label_validation.user_id -- Excluding times when user validated their own label.
               GROUP BY label.label_id, label_type.label_type
-              HAVING COUNT(CASE WHEN role = 'AI' THEN 1 END) > 0
+              HAVING COUNT(CASE WHEN user_role.role = 'AI' THEN 1 END) > 0
           ) AS majority_votes
       ) AS ai_stats;""".as[ProjectSidewalkStats].head
   }
@@ -2616,16 +2602,14 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       .filter(_.labelTypeId inSet LabelTypeEnum.aiLabelTypeIds)
       .join(userRoles)
       .on(_.userId === _.userId)
-      .join(roleTable)
-      .on(_._2.roleId === _.roleId)
-      .filter { case ((l, ur), r) => r.role =!= "AI" } // No labels created by AI
+      .filter { case (l, ur) => ur.role =!= Role.Ai } // No labels created by AI
       .joinLeft(labelAiAssessments)
-      .on(_._1._1.labelId === _.labelId)
-      .filter { case (((l, ur), r), laa) => laa.map(_.labelId).isEmpty } // No labels that AI's already validated
+      .on(_._1.labelId === _.labelId)
+      .filter { case ((l, ur), laa) => laa.map(_.labelId).isEmpty } // No labels that AI's already validated
       .joinLeft(labelAiFailures)
-      .on(_._1._1._1.labelId === _.labelId)
-      .filter { case ((((l, ur), r), laa), laf) => laf.map(_.labelId).isEmpty } // No labels with a permanent failure
-      .map(_._1._1._1._1)
+      .on(_._1._1.labelId === _.labelId)
+      .filter { case (((l, ur), laa), laf) => laf.map(_.labelId).isEmpty } // No labels with a permanent failure
+      .map(_._1._1._1)
 
     possibleLabels
       .join(labelPoints)
@@ -2745,13 +2729,12 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     sql"""
       SELECT CAST((label.time_created AT TIME ZONE 'US/Pacific')::date AS TEXT) AS date,
              label_type.label_type,
-             COUNT(CASE WHEN role.role IS DISTINCT FROM 'AI' THEN label.label_id END) AS human_labels,
-             COUNT(CASE WHEN role.role = 'AI'               THEN label.label_id END) AS ai_labels
+             COUNT(CASE WHEN user_role.role IS DISTINCT FROM 'AI' THEN label.label_id END) AS human_labels,
+             COUNT(CASE WHEN user_role.role = 'AI'               THEN label.label_id END) AS ai_labels
       FROM label
       INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
       INNER JOIN user_stat  ON label.user_id       = user_stat.user_id
-      LEFT  JOIN sidewalk_login.user_role ON label.user_id     = user_role.user_id
-      LEFT  JOIN sidewalk_login.role      ON user_role.role_id = role.role_id
+      LEFT  JOIN sidewalk_login.user_role ON label.user_id = user_role.user_id
       WHERE #$where
       GROUP BY (label.time_created AT TIME ZONE 'US/Pacific')::date, label_type.label_type
       ORDER BY date ASC, label_type.label_type

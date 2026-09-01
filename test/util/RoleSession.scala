@@ -2,6 +2,7 @@ package util
 
 import com.google.inject.{Injector => GuiceInjector, Key, TypeLiteral}
 import models.auth.DefaultEnv
+import models.user.Role
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import org.scalatest.BeforeAndAfterAll
@@ -41,7 +42,7 @@ trait RoleSession extends BeforeAndAfterAll { this: PlaySpec with GuiceOneAppPer
    * A bare signup carries the Anonymous role, which is sent to sign in whatever role an action wants; only a
    * registered role (e.g. "Registered", "Administrator") reaches the branch that refuses by name.
    */
-  protected def sessionAs(role: String): Seq[Cookie] = {
+  protected def sessionAs(role: Role.Value): Seq[Cookie] = {
     val cookies = freshAnonSession()
     val userId  = userIdOf(cookies)
     promotedUserIds ::= userId
@@ -64,11 +65,11 @@ trait RoleSession extends BeforeAndAfterAll { this: PlaySpec with GuiceOneAppPer
   }
 
   /** Sets the account's role directly in the DB; roles are resolved per request, so the session picks it up. */
-  protected def setRole(userId: String, role: String): Unit = {
+  protected def setRole(userId: String, role: Role.Value): Unit = {
     val _ = Await.result(
       roleSessionDbConfig.db.run(
         sqlu"""UPDATE sidewalk_login.user_role
-               SET role_id = (SELECT role_id FROM sidewalk_login.role WHERE role = $role)
+               SET role = ${role.toString}::role
                WHERE user_id = $userId"""
       ),
       60.seconds
@@ -76,7 +77,7 @@ trait RoleSession extends BeforeAndAfterAll { this: PlaySpec with GuiceOneAppPer
   }
 
   override def afterAll(): Unit = {
-    promotedUserIds.foreach(id => setRole(id, "Anonymous"))
+    promotedUserIds.foreach(id => setRole(id, Role.Anonymous))
     super.afterAll()
   }
 }

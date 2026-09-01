@@ -380,7 +380,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    * Composed from three queries on the same connection: the single-row core metrics, the per-label-type breakdown
    * (reusing [[getLabelTypeStatsBySchema]]), and the weekly trend (`getCityWeeklyTrendBySchema`).
    *
-   * AI is determined by the shared `sidewalk_login` role (`role.role = 'AI'`), not anything in the city schema — so
+   * AI is determined by the shared `sidewalk_login` role (`user_role.role = 'AI'`), not anything in the city schema — so
    * those joins are intentionally not schema-qualified, matching `getCityDailyLabelStatsBySchema`. `COUNT(DISTINCT
    * label_id)` is used for label counts so the AI-role LEFT JOINs can never fan a label out if a user carries more than
    * one role row.
@@ -505,7 +505,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           ) AS distinct_audited
       ) AS audited_km, (
           SELECT COUNT(DISTINCT label.label_id) AS label_count,
-                 COUNT(DISTINCT label.label_id) FILTER (WHERE role.role = 'AI') AS ai_count,
+                 COUNT(DISTINCT label.label_id) FILTER (WHERE user_role.role = 'AI') AS ai_count,
                  COUNT(DISTINCT label.label_id) FILTER (WHERE label.severity IS NOT NULL) AS with_severity,
                  -- Denominator for "% with severity": only types that CAN take a severity. The three excluded here
                  -- mirror UtilitiesSidewalk.js LABEL_TYPES_WITHOUT_SEVERITY (NoSidewalk, Signal, Occlusion).
@@ -527,7 +527,6 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           INNER JOIN "#$schema".user_stat ON label.user_id = user_stat.user_id
           INNER JOIN "#$schema".audit_task ON label.audit_task_id = audit_task.audit_task_id
           LEFT  JOIN sidewalk_login.user_role ON label.user_id     = user_role.user_id
-          LEFT  JOIN sidewalk_login.role      ON user_role.role_id = role.role_id
           WHERE NOT user_stat.excluded
               AND label.deleted = FALSE
               AND label.tutorial = FALSE
@@ -540,9 +539,9 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           -- role LEFT JOIN fanning a validation out if a user carries more than one role row.
           SELECT COUNT(DISTINCT label_validation.label_validation_id) AS val_count,
                  COUNT(DISTINCT label_validation.label_validation_id)
-                     FILTER (WHERE validation_result::text = 'Agree'    AND role.role IS DISTINCT FROM 'AI') AS agree_count,
+                     FILTER (WHERE validation_result::text = 'Agree'    AND user_role.role IS DISTINCT FROM 'AI') AS agree_count,
                  COUNT(DISTINCT label_validation.label_validation_id)
-                     FILTER (WHERE validation_result::text = 'Disagree' AND role.role IS DISTINCT FROM 'AI') AS disagree_count,
+                     FILTER (WHERE validation_result::text = 'Disagree' AND user_role.role IS DISTINCT FROM 'AI') AS disagree_count,
                  COUNT(DISTINCT label_validation.label_validation_id)
                      FILTER (WHERE end_timestamp >= NOW() - INTERVAL '7 days')  AS val_7d,
                  COUNT(DISTINCT label_validation.label_validation_id)
@@ -550,7 +549,6 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           FROM "#$schema".label_validation
           INNER JOIN "#$schema".user_stat ON label_validation.user_id = user_stat.user_id
           LEFT  JOIN sidewalk_login.user_role ON label_validation.user_id = user_role.user_id
-          LEFT  JOIN sidewalk_login.role      ON user_role.role_id        = role.role_id
           WHERE NOT user_stat.excluded
       ) AS val_counts, (
           -- AI-authored validations, counted separately from val_counts so the AI-role join can't fan out the totals.
@@ -558,8 +556,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           FROM "#$schema".label_validation
           INNER JOIN "#$schema".user_stat ON label_validation.user_id = user_stat.user_id
           LEFT  JOIN sidewalk_login.user_role ON label_validation.user_id = user_role.user_id
-          LEFT  JOIN sidewalk_login.role      ON user_role.role_id        = role.role_id
-          WHERE NOT user_stat.excluded AND role.role = 'AI'
+          WHERE NOT user_stat.excluded AND user_role.role = 'AI'
       ) AS ai_val_counts, (
           #$voidedValCountsBody
       ) AS voided_val_counts, (
@@ -575,16 +572,14 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
               FROM "#$schema".label
               INNER JOIN "#$schema".user_stat ON label.user_id = user_stat.user_id
               LEFT  JOIN sidewalk_login.user_role ON label.user_id     = user_role.user_id
-              LEFT  JOIN sidewalk_login.role      ON user_role.role_id = role.role_id
               WHERE NOT user_stat.excluded AND label.deleted = FALSE AND label.tutorial = FALSE
-                  AND role.role IS DISTINCT FROM 'AI'
+                  AND user_role.role IS DISTINCT FROM 'AI'
               UNION
               SELECT label_validation.user_id AS contributor_id
               FROM "#$schema".label_validation
               INNER JOIN "#$schema".user_stat ON label_validation.user_id = user_stat.user_id
               LEFT  JOIN sidewalk_login.user_role ON label_validation.user_id = user_role.user_id
-              LEFT  JOIN sidewalk_login.role      ON user_role.role_id        = role.role_id
-              WHERE NOT user_stat.excluded AND role.role IS DISTINCT FROM 'AI'
+              WHERE NOT user_stat.excluded AND user_role.role IS DISTINCT FROM 'AI'
               #$voidedContributorArm
           ) AS contributor_union
       ) AS active_contributors, (
@@ -752,10 +747,9 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
   private def accountKindsCte(activityCte: String): String =
     s"""account_kinds AS (
           SELECT user_role.user_id,
-                 BOOL_OR(role.role = 'AI')        AS is_ai,
-                 BOOL_OR(role.role = 'Anonymous') AS is_anonymous
+                 BOOL_OR(user_role.role = 'AI')        AS is_ai,
+                 BOOL_OR(user_role.role = 'Anonymous') AS is_anonymous
           FROM sidewalk_login.user_role
-          INNER JOIN sidewalk_login.role ON user_role.role_id = role.role_id
           WHERE user_role.user_id IN (SELECT activity_user_id FROM $activityCte)
           GROUP BY user_role.user_id
       )"""
@@ -926,9 +920,8 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
               FROM "#$schema".label
               INNER JOIN "#$schema".user_stat ON label.user_id = user_stat.user_id
               LEFT  JOIN sidewalk_login.user_role ON label.user_id     = user_role.user_id
-              LEFT  JOIN sidewalk_login.role      ON user_role.role_id = role.role_id
               WHERE NOT user_stat.excluded AND label.deleted = FALSE AND label.tutorial = FALSE
-                  AND role.role IS DISTINCT FROM 'AI'
+                  AND user_role.role IS DISTINCT FROM 'AI'
               GROUP BY label.user_id
           ) lc
       ) lbl, (
@@ -940,8 +933,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
               FROM "#$schema".label_validation
               INNER JOIN "#$schema".user_stat ON label_validation.user_id = user_stat.user_id
               LEFT  JOIN sidewalk_login.user_role ON label_validation.user_id = user_role.user_id
-              LEFT  JOIN sidewalk_login.role      ON user_role.role_id        = role.role_id
-              WHERE NOT user_stat.excluded AND role.role IS DISTINCT FROM 'AI'
+              WHERE NOT user_stat.excluded AND user_role.role IS DISTINCT FROM 'AI'
               GROUP BY label_validation.user_id
           ) vc
       ) val, (
@@ -951,8 +943,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
               FROM "#$schema".label_validation
               INNER JOIN "#$schema".user_stat ON label_validation.user_id = user_stat.user_id
               LEFT  JOIN sidewalk_login.user_role ON label_validation.user_id = user_role.user_id
-              LEFT  JOIN sidewalk_login.role      ON user_role.role_id        = role.role_id
-              WHERE NOT user_stat.excluded AND role.role IS DISTINCT FROM 'AI'
+              WHERE NOT user_stat.excluded AND user_role.role IS DISTINCT FROM 'AI'
                   AND label_validation.start_timestamp IS NOT NULL
                   AND label_validation.end_timestamp > label_validation.start_timestamp
                   AND EXTRACT(EPOCH FROM (label_validation.end_timestamp - label_validation.start_timestamp)) <= 300
@@ -1046,13 +1037,12 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
     sql"""
       SELECT CAST((label.time_created AT TIME ZONE 'US/Pacific')::date AS TEXT) AS date,
              label_type.label_type,
-             COUNT(CASE WHEN role.role IS DISTINCT FROM 'AI' THEN label.label_id END) AS human_labels,
-             COUNT(CASE WHEN role.role = 'AI'               THEN label.label_id END) AS ai_labels
+             COUNT(CASE WHEN user_role.role IS DISTINCT FROM 'AI' THEN label.label_id END) AS human_labels,
+             COUNT(CASE WHEN user_role.role = 'AI'               THEN label.label_id END) AS ai_labels
       FROM "#$schema".label
       INNER JOIN "#$schema".label_type ON label.label_type_id = label_type.label_type_id
       INNER JOIN "#$schema".user_stat  ON label.user_id       = user_stat.user_id
       LEFT  JOIN sidewalk_login.user_role ON label.user_id     = user_role.user_id
-      LEFT  JOIN sidewalk_login.role      ON user_role.role_id = role.role_id
       WHERE #$where
       GROUP BY (label.time_created AT TIME ZONE 'US/Pacific')::date, label_type.label_type
       ORDER BY date ASC, label_type.label_type
@@ -1089,24 +1079,23 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
     sql"""
       SELECT CAST((label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date AS TEXT) AS date,
              label_type.label_type,
-             COUNT(CASE WHEN role.role IS DISTINCT FROM 'AI' AND label_validation.validation_result::text = 'Agree'
+             COUNT(CASE WHEN user_role.role IS DISTINCT FROM 'AI' AND label_validation.validation_result::text = 'Agree'
                         THEN 1 END) AS human_agree,
-             COUNT(CASE WHEN role.role IS DISTINCT FROM 'AI' AND label_validation.validation_result::text = 'Disagree'
+             COUNT(CASE WHEN user_role.role IS DISTINCT FROM 'AI' AND label_validation.validation_result::text = 'Disagree'
                         THEN 1 END) AS human_disagree,
-             COUNT(CASE WHEN role.role IS DISTINCT FROM 'AI' AND label_validation.validation_result::text = 'Unsure'
+             COUNT(CASE WHEN user_role.role IS DISTINCT FROM 'AI' AND label_validation.validation_result::text = 'Unsure'
                         THEN 1 END) AS human_unsure,
-             COUNT(CASE WHEN role.role = 'AI' AND label_validation.validation_result::text = 'Agree'
+             COUNT(CASE WHEN user_role.role = 'AI' AND label_validation.validation_result::text = 'Agree'
                         THEN 1 END) AS ai_agree,
-             COUNT(CASE WHEN role.role = 'AI' AND label_validation.validation_result::text = 'Disagree'
+             COUNT(CASE WHEN user_role.role = 'AI' AND label_validation.validation_result::text = 'Disagree'
                         THEN 1 END) AS ai_disagree,
-             COUNT(CASE WHEN role.role = 'AI' AND label_validation.validation_result::text = 'Unsure'
+             COUNT(CASE WHEN user_role.role = 'AI' AND label_validation.validation_result::text = 'Unsure'
                         THEN 1 END) AS ai_unsure
       FROM "#$schema".label_validation
       INNER JOIN "#$schema".label      ON label_validation.label_id    = label.label_id
       INNER JOIN "#$schema".label_type ON label.label_type_id          = label_type.label_type_id
       INNER JOIN "#$schema".user_stat  ON label_validation.user_id     = user_stat.user_id
       LEFT  JOIN sidewalk_login.user_role ON label_validation.user_id = user_role.user_id
-      LEFT  JOIN sidewalk_login.role      ON user_role.role_id        = role.role_id
       WHERE #$where
       GROUP BY (label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date, label_type.label_type
       ORDER BY date ASC, label_type.label_type

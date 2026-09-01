@@ -6,7 +6,7 @@ import models.audit.AuditTaskTableDef
 import models.label.{LabelTable, LabelTypeEnum}
 import models.mission.{MissionTableDef, MissionType}
 import models.street.StreetEdgeTable
-import models.user.RoleTable.ROLES_RESEARCHER_COLLAPSED
+import models.user.Role.ROLES_RESEARCHER_COLLAPSED
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import models.validation.LabelValidationTableDef
@@ -50,7 +50,7 @@ case class UserStatsForAdminPage(
     userId: String,
     username: String,
     email: String,
-    role: String,
+    role: Role.Value,
     team: Option[String],
     signUpTime: Option[OffsetDateTime],
     lastSignInTime: Option[OffsetDateTime],
@@ -72,7 +72,7 @@ case class UserCount(
     highQualityOnly: Boolean
 ) {
   require(Seq("explore", "validate", "combined").contains(toolUsed.toLowerCase()))
-  require((ROLES_RESEARCHER_COLLAPSED.map(_.toLowerCase()) ++ Seq("all")).contains(role))
+  require((ROLES_RESEARCHER_COLLAPSED.map(_.toString.toLowerCase()) ++ Seq("all")).contains(role))
 }
 
 case class LeaderboardStat(
@@ -638,13 +638,12 @@ class UserStatTable @Inject() (
           SELECT #$groupingCol, COUNT(label_id) AS label_count
           FROM sidewalk_user
           INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
-          INNER JOIN role ON user_role.role_id = role.role_id
           INNER JOIN user_stat ON sidewalk_user.user_id = user_stat.user_id
           INNER JOIN label ON sidewalk_user.user_id = label.user_id
           #$joinUserTeamTable
           WHERE label.deleted = FALSE
               AND label.tutorial = FALSE
-              AND role.role IN (#${RoleTable.LEADERBOARD_ROLES_SQL})
+              AND user_role.role IN (#${Role.LEADERBOARD_ROLES_SQL})
               AND user_stat.excluded = FALSE
               #$leaderboardVisibilityFilter
               AND (label.time_created AT TIME ZONE 'US/Pacific') > #$statStartTime
@@ -709,7 +708,7 @@ class UserStatTable @Inject() (
    *  - Ranking is by raw label count, so the rows are in true rank order (the per-city board's composite score has a
    *    city-relative distance term that cannot be compared across cities).
    *
-   * Eligibility mirrors the per-city board — role in [[RoleTable.LEADERBOARD_ROLES]], non-excluded,
+   * Eligibility mirrors the per-city board — role in [[Role.LEADERBOARD_ROLES]], non-excluded,
    * non-deleted/non-tutorial labels — with two cross-city refinements:
    *  - `excluded` is per city, so a user flagged low-quality in one city loses *that city's* contribution and keeps the
    *    rest; the flag describes that city's data, not the person. It is applied as an aggregate FILTER rather than a
@@ -801,8 +800,7 @@ class UserStatTable @Inject() (
             SELECT rolled.*
             FROM rolled
             INNER JOIN sidewalk_login.user_role ON user_role.user_id = rolled.user_id
-            INNER JOIN sidewalk_login.role ON user_role.role_id = role.role_id
-            WHERE role.role IN (#${RoleTable.LEADERBOARD_ROLES_SQL})
+            WHERE user_role.role IN (#${Role.LEADERBOARD_ROLES_SQL})
             ORDER BY rolled.label_count DESC, rolled.user_id
             LIMIT $n
         )
@@ -982,12 +980,11 @@ class UserStatTable @Inject() (
                  COUNT(*) OVER ()::int AS cohort
           FROM sidewalk_user
           INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
-          INNER JOIN role ON user_role.role_id = role.role_id
           INNER JOIN user_stat ON sidewalk_user.user_id = user_stat.user_id
           INNER JOIN label ON sidewalk_user.user_id = label.user_id
           WHERE label.deleted = FALSE
               AND label.tutorial = FALSE
-              AND role.role IN (#${RoleTable.LEADERBOARD_ROLES_SQL})
+              AND user_role.role IN (#${Role.LEADERBOARD_ROLES_SQL})
               AND user_stat.excluded = FALSE
               AND user_stat.on_leaderboard = TRUE
               #$timeFilter
@@ -1070,27 +1067,10 @@ class UserStatTable @Inject() (
    * Get all users, excluding anon users who haven't placed any labels or done any validations (to limit table size).
    */
   def usersMinusAnonUsersWithNoLabelsAndNoValidations: DBIO[Seq[SidewalkUserWithRole]] = {
-    //    val anonUsersWithLabels = (for {
-    //      _user <- userTable
-    //      _userRole <- userRoleTable if _user.userId === _userRole.userId
-    //      _role <- roleTable if _userRole.roleId === _role.roleId
-    //      _label <- LabelTable.labelsWithTutorialAndExcludedUsers if _user.userId === _label.userId
-    //      if _role.role === "Anonymous"
-    //    } yield (_user, _role)).groupBy(x => x).map(_._1)
-    //
-    //    val anonUsersWithValidations = (for {
-    //      _user <- userTable
-    //      _userRole <- userRoleTable if _user.userId === _userRole.userId
-    //      _role <- roleTable if _userRole.roleId === _role.roleId
-    //      _labelValidation <- LabelValidationTable.validationLabels if _user.userId === _labelValidation.userId
-    //      if _role.role === "Anonymous"
-    //    } yield (_user, _role)).groupBy(x => x).map(_._1)
-
-    val otherUsers = sidewalkUserTable.sidewalkUserWithRole.filter(_._4 =!= "Anonymous")
+    val otherUsers = sidewalkUserTable.sidewalkUserWithRole.filter(_._4 =!= Role.Anonymous)
 
     // TODO Only returning non-anonymous users temporarily:
     // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/3802
-    //    anonUsersWithLabels.union(anonUsersWithValidations) ++ otherUsers
     otherUsers.result.map(_.map(SidewalkUserWithRole.tupled))
   }
 
@@ -1104,7 +1084,7 @@ class UserStatTable @Inject() (
     userStats
       .join(userRoleTable)
       .on(_.userId === _.userId)
-      .filter(_._2.roleId =!= 6) // Exclude anonymous users.
+      .filter(_._2.role =!= Role.Anonymous)
       .filter(!_._1.highQuality)
       .length
       .result
@@ -1118,7 +1098,7 @@ class UserStatTable @Inject() (
     userStats
       .join(userRoleTable)
       .on(_.userId === _.userId)
-      .filter(_._2.roleId =!= 6) // Exclude anonymous users.
+      .filter(_._2.role =!= Role.Anonymous)
       .map(x => (x._1.userId, x._1.highQuality, x._1.highQualityManual))
       .result
   }
@@ -1181,8 +1161,7 @@ class UserStatTable @Inject() (
       ) users
       INNER JOIN user_stat ON users.user_id = user_stat.user_id
       INNER JOIN user_role ON user_stat.user_id = user_role.user_id
-      INNER JOIN role ON user_role.role_id = role.role_id
-      WHERE role.role <> 'AI'
+      WHERE user_role.role <> 'AI'
           AND #$highQualityOnlySql;
     """.as[Int].head.map(n => UserCount(n, "combined", "all", timeInterval, taskCompletedOnly, highQualityOnly))
   }
@@ -1265,7 +1244,6 @@ class UserStatTable @Inject() (
              COALESCE(label_counts.other_not_validated, 0) AS other_not_validated
       FROM user_stat
       INNER JOIN user_role ON user_stat.user_id = user_role.user_id
-      INNER JOIN role ON user_role.role_id = role.role_id
       -- Validations given.
       LEFT JOIN (
           SELECT label_validation.user_id,
@@ -1340,7 +1318,7 @@ class UserStatTable @Inject() (
               AND audit_task.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
           GROUP BY audit_task.user_id
       ) label_counts ON user_stat.user_id = label_counts.user_id
-      WHERE role.role <> 'Anonymous'
+      WHERE user_role.role <> 'Anonymous'
           AND user_stat.excluded = FALSE
           #$minLabelsClause
           #$minMetersClause

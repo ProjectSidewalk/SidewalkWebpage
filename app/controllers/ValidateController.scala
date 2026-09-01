@@ -383,7 +383,7 @@ class ValidateController @Inject() (
     panoDataService.insertPanoHistories(data.panoHistories)
 
     // Send contributions to SciStarter async so that it can be recorded in their user dashboard there.
-    val eligibleUser: Boolean = RoleTable.SCISTARTER_ROLES.contains(user.role)
+    val eligibleUser: Boolean = Role.SCISTARTER_ROLES.contains(user.role)
     if (data.validations.nonEmpty && config.get[String]("environment-type") == "prod" && eligibleUser) {
       // Cap time for each validation at 1 minute.
       val timeSpent: Double = data.validations.map { l =>
@@ -404,7 +404,7 @@ class ValidateController @Inject() (
    * that gate ever widens. The region and unvalidated-only filters are open to everyone on plain /validate.
    */
   private def paramsAllowedFor(params: ValidateParams, user: SidewalkUserWithRole): ValidateParams = {
-    if (RoleTable.ADMIN_ROLES.contains(user.role)) params
+    if (Role.ADMIN_ROLES.contains(user.role)) params
     else
       ValidateParams(
         adminVersion = false,

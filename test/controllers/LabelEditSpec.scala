@@ -95,7 +95,7 @@ class LabelEditSpec extends PlaySpec with BeforeAndAfterAll with SubmissionSpecH
   private def grantAdmin(userId: String): Unit = {
     val _ = run(
       sqlu"""UPDATE sidewalk_login.user_role
-             SET role_id = (SELECT role_id FROM sidewalk_login.role WHERE role = 'Administrator')
+             SET role = 'Administrator'
              WHERE user_id = $userId"""
     )
   }

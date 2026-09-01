@@ -9,6 +9,7 @@ import actor.{
   UserStatActor
 }
 import models.street.OsmWayTable
+import models.user.Role
 import models.utils.MyPostgresProfile.api._
 import models.utils.{BackgroundJobRun, BackgroundJobRunTable, JobRunStatus, JobRunTrigger}
 import org.apache.pekko.actor.ActorSystem
@@ -99,8 +100,8 @@ class AdminJobTriggerSpec
 
   private val jobRunTable = app.injector.instanceOf[BackgroundJobRunTable]
 
-  private lazy val adminCookies: Seq[Cookie]   = sessionAs("Administrator")
-  private lazy val visitorCookies: Seq[Cookie] = sessionAs("Registered")
+  private lazy val adminCookies: Seq[Cookie]   = sessionAs(Role.Administrator)
+  private lazy val visitorCookies: Seq[Cookie] = sessionAs(Role.Registered)
 
   /** The runs these tests caused, deleted afterwards so no later reader takes them for the city's own history. */
   private var triggeredRunIds: List[Int] = Nil

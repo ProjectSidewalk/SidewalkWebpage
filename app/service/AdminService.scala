@@ -109,11 +109,10 @@ case class LabelThumbnailMeta(panoId: String, panoSource: PanoSource, heading: D
  * A compact "who is this contributor" summary for annotating a recent-activity item: their role plus how much they've
  * contributed overall. Lets the admin Activity feed say a bit about each person, not just the single action shown.
  *
- * @param role        The user's role (e.g. "Registered", "Researcher", "Anonymous").
  * @param labels      Total labels they've placed (same base as the Contributors page, so the numbers agree).
  * @param validations Total validations they've performed.
  */
-case class UserSummary(role: String, labels: Int, validations: Int)
+case class UserSummary(role: Role.Value, labels: Int, validations: Int)
 
 /**
  * One row of the Contributors page's "Top labelers" leaderboard: a prolific labeler with the breakdowns that reveal
@@ -125,7 +124,7 @@ case class UserSummary(role: String, labels: Int, validations: Int)
 case class LabelerLeaderboardEntry(
     userId: String,
     username: String,
-    role: String,
+    role: Role.Value,
     labels: Int,
     ownValidated: Int,
     ownValidatedAgreedPct: Double,
@@ -141,7 +140,7 @@ case class LabelerLeaderboardEntry(
 case class ValidatorLeaderboardEntry(
     userId: String,
     username: String,
-    role: String,
+    role: Role.Value,
     validations: Int,
     agree: Int,
     disagree: Int,
@@ -796,8 +795,8 @@ class AdminServiceImpl @Inject() (
         .map(_.toMap)
       // Map(user_id: String -> label_count: Int).
       labelCounts: Map[String, Int] <- labelTable.countLabelsByUser.map(_.toMap)
-      // Map(user_id: String -> (role: String, total: Int, agreed: Int, disagreed: Int, unsure: Int)).
-      validatedCounts: Map[String, (String, Int, Int)] <- labelValidationTable.getValidationCountsByUser.map(_.toMap)
+      validatedCounts: Map[String, (Role.Value, Int, Int)] <- labelValidationTable.getValidationCountsByUser
+        .map(_.toMap)
       // Map(user_id: String -> (count: Int, agreed: Int, disagreed: Int)).
       othersValidatedCounts: Map[String, (Int, Int)] <- labelValidationTable.getValidatedCountsPerUser.map(_.toMap)
       // Map(user_id: String -> (high_quality: Boolean, high_quality_manual: Option[Boolean])).
@@ -807,7 +806,7 @@ class AdminServiceImpl @Inject() (
     } yield {
       // Now left join them all together and put into UserStatsForAdminPage objects.
       users.map { user =>
-        val ownValidatedCounts = validatedCounts.getOrElse(user.userId, ("", 0, 0))
+        val ownValidatedCounts = validatedCounts.getOrElse(user.userId, (user.role, 0, 0))
         val ownValidatedTotal  = ownValidatedCounts._2
         val ownValidatedAgreed = ownValidatedCounts._3
 

@@ -326,7 +326,7 @@ class ExploreController @Inject() (
                   }
 
                 // Send contributions to SciStarter async so that it can be recorded in their user dashboard there.
-                val eligibleUser: Boolean = RoleTable.SCISTARTER_ROLES.contains(user.role)
+                val eligibleUser: Boolean = Role.SCISTARTER_ROLES.contains(user.role)
                 if (returnData.newLabels.nonEmpty && config.get[String]("environment-type") == "prod" && eligibleUser) {
                   exploreService
                     .secondsSpentAuditing(

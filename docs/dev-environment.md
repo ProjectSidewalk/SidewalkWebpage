@@ -338,7 +338,7 @@ psql shell (`docker exec -it projectsidewalk-db psql -U sidewalk -d sidewalk`) a
 
 ```sql
 UPDATE sidewalk_login.user_role
-SET role_id = (SELECT role_id FROM sidewalk_login.role WHERE role = 'Owner')
+SET role = 'Owner'
 WHERE user_id = (SELECT user_id FROM sidewalk_login.sidewalk_user WHERE username = '<your-username>');
 ```
 
