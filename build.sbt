@@ -205,11 +205,18 @@ Compile / sourceGenerators += Def.task {
   Seq(file)
 }.taskValue
 
+// ScalaTest runs suites concurrently by default, which is wrong for this suite twice over (#5042). Every
+// GuiceOneAppPerSuite spec boots its own app with its own 25-connection pool (`slick.dbs.default.db.maxConnections`),
+// so four concurrent boots exhaust a stock Postgres and abort the run with "Pool is empty, failed to create/setup
+// connection" — the constraint that kept backend-tests on a hand-listed subset. And every DB-backed spec shares the
+// one connected city schema, so concurrent suites read each other's writes no matter how large the pool is.
+Test / parallelExecution := false
+
 // Statement-coverage ratchet (#4743), enforced by backend-tests; see docs/testing-and-ci.md.
 //
-// Don't set this from a local run. `backend-tests` runs a hand-listed subset of test/ against an empty schema, while
-// a local full-suite run against a seeded DB scores ~19 points higher. 40 is provisional, chosen with headroom under
-// a local 43.66%, and should be tightened to just under whatever a real CI run reports.
+// Don't set this from a local run: CI's schema is empty where a local one is seeded, so CI scores lower on the same
+// specs. 40 is provisional — chosen with headroom under a local 43.66% when backend-tests still ran a subset — and
+// should be tightened to just under whatever a full CI run reports.
 coverageMinimumStmtTotal := 40
 coverageFailOnMinimum    := true
 
