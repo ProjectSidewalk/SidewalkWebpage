@@ -29,7 +29,7 @@ class ModalNoNewMission {
   static #buildBody(message) {
     return `
       <figure>
-        <img src="/assets/images/icons/AccessibilityFeatures.png" class="modal-mission-images center-block"
+        <img src="${util.assetPath('images/icons/AccessibilityFeatures.png')}" class="modal-mission-images center-block"
         alt="Street accessibility features" />
       </figure>
       <div class="spacer10"></div>

@@ -169,6 +169,20 @@ linked only by that page, and a page's class prefix (`ud-`, `ac-`, `svl-`, …) 
 stylesheet(s) — `tools/check-css-layout.mjs` (`make lint-css-layout`) enforces both. Directories and CSS files are kebab-case; JS files use Airbnb casing (PascalCase for class files, camelCase
 otherwise). See [`style-guide.md`](style-guide.md) for the full layout and naming conventions.
 
+**Assets are named by logical path, never by URL** (#4893). A Twirl template asks for one with `assets.path("…")`,
+which resolves to the content-fingerprinted copy a staged build serves under a year-long `immutable` cache; a
+hardcoded `/assets/…` string gets the one-hour default instead. JS can't call `assets.path`, so the app publishes the
+answers: `build.sbt` names the asset families JS draws from (`assetManifestPrefixes`) and generates an inventory of
+them, `AssetManifestService` resolves each through `AssetsFinder` at startup, and `main.scala.html` stamps the
+resulting `{logical path → md5}` map onto every page as `window.assetDigests` — ahead of `utilities.js`, since the
+tool bundles resolve icon URLs in module-level constants at script-eval time. Frontend code then writes
+`util.assetPath('images/icons/openhand.cur')`, building the whole path inside one template literal when part of it
+varies. Under dev `sbt run` nothing is fingerprinted, so the stamp is empty and every lookup falls back to the plain
+`/assets/<path>`. Neither half of a mistake fails at runtime, so `tools/check-asset-paths.mjs`
+(`make lint-asset-paths`, a blocking CI step) is the gate: no hardcoded `/assets/` URLs under `public/js/`, and every
+`util.assetPath` argument names a real file in a manifest family. Full caching contract:
+[`deployment-and-stages.md`](deployment-and-stages.md) → "Asset caching".
+
 **Styling comes from the design-system tokens in `main.css` `:root`** — color ramps (`--color-*`), composite type
 tokens (`--text-*`, complete `font` shorthands that bake in the tool-UI zoom factor `--ui-scale`), spacing, radii,
 shadows, motion, and z-index layers — plus the component primitives `.button-ps`, `.ps-input`, `.ps-select`, and
@@ -220,8 +234,8 @@ Two standalone scripts under [`scripts/`](../scripts) (see [`scripts/README.md`]
 - `scripts/check_streets_for_imagery.py` — checks streets for available street-view imagery. Run as `python3.13`,
   the second interpreter the web image carries for offline tooling whose libraries have moved past 3.8.
 
-Their pure logic is unit-tested under [`test/python/`](../test/python) (`pytest`, one blocking CI leg per interpreter and one advisory) — one run per
-interpreter. See [`docs/testing-and-ci.md`](testing-and-ci.md).
+Their pure logic is unit-tested under [`test/python/`](../test/python) (`pytest`) — one CI run per interpreter, the
+in-band leg blocking and the offline-tooling leg advisory. See [`docs/testing-and-ci.md`](testing-and-ci.md).
 
 ## Label types
 

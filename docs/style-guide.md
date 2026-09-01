@@ -10,7 +10,7 @@ ones it can.
 [`.htmlhintrc`](../.htmlhintrc); Scala formatting lives in [`.scalafmt.conf`](../.scalafmt.conf). When this guide and a
 config disagree, the config wins — fix the config and this doc together. **The linters are all blocking CI gates** —
 ESLint (JS + translation JSON), Stylelint (CSS), HTMLHint (HTML), cross-locale key parity, the `public/css/` layout
-check, and `scalafmtCheckAll` for Scala. The trees are kept fully lint-clean
+check, the `public/js/` asset-path check, and `scalafmtCheckAll` for Scala. The trees are kept fully lint-clean
 ([#2487](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2487)), so run the relevant linter — or `make lint`
 for all of them — and get to zero before you push: `make lint-fix` autofixes the mechanical JS/CSS findings, hand-fix
 the rest. CI wiring is in [`docs/testing-and-ci.md`](testing-and-ci.md).
@@ -153,9 +153,16 @@ consistent with it.
   never `@import` (Play fingerprints per file, and an import adds a serial round trip).
 - **Third-party code groups by library** under `public/vendor/<lib>/`, each folder self-contained (its JS + CSS +
   fonts + images together, upstream internal layout preserved so relative `url()` refs keep working). **Nothing under
-  `vendor/` is ever edited or linted.** Vendored filenames carry their version (`pannellum-2.5.7.js`) — the app has
-  no asset fingerprinting, so version-in-filename is the only cache-buster (see
-  [`docs/upgrading-libraries.md`](upgrading-libraries.md)).
+  `vendor/` is ever edited or linted.** Vendored filenames carry their version (`pannellum-2.5.7.js`), which names
+  in the URL what a reader would otherwise have to diff for, and keeps two versions installable side by side during
+  an upgrade (see [`docs/upgrading-libraries.md`](upgrading-libraries.md)).
+- **Never hardcode an `/assets/...` URL in JavaScript** (#4893). Name the asset by its logical path under `public/`
+  and resolve it with **`util.assetPath('images/icons/openhand.cur')`** (defined in `public/js/common/utilities.js`,
+  loaded on every page). Staged builds content-fingerprint assets and serve the fingerprinted copy `immutable` for a
+  year; a hardcoded path gets the one-hour default, so a returning visitor re-asks about every asset once an hour and
+  a swapped file reaches a cached client only after that hour. Twirl's equivalent is `assets.path(...)` — also
+  mandatory, for the same reason. `make lint-asset-paths` enforces this; the full mechanism is in
+  [`docs/deployment-and-stages.md`](deployment-and-stages.md) → "Asset caching".
 
 **Naming conventions:**
 

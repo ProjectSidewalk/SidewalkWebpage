@@ -90,6 +90,13 @@
 
     @* Deferred: utilities.js only touches the bowser global lazily, from DOMContentLoaded-or-later callers. *@
     <script src='@assets.path("vendor/bowser/bowser-2.14.1.min.js")' defer></script>
+    @* Content-fingerprint digests for assets whose URLs JS builds at runtime (#4893): logicalPath -> md5, read by
+       util.assetPath. Empty under dev `sbt run` (no digests exist); a missing entry falls back to the plain
+       /assets/ path. Must precede the tool bundles: their module-level constants resolve URLs at script-eval time.
+       jsdom and the error pages never stamp this, so util.assetPath must tolerate its absence. Already serialized
+       (AssetManifestService does it once at startup), so this interpolates a string rather than a several-hundred-
+       entry map. *@
+    <script>window.assetDigests = @commonData.assetDigestsJson;</script>
     <script src='@assets.path("js/common/utilities.js")'></script>
     <script src='@assets.path("js/common/utilitiesMath.js")'></script>
     <script src='@assets.path("js/common/i18nDom.js")'></script>

@@ -13,6 +13,7 @@ import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.i18n.{Lang, MessagesApi}
 import play.api.libs.ws.WSClient
 import play.api.{Configuration, Logger}
+import play.twirl.api.Html
 import slick.dbio.DBIO
 
 import java.lang.management.ManagementFactory
@@ -76,7 +77,10 @@ case class CommonPageData(
     buildCommit: Option[String],
     buildDescribe: Option[String],
     buildDirty: Boolean,
-    allCityInfo: Seq[CityInfo]
+    allCityInfo: Seq[CityInfo],
+    // Content-fingerprint digests for the assets JS builds URLs for, serialized once at startup by
+    // AssetManifestService; stamped on every page for util.assetPath (#4893).
+    assetDigestsJson: Html
 ) {
 
   /** The deployment city's info; cityId always comes from the same config that builds allCityInfo. */
@@ -1086,7 +1090,8 @@ class ConfigServiceImpl @Inject() (
     funnelStatTable: FunnelStatTable,
     versionTable: VersionTable,
     panoDataService: PanoDataService,
-    swrCache: SwrCache
+    swrCache: SwrCache,
+    assetManifestService: AssetManifestService
 )(implicit val ec: ExecutionContext)
     extends ConfigService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
@@ -2212,7 +2217,7 @@ class ConfigServiceImpl @Inject() (
     } yield {
       CommonPageData(cityId, envType, googleAnalyticsId, prodUrl, imagerySource, imageryAccessToken, gMapsApiKey,
         mapboxApiKey, version.versionId, version.versionStartTime, version.description, appStartTime, BuildInfo.gitSha,
-        BuildInfo.gitDescribe, BuildInfo.gitDirty, allCityInfo)
+        BuildInfo.gitDescribe, BuildInfo.gitDirty, allCityInfo, assetManifestService.assetDigestsJson)
     }
   }
 }

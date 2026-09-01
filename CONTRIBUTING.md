@@ -82,9 +82,10 @@ before your first PR:
 - **Keep the frontend linters passing on what you change** before pushing. Run `make lint-fix` for the mechanical
   ESLint/Stylelint fixes, hand-fix the rest, then confirm the relevant linter is clean — `make eslint` (JS + translation
   JSON), `make stylelint` (CSS), `make htmlhint` (HTML), `make lint-locales` (cross-locale key parity),
-  `make lint-css-layout` (the `public/css/` layout), or `make lint` for all of them (it also runs the evolutions lint). The trees are kept fully lint-clean
+  `make lint-css-layout` (the `public/css/` layout), `make lint-asset-paths` (asset URLs in `public/js/`), or
+  `make lint` for all of them (it also runs the evolutions lint). The trees are kept fully lint-clean
   ([#2487](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2487)), so any finding is from your change.
-  **All four are blocking CI checks** now (they run in the `Frontend (build)` job), so a lint failure blocks the
+  **All of them are blocking CI checks** now (they run in the `Frontend (build)` job), so a lint failure blocks the
   merge — just like scalafmt.
 - **UI work** must meet WCAG 2.1/2.2 Level AA and use the `main.css` `:root` design tokens — type via the composite
   `--text-*` tokens (see the [style guide](docs/style-guide.md)). The target, the axe-core gate in the browser suite,
@@ -148,7 +149,7 @@ visiting `<your-computer-ip>:9000` (phone and computer on the same Wi-Fi; this o
 2. **Run scalafmt** on any Scala files you changed — `make scalafmt-fix` (CI blocks the merge on formatting). Set up
    format-on-save once via [`docs/editor-setup.md`](docs/editor-setup.md) so this is automatic. Likewise **run the
    frontend linters** on anything you changed — `make lint` (or the specific `make eslint`/`stylelint`/`htmlhint`/
-   `lint-locales`/`lint-css-layout` target), with `make lint-fix` for the mechanical fixes. They're all blocking CI checks now, so a lint
+   `lint-locales`/`lint-css-layout`/`lint-asset-paths` target), with `make lint-fix` for the mechanical fixes. They're all blocking CI checks now, so a lint
    failure blocks the merge; the trees are kept lint-clean —
    [#2487](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2487).
 3. Push your branch and [open a PR](https://github.com/ProjectSidewalk/SidewalkWebpage/compare) with **base

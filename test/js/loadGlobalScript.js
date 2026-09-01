@@ -30,4 +30,15 @@ function loadGlobalScript(relativePath) {
     require(absPath);
 }
 
-module.exports = { loadGlobalScript, REPO_ROOT };
+/**
+ * Stands in for `util.assetPath` in suites that assemble their own minimal `util` instead of loading utilities.js.
+ *
+ * Returns the unstamped result — plain `/assets/<logical path>` — which is what any page without a
+ * `window.assetDigests` stamp gets, jsdom included. The real helper is pinned in assetPath.test.js.
+ *
+ * @param {string} logicalPath - Path under public/, e.g. "images/icons/openhand.cur".
+ * @returns {string} The asset URL.
+ */
+const assetPathStub = (logicalPath) => `/assets/${logicalPath}`;
+
+module.exports = { loadGlobalScript, REPO_ROOT, assetPathStub };

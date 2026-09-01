@@ -121,8 +121,8 @@ edited or linted.**
 **To upgrade a self-hosted library:** download the new version, drop it in `public/vendor/<lib>/`, **rename it to
 include the version number** (e.g. `turf-7.3.4.min.js`) for clarity, update every reference to the old filename across
 the code, and delete the old file. The version baked into each filename under `vendor/` is the real source of truth for
-the frontend — the app has no asset fingerprinting, so version-in-filename is the only cache-buster — keep this list
-matching it.
+the frontend — it names in the URL what a reader would otherwise have to diff for, and lets two versions sit side by
+side mid-upgrade — keep this list matching it.
 
 - **async-lock: 1.4.1** — **note:** a fresh download probably needs the trailing `module.export` line removed.
   [Download](https://cdn.jsdelivr.net/npm/async-lock@1.4.1/lib/index.min.js) ·

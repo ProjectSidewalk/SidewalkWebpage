@@ -174,6 +174,10 @@ class AppManager {
 
     return i18next.use(i18nextHttpBackend).init({
       backend: {
+        // The one hardcoded '/assets/' URL in the codebase, allowlisted in tools/check-asset-paths.mjs: this is a
+        // template i18next-http-backend interpolates itself (and joins several namespaces into with
+        // allowMultiLoading), not a URL we build, so it can't go through util.assetPath. The 404s an absent
+        // country-override namespace produces are load-bearing — test/e2e/fixtures.js allowlists them (#4893).
         loadPath: '/assets/locales/{{lng}}/{{ns}}.json',
         allowMultiLoading: true,
       },

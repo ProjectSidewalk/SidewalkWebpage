@@ -19,8 +19,6 @@ class Main {
   constructor(params) {
     this.#params = params;
 
-    svl.imageDirectory = ('imageDirectory' in params) ? params.imageDirectory : '/';
-    svl.audioDirectory = ('audioDirectory' in params) ? params.audioDirectory : '/';
     svl.onboarding = null;
     svl.isOnboarding = () => this.#params.mission.mission_type === 'auditOnboarding';
     // Free exploration at a searched address (#4451): labeling works normally, but the task/mission never complete.
@@ -123,7 +121,7 @@ class Main {
     svl.labelContainer = new LabelContainer($, params.nextTemporaryLabelId);
 
     // Set map parameters and instantiate it.
-    svl.compass = new Compass(svl, svl.navigationService, svl.taskContainer);
+    svl.compass = new Compass(svl.navigationService, svl.taskContainer);
     svl.keyboardShortcutAlert = new KeyboardShortcutAlert(svl.alertController);
     svl.ratingReminderAlert = new RatingReminderAlert(svl.alertController);
     svl.zoomShortcutAlert = new ZoomShortcutAlert(svl.alertController);
@@ -141,7 +139,7 @@ class Main {
     svl.contextMenu = new ContextMenu(svl.ui.contextMenu);
 
     // Game effects
-    svl.audioEffect = new AudioEffect(svl.audioDirectory, svl.storage);
+    svl.audioEffect = new AudioEffect(svl.storage);
 
     const neighborhood = new Neighborhood({
       regionId: params.regionId, geoJSON: params.regionGeoJSON, name: params.regionName,
@@ -307,7 +305,7 @@ class Main {
     svl.alertController.hideAlert();
 
     if (!this.#onboardingHandAnimation) {
-      this.#onboardingHandAnimation = new HandAnimation(svl.imageDirectory, svl.ui.onboarding);
+      this.#onboardingHandAnimation = new HandAnimation(svl.ui.onboarding);
       this.#onboardingStates = new OnboardingStates(svl.contextMenu, svl.compass, svl.panoManager);
     }
 

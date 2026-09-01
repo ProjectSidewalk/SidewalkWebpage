@@ -14,6 +14,8 @@
 const fs = require('fs');
 const path = require('path');
 
+const {assetPathStub} = require('./loadGlobalScript');
+
 const SRC = (relativePath) => fs.readFileSync(path.resolve(__dirname, '..', '..', relativePath), 'utf8');
 
 /**
@@ -103,6 +105,7 @@ describe('mobile Validate mission screens', () => {
             t: (key, opts) => (opts ? `${key}|${JSON.stringify(opts)}` : key),
         };
         global.util = {
+            assetPath: assetPathStub,
             isMobile: () => isMobile,
             misc: {getIconImagePaths: (type) => ({iconImagePath: `/assets/icons/${type}_small.svg`})},
         };
