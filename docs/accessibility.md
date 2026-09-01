@@ -28,12 +28,12 @@ Two things this target is *not*:
 ## The automated gate
 
 `test/e2e/a11y.spec.js` runs [axe-core](https://github.com/dequelabs/axe-core) (via `@axe-core/playwright`) against
-each page in its own table, tagged `wcag2a` + `wcag2aa` + `wcag21aa`, and fails on any violation the page's allowlist
-does not already track. It rides inside the existing Playwright browser suite, so it loads each page through the same
-`loadAndSettle()` protocol the runtime-error gate uses — what axe measures is the same settled DOM.
+each page in `test/e2e/pages.js`, tagged `wcag2a` + `wcag2aa` + `wcag21aa`, and fails on any violation the page's
+allowlist does not already track. It rides inside the existing Playwright browser suite, so it loads each page
+through the same `loadAndSettle()` protocol the runtime-error gate uses — what axe measures is the same settled DOM.
 
 ```bash
-make test-e2e args="-g a11y --no-deps"      # just the accessibility gate
+make test-e2e args="--project=a11y"         # just the accessibility gate
 make test-e2e                               # the whole browser suite, gate included
 ```
 
@@ -82,13 +82,20 @@ fixable: report it upstream, shim it, or replace the widget. The Mapbox search b
 
 ### Where it runs in CI
 
-In the `e2e-smoke` job, as its own **blocking** step. The rest of that job — the runtime-error smoke suite — stays
-advisory, so the `continue-on-error` flag sits on *that* step rather than on the job, where it would excuse the gate
-too.
+In the `e2e-smoke` job, as its own **blocking** step (`--project=a11y`). The rest of that job — the runtime-error
+smoke suite — stays advisory, so the `continue-on-error` flag sits on *that* step rather than on the job, where it
+would excuse the gate too. The gate is a Playwright project rather than a `--grep` so the two halves are partitioned
+by which file a spec lives in, not by how its title is worded.
 
-Gating is safe this early precisely because the page table is opt-in: a page is only in it once its violations are
-fixed or tracked, so a failure is always a regression against a standard we already meet. Adding a page is what takes
-judgment; keeping the ones already there green is not.
+Gating is safe this early precisely because a page is only in the table once its violations are fixed or tracked, so
+a failure is a regression against a standard we already meet. Adding a page is what takes judgment; keeping the ones
+already there green is not.
+
+One caveat on what that gate sees: the job runs against an empty schema, so `/gallery` renders no cards and
+`/leaderboard` no rows. Violations that only appear once there is data — most of what the first pass fixed — are
+checked when the suite runs against a seeded DB, not by CI. The reverse is also true, so run both: the empty schema
+puts the api-docs previews into their error state, which is how CI caught two contrast bugs a seeded local run
+never reaches.
 
 Note that a failing job only *blocks a merge* once the check is required in branch protection — see
 [`docs/testing-and-ci.md`](testing-and-ci.md). The open data portal pages
@@ -156,8 +163,10 @@ Run this against any page you substantially change, and against the whole set pe
 - No information is carried by color alone — a severity, a status, or a label type needs a shape, an icon, or text
   too.
 - Text contrast: 4.5:1 for body text, 3:1 for large text and for UI component boundaries. Style from the
-  `main.css` design tokens and this mostly settles itself; the trap is a token validated on white being reused on a
-  tinted surface. `--color-link-200` in particular sits at exactly 4.5:1 on white, so it fails on any tint.
+  `main.css` design tokens and this mostly settles itself. The trap is that a link color has a second floor: 3:1
+  against the copy around it (1.4.1), since the hue is the only thing marking it. `--color-link-200` clears 4.5:1
+  on every surface we put it on, but reaches only 2.4:1 against `--color-neutral-900` and 2.2:1 against
+  `--color-asphalt-500`, so links inside copy in those colors need an underline.
 
 **Forms:**
 

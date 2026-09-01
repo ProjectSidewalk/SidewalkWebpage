@@ -71,9 +71,13 @@ e2e-workdir = $(if $(wt),/home/.claude/worktrees/$(wt),/home)
 # the running-container check below is about anyway. Unhandled third case: a rootful daemon with `userns-remap`
 # configured, where the right uid is neither — nobody on the team runs one, and it needs the offset from
 # /etc/subuid to compute.
-docker-rootless := $(shell docker info --format '{{.SecurityOptions}}' 2>/dev/null | grep -c rootless)
-e2e-uid    := $(if $(filter 0,$(docker-rootless)),$(shell id -u),0)
-e2e-user   := $(e2e-uid):$(if $(filter 0,$(docker-rootless)),$(shell id -g),0)
+#
+# Recursively expanded, so the `docker info` round trip is paid inside the test-e2e recipe rather than every time
+# make parses this file — targets that never touch docker (lint-evolutions, worktree-remove) would otherwise wait
+# out the client's connect timeout whenever the daemon is down, with 2>/dev/null hiding why.
+docker-rootless = $(shell docker info --format '{{.SecurityOptions}}' 2>/dev/null | grep -c rootless)
+e2e-uid    = $(if $(filter 0,$(docker-rootless)),$(shell id -u),0)
+e2e-user   = $(e2e-uid):$(if $(filter 0,$(docker-rootless)),$(shell id -g),0)
 # Playwright wipes its output directory at the start of every run, so one left root-owned — by a run that predates
 # --user, or by any root container — stops the non-root runner with EACCES before a single test starts. Repair it
 # in place instead of sending the developer to sudo. Held in a variable, not written inline in the recipe, because

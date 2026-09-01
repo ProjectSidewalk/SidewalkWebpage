@@ -122,6 +122,10 @@
   --color-error-100: #F47178;
   --color-error-200: #ED1C24;
 
+  /* The error red as *text*: --color-error-200 reaches only 4.4:1 on white and 3.7:1 on its own 10% tint, both under
+     1.4.3's 4.5:1, so it is a fill/border color rather than an ink. This darkening clears 6.5:1 and 5.6:1. */
+  --color-error-300: color-mix(in srgb, var(--color-error-200) 78%, black);
+
   --color-warning-100: #FFEF92;
   --color-warning-200: #FFDE24;
 
@@ -328,8 +332,8 @@ footer {
 /* A hairline sitting clear of the descenders, rather than the browser's thick baseline-hugging default. */
 a {
   color: var(--color-link-200);
-  text-decoration-thickness: 1px;
-  text-underline-offset: 2px;
+  text-decoration-thickness: calc(1px * var(--ui-scale, 1));
+  text-underline-offset: calc(2px * var(--ui-scale, 1));
 }
 
 /* Replacing bootstrap 3 colors with bootstrap 5, which have a better color contrast. */
@@ -1288,13 +1292,10 @@ kbd {
   color: var(--color-neutral-900);
 }
 
-/* Takes the band's emphasis color rather than link blue: --color-link-200 sits at exactly 4.5:1 on white, so on any
-   tinted surface it drops under 1.4.3 (3.98:1 here). The bold underline carries "link" without the hue (1.4.1). */
 .test-server-banner-link {
   font-weight: 600;
-  color: var(--color-neutral-900);
+  color: var(--color-link-200);
   text-decoration: underline;
-  text-underline-offset: 2px;
   overflow-wrap: anywhere;
 }
 

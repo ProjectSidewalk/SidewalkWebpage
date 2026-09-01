@@ -8,11 +8,15 @@
  * The page list is pages.js, shared with the smoke suite, so coverage here is **opt-out**: a page added there is
  * gated by default and stays gated unless someone writes it into EXEMPT_PAGES with a reason. Loading goes through
  * `loadAndSettle`, so what axe measures is the same settled DOM the error gate measures.
+ *
+ * Coverage follows the data, and the two environments see different pages: CI runs against an empty schema, where
+ * /gallery has no cards and /leaderboard no rows, but where the api-docs previews render their error state — which
+ * is how CI caught contrast bugs a seeded local run never reaches. Neither run subsumes the other.
  */
 const {test, expect, loadAndSettle} = require('./fixtures');
 const AxeBuilder = require('@axe-core/playwright').default;
 const {PAGES} = require('./pages');
-const {EXEMPT_PAGES, partitionViolations, formatViolations} = require('./a11y-allowlist');
+const {EXEMPT_PAGES, A11Y_ALLOWLIST, partitionViolations, formatViolations} = require('./a11y-allowlist');
 
 
 // WCAG 2.1 AA, which subsumes 2.0 A and AA. axe's `best-practice` tag is left off: useful advice, but not part of
@@ -47,11 +51,21 @@ for (const p of GATED_PAGES) {
       });
     }
 
+    // axe gives one entry per rule, so count nodes — that matches the lines printed below and `allowedCount`.
+    const blockingNodes = blocking.reduce((total, violation) => total + violation.nodes.length, 0);
     expect(formatViolations(blocking),
-      `${p.path}: ${blocking.length} non-allowlisted WCAG 2.1 AA violation(s), ${allowedCount} allowlisted`)
+      `${p.path}: ${blockingNodes} non-allowlisted WCAG 2.1 AA violation(s), ${allowedCount} allowlisted`)
       .toEqual([]);
   });
 }
+
+// A key matching no page is silent — an exemption typo stops exempting, a real key outlives the page it named — and
+// the stale-entry annotation above can't catch either, since it only runs for pages still in the table.
+test('a11y: allowlist and exemption keys name pages that exist', () => {
+  const paths = new Set(PAGES.map((p) => p.path));
+  const unknown = [...Object.keys(EXEMPT_PAGES), ...Object.keys(A11Y_ALLOWLIST)].filter((path) => !paths.has(path));
+  expect(unknown, 'keys not present in pages.js').toEqual([]);
+});
 
 // Stands in for the frame-title check the exclusion above removes. Nothing inside a YouTube player is ours, but the
 // name on the <iframe> is the whole reason a screen reader user knows which video they landed in — it is announced

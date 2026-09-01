@@ -18,8 +18,7 @@
  * Pages held out of the gate entirely, keyed by path, with the reason. Empty is the goal: a page here is one we have
  * decided not to hold to WCAG 2.1 AA yet, which is a bigger claim than forgiving a violation.
  */
-const EXEMPT_PAGES = {
-};
+const EXEMPT_PAGES = {};
 
 /** Known, tracked violations keyed by page path, as `{rule, selector?, issue, note}`. */
 const A11Y_ALLOWLIST = {

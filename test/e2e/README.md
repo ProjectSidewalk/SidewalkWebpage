@@ -99,9 +99,11 @@ ML-site outage from failing the run.
 
 `a11y.spec.js` runs axe-core (`@axe-core/playwright`) over every page in `pages.js`, tagged `wcag2a` +
 `wcag2aa` + `wcag21aa`, and fails on any violation `a11y-allowlist.js` does not already track — each allowlist
-entry citing the issue that will fix it. Run it alone with `make test-e2e args="-g a11y --no-deps"`. Coverage is
-**opt-out**: because the page table is shared, a page added for the smoke tests is gated for accessibility too
-unless someone writes it into `EXEMPT_PAGES` with a reason. Policy, the allowlist rules, and the manual checklist
+entry citing the issue that will fix it. It is its own Playwright project, so run it alone with
+`make test-e2e args="--project=a11y"`. Coverage is **opt-out**: because the page table is shared, a page added for
+the smoke tests is gated for accessibility too unless someone writes it into `EXEMPT_PAGES` with a reason. What a
+page renders depends on its data, so a run against an empty schema (as in CI) sees no gallery cards, no leaderboard
+rows, and no api-docs preview data. Policy, the allowlist rules, and the manual checklist
 that covers what axe can't see: [`docs/accessibility.md`](../../docs/accessibility.md).
 
 ### Console-error allowlist
@@ -114,9 +116,11 @@ exception) is never allowlisted.
 
 The `e2e-smoke` job in `.github/workflows/ci.yml`, on every PR. It builds the bundles, stages the app
 (prod-mode binary against the CI Postgres+PostGIS with the empty `sidewalk_teaneck` schema), and runs this
-suite in two steps: the **accessibility gate** (`-g 'a11y:'`) **blocking**, then the smoke half
-(`--grep-invert 'a11y:'`) **advisory** (`continue-on-error` on the step, not the job — on the job it would
-excuse the gate too). On failure it uploads the Playwright report, traces, and `app.log`. **It never runs
+suite in two steps: the **accessibility gate** (`--project=a11y`) **blocking**, then the smoke half
+(`--project=chromium`) **advisory** (`continue-on-error` on the step, not the job — on the job it would
+excuse the gate too). Each project writes to its own `test-results/` subdirectory, so the second run does not
+clear the first's traces before they are uploaded. On failure of either half it uploads the Playwright report,
+traces, and `app.log`. **It never runs
 during local development** — your edit / `grunt watch` / reload loop is untouched.
 
 ## Phase roadmap
@@ -154,7 +158,7 @@ during local development** — your edit / `grunt watch` / reload loop is untouc
 | `pages.js` | **The** page table: every anonymous page the suite walks, and how each loads. Adding one here opts it into the smoke tests *and* the accessibility gate |
 | `pages.spec.js` | Table-driven phase-1 anonymous pages |
 | `phone-viewport.spec.js` | The same pages at a 390×844 phone viewport: no horizontal overflow (#4883) |
-| `a11y.spec.js` | The accessibility gate: axe-core over the audited pages, WCAG 2.1 AA (#5060) |
+| `a11y.spec.js` | The accessibility gate: axe-core over every page in `pages.js`, WCAG 2.1 AA (#5060) |
 | `a11y-allowlist.js` | Per-page allowlist of tracked violations, plus the partition/format helpers |
 | `overflow-report.spec.js` | `horizontalOverflowReport`'s exemption rules, pinned against synthetic DOM |
 | `dashboard.spec.js` | Registered-user pages |
