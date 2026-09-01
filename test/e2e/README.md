@@ -95,6 +95,18 @@ identical in both environments.
 keeping each section on its server-rendered fallback. That makes the measured DOM deterministic and keeps an
 ML-site outage from failing the run.
 
+### Map base-layer stub
+
+The two `/labelMap` behavior specs (`labelmap-feed-failure.spec.js`, `labelmap-viewport-fetch.spec.js`) add
+`stubMapBaseLayers()`, which answers `/neighborhoods`, `/neighborhoods/completionRate`, and
+`/contribution/streets/all` with empty collections. `createPSMap` loads all three before the label feed, and on a
+seeded schema they run to megabytes (~7.4 MB in Seattle) that must reach mapbox-gl before the page promise
+resolves — long enough to blow the 5s default `expect` timeout with four workers competing at the start of a run,
+and invisible in CI, whose schema is empty (#5081). Neither spec reads that data: both assert request and error
+behavior, so serving none of it makes them behave identically against a seeded schema and an empty one, in content
+and in how long they take. The smoke and a11y specs deliberately do **not** stub it — they are there to load the
+real page.
+
 ### Accessibility gate
 
 `a11y.spec.js` runs axe-core (`@axe-core/playwright`) over every page in `pages.js`, tagged `wcag2a` +
