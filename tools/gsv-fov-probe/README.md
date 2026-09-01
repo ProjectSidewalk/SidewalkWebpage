@@ -102,7 +102,18 @@ Committed before the first analyzed sweep; thresholds live in `analyze.mjs` and 
    if present, the deliverable becomes the measured hFov(zoom, aspect) table + clamp boundary as the
    empirical contract.
 
-   *Amendment (2026-08-31, before the confirmatory live-pano sweep):* the original rule named only
+   *Amendment 2 (2026-08-31, after the first partial sweep — tutorial pano complete, live panos only at
+   control + 16:9):* the partial data showed a **composite** contract none of the named hypotheses fits:
+   width-pinned to <0.03° across every landscape aspect, size, and DPR — but portrait-480x853 at zoom 1
+   rendered vFov ≈ 89.8° (unclamped prediction: 121°) and wide219h-1120x480 at zoom 3 rendered
+   vFov ≈ 14.95° (unclamped prediction: 12.1°), both with zoom readbacks still reporting the requested
+   value. The classifier gains `width-pinned-vfov-clamped` (accepted only when every non-h-invariant cell is
+   exactly a binding case and binding cells agree on the bound values), and two discriminator containers
+   were added — `xportrait-360x1000` and `xwide-2400x480` — chosen so the bounds bind at zooms the milder
+   containers cannot reach, pinning whether each bound is zoom-dependent. Thresholds unchanged; added
+   before the confirmatory live-pano data at any portrait/21:9 aspect existed.
+
+   *Amendment 1 (2026-08-31, before the confirmatory live-pano sweep):* the original rule named only
    horizontal / vertical / diagonal pinning. A mechanical shakedown on the tutorial pano (zoom 1 only)
    showed hFov held at 21:9 **and** vFov held at portrait — i.e., the FOV appears pinned to whichever
    container axis is *longer*, which none of the original three hypotheses names. **Long-axis-pinned** and

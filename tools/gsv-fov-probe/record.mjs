@@ -46,6 +46,11 @@ const CONTAINERS = [
     { name: 'square-480x480', width: 480, height: 480, dsf: 1 },
     { name: 'size2x-1440x960', width: 1440, height: 960, dsf: 1 },
     { name: 'dpr2-720x480', width: 720, height: 480, dsf: 2 },
+    // Clamp-boundary discriminators (README amendment 2): extreme enough that the width-pinned vFov leaves
+    // the ~[15°, 90°] clamp window at zooms the milder containers cannot bind, pinning whether each bound
+    // is zoom-dependent.
+    { name: 'xportrait-360x1000', width: 360, height: 1000, dsf: 1 },
+    { name: 'xwide-2400x480', width: 2400, height: 480, dsf: 1 },
 ];
 
 /**

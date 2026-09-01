@@ -70,16 +70,23 @@ function main() {
         pairs.get(key)[c.side] = c;
     }
 
-    // Fit each pair.
+    // Fitting dominates runtime, so cached fits let classifier changes rerun without refitting the run.
+    const cachePath = path.join(runDir, 'fits-cache.json');
+    const cache = fs.existsSync(cachePath) ? JSON.parse(fs.readFileSync(cachePath, 'utf8')) : {};
     const fits = [];
     let done = 0;
     for (const [key, pair] of pairs) {
         if (!pair.a || !pair.b) continue;
-        const A = loadGray(runDir, pair.a.file);
-        const B = loadGray(runDir, pair.b.file);
-        if (A.width !== B.width || A.height !== B.height) continue;
-        const fit = est.fitFocal(A.gray, B.gray, A.width, A.height, povRad(pair.a.state), povRad(pair.b.state),
-            { step });
+        const cacheKey = `${key}|step${step}`;
+        let fit = cache[cacheKey];
+        if (!fit) {
+            const A = loadGray(runDir, pair.a.file);
+            const B = loadGray(runDir, pair.b.file);
+            if (A.width !== B.width || A.height !== B.height) continue;
+            fit = est.fitFocal(A.gray, B.gray, A.width, A.height, povRad(pair.a.state), povRad(pair.b.state),
+                { step });
+            cache[cacheKey] = { f: fit.f, ncc: fit.ncc };
+        }
         const dsf = pair.a.dsf;
         fits.push({
             key,
@@ -100,6 +107,7 @@ function main() {
         });
         if (++done % 50 === 0) console.log(`  fitted ${done}/${pairs.size} pairs`);
     }
+    fs.writeFileSync(cachePath, JSON.stringify(cache));
 
     // Aggregate cells: (pano, container, zoom, kind).
     const cells = new Map();
@@ -189,6 +197,7 @@ function main() {
             mapsVersion: results.mapsVersion,
             mapsVersionRequested: results.mapsVersionRequested,
             verdict: verdict.verdict,
+            clamp: verdict.clamp ?? null,
             gates: { method: gates.method.pass, model: gates.model.pass, anisotropy: gates.anisotropy.pass },
             panos: Object.fromEntries(Object.entries(manifest.panos).map(([name, m]) => [name, {
                 panoId: m.panoId, imageDate: m.imageDate, worldSize: m.worldSize,
@@ -295,10 +304,63 @@ function applyVerdictRule(cells) {
         ['long-axis-pinned', all('lInvariant')],
         ['short-axis-pinned', all('sInvariant')],
     ].filter(([, pass]) => pass).map(([name]) => name);
-    const verdict = invariant.length === 1 ? invariant[0]
-        : invariant.length === 0 ? 'indeterminate'
-        : `ambiguous:${invariant.join('+')}`;
-    return { verdict, invariantHypotheses: invariant, comparisons };
+    if (invariant.length === 1) return { verdict: invariant[0], invariantHypotheses: invariant, comparisons };
+    if (invariant.length > 1) {
+        return { verdict: `ambiguous:${invariant.join('+')}`, invariantHypotheses: invariant, comparisons };
+    }
+    return classifyClampedWidthPinned(yaw, comparisons);
+}
+
+/**
+ * Composite model (README amendment 2): hFov is width-pinned, but the implied vFov is clamped to a
+ * [floor, ceiling] window — when a bound binds, the render pins vFov at the bound instead, silently (zoom
+ * readbacks do not reflect it). Verdict `width-pinned-vfov-clamped` iff every non-h-invariant cell is
+ * exactly a binding case (its unclamped vFov prediction violates the same bound its measured vFov sits on)
+ * and the binding cells agree on each bound's value.
+ *
+ * @param {object[]} yaw - Usable yaw cells (dsf 1).
+ * @param {object[]} comparisons - Per-cell deviation table from applyVerdictRule.
+ * @returns {object} Verdict object with clamp bound estimates and per-cell classification.
+ */
+function classifyClampedWidthPinned(yaw, comparisons) {
+    const ceilEstimates = [], floorEstimates = [], cellClasses = [];
+    let consistent = true;
+    for (const cmp of comparisons) {
+        if (cmp.hInvariant) {
+            cellClasses.push({ ...cmp, regime: 'unclamped' });
+            continue;
+        }
+        const cell = yaw.find((c) => c.panoName === cmp.panoName && c.zoom === cmp.zoom &&
+            c.containerName === cmp.containerName);
+        const control = yaw.find((c) => c.panoName === cmp.panoName && c.zoom === cmp.zoom &&
+            c.containerName === 'control-720x480');
+        // Unclamped width-pinned prediction for this cell's vFov, anchored on the measured control.
+        const predVFov = 2 * Math.atan(Math.tan(control.hFovDeg / 2 * DEG) / cmp.aspect) / DEG;
+        if (predVFov > cell.vFovDeg + cmp.tolDeg) {
+            ceilEstimates.push(cell.vFovDeg);
+            cellClasses.push({ ...cmp, regime: 'ceiling-bound', measuredVFov: cell.vFovDeg, unclampedVFov: +predVFov.toFixed(2) });
+        } else if (predVFov < cell.vFovDeg - cmp.tolDeg) {
+            floorEstimates.push(cell.vFovDeg);
+            cellClasses.push({ ...cmp, regime: 'floor-bound', measuredVFov: cell.vFovDeg, unclampedVFov: +predVFov.toFixed(2) });
+        } else {
+            consistent = false;
+            cellClasses.push({ ...cmp, regime: 'inconsistent' });
+        }
+    }
+    const spreadOk = (xs) => xs.length < 2 || Math.max(...xs) - Math.min(...xs) <= 2 * VERDICT_INVARIANCE_TOL_DEG;
+    const verdict = consistent && (ceilEstimates.length + floorEstimates.length > 0) &&
+        spreadOk(ceilEstimates) && spreadOk(floorEstimates)
+        ? 'width-pinned-vfov-clamped' : 'indeterminate';
+    return {
+        verdict,
+        invariantHypotheses: [],
+        clamp: {
+            ceilingDeg: ceilEstimates.length ? +est.median(ceilEstimates).toFixed(3) : null,
+            floorDeg: floorEstimates.length ? +est.median(floorEstimates).toFixed(3) : null,
+            nCeilingCells: ceilEstimates.length, nFloorCells: floorEstimates.length,
+        },
+        comparisons: cellClasses,
+    };
 }
 
 /** Renders the human-readable report. */
@@ -307,6 +369,10 @@ function renderReport(r) {
     lines.push(`# GSV FOV probe results — ${r.generatedAt}`, '');
     lines.push(`Run: \`${r.runDir}\` · Maps channel requested: \`${r.mapsVersionRequested}\``, '');
     lines.push(`## Verdict: **${r.verdict.verdict}**`, '');
+    if (r.verdict.clamp) {
+        lines.push(`vFov clamp window: ceiling ${r.verdict.clamp.ceilingDeg}° (${r.verdict.clamp.nCeilingCells} ` +
+            `binding cells), floor ${r.verdict.clamp.floorDeg}° (${r.verdict.clamp.nFloorCells} binding cells)`, '');
+    }
     lines.push(`Gates: method=${r.gates.method.pass ? 'PASS' : 'FAIL'}, model=${r.gates.model.pass ? 'PASS' : 'FAIL'}, ` +
         `anisotropy=${r.gates.anisotropy.pass ? 'PASS' : 'FAIL'}`, '');
     lines.push('## Measured cells', '');
@@ -318,12 +384,12 @@ function renderReport(r) {
             `| ${c.dropFrac} | ${c.meanNcc} |`);
     }
     lines.push('', '## Aspect comparisons vs 3:2 control', '');
-    lines.push('| pano | container | zoom | Δh (°) | Δv (°) | Δdiag (°) | Δlong (°) | tol (°) | h-inv | v-inv | long-inv |');
-    lines.push('|---|---|---|---|---|---|---|---|---|---|---|');
+    lines.push('| pano | container | zoom | Δh (°) | Δv (°) | Δdiag (°) | Δlong (°) | tol (°) | h-inv | v-inv | long-inv | regime |');
+    lines.push('|---|---|---|---|---|---|---|---|---|---|---|---|');
     for (const c of r.verdict.comparisons) {
         lines.push(`| ${c.panoName} | ${c.containerName} | ${c.zoom} | ${c.dhDeg} | ${c.dvDeg} | ${c.ddDeg} ` +
             `| ${c.dlDeg} | ${c.tolDeg} | ${c.hInvariant ? 'yes' : 'NO'} | ${c.vInvariant ? 'yes' : 'NO'} ` +
-            `| ${c.lInvariant ? 'yes' : 'NO'} |`);
+            `| ${c.lInvariant ? 'yes' : 'NO'} | ${c.regime ?? '—'} |`);
     }
     lines.push('', '## Method gate (3:2 control vs zoomToFov)', '');
     lines.push('| pano | zoom | measured hFov | expected | err (°) | pass |');
