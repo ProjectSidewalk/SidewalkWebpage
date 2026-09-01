@@ -7,6 +7,9 @@
  * flag here only decides what UI to draw). Admin-only page, English-only by convention.
  */
 class PartnersPage {
+  /** Long edge, in px, of the PNG an uploaded SVG is rasterized to: ~4x the widest the strip ever renders a logo. */
+  static RASTER_LONG_EDGE = 1200;
+
   #isOwner;
   #statusEl;
   /** @type {{city: Array<Object>, global: Array<Object>}} The current metadata rows, in display order. */
@@ -213,11 +216,20 @@ class PartnersPage {
       this.#showError(form, this.#errorMessage(form, 'logo_required'));
       return;
     }
+    let logoFile = null;
+    if (form.elements.logo.files.length > 0) {
+      try {
+        logoFile = await this.#toUploadableLogo(form.elements.logo.files[0]);
+      } catch (err) {
+        this.#showError(form, this.#errorMessage(form, err.message));
+        return;
+      }
+    }
     const body = new FormData();
     body.append('name', form.elements.name.value);
     body.append('url', form.elements.url.value);
     body.append('alt_text', form.elements.alt_text.value);
-    if (form.elements.logo.files.length > 0) body.append('logo', form.elements.logo.files[0]);
+    if (logoFile) body.append('logo', logoFile);
 
     const submitBtn = form.querySelector('[type="submit"]');
     submitBtn.disabled = true;
@@ -239,6 +251,78 @@ class PartnersPage {
     } finally {
       submitBtn.disabled = false;
     }
+  }
+
+  /**
+   * The file to send for a form's logo field: the chosen file as-is, or — for an SVG — a PNG rendered from it in
+   * the admin's browser, since the server accepts only sniffed PNG/JPEG (stored SVG would be a script-bearing
+   * document served from our origin). Rendering via <img> is safe: it runs no scripts or external fetches.
+   *
+   * @param {File} file - The file the admin chose.
+   * @returns {Promise<File>} The file to upload.
+   * @throws {Error} Whose message is an #errorMessage code, when the SVG can't be converted faithfully.
+   */
+  async #toUploadableLogo(file) {
+    if (file.type !== 'image/svg+xml' && !/\.svg$/i.test(file.name)) return file;
+
+    const doc = new DOMParser().parseFromString(await file.text(), 'image/svg+xml');
+    const svg = doc.documentElement;
+    if (doc.querySelector('parsererror') || svg.localName !== 'svg') throw new Error('svg_invalid');
+    // Live text needs a font the <img> renderer cannot fetch, so it would rasterize in a fallback face; a
+    // <foreignObject> is HTML that renders as nothing at all. Both would silently store a mangled logo.
+    if (doc.querySelector('text, foreignObject')) throw new Error('svg_has_text');
+
+    const [sourceWidth, sourceHeight] = this.#svgSourceSize(svg);
+    if (!sourceWidth || !sourceHeight) throw new Error('svg_invalid');
+    // Without a viewBox the width/height are the coordinate system itself, so give it one before resizing.
+    if (!svg.getAttribute('viewBox')) svg.setAttribute('viewBox', `0 0 ${sourceWidth} ${sourceHeight}`);
+    const scale = PartnersPage.RASTER_LONG_EDGE / Math.max(sourceWidth, sourceHeight);
+    const width = Math.max(1, Math.round(sourceWidth * scale));
+    const height = Math.max(1, Math.round(sourceHeight * scale));
+    // Firefox will not draw an <img> whose SVG has no intrinsic size, so state it rather than relying on defaults.
+    svg.setAttribute('width', String(width));
+    svg.setAttribute('height', String(height));
+
+    const markup = new XMLSerializer().serializeToString(svg);
+    const url = URL.createObjectURL(new Blob([markup], { type: 'image/svg+xml' }));
+    try {
+      const img = new Image();
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = () => reject(new Error('svg_invalid'));
+        img.src = url;
+      });
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+      const png = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+      if (!png) throw new Error('svg_invalid');
+      return new File([png], `${file.name.replace(/\.svg$/i, '')}.png`, { type: 'image/png' });
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  }
+
+  /**
+   * An SVG root's own pixel dimensions, from its width/height when those are absolute, else from its viewBox.
+   * Percentage sizes describe the box the SVG is placed in rather than the art, so they tell us nothing.
+   *
+   * @param {SVGElement} svg - The parsed <svg> root.
+   * @returns {[number, number]} Width and height, or [0, 0] when the file declares neither.
+   */
+  #svgSourceSize(svg) {
+    const absolute = (name) => {
+      const raw = (svg.getAttribute(name) || '').trim();
+      const value = raw.endsWith('%') ? NaN : parseFloat(raw);
+      return Number.isFinite(value) && value > 0 ? value : 0;
+    };
+    const width = absolute('width');
+    const height = absolute('height');
+    if (width && height) return [width, height];
+    const viewBox = (svg.getAttribute('viewBox') || '').split(/[\s,]+/).map(Number);
+    if (viewBox.length === 4 && viewBox[2] > 0 && viewBox[3] > 0) return [viewBox[2], viewBox[3]];
+    return [0, 0];
   }
 
   async #deletePartner(partner) {
@@ -276,11 +360,14 @@ class PartnersPage {
   #errorMessage(form, code) {
     const mb = (bytes) => `${Math.round(bytes / 1048576)} MB`;
     const messages = {
-      logo_required: 'Choose a logo image (PNG or JPEG) to upload.',
+      logo_required: 'Choose a logo image (PNG, JPEG, or SVG) to upload.',
       logo_too_large: `That image is too large — please upload a file under ${mb(form.dataset.maxUploadBytes)}.`,
       logo_encoded_too_large: `Even re-encoded, that image exceeds the ${mb(form.dataset.maxStoredBytes)} storage `
         + 'cap — try a smaller or simpler image.',
       logo_invalid: 'That file could not be read as a PNG or JPEG image.',
+      svg_invalid: 'That SVG could not be read — try exporting it again, or upload a PNG instead.',
+      svg_has_text: 'That SVG sets type as live text, which needs a font this page cannot load. Convert the text '
+        + 'to outlines in your design tool, or upload a PNG instead.',
       name_invalid: `Enter a partner name (at most ${form.elements.name.maxLength} characters).`,
       url_invalid: 'The website URL must be a full http(s) address, e.g. https://example.org.',
       alt_text_invalid: `Alt text can be at most ${form.elements.alt_text.maxLength} characters.`,

@@ -35,9 +35,9 @@
         placeholder="e.g. City of Seattle logo">
       </div>
       <div class="partners-form-field">
-        <label class="partners-form-label" for="partners-@scope-logo">Logo image (PNG or JPEG, required)</label>
+        <label class="partners-form-label" for="partners-@scope-logo">Logo image (PNG, JPEG, or SVG, required)</label>
         <input type="file" class="ps-input partners-file-input" id="partners-@scope-logo" name="logo"
-        accept="image/png,image/jpeg">
+        accept="image/png,image/jpeg,image/svg+xml">
       </div>
     </div>
     <div class="partners-form-actions">
@@ -51,7 +51,7 @@
 @content = {
   <div class="page-section" id="partners-intro-section">
     <h1 class="page-heading" id="partners">Partners <a href="#partners" class="permalink">#</a></h1>
-    <p>These logos render in the "Community Partners" section of the landing page: the global list on every Project Sidewalk deployment, and the city list only on this city's page (global logos come first). Logos are re-encoded server-side — upload the highest-quality PNG (transparency preserved) or JPEG you have, ideally a wide wordmark on a transparent background. The name doubles as the link's log label; the URL is where a click goes; alt text is what screen readers announce (defaults to "<em>name</em> logo").</p>
+    <p>These logos render in the "Community Partners" section of the landing page: the global list on every Project Sidewalk deployment, and the city list only on this city's page (global logos come first). Logos are re-encoded server-side — upload the highest-quality PNG (transparency preserved) or JPEG you have, ideally a wide wordmark on a transparent background. An SVG works too: this page renders it to a PNG before uploading, so its type has to be outlines rather than live text. The name doubles as the link's log label; the URL is where a click goes; alt text is what screen readers announce (defaults to "<em>name</em> logo").</p>
     <div class="partners-status" id="partners-status" role="status" aria-live="polite">Loading partners…</div>
   </div>
 

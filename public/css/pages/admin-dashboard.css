@@ -2842,11 +2842,11 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
 .partners-file-input::file-selector-button {
   font: var(--text-caption-medium);
   color: var(--color-neutral-900);
-  background-color: var(--color-neutral-white);
+  background: var(--color-neutral-white) 10px center / 14px no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cg fill='none' stroke='%23242424' stroke-width='1.4' stroke-linejoin='round'%3E%3Crect x='1.5' y='2.5' width='13' height='11' rx='1.5'/%3E%3Cpath d='M1.5 10.5 5 7.5l3 2.5 2.5-2 4 3.5'/%3E%3C/g%3E%3Ccircle cx='5.4' cy='6' r='1.1' fill='%23242424'/%3E%3C/svg%3E");
   border: none;
   outline: 1px solid var(--color-neutral-800);
   border-radius: 8px;
-  padding: 3px 12px;
+  padding: 3px 12px 3px 30px;
   margin-right: var(--space-sm);
   cursor: pointer;
   transition: background-color 0.4s ease 0s;

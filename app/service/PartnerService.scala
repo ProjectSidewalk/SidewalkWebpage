@@ -259,7 +259,8 @@ object PartnerServiceImpl {
   val MAX_LOGO_BYTES: Int = 1048576
 
   // Upload formats validated against the SNIFFED format, never the client-declared MIME type. Deliberately narrow —
-  // the stock JVM ImageIO has no SVG/WebP reader, and SVG would be a stored-XSS vector served from our origin.
+  // stock ImageIO has no SVG/WebP reader, and stored SVG would be a script-bearing document served from our origin.
+  // The admin page rasterizes a picked SVG to PNG in the browser; a hand-rolled POST of raw SVG is still rejected.
   private val ACCEPTED_FORMATS = Set("jpeg", "png")
 
   // Decompression-bomb guards, same values and rationale as StoryService (#4054 hardening).
