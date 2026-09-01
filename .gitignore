@@ -155,3 +155,6 @@ project/project/
 
 # CSV downloads written to the project root by the aggregate-stats endpoints during local test runs.
 projectSidewalkStats_*.csv
+
+# GSV FOV probe raw recordings (issue #5083) — live-imagery screenshots stay local; derived numbers are committed.
+tools/gsv-fov-probe/runs/
