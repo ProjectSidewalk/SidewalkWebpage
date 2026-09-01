@@ -5,7 +5,7 @@ import formats.json.MissionFormats._
 import models.audit.{AuditTask, AuditTaskTable, AuditTaskTableDef}
 import models.label.{LabelHistoryTableDef, LabelPointTableDef, LabelTableDef}
 import models.mission.{Mission, MissionTableDef, MissionType}
-import models.pano.PanoSource
+import models.pano.{PanoDataTableDef, PanoSource}
 import models.region.RegionCompletionTableDef
 import models.userdashboard.TrophyTable
 import models.street.{
@@ -126,8 +126,8 @@ class ExploreAddressServiceSpec
    * Deletes every row the suite created under its throwaway users and restores the street priority / region
    * completion the completion tests moved. Mission and audit_task reference each other
    * (mission.current_audit_task_id / audit_task.current_mission_id), so the mission->task pointer is nulled first;
-   * label children (point, history) go before the labels themselves. The bare user/auth rows are left behind,
-   * matching UserAuthControllerSpec's happy-path precedent.
+   * label children (point, history) go before the labels themselves, and the labels before the pano_data row they
+   * reference. The bare user/auth rows are left behind, matching UserAuthControllerSpec's happy-path precedent.
    */
   override def afterAll(): Unit = {
     val userIds  = createdUserIds.toSeq
@@ -142,7 +142,8 @@ class ExploreAddressServiceSpec
           auditTasks.filter(_.userId inSet userIds).delete,
           missions.filter(_.userId inSet userIds).delete,
           streetIssues.filter(_.userId inSet userIds).delete,
-          TableQuery[models.user.UserCurrentRegionTableDef].filter(_.userId inSet userIds).delete
+          TableQuery[models.user.UserCurrentRegionTableDef].filter(_.userId inSet userIds).delete,
+          TableQuery[PanoDataTableDef].filter(_.panoId === specPanoId).delete
         )
         .transactionally
     )
@@ -180,10 +181,13 @@ class ExploreAddressServiceSpec
     )
   }
 
+  /** The one pano this suite's labels sit on; the first submission carrying it creates its pano_data row. */
+  private val specPanoId = "explore-address-spec-pano"
+
   /** A minimal non-tutorial label placement, as the Explore client would submit during a drop-in session. */
   private def labelSubmission(temporaryLabelId: Int): LabelSubmission =
     LabelSubmission(
-      panoId = "explore-address-spec-pano",
+      panoId = specPanoId,
       panoSource = PanoSource.Gsv,
       labelType = "Obstacle",
       deleted = false,
@@ -194,7 +198,12 @@ class ExploreAddressServiceSpec
       temporaryLabelId = temporaryLabelId,
       timeCreated = Some(OffsetDateTime.now),
       tutorial = false,
-      pano = None
+      // Every non-tutorial label carries its pano's metadata (#4587), which is what satisfies label.pano_id's FK to
+      // pano_data (evolution 360) — the service writes the pano row in the same transaction as the label.
+      pano = Some(
+        PanoSubmission(specPanoId, PanoSource.Gsv, "2024-06", Some(8192), Some(4096), Some(512), Some(512), Some(41.87),
+          Some(-87.62), Some(180d), Some(0d), None, Seq.empty, None, None, Seq.empty, None)
+      )
     )
 
   "getDataForExploreAddressPage" should {

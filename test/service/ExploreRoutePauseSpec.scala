@@ -1,5 +1,6 @@
 package service
 
+import formats.json.ExploreFormats._
 import models.mission.{Mission, MissionTableDef, MissionType}
 import models.audit.AuditTaskTableDef
 import models.region.RegionTableDef
@@ -39,7 +40,8 @@ import scala.concurrent.duration._
  *   - An explicit `/explore?routeId=X` visit resumes the *same* paused walk (same user_route row, progress intact).
  *   - `/explore?routeId=X&resumeRoute=false` is the one destructive path: it discards the old walk and starts fresh.
  *   - Entering a different route pauses (not discards) the walk being left behind.
- *   - `routeResumed` (which drives the resume toast) is set only once a street of the walk has been served.
+ *   - `routeResumed` (which drives the resume toast) is set only once a street of the walk has been submitted, which
+ *     is what separates a walk in progress from one entered and abandoned before anything was recorded.
  *
  * Setup/teardown mirror ExploreTutorialRouteSpec: throwaway anonymous users, seeded route walks, all rows swept in
  * afterAll. Requires a Postgres+PostGIS DB with at least one street/region (as in dev/CI); cancels otherwise.
@@ -141,6 +143,33 @@ class ExploreRoutePauseSpec
     run(userRoutes.filter(_.userId === userId).sortBy(_.userRouteId).result)
 
   /**
+   * Submits the street the page just served, which is what enters the walk: the audit_task_user_route row that
+   * `hasBeenWalked` reads is written by submitExploreData, never by serving the page. Left incomplete, so the walk
+   * stays active and no street priority moves.
+   */
+  private def submitServedStreet(userId: String, data: ExplorePageData): Unit = {
+    val task = data.task.value
+    val now  = OffsetDateTime.now
+    val _    = await(
+      exploreService.submitExploreData(
+        AuditTaskSubmission(
+          missionProgress = AuditMissionProgress(data.mission.missionId, Some(0d), data.region.regionId,
+            completed = false, task.auditTaskId, skipped = false),
+          auditTask = TaskSubmission(task.edgeId, now, task.auditTaskId, Some(false), task.currentLat, task.currentLng,
+            startPointReversed = false, None, now, requestUpdatedStreetPriority = false, None, task.routeStreetId),
+          labels = Seq.empty,
+          interactions = Seq.empty,
+          environment = EnvironmentSubmission(None, None, None, None, None, None, None, None, None, "en", 100),
+          panos = Seq.empty,
+          userRouteId = data.userRoute.map(_.userRouteId),
+          timestamp = now
+        ),
+        userId
+      )
+    )
+  }
+
+  /**
    * Deletes every row the suite created under its throwaway users. Mission and audit_task reference each other
    * (mission.current_audit_task_id), so the mission->task pointer is nulled first; route children (route_street,
    * user_route and its audit_task_user_route rows) go before the routes themselves. The bare user/auth rows are
@@ -229,14 +258,14 @@ class ExploreRoutePauseSpec
       }
     }
 
-    "not report a walk as resumed until a street of it has actually been served" in {
+    "not report a walk as resumed until a street of it has actually been walked" in {
       seedStreet match {
         case None                           => cancel("No street/region rows in the connected DB; nothing to exercise.")
         case Some((streetEdgeId, regionId)) =>
           val user = newTutorialGraduate()
           val _    = seedActiveRouteWalk(user.userId, streetEdgeId, regionId)
 
-          // Never handed a street of it, so picking the walk up is a first entry rather than a resume.
+          // Nothing submitted against it, so picking the walk up is a first entry rather than a resume.
           val data = pageData(user.userId)
           data.userRoute mustBe defined
           data.routeResumed mustBe false
@@ -252,6 +281,7 @@ class ExploreRoutePauseSpec
 
           val firstData = pageData(user.userId, routeId = Some(routeId))
           firstData.routeResumed mustBe false
+          submitServedStreet(user.userId, firstData)
           run(
             auditTaskUserRoutes.filter(_.userRouteId === firstData.userRoute.value.userRouteId).result
           ) must not be empty
