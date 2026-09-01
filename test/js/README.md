@@ -73,10 +73,11 @@ npm run test:js    # runs Jest against test/js/ only
 ## How it works (no module system)
 
 Project Sidewalk's frontend has **no module system** — files are plain scripts concatenated by Grunt that assign their
-surface onto `window` (e.g. `window.AggregateStatsPreview = { setup, init }`). So we don't `require()` the production
-file directly. Instead `loadGlobalScript.js` reads the file and executes it in the jsdom `window`'s global scope via
-Node's `vm` module — exactly as a browser `<script>` tag would. After loading, `window.AggregateStatsPreview` is
-available to the test. **No production-code changes are required.**
+surface onto `window` (e.g. `window.AggregateStatsPreview = { setup, init }`). `loadGlobalScript.js` `require()`s the
+file after a `jest.resetModules()`: jsdom exposes `window`/`document` as Node globals, so the file's top-level IIFE
+runs and performs its `window.X = ...` assignment exactly as a `<script>` tag would, and the reset gives each test a
+fresh module-scoped singleton. Going through `require` is also what lets Jest instrument these files for coverage.
+**No production-code changes are required.**
 
 Each test:
 
@@ -137,12 +138,24 @@ Frontend linting and the JS **ES5→ES2022 migration** are owned by a separate i
 test/lint tooling into CI mid-migration would create large, conflict-prone churn and risks colliding with that work.
 So:
 
-- **No ESLint, no broad config** is introduced here (`jest.config.js` is scoped to `test/js/` only and never touches
-  production JS).
+- **No ESLint, no broad config** is introduced here (`testMatch` is anchored to `test/js/`, so production JS is only
+  ever loaded as a module under test, never collected as one).
 - **CI runs this suite as an advisory step** in the `frontend` job (`npm run test:js`, `continue-on-error` on the step
   so a failure never turns the required `Frontend (build)` check red). Promotion to blocking rides #2487's track,
   once coverage is broad enough that a red suite always means a real regression.
 - The existing `npm test` placeholder is **unchanged** to avoid surprising any tooling that already calls it.
+
+## Coverage
+
+`npm run test:js` always collects coverage, scoped to the whole first-party frontend: `public/js/**/*.js` minus the
+Grunt `build/` bundles, with `public/js` as one of Jest's `roots` so a file **no test loads** still counts against the
+ratio. Without that root Jest reports only on files a suite happened to `require`, which answers "how well is the
+tested code tested" instead of "how much of the frontend is tested" (#4743).
+
+`coverageThreshold` floors statements and lines just under the measured number — a ratchet, not a target, so **raise
+it in whichever PR earns the headroom.** It stays low because most of the denominator is the Explore/Validate canvas
+and pano code we never unit-test; this suite will never approach the Python layer's 100%. The console shows totals
+only, so open `coverage/lcov-report/index.html` for per-file detail.
 
 ## Complementary E2E
 

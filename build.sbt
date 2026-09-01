@@ -205,6 +205,19 @@ Compile / sourceGenerators += Def.task {
   Seq(file)
 }.taskValue
 
+// Statement-coverage ratchet (#4743), enforced by backend-tests; see docs/testing-and-ci.md.
+//
+// Don't set this from a local run. `backend-tests` runs a hand-listed subset of test/ against an empty schema, while
+// a local full-suite run against a seeded DB scores ~19 points higher. 40 is provisional, chosen with headroom under
+// a local 43.66%, and should be tightened to just under whatever a real CI run reports.
+coverageMinimumStmtTotal := 40
+coverageFailOnMinimum    := true
+
+// Twirl templates emit the JS reverse router for the browser, so nothing calls it from Scala: 692 statements no test
+// can reach. The Scala router and the templates themselves stay in — the functional specs render pages and route
+// requests, so their coverage is real.
+coverageExcludedPackages := """controllers\.javascript\..*"""
+
 scalacOptions ++= Seq(
   "-deprecation", // Emit warning and location for usages of deprecated APIs.
   "-feature",     // Emit warning and location for usages of features that should be imported explicitly.
