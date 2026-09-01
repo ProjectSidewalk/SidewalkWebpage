@@ -21,9 +21,17 @@ module.exports = defineConfig({
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },
+  // Playwright empties a project's outputDir on every run and CI invokes the suite twice (gate, then smoke), so a
+  // shared directory would drop the first run's traces before the artifact upload sees them.
   projects: [
     // Registers the throwaway user whose storageState the registered-user specs (dashboard.spec.js) reuse.
-    {name: 'setup', testMatch: /auth\.setup\.js/},
-    {name: 'chromium', use: {...devices['Desktop Chrome']}, dependencies: ['setup']},
+    {name: 'setup', testMatch: /auth\.setup\.js/, outputDir: 'test-results/setup'},
+    // A project rather than a `--grep` on titles keeps CI's blocking/advisory split structural: rewording a test
+    // cannot move it between the halves. No `dependencies` — nothing here needs a session, so the gate that blocks
+    // merges does not ride on /signUp.
+    {name: 'a11y', testMatch: /a11y\.spec\.js/, use: {...devices['Desktop Chrome']},
+      outputDir: 'test-results/a11y'},
+    {name: 'chromium', testIgnore: /a11y\.spec\.js/, use: {...devices['Desktop Chrome']},
+      dependencies: ['setup'], outputDir: 'test-results/chromium'},
   ],
 });
