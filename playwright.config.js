@@ -14,7 +14,9 @@ module.exports = defineConfig({
   forbidOnly: !!process.env.CI,
   // One CI retry absorbs one-off network flake (e.g. the api-docs previews fetch their style and tiles from Mapbox).
   retries: process.env.CI ? 1 : 0,
-  workers: process.env.CI ? 2 : undefined,
+  // Fixed rather than the default half-the-cores: each worker carries its own Chromium, roughly a GB apiece on
+  // top of the dev app's JVM and Postgres.
+  workers: 2,
   reporter: process.env.CI ? [['list'], ['html', {open: 'never'}]] : 'list',
   use: {
     baseURL: process.env.BASE_URL || 'http://localhost:9000',
