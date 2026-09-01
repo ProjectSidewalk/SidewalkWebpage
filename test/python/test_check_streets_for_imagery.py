@@ -703,7 +703,7 @@ class _FakeInfra3dAuth:
 
 def _run_process_infra3d(line, fetch):
     scan = cs.Infra3dScan(_FakeInfra3dAuth(), ['c1'])
-    return cs.process_street(_street(line), 'Infra3d', fetch, None, None, scan)
+    return cs.process_street(_street(line), 'Infra3d', fetch, None, None, infra3d=scan)
 
 
 def _frame_at(url, timestamp='2024-06-17T11:23:09.795417+00:00'):
@@ -1124,6 +1124,16 @@ def test_main_gsv_searches_one_radius_matching_explore(monkeypatch, tmp_path):
     monkeypatch.setattr(cs, '_get_json', fake_get_json)
     assert cs.main(['--gsv']) == 0
     assert urls and all('&radius=25' in url for url in urls)
+
+
+def test_main_search_radius_flag_reaches_every_request(monkeypatch, tmp_path):
+    # The knob the 15 m / 25 m comparison in #5091 turns: it has to reach GSV's URL radius and Mapillary's bbox alike,
+    # or a run would silently mix the flag's radius with the default.
+    _setup(monkeypatch, tmp_path, [(100, 1, _LINE_60)])
+    urls = []
+    monkeypatch.setattr(cs, '_get_json', lambda url: urls.append(url) or {'status': 'ZERO_RESULTS'})
+    assert cs.main(['--gsv', '--search-radius-m', '15']) == 0
+    assert urls and all('&radius=15' in url for url in urls)
 
 
 def test_main_records_street_offsets_in_the_summary(monkeypatch, tmp_path):

@@ -809,11 +809,12 @@ def _point_pano_info(api: str, lat: float, lng: float, fetch: Callable[..., dict
     return _pano_info(api, fetch(_mapillary_bbox_url(mapillary_url, lat, lng, radius_km)), lat, lng)
 
 
-def _check_endpoints(street: pd.Series, api: str, fetch: Callable[..., dict], gsv_url: str,
-                     mapillary_url: str, infra3d: Infra3dScan | None = None) -> tuple[PanoInfo, PanoInfo]:
+def _check_endpoints(street: pd.Series, api: str, fetch: Callable[..., dict], gsv_url: str, mapillary_url: str,
+                     radius_km: float = SEARCH_RADIUS_KM,
+                     infra3d: Infra3dScan | None = None) -> tuple[PanoInfo, PanoInfo]:
     """Checks both of a street's endpoints; returns ``(first_pano_info, second_pano_info)``."""
-    first = _point_pano_info(api, street.y1, street.x1, fetch, gsv_url, mapillary_url, SEARCH_RADIUS_KM, infra3d)
-    second = _point_pano_info(api, street.y2, street.x2, fetch, gsv_url, mapillary_url, SEARCH_RADIUS_KM, infra3d)
+    first = _point_pano_info(api, street.y1, street.x1, fetch, gsv_url, mapillary_url, radius_km, infra3d)
+    second = _point_pano_info(api, street.y2, street.x2, fetch, gsv_url, mapillary_url, radius_km, infra3d)
     return first, second
 
 
@@ -832,8 +833,8 @@ def summarize_dates(dates: Collection[str]) -> tuple[str | None, str | None, int
     return min(dates), max(dates), len(dates)
 
 
-def process_street(street: pd.Series, api: str, fetch: Callable[..., dict], gsv_url: str,
-                   mapillary_url: str, infra3d: Infra3dScan | None = None) -> StreetResult:
+def process_street(street: pd.Series, api: str, fetch: Callable[..., dict], gsv_url: str, mapillary_url: str,
+                   radius_km: float = SEARCH_RADIUS_KM, infra3d: Infra3dScan | None = None) -> StreetResult:
     """
     Checks one street for imagery and returns its outcome (pure of any file/checkpoint I/O, so it is pool-safe).
 
@@ -847,6 +848,7 @@ def process_street(street: pd.Series, api: str, fetch: Callable[..., dict], gsv_
         fetch:            A ``fetch(url, **kwargs) -> json`` (typically from ``make_fetch``, with retry).
         gsv_url:       GSV metadata base URL with the search radius baked in (GSV only).
         mapillary_url: Mapillary images base URL (Mapillary only).
+        radius_km:     How far from a sampled point a pano still counts as imagery for it.
         infra3d:       An ``Infra3dScan`` (token holder + campaign scope) (Infra3d only).
 
     Returns:
@@ -855,7 +857,7 @@ def process_street(street: pd.Series, api: str, fetch: Callable[..., dict], gsv_
         responses we already fetch, so the early-exit point sampling means no extra API calls are made.
     """
     try:
-        first, second = _check_endpoints(street, api, fetch, gsv_url, mapillary_url, infra3d)
+        first, second = _check_endpoints(street, api, fetch, gsv_url, mapillary_url, radius_km, infra3d)
         coords = list(street['geom'].coords)
         dates = [d for d in (first.capture_date, second.capture_date) if d]
         offsets = [d for d in (cross_track_m(street['geom'], first.pano_lat, first.pano_lng),
@@ -868,8 +870,7 @@ def process_street(street: pd.Series, api: str, fetch: Callable[..., dict], gsv_
             # `no branch`: street_has_no_imagery settles and stops consuming before this loop is exhausted (for any
             # real street, which has >= 2 points), so the generator is abandoned rather than run to completion.
             for coord in coords:  # pragma: no branch  -- Shapely coords are (x=lng, y=lat).
-                info = _point_pano_info(api, coord[1], coord[0], fetch, gsv_url, mapillary_url, SEARCH_RADIUS_KM,
-                                        infra3d)
+                info = _point_pano_info(api, coord[1], coord[0], fetch, gsv_url, mapillary_url, radius_km, infra3d)
                 if info.capture_date:
                     dates.append(info.capture_date)
                 offset = cross_track_m(street['geom'], info.pano_lat, info.pano_lng)
@@ -978,6 +979,10 @@ def main(argv: list[str] | None = None) -> int:
                         help='Number of streets to check concurrently (default: %(default)s).')
     parser.add_argument('--max-qps', type=float, default=DEFAULT_MAX_QPS,
                         help='Global cap on requests per second across all workers (default: %(default)s).')
+    parser.add_argument('--search-radius-m', type=float, default=SEARCH_RADIUS_KM * 1000, metavar='METERS',
+                        help='How far from a sampled point a pano still counts as imagery for it (default: '
+                             '%(default)s, matching Explore). Changing it changes which streets are reported as '
+                             'having imagery, so give a run at a different radius its own output directory.')
     args = parser.parse_args(argv)
     api = 'GSV' if args.gsv else 'Mapillary' if args.mapillary else 'Infra3d'
     # One shared rate limiter caps total request rate across all worker threads.
@@ -1021,7 +1026,7 @@ def main(argv: list[str] | None = None) -> int:
     street_data['geom'] = list(map(lambda g: redistribute_vertices(wkb.loads(g, hex=True)), list(street_data['geom'])))
 
     gsv_base_url = 'https://maps.googleapis.com/maps/api/streetview/metadata?source=outdoor&key=%s' % api_key
-    gsv_url = gsv_base_url + '&radius=' + str(int(SEARCH_RADIUS_KM * 1000))
+    gsv_url = gsv_base_url + '&radius=' + str(int(args.search_radius_m))
     # fields= is what makes each image carry the attributes score_pano ranks on; a default response holds only `id`.
     # Same request count either way, so the ranking is free. Both geometry fields are requested because the viewer
     # prefers computed_geometry (Mapillary's refined position) and falls back to the raw one.
@@ -1031,7 +1036,7 @@ def main(argv: list[str] | None = None) -> int:
     checkpoint_lock = threading.Lock()
 
     def check_and_record(street: pd.Series) -> StreetResult:
-        result = process_street(street, api, fetch, gsv_url, mapillary_url, infra3d)
+        result = process_street(street, api, fetch, gsv_url, mapillary_url, args.search_radius_m / 1000, infra3d)
         with checkpoint_lock:  # process_street does no file I/O; only the checkpoint append needs serializing.
             append_checkpoint(result, checkpoint_path)
         return result
