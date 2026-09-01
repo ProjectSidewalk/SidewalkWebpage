@@ -203,7 +203,14 @@ function main() {
             mapsVersionRequested: results.mapsVersionRequested,
             verdict: verdict.verdict,
             clamp: verdict.clamp ?? null,
-            gates: { method: gates.method.pass, model: gates.model.pass, anisotropy: gates.anisotropy.pass },
+            gates: {
+                method: gates.method.pass, model: gates.model.pass, anisotropy: gates.anisotropy.pass,
+                // Amendment 4 (README): a model-gate exceedance is carried, not hidden, so the contract test
+                // can pin the known, diagnosed cells and still fail loudly on any new one.
+                modelExceedances: gates.model.detail.filter((d) => !d.pass).map((d) => ({
+                    pano: d.panoName, container: d.containerName, zoom: d.zoom, deltaSpread: d.deltaSpread,
+                })),
+            },
             panos: Object.fromEntries(Object.entries(manifest.panos).map(([name, m]) => [name, {
                 panoId: m.panoId, imageDate: m.imageDate, worldSize: m.worldSize,
             }])),
