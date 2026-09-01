@@ -239,23 +239,40 @@ function applyVerdictRule(cells) {
         if (!control) continue;
         const sig = Math.max(sigmaFovDeg(c), sigmaFovDeg(control));
         const tol = Math.max(VERDICT_INVARIANCE_TOL_DEG, 3 * sig);
+        // Long/short-axis FOVs: the FOV across the larger / smaller container dimension. Added as named
+        // hypotheses after the tutorial-pano preview showed hFov held at 21:9 but vFov held at portrait
+        // (i.e., GSV looked long-axis-pinned) — amended BEFORE the confirmatory live-pano sweep; see README.
+        const axisFovs = (cell) => ({
+            l: 2 * Math.atan(Math.max(cell.widthCss, cell.heightCss) / 2 / cell.fCss) / DEG,
+            s: 2 * Math.atan(Math.min(cell.widthCss, cell.heightCss) / 2 / cell.fCss) / DEG,
+        });
+        const ca = axisFovs(c), ka = axisFovs(control);
         const dh = c.hFovDeg - control.hFovDeg;
         const dv = c.vFovDeg - control.vFovDeg;
         const dd = c.dFovDeg - control.dFovDeg;
+        const dl = ca.l - ka.l;
+        const ds = ca.s - ka.s;
         comparisons.push({
             panoName: c.panoName, containerName: c.containerName, zoom: c.zoom, aspect: c.aspect,
-            dhDeg: +dh.toFixed(3), dvDeg: +dv.toFixed(3), ddDeg: +dd.toFixed(3), tolDeg: +tol.toFixed(3),
+            dhDeg: +dh.toFixed(3), dvDeg: +dv.toFixed(3), ddDeg: +dd.toFixed(3),
+            dlDeg: +dl.toFixed(3), dsDeg: +ds.toFixed(3), tolDeg: +tol.toFixed(3),
             hInvariant: Math.abs(dh) <= tol, vInvariant: Math.abs(dv) <= tol, dInvariant: Math.abs(dd) <= tol,
+            lInvariant: Math.abs(dl) <= tol, sInvariant: Math.abs(ds) <= tol,
         });
     }
     if (comparisons.length === 0) return { verdict: 'insufficient-data', comparisons };
     const all = (k) => comparisons.every((c) => c[k]);
-    let verdict = 'indeterminate';
-    if (all('hInvariant') && !all('vInvariant')) verdict = 'horizontal-pinned';
-    else if (all('vInvariant') && !all('hInvariant')) verdict = 'vertical-pinned';
-    else if (all('dInvariant') && !all('hInvariant') && !all('vInvariant')) verdict = 'diagonal-pinned';
-    else if (all('hInvariant') && all('vInvariant')) verdict = 'insufficient-separation';
-    return { verdict, comparisons };
+    const invariant = [
+        ['horizontal-pinned', all('hInvariant')],
+        ['vertical-pinned', all('vInvariant')],
+        ['diagonal-pinned', all('dInvariant')],
+        ['long-axis-pinned', all('lInvariant')],
+        ['short-axis-pinned', all('sInvariant')],
+    ].filter(([, pass]) => pass).map(([name]) => name);
+    const verdict = invariant.length === 1 ? invariant[0]
+        : invariant.length === 0 ? 'indeterminate'
+        : `ambiguous:${invariant.join('+')}`;
+    return { verdict, invariantHypotheses: invariant, comparisons };
 }
 
 /** Renders the human-readable report. */
@@ -275,11 +292,12 @@ function renderReport(r) {
             `| ${c.dropFrac} | ${c.meanNcc} |`);
     }
     lines.push('', '## Aspect comparisons vs 3:2 control', '');
-    lines.push('| pano | container | zoom | Δh (°) | Δv (°) | Δdiag (°) | tol (°) | h-inv | v-inv |');
-    lines.push('|---|---|---|---|---|---|---|---|---|');
+    lines.push('| pano | container | zoom | Δh (°) | Δv (°) | Δdiag (°) | Δlong (°) | tol (°) | h-inv | v-inv | long-inv |');
+    lines.push('|---|---|---|---|---|---|---|---|---|---|---|');
     for (const c of r.verdict.comparisons) {
         lines.push(`| ${c.panoName} | ${c.containerName} | ${c.zoom} | ${c.dhDeg} | ${c.dvDeg} | ${c.ddDeg} ` +
-            `| ${c.tolDeg} | ${c.hInvariant ? 'yes' : 'NO'} | ${c.vInvariant ? 'yes' : 'NO'} |`);
+            `| ${c.dlDeg} | ${c.tolDeg} | ${c.hInvariant ? 'yes' : 'NO'} | ${c.vInvariant ? 'yes' : 'NO'} ` +
+            `| ${c.lInvariant ? 'yes' : 'NO'} |`);
     }
     lines.push('', '## Method gate (3:2 control vs zoomToFov)', '');
     lines.push('| pano | zoom | measured hFov | expected | err (°) | pass |');

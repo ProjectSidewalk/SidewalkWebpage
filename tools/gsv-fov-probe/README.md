@@ -95,11 +95,20 @@ Committed before the first analyzed sweep; thresholds live in `analyze.mjs` and 
    vertical f must match the yaw f to 1%. Failure ⇒ the renderer is not the assumed pinhole; escalate to
    "fit the actual projection" instead of an ill-posed h-vs-v verdict.
 4. **Verdict rule**: for every pano, zoom, and non-3:2 aspect, compute dh = hFov − hFov(3:2 control), dv and
-   ddiag likewise. Declare **horizontal-pinned** iff every |dh| ≤ max(0.5°, 3σ) while vertical invariance
-   fails somewhere; **vertical-pinned** / **diagonal-pinned** symmetrically. The hypotheses are far apart
-   (table below), so anything else is **indeterminate** → check for a clamp signature (invariance up to a
-   kink, then plateau); if present, the deliverable becomes the measured hFov(zoom, aspect) table + clamp
-   boundary as the empirical contract.
+   ddiag likewise. A hypothesis (horizontal-, vertical-, diagonal-, long-axis-, or short-axis-pinned) is
+   **supported** iff its FOV deviation satisfies |d| ≤ max(0.5°, 3σ) for *every* pano, zoom, and aspect; the
+   verdict is the hypothesis iff exactly one is supported. The hypotheses are far apart (table below), so
+   anything else is **indeterminate** → check for a clamp signature (invariance up to a kink, then plateau);
+   if present, the deliverable becomes the measured hFov(zoom, aspect) table + clamp boundary as the
+   empirical contract.
+
+   *Amendment (2026-08-31, before the confirmatory live-pano sweep):* the original rule named only
+   horizontal / vertical / diagonal pinning. A mechanical shakedown on the tutorial pano (zoom 1 only)
+   showed hFov held at 21:9 **and** vFov held at portrait — i.e., the FOV appears pinned to whichever
+   container axis is *longer*, which none of the original three hypotheses names. **Long-axis-pinned** and
+   its mirror short-axis-pinned were added to the classifier at that point, before any live-pano data was
+   analyzed. The landscape + portrait + square container set separates long-axis-pinned from
+   horizontal-pinned (they coincide on landscape-only data); thresholds were not changed.
 
 ### Predicted separation between the two main hypotheses
 
