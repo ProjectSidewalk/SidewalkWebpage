@@ -123,37 +123,62 @@ class ExploreAddressServiceSpec
     run(auditTasks.filter(_.auditTaskId === auditTaskId).result.head)
 
   /**
-   * Deletes every row the suite created under its throwaway users and restores the street priority / region
-   * completion the completion tests moved. Mission and audit_task reference each other
-   * (mission.current_audit_task_id / audit_task.current_mission_id), so the mission->task pointer is nulled first;
-   * label children (point, history) go before the labels themselves, and the labels before the pano_data row they
-   * reference. The bare user/auth rows are left behind, matching UserAuthControllerSpec's happy-path precedent.
+   * Drops this suite's pano and everything hanging off it. Scoped by pano id rather than by user, so it also reaches
+   * what a dead earlier run left behind — label.pano_id is an FK to pano_data (evolution 360), so one orphaned label
+   * would otherwise pin the pano row in place and fail every later run's cleanup.
    */
-  override def afterAll(): Unit = {
-    val userIds  = createdUserIds.toSeq
-    val labelIds = labels.filter(_.userId inSet userIds).map(_.labelId)
-    val _        = run(
+  private def deleteSpecPanoRows(): Unit = {
+    val labelIdsOnPano = labels.filter(_.panoId === specPanoId).map(_.labelId)
+    val _              = run(
       DBIO
         .seq(
-          labelPoints.filter(_.labelId in labelIds).delete,
-          labelHistories.filter(_.labelId in labelIds).delete,
-          labels.filter(_.userId inSet userIds).delete,
-          missions.filter(_.userId inSet userIds).map(_.currentAuditTaskId).update(None),
-          auditTasks.filter(_.userId inSet userIds).delete,
-          missions.filter(_.userId inSet userIds).delete,
-          streetIssues.filter(_.userId inSet userIds).delete,
-          TableQuery[models.user.UserCurrentRegionTableDef].filter(_.userId inSet userIds).delete,
+          labelPoints.filter(_.labelId in labelIdsOnPano).delete,
+          labelHistories.filter(_.labelId in labelIdsOnPano).delete,
+          labels.filter(_.panoId === specPanoId).delete,
           TableQuery[PanoDataTableDef].filter(_.panoId === specPanoId).delete
         )
         .transactionally
     )
-    priorityRestore.foreach { case (streetEdgeId, p) =>
-      val _ = run(priorities.filter(_.streetEdgeId === streetEdgeId).map(_.priority).update(p))
-    }
-    auditedDistanceRestore.foreach { case (regionId, d) =>
-      val _ = run(regionCompletion.filter(_.regionId === regionId).map(_.auditedDistance).update(d))
-    }
-    super.afterAll()
+  }
+
+  override def beforeAll(): Unit = { super.beforeAll(); deleteSpecPanoRows() }
+
+  /**
+   * Deletes every row the suite created under its throwaway users and restores the street priority / region
+   * completion the completion tests moved. Mission and audit_task reference each other
+   * (mission.current_audit_task_id / audit_task.current_mission_id), so the mission->task pointer is nulled first;
+   * label children (point, history) go before the labels themselves. The bare user/auth rows are left behind,
+   * matching UserAuthControllerSpec's happy-path precedent.
+   */
+  override def afterAll(): Unit = {
+    try {
+      // Restores run first because they are the ones that must not be skipped: they put shared city state back,
+      // where everything below only drops rows this suite created.
+      priorityRestore.foreach { case (streetEdgeId, p) =>
+        val _ = run(priorities.filter(_.streetEdgeId === streetEdgeId).map(_.priority).update(p))
+      }
+      auditedDistanceRestore.foreach { case (regionId, d) =>
+        val _ = run(regionCompletion.filter(_.regionId === regionId).map(_.auditedDistance).update(d))
+      }
+
+      val userIds  = createdUserIds.toSeq
+      val labelIds = labels.filter(_.userId inSet userIds).map(_.labelId)
+      val _        = run(
+        DBIO
+          .seq(
+            labelPoints.filter(_.labelId in labelIds).delete,
+            labelHistories.filter(_.labelId in labelIds).delete,
+            labels.filter(_.userId inSet userIds).delete,
+            missions.filter(_.userId inSet userIds).map(_.currentAuditTaskId).update(None),
+            auditTasks.filter(_.userId inSet userIds).delete,
+            missions.filter(_.userId inSet userIds).delete,
+            streetIssues.filter(_.userId inSet userIds).delete,
+            TableQuery[models.user.UserCurrentRegionTableDef].filter(_.userId inSet userIds).delete
+          )
+          .transactionally
+      )
+      deleteSpecPanoRows()
+    } finally super.afterAll()
   }
 
   /** A minimal explore submission for the given session state, label-free unless labels are passed. */
@@ -201,8 +226,10 @@ class ExploreAddressServiceSpec
       // Every non-tutorial label carries its pano's metadata (#4587), which is what satisfies label.pano_id's FK to
       // pano_data (evolution 360) — the service writes the pano row in the same transaction as the label.
       pano = Some(
-        PanoSubmission(specPanoId, PanoSource.Gsv, "2024-06", Some(8192), Some(4096), Some(512), Some(512), Some(41.87),
-          Some(-87.62), Some(180d), Some(0d), None, Seq.empty, None, None, Seq.empty, None)
+        PanoSubmission(panoId = specPanoId, source = PanoSource.Gsv, captureDate = "2024-06", width = Some(8192),
+          height = Some(4096), tileWidth = Some(512), tileHeight = Some(512), lat = Some(41.87), lng = Some(-87.62),
+          cameraHeading = Some(180d), cameraPitch = Some(0d), cameraRoll = None, links = Seq.empty, copyright = None,
+          address = None, history = Seq.empty, sourceMetadata = None)
       )
     )
 

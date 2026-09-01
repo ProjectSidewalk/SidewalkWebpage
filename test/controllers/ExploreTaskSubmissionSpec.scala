@@ -414,7 +414,7 @@ class ExploreTaskSubmissionSpec extends PlaySpec with BeforeAndAfterAll with Eve
       // label_pano_id_fkey (evolution 360) is the only thing standing between a blockless label and an orphan, and
       // nothing checks ahead of it, so this surfaces as a failed transaction rather than a validation error: the
       // submission is rejected whole, exactly as a failed pano block is. Every seeded deployment has the tutorial
-      // panos, so the shape should be unreachable in practice (#5073).
+      // panos, so the shape should be unreachable in practice; #5101 tracks giving it a cleaner answer than a 500.
       val panoId = s"$panoPrefix-orphan"
 
       val resp = post(submission(labels = Seq(label(panoId, tempLabelId = 5)), panos = Seq.empty))
