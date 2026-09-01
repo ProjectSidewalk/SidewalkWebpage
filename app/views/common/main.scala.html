@@ -241,7 +241,7 @@
         });
 
         // Log clicks on links in the information footer to WebpageActivityTable.
-        // Log is of form: "Click_module=InfoFooter_target=<link>_route=</|/explore|/help|...>"
+        // Log is of form: "Click_module=InfoFooter_target=<link>_route=</|/explore|/labelingGuide|...>"
         $('#info-footer').on('click','a', function(e){
           const currentRoute = window.location.pathname;
           const link = e.currentTarget.id.split('-')[0];

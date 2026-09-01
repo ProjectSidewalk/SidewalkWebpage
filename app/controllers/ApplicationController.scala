@@ -142,16 +142,6 @@ class ApplicationController @Inject() (
   }
 
   /**
-   * Permanently redirects /help to the labeling guide.
-   *
-   * The path sat in the sitemap for years and is indexed, linked from outside the site, and bookmarked, so it has to
-   * keep resolving rather than 404 (#5092). The labeling guide is where its still-relevant content lives.
-   */
-  def helpRedirect = Action {
-    MovedPermanently(routes.ApplicationController.labelingGuide.url)
-  }
-
-  /**
    * Returns the About page.
    */
   def about = cc.securityService.UserAwareAction { implicit request =>

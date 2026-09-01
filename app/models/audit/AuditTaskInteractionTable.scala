@@ -177,8 +177,8 @@ class AuditTaskInteractionTable @Inject() (protected val dbConfigProvider: Datab
                   OR activity = 'Visit_ServiceHourInstructions'
                   OR activity = 'Visit_TimeCheck'
                   OR activity = 'Visit_UserDashboard'
-                  -- Visit_Help matches only rows logged while /help was a page (it redirects now, #5092). Dropping
-                  -- the clause would shrink service hours already credited to those users.
+                  -- No new Visit_Help rows are written; the clause stays because dropping it would shrink service
+                  -- hours already credited to users from the rows that exist (#5092).
                   OR activity = 'Visit_Help'
               )
           ) timestamps

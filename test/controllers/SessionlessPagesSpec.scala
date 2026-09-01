@@ -51,10 +51,9 @@ class SessionlessPagesSpec extends PlaySpec with GuiceOneAppPerSuite {
       }
     }
 
-    "permanently redirect /help to the labeling guide without setting the authenticator cookie" in {
+    "return 404 for /help, which is not a route" in {
       val resp = route(app, FakeRequest(GET, "/help")).get
-      status(resp) mustBe MOVED_PERMANENTLY
-      redirectLocation(resp).value mustBe "/labelingGuide"
+      status(resp) mustBe NOT_FOUND
       cookies(resp).get(authCookieName) mustBe None
     }
 
