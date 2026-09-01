@@ -1,9 +1,20 @@
 @import models.utils.SeoUtils
 @import service.CommonPageData
+@import service.AccessScoreCalculator
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
 @(commonData: CommonPageData, user: Option[SidewalkUserWithRole])(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 @cityName = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId).head.cityNameFormatted}
+@ratingLabel(scoring: AccessScoreCalculator.Scoring) = @{
+  scoring match {
+    case AccessScoreCalculator.PositiveQuality => "Quality (Good / Okay / Bad)"
+    case AccessScoreCalculator.NegativeSeverity => "Severity (Low / Medium / High)"
+    case AccessScoreCalculator.PresenceOnly => "Presence only"
+  }
+}
+@tagAdjustmentsFor(labelType: String) = @{
+  AccessScoreCalculator.tagAdjustments.collect { case ((lt, tag), delta) if lt == labelType => (tag, delta) }.toSeq.sortBy(_._1)
+}
 
 @content = {
   <script>
@@ -60,9 +71,42 @@
     <ul class="api-list">
       <li><strong>Positive, quality-rated</strong> (CurbRamp, Crosswalk): rated <em>Good&nbsp;/&nbsp;Okay&nbsp;/&nbsp;Bad</em> → multiplier <code>+1.0&nbsp;/&nbsp;+0.5&nbsp;/&nbsp;−1.0</code>. A <em>Bad</em> feature therefore <em>lowers</em> the score.</li>
       <li><strong>Negative, severity-rated</strong> (NoCurbRamp, Obstacle, SurfaceProblem): rated <em>Low&nbsp;/&nbsp;Medium&nbsp;/&nbsp;High</em> → magnitude <code>0.33&nbsp;/&nbsp;0.67&nbsp;/&nbsp;1.0</code> of the (negative) base.</li>
-      <li><strong>Presence-only</strong> (no rating): a pedestrian Signal contributes a fixed positive weight; a missing sidewalk (NoSidewalk) a fixed negative weight.</li>
+      <li><strong>Presence-only</strong> (no rating): the base weight applies as-is.
+        <ul>
+          <li>A pedestrian <strong>Signal</strong> adds a fixed positive weight.</li>
+          <li>A missing sidewalk (<strong>NoSidewalk</strong>) adds a fixed negative weight <em>per cluster</em>.</li>
+          <li>NoSidewalk is usually labeled repeatedly along a street and clustered at 10&nbsp;m, so a street with no sidewalk carries several clusters and its score saturates toward 0 (compare <code>n_no_sidewalk</code> with <code>score_no_sidewalk</code>).</li>
+          <li>NoSidewalk tags (<em>street has a sidewalk</em>, <em>ends abruptly</em>, …) do not currently adjust the weight.</li>
+        </ul>
+      </li>
       <li><strong>Tags</strong> adjust a cluster's weight when present on a majority of its labels — e.g. a Signal tagged <em>hard to reach buttons</em> counts negatively, while <em>APS</em> (accessible signal) counts positively.</li>
     </ul>
+    <p>The base weights and tag adjustments below are read directly from the scoring engine, so they always match what the API computes:</p>
+    <div class="ps-table-wrapper">
+      <table class="ps-table ps-table--compact">
+        <thead>
+          <tr><th>Label type</th><th>Base weight</th><th>Rating</th><th>Tag adjustments</th></tr>
+        </thead>
+        <tbody>
+          @for(labelType <- AccessScoreCalculator.orderedScoredTypes) {
+            <tr>
+              <td><code>@labelType</code></td>
+              <td><code>@{f"${AccessScoreCalculator.typeWeights(labelType).baseWeight}%+.2f"}</code></td>
+              <td>@ratingLabel(AccessScoreCalculator.typeWeights(labelType).scoring)</td>
+              <td>
+                @if(tagAdjustmentsFor(labelType).isEmpty) {
+                  —
+                } else {
+                  @for((tag, delta) <- tagAdjustmentsFor(labelType)) {
+                    <div><em>@tag</em> <code>@{f"$delta%+.2f"}</code></div>
+                  }
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
     <p>The per-type <code>cluster_counts</code> and <code>sub_scores</code> in each response let you see exactly how a street's score was composed. Other label types (Occlusion, Other) do not affect the score.</p>
     <p class="download-note">Note: The score is not normalized by street length — a long street with many issues saturates toward 0. Region scores (see the <a href="@routes.ApiDocsController.accessScoreRegions">AccessScore: Regions API</a>) <em>are</em> length-weighted.</p>
   </div>
