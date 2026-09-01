@@ -114,9 +114,9 @@ user-facing text, add at least temporary (machine) translations for the other la
 
 There's a backend test suite (ScalaTest) under `test/` — mainly public-API functional specs. Run it with
 `sbt --client test` (the DB-backed API specs boot the app against Postgres+PostGIS, so the `db` container must be
-up); the overall strategy and phased rollout are in [`docs/testing-and-ci.md`](docs/testing-and-ci.md). The suite is
-still growing and CI runs it as advisory for now, so also compile (`sbt --client compile`) and exercise behavior in
-the running app. See [`docs/dev-environment.md`](docs/dev-environment.md) for the exact commands.
+up); the overall strategy and phased rollout are in [`docs/testing-and-ci.md`](docs/testing-and-ci.md). CI runs a named
+subset of it as a blocking, required check, but the suite is still growing and that subset is hand-maintained — so
+also compile (`sbt --client compile`) and exercise behavior in the running app. See [`docs/dev-environment.md`](docs/dev-environment.md) for the exact commands.
 
 **Update logging.** User interactions (clicks, key presses, etc.) should be logged. If you add or change
 interactions, update the logging accordingly.

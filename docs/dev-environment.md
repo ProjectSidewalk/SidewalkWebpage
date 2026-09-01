@@ -277,8 +277,8 @@ docker exec projectsidewalk-web bash -lc "cd /home && sbt --client test"
 docker exec projectsidewalk-web bash -lc "cd /home && sbt --client \"testOnly controllers.api.PublicApiSpec\""
 ```
 
-The advisory `backend-tests` CI job runs a **named subset** of these specs, not `sbt test` — so a spec that
-nobody adds to that list in `.github/workflows/ci.yml` can rot without CI ever going red. Run the whole suite
+The `backend-tests` CI job is a required check, but it runs a **named subset** of these specs, not `sbt test` — so a
+spec that nobody adds to that list in `.github/workflows/ci.yml` can rot without CI ever going red. Run the whole suite
 locally before you trust it, and add new specs to the job in the same PR.
 
 There are also Python unit tests for the `scripts/` utilities (`make test-python`) and a jsdom Jest suite for
