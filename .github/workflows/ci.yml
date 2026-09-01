@@ -251,8 +251,8 @@ jobs:
       # instead enforced by the DB-free, blocking `route-lint` job above; test/controllers/RouteReachabilitySpec.scala is
       # the equivalent spec, runnable locally and ready to join here once this suite is made sequential + promoted.
       #
-      # `coverage` instruments this step and the gating one below, for the `coverageReport` at the end of the job.
-      # Costs about +19% of test wall-clock (#4743).
+      # `coverage` instruments this step and the gating one below, for the `coverageReport` at the end of the job
+      # (#4743).
       - name: Run public API tests
         run: sbt coverage "testOnly controllers.api.PublicApiSpec"
         # Dummy env mirroring docker-compose.yml's web service, so the app boots exactly as it does in dev. The
