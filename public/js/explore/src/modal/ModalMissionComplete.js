@@ -144,7 +144,7 @@ class ModalMissionComplete {
 
     // Show the highest earned badge; before the first is earned (or the first badge if none earned yet).
     const displayLevel = Math.max(1, earnedLevel);
-    this.#els.badge.src = `/assets/images/badges/badge_missions_badge${displayLevel}.png`;
+    this.#els.badge.src = util.assetPath(`images/badges/badge_missions_badge${displayLevel}.png`);
     this.#els.badge.alt = i18next.t('mission-complete.badge-alt');
   }
 

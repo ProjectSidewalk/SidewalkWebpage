@@ -3,7 +3,7 @@
         test-python test-python-app test-python-tools \
         import-users import-dump create-new-schema fill-new-schema hide-streets-without-imagery \
         import-street-imagery reveal-or-hide-neighborhoods \
-        lint lint-fix lint-evolutions lint-locales lint-css-layout scalafmt scalafmt-fix \
+        lint lint-fix lint-evolutions lint-locales lint-css-layout lint-asset-paths scalafmt scalafmt-fix \
         eslint htmlhint stylelint eslint-fix stylelint-fix \
         lint-eslint lint-htmlhint lint-stylelint lint-fix-eslint lint-fix-stylelint
 
@@ -103,11 +103,11 @@ eslint-fix: | lint-fix-eslint
 
 stylelint-fix: | lint-fix-stylelint
 
-# Runs every linter (four frontend + evolutions) even if an earlier one fails, so all problems surface in one pass,
+# Runs every linter (the frontend set + evolutions) even if an earlier one fails, so all problems surface in one pass,
 # then prints a ✓/✗ per linter and a colored summary. Exits non-zero if any failed.
 lint:
 	@fail=0; \
-	for t in lint-eslint lint-htmlhint lint-stylelint lint-locales lint-css-layout lint-evolutions; do \
+	for t in lint-eslint lint-htmlhint lint-stylelint lint-locales lint-css-layout lint-asset-paths lint-evolutions; do \
 		if $(MAKE) --no-print-directory $$t; then \
 			printf "$(GREEN)✓ %s passed$(RESET)\n" "$$t"; \
 		else \
@@ -274,6 +274,14 @@ lint-css-layout:
 	@echo "Checking CSS layout...";
 	@docker exec $(web-container) bash -lc "cd /home && node tools/check-css-layout.mjs"
 	@echo "Finished checking CSS layout";
+
+# Asset URLs in public/js/ (#4893): no hardcoded '/assets/' outside the allowlist, and every util.assetPath()
+# argument checkable — a literal one naming a real file in a fingerprinted family, an interpolated one opening with a
+# literal family directory. Pure node, run in the web container so node is present. Also a blocking CI step.
+lint-asset-paths:
+	@echo "Checking asset paths...";
+	@docker exec $(web-container) bash -lc "cd /home && node tools/check-asset-paths.mjs"
+	@echo "Finished checking asset paths";
 
 # Scala formatting (.scalafmt.conf). The sbt thin client (`--client`) shares the running `sbt ~ run`'s server instead
 # of colliding with it over build locks. `scalafmt` checks (the blocking CI gate); `scalafmt-fix` reformats in place.

@@ -319,22 +319,47 @@ check — not a comment in `application.conf` — is what holds the contract.
 assets through `controllers.Assets.versioned`, Play answers with `max-age=31536000, immutable` rather than the
 `max-age=3600` default. Changed content always arrives under a new URL, so there is no staleness risk.
 
-**It is a correctness fix, not only a speed one.** Play's fallback ETag for an un-fingerprinted asset comes from its
-path and last-modified date, not its bytes — and sbt's `packageTimestamp` (an sbt-wide default) freezes every jar
-entry at `2010-01-01` for reproducible builds. Both inputs are constant across deploys, so replacing a file's contents
-under the same name leaves the ETag unchanged and every cached copy revalidates to a `304` **indefinitely**. Don't fix
-that by unfreezing `packageTimestamp`: it would cost reproducible builds *and* invalidate every asset on every deploy.
+**What the plain path costs.** `max-age=3600` means a browser re-asks about every asset it holds once an hour, so a
+returning visitor to Explore or Validate spends a conditional GET per icon, cursor, badge and tutorial frame — well
+over a hundred round trips that a fingerprinted URL makes zero of for a year. And because a plain URL doesn't change
+when its file does, a deploy that swaps an asset's bytes reaches a cached client only when that hour is up: for up to
+an hour the browser has fresh HTML (never cached, see below) pointing at stale bytes, which reads as a half-applied
+deploy.
+
+**What it does *not* cost is permanent staleness**, despite what the shape of Play's fallback ETag suggests. That
+fallback is derived from an asset's path and last-modified date — and sbt's `packageTimestamp` freezes every jar entry
+at `2010-01-01` for reproducible builds, so both inputs really are constant across deploys. But it is only a
+*fallback*: `AssetInfo`'s ETag is the asset's digest when one exists, and sbt-digest writes a `<name>.md5` sidecar
+beside every file it fingerprints. Since `pipelineStages` covers all of `public/`, every asset has one, so **the plain
+path is served the content md5 as its ETag too** — verified on a staged binary, where `/assets/images/icons/openhand.cur`
+and its `<md5>-openhand.cur` twin returned the same ETag, equal to the file's md5. A byte change therefore does
+propagate; it just waits out the hour. (Don't try to improve on this by unfreezing `packageTimestamp`: it would cost
+reproducible builds *and* invalidate every asset on every deploy.)
 
 Costs ~291MB of duplicate files per staged instance and ~25s of stage time. Boot time is unaffected — Play resolves
 fingerprints lazily per asset, not at startup.
 
 The one-hour default applies only to the `Assets` controller, so **HTML isn't cached at all** — Play's Twirl responses
-carry no `Cache-Control`, `ETag`, or `Last-Modified`. That is what makes fingerprinting safe: a browser refetches the
-page on every navigation, so a deploy's new asset URLs are picked up immediately and nobody is left holding stale HTML
-that points at a fingerprinted file the new build no longer contains.
+carry no `Cache-Control`, `ETag`, or `Last-Modified`. That is what makes fingerprinting both safe and immediate: a
+browser refetches the page on every navigation, so a deploy's new asset URLs are picked up on the very next load,
+nobody is left holding stale HTML that points at a fingerprinted file the new build no longer contains, and there is
+no window in which current markup references an outdated cached asset.
 
 Originals stay in place too, so hardcoded `/assets/...` paths and relative `url(...)` in CSS keep resolving — but only
 `assets.path(...)` yields the long-lived URL, which is why it's preferred everywhere.
+
+**Frontend JS gets there through a stamped manifest** (#4893). A `.js` file can't call `assets.path(...)`, so the app
+publishes the answers instead: `build.sbt` generates `models.utils.AssetInventory` — every file under the
+`assetManifestPrefixes` families JS draws from — `AssetManifestService` maps each through `AssetsFinder` at startup and
+keeps the ones that resolved to a fingerprint, and `main.scala.html` stamps that `{logical path → md5}` map onto every
+page as `window.assetDigests`, ahead of `utilities.js`. JS then names an asset by its logical path and lets
+`util.assetPath('images/icons/openhand.cur')` build the URL. The stamp is empty under dev `sbt run` (no digests exist),
+and a missing entry falls back to the plain `/assets/<path>`, so dev, jsdom, and any asset the pipeline skipped behave
+as they would with the path written out by hand. `make lint-asset-paths` (a blocking CI step) keeps hardcoded
+`/assets/...` URLs out of `public/js/` and checks every `util.assetPath` argument: a literal one has to name a real
+file in a manifest family, and an interpolated one has to open with a literal family directory that is in the manifest
+(which is also why a path is built inside one template literal rather than concatenated). All necessary because
+neither half of a mistake raises anything at runtime.
 
 Stage/dist only: local `sbt run` serves plain paths and `no-cache` as before, so exercising the real behavior means
 staging the app and running the binary directly rather than `npm start`. That depends on `pipelineStages` in

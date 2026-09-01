@@ -11,6 +11,8 @@
 const fs = require('fs');
 const path = require('path');
 
+const {assetPathStub} = require('./loadGlobalScript');
+
 const SRC = (relativePath) => fs.readFileSync(path.resolve(__dirname, '..', '..', relativePath), 'utf8');
 
 /**
@@ -59,7 +61,7 @@ describe('DashboardBadges', () => {
     beforeEach(() => {
         global.BadgeAchievements = BadgeAchievements;
         global.i18next = {t: (key, opts) => (opts ? `${key}|${JSON.stringify(opts)}` : key)};
-        global.util = {math: {milesToKms: (mi) => mi * 1.609344}};
+        global.util = {math: {milesToKms: (mi) => mi * 1.609344}, assetPath: assetPathStub};
     });
 
     afterEach(() => {

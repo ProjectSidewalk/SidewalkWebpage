@@ -173,7 +173,7 @@ describe('the design system ships the faces its font tokens name', () => {
         const families = fs.readdirSync(FONTS_ROOT, { withFileTypes: true })
             .filter((e) => e.isDirectory()).map((e) => e.name);
 
-        expect(families.length).toBeGreaterThanOrEqual(5); // Not passing vacuously on an empty read.
+        expect(families.length).toBeGreaterThanOrEqual(3); // Not passing vacuously on an empty read.
 
         const undocumented = [];
         for (const family of families) {

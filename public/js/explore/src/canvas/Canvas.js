@@ -149,10 +149,12 @@ class Canvas {
   #setViewControlLayerCursor(type) {
     switch (type) {
       case 'OpenHand':
-        svl.ui.streetview.viewControlLayer.css('cursor', `url(/assets/images/icons/openhand.cur) 4 4, move`);
+        svl.ui.streetview.viewControlLayer
+          .css('cursor', `url(${util.assetPath('images/icons/openhand.cur')}) 4 4, move`);
         break;
       case 'ClosedHand':
-        svl.ui.streetview.viewControlLayer.css('cursor', `url(/assets/images/icons/closedhand.cur) 4 4, move`);
+        svl.ui.streetview.viewControlLayer
+          .css('cursor', `url(${util.assetPath('images/icons/closedhand.cur')}) 4 4, move`);
         break;
       case 'Pointer':
         svl.ui.streetview.viewControlLayer.css('cursor', 'pointer');

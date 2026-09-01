@@ -533,7 +533,7 @@ class PanoManager {
    */
   #createArrow() {
     const image = document.createElementNS('http://www.w3.org/2000/svg', 'image');
-    image.setAttributeNS('http://www.w3.org/1999/xlink', 'href', '/assets/images/icons/arrow-forward.svg');
+    image.setAttributeNS('http://www.w3.org/1999/xlink', 'href', util.assetPath('images/icons/arrow-forward.svg'));
     image.setAttribute('width', '20');
     image.setAttribute('height', '20');
     image.setAttribute('x', '5');  // ((areaWidth / 2)  - iconWidth) / 2 = ((60 / 2 - 20) / 2 = 5

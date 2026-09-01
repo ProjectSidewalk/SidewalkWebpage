@@ -122,7 +122,6 @@ class LabelDetail {
   #flags = { low_quality: null, incomplete: null, stale: null };
   #prevAction = null;
   #taskId = null;
-  #iconBase = '';
   #aiValidation;
   #comments;
   #myCommentIdx;
@@ -386,11 +385,8 @@ class LabelDetail {
     els.commentCancel = this.#q('.label-detail__comment-cancel');
 
     // Validation count display: <img> elements whose `src` is swapped between the four icon variants
-    // (outline / filled / outline-ai / filled-ai). The base URL for the icon files is read from a data
-    // attribute on the container so JS doesn't need to know the assets' path.
-    const voteDisplay = this.#root.querySelector('.label-detail__vote-display');
-    els.voteDisplay = voteDisplay;
-    this.#iconBase = voteDisplay ? voteDisplay.dataset.iconBase : '';
+    // (outline / filled / outline-ai / filled-ai) by #voteIconSrc.
+    els.voteDisplay = this.#root.querySelector('.label-detail__vote-display');
     const voteEl = (variant, child) => this.#root.querySelector(`.label-detail__vote--${variant} ${child}`);
     els.voteIcons = {
       Agree:    voteEl('agree', '.label-detail__vote-icon'),
@@ -458,9 +454,7 @@ class LabelDetail {
       const img = els.voteIcons[action];
       btn.addEventListener('mouseenter', () => {
         if (this.#interactionBlocked) return;
-        const state = this.#prevAction === action ? 'outline' : 'filled';
-        const ai = this.#aiValidation === action ? '-ai' : '';
-        img.src = `${this.#iconBase}${action.toLowerCase()}-${state}${ai}.svg`;
+        img.src = LabelDetail.#voteIconSrc(action, this.#prevAction !== action, this.#aiValidation === action);
       });
       btn.addEventListener('mouseleave', () => {
         if (this.#interactionBlocked) return;
@@ -1079,7 +1073,7 @@ class LabelDetail {
       confirmText: i18next.t('labelmap:comment-delete'),
       cancelText: i18next.t('common:cancel'),
       danger: true,
-      confirmIconSrc: '/assets/images/icons/delete-white-material.svg',
+      confirmIconSrc: util.assetPath('images/icons/delete-white-material.svg'),
     });
     if (!confirmed) return;
     const labelId = this.panoManager.label.labelId;
@@ -1439,6 +1433,19 @@ class LabelDetail {
   }
 
   /**
+   * The URL of one vote icon variant: the four are the cross of filled/outline with the `-ai` suffix.
+   *
+   * @param {string} action - 'Agree', 'Disagree', or 'Unsure'.
+   * @param {boolean} filled - Whether to fill the icon in, which reads as "this is the vote".
+   * @param {boolean} isAi - Whether the AI validated this option, which the `-ai` variant marks.
+   * @returns {string} The icon's asset URL.
+   */
+  static #voteIconSrc(action, filled, isAi) {
+    const state = filled ? 'filled' : 'outline';
+    return util.assetPath(`images/icons/validation/${action.toLowerCase()}-${state}${isAi ? '-ai' : ''}.svg`);
+  }
+
+  /**
    * Updates the three column icons to the right variant based on the user's current vote and the AI validation:
    *   - filled when the user voted this option, otherwise outline
    *   - `-ai` suffix when the AI validated this option
@@ -1447,9 +1454,7 @@ class LabelDetail {
    */
   #renderVoteIcons() {
     for (const [action, img] of Object.entries(this.#els.voteIcons)) {
-      const state = this.#prevAction === action ? 'filled' : 'outline';
-      const ai = this.#aiValidation === action ? '-ai' : '';
-      img.src = `${this.#iconBase}${action.toLowerCase()}-${state}${ai}.svg`;
+      img.src = LabelDetail.#voteIconSrc(action, this.#prevAction === action, this.#aiValidation === action);
     }
   }
 

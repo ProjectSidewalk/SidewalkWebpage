@@ -9,17 +9,16 @@ class Compass {
   #blinkInterval;
   #blinkTimer;
   #uiCompass;
-  #imageDirectories;
+  #directionIcons;
   #status = {
     lockDisableCompassClick: false,
   };
 
   /**
-   * @param {Object} svl - SVL namespace (used for imageDirectory). Same object as the global `svl`.
    * @param {Object} navigationService - NavigationService module.
    * @param {Object} taskContainer - TaskContainer module.
    */
-  constructor(svl, navigationService, taskContainer) {
+  constructor(navigationService, taskContainer) {
     this.#navigationService = navigationService;
     this.#taskContainer = taskContainer;
 
@@ -28,13 +27,13 @@ class Compass {
       message: $('#compass-message'),
     };
 
-    this.#imageDirectories = {
-      leftTurn: `${svl.imageDirectory}icons/ArrowLeftTurn.png`,
-      rightTurn: `${svl.imageDirectory}icons/ArrowRightTurn.png`,
-      slightLeft: `${svl.imageDirectory}icons/ArrowSlightLeft.png`,
-      slightRight: `${svl.imageDirectory}icons/ArrowSlightRight.png`,
-      straight: `${svl.imageDirectory}icons/ArrowStraight.png`,
-      uTurn: `${svl.imageDirectory}icons/ArrowUTurn.png`,
+    this.#directionIcons = {
+      leftTurn: util.assetPath('images/explore/icons/ArrowLeftTurn.png'),
+      rightTurn: util.assetPath('images/explore/icons/ArrowRightTurn.png'),
+      slightLeft: util.assetPath('images/explore/icons/ArrowSlightLeft.png'),
+      slightRight: util.assetPath('images/explore/icons/ArrowSlightRight.png'),
+      straight: util.assetPath('images/explore/icons/ArrowStraight.png'),
+      uTurn: util.assetPath('images/explore/icons/ArrowUTurn.png'),
     };
 
     this.enableCompassClick();
@@ -194,17 +193,17 @@ class Compass {
   directionToImagePath(direction) {
     switch (direction) {
       case 'straight':
-        return this.#imageDirectories.straight;
+        return this.#directionIcons.straight;
       case 'slight-right':
-        return this.#imageDirectories.slightRight;
+        return this.#directionIcons.slightRight;
       case 'slight-left':
-        return this.#imageDirectories.slightLeft;
+        return this.#directionIcons.slightLeft;
       case 'right':
-        return this.#imageDirectories.rightTurn;
+        return this.#directionIcons.rightTurn;
       case 'left':
-        return this.#imageDirectories.leftTurn;
+        return this.#directionIcons.leftTurn;
       case 'u-turn':
-        return this.#imageDirectories.uTurn;
+        return this.#directionIcons.uTurn;
       default:
     }
   }

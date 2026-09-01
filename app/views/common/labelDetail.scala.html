@@ -84,8 +84,8 @@
 <div class="label-detail__columns">
   <section class="label-detail__col label-detail__col--validations">
     <h3 class="label-detail__col-title" data-i18n="labelmap:validations">Validations</h3>
-    @* Validation count display. Each icon's `src` is swapped by JS between the four variants — outline / filled / outline-ai / filled-ai — depending on whether the user (filled) and/or the AI (ai badge) validated this option. The base URL for the icon files is provided via `data-icon-base` so JS doesn't need to know the assets' path. *@
-    <div class="label-detail__vote-display" data-icon-base='@assets.path("images/icons/validation/")'>
+    @* Validation count display. Each icon's `src` is swapped by JS between the four variants — outline / filled / outline-ai / filled-ai — depending on whether the user (filled) and/or the AI (ai badge) validated this option; LabelDetail builds those URLs with util.assetPath. *@
+    <div class="label-detail__vote-display">
       @* Each vote is icon + count with the action word beneath, mirroring the severity faces' icon-over-word
          rhythm; the visible word also names the button for assistive tech. Like the pano overlay's, these are
          toggle buttons — clicking the pressed one clears the vote (#4653). *@

@@ -15,6 +15,8 @@
 const fs = require('fs');
 const path = require('path');
 
+const { assetPathStub } = require('./loadGlobalScript');
+
 const SECTION_SRC = fs.readFileSync(
     path.resolve(__dirname, '..', '..', 'public/js/user-dashboard/StoriesSection.js'), 'utf8'
 );
@@ -62,6 +64,7 @@ describe('the dashboard\'s "Your stories" list', () => {
 
     beforeAll(() => {
         window.i18next = { t: (key) => key };
+        window.util = { assetPath: assetPathStub }; // The delete confirmation's icon URL.
         window.moment = () => ({ format: () => 'Jul 1, 2026' });
         window.camelToKebab = (s) => s.toLowerCase();
         // Records what the section asks of the shared composer; behavior itself is StoryComposer's own contract.
