@@ -67,7 +67,8 @@ class DirectionsPanel {
     // onAdd builds the search box's element for this map; we place it in the panel instead of a map corner.
     const boxElement = box.onAdd(this.#map);
     document.getElementById(`directions-${which}-slot`).append(boxElement);
-    seedSearchBoxAriaExpanded(boxElement);
+    // Seed the aria-expanded that Search JS itself only writes once its result list has opened (#5087).
+    boxElement.querySelector('input[role="combobox"]')?.setAttribute('aria-expanded', 'false');
     this.#wireEnterToFirstSuggestion(box, which);
 
     box.addEventListener('retrieve', (event) => {
