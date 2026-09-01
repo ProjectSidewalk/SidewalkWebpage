@@ -102,10 +102,11 @@ Python holds a real **100%** floor (small, pure scripts; see [Python utility tes
 wall-clock plus ~20s for the report (measured: 9m33s → 11m22s on the full local suite), which is what made it
 affordable on every PR rather than only on pushes to `develop`. Reproduce with `sbt clean coverage test coverageReport`.
 
-**A coverage number is only comparable to one measured the same way**, so re-measure as CI does before moving the
-floor. `backend-tests` runs a hand-listed subset of `test/` — 62.06% for the full local suite against 43.24% for CI's
-list, so the 78 unenrolled spec files are worth ~19 points (#5042). CI's schema is also empty, so data-dependent paths
-are covered locally but not there. Both push CI's number below a local one.
+**A coverage number is only comparable to one measured the same way**, so read the new figure off a CI run before
+raising the floor. Two things pull CI's number down, worth ~26 points together: `backend-tests` runs a hand-listed
+subset of `test/`, so the 78 unenrolled spec files go unmeasured (#5042), and its schema is empty, so data-dependent
+paths are covered locally but not there. Measured three ways on the same commit — **36.39%** in CI, **43.66%** for
+CI's spec list against a seeded local DB, **62.06%** for the full local suite.
 
 Only `controllers.javascript.*` is excluded: Twirl emits the JS reverse router for the browser, so nothing calls its
 692 statements from Scala. The Scala router and the templates stay in — the functional specs render pages and route
