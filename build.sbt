@@ -215,9 +215,11 @@ Test / parallelExecution := false
 // Statement-coverage ratchet (#4743), enforced by backend-tests; see docs/testing-and-ci.md.
 //
 // Don't set this from a local run: CI's schema is empty where a local one is seeded, so CI scores lower on the same
-// specs. 40 is provisional — chosen with headroom under a local 43.66% when backend-tests still ran a subset — and
-// should be tightened to just under whatever a full CI run reports.
-coverageMinimumStmtTotal := 40
+// specs. The gap is measured — on the old enrolled subset CI reported 36.39% against 43.24% locally, so CI lands at
+// ~84% of a local number. Running all of test/ scores 62.60% locally (#5042), which puts CI near 53%; 48 keeps
+// headroom under that, since the estimate is an extrapolation rather than a reading. Tighten it to just under
+// whatever the first full CI run reports.
+coverageMinimumStmtTotal := 48
 coverageFailOnMinimum    := true
 
 // Twirl templates emit the JS reverse router for the browser, so nothing calls it from Scala: 692 statements no test

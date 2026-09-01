@@ -105,7 +105,9 @@ affordable on every PR rather than only on pushes to `develop`. Reproduce with `
 **A coverage number is only comparable to one measured the same way**, so re-measure as CI does before moving the
 floor. CI and a local run now execute the same specs (#5042 — before it, CI's hand-listed subset scored 43.24%
 against 62.06% for all of `test/`), but CI's schema is empty where a local one is seeded, so data-dependent paths are
-covered locally and not there. Expect CI's number to sit below a local one.
+covered locally and not there. That gap is worth about **16%** of the number: on the enrolled subset CI reported
+36.39% where the same specs scored 43.24% locally. All of `test/` scores **62.60%** locally, so expect CI in the low
+fifties.
 
 Only `controllers.javascript.*` is excluded: Twirl emits the JS reverse router for the browser, so nothing calls its
 692 statements from Scala. The Scala router and the templates stay in — the functional specs render pages and route
