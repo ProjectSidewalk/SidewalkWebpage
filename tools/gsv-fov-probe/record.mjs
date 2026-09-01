@@ -118,7 +118,15 @@ async function settleScreenshot(target) {
     let prev = null;
     let iters = 0;
     for (;;) {
-        const shot = await target.screenshot({ animations: 'disabled' });
+        let shot;
+        try {
+            shot = await target.screenshot({ animations: 'disabled', timeout: 8000 });
+        } catch (e) {
+            // A transient capture failure counts against the settle budget rather than killing the load.
+            if (Date.now() - t0 > SETTLE.timeoutMs * 2) throw e;
+            await new Promise((r) => setTimeout(r, SETTLE.intervalMs));
+            continue;
+        }
         iters++;
         const elapsed = Date.now() - t0;
         if (prev && shot.equals(prev) && iters >= SETTLE.minShots && elapsed >= SETTLE.minElapsedMs) {
@@ -180,27 +188,36 @@ async function main() {
     const panos = PANOS.filter((p) => !args.panos || args.panos.includes(p.name));
     const zooms = args.zooms ?? ZOOMS;
 
-    const browser = await chromium.launch({ headless: !args.headed });
-    try {
-        for (const pano of panos) {
-            for (const container of containers) {
-                for (let load = 1; load <= args.loads; load++) {
-                    const label = `${pano.name}/${container.name}/load${load}`;
-                    console.log(`=== ${label} (maps ${args.mapsVersion}) ===`);
-                    const dir = path.join(runDir, pano.name, container.name, `load${load}`);
+    // Each load gets a FRESH browser process: a wedged renderer/network stack in one load (observed as a
+    // hung screenshot followed by every later Maps script fetch failing in the same process) must not be
+    // able to take down the rest of the sweep. Failed loads get one retry after a backoff.
+    for (const pano of panos) {
+        for (const container of containers) {
+            for (let load = 1; load <= args.loads; load++) {
+                const label = `${pano.name}/${container.name}/load${load}`;
+                console.log(`=== ${label} (maps ${args.mapsVersion}) ===`);
+                const dir = path.join(runDir, pano.name, container.name, `load${load}`);
+                for (let attempt = 1; attempt <= 2; attempt++) {
+                    fs.rmSync(dir, { recursive: true, force: true });
                     fs.mkdirSync(dir, { recursive: true });
+                    manifest.captures = manifest.captures.filter((c) =>
+                        !(c.panoName === pano.name && c.containerName === container.name && c.load === load));
+                    const browser = await chromium.launch({ headless: !args.headed });
                     try {
-                        await recordLoad({ browser, probeHtml, pano, container, load, zooms, dir, manifest, label });
+                        await recordLoad({ browser, probeHtml, pano, container, load, zooms, dir, runDir, manifest, label });
+                        break;
                     } catch (e) {
-                        console.error(`FAILED ${label}: ${e.stack}`);
-                        manifest.loads.push({ label, error: String(e) });
+                        console.error(`FAILED ${label} (attempt ${attempt}): ${e.stack}`);
+                        manifest.loads.push({ label, attempt, error: String(e) });
+                        if (attempt === 1) await new Promise((r) => setTimeout(r, 20000));
+                    } finally {
+                        await browser.close();
                     }
-                    saveManifest();
                 }
+                saveManifest();
+                await new Promise((r) => setTimeout(r, 2000));
             }
         }
-    } finally {
-        await browser.close();
     }
     manifest.finishedAt = new Date().toISOString();
     saveManifest();
@@ -213,7 +230,7 @@ async function main() {
  * @param {object} ctx - Everything the load needs (browser, served HTML, config, output dir, manifest).
  */
 async function recordLoad(ctx) {
-    const { browser, probeHtml, pano, container, load, zooms, dir, manifest, label } = ctx;
+    const { browser, probeHtml, pano, container, load, zooms, dir, runDir, manifest, label } = ctx;
     const context = await browser.newContext({
         viewport: { width: container.width + 60, height: container.height + 60 },
         deviceScaleFactor: container.dsf,
@@ -265,12 +282,11 @@ async function recordLoad(ctx) {
         const capture = async (kind, zoom, h0, deltaDeg, side, requested) => {
             const state = await page.evaluate((p) => window.__probe.setPov(p), requested);
             const s = await settleScreenshot(target);
-            const file = path.join(path.basename(dir), `${kind}-z${zoom}-h${h0}-d${deltaDeg}-${side}.png`)
-                .replace(/[^\w/.-]/g, '_');
-            const abs = path.join(dir, path.basename(file));
+            const name = `${kind}-z${zoom}-h${h0}-d${deltaDeg}-${side}.png`.replace(/[^\w.-]/g, '_');
+            const abs = path.join(dir, name);
             fs.writeFileSync(abs, s.shot);
             manifest.captures.push({
-                file: path.relative(path.dirname(path.dirname(dir)), abs),
+                file: path.relative(runDir, abs),
                 panoName: pano.name, containerName: container.name,
                 width: container.width, height: container.height, dsf: container.dsf, load,
                 kind, zoom, h0, deltaDeg, side, requested, state,

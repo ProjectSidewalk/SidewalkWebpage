@@ -4,7 +4,10 @@
  * directory. Optionally copies the committable summary (numbers + report, no live imagery) to recorded/.
  *
  * Usage:
- *   node tools/gsv-fov-probe/analyze.mjs (--latest | <run-dir>) [--copy-recorded] [--step N]
+ *   node tools/gsv-fov-probe/analyze.mjs (--latest | <run-dir>) [--copy-recorded] [--emit-fixture] [--step N]
+ *
+ * --emit-fixture regenerates test/js/fixtures/gsvFovMeasurements.json, the recorded measurement set that
+ * test/js/gsvFovContract.test.js pins the projection code against.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -154,7 +157,7 @@ function main() {
         generatedAt: new Date().toISOString(),
         runDir: path.basename(runDir),
         mapsVersionRequested: manifest.mapsVersionRequested,
-        mapsVersions: [...new Set(Object.values(manifest.panos ?? {}).map(() => undefined))].filter(Boolean),
+        mapsVersion: manifest.captures.find((c) => c.state?.mapsVersion)?.state.mapsVersion ?? null,
         panos: manifest.panos,
         thresholds: {
             METHOD_GATE_FOV_TOL_DEG, MODEL_GATE_DELTA_TOL, VERDICT_INVARIANCE_TOL_DEG,
@@ -177,6 +180,29 @@ function main() {
             fs.copyFileSync(path.join(runDir, f), path.join(dest, f));
         }
         console.log(`Committable summary copied to ${dest}`);
+    }
+
+    if (args.includes('--emit-fixture')) {
+        const fixture = {
+            generatedAt: results.generatedAt,
+            runDir: results.runDir,
+            mapsVersion: results.mapsVersion,
+            mapsVersionRequested: results.mapsVersionRequested,
+            verdict: verdict.verdict,
+            gates: { method: gates.method.pass, model: gates.model.pass, anisotropy: gates.anisotropy.pass },
+            panos: Object.fromEntries(Object.entries(manifest.panos).map(([name, m]) => [name, {
+                panoId: m.panoId, imageDate: m.imageDate, worldSize: m.worldSize,
+            }])),
+            configs: cellResults.filter((c) => c.kind === 'yaw' && !c.unreliable).map((c) => ({
+                pano: c.panoName, container: c.containerName, width: c.widthCss, height: c.heightCss,
+                dpr: c.dsf, zoom: c.zoom, fPx: c.fCss, sigmaF: c.sigmaF, ciLo: c.ciLo, ciHi: c.ciHi,
+                hFovDeg: c.hFovDeg, vFovDeg: c.vFovDeg, n: c.nKept,
+            })),
+        };
+        const fixturePath = path.resolve(HERE, '..', '..', 'test/js/fixtures/gsvFovMeasurements.json');
+        fs.mkdirSync(path.dirname(fixturePath), { recursive: true });
+        fs.writeFileSync(fixturePath, `${JSON.stringify(fixture, null, 2)}\n`);
+        console.log(`Fixture written to ${fixturePath}`);
     }
 }
 
