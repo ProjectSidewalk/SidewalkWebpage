@@ -1,8 +1,9 @@
 name: CI
 
 #   - backend:         `sbt compile` + `scalafmtCheckAll` (both BLOCKING)
-#   - frontend:        asset build (grunt) + `eslint` (JS) + `stylelint` (CSS) + `htmlhint` (HTML) (all BLOCKING),
-#                      plus the jsdom `jest` suite in test/js/ (ADVISORY step inside the same job).
+#   - frontend:        asset build (grunt) + `eslint` (JS) + `stylelint` (CSS) + `htmlhint` (HTML) + locale parity +
+#                      CSS layout + asset paths (all BLOCKING), plus the jsdom `jest` suite in test/js/ (ADVISORY
+#                      step inside the same job).
 #   - evolutions-lint: static checks on conf/evolutions/default/*.sql (BLOCKING — fast, deterministic, no DB).
 #   - route-lint:      conf/routes reachability — fails if any route is shadowed by an earlier one (BLOCKING — no DB).
 #   - backend-tests:   DB-backed public-API functional tests against a real Postgres+PostGIS (ADVISORY for now). Boots
@@ -122,6 +123,15 @@ jobs:
       - name: CSS layout (blocking)
         if: always()
         run: node tools/check-css-layout.mjs
+
+      # Blocking: asset URLs in public/js/ (#4893) -- no hardcoded '/assets/...' outside the tool's allowlist, and
+      # every literal util.assetPath() argument names a real file in a family the digest manifest covers. Both halves
+      # of a mistake here are silent (a missing asset resolves to its plain path rather than throwing), so nothing
+      # else would catch one. `if: always()` so it reports even when an earlier frontend step failed. Run locally with
+      # `make lint-asset-paths`.
+      - name: Asset paths (blocking)
+        if: always()
+        run: node tools/check-asset-paths.mjs
 
       # Advisory: the jsdom unit suite (test/js/). Coverage is thin and sequenced with the ES5→ES2022 migration
       # (#2487), so it doesn't gate merges yet — but running it on every PR is what keeps a tested helper's contract
