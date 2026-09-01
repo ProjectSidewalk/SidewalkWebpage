@@ -154,7 +154,9 @@
             location: cfg.location,
             radius: cfg.radius ?? 100,
             preference: 'nearest',
-            sources: ['outdoor'],
+            // 'google' excludes user-contributed photospheres: the seattle-downtown coords resolved to a
+            // third-party photosphere whose tiles render black in the probe, poisoning every fit for that scene.
+            sources: ['google', 'outdoor'],
           });
           svcData = resp.data;
           panoId = svcData.location.pano;

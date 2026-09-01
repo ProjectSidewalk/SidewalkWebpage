@@ -102,6 +102,28 @@ Committed before the first analyzed sweep; thresholds live in `analyze.mjs` and 
    if present, the deliverable becomes the measured hFov(zoom, aspect) table + clamp boundary as the
    empirical contract.
 
+   *Amendment 4 (2026-09-01, after the full analyzed sweep):* a pair-level validity floor `MIN_PAIR_NCC = 0.8`
+   was added ahead of the MAD outlier filter. Observed pair NCC is sharply bimodal — ≥ 0.94 on every credible
+   fit, ≤ 0.40 when the rotated sliver held featureless sky/road (4 of 3,520 pairs, all in extreme-aspect
+   pitch cells) — and a 4-pair pitch cell with 2 garbage pairs defeats the MAD filter (the median lands
+   between clusters, so nothing is rejected, and the cell's "vertical f" is a meaningless midpoint). The
+   floor is a measurement-validity criterion (did the warp correlate at all?), blind to the fitted f's value
+   and direction, so it cannot steer the verdict. Gate thresholds unchanged. Separately, the **model gate is
+   reported as exceeded, not patched**: square-480x480 at zoom 1 shows a per-Δ spread of 0.50–0.62% vs the
+   0.5% threshold on 2 of 4 panos. The signature — only the Δ=1° medians read ~0.4% low, identically on all
+   four panos, with Δ=2/4/8 agreeing to ~0.15% — is sub-pixel estimator bias at the design's smallest image
+   displacement (f ≈ 240 px ⇒ ~4 px per degree), bounded at ≤ 0.25° of FOV at 90°, far below the 6°–50°
+   hypothesis separations. The threshold was not loosened; the exceedance and its diagnosis are carried in
+   the report.
+
+   *Amendment 3 (2026-09-01, after the full sweep, before any threshold change):* the `seattle-downtown`
+   coordinates resolved to a user-contributed photosphere (`sources: ['outdoor']` does not exclude
+   third-party imagery) whose tiles render black in the probe, so every fit for that scene ran on black
+   frames — NCC undefined, f pinned at the optimizer bounds — and dragged all three gates to FAIL. This is
+   a scene-acquisition failure, not a measurement outcome: the fix is `sources: ['google', 'outdoor']`
+   (official imagery only) in the probe's `getPanorama` call, plus purging and re-recording that one scene.
+   No thresholds, hypotheses, or decision rules changed; the other three scenes' data is untouched.
+
    *Amendment 2 (2026-08-31, after the first partial sweep — tutorial pano complete, live panos only at
    control + 16:9):* the partial data showed a **composite** contract none of the named hypotheses fits:
    width-pinned to <0.03° across every landscape aspect, size, and DPR — but portrait-480x853 at zoom 1

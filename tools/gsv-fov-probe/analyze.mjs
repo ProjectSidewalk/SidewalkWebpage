@@ -27,6 +27,10 @@ const MODEL_GATE_DELTA_TOL = 0.005;  // Max relative spread of per-delta median 
 const VERDICT_INVARIANCE_TOL_DEG = 0.5; // FOV deviation across aspects treated as "invariant" (or 3*sigma).
 const OUTLIER_MAD_MULT = 5;
 const CELL_MAX_DROP_FRAC = 0.2;
+// Amendment 4 (README): a pair whose warp fit never correlated is a failed measurement, not a data point.
+// Observed NCC is bimodal — ≥0.94 on every credible fit, ≤0.40 when the rotated sliver was featureless sky/road —
+// and the MAD filter can't reject 50% contamination in 4-pair pitch cells (the median lands between clusters).
+const MIN_PAIR_NCC = 0.8;
 
 /** The app's empirical WebGL zoom->hFov curve (panoUtilities.js zoomToFov), the H1 reference. */
 const zoomToFov = (zoom) => (zoom <= 2 ? 126.5 - zoom * 36.75 : 195.93 / Math.pow(1.92, zoom));
@@ -120,11 +124,12 @@ function main() {
     const cellResults = [];
     for (const [key, cellFits] of cells) {
         const [panoName, containerName, zoom, kind] = key.split('|');
-        const values = cellFits.map((f) => f.fCss).filter(Number.isFinite);
+        // NCC validity floor runs before the MAD filter so garbage pairs can't drag the median between clusters.
+        const valid = cellFits.filter((f) => Number.isFinite(f.fCss) && f.ncc >= MIN_PAIR_NCC);
+        const values = valid.map((f) => f.fCss);
         const med = est.median(values);
         const sigma = est.madSigma(values);
-        const kept = cellFits.filter((f) => Number.isFinite(f.fCss) &&
-            (sigma === 0 || Math.abs(f.fCss - med) <= OUTLIER_MAD_MULT * sigma));
+        const kept = valid.filter((f) => sigma === 0 || Math.abs(f.fCss - med) <= OUTLIER_MAD_MULT * sigma);
         const dropFrac = 1 - kept.length / cellFits.length;
         const keptValues = kept.map((f) => f.fCss);
         const fMed = est.median(keptValues);
@@ -169,7 +174,7 @@ function main() {
         panos: manifest.panos,
         thresholds: {
             METHOD_GATE_FOV_TOL_DEG, MODEL_GATE_DELTA_TOL, VERDICT_INVARIANCE_TOL_DEG,
-            OUTLIER_MAD_MULT, CELL_MAX_DROP_FRAC, analysisStep: step,
+            OUTLIER_MAD_MULT, CELL_MAX_DROP_FRAC, MIN_PAIR_NCC, analysisStep: step,
         },
         gates,
         verdict,
