@@ -454,9 +454,7 @@ class LabelDetail {
       const img = els.voteIcons[action];
       btn.addEventListener('mouseenter', () => {
         if (this.#interactionBlocked) return;
-        const state = this.#prevAction === action ? 'outline' : 'filled';
-        const ai = this.#aiValidation === action ? '-ai' : '';
-        img.src = util.assetPath(`images/icons/validation/${action.toLowerCase()}-${state}${ai}.svg`);
+        img.src = LabelDetail.#voteIconSrc(action, this.#prevAction !== action, this.#aiValidation === action);
       });
       btn.addEventListener('mouseleave', () => {
         if (this.#interactionBlocked) return;
@@ -1435,6 +1433,19 @@ class LabelDetail {
   }
 
   /**
+   * The URL of one vote icon variant: the four are the cross of filled/outline with the `-ai` suffix.
+   *
+   * @param {string} action - 'Agree', 'Disagree', or 'Unsure'.
+   * @param {boolean} filled - Whether to fill the icon in, which reads as "this is the vote".
+   * @param {boolean} isAi - Whether the AI validated this option, which the `-ai` variant marks.
+   * @returns {string} The icon's asset URL.
+   */
+  static #voteIconSrc(action, filled, isAi) {
+    const state = filled ? 'filled' : 'outline';
+    return util.assetPath(`images/icons/validation/${action.toLowerCase()}-${state}${isAi ? '-ai' : ''}.svg`);
+  }
+
+  /**
    * Updates the three column icons to the right variant based on the user's current vote and the AI validation:
    *   - filled when the user voted this option, otherwise outline
    *   - `-ai` suffix when the AI validated this option
@@ -1443,9 +1454,7 @@ class LabelDetail {
    */
   #renderVoteIcons() {
     for (const [action, img] of Object.entries(this.#els.voteIcons)) {
-      const state = this.#prevAction === action ? 'filled' : 'outline';
-      const ai = this.#aiValidation === action ? '-ai' : '';
-      img.src = util.assetPath(`images/icons/validation/${action.toLowerCase()}-${state}${ai}.svg`);
+      img.src = LabelDetail.#voteIconSrc(action, this.#prevAction === action, this.#aiValidation === action);
     }
   }
 

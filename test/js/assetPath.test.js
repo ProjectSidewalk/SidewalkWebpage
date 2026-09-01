@@ -12,13 +12,6 @@ const { loadGlobalScript } = require('./loadGlobalScript');
 const MD5 = '0123456789abcdef0123456789abcdef';
 
 beforeEach(() => {
-  // utilities.js builds a Bowser parser at load time; this helper never touches it, but the file needs the global.
-  window.bowser = {
-    getParser: () => ({
-      getBrowserName: () => 'Test', getBrowserVersion: () => '1',
-      getOSName: () => 'TestOS', getPlatformType: () => 'desktop',
-    }),
-  };
   delete window.assetDigests;
   loadGlobalScript('public/js/common/utilities.js');
 });

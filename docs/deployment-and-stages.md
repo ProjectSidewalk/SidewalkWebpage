@@ -356,8 +356,10 @@ page as `window.assetDigests`, ahead of `utilities.js`. JS then names an asset b
 `util.assetPath('images/icons/openhand.cur')` build the URL. The stamp is empty under dev `sbt run` (no digests exist),
 and a missing entry falls back to the plain `/assets/<path>`, so dev, jsdom, and any asset the pipeline skipped behave
 as they would with the path written out by hand. `make lint-asset-paths` (a blocking CI step) keeps hardcoded
-`/assets/...` URLs out of `public/js/` and checks that every literal `util.assetPath` argument names a real file in a
-manifest family — necessary because neither half of a mistake raises anything at runtime.
+`/assets/...` URLs out of `public/js/` and checks every `util.assetPath` argument: a literal one has to name a real
+file in a manifest family, and an interpolated one has to open with a literal family directory that is in the manifest
+(which is also why a path is built inside one template literal rather than concatenated). All necessary because
+neither half of a mistake raises anything at runtime.
 
 Stage/dist only: local `sbt run` serves plain paths and `no-cache` as before, so exercising the real behavior means
 staging the app and running the binary directly rather than `npm start`. That depends on `pipelineStages` in

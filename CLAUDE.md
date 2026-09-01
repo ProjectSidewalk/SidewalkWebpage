@@ -267,7 +267,7 @@ When you catch yourself writing a frontend constant that mirrors a backend value
   - **HTML** (Twirl views in `app/views/`): `make htmlhint`.
   - **Translation JSON** (`public/locales/`): `make eslint` (per-file validity/dup-key checks) plus `make lint-locales` (cross-locale key parity).
   - **CSS layout** (`public/css/` + the views' `<link>`s): `make lint-css-layout` (page stylesheets linked only by their page, page prefixes only in their page's files, every linked file exists).
-  - **Asset paths** (`public/js/`): `make lint-asset-paths` (no hardcoded `/assets/...` URLs outside the tool's allowlist; every literal `util.assetPath` argument names a real file in a fingerprinted family).
+  - **Asset paths** (`public/js/`): `make lint-asset-paths` (no hardcoded `/assets/` URLs outside the tool's allowlist; every `util.assetPath` argument checkable — a literal one names a real file in a fingerprinted family, an interpolated one opens with a literal family directory that is in the manifest).
   - `make lint` runs all of them (plus the evolutions lint) at once; `make lint-fix` autofixes the ESLint + Stylelint mechanical findings.
 - User interactions are logged (clicks, key presses, mode switches, pano changes, mission/task events, etc.) to the activity/interaction tables. When you **add or change an interaction**, add or adjust the corresponding logging so analytics stay complete; keep event names consistent with the existing ones, and update [`docs/logged-events.md`](docs/logged-events.md) (how logging works + the event reference).
 - Ensure WCAG 2.1/2.2 Level AA accessibility standards are met

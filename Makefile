@@ -253,9 +253,9 @@ lint-css-layout:
 	@docker exec $(web-container) bash -lc "cd /home && node tools/check-css-layout.mjs"
 	@echo "Finished checking CSS layout";
 
-# Asset URLs in public/js/ (#4893): no hardcoded '/assets/...' outside the allowlist, and every literal
-# util.assetPath() argument names a real file in a fingerprinted family. Pure node, run in the web container so node
-# is present. Also a blocking CI step.
+# Asset URLs in public/js/ (#4893): no hardcoded '/assets/' outside the allowlist, and every util.assetPath()
+# argument checkable — a literal one naming a real file in a fingerprinted family, an interpolated one opening with a
+# literal family directory. Pure node, run in the web container so node is present. Also a blocking CI step.
 lint-asset-paths:
 	@echo "Checking asset paths...";
 	@docker exec $(web-container) bash -lc "cd /home && node tools/check-asset-paths.mjs"

@@ -2,6 +2,8 @@ package service
 
 import controllers.AssetsFinder
 import models.utils.AssetInventory
+import play.twirl.api.Html
+import views.ViewHelpers
 
 import javax.inject.{Inject, Singleton}
 
@@ -30,6 +32,14 @@ class AssetManifestService @Inject() (assets: AssetsFinder) {
   val assetDigests: Map[String, String] = AssetInventory.paths.flatMap { logicalPath =>
     AssetManifestService.digestOf(logicalPath, assets.path(logicalPath)).map(logicalPath -> _)
   }.toMap
+
+  /**
+   * The same map serialized for `main.scala.html`'s inline `<script>`, so every HTML response reuses one string.
+   *
+   * Serializing is the only per-render work the stamp would otherwise cost, and it is pure repetition: several
+   * hundred entries, identical on every page of every response, for a map that cannot change while the process runs.
+   */
+  val assetDigestsJson: Html = ViewHelpers.jsonForScript(assetDigests)
 }
 
 /** The pure half of [[AssetManifestService]], so the digest-extraction contract is testable without booting an app. */

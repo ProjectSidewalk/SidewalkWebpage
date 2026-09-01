@@ -87,7 +87,7 @@ function buildCard() {
 
         <div class="label-detail__columns">
           <section class="label-detail__col label-detail__col--validations">
-            <div class="label-detail__vote-display" data-icon-base="/assets/images/icons/validation/">
+            <div class="label-detail__vote-display">
               <button type="button" class="label-detail__vote label-detail__vote--agree" aria-pressed="false">
                 <span class="label-detail__vote-top">
                   <img alt="" class="label-detail__vote-icon">
