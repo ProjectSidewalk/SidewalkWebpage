@@ -122,7 +122,6 @@ class LabelDetail {
   #flags = { low_quality: null, incomplete: null, stale: null };
   #prevAction = null;
   #taskId = null;
-  #iconBase = '';
   #aiValidation;
   #comments;
   #myCommentIdx;
@@ -386,11 +385,8 @@ class LabelDetail {
     els.commentCancel = this.#q('.label-detail__comment-cancel');
 
     // Validation count display: <img> elements whose `src` is swapped between the four icon variants
-    // (outline / filled / outline-ai / filled-ai). The base URL for the icon files is read from a data
-    // attribute on the container so JS doesn't need to know the assets' path.
-    const voteDisplay = this.#root.querySelector('.label-detail__vote-display');
-    els.voteDisplay = voteDisplay;
-    this.#iconBase = voteDisplay ? voteDisplay.dataset.iconBase : '';
+    // (outline / filled / outline-ai / filled-ai) by #voteIconSrc.
+    els.voteDisplay = this.#root.querySelector('.label-detail__vote-display');
     const voteEl = (variant, child) => this.#root.querySelector(`.label-detail__vote--${variant} ${child}`);
     els.voteIcons = {
       Agree:    voteEl('agree', '.label-detail__vote-icon'),
@@ -460,7 +456,7 @@ class LabelDetail {
         if (this.#interactionBlocked) return;
         const state = this.#prevAction === action ? 'outline' : 'filled';
         const ai = this.#aiValidation === action ? '-ai' : '';
-        img.src = `${this.#iconBase}${action.toLowerCase()}-${state}${ai}.svg`;
+        img.src = util.assetPath(`images/icons/validation/${action.toLowerCase()}-${state}${ai}.svg`);
       });
       btn.addEventListener('mouseleave', () => {
         if (this.#interactionBlocked) return;
@@ -1079,7 +1075,7 @@ class LabelDetail {
       confirmText: i18next.t('labelmap:comment-delete'),
       cancelText: i18next.t('common:cancel'),
       danger: true,
-      confirmIconSrc: '/assets/images/icons/delete-white-material.svg',
+      confirmIconSrc: util.assetPath('images/icons/delete-white-material.svg'),
     });
     if (!confirmed) return;
     const labelId = this.panoManager.label.labelId;
@@ -1449,7 +1445,7 @@ class LabelDetail {
     for (const [action, img] of Object.entries(this.#els.voteIcons)) {
       const state = this.#prevAction === action ? 'filled' : 'outline';
       const ai = this.#aiValidation === action ? '-ai' : '';
-      img.src = `${this.#iconBase}${action.toLowerCase()}-${state}${ai}.svg`;
+      img.src = util.assetPath(`images/icons/validation/${action.toLowerCase()}-${state}${ai}.svg`);
     }
   }
 
