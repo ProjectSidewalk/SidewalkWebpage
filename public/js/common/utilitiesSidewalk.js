@@ -19,10 +19,12 @@ function UtilitiesMisc(JSON) {
   // -size PNGs beside it exist only for consumers that can't take vector art (server-side share-image compositing in
   // ShareController, and the icon URLs published by /v3/api/labelTypes).
   function getIconImagePaths(category) {
-    const iconBasePath = '/assets/images/icons/label_type_icons';
     const imagePaths = { Walk: { id: 'Walk', iconImagePath: null } };
     for (const labelType of self.VALID_LABEL_TYPES) {
-      imagePaths[labelType] = { id: labelType, iconImagePath: `${iconBasePath}/${labelType}_small.svg` };
+      imagePaths[labelType] = {
+        id: labelType,
+        iconImagePath: util.assetPath(`images/icons/label_type_icons/${labelType}_small.svg`),
+      };
     }
 
     return category ? imagePaths[category] : imagePaths;
@@ -430,7 +432,6 @@ function UtilitiesMisc(JSON) {
     return category ? descriptions[category] : descriptions;
   }
 
-  const SMILEY_ICON_BASE = '/assets/images/icons/smileys/';
   const POSITIVE_LABEL_TYPES = ['CurbRamp', 'Crosswalk'];
   const LABEL_TYPES_WITHOUT_SEVERITY = ['NoSidewalk', 'Signal', 'Occlusion'];
 
@@ -521,7 +522,7 @@ function UtilitiesMisc(JSON) {
   function getSmileyIconPath(severity, labelType, selected) {
     // Severity 0 (N/A) is a neutral circle; only the negative asset exists and it's reused for both sets.
     const set = severity === 0 || !isPositiveLabelType(labelType) ? 'negative' : 'positive';
-    return `${SMILEY_ICON_BASE}sev-${severity}-${set}${selected ? '-filled' : ''}.svg`;
+    return util.assetPath(`images/icons/smileys/sev-${severity}-${set}${selected ? '-filled' : ''}.svg`);
   }
 
   // Each rating level's colours, as design-system custom properties so no hex is duplicated here. `face` mirrors

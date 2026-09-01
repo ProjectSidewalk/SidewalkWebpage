@@ -12,6 +12,8 @@
 const fs = require('fs');
 const path = require('path');
 
+const { assetPathStub } = require('./loadGlobalScript');
+
 const CARD_SRC = fs.readFileSync(
     path.resolve(__dirname, '..', '..', 'public/js/gallery/src/cards/Card.js'), 'utf8'
 );
@@ -44,6 +46,7 @@ describe('a Gallery card\'s location line', () => {
         window.i18next = { t: (key) => key, language: 'en' };
         window.moment = (value) => value;
         window.util = {
+            assetPath: assetPathStub,
             camelToKebab: (s) => s.toLowerCase(),
             EXPLORE_CANVAS_WIDTH: 720,
             EXPLORE_CANVAS_HEIGHT: 480,

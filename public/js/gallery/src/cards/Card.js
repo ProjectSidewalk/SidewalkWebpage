@@ -148,7 +148,7 @@ class Card {
       });
       const pin = document.createElement('img');
       pin.className = 'card-location__pin';
-      pin.src = '/assets/images/icons/map-pin-feather.svg';
+      pin.src = util.assetPath('images/icons/map-pin-feather.svg');
       pin.alt = '';
       const name = document.createElement('span');
       name.className = 'card-location__name';

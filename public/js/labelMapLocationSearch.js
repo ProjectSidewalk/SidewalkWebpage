@@ -221,7 +221,7 @@ function initLabelMapLocationSearch(map, mapboxApiKey) {
         <path class="ps-search-pin__body"
               d="M19 47 C19 47 4 31 4 19 A15 15 0 1 1 34 19 C34 31 19 47 19 47 Z"/>
         <circle class="ps-search-pin__face" cx="19" cy="19" r="12.5"/>
-        <image href="/assets/images/logos/ProjectSidewalkLogo_NoText_WheelchairCircleCentered_100x100.png"
+        <image href="${util.assetPath('images/logos/ProjectSidewalkLogo_NoText_WheelchairCircleCentered_100x100.png')}"
                x="8" y="8" width="22" height="22"/>
       </svg>`;
 

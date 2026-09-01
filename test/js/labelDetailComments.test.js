@@ -20,6 +20,8 @@
 const fs = require('fs');
 const path = require('path');
 
+const { assetPathStub } = require('./loadGlobalScript');
+
 const readSrc = (rel) => fs.readFileSync(path.resolve(__dirname, '..', '..', rel), 'utf8');
 const LABEL_DETAIL_SRC = readSrc('public/js/common/label-detail/LabelDetail.js');
 const TAG_EDITOR_SRC = readSrc('public/js/common/label-detail/TagEditor.js');
@@ -251,6 +253,7 @@ describe('the validator comment box (#5015)', () => {
         // The card reaches for this both bare and through `util`, so both spellings have to answer.
         window.camelToKebab = (s) => s.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
         window.util = {
+            assetPath: assetPathStub,
             EXPLORE_CANVAS_WIDTH: 720,
             EXPLORE_CANVAS_HEIGHT: 480,
             isMobile: () => false,

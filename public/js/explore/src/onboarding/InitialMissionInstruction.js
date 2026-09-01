@@ -46,7 +46,7 @@ class InitialMissionInstruction {
       const width = '450px';
       const height = '291px';
       const x = '50px';
-      const image = '/assets/images/examples/lookaround-example.gif';
+      const image = util.assetPath('images/examples/lookaround-example.gif');
 
       // Send the notification. After they click OK, get ready to notify them about disappearing labels.
       this.#popUpMessage.notifyWithImage(title, message, image, width, height, x, () => {

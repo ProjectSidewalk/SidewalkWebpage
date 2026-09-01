@@ -79,7 +79,7 @@ class DesktopValidationMenu {
             const translatedTagName = i18next.t(`common:tag.${item.tag_name.replace(/:/g, '-')}`);
             const $tagDiv = $(`<div class="option tag-pill tag-pill--interactive">${escape(translatedTagName)}</div>`);
             const tooltipText = `"${translatedTagName}" example`;
-            this.#addTooltip($tagDiv, tooltipText, `/assets/images/examples/tags/${item.tag_id}.png`);
+            this.#addTooltip($tagDiv, tooltipText, util.assetPath(`images/examples/tags/${item.tag_id}.png`));
             return $tagDiv[0];
           },
         },
@@ -375,7 +375,7 @@ class DesktopValidationMenu {
       // Add an example image tooltip to the tag.
       const tagId = allTagOptions.find((t) => t.tag_name === tag).tag_id;
       const tooltipText = `"${translatedTagName}" example`;
-      this.#addTooltip($tagDiv, tooltipText, `/assets/images/examples/tags/${tagId}.png`);
+      this.#addTooltip($tagDiv, tooltipText, util.assetPath(`images/examples/tags/${tagId}.png`));
 
       // Add to current list of tags, and remove from options for new tags to add.
       menuUI.currentTags.append($tagDiv);
@@ -445,7 +445,7 @@ class DesktopValidationMenu {
 
         // Show tooltip with example image for the tag.
         const tooltipText = `"${translatedTagName}" example`;
-        this.#addTooltip(template, tooltipText, `/assets/images/examples/tags/${tag.tag_id}.png`);
+        this.#addTooltip(template, tooltipText, util.assetPath(`images/examples/tags/${tag.tag_id}.png`));
 
         // Add onclick to the tag to add or remove it if the user clicks to accept the AI suggestion.
         template.on('click', () => {
@@ -482,7 +482,7 @@ class DesktopValidationMenu {
       const $button = $(severityButton);
       const sev = severityButton.dataset.severity;
       const tooltipText = i18next.t(`common:${tooltipKey}-${sev}`);
-      const tooltipImage = `/assets/images/examples/severity/${labelType}_Severity${sev}.png`;
+      const tooltipImage = util.assetPath(`images/examples/severity/${labelType}_Severity${sev}.png`);
       $button.tooltip('destroy');
       this.#addTooltip($button, tooltipText, tooltipImage);
 

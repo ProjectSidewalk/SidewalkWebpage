@@ -13,6 +13,8 @@
 const fs = require('fs');
 const path = require('path');
 
+const {assetPathStub} = require('./loadGlobalScript');
+
 const SOURCE = fs.readFileSync(
     path.resolve(__dirname, '..', '..', 'public/js/common/BadgeAchievements.js'),
     'utf8'
@@ -87,10 +89,12 @@ describe('BadgeAchievements.getProgress', () => {
 
     beforeEach(() => {
         global.i18next = {t: (key) => key}; // getBadge localizes the badge's display name.
+        global.util = {assetPath: assetPathStub}; // getBadge resolves the badge artwork's URL.
     });
 
     afterEach(() => {
         delete global.i18next;
+        delete global.util;
     });
 
     test('someone with no badge yet is on the first tier, measured from zero', () => {
@@ -213,7 +217,7 @@ describe('BadgeAchievements.seedCounts', () => {
         Badges = evalBadgeAchievements();
         consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
         global.i18next = {t: (key) => key}; // getBadge localizes the badge's display name.
-        global.util = {hasSession: () => true};
+        global.util = {hasSession: () => true, assetPath: assetPathStub};
     });
 
     afterEach(() => {
@@ -234,7 +238,7 @@ describe('BadgeAchievements.seedCounts', () => {
     });
 
     test('a page rendered without an identity seeds zero and never requests', async () => {
-        global.util = {hasSession: () => false};
+        global.util = {...global.util, hasSession: () => false};
         respondWith(200, {validation_count: 4000, mission_count: 200});
         Badges.seedCounts();
         await settle();
@@ -246,7 +250,7 @@ describe('BadgeAchievements.seedCounts', () => {
     });
 
     test('a page with no navbar to report session state still requests', async () => {
-        global.util = {hasSession: () => null};
+        global.util = {...global.util, hasSession: () => null};
         respondWith(200, {validation_count: 99, mission_count: 4});
         Badges.seedCounts();
         await settle();

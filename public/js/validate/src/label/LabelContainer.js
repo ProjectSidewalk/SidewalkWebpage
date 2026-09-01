@@ -184,7 +184,8 @@ class LabelContainer {
       if (svv.keyboard) svv.keyboard.disableKeyboard();
     } else {
       // The cursor is cached by the browser, so a timestamp is attached to invalidate it and force the reset.
-      svv.ui.viewer.controlLayer.css('cursor', `url(/assets/images/icons/openhand.cur?${Date.now()}) 4 4, move`);
+      svv.ui.viewer.controlLayer
+        .css('cursor', `url(${util.assetPath('images/icons/openhand.cur')}?${Date.now()}) 4 4, move`);
       if (svv.keyboard) svv.keyboard.enableKeyboard();
     }
   }

@@ -370,7 +370,7 @@ class RouteBuilder {
     if (!this.#routeStarted()) {
       const key = this.#currRegionId === null ? 'cta-select-region' : 'cta-pick-start';
       this.#ctaEl.innerHTML = `
-        <img src="/assets/images/icons/routebuilder/flag-start.svg" class="cta-flag" alt="">
+        <img src="${util.assetPath('images/icons/routebuilder/flag-start.svg')}" class="cta-flag" alt="">
         <span>${i18next.t(key)}</span>`;
       this.#ctaEl.hidden = false;
     } else {
@@ -578,9 +578,9 @@ class RouteBuilder {
     // markers, so they can never drift off it). The SVGs/PNG are rasterized ourselves because Mapbox's loadImage
     // only decodes raster formats and this GL build's callback API doesn't return a promise.
     Promise.all([
-      RouteBuilder.#rasterizeIcon('/assets/images/icons/routebuilder/flag-start.svg', 27),
-      RouteBuilder.#rasterizeIcon('/assets/images/icons/routebuilder/flag-end.svg', 27),
-      RouteBuilder.#rasterizeIcon('/assets/images/icons/project_sidewalk_flag.png', 40),
+      RouteBuilder.#rasterizeIcon(util.assetPath('images/icons/routebuilder/flag-start.svg'), 27),
+      RouteBuilder.#rasterizeIcon(util.assetPath('images/icons/routebuilder/flag-end.svg'), 27),
+      RouteBuilder.#rasterizeIcon(util.assetPath('images/icons/project_sidewalk_flag.png'), 40),
     ]).then(([startFlag, endFlag, explorer]) => {
       map.addImage('routebuilder-start-flag', startFlag.data, { pixelRatio: startFlag.pixelRatio });
       map.addImage('routebuilder-end-flag', endFlag.data, { pixelRatio: endFlag.pixelRatio });

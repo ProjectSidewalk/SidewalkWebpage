@@ -168,6 +168,16 @@ describe('AboutPage', () => {
       </div>
       <ul id="about-funding-grants" hidden></ul>`;
     localStorage.clear();
+    // The page renders asset URLs through util.assetPath, which the real page gets from the blocking utilities.js tag
+    // in main.scala.html's <head>. Load it first here for the same reason. utilities.js builds a Bowser parser at load
+    // time, so the global has to exist; nothing this page does touches it.
+    window.bowser = {
+      getParser: () => ({
+        getBrowserName: () => 'Test', getBrowserVersion: () => '1',
+        getOSName: () => 'TestOS', getPlatformType: () => 'desktop',
+      }),
+    };
+    loadGlobalScript('public/js/common/utilities.js');
     FakeIntersectionObserver.instances = [];
     // aboutPage.js defers its work to appManager.ready(); capture the callback so each test can run it on demand.
     window.appManager = { ready: (cb) => { window.__aboutReady = cb; } };
