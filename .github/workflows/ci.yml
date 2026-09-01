@@ -7,8 +7,9 @@ name: CI
 #   - route-lint:      conf/routes reachability — fails if any route is shadowed by an earlier one (BLOCKING — no DB).
 #   - backend-tests:   DB-backed public-API functional tests against a real Postgres+PostGIS (ADVISORY for now). Boots
 #                      the app, which auto-applies pending evolutions -- so it doubles as the forward-apply gate.
-#   - e2e-smoke:       Playwright browser smoke tests (test/e2e/) against a staged app + the CI database (ADVISORY for
-#                      now). Loads each core page in headless Chromium and fails on uncaught console/page errors.
+#   - e2e-smoke:       Playwright browser smoke tests (test/e2e/) against a staged app + the CI database. Loads each
+#                      core page in headless Chromium and fails on uncaught console/page errors (ADVISORY for now);
+#                      also carries the axe-core accessibility gate (a11y.spec.js, #5060), which is BLOCKING.
 #   - python-tests:    pytest unit tests for the standalone scripts in scripts/ (ADVISORY for now). One leg per
 #                      interpreter the web container ships — 3.8 for the in-band script, 3.13 for the offline tooling.
 # ESLint (JavaScript), Stylelint (CSS), and htmlhint (HTML) are all wired into the `frontend` job as blocking steps now
@@ -446,8 +447,11 @@ jobs:
   e2e-smoke:
     name: E2E smoke (Playwright)
     runs-on: ubuntu-latest
-    # ADVISORY while the suite stabilizes (plan: ramp to blocking once it's proven stable). Does not block PRs yet.
-    continue-on-error: true
+    # Mixed: the accessibility gate step is blocking, the smoke half stays advisory while it stabilizes. The flag
+    # therefore lives on that step, not here — a job-level continue-on-error would excuse both.
+    #
+    # Not yet a required check: that would also make the db bring-up, grunt build, `sbt stage`, app boot and the
+    # readiness probes blocking, and job-level continue-on-error left their flake profile unmeasured.
     timeout-minutes: 30
     # Job-level env (shared by `sbt stage` and the app process), mirroring backend-tests' block with one difference:
     # GOOGLE_MAPS_API_KEY prefers the real referrer/API-restricted test key so the phase-2 Explore/Validate specs can
@@ -563,6 +567,7 @@ jobs:
       # /signIn is a UserAwareAction: 200 with no auth and no session bootstrap — the cheapest unauthenticated
       # route that proves routing + DB + evolutions all came up.
       - name: Wait for the app to serve HTTP
+        id: app-ready
         run: |
           for i in $(seq 1 120); do
             code=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:9000/signIn || true)
@@ -579,13 +584,31 @@ jobs:
       - name: Seed minimal explore data
         run: docker compose exec -T db psql -v ON_ERROR_STOP=1 -U postgres -d sidewalk < test/e2e/fixtures/ci-seed.sql
 
-      - name: Run Playwright smoke suite
-        run: npx playwright test
+      # BLOCKING (#5060). Safe to gate on while the rest of the suite is advisory, because a page only enters the
+      # shared table (test/e2e/pages.js) once its violations are fixed or tracked — so a failure is a regression
+      # against a standard we already meet, never a known gap. Runs first so a red gate heads the log.
+      - name: Run accessibility gate (blocking)
+        run: npx playwright test --project=a11y
         env:
           BASE_URL: http://localhost:9000
+          PLAYWRIGHT_HTML_REPORT: playwright-report/a11y
 
+      # ADVISORY. `continue-on-error` sits here rather than on the job so it excuses the smoke half alone. The
+      # condition still runs this half when the gate is red, but unlike `always()` it skips when the app never came
+      # up — where 80 specs would otherwise time out against a dead server.
+      - name: Run Playwright smoke suite (advisory)
+        id: smoke
+        if: ${{ !cancelled() && steps.app-ready.outcome == 'success' }}
+        continue-on-error: true
+        run: npx playwright test --project=chromium
+        env:
+          BASE_URL: http://localhost:9000
+          PLAYWRIGHT_HTML_REPORT: playwright-report/smoke
+
+      # `continue-on-error` leaves the smoke step's conclusion `success`, so `failure()` alone would never fire for
+      # the advisory half — exactly the run whose trace you want. `outcome` is the pre-override result.
       - name: Upload Playwright report + app log
-        if: failure()
+        if: failure() || steps.smoke.outcome == 'failure'
         uses: actions/upload-artifact@v4
         with:
           name: e2e-smoke-report

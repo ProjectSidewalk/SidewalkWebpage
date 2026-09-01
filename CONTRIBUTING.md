@@ -87,7 +87,8 @@ before your first PR:
   **All four are blocking CI checks** now (they run in the `Frontend (build)` job), so a lint failure blocks the
   merge — just like scalafmt.
 - **UI work** must meet WCAG 2.1/2.2 Level AA and use the `main.css` `:root` design tokens — type via the composite
-  `--text-*` tokens (see the [style guide](docs/style-guide.md)).
+  `--text-*` tokens (see the [style guide](docs/style-guide.md)). The target, the axe-core gate in the browser suite,
+  and the manual checklist are in **[`docs/accessibility.md`](docs/accessibility.md)**.
 - **Public API (`/v3`):** response fields are `snake_case`, query params are `camelCase`, and new DTOs go in
   `app/models/api/`.
 - **Don't hardcode backend values in the frontend.** Domain values — enums, ranges (min/max), thresholds, and
