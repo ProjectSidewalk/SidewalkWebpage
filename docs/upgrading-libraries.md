@@ -143,9 +143,6 @@ side mid-upgrade — keep this list matching it.
   [Download](https://unpkg.com/chart.js) · [Changelog](https://github.com/chartjs/Chart.js/releases)
 - **countUp.js: 1.9.3** — animates the counting-up of stats on the landing page; lightly used. (Several libraries
   share this name — be careful which you grab.)
-- **d3: 3.5.6** — **note:** we're several major versions behind; it's a big library and the upgrade hasn't been
-  prioritized. [Versions](https://www.npmjs.com/package/d3?activeTab=versions) ·
-  [Changelog](https://github.com/d3/d3/releases)
 - **floating-ui: 1.7.6 (`@floating-ui/dom`), 1.7.5 (`@floating-ui/core`)** — **note:** start from the newest `dom`
   version, then pick a `core` version that satisfies its dependency.
   [Changelog](https://github.com/floating-ui/floating-ui/releases) ·
