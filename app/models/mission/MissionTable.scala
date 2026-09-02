@@ -6,7 +6,7 @@ import models.audit.AuditTaskTableDef
 import models.label.LabelTypeTableDef
 import models.region.RegionTableDef
 import models.route.UserRouteTableDef
-import models.user.{RoleTableDef, SidewalkUserTableDef, UserRoleTableDef}
+import models.user.SidewalkUserTableDef
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.Logger
@@ -97,10 +97,7 @@ class MissionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
     with HasDatabaseConfigProvider[MyPostgresProfile] {
   private val logger = Logger(this.getClass)
 
-  val missions  = TableQuery[MissionTableDef]
-  val users     = TableQuery[SidewalkUserTableDef]
-  val userRoles = TableQuery[UserRoleTableDef]
-  val roles     = TableQuery[RoleTableDef]
+  val missions = TableQuery[MissionTableDef]
 
   val auditMissions = missions.filter(_.missionType === MissionType.Audit)
 

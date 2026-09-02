@@ -14,12 +14,10 @@ case class SidewalkUserWithRole(
     userId: String,
     username: String,
     email: String,
-    role: String,
+    role: Role.Value,
     communityService: Boolean,
     infra3dAccess: Boolean
-) extends Identity {
-  require(RoleTable.VALID_ROLES.contains(role), s"Invalid role: $role")
-}
+) extends Identity
 
 class SidewalkUserTableDef(tag: Tag) extends Table[SidewalkUser](tag, "sidewalk_user") {
   def userId: Rep[String]   = column[String]("user_id", O.PrimaryKey)
@@ -49,20 +47,14 @@ class SidewalkUserTable @Inject() (
 
   val sidewalkUser           = TableQuery[SidewalkUserTableDef]
   val userRole               = TableQuery[UserRoleTableDef]
-  val roles                  = TableQuery[RoleTableDef]
-  val sidewalkUserToRoleJoin = sidewalkUser
-    .join(userRole)
-    .on(_.userId === _.userId)
-    .join(roles)
-    .on(_._2.roleId === _.roleId)
-    .map { case ((_user, _userRole), _role) => (_user, _userRole, _role) }
-  val sidewalkUserWithRole = sidewalkUserToRoleJoin
-    .map { case (user, userRole, role) =>
-      (user.userId, user.username, user.email, role.role, userRole.communityService,
+  val sidewalkUserToRoleJoin = sidewalkUser.join(userRole).on(_.userId === _.userId)
+  val sidewalkUserWithRole   = sidewalkUserToRoleJoin
+    .map { case (user, userRole) =>
+      (user.userId, user.username, user.email, userRole.role, userRole.communityService,
         userRoleTable.infra3dAccessForCurrentCity(userRole))
     }
-  val aiUsers    = sidewalkUserToRoleJoin.filter(_._3.role === "AI").map(_._1)
-  val humanUsers = sidewalkUserToRoleJoin.filter(_._3.role =!= "AI").map(_._1)
+  val aiUsers    = sidewalkUserToRoleJoin.filter(_._2.role === Role.Ai).map(_._1)
+  val humanUsers = sidewalkUserToRoleJoin.filter(_._2.role =!= Role.Ai).map(_._1)
 
   def findByUserId(userId: String): Future[Option[SidewalkUserWithRole]] = {
     db.run(sidewalkUserWithRole.filter(_._1 === userId).result.headOption).map(_.map(SidewalkUserWithRole.tupled))
@@ -74,10 +66,10 @@ class SidewalkUserTable @Inject() (
    * @param usernames Usernames to look up.
    * @return Per matched user: (username, userId, role).
    */
-  def getUserIdAndRoleByUsernames(usernames: Seq[String]): DBIO[Seq[(String, String, String)]] = {
+  def getUserIdAndRoleByUsernames(usernames: Seq[String]): DBIO[Seq[(String, String, Role.Value)]] = {
     sidewalkUserToRoleJoin
       .filter(_._1.username inSet usernames)
-      .map { case (user, _userRole, role) => (user.username, user.userId, role.role) }
+      .map { case (user, userRole) => (user.username, user.userId, userRole.role) }
       .result
   }
 

@@ -1,5 +1,6 @@
 package controllers
 
+import models.user.Role
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import org.apache.pekko.stream.Materializer
@@ -48,8 +49,8 @@ class StreetReopenAdminSpec extends PlaySpec with RoleSession with GuiceOneAppPe
 
   private val XHR = "X-Requested-With" -> "XMLHttpRequest"
 
-  private lazy val visitorCookies: Seq[Cookie] = sessionAs("Registered")
-  private lazy val adminCookies: Seq[Cookie]   = sessionAs("Administrator")
+  private lazy val visitorCookies: Seq[Cookie] = sessionAs(Role.Registered)
+  private lazy val adminCookies: Seq[Cookie]   = sessionAs(Role.Administrator)
 
   /** An open street, whose reopen attempt must be refused as a no-op conflict. */
   private lazy val openStreetId: Option[Int] =

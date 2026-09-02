@@ -7,7 +7,7 @@ import formats.json.LabelFormats._
 import formats.json.UserFormats._
 import models.auth.{DefaultEnv, WithAdmin, WithOwner}
 import models.label.LabelTypeEnum
-import models.user.RoleTable
+import models.user.Role
 import models.utils.JobRunTrigger
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.dispatch.Dispatcher
@@ -158,24 +158,24 @@ class AdminController @Inject() (
     submission.fold(
       errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
       submission => {
-        val userId: String  = submission.userId
-        val newRole: String = submission.roleId
+        val userId: String              = submission.userId
+        val newRole: Option[Role.Value] = Role.fromString(submission.roleId)
 
         authenticationService.findByUserId(userId) flatMap {
           case Some(user) =>
-            if (user.role == "Owner") {
+            if (user.role == Role.Owner) {
               Future.successful(BadRequest("Owner's role cannot be changed"))
-            } else if (newRole == "Owner") {
+            } else if (newRole.contains(Role.Owner)) {
               Future.successful(BadRequest("Cannot set a new owner"))
-            } else if (!RoleTable.VALID_ROLES.contains(newRole)) {
+            } else if (newRole.isEmpty) {
               Future.successful(BadRequest("Invalid role"))
             } else {
               authenticationService
-                .updateRole(userId, newRole)
+                .updateRole(userId, newRole.get)
                 .map(_ => {
-                  val logText = s"UpdateRole_User=${userId}_Old=${user.role}_New=$newRole"
+                  val logText = s"UpdateRole_User=${userId}_Old=${user.role}_New=${newRole.get}"
                   cc.loggingService.insert(request.identity.userId, request.ipAddress, logText)
-                  Ok(Json.obj("username" -> user.username, "user_id" -> userId, "role" -> newRole))
+                  Ok(Json.obj("username" -> user.username, "user_id" -> userId, "role" -> newRole.get.toString))
                 })
             }
           case None =>
@@ -213,11 +213,13 @@ class AdminController @Inject() (
               stats    <- userService.getUserStats(userId)
               currTeam <- userService.getUserTeam(userId)
               response <- {
-                val usernameChanged = s.username != user.username
-                val roleChanged     = s.role != user.role
-                val teamChanged     = currTeam.map(_.teamId) != teamId
-                val serviceChanged  = s.communityService != user.communityService
-                val privacyChanged  =
+                // None for a role the enum doesn't know, which the assignable-roles check below refuses by name.
+                val newRole: Option[Role.Value] = Role.fromString(s.role)
+                val usernameChanged             = s.username != user.username
+                val roleChanged                 = !newRole.contains(user.role)
+                val teamChanged                 = currTeam.map(_.teamId) != teamId
+                val serviceChanged              = s.communityService != user.communityService
+                val privacyChanged              =
                   stats.exists(st => st.onLeaderboard != s.onLeaderboard || st.publicProfile != s.publicProfile)
                 val qualityChanged = stats.exists(_.highQualityManual != s.highQualityManual)
                 val infra3dChanged = s.infra3dAccess.exists(_ != user.infra3dAccess)
@@ -226,12 +228,12 @@ class AdminController @Inject() (
 
                 // Ordered from the broadest refusal to the narrowest.
                 val firstError: Option[String] =
-                  if (anyChanged && user.role == "Owner") Some("An Owner's settings can't be changed")
-                  else if (roleChanged && !RoleTable.ADMIN_ASSIGNABLE_ROLES.contains(s.role))
+                  if (anyChanged && user.role == Role.Owner) Some("An Owner's settings can't be changed")
+                  else if (roleChanged && !newRole.exists(Role.ADMIN_ASSIGNABLE_ROLES.contains))
                     Some(s"Can't assign role ${s.role}")
-                  else if (roleChanged && !RoleTable.ADMIN_ASSIGNABLE_ROLES.contains(user.role))
+                  else if (roleChanged && !Role.ADMIN_ASSIGNABLE_ROLES.contains(user.role))
                     Some(s"A ${user.role} account's role can't be changed")
-                  else if (qualityChanged && user.role == "Administrator" && admin.role != "Owner")
+                  else if (qualityChanged && user.role == Role.Administrator && admin.role != Role.Owner)
                     Some("An admin's quality can only be set by an Owner")
                   else if (infra3dChanged && !admin.infra3dAccess) Some("Only a user with infra3D access can grant it")
                   else None
@@ -253,7 +255,11 @@ class AdminController @Inject() (
                         .map(id => userService.setUserTeam(userId, id))
                         .getOrElse(userService.leaveTeam(userId))
                       _ <- authenticationService.setCommunityServiceStatus(userId, s.communityService)
-                      _ <- if (roleChanged) authenticationService.updateRole(userId, s.role) else Future.successful(0)
+                      // newRole is defined here: an unrecognized one was refused by the assignable-roles check above.
+                      _ <- newRole
+                        .filter(_ => roleChanged)
+                        .map(role => authenticationService.updateRole(userId, role))
+                        .getOrElse(Future.successful(0))
                       _ <- s.infra3dAccess
                         .filter(_ => infra3dChanged)
                         .map(access => authenticationService.setInfra3dAccess(userId, access))

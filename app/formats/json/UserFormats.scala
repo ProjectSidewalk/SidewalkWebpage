@@ -31,11 +31,22 @@ object UserFormats {
       (JsPath \ "measurementSystem").readNullable[String]
   )(SettingsSubmission.apply _)
 
+  /** The canonical JSON format for a role. Other format objects import these rather than defining their own. */
+  implicit val roleReads: Reads[Role.Value] = Reads { json =>
+    json.validate[String].flatMap { role =>
+      Role.fromString(role) match {
+        case Some(parsed) => JsSuccess(parsed)
+        case None         => JsError(s"Invalid role: $role. Valid roles are: ${Role.values.mkString(", ")}.")
+      }
+    }
+  }
+  implicit val roleWrites: Writes[Role.Value] = Writes(role => JsString(role.toString))
+
   implicit val sidewalkUserWithRoleReads: Reads[SidewalkUserWithRole] = (
     (JsPath \ "userId").read[String] and
       (JsPath \ "username").read[String] and
       (JsPath \ "email").read[String] and
-      (JsPath \ "role").read[String] and
+      (JsPath \ "role").read[Role.Value] and
       (JsPath \ "community_service").read[Boolean] and
       (JsPath \ "infra3d_access").read[Boolean]
   )(SidewalkUserWithRole.apply _)
@@ -44,7 +55,7 @@ object UserFormats {
     (JsPath \ "user_id").write[String] and
       (JsPath \ "username").write[String] and
       (JsPath \ "email").write[String] and
-      (JsPath \ "role").write[String] and
+      (JsPath \ "role").write[Role.Value] and
       (JsPath \ "community_service").write[Boolean] and
       (JsPath \ "infra3d_access").write[Boolean]
   )(unlift(SidewalkUserWithRole.unapply))
@@ -53,7 +64,7 @@ object UserFormats {
     (__ \ "userId").write[String] and
       (__ \ "username").write[String] and
       (__ \ "email").write[String] and
-      (__ \ "role").write[String] and
+      (__ \ "role").write[Role.Value] and
       (__ \ "team").writeNullable[String] and
       (__ \ "signUpTime").writeNullable[OffsetDateTime] and
       (__ \ "lastSignInTime").writeNullable[OffsetDateTime] and

@@ -67,8 +67,11 @@ psql -v ON_ERROR_STOP=1 -U sidewalk -d sidewalk <<-'EOSQL'
         SELECT '51b0b927-3c8a-45b2-93de-bd878d1e5cf4', 'SidewalkAI', 'sidewalkai@dummysitethatdoesnotexist.com'
         WHERE NOT EXISTS (SELECT 1 FROM sidewalk_login.sidewalk_user WHERE user_id = '51b0b927-3c8a-45b2-93de-bd878d1e5cf4');
 
-        INSERT INTO sidewalk_login.user_role (user_id, role_id)
-        SELECT '51b0b927-3c8a-45b2-93de-bd878d1e5cf4', 1
+        -- Both inserts are no-ops against today's committed dump, which already carries SidewalkAI (295.sql seeds it,
+        -- and the dump is taken past that). They stay as the safety net for a dump that predates it -- but they run
+        -- before any evolution does, so they must match the shape the dump has, not the shape evolutions produce.
+        INSERT INTO sidewalk_login.user_role (user_id, role)
+        SELECT '51b0b927-3c8a-45b2-93de-bd878d1e5cf4', 'AI'
         WHERE NOT EXISTS (SELECT 1 FROM sidewalk_login.user_role WHERE user_id = '51b0b927-3c8a-45b2-93de-bd878d1e5cf4');
 
         -- Create the read-only role.

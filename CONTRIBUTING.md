@@ -126,12 +126,12 @@ interactions, update the logging accordingly.
 
 - **Anonymous** — the default on first visit; an incognito/private window gives you a fresh anon account.
 - **Registered** — create an account and sign in.
-- **Administrator** — promote an account locally by setting its role to Administrator (role `4`):
+- **Administrator** — promote an account locally by setting its role to Administrator:
 
   ```sql
   -- find your user_id, then promote it
   SELECT user_id FROM sidewalk_login.sidewalk_user WHERE username = '<your-username>';
-  UPDATE sidewalk_login.user_role SET role_id = 4 WHERE user_id = '<your-user-id>';
+  UPDATE sidewalk_login.user_role SET role = 'Administrator' WHERE user_id = '<your-user-id>';
   ```
 
 - **Mechanical Turk worker** — visit

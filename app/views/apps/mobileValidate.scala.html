@@ -1,5 +1,5 @@
 @import controllers.helper.ValidateHelper.ValidateParams
-@import models.user.SidewalkUserWithRole
+@import models.user.{Role, SidewalkUserWithRole}
 @import play.api.Configuration
 @import play.api.libs.json.{JsArray, Json}
 @import service.CommonPageData
@@ -124,7 +124,7 @@
           <img src='@assets.path("images/" + config.get[String]("city-params.logo-img." + commonData.cityId))' id="ps-logo-mission" class="mv-modal__logo" alt="Project Sidewalk logo">
           @* Signed-in users get a plain username badge: the auth dialog only renders for signed-out users, so a
              data-au-open control here would be a focusable button that does nothing. *@
-          @if(user.role != "Anonymous") {
+          @if(user.role != Role.Anonymous) {
             <span class="sign-in-up-button-mobile">@{user.username}</span>
           } else {
             <button type="button" data-au-open="signIn" class="sign-in-up-button-mobile button-ps">@Messages("navbar.signin")</button>

@@ -42,8 +42,13 @@ easy to forget, and a missed one has to be patched by a later evolution (321.sql
 
 - **SERIAL / identity sequences** are covered automatically. `ALTER TABLE … OWNER TO` recursively reassigns any
   sequence a column owns.
-- **Enum types, views, and standalone sequences do not get an owner change.** The app only needs default
-  `USAGE`/`SELECT` on those, which it already has, and they're never altered at runtime.
+- **Enum types, views, and standalone sequences in a city schema do not get an owner change.** The app only needs
+  default `USAGE`/`SELECT` on those, which it already has, and they're never altered at runtime.
+- **An object in the shared `sidewalk_login` schema does**, including an enum type. `CREATE TYPE` assigns ownership
+  to `current_user`, which in prod is whichever *city* role ran the evolution first, and city roles are members of
+  `sidewalk` but never of each other. Without `ALTER TYPE … OWNER TO sidewalk`, no other city can ever
+  `ALTER TYPE … ADD VALUE` or drop it — it fails with `must be owner of type`. Dev and CI miss this because they run
+  every city as one role.
 
 ## Give every table its full set of constraints
 
@@ -70,15 +75,32 @@ When a column can only hold a fixed set of values, pick between two tools (#4103
 - A **Postgres enum type** when the column is on a high-row-count table, is written at runtime, or is mirrored by a
   Scala enum. It makes the DB self-describing (readable raw SQL and dumps, no join to a lookup table, no
   hand-maintained Scala id map that nothing validates) and fails loudly on drift. Wire it up like the existing ones
-  (`pano_source`, `validation_option`, `street_edge_status`, `mission_type`, `way_type`): a Scala `Enumeration`
-  object whose string values match the enum labels, plus a `createEnumJdbcType` mapper in `MyPostgresProfile`.
-  Growing a set later is fine; `ALTER TYPE ... ADD VALUE` has prod precedent (331/332/339).
+  (`pano_source`, `validation_option`, `street_edge_status`, `mission_type`, `way_type`, `role`): a Scala
+  `Enumeration` object whose string values match the enum labels, plus a `createEnumJdbcType` mapper in
+  `MyPostgresProfile`. Growing a set later is fine; `ALTER TYPE ... ADD VALUE` has prod precedent (331/332/339).
 - A plain **`CHECK (col IN (...))`** for tiny script-seeded config/cache tables (e.g. `config.open_status`,
   `funnel_stat.funnel_type`), where the enum's join/space/mapping benefits are nil.
 
 Two gotchas: tables and types share a namespace, so when an enum replaces a lookup table of the same name,
 `DROP TABLE` must precede `CREATE TYPE`; and enum values are compared as enum literals in SQL, so a raw-SQL filter
 built from user input must validate values first (an invalid literal is a Postgres error, not an empty result).
+
+**An enum in the shared `sidewalk_login` schema needs a plpgsql guard.** Evolutions run once per city schema, so
+anything touching `sidewalk_login` has to be a no-op on runs 2..N. `IF NOT EXISTS` covers tables, columns and
+indexes, but `CREATE TYPE` has no such form, so that half of the evolution goes in a `DO $$ ... $$` block guarded on
+`pg_type` (372.sql). Play splits a script on every single `;`, so **every semicolon inside the block must be doubled**
+— its splitter is `sql.split("(?<!;);(?!;)")` followed by `replace(";;", ";")`, which is also why a dollar-quoted body
+survives intact (276.sql shipped one to prod). Dropping such a lookup table also means dropping the FKs every *other*
+city schema still has pointing at it; those cities keep working on their int column, unenforced, until their own run
+converts it.
+
+**It also breaks replay for every schema still behind.** An evolution that drops or renames something in
+`sidewalk_login` removes it for *all* schemas the moment the first city runs, so any earlier evolution that reads it
+can never run again. 372.sql could not ship until every schema was past 355, because 270, 295 and 355 all read
+`sidewalk_login.role` and 295 also writes `user_role.role_id`. Editing those old files is not the escape hatch: Play
+keys applied evolutions by hash, so changing one makes every schema that already applied it revert back down to that
+number and re-apply. The workable order is to bring every deployment past the last reader first, regenerate the
+committed template dump, and only then merge.
 
 ## Renaming a table or column renames nothing else
 

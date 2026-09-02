@@ -1,6 +1,7 @@
 package controllers
 
 import models.partner.{Partner, PartnerTable}
+import models.user.Role
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import org.apache.pekko.stream.Materializer
@@ -53,9 +54,9 @@ class PartnerAdminSpec extends PlaySpec with RoleSession with GuiceOneAppPerSuit
 
   private val XHR = "X-Requested-With" -> "XMLHttpRequest"
 
-  private lazy val visitorCookies: Seq[Cookie] = sessionAs("Registered")
-  private lazy val adminCookies: Seq[Cookie]   = sessionAs("Administrator")
-  private lazy val ownerCookies: Seq[Cookie]   = sessionAs("Owner")
+  private lazy val visitorCookies: Seq[Cookie] = sessionAs(Role.Registered)
+  private lazy val adminCookies: Seq[Cookie]   = sessionAs(Role.Administrator)
+  private lazy val ownerCookies: Seq[Cookie]   = sessionAs(Role.Owner)
 
   /** Every partner row this suite created, cleaned up afterwards so the shared DB doesn't accumulate logos. */
   private var createdIds: List[Int] = Nil

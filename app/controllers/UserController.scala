@@ -5,7 +5,7 @@ import controllers.helper.ControllerUtils
 import controllers.helper.ControllerUtils.{parseURL, safeLocalPath}
 import forms._
 import models.auth.DefaultEnv
-import models.user.{SidewalkUserWithRole, UserUtm}
+import models.user.{Role, SidewalkUserWithRole, UserUtm}
 import models.utils.ProfanityGuard
 import net.ceedubs.ficus.Ficus._
 import play.api.i18n.Messages
@@ -131,7 +131,7 @@ class UserController @Inject() (
    * Handles the Sign In action.
    */
   def signIn() = silhouette.UserAwareAction.async { implicit request =>
-    if (request.identity.isEmpty || request.identity.get.role == "Anonymous") {
+    if (request.identity.isEmpty || request.identity.get.role == Role.Anonymous) {
       configService.getCommonPageData(request2Messages.lang).map { commonData =>
         cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_SignIn")
         Ok(views.html.authentication.signIn(SignInForm.form, commonData, request.identity))
@@ -152,7 +152,7 @@ class UserController @Inject() (
    * Handles the sign-up action.
    */
   def signUp() = silhouette.UserAwareAction.async { implicit request =>
-    if (request.identity.isEmpty || request.identity.get.role == "Anonymous") {
+    if (request.identity.isEmpty || request.identity.get.role == Role.Anonymous) {
       configService.getCommonPageData(request2Messages.lang).map { commonData =>
         cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_SignUp")
         Ok(views.html.authentication.signUp(SignUpForm.form, commonData, request.identity))
@@ -182,7 +182,7 @@ class UserController @Inject() (
    * Handles the 'forgot password' action
    */
   def forgotPassword(url: String) = silhouette.UserAwareAction.async { implicit request =>
-    if (request.identity.isEmpty || request.identity.get.role == "Anonymous") {
+    if (request.identity.isEmpty || request.identity.get.role == Role.Anonymous) {
       configService.getCommonPageData(request2Messages.lang).map { commonData =>
         cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_ForgotPassword")
         Ok(views.html.authentication.forgotPassword(ForgotPasswordForm.form, commonData))
@@ -234,7 +234,7 @@ class UserController @Inject() (
   def setServiceHours(enabled: Boolean, next: Option[String]) =
     cc.securityService.SecuredAction { implicit request =>
       val target = safeLocalPath(next.getOrElse("/serviceHoursInstructions"), "/serviceHoursInstructions")
-      if (request.identity.role == "Anonymous") Future.successful(Redirect(routes.UserController.signUp()))
+      if (request.identity.role == Role.Anonymous) Future.successful(Redirect(routes.UserController.signUp()))
       else
         authenticationService.setCommunityServiceStatus(request.identity.userId, enabled).map { _ =>
           cc.loggingService.insert(request.identity.userId, request.ipAddress, s"ServiceHours_Set=$enabled")
@@ -477,7 +477,8 @@ class UserController @Inject() (
                 val loginInfo         = LoginInfo(CredentialsProvider.ID, email)
                 val newUserId: String = oldUserId.getOrElse(UUID.randomUUID().toString)
                 val newUser           =
-                  SidewalkUserWithRole(newUserId, data.username, email, "Registered", communityService = false, false)
+                  SidewalkUserWithRole(newUserId, data.username, email, Role.Registered, communityService = false,
+                    false)
                 val pwInfo = passwordHasher.hash(data.password)
 
                 for {
@@ -510,7 +511,7 @@ class UserController @Inject() (
    */
   def welcome(next: Option[String]) = silhouette.UserAwareAction.async { implicit request =>
     request.identity match {
-      case Some(user) if user.role != "Anonymous" =>
+      case Some(user) if user.role != Role.Anonymous =>
         configService.getCommonPageData(request2Messages.lang).map { commonData =>
           cc.loggingService.insert(user.userId, request.ipAddress, "Visit_Welcome")
           val resumeUrl = safeLocalPath(next.getOrElse("/explore"), "/explore")

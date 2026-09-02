@@ -8,6 +8,7 @@ import formats.json.LabelFormats.labelMetadataUserDashToJson
 import formats.json.UserFormats._
 import models.auth._
 import models.label.LabelTypeEnum
+import models.user.Role
 import models.utils.CommonUtils.METERS_TO_MILES
 import models.utils.ProfanityGuard
 import models.utils.MyPostgresProfile.api._
@@ -240,7 +241,7 @@ class UserProfileController @Inject() (
 
     // Validate before inserting: signed-in only, sane lengths, and no abusive language in the public-facing name or
     // description (moderation; consolidate with the sign-up guard in #4375).
-    if (user.role == "Anonymous")
+    if (user.role == Role.Anonymous)
       Future.successful(
         Forbidden(Json.obj("success" -> false, "error" -> Messages("dashboard.team.error.signin")))
       )

@@ -3,7 +3,7 @@ package controllers
 import controllers.base._
 import models.auth.{DefaultEnv, WithAdmin, WithOwner}
 import models.partner.{PartnerLogoUpload, PartnerMetadata, PartnerRejection}
-import models.user.SidewalkUserWithRole
+import models.user.{Role, SidewalkUserWithRole}
 import play.api.Configuration
 import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.{AnyContent, Result}
@@ -175,7 +175,7 @@ class PartnerController @Inject() (
     }
   }
 
-  private def isOwner(user: SidewalkUserWithRole): Boolean = user.role == "Owner"
+  private def isOwner(user: SidewalkUserWithRole): Boolean = user.role == Role.Owner
 
   private def allowedScopes(user: SidewalkUserWithRole): Set[Option[String]] = {
     if (isOwner(user)) Set(None, Some(configService.getCityId)) else Set(Some(configService.getCityId))
