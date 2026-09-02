@@ -1,8 +1,9 @@
 /**
  * Jest configuration for Project Sidewalk's frontend test layer.
  *
- * Run it with `npm run test:js`; CI runs the same command as an advisory step in the frontend job, non-blocking until
- * the layer reaches the Phase 1 bar (#2487). See test/js/README.md and docs/testing-and-ci.md.
+ * Run it with `npm run test:js`, or `test:js:coverage` for the report. CI runs the latter as an advisory step in the
+ * frontend job, non-blocking until the layer reaches the Phase 1 bar (#2487). See test/js/README.md and
+ * docs/testing-and-ci.md.
  */
 
 /** @type {import('jest').Config} */
@@ -18,15 +19,13 @@ module.exports = {
   roots: ['<rootDir>/test/js', '<rootDir>/public/js'],
   testMatch: ['<rootDir>/test/js/**/*.test.js'],
 
-  // Grunt's bundles duplicate every source file they concatenate, and being gitignored they're present in a working
-  // checkout but absent in CI. Excluding them keeps the number the same either way.
-  modulePathIgnorePatterns: ['/public/js/[^/]+/build/'],
-
   // These tests and the modules under test are plain ES6 that Node runs natively. Jest layers coverage
   // instrumentation on top, so an empty transform does not disable it.
   transform: {},
 
-  // The whole first-party frontend, so an untested file counts against the ratio rather than being invisible.
+  // The whole first-party frontend, so an untested file counts against the ratio rather than being invisible. The
+  // build/ exclusion is load-bearing, not tidiness: the frontend CI job runs `npx grunt` before this suite, so the
+  // bundles are on disk here as well as locally, and each one duplicates every source file it concatenates.
   collectCoverageFrom: [
     'public/js/**/*.js',
     '!public/js/**/build/**'
@@ -35,15 +34,11 @@ module.exports = {
   // The default per-file table is 229 rows of mostly zeroes, which buries the totals; lcov keeps the detail.
   coverageReporters: ['text-summary', 'lcov'],
 
-  // A ratchet, not a target: just under the measured number, raised as the suite grows. It stays low because most of
-  // the denominator is the Explore/Validate canvas and pano code we never unit-test. Statements and lines only — a
-  // four-way ratchet is four things to bump for no more signal.
-  coverageThreshold: {
-    global: {
-      statements: 2.75,
-      lines: 2.75
-    }
-  },
+  // No `coverageThreshold` yet, deliberately. Only files Jest loads through `require` get instrumented, and 99 of the
+  // 107 suites read their subject with `fs.readFileSync` and run it through `eval` — the only way to reach a file
+  // that defines a bare top-level class instead of assigning to `window`. So the report covers 10 files of 229, and
+  // deleting a suite that exercises one of the other 219 would move the number by zero. A floor on top of that would
+  // read as protection without being any. Report the number until the loaders are uniform (#5112).
 
   verbose: true
 };

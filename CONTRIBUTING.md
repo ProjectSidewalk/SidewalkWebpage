@@ -175,7 +175,7 @@ asset-path check, so any frontend lint failure blocks the merge), **`Route reach
 - **Does not require review approvals.** Tooling won't force a second person to sign off, so you can still open and
   merge your own PR. Review is by convention (and expected for external contributions), not enforced by a gate.
 - **Coverage can block too.** `Backend tests (API, PostGIS)` ends on a statement-coverage ratchet, so removing tests
-  can fail the build even when everything still passes.
+  can fail the build even when everything still passes. The JS suite reports coverage but has no floor yet (#5112).
 - **Advisory jobs never block.** `E2E smoke (Playwright)` and `Python tests (offline tooling)` report status but are
   not required checks.
 

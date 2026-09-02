@@ -74,11 +74,14 @@ Excluding the frame takes our own `<iframe>` tag out of scope with it, so the ac
 screen reader announces in place of the video — gets its own test in the same file. Add to that test if you exclude
 another kind of embed.
 
-A third-party widget rendered into **our** DOM is a different case and takes an allowlist entry, because it is
-fixable: report it upstream, shim it, or replace the widget. The Mapbox search box is the live example
-([#5087](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/5087)). Its entry is also the one place the
-"always scope with a `selector`" rule is broken on purpose — the component hashes its class names per mount
-(`.mbx0420900a--Input` one load, `.mbx00a6ef43--Input` the next), so no stable selector exists.
+A third-party widget rendered into **our** DOM is a different case: it *is* fixable — report it upstream, shim it,
+or replace the widget — so an allowlist entry only holds the place until one of those lands. The Mapbox search box
+is the worked example ([#5087](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/5087)): Search JS writes
+`aria-expanded` on its `role="combobox"` input only from its own show/hide-results handlers, so a box nobody had
+typed into yet was missing it. Both mount sites now seed the attribute and let the component take it from there.
+Note the selector they use — `input[role="combobox"]`, scoped to the element we mounted — because the component
+hashes its class names and results-list id per mount (`.mbx0420900a--Input` one load, `.mbx00a6ef43--Input` the
+next).
 
 ### Where it runs in CI
 

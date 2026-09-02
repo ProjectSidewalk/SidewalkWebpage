@@ -61,7 +61,7 @@ addSbtPlugin("org.scoverage" % "sbt-scoverage" % "2.3.1")
 
 ## Frontend testing
 
-- **Runner: Jest + jsdom** (CommonJS-friendly for the no-module global-script reality; less ESM friction than Vitest). Load each pure util via a small `vm`/require helper that captures its global (`util.math`, the pano-viewer classes) — **no production-code changes required** to start. First targets: `common/UtilitiesMath.js`, `common/pano-viewer/src/PanoUtilities.js`, `common/aggregate-stats.js`.
+- **Runner: Jest + jsdom** (CommonJS-friendly for the no-module global-script reality; less ESM friction than Vitest). Load each pure util via a small `require` helper that captures its global (`util.math`, the pano-viewer classes) — **no production-code changes required** to start. First targets: `common/UtilitiesMath.js`, `common/pano-viewer/src/PanoUtilities.js`, `common/aggregate-stats.js`.
 - Replace the broken `npm test` (`grunt && grunt test`) with `jest`.
 - **Lint gate** (`make lint`: ESLint + Stylelint + HTMLHint + locale key-parity + the `public/css/` layout check + the `public/js/` asset-path check, plus the evolutions lint below) was rolled out under **#2487**, sequenced with the in-progress JS ES5→ES2022 migration (dropping linters into CI mid-migration = large, conflict-prone churn). All are **now blocking** steps in the `frontend` job — ESLint (`public/js/` + `public/locales/`), Stylelint (`public/**/*.css`), HTMLHint (`app/views`), `tools/check-locale-parity.mjs`, `tools/check-css-layout.mjs` (#5030: a page's stylesheet is linked only by that page, page class prefixes stay in the page's own files, every linked stylesheet exists), and `tools/check-asset-paths.mjs` (#4893: no hardcoded `/assets/` URL in `public/js/` outside its allowlist, and every `util.assetPath` argument checkable — a literal one naming a real file in a fingerprinted family, an interpolated one opening with a literal family directory) — each landing once its tree was clean, straight to blocking with no advisory ramp (same as scalafmt/evolutions-lint). **Severity is the gate**: `error` rules block the build (correctness + must-fix smells like `no-unused-vars`/`no-shadow`), while the one `warn` rule on ESLint/Stylelint (`max-len` / `max-line-length`) is deliberately advisory — CLAUDE.md sanctions long-line exceptions, so they're *not* run with `--max-warnings 0`.
 
@@ -109,11 +109,15 @@ Only `controllers.javascript.*` is excluded: Twirl emits the JS reverse router f
 692 statements from Scala. The Scala router and the templates stay in — the functional specs render pages and route
 requests, so their coverage is real, and excluding them would move the number by only ~1.5 points.
 
-**JavaScript — Jest.** `collectCoverageFrom` is `public/js/**/*.js` minus the Grunt `build/` bundles, with `public/js`
-in `roots` so an *untested* file counts against the ratio instead of being invisible — without that root Jest reports
-only on files a suite happened to `require`, which answers "how well is the tested code tested" (~70%) rather than
-"how much of the frontend is tested" (~3%). The floor stays low by design: most of the denominator is the
-Explore/Validate canvas and pano code we never unit-test. The step is advisory (#2487), so a dip doesn't block.
+**JavaScript — Jest, report-only for now.** `collectCoverageFrom` is `public/js/**/*.js` minus the Grunt `build/`
+bundles, with `public/js` in `roots` so an untested file counts against the ratio instead of being invisible.
+
+There is deliberately **no `coverageThreshold`**, because the number can't yet support one: Jest instruments only what
+it hands out through `require`, and 99 of the 107 suites `eval` their subject instead — the only way to reach a file
+that defines a bare top-level class rather than assigning to `window`. The result is 10 files measured out of 229,
+with well-tested modules reporting 0, so a floor would move for reasons unrelated to whether anything is tested. See
+**#5112**, which belongs to the ES-modules question in #4467: `import`/`export` would make every file `require`-able
+and dissolve this as a side effect.
 
 ## Phased rollout (each phase independently mergeable)
 
