@@ -62,6 +62,12 @@ class ImageryAdminSpec extends PlaySpec with RoleSession with GuiceOneAppPerSuit
   /** The runs this suite seeded, deleted afterwards so no later suite reads them as the city's own history. */
   private var seededRunIds: List[Int] = Nil
 
+  /**
+   * The day the last seeded run landed in. `run_days` buckets by the run's start, which `seedPollRun` backdates an
+   * hour, so between midnight and 01:00 that is the day before today -- read it rather than assuming `LocalDate.now`.
+   */
+  private var lastSeededDay: LocalDate = LocalDate.now
+
   /** Seeds one finished run of the imagery-age poll, giving the row's optional fields something to carry. */
   private def seedPollRun(
       status: JobRunStatus.Value,
@@ -71,6 +77,7 @@ class ImageryAdminSpec extends PlaySpec with RoleSession with GuiceOneAppPerSuit
     val startedAt = OffsetDateTime.now.minusHours(1)
     val id        = run(jobRunTable.insertRunning(pollJob, trigger, startedAt))
     seededRunIds ::= id
+    lastSeededDay = startedAt.toLocalDate
     val _ = run(
       jobRunTable.finish(
         id,
@@ -196,9 +203,9 @@ class ImageryAdminSpec extends PlaySpec with RoleSession with GuiceOneAppPerSuit
       )
       Await.result(cacheApi.removeAll(), 60.seconds)
 
-      val today   = LocalDate.now.toString
-      val runDays = (contentAsJson(asAdmin("/adminapi/imageryFreshness")) \ "run_days").as[Seq[JsObject]]
-      val row     = runDays.find(day => (day \ "day").as[String] == today).value
+      val seededDay = lastSeededDay.toString
+      val runDays   = (contentAsJson(asAdmin("/adminapi/imageryFreshness")) \ "run_days").as[Seq[JsObject]]
+      val row       = runDays.find(day => (day \ "day").as[String] == seededDay).value
 
       Seq("day", "streets_selected", "streets_polled", "streets_skipped", "streets_refreshed", "audits_flagged",
         "audits_unflagged", "poll_failures", "sync_failures", "no_imagery_selected", "no_imagery_polled",
