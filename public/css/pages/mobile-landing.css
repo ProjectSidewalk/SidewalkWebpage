@@ -196,29 +196,10 @@
   letter-spacing: 0.05em;
 }
 
-/* Collaborators section */
-#mobile-collaborators {
+/* The shared landing partial styles itself via the site-wide homepage.css; this only supplies mobile sectioning. */
+#mobile-partners {
   padding: 40px 20px;
   background: var(--color-neutral-white);
-  text-align: center;
-}
-
-.mobile-collaborators-grid {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  align-items: center;
-  gap: 20px 36px;
-  margin-top: 24px;
-}
-
-.mobile-collaborator-image {
-  width: 110px;
-}
-
-.mobile-collaborator-image img {
-  width: 100%;
-  height: auto;
 }
 
 /* Laptop CTA section */
@@ -288,9 +269,5 @@
 
   .mobile-stat-number {
     font-size: 46px;
-  }
-
-  .mobile-collaborator-image {
-    width: 130px;
   }
 }

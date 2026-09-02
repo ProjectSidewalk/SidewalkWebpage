@@ -2,11 +2,17 @@ package models.utils
 
 import java.awt.RenderingHints
 import java.awt.image.BufferedImage
-import java.io.File
+import java.io.{ByteArrayOutputStream, File}
 import java.nio.file.{Files, StandardCopyOption}
-import javax.imageio.stream.FileImageOutputStream
+import javax.imageio.stream.{
+  FileImageInputStream,
+  FileImageOutputStream,
+  ImageOutputStream,
+  MemoryCacheImageOutputStream
+}
 import javax.imageio.{IIOImage, ImageIO, ImageWriteParam}
-import scala.util.Using
+import scala.jdk.CollectionConverters._
+import scala.util.{Try, Using}
 
 /**
  * Shared AWT/ImageIO helpers for the image-producing endpoints (share previews, story photos).
@@ -21,21 +27,37 @@ object ImageUtils {
    * larger source drops most of its samples and aliases, while `getScaledInstance(SCALE_SMOOTH)` — the usual
    * area-averaging alternative — is dramatically slower.
    */
-  def scaleToMaxEdge(src: BufferedImage, maxEdge: Int): BufferedImage = {
+  def scaleToMaxEdge(src: BufferedImage, maxEdge: Int): BufferedImage =
+    scaleToMaxEdgeAs(src, maxEdge, BufferedImage.TYPE_INT_RGB)
+
+  /**
+   * Like `scaleToMaxEdge`, but keeps a transparent source transparent (ARGB) instead of flattening to RGB — for
+   * PNG-bound output such as partner logos (#4516), where flattening would fill the background black.
+   */
+  def scaleToMaxEdgePreservingAlpha(src: BufferedImage, maxEdge: Int): BufferedImage = {
+    val imageType = if (src.getColorModel.hasAlpha) BufferedImage.TYPE_INT_ARGB else BufferedImage.TYPE_INT_RGB
+    scaleToMaxEdgeAs(src, maxEdge, imageType)
+  }
+
+  private def scaleToMaxEdgeAs(src: BufferedImage, maxEdge: Int, imageType: Int): BufferedImage = {
     val scale     = math.min(1.0, maxEdge.toDouble / math.max(src.getWidth, src.getHeight))
     val outWidth  = math.max(1, math.round(src.getWidth * scale).toInt)
     val outHeight = math.max(1, math.round(src.getHeight * scale).toInt)
 
     var current = src
     while (math.max(current.getWidth, current.getHeight) >= 2 * math.max(outWidth, outHeight)) {
-      current =
-        drawScaled(current, math.max(outWidth, current.getWidth / 2), math.max(outHeight, current.getHeight / 2))
+      current = drawScaled(
+        current,
+        math.max(outWidth, current.getWidth / 2),
+        math.max(outHeight, current.getHeight / 2),
+        imageType
+      )
     }
-    drawScaled(current, outWidth, outHeight)
+    drawScaled(current, outWidth, outHeight, imageType)
   }
 
-  private def drawScaled(src: BufferedImage, width: Int, height: Int): BufferedImage = {
-    val out = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB)
+  private def drawScaled(src: BufferedImage, width: Int, height: Int, imageType: Int): BufferedImage = {
+    val out = new BufferedImage(width, height, imageType)
     val g2d = out.createGraphics()
     g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR)
     g2d.drawImage(src, 0, 0, width, height, null)
@@ -51,20 +73,67 @@ object ImageUtils {
    * served a half-written file.
    */
   def writeJpeg(img: BufferedImage, file: File, quality: Float): Unit = {
-    val tmp    = File.createTempFile(s"${file.getName}.", ".tmp", file.getParentFile)
+    val tmp = File.createTempFile(s"${file.getName}.", ".tmp", file.getParentFile)
+    try {
+      Using.resource(new FileImageOutputStream(tmp))(writeJpegTo(img, _, quality))
+      val _ = Files.move(tmp.toPath, file.toPath, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
+    } finally {
+      val _ = tmp.delete() // No-op after a successful move; cleans up the temp file if the write failed midway.
+    }
+  }
+
+  /** In-memory variant of `writeJpeg`, for images stored as DB bytes rather than files (partner logos, #4516). */
+  def writeJpegBytes(img: BufferedImage, quality: Float): Array[Byte] = {
+    val baos = new ByteArrayOutputStream()
+    Using.resource(new MemoryCacheImageOutputStream(baos))(writeJpegTo(img, _, quality))
+    baos.toByteArray
+  }
+
+  /** PNG bytes for an image; PNG is lossless, so unlike JPEG there is no quality knob. */
+  def writePngBytes(img: BufferedImage): Array[Byte] = {
+    val baos = new ByteArrayOutputStream()
+    if (!ImageIO.write(img, "png", baos)) throw new IllegalStateException("No PNG writer available")
+    baos.toByteArray
+  }
+
+  /**
+   * Probes an image file's header without decoding pixel data — the shared upload guard for user-supplied images
+   * (story photos, partner logos): the SNIFFED format (the client-declared MIME type plays no part) must be one of
+   * `accepted`, and the declared dimensions must pass the decompression-bomb caps before anything decodes the raster.
+   *
+   * @param accepted     Lowercase ImageIO format names to allow (e.g. Set("jpeg", "png")).
+   * @param maxDimension Per-edge cap on the declared dimensions.
+   * @param maxPixels    Cap on declared width x height — a sane per-edge size can still decode to a huge raster.
+   * @return The sniffed format name (lowercase), or None when the file is unreadable or trips a guard.
+   */
+  def sniffAcceptedFormat(file: File, accepted: Set[String], maxDimension: Int, maxPixels: Long): Option[String] = {
+    Try {
+      val stream = new FileImageInputStream(file)
+      try {
+        ImageIO.getImageReaders(stream).asScala.nextOption().flatMap { reader =>
+          try {
+            reader.setInput(stream)
+            val width  = reader.getWidth(0)
+            val height = reader.getHeight(0)
+            val format = reader.getFormatName.toLowerCase
+            Option.when(
+              accepted.contains(format) && width <= maxDimension && height <= maxDimension &&
+                width.toLong * height.toLong <= maxPixels
+            )(format)
+          } finally reader.dispose()
+        }
+      } finally stream.close()
+    }.toOption.flatten
+  }
+
+  private def writeJpegTo(img: BufferedImage, out: ImageOutputStream, quality: Float): Unit = {
     val writer = ImageIO.getImageWritersByFormatName("jpg").next()
     try {
       val params = writer.getDefaultWriteParam
       params.setCompressionMode(ImageWriteParam.MODE_EXPLICIT)
       params.setCompressionQuality(quality)
-      Using.resource(new FileImageOutputStream(tmp)) { out =>
-        writer.setOutput(out)
-        writer.write(null, new IIOImage(img, null, null), params)
-      }
-      val _ = Files.move(tmp.toPath, file.toPath, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
-    } finally {
-      writer.dispose()
-      val _ = tmp.delete() // No-op after a successful move; cleans up the temp file if the write failed midway.
-    }
+      writer.setOutput(out)
+      writer.write(null, new IIOImage(img, null, null), params)
+    } finally writer.dispose()
   }
 }

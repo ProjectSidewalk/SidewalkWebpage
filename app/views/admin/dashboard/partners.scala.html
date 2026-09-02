@@ -1,0 +1,89 @@
+@import service.CommonPageData
+@import service.PartnerServiceImpl
+@import models.user.SidewalkUserWithRole
+@import play.api.Configuration
+@(commonData: CommonPageData, user: SidewalkUserWithRole
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
+@*
+* Admin Partners page (#4516): the community-partner logos rendered on the landing page. Any admin manages the
+* current city's list; the global list (every deployment's landing page) is shown for context but editable only by
+* Owners — enforced server-side on the /adminapi/globalPartners routes. Admin-only surface, English only.
+*@
+
+@isOwner = @{user.role == "Owner"}
+
+@addForm(scope: String) = {
+  @* The size caps ride along as data-/maxlength attributes so the client's copy is sourced from the backend
+     (the config key the service reads, and the service's own constants) rather than re-declared in JS. *@
+  <form class="partners-add-form" data-scope="@scope"
+  data-max-upload-bytes="@config.get[Long]("partners.logo-upload-max-bytes")"
+  data-max-stored-bytes="@PartnerServiceImpl.MAX_LOGO_BYTES">
+    <h3 class="partners-form-heading">Add a partner</h3>
+    <div class="partners-form-grid">
+      <div class="partners-form-field">
+        <label class="partners-form-label" for="partners-@scope-name">Name (required)</label>
+        <input type="text" class="ps-input" id="partners-@scope-name" name="name" maxlength="@PartnerServiceImpl.MAX_NAME_LENGTH" required>
+      </div>
+      <div class="partners-form-field">
+        <label class="partners-form-label" for="partners-@scope-url">Website URL</label>
+        <input type="url" class="ps-input" id="partners-@scope-url" name="url" maxlength="@PartnerServiceImpl.MAX_URL_LENGTH" placeholder="https://…">
+      </div>
+      <div class="partners-form-field">
+        <label class="partners-form-label" for="partners-@scope-alt">Logo alt text</label>
+        <input type="text" class="ps-input" id="partners-@scope-alt" name="alt_text" maxlength="@PartnerServiceImpl.MAX_ALT_TEXT_LENGTH"
+        placeholder="e.g. City of Seattle logo">
+      </div>
+      <div class="partners-form-field">
+        <label class="partners-form-label" for="partners-@scope-logo">Logo image (PNG, JPEG, or SVG, required)</label>
+        <input type="file" class="ps-input partners-file-input" id="partners-@scope-logo" name="logo"
+        accept="image/png,image/jpeg,image/svg+xml">
+      </div>
+    </div>
+    <div class="partners-form-actions">
+      <button type="submit" class="button-ps button--primary button--medium">Add partner</button>
+      <button type="button" class="button-ps button--secondary button--medium partners-cancel-edit" hidden>Cancel</button>
+    </div>
+    <p class="partners-form-error" role="alert" hidden></p>
+  </form>
+}
+
+@content = {
+  <div class="page-section" id="partners-intro-section">
+    <h1 class="page-heading" id="partners">Partners <a href="#partners" class="permalink">#</a></h1>
+    <p>These logos render in the "Community Partners" section of the landing page: the global list on every Project Sidewalk deployment, and the city list only on this city's page (global logos come first). Logos are re-encoded server-side — upload the highest-quality PNG (transparency preserved) or JPEG you have, ideally a wide wordmark on a transparent background. An SVG works too: this page renders it to a PNG before uploading, so its type has to be outlines rather than live text. The name doubles as the link's log label; the URL is where a click goes; alt text is what screen readers announce (defaults to "<em>name</em> logo").</p>
+    <div class="partners-status" id="partners-status" role="status" aria-live="polite">Loading partners…</div>
+  </div>
+
+  <div class="page-section" id="partners-city-section">
+    <h2 class="page-heading" id="city-partners">City partners <a href="#city-partners" class="permalink">#</a></h2>
+    <p>Shown only on <strong>this city's</strong> landing page, after the global logos.</p>
+    <div id="partners-city-list" class="partners-list"></div>
+    @addForm("city")
+  </div>
+
+  <div class="page-section" id="partners-global-section">
+    <h2 class="page-heading" id="global-partners">Global partners <a href="#global-partners" class="permalink">#</a></h2>
+    <p>Shown on <strong>every</strong> deployment's landing page, before any city partners.</p>
+    @if(!isOwner) {
+      <p class="partners-owner-note">Only Owners can edit the global list — ask a Project Sidewalk Owner to make changes here.</p>
+    }
+    <div id="partners-global-list" class="partners-list"></div>
+    @if(isOwner) {
+      @addForm("global")
+    }
+  </div>
+
+  <script src="@assets.path("js/common/ConfirmDialog.js")"></script>
+  <script src="@assets.path("js/admin-dashboard/PartnersPage.js")"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      new PartnersPage({ isOwner: @isOwner }).init();
+    });
+  </script>
+}
+
+@common.main(commonData, "Sidewalk - Admin Partners") {
+  @common.navbar(commonData, Some(user))
+  @admin.dashboard.adminLayout("partners", commonData, user)(content)
+}

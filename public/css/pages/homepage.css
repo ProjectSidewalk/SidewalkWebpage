@@ -473,39 +473,105 @@ p#conditional-text {
   text-decoration: none;
 }
 
-/****** Collab div ******************/
+/****** Community Partners (#4516) ******************/
 
-.collaborator-images-container {
-  display: grid;
-  grid-auto-flow: column;
-  gap: 20px 50px;
-  align-items: center;
-}
-
-.collaborator-image {
-  padding: 15px 3%;
-}
-
-.collaborator-image img {
-  width: 100%;
-}
-
-#collaborators-row {
-  padding-bottom: 10px;
-  width: 100%;
-  text-align: center;
-  display: inline-block;
-  vertical-align: middle;
-}
-
-#collaborators-title {
-  font-size: 40px;
-  margin-bottom: 20px;
-}
-
-#collaborators-container {
+#partners-container {
   position: relative;
   max-width: 900px;
-  top: -20px;
-  min-height: 300px;
+  padding: var(--space-xxl) 0;
+  text-align: center;
+}
+
+.partner-section-heading {
+  margin: 0 auto var(--space-sm);
+  font-family: raleway, sans-serif;
+  font-size: 40px;
+  line-height: 1.1;
+  font-weight: normal;
+  color: var(--color-asphalt-500);
+  text-wrap: balance; /* No single-word widow when the heading wraps. */
+}
+
+/* Nothing sits between this heading and the creator logos, so it carries the gap the tagline provides above the
+   community-partner strip. */
+#creators-title {
+  margin-bottom: var(--space-xl);
+}
+
+/* A flat heart, not the ❤️ emoji: platform emoji render glossy and drop-shadowed, which out-shouted the words
+   around it. Pink rather than a signal red so it reads as affection, not alert. */
+.creators-heart {
+  height: 0.85em;
+  width: 0.85em;
+  fill: var(--color-pink-500);
+  vertical-align: -0.06em;
+}
+
+/* Breathing room between the community-partners strip and the created-by section, when both render. */
+.partner-logos + #creators-title {
+  margin-top: var(--space-xxl);
+}
+
+.partner-section-tagline {
+  margin: 0 auto var(--space-xl);
+  max-width: 640px;
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+  text-wrap: balance; /* No single-word widow when the tagline wraps. */
+}
+
+.partner-logos {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-lg) var(--space-xxl);
+}
+
+.partner-logo a {
+  display: inline-block;
+}
+
+/* Logos are normalized by a fixed row height with contain-fit, so differently-shaped uploads still line up; the
+   width cap keeps a very wide wordmark from dwarfing its neighbors. */
+.partner-logo img {
+  height: 64px;
+  width: auto;
+  max-width: 240px;
+  object-fit: contain;
+}
+
+/* The credit line (long-time partners, students, volunteers) sits under the creator logos, and names enough
+   organizations that it needs a wider measure than the tagline above to stay at three lines. */
+#partners-credit {
+  margin-top: var(--space-xl);
+  margin-bottom: 0;
+  max-width: 780px;
+}
+
+/* The static creator logos are a visually subordinate strip. */
+.partner-logos--creators {
+  gap: var(--space-lg) var(--space-xxl);
+}
+
+.partner-logos--creators img {
+  height: 56px;
+  max-width: 240px;
+}
+
+/* --breakpoint-sm */
+@media (width <= 768px) {
+  .partner-section-heading {
+    font-size: 28px;
+  }
+
+  .partner-logo img {
+    height: 44px;
+    max-width: 160px;
+  }
+
+  .partner-logos--creators img {
+    height: 40px;
+    max-width: 160px;
+  }
 }
