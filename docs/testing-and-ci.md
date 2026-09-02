@@ -110,11 +110,15 @@ Only `controllers.javascript.*` is excluded: Twirl emits the JS reverse router f
 692 statements from Scala. The Scala router and the templates stay in — the functional specs render pages and route
 requests, so their coverage is real, and excluding them would move the number by only ~1.5 points.
 
-**JavaScript — Jest.** `collectCoverageFrom` is `public/js/**/*.js` minus the Grunt `build/` bundles, with `public/js`
-in `roots` so an *untested* file counts against the ratio instead of being invisible — without that root Jest reports
-only on files a suite happened to `require`, which answers "how well is the tested code tested" (~70%) rather than
-"how much of the frontend is tested" (~3%). The floor stays low by design: most of the denominator is the
-Explore/Validate canvas and pano code we never unit-test. The step is advisory (#2487), so a dip doesn't block.
+**JavaScript — Jest, report-only for now.** `collectCoverageFrom` is `public/js/**/*.js` minus the Grunt `build/`
+bundles, with `public/js` in `roots` so an untested file counts against the ratio instead of being invisible.
+
+There is deliberately **no `coverageThreshold`**, because the number can't yet support one: Jest instruments only what
+it hands out through `require`, and 99 of the 107 suites `eval` their subject instead — the only way to reach a file
+that defines a bare top-level class rather than assigning to `window`. The result is 10 files measured out of 229,
+with well-tested modules reporting 0, so a floor would move for reasons unrelated to whether anything is tested. See
+**#5112**, which belongs to the ES-modules question in #4467: `import`/`export` would make every file `require`-able
+and dissolve this as a side effect.
 
 ## Phased rollout (each phase independently mergeable)
 

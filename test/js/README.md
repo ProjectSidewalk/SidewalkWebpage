@@ -148,14 +148,17 @@ So:
 
 ## Coverage
 
-`npm run test:js` always collects coverage, scoped to the whole first-party frontend: `public/js/**/*.js` minus the
-Grunt `build/` bundles, with `public/js` as one of Jest's `roots` so a file **no test loads** still counts against the
-ratio. Without that root Jest reports only on files a suite happened to `require`, which answers "how well is the
-tested code tested" instead of "how much of the frontend is tested" (#4743).
+`npm run test:js:coverage` reports over the whole first-party frontend: `public/js/**/*.js` minus the Grunt `build/`
+bundles, with `public/js` as one of Jest's `roots` so a file **no test loads** still counts against the ratio. The
+console shows totals only; open `coverage/lcov-report/index.html` for per-file detail.
 
-`coverageThreshold` floors statements and lines just under the measured number — a ratchet, not a target, so **raise
-it in whichever PR earns the headroom.** The CI step is advisory (#2487), so a dip reports there without blocking a
-merge. The console shows totals only, so open `coverage/lcov-report/index.html` for per-file detail.
+**Read the number with care, and don't put a floor on it yet (#5112).** Jest instruments only what it hands out
+through `require` — which is what `loadGlobalScript` does. The other 99 suites `eval` their subject instead, because
+`require` can't reach a file that defines a bare top-level class rather than assigning to `window` (see *How it works*
+above). `eval` bypasses the module system, so those files are never instrumented: **10 of 229 files carry every
+covered statement**, and `AcrossCitiesPage.js` reports 0/790 despite having a passing suite. A `coverageThreshold` on
+top of that would read as protection without being any — deleting an eval-loaded module's tests moves the number by
+zero. The fix is upstream, in the ES-modules question (#4467).
 
 ## Complementary E2E
 

@@ -3,7 +3,7 @@ name: CI
 #   - backend:         `sbt compile` + `scalafmtCheckAll` (both BLOCKING)
 #   - frontend:        asset build (grunt) + `eslint` (JS) + `stylelint` (CSS) + `htmlhint` (HTML) + locale parity +
 #                      CSS layout + asset paths (all BLOCKING), plus the jsdom `jest` suite in test/js/ (ADVISORY
-#                      step inside the same job; it also carries the JS coverage floor, so that does not block).
+#                      step inside the same job; it reports JS coverage, but has no floor yet — see #5112).
 #   - evolutions-lint: static checks on conf/evolutions/default/*.sql (BLOCKING — fast, deterministic, no DB).
 #   - route-lint:      conf/routes reachability — fails if any route is shadowed by an earlier one (BLOCKING — no DB).
 #   - backend-tests:   DB-backed public-API functional tests against a real Postgres+PostGIS (BLOCKING). Boots
