@@ -216,9 +216,9 @@ Test / parallelExecution := false
 //
 // Read the new figure off a CI run before raising this. A local run scores far higher: CI's schema is empty where a
 // local one is seeded, so the data-dependent paths go unmeasured there, and a floor set from a local number fails
-// every PR. 35 was set while this job ran a subset of test/ and does not ratchet the whole suite (#5042) — raise it
-// off the first full CI run.
-coverageMinimumStmtTotal := 35
+// every PR. 52 sits under a CI run of the whole suite (#5042) that measured 53.28%, by about the same ~1000
+// statements of jitter room 35 kept under the subset's 36.39%.
+coverageMinimumStmtTotal := 52
 coverageFailOnMinimum    := true
 
 // Twirl templates emit the JS reverse router for the browser, so nothing calls it from Scala: 692 statements no test
