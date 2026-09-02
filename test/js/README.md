@@ -63,7 +63,7 @@ From the repo root:
 ```bash
 npm install        # first time only — installs jest + jest-environment-jsdom (devDependencies)
 npm run test:js    # runs the suites in test/js/
-npm run test:js:coverage    # the same, plus the coverage report and its floor (what CI runs)
+npm run test:js:coverage    # the same, plus the coverage report (what CI runs)
 ```
 
 `npm run test:js` is a **new** script; the existing placeholder `npm test` is left untouched.
