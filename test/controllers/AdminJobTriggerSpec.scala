@@ -160,6 +160,7 @@ class AdminJobTriggerSpec
       jobRun.status mustBe JobRunStatus.Succeeded
       jobRun.finishedAt mustBe defined
       // The nightly recompute and this trigger share one details shape, so the panel can chart them as one job.
+      // The shape's own key names are pinned by JobRunDetailsSpec; comparing against the builder can't be.
       jobRun.details.value mustBe UserStatActor.runDetails(UsersUpdated)
     }
   }
