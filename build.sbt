@@ -205,11 +205,20 @@ Compile / sourceGenerators += Def.task {
   Seq(file)
 }.taskValue
 
+// ScalaTest runs suites concurrently by default, which is wrong for this suite twice over (#5042). Every
+// GuiceOneAppPerSuite spec boots its own app with its own 25-connection pool (`slick.dbs.default.db.maxConnections`),
+// so four concurrent boots exhaust a stock Postgres and abort the run with "Pool is empty, failed to create/setup
+// connection" — the constraint that kept backend-tests on a hand-listed subset. And every DB-backed spec shares the
+// one connected city schema, so concurrent suites read each other's writes no matter how large the pool is.
+Test / parallelExecution := false
+
 // Statement-coverage ratchet (#4743), enforced by backend-tests; see docs/testing-and-ci.md.
 //
-// Read the new figure off a CI run before raising this. A local run scores far higher — CI runs a hand-listed
-// subset of test/ (#5042) against an empty schema, and setting the floor from a local number fails every PR.
-coverageMinimumStmtTotal := 35
+// Read the new figure off a CI run before raising this. A local run scores far higher: CI's schema is empty where a
+// local one is seeded, so the data-dependent paths go unmeasured there, and a floor set from a local number fails
+// every PR. 52 sits under a CI run of the whole suite (#5042) that measured 53.28%, by about the same ~1000
+// statements of jitter room 35 kept under the subset's 36.39%.
+coverageMinimumStmtTotal := 52
 coverageFailOnMinimum    := true
 
 // Twirl templates emit the JS reverse router for the browser, so nothing calls it from Scala: 692 statements no test
