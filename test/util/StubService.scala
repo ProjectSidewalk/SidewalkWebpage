@@ -20,6 +20,11 @@ object StubService {
    * @param answers Return value per method name. A value is reused across calls, so it must not be a one-shot.
    */
   def answering[T](answers: Map[String, Any])(implicit ct: ClassTag[T]): T = {
+    // Map is covariant in its value type, so an `answeringWith` map of thunks type-checks here too -- and the stub
+    // would then answer with the function itself, surfacing as a ClassCastException inside the code under test.
+    answers.foreach { case (name, answer) =>
+      require(!answer.isInstanceOf[() => Any], s"$name's answer is a function; pass it to answeringWith instead.")
+    }
     answeringWith[T](answers.map { case (name, answer) => name -> (() => answer) })
   }
 
