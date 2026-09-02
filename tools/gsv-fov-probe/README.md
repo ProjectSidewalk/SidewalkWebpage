@@ -29,7 +29,10 @@ Useful scoped runs: `--control-only` (method gate), `--panos tutorial` (determin
 
 Raw screenshots live under `runs/` (gitignored — captures of live imagery stay local). The committable
 summary (`results.json`, `report.md`, `manifest.json` — numbers and provenance only) is copied to
-`recorded/<date>/` by `analyze.mjs --copy-recorded`.
+`recorded/<date>/` by `analyze.mjs --copy-recorded`. The raw runs behind `recorded/2026-09-01/` (8.3 GB,
+8,448 screenshots, both Maps channels) are archived long-term on **makelab2** at
+`~jonfroehlich/sidewalk-archives/gsv-fov-probe-2026-09-01/`; its `ARCHIVE-README.md` + `SHA256SUMS`
+cover integrity verification and offline re-analysis (`analyze.mjs <run-dir>` needs no network or key).
 
 ## Method
 
