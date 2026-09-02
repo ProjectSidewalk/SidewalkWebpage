@@ -149,7 +149,22 @@ case class LabelMetadata(
     panoMetadata: Option[PanoViewerMetadata]
 )
 
-case class LabelComment(username: String, comment: String, timeCreated: Option[OffsetDateTime])
+/**
+ * A validator comment on a label, as the shared label-detail card consumes it.
+ *
+ * @param username    Who left the comment.
+ * @param comment     The comment text.
+ * @param timeCreated When it was left.
+ * @param validation  The commenter's current vote on the label ("Agree"/"Disagree"/"Unsure"), joined per
+ *                    (label_id, user_id) rather than stored with the comment, so it is `None` when they have no
+ *                    vote on the label.
+ */
+case class LabelComment(
+    username: String,
+    comment: String,
+    timeCreated: Option[OffsetDateTime],
+    validation: Option[String]
+)
 
 // Extra data to include with validations for Expert Validate. Includes usernames and previous validators.
 case class AdminValidationData(
@@ -461,7 +476,8 @@ object LabelTable {
       LabelComment(
         (obj \ "username").as[String],
         (obj \ "comment").as[String],
-        (obj \ "time_created").asOpt[OffsetDateTime]
+        (obj \ "time_created").asOpt[OffsetDateTime],
+        (obj \ "validation").asOpt[String]
       )
     }
   }
@@ -551,6 +567,7 @@ object LabelTable {
           OffsetDateTime.now(ZoneOffset.UTC)
         }
       },
+      highQualityUser = r.nextBoolean(),
       streetEdgeId = r.nextInt(),
       osmWayId = r.nextLong(),
       regionId = r.nextInt(),
@@ -1181,12 +1198,17 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           WHERE role.role = 'AI'
       ) AS ai_val ON lb1.label_id = ai_val.label_id
       LEFT JOIN (
-          SELECT label_id,
-                 json_agg(json_build_object('username', username, 'comment', comment, 'time_created', timestamp)
-                          ORDER BY timestamp)::text AS comments
+          SELECT validation_task_comment.label_id,
+                 json_agg(json_build_object('username', sidewalk_user.username,
+                                            'comment', validation_task_comment.comment,
+                                            'time_created', validation_task_comment.timestamp,
+                                            'validation', label_validation.validation_result)
+                          ORDER BY validation_task_comment.timestamp)::text AS comments
           FROM validation_task_comment
           INNER JOIN sidewalk_user ON validation_task_comment.user_id = sidewalk_user.user_id
-          GROUP BY label_id
+          LEFT JOIN label_validation ON validation_task_comment.label_id = label_validation.label_id
+              AND validation_task_comment.user_id = label_validation.user_id
+          GROUP BY validation_task_comment.label_id
        ) AS comment ON lb1.label_id = comment.label_id
       WHERE #$labelFilter
           AND #$labelerFilter
@@ -2051,6 +2073,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              array_to_string(label.tags, ','),
              label.description,
              label.time_created,
+             user_stat.high_quality,
              label.street_edge_id,
              osm_way_street_edge.osm_way_id,
              region.region_id,

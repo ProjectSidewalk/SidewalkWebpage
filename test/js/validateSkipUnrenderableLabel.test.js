@@ -16,6 +16,8 @@
 const fs = require('fs');
 const path = require('path');
 
+const { assetPathStub } = require('./loadGlobalScript');
+
 const PANO_MANAGER_PATH = path.resolve(__dirname, '..', '..', 'public/js/validate/src/panorama/PanoManager.js');
 const PANO_MARKER_PATH = path.resolve(__dirname, '..', '..', 'public/js/common/PanoMarker.js');
 const LABEL_CONTAINER_PATH = path.resolve(__dirname, '..', '..', 'public/js/validate/src/label/LabelContainer.js');
@@ -169,7 +171,7 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
       return Promise.resolve({ok: true, json: () => Promise.resolve({labels: topUpQueue.shift() ?? []})});
     });
 
-    global.util = {isMobile: () => false};
+    global.util = {isMobile: () => false, assetPath: assetPathStub};
     global.i18next = {t: jest.fn((key) => key)};
     // The bundle's Label class; only the accessors LabelContainer and its collaborators touch.
     global.Label = class Label {

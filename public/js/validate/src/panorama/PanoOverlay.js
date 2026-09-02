@@ -48,7 +48,7 @@ class PanoOverlay {
     if (e.target.closest('#label-visibility-button-on-label')) return;
 
     this.#mouseStatus.isLeftDown = true;
-    this.#viewControlLayer.css('cursor', 'url(/assets/images/icons/closedhand.cur) 4 4, move');
+    this.#viewControlLayer.css('cursor', `url(${util.assetPath('images/icons/closedhand.cur')}) 4 4, move`);
 
     // Hide the label's hover info as soon as panning starts so it doesn't linger over the moving pano.
     if (svv.labelVisibilityControl) svv.labelVisibilityControl.hideLabelCard();
@@ -62,7 +62,7 @@ class PanoOverlay {
    * This is a callback function that is called with mouse up event on the view control layer (when panning).
    */
   #handlerViewControlLayerMouseUp = () => {
-    this.#viewControlLayer.css('cursor', 'url(/assets/images/icons/openhand.cur) 4 4, move');
+    this.#viewControlLayer.css('cursor', `url(${util.assetPath('images/icons/openhand.cur')}) 4 4, move`);
     this.#mouseStatus.isLeftDown = false;
   };
 
@@ -70,7 +70,7 @@ class PanoOverlay {
    * Handles mouse leaving control view.
    */
   #handlerViewControlLayerMouseLeave = () => {
-    this.#viewControlLayer.css('cursor', 'url(/assets/images/icons/openhand.cur) 4 4, move');
+    this.#viewControlLayer.css('cursor', `url(${util.assetPath('images/icons/openhand.cur')}) 4 4, move`);
     this.#mouseStatus.isLeftDown = false;
   };
 

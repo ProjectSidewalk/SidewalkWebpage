@@ -5,7 +5,9 @@ error or non-allowlisted `console.error`**. It exists to catch the class of regr
 grunt build, and all four linters are blind to: runtime-only JS errors — a stale bundle, a missing global,
 an unbound-method `this` bug, a route-ordering 400 breaking a fetch. It asserts *pages initialize cleanly*
 plus one piece of layout geometry — `phone-viewport.spec.js` re-loads the responsive pages at a 390×844
-phone viewport and fails on horizontal overflow (#4883). Deep canvas/imagery testing stays manual by design.
+phone viewport and fails on horizontal overflow (#4883) — and one accessibility gate: `a11y.spec.js` runs
+axe-core over each audited page and fails on any untracked WCAG 2.1 AA violation (#5060). Deep
+canvas/imagery testing stays manual by design.
 
 ## Running locally
 
@@ -23,8 +25,8 @@ make test-e2e wt=<worktree-name>               # a worktree's specs instead of t
 on the official Playwright image, which already carries Chromium and its OS libraries — so the same command and
 the same browser build work on Linux, WSL2, and macOS (the image is multi-arch, so Apple Silicon runs Chromium
 natively), with no host Node and no `playwright install`. The image builds on first use and rebuilds itself when
-`package.json`'s `@playwright/test` pin changes, because `make` derives both the image tag and the installed
-runner from that one pin.
+`package.json`'s `@playwright/test` or `@axe-core/playwright` pin changes, because `make` derives both the image
+tag and the tools installed in it from those pins.
 
 Three details worth knowing when something looks odd:
 
@@ -93,6 +95,29 @@ identical in both environments.
 keeping each section on its server-rendered fallback. That makes the measured DOM deterministic and keeps an
 ML-site outage from failing the run.
 
+### Map base-layer stub
+
+The two `/labelMap` behavior specs (`labelmap-feed-failure.spec.js`, `labelmap-viewport-fetch.spec.js`) add
+`stubMapBaseLayers()`, which answers `/neighborhoods`, `/neighborhoods/completionRate`, and
+`/contribution/streets/all` with empty collections. `createPSMap` loads all three before the label feed, and on a
+seeded schema they run to megabytes (~7.4 MB in Seattle) that must reach mapbox-gl before the page promise
+resolves — long enough to blow the 5s default `expect` timeout with four workers competing at the start of a run,
+and invisible in CI, whose schema is empty (#5081). Neither spec reads that data: both assert request and error
+behavior, so serving none of it makes them behave identically against a seeded schema and an empty one, in content
+and in how long they take. The smoke and a11y specs deliberately do **not** stub it — they are there to load the
+real page.
+
+### Accessibility gate
+
+`a11y.spec.js` runs axe-core (`@axe-core/playwright`) over every page in `pages.js`, tagged `wcag2a` +
+`wcag2aa` + `wcag21aa`, and fails on any violation `a11y-allowlist.js` does not already track — each allowlist
+entry citing the issue that will fix it. It is its own Playwright project, so run it alone with
+`make test-e2e args="--project=a11y"`. Coverage is **opt-out**: because the page table is shared, a page added for
+the smoke tests is gated for accessibility too unless someone writes it into `EXEMPT_PAGES` with a reason. What a
+page renders depends on its data, so a run against an empty schema (as in CI) sees no gallery cards, no leaderboard
+rows, and no api-docs preview data. Policy, the allowlist rules, and the manual checklist
+that covers what axe can't see: [`docs/accessibility.md`](../../docs/accessibility.md).
+
 ### Console-error allowlist
 
 `CONSOLE_ERROR_ALLOWLIST` in `fixtures.js`. Policy: entries are added only for **observed, understood**
@@ -101,11 +126,14 @@ exception) is never allowlisted.
 
 ## Where it runs in CI
 
-The `e2e-smoke` job in `.github/workflows/ci.yml` — **advisory** (`continue-on-error: true`, like
-`backend-tests`) on every PR, promotable to blocking once proven stable. It builds the bundles, stages the
-app (prod-mode binary against the CI Postgres+PostGIS with the empty `sidewalk_teaneck` schema), and runs
-this suite; on failure it uploads the Playwright report, traces, and `app.log`. **It never runs during
-local development** — your edit / `grunt watch` / reload loop is untouched.
+The `e2e-smoke` job in `.github/workflows/ci.yml`, on every PR. It builds the bundles, stages the app
+(prod-mode binary against the CI Postgres+PostGIS with the empty `sidewalk_teaneck` schema), and runs this
+suite in two steps: the **accessibility gate** (`--project=a11y`) **blocking**, then the smoke half
+(`--project=chromium`) **advisory** (`continue-on-error` on the step, not the job — on the job it would
+excuse the gate too). Each project writes to its own `test-results/` subdirectory, so the second run does not
+clear the first's traces before they are uploaded. On failure of either half it uploads the Playwright report,
+traces, and `app.log`. **It never runs
+during local development** — your edit / `grunt watch` / reload loop is untouched.
 
 ## Phase roadmap
 
@@ -139,8 +167,11 @@ local development** — your edit / `grunt watch` / reload loop is untouched.
 | `../../docker/e2e/Dockerfile` | The runner image `make test-e2e` builds and runs (Chromium + the pinned runner) |
 | `fixtures.js` | `consoleErrors` fixture, Mapbox + ML-API stubs, `loadAndSettle`, `waitForAppReady`, `horizontalOverflowReport`, allowlist |
 | `auth.setup.js` | Registers a throwaway user, saves storageState for registered-user specs |
+| `pages.js` | **The** page table: every anonymous page the suite walks, and how each loads. Adding one here opts it into the smoke tests *and* the accessibility gate |
 | `pages.spec.js` | Table-driven phase-1 anonymous pages |
 | `phone-viewport.spec.js` | The same pages at a 390×844 phone viewport: no horizontal overflow (#4883) |
+| `a11y.spec.js` | The accessibility gate: axe-core over every page in `pages.js`, WCAG 2.1 AA (#5060) |
+| `a11y-allowlist.js` | Per-page allowlist of tracked violations, plus the partition/format helpers |
 | `overflow-report.spec.js` | `horizontalOverflowReport`'s exemption rules, pinned against synthetic DOM |
 | `dashboard.spec.js` | Registered-user pages |
 | `explore-validate.spec.js` | Phase-2 Explore/Validate/mobile-Validate specs (skip without the real GSV key) |

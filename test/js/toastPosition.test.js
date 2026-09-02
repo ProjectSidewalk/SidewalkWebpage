@@ -16,6 +16,8 @@
 const fs = require('fs');
 const path = require('path');
 
+const { assetPathStub } = require('./loadGlobalScript');
+
 const SOURCE = fs.readFileSync(
     path.resolve(__dirname, '..', '..', 'public/js/common/Toast.js'), 'utf8'
 );
@@ -57,6 +59,7 @@ describe('Toast placement', () => {
         document.body.innerHTML = '';
         window.innerWidth = VIEWPORT_WIDTH;
         global.i18next = { t: (key) => key };
+        global.util = { assetPath: assetPathStub }; // The close button's icon URL.
     });
 
     afterEach(() => {

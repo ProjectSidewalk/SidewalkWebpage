@@ -255,7 +255,7 @@ class PartnerServiceImpl @Inject() (
 }
 
 object PartnerServiceImpl {
-  // Stored logo bytes may not exceed this; must match the octet_length CHECK in the partner table (evolution 370).
+  // Stored logo bytes may not exceed this; must match the octet_length CHECK in the partner table (evolution 371).
   val MAX_LOGO_BYTES: Int = 1048576
 
   // Upload formats validated against the SNIFFED format, never the client-declared MIME type. Deliberately narrow —

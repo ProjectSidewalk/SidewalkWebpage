@@ -12,7 +12,8 @@ services:
       - "/home/node_modules"
     ports:
       - "9000:9000"
-    platform: linux/x86_64
+    # No `platform:` here — the web image builds on both amd64 and arm64, so each host builds natively instead of
+    # emulating (#5069). An override file's `platform:` still wins over this, so leave that one commented too.
     environment:
       - DATABASE_USER=sidewalk
       - SIDEWALK_CITY_ID=DUMMY_CITY_ID

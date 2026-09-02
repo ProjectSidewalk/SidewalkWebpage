@@ -873,7 +873,6 @@
   <script src='@assets.path("js/explore/build/explore.js")'></script>
   <script src='@assets.path("js/ps-map/build/ps-map.js")'></script>
   <script src='@assets.path("vendor/kinetic/kinetic-v4.4.3.min.js")'></script>
-  <script src='@assets.path("vendor/d3/d3-3.5.6.js")'></script>
 
   <script src='@assets.path("vendor/turf/turf-7.3.4.min.js")'></script>
   <script src='@assets.path("vendor/async-lock/async-lock-1.4.1.min.js")'></script>
@@ -953,8 +952,6 @@
     }
 
     mainParam.dataStoreUrl = '@routes.ExploreController.post';
-    mainParam.imageDirectory = "@assets.path("images/explore/")";
-    mainParam.audioDirectory = "@assets.path("audio/")";
 
     mainParam.user = {
       username: @jsonForScript(user.username),

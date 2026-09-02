@@ -109,6 +109,25 @@ async function stubMakeabilityLab(context) {
 }
 
 /**
+ * Stubs the neighborhood and street layers that createPSMap loads before a map's label feed.
+ *
+ * On a seeded schema those are ~7.4 MB (Seattle) that must download, parse, and reach mapbox-gl before
+ * createPSMap resolves — and only then can a label-feed assertion become true. That doesn't reliably fit the
+ * 5s default expect timeout with four workers competing at the start of a run, and CI's empty database hides
+ * it (#5081). Specs asserting feed behavior never read this data, so serving none of it costs them nothing.
+ *
+ * @param {import('@playwright/test').BrowserContext} context - The context whose requests to intercept.
+ */
+async function stubMapBaseLayers(context) {
+  const emptyGeoJson = {type: 'FeatureCollection', features: []};
+  // `*` stops at a path separator, so the /neighborhoods route can't swallow /neighborhoods/completionRate —
+  // which answers with a rate array, not GeoJSON (addNeighborhoodsToMap looks regions up in it by region_id).
+  await context.route('**/neighborhoods*', (route) => route.fulfill({json: emptyGeoJson}));
+  await context.route('**/neighborhoods/completionRate*', (route) => route.fulfill({json: []}));
+  await context.route('**/contribution/streets/all*', (route) => route.fulfill({json: emptyGeoJson}));
+}
+
+/**
  * Waits until the shared AppManager (public/js/common/AppManager.js, wired into every page by
  * app/views/common/main.scala.html) reports initialization complete.
  *
@@ -256,6 +275,7 @@ module.exports = {
   expect: base.expect,
   stubMapbox,
   stubMakeabilityLab,
+  stubMapBaseLayers,
   waitForAppReady,
   loadAndSettle,
   horizontalOverflowReport,

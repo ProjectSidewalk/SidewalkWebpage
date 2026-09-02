@@ -150,6 +150,7 @@ POST    /validationTask/moreLabels                      controllers.ValidateCont
 POST    /galleryTask                                    controllers.GalleryController.post
 POST    /labelmap/validate                              controllers.ValidateController.postLabelMapValidation
 POST    /labelmap/comment                               controllers.ValidateController.postLabelMapComment
+DELETE  /labelmap/comment/:labelId                      controllers.ValidateController.deleteLabelMapComment(labelId: Int)
 
 # Labels
 GET     /labels/all                                     controllers.LabelController.getAllLabelsForLabelMap(regions: Option[String] ?= None, routes: Option[String] ?= None, aiValidationOptions: Option[String] ?= None, bbox: Option[String] ?= None)

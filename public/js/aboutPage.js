@@ -15,7 +15,7 @@ class AboutPage {
   static #INITIAL_PUB_COUNT = 8;
   // The CHI 2019 paper is the one we ask people to cite; identified by DOI so an id or title edit can't break it.
   static #CITATION_DOI = '10.1145/3290605.3300292';
-  static #FALLBACK_PHOTO = '/assets/images/logos/ProjectSidewalkLogo_NoText_100x100.png';
+  static #FALLBACK_PHOTO = util.assetPath('images/logos/ProjectSidewalkLogo_NoText_100x100.png');
 
   // Inline formatting a citation can legitimately carry: emphasis for the venue, a link to the paper. See
   // #sanitizeCitation for why the allowlist is this narrow.
@@ -352,7 +352,7 @@ class AboutPage {
         ['Code', pub.code_repo_url, 'code'],
       ].filter(([, url]) => url).map(([label, url, icon]) => `
               <a class="about-pub-link" href="${this.#esc(url)}">
-                <img class="about-pub-link-icon" src="/assets/images/icons/${icon}-feather.svg" alt=""
+                <img class="about-pub-link-icon" src="${util.assetPath(`images/icons/${icon}-feather.svg`)}" alt=""
                      aria-hidden="true">
                 ${label}
               </a>`).join('');

@@ -121,15 +121,13 @@
 
   --color-error-100: #F47178;
   --color-error-200: #ED1C24;
+  --color-error-300: color-mix(in srgb, var(--color-error-200) 78%, black); /* Needed for accessibility compliance. */
 
   --color-warning-100: #FFEF92;
   --color-warning-200: #FFDE24;
 
   --color-link-100: #3E8BD9;
-
-  /* Sits in the band a text link needs to go without an underline (WCAG 1.4.1): 4.5:1 on white and 3.5:1 against
-     neutral-900 body text. Darker blues clear white by more but drop under 3:1 against the text. */
-  --color-link-200: #0D6EFD;
+  --color-link-200: #0A58CA;
 
   /* Project Sidewalk label-type color palette. The canonical color for each accessibility label type. */
   --color-label-curb-ramp: var(--color-lime-500);
@@ -265,8 +263,6 @@
 /* Raleway's three weights, as weights of one family — which is what lets `font-weight: 700` on --font-accent pick
    Raleway Bold. A weight the family doesn't declare is drawn by smearing the regular outlines instead, so the
    --text-h1-bold / --text-h2-bold headings are the ones this is here for.
-   The raleway-bold and raleway-extrabold families below name the same two files, for the older rules that select a
-   weight by family name; prefer the weight on this family in anything new.
    `swap` on all of them: Raleway sets headings, and the alternative is a heading that is simply absent until the
    face arrives. The flash of fallback it trades that for is short — these are same-origin now, not a round trip to
    Google — and it matches what the Mulish/Inter/JetBrains Mono faces in css/fonts.css already do. */
@@ -293,19 +289,6 @@
   font-style: normal;
   font-display: swap;
 }
-
-@font-face {
-  font-family: raleway-bold;
-  src: url("../fonts/Raleway/Raleway-Bold.woff2") format("woff2");
-  font-display: swap;
-}
-
-@font-face {
-  font-family: raleway-extrabold;
-  src: url("../fonts/Raleway/Raleway-ExtraBold.woff2") format("woff2");
-  font-display: swap;
-}
-
 
 html,
 body {
@@ -337,8 +320,12 @@ footer {
 /*
  * Accessibility styling updates.
  */
+
+/* A hairline sitting clear of the descenders, rather than the browser's thick baseline-hugging default. */
 a {
   color: var(--color-link-200);
+  text-decoration-thickness: calc(1px * var(--ui-scale, 1));
+  text-underline-offset: calc(2px * var(--ui-scale, 1));
 }
 
 /* Replacing bootstrap 3 colors with bootstrap 5, which have a better color contrast. */
@@ -1237,8 +1224,8 @@ kbd {
  * CSS for the footer header
 */
 .footer-header {
-  font-family: raleway-extrabold, sans-serif;
-  font-weight: bold;
+  font-family: var(--font-accent);
+  font-weight: 800;
   color: var(--color-asphalt-500);
   font-size: 12px;
   line-height: 2.1em;
@@ -1303,7 +1290,6 @@ kbd {
   font-weight: 600;
   color: var(--color-link-200);
   text-decoration: underline;
-  text-underline-offset: 2px;
   overflow-wrap: anywhere;
 }
 
