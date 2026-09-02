@@ -320,9 +320,9 @@ class AdminController @Inject() (
     }
 
     jobRunService
-      .record(UserStatActor.Name, JobRunTrigger.Manual)(adminService.updateUserStatTable(cutoffTime)) { usersUpdated =>
-        Json.obj("users_updated" -> usersUpdated)
-      }
+      .record(UserStatActor.Name, JobRunTrigger.Manual)(adminService.updateUserStatTable(cutoffTime))(
+        UserStatActor.runDetails
+      )
       .map { usersUpdated: Int => Ok(s"User stats updated for $usersUpdated users!") }
   }
 
@@ -335,9 +335,9 @@ class AdminController @Inject() (
   def updateFunnelStats = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     cc.loggingService.insert(request.identity.userId, request.ipAddress, request.toString)
     jobRunService
-      .record(FunnelStatActor.Name, JobRunTrigger.Manual)(adminService.updateFunnelStatTable()) { rowsUpdated =>
-        Json.obj("rows_written" -> rowsUpdated)
-      }
+      .record(FunnelStatActor.Name, JobRunTrigger.Manual)(adminService.updateFunnelStatTable())(
+        FunnelStatActor.runDetails
+      )
       .map { rowsUpdated => Ok(s"Funnel stats updated ($rowsUpdated rows)!") }
   }
 
@@ -976,13 +976,13 @@ class AdminController @Inject() (
    *
    * Recorded as a `Manual` run of the nightly street-priority job (#4928). Only the recalculation step, not the
    * imagery-freshness sync and region_completion rebuild the nightly sequence wraps around it, which is why the run
-   * records no counts.
+   * records a null `regions_seeded` rather than a count.
    */
   def recalculateStreetPriority = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
     jobRunService
       .record(RecalculateStreetPriorityActor.Name, JobRunTrigger.Manual)(streetService.recalculateStreetPriority)(_ =>
-        Json.obj()
+        RecalculateStreetPriorityActor.runDetails(None)
       )
       .map(_ => Ok("Successfully recalculated street priorities"))
   }
@@ -1036,9 +1036,9 @@ class AdminController @Inject() (
   def refreshOsmWayData() = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
     jobRunService
-      .record(OsmWayRefreshActor.Name, JobRunTrigger.Manual)(osmWayService.refreshOsmWayData()) { waysRefreshed =>
-        Json.obj("ways_refreshed" -> waysRefreshed)
-      }
+      .record(OsmWayRefreshActor.Name, JobRunTrigger.Manual)(osmWayService.refreshOsmWayData())(
+        OsmWayRefreshActor.runDetails
+      )
       .map { waysRefreshed => Ok(Json.obj("ways_refreshed" -> waysRefreshed)) }
       .recover { case NonFatal(e) =>
         logger.error("OSM way data refresh failed.", e)

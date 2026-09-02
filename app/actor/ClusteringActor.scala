@@ -4,7 +4,6 @@ import actor.ActorUtils.{dateFormatter, getTimeToNextUpdate}
 import org.apache.pekko.actor.{Actor, Cancellable}
 import play.api.Logger
 import models.utils.JobRunTrigger
-import play.api.libs.json.Json
 import service.{ClusterService, ConfigService, JobRunService}
 
 import java.time.Instant
@@ -58,9 +57,7 @@ class ClusteringActor @Inject() (clusterService: ClusterService, jobRunService: 
     val currentTimeStart: String = dateFormatter.format(Instant.now())
     logger.info(s"Auto-scheduled clustering of labels starting at: $currentTimeStart")
     jobRunService
-      .record(ClusteringActor.Name, JobRunTrigger.Scheduled)(clusterService.runClustering()) { results =>
-        Json.obj("labels_clustered" -> results.labelCount, "clusters_created" -> results.clusterCount)
-      }
+      .record(ClusteringActor.Name, JobRunTrigger.Scheduled)(clusterService.runClustering())(_.runDetails)
       .onComplete {
         case Success(results) =>
           val currentEndTime: String = dateFormatter.format(Instant.now())

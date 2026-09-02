@@ -108,6 +108,12 @@ that found nothing to do, since the absence of a log line is not something anyon
 the roster, flagging any job that is overdue, failed, or has never run. The wrapper is strictly subordinate to the
 job: a bookkeeping failure is logged and swallowed, and a job's own failure propagates unchanged.
 
+A job that both the scheduler and an admin can trigger has exactly one definition of its counts — a `runDetails` on
+the job's result type, or next to the actor's `Name` when the result is a bare count — which both call sites pass to
+`record`. A details object built from a literal at each call site would let the two shapes drift, and `/admin/health`
+charts both triggers as one job (#5044). Jobs with a single call site build theirs inline. `JobRunDetailsSpec` pins
+the key names, which readers of `background_job_run.details` are written against.
+
 ### The public API (`/v3`)
 
 The `/v3` API is the canonical public surface (handlers in `app/controllers/api/`). Conventions (issue #3871):
