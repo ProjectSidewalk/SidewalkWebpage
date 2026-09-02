@@ -109,6 +109,7 @@ case class LabelThumbnailMeta(panoId: String, panoSource: PanoSource, heading: D
  * A compact "who is this contributor" summary for annotating a recent-activity item: their role plus how much they've
  * contributed overall. Lets the admin Activity feed say a bit about each person, not just the single action shown.
  *
+ * @param role        The account's role, which is what the feed annotates each actor with.
  * @param labels      Total labels they've placed (same base as the Contributors page, so the numbers agree).
  * @param validations Total validations they've performed.
  */
@@ -794,9 +795,9 @@ class AdminServiceImpl @Inject() (
       signInTimesAndCounts: Map[String, (Int, Option[OffsetDateTime])] <- webpageActivityTable.getSignInTimesAndCounts
         .map(_.toMap)
       // Map(user_id: String -> label_count: Int).
-      labelCounts: Map[String, Int]                        <- labelTable.countLabelsByUser.map(_.toMap)
-      validatedCounts: Map[String, (Role.Value, Int, Int)] <- labelValidationTable.getValidationCountsByUser
-        .map(_.toMap)
+      labelCounts: Map[String, Int] <- labelTable.countLabelsByUser.map(_.toMap)
+      // Map(user_id: String -> (validated: Int, agreed: Int)).
+      validatedCounts: Map[String, (Int, Int)] <- labelValidationTable.getValidationCountsByUser.map(_.toMap)
       // Map(user_id: String -> (count: Int, agreed: Int, disagreed: Int)).
       othersValidatedCounts: Map[String, (Int, Int)] <- labelValidationTable.getValidatedCountsPerUser.map(_.toMap)
       // Map(user_id: String -> (high_quality: Boolean, high_quality_manual: Option[Boolean])).
@@ -806,9 +807,9 @@ class AdminServiceImpl @Inject() (
     } yield {
       // Now left join them all together and put into UserStatsForAdminPage objects.
       users.map { user =>
-        val ownValidatedCounts = validatedCounts.getOrElse(user.userId, (user.role, 0, 0))
-        val ownValidatedTotal  = ownValidatedCounts._2
-        val ownValidatedAgreed = ownValidatedCounts._3
+        val ownValidatedCounts = validatedCounts.getOrElse(user.userId, (0, 0))
+        val ownValidatedTotal  = ownValidatedCounts._1
+        val ownValidatedAgreed = ownValidatedCounts._2
 
         val otherValidatedCounts = othersValidatedCounts.getOrElse(user.userId, (0, 0))
         val otherValidatedTotal  = otherValidatedCounts._1

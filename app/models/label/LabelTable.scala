@@ -292,8 +292,8 @@ object LabelTable {
   // human (non-AI votes), and ai (AI votes). ORDER MATTERS (see validationStatLabelTypes).
   val validationStatSources: Seq[(String, String)] = Seq(
     "comb"  -> "TRUE",
-    "human" -> s"user_role.role <> '${Role.Ai}'",
-    "ai"    -> s"user_role.role = '${Role.Ai}'"
+    "human" -> "user_role.role <> 'AI'",
+    "ai"    -> "user_role.role = 'AI'"
   )
 
   /**

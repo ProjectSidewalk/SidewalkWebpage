@@ -2,8 +2,8 @@ package formats.json
 
 import models.audit.{AuditedStreetWithTimestamp, ContributionTimeStat, GenericComment}
 import models.label.LabelCount
-import formats.json.UserFormats.roleReads
-import models.user.{Role, UserCount}
+import formats.json.UserFormats.roleWrites
+import models.user.UserCount
 import models.utils.MyPostgresProfile.api._
 import models.validation.{ValidationCount, ValidationOption}
 import play.api.libs.functional.syntax._
@@ -27,7 +27,9 @@ object AdminFormats {
   case class AdminUserSettingsSubmission(
       userId: String,
       username: String,
-      role: Role.Value,
+      // Left as the raw string so an unrecognized role reaches AdminController's ordered checks, which name it
+      // ("Can't assign role X"), rather than failing JSON validation with a generic "Invalid settings: role".
+      role: String,
       teamId: Option[Int],
       highQualityManual: Option[Boolean],
       communityService: Boolean,
@@ -51,7 +53,7 @@ object AdminFormats {
   implicit val adminUserSettingsSubmissionReads: Reads[AdminUserSettingsSubmission] = (
     (JsPath \ "userId").read[String] and
       (JsPath \ "username").read[String].map(_.trim) and
-      (JsPath \ "role").read[Role.Value] and
+      (JsPath \ "role").read[String] and
       (JsPath \ "teamId").readNullable[Int] and
       (JsPath \ "highQualityManual").readNullable[Boolean] and
       (JsPath \ "communityService").read[Boolean] and
@@ -123,7 +125,7 @@ object AdminFormats {
         "street_edge_id"    -> street.streetEdgeId,
         "audit_task_id"     -> street.auditTaskId,
         "user_id"           -> street.userId,
-        "role"              -> street.role.toString,
+        "role"              -> street.role,
         "high_quality_user" -> street.highQuality,
         "task_start"        -> street.taskStart,
         "task_end"          -> street.taskEnd

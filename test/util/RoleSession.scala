@@ -68,8 +68,10 @@ trait RoleSession extends BeforeAndAfterAll { this: PlaySpec with GuiceOneAppPer
   protected def setRole(userId: String, role: Role.Value): Unit = {
     val _ = Await.result(
       roleSessionDbConfig.db.run(
+        // The cast is required: the URL sets no stringtype=unspecified, so pgjdbc binds this as varchar, and Postgres
+        // has no varchar-to-enum assignment cast. Qualified so it doesn't depend on search_path.
         sqlu"""UPDATE sidewalk_login.user_role
-               SET role = ${role.toString}::role
+               SET role = ${role.toString}::sidewalk_login.role
                WHERE user_id = $userId"""
       ),
       60.seconds

@@ -123,7 +123,7 @@ class RouteAuthPostureSpec extends PlaySpec with GuiceOneAppPerSuite {
         sql"""SELECT sidewalk_user.email
               FROM sidewalk_login.sidewalk_user
               INNER JOIN sidewalk_login.user_role ON sidewalk_user.user_id = user_role.user_id
-              WHERE user_role.role = ${role.toString}::role
+              WHERE user_role.role = ${role.toString}::sidewalk_login.role
               LIMIT 1""".as[String].headOption
       ),
       30.seconds

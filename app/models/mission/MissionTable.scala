@@ -98,7 +98,6 @@ class MissionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
   private val logger = Logger(this.getClass)
 
   val missions = TableQuery[MissionTableDef]
-  val users    = TableQuery[SidewalkUserTableDef]
 
   val auditMissions = missions.filter(_.missionType === MissionType.Audit)
 

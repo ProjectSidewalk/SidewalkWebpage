@@ -7,6 +7,11 @@
 -- be a no-op on runs 2..N. Everything it does except CREATE TYPE has an IF [NOT] EXISTS form, so the whole half sits
 -- in a plpgsql DO block guarded on pg_type. Play splits an evolution on every single semicolon, so semicolons inside
 -- the block are doubled to survive the split (precedent: 276.sql, which shipped a dollar-quoted body to prod).
+--
+-- DEPLOY ORDER MATTERS. 270, 295 and 355 read sidewalk_login.role, and 295 also writes user_role.role_id, so a schema
+-- that has not yet replayed all three can never catch up once this runs anywhere. Every schema must be past 355
+-- before this ships, and the committed template dump must be regenerated past it before a new city is onboarded.
+-- Recovering a schema that missed the window: docs/dev-environment.md -> Troubleshooting.
 DO $$
 DECLARE
   fk RECORD;;
@@ -43,11 +48,16 @@ BEGIN
   DROP TABLE sidewalk_login.role;;
   CREATE TYPE sidewalk_login.role AS ENUM
     ('Registered', 'Turker', 'Researcher', 'Administrator', 'Owner', 'Anonymous', 'AI');;
+  -- CREATE TYPE assigns ownership to whichever city role got here first, and city roles are members of `sidewalk`
+  -- but never of each other. Without this, no other city could ever ALTER TYPE ... ADD VALUE or drop it.
+  ALTER TYPE sidewalk_login.role OWNER TO sidewalk;;
   ALTER TABLE sidewalk_login.user_role
     ALTER COLUMN role_id TYPE sidewalk_login.role USING role_name::sidewalk_login.role;;
   ALTER TABLE sidewalk_login.user_role DROP COLUMN role_name;;
   ALTER TABLE sidewalk_login.user_role RENAME COLUMN role_id TO role;;
-  ALTER INDEX IF EXISTS sidewalk_login.user_role_role_id_idx RENAME TO user_role_role_idx;;
+  -- Dropped rather than carried over: 4 lifetime scans against user_id's 37M, since the table is ~99.9% 'Anonymous'
+  -- and every query reaches it by user_id.
+  DROP INDEX IF EXISTS sidewalk_login.user_role_role_id_idx;;
 END $$;
 
 -- Per-city half: point survey_question at the enum too. This runs exactly once per schema, so it needs no guard. The
@@ -113,7 +123,7 @@ BEGIN
       WHEN 'Anonymous' THEN 6
       WHEN 'AI' THEN 7
     END);;
-  ALTER INDEX IF EXISTS sidewalk_login.user_role_role_idx RENAME TO user_role_role_id_idx;;
+  CREATE INDEX IF NOT EXISTS user_role_role_id_idx ON sidewalk_login.user_role (role_id);;
   DROP TYPE sidewalk_login.role;;
 
   CREATE TABLE sidewalk_login.role (
@@ -132,6 +142,10 @@ BEGIN
                       WHERE nspname LIKE 'sidewalk\_%' AND nspname <> 'sidewalk_login'
                         AND to_regclass(nspname || '.survey_question') IS NOT NULL
   LOOP
+    -- A schema cloned from the template after the Ups ran still carries this FK on its untouched INT column, and the
+    -- whole Down is one transaction, so an unguarded ADD would wedge every city above 371.
+    EXECUTE format('ALTER TABLE %I.survey_question '
+                   || 'DROP CONSTRAINT IF EXISTS survey_question_survey_user_role_id_fkey', survey_table.nspname);;
     EXECUTE format('ALTER TABLE %I.survey_question ADD CONSTRAINT survey_question_survey_user_role_id_fkey '
                    || 'FOREIGN KEY (survey_user_role_id) REFERENCES sidewalk_login.role (role_id)',
                    survey_table.nspname);;

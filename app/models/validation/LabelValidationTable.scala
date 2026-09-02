@@ -172,26 +172,28 @@ class LabelValidationTable @Inject() (
 
   /**
    * Select validation counts per user.
-   * @return list of tuples (labeler_id, (labeler_role, labels_validated, agreed_count))
+   *
+   * Deliberately does not join user_role: nothing reads the labeler's role here, and user_role has only a non-unique
+   * index on user_id, so a user carrying more than one role row would double every count.
+   *
+   * @return list of tuples (labeler_id, (labels_validated, agreed_count))
    */
-  def getValidationCountsByUser: DBIO[Seq[(String, (Role.Value, Int, Int))]] = {
+  def getValidationCountsByUser: DBIO[Seq[(String, (Int, Int))]] = {
     val _labels = for {
-      _label    <- labelTable.labelsWithExcludedUsers
-      _user     <- users if _user.userId === _label.userId // User who placed the label.
-      _userRole <- userRoles if _user.userId === _userRole.userId
+      _label <- labelTable.labelsWithExcludedUsers
+      _user  <- users if _user.userId === _label.userId // User who placed the label.
       if _label.correct.isDefined // Filter for labels marked as either correct or incorrect.
-    } yield (_user.userId, _userRole.role, _label.correct)
+    } yield (_user.userId, _label.correct)
 
     // Count the number of correct labels and total number marked as either correct or incorrect for each user.
     _labels
-      .groupBy(l => (l._1, l._2))
-      .map { case ((userId, role), group) =>
+      .groupBy(_._1)
+      .map { case (userId, group) =>
         (
           userId,
           (
-            role,
             group.length, // # Correct or incorrect.
-            group.map(l => Case.If(l._3.getOrElse(false) === true).Then(1).Else(0)).sum.getOrElse(0) // # Correct labels
+            group.map(l => Case.If(l._2.getOrElse(false) === true).Then(1).Else(0)).sum.getOrElse(0) // # Correct labels
           )
         )
       }

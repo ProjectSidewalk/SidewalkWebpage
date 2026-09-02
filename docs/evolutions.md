@@ -42,8 +42,13 @@ easy to forget, and a missed one has to be patched by a later evolution (321.sql
 
 - **SERIAL / identity sequences** are covered automatically. `ALTER TABLE … OWNER TO` recursively reassigns any
   sequence a column owns.
-- **Enum types, views, and standalone sequences do not get an owner change.** The app only needs default
-  `USAGE`/`SELECT` on those, which it already has, and they're never altered at runtime.
+- **Enum types, views, and standalone sequences in a city schema do not get an owner change.** The app only needs
+  default `USAGE`/`SELECT` on those, which it already has, and they're never altered at runtime.
+- **An object in the shared `sidewalk_login` schema does**, including an enum type. `CREATE TYPE` assigns ownership
+  to `current_user`, which in prod is whichever *city* role ran the evolution first, and city roles are members of
+  `sidewalk` but never of each other. Without `ALTER TYPE … OWNER TO sidewalk`, no other city can ever
+  `ALTER TYPE … ADD VALUE` or drop it — it fails with `must be owner of type`. Dev and CI miss this because they run
+  every city as one role.
 
 ## Give every table its full set of constraints
 
@@ -88,6 +93,14 @@ indexes, but `CREATE TYPE` has no such form, so that half of the evolution goes 
 survives intact (276.sql shipped one to prod). Dropping such a lookup table also means dropping the FKs every *other*
 city schema still has pointing at it; those cities keep working on their int column, unenforced, until their own run
 converts it.
+
+**It also breaks replay for every schema still behind.** An evolution that drops or renames something in
+`sidewalk_login` removes it for *all* schemas the moment the first city runs, so any earlier evolution that reads it
+can never run again. 371.sql could not ship until every schema was past 355, because 270, 295 and 355 all read
+`sidewalk_login.role` and 295 also writes `user_role.role_id`. Editing those old files is not the escape hatch: Play
+keys applied evolutions by hash, so changing one makes every schema that already applied it revert back down to that
+number and re-apply. The workable order is to bring every deployment past the last reader first, regenerate the
+committed template dump, and only then merge.
 
 ## Renaming a table or column renames nothing else
 
