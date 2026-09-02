@@ -9,9 +9,9 @@
  * gated by default and stays gated unless someone writes it into EXEMPT_PAGES with a reason. Loading goes through
  * `loadAndSettle`, so what axe measures is the same settled DOM the error gate measures.
  *
- * Coverage follows the data, and the two environments see different pages: CI runs against an empty schema, where
- * /gallery has no cards and /leaderboard no rows, but where the api-docs previews render their error state — which
- * is how CI caught contrast bugs a seeded local run never reaches. Neither run subsumes the other.
+ * Coverage follows the data: CI's seed puts a few cards on /gallery and a few rows on /leaderboard where a dev DB
+ * puts thousands, so what only volume brings out (a wrapped long username, a grid that overflows past N cards) is
+ * visible locally and not in CI.
  */
 const {test, expect, loadAndSettle} = require('./fixtures');
 const AxeBuilder = require('@axe-core/playwright').default;

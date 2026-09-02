@@ -4,7 +4,7 @@ import actor.ActorUtils.{dateFormatter, getTimeToNextUpdate}
 import org.apache.pekko.actor.{Actor, Cancellable}
 import play.api.Logger
 import models.utils.JobRunTrigger
-import play.api.libs.json.Json
+import play.api.libs.json.{JsObject, Json}
 import service.{ConfigService, JobRunService, OsmWayService}
 
 import java.time.Instant
@@ -16,6 +16,17 @@ import scala.util.{Failure, Success}
 object OsmWayRefreshActor {
   val Name = "osm-way-refresh-actor"
   case object Tick
+
+  /**
+   * The counts as they are stored against a `background_job_run` row.
+   *
+   * Defined here rather than at each call site so the nightly refresh and the admin hand-trigger can't record the
+   * same job under two different shapes.
+   *
+   * @param waysRefreshed Ways re-fetched from Overpass and upserted into `osm_way`.
+   * @return The run's `details` object.
+   */
+  def runDetails(waysRefreshed: Int): JsObject = Json.obj("ways_refreshed" -> waysRefreshed)
 }
 
 /**
@@ -64,9 +75,9 @@ class OsmWayRefreshActor @Inject() (osmWayService: OsmWayService, jobRunService:
     val currentTimeStart: String = dateFormatter.format(Instant.now())
     logger.info(s"Auto-scheduled OSM way data refresh starting at: $currentTimeStart")
     jobRunService
-      .record(OsmWayRefreshActor.Name, JobRunTrigger.Scheduled)(osmWayService.refreshOsmWayData()) { waysRefreshed =>
-        Json.obj("ways_refreshed" -> waysRefreshed)
-      }
+      .record(OsmWayRefreshActor.Name, JobRunTrigger.Scheduled)(osmWayService.refreshOsmWayData())(
+        OsmWayRefreshActor.runDetails
+      )
       .onComplete {
         case Success(waysRefreshed) =>
           logger.info(s"OSM way data refresh completed at: ${dateFormatter.format(Instant.now())}")
