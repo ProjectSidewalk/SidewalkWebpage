@@ -1,0 +1,68 @@
+@import models.partner.PartnerMetadata
+@import models.utils.SlugUtils
+@(partners: Seq[PartnerMetadata], cityName: String)(implicit messages: Messages, assets: AssetsFinder)
+
+@*
+* The landing page's partners section (#4516), in two halves: the admin-managed "Community Partners in <city>" logos
+* (global partners first, then the current city's), served from the DB via /partnerLogo with a logo-version cache
+* buster; and a "Project Sidewalk was created with <heart> by" credit — the three static creator logos (Makeability
+* Lab, UW, UIC IDHD) plus a prose credit to the long-time partners, students, and volunteers who shaped the tool.
+* With no partners yet, only the created-by half renders — never an orphaned heading. Anchors carry
+* data-partner-source so the landing pages' delegated handlers (homepage.js on desktop, mobileLanding's inline
+* script on mobile) can log clicks without per-partner markup.
+*@
+
+@logoImg(p: PartnerMetadata) = {
+  <img loading="lazy" src="@routes.PartnerController.servePartnerLogo(p.partnerId)?v=@p.logoVersion"
+  width="@p.logoWidth" height="@p.logoHeight"
+  alt="@p.altText.getOrElse(Messages("landing.partners.logo.alt", p.name))">
+}
+
+@* A flat heart rather than the ❤️ emoji, whose glossy, drop-shadowed platform rendering out-shouted the words
+* around it. role/aria-label so it is still read as the word it stands in for. *@
+@heart = {<svg class="creators-heart" viewBox="0 0 24 24" focusable="false"
+  role="img" aria-label="@Messages("landing.partners.created.heart")"><path
+  d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>}
+
+<div class="container" id="partners-container">
+  @if(partners.nonEmpty) {
+    <h2 class="partner-section-heading" id="partners-title">@Messages("landing.partners.title", cityName)</h2>
+    <p class="partner-section-tagline" id="partners-tagline">@Messages("landing.partners.tagline", cityName)</p>
+    <div class="partner-logos">
+      @for(p <- partners) {
+        <div class="partner-logo">
+          @* No-URL partners render a bare img — an <a> without href would read as a broken link. *@
+          @if(p.url.isDefined) {
+            <a href="@p.url" data-partner-source="@SlugUtils.slugify(p.name, s"partner-${p.partnerId}")">@logoImg(p)</a>
+          } else {
+            @logoImg(p)
+          }
+        </div>
+      }
+    </div>
+  }
+  <h2 class="partner-section-heading" id="creators-title">
+    @Html(Messages("landing.partners.created.by", heart))
+  </h2>
+  <div class="partner-logos partner-logos--creators">
+    <div class="partner-logo">
+      <a href="https://makeabilitylab.cs.washington.edu/" data-partner-source="makeability-lab">
+        <img loading="lazy" src='@assets.path("images/logos/makeability-lab-logo.png")' width="600" height="485"
+        alt="@Messages("landing.partners.creator.makeability.alt")">
+      </a>
+    </div>
+    <div class="partner-logo">
+      <a href="https://www.cs.washington.edu/" data-partner-source="uw-allen-school">
+        <img loading="lazy" src='@assets.path("images/logos/uw-allen-school-logo.png")' width="900" height="262"
+        alt="@Messages("landing.partners.creator.uw.alt")">
+      </a>
+    </div>
+    <div class="partner-logo">
+      <a href="https://idhd.ahs.uic.edu/" data-partner-source="uic-idhd">
+        <img loading="lazy" src='@assets.path("images/logos/uic-idhd-logo.png")' width="500" height="196"
+        alt="@Messages("landing.partners.creator.uic.alt")">
+      </a>
+    </div>
+  </div>
+  <p class="partner-section-tagline" id="partners-credit">@Html(Messages("landing.partners.created.credits"))</p>
+</div>

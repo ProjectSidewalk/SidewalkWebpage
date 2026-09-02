@@ -307,6 +307,19 @@ class AdminDashboardController @Inject() (
   }
 
   /**
+   * Renders the Partners page: the community-partner logos shown on the landing page (#4516).
+   *
+   * Any admin manages the current city's partners here; the global list (every deployment's landing page) is
+   * rendered for context but editable only by Owners, enforced on the /adminapi/globalPartners routes.
+   */
+  def partners = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Admin_Partners")
+      Ok(views.html.admin.dashboard.partners(commonData, request.identity))
+    }
+  }
+
+  /**
    * The Imagery page's pipeline endpoint: nightly poll/flag counts and job state as snake_case JSON (#4908).
    *
    * @param days Window size; clamped by [[ImageryFreshnessReportService.clampDays]], so a junk value narrows the
