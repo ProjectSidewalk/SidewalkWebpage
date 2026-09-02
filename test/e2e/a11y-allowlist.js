@@ -21,18 +21,7 @@
 const EXEMPT_PAGES = {};
 
 /** Known, tracked violations keyed by page path, as `{rule, selector?, issue, note}`. */
-const A11Y_ALLOWLIST = {
-  // No selector on these two: MapboxSearchBox hashes its class names per mount (.mbx0420900a--Input one load,
-  // .mbx00a6ef43--Input the next), so there is nothing stable to scope the entry to.
-  '/labelMap': [
-    {rule: 'aria-required-attr', issue: '#5087',
-      note: "MapboxSearchBox's input is role=combobox with no aria-expanded; vendor DOM"},
-  ],
-  '/routeBuilder': [
-    {rule: 'aria-required-attr', issue: '#5087',
-      note: "MapboxSearchBox's input is role=combobox with no aria-expanded; vendor DOM"},
-  ],
-};
+const A11Y_ALLOWLIST = {};
 
 /**
  * Splits a page's axe violations into what its allowlist covers and what fails the gate.

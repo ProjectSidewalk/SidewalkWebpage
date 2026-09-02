@@ -165,7 +165,10 @@ function initLabelMapLocationSearch(map, mapboxApiKey) {
 
   // onAdd(map) binds the map (enabling the auto-flyTo and a map-center proximity bias) and returns the
   // control's DOM element, which we place inside the sidebar instead of handing to map.addControl().
-  container.appendChild(searchBox.onAdd(map));
+  const searchBoxElement = searchBox.onAdd(map);
+  container.appendChild(searchBoxElement);
+  // Seed the aria-expanded that Search JS itself only writes once its result list has opened (#5087).
+  searchBoxElement.querySelector('input[role="combobox"]')?.setAttribute('aria-expanded', 'false');
 
   // On selecting a result, drop a pin the user can hover/focus to open the "explore here" invitation (#4451). The
   // popup is deliberately NOT opened on selection: someone searching an address on the LabelMap is there to look at
