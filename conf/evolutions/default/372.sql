@@ -10,7 +10,7 @@
 --
 -- DEPLOY ORDER MATTERS. 270, 295 and 355 read sidewalk_login.role, and 295 also writes user_role.role_id, so a schema
 -- that has not yet replayed all three can never catch up once this runs anywhere. Every schema must be past 355
--- before this ships. The committed template dumps were regenerated past 371 in this PR for the same reason.
+-- before this ships. The committed template dumps were regenerated past 372 in this PR for the same reason.
 -- Recovering a schema that missed the window: docs/dev-environment.md -> Troubleshooting.
 DO $$
 DECLARE
@@ -28,7 +28,7 @@ BEGIN
      OR EXISTS (SELECT 1 FROM sidewalk_login.role
                 WHERE (role_id, role) NOT IN ((1, 'Registered'), (2, 'Turker'), (3, 'Researcher'),
                                               (4, 'Administrator'), (5, 'Owner'), (6, 'Anonymous'), (7, 'AI'))) THEN
-    RAISE EXCEPTION 'sidewalk_login.role does not match the canonical role id to name map, so 371.sql cannot run';;
+    RAISE EXCEPTION 'sidewalk_login.role does not match the canonical role id to name map, so 372.sql cannot run';;
   END IF;;
 
   -- Every city's survey_question points at this table, and the table cannot be dropped while any of those FKs stand.
@@ -143,7 +143,7 @@ BEGIN
                         AND to_regclass(nspname || '.survey_question') IS NOT NULL
   LOOP
     -- A schema cloned from the template after the Ups ran still carries this FK on its untouched INT column, and the
-    -- whole Down is one transaction, so an unguarded ADD would wedge every city above 371.
+    -- whole Down is one transaction, so an unguarded ADD would wedge every city above 372.
     EXECUTE format('ALTER TABLE %I.survey_question '
                    || 'DROP CONSTRAINT IF EXISTS survey_question_survey_user_role_id_fkey', survey_table.nspname);;
     EXECUTE format('ALTER TABLE %I.survey_question ADD CONSTRAINT survey_question_survey_user_role_id_fkey '

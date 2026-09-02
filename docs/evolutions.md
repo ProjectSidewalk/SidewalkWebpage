@@ -88,7 +88,7 @@ built from user input must validate values first (an invalid literal is a Postgr
 **An enum in the shared `sidewalk_login` schema needs a plpgsql guard.** Evolutions run once per city schema, so
 anything touching `sidewalk_login` has to be a no-op on runs 2..N. `IF NOT EXISTS` covers tables, columns and
 indexes, but `CREATE TYPE` has no such form, so that half of the evolution goes in a `DO $$ ... $$` block guarded on
-`pg_type` (371.sql). Play splits a script on every single `;`, so **every semicolon inside the block must be doubled**
+`pg_type` (372.sql). Play splits a script on every single `;`, so **every semicolon inside the block must be doubled**
 — its splitter is `sql.split("(?<!;);(?!;)")` followed by `replace(";;", ";")`, which is also why a dollar-quoted body
 survives intact (276.sql shipped one to prod). Dropping such a lookup table also means dropping the FKs every *other*
 city schema still has pointing at it; those cities keep working on their int column, unenforced, until their own run
@@ -96,7 +96,7 @@ converts it.
 
 **It also breaks replay for every schema still behind.** An evolution that drops or renames something in
 `sidewalk_login` removes it for *all* schemas the moment the first city runs, so any earlier evolution that reads it
-can never run again. 371.sql could not ship until every schema was past 355, because 270, 295 and 355 all read
+can never run again. 372.sql could not ship until every schema was past 355, because 270, 295 and 355 all read
 `sidewalk_login.role` and 295 also writes `user_role.role_id`. Editing those old files is not the escape hatch: Play
 keys applied evolutions by hash, so changing one makes every schema that already applied it revert back down to that
 number and re-apply. The workable order is to bring every deployment past the last reader first, regenerate the

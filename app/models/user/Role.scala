@@ -3,7 +3,7 @@ package models.user
 /**
  * Enumeration of the roles a user account can hold, backing the `role` Postgres enum type.
  *
- * NOTE: if changing these values, update the `role` Postgres enum type as well (see 371.sql). The string values are
+ * NOTE: if changing these values, update the `role` Postgres enum type as well (see 372.sql). The string values are
  * emitted directly in admin JSON and in the `role` field of several API responses.
  */
 object Role extends Enumeration {
