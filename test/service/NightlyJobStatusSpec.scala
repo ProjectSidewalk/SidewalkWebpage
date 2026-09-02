@@ -62,10 +62,10 @@ class NightlyJobStatusSpec extends PlaySpec with BeforeAndAfterAll with GuiceOne
     }
   }
 
-  /** How many runs the database records for this job, of any age, that this suite did not seed. */
-  private def foreignRuns: Int = run(jobRunTable.backgroundJobRuns.filter(_.jobName === jobName).length.result)
+  /** The jobs the database records at least one run for, this suite's own seeds included. */
+  private def recordedJobs: Set[String] = run(jobRunTable.backgroundJobRuns.map(_.jobName).distinct.result).toSet
 
-  /** How many of those started inside the window the panel counts over. */
+  /** How many runs this job has inside the window the panel counts over, that this suite did not seed. */
   private def foreignRunsInWindow: Int = run(
     jobRunTable.backgroundJobRuns
       .filter(row =>
@@ -114,24 +114,29 @@ class NightlyJobStatusSpec extends PlaySpec with BeforeAndAfterAll with GuiceOne
    * The service caches its job read, so the cache is dropped first — otherwise every case after the first would
    * assert against the previous one's history.
    */
-  private def jobStatus(): NightlyJobStatus = {
+  private def roster(): Seq[NightlyJobStatus] = {
     await(cacheApi.removeAll())
     await(healthService.getDbHealth).nightlyJobs
-      .find(_.jobName == jobName)
-      .getOrElse(fail(s"$jobName is missing from the nightly-jobs roster"))
   }
+
+  /** This job's row on the panel. */
+  private def jobStatus(): NightlyJobStatus =
+    roster().find(_.jobName == jobName).getOrElse(fail(s"$jobName is missing from the nightly-jobs roster"))
 
   override def afterAll(): Unit = { cleanUp(); super.afterAll() }
 
   "the nightly-jobs panel" should {
     "report a job with no runs at all as overdue" in {
-      resetHistory()
-      // The one case that needs the job name to itself all the way back, since any run the database holds is a run.
-      assume(foreignRuns == 0, s"$jobName already has runs recorded in this database")
+      cleanUp()
+      // Asserted on whichever nightly job the database has no run for, rather than on the sweep this suite otherwise
+      // pins. What is under test is that the roster carries a job the rows don't, and pinning a name would need the
+      // database to hold none of that one job's runs -- true of CI's seed, but not of a developer's database, where
+      // deleting them to make it true is what #5041 was about. Cancels only if every nightly job has run.
+      val unused = roster().filterNot(job => recordedJobs.contains(job.jobName))
+      assume(unused.nonEmpty, "every nightly job has runs recorded in this database")
 
-      val job = jobStatus()
-      job.lastStatus mustBe "never_run"
-      job.overdue mustBe true
+      unused.head.lastStatus mustBe "never_run"
+      unused.head.overdue mustBe true
     }
 
     "clear the alarm for a recent scheduled success" in {

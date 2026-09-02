@@ -86,9 +86,14 @@ class ImageryFreshnessReportServiceSpec extends PlaySpec with BeforeAndAfterAll 
     .take(count)
     .toSeq
 
-  /** How many runs the database records for a job that this suite did not seed. */
-  private def foreignRuns(job: String): Int =
-    run(jobRunTable.backgroundJobRuns.filter(_.jobName === job).length.result)
+  /** The charted jobs the database records at least one run for, this suite's own seeds included. */
+  private def recordedJobs: Set[String] = run(
+    jobRunTable.backgroundJobRuns
+      .filter(_.jobName.inSet(ImageryFreshnessReportService.JobNames))
+      .map(_.jobName)
+      .distinct
+      .result
+  ).toSet
 
   /** Seeds one finished run with the counts it recorded. */
   private def seed(
@@ -136,16 +141,18 @@ class ImageryFreshnessReportServiceSpec extends PlaySpec with BeforeAndAfterAll 
 
     "report a job that has never run rather than omitting it" in {
       cleanUp()
-      // The one case that needs the job name to itself, since any run the database already holds is a run. It is
-      // cancelled rather than asserted against a database that holds one, because deleting that run to make the
-      // assertion pass is exactly what #5041 was about. CI's schema records none, so there it always runs.
-      assume(foreignRuns(pollJob) == 0, s"$pollJob already has runs recorded in this database")
+      // Asserted on whichever charted job the database has no run for, rather than on the poll by name. What is under
+      // test is that the roster carries a job the rows don't, and pinning a name would need the database to hold none
+      // of that one job's runs -- which is true of CI's seed but not of a developer's database, where deleting them to
+      // make it true is what #5041 was about. Cancels only if every charted job has run, which no seed makes true.
+      val unused = ImageryFreshnessReportService.JobNames.filterNot(recordedJobs.contains)
+      assume(unused.nonEmpty, "every charted job has runs recorded in this database")
 
       // A scheduler that never started leaves no rows at all; a rows-driven listing renders that as a clean panel.
-      val poll = report().jobs.find(_.jobName == pollJob).get
-      poll.lastStatus mustBe "never_run"
-      poll.hoursSinceLastRun mustBe None
-      poll.overdue mustBe true
+      val job = report().jobs.find(_.jobName == unused.head).get
+      job.lastStatus mustBe "never_run"
+      job.hoursSinceLastRun mustBe None
+      job.overdue mustBe true
     }
 
     "fold a night's poll and sync runs into one row of the series" in {
