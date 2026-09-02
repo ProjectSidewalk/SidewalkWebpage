@@ -35,15 +35,15 @@ const CONSOLE_ERROR_ALLOWLIST = [
   // the player's own base.js. Intermittent: it fires only when the player boots far enough within the settle
   // window. Anchored to the violation text plus a youtube.com source so nothing of ours can hide behind it.
   /^console\.error: Permissions policy violation: compute-pressure .+ \(https:\/\/www\.youtube\.com\/.+\)$/,
-  // The rawLabels/streets api-docs live previews pick a demo region via /v3/api/regionWithMostLabels. CI's
-  // database is the bare sidewalk_init template — no labels, so there is nothing to pick and the endpoint 404s.
-  // Three messages come out of that one 404: Chromium's own "Failed to load resource" line (matched by the URL)
-  // and the preview's two handled errors (matched by their shared phrase). The page still initializes, and
-  // against any seeded database — local dev included — none of them fire. Drop both entries when phase 2 seeds
-  // CI label data, at which point a 404 here would mean something real.
-  /regionWithMostLabels/,
-  /region with most labels/,
 ];
+
+// Without a real Google Maps key the Maps JS API refuses to initialize and says so on every page that loads it —
+// an environment fact, not page breakage, and the state on fork PRs (where the GOOGLE_MAPS_API_KEY_TEST secret is
+// withheld) and on a dev setup with no key. Conditional, because with a key configured the same message means
+// something real: a revoked key, or referrer restrictions that don't cover the host under test.
+if (process.env.HAS_REAL_GMAPS_KEY !== 'true') {
+  CONSOLE_ERROR_ALLOWLIST.push(/^console\.error: Google Maps JavaScript API error: InvalidKeyMapError/);
+}
 
 // Minimal Mapbox style the app's runtime accepts: MapboxLanguage throws unless the style has a vector source
 // based on mapbox-streets-v8, and addLayer rejects `text-field` layers (RouteBuilder's labels) unless the
@@ -93,6 +93,24 @@ async function stubMapbox(context) {
   await context.route(/https:\/\/api\.mapbox\.com\/fonts\/v1\/.*/, (route) =>
     route.fulfill({body: STUB_GLYPH_PBF, contentType: 'application/x-protobuf'}));
   await context.route(/https:\/\/api\.mapbox\.com\/styles\/v1\/.*/, (route) => route.fulfill({json: STUB_STYLE}));
+}
+
+/**
+ * Stubs Google's Street View static-image API, the fallback for any page showing a label with no local crop.
+ *
+ * Its URL is signed with GOOGLE_MAPS_SECRET — a dummy in CI, absent from most dev setups — so the request is refused
+ * wherever this suite runs, and Chromium logs each refusal as a console error the suite reads as breakage. Scoped to
+ * the streetview endpoints so the Maps JS API (maps/api/js, which Explore genuinely needs) still goes through.
+ *
+ * @param {import('@playwright/test').BrowserContext} context - The context whose requests to intercept.
+ */
+async function stubStreetViewImages(context) {
+  // 1x1 transparent PNG, so an <img> pointed at it fires `load` rather than `error`.
+  const pixel = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+    'base64');
+  await context.route(/https:\/\/maps\.googleapis\.com\/maps\/api\/streetview(\/|\?).*/, (route) =>
+    route.fulfill({body: pixel, contentType: 'image/png'}));
 }
 
 /**
@@ -254,6 +272,15 @@ async function horizontalOverflowReport(page) {
 
 const test = base.test.extend({
   /**
+   * The test's browser context, with Street View imagery already stubbed. A fixture rather than a per-page flag
+   * like `mapbox`: any page can carry a label image, and none can load one anywhere this suite runs.
+   */
+  context: async ({context}, use) => {
+    await stubStreetViewImages(context);
+    await use(context);
+  },
+
+  /**
    * Collects uncaught exceptions and non-allowlisted console errors for the test's page. Specs assert
    * `expect(consoleErrors).toEqual([])` at the end; an empty diff prints the offending messages verbatim.
    */
@@ -274,6 +301,7 @@ module.exports = {
   test,
   expect: base.expect,
   stubMapbox,
+  stubStreetViewImages,
   stubMakeabilityLab,
   stubMapBaseLayers,
   waitForAppReady,

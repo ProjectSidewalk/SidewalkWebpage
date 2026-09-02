@@ -299,7 +299,7 @@ make test-e2e wt=<worktree-name>            # a worktree's specs
 ```
 
 Nothing to install: the runner is a container, so it behaves the same on macOS, Linux, and WSL — including Apple
-Silicon, where it runs a native browser. CI runs the same suite on every PR as the advisory `e2e-smoke` job. Full
+Silicon, where it runs a native browser. CI runs the same suite on every PR as the `e2e-smoke` job. Full
 details, including how to watch a test run headed, are in [`test/e2e/README.md`](../test/e2e/README.md).
 
 ### Running a branch from a git worktree

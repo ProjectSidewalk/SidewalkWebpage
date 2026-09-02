@@ -299,10 +299,10 @@
       canvas.height = container.offsetHeight;
       container.appendChild(canvas);
 
-      // Get label types with severity data.
+      // A type with no labels comes back as null, and Occlusion/Signal carry no severity, so the key being present
+      // says nothing about whether it can be charted.
       const labelTypes = Object.keys(data.labels)
-        .filter((key) => key !== 'label_count'
-          && data.labels[key].severity_mean !== undefined);
+        .filter((key) => key !== 'label_count' && typeof data.labels[key]?.severity_mean === 'number');
 
       // Sort label types by severity (descending).
       labelTypes.sort((a, b) => data.labels[b].severity_mean - data.labels[a].severity_mean);

@@ -85,20 +85,18 @@ next).
 
 ### Where it runs in CI
 
-In the `e2e-smoke` job, as its own **blocking** step (`--project=a11y`). The rest of that job — the runtime-error
-smoke suite — stays advisory, so the `continue-on-error` flag sits on *that* step rather than on the job, where it
-would excuse the gate too. The gate is a Playwright project rather than a `--grep` so the two halves are partitioned
+In the `e2e-smoke` job, as its own **blocking** step (`--project=a11y`), ahead of the runtime-error smoke suite —
+also blocking since #5115. The gate is a Playwright project rather than a `--grep` so the two halves are partitioned
 by which file a spec lives in, not by how its title is worded.
 
 Gating is safe this early precisely because a page is only in the table once its violations are fixed or tracked, so
 a failure is a regression against a standard we already meet. Adding a page is what takes judgment; keeping the ones
 already there green is not.
 
-One caveat on what that gate sees: the job runs against an empty schema, so `/gallery` renders no cards and
-`/leaderboard` no rows. Violations that only appear once there is data — most of what the first pass fixed — are
-checked when the suite runs against a seeded DB, not by CI. The reverse is also true, so run both: the empty schema
-puts the api-docs previews into their error state, which is how CI caught two contrast bugs a seeded local run
-never reaches.
+One caveat on what that gate sees: CI's seed (`test/e2e/fixtures/ci-seed.sql`) puts a handful of gallery cards
+and leaderboard rows on the page, not the thousands a dev DB holds. Violations that only appear at volume — a
+wrapped long username, a grid that only overflows past N cards — are checked when the suite runs against a seeded
+DB, not by CI, so it is still worth running both.
 
 Note that a failing job only *blocks a merge* once the check is required in branch protection — see
 [`docs/testing-and-ci.md`](testing-and-ci.md). The open data portal pages
