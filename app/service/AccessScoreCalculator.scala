@@ -56,8 +56,8 @@ object AccessScoreCalculator {
   /** Names of the label types that contribute to the score. Single source of truth for the DB query's type filter. */
   val scoredTypeNames: Set[String] = typeWeights.keySet
 
-  /** Scored types in a stable order (by label-type id) so CSV/shapefile columns never drift from the header. */
-  val orderedScoredTypes: Seq[String] = scoredTypeNames.toSeq.sortBy(LabelTypeEnum.labelTypeToId)
+  /** Scored types in the canonical label type order so CSV/shapefile columns never drift from the header. */
+  val orderedScoredTypes: Seq[String] = LabelTypeEnum.orderedNames.filter(scoredTypeNames.contains)
 
   // --- TUNABLE: quality multiplier for PositiveQuality types. Signed: Bad(3) flips a positive base to a penalty. ---
   private val qualityMultiplier: Map[Int, Double] = Map(1 -> 1.0, 2 -> 0.5, 3 -> -1.0)

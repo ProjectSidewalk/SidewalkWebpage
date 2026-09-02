@@ -145,8 +145,7 @@ class StoryServiceImpl @Inject() (
    * LabelTypeEnum.isAccessProblem — the card's story prompts flip phrasing on this. None when the label doesn't exist.
    */
   def isLabelAccessProblem(labelId: Int): Future[Option[Boolean]] = {
-    db.run(storyTable.labelTypeIdForLabel(labelId))
-      .map(_.flatMap(typeId => LabelTypeEnum.byId.get(typeId).map(_.isAccessProblem)))
+    db.run(storyTable.labelTypeForLabel(labelId)).map(_.map(_.isAccessProblem))
   }
 
   def submitStory(
@@ -381,12 +380,9 @@ class StoryServiceImpl @Inject() (
   def getStoriesForUser(userId: String): Future[Seq[StoryForOwner]] = {
     db.run(storyTable.getForUser(userId)).flatMap { rows =>
       // Photoless stories fall back to a label preview so every dashboard row can carry a thumbnail (#4656).
-      val photolessTypes = rows.collect { case (story, None, labelTypeId) =>
-        story.labelId -> LabelTypeEnum.byId(labelTypeId)
-      }.toMap
+      val photolessTypes = rows.collect { case (story, None, labelType) => story.labelId -> labelType }.toMap
       labelPreviewUrls(photolessTypes).map { previewById =>
-        rows.map { case (story, media, labelTypeId) =>
-          val labelType = LabelTypeEnum.byId(labelTypeId)
+        rows.map { case (story, media, labelType) =>
           StoryForOwner(
             story,
             labelType.name,
@@ -401,15 +397,15 @@ class StoryServiceImpl @Inject() (
 
   def getStoriesForCity(n: Int): Future[Seq[StoryForListing]] = {
     db.run(storyTable.getVisibleForCity(n)).flatMap { rows =>
-      val photolessTypes = rows.collect { case (story, None, _, labelTypeId, _, _, _) =>
-        story.labelId -> LabelTypeEnum.byId(labelTypeId)
+      val photolessTypes = rows.collect { case (story, None, _, labelType, _, _, _) =>
+        story.labelId -> labelType
       }.toMap
       labelPreviewUrls(photolessTypes).map { previewById =>
-        rows.map { case (story, media, username, labelTypeId, regionId, regionName, address) =>
+        rows.map { case (story, media, username, labelType, regionId, regionName, address) =>
           StoryForListing(
             storyId = story.storyId,
             labelId = story.labelId,
-            labelType = LabelTypeEnum.byId(labelTypeId),
+            labelType = labelType,
             regionId = regionId,
             regionName = regionName,
             address = address,
@@ -426,8 +422,8 @@ class StoryServiceImpl @Inject() (
 
   def getRecentStories(n: Int): Future[Seq[StoryForAdmin]] = {
     db.run(storyTable.getRecent(n))
-      .map(_.map { case (story, media, username, labelTypeId) =>
-        StoryForAdmin(story, username, LabelTypeEnum.labelTypeIdToLabelType(labelTypeId), media.map(toMediaForView))
+      .map(_.map { case (story, media, username, labelType) =>
+        StoryForAdmin(story, username, labelType.name, media.map(toMediaForView))
       })
   }
 

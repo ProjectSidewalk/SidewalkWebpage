@@ -281,7 +281,7 @@ run per interpreter, the in-band leg blocking and the offline-tooling leg adviso
 
 ## Label types
 
-Every label type (CurbRamp, NoCurbRamp, Obstacle, SurfaceProblem, NoSidewalk, Crosswalk, Signal, Other, …) has a
+Every label type (CurbRamp, NoCurbRamp, Obstacle, SurfaceProblem, Crosswalk, Signal, NoSidewalk, Other, …) has a
 canonical color and icon set. The source of truth is the **`/v3/api/labelTypes`** endpoint; in frontend code use
 `util.misc.getLabelColors(labelType)` rather than hardcoding hex values. See [`CLAUDE.md`](../CLAUDE.md) for the
 canonical color table and icon locations.

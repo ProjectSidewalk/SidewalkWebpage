@@ -73,7 +73,8 @@ class LabelApiController @Inject() (
    */
   def getLabelTypes = silhouette.UserAwareAction.async { request =>
     cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
-    val labelTypeDetailsList: Seq[LabelTypeForApi] = apiService.getLabelTypes(request.lang).toList.sortBy(_.id)
+    val labelTypeDetailsList: Seq[LabelTypeForApi] =
+      apiService.getLabelTypes(request.lang).toList.sortBy(lt => LabelTypeEnum.orderedNames.indexOf(lt.name))
     Future.successful(Ok(Json.obj("status" -> "OK", "label_types" -> labelTypeDetailsList)))
   }
 
@@ -97,7 +98,7 @@ class LabelApiController @Inject() (
 
           LabelTagForApi(
             id = tag.tagId,
-            labelType = LabelTypeEnum.labelTypeIdToLabelType(tag.labelTypeId),
+            labelType = tag.labelType.name,
             tag = tag.tag,
             description = messagesApi(s"tag.description.${tag.tagId}")(request.lang),
             mutuallyExclusiveWith = mutuallyExclusiveList
@@ -168,9 +169,7 @@ class LabelApiController @Inject() (
     // from its menus (config's excluded tags) may still be carried by existing labels, so filtering on it is valid.
     labelService.selectAllTagsFuture.flatMap { cityTags =>
       val tagsByLabelType: Map[String, Set[String]] =
-        cityTags.groupMap(t => LabelTypeEnum.labelTypeIdToLabelType(t.labelTypeId))(_.tag).map { case (lt, tagNames) =>
-          lt -> tagNames.toSet
-        }
+        cityTags.groupMap(_.labelType.name)(_.tag).map { case (lt, tagNames) => lt -> tagNames.toSet }
       val parsedTags = TagFilterForApi.parse(tags, LabelTypeEnum.labelTypeNames, tagsByLabelType)
 
       // Collect the first invalid-parameter error, if any.

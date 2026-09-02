@@ -77,22 +77,17 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
   private val FixtureUserId   = "zz-fixture-4533"
   private val FixtureUsername = "zz_fixture_4533"
 
-  private lazy val someLabelTypeId: Option[Int] =
-    await(dbConfig.db.run(sql"SELECT label_type_id FROM label_type LIMIT 1".as[Int].headOption))
   private lazy val someStreetEdgeId: Option[Int] =
     await(dbConfig.db.run(sql"SELECT street_edge_id FROM street_edge LIMIT 1".as[Int].headOption))
 
   /**
-   * The reference rows a synthetic mapper has to hang off, or a cancellation naming the one this database lacks.
+   * The reference row a synthetic mapper has to hang off, or a cancellation when this database lacks one.
    *
    * Read outside the fixture's transaction, and as options, so a schema thin enough to be missing one of them cancels
    * these tests rather than erroring the suite — the CANCEL-on-thin-data posture the rest of the suite already takes,
    * and what lets it run against a freshly-created city schema in CI.
    */
-  private def fixtureRefs: (Int, Int) = (
-    someLabelTypeId.getOrElse(cancel("no label_type rows in this database")),
-    someStreetEdgeId.getOrElse(cancel("no street_edge rows in this database"))
-  )
+  private def fixtureRefs: Int = someStreetEdgeId.getOrElse(cancel("no street_edge rows in this database"))
 
   /**
    * Inserts a mapper whose only period activity is a label placed *now* — their mission ended 30 days ago and their
@@ -105,7 +100,7 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
    * @return              The board, including the fixture user iff the query admits label-only mappers.
    */
   private def boardWithLabelOnlyUser(onLeaderboard: Boolean, timePeriod: String): Seq[LeaderboardStat] = {
-    val (labelType, streetEdge) = fixtureRefs
+    val streetEdge = fixtureRefs
     runRolledBack(for {
       _ <- sqlu"""INSERT INTO sidewalk_user (user_id, username, email)
                   VALUES ($FixtureUserId, $FixtureUsername, 'zz_fixture_4533@example.com')"""
@@ -126,9 +121,9 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
       _ <- sqlu"""INSERT INTO pano_data (pano_id, capture_date, source)
                   VALUES ('fixture_pano', '2020-01', 'gsv')"""
       _ <- sqlu"""INSERT INTO label
-                      (audit_task_id, pano_id, label_type_id, deleted, temporary_label_id, time_created, mission_id,
+                      (audit_task_id, pano_id, label_type, deleted, temporary_label_id, time_created, mission_id,
                        tutorial, street_edge_id, agree_count, disagree_count, unsure_count, tags, user_id)
-                  VALUES ($auditTaskId, 'fixture_pano', $labelType, FALSE, 1, now(), $missionId, FALSE, $streetEdge,
+                  VALUES ($auditTaskId, 'fixture_pano', 'CurbRamp', FALSE, 1, now(), $missionId, FALSE, $streetEdge,
                           0, 0, 0, '{}', $FixtureUserId)"""
       board <- userStatTable.getLeaderboardStats(100000, timePeriod, byTeam = false, None, streetDistance = 1000000d)
     } yield board)

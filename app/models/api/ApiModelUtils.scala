@@ -9,10 +9,17 @@ import play.api.libs.json.{JsObject, Json}
 object ApiModelUtils {
 
   /**
-   * Sorts (label type name, _) pairs by label_type_id, with "Overall" first, so API output order stays consistent.
+   * Sorts (label type name, _) pairs in canonical label type order, with "Overall" first, so API output order stays
+   * consistent.
    */
   val labelTypeOrdering: Ordering[(String, Any)] = Ordering.by { case (labelType, _) =>
-    (labelType != "Overall", LabelTypeEnum.labelTypeToId.getOrElse(labelType, Int.MaxValue))
+    (
+      labelType != "Overall",
+      LabelTypeEnum.orderedNames.indexOf(labelType) match {
+        case -1 => Int.MaxValue
+        case i  => i
+      }
+    )
   }
 
   /**

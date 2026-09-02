@@ -102,7 +102,7 @@ class LabelEditServiceImpl @Inject() (
     labelQuery.result.headOption.flatMap {
       case None        => DBIO.successful(None)
       case Some(label) =>
-        labelService.cleanTagList(tags, label.labelTypeId).flatMap { cleaned =>
+        labelService.cleanTagList(tags, label.labelType).flatMap { cleaned =>
           val cleanedTags: List[String] = cleaned.toList
           if (!changes(label, severity, cleanedTags)) DBIO.successful(Some(label))
           else {
@@ -222,7 +222,7 @@ class LabelEditServiceImpl @Inject() (
       _                 <-
         if (historyCount > 1) applyEdit(labelId, label.userId, severity, tags, UiSource.Explore, None)
         else {
-          labelService.cleanTagList(tags, label.labelTypeId).flatMap { cleaned =>
+          labelService.cleanTagList(tags, label.labelType).flatMap { cleaned =>
             val cleanedTags: List[String] = cleaned.toList
             if (changes(label, severity, cleanedTags)) {
               for {

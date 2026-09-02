@@ -4,7 +4,7 @@ util.misc = util.misc || {};
 function UtilitiesMisc(JSON) {
   const self = { className: 'UtilitiesMisc' };
 
-  // Corresponds to the label type lists defined in LabelTypeTable.scala.
+  // Corresponds to the label type lists defined in LabelTypeEnum.scala.
   self.VALID_LABEL_TYPES = [
     'CurbRamp', 'NoCurbRamp', 'Obstacle', 'SurfaceProblem', 'Other', 'Occlusion', 'NoSidewalk', 'Crosswalk', 'Signal',
   ];

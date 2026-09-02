@@ -2,7 +2,7 @@ package models.cluster
 
 import com.google.inject.ImplementedBy
 import models.audit.AuditTaskTableDef
-import models.label.{LabelPointTableDef, LabelTableDef, LabelTypeTableDef}
+import models.label.{LabelPointTableDef, LabelTableDef}
 import models.mission.MissionTableDef
 import models.region.RegionTableDef
 import models.street.StreetEdgeRegionTableDef
@@ -106,7 +106,6 @@ class ClusteringSessionTable @Inject() (protected val dbConfigProvider: Database
   private val regions            = TableQuery[RegionTableDef]
   private val auditTasks         = TableQuery[AuditTaskTableDef]
   private val userStats          = TableQuery[UserStatTableDef]
-  private val labelTypes         = TableQuery[LabelTypeTableDef]
   private val labelPoints        = TableQuery[LabelPointTableDef]
   private val streetEdgeRegions  = TableQuery[StreetEdgeRegionTableDef]
 
@@ -124,7 +123,6 @@ class ClusteringSessionTable @Inject() (protected val dbConfigProvider: Database
     ser <- streetEdgeRegions if l.streetEdgeId === ser.streetEdgeId
     at  <- auditTasks if l.auditTaskId === at.auditTaskId
     lp  <- labelPoints if l.labelId === lp.labelId
-    lt  <- labelTypes if l.labelTypeId === lt.labelTypeId
     if r.deleted === false
     if l.deleted === false
     if us.excluded === false
@@ -133,7 +131,7 @@ class ClusteringSessionTable @Inject() (protected val dbConfigProvider: Database
     if l.tutorial === false
     if l.correct || (us.highQuality && l.correct.isEmpty && !at.lowQuality)
     if lp.lat.isDefined && lp.lng.isDefined
-  } yield (ser.regionId, us.userId, l.panoId, l.labelId, lt.labelType, lp.lat.ifNull(-1d), lp.lng.ifNull(-1d),
+  } yield (ser.regionId, us.userId, l.panoId, l.labelId, l.labelTypeName, lp.lat.ifNull(-1d), lp.lng.ifNull(-1d),
     l.severity)
 
   // The labels that are currently present in the API, by the region their street belongs to now.

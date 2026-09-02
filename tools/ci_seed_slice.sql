@@ -24,7 +24,7 @@ usable_label AS (
     SELECT label.label_id,
            label.street_edge_id,
            label.pano_id,
-           label.label_type_id,
+           label.label_type,
            label.severity,
            label.tags,
            label_point.pano_x,
@@ -60,9 +60,9 @@ picked_region AS (
     INNER JOIN region ON region.region_id = street_edge_region.region_id
     WHERE region.deleted = FALSE
     GROUP BY street_edge_region.region_id
-    HAVING COUNT(*) FILTER (WHERE usable_label.label_type_id = 1) >= 12
+    HAVING COUNT(*) FILTER (WHERE usable_label.label_type = 'CurbRamp') >= 12
        AND COUNT(DISTINCT usable_label.street_edge_id) >= 3
-    ORDER BY COUNT(*) FILTER (WHERE usable_label.label_type_id = 1) DESC, street_edge_region.region_id
+    ORDER BY COUNT(*) FILTER (WHERE usable_label.label_type = 'CurbRamp') DESC, street_edge_region.region_id
     LIMIT 1
 ),
 picked_street AS (
@@ -92,13 +92,11 @@ ranked_label AS (
     -- returns nothing for the rarer ones the share-page and edit specs fork on. Panoramas carrying a street address
     -- sort first, because one seeded label has to have one for the story card's location line.
     SELECT usable_label.*,
-           label_type.label_type,
            ROW_NUMBER() OVER (
-               PARTITION BY usable_label.label_type_id
+               PARTITION BY usable_label.label_type
                ORDER BY (pano_data.address IS NULL), usable_label.label_id
            ) AS rank_in_type
     FROM usable_label
-    INNER JOIN label_type ON label_type.label_type_id = usable_label.label_type_id
     INNER JOIN pano_data ON pano_data.pano_id = usable_label.pano_id
     WHERE usable_label.street_edge_id IN (SELECT street_edge_id FROM picked_street)
 ),
@@ -121,7 +119,7 @@ SELECT :'city' AS city,
                FROM region WHERE region.region_id = (SELECT region_id FROM picked_region)) r),
            'streets', (SELECT COALESCE(JSONB_AGG(s ORDER BY s.street_edge_id), '[]'::jsonb)
                        FROM picked_street s),
-           'labels', (SELECT COALESCE(JSONB_AGG(l ORDER BY l.label_type_id, l.label_id), '[]'::jsonb)
+           'labels', (SELECT COALESCE(JSONB_AGG(l ORDER BY l.label_type, l.label_id), '[]'::jsonb)
                       FROM picked_label l),
            'panos', (SELECT COALESCE(JSONB_AGG(p ORDER BY p.pano_id), '[]'::jsonb) FROM (
                SELECT pano_data.pano_id, pano_data.source::text AS source, pano_data.capture_date,
