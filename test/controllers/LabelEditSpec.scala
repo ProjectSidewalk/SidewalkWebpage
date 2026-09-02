@@ -37,16 +37,16 @@ class LabelEditSpec extends PlaySpec with BeforeAndAfterAll with SubmissionSpecH
   /** Pre-test severity and tags of every real label the suite edited, restored in `afterAll`. */
   private var labelBackup: Map[Int, (Option[Int], List[String])] = Map.empty
 
-  private case class Target(labelId: Int, labelTypeId: Int, severity: Option[Int], tags: List[String])
+  private case class Target(labelId: Int, labelType: String, severity: Option[Int], tags: List[String])
 
   /** A real, rated label to edit; the suite's users are fresh, so none of them is its labeler. */
   private def pickLabel(): Target = {
     val row = run(
-      sql"""SELECT label_id, label_type_id, severity, array_to_string(tags, '|')
+      sql"""SELECT label_id, label_type::text, severity, array_to_string(tags, '|')
             FROM label
             WHERE deleted = FALSE AND tutorial = FALSE AND severity IS NOT NULL
             ORDER BY label_id
-            LIMIT 1""".as[(Int, Int, Option[Int], String)]
+            LIMIT 1""".as[(Int, String, Option[Int], String)]
     ).headOption.getOrElse(cancel("No rated label in the connected schema to edit."))
     val target = Target(row._1, row._2, row._3, splitTags(row._4))
     if (!labelBackup.contains(target.labelId)) labelBackup += (target.labelId -> (target.severity, target.tags))
@@ -59,7 +59,7 @@ class LabelEditSpec extends PlaySpec with BeforeAndAfterAll with SubmissionSpecH
   private def addableTag(target: Target): String = {
     run(
       sql"""SELECT tag FROM tag
-            WHERE label_type_id = ${target.labelTypeId}
+            WHERE label_type::text = ${target.labelType}
               AND mutually_exclusive_with IS NULL
               AND tag <> ALL(string_to_array(${target.tags.mkString("|")}, '|'))
             ORDER BY tag_id
@@ -145,9 +145,8 @@ class LabelEditSpec extends PlaySpec with BeforeAndAfterAll with SubmissionSpecH
   /** A `POST /labelmap/validate` body for the label, carrying the given severity as the validator's correction. */
   private def popupVoteBody(target: Target, result: String, severity: Option[Int], undone: Boolean): JsObject = {
     val (labelType, heading, pitch, zoom) = run(
-      sql"""SELECT label_type.label_type, label_point.heading, label_point.pitch, label_point.zoom
+      sql"""SELECT label.label_type::text, label_point.heading, label_point.pitch, label_point.zoom
             FROM label
-            INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
             INNER JOIN label_point ON label.label_id = label_point.label_id
             WHERE label.label_id = ${target.labelId}""".as[(String, Double, Double, Double)]
     ).head

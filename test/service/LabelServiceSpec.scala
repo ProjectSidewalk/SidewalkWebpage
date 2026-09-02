@@ -34,12 +34,11 @@ class LabelServiceSpec extends PlaySpec with RolledBackDb with GuiceOneAppPerSui
       assume(allTags.nonEmpty, "connected DB has no tags to test against")
 
       // Pick a label type that's guaranteed to have tags in the connected DB, whatever city it holds.
-      val labelTypeId: Int  = allTags.head.labelTypeId
-      val labelType: String = LabelTypeEnum.byId(labelTypeId).name
+      val labelType = allTags.head.labelType
 
       val tags = await(labelService.selectTagsByLabelType(labelType))
       tags must not be empty
-      tags.map(_.tag).toSet mustBe allTags.filter(_.labelTypeId == labelTypeId).map(_.tag).toSet
+      tags.map(_.tag).toSet mustBe allTags.filter(_.labelType == labelType).map(_.tag).toSet
     }
   }
 

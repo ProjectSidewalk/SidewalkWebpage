@@ -75,7 +75,7 @@ When a column can only hold a fixed set of values, pick between two tools (#4103
 - A **Postgres enum type** when the column is on a high-row-count table, is written at runtime, or is mirrored by a
   Scala enum. It makes the DB self-describing (readable raw SQL and dumps, no join to a lookup table, no
   hand-maintained Scala id map that nothing validates) and fails loudly on drift. Wire it up like the existing ones
-  (`pano_source`, `validation_option`, `street_edge_status`, `mission_type`, `way_type`, `role`): a Scala
+  (`pano_source`, `validation_option`, `street_edge_status`, `mission_type`, `way_type`, `role`, `label_type`): a Scala
   `Enumeration` object whose string values match the enum labels, plus a `createEnumJdbcType` mapper in
   `MyPostgresProfile`. Growing a set later is fine; `ALTER TYPE ... ADD VALUE` has prod precedent (331/332/339).
 - A plain **`CHECK (col IN (...))`** for tiny script-seeded config/cache tables (e.g. `config.open_status`,

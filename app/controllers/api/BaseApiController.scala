@@ -3,6 +3,7 @@ package controllers.api
 import controllers.base.{CustomBaseController, CustomControllerComponents}
 import controllers.helper.ShapefilesCreatorHelper
 import models.api.{ApiError, StreamingApiType}
+import models.label.LabelTypeEnum
 import models.utils.{LatLngBBox, MapParams}
 import org.apache.pekko.stream.scaladsl.{Source, StreamConverters}
 import org.apache.pekko.util.ByteString
@@ -98,6 +99,31 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
           Left(
             ApiError.invalidParameter(
               s"Invalid value for $paramName parameter. Expected an ISO 8601 date-time, e.g. 2021-03-01T00:00:00Z.",
+              paramName
+            )
+          )
+      }
+  }
+
+  /**
+   * Parses an optional `labelType` query parameter into a label type.
+   *
+   * @param labelType The optional label type name.
+   * @param paramName The query-parameter name, used in the error message when the name is unknown.
+   * @return `Right(None)` if absent, `Right(Some(labelType))` if valid, or `Left(ApiError)` for an unknown name.
+   */
+  protected def parseLabelTypeParam(
+      labelType: Option[String],
+      paramName: String = "labelType"
+  ): Either[ApiError, Option[LabelTypeEnum.Base]] = labelType match {
+    case None    => Right(None)
+    case Some(s) =>
+      LabelTypeEnum.byName.get(s) match {
+        case Some(lt) => Right(Some(lt))
+        case None     =>
+          Left(
+            ApiError.invalidParameter(
+              s"Invalid value for $paramName parameter. Must be one of: ${LabelTypeEnum.orderedNames.mkString(", ")}.",
               paramName
             )
           )

@@ -127,7 +127,7 @@ class AiServiceImpl @Inject() (
 
             // Get the AI's mission_id and the label's current info, then create and submit the validation.
             for {
-              aiMissionId: Int <- getAiValidateMissionId(labelData.labelTypeId)
+              aiMissionId: Int <- getAiValidateMissionId(labelData.labelType)
               label: Label     <- labelTable.find(labelId).map(_.get) // If we got this far, we know label exists.
               validation: LabelValidation = LabelValidation(
                 0, labelId, aiValResult, SidewalkUserTable.aiUserId, aiMissionId, Some(labelPoint.canvasX),
@@ -178,7 +178,7 @@ class AiServiceImpl @Inject() (
 
     // Create form data for the multipart request.
     val formData = Map(
-      "label_type"  -> LabelTypeEnum.labelTypeIdToLabelType(labelData.labelTypeId).toLowerCase,
+      "label_type"  -> labelData.labelType.name.toLowerCase,
       "panorama_id" -> labelData.panoData.panoId,
       "x"           -> (labelData.labelPoint.panoX.toDouble / labelData.panoData.width.get).toString,
       "y"           -> (labelData.labelPoint.panoY.toDouble / labelData.panoData.height.get).toString,
@@ -252,12 +252,12 @@ class AiServiceImpl @Inject() (
   }
 
   /**
-   * Retrieves the AI validation mission_id from the db for a given label_type_id, cached since it doesn't change.
-   * @param labelTypeId The ID of the label type for which to get the AI validation mission_id
+   * Retrieves the AI validation mission_id from the db for a given label type, cached since it doesn't change.
+   * @param labelType The label type for which to get the AI validation mission_id
    * @return A DBIO containing the AI validation mission_id
    */
-  private def getAiValidateMissionId(labelTypeId: Int): DBIO[Int] =
-    configService.cachedDBIO[Int](s"getAiValidateMissionId($labelTypeId)")(
-      missionTable.getAiValidateMissionId(labelTypeId)
+  private def getAiValidateMissionId(labelType: LabelTypeEnum.Base): DBIO[Int] =
+    configService.cachedDBIO[Int](s"getAiValidateMissionId(${labelType.name})")(
+      missionTable.getAiValidateMissionId(labelType)
     )
 }

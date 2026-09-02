@@ -99,10 +99,10 @@ class ConfigTableVoidedArchiveSpec extends PlaySpec with GuiceOneAppPerSuite {
       _ <- sqlu"""INSERT INTO pano_data (pano_id, capture_date, source)
                   VALUES ($panoId, '2020-01', 'gsv')"""
       labelId <-
-        sql"""INSERT INTO label (label_id, audit_task_id, pano_id, label_type_id, temporary_label_id, mission_id,
+        sql"""INSERT INTO label (label_id, audit_task_id, pano_id, label_type, temporary_label_id, mission_id,
                                  street_edge_id, user_id)
               VALUES ((SELECT COALESCE(MAX(label_id), 0) + 1 FROM label),
-                      $auditTaskId, $panoId, (SELECT MIN(label_type_id) FROM label_type), 1,
+                      $auditTaskId, $panoId, 'CurbRamp', 1,
                       $missionId, $streetEdgeId, $userId)
               RETURNING label_id""".as[Int].head
       _ <- sqlu"""INSERT INTO voided_label_validation (label_validation_id, label_id, validation_result, user_id,
@@ -156,17 +156,22 @@ class ConfigTableVoidedArchiveSpec extends PlaySpec with GuiceOneAppPerSuite {
   }
 
   "the cross-schema queries against a schema without voided_label_validation" should {
-    // Clone of the review's rollout scenario: another city's schema exists but hasn't applied evolution 355.
+    // The review's rollout scenario: another city that hasn't applied 355 or 373, so its labels and tags reference a
+    // label_type lookup table by id. LIKE copies this schema's enum column, which the scratch schema can't resolve,
+    // hence the manual swap. Also the only coverage of the lookup-table arm of ConfigTable.LabelTypeSql (#5118).
     "still succeed, contributing zero archive rows" in {
       val scratch      = "ci_unmigrated_scratch"
-      val clonedTables = Seq("street_edge", "audit_task", "user_stat", "label", "config", "label_validation",
-        "label_type", "tag", "mission", "audit_task_interaction_small")
+      val clonedTables = Seq("street_edge", "audit_task", "user_stat", "label", "config", "label_validation", "tag",
+        "mission", "audit_task_interaction_small")
       val (agg, ids, scorecard) = runRolledBack(for {
-        schema    <- currentSchema
-        _         <- sqlu"CREATE SCHEMA #$scratch"
-        _         <- DBIO.sequence(clonedTables.map { t => sqlu"""CREATE TABLE #$scratch.#$t (LIKE "#$schema".#$t)""" })
-        agg       <- configTable.getCityAggregateDataBySchema(scratch)
-        ids       <- configTable.getContributorUserIdsBySchema(scratch)
+        schema <- currentSchema
+        _      <- sqlu"CREATE SCHEMA #$scratch"
+        _      <- DBIO.sequence(clonedTables.map { t => sqlu"""CREATE TABLE #$scratch.#$t (LIKE "#$schema".#$t)""" })
+        _      <- sqlu"""CREATE TABLE #$scratch.label_type (label_type_id INT PRIMARY KEY, label_type TEXT NOT NULL)"""
+        _      <- sqlu"""ALTER TABLE #$scratch.label DROP COLUMN label_type, ADD COLUMN label_type_id INT"""
+        _      <- sqlu"""ALTER TABLE #$scratch.tag DROP COLUMN label_type, ADD COLUMN label_type_id INT"""
+        agg    <- configTable.getCityAggregateDataBySchema(scratch)
+        ids    <- configTable.getContributorUserIdsBySchema(scratch)
         scorecard <- configTable.getCityScorecardBySchema(scratch)
       } yield (agg, ids, scorecard))
 

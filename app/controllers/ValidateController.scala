@@ -91,7 +91,7 @@ class ValidateController @Inject() (
 
   /**
    * Returns the Expert Validate page, optionally with some admin filters.
-   * @param labelType       Label type or label type ID to validate.
+   * @param labelType       Label type to validate, by name.
    * @param users           Comma-separated list of usernames or user IDs to validate (could be mixed).
    * @param neighborhoods   Comma-separated list of neighborhood names or region IDs to validate (could be mixed).
    * @param unvalidatedOnly Boolean indicating whether to show only labels with no prior validations.
@@ -163,7 +163,7 @@ class ValidateController @Inject() (
   /**
    * Checks filtering parameters passed into the validate endpoints, and returns an error message if any are invalid.
    * @param adminVersion    Boolean indicating whether the admin version of the page is being shown.
-   * @param labelType       Label type or label type ID to validate.
+   * @param labelType       Label type to validate, by name.
    * @param users           Comma-separated list of usernames or user IDs to validate (could be mixed).
    * @param neighborhoods   Comma-separated list of neighborhood names or region IDs to validate (could be mixed).
    * @param unvalidatedOnly Boolean indicating whether to show only labels with no prior validations.
@@ -175,17 +175,9 @@ class ValidateController @Inject() (
       neighborhoods: Option[String],
       unvalidatedOnly: Option[Boolean]
   ): Future[(ValidateParams, Result)] = {
-    // If any inputs are invalid, send back error message. For each input, we check if the input is an integer
-    // representing a valid ID (label_type_id, user_id, or region_id) or a String representing a valid name for that
-    // parameter (label_type, username, or region_name).
-    val parsedLabelType: Option[Option[LabelTypeEnum.Base]] = labelType.map { lType =>
-      val lTypeFromId: Option[LabelTypeEnum.Base]   = lType.toIntOption.flatMap(LabelTypeEnum.byId.get)
-      val lTypeFromName: Option[LabelTypeEnum.Base] = LabelTypeEnum.byName.get(lType)
-      if (lTypeFromId.isDefined) lTypeFromId
-      else if (lTypeFromName.isDefined) lTypeFromName
-      else None
-    }
-    val userIdsList: Option[Seq[Future[Option[String]]]] = users.map(
+    // Users and regions may be given by id or by name, so each is resolved both ways before deciding it is invalid.
+    val parsedLabelType: Option[Option[LabelTypeEnum.Base]] = labelType.map(LabelTypeEnum.byName.get)
+    val userIdsList: Option[Seq[Future[Option[String]]]]    = users.map(
       _.split(',')
         .map(_.trim)
         .map { userStr =>
@@ -230,7 +222,7 @@ class ValidateController @Inject() (
       if (parsedLabelType.isDefined && parsedLabelType.get.isEmpty) {
         (
           ValidateParams(adminVersion),
-          BadRequest(s"Invalid label type provided: ${labelType.get}. Valid label types are: ${LabelTypeEnum.primaryLabelTypeNames.mkString(", ")}. Or you can use their IDs: ${LabelTypeEnum.primaryLabelTypeIds.mkString(", ")}.")
+          BadRequest(s"Invalid label type provided: ${labelType.get}. Valid label types are: ${LabelTypeEnum.primaryLabelTypeNames.mkString(", ")}.")
         )
       } else if (userIds.isDefined && userIds.get.length != userIds.get.flatten.length) {
         (
@@ -450,7 +442,7 @@ class ValidateController @Inject() (
         moreLabels => {
           val safeParams: ValidateParams = paramsAllowedFor(moreLabels.validateParams, request.identity)
           for {
-            (labels, adminData) <- labelService.getMoreLabelsToValidate(request.identity, moreLabels.labelTypeId,
+            (labels, adminData) <- labelService.getMoreLabelsToValidate(request.identity, moreLabels.labelType,
               moreLabels.labelsNeeded, moreLabels.excludedLabelIds.toSet, safeParams)
             maxSpeeds <- osmWayService.getMaxSpeedsForStreets(labels.map(_.streetEdgeId).distinct)
           } yield {
@@ -495,7 +487,7 @@ class ValidateController @Inject() (
           mission <- missionService.resumeOrCreateNewValidateMission(
             userId,
             MissionType.LabelmapValidation,
-            newVal.labelType.id
+            newVal.labelType
           )
           newValIds <- validationService.submitValidations(
             Seq(
@@ -526,14 +518,13 @@ class ValidateController @Inject() (
     submission.fold(
       errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
       submission => {
-        val userId: String   = request.identity.userId
-        val labelTypeId: Int = LabelTypeEnum.labelTypeToId(submission.labelType)
+        val userId: String                = request.identity.userId
+        val labelType: LabelTypeEnum.Base = LabelTypeEnum.withName(submission.labelType)
         for {
-          // Get the (or create a) mission_id for this user_id and label_type_id.
           mission <- missionService.resumeOrCreateNewValidateMission(
             userId,
             MissionType.LabelmapValidation,
-            labelTypeId
+            labelType
           )
           commentId: Int <- validationService.replaceComment(
             ValidationTaskComment(0, mission.get.missionId, submission.labelId, userId, request.ipAddress,

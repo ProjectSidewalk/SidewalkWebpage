@@ -50,13 +50,13 @@ class Main {
    */
   #initUI() {
     svv.tagsByLabelType = {
-      CurbRamp: this.#param.tagList.filter((t) => t.label_type_id === 1),
-      NoCurbRamp: this.#param.tagList.filter((t) => t.label_type_id === 2),
-      Obstacle: this.#param.tagList.filter((t) => t.label_type_id === 3),
-      SurfaceProblem: this.#param.tagList.filter((t) => t.label_type_id === 4),
-      NoSidewalk: this.#param.tagList.filter((t) => t.label_type_id === 7),
-      Crosswalk: this.#param.tagList.filter((t) => t.label_type_id === 9),
-      Signal: this.#param.tagList.filter((t) => t.label_type_id === 10),
+      CurbRamp: this.#param.tagList.filter((t) => t.label_type === 'CurbRamp'),
+      NoCurbRamp: this.#param.tagList.filter((t) => t.label_type === 'NoCurbRamp'),
+      Obstacle: this.#param.tagList.filter((t) => t.label_type === 'Obstacle'),
+      SurfaceProblem: this.#param.tagList.filter((t) => t.label_type === 'SurfaceProblem'),
+      NoSidewalk: this.#param.tagList.filter((t) => t.label_type === 'NoSidewalk'),
+      Crosswalk: this.#param.tagList.filter((t) => t.label_type === 'Crosswalk'),
+      Signal: this.#param.tagList.filter((t) => t.label_type === 'Signal'),
     };
     svv.ui = {};
     svv.ui.holder = $('.tool-ui');
@@ -151,7 +151,7 @@ class Main {
     // target at 44px. The mark itself stays 32px across (2 * radius + 2): bigger hides the imagery being judged.
     svv.labelRadius = util.isMobile() ? 15 : 10;
 
-    const labelType = svv.labelTypes[param.mission.label_type_id];
+    const labelType = param.mission.label_type;
 
     svv.validationMenu = util.isMobile()
       ? new MobileValidationMenu(svv.ui.validationMenu)
@@ -177,7 +177,7 @@ class Main {
     svv.panoManager = await PanoManager.create(
       svv.viewerType, param.viewerAccessToken, firstLabel.pano_id, buildBackupImageData(firstLabel),
     );
-    svv.labelContainer = await LabelContainer.create(param.labelList, param.mission.label_type_id);
+    svv.labelContainer = await LabelContainer.create(param.labelList, param.mission.label_type);
 
     // There are certain features that will only make sense on desktop vs mobile.
     if (util.isMobile()) {

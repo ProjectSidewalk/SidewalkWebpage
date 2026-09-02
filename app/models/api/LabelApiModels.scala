@@ -433,7 +433,7 @@ object LabelDataForApi {
  *
  * @param labelId Unique identifier for the label
  * @param panoId Identifier of the panorama the label was placed on
- * @param labelTypeId Numeric label type identifier
+ * @param labelType Label type name (e.g. "CurbRamp")
  * @param agreeCount Number of "agree" validations the label received
  * @param disagreeCount Number of "disagree" validations the label received
  * @param unsureCount Number of "unsure" validations the label received
@@ -455,7 +455,7 @@ object LabelDataForApi {
 case class LabelCVMetadata(
     labelId: Int,
     panoId: String,
-    labelTypeId: Int,
+    labelType: String,
     agreeCount: Int,
     disagreeCount: Int,
     unsureCount: Int,
@@ -484,7 +484,7 @@ case class LabelCVMetadata(
    * @return A comma-separated row; `None` options render as "NA".
    */
   override def toCsvRow: String = {
-    s"${labelId},${panoId},${labelTypeId},${agreeCount},${disagreeCount},${unsureCount}," +
+    s"${labelId},${panoId},${labelType},${agreeCount},${disagreeCount},${unsureCount}," +
       s"${formatOptionForCsv(panoWidth)},${formatOptionForCsv(panoHeight)},${panoX},${panoY}," +
       s"${canvasWidth},${canvasHeight},${canvasX},${canvasY},${zoom},${heading},${pitch}," +
       s"${cameraHeading},${cameraPitch},${cameraRoll.map(_.toString).getOrElse("NA")}"
@@ -498,7 +498,7 @@ case class LabelCVMetadata(
  * Companion object for LabelCVMetadata containing the CSV header and JSON writer.
  */
 object LabelCVMetadata {
-  val csvHeader: String = "Label ID,Panorama ID,Label Type ID,Agree Count,Disagree Count,Unsure Count,Panorama Width," +
+  val csvHeader: String = "Label ID,Panorama ID,Label Type,Agree Count,Disagree Count,Unsure Count,Panorama Width," +
     "Panorama Height,Panorama X,Panorama Y,Canvas Width,Canvas Height,Canvas X,Canvas Y,Zoom,Heading,Pitch," +
     "Camera Heading,Camera Pitch,Camera Roll\n"
 

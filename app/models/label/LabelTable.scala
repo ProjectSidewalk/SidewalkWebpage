@@ -45,7 +45,7 @@ case class Label(
     missionId: Int,
     userId: String,
     panoId: String,
-    labelTypeId: Int,
+    labelType: LabelTypeEnum.Base,
     deleted: Boolean,
     temporaryLabelId: Int,
     timeCreated: OffsetDateTime,
@@ -185,7 +185,7 @@ case class ResumeLabelMetadata(
     panoHeight: Option[Int]
 )
 
-case class LabelDataForAi(labelId: Int, labelTypeId: Int, labelPoint: LabelPoint, panoData: PanoData)
+case class LabelDataForAi(labelId: Int, labelType: LabelTypeEnum.Base, labelPoint: LabelPoint, panoData: PanoData)
 
 case class LabelMetadataUserDash(
     labelId: Int,
@@ -227,12 +227,14 @@ case class LabelValidationMetadata(
 ) extends BasicLabelMetadata
 
 class LabelTableDef(tag: slick.lifted.Tag) extends Table[Label](tag, "label") {
-  def labelId: Rep[Int]          = column[Int]("label_id", O.PrimaryKey, O.AutoInc)
-  def auditTaskId: Rep[Int]      = column[Int]("audit_task_id")
-  def missionId: Rep[Int]        = column[Int]("mission_id")
-  def userId: Rep[String]        = column[String]("user_id")
-  def panoId: Rep[String]        = column[String]("pano_id")
-  def labelTypeId: Rep[Int]      = column[Int]("label_type_id")
+  def labelId: Rep[Int]                  = column[Int]("label_id", O.PrimaryKey, O.AutoInc)
+  def auditTaskId: Rep[Int]              = column[Int]("audit_task_id")
+  def missionId: Rep[Int]                = column[Int]("mission_id")
+  def userId: Rep[String]                = column[String]("user_id")
+  def panoId: Rep[String]                = column[String]("pano_id")
+  def labelType: Rep[LabelTypeEnum.Base] = column[LabelTypeEnum.Base]("label_type")
+  // The enum's label as text, for the many queries that group or report by label type name.
+  def labelTypeName: Rep[String] = labelType.asColumnOf[String]
   def deleted: Rep[Boolean]      = column[Boolean]("deleted", O.Default(false))
   def temporaryLabelId: Rep[Int] = column[Int]("temporary_label_id")
   // DEFAULT now() in the DB (O.Default holds a value, not an expression).
@@ -247,8 +249,8 @@ class LabelTableDef(tag: slick.lifted.Tag) extends Table[Label](tag, "label") {
   def description: Rep[Option[String]] = column[Option[String]]("description")
   def tags: Rep[List[String]]          = column[List[String]]("tags", O.Default(List()))
 
-  def * = (labelId, auditTaskId, missionId, userId, panoId, labelTypeId, deleted, temporaryLabelId, timeCreated,
-    tutorial, streetEdgeId, agreeCount, disagreeCount, unsureCount, correct, severity, description, tags) <> (
+  def * = (labelId, auditTaskId, missionId, userId, panoId, labelType, deleted, temporaryLabelId, timeCreated, tutorial,
+    streetEdgeId, agreeCount, disagreeCount, unsureCount, correct, severity, description, tags) <> (
     (Label.apply _).tupled,
     Label.unapply
   )
@@ -256,7 +258,6 @@ class LabelTableDef(tag: slick.lifted.Tag) extends Table[Label](tag, "label") {
   def auditTask  = foreignKey("label_audit_task_id_fkey", auditTaskId, TableQuery[AuditTaskTableDef])(_.auditTaskId)
   def mission    = foreignKey("label_mission_id_fkey", missionId, TableQuery[MissionTableDef])(_.missionId)
   def user       = foreignKey("label_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
-  def labelType  = foreignKey("label_label_type_id_fkey", labelTypeId, TableQuery[LabelTypeTableDef])(_.labelTypeId)
   def streetEdge =
     foreignKey("label_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTableDef])(_.streetEdgeId)
   def panoData = foreignKey("label_pano_id_fkey", panoId, TableQuery[PanoDataTableDef])(_.panoId)
@@ -315,7 +316,7 @@ object LabelTable {
    * caller-supplied tag text needs escaping.
    *
    * @param tags Parsed tag filters; must be non-empty.
-   * @return A parenthesized SQL condition over `label.tags` and `label_type.label_type`.
+   * @return A parenthesized SQL condition over `label.tags` and `label.label_type`.
    */
   def tagWhereClause(tags: Seq[TagFilterForApi]): String = {
     def matchesTag(tag: String): String         = s"'${tag.replace("'", "''")}' = ANY(label.tags)"
@@ -330,14 +331,14 @@ object LabelTable {
 
     // Sorted so the emitted SQL is deterministic regardless of the order the caller listed the entries in.
     val scopedConditions: Seq[String] = scopedTags.toSeq.sortBy(_._1).map { case (labelType, tagsForType) =>
-      s"(label_type.label_type = '$labelType' AND (${anyOf(tagsForType ++ unscopedTags)}))"
+      s"(label.label_type = '$labelType' AND (${anyOf(tagsForType ++ unscopedTags)}))"
     }
 
     val otherTypesCondition: String = if (scopedTags.isEmpty) {
       anyOf(unscopedTags)
     } else {
       val scopedTypeList = scopedTags.keys.toSeq.sorted.map(labelType => s"'$labelType'").mkString(", ")
-      val notScoped      = s"label_type.label_type NOT IN ($scopedTypeList)"
+      val notScoped      = s"label.label_type NOT IN ($scopedTypeList)"
       // No unscoped tags means the types nobody scoped are left unnarrowed, so they pass on type alone.
       if (unscopedTags.isEmpty) notScoped else s"($notScoped AND (${anyOf(unscopedTags)}))"
     }
@@ -522,7 +523,7 @@ object LabelTable {
   type LabelCVMetadataTuple = (
       Int,           // labelId
       String,        // panoId
-      Int,           // labelTypeId
+      String,        // labelType
       Int,           // agreeCount
       Int,           // disagreeCount
       Int,           // unsureCount
@@ -644,7 +645,6 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   val labelsUnfiltered       = TableQuery[LabelTableDef]
   val auditTasks             = TableQuery[AuditTaskTableDef]
   val panoData               = TableQuery[PanoDataTableDef]
-  val labelTypes             = TableQuery[LabelTypeTableDef]
   val labelPoints            = TableQuery[LabelPointTableDef]
   val labelValidations       = TableQuery[LabelValidationTableDef]
   val labelAiAssessments     = TableQuery[LabelAiAssessmentTableDef]
@@ -882,9 +882,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     }
 
     labelsInTimeInterval
-      .join(labelTypes)
-      .on(_.labelTypeId === _.labelTypeId)
-      .groupBy(_._2.labelType)
+      .groupBy(_.labelTypeName)
       .map { case (labelType, rows) => (labelType, rows.length) }
       .result
       .map { labelCounts =>
@@ -963,11 +961,10 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    */
   def getRecentLabels(n: Int): DBIO[Seq[(Int, String, String, OffsetDateTime)]] = {
     (for {
-      _label     <- labels
-      _labelType <- labelTypes if _label.labelTypeId === _labelType.labelTypeId
-      _user      <- usersUnfiltered if _label.userId === _user.userId
-      _userRole  <- userRoles if _user.userId === _userRole.userId && _userRole.role =!= Role.Ai
-    } yield (_label.labelId, _labelType.labelType, _user.username, _label.timeCreated))
+      _label    <- labels
+      _user     <- usersUnfiltered if _label.userId === _user.userId
+      _userRole <- userRoles if _user.userId === _userRole.userId && _userRole.role =!= Role.Ai
+    } yield (_label.labelId, _label.labelTypeName, _user.username, _label.timeCreated))
       .sortBy(_._4.desc)
       .take(n)
       .result
@@ -984,9 +981,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    */
   def getLabelTypeCountsForUsers(userIds: Seq[String]): DBIO[Seq[(String, String, Int)]] = {
     (for {
-      _label     <- labels if _label.userId inSet userIds
-      _labelType <- labelTypes if _label.labelTypeId === _labelType.labelTypeId
-    } yield (_label.userId, _labelType.labelType))
+      _label <- labels if _label.userId inSet userIds
+    } yield (_label.userId, _label.labelTypeName))
       .groupBy(x => x)
       .map { case ((userId, labelType), group) => (userId, labelType, group.length) }
       .result
@@ -1021,10 +1017,9 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    */
   def getLabelStatsByAuthorRole: DBIO[Seq[(Boolean, String, Int, Int, Int)]] = {
     (for {
-      _label     <- labelsWithExcludedUsers
-      _labelType <- labelTypes if _label.labelTypeId === _labelType.labelTypeId
-      _userRole  <- userRoles if _label.userId === _userRole.userId
-    } yield (_userRole.role === Role.Ai, _labelType.labelType, _label.correct))
+      _label    <- labelsWithExcludedUsers
+      _userRole <- userRoles if _label.userId === _userRole.userId
+    } yield (_userRole.role === Role.Ai, _label.labelTypeName, _label.correct))
       .groupBy(r => (r._1, r._2))
       .map { case ((isAi, labelType), group) =>
         (
@@ -1168,13 +1163,12 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       INNER JOIN (
           SELECT lb.label_id,
                  lb.pano_id,
-                 lbt.label_type,
+                 lb.label_type::text AS label_type,
                  lb.severity,
                  lb.description,
                  user_validation.validation_result,
                  lb.tags
           FROM label AS lb
-          INNER JOIN label_type as lbt ON lb.label_type_id = lbt.label_type_id
           #$validatorJoin
       ) AS lb_big ON lb1.label_id = lb_big.label_id
       INNER JOIN (
@@ -1242,7 +1236,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _lb <- labels
       _pd <- panoData if _pd.panoId === _lb.panoId
       if imageryViewable(_pd) && _pd.source === viewer && _lb.userId =!= userId
-    } yield (_lb.labelId, _lb.labelTypeId, _lb.correct)
+    } yield (_lb.labelId, _lb.labelType, _lb.correct)
 
     // Left join with the labels that the user has already validated, then filter those out.
     val filteredLabelsToValidate = for {
@@ -1250,14 +1244,13 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       if _val.isEmpty
     } yield _lab
 
-    // Group by the label_type_id and count.
     filteredLabelsToValidate
       .groupBy(_._2)
       .map { case (labType, group) =>
         (labType, group.length, group.length - group.map(_._3).countDefined)
       }
       .result
-      .map(_.map(x => LabelTypeValidationsLeft(LabelTypeEnum.byId(x._1), x._2, x._3)))
+      .map(_.map(x => LabelTypeValidationsLeft(x._1, x._2, x._3)))
   }
 
   /**
@@ -1270,7 +1263,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    * random number so that the max score for each label is 426.
    *
    * @param userId           User ID for the current user.
-   * @param labelTypeId      Label Type ID of labels requested.
+   * @param labelType        Label type of labels requested.
    * @param userIds          Optional list of user IDs to filter by.
    * @param regionIds        Optional list of region IDs to filter by.
    * @param excludedLabelIds Labels the caller already holds and must not be handed again (#4810).
@@ -1279,7 +1272,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   def retrieveLabelListForValidationQuery(
       userId: String,
       viewer: PanoSource,
-      labelTypeId: Int,
+      labelType: LabelTypeEnum.Base,
       includeAiTags: Boolean = true,
       userIds: Option[Set[String]] = None,
       regionIds: Option[Set[Int]] = None,
@@ -1289,12 +1282,11 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     // Join all necessary tables and filter potential labels according to the given parameters.
     val _labelInfo = for {
       (_lb, _at, _us) <- labelsWithAuditTasksAndUserStats
-      _lt             <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
       _lp             <- labelPoints if _lb.labelId === _lp.labelId
       _pd             <- panoData if _lb.panoId === _pd.panoId
       _ser            <- streetEdgeRegions if _lb.streetEdgeId === _ser.streetEdgeId
       _ur             <- userRoles if _us.userId === _ur.userId
-      if _lt.labelTypeId === labelTypeId && _lp.lat.isDefined && _lp.lng.isDefined && _lb.userId =!= userId
+      if _lb.labelType === labelType && _lp.lat.isDefined && _lp.lng.isDefined && _lb.userId =!= userId
       if _pd.source === viewer && imageryViewable(_pd)
       if !unvalidatedOnly.asColumnOf[Boolean] || _lb.correct.isEmpty // Filter out validated labels.
       // Filter out labels the caller already holds. An empty set can't go through `inSetBind`, which renders an
@@ -1302,7 +1294,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       if (if (excludedLabelIds.isEmpty) true: Rep[Boolean] else !(_lb.labelId inSetBind excludedLabelIds))
       if regionIds.map(ids => _ser.regionId inSetBind ids).getOrElse(true: Rep[Boolean]) // Filter by region IDs.
       if userIds.map(ids => _lb.userId inSetBind ids).getOrElse(true: Rep[Boolean])      // Filter by user IDs.
-    } yield (_lb, _lp, _pd, _us, _at, _lt.labelType, _ser.regionId, _ur.role === Role.Ai)
+    } yield (_lb, _lp, _pd, _us, _at, _lb.labelTypeName, _ser.regionId, _ur.role === Role.Ai)
 
     // Filter out labels that have already been validated by this user.
     val labelsValidatedByUser = labelValidations.filter(_.userId === userId)
@@ -1462,7 +1454,6 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
 
     val _labelInfo = for {
       _lb  <- _labelsFilteredByCorrectness if !(_lb.labelId inSetBind loadedLabelIds)
-      _lt  <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
       _lp  <- labelPoints if _lb.labelId === _lp.labelId
       _pd  <- panoData if _lb.panoId === _pd.panoId
       _us  <- userStats if _lb.userId === _us.userId
@@ -1470,14 +1461,14 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _ur  <- userRoles if _us.userId === _ur.userId
       if _pd.source === viewer
       if _lp.lat.isDefined && _lp.lng.isDefined
-      if _lt.labelTypeId === labelType.id
+      if _lb.labelType === labelType
       if (_ser.regionId inSetBind regionIds) || regionIds.isEmpty
       // When the severity filter is non-empty, require a match against the requested ratings or (if allowed) null.
       if (_lb.severity inSetBind severityRatings) || (_lb.severity.isEmpty && severityAllowsNull) || severity.isEmpty
       if (_lb.tags @& tags.toList) || tags.isEmpty // @& is the overlap operator from postgres (&& in postgres).
       if _us.highQuality || (_lb.correct.isDefined && _lb.correct === true)
       if _lb.disagreeCount < 3 || _lb.disagreeCount < _lb.agreeCount * 2
-    } yield (_lb, _lp, _pd, _lt.labelType, _ser.regionId, _ur.role === Role.Ai)
+    } yield (_lb, _lp, _pd, _lb.labelTypeName, _ser.regionId, _ur.role === Role.Ai)
 
     val _labelInfoWithAIValidation = _labelInfo
       .joinLeft(aiValidations)
@@ -1611,7 +1602,6 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     // Grab validations and associated label information for the given user's labels.
     val _validations = for {
       _lb <- labelsWithExcludedUsers
-      _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
       _lp <- labelPoints if _lb.labelId === _lp.labelId
       _pd <- panoData if _lb.panoId === _pd.panoId
       _vc <- _validationsWithComments if _lb.labelId === _vc._1
@@ -1623,7 +1613,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
         _us.highQuality === true &&             // For now, we only include validations from high quality users.
         _pd.expired === false &&                // Only include those with non-expired imagery.
         _lb.correct.isDefined && _lb.correct === false && // Exclude outlier validations on a correct label.
-        _lt.labelType === labelType.name &&               // Only include given label types.
+        _lb.labelTypeName === labelType.name &&           // Only include given label types.
         // Drop labels the user has already agreed/disagreed on, so answered mistakes don't reappear (#2996).
         !mistakeResponses.filter(r => r.labelId === _lb.labelId && r.userId === userId).exists
     } yield (
@@ -1633,7 +1623,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       (_lp.heading.asColumnOf[Double], _lp.pitch.asColumnOf[Double], _lp.zoom.asColumnOf[Double]),
       _lp.canvasX,
       _lp.canvasY,
-      _lt.labelType,
+      _lb.labelTypeName,
       _vc._5,
       _vc._6
     )
@@ -1670,14 +1660,13 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
 
     val _labels = for {
       (_l, _at, _us) <- labelsWithAuditTasksAndUserStats
-      _lt            <- labelTypes if _l.labelTypeId === _lt.labelTypeId
       _lp            <- _labelPointsInBbox if _l.labelId === _lp.labelId
       _pd            <- panoData if _l.panoId === _pd.panoId
       _ser           <- streetEdgeRegions if _l.streetEdgeId === _ser.streetEdgeId
       _ur            <- userRoles if _us.userId === _ur.userId
       if (_ser.regionId inSetBind regionIds) || regionIds.isEmpty
       if _lp.lat.isDefined && _lp.lng.isDefined // Make sure they are NOT NULL so we can safely use .get later.
-    } yield (_l, _lp, _us.highQuality, _lt.labelType, _pd.expired, _pd.hasBackup, _ur.role === Role.Ai)
+    } yield (_l, _lp, _us.highQuality, _l.labelTypeName, _pd.expired, _pd.hasBackup, _ur.role === Role.Ai)
 
     // Get AI validations.
     val _labelInfoWithAIValidation = _labels
@@ -1776,9 +1765,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   def getTagCounts: DBIO[Seq[TagCount]] = {
     val _tags = for {
       _l      <- labels
-      _lType  <- labelTypes if _l.labelTypeId === _lType.labelTypeId
       _lPoint <- labelPoints if _l.labelId === _lPoint.labelId
-    } yield (_lType.labelType, _l.tags.unnest)
+    } yield (_l.labelTypeName, _l.tags.unnest)
 
     // Count usage of tags by grouping by (labelType, tag).
     _tags
@@ -1798,9 +1786,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    */
   def getTagSeverityCounts: DBIO[Seq[(String, String, Option[Int], Int)]] = {
     val rows = for {
-      _l     <- labels if _l.severity.isDefined
-      _lType <- labelTypes if _l.labelTypeId === _lType.labelTypeId
-    } yield (_lType.labelType, _l.tags.unnest, _l.severity)
+      _l <- labels if _l.severity.isDefined
+    } yield (_l.labelTypeName, _l.tags.unnest, _l.severity)
 
     rows
       .groupBy(r => (r._1, r._2, r._3))
@@ -1814,7 +1801,6 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   def getLabelLocations(userId: String, regionId: Option[Int] = None): DBIO[Seq[LabelLocation]] = {
     val _labels = for {
       _l   <- labelsWithExcludedUsers
-      _lt  <- labelTypes if _l.labelTypeId === _lt.labelTypeId
       _lp  <- labelPoints if _l.labelId === _lp.labelId
       _at  <- auditTasks if _l.auditTaskId === _at.auditTaskId
       _ser <- streetEdgeRegions if _at.streetEdgeId === _ser.streetEdgeId
@@ -1826,7 +1812,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _l.labelId,
       _l.auditTaskId,
       _l.panoId,
-      _lt.labelType,
+      _l.labelTypeName,
       _lp.lat,
       _lp.lng,
       _l.correct,
@@ -1950,11 +1936,10 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _mission    <- missions
       _label      <- labels if _mission.missionId === _label.missionId
       _labelPoint <- labelPoints if _label.labelId === _labelPoint.labelId
-      _labelType  <- labelTypes if _label.labelTypeId === _labelType.labelTypeId
       _panoData   <- panoData if _label.panoId === _panoData.panoId
       if _mission.regionId === regionId && _mission.userId === userId
       if _labelPoint.lat.isDefined && _labelPoint.lng.isDefined
-    } yield (_label, _labelType.labelType, _labelPoint, _panoData.lat, _panoData.lng, _panoData.cameraHeading,
+    } yield (_label, _label.labelTypeName, _labelPoint, _panoData.lat, _panoData.lng, _panoData.cameraHeading,
       _panoData.cameraPitch, _panoData.width, _panoData.height)).result.map(_.map(ResumeLabelMetadata.tupled))
   }
 
@@ -1997,7 +1982,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     // Apply the rest of the existing filters.
     if (filters.labelTypes.isDefined && filters.labelTypes.get.nonEmpty) {
       val labelTypeList = filters.labelTypes.get.map(lt => s"'${lt.replace("'", "''")}'").mkString(", ")
-      whereConditions :+= s"label_type.label_type IN ($labelTypeList)"
+      whereConditions :+= s"label.label_type IN ($labelTypeList)"
     }
 
     if (filters.tags.isDefined && filters.tags.get.nonEmpty) {
@@ -2057,7 +2042,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              label.user_id,
              label.pano_id,
              pano_data.source::text,
-             label_type.label_type,
+             label.label_type::text,
              label.severity,
              array_to_string(label.tags, ','),
              label.description,
@@ -2090,7 +2075,6 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              label_point.lat,
              label_point.lng
       FROM label
-      INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
       INNER JOIN label_point ON label.label_id = label_point.label_id
       INNER JOIN osm_way_street_edge ON label.street_edge_id = osm_way_street_edge.street_edge_id
       INNER JOIN street_edge_region ON label.street_edge_id = street_edge_region.street_edge_id
@@ -2415,36 +2399,35 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
                          END
                      ))
                  ) * INTERVAL '1 second' AS stddev_age_when_labeled,
-                 COUNT(CASE WHEN label_type.label_type = 'CurbRamp' THEN 1 END) AS n_ramp,
-                 COUNT(CASE WHEN label_type.label_type = 'CurbRamp' AND severity IS NOT NULL THEN 1 END) AS n_ramp_with_sev,
-                 avg(CASE WHEN label_type.label_type = 'CurbRamp' THEN severity END) AS ramp_sev_mean,
-                 stddev(CASE WHEN label_type.label_type = 'CurbRamp' THEN severity END) AS ramp_sev_sd,
-                 COUNT(CASE WHEN label_type.label_type = 'NoCurbRamp' THEN 1 END) AS n_noramp,
-                 COUNT(CASE WHEN label_type.label_type = 'NoCurbRamp' AND severity IS NOT NULL THEN 1 END) AS n_noramp_with_sev,
-                 avg(CASE WHEN label_type.label_type = 'NoCurbRamp' THEN severity END) AS noramp_sev_mean,
-                 stddev(CASE WHEN label_type.label_type = 'NoCurbRamp' THEN severity END) AS noramp_sev_sd,
-                 COUNT(CASE WHEN label_type.label_type = 'Obstacle' THEN 1 END) AS n_obs,
-                 COUNT(CASE WHEN label_type.label_type = 'Obstacle' AND severity IS NOT NULL THEN 1 END) AS n_obs_with_sev,
-                 avg(CASE WHEN label_type.label_type = 'Obstacle' THEN severity END) AS obs_sev_mean,
-                 stddev(CASE WHEN label_type.label_type = 'Obstacle' THEN severity END) AS obs_sev_sd,
-                 COUNT(CASE WHEN label_type.label_type = 'SurfaceProblem' THEN 1 END) AS n_surf,
-                 COUNT(CASE WHEN label_type.label_type = 'SurfaceProblem' AND severity IS NOT NULL THEN 1 END) AS n_surf_with_sev,
-                 avg(CASE WHEN label_type.label_type = 'SurfaceProblem' THEN severity END) AS surf_sev_mean,
-                 stddev(CASE WHEN label_type.label_type = 'SurfaceProblem' THEN severity END) AS surf_sev_sd,
-                 COUNT(CASE WHEN label_type.label_type = 'NoSidewalk' THEN 1 END) AS n_nosidewalk,
-                 COUNT(CASE WHEN label_type.label_type = 'Crosswalk' THEN 1 END) AS n_crswlk,
-                 COUNT(CASE WHEN label_type.label_type = 'Crosswalk' AND severity IS NOT NULL THEN 1 END) AS n_crswlk_with_sev,
-                 avg(CASE WHEN label_type.label_type = 'Crosswalk' THEN severity END) AS crswlk_sev_mean,
-                 stddev(CASE WHEN label_type.label_type = 'Crosswalk' THEN severity END) AS crswlk_sev_sd,
-                 COUNT(CASE WHEN label_type.label_type = 'Signal' THEN 1 END) AS n_signal,
-                 COUNT(CASE WHEN label_type.label_type = 'Occlusion' THEN 1 END) AS n_occlusion,
-                 COUNT(CASE WHEN label_type.label_type = 'Other' THEN 1 END) AS n_other,
-                 COUNT(CASE WHEN label_type.label_type = 'Other' AND severity IS NOT NULL THEN 1 END) AS n_other_with_sev,
-                 avg(CASE WHEN label_type.label_type = 'Other' THEN severity END) AS other_sev_mean,
-                 stddev(CASE WHEN label_type.label_type = 'Other' THEN severity END) AS other_sev_sd
+                 COUNT(CASE WHEN label.label_type = 'CurbRamp' THEN 1 END) AS n_ramp,
+                 COUNT(CASE WHEN label.label_type = 'CurbRamp' AND severity IS NOT NULL THEN 1 END) AS n_ramp_with_sev,
+                 avg(CASE WHEN label.label_type = 'CurbRamp' THEN severity END) AS ramp_sev_mean,
+                 stddev(CASE WHEN label.label_type = 'CurbRamp' THEN severity END) AS ramp_sev_sd,
+                 COUNT(CASE WHEN label.label_type = 'NoCurbRamp' THEN 1 END) AS n_noramp,
+                 COUNT(CASE WHEN label.label_type = 'NoCurbRamp' AND severity IS NOT NULL THEN 1 END) AS n_noramp_with_sev,
+                 avg(CASE WHEN label.label_type = 'NoCurbRamp' THEN severity END) AS noramp_sev_mean,
+                 stddev(CASE WHEN label.label_type = 'NoCurbRamp' THEN severity END) AS noramp_sev_sd,
+                 COUNT(CASE WHEN label.label_type = 'Obstacle' THEN 1 END) AS n_obs,
+                 COUNT(CASE WHEN label.label_type = 'Obstacle' AND severity IS NOT NULL THEN 1 END) AS n_obs_with_sev,
+                 avg(CASE WHEN label.label_type = 'Obstacle' THEN severity END) AS obs_sev_mean,
+                 stddev(CASE WHEN label.label_type = 'Obstacle' THEN severity END) AS obs_sev_sd,
+                 COUNT(CASE WHEN label.label_type = 'SurfaceProblem' THEN 1 END) AS n_surf,
+                 COUNT(CASE WHEN label.label_type = 'SurfaceProblem' AND severity IS NOT NULL THEN 1 END) AS n_surf_with_sev,
+                 avg(CASE WHEN label.label_type = 'SurfaceProblem' THEN severity END) AS surf_sev_mean,
+                 stddev(CASE WHEN label.label_type = 'SurfaceProblem' THEN severity END) AS surf_sev_sd,
+                 COUNT(CASE WHEN label.label_type = 'NoSidewalk' THEN 1 END) AS n_nosidewalk,
+                 COUNT(CASE WHEN label.label_type = 'Crosswalk' THEN 1 END) AS n_crswlk,
+                 COUNT(CASE WHEN label.label_type = 'Crosswalk' AND severity IS NOT NULL THEN 1 END) AS n_crswlk_with_sev,
+                 avg(CASE WHEN label.label_type = 'Crosswalk' THEN severity END) AS crswlk_sev_mean,
+                 stddev(CASE WHEN label.label_type = 'Crosswalk' THEN severity END) AS crswlk_sev_sd,
+                 COUNT(CASE WHEN label.label_type = 'Signal' THEN 1 END) AS n_signal,
+                 COUNT(CASE WHEN label.label_type = 'Occlusion' THEN 1 END) AS n_occlusion,
+                 COUNT(CASE WHEN label.label_type = 'Other' THEN 1 END) AS n_other,
+                 COUNT(CASE WHEN label.label_type = 'Other' AND severity IS NOT NULL THEN 1 END) AS n_other_with_sev,
+                 avg(CASE WHEN label.label_type = 'Other' THEN severity END) AS other_sev_mean,
+                 stddev(CASE WHEN label.label_type = 'Other' THEN severity END) AS other_sev_sd
           FROM label
           INNER JOIN user_stat ON label.user_id = user_stat.user_id
-          INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
           INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
           LEFT JOIN pano_data ON label.pano_id = pano_data.pano_id
           WHERE #$userFilter
@@ -2470,10 +2453,9 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
               -- One row per validated label: the majority verdict from each vote source plus that source's vote count.
               -- AI votes are baked into the label table's agree/disagree/correct columns, so we recompute from
               -- label_validation joined to role to separate human (role <> 'AI') from AI (role = 'AI') from combined.
-              SELECT label.label_id, label_type.label_type,
+              SELECT label.label_id, label.label_type::text,
                      #$validationVerdictCols
               FROM label
-              INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
               INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
               INNER JOIN user_stat AS labeler_stat ON label.user_id = labeler_stat.user_id
               INNER JOIN label_validation ON label.label_id = label_validation.label_id
@@ -2486,7 +2468,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
                   AND label.tutorial = FALSE
                   AND label.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
                   AND audit_task.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
-              GROUP BY label.label_id, label_type.label_type
+              GROUP BY label.label_id, label.label_type::text
           ) AS label_verdicts
       ) AS val_counts, (
           SELECT COUNT(CASE WHEN ai_mv = 1 AND human_mv = 1 THEN 1 END) AS ai_yes_mv_yes,
@@ -2538,7 +2520,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
                  COUNT(CASE WHEN label_type = 'Crosswalk' AND ai_mv = 2 AND admin_mv = 1 THEN 1 END) AS crswlk_ai_no_admin_yes,
                  COUNT(CASE WHEN label_type = 'Crosswalk' AND ai_mv = 2 AND admin_mv = 2 THEN 1 END) AS crswlk_ai_no_admin_no
           FROM (
-              SELECT label.label_id, label_type.label_type,
+              SELECT label.label_id, label.label_type::text,
                      -- Note that we're doing majority vote with AI for simplicity. Should only be one vote from AI.
                      CASE
                          WHEN COUNT(CASE WHEN role = 'AI' AND validation_result = 'Agree' THEN 1 END)
@@ -2562,13 +2544,12 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
                          ELSE 3
                          END AS admin_mv
               FROM label
-              INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
               INNER JOIN label_validation ON label.label_id = label_validation.label_id
               INNER JOIN user_stat ON label_validation.user_id = user_stat.user_id
               INNER JOIN user_role ON user_stat.user_id = user_role.user_id
               WHERE user_stat.excluded = FALSE
                   AND label.user_id <> label_validation.user_id -- Excluding times when user validated their own label.
-              GROUP BY label.label_id, label_type.label_type
+              GROUP BY label.label_id, label.label_type::text
               HAVING COUNT(CASE WHEN user_role.role = 'AI' THEN 1 END) > 0
           ) AS majority_votes
       ) AS ai_stats;""".as[ProjectSidewalkStats].head
@@ -2588,7 +2569,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       .filter { case ((label, point), pd) => label.labelId === labelId && pd.width.isDefined && pd.height.isDefined }
       .result
       .headOption
-      .map(_.map { case ((label, point), pd) => LabelDataForAi(label.labelId, label.labelTypeId, point, pd) })
+      .map(_.map { case ((label, point), pd) => LabelDataForAi(label.labelId, label.labelType, point, pd) })
   }
 
   /**
@@ -2598,7 +2579,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    */
   def getLabelsToValidateWithAi(n: Int): DBIO[Seq[LabelDataForAi]] = {
     val possibleLabels = labels
-      .filter(_.labelTypeId inSet LabelTypeEnum.aiLabelTypeIds)
+      .filter(_.labelType inSet LabelTypeEnum.aiLabelTypes)
       .join(userRoles)
       .on(_.userId === _.userId)
       .filter { case (l, ur) => ur.role =!= Role.Ai } // No labels created by AI
@@ -2628,7 +2609,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       }
       .take(n)
       .result
-      .map(_.map { case ((label, point), pd) => LabelDataForAi(label.labelId, label.labelTypeId, point, pd) })
+      .map(_.map { case ((label, point), pd) => LabelDataForAi(label.labelId, label.labelType, point, pd) })
   }
 
   /**
@@ -2669,7 +2650,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     } yield (
       _l.labelId,
       _pd.panoId,
-      _l.labelTypeId,
+      _l.labelTypeName,
       _l.agreeCount,
       _l.disagreeCount,
       _l.unsureCount,
@@ -2727,16 +2708,15 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
 
     sql"""
       SELECT CAST((label.time_created AT TIME ZONE 'US/Pacific')::date AS TEXT) AS date,
-             label_type.label_type,
+             label.label_type::text,
              COUNT(CASE WHEN user_role.role IS DISTINCT FROM 'AI' THEN label.label_id END) AS human_labels,
              COUNT(CASE WHEN user_role.role = 'AI'               THEN label.label_id END) AS ai_labels
       FROM label
-      INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
       INNER JOIN user_stat  ON label.user_id       = user_stat.user_id
       LEFT  JOIN sidewalk_login.user_role ON label.user_id = user_role.user_id
       WHERE #$where
-      GROUP BY (label.time_created AT TIME ZONE 'US/Pacific')::date, label_type.label_type
-      ORDER BY date ASC, label_type.label_type
+      GROUP BY (label.time_created AT TIME ZONE 'US/Pacific')::date, label.label_type::text
+      ORDER BY date ASC, label.label_type::text
     """.as[(LocalDate, String, Int, Int)]
   }
 }
