@@ -130,17 +130,6 @@
   margin: var(--space-lg) 0;
 }
 
-/* Empty state for charts with no data */
-.chart-empty-state {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  color: var(--color-neutral-700);
-  font: var(--text-small-regular);
-  font-style: italic;
-}
-
 /* ==========================================================================
    VALIDATION RESULT INDICATORS
    ========================================================================== */

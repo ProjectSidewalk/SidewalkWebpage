@@ -119,6 +119,17 @@ rows and api-docs preview features on the page, while a full dev DB puts thousan
 are still only visible locally. Policy, the allowlist rules, and the manual checklist
 that covers what axe can't see: [`docs/accessibility.md`](../../docs/accessibility.md).
 
+`a11y-api-docs-states.spec.js` belongs to the same project and covers what a page walk structurally can't: the
+api-docs previews' *message* renders. It intercepts a preview's endpoint, serves a truncated body or an empty
+result, and scans the "failed to load" or "no data" markup the preview shows in place of its chart — one state per
+distinct DOM shape, since twelve previews share the same `.message-error` markup. Its allowlist keys carry a
+` [state]` suffix, and every case also asserts the injected message carries `role="alert"` (a failure) or
+`role="status"` (an ordinary empty result), which is a rule axe does not have.
+
+Both files match the `A11Y_SPECS` pattern in `playwright.config.js`, which is what puts a spec in the gate and
+keeps it out of the smoke half — one definition, used for the a11y project's `testMatch` and the smoke project's
+`testIgnore`.
+
 ### Console-error allowlist
 
 `CONSOLE_ERROR_ALLOWLIST` in `fixtures.js`. Policy: entries are added only for **observed, understood**
@@ -205,7 +216,8 @@ read, not a second city dump to maintain. Three things about it shape this suite
 | `pages.spec.js` | Table-driven phase-1 anonymous pages |
 | `phone-viewport.spec.js` | The same pages at a 390×844 phone viewport: no horizontal overflow (#4883) |
 | `a11y.spec.js` | The accessibility gate: axe-core over every page in `pages.js`, WCAG 2.1 AA (#5060) |
-| `a11y-allowlist.js` | Per-page allowlist of tracked violations, plus the partition/format helpers |
+| `a11y-api-docs-states.spec.js` | The same gate over the api-docs previews' error and empty renders, forced by intercepting their feeds (#5122) |
+| `a11y-allowlist.js` | Per-page allowlist of tracked violations, the shared WCAG tag list, plus the partition/format helpers |
 | `overflow-report.spec.js` | `horizontalOverflowReport`'s exemption rules, pinned against synthetic DOM |
 | `dashboard.spec.js` | Registered-user pages |
 | `explore-validate.spec.js` | Phase-2 Explore/Validate/mobile-Validate specs (skip without the real GSV key) |

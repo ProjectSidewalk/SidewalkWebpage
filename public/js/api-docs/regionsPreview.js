@@ -75,7 +75,7 @@
         await this.renderMap(container, regions);
       } catch (error) {
         console.error('Error rendering regions preview:', error);
-        container.innerHTML = '<div class="map-message">Unable to load region data for the preview.</div>';
+        container.innerHTML = '<div class="map-message" role="alert">Unable to load region data for the preview.</div>';
       }
     },
 
@@ -238,6 +238,7 @@
     addNoRegionsMessage(map) {
       const div = document.createElement('div');
       div.className = 'map-message';
+      div.setAttribute('role', 'status');
       div.textContent = 'No regions found for this city.';
       map.getContainer().appendChild(div);
     },

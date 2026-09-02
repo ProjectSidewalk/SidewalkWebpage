@@ -260,7 +260,8 @@
      */
     showError(container, error) {
       console.error('Streets preview error:', error);
-      container.innerHTML = `<div class="message message-error">Failed to load streets: ${error.message}</div>`;
+      container.innerHTML = `<div class="message message-error" role="alert">Failed to load streets: `
+        + `${error.message}</div>`;
     },
 
     /**

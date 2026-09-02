@@ -63,6 +63,36 @@ Getting out takes one of two deliberate acts, and the two mean different things:
 
 Registered-user and admin pages are the current gap: they need a session, so they are not in `pages.js` at all.
 
+### Forced render states
+
+A page walk measures whatever state the database puts a page in, which for a seeded schema is always the healthy
+render. `test/e2e/a11y-api-docs-states.spec.js` covers the other one: it intercepts an api-docs preview's endpoint,
+serves a truncated body or an empty result, and scans the message the preview shows instead of its chart. That
+markup — small low-contrast text on a tinted ground — is where the contrast risk actually sits, and it is what a
+reader meets during an API outage or on a deployment with nothing recorded yet.
+
+One state per distinct DOM shape, not one per page: twelve previews share the same `.message-error` markup, so the
+table in that file lists a page once, when it is the first to render a shape. Each case asserts the state is on
+screen before axe runs — a preview that quietly recovered would otherwise be scanned as a healthy page and pass for
+the wrong reason.
+
+Allowlist keys for these carry a ` [state]` suffix (`/v3/api-docs/rawLabels [feed error]`), so an entry written for
+a page's healthy render cannot silently cover its error render.
+
+### Announcing what was injected
+
+axe has no rule for a message nobody hears. A preview that swaps its chart for "Failed to load…" long after page
+load changes nothing a screen reader announces unless the injected node says what it is, so every one of these
+carries a live-region role:
+
+- **`role="alert"`** when something failed — a feed error, a malformed response. Assertive: it interrupts.
+- **`role="status"`** when nothing failed — no labels in this region, no data in this period, no contributors yet.
+  Polite, because an empty result is an ordinary answer, not a fault.
+
+The split is asserted directly in `a11y-api-docs-states.spec.js`, since no axe rule will catch its loss. Ordinary
+descriptive text rendered as part of a normal result (`.preview-note` summarizing a chart) takes neither role — it
+is there on load, and a live region would announce it for no reason.
+
 ### Third-party embeds
 
 axe descends into same-page frames, so an embedded player's own chrome reports as our violations — the four YouTube
@@ -104,7 +134,8 @@ Note that a failing job only *blocks a merge* once the check is required in bran
 
 ### The allowlist
 
-`test/e2e/a11y-allowlist.js` maps each page path to the violations it is currently allowed to have. **It is a work
+`test/e2e/a11y-allowlist.js` maps each page path — optionally with a ` [state]` suffix, see *Forced render
+states* above — to the violations it is currently allowed to have. **It is a work
 queue, not an exemption list.** Every entry needs:
 
 - `rule` — the axe rule id (`color-contrast`, `link-name`, `region`, …).
