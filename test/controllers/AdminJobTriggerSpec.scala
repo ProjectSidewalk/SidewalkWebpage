@@ -159,7 +159,8 @@ class AdminJobTriggerSpec
       jobRun.triggeredBy mustBe JobRunTrigger.Manual
       jobRun.status mustBe JobRunStatus.Succeeded
       jobRun.finishedAt mustBe defined
-      (jobRun.details.value \ "users_updated").as[Int] mustBe UsersUpdated
+      // The nightly recompute and this trigger share one details shape, so the panel can chart them as one job.
+      jobRun.details.value mustBe UserStatActor.runDetails(UsersUpdated)
     }
   }
 
@@ -170,7 +171,7 @@ class AdminJobTriggerSpec
       body must include(FunnelRows.toString)
       jobRun.triggeredBy mustBe JobRunTrigger.Manual
       jobRun.status mustBe JobRunStatus.Succeeded
-      (jobRun.details.value \ "rows_written").as[Int] mustBe FunnelRows
+      jobRun.details.value mustBe FunnelStatActor.runDetails(FunnelRows)
     }
   }
 
@@ -180,9 +181,9 @@ class AdminJobTriggerSpec
       code mustBe OK
       jobRun.triggeredBy mustBe JobRunTrigger.Manual
       jobRun.status mustBe JobRunStatus.Succeeded
-      // This one covers only the recalculation step, not the sync the nightly sequence wraps around it, so it has no
-      // counts to report -- and `record` stores an empty details object as nothing at all.
-      jobRun.details mustBe empty
+      // This one covers only the recalculation step, not the region_completion rebuild the nightly sequence wraps
+      // around it, so it reports a null count rather than a number a reader could mistake for a rebuild that ran.
+      jobRun.details.value mustBe RecalculateStreetPriorityActor.runDetails(None)
     }
   }
 
@@ -193,7 +194,6 @@ class AdminJobTriggerSpec
       body mustBe ImageryResult.summary
       jobRun.triggeredBy mustBe JobRunTrigger.Manual
       jobRun.status mustBe JobRunStatus.Succeeded
-      // The nightly sweep and this trigger share one details shape, so the panel can chart them as the same job.
       jobRun.details.value mustBe ImageryResult.runDetails
     }
   }
@@ -206,7 +206,7 @@ class AdminJobTriggerSpec
       body must include(WaysRefreshed.toString)
       jobRun.triggeredBy mustBe JobRunTrigger.Manual
       jobRun.status mustBe JobRunStatus.Succeeded
-      (jobRun.details.value \ "ways_refreshed").as[Int] mustBe WaysRefreshed
+      jobRun.details.value mustBe OsmWayRefreshActor.runDetails(WaysRefreshed)
     }
 
     "record a half-finished refresh as a failure, and say so rather than reporting a count" in {
@@ -232,8 +232,7 @@ class AdminJobTriggerSpec
       body must include(ClusterResults.clusterCount.toString)
       jobRun.triggeredBy mustBe JobRunTrigger.Manual
       jobRun.status mustBe JobRunStatus.Succeeded
-      (jobRun.details.value \ "labels_clustered").as[Int] mustBe ClusterResults.labelCount
-      (jobRun.details.value \ "clusters_created").as[Int] mustBe ClusterResults.clusterCount
+      jobRun.details.value mustBe ClusterResults.runDetails
     }
   }
 
