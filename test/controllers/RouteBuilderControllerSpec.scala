@@ -67,9 +67,13 @@ class RouteBuilderControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
       FakeRequest(GET, "/contribution/streets/all?filterLowQuality=true").withCookies(userCookies: _*)
     ).get
     status(resp) mustBe OK
-    val features           = (contentAsJson(resp) \ "features").as[Seq[JsValue]]
-    val byRegion           = features.groupBy(f => (f \ "properties" \ "region_id").as[Int])
-    val (regionId, inSame) = byRegion.find(_._2.size >= n).get
+    val features = (contentAsJson(resp) \ "features").as[Seq[JsValue]]
+    val byRegion = features.groupBy(f => (f \ "properties" \ "region_id").as[Int])
+    // Cancels rather than throwing on `.get`: the route-editing cases want several streets sharing a region, and
+    // CI's schema has one routable street, so those cases have no data to work with there.
+    val (regionId, inSame) = byRegion
+      .find(_._2.size >= n)
+      .getOrElse(cancel(s"No region in the connected DB holds $n routable streets; needs a seeded DB."))
     (inSame.take(n).map(f => (f \ "properties" \ "street_edge_id").as[Int]), regionId)
   }
 
