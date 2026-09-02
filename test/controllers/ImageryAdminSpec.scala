@@ -17,6 +17,7 @@ import service.ImageryFreshnessReportService
 import slick.dbio.DBIO
 import util.{AnonSession, RoleSession}
 
+import java.time.temporal.ChronoUnit
 import java.time.{LocalDate, OffsetDateTime}
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -67,8 +68,15 @@ class ImageryAdminSpec extends PlaySpec with RoleSession with GuiceOneAppPerSuit
       details: Option[JsValue],
       trigger: JobRunTrigger.Value = JobRunTrigger.Scheduled
   ): Unit = {
-    val startedAt = OffsetDateTime.now.minusHours(1)
-    val id        = run(jobRunTable.insertRunning(pollJob, trigger, startedAt))
+    // The run must land on today (the run_days assertions look for today's row) and successive seeds must stay
+    // ordered (a job row reports its latest run). A flat hour back breaks the first between 00:00 and 01:00; pinning
+    // to midnight breaks the second. Halving the distance to midnight holds both.
+    val now       = OffsetDateTime.now
+    val midnight  = now.truncatedTo(ChronoUnit.DAYS)
+    val startedAt =
+      if (now.minusHours(1).isBefore(midnight)) midnight.plus(java.time.Duration.between(midnight, now).dividedBy(2))
+      else now.minusHours(1)
+    val id = run(jobRunTable.insertRunning(pollJob, trigger, startedAt))
     seededRunIds ::= id
     val _ = run(
       jobRunTable.finish(
