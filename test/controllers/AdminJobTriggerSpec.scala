@@ -8,20 +8,15 @@ import actor.{
   RecalculateStreetPriorityActor,
   UserStatActor
 }
-import models.street.OsmWayTable
 import models.user.Role
 import models.utils.MyPostgresProfile.api._
 import models.utils.{BackgroundJobRun, BackgroundJobRunTable, JobRunStatus, JobRunTrigger}
-import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.stream.Materializer
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
-import play.api.cache.AsyncCacheApi
-import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.ws.WSClient
 import play.api.mvc.Cookie
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
@@ -29,8 +24,7 @@ import service.PanoDataService.ImageryCheckResult
 import service.{AdminService, ClusterService, ClusteringResults, OsmWayService, PanoDataService, StreetService}
 import util.{AnonSession, RoleSession, RolledBackDb, StubService}
 
-import javax.inject.{Inject, Singleton}
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 
 /**
  * Functional tests for the six admin routes that hand-trigger a nightly job (#4946).
@@ -62,6 +56,9 @@ class AdminJobTriggerSpec
   private val ImageryResult  = ImageryCheckResult(stillThere = 7, gone = 2, errors = 1, reconciled = Some(3))
   private val ClusterResults = ClusteringResults(labelCount = 4614, clusterCount = 4615)
 
+  /** Set per test: this endpoint's failure path is part of its contract, and Guice owns the stub. */
+  @volatile private var osmWayAnswer: Future[Int] = Future.successful(0)
+
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder()
       .disable[modules.ActorModule]
@@ -91,8 +88,9 @@ class AdminJobTriggerSpec
         bind[ClusterService].toInstance(
           StubService.answering[ClusterService](Map("runClustering" -> Future.successful(ClusterResults)))
         ),
-        // A class rather than a trait, so it takes a subclass binding instead of a proxy.
-        bind[OsmWayService].to[StubOsmWayService]
+        bind[OsmWayService].toInstance(
+          StubService.answeringWith[OsmWayService](Map("refreshOsmWayData" -> (() => osmWayAnswer)))
+        )
       )
       .build()
 
@@ -145,7 +143,6 @@ class AdminJobTriggerSpec
     // RoleSession's demotion rides super.afterAll, and leaving an account Administrator in the shared login schema is
     // worse than leaving rows behind -- so a failed delete must not cost us it.
     try {
-      StubOsmWayService.answer = () => Future.successful(0)
       if (triggeredRunIds.nonEmpty) {
         val _ = run(jobRunTable.backgroundJobRuns.filter(_.backgroundJobRunId.inSet(triggeredRunIds)).delete)
       }
@@ -202,7 +199,7 @@ class AdminJobTriggerSpec
 
   "GET /adminapi/refreshOsmWayData" should {
     "record the refresh as a manual run of the nightly OSM job" in {
-      StubOsmWayService.answer = () => Future.successful(WaysRefreshed)
+      osmWayAnswer = Future.successful(WaysRefreshed)
       val (code, body, jobRun) = trigger("/adminapi/refreshOsmWayData", OsmWayRefreshActor.Name)
       code mustBe OK
       body must include(WaysRefreshed.toString)
@@ -214,7 +211,7 @@ class AdminJobTriggerSpec
     "record a half-finished refresh as a failure, and say so rather than reporting a count" in {
       // This job runs for tens of minutes over a shared community API and can die partway. The run row is the only
       // durable account of that, and the caller is told progress is kept -- both are easy to lose to a refactor.
-      StubOsmWayService.answer = () => Future.failed(new RuntimeException("overpass timed out"))
+      osmWayAnswer = Future.failed(new RuntimeException("overpass timed out"))
       val (code, body, jobRun) = trigger("/adminapi/refreshOsmWayData", OsmWayRefreshActor.Name)
       code mustBe SERVICE_UNAVAILABLE
       body must include("trigger again to resume")
@@ -258,28 +255,4 @@ class AdminJobTriggerSpec
       }
     }
   }
-}
-
-/**
- * Answers the OSM way refresh without calling Overpass.
- *
- * A subclass rather than a proxy because `OsmWayService` is a concrete class; Guice supplies the real dependencies,
- * none of which the override touches.
- */
-@Singleton
-class StubOsmWayService @Inject() (
-    dbConfigProvider: DatabaseConfigProvider,
-    ws: WSClient,
-    cacheApi: AsyncCacheApi,
-    actorSystem: ActorSystem,
-    osmWayTable: OsmWayTable
-)(implicit ec: ExecutionContext)
-    extends OsmWayService(dbConfigProvider, ws, cacheApi, actorSystem, osmWayTable) {
-  override def refreshOsmWayData(): Future[Int] = StubOsmWayService.answer()
-}
-
-object StubOsmWayService {
-
-  /** Set per test: this endpoint's failure path is part of its contract, and Guice owns the instance. */
-  @volatile var answer: () => Future[Int] = () => Future.successful(0)
 }
