@@ -1,5 +1,6 @@
 @import service.CommonPageData
 @import service.PartnerServiceImpl
+@import models.user.Role
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
 @(commonData: CommonPageData, user: SidewalkUserWithRole
@@ -11,7 +12,7 @@
 * Owners — enforced server-side on the /adminapi/globalPartners routes. Admin-only surface, English only.
 *@
 
-@isOwner = @{user.role == "Owner"}
+@isOwner = @{user.role == Role.Owner}
 
 @addForm(scope: String) = {
   @* The size caps ride along as data-/maxlength attributes so the client's copy is sourced from the backend
