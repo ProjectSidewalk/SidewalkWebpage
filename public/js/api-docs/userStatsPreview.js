@@ -349,8 +349,16 @@
       canvas.height = container.offsetHeight;
       container.appendChild(canvas);
 
-      // Check for valid data structure.
-      if (!topUsers.length || !topUsers[0].stats_by_label_type) {
+      // No users yet is an ordinary state for a young deployment, not a fault; only a user row missing its
+      // label-type breakdown means the response shape is actually wrong.
+      if (!topUsers.length) {
+        const emptyMsg = document.createElement('div');
+        emptyMsg.textContent = 'No user contributions yet.';
+        emptyMsg.className = 'message message-info';
+        container.appendChild(emptyMsg);
+        return;
+      }
+      if (!topUsers[0].stats_by_label_type) {
         console.error('User data doesn\'t have the expected structure for label types');
         const errorMsg = document.createElement('div');
         errorMsg.textContent = 'Unable to render chart: Invalid data structure';
