@@ -65,6 +65,25 @@ The backend follows a consistent layering: **routes → Controller → Service �
   seeded from a dump rather than built up from evolutions; the scripts that do that seeding (and other DB
   lifecycle/maintenance tasks) live in [`db/scripts/`](../db/scripts/README.md).
 
+### Media storage
+
+Uploaded media has two homes, chosen by its profile — and neither is the app-local filesystem, which a
+multi-instance deployment can't use safely (`sbt clean stage` once deleted production user media that lived under
+the app dir, #4925):
+
+- **Small, bounded, admin-curated, globally shared media lives as database rows.** Partner logos (#4516) are the
+  model case: re-encoded server-side, hard-capped by a `CHECK (octet_length(...) <= 1048576)` constraint, read by
+  every city app from the shared `sidewalk_login` schema, cached in-process and served with immutable cache
+  headers. At this size Postgres outperforms a filesystem (the classic crossover is ~256KB — Sears/van Ingen/Gray,
+  *To BLOB or Not To BLOB*, 2006), writes are transactional with the owning row, and the bytes ride the existing
+  DB backups with no extra provisioning. Full tradeoff record: issue #4516.
+- **Unbounded, per-city, user-generated media lives in the persistent media directories** (`MediaDirs`) — story
+  photos and audio today. These sit outside the app dir, are validated at boot by `PersistentMediaDirCheck`, and
+  need their own provisioning and backup path on every host.
+
+If either category outgrows its lane — thousands of files, multi-MB originals, a CDN or on-the-fly transforms in
+front — the move is to object storage (S3/MinIO), never the local filesystem.
+
 ### Dependency injection & runtime
 
 DI is Guice. The app bootstraps via `app/CustomApplicationLoader.scala`; modules are registered in
