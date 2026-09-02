@@ -164,16 +164,19 @@ visiting `<your-computer-ip>:9000` (phone and computer on the same Wi-Fi; this o
 ### Merge requirements (branch protection)
 
 `develop` is branch-protected so a red build can't land (the failure mode that once shipped a migration that wouldn't
-apply). A PR can only merge once the **blocking CI checks pass** — currently **`Backend (compile + scalafmt)`**,
-**`Frontend (build)`** (which also runs ESLint, Stylelint, HTMLHint, and locale key-parity, so any frontend lint
-failure blocks the merge), and **`Route reachability lint`**; the **`Evolutions lint`** job runs on every PR but is
-not yet a required check. The rule:
+apply). A PR can only merge once the **blocking CI checks pass** — **`Backend (compile + scalafmt)`**,
+**`Frontend (build)`** (which also runs ESLint, Stylelint, HTMLHint, locale key-parity, the CSS layout check and the
+asset-path check, so any frontend lint failure blocks the merge), **`Route reachability lint`**, **`Evolutions lint`**,
+**`Backend tests (API, PostGIS)`** and **`Python tests (in-band script)`**. The rule:
 
 - **Applies to everyone, maintainers included** — there is no admin bypass; it only ever stops a merge while CI is red.
+  It also means nobody pushes straight to `develop`: a direct push has no PR for the checks to run against.
 - **Does not require review approvals.** Tooling won't force a second person to sign off, so you can still open and
   merge your own PR. Review is by convention (and expected for external contributions), not enforced by a gate.
-- **Advisory jobs never block.** The DB-backed API tests and Python tests report status but are not required checks
-  while they stabilize.
+- **Coverage can block too.** `Backend tests (API, PostGIS)` ends on a statement-coverage ratchet, so removing tests
+  can fail the build even when everything still passes. The JS suite reports coverage but has no floor yet (#5112).
+- **Advisory jobs never block.** `E2E smoke (Playwright)` and `Python tests (offline tooling)` report status but are
+  not required checks.
 
 Full gating policy and rationale: [`docs/testing-and-ci.md`](docs/testing-and-ci.md).
 

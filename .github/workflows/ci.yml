@@ -3,11 +3,12 @@ name: CI
 #   - backend:         `sbt compile` + `scalafmtCheckAll` (both BLOCKING)
 #   - frontend:        asset build (grunt) + `eslint` (JS) + `stylelint` (CSS) + `htmlhint` (HTML) + locale parity +
 #                      CSS layout + asset paths (all BLOCKING), plus the jsdom `jest` suite in test/js/ (ADVISORY
-#                      step inside the same job).
+#                      step inside the same job; it reports JS coverage, but has no floor yet — see #5112).
 #   - evolutions-lint: static checks on conf/evolutions/default/*.sql (BLOCKING — fast, deterministic, no DB).
 #   - route-lint:      conf/routes reachability — fails if any route is shadowed by an earlier one (BLOCKING — no DB).
 #   - backend-tests:   DB-backed public-API functional tests against a real Postgres+PostGIS (BLOCKING). Boots
 #                      the app, which auto-applies pending evolutions -- so it doubles as the forward-apply gate.
+#                      Also carries the statement-coverage ratchet (BLOCKING, #4743).
 #   - e2e-smoke:       Playwright browser smoke tests (test/e2e/) against a staged app + the CI database. Loads each
 #                      core page in headless Chromium and fails on uncaught console/page errors (ADVISORY for now);
 #                      also carries the axe-core accessibility gate (a11y.spec.js, #5060), which is BLOCKING.
@@ -142,7 +143,7 @@ jobs:
       - name: Jest unit tests (advisory)
         if: always()
         continue-on-error: true
-        run: npm run test:js
+        run: npm run test:js:coverage
 
   evolutions-lint:
     name: Evolutions lint
@@ -182,7 +183,7 @@ jobs:
     runs-on: ubuntu-latest
     # BLOCKING: booting the app makes this the forward-evolution-apply gate — the failure that shipped the broken
     # evolution 325 (#4335/#4351). The specs are a hand-maintained subset (#5042), so green means "the enrolled
-    # specs pass", not "the backend is covered".
+    # specs pass", not "the backend is covered" — and its coverage number is for that subset, not all of test/.
     steps:
       - uses: actions/checkout@v7
 
@@ -249,8 +250,11 @@ jobs:
       # ("Pool is empty, failed to create/setup connection") and aborts the whole run. The route-shadowing invariant is
       # instead enforced by the DB-free, blocking `route-lint` job above; test/controllers/RouteReachabilitySpec.scala is
       # the equivalent spec, runnable locally and ready to join here once this suite is made sequential + promoted.
+      #
+      # `coverage` instruments this step and the gating one below, for the `coverageReport` at the end of the job
+      # (#4743).
       - name: Run public API tests
-        run: sbt "testOnly controllers.api.PublicApiSpec"
+        run: sbt coverage "testOnly controllers.api.PublicApiSpec"
         # Dummy env mirroring docker-compose.yml's web service, so the app boots exactly as it does in dev. The
         # application secret must be >=256 bits (32+ chars) for Play's HS256 JWT sessions, hence the long value.
         env:
@@ -441,7 +445,7 @@ jobs:
       #   path -- and the ordering one is worse than losing the stamp, since the tool bundles resolve icon URLs in
       #   module-level constants at script-eval time.
       - name: Run gating/auth tests (health dashboard + route auth posture + geodesic distances)
-        run: sbt 'set Test / parallelExecution := false' 'testOnly controllers.HealthDashboardSpec service.HealthServiceSpec controllers.RouteAuthPostureSpec models.street.GeodesicDistanceSpec service.ExploreTutorialRouteSpec controllers.MobileDetectionSpec service.PanoDataServiceSpec service.ActivityBreakdownSpec service.ConfigServiceTrendSpec models.utils.CityScorecardSpec models.utils.ConfigTableVoidedArchiveSpec controllers.api.StatsApiSpec controllers.ExploreSubmissionSpec controllers.ValidateSubmissionSpec controllers.ExploreNoImageryRateLimitSpec models.pano.PanoExpiredAtSpec models.pano.PanoImageryLogSpec models.utils.BackgroundJobRunTableSpec service.JobRunServiceSpec service.NightlyJobStatusSpec service.StreetLifecycleServiceSpec models.audit.OutdatedImageryFlagSyncSpec models.audit.OutdatedImageryRoutingSpec models.street.UpToDateCoverageSpec models.street.NoImageryReportsSpec models.utils.EnumTypeParitySpec actor.ScheduledJobsSpec service.ImageryPollOutcomeSpec models.street.StreetPriorityAdminSpec service.ImageryFreshnessReportSpec models.street.StreetImageryPollSpec models.street.StreetImageryTableSpec service.ImageryFreshnessPollSpec service.ImageryFreshnessReportServiceSpec controllers.ImageryAdminSpec models.street.StreetPriorityForAdminSpec modules.PersistentMediaDirCheckSpec models.audit.OutdatedStreetsForUserSpec controllers.UserStreetsFreshnessSpec controllers.DashboardReauditSectionSpec service.HoursApportionmentSpec service.InBatchesSpec views.TimeCheckViewSpec service.CrossCityHoursResilienceSpec controllers.ApiDocsPreviewWiringSpec models.audit.RouteTaskNoImagerySpec views.AdminUserViewSpec service.DashboardStatsInvariantSpec controllers.AdminJobTriggerSpec controllers.AdminLabelPageSpec service.AssetManifestServiceSpec controllers.AssetManifestWiringSpec'
+        run: sbt coverage 'set Test / parallelExecution := false' 'testOnly controllers.HealthDashboardSpec service.HealthServiceSpec controllers.RouteAuthPostureSpec models.street.GeodesicDistanceSpec service.ExploreTutorialRouteSpec controllers.MobileDetectionSpec service.PanoDataServiceSpec service.ActivityBreakdownSpec service.ConfigServiceTrendSpec models.utils.CityScorecardSpec models.utils.ConfigTableVoidedArchiveSpec controllers.api.StatsApiSpec controllers.ExploreSubmissionSpec controllers.ValidateSubmissionSpec controllers.ExploreNoImageryRateLimitSpec models.pano.PanoExpiredAtSpec models.pano.PanoImageryLogSpec models.utils.BackgroundJobRunTableSpec service.JobRunServiceSpec service.NightlyJobStatusSpec service.StreetLifecycleServiceSpec models.audit.OutdatedImageryFlagSyncSpec models.audit.OutdatedImageryRoutingSpec models.street.UpToDateCoverageSpec models.street.NoImageryReportsSpec models.utils.EnumTypeParitySpec actor.ScheduledJobsSpec service.ImageryPollOutcomeSpec models.street.StreetPriorityAdminSpec service.ImageryFreshnessReportSpec models.street.StreetImageryPollSpec models.street.StreetImageryTableSpec service.ImageryFreshnessPollSpec service.ImageryFreshnessReportServiceSpec controllers.ImageryAdminSpec models.street.StreetPriorityForAdminSpec modules.PersistentMediaDirCheckSpec models.audit.OutdatedStreetsForUserSpec controllers.UserStreetsFreshnessSpec controllers.DashboardReauditSectionSpec service.HoursApportionmentSpec service.InBatchesSpec views.TimeCheckViewSpec service.CrossCityHoursResilienceSpec controllers.ApiDocsPreviewWiringSpec models.audit.RouteTaskNoImagerySpec views.AdminUserViewSpec service.DashboardStatsInvariantSpec controllers.AdminJobTriggerSpec controllers.AdminLabelPageSpec service.AssetManifestServiceSpec controllers.AssetManifestWiringSpec'
         env:
           DATABASE_URL: jdbc:postgresql://localhost:5432/sidewalk
           DATABASE_USER: sidewalk
@@ -464,6 +468,36 @@ jobs:
           INFRA3D_CLIENT_SECRET_WINTERTHUR: DUMMY_INFRA3D_CLIENT_SECRET
           ENV_TYPE: local
           SIDEWALK_IMAGES_DIR: .crops
+
+      # Enforces the ratchet in build.sbt (#4743). Deliberately not `if: always()`, unlike the lint steps: a run that
+      # aborted partway measures a fraction of the real number, so it would pile a ratchet failure on top of the spec
+      # failure that actually needs fixing.
+      #
+      # The guard is what keeps this gate from silently becoming a no-op. `coverageReport` warns and exits 0 when the
+      # data dir is empty, and the compiler plugin empties it on every instrumented compile — so anything that
+      # recompiles after the spec steps (an added sbt step, a plugin bump that invalidates zinc) would turn a required
+      # check green with nothing measured.
+      - name: Coverage report (blocking ratchet)
+        run: |
+          test -s target/scala-2.13/scoverage-data/scoverage.coverage \
+            || { echo "::error::no scoverage data — the spec steps above did not run under \`coverage\`, or something recompiled after them"; exit 1; }
+          sbt coverageReport
+        # No app boot and no DB here, but loading the build still evaluates config; these mirror the `backend` job.
+        env:
+          SIDEWALK_APPLICATION_SECRET: dummy-ci-secret
+          INTERNAL_API_KEY: dummy-ci-internal-key
+
+      # `always()` rather than `failure()`: a green run is when you most want this, since raising the floor means
+      # finding where the headroom is, and the console prints only the total. On an earlier-step failure the report
+      # step is skipped and there is nothing to upload, which this tolerates quietly.
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scoverage-report
+          path: target/scala-2.13/scoverage-report/
+          retention-days: 7
+          if-no-files-found: ignore
 
   e2e-smoke:
     name: E2E smoke (Playwright)

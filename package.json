@@ -28,6 +28,7 @@
     "play-shell": "npm run grunt-concat && grunt watch & sbt -Dconfig.file=/home/conf/application.local.conf -Dsbt.coursier.home='.coursier' -Dsbt.global.base='.sbt' -Dsbt.boot.directory='.sbt/boot' -Dsbt.repository.config='.sbt/repositories' -J-Xmx1536m",
     "test": "npm run test:js",
     "test:js": "jest --config jest.config.js",
+    "test:js:coverage": "jest --config jest.config.js --coverage",
     "test:e2e": "playwright test"
   }
 }
