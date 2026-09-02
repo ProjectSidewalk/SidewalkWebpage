@@ -28,6 +28,10 @@ import scala.concurrent.{Await, Future}
  * Every case asserts against a seeded history rather than whatever the connected database holds, and the control case
  * pins that `overdue` can be false at all — without it, every assertion here would pass on a bug that hard-coded true.
  *
+ * The seeds go under the real job name, because that is the name the roster the panel is built from carries. They are
+ * deleted by id rather than by that name, which on a developer's database would take the app's own nightly runs — the
+ * history this very panel reports on (#5041).
+ *
  * Requires a Postgres database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI); the scheduling actors
  * are disabled so a real run can't land mid-test.
  */
@@ -47,8 +51,44 @@ class NightlyJobStatusSpec extends PlaySpec with BeforeAndAfterAll with GuiceOne
   /** The imagery sweep, because it is the one job with a real hand-trigger route (`/adminapi/checkImagery`). */
   private val jobName = ScheduledJobs.CheckImageExpiry.name
 
-  private def clearRuns(): Unit = {
-    val _ = run(sqlu"DELETE FROM background_job_run WHERE job_name = $jobName")
+  /** The runs this suite has seeded and not yet deleted. */
+  private var seededRunIds: List[Int] = Nil
+
+  /** Deletes this suite's own runs, by id: a delete by job name would take the city's real nightly history with it. */
+  private def cleanUp(): Unit = {
+    if (seededRunIds.nonEmpty) {
+      val _ = run(jobRunTable.backgroundJobRuns.filter(_.backgroundJobRunId.inSet(seededRunIds)).delete)
+      seededRunIds = Nil
+    }
+  }
+
+  /** How many runs the database records for this job, of any age, that this suite did not seed. */
+  private def foreignRuns: Int = run(jobRunTable.backgroundJobRuns.filter(_.jobName === jobName).length.result)
+
+  /** How many of those started inside the window the panel counts over. */
+  private def foreignRunsInWindow: Int = run(
+    jobRunTable.backgroundJobRuns
+      .filter(row =>
+        row.jobName === jobName && row.startedAt >= OffsetDateTime.now.minusDays(HealthService.JobWindowDays.toLong)
+      )
+      .length
+      .result
+  )
+
+  /**
+   * Drops this suite's own seeds and confirms the job's recent history is still its to assert against.
+   *
+   * Every case reads the job's latest run and its counts over the panel's window, so a run the connected database
+   * recorded inside that window would be read as one of the seeds. The case is cancelled rather than run against it,
+   * because deleting that run to make the assertion pass is exactly what #5041 was about. Runs older than the window
+   * cost nothing here: the seeds are hours old, so they stay the latest. CI's schema records neither.
+   */
+  private def resetHistory(): Unit = {
+    cleanUp()
+    val _ = assume(
+      foreignRunsInWindow == 0,
+      s"$jobName has runs recorded in the last ${HealthService.JobWindowDays} days"
+    )
   }
 
   /** Seeds one finished run. */
@@ -57,14 +97,15 @@ class NightlyJobStatusSpec extends PlaySpec with BeforeAndAfterAll with GuiceOne
       status: JobRunStatus.Value,
       startedAt: OffsetDateTime
   ): Unit = {
-    val id    = run(jobRunTable.insertRunning(jobName, trigger, startedAt))
+    val id = run(jobRunTable.insertRunning(jobName, trigger, startedAt))
+    seededRunIds ::= id
     val error = if (status == JobRunStatus.Failed) Some("seeded failure") else None
     val _     = run(jobRunTable.finish(id, status, startedAt.plusMinutes(1), None, error))
   }
 
   /** Seeds a run that is still open, as a job the app died in the middle of would be. */
   private def seedRunning(startedAt: OffsetDateTime): Unit = {
-    val _ = run(jobRunTable.insertRunning(jobName, JobRunTrigger.Scheduled, startedAt))
+    seededRunIds ::= run(jobRunTable.insertRunning(jobName, JobRunTrigger.Scheduled, startedAt))
   }
 
   /**
@@ -80,12 +121,14 @@ class NightlyJobStatusSpec extends PlaySpec with BeforeAndAfterAll with GuiceOne
       .getOrElse(fail(s"$jobName is missing from the nightly-jobs roster"))
   }
 
-  override def beforeAll(): Unit = { super.beforeAll(); clearRuns() }
-  override def afterAll(): Unit  = { clearRuns(); super.afterAll() }
+  override def afterAll(): Unit = { cleanUp(); super.afterAll() }
 
   "the nightly-jobs panel" should {
     "report a job with no runs at all as overdue" in {
-      clearRuns()
+      resetHistory()
+      // The one case that needs the job name to itself all the way back, since any run the database holds is a run.
+      assume(foreignRuns == 0, s"$jobName already has runs recorded in this database")
+
       val job = jobStatus()
       job.lastStatus mustBe "never_run"
       job.overdue mustBe true
@@ -94,7 +137,7 @@ class NightlyJobStatusSpec extends PlaySpec with BeforeAndAfterAll with GuiceOne
     "clear the alarm for a recent scheduled success" in {
       // The control. Every other case asserts overdue is true, so without this one they would all pass against an
       // implementation that never cleared.
-      clearRuns()
+      resetHistory()
       seedFinished(JobRunTrigger.Scheduled, JobRunStatus.Succeeded, OffsetDateTime.now.minusHours(2))
       val job = jobStatus()
       job.lastStatus mustBe "succeeded"
@@ -102,7 +145,7 @@ class NightlyJobStatusSpec extends PlaySpec with BeforeAndAfterAll with GuiceOne
     }
 
     "keep the alarm raised when only a hand-triggered run has succeeded recently" in {
-      clearRuns()
+      resetHistory()
       seedFinished(
         JobRunTrigger.Scheduled,
         JobRunStatus.Succeeded,
@@ -118,7 +161,7 @@ class NightlyJobStatusSpec extends PlaySpec with BeforeAndAfterAll with GuiceOne
     }
 
     "not let a hand-triggered success paint over the night the job failed" in {
-      clearRuns()
+      resetHistory()
       // Last night's scheduled run failed; an admin clicked "run it now" this morning and it worked. The badge, the
       // error and the counts must all still describe the night, or the panel reports health it doesn't have.
       seedFinished(JobRunTrigger.Scheduled, JobRunStatus.Failed, OffsetDateTime.now.minusHours(9))
@@ -134,7 +177,7 @@ class NightlyJobStatusSpec extends PlaySpec with BeforeAndAfterAll with GuiceOne
     }
 
     "count a run the app died inside as a failure rather than as a clean record" in {
-      clearRuns()
+      resetHistory()
       // Still open long past any plausible duration: nothing ever closed the row, so it recorded no outcome at all.
       seedRunning(OffsetDateTime.now.minusHours(HealthService.JobAbandonedAfterHours + 6))
 
@@ -145,7 +188,7 @@ class NightlyJobStatusSpec extends PlaySpec with BeforeAndAfterAll with GuiceOne
     }
 
     "not raise the alarm while a run is in flight, if the last scheduled run succeeded" in {
-      clearRuns()
+      resetHistory()
       seedFinished(JobRunTrigger.Scheduled, JobRunStatus.Succeeded, OffsetDateTime.now.minusHours(2))
       seedRunning(OffsetDateTime.now)
 
@@ -155,7 +198,7 @@ class NightlyJobStatusSpec extends PlaySpec with BeforeAndAfterAll with GuiceOne
     }
 
     "publish every field the panel reads, in snake_case" in {
-      clearRuns()
+      resetHistory()
       seedFinished(JobRunTrigger.Scheduled, JobRunStatus.Failed, OffsetDateTime.now.minusHours(9))
       seedFinished(JobRunTrigger.Manual, JobRunStatus.Succeeded, OffsetDateTime.now)
 
@@ -188,7 +231,7 @@ class NightlyJobStatusSpec extends PlaySpec with BeforeAndAfterAll with GuiceOne
     }
 
     "keep the alarm raised for a job that has been failing since its last success" in {
-      clearRuns()
+      resetHistory()
       seedFinished(
         JobRunTrigger.Scheduled,
         JobRunStatus.Succeeded,

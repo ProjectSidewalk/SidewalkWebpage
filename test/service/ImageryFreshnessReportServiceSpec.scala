@@ -13,7 +13,7 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
 import slick.dbio.DBIO
 
-import java.time.OffsetDateTime
+import java.time.{LocalDate, OffsetDateTime}
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
@@ -25,9 +25,14 @@ import scala.concurrent.{Await, Future}
  * is rendered as. That last one is the point of the whole section: a scheduler that stopped firing leaves no rows, so
  * a report driven by rows rather than by the roster would report the failure as an empty, healthy-looking panel.
  *
- * Seeds its own runs under the real job names and deletes them afterwards, so no case depends on what the connected
- * database happens to hold. Requires a Postgres database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in
- * dev/CI); the scheduling actors are disabled so a real run can't land mid-test.
+ * The runs are seeded under the real job names, because the roster the report is assembled from names those and
+ * nothing else. So every case has to share the two names with whatever the connected database already records under
+ * them — a developer's database carries the app's own nightly runs, which the Health panel and this very report read.
+ * The seeds are therefore deleted by id, and each case asserts against the night it seeded rather than against the
+ * whole series (#5041).
+ *
+ * Requires a Postgres database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI); the scheduling
+ * actors are disabled so a real run can't land mid-test.
  */
 class ImageryFreshnessReportServiceSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPerSuite {
 
@@ -45,12 +50,45 @@ class ImageryFreshnessReportServiceSpec extends PlaySpec with BeforeAndAfterAll 
   private val pollJob = ImageryFreshnessReportService.PollJob
   private val syncJob = ImageryFreshnessReportService.SyncJob
 
+  /** The runs this suite has seeded and not yet deleted. */
+  private var seededRunIds: List[Int] = Nil
+
+  /** Deletes this suite's own runs, by id: a delete by job name would take the city's real nightly history with it. */
   private def cleanUp(): Unit = {
-    val _ = run(sqlu"DELETE FROM background_job_run WHERE job_name IN ($pollJob, $syncJob)")
+    if (seededRunIds.nonEmpty) {
+      val _ = run(jobRunTable.backgroundJobRuns.filter(_.backgroundJobRunId.inSet(seededRunIds)).delete)
+      seededRunIds = Nil
+    }
   }
 
-  override def beforeAll(): Unit = { super.beforeAll(); cleanUp() }
-  override def afterAll(): Unit  = { cleanUp(); super.afterAll() }
+  override def afterAll(): Unit = { cleanUp(); super.afterAll() }
+
+  /**
+   * The dates the database already records a poll or sync run on, read before this suite seeds anything.
+   *
+   * A case that seeded onto one of those dates would be asserting against that night's real counts as well as its
+   * own, so the seeds steer around them.
+   */
+  private lazy val occupiedDays: Set[LocalDate] = run(
+    jobRunTable.backgroundJobRuns.filter(_.jobName.inSet(Seq(pollJob, syncJob))).map(_.startedAt).result
+  ).map(_.toLocalDate).toSet
+
+  /**
+   * `count` nights with no run recorded on them, the most recent of them no less than `daysBack` nights ago.
+   *
+   * Anchored at 02:00 rather than at `now`, because a case that adds a second run to the same night needs hours left
+   * in the date to add it to.
+   */
+  private def freeNights(count: Int, daysBack: Int = 2): Seq[OffsetDateTime] = Iterator
+    .from(daysBack)
+    .map(days => OffsetDateTime.now.minusDays(days.toLong).withHour(2).withMinute(0).withSecond(0).withNano(0))
+    .filterNot(night => occupiedDays.contains(night.toLocalDate))
+    .take(count)
+    .toSeq
+
+  /** How many runs the database records for a job that this suite did not seed. */
+  private def foreignRuns(job: String): Int =
+    run(jobRunTable.backgroundJobRuns.filter(_.jobName === job).length.result)
 
   /** Seeds one finished run with the counts it recorded. */
   private def seed(
@@ -61,7 +99,8 @@ class ImageryFreshnessReportServiceSpec extends PlaySpec with BeforeAndAfterAll 
       trigger: JobRunTrigger.Value = JobRunTrigger.Scheduled
   ): Unit = {
     val id = run(jobRunTable.insertRunning(job, trigger, startedAt))
-    val _  = run(
+    seededRunIds ::= id
+    val _ = run(
       jobRunTable.finish(
         id,
         status,
@@ -83,9 +122,12 @@ class ImageryFreshnessReportServiceSpec extends PlaySpec with BeforeAndAfterAll 
     await(reportService.getReport(days))
   }
 
+  /** The series row for one seeded night, which is the only row a case has any claim on. */
+  private def runDay(result: ImageryFreshnessReport, night: OffsetDateTime): ImageryRunDay =
+    result.runDays.find(_.day == night.toLocalDate).getOrElse(fail(s"no run day for ${night.toLocalDate}"))
+
   "getReport" should {
     "chart exactly the three jobs that produce the re-audit signal, in the order they run" in {
-      cleanUp()
       val result = report()
       result.jobs.map(_.jobName) mustBe ImageryFreshnessReportService.JobNames
       // The recalculation is on the roster but records no counts, so a jobs list built from `run_days` would drop it.
@@ -94,6 +136,11 @@ class ImageryFreshnessReportServiceSpec extends PlaySpec with BeforeAndAfterAll 
 
     "report a job that has never run rather than omitting it" in {
       cleanUp()
+      // The one case that needs the job name to itself, since any run the database already holds is a run. It is
+      // cancelled rather than asserted against a database that holds one, because deleting that run to make the
+      // assertion pass is exactly what #5041 was about. CI's schema records none, so there it always runs.
+      assume(foreignRuns(pollJob) == 0, s"$pollJob already has runs recorded in this database")
+
       // A scheduler that never started leaves no rows at all; a rows-driven listing renders that as a clean panel.
       val poll = report().jobs.find(_.jobName == pollJob).get
       poll.lastStatus mustBe "never_run"
@@ -103,42 +150,44 @@ class ImageryFreshnessReportServiceSpec extends PlaySpec with BeforeAndAfterAll 
 
     "fold a night's poll and sync runs into one row of the series" in {
       cleanUp()
-      // Anchored to the small hours rather than to `now`: the two runs have to land on one calendar day to be one
-      // night, and `now` alone puts the sync on the next date whenever the suite happens to run in the last hour.
-      val night = OffsetDateTime.now.minusDays(2).withHour(2).withMinute(0).withSecond(0).withNano(0)
+      val night = freeNights(1).head
       seed(pollJob, night, Map("streets_selected" -> 500, "streets_polled" -> 480, "streets_skipped" -> 20))
       seed(syncJob, night.plusHours(1), Map("audits_flagged" -> 7, "audits_unflagged" -> 2))
 
-      val days = report().runDays
-      days.size mustBe 1
-      days.head.streetsPolled mustBe 480
-      days.head.auditsFlagged mustBe 7
+      val result = report()
+      result.runDays.count(_.day == night.toLocalDate) mustBe 1
+      runDay(result, night).streetsPolled mustBe 480
+      runDay(result, night).auditsFlagged mustBe 7
     }
 
     "leave a night nothing ran out of the series, for the client to zero-fill" in {
       cleanUp()
-      seed(pollJob, OffsetDateTime.now.minusDays(2), Map("streets_polled" -> 1))
+      val nights = freeNights(2)
+      seed(pollJob, nights.head, Map("streets_polled" -> 1))
+
       // A row per silent night would have to be invented here and would say the same thing as its absence; the
       // client draws the axis from `since` and `days`, which is the only place the window is actually known.
-      report().runDays.map(_.day.toString).distinct.size mustBe 1
+      val days = report().runDays.map(_.day)
+      days must contain(nights.head.toLocalDate)
+      days must not contain nights(1).toLocalDate
     }
 
     "exclude a run that started before the window" in {
       cleanUp()
-      seed(pollJob, OffsetDateTime.now.minusDays(40), Map("streets_polled" -> 99))
-      report(30).runDays mustBe empty
-      report(365).runDays.map(_.streetsPolled) mustBe Seq(99)
+      // Seeded deeper than the default window, so one night answers both halves of the question.
+      val night = freeNights(1, 200).head
+      seed(pollJob, night, Map("streets_polled" -> 99))
+      report(30).runDays.map(_.day) must not contain night.toLocalDate
+      runDay(report(365), night).streetsPolled mustBe 99
     }
 
     "clamp a caller-supplied window rather than erroring on it" in {
-      cleanUp()
       report(0).days mustBe ImageryFreshnessReportService.MinDays
       report(100000).days mustBe ImageryFreshnessReportService.MaxDays
       report(45).days mustBe 45
     }
 
     "start the window at the clamped number of days back, so the client's axis matches the data" in {
-      cleanUp()
       val result   = report(0)
       val expected = OffsetDateTime.now.minusDays(ImageryFreshnessReportService.MinDays.toLong)
       // The client builds one slot per day from `since`, so a `since` that ignored the clamp would draw an axis the
@@ -147,14 +196,12 @@ class ImageryFreshnessReportServiceSpec extends PlaySpec with BeforeAndAfterAll 
     }
 
     "quote the batch size the poll actually uses, and the overdue window the roster defines" in {
-      cleanUp()
       val result = report()
       result.pollBatchSize mustBe app.configuration.get[Int]("street-imagery-poll.batch-size")
       result.overdueAfterHours mustBe ScheduledJobs.OverdueAfterHours
     }
 
     "name which of its jobs polls and which flags, so the page needs no copy of the names" in {
-      cleanUp()
       val result = report()
       result.pollJob mustBe pollJob
       result.syncJob mustBe syncJob
@@ -163,29 +210,29 @@ class ImageryFreshnessReportServiceSpec extends PlaySpec with BeforeAndAfterAll 
 
     "count a failed night as a failure even though it recorded nothing" in {
       cleanUp()
-      seed(pollJob, OffsetDateTime.now.minusDays(1), Map.empty, status = JobRunStatus.Failed)
-      val night = report().runDays.head
-      night.pollFailures mustBe 1
-      night.streetsPolled mustBe 0
+      val night = freeNights(1).head
+      seed(pollJob, night, Map.empty, status = JobRunStatus.Failed)
+      val day = runDay(report(), night)
+      day.pollFailures mustBe 1
+      day.streetsPolled mustBe 0
     }
 
     "add a hand-run job to its night rather than letting it stand in for the scheduled run" in {
       cleanUp()
-      // Anchored mid-day, not to the current time: the runs have to land on one calendar day to be one night, and
-      // `now` alone puts the second one on the next date whenever the suite happens to run late in the afternoon.
-      val day = OffsetDateTime.now.minusDays(1).withHour(9).withMinute(0).withSecond(0).withNano(0)
-      seed(pollJob, day, Map("streets_polled" -> 400))
-      seed(pollJob, day.plusHours(6), Map("streets_polled" -> 50), trigger = JobRunTrigger.Manual)
-      report().runDays.map(_.streetsPolled) mustBe Seq(450)
+      val night = freeNights(1).head
+      seed(pollJob, night, Map("streets_polled" -> 400))
+      seed(pollJob, night.plusHours(6), Map("streets_polled" -> 50), trigger = JobRunTrigger.Manual)
+      runDay(report(), night).streetsPolled mustBe 450
     }
 
     "serve a repeat read of the same window from cache" in {
       cleanUp()
-      seed(pollJob, OffsetDateTime.now.minusDays(1), Map("streets_polled" -> 10))
+      val night = freeNights(1).head
+      seed(pollJob, night, Map("streets_polled" -> 10))
       await(cacheApi.removeAll())
       val first = await(reportService.getReport(30))
 
-      seed(pollJob, OffsetDateTime.now.minusDays(1), Map("streets_polled" -> 10))
+      seed(pollJob, night, Map("streets_polled" -> 10))
       val second = await(reportService.getReport(30))
 
       // Everything in the report moves once a night, and this is the page an admin leaves open while watching a
@@ -195,17 +242,18 @@ class ImageryFreshnessReportServiceSpec extends PlaySpec with BeforeAndAfterAll 
 
     "key the cache on the window, so switching windows is not served the previous one" in {
       cleanUp()
-      seed(pollJob, OffsetDateTime.now.minusDays(40), Map("streets_polled" -> 7))
+      val night = freeNights(1, 200).head
+      seed(pollJob, night, Map("streets_polled" -> 7))
       await(cacheApi.removeAll())
-      await(reportService.getReport(30)).runDays mustBe empty
-      await(reportService.getReport(365)).runDays.map(_.streetsPolled) mustBe Seq(7)
+      await(reportService.getReport(30)).runDays.map(_.day) must not contain night.toLocalDate
+      runDay(await(reportService.getReport(365)), night).streetsPolled mustBe 7
     }
 
     "key the cache on the clamped window, so a junk value cannot mint unbounded entries" in {
       cleanUp()
       await(cacheApi.removeAll())
       val first = await(reportService.getReport(-1))
-      seed(pollJob, OffsetDateTime.now.minusDays(1), Map("streets_polled" -> 3))
+      seed(pollJob, freeNights(1).head, Map("streets_polled" -> 3))
       val second = await(reportService.getReport(-99999))
       second.days mustBe first.days
       second.runDays mustBe first.runDays
