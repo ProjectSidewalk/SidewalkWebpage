@@ -301,7 +301,6 @@ module.exports = {
   test,
   expect: base.expect,
   stubMapbox,
-  stubStreetViewImages,
   stubMakeabilityLab,
   stubMapBaseLayers,
   waitForAppReady,

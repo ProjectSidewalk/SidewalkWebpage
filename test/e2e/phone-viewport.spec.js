@@ -72,7 +72,8 @@ test.describe('phone viewport (390px)', () => {
 
 // The card grids' minimums only bind below ~368px, so the 390px block above cannot see them (#4691) — the
 // community pages' 320px track floor, and the Gallery's 280px card track in a 300px content box. The seed puts
-// real cards behind all three, so the tracks are measured rather than an empty shell.
+// real cards behind /routes and /gallery, so those tracks are measured rather than an empty shell; /stories has no
+// seeded rows, so it still renders the empty shell that fits at any width.
 test.describe('narrow phone viewport (320px)', () => {
   test.use({...PHONE_DEVICE, viewport: {width: 320, height: 653}});
 

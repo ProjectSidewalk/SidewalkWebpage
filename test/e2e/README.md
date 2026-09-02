@@ -140,7 +140,7 @@ during local development** — your edit / `grunt watch` / reload loop is untouc
 
 `fixtures/ci-seed.sql`, applied by this job and by `backend-tests`, and the one definition of what CI's database
 holds: one real Teaneck neighbourhood — its four streets, 33 labels, and the panoramas they sit on — pulled from
-prod with `scratchpad/ci-seed-slice.sql` and rebuilt by `scratchpad/gen-ci-seed.py`. Real, because a fixture that
+prod with `../../tools/ci_seed_slice.sql` and rebuilt by `../../tools/gen_ci_seed.py`. Real, because a fixture that
 invents its own coordinates and panorama ids can only show that the code runs, not that it runs on the shape of data
 it will meet. Small on purpose: enough that every page renders real content and every backend spec has something to
 read, not a second city dump to maintain. Three things about it shape this suite:
@@ -150,7 +150,9 @@ read, not a second city dump to maintain. Three things about it shape this suite
   imagery nor the `GOOGLE_MAPS_SECRET` CI does not have (#4948). What stands in is on disk — `install-media.sh`,
   run right after the seed, installs the backup panoramas Pannellum renders and the crops the Gallery reads.
   (The *browser* still tries the primary viewer first and usually succeeds, since Google goes on serving
-  panoramas our own metadata check has retired; the backups cover the rest.)
+  panoramas our own metadata check has retired; the backups cover the rest.) `install-media.sh` reads
+  `SIDEWALK_CITY_ID` for the directory to write into, the same way the app reads it, and fails if it isn't set:
+  put the files under the wrong city and nothing errors, imagery just silently falls back to a provider.
 - **Label imagery still can't come from Google**, so the `stubStreetViewImages` fixture answers the static
   Street View API with a 1×1 pixel for every test. Without a real `GOOGLE_MAPS_API_KEY` (fork PRs, most dev
   setups) the Maps JS API also refuses to initialize, and that one message is allowlisted — conditionally, so it
@@ -196,6 +198,8 @@ read, not a second city dump to maintain. Three things about it shape this suite
 | `fixtures/ci-seed.sql` | The CI test city: region, streets, users, labels, missions, panos. Applied by both CI jobs |
 | `fixtures/install-media.sh` | Copies `fixtures/media/` into the app's pano and crop directories |
 | `fixtures/media/` | The seeded labels' real imagery, downscaled: backup panoramas and label crops |
+| `../../tools/gen_ci_seed.py` | Regenerates `fixtures/ci-seed.sql` from a prod slice; holds the fixture's invariants |
+| `../../tools/ci_seed_slice.sql` | The read-only prod query the slice comes from (which rows, and why those) |
 | `auth.setup.js` | Registers a throwaway user, saves storageState for registered-user specs |
 | `pages.js` | **The** page table: every anonymous page the suite walks, and how each loads. Adding one here opts it into the smoke tests *and* the accessibility gate |
 | `pages.spec.js` | Table-driven phase-1 anonymous pages |

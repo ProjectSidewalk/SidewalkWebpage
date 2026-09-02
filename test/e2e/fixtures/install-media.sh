@@ -12,15 +12,19 @@
 #
 # GOTCHA: media/ mirrors the runtime layout, so this is a plain recursive copy and the pano and label ids live only
 # in the fixture filenames rather than being repeated here. That layout is PanoDataService.localBackupImageFile's
-# and .cropFile's; the city must match cityparams.conf's teaneck-nj entry.
+# and .cropFile's, and the city segment comes from the same SIDEWALK_CITY_ID the app reads (MediaDirs.cityDir) --
+# hardcoding it here would put the files in a directory nothing reads, and nothing would error: imagery lookups
+# would just fall through to a provider and the Gallery would come up empty.
 set -euo pipefail
 
-CITY=teaneck-nj
+CITY=${SIDEWALK_CITY_ID:?SIDEWALK_CITY_ID must be set -- it is the directory the app looks under (MediaDirs.cityDir)}
 FIXTURES=$(dirname "$0")/media
 PANO_DIR=${SIDEWALK_PANO_DIR:-.panos}/$CITY
 CROP_DIR=${SIDEWALK_IMAGES_DIR:-.crops}/$CITY
 
-[ -d "$FIXTURES/panos" ] || { echo "error: no media/panos beside $0" >&2; exit 1; }
+for tree in panos crops; do
+  [ -d "$FIXTURES/$tree" ] || { echo "error: no media/$tree beside $0" >&2; exit 1; }
+done
 
 mkdir -p "$PANO_DIR" "$CROP_DIR"
 cp -R "$FIXTURES/panos/." "$PANO_DIR/"

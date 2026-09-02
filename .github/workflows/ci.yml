@@ -214,6 +214,7 @@ jobs:
       INFRA3D_CLIENT_SECRET_WINTERTHUR: DUMMY_INFRA3D_CLIENT_SECRET
       ENV_TYPE: local
       SIDEWALK_IMAGES_DIR: .crops
+      SIDEWALK_PANO_DIR: .panos
     steps:
       - uses: actions/checkout@v7
 
@@ -424,19 +425,24 @@ jobs:
 
       # pidfile to /dev/null so a retry on the same runner can't trip over a stale RUNNING_PID.
       #
-      # config.resource=application.local.conf is load-bearing, not a stylistic choice. The base conf/application.conf
-      # scopes both the Play session cookie and the Silhouette authenticator to Domain=".cs.washington.edu" (they are
+      # config.resource is load-bearing, not a stylistic choice. application.ci.conf includes application.local.conf,
+      # and that overlay is half the reason: the base conf/application.conf scopes both the Play session cookie and
+      # the Silhouette authenticator to Domain=".cs.washington.edu" (they are
       # shared across the per-city subdomains in production), and a browser drops any cookie whose Domain doesn't match
       # the host it is talking to. At http://localhost:9000 that means no session can ever stick, so every SecuredAction
       # page ping-pongs with /anonSignUp until Chromium gives up with ERR_TOO_MANY_REDIRECTS. The local overlay is
       # exactly the "app served over plain http at localhost:9000" profile — it nulls both cookie domains and pins
-      # play.filters.hosts.allowed to localhost:9000 — so it is the honest config to boot under here. It cannot be
+      # play.filters.hosts.allowed to localhost:9000 — so it is the honest base to boot under here. It cannot be
       # expressed as -D flags: a system property is always a string, so -Dplay.http.session.domain=null would set the
       # literal Domain "null" rather than clearing it.
+      #
+      # application.ci.conf layers onto that overlay and additionally disables ActorModule, because this job now
+      # seeds real data and then asserts on it -- see the reasoning in the file. backend-tests needs neither: its
+      # specs build their own application and disable the module themselves.
       - name: Start the app
         run: |
           nohup target/universal/stage/bin/sidewalk-webpage \
-            -Dconfig.resource=application.local.conf \
+            -Dconfig.resource=application.ci.conf \
             -Dhttp.port=9000 -Dplay.server.pidfile.path=/dev/null > app.log 2>&1 &
 
       # /signIn is a UserAwareAction: 200 with no auth and no session bootstrap — the cheapest unauthenticated

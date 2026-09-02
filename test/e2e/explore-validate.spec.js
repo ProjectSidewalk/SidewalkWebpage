@@ -106,10 +106,16 @@ test.describe('/mobile', () => {
     const response = await page.goto('/mobile');
     expect(response.status(), `/mobile responded ${response.status()}`).toBeLessThan(400);
     await waitForAppReady(page);
-    await waitForValidateTerminalState(page);
+    const onMission = await waitForValidateTerminalState(page);
     await page.waitForTimeout(1000);
     expect(await page.evaluate(() => document.documentElement.clientWidth)).toBe(expectedWidth);
     expect(consoleErrors).toEqual([]);
+    // Same #4810 check the desktop test makes: /mobile shares LabelContainer#loadPanoForCurrentLabel and has no
+    // separate guard, so without this an empty pano area passes in both orientations.
+    if (onMission) {
+      expect(await page.evaluate(() => window.svv?.panoManager?.getProperty('panoLoaded')),
+        '/mobile assigned a mission but rendered no panorama').toBe(true);
+    }
   }
 
   test('loads in portrait without console errors', async ({page, consoleErrors}) => {
