@@ -882,8 +882,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     }
 
     labelsInTimeInterval
-      .groupBy(_.labelTypeName)
-      .map { case (labelType, rows) => (labelType, rows.length) }
+      .groupBy(_.labelType)
+      .map { case (labelType, rows) => (labelType.asColumnOf[String], rows.length) }
       .result
       .map { labelCounts =>
         // Put data into LabelCount objects, and add an entry for any nonexistent label types with count=0.
@@ -1613,7 +1613,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
         _us.highQuality === true &&             // For now, we only include validations from high quality users.
         _pd.expired === false &&                // Only include those with non-expired imagery.
         _lb.correct.isDefined && _lb.correct === false && // Exclude outlier validations on a correct label.
-        _lb.labelTypeName === labelType.name &&           // Only include given label types.
+        _lb.labelType === labelType &&                    // Only include given label types.
         // Drop labels the user has already agreed/disagreed on, so answered mistakes don't reappear (#2996).
         !mistakeResponses.filter(r => r.labelId === _lb.labelId && r.userId === userId).exists
     } yield (

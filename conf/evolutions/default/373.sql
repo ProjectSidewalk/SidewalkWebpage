@@ -23,6 +23,12 @@ BEGIN
      OR EXISTS (SELECT 1 FROM tag WHERE label_type_id NOT IN (1, 2, 3, 4, 5, 6, 7, 9, 10)) THEN
     RAISE EXCEPTION 'a row references a label_type_id outside the canonical set, so 373.sql cannot run';;
   END IF;;
+  -- 245.sql added this UNIQUE unconditionally, so every schema should have it. Checked up front because the RENAME
+  -- at the end has no IF EXISTS, and a miss there would abort with the four tables already rewritten.
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint
+                 WHERE conname = 'tag_label_type_id_tag_unique' AND conrelid = 'tag'::regclass) THEN
+    RAISE EXCEPTION 'tag has no tag_label_type_id_tag_unique constraint to rename, so 373.sql cannot run';;
+  END IF;;
 END $$;
 
 -- IF EXISTS because the FKs were added unevenly across deployments (#3574, #4589). The lookup table must be dropped
@@ -32,8 +38,10 @@ ALTER TABLE cluster DROP CONSTRAINT IF EXISTS cluster_label_type_id_fkey;
 ALTER TABLE mission DROP CONSTRAINT IF EXISTS mission_label_type_id_fkey;
 ALTER TABLE tag DROP CONSTRAINT IF EXISTS tag_label_type_id_fkey;
 DROP TABLE label_type;
+-- Declared in LabelTypeEnum.ordered's order (by prominence, not by the old ids), because an enum's declaration order
+-- is its sort order and can't be changed later without another rewrite of every table that uses it.
 CREATE TYPE label_type AS ENUM
-  ('CurbRamp', 'NoCurbRamp', 'Obstacle', 'SurfaceProblem', 'Other', 'Occlusion', 'NoSidewalk', 'Crosswalk', 'Signal');
+  ('CurbRamp', 'NoCurbRamp', 'Obstacle', 'SurfaceProblem', 'Crosswalk', 'Signal', 'NoSidewalk', 'Occlusion', 'Other');
 
 -- Each ALTER COLUMN TYPE rewrites its table once, so the cost is one pass over label (hundreds of thousands of rows
 -- on the biggest schemas) plus its index rebuilds. The CASE has no ELSE on purpose: an id the assertion above missed

@@ -484,7 +484,7 @@ case class LabelCVMetadata(
    * @return A comma-separated row; `None` options render as "NA".
    */
   override def toCsvRow: String = {
-    s"${labelId},${panoId},${labelType},${agreeCount},${disagreeCount},${unsureCount}," +
+    s"${labelId},${panoId},${escapeCsvField(labelType)},${agreeCount},${disagreeCount},${unsureCount}," +
       s"${formatOptionForCsv(panoWidth)},${formatOptionForCsv(panoHeight)},${panoX},${panoY}," +
       s"${canvasWidth},${canvasHeight},${canvasX},${canvasY},${zoom},${heading},${pitch}," +
       s"${cameraHeading},${cameraPitch},${cameraRoll.map(_.toString).getOrElse("NA")}"

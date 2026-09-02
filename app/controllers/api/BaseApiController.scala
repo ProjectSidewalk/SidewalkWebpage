@@ -106,29 +106,15 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
   }
 
   /**
-   * Parses an optional `labelType` query parameter into a label type.
+   * Parses an optional single-valued `labelType` query parameter into a label type, through the same allowlist check
+   * (and error wording) as the endpoints that take a list.
    *
    * @param labelType The optional label type name.
-   * @param paramName The query-parameter name, used in the error message when the name is unknown.
    * @return `Right(None)` if absent, `Right(Some(labelType))` if valid, or `Left(ApiError)` for an unknown name.
    */
-  protected def parseLabelTypeParam(
-      labelType: Option[String],
-      paramName: String = "labelType"
-  ): Either[ApiError, Option[LabelTypeEnum.Base]] = labelType match {
-    case None    => Right(None)
-    case Some(s) =>
-      LabelTypeEnum.byName.get(s) match {
-        case Some(lt) => Right(Some(lt))
-        case None     =>
-          Left(
-            ApiError.invalidParameter(
-              s"Invalid value for $paramName parameter. Must be one of: ${LabelTypeEnum.orderedNames.mkString(", ")}.",
-              paramName
-            )
-          )
-      }
-  }
+  protected def parseLabelTypeParam(labelType: Option[String]): Either[ApiError, Option[LabelTypeEnum.Base]] =
+    parseAllowlistedList(labelType, LabelTypeEnum.labelTypeNames, "labelType")
+      .map(_.flatMap(_.headOption).flatMap(LabelTypeEnum.byName.get))
 
   /** Renders an `ApiError` as an RFC 7807 `application/problem+json` response with the error's HTTP status. */
   protected def badRequest(error: ApiError): Result = ApiError.toResult(error)

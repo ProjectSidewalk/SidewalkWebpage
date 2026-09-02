@@ -52,16 +52,17 @@ object LabelTypeEnum {
   case object Obstacle   extends Base("Obstacle", "obstacle.description", "#78B0EA", isAccessProblem = true)
   case object SurfaceProblem
       extends Base("SurfaceProblem", "surface.problem.description", "#F68D3E", isAccessProblem = true)
-  case object Other      extends Base("Other", "other.description", "#B3B3B3", isAccessProblem = false)
-  case object Occlusion  extends Base("Occlusion", "occlusion.description", "#B3B3B3", isAccessProblem = false)
-  case object NoSidewalk extends Base("NoSidewalk", "no.sidewalk.description", "#BE87D8", isAccessProblem = true)
   case object Crosswalk  extends Base("Crosswalk", "crosswalk.description", "#FABF1C", isAccessProblem = false)
   case object Signal     extends Base("Signal", "signal.description", "#63C0AB", isAccessProblem = false)
+  case object NoSidewalk extends Base("NoSidewalk", "no.sidewalk.description", "#BE87D8", isAccessProblem = true)
+  case object Occlusion  extends Base("Occlusion", "occlusion.description", "#B3B3B3", isAccessProblem = false)
+  case object Other      extends Base("Other", "other.description", "#B3B3B3", isAccessProblem = false)
 
-  // Every label type in canonical order, which is also the Postgres enum's declaration (and therefore sort) order.
-  // Anything that presents label types in a fixed order sorts by position here.
+  // The one canonical order, by prominence: the six primary validate types, then NoSidewalk, then the meta types.
+  // API output, CSV columns and error messages sort by position here, never by the Postgres enum's declaration order
+  // (pinned to this list by LabelTypeEnumDbSpec), since reordering a deployed enum means rewriting `label`.
   lazy val ordered: Seq[Base] =
-    Seq(CurbRamp, NoCurbRamp, Obstacle, SurfaceProblem, Other, Occlusion, NoSidewalk, Crosswalk, Signal)
+    Seq(CurbRamp, NoCurbRamp, Obstacle, SurfaceProblem, Crosswalk, Signal, NoSidewalk, Occlusion, Other)
   lazy val orderedNames: Seq[String] = ordered.map(_.name)
 
   // Complete set of all label type enum values. Used as the source for generating other collections.
@@ -90,9 +91,6 @@ object LabelTypeEnum {
 
   // Set of label types are accepted for validation using the Sidewalk AI API.
   lazy val aiLabelTypes: Set[Base] = Set(CurbRamp, NoCurbRamp, Obstacle, SurfaceProblem, Crosswalk)
-
-  /** Parses a label type name, returning None if it doesn't match a known value. */
-  def fromString(name: String): Option[Base] = byName.get(name)
 
   /** Parses a label type name, throwing on an unknown one (the shape the Slick enum mapper wants). */
   def withName(name: String): Base =

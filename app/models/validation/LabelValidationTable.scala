@@ -278,8 +278,10 @@ class LabelValidationTable @Inject() (
       .on(_.labelId === _.labelId)
       .join(sidewalkUserTable.sidewalkUserToRoleJoin)
       .on(_._1.userId === _._1.userId)
-      .groupBy { case ((v, l), (u, ur)) => (l.labelTypeName, v.validationResult, ur.role === Role.Ai) }
-      .map { case ((labelType, valResult, isAi), group) => (labelType, valResult, isAi, group.length) }
+      .groupBy { case ((v, l), (u, ur)) => (l.labelType, v.validationResult, ur.role === Role.Ai) }
+      .map { case ((labelType, valResult, isAi), group) =>
+        (labelType.asColumnOf[String], valResult, isAi, group.length)
+      }
       .result
       .map { valCounts =>
         // We want to also calculate a sum for every possible subgroup b/w label_type, validation_result and validator.

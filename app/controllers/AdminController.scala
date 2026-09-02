@@ -663,14 +663,20 @@ class AdminController @Inject() (
       val cities = withFlags.map { case CityScorecardWithFlags(sc, anomalies) =>
         val info = cityInfoById.get(sc.cityId)
         // Per-label-type breakdown (the data-pattern lens), keyed by label type with snake_case stat names.
-        val byLabelType = JsObject(sc.byLabelType.toSeq.map { case (labelType, s) =>
-          labelType -> Json.obj(
-            "labels"    -> s.labels,
-            "validated" -> s.labelsValidated,
-            "agree"     -> s.labelsValidatedAgree,
-            "disagree"  -> s.labelsValidatedDisagree
-          )
-        })
+        val byLabelType = JsObject(
+          sc.byLabelType.toSeq
+            .sortBy { case (labelType, _) =>
+              LabelTypeEnum.orderedNames.indexOf(labelType)
+            }
+            .map { case (labelType, s) =>
+              labelType -> Json.obj(
+                "labels"    -> s.labels,
+                "validated" -> s.labelsValidated,
+                "agree"     -> s.labelsValidatedAgree,
+                "disagree"  -> s.labelsValidatedDisagree
+              )
+            }
+        )
         // Trailing weekly activity (oldest first) — drives per-city sparklines and the aggregate overview line charts.
         val weeklyTrend = JsArray(sc.weeklyTrend.map { w =>
           Json.obj(

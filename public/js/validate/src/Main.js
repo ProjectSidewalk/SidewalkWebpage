@@ -49,15 +49,10 @@ class Main {
    * Collects the tool's DOM elements into the `svv.ui` tree that the other modules read.
    */
   #initUI() {
-    svv.tagsByLabelType = {
-      CurbRamp: this.#param.tagList.filter((t) => t.label_type === 'CurbRamp'),
-      NoCurbRamp: this.#param.tagList.filter((t) => t.label_type === 'NoCurbRamp'),
-      Obstacle: this.#param.tagList.filter((t) => t.label_type === 'Obstacle'),
-      SurfaceProblem: this.#param.tagList.filter((t) => t.label_type === 'SurfaceProblem'),
-      NoSidewalk: this.#param.tagList.filter((t) => t.label_type === 'NoSidewalk'),
-      Crosswalk: this.#param.tagList.filter((t) => t.label_type === 'Crosswalk'),
-      Signal: this.#param.tagList.filter((t) => t.label_type === 'Signal'),
-    };
+    svv.tagsByLabelType = this.#param.tagList.reduce((acc, t) => {
+      (acc[t.label_type] ??= []).push(t);
+      return acc;
+    }, {});
     svv.ui = {};
     svv.ui.holder = $('.tool-ui');
 

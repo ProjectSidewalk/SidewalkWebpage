@@ -162,7 +162,17 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    * @return       DBIO yielding true when the schema is on the enum shape.
    */
   private def schemaHasLabelTypeEnum(schema: String): DBIO[Boolean] =
-    sql"""SELECT to_regclass('"#$schema".label_type') IS NULL""".as[Boolean].head
+    if (schemasOnLabelTypeEnum.contains(schema)) DBIO.successful(true)
+    else
+      sql"""SELECT to_regclass('"#$schema".label_type') IS NULL""".as[Boolean].head.map { hasEnum =>
+        if (hasEnum) schemasOnLabelTypeEnum.add(schema)
+        hasEnum
+      }
+
+  // Only the enum answer is remembered: a schema never leaves the enum (outside a dev revert, cleared by a restart),
+  // while a "not yet" is re-asked so a city's migration is picked up without a redeploy. Saves four probes per city
+  // per dashboard load.
+  private val schemasOnLabelTypeEnum = java.util.concurrent.ConcurrentHashMap.newKeySet[String]()
 
   /**
    * SQL fragments for reading a label's type in another city's schema, in whichever of the two shapes it has (see
@@ -335,15 +345,12 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
     }
 
   /**
-   * Retrieves label type statistics from a specific schema using existing vote counts.
+   * Label type statistics for a specific schema from its existing vote counts, with a row for every type.
    *
-   * @param schema The database schema to query
-   * @return DBIO action that yields a map of label type to LabelTypeStats
+   * @param schema       The database schema to query
+   * @param labelTypeSql That schema's label type fragments, from a probe the caller has already run
+   * @return DBIO action that yields a map of label type name to LabelTypeStats
    */
-  def getLabelTypeStatsBySchema(schema: String): DBIO[Map[String, LabelTypeStats]] =
-    schemaHasLabelTypeEnum(schema).flatMap(hasEnum => labelTypeStatsBySchema(schema, LabelTypeSql(schema, hasEnum)))
-
-  /** [[getLabelTypeStatsBySchema]] for a caller that has already probed the schema's label type shape. */
   private def labelTypeStatsBySchema(
       schema: String,
       labelTypeSql: LabelTypeSql
@@ -377,9 +384,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
             AND at.street_edge_id <> (SELECT tutorial_street_edge_id FROM "#$schema".config)
         )
       GROUP BY
-        #${labelTypeSql.allTypesGroupBy}
-      ORDER BY
-        lt.label_type;
+        #${labelTypeSql.allTypesGroupBy};
     """
       .as[(String, Int, Int, Int, Int)]
       .map { rows =>
