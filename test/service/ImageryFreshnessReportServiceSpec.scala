@@ -74,17 +74,27 @@ class ImageryFreshnessReportServiceSpec extends PlaySpec with BeforeAndAfterAll 
   ).map(_.toLocalDate).toSet
 
   /**
-   * `count` nights with no run recorded on them, the most recent of them no less than `daysBack` nights ago.
+   * `count` nights with no run recorded on them, between `from` and `to` nights ago, newest first.
    *
-   * Anchored at 02:00 rather than at `now`, because a case that adds a second run to the same night needs hours left
-   * in the date to add it to.
+   * The range is the case's own window: a seed outside the report it then reads is invisible to it, which would leave
+   * the case passing on an assertion it never made. Searching only inside the range is what keeps a database with
+   * runs on the first few candidate nights from quietly pushing a seed past the window's edge — if it holds a run on
+   * every night in the range, the case cancels rather than asserting against a report its seed is missing from.
+   *
+   * The default range ends inside the default 30-day window, at a day rather than at `now.minusDays(30)` itself,
+   * since a night is anchored at 02:00 and the window starts at whatever time of day the case runs. The anchor is
+   * 02:00 rather than `now` so that a case adding a second run to the same night has hours left in the date to add
+   * it to.
    */
-  private def freeNights(count: Int, daysBack: Int = 2): Seq[OffsetDateTime] = Iterator
-    .from(daysBack)
-    .map(days => OffsetDateTime.now.minusDays(days.toLong).withHour(2).withMinute(0).withSecond(0).withNano(0))
-    .filterNot(night => occupiedDays.contains(night.toLocalDate))
-    .take(count)
-    .toSeq
+  private def freeNights(count: Int, from: Int = 2, to: Int = 29): Seq[OffsetDateTime] = {
+    val nights = (from to to)
+      .map(days => OffsetDateTime.now.minusDays(days.toLong).withHour(2).withMinute(0).withSecond(0).withNano(0))
+      .filterNot(night => occupiedDays.contains(night.toLocalDate))
+      .take(count)
+    if (nights.size < count)
+      cancel(s"needs $count nights free of recorded runs between $from and $to days back, found ${nights.size}")
+    nights
+  }
 
   /** The charted jobs the database records at least one run for, this suite's own seeds included. */
   private def recordedJobs: Set[String] = run(
@@ -181,8 +191,8 @@ class ImageryFreshnessReportServiceSpec extends PlaySpec with BeforeAndAfterAll 
 
     "exclude a run that started before the window" in {
       cleanUp()
-      // Seeded deeper than the default window, so one night answers both halves of the question.
-      val night = freeNights(1, 200).head
+      // Seeded past the default window but inside the longest one, so a single night answers both halves.
+      val night = freeNights(1, 200, ImageryFreshnessReportService.MaxDays - 1).head
       seed(pollJob, night, Map("streets_polled" -> 99))
       report(30).runDays.map(_.day) must not contain night.toLocalDate
       runDay(report(365), night).streetsPolled mustBe 99
@@ -249,7 +259,7 @@ class ImageryFreshnessReportServiceSpec extends PlaySpec with BeforeAndAfterAll 
 
     "key the cache on the window, so switching windows is not served the previous one" in {
       cleanUp()
-      val night = freeNights(1, 200).head
+      val night = freeNights(1, 200, ImageryFreshnessReportService.MaxDays - 1).head
       seed(pollJob, night, Map("streets_polled" -> 7))
       await(cacheApi.removeAll())
       await(reportService.getReport(30)).runDays.map(_.day) must not contain night.toLocalDate
@@ -260,7 +270,9 @@ class ImageryFreshnessReportServiceSpec extends PlaySpec with BeforeAndAfterAll 
       cleanUp()
       await(cacheApi.removeAll())
       val first = await(reportService.getReport(-1))
-      seed(pollJob, freeNights(1).head, Map("streets_polled" -> 3))
+      // Inside the window both junk values clamp to, or the second read would match the first whether or not the
+      // clamped key is what served it.
+      seed(pollJob, freeNights(1, 2, ImageryFreshnessReportService.MinDays - 1).head, Map("streets_polled" -> 3))
       val second = await(reportService.getReport(-99999))
       second.days mustBe first.days
       second.runDays mustBe first.runDays
