@@ -1,5 +1,6 @@
 package service
 
+import com.google.inject.ImplementedBy
 import models.street.{OsmWay, OsmWayTable, WayType}
 import models.utils.MyPostgresProfile
 import org.apache.pekko.actor.ActorSystem
@@ -25,15 +26,40 @@ import scala.util.control.NonFatal
  * lookup used when a user wanders onto a street outside our network — checked against our DB first so each unknown
  * spot costs Overpass at most one query ever, across all users.
  */
+@ImplementedBy(classOf[OsmWayServiceImpl])
+trait OsmWayService {
+
+  /**
+   * Refreshes cached way data for every mapped way whose row is missing or older than `STALENESS_PERIOD`.
+   *
+   * @return Number of ways refreshed (0 when everything is fresh).
+   */
+  def refreshOsmWayData(): Future[Int]
+
+  /**
+   * Gets the speed limit at a point, for positions not on our street network (the /speedLimit fallback).
+   *
+   * @return The raw maxspeed tag of the nearest road within `SEARCH_RADIUS_M`; None if no road or no tag, and on any
+   *         Overpass failure (this method never propagates an error).
+   */
+  def getSpeedLimitAtPoint(lat: Double, lng: Double): Future[Option[String]]
+
+  /**
+   * Gets the maxspeed for each of the given streets, keyed by street_edge_id. Streets with no known speed are absent.
+   */
+  def getMaxSpeedsForStreets(streetEdgeIds: Seq[Int]): Future[Map[Int, String]]
+}
+
 @Singleton
-class OsmWayService @Inject() (
+class OsmWayServiceImpl @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     ws: WSClient,
     cacheApi: AsyncCacheApi,
     actorSystem: ActorSystem,
     osmWayTable: OsmWayTable
 )(implicit ec: ExecutionContext)
-    extends HasDatabaseConfigProvider[MyPostgresProfile] {
+    extends OsmWayService
+    with HasDatabaseConfigProvider[MyPostgresProfile] {
   import OsmWayService._
 
   private val logger = Logger(this.getClass)
