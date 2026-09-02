@@ -10,7 +10,7 @@
 --
 -- DEPLOY ORDER MATTERS. 270, 295 and 355 read sidewalk_login.role, and 295 also writes user_role.role_id, so a schema
 -- that has not yet replayed all three can never catch up once this runs anywhere. Every schema must be past 355
--- before this ships, and the committed template dump must be regenerated past it before a new city is onboarded.
+-- before this ships. The committed template dumps were regenerated past 371 in this PR for the same reason.
 -- Recovering a schema that missed the window: docs/dev-environment.md -> Troubleshooting.
 DO $$
 DECLARE
