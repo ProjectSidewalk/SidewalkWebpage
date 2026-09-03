@@ -306,11 +306,13 @@ outside the build tree** via its environment variable (a variable that is set bu
 
 `PersistentMediaDirCheck` enforces this at boot in **prod mode** — what every staged binary runs in — so it covers
 every deployed stage *and* a staged binary run by hand (export the five variables to `/tmp` paths for that; CI's
-`e2e-smoke` job does exactly this). The app writes to `SIDEWALK_IMAGES_DIR` and `SIDEWALK_PANO_DERIVED_DIR` itself
-(the nightly crop job cuts crops and derivatives into them), so both must be writable by the app's user and local:
-the pano store it reads from may be a read-only mount, which is fine for a store that is only read. It deliberately does not key on `ENV_TYPE`: that variable arrives through the
+`e2e-smoke` job does exactly this). It deliberately does not key on `ENV_TYPE`: that variable arrives through the
 same env file as the media paths, so the incomplete-env-file mistake behind #4925 would disarm the guard exactly when
 it is needed. Dev and test runs (`sbt run`, the test suites) skip the check.
+
+Two of the five are written by the app itself — the nightly crop job cuts crops into `SIDEWALK_IMAGES_DIR` and
+display derivatives into `SIDEWALK_PANO_DERIVED_DIR` — so both must be local and writable by the app's user. The pano
+store those are cut *from* may be a read-only mount, which is fine for a store nothing writes.
 
 The fatal tier is deliberate for irreplaceable content: accepting a photo we already know the next release will
 delete is worse than not starting, and since `develop` redeploys **test** while prod waits for a release tag, a

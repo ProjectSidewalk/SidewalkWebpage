@@ -1,6 +1,6 @@
 package service
 
-import models.utils.MyPostgresProfile
+import models.utils.{ImageUtils, MyPostgresProfile}
 import models.utils.MyPostgresProfile.api._
 import org.apache.pekko.stream.Materializer
 import org.scalatest.BeforeAndAfterAll
@@ -13,6 +13,7 @@ import play.api.test.Helpers._
 import play.api.{Application, Configuration, Environment}
 import service.CropService.CropRunResult
 
+import java.awt.image.BufferedImage
 import java.io.File
 import java.nio.file.{Files, StandardCopyOption}
 import java.util.UUID
@@ -66,15 +67,22 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPe
 
   private val syntheticPano = new File("test/resources/crops/synthetic-pano.png")
 
-  // The three panos: one with its image in the store, one without, and one whose row claims another size.
+  // Four panos: one with its image in the store, one without, one whose row claims another size, and one whose row
+  // records no size at all.
   private val backedPanoId     = s"${prefix}backed"
   private val unbackedPanoId   = s"${prefix}unbacked"
   private val mismatchedPanoId = s"${prefix}mismatched"
+  private val unrecordedPanoId = s"${prefix}unrecorded"
 
   /** What `seedLabel` wrote, so afterAll can delete exactly that. */
   private case class Seeded(labelId: Int, streetEdgeId: Int, auditTaskId: Int, missionId: Int, userId: String)
 
   private var seeded: Map[String, Seeded] = Map.empty
+
+  // The run under test happens once, in beforeAll, and every case reads its result — rather than the first case
+  // running it and the rest asserting on what it left, which passes vacuously for any case run on its own.
+  private var beforeRun: Map[String, (Boolean, Option[Boolean])] = Map.empty
+  private var firstRun: CropRunResult                            = CropRunResult(0, 0, 0, 0, 0, 0, 0, 0, 0)
 
   /** Puts the synthetic pano where `localBackupImageFile` resolves it for this city. */
   private def storePano(panoId: String): File = {
@@ -93,9 +101,11 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPe
    * Seeds the FK chain one label needs — user, street, audit task, mission, pano, label, label point — with explicit
    * MAX+1 ids, since the dev dumps insert rows without advancing the sequences.
    */
-  private def seedLabel(panoId: String, recordedWidth: Int, panoX: Int, panoY: Int): Seeded = {
-    val userId   = UUID.randomUUID().toString
-    val username = prefix + userId.take(8)
+  private def seedLabel(panoId: String, recordedDims: Option[(Int, Int)], panoX: Int, panoY: Int): Seeded = {
+    val userId         = UUID.randomUUID().toString
+    val username       = prefix + userId.take(8)
+    val recordedWidth  = recordedDims.map(_._1)
+    val recordedHeight = recordedDims.map(_._2)
     runDb((for {
       _ <- sqlu"""INSERT INTO sidewalk_login.sidewalk_user (user_id, username, email)
                   VALUES ($userId, $username, ${username + "@test.invalid"})"""
@@ -118,7 +128,7 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPe
               RETURNING mission_id""".as[Int].head
       // has_backup deliberately NULL: the job, not the seed, is what should learn the image is there.
       _ <- sqlu"""INSERT INTO pano_data (pano_id, capture_date, source, width, height, copyright)
-                  VALUES ($panoId, '2024-05', 'mapillary', $recordedWidth, 512, 'spec-creator')"""
+                  VALUES ($panoId, '2024-05', 'mapillary', $recordedWidth, $recordedHeight, 'spec-creator')"""
       labelId <-
         sql"""INSERT INTO label (label_id, audit_task_id, pano_id, label_type, temporary_label_id, mission_id,
                                  street_edge_id, user_id)
@@ -141,11 +151,15 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPe
     super.beforeAll()
     val _ = storePano(backedPanoId)
     val _ = storePano(mismatchedPanoId)
+    val _ = storePano(unrecordedPanoId)
     seeded = Map(
-      backedPanoId     -> seedLabel(backedPanoId, recordedWidth = 1024, panoX = 512, panoY = 300),
-      unbackedPanoId   -> seedLabel(unbackedPanoId, recordedWidth = 1024, panoX = 512, panoY = 300),
-      mismatchedPanoId -> seedLabel(mismatchedPanoId, recordedWidth = 2048, panoX = 512, panoY = 300)
+      backedPanoId     -> seedLabel(backedPanoId, Some((1024, 512)), panoX = 512, panoY = 300),
+      unbackedPanoId   -> seedLabel(unbackedPanoId, Some((1024, 512)), panoX = 512, panoY = 300),
+      mismatchedPanoId -> seedLabel(mismatchedPanoId, Some((2048, 512)), panoX = 512, panoY = 300),
+      unrecordedPanoId -> seedLabel(unrecordedPanoId, None, panoX = 512, panoY = 300)
     )
+    beforeRun = seeded.keys.map(panoId => panoId -> (cropFile(panoId).exists(), hasBackup(panoId))).toMap
+    firstRun = generate()
   }
 
   override def afterAll(): Unit = {
@@ -181,13 +195,12 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPe
 
   "CropService.generateMissingCrops" should {
     "cut a crop for the label whose pano is in the store, and learn that the pano is backed up" in {
-      cropFile(backedPanoId).exists() mustBe false
-      hasBackup(backedPanoId) mustBe None
+      // The run had nothing to start from: no crop on disk, and a row that made no claim about a backup.
+      beforeRun(backedPanoId) mustBe ((false, None))
 
-      val result = generate()
-
-      result.cropsWritten mustBe 1
-      result.errors mustBe 0
+      // The backed pano's label and the one whose row records no dimensions; the other two seeds are skipped.
+      firstRun.cropsWritten mustBe 2
+      firstRun.errors mustBe 0
       val crop = cropFile(backedPanoId)
       crop.exists() mustBe true
       // Exactly the window the geometry asks for at (512, 300) on a 1024x512 pano, which is far under the storage cap.
@@ -202,11 +215,16 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPe
       hasBackup(unbackedPanoId) mustBe None
     }
 
+    "cut, but count separately, a label whose pano row records no dimensions to check its frame against" in {
+      // Nothing here can confirm pano_x/pano_y were placed on the frame that was stored, so the crop is cut on that
+      // assumption and the run says how often it had to make it — rather than reporting it as a verified crop.
+      firstRun.dimsUnverified mustBe 1
+      cropFile(unrecordedPanoId).exists() mustBe true
+    }
+
     "skip, and count, a label whose pano row claims another size than the stored image" in {
       // Its positions are in a 2048-wide frame; cutting them from a 1024-wide image would mis-centre the crop.
-      cropFile(mismatchedPanoId).exists() mustBe false
-      val result = generate()
-      result.dimsMismatch mustBe 1
+      firstRun.dimsMismatch mustBe 1
       cropFile(mismatchedPanoId).exists() mustBe false
     }
 
@@ -230,6 +248,18 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPe
       result.derivativesWritten mustBe 0
       (crop.lastModified(), crop.length(), derivative.lastModified(), derivative.length()) mustBe before
     }
+
+    "recut a derivative left at a width the configuration no longer asks for" in {
+      // Standing in for a `pano.derived.max-width` change, which the previous case shows a presence test can't see.
+      val derivative = cropService.derivedImageFile(backedPanoId)
+      val stale      = new BufferedImage(DerivativeMaxWidth / 2, DerivativeMaxWidth / 4, BufferedImage.TYPE_INT_RGB)
+      ImageUtils.writeJpeg(stale, derivative, CropService.DerivativeJpegQuality)
+
+      val result = generate()
+
+      result.derivativesWritten mustBe 1
+      ImageIO.read(derivative).getWidth mustBe DerivativeMaxWidth
+    }
   }
 
   "GET /backupImage/:panoId" should {
@@ -243,11 +273,17 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPe
       contentType(withDerivative) mustBe Some("image/jpeg")
       contentAsBytes(withDerivative).length.toLong mustBe derivative.length()
 
-      val _      = derivative.delete()
-      val native = route(app, FakeRequest(GET, url)).get
-      status(native) mustBe OK
-      contentType(native) mustBe Some("image/png")
-      contentAsBytes(native).length.toLong mustBe syntheticPano.length()
+      // Moved aside rather than deleted, and put back, so this case leaves the store as it found it.
+      val moved = new File(s"${derivative.getPath}.moved")
+      val _     = Files.move(derivative.toPath, moved.toPath)
+      try {
+        val native = route(app, FakeRequest(GET, url)).get
+        status(native) mustBe OK
+        contentType(native) mustBe Some("image/png")
+        contentAsBytes(native).length.toLong mustBe syntheticPano.length()
+      } finally {
+        val _ = Files.move(moved.toPath, derivative.toPath)
+      }
     }
   }
 }

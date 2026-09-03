@@ -235,7 +235,7 @@ class PopupPanoManager {
         await this.#primaryViewer.setPano(panoId);
         this.#teardownPannellum();
         this.activeViewerName = 'Default';
-        this.#attribution.hide();
+        this.#attribution?.hide();
         await this.#panoSuccessCallback(pov);
         if (!this.svHolder[0].dataset.closedDuringLoad) this.svHolder.css('visibility', 'visible');
         return true;
@@ -254,7 +254,7 @@ class PopupPanoManager {
       try {
         await this.#showPannellumPano(backupImage, pov);
         this.activeViewerName = 'Pannellum';
-        this.#attribution.show(ownCopyAttribution);
+        this.#attribution?.show(ownCopyAttribution);
         if (!this.svHolder[0].dataset.closedDuringLoad) this.svHolder.css('visibility', 'visible');
         return true;
       } catch (err) {
@@ -269,8 +269,8 @@ class PopupPanoManager {
     // and a generic "imagery not available" message otherwise. Its return distinguishes those two outcomes.
     this.activeViewerName = 'StaticCrop';
     const cropShown = await this.#panoFailureCallback();
-    if (cropShown) this.#attribution.show(ownCopyAttribution);
-    else this.#attribution.hide();
+    if (cropShown) this.#attribution?.show(ownCopyAttribution);
+    else this.#attribution?.hide();
     if (!this.svHolder[0].dataset.closedDuringLoad) this.svHolder.css('visibility', 'visible');
     return cropShown;
   }

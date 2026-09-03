@@ -112,9 +112,10 @@ actors in `app/actor/`.
 
 Each deployment runs a set of nightly jobs as pekko actors in `app/actor/` — the imagery expiry sweep, the
 imagery-age poll and freshness sync, street-priority recalculation, user and funnel stats, label clustering, crop
-generation, OSM way refresh, AI validations, and auth-token cleanup. The schedule lives in one place, `app/actor/ScheduledJobs.scala`:
-each actor reads its own time from there, staggered across the small hours and shifted per city by
-`ConfigService.getOffsetHours` so 50+ deployments don't contend for the same database and provider quotas.
+generation, OSM way refresh, AI validations, and auth-token cleanup. The schedule lives in one place,
+`app/actor/ScheduledJobs.scala`: each actor reads its own time from there, staggered across the small hours and
+shifted per city by `ConfigService.getOffsetHours` so 50+ deployments don't contend for the same database and
+provider quotas.
 
 Every run is bracketed by `JobRunService.record`, which writes a `background_job_run` row — start, finish, outcome,
 and the job's own counts as JSONB (#4928). Without it, a job that silently stops firing is indistinguishable from one

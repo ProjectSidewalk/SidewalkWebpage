@@ -21,6 +21,8 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.mvc.Cookie
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
+import org.scalatest.concurrent.Eventually
+import org.scalatest.time.{Millis, Seconds, Span}
 import play.api.test.CSRFTokenHelper._
 import service.CropService.CropRunResult
 import service.PanoDataService.ImageryCheckResult
@@ -58,7 +60,8 @@ class AdminJobTriggerSpec
     with RoleSession
     with GuiceOneAppPerSuite
     with AnonSession
-    with RolledBackDb {
+    with RolledBackDb
+    with Eventually {
 
   // Distinctive values, so an assertion can tell the stub's answer from anything the connected city really holds.
   private val UsersUpdated   = 4611
@@ -68,7 +71,7 @@ class AdminJobTriggerSpec
   private val ClusterResults = ClusteringResults(labelCount = 4614, clusterCount = 4615)
   private val CropResult     = CropRunResult(
     panosOpened = 4616, panosWithoutBackup = 4617, cropsWritten = 4618, shiftedVertically = 4619, outOfFrame = 4620,
-    dimsMismatch = 4621, derivativesWritten = 4622, errors = 4623
+    dimsMismatch = 4621, dimsUnverified = 4622, derivativesWritten = 4623, errors = 4624
   )
 
   /** Set per test: this endpoint's failure path is part of its contract, and Guice owns the stub. */
@@ -219,12 +222,23 @@ class AdminJobTriggerSpec
   }
 
   "POST /adminapi/generateCrops" should {
-    "record the crop run as a manual run of the nightly crop-generation job, with its counts" in {
-      val (code, body, jobRun) = trigger("/adminapi/generateCrops", CropGenerationActor.Name, POST)
-      code mustBe OK
-      body mustBe CropResult.summary
+    // The one trigger that answers before its job finishes (a first backfill outlives any proxy read timeout), so it
+    // is also the one whose run row can't be read straight off the response.
+    "answer at once and record the crop run as a manual run of the nightly job, with its counts" in {
+      val idFloor  = highestRunId
+      val response = asAdmin("/adminapi/generateCrops", POST)
+      status(response) mustBe ACCEPTED
+      contentAsString(response) must include("started")
+
+      val jobRun = eventually(timeout(Span(30, Seconds)), interval(Span(100, Millis))) {
+        val runs = runsSince(idFloor, CropGenerationActor.Name)
+        // Claimed on every attempt, as `trigger` does: a row this request wrote is ours to delete either way.
+        triggeredRunIds = (triggeredRunIds ++ runs.map(_.backgroundJobRunId)).distinct
+        runs.size mustBe 1
+        runs.head.status mustBe JobRunStatus.Succeeded
+        runs.head
+      }
       jobRun.triggeredBy mustBe JobRunTrigger.Manual
-      jobRun.status mustBe JobRunStatus.Succeeded
       jobRun.details.value mustBe CropResult.runDetails
     }
   }

@@ -2679,13 +2679,17 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   }
 
   /**
-   * Every label the crop job could cut a crop for: live, non-tutorial, with a stored pano position, plus the pano's
-   * recorded dimensions (the frame `pano_x`/`pano_y` are expressed in). Streamed rather than materialized because it
-   * is the whole label table; the job filters against the crop store as rows arrive (#4865).
+   * Every label the crop job could cut a crop for, with the pano's recorded dimensions — the frame `pano_x`/`pano_y`
+   * are expressed in. Streamed rather than materialized because it is the whole label table; the job filters against
+   * the crop store as rows arrive (#4865).
+   *
+   * Built on `labels`, so a deleted, tutorial or excluded-user label gets no crop. The first two have no imagery
+   * worth cutting; excluding the third means an excluded user's own dashboard keeps its missing-crop placeholders,
+   * which is the deliberate trade for not spending the crop store on a spam account's backlog.
    */
   def getCropCandidates: StreamingDBIO[Seq[CropCandidateTuple], CropCandidateTuple] = {
     (for {
-      _l  <- labels if !_l.deleted && !_l.tutorial
+      _l  <- labels
       _lp <- labelPoints if _l.labelId === _lp.labelId
       _pd <- panoData if _l.panoId === _pd.panoId
     } yield (_l.labelId, _l.labelType, _l.panoId, _lp.panoX, _lp.panoY, _pd.width, _pd.height)).result

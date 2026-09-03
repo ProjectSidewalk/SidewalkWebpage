@@ -47,7 +47,9 @@ object ImageUtils {
   }
 
   /**
-   * Decodes one rectangular window of the reader's image. Memory is bounded by the window, not the image.
+   * Decodes one rectangular window of the reader's image. Memory is bounded by the window, not the image — decoding
+   * is not: the reader walks the compressed stream from the start on every call, so N windows cost N passes over the
+   * file. Cheap to bound the raster, not free to ask for another window.
    *
    * @param reader A reader from [[withReader]].
    * @param x      Leftmost source column.
@@ -62,14 +64,25 @@ object ImageUtils {
     reader.read(0, param)
   }
 
+  /** Writes the image to the given file as PNG. Atomic, per [[atomically]]. */
+  def writePng(img: BufferedImage, file: File): Unit = atomically(file) { tmp =>
+    if (!ImageIO.write(img, "png", tmp)) throw new IllegalStateException("No PNG writer available")
+  }
+
   /**
-   * Writes the image to the given file as PNG, atomically: bytes go to a temp file in the same directory, which is
-   * then moved over the target, so a reader can never be served a half-written file.
+   * Builds `file`'s contents in a temp file in its own directory, then moves that over it, so a reader can never be
+   * served a half-written file. Same directory because only a move within one filesystem is atomic.
+   *
+   * Concurrent writers may build in parallel (harmless duplicate work; last mover wins). A failed write leaves the
+   * previous contents in place, which for derived imagery is the outcome to want: the next run tries again.
+   *
+   * @param file  The file to end up with.
+   * @param write Receives the temp file to write into.
    */
-  def writePng(img: BufferedImage, file: File): Unit = {
+  private def atomically(file: File)(write: File => Unit): Unit = {
     val tmp = File.createTempFile(s"${file.getName}.", ".tmp", file.getParentFile)
     try {
-      if (!ImageIO.write(img, "png", tmp)) throw new IllegalStateException("No PNG writer available")
+      write(tmp)
       val _ = Files.move(tmp.toPath, file.toPath, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
     } finally {
       val _ = tmp.delete() // No-op after a successful move; cleans up the temp file if the write failed midway.
@@ -124,19 +137,10 @@ object ImageUtils {
 
   /**
    * Writes the image to the given file as a quality-controlled JPEG (ImageIO's default writer quality is lower).
-   *
-   * The write is atomic: bytes go to a temp file in the same directory, which is then moved over the target.
-   * Concurrent writers may build in parallel (harmless duplicate work; last mover wins), but a reader can never be
-   * served a half-written file.
+   * Atomic, per [[atomically]].
    */
-  def writeJpeg(img: BufferedImage, file: File, quality: Float): Unit = {
-    val tmp = File.createTempFile(s"${file.getName}.", ".tmp", file.getParentFile)
-    try {
-      Using.resource(new FileImageOutputStream(tmp))(writeJpegTo(img, _, quality))
-      val _ = Files.move(tmp.toPath, file.toPath, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
-    } finally {
-      val _ = tmp.delete() // No-op after a successful move; cleans up the temp file if the write failed midway.
-    }
+  def writeJpeg(img: BufferedImage, file: File, quality: Float): Unit = atomically(file) { tmp =>
+    Using.resource(new FileImageOutputStream(tmp))(writeJpegTo(img, _, quality))
   }
 
   /** In-memory variant of `writeJpeg`, for images stored as DB bytes rather than files (partner logos, #4516). */

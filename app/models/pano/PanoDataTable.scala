@@ -284,18 +284,19 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
   }
 
   /**
-   * Panos with a self-hosted backup whose native width is over `maxWidth`, or unknown — the ones that need a display
-   * derivative (#4865). Width is read from the file when the row doesn't record it.
+   * Panos with a self-hosted backup whose native width is over `maxWidth`, or unknown — the ones that may need a
+   * display derivative (#4865). A row that records no width is included rather than assumed narrow; the crop job
+   * decides from the file it opens, which is the only frame that can be measured.
    *
    * @param maxWidth The widest image the pano viewer can be handed.
-   * @return         Pano id paired with its recorded width.
+   * @return         Pano ids.
    */
-  def getWideBackupPanos(maxWidth: Int): DBIO[Seq[(String, Option[Int])]] = {
+  def getWideBackupPanos(maxWidth: Int): DBIO[Seq[String]] = {
     panoDataRecords
       .filter(p =>
         p.hasBackup.getOrElse(false: Rep[Boolean]) && p.width.map(_ > maxWidth).getOrElse(true: Rep[Boolean])
       )
-      .map(p => (p.panoId, p.width))
+      .map(_.panoId)
       .result
   }
 
@@ -304,9 +305,17 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
    *
    * @param panoId The ID of the pano whose has_backup flag should be set.
    */
-  def markHasBackup(panoId: String): DBIO[Int] = {
+  def markHasBackup(panoId: String): DBIO[Int] = markHasBackup(Seq(panoId))
+
+  /**
+   * Sets has_backup = true for every one of these panos that isn't already flagged, in one statement — the crop job
+   * learns about a whole night's worth at a time (#4865).
+   *
+   * @param panoIds The IDs of the panos whose has_backup flag should be set.
+   */
+  def markHasBackup(panoIds: Seq[String]): DBIO[Int] = {
     panoDataRecords
-      .filter(p => p.panoId === panoId && !p.hasBackup.getOrElse(false: Rep[Boolean]))
+      .filter(p => (p.panoId inSet panoIds) && !p.hasBackup.getOrElse(false: Rep[Boolean]))
       .map(_.hasBackup)
       .update(Some(true))
   }

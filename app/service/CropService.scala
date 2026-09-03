@@ -21,8 +21,7 @@ import java.nio.file.Files
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.imageio.ImageReader
 import javax.inject.{Inject, Singleton}
-import scala.concurrent.duration._
-import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext, Future}
 import scala.jdk.CollectionConverters._
 import scala.util.Using
 import scala.util.control.NonFatal
@@ -47,8 +46,9 @@ object CropService {
 
   /**
    * What one run did. The disjoint outcomes for a label are: cropped, skipped for a pano with no self-hosted image,
-   * skipped on a dimension mismatch, skipped as out of frame, or errored; `shiftedVertically` annotates crops that
-   * were written with the label off-centre.
+   * skipped on a dimension mismatch, skipped as out of frame, or errored; `shiftedVertically` and `dimsUnverified`
+   * annotate crops that were written, the first with the label off-centre and the second without a recorded frame to
+   * check the label's position against.
    */
   case class CropRunResult(
       panosOpened: Int,
@@ -57,6 +57,7 @@ object CropService {
       shiftedVertically: Int,
       outOfFrame: Int,
       dimsMismatch: Int,
+      dimsUnverified: Int,
       derivativesWritten: Int,
       errors: Int
   ) {
@@ -64,9 +65,10 @@ object CropService {
     /** One-line account of the run, for the log and the admin trigger's response. */
     def summary: String =
       s"Crop generation (rule ${CropSizingRule.Version}): opened $panosOpened panos, wrote $cropsWritten crops " +
-        s"($shiftedVertically shifted to stay inside the pano) and $derivativesWritten display derivatives; skipped " +
-        s"$panosWithoutBackup panos with no self-hosted image, $dimsMismatch labels on a dimension mismatch and " +
-        s"$outOfFrame labels outside the image; $errors errors."
+        s"($shiftedVertically shifted to stay inside the pano, $dimsUnverified against a pano whose dimensions the " +
+        s"database doesn't record) and $derivativesWritten display derivatives; skipped $panosWithoutBackup panos " +
+        s"with no self-hosted image, $dimsMismatch labels on a dimension mismatch and $outOfFrame labels outside " +
+        s"the image; $errors errors."
 
     /** The counts as stored against the run's `background_job_run` row, shared by the nightly and manual triggers. */
     def runDetails: JsObject = Json.obj(
@@ -77,6 +79,7 @@ object CropService {
       "shifted_vertically"   -> shiftedVertically,
       "out_of_frame"         -> outOfFrame,
       "dims_mismatch"        -> dimsMismatch,
+      "dims_unverified"      -> dimsUnverified,
       "derivatives_written"  -> derivativesWritten,
       "errors"               -> errors
     )
@@ -85,12 +88,16 @@ object CropService {
   /** JPEG quality for display derivatives: they exist to be looked at in a pano viewer, not to be cut from. */
   val DerivativeJpegQuality: Float = 0.85f
 
-  /** The most source rows one derivative strip decodes at once (a 16384-wide strip this tall is ~50 MB). */
+  /** The most source rows one derivative strip holds at once (a 16384-wide strip this tall is ~67 MB as RGB). */
   val MaxStripRows: Int = 1024
 
   /**
-   * Cuts a window out of the panorama behind `reader`, decoding only the window's own pixels and stitching the two
+   * Cuts a window out of the panorama behind `reader`, keeping only the window's own pixels and stitching the two
    * runs of a window that crosses the equirectangular seam.
+   *
+   * What a region read saves is memory, not decoding: ImageIO walks the compressed stream from the start every time
+   * ([[ImageUtils.readRegion]]), so a pano costs one pass per window plus one per derivative strip. Bounding the
+   * peak raster is the whole point — cutting a second window is cheap in memory and is not free in CPU.
    *
    * @param reader    A reader from [[ImageUtils.withReader]].
    * @param box       The window, per [[CropGeometry.computeCropBox]].
@@ -220,12 +227,12 @@ class CropServiceImpl @Inject() (
 
   /** Mutable tallies for one run; `result` freezes them. */
   private class Counts {
-    var panosOpened, panosWithoutBackup, cropsWritten, shiftedVertically, outOfFrame, dimsMismatch, derivativesWritten,
-        errors = 0
+    var panosOpened, panosWithoutBackup, cropsWritten, shiftedVertically, outOfFrame, dimsMismatch, dimsUnverified,
+        derivativesWritten, errors = 0
 
     def result: CropRunResult = CropRunResult(
-      panosOpened, panosWithoutBackup, cropsWritten, shiftedVertically, outOfFrame, dimsMismatch, derivativesWritten,
-      errors
+      panosOpened, panosWithoutBackup, cropsWritten, shiftedVertically, outOfFrame, dimsMismatch, dimsUnverified,
+      derivativesWritten, errors
     )
   }
 
@@ -246,9 +253,10 @@ class CropServiceImpl @Inject() (
           val existing = existingCropIds()
           for {
             candidates <- cropCandidates(existing)
-            _          <- Future(cutCrops(candidates, counts))(cpuEc)
+            backed     <- Future(cutCrops(candidates, counts))(cpuEc)
+            _          <- markHasBackup(backed)
             wide       <- db.run(panoDataTable.getWideBackupPanos(derivativeMaxWidth))
-            _          <- Future(writeMissingDerivatives(wide.map(_._1), counts))(cpuEc)
+            _          <- Future(writeMissingDerivatives(wide, counts))(cpuEc)
           } yield counts.result
         }
         .andThen { case _ => running.set(false) }
@@ -284,17 +292,21 @@ class CropServiceImpl @Inject() (
       .runWith(Sink.seq)
   }
 
-  /** Cuts the candidates' crops, one pano at a time so each file is opened once and never decoded whole. */
-  private def cutCrops(candidates: Seq[CropCandidate], counts: Counts): Unit = {
+  /**
+   * Cuts the candidates' crops, one pano at a time so each file is opened once and never held whole in memory.
+   *
+   * @return The panos that turned out to be in the store, for [[markHasBackup]].
+   */
+  private def cutCrops(candidates: Seq[CropCandidate], counts: Counts): Seq[String] = {
+    val backed = Seq.newBuilder[String]
     candidates.groupBy(_.panoId).foreach { case (panoId, labels) =>
       panoDataService.localBackupImageFile(panoId) match {
         case None       => counts.panosWithoutBackup += 1
         case Some(file) =>
-          counts.panosOpened += 1
-          // The store is the truth about which panos are backed up; keep the row's cache of it in step (#4865).
-          markHasBackup(panoId)
+          backed += panoId
           try {
             ImageUtils.withReader(file) { (reader, width, height) =>
+              counts.panosOpened += 1
               // The label positions are in the frame pano_data recorded, so an image of another size would put
               // every crop in the wrong place: skip loudly rather than mis-centre.
               val recorded = labels.head
@@ -305,6 +317,17 @@ class CropServiceImpl @Inject() (
                     s"is ${width}x$height; skipping its ${labels.size} labels rather than mis-centring their crops."
                 )
               } else {
+                // A row that records no dimensions gives that check nothing to fail on, so the crop is cut against
+                // the stored image on the assumption the label was placed on the same frame. Usually true — the
+                // scraper stores what the client saw — but nothing here confirms it, so the run says how often it
+                // had to assume rather than passing the case off as verified.
+                if (recorded.panoWidth.isEmpty || recorded.panoHeight.isEmpty) {
+                  counts.dimsUnverified += labels.size
+                  logger.warn(
+                    s"Pano $panoId: pano_data records no dimensions, so nothing confirms its ${labels.size} labels " +
+                      s"were placed on a ${width}x$height frame; cropping against the stored image anyway."
+                  )
+                }
                 labels.foreach(label => cutCrop(reader, width, height, label, counts))
               }
               writeDerivativeIfWide(panoId, reader, width, height, counts)
@@ -316,6 +339,7 @@ class CropServiceImpl @Inject() (
           }
       }
     }
+    backed.result()
   }
 
   private def cutCrop(reader: ImageReader, width: Int, height: Int, label: CropCandidate, counts: Counts): Unit = {
@@ -344,6 +368,22 @@ class CropServiceImpl @Inject() (
     }
   }
 
+  /**
+   * Whether the derivative on disk is the one the current configuration asks for.
+   *
+   * Checked rather than assumed because a `pano.derived.max-width` change is otherwise invisible: the file exists, so
+   * nothing recuts it, and `/backupImage` goes on serving the old width in place of the native pano — the one thing
+   * lowering the cap was meant to stop. A file that won't open reads as out of date too, so a truncated derivative
+   * heals on the next run.
+   */
+  private def derivativeIsCurrent(panoId: String): Boolean = {
+    val file = derivedImageFile(panoId)
+    file.isFile && {
+      try ImageUtils.withReader(file)((_, width, _) => width == derivativeMaxWidth)
+      catch { case NonFatal(_) => false }
+    }
+  }
+
   private def writeDerivativeIfWide(
       panoId: String,
       reader: ImageReader,
@@ -351,7 +391,7 @@ class CropServiceImpl @Inject() (
       height: Int,
       counts: Counts
   ): Unit =
-    if (width > derivativeMaxWidth && !derivedImageFile(panoId).isFile) {
+    if (width > derivativeMaxWidth && !derivativeIsCurrent(panoId)) {
       try {
         writeDerivative(reader, width, height, derivativeMaxWidth, derivedImageFile(panoId))
         counts.derivativesWritten += 1
@@ -364,7 +404,7 @@ class CropServiceImpl @Inject() (
 
   /** Derivatives for backed-up panos the crop pass had no reason to open (every label already cropped). */
   private def writeMissingDerivatives(panoIds: Seq[String], counts: Counts): Unit = {
-    panoIds.filterNot(derivedImageFile(_).isFile).foreach { panoId =>
+    panoIds.filterNot(derivativeIsCurrent).foreach { panoId =>
       panoDataService.localBackupImageFile(panoId).foreach { file =>
         try {
           ImageUtils.withReader(file) { (reader, width, height) =>
@@ -380,11 +420,16 @@ class CropServiceImpl @Inject() (
     }
   }
 
-  private def markHasBackup(panoId: String): Unit = {
-    try {
-      val _ = Await.result(panoDataService.markHasBackup(panoId), 30.seconds)
-    } catch {
-      case NonFatal(e) => logger.warn(s"Failed to update has_backup for pano $panoId: ${e.getMessage}")
-    }
+  /**
+   * Records what the store turned out to hold: the disk is the truth about which panos are backed up and the row is
+   * a cache of it (#4865). One statement rather than a round trip per pano — the crop pass is a single thread of the
+   * CPU-intensive pool, and awaiting a network hop per pano would spend that thread on latency.
+   */
+  private def markHasBackup(panoIds: Seq[String]): Future[Unit] = {
+    db.run(panoDataTable.markHasBackup(panoIds))
+      .map(_ => ())
+      .recover { case NonFatal(e) =>
+        logger.warn(s"Failed to update has_backup for ${panoIds.size} panos: ${e.getMessage}")
+      }
   }
 }

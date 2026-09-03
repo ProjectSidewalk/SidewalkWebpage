@@ -4,7 +4,7 @@
  * Three sections, all driven from /adminapi/getUserStats (users + teams) plus the existing admin mutation endpoints:
  *   - Users: a searchable, sortable, paginated directory with inline role and team assignment.
  *   - Teams: open/closed and visible/hidden toggles.
- *   - Maintenance: recalc user stats, recalc street priority, clear cache (each confirmed before running).
+ *   - Maintenance: recalc user stats, recalc street priority, generate crops, clear cache (each confirmed first).
  *
  * The full user list (~13k on a large deployment like Seattle, after anonymous-with-no-activity are filtered out) is
  * downloaded once and then filtered/sorted/paginated entirely client-side — small enough to keep every column sortable
@@ -354,7 +354,8 @@ class ManagementPage {
   // --- Maintenance ------------------------------------------------------------------------------------------------
 
   #wireMaintenance() {
-    const run = (id, url, method, label) => {
+    // `done` is what the button reports on success: a trigger that answers before its job finishes can't say "Done".
+    const run = (id, url, method, label, done = `Done: ${label}.`) => {
       const btn = document.getElementById(id);
       if (!btn) return;
       btn.addEventListener('click', async () => {
@@ -368,7 +369,7 @@ class ManagementPage {
         this.#maintResult(`Running: ${label}…`);
         try {
           await this.#mutate(url, method);
-          this.#maintResult(`Done: ${label}.`);
+          this.#maintResult(done);
         } catch (err) {
           this.#maintResult(`Failed: ${label} — ${err.message}`, true);
         } finally {
@@ -378,7 +379,8 @@ class ManagementPage {
     };
     run('mgmt-recalc-stats', this.#urls.recalcStatsUrl, 'GET', 'recalculate user stats');
     run('mgmt-recalc-priority', this.#urls.recalcPriorityUrl, 'GET', 'recalculate street priority');
-    run('mgmt-generate-crops', this.#urls.generateCropsUrl, 'POST', 'generate crops');
+    run('mgmt-generate-crops', this.#urls.generateCropsUrl, 'POST', 'generate crops',
+      'Started: generate crops. It runs in the background — the Health panel reports how it ended.');
     run('mgmt-clear-cache', this.#urls.clearCacheUrl, 'PUT', 'clear server cache');
   }
 

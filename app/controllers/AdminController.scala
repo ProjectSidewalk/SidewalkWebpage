@@ -25,7 +25,7 @@ import java.util.concurrent.ThreadPoolExecutor
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.jdk.CollectionConverters.CollectionHasAsScala
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 import scala.util.control.NonFatal
 
 @Singleton
@@ -1038,8 +1038,10 @@ class AdminController @Inject() (
    * Cuts the missing label crops and pano display derivatives from the self-hosted pano store. Same as the nightly
    * process, for a backfill that shouldn't wait for it (#4865).
    *
-   * Recorded as a `Manual` run of that nightly job (#4928). A run can take an hour on a first backfill, so a trigger
-   * while one is in flight is refused rather than queued.
+   * Recorded as a `Manual` run of that nightly job (#4928), and answered as soon as the run starts rather than when
+   * it ends — alone among these triggers, because a first backfill runs for about an hour, far past any proxy's read
+   * timeout, and a timed-out request reads as a failed job while the run carries on unseen. The Health panel is
+   * where it reports; `isRunning` is what keeps a second click from starting a second pass over the same store.
    */
   def generateCrops = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     cc.loggingService.insert(request.identity.userId, request.ipAddress, request.toString)
@@ -1049,7 +1051,11 @@ class AdminController @Inject() (
     } else {
       jobRunService
         .record(CropGenerationActor.Name, JobRunTrigger.Manual)(cropService.generateMissingCrops())(_.runDetails)
-        .map { results => Ok(results.summary) }
+        .onComplete {
+          case Success(results) => logger.info(results.summary)
+          case Failure(e)       => logger.error(s"Manually triggered crop generation failed: ${e.getMessage}")
+        }
+      Future.successful(Accepted("Crop generation started. It reports to the Health panel when it finishes."))
     }
   }
 
