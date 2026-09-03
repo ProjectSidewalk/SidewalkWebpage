@@ -1,19 +1,12 @@
 package models.utils
 
 import models.utils.MyPostgresProfile.api._
-import org.apache.pekko.stream.Materializer
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
-import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
-import slick.basic.DatabaseConfig
 import slick.dbio.DBIO
-
-import scala.concurrent.Await
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration.DurationInt
-import scala.util.control.NoStackTrace
+import util.RolledBackDb
 
 /**
  * DB-backed tests for ConfigTable's voided-vote archive reads (#4842, PR #4866 review).
@@ -22,36 +15,12 @@ import scala.util.control.NoStackTrace
  * contributor (aggregate data, contributor ids, and the Owner scorecard). Self-seeding inside a rolled-back
  * transaction, so it is meaningful on an empty CI schema and leaves a seeded dev DB exactly as found.
  */
-class ConfigTableVoidedArchiveSpec extends PlaySpec with GuiceOneAppPerSuite {
+class ConfigTableVoidedArchiveSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
-  implicit lazy val mat: Materializer = app.materializer
-
   private val configTable = app.injector.instanceOf[ConfigTable]
-  // Typed explicitly: letting `.db` infer here yields an existential type the compiler rejects under -Xfatal-warnings.
-  private val dbConfig: DatabaseConfig[MyPostgresProfile] =
-    app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
-
-  // Carries a successful result out through the forced-rollback failure path of `runRolledBack`.
-  private case class RollbackWithResult(result: Any) extends RuntimeException with NoStackTrace
-
-  /**
-   * Runs `action` inside a transaction that is ALWAYS rolled back, returning the action's result. Lets a test seed
-   * synthetic rows (or whole scratch schemas) against the shared dev DB and leave it exactly as found — even if an
-   * assertion later fails. Same idiom as GeodesicDistanceSpec.
-   */
-  private def runRolledBack[T](action: DBIO[T]): T = {
-    val alwaysRollback = action.flatMap(r => DBIO.failed(RollbackWithResult(r))).transactionally
-    Await.result(
-      dbConfig.db.run(alwaysRollback).recover { case RollbackWithResult(r) => r.asInstanceOf[T] },
-      120.seconds
-    )
-  }
-
-  /** The active city schema (first search_path entry) — what the service layer passes for the own-city fan-out arm. */
-  private def currentSchema: DBIO[String] = sql"SELECT current_schema()".as[String].head
 
   /**
    * Seeds the minimal FK chain for one archived voided vote — user (+ non-excluded user_stat), street, audit task,

@@ -292,7 +292,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    * @param schema The database schema to query.
    * @return DBIO action yielding the distinct contributor `user_id`s (a `text` column) for this schema.
    */
-  def getContributorUserIdsBySchema(schema: String): DBIO[Seq[String]] = {
+  def getContributorUserIdsBySchema(schema: String): DBIO[Seq[String]] =
     sql"""
       SELECT label.user_id
       FROM "#$schema".label
@@ -314,7 +314,6 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
       INNER JOIN "#$schema".user_stat ON voided_label_validation.user_id = user_stat.user_id
       WHERE NOT user_stat.excluded;
     """.as[String]
-  }
 
   /**
    * Label type statistics for a specific schema from its existing vote counts, with a row for every type.
@@ -473,8 +472,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
         );
       """.as[Boolean].head
 
-    def coreQuery(upToDateFilter: String, hasLabelTypeEnum: Boolean) = {
-      val labelTypeSql = LabelTypeSql(schema, hasLabelTypeEnum)
+    def coreQuery(upToDateFilter: String, labelTypeSql: LabelTypeSql) = {
       sql"""
       SELECT total_streets.cnt          AS total_streets,
              audited_streets.cnt        AS audited_streets,
@@ -573,7 +571,8 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           WHERE NOT user_stat.excluded AND user_role.role = 'AI'
       ) AS ai_val_counts, (
           -- Work-credit add-on (#4842): archived voided votes count toward total_validations (activity volume) but
-          -- not the agree/disagree verdict columns, whose verdicts they no longer have.
+          -- not the agree/disagree verdict columns — those verdicts were cast against an off-target marker, so they
+          -- are kept as study material and deliberately left out of the agreement signal.
           SELECT COUNT(*) AS cnt
           FROM "#$schema".voided_label_validation
           INNER JOIN "#$schema".user_stat ON voided_label_validation.user_id = user_stat.user_id
@@ -630,8 +629,9 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
     withJitOff(for {
       hasOutdatedImageryCol <- upToDateFilterQuery
       hasLabelTypeEnum      <- schemaHasLabelTypeEnum(schema)
-      core <- coreQuery(if (hasOutdatedImageryCol) "AND audit_task.outdated_imagery = FALSE" else "", hasLabelTypeEnum)
-      byLabelType <- labelTypeStatsBySchema(schema, LabelTypeSql(schema, hasLabelTypeEnum))
+      labelTypeSql = LabelTypeSql(schema, hasLabelTypeEnum)
+      core <- coreQuery(if (hasOutdatedImageryCol) "AND audit_task.outdated_imagery = FALSE" else "", labelTypeSql)
+      byLabelType <- labelTypeStatsBySchema(schema, labelTypeSql)
       weeklyTrend <- getCityWeeklyTrendBySchema(schema, Some(ScorecardTrendWeeks))
       output      <- getCityContributorOutputBySchema(schema)
     } yield {

@@ -23,8 +23,6 @@ class ConfigTableLabelTypeShapeSpec extends PlaySpec with GuiceOneAppPerSuite wi
 
   private val configTable = app.injector.instanceOf[ConfigTable]
 
-  private def currentSchema: DBIO[String] = sql"SELECT current_schema()".as[String].head
-
   "the cross-schema queries against a schema on the label_type lookup table" should {
     // LIKE copies the enum-typed label_type column, which the scratch schema can't resolve as its own type, hence the
     // manual swap back to the pre-373 label_type_id columns plus a lookup table to join.
@@ -37,10 +35,13 @@ class ConfigTableLabelTypeShapeSpec extends PlaySpec with GuiceOneAppPerSuite wi
         _      <- sqlu"CREATE SCHEMA #$scratch"
         _      <- DBIO.sequence(clonedTables.map { t => sqlu"""CREATE TABLE #$scratch.#$t (LIKE "#$schema".#$t)""" })
         _      <- sqlu"""CREATE TABLE #$scratch.label_type (label_type_id INT PRIMARY KEY, label_type TEXT NOT NULL)"""
-        _      <- sqlu"""ALTER TABLE #$scratch.label DROP COLUMN label_type, ADD COLUMN label_type_id INT"""
-        _      <- sqlu"""ALTER TABLE #$scratch.tag DROP COLUMN label_type, ADD COLUMN label_type_id INT"""
-        agg    <- configTable.getCityAggregateDataBySchema(scratch)
-        ids    <- configTable.getContributorUserIdsBySchema(scratch)
+        // Populated so the lookup arms have to resolve a real join key, GROUP BY and name column; an empty table
+        // would let a wrong one return zero rows and pass.
+        _         <- sqlu"""INSERT INTO #$scratch.label_type VALUES (1, 'CurbRamp'), (2, 'Obstacle')"""
+        _         <- sqlu"""ALTER TABLE #$scratch.label DROP COLUMN label_type, ADD COLUMN label_type_id INT"""
+        _         <- sqlu"""ALTER TABLE #$scratch.tag DROP COLUMN label_type, ADD COLUMN label_type_id INT"""
+        agg       <- configTable.getCityAggregateDataBySchema(scratch)
+        ids       <- configTable.getContributorUserIdsBySchema(scratch)
         scorecard <- configTable.getCityScorecardBySchema(scratch)
       } yield (agg, ids, scorecard))
 
@@ -48,6 +49,9 @@ class ConfigTableLabelTypeShapeSpec extends PlaySpec with GuiceOneAppPerSuite wi
       ids mustBe empty
       scorecard.totalValidations mustBe 0
       scorecard.activeContributors mustBe 0
+      // Every type in the lookup table gets a row, at zero — the same guarantee CityScorecardSpec pins for the enum.
+      agg.byLabelType.keySet mustBe Set("CurbRamp", "Obstacle")
+      scorecard.byLabelType.keySet mustBe Set("CurbRamp", "Obstacle")
     }
   }
 }

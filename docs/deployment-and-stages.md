@@ -160,11 +160,11 @@ unattended. A Down that cannot apply leaves that instance **down until a human i
 evolutions that refuse to destroy data silently, so check those for conflicts *before* rolling back rather than
 discovering them one crashed city at a time.
 
-The canonical example is evolution **354** (#4842): its Down re-inserts archived voided votes with deliberately no
+The canonical example is evolution **355** (#4842): its Down re-inserts archived voided votes with deliberately no
 `ON CONFLICT`. If any validator re-voted on a repaired label after the evolution applied, their new vote holds the
 `(user_id, label_id)` unique slot, the re-insert fails on `label_validation_user_id_label_id_unique`, and the instance
 won't start. That is the designed outcome — an archived verdict must never be discarded silently; a human decides
-which of the two votes survives. Before rolling back past 354, run this per city schema and resolve any rows it
+which of the two votes survives. Before rolling back past 355, run this per city schema and resolve any rows it
 returns (delete whichever vote loses, then roll back):
 
 ```sql
@@ -185,9 +185,16 @@ INNER JOIN label_validation
 restarts — so mid-rollout an already-updated instance can query a schema that hasn't applied the new evolution yet. The
 missing relation fails that city's whole query, and the service layer's `.recover` then drops the city from the
 aggregate surfaces silently. Two ways to handle it: ship the evolution one release ahead of the code that reads it, or
-add a `to_regclass` existence probe that picks the SQL matching whichever shape the other schema currently has
-(`ConfigTable.schemaHasLabelTypeEnum` does this for 373) **plus a tracking issue to delete the probe once the release
-has reached every server** — without the issue, the temporary guard becomes permanent.
+guard the read with a `to_regclass` probe **plus a tracking issue to delete the probe once the release has reached
+every server** — without the issue, the temporary guard becomes permanent.
+
+What the probe does depends on the change. For an *added* table, probe for its presence and omit its arm where it is
+absent — an unmigrated schema's contribution is genuinely zero (evolution 355 was handled this way, and the guard came
+out in #4878 once the release was everywhere). For a change that *reshapes* an existing read, there is no arm to omit:
+the probe has to pick between two spellings, so it keys on whichever side of the change is detectable. Evolution 373
+drops the `label_type` lookup table in the same transaction that types the columns, so `schemaHasLabelTypeEnum` treats
+the lookup table's **absence** as the signal and `LabelTypeSql` carries a fragment per shape (removal tracked in
+#5118).
 
 ### Writing the release notes
 
