@@ -34,18 +34,19 @@ object SlugUtils {
   }
 
   /**
-   * Canonicalizes a slug taken from a /r/<slug> URL so a retyped share link still resolves.
+   * Folds a slug taken from a /r/<slug> URL for case and separators, so a retyped share link still resolves.
    *
    * People retype share links from the route's name, which reintroduces the capitals and spaces slugify removed
    * ("/r/Demo-for-Yochai", "/r/Demo for Yochai"), so lookups fold the URL rather than matching it byte for byte.
-   * Deliberately does NOT collapse separator runs or apply the length cap, both of which would corrupt real
-   * slugs: evolution 344's backfill deduped with a '--<route_id>' suffix, and the uniquifier's "-2" suffix can
-   * push a slug past MaxSlugLength. The result is still an equality lookup, so it uses the unique index on
-   * route.slug rather than scanning, and callers try it only after the literal slug — the backfill kept
-   * diacritics that this fold strips, so a slug predating 344 must get its byte-for-byte chance first.
+   *
+   * Deliberately does NOT collapse separator runs or apply the length cap, both of which would corrupt a real slug:
+   * evolution 344's backfill deduped with a '--<route_id>' suffix, and the uniquifier's "-2" suffix can push a slug
+   * past MaxSlugLength. Callers pair it with `slugify` to close that gap — see RouteServiceImpl.slugCandidates.
+   *
+   * The result is still an equality lookup, so it serves from the unique index on route.slug rather than scanning.
    *
    * @param slug The slug as it arrived in the URL (Play has already percent-decoded it).
-   * @return The canonical form to match stored slugs against; empty if nothing usable remains.
+   * @return The folded form to match stored slugs against; empty if nothing usable remains.
    */
   def canonicalizeForLookup(slug: String): String = {
     foldToSlugChars(slug).replaceAll("^-+|-+$", "")
