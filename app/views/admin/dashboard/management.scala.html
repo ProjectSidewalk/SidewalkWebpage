@@ -55,6 +55,13 @@
       </div>
       <div class="mgmt-action">
         <div class="mgmt-action-text">
+          <b>Generate crops</b>
+          <span class="dq-sub">Cuts the missing label crops and pano display derivatives from the self-hosted pano store, as the nightly job does.</span>
+        </div>
+        <button type="button" class="coverage-sort-btn mgmt-run" id="mgmt-generate-crops" data-confirm="Generate the missing crops now? A first backfill can take an hour.">Run</button>
+      </div>
+      <div class="mgmt-action">
+        <div class="mgmt-action-text">
           <b>Clear server cache</b>
           <span class="dq-sub">Clears Play's cached values; the next page loads rebuild them.</span>
         </div>
@@ -76,7 +83,8 @@
         teamVisibilityUrl: '/adminapi/updateTeamVisibility',
         clearCacheUrl: '/adminapi/clearPlayCache',
         recalcStatsUrl: '/adminapi/updateUserStats',
-        recalcPriorityUrl: '/adminapi/recalculateStreetPriority'
+        recalcPriorityUrl: '/adminapi/recalculateStreetPriority',
+        generateCropsUrl: '/adminapi/generateCrops'
       }).init();
     });
   </script>

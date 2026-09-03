@@ -68,10 +68,12 @@ object PersistentMediaDirCheck {
   case class UnsafeDir(dir: PersistentDir, reason: String)
 
   val persistentDirs: Seq[PersistentDir] = Seq(
-    // Crops and share previews are derived: a crop can be re-cut from pano imagery and a share preview rebuilds on
-    // demand, so losing them costs rebuild time, not content.
+    // Crops, share previews and pano display derivatives are derived: a crop and a derivative are re-cut from pano
+    // imagery by the nightly crop job and a share preview rebuilds on demand, so losing them costs rebuild time, not
+    // content.
     PersistentDir("cropped.image.directory", "SIDEWALK_IMAGES_DIR", irreplaceable = false),
     PersistentDir("share.image.directory", "SIDEWALK_SHARE_IMAGES_DIR", irreplaceable = false),
+    PersistentDir("pano.derived.images.directory", "SIDEWALK_PANO_DERIVED_DIR", irreplaceable = false),
     // The self-hosted pano store backs up GSV imagery Google has already expired (pano_data.has_backup) — for those
     // panos it is the only copy left anywhere, as unrecoverable as a user upload.
     PersistentDir("pano.images.directory", "SIDEWALK_PANO_DIR", irreplaceable = true),

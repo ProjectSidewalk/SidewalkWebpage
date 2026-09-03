@@ -295,10 +295,13 @@ outside the build tree** via its environment variable (a variable that is set bu
 | `pano.images.directory` | `SIDEWALK_PANO_DIR` | Self-hosted pano store — the only copies of GSV imagery Google has expired (**irreplaceable**) | **App refuses to start** |
 | `cropped.image.directory` | `SIDEWALK_IMAGES_DIR` | Label crops (re-derivable from pano imagery) | Error logged at boot |
 | `share.image.directory` | `SIDEWALK_SHARE_IMAGES_DIR` | Cached social-share previews (regenerable) | Error logged at boot |
+| `pano.derived.images.directory` | `SIDEWALK_PANO_DERIVED_DIR` | Display derivatives of the self-hosted panos (rebuilt nightly by the crop job) | Error logged at boot |
 
 `PersistentMediaDirCheck` enforces this at boot in **prod mode** — what every staged binary runs in — so it covers
-every deployed stage *and* a staged binary run by hand (export the four variables to `/tmp` paths for that; CI's
-`e2e-smoke` job does exactly this). It deliberately does not key on `ENV_TYPE`: that variable arrives through the
+every deployed stage *and* a staged binary run by hand (export the five variables to `/tmp` paths for that; CI's
+`e2e-smoke` job does exactly this). The app writes to `SIDEWALK_IMAGES_DIR` and `SIDEWALK_PANO_DERIVED_DIR` itself
+(the nightly crop job cuts crops and derivatives into them), so both must be writable by the app's user and local:
+the pano store it reads from may be a read-only mount, which is fine for a store that is only read. It deliberately does not key on `ENV_TYPE`: that variable arrives through the
 same env file as the media paths, so the incomplete-env-file mistake behind #4925 would disarm the guard exactly when
 it is needed. Dev and test runs (`sbt run`, the test suites) skip the check.
 
@@ -306,7 +309,7 @@ The fatal tier is deliberate for irreplaceable content: accepting a photo we alr
 delete is worse than not starting, and since `develop` redeploys **test** while prod waits for a release tag, a
 forgotten variable surfaces on test long before it can reach prod.
 
-**Adding a fifth one?** Resolve it through `MediaDirs` (never a hand-rolled path concat — the check's verdict is only
+**Adding another?** Resolve it through `MediaDirs` (never a hand-rolled path concat — the check's verdict is only
 meaningful while it models the exact resolution the write paths use), add it to `persistentDirs` in
 `PersistentMediaDirCheck`, decide whether its contents are irreplaceable (fatal) or derived (logged), and have the
 deployment tooling export its variable. Losing a story photo this way (#4925) took three weeks to notice, so the

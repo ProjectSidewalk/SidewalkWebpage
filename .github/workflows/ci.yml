@@ -363,6 +363,7 @@ jobs:
       SIDEWALK_PANO_DIR: /tmp/sidewalk-media/panos
       SIDEWALK_SHARE_IMAGES_DIR: /tmp/sidewalk-media/share-images
       SIDEWALK_STORY_MEDIA_DIR: /tmp/sidewalk-media/story-media
+      SIDEWALK_PANO_DERIVED_DIR: /tmp/sidewalk-media/panos-derived
     steps:
       - uses: actions/checkout@v7
 

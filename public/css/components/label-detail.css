@@ -230,6 +230,40 @@ dialog.label-detail[open]::backdrop {
   .label-detail__pan-hint { transition: none; }
 }
 
+/* Imagery attribution (#4865) in the pano's top-right, shown only while Project Sidewalk's own copy of the imagery —
+   the self-hosted Pannellum pano or the static crop — is on screen; the providers' live viewers draw their own. Always
+   visible, not hover-revealed: it is an obligation of the licence, not a control. Dark pill for contrast on any
+   imagery; the licence token is the one link. */
+.pano-attribution {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 6; /* Above the validation ring (5), below the info popover (10), like the hide-label control. */
+  max-width: calc(100% - 20px);
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 60%);
+  color: var(--color-neutral-white);
+  font: var(--text-caption-medium);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none; /* Never intercepts a drag on the imagery beneath it… */
+}
+
+.pano-attribution a {
+  color: inherit;
+  text-decoration: underline;
+  pointer-events: auto; /* …except on the licence link itself. */
+}
+
+.pano-attribution a:focus-visible {
+  outline: 2px solid var(--color-neutral-white);
+  outline-offset: 2px;
+}
+
+.pano-attribution[hidden] { display: none; }
+
 /* Hide-label toggle (#2477) in the pano's top-left. Revealed on hover like the paging arrows. */
 .label-detail__hide-label {
   position: absolute;

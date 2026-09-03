@@ -37,7 +37,8 @@ class ManagementPage {
 
   /**
    * @param {{userStatsUrl: string, setRoleUrl: string, setTeamUrl: string, teamStatusUrl: string,
-   *          teamVisibilityUrl: string, clearCacheUrl: string, recalcStatsUrl: string, recalcPriorityUrl: string}} urls
+   *          teamVisibilityUrl: string, clearCacheUrl: string, recalcStatsUrl: string, recalcPriorityUrl: string,
+   *          generateCropsUrl: string}} urls
    */
   constructor(urls) {
     this.#urls = urls;
@@ -377,6 +378,7 @@ class ManagementPage {
     };
     run('mgmt-recalc-stats', this.#urls.recalcStatsUrl, 'GET', 'recalculate user stats');
     run('mgmt-recalc-priority', this.#urls.recalcPriorityUrl, 'GET', 'recalculate street priority');
+    run('mgmt-generate-crops', this.#urls.generateCropsUrl, 'POST', 'generate crops');
     run('mgmt-clear-cache', this.#urls.clearCacheUrl, 'PUT', 'clear server cache');
   }
 

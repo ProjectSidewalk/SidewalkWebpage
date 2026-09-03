@@ -142,6 +142,7 @@ module.exports = function (grunt) {
           'public/js/common/pano-viewer/src/Infra3dViewer.js',
           'public/js/common/pano-viewer/src/PannellumViewer.js',
           'public/js/common/pano-viewer/src/PanoViewerLogo.js',
+          'public/js/common/pano-viewer/src/PanoAttribution.js',
           'public/js/common/pano-viewer/src/PanoInfoPopover.js'
         ],
         dest: 'public/js/common/pano-viewer/build/pano-viewer.js'

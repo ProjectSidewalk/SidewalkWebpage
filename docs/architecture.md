@@ -81,6 +81,20 @@ the app dir, #4925):
   photos and audio today. These sit outside the app dir, are validated at boot by `PersistentMediaDirCheck`, and
   need their own provisioning and backup path on every host.
 
+The same directories also hold the **derived imagery** (#4865): per-label crop images under
+`cropped.image.directory` and per-pano display derivatives under `pano.derived.images.directory`, both cut from the
+self-hosted panorama store (`pano.images.directory`, which the nightly panorama-tools scraper fills) by the nightly
+`CropGenerationActor` via `CropService`. Crops are the image the Gallery, the landing validation grid and label
+popups fall back to when live imagery is unavailable; they are written by the browser's `POST /saveImage` canvas
+snapshot at labeling time and by the job for every label that has none (AI submissions, failed uploads, any past
+city). The geometry —
+`CropSizingRule` (the swappable, versioned sizing rule) and `CropGeometry` (equirectangular mechanics) — is a port of
+panorama-tools' `CropRunner.py`, pinned to it by golden fixtures under `test/resources/crops/`. Derivatives exist
+because Pannellum renders a pano as one WebGL texture and 8192 px is a common cap; `/backupImage/:panoId` serves the
+derivative when one exists. Both stores are disposable: delete them and the next run rebuilds. Imagery Project
+Sidewalk shows a copy of — a self-hosted pano or a crop — carries the attribution `ImageryAttribution` composes
+(Mapillary contributors are CC BY-SA 4.0), rendered by `PanoAttribution.js`.
+
 If either category outgrows its lane — thousands of files, multi-MB originals, a CDN or on-the-fly transforms in
 front — the move is to object storage (S3/MinIO), never the local filesystem.
 
@@ -97,8 +111,8 @@ actors in `app/actor/`.
 ### Background jobs
 
 Each deployment runs a set of nightly jobs as pekko actors in `app/actor/` — the imagery expiry sweep, the
-imagery-age poll and freshness sync, street-priority recalculation, user and funnel stats, label clustering, OSM way
-refresh, AI validations, and auth-token cleanup. The schedule lives in one place, `app/actor/ScheduledJobs.scala`:
+imagery-age poll and freshness sync, street-priority recalculation, user and funnel stats, label clustering, crop
+generation, OSM way refresh, AI validations, and auth-token cleanup. The schedule lives in one place, `app/actor/ScheduledJobs.scala`:
 each actor reads its own time from there, staggered across the small hours and shifted per city by
 `ConfigService.getOffsetHours` so 50+ deployments don't contend for the same database and provider quotas.
 

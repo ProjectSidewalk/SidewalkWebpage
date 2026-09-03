@@ -40,6 +40,7 @@ class AdminController @Inject() (
     labelService: LabelService,
     streetService: StreetService,
     panoDataService: PanoDataService,
+    cropService: CropService,
     osmWayService: service.OsmWayService,
     userService: service.UserService,
     jobRunService: JobRunService,
@@ -1031,6 +1032,25 @@ class AdminController @Inject() (
     jobRunService
       .record(CheckImageExpiryActor.Name, JobRunTrigger.Manual)(panoDataService.checkForImagery)(_.runDetails)
       .map { results => Ok(results.summary) }
+  }
+
+  /**
+   * Cuts the missing label crops and pano display derivatives from the self-hosted pano store. Same as the nightly
+   * process, for a backfill that shouldn't wait for it (#4865).
+   *
+   * Recorded as a `Manual` run of that nightly job (#4928). A run can take an hour on a first backfill, so a trigger
+   * while one is in flight is refused rather than queued.
+   */
+  def generateCrops = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    cc.loggingService.insert(request.identity.userId, request.ipAddress, request.toString)
+    // Checked before the run is recorded, so a refused trigger doesn't leave a failed run on the Health panel.
+    if (cropService.isRunning) {
+      Future.successful(Conflict("A crop generation run is already in progress."))
+    } else {
+      jobRunService
+        .record(CropGenerationActor.Name, JobRunTrigger.Manual)(cropService.generateMissingCrops())(_.runDetails)
+        .map { results => Ok(results.summary) }
+    }
   }
 
   /**

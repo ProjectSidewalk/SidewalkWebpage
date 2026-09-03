@@ -22,6 +22,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class ImageController @Inject() (
     cc: CustomControllerComponents,
     panoDataService: service.PanoDataService,
+    cropService: service.CropService,
     signingService: ImageSigningService,
     shareImageCache: service.ShareImageCache,
     config: Configuration,
@@ -114,7 +115,10 @@ class ImageController @Inject() (
   }
 
   /**
-   * Serves a self-hosted equirectangular panorama image.
+   * Serves a self-hosted equirectangular panorama image: the display derivative when the crop job has written one
+   * (#4865), else the native file. The pano's metadata (`width`/`height`) always describes the native file, since that
+   * is the frame label positions are stored in; the viewer places markers by angle, so a smaller image is transparent
+   * to it.
    *
    * Requires a valid HMAC signature (?exp=...&sig=...) and an allowed Referer/Origin. User-aware (#4643): read-only
    * and already protected by the signature + referer checks, so no session is required to load the image.
@@ -129,11 +133,12 @@ class ImageController @Inject() (
       case Some(result) => Future.successful(result)
       case None         =>
         panoDataService.localBackupImageFile(panoId) match {
-          case Some(file) =>
+          case Some(native) =>
             // Fire-and-forget: keep pano_data.has_backup in sync with what's on disk. No-op when already true.
             panoDataService.markHasBackup(panoId).failed.foreach { e =>
               logger.warn(s"Failed to update has_backup for pano $panoId: ${e.getMessage}")
             }
+            val file        = cropService.existingDerivedImage(panoId).getOrElse(native)
             val contentType = if (file.getName.toLowerCase.endsWith(".png")) "image/png" else "image/jpeg"
             Future.successful(Ok.sendFile(file, inline = true).as(contentType))
           case None =>

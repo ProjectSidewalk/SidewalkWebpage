@@ -284,6 +284,22 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
   }
 
   /**
+   * Panos with a self-hosted backup whose native width is over `maxWidth`, or unknown — the ones that need a display
+   * derivative (#4865). Width is read from the file when the row doesn't record it.
+   *
+   * @param maxWidth The widest image the pano viewer can be handed.
+   * @return         Pano id paired with its recorded width.
+   */
+  def getWideBackupPanos(maxWidth: Int): DBIO[Seq[(String, Option[Int])]] = {
+    panoDataRecords
+      .filter(p =>
+        p.hasBackup.getOrElse(false: Rep[Boolean]) && p.width.map(_ > maxWidth).getOrElse(true: Rep[Boolean])
+      )
+      .map(p => (p.panoId, p.width))
+      .result
+  }
+
+  /**
    * Sets has_backup = true for the given pano, but only if it isn't already true.
    *
    * @param panoId The ID of the pano whose has_backup flag should be set.

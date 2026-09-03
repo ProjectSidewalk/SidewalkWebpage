@@ -3,6 +3,7 @@ package controllers
 import actor.{
   CheckImageExpiryActor,
   ClusteringActor,
+  CropGenerationActor,
   FunnelStatActor,
   OsmWayRefreshActor,
   RecalculateStreetPriorityActor,
@@ -20,14 +21,24 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.mvc.Cookie
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
+import play.api.test.CSRFTokenHelper._
+import service.CropService.CropRunResult
 import service.PanoDataService.ImageryCheckResult
-import service.{AdminService, ClusterService, ClusteringResults, OsmWayService, PanoDataService, StreetService}
+import service.{
+  AdminService,
+  ClusterService,
+  ClusteringResults,
+  CropService,
+  OsmWayService,
+  PanoDataService,
+  StreetService
+}
 import util.{AnonSession, RoleSession, RolledBackDb, StubService}
 
 import scala.concurrent.Future
 
 /**
- * Functional tests for the six admin routes that hand-trigger a nightly job (#4946).
+ * Functional tests for the seven admin routes that hand-trigger a nightly job (#4946).
  *
  * Each wraps its service call in `jobRunService.record(..., Manual)` so a hand-run leaves the same counts and error
  * trail the scheduler's run would (#4932). Nothing else asserts that a given controller method still *calls* it: drop
@@ -55,6 +66,10 @@ class AdminJobTriggerSpec
   private val WaysRefreshed  = 4613
   private val ImageryResult  = ImageryCheckResult(stillThere = 7, gone = 2, errors = 1, reconciled = Some(3))
   private val ClusterResults = ClusteringResults(labelCount = 4614, clusterCount = 4615)
+  private val CropResult     = CropRunResult(
+    panosOpened = 4616, panosWithoutBackup = 4617, cropsWritten = 4618, shiftedVertically = 4619, outOfFrame = 4620,
+    dimsMismatch = 4621, derivativesWritten = 4622, errors = 4623
+  )
 
   /** Set per test: this endpoint's failure path is part of its contract, and Guice owns the stub. */
   @volatile private var osmWayAnswer: Future[Int] = Future.successful(0)
@@ -88,6 +103,11 @@ class AdminJobTriggerSpec
         bind[ClusterService].toInstance(
           StubService.answering[ClusterService](Map("runClustering" -> Future.successful(ClusterResults)))
         ),
+        bind[CropService].toInstance(
+          StubService.answering[CropService](
+            Map("generateMissingCrops" -> Future.successful(CropResult), "isRunning" -> false)
+          )
+        ),
         bind[OsmWayService].toInstance(
           StubService.answeringWith[OsmWayService](Map("refreshOsmWayData" -> (() => osmWayAnswer)))
         )
@@ -104,11 +124,12 @@ class AdminJobTriggerSpec
   /** The runs these tests caused, deleted afterwards so no later reader takes them for the city's own history. */
   private var triggeredRunIds: List[Int] = Nil
 
-  private def asAdmin(path: String) =
-    route(app, FakeRequest(GET, path).withCookies(adminCookies: _*)).get
+  // A POST carries the CSRF token the admin UI's fetch wrapper sends; on a GET the token is simply unused.
+  private def asAdmin(path: String, method: String) =
+    route(app, FakeRequest(method, path).withCookies(adminCookies: _*).withCSRFToken).get
 
-  private def asVisitor(path: String) =
-    route(app, FakeRequest(GET, path).withCookies(visitorCookies: _*)).get
+  private def asVisitor(path: String, method: String) =
+    route(app, FakeRequest(method, path).withCookies(visitorCookies: _*).withCSRFToken).get
 
   private def highestRunId: Int =
     run(jobRunTable.backgroundJobRuns.map(_.backgroundJobRunId).max.result).getOrElse(0)
@@ -126,9 +147,9 @@ class AdminJobTriggerSpec
    * Reading by id floor rather than by "the newest row for this job" is what keeps the assertion honest: against a
    * database that already holds runs of these jobs, the latter passes whether or not the request wrote anything.
    */
-  private def trigger(path: String, jobName: String): (Int, String, BackgroundJobRun) = {
+  private def trigger(path: String, jobName: String, method: String = GET): (Int, String, BackgroundJobRun) = {
     val idFloor  = highestRunId
-    val response = asAdmin(path)
+    val response = asAdmin(path, method)
     val code     = status(response) // Blocks until the action settles, which is after the run row is closed.
     val body     = contentAsString(response)
 
@@ -197,6 +218,17 @@ class AdminJobTriggerSpec
     }
   }
 
+  "POST /adminapi/generateCrops" should {
+    "record the crop run as a manual run of the nightly crop-generation job, with its counts" in {
+      val (code, body, jobRun) = trigger("/adminapi/generateCrops", CropGenerationActor.Name, POST)
+      code mustBe OK
+      body mustBe CropResult.summary
+      jobRun.triggeredBy mustBe JobRunTrigger.Manual
+      jobRun.status mustBe JobRunStatus.Succeeded
+      jobRun.details.value mustBe CropResult.runDetails
+    }
+  }
+
   "GET /adminapi/refreshOsmWayData" should {
     "record the refresh as a manual run of the nightly OSM job" in {
       osmWayAnswer = Future.successful(WaysRefreshed)
@@ -241,14 +273,15 @@ class AdminJobTriggerSpec
       // signed in, and each of these kicks off hours of work on a production city.
       val idFloor = highestRunId
       Seq(
-        "/adminapi/updateUserStats"           -> UserStatActor.Name,
-        "/adminapi/updateFunnelStats"         -> FunnelStatActor.Name,
-        "/adminapi/recalculateStreetPriority" -> RecalculateStreetPriorityActor.Name,
-        "/adminapi/checkImagery"              -> CheckImageExpiryActor.Name,
-        "/adminapi/refreshOsmWayData"         -> OsmWayRefreshActor.Name,
-        "/runClustering"                      -> ClusteringActor.Name
-      ).foreach { case (path, jobName) =>
-        val response = asVisitor(path)
+        (GET, "/adminapi/updateUserStats", UserStatActor.Name),
+        (GET, "/adminapi/updateFunnelStats", FunnelStatActor.Name),
+        (GET, "/adminapi/recalculateStreetPriority", RecalculateStreetPriorityActor.Name),
+        (GET, "/adminapi/checkImagery", CheckImageExpiryActor.Name),
+        (GET, "/adminapi/refreshOsmWayData", OsmWayRefreshActor.Name),
+        (POST, "/adminapi/generateCrops", CropGenerationActor.Name),
+        (GET, "/runClustering", ClusteringActor.Name)
+      ).foreach { case (method, path, jobName) =>
+        val response = asVisitor(path, method)
         status(response) mustBe FORBIDDEN
         contentAsString(response) must include("Administrator")
         runsSince(idFloor, jobName) mustBe empty
