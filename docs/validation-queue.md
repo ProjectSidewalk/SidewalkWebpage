@@ -66,8 +66,8 @@ easy to get wrong:
 - **`unvalidatedOnly` is orthogonal.** It is a separate opt-in filter on `label.correct IS NULL` that applies inside
   whichever queue is active; it is not a queue of its own.
 
-`MaxCrowdVotes = 5` is where the crowd stops paying: the marginal settle rate of the next vote falls off sharply by the
-fifth vote while the share of those votes that are Unsure climbs, which is the crowd telling us it cannot decide (see
+`MaxCrowdVotes = 5` is where the crowd stops paying: by the fifth vote a quarter of the votes still arriving on
+undecided labels are Unsure, up from 7% at the first vote, which is the crowd telling us it cannot decide (see
 [Evidence](#evidence-seattle-2026-09)). Labels that reach the cap undecided are exactly what the `Triage` queue hands
 to an expert.
 
@@ -118,9 +118,9 @@ Three properties are the point of choosing this over the alternatives:
 - **Noise never inverts priority in aggregate.** A higher score is always a strictly higher expected serve rate.
 - **No label is ever certain to be served.** Concurrent validators draw independent samples spread across the whole
   eligible pool, with no coordination and no shared "top 50" for everyone to pile onto.
-- **The exponent is a dial, not a constant of nature.** `PickWeightExponent = 2` keeps new labelers' labels at roughly
-  the share of picks the additive score implies; exponent 1 (plain proportional sampling) cuts that share by more than
-  half. See [Evidence](#evidence-seattle-2026-09).
+- **The exponent is a dial, not a constant of nature.** It decides how much of the additive score survives into the
+  serve rate: on Seattle's pool, new labelers' labels take 22.1% of picks at exponent 1 (plain proportional sampling)
+  and 34.6% at 2. See [Evidence](#evidence-seattle-2026-09).
 
 Bounded jitter (`score + random() * 25`) was considered and rejected: it is effectively strict tiering, so every
 concurrent validator gets the same handful of top-scoring labels, which recreates the pile-on the sampler exists to
@@ -182,91 +182,188 @@ All of these are `val`s in `ValidationQueuePolicy`, pinned by `test/service/Vali
 
 Every number below is pasted from `tools/analyze_validation_queue.py` (see
 [Re-running the analysis](#re-running-the-analysis)) against the Seattle city schema of the dev DB dump — a recent
-production snapshot, {{SEATTLE_LABELS}} labels and {{SEATTLE_VALIDATIONS}} validations. Nothing here is typed by hand.
+production snapshot, 304,948 non-deleted labels and 422,284 validations. Nothing here is typed by hand. Those three
+counts are direct `count(*)`s against the schema; every other number comes from the tool's report, and the tables are
+its **excluding-`NoSidewalk`** half, which is what validators actually see (a mission takes `NoSidewalk` only when no
+other type has a full mission left).
 
 "Honest servable pool" means the exact joins and filters the label query applies, so it counts what Validate could
-actually serve today: **{{POOL_SIZE}}** labels excluding `NoSidewalk`, of which **{{POOL_DECIDED_PCT}}%** already have
+actually serve today: **206,657** labels excluding `NoSidewalk`, of which **33.1%** already have
 a decided outcome. Two inflations to be aware of when reading the issue's original figures: `NoSidewalk` labels
-({{POOL_NOSIDEWALK}}, which missions avoid whenever another type is available) and tutorial labels
-({{SEATTLE_TUTORIAL_LABELS}}, which the queue never serves at all).
+(50,806, which missions avoid whenever another type is available) and tutorial labels
+(36,112, which the queue never serves at all).
 
 ### Pool composition
 
-<!-- Track D: table (i) — one row per status (unvalidated / unsure-only / margin 1 / tied / decided), with counts,
-     % of pool, and the "retired by MaxCrowdVotes" and "triage" columns. -->
-{{TABLE_POOL_COMPOSITION}}
+| status | labels | % pool | still needs votes | retired at N_max | triage |
+|---|---|---|---|---|---|
+| unvalidated | 8,533 | 4.1 | 8,533 | 0 | 0 |
+| unsure-only | 10,202 | 4.9 | 10,201 | 1 | 871 |
+| margin 1 | 111,384 | 53.9 | 110,155 | 1,229 | 2,456 |
+| tied | 8,204 | 4.0 | 7,648 | 556 | 3,321 |
+| decided | 68,334 | 33.1 | 0 | 0 | 0 |
+| **total** | 206,657 | 100.0 | 136,537 | 1,786 | 6,648 |
 
-<!-- Track D: table (i), per-label-type breakdown of the same statuses. -->
-{{TABLE_POOL_BY_TYPE}}
+| label type | labels | unvalidated | decided | needs votes | triage |
+|---|---|---|---|---|---|
+| CurbRamp | 99,879 | 6,376 | 23,856 | 75,984 | 1,880 |
+| NoCurbRamp | 44,094 | 868 | 20,925 | 22,842 | 1,187 |
+| Obstacle | 17,793 | 99 | 7,569 | 9,201 | 1,606 |
+| SurfaceProblem | 37,147 | 293 | 13,273 | 23,524 | 1,914 |
+| Crosswalk | 6,156 | 94 | 2,156 | 3,974 | 37 |
+| Signal | 1,588 | 803 | 555 | 1,012 | 24 |
 
-Zero-vote labels: {{POOL_UNVALIDATED}}. Unsure-only: {{POOL_UNSURE_ONLY}}. The pool is dominated by margin-1 labels
-({{POOL_MARGIN1}}), **{{POOL_AI_ONLY}}** of which carry only the AI's vote — exactly the case a second, human vote
+Zero-vote labels: 8,533. Unsure-only: 10,202. The pool is dominated by margin-1 labels
+(111,384), **45,147** of which carry only the AI's vote — exactly the case a second, human vote
 should confirm, and exactly what the "nothing is retired by the AI alone" rule keeps in the crowd queue.
 
 ### Vote-count buckets among undecided labels
 
-<!-- Track D: distribution of totalVotes among undecided (margin < SettledMargin) labels — one row per vote count,
-     plus a cumulative "≥ N votes" column. This is the table that sizes MaxCrowdVotes. -->
-{{TABLE_VOTE_COUNT_BUCKETS}}
+The 138,323 labels in the pool that are still undecided (`|agree − disagree| < SettledMargin`), by how many votes they
+already carry. The "≥ this many" column is what a cap set at that number would retire into the expert queue, so the
+column *is* the sizing table for `MaxCrowdVotes`. It is computed from the same `pool.csv` export with the same
+module's predicates; its 5-row (1,786) is the `retired at N_max` total above.
 
-`MaxCrowdVotes = 5` retires **{{RETIRED_AT_5}}** undecided labels ({{RETIRED_AT_5_PCT}}% of the undecided set) into the
-expert queue. A cap of 4 would retire {{RETIRED_AT_4}}, a cap of 6 only {{RETIRED_AT_6}}.
+| total votes | undecided labels | ≥ this many votes | % of undecided |
+|---|---|---|---|
+| 0 | 8,533 | 138,323 | 100.0 |
+| 1 | 102,329 | 129,790 | 93.8 |
+| 2 | 12,424 | 27,461 | 19.9 |
+| 3 | 10,922 | 15,037 | 10.9 |
+| 4 | 2,329 | 4,115 | 3.0 |
+| 5 | 1,073 | 1,786 | 1.3 |
+| 6 | 377 | 713 | 0.5 |
+| 7 | 191 | 336 | 0.2 |
+| 8+ | 145 | 145 | 0.1 |
+
+`MaxCrowdVotes = 5` retires **1,786** undecided labels (1.3% of the undecided set) into the
+expert queue. A cap of 4 would retire 4,115, a cap of 6 only 713.
 
 ### Where picks land
 
-<!-- Track D: table (ii) — expected share of picks by pool status under each policy: the jitter-to-ceiling key
-     (det + random()·(426 − det)), analytic and Monte-Carlo; weighted sampling at exponent 1; and at exponent 2 over
-     the crowd cascade. -->
-{{TABLE_PICK_SHARE}}
+Each column is 2,000+ simulated missions of the real procedure — order a type's labels by that policy's sort key, take
+the top 50, keep a random 10 — with types weighted by that policy's own type selection. `OLD (today)` is the
+`det + random() · (426 − det)` key over the whole pool; the three middle columns change only the sampler, keeping the
+new score and the old (unretired) eligibility, so the gap between them and `NEW` is what the retirement rule buys.
 
-Decided labels take **{{PICK_SHARE_DECIDED_OLD}}%** of picks under a `det + random()·(426 − det)` sort key. Fixing only
-the randomization is not enough: proportional sampling still sends {{PICK_SHARE_DECIDED_ES1}}% of picks at them. The
-retirement rule is what removes the waste — with it, the figure is {{PICK_SHARE_DECIDED_NEW}}%.
+| status | labels | % pool | OLD analytic | OLD (today) | sampler only, P(pick) prop. score | sampler only, P(pick) prop. score^2 | sampler only, bounded jitter +25 | NEW (retirement + score^2) |
+|---|---|---|---|---|---|---|---|---|
+| unvalidated | 8,533 | 4.1 | 7.9 | 9.4 | 9.0 | 11.9 | 34.5 | 12.6 |
+| unsure-only | 10,202 | 4.9 | 9.6 | 11.2 | 6.9 | 6.8 | 0.3 | 6.4 |
+| margin 1 | 111,384 | 53.9 | 48.8 | 45.4 | 58.3 | 62.0 | 2.4 | 71.4 |
+| tied | 8,204 | 4.0 | 9.3 | 10.4 | 7.4 | 10.3 | 62.8 | 9.6 |
+| decided | 68,334 | 33.1 | 24.4 | 23.6 | 18.5 | 9.0 | 0.0 | 0.0 |
 
-<!-- Track D: table (ii), the new-labeler share of picks under each policy (pool share vs. pick share). -->
-{{TABLE_NEW_LABELER_PICK_SHARE}}
+Decided labels take **23.6%** of picks under the `det + random() · (426 − det)` sort key. Fixing only
+the randomization is not enough: proportional sampling still sends 18.5% of picks at them. The
+retirement rule is what removes the waste — with it, the figure is 0.0%.
 
-New labelers' labels are about 1% of the pool. They take {{NEW_LABELER_SHARE_OLD}}% of picks under the
-jitter-to-ceiling key, {{NEW_LABELER_SHARE_ES1}}% at `PickWeightExponent = 1`, and {{NEW_LABELER_SHARE_ES2}}% at
-`PickWeightExponent = 2` — which is why the exponent is 2.
+| label group | labels | % pool | OLD analytic | OLD (today) | sampler only, P(pick) prop. score | sampler only, P(pick) prop. score^2 | sampler only, bounded jitter +25 | NEW (retirement + score^2) |
+|---|---|---|---|---|---|---|---|---|
+| by a new labeler | 29,258 | 14.2 | 21.2 | 23.3 | 22.1 | 34.6 | 100.0 | 37.0 |
+| ...and bonus-eligible today (correct IS NULL) | 2,650 | 1.3 | 10.5 | 13.0 | 4.4 | 8.1 | 97.6 | 7.5 |
+| ...and bonus-eligible under #4715 (needs votes) | 17,827 | 8.6 | 16.7 | 18.8 | 19.0 | 33.1 | 100.0 | 37.0 |
+
+New labelers' labels are 29,258 of the pool (14.2%), and they go from **23.3%** of picks today to **37.0%** under this
+PR. Two changes are behind that, and the table does not let them be attributed cleanly, because every column that
+isolates the sampler already carries the new score:
+
+- **The bonus gate.** Moving it from `label.correct IS NULL` to `needsVotes` takes the new-labeler labels that
+  actually carry the +150 from **2,650** to **17,827** — the same bonus, reaching 6.7× as many labels, because a
+  single AI *Agree* no longer disqualifies one.
+- **The exponent.** Holding eligibility fixed, the same score gives new labelers **22.1%** of picks at
+  `PickWeightExponent = 1` and **34.6%** at 2; the retirement rule adds the last 2.4 points to reach 37.0%.
+
+So the 37.0% is a deliberate increase over today's 23.3%, not a side effect. If maintainers want new labelers back
+near today's share, `NewLabelerBonus` (150) is the knob to turn — it is the term the widened gate multiplied across
+the set — and `PickWeightExponent` is the second.
 
 ### Historical replay
 
 Replaying every validation in timestamp order (self-votes excluded) and asking what the label's margin was at the
-moment the vote was cast:
+moment the vote was cast: of 417,930 non-self validations, 72,769 (17.4%) were cast on a label that was already
+decided.
 
-<!-- Track D: table (iii) — share of votes cast at margin ≥ SettledMargin, by year and by source. -->
-{{TABLE_WASTE_BY_YEAR_AND_SOURCE}}
+| year | votes | cast at margin >= 2 | % wasted |
+|---|---|---|---|
+| 2019 | 46,583 | 4,375 | 9.4 |
+| 2020 | 26,291 | 33 | 0.1 |
+| 2021 | 67,826 | 235 | 0.3 |
+| 2022 | 77,544 | 16,038 | 20.7 |
+| 2023 | 41,746 | 14,542 | 34.8 |
+| 2024 | 32,819 | 10,546 | 32.1 |
+| 2025 | 53,467 | 8,533 | 16.0 |
+| 2026 | 71,654 | 18,467 | 25.8 |
 
-This is a live property of the selection policy, not legacy debris: **{{WASTE_2026_PCT}}%** of the votes cast in
+| source | votes | cast at margin >= 2 | % wasted |
+|---|---|---|---|
+| Validate | 243,904 | 42,101 | 17.3 |
+| SidewalkAI | 103,632 | 20,872 | 20.1 |
+| ValidateMobile | 54,849 | 5,382 | 9.8 |
+| Old data, unknown source | 6,923 | 830 | 12.0 |
+| ExternalTagValidationASSETS2024 | 5,716 | 3,112 | 54.4 |
+| GalleryImage | 1,134 | 262 | 23.1 |
+| AdminUserDashboard | 926 | 1 | 0.1 |
+| ExpertValidate | 360 | 76 | 21.1 |
+| GalleryExpandedImage | 264 | 43 | 16.3 |
+| LabelSearchPage | 109 | 52 | 47.7 |
+| LabelMap | 38 | 7 | 18.4 |
+| AdminLabelSearchTab | 33 | 16 | 48.5 |
+| GalleryExpandedThumbs | 30 | 14 | 46.7 |
+| GalleryThumbs | 8 | 1 | 12.5 |
+| AdminContributionsTab | 4 | 0 | 0.0 |
+
+This is a live property of the selection policy, not legacy debris: **25.8%** of the votes cast in
 2026 landed on a label that was already at `margin >= SettledMargin` when the vote was cast.
 
-<!-- Track D: table (iii) — settle rate of the next vote by how many votes the label already had, with the Unsure
-     share of those votes. This is the table that justifies MaxCrowdVotes. -->
-{{TABLE_SETTLE_RATE_BY_PRIOR_VOTES}}
+The marginal value of a vote, by how many the label already carried. The settle rate is measured over the votes cast
+while the label was still undecided, because a vote on a settled label cannot settle anything:
 
-A second vote settles **{{SETTLE_RATE_AT_1}}%** of one-vote labels, with {{UNSURE_SHARE_AT_1}}% of those votes Unsure.
-By the fifth vote the marginal settle rate is **{{SETTLE_RATE_AT_5}}%** and the Unsure share has risen to
-{{UNSURE_SHARE_AT_5}}%. That is the crossover the cap is set at.
+| votes already on the label | votes cast there | of those, on an already-decided label | still-undecided votes | % of those that settled it | % of those unsure |
+|---|---|---|---|---|---|
+| 0 | 203,066 | 0 | 203,066 | 0.0 | 8.3 |
+| 1 | 103,035 | 0 | 103,035 | 68.0 | 7.2 |
+| 2 | 55,424 | 35,579 | 19,845 | 10.9 | 19.6 |
+| 3 | 27,142 | 14,551 | 12,591 | 48.0 | 19.4 |
+| 4 | 12,899 | 9,666 | 3,233 | 16.9 | 23.7 |
+| 5 | 6,591 | 4,605 | 1,986 | 38.2 | 25.8 |
+| 6 | 3,552 | 2,880 | 672 | 19.2 | 28.4 |
+| 7 | 2,026 | 1,641 | 385 | 29.9 | 29.4 |
+| 8 | 1,236 | 1,099 | 137 | 23.4 | 25.5 |
+| 9+ | 2,959 | 2,748 | 211 | 29.9 | 22.7 |
+
+The settle rate alternates with the parity of the vote count rather than decaying — a vote arriving at an odd count is
+the one that can open a margin of 2, so **68.0%** of second votes settle their label against 10.9% of third votes and
+**38.2%** of sixth votes. What does decay is the volume and the confidence: the still-undecided votes arriving at
+depth 5 are 1,986, under 1% of the 203,066 that arrive at depth 0, and the Unsure share of them has climbed from
+7.2% at one prior vote to 25.8% at five. Past five votes the crowd is spending its time on labels it has already told
+us it cannot call, which is what the cap stops.
 
 ### Forward simulation
 
-{{SIM_VOTES}} simulated votes over the real pool, with missions of 10, each policy choosing its own label type and
+20,000 simulated votes over the real pool, with missions of 10, each policy choosing its own label type and
 drawing with its own sampler, and counts updated per vote. The voter model is printed in the tool's own report.
 
-<!-- Track D: table (iv) — forward-simulation outcome rows: % of votes landing on already-decided labels, % on labels
-     already at the cap, distinct zero-vote labels reached, labels newly settled, max votes on any one label, and
-     votes per settled label; one column per policy. -->
-{{TABLE_FORWARD_SIMULATION}}
+| metric | OLD (today) | NEW (#4715) |
+|---|---|---|
+| votes simulated | 20,000 | 20,000 |
+| % on labels already decided | 25.7 | 0.0 |
+| % on labels already at 5+ votes | 4.9 | 0.0 |
+| distinct zero-vote labels reached | 1,489 | 2,228 |
+| labels newly settled | 6,389 | 9,465 |
+| votes per label settled | 3.13 | 2.11 |
+| most votes on any one label | 4 | 4 |
 
-Votes landing on already-decided labels: {{SIM_WASTE_OLD}}% → **{{SIM_WASTE_NEW}}%**. Distinct zero-vote labels
-reached: {{SIM_REACH_OLD}} → **{{SIM_REACH_NEW}}**. Most votes any one label collects: {{SIM_MAX_OLD}} →
-**{{SIM_MAX_NEW}}**.
+Votes landing on already-decided labels: 25.7% → **0.0%**. Distinct zero-vote labels reached: 1,489 →
+**2,228**. Labels settled by those 20,000 votes: 6,389 → **9,465**, i.e. 3.13 votes per settled label → **2.11**.
+The cap does not bind at this horizon — the deepest label reaches 4 votes under both policies — so the retirement
+rule's gain here is entirely the decided labels it stops serving, not labels rescued from over-validation; the 5-vote
+cap pays off on the 1,786 labels that are *already* past it.
 
 ### Triage queue size
 
-{{TRIAGE_SIZE}} Seattle labels qualify for `Triage`: {{TRIAGE_CAPPED}} capped out, {{TRIAGE_UNSURE_HEAVY}}
-unsure-heavy, {{TRIAGE_AI_CONTESTED}} AI-contested (the three overlap).
+6,648 Seattle labels qualify for `Triage`: 1,786 capped out, 2,030
+unsure-heavy, 3,029 AI-contested (the three overlap).
 
 ## Re-running the analysis
 
