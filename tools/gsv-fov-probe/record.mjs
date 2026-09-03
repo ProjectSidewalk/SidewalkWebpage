@@ -228,7 +228,8 @@ async function main() {
                         !(c.panoName === pano.name && c.containerName === container.name && c.load === load));
                     const browser = await chromium.launch({ headless: !args.headed });
                     try {
-                        await recordLoad({ browser, probeHtml, pano, container, load, zooms, dir, runDir, manifest, label });
+                        await recordLoad(
+                            { browser, probeHtml, pano, container, load, zooms, dir, runDir, manifest, label });
                         break;
                     } catch (e) {
                         console.error(`FAILED ${label} (attempt ${attempt}): ${e.stack}`);
@@ -271,7 +272,16 @@ async function recordLoad(ctx) {
         const init = await page.evaluate(
             (cfg) => window.__probe.init(cfg),
             { width: container.width, height: container.height, pano: pano.pano, location: pano.location });
-        manifest.panos[pano.name] ??= init.meta;
+        // Assign unconditionally: on --resume the carried-over manifest already holds this scene's metadata,
+        // and a re-recorded load that resolved DIFFERENT imagery must overwrite it (that is amendment 3's
+        // scenario). A mid-run pano change invalidates every cross-container comparison for the scene, so it
+        // is a hard failure rather than a silently mixed record.
+        const priorMeta = manifest.panos[pano.name];
+        if (priorMeta && priorMeta.panoId !== init.meta.panoId) {
+            throw new Error(`Scene ${pano.name} resolved a different pano (${priorMeta.panoId} -> ` +
+                `${init.meta.panoId}); its earlier captures are not comparable. Start a fresh run.`);
+        }
+        manifest.panos[pano.name] = init.meta;
 
         // WebGL renderer assertion — the 2D fallback renders through a different projection curve entirely.
         // The render canvas mounts asynchronously after pano_changed, so give it time to appear.
@@ -282,7 +292,8 @@ async function recordLoad(ctx) {
             throw new Error(`Renderer assertion failed (no container-filling canvas): ${JSON.stringify(census)}`);
         }
 
-        const target = page.locator('#pano canvas').first();
+        // The census identifies the render canvas by size; take that exact element rather than DOM order.
+        const target = page.locator('#pano canvas').nth(census.renderCanvasIndex);
 
         // h0 selection: score candidate headings by central texture at zoom 1, keep the best H0_KEEP that
         // are mutually >=30 degrees apart and >=SEAM_MARGIN_DEG from the tile seam (centerHeading + 180).
@@ -306,6 +317,10 @@ async function recordLoad(ctx) {
         const capture = async (kind, zoom, h0, deltaDeg, side, requested) => {
             const state = await page.evaluate((p) => window.__probe.setPov(p), requested);
             const s = await settleScreenshot(target);
+            // setPov's readback is the immediate post-set value; a clamp or quantization the renderer applies
+            // while settling would not show up there. The fit uses this settled readback, which describes the
+            // frame that was actually captured.
+            const stateSettled = await page.evaluate(() => window.__probe.getState());
             const name = `${kind}-z${zoom}-h${h0}-d${deltaDeg}-${side}.png`.replace(/[^\w.-]/g, '_');
             const abs = path.join(dir, name);
             fs.writeFileSync(abs, s.shot);
@@ -313,7 +328,7 @@ async function recordLoad(ctx) {
                 file: path.relative(runDir, abs),
                 panoName: pano.name, containerName: container.name,
                 width: container.width, height: container.height, dsf: container.dsf, load,
-                kind, zoom, h0, deltaDeg, side, requested, state,
+                kind, zoom, h0, deltaDeg, side, requested, state, stateSettled,
                 settle: { iters: s.iters, settled: s.settled, elapsedMs: s.elapsedMs },
             });
         };

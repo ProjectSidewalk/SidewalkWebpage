@@ -250,7 +250,9 @@ function crossShiftEstimate(grayA, grayB, width, height, deltaRad, opts = {}) {
             best = i;
         }
     }
-    if (best <= 0 || best >= scores.length - 1 || !Number.isFinite(bestNcc)) return { f: NaN, shift: NaN, peakNcc: bestNcc };
+    if (best <= 0 || best >= scores.length - 1 || !Number.isFinite(bestNcc)) {
+        return { f: NaN, shift: NaN, peakNcc: bestNcc };
+    }
     // Parabolic sub-integer refinement around the peak.
     const y0 = scores[best - 1], y1 = scores[best], y2 = scores[best + 1];
     const denom = y0 - 2 * y1 + y2;
@@ -426,7 +428,7 @@ function mulberry32(seed) {
     };
 }
 
-// --- Synthetic ground truth (estimator validation, gate 6 of the protocol) ------------------------------------
+// --- Synthetic ground truth (estimator validation, gate 1 of the protocol) ------------------------------------
 
 /**
  * Builds a smooth, richly textured procedural function of (azimuth, elevation) — a sum of oriented sinusoids

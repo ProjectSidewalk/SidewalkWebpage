@@ -93,13 +93,18 @@
         webglAvailable = !!document.createElement('canvas').getContext('webgl2') ||
           !!document.createElement('canvas').getContext('webgl');
       } catch { /* leave false */ }
-      const fullSizeCanvas = canvases.some((c) => c.clientWidth >= rect.width - 1 && c.clientHeight >= rect.height - 1);
+      // Identify the render canvas BY SIZE, not by DOM order: the Maps API mounts several canvases per load
+      // (two 300x150 scratch surfaces alongside the real one) and nothing guarantees which comes first.
+      // The recorder screenshots this index, so a wrong pick would silently fit the wrong image.
+      const renderCanvasIndex = canvases.findIndex(
+        (c) => c.clientWidth >= rect.width - 1 && c.clientHeight >= rect.height - 1);
       return {
         canvases,
         imgCount: container.querySelectorAll('img').length,
         containerRect: { width: rect.width, height: rect.height },
         webglAvailable,
-        fullSizeCanvas,
+        fullSizeCanvas: renderCanvasIndex >= 0,
+        renderCanvasIndex,
         devicePixelRatio: window.devicePixelRatio,
       };
     };
