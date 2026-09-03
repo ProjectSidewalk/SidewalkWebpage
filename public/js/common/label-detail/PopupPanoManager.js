@@ -17,8 +17,11 @@ class PopupPanoManager {
   #viewerAccessToken;
   #buttonHolder;
   #labelMarkers = [];
-  #primaryViewer = undefined;   // Always the GSV/Mapillary/Infra3d viewer created at init time.
-  #pannellumViewer = undefined; // Only constructed when an expired pano with a self-hosted image is shown.
+  // The GSV/Mapillary/Infra3d viewer. Built on the first setPano() that needs it, not at init (#5128): Google bills
+  // every StreetViewPanorama constructed, visible or not, and most visits to a hosting page never open a label.
+  #primaryViewer = undefined;
+  #primaryViewerCreation = null; // In-flight #ensureViewer() promise, so concurrent setPano() calls share one build.
+  #pannellumViewer = undefined;  // Only constructed when an expired pano with a self-hosted image is shown.
   #panoCanvas;
   #pannellumCanvas;
   #panoNotAvailable;
@@ -52,9 +55,7 @@ class PopupPanoManager {
   }
 
   /**
-   * Builds a PopupPanoManager and initializes its pano viewer.
-   *
-   * Async because the pano viewer must be created before the manager is usable; a constructor cannot be async.
+   * Builds a PopupPanoManager and its DOM. The pano viewer itself is created by the first setPano() (#5128).
    *
    * @param {Element} svHolder - One single DOM element.
    * @param {Element} buttonHolder - DOM element that holds the validation buttons.
@@ -63,18 +64,20 @@ class PopupPanoManager {
    * @param {string} viewerAccessToken
    * @returns {Promise<PopupPanoManager>}
    */
-  static async create(svHolder, buttonHolder, admin, viewerType, viewerAccessToken) {
+  static create(svHolder, buttonHolder, admin, viewerType, viewerAccessToken) {
     const manager = new PopupPanoManager(admin, viewerType, viewerAccessToken);
-    await manager.#init(svHolder, buttonHolder);
-    return manager;
+    manager.#init(svHolder, buttonHolder);
+    // A promise, matching the provider viewers' create() factories that hosts await the same way.
+    return Promise.resolve(manager);
   }
 
   /**
-   * Initializes the panorama and its fallback viewers.
+   * Builds the pano canvas, the fallback viewers' DOM, and the provider logo, and schedules the free part of the
+   * viewer's load. Nothing here talks to the imagery provider.
    * @param {Element} svHolder
    * @param {Element} buttonHolder
    */
-  async #init(svHolder, buttonHolder) {
+  #init(svHolder, buttonHolder) {
     this.#buttonHolder = $(buttonHolder);
     this.svHolder = $(svHolder);
     this.svHolder.addClass('admin-panorama');
@@ -153,28 +156,51 @@ class PopupPanoManager {
     });
     this.#fallbackPanzoom.on('transform', () => this.#updateFallbackMarkerPosition());
 
-    // Load the primary pano viewer (GSV/Mapillary/Infra3d).
-    const panoOptions = {
-      accessToken: this.#viewerAccessToken,
-      scrollwheel: true,
-      defaultNavigation: !!this.#admin, // Only allow navigation on admin version, not on normal LabelMap.
-    };
-    this.#primaryViewer = await this.#viewerType.create(this.#panoCanvas, panoOptions);
-    this.panoViewer = this.#primaryViewer;
-
     this.#logo = createPanoViewerLogo(this.svHolder[0], this.#viewerType);
     this.#logo.showPrimaryLogo();
 
-    this.#primaryViewer.addListener('pano_changed', () => {
-      // Only show the label if we're looking at the correct pano.
-      for (const marker of this.#labelMarkers) {
-        if (marker.panoId === this.#primaryViewer.getPanoId()) {
-          marker.marker.setVisible(true);
-        } else {
-          marker.marker.setVisible(false);
-        }
-      }
+    // Pre-pay the viewer library's download (free) so the first open only pays for the viewer itself. Idle-timed so
+    // it never competes with the host page's own load; a failure here just means the first open downloads it.
+    util.afterLoadIdle(() => {
+      this.#viewerType.preloadLibrary().catch((err) => console.warn('Pano viewer library preload failed:', err));
     });
+  }
+
+  /**
+   * Returns the primary viewer, building it on the first call. Concurrent callers share the one in-flight build;
+   * a failed build is forgotten so the next label tries again rather than leaving the popup imagery-less for the
+   * rest of the page's life (a transient quota or network error shouldn't be permanent).
+   *
+   * Only called from setPano(), which every host reaches after it has shown the popup, so the canvas is laid out —
+   * Mapillary measures its container at init and needs that.
+   *
+   * @returns {Promise<PanoViewer>} The primary viewer.
+   */
+  #ensureViewer() {
+    if (this.#primaryViewer) return Promise.resolve(this.#primaryViewer);
+    if (!this.#primaryViewerCreation) {
+      const panoOptions = {
+        accessToken: this.#viewerAccessToken,
+        scrollwheel: true,
+        defaultNavigation: !!this.#admin, // Only allow navigation on admin version, not on normal LabelMap.
+      };
+      this.#primaryViewerCreation = this.#viewerType.create(this.#panoCanvas, panoOptions)
+        .then((viewer) => {
+          this.#primaryViewer = viewer;
+          this.panoViewer = viewer;
+          viewer.addListener('pano_changed', () => {
+            // Only show the label if we're looking at the correct pano.
+            for (const marker of this.#labelMarkers) {
+              marker.marker.setVisible(marker.panoId === viewer.getPanoId());
+            }
+          });
+          return viewer;
+        })
+        .finally(() => {
+          this.#primaryViewerCreation = null;
+        });
+    }
+    return this.#primaryViewerCreation;
   }
 
   /**
@@ -222,10 +248,12 @@ class PopupPanoManager {
     // Reset fallback zoom/pan so a previous label's manipulation doesn't leak into this one.
     this.#resetFallbackTransform();
 
-    // Step 1: try the live primary viewer, unless we already know the imagery is gone.
+    // Step 1: try the live primary viewer, unless we already know the imagery is gone. Building the viewer is part
+    // of the attempt: if the provider can't even initialize, the label still gets its backup/crop.
     if (!expired) {
       try {
-        await this.#primaryViewer.setPano(panoId);
+        const primaryViewer = await this.#ensureViewer();
+        await primaryViewer.setPano(panoId);
         this.#teardownPannellum();
         this.activeViewerName = 'Default';
         await this.#panoSuccessCallback(pov);
@@ -264,7 +292,8 @@ class PopupPanoManager {
   }
 
   /**
-   * Hides the Pannellum canvas and points panoViewer back at the primary viewer.
+   * Hides the Pannellum canvas and points panoViewer back at the primary viewer (undefined until the first live
+   * pano has built it).
    */
   #teardownPannellum() {
     $(this.#pannellumCanvas).css('display', 'none');
@@ -467,9 +496,11 @@ class PopupPanoManager {
 
   /**
    * Returns the pov of the viewer.
-   * @returns {{heading: number, pitch: number, zoom: number}}
+   * @returns {?{heading: number, pitch: number, zoom: number}} Null while no viewer has been built (no label shown
+   *     yet, or only crop/no-imagery labels so far).
    */
   getPov() {
+    if (!this.panoViewer) return null;
     const pov = this.panoViewer.getPov();
 
     // Adjust heading to be between 0 and 360.

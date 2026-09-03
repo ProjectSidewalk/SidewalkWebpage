@@ -45,13 +45,6 @@
   background: rgb(0 0 0 / 12%);
 }
 
-/* Used during pano-viewer init: dialog must be in the DOM and visible to lay out, but invisible to the user. */
-.label-detail.label-detail--initializing,
-.label-detail.label-detail--initializing::backdrop {
-  visibility: hidden;
-  transition: none;
-}
-
 /* Open / close transition. Requires @starting-style + transition-behavior: allow-discrete. Only applies to the
    modal host (Gallery's inline host doesn't use [open] / ::backdrop). */
 dialog.label-detail,

@@ -15,6 +15,17 @@ class GsvViewer extends PanoViewer {
     this.currPanoData = undefined;
   }
 
+  /**
+   * Pulls in the Maps JS core + Street View modules without building a panorama. Google bills the
+   * StreetViewPanorama constructor, not the library download, so this is free to run for visitors who never
+   * open a pano — it just takes the ~400 KB script chain off the click path when they do (#5128).
+   * @returns {Promise<void>}
+   */
+  static async preloadLibrary() {
+    await google.maps.importLibrary('core');
+    await google.maps.importLibrary('streetView');
+  }
+
   async initialize(canvasElem, panoOptions = {}) {
     // The core library must be loaded for the google.maps.LatLng/Size constructors used in #getCustomPanoData.
     await google.maps.importLibrary('core');
