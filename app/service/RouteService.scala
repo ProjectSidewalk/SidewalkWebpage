@@ -443,17 +443,46 @@ class RouteServiceImpl @Inject() (
    * Resolves the link as a bare route id, the last resort once every slug spelling has missed (#5157).
    *
    * It exists so a share link can be spoken: "projectsidewalk.org/r/2" survives being read out in a demo, where a
-   * slug does not. Nothing new is exposed by it — `getRoute` filters on `deleted` alone, so every live route already
-   * answers at /explore?routeId=<id>; this is a shorter spelling of a URL that already works.
+   * slug does not. It reaches no route that /explore?routeId=<id> doesn't already reach — `getRoute` filters on
+   * `deleted` alone, and the Explore entry point applies no ownership or visibility check either — so this is a
+   * shorter spelling of a URL that already works. It does make existence cheaper to probe than the alternatives,
+   * which need a session and write a walk row per attempt; the answer it gives away (this city has a route with
+   * this id) is not secret.
    *
-   * @param slug The link as it arrived in the URL.
-   * @return None unless the whole path parses as an Int (one past Int's range doesn't) naming a live route.
+   * The id is refused for a spelling that is — or ever was — some route's slug, even one since deleted. A slug
+   * stays reserved past a delete precisely so an old share link can't return pointing at a stranger's route, and
+   * rereading a dead numeric slug as an id would recycle it after all: /r/2024 for a deleted route named "2024"
+   * must stay 404 rather than start serving whatever route holds id 2024.
+   *
+   * Unlike a slug, an id means nothing across cities: each city schema numbers its routes from 1, so the same
+   * /r/2 resolves at every host and the wrong host answers with an unrelated route instead of a 404. The host is
+   * the part a spoken link most easily loses, so a slug stays the better thing to hand out where one exists.
+   *
+   * @param ref The path segment as it arrived in the URL.
+   * @return None unless `ref` is a route id in canonical decimal form, unreserved as a slug, naming a live route.
    */
-  private def resolveRouteId(slug: String): Future[Option[Int]] = {
-    slug.toIntOption match {
-      case Some(routeId) => db.run(routeTable.getRoute(routeId)).map(_.map(_.routeId))
+  private def resolveRouteId(ref: String): Future[Option[Int]] = {
+    bareRouteId(ref) match {
       case None          => Future.successful(None)
+      case Some(routeId) =>
+        db.run(routeTable.slugReserved(ref).zip(routeSlugAliasTable.slugReserved(ref))).flatMap {
+          case (false, false) => db.run(routeTable.getRoute(routeId)).map(_.map(_.routeId))
+          case _              => Future.successful(None)
+        }
     }
+  }
+
+  /**
+   * The route id a /r/<x> path segment names, if it is written as one.
+   *
+   * Only the canonical decimal spelling counts. `toIntOption` on its own also accepts "+2", "007" and Unicode
+   * digits ("٢"), which would hand every route an unbounded family of URLs redirecting to the same place — and
+   * would give "/r/007" a route to id 7 that the reservation check above, keyed on the literal spelling, never
+   * sees. Ten digits is the widest an Int can be; a longer one is refused here and an in-range overflow like
+   * "9999999999" by `toIntOption`.
+   */
+  private def bareRouteId(ref: String): Option[Int] = {
+    if (ref.matches("[1-9][0-9]{0,9}")) ref.toIntOption else None
   }
 
   /** Resolves the candidates against retired slugs, dropping a hit whose route has since been soft-deleted. */
