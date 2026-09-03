@@ -435,23 +435,19 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
     "refuse a schema name that isn't a bare identifier" in {
       // Guards the one place this query interpolates rather than binds; a thrown error beats a crafted query.
       Seq("public; DROP TABLE label", "sidewalk_seattle\"", "Sidewalk_Seattle", "").foreach { bad =>
-        an[IllegalArgumentException] must be thrownBy userStatTable.getCrossCityUserStats(
-          Seq(bad),
-          Set.empty[String],
-          ghostId
-        )
+        an[IllegalArgumentException] must be thrownBy userStatTable.getCrossCityUserStats(Seq(bad), ghostId)
       }
     }
 
     "return nothing at all when no city qualifies, rather than building an empty union" in {
       await(
-        dbConfig.db.run(userStatTable.getCrossCityUserStats(Seq.empty[String], Set.empty[String], ghostId))
+        dbConfig.db.run(userStatTable.getCrossCityUserStats(Seq.empty[String], ghostId))
       ) mustBe empty
     }
 
     "report every queried schema, so the service can tell 'no activity' from 'not queried'" in {
       val schemas = await(configService.getCrossCityUserScope).map(_._2)
-      val rows    = await(dbConfig.db.run(userStatTable.getCrossCityUserStats(schemas, Set.empty[String], ghostId)))
+      val rows    = await(dbConfig.db.run(userStatTable.getCrossCityUserStats(schemas, ghostId)))
       rows.map(_.citySchema).toSet mustBe schemas.toSet
       // A user id that belongs to nobody: every count is zero, and none of them is negative or null-shaped.
       rows.foreach { row =>

@@ -10,7 +10,6 @@ GET     /terms                                          controllers.ApplicationC
 GET     /labelMap                                       controllers.ApplicationController.labelMap(regions: Option[String] ?= None, routes: Option[String] ?= None, aiValidationOptions: Option[String] ?= None)
 GET     /labelmap                                       controllers.ApplicationController.labelMap(regions: Option[String] ?= None, routes: Option[String] ?= None, aiValidationOptions: Option[String] ?= None)
 GET     /gallery                                        controllers.GalleryController.gallery(labelType: String ?= "Assorted", neighborhoods: String ?= "", severities: String ?= "", tags: List[String] ?= List(), validationOptions: String ?= "correct,unvalidated", aiValidationOptions: String ?= "")
-GET     /help                                           controllers.ApplicationController.help
 GET     /labelingGuide                                  controllers.ApplicationController.labelingGuide
 GET     /labelingguide                                  controllers.ApplicationController.labelingGuide
 GET     /labelingGuide/curbRamps                        controllers.ApplicationController.labelingGuideCurbRamps

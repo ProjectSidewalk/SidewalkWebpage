@@ -20,6 +20,7 @@ when a task is in its area.
 | Storing uploaded media (DB row vs. media dir) | `docs/architecture.md` → "Media storage" |
 | Tests or CI | `docs/testing-and-ci.md`, `test/e2e/README.md` |
 | `scripts/*.py` | `scripts/README.md` |
+| Google Maps keys, quotas, or a Google Cloud bill | `docs/google-cloud.md` |
 
 ## Workflow
 
@@ -46,8 +47,8 @@ when a task is in its area.
 - **Frontend:** `make lint` (ESLint, Stylelint, HTMLHint, locale parity, CSS layout, asset paths, evolutions lint;
   all blocking CI gates), or scope it with `make eslint dir=…` / `make stylelint dir=…`. `make lint-fix` handles the
   mechanical fixes. The tree is lint-clean, so any finding is from your change.
-- **Tests:** `sbt --client test` (same `docker exec`; needs the db container), `make test-e2e` against a running
-  app, `make test-python`. Details and what CI gates: `docs/testing-and-ci.md`.
+- **Tests:** `sbt --client test` (same `docker exec`; needs the db container), `make test-js` (jsdom unit suite),
+  `make test-e2e` against a running app, `make test-python`. Details and what CI gates: `docs/testing-and-ci.md`.
 
 ## Conventions the linters can't check
 

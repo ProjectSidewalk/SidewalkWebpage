@@ -307,7 +307,7 @@ class ZoomControl {
     }
 
     // Set the zoom level and change the panorama properties.
-    let zoomLevel = undefined;
+    let zoomLevel;
     if (zoomLevelIn <= this.#properties.minZoomLevel) {
       zoomLevel = this.#properties.minZoomLevel;
       this.enableZoomIn();

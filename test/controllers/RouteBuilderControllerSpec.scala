@@ -1,6 +1,7 @@
 package controllers
 
 import org.apache.pekko.stream.Materializer
+import org.scalatest.Assertion
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
@@ -122,6 +123,19 @@ class RouteBuilderControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
 
   /** A short unique tag for route names so slug assertions are deterministic against a shared database. */
   private def uniqueTag(): String = UUID.randomUUID().toString.replace("-", "").take(12)
+
+  /**
+   * Asserts a /r/<slug> spelling redirects to that exact route — landing on some other route is still a failure.
+   *
+   * @return The Location assertion, so the helper composes where ScalaTest expects an Assertion.
+   */
+  private def mustRedirectTo(typedSlug: String, routeId: Int): Assertion = {
+    val visit = route(app, FakeRequest(GET, s"/r/$typedSlug")).get
+    withClue(s"/r/$typedSlug: ") {
+      status(visit) mustBe FOUND
+      header(LOCATION, visit).get must include(s"/explore?routeId=$routeId")
+    }
+  }
 
   "The RouteBuilder routes" should {
     "exist and redirect an unauthenticated GET /userapi/routes to sign-in (3xx, not 404)" in {
@@ -380,6 +394,51 @@ class RouteBuilderControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
       status(delete) mustBe OK
       status(route(app, FakeRequest(GET, s"/r/$slug1")).get) mustBe NOT_FOUND
       status(route(app, FakeRequest(GET, s"/r/$slug2")).get) mustBe NOT_FOUND
+    }
+
+    // #5150: the link handed out during a demo was retyped from the route's name, so its casing missed the slug.
+    "resolve a link retyped from the route's name rather than copied" in {
+      val user                 = signUpFreshUser()
+      val (streetId, regionId) = anyStreet(user)
+      val tag                  = uniqueTag()
+
+      val saved = saveRoute(user, saveRouteBody(regionId, streetId, Some(s"Demo For Yochai $tag")))
+      status(saved) mustBe OK
+      val routeId = (contentAsJson(saved) \ "route_id").as[Int]
+      (contentAsJson(saved) \ "slug").as[String] mustBe s"demo-for-yochai-$tag"
+
+      // The third is the name itself, as a browser would encode it.
+      Seq(s"Demo-For-Yochai-$tag", s"demo-for-Yochai-$tag", s"Demo%20For%20Yochai%20$tag")
+        .foreach(mustRedirectTo(_, routeId))
+
+      // A retired slug redirects under a retyped spelling too.
+      status(putRoute(user, routeId, Json.obj("name" -> s"Renamed Walk $tag"))) mustBe OK
+      mustRedirectTo(s"Demo-For-Yochai-$tag", routeId)
+
+      // Folding the URL must not turn an unknown slug into a hit.
+      status(route(app, FakeRequest(GET, s"/r/Demo%20For%20Nobody%20$tag")).get) mustBe NOT_FOUND
+
+      // Nor may it resurrect a share link its owner deleted, by either spelling.
+      status(deleteRoute(user, routeId)) mustBe OK
+      status(route(app, FakeRequest(GET, s"/r/Renamed%20Walk%20$tag")).get) mustBe NOT_FOUND
+      status(route(app, FakeRequest(GET, s"/r/Demo-For-Yochai-$tag")).get) mustBe NOT_FOUND
+    }
+
+    // Case folding alone isn't enough: the run in "St. Louis" folds to "--", where the stored slug collapsed it to
+    // one dash. Slugifying the URL is the candidate that closes that gap (RouteServiceImpl.slugCandidates).
+    "resolve a retyped name whose punctuation collapsed when its slug was generated" in {
+      val user                 = signUpFreshUser()
+      val (streetId, regionId) = anyStreet(user)
+      val tag                  = uniqueTag()
+
+      val saved = saveRoute(user, saveRouteBody(regionId, streetId, Some(s"St. Louis Walk $tag")))
+      status(saved) mustBe OK
+      val routeId = (contentAsJson(saved) \ "route_id").as[Int]
+      (contentAsJson(saved) \ "slug").as[String] mustBe s"st-louis-walk-$tag"
+
+      // The last spelling is what the fold produces, so it exercises the slugify candidate on its own.
+      Seq(s"St.%20Louis%20Walk%20$tag", s"ST.%20LOUIS%20WALK%20$tag", s"st--louis-walk-$tag")
+        .foreach(mustRedirectTo(_, routeId))
     }
   }
 

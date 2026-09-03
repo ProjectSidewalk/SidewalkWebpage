@@ -292,7 +292,7 @@ class AppManager {
         }
       } catch (error) {
         console.error(`Init task '${task.name}' failed:`, error);
-        throw new Error(`Initialization failed at task: ${task.name}`);
+        throw new Error(`Initialization failed at task: ${task.name}`, { cause: error });
       }
     }
   }

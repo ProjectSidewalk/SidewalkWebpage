@@ -843,19 +843,6 @@ class UserStatTable @Inject() (
   def currentSchema: DBIO[String] = sql"SELECT current_schema()".as[String].head
 
   /**
-   * Which schemas have the `voided_label_validation` archive, so the cross-city query knows where it may read it.
-   *
-   * Every city is its own app instance at its own evolution level, so a schema without the archive is normal rather
-   * than broken (#4878) — and referencing a missing relation would fail the whole union, dropping every city rather
-   * than one. An unmigrated schema's archive contribution is genuinely zero, so the arm is simply left out there.
-   * Read from `information_schema` in one shot rather than probed per schema, so nothing is spliced into SQL.
-   */
-  def schemasWithVoidedValidationArchive: DBIO[Set[String]] =
-    sql"""SELECT table_schema FROM information_schema.tables WHERE table_name = 'voided_label_validation'"""
-      .as[String]
-      .map(_.toSet)
-
-  /**
    * One user's contribution totals in each of `citySchemas`, for the dashboard's cross-city section (#4496).
    *
    * Accounts are global while contributions are per-city, so a mapper's real Project Sidewalk totals only exist as a
@@ -875,19 +862,13 @@ class UserStatTable @Inject() (
    *    so no visibility flag applies — and a schema behind on evolutions may not have those columns at all, which
    *    would fail the entire union rather than one city.
    *
-   * @param citySchemas    DB schema names to report on, already vetted by the caller for existence and required
-   *                       columns. Spliced into SQL, so each must be a bare identifier.
-   * @param archiveSchemas Which of those schemas have `voided_label_validation`, from
-   *                       [[schemasWithVoidedValidationArchive]]; the archive arm is omitted for the rest.
-   * @param userId         The mapper whose totals to gather; bound once and referenced by every block.
-   * @return               One row per schema, including cities where the user did nothing (the caller drops those),
-   *                       most labels first.
+   * @param citySchemas DB schema names to report on, already vetted by the caller for existence and required
+   *                    columns. Spliced into SQL, so each must be a bare identifier.
+   * @param userId      The mapper whose totals to gather; bound once and referenced by every block.
+   * @return            One row per schema, including cities where the user did nothing (the caller drops those),
+   *                    most labels first.
    */
-  def getCrossCityUserStats(
-      citySchemas: Seq[String],
-      archiveSchemas: Set[String],
-      userId: String
-  ): DBIO[Seq[CrossCityUserStat]] = {
+  def getCrossCityUserStats(citySchemas: Seq[String], userId: String): DBIO[Seq[CrossCityUserStat]] = {
     if (citySchemas.isEmpty) {
       DBIO.successful(Seq.empty[CrossCityUserStat])
     } else {
@@ -899,15 +880,11 @@ class UserStatTable @Inject() (
       // built as plain strings, so an interpolated `$userId` inside them would be spliced rather than bound.
       val blocks: String = citySchemas
         .map { schema =>
-          // Validations count as work credit: the #4842 repair deleted voided votes from label_validation but archived
-          // them, and the work happened, so countValidations adds the archive back. This mirrors it per schema.
-          val archiveArm: String =
-            if (!archiveSchemas.contains(schema)) ""
-            else s""" + (SELECT COUNT(*)::int FROM "$schema".voided_label_validation
-           WHERE voided_label_validation.user_id = (SELECT user_id FROM me))"""
           // Label filters mirror LabelTable.labelsWithExcludedUsers: joined to audit_task, not deleted, not tutorial,
           // and on neither the label's nor the task's tutorial street. "Excluded" users are counted on purpose — this
-          // is their own dashboard, and countLabelsFromUser makes the same call.
+          // is their own dashboard, and countLabelsFromUser makes the same call. Validations add the archive back for
+          // the same reason countValidations does: the #4842 repair moved voided votes out of label_validation, but
+          // the work happened.
           s"""  SELECT '$schema'::text AS city_schema,
          (SELECT COUNT(*)::int
             FROM "$schema".label
@@ -918,7 +895,9 @@ class UserStatTable @Inject() (
              AND audit_task.street_edge_id NOT IN (SELECT tutorial_street_edge_id FROM "$schema".config)
          ) AS labels,
          (SELECT COUNT(*)::int FROM "$schema".label_validation
-           WHERE label_validation.user_id = (SELECT user_id FROM me))$archiveArm AS validations,
+           WHERE label_validation.user_id = (SELECT user_id FROM me))
+           + (SELECT COUNT(*)::int FROM "$schema".voided_label_validation
+           WHERE voided_label_validation.user_id = (SELECT user_id FROM me)) AS validations,
          (SELECT COUNT(*)::int FROM "$schema".mission
            WHERE mission.user_id = (SELECT user_id FROM me)
              AND mission.completed = TRUE AND mission.skipped = FALSE) AS missions,
