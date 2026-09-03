@@ -42,8 +42,9 @@ Three details worth knowing when something looks odd:
 - Reports, traces, and screenshots land in gitignored `test-results/`, written as **your** uid (the runner passes
   `--user`), so you can read and delete them from the host like any other file.
 
-Works against a populated dev DB or an empty CI-style one — specs tolerate both. `/explore` and `/validate`
-self-skip unless you `export HAS_REAL_GMAPS_KEY=true` (phase 2, below).
+Works against a populated dev DB or an empty CI-style one — specs tolerate both. Google Maps is never contacted:
+every context gets the local stub (`fixtures/google-maps-stub.js`, phase 2 below), so `/explore` and `/validate`
+run without a key and the dev app's real key is never billed by a test run.
 
 Note that a `-g`-scoped run still executes the `setup` project first (Playwright runs project dependencies
 regardless of filters), so every run registers a throwaway `ci-smoke-<timestamp>` user in the dev DB. Add
@@ -138,18 +139,20 @@ during local development** — your edit / `grunt watch` / reload loop is untouc
 ## Phase roadmap
 
 - **Phase 1:** load every core anonymous page + `/dashboard`; fail on uncaught errors. ✅
-- **Phase 2:** `/explore` + `/validate` (`explore-validate.spec.js`), gated on a real Google Maps key
-  (`GOOGLE_MAPS_API_KEY_TEST` repo secret → `HAS_REAL_GMAPS_KEY=true`; specs self-skip without it, e.g. on
-  fork PRs — locally, export the variable to opt in). `/explore` asserts the audit tutorial loads: it's
-  deterministic for every fresh anonymous user, its pano tiles are local assets (no live GSV imagery), and
-  CI seeds the one region it requires (`fixtures/ci-seed.sql` — with zero regions `/explore` is a server
+- **Phase 2:** `/explore` + `/validate` (`explore-validate.spec.js`) against a **stubbed Google Maps JS API**
+  (`fixtures/google-maps-stub.js`, routed in for every context by `fixtures.js`; #5129). Google bills every
+  `StreetViewPanorama` and `Map` instantiation — local tiles or not — and the label-detail popup instantiates a
+  panorama on each `/labelMap`, `/gallery`, `/dashboard` and `/stories` load (#5128), so a suite run against the
+  real API was ~20 billable events. The stub implements just the surface `public/js` uses, fires the events the
+  app awaits, and answers unknown pano ids with `ZERO_RESULTS` (what an expired pano gets from Google). The
+  `googleMapsLeaks` auto-fixture aborts and reports any request that still reaches a Google map host, so a page
+  that builds a real map or panorama cannot merge. `/explore` asserts the audit tutorial loads: it's
+  deterministic for every fresh anonymous user, its panos are custom (`registerPanoProvider`) with local tiles,
+  and CI seeds the one region it requires (`fixtures/ci-seed.sql` — with zero regions `/explore` is a server
   error). A reload counter turns Explore's viewer-failure reload loop into a fast, named failure.
-  **Cost:** Google bills every `StreetViewPanorama` instantiation, local tiles or not, and the label-detail
-  popup instantiates one on each `/labelMap`, `/gallery`, `/dashboard` and `/stories` load (#5128) — so the
-  suite's Google usage scales with page loads, not with pano specs. Don't add real-key panorama work; #5129
-  replaces the key with a stub (`docs/google-cloud.md`).
-  `/validate` accepts either legitimate terminal state error-free: a mission (seeded DBs) or the
-  "no new mission" modal (CI's empty city — a mission needs ≥ 10 validatable labels of one type). `/mobile`
+  `/validate` accepts either legitimate terminal state error-free: a mission (seeded DBs — under the stub its
+  panos take the backup-imagery path) or the "no new mission" modal (an empty city — a mission needs ≥ 10
+  validatable labels of one type). `/mobile`
   runs the same two-terminal-state check under an iPhone descriptor (the server serves that page by UA and
   redirects a desktop one to `/`), in portrait and in landscape, each pinning the layout viewport to the
   device's own width — the #4891 contract. ✅

@@ -81,13 +81,13 @@ and neither is "fetching imagery":
   ever opened. The smoke suite loads those pages ~18 times a run, which is where most of the CI usage came from;
   #5128 makes that lazy.
 
-Every new spec that touches one of those pages, and every seed that lets `/validate` reach a real mission, adds
-instantiations per run — expired or backed-up imagery changes nothing, the constructor is the event. The rule,
-therefore: **CI must not instantiate a Google panorama or map with a real key.** #5129 gets there by stubbing the
-Maps JS API in the Playwright fixtures the way Mapbox already is (`stubMapbox` in `test/e2e/fixtures.js`); until
-it lands, the CI key carries a daily "Map loads" quota cap in the console: past the cap the Maps API refuses to
-load, the smoke half of `e2e-smoke` (a required check) goes red and PRs stop merging — a loud signal, by design,
-instead of an invoice.
+The rule, therefore: **CI never instantiates a Google map or panorama, and never fetches a Google image.** The
+browser suite enforces it structurally: `test/e2e/fixtures.js` routes the Maps JS API bootstrap to a local fake
+(`test/e2e/fixtures/google-maps-stub.js`) on every context, serves a transparent pixel for Street View Static
+images, and aborts and reports any other request to a Google map host through the `googleMapsLeaks` auto-fixture — so
+a page that builds a real map or panorama cannot merge. `GOOGLE_MAPS_API_KEY` is a dummy in every CI job. The CI
+project's key stays as a tripwire with a "Map loads per day" quota of 0: if anything ever reaches Google with it,
+it fails loudly instead of billing.
 
 Budget alerts are the second line. The account-wide budget was a leftover of Google's retired $200 monthly credit,
 $200 with alerts at 75/95/100%, so a $100 month never tripped it and August was discovered on the invoice. Size

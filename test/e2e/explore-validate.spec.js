@@ -1,34 +1,26 @@
 /**
  * Phase-2 smoke tests (issue #4504): /explore and /validate, the two pages built around the Street View
- * viewer. They run only when a real referrer/API-restricted Google Maps key is configured
- * (GOOGLE_MAPS_API_KEY_TEST secret → HAS_REAL_GMAPS_KEY=true in ci.yml): with a dummy key
- * google.maps.importLibrary fails and Explore's PanoManager reloads the page in a loop, so nothing
- * meaningful can be asserted. The secret is withheld on fork PRs, where everything here self-skips.
- * Run locally against the dev app (which serves its own real key) with:
- *   HAS_REAL_GMAPS_KEY=true make test-e2e args="-g 'explore|validate'"
+ * viewer, plus /mobile. They run against the local Google Maps stub (test/e2e/fixtures/google-maps-stub.js),
+ * installed on every context by fixtures.js — so no key is needed, nothing reaches Google, and nothing is
+ * billed (#5129). Locally: `make test-e2e args="-g 'explore|validate|mobile'"`.
  *
- * /explore: a fresh anonymous user always starts the audit TUTORIAL, deterministically, in every
- * environment. Tutorial panorama tiles are local assets (/assets/images/pano-tutorial/), so no live GSV
- * imagery is fetched — the key is needed only to load the Maps JS API itself. CI seeds the one region this
- * requires (test/e2e/fixtures/ci-seed.sql); with zero regions /explore is a server error.
+ * /explore: a fresh anonymous user always starts the audit TUTORIAL, deterministically, in every environment.
+ * Its panos are custom (registerPanoProvider) and its tiles local assets, so the stub's panorama serves it the
+ * way the real one does. CI seeds the one region it requires (test/e2e/fixtures/ci-seed.sql); with zero regions
+ * /explore is a server error.
  *
  * /validate has two legitimate terminal states, both asserted error-free: a mission loads (any seeded DB,
- * local dev included), or the "no new mission" modal shows (CI's empty city — the server only wires up a
- * mission when >= 10 validatable labels of one type exist). Making CI exercise the mission path needs a
- * label seed with live or backed-up panos plus a real GOOGLE_MAPS_SECRET for the metadata check — tracked
- * as a later phase in test/e2e/README.md.
+ * including CI's label seed), or the "no new mission" modal (a mission needs >= 10 validatable labels of one
+ * type). Under the stub every real pano id is unknown — the same answer an expired pano gets from Google — so a
+ * mission's panos take the backup-imagery (Pannellum) path, which is the path CI's seed exists to exercise.
  *
  * /mobile is the same tool under a phone UA (the server redirects a desktop one to /), loaded in both
- * orientations — landscape is the case #4891 is about. Load-only, like the rest of the suite: the terminal
- * state and the console, no pano interaction.
+ * orientations with the layout viewport pinned to the device width (#4891).
+ *
+ * Both are landing-state checks: the page reaches its ready state and the console, no pano interaction.
  */
 const {devices} = require('@playwright/test');
 const {test, expect, stubMapbox, waitForAppReady} = require('./fixtures');
-
-test.skip(
-  process.env.HAS_REAL_GMAPS_KEY !== 'true',
-  'Needs a real Google Maps key (GOOGLE_MAPS_API_KEY_TEST secret; set HAS_REAL_GMAPS_KEY=true locally)',
-);
 
 test('/explore loads the tutorial without console errors', async ({page, context, consoleErrors}) => {
   // Explore's mission-complete map is Mapbox, built at init — stubbed like every other map page.

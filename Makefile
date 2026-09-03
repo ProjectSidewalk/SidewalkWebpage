@@ -239,7 +239,7 @@ test-e2e:
 	fi
 	@docker run --rm --init --ipc=host \
 	  --network container:$(web-container) --volumes-from $(web-container) --tmpfs /home/node_modules \
-	  --user $(e2e-user) -e HOME=/tmp -e FORCE_COLOR=1 -e BASE_URL -e HAS_REAL_GMAPS_KEY \
+	  --user $(e2e-user) -e HOME=/tmp -e FORCE_COLOR=1 -e BASE_URL \
 	  -w $(e2e-workdir) $(e2e-image):$(e2e-tag) playwright test $(args)
 
 # Host-side run of the same suite, for `--headed`, `--ui`, and `show-trace` — those need a display the container
