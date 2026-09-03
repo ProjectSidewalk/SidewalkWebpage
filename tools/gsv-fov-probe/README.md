@@ -11,6 +11,52 @@ The verdict is pinned by `test/js/gsvFovContract.test.js` against the recorded f
 `test/js/fixtures/gsvFovMeasurements.json`; this directory is the harness that produces that fixture and the
 committed experiment report (under `recorded/`).
 
+## Verdict (2026-09-01 sweep, Maps 3.66.2d)
+
+**`width-pinned-vfov-clamped`.** The renderer spans `zoomToFov(zoom)` across the container **width** — the
+assumption `panoUtilities.js` already encodes — *except* that the implied vertical FOV is clamped to a
+**[14.97°, 89.84°]** window. When a bound binds, vFov pins at the bound and hFov follows from the aspect
+instead of from the curve. The clamp is silent: `getZoom()` still reads back the requested zoom.
+
+```
+vUnclamped = 2·atan(tan(hFov_curve/2) / aspect)
+vFov       = clamp(vUnclamped, 14.97°, 89.84°)
+hFov       = vUnclamped inside the window ? hFov_curve : 2·atan(tan(vFov/2) · aspect)
+```
+
+### Where the clamp bites
+
+A bound binds at `aspect = tan(hFov_3:2 / 2) / tan(bound / 2)`, so with the measured 3:2 control hFovs:
+
+| zoom | measured hFov at 3:2 | floor binds at aspect ≥ | ceiling binds at aspect ≤ |
+|---|---|---|---|
+| 1 | 89.88° | 7.59 | 1.00 |
+| 2 | 53.06° | 3.80 | 0.50 |
+| 3 | 28.03° | **1.90** | 0.25 |
+
+The zoom-3 floor is the one to plan around: **1.90:1 is barely wider than 16:9**, so an ordinary widescreen
+viewport at Explore's tightest zoom is already at the edge of the clamp, and a 21:9 one is well inside it.
+The ceiling only bites at square-or-taller (zoom 1) and portrait (zooms 2–3). Every production surface today
+is 3:2, where nothing binds and every hypothesis coincides — this only matters for #5085's arbitrary aspects.
+`analyze.mjs` recomputes this table into `results.json` (`bindingAspects`) and the contract fixture, and
+`test/js/gsvFovContract.test.js` pins it.
+
+### Limitations
+
+- **The bounds are only ever observed on the vertical axis, so "vFov clamp" is a modelling choice, not a
+  measurement.** vFov sits on both bounds across the sweep. hFov never does: its minimum anywhere is 27.98°,
+  far above the 14.97° floor, and its maximum is 89.90° — inside the cell-to-cell spread of the 89.84°
+  ceiling, because the zoom-1 curve value (89.75°) and the ceiling coincide by construction of the container
+  set. So no configuration ever asks the renderer for a horizontal FOV meaningfully outside the window, and
+  an "either-axis cap at ~89.85° with an either-axis floor at ~14.97°" fits the data exactly as well as a
+  vertical-only clamp. Separating them needs configurations that push hFov past a bound: a zoom-0 (or sub-1)
+  run for the ceiling, and nothing zooms 1–3 can produce for the floor. The two models predict the same thing
+  at every aspect and zoom Explore can reach, so this does not change the operative contract for #5085.
+- **Zoom 0 was never measured** (see the zoom bullet under Method).
+- **The bounds are constants across zoom, pano, size, and DPR in this data**, which is what the extreme
+  containers were added to test — but "constant" here means "agrees to ~0.1° across the 12 cells that bind
+  each bound", not "proven to be a hard-coded renderer constant".
+
 ## How to reproduce
 
 Preconditions: the dev app running on `http://localhost:9000` (`BASE_URL` overrides), host Node with
@@ -22,24 +68,47 @@ artifact contains it.
 ```bash
 node tools/gsv-fov-probe/record.mjs             # full sweep -> runs/<timestamp>/
 node tools/gsv-fov-probe/analyze.mjs --latest   # -> results.json + report.md in the run dir
+
+# The full re-record: analyze, refresh the committed record, and regenerate the contract fixture.
+node tools/gsv-fov-probe/analyze.mjs --latest --emit-fixture --copy-recorded
 ```
 
 Useful scoped runs: `--control-only` (method gate), `--panos tutorial` (deterministic local-tile scene),
 `--zooms 1 --loads 1` (smoke), `--maps-version quarterly` (stability check), `--configs a,b`, `--headed`.
+`analyze.mjs` also takes `--step N` (warp sampling stride) and `--no-cache`. Its per-pair fit cache is keyed
+by the estimator's content hash and by each capture file's size + mtime, so an estimator edit or a
+`--resume`-rewritten capture misses the cache rather than being served the previous attempt's fit.
 
 Raw screenshots live under `runs/` (gitignored — captures of live imagery stay local). The committable
-summary (`results.json`, `report.md`, `manifest.json` — numbers and provenance only) is copied to
-`recorded/<date>/` by `analyze.mjs --copy-recorded`. The raw runs behind `recorded/2026-09-01/` (8.3 GB,
-8,448 screenshots, both Maps channels) are archived long-term on **makelab2** at
+summary is copied to `recorded/<the run's date>/` by `analyze.mjs --copy-recorded`: `results.json`,
+`report.md`, and `manifest-extract.json` — per-load h0 selection, console errors, aggregate settle statistics
+and the resolved pano metadata. The full `manifest.json` is not committed (~11 MB of per-capture POV
+readbacks that are only interpretable alongside the screenshots, which stay local); it is gitignored and
+lives with the raw run in the archive. A run on a non-default Maps channel lands in a subdirectory named for
+the channel, so a same-day stability run cannot overwrite the primary record. The raw runs behind
+`recorded/2026-09-01/` (8.3 GB, 8,448 screenshots, both Maps channels) are archived long-term on
+**makelab2** at
 `~jonfroehlich/sidewalk-archives/gsv-fov-probe-2026-09-01/`; its `ARCHIVE-README.md` + `SHA256SUMS`
 cover integrity verification and offline re-analysis (`analyze.mjs <run-dir>` needs no network or key).
+
+### When to re-record
+
+Nothing in CI watches Google's renderer. `test/js/gsvFovContract.test.js` pins the *code* against the frozen
+fixture below, so it fails when `panoUtilities.js` stops agreeing with the recorded measurements — never
+because Google shipped a different projection. The signal for that is a product one: **Explore's label
+markers drifting away from their features at non-3:2 viewport shapes** (3:2 is where every hypothesis
+coincides, so a renderer change is invisible at production's current aspect). Re-record when that shows up,
+when a Maps release notes anything about the Street View renderer or FOV, and before any work that leans on
+these numbers at a new aspect. A re-record is the reproduce block above, end to end; the diff to review is
+`recorded/<date>/results.json` (verdict, clamp window, binding aspects) and the regenerated fixture.
 
 ## Method
 
 For each configuration (pano × container × zoom), the recorder captures **symmetric heading pairs**
 `h0 ∓ Δ/2` at pitch 0 and the analyzer fits the rendered pinhole focal length `f` (px) per pair by warping
 one shot onto the other under the exact yaw homography `K·R·K⁻¹` parameterized by `f`, maximizing NCC over
-the central 50% region (`estimator.cjs`; a plain patch-shift estimator seeds and cross-checks the fit). Then
+the central 50% region (`estimator.cjs`; a plain patch-shift estimator seeds the fit, and the seed-vs-fit
+agreement is gated — see gate 3). Then
 
 ```
 hFov = 2·atan(W/2f)   vFov = 2·atan(H/2f)   dFov = 2·atan(√((W/2)²+(H/2)²)/f)
@@ -57,8 +126,11 @@ Protocol details, all recorded in each run's `manifest.json`:
   same `registerPanoProvider` + WebGL path as live imagery, low-res so its zoom-3 σ is larger) plus live
   panos resolved at record time from fixed coordinates (resolved pano id, imagery date, and tile worldSize —
   the generation proxy — go into the manifest).
-- **Zooms** 1–3. Zoom 0 is excluded: the empirical 126.5° (vs documented 180°) suggests the renderer is not
-  a plain pinhole at extreme wide angles, and Explore clamps to 1–3 anyway.
+- **Zooms** 1–3, which is what Explore clamps to. Zoom 0 is excluded on that basis plus a weaker one: the
+  126.5° that `panoUtilities.js` uses there (vs the documented 180°) hints that the renderer is not a plain
+  pinhole at extreme wide angles. That 126.5° was never measured here — it is the intercept of the linear
+  branch in `panoUtilities.js`, from the undated "From experiments" table in that file's header, the same
+  table this experiment found 0.35° off at zoom 3.
 - **Δ** ∈ {1°, 2°, 4°}, plus 8° at zoom 1 (model gate below). One **pitch pair** (Δpitch = 2°) per h0 at
   zoom 2 measures the vertical focal length (anisotropy check).
 - **h0 selection**: 8 candidate headings scored by central-region Laplacian variance at zoom 1; keep the 4
@@ -79,10 +151,12 @@ Protocol details, all recorded in each run's `manifest.json`:
 
 ## Statistics
 
-Per cell (pano × container × zoom): median f over ~24 pair estimates, MAD-σ, outliers dropped at 5·MAD
-(logged; a cell dropping >20% is excluded from the verdict and reported), 95% CI by cluster bootstrap
-(resampling (load, h0) clusters, 10k resamples, seeded/deterministic). Per-pano results are never pooled:
-the decision rule must hold for every pano individually.
+Per cell (pano × container × zoom): median f over ~24 pair estimates, MAD-σ, outliers dropped outside
+max(5·MAD, 0.1% of the cell's median f) — the absolute floor keeps an ultra-repeatable cell from rejecting
+good pairs on its own precision (amendment 5). Rejections are reported split by cause (NCC validity floor vs
+MAD). A cell dropping >20% of its pairs is marked unreliable and excluded from **every** gate and from the
+verdict. 95% CI by cluster bootstrap (resampling (load, h0) clusters, 10k resamples, seeded/deterministic).
+Per-pano results are never pooled: the decision rule must hold for every pano individually.
 
 ## Pre-registered gates and decision rule
 
@@ -92,11 +166,12 @@ Committed before the first analyzed sweep; thresholds live in `analyze.mjs` and 
    lengths from synthetically rendered pinhole pairs to <0.2% — on yaw pairs, pitch pairs, and off-center
    regions — before any live measurement is trusted.
 2. **Method gate**: at the 3:2 control on live panos, measured hFov must reproduce `zoomToFov(zoom)` =
-   {89.75°, 53°, 28°} for zoom {1, 2, 3} within max(1.5°, 3σ). Failing this invalidates the method (or the
+   {89.75°, 53°, 27.68°} for zoom {1, 2, 3} within max(1.5°, 3σ). Failing this invalidates the method (or the
    curve), and no verdict is issued until resolved.
-3. **Model gate**: within each cell, per-Δ median f must agree to 0.5% (1°–8° at zoom 1), and the pitch-pair
-   vertical f must match the yaw f to 1%. Failure ⇒ the renderer is not the assumed pinhole; escalate to
-   "fit the actual projection" instead of an ill-posed h-vs-v verdict.
+3. **Model gate**: within each cell, per-Δ median f must agree to 0.5% (1°–8° at zoom 1), the pitch-pair
+   vertical f must match the yaw f to 1%, and the patch-shift seed must agree with the warp fit to 3% at the
+   median (the same bracket gate 1 holds it to synthetically). Failure ⇒ the renderer is not the assumed
+   pinhole; escalate to "fit the actual projection" instead of an ill-posed h-vs-v verdict.
 4. **Verdict rule**: for every pano, zoom, and non-3:2 aspect, compute dh = hFov − hFov(3:2 control), dv and
    ddiag likewise. A hypothesis (horizontal-, vertical-, diagonal-, long-axis-, or short-axis-pinned) is
    **supported** iff its FOV deviation satisfies |d| ≤ max(0.5°, 3σ) for *every* pano, zoom, and aspect; the
@@ -105,10 +180,29 @@ Committed before the first analyzed sweep; thresholds live in `analyze.mjs` and 
    if present, the deliverable becomes the measured hFov(zoom, aspect) table + clamp boundary as the
    empirical contract.
 
+   *Amendment 5 (2026-09-03, after code review of the analyzed sweep — issue #5083):* four analysis changes,
+   all made after the verdict was reached; none moves it, and no method, model, or verdict threshold changed.
+   (a) The 5·MAD outlier window gained an absolute floor of **0.1% of the cell's median f**. Several pitch
+   cells are repeatable to σ_f ≈ 0.01 px, where 5·MAD is a ±0.05 px acceptance window and legitimate pairs
+   fall outside it — those cells were being marked unreliable by their own precision rather than by any bad
+   measurement, and that (not the NCC floor) is what pushed half the pitch cells over the 20% drop threshold.
+   (b) The anisotropy check now excludes unreliable cells, as every other gate and the verdict already did;
+   it had been running over all 40 pitch cells, including the 18 the run had disowned. Vertical f matches
+   horizontal f to ≤ 0.10% over the 22 cells the gate now rests on (≤ 0.12% over all 40). (c) The patch-shift
+   seed's agreement with the warp fit is now recorded per pair and gated at the median (3%, the bracket gate
+   1 holds the estimator to synthetically) — previously the seed was computed and discarded, and the README
+   claimed a cross-check the analyzer never performed. (d) Per-cell rejections are reported split by cause
+   (NCC validity floor vs MAD) and a per-pair NCC histogram goes into `results.json`, so amendment 4's
+   pair-level claims are checkable from the committed artifacts — which is how its pair count was found to be
+   wrong (40 NCC-floor rejections, not 4) and corrected above. With the MAD floor in place the two causes
+   separate cleanly: **40 NCC rejections, all in pitch cells; 34 MAD rejections, all in yaw cells**, and no
+   yaw cell is unreliable.
+
    *Amendment 4 (2026-09-01, after the full analyzed sweep):* a pair-level validity floor `MIN_PAIR_NCC = 0.8`
-   was added ahead of the MAD outlier filter. Observed pair NCC is sharply bimodal — ≥ 0.94 on every credible
-   fit, ≤ 0.40 when the rotated sliver held featureless sky/road (4 of 3,520 pairs, all in extreme-aspect
-   pitch cells) — and a 4-pair pitch cell with 2 garbage pairs defeats the MAD filter (the median lands
+   was added ahead of the MAD outlier filter. Observed pair NCC is sharply bimodal — ≥ 0.90 on every credible
+   fit, ≤ 0.40 when the rotated sliver held featureless sky/road, with nothing at all in between (40 of 3,520
+   pairs fall below the floor, every one of them a pitch pair; the per-pair histogram in `results.json` is
+   the evidence) — and a 4-pair pitch cell with 2 garbage pairs defeats the MAD filter (the median lands
    between clusters, so nothing is rejected, and the cell's "vertical f" is a meaningless midpoint). The
    floor is a measurement-validity criterion (did the warp correlate at all?), blind to the fitted f's value
    and direction, so it cannot steer the verdict. Gate thresholds unchanged. Separately, the **model gate is
@@ -187,4 +281,6 @@ hFov each hypothesis predicts, using the 3:2-calibrated curve (`zoomToFov`) as t
 - `record.mjs` — the sweep driver (Playwright library API; not part of any test suite or CI).
 - `estimator.cjs` — pure-computation focal fit + statistics; unit-tested in `test/js/`.
 - `analyze.mjs` — fits all pairs, applies gates + decision rule, writes `results.json` / `report.md`.
-- `runs/` (gitignored) — raw captures + manifests. `recorded/` (committed) — numbers-only summaries.
+- `runs/` (gitignored) — raw captures + manifests. `recorded/<run date>/` (committed) — numbers-only
+  summaries: `results.json`, `report.md`, `manifest-extract.json`, and a per-channel subdirectory for any
+  non-`weekly` stability run. `NOTES.md` there, where present, is hand-written and says so.
