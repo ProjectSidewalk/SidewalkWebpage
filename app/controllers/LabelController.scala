@@ -156,7 +156,7 @@ class LabelController @Inject() (
       Ok(JsArray(tags.map { tag =>
         Json.obj(
           "tag_id"                  -> tag.tagId,
-          "label_type"              -> LabelTypeEnum.labelTypeIdToLabelType(tag.labelTypeId),
+          "label_type"              -> tag.labelType.name,
           "tag"                     -> tag.tag,
           "mutually_exclusive_with" -> tag.mutuallyExclusiveWith
         )

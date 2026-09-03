@@ -20,6 +20,20 @@ object StubService {
    * @param answers Return value per method name. A value is reused across calls, so it must not be a one-shot.
    */
   def answering[T](answers: Map[String, Any])(implicit ct: ClassTag[T]): T = {
+    // Map is covariant in its value type, so an `answeringWith` map of thunks type-checks here too -- and the stub
+    // would then answer with the function itself, surfacing as a ClassCastException inside the code under test.
+    answers.foreach { case (name, answer) =>
+      require(!answer.isInstanceOf[() => Any], s"$name's answer is a function; pass it to answeringWith instead.")
+    }
+    answeringWith[T](answers.map { case (name, answer) => name -> (() => answer) })
+  }
+
+  /**
+   * As `answering`, but each answer is produced per call, for a spec that varies one between its tests.
+   *
+   * @param answers Supplier of the return value, per method name.
+   */
+  def answeringWith[T](answers: Map[String, () => Any])(implicit ct: ClassTag[T]): T = {
     val iface = ct.runtimeClass
     require(iface.isInterface, s"${iface.getName} is not an interface, so it cannot be proxied.")
 
@@ -33,7 +47,7 @@ object StubService {
     val handler = new InvocationHandler {
       override def invoke(proxy: AnyRef, method: Method, args: Array[AnyRef]): AnyRef = {
         answers.get(method.getName) match {
-          case Some(answer) => answer.asInstanceOf[AnyRef]
+          case Some(answer) => answer().asInstanceOf[AnyRef]
           case None         =>
             method.getName match {
               case "toString" => s"stub of ${iface.getSimpleName} answering ${answers.keys.mkString(", ")}"

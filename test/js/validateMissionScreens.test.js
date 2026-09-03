@@ -14,6 +14,8 @@
 const fs = require('fs');
 const path = require('path');
 
+const {assetPathStub} = require('./loadGlobalScript');
+
 const SRC = (relativePath) => fs.readFileSync(path.resolve(__dirname, '..', '..', relativePath), 'utf8');
 
 /**
@@ -49,7 +51,7 @@ const SLIDES = [
 /** A minimal Mission, with just the properties the two screens read. @returns {Object} */
 function makeMission(props = {}) {
     const all = {
-        missionId: 1, missionType: 'validation', labelTypeId: 1, labelsValidated: 10, labelsProgress: 0,
+        missionId: 1, missionType: 'validation', labelType: 'CurbRamp', labelsValidated: 10, labelsProgress: 0,
         agreeCount: 6, disagreeCount: 3, unsureCount: 1, ...props,
     };
     return {getProperty: (key) => all[key]};
@@ -103,6 +105,7 @@ describe('mobile Validate mission screens', () => {
             t: (key, opts) => (opts ? `${key}|${JSON.stringify(opts)}` : key),
         };
         global.util = {
+            assetPath: assetPathStub,
             isMobile: () => isMobile,
             misc: {getIconImagePaths: (type) => ({iconImagePath: `/assets/icons/${type}_small.svg`})},
         };

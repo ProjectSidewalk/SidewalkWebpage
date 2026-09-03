@@ -96,7 +96,7 @@ class PopupPanoManager {
     // svHolder (kept position:relative above) and centers its content; styled via .pano-not-avail in label-detail.css.
     this.#panoNotAvailable = $(`<div id="pano-not-avail" class="pano-not-avail">
         <img class="pano-not-avail__logo" alt=""
-             src="/assets/images/logos/ProjectSidewalkLogo_NoText_WheelchairCircleCentered_100x100.png">
+             src="${util.assetPath('images/logos/ProjectSidewalkLogo_NoText_WheelchairCircleCentered_100x100.png')}">
         <p class="pano-not-avail__msg">${i18next.t('common:errors.title')}</p>
         <a id="explore-street" class="pano-not-avail__cta"
            href="#">${i18next.t('common:errors.explore-street')}<span aria-hidden="true">→</span></a>

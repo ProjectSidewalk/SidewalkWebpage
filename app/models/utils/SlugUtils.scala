@@ -20,10 +20,11 @@ object SlugUtils {
    * Invariant: the output never contains consecutive dashes (separator runs collapse to one), which evolution
    * 344's backfill relies on — its dedupe suffix uses '--' so backfilled slugs can't collide with runtime ones.
    *
-   * @param name The raw name (any script, any punctuation).
-   * @return The slug, capped at MaxSlugLength; "route" if nothing usable remains (e.g. all punctuation).
+   * @param name     The raw name (any script, any punctuation).
+   * @param fallback What to return when nothing usable remains (e.g. all punctuation).
+   * @return The slug, capped at MaxSlugLength; `fallback` if nothing usable remains.
    */
-  def slugify(name: String): String = {
+  def slugify(name: String, fallback: String = "route"): String = {
     val slug: String = Normalizer
       .normalize(name, Normalizer.Form.NFD)
       .replaceAll("\\p{M}", "") // Drop the combining marks NFD split off, turning é into e.
@@ -32,6 +33,6 @@ object SlugUtils {
       .replaceAll("^-+|-+$", "")
       .take(MaxSlugLength)
       .replaceAll("-+$", "") // The length cap can leave a trailing dash behind.
-    if (slug.isEmpty) "route" else slug
+    if (slug.isEmpty) fallback else slug
   }
 }

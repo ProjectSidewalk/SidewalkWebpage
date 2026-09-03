@@ -1,6 +1,6 @@
 package controllers.helper
 
-import models.user.{RoleTable, SidewalkUserWithRole}
+import models.user.{Role, SidewalkUserWithRole}
 import play.api.i18n.Messages
 import play.api.mvc.Results.{Redirect, Unauthorized}
 import play.api.mvc.{Cookie, DiscardingCookie, RequestHeader, Result}
@@ -134,7 +134,7 @@ object ControllerUtils {
    * Checks if the given user is an Administrator.
    */
   def isAdmin(user: SidewalkUserWithRole): Boolean = {
-    RoleTable.ADMIN_ROLES.contains(user.role)
+    Role.ADMIN_ROLES.contains(user.role)
   }
   def isAdmin(user: Option[SidewalkUserWithRole]): Boolean = {
     user.map(isAdmin).getOrElse(false)

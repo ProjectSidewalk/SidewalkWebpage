@@ -255,7 +255,12 @@ class StreetPriorityAdminSpec extends PlaySpec with GuiceOneAppPerSuite with Rol
       rows.map(_.streetEdgeId) must not contain tutorial
       rows.map(_.streetEdgeId).filter(nonOpen.contains) mustBe empty
       rows.map(_.streetEdgeId).distinct.size mustBe rows.size
-      all(rows.map(_.lengthMeters)) must be > 0.0
+      // Not `> 0` per row: real OSM imports carry degenerate edges whose two endpoints are the same point (210 of
+      // them are open in Seattle), and those are Explore-routable rows with a legitimate 0.0 length. The regression
+      // worth catching is a length computation that returns zero or negative for *everything*, so assert the floor
+      // per row and require the set to contain a real measurement.
+      all(rows.map(_.lengthMeters)) must be >= 0.0
+      rows.map(_.lengthMeters).exists(_ > 0.0) mustBe true
       all(rows.map(_.priority)) must be <= 1.0
     }
   }

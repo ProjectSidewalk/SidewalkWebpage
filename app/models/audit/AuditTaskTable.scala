@@ -6,7 +6,7 @@ import models.mturk.AMTAssignmentTableDef
 import models.region.RegionTableDef
 import models.route.{AuditTaskUserRouteTableDef, RouteStreetTableDef, UserRouteTableDef}
 import models.street._
-import models.user.{RoleTableDef, SidewalkUserTableDef, UserRoleTableDef, UserStatTableDef}
+import models.user.{Role, SidewalkUserTableDef, UserRoleTableDef, UserStatTableDef}
 import models.utils.MyPostgresProfile.api._
 import models.utils.{ConfigTableDef, MyPostgresProfile}
 import org.locationtech.jts.geom.{LineString, Point}
@@ -62,7 +62,7 @@ case class AuditedStreetWithTimestamp(
     streetEdgeId: Int,
     auditTaskId: Int,
     userId: String,
-    role: String,
+    role: Role.Value,
     highQuality: Boolean,
     taskStart: OffsetDateTime,
     taskEnd: OffsetDateTime,
@@ -165,7 +165,6 @@ class AuditTaskTable @Inject() (
   val configTable           = TableQuery[ConfigTableDef]
   val streetEdgePriorities  = TableQuery[StreetEdgePriorityTableDef]
   val userStats             = TableQuery[UserStatTableDef]
-  val roleTable             = TableQuery[RoleTableDef]
   val userRoleTable         = TableQuery[UserRoleTableDef]
   val routeStreets          = TableQuery[RouteStreetTableDef]
   val userRoutes            = TableQuery[UserRouteTableDef]
@@ -379,8 +378,7 @@ class AuditTaskTable @Inject() (
       _se <- streetEdgeTable.streets if _at.streetEdgeId === _se.streetEdgeId
       _ut <- userStats if _at.userId === _ut.userId
       _ur <- userRoleTable if _ut.userId === _ur.userId
-      _r  <- roleTable if _ur.roleId === _r.roleId
-    } yield (_se.streetEdgeId, _at.auditTaskId, _ut.userId, _r.role, _ut.highQuality, _at.taskStart, _at.taskEnd,
+    } yield (_se.streetEdgeId, _at.auditTaskId, _ut.userId, _ur.role, _ut.highQuality, _at.taskStart, _at.taskEnd,
       _se.geom)
     auditedStreets.result.map(_.map(AuditedStreetWithTimestamp.tupled))
   }

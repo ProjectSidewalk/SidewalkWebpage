@@ -4,7 +4,7 @@ This guide gets a local copy of Project Sidewalk running on your machine. Everyt
 not install Scala, Node, or Postgres directly — you only need Docker, Git, and a terminal.
 
 > **New contributor?** Read [`CONTRIBUTING.md`](../CONTRIBUTING.md) first for the branch/PR workflow and coding
-> standards. For a deeper tour of the architecture, see [`CLAUDE.md`](../CLAUDE.md).
+> standards. For a deeper tour of the architecture, see [`docs/architecture.md`](architecture.md).
 >
 > **Stuck?** Jump to [Troubleshooting](#troubleshooting) or [Getting help](#getting-help).
 
@@ -277,8 +277,8 @@ docker exec projectsidewalk-web bash -lc "cd /home && sbt --client test"
 docker exec projectsidewalk-web bash -lc "cd /home && sbt --client \"testOnly controllers.api.PublicApiSpec\""
 ```
 
-The advisory `backend-tests` CI job runs a **named subset** of these specs, not `sbt test` — so a spec that
-nobody adds to that list in `.github/workflows/ci.yml` can rot without CI ever going red. Run the whole suite
+The `backend-tests` CI job is a required check, but it runs a **named subset** of these specs, not `sbt test` — so a
+spec that nobody adds to that list in `.github/workflows/ci.yml` can rot without CI ever going red. Run the whole suite
 locally before you trust it, and add new specs to the job in the same PR.
 
 There are also Python unit tests for the `scripts/` utilities (`make test-python`) and a jsdom Jest suite for
@@ -299,7 +299,7 @@ make test-e2e wt=<worktree-name>            # a worktree's specs
 ```
 
 Nothing to install: the runner is a container, so it behaves the same on macOS, Linux, and WSL — including Apple
-Silicon, where it runs a native browser. CI runs the same suite on every PR as the advisory `e2e-smoke` job. Full
+Silicon, where it runs a native browser. CI runs the same suite on every PR as the `e2e-smoke` job. Full
 details, including how to watch a test run headed, are in [`test/e2e/README.md`](../test/e2e/README.md).
 
 ### Running a branch from a git worktree
@@ -314,9 +314,19 @@ make qa-worktree wt=<worktree-name>
 
 A worktree needs more setup than the main repo (its `node_modules` and built asset bundles aren't checked in, and
 sbt's caches and config have to be pointed at the right places), so this target handles all of it: it links the main
-repo's `node_modules`, builds that branch's JS/CSS bundles, frees `:9000`, and launches `sbt ~ run` against the
-worktree's own config while reusing the main repo's warm sbt caches. The first request triggers the dev compile;
-`Ctrl+C` stops it. It behaves the same on macOS, Linux, and WSL because the work runs inside the web container.
+repo's `node_modules`, builds that branch's JS/CSS bundles, starts a backgrounded `grunt watch` so later edits
+rebuild automatically, frees `:9000`, kills any stray `sbt --client` server or hung `sbtn` task sharing the worktree's
+`target/` (either deadlocks `~ run` on compile locks), and launches `sbt ~ run` against the worktree's own config
+while reusing the main repo's warm sbt caches. The first request triggers the dev compile; `Ctrl+C` stops it and
+reaps the grunt watch. To tear a session down out-of-band, run `make qa-worktree-stop wt=<name>` (add `clean=1` to
+also drop the `node_modules` symlink). It behaves the same on macOS, Linux, and WSL because the work runs inside the
+web container.
+
+Both targets run the **worktree's own** copy of `tools/qa-worktree.sh` when it has one (falling back to the main
+checkout's), so the branch being QA'd supplies its own tooling. `make` itself still reads the **main checkout's**
+Makefile, so when that checkout sits on a branch without the target, make reports `No rule to make target`; either
+check out a branch that has it or run the script directly:
+`docker exec -it projectsidewalk-web bash /home/.claude/worktrees/<name>/tools/qa-worktree.sh <name>`.
 
 When you're done with a worktree for good, remove it with:
 
@@ -327,8 +337,11 @@ make worktree-remove wt=<worktree-name>
 That stops its QA session, deletes the directory and the registration git keeps for it, and deletes its branch once
 that branch is fully merged into `develop` — it tells you what it kept otherwise. Deleting the directory yourself
 leaves the registration behind, so the worktree lingers in `git worktree list`; run the target and it cleans that up
-instead. It stops and tells you if the worktree still has uncommitted or untracked files; add `force=1` to delete
-those along with it.
+instead. It stops and tells you if the worktree still has uncommitted or untracked files (add `force=1` to delete
+those along with it) or if the worktree is **locked**: an active Claude Code worktree session holds a lock, and git
+refuses a locked worktree even with `--force`. Unlike the QA targets it runs host-side, because a worktree's `.git`
+file points at the main repo by absolute host path; the direct invocation is
+`bash .claude/worktrees/<name>/tools/worktree-remove.sh <name>`.
 
 To QA admin-only pages you need an account with a role. The dev database is seeded from a dump that includes real
 accounts, so if your own account is in it you can sign in normally — password checks work the same locally as in
@@ -338,7 +351,7 @@ psql shell (`docker exec -it projectsidewalk-db psql -U sidewalk -d sidewalk`) a
 
 ```sql
 UPDATE sidewalk_login.user_role
-SET role_id = (SELECT role_id FROM sidewalk_login.role WHERE role = 'Owner')
+SET role = 'Owner'
 WHERE user_id = (SELECT user_id FROM sidewalk_login.sidewalk_user WHERE username = '<your-username>');
 ```
 
@@ -360,6 +373,39 @@ queries, prefer the **read-only** role so you can't accidentally write:
 docker exec projectsidewalk-db psql -U readonly_user -d sidewalk -c "\dt sidewalk_seattle.*"
 ```
 
+The schemas are essentially identical, so `sidewalk_seattle` is a safe default for **schema** questions. For anything
+about **data** or **migration state**, first find out which city is actually running — don't assume:
+
+```bash
+docker exec projectsidewalk-web bash -lc 'echo $DATABASE_USER'   # this value IS the active schema name
+```
+
+`DATABASE_USER` selects the schema and is authoritative; `SIDEWALK_CITY_ID` only selects `cityparams.conf` entries
+(map center, bounds, display name). The two are supposed to correspond (see [City IDs](#city-ids)), but a container
+can be left with them mismatched, in which case the app renders one city's params over another city's data: an empty
+map with no error in any log. Confirm what the app believes it is with
+`curl -s -b <cookie-jar> localhost:9000/labelmap | grep -oE 'cityId: "[^"]*"'`.
+
+Two more things to know before drawing conclusions from a query:
+
+- **`readonly_user` cannot see every schema, and the failure is silent.** It is granted per-schema, so it may have
+  no rights on the active city's schema, and `information_schema` / `\dt` simply omit what you can't see rather than
+  erroring, which reads as "that schema doesn't exist" or "that evolution never applied". `pg_namespace` is
+  world-readable, so enumerate with it, then query the city as its own role:
+
+  ```bash
+  docker exec projectsidewalk-db psql -U readonly_user -d sidewalk -tAc \
+    "SELECT nspname FROM pg_namespace WHERE nspname LIKE 'sidewalk%' ORDER BY 1"
+  docker exec projectsidewalk-db psql -U sidewalk_teaneck -d sidewalk -c \
+    "SELECT max(id) FROM sidewalk_teaneck.play_evolutions"
+  ```
+
+- **The dev DB is not representative of production size, and some tables may be absent.** The two largest
+  production tables by a wide margin are `audit_task_interaction` and `validation_task_interaction` (raw per-action
+  interaction logs). The dev dumps omit them to stay manageable, so locally they are typically empty or missing.
+  Never infer a table's production size or existence from the local DB; when reasoning about query cost or indexes,
+  treat those two, not `webpage_activity`, as the heavyweight logs.
+
 ---
 
 ## Troubleshooting
@@ -379,6 +425,7 @@ Roughly ordered by when you'd hit them during setup.
 | Errors after the computer was shut off mid-run (WSL) | Run `wsl --shutdown`; when Docker offers to restart WSL, accept. Otherwise restart Docker manually. |
 | Can't connect to the database | The db container may not be listening on all addresses. `make ssh target=db`, edit `/var/lib/postgresql/data/postgresql.conf`, set `listen_addresses = '*'`. |
 | `make` commands "just don't work" | Reinstall `make`. As a fallback, run the underlying command from the `Makefile` directly (e.g. `make ssh target=web` ≈ `docker exec -it projectsidewalk-web /bin/bash`). |
+| `relation "role" does not exist` while a schema is applying evolutions | That schema is behind evolution 372, which dropped the shared `sidewalk_login.role` lookup table. Evolutions 270, 295 and 355 read it, so a schema below any of them can no longer replay them and is stuck. Bring the schema forward from a dump that is already past 355, or re-import it — editing those old evolution files is *not* the fix, since Play would then revert every schema that already applied them. The committed template dumps are already past 372, so a newly onboarded city is unaffected; this only bites a city dump taken before 355. |
 | A new `src/` JS file isn't bundled | Make sure its path matches a glob in `Gruntfile.js`. |
 | First compile seems stuck | It isn't — initial dependency resolution is genuinely slow. Watch the container logs. |
 | Compiles are slow on Apple Silicon | Your `projectsidewalk/web` image may predate [#5069](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/5069) and still be x86_64 — Compose reuses a locally tagged image instead of rebuilding it, so pulling that change alone doesn't help. Check with `docker image inspect projectsidewalk/web --format '{{.Architecture}}'` (expect `arm64`); if it says `amd64`, rebuild with `make docker-stop && docker compose build web`. Also make sure `platform` is commented out in your `docker-compose.override.yml`. |

@@ -1,16 +1,20 @@
 name: CI
 
 #   - backend:         `sbt compile` + `scalafmtCheckAll` (both BLOCKING)
-#   - frontend:        asset build (grunt) + `eslint` (JS) + `stylelint` (CSS) + `htmlhint` (HTML) (all BLOCKING),
-#                      plus the jsdom `jest` suite in test/js/ (ADVISORY step inside the same job).
+#   - frontend:        asset build (grunt) + `eslint` (JS) + `stylelint` (CSS) + `htmlhint` (HTML) + locale parity +
+#                      CSS layout + asset paths (all BLOCKING), plus the jsdom `jest` suite in test/js/ (ADVISORY
+#                      step inside the same job; it reports JS coverage, but has no floor yet — see #5112).
 #   - evolutions-lint: static checks on conf/evolutions/default/*.sql (BLOCKING — fast, deterministic, no DB).
 #   - route-lint:      conf/routes reachability — fails if any route is shadowed by an earlier one (BLOCKING — no DB).
-#   - backend-tests:   DB-backed public-API functional tests against a real Postgres+PostGIS (ADVISORY for now). Boots
-#                      the app, which auto-applies pending evolutions -- so it doubles as the forward-apply gate.
-#   - e2e-smoke:       Playwright browser smoke tests (test/e2e/) against a staged app + the CI database (ADVISORY for
-#                      now). Loads each core page in headless Chromium and fails on uncaught console/page errors.
-#   - python-tests:    pytest unit tests for the standalone scripts in scripts/ (ADVISORY for now). One leg per
-#                      interpreter the web container ships — 3.8 for the in-band script, 3.13 for the offline tooling.
+#   - backend-tests:   the whole of test/ against a real Postgres+PostGIS (BLOCKING). Boots the app, which
+#                      auto-applies pending evolutions -- so it doubles as the forward-apply gate. Also carries
+#                      the statement-coverage ratchet (BLOCKING, #4743).
+#   - e2e-smoke:       Playwright browser smoke tests (test/e2e/) against a staged app + the CI database. Loads each
+#                      core page in headless Chromium and fails on uncaught console/page errors (BLOCKING since
+#                      #5115); also carries the axe-core accessibility gate (a11y.spec.js, #5060), also BLOCKING.
+#   - python-tests:    pytest unit tests for the standalone scripts in scripts/. One leg per interpreter the web
+#                      container ships — 3.8 for the in-band script (BLOCKING), 3.13 for the offline tooling
+#                      (ADVISORY — it covers an operator utility that never runs on the server).
 # ESLint (JavaScript), Stylelint (CSS), and htmlhint (HTML) are all wired into the `frontend` job as blocking steps now
 # that their trees are lint-clean (#2487).
 
@@ -35,7 +39,7 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v5.6.0
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: '17'
@@ -123,6 +127,15 @@ jobs:
         if: always()
         run: node tools/check-css-layout.mjs
 
+      # Blocking: asset URLs in public/js/ (#4893) -- no hardcoded '/assets/...' outside the tool's allowlist, and
+      # every literal util.assetPath() argument names a real file in a family the digest manifest covers. Both halves
+      # of a mistake here are silent (a missing asset resolves to its plain path rather than throwing), so nothing
+      # else would catch one. `if: always()` so it reports even when an earlier frontend step failed. Run locally with
+      # `make lint-asset-paths`.
+      - name: Asset paths (blocking)
+        if: always()
+        run: node tools/check-asset-paths.mjs
+
       # Advisory: the jsdom unit suite (test/js/). Coverage is thin and sequenced with the ES5→ES2022 migration
       # (#2487), so it doesn't gate merges yet — but running it on every PR is what keeps a tested helper's contract
       # from being quietly edited out from under it. `continue-on-error` is on the step, not the job, so a failure
@@ -130,7 +143,7 @@ jobs:
       - name: Jest unit tests (advisory)
         if: always()
         continue-on-error: true
-        run: npm run test:js
+        run: npm run test:js:coverage
 
   evolutions-lint:
     name: Evolutions lint
@@ -168,13 +181,45 @@ jobs:
   backend-tests:
     name: Backend tests (API, PostGIS)
     runs-on: ubuntu-latest
-    # ADVISORY while the suite stabilizes (plan: ramp to blocking once it's proven stable). Does not block PRs yet.
-    continue-on-error: true
+    # A spec that hangs on the DB waits out its own 120s timeout and the next one starts, so a bad run degrades
+    # slowly instead of failing. The suite is ~10 min locally, so 30 is generous without being open-ended.
+    timeout-minutes: 30
+    # BLOCKING: booting the app makes this the forward-evolution-apply gate — the failure that shipped the broken
+    # evolution 325 (#4335/#4351). Runs all of test/, so a spec is covered by existing here rather than by being
+    # named in this file (#5042).
+    #
+    # Dummy env mirroring docker-compose.yml's web service, so the app boots exactly as it does in dev. The application
+    # secret must be >=256 bits (32+ chars) for Play's HS256 JWT sessions, hence the long value. Job-level because
+    # every sbt step needs it, `coverageReport` included — it boots nothing but still evaluates config to load the
+    # build. Safe for the docker compose steps: docker-compose.yml interpolates none of these.
+    env:
+      DATABASE_URL: jdbc:postgresql://localhost:5432/sidewalk
+      DATABASE_USER: sidewalk
+      DATABASE_PASSWORD: sidewalk
+      SIDEWALK_CITY_ID: teaneck-nj
+      SIDEWALK_APPLICATION_SECRET: DUMMY_APPLICATION_SECRET_SET_CORRECTLY_ON_PRODUCTION
+      SILHOUETTE_SIGNER_KEY: DUMMY_SILHOUETTE_SIGNER_KEY
+      SILHOUETTE_CRYPTER_KEY: DUMMY_SILHOUETTE_CRYPTER_KEY
+      INTERNAL_API_KEY: DUMMY_INTERNAL_API_KEY
+      MAPBOX_API_KEY: DUMMY_MAPBOX_API_KEY
+      GOOGLE_MAPS_API_KEY: DUMMY_GOOGLE_API_KEY
+      GOOGLE_MAPS_SECRET: DUMMY_GOOGLE_SECRET
+      GEMINI_API_KEY: DUMMY_GEMINI_API_KEY
+      SCISTARTER_API_KEY: DUMMY_SCISTARTER_API_KEY
+      MAPILLARY_ACCESS_TOKEN: DUMMY_MAPILLARY_ACCESS_TOKEN
+      GA_SERVICE_ACCOUNT_KEY: DUMMY_GA_SERVICE_ACCOUNT_KEY
+      INFRA3D_CLIENT_ID_ZURICH: DUMMY_INFRA3D_CLIENT_ID
+      INFRA3D_CLIENT_ID_WINTERTHUR: DUMMY_INFRA3D_CLIENT_ID
+      INFRA3D_CLIENT_SECRET_ZURICH: DUMMY_INFRA3D_CLIENT_SECRET
+      INFRA3D_CLIENT_SECRET_WINTERTHUR: DUMMY_INFRA3D_CLIENT_SECRET
+      ENV_TYPE: local
+      SIDEWALK_IMAGES_DIR: .crops
+      SIDEWALK_PANO_DIR: .panos
     steps:
       - uses: actions/checkout@v7
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v5.6.0
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: '17'
@@ -215,10 +260,10 @@ jobs:
 
       # The real city dumps are git-ignored (too large to commit); CI only has the small, committed sidewalk_init
       # template that init.sh restored above. So build the test city from that template: rename the schema to
-      # sidewalk_teaneck (matching cityparams.conf's `teaneck-nj = "sidewalk_teaneck"`). The schema is empty, which is
-      # fine here: PublicApiSpec asserts response *contract/shape*, not data values.
+      # sidewalk_teaneck (matching cityparams.conf's `teaneck-nj = "sidewalk_teaneck"`). Beyond the seed below the
+      # schema stays empty, so specs assert response contract/shape and self-seed whatever data they read.
       #
-      # We connect the app as the `sidewalk` superuser (DATABASE_USER below), not the per-city role, and point its
+      # We connect the app as the `sidewalk` superuser (DATABASE_USER above), not the per-city role, and point its
       # search_path at the city schema. Reason: this template is behind the repo's evolution HEAD, so the app
       # auto-applies pending evolutions on boot; some touch shared sidewalk_login tables (e.g. auth_tokens) that a city
       # role can't ALTER ("must be owner"). The superuser owns everything, so evolutions apply cleanly. (In dev this
@@ -229,225 +274,60 @@ jobs:
           ALTER SCHEMA sidewalk_init RENAME TO sidewalk_teaneck;
           ALTER ROLE sidewalk SET search_path = sidewalk_teaneck, sidewalk_login, public;"
 
-      # Boot the real app and run the public-API functional tests against the imported city.
+      # Its own step, ahead of everything, because booting the app is what auto-applies the evolutions: the seed below
+      # needs the evolved schema and the suite below needs the seed. EvolutionsApplySpec asserts the schema reached
+      # HEAD rather than stopping partway.
       #
-      # Kept to PublicApiSpec only. Adding more GuiceOneAppPerSuite specs here boots several apps in parallel (ScalaTest
-      # runs suites concurrently), each opening its own DB connection pool, which exhausts the CI Postgres connections
-      # ("Pool is empty, failed to create/setup connection") and aborts the whole run. The route-shadowing invariant is
-      # instead enforced by the DB-free, blocking `route-lint` job above; test/controllers/RouteReachabilitySpec.scala is
-      # the equivalent spec, runnable locally and ready to join here once this suite is made sequential + promoted.
-      - name: Run public API tests
-        run: sbt "testOnly controllers.api.PublicApiSpec"
-        # Dummy env mirroring docker-compose.yml's web service, so the app boots exactly as it does in dev. The
-        # application secret must be >=256 bits (32+ chars) for Play's HS256 JWT sessions, hence the long value.
-        env:
-          DATABASE_URL: jdbc:postgresql://localhost:5432/sidewalk
-          DATABASE_USER: sidewalk
-          DATABASE_PASSWORD: sidewalk
-          SIDEWALK_CITY_ID: teaneck-nj
-          SIDEWALK_APPLICATION_SECRET: DUMMY_APPLICATION_SECRET_SET_CORRECTLY_ON_PRODUCTION
-          SILHOUETTE_SIGNER_KEY: DUMMY_SILHOUETTE_SIGNER_KEY
-          SILHOUETTE_CRYPTER_KEY: DUMMY_SILHOUETTE_CRYPTER_KEY
-          INTERNAL_API_KEY: DUMMY_INTERNAL_API_KEY
-          MAPBOX_API_KEY: DUMMY_MAPBOX_API_KEY
-          GOOGLE_MAPS_API_KEY: DUMMY_GOOGLE_API_KEY
-          GOOGLE_MAPS_SECRET: DUMMY_GOOGLE_SECRET
-          GEMINI_API_KEY: DUMMY_GEMINI_API_KEY
-          SCISTARTER_API_KEY: DUMMY_SCISTARTER_API_KEY
-          MAPILLARY_ACCESS_TOKEN: DUMMY_MAPILLARY_ACCESS_TOKEN
-          GA_SERVICE_ACCOUNT_KEY: DUMMY_GA_SERVICE_ACCOUNT_KEY
-          INFRA3D_CLIENT_ID_ZURICH: DUMMY_INFRA3D_CLIENT_ID
-          INFRA3D_CLIENT_ID_WINTERTHUR: DUMMY_INFRA3D_CLIENT_ID
-          INFRA3D_CLIENT_SECRET_ZURICH: DUMMY_INFRA3D_CLIENT_SECRET
-          INFRA3D_CLIENT_SECRET_WINTERTHUR: DUMMY_INFRA3D_CLIENT_SECRET
-          ENV_TYPE: local
-          SIDEWALK_IMAGES_DIR: .crops
+      # `coverage` instruments this step and the suite, for the `coverageReport` at the end of the job (#4743).
+      - name: Apply evolutions
+        run: sbt coverage "testOnly models.utils.EvolutionsApplySpec"
 
-      # The same minimal city the e2e-smoke job seeds (one region holding a non-tutorial street). It is what lets the
-      # write-path specs below exercise the submission endpoints instead of cancelling on unassignable data, and it
-      # un-cancels a further nine assertions across the route-walk and geodesic-cache suites too. Ordering is
-      # load-bearing in both directions: it must follow the PublicApiSpec step, whose app boot is what brings the
-      # template schema up to evolution HEAD (the seed writes street_edge.status, which the pre-evolution template
-      # lacks), and precede the specs that read it. Shared with test/e2e rather than duplicated — one definition of
-      # what a minimally-servable city is.
-      - name: Seed minimal explore data
+      # Without this the suite's data-dependent half cancels itself out — 87 tests before #5115 seeded labels. Must
+      # follow the step above: it writes street_edge.status and needs constraints from well past the template's
+      # evolution level. Shared with test/e2e rather than duplicated: one definition of the test city.
+      - name: Seed the test city
         run: docker compose exec -T db psql -v ON_ERROR_STOP=1 -U postgres -d sidewalk < test/e2e/fixtures/ci-seed.sql
 
-      # Gating/auth specs. Run in a SEPARATE sbt invocation from PublicApiSpec above — a second concurrent app would
-      # double the pool draw against CI Postgres — and `set Test / parallelExecution := false` so these suites boot one
-      # app at a time within this invocation, the same single-app-at-a-time discipline the PublicApiSpec note above
-      # relies on. Adding a suite here is cheap (one more name); adding one to a THIRD invocation is not.
+      # Keeps this job's media dirs identical to e2e-smoke's; the script's header says why they're needed at all.
+      - name: Install the seeded imagery
+        run: bash test/e2e/fixtures/install-media.sh
+
+      # Suites run one at a time — see `Test / parallelExecution := false` in build.sbt for why. Nothing cancels on
+      # the seeded schema any more, so a CANCELED line here means the seed stopped covering something.
+      - name: Run the backend suite
+        run: sbt coverage test
+
+      # Enforces the ratchet in build.sbt (#4743). Deliberately not `if: always()`, unlike the lint steps: a run that
+      # aborted partway measures a fraction of the real number, so it would pile a ratchet failure on top of the spec
+      # failure that actually needs fixing.
       #
-      # - HealthDashboardSpec / HealthServiceSpec (#4561): route/gating smoke plus the DB-backed service safety &
-      #   concurrency-stress spec. HealthServiceSpec fires a burst of concurrent polls and asserts they stay within the
-      #   connection pool, so a regression that made the dashboard flood the pool (#4559) — the very thing it exists to
-      #   detect — fails the build here rather than in production.
-      # - RouteAuthPostureSpec (#4441): asserts every declared /adminapi/ route refuses an anonymous request, so a new
-      #   admin route that forgets its guard fails here. Its data-dependent shape checks `assume` a non-empty result and
-      #   report as CANCELED against this job's empty city schema rather than passing vacuously.
-      # - GeodesicDistanceSpec (#4641): street lengths must be geodesic, not projected to a fixed CRS. Its synthetic-
-      #   fixture tests (analytic WGS84 arc lengths, the #4774 nightly-refresh regression) seed every row they read,
-      #   so they are meaningful even here — a reintroduced projection fails by double digits. The street and region
-      #   the seed above adds carry most of its cache-freshness comparisons too; the two that need a labelled user or
-      #   a built route still CANCEL.
-      # - ExploreTutorialRouteSpec (#4816): a resumable route walk must not surface while the session is the tutorial.
-      #   It seeds its own users and route walks but hangs them on an existing street/region, which the seed above
-      #   supplies, so all four tests run here.
-      # - MobileDetectionSpec (#4887): the layout must stamp ControllerUtils.isMobile's verdict on
-      #   <html data-mobile-device>, the single mobile definition util.isMobile() reads back; also pins the landing
-      #   page's navbar-padding opt-out to request.path. Fetches /signIn and the landing page, which render without
-      #   data (the landing shows zeros/NaN stats), so both are meaningful on this empty schema.
-      # - PanoDataServiceSpec (#4765/#4766): pure unit tests (no DB, no app boot) pinning the label lat/lng estimator
-      #   against research-derived constants — costs nothing here and otherwise runs nowhere in CI.
-      # - ActivityBreakdownSpec (#4931): pure unit tests (no DB, no app boot) pinning the rules that keep AI-role output
-      #   out of the Across Cities "this week" counts, anonymous cookie identities out of its headcounts, and a person
-      #   who mapped in several cities counted once. It has to be synthetic — this job's schema has no AI-role or
-      #   anonymous accounts, so a DB-backed version of these assertions would pass without exercising one.
-      # - ConfigServiceTrendSpec + CityScorecardSpec (#4931): the DB-backed half of the same section. These are what
-      #   connect the new SQL to the summaries above — that volumes sum across cities while headcounts dedupe, that the
-      #   untruncated contributor total bounds the capped list, and that no anonymous cookie id reaches a hover card.
-      #   Shape and invariant assertions rather than data values, so they hold on this job's near-empty schema, and they
-      #   are the only coverage of the per-schema query's column order, which GetResult reads positionally.
-      # - ConfigTableVoidedArchiveSpec (#4842): the voided-vote archive must count as work credit in the per-schema
-      #   aggregate queries AND those queries must survive a schema that hasn't applied evolution 355 (the cross-city
-      #   fan-out reads other schemas mid-rollout). Self-seeding in rolled-back transactions, meaningful even here.
-      # - StatsApiSpec (#3871/#3981): the stats endpoints' snake_case output contract and total/breakdown
-      #   reconciliation — the HTTP surface over the aggregate queries above. Shape-only, data-independent.
-      # - ExploreSubmissionSpec / ValidateSubmissionSpec (#4777): the submission write paths (POST /task,
-      #   /validationTask, /labelmap/validate). ExploreSubmissionSpec runs in full against the seed above — the audit
-      #   tutorial and the first real audit mission both write their rows here, so a regression in POST /task fails the
-      #   build. ValidateSubmissionSpec's row-writing cases still CANCEL: a validation mission needs >= 10 validatable
-      #   labels of one type and the seed has none, so only its auth and malformed-payload cases run. Both suites'
-      #   data preconditions check for an assignable region rather than a bare street count, because the template's
-      #   lone tutorial street belongs to no region and /explore 500s on that (#4748) instead of answering.
-      # - PersistentMediaDirCheckSpec (#4925): user-uploaded media must resolve outside the application directory,
-      #   which a deploy rebuilds and deletes. Pure logic, no DB — and the failure it guards against is invisible to
-      #   every other test, since the broken config behaves correctly right up until the next release.
-      # - PanoExpiredAtSpec / BackgroundJobRunTableSpec / JobRunServiceSpec / StreetLifecycleServiceSpec (#4928): the
-      #   transition records the admin trend and nightly-job panels read. Each seeds its own rows rather than hunting
-      #   for them, so they assert real behavior against an empty seed: the expiry stamp only lands on the false ->
-      #   true edge, a run row is open exactly while it is running, and a wrapped job's failure propagates unchanged.
-      # - NightlyJobStatusSpec (#4928): pins what may clear the Health panel's overdue alarm -- only a scheduled run
-      #   that succeeded. A hand-triggered run and an in-flight one are both recorded under the same job_name as the
-      #   nightly one, so this rule is the only thing keeping either from masking a scheduler that has stopped.
-      # - NoImageryReportsSpec (#4928): the three street_edge_issue reads behind the missing-imagery views, which
-      #   decide where the offline imagery checker gets pointed next. Seeds its own regions, streets, users and
-      #   reports inside a rolled-back transaction, so it pins corroboration-by-distinct-account and the exclusion of
-      #   retired streets and deleted regions against any seed, empty or not.
-      # - EnumTypeParitySpec (#4928, #4947): the Scala enums behind the transition logs against the Postgres types
-      #   they back. Held together by a comment otherwise, and drift surfaces at runtime on whichever page reads the
-      #   row first -- or, for pano_imagery_change_source, on the pano upsert every labeler's viewer performs.
-      # - PanoImageryLogSpec (#4947): the imagery-transition log's two halves -- every real crossing recorded once,
-      #   and nothing recorded for the confirmations that dominate the traffic (a nightly re-check of an already-
-      #   expired pano, a labeler loading a pano that was never expired). Getting the second half wrong is a row per
-      #   pano per night rather than a wrong number, so it needs the edge semantics pinned against a real Postgres.
-      # - ScheduledJobsSpec (#4928): roster invariants. A job missing from ScheduledJobs.All is invisible on the
-      #   Health panel, and invisible is indistinguishable from healthy -- the failure this feature exists to close.
-      # - ImageryPollOutcomeSpec (#4928): separates a poll with nothing to do from one that could not run. Recording
-      #   the second as a success is how a rotated-out API key ends the re-audit signal behind a permanently green
-      #   badge.
-      # - StreetPriorityAdminSpec (#4908): the admin Imagery map explains each street's priority with the audit counts
-      #   the formula consumes, re-expressed in SQL. Its first case recomputes the formula from those counts for every
-      #   street and requires the result to equal what the Slick query produces, so re-weighting an audit without
-      #   updating both fails here instead of silently mislabeling the map. Self-seeds its other cases.
-      # - ImageryFreshnessReportSpec (#4908): pure unit tests (no DB, no app boot) over the fold that turns recorded
-      #   job runs into the page's per-night series -- a poll and a sync recording an hour apart merge into one night,
-      #   a hand-run job adds to it rather than replacing it, and a failed run with no counts still reads as a failure.
-      # - ImageryFreshnessReportServiceSpec (#4908): the assembly around that fold -- which jobs are charted and in
-      #   what order, where the window and the batch size come from, and that a job with no recorded run is reported
-      #   as never-run rather than omitted. The omission is the failure the whole panel exists to prevent: a scheduler
-      #   that stopped firing leaves no rows, which a rows-driven listing renders as a clean panel. Seeds its own runs.
-      # - ImageryAdminSpec (#4908): the guard on /admin/imagery and the two endpoints, plus their field contracts. The
-      #   anonymous namespace check above cannot tell WithAdmin from WithOwner, so this signs in for real -- and seeds
-      #   its own admin through the anonymous-signup route rather than hunting the schema for one, which would cancel
-      #   (and so read as passing) against a database with no admin in it.
-      # - StreetPriorityForAdminSpec (#4908): the exact field set of /adminapi/streetPriority, without a DB. The page
-      #   indexes into these rows by name and degrades silently on a miss, so a rename shows up as a blank column.
-      # - StreetImageryPollSpec / StreetImageryTableSpec / ImageryFreshnessPollSpec (#4384): the imagery-age poll's own
-      #   coverage, which ran nowhere in CI until now -- the rotation's ordering, the per-point median, the
-      #   nearest-street attribution rule, and the pure date/geometry parsers. StreetImageryPollSpec seeds streets and
-      #   asserts nearest-street attribution, so it is the one to watch against this job's seed (see #4923's note about
-      #   the seed cloning the tutorial street's geometry); it passes against a real city schema.
-      # - OutdatedStreetsForUserSpec / UserStreetsFreshnessSpec / DashboardReauditSectionSpec (#4896): the dashboard's
-      #   per-mapper re-audit list, the street feed its map draws, and the rendered section itself. All three seed
-      #   everything they read -- their own users, region, streets, and audits -- rather than looking for flagged
-      #   rows, which nothing in this job's schema (or a fresh dev dump) has: a hunting version would pass vacuously
-      #   on an all-fresh feed, and that is precisely the state a regression back to a hardcoded `audited = true`
-      #   would leave it in. So every case runs here, and each asserts an exact set rather than a bound. The section
-      #   spec signs its mappers up over /signUp because /dashboard turns anonymous sessions away, and is the only
-      #   coverage of the page-size constants and the two empty states, which live in the view rather than a query.
-      # - HoursApportionmentSpec / InBatchesSpec (#4526): pure unit tests (no DB, no app boot) over the two pieces of
-      #   /timeCheck's cross-city hours that nothing else guards. The first pins that the per-city rows sum to the
-      #   rounded true total; rounding each row on its own makes the breakdown contradict the headline a volunteer
-      #   hands a supervisor, and reconciling is the only reason the breakdown is on the page. The second parks twenty
-      #   items on promises and requires peak in-flight to equal the batch size, so a regression to an unbounded
-      #   fan-out -- 52 city schemas against a 25-connection pool -- fails here rather than surfacing as prod latency.
-      # - TimeCheckViewSpec (#4526): renders the multi-city branch of the page directly, which no route spec can reach:
-      #   /timeCheck is a SecuredAction and no multi-city volunteer can be signed in from a test. Supplies its own
-      #   breakdowns rather than reading any, so it is exactly as meaningful against this job's empty schema.
-      # - CrossCityHoursResilienceSpec (#4526): the failure paths, reached by handing the real fan-out a deliberately
-      #   broken scope (a schema that does not exist, a name the query builder refuses, gate exclusions, a scope
-      #   lookup that fails outright). Asserts exact unreachable-city counts, so a city dropped silently -- the
-      #   undercount #4526 exists to fix -- fails here instead of just making a volunteer's total smaller. Every case
-      #   supplies its own scope except the fallback-against-real-hours one, which needs a seeded leaderboard and is a
-      #   no-op here.
-      # - RouteTaskNoImagerySpec (#5008): a street the labeler reported as imagery-less stays incomplete (#4922), so
-      #   the route tasks must carry a separate flag or every reload walks them back onto it. Seeds its own routes,
-      #   users, and reports, and pins the bound to the current user_route.
-      # - ApiDocsPreviewWiringSpec (#4992): the api-docs layout must load apiTableWrapper.js ahead of the preview
-      #   scripts that call `window.createApiTableWrapper`. Losing that tag breaks five previews in production
-      #   silently -- each preview's `.catch` turns the TypeError into an in-page banner, so no console error reaches
-      #   e2e-smoke, and the jsdom suites hand-load the helper themselves. Reads only rendered markup, so this job's
-      #   empty schema costs it nothing.
-      # - AdminUserViewSpec (#4986): the admin's view of a user's hours must be the same figure that user reads on
-      #   /timeCheck -- an admin checking a service-hours claim against a per-deployment number sees a multi-city
-      #   volunteer's honest total as inflated. The admin side fills its KPI from adminGetCrossCityHours after the page
-      #   renders, so this compares that payload against what the volunteer's page displays, and separately pins that
-      #   the page ships the endpoint URL and element ids its script needs. The client half is test/js/.
-      # - DashboardStatsInvariantSpec (#4496/#4526/#4533/#4604): the contract/shape invariants behind every dashboard,
-      #   leaderboard, and profile stat -- ordering, caps, ranges, the cross-schema SQL's refusal of a non-identifier
-      #   schema name, and the reconciliations that keep the cross-city sections agreeing with the KPIs above them.
-      #   Written to hold against whatever the connected DB holds: the sections needing a real mapper pick one off the
-      #   all-time board and are vacuously green on this job's schema, and the two that synthesize a mapper cancel if
-      #   the schema has no role/label_type/street_edge row to build one from. What runs here regardless is every
-      #   guard that does not need data -- injection refusal, empty-scope handling, the user_stat uniqueness invariant.
-      # - AdminJobTriggerSpec (#4946): the five admin routes that hand-trigger a nightly job must each record the run.
-      #   Dropping the `record` wrapper leaves the endpoint working and the job running, so the only symptom is a
-      #   missing background_job_run row -- which reads exactly like a job nobody triggered. Stubs the work itself and
-      #   reads the real row back, attributing it by id floor so it can't pass on a run the connected city held.
-      # - AdminLabelPageSpec (#4633): the admin's view of a label. Its guard cases sign in for real, which is the only
-      #   way to separate an admin-only page from one that admits anyone signed in; the case needing a label cancels
-      #   against this job's empty schema.
-      - name: Run gating/auth tests (health dashboard + route auth posture + geodesic distances)
-        run: sbt 'set Test / parallelExecution := false' 'testOnly controllers.HealthDashboardSpec service.HealthServiceSpec controllers.RouteAuthPostureSpec models.street.GeodesicDistanceSpec service.ExploreTutorialRouteSpec controllers.MobileDetectionSpec service.PanoDataServiceSpec service.ActivityBreakdownSpec service.ConfigServiceTrendSpec models.utils.CityScorecardSpec models.utils.ConfigTableVoidedArchiveSpec controllers.api.StatsApiSpec controllers.ExploreSubmissionSpec controllers.ValidateSubmissionSpec controllers.ExploreNoImageryRateLimitSpec models.pano.PanoExpiredAtSpec models.pano.PanoImageryLogSpec models.utils.BackgroundJobRunTableSpec service.JobRunServiceSpec service.NightlyJobStatusSpec service.StreetLifecycleServiceSpec models.audit.OutdatedImageryFlagSyncSpec models.audit.OutdatedImageryRoutingSpec models.street.UpToDateCoverageSpec models.street.NoImageryReportsSpec models.utils.EnumTypeParitySpec actor.ScheduledJobsSpec service.ImageryPollOutcomeSpec models.street.StreetPriorityAdminSpec service.ImageryFreshnessReportSpec models.street.StreetImageryPollSpec models.street.StreetImageryTableSpec service.ImageryFreshnessPollSpec service.ImageryFreshnessReportServiceSpec controllers.ImageryAdminSpec models.street.StreetPriorityForAdminSpec modules.PersistentMediaDirCheckSpec models.audit.OutdatedStreetsForUserSpec controllers.UserStreetsFreshnessSpec controllers.DashboardReauditSectionSpec service.HoursApportionmentSpec service.InBatchesSpec views.TimeCheckViewSpec service.CrossCityHoursResilienceSpec controllers.ApiDocsPreviewWiringSpec models.audit.RouteTaskNoImagerySpec views.AdminUserViewSpec service.DashboardStatsInvariantSpec controllers.AdminJobTriggerSpec controllers.AdminLabelPageSpec'
-        env:
-          DATABASE_URL: jdbc:postgresql://localhost:5432/sidewalk
-          DATABASE_USER: sidewalk
-          DATABASE_PASSWORD: sidewalk
-          SIDEWALK_CITY_ID: teaneck-nj
-          SIDEWALK_APPLICATION_SECRET: DUMMY_APPLICATION_SECRET_SET_CORRECTLY_ON_PRODUCTION
-          SILHOUETTE_SIGNER_KEY: DUMMY_SILHOUETTE_SIGNER_KEY
-          SILHOUETTE_CRYPTER_KEY: DUMMY_SILHOUETTE_CRYPTER_KEY
-          INTERNAL_API_KEY: DUMMY_INTERNAL_API_KEY
-          MAPBOX_API_KEY: DUMMY_MAPBOX_API_KEY
-          GOOGLE_MAPS_API_KEY: DUMMY_GOOGLE_API_KEY
-          GOOGLE_MAPS_SECRET: DUMMY_GOOGLE_SECRET
-          GEMINI_API_KEY: DUMMY_GEMINI_API_KEY
-          SCISTARTER_API_KEY: DUMMY_SCISTARTER_API_KEY
-          MAPILLARY_ACCESS_TOKEN: DUMMY_MAPILLARY_ACCESS_TOKEN
-          GA_SERVICE_ACCOUNT_KEY: DUMMY_GA_SERVICE_ACCOUNT_KEY
-          INFRA3D_CLIENT_ID_ZURICH: DUMMY_INFRA3D_CLIENT_ID
-          INFRA3D_CLIENT_ID_WINTERTHUR: DUMMY_INFRA3D_CLIENT_ID
-          INFRA3D_CLIENT_SECRET_ZURICH: DUMMY_INFRA3D_CLIENT_SECRET
-          INFRA3D_CLIENT_SECRET_WINTERTHUR: DUMMY_INFRA3D_CLIENT_SECRET
-          ENV_TYPE: local
-          SIDEWALK_IMAGES_DIR: .crops
+      # The guard is what keeps this gate from silently becoming a no-op. `coverageReport` warns and exits 0 when the
+      # data dir is empty, and the compiler plugin empties it on every instrumented compile — so anything that
+      # recompiles after the spec steps (an added sbt step, a plugin bump that invalidates zinc) would turn a required
+      # check green with nothing measured.
+      - name: Coverage report (blocking ratchet)
+        run: |
+          test -s target/scala-2.13/scoverage-data/scoverage.coverage \
+            || { echo "::error::no scoverage data — the spec steps above did not run under \`coverage\`, or something recompiled after them"; exit 1; }
+          sbt coverageReport
+
+      # `always()` rather than `failure()`: a green run is when you most want this, since raising the floor means
+      # finding where the headroom is, and the console prints only the total. On an earlier-step failure the report
+      # step is skipped and there is nothing to upload, which this tolerates quietly.
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: scoverage-report
+          path: target/scala-2.13/scoverage-report/
+          retention-days: 7
+          if-no-files-found: ignore
 
   e2e-smoke:
     name: E2E smoke (Playwright)
     runs-on: ubuntu-latest
-    # ADVISORY while the suite stabilizes (plan: ramp to blocking once it's proven stable). Does not block PRs yet.
-    continue-on-error: true
+    # Both halves block, and the job is a required status check — so the db bring-up, grunt build, `sbt stage`,
+    # app boot and the readiness probes gate merges too, not just the two test steps.
     timeout-minutes: 30
     # Job-level env (shared by `sbt stage` and the app process), mirroring backend-tests' block with one difference:
     # GOOGLE_MAPS_API_KEY prefers the real referrer/API-restricted test key so the phase-2 Explore/Validate specs can
@@ -488,7 +368,7 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: '17'
@@ -498,7 +378,7 @@ jobs:
         uses: sbt/setup-sbt@v1
 
       - name: Set up Node 23
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: '24'
 
@@ -545,24 +425,30 @@ jobs:
 
       # pidfile to /dev/null so a retry on the same runner can't trip over a stale RUNNING_PID.
       #
-      # config.resource=application.local.conf is load-bearing, not a stylistic choice. The base conf/application.conf
-      # scopes both the Play session cookie and the Silhouette authenticator to Domain=".cs.washington.edu" (they are
+      # config.resource is load-bearing, not a stylistic choice. application.ci.conf includes application.local.conf,
+      # and that overlay is half the reason: the base conf/application.conf scopes both the Play session cookie and
+      # the Silhouette authenticator to Domain=".cs.washington.edu" (they are
       # shared across the per-city subdomains in production), and a browser drops any cookie whose Domain doesn't match
       # the host it is talking to. At http://localhost:9000 that means no session can ever stick, so every SecuredAction
       # page ping-pongs with /anonSignUp until Chromium gives up with ERR_TOO_MANY_REDIRECTS. The local overlay is
       # exactly the "app served over plain http at localhost:9000" profile — it nulls both cookie domains and pins
-      # play.filters.hosts.allowed to localhost:9000 — so it is the honest config to boot under here. It cannot be
+      # play.filters.hosts.allowed to localhost:9000 — so it is the honest base to boot under here. It cannot be
       # expressed as -D flags: a system property is always a string, so -Dplay.http.session.domain=null would set the
       # literal Domain "null" rather than clearing it.
+      #
+      # application.ci.conf layers onto that overlay and additionally disables ActorModule, because this job now
+      # seeds real data and then asserts on it -- see the reasoning in the file. backend-tests needs neither: its
+      # specs build their own application and disable the module themselves.
       - name: Start the app
         run: |
           nohup target/universal/stage/bin/sidewalk-webpage \
-            -Dconfig.resource=application.local.conf \
+            -Dconfig.resource=application.ci.conf \
             -Dhttp.port=9000 -Dplay.server.pidfile.path=/dev/null > app.log 2>&1 &
 
       # /signIn is a UserAwareAction: 200 with no auth and no session bootstrap — the cheapest unauthenticated
       # route that proves routing + DB + evolutions all came up.
       - name: Wait for the app to serve HTTP
+        id: app-ready
         run: |
           for i in $(seq 1 120); do
             code=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:9000/signIn || true)
@@ -571,22 +457,36 @@ jobs:
           done
           echo "App did not come up in time (last status: $code)."; tail -100 app.log; exit 1
 
-      # Minimal data so /explore can initialize (phase 2 of #4504): one region containing the template's DC
-      # tutorial street. With zero regions /explore is a server error; with one, a fresh anonymous user
-      # deterministically starts the audit tutorial, whose pano tiles are local assets — the restricted
-      # GOOGLE_MAPS_API_KEY_TEST key is needed only for the Maps JS API itself. Runs after the app is up so
-      # evolutions have already brought the schema to HEAD. Harmless when the GSV specs are skipped.
-      - name: Seed minimal explore data
+      # Shared with backend-tests. Without a region /explore is a server error; without labels the Gallery,
+      # LabelMap and api-docs previews render empty shells the suite can't judge. Runs after the app is up, so the
+      # schema is already at HEAD.
+      - name: Seed the test city
         run: docker compose exec -T db psql -v ON_ERROR_STOP=1 -U postgres -d sidewalk < test/e2e/fixtures/ci-seed.sql
 
-      - name: Run Playwright smoke suite
-        run: npx playwright test
+      # Every seeded panorama is expired, so the app resolves imagery from disk. This is what puts it there.
+      - name: Install the seeded imagery
+        run: bash test/e2e/fixtures/install-media.sh
+
+      # BLOCKING (#5060). A page only enters the shared table (test/e2e/pages.js) once its violations are fixed or
+      # tracked, so a failure here is a regression, never a known gap. Runs first so a red gate heads the log.
+      - name: Run accessibility gate (blocking)
+        run: npx playwright test --project=a11y
         env:
           BASE_URL: http://localhost:9000
+          PLAYWRIGHT_HTML_REPORT: playwright-report/a11y
+
+      # BLOCKING (#5115). The condition runs this half even when the gate is red, but unlike `always()` skips it
+      # when the app never came up — where 80 specs would otherwise time out against a dead server.
+      - name: Run Playwright smoke suite
+        if: ${{ !cancelled() && steps.app-ready.outcome == 'success' }}
+        run: npx playwright test --project=chromium
+        env:
+          BASE_URL: http://localhost:9000
+          PLAYWRIGHT_HTML_REPORT: playwright-report/smoke
 
       - name: Upload Playwright report + app log
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: e2e-smoke-report
           path: |
@@ -598,22 +498,27 @@ jobs:
   python-tests:
     name: Python tests (${{ matrix.half }})
     runs-on: ubuntu-latest
-    # ADVISORY while the suite is young (plan: ramp to blocking once stable). Does not block PRs yet.
-    continue-on-error: true
+    # Per leg, not per job: the in-band half gates merges because the running app shells out to label_clustering.py,
+    # while the offline half only covers an operator utility that never runs on the server.
+    continue-on-error: ${{ matrix.advisory }}
     strategy:
       fail-fast: false
       # One leg per interpreter the web container ships, testing each script on the Python that runs it (#4396):
       # label_clustering.py is shelled out to by the app, so it stays on prod's EOL 3.8; the offline tooling needs
       # >= 3.11. Mirrors the `pytest-args-*` and `cov-omit-*` variables in the Makefile — each leg takes the whole
       # directory minus the one file the other owns, so a new test file runs in both rather than in neither.
+      # `half` also spells the check name, and `Python tests (in-band script)` is a required check — renaming a half
+      # renames the check, which branch protection then waits forever for. Update both together.
       matrix:
         include:
           - half: in-band script
+            advisory: false
             python: '3.8'
             requirements: -r requirements.txt -r requirements-dev.txt
             pytest-args: test/python --ignore=test/python/test_check_streets_for_imagery.py
             coverage-omit: scripts/check_streets_for_imagery.py
           - half: offline tooling
+            advisory: true
             python: '3.13'
             requirements: -r requirements-offline-tools.txt -r requirements-dev.txt
             pytest-args: test/python --ignore=test/python/test_label_clustering.py

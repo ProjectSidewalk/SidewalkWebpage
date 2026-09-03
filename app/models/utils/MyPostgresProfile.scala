@@ -3,10 +3,11 @@ package models.utils
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.github.tminglei.slickpg._
 import com.github.tminglei.slickpg.geom.PgPostGISExtensions
-import models.label.{AiImageSource, ComputationMethod}
+import models.label.{AiImageSource, ComputationMethod, LabelTypeEnum}
 import models.mission.MissionType
 import models.pano.{PanoImageryChangeSource, PanoSource}
 import models.street.{StreetEdgeIssueType, StreetEdgeStatus, StreetEdgeStatusChangeSource, StreetImagerySource, WayType}
+import models.user.Role
 import models.utils.CommonUtils.{UiSource, ViewerType}
 import models.validation.ValidationOption
 import org.locationtech.jts.geom.{Geometry, LineString, MultiPolygon, Point}
@@ -220,6 +221,14 @@ trait MyPostgresProfile
         StreetImagerySource.withName,
         quoteName = false
       )
+
+    // LabelTypeEnum is a sealed hierarchy, not an Enumeration, so each type can carry its color and severity direction.
+    implicit val labelTypeMapper: BaseColumnType[LabelTypeEnum.Base] =
+      createEnumJdbcType[LabelTypeEnum.Base]("label_type", _.name, LabelTypeEnum.withName, quoteName = false)
+
+    // Mapper for the role enum type, which lives in the shared sidewalk_login schema rather than the city's.
+    implicit val roleMapper: BaseColumnType[Role.Value] =
+      createEnumJdbcType[Role.Value]("role", _.toString, Role.withName, quoteName = false)
   }
 }
 

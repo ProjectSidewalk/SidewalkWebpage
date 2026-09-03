@@ -16,8 +16,8 @@ By participating, you agree to abide by our [Code of Conduct](CODE_OF_CONDUCT.md
 ## Before you start
 
 1. Set up your local environment by following [`docs/dev-environment.md`](docs/dev-environment.md).
-2. Skim [`CLAUDE.md`](CLAUDE.md) — it's written for an AI assistant but is the most complete, current tour of the
-   architecture, conventions, and build/test commands.
+2. Skim [`docs/architecture.md`](docs/architecture.md) for the tour of the codebase, and
+   [`docs/style-guide.md`](docs/style-guide.md) for the conventions.
 3. **Claim an issue.** Pick an [open issue](https://github.com/ProjectSidewalk/SidewalkWebpage/issues) and comment
    that you're working on it. For anything non-trivial, agree on the approach in the issue thread *before* you write
    code — and for UI changes, post before/after mockups there first (the PR thread is for implementation details).
@@ -73,8 +73,8 @@ git pull origin develop
 Code-style conventions for JavaScript, Scala, and HTML/CSS live in **[`docs/style-guide.md`](docs/style-guide.md)** —
 that's the single source of truth, and most rules are enforced for you by the linters
 ([`eslint.config.js`](eslint.config.js), [`.scalafmt.conf`](.scalafmt.conf), [`stylelint.config.mjs`](stylelint.config.mjs)).
-[`CLAUDE.md`](CLAUDE.md) holds the architecture and the ScalaDoc/JSDoc comment standards. A few things worth knowing
-before your first PR:
+[`docs/architecture.md`](docs/architecture.md) holds the architecture. A few things worth knowing before your first
+PR:
 
 - **New JavaScript targets ES2022** (`const`/`let`, arrow functions, `#private` fields, native `fetch`). We're
   actively migrating *off* ES5/jQuery/Bootstrap — don't add to them.
@@ -82,12 +82,14 @@ before your first PR:
 - **Keep the frontend linters passing on what you change** before pushing. Run `make lint-fix` for the mechanical
   ESLint/Stylelint fixes, hand-fix the rest, then confirm the relevant linter is clean — `make eslint` (JS + translation
   JSON), `make stylelint` (CSS), `make htmlhint` (HTML), `make lint-locales` (cross-locale key parity),
-  `make lint-css-layout` (the `public/css/` layout), or `make lint` for all of them (it also runs the evolutions lint). The trees are kept fully lint-clean
+  `make lint-css-layout` (the `public/css/` layout), `make lint-asset-paths` (asset URLs in `public/js/`), or
+  `make lint` for all of them (it also runs the evolutions lint). The trees are kept fully lint-clean
   ([#2487](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2487)), so any finding is from your change.
-  **All four are blocking CI checks** now (they run in the `Frontend (build)` job), so a lint failure blocks the
+  **All of them are blocking CI checks** now (they run in the `Frontend (build)` job), so a lint failure blocks the
   merge — just like scalafmt.
 - **UI work** must meet WCAG 2.1/2.2 Level AA and use the `main.css` `:root` design tokens — type via the composite
-  `--text-*` tokens (see the [style guide](docs/style-guide.md)).
+  `--text-*` tokens (see the [style guide](docs/style-guide.md)). The target, the axe-core gate in the browser suite,
+  and the manual checklist are in **[`docs/accessibility.md`](docs/accessibility.md)**.
 - **Public API (`/v3`):** response fields are `snake_case`, query params are `camelCase`, and new DTOs go in
   `app/models/api/`.
 - **Don't hardcode backend values in the frontend.** Domain values — enums, ranges (min/max), thresholds, and
@@ -96,7 +98,7 @@ before your first PR:
   injected into the view), not literals in JS, so the two can't drift. See [`CLAUDE.md`](CLAUDE.md).
 
 See [`docs/style-guide.md`](docs/style-guide.md) for the full rules, including the request-flow and Slick/SQL
-conventions.
+conventions, and [`docs/evolutions.md`](docs/evolutions.md) before writing a schema change.
 
 ## Internationalization
 
@@ -112,9 +114,10 @@ user-facing text, add at least temporary (machine) translations for the other la
 
 There's a backend test suite (ScalaTest) under `test/` — mainly public-API functional specs. Run it with
 `sbt --client test` (the DB-backed API specs boot the app against Postgres+PostGIS, so the `db` container must be
-up); the overall strategy and phased rollout are in [`docs/testing-and-ci.md`](docs/testing-and-ci.md). The suite is
-still growing and CI runs it as advisory for now, so also compile (`sbt --client compile`) and exercise behavior in
-the running app. See [`docs/dev-environment.md`](docs/dev-environment.md) for the exact commands.
+up); the overall strategy and phased rollout are in [`docs/testing-and-ci.md`](docs/testing-and-ci.md). CI runs the
+whole suite as a blocking, required check — a new spec is picked up by existing, with nothing to enroll it in — but
+coverage is still thin, so also compile (`sbt --client compile`) and exercise behavior in the running app. See
+[`docs/dev-environment.md`](docs/dev-environment.md) for the exact commands.
 
 **Update logging.** User interactions (clicks, key presses, etc.) should be logged. If you add or change
 interactions, update the logging accordingly.
@@ -123,12 +126,12 @@ interactions, update the logging accordingly.
 
 - **Anonymous** — the default on first visit; an incognito/private window gives you a fresh anon account.
 - **Registered** — create an account and sign in.
-- **Administrator** — promote an account locally by setting its role to Administrator (role `4`):
+- **Administrator** — promote an account locally by setting its role to Administrator:
 
   ```sql
   -- find your user_id, then promote it
   SELECT user_id FROM sidewalk_login.sidewalk_user WHERE username = '<your-username>';
-  UPDATE sidewalk_login.user_role SET role_id = 4 WHERE user_id = '<your-user-id>';
+  UPDATE sidewalk_login.user_role SET role = 'Administrator' WHERE user_id = '<your-user-id>';
   ```
 
 - **Mechanical Turk worker** — visit
@@ -147,7 +150,7 @@ visiting `<your-computer-ip>:9000` (phone and computer on the same Wi-Fi; this o
 2. **Run scalafmt** on any Scala files you changed — `make scalafmt-fix` (CI blocks the merge on formatting). Set up
    format-on-save once via [`docs/editor-setup.md`](docs/editor-setup.md) so this is automatic. Likewise **run the
    frontend linters** on anything you changed — `make lint` (or the specific `make eslint`/`stylelint`/`htmlhint`/
-   `lint-locales`/`lint-css-layout` target), with `make lint-fix` for the mechanical fixes. They're all blocking CI checks now, so a lint
+   `lint-locales`/`lint-css-layout`/`lint-asset-paths` target), with `make lint-fix` for the mechanical fixes. They're all blocking CI checks now, so a lint
    failure blocks the merge; the trees are kept lint-clean —
    [#2487](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2487).
 3. Push your branch and [open a PR](https://github.com/ProjectSidewalk/SidewalkWebpage/compare) with **base
@@ -162,16 +165,20 @@ visiting `<your-computer-ip>:9000` (phone and computer on the same Wi-Fi; this o
 ### Merge requirements (branch protection)
 
 `develop` is branch-protected so a red build can't land (the failure mode that once shipped a migration that wouldn't
-apply). A PR can only merge once the **blocking CI checks pass** — currently **`Backend (compile + scalafmt)`**,
-**`Frontend (build)`** (which also runs ESLint, Stylelint, HTMLHint, and locale key-parity, so any frontend lint
-failure blocks the merge), and **`Route reachability lint`**; the **`Evolutions lint`** job runs on every PR but is
-not yet a required check. The rule:
+apply). A PR can only merge once the **blocking CI checks pass** — **`Backend (compile + scalafmt)`**,
+**`Frontend (build)`** (which also runs ESLint, Stylelint, HTMLHint, locale key-parity, the CSS layout check and the
+asset-path check, so any frontend lint failure blocks the merge), **`Route reachability lint`**, **`Evolutions lint`**,
+**`Backend tests (API, PostGIS)`**, **`Python tests (in-band script)`** and **`E2E smoke (Playwright)`**. The rule:
 
 - **Applies to everyone, maintainers included** — there is no admin bypass; it only ever stops a merge while CI is red.
+  It also means nobody pushes straight to `develop`: a direct push has no PR for the checks to run against.
 - **Does not require review approvals.** Tooling won't force a second person to sign off, so you can still open and
   merge your own PR. Review is by convention (and expected for external contributions), not enforced by a gate.
-- **Advisory jobs never block.** The DB-backed API tests and Python tests report status but are not required checks
-  while they stabilize.
+- **Coverage can block too.** `Backend tests (API, PostGIS)` ends on a statement-coverage ratchet, so removing tests
+  can fail the build even when everything still passes. The JS suite reports coverage but has no floor yet (#5112).
+- **Advisory work never blocks.** `Python tests (offline tooling)` is the one job that reports status without being a
+  required check, and the Jest suite is an advisory *step* inside `Frontend (build)` — so a red JS suite reports
+  without turning that check red.
 
 Full gating policy and rationale: [`docs/testing-and-ci.md`](docs/testing-and-ci.md).
 

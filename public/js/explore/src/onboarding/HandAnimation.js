@@ -12,16 +12,13 @@ class HandAnimation {
   #imageObjOpenHand = new Image();
   #imageObjClosedHand = new Image();
   #$handGestureHolder;
-  #onboardingImageDirectory;
 
   /**
-   * @param {string} imageDirectory Directory that image assets are served from.
    * @param {object} uiOnboarding Onboarding UI elements.
    */
-  constructor(imageDirectory, uiOnboarding) {
+  constructor(uiOnboarding) {
     this.#uiOnboarding = uiOnboarding;
     this.#$handGestureHolder = uiOnboarding.holder.find('#hand-gesture-holder');
-    this.#onboardingImageDirectory = `${imageDirectory}onboarding/`;
   }
 
   /**
@@ -52,7 +49,7 @@ class HandAnimation {
           this.#layer.add(this.#openHand);
           this.#openHandReady = true;
         };
-        this.#imageObjOpenHand.src = `${this.#onboardingImageDirectory}HandOpen.png`;
+        this.#imageObjOpenHand.src = util.assetPath('images/explore/onboarding/HandOpen.png');
 
         this.#imageObjClosedHand.onload = () => {
           this.#closedHand = new Kinetic.Image({
@@ -66,7 +63,7 @@ class HandAnimation {
           this.#layer.add(this.#closedHand);
           this.#closedHandReady = true;
         };
-        this.#imageObjClosedHand.src = `${this.#onboardingImageDirectory}HandClosed.png`;
+        this.#imageObjClosedHand.src = util.assetPath('images/explore/onboarding/HandClosed.png');
       }
     }
   }

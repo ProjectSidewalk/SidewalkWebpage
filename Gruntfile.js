@@ -99,6 +99,7 @@ module.exports = function (grunt) {
         src: [
           'public/js/common/Toast.js',
           'public/js/common/ConfirmDialog.js',
+          'public/js/common/mapboxSearchBoxA11y.js',
           'public/js/route-builder/src/*.js'
         ],
         dest: 'public/js/route-builder/build/route-builder.js'

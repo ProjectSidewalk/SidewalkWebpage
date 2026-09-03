@@ -166,7 +166,7 @@ describe('Form.submit (issue #2745 resilience)', () => {
     });
 
     test('a successful mission-complete submit loads the next mission', async () => {
-        const mission = { mission_id: 2, label_type_id: 3 };
+        const mission = { mission_id: 2, label_type: 'Obstacle' };
         stubFetchOk({
             has_mission_available: true,
             mission,
@@ -178,7 +178,7 @@ describe('Form.submit (issue #2745 resilience)', () => {
 
         expect(svv.missionContainer.createAMission).toHaveBeenCalledWith(mission, { agree_count: 1 });
         // The label type rides along so the container can ask for replacement labels of the right type (#4810).
-        expect(svv.labelContainer.resetLabelList).toHaveBeenCalledWith([{ label_id: 9 }], 3);
+        expect(svv.labelContainer.resetLabelList).toHaveBeenCalledWith([{ label_id: 9 }], 'Obstacle');
         expect(svv.modalMissionComplete.nextMissionLoaded).toHaveBeenCalled();
         expect(window.location.reload).not.toHaveBeenCalled();
     });

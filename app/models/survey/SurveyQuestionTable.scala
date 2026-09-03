@@ -1,7 +1,7 @@
 package models.survey
 
 import com.google.inject.ImplementedBy
-import models.user.RoleTableDef
+import models.user.Role
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -15,7 +15,7 @@ case class SurveyQuestion(
     surveyInputType: String,
     surveyDisplayRank: Option[Int],
     deleted: Boolean,
-    surveyUserRoleId: Int,
+    surveyUserRole: Role.Value,
     required: Boolean
 )
 case class SurveyQuestionWithOptions(
@@ -24,7 +24,7 @@ case class SurveyQuestionWithOptions(
     surveyInputType: String,
     surveyDisplayRank: Option[Int],
     deleted: Boolean,
-    surveyUserRoleId: Int,
+    surveyUserRole: Role.Value,
     required: Boolean,
     options: Seq[SurveyOption]
 )
@@ -36,14 +36,14 @@ class SurveyQuestionTableDef(tag: Tag) extends Table[SurveyQuestion](tag, "surve
   def surveyInputType: Rep[String]        = column[String]("survey_input_type")
   def surveyDisplayRank: Rep[Option[Int]] = column[Option[Int]]("survey_display_rank")
   def deleted: Rep[Boolean]               = column[Boolean]("deleted", O.Default(false))
-  def surveyUserRoleId: Rep[Int]          = column[Int]("survey_user_role_id", O.Default(1)) // 1 = Registered
+  def surveyUserRole: Rep[Role.Value]     = column[Role.Value]("survey_user_role", O.Default(Role.Registered))
   def required: Rep[Boolean]              = column[Boolean]("required", O.Default(false))
 
-  def * = (surveyQuestionId, surveyQuestionTextId, surveyInputType, surveyDisplayRank, deleted, surveyUserRoleId,
-    required) <> ((SurveyQuestion.apply _).tupled, SurveyQuestion.unapply)
-
-  def surveyUserRole =
-    foreignKey("survey_question_survey_user_role_id_fkey", surveyUserRoleId, TableQuery[RoleTableDef])(_.roleId)
+  def * =
+    (surveyQuestionId, surveyQuestionTextId, surveyInputType, surveyDisplayRank, deleted, surveyUserRole, required) <> (
+      (SurveyQuestion.apply _).tupled,
+      SurveyQuestion.unapply
+    )
 }
 
 @ImplementedBy(classOf[SurveyQuestionTable])
@@ -69,7 +69,7 @@ class SurveyQuestionTable @Inject() (protected val dbConfigProvider: DatabaseCon
         .map { case (question, tuples) =>
           val options: Seq[SurveyOption] = tuples.flatMap(_._2)
           SurveyQuestionWithOptions(question.surveyQuestionId, question.surveyQuestionTextId, question.surveyInputType,
-            question.surveyDisplayRank, question.deleted, question.surveyUserRoleId, question.required, options)
+            question.surveyDisplayRank, question.deleted, question.surveyUserRole, question.required, options)
         }
         .toSeq
     }

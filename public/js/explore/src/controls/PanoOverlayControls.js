@@ -42,7 +42,7 @@ class PanoOverlayControls {
     const expanded = this.#controlButtonsHolder.classList.toggle('expanded');
     this.#controlButtonsToggle.setAttribute('aria-expanded', expanded);
     const chevron = expanded ? 'chevron-left-white-feather.svg' : 'chevron-right-white-feather.svg';
-    this.#controlButtonsToggleIcon.setAttribute('src', `/assets/images/icons/${chevron}`);
+    this.#controlButtonsToggleIcon.setAttribute('src', util.assetPath(`images/icons/${chevron}`));
   };
 
   /**

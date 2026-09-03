@@ -9,31 +9,11 @@
  * fetches at init has to tolerate both.
  * Registered-user pages live in dashboard.spec.js; /explore and /validate (which need working street-view
  * imagery) are phase 2 — see explore-validate.spec.js.
+ *
+ * The page table is shared with the accessibility gate — see pages.js.
  */
 const {test, expect, loadAndSettle} = require('./fixtures');
-
-// mapbox: page builds a Mapbox map at init — stub it (see fixtures.js) so a dummy CI key can't hang init.
-// loadingOverlay: page uses the shared #page-loading overlay — wait for it to hide before the error check.
-const PAGES = [
-  // Deferred landing maps (#4486): wait until they're built so their init errors land inside the settle window.
-  {path: '/', mapbox: true, waitFor: (page) => page.waitForFunction(() => window.choropleth && window.deploymentMap)},
-  {path: '/signIn'},
-  {path: '/signUp'},
-  // /about hydrates from the Makeability Lab API (stubbed for determinism) and lazy-builds a Mapbox map.
-  {path: '/about', makeabilityLab: true, mapbox: true},
-  {path: '/leaderboard'},
-  {path: '/routes'},
-  {path: '/stories'},
-  {path: '/labelingGuide'},
-  {path: '/api'},
-  {path: '/v3/api-docs/rawLabels'},
-  {path: '/v3/api-docs/streets'},
-  {path: '/gallery', loadingOverlay: true},
-  {path: '/labelMap', mapbox: true, loadingOverlay: true},
-  {path: '/routeBuilder', mapbox: true},
-  {path: '/cities', mapbox: true},
-  {path: '/mobileLanding'},
-];
+const {PAGES} = require('./pages');
 
 for (const p of PAGES) {
   test(`${p.path} loads without console errors`, async ({page, context, consoleErrors}) => {

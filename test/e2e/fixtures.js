@@ -30,15 +30,15 @@ const CONSOLE_ERROR_ALLOWLIST = [
   // Street View imagery) emit these on every load. Enforcement policy is a backend-config concern, not the
   // page-runtime breakage this suite exists to catch.
   /report-only Content Security Policy/,
-  // The rawLabels/streets api-docs live previews pick a demo region via /v3/api/regionWithMostLabels. CI's
-  // database is the bare sidewalk_init template — no labels, so there is nothing to pick and the endpoint 404s.
-  // Three messages come out of that one 404: Chromium's own "Failed to load resource" line (matched by the URL)
-  // and the preview's two handled errors (matched by their shared phrase). The page still initializes, and
-  // against any seeded database — local dev included — none of them fire. Drop both entries when phase 2 seeds
-  // CI label data, at which point a 404 here would mean something real.
-  /regionWithMostLabels/,
-  /region with most labels/,
 ];
+
+// Without a real Google Maps key the Maps JS API refuses to initialize and says so on every page that loads it —
+// an environment fact, not page breakage, and the state on fork PRs (where the GOOGLE_MAPS_API_KEY_TEST secret is
+// withheld) and on a dev setup with no key. Conditional, because with a key configured the same message means
+// something real: a revoked key, or referrer restrictions that don't cover the host under test.
+if (process.env.HAS_REAL_GMAPS_KEY !== 'true') {
+  CONSOLE_ERROR_ALLOWLIST.push(/^console\.error: Google Maps JavaScript API error: InvalidKeyMapError/);
+}
 
 // Minimal Mapbox style the app's runtime accepts: MapboxLanguage throws unless the style has a vector source
 // based on mapbox-streets-v8, and addLayer rejects `text-field` layers (RouteBuilder's labels) unless the
@@ -91,6 +91,24 @@ async function stubMapbox(context) {
 }
 
 /**
+ * Stubs Google's Street View static-image API, the fallback for any page showing a label with no local crop.
+ *
+ * Its URL is signed with GOOGLE_MAPS_SECRET — a dummy in CI, absent from most dev setups — so the request is refused
+ * wherever this suite runs, and Chromium logs each refusal as a console error the suite reads as breakage. Scoped to
+ * the streetview endpoints so the Maps JS API (maps/api/js, which Explore genuinely needs) still goes through.
+ *
+ * @param {import('@playwright/test').BrowserContext} context - The context whose requests to intercept.
+ */
+async function stubStreetViewImages(context) {
+  // 1x1 transparent PNG, so an <img> pointed at it fires `load` rather than `error`.
+  const pixel = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+    'base64');
+  await context.route(/https:\/\/maps\.googleapis\.com\/maps\/api\/streetview(\/|\?).*/, (route) =>
+    route.fulfill({body: pixel, contentType: 'image/png'}));
+}
+
+/**
  * Stubs the Makeability Lab API that /about hydrates its team/publications/grants sections from. The empty
  * listing keeps every section on its server-rendered fallback, so the suite measures a deterministic DOM in
  * both environments — and an ML-site outage can't fail the run (Chromium logs its own console error for any
@@ -101,6 +119,25 @@ async function stubMapbox(context) {
 async function stubMakeabilityLab(context) {
   await context.route('https://makeabilitylab.cs.washington.edu/**', (route) =>
     route.fulfill({json: {results: [], next: null}}));
+}
+
+/**
+ * Stubs the neighborhood and street layers that createPSMap loads before a map's label feed.
+ *
+ * On a seeded schema those are ~7.4 MB (Seattle) that must download, parse, and reach mapbox-gl before
+ * createPSMap resolves — and only then can a label-feed assertion become true. That doesn't reliably fit the
+ * 5s default expect timeout with four workers competing at the start of a run, and CI's empty database hides
+ * it (#5081). Specs asserting feed behavior never read this data, so serving none of it costs them nothing.
+ *
+ * @param {import('@playwright/test').BrowserContext} context - The context whose requests to intercept.
+ */
+async function stubMapBaseLayers(context) {
+  const emptyGeoJson = {type: 'FeatureCollection', features: []};
+  // `*` stops at a path separator, so the /neighborhoods route can't swallow /neighborhoods/completionRate —
+  // which answers with a rate array, not GeoJSON (addNeighborhoodsToMap looks regions up in it by region_id).
+  await context.route('**/neighborhoods*', (route) => route.fulfill({json: emptyGeoJson}));
+  await context.route('**/neighborhoods/completionRate*', (route) => route.fulfill({json: []}));
+  await context.route('**/contribution/streets/all*', (route) => route.fulfill({json: emptyGeoJson}));
 }
 
 /**
@@ -230,6 +267,15 @@ async function horizontalOverflowReport(page) {
 
 const test = base.test.extend({
   /**
+   * The test's browser context, with Street View imagery already stubbed. A fixture rather than a per-page flag
+   * like `mapbox`: any page can carry a label image, and none can load one anywhere this suite runs.
+   */
+  context: async ({context}, use) => {
+    await stubStreetViewImages(context);
+    await use(context);
+  },
+
+  /**
    * Collects uncaught exceptions and non-allowlisted console errors for the test's page. Specs assert
    * `expect(consoleErrors).toEqual([])` at the end; an empty diff prints the offending messages verbatim.
    */
@@ -251,6 +297,7 @@ module.exports = {
   expect: base.expect,
   stubMapbox,
   stubMakeabilityLab,
+  stubMapBaseLayers,
   waitForAppReady,
   loadAndSettle,
   horizontalOverflowReport,

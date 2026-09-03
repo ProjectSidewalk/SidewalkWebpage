@@ -166,14 +166,21 @@ class StreetReopenCandidateSpec extends PlaySpec with GuiceOneAppPerSuite with R
 
   "deleteForNonRetiredStreets" should {
     "drop evidence about a street whose status has moved on, and keep a retired street's" in {
+      // The only case here needing two distinct streets — one to retire, one to move on. CI's schema links exactly
+      // one street to a region, so read the pair up front and cancel rather than fail on `.head` of an empty result.
+      val streetIds = run(
+        sql"""SELECT street_edge_region.street_edge_id
+              FROM street_edge_region
+              JOIN region ON street_edge_region.region_id = region.region_id
+              WHERE region.deleted = FALSE
+              ORDER BY street_edge_region.street_edge_id
+              LIMIT 2""".as[Int]
+      )
+      assume(streetIds.size == 2, "fewer than two streets in non-deleted regions; needs a seeded DB")
+      val retired = streetIds.head
+      val movedOn = streetIds(1)
+
       val (retiredSurvived, movedOnDropped) = runRolledBack(for {
-        retired <- streetInRegion
-        movedOn <- sql"""SELECT street_edge_region.street_edge_id
-                         FROM street_edge_region
-                         JOIN region ON street_edge_region.region_id = region.region_id
-                         WHERE region.deleted = FALSE AND street_edge_region.street_edge_id <> $retired
-                         ORDER BY street_edge_region.street_edge_id
-                         LIMIT 1""".as[Int].head
         _          <- setStatus(retired, "no_imagery")
         _          <- setStatus(movedOn, "no_imagery")
         _          <- candidateTable.upsertFromPoll(retired, 2, Some(capture))

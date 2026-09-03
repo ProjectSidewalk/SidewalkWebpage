@@ -2,6 +2,7 @@ package controllers.api
 
 import controllers.base.CustomControllerComponents
 import models.api.{ApiError, LabelEditDataForApi, LabelEditFiltersForApi}
+import models.label.LabelTypeEnum
 import models.utils.CommonUtils.UiSource
 import org.apache.pekko.stream.scaladsl.Source
 import play.silhouette.api.Silhouette
@@ -26,7 +27,7 @@ class LabelEditApiController @Inject() (
    *
    * @param labelId        Only edits to this label
    * @param userId         Only edits made by this user
-   * @param labelTypeId    Only edits to labels of this type
+   * @param labelType      Only edits to labels of this type, by name (e.g. "CurbRamp")
    * @param editTimestamp  Only edits made at or after this ISO 8601 timestamp
    * @param source         Only edits made in this interface (e.g. "Validate", "LabelMap", "GalleryExpanded")
    * @param withValidation true for only edits submitted with a validation, false for only standalone edits
@@ -36,7 +37,7 @@ class LabelEditApiController @Inject() (
   def getLabelEdits(
       labelId: Option[Int],
       userId: Option[String],
-      labelTypeId: Option[Int],
+      labelType: Option[String],
       editTimestamp: Option[String],
       source: Option[String],
       withValidation: Option[Boolean],
@@ -62,9 +63,12 @@ class LabelEditApiController @Inject() (
         }
     }
 
+    val parsedLabelType: Either[ApiError, Option[LabelTypeEnum.Base]] = parseLabelTypeParam(labelType)
+
     val firstError: Option[ApiError] = Seq(
       parsedTimestamp.left.toOption,
       parsedSource.left.toOption,
+      parsedLabelType.left.toOption,
       if (filetype.contains("shapefile") || filetype.contains("geojson") || filetype.contains("geopackage"))
         Some(
           ApiError.invalidParameter(
@@ -79,7 +83,7 @@ class LabelEditApiController @Inject() (
       case Some(error) => Future.successful(badRequest(error))
       case None        =>
         val filters = LabelEditFiltersForApi(
-          labelId = labelId, userId = userId, labelTypeId = labelTypeId,
+          labelId = labelId, userId = userId, labelType = parsedLabelType.toOption.flatten,
           editTimestamp = parsedTimestamp.toOption.flatten, source = parsedSource.toOption.flatten,
           withValidation = withValidation
         )

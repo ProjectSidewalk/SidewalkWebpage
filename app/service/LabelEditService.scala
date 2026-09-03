@@ -2,7 +2,7 @@ package service
 
 import com.google.inject.ImplementedBy
 import models.label._
-import models.user.{RoleTable, SidewalkUserWithRole}
+import models.user.{Role, SidewalkUserWithRole}
 import models.utils.CommonUtils.UiSource
 import models.utils.CommonUtils.UiSource.UiSource
 import models.utils.MyPostgresProfile
@@ -102,7 +102,7 @@ class LabelEditServiceImpl @Inject() (
     labelQuery.result.headOption.flatMap {
       case None        => DBIO.successful(None)
       case Some(label) =>
-        labelService.cleanTagList(tags, label.labelTypeId).flatMap { cleaned =>
+        labelService.cleanTagList(tags, label.labelType).flatMap { cleaned =>
           val cleanedTags: List[String] = cleaned.toList
           if (!changes(label, severity, cleanedTags)) DBIO.successful(Some(label))
           else {
@@ -148,7 +148,7 @@ class LabelEditServiceImpl @Inject() (
       tags: Seq[String],
       source: UiSource
   ): Future[LabelEditOutcome] = {
-    val isAdmin: Boolean = RoleTable.ADMIN_ROLES.contains(editor.role)
+    val isAdmin: Boolean = Role.ADMIN_ROLES.contains(editor.role)
     db.run(
       labelTable
         .find(labelId)
@@ -222,7 +222,7 @@ class LabelEditServiceImpl @Inject() (
       _                 <-
         if (historyCount > 1) applyEdit(labelId, label.userId, severity, tags, UiSource.Explore, None)
         else {
-          labelService.cleanTagList(tags, label.labelTypeId).flatMap { cleaned =>
+          labelService.cleanTagList(tags, label.labelType).flatMap { cleaned =>
             val cleanedTags: List[String] = cleaned.toList
             if (changes(label, severity, cleanedTags)) {
               for {
