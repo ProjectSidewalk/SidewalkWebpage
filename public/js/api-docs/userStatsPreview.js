@@ -269,6 +269,16 @@
      * @param {Array} topUsers - Array of top users data
      */
     createTopContributorsChart(container, topUsers) {
+      // No users yet is an ordinary state for a young deployment; an empty set of axes reads as a broken preview.
+      if (!topUsers.length) {
+        const emptyMsg = document.createElement('div');
+        emptyMsg.textContent = 'No user contributions yet.';
+        emptyMsg.className = 'message message-info';
+        emptyMsg.setAttribute('role', 'status');
+        container.appendChild(emptyMsg);
+        return;
+      }
+
       // Create canvas for the chart.
       const canvas = document.createElement('canvas');
       canvas.width = container.offsetWidth;
