@@ -4,6 +4,13 @@
  * trail. Operates on the same in-memory GeoJSON features the map layers draw, so paging costs no requests.
  *
  * @param {Object} mapData The map layer tracker returned by addLabelsToMap (reads .sortedLabels).
+ * @param {Object} [options]
+ * @param {function(string, Object): boolean} [options.isCandidate] Called with a label's type and GeoJSON feature
+ *     to decide whether "next" may land on it; omit to page over every loaded label. LabelMap passes the sidebar
+ *     filters here so the arrows never step onto a label the user has filtered off the map (#5124). Evaluated on
+ *     each call rather than cached, so a filter change takes effect on the very next click; call refresh() after
+ *     one so subscribers (the popup's arrow states) re-derive too. "prev" is exempt: it retraces where the user
+ *     has actually been, and the spotlight keeps that label visible whatever the filters say.
  * @returns {{next: function(number): ?number, prev: function(number): ?number, hasPrev: function(number): boolean,
  *     hasNext: function(number): boolean, getCoords: function(number): ?Array<number>,
  *     getLabelType: function(number): ?string, refresh: function(): void,
@@ -13,17 +20,20 @@
  *     re-reads .sortedLabels after a viewport refetch has swapped the loaded labels, notifying onRefresh
  *     subscribers so everything derived from the label set (e.g. the popup's arrow states) follows it.
  */
-function createNearbyLabelNavigator(mapData) {
-  // label_id -> [lng, lat] and label_id -> label type for every label on the map, flattened across types.
+function createNearbyLabelNavigator(mapData, { isCandidate = () => true } = {}) {
+  // label_id -> [lng, lat], label type, and feature for every label on the map, flattened across types.
   const coordsById = new Map();
   const typeById = new Map();
+  const featureById = new Map();
   const rebuild = () => {
     coordsById.clear();
     typeById.clear();
+    featureById.clear();
     for (const [labelType, features] of Object.entries(mapData.sortedLabels)) {
       for (const f of features) {
         coordsById.set(f.properties.label_id, f.geometry.coordinates);
         typeById.set(f.properties.label_id, labelType);
+        featureById.set(f.properties.label_id, f);
       }
     }
   };
@@ -39,6 +49,16 @@ function createNearbyLabelNavigator(mapData) {
   // which the popup already renders as "nowhere to go".
   const trail = [];         // Visited label IDs in visit order; backs prev().
   const visited = new Set(); // next() never revisits, so repeated clicks tour outward instead of ping-ponging.
+
+  /**
+   * Whether next() may land on a label: not the one being paged from, not yet toured, and passing the host's
+   * filter predicate.
+   * @param {number} id A loaded label's ID.
+   * @param {number} currentId The label being paged from.
+   * @returns {boolean}
+   */
+  const isReachable = (id, currentId) =>
+    id !== currentId && !visited.has(id) && isCandidate(typeById.get(id), featureById.get(id));
 
   /**
    * Squared equirectangular distance — plenty for ranking nearby points.
@@ -65,7 +85,7 @@ function createNearbyLabelNavigator(mapData) {
       let best = null;
       let bestD = Infinity;
       for (const [id, coords] of coordsById) {
-        if (visited.has(id)) continue;
+        if (!isReachable(id, currentId)) continue;
         const d = dist2(here, coords, kx);
         if (d < bestD) {
           bestD = d;
@@ -83,10 +103,10 @@ function createNearbyLabelNavigator(mapData) {
     },
     hasNext(currentId) {
       // Mirrors next()'s reachability without mutating state: a known current label plus at least one other
-      // unvisited label. Backs the Next button's disabled state.
+      // reachable label. Backs the Next button's disabled state.
       if (!coordsById.has(currentId)) return false;
       for (const id of coordsById.keys()) {
-        if (id !== currentId && !visited.has(id)) return true;
+        if (isReachable(id, currentId)) return true;
       }
       return false;
     },
