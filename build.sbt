@@ -91,9 +91,9 @@ Universal / mappings ++= directory(baseDirectory.value / "scripts")
 // `no-cache`) and grows `target/web` from 290MB to ~880MB in every checkout and QA worktree.
 pipelineStages := Seq(fingerprintCssAssetUrls, digest)
 
-// Points every `url(...)` in a CSS asset at the fingerprinted copy `digest` is about to write (#5094) — the last
-// category of asset URL that no interpolation point can reach, since a stylesheet is static text out of the assets
-// jar. See project/CssAssetUrls.scala, which also explains why this has to sit ahead of `digest` above.
+// Points every `url(...)` in a CSS asset at the fingerprinted copy `digest` is about to write (#5094): a stylesheet is
+// static text out of the assets jar, so no interpolation point reaches those URLs. Must precede `digest` above — see
+// project/CssAssetUrls.scala.
 val fingerprintCssAssetUrls = taskKey[Pipeline.Stage]("Rewrite CSS url(...) references to their fingerprinted names.")
 
 fingerprintCssAssetUrls := {

@@ -73,7 +73,7 @@ when a task is in its area.
   `calc(<n>px * var(--ui-scale, 1))`.
 - Assets are named by logical path, never by URL: `assets.path("…")` in Twirl and `util.assetPath('…')` in JS,
   never a hardcoded `/assets/` string (only those resolve to the fingerprinted, immutable URL; `make lint-asset-paths`
-  is the gate). CSS is the exception: a `url()` names a real file under `public/` in either form, and a build stage
+  is the gate). CSS is the exception: a `url()` names a real file under `public/`, in either form, and a build stage
   fingerprints it.
 
 ## Backend is the source of truth

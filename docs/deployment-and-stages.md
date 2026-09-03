@@ -368,27 +368,26 @@ file in a manifest family, and an interpolated one has to open with a literal fa
 (which is also why a path is built inside one template literal rather than concatenated). All necessary because
 neither half of a mistake raises anything at runtime.
 
-**CSS gets there by rewriting the stylesheet** (#5094). A stylesheet is static text out of the assets jar, with no
-interpolation point for either mechanism above, so the `fingerprintCssAssetUrls` pipeline stage
+**CSS gets there by rewriting the stylesheet** (#5094). A stylesheet offers no interpolation point for either
+mechanism above, so the `fingerprintCssAssetUrls` pipeline stage
 ([`project/CssAssetUrls.scala`](../project/CssAssetUrls.scala)) rewrites its `url(...)` targets to the `<md5>-<name>`
-form at stage time — deriving the name from the file's own bytes, which is all sbt-digest does. Both URL forms survive
-as themselves: `/assets/fonts/Mulish/Mulish-latin.woff2` stays absolute, `../images/footer.jpg` stays relative (the
-digested copy sits in the same directory as the original), and a query string or fragment rides along untouched, which
-is what keeps Bootstrap's `...eot?#iefix` glyphicons working. **Nothing has to be registered for a new reference** —
-unlike `util.assetPath`, which needs its asset's family in `assetManifestPrefixes`, the stage resolves each `url()`
-against the file itself. Just name a file that exists.
+form at stage time, deriving the name from the file's bytes as sbt-digest does. Absolute stays absolute and relative
+stays relative (the digested copy sits in the original's directory), and a query string or fragment rides along, which
+keeps Bootstrap's `...eot?#iefix` glyphicons working. **A new reference needs nothing registered**: unlike
+`util.assetPath` and its `assetManifestPrefixes`, the stage resolves each `url()` against the file itself. Just name a
+file that exists.
 
 Two things about that stage are load-bearing:
 
-- **It runs before `digest`, not after** (`pipelineStages := Seq(fingerprintCssAssetUrls, digest)`). Running first
-  folds each referenced asset's digest into the referring stylesheet's own digest, so a change to either gives the
-  stylesheet a new URL. In the other order a stylesheet's fingerprint covers only its pre-rewrite text, and swapping a
-  font would leave the CSS naming it at an unchanged, year-cached URL pointing at a path the new build doesn't contain.
-- **An unresolvable `url()` fails the build**, on the same reasoning as the asset-manifest generator: passing it
-  through means either a broken reference or an asset silently left on the one-hour cache, and neither shows up at
-  runtime. `make lint-asset-paths` applies the same rule to `public/css/` (rule 4 in
-  [`tools/check-asset-paths.mjs`](../tools/check-asset-paths.mjs)), so in practice a bad reference fails a fast CI step
-  rather than a stage build. Bundles under `public/js/*/build/` are left to the stage, which sees them on disk.
+- **It runs before `digest`** (`pipelineStages := Seq(fingerprintCssAssetUrls, digest)`), which folds each referenced
+  asset's digest into the referring stylesheet's own, so a change to either gives the stylesheet a new URL. Reversed, a
+  stylesheet's fingerprint covers only its pre-rewrite text, so swapping a font leaves the CSS naming it at an
+  unchanged, year-cached URL pointing at a path the new build lacks.
+- **An unresolvable `url()` fails the build**, like the asset-manifest generator: passing it through means a broken
+  reference or an asset silently left on the one-hour cache, neither of which shows up at runtime.
+  `make lint-asset-paths` applies the same rule to `public/css/` (rule 4 in
+  [`tools/check-asset-paths.mjs`](../tools/check-asset-paths.mjs)), so in practice this fails a fast CI step instead.
+  Bundles under `public/js/*/build/` are left to the stage, which sees them on disk.
 
 Stage/dist only: local `sbt run` serves plain paths and `no-cache` as before, so exercising the real behavior means
 staging the app and running the binary directly rather than `npm start`. That depends on `pipelineStages` in

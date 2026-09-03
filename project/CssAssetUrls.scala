@@ -9,21 +9,18 @@ import sbt._
 /**
  * An asset-pipeline stage that points every `url(...)` in a CSS asset at sbt-digest's fingerprinted copy (#5094).
  *
- * A stylesheet is static text out of the assets jar, with no interpolation point for either mechanism that
- * fingerprints everything else: `assets.path(...)` needs a Twirl template, `util.assetPath(...)` the digest map
- * `main.scala.html` stamps onto the page. Hence a build-time rewrite, on the mappings themselves.
+ * A stylesheet offers no interpolation point for either mechanism that fingerprints everything else — `assets.path`
+ * needs a Twirl template, `util.assetPath` the digest map stamped onto the page — so the rewrite happens at build
+ * time. The name comes from the file's own bytes (`<md5>-<name>`, all sbt-digest does), so nothing here coordinates
+ * with the plugin, and a relative URL stays relative because the digested copy sits in the original's directory.
  *
- * The name is derived from the file's own bytes (`<md5>-<name>`, which is all sbt-digest does), so nothing here has to
- * coordinate with the plugin. A relative URL can stay relative because the digested copy sits in the original's
- * directory.
+ * '''Order matters: this belongs before `digest` in `pipelineStages`.''' Running first folds each referenced asset's
+ * digest into the referring stylesheet's own, so a change to either gives the stylesheet a new URL. Reversed, a
+ * stylesheet's fingerprint covers only its pre-rewrite text, so swapping a font leaves the CSS naming it at an
+ * unchanged, year-cached URL pointing at a path the new build lacks.
  *
- * '''Order matters: this belongs before `digest` in `pipelineStages`.''' Running first folds every referenced asset's
- * digest into the referring stylesheet's own, so a change to either gives the stylesheet a new URL. In the other order
- * a stylesheet's fingerprint covers only its pre-rewrite text, and swapping a font leaves the CSS naming it at an
- * unchanged, year-cached URL pointing at a path the new build does not contain.
- *
- * Reference-driven rather than digest-everything-then-look-up: it hashes only the ~17 assets the CSS names, against
- * the ~976 files and 273MB `digest` itself walks.
+ * Reference-driven rather than digest-everything-then-look-up: it hashes only the ~17 assets the CSS names, not the
+ * ~976 files and 273MB `digest` walks.
  */
 object CssAssetUrls {
 

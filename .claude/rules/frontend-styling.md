@@ -20,9 +20,9 @@ Full rules: `docs/style-guide.md` (tokens, primitives, file layout, naming) and 
   `components/` for anything two pages link (prefix `ps-` or component-named); `pages/` for page-specific files,
   registered in the lint's `PAGES` map and linked only by their page; a page's class prefix lives only in its own
   stylesheet. `components/page-shell.css` is shared by the API docs and both dashboards. Never `@import`.
-- **CSS `url()` just names a real file** — absolute `/assets/…` or relative, either is fine, and there is nothing to
-  register. A build stage rewrites it to the fingerprinted name (`docs/deployment-and-stages.md` → "Asset caching").
-  A reference to a file that isn't there fails `make lint-asset-paths` and the stage build, so add the asset first.
+- **CSS `url()` just names a real file** — absolute or relative, nothing to register; a build stage rewrites it to the
+  fingerprinted name (`docs/deployment-and-stages.md` → "Asset caching"). Naming a file that isn't there fails
+  `make lint-asset-paths` and the stage build, so add the asset first.
 - **Twirl:** every asset through `assets.path("…")` (JS uses `util.assetPath('…')`), never a hardcoded `/assets/`
   string; only those resolve to the fingerprinted, immutable URL, and `make lint-asset-paths` gates the JS side. No
   inline styles or scripts; `alt` on every image; prefer `data-i18n="ns:key"`. Icons are their own files in

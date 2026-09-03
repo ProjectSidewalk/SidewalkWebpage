@@ -25,15 +25,14 @@
 //
 // == public/css/ ==
 // A stylesheet takes the other route: the `fingerprintCssAssetUrls` stage (project/CssAssetUrls.scala) rewrites its
-// `url(...)` targets at stage time, resolving each against the file itself rather than a manifest. So either URL form
-// is fine and nothing needs registering, and the stage's one requirement is the one rule here:
+// `url(...)` targets at stage time, resolving each against the file itself rather than a manifest — so either URL form
+// is fine, nothing needs registering, and the stage's one requirement is the one rule here:
 //
 //   4. Every `url(...)` that names a file (not a data: payload, another origin, or a same-document fragment) resolves
-//      to something real under public/ — reported against the line that wrote it, seconds into CI, rather than midway
-//      through a stage build.
+//      to something real under public/ — caught here, seconds into CI, rather than midway through a stage build.
 //
-// Bundles under public/js/*/build/ are left to the stage, which sees them on disk: checking them here would report a
-// concatenated copy of a problem already reported against its source.
+// Bundles under public/js/*/build/ are left to the stage: checking them here would report a concatenated copy of a
+// problem already reported against its source.
 //
 // Exits non-zero with the offending files listed, so it can gate CI.
 
