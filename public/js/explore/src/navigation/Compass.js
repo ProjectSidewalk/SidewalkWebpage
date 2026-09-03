@@ -225,8 +225,8 @@ class Compass {
 
     const image = `<img src="${this.directionToImagePath(direction)}" class="compass-turn-images" alt="Turn icon"/>`;
     const message
-            = `<div class="compass-message-small">${i18next.t('center-ui.compass.unlabeled-problems')}</div>`
-              + `${image}<span class="compass-message-large">${this.#directionToDirectionMessage(direction)}</span>`;
+      = `<div class="compass-message-small">${i18next.t('center-ui.compass.unlabeled-problems')}</div>`
+        + `${image}<span class="compass-message-large">${this.#directionToDirectionMessage(direction)}</span>`;
     this.#uiCompass.message.html(message);
   }
 
