@@ -185,9 +185,9 @@ INNER JOIN label_validation
 restarts — so mid-rollout an already-updated instance can query a schema that hasn't applied the new evolution yet. The
 missing relation fails that city's whole query, and the service layer's `.recover` then drops the city from the
 aggregate surfaces silently. Two ways to handle it: ship the evolution one release ahead of the code that reads it, or
-add a `to_regclass` existence probe that skips the new table's arm (`ConfigTable.schemaHasVoidedValidationArchive` does
-this for 354) **plus a tracking issue to delete the probe once the release has reached every server** — without the
-issue, the temporary guard becomes permanent.
+add a `to_regclass` existence probe that picks the SQL matching whichever shape the other schema currently has
+(`ConfigTable.schemaHasLabelTypeEnum` does this for 373) **plus a tracking issue to delete the probe once the release
+has reached every server** — without the issue, the temporary guard becomes permanent.
 
 ### Writing the release notes
 

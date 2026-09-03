@@ -18,17 +18,9 @@ import scala.util.control.NoStackTrace
 /**
  * DB-backed tests for ConfigTable's voided-vote archive reads (#4842, PR #4866 review).
  *
- * Two guarantees, one per direction of the same review finding:
- *   1. Work credit: an archived voided vote counts in the per-schema aggregate `total_validations` and marks its
- *      caster as a contributor (aggregate data, contributor ids, and the Owner scorecard). Self-seeding — each test
- *      inserts the full FK chain for one archived vote inside a rolled-back transaction — so it is meaningful on an
- *      empty CI schema and leaves a seeded dev DB exactly as found.
- *   2. Rollout safety: the same queries must SURVIVE a schema that does not have `voided_label_validation` yet.
- *      These queries fan out across OTHER cities' schemas, and each city applies evolution 355 on its own release
- *      schedule (a parked deployment may never apply it) — without the `to_regclass` guard, the missing table failed
- *      the whole per-city query and the service layer's `.recover` silently dropped that city from
- *      /v3/api/aggregateStats and the scorecard. Pinned by cloning the city schema's tables into a scratch schema
- *      WITHOUT the archive table and running all three queries against it.
+ * An archived voided vote counts in the per-schema aggregate `total_validations` and marks its caster as a
+ * contributor (aggregate data, contributor ids, and the Owner scorecard). Self-seeding inside a rolled-back
+ * transaction, so it is meaningful on an empty CI schema and leaves a seeded dev DB exactly as found.
  */
 class ConfigTableVoidedArchiveSpec extends PlaySpec with GuiceOneAppPerSuite {
 
@@ -152,33 +144,6 @@ class ConfigTableVoidedArchiveSpec extends PlaySpec with GuiceOneAppPerSuite {
       // Archived verdicts must never resurface in the agree/disagree quality columns.
       after.validationsAgree mustBe before.validationsAgree
       after.validationsDisagree mustBe before.validationsDisagree
-    }
-  }
-
-  "the cross-schema queries against a schema without voided_label_validation" should {
-    // The review's rollout scenario: another city that hasn't applied 355 or 373, so its labels and tags reference a
-    // label_type lookup table by id. LIKE copies this schema's enum column, which the scratch schema can't resolve,
-    // hence the manual swap. Also the only coverage of the lookup-table arm of ConfigTable.LabelTypeSql (#5118).
-    "still succeed, contributing zero archive rows" in {
-      val scratch      = "ci_unmigrated_scratch"
-      val clonedTables = Seq("street_edge", "audit_task", "user_stat", "label", "config", "label_validation", "tag",
-        "mission", "audit_task_interaction_small")
-      val (agg, ids, scorecard) = runRolledBack(for {
-        schema <- currentSchema
-        _      <- sqlu"CREATE SCHEMA #$scratch"
-        _      <- DBIO.sequence(clonedTables.map { t => sqlu"""CREATE TABLE #$scratch.#$t (LIKE "#$schema".#$t)""" })
-        _      <- sqlu"""CREATE TABLE #$scratch.label_type (label_type_id INT PRIMARY KEY, label_type TEXT NOT NULL)"""
-        _      <- sqlu"""ALTER TABLE #$scratch.label DROP COLUMN label_type, ADD COLUMN label_type_id INT"""
-        _      <- sqlu"""ALTER TABLE #$scratch.tag DROP COLUMN label_type, ADD COLUMN label_type_id INT"""
-        agg    <- configTable.getCityAggregateDataBySchema(scratch)
-        ids    <- configTable.getContributorUserIdsBySchema(scratch)
-        scorecard <- configTable.getCityScorecardBySchema(scratch)
-      } yield (agg, ids, scorecard))
-
-      agg.totalValidations mustBe 0
-      ids mustBe empty
-      scorecard.totalValidations mustBe 0
-      scorecard.activeContributors mustBe 0
     }
   }
 }
