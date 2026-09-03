@@ -204,6 +204,16 @@ class PopupPanoManager {
   }
 
   /**
+   * Starts building the primary viewer now, if it doesn't exist yet, so that work overlaps the label's metadata
+   * fetch instead of queueing behind it. Call once the host has shown the popup and knows a label is coming: this is
+   * the billable step, so it must not run for a visitor who merely loaded the page. Never rejects — setPano() makes
+   * the real attempt and owns the fallback.
+   */
+  warmUp() {
+    this.#ensureViewer().catch(() => {});
+  }
+
+  /**
    * Clears all labels from the panorama.
    */
   clearLabels() {

@@ -550,6 +550,9 @@ class LabelDetail {
       return idOrMeta;
     }
 
+    // The viewer's build (its first time) and this label's fetch are independent; run them side by side so a first
+    // open pays for the longer of the two rather than their sum.
+    this.panoManager.warmUp();
     const labelId = idOrMeta;
     const url = this.#admin ? `/adminapi/label/id/${labelId}` : `/label/id/${labelId}`;
     const response = await fetch(url, { method: 'GET', headers: { 'Content-Type': 'application/json' } });
