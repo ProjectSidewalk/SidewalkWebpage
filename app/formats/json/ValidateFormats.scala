@@ -225,7 +225,9 @@ object ValidateFormats {
       (JsPath \ "label_type").readNullable[LabelTypeEnum.Base] and
       (JsPath \ "user_ids").readNullable[Seq[String]] and
       (JsPath \ "neighborhood_ids").readNullable[Seq[Int]] and
-      (JsPath \ "unvalidated_only").read[Boolean]
+      (JsPath \ "unvalidated_only").read[Boolean] and
+      // A tab opened before this field existed still posts without it, and the crowd queue is what it was getting.
+      (JsPath \ "triage").readWithDefault[Boolean](false)
   )(ValidateParams.apply _)
 
   implicit val validationTaskSubmissionReads: Reads[ValidationTaskSubmission] = (

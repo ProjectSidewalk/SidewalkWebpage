@@ -270,7 +270,8 @@
         labelType: @Html(validateParams.labelType.map(lt => s"'${lt.name}'").getOrElse("null")),
         userIds: @Html(validateParams.userIds.map(_.mkString("['", "','", "']")).getOrElse("null")),
         regionIds: @Html(validateParams.neighborhoodIds.map(_.mkString("[", ",", "]")).getOrElse("null")),
-        unvalidatedOnly: @validateParams.unvalidatedOnly
+        unvalidatedOnly: @validateParams.unvalidatedOnly,
+        triage: @validateParams.triage
       }
       param.tagList = @jsonForScript(JsArray(validatePageData.tagList.map(t => Json.toJson(t))));
 
