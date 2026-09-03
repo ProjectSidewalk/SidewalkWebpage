@@ -5,9 +5,8 @@
 #     make npm-sync                    # from the host; `make dev` also runs this
 #     bash /home/tools/npm-sync.sh     # from inside the container shell
 #
-# Nothing else in the dev loop installs -- `npm start` only runs grunt and sbt -- and node_modules is a named volume
-# that no longer re-seeds from a rebuilt image, so without this a merged dependency bump would reach a developer only
-# when they happened to rebuild, leaving them linting against a different toolchain than CI.
+# Nothing else in the dev loop installs: `npm start` only runs grunt and sbt, and the named node_modules volume is
+# not refreshed by rebuilding the image.
 #
 set -euo pipefail
 

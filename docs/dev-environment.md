@@ -154,10 +154,7 @@ npm start         # (inside that shell) build assets + run the app
 
 Then visit http://localhost:9000. To stop everything: `make docker-stop`.
 
-`make dev` also keeps `node_modules` in step with `package-lock.json`, reinstalling only when the two have diverged
-(a few seconds, and nothing at all on a normal day). That matters because `node_modules` lives in a Docker volume
-rather than your checkout, and `npm start` never installs anything — so without this, a merged dependency bump would
-reach you only when you happened to rebuild the image, and you'd be linting against a different toolchain than CI.
+`make dev` also keeps `node_modules` in step with `package-lock.json`, reinstalling only when the two have diverged.
 See [npm dependencies](#npm-dependencies).
 
 Other handy targets:
@@ -269,14 +266,12 @@ runs `npm ci`, which installs it exactly and refuses to run if it disagrees with
 and every required check share one toolchain.
 
 To add or change a dependency, edit `package.json`, run `npm install` inside the container, and **commit the
-resulting `package-lock.json` alongside it**. Don't hand-edit the lockfile. Dependabot's monthly npm PRs now carry a
-lockfile diff too; nothing about reviewing them changes.
+resulting `package-lock.json` alongside it**. Don't hand-edit the lockfile.
 
 `node_modules` isn't in your checkout. The bind mount would otherwise lay your host's copy — built for your host's
-OS and architecture — over the container's, so `docker-compose.yml` mounts a named volume over it. That volume
-outlives the container, which is what lets `make dev` skip the install when nothing has changed, but it also means a
-rebuilt image no longer refreshes it on its own. `make dev` (or `make npm-sync`) is the thing that does, comparing a
-hash of the lockfile against a stamp written at install time. To start completely clean:
+OS and architecture — over the container's, so `docker-compose.yml` mounts a named volume over it. The volume
+outlives the container and so isn't refreshed by rebuilding the image; `make dev` and `make npm-sync` are what
+refresh it, comparing a hash of the lockfile against a stamp written at install time. To start completely clean:
 
 ```bash
 make docker-stop

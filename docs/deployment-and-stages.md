@@ -267,9 +267,7 @@ A deploy builds the app essentially the same way you do locally, in this order:
    system Python (3.8), which is why `requirements.txt` stays pinned to 3.8-installable versions (#4396). The
    out-of-band utilities are **not** deployed: `requirements-offline-tools.txt` needs ≥ 3.11 and is installed by hand
    into the 3.13 on whichever user account runs those scripts.
-2. `npm install`, then **Grunt** to concatenate/build the frontend bundles. With `package-lock.json` committed
-   (#5152) this installs the pinned tree rather than re-resolving, so a deploy builds the same dependencies CI
-   tested; the deploy script itself lives on the server, so switching it to `npm ci` is a separate change.
+2. `npm install`, then **Grunt** to concatenate/build the frontend bundles.
 3. **sbt** `clean stage` to compile the Scala/Play backend into a runnable package. This also bundles the `scripts/`
    directory into the staged app (via `Universal / mappings` in `build.sbt`) so the in-band `label_clustering.py` is
    present at runtime — the staged app runs from the stage dir, not the repo root, so an unbundled script can't be found.

@@ -75,8 +75,7 @@ jobs:
           node-version: '24'
           cache: npm
 
-      # Not `npm install`: every rule that makes this job a blocking gate lives in a package whose version it would
-      # re-resolve per run, so an upstream release could redden the required check on every open PR at once (#5152).
+      # Not `npm install`: it would re-resolve the versions behind every blocking gate in this job on each run (#5152).
       - name: Install dependencies
         run: npm ci
 
