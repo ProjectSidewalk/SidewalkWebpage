@@ -94,7 +94,6 @@ project/.sbtserver.lock
 
 # JavaScript and Node
 public/js/explore/build/*
-public/js/help/build/*
 public/js/user-dashboard/build/*
 public/js/validate/build/*
 public/js/gallery/build/*

@@ -16,7 +16,7 @@ object LabelFormats {
       (__ \ "mission_id").write[Int] and
       (__ \ "user_id").write[String] and
       (__ \ "pano_id").write[String] and
-      (__ \ "label_type_id").write[Int] and
+      (__ \ "label_type").write[LabelTypeEnum.Base] and
       (__ \ "deleted").write[Boolean] and
       (__ \ "temporary_label_id").write[Int] and
       (__ \ "time_created").write[OffsetDateTime] and
@@ -42,26 +42,14 @@ object LabelFormats {
       (__ \ "y").write[Int]
   )(unlift(LocationXY.unapply))
 
-  implicit val labelTypeReads: Reads[LabelTypeEnum.Base] = Reads { json =>
-    val errorSubstring =
-      s"Valid types are: ${LabelTypeEnum.primaryLabelTypes.mkString(", ")}. Or you can use their IDs: ${LabelTypeEnum.primaryLabelTypeIds.mkString(", ")}."
-
-    // Try parsing as either the ID number as an int, or the name as a String.
-    json match {
-      case JsString(value) =>
-        LabelTypeEnum.byName.get(value) match {
-          case Some(labelType) => JsSuccess(labelType)
-          case None            => JsError(s"Invalid LabelType name: $value. $errorSubstring")
-        }
-      case JsNumber(value) =>
-        val intValue = value.toInt
-        LabelTypeEnum.byId.get(intValue) match {
-          case Some(labelType) => JsSuccess(labelType)
-          case None            => JsError(s"Invalid LabelType ID: $intValue. $errorSubstring")
-        }
-      case _ =>
-        JsError(s"Expected a string or integer. $errorSubstring")
-    }
+  implicit val labelTypeReads: Reads[LabelTypeEnum.Base] = Reads {
+    case JsString(value) =>
+      LabelTypeEnum.byName.get(value) match {
+        case Some(labelType) => JsSuccess(labelType)
+        case None            =>
+          JsError(s"Invalid LabelType name: $value. Valid types are: ${LabelTypeEnum.orderedNames.mkString(", ")}.")
+      }
+    case _ => JsError(s"Expected a label type name. Valid types are: ${LabelTypeEnum.orderedNames.mkString(", ")}.")
   }
 
   implicit val labelMetadataWrites: Writes[LabelMetadata] = Writes { m =>
@@ -266,7 +254,7 @@ object LabelFormats {
 
   implicit val tagWrites: Writes[Tag] = (
     (__ \ "tag_id").write[Int] and
-      (__ \ "label_type_id").write[Int] and
+      (__ \ "label_type").write[LabelTypeEnum.Base] and
       (__ \ "tag_name").write[String] and
       (__ \ "mutually_exclusive_with").writeNullable[String]
   )(unlift(Tag.unapply))
@@ -340,7 +328,7 @@ object LabelFormats {
       "panoHeight"    -> label.panoHeight,
       "tagIds"        -> label.labelData.tags.flatMap { t =>
         allTags
-          .filter(at => at.tag == t && at.labelTypeId == LabelTypeEnum.labelTypeToId(label.labelType))
+          .filter(at => at.tag == t && at.labelType.name == label.labelType)
           .map(_.tagId)
           .headOption
       },

@@ -35,6 +35,7 @@ describe('LabelPopup paging state', () => {
     let popup;
     let mapData;
     let nav;
+    let hiddenByFilters;
     let prevBtn;
     let nextBtn;
 
@@ -56,8 +57,12 @@ describe('LabelPopup paging state', () => {
         (0, eval)(fs.readFileSync(POPUP_PATH, 'utf8')); // Declares LabelPopup globally.
 
         // The navigator is created over the map's label set, which is still empty while the viewport data loads.
+        // The predicate stands in for LabelMap's sidebar filters (#5124).
         mapData = { sortedLabels: {} };
-        nav = global.createNearbyLabelNavigator(mapData);
+        hiddenByFilters = new Set();
+        nav = global.createNearbyLabelNavigator(mapData, {
+            isCandidate: (labelType, feature) => !hiddenByFilters.has(feature.properties.label_id),
+        });
         popup = await global.LabelPopup(false, null, null, null, {});
         popup.setNearbyNavigator(nav);
         prevBtn = document.querySelector('.label-detail__paging--prev');
@@ -111,5 +116,32 @@ describe('LabelPopup paging state', () => {
         landViewportData({ CurbRamp: [feature(2, 0.001, 0)] });
 
         expect(prevBtn.disabled).toBe(false);
+    });
+
+    test('Next disables on the host\'s nav.filtersChanged() after a filter hides the only neighbor', async () => {
+        await popup.showLabel(1, 'LabelMap');
+        landViewportData(TWO_LABELS);
+        expect(nextBtn.disabled).toBe(false);
+
+        // The user unchecks the neighbor's label type; LabelMap's sidebar onChange handler reports it.
+        hiddenByFilters.add(2);
+        nav.filtersChanged();
+
+        expect(nextBtn.disabled).toBe(true);
+    });
+
+    test('the arrows reflect the newly shown label before its metadata fetch resolves', async () => {
+        await popup.showLabel(1, 'LabelMap');
+        landViewportData(TWO_LABELS);
+        expect(nextBtn.disabled).toBe(false);
+
+        // Rebuild the popup over a label fetch that never settles, so the pre-await state is observable.
+        global.LabelDetail.create = async () => ({ showLabel: () => new Promise(() => {}) });
+        const pending = await global.LabelPopup(false, null, null, null, {});
+        pending.setNearbyNavigator(nav);
+        hiddenByFilters.add(1); // From label 2, the only other label (1) is filtered out: nowhere to go.
+        pending.showLabel(2, 'LabelMap');
+
+        expect(nextBtn.disabled).toBe(true);
     });
 });

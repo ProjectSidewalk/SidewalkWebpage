@@ -22,12 +22,6 @@ module.exports = function (grunt) {
         ],
         dest: 'public/js/explore/build/explore.js'
       },
-      dist_help: {
-        src: [
-          'public/js/help/src/*.js'
-        ],
-        dest: 'public/js/help/build/help.js'
-      },
       dist_validate: {
         src: [
           'public/js/common/aiLabelIndicator.js',
@@ -105,6 +99,7 @@ module.exports = function (grunt) {
         src: [
           'public/js/common/Toast.js',
           'public/js/common/ConfirmDialog.js',
+          'public/js/common/mapboxSearchBoxA11y.js',
           'public/js/route-builder/src/*.js'
         ],
         dest: 'public/js/route-builder/build/route-builder.js'
@@ -196,7 +191,6 @@ module.exports = function (grunt) {
           'public/js/explore/src/*.js',
           'public/js/explore/src/**/*.js',
           'public/css/pages/explore/*.css',
-          'public/js/help/src/*.js',
           'public/js/validate/src/*.js',
           'public/js/validate/src/**/*.js',
           'public/css/pages/validate/*.css',

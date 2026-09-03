@@ -1,6 +1,6 @@
 @import models.audit.AuditTaskComment
 @import models.pano.PanoSource
-@import models.user.{RoleTable, SidewalkUserWithRole, Team}
+@import models.user.{Role, SidewalkUserWithRole, Team}
 @import play.api.Configuration
 @import service.{AdminUserProfileData, CommonPageData}
 @(commonData: CommonPageData, viewer: SidewalkUserWithRole, user: SidewalkUserWithRole, adminData: AdminUserProfileData,
@@ -15,9 +15,9 @@
 *@
 
 @isInfra3d = @{commonData.imagerySource == PanoSource.Infra3d}
-@roleLocked = @{!RoleTable.ADMIN_ASSIGNABLE_ROLES.contains(user.role)}
-@isOwner = @{user.role == "Owner"}
-@qualityLocked = @{isOwner || (user.role == "Administrator" && viewer.role != "Owner")}
+@roleLocked = @{!Role.ADMIN_ASSIGNABLE_ROLES.contains(user.role)}
+@isOwner = @{user.role == Role.Owner}
+@qualityLocked = @{isOwner || (user.role == Role.Administrator && viewer.role != Role.Owner)}
 @qualityWord(high: Boolean) = @{if (high) "High" else "Low"}
 @selectedIf(cond: Boolean) = @{if (cond) Html("selected") else Html("")}
 @disabledIf(cond: Boolean) = @{if (cond) Html("disabled") else Html("")}
@@ -58,7 +58,7 @@
           @if(roleLocked) {
             <option value="@user.role" selected>@user.role</option>
           } else {
-            @for(r <- RoleTable.ADMIN_ASSIGNABLE_ROLES) {
+            @for(r <- Role.ADMIN_ASSIGNABLE_ROLES) {
               <option value="@r" @selectedIf(r==user.role)>@r</option>
             }
           }

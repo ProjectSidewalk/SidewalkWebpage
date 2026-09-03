@@ -256,7 +256,6 @@ class ApiServiceImpl @Inject() (
   def getLabelTypes(lang: Lang): Set[LabelTypeForApi] = {
     LabelTypeEnum.values.map { labelType =>
       LabelTypeForApi(
-        id = labelType.id,
         name = labelType.name,
         displayName = messagesApi(labelType.nameKey)(lang),
         description = messagesApi(labelType.descriptionKey)(lang),
@@ -365,9 +364,8 @@ class ApiServiceImpl @Inject() (
       // Turn each cluster into a Cluster object.
       clusterObjs: Seq[Cluster] =
         clusters.zip(streetIds).map { case (cluster, streetId) =>
-          val labelTypeId: Int = LabelTypeEnum.labelTypeToId(cluster.labelType)
-          val geom             = gf.createPoint(new Coordinate(cluster.lng, cluster.lat))
-          Cluster(0, sessionId, labelTypeId, streetId, geom, cluster.severity)
+          val geom = gf.createPoint(new Coordinate(cluster.lng, cluster.lat))
+          Cluster(0, sessionId, LabelTypeEnum.withName(cluster.labelType), streetId, geom, cluster.severity)
         }
 
       // Bulk insert clusters and return their newly created IDs in the same order.

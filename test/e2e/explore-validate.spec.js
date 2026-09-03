@@ -1,34 +1,30 @@
 /**
  * Phase-2 smoke tests (issue #4504): /explore and /validate, the two pages built around the Street View
- * viewer. They run only when a real referrer/API-restricted Google Maps key is configured
- * (GOOGLE_MAPS_API_KEY_TEST secret → HAS_REAL_GMAPS_KEY=true in ci.yml): with a dummy key
- * google.maps.importLibrary fails and Explore's PanoManager reloads the page in a loop, so nothing
- * meaningful can be asserted. The secret is withheld on fork PRs, where everything here self-skips.
- * Run locally against the dev app (which serves its own real key) with:
- *   HAS_REAL_GMAPS_KEY=true make test-e2e args="-g 'explore|validate'"
+ * viewer, plus /mobile. They run against the local Google Maps stub (test/e2e/fixtures/google-maps-stub.js),
+ * installed on every context by fixtures.js — so no key is needed, nothing reaches Google, and nothing is
+ * billed (#5129). Locally: `make test-e2e args="-g 'explore|validate|mobile'"`.
  *
- * /explore: a fresh anonymous user always starts the audit TUTORIAL, deterministically, in every
- * environment. Tutorial panorama tiles are local assets (/assets/images/pano-tutorial/), so no live GSV
- * imagery is fetched — the key is needed only to load the Maps JS API itself. CI seeds the one region this
- * requires (test/e2e/fixtures/ci-seed.sql); with zero regions /explore is a server error.
+ * /explore: a fresh anonymous user always starts the audit TUTORIAL, deterministically, in every environment.
+ * Its panos are custom (registerPanoProvider) and its tiles local assets, so the stub's panorama serves it the
+ * way the real one does. CI seeds the one region it requires (test/e2e/fixtures/ci-seed.sql); with zero regions
+ * /explore is a server error.
  *
- * /validate has two legitimate terminal states, both asserted error-free: a mission loads (any seeded DB,
- * local dev included), or the "no new mission" modal shows (CI's empty city — the server only wires up a
- * mission when >= 10 validatable labels of one type exist). Making CI exercise the mission path needs a
- * label seed with live or backed-up panos plus a real GOOGLE_MAPS_SECRET for the metadata check — tracked
- * as a later phase in test/e2e/README.md.
+ * /validate has two legitimate terminal states, both asserted error-free: a mission loads, or the "no new
+ * mission" modal shows (a mission needs >= 10 validatable labels of one type). CI takes the mission branch, on
+ * ci-seed.sql's seventeen CurbRamps. No GOOGLE_MAPS_SECRET is involved in getting there: the seeded panoramas are
+ * expired, so the server-side imagery check never asks a provider — it answers from the backup images on disk
+ * (install-media.sh). Which viewer then renders is the stub's call, and both of production's answers are covered:
+ * by default the stub answers ZERO_RESULTS for a pano it has never seen, as Google does for an expired one, so the
+ * page falls back to Pannellum and the committed backup; with `serveAnyPano` it resolves every id, as Google does
+ * for a panorama our own metadata check has retired, and the primary viewer renders. A mission that renders no
+ * panorama at all is the #4810 failure either way.
  *
  * /mobile is the same tool under a phone UA (the server redirects a desktop one to /), loaded in both
- * orientations — landscape is the case #4891 is about. Load-only, like the rest of the suite: the terminal
- * state and the console, no pano interaction.
+ * orientations with the layout viewport pinned to the device width (#4891).
+ *
+ * Both are landing-state checks: the page reaches its ready state and the console, no pano interaction.
  */
-const {devices} = require('@playwright/test');
-const {test, expect, stubMapbox, waitForAppReady} = require('./fixtures');
-
-test.skip(
-  process.env.HAS_REAL_GMAPS_KEY !== 'true',
-  'Needs a real Google Maps key (GOOGLE_MAPS_API_KEY_TEST secret; set HAS_REAL_GMAPS_KEY=true locally)',
-);
+const {test, expect, stubMapbox, serveAnyPano, waitForAppReady, PHONE_DEVICE} = require('./fixtures');
 
 test('/explore loads the tutorial without console errors', async ({page, context, consoleErrors}) => {
   // Explore's mission-complete map is Mapbox, built at init — stubbed like every other map page.
@@ -50,38 +46,74 @@ test('/explore loads the tutorial without console errors', async ({page, context
   expect(consoleErrors).toEqual([]);
 });
 
-test('/validate reaches a mission or the no-mission modal without console errors', async ({page, consoleErrors}) => {
-  const response = await page.goto('/validate');
-  expect(response.status(), `/validate responded ${response.status()}`).toBeLessThan(400);
-  await waitForAppReady(page);
-  await waitForValidateTerminalState(page);
-  await page.waitForTimeout(1000);
+test('/validate falls back to Pannellum and the backup image for an expired pano', async ({page, consoleErrors}) => {
+  const onMission = await loadValidate(page, '/validate');
   expect(consoleErrors).toEqual([]);
+  if (onMission) await expectPanoRendered(page, '/validate', 'pannellum');
+});
+
+test('/validate renders the primary viewer when the pano is still served', async ({page, context, consoleErrors}) => {
+  await serveAnyPano(context);
+  const onMission = await loadValidate(page, '/validate');
+  expect(consoleErrors).toEqual([]);
+  if (onMission) await expectPanoRendered(page, '/validate', 'gsv');
 });
 
 /**
- * Waits for Validate to settle into either of its two legitimate end states. Terminal state is
- * path-dependent: the mission path hides #page-loading (visibility, not display); the no-mission path leaves
- * it up and un-hides the modal holder instead. Callers let the console assertion judge whichever ran.
- * @param {import('@playwright/test').Page} page The page under test.
+ * Loads `/validate` or `/mobile` and settles it.
+ * @param {import('@playwright/test').Page} page The test's page.
+ * @param {string} path The page to load.
+ * @returns {Promise<boolean>} True on the mission path, false on the no-mission modal.
  */
-function waitForValidateTerminalState(page) {
-  return page.waitForFunction(() => {
+async function loadValidate(page, path) {
+  const response = await page.goto(path);
+  expect(response.status(), `${path} responded ${response.status()}`).toBeLessThan(400);
+  await waitForAppReady(page);
+  const onMission = await waitForValidateTerminalState(page);
+  await page.waitForTimeout(1000);
+  return onMission;
+}
+
+/**
+ * Asserts that a mission's imagery rendered and that the expected viewer rendered it. #4810 drops a label whose
+ * imagery won't load silently and by design, so an empty pano area would otherwise look like a healthy one; and
+ * the stub decides which viewer can succeed (see the header), so the wrong one means the fallback chain took a
+ * path it shouldn't have. Callers skip this on the no-mission modal, which has nothing to render.
+ * @param {import('@playwright/test').Page} page The page under test, settled on the mission path.
+ * @param {string} path The page's path, for the failure message.
+ * @param {'gsv'|'pannellum'} viewerType The PanoViewer.viewerType expected to have rendered the pano.
+ */
+async function expectPanoRendered(page, path, viewerType) {
+  const state = await page.evaluate(() => ({
+    panoLoaded: window.svv?.panoManager?.getProperty('panoLoaded'),
+    viewerType: window.svv?.panoViewer?.viewerType,
+  }));
+  expect(state.panoLoaded, `${path} assigned a mission but rendered no panorama`).toBe(true);
+  expect(state.viewerType, `${path} rendered its panorama with the wrong viewer`).toBe(viewerType);
+}
+
+/**
+ * Waits for Validate to settle into either of its two legitimate end states. Terminal state is
+ * path-dependent: the mission path hides #page-loading (visibility, not display); the no-mission path un-hides the
+ * modal holder instead — and may hide the overlay too, when a mission was assigned but every label's imagery failed
+ * (#4810), so the modal is checked first. Callers let the console assertion judge whichever ran.
+ * @param {import('@playwright/test').Page} page The page under test.
+ * @returns {Promise<boolean>} True if it settled on the mission path, false on the no-mission modal.
+ */
+async function waitForValidateTerminalState(page) {
+  const handle = await page.waitForFunction(() => {
     const loading = document.querySelector('#page-loading');
     const missionUiReady = loading && getComputedStyle(loading).visibility === 'hidden';
     const modal = document.querySelector('#modal-mission-holder');
     const noMissionShown = modal && !modal.classList.contains('ps-hidden');
-    return missionUiReady || noMissionShown;
+    return noMissionShown ? 'no-mission' : (missionUiReady ? 'mission' : false);
   });
+  return (await handle.jsonValue()) === 'mission';
 }
 
-// A phone's UA, viewport, pixel ratio, and touch support. The descriptor's own defaultBrowserType is dropped:
-// choosing a browser per describe would force a new worker, and the suite runs the one Chromium project anyway.
-const IPHONE = {...devices['iPhone 13']};
-delete IPHONE.defaultBrowserType;
-
 test.describe('/mobile', () => {
-  test.use(IPHONE);
+  // The suite's one phone profile, so a change of reference phone moves /mobile and the viewport specs together.
+  test.use(PHONE_DEVICE);
 
   /**
    * Loads /mobile at whatever viewport the enclosing describe set and asserts it reached a terminal state
@@ -92,13 +124,13 @@ test.describe('/mobile', () => {
    * @param {number} expectedWidth The layout viewport width the page must report, in CSS px.
    */
   async function loadMobileValidate(page, consoleErrors, expectedWidth) {
-    const response = await page.goto('/mobile');
-    expect(response.status(), `/mobile responded ${response.status()}`).toBeLessThan(400);
-    await waitForAppReady(page);
-    await waitForValidateTerminalState(page);
-    await page.waitForTimeout(1000);
+    const onMission = await loadValidate(page, '/mobile');
     expect(await page.evaluate(() => document.documentElement.clientWidth)).toBe(expectedWidth);
     expect(consoleErrors).toEqual([]);
+    // Same #4810 check the desktop test makes: /mobile shares LabelContainer#loadPanoForCurrentLabel and has no
+    // separate guard, so without this an empty pano area passes in both orientations. Expired-pano path only: the
+    // primary-viewer path doesn't differ by viewport, and the desktop test has it.
+    if (onMission) await expectPanoRendered(page, '/mobile', 'pannellum');
   }
 
   test('loads in portrait without console errors', async ({page, consoleErrors}) => {

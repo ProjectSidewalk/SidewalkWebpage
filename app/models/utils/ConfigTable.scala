@@ -152,13 +152,76 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
     sql"""SELECT to_regclass('"#$schema".voided_label_validation') IS NOT NULL""".as[Boolean].head
 
   /**
+   * Whether the schema has replaced its label_type lookup table with the label_type enum (373.sql). Same rolling-
+   * release hazard as schemaHasVoidedValidationArchive: until every deployment is past 373, the fan-out SQL below has
+   * to read whichever shape the other city's schema currently has, or that city silently drops out of the aggregate
+   * surfaces. The lookup table's absence is the signal, since 373 drops it in the same transaction that types the
+   * columns. Delete this probe and the lookup-table arms of LabelTypeSql once the release is on every server (#5118).
+   *
+   * @param schema The database schema to probe.
+   * @return       DBIO yielding true when the schema is on the enum shape.
+   */
+  private def schemaHasLabelTypeEnum(schema: String): DBIO[Boolean] =
+    if (schemasOnLabelTypeEnum.contains(schema)) DBIO.successful(true)
+    else
+      sql"""SELECT to_regclass('"#$schema".label_type') IS NULL""".as[Boolean].head.map { hasEnum =>
+        if (hasEnum) schemasOnLabelTypeEnum.add(schema)
+        hasEnum
+      }
+
+  // Only the enum answer is remembered: a schema never leaves the enum (outside a dev revert, cleared by a restart),
+  // while a "not yet" is re-asked so a city's migration is picked up without a redeploy. Saves four probes per city
+  // per dashboard load.
+  private val schemasOnLabelTypeEnum = java.util.concurrent.ConcurrentHashMap.newKeySet[String]()
+
+  /**
+   * SQL fragments for reading a label's type in another city's schema, in whichever of the two shapes it has (see
+   * schemaHasLabelTypeEnum).
+   *
+   * @param schema  The database schema being queried.
+   * @param hasEnum Whether that schema is past 373.
+   */
+  private case class LabelTypeSql(schema: String, hasEnum: Boolean) {
+
+    /** Joins the lookup table onto `label`; nothing to join on the enum shape. */
+    val join: String =
+      if (hasEnum) ""
+      else s"""INNER JOIN "$schema".label_type ON label.label_type_id = label_type.label_type_id"""
+
+    /** The label's type name as text, for SELECT, GROUP BY and ORDER BY. */
+    val name: String = if (hasEnum) "label.label_type::text" else "label_type.label_type"
+
+    /** A row source listing every label type as `lt.label_type`, to LEFT JOIN labels onto so zero counts survive. */
+    val allTypesFrom: String =
+      if (hasEnum) s"""unnest(enum_range(NULL::"$schema".label_type)) AS lt(label_type)"""
+      else s""""$schema".label_type lt"""
+    val allTypesJoinOnLabel: String =
+      if (hasEnum) "lt.label_type = l.label_type" else "lt.label_type_id = l.label_type_id"
+    val allTypesGroupBy: String = if (hasEnum) "lt.label_type" else "lt.label_type_id, lt.label_type"
+
+    /** A predicate on `label` matching any of the given type names. */
+    def labelIsOneOf(names: Seq[String]): String = {
+      val list = names.map(n => s"'$n'").mkString(", ")
+      if (hasEnum) s"label.label_type IN ($list)"
+      else s"""label.label_type_id IN (SELECT label_type_id FROM "$schema".label_type WHERE label_type IN ($list))"""
+    }
+
+    /** A predicate on `label` matching the types that have at least one tag defined in this schema. */
+    val labelTypeHasTags: String =
+      if (hasEnum) s"""label.label_type IN (SELECT DISTINCT label_type FROM "$schema".tag)"""
+      else s"""label.label_type_id IN (SELECT DISTINCT label_type_id FROM "$schema".tag)"""
+  }
+
+  /**
    * Retrieves essential aggregate data for a specific city schema.
    *
    * @param schema The database schema name for the target city
    * @return DBIO action that yields AggregateStats
    */
   def getCityAggregateDataBySchema(schema: String): DBIO[AggregateStats] = schemaHasVoidedValidationArchive(schema)
-    .flatMap { hasVoidedArchive =>
+    .zip(schemaHasLabelTypeEnum(schema))
+    .flatMap { case (hasVoidedArchive, hasLabelTypeEnum) =>
+      val labelTypeSql = LabelTypeSql(schema, hasLabelTypeEnum)
       // Work-credit count (#4842): votes voided by the off-target-markers repair are archived in
       // voided_label_validation, not deleted, so the "how many validations happened" total keeps counting them.
       // Guarded per-schema because the table may not exist there yet (see schemaHasVoidedValidationArchive).
@@ -224,7 +287,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
         .map { case (kmExplored, kmExploredNoOverlap, totalLabels, tutorialLabels, totalValidations) =>
 
           // Now get the label type statistics for this schema.
-          getLabelTypeStatsBySchema(schema).map { labelTypeStats =>
+          labelTypeStatsBySchema(schema, labelTypeSql).map { labelTypeStats =>
             AggregateStats(
               kmExplored = kmExplored, kmExploredNoOverlap = kmExploredNoOverlap, totalLabels = totalLabels,
               tutorialLabels = tutorialLabels, totalValidations = totalValidations, totalUsers = 0, // Deduped across schemas in ConfigService (getContributorUserIdsBySchema); not a per-city sum
@@ -282,23 +345,27 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
     }
 
   /**
-   * Retrieves label type statistics from a specific schema using existing vote counts.
+   * Label type statistics for a specific schema from its existing vote counts, with a row for every type.
    *
-   * @param schema The database schema to query
-   * @return DBIO action that yields a map of label type to LabelTypeStats
+   * @param schema       The database schema to query
+   * @param labelTypeSql That schema's label type fragments, from a probe the caller has already run
+   * @return DBIO action that yields a map of label type name to LabelTypeStats
    */
-  def getLabelTypeStatsBySchema(schema: String): DBIO[Map[String, LabelTypeStats]] = {
+  private def labelTypeStatsBySchema(
+      schema: String,
+      labelTypeSql: LabelTypeSql
+  ): DBIO[Map[String, LabelTypeStats]] = {
     sql"""
       SELECT
-        lt.label_type,
+        lt.label_type::text,
         COUNT(DISTINCT l.label_id) AS label_count,
         COUNT(DISTINCT CASE WHEN (l.agree_count + l.disagree_count + l.unsure_count) > 0 THEN l.label_id END) AS labels_validated,
         COUNT(DISTINCT CASE WHEN l.agree_count > l.disagree_count THEN l.label_id END) AS labels_agreed,
         COUNT(DISTINCT CASE WHEN l.disagree_count > l.agree_count THEN l.label_id END) AS labels_disagreed
       FROM
-        "#$schema".label_type lt
+        #${labelTypeSql.allTypesFrom}
       LEFT JOIN
-        "#$schema".label l ON lt.label_type_id = l.label_type_id
+        "#$schema".label l ON #${labelTypeSql.allTypesJoinOnLabel}
         AND l.deleted = FALSE
         AND l.tutorial = FALSE
         AND l.street_edge_id <> (SELECT tutorial_street_edge_id FROM "#$schema".config)
@@ -317,9 +384,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
             AND at.street_edge_id <> (SELECT tutorial_street_edge_id FROM "#$schema".config)
         )
       GROUP BY
-        lt.label_type_id, lt.label_type
-      ORDER BY
-        lt.label_type;
+        #${labelTypeSql.allTypesGroupBy};
     """
       .as[(String, Int, Int, Int, Int)]
       .map { rows =>
@@ -380,7 +445,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    * Composed from three queries on the same connection: the single-row core metrics, the per-label-type breakdown
    * (reusing [[getLabelTypeStatsBySchema]]), and the weekly trend (`getCityWeeklyTrendBySchema`).
    *
-   * AI is determined by the shared `sidewalk_login` role (`role.role = 'AI'`), not anything in the city schema — so
+   * AI is determined by the shared `sidewalk_login` role (`user_role.role = 'AI'`), not anything in the city schema — so
    * those joins are intentionally not schema-qualified, matching `getCityDailyLabelStatsBySchema`. `COUNT(DISTINCT
    * label_id)` is used for label counts so the AI-role LEFT JOINs can never fan a label out if a user carries more than
    * one role row.
@@ -438,7 +503,8 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
 
     // Both archive reads are guarded per-schema because voided_label_validation may not exist there yet (see
     // schemaHasVoidedValidationArchive); an unmigrated schema contributes 0 voided votes and no extra contributors.
-    def coreQuery(upToDateFilter: String, hasVoidedArchive: Boolean) = {
+    def coreQuery(upToDateFilter: String, hasVoidedArchive: Boolean, hasLabelTypeEnum: Boolean) = {
+      val labelTypeSql = LabelTypeSql(schema, hasLabelTypeEnum)
       // Work-credit add-on (#4842): archived voided votes count toward total_validations (activity volume) but
       // not the agree/disagree verdict columns. The archive is human-only by construction.
       val voidedValCountsBody =
@@ -505,29 +571,23 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           ) AS distinct_audited
       ) AS audited_km, (
           SELECT COUNT(DISTINCT label.label_id) AS label_count,
-                 COUNT(DISTINCT label.label_id) FILTER (WHERE role.role = 'AI') AS ai_count,
+                 COUNT(DISTINCT label.label_id) FILTER (WHERE user_role.role = 'AI') AS ai_count,
                  COUNT(DISTINCT label.label_id) FILTER (WHERE label.severity IS NOT NULL) AS with_severity,
                  -- Denominator for "% with severity": only types that CAN take a severity. The three excluded here
                  -- mirror UtilitiesSidewalk.js LABEL_TYPES_WITHOUT_SEVERITY (NoSidewalk, Signal, Occlusion).
                  COUNT(DISTINCT label.label_id) FILTER (
-                     WHERE label.label_type_id NOT IN (
-                         SELECT label_type_id FROM "#$schema".label_type
-                         WHERE label_type IN ('NoSidewalk', 'Signal', 'Occlusion')
-                     )
+                     WHERE NOT #${labelTypeSql.labelIsOneOf(Seq("NoSidewalk", "Signal", "Occlusion"))}
                  ) AS severity_eligible,
                  COUNT(DISTINCT label.label_id) FILTER (WHERE cardinality(label.tags) > 0) AS with_tags,
                  -- Denominator for "% with tags": only types that CAN take tags, i.e. types that have any tag defined
                  -- in this deployment's tag table (self-adapting per city; typically all types except Occlusion).
-                 COUNT(DISTINCT label.label_id) FILTER (
-                     WHERE label.label_type_id IN (SELECT DISTINCT label_type_id FROM "#$schema".tag)
-                 ) AS tag_eligible,
+                 COUNT(DISTINCT label.label_id) FILTER (WHERE #${labelTypeSql.labelTypeHasTags}) AS tag_eligible,
                  COUNT(DISTINCT label.label_id) FILTER (WHERE label.time_created >= NOW() - INTERVAL '7 days') AS labels_7d,
                  COUNT(DISTINCT label.label_id) FILTER (WHERE label.time_created >= NOW() - INTERVAL '30 days') AS labels_30d
           FROM "#$schema".label
           INNER JOIN "#$schema".user_stat ON label.user_id = user_stat.user_id
           INNER JOIN "#$schema".audit_task ON label.audit_task_id = audit_task.audit_task_id
           LEFT  JOIN sidewalk_login.user_role ON label.user_id     = user_role.user_id
-          LEFT  JOIN sidewalk_login.role      ON user_role.role_id = role.role_id
           WHERE NOT user_stat.excluded
               AND label.deleted = FALSE
               AND label.tutorial = FALSE
@@ -540,9 +600,9 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           -- role LEFT JOIN fanning a validation out if a user carries more than one role row.
           SELECT COUNT(DISTINCT label_validation.label_validation_id) AS val_count,
                  COUNT(DISTINCT label_validation.label_validation_id)
-                     FILTER (WHERE validation_result::text = 'Agree'    AND role.role IS DISTINCT FROM 'AI') AS agree_count,
+                     FILTER (WHERE validation_result::text = 'Agree'    AND user_role.role IS DISTINCT FROM 'AI') AS agree_count,
                  COUNT(DISTINCT label_validation.label_validation_id)
-                     FILTER (WHERE validation_result::text = 'Disagree' AND role.role IS DISTINCT FROM 'AI') AS disagree_count,
+                     FILTER (WHERE validation_result::text = 'Disagree' AND user_role.role IS DISTINCT FROM 'AI') AS disagree_count,
                  COUNT(DISTINCT label_validation.label_validation_id)
                      FILTER (WHERE end_timestamp >= NOW() - INTERVAL '7 days')  AS val_7d,
                  COUNT(DISTINCT label_validation.label_validation_id)
@@ -550,7 +610,6 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           FROM "#$schema".label_validation
           INNER JOIN "#$schema".user_stat ON label_validation.user_id = user_stat.user_id
           LEFT  JOIN sidewalk_login.user_role ON label_validation.user_id = user_role.user_id
-          LEFT  JOIN sidewalk_login.role      ON user_role.role_id        = role.role_id
           WHERE NOT user_stat.excluded
       ) AS val_counts, (
           -- AI-authored validations, counted separately from val_counts so the AI-role join can't fan out the totals.
@@ -558,8 +617,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           FROM "#$schema".label_validation
           INNER JOIN "#$schema".user_stat ON label_validation.user_id = user_stat.user_id
           LEFT  JOIN sidewalk_login.user_role ON label_validation.user_id = user_role.user_id
-          LEFT  JOIN sidewalk_login.role      ON user_role.role_id        = role.role_id
-          WHERE NOT user_stat.excluded AND role.role = 'AI'
+          WHERE NOT user_stat.excluded AND user_role.role = 'AI'
       ) AS ai_val_counts, (
           #$voidedValCountsBody
       ) AS voided_val_counts, (
@@ -575,16 +633,14 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
               FROM "#$schema".label
               INNER JOIN "#$schema".user_stat ON label.user_id = user_stat.user_id
               LEFT  JOIN sidewalk_login.user_role ON label.user_id     = user_role.user_id
-              LEFT  JOIN sidewalk_login.role      ON user_role.role_id = role.role_id
               WHERE NOT user_stat.excluded AND label.deleted = FALSE AND label.tutorial = FALSE
-                  AND role.role IS DISTINCT FROM 'AI'
+                  AND user_role.role IS DISTINCT FROM 'AI'
               UNION
               SELECT label_validation.user_id AS contributor_id
               FROM "#$schema".label_validation
               INNER JOIN "#$schema".user_stat ON label_validation.user_id = user_stat.user_id
               LEFT  JOIN sidewalk_login.user_role ON label_validation.user_id = user_role.user_id
-              LEFT  JOIN sidewalk_login.role      ON user_role.role_id        = role.role_id
-              WHERE NOT user_stat.excluded AND role.role IS DISTINCT FROM 'AI'
+              WHERE NOT user_stat.excluded AND user_role.role IS DISTINCT FROM 'AI'
               #$voidedContributorArm
           ) AS contributor_union
       ) AS active_contributors, (
@@ -610,11 +666,13 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
     withJitOff(for {
       hasOutdatedImageryCol <- upToDateFilterQuery
       hasVoidedArchive      <- schemaHasVoidedValidationArchive(schema)
+      hasLabelTypeEnum      <- schemaHasLabelTypeEnum(schema)
       core                  <- coreQuery(
         if (hasOutdatedImageryCol) "AND audit_task.outdated_imagery = FALSE" else "",
-        hasVoidedArchive
+        hasVoidedArchive,
+        hasLabelTypeEnum
       )
-      byLabelType <- getLabelTypeStatsBySchema(schema)
+      byLabelType <- labelTypeStatsBySchema(schema, LabelTypeSql(schema, hasLabelTypeEnum))
       weeklyTrend <- getCityWeeklyTrendBySchema(schema, Some(ScorecardTrendWeeks))
       output      <- getCityContributorOutputBySchema(schema)
     } yield {
@@ -752,10 +810,9 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
   private def accountKindsCte(activityCte: String): String =
     s"""account_kinds AS (
           SELECT user_role.user_id,
-                 BOOL_OR(role.role = 'AI')        AS is_ai,
-                 BOOL_OR(role.role = 'Anonymous') AS is_anonymous
+                 BOOL_OR(user_role.role = 'AI')        AS is_ai,
+                 BOOL_OR(user_role.role = 'Anonymous') AS is_anonymous
           FROM sidewalk_login.user_role
-          INNER JOIN sidewalk_login.role ON user_role.role_id = role.role_id
           WHERE user_role.user_id IN (SELECT activity_user_id FROM $activityCte)
           GROUP BY user_role.user_id
       )"""
@@ -926,9 +983,8 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
               FROM "#$schema".label
               INNER JOIN "#$schema".user_stat ON label.user_id = user_stat.user_id
               LEFT  JOIN sidewalk_login.user_role ON label.user_id     = user_role.user_id
-              LEFT  JOIN sidewalk_login.role      ON user_role.role_id = role.role_id
               WHERE NOT user_stat.excluded AND label.deleted = FALSE AND label.tutorial = FALSE
-                  AND role.role IS DISTINCT FROM 'AI'
+                  AND user_role.role IS DISTINCT FROM 'AI'
               GROUP BY label.user_id
           ) lc
       ) lbl, (
@@ -940,8 +996,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
               FROM "#$schema".label_validation
               INNER JOIN "#$schema".user_stat ON label_validation.user_id = user_stat.user_id
               LEFT  JOIN sidewalk_login.user_role ON label_validation.user_id = user_role.user_id
-              LEFT  JOIN sidewalk_login.role      ON user_role.role_id        = role.role_id
-              WHERE NOT user_stat.excluded AND role.role IS DISTINCT FROM 'AI'
+              WHERE NOT user_stat.excluded AND user_role.role IS DISTINCT FROM 'AI'
               GROUP BY label_validation.user_id
           ) vc
       ) val, (
@@ -951,8 +1006,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
               FROM "#$schema".label_validation
               INNER JOIN "#$schema".user_stat ON label_validation.user_id = user_stat.user_id
               LEFT  JOIN sidewalk_login.user_role ON label_validation.user_id = user_role.user_id
-              LEFT  JOIN sidewalk_login.role      ON user_role.role_id        = role.role_id
-              WHERE NOT user_stat.excluded AND role.role IS DISTINCT FROM 'AI'
+              WHERE NOT user_stat.excluded AND user_role.role IS DISTINCT FROM 'AI'
                   AND label_validation.start_timestamp IS NOT NULL
                   AND label_validation.end_timestamp > label_validation.start_timestamp
                   AND EXTRACT(EPOCH FROM (label_validation.end_timestamp - label_validation.start_timestamp)) <= 300
@@ -1043,20 +1097,22 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
     implicit val getResult: GetResult[(LocalDate, String, Int, Int)] =
       GetResult(r => (LocalDate.parse(r.nextString()), r.nextString(), r.nextInt(), r.nextInt()))
 
-    sql"""
+    schemaHasLabelTypeEnum(schema).flatMap { hasLabelTypeEnum =>
+      val labelTypeSql = LabelTypeSql(schema, hasLabelTypeEnum)
+      sql"""
       SELECT CAST((label.time_created AT TIME ZONE 'US/Pacific')::date AS TEXT) AS date,
-             label_type.label_type,
-             COUNT(CASE WHEN role.role IS DISTINCT FROM 'AI' THEN label.label_id END) AS human_labels,
-             COUNT(CASE WHEN role.role = 'AI'               THEN label.label_id END) AS ai_labels
+             #${labelTypeSql.name},
+             COUNT(CASE WHEN user_role.role IS DISTINCT FROM 'AI' THEN label.label_id END) AS human_labels,
+             COUNT(CASE WHEN user_role.role = 'AI'               THEN label.label_id END) AS ai_labels
       FROM "#$schema".label
-      INNER JOIN "#$schema".label_type ON label.label_type_id = label_type.label_type_id
+      #${labelTypeSql.join}
       INNER JOIN "#$schema".user_stat  ON label.user_id       = user_stat.user_id
       LEFT  JOIN sidewalk_login.user_role ON label.user_id     = user_role.user_id
-      LEFT  JOIN sidewalk_login.role      ON user_role.role_id = role.role_id
       WHERE #$where
-      GROUP BY (label.time_created AT TIME ZONE 'US/Pacific')::date, label_type.label_type
-      ORDER BY date ASC, label_type.label_type
-    """.as[(LocalDate, String, Int, Int)]
+      GROUP BY (label.time_created AT TIME ZONE 'US/Pacific')::date, #${labelTypeSql.name}
+      ORDER BY date ASC, #${labelTypeSql.name}
+      """.as[(LocalDate, String, Int, Int)]
+    }
   }
 
   /**
@@ -1086,30 +1142,32 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           r.nextInt(), r.nextInt())
       )
 
-    sql"""
+    schemaHasLabelTypeEnum(schema).flatMap { hasLabelTypeEnum =>
+      val labelTypeSql = LabelTypeSql(schema, hasLabelTypeEnum)
+      sql"""
       SELECT CAST((label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date AS TEXT) AS date,
-             label_type.label_type,
-             COUNT(CASE WHEN role.role IS DISTINCT FROM 'AI' AND label_validation.validation_result::text = 'Agree'
+             #${labelTypeSql.name},
+             COUNT(CASE WHEN user_role.role IS DISTINCT FROM 'AI' AND label_validation.validation_result::text = 'Agree'
                         THEN 1 END) AS human_agree,
-             COUNT(CASE WHEN role.role IS DISTINCT FROM 'AI' AND label_validation.validation_result::text = 'Disagree'
+             COUNT(CASE WHEN user_role.role IS DISTINCT FROM 'AI' AND label_validation.validation_result::text = 'Disagree'
                         THEN 1 END) AS human_disagree,
-             COUNT(CASE WHEN role.role IS DISTINCT FROM 'AI' AND label_validation.validation_result::text = 'Unsure'
+             COUNT(CASE WHEN user_role.role IS DISTINCT FROM 'AI' AND label_validation.validation_result::text = 'Unsure'
                         THEN 1 END) AS human_unsure,
-             COUNT(CASE WHEN role.role = 'AI' AND label_validation.validation_result::text = 'Agree'
+             COUNT(CASE WHEN user_role.role = 'AI' AND label_validation.validation_result::text = 'Agree'
                         THEN 1 END) AS ai_agree,
-             COUNT(CASE WHEN role.role = 'AI' AND label_validation.validation_result::text = 'Disagree'
+             COUNT(CASE WHEN user_role.role = 'AI' AND label_validation.validation_result::text = 'Disagree'
                         THEN 1 END) AS ai_disagree,
-             COUNT(CASE WHEN role.role = 'AI' AND label_validation.validation_result::text = 'Unsure'
+             COUNT(CASE WHEN user_role.role = 'AI' AND label_validation.validation_result::text = 'Unsure'
                         THEN 1 END) AS ai_unsure
       FROM "#$schema".label_validation
       INNER JOIN "#$schema".label      ON label_validation.label_id    = label.label_id
-      INNER JOIN "#$schema".label_type ON label.label_type_id          = label_type.label_type_id
+      #${labelTypeSql.join}
       INNER JOIN "#$schema".user_stat  ON label_validation.user_id     = user_stat.user_id
       LEFT  JOIN sidewalk_login.user_role ON label_validation.user_id = user_role.user_id
-      LEFT  JOIN sidewalk_login.role      ON user_role.role_id        = role.role_id
       WHERE #$where
-      GROUP BY (label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date, label_type.label_type
-      ORDER BY date ASC, label_type.label_type
-    """.as[(LocalDate, String, Int, Int, Int, Int, Int, Int)]
+      GROUP BY (label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date, #${labelTypeSql.name}
+      ORDER BY date ASC, #${labelTypeSql.name}
+      """.as[(LocalDate, String, Int, Int, Int, Int, Int, Int)]
+    }
   }
 }

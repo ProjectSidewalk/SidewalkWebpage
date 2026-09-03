@@ -4,6 +4,7 @@ import com.google.inject.ImplementedBy
 import formats.json.ExploreFormats.AuditMissionProgress
 import formats.json.ValidateFormats.ValidationMissionProgress
 import models.audit.AuditTaskTable
+import models.label.LabelTypeEnum
 import models.mission.MissionTable.{distanceForLaterMissions, distancesForFirstAuditMissions}
 import models.mission.{Mission, MissionTable, MissionType}
 import models.route.{RouteTable, UserRoute}
@@ -32,14 +33,14 @@ trait MissionService {
   def resumeOrCreateNewValidateMission(
       userId: String,
       missionType: MissionType.Value,
-      labelTypeId: Int
+      labelType: LabelTypeEnum.Base
   ): Future[Option[Mission]]
   def updateCompleteAndGetNextValidationMission(
       userId: String,
       missionId: Int,
       missionType: MissionType.Value,
       labelsProgress: Int,
-      labelTypeId: Option[Int]
+      labelType: Option[LabelTypeEnum.Base]
   ): Future[Option[Mission]]
   def updateValidationProgressOnly(
       userId: String,
@@ -50,7 +51,7 @@ trait MissionService {
   def updateMissionTableValidate(
       user: SidewalkUserWithRole,
       missionProgress: ValidationMissionProgress,
-      nextMissionLabelTypeId: Option[Int]
+      nextMissionLabelType: Option[LabelTypeEnum.Base]
   ): Future[Option[Mission]]
   def updateMissionTableExplore(userId: String, missionProgress: AuditMissionProgress): DBIO[Option[Mission]]
   def getUserMissionsInRegion(userId: String, regionId: Int): Future[Seq[Mission]]
@@ -305,15 +306,15 @@ class MissionServiceImpl @Inject() (
    * Either resumes or creates a new validation mission.
    * @param userId       User ID
    * @param missionType  Name of the mission type of the current validation mission {validation, labelmapValidation}
-   * @param labelTypeId  Label Type ID to be validated for the next mission {1: cr, 2: mcr, 3: obs in path, 4: sfcp, 7: no sdwlk}
+   * @param labelType    Label type to be validated for the next mission
    */
   def resumeOrCreateNewValidateMission(
       userId: String,
       missionType: MissionType.Value,
-      labelTypeId: Int
+      labelType: LabelTypeEnum.Base
   ): Future[Option[Mission]] = {
     val actions: Seq[String] = Seq("getValidationMission")
-    queryMissionTableValidationMissions(actions, userId, None, Some(missionType), None, Some(labelTypeId))
+    queryMissionTableValidationMissions(actions, userId, None, Some(missionType), None, Some(labelType))
   }
 
   /**
@@ -322,18 +323,18 @@ class MissionServiceImpl @Inject() (
    * @param missionId        Mission ID for the current mission
    * @param missionType      Type of validation mission {validation, labelmapValidation}
    * @param labelsProgress   Number of labels the user validated
-   * @param labelTypeId      ID of the label type that was validated during this mission.
+   * @param labelType        The label type that was validated during this mission.
    */
   def updateCompleteAndGetNextValidationMission(
       userId: String,
       missionId: Int,
       missionType: MissionType.Value,
       labelsProgress: Int,
-      labelTypeId: Option[Int]
+      labelType: Option[LabelTypeEnum.Base]
   ): Future[Option[Mission]] = {
     val actions: Seq[String] = Seq("updateProgress", "updateComplete", "getValidationMission")
     queryMissionTableValidationMissions(
-      actions, userId, Some(missionId), Some(missionType), Some(labelsProgress), labelTypeId
+      actions, userId, Some(missionId), Some(missionType), Some(labelsProgress), labelType
     )
   }
 
@@ -364,8 +365,8 @@ class MissionServiceImpl @Inject() (
    * @param userId             User ID
    * @param missionId          The mission ID to be updated.
    * @param missionType        Type of validation mission {validation, labelmapValidation}
-   * @param labelsProgress     Numbers of labels that have been validated {1: cr, 2: mcr, 3: obs in path, 4: sfcp, 7: no sdwlk}
-   * @param labelTypeId        Label Type ID to be validated for the next mission
+   * @param labelsProgress     Numbers of labels that have been validated
+   * @param labelType          Label type to be validated for the next mission
    */
   private def queryMissionTableValidationMissions(
       actions: Seq[String],
@@ -373,7 +374,7 @@ class MissionServiceImpl @Inject() (
       missionId: Option[Int],
       missionType: Option[MissionType.Value],
       labelsProgress: Option[Int],
-      labelTypeId: Option[Int]
+      labelType: Option[LabelTypeEnum.Base]
   ): Future[Option[Mission]] = {
 
     val updateProgressAction =
@@ -393,11 +394,10 @@ class MissionServiceImpl @Inject() (
       if (actions.contains("updateComplete")) missionTable.updateComplete(missionId.get)
       else DBIO.successful(0)
 
-    // Create or retrieve a mission with the passed in label type id.
     val getMissionValidationAction =
-      if (actions.contains("getValidationMission") && labelTypeId.nonEmpty && missionType.nonEmpty) {
+      if (actions.contains("getValidationMission") && labelType.nonEmpty && missionType.nonEmpty) {
         for {
-          currentMission <- missionTable.getCurrentValidationMission(userId, labelTypeId.get, missionType.get)
+          currentMission <- missionTable.getCurrentValidationMission(userId, labelType.get, missionType.get)
           result         <-
             currentMission match {
               case Some(mission) =>
@@ -405,7 +405,7 @@ class MissionServiceImpl @Inject() (
               case None =>
                 val labelsToValidate: Int = missionTable.getNextValidationMissionLength(missionType.get)
                 missionTable
-                  .createNextValidationMission(userId, labelsToValidate, labelTypeId.get, missionType.get)
+                  .createNextValidationMission(userId, labelsToValidate, labelType.get, missionType.get)
                   .map(Some(_))
             }
         } yield result
@@ -427,12 +427,12 @@ class MissionServiceImpl @Inject() (
    * Updates the MissionTable. If the current mission is completed, then retrieves a new mission.
    * @param user                     User ID
    * @param missionProgress          Metadata for this mission
-   * @param nextMissionLabelTypeId   Label Type ID for the next mission
+   * @param nextMissionLabelType     Label type for the next mission
    */
   def updateMissionTableValidate(
       user: SidewalkUserWithRole,
       missionProgress: ValidationMissionProgress,
-      nextMissionLabelTypeId: Option[Int]
+      nextMissionLabelType: Option[LabelTypeEnum.Base]
   ): Future[Option[Mission]] = {
     val missionId: Int      = missionProgress.missionId
     val userId: String      = user.userId
@@ -440,7 +440,7 @@ class MissionServiceImpl @Inject() (
 
     if (missionProgress.completed) {
       updateCompleteAndGetNextValidationMission(
-        userId, missionId, MissionType.withName(missionProgress.missionType), labelsProgress, nextMissionLabelTypeId
+        userId, missionId, MissionType.withName(missionProgress.missionType), labelsProgress, nextMissionLabelType
       )
     } else {
       updateValidationProgressOnly(userId, missionId, labelsProgress, missionProgress.labelsTotal)

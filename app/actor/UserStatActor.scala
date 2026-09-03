@@ -4,7 +4,7 @@ import actor.ActorUtils.{dateFormatter, getTimeToNextUpdate}
 import org.apache.pekko.actor.{Actor, Cancellable}
 import play.api.Logger
 import models.utils.JobRunTrigger
-import play.api.libs.json.Json
+import play.api.libs.json.{JsObject, Json}
 import service.{AdminService, ConfigService, JobRunService}
 
 import java.time.{Instant, OffsetDateTime}
@@ -16,6 +16,17 @@ import scala.util.{Failure, Success}
 object UserStatActor {
   val Name = "user-stats-actor"
   case object Tick
+
+  /**
+   * The counts as they are stored against a `background_job_run` row.
+   *
+   * Defined here rather than at each call site so the nightly recompute and the admin hand-trigger can't record the
+   * same job under two different shapes.
+   *
+   * @param usersUpdated Rows written to `user_stat`.
+   * @return The run's `details` object.
+   */
+  def runDetails(usersUpdated: Int): JsObject = Json.obj("users_updated" -> usersUpdated)
 }
 
 @Singleton
@@ -61,7 +72,7 @@ class UserStatActor @Inject() (adminService: AdminService, jobRunService: JobRun
     jobRunService
       .record(UserStatActor.Name, JobRunTrigger.Scheduled)(
         adminService.updateUserStatTable(OffsetDateTime.now().minusHours(36))
-      ) { nUsersUpdated => Json.obj("users_updated" -> nUsersUpdated) }
+      )(UserStatActor.runDetails)
       .onComplete {
         case Success(nUsersUpdated) =>
           val currentEndTime: String = dateFormatter.format(Instant.now())

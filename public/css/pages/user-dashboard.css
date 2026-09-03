@@ -159,6 +159,11 @@
   color: var(--color-neutral-900);
 }
 
+/* Link blue is 2.4:1 against the nudge's neutral-900 copy, under WCAG 1.4.1's 3:1 for a color-only link. */
+.ud-nudge a {
+  text-decoration: underline;
+}
+
 /* ---- Streak / activity heatmap --------------------------------------------------------------------------------- */
 .ud-streak {
   display: flex;
@@ -1072,7 +1077,7 @@
   padding: 8px 18px;
   border: 1px solid transparent;
   border-radius: var(--border-radius);
-  background: var(--color-pine-600);
+  background: var(--color-pine-700);
   color: var(--color-neutral-white);
   font: var(--text-small-bold);
   text-decoration: none;
@@ -1081,7 +1086,7 @@
 }
 
 .ud-btn-primary:hover {
-  background: var(--color-pine-700);
+  background: var(--color-pine-800);
   text-decoration: none;
 }
 
@@ -1232,6 +1237,11 @@
   margin: var(--space-sm) 0 0;
   font: var(--text-small-regular);
   color: var(--color-neutral-700);
+}
+
+/* Link blue reaches only 1.2:1 against this muted copy, so the hue can't be the only thing marking the link (1.4.1). */
+.ud-impact-bridge a {
+  text-decoration: underline;
 }
 
 /* ---- Leaderboard: community band + podium ---------------------------------------------------------------------- */
@@ -1391,6 +1401,11 @@
 .ud-field-help {
   font: var(--text-small-regular);
   color: var(--color-neutral-700);
+}
+
+/* The help line's muted grey is 1.2:1 against link blue, so color alone cannot separate the two (WCAG 1.4.1). */
+.ud-field-help a {
+  text-decoration: underline;
 }
 
 .ud-radio-row {

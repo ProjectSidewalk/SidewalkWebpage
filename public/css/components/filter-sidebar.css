@@ -362,11 +362,12 @@ body.filter-sidebar-resizing {
 
 /* Deselected rows read as off at a glance: hollow icon (below) plus a dimmed name. */
 .filter-sidebar__checkbox:not(:checked) + .filter-sidebar__item-label {
-  color: var(--color-neutral-600);
+  color: var(--color-neutral-700);
 }
 
+/* One step dimmer than a selected row's count (neutral-800). */
 .filter-sidebar__item:has(.filter-sidebar__checkbox:not(:checked)) .filter-sidebar__count {
-  color: var(--color-neutral-500);
+  color: var(--color-neutral-700);
 }
 
 /* Label type colors, keyed off the row's type so the sidebar carries its own palette wherever it's mounted. Held as
@@ -546,7 +547,7 @@ body.filter-sidebar-resizing {
 .filter-sidebar__count {
   font: var(--text-caption-medium);
   font-variant-numeric: tabular-nums;
-  color: var(--color-neutral-700);
+  color: var(--color-neutral-800);
 }
 
 .filter-sidebar__only {

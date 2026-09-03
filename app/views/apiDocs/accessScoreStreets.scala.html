@@ -100,7 +100,7 @@
     <h2 class="page-heading" id="query-parameters">Query Parameters<a href="#query-parameters" class="permalink">#</a></h2>
     <p>All parameters are optional.</p>
     <p>Note: When multiple location filters are provided (<code>bbox</code>, <code>regionId</code>, and <code>regionName</code>), <code>bbox</code> takes precedence over region filters, and <code>regionId</code> takes precedence over <code>regionName</code>. A region filter is resolved to the region's bounding box, and the streets are then trimmed back to that region.</p>
-    <div class="ps-table-wrapper">
+    <div class="ps-table-wrapper" tabindex="0" role="region" aria-labelledby="query-parameters">
       <table class="ps-table">
         <thead>
           <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
@@ -163,11 +163,11 @@
         "label_count": 29,
         "cluster_counts": {
           "CurbRamp": 10, "NoCurbRamp": 0, "Obstacle": 0, "SurfaceProblem": 1,
-          "NoSidewalk": 0, "Crosswalk": 6, "Signal": 0
+          "Crosswalk": 6, "Signal": 0, "NoSidewalk": 0
         },
         "sub_scores": {
           "CurbRamp": 7.5, "NoCurbRamp": 0.0, "Obstacle": 0.0, "SurfaceProblem": -0.67,
-          "NoSidewalk": 0.0, "Crosswalk": 4.25, "Signal": 0.0
+          "Crosswalk": 4.25, "Signal": 0.0, "NoSidewalk": 0.0
         }
       }
     },
@@ -176,7 +176,7 @@
 }</code></pre>
 
     <h5 id="geojson-fields">GeoJSON Field Descriptions <a href="#geojson-fields" class="permalink">#</a></h5>
-    <div class="ps-table-wrapper">
+    <div class="ps-table-wrapper" tabindex="0" role="region" aria-labelledby="geojson-fields">
       <table class="ps-table">
         <thead>
           <tr><th class="api-field-col">Field Path</th><th class="api-type-col">Type</th><th class="api-desc-col">Description</th></tr>
@@ -198,8 +198,8 @@
 
     <h4 id="response-csv">CSV Format <a href="#response-csv" class="permalink">#</a></h4>
     <p>If <code>filetype=csv</code>, the first row is the header. The per-type <code>cluster_counts</code> and <code>sub_scores</code> are flattened into one column per label type (<code>n_*</code> and <code>score_*</code>), and the geometry is simplified to start/end points.</p>
-    <pre tabindex="0"><code class="language-csv">street_edge_id,osm_way_id,region_id,score,audit_count,length_meters,label_count,n_curb_ramp,n_no_curb_ramp,n_obstacle,n_surface_problem,n_no_sidewalk,n_crosswalk,n_signal,score_curb_ramp,score_no_curb_ramp,score_obstacle,score_surface_problem,score_no_sidewalk,score_crosswalk,score_signal,start_point,end_point
-766,11584845,8,1.0,2,142.7,29,10,0,0,1,0,6,0,7.5,0.0,0.0,-0.67,0.0,4.25,0.0,"-74.0243,40.8839","-74.0245,40.8836"
+    <pre tabindex="0"><code class="language-csv">street_edge_id,osm_way_id,region_id,score,audit_count,length_meters,label_count,n_curb_ramp,n_no_curb_ramp,n_obstacle,n_surface_problem,n_crosswalk,n_signal,n_no_sidewalk,score_curb_ramp,score_no_curb_ramp,score_obstacle,score_surface_problem,score_crosswalk,score_signal,score_no_sidewalk,start_point,end_point
+766,11584845,8,1.0,2,142.7,29,10,0,0,1,6,0,0,7.5,0.0,0.0,-0.67,4.25,0.0,0.0,"-74.0243,40.8839","-74.0245,40.8836"
 ...</code></pre>
 
     <h4 id="response-shapefile">Shapefile Format <a href="#response-shapefile" class="permalink">#</a></h4>

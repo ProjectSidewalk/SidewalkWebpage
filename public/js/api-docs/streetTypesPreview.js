@@ -56,7 +56,7 @@
       return this.fetchStreetTypes()
         .then((data) => this.renderStreetTypes(data, container))
         .catch((error) => {
-          container.innerHTML = `<div class="message message-error">Failed to load street types: `
+          container.innerHTML = `<div class="message message-error" role="alert">Failed to load street types: `
             + `${error.message}</div>`;
           // The failure is already surfaced in the container above, and init() is fire-and-forget at every call
           // site (app/views/apiDocs/*), so re-rejecting here can only ever become an unhandled rejection.

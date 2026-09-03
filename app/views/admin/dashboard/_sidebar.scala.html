@@ -16,6 +16,7 @@
 
     <div class="page-nav-header">Manage</div>
     <a href="@routes.AdminDashboardController.management" class="page-nav-item @if(activePage == "management"){active}" @if(activePage == "management"){aria-current="page"}>Management</a>
+    <a href="@routes.AdminDashboardController.partners" class="page-nav-item @if(activePage == "partners"){active}" @if(activePage == "partners"){aria-current="page"}>Partners</a>
     @if(isOwner) {
       <a href="@routes.AdminDashboardController.health" class="page-nav-item @if(activePage == "health"){active}" @if(activePage == "health"){aria-current="page"}>Health</a>
     }

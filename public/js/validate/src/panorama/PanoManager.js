@@ -67,7 +67,7 @@ class PanoManager {
     this.#pannellumCanvas = document.createElement('div');
     this.#pannellumCanvas.id = 'svv-panorama-pannellum';
     this.#pannellumCanvas.style.cssText
-            = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none;';
+      = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none;';
     this.#panoCanvas.insertAdjacentElement('afterend', this.#pannellumCanvas);
 
     this.#logPovChange = util.throttle(() => svv.tracker.push('POV_Changed'), PanoManager.#POV_LOG_INTERVAL_MS);

@@ -32,7 +32,7 @@ const PAGES = {
   'pages/admin-dashboard.css': {
     views: ['app/views/admin/dashboard/'],
     prefixes: ['ac-', 'ov-', 'dq-', 'hva-', 'mgmt-', 'contrib-', 'coverage-', 'activity-', 'deploy-strip',
-      'stories-queue-', 'street-status-', 'imagery-', 'health-kpi'],
+      'stories-queue-', 'street-status-', 'imagery-', 'health-kpi', 'partners-'],
   },
   'pages/api-docs': { views: ['app/views/apiDocs/'] },
   'pages/auth.css': { views: ['app/views/common/main.scala.html'] },
@@ -40,7 +40,6 @@ const PAGES = {
   'pages/errors.css': { views: ['app/views/errors/'] },
   'pages/explore': { views: [], prefixes: ['svl-'] },
   'pages/gallery': { views: [], prefixes: ['gallery-'] },
-  'pages/help.css': { views: ['app/views/help.scala.html', 'app/views/labelingGuide/'] },
   'pages/homepage.css': { views: ['app/views/common/main.scala.html'] },
   'pages/labeling-guide.css': { views: ['app/views/labelingGuide/'] },
   'pages/maintenance.css': { views: ['app/views/maintenance.scala.html'] },

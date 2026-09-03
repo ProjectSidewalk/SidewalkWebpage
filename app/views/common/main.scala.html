@@ -90,6 +90,13 @@
 
     @* Deferred: utilities.js only touches the bowser global lazily, from DOMContentLoaded-or-later callers. *@
     <script src='@assets.path("vendor/bowser/bowser-2.14.1.min.js")' defer></script>
+    @* Content-fingerprint digests for assets whose URLs JS builds at runtime (#4893): logicalPath -> md5, read by
+       util.assetPath. Empty under dev `sbt run` (no digests exist); a missing entry falls back to the plain
+       /assets/ path. Must precede the tool bundles: their module-level constants resolve URLs at script-eval time.
+       jsdom and the error pages never stamp this, so util.assetPath must tolerate its absence. Already serialized
+       (AssetManifestService does it once at startup), so this interpolates a string rather than a several-hundred-
+       entry map. *@
+    <script>window.assetDigests = @commonData.assetDigestsJson;</script>
     <script src='@assets.path("js/common/utilities.js")'></script>
     <script src='@assets.path("js/common/utilitiesMath.js")'></script>
     <script src='@assets.path("js/common/i18nDom.js")'></script>
@@ -160,7 +167,6 @@
             <!-- Back to top<br>-->
           <a href='@routes.ApplicationController.about' id="sidewalk-about-link">@Messages("footer.about")</a> <br>
           <a href='@routes.ApplicationController.terms' id="sidewalk-terms-link" target="_blank">@Messages("footer.terms")</a> <br>
-          <a href='@routes.ApplicationController.help' id="sidewalk-help-link" target="_blank">@Messages("footer.help")</a> <br>
           <a href='@routes.ApplicationController.labelingGuide' id="sidewalk-labeling-link" target="_blank">@Messages("footer.guide")</a> <br>
         </div>
         <div class="col-sm-4 footer-link">
@@ -242,7 +248,7 @@
         });
 
         // Log clicks on links in the information footer to WebpageActivityTable.
-        // Log is of form: "Click_module=InfoFooter_target=<link>_route=</|/explore|/help|...>"
+        // Log is of form: "Click_module=InfoFooter_target=<link>_route=</|/explore|/labelingGuide|...>"
         $('#info-footer').on('click','a', function(e){
           const currentRoute = window.location.pathname;
           const link = e.currentTarget.id.split('-')[0];

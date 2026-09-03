@@ -79,7 +79,7 @@ class DesktopValidationMenu {
             const translatedTagName = i18next.t(`common:tag.${item.tag_name.replace(/:/g, '-')}`);
             const $tagDiv = $(`<div class="option tag-pill tag-pill--interactive">${escape(translatedTagName)}</div>`);
             const tooltipText = `"${translatedTagName}" example`;
-            this.#addTooltip($tagDiv, tooltipText, `/assets/images/examples/tags/${item.tag_id}.png`);
+            this.#addTooltip($tagDiv, tooltipText, util.assetPath(`images/examples/tags/${item.tag_id}.png`));
             return $tagDiv[0];
           },
         },
@@ -317,7 +317,7 @@ class DesktopValidationMenu {
     const currLabel = svv.labelContainer.getCurrentLabel();
 
     // If the tag is mutually exclusive with another tag that's been added, remove the other tag.
-    const allTags = svv.tagsByLabelType[currLabel.getAuditProperty('labelType')];
+    const allTags = svv.tagsByLabelType[currLabel.getAuditProperty('labelType')] ?? [];
     const mutuallyExclusiveWith = allTags.find((t) => t.tag_name === tagName).mutually_exclusive_with;
     const currTags = currLabel.getProperty('newTags');
     if (currTags.some((t) => t === mutuallyExclusiveWith)) {
@@ -339,7 +339,7 @@ class DesktopValidationMenu {
   }
 
   #removeTagListener(e, label) {
-    const allTagOptions = structuredClone(svv.tagsByLabelType[label.getAuditProperty('labelType')]);
+    const allTagOptions = structuredClone(svv.tagsByLabelType[label.getAuditProperty('labelType')] ?? []);
     const tagElem = $(e.target).parents('.current-tag');
     tagElem.tooltip('destroy');
     const tagIdToRemove = tagElem.data('tag-id');
@@ -350,7 +350,7 @@ class DesktopValidationMenu {
   #renderTags() {
     const menuUI = this.#menuUI;
     const label = svv.labelContainer.getCurrentLabel();
-    let allTagOptions = structuredClone(svv.tagsByLabelType[label.getAuditProperty('labelType')]);
+    let allTagOptions = structuredClone(svv.tagsByLabelType[label.getAuditProperty('labelType')] ?? []);
     const allTagOptionsPermanent = structuredClone(allTagOptions);
 
     menuUI.currentTags.empty();
@@ -375,7 +375,7 @@ class DesktopValidationMenu {
       // Add an example image tooltip to the tag.
       const tagId = allTagOptions.find((t) => t.tag_name === tag).tag_id;
       const tooltipText = `"${translatedTagName}" example`;
-      this.#addTooltip($tagDiv, tooltipText, `/assets/images/examples/tags/${tagId}.png`);
+      this.#addTooltip($tagDiv, tooltipText, util.assetPath(`images/examples/tags/${tagId}.png`));
 
       // Add to current list of tags, and remove from options for new tags to add.
       menuUI.currentTags.append($tagDiv);
@@ -445,7 +445,7 @@ class DesktopValidationMenu {
 
         // Show tooltip with example image for the tag.
         const tooltipText = `"${translatedTagName}" example`;
-        this.#addTooltip(template, tooltipText, `/assets/images/examples/tags/${tag.tag_id}.png`);
+        this.#addTooltip(template, tooltipText, util.assetPath(`images/examples/tags/${tag.tag_id}.png`));
 
         // Add onclick to the tag to add or remove it if the user clicks to accept the AI suggestion.
         template.on('click', () => {
@@ -482,7 +482,7 @@ class DesktopValidationMenu {
       const $button = $(severityButton);
       const sev = severityButton.dataset.severity;
       const tooltipText = i18next.t(`common:${tooltipKey}-${sev}`);
-      const tooltipImage = `/assets/images/examples/severity/${labelType}_Severity${sev}.png`;
+      const tooltipImage = util.assetPath(`images/examples/severity/${labelType}_Severity${sev}.png`);
       $button.tooltip('destroy');
       this.#addTooltip($button, tooltipText, tooltipImage);
 

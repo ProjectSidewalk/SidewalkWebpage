@@ -272,7 +272,7 @@ class GsvViewer extends PanoViewer {
           originHeading: 50.3866,
           originPitch: -1.13769,
           getTileUrl(_pano, zoom, tileX, tileY) {
-            return `/assets/images/pano-tutorial/tutorial/${zoom}-${tileX}-${tileY}.jpg`;
+            return util.assetPath(`images/pano-tutorial/tutorial/${zoom}-${tileX}-${tileY}.jpg`);
           },
         },
         time: [],
@@ -293,7 +293,7 @@ class GsvViewer extends PanoViewer {
           originHeading: 344,
           originPitch: 0,
           getTileUrl(_pano, zoom, tileX, tileY) {
-            return `/assets/images/pano-tutorial/afterwalktutorial/${zoom}-${tileX}-${tileY}.jpg`;
+            return util.assetPath(`images/pano-tutorial/afterwalktutorial/${zoom}-${tileX}-${tileY}.jpg`);
           },
         },
         time: [],

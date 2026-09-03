@@ -102,7 +102,7 @@ class Toast {
     close.setAttribute('aria-label', i18next.t('common:close'));
     const closeIcon = document.createElement('img');
     closeIcon.className = 'ps-toast__close-icon';
-    closeIcon.src = '/assets/images/icons/cross.svg';
+    closeIcon.src = util.assetPath('images/icons/cross.svg');
     closeIcon.alt = '';
     close.appendChild(closeIcon);
     close.addEventListener('click', () => this.dismiss());

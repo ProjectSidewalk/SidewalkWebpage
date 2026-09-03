@@ -2,7 +2,7 @@ package views
 
 import controllers.AssetsFinder
 import formats.json.UserFormats._
-import models.user.{SidewalkUserWithRole, UserStat}
+import models.user.{Role, SidewalkUserWithRole, UserStat}
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.i18n.{Lang, Messages, MessagesApi}
@@ -39,10 +39,10 @@ class AdminUserViewSpec extends PlaySpec with GuiceOneAppPerSuite {
     Await.result(app.injector.instanceOf[ConfigService].getCommonPageData(Lang("en")), 60.seconds)
 
   private val admin =
-    SidewalkUserWithRole("admin-user", "testadmin", "admin@example.com", "Administrator", communityService = false,
+    SidewalkUserWithRole("admin-user", "testadmin", "admin@example.com", Role.Administrator, communityService = false,
       infra3dAccess = false)
   private val subject =
-    SidewalkUserWithRole("test-user", "testmapper", "test@example.com", "Registered", communityService = false,
+    SidewalkUserWithRole("test-user", "testmapper", "test@example.com", Role.Registered, communityService = false,
       infra3dAccess = false)
 
   private val userStats = UserStat(1, subject.userId, 0d, None, highQuality = true, None, 0, None, excluded = false,

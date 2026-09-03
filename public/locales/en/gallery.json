@@ -1,4 +1,5 @@
 {
+  "card-image-alt": "Street view photo of a {{labelType}} label",
   "clear-filters": "Clear Filters",
   "filter-by": "Filter By",
   "none": "none",

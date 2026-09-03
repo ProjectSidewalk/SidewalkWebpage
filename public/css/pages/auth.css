@@ -3,15 +3,6 @@
  * instructions page (sh-*). Everything derives from the main.css :root design tokens.
  */
 
-/* AA-safe error text derived from the error token rather than a new hex; candidate for a --color-error-300 token
-   (error-200 on white measures 4.38:1, just under AA for body text). */
-.au-dialog,
-.au-page,
-.wl-page,
-.sh-page {
-  --auth-error-ink: color-mix(in srgb, var(--color-error-200) 78%, black);
-}
-
 /* ---- Dialog shell ------------------------------------------------------------------------------------------- */
 dialog.au-dialog {
   width: min(460px, 92vw);
@@ -297,7 +288,7 @@ dialog.au-dialog::backdrop {
 }
 
 .au-match.unmet {
-  color: var(--auth-error-ink);
+  color: var(--color-error-300);
 }
 
 .au-match.unmet .au-dot {
@@ -383,7 +374,7 @@ dialog.au-dialog::backdrop {
   gap: 6px;
   margin: 0;
   font: var(--text-small-bold);
-  color: var(--auth-error-ink);
+  color: var(--color-error-300);
 }
 
 .au-field-error svg {
