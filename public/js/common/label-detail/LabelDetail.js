@@ -932,7 +932,7 @@ class LabelDetail {
 
     const labelRadius = 10;
     const pixelCoordinates
-            = util.pano.centeredPovToCanvasCoord(panoMarkerPov, userPov, canvasWidth, canvasHeight, labelRadius);
+      = util.pano.centeredPovToCanvasCoord(panoMarkerPov, userPov, canvasWidth, canvasHeight, labelRadius);
 
     const data = {
       label_id: this.panoManager.label.labelId,
