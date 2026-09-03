@@ -13,7 +13,7 @@ never hides inside another's numbers:
 |---|---|---|
 | **Project Sidewalk** | Every production and `-test` stage on `cs.washington.edu` | One browser key, referrer-restricted to the stage hostnames — a new city's hostname must be added or its map and panos fail to load. Maps JS API + Street View Static API only. |
 | **Project Sidewalk Dev Env** | `localhost:9000` development (`GOOGLE_MAPS_API_KEY` in `docker-compose.override.yml`) | Referrer-restricted to localhost. |
-| **Project Sidewalk CI Env** | Nothing, by design: the browser suite stubs Google Maps (#5129) and holds no key at all — `GOOGLE_MAPS_API_KEY` is a dummy string in every CI job. Created 2026-08-03 with phase 2 of #4504, when the suite carried a real key; kept so that any future Google usage from CI has its own numbers rather than production's. |
+| **Project Sidewalk CI Env** | Nothing, by design: the browser suite stubs Google Maps (#5129), so no CI job carries a real key — `GOOGLE_MAPS_API_KEY` is a dummy string in every job. | The project still holds one browser key, restricted to localhost referrers and capped at **zero map loads per day**, kept only as a break-glass way to re-run the suite against the real API when the stub is suspected of having drifted from it. Created 2026-08-03 with phase 2 of #4504, when the suite carried a real key. |
 
 `GOOGLE_MAPS_SECRET` (URL signing for the Street View Static and metadata calls the *server* makes) is a separate
 credential from the same project as the key it signs for.
@@ -87,9 +87,10 @@ a local fake (`test/e2e/fixtures/google-maps-stub.js`) on every context, serves 
 Static images, and through the `googleMapsLeaks` auto-fixture both aborts-and-reports any other request to a Google
 map host and checks that the `google.maps` each page ended up with is the stub's — so a page that builds a real map
 or panorama, or loads the API from somewhere the host list doesn't name, cannot merge. Outside the suite, no CI job
-has a key to bill with: `GOOGLE_MAPS_API_KEY` is the literal `DUMMY_GOOGLE_API_KEY` in `ci.yml`, and the CI project
-has no key. A leak would therefore fail on an invalid key, never bill — but the fixture is what turns it into a
-named test failure rather than a console error to puzzle over.
+has a key to bill with: `GOOGLE_MAPS_API_KEY` is the literal `DUMMY_GOOGLE_API_KEY` in `ci.yml`, and the CI
+project's own break-glass key is capped at zero map loads per day. A leak would therefore fail on an invalid key,
+or be refused by the quota if it somehow found the real one — but the fixture is what turns either into a named
+test failure rather than a console error to puzzle over.
 
 Budget alerts are the second line. The account-wide budget was a leftover of Google's retired $200 monthly credit,
 $200 with alerts at 75/95/100%, so a $100 month never tripped it and August was discovered on the invoice. Size
