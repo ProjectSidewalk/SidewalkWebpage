@@ -155,7 +155,7 @@ describe('PanoManager clears the pano when no viewer can render it (issue #4810)
 });
 
 describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
-  const LABEL_TYPE_ID = 3;
+  const LABEL_TYPE = 'Obstacle';
   let LabelContainer;
   let unrenderablePanoIds;
   let topUpQueue;   // Successive `labels` arrays the /moreLabels endpoint answers with.
@@ -233,7 +233,7 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
    * @returns {Promise<LabelContainer>}
    */
   function buildContainer(labelList = threeLabels()) {
-    return LabelContainer.create(labelList, LABEL_TYPE_ID);
+    return LabelContainer.create(labelList, LABEL_TYPE);
   }
 
   /** @returns {Array<number>} The label ids the validation UI was actually asked to render, in order. */
@@ -306,7 +306,7 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
 
     expect(global.fetch).toHaveBeenCalledWith('/validationTask/moreLabels', expect.objectContaining({method: 'POST'}));
     expect(topUpBodies).toHaveLength(1);
-    expect(topUpBodies[0].label_type_id).toBe(LABEL_TYPE_ID);
+    expect(topUpBodies[0].label_type).toBe(LABEL_TYPE);
     expect(topUpBodies[0].labels_needed).toBe(1);
     // Including the ones already answered: those validations may not have reached the database yet.
     expect(topUpBodies[0].excluded_label_ids.sort()).toEqual([1, 2, 3]);

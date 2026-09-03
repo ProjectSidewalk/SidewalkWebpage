@@ -317,7 +317,7 @@ class DesktopValidationMenu {
     const currLabel = svv.labelContainer.getCurrentLabel();
 
     // If the tag is mutually exclusive with another tag that's been added, remove the other tag.
-    const allTags = svv.tagsByLabelType[currLabel.getAuditProperty('labelType')];
+    const allTags = svv.tagsByLabelType[currLabel.getAuditProperty('labelType')] ?? [];
     const mutuallyExclusiveWith = allTags.find((t) => t.tag_name === tagName).mutually_exclusive_with;
     const currTags = currLabel.getProperty('newTags');
     if (currTags.some((t) => t === mutuallyExclusiveWith)) {
@@ -339,7 +339,7 @@ class DesktopValidationMenu {
   }
 
   #removeTagListener(e, label) {
-    const allTagOptions = structuredClone(svv.tagsByLabelType[label.getAuditProperty('labelType')]);
+    const allTagOptions = structuredClone(svv.tagsByLabelType[label.getAuditProperty('labelType')] ?? []);
     const tagElem = $(e.target).parents('.current-tag');
     tagElem.tooltip('destroy');
     const tagIdToRemove = tagElem.data('tag-id');
@@ -350,7 +350,7 @@ class DesktopValidationMenu {
   #renderTags() {
     const menuUI = this.#menuUI;
     const label = svv.labelContainer.getCurrentLabel();
-    let allTagOptions = structuredClone(svv.tagsByLabelType[label.getAuditProperty('labelType')]);
+    let allTagOptions = structuredClone(svv.tagsByLabelType[label.getAuditProperty('labelType')] ?? []);
     const allTagOptionsPermanent = structuredClone(allTagOptions);
 
     menuUI.currentTags.empty();

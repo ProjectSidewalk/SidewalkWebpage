@@ -30,24 +30,24 @@ class RawLabelTagFilterSpec extends AnyFunSuite with Matchers {
 
   test("a scoped tag narrows its own type and lets every other type through") {
     LabelTable.tagWhereClause(Seq(scoped("CurbRamp", "narrow"))) shouldBe
-      "((label_type.label_type = 'CurbRamp' AND ('narrow' = ANY(label.tags))) OR " +
-      "label_type.label_type NOT IN ('CurbRamp'))"
+      "((label.label_type = 'CurbRamp' AND ('narrow' = ANY(label.tags))) OR " +
+      "label.label_type NOT IN ('CurbRamp'))"
   }
 
   test("each scoped type is narrowed only by its own tags") {
     LabelTable.tagWhereClause(
       Seq(scoped("CurbRamp", "narrow"), scoped("Obstacle", "trash can"), scoped("CurbRamp", "steep"))
     ) shouldBe
-      "((label_type.label_type = 'CurbRamp' AND ('narrow' = ANY(label.tags) OR 'steep' = ANY(label.tags))) OR " +
-      "(label_type.label_type = 'Obstacle' AND ('trash can' = ANY(label.tags))) OR " +
-      "label_type.label_type NOT IN ('CurbRamp', 'Obstacle'))"
+      "((label.label_type = 'CurbRamp' AND ('narrow' = ANY(label.tags) OR 'steep' = ANY(label.tags))) OR " +
+      "(label.label_type = 'Obstacle' AND ('trash can' = ANY(label.tags))) OR " +
+      "label.label_type NOT IN ('CurbRamp', 'Obstacle'))"
   }
 
   test("an unscoped tag still applies to the scoped types alongside their own tags") {
     LabelTable.tagWhereClause(Seq(scoped("CurbRamp", "narrow"), unscoped("uneven surface"))) shouldBe
-      "((label_type.label_type = 'CurbRamp' AND " +
+      "((label.label_type = 'CurbRamp' AND " +
       "('narrow' = ANY(label.tags) OR 'uneven surface' = ANY(label.tags))) OR " +
-      "(label_type.label_type NOT IN ('CurbRamp') AND ('uneven surface' = ANY(label.tags))))"
+      "(label.label_type NOT IN ('CurbRamp') AND ('uneven surface' = ANY(label.tags))))"
   }
 
   test("the clause does not depend on the order the entries arrived in") {
@@ -62,9 +62,9 @@ class RawLabelTagFilterSpec extends AnyFunSuite with Matchers {
   test("a tag carrying a comma or a colon survives as a single literal") {
     // Real tags: Signal's "yellow box, ..." and the "cycle lane: ..." family.
     LabelTable.tagWhereClause(Seq(scoped("Signal", "yellow box, accessibility features not visible"))) shouldBe
-      "((label_type.label_type = 'Signal' AND " +
+      "((label.label_type = 'Signal' AND " +
       "('yellow box, accessibility features not visible' = ANY(label.tags))) OR " +
-      "label_type.label_type NOT IN ('Signal'))"
+      "label.label_type NOT IN ('Signal'))"
     LabelTable.tagWhereClause(Seq(unscoped("cycle lane: faded paint"))) shouldBe
       "('cycle lane: faded paint' = ANY(label.tags))"
   }

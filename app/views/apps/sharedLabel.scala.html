@@ -91,7 +91,7 @@
         <section class="spotlight-legend" aria-labelledby="spotlight-legend-title">
           <h2 id="spotlight-legend-title" class="spotlight-legend__title">@Messages("sharedlabel.legend.title")</h2>
           <ul class="spotlight-legend__list">
-          @for(lt <-LabelTypeEnum.values.toSeq.sortBy(_.id)) {
+          @for(lt <- LabelTypeEnum.ordered) {
             <li class="spotlight-legend__item">
               <span class="spotlight-legend__swatch" data-label-type="@lt.name" aria-hidden="true"></span>
               <span>@Messages(lt.nameKey)</span>

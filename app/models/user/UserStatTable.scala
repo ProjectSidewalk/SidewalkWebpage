@@ -1053,13 +1053,12 @@ class UserStatTable @Inject() (
    */
   def getLabelTypeAccuracy(userId: String): DBIO[Seq[(String, Int, Int)]] = {
     sql"""
-      SELECT label_type.label_type,
+      SELECT label.label_type::text,
              COUNT(*) FILTER (WHERE label.correct IS TRUE)::int AS correct,
              COUNT(*) FILTER (WHERE label.correct IS FALSE)::int AS incorrect
       FROM label
-      INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
       WHERE label.user_id = $userId AND label.deleted = FALSE AND label.tutorial = FALSE
-      GROUP BY label_type.label_type;
+      GROUP BY label.label_type::text;
     """.as[(String, Int, Int)]
   }
 
@@ -1311,7 +1310,6 @@ class UserStatTable @Inject() (
                  COUNT(CASE WHEN label_type = 'Other' AND correct IS NULL THEN 1 END) AS other_not_validated
           FROM audit_task
           INNER JOIN label ON audit_task.audit_task_id = label.audit_task_id
-          INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
           WHERE deleted = FALSE
               AND tutorial = FALSE
               AND label.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
