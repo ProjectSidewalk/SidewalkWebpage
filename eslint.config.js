@@ -12,6 +12,8 @@ const json = require('@eslint/json').default;
 
 module.exports = [
   // ESLint core "recommended" -- ~45 correctness rules. Listed first so the explicit block below overrides it.
+  // Scoped to JS rather than left global: these are JavaScript-correctness rules, and on the translation JSON they
+  // false-positive -- no-irregular-whitespace on locales that legitimately use non-breaking spaces, for one.
   {files: ['public/js/**/*.js'], ...js.configs.recommended},
   // Global ignores. Flat config lints nothing unless a `files` glob below opts it in, so this only has to carve out
   // generated bundles and vendored libraries *within* the linted tree -- no more whole-repo `*` + `!negation`
@@ -179,9 +181,12 @@ module.exports = [
   },
 
   // --- jsdom unit suite (test/js/) ---
-  // `no-undef` is off for the same reason as public/js: a suite stands up the concat bundle's globals (svl/svv/util)
-  // on `window` and then reads them bare, as the code under test does. The @stylistic house style is deliberately
-  // not applied -- these files are 4-space, and reformatting 26k lines would bury every real finding (#2487).
+  // Unlike public/js this keeps `no-undef`: these are CommonJS modules, so an undefined identifier is unambiguous and
+  // the rule catches the typo'd helper in a branch that only runs sometimes. The bundle globals a suite stands up on
+  // `window` and then reads bare are named below; the handful of subjects a suite pulls in via `eval` are declared
+  // per-file with `/* global */`, so they stay scoped to the one suite that injects them rather than becoming
+  // project-wide names whose typos would stop being reported. The @stylistic house style is deliberately not applied
+  // -- these files are 4-space, and reformatting 26k lines would bury every real finding (#2487).
   {files: ['test/js/**/*.js'], ...js.configs.recommended},
   {
     files: ['test/js/**/*.js'],
@@ -192,10 +197,15 @@ module.exports = [
         ...globals.node,
         ...globals.jest,
         ...globals.browser,
+        // The concat bundle's globals: a suite assigns these onto `window`, then reads them bare as the subject does.
+        svl: 'writable',
+        svv: 'writable',
+        sg: 'writable',
+        util: 'writable',
+        $: 'writable',
       },
     },
     rules: {
-      'no-undef': 'off',
       'no-unused-vars': ['error', {argsIgnorePattern: '^_'}],
       'no-var': 'error',
       'prefer-const': 'error',

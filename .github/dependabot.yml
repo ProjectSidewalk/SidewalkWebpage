@@ -18,11 +18,14 @@ updates:
       npm-dependencies:
         patterns: ["*"]
     ignore:
-      # Every frontend linter and the jsdom test suite are blocking steps in CI's `frontend` job, so a *major* bump
-      # here turns the build red rather than merely nagging — majors stay a human decision, minors and patches
-      # auto-merge. `@eslint/js` and `@eslint/json` track eslint's major and have to move in the same PR it does: a
-      # lone `@eslint/js` major yields an unresolvable tree (#5106 bumped it to 10 against eslint ^9; npm install
-      # died with ERESOLVE and nothing installed at all, surfacing downstream as `jest: not found`).
+      # Everything that supplies `error`-severity rules to a blocking `frontend` step, plus the jsdom suite: a
+      # *major* here turns the build red rather than merely nagging, so majors stay a human decision while minors
+      # and patches auto-merge. That includes the rule *providers*, not just the runners — @stylistic/eslint-plugin
+      # alone contributes ~50 of the ESLint gate's rules via configs.customize(). `@eslint/js` is version-locked to
+      # eslint's major and has to move in the same PR it does: bumped alone it yields an unresolvable tree (#5106
+      # took it to 10 against eslint ^9; npm install died with ERESOLVE and nothing installed at all, surfacing
+      # downstream as `jest: not found`). `@eslint/json` is *not* so locked — its 2.x supports eslint 9 and 10 —
+      # and is here only because it gates 63 locale files.
       - dependency-name: "eslint"
         update-types: ["version-update:semver-major"]
       - dependency-name: "@eslint/js"
@@ -38,6 +41,12 @@ updates:
       - dependency-name: "stylelint"
         update-types: ["version-update:semver-major"]
       - dependency-name: "stylelint-config-standard"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@stylistic/eslint-plugin"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@stylistic/stylelint-plugin"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "stylelint-plugin-use-baseline"
         update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions

@@ -13,7 +13,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const { windowWithStubbedLocation, runScriptWithWindow } = require('./support/windowWithStubbedLocation');
+const { windowWithStubbedLocation, runScriptWithWindow, newLocationStub } =
+    require('./support/windowWithStubbedLocation');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const readSrc = (relativePath) => fs.readFileSync(path.join(REPO_ROOT, relativePath), 'utf8');
@@ -63,7 +64,7 @@ describe('a street given up on at page load', () => {
         showAlert = jest.fn();
 
         // jsdom refuses real navigation, and the give-up path ends in one.
-        locationStub = { replace: jest.fn(), reload: jest.fn(), href: '' };
+        locationStub = newLocationStub();
         const win = windowWithStubbedLocation(locationStub);
 
         window.svl = { tracker: { push: jest.fn() }, alertController: { showAlert } };

@@ -43,21 +43,41 @@ function leafKeys(obj, prefix = '') {
 }
 
 /**
- * Read a translation file and return its leaf keys as a Set with i18next plural suffixes normalized away, so that
- * languages with different plural-category counts compare as equal.
+ * Parse a translation file, or null if it's missing or invalid -- validity is @eslint/json's job, not this script's.
  *
  * @param {string} filePath - Absolute path to the JSON file.
- * @returns {Set<string>} Normalized leaf key set (empty if missing or unparseable -- validity is @eslint/json's job).
+ * @returns {object|null} The parsed translations.
  */
-function normalizedKeySet(filePath) {
-    if (!existsSync(filePath)) return new Set();
-    let parsed;
+function readTranslations(filePath) {
+    if (!existsSync(filePath)) return null;
     try {
-        parsed = JSON.parse(readFileSync(filePath, 'utf8'));
+        return JSON.parse(readFileSync(filePath, 'utf8'));
     } catch {
-        return new Set();
+        return null;
     }
-    return new Set(leafKeys(parsed).map(key => key.replace(PLURAL_SUFFIX, '')));
+}
+
+/**
+ * Leaf keys with i18next plural suffixes normalized away, so languages with different plural-category counts compare
+ * as equal.
+ *
+ * @param {object|null} parsed - Parsed translations, or null for a missing/invalid file.
+ * @returns {Set<string>} Normalized leaf key set.
+ */
+function normalizedKeySet(parsed) {
+    return parsed ? new Set(leafKeys(parsed).map(key => key.replace(PLURAL_SUFFIX, ''))) : new Set();
+}
+
+// The reference's key sets are compared against once per locale file, so parse each namespace once rather than 63x.
+const referenceKeysByNamespace = new Map();
+
+/** @returns {Set<string>} The reference locale's normalized keys for a base namespace. */
+function referenceKeySet(baseNamespace) {
+    if (!referenceKeysByNamespace.has(baseNamespace)) {
+        const path = join(LOCALES_DIR, REFERENCE_LOCALE, `${baseNamespace}.json`);
+        referenceKeysByNamespace.set(baseNamespace, normalizedKeySet(readTranslations(path)));
+    }
+    return referenceKeysByNamespace.get(baseNamespace);
 }
 
 /**
@@ -104,39 +124,31 @@ for (const locale of locales) {
     for (const file of localeFiles(locale)) {
         const stem = file.replace(/\.json$/, '');
 
-        let parsed;
-        try {
-            parsed = JSON.parse(readFileSync(join(LOCALES_DIR, locale, file), 'utf8'));
-        } catch {
-            parsed = null; // Unparseable: @eslint/json reports it; nothing here can say anything useful about it.
-        }
-        if (parsed) {
-            const unusable = unusableValues(parsed);
-            if (unusable.length) problems.push({ file: `${locale}/${file}`, unusable });
-        }
+        const parsed = readTranslations(join(LOCALES_DIR, locale, file));
+        const problem = { file: `${locale}/${file}` };
+        if (parsed) problem.unusable = unusableValues(parsed);
 
         const baseNamespace = stem.split('-')[0];
         const isCityOverlay = stem.includes('-');
 
         // The reference for any file is the reference locale's *base* namespace (e.g. `common-zurich.json` and
         // `en-US/common.json` both compare against `en/common.json`).
-        if (!baseNamespaces.includes(baseNamespace)) continue; // Unknown namespace; nothing to compare against.
-
         // The reference's own base-namespace files have nothing to compare against (they'd compare to themselves).
-        // Its city overlays are still worth subset-checking against the base namespace.
-        if (locale === REFERENCE_LOCALE && !isCityOverlay) continue;
+        // Its city overlays are still worth subset-checking against the base namespace. An unknown namespace has
+        // nothing to compare against either -- but its values were still worth checking above.
+        const comparable = baseNamespaces.includes(baseNamespace) && !(locale === REFERENCE_LOCALE && !isCityOverlay);
+        if (comparable) {
+            const referenceKeys = referenceKeySet(baseNamespace);
+            const localeKeys = normalizedKeySet(parsed);
 
-        const referenceKeys = normalizedKeySet(join(LOCALES_DIR, REFERENCE_LOCALE, `${baseNamespace}.json`));
-        const localeKeys = normalizedKeySet(join(LOCALES_DIR, locale, file));
-
-        const unknown = [...localeKeys].filter(key => !referenceKeys.has(key));
-        if (isOverrideOnlyLocale || isCityOverlay) {
+            problem.unknown = [...localeKeys].filter(key => !referenceKeys.has(key));
             // Override-only: only unknown/typo'd keys are errors; missing keys are the intended fallback behavior.
-            if (unknown.length) problems.push({ file: `${locale}/${file}`, unknown });
-        } else {
-            const missing = [...referenceKeys].filter(key => !localeKeys.has(key));
-            if (missing.length || unknown.length) problems.push({ file: `${locale}/${file}`, missing, unknown });
+            if (!isOverrideOnlyLocale && !isCityOverlay) {
+                problem.missing = [...referenceKeys].filter(key => !localeKeys.has(key));
+            }
         }
+
+        if (problem.unusable?.length || problem.missing?.length || problem.unknown?.length) problems.push(problem);
     }
 
     // Full locales must carry every base namespace file; a whole missing file is drift the per-file loop can't see.
@@ -161,8 +173,18 @@ for (const { file, missingFile, missing, unknown, unusable } of problems) {
         continue;
     }
     console.error(`  ${file}`);
-    if (unusable?.length) console.error(`    - ${unusable.length} unusable value(s): ${unusable.slice(0, 10).map(({ path, reason }) => `${path} (${reason})`).join(', ')}${unusable.length > 10 ? ', ...' : ''}`);
-    if (missing?.length) console.error(`    - missing ${missing.length} key(s): ${missing.slice(0, 10).join(', ')}${missing.length > 10 ? ', ...' : ''}`);
-    if (unknown?.length) console.error(`    - ${unknown.length} unknown key(s) not in reference: ${unknown.slice(0, 10).join(', ')}${unknown.length > 10 ? ', ...' : ''}`);
+    if (unusable?.length) {
+        const shown = unusable.slice(0, 10).map(({ path, reason }) => `${path} (${reason})`).join(', ');
+        console.error(`    - ${unusable.length} unusable value(s): ${shown}${unusable.length > 10 ? ', ...' : ''}`);
+    }
+    if (missing?.length) {
+        const shown = missing.slice(0, 10).join(', ');
+        console.error(`    - missing ${missing.length} key(s): ${shown}${missing.length > 10 ? ', ...' : ''}`);
+    }
+    if (unknown?.length) {
+        const shown = unknown.slice(0, 10).join(', ');
+        const more = unknown.length > 10 ? ', ...' : '';
+        console.error(`    - ${unknown.length} unknown key(s) not in reference: ${shown}${more}`);
+    }
 }
 process.exit(1);

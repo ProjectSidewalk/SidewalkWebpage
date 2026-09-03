@@ -12,7 +12,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const { windowWithStubbedLocation, runScriptWithWindow } = require('./support/windowWithStubbedLocation');
+const { windowWithStubbedLocation, runScriptWithWindow, newLocationStub, resetLocationStub } =
+    require('./support/windowWithStubbedLocation');
 
 const FORM_PATH = path.resolve(__dirname, '..', '..', 'public/js/validate/src/data/Form.js');
 
@@ -29,8 +30,9 @@ function loadFormClass(win) {
     return runScriptWithWindow(src + '\nreturn Form;\n', win);
 }
 
-// Loaded once against a window carrying this stub, so the stub has to outlive any one test -- beforeEach clears it.
-const locationStub = { reload: jest.fn(), replace: jest.fn(), href: '' };
+// Loaded once against a window carrying this stub, so the stub has to outlive any one test -- beforeEach resets
+// its fields in place rather than rebuilding the object the proxy closed over.
+const locationStub = newLocationStub();
 const Form = loadFormClass(windowWithStubbedLocation(locationStub));
 
 /** Stub `fetch` to resolve with the given JSON body and an OK status. */
@@ -56,9 +58,7 @@ describe('Form.submit (issue #2745 resilience)', () => {
             modalNoNewMission: { show: jest.fn() }
         };
 
-        locationStub.reload.mockClear();
-        locationStub.replace.mockClear();
-        locationStub.href = '';
+        resetLocationStub(locationStub);
 
         form = new Form('/validationTask');
     });

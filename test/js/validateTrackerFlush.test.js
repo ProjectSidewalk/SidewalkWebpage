@@ -13,7 +13,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const { windowWithStubbedLocation, runScriptWithWindow } = require('./support/windowWithStubbedLocation');
+const { windowWithStubbedLocation, runScriptWithWindow, newLocationStub, resetLocationStub } =
+    require('./support/windowWithStubbedLocation');
 
 const TRACKER_PATH = path.resolve(__dirname, '..', '..', 'public/js/validate/src/Tracker.js');
 
@@ -31,8 +32,9 @@ function loadTrackerClass(win) {
     return runScriptWithWindow(src + '\nreturn Tracker;\n', win);
 }
 
-// Loaded once against a window carrying this stub, so the stub has to outlive any one test -- beforeEach clears it.
-const locationStub = { reload: jest.fn(), replace: jest.fn(), href: '' };
+// Loaded once against a window carrying this stub, so the stub has to outlive any one test -- beforeEach resets
+// its fields in place rather than rebuilding the object the proxy closed over.
+const locationStub = newLocationStub();
 const Tracker = loadTrackerClass(windowWithStubbedLocation(locationStub));
 
 describe('Tracker timed flush (issue #4429)', () => {
@@ -59,9 +61,7 @@ describe('Tracker timed flush (issue #4429)', () => {
             }
         };
 
-        locationStub.reload.mockClear();
-        locationStub.replace.mockClear();
-        locationStub.href = '';
+        resetLocationStub(locationStub);
 
         tracker = new Tracker();
     });

@@ -1,5 +1,5 @@
 .PHONY: dev docker-up docker-up-db docker-run docker-stop ssh qa-worktree qa-worktree-stop worktree-remove \
-        test-e2e test-e2e-host \
+        test-js test-e2e test-e2e-host \
         test-python test-python-app test-python-tools \
         import-users import-dump create-new-schema fill-new-schema hide-streets-without-imagery \
         import-street-imagery reveal-or-hide-neighborhoods \
@@ -215,6 +215,11 @@ test-python-tools:
 # see test-e2e-host. The image build is a cached no-op after the first run, and re-runs itself on a version bump —
 # it's only verbose when the tag is missing, since that first build downloads the base image.
 #
+# The jsdom unit suite (test/js/), a blocking step in CI's `frontend` job. Run in the web container, where the
+# node_modules live. `args` passes through, so `make test-js args="--watch"` or a path filter works.
+test-js:
+	@docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd /home && ./node_modules/.bin/jest --config jest.config.js $(args)"
+
 # `--tmpfs /home/node_modules` is load-bearing, not tidiness: NODE_PATH is consulted only after the node_modules
 # walk fails, so the repo's own node_modules — which carries @playwright/test, a devDependency installed into the
 # web image — would resolve the specs to a second copy of the module while the CLI keeps the image's. Playwright
