@@ -187,7 +187,10 @@ corresponding Twirl view:
 - **`ps-map/`** — shared map component used across pages.
 - **`help/`** — help/FAQ page.
 - **`common/`** — modules shared across bundles: `pano-viewer/` (an abstraction over the GSV / Mapillary / Infra3d /
-  Pannellum imagery providers), `label-detail/` (label popups), and various utilities.
+  Pannellum imagery providers), `label-detail/` (label popups), and various utilities. The popup's pano viewer is
+  built on the first label shown, never at page load: Google bills every `StreetViewPanorama` constructed, hidden
+  or not, and most visits to a hosting page never open a label (#5128). Only the free library download is
+  scheduled early (`PanoViewer.preloadLibrary`).
 
 There is **no module system**: files are concatenated in a hand-specified order (see `Gruntfile.js`). Third-party
 libraries live under `public/vendor/<lib>/`, one self-contained folder each (never edited or linted). Edit `src/`
