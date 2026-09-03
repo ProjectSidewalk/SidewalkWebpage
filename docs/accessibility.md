@@ -133,7 +133,7 @@ and leaderboard rows on the page, not the thousands a dev DB holds. Violations t
 wrapped long username, a grid that only overflows past N cards — are checked when the suite runs against a seeded
 DB, not by CI, so it is still worth running both.
 
-Note that a failing job only *blocks a merge* once the check is required in branch protection — see
+`E2E smoke (Playwright)` is a required status check, so a failing gate blocks the merge — see
 [`docs/testing-and-ci.md`](testing-and-ci.md). The open data portal pages
 ([#5058](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/5058)) join the table when they land.
 
