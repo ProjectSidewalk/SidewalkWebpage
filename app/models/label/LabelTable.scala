@@ -26,7 +26,12 @@ import models.street.{StreetEdgeRegionTableDef, StreetEdgeTable, StreetEdgeTable
 import models.user._
 import models.utils.MyPostgresProfile.api._
 import models.utils.{ConfigTableDef, LatLngBBox, MyPostgresProfile}
-import models.validation.{LabelValidationTableDef, ValidationOption, ValidationTaskCommentTableDef}
+import models.validation.{
+  LabelValidationTableDef,
+  ValidationOption,
+  ValidationQueuePolicy,
+  ValidationTaskCommentTableDef
+}
 import org.geotools.geometry.jts.JTSFactoryFinder
 import org.locationtech.jts.geom.GeometryFactory
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -104,7 +109,29 @@ case class LabelForLabelMap(
 )
 
 case class TagCount(labelType: String, tag: String, count: Int)
-case class LabelTypeValidationsLeft(labelType: LabelTypeEnum.Base, validationsAvailable: Int, validationsNeeded: Int)
+
+/**
+ * Per-type counts of what one user could validate, broken down by queue.
+ *
+ * @param labelType            The label type these counts describe.
+ * @param validationsAvailable Labels of this type the user could be served at all.
+ * @param needsVotes           Of those, the ones the crowd should still be asked about.
+ * @param triage               Of those, the ones the crowd cannot finish (see `ValidationQueuePolicy.triage`).
+ */
+case class LabelTypeValidationsLeft(
+    labelType: LabelTypeEnum.Base,
+    validationsAvailable: Int,
+    needsVotes: Int,
+    triage: Int
+) {
+
+  /** How many labels of this type the given queue holds; this is what type selection weights on. */
+  def countFor(queue: ValidationQueuePolicy.ValidationQueue): Int = queue match {
+    case ValidationQueuePolicy.ValidationQueue.NeedsVotes => needsVotes
+    case ValidationQueuePolicy.ValidationQueue.Triage     => triage
+    case ValidationQueuePolicy.ValidationQueue.Any        => validationsAvailable
+  }
+}
 
 case class LabelCount(count: Int, timeInterval: TimeInterval, labelType: String) {
   require((labelTypeNames ++ Seq("All")).contains(labelType))
@@ -1223,7 +1250,11 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   }
 
   /**
-   * Returns how many labels this user has available to validate (& how many need validations) for each label type.
+   * Returns how many labels this user has available to validate for each label type, and how many of those each
+   * queue holds.
+   *
+   * The per-queue counts run the same `ValidationQueuePolicy` predicates the label query does, so type selection and
+   * label selection can never disagree about what still needs validating.
    *
    * @param userId User ID for the current user
    * @param viewer The type of pano viewer the labels must have been added on (GSV, Mapillary, etc)
@@ -1236,34 +1267,50 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _lb <- labels
       _pd <- panoData if _pd.panoId === _lb.panoId
       if imageryViewable(_pd) && _pd.source === viewer && _lb.userId =!= userId
-    } yield (_lb.labelId, _lb.labelType, _lb.correct)
+    } yield _lb
 
     // Left join with the labels that the user has already validated, then filter those out.
     val filteredLabelsToValidate = for {
-      (_lab, _val) <- labelsToValidate.joinLeft(labelsValidatedByUser).on(_._1 === _.labelId)
+      (_lab, _val) <- labelsToValidate.joinLeft(labelsValidatedByUser).on(_.labelId === _.labelId)
       if _val.isEmpty
     } yield _lab
 
-    filteredLabelsToValidate
-      .groupBy(_._2)
+    // Attach the AI's vote; the triage predicate is the one that reads it.
+    val withAiVote = filteredLabelsToValidate
+      .joinLeft(aiData)
+      .on(_.labelId === _._1.labelId)
+      .map { case (_lb, _ai) => (_lb, _ai.map(_._2).flatten.map(_.validationResult)) }
+
+    withAiVote
+      .groupBy(_._1.labelType)
       .map { case (labType, group) =>
-        (labType, group.length, group.length - group.map(_._3).countDefined)
+        (
+          labType,
+          group.length,
+          group.map { case (l, _) => Case.If(ValidationQueuePolicy.needsVotes(l)).Then(1).Else(0) }.sum.getOrElse(0),
+          group.map { case (l, aiv) => Case.If(ValidationQueuePolicy.triage(l, aiv)).Then(1).Else(0) }.sum.getOrElse(0)
+        )
       }
       .result
-      .map(_.map(x => LabelTypeValidationsLeft(x._1, x._2, x._3)))
+      .map(_.map(x => LabelTypeValidationsLeft(x._1, x._2, x._3, x._4)))
   }
 
   /**
-   * Returns a query to get set of labels matching filters for validation, ordered according to our priority algorithm.
+   * Returns a query to get the set of labels matching the filters, restricted to one queue and ordered by priority.
    *
-   * Priority is determined as follows: Generate a priority num for each label between 0 and 426. A label gets 150
-   * points if the labeler has < 50 of their labels validated (and this label needs a validation). Another 50 points if
-   * the labeler was marked as high quality. Up to 200 more points `(200 / (1 + abs(agree_count - disagree_count)^2))`
-   * depending on how far we are from consensus. Another 25 points if the label was added in the past week. Then add a
-   * random number so that the max score for each label is 426.
+   * `queue` decides which labels are eligible at all: `NeedsVotes` is the crowd's queue (a label the crowd can still
+   * settle), `Triage` is what the crowd could not finish, and `Any` is everything the viewer can render. The
+   * predicates are `ValidationQueuePolicy`'s, shared with the per-type counts.
+   *
+   * Within the queue, each label gets the deterministic score in `ValidationQueuePolicy.priorityScore` — a new
+   * labeler's still-unconfirmed label, a high-quality labeler's label, distance from consensus, and a label added in
+   * the past week each add their bonus — and the rows are then drawn as a weighted random sample with pick
+   * probability proportional to score², via `ValidationQueuePolicy.pickKey`. Priority therefore sets how often a label
+   * is served rather than merely nudging an otherwise random order.
    *
    * @param userId           User ID for the current user.
    * @param labelType        Label type of labels requested.
+   * @param queue            Which subset of labels to draw from.
    * @param userIds          Optional list of user IDs to filter by.
    * @param regionIds        Optional list of region IDs to filter by.
    * @param excludedLabelIds Labels the caller already holds and must not be handed again (#4810).
@@ -1273,6 +1320,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       userId: String,
       viewer: PanoSource,
       labelType: LabelTypeEnum.Base,
+      queue: ValidationQueuePolicy.ValidationQueue,
       includeAiTags: Boolean = true,
       userIds: Option[Set[String]] = None,
       regionIds: Option[Set[Int]] = None,
@@ -1311,33 +1359,15 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
         (_lb, _lp, _pd, _us, _at, labelType, regionId, isAiUser, _ai.map(_._1), _ai.map(_._2).flatten)
       }
 
-    // Priority ordering algorithm is described in the method comment, max score is 276.
-    val _labelInfoSorted = _labelInfoWithAiData
-      .sortBy {
-        case (l, lp, pd, us, at, labelType, regionId, isAiUser, aiv, laa) => {
-          // A label gets 150 if the labeler as < 50 of their labels validated (and this label needs a validation).
-          val needsValidationScore =
-            Case.If(us.ownLabelsValidated < 50 && l.correct.isEmpty && !at.lowQuality && !at.stale).Then(150d).Else(0d)
+    // Keep only the labels this queue serves. The filter sits here because the triage predicate reads the AI's vote.
+    val _labelInfoInQueue = _labelInfoWithAiData.filter { case (l, _, _, _, _, _, _, _, _, aiv) =>
+      ValidationQueuePolicy.inQueue(queue, l, aiv.map(_.validationResult))
+    }
 
-          // Another 50 points if the labeler was marked as high quality.
-          val highQualityScore = Case.If(us.highQuality).Then(50d).Else(0d)
-
-          // Up to 100 points based on how far we are from consensus: (200 / (1 + abs(agree_count - disagree_count)^2)).
-          val valDifference  = (l.agreeCount - l.disagreeCount).abs
-          val agreementScore = 200.0d.bind / (1d.bind + (valDifference * valDifference).asColumnOf[Double])
-
-          // Another 25 points if the label was added in the past week.
-          val currentTimestamp = SimpleLiteral[OffsetDateTime]("current_timestamp")
-          val weekInterval     = SimpleLiteral[Duration]("interval '7 days'")
-          val recencyScore     = Case.If(l.timeCreated > currentTimestamp --- weekInterval).Then(25d).Else(0d)
-
-          // Calculate the total deterministic score.
-          val deterministicScore: Rep[Double] = needsValidationScore + highQualityScore + agreementScore + recencyScore
-
-          // Finally, add a random number so that the max score for each label is 426. Sort descending.
-          val rand = SimpleFunction.nullary[Double]("random")
-          (deterministicScore + rand * (426.0d.bind - deterministicScore)).desc
-        }
+    // Weighted random sample of the queue, P(pick) proportional to score²; see the method comment.
+    val _labelInfoSorted = _labelInfoInQueue
+      .sortBy { case (l, _, _, us, at, _, _, _, _, _) =>
+        ValidationQueuePolicy.pickKey(ValidationQueuePolicy.priorityScore(l, at, us)).desc
       }
       // Select only the columns needed for the LabelValidationMetadata class.
       .map { case (l, lp, pd, us, at, labelType, regionId, isAiUser, laa, aiv) =>
