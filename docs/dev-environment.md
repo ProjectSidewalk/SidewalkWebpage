@@ -277,9 +277,10 @@ docker exec projectsidewalk-web bash -lc "cd /home && sbt --client test"
 docker exec projectsidewalk-web bash -lc "cd /home && sbt --client \"testOnly controllers.api.PublicApiSpec\""
 ```
 
-The `backend-tests` CI job is a required check, but it runs a **named subset** of these specs, not `sbt test` — so a
-spec that nobody adds to that list in `.github/workflows/ci.yml` can rot without CI ever going red. Run the whole suite
-locally before you trust it, and add new specs to the job in the same PR.
+The `backend-tests` CI job is a required check and runs **all of `test/`** (`sbt coverage test`, since #5042), so a
+new spec file is picked up with nothing to enroll it in. Still run the suite locally before you trust it: the
+DB-dependent specs `assume` their way to *canceled* rather than failing when the data they need isn't there, so a
+green run isn't proof that everything in it actually ran.
 
 There are also Python unit tests for the `scripts/` utilities (`make test-python`) and a jsdom Jest suite for
 frontend modules (`docker exec projectsidewalk-web bash -lc "cd /home && npm run test:js"` — Jest's
