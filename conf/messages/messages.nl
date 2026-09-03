@@ -26,7 +26,6 @@ other.description = Ander toegankelijkheidsprobleem
 low = Laag
 medium = Medium
 high = Hoog
-rating = Beoordeling
 not.applicable.abbr = NVT
 validations = Validaties
 labels = labels

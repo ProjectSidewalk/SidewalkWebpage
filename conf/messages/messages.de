@@ -26,7 +26,6 @@ other.description = Anderes Barrierefreiheitsproblem
 low = Niedrig
 medium = Medium
 high = Hoch
-rating = Bewertung
 not.applicable.abbr = k.A.
 validations = Validierungen
 labels = Beschriftungen

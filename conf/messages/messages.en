@@ -26,7 +26,6 @@ other.description = Other accessibility issue
 low = Low
 medium = Medium
 high = High
-rating = Rating
 not.applicable.abbr = N/A
 validations = Validations
 labels = labels

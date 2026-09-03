@@ -107,7 +107,6 @@ Each major UI is a self-contained app under `public/js/`, bundled separately by 
 - **`user-dashboard/`** — the redesigned user dashboard, settings, leaderboard, and public profiles (#4323), plus the admin's view of a user's dashboard (`/admin/user/:username` and its `/manage` page, #4964). Served file-by-file like `admin-dashboard/` — no Grunt bundle.
 - **`api-docs/`** — the `/api-docs` reference pages: one `<endpoint>Preview.js` per page renders a live sample of that endpoint, with `apiDocs.js` (shell behavior), `apiTableWrapper.js`, and `apiDocsTheme.js` (`ApiDocsTheme.color(token, alpha?)` — the one way preview JS reads a CSS color token for Chart.js/Mapbox, so chart colors follow the design system). Served file-by-file — no Grunt bundle.
 - **`ps-map/`** — shared map component used across pages.
-- **`help/`** — help/faq page (rarely used).
 - **`common/`** — shared modules pulled into multiple bundles: `pano-viewer/` (abstraction over GSV / Mapillary / Infra3d / Pannellum imagery providers), `label-detail/` (label popups), and various utilities.
 
 No npm-based module system on the frontend — files are simply concatenated in order. Third-party libraries live under `public/vendor/`, one self-contained folder per library (its JS + CSS + fonts + images together, upstream layout preserved). **Nothing under `vendor/` is edited or linted.**
