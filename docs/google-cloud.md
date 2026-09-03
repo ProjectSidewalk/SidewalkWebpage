@@ -85,8 +85,13 @@ Every new spec that touches one of those pages, and every seed that lets `/valid
 instantiations per run — expired or backed-up imagery changes nothing, the constructor is the event. The rule,
 therefore: **CI must not instantiate a Google panorama or map with a real key.** #5129 gets there by stubbing the
 Maps JS API in the Playwright fixtures the way Mapbox already is (`stubMapbox` in `test/e2e/fixtures.js`); until
-it lands, the CI key carries a daily "Map loads" quota cap in the console so a runaway fails the advisory specs
-instead of producing an invoice, and the billing account has budget alerts.
+it lands, the CI key carries a daily "Map loads" quota cap in the console: past the cap the Maps API refuses to
+load, the smoke half of `e2e-smoke` (a required check) goes red and PRs stop merging — a loud signal, by design,
+instead of an invoice.
+
+Budget alerts are the second line. The account-wide budget was a leftover of Google's retired $200 monthly credit,
+$200 with alerts at 75/95/100%, so a $100 month never tripped it and August was discovered on the invoice. Size
+budgets to a small multiple of the *normal* monthly bill, one per project so a runaway is attributable.
 
 ## Also billed here
 
