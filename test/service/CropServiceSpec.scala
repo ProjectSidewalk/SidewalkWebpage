@@ -67,12 +67,13 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPe
 
   private val syntheticPano = new File("test/resources/crops/synthetic-pano.png")
 
-  // Four panos: one with its image in the store, one without, one whose row claims another size, and one whose row
-  // records no size at all.
+  // Five panos: one with its image in the store, one without, one whose row claims another size, one whose row
+  // records no size at all, and one whose label belongs to an excluded user.
   private val backedPanoId     = s"${prefix}backed"
   private val unbackedPanoId   = s"${prefix}unbacked"
   private val mismatchedPanoId = s"${prefix}mismatched"
   private val unrecordedPanoId = s"${prefix}unrecorded"
+  private val excludedPanoId   = s"${prefix}excluded"
 
   /** What `seedLabel` wrote, so afterAll can delete exactly that. */
   private case class Seeded(labelId: Int, streetEdgeId: Int, auditTaskId: Int, missionId: Int, userId: String)
@@ -101,7 +102,13 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPe
    * Seeds the FK chain one label needs — user, street, audit task, mission, pano, label, label point — with explicit
    * MAX+1 ids, since the dev dumps insert rows without advancing the sequences.
    */
-  private def seedLabel(panoId: String, recordedDims: Option[(Int, Int)], panoX: Int, panoY: Int): Seeded = {
+  private def seedLabel(
+      panoId: String,
+      recordedDims: Option[(Int, Int)],
+      panoX: Int,
+      panoY: Int,
+      excluded: Boolean = false
+  ): Seeded = {
     val userId         = UUID.randomUUID().toString
     val username       = prefix + userId.take(8)
     val recordedWidth  = recordedDims.map(_._1)
@@ -110,7 +117,7 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPe
       _ <- sqlu"""INSERT INTO sidewalk_login.sidewalk_user (user_id, username, email)
                   VALUES ($userId, $username, ${username + "@test.invalid"})"""
       _ <- sqlu"""INSERT INTO user_stat (user_stat_id, user_id, meters_audited, high_quality, excluded)
-                  VALUES ((SELECT COALESCE(MAX(user_stat_id), 0) + 1 FROM user_stat), $userId, 0, TRUE, FALSE)"""
+                  VALUES ((SELECT COALESCE(MAX(user_stat_id), 0) + 1 FROM user_stat), $userId, 0, TRUE, $excluded)"""
       streetEdgeId <-
         sql"""INSERT INTO street_edge (street_edge_id, geom, x1, y1, x2, y2, way_type, status)
               VALUES ((SELECT COALESCE(MAX(street_edge_id), 0) + 1 FROM street_edge),
@@ -152,11 +159,13 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPe
     val _ = storePano(backedPanoId)
     val _ = storePano(mismatchedPanoId)
     val _ = storePano(unrecordedPanoId)
+    val _ = storePano(excludedPanoId)
     seeded = Map(
       backedPanoId     -> seedLabel(backedPanoId, Some((1024, 512)), panoX = 512, panoY = 300),
       unbackedPanoId   -> seedLabel(unbackedPanoId, Some((1024, 512)), panoX = 512, panoY = 300),
       mismatchedPanoId -> seedLabel(mismatchedPanoId, Some((2048, 512)), panoX = 512, panoY = 300),
-      unrecordedPanoId -> seedLabel(unrecordedPanoId, None, panoX = 512, panoY = 300)
+      unrecordedPanoId -> seedLabel(unrecordedPanoId, None, panoX = 512, panoY = 300),
+      excludedPanoId   -> seedLabel(excludedPanoId, Some((1024, 512)), panoX = 512, panoY = 300, excluded = true)
     )
     beforeRun = seeded.keys.map(panoId => panoId -> (cropFile(panoId).exists(), hasBackup(panoId))).toMap
     firstRun = generate()
@@ -198,8 +207,9 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPe
       // The run had nothing to start from: no crop on disk, and a row that made no claim about a backup.
       beforeRun(backedPanoId) mustBe ((false, None))
 
-      // The backed pano's label and the one whose row records no dimensions; the other two seeds are skipped.
-      firstRun.cropsWritten mustBe 2
+      // The backed pano's label, the one whose row records no dimensions, and the excluded user's; the other two
+      // seeds are skipped.
+      firstRun.cropsWritten mustBe 3
       firstRun.errors mustBe 0
       val crop = cropFile(backedPanoId)
       crop.exists() mustBe true
@@ -220,6 +230,11 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPe
       // assumption and the run says how often it had to make it — rather than reporting it as a verified crop.
       firstRun.dimsUnverified mustBe 1
       cropFile(unrecordedPanoId).exists() mustBe true
+    }
+
+    "cut a crop for an excluded user's label like anyone else's" in {
+      // They are what an admin looks at to judge the exclusion, and what a study of poor labeling is made of.
+      cropFile(excludedPanoId).exists() mustBe true
     }
 
     "skip, and count, a label whose pano row claims another size than the stored image" in {
