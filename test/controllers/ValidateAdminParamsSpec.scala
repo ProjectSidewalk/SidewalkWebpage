@@ -46,7 +46,8 @@ class ValidateAdminParamsSpec extends PlaySpec with GuiceOneAppPerSuite {
     "label_type"       -> JsNull,
     "user_ids"         -> JsNull,
     "neighborhood_ids" -> JsNull,
-    "unvalidated_only" -> false
+    "unvalidated_only" -> false,
+    "triage"           -> true
   )
 
   /**
