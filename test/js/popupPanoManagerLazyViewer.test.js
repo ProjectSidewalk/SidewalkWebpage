@@ -102,6 +102,20 @@ describe('PopupPanoManager builds its viewer lazily', () => {
         expect(viewer.panos).toEqual(['pano-1', 'pano-2']);
     });
 
+    test('warmUp() builds the viewer ahead of the label, never rejects, and the label then reuses it', async () => {
+        const manager = await createManager();
+
+        await expect(manager.warmUp()).resolves.toBeUndefined();
+        expect(viewerType.create).toHaveBeenCalledTimes(1);
+        await manager.setPano('pano-1', POV, null);
+        expect(viewerType.create).toHaveBeenCalledTimes(1);
+
+        viewerType.create.mockImplementationOnce(() => Promise.reject(new Error('quota')));
+        const broken = await createManager();
+        await expect(broken.warmUp()).resolves.toBeUndefined();
+        expect(broken.panoViewer).toBeUndefined();
+    });
+
     test('labels opened while the viewer is still building share the one build', async () => {
         const manager = await createManager();
 

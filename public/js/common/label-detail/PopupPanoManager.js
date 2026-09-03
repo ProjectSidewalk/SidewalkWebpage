@@ -208,9 +208,12 @@ class PopupPanoManager {
    * fetch instead of queueing behind it. Call once the host has shown the popup and knows a label is coming: this is
    * the billable step, so it must not run for a visitor who merely loaded the page. Never rejects — setPano() makes
    * the real attempt and owns the fallback.
+   *
+   * @returns {Promise<void>} Settles once the build has succeeded or failed, for a host that wants to hold its own
+   *     heavy init until then (a deep-linked label: the build competes badly with a map coming up beside it).
    */
   warmUp() {
-    this.#ensureViewer().catch(() => {});
+    return this.#ensureViewer().then(() => undefined, () => undefined);
   }
 
   /**
