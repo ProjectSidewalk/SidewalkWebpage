@@ -68,6 +68,7 @@ guide: **[`docs/dev-environment.md`](docs/dev-environment.md)**.
 | [`docs/logged-events.md`](docs/logged-events.md) | How user-interaction logging works + the event reference. |
 | [`docs/data-notes.md`](docs/data-notes.md) | Release-specific caveats for analyzing Project Sidewalk data. |
 | [`docs/image-credits.md`](docs/image-credits.md) | Sources for the images we didn't take ourselves. |
+| [`docs/label-latlng-estimation.md`](docs/label-latlng-estimation.md) | How a label's map position is estimated from its panorama pixel, the geodesy decision, and the viewport frame contract. |
 | [`docs/ai-subsystems.md`](docs/ai-subsystems.md) | Map of all AI/CV subsystems and repos: what's in production, how the pieces connect, and the project timeline since 2018. |
 | [`SECURITY.md`](SECURITY.md) | How to report a vulnerability. |
 | [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) | Community standards. |

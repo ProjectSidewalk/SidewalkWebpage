@@ -64,6 +64,23 @@
    }
   },
   {
+   "name": "bearing wrap: 0/360",
+   "pano_lat": 47.6553,
+   "pano_lng": -122.3035,
+   "pano_x": 0,
+   "pano_y": 4779,
+   "pano_width": 16384,
+   "pano_height": 8192,
+   "camera_heading": 180.0,
+   "expected": {
+    "heading_deg": 0.0,
+    "pitch_deg": -15.00732421875,
+    "distance_m": 8.73308515606682,
+    "lat": 47.65537853852167,
+    "lng": -122.3035
+   }
+  },
+  {
    "name": "negative unwrapped heading",
    "pano_lat": 47.6553,
    "pano_lng": -122.3035,

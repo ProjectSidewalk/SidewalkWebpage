@@ -20,6 +20,7 @@ when a task is in its area.
 | Storing uploaded media (DB row vs. media dir) | `docs/architecture.md` → "Media storage" |
 | Tests or CI | `docs/testing-and-ci.md`, `test/e2e/README.md` |
 | `scripts/*.py` | `scripts/README.md` |
+| The label lat/lng estimator or the labeling viewport frame | `docs/label-latlng-estimation.md` |
 
 ## Workflow
 
