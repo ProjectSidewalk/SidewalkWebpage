@@ -161,7 +161,7 @@ Other handy targets:
 
 | Command | What it does |
 |---------|--------------|
-| `make docker-up` | Start all services detached (no shell). Skips the `node_modules` sync `make dev` does — follow it with `make npm-sync`. |
+| `make docker-up` | Start all services detached (no shell). Useful for `db` only: the web container exits at once, its image command being `jshell`, which reads EOF without a TTY. |
 | `make npm-sync` | Reinstall `node_modules` from `package-lock.json` if they've diverged. |
 | `make ssh target=web` | Open a shell in a running container (`target=web` or `target=db`). |
 
@@ -266,16 +266,23 @@ runs `npm ci`, which installs it exactly and refuses to run if it disagrees with
 and every required check share one toolchain.
 
 To add or change a dependency, edit `package.json`, run `npm install` inside the container, and **commit the
-resulting `package-lock.json` alongside it**. Don't hand-edit the lockfile.
+resulting `package-lock.json` alongside it**. Don't hand-edit the lockfile. On a rootful Docker daemon, run that
+install as `docker exec -u $(id -u) projectsidewalk-web …` — npm rewrites the lockfile by rename, so the new file
+lands owned by container root, and a tracked root-owned file makes the next host-side `git checkout` of it fail.
 
-`node_modules` isn't in your checkout. The bind mount would otherwise lay your host's copy — built for your host's
-OS and architecture — over the container's, so `docker-compose.yml` mounts a named volume over it. The volume
-outlives the container and so isn't refreshed by rebuilding the image; `make dev` and `make npm-sync` are what
-refresh it, comparing a hash of the lockfile against a stamp written at install time. To start completely clean:
+`package.json`'s `engines` records the Node and npm the container and CI use. There's no `.npmrc`, so it's advisory:
+npm prints an `EBADENGINE` warning and installs anyway. It's there to tell you what the supported pair is,
+which matters for `make test-e2e-host` — the one path that installs on your host rather than in the container.
+
+The container never uses your checkout's `node_modules`. The bind mount would otherwise lay a host-built copy — the
+one `make test-e2e-host` needs — over the container's, so `docker-compose.yml` mounts a named volume over that path.
+The volume outlives the container and so isn't refreshed by rebuilding the image; `make dev` and `make npm-sync` are
+what refresh it, against a stamp covering `package.json`, `package-lock.json` and the container's node/npm versions.
+To start completely clean:
 
 ```bash
 make docker-stop
-docker volume rm "$(docker volume ls -q | grep node_modules)"   # Compose prefixes it with your checkout's directory name
+docker volume rm "$(basename "$PWD" | tr '[:upper:]' '[:lower:]')_node_modules"   # your checkout dir, lowercased
 make dev
 ```
 

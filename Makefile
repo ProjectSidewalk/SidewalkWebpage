@@ -46,14 +46,17 @@ RESET := \033[0m
 css-glob = $(if $(filter %.css,$(dir)),$(dir),$(dir)/**/*.css)
 
 # The browser smoke suite's runner image (docker/e2e/Dockerfile), tagged from the tool versions read out of
-# package.json — the base image bundles the matching Chromium, so deriving both from one pin is what keeps the
-# runner and the browser from drifting apart when Dependabot bumps it. The sed expression is plain BRE for macOS.
-# Simply-expanded so the subprocess runs once per make invocation rather than once per expansion.
-pw-version := $(shell sed -n 's/.*"@playwright\/test"[^0-9]*\([0-9][0-9.]*\)".*/\1/p' package.json)
+# package-lock.json — the base image bundles the matching Chromium, so deriving both from one pin is what keeps the
+# runner and the browser from drifting apart when Dependabot bumps it. Read from the lockfile rather than
+# package.json's `^` range, whose floor is only coincidentally what npm resolved: CI's e2e-smoke runs the suite out
+# of the lockfile's node_modules, so anything else here puts a different Playwright in front of the same specs. The
+# sed expression is plain BRE for macOS. Simply-expanded so the subprocess runs once per make invocation rather
+# than once per expansion.
+pw-version := $(shell sed -n '/"node_modules\/@playwright\/test": {/,/}/ s/.*"version": "\([0-9][0-9.]*\)".*/\1/p' package-lock.json | head -1)
 # @axe-core/playwright drives the accessibility gate (a11y.spec.js, #5060) and is installed into the image for the
 # same reason the runner is — the repo's node_modules is masked at run time. Read from the same one pin, and folded
 # into the image tag below so a bump rebuilds the image instead of silently reusing the old axe.
-axe-version := $(shell sed -n 's/.*"@axe-core\/playwright"[^0-9]*\([0-9][0-9.]*\)".*/\1/p' package.json)
+axe-version := $(shell sed -n '/"node_modules\/@axe-core\/playwright": {/,/}/ s/.*"version": "\([0-9][0-9.]*\)".*/\1/p' package-lock.json | head -1)
 e2e-image   = projectsidewalk/e2e
 e2e-tag      = $(pw-version)-axe$(axe-version)
 # The main repo is the container's /home, so a worktree's specs are just a different working directory.
@@ -141,10 +144,13 @@ docker-stop:
 # until it does.
 docker-run:
 	@docker compose run --rm --service-ports --name $(web-container) web \
-		/bin/bash -c "bash /home/tools/npm-sync.sh; exec /bin/bash"
+		/bin/bash -c "bash /home/tools/npm-sync.sh || echo '!! npm-sync failed -- node_modules may be incomplete'; exec /bin/bash"
 
-# For a container that is already up; `make dev` does this for you. See tools/npm-sync.sh.
+# For a container that is already up; `make dev` does this for you. `npm ci` empties node_modules before refilling
+# it, so stop a running `npm start` first. See tools/npm-sync.sh.
 npm-sync:
+	@docker inspect -f '{{.State.Running}}' $(web-container) 2>/dev/null | grep -q true \
+	  || { echo "error: $(web-container) is not running — start it with 'make dev'"; exit 2; }
 	@docker exec $(web-container) bash /home/tools/npm-sync.sh
 
 # Usage: make ssh target=web|db.
@@ -237,9 +243,9 @@ test-e2e:
 	@docker inspect -f '{{.State.Running}}' $(web-container) 2>/dev/null | grep -q true \
 	  || { echo "error: $(web-container) is not running — start it with 'make docker-up', and make sure the app is up on :9000"; exit 2; }
 	@[ -n "$(pw-version)" ] \
-	  || { echo "error: no @playwright/test version found in package.json — is it still listed as a devDependency?"; exit 2; }
+	  || { echo "error: no @playwright/test version found in package-lock.json — is it still listed as a devDependency?"; exit 2; }
 	@[ -n "$(axe-version)" ] \
-	  || { echo "error: no @axe-core/playwright version found in package.json — is it still listed as a devDependency?"; exit 2; }
+	  || { echo "error: no @axe-core/playwright version found in package-lock.json — is it still listed as a devDependency?"; exit 2; }
 	@[ -z "$(wt)" ] || docker exec $(web-container) test -d $(e2e-workdir) \
 	  || { echo "error: no worktree at $(e2e-workdir) (from wt=$(wt))"; exit 2; }
 	@docker exec $(web-container) sh -c '$(e2e-fix-artifact-owner)'

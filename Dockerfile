@@ -52,5 +52,8 @@ RUN curl -LsSf https://astral.sh/uv/0.12.5/install.sh | env UV_INSTALL_DIR=/usr/
   uv cache clean
 RUN python3.13 -m pip install --no-cache-dir -r requirements-offline-tools.txt -r requirements-dev.txt
 
-# Not `npm install`: the image must not drift from the tree CI resolved (#5152).
-RUN npm ci
+# Not `npm install`: the image must not drift from the tree CI resolved (#5152). Copied last so editing the script
+# doesn't invalidate the layers above. The stamp is what stops the first `make dev` after a build reinstalling the
+# identical tree.
+COPY tools/npm-sync.sh ./tools/
+RUN npm ci && bash tools/npm-sync.sh --write-stamp
