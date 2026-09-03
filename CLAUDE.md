@@ -16,6 +16,7 @@ when a task is in its area.
 | Translations (`conf/messages/`, `public/locales/`) | `docs/internationalization.md` |
 | CSS, Twirl views, any UI | `docs/style-guide.md`, `docs/accessibility.md` |
 | A new or changed user interaction | `docs/logged-events.md` |
+| Getting a production city's data onto this machine | `docs/dev-environment.md` → "Switching / adding another city" |
 | Releases, deploys, asset caching, persistent media dirs | `docs/deployment-and-stages.md` |
 | Storing uploaded media (DB row vs. media dir) | `docs/architecture.md` → "Media storage" |
 | Tests or CI | `docs/testing-and-ci.md`, `test/e2e/README.md` |

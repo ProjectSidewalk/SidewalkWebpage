@@ -176,6 +176,11 @@ Each city is a separate database. To switch:
 
 To switch back and forth later: `exit` the Docker shell, change the two override values, and re-run `make dev`.
 
+**Team members with server access don't need to request a dump.** The private `sidewalk-server-tools` repo has
+`pull-city-to-localhost.sh <city-id>`, which pulls any production city onto your machine in one command — dump,
+users, import, and a check of the row counts against production — in well under a minute for a small city. Its
+companion `pull-city-to-localhost.md` explains each step and how to recover when one fails.
+
 ### City IDs
 
 The `SIDEWALK_CITY_ID` and `DATABASE_USER` must correspond. In the repo, **`conf/cityparams.conf` is the source of
