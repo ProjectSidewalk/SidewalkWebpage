@@ -1,4 +1,4 @@
-.PHONY: dev docker-up docker-up-db docker-run docker-stop ssh qa-worktree qa-worktree-stop worktree-remove \
+.PHONY: dev docker-up docker-up-db docker-run docker-stop npm-sync ssh qa-worktree qa-worktree-stop worktree-remove \
         test-js test-e2e test-e2e-host \
         test-python test-python-app test-python-tools \
         import-users import-dump create-new-schema fill-new-schema hide-streets-without-imagery \
@@ -137,8 +137,15 @@ docker-stop:
 	@docker compose stop
 	@docker compose rm -fv
 
+# The sync runs inline because this line is what creates the container -- there is nothing to `docker exec` into
+# until it does.
 docker-run:
-	@docker compose run --rm --service-ports --name $(web-container) web /bin/bash
+	@docker compose run --rm --service-ports --name $(web-container) web \
+		/bin/bash -c "bash /home/tools/npm-sync.sh; exec /bin/bash"
+
+# For a container that is already up; `make dev` does this for you. See tools/npm-sync.sh.
+npm-sync:
+	@docker exec $(web-container) bash /home/tools/npm-sync.sh
 
 # Usage: make ssh target=web|db.
 ssh:
@@ -248,14 +255,14 @@ test-e2e:
 	  -w $(e2e-workdir) $(e2e-image):$(e2e-tag) playwright test $(args)
 
 # Host-side run of the same suite, for `--headed`, `--ui`, and `show-trace` — those need a display the container
-# doesn't have. Needs a host toolchain the containerized path does not: Node 23, `npm install` at the repo root
+# doesn't have. Needs a host toolchain the containerized path does not: Node 24, `npm ci` at the repo root
 # (the container's node_modules is a Docker volume, invisible from the host), and `npx playwright install chromium`,
 # plus `sudo npx playwright install-deps` on Linux/WSL. See test/e2e/README.md.
 test-e2e-host:
 	@command -v npx > /dev/null \
 	  || { echo "error: no host Node — this target needs one (see test/e2e/README.md); 'make test-e2e' needs none"; exit 2; }
 	@[ -d node_modules/@playwright/test ] \
-	  || { echo "error: @playwright/test isn't installed on the host — run 'npm install && npx playwright install chromium'"; exit 2; }
+	  || { echo "error: @playwright/test isn't installed on the host — run 'npm ci && npx playwright install chromium'"; exit 2; }
 	@npx playwright test $(args)
 
 reveal-or-hide-neighborhoods:

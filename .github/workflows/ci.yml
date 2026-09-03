@@ -73,11 +73,12 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: '24'
-          # No npm cache and `npm install` (not `npm ci`) because the repo has no committed package-lock.json yet.
-          # Adding a lockfile later enables `npm ci` + caching and tighter Dependabot npm updates.
+          cache: npm
 
+      # Not `npm install`: every rule that makes this job a blocking gate lives in a package whose version it would
+      # re-resolve per run, so an upstream release could redden the required check on every open PR at once (#5152).
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       # Exercises the grunt concat/concat_css asset build (the project's `default` grunt task).
       - name: Build assets
@@ -376,9 +377,10 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: '24'
+          cache: npm
 
       - name: Install npm dependencies
-        run: npm install
+        run: npm ci
 
       # MUST precede `sbt stage`: the staged app serves public/ from the packaged assets jar, and the grunt bundles
       # (public/js/*/build/) are git-ignored — without them every page 404s its own JS/CSS.

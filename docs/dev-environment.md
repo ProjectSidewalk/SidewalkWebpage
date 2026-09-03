@@ -154,11 +154,18 @@ npm start         # (inside that shell) build assets + run the app
 
 Then visit http://localhost:9000. To stop everything: `make docker-stop`.
 
+`make dev` also keeps `node_modules` in step with `package-lock.json`, reinstalling only when the two have diverged
+(a few seconds, and nothing at all on a normal day). That matters because `node_modules` lives in a Docker volume
+rather than your checkout, and `npm start` never installs anything — so without this, a merged dependency bump would
+reach you only when you happened to rebuild the image, and you'd be linting against a different toolchain than CI.
+See [npm dependencies](#npm-dependencies).
+
 Other handy targets:
 
 | Command | What it does |
 |---------|--------------|
-| `make docker-up` | Start all services detached (no shell). |
+| `make docker-up` | Start all services detached (no shell). Skips the `node_modules` sync `make dev` does — follow it with `make npm-sync`. |
+| `make npm-sync` | Reinstall `node_modules` from `package-lock.json` if they've diverged. |
 | `make ssh target=web` | Open a shell in a running container (`target=web` or `target=db`). |
 
 ---
@@ -254,6 +261,28 @@ The dev server hot-reloads, so you rarely restart it.
   image's 3.8, kept because the app shells out to it for in-band clustering; `python3.13` is where the offline tooling
   and its libraries live. Run offline scripts as `python3.13 scripts/...`. Details in
   [`scripts/README.md`](../scripts/README.md); pins in [`docs/upgrading-libraries.md`](upgrading-libraries.md).
+
+### npm dependencies
+
+`package-lock.json` is committed, and it — not `package.json` — decides which versions actually get installed. CI
+runs `npm ci`, which installs it exactly and refuses to run if it disagrees with `package.json`, so every developer
+and every required check share one toolchain.
+
+To add or change a dependency, edit `package.json`, run `npm install` inside the container, and **commit the
+resulting `package-lock.json` alongside it**. Don't hand-edit the lockfile. Dependabot's monthly npm PRs now carry a
+lockfile diff too; nothing about reviewing them changes.
+
+`node_modules` isn't in your checkout. The bind mount would otherwise lay your host's copy — built for your host's
+OS and architecture — over the container's, so `docker-compose.yml` mounts a named volume over it. That volume
+outlives the container, which is what lets `make dev` skip the install when nothing has changed, but it also means a
+rebuilt image no longer refreshes it on its own. `make dev` (or `make npm-sync`) is the thing that does, comparing a
+hash of the lockfile against a stamp written at install time. To start completely clean:
+
+```bash
+make docker-stop
+docker volume rm "$(docker volume ls -q | grep node_modules)"   # Compose prefixes it with your checkout's directory name
+make dev
+```
 
 ### Checking that backend changes compile
 

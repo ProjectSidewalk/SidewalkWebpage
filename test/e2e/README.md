@@ -58,10 +58,10 @@ regardless of filters), so every run registers a throwaway `ci-smoke-<timestamp>
 make test-e2e-host args="-g labelMap --headed"
 ```
 
-That path needs a host toolchain the containerized one doesn't: **Node 23**, `npm install` at the repo root (the
-container's `node_modules` is a Docker volume, so the host copy is separate and unpinned — there's no committed
-`package-lock.json`), and `npx playwright install chromium`, plus `sudo npx playwright install-deps` on
-Linux/WSL. Use it for interactive debugging; `make test-e2e` is what a normal run and CI both exercise.
+That path needs a host toolchain the containerized one doesn't: **Node 24**, `npm ci` at the repo root (the
+container's `node_modules` is a Docker volume, so the host copy is a separate install — of the same pinned versions,
+since `package-lock.json` is committed), and `npx playwright install chromium`, plus `sudo npx playwright
+install-deps` on Linux/WSL. Use it for interactive debugging; `make test-e2e` is what a normal run and CI both exercise.
 
 ## How a spec works
 
