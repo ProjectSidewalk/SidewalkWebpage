@@ -16,12 +16,8 @@
 const {test, expect, loadAndSettle} = require('./fixtures');
 const AxeBuilder = require('@axe-core/playwright').default;
 const {PAGES} = require('./pages');
-const {EXEMPT_PAGES, A11Y_ALLOWLIST, partitionViolations, formatViolations} = require('./a11y-allowlist');
-
-
-// WCAG 2.1 AA, which subsumes 2.0 A and AA. axe's `best-practice` tag is left off: useful advice, but not part of
-// the standard we hold ourselves to, and a gate that fails outside the commitment gets ignored.
-const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21aa'];
+const {EXEMPT_PAGES, A11Y_ALLOWLIST, WCAG_TAGS, STATE_SUFFIX, partitionViolations, formatViolations} =
+  require('./a11y-allowlist');
 
 // axe descends into same-page frames, so a vendor's player chrome reports as our violations (/help embeds four
 // YouTube players, worth 11 between them) — none of it markup we can change. axe's frame-path exclude syntax
@@ -63,8 +59,17 @@ for (const p of GATED_PAGES) {
 // the stale-entry annotation above can't catch either, since it only runs for pages still in the table.
 test('a11y: allowlist and exemption keys name pages that exist', () => {
   const paths = new Set(PAGES.map((p) => p.path));
-  const unknown = [...Object.keys(EXEMPT_PAGES), ...Object.keys(A11Y_ALLOWLIST)].filter((path) => !paths.has(path));
+  // An allowlist key may carry a ` [state]` suffix naming a forced render state (a11y-allowlist.js); the page it
+  // names still has to exist, which is what this checks.
+  const unknown = [...Object.keys(EXEMPT_PAGES), ...Object.keys(A11Y_ALLOWLIST)]
+    .filter((key) => !paths.has(key.replace(STATE_SUFFIX, '')));
   expect(unknown, 'keys not present in pages.js').toEqual([]);
+});
+
+// Exemption is looked up by bare path, so a suffixed key would exempt nothing while both key tests stayed green.
+test('a11y: exemption keys are bare page paths', () => {
+  const suffixed = Object.keys(EXEMPT_PAGES).filter((key) => STATE_SUFFIX.test(key));
+  expect(suffixed, 'EXEMPT_PAGES keys cannot name a single state').toEqual([]);
 });
 
 // Stands in for the frame-title check the exclusion above removes. Nothing inside a YouTube player is ours, but the

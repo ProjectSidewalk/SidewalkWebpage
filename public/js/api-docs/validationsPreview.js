@@ -106,7 +106,7 @@
      */
     showErrorState(container, error) {
       container.innerHTML = `
-        <div class="validation-error">
+        <div class="validation-error" role="alert">
           Failed to load validation data: ${error.message}
         </div>
       `;
@@ -323,14 +323,9 @@
       canvasContainer.className = 'chart-canvas-container';
       chartContainer.appendChild(canvasContainer);
 
-      // Calculate total for percentages.
+      // NaN in the tooltips unless filterAndSortTypes kept this above zero, which it does for any
+      // config.minValidationsToShow of 1 or more.
       const total = typeData.agree + typeData.disagree + typeData.unsure;
-
-      if (total === 0) {
-        // No validations for this type.
-        canvasContainer.innerHTML = '<div class="chart-empty-state">No validations</div>';
-        return;
-      }
 
       // Create canvas.
       const canvas = document.createElement('canvas');

@@ -95,7 +95,8 @@
             });
         })
         .catch((error) => {
-          container.innerHTML = `<div class="message message-error">Failed to load data: ${error.message}</div>`;
+          container.innerHTML = `<div class="message message-error" role="alert">Failed to load data: `
+            + `${error.message}</div>`;
           console.error('User stats preview error:', error);
           // The failure is already surfaced in the container above, and init() is fire-and-forget at every call
           // site (app/views/apiDocs/*), so re-rejecting here can only ever become an unhandled rejection.
@@ -355,6 +356,7 @@
         const emptyMsg = document.createElement('div');
         emptyMsg.textContent = 'No user contributions yet.';
         emptyMsg.className = 'message message-info';
+        emptyMsg.setAttribute('role', 'status');
         container.appendChild(emptyMsg);
         return;
       }
@@ -362,7 +364,8 @@
         console.error('User data doesn\'t have the expected structure for label types');
         const errorMsg = document.createElement('div');
         errorMsg.textContent = 'Unable to render chart: Invalid data structure';
-        errorMsg.className = 'message message-info';
+        errorMsg.className = 'message message-error';
+        errorMsg.setAttribute('role', 'alert');
         container.appendChild(errorMsg);
         return;
       }
@@ -460,6 +463,7 @@
       if (!accuracyData || accuracyData.length === 0) {
         const errorMsg = document.createElement('div');
         errorMsg.className = 'preview-note';
+        errorMsg.setAttribute('role', 'status');
         errorMsg.textContent = 'No users with sufficient validation data available';
         container.appendChild(errorMsg);
         return;

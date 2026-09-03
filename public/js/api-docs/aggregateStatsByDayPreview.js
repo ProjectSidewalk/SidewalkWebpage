@@ -16,7 +16,7 @@
 
   /** @param {string} msg */
   function showError(container, msg) {
-    container.innerHTML = `<div class="message message-error">${msg}</div>`;
+    container.innerHTML = `<div class="message message-error" role="alert">${msg}</div>`;
   }
 
   /**
@@ -69,7 +69,7 @@
    */
   function render(container, data) {
     if (!data.length) {
-      container.innerHTML = '<p class="preview-note">No data available for this period.</p>';
+      container.innerHTML = '<p class="preview-note" role="status">No data available for this period.</p>';
       return;
     }
 
