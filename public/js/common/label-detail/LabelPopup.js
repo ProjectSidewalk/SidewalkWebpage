@@ -112,6 +112,9 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, currUsername, op
     if (opts.syncUrlSource) LabelDetail.syncUrlLabelId(labelId);
     currentLabelId = labelId;
     lastSource = source;
+    // The arrows are computed from the navigator alone, so they can reflect this label now rather than showing the
+    // previous label's state until its metadata fetch resolves.
+    updatePagingState();
     // Before the await so the host's map movement runs in parallel with the pano load.
     if (typeof opts.onShow === 'function') opts.onShow(labelId);
     const meta = await innerShowLabel(labelId, source);
@@ -138,8 +141,9 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, currUsername, op
    * Enables the prev/next arrows, stepping through labels via the given navigator (see nearbyLabelNavigator.js).
    * @param {{next: function, prev: function, hasPrev: function, hasNext: function,
    *     onRefresh: function}} nav Navigator over the host's label set. Its onRefresh is what keeps the arrows
-   *     honest on a host whose label set changes under them: LabelMap loads labels by viewport (#5002), so a
-   *     deep-linked popup opens over an empty set and has nowhere to page until the set fills (#5068).
+   *     honest on a host whose reachable set changes under them: LabelMap loads labels by viewport (#5002), so a
+   *     deep-linked popup opens over an empty set and has nowhere to page until the set fills (#5068), and its
+   *     sidebar filters narrow where "next" may land (#5124).
    */
   labelDetail.setNearbyNavigator = (nav) => {
     // Subscribe only for a navigator we haven't seen, so a repeat call can't stack duplicate recomputes.
