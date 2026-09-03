@@ -1613,7 +1613,7 @@ class RouteBuilder {
    * the camera field or it's corrupt.
    */
   #restoreDraft() {
-    let draft = null;
+    let draft;
     try {
       draft = JSON.parse(sessionStorage.getItem(RouteBuilder.DRAFT_KEY));
     } catch {

@@ -13,6 +13,8 @@
  * MiniLineChart does the drawing, so both have to be present first.
  */
 
+/* global StreetStatusColors -- pulled into scope by the eval() loader below. */
+
 const fs = require('fs');
 const path = require('path');
 

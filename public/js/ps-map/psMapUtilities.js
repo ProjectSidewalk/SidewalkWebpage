@@ -18,7 +18,7 @@ async function fetchLabelFeed(url, { signal } = {}) {
     return await response.json();
   } catch (e) {
     if (e.name === 'AbortError') throw e; // Cancellation isn't a feed failure; callers must tell them apart.
-    throw new Error(`Label feed ${url} returned an unreadable body (truncated stream?): ${e.message}`);
+    throw new Error(`Label feed ${url} returned an unreadable body (truncated stream?): ${e.message}`, { cause: e });
   }
 }
 

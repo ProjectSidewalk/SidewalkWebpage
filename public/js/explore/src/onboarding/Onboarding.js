@@ -380,7 +380,6 @@ class Onboarding {
     for (const annotation of currAnnotations) {
       imX = annotation.x;
       imY = annotation.y;
-      centeredPov = null;
 
       // Decode the annotation's angular coordinate (see OnboardingStates.js) and map it to a canvas coordinate.
       imX = util.misc.unwrapPanoX(imX, currentPov.heading, svl.TUTORIAL_PANO_WIDTH);
@@ -415,7 +414,6 @@ class Onboarding {
         }
       } else if (annotation.type === 'box') {
         if (!onCanvas) continue;
-        lineAngle = annotation.angle;
         params = {
           lineWidth: 4,
           strokeStyle: 'rgba(255, 255, 255, 1)',
