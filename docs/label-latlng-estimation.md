@@ -92,7 +92,7 @@ On modern truth it wins every zoom, label type, panorama resolution, capture yea
 calibrated on every *other* city beats the regression in each held-out city. Rig tilt (the panorama's pitch and
 roll, which `povToPanoCoord` ignores, #4784) explains under 5% of the estimator's error variance on modern truth
 and is indistinguishable there from road slope, so it is not an input; the sign-off report's §4.4 has the numbers. On the era frame the shipped constant
-reads ~13% too near on the subpopulations whose depth truth carries the era payloads' pinned 2.50 m ground plane (DC,
+reads about 17% too near on the subpopulations whose depth truth carries the era payloads' pinned 2.50 m ground plane (DC,
 6656-px panoramas); that is the truth's scale, not the click geometry, and the modern frame is the measured one.
 
 ## The frame contract (for #5085 and any viewport change)
