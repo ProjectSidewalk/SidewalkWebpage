@@ -6,6 +6,7 @@ import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.i18n.{Lang, MessagesApi}
 import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.mvc.Cookie
 import play.api.test.CSRFTokenHelper._
@@ -33,6 +34,10 @@ class RouteBuilderControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
   implicit lazy val mat: Materializer = app.materializer
 
   private val XHR = "X-Requested-With" -> "XMLHttpRequest"
+
+  private lazy val messagesApi: MessagesApi = app.injector.instanceOf[MessagesApi]
+  // The requests below send no Accept-Language, so Play serves English.
+  implicit private val lang: Lang = Lang("en")
 
   /** Creates a throwaway UUID-tagged registered user and returns its session cookies (incl. the authenticator). */
   private def signUpFreshUser(): Seq[Cookie] = {
@@ -439,6 +444,45 @@ class RouteBuilderControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
       // The last spelling is what the fold produces, so it exercises the slugify candidate on its own.
       Seq(s"St.%20Louis%20Walk%20$tag", s"ST.%20LOUIS%20WALK%20$tag", s"st--louis-walk-$tag")
         .foreach(mustRedirectTo(_, routeId))
+    }
+
+    // #5164: this page is the whole of what a share-link recipient sees when the link is dead, and they were, by
+    // construction, after a route. Landing them on a generic "page not found" with only a home button wastes the
+    // one chance to hand them the list that may well hold the route they were sent to.
+    "answer a dead share link with a route-aware 404 offering the route list" in {
+      val user                 = signUpFreshUser()
+      val (streetId, regionId) = anyStreet(user)
+      val tag                  = uniqueTag()
+
+      val saved = saveRoute(user, saveRouteBody(regionId, streetId, Some(s"Dead Link Walk $tag")))
+      status(saved) mustBe OK
+      val routeId = (contentAsJson(saved) \ "route_id").as[Int]
+      val slug    = (contentAsJson(saved) \ "slug").as[String]
+      status(deleteRoute(user, routeId)) mustBe OK
+
+      // Both ways to miss: a slug that died with its route, and one that never existed.
+      Seq(slug, s"never-existed-$tag").foreach { path =>
+        val resp = route(app, FakeRequest(GET, s"/r/$path")).get
+        withClue(s"/r/$path: ") {
+          status(resp) mustBe NOT_FOUND
+          val html = contentAsString(resp)
+          html must include(messagesApi("error.404.route.heading"))
+          html must include(messagesApi("error.404.route.browse"))
+          html must include("href=\"/routes\"")
+          // Still the branded error page, and still names the link that failed.
+          html must include(messagesApi("error.home"))
+          html must include(s"/r/$path")
+        }
+      }
+    }
+
+    // The call to action is opt-in, so an ordinary miss keeps the generic page it always had.
+    "leave an unrelated 404 generic, with no route list to browse" in {
+      val resp = route(app, FakeRequest(GET, s"/definitely-not-a-page-${uniqueTag()}")).get
+      status(resp) mustBe NOT_FOUND
+      val html = contentAsString(resp)
+      html must include(messagesApi("error.404.heading"))
+      html must not include messagesApi("error.404.route.browse")
     }
   }
 
