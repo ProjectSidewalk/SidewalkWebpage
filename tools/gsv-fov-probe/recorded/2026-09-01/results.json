@@ -1,8 +1,9 @@
 {
-  "generatedAt": "2026-09-01T19:10:50.859Z",
+  "generatedAt": "2026-09-03T18:23:44.314Z",
   "runDir": "2026-09-01T02-19-24-024Z",
   "mapsVersionRequested": "weekly",
   "mapsVersion": "3.66.2d",
+  "estimatorHash": "295422a5a946",
   "panos": {
     "tutorial": {
       "panoId": "tutorial",
@@ -63,8 +64,10 @@
     "MODEL_GATE_DELTA_TOL": 0.005,
     "VERDICT_INVARIANCE_TOL_DEG": 0.5,
     "OUTLIER_MAD_MULT": 5,
+    "OUTLIER_MIN_WINDOW_FRAC": 0.001,
     "CELL_MAX_DROP_FRAC": 0.2,
     "MIN_PAIR_NCC": 0.8,
+    "SEED_AGREEMENT_TOL": 0.03,
     "analysisStep": 2
   },
   "gates": {
@@ -397,7 +400,7 @@
           "panoName": "seattle-downtown",
           "containerName": "dpr2-720x480",
           "zoom": 3,
-          "deltaSpread": 0.00002,
+          "deltaSpread": 0.00003,
           "pass": true
         },
         {
@@ -439,7 +442,7 @@
           "panoName": "seattle-downtown",
           "containerName": "size2x-1440x960",
           "zoom": 3,
-          "deltaSpread": 0.00002,
+          "deltaSpread": 0.00003,
           "pass": true
         },
         {
@@ -992,97 +995,9 @@
     },
     "anisotropy": {
       "pass": true,
+      "nPitchCells": 40,
+      "nExcludedUnreliable": 18,
       "detail": [
-        {
-          "panoName": "dc-tutorial-site",
-          "containerName": "control-720x480",
-          "zoom": 2,
-          "fVertical": 720.7,
-          "fHorizontal": 721.32,
-          "relDiff": 0.0009,
-          "pass": true
-        },
-        {
-          "panoName": "dc-tutorial-site",
-          "containerName": "dpr2-720x480",
-          "zoom": 2,
-          "fVertical": 721.14,
-          "fHorizontal": 721.18,
-          "relDiff": 0.0001,
-          "pass": true
-        },
-        {
-          "panoName": "dc-tutorial-site",
-          "containerName": "portrait-480x853",
-          "zoom": 2,
-          "fVertical": 481,
-          "fHorizontal": 481.43,
-          "relDiff": 0.0009,
-          "pass": true
-        },
-        {
-          "panoName": "dc-tutorial-site",
-          "containerName": "size2x-1440x960",
-          "zoom": 2,
-          "fVertical": 1442.26,
-          "fHorizontal": 1442.34,
-          "relDiff": 0.0001,
-          "pass": true
-        },
-        {
-          "panoName": "dc-tutorial-site",
-          "containerName": "square-480x480",
-          "zoom": 2,
-          "fVertical": 481.06,
-          "fHorizontal": 481.15,
-          "relDiff": 0.0002,
-          "pass": true
-        },
-        {
-          "panoName": "dc-tutorial-site",
-          "containerName": "wide169h-854x480",
-          "zoom": 2,
-          "fVertical": 855.41,
-          "fHorizontal": 855.49,
-          "relDiff": 0.0001,
-          "pass": true
-        },
-        {
-          "panoName": "dc-tutorial-site",
-          "containerName": "wide169w-720x405",
-          "zoom": 2,
-          "fVertical": 720.33,
-          "fHorizontal": 721.21,
-          "relDiff": 0.0012,
-          "pass": true
-        },
-        {
-          "panoName": "dc-tutorial-site",
-          "containerName": "wide219h-1120x480",
-          "zoom": 2,
-          "fVertical": 1121.31,
-          "fHorizontal": 1121.91,
-          "relDiff": 0.0005,
-          "pass": true
-        },
-        {
-          "panoName": "dc-tutorial-site",
-          "containerName": "xportrait-360x1000",
-          "zoom": 2,
-          "fVertical": 501.12,
-          "fHorizontal": 501.69,
-          "relDiff": 0.0011,
-          "pass": true
-        },
-        {
-          "panoName": "dc-tutorial-site",
-          "containerName": "xwide-2400x480",
-          "zoom": 2,
-          "fVertical": 1826.45,
-          "fHorizontal": 1826.2,
-          "relDiff": 0.0001,
-          "pass": true
-        },
         {
           "panoName": "seattle-downtown",
           "containerName": "control-720x480",
@@ -1099,15 +1014,6 @@
           "fVertical": 721.16,
           "fHorizontal": 721.23,
           "relDiff": 0.0001,
-          "pass": true
-        },
-        {
-          "panoName": "seattle-downtown",
-          "containerName": "portrait-480x853",
-          "zoom": 2,
-          "fVertical": 481.05,
-          "fHorizontal": 481.31,
-          "relDiff": 0.0005,
           "pass": true
         },
         {
@@ -1157,15 +1063,6 @@
         },
         {
           "panoName": "seattle-downtown",
-          "containerName": "xportrait-360x1000",
-          "zoom": 2,
-          "fVertical": 501.13,
-          "fHorizontal": 501.43,
-          "relDiff": 0.0006,
-          "pass": true
-        },
-        {
-          "panoName": "seattle-downtown",
           "containerName": "xwide-2400x480",
           "zoom": 2,
           "fVertical": 1825.86,
@@ -1175,38 +1072,11 @@
         },
         {
           "panoName": "teaneck-residential",
-          "containerName": "control-720x480",
-          "zoom": 2,
-          "fVertical": 720.83,
-          "fHorizontal": 721.16,
-          "relDiff": 0.0005,
-          "pass": true
-        },
-        {
-          "panoName": "teaneck-residential",
-          "containerName": "dpr2-720x480",
-          "zoom": 2,
-          "fVertical": 721.19,
-          "fHorizontal": 721.22,
-          "relDiff": 0,
-          "pass": true
-        },
-        {
-          "panoName": "teaneck-residential",
           "containerName": "portrait-480x853",
           "zoom": 2,
           "fVertical": 480.96,
           "fHorizontal": 481.21,
           "relDiff": 0.0005,
-          "pass": true
-        },
-        {
-          "panoName": "teaneck-residential",
-          "containerName": "size2x-1440x960",
-          "zoom": 2,
-          "fVertical": 1442.31,
-          "fHorizontal": 1442.43,
-          "relDiff": 0.0001,
           "pass": true
         },
         {
@@ -1255,15 +1125,6 @@
           "pass": true
         },
         {
-          "panoName": "teaneck-residential",
-          "containerName": "xwide-2400x480",
-          "zoom": 2,
-          "fVertical": 1826.5,
-          "fHorizontal": 1826.12,
-          "relDiff": 0.0002,
-          "pass": true
-        },
-        {
           "panoName": "tutorial",
           "containerName": "control-720x480",
           "zoom": 2,
@@ -1303,18 +1164,9 @@
           "panoName": "tutorial",
           "containerName": "square-480x480",
           "zoom": 2,
-          "fVertical": 481.5,
+          "fVertical": 481.51,
           "fHorizontal": 481.88,
           "relDiff": 0.0008,
-          "pass": true
-        },
-        {
-          "panoName": "tutorial",
-          "containerName": "wide169h-854x480",
-          "zoom": 2,
-          "fVertical": 856.26,
-          "fHorizontal": 857.01,
-          "relDiff": 0.0009,
           "pass": true
         },
         {
@@ -1343,17 +1195,14 @@
           "fHorizontal": 502.1,
           "relDiff": 0.0004,
           "pass": true
-        },
-        {
-          "panoName": "tutorial",
-          "containerName": "xwide-2400x480",
-          "zoom": 2,
-          "fVertical": 1828.21,
-          "fHorizontal": 1829.53,
-          "relDiff": 0.0007,
-          "pass": true
         }
       ]
+    },
+    "seed": {
+      "pass": true,
+      "nPairs": 3200,
+      "relMedian": 0.00897,
+      "relP95": 0.03866
     }
   },
   "verdict": {
@@ -3144,6 +2993,81 @@
       }
     ]
   },
+  "controlHFovDeg": {
+    "1": 89.875,
+    "2": 53.055,
+    "3": 28.03
+  },
+  "bindingAspects": [
+    {
+      "zoom": 1,
+      "controlHFovDeg": 89.875,
+      "floorBindsAtAspectAtLeast": 7.593,
+      "ceilingBindsAtAspectAtMost": 1.001
+    },
+    {
+      "zoom": 2,
+      "controlHFovDeg": 53.055,
+      "floorBindsAtAspectAtLeast": 3.798,
+      "ceilingBindsAtAspectAtMost": 0.501
+    },
+    {
+      "zoom": 3,
+      "controlHFovDeg": 28.03,
+      "floorBindsAtAspectAtLeast": 1.899,
+      "ceilingBindsAtAspectAtMost": 0.25
+    }
+  ],
+  "pairNccHistogram": {
+    "binEdges": [
+      0,
+      0.05,
+      0.1,
+      0.15,
+      0.2,
+      0.25,
+      0.3,
+      0.35,
+      0.4,
+      0.45,
+      0.5,
+      0.55,
+      0.6,
+      0.65,
+      0.7,
+      0.75,
+      0.8,
+      0.85,
+      0.9,
+      0.95,
+      1
+    ],
+    "counts": [
+      0,
+      18,
+      2,
+      0,
+      8,
+      6,
+      4,
+      2,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      10,
+      3470
+    ],
+    "nonFinite": 0,
+    "nPairs": 3520,
+    "nBelowFloor": 40
+  },
   "cells": [
     {
       "panoName": "dc-tutorial-site",
@@ -3157,6 +3081,8 @@
       "n": 32,
       "nKept": 32,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 360.79,
       "sigmaF": 0.21,
       "ciLo": 360.73,
@@ -3184,6 +3110,7 @@
       ],
       "deltaSpread": 0.00128,
       "meanNcc": 0.979,
+      "seedRelMedian": 0.03039,
       "unreliable": false,
       "zoomReadbacks": [
         1
@@ -3201,6 +3128,8 @@
       "n": 8,
       "nKept": 6,
       "dropFrac": 0.25,
+      "nNccRejected": 2,
+      "nMadRejected": 0,
       "fCss": 720.7,
       "sigmaF": 0.1,
       "ciLo": 720.63,
@@ -3216,6 +3145,7 @@
       ],
       "deltaSpread": 0,
       "meanNcc": 0.9896,
+      "seedRelMedian": null,
       "unreliable": true,
       "zoomReadbacks": [
         2
@@ -3233,6 +3163,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 721.32,
       "sigmaF": 0.63,
       "ciLo": 721.25,
@@ -3256,6 +3188,7 @@
       ],
       "deltaSpread": 0.00147,
       "meanNcc": 0.9884,
+      "seedRelMedian": 0.00988,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -3273,6 +3206,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 1442.28,
       "sigmaF": 0.43,
       "ciLo": 1442.16,
@@ -3296,6 +3231,7 @@
       ],
       "deltaSpread": 0.00068,
       "meanNcc": 0.9963,
+      "seedRelMedian": 0.00224,
       "unreliable": false,
       "zoomReadbacks": [
         3
@@ -3313,6 +3249,8 @@
       "n": 32,
       "nKept": 32,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 360.83,
       "sigmaF": 0.06,
       "ciLo": 360.82,
@@ -3340,6 +3278,7 @@
       ],
       "deltaSpread": 0.00063,
       "meanNcc": 0.9947,
+      "seedRelMedian": 0.02841,
       "unreliable": false,
       "zoomReadbacks": [
         1
@@ -3355,23 +3294,26 @@
       "dsf": 2,
       "aspect": 1.5,
       "n": 8,
-      "nKept": 4,
-      "dropFrac": 0.5,
-      "fCss": 721.14,
+      "nKept": 6,
+      "dropFrac": 0.25,
+      "nNccRejected": 2,
+      "nMadRejected": 0,
+      "fCss": 721.15,
       "sigmaF": 0.01,
       "ciLo": 721.14,
-      "ciHi": 721.15,
+      "ciHi": 721.27,
       "hFovDeg": 53.057,
       "vFovDeg": 36.815,
       "dFovDeg": 61.925,
       "deltaMedians": [
         {
           "deltaDeg": 2,
-          "f": 721.14
+          "f": 721.15
         }
       ],
       "deltaSpread": 0,
-      "meanNcc": 0.9979,
+      "meanNcc": 0.998,
+      "seedRelMedian": null,
       "unreliable": true,
       "zoomReadbacks": [
         2
@@ -3389,6 +3331,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 721.18,
       "sigmaF": 0.1,
       "ciLo": 721.13,
@@ -3412,6 +3356,7 @@
       ],
       "deltaSpread": 0.0002,
       "meanNcc": 0.9958,
+      "seedRelMedian": 0.00864,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -3429,6 +3374,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 1442.4,
       "sigmaF": 0.29,
       "ciLo": 1442.22,
@@ -3452,6 +3399,7 @@
       ],
       "deltaSpread": 0.00009,
       "meanNcc": 0.996,
+      "seedRelMedian": 0.00265,
       "unreliable": false,
       "zoomReadbacks": [
         3
@@ -3469,6 +3417,8 @@
       "n": 32,
       "nKept": 28,
       "dropFrac": 0.125,
+      "nNccRejected": 0,
+      "nMadRejected": 4,
       "fCss": 427.49,
       "sigmaF": 0.15,
       "ciLo": 427.48,
@@ -3496,6 +3446,7 @@
       ],
       "deltaSpread": 0.00214,
       "meanNcc": 0.9877,
+      "seedRelMedian": 0.00916,
       "unreliable": false,
       "zoomReadbacks": [
         1
@@ -3513,6 +3464,8 @@
       "n": 8,
       "nKept": 6,
       "dropFrac": 0.25,
+      "nNccRejected": 2,
+      "nMadRejected": 0,
       "fCss": 481,
       "sigmaF": 0,
       "ciLo": 481,
@@ -3528,6 +3481,7 @@
       ],
       "deltaSpread": 0,
       "meanNcc": 0.9914,
+      "seedRelMedian": null,
       "unreliable": true,
       "zoomReadbacks": [
         2
@@ -3545,6 +3499,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 481.43,
       "sigmaF": 0.32,
       "ciLo": 481.28,
@@ -3568,6 +3524,7 @@
       ],
       "deltaSpread": 0.00107,
       "meanNcc": 0.9899,
+      "seedRelMedian": 0.00892,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -3585,6 +3542,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 962.04,
       "sigmaF": 0.6,
       "ciLo": 961.79,
@@ -3608,6 +3567,7 @@
       ],
       "deltaSpread": 0.00121,
       "meanNcc": 0.9941,
+      "seedRelMedian": 0.0034,
       "unreliable": false,
       "zoomReadbacks": [
         3
@@ -3625,6 +3585,8 @@
       "n": 32,
       "nKept": 32,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 721.46,
       "sigmaF": 0.14,
       "ciLo": 721.39,
@@ -3652,6 +3614,7 @@
       ],
       "deltaSpread": 0.00126,
       "meanNcc": 0.9841,
+      "seedRelMedian": 0.02461,
       "unreliable": false,
       "zoomReadbacks": [
         1
@@ -3669,6 +3632,8 @@
       "n": 8,
       "nKept": 6,
       "dropFrac": 0.25,
+      "nNccRejected": 2,
+      "nMadRejected": 0,
       "fCss": 1442.26,
       "sigmaF": 0.06,
       "ciLo": 1442.21,
@@ -3684,6 +3649,7 @@
       ],
       "deltaSpread": 0,
       "meanNcc": 0.9964,
+      "seedRelMedian": null,
       "unreliable": true,
       "zoomReadbacks": [
         2
@@ -3701,6 +3667,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 1442.34,
       "sigmaF": 0.17,
       "ciLo": 1442.31,
@@ -3724,6 +3692,7 @@
       ],
       "deltaSpread": 0.0003,
       "meanNcc": 0.9938,
+      "seedRelMedian": 0.00782,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -3741,6 +3710,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 2884.8,
       "sigmaF": 0.58,
       "ciLo": 2884.43,
@@ -3764,6 +3735,7 @@
       ],
       "deltaSpread": 0.00009,
       "meanNcc": 0.996,
+      "seedRelMedian": 0.00265,
       "unreliable": false,
       "zoomReadbacks": [
         3
@@ -3781,6 +3753,8 @@
       "n": 32,
       "nKept": 32,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 240.46,
       "sigmaF": 0.29,
       "ciLo": 240.43,
@@ -3808,6 +3782,7 @@
       ],
       "deltaSpread": 0.00375,
       "meanNcc": 0.9889,
+      "seedRelMedian": 0.02578,
       "unreliable": false,
       "zoomReadbacks": [
         1
@@ -3825,6 +3800,8 @@
       "n": 8,
       "nKept": 6,
       "dropFrac": 0.25,
+      "nNccRejected": 2,
+      "nMadRejected": 0,
       "fCss": 481.06,
       "sigmaF": 0.13,
       "ciLo": 480.92,
@@ -3840,6 +3817,7 @@
       ],
       "deltaSpread": 0,
       "meanNcc": 0.9926,
+      "seedRelMedian": null,
       "unreliable": true,
       "zoomReadbacks": [
         2
@@ -3857,6 +3835,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 481.15,
       "sigmaF": 0.15,
       "ciLo": 481.09,
@@ -3880,6 +3860,7 @@
       ],
       "deltaSpread": 0.00054,
       "meanNcc": 0.9885,
+      "seedRelMedian": 0.00992,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -3897,6 +3878,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 962.01,
       "sigmaF": 0.47,
       "ciLo": 961.73,
@@ -3920,6 +3903,7 @@
       ],
       "deltaSpread": 0.00094,
       "meanNcc": 0.9946,
+      "seedRelMedian": 0.00331,
       "unreliable": false,
       "zoomReadbacks": [
         3
@@ -3937,6 +3921,8 @@
       "n": 32,
       "nKept": 30,
       "dropFrac": 0.063,
+      "nNccRejected": 0,
+      "nMadRejected": 2,
       "fCss": 427.97,
       "sigmaF": 0.13,
       "ciLo": 427.96,
@@ -3964,6 +3950,7 @@
       ],
       "deltaSpread": 0.00088,
       "meanNcc": 0.9865,
+      "seedRelMedian": 0.02293,
       "unreliable": false,
       "zoomReadbacks": [
         1
@@ -3981,6 +3968,8 @@
       "n": 8,
       "nKept": 6,
       "dropFrac": 0.25,
+      "nNccRejected": 2,
+      "nMadRejected": 0,
       "fCss": 855.41,
       "sigmaF": 0,
       "ciLo": 855.41,
@@ -3996,6 +3985,7 @@
       ],
       "deltaSpread": 0,
       "meanNcc": 0.9961,
+      "seedRelMedian": null,
       "unreliable": true,
       "zoomReadbacks": [
         2
@@ -4013,6 +4003,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 855.49,
       "sigmaF": 0.23,
       "ciLo": 855.35,
@@ -4036,6 +4028,7 @@
       ],
       "deltaSpread": 0.00045,
       "meanNcc": 0.9938,
+      "seedRelMedian": 0.00821,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -4053,6 +4046,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 1710.77,
       "sigmaF": 0.23,
       "ciLo": 1710.66,
@@ -4076,6 +4071,7 @@
       ],
       "deltaSpread": 0.00017,
       "meanNcc": 0.9978,
+      "seedRelMedian": 0.00286,
       "unreliable": false,
       "zoomReadbacks": [
         3
@@ -4093,6 +4089,8 @@
       "n": 32,
       "nKept": 32,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 360.83,
       "sigmaF": 0.2,
       "ciLo": 360.77,
@@ -4120,6 +4118,7 @@
       ],
       "deltaSpread": 0.00135,
       "meanNcc": 0.9783,
+      "seedRelMedian": 0.03064,
       "unreliable": false,
       "zoomReadbacks": [
         1
@@ -4137,6 +4136,8 @@
       "n": 8,
       "nKept": 6,
       "dropFrac": 0.25,
+      "nNccRejected": 2,
+      "nMadRejected": 0,
       "fCss": 720.33,
       "sigmaF": 0.22,
       "ciLo": 720.18,
@@ -4152,6 +4153,7 @@
       ],
       "deltaSpread": 0,
       "meanNcc": 0.9897,
+      "seedRelMedian": null,
       "unreliable": true,
       "zoomReadbacks": [
         2
@@ -4169,6 +4171,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 721.21,
       "sigmaF": 0.44,
       "ciLo": 721.17,
@@ -4192,6 +4196,7 @@
       ],
       "deltaSpread": 0.00124,
       "meanNcc": 0.9888,
+      "seedRelMedian": 0.01007,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -4209,6 +4214,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 1442.35,
       "sigmaF": 0.32,
       "ciLo": 1442.21,
@@ -4232,6 +4239,7 @@
       ],
       "deltaSpread": 0.00077,
       "meanNcc": 0.9963,
+      "seedRelMedian": 0.002,
       "unreliable": false,
       "zoomReadbacks": [
         3
@@ -4249,6 +4257,8 @@
       "n": 32,
       "nKept": 32,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 561.3,
       "sigmaF": 0.17,
       "ciLo": 561.21,
@@ -4276,6 +4286,7 @@
       ],
       "deltaSpread": 0.0005,
       "meanNcc": 0.9923,
+      "seedRelMedian": 0.02931,
       "unreliable": false,
       "zoomReadbacks": [
         1
@@ -4293,6 +4304,8 @@
       "n": 8,
       "nKept": 6,
       "dropFrac": 0.25,
+      "nNccRejected": 2,
+      "nMadRejected": 0,
       "fCss": 1121.31,
       "sigmaF": 0.04,
       "ciLo": 1121.28,
@@ -4308,6 +4321,7 @@
       ],
       "deltaSpread": 0,
       "meanNcc": 0.9965,
+      "seedRelMedian": null,
       "unreliable": true,
       "zoomReadbacks": [
         2
@@ -4325,6 +4339,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 1121.91,
       "sigmaF": 0.27,
       "ciLo": 1121.87,
@@ -4348,6 +4364,7 @@
       ],
       "deltaSpread": 0.00064,
       "meanNcc": 0.9958,
+      "seedRelMedian": 0.00979,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -4365,6 +4382,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 1825.97,
       "sigmaF": 0.32,
       "ciLo": 1825.7,
@@ -4388,6 +4407,7 @@
       ],
       "deltaSpread": 0.00003,
       "meanNcc": 0.9979,
+      "seedRelMedian": 0.00354,
       "unreliable": false,
       "zoomReadbacks": [
         3
@@ -4405,6 +4425,8 @@
       "n": 32,
       "nKept": 32,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 501.36,
       "sigmaF": 0.64,
       "ciLo": 501.33,
@@ -4432,6 +4454,7 @@
       ],
       "deltaSpread": 0.00394,
       "meanNcc": 0.9912,
+      "seedRelMedian": 0.00495,
       "unreliable": false,
       "zoomReadbacks": [
         1
@@ -4449,6 +4472,8 @@
       "n": 8,
       "nKept": 4,
       "dropFrac": 0.5,
+      "nNccRejected": 4,
+      "nMadRejected": 0,
       "fCss": 501.12,
       "sigmaF": 0.19,
       "ciLo": 500.99,
@@ -4464,6 +4489,7 @@
       ],
       "deltaSpread": 0,
       "meanNcc": 0.9898,
+      "seedRelMedian": null,
       "unreliable": true,
       "zoomReadbacks": [
         2
@@ -4481,6 +4507,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 501.69,
       "sigmaF": 1.19,
       "ciLo": 501.42,
@@ -4504,6 +4532,7 @@
       ],
       "deltaSpread": 0.00394,
       "meanNcc": 0.9918,
+      "seedRelMedian": 0.0058,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -4521,6 +4550,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 721.23,
       "sigmaF": 1.43,
       "ciLo": 721.16,
@@ -4544,6 +4575,7 @@
       ],
       "deltaSpread": 0.00332,
       "meanNcc": 0.9869,
+      "seedRelMedian": 0.00244,
       "unreliable": false,
       "zoomReadbacks": [
         3
@@ -4561,6 +4593,8 @@
       "n": 32,
       "nKept": 32,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 1202.38,
       "sigmaF": 0.14,
       "ciLo": 1202.31,
@@ -4588,6 +4622,7 @@
       ],
       "deltaSpread": 0.00012,
       "meanNcc": 0.9922,
+      "seedRelMedian": 0.02174,
       "unreliable": false,
       "zoomReadbacks": [
         1
@@ -4605,6 +4640,8 @@
       "n": 8,
       "nKept": 6,
       "dropFrac": 0.25,
+      "nNccRejected": 2,
+      "nMadRejected": 0,
       "fCss": 1826.45,
       "sigmaF": 0.05,
       "ciLo": 1826.35,
@@ -4620,6 +4657,7 @@
       ],
       "deltaSpread": 0,
       "meanNcc": 0.9986,
+      "seedRelMedian": null,
       "unreliable": true,
       "zoomReadbacks": [
         2
@@ -4637,6 +4675,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 1826.2,
       "sigmaF": 0.33,
       "ciLo": 1826.06,
@@ -4660,6 +4700,7 @@
       ],
       "deltaSpread": 0.00007,
       "meanNcc": 0.9966,
+      "seedRelMedian": 0.01442,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -4677,6 +4718,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 1826.2,
       "sigmaF": 0.33,
       "ciLo": 1826.06,
@@ -4700,6 +4743,7 @@
       ],
       "deltaSpread": 0.00007,
       "meanNcc": 0.9966,
+      "seedRelMedian": 0.01442,
       "unreliable": false,
       "zoomReadbacks": [
         3
@@ -4717,6 +4761,8 @@
       "n": 32,
       "nKept": 30,
       "dropFrac": 0.063,
+      "nNccRejected": 0,
+      "nMadRejected": 2,
       "fCss": 360.85,
       "sigmaF": 0.22,
       "ciLo": 360.84,
@@ -4744,6 +4790,7 @@
       ],
       "deltaSpread": 0.0033,
       "meanNcc": 0.9877,
+      "seedRelMedian": 0.02893,
       "unreliable": false,
       "zoomReadbacks": [
         1
@@ -4761,6 +4808,8 @@
       "n": 8,
       "nKept": 8,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 720.54,
       "sigmaF": 0.15,
       "ciLo": 720.4,
@@ -4776,6 +4825,7 @@
       ],
       "deltaSpread": 0,
       "meanNcc": 0.9895,
+      "seedRelMedian": null,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -4793,6 +4843,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 721.19,
       "sigmaF": 0.56,
       "ciLo": 721.09,
@@ -4816,6 +4868,7 @@
       ],
       "deltaSpread": 0.00188,
       "meanNcc": 0.9896,
+      "seedRelMedian": 0.01028,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -4833,6 +4886,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 1442.56,
       "sigmaF": 0.28,
       "ciLo": 1442.47,
@@ -4856,6 +4911,7 @@
       ],
       "deltaSpread": 0.00053,
       "meanNcc": 0.9957,
+      "seedRelMedian": 0.00217,
       "unreliable": false,
       "zoomReadbacks": [
         3
@@ -4873,6 +4929,8 @@
       "n": 32,
       "nKept": 32,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 360.9,
       "sigmaF": 0.06,
       "ciLo": 360.88,
@@ -4900,6 +4958,7 @@
       ],
       "deltaSpread": 0.00054,
       "meanNcc": 0.9966,
+      "seedRelMedian": 0.02345,
       "unreliable": false,
       "zoomReadbacks": [
         1
@@ -4917,6 +4976,8 @@
       "n": 8,
       "nKept": 8,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 721.16,
       "sigmaF": 0.11,
       "ciLo": 720.86,
@@ -4932,6 +4993,7 @@
       ],
       "deltaSpread": 0,
       "meanNcc": 0.9981,
+      "seedRelMedian": null,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -4949,6 +5011,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 721.23,
       "sigmaF": 0.11,
       "ciLo": 721.2,
@@ -4972,6 +5036,7 @@
       ],
       "deltaSpread": 0.00026,
       "meanNcc": 0.9979,
+      "seedRelMedian": 0.00944,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -4987,12 +5052,14 @@
       "dsf": 2,
       "aspect": 1.5,
       "n": 24,
-      "nKept": 22,
-      "dropFrac": 0.083,
-      "fCss": 1442.6,
-      "sigmaF": 0.07,
+      "nKept": 24,
+      "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
+      "fCss": 1442.61,
+      "sigmaF": 0.09,
       "ciLo": 1442.6,
-      "ciHi": 1442.61,
+      "ciHi": 1442.64,
       "hFovDeg": 28.024,
       "vFovDeg": 18.891,
       "dFovDeg": 33.39,
@@ -5002,16 +5069,17 @@
           "f": 1442.61
         },
         {
-          "deltaDeg": 4,
-          "f": 1442.58
+          "deltaDeg": 2,
+          "f": 1442.63
         },
         {
-          "deltaDeg": 2,
-          "f": 1442.6
+          "deltaDeg": 4,
+          "f": 1442.58
         }
       ],
-      "deltaSpread": 0.00002,
-      "meanNcc": 0.9978,
+      "deltaSpread": 0.00003,
+      "meanNcc": 0.9973,
+      "seedRelMedian": 0.00273,
       "unreliable": false,
       "zoomReadbacks": [
         3
@@ -5029,6 +5097,8 @@
       "n": 32,
       "nKept": 30,
       "dropFrac": 0.063,
+      "nNccRejected": 0,
+      "nMadRejected": 2,
       "fCss": 427.49,
       "sigmaF": 0.22,
       "ciLo": 427.48,
@@ -5056,6 +5126,7 @@
       ],
       "deltaSpread": 0.00202,
       "meanNcc": 0.9924,
+      "seedRelMedian": 0.00896,
       "unreliable": false,
       "zoomReadbacks": [
         1
@@ -5071,23 +5142,26 @@
       "dsf": 1,
       "aspect": 0.5627,
       "n": 8,
-      "nKept": 4,
-      "dropFrac": 0.5,
-      "fCss": 481.05,
-      "sigmaF": 0.02,
+      "nKept": 6,
+      "dropFrac": 0.25,
+      "nNccRejected": 2,
+      "nMadRejected": 0,
+      "fCss": 481.06,
+      "sigmaF": 0.04,
       "ciLo": 481.03,
-      "ciHi": 481.06,
-      "hFovDeg": 53.03,
-      "vFovDeg": 83.121,
-      "dFovDeg": 90.985,
+      "ciHi": 481.39,
+      "hFovDeg": 53.029,
+      "vFovDeg": 83.119,
+      "dFovDeg": 90.983,
       "deltaMedians": [
         {
           "deltaDeg": 2,
-          "f": 481.05
+          "f": 481.06
         }
       ],
       "deltaSpread": 0,
-      "meanNcc": 0.9947,
+      "meanNcc": 0.9943,
+      "seedRelMedian": null,
       "unreliable": true,
       "zoomReadbacks": [
         2
@@ -5105,6 +5179,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 481.31,
       "sigmaF": 0.37,
       "ciLo": 481.19,
@@ -5128,6 +5204,7 @@
       ],
       "deltaSpread": 0.00079,
       "meanNcc": 0.9934,
+      "seedRelMedian": 0.00923,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -5145,6 +5222,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 962.18,
       "sigmaF": 1.11,
       "ciLo": 962.1,
@@ -5168,6 +5247,7 @@
       ],
       "deltaSpread": 0.00159,
       "meanNcc": 0.9952,
+      "seedRelMedian": 0.00359,
       "unreliable": false,
       "zoomReadbacks": [
         3
@@ -5185,6 +5265,8 @@
       "n": 32,
       "nKept": 32,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 721.51,
       "sigmaF": 0.22,
       "ciLo": 721.47,
@@ -5212,6 +5294,7 @@
       ],
       "deltaSpread": 0.00124,
       "meanNcc": 0.991,
+      "seedRelMedian": 0.02209,
       "unreliable": false,
       "zoomReadbacks": [
         1
@@ -5229,6 +5312,8 @@
       "n": 8,
       "nKept": 8,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 1442.41,
       "sigmaF": 0.18,
       "ciLo": 1441.91,
@@ -5244,6 +5329,7 @@
       ],
       "deltaSpread": 0,
       "meanNcc": 0.9961,
+      "seedRelMedian": null,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -5261,6 +5347,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 1442.47,
       "sigmaF": 0.27,
       "ciLo": 1442.38,
@@ -5284,6 +5372,7 @@
       ],
       "deltaSpread": 0.00044,
       "meanNcc": 0.9958,
+      "seedRelMedian": 0.00923,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -5299,12 +5388,14 @@
       "dsf": 1,
       "aspect": 1.5,
       "n": 24,
-      "nKept": 22,
-      "dropFrac": 0.083,
-      "fCss": 2885.21,
-      "sigmaF": 0.14,
+      "nKept": 24,
+      "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
+      "fCss": 2885.22,
+      "sigmaF": 0.17,
       "ciLo": 2885.19,
-      "ciHi": 2885.23,
+      "ciHi": 2885.28,
       "hFovDeg": 28.024,
       "vFovDeg": 18.891,
       "dFovDeg": 33.39,
@@ -5314,16 +5405,17 @@
           "f": 2885.22
         },
         {
-          "deltaDeg": 4,
-          "f": 2885.15
+          "deltaDeg": 2,
+          "f": 2885.25
         },
         {
-          "deltaDeg": 2,
-          "f": 2885.21
+          "deltaDeg": 4,
+          "f": 2885.15
         }
       ],
-      "deltaSpread": 0.00002,
-      "meanNcc": 0.9978,
+      "deltaSpread": 0.00003,
+      "meanNcc": 0.9973,
+      "seedRelMedian": 0.00273,
       "unreliable": false,
       "zoomReadbacks": [
         3
@@ -5341,6 +5433,8 @@
       "n": 32,
       "nKept": 30,
       "dropFrac": 0.063,
+      "nNccRejected": 0,
+      "nMadRejected": 2,
       "fCss": 240.48,
       "sigmaF": 0.23,
       "ciLo": 240.45,
@@ -5368,6 +5462,7 @@
       ],
       "deltaSpread": 0.0052,
       "meanNcc": 0.9934,
+      "seedRelMedian": 0.02785,
       "unreliable": false,
       "zoomReadbacks": [
         1
@@ -5385,6 +5480,8 @@
       "n": 8,
       "nKept": 8,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 481,
       "sigmaF": 0.24,
       "ciLo": 480.64,
@@ -5400,6 +5497,7 @@
       ],
       "deltaSpread": 0,
       "meanNcc": 0.9939,
+      "seedRelMedian": null,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -5417,6 +5515,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 481.08,
       "sigmaF": 0.26,
       "ciLo": 480.99,
@@ -5440,6 +5540,7 @@
       ],
       "deltaSpread": 0.00098,
       "meanNcc": 0.9917,
+      "seedRelMedian": 0.00963,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -5457,6 +5558,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 962.12,
       "sigmaF": 0.84,
       "ciLo": 962.02,
@@ -5480,6 +5583,7 @@
       ],
       "deltaSpread": 0.0013,
       "meanNcc": 0.9954,
+      "seedRelMedian": 0.00369,
       "unreliable": false,
       "zoomReadbacks": [
         3
@@ -5497,6 +5601,8 @@
       "n": 32,
       "nKept": 28,
       "dropFrac": 0.125,
+      "nNccRejected": 0,
+      "nMadRejected": 4,
       "fCss": 428.08,
       "sigmaF": 0.1,
       "ciLo": 428.01,
@@ -5524,6 +5630,7 @@
       ],
       "deltaSpread": 0.00032,
       "meanNcc": 0.9913,
+      "seedRelMedian": 0.02431,
       "unreliable": false,
       "zoomReadbacks": [
         1
@@ -5541,6 +5648,8 @@
       "n": 8,
       "nKept": 8,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 855.43,
       "sigmaF": 0.12,
       "ciLo": 855.21,
@@ -5556,6 +5665,7 @@
       ],
       "deltaSpread": 0,
       "meanNcc": 0.9955,
+      "seedRelMedian": null,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -5573,6 +5683,8 @@
       "n": 24,
       "nKept": 22,
       "dropFrac": 0.083,
+      "nNccRejected": 0,
+      "nMadRejected": 2,
       "fCss": 855.55,
       "sigmaF": 0.08,
       "ciLo": 855.53,
@@ -5596,6 +5708,7 @@
       ],
       "deltaSpread": 0.00024,
       "meanNcc": 0.9937,
+      "seedRelMedian": 0.00841,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -5613,6 +5726,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 1711.11,
       "sigmaF": 0.23,
       "ciLo": 1711.05,
@@ -5636,6 +5751,7 @@
       ],
       "deltaSpread": 0.00023,
       "meanNcc": 0.9974,
+      "seedRelMedian": 0.00293,
       "unreliable": false,
       "zoomReadbacks": [
         3
@@ -5653,6 +5769,8 @@
       "n": 32,
       "nKept": 30,
       "dropFrac": 0.063,
+      "nNccRejected": 0,
+      "nMadRejected": 2,
       "fCss": 360.87,
       "sigmaF": 0.25,
       "ciLo": 360.86,
@@ -5680,6 +5798,7 @@
       ],
       "deltaSpread": 0.00235,
       "meanNcc": 0.9865,
+      "seedRelMedian": 0.02987,
       "unreliable": false,
       "zoomReadbacks": [
         1
@@ -5697,6 +5816,8 @@
       "n": 8,
       "nKept": 8,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 720.48,
       "sigmaF": 0.29,
       "ciLo": 720.17,
@@ -5712,6 +5833,7 @@
       ],
       "deltaSpread": 0,
       "meanNcc": 0.9897,
+      "seedRelMedian": null,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -5729,6 +5851,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 721.15,
       "sigmaF": 0.56,
       "ciLo": 720.99,
@@ -5752,6 +5876,7 @@
       ],
       "deltaSpread": 0.00155,
       "meanNcc": 0.9896,
+      "seedRelMedian": 0.01005,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -5769,6 +5894,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 1442.54,
       "sigmaF": 0.35,
       "ciLo": 1442.47,
@@ -5792,6 +5919,7 @@
       ],
       "deltaSpread": 0.0006,
       "meanNcc": 0.9958,
+      "seedRelMedian": 0.00217,
       "unreliable": false,
       "zoomReadbacks": [
         3
@@ -5809,6 +5937,8 @@
       "n": 32,
       "nKept": 32,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 561.41,
       "sigmaF": 0.23,
       "ciLo": 561.36,
@@ -5836,6 +5966,7 @@
       ],
       "deltaSpread": 0.00073,
       "meanNcc": 0.9943,
+      "seedRelMedian": 0.02777,
       "unreliable": false,
       "zoomReadbacks": [
         1
@@ -5853,6 +5984,8 @@
       "n": 8,
       "nKept": 8,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 1121.15,
       "sigmaF": 0.25,
       "ciLo": 1120.91,
@@ -5868,6 +6001,7 @@
       ],
       "deltaSpread": 0,
       "meanNcc": 0.9967,
+      "seedRelMedian": null,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -5885,6 +6019,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 1122.05,
       "sigmaF": 0.18,
       "ciLo": 1122,
@@ -5908,6 +6044,7 @@
       ],
       "deltaSpread": 0.00041,
       "meanNcc": 0.9959,
+      "seedRelMedian": 0.00999,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -5925,6 +6062,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 1826.06,
       "sigmaF": 0.37,
       "ciLo": 1825.82,
@@ -5948,6 +6087,7 @@
       ],
       "deltaSpread": 0.00026,
       "meanNcc": 0.9967,
+      "seedRelMedian": 0.00394,
       "unreliable": false,
       "zoomReadbacks": [
         3
@@ -5965,6 +6105,8 @@
       "n": 32,
       "nKept": 32,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 501.29,
       "sigmaF": 0.5,
       "ciLo": 501.23,
@@ -5992,6 +6134,7 @@
       ],
       "deltaSpread": 0.00417,
       "meanNcc": 0.9941,
+      "seedRelMedian": 0.00508,
       "unreliable": false,
       "zoomReadbacks": [
         1
@@ -6009,6 +6152,8 @@
       "n": 8,
       "nKept": 6,
       "dropFrac": 0.25,
+      "nNccRejected": 2,
+      "nMadRejected": 0,
       "fCss": 501.13,
       "sigmaF": 0.03,
       "ciLo": 501.04,
@@ -6024,6 +6169,7 @@
       ],
       "deltaSpread": 0,
       "meanNcc": 0.9934,
+      "seedRelMedian": null,
       "unreliable": true,
       "zoomReadbacks": [
         2
@@ -6041,6 +6187,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 501.43,
       "sigmaF": 0.9,
       "ciLo": 501.29,
@@ -6064,6 +6212,7 @@
       ],
       "deltaSpread": 0.00417,
       "meanNcc": 0.9945,
+      "seedRelMedian": 0.00669,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -6081,6 +6230,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 721.23,
       "sigmaF": 1.23,
       "ciLo": 721.21,
@@ -6104,6 +6255,7 @@
       ],
       "deltaSpread": 0.00357,
       "meanNcc": 0.9898,
+      "seedRelMedian": 0.00307,
       "unreliable": false,
       "zoomReadbacks": [
         3
@@ -6121,6 +6273,8 @@
       "n": 32,
       "nKept": 32,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 1202.37,
       "sigmaF": 0.22,
       "ciLo": 1202.22,
@@ -6148,6 +6302,7 @@
       ],
       "deltaSpread": 0.0004,
       "meanNcc": 0.9937,
+      "seedRelMedian": 0.02115,
       "unreliable": false,
       "zoomReadbacks": [
         1
@@ -6165,6 +6320,8 @@
       "n": 8,
       "nKept": 8,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 1825.86,
       "sigmaF": 0.84,
       "ciLo": 1824.53,
@@ -6180,6 +6337,7 @@
       ],
       "deltaSpread": 0,
       "meanNcc": 0.996,
+      "seedRelMedian": null,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -6197,6 +6355,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 1826.19,
       "sigmaF": 0.36,
       "ciLo": 1825.98,
@@ -6220,6 +6380,7 @@
       ],
       "deltaSpread": 0.00022,
       "meanNcc": 0.9946,
+      "seedRelMedian": 0.01228,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -6237,6 +6398,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 1826.19,
       "sigmaF": 0.36,
       "ciLo": 1825.98,
@@ -6260,6 +6423,7 @@
       ],
       "deltaSpread": 0.00022,
       "meanNcc": 0.9946,
+      "seedRelMedian": 0.01228,
       "unreliable": false,
       "zoomReadbacks": [
         3
@@ -6277,6 +6441,8 @@
       "n": 32,
       "nKept": 28,
       "dropFrac": 0.125,
+      "nNccRejected": 0,
+      "nMadRejected": 4,
       "fCss": 360.73,
       "sigmaF": 0.13,
       "ciLo": 360.68,
@@ -6304,6 +6470,7 @@
       ],
       "deltaSpread": 0.0015,
       "meanNcc": 0.9875,
+      "seedRelMedian": 0.02983,
       "unreliable": false,
       "zoomReadbacks": [
         1
@@ -6321,6 +6488,8 @@
       "n": 8,
       "nKept": 6,
       "dropFrac": 0.25,
+      "nNccRejected": 2,
+      "nMadRejected": 0,
       "fCss": 720.83,
       "sigmaF": 0.19,
       "ciLo": 720.7,
@@ -6336,6 +6505,7 @@
       ],
       "deltaSpread": 0,
       "meanNcc": 0.989,
+      "seedRelMedian": null,
       "unreliable": true,
       "zoomReadbacks": [
         2
@@ -6353,6 +6523,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 721.16,
       "sigmaF": 0.29,
       "ciLo": 721.05,
@@ -6376,6 +6548,7 @@
       ],
       "deltaSpread": 0.00031,
       "meanNcc": 0.9917,
+      "seedRelMedian": 0.00809,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -6393,6 +6566,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 1442.12,
       "sigmaF": 0.53,
       "ciLo": 1441.81,
@@ -6416,6 +6591,7 @@
       ],
       "deltaSpread": 0.00078,
       "meanNcc": 0.997,
+      "seedRelMedian": 0.00255,
       "unreliable": false,
       "zoomReadbacks": [
         3
@@ -6433,6 +6609,8 @@
       "n": 32,
       "nKept": 32,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 360.81,
       "sigmaF": 0.06,
       "ciLo": 360.78,
@@ -6460,6 +6638,7 @@
       ],
       "deltaSpread": 0.00047,
       "meanNcc": 0.9968,
+      "seedRelMedian": 0.02624,
       "unreliable": false,
       "zoomReadbacks": [
         1
@@ -6475,13 +6654,15 @@
       "dsf": 2,
       "aspect": 1.5,
       "n": 8,
-      "nKept": 4,
-      "dropFrac": 0.5,
+      "nKept": 6,
+      "dropFrac": 0.25,
+      "nNccRejected": 2,
+      "nMadRejected": 0,
       "fCss": 721.19,
-      "sigmaF": 0,
-      "ciLo": 721.19,
+      "sigmaF": 0.01,
+      "ciLo": 721.13,
       "ciHi": 721.19,
-      "hFovDeg": 53.054,
+      "hFovDeg": 53.055,
       "vFovDeg": 36.813,
       "dFovDeg": 61.922,
       "deltaMedians": [
@@ -6491,7 +6672,8 @@
         }
       ],
       "deltaSpread": 0,
-      "meanNcc": 0.9978,
+      "meanNcc": 0.9979,
+      "seedRelMedian": null,
       "unreliable": true,
       "zoomReadbacks": [
         2
@@ -6509,6 +6691,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 721.22,
       "sigmaF": 0.18,
       "ciLo": 721.16,
@@ -6532,6 +6716,7 @@
       ],
       "deltaSpread": 0.0003,
       "meanNcc": 0.9968,
+      "seedRelMedian": 0.00786,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -6549,6 +6734,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 1442.29,
       "sigmaF": 0.21,
       "ciLo": 1442.11,
@@ -6572,6 +6759,7 @@
       ],
       "deltaSpread": 0.00007,
       "meanNcc": 0.9965,
+      "seedRelMedian": 0.00257,
       "unreliable": false,
       "zoomReadbacks": [
         3
@@ -6589,6 +6777,8 @@
       "n": 32,
       "nKept": 30,
       "dropFrac": 0.063,
+      "nNccRejected": 0,
+      "nMadRejected": 2,
       "fCss": 427.49,
       "sigmaF": 0.14,
       "ciLo": 427.48,
@@ -6616,6 +6806,7 @@
       ],
       "deltaSpread": 0.0015,
       "meanNcc": 0.9924,
+      "seedRelMedian": 0.00598,
       "unreliable": false,
       "zoomReadbacks": [
         1
@@ -6633,6 +6824,8 @@
       "n": 8,
       "nKept": 8,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 480.96,
       "sigmaF": 0.11,
       "ciLo": 480.86,
@@ -6648,6 +6841,7 @@
       ],
       "deltaSpread": 0,
       "meanNcc": 0.9944,
+      "seedRelMedian": null,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -6665,6 +6859,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 481.21,
       "sigmaF": 0.38,
       "ciLo": 481.07,
@@ -6688,6 +6884,7 @@
       ],
       "deltaSpread": 0.00052,
       "meanNcc": 0.9937,
+      "seedRelMedian": 0.00628,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -6705,6 +6902,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 961.91,
       "sigmaF": 0.51,
       "ciLo": 961.8,
@@ -6728,6 +6927,7 @@
       ],
       "deltaSpread": 0.00144,
       "meanNcc": 0.9953,
+      "seedRelMedian": 0.00327,
       "unreliable": false,
       "zoomReadbacks": [
         3
@@ -6745,6 +6945,8 @@
       "n": 32,
       "nKept": 32,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 721.4,
       "sigmaF": 0.22,
       "ciLo": 721.39,
@@ -6772,6 +6974,7 @@
       ],
       "deltaSpread": 0.00055,
       "meanNcc": 0.9906,
+      "seedRelMedian": 0.02246,
       "unreliable": false,
       "zoomReadbacks": [
         1
@@ -6789,6 +6992,8 @@
       "n": 8,
       "nKept": 6,
       "dropFrac": 0.25,
+      "nNccRejected": 2,
+      "nMadRejected": 0,
       "fCss": 1442.31,
       "sigmaF": 0.03,
       "ciLo": 1442.28,
@@ -6804,6 +7009,7 @@
       ],
       "deltaSpread": 0,
       "meanNcc": 0.9965,
+      "seedRelMedian": null,
       "unreliable": true,
       "zoomReadbacks": [
         2
@@ -6821,6 +7027,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 1442.43,
       "sigmaF": 0.39,
       "ciLo": 1442.28,
@@ -6844,6 +7052,7 @@
       ],
       "deltaSpread": 0.0004,
       "meanNcc": 0.9953,
+      "seedRelMedian": 0.00771,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -6861,6 +7070,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 2884.58,
       "sigmaF": 0.41,
       "ciLo": 2884.22,
@@ -6884,6 +7095,7 @@
       ],
       "deltaSpread": 0.00007,
       "meanNcc": 0.9965,
+      "seedRelMedian": 0.00257,
       "unreliable": false,
       "zoomReadbacks": [
         3
@@ -6901,6 +7113,8 @@
       "n": 32,
       "nKept": 30,
       "dropFrac": 0.063,
+      "nNccRejected": 0,
+      "nMadRejected": 2,
       "fCss": 240.41,
       "sigmaF": 0.26,
       "ciLo": 240.4,
@@ -6928,6 +7142,7 @@
       ],
       "deltaSpread": 0.00498,
       "meanNcc": 0.9927,
+      "seedRelMedian": 0.03059,
       "unreliable": false,
       "zoomReadbacks": [
         1
@@ -6945,6 +7160,8 @@
       "n": 8,
       "nKept": 8,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 481.13,
       "sigmaF": 0.21,
       "ciLo": 480.96,
@@ -6960,6 +7177,7 @@
       ],
       "deltaSpread": 0,
       "meanNcc": 0.9948,
+      "seedRelMedian": null,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -6977,6 +7195,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 481.2,
       "sigmaF": 0.37,
       "ciLo": 481.05,
@@ -7000,6 +7220,7 @@
       ],
       "deltaSpread": 0.00054,
       "meanNcc": 0.9942,
+      "seedRelMedian": 0.00876,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -7017,6 +7238,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 961.92,
       "sigmaF": 0.69,
       "ciLo": 961.71,
@@ -7040,6 +7263,7 @@
       ],
       "deltaSpread": 0.00106,
       "meanNcc": 0.9965,
+      "seedRelMedian": 0.00349,
       "unreliable": false,
       "zoomReadbacks": [
         3
@@ -7057,6 +7281,8 @@
       "n": 32,
       "nKept": 32,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 427.96,
       "sigmaF": 0.25,
       "ciLo": 427.81,
@@ -7084,6 +7310,7 @@
       ],
       "deltaSpread": 0.00129,
       "meanNcc": 0.9921,
+      "seedRelMedian": 0.02974,
       "unreliable": false,
       "zoomReadbacks": [
         1
@@ -7101,6 +7328,8 @@
       "n": 8,
       "nKept": 8,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 855.48,
       "sigmaF": 0.23,
       "ciLo": 855.26,
@@ -7116,6 +7345,7 @@
       ],
       "deltaSpread": 0,
       "meanNcc": 0.9953,
+      "seedRelMedian": null,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -7133,6 +7363,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 855.36,
       "sigmaF": 0.51,
       "ciLo": 855.12,
@@ -7156,6 +7388,7 @@
       ],
       "deltaSpread": 0.00096,
       "meanNcc": 0.9945,
+      "seedRelMedian": 0.00766,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -7173,6 +7406,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 1710.49,
       "sigmaF": 0.19,
       "ciLo": 1710.35,
@@ -7196,6 +7431,7 @@
       ],
       "deltaSpread": 0.0001,
       "meanNcc": 0.9979,
+      "seedRelMedian": 0.00322,
       "unreliable": false,
       "zoomReadbacks": [
         3
@@ -7213,6 +7449,8 @@
       "n": 32,
       "nKept": 28,
       "dropFrac": 0.125,
+      "nNccRejected": 0,
+      "nMadRejected": 4,
       "fCss": 360.73,
       "sigmaF": 0.12,
       "ciLo": 360.71,
@@ -7240,6 +7478,7 @@
       ],
       "deltaSpread": 0.00127,
       "meanNcc": 0.9872,
+      "seedRelMedian": 0.03072,
       "unreliable": false,
       "zoomReadbacks": [
         1
@@ -7257,6 +7496,8 @@
       "n": 8,
       "nKept": 8,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 720.5,
       "sigmaF": 0.24,
       "ciLo": 720.33,
@@ -7272,6 +7513,7 @@
       ],
       "deltaSpread": 0,
       "meanNcc": 0.9885,
+      "seedRelMedian": null,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -7289,6 +7531,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 721.17,
       "sigmaF": 0.41,
       "ciLo": 720.96,
@@ -7312,6 +7556,7 @@
       ],
       "deltaSpread": 0.00056,
       "meanNcc": 0.9912,
+      "seedRelMedian": 0.00861,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -7329,6 +7574,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 1441.92,
       "sigmaF": 0.73,
       "ciLo": 1441.72,
@@ -7352,6 +7599,7 @@
       ],
       "deltaSpread": 0.00083,
       "meanNcc": 0.9969,
+      "seedRelMedian": 0.00267,
       "unreliable": false,
       "zoomReadbacks": [
         3
@@ -7369,6 +7617,8 @@
       "n": 32,
       "nKept": 32,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 561.26,
       "sigmaF": 0.18,
       "ciLo": 561.26,
@@ -7396,6 +7646,7 @@
       ],
       "deltaSpread": 0.00057,
       "meanNcc": 0.9951,
+      "seedRelMedian": 0.02518,
       "unreliable": false,
       "zoomReadbacks": [
         1
@@ -7413,6 +7664,8 @@
       "n": 8,
       "nKept": 8,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 1121.62,
       "sigmaF": 0.13,
       "ciLo": 1121.28,
@@ -7428,6 +7681,7 @@
       ],
       "deltaSpread": 0,
       "meanNcc": 0.9961,
+      "seedRelMedian": null,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -7445,6 +7699,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 1121.82,
       "sigmaF": 0.26,
       "ciLo": 1121.74,
@@ -7468,6 +7724,7 @@
       ],
       "deltaSpread": 0.00034,
       "meanNcc": 0.9964,
+      "seedRelMedian": 0.00919,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -7485,6 +7742,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 1825.87,
       "sigmaF": 0.28,
       "ciLo": 1825.5,
@@ -7508,6 +7767,7 @@
       ],
       "deltaSpread": 0.00006,
       "meanNcc": 0.9979,
+      "seedRelMedian": 0.00397,
       "unreliable": false,
       "zoomReadbacks": [
         3
@@ -7525,6 +7785,8 @@
       "n": 32,
       "nKept": 32,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 501.15,
       "sigmaF": 0.79,
       "ciLo": 501.1,
@@ -7552,6 +7814,7 @@
       ],
       "deltaSpread": 0.00421,
       "meanNcc": 0.9946,
+      "seedRelMedian": 0.00271,
       "unreliable": false,
       "zoomReadbacks": [
         1
@@ -7569,6 +7832,8 @@
       "n": 8,
       "nKept": 8,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 501.23,
       "sigmaF": 0.27,
       "ciLo": 500.97,
@@ -7584,6 +7849,7 @@
       ],
       "deltaSpread": 0,
       "meanNcc": 0.9941,
+      "seedRelMedian": null,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -7601,6 +7867,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 501.71,
       "sigmaF": 1.15,
       "ciLo": 501.15,
@@ -7624,6 +7892,7 @@
       ],
       "deltaSpread": 0.00421,
       "meanNcc": 0.9952,
+      "seedRelMedian": 0.00378,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -7641,6 +7910,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 721.21,
       "sigmaF": 0.76,
       "ciLo": 720.66,
@@ -7664,6 +7935,7 @@
       ],
       "deltaSpread": 0.00153,
       "meanNcc": 0.9919,
+      "seedRelMedian": 0.00152,
       "unreliable": false,
       "zoomReadbacks": [
         3
@@ -7681,6 +7953,8 @@
       "n": 32,
       "nKept": 32,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 1202.34,
       "sigmaF": 0.12,
       "ciLo": 1202.31,
@@ -7708,6 +7982,7 @@
       ],
       "deltaSpread": 0.00013,
       "meanNcc": 0.994,
+      "seedRelMedian": 0.02875,
       "unreliable": false,
       "zoomReadbacks": [
         1
@@ -7725,6 +8000,8 @@
       "n": 8,
       "nKept": 4,
       "dropFrac": 0.5,
+      "nNccRejected": 4,
+      "nMadRejected": 0,
       "fCss": 1826.5,
       "sigmaF": 0.46,
       "ciLo": 1826.18,
@@ -7740,6 +8017,7 @@
       ],
       "deltaSpread": 0,
       "meanNcc": 0.9983,
+      "seedRelMedian": null,
       "unreliable": true,
       "zoomReadbacks": [
         2
@@ -7757,6 +8035,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 1826.12,
       "sigmaF": 0.17,
       "ciLo": 1826.07,
@@ -7780,6 +8060,7 @@
       ],
       "deltaSpread": 0.00012,
       "meanNcc": 0.9964,
+      "seedRelMedian": 0.01651,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -7797,6 +8078,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 1826.12,
       "sigmaF": 0.17,
       "ciLo": 1826.07,
@@ -7820,6 +8103,7 @@
       ],
       "deltaSpread": 0.00012,
       "meanNcc": 0.9964,
+      "seedRelMedian": 0.01651,
       "unreliable": false,
       "zoomReadbacks": [
         3
@@ -7837,6 +8121,8 @@
       "n": 32,
       "nKept": 32,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 361.41,
       "sigmaF": 0.3,
       "ciLo": 361.32,
@@ -7864,6 +8150,7 @@
       ],
       "deltaSpread": 0.00173,
       "meanNcc": 0.9781,
+      "seedRelMedian": 0.0316,
       "unreliable": false,
       "zoomReadbacks": [
         1
@@ -7881,6 +8168,8 @@
       "n": 8,
       "nKept": 8,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 721.99,
       "sigmaF": 0.16,
       "ciLo": 721.88,
@@ -7896,6 +8185,7 @@
       ],
       "deltaSpread": 0,
       "meanNcc": 0.9953,
+      "seedRelMedian": null,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -7913,6 +8203,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 722.56,
       "sigmaF": 0.21,
       "ciLo": 722.53,
@@ -7936,6 +8228,7 @@
       ],
       "deltaSpread": 0.00066,
       "meanNcc": 0.9943,
+      "seedRelMedian": 0.00938,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -7953,6 +8246,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 1444.48,
       "sigmaF": 0.29,
       "ciLo": 1444.29,
@@ -7976,6 +8271,7 @@
       ],
       "deltaSpread": 0.00017,
       "meanNcc": 0.9977,
+      "seedRelMedian": 0.0027,
       "unreliable": false,
       "zoomReadbacks": [
         3
@@ -7993,6 +8289,8 @@
       "n": 32,
       "nKept": 32,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 361.45,
       "sigmaF": 0.15,
       "ciLo": 361.35,
@@ -8020,6 +8318,7 @@
       ],
       "deltaSpread": 0.00066,
       "meanNcc": 0.9916,
+      "seedRelMedian": 0.02727,
       "unreliable": false,
       "zoomReadbacks": [
         1
@@ -8037,6 +8336,8 @@
       "n": 8,
       "nKept": 8,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 722.05,
       "sigmaF": 0.09,
       "ciLo": 721.84,
@@ -8052,6 +8353,7 @@
       ],
       "deltaSpread": 0,
       "meanNcc": 0.999,
+      "seedRelMedian": null,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -8069,6 +8371,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 722.52,
       "sigmaF": 0.37,
       "ciLo": 722.24,
@@ -8092,6 +8396,7 @@
       ],
       "deltaSpread": 0.00026,
       "meanNcc": 0.9974,
+      "seedRelMedian": 0.00907,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -8109,6 +8414,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 1444.47,
       "sigmaF": 0.42,
       "ciLo": 1444.23,
@@ -8132,6 +8439,7 @@
       ],
       "deltaSpread": 0.00016,
       "meanNcc": 0.9984,
+      "seedRelMedian": 0.00263,
       "unreliable": false,
       "zoomReadbacks": [
         3
@@ -8149,6 +8457,8 @@
       "n": 32,
       "nKept": 30,
       "dropFrac": 0.063,
+      "nNccRejected": 0,
+      "nMadRejected": 2,
       "fCss": 427.98,
       "sigmaF": 0.12,
       "ciLo": 427.96,
@@ -8176,6 +8486,7 @@
       ],
       "deltaSpread": 0.00067,
       "meanNcc": 0.9878,
+      "seedRelMedian": 0.01003,
       "unreliable": false,
       "zoomReadbacks": [
         1
@@ -8193,6 +8504,8 @@
       "n": 8,
       "nKept": 8,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 481.63,
       "sigmaF": 0.09,
       "ciLo": 481.57,
@@ -8208,6 +8521,7 @@
       ],
       "deltaSpread": 0,
       "meanNcc": 0.993,
+      "seedRelMedian": null,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -8225,6 +8539,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 481.92,
       "sigmaF": 0.18,
       "ciLo": 481.84,
@@ -8248,6 +8564,7 @@
       ],
       "deltaSpread": 0.00083,
       "meanNcc": 0.9911,
+      "seedRelMedian": 0.00965,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -8265,6 +8582,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 963.28,
       "sigmaF": 0.18,
       "ciLo": 963.18,
@@ -8288,6 +8607,7 @@
       ],
       "deltaSpread": 0.00038,
       "meanNcc": 0.9981,
+      "seedRelMedian": 0.00349,
       "unreliable": false,
       "zoomReadbacks": [
         3
@@ -8305,6 +8625,8 @@
       "n": 32,
       "nKept": 32,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 722.9,
       "sigmaF": 0.29,
       "ciLo": 722.71,
@@ -8332,6 +8654,7 @@
       ],
       "deltaSpread": 0.00066,
       "meanNcc": 0.9916,
+      "seedRelMedian": 0.02727,
       "unreliable": false,
       "zoomReadbacks": [
         1
@@ -8349,6 +8672,8 @@
       "n": 8,
       "nKept": 8,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 1444.09,
       "sigmaF": 0.18,
       "ciLo": 1443.67,
@@ -8364,6 +8689,7 @@
       ],
       "deltaSpread": 0,
       "meanNcc": 0.999,
+      "seedRelMedian": null,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -8381,6 +8707,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 1445.05,
       "sigmaF": 0.74,
       "ciLo": 1444.49,
@@ -8404,6 +8732,7 @@
       ],
       "deltaSpread": 0.00026,
       "meanNcc": 0.9974,
+      "seedRelMedian": 0.00907,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -8421,6 +8750,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 2888.94,
       "sigmaF": 0.84,
       "ciLo": 2888.47,
@@ -8444,6 +8775,7 @@
       ],
       "deltaSpread": 0.00016,
       "meanNcc": 0.9984,
+      "seedRelMedian": 0.00263,
       "unreliable": false,
       "zoomReadbacks": [
         3
@@ -8461,6 +8793,8 @@
       "n": 32,
       "nKept": 32,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 240.91,
       "sigmaF": 0.42,
       "ciLo": 240.76,
@@ -8488,6 +8822,7 @@
       ],
       "deltaSpread": 0.00622,
       "meanNcc": 0.9544,
+      "seedRelMedian": 0.02427,
       "unreliable": false,
       "zoomReadbacks": [
         1
@@ -8503,24 +8838,27 @@
       "dsf": 1,
       "aspect": 1,
       "n": 8,
-      "nKept": 6,
-      "dropFrac": 0.25,
-      "fCss": 481.5,
-      "sigmaF": 0,
+      "nKept": 8,
+      "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
+      "fCss": 481.51,
+      "sigmaF": 0.01,
       "ciLo": 481.5,
-      "ciHi": 481.52,
-      "hFovDeg": 52.987,
-      "vFovDeg": 52.987,
-      "dFovDeg": 70.36,
+      "ciHi": 481.89,
+      "hFovDeg": 52.986,
+      "vFovDeg": 52.986,
+      "dFovDeg": 70.359,
       "deltaMedians": [
         {
           "deltaDeg": 2,
-          "f": 481.5
+          "f": 481.51
         }
       ],
       "deltaSpread": 0,
-      "meanNcc": 0.9926,
-      "unreliable": true,
+      "meanNcc": 0.9929,
+      "seedRelMedian": null,
+      "unreliable": false,
       "zoomReadbacks": [
         2
       ]
@@ -8537,6 +8875,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 481.88,
       "sigmaF": 0.17,
       "ciLo": 481.84,
@@ -8560,6 +8900,7 @@
       ],
       "deltaSpread": 0.0003,
       "meanNcc": 0.9903,
+      "seedRelMedian": 0.00891,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -8577,6 +8918,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 963.32,
       "sigmaF": 0.26,
       "ciLo": 963.16,
@@ -8600,6 +8943,7 @@
       ],
       "deltaSpread": 0.00039,
       "meanNcc": 0.9978,
+      "seedRelMedian": 0.00312,
       "unreliable": false,
       "zoomReadbacks": [
         3
@@ -8617,6 +8961,8 @@
       "n": 32,
       "nKept": 32,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 428.76,
       "sigmaF": 0.21,
       "ciLo": 428.64,
@@ -8644,6 +8990,7 @@
       ],
       "deltaSpread": 0.00165,
       "meanNcc": 0.983,
+      "seedRelMedian": 0.02854,
       "unreliable": false,
       "zoomReadbacks": [
         1
@@ -8661,6 +9008,8 @@
       "n": 8,
       "nKept": 6,
       "dropFrac": 0.25,
+      "nNccRejected": 2,
+      "nMadRejected": 0,
       "fCss": 856.26,
       "sigmaF": 0,
       "ciLo": 856.26,
@@ -8676,6 +9025,7 @@
       ],
       "deltaSpread": 0,
       "meanNcc": 0.9983,
+      "seedRelMedian": null,
       "unreliable": true,
       "zoomReadbacks": [
         2
@@ -8693,6 +9043,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 857.01,
       "sigmaF": 0.29,
       "ciLo": 856.92,
@@ -8716,6 +9068,7 @@
       ],
       "deltaSpread": 0.0001,
       "meanNcc": 0.9962,
+      "seedRelMedian": 0.0086,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -8733,6 +9086,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 1713.3,
       "sigmaF": 0.28,
       "ciLo": 1713.19,
@@ -8756,6 +9111,7 @@
       ],
       "deltaSpread": 0.00014,
       "meanNcc": 0.9978,
+      "seedRelMedian": 0.00279,
       "unreliable": false,
       "zoomReadbacks": [
         3
@@ -8773,6 +9129,8 @@
       "n": 32,
       "nKept": 32,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 361.46,
       "sigmaF": 0.23,
       "ciLo": 361.42,
@@ -8800,6 +9158,7 @@
       ],
       "deltaSpread": 0.00155,
       "meanNcc": 0.9771,
+      "seedRelMedian": 0.03225,
       "unreliable": false,
       "zoomReadbacks": [
         1
@@ -8817,6 +9176,8 @@
       "n": 8,
       "nKept": 8,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 721.9,
       "sigmaF": 0.03,
       "ciLo": 721.81,
@@ -8832,6 +9193,7 @@
       ],
       "deltaSpread": 0,
       "meanNcc": 0.9954,
+      "seedRelMedian": null,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -8849,6 +9211,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 722.64,
       "sigmaF": 0.31,
       "ciLo": 722.49,
@@ -8872,6 +9236,7 @@
       ],
       "deltaSpread": 0.00067,
       "meanNcc": 0.9944,
+      "seedRelMedian": 0.00931,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -8889,6 +9254,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 1444.52,
       "sigmaF": 0.4,
       "ciLo": 1444.26,
@@ -8912,6 +9279,7 @@
       ],
       "deltaSpread": 0.0001,
       "meanNcc": 0.9974,
+      "seedRelMedian": 0.00274,
       "unreliable": false,
       "zoomReadbacks": [
         3
@@ -8929,6 +9297,8 @@
       "n": 32,
       "nKept": 32,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 562.35,
       "sigmaF": 0.3,
       "ciLo": 562.13,
@@ -8956,6 +9326,7 @@
       ],
       "deltaSpread": 0.00059,
       "meanNcc": 0.988,
+      "seedRelMedian": 0.02883,
       "unreliable": false,
       "zoomReadbacks": [
         1
@@ -8973,6 +9344,8 @@
       "n": 8,
       "nKept": 8,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 1123.29,
       "sigmaF": 0.2,
       "ciLo": 1123.14,
@@ -8988,6 +9361,7 @@
       ],
       "deltaSpread": 0,
       "meanNcc": 0.9984,
+      "seedRelMedian": null,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -9005,6 +9379,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 1123.99,
       "sigmaF": 0.38,
       "ciLo": 1123.74,
@@ -9028,6 +9404,7 @@
       ],
       "deltaSpread": 0.00021,
       "meanNcc": 0.9963,
+      "seedRelMedian": 0.00993,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -9045,6 +9422,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 1828.73,
       "sigmaF": 0.43,
       "ciLo": 1828.4,
@@ -9068,6 +9447,7 @@
       ],
       "deltaSpread": 0.00012,
       "meanNcc": 0.9979,
+      "seedRelMedian": 0.00409,
       "unreliable": false,
       "zoomReadbacks": [
         3
@@ -9085,6 +9465,8 @@
       "n": 32,
       "nKept": 32,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 501.95,
       "sigmaF": 0.58,
       "ciLo": 501.92,
@@ -9112,6 +9494,7 @@
       ],
       "deltaSpread": 0.00359,
       "meanNcc": 0.991,
+      "seedRelMedian": 0.0069,
       "unreliable": false,
       "zoomReadbacks": [
         1
@@ -9129,6 +9512,8 @@
       "n": 8,
       "nKept": 8,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 501.88,
       "sigmaF": 0.17,
       "ciLo": 501.7,
@@ -9144,6 +9529,7 @@
       ],
       "deltaSpread": 0,
       "meanNcc": 0.9912,
+      "seedRelMedian": null,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -9161,6 +9547,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 502.1,
       "sigmaF": 0.89,
       "ciLo": 502.04,
@@ -9184,6 +9572,7 @@
       ],
       "deltaSpread": 0.00359,
       "meanNcc": 0.9925,
+      "seedRelMedian": 0.00705,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -9201,6 +9590,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 722.48,
       "sigmaF": 0.69,
       "ciLo": 722.14,
@@ -9224,6 +9615,7 @@
       ],
       "deltaSpread": 0.00168,
       "meanNcc": 0.9965,
+      "seedRelMedian": 0.00329,
       "unreliable": false,
       "zoomReadbacks": [
         3
@@ -9241,6 +9633,8 @@
       "n": 32,
       "nKept": 32,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 1204.9,
       "sigmaF": 0.84,
       "ciLo": 1204.24,
@@ -9268,6 +9662,7 @@
       ],
       "deltaSpread": 0.00021,
       "meanNcc": 0.9948,
+      "seedRelMedian": 0.02715,
       "unreliable": false,
       "zoomReadbacks": [
         1
@@ -9285,6 +9680,8 @@
       "n": 8,
       "nKept": 6,
       "dropFrac": 0.25,
+      "nNccRejected": 2,
+      "nMadRejected": 0,
       "fCss": 1828.21,
       "sigmaF": 0.05,
       "ciLo": 1828.07,
@@ -9300,6 +9697,7 @@
       ],
       "deltaSpread": 0,
       "meanNcc": 0.9993,
+      "seedRelMedian": null,
       "unreliable": true,
       "zoomReadbacks": [
         2
@@ -9317,6 +9715,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 1829.53,
       "sigmaF": 0.6,
       "ciLo": 1829.13,
@@ -9340,6 +9740,7 @@
       ],
       "deltaSpread": 0.00005,
       "meanNcc": 0.9982,
+      "seedRelMedian": 0.01595,
       "unreliable": false,
       "zoomReadbacks": [
         2
@@ -9357,6 +9758,8 @@
       "n": 24,
       "nKept": 24,
       "dropFrac": 0,
+      "nNccRejected": 0,
+      "nMadRejected": 0,
       "fCss": 1829.53,
       "sigmaF": 0.6,
       "ciLo": 1829.13,
@@ -9380,6 +9783,7 @@
       ],
       "deltaSpread": 0.00005,
       "meanNcc": 0.9982,
+      "seedRelMedian": 0.01595,
       "unreliable": false,
       "zoomReadbacks": [
         3

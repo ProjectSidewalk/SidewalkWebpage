@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-01T18:30:13.735Z",
+  "generatedAt": "2026-09-03T18:23:44.314Z",
   "runDir": "2026-09-01T02-19-24-024Z",
   "mapsVersion": "3.66.2d",
   "mapsVersionRequested": "weekly",
@@ -10,10 +10,36 @@
     "nCeilingCells": 12,
     "nFloorCells": 12
   },
+  "controlHFovDeg": {
+    "1": 89.875,
+    "2": 53.055,
+    "3": 28.03
+  },
+  "bindingAspects": [
+    {
+      "zoom": 1,
+      "controlHFovDeg": 89.875,
+      "floorBindsAtAspectAtLeast": 7.593,
+      "ceilingBindsAtAspectAtMost": 1.001
+    },
+    {
+      "zoom": 2,
+      "controlHFovDeg": 53.055,
+      "floorBindsAtAspectAtLeast": 3.798,
+      "ceilingBindsAtAspectAtMost": 0.501
+    },
+    {
+      "zoom": 3,
+      "controlHFovDeg": 28.03,
+      "floorBindsAtAspectAtLeast": 1.899,
+      "ceilingBindsAtAspectAtMost": 0.25
+    }
+  ],
   "gates": {
     "method": true,
     "model": false,
     "anisotropy": true,
+    "seed": true,
     "modelExceedances": [
       {
         "pano": "seattle-downtown",
@@ -596,13 +622,13 @@
       "height": 480,
       "dpr": 2,
       "zoom": 3,
-      "fPx": 1442.6,
-      "sigmaF": 0.07,
+      "fPx": 1442.61,
+      "sigmaF": 0.09,
       "ciLo": 1442.6,
-      "ciHi": 1442.61,
+      "ciHi": 1442.64,
       "hFovDeg": 28.024,
       "vFovDeg": 18.891,
-      "n": 22
+      "n": 24
     },
     {
       "pano": "seattle-downtown",
@@ -686,13 +712,13 @@
       "height": 960,
       "dpr": 1,
       "zoom": 3,
-      "fPx": 2885.21,
-      "sigmaF": 0.14,
+      "fPx": 2885.22,
+      "sigmaF": 0.17,
       "ciLo": 2885.19,
-      "ciHi": 2885.23,
+      "ciHi": 2885.28,
       "hFovDeg": 28.024,
       "vFovDeg": 18.891,
-      "n": 22
+      "n": 24
     },
     {
       "pano": "seattle-downtown",
