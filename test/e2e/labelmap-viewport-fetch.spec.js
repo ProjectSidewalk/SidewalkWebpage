@@ -2,11 +2,12 @@
  * Behavior tests for /labelMap's viewport-scoped label feed (#5002): the page requests `/labels/all` with a
  * bbox, skips refetching while the view stays inside the padded fetched area, and refetches when it escapes.
  *
- * Every case intercepts the feed (these assert request behavior, not data), so they behave identically
- * against a seeded dev schema and CI's empty one. The zoom floor is exercised in the jest suite
- * (test/js/viewportLabelLoader.test.js) instead — mobile emulation plus zoom thresholds are flaky here.
+ * Every case intercepts the feed and the base map layers (these assert request behavior, not data), so they
+ * behave identically against a seeded dev schema and CI's empty one, in content and in how long they take
+ * (#5081). The zoom floor is exercised in the jest suite (test/js/viewportLabelLoader.test.js) instead —
+ * mobile emulation plus zoom thresholds are flaky here.
  */
-const {test, expect, stubMapbox, waitForAppReady} = require('./fixtures');
+const {test, expect, stubMapbox, stubMapBaseLayers, waitForAppReady} = require('./fixtures');
 
 const EMPTY_FEED = '{"type":"FeatureCollection","features":[]}';
 
@@ -24,10 +25,14 @@ async function waitForMap(page) {
 }
 
 test.describe('/labelMap viewport-scoped feed', () => {
+  test.beforeEach(async ({context}) => {
+    await stubMapbox(context);
+    await stubMapBaseLayers(context);
+  });
+
   test('a desktop load issues exactly one bbox-scoped request, and a small pan issues none', async ({
     page, context,
   }) => {
-    await stubMapbox(context);
     const feedUrls = [];
     await recordLabelFeed(context, feedUrls);
 
@@ -44,7 +49,6 @@ test.describe('/labelMap viewport-scoped feed', () => {
   });
 
   test('moving beyond the fetched area refetches with a new bbox', async ({page, context}) => {
-    await stubMapbox(context);
     const feedUrls = [];
     await recordLabelFeed(context, feedUrls);
 

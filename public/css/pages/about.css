@@ -7,7 +7,7 @@
   --about-toc-height: 48px;
 
   font: var(--text-body-regular);
-  color: var(--color-neutral-900);
+  color: var(--color-neutral-black);
 }
 
 #about-page a:not(.button-ps) {
@@ -582,6 +582,7 @@
 
 #about-page .about-contact a {
   color: var(--color-banana-400);
+  text-decoration: underline;
 }
 
 /* In-page section nav.

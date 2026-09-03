@@ -1,7 +1,7 @@
 package models.story
 
 import com.google.inject.ImplementedBy
-import models.label.LabelTableDef
+import models.label.{LabelTableDef, LabelTypeEnum}
 import models.pano.PanoDataTableDef
 import models.region.RegionTableDef
 import models.street.StreetEdgeRegionTableDef
@@ -116,9 +116,9 @@ class StoryTable @Inject() (
     labels.filter(l => l.labelId === labelId && l.deleted === false).exists.result
   }
 
-  /** The label's type id, or None when the label doesn't exist. Drives the card's problem-vs-feature story copy. */
-  def labelTypeIdForLabel(labelId: Int): DBIO[Option[Int]] = {
-    labels.filter(_.labelId === labelId).map(_.labelTypeId).result.headOption
+  /** The label's type, or None when the label doesn't exist. Drives the card's problem-vs-feature story copy. */
+  def labelTypeForLabel(labelId: Int): DBIO[Option[LabelTypeEnum.Base]] = {
+    labels.filter(_.labelId === labelId).map(_.labelType).result.headOption
   }
 
   def userHasStoryOnLabel(labelId: Int, userId: String): DBIO[Boolean] = {
@@ -193,7 +193,7 @@ class StoryTable @Inject() (
   }
 
   /** All of one user's stories (including hidden ones), for the dashboard management surface. */
-  def getForUser(userId: String): DBIO[Seq[(Story, Option[StoryMedia], Int)]] = {
+  def getForUser(userId: String): DBIO[Seq[(Story, Option[StoryMedia], LabelTypeEnum.Base)]] = {
     stories
       .filter(_.userId === userId)
       .join(labels)
@@ -202,7 +202,7 @@ class StoryTable @Inject() (
       .on(_._1.storyId === _.storyId)
       .sortBy(_._1._1.createdAt.desc)
       .result
-      .map(_.map { case ((story, label), media) => (story, media, label.labelTypeId) })
+      .map(_.map { case ((story, label), media) => (story, media, label.labelType) })
   }
 
   /**
@@ -213,14 +213,16 @@ class StoryTable @Inject() (
    * on /admin/stories), and stories on soft-deleted labels are dropped since their label can't be opened. The
    * address joins through pano_data, which is back-filled lazily as panos are viewed, so it's often absent.
    */
-  def getVisibleForCity(n: Int): DBIO[Seq[(Story, Option[StoryMedia], String, Int, Int, String, Option[String])]] = {
+  def getVisibleForCity(
+      n: Int
+  ): DBIO[Seq[(Story, Option[StoryMedia], String, LabelTypeEnum.Base, Int, String, Option[String])]] = {
     val visibleWithPlace = for {
       story            <- stories if story.visible
       user             <- users if user.userId === story.userId
       label            <- labels if label.labelId === story.labelId && !label.deleted
       streetEdgeRegion <- streetEdgeRegions if streetEdgeRegion.streetEdgeId === label.streetEdgeId
       region           <- regions if region.regionId === streetEdgeRegion.regionId
-    } yield (story, user.username, label.labelTypeId, label.panoId, region.regionId, region.name)
+    } yield (story, user.username, label.labelType, label.panoId, region.regionId, region.name)
     visibleWithPlace
       .joinLeft(storyMedia)
       .on(_._1.storyId === _.storyId)
@@ -229,13 +231,13 @@ class StoryTable @Inject() (
       .sortBy(_._1._1._1.createdAt.desc)
       .take(n)
       .result
-      .map(_.map { case (((story, username, labelTypeId, _, regionId, regionName), media), pano) =>
-        (story, media, username, labelTypeId, regionId, regionName, pano.flatMap(_.address))
+      .map(_.map { case (((story, username, labelType, _, regionId, regionName), media), pano) =>
+        (story, media, username, labelType, regionId, regionName, pano.flatMap(_.address))
       })
   }
 
   /** Most recent stories across all users (hidden included), for the admin moderation queue. */
-  def getRecent(n: Int): DBIO[Seq[(Story, Option[StoryMedia], String, Int)]] = {
+  def getRecent(n: Int): DBIO[Seq[(Story, Option[StoryMedia], String, LabelTypeEnum.Base)]] = {
     stories
       .join(users)
       .on(_.userId === _.userId)
@@ -246,7 +248,7 @@ class StoryTable @Inject() (
       .sortBy(_._1._1._1.createdAt.desc)
       .take(n)
       .result
-      .map(_.map { case (((story, user), label), media) => (story, media, user.username, label.labelTypeId) })
+      .map(_.map { case (((story, user), label), media) => (story, media, user.username, label.labelType) })
   }
 
   def setVisibility(storyId: Int, visible: Boolean, adminUserId: String, now: OffsetDateTime): DBIO[Int] = {

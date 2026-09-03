@@ -62,7 +62,8 @@ From the repo root:
 
 ```bash
 npm install        # first time only — installs jest + jest-environment-jsdom (devDependencies)
-npm run test:js    # runs Jest against test/js/ only
+npm run test:js    # runs the suites in test/js/
+npm run test:js:coverage    # the same, plus the coverage report (what CI runs)
 ```
 
 `npm run test:js` is a **new** script; the existing placeholder `npm test` is left untouched.
@@ -73,10 +74,11 @@ npm run test:js    # runs Jest against test/js/ only
 ## How it works (no module system)
 
 Project Sidewalk's frontend has **no module system** — files are plain scripts concatenated by Grunt that assign their
-surface onto `window` (e.g. `window.AggregateStatsPreview = { setup, init }`). So we don't `require()` the production
-file directly. Instead `loadGlobalScript.js` reads the file and executes it in the jsdom `window`'s global scope via
-Node's `vm` module — exactly as a browser `<script>` tag would. After loading, `window.AggregateStatsPreview` is
-available to the test. **No production-code changes are required.**
+surface onto `window` (e.g. `window.AggregateStatsPreview = { setup, init }`). `loadGlobalScript.js` `require()`s the
+file after a `jest.resetModules()`: jsdom exposes `window`/`document` as Node globals, so the file's top-level IIFE
+runs and performs its `window.X = ...` assignment exactly as a `<script>` tag would, and the reset gives each test a
+fresh module-scoped singleton. Going through `require` is also what lets Jest instrument these files for coverage.
+**No production-code changes are required.**
 
 Each test:
 
@@ -131,24 +133,37 @@ alongside `loadGlobalScript.js` as coverage grows.
 `common/aggregateStats.js` (named as a first target in the plan) is a good next addition — it has retry/timeout logic
 worth unit-testing with fake timers.
 
-## Why this is opt-in and NOT in CI
+## How this is wired into CI
 
-Frontend linting and the JS **ES5→ES2022 migration** are owned by a separate in-flight effort, **issue #2487**. Dropping
-test/lint tooling into CI mid-migration would create large, conflict-prone churn and risks colliding with that work.
-So:
+- **Blocking** (#5132). `npm run test:js:coverage` is a step in the `frontend` job with no `continue-on-error`, so a
+  red suite turns the required `Frontend (build)` check red. Thin coverage is why there is no `coverageThreshold`
+  (see `jest.config.js`); it is not a reason to let a test that exists go red. Run it locally with `make test-js`.
+- **Linted** (#5132). `test/js/` is in ESLint's file globs, with the same rule set as `test/e2e/` plus jest globals.
+  The `@stylistic` house style is deliberately not applied -- these files are 4-space, and reformatting them would
+  bury real findings under whitespace. Bundle globals a suite installs on `window` are declared in
+  `eslint.config.js`; a subject pulled in via `eval` gets a per-file `/* global */` directive.
+- `testMatch` is anchored to `test/js/`, so production JS is only ever loaded as a module under test, never
+  collected as one.
 
-- **No ESLint, no broad config** is introduced here (`jest.config.js` is scoped to `test/js/` only and never touches
-  production JS).
-- **CI runs this suite as an advisory step** in the `frontend` job (`npm run test:js`, `continue-on-error` on the step
-  so a failure never turns the required `Frontend (build)` check red). Promotion to blocking rides #2487's track,
-  once coverage is broad enough that a red suite always means a real regression.
-- The existing `npm test` placeholder is **unchanged** to avoid surprising any tooling that already calls it.
+## Coverage
+
+`npm run test:js:coverage` reports over the whole first-party frontend: `public/js/**/*.js` minus the Grunt `build/`
+bundles, with `public/js` as one of Jest's `roots` so a file **no test loads** still counts against the ratio. The
+console shows totals only; open `coverage/lcov-report/index.html` for per-file detail.
+
+**Read the number with care, and don't put a floor on it yet (#5112).** Jest instruments only what it hands out
+through `require` — which is what `loadGlobalScript` does. The other 99 suites `eval` their subject instead, because
+`require` can't reach a file that defines a bare top-level class rather than assigning to `window` (see *How it works*
+above). `eval` bypasses the module system, so those files are never instrumented: **10 of 229 files carry every
+covered statement**, and `AcrossCitiesPage.js` reports 0/790 despite having a passing suite. A `coverageThreshold` on
+top of that would read as protection without being any — deleting an eval-loaded module's tests moves the number by
+zero. The fix is upstream, in the ES-modules question (#4467).
 
 ## Complementary E2E
 
 These jsdom tests verify the render contract in isolation. Their E2E complement now exists: the **Playwright browser
 smoke suite in [`test/e2e/`](../e2e)** (#4504) loads core pages — including api-docs pages — against a running app and
 **fails on any uncaught console/page error**, catching integration-level breakage (real endpoint shape, script load
-order from Grunt, missing globals) that a mocked-`fetch` unit test cannot. It runs as the advisory `e2e-smoke` CI job
+order from Grunt, missing globals) that a mocked-`fetch` unit test cannot. It runs as the `e2e-smoke` CI job
 on every PR; asserting on the api-docs preview *content* (non-empty container, no "Failed to load" banner) is a
 planned phase-2 extension there.

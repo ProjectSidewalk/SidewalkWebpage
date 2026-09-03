@@ -6,7 +6,7 @@ import models.audit.AuditTaskTableDef
 import models.label.{LabelTable, LabelTypeEnum}
 import models.mission.{MissionTableDef, MissionType}
 import models.street.StreetEdgeTable
-import models.user.RoleTable.ROLES_RESEARCHER_COLLAPSED
+import models.user.Role.ROLES_RESEARCHER_COLLAPSED
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import models.validation.LabelValidationTableDef
@@ -50,7 +50,7 @@ case class UserStatsForAdminPage(
     userId: String,
     username: String,
     email: String,
-    role: String,
+    role: Role.Value,
     team: Option[String],
     signUpTime: Option[OffsetDateTime],
     lastSignInTime: Option[OffsetDateTime],
@@ -72,7 +72,7 @@ case class UserCount(
     highQualityOnly: Boolean
 ) {
   require(Seq("explore", "validate", "combined").contains(toolUsed.toLowerCase()))
-  require((ROLES_RESEARCHER_COLLAPSED.map(_.toLowerCase()) ++ Seq("all")).contains(role))
+  require((ROLES_RESEARCHER_COLLAPSED.map(_.toString.toLowerCase()) ++ Seq("all")).contains(role))
 }
 
 case class LeaderboardStat(
@@ -638,13 +638,12 @@ class UserStatTable @Inject() (
           SELECT #$groupingCol, COUNT(label_id) AS label_count
           FROM sidewalk_user
           INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
-          INNER JOIN role ON user_role.role_id = role.role_id
           INNER JOIN user_stat ON sidewalk_user.user_id = user_stat.user_id
           INNER JOIN label ON sidewalk_user.user_id = label.user_id
           #$joinUserTeamTable
           WHERE label.deleted = FALSE
               AND label.tutorial = FALSE
-              AND role.role IN (#${RoleTable.LEADERBOARD_ROLES_SQL})
+              AND user_role.role IN (#${Role.LEADERBOARD_ROLES_SQL})
               AND user_stat.excluded = FALSE
               #$leaderboardVisibilityFilter
               AND (label.time_created AT TIME ZONE 'US/Pacific') > #$statStartTime
@@ -709,7 +708,7 @@ class UserStatTable @Inject() (
    *  - Ranking is by raw label count, so the rows are in true rank order (the per-city board's composite score has a
    *    city-relative distance term that cannot be compared across cities).
    *
-   * Eligibility mirrors the per-city board — role in [[RoleTable.LEADERBOARD_ROLES]], non-excluded,
+   * Eligibility mirrors the per-city board — role in [[Role.LEADERBOARD_ROLES]], non-excluded,
    * non-deleted/non-tutorial labels — with two cross-city refinements:
    *  - `excluded` is per city, so a user flagged low-quality in one city loses *that city's* contribution and keeps the
    *    rest; the flag describes that city's data, not the person. It is applied as an aggregate FILTER rather than a
@@ -801,8 +800,7 @@ class UserStatTable @Inject() (
             SELECT rolled.*
             FROM rolled
             INNER JOIN sidewalk_login.user_role ON user_role.user_id = rolled.user_id
-            INNER JOIN sidewalk_login.role ON user_role.role_id = role.role_id
-            WHERE role.role IN (#${RoleTable.LEADERBOARD_ROLES_SQL})
+            WHERE user_role.role IN (#${Role.LEADERBOARD_ROLES_SQL})
             ORDER BY rolled.label_count DESC, rolled.user_id
             LIMIT $n
         )
@@ -845,19 +843,6 @@ class UserStatTable @Inject() (
   def currentSchema: DBIO[String] = sql"SELECT current_schema()".as[String].head
 
   /**
-   * Which schemas have the `voided_label_validation` archive, so the cross-city query knows where it may read it.
-   *
-   * Every city is its own app instance at its own evolution level, so a schema without the archive is normal rather
-   * than broken (#4878) — and referencing a missing relation would fail the whole union, dropping every city rather
-   * than one. An unmigrated schema's archive contribution is genuinely zero, so the arm is simply left out there.
-   * Read from `information_schema` in one shot rather than probed per schema, so nothing is spliced into SQL.
-   */
-  def schemasWithVoidedValidationArchive: DBIO[Set[String]] =
-    sql"""SELECT table_schema FROM information_schema.tables WHERE table_name = 'voided_label_validation'"""
-      .as[String]
-      .map(_.toSet)
-
-  /**
    * One user's contribution totals in each of `citySchemas`, for the dashboard's cross-city section (#4496).
    *
    * Accounts are global while contributions are per-city, so a mapper's real Project Sidewalk totals only exist as a
@@ -877,19 +862,13 @@ class UserStatTable @Inject() (
    *    so no visibility flag applies — and a schema behind on evolutions may not have those columns at all, which
    *    would fail the entire union rather than one city.
    *
-   * @param citySchemas    DB schema names to report on, already vetted by the caller for existence and required
-   *                       columns. Spliced into SQL, so each must be a bare identifier.
-   * @param archiveSchemas Which of those schemas have `voided_label_validation`, from
-   *                       [[schemasWithVoidedValidationArchive]]; the archive arm is omitted for the rest.
-   * @param userId         The mapper whose totals to gather; bound once and referenced by every block.
-   * @return               One row per schema, including cities where the user did nothing (the caller drops those),
-   *                       most labels first.
+   * @param citySchemas DB schema names to report on, already vetted by the caller for existence and required
+   *                    columns. Spliced into SQL, so each must be a bare identifier.
+   * @param userId      The mapper whose totals to gather; bound once and referenced by every block.
+   * @return            One row per schema, including cities where the user did nothing (the caller drops those),
+   *                    most labels first.
    */
-  def getCrossCityUserStats(
-      citySchemas: Seq[String],
-      archiveSchemas: Set[String],
-      userId: String
-  ): DBIO[Seq[CrossCityUserStat]] = {
+  def getCrossCityUserStats(citySchemas: Seq[String], userId: String): DBIO[Seq[CrossCityUserStat]] = {
     if (citySchemas.isEmpty) {
       DBIO.successful(Seq.empty[CrossCityUserStat])
     } else {
@@ -901,15 +880,11 @@ class UserStatTable @Inject() (
       // built as plain strings, so an interpolated `$userId` inside them would be spliced rather than bound.
       val blocks: String = citySchemas
         .map { schema =>
-          // Validations count as work credit: the #4842 repair deleted voided votes from label_validation but archived
-          // them, and the work happened, so countValidations adds the archive back. This mirrors it per schema.
-          val archiveArm: String =
-            if (!archiveSchemas.contains(schema)) ""
-            else s""" + (SELECT COUNT(*)::int FROM "$schema".voided_label_validation
-           WHERE voided_label_validation.user_id = (SELECT user_id FROM me))"""
           // Label filters mirror LabelTable.labelsWithExcludedUsers: joined to audit_task, not deleted, not tutorial,
           // and on neither the label's nor the task's tutorial street. "Excluded" users are counted on purpose — this
-          // is their own dashboard, and countLabelsFromUser makes the same call.
+          // is their own dashboard, and countLabelsFromUser makes the same call. Validations add the archive back for
+          // the same reason countValidations does: the #4842 repair moved voided votes out of label_validation, but
+          // the work happened.
           s"""  SELECT '$schema'::text AS city_schema,
          (SELECT COUNT(*)::int
             FROM "$schema".label
@@ -920,7 +895,9 @@ class UserStatTable @Inject() (
              AND audit_task.street_edge_id NOT IN (SELECT tutorial_street_edge_id FROM "$schema".config)
          ) AS labels,
          (SELECT COUNT(*)::int FROM "$schema".label_validation
-           WHERE label_validation.user_id = (SELECT user_id FROM me))$archiveArm AS validations,
+           WHERE label_validation.user_id = (SELECT user_id FROM me))
+           + (SELECT COUNT(*)::int FROM "$schema".voided_label_validation
+           WHERE voided_label_validation.user_id = (SELECT user_id FROM me)) AS validations,
          (SELECT COUNT(*)::int FROM "$schema".mission
            WHERE mission.user_id = (SELECT user_id FROM me)
              AND mission.completed = TRUE AND mission.skipped = FALSE) AS missions,
@@ -982,12 +959,11 @@ class UserStatTable @Inject() (
                  COUNT(*) OVER ()::int AS cohort
           FROM sidewalk_user
           INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
-          INNER JOIN role ON user_role.role_id = role.role_id
           INNER JOIN user_stat ON sidewalk_user.user_id = user_stat.user_id
           INNER JOIN label ON sidewalk_user.user_id = label.user_id
           WHERE label.deleted = FALSE
               AND label.tutorial = FALSE
-              AND role.role IN (#${RoleTable.LEADERBOARD_ROLES_SQL})
+              AND user_role.role IN (#${Role.LEADERBOARD_ROLES_SQL})
               AND user_stat.excluded = FALSE
               AND user_stat.on_leaderboard = TRUE
               #$timeFilter
@@ -1056,13 +1032,12 @@ class UserStatTable @Inject() (
    */
   def getLabelTypeAccuracy(userId: String): DBIO[Seq[(String, Int, Int)]] = {
     sql"""
-      SELECT label_type.label_type,
+      SELECT label.label_type::text,
              COUNT(*) FILTER (WHERE label.correct IS TRUE)::int AS correct,
              COUNT(*) FILTER (WHERE label.correct IS FALSE)::int AS incorrect
       FROM label
-      INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
       WHERE label.user_id = $userId AND label.deleted = FALSE AND label.tutorial = FALSE
-      GROUP BY label_type.label_type;
+      GROUP BY label.label_type::text;
     """.as[(String, Int, Int)]
   }
 
@@ -1070,27 +1045,10 @@ class UserStatTable @Inject() (
    * Get all users, excluding anon users who haven't placed any labels or done any validations (to limit table size).
    */
   def usersMinusAnonUsersWithNoLabelsAndNoValidations: DBIO[Seq[SidewalkUserWithRole]] = {
-    //    val anonUsersWithLabels = (for {
-    //      _user <- userTable
-    //      _userRole <- userRoleTable if _user.userId === _userRole.userId
-    //      _role <- roleTable if _userRole.roleId === _role.roleId
-    //      _label <- LabelTable.labelsWithTutorialAndExcludedUsers if _user.userId === _label.userId
-    //      if _role.role === "Anonymous"
-    //    } yield (_user, _role)).groupBy(x => x).map(_._1)
-    //
-    //    val anonUsersWithValidations = (for {
-    //      _user <- userTable
-    //      _userRole <- userRoleTable if _user.userId === _userRole.userId
-    //      _role <- roleTable if _userRole.roleId === _role.roleId
-    //      _labelValidation <- LabelValidationTable.validationLabels if _user.userId === _labelValidation.userId
-    //      if _role.role === "Anonymous"
-    //    } yield (_user, _role)).groupBy(x => x).map(_._1)
-
-    val otherUsers = sidewalkUserTable.sidewalkUserWithRole.filter(_._4 =!= "Anonymous")
+    val otherUsers = sidewalkUserTable.sidewalkUserWithRole.filter(_._4 =!= Role.Anonymous)
 
     // TODO Only returning non-anonymous users temporarily:
     // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/3802
-    //    anonUsersWithLabels.union(anonUsersWithValidations) ++ otherUsers
     otherUsers.result.map(_.map(SidewalkUserWithRole.tupled))
   }
 
@@ -1104,7 +1062,7 @@ class UserStatTable @Inject() (
     userStats
       .join(userRoleTable)
       .on(_.userId === _.userId)
-      .filter(_._2.roleId =!= 6) // Exclude anonymous users.
+      .filter(_._2.role =!= Role.Anonymous)
       .filter(!_._1.highQuality)
       .length
       .result
@@ -1118,7 +1076,7 @@ class UserStatTable @Inject() (
     userStats
       .join(userRoleTable)
       .on(_.userId === _.userId)
-      .filter(_._2.roleId =!= 6) // Exclude anonymous users.
+      .filter(_._2.role =!= Role.Anonymous)
       .map(x => (x._1.userId, x._1.highQuality, x._1.highQualityManual))
       .result
   }
@@ -1181,8 +1139,7 @@ class UserStatTable @Inject() (
       ) users
       INNER JOIN user_stat ON users.user_id = user_stat.user_id
       INNER JOIN user_role ON user_stat.user_id = user_role.user_id
-      INNER JOIN role ON user_role.role_id = role.role_id
-      WHERE role.role <> 'AI'
+      WHERE user_role.role <> 'AI'
           AND #$highQualityOnlySql;
     """.as[Int].head.map(n => UserCount(n, "combined", "all", timeInterval, taskCompletedOnly, highQualityOnly))
   }
@@ -1265,7 +1222,6 @@ class UserStatTable @Inject() (
              COALESCE(label_counts.other_not_validated, 0) AS other_not_validated
       FROM user_stat
       INNER JOIN user_role ON user_stat.user_id = user_role.user_id
-      INNER JOIN role ON user_role.role_id = role.role_id
       -- Validations given.
       LEFT JOIN (
           SELECT label_validation.user_id,
@@ -1333,14 +1289,13 @@ class UserStatTable @Inject() (
                  COUNT(CASE WHEN label_type = 'Other' AND correct IS NULL THEN 1 END) AS other_not_validated
           FROM audit_task
           INNER JOIN label ON audit_task.audit_task_id = label.audit_task_id
-          INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
           WHERE deleted = FALSE
               AND tutorial = FALSE
               AND label.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
               AND audit_task.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
           GROUP BY audit_task.user_id
       ) label_counts ON user_stat.user_id = label_counts.user_id
-      WHERE role.role <> 'Anonymous'
+      WHERE user_role.role <> 'Anonymous'
           AND user_stat.excluded = FALSE
           #$minLabelsClause
           #$minMetersClause

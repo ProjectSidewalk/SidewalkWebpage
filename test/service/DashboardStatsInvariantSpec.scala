@@ -1,8 +1,10 @@
 package service
 
+import forms.UsernamePolicy
 import models.user.{LeaderboardStat, SidewalkUserWithRole, UserStatTable}
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
+import models.utils.ProfanityGuard
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.db.slick.DatabaseConfigProvider
@@ -75,25 +77,17 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
   private val FixtureUserId   = "zz-fixture-4533"
   private val FixtureUsername = "zz_fixture_4533"
 
-  private lazy val registeredRoleId: Option[Int] =
-    await(dbConfig.db.run(sql"SELECT role_id FROM role WHERE role = 'Registered'".as[Int].headOption))
-  private lazy val someLabelTypeId: Option[Int] =
-    await(dbConfig.db.run(sql"SELECT label_type_id FROM label_type LIMIT 1".as[Int].headOption))
   private lazy val someStreetEdgeId: Option[Int] =
     await(dbConfig.db.run(sql"SELECT street_edge_id FROM street_edge LIMIT 1".as[Int].headOption))
 
   /**
-   * The reference rows a synthetic mapper has to hang off, or a cancellation naming the one this database lacks.
+   * The reference row a synthetic mapper has to hang off, or a cancellation when this database lacks one.
    *
    * Read outside the fixture's transaction, and as options, so a schema thin enough to be missing one of them cancels
    * these tests rather than erroring the suite — the CANCEL-on-thin-data posture the rest of the suite already takes,
    * and what lets it run against a freshly-created city schema in CI.
    */
-  private def fixtureRefs: (Int, Int, Int) = (
-    registeredRoleId.getOrElse(cancel("no Registered role in this database")),
-    someLabelTypeId.getOrElse(cancel("no label_type rows in this database")),
-    someStreetEdgeId.getOrElse(cancel("no street_edge rows in this database"))
-  )
+  private def fixtureRefs: Int = someStreetEdgeId.getOrElse(cancel("no street_edge rows in this database"))
 
   /**
    * Inserts a mapper whose only period activity is a label placed *now* — their mission ended 30 days ago and their
@@ -106,11 +100,11 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
    * @return              The board, including the fixture user iff the query admits label-only mappers.
    */
   private def boardWithLabelOnlyUser(onLeaderboard: Boolean, timePeriod: String): Seq[LeaderboardStat] = {
-    val (roleId, labelType, streetEdge) = fixtureRefs
+    val streetEdge = fixtureRefs
     runRolledBack(for {
       _ <- sqlu"""INSERT INTO sidewalk_user (user_id, username, email)
                   VALUES ($FixtureUserId, $FixtureUsername, 'zz_fixture_4533@example.com')"""
-      _ <- sqlu"INSERT INTO user_role (user_id, role_id) VALUES ($FixtureUserId, $roleId)"
+      _ <- sqlu"INSERT INTO user_role (user_id, role) VALUES ($FixtureUserId, 'Registered')"
       _ <-
         sqlu"""INSERT INTO user_stat (user_id, meters_audited, high_quality, excluded, on_leaderboard, public_profile)
                   VALUES ($FixtureUserId, 0, TRUE, FALSE, $onLeaderboard, TRUE)"""
@@ -127,9 +121,9 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
       _ <- sqlu"""INSERT INTO pano_data (pano_id, capture_date, source)
                   VALUES ('fixture_pano', '2020-01', 'gsv')"""
       _ <- sqlu"""INSERT INTO label
-                      (audit_task_id, pano_id, label_type_id, deleted, temporary_label_id, time_created, mission_id,
+                      (audit_task_id, pano_id, label_type, deleted, temporary_label_id, time_created, mission_id,
                        tutorial, street_edge_id, agree_count, disagree_count, unsure_count, tags, user_id)
-                  VALUES ($auditTaskId, 'fixture_pano', $labelType, FALSE, 1, now(), $missionId, FALSE, $streetEdge,
+                  VALUES ($auditTaskId, 'fixture_pano', 'CurbRamp', FALSE, 1, now(), $missionId, FALSE, $streetEdge,
                           0, 0, 0, '{}', $FixtureUserId)"""
       board <- userStatTable.getLeaderboardStats(100000, timePeriod, byTeam = false, None, streetDistance = 1000000d)
     } yield board)
@@ -280,9 +274,16 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
     }
 
     "reject a name another user already holds" in {
-      // Legacy usernames may contain characters the charset rule now forbids (that reject fires first), so pick a
-      // board user whose name would pass it.
-      overallBoard.map(_.username).find(_.matches("^[A-Za-z0-9_-]+$")).foreach { takenName =>
+      // Uniqueness is the last rung of the ladder, so the name has to clear every rung above it: existing usernames
+      // predate the policy and can fail any of them (the login migration's `orphan_<uuid>` names are 43 chars, well
+      // over maxLength). Read the rules off the policy rather than restating them, so a bound change can't leave this
+      // asserting against a name the service now rejects earlier.
+      val eligible = overallBoard.map(_.username).find { name =>
+        UsernamePolicy.pattern.findFirstIn(name).isDefined &&
+        name.length >= UsernamePolicy.minLength && name.length <= UsernamePolicy.maxLength &&
+        ProfanityGuard.isClean(name)
+      }
+      eligible.foreach { takenName =>
         await(userService.changeUsername(ghostId, takenName)).left.toOption.get must
           be("dashboard.settings.username.error.taken")
       }
@@ -434,23 +435,19 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
     "refuse a schema name that isn't a bare identifier" in {
       // Guards the one place this query interpolates rather than binds; a thrown error beats a crafted query.
       Seq("public; DROP TABLE label", "sidewalk_seattle\"", "Sidewalk_Seattle", "").foreach { bad =>
-        an[IllegalArgumentException] must be thrownBy userStatTable.getCrossCityUserStats(
-          Seq(bad),
-          Set.empty[String],
-          ghostId
-        )
+        an[IllegalArgumentException] must be thrownBy userStatTable.getCrossCityUserStats(Seq(bad), ghostId)
       }
     }
 
     "return nothing at all when no city qualifies, rather than building an empty union" in {
       await(
-        dbConfig.db.run(userStatTable.getCrossCityUserStats(Seq.empty[String], Set.empty[String], ghostId))
+        dbConfig.db.run(userStatTable.getCrossCityUserStats(Seq.empty[String], ghostId))
       ) mustBe empty
     }
 
     "report every queried schema, so the service can tell 'no activity' from 'not queried'" in {
       val schemas = await(configService.getCrossCityUserScope).map(_._2)
-      val rows    = await(dbConfig.db.run(userStatTable.getCrossCityUserStats(schemas, Set.empty[String], ghostId)))
+      val rows    = await(dbConfig.db.run(userStatTable.getCrossCityUserStats(schemas, ghostId)))
       rows.map(_.citySchema).toSet mustBe schemas.toSet
       // A user id that belongs to nobody: every count is zero, and none of them is negative or null-shaped.
       rows.foreach { row =>
@@ -697,11 +694,10 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
     "make a second insertIfNew for the same user a no-op" in {
       // The behavior every caller now leans on instead of a read-then-insert. Also fails loudly if the constraint is
       // ever renamed out from under insertIfNew's ON CONFLICT (user_id) inference.
-      val roleId          = registeredRoleId.getOrElse(cancel("no Registered role in this database"))
       val (first, second) = runRolledBack(for {
         _ <- sqlu"""INSERT INTO sidewalk_user (user_id, username, email)
                     VALUES ($FixtureUserId, $FixtureUsername, 'zz_fixture_4533@example.com')"""
-        _      <- sqlu"INSERT INTO user_role (user_id, role_id) VALUES ($FixtureUserId, $roleId)"
+        _      <- sqlu"INSERT INTO user_role (user_id, role) VALUES ($FixtureUserId, 'Registered')"
         first  <- userStatTable.insertIfNew(FixtureUserId, onLeaderboard = true, publicProfile = true)
         second <- userStatTable.insertIfNew(FixtureUserId, onLeaderboard = false, publicProfile = false)
         rows   <- sql"SELECT count(*) FROM user_stat WHERE user_id = $FixtureUserId".as[Int].head

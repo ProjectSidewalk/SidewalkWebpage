@@ -1950,7 +1950,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
       transition() {
         panoManager.setPov({ heading: 329, pitch: 0, zoom: 1 });
         svl.ui.minimap.holder.css(
-          'backgroundImage', `url('${svl.imageDirectory}onboarding/afterWalkTutorialMiniMap.jpg')`,
+          'backgroundImage', `url('${util.assetPath('images/explore/onboarding/afterWalkTutorialMiniMap.jpg')}')`,
         );
         return 'walk-4';
       },

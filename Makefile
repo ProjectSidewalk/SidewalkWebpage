@@ -1,9 +1,9 @@
 .PHONY: dev docker-up docker-up-db docker-run docker-stop ssh qa-worktree qa-worktree-stop worktree-remove \
-        test-e2e test-e2e-host \
+        test-js test-e2e test-e2e-host \
         test-python test-python-app test-python-tools \
         import-users import-dump create-new-schema fill-new-schema hide-streets-without-imagery \
         import-street-imagery reveal-or-hide-neighborhoods \
-        lint lint-fix lint-evolutions lint-locales lint-css-layout scalafmt scalafmt-fix \
+        lint lint-fix lint-evolutions lint-locales lint-css-layout lint-asset-paths scalafmt scalafmt-fix \
         eslint htmlhint stylelint eslint-fix stylelint-fix \
         lint-eslint lint-htmlhint lint-stylelint lint-fix-eslint lint-fix-stylelint
 
@@ -45,19 +45,39 @@ RESET := \033[0m
 # stylelint only accepts file paths/globs, so a dir= that isn't already a .css file/glob gets /**/*.css appended.
 css-glob = $(if $(filter %.css,$(dir)),$(dir),$(dir)/**/*.css)
 
-# The browser smoke suite's runner image (docker/e2e/Dockerfile), tagged with the @playwright/test version read out
-# of package.json — the base image bundles the matching Chromium, so deriving both from one pin is what keeps the
+# The browser smoke suite's runner image (docker/e2e/Dockerfile), tagged from the tool versions read out of
+# package.json — the base image bundles the matching Chromium, so deriving both from one pin is what keeps the
 # runner and the browser from drifting apart when Dependabot bumps it. The sed expression is plain BRE for macOS.
 # Simply-expanded so the subprocess runs once per make invocation rather than once per expansion.
 pw-version := $(shell sed -n 's/.*"@playwright\/test"[^0-9]*\([0-9][0-9.]*\)".*/\1/p' package.json)
+# @axe-core/playwright drives the accessibility gate (a11y.spec.js, #5060) and is installed into the image for the
+# same reason the runner is — the repo's node_modules is masked at run time. Read from the same one pin, and folded
+# into the image tag below so a bump rebuilds the image instead of silently reusing the old axe.
+axe-version := $(shell sed -n 's/.*"@axe-core\/playwright"[^0-9]*\([0-9][0-9.]*\)".*/\1/p' package.json)
 e2e-image   = projectsidewalk/e2e
+e2e-tag      = $(pw-version)-axe$(axe-version)
 # The main repo is the container's /home, so a worktree's specs are just a different working directory.
 e2e-workdir = $(if $(wt),/home/.claude/worktrees/$(wt),/home)
 # Playwright writes test-results/ into the bind-mounted repo, and the base image has no USER — so without this the
 # reports, traces, and the setup project's saved storageState all land root-owned, and neither a plain `rm -rf` nor
 # host-side `make worktree-remove` can clear them. HOME goes to /tmp because the invoking uid has no passwd entry.
-e2e-uid    := $(shell id -u)
-e2e-user   := $(e2e-uid):$(shell id -g)
+#
+# WHICH uid that is depends on the daemon. Rootless Docker runs the engine inside a user namespace where container
+# uid 0 IS the invoking host user, so the runner has to be container-root to write files the host user owns —
+# passing our host uid there lands us at an unmapped subuid that can't even delete Playwright's own output dir
+# (`EACCES: permission denied, rmdir '/home/test-results'`). A rootful daemon maps uids straight through, so there
+# the host uid is exactly right and container-root would be real root. `docker info` naming the answer beats
+# guessing; when docker is unreachable it falls through to the rootful form, which is what the failure message from
+# the running-container check below is about anyway. Unhandled third case: a rootful daemon with `userns-remap`
+# configured, where the right uid is neither — nobody on the team runs one, and it needs the offset from
+# /etc/subuid to compute.
+#
+# Recursively expanded, so the `docker info` round trip is paid inside the test-e2e recipe rather than every time
+# make parses this file — targets that never touch docker (lint-evolutions, worktree-remove) would otherwise wait
+# out the client's connect timeout whenever the daemon is down, with 2>/dev/null hiding why.
+docker-rootless = $(shell docker info --format '{{.SecurityOptions}}' 2>/dev/null | grep -c rootless)
+e2e-uid    = $(if $(filter 0,$(docker-rootless)),$(shell id -u),0)
+e2e-user   = $(e2e-uid):$(if $(filter 0,$(docker-rootless)),$(shell id -g),0)
 # Playwright wipes its output directory at the start of every run, so one left root-owned — by a run that predates
 # --user, or by any root container — stops the non-root runner with EACCES before a single test starts. Repair it
 # in place instead of sending the developer to sudo. Held in a variable, not written inline in the recipe, because
@@ -83,11 +103,11 @@ eslint-fix: | lint-fix-eslint
 
 stylelint-fix: | lint-fix-stylelint
 
-# Runs every linter (four frontend + evolutions) even if an earlier one fails, so all problems surface in one pass,
+# Runs every linter (the frontend set + evolutions) even if an earlier one fails, so all problems surface in one pass,
 # then prints a ✓/✗ per linter and a colored summary. Exits non-zero if any failed.
 lint:
 	@fail=0; \
-	for t in lint-eslint lint-htmlhint lint-stylelint lint-locales lint-css-layout lint-evolutions; do \
+	for t in lint-eslint lint-htmlhint lint-stylelint lint-locales lint-css-layout lint-asset-paths lint-evolutions; do \
 		if $(MAKE) --no-print-directory $$t; then \
 			printf "$(GREEN)✓ %s passed$(RESET)\n" "$$t"; \
 		else \
@@ -195,6 +215,11 @@ test-python-tools:
 # see test-e2e-host. The image build is a cached no-op after the first run, and re-runs itself on a version bump —
 # it's only verbose when the tag is missing, since that first build downloads the base image.
 #
+# The jsdom unit suite (test/js/), a blocking step in CI's `frontend` job. Run in the web container, where the
+# node_modules live. `args` passes through, so `make test-js args="--watch"` or a path filter works.
+test-js:
+	@docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd /home && ./node_modules/.bin/jest --config jest.config.js $(args)"
+
 # `--tmpfs /home/node_modules` is load-bearing, not tidiness: NODE_PATH is consulted only after the node_modules
 # walk fails, so the repo's own node_modules — which carries @playwright/test, a devDependency installed into the
 # web image — would resolve the specs to a second copy of the module while the CLI keeps the image's. Playwright
@@ -206,19 +231,21 @@ test-e2e:
 	  || { echo "error: $(web-container) is not running — start it with 'make docker-up', and make sure the app is up on :9000"; exit 2; }
 	@[ -n "$(pw-version)" ] \
 	  || { echo "error: no @playwright/test version found in package.json — is it still listed as a devDependency?"; exit 2; }
+	@[ -n "$(axe-version)" ] \
+	  || { echo "error: no @axe-core/playwright version found in package.json — is it still listed as a devDependency?"; exit 2; }
 	@[ -z "$(wt)" ] || docker exec $(web-container) test -d $(e2e-workdir) \
 	  || { echo "error: no worktree at $(e2e-workdir) (from wt=$(wt))"; exit 2; }
 	@docker exec $(web-container) sh -c '$(e2e-fix-artifact-owner)'
-	@if docker image inspect $(e2e-image):$(pw-version) > /dev/null 2>&1; then \
-	  docker build --quiet --build-arg PW_VERSION=$(pw-version) -t $(e2e-image):$(pw-version) docker/e2e > /dev/null; \
+	@if docker image inspect $(e2e-image):$(e2e-tag) > /dev/null 2>&1; then \
+	  docker build --quiet --build-arg PW_VERSION=$(pw-version) --build-arg AXE_VERSION=$(axe-version) -t $(e2e-image):$(e2e-tag) docker/e2e > /dev/null; \
 	else \
-	  echo "==> building the Playwright runner image (first run for $(pw-version): downloads ~2GB)"; \
-	  docker build --build-arg PW_VERSION=$(pw-version) -t $(e2e-image):$(pw-version) docker/e2e; \
+	  echo "==> building the Playwright runner image (first run for $(e2e-tag): downloads ~2GB)"; \
+	  docker build --build-arg PW_VERSION=$(pw-version) --build-arg AXE_VERSION=$(axe-version) -t $(e2e-image):$(e2e-tag) docker/e2e; \
 	fi
 	@docker run --rm --init --ipc=host \
 	  --network container:$(web-container) --volumes-from $(web-container) --tmpfs /home/node_modules \
-	  --user $(e2e-user) -e HOME=/tmp -e FORCE_COLOR=1 -e BASE_URL -e HAS_REAL_GMAPS_KEY \
-	  -w $(e2e-workdir) $(e2e-image):$(pw-version) playwright test $(args)
+	  --user $(e2e-user) -e HOME=/tmp -e FORCE_COLOR=1 -e BASE_URL \
+	  -w $(e2e-workdir) $(e2e-image):$(e2e-tag) playwright test $(args)
 
 # Host-side run of the same suite, for `--headed`, `--ui`, and `show-trace` — those need a display the container
 # doesn't have. Needs a host toolchain the containerized path does not: Node 23, `npm install` at the repo root
@@ -238,12 +265,12 @@ reveal-or-hide-neighborhoods:
 lint-evolutions:
 	@bash db/scripts/lint-evolutions.sh
 
-# Cross-locale key parity for public/locales/ (i18next plural/override handling that the eslint-plugin-i18n-json rules
-# can't do). Pure node, run in the web container so node is present. Also a blocking CI step.
+# Cross-locale key parity and empty values for public/locales/ (the i18next plural/override handling a per-file JSON
+# rule can't do). Pure node, run in the web container so node is present. Also a blocking CI step.
 lint-locales:
-	@echo "Checking locale parity...";
+	@echo "Running locale checks...";
 	@docker exec $(web-container) bash -lc "cd /home && node tools/check-locale-parity.mjs"
-	@echo "Finished checking locale parity";
+	@echo "Finished locale checks";
 
 # Layout of public/css/ (#5030): a page's stylesheet is linked only by that page, page class prefixes stay in the
 # page's own files, and every linked stylesheet exists. Pure node, run in the web container so node is present. Also a
@@ -252,6 +279,14 @@ lint-css-layout:
 	@echo "Checking CSS layout...";
 	@docker exec $(web-container) bash -lc "cd /home && node tools/check-css-layout.mjs"
 	@echo "Finished checking CSS layout";
+
+# Asset URLs in public/js/ (#4893): no hardcoded '/assets/' outside the allowlist, and every util.assetPath()
+# argument checkable — a literal one naming a real file in a fingerprinted family, an interpolated one opening with a
+# literal family directory. Pure node, run in the web container so node is present. Also a blocking CI step.
+lint-asset-paths:
+	@echo "Checking asset paths...";
+	@docker exec $(web-container) bash -lc "cd /home && node tools/check-asset-paths.mjs"
+	@echo "Finished checking asset paths";
 
 # Scala formatting (.scalafmt.conf). The sbt thin client (`--client`) shares the running `sbt ~ run`'s server instead
 # of colliding with it over build locks. `scalafmt` checks (the blocking CI gate); `scalafmt-fix` reformats in place.
@@ -275,7 +310,7 @@ lint-htmlhint:
 lint-eslint:
 	@echo "Running eslint...";
 	@if [ "$(dir)" = "./" ]; then \
-		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js $(args) public/js/ public/locales/ test/e2e/ playwright.config.js"; \
+		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js $(args) public/js/ public/locales/ test/js/ test/e2e/ playwright.config.js"; \
 	else \
 		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js $(args) $(dir)"; \
 	fi
@@ -294,7 +329,7 @@ lint-stylelint:
 lint-fix-eslint:
 	@echo "Running eslint...";
 	@if [ "$(dir)" = "./" ]; then \
-		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js --fix $(args) public/js/ public/locales/ test/e2e/ playwright.config.js"; \
+		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js --fix $(args) public/js/ public/locales/ test/js/ test/e2e/ playwright.config.js"; \
 	else \
 		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js --fix $(args) $(dir)"; \
 	fi

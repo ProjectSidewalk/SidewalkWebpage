@@ -94,7 +94,7 @@ class PanoInfoPopover {
     this.#infoButton = document.createElement('img');
     this.#infoButton.id = 'pano-info-button';
     this.#infoButton.alt = i18next.t('common:pano-info.details-title');
-    this.#infoButton.src = `/assets/images/icons/info-button${this.#whiteIcon ? '-white' : ''}.svg`;
+    this.#infoButton.src = util.assetPath(`images/icons/info-button${this.#whiteIcon ? '-white' : ''}.svg`);
 
     container.append(this.#infoButton);
 

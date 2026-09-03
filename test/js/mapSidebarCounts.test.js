@@ -236,6 +236,69 @@ describe('MapSidebarFilter counts', () => {
         });
     });
 
+    // The per-label predicate behind the popup's prev/next arrows (#5124): the same filters the count applies,
+    // minus the viewport, which is not a filter.
+    describe('matchesFilters', () => {
+        it('applies the type checkbox and every per-label filter axis', () => {
+            const sidebar = build({ CurbRamp: [], Obstacle: [] });
+            const visible = label({ correct: true });
+            expect(sidebar.matchesFilters('CurbRamp', visible)).toBe(true);
+            expect(sidebar.matchesFilters('CurbRamp', label({ correct: false }))).toBe(false); // Off by default.
+            expect(sidebar.matchesFilters('CurbRamp', label({ high_quality_user: false }))).toBe(false);
+
+            mapData.severities[1] = false;
+            expect(sidebar.matchesFilters('CurbRamp', visible)).toBe(false);
+            mapData.severities[1] = true;
+
+            mapData.selectedTags.CurbRamp.add('narrow');
+            expect(sidebar.matchesFilters('CurbRamp', visible)).toBe(false);
+            expect(sidebar.matchesFilters('CurbRamp', label({ correct: true, tags: ['narrow'] }))).toBe(true);
+            mapData.selectedTags.CurbRamp.clear();
+
+            document.querySelector('#Obstacle-checkbox').click();
+            expect(sidebar.matchesFilters('Obstacle', visible)).toBe(false);
+            expect(sidebar.matchesFilters('CurbRamp', visible)).toBe(true);
+        });
+
+        it('splits unvalidated labels from unsure ones on has_validations, like the layer filter', () => {
+            const sidebar = build({ CurbRamp: [] });
+            const unsure = label({ correct: null, has_validations: true });
+            const unvalidated = label({ correct: null, has_validations: false });
+            expect(sidebar.matchesFilters('CurbRamp', unsure)).toBe(true);
+            expect(sidebar.matchesFilters('CurbRamp', unvalidated)).toBe(true);
+
+            document.querySelector('#unsure').click();
+            expect(sidebar.matchesFilters('CurbRamp', unsure)).toBe(false);
+            expect(sidebar.matchesFilters('CurbRamp', unvalidated)).toBe(true);
+        });
+
+        it('applies the admin-only "not admin validated" filter when a host turns it on', () => {
+            const sidebar = build({ CurbRamp: [] });
+            mapData.notAdminValidated = true;
+            expect(sidebar.matchesFilters('CurbRamp', label({ has_admin_validation: false }))).toBe(true);
+            expect(sidebar.matchesFilters('CurbRamp', label({ has_admin_validation: true }))).toBe(false);
+        });
+
+        it('treats a label type the sidebar does not render as unchecked', () => {
+            const sidebar = build({ CurbRamp: [] });
+            expect(sidebar.matchesFilters('Signal', label({ correct: true }))).toBe(false);
+        });
+
+        it('ignores the viewport: a label just off screen is still a match', () => {
+            buildFixture();
+            mapData = buildMapData({ CurbRamp: [] });
+            const map = {
+                getLayer: () => true,
+                easeTo: () => {},
+                setPadding: () => {},
+                getBounds: () => ({ contains: () => false }),
+            };
+            const sidebar = new window.MapSidebarFilter(map, mapData, { viewportCounts: true });
+            const offScreen = { ...label({ correct: true }), geometry: { coordinates: [5, 5] } };
+            expect(sidebar.matchesFilters('CurbRamp', offScreen)).toBe(true);
+        });
+    });
+
     // Viewport-scoped label loading (#5002): counts restrict to the current view, and refresh() recomputes
     // after a data swap or pan with no filter interaction.
     describe('viewportCounts', () => {

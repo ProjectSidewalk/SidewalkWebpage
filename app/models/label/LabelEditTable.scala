@@ -74,7 +74,6 @@ class LabelEditTable @Inject() (
 
   val labelEdits       = TableQuery[LabelEditTableDef]
   val labelsUnfiltered = TableQuery[LabelTableDef]
-  val labelTypeTable   = TableQuery[LabelTypeTableDef]
 
   def insert(edit: LabelEdit): DBIO[Int] =
     (labelEdits returning labelEdits.map(_.labelEditId)) += edit
@@ -114,30 +113,28 @@ class LabelEditTable @Inject() (
   def delete(labelEditId: Int): DBIO[Int] = labelEdits.filter(_.labelEditId === labelEditId).delete
 
   /**
-   * Edits for the v3 API, joined to their label's type.
+   * Edits for the v3 API, joined to their label.
    */
-  def getLabelEditsForApi(filters: LabelEditFiltersForApi): Query[_, (LabelEdit, Label, LabelType), Seq] = {
+  def getLabelEditsForApi(filters: LabelEditFiltersForApi): Query[_, (LabelEdit, Label), Seq] = {
     for {
-      edit      <- labelEdits
-      label     <- labelsUnfiltered if edit.labelId === label.labelId
-      labelType <- labelTypeTable if label.labelTypeId === labelType.labelTypeId
+      edit  <- labelEdits
+      label <- labelsUnfiltered if edit.labelId === label.labelId
       if filters.labelId.map(edit.labelId === _).getOrElse(true: Rep[Boolean]) &&
         filters.userId.map(edit.userId === _).getOrElse(true: Rep[Boolean]) &&
-        filters.labelTypeId.map(label.labelTypeId === _).getOrElse(true: Rep[Boolean]) &&
+        filters.labelType.map(label.labelType === _).getOrElse(true: Rep[Boolean]) &&
         filters.editTimestamp.map(edit.editTime >= _).getOrElse(true: Rep[Boolean]) &&
         filters.source.map(edit.source === _).getOrElse(true: Rep[Boolean]) &&
         filters.withValidation.map(linked => edit.labelValidationId.isDefined === linked).getOrElse(true: Rep[Boolean])
-    } yield (edit, label, labelType)
+    } yield (edit, label)
   }
 
   /** Converts a row from `getLabelEditsForApi` to its API shape. */
-  def tupleToLabelEditDataForApi(tuple: (LabelEdit, Label, LabelType)): LabelEditDataForApi = {
-    val (edit, label, labelType) = tuple
+  def tupleToLabelEditDataForApi(tuple: (LabelEdit, Label)): LabelEditDataForApi = {
+    val (edit, label) = tuple
     LabelEditDataForApi(
-      labelEditId = edit.labelEditId, labelId = edit.labelId, labelTypeId = label.labelTypeId,
-      labelType = labelType.labelType, userId = edit.userId, oldSeverity = edit.oldSeverity,
-      newSeverity = edit.newSeverity, oldTags = edit.oldTags, newTags = edit.newTags, source = edit.source,
-      editTime = edit.editTime, labelValidationId = edit.labelValidationId
+      labelEditId = edit.labelEditId, labelId = edit.labelId, labelType = label.labelType.name, userId = edit.userId,
+      oldSeverity = edit.oldSeverity, newSeverity = edit.newSeverity, oldTags = edit.oldTags, newTags = edit.newTags,
+      source = edit.source, editTime = edit.editTime, labelValidationId = edit.labelValidationId
     )
   }
 }

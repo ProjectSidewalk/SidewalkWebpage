@@ -1,7 +1,7 @@
 package views
 
 import controllers.AssetsFinder
-import models.user.SidewalkUserWithRole
+import models.user.{Role, SidewalkUserWithRole}
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.i18n.{Lang, Messages, MessagesApi}
@@ -38,7 +38,7 @@ class TimeCheckViewSpec extends PlaySpec with GuiceOneAppPerSuite {
     Await.result(app.injector.instanceOf[ConfigService].getCommonPageData(Lang("en")), 60.seconds)
 
   private val user =
-    SidewalkUserWithRole("test-user", "testmapper", "test@example.com", "Registered", communityService = false,
+    SidewalkUserWithRole("test-user", "testmapper", "test@example.com", Role.Registered, communityService = false,
       infra3dAccess = false)
 
   private def render(cities: Seq[CityHours], unreachableCities: Int = 0): String =

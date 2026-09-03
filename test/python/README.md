@@ -82,7 +82,14 @@ If you add logic, add a test — keep new code pure where possible (or hide I/O 
 
 ## CI status
 
-Run by the **advisory** `python-tests` job in `.github/workflows/ci.yml` (`continue-on-error: true`) — it reports
-failures but does not block PRs yet, matching how the DB-backed API tests were introduced. Ramp to blocking once the
-suite is proven stable. It is a two-leg matrix mirroring `make test-python`: `Python tests (in-band script)` on 3.8 and
-`Python tests (offline tooling)` on 3.13, with `fail-fast: false` so one half failing still reports the other.
+Run by the `python-tests` job in `.github/workflows/ci.yml` — a two-leg matrix mirroring `make test-python`:
+`Python tests (in-band script)` on 3.8 and `Python tests (offline tooling)` on 3.13, with `fail-fast: false` so one
+half failing still reports the other.
+
+The legs gate differently, via `continue-on-error: ${{ matrix.advisory }}` rather than a job-level flag. The **in-band**
+leg is **blocking** and a required status check, because `label_clustering.py` is shelled out to by the running app, so
+breaking it breaks production. The **offline tooling** leg is **advisory**: `check_streets_for_imagery.py` is an
+operator utility run out-of-band, and a red run there is worth seeing but not worth blocking app changes on.
+
+`half` also spells the check name, so renaming a leg renames the required check — branch protection would then wait on
+a check no PR produces. Update both together.

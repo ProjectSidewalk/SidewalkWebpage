@@ -12,7 +12,7 @@ class LabelContainer {
   #labels;  // All labels in the mission.
   #currLabelIndex;
   #currLabel;
-  #labelTypeId;      // The mission's label type, so replacement labels match the ones it started with.
+  #labelType;      // The mission's label type, so replacement labels match the ones it started with.
   #seenLabelIds;     // Every label this mission has handed us, so a replacement can't duplicate one.
   #labelsOwed;       // Labels dropped for unrenderable imagery that haven't been replaced yet.
   #topUpRounds;
@@ -29,20 +29,20 @@ class LabelContainer {
 
   /**
    * @param {Array} labelList Initial list of labels to be validated (generated when the page is loaded).
-   * @param {number} labelTypeId Label type ID of the mission these labels belong to.
+   * @param {string} labelType Label type of the mission these labels belong to.
    */
-  constructor(labelList, labelTypeId) {
-    this.resetLabelList(labelList, labelTypeId);
+  constructor(labelList, labelType) {
+    this.resetLabelList(labelList, labelType);
   }
 
   /**
    * Creates a LabelContainer and renders its first label.
    * @param {Array} labelList Initial list of labels to be validated.
-   * @param {number} labelTypeId Label type ID of the mission these labels belong to.
+   * @param {string} labelType Label type of the mission these labels belong to.
    * @returns {Promise<LabelContainer>}
    */
-  static async create(labelList, labelTypeId) {
-    const labelContainer = new LabelContainer(labelList, labelTypeId);
+  static async create(labelList, labelType) {
+    const labelContainer = new LabelContainer(labelList, labelType);
     await labelContainer.renderCurrentLabel();
     return labelContainer;
   }
@@ -184,7 +184,8 @@ class LabelContainer {
       if (svv.keyboard) svv.keyboard.disableKeyboard();
     } else {
       // The cursor is cached by the browser, so a timestamp is attached to invalidate it and force the reset.
-      svv.ui.viewer.controlLayer.css('cursor', `url(/assets/images/icons/openhand.cur?${Date.now()}) 4 4, move`);
+      svv.ui.viewer.controlLayer
+        .css('cursor', `url(${util.assetPath('images/icons/openhand.cur')}?${Date.now()}) 4 4, move`);
       if (svv.keyboard) svv.keyboard.enableKeyboard();
     }
   }
@@ -233,7 +234,7 @@ class LabelContainer {
         method: 'POST',
         headers: { 'Content-Type': 'application/json; charset=utf-8' },
         body: JSON.stringify({
-          label_type_id: this.#labelTypeId,
+          label_type: this.#labelType,
           labels_needed: this.#labelsOwed,
           excluded_label_ids: [...this.#seenLabelIds],
           validate_params: svv.form.getValidateParams(),
@@ -264,13 +265,13 @@ class LabelContainer {
   /**
    * Creates a list of label objects to be validated from label metadata. Called when a new mission is loaded.
    * @param {Array} labelList List of label metadata objects.
-   * @param {number} labelTypeId Label type ID of the mission these labels belong to.
+   * @param {string} labelType Label type of the mission these labels belong to.
    */
-  resetLabelList(labelList, labelTypeId) {
+  resetLabelList(labelList, labelType) {
     this.#labels = labelList.map((key) => new Label(key));
     this.#currLabelIndex = 0;
     this.#currLabel = this.#labels[this.#currLabelIndex];
-    this.#labelTypeId = labelTypeId;
+    this.#labelType = labelType;
     this.#seenLabelIds = new Set(this.#labels.map((label) => label.getAuditProperty('labelId')));
     this.#labelsOwed = 0;
     this.#topUpRounds = 0;
