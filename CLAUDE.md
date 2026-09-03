@@ -21,6 +21,7 @@ when a task is in its area.
 | Tests or CI | `docs/testing-and-ci.md`, `test/e2e/README.md` |
 | `scripts/*.py` | `scripts/README.md` |
 | Google Maps keys, quotas, or a Google Cloud bill | `docs/google-cloud.md` |
+| The label lat/lng estimator or the labeling viewport frame | `docs/label-latlng-estimation.md` |
 
 ## Workflow
 
