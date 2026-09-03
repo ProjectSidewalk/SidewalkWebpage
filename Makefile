@@ -260,12 +260,12 @@ reveal-or-hide-neighborhoods:
 lint-evolutions:
 	@bash db/scripts/lint-evolutions.sh
 
-# Cross-locale key parity for public/locales/ (i18next plural/override handling that the eslint-plugin-i18n-json rules
-# can't do). Pure node, run in the web container so node is present. Also a blocking CI step.
+# Cross-locale key parity and empty values for public/locales/ (the i18next plural/override handling a per-file JSON
+# rule can't do). Pure node, run in the web container so node is present. Also a blocking CI step.
 lint-locales:
-	@echo "Checking locale parity...";
+	@echo "Running locale checks...";
 	@docker exec $(web-container) bash -lc "cd /home && node tools/check-locale-parity.mjs"
-	@echo "Finished checking locale parity";
+	@echo "Finished locale checks";
 
 # Layout of public/css/ (#5030): a page's stylesheet is linked only by that page, page class prefixes stay in the
 # page's own files, and every linked stylesheet exists. Pure node, run in the web container so node is present. Also a
@@ -305,7 +305,7 @@ lint-htmlhint:
 lint-eslint:
 	@echo "Running eslint...";
 	@if [ "$(dir)" = "./" ]; then \
-		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js $(args) public/js/ public/locales/ test/e2e/ playwright.config.js"; \
+		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js $(args) public/js/ public/locales/ test/js/ test/e2e/ playwright.config.js"; \
 	else \
 		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js $(args) $(dir)"; \
 	fi
@@ -324,7 +324,7 @@ lint-stylelint:
 lint-fix-eslint:
 	@echo "Running eslint...";
 	@if [ "$(dir)" = "./" ]; then \
-		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js --fix $(args) public/js/ public/locales/ test/e2e/ playwright.config.js"; \
+		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js --fix $(args) public/js/ public/locales/ test/js/ test/e2e/ playwright.config.js"; \
 	else \
 		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js --fix $(args) $(dir)"; \
 	fi

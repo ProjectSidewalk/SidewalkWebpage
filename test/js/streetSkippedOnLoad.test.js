@@ -13,6 +13,8 @@
 const fs = require('fs');
 const path = require('path');
 
+const { windowWithStubbedLocation, runScriptWithWindow } = require('./support/windowWithStubbedLocation');
+
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const readSrc = (relativePath) => fs.readFileSync(path.join(REPO_ROOT, relativePath), 'utf8');
 
@@ -23,6 +25,7 @@ const PANO_MANAGER_SRC = readSrc('public/js/explore/src/panorama/PanoManager.js'
 describe('a street given up on at page load', () => {
     let reportNoImagery;
     let showAlert;
+    let locationStub;
 
     /** A viewer type whose creation fails the given way, standing in for a street with no imagery or a dead SDK. */
     const viewerTypeFailingWith = (error) => ({ create: jest.fn(() => Promise.reject(error)) });
@@ -60,22 +63,23 @@ describe('a street given up on at page load', () => {
         showAlert = jest.fn();
 
         // jsdom refuses real navigation, and the give-up path ends in one.
-        Object.defineProperty(window, 'location', { value: { replace: jest.fn() }, writable: true });
+        locationStub = { replace: jest.fn(), reload: jest.fn(), href: '' };
+        const win = windowWithStubbedLocation(locationStub);
 
         window.svl = { tracker: { push: jest.fn() }, alertController: { showAlert } };
         window.util = { misc: { reportNoImagery } };
         window.i18next = { t: (key) => key };
 
-        window.eval(`${NO_IMAGERY_ERROR_SRC}; window.NoImageryError = NoImageryError;`);
-        window.eval(`${FLAG_GUARD_SRC}; window.NoImageryFlagGuard = NoImageryFlagGuard;`);
-        window.eval(`${PANO_MANAGER_SRC}; window.PanoManager = PanoManager;`);
+        runScriptWithWindow(`${NO_IMAGERY_ERROR_SRC}; window.NoImageryError = NoImageryError;`, win);
+        runScriptWithWindow(`${FLAG_GUARD_SRC}; window.NoImageryFlagGuard = NoImageryFlagGuard;`, win);
+        runScriptWithWindow(`${PANO_MANAGER_SRC}; window.PanoManager = PanoManager;`, win);
     });
 
     it('leaves a note for the load that follows, so the move can be explained', async () => {
         await loadAndFail(new window.NoImageryError('nothing usable here'));
 
         expect(reportNoImagery).toHaveBeenCalledWith(task, 3);
-        expect(window.location.replace).toHaveBeenCalledWith('/explore');
+        expect(locationStub.replace).toHaveBeenCalledWith('/explore');
         // The note names the street, so the arrival can tell a retry of this street from a move to another.
         expect(window.PanoManager.consumeStreetSkippedNotice()).toBe(101);
     });
@@ -95,7 +99,7 @@ describe('a street given up on at page load', () => {
         await loadAndFail(new Error('the maps library never loaded'));
 
         expect(reportNoImagery).not.toHaveBeenCalled();
-        expect(window.location.replace).not.toHaveBeenCalled();
+        expect(locationStub.replace).not.toHaveBeenCalled();
         expect(window.PanoManager.consumeStreetSkippedNotice()).toBeNull();
         expect(showAlert).toHaveBeenCalledWith('popup.imagery-load-failed', 'imageryLoadFailed', false);
     });
@@ -110,7 +114,7 @@ describe('a street given up on at page load', () => {
         // Past the flag budget nothing is recorded and nobody is moved, so the transient-failure wording ("try
         // again in a few minutes") would be doubly wrong: nothing failed, and waiting changes nothing.
         expect(reportNoImagery).not.toHaveBeenCalled();
-        expect(window.location.replace).not.toHaveBeenCalled();
+        expect(locationStub.replace).not.toHaveBeenCalled();
         expect(showAlert).toHaveBeenCalledWith('popup.imagery-skip-limit', 'imagerySkipLimit', false);
     });
 

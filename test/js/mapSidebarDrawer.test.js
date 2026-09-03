@@ -100,7 +100,7 @@ describe('MapSidebarDrawer', () => {
         });
 
         it('starts collapsed below the breakpoint, with the reopen button already usable', () => {
-            const {sidebar, map, openBtn, drawer} = build({narrow: true});
+            const {sidebar, openBtn, drawer} = build({narrow: true});
 
             expect(drawer.isOpen).toBe(false);
             expect(isCollapsed(sidebar)).toBe(true);

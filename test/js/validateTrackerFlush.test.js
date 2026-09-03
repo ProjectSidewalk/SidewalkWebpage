@@ -13,22 +13,27 @@
 const fs = require('fs');
 const path = require('path');
 
+const { windowWithStubbedLocation, runScriptWithWindow } = require('./support/windowWithStubbedLocation');
+
 const TRACKER_PATH = path.resolve(__dirname, '..', '..', 'public/js/validate/src/Tracker.js');
 
 const FLUSH_INTERVAL_MS = 60000;
 
 /**
  * Load the `Tracker` class out of the production file. Like Form.js, it is a bare `class Tracker {}` that the Grunt
- * bundle concatenates into page scope, so we wrap the source in an IIFE that returns the class. String concatenation
- * (not a template literal) is used so the backticks inside Tracker.js aren't reinterpreted.
+ * bundle concatenates into page scope, so we evaluate the source as a function body that returns the class. String
+ * concatenation (not a template literal) is used so the backticks inside Tracker.js aren't reinterpreted.
+ * @param {Window} win - The `window` the loaded source should see.
  * @returns {Function} The Tracker class.
  */
-function loadTrackerClass() {
+function loadTrackerClass(win) {
     const src = fs.readFileSync(TRACKER_PATH, 'utf8');
-    return (0, eval)('(() => {\n' + src + '\nreturn Tracker;\n})()');
+    return runScriptWithWindow(src + '\nreturn Tracker;\n', win);
 }
 
-const Tracker = loadTrackerClass();
+// Loaded once against a window carrying this stub, so the stub has to outlive any one test -- beforeEach clears it.
+const locationStub = { reload: jest.fn(), replace: jest.fn(), href: '' };
+const Tracker = loadTrackerClass(windowWithStubbedLocation(locationStub));
 
 describe('Tracker timed flush (issue #4429)', () => {
     let tracker;
@@ -54,11 +59,9 @@ describe('Tracker timed flush (issue #4429)', () => {
             }
         };
 
-        // jsdom's location.reload can't be called/spied directly, so replace location with a stub we can assert on.
-        Object.defineProperty(window, 'location', {
-            configurable: true,
-            value: { reload: jest.fn(), replace: jest.fn(), href: '' }
-        });
+        locationStub.reload.mockClear();
+        locationStub.replace.mockClear();
+        locationStub.href = '';
 
         tracker = new Tracker();
     });
@@ -154,7 +157,7 @@ describe('Tracker timed flush (issue #4429)', () => {
         jest.setSystemTime(1_000_000 + 2 * 60 * 60 * 1000);
         tracker.push('ValidationButtonClick_Disagree');
 
-        expect(window.location.reload).not.toHaveBeenCalled();
+        expect(locationStub.reload).not.toHaveBeenCalled();
     });
 
     test('a deadline firing before init finishes is a no-op that self-heals on the next push', () => {

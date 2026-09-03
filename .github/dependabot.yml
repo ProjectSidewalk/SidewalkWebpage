@@ -18,21 +18,27 @@ updates:
       npm-dependencies:
         patterns: ["*"]
     ignore:
-      # The frontend lint/test toolchain is deliberately pinned. All four linters are blocking steps in CI's
-      # `frontend` job, so a major bump here turns the build red rather than merely nagging. Two pins are load-bearing:
-      # `eslint` is held at 9 (now EOL upstream — the move to 10 is #5132) and `jest` at 29. `@eslint/js` tracks
-      # eslint's major exactly, so leaving it un-ignored yields an unresolvable tree — #5106 bumped it to 10 against
-      # eslint ^9, npm install died with ERESOLVE, and nothing installed, which surfaced as `jest: not found`.
-      # The stylelint/htmlhint entries are inert (we're already on their latest); #5132 covers trimming them.
-      # (@playwright/test is deliberately NOT ignored: it's CI-wired from day one — the e2e-smoke job — and CI
-      # reinstalls matching browsers every run, so grouped monthly bumps + green auto-merge cover it.)
+      # Every frontend linter and the jsdom test suite are blocking steps in CI's `frontend` job, so a *major* bump
+      # here turns the build red rather than merely nagging — majors stay a human decision, minors and patches
+      # auto-merge. `@eslint/js` and `@eslint/json` track eslint's major and have to move in the same PR it does: a
+      # lone `@eslint/js` major yields an unresolvable tree (#5106 bumped it to 10 against eslint ^9; npm install
+      # died with ERESOLVE and nothing installed at all, surfacing downstream as `jest: not found`).
       - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
       - dependency-name: "@eslint/js"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@eslint/json"
+        update-types: ["version-update:semver-major"]
       - dependency-name: "htmlhint"
+        update-types: ["version-update:semver-major"]
       - dependency-name: "jest"
+        update-types: ["version-update:semver-major"]
       - dependency-name: "jest-environment-jsdom"
+        update-types: ["version-update:semver-major"]
       - dependency-name: "stylelint"
+        update-types: ["version-update:semver-major"]
       - dependency-name: "stylelint-config-standard"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: "/"
