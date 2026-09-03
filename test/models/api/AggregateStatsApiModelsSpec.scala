@@ -22,7 +22,7 @@ class AggregateStatsApiModelsSpec extends AnyFunSuite with Matchers {
     numCities = 12,
     numCountries = 5,
     numLanguages = 8,
-    // Inserted NoSidewalk-first (it has the higher label_type_id) so the ordering test can't pass on insertion order.
+    // Inserted NoSidewalk-first (it sorts later in canonical order) so the ordering test can't pass on insertion order.
     byLabelType = Map("NoSidewalk" -> LabelTypeStats(100, 50, 45, 5), "CurbRamp" -> LabelTypeStats(200, 150, 140, 10))
   )
 

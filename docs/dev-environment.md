@@ -299,7 +299,7 @@ make test-e2e wt=<worktree-name>            # a worktree's specs
 ```
 
 Nothing to install: the runner is a container, so it behaves the same on macOS, Linux, and WSL — including Apple
-Silicon, where it runs a native browser. CI runs the same suite on every PR as the advisory `e2e-smoke` job. Full
+Silicon, where it runs a native browser. CI runs the same suite on every PR as the `e2e-smoke` job. Full
 details, including how to watch a test run headed, are in [`test/e2e/README.md`](../test/e2e/README.md).
 
 ### Running a branch from a git worktree
@@ -351,7 +351,7 @@ psql shell (`docker exec -it projectsidewalk-db psql -U sidewalk -d sidewalk`) a
 
 ```sql
 UPDATE sidewalk_login.user_role
-SET role_id = (SELECT role_id FROM sidewalk_login.role WHERE role = 'Owner')
+SET role = 'Owner'
 WHERE user_id = (SELECT user_id FROM sidewalk_login.sidewalk_user WHERE username = '<your-username>');
 ```
 
@@ -425,6 +425,7 @@ Roughly ordered by when you'd hit them during setup.
 | Errors after the computer was shut off mid-run (WSL) | Run `wsl --shutdown`; when Docker offers to restart WSL, accept. Otherwise restart Docker manually. |
 | Can't connect to the database | The db container may not be listening on all addresses. `make ssh target=db`, edit `/var/lib/postgresql/data/postgresql.conf`, set `listen_addresses = '*'`. |
 | `make` commands "just don't work" | Reinstall `make`. As a fallback, run the underlying command from the `Makefile` directly (e.g. `make ssh target=web` ≈ `docker exec -it projectsidewalk-web /bin/bash`). |
+| `relation "role" does not exist` while a schema is applying evolutions | That schema is behind evolution 372, which dropped the shared `sidewalk_login.role` lookup table. Evolutions 270, 295 and 355 read it, so a schema below any of them can no longer replay them and is stuck. Bring the schema forward from a dump that is already past 355, or re-import it — editing those old evolution files is *not* the fix, since Play would then revert every schema that already applied them. The committed template dumps are already past 372, so a newly onboarded city is unaffected; this only bites a city dump taken before 355. |
 | A new `src/` JS file isn't bundled | Make sure its path matches a glob in `Gruntfile.js`. |
 | First compile seems stuck | It isn't — initial dependency resolution is genuinely slow. Watch the container logs. |
 | Compiles are slow on Apple Silicon | Your `projectsidewalk/web` image may predate [#5069](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/5069) and still be x86_64 — Compose reuses a locally tagged image instead of rebuilding it, so pulling that change alone doesn't help. Check with `docker image inspect projectsidewalk/web --format '{{.Architecture}}'` (expect `arm64`); if it says `amd64`, rebuild with `make docker-stop && docker compose build web`. Also make sure `platform` is commented out in your `docker-compose.override.yml`. |

@@ -37,14 +37,6 @@ const CONSOLE_ERROR_ALLOWLIST = [
   // the player's own base.js. Intermittent: it fires only when the player boots far enough within the settle
   // window. Anchored to the violation text plus a youtube.com source so nothing of ours can hide behind it.
   /^console\.error: Permissions policy violation: compute-pressure .+ \(https:\/\/www\.youtube\.com\/.+\)$/,
-  // The rawLabels/streets api-docs live previews pick a demo region via /v3/api/regionWithMostLabels. CI's
-  // database is the bare sidewalk_init template — no labels, so there is nothing to pick and the endpoint 404s.
-  // Three messages come out of that one 404: Chromium's own "Failed to load resource" line (matched by the URL)
-  // and the preview's two handled errors (matched by their shared phrase). The page still initializes, and
-  // against any seeded database — local dev included — none of them fire. Drop both entries when phase 2 seeds
-  // CI label data, at which point a 404 here would mean something real.
-  /regionWithMostLabels/,
-  /region with most labels/,
 ];
 
 // Minimal Mapbox style the app's runtime accepts: MapboxLanguage throws unless the style has a vector source
@@ -107,11 +99,6 @@ const GOOGLE_MAPS_STUB = fs.readFileSync(path.join(__dirname, 'fixtures', 'googl
 const GOOGLE_MAPS_HOSTS
   = /^https:\/\/(maps\.googleapis\.com|maps\.gstatic\.com|mapsresources-pa\.googleapis\.com|streetviewpixels-pa\.googleapis\.com|geo\d*\.ggpht\.com|cbks?\d*\.google\.com)\//;
 
-// A 1x1 transparent PNG, served for every Street View Static API image (<img src="…/maps/api/streetview?…">) the
-// server signs into Gallery cards, story cards, the landing grid, and share previews.
-const STUB_STATIC_IMAGE = Buffer.from(
-  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=', 'base64');
-
 /**
  * Replaces the Google Maps JavaScript API with the local stub for a browser context, and refuses every other
  * request to Google's map hosts (issue #5129).
@@ -132,10 +119,28 @@ async function stubGoogleMaps(context, leaks = []) {
     leaks.push(route.request().url());
     return route.abort('blockedbyclient');
   });
-  await context.route(/^https:\/\/maps\.googleapis\.com\/maps\/api\/streetview(\?|$)/, (route) =>
-    route.fulfill({status: 200, contentType: 'image/png', body: STUB_STATIC_IMAGE}));
+  // Re-registered here, after the catch-all, so the pixel wins over the abort (Playwright tries routes newest-first).
+  await stubStreetViewImages(context);
   await context.route(/^https:\/\/maps\.googleapis\.com\/maps\/api\/js(\?|$)/, (route) =>
     route.fulfill({status: 200, contentType: 'text/javascript', body: GOOGLE_MAPS_STUB}));
+}
+
+/**
+ * Stubs Google's Street View static-image API, the fallback for any page showing a label with no local crop.
+ *
+ * Its URL is signed with GOOGLE_MAPS_SECRET — a dummy in CI, absent from most dev setups — so the request is refused
+ * wherever this suite runs, and Chromium logs each refusal as a console error the suite reads as breakage. Scoped to
+ * the streetview endpoints so the Maps JS API (maps/api/js, which Explore genuinely needs) still goes through.
+ *
+ * @param {import('@playwright/test').BrowserContext} context - The context whose requests to intercept.
+ */
+async function stubStreetViewImages(context) {
+  // 1x1 transparent PNG, so an <img> pointed at it fires `load` rather than `error`.
+  const pixel = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+    'base64');
+  await context.route(/https:\/\/maps\.googleapis\.com\/maps\/api\/streetview(\/|\?).*/, (route) =>
+    route.fulfill({body: pixel, contentType: 'image/png'}));
 }
 
 /**
@@ -308,6 +313,15 @@ const test = base.test.extend({
     base.expect(leaks, 'requests reached a Google Maps host — every map and panorama must come from the stub')
       .toEqual([]);
   }, {auto: true}],
+  /**
+   * The test's browser context, with Street View imagery already stubbed. A fixture rather than a per-page flag
+   * like `mapbox`: any page can carry a label image, and none can load one anywhere this suite runs.
+   */
+  context: async ({context}, use) => {
+    await stubStreetViewImages(context);
+    await use(context);
+  },
+
   /**
    * Collects uncaught exceptions and non-allowlisted console errors for the test's page. Specs assert
    * `expect(consoleErrors).toEqual([])` at the end; an empty diff prints the offending messages verbatim.

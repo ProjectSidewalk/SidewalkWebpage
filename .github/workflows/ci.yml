@@ -10,8 +10,8 @@ name: CI
 #                      auto-applies pending evolutions -- so it doubles as the forward-apply gate. Also carries
 #                      the statement-coverage ratchet (BLOCKING, #4743).
 #   - e2e-smoke:       Playwright browser smoke tests (test/e2e/) against a staged app + the CI database. Loads each
-#                      core page in headless Chromium and fails on uncaught console/page errors (ADVISORY for now);
-#                      also carries the axe-core accessibility gate (a11y.spec.js, #5060), which is BLOCKING.
+#                      core page in headless Chromium and fails on uncaught console/page errors (BLOCKING since
+#                      #5115); also carries the axe-core accessibility gate (a11y.spec.js, #5060), also BLOCKING.
 #   - python-tests:    pytest unit tests for the standalone scripts in scripts/. One leg per interpreter the web
 #                      container ships — 3.8 for the in-band script (BLOCKING), 3.13 for the offline tooling
 #                      (ADVISORY — it covers an operator utility that never runs on the server).
@@ -214,6 +214,7 @@ jobs:
       INFRA3D_CLIENT_SECRET_WINTERTHUR: DUMMY_INFRA3D_CLIENT_SECRET
       ENV_TYPE: local
       SIDEWALK_IMAGES_DIR: .crops
+      SIDEWALK_PANO_DIR: .panos
     steps:
       - uses: actions/checkout@v7
 
@@ -281,17 +282,18 @@ jobs:
       - name: Apply evolutions
         run: sbt coverage "testOnly models.utils.EvolutionsApplySpec"
 
-      # The same minimal city the e2e-smoke job seeds (one region holding a non-tutorial street). It is what lets the
-      # write-path specs exercise the submission endpoints instead of cancelling on unassignable data, and it
-      # un-cancels a further nine assertions across the route-walk and geodesic-cache suites. Must follow the step
-      # above — it writes street_edge.status and relies on constraints that arrive well past the committed template's
-      # evolution level. Shared with test/e2e rather than duplicated: one definition of a minimally-servable city.
-      - name: Seed minimal explore data
+      # Without this the suite's data-dependent half cancels itself out — 87 tests before #5115 seeded labels. Must
+      # follow the step above: it writes street_edge.status and needs constraints from well past the template's
+      # evolution level. Shared with test/e2e rather than duplicated: one definition of the test city.
+      - name: Seed the test city
         run: docker compose exec -T db psql -v ON_ERROR_STOP=1 -U postgres -d sidewalk < test/e2e/fixtures/ci-seed.sql
 
-      # Suites run one at a time — see `Test / parallelExecution := false` in build.sbt for why. Specs needing data
-      # this schema doesn't have `assume` their preconditions and report as CANCELED, so they neither fail here nor
-      # pass vacuously.
+      # Keeps this job's media dirs identical to e2e-smoke's; the script's header says why they're needed at all.
+      - name: Install the seeded imagery
+        run: bash test/e2e/fixtures/install-media.sh
+
+      # Suites run one at a time — see `Test / parallelExecution := false` in build.sbt for why. Nothing cancels on
+      # the seeded schema any more, so a CANCELED line here means the seed stopped covering something.
       - name: Run the backend suite
         run: sbt coverage test
 
@@ -324,11 +326,8 @@ jobs:
   e2e-smoke:
     name: E2E smoke (Playwright)
     runs-on: ubuntu-latest
-    # Mixed: the accessibility gate step is blocking, the smoke half stays advisory while it stabilizes. The flag
-    # therefore lives on that step, not here — a job-level continue-on-error would excuse both.
-    #
-    # Not yet a required check: that would also make the db bring-up, grunt build, `sbt stage`, app boot and the
-    # readiness probes blocking, and job-level continue-on-error left their flake profile unmeasured.
+    # Both halves block, and the job is a required status check — so the db bring-up, grunt build, `sbt stage`,
+    # app boot and the readiness probes gate merges too, not just the two test steps.
     timeout-minutes: 30
     # Job-level env (shared by `sbt stage` and the app process), mirroring backend-tests' block. Every key is a
     # dummy on purpose: Mapbox and Google Maps are both stubbed in-suite (test/e2e/fixtures.js), so no page hits the
@@ -425,19 +424,24 @@ jobs:
 
       # pidfile to /dev/null so a retry on the same runner can't trip over a stale RUNNING_PID.
       #
-      # config.resource=application.local.conf is load-bearing, not a stylistic choice. The base conf/application.conf
-      # scopes both the Play session cookie and the Silhouette authenticator to Domain=".cs.washington.edu" (they are
+      # config.resource is load-bearing, not a stylistic choice. application.ci.conf includes application.local.conf,
+      # and that overlay is half the reason: the base conf/application.conf scopes both the Play session cookie and
+      # the Silhouette authenticator to Domain=".cs.washington.edu" (they are
       # shared across the per-city subdomains in production), and a browser drops any cookie whose Domain doesn't match
       # the host it is talking to. At http://localhost:9000 that means no session can ever stick, so every SecuredAction
       # page ping-pongs with /anonSignUp until Chromium gives up with ERR_TOO_MANY_REDIRECTS. The local overlay is
       # exactly the "app served over plain http at localhost:9000" profile — it nulls both cookie domains and pins
-      # play.filters.hosts.allowed to localhost:9000 — so it is the honest config to boot under here. It cannot be
+      # play.filters.hosts.allowed to localhost:9000 — so it is the honest base to boot under here. It cannot be
       # expressed as -D flags: a system property is always a string, so -Dplay.http.session.domain=null would set the
       # literal Domain "null" rather than clearing it.
+      #
+      # application.ci.conf layers onto that overlay and additionally disables ActorModule, because this job now
+      # seeds real data and then asserts on it -- see the reasoning in the file. backend-tests needs neither: its
+      # specs build their own application and disable the module themselves.
       - name: Start the app
         run: |
           nohup target/universal/stage/bin/sidewalk-webpage \
-            -Dconfig.resource=application.local.conf \
+            -Dconfig.resource=application.ci.conf \
             -Dhttp.port=9000 -Dplay.server.pidfile.path=/dev/null > app.log 2>&1 &
 
       # /signIn is a UserAwareAction: 200 with no auth and no session bootstrap — the cheapest unauthenticated
@@ -452,38 +456,35 @@ jobs:
           done
           echo "App did not come up in time (last status: $code)."; tail -100 app.log; exit 1
 
-      # Minimal data so /explore can initialize (phase 2 of #4504): one region containing the template's DC
-      # tutorial street. With zero regions /explore is a server error; with one, a fresh anonymous user
-      # deterministically starts the audit tutorial, whose pano tiles are local assets and whose Maps JS API is
-      # the in-suite stub. Runs after the app is up so evolutions have already brought the schema to HEAD.
-      - name: Seed minimal explore data
+      # Shared with backend-tests. Without a region /explore is a server error; without labels the Gallery,
+      # LabelMap and api-docs previews render empty shells the suite can't judge. Runs after the app is up, so the
+      # schema is already at HEAD.
+      - name: Seed the test city
         run: docker compose exec -T db psql -v ON_ERROR_STOP=1 -U postgres -d sidewalk < test/e2e/fixtures/ci-seed.sql
 
-      # BLOCKING (#5060). Safe to gate on while the rest of the suite is advisory, because a page only enters the
-      # shared table (test/e2e/pages.js) once its violations are fixed or tracked — so a failure is a regression
-      # against a standard we already meet, never a known gap. Runs first so a red gate heads the log.
+      # Every seeded panorama is expired, so the app resolves imagery from disk. This is what puts it there.
+      - name: Install the seeded imagery
+        run: bash test/e2e/fixtures/install-media.sh
+
+      # BLOCKING (#5060). A page only enters the shared table (test/e2e/pages.js) once its violations are fixed or
+      # tracked, so a failure here is a regression, never a known gap. Runs first so a red gate heads the log.
       - name: Run accessibility gate (blocking)
         run: npx playwright test --project=a11y
         env:
           BASE_URL: http://localhost:9000
           PLAYWRIGHT_HTML_REPORT: playwright-report/a11y
 
-      # ADVISORY. `continue-on-error` sits here rather than on the job so it excuses the smoke half alone. The
-      # condition still runs this half when the gate is red, but unlike `always()` it skips when the app never came
-      # up — where 80 specs would otherwise time out against a dead server.
-      - name: Run Playwright smoke suite (advisory)
-        id: smoke
+      # BLOCKING (#5115). The condition runs this half even when the gate is red, but unlike `always()` skips it
+      # when the app never came up — where 80 specs would otherwise time out against a dead server.
+      - name: Run Playwright smoke suite
         if: ${{ !cancelled() && steps.app-ready.outcome == 'success' }}
-        continue-on-error: true
         run: npx playwright test --project=chromium
         env:
           BASE_URL: http://localhost:9000
           PLAYWRIGHT_HTML_REPORT: playwright-report/smoke
 
-      # `continue-on-error` leaves the smoke step's conclusion `success`, so `failure()` alone would never fire for
-      # the advisory half — exactly the run whose trace you want. `outcome` is the pre-override result.
       - name: Upload Playwright report + app log
-        if: failure() || steps.smoke.outcome == 'failure'
+        if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: e2e-smoke-report

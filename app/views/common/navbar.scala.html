@@ -1,5 +1,5 @@
 @import controllers.helper.ControllerUtils
-@import models.user.SidewalkUserWithRole
+@import models.user.{Role, SidewalkUserWithRole}
 @import play.api.Configuration
 @import service.CommonPageData
 @* renderAuthDialog: a page whose body carries the full-page auth forms (signIn/signUp views, whatever path they
@@ -12,7 +12,7 @@
 @* Every switch-target city (i.e. not the current one), grouped by country and sorted within each group; the current
    city is pinned separately at the top of the switcher. Country order is alphabetical by country id. *@
 @otherCitiesByCountry = @{cityInfo.filter(_.cityId != commonData.cityId).sortBy(c => (c.countryId, c.stateId, c.cityId)).groupBy(_.countryId).toSeq.sortBy(_._1)}
-@isAdmin = @{user.isDefined && (user.get.role == "Administrator" || user.get.role == "Owner")}
+@isAdmin = @{user.isDefined && (user.get.role == Role.Administrator || user.get.role == Role.Owner)}
 @* Destinations that redirect a mobile visitor to /mobileLanding (Explore, Route Builder) or to /mobile
    (Expert Validate) are left out of the menu on those devices: a link that can only bounce you somewhere else is
    worse than no link. This is deliberately the same user-agent test the controllers redirect on, not a width
@@ -166,7 +166,7 @@
         @* Highest quick-strip priority: signed-in or not is the one thing the collapsed bar should never hide, and
            it is the entry point to everything personal. *@
         <li class="dropdown navbar-lnk" id="navbar-user-dropdown-list" data-nav-quick="1">
-        @if(user.isDefined && user.get.role != "Anonymous") {
+        @if(user.isDefined && user.get.role != Role.Anonymous) {
           <button type="button" id="nav-user-dropdown" class="navbar-button navbar-dropdown-toggle@if(userToggleActive){ is-active}" data-nav-dropdown aria-haspopup="true" aria-expanded="false" aria-controls="nav-user-menu" aria-label="User options for @user.get.username">
             <img class="navbar-select-icon" src='@assets.path("images/icons/user-feather.svg")' alt="" aria-hidden="true"><span class="navbar-user-name">@user.get.username</span><b class="caret" aria-hidden="true"></b>
           </button>

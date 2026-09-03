@@ -13,7 +13,7 @@ never hides inside another's numbers:
 |---|---|---|
 | **Project Sidewalk** | Every production and `-test` stage on `cs.washington.edu` | One browser key, referrer-restricted to the stage hostnames — a new city's hostname must be added or its map and panos fail to load. Maps JS API + Street View Static API only. |
 | **Project Sidewalk Dev Env** | `localhost:9000` development (`GOOGLE_MAPS_API_KEY` in `docker-compose.override.yml`) | Referrer-restricted to localhost. |
-| **Project Sidewalk CI Env** | GitHub Actions only: the `e2e-smoke` job's `GOOGLE_MAPS_API_KEY_TEST` repo secret | Referrer-restricted to `localhost:9000/*`; Maps JS API only. Created 2026-08-03 with phase 2 of #4504. |
+| **Project Sidewalk CI Env** | Nothing, by design: the browser suite stubs Google Maps (#5129). The project exists as a tripwire — its one key is referrer-restricted to `localhost:9000/*` with a "Map loads per day" quota of 0, so a test that ever reaches Google fails instead of billing. Created 2026-08-03 with phase 2 of #4504. |
 
 `GOOGLE_MAPS_SECRET` (URL signing for the Street View Static and metadata calls the *server* makes) is a separate
 credential from the same project as the key it signs for.
@@ -68,9 +68,9 @@ Street View Static API; `google.maps.StreetViewMetadata.Http` is the free metada
 
 ## CI's Google usage
 
-The `e2e-smoke` job is the only automation that talks to Google with a real key (`GOOGLE_MAPS_API_KEY_TEST`,
-phase 2 of #4504), and the first month it existed (August 2026) it cost more than production. Two things bill,
-and neither is "fetching imagery":
+None, since #5129 — but the month before that (August 2026), when the `e2e-smoke` job carried a real key so
+`/explore` could initialize, the CI project cost more than production. Two things billed, and neither was
+"fetching imagery":
 
 - **`/explore`'s tutorial** instantiates a `StreetViewPanorama` even though its tiles are local assets and the
   pano id does not exist at Google. One Dynamic Street View event plus one Dynamic Maps event per load — measured,

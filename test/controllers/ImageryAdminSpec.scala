@@ -1,5 +1,6 @@
 package controllers
 
+import models.user.Role
 import models.utils.MyPostgresProfile.api._
 import models.utils.{BackgroundJobRunTable, JobRunStatus, JobRunTrigger, MyPostgresProfile}
 import org.apache.pekko.stream.Materializer
@@ -55,9 +56,9 @@ class ImageryAdminSpec extends PlaySpec with RoleSession with GuiceOneAppPerSuit
   private val XHR = "X-Requested-With" -> "XMLHttpRequest"
 
   /** A signed-in caller with no admin rights. */
-  private lazy val visitorCookies: Seq[Cookie] = sessionAs("Registered")
+  private lazy val visitorCookies: Seq[Cookie] = sessionAs(Role.Registered)
 
-  private lazy val adminCookies: Seq[Cookie] = sessionAs("Administrator")
+  private lazy val adminCookies: Seq[Cookie] = sessionAs(Role.Administrator)
 
   /** The runs this suite seeded, deleted afterwards so no later suite reads them as the city's own history. */
   private var seededRunIds: List[Int] = Nil

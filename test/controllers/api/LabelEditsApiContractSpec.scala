@@ -52,7 +52,7 @@ class LabelEditsApiContractSpec extends PlaySpec with GuiceOneAppPerSuite {
       val resp = route(app, FakeRequest(GET, "/v3/api/labelEdits?filetype=csv")).get
       status(resp) mustBe OK
       contentAsString(resp).linesIterator.next() mustBe
-        "label_edit_id,label_id,label_type_id,label_type,user_id,old_severity,new_severity,old_tags,new_tags," +
+        "label_edit_id,label_id,label_type,user_id,old_severity,new_severity,old_tags,new_tags," +
         "source,edit_time,label_validation_id"
     }
 

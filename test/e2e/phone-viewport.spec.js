@@ -43,9 +43,8 @@ async function checkPhoneViewport(page, context, consoleErrors, p) {
 
 // mapbox / makeabilityLab / loadingOverlay flags as in pages.spec.js. Pages that UA-redirect mobile visitors
 // are deliberately absent (see the header comment); /labelingGuide serves phones but is not yet responsive,
-// so it joins with its #4875 phase-2 conversion. Caveat: against CI's near-empty seed the data-driven pages
-// (/leaderboard, /routes, /stories, the rawLabels preview) render empty shells, so content-driven overflow
-// (a long username, a story title) is only exercised by a local run against a seeded DB.
+// so it joins with its #4875 phase-2 conversion. Caveat: CI's seed is short content, so overflow driven by volume
+// or by an unusually long username or story title is still only exercised against a full local DB.
 const PAGES = [
   {path: '/mobileLanding'},
   {path: '/signIn'},
@@ -58,7 +57,7 @@ const PAGES = [
   {path: '/labelMap', mapbox: true, loadingOverlay: true},
   {path: '/gallery', loadingOverlay: true},
   {path: '/api'},
-  {path: '/v3/api-docs/rawLabels'},
+  {path: '/v3/api-docs/rawLabels', mapbox: true},
 ];
 
 test.describe('phone viewport (390px)', () => {
@@ -72,9 +71,9 @@ test.describe('phone viewport (390px)', () => {
 });
 
 // The card grids' minimums only bind below ~368px, so the 390px block above cannot see them (#4691) — the
-// community pages' 320px track floor, and the Gallery's 280px card track in a 300px content box. Same seed caveat,
-// and it bites harder: with nothing in CI's DB these load the empty shell, which fits at any width — the
-// cards are exercised by a local run against a seeded DB.
+// community pages' 320px track floor, and the Gallery's 280px card track in a 300px content box. The seed puts
+// real cards behind /routes and /gallery, so those tracks are measured rather than an empty shell; /stories has no
+// seeded rows, so it still renders the empty shell that fits at any width.
 test.describe('narrow phone viewport (320px)', () => {
   test.use({...PHONE_DEVICE, viewport: {width: 320, height: 653}});
 
@@ -95,7 +94,7 @@ const LONG_ADDRESS = '1234 Northwest Martin Luther King Jr Boulevard';
  *
  * @param {import('@playwright/test').Page} page - The test's page, used only for its request context.
  * @returns {Promise<Object|null>} The lowest-numbered label's GeoJSON feature, or null when the database has none
- *   there (CI's near-empty seed).
+ *   near the city center.
  */
 let cachedLabelFeature; // The feed fetch dominates these tests' runtime on a seeded dev DB; one fetch serves all.
 async function findLabelFeature(page) {
@@ -120,7 +119,7 @@ async function findLabelFeature(page) {
  * horizontal scroller, and the card's `overflow-y: auto` computes `overflow-x` to `auto` on the same box. The
  * meta strip is measured too — it is the row that overflows first, its cells fixed-width but for the address.
  *
- * Skips when the database has no label to open (CI's near-empty seed).
+ * Skips when the database has no label to open near the city center.
  *
  * @param {import('@playwright/test').Page} page - The test's page, already at a phone viewport.
  * @param {Object} [opts] - Options.

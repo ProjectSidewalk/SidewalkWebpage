@@ -53,7 +53,7 @@
       <p><code><a href="/v3/api/validations">/v3/api/validations</a></code> Get all validations in JSON (default)</p>
       <p><code><a href="/v3/api/validations?filetype=csv">/v3/api/validations?filetype=csv</a></code> Get all validations in CSV format</p>
       <p><code><a href="/v3/api/validations?validationResult=Agree">/v3/api/validations?validationResult=Agree</a></code> Get only "Agree" validations</p>
-      <p><code><a href="/v3/api/validations?labelTypeId=2">/v3/api/validations?labelTypeId=2</a></code> Get validations of labels of type 2</p>
+      <p><code><a href="/v3/api/validations?labelType=NoCurbRamp">/v3/api/validations?labelType=NoCurbRamp</a></code> Get validations of NoCurbRamp labels</p>
       <p><code><a href="/v3/api/validations?source=ExpertValidate">/v3/api/validations?source=ExpertValidate</a></code> Get only validations made through the Expert Validate interface</p>
     </div>
   </div>
@@ -104,9 +104,9 @@
             <td>Filter by validation result: <code>Agree</code>, <code>Disagree</code>, or <code>Unsure</code>.</td>
           </tr>
           <tr>
-            <td><code>labelTypeId</code></td>
-            <td><code>integer</code></td>
-            <td>Filter validations for a specific label type (e.g., CurbRamp, Obstacle). See <a href="@routes.ApiDocsController.labelTypes">Label Types API</a></td>
+            <td><code>labelType</code></td>
+            <td><code>string</code></td>
+            <td>Filter validations for a specific label type by name (e.g., CurbRamp, Obstacle). See <a href="@routes.ApiDocsController.labelTypes">Label Types API</a></td>
           </tr>
           <tr>
             <td><code>validationTimestamp</code></td>
@@ -145,7 +145,6 @@
   {
     "label_validation_id": 12345,
     "label_id": 67890,
-    "label_type_id": 2,
     "label_type": "NoCurbRamp",
     "validation_result": "Agree",
     "user_id": "user_abc123",
@@ -165,7 +164,6 @@
   {
     "label_validation_id": 12346,
     "label_id": 67891,
-    "label_type_id": 1,
     "label_type": "CurbRamp",
     "validation_result": "Disagree",
     "user_id": "user_def456",
@@ -197,7 +195,6 @@
         <tbody>
           <tr><td><code>label_validation_id</code></td><td><code>integer</code></td><td>Unique identifier for the validation record.</td></tr>
           <tr><td><code>label_id</code></td><td><code>integer</code></td><td>ID of the label that was validated.</td></tr>
-          <tr><td><code>label_type_id</code></td><td><code>integer</code></td><td>ID of the label type (e.g., 1 for CurbRamp, 2 for NoCurbRamp).</td></tr>
           <tr><td><code>label_type</code></td><td><code>string</code></td><td>Name of the label type (e.g., "CurbRamp", "Obstacle").</td></tr>
           <tr><td><code>validation_result</code></td><td><code>string</code></td><td>Validation judgment: Agree, Disagree, Unsure.</td></tr>
           <tr><td><code>user_id</code></td><td><code>string</code></td><td>ID of the user who performed the validation.</td></tr>
@@ -219,9 +216,9 @@
 
     <h4 id="response-csv">CSV Format <a href="#response-csv" class="permalink">#</a></h4>
     <p>If <code>filetype=csv</code> is specified, the response will be CSV data with the same field structure:</p>
-    <pre><code class="language-csv">label_validation_id,label_id,label_type_id,label_type,...
-12345,67890,2,NoCurbRamp,...
-12346,67891,1,CurbRamp,...</code></pre>
+    <pre><code class="language-csv">label_validation_id,label_id,label_type,...
+12345,67890,NoCurbRamp,...
+12346,67891,CurbRamp,...</code></pre>
 
     <h3 class="page-heading" id="error-responses">Error Responses<a href="#error-responses" class="permalink">#</a></h3>
     <p>If an error occurs, the API will return an appropriate HTTP status code and a JSON response body containing details about the error.</p>

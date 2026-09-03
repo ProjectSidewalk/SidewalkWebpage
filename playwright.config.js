@@ -8,6 +8,10 @@
  */
 const {defineConfig, devices} = require('@playwright/test');
 
+// The accessibility gate's specs, matched once and used for both the a11y project's testMatch and the smoke
+// project's testIgnore — one definition, so a spec added to the gate cannot also run as part of the smoke half.
+const A11Y_SPECS = /a11y[\w-]*\.spec\.js/;
+
 module.exports = defineConfig({
   testDir: 'test/e2e',
   timeout: 60_000,
@@ -31,9 +35,9 @@ module.exports = defineConfig({
     // A project rather than a `--grep` on titles keeps CI's blocking/advisory split structural: rewording a test
     // cannot move it between the halves. No `dependencies` — nothing here needs a session, so the gate that blocks
     // merges does not ride on /signUp.
-    {name: 'a11y', testMatch: /a11y\.spec\.js/, use: {...devices['Desktop Chrome']},
+    {name: 'a11y', testMatch: A11Y_SPECS, use: {...devices['Desktop Chrome']},
       outputDir: 'test-results/a11y'},
-    {name: 'chromium', testIgnore: /a11y\.spec\.js/, use: {...devices['Desktop Chrome']},
+    {name: 'chromium', testIgnore: A11Y_SPECS, use: {...devices['Desktop Chrome']},
       dependencies: ['setup'], outputDir: 'test-results/chromium'},
   ],
 });

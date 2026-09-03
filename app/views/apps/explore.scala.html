@@ -1,6 +1,6 @@
 @import formats.json.MissionFormats._
 @import formats.json.ExploreFormats._
-@import models.user.SidewalkUserWithRole
+@import models.user.{Role, SidewalkUserWithRole}
 @import play.api.Configuration
 @import play.api.libs.json.Json
 @import service.{CommonPageData, ExplorePageData}
@@ -812,7 +812,7 @@
         </div>
       </div>
       <div class="tutorial-intro__links">
-        @if(user.role == "Anonymous") {
+        @if(user.role == Role.Anonymous) {
           <p>
             <span data-i18n="audit:tutorial-intro.have-account"></span>
             <a href="@routes.UserController.signIn()" data-au-open="signIn" class="tutorial-intro__link" data-i18n="audit:tutorial-intro.sign-in"></a>

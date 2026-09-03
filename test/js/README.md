@@ -165,6 +165,6 @@ zero. The fix is upstream, in the ES-modules question (#4467).
 These jsdom tests verify the render contract in isolation. Their E2E complement now exists: the **Playwright browser
 smoke suite in [`test/e2e/`](../e2e)** (#4504) loads core pages — including api-docs pages — against a running app and
 **fails on any uncaught console/page error**, catching integration-level breakage (real endpoint shape, script load
-order from Grunt, missing globals) that a mocked-`fetch` unit test cannot. It runs as the advisory `e2e-smoke` CI job
+order from Grunt, missing globals) that a mocked-`fetch` unit test cannot. It runs as the `e2e-smoke` CI job
 on every PR; asserting on the api-docs preview *content* (non-empty container, no "Failed to load" banner) is a
 planned phase-2 extension there.

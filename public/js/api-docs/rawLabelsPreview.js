@@ -68,7 +68,8 @@
         const labels = await this.fetchLabelsByRegionId(regionData.properties.region_id);
         this.displayLabelsOnMap(map, labels);
       } catch (error) {
-        container.innerHTML = `<div class="message message-error">Failed to load raw labels: ${error.message}</div>`;
+        container.innerHTML = `<div class="message message-error" role="alert">Failed to load raw labels: `
+          + `${error.message}</div>`;
         console.error('Raw labels preview error:', error);
         // The failure is already surfaced in the container above, and init() is fire-and-forget at every call
         // site (app/views/apiDocs/*), so re-rejecting here can only ever become an unhandled rejection.
@@ -147,6 +148,7 @@
       if (!labels.features || labels.features.length === 0) {
         const noLabelsDiv = document.createElement('div');
         noLabelsDiv.className = 'map-message';
+        noLabelsDiv.setAttribute('role', 'status');
         noLabelsDiv.textContent = 'No labels found in this region.';
         map.getContainer().appendChild(noLabelsDiv);
         return;

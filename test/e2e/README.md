@@ -42,7 +42,7 @@ Three details worth knowing when something looks odd:
 - Reports, traces, and screenshots land in gitignored `test-results/`, written as **your** uid (the runner passes
   `--user`), so you can read and delete them from the host like any other file.
 
-Works against a populated dev DB or an empty CI-style one — specs tolerate both. Google Maps is never contacted:
+Works against a populated dev DB or CI's small seeded one — specs tolerate both. Google Maps is never contacted:
 every context gets the local stub (`fixtures/google-maps-stub.js`, phase 2 below), so `/explore` and `/validate`
 run without a key and the dev app's real key is never billed by a test run.
 
@@ -103,7 +103,7 @@ The two `/labelMap` behavior specs (`labelmap-feed-failure.spec.js`, `labelmap-v
 `/contribution/streets/all` with empty collections. `createPSMap` loads all three before the label feed, and on a
 seeded schema they run to megabytes (~7.4 MB in Seattle) that must reach mapbox-gl before the page promise
 resolves — long enough to blow the 5s default `expect` timeout with four workers competing at the start of a run,
-and invisible in CI, whose schema is empty (#5081). Neither spec reads that data: both assert request and error
+and hidden in CI, whose seed is a few streets (#5081). Neither spec reads that data: both assert request and error
 behavior, so serving none of it makes them behave identically against a seeded schema and an empty one, in content
 and in how long they take. The smoke and a11y specs deliberately do **not** stub it — they are there to load the
 real page.
@@ -115,9 +115,21 @@ real page.
 entry citing the issue that will fix it. It is its own Playwright project, so run it alone with
 `make test-e2e args="--project=a11y"`. Coverage is **opt-out**: because the page table is shared, a page added for
 the smoke tests is gated for accessibility too unless someone writes it into `EXEMPT_PAGES` with a reason. What a
-page renders depends on its data, so a run against an empty schema (as in CI) sees no gallery cards, no leaderboard
-rows, and no api-docs preview data. Policy, the allowlist rules, and the manual checklist
+page renders depends on its data: CI's seed (see "The CI test city" below) puts a few gallery cards, leaderboard
+rows and api-docs preview features on the page, while a full dev DB puts thousands — so volume-driven violations
+are still only visible locally. Policy, the allowlist rules, and the manual checklist
 that covers what axe can't see: [`docs/accessibility.md`](../../docs/accessibility.md).
+
+`a11y-api-docs-states.spec.js` belongs to the same project and covers what a page walk structurally can't: the
+api-docs previews' *message* renders. It intercepts a preview's endpoint, serves a truncated body or an empty
+result, and scans the "failed to load" or "no data" markup the preview shows in place of its chart — one state per
+distinct DOM shape, since twelve previews share the same `.message-error` markup. Its allowlist keys carry a
+` [state]` suffix, and every case also asserts the injected message carries `role="alert"` (a failure) or
+`role="status"` (an ordinary empty result), which is a rule axe does not have.
+
+Both files match the `A11Y_SPECS` pattern in `playwright.config.js`, which is what puts a spec in the gate and
+keeps it out of the smoke half — one definition, used for the a11y project's `testMatch` and the smoke project's
+`testIgnore`.
 
 ### Console-error allowlist
 
@@ -128,13 +140,38 @@ exception) is never allowlisted.
 ## Where it runs in CI
 
 The `e2e-smoke` job in `.github/workflows/ci.yml`, on every PR. It builds the bundles, stages the app
-(prod-mode binary against the CI Postgres+PostGIS with the empty `sidewalk_teaneck` schema), and runs this
-suite in two steps: the **accessibility gate** (`--project=a11y`) **blocking**, then the smoke half
-(`--project=chromium`) **advisory** (`continue-on-error` on the step, not the job — on the job it would
-excuse the gate too). Each project writes to its own `test-results/` subdirectory, so the second run does not
-clear the first's traces before they are uploaded. On failure of either half it uploads the Playwright report,
-traces, and `app.log`. **It never runs
+(prod-mode binary against the CI Postgres+PostGIS), seeds the test city from `fixtures/ci-seed.sql`, and runs
+this suite in two steps: the **accessibility gate** (`--project=a11y`), then the smoke half
+(`--project=chromium`). **Both are blocking** — the smoke half stopped being advisory in #5115, once the seed
+gave the pages content to render. Each project writes to its own `test-results/` subdirectory, so the second run
+does not clear the first's traces before they are uploaded. On failure of either half it uploads the Playwright
+report, traces, and `app.log`. **It never runs
 during local development** — your edit / `grunt watch` / reload loop is untouched.
+
+### The CI test city
+
+`fixtures/ci-seed.sql`, applied by this job and by `backend-tests`, and the one definition of what CI's database
+holds: one real Teaneck neighbourhood — its four streets, 33 labels, and the panoramas they sit on — pulled from
+prod with `../../tools/ci_seed_slice.sql` and rebuilt by `../../tools/gen_ci_seed.py`. Real, because a fixture that
+invents its own coordinates and panorama ids can only show that the code runs, not that it runs on the shape of data
+it will meet. Small on purpose: enough that every page renders real content and every backend spec has something to
+read, not a second city dump to maintain. Three things about it shape this suite:
+
+- **Every panorama it names is expired**, as the rows it was taken from are. That is what keeps the server side
+  hermetic: an expired pano is never fetched from a provider, so building a validation mission needs neither live
+  imagery nor the `GOOGLE_MAPS_SECRET` CI does not have (#4948). What stands in is on disk — `install-media.sh`,
+  run right after the seed, installs the backup panoramas Pannellum renders and the crops the Gallery reads.
+  (The *browser* still tries the primary viewer first and usually succeeds, since Google goes on serving
+  panoramas our own metadata check has retired; the backups cover the rest.) `install-media.sh` reads
+  `SIDEWALK_CITY_ID` for the directory to write into, the same way the app reads it, and fails if it isn't set:
+  put the files under the wrong city and nothing errors, imagery just silently falls back to a provider.
+- **Label imagery still can't come from Google**, so the `stubStreetViewImages` fixture answers the static
+  Street View API with a 1×1 pixel for every test. Without a real `GOOGLE_MAPS_API_KEY` (fork PRs, most dev
+  setups) the Maps JS API also refuses to initialize, and that one message is allowlisted — conditionally, so it
+  still fails a run that *has* a key configured.
+- **The seed sets the city's own map parameters.** The committed template ships someone else's centre and
+  bounding box, so every map opened hundreds of miles from the only labels there are, and the specs that open a
+  label card near the city centre skipped for want of one. They run now.
 
 ## Phase roadmap
 
@@ -144,22 +181,25 @@ during local development** — your edit / `grunt watch` / reload loop is untouc
   `StreetViewPanorama` and `Map` instantiation — local tiles or not — and the label-detail popup instantiates a
   panorama on each `/labelMap`, `/gallery`, `/dashboard` and `/stories` load (#5128), so a suite run against the
   real API was ~20 billable events. The stub implements just the surface `public/js` uses, fires the events the
-  app awaits, and answers unknown pano ids with `ZERO_RESULTS` (what an expired pano gets from Google). The
+  app awaits, and serves any pano id the server vouched for (a spec exercises the expired-imagery path by calling
+  `google.maps.__stub.expire([...])` first). The
   `googleMapsLeaks` auto-fixture aborts and reports any request that still reaches a Google map host, so a page
   that builds a real map or panorama cannot merge. `/explore` asserts the audit tutorial loads: it's
   deterministic for every fresh anonymous user, its panos are custom (`registerPanoProvider`) with local tiles,
   and CI seeds the one region it requires (`fixtures/ci-seed.sql` — with zero regions `/explore` is a server
   error). A reload counter turns Explore's viewer-failure reload loop into a fast, named failure.
-  `/validate` accepts either legitimate terminal state error-free: a mission (seeded DBs — under the stub its
-  panos take the backup-imagery path) or the "no new mission" modal (an empty city — a mission needs ≥ 10
-  validatable labels of one type). `/mobile`
+  `/validate` accepts either legitimate terminal state error-free: a mission or the "no new mission" modal.
+  CI takes the mission branch — the seed carries the ≥ 10 validatable labels of one type a mission needs, and
+  the server resolves their imagery from the committed backups rather than a provider (#5115). `/mobile`
   runs the same two-terminal-state check under an iPhone descriptor (the server serves that page by UA and
   redirects a desktop one to `/`), in portrait and in landscape, each pinning the layout viewport to the
   device's own width — the #4891 contract. ✅
-- **Phase 2b (open):** make CI exercise `/validate`'s real mission path — needs a committed seed of ≥ 10
-  non-tutorial labels whose panos are live or locally backed up, and a real `GOOGLE_MAPS_SECRET` for the
-  server-side pano-metadata check (#4948 records the trade); also gallery expanded-card view and api-docs
-  preview content asserts (then drop the `regionWithMostLabels` allowlist entries in `fixtures.js`).
+- **Phase 2b:** make CI exercise `/validate`'s real mission path. ✅ via #5115's seed — ten validatable labels
+  on panos with committed backup imagery. The `GOOGLE_MAPS_SECRET` #4948 called for
+  turned out not to be needed: the seeded panoramas are expired, so the server-side imagery check reads the
+  backup files on disk instead of asking a provider. Still open under #4948 is coverage of the mission's
+  *interactions* (menu handlers, keyboard shortcuts, undo), not reaching a mission at all. Also open: gallery
+  expanded-card view and api-docs preview content asserts.
   `/v3/api-docs/labelTags` can't join the page tables until its missing tag example images (ids 43, 76–79)
   are added — each 404 is a console error.
 - **Phase 3:** primary-control interactions per page (info button, tag menu, mission modal) and a few
@@ -172,13 +212,19 @@ during local development** — your edit / `grunt watch` / reload loop is untouc
 |---|---|
 | `../../playwright.config.js` | Config: `testDir`, retries, reporters, the `setup` → `chromium` projects |
 | `../../docker/e2e/Dockerfile` | The runner image `make test-e2e` builds and runs (Chromium + the pinned runner) |
-| `fixtures.js` | `consoleErrors` fixture, Mapbox + ML-API stubs, `loadAndSettle`, `waitForAppReady`, `horizontalOverflowReport`, allowlist |
+| `fixtures.js` | `consoleErrors` fixture, Mapbox / Street-View / ML-API stubs, `loadAndSettle`, `waitForAppReady`, `horizontalOverflowReport`, allowlist |
+| `fixtures/ci-seed.sql` | The CI test city: region, streets, users, labels, missions, panos. Applied by both CI jobs |
+| `fixtures/install-media.sh` | Copies `fixtures/media/` into the app's pano and crop directories |
+| `fixtures/media/` | The seeded labels' real imagery, downscaled: backup panoramas and label crops |
+| `../../tools/gen_ci_seed.py` | Regenerates `fixtures/ci-seed.sql` from a prod slice; holds the fixture's invariants |
+| `../../tools/ci_seed_slice.sql` | The read-only prod query the slice comes from (which rows, and why those) |
 | `auth.setup.js` | Registers a throwaway user, saves storageState for registered-user specs |
 | `pages.js` | **The** page table: every anonymous page the suite walks, and how each loads. Adding one here opts it into the smoke tests *and* the accessibility gate |
 | `pages.spec.js` | Table-driven phase-1 anonymous pages |
 | `phone-viewport.spec.js` | The same pages at a 390×844 phone viewport: no horizontal overflow (#4883) |
 | `a11y.spec.js` | The accessibility gate: axe-core over every page in `pages.js`, WCAG 2.1 AA (#5060) |
-| `a11y-allowlist.js` | Per-page allowlist of tracked violations, plus the partition/format helpers |
+| `a11y-api-docs-states.spec.js` | The same gate over the api-docs previews' error and empty renders, forced by intercepting their feeds (#5122) |
+| `a11y-allowlist.js` | Per-page allowlist of tracked violations, the shared WCAG tag list, plus the partition/format helpers |
 | `overflow-report.spec.js` | `horizontalOverflowReport`'s exemption rules, pinned against synthetic DOM |
 | `dashboard.spec.js` | Registered-user pages |
 | `explore-validate.spec.js` | Phase-2 Explore/Validate/mobile-Validate specs (skip without the real GSV key) |
