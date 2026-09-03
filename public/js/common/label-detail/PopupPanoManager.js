@@ -21,6 +21,14 @@ class PopupPanoManager {
   // every StreetViewPanorama constructed, visible or not, and most visits to a hosting page never open a label.
   #primaryViewer = undefined;
   #primaryViewerCreation = null; // In-flight #ensureViewer() promise, so concurrent setPano() calls share one build.
+  #buildFailures = 0;
+  // A failed build is retried for the next label (a transient quota or network blip shouldn't be permanent), but
+  // the provider bills the constructor whether or not its init then succeeds, so a persistent failure (bad key,
+  // exhausted quota, blocked script) must not turn every label opened into another billable attempt.
+  static #MAX_BUILD_ATTEMPTS = 3;
+  // Longest a deep-linked host should hold its own init on warmUp() before carrying on without the viewer; a
+  // healthy build takes well under a second even on a cold cache.
+  static DEEP_LINK_BUILD_WAIT_MS = 3000;
   #pannellumViewer = undefined;  // Only constructed when an expired pano with a self-hosted image is shown.
   #panoCanvas;
   #pannellumCanvas;
@@ -66,9 +74,12 @@ class PopupPanoManager {
    */
   static create(svHolder, buttonHolder, admin, viewerType, viewerAccessToken) {
     const manager = new PopupPanoManager(admin, viewerType, viewerAccessToken);
-    manager.#init(svHolder, buttonHolder);
-    // A promise, matching the provider viewers' create() factories that hosts await the same way.
-    return Promise.resolve(manager);
+    // A promise, matching the provider viewers' create() factories that hosts await the same way; an executor so a
+    // failure in #init rejects it rather than throwing synchronously.
+    return new Promise((resolve) => {
+      manager.#init(svHolder, buttonHolder);
+      resolve(manager);
+    });
   }
 
   /**
@@ -167,27 +178,32 @@ class PopupPanoManager {
   }
 
   /**
-   * Returns the primary viewer, building it on the first call. Concurrent callers share the one in-flight build;
-   * a failed build is forgotten so the next label tries again rather than leaving the popup imagery-less for the
-   * rest of the page's life (a transient quota or network error shouldn't be permanent).
+   * Returns the primary viewer, building it on the first call. Concurrent callers share the one in-flight build; a
+   * failed build is retried by the next call, up to #MAX_BUILD_ATTEMPTS, after which it rejects without building.
    *
-   * Only called from setPano(), which every host reaches after it has shown the popup, so the canvas is laid out —
-   * Mapillary measures its container at init and needs that.
+   * Reached through setPano() and warmUp(), both after the host has laid out the popup — `visibility: hidden`
+   * qualifies (Gallery's closed expanded view), `display: none` does not — because Mapillary measures its container
+   * at init. Deliberately does NOT point `panoViewer` at the result: that is setPano()'s job, per label, or a build
+   * resolving late would hijack a Pannellum viewer that is showing an expired label.
    *
    * @returns {Promise<PanoViewer>} The primary viewer.
    */
   #ensureViewer() {
     if (this.#primaryViewer) return Promise.resolve(this.#primaryViewer);
+    if (this.#buildFailures >= PopupPanoManager.#MAX_BUILD_ATTEMPTS) {
+      return Promise.reject(new Error('Pano viewer build abandoned after repeated failures'));
+    }
     if (!this.#primaryViewerCreation) {
       const panoOptions = {
         accessToken: this.#viewerAccessToken,
         scrollwheel: true,
         defaultNavigation: !!this.#admin, // Only allow navigation on admin version, not on normal LabelMap.
       };
-      this.#primaryViewerCreation = this.#viewerType.create(this.#panoCanvas, panoOptions)
+      // Starts from a resolved promise so a synchronous throw in create() rejects like any other failure.
+      this.#primaryViewerCreation = Promise.resolve()
+        .then(() => this.#viewerType.create(this.#panoCanvas, panoOptions))
         .then((viewer) => {
           this.#primaryViewer = viewer;
-          this.panoViewer = viewer;
           viewer.addListener('pano_changed', () => {
             // Only show the label if we're looking at the correct pano.
             for (const marker of this.#labelMarkers) {
@@ -195,6 +211,15 @@ class PopupPanoManager {
             }
           });
           return viewer;
+        }, (err) => {
+          // Loud, because setPano() otherwise folds this into the same silent fallback as a single missing pano,
+          // and "the provider won't initialize" is a different diagnosis from "this pano is gone".
+          this.#buildFailures += 1;
+          console.error(
+            `Pano viewer failed to build (attempt ${this.#buildFailures} of ${PopupPanoManager.#MAX_BUILD_ATTEMPTS}):`,
+            err,
+          );
+          throw err;
         })
         .finally(() => {
           this.#primaryViewerCreation = null;
@@ -209,11 +234,17 @@ class PopupPanoManager {
    * the billable step, so it must not run for a visitor who merely loaded the page. Never rejects — setPano() makes
    * the real attempt and owns the fallback.
    *
-   * @returns {Promise<void>} Settles once the build has succeeded or failed, for a host that wants to hold its own
-   *     heavy init until then (a deep-linked label: the build competes badly with a map coming up beside it).
+   * @param {number} [maxWaitMs] Resolve after this long even if the build hasn't settled. For a host holding its
+   *     own init on the build: a provider whose bootstrap never loads leaves the build pending forever, and the host
+   *     must not hang with it.
+   * @returns {Promise<void>} Settles once the build has succeeded or failed (or the wait has elapsed), for a host
+   *     that wants to hold its own heavy init until then (a deep-linked label: the build competes badly with a map
+   *     coming up beside it).
    */
-  warmUp() {
-    return this.#ensureViewer().then(() => undefined, () => undefined);
+  async warmUp(maxWaitMs) {
+    const build = this.#ensureViewer().then(() => undefined, () => undefined);
+    if (maxWaitMs === undefined) return build;
+    await Promise.race([build, new Promise((resolve) => setTimeout(resolve, maxWaitMs))]);
   }
 
   /**
@@ -509,12 +540,12 @@ class PopupPanoManager {
 
   /**
    * Returns the pov of the viewer.
-   * @returns {?{heading: number, pitch: number, zoom: number}} Null while no viewer has been built (no label shown
-   *     yet, or only crop/no-imagery labels so far).
+   * @returns {?{heading: number, pitch: number, zoom: number}} Null while there is nothing to read a POV from: no
+   *     viewer built yet (no label shown, or only crop/no-imagery labels so far), or a viewer with no pano loaded.
    */
   getPov() {
-    if (!this.panoViewer) return null;
-    const pov = this.panoViewer.getPov();
+    const pov = this.panoViewer?.getPov();
+    if (!pov) return null;
 
     // Adjust heading to be between 0 and 360.
     while (pov.heading < 0) pov.heading += 360;

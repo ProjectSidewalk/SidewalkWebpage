@@ -3,7 +3,7 @@
  *
  * The base `.label-detail` rules style a self-contained label-info card. Two host modes are supported:
  *   - Modal popup (LabelMap, Dashboard, Admin): the host is a <dialog id="label-modal" class="label-detail">.
- *     Modal-specific styling (fixed width, ::backdrop, opening transition, init-offscreen hack) lives below.
+ *     Modal-specific styling (fixed width, ::backdrop, opening transition) lives below.
  *   - Inline (Gallery's expanded view): the host adds `.label-detail--inline`, which drops the dialog-fixed
  *     sizing and lets the parent grid drive the dimensions. Paging-arrow rules also live in the inline section.
  *

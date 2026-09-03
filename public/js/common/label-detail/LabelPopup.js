@@ -132,8 +132,9 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, currUsername, op
       showLabel(initialLabelId, opts.syncUrlSource).catch(() => LabelDetail.syncUrlLabelId(null));
       // Hold the host here until the viewer is built. A host builds its map as soon as this resolves, and the two
       // inits contending for the main thread roughly doubles the time to imagery (measured on LabelMap: ~1.4 s →
-      // ~2.4 s) — the deep-linked label is what this visit is for, so it goes first.
-      await labelDetail.panoManager.warmUp();
+      // ~2.4 s) — the deep-linked label is what this visit is for, so it goes first. Bounded, so a provider whose
+      // script never loads costs the page a pause rather than its map.
+      await labelDetail.panoManager.warmUp(PopupPanoManager.DEEP_LINK_BUILD_WAIT_MS);
     }
   }
 

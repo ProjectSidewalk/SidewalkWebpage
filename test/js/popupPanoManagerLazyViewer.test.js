@@ -56,9 +56,11 @@ describe('PopupPanoManager builds its viewer lazily', () => {
         window.i18next = { t: (k) => k };
         window.createPanoViewerLogo = () => ({ showPrimaryLogo: jest.fn(), showSourceLogo: jest.fn() });
         window.LabelVisibilityToggle = { HIDDEN_CLASS: 'hidden' };
-        window.PannellumViewer = { create: jest.fn() };
+        window.PannellumViewer = { create: jest.fn(() => Promise.resolve(fakeViewer())) };
         // No self-hosted backup for any pano, so a failed live attempt lands on the crop.
         window.fetch = jest.fn(() => Promise.resolve({ ok: false }));
+        // A failed build is logged on purpose; keep it out of the test output.
+        jest.spyOn(console, 'error').mockImplementation(() => {});
 
         viewerType = {
             create: jest.fn(() => Promise.resolve(fakeViewer())),
@@ -69,10 +71,12 @@ describe('PopupPanoManager builds its viewer lazily', () => {
         PopupPanoManager = window.PopupPanoManager;
     });
 
+    afterEach(() => jest.restoreAllMocks());
+
     /** Builds a manager the way LabelDetail does. */
     const createManager = () => PopupPanoManager.create(svHolder, buttonHolder, false, viewerType, 'token');
 
-    test('create() builds the DOM but no viewer, and schedules only the free library preload for idle time', async () => {
+    test('create() builds the DOM but no viewer, and schedules only the free library preload', async () => {
         const manager = await createManager();
 
         expect(viewerType.create).not.toHaveBeenCalled();
@@ -153,5 +157,63 @@ describe('PopupPanoManager builds its viewer lazily', () => {
 
         await expect(manager.setPano('pano-1', POV, null)).resolves.toBe(false);
         expect(svHolder.querySelector('#pano-not-avail').style.display).toBe('flex');
+    });
+
+    test('a build that keeps failing is abandoned: later labels go to the crop without another billable attempt',
+        async () => {
+            viewerType.create.mockImplementation(() => Promise.reject(new Error('quota')));
+            const manager = await createManager();
+
+            for (let i = 0; i < 5; i++) await manager.setPano(`pano-${i}`, POV, 'https://example.test/crop.png');
+            expect(viewerType.create).toHaveBeenCalledTimes(3);
+            expect(console.error).toHaveBeenCalledTimes(3);
+            expect(manager.activeViewerName).toBe('StaticCrop');
+        });
+
+    test('a build resolving late does not hijack the Pannellum viewer showing an expired label', async () => {
+        let finishBuild;
+        viewerType.create.mockImplementation(() => new Promise((resolve) => {
+            finishBuild = () => resolve(fakeViewer());
+        }));
+        const manager = await createManager();
+        const backupImage = { panoId: 'pano-old', width: 1, height: 1 };
+
+        manager.warmUp(); // What showLabel() does before it knows the label is expired.
+        await expect(manager.setPano('pano-old', POV, null, true, backupImage)).resolves.toBe(true);
+        const pannellum = manager.panoViewer;
+        expect(manager.activeViewerName).toBe('Pannellum');
+
+        finishBuild();
+        await manager.warmUp();
+        expect(manager.panoViewer).toBe(pannellum);
+        expect(manager.activeViewerName).toBe('Pannellum');
+    });
+
+    test('the viewer gets exactly one pano_changed listener across warmUp() and setPano()', async () => {
+        const manager = await createManager();
+
+        await Promise.all([manager.warmUp(), manager.setPano('pano-1', POV, null)]);
+        await manager.setPano('pano-2', POV, null);
+        expect(manager.panoViewer.addListener).toHaveBeenCalledTimes(1);
+        expect(manager.panoViewer.addListener.mock.calls[0][0]).toBe('pano_changed');
+    });
+
+    test('getPov() is null for a viewer with no pano loaded, not a crash', async () => {
+        viewerType.create.mockImplementation(() => Promise.resolve({ ...fakeViewer(), getPov: () => null }));
+        const manager = await createManager();
+
+        expect(manager.getPov()).toBeNull();
+        await manager.setPano('pano-1', POV, null);
+        expect(manager.getPov()).toBeNull();
+    });
+
+    test('warmUp(maxWaitMs) lets a host carry on when the build never settles', async () => {
+        viewerType.create.mockImplementation(() => new Promise(() => {}));
+        const manager = await createManager();
+
+        const started = Date.now();
+        await manager.warmUp(50);
+        expect(Date.now() - started).toBeLessThan(1000);
+        expect(manager.panoViewer).toBeUndefined();
     });
 });

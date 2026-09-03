@@ -88,8 +88,8 @@ class ExpandedView {
     this.initialUrlLabelId = LabelDetail.urlLabelId();
     // That label is what this visit is for, so start its viewer (the billable, deferred part of LabelDetail's
     // init) now rather than after the cards have rendered. The container is visibility:hidden, which keeps its
-    // layout, so the viewer can still measure it.
-    if (this.initialUrlLabelId) await this.panoManager.warmUp();
+    // layout, so the viewer can still measure it. Bounded so a provider that never loads can't hold the cards.
+    if (this.initialUrlLabelId) await this.panoManager.warmUp(PopupPanoManager.DEEP_LINK_BUILD_WAIT_MS);
   }
 
   /**
