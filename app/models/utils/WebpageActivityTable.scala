@@ -1,7 +1,7 @@
 package models.utils
 
 import com.google.inject.ImplementedBy
-import models.user.{RoleTableDef, SidewalkUserTableDef, UserRoleTableDef}
+import models.user.{Role, SidewalkUserTableDef, UserRoleTableDef}
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.jdbc.GetResult
@@ -54,7 +54,6 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
 
   val activities = TableQuery[WebpageActivityTableDef]
   val userRoles  = TableQuery[UserRoleTableDef]
-  val roles      = TableQuery[RoleTableDef]
 
   def insert(activity: WebpageActivity): DBIO[Int] = {
     (activities returning activities.map(_.webpageActivityId)) += activity
@@ -115,8 +114,7 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
     val activeUsers = for {
       _activity <- activities
       _userRole <- userRoles if _activity.userId === _userRole.userId
-      _role     <- roles if _userRole.roleId === _role.roleId
-    } yield (_activity.timestamp.trunc("day"), _role.role === "Anonymous", _activity.userId)
+    } yield (_activity.timestamp.trunc("day"), _userRole.role === Role.Anonymous, _activity.userId)
 
     activeUsers
       .groupBy(x => (x._1, x._2))

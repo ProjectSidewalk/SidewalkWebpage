@@ -121,24 +121,13 @@
 }
 
 .validation-error {
-  color: var(--color-error-200);
+  color: var(--color-error-300);
   text-align: center;
   padding: var(--space-xxl);
   background-color: rgb(from var(--color-error-200) r g b / 10%);
   border: 1px solid var(--color-error-200);
   border-radius: var(--border-radius);
   margin: var(--space-lg) 0;
-}
-
-/* Empty state for charts with no data */
-.chart-empty-state {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  color: var(--color-neutral-700);
-  font: var(--text-small-regular);
-  font-style: italic;
 }
 
 /* ==========================================================================

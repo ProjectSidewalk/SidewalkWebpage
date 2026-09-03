@@ -130,7 +130,7 @@ class MissionStartTutorial {
           : i18next.t(titleKey),
         slideSubtitle: isExampleCorrect ? '' : i18next.t('common:mission-start-tutorial.label-type-subtitle'),
         slideDescription: i18next.t(`common:mission-start-tutorial.${lesson.copy}.slide-${i + 1}.description`),
-        imageURL: `/assets/images/tutorials/${explore}${lesson.photos}-${slide.photo}.png`,
+        imageURL: util.assetPath(`images/tutorials/${explore}${lesson.photos}-${slide.photo}.png`),
         labelOnImage: { position: slide.label },
       };
     });
@@ -327,10 +327,10 @@ class MissionStartTutorial {
     }
 
     // The icon is the same on the left panel and the labelOnImage.
-    let iconID = '';
-    let exampleTypeLabel = '';
-    let labelOnImageTitle = '';
-    let labelOnImageDescription = '';
+    let iconID;
+    let exampleTypeLabel;
+    let labelOnImageTitle;
+    let labelOnImageDescription;
     if (slide.isExampleCorrect) {
       iconID = MissionStartTutorial.#SMILEYS[MissionStartTutorial.#EXAMPLE_TYPES.CORRECT];
       exampleTypeLabel = i18next.t('common:mission-start-tutorial.example-type-label-correct');

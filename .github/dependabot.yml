@@ -18,17 +18,36 @@ updates:
       npm-dependencies:
         patterns: ["*"]
     ignore:
-      # Frontend lint/test toolchain is owned by #2487 (sequenced with the ES5→ES6 migration) and not yet wired
-      # into CI, so major bumps here (eslint 7→10 flat-config, stylelint 13→17, jest 29→30, htmlhint 0.14→1.9)
-      # would break `make lint` the moment #2487 revives it. Un-ignore these as part of that work.
-      # (@playwright/test is deliberately NOT ignored: it's CI-wired from day one — the e2e-smoke job — and CI
-      # reinstalls matching browsers every run, so grouped monthly bumps + green auto-merge cover it.)
+      # Everything that supplies `error`-severity rules to a blocking `frontend` step, plus the jsdom suite: a
+      # *major* here turns the build red rather than merely nagging, so majors stay a human decision while minors
+      # and patches auto-merge. That includes the rule *providers*, not just the runners — @stylistic/eslint-plugin
+      # alone contributes ~50 of the ESLint gate's rules via configs.customize(). `@eslint/js` is version-locked to
+      # eslint's major and has to move in the same PR it does: bumped alone it yields an unresolvable tree (#5106
+      # took it to 10 against eslint ^9; npm install died with ERESOLVE and nothing installed at all, surfacing
+      # downstream as `jest: not found`). `@eslint/json` is *not* so locked — its 2.x supports eslint 9 and 10 —
+      # and is here only because it gates 63 locale files.
       - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@eslint/js"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@eslint/json"
+        update-types: ["version-update:semver-major"]
       - dependency-name: "htmlhint"
+        update-types: ["version-update:semver-major"]
       - dependency-name: "jest"
+        update-types: ["version-update:semver-major"]
       - dependency-name: "jest-environment-jsdom"
+        update-types: ["version-update:semver-major"]
       - dependency-name: "stylelint"
+        update-types: ["version-update:semver-major"]
       - dependency-name: "stylelint-config-standard"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@stylistic/eslint-plugin"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@stylistic/stylelint-plugin"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "stylelint-plugin-use-baseline"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: "/"
@@ -61,3 +80,13 @@ updates:
     groups:
       pip-dependencies:
         patterns: ["*"]
+    ignore:
+      # requirements.txt is frozen at the last releases that install on Python 3.8 — the interpreter the deployed app
+      # shells out to for in-band clustering (docs/upgrading-libraries.md). scipy and haversine appear *only* in that
+      # file, so a bump is always wrong and always fails CI (#5108). pandas and requests stay watched despite being
+      # frozen there too: they're shared with requirements-offline-tools.txt (3.13), Dependabot's pip updater can't
+      # scope an ignore to one requirements file, and an ignore would suppress that file's security PRs as well.
+      # Retiring 3.8 (#4385) is what actually ends the monthly noise — and is the only way to clear
+      # GHSA-gc5v-m9x4-r6x2, whose fix (requests 2.33.0) declares requires_python >= 3.10.
+      - dependency-name: "scipy"
+      - dependency-name: "haversine"

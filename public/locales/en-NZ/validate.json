@@ -58,9 +58,9 @@
     }
   },
   "mission-complete": {
-    "body-1": "You just validated {{n}} Drop Kerb labels.",
-    "body-2": "You just validated {{n}} Missing Drop Kerb labels.",
-    "body-7": "You just validated {{n}} No Footpath labels.",
-    "body-9": "You just validated {{n}} Marked Pedestrian Crossing labels."
+    "body-CurbRamp": "You just validated {{n}} Drop Kerb labels.",
+    "body-NoCurbRamp": "You just validated {{n}} Missing Drop Kerb labels.",
+    "body-NoSidewalk": "You just validated {{n}} No Footpath labels.",
+    "body-Crosswalk": "You just validated {{n}} Marked Pedestrian Crossing labels."
   }
 }

@@ -68,7 +68,7 @@
         const clusters = await this.fetchClustersByRegionId(regionData.properties.region_id);
         this.displayClustersOnMap(map, clusters);
       } catch (error) {
-        container.innerHTML = `<div class="message message-error">Failed to load label clusters: `
+        container.innerHTML = `<div class="message message-error" role="alert">Failed to load label clusters: `
           + `${error.message}</div>`;
         console.error('Label clusters preview error:', error);
         // The failure is already surfaced in the container above, and init() is fire-and-forget at every call
@@ -148,6 +148,7 @@
       if (!clusters.features || clusters.features.length === 0) {
         const noClustersDiv = document.createElement('div');
         noClustersDiv.className = 'map-message';
+        noClustersDiv.setAttribute('role', 'status');
         noClustersDiv.textContent = 'No label clusters found in this region.';
         map.getContainer().appendChild(noClustersDiv);
         return;

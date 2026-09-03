@@ -106,7 +106,7 @@
      */
     showErrorState(container, error) {
       container.innerHTML = `
-        <div class="validation-error">
+        <div class="validation-error" role="alert">
           Failed to load validation data: ${error.message}
         </div>
       `;
@@ -127,8 +127,8 @@
         .then((data) => {
           if (data && data.label_types && Array.isArray(data.label_types)) {
             data.label_types.forEach((labelType) => {
-              labelTypeColors[labelType.id] = labelType.color;
-              labelTypeMapping[labelType.id] = labelType.display_name;
+              labelTypeColors[labelType.name] = labelType.color;
+              labelTypeMapping[labelType.name] = labelType.display_name;
             });
           }
           return data;
@@ -182,22 +182,21 @@
     },
 
     /**
-     * Group validations by label type ID.
+     * Group validations by label type.
      * @param {Array} validationsData - Array of validation objects
-     * @returns {object} Object with label type IDs as keys and aggregated data as values
+     * @returns {object} Object with label type names as keys and aggregated data as values
      */
     groupValidationsByType(validationsData) {
       const validationsByType = {};
 
       validationsData.forEach((validation) => {
-        const typeId = validation.label_type_id;
         const typeName = validation.label_type;
 
-        if (!validationsByType[typeId]) {
-          validationsByType[typeId] = {
+        if (!validationsByType[typeName]) {
+          validationsByType[typeName] = {
             name: typeName,
-            displayName: labelTypeMapping[typeId] || typeName,
-            color: labelTypeColors[typeId] || ApiDocsTheme.color('--color-neutral-500'),
+            displayName: labelTypeMapping[typeName] || typeName,
+            color: labelTypeColors[typeName] || ApiDocsTheme.color('--color-neutral-500'),
             agree: 0,
             disagree: 0,
             unsure: 0,
@@ -207,13 +206,13 @@
         // Count validation results.
         switch (validation.validation_result) {
           case 'Agree':
-            validationsByType[typeId].agree++;
+            validationsByType[typeName].agree++;
             break;
           case 'Disagree':
-            validationsByType[typeId].disagree++;
+            validationsByType[typeName].disagree++;
             break;
           case 'Unsure':
-            validationsByType[typeId].unsure++;
+            validationsByType[typeName].unsure++;
             break;
         }
       });
@@ -324,14 +323,9 @@
       canvasContainer.className = 'chart-canvas-container';
       chartContainer.appendChild(canvasContainer);
 
-      // Calculate total for percentages.
+      // NaN in the tooltips unless filterAndSortTypes kept this above zero, which it does for any
+      // config.minValidationsToShow of 1 or more.
       const total = typeData.agree + typeData.disagree + typeData.unsure;
-
-      if (total === 0) {
-        // No validations for this type.
-        canvasContainer.innerHTML = '<div class="chart-empty-state">No validations</div>';
-        return;
-      }
 
       // Create canvas.
       const canvas = document.createElement('canvas');

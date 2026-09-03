@@ -5,6 +5,7 @@
 package models.api
 
 import models.api.ApiModelUtils.escapeCsvField
+import models.label.LabelTypeEnum
 import models.utils.CommonUtils.UiSource.UiSource
 import play.api.libs.json.{JsObject, Json}
 
@@ -15,7 +16,7 @@ import java.time.OffsetDateTime
  *
  * @param labelId        Only edits to this label
  * @param userId         Only edits made by this user
- * @param labelTypeId    Only edits to labels of this type
+ * @param labelType      Only edits to labels of this type
  * @param editTimestamp  Only edits made at or after this time
  * @param source         Only edits made in this interface (UiSource), e.g. Validate, LabelMap, GalleryExpanded
  * @param withValidation True for only edits submitted with a validation, false for only standalone edits
@@ -23,7 +24,7 @@ import java.time.OffsetDateTime
 case class LabelEditFiltersForApi(
     labelId: Option[Int] = None,
     userId: Option[String] = None,
-    labelTypeId: Option[Int] = None,
+    labelType: Option[LabelTypeEnum.Base] = None,
     editTimestamp: Option[OffsetDateTime] = None,
     source: Option[UiSource] = None,
     withValidation: Option[Boolean] = None
@@ -34,8 +35,7 @@ case class LabelEditFiltersForApi(
  *
  * @param labelEditId       Unique identifier for the edit
  * @param labelId           The edited label
- * @param labelTypeId       Type ID of the edited label
- * @param labelType         Type name of the edited label
+ * @param labelType         Type of the edited label (e.g. "CurbRamp")
  * @param userId            Who made the edit (the labeler, a validator, or an admin)
  * @param oldSeverity       Severity before the edit
  * @param newSeverity       Severity after the edit
@@ -48,7 +48,6 @@ case class LabelEditFiltersForApi(
 case class LabelEditDataForApi(
     labelEditId: Int,
     labelId: Int,
-    labelTypeId: Int,
     labelType: String,
     userId: String,
     oldSeverity: Option[Int],
@@ -64,7 +63,6 @@ case class LabelEditDataForApi(
     Json.obj(
       "label_edit_id"       -> labelEditId,
       "label_id"            -> labelId,
-      "label_type_id"       -> labelTypeId,
       "label_type"          -> labelType,
       "user_id"             -> userId,
       "old_severity"        -> oldSeverity,
@@ -82,7 +80,6 @@ case class LabelEditDataForApi(
     val fields = Seq(
       labelEditId.toString,
       labelId.toString,
-      labelTypeId.toString,
       escapeCsvField(labelType),
       escapeCsvField(userId),
       oldSeverity.map(_.toString).getOrElse(""),
@@ -100,6 +97,6 @@ case class LabelEditDataForApi(
 object LabelEditDataForApi {
 
   /** CSV header, in the same order as `toCsvRow`. */
-  val csvHeader: String = "label_edit_id,label_id,label_type_id,label_type,user_id,old_severity,new_severity," +
+  val csvHeader: String = "label_edit_id,label_id,label_type,user_id,old_severity,new_severity," +
     "old_tags,new_tags,source,edit_time,label_validation_id\n"
 }

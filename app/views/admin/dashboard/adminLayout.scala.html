@@ -1,4 +1,4 @@
-@import models.user.SidewalkUserWithRole
+@import models.user.{Role, SidewalkUserWithRole}
 @import service.CommonPageData
 @(activePage: String, commonData: CommonPageData, user: SidewalkUserWithRole)(content: Html)(implicit request: RequestHeader, assets: AssetsFinder)
 
@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="@assets.path("css/pages/admin-dashboard.css")">
 
 <div class="page-container">
-  @admin.dashboard._sidebar(activePage, user.role == "Owner")
+  @admin.dashboard._sidebar(activePage, user.role == Role.Owner)
 
   <main class="page-content">
     @admin.dashboard._deploymentInfo(commonData)

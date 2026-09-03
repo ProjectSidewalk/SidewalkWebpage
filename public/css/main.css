@@ -121,15 +121,13 @@
 
   --color-error-100: #F47178;
   --color-error-200: #ED1C24;
+  --color-error-300: color-mix(in srgb, var(--color-error-200) 78%, black); /* Needed for accessibility compliance. */
 
   --color-warning-100: #FFEF92;
   --color-warning-200: #FFDE24;
 
   --color-link-100: #3E8BD9;
-
-  /* Sits in the band a text link needs to go without an underline (WCAG 1.4.1): 4.5:1 on white and 3.5:1 against
-     neutral-900 body text. Darker blues clear white by more but drop under 3:1 against the text. */
-  --color-link-200: #0D6EFD;
+  --color-link-200: #0A58CA;
 
   /* Project Sidewalk label-type color palette. The canonical color for each accessibility label type. */
   --color-label-curb-ramp: var(--color-lime-500);
@@ -322,8 +320,12 @@ footer {
 /*
  * Accessibility styling updates.
  */
+
+/* A hairline sitting clear of the descenders, rather than the browser's thick baseline-hugging default. */
 a {
   color: var(--color-link-200);
+  text-decoration-thickness: calc(1px * var(--ui-scale, 1));
+  text-underline-offset: calc(2px * var(--ui-scale, 1));
 }
 
 /* Replacing bootstrap 3 colors with bootstrap 5, which have a better color contrast. */
@@ -470,8 +472,10 @@ textarea.ps-input {
   outline-offset: 1px;
 }
 
+/* :read-only matches any non-editable control, a file input included — exempt it, or the picker would always wear
+   the greyed-out fill this rule is meant to give a locked text field. */
 .ps-input:disabled,
-.ps-input:read-only,
+.ps-input:read-only:not([type="file"]),
 .ps-select:disabled {
   background-color: var(--color-neutral-100);
   color: var(--color-neutral-600);
@@ -1286,7 +1290,6 @@ kbd {
   font-weight: 600;
   color: var(--color-link-200);
   text-decoration: underline;
-  text-underline-offset: 2px;
   overflow-wrap: anywhere;
 }
 

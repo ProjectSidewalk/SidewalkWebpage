@@ -60,7 +60,8 @@
         await this.renderMap(container, regions);
       } catch (error) {
         console.error('Error rendering AccessScore regions preview:', error);
-        container.innerHTML = '<div class="map-message">Unable to load AccessScore data for the preview.</div>';
+        container.innerHTML = '<div class="map-message" role="alert">Unable to load AccessScore data '
+          + 'for the preview.</div>';
       }
     },
 
@@ -181,6 +182,7 @@
     addNoDataMessage(map, text) {
       const div = document.createElement('div');
       div.className = 'map-message';
+      div.setAttribute('role', 'status');
       div.textContent = text;
       map.getContainer().appendChild(div);
     },

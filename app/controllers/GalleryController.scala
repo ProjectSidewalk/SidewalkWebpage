@@ -65,9 +65,7 @@ class GalleryController @Inject() (
         val regionNames: Map[Int, String] = regions.map(r => r.regionId -> r.name).toMap
         // A tag only survives from the URL if it belongs to a label type being shown, in this city.
         val possibleTags: Seq[String] = allTags
-          .filter(t =>
-            labTypes.isEmpty || LabelTypeEnum.labelTypeIdToLabelType.get(t.labelTypeId).exists(labTypes.contains)
-          )
+          .filter(t => labTypes.isEmpty || labTypes.contains(t.labelType.name))
           .map(_.tag)
 
         // Make sure that list of region IDs, severities, and validation options are formatted correctly.
@@ -121,7 +119,7 @@ class GalleryController @Inject() (
         val n: Int = submission.n
         // An empty set of types means "every type", which is what the landing grid and the Gallery's default ask for.
         val labelTypes: Set[LabelTypeEnum.Base] =
-          submission.labelTypeIds.getOrElse(Seq()).flatMap(LabelTypeEnum.byId.get).toSet
+          submission.labelTypes.getOrElse(Seq()).flatMap(LabelTypeEnum.byName.get).toSet
         val loadedLabels: Set[Int]       = submission.loadedLabels.toSet
         val valOptions: Set[String]      = submission.validationOptions.getOrElse(Seq()).toSet
         val regionIds: Set[Int]          = submission.regionIds.getOrElse(Seq()).toSet

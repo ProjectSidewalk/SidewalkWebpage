@@ -1,6 +1,7 @@
 package controllers
 
 import models.label.LabelMetadata
+import models.user.Role
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
@@ -38,8 +39,8 @@ class AdminLabelPageSpec extends PlaySpec with RoleSession with GuiceOneAppPerSu
       .headOption
       .map((l: LabelMetadata) => l.labelId)
 
-  private lazy val visitorCookies: Seq[Cookie] = sessionAs("Registered")
-  private lazy val adminCookies: Seq[Cookie]   = sessionAs("Administrator")
+  private lazy val visitorCookies: Seq[Cookie] = sessionAs(Role.Registered)
+  private lazy val adminCookies: Seq[Cookie]   = sessionAs(Role.Administrator)
 
   private def as(cookies: Seq[Cookie], path: String) = route(app, FakeRequest(GET, path).withCookies(cookies: _*)).get
 

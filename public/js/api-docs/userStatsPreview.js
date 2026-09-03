@@ -95,7 +95,8 @@
             });
         })
         .catch((error) => {
-          container.innerHTML = `<div class="message message-error">Failed to load data: ${error.message}</div>`;
+          container.innerHTML = `<div class="message message-error" role="alert">Failed to load data: `
+            + `${error.message}</div>`;
           console.error('User stats preview error:', error);
           // The failure is already surfaced in the container above, and init() is fire-and-forget at every call
           // site (app/views/apiDocs/*), so re-rejecting here can only ever become an unhandled rejection.
@@ -268,6 +269,16 @@
      * @param {Array} topUsers - Array of top users data
      */
     createTopContributorsChart(container, topUsers) {
+      // No users yet is an ordinary state for a young deployment; an empty set of axes reads as a broken preview.
+      if (!topUsers.length) {
+        const emptyMsg = document.createElement('div');
+        emptyMsg.textContent = 'No user contributions yet.';
+        emptyMsg.className = 'message message-info';
+        emptyMsg.setAttribute('role', 'status');
+        container.appendChild(emptyMsg);
+        return;
+      }
+
       // Create canvas for the chart.
       const canvas = document.createElement('canvas');
       canvas.width = container.offsetWidth;
@@ -349,12 +360,22 @@
       canvas.height = container.offsetHeight;
       container.appendChild(canvas);
 
-      // Check for valid data structure.
-      if (!topUsers.length || !topUsers[0].stats_by_label_type) {
+      // No users yet is an ordinary state for a young deployment, not a fault; only a user row missing its
+      // label-type breakdown means the response shape is actually wrong.
+      if (!topUsers.length) {
+        const emptyMsg = document.createElement('div');
+        emptyMsg.textContent = 'No user contributions yet.';
+        emptyMsg.className = 'message message-info';
+        emptyMsg.setAttribute('role', 'status');
+        container.appendChild(emptyMsg);
+        return;
+      }
+      if (!topUsers[0].stats_by_label_type) {
         console.error('User data doesn\'t have the expected structure for label types');
         const errorMsg = document.createElement('div');
         errorMsg.textContent = 'Unable to render chart: Invalid data structure';
-        errorMsg.className = 'message message-info';
+        errorMsg.className = 'message message-error';
+        errorMsg.setAttribute('role', 'alert');
         container.appendChild(errorMsg);
         return;
       }
@@ -452,6 +473,7 @@
       if (!accuracyData || accuracyData.length === 0) {
         const errorMsg = document.createElement('div');
         errorMsg.className = 'preview-note';
+        errorMsg.setAttribute('role', 'status');
         errorMsg.textContent = 'No users with sufficient validation data available';
         container.appendChild(errorMsg);
         return;

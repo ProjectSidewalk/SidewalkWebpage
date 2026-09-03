@@ -23,9 +23,8 @@ class ModalMissionComplete {
       // If there is a new validate mission available, we should show the mission screens.
       const newMission = svv.missionContainer.getCurrentMission();
       if (newMission && newMission.getProperty('missionType') === 'validation') {
-        const labelTypeID = newMission.getProperty('labelTypeId');
         new MissionStartTutorial(
-          'validate', svv.labelTypes[labelTypeID],
+          'validate', newMission.getProperty('labelType'),
           { nLabels: newMission.getProperty('labelsValidated') }, svv, this.#language,
         );
       }
@@ -109,7 +108,7 @@ class ModalMissionComplete {
     }
     const totalLabels = mission.getProperty('agreeCount') + mission.getProperty('disagreeCount')
       + mission.getProperty('unsureCount');
-    const message = i18next.t(`mission-complete.body-${mission.getProperty('labelTypeId')}`, { n: totalLabels });
+    const message = i18next.t(`mission-complete.body-${mission.getProperty('labelType')}`, { n: totalLabels });
 
     // Disable user from clicking the 'Validate next mission' button and set background to gray. When we have a new
     // mission from the back end, nextMissionLoaded() will be called from Form.js to re-enable the button.
@@ -122,7 +121,7 @@ class ModalMissionComplete {
     this.#uiModalMissionComplete.missionTitle.html(i18next.t('mission-complete.title'));
     this.#uiModalMissionComplete.message.html(message);
     // Mobile shows the mission's label type beside that sentence; the element is absent on desktop.
-    const labelType = svv.labelTypes[mission.getProperty('labelTypeId')];
+    const labelType = mission.getProperty('labelType');
     this.#uiModalMissionComplete.labelIcon
       .css('background-image', `url("${util.misc.getIconImagePaths(labelType).iconImagePath}")`);
     this.#uiModalMissionComplete.agreeCount.html(mission.getProperty('agreeCount'));
@@ -158,7 +157,7 @@ class ModalMissionComplete {
       {
         missionId: mission.getProperty('missionId'),
         missionType: mission.getProperty('missionType'),
-        labelTypeId: mission.getProperty('labelTypeId'),
+        labelType: mission.getProperty('labelType'),
         labelsValidated: mission.getProperty('labelsValidated'),
       },
     );

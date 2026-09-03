@@ -312,6 +312,27 @@ util.isMetric = () => document.documentElement.dataset.measurementSystem === 'me
 util.turfDistanceUnits = () => (util.isMetric() ? 'kilometers' : 'miles');
 
 /**
+ * Resolves a public asset's logical path to the URL to load it from (#4893).
+ *
+ * Staged/prod builds content-fingerprint every asset (sbt-digest writes an `<md5>-<name>` copy beside the original,
+ * served with a year-long immutable cache), and main.scala.html stamps `window.assetDigests` with the digests for
+ * the families JS references. Returns the fingerprinted URL when the stamp has an entry, otherwise the plain
+ * `/assets/<path>` — byte-identical to the historical hardcoded form — so dev mode (`sbt run` builds no digests),
+ * jsdom tests, and files the pipeline missed behave exactly as before. Never hardcode `/assets/...` in JS;
+ * tools/check-asset-paths.mjs enforces this.
+ *
+ * @param {string} logicalPath - Path under public/, e.g. 'images/icons/openhand.cur'. No leading slash, no
+ *                               '/assets/' prefix.
+ * @returns {string} A URL beginning with '/assets/'.
+ */
+util.assetPath = function (logicalPath) {
+  const digest = window.assetDigests?.[logicalPath];
+  if (typeof digest !== 'string') return `/assets/${logicalPath}`;
+  const cut = logicalPath.lastIndexOf('/') + 1;
+  return `/assets/${logicalPath.slice(0, cut)}${digest}-${logicalPath.slice(cut)}`;
+};
+
+/**
  * This reader's distance words: `unitAbbr` ("km"), `unitAbbrSmall` ("m"), `unitName` ("kilometers"), and
  * `unitNameSingular` ("kilometer"), translated and resolved for their measurement system by the server.
  *

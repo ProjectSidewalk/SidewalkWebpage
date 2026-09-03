@@ -160,6 +160,7 @@ class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
     "resolve a valid in-range location via getLabelLatLng for labels that have one" in {
       // Backs the spotlight minimap centering (#456). Real recent labels carry a label_point location, so at least one
       // of a small sample must resolve, and every resolved coordinate must be geographically in range.
+      assume(recentLabels.nonEmpty, "No labels in the connected test DB; cannot exercise the valid-label path.")
       val locations =
         recentLabels.take(10).flatMap(l => Await.result(labelService.getLabelLatLng(l.labelId), 30.seconds))
       locations must not be empty

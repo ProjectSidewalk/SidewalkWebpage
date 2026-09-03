@@ -25,7 +25,8 @@ class ApplicationController @Inject() (
     userService: UserService,
     streetService: StreetService,
     labelService: LabelService,
-    validationService: ValidationService
+    validationService: ValidationService,
+    partnerService: PartnerService
 )(implicit ec: ExecutionContext, assets: AssetsFinder)
     extends CustomBaseController(cc) {
   implicit val implicitConfig: Configuration = config
@@ -77,6 +78,8 @@ class ApplicationController @Inject() (
           cc.loggingService.insert(user.map(_.userId), ipAddress, "Visit_Index", timestamp)
           // Get names and URLs for other cities so we can link to them on landing page.
           val metric: Boolean = ControllerUtils.isMetric
+          // Kicked off eagerly so it overlaps the queries below rather than adding a serial round trip.
+          val partnersFuture = partnerService.getPartnersForLanding
           for {
             commonData                   <- configService.getCommonPageData(request2Messages.lang)
             openStatus: String           <- configService.getOpenStatus
@@ -85,6 +88,7 @@ class ApplicationController @Inject() (
             streetDist: Double           <- streetService.getTotalStreetDistance(metric)
             labelCount: Int              <- labelService.countLabels
             valCount: Int                <- validationService.countHumanValidations
+            partners                     <- partnersFuture
           } yield {
             Ok(
               views.html.index(
@@ -96,7 +100,8 @@ class ApplicationController @Inject() (
                 streetDist,
                 auditedDist,
                 labelCount,
-                valCount
+                valCount,
+                partners
               )
             )
           }
@@ -107,10 +112,13 @@ class ApplicationController @Inject() (
   def mobileLanding = cc.securityService.UserAwareAction { implicit request =>
     val user: Option[SidewalkUserWithRole] = request.identity
     cc.loggingService.insert(user.map(_.userId), request.ipAddress, "Visit_MobileLanding")
+    // Kicked off eagerly so it overlaps the queries below rather than adding a serial round trip.
+    val partnersFuture = partnerService.getPartnersForLanding
     for {
       commonData      <- configService.getCommonPageData(request2Messages.lang)
       labelCount: Int <- labelService.countLabels
       valCount: Int   <- validationService.countHumanValidations
+      partners        <- partnersFuture
     } yield {
       Ok(
         views.html.mobileLanding(
@@ -118,7 +126,8 @@ class ApplicationController @Inject() (
           commonData,
           user,
           labelCount,
-          valCount
+          valCount,
+          partners
         )
       )
     }
@@ -139,16 +148,6 @@ class ApplicationController @Inject() (
 
       // Update the cookie and redirect.
       Future.successful(Redirect(url).withLang(Lang(newLang)))
-  }
-
-  /**
-   * Returns a help  page.
-   */
-  def help = cc.securityService.UserAwareAction { implicit request =>
-    configService.getCommonPageData(request2Messages.lang).map { commonData =>
-      cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_Help")
-      Ok(views.html.help(commonData, Messages("seo.title.help"), request.identity))
-    }
   }
 
   /**

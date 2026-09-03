@@ -1,6 +1,6 @@
 @import formats.json.MissionFormats._
 @import formats.json.ExploreFormats._
-@import models.user.SidewalkUserWithRole
+@import models.user.{Role, SidewalkUserWithRole}
 @import play.api.Configuration
 @import play.api.libs.json.Json
 @import service.{CommonPageData, ExplorePageData}
@@ -812,7 +812,7 @@
         </div>
       </div>
       <div class="tutorial-intro__links">
-        @if(user.role == "Anonymous") {
+        @if(user.role == Role.Anonymous) {
           <p>
             <span data-i18n="audit:tutorial-intro.have-account"></span>
             <a href="@routes.UserController.signIn()" data-au-open="signIn" class="tutorial-intro__link" data-i18n="audit:tutorial-intro.sign-in"></a>
@@ -873,7 +873,6 @@
   <script src='@assets.path("js/explore/build/explore.js")'></script>
   <script src='@assets.path("js/ps-map/build/ps-map.js")'></script>
   <script src='@assets.path("vendor/kinetic/kinetic-v4.4.3.min.js")'></script>
-  <script src='@assets.path("vendor/d3/d3-3.5.6.js")'></script>
 
   <script src='@assets.path("vendor/turf/turf-7.3.4.min.js")'></script>
   <script src='@assets.path("vendor/async-lock/async-lock-1.4.1.min.js")'></script>
@@ -953,8 +952,6 @@
     }
 
     mainParam.dataStoreUrl = '@routes.ExploreController.post';
-    mainParam.imageDirectory = "@assets.path("images/explore/")";
-    mainParam.audioDirectory = "@assets.path("audio/")";
 
     mainParam.user = {
       username: @jsonForScript(user.username),

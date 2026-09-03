@@ -92,7 +92,7 @@
     <h2 class="page-heading" id="query-parameters">Query Parameters<a href="#query-parameters" class="permalink">#</a></h2>
     <p>All parameters are optional.</p>
     <p>Note: When multiple location filters are provided (<code>bbox</code>, <code>regionId</code>, and <code>regionName</code>), <code>bbox</code> takes precedence over region filters, and <code>regionId</code> takes precedence over <code>regionName</code>.</p>
-    <div class="ps-table-wrapper">
+    <div class="ps-table-wrapper" tabindex="0" role="region" aria-labelledby="query-parameters">
       <table class="ps-table">
         <thead>
           <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
@@ -151,7 +151,7 @@
         "total_street_count": 52,
         "avg_cluster_counts": {
           "CurbRamp": 2.1, "NoCurbRamp": 0.3, "Obstacle": 0.4, "SurfaceProblem": 0.6,
-          "NoSidewalk": 0.5, "Crosswalk": 0.9, "Signal": 0.1
+          "Crosswalk": 0.9, "Signal": 0.1, "NoSidewalk": 0.5
         }
       }
     },
@@ -160,7 +160,7 @@
 }</code></pre>
 
     <h5 id="geojson-fields">GeoJSON Field Descriptions <a href="#geojson-fields" class="permalink">#</a></h5>
-    <div class="ps-table-wrapper">
+    <div class="ps-table-wrapper" tabindex="0" role="region" aria-labelledby="geojson-fields">
       <table class="ps-table">
         <thead>
           <tr><th class="api-field-col">Field Path</th><th class="api-type-col">Type</th><th class="api-desc-col">Description</th></tr>
@@ -180,8 +180,8 @@
 
     <h4 id="response-csv">CSV Format <a href="#response-csv" class="permalink">#</a></h4>
     <p>If <code>filetype=csv</code>, the first row is the header. The per-type <code>avg_cluster_counts</code> are flattened into one <code>avg_n_*</code> column per label type, and the geometry is simplified to the region centroid.</p>
-    <pre tabindex="0"><code class="language-csv">region_id,name,score,coverage,audited_street_count,total_street_count,avg_n_curb_ramp,avg_n_no_curb_ramp,avg_n_obstacle,avg_n_surface_problem,avg_n_no_sidewalk,avg_n_crosswalk,avg_n_signal,center_point
-8,Terhune Park,0.5623,1.0,52,52,2.1,0.3,0.4,0.6,0.5,0.9,0.1,"-74.012,40.895"
+    <pre tabindex="0"><code class="language-csv">region_id,name,score,coverage,audited_street_count,total_street_count,avg_n_curb_ramp,avg_n_no_curb_ramp,avg_n_obstacle,avg_n_surface_problem,avg_n_crosswalk,avg_n_signal,avg_n_no_sidewalk,center_point
+8,Terhune Park,0.5623,1.0,52,52,2.1,0.3,0.4,0.6,0.9,0.1,0.5,"-74.012,40.895"
 ...</code></pre>
 
     <h4 id="response-shapefile">Shapefile Format <a href="#response-shapefile" class="permalink">#</a></h4>

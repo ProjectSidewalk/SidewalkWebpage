@@ -2737,3 +2737,152 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
 .mini-swatch--skipped { background: var(--color-neutral-400); }
 .mini-swatch--flagged { background: var(--priority-reaudit, #d55e00); }
 .mini-swatch--unflagged { background: var(--color-pine-600); }
+
+/* --- Partners: community-partner logo manager (#4516) --------------------------------------------------------- */
+
+.partners-status {
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+}
+
+.partners-list {
+  margin: var(--space-md) 0;
+}
+
+.partners-empty {
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+}
+
+.partners-owner-note {
+  font: var(--text-small-bold);
+  color: var(--color-neutral-700);
+}
+
+.partners-row {
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr) 220px;
+  gap: 14px;
+  align-items: center;
+  padding: 12px 0;
+  border-top: 1px solid var(--color-neutral-200);
+}
+
+/* The neutral backing keeps white-on-transparent logos visible. */
+.partners-row-thumb {
+  width: 100%;
+  height: 56px;
+  object-fit: contain;
+  background: var(--color-neutral-100);
+  border-radius: var(--border-radius);
+  padding: 4px;
+}
+
+.partners-row-name {
+  font: var(--text-body-bold);
+  overflow-wrap: anywhere;
+}
+
+.partners-row-url {
+  font: var(--text-small-regular);
+  overflow-wrap: anywhere;
+}
+
+.partners-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+/* Rows use the design system's secondary buttons; there's no destructive variant, so tint Delete with the error
+   token (the :hover re-assert wins the cascade over .button--secondary:hover, which would otherwise reset the
+   color; :focus deliberately keeps the system's banana ring). */
+.partners-row-btn--danger,
+.partners-row-btn--danger:hover {
+  color: var(--color-error-200);
+  outline-color: var(--color-error-200);
+}
+
+.partners-add-form {
+  margin-top: var(--space-lg);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--color-neutral-200);
+}
+
+.partners-form-heading {
+  font: var(--text-body-bold);
+  margin: 0 0 var(--space-sm);
+}
+
+.partners-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-sm) var(--space-md);
+}
+
+.partners-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.partners-form-label {
+  font: var(--text-small-medium);
+  margin-bottom: 0; /* Bootstrap 3 gives every <label> a bottom margin. */
+}
+
+/* The logo picker is the one control on this page the browser draws itself: the field takes the .ps-input box like
+   its neighbors -- on tighter padding, so the button it wraps doesn't make it taller than the fields beside it --
+   and the picker button is dressed as a .button--secondary so it reads as one of our buttons. */
+.partners-file-input {
+  padding: 3px 4px;
+}
+
+.partners-file-input::file-selector-button {
+  font: var(--text-caption-medium);
+  color: var(--color-neutral-900);
+  background: var(--color-neutral-white) 10px center / 14px no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cg fill='none' stroke='%23242424' stroke-width='1.4' stroke-linejoin='round'%3E%3Crect x='1.5' y='2.5' width='13' height='11' rx='1.5'/%3E%3Cpath d='M1.5 10.5 5 7.5l3 2.5 2.5-2 4 3.5'/%3E%3C/g%3E%3Ccircle cx='5.4' cy='6' r='1.1' fill='%23242424'/%3E%3C/svg%3E");
+  border: none;
+  outline: 1px solid var(--color-neutral-800);
+  border-radius: 8px;
+  padding: 3px 12px 3px 30px;
+  margin-right: var(--space-sm);
+  cursor: pointer;
+  transition: background-color 0.4s ease 0s;
+}
+
+.partners-file-input::file-selector-button:hover {
+  background-color: var(--color-banana-200);
+}
+
+.partners-form-actions {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+}
+
+/* .button-ps's display: inline-flex outranks the UA/Bootstrap [hidden] rule, so re-assert it. */
+.partners-cancel-edit[hidden] {
+  display: none;
+}
+
+.partners-form-error {
+  font: var(--text-small-regular);
+  color: var(--color-error-200);
+  margin-top: var(--space-sm);
+}
+
+@media (width <= 900px) {
+  .partners-row {
+    grid-template-columns: 1fr;
+  }
+
+  .partners-row-actions {
+    justify-content: flex-start;
+  }
+
+  .partners-form-grid {
+    grid-template-columns: 1fr;
+  }
+}

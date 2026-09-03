@@ -146,14 +146,17 @@ orphans remain.
 The frontend i18next JSON under `public/locales/` is linted in CI (blocking steps in the `frontend` job — see
 [`docs/testing-and-ci.md`](testing-and-ci.md)), in two layers:
 
-- **Per-file** — `eslint-plugin-i18n-json` (configured in [`eslint.config.js`](../eslint.config.js)) checks each file
-  for JSON validity, **duplicate keys** (a plain `JSON.parse` silently keeps the last of a duplicated key, so a dup
-  translation is otherwise invisible), and empty values. Run with `make eslint`.
-- **Cross-locale key parity** — `tools/check-locale-parity.mjs` (`make lint-locales`) checks that every locale carries
-  the same keys as the `en` reference. It's i18next-aware where the ESLint plugin isn't: it **normalizes plural
-  suffixes** (`_one`/`_other`/… legitimately differ per language's CLDR plural rules) and treats the regional
-  (`en-US`/`en-NZ`) and per-city (`*-zurich`/`*-india`) overlays as **override-only** — they may hold a subset of keys,
-  so it flags only keys that are *absent from the reference* (typos / stale keys), never missing ones.
+- **Per-file** — `@eslint/json` (configured in [`eslint.config.js`](../eslint.config.js)) parses each file as JSON
+  and checks it for **duplicate keys** (a plain `JSON.parse` silently keeps the last of a duplicated key, so a dup
+  translation that overwrites a real one is otherwise invisible — nothing caught this before #5132), empty key names,
+  and unsafe numbers. Run with `make eslint`.
+- **Cross-locale key parity and empty values** — `tools/check-locale-parity.mjs` (`make lint-locales`) checks that
+  every locale carries the same keys as the `en` reference, and that no value is anything but a non-empty string
+  (i18next only falls back on an *absent* key, so an empty string renders as blank rather than falling back to `en`).
+  It's i18next-aware where a per-file JSON rule can't be: it **normalizes plural suffixes** (`_one`/`_other`/…
+  legitimately differ per language's CLDR plural rules) and treats the regional (`en-US`/`en-NZ`) and per-city
+  (`*-zurich`/`*-india`) overlays as **override-only** — they may hold a subset of keys, so it flags only keys that
+  are *absent from the reference* (typos / stale keys), never missing ones.
 
 So when you add or remove a translation key, add or remove it across **all** full locales (the parity check enforces
 this); the overlays need only the keys they actually change.
