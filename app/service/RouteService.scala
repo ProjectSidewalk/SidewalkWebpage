@@ -393,9 +393,23 @@ class RouteServiceImpl @Inject() (
   /**
    * Resolves a share slug to a route id: the current slug of a live route, or a retired slug still redirecting.
    *
+   * Tries the slug as it arrived, then its canonical fold, so a link retyped from the route's name rather than
+   * copied ("/r/Demo-for-Yochai" for the route "Demo for Yochai", #5150) still lands on the route.
+   *
    * @return None if the slug is unknown or its route has been soft-deleted.
    */
-  def resolveSlug(slug: String): Future[Option[Int]] =
+  def resolveSlug(slug: String): Future[Option[Int]] = {
+    val candidates: Seq[String] = Seq(slug, SlugUtils.canonicalizeForLookup(slug)).filter(_.nonEmpty).distinct
+    candidates.foldLeft(Future.successful(Option.empty[Int])) { (soFar, candidate) =>
+      soFar.flatMap {
+        case found @ Some(_) => Future.successful(found)
+        case None            => resolveExactSlug(candidate)
+      }
+    }
+  }
+
+  /** Resolves one exact slug against live routes, then against the retired slugs that still redirect. */
+  private def resolveExactSlug(slug: String): Future[Option[Int]] =
     db.run(routeTable.getRouteIdBySlug(slug)).flatMap {
       case Some(routeId) => Future.successful(Some(routeId))
       case None          =>

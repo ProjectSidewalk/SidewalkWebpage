@@ -381,6 +381,32 @@ class RouteBuilderControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
       status(route(app, FakeRequest(GET, s"/r/$slug1")).get) mustBe NOT_FOUND
       status(route(app, FakeRequest(GET, s"/r/$slug2")).get) mustBe NOT_FOUND
     }
+
+    // #5150: the link handed out during a demo was retyped from the route's name, so its casing missed the slug.
+    "resolve a link retyped from the route's name rather than copied" in {
+      val user                 = signUpFreshUser()
+      val (streetId, regionId) = anyStreet(user)
+      val tag                  = uniqueTag()
+
+      val saved = saveRoute(user, saveRouteBody(regionId, streetId, Some(s"Demo For Yochai $tag")))
+      status(saved) mustBe OK
+      val routeId = (contentAsJson(saved) \ "route_id").as[Int]
+      (contentAsJson(saved) \ "slug").as[String] mustBe s"demo-for-yochai-$tag"
+
+      // The third is the name itself, as a browser would encode it.
+      Seq(s"Demo-For-Yochai-$tag", s"demo-for-Yochai-$tag", s"Demo%20For%20Yochai%20$tag").foreach { typed =>
+        val visit = route(app, FakeRequest(GET, s"/r/$typed")).get
+        status(visit) mustBe FOUND
+        header(LOCATION, visit).get must include(s"/explore?routeId=$routeId")
+      }
+
+      // A retired slug redirects case-insensitively too.
+      status(putRoute(user, routeId, Json.obj("name" -> s"Renamed Walk $tag"))) mustBe OK
+      status(route(app, FakeRequest(GET, s"/r/Demo-For-Yochai-$tag")).get) mustBe FOUND
+
+      // Folding the URL must not turn an unknown slug into a hit.
+      status(route(app, FakeRequest(GET, s"/r/Demo%20For%20Nobody%20$tag")).get) mustBe NOT_FOUND
+    }
   }
 
   "GET /userapi/routes, PUT and DELETE /userapi/routes/:routeId" should {
