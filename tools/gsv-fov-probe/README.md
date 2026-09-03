@@ -93,14 +93,15 @@ cover integrity verification and offline re-analysis (`analyze.mjs <run-dir>` ne
 
 ### When to re-record
 
-Nothing in CI watches Google's renderer. `test/js/gsvFovContract.test.js` pins the *code* against the frozen
-fixture below, so it fails when `panoUtilities.js` stops agreeing with the recorded measurements — never
-because Google shipped a different projection. The signal for that is a product one: **Explore's label
-markers drifting away from their features at non-3:2 viewport shapes** (3:2 is where every hypothesis
-coincides, so a renderer change is invisible at production's current aspect). Re-record when that shows up,
-when a Maps release notes anything about the Street View renderer or FOV, and before any work that leans on
-these numbers at a new aspect. A re-record is the reproduce block above, end to end; the diff to review is
-`recorded/<date>/results.json` (verdict, clamp window, binding aspects) and the regenerated fixture.
+Nothing in CI watches Google's renderer. `test/js/gsvFovContract.test.js` is a blocking CI gate — it fails
+the build when `panoUtilities.js` stops agreeing with the recorded measurements — but what it gates is *our*
+code against a frozen fixture, never Google shipping a different projection. The signal for that is a product
+one: **Explore's label markers drifting away from their features at non-3:2 viewport shapes** (3:2 is where
+every hypothesis coincides, so a renderer change is invisible at production's current aspect). Re-record when
+that shows up, when a Maps release notes anything about the Street View renderer or FOV, and before any work
+that leans on these numbers at a new aspect. A re-record is the reproduce block above, end to end; the diff
+to review is `recorded/<date>/results.json` (verdict, clamp window, binding aspects) and the regenerated
+fixture.
 
 ## Method
 

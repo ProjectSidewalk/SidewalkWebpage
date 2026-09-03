@@ -782,15 +782,12 @@ class UserServiceImpl @Inject() (
             for {
               // Identifies the current city by the schema the connection actually reads, so the row marked "you're
               // here" is the one the hero KPIs above it were computed from.
-              // Both in one round trip; neither depends on the other.
-              (currentSchema, archiveSchemas) <- db.run(
-                userStatTable.currentSchema.zip(userStatTable.schemasWithVoidedValidationArchive)
-              )
+              currentSchema <- db.run(userStatTable.currentSchema)
               // That city's distance is recomputed live rather than read from the nightly user_stat value, so its row
               // matches the hero KPI exactly. Other cities keep the nightly value — recomputing geodesic lengths in a
               // 50-way union is what the cross-schema query exists to avoid.
               liveMeters <- db.run(auditTaskTable.getDistanceAudited(userId))
-              rows       <- db.run(userStatTable.getCrossCityUserStats(scope.map(_._2), archiveSchemas, userId))
+              rows       <- db.run(userStatTable.getCrossCityUserStats(scope.map(_._2), userId))
             } yield CrossCityFanOut(rows, currentSchema, liveMeters)
           }
           .map { fanOut =>

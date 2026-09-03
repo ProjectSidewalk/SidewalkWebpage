@@ -19,7 +19,6 @@ const SOURCE = fs.readFileSync(
     path.resolve(__dirname, '..', '..', 'public/js/common/BadgeAchievements.js'),
     'utf8'
 );
-// eslint-disable-next-line no-new-func
 const evalBadgeAchievements = () => new Function(`${SOURCE}; return BadgeAchievements;`)();
 const BadgeAchievements = evalBadgeAchievements();
 

@@ -8,8 +8,9 @@
  * stops agreeing with the recorded measurements, and a regenerated fixture whose verdict, clamp bounds, or
  * cells moved. What it does NOT catch: Google changing the renderer — every number here comes from the frozen
  * fixture, so renderer drift shows up only in a fresh probe run, and in production as markers drifting at
- * non-3:2 aspects. CI runs `npm run test:js` as an advisory `continue-on-error` step
- * (docs/testing-and-ci.md), so a failure here signals a human rather than blocking a merge.
+ * non-3:2 aspects. CI runs the jest suite as a blocking step in the `frontend` job
+ * (docs/testing-and-ci.md), so a code change that breaks the contract stops a merge — but nothing in CI
+ * watches Google's renderer, and a green run here is not evidence that it has not moved.
  */
 const fs = require('fs');
 const path = require('path');
@@ -257,7 +258,6 @@ describeWithFixture('GSV FOV contract (recorded fixture, #5083)', () => {
             path.resolve(__dirname, '..', '..', 'tools/gsv-fov-probe/analyze.mjs'), 'utf8');
         const match = src.match(/const zoomToFov = \(zoom\) =>\s*(\([^;]*?\));/);
         expect(match).not.toBeNull();
-        // eslint-disable-next-line no-new-func
         const analyzerCurve = new Function('zoom', `return ${match[1]};`);
         for (const zoom of [1, 2, 3]) {
             expect(analyzerCurve(zoom)).toBeCloseTo(pano.zoomToFov(zoom), 10);
