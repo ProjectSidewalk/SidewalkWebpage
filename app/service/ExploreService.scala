@@ -209,8 +209,9 @@ class ExploreServiceImpl @Inject() (
   ): Future[ExplorePageData] = {
     def getExploreDataAction = for {
       // Check if user has an active route or create a new one if routeId was supplied. If resumeRoute is false and no
-      // routeId was supplied, then the function should return None and the user is not sent on a specific route.
-      // However, region or street id params take precedence.
+      // routeId was supplied, then the function should return None and the user is not sent on a specific route. A
+      // routeId naming no live route is dropped and flagged for the page (#5156). Region or street id params take
+      // precedence over all of it.
       routeSetup: RouteWalkSetup <-
         if (regionId.isEmpty && streetEdgeId.isEmpty) {
           setUpPossibleUserRoute(routeId, userId, resumeRoute)
@@ -449,9 +450,10 @@ class ExploreServiceImpl @Inject() (
    * ?routeId=X&resumeRoute=false.
    *
    * A ?routeId= naming no live route is dropped instead of obeyed, so the session runs exactly as if none had been
-   * supplied, and the caller reports the drop (#5156). It must not reach the exit-route arm: that arm is the
-   * deliberate "leave my route" path, and letting a mistyped or since-deleted id land there paused a walk the user
-   * was legitimately in.
+   * supplied, and the caller reports the drop (#5156). What that buys is the pause: reaching the exit-route arm now
+   * takes an explicit resumeRoute=false, where before a mistyped or since-deleted id was enough on its own to end a
+   * walk the user was legitimately in. ?routeId=<unresolvable>&resumeRoute=false still pauses — the user spelled out
+   * the exit — and is hand-typed only, since nothing in the UI emits the pair.
    *
    * @param routeId     Route explicitly requested via ?routeId=, if any.
    * @param resumeRoute Whether an existing walk may be resumed (the ?resumeRoute= param; defaults to true).
@@ -469,7 +471,7 @@ class ExploreServiceImpl @Inject() (
       case Some(rId) => routeTable.getRoute(rId).map(_.isDefined)
       case None      => DBIO.successful(false)
     }).flatMap { routeExists =>
-      val resolvedRouteId: Option[Int] = routeId.filter(_ => routeExists)
+      val resolvedRouteId: Option[Int] = if (routeExists) routeId else None
       val setup: DBIO[RouteWalkSetup]  = (resolvedRouteId, resumeRoute) match {
         // Pause routes that don't match routeId, resume route with given routeId if it exists, o/w make a new one.
         case (Some(rId), true) =>
@@ -492,8 +494,8 @@ class ExploreServiceImpl @Inject() (
               userRouteTable.hasBeenWalked(walk.userRouteId).map(w => RouteWalkSetup(Some(walk), resumed = w))
             case None => DBIO.successful(RouteWalkSetup(None, resumed = false))
           }
-        // The "exit route" path (/explore?resumeRoute=false): pause old walks, return None. Reachable only with an
-        // explicit resumeRoute=false, which is the user asking to leave — never as the fallout of a bad routeId.
+        // The "exit route" path (/explore?resumeRoute=false): pause old walks, return None. A dropped routeId can
+        // reach this arm, but only alongside the explicit resumeRoute=false — never on the strength of the id alone.
         case (None, false) =>
           userRouteTable.pauseAllActiveRoutes(userId).map(_ => RouteWalkSetup(None, resumed = false))
       }
