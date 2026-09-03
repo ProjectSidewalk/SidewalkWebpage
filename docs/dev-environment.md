@@ -429,10 +429,66 @@ Roughly ordered by when you'd hit them during setup.
 | Errors after the computer was shut off mid-run (WSL) | Run `wsl --shutdown`; when Docker offers to restart WSL, accept. Otherwise restart Docker manually. |
 | Can't connect to the database | The db container may not be listening on all addresses. `make ssh target=db`, edit `/var/lib/postgresql/data/postgresql.conf`, set `listen_addresses = '*'`. |
 | `make` commands "just don't work" | Reinstall `make`. As a fallback, run the underlying command from the `Makefile` directly (e.g. `make ssh target=web` ≈ `docker exec -it projectsidewalk-web /bin/bash`). |
-| `relation "role" does not exist` while a schema is applying evolutions | That schema is behind evolution 372, which dropped the shared `sidewalk_login.role` lookup table. Evolutions 270, 295 and 355 read it, so a schema below any of them can no longer replay them and is stuck. Bring the schema forward from a dump that is already past 355, or re-import it — editing those old evolution files is *not* the fix, since Play would then revert every schema that already applied them. The committed template dumps are already past 372, so a newly onboarded city is unaffected; this only bites a city dump taken before 355. |
+| `relation "role" does not exist` while a schema is applying evolutions | That schema is behind evolution 372, which dropped the shared `sidewalk_login.role` lookup table that evolutions 270, 295, 337 and 355 all read. Recoverable with the data intact: [Recovering a schema stranded below evolution 372](#recovering-a-schema-stranded-below-evolution-372). |
 | A new `src/` JS file isn't bundled | Make sure its path matches a glob in `Gruntfile.js`. |
 | First compile seems stuck | It isn't — initial dependency resolution is genuinely slow. Watch the container logs. |
 | Compiles are slow on Apple Silicon | Your `projectsidewalk/web` image may predate [#5069](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/5069) and still be x86_64 — Compose reuses a locally tagged image instead of rebuilding it, so pulling that change alone doesn't help. Check with `docker image inspect projectsidewalk/web --format '{{.Architecture}}'` (expect `arm64`); if it says `amd64`, rebuild with `make docker-stop && docker compose build web`. Also make sure `platform` is commented out in your `docker-compose.override.yml`. |
+
+### Recovering a schema stranded below evolution 372
+
+Evolution 372 turned the shared `sidewalk_login.role` lookup table into an enum of the same name. Evolutions 270,
+295, 337 and 355 read that table, so once 372 has run for any one city, a schema below 356 can't replay them.
+
+Re-importing does **not** help: every committed city dump is at evolution 335 or below, so it lands in the same
+hole. Only `sidewalk_init-dump`, the empty template, is past 372. Editing the old evolution files isn't the fix
+either — Play would revert every schema that already applied them.
+
+What does work is giving the old evolutions the table they expect for the length of the replay. The conflict is
+only over the *name*: Postgres won't hold a table and an enum called `role` in one schema at once.
+
+1. Move `372.sql` and `373.sql` out of `conf/evolutions/default/`, so no city drops the table mid-replay.
+2. Park the enum and rebuild the lookup table. Evolution 295 also writes `user_role.role_id`, which 372 renamed and
+   retyped, and 355 joins on it, so it needs a populated shim — not just a placeholder:
+   ```sql
+   ALTER TYPE sidewalk_login.role RENAME TO role_parked;
+   CREATE TABLE sidewalk_login.role (role_id SERIAL PRIMARY KEY, role TEXT NOT NULL);
+   ALTER TABLE sidewalk_login.role OWNER TO sidewalk;
+   INSERT INTO sidewalk_login.role (role_id, role) VALUES
+     (1, 'Registered'), (2, 'Turker'), (3, 'Researcher'), (4, 'Administrator'), (5, 'Owner'),
+     (6, 'Anonymous'), (7, 'AI');
+   SELECT setval('sidewalk_login.role_role_id_seq', 7);
+   ALTER TABLE sidewalk_login.user_role ADD COLUMN role_id INT;
+   UPDATE sidewalk_login.user_role SET role_id = CASE role::TEXT
+     WHEN 'Registered' THEN 1 WHEN 'Turker' THEN 2 WHEN 'Researcher' THEN 3 WHEN 'Administrator' THEN 4
+     WHEN 'Owner' THEN 5 WHEN 'Anonymous' THEN 6 WHEN 'AI' THEN 7 END;
+   ```
+3. Boot the app once per stranded schema, which takes each to 371. Evolutions apply on the first request, so
+   `docker exec -e DATABASE_USER=<schema> -e SIDEWALK_CITY_ID=<city-id> projectsidewalk-web` a `sbt "run 9000"` and
+   `curl` it, one schema at a time.
+4. Undo step 2, in reverse. `CASCADE` clears the `survey_question` FKs that 337 re-added; 372 drops them itself on
+   the way past:
+   ```sql
+   DROP TABLE sidewalk_login.role CASCADE;
+   ALTER TABLE sidewalk_login.user_role DROP COLUMN role_id;
+   ALTER TYPE sidewalk_login.role_parked RENAME TO role;
+   ```
+5. Put `372.sql` and `373.sql` back and boot each schema once more. 372's shared half self-skips on its enum guard,
+   so only its per-city half runs, then 373.
+
+Schemas already past 372 are never touched, and need no down-migration.
+
+Two other evolutions can strand a schema the same way, because they read shared state a later evolution removed:
+
+- **`column "infra3d_access" does not exist`** — 313 reads it and 316 drops it. A schema below 303 self-heals,
+  since 303 re-adds the column with `IF NOT EXISTS`; one in the 303–312 window needs it restored (exactly as 316's
+  own Downs does) before *each* run, because 316 drops it again on the way past.
+- **`function replace(jsonb, unknown, unknown) does not exist`** — 276 converts `config.excluded_tags` from text to
+  jsonb. A dump whose `play_evolutions` predates 276 but whose `config` was already converted can't replay it;
+  restore the column to the pre-276 text value from that schema's own dump.
+
+Both are symptoms of the same underlying problem: a committed dump whose contents disagree with the
+`play_evolutions` it ships with. If an evolution fails on a table or column that should exist at that level, check
+the dump (`pg_restore -s -t <table> -f - db/<dump>`) before assuming your local DB drifted.
 
 **Slick query errors while developing:**
 
