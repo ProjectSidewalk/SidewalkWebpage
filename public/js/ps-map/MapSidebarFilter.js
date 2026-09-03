@@ -25,6 +25,8 @@ class MapSidebarFilter {
   #viewportCounts;
   /** @type {object} Last-applied per-type layer visibility, so unchanged layers aren't re-set on every click. */
   #layerVisibility = {};
+  /** @type {Map<string, ?HTMLInputElement>} Each label type's checkbox (null when the sidebar omits it). */
+  #typeCheckboxes = new Map();
   /** @type {Array<() => void>} */
   #changeCallbacks = [];
 
@@ -51,6 +53,7 @@ class MapSidebarFilter {
 
     for (const labelType of Object.keys(this.#mapData.layerNames)) {
       this.#layerVisibility[labelType] = true;
+      this.#typeCheckboxes.set(labelType, this.#sidebar.querySelector(`#${labelType}-checkbox`));
     }
 
     this.#filters.enable();
@@ -279,12 +282,18 @@ class MapSidebarFilter {
   }
 
   /**
-   * Returns true when the label type's sidebar checkbox is checked (false for a type the sidebar doesn't render).
+   * Returns true when the label type's sidebar checkbox is checked. The elements are looked up once at construction
+   * (this runs per label inside city-sized scans) but `checked` is read live, so the DOM stays the source of truth.
+   *
+   * A type the sidebar doesn't render counts as unchecked: every host renders every type the feed can carry, and a
+   * host that dropped one would hide its layer on the first filter change anyway (#syncLayerVisibility only shows
+   * checked types), so "not pageable" is the state the map converges to.
+   *
    * @param {string} labelType The label type key.
-   * @returns {boolean}
+   * @returns {boolean} Whether labels of this type are currently shown.
    */
   #typeChecked(labelType) {
-    return this.#sidebar.querySelector(`#${labelType}-checkbox`)?.checked ?? false;
+    return this.#typeCheckboxes.get(labelType)?.checked ?? false;
   }
 
   /**
@@ -293,11 +302,11 @@ class MapSidebarFilter {
    * serves the all-axes consumers: the visible-label count and the popup navigator.
    * @param {string} labelType The label's type key.
    * @param {object} props     The label's GeoJSON properties.
-   * @returns {boolean}
+   * @returns {boolean} Whether the label survives all four axes.
    */
   #passesLabelFilters(labelType, props) {
     return this.#passesQualityFilters(props) && this.#passesSeverity(props) && this.#passesTags(labelType, props)
-      && Boolean(this.#mapData[this.#validationCategory(props)]);
+      && this.#mapData[this.#validationCategory(props)] === true;
   }
 
   /**
@@ -306,9 +315,9 @@ class MapSidebarFilter {
    * @returns {boolean} Whether the label's severity is currently enabled.
    */
   #passesSeverity(props) {
-    return Number.isInteger(props.severity)
-      ? Boolean(this.#mapData.severities[props.severity])
-      : this.#mapData.severities[0];
+    return Boolean(Number.isInteger(props.severity)
+      ? this.#mapData.severities[props.severity]
+      : this.#mapData.severities[0]);
   }
 
   /**
@@ -343,7 +352,11 @@ class MapSidebarFilter {
     const selected = this.#mapData.selectedTags[labelType];
     if (!selected || selected.size === 0) return true;
     const tags = props.tags ?? [];
-    return Array.from(selected).some((tag) => tags.includes(tag));
+    // A plain loop over the Set: this runs per label inside city-sized scans, so no per-call array copy.
+    for (const tag of selected) {
+      if (tags.includes(tag)) return true;
+    }
+    return false;
   }
 
   /**

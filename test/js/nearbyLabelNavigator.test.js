@@ -197,6 +197,29 @@ describe('createNearbyLabelNavigator', () => {
             expect(nav.next(1)).toBe(3);
         });
 
+        test('filtersChanged() restarts the tour, keeps the trail, and notifies subscribers', () => {
+            let hidden = new Set();
+            const nav = loadFactory()(mapDataWith(MIXED), {
+                isCandidate: (labelType, feature) => !hidden.has(feature.properties.label_id),
+            });
+            const notified = [];
+            nav.onRefresh(() => notified.push(nav.hasNext(4)));
+            nav.next(1); // -> 2
+            nav.next(2); // -> 3
+            nav.next(3); // -> 4
+            expect(nav.hasNext(4)).toBe(false); // Every other label is toured.
+
+            // The user narrows the filters; labels the earlier tour passed are fair game for the new one.
+            hidden = new Set([2]);
+            nav.filtersChanged();
+
+            expect(notified).toEqual([true]);
+            expect(nav.next(4)).toBe(3);
+            // The trail is intact: back from 3 is 4, and back from there retraces the first tour.
+            expect(nav.prev(3)).toBe(4);
+            expect(nav.prev(4)).toBe(3);
+        });
+
         test('prev() still retraces a label the predicate now rejects', () => {
             let hidden = new Set();
             const nav = loadFactory()(mapDataWith(MIXED), {
