@@ -324,8 +324,8 @@
       canvasContainer.className = 'chart-canvas-container';
       chartContainer.appendChild(canvasContainer);
 
-      // Percentage denominator below. Non-zero by construction: filterAndSortTypes only forwards types with at
-      // least config.minValidationsToShow validations.
+      // NaN in the tooltips unless filterAndSortTypes kept this above zero, which it does for any
+      // config.minValidationsToShow of 1 or more.
       const total = typeData.agree + typeData.disagree + typeData.unsure;
 
       // Create canvas.

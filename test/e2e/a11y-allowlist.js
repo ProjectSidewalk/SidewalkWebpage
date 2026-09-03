@@ -32,6 +32,9 @@ const EXEMPT_PAGES = {};
  */
 const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21aa'];
 
+/** The ` [state]` suffix an A11Y_ALLOWLIST key may carry. EXEMPT_PAGES keys never take one; a11y.spec.js says why. */
+const STATE_SUFFIX = / \[.*\]$/;
+
 /** Known, tracked violations keyed by page path (or `path [state]`), as `{rule, selector?, issue, note}`. */
 const A11Y_ALLOWLIST = {};
 
@@ -85,4 +88,5 @@ function formatViolations(violations) {
     `${violation.id} [${violation.impact}] ${node.target.join(' ')} — ${violation.help} (${violation.helpUrl})`));
 }
 
-module.exports = {EXEMPT_PAGES, A11Y_ALLOWLIST, WCAG_TAGS, partitionViolations, formatViolations};
+module.exports =
+  {EXEMPT_PAGES, A11Y_ALLOWLIST, WCAG_TAGS, STATE_SUFFIX, partitionViolations, formatViolations};

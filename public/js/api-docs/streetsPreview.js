@@ -340,6 +340,7 @@
 
       if (!streets.features.length) {
         const message = ApiDocsMap.addOverlay(map, 'top-right', 'map-chip');
+        message.setAttribute('role', 'status');
         message.textContent = 'No streets found in this region.';
         return;
       }

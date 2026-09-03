@@ -26,7 +26,8 @@
 const {test, expect, loadAndSettle} = require('./fixtures');
 const AxeBuilder = require('@axe-core/playwright').default;
 const {PAGES} = require('./pages');
-const {A11Y_ALLOWLIST, WCAG_TAGS, partitionViolations, formatViolations} = require('./a11y-allowlist');
+const {EXEMPT_PAGES, A11Y_ALLOWLIST, WCAG_TAGS, partitionViolations, formatViolations} =
+  require('./a11y-allowlist');
 
 // Valid JSON that stops early — what a client sees when a streamed response dies after its 200 has gone out.
 const TRUNCATED = {status: 200, contentType: 'application/json', body: '{"features":['};
@@ -39,10 +40,11 @@ const serve = (json) => ({status: 200, contentType: 'application/json', body: JS
  * previews that emit `.message-error`, so scanning every api-docs page in every state would pay twenty axe runs to
  * measure the same five DOM shapes. A page is listed here when it is the first to render a shape.
  *
- * `route` is the endpoint to intercept and `fulfill` what to answer with; `selector` is the message that must
- * appear before axe runs; `role` is the live-region role it must carry; `consoleError` is the one message the
- * preview is expected to log. An entry with no `consoleError` pins the other half of the contract: an empty result
- * is an ordinary answer, so the preview must render its message and log nothing.
+ * `route` is the endpoint to intercept and `fulfill` what to answer with; `selector` is the message that must appear
+ * before axe runs, narrowed with `:has-text()` where the class alone would also match a healthy element; `role` is
+ * the live-region role it must carry; `consoleError` is the one message the preview is expected to log. An entry
+ * with no `consoleError` pins the other half of the contract: an empty result is an ordinary answer, so the preview
+ * must render its message and log nothing.
  */
 const STATES = [
   {
@@ -79,6 +81,14 @@ const STATES = [
     role: 'status',
   },
   {
+    state: 'no streets in region',
+    path: '/v3/api-docs/streets',
+    route: '**/v3/api/streets*',
+    fulfill: serve({type: 'FeatureCollection', features: []}),
+    selector: '.map-chip:has-text("No streets found in this region.")',
+    role: 'status',
+  },
+  {
     state: 'feed error',
     path: '/v3/api-docs/validations',
     route: '**/v3/api/validations*',
@@ -111,7 +121,9 @@ function pageEntry(path) {
   return entry;
 }
 
-for (const s of STATES) {
+// A page nobody is holding to AA yet cannot be held to it the moment its feed fails, so an exemption covers its
+// states too.
+for (const s of STATES.filter((state) => !(state.path in EXEMPT_PAGES))) {
   const key = `${s.path} [${s.state}]`;
 
   test(`a11y: ${s.path} in its '${s.state}' state meets WCAG 2.1 AA`, async ({page, context, consoleErrors}) => {

@@ -77,7 +77,9 @@ screen before axe runs — a preview that quietly recovered would otherwise be s
 the wrong reason.
 
 Allowlist keys for these carry a ` [state]` suffix (`/v3/api-docs/rawLabels [feed error]`), so an entry written for
-a page's healthy render cannot silently cover its error render.
+a page's healthy render cannot silently cover its error render. `EXEMPT_PAGES` keys never take the suffix:
+exemption is looked up by bare path, and it drops every state of the page — a page nobody is holding to AA yet
+cannot be held to it the moment its feed fails.
 
 ### Announcing what was injected
 
@@ -92,6 +94,9 @@ carries a live-region role:
 The split is asserted directly in `a11y-api-docs-states.spec.js`, since no axe rule will catch its loss. Ordinary
 descriptive text rendered as part of a normal result (`.preview-note` summarizing a chart) takes neither role — it
 is there on load, and a live region would announce it for no reason.
+
+This covers every message the api-docs previews emit, including the one rendered from a Twirl view
+(`apiDocs/cities.scala.html`) rather than a `*Preview.js` module.
 
 ### Third-party embeds
 

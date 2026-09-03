@@ -16,7 +16,7 @@
 const {test, expect, loadAndSettle} = require('./fixtures');
 const AxeBuilder = require('@axe-core/playwright').default;
 const {PAGES} = require('./pages');
-const {EXEMPT_PAGES, A11Y_ALLOWLIST, WCAG_TAGS, partitionViolations, formatViolations} =
+const {EXEMPT_PAGES, A11Y_ALLOWLIST, WCAG_TAGS, STATE_SUFFIX, partitionViolations, formatViolations} =
   require('./a11y-allowlist');
 
 // axe descends into same-page frames, so a vendor's player chrome reports as our violations (/help embeds four
@@ -62,8 +62,14 @@ test('a11y: allowlist and exemption keys name pages that exist', () => {
   // An allowlist key may carry a ` [state]` suffix naming a forced render state (a11y-allowlist.js); the page it
   // names still has to exist, which is what this checks.
   const unknown = [...Object.keys(EXEMPT_PAGES), ...Object.keys(A11Y_ALLOWLIST)]
-    .filter((key) => !paths.has(key.replace(/ \[.*\]$/, '')));
+    .filter((key) => !paths.has(key.replace(STATE_SUFFIX, '')));
   expect(unknown, 'keys not present in pages.js').toEqual([]);
+});
+
+// Exemption is looked up by bare path, so a suffixed key would exempt nothing while both key tests stayed green.
+test('a11y: exemption keys are bare page paths', () => {
+  const suffixed = Object.keys(EXEMPT_PAGES).filter((key) => STATE_SUFFIX.test(key));
+  expect(suffixed, 'EXEMPT_PAGES keys cannot name a single state').toEqual([]);
 });
 
 // Stands in for the frame-title check the exclusion above removes. Nothing inside a YouTube player is ours, but the
