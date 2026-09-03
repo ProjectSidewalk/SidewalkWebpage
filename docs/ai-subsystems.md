@@ -82,7 +82,10 @@ validation.
    `label_ai_info`.
 3. Labels then enter the normal human-validation pipeline — which is also the feedback signal
    for improving the model (continual-improvement roadmap:
-   `sidewalk-auto-labeler/docs/design-review-2026-07.md`).
+   `sidewalk-auto-labeler/docs/design-review-2026-07.md`). A lone AI vote leaves a label one
+   vote short of consensus, so the crowd queue keeps serving it until a human concurs, and a
+   label the humans lean against goes to Expert Validate's triage queue
+   (`docs/validation-queue.md`).
 
 **City gate:** `submitAiLabel` is gated by the per-city `ai-label-submission-enabled` flag in
 `cityparams.conf` (default **false**; unlisted cities reject submissions). Onboarding another
