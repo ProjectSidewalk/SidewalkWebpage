@@ -175,79 +175,79 @@ ON CONFLICT (audit_task_id) DO NOTHING;
 --
 -- The two NoSidewalk labels have no crop, as prod has none for them either: still validatable (Validate reads the
 -- backup panorama, not crops), just absent from the Gallery -- which is what that state means in production.
-INSERT INTO sidewalk_teaneck.label (label_id, audit_task_id, mission_id, user_id, pano_id, label_type_id,
+INSERT INTO sidewalk_teaneck.label (label_id, audit_task_id, mission_id, user_id, pano_id, label_type,
                                     street_edge_id, temporary_label_id, time_created, deleted, tutorial,
                                     severity, tags)
 VALUES
-  (900002, 900003, 900002, '00000000-5115-4000-8000-000000000003', 'gQIxyDH1bxP1In5JOau-mg', 1, 1141, 1,
+  (900002, 900003, 900002, '00000000-5115-4000-8000-000000000003', 'gQIxyDH1bxP1In5JOau-mg', 'CurbRamp', 1141, 1,
    now() - INTERVAL '24 days', FALSE, FALSE, 1, '{}'),  -- CurbRamp, prod label 14861
-  (900003, 900003, 900002, '00000000-5115-4000-8000-000000000003', 'gQIxyDH1bxP1In5JOau-mg', 1, 1141, 2,
+  (900003, 900003, 900002, '00000000-5115-4000-8000-000000000003', 'gQIxyDH1bxP1In5JOau-mg', 'CurbRamp', 1141, 2,
    now() - INTERVAL '24 days', FALSE, FALSE, 1, '{}'),  -- CurbRamp, prod label 14863
-  (900004, 900004, 900001, '00000000-5115-4000-8000-000000000002', 'joksJLXQppwg9OlymTrkmQ', 1, 1334, 1,
+  (900004, 900004, 900001, '00000000-5115-4000-8000-000000000002', 'joksJLXQppwg9OlymTrkmQ', 'CurbRamp', 1334, 1,
    now() - INTERVAL '26 days', FALSE, FALSE, 1, '{}'),  -- CurbRamp, prod label 15731
-  (900005, 900004, 900001, '00000000-5115-4000-8000-000000000002', 'joksJLXQppwg9OlymTrkmQ', 1, 1334, 2,
+  (900005, 900004, 900001, '00000000-5115-4000-8000-000000000002', 'joksJLXQppwg9OlymTrkmQ', 'CurbRamp', 1334, 2,
    now() - INTERVAL '26 days', FALSE, FALSE, 1, '{}'),  -- CurbRamp, prod label 15732
-  (900006, 900004, 900001, '00000000-5115-4000-8000-000000000002', 'joksJLXQppwg9OlymTrkmQ', 1, 1334, 3,
+  (900006, 900004, 900001, '00000000-5115-4000-8000-000000000002', 'joksJLXQppwg9OlymTrkmQ', 'CurbRamp', 1334, 3,
    now() - INTERVAL '26 days', FALSE, FALSE, 1, '{}'),  -- CurbRamp, prod label 15738
-  (900007, 900004, 900001, '00000000-5115-4000-8000-000000000002', 'joksJLXQppwg9OlymTrkmQ', 1, 1334, 4,
+  (900007, 900004, 900001, '00000000-5115-4000-8000-000000000002', 'joksJLXQppwg9OlymTrkmQ', 'CurbRamp', 1334, 4,
    now() - INTERVAL '26 days', FALSE, FALSE, 1, '{}'),  -- CurbRamp, prod label 15739
-  (900008, 900001, 900001, '00000000-5115-4000-8000-000000000002', 'HGiN2VdenH5bj760gRIvPw', 1, 479, 1,
+  (900008, 900001, 900001, '00000000-5115-4000-8000-000000000002', 'HGiN2VdenH5bj760gRIvPw', 'CurbRamp', 479, 1,
    now() - INTERVAL '26 days', FALSE, FALSE, 1, '{}'),  -- CurbRamp, prod label 15765
-  (900009, 900001, 900001, '00000000-5115-4000-8000-000000000002', 'HGiN2VdenH5bj760gRIvPw', 1, 479, 2,
+  (900009, 900001, 900001, '00000000-5115-4000-8000-000000000002', 'HGiN2VdenH5bj760gRIvPw', 'CurbRamp', 479, 2,
    now() - INTERVAL '26 days', FALSE, FALSE, 1, '{}'),  -- CurbRamp, prod label 15767
-  (900010, 900001, 900001, '00000000-5115-4000-8000-000000000002', 'HGiN2VdenH5bj760gRIvPw', 1, 479, 3,
+  (900010, 900001, 900001, '00000000-5115-4000-8000-000000000002', 'HGiN2VdenH5bj760gRIvPw', 'CurbRamp', 479, 3,
    now() - INTERVAL '26 days', FALSE, FALSE, 1, '{}'),  -- CurbRamp, prod label 15768
-  (900011, 900001, 900001, '00000000-5115-4000-8000-000000000002', 'HGiN2VdenH5bj760gRIvPw', 1, 479, 4,
+  (900011, 900001, 900001, '00000000-5115-4000-8000-000000000002', 'HGiN2VdenH5bj760gRIvPw', 'CurbRamp', 479, 4,
    now() - INTERVAL '26 days', FALSE, FALSE, 1, '{}'),  -- CurbRamp, prod label 15769
-  (900012, 900004, 900001, '00000000-5115-4000-8000-000000000002', 'joksJLXQppwg9OlymTrkmQ', 1, 1334, 5,
+  (900012, 900004, 900001, '00000000-5115-4000-8000-000000000002', 'joksJLXQppwg9OlymTrkmQ', 'CurbRamp', 1334, 5,
    now() - INTERVAL '26 days', FALSE, FALSE, NULL, '{}'),  -- CurbRamp, prod label 21352
-  (900013, 900004, 900001, '00000000-5115-4000-8000-000000000002', 'joksJLXQppwg9OlymTrkmQ', 1, 1334, 6,
+  (900013, 900004, 900001, '00000000-5115-4000-8000-000000000002', 'joksJLXQppwg9OlymTrkmQ', 'CurbRamp', 1334, 6,
    now() - INTERVAL '26 days', FALSE, FALSE, NULL, '{}'),  -- CurbRamp, prod label 21353
-  (900014, 900004, 900001, '00000000-5115-4000-8000-000000000002', 'joksJLXQppwg9OlymTrkmQ', 1, 1334, 7,
+  (900014, 900004, 900001, '00000000-5115-4000-8000-000000000002', 'joksJLXQppwg9OlymTrkmQ', 'CurbRamp', 1334, 7,
    now() - INTERVAL '26 days', FALSE, FALSE, NULL, '{}'),  -- CurbRamp, prod label 21357
-  (900015, 900004, 900001, '00000000-5115-4000-8000-000000000002', 'joksJLXQppwg9OlymTrkmQ', 1, 1334, 8,
+  (900015, 900004, 900001, '00000000-5115-4000-8000-000000000002', 'joksJLXQppwg9OlymTrkmQ', 'CurbRamp', 1334, 8,
    now() - INTERVAL '26 days', FALSE, FALSE, NULL, '{}'),  -- CurbRamp, prod label 21361
-  (900016, 900001, 900001, '00000000-5115-4000-8000-000000000002', 'HGiN2VdenH5bj760gRIvPw', 1, 479, 5,
+  (900016, 900001, 900001, '00000000-5115-4000-8000-000000000002', 'HGiN2VdenH5bj760gRIvPw', 'CurbRamp', 479, 5,
    now() - INTERVAL '26 days', FALSE, FALSE, NULL, '{}'),  -- CurbRamp, prod label 21439
-  (900017, 900001, 900001, '00000000-5115-4000-8000-000000000002', 'HGiN2VdenH5bj760gRIvPw', 1, 479, 6,
+  (900017, 900001, 900001, '00000000-5115-4000-8000-000000000002', 'HGiN2VdenH5bj760gRIvPw', 'CurbRamp', 479, 6,
    now() - INTERVAL '26 days', FALSE, FALSE, NULL, '{}'),  -- CurbRamp, prod label 21440
-  (900018, 900001, 900001, '00000000-5115-4000-8000-000000000002', 'HGiN2VdenH5bj760gRIvPw', 1, 479, 7,
+  (900018, 900001, 900001, '00000000-5115-4000-8000-000000000002', 'HGiN2VdenH5bj760gRIvPw', 'CurbRamp', 479, 7,
    now() - INTERVAL '26 days', FALSE, FALSE, NULL, '{}'),  -- CurbRamp, prod label 21441
-  (900019, 900003, 900002, '00000000-5115-4000-8000-000000000003', 'gQIxyDH1bxP1In5JOau-mg', 9, 1141, 3,
+  (900019, 900003, 900002, '00000000-5115-4000-8000-000000000003', 'gQIxyDH1bxP1In5JOau-mg', 'Crosswalk', 1141, 3,
    now() - INTERVAL '24 days', FALSE, FALSE, 1, '{}'),  -- Crosswalk, prod label 14862
-  (900020, 900004, 900001, '00000000-5115-4000-8000-000000000002', 'joksJLXQppwg9OlymTrkmQ', 9, 1334, 9,
+  (900020, 900004, 900001, '00000000-5115-4000-8000-000000000002', 'joksJLXQppwg9OlymTrkmQ', 'Crosswalk', 1334, 9,
    now() - INTERVAL '26 days', FALSE, FALSE, 1, '{}'),  -- Crosswalk, prod label 15733
-  (900021, 900001, 900001, '00000000-5115-4000-8000-000000000002', 'HGiN2VdenH5bj760gRIvPw', 9, 479, 8,
+  (900021, 900001, 900001, '00000000-5115-4000-8000-000000000002', 'HGiN2VdenH5bj760gRIvPw', 'Crosswalk', 479, 8,
    now() - INTERVAL '26 days', FALSE, FALSE, 1, '{}'),  -- Crosswalk, prod label 15766
-  (900022, 900001, 900001, '00000000-5115-4000-8000-000000000002', 'HGiN2VdenH5bj760gRIvPw', 9, 479, 9,
+  (900022, 900001, 900001, '00000000-5115-4000-8000-000000000002', 'HGiN2VdenH5bj760gRIvPw', 'Crosswalk', 479, 9,
    now() - INTERVAL '26 days', FALSE, FALSE, 1, '{}'),  -- Crosswalk, prod label 15770
-  (900023, 900004, 900001, '00000000-5115-4000-8000-000000000002', 'joksJLXQppwg9OlymTrkmQ', 9, 1334, 10,
+  (900023, 900004, 900001, '00000000-5115-4000-8000-000000000002', 'joksJLXQppwg9OlymTrkmQ', 'Crosswalk', 1334, 10,
    now() - INTERVAL '26 days', FALSE, FALSE, 1, '{}'),  -- Crosswalk, prod label 21781
-  (900024, 900001, 900001, '00000000-5115-4000-8000-000000000002', 'HGiN2VdenH5bj760gRIvPw', 9, 479, 10,
+  (900024, 900001, 900001, '00000000-5115-4000-8000-000000000002', 'HGiN2VdenH5bj760gRIvPw', 'Crosswalk', 479, 10,
    now() - INTERVAL '26 days', FALSE, FALSE, 1, '{}'),  -- Crosswalk, prod label 22518
-  (900025, 900001, 900001, '00000000-5115-4000-8000-000000000002', 'oi_myNRB0_p9VSsqsnmj-g', 2, 479, 11,
+  (900025, 900001, 900001, '00000000-5115-4000-8000-000000000002', 'oi_myNRB0_p9VSsqsnmj-g', 'NoCurbRamp', 479, 11,
    now() - INTERVAL '26 days', FALSE, FALSE, 2, '{"no alternate route"}'),  -- NoCurbRamp, prod label 4793
-  (900026, 900001, 900001, '00000000-5115-4000-8000-000000000002', 'oi_myNRB0_p9VSsqsnmj-g', 2, 479, 12,
+  (900026, 900001, 900001, '00000000-5115-4000-8000-000000000002', 'oi_myNRB0_p9VSsqsnmj-g', 'NoCurbRamp', 479, 12,
    now() - INTERVAL '26 days', FALSE, FALSE, 2, '{"no alternate route"}'),  -- NoCurbRamp, prod label 4797
-  (900027, 900001, 900001, '00000000-5115-4000-8000-000000000002', 'oi_myNRB0_p9VSsqsnmj-g', 7, 479, 13,
+  (900027, 900001, 900001, '00000000-5115-4000-8000-000000000002', 'oi_myNRB0_p9VSsqsnmj-g', 'NoSidewalk', 479, 13,
    now() - INTERVAL '26 days', FALSE, FALSE, NULL, '{}'),  -- NoSidewalk, prod label 796
-  (900028, 900001, 900001, '00000000-5115-4000-8000-000000000002', 'oi_myNRB0_p9VSsqsnmj-g', 7, 479, 14,
+  (900028, 900001, 900001, '00000000-5115-4000-8000-000000000002', 'oi_myNRB0_p9VSsqsnmj-g', 'NoSidewalk', 479, 14,
    now() - INTERVAL '26 days', FALSE, FALSE, NULL, '{}'),  -- NoSidewalk, prod label 797
-  (900029, 900003, 900002, '00000000-5115-4000-8000-000000000003', 'piBGpWaR_-QRyi6Yhjsmwg', 3, 1141, 4,
+  (900029, 900003, 900002, '00000000-5115-4000-8000-000000000003', 'piBGpWaR_-QRyi6Yhjsmwg', 'Obstacle', 1141, 4,
    now() - INTERVAL '24 days', FALSE, FALSE, 2, '{"parked car"}'),  -- Obstacle, prod label 14864
-  (900030, 900003, 900002, '00000000-5115-4000-8000-000000000003', 'piBGpWaR_-QRyi6Yhjsmwg', 3, 1141, 5,
+  (900030, 900003, 900002, '00000000-5115-4000-8000-000000000003', 'piBGpWaR_-QRyi6Yhjsmwg', 'Obstacle', 1141, 5,
    now() - INTERVAL '24 days', FALSE, FALSE, 2, '{"parked car"}'),  -- Obstacle, prod label 24726
-  (900031, 900003, 900002, '00000000-5115-4000-8000-000000000003', 'piBGpWaR_-QRyi6Yhjsmwg', 3, 1141, 6,
+  (900031, 900003, 900002, '00000000-5115-4000-8000-000000000003', 'piBGpWaR_-QRyi6Yhjsmwg', 'Obstacle', 1141, 6,
    now() - INTERVAL '24 days', FALSE, FALSE, 2, '{"parked car"}'),  -- Obstacle, prod label 24727
   -- The Mapillary pano's label. Neither the newest nor the oldest on purpose: the share and story
   -- specs read the HIGHEST label id and need a pano carrying GSV metadata, and phone-viewport reads
   -- the LOWEST near the city centre and needs imagery that resolves. This one has neither a crop nor
   -- a backup, which is exactly the case those two must not land on.
-  (900032, 900003, 900002, '00000000-5115-4000-8000-000000000003', '1050859256685844', 4, 1141, 99,
+  (900032, 900003, 900002, '00000000-5115-4000-8000-000000000003', '1050859256685844', 'SurfaceProblem', 1141, 99,
    now() - INTERVAL '14 days', FALSE, FALSE, 1, '{}'),  -- SurfaceProblem, Richmond label 25062
-  (900033, 900004, 900001, '00000000-5115-4000-8000-000000000002', '60Fy6udfNJjDILZZ79n7Bg', 4, 1334, 11,
+  (900033, 900004, 900001, '00000000-5115-4000-8000-000000000002', '60Fy6udfNJjDILZZ79n7Bg', 'SurfaceProblem', 1334, 11,
    now() - INTERVAL '26 days', FALSE, FALSE, 1, '{"bumpy"}'),  -- SurfaceProblem, prod label 21798
-  (900034, 900003, 900002, '00000000-5115-4000-8000-000000000003', 'gQIxyDH1bxP1In5JOau-mg', 4, 1141, 7,
+  (900034, 900003, 900002, '00000000-5115-4000-8000-000000000003', 'gQIxyDH1bxP1In5JOau-mg', 'SurfaceProblem', 1141, 7,
    now() - INTERVAL '24 days', FALSE, FALSE, 1, '{"utility panel"}')  -- SurfaceProblem, prod label 24725
 ON CONFLICT (label_id) DO NOTHING;
 
@@ -395,10 +395,10 @@ WHERE NOT EXISTS (SELECT 1 FROM sidewalk_teaneck.label_point WHERE label_id = p.
 -- One label carries a full validation -- the vote, its effect on the label's counts, and the comment beside it --
 -- because the share page takes a different branch for a label with no validator comments.
 INSERT INTO sidewalk_teaneck.mission (mission_id, mission_type, user_id, mission_start, mission_end, completed,
-                                      pay, paid, region_id, labels_validated, labels_progress, label_type_id, skipped)
+                                      pay, paid, region_id, labels_validated, labels_progress, label_type, skipped)
 VALUES (900004, 'validation', '00000000-5115-4000-8000-000000000002',
         now() - INTERVAL '5 days', now() - INTERVAL '5 days',
-        TRUE, 0.0, FALSE, 18, 1, 1, 1, FALSE)
+        TRUE, 0.0, FALSE, 18, 1, 1, 'CurbRamp', FALSE)
 ON CONFLICT (mission_id) DO NOTHING;
 
 INSERT INTO sidewalk_teaneck.label_validation (label_validation_id, label_id, validation_result, user_id, mission_id,

@@ -53,7 +53,7 @@ class AccessScoreApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       body must include(
         "street_edge_id,osm_way_id,region_id,score,audit_count,length_meters,label_count,n_curb_ramp"
       )
-      body must include("score_signal,start_point,end_point")
+      body must include("score_no_sidewalk,start_point,end_point")
       body must not include "streetEdgeId"
       body must not include "lengthMeters"
     }

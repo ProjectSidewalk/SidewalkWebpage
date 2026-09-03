@@ -1,22 +1,12 @@
 function defineValidateConstants() {
-  svv.labelTypes = {
-    1: 'CurbRamp',
-    2: 'NoCurbRamp',
-    3: 'Obstacle',
-    4: 'SurfaceProblem',
-    7: 'NoSidewalk',
-    9: 'Crosswalk',
-    10: 'Signal',
-  };
-
   svv.labelTypeNames = {
-    1: i18next.t('common:curb-ramp'),
-    2: i18next.t('common:no-curb-ramp'),
-    3: i18next.t('common:obstacle'),
-    4: i18next.t('common:surface-problem'),
-    7: i18next.t('common:no-sidewalk'),
-    9: i18next.t('common:crosswalk'),
-    10: i18next.t('common:signal'),
+    CurbRamp: i18next.t('common:curb-ramp'),
+    NoCurbRamp: i18next.t('common:no-curb-ramp'),
+    Obstacle: i18next.t('common:obstacle'),
+    SurfaceProblem: i18next.t('common:surface-problem'),
+    NoSidewalk: i18next.t('common:no-sidewalk'),
+    Crosswalk: i18next.t('common:crosswalk'),
+    Signal: i18next.t('common:signal'),
   };
 
   svv.reasonButtonInfo = {

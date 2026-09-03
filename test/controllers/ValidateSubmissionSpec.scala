@@ -209,7 +209,7 @@ class ValidateSubmissionSpec
       "mission_type"    -> (b.mission \ "mission_type").as[String],
       "labels_progress" -> labelsProgress,
       "labels_total"    -> (b.mission \ "labels_validated").as[Int],
-      "label_type_id"   -> (b.mission \ "label_type_id").as[Int],
+      "label_type"      -> (b.mission \ "label_type").as[String],
       "completed"       -> false,
       "skipped"         -> false
     )

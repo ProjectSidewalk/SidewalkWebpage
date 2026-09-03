@@ -72,13 +72,13 @@ object ValidateFormats {
   /**
    * A request for replacement labels from a Validate mission that ran out of them mid-mission (#4810).
    *
-   * @param labelTypeId      Label type of the mission being topped up.
+   * @param labelType        Label type of the mission being topped up.
    * @param labelsNeeded     How many labels the client is short.
    * @param excludedLabelIds Every label the client already holds, so it isn't handed one of them back.
    * @param validateParams   The page's filters, so replacements match the rest of the mission.
    */
   case class MoreLabelsRequest(
-      labelTypeId: Int,
+      labelType: LabelTypeEnum.Base,
       labelsNeeded: Int,
       excludedLabelIds: Seq[Int],
       validateParams: ValidateParams
@@ -89,7 +89,7 @@ object ValidateFormats {
       missionType: String,
       labelsProgress: Int,
       labelsTotal: Int,
-      labelTypeId: Int,
+      labelType: LabelTypeEnum.Base,
       completed: Boolean
   )
   case class ValidationTaskSubmission(
@@ -216,7 +216,7 @@ object ValidateFormats {
       (JsPath \ "mission_type").read[String] and
       (JsPath \ "labels_progress").read[Int] and
       (JsPath \ "labels_total").read[Int] and
-      (JsPath \ "label_type_id").read[Int] and
+      (JsPath \ "label_type").read[LabelTypeEnum.Base] and
       (JsPath \ "completed").read[Boolean]
   )(ValidationMissionProgress.apply _)
 
@@ -268,7 +268,7 @@ object ValidateFormats {
   )(LabelEditSubmission.apply _)
 
   implicit val moreLabelsRequestReads: Reads[MoreLabelsRequest] = (
-    (JsPath \ "label_type_id").read[Int] and
+    (JsPath \ "label_type").read[LabelTypeEnum.Base] and
       (JsPath \ "labels_needed").read[Int] and
       (JsPath \ "excluded_label_ids").read[Seq[Int]] and
       (JsPath \ "validate_params").read[ValidateParams]

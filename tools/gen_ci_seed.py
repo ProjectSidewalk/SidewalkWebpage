@@ -75,8 +75,6 @@ MISSION = {2: 900001, 3: 900002}
 TASK = {479: 900001, 842: 900002, 1141: 900003, 1334: 900004}
 EXTRA_TASK = 900005          # labeler 1's fourth walk, so one user has finished the region
 MAP_TASK, MAP_MISSION = 900003, MISSION[3]
-LT = {'CurbRamp': 1, 'NoCurbRamp': 2, 'Obstacle': 3, 'SurfaceProblem': 4, 'Other': 5,
-      'Occlusion': 6, 'NoSidewalk': 7, 'Crosswalk': 9, 'Signal': 10}
 
 def q(v):
     if v is None: return 'NULL'
@@ -261,17 +259,17 @@ for l in ordered:
             f"  -- the LOWEST near the city centre and needs imagery that resolves. This one has neither a crop nor\n"
             f"  -- a backup, which is exactly the case those two must not land on.\n"
             f"  ({MAP_ID}, {MAP_TASK}, {MAP_MISSION}, {q(U[3])}, {q(mp['pano_id'])}, "
-            f"{LT[mlbl['label_type']]}, {1141}, 99,\n   now() - INTERVAL '14 days', FALSE, FALSE, "
+            f"{q(mlbl['label_type'])}, {1141}, 99,\n   now() - INTERVAL '14 days', FALSE, FALSE, "
             f"{q(mlbl['severity'])}, '{{}}')  -- {mlbl['label_type']}, Richmond label {mlbl['label_id']}")
         continue
     st = l['street_edge_id']; u = OWNER[st]; t = TASK[st]
     tmp[t] += 1
     tags = '{' + ','.join('"%s"' % x for x in l['tags']) + '}'
     label_rows.append(
-        f"  ({id_map[l['label_id']]}, {t}, {MISSION[u]}, {q(U[u])}, {q(l['pano_id'])}, {LT[l['label_type']]}, "
+        f"  ({id_map[l['label_id']]}, {t}, {MISSION[u]}, {q(U[u])}, {q(l['pano_id'])}, {q(l['label_type'])}, "
         f"{st}, {tmp[t]},\n   now() - INTERVAL '{30 - u * 2} days', FALSE, FALSE, {q(l['severity'])}, "
         f"{q(tags)})  -- {l['label_type']}, prod label {l['label_id']}")
-w("INSERT INTO sidewalk_teaneck.label (label_id, audit_task_id, mission_id, user_id, pano_id, label_type_id,\n"
+w("INSERT INTO sidewalk_teaneck.label (label_id, audit_task_id, mission_id, user_id, pano_id, label_type,\n"
   "                                    street_edge_id, temporary_label_id, time_created, deleted, tutorial,\n"
   "                                    severity, tags)\nVALUES\n"
   + rows_sql(label_rows, "ON CONFLICT (label_id) DO NOTHING;"))
@@ -320,10 +318,10 @@ assert validator != U[OWNER[labels[0]['street_edge_id']]], 'the seeded validatio
 w(f"""-- One label carries a full validation -- the vote, its effect on the label's counts, and the comment beside it --
 -- because the share page takes a different branch for a label with no validator comments.
 INSERT INTO sidewalk_teaneck.mission (mission_id, mission_type, user_id, mission_start, mission_end, completed,
-                                      pay, paid, region_id, labels_validated, labels_progress, label_type_id, skipped)
+                                      pay, paid, region_id, labels_validated, labels_progress, label_type, skipped)
 VALUES (900004, 'validation', {q(validator)},
         now() - INTERVAL '5 days', now() - INTERVAL '5 days',
-        TRUE, 0.0, FALSE, {tn['region']['region_id']}, 1, 1, 1, FALSE)
+        TRUE, 0.0, FALSE, {tn['region']['region_id']}, 1, 1, 'CurbRamp', FALSE)
 ON CONFLICT (mission_id) DO NOTHING;
 
 INSERT INTO sidewalk_teaneck.label_validation (label_validation_id, label_id, validation_result, user_id, mission_id,

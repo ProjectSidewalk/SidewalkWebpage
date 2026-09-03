@@ -675,7 +675,7 @@ class ExploreServiceImpl @Inject() (
           missionId = missionId,
           userId = userId,
           panoId = label.panoId,
-          labelTypeId = LabelTypeEnum.labelTypeToId(label.labelType),
+          labelType = LabelTypeEnum.withName(label.labelType),
           deleted = label.deleted,
           temporaryLabelId = label.temporaryLabelId,
           timeCreated = timeCreated,
@@ -963,12 +963,12 @@ class ExploreServiceImpl @Inject() (
           // Insert any labels.
           val labelSubmitActions: Seq[DBIO[Option[NewLabelData]]] =
             data.labels.map { label: LabelSubmission =>
-              val labelTypeId: Int = LabelTypeEnum.labelTypeToId(label.labelType)
+              val labelType: LabelTypeEnum.Base = LabelTypeEnum.withName(label.labelType)
               labelTable.find(label.temporaryLabelId, userId).flatMap {
                 case Some(existingLabel) =>
                   // If there is already a label with this temp id but a mismatched label type, the user probably has the
                   // Explore page open in multiple browsers. Don't add the label; tell the front-end to refresh the page.
-                  if (existingLabel.labelTypeId != labelTypeId) {
+                  if (existingLabel.labelType != labelType) {
                     refreshPage = true
                     DBIO.successful(None)
                   } else {
