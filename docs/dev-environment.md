@@ -278,9 +278,12 @@ docker exec projectsidewalk-web bash -lc "cd /home && sbt --client \"testOnly co
 ```
 
 The `backend-tests` CI job is a required check and runs **all of `test/`** (`sbt coverage test`, since #5042), so a
-new spec file is picked up with nothing to enroll it in. Still run the suite locally before you trust it: the
-DB-dependent specs `assume` their way to *canceled* rather than failing when the data they need isn't there, so a
-green run isn't proof that everything in it actually ran.
+new spec file is picked up with nothing to enroll it in. Still run the suite locally before you trust it — and read
+the CANCELED lines, not just the green ones. Specs `assume` their preconditions instead of failing on them, and they
+cancel in both directions: most want rows your schema may not have, while `NightlyJobStatusSpec` and
+`ImageryPollOutcomeSpec` cancel on a database holding *more* than CI's — every nightly job already recorded, say.
+CI's seeded schema (#5115) is expected to cancel nothing, so a CANCELED line there means the seed stopped covering
+something.
 
 There are also Python unit tests for the `scripts/` utilities (`make test-python`) and a jsdom Jest suite for
 frontend modules (`docker exec projectsidewalk-web bash -lc "cd /home && npm run test:js"` — Jest's
