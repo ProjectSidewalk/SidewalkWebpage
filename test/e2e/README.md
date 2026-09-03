@@ -161,14 +161,16 @@ read, not a second city dump to maintain. Three things about it shape this suite
   hermetic: an expired pano is never fetched from a provider, so building a validation mission needs neither live
   imagery nor the `GOOGLE_MAPS_SECRET` CI does not have (#4948). What stands in is on disk — `install-media.sh`,
   run right after the seed, installs the backup panoramas Pannellum renders and the crops the Gallery reads.
-  (The *browser* still tries the primary viewer first and usually succeeds, since Google goes on serving
-  panoramas our own metadata check has retired; the backups cover the rest.) `install-media.sh` reads
-  `SIDEWALK_CITY_ID` for the directory to write into, the same way the app reads it, and fails if it isn't set:
-  put the files under the wrong city and nothing errors, imagery just silently falls back to a provider.
-- **Label imagery still can't come from Google**, so the `stubStreetViewImages` fixture answers the static
-  Street View API with a 1×1 pixel for every test. Without a real `GOOGLE_MAPS_API_KEY` (fork PRs, most dev
-  setups) the Maps JS API also refuses to initialize, and that one message is allowlisted — conditionally, so it
-  still fails a run that *has* a key configured.
+  The *browser* still tries the primary viewer first, and what happens next is the Google Maps stub's call
+  (phase 2, below): by default it answers `ZERO_RESULTS` for a pano it has never seen, the way Google does for an
+  expired one, so Validate and the label popups render those backups through Pannellum — the path the seed was
+  built for. `install-media.sh` reads `SIDEWALK_CITY_ID` for the directory to write into, the same way the app
+  reads it, and fails if it isn't set: put the files under the wrong city and nothing errors, imagery just silently
+  falls back to a provider.
+- **Label imagery still can't come from Google**, so `stubGoogleMaps` (installed on every context by the
+  `googleMapsLeaks` auto-fixture) also answers the static Street View API with a 1×1 pixel for every test: its
+  URL is signed with a `GOOGLE_MAPS_SECRET` that is a dummy in CI, and Chromium logs a refused image as a console
+  error.
 - **The seed sets the city's own map parameters.** The committed template ships someone else's centre and
   bounding box, so every map opened hundreds of miles from the only labels there are, and the specs that open a
   label card near the city centre skipped for want of one. They run now.
@@ -180,17 +182,24 @@ read, not a second city dump to maintain. Three things about it shape this suite
   (`fixtures/google-maps-stub.js`, routed in for every context by `fixtures.js`; #5129). Google bills every
   `StreetViewPanorama` and `Map` instantiation — local tiles or not — and the label-detail popup instantiates a
   panorama on each `/labelMap`, `/gallery`, `/dashboard` and `/stories` load (#5128), so a suite run against the
-  real API was ~20 billable events. The stub implements just the surface `public/js` uses, fires the events the
-  app awaits, and serves any pano id the server vouched for (a spec exercises the expired-imagery path by calling
-  `google.maps.__stub.expire([...])` first). The
-  `googleMapsLeaks` auto-fixture aborts and reports any request that still reaches a Google map host, so a page
-  that builds a real map or panorama cannot merge. `/explore` asserts the audit tutorial loads: it's
+  real API was ~20 billable events. The stub implements just the surface `public/js` uses (grep-verified; the
+  file says how) and fires the events the app awaits. Its pano contract is Google's: a location search always
+  finds a pano, a lookup by id succeeds only for an id the stub has seen or a registered provider vouches for
+  (Explore's tutorial), and any other id is `ZERO_RESULTS` — which is what an expired pano answers in production,
+  and what sends the seeded labels down the Pannellum + backup path. A spec that wants the primary-viewer path
+  instead calls `serveAnyPano(context)` before navigating, and every id resolves the way Google keeps serving a
+  panorama our metadata check has retired; `explore-validate.spec.js` covers both. The `googleMapsLeaks`
+  auto-fixture aborts and reports any request that still reaches a Google map host, and checks that whatever
+  `google.maps` a page ended up with is the stub's, so a page that builds a real map or panorama cannot merge.
+  `test/js/googleMapsStub.test.js` pins the stub's own contract. `/explore` asserts the audit tutorial loads: it's
   deterministic for every fresh anonymous user, its panos are custom (`registerPanoProvider`) with local tiles,
   and CI seeds the one region it requires (`fixtures/ci-seed.sql` — with zero regions `/explore` is a server
   error). A reload counter turns Explore's viewer-failure reload loop into a fast, named failure.
   `/validate` accepts either legitimate terminal state error-free: a mission or the "no new mission" modal.
   CI takes the mission branch — the seed carries the ≥ 10 validatable labels of one type a mission needs, and
-  the server resolves their imagery from the committed backups rather than a provider (#5115). `/mobile`
+  the server resolves their imagery from the committed backups rather than a provider (#5115) — and on it asserts
+  that a panorama rendered *and which viewer rendered it*: Pannellum on the default (expired) path, the primary
+  viewer under `serveAnyPano`. `/mobile`
   runs the same two-terminal-state check under an iPhone descriptor (the server serves that page by UA and
   redirects a desktop one to `/`), in portrait and in landscape, each pinning the layout viewport to the
   device's own width — the #4891 contract. ✅
@@ -212,7 +221,7 @@ read, not a second city dump to maintain. Three things about it shape this suite
 |---|---|
 | `../../playwright.config.js` | Config: `testDir`, retries, reporters, the `setup` → `chromium` projects |
 | `../../docker/e2e/Dockerfile` | The runner image `make test-e2e` builds and runs (Chromium + the pinned runner) |
-| `fixtures.js` | `consoleErrors` fixture, Mapbox / Street-View / ML-API stubs, `loadAndSettle`, `waitForAppReady`, `horizontalOverflowReport`, allowlist |
+| `fixtures.js` | `consoleErrors` + `googleMapsLeaks` fixtures, Mapbox / Google Maps / ML-API stubs, `loadAndSettle`, `waitForAppReady`, `horizontalOverflowReport`, allowlist |
 | `fixtures/ci-seed.sql` | The CI test city: region, streets, users, labels, missions, panos. Applied by both CI jobs |
 | `fixtures/install-media.sh` | Copies `fixtures/media/` into the app's pano and crop directories |
 | `fixtures/media/` | The seeded labels' real imagery, downscaled: backup panoramas and label crops |
@@ -227,5 +236,6 @@ read, not a second city dump to maintain. Three things about it shape this suite
 | `a11y-allowlist.js` | Per-page allowlist of tracked violations, the shared WCAG tag list, plus the partition/format helpers |
 | `overflow-report.spec.js` | `horizontalOverflowReport`'s exemption rules, pinned against synthetic DOM |
 | `dashboard.spec.js` | Registered-user pages |
-| `explore-validate.spec.js` | Phase-2 Explore/Validate/mobile-Validate specs (skip without the real GSV key) |
+| `explore-validate.spec.js` | Phase-2 Explore/Validate/mobile-Validate specs, against the Google Maps stub |
+| `fixtures/google-maps-stub.js` | The fake `google.maps` every context gets in place of Google's API (#5129); `../js/googleMapsStub.test.js` pins its contract |
 | `labelmap-feed-failure.spec.js` | What `/labelMap` shows when its label feed fails (intercepted, so DB-independent) |

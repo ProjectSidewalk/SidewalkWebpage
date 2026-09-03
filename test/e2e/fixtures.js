@@ -92,55 +92,62 @@ async function stubMapbox(context) {
 // The fake Google Maps JS API (test/e2e/fixtures/google-maps-stub.js), read once per worker.
 const GOOGLE_MAPS_STUB = fs.readFileSync(path.join(__dirname, 'fixtures', 'google-maps-stub.js'), 'utf8');
 
+// 1x1 transparent PNG, so an <img> pointed at it fires `load` rather than `error`. Decoded once per worker.
+const TRANSPARENT_PIXEL = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+  'base64');
+
 // Every host the Maps JS API, Street View, or the Street View Static API fans out to. Nothing here may be reached
 // from a test: Google bills per `StreetViewPanorama` / `Map` instantiation and per static image, and a request to
 // any of these means a real one was built. Deliberately a fixed list — fonts.googleapis.com (free, and the app's
 // web fonts) and the YouTube-side *-pa.googleapis.com endpoints the /help embeds call are not Maps.
-const GOOGLE_MAPS_HOSTS
-  = /^https:\/\/(maps\.googleapis\.com|maps\.gstatic\.com|mapsresources-pa\.googleapis\.com|streetviewpixels-pa\.googleapis\.com|geo\d*\.ggpht\.com|cbks?\d*\.google\.com)\//;
+const GOOGLE_MAPS_HOSTS = new RegExp(`^https://(${[
+  'maps\\.googleapis\\.com', // The API bootstrap, its module chunks, the billing beacons, map tiles, metadata RPCs.
+  'maps\\.gstatic\\.com', // Static assets the API loads (icons, the pegman sprite).
+  'mapsresources-pa\\.googleapis\\.com', // Marker and style resources.
+  'streetviewpixels-pa\\.googleapis\\.com', // Street View tiles.
+  'geo\\d*\\.ggpht\\.com', // Street View thumbnails.
+  'cbks?\\d*\\.google\\.com', // Legacy Street View tile hosts.
+].join('|')})/`);
 
 /**
- * Replaces the Google Maps JavaScript API with the local stub for a browser context, and refuses every other
- * request to Google's map hosts (issue #5129).
+ * Replaces the Google Maps JavaScript API with the local stub for a browser context, answers Street View static
+ * images with a transparent pixel, and refuses every other request to Google's map hosts (issue #5129).
  *
- * The app's inline loader (main.scala.html) appends `https://maps.googleapis.com/maps/api/js?...` on the first
- * `google.maps.importLibrary()` call; that one request is answered with the stub, which installs a fake
- * `google.maps` and releases the loader. Anything else bound for a Google map host — a tile, a metadata RPC, a
- * billing beacon — is aborted and recorded, and the `googleMapsLeaks` auto-fixture fails the test that caused it.
- * Installed on every context by the `test` export below, so a spec cannot opt out by accident; call it directly
- * only for a context the suite builds by hand.
+ * The app's inline loader (main.scala.html) requests `https://maps.googleapis.com/maps/api/js?...` on the first
+ * `google.maps.importLibrary()`; the stub answers it and releases the loader. Static images get the pixel because
+ * their URL is signed with GOOGLE_MAPS_SECRET — a dummy in CI, absent from most dev setups — so a real request is
+ * refused and Chromium logs a console error the suite reads as breakage. Anything else bound for a Google map host
+ * is aborted and recorded in `leaks`. The `googleMapsLeaks` auto-fixture is the one install site and owns the
+ * assertion; a hand-built context must do both itself, which is why `leaks` is not optional.
  *
  * @param {import('@playwright/test').BrowserContext} context - The context whose requests to intercept.
- * @param {string[]} [leaks] - Receives the URL of every refused request, for the leak assertion.
+ * @param {string[]} leaks - Receives the URL of every refused request, for the caller's leak assertion.
  */
-async function stubGoogleMaps(context, leaks = []) {
-  // Catch-all first: Playwright tries the most recently registered route first, so the bootstrap route below wins.
+async function stubGoogleMaps(context, leaks) {
+  // Broadest first: Playwright tries the most recently registered route first, so the specific ones below win.
   await context.route(GOOGLE_MAPS_HOSTS, (route) => {
     leaks.push(route.request().url());
     return route.abort('blockedbyclient');
   });
-  // Re-registered here, after the catch-all, so the pixel wins over the abort (Playwright tries routes newest-first).
-  await stubStreetViewImages(context);
+  await context.route(/https:\/\/maps\.googleapis\.com\/maps\/api\/streetview(\/|\?).*/, (route) =>
+    route.fulfill({body: TRANSPARENT_PIXEL, contentType: 'image/png'}));
   await context.route(/^https:\/\/maps\.googleapis\.com\/maps\/api\/js(\?|$)/, (route) =>
     route.fulfill({status: 200, contentType: 'text/javascript', body: GOOGLE_MAPS_STUB}));
 }
 
 /**
- * Stubs Google's Street View static-image API, the fallback for any page showing a label with no local crop.
+ * Makes the Google Maps stub resolve every pano id on this context's pages, instead of only ids it has seen (its
+ * default, Google's contract, which sends an expired pano down the Pannellum + backup path). For a spec that wants
+ * the primary-viewer path — production's when Google still serves a panorama our metadata check has retired. Must
+ * run before navigation: it is an init script the stub reads at install.
  *
- * Its URL is signed with GOOGLE_MAPS_SECRET — a dummy in CI, absent from most dev setups — so the request is refused
- * wherever this suite runs, and Chromium logs each refusal as a console error the suite reads as breakage. Scoped to
- * the streetview endpoints so the Maps JS API (maps/api/js, which Explore genuinely needs) still goes through.
- *
- * @param {import('@playwright/test').BrowserContext} context - The context whose requests to intercept.
+ * @param {import('@playwright/test').BrowserContext} context - The context whose pages should see every pano resolve.
  */
-async function stubStreetViewImages(context) {
-  // 1x1 transparent PNG, so an <img> pointed at it fires `load` rather than `error`.
-  const pixel = Buffer.from(
-    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
-    'base64');
-  await context.route(/https:\/\/maps\.googleapis\.com\/maps\/api\/streetview(\/|\?).*/, (route) =>
-    route.fulfill({body: pixel, contentType: 'image/png'}));
+async function serveAnyPano(context) {
+  await context.addInitScript(() => {
+    window.googleMapsStubOptions = {serveAnyPano: true};
+  });
 }
 
 /**
@@ -305,6 +312,10 @@ const test = base.test.extend({
    * Installs the Google Maps stub on every context before any page opens, and fails the test afterwards if a
    * request still reached a Google map host — the structural form of "CI makes zero billable Google calls"
    * (#5129): a new page or spec that instantiates a real map or panorama cannot merge.
+   *
+   * Two checks, each covering the other's blind spot: no request reached a known host (negative), and whatever
+   * `google.maps` a page ended up with is the stub's (positive) — so a loader moved to a host or scheme the list
+   * doesn't name, or a vendored copy of the API, fails here rather than passing silently.
    */
   googleMapsLeaks: [async ({context}, use) => {
     const leaks = [];
@@ -312,15 +323,15 @@ const test = base.test.extend({
     await use(leaks);
     base.expect(leaks, 'requests reached a Google Maps host — every map and panorama must come from the stub')
       .toEqual([]);
+    for (const page of context.pages()) {
+      if (page.isClosed()) continue;
+      // A page mid-navigation or torn down since the check above has nothing left to inspect.
+      const version = await page.evaluate(() => window.google?.maps?.version).catch(() => undefined);
+      // Undefined: the page never asked for Maps (most don't).
+      if (version === undefined) continue;
+      base.expect(version, `${page.url()} loaded a google.maps that is not the stub`).toBe('stub');
+    }
   }, {auto: true}],
-  /**
-   * The test's browser context, with Street View imagery already stubbed. A fixture rather than a per-page flag
-   * like `mapbox`: any page can carry a label image, and none can load one anywhere this suite runs.
-   */
-  context: async ({context}, use) => {
-    await stubStreetViewImages(context);
-    await use(context);
-  },
 
   /**
    * Collects uncaught exceptions and non-allowlisted console errors for the test's page. Specs assert
@@ -344,6 +355,7 @@ module.exports = {
   expect: base.expect,
   stubMapbox,
   stubGoogleMaps,
+  serveAnyPano,
   stubMakeabilityLab,
   stubMapBaseLayers,
   waitForAppReady,
