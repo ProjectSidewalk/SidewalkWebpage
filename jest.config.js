@@ -1,9 +1,8 @@
 /**
  * Jest configuration for Project Sidewalk's frontend test layer.
  *
- * Run it with `npm run test:js`, or `test:js:coverage` for the report. CI runs the latter as an advisory step in the
- * frontend job, non-blocking until the layer reaches the Phase 1 bar (#2487). See test/js/README.md and
- * docs/testing-and-ci.md.
+ * Run it with `make test-js` (or `npm run test:js`; `test:js:coverage` for the report). CI runs the latter as a
+ * blocking step in the frontend job. See test/js/README.md and docs/testing-and-ci.md.
  */
 
 /** @type {import('jest').Config} */

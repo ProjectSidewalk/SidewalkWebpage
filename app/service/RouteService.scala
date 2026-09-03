@@ -393,17 +393,67 @@ class RouteServiceImpl @Inject() (
   /**
    * Resolves a share slug to a route id: the current slug of a live route, or a retired slug still redirecting.
    *
-   * @return None if the slug is unknown or its route has been soft-deleted.
+   * The slug is tried under several spellings (see `slugCandidates`) so a link retyped from the route's name rather
+   * than copied still lands on it (#5150). Live routes outrank retired slugs whichever spelling matched: a link that
+   * still works beats one kept alive only for old shares.
+   *
+   * Retyping stays lossy in two ways no fold can close, both preferable to a 404: "/r/STRASSE-TOUR" misses a route
+   * slugged "straße-tour" (ß has no canonical decomposition), and where the uniquifier appended "-2" a retyped name
+   * reaches whichever route holds the unsuffixed slug. A copied link is always unambiguous.
+   *
+   * @return None if no spelling is known or the matched route has been soft-deleted.
    */
-  def resolveSlug(slug: String): Future[Option[Int]] =
-    db.run(routeTable.getRouteIdBySlug(slug)).flatMap {
-      case Some(routeId) => Future.successful(Some(routeId))
-      case None          =>
-        db.run(routeSlugAliasTable.getRouteIdBySlug(slug)).flatMap {
-          case Some(routeId) => db.run(routeTable.getRoute(routeId)).map(_.map(_.routeId))
-          case None          => Future.successful(None)
-        }
+  def resolveSlug(slug: String): Future[Option[Int]] = {
+    val candidates: Seq[String] = slugCandidates(slug)
+    db.run(routeTable.getRouteIdsBySlugs(candidates)).flatMap { live =>
+      bestMatch(candidates, live) match {
+        case found @ Some(_) => Future.successful(found)
+        case None            => resolveRetiredSlug(candidates)
+      }
     }
+  }
+
+  /**
+   * The spellings a /r/<slug> URL is looked up under, most literal first so the least-transformed hit wins.
+   *
+   * The literal slug goes first so a copied link keeps exactly the path it took before folding existed — no
+   * regression on the case every share link actually uses. `canonicalizeForLookup` must then stay ahead of
+   * `slugify`, whose collapsing and capping would miss one of evolution 344's '--<route_id>' dedupe suffixes or a
+   * "-2"-uniquified slug past MaxSlugLength; slugify goes last to catch a name retyped with its punctuation intact.
+   *
+   * @param slug The slug as it arrived in the URL.
+   * @return The distinct non-empty spellings to try, in priority order.
+   */
+  private def slugCandidates(slug: String): Seq[String] = {
+    Seq(
+      slug,
+      SlugUtils.canonicalizeForLookup(slug),
+      // Empty fallback on purpose: slugify's "route" default would make an all-punctuation URL like /r/!!! hit a
+      // route legitimately slugged "route". An empty candidate is dropped instead.
+      SlugUtils.slugify(slug, fallback = "")
+    ).filter(_.nonEmpty).distinct
+  }
+
+  /** Resolves the candidates against retired slugs, dropping a hit whose route has since been soft-deleted. */
+  private def resolveRetiredSlug(candidates: Seq[String]): Future[Option[Int]] = {
+    db.run(routeSlugAliasTable.getRouteIdsBySlugs(candidates)).flatMap { retired =>
+      bestMatch(candidates, retired) match {
+        case Some(routeId) => db.run(routeTable.getRoute(routeId)).map(_.map(_.routeId))
+        case None          => Future.successful(None)
+      }
+    }
+  }
+
+  /**
+   * Picks the route id of the earliest candidate spelling present in a lookup's results.
+   *
+   * @param candidates The spellings that were looked up, most literal first.
+   * @param matched    The (slug, route id) rows the lookup returned, in whatever order the database produced them.
+   */
+  private def bestMatch(candidates: Seq[String], matched: Seq[(String, Int)]): Option[Int] = {
+    val routeIdBySlug: Map[String, Int] = matched.toMap
+    candidates.iterator.flatMap(routeIdBySlug.get).nextOption()
+  }
 
   /**
    * Soft-deletes a route owned by the given user. Share links to the route stop working.

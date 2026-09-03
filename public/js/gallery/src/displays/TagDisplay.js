@@ -93,7 +93,7 @@ class TagDisplay {
       // first, and matches nothing at all on the first card after a clear — where parseFloat(undefined) turns the
       // clamp below into NaN, dropping the one thing keeping an ellipsized pill inside the card.
       const MARGIN_BW_TAGS
-                = parseFloat($(tagEls[0]).css('marginLeft')) + parseFloat($(tagEls[0]).css('marginRight'));
+        = parseFloat($(tagEls[0]).css('marginLeft')) + parseFloat($(tagEls[0]).css('marginRight'));
 
       const hiddenTags = [];
       for (let i = 0; i < tagsText.length; i++) {

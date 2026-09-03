@@ -131,7 +131,8 @@ class RouteBuilderController @Inject() (
    * (/explore handles anonymous sign-up itself); retired slugs of renamed routes keep redirecting via the alias
    * table.
    *
-   * @param slug The route's slug; 404 if unknown or the route has been deleted.
+   * @param slug The route's slug, matched case-insensitively so a retyped link resolves; 404 if unknown or the
+   *             route has been deleted.
    */
   def routeBySlug(slug: String): Action[AnyContent] = Action.async { implicit request =>
     routeService.resolveSlug(slug).map {

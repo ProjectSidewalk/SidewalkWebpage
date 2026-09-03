@@ -177,6 +177,8 @@ class AuditTaskInteractionTable @Inject() (protected val dbConfigProvider: Datab
                   OR activity = 'Visit_ServiceHourInstructions'
                   OR activity = 'Visit_TimeCheck'
                   OR activity = 'Visit_UserDashboard'
+                  -- No new Visit_Help rows are written; the clause stays because dropping it would shrink service
+                  -- hours already credited to users from the rows that exist (#5092).
                   OR activity = 'Visit_Help'
               )
           ) timestamps

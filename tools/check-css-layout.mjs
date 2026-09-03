@@ -40,7 +40,6 @@ const PAGES = {
   'pages/errors.css': { views: ['app/views/errors/'] },
   'pages/explore': { views: [], prefixes: ['svl-'] },
   'pages/gallery': { views: [], prefixes: ['gallery-'] },
-  'pages/help.css': { views: ['app/views/help.scala.html', 'app/views/labelingGuide/'] },
   'pages/homepage.css': { views: ['app/views/common/main.scala.html'] },
   'pages/labeling-guide.css': { views: ['app/views/labelingGuide/'] },
   'pages/maintenance.css': { views: ['app/views/maintenance.scala.html'] },
