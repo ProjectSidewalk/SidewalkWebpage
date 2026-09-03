@@ -1,5 +1,5 @@
 .PHONY: dev docker-up docker-up-db docker-run docker-stop ssh qa-worktree qa-worktree-stop worktree-remove \
-        test-e2e test-e2e-host \
+        test-js test-e2e test-e2e-host \
         test-python test-python-app test-python-tools \
         import-users import-dump create-new-schema fill-new-schema hide-streets-without-imagery \
         import-street-imagery reveal-or-hide-neighborhoods \
@@ -215,6 +215,11 @@ test-python-tools:
 # see test-e2e-host. The image build is a cached no-op after the first run, and re-runs itself on a version bump —
 # it's only verbose when the tag is missing, since that first build downloads the base image.
 #
+# The jsdom unit suite (test/js/), a blocking step in CI's `frontend` job. Run in the web container, where the
+# node_modules live. `args` passes through, so `make test-js args="--watch"` or a path filter works.
+test-js:
+	@docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd /home && ./node_modules/.bin/jest --config jest.config.js $(args)"
+
 # `--tmpfs /home/node_modules` is load-bearing, not tidiness: NODE_PATH is consulted only after the node_modules
 # walk fails, so the repo's own node_modules — which carries @playwright/test, a devDependency installed into the
 # web image — would resolve the specs to a second copy of the module while the CLI keeps the image's. Playwright
@@ -260,12 +265,12 @@ reveal-or-hide-neighborhoods:
 lint-evolutions:
 	@bash db/scripts/lint-evolutions.sh
 
-# Cross-locale key parity for public/locales/ (i18next plural/override handling that the eslint-plugin-i18n-json rules
-# can't do). Pure node, run in the web container so node is present. Also a blocking CI step.
+# Cross-locale key parity and empty values for public/locales/ (the i18next plural/override handling a per-file JSON
+# rule can't do). Pure node, run in the web container so node is present. Also a blocking CI step.
 lint-locales:
-	@echo "Checking locale parity...";
+	@echo "Running locale checks...";
 	@docker exec $(web-container) bash -lc "cd /home && node tools/check-locale-parity.mjs"
-	@echo "Finished checking locale parity";
+	@echo "Finished locale checks";
 
 # Layout of public/css/ (#5030): a page's stylesheet is linked only by that page, page class prefixes stay in the
 # page's own files, and every linked stylesheet exists. Pure node, run in the web container so node is present. Also a
@@ -305,7 +310,7 @@ lint-htmlhint:
 lint-eslint:
 	@echo "Running eslint...";
 	@if [ "$(dir)" = "./" ]; then \
-		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js $(args) public/js/ public/locales/ test/e2e/ playwright.config.js"; \
+		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js $(args) public/js/ public/locales/ test/js/ test/e2e/ playwright.config.js"; \
 	else \
 		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js $(args) $(dir)"; \
 	fi
@@ -324,7 +329,7 @@ lint-stylelint:
 lint-fix-eslint:
 	@echo "Running eslint...";
 	@if [ "$(dir)" = "./" ]; then \
-		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js --fix $(args) public/js/ public/locales/ test/e2e/ playwright.config.js"; \
+		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js --fix $(args) public/js/ public/locales/ test/js/ test/e2e/ playwright.config.js"; \
 	else \
 		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js --fix $(args) $(dir)"; \
 	fi

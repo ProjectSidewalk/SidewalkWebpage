@@ -1,9 +1,9 @@
 name: CI
 
 #   - backend:         `sbt compile` + `scalafmtCheckAll` (both BLOCKING)
-#   - frontend:        asset build (grunt) + `eslint` (JS) + `stylelint` (CSS) + `htmlhint` (HTML) + locale parity +
-#                      CSS layout + asset paths (all BLOCKING), plus the jsdom `jest` suite in test/js/ (ADVISORY
-#                      step inside the same job; it reports JS coverage, but has no floor yet — see #5112).
+#   - frontend:        asset build (grunt) + `eslint` (JS/JSON) + `stylelint` (CSS) + `htmlhint` (HTML) + locale
+#                      checks + CSS layout + asset paths + the jsdom `jest` suite in test/js/ (all BLOCKING). Jest
+#                      reports JS coverage but has no floor — the number can't support one yet, see #5112.
 #   - evolutions-lint: static checks on conf/evolutions/default/*.sql (BLOCKING — fast, deterministic, no DB).
 #   - route-lint:      conf/routes reachability — fails if any route is shadowed by an earlier one (BLOCKING — no DB).
 #   - backend-tests:   the whole of test/ against a real Postgres+PostGIS (BLOCKING). Boots the app, which
@@ -69,7 +69,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Set up Node 23
+      - name: Set up Node 24
         uses: actions/setup-node@v7
         with:
           node-version: '24'
@@ -91,7 +91,7 @@ jobs:
       # failed, so a contributor sees build and lint problems in one run. Auto-fix locally with `make eslint-fix`.
       - name: ESLint (blocking)
         if: always()
-        run: npx eslint public/js/ public/locales/ test/e2e/ playwright.config.js
+        run: npx eslint public/js/ public/locales/ test/js/ test/e2e/ playwright.config.js
 
       # Blocking: the CSS tree is kept stylelint-clean (#2487), the CSS counterpart to the ESLint gate above. Same glob
       # `make stylelint` defaults to; vendored/generated CSS is carved out by stylelint.config.mjs's own `ignoreFiles`.
@@ -111,11 +111,10 @@ jobs:
         if: always()
         run: npx htmlhint app/views
 
-      # Blocking: cross-locale key parity for public/locales/. Pure-node (no deps), i18next-aware where
-      # eslint-plugin-i18n-json isn't -- it normalizes plural suffixes and treats en-US/en-NZ and the per-city overlays
-      # as override-only. Complements the per-file i18n-json ESLint rules run above. `if: always()` so it reports even
-      # when an earlier frontend step failed. Run locally with `make lint-locales`.
-      - name: Locale parity (blocking)
+      # Blocking: cross-locale key parity and empty values for public/locales/. Pure-node (no deps), i18next-aware
+      # where a per-file JSON rule can't be -- it normalizes plural suffixes and treats en-US/en-NZ and the per-city
+      # overlays as override-only. Run locally with `make lint-locales`.
+      - name: Locale checks (blocking)
         if: always()
         run: node tools/check-locale-parity.mjs
 
@@ -136,13 +135,10 @@ jobs:
         if: always()
         run: node tools/check-asset-paths.mjs
 
-      # Advisory: the jsdom unit suite (test/js/). Coverage is thin and sequenced with the ES5→ES2022 migration
-      # (#2487), so it doesn't gate merges yet — but running it on every PR is what keeps a tested helper's contract
-      # from being quietly edited out from under it. `continue-on-error` is on the step, not the job, so a failure
-      # reports without turning the required `Frontend (build)` check red.
-      - name: Jest unit tests (advisory)
+      # Blocking: the jsdom unit suite (test/js/). Thin *coverage* is why there's no `coverageThreshold`
+      # (jest.config.js says why); it is not a reason to let a suite that does exist go red.
+      - name: Jest unit tests (blocking)
         if: always()
-        continue-on-error: true
         run: npm run test:js:coverage
 
   evolutions-lint:
@@ -376,7 +372,7 @@ jobs:
       - name: Set up sbt
         uses: sbt/setup-sbt@v1
 
-      - name: Set up Node 23
+      - name: Set up Node 24
         uses: actions/setup-node@v7
         with:
           node-version: '24'

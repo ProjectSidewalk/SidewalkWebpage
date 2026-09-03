@@ -12,21 +12,28 @@
 const fs = require('fs');
 const path = require('path');
 
+const { windowWithStubbedLocation, runScriptWithWindow, newLocationStub, resetLocationStub } =
+    require('./support/windowWithStubbedLocation');
+
 const FORM_PATH = path.resolve(__dirname, '..', '..', 'public/js/validate/src/data/Form.js');
 
 /**
  * Load the `Form` class out of the production file. Unlike the api-docs preview modules, Form.js is a bare
  * `class Form {}` that the Grunt bundle simply concatenates into the page scope (it does not assign to `window`), so
- * we wrap the source in an IIFE that returns the class rather than relying on a global assignment. String
- * concatenation (not a template literal) is used so the backticks inside Form.js aren't reinterpreted.
+ * we evaluate the source as a function body that returns the class rather than relying on a global assignment.
+ * String concatenation (not a template literal) is used so the backticks inside Form.js aren't reinterpreted.
+ * @param {Window} win - The `window` the loaded source should see.
  * @returns {Function} The Form class.
  */
-function loadFormClass() {
+function loadFormClass(win) {
     const src = fs.readFileSync(FORM_PATH, 'utf8');
-    return (0, eval)('(() => {\n' + src + '\nreturn Form;\n})()');
+    return runScriptWithWindow(src + '\nreturn Form;\n', win);
 }
 
-const Form = loadFormClass();
+// Loaded once against a window carrying this stub, so the stub has to outlive any one test -- beforeEach resets
+// its fields in place rather than rebuilding the object the proxy closed over.
+const locationStub = newLocationStub();
+const Form = loadFormClass(windowWithStubbedLocation(locationStub));
 
 /** Stub `fetch` to resolve with the given JSON body and an OK status. */
 function stubFetchOk(body) {
@@ -51,11 +58,7 @@ describe('Form.submit (issue #2745 resilience)', () => {
             modalNoNewMission: { show: jest.fn() }
         };
 
-        // jsdom's location.reload can't be called/spied directly, so replace location with a stub we can assert on.
-        Object.defineProperty(window, 'location', {
-            configurable: true,
-            value: { reload: jest.fn(), replace: jest.fn(), href: '' }
-        });
+        resetLocationStub(locationStub);
 
         form = new Form('/validationTask');
     });
@@ -74,7 +77,7 @@ describe('Form.submit (issue #2745 resilience)', () => {
         await form.submit(payload);
 
         // The page must never reload, and the first attempt is logged as a failure.
-        expect(window.location.reload).not.toHaveBeenCalled();
+        expect(locationStub.reload).not.toHaveBeenCalled();
         expect(global.fetch).toHaveBeenCalledTimes(1);
         expect(svv.tracker.push).toHaveBeenCalledWith('SubmitFailed', expect.objectContaining({ attempt: 0 }));
 
@@ -91,7 +94,7 @@ describe('Form.submit (issue #2745 resilience)', () => {
 
         await form.submit({});
 
-        expect(window.location.reload).not.toHaveBeenCalled();
+        expect(locationStub.reload).not.toHaveBeenCalled();
         expect(svv.tracker.push).toHaveBeenCalledWith('SubmitFailed', expect.anything());
     });
 
@@ -108,7 +111,7 @@ describe('Form.submit (issue #2745 resilience)', () => {
             expect.objectContaining({ attempt: 0, status: 400 }));
         expect(svv.tracker.push).toHaveBeenCalledWith('SubmitFailedGaveUp', { attempts: 0, retryable: false });
         expect(errorSpy).toHaveBeenCalled();
-        expect(window.location.reload).not.toHaveBeenCalled();
+        expect(locationStub.reload).not.toHaveBeenCalled();
     });
 
     test('408 and 429 are retried even though they are 4xx', async () => {
@@ -140,7 +143,7 @@ describe('Form.submit (issue #2745 resilience)', () => {
 
         expect(global.fetch).toHaveBeenCalledTimes(6);
         expect(svv.tracker.push).toHaveBeenCalledWith('SubmitFailedGaveUp', expect.anything());
-        expect(window.location.reload).not.toHaveBeenCalled();
+        expect(locationStub.reload).not.toHaveBeenCalled();
     });
 
     test('an error while applying the response is logged but not retried or reloaded', async () => {
@@ -151,7 +154,7 @@ describe('Form.submit (issue #2745 resilience)', () => {
         await form.submit({});
 
         expect(errorSpy).toHaveBeenCalled();
-        expect(window.location.reload).not.toHaveBeenCalled();
+        expect(locationStub.reload).not.toHaveBeenCalled();
         expect(global.fetch).toHaveBeenCalledTimes(1); // response handling errors must not resubmit
     });
 
@@ -180,7 +183,7 @@ describe('Form.submit (issue #2745 resilience)', () => {
         // The label type rides along so the container can ask for replacement labels of the right type (#4810).
         expect(svv.labelContainer.resetLabelList).toHaveBeenCalledWith([{ label_id: 9 }], 'Obstacle');
         expect(svv.modalMissionComplete.nextMissionLoaded).toHaveBeenCalled();
-        expect(window.location.reload).not.toHaveBeenCalled();
+        expect(locationStub.reload).not.toHaveBeenCalled();
     });
 
     test('a successful submit schedules no retry', async () => {
@@ -202,7 +205,7 @@ describe('Form.submit (issue #2745 resilience)', () => {
 
         await form.submit({});
 
-        expect(window.location.reload).not.toHaveBeenCalled();
+        expect(locationStub.reload).not.toHaveBeenCalled();
         expect(svv.tracker.push).toHaveBeenCalledWith('SubmitFailed', expect.objectContaining({ attempt: 0 }));
         await jest.advanceTimersByTimeAsync(2000);
         expect(global.fetch).toHaveBeenCalledTimes(2);
@@ -226,7 +229,7 @@ describe('Form.submit (issue #2745 resilience)', () => {
 
         expect(svv.missionContainer.createAMission).not.toHaveBeenCalled();
         expect(svv.modalNoNewMission.show).not.toHaveBeenCalled();
-        expect(window.location.reload).not.toHaveBeenCalled();
+        expect(locationStub.reload).not.toHaveBeenCalled();
     });
 
     test('sends a JSON POST to the configured URL', async () => {
@@ -329,7 +332,7 @@ describe('Form.submit (issue #2745 resilience)', () => {
         expect(errorSpy).toHaveBeenCalled();
         expect(svv.modalMissionComplete.nextMissionLoaded).not.toHaveBeenCalled();
         expect(global.fetch).toHaveBeenCalledTimes(1);
-        expect(window.location.reload).not.toHaveBeenCalled();
+        expect(locationStub.reload).not.toHaveBeenCalled();
     });
 
     test('a failed submit still retries (and gives up) cleanly when the tracker is unavailable', async () => {
@@ -340,7 +343,7 @@ describe('Form.submit (issue #2745 resilience)', () => {
         await jest.advanceTimersByTimeAsync(30100);
 
         expect(global.fetch).toHaveBeenCalledTimes(6);
-        expect(window.location.reload).not.toHaveBeenCalled();
+        expect(locationStub.reload).not.toHaveBeenCalled();
     });
 
     test('a failed intermediate submit stays intermediate across retries (never loads a mission)', async () => {
