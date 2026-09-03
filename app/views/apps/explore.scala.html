@@ -975,6 +975,12 @@
     mainParam.routeResumed = @data.routeResumed;
     }
 
+    @* A ?routeId= naming no live route was dropped rather than obeyed, so the session is not the one the link asked
+       for (#5156). Emitted only when it happened, so the ordinary page carries nothing extra. *@
+    @if(data.routeUnavailable) {
+    mainParam.routeUnavailable = true;
+    }
+
     @* Optional pano seed: an admin auditing a specific street from a pano/lat-lng, or an address drop-in (#4451). *@
     @if(lat.isDefined && lng.isDefined) {
     mainParam.startLat = @lat.get;

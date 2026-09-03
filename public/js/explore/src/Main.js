@@ -422,9 +422,21 @@ class Main {
             resuming,
           }, svl, this.#params.language);
 
-          // Toasts telling the user this visit resumed something in progress (#4833), deferred until the
-          // mission-start screen closes so they aren't missed underneath it.
-          if (svl.userRouteId && this.#params.routeResumed) {
+          // Toasts telling the user this visit resumed something in progress (#4833), or that the route the URL
+          // asked for could not be opened (#5156), deferred until the mission-start screen closes so they aren't
+          // missed underneath it. At most one shows: they occupy the same spot over the pano, and the dropped-route
+          // news outranks a resume note the sidebar's route name already carries.
+          if (this.#params.routeUnavailable) {
+            document.addEventListener('ps:mission-start-tutorial:done', () => {
+              svl.tracker.push('RouteUnavailableToast_Shown');
+              Toast.show({
+                message: i18next.t('right-ui.route-unavailable.message'),
+                reference: document.getElementById('pano'),
+                dark: true,
+                duration: 10000,
+              });
+            }, { once: true });
+          } else if (svl.userRouteId && this.#params.routeResumed) {
             document.addEventListener('ps:mission-start-tutorial:done', () => {
               svl.tracker.push('RouteResumeToast_Shown');
               Toast.show({
