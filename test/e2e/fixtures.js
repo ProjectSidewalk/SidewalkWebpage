@@ -26,15 +26,10 @@ const CONSOLE_ERROR_ALLOWLIST = [
   // Mapbox telemetry; stubbed to 204 by stubMapbox but belt-and-braces for pages that skip the stub.
   /events\.mapbox\.com/,
   // The app ships CSP in REPORT-ONLY mode (conf/application.conf, reportOnly = true): the browser logs each
-  // would-be violation as a console error but takes no action, so pages embedding external content (e.g. the
-  // /help YouTube iframes) emit these on every load. Enforcement policy is a backend-config concern, not the
+  // would-be violation as a console error but takes no action, so pages embedding external content (map SDKs,
+  // Street View imagery) emit these on every load. Enforcement policy is a backend-config concern, not the
   // page-runtime breakage this suite exists to catch.
   /report-only Content Security Policy/,
-  // The /help YouTube embeds' player script probes the Compute Pressure API, which the embedding iframes don't
-  // delegate (no allow="compute-pressure"), and Chromium logs the violation as a console error attributed to
-  // the player's own base.js. Intermittent: it fires only when the player boots far enough within the settle
-  // window. Anchored to the violation text plus a youtube.com source so nothing of ours can hide behind it.
-  /^console\.error: Permissions policy violation: compute-pressure .+ \(https:\/\/www\.youtube\.com\/.+\)$/,
 ];
 
 // Without a real Google Maps key the Maps JS API refuses to initialize and says so on every page that loads it —

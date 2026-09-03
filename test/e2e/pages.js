@@ -25,7 +25,6 @@ const PAGES = [
   {path: '/leaderboard'},
   {path: '/routes'},
   {path: '/stories'},
-  {path: '/help'},
   {path: '/labelingGuide'},
   {path: '/labelingGuide/curbRamps'},
   {path: '/labelingGuide/surfaceProblems'},

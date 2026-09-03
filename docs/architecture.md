@@ -185,7 +185,6 @@ corresponding Twirl view:
   (`ApiDocsTheme.color(token, alpha?)`, the one way preview code reads a CSS color token for Chart.js/Mapbox so
   chart colors follow the design system). Served file-by-file — no Grunt bundle.
 - **`ps-map/`** — shared map component used across pages.
-- **`help/`** — help/FAQ page.
 - **`common/`** — modules shared across bundles: `pano-viewer/` (an abstraction over the GSV / Mapillary / Infra3d /
   Pannellum imagery providers), `label-detail/` (label popups), and various utilities.
 

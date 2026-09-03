@@ -151,16 +151,6 @@ class ApplicationController @Inject() (
   }
 
   /**
-   * Returns a help  page.
-   */
-  def help = cc.securityService.UserAwareAction { implicit request =>
-    configService.getCommonPageData(request2Messages.lang).map { commonData =>
-      cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_Help")
-      Ok(views.html.help(commonData, Messages("seo.title.help"), request.identity))
-    }
-  }
-
-  /**
    * Returns the About page.
    */
   def about = cc.securityService.UserAwareAction { implicit request =>
