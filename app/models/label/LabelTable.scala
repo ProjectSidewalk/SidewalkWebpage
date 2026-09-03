@@ -1256,17 +1256,24 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    * The per-queue counts run the same `ValidationQueuePolicy` predicates the label query does, so type selection and
    * label selection can never disagree about what still needs validating.
    *
-   * @param userId User ID for the current user
-   * @param viewer The type of pano viewer the labels must have been added on (GSV, Mapillary, etc)
+   * @param userId          User ID for the current user
+   * @param viewer          The type of pano viewer the labels must have been added on (GSV, Mapillary, etc)
+   * @param unvalidatedOnly Count only labels with no decision recorded, the same filter the label query applies.
    */
-  def getAvailableValidationsLabelsByType(userId: String, viewer: PanoSource): DBIO[Seq[LabelTypeValidationsLeft]] = {
+  def getAvailableValidationsLabelsByType(
+      userId: String,
+      viewer: PanoSource,
+      unvalidatedOnly: Boolean
+  ): DBIO[Seq[LabelTypeValidationsLeft]] = {
     val labelsValidatedByUser = labelValidations.filter(_.userId === userId)
 
-    // Get labels the given user didn't place that have available imagery (non-expired, or backed up).
+    // Get labels the given user didn't place that have available imagery (non-expired, or backed up). The
+    // unvalidatedOnly filter has to match the label query's, or type selection can pick a type whose pool is empty.
     val labelsToValidate = for {
       _lb <- labels
       _pd <- panoData if _pd.panoId === _lb.panoId
       if imageryViewable(_pd) && _pd.source === viewer && _lb.userId =!= userId
+      if !unvalidatedOnly.asColumnOf[Boolean] || _lb.correct.isEmpty
     } yield _lb
 
     // Left join with the labels that the user has already validated, then filter those out.

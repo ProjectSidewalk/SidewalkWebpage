@@ -493,25 +493,30 @@ class LabelServiceImpl @Inject() (
    * @param missionLength     Number of labels for this mission.
    * @param requiredLabelType labelType of the current mission.
    * @param queues            Queues to consider, in order; see `ValidateParams.queueCascade`.
+   * @param unvalidatedOnly   Whether the mission is restricted to labels with no decision recorded.
    */
   def getLabelTypeToValidate(
       userId: String,
       missionLength: Int,
       viewerType: PanoSource,
       requiredLabelType: Option[LabelTypeEnum.Base],
-      queues: Seq[ValidationQueue]
+      queues: Seq[ValidationQueue],
+      unvalidatedOnly: Boolean
   ): Future[Option[LabelTypeEnum.Base]] = {
-    db.run(labelTable.getAvailableValidationsLabelsByType(userId, viewerType).map { availValidations =>
+    db.run(labelTable.getAvailableValidationsLabelsByType(userId, viewerType, unvalidatedOnly).map { availValidations =>
       val candidates: Seq[LabelTypeValidationsLeft] = availValidations
         .filter(_.validationsAvailable >= missionLength)
         .filter(x => requiredLabelType.isEmpty || requiredLabelType.contains(x.labelType))
         .filter(x => LabelTypeEnum.primaryLabelTypes.contains(x.labelType))
 
-      val (queue, availTypes) = LabelServiceImpl.chooseQueueAndTypes(candidates, queues, missionLength)
+      // NoSidewalk is served only when it is the only type with a mission's worth of labels at all. That is decided
+      // before the cascade is walked, so a thin crowd queue for the other types falls back to their settled labels
+      // rather than to NoSidewalk missions.
+      val withoutNoSidewalk: Seq[LabelTypeValidationsLeft] =
+        candidates.filter(x => LabelTypeEnum.primaryValidateLabelTypes.contains(x.labelType))
+      val typesInPlay: Seq[LabelTypeValidationsLeft] = if (withoutNoSidewalk.nonEmpty) withoutNoSidewalk else candidates
 
-      // Unless NoSidewalk is the only available label type, remove it from the list of available types.
-      val typesFiltered: Seq[LabelTypeValidationsLeft] = availTypes
-        .filter(x => LabelTypeEnum.primaryValidateLabelTypes.contains(x.labelType) || availTypes.length == 1)
+      val (queue, typesFiltered) = LabelServiceImpl.chooseQueueAndTypes(typesInPlay, queues, missionLength)
 
       if (typesFiltered.length < 2) {
         typesFiltered.map(_.labelType).headOption
@@ -549,7 +554,8 @@ class LabelServiceImpl @Inject() (
   ): Future[(Option[Mission], Option[(Int, Int, Int)], Seq[LabelValidationMetadata], Seq[AdminValidationData])] = {
     // TODO can this be merged with `getDataForValidatePostRequest`?
     val viewerType: PanoSource = configService.getPanoSource
-    getLabelTypeToValidate(user.userId, labelCount, viewerType, validateParams.labelType, validateParams.queueCascade)
+    getLabelTypeToValidate(user.userId, labelCount, viewerType, validateParams.labelType, validateParams.queueCascade,
+      validateParams.unvalidatedOnly)
       .flatMap {
         case Some(labelType) =>
           for {
@@ -632,7 +638,7 @@ class LabelServiceImpl @Inject() (
       nextMissionLabelType <- {
         if (missionProgress.exists(_.completed))
           getLabelTypeToValidate(user.userId, labelsToRetrieve, viewerType, validateParams.labelType,
-            validateParams.queueCascade)
+            validateParams.queueCascade, validateParams.unvalidatedOnly)
         else Future.successful(Option.empty[LabelTypeEnum.Base])
       }
     } yield {

@@ -139,10 +139,12 @@ many of those each queue holds — computed with the *same* predicates as the la
 selection cannot disagree about what "needs validation" means.
 
 1. Keep types with at least one full mission's worth of available labels, honoring a requested type if there is one.
-2. Walk the cascade and take the **first queue in which some type can fill a whole mission**. That queue decides both
+   The counts apply `unvalidatedOnly` when the page does, so they describe the same pool the label query draws from.
+2. Drop `NoSidewalk` unless it is the only type left (validating it is near-always trivial). This happens before the
+   cascade is walked, so thin crowd queues for the other types fall back to their settled labels, not to `NoSidewalk`.
+3. Walk the cascade and take the **first queue in which some type can fill a whole mission**. That queue decides both
    which types are in play and what they are weighted by. For `Any` the weights are uniform — it is the fallback, and
    its counts carry no priority signal.
-3. Drop `NoSidewalk` unless it is the only type left (validating it is near-always trivial).
 4. Give every remaining type a 2% floor and split the rest in proportion to its weight, then draw.
 
 ## Expert Validate's `?triage=`

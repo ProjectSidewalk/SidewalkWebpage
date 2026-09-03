@@ -288,7 +288,7 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
     "count each queue with the same predicates the label query filters on" in {
       def curbRampCounts: DBIO[LabelTypeValidationsLeft] =
         labelTable
-          .getAvailableValidationsLabelsByType(requester, viewer)
+          .getAvailableValidationsLabelsByType(requester, viewer, unvalidatedOnly = false)
           .map(
             _.find(_.labelType == LabelTypeEnum.CurbRamp)
               .getOrElse(LabelTypeValidationsLeft(LabelTypeEnum.CurbRamp, 0, 0, 0))
@@ -346,7 +346,7 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
     "top a queue that cannot fill a mission up from the next queue in the list" in {
       // This one runs against the schema's own labels: the service checks imagery on its own connection, which cannot
       // see a rolled-back fixture's rows.
-      val counts    = run(labelTable.getAvailableValidationsLabelsByType(requester, viewer))
+      val counts    = run(labelTable.getAvailableValidationsLabelsByType(requester, viewer, unvalidatedOnly = false))
       val needed    = 3
       val shortType = counts.find(t => t.triage < needed && t.needsVotes >= needed)
       assume(shortType.isDefined, "no label type in this schema has a short triage queue and a full NeedsVotes queue")
@@ -372,7 +372,7 @@ class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPer
     }
 
     "serve only labels that still need votes when NeedsVotes is the whole cascade" in {
-      val counts   = run(labelTable.getAvailableValidationsLabelsByType(requester, viewer))
+      val counts   = run(labelTable.getAvailableValidationsLabelsByType(requester, viewer, unvalidatedOnly = false))
       val fullType = counts.find(_.needsVotes >= 5)
       assume(fullType.isDefined, "no label type in this schema has enough labels needing votes")
 
