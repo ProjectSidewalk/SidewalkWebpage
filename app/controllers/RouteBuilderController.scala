@@ -127,12 +127,12 @@ class RouteBuilderController @Inject() (
   }
 
   /**
-   * Redirects a /r/<slug> share link to the route in Explore. Unauthenticated so share links work logged-out
+   * Redirects a /r/<x> share link to the route in Explore. Unauthenticated so share links work logged-out
    * (/explore handles anonymous sign-up itself); retired slugs of renamed routes keep redirecting via the alias
    * table.
    *
-   * @param slug The route's slug, matched case-insensitively so a retyped link resolves; 404 if unknown or the
-   *             route has been deleted.
+   * @param slug A route reference: the route's slug, matched case-insensitively so a retyped link resolves, or a
+   *             bare route id (#5157). 404 if it names nothing or the route has been deleted.
    */
   def routeBySlug(slug: String): Action[AnyContent] = Action.async { implicit request =>
     routeService.resolveSlug(slug).map {
