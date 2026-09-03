@@ -9,9 +9,15 @@
   scoring match {
     case AccessScoreCalculator.PositiveQuality => "Quality (Good / Okay / Bad)"
     case AccessScoreCalculator.NegativeSeverity => "Severity (Low / Medium / High)"
-    case AccessScoreCalculator.PresenceOnly => "Presence only"
+    case AccessScoreCalculator.PresenceOnly => "Presence only, per cluster"
+    case AccessScoreCalculator.StreetCondition => "Street condition: one pooled term per street"
   }
 }
+@noSidewalkBase = @{AccessScoreCalculator.typeWeights(models.label.LabelTypeEnum.NoSidewalk.name).baseWeight}
+@noSidewalkTag(tag: String) = @{AccessScoreCalculator.tagAdjustments((models.label.LabelTypeEnum.NoSidewalk.name, tag))}
+@saturation = @{AccessScoreCalculator.streetConditionSaturationCount}
+@sigmoid(t: Double) = @{f"${1.0 / (1.0 + math.exp(-t))}%.2f"}
+@signed(x: Double) = @{f"$x%+.2f"}
 @tagAdjustmentsFor(labelType: String) = @{
   AccessScoreCalculator.tagAdjustments.collect { case ((lt, tag), delta) if lt == labelType => (tag, delta) }.toSeq.sortBy(_._1)
 }
@@ -66,20 +72,21 @@
 
   <div class="page-section" id="scoring-model-section">
     <h2 class="page-heading" id="scoring-model">How the score is computed<a href="#scoring-model" class="permalink">#</a></h2>
-    <p>Project Sidewalk clusters proximal labels of the same type. Each scored cluster on a street contributes a signed weight; the street's score is the logistic (sigmoid) of the sum of those weights, mapped to <code>(0,&nbsp;1)</code>. An empty or unlabeled street scores the neutral <code>0.5</code>.</p>
-    <p>Each cluster's contribution is <code>base(type) × ratingMultiplier + Σ tagAdjustments</code>:</p>
+    <p>Project Sidewalk clusters proximal labels of the same type. Each scored label type on a street contributes a signed term; the street's score is the logistic (sigmoid) of the sum of those terms, mapped to <code>(0,&nbsp;1)</code>. An empty or unlabeled street scores the neutral <code>0.5</code>.</p>
+    <p>Most types are scored <strong>per cluster</strong>. Each cluster contributes <code>base(type) × ratingMultiplier + Σ tagAdjustments</code>, and the type's term is the sum over its clusters on the street:</p>
     <ul class="api-list">
       <li><strong>Positive, quality-rated</strong> (CurbRamp, Crosswalk): rated <em>Good&nbsp;/&nbsp;Okay&nbsp;/&nbsp;Bad</em> → multiplier <code>+1.0&nbsp;/&nbsp;+0.5&nbsp;/&nbsp;−1.0</code>. A <em>Bad</em> feature therefore <em>lowers</em> the score.</li>
       <li><strong>Negative, severity-rated</strong> (NoCurbRamp, Obstacle, SurfaceProblem): rated <em>Low&nbsp;/&nbsp;Medium&nbsp;/&nbsp;High</em> → magnitude <code>0.33&nbsp;/&nbsp;0.67&nbsp;/&nbsp;1.0</code> of the (negative) base.</li>
-      <li><strong>Presence-only</strong> (no rating): the base weight applies as-is.
-        <ul>
-          <li>A pedestrian <strong>Signal</strong> adds a fixed positive weight.</li>
-          <li>A missing sidewalk (<strong>NoSidewalk</strong>) adds a fixed negative weight <em>per cluster</em>.</li>
-          <li>NoSidewalk is usually labeled repeatedly along a street and clustered at 10&nbsp;m, so a street with no sidewalk carries several clusters and its score saturates toward 0 (compare <code>n_no_sidewalk</code> with <code>score_no_sidewalk</code>).</li>
-          <li>NoSidewalk tags (<em>street has a sidewalk</em>, <em>ends abruptly</em>, …) do not currently adjust the weight.</li>
-        </ul>
-      </li>
-      <li><strong>Tags</strong> adjust a cluster's weight when present on a majority of its labels — e.g. a Signal tagged <em>hard to reach buttons</em> counts negatively, while <em>APS</em> (accessible signal) counts positively.</li>
+      <li><strong>Presence-only</strong> (Signal): no rating; each cluster adds the base weight as-is.</li>
+      <li><strong>Tags</strong> adjust a cluster's weight when present on at least half of its labels — e.g. a Signal tagged <em>hard to reach buttons</em> counts negatively, while <em>APS</em> (accessible signal) counts positively.</li>
+    </ul>
+    <p><strong>NoSidewalk is scored once per street, as a street condition</strong>, rather than per cluster. A missing sidewalk is a stretch, not a point: labelers pin it repeatedly along the street and it is clustered at 10&nbsp;m, so a per-cluster weight would measure how many pins were dropped instead of whether the street has a sidewalk. All of a street's NoSidewalk clusters pool into a single term, which is what <code>score_no_sidewalk</code> reports:</p>
+    <pre><code class="language-text">score_no_sidewalk = base × min(1, n / @saturation) + Σ tagAdjustments</code></pre>
+    <ul class="api-list">
+      <li><code>n</code> is the street's NoSidewalk cluster count (<code>n_no_sidewalk</code>). The extent factor <code>min(1,&nbsp;n&nbsp;/&nbsp;@saturation)</code> saturates at @saturation clusters: one stray pin counts <code>1&nbsp;/&nbsp;@saturation</code> of the base weight, and @saturation or more count the full weight however many more there are.</li>
+      <li><strong>Street-wide tags</strong> are judged over the street's pooled NoSidewalk labels: a tag adjusts the term when at least half of those labels carry it. <em>street has no sidewalks</em> and <em>street has a sidewalk</em> (the other side of the street has one) are mutually exclusive, so at most one is active unless the labels split exactly in half, in which case they cancel.</li>
+      <li><strong><em>ends abruptly</em></strong> marks the point where a sidewalk stops, so it is active when any single cluster carries it on at least half of that cluster's labels. It aggravates the score: a pedestrian on the sidewalk is stranded in the roadway where it ends.</li>
+      <li><strong>Worked example</strong> (current weights, before the street's other features): a street pinned eight times with no tags scores <code>sigmoid(@signed(noSidewalkBase)) ≈ @sigmoid(noSidewalkBase)</code>; tagged <em>street has no sidewalks</em> it drops to <code>sigmoid(@signed(noSidewalkBase + noSidewalkTag("street has no sidewalks"))) ≈ @sigmoid(noSidewalkBase + noSidewalkTag("street has no sidewalks"))</code>; tagged <em>street has a sidewalk</em> it rises to <code>sigmoid(@signed(noSidewalkBase + noSidewalkTag("street has a sidewalk"))) ≈ @sigmoid(noSidewalkBase + noSidewalkTag("street has a sidewalk"))</code>. A single pin with no tags is <code>sigmoid(@signed(noSidewalkBase / saturation)) ≈ @sigmoid(noSidewalkBase / saturation)</code>.</li>
     </ul>
     <p>The base weights and tag adjustments below are read directly from the scoring engine, so they always match what the API computes:</p>
     <div class="ps-table-wrapper">
@@ -107,7 +114,7 @@
         </tbody>
       </table>
     </div>
-    <p>The per-type <code>cluster_counts</code> and <code>sub_scores</code> in each response let you see exactly how a street's score was composed. Other label types (Occlusion, Other) do not affect the score.</p>
+    <p>The per-type <code>cluster_counts</code> and <code>sub_scores</code> in each response let you see exactly how a street's score was composed: the <code>sub_scores</code> sum to <code>logit(score)</code>. Other label types (Occlusion, Other) do not affect the score.</p>
     <p class="download-note">Note: The score is not normalized by street length — a long street with many issues saturates toward 0. Region scores (see the <a href="@routes.ApiDocsController.accessScoreRegions">AccessScore: Regions API</a>) <em>are</em> length-weighted.</p>
   </div>
 
@@ -235,7 +242,7 @@
           <tr><td><code>properties.length_meters</code></td><td><code>number</code></td><td>Street length in meters (used to length-weight region scores).</td></tr>
           <tr><td><code>properties.label_count</code></td><td><code>integer</code></td><td>Number of labels contributing to this street's scored clusters.</td></tr>
           <tr><td><code>properties.cluster_counts</code></td><td><code>object</code></td><td>Number of scored clusters of each label type on the street, keyed by label-type name.</td></tr>
-          <tr><td><code>properties.sub_scores</code></td><td><code>object</code></td><td>Summed contribution of each label type to the pre-sigmoid total, keyed by label-type name. Explains how the <code>score</code> was composed.</td></tr>
+          <tr><td><code>properties.sub_scores</code></td><td><code>object</code></td><td>Contribution of each label type to the pre-sigmoid total, keyed by label-type name; the values sum to <code>logit(score)</code>, so they explain how the <code>score</code> was composed. Per-cluster types report the sum over their clusters; <code>NoSidewalk</code> reports the street's single pooled term (see <a href="#scoring-model">How the score is computed</a>), which does not scale with <code>cluster_counts.NoSidewalk</code>.</td></tr>
         </tbody>
       </table>
     </div>
