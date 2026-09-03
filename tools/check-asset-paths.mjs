@@ -1,5 +1,8 @@
 #!/usr/bin/env node
-// Asset-URL check for public/js/ (#4893). Frontend JS names a public asset by its logical path and resolves it with
+// Asset-URL check for public/js/ (#4893) and public/css/ (#5094).
+//
+// == public/js/ ==
+// Frontend JS names a public asset by its logical path and resolves it with
 // `util.assetPath`, so staged builds serve the content-fingerprinted copy (`max-age=31536000, immutable`) instead of
 // the original (one hour, so a returning visitor re-asks about every asset hourly and a swapped file reaches a cached
 // client only once that hour is up). Nothing else enforces that: `AssetsFinder.path` returns the plain path for an
@@ -20,6 +23,18 @@
 //        checkable, and CLAUDE.md asks for that form anyway.
 //   3. Every prefix in that list is a real directory, so a renamed asset family fails here rather than in sbt.
 //
+// == public/css/ ==
+// A stylesheet takes the other route: the `fingerprintCssAssetUrls` stage (project/CssAssetUrls.scala) rewrites its
+// `url(...)` targets at stage time, resolving each against the file itself rather than a manifest. So either URL form
+// is fine and nothing needs registering, and the stage's one requirement is the one rule here:
+//
+//   4. Every `url(...)` that names a file (not a data: payload, another origin, or a same-document fragment) resolves
+//      to something real under public/ — reported against the line that wrote it, seconds into CI, rather than midway
+//      through a stage build.
+//
+// Bundles under public/js/*/build/ are left to the stage, which sees them on disk: checking them here would report a
+// concatenated copy of a problem already reported against its source.
+//
 // Exits non-zero with the offending files listed, so it can gate CI.
 
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
@@ -29,6 +44,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const JS_DIR = join(ROOT, 'public', 'js');
 const PUBLIC_DIR = join(ROOT, 'public');
+const ASSETS_PREFIX = '/assets/';
 
 // The hardcoded '/assets/' URLs that may stay, each with the reason it can't go through util.assetPath. Every entry
 // must match something in its file; one that matches nothing is a stale exemption and fails the check.
@@ -50,6 +66,14 @@ const HARDCODED = /['"`(]\/assets\/(?!\$)[A-Za-z0-9_\-./]*/g;
 // every call shape is accounted for instead of only the ones a pattern happens to describe.
 const CALL = /util\.assetPath\(/g;
 
+// A css url() token. Kept in step with UrlToken in project/CssAssetUrls.scala: this check is only worth anything
+// while it reads the same references the stage will.
+const CSS_URL = /url\(\s*(?:"([^"]*)"|'([^']*)'|([^"')\s][^)]*?))\s*\)/g;
+
+// A url() naming something other than a file under public/: a data: payload, another origin, or an element in the
+// same document ('%23' is how a minifier writes the '#').
+const CSS_NOT_A_FILE = /^(?:[a-z][a-z0-9+.-]*:|\/\/|#|%23)/i;
+
 const problems = [];
 
 /** @returns {string[]} Every .js file under `dir` outside a build/ output directory, as repo-relative paths. */
@@ -60,6 +84,35 @@ function walkJs(dir) {
     if (entry.isDirectory()) return walkJs(full);
     return entry.name.endsWith('.js') ? [relative(ROOT, full)] : [];
   });
+}
+
+/** @returns {string[]} Every .css file under `dir` outside a build/ output directory, as repo-relative paths. */
+function walkCss(dir) {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    if (entry.name === 'build' || entry.name === 'node_modules') return [];
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) return walkCss(full);
+    return entry.name.endsWith('.css') ? [relative(ROOT, full)] : [];
+  });
+}
+
+/**
+ * @param {string} url - The url() target, unquoted, with any query string or fragment already cut off.
+ * @param {string} cssFile - Repo-relative path of the stylesheet, which a relative url resolves against.
+ * @returns {string|null} The path under public/, or null if the url climbs above public/ or points outside it.
+ */
+function cssTarget(url, cssFile) {
+  if (url.startsWith(ASSETS_PREFIX)) return url.slice(ASSETS_PREFIX.length);
+  if (url.startsWith('/')) return null; // Absolute, but outside the tree the assets route serves.
+
+  const segments = relative(PUBLIC_DIR, join(ROOT, cssFile)).split('/').slice(0, -1);
+  for (const segment of url.split('/')) {
+    if (segment === '' || segment === '.') continue;
+    if (segment !== '..') segments.push(segment);
+    else if (segments.length === 0) return null;
+    else segments.pop();
+  }
+  return segments.join('/');
 }
 
 // The tokens a '/' can follow and still open a regex literal rather than divide. Anything else ending an expression
@@ -322,9 +375,35 @@ for (const { file, url } of ALLOWED) {
   }
 }
 
+// --- 4. Every css url() names a real file --------------------------------------------------------------------------
+
+const cssFiles = walkCss(PUBLIC_DIR);
+let cssUrls = 0;
+
+for (const file of cssFiles) {
+  const text = readFileSync(join(ROOT, file), 'utf8');
+
+  text.split('\n').forEach((line, i) => {
+    for (const [, quoted, singleQuoted, bare] of line.matchAll(CSS_URL)) {
+      const url = (quoted ?? singleQuoted ?? bare).trim();
+      if (url === '' || CSS_NOT_A_FILE.test(url)) continue;
+      cssUrls++;
+
+      // A query string or fragment is part of the URL but not of the filename; Bootstrap's glyphicons carry both.
+      const cut = url.search(/[?#]/);
+      const target = cssTarget(cut < 0 ? url : url.slice(0, cut), file);
+      if (target === null || !existsSync(join(PUBLIC_DIR, target))) {
+        problems.push(`${file}:${i + 1}: url(${url}) names no file under public/ — the stage that rewrites these to `
+          + 'their fingerprinted names resolves each one against the file itself, so it has to exist');
+      }
+    }
+  });
+}
+
 if (problems.length === 0) {
   console.log(`Asset paths OK -- ${files.length} JS files, ${staticCalls} literal and ${dynamicCalls} interpolated `
-    + `util.assetPath() calls, ${PREFIXES.length} manifest prefixes, ${ALLOWED.length} allowed hardcoded URL(s).`);
+    + `util.assetPath() calls, ${PREFIXES.length} manifest prefixes, ${ALLOWED.length} allowed hardcoded URL(s); `
+    + `${cssFiles.length} CSS files, ${cssUrls} file-naming url() reference(s).`);
   process.exit(0);
 }
 

@@ -1,4 +1,6 @@
 import com.typesafe.sbt.packager.MappingsHelper.directory
+import com.typesafe.sbt.web.PathMapping
+import com.typesafe.sbt.web.pipeline.Pipeline
 
 name := """sidewalk-webpage"""
 
@@ -87,7 +89,18 @@ Universal / mappings ++= directory(baseDirectory.value / "scripts")
 // `Assets / pipelineStages` into `Assets / mappings` -> `Assets / assets`, which Play's dev build link runs on every
 // request. Scoping it to Assets therefore fingerprints during `run` as well, which buys nothing (dev serves
 // `no-cache`) and grows `target/web` from 290MB to ~880MB in every checkout and QA worktree.
-pipelineStages := Seq(digest)
+pipelineStages := Seq(fingerprintCssAssetUrls, digest)
+
+// Points every `url(...)` in a CSS asset at the fingerprinted copy `digest` is about to write (#5094) — the last
+// category of asset URL that no interpolation point can reach, since a stylesheet is static text out of the assets
+// jar. See project/CssAssetUrls.scala, which also explains why this has to sit ahead of `digest` above.
+val fingerprintCssAssetUrls = taskKey[Pipeline.Stage]("Rewrite CSS url(...) references to their fingerprinted names.")
+
+fingerprintCssAssetUrls := {
+  val targetDir = WebKeys.webTarget.value / "css-asset-urls"
+  val log       = streams.value.log
+  (mappings: Seq[PathMapping]) => CssAssetUrls(mappings, targetDir, log)
+}
 
 // Stamp git metadata into the binary at build time (generates models.utils.BuildInfo), so the running app can report
 // exactly what code it was built from (surfaced on the admin pages' deployment-info strip). Deploy builds run from
