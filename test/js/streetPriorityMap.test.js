@@ -11,6 +11,8 @@
  * eval'd into global scope rather than required.
  */
 
+/* global StreetPriorityTiers -- pulled into scope by the eval() loader below. */
+
 const fs = require('fs');
 const path = require('path');
 

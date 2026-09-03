@@ -176,9 +176,9 @@ asset-path check, so any frontend lint failure blocks the merge), **`Route reach
   merge your own PR. Review is by convention (and expected for external contributions), not enforced by a gate.
 - **Coverage can block too.** `Backend tests (API, PostGIS)` ends on a statement-coverage ratchet, so removing tests
   can fail the build even when everything still passes. The JS suite reports coverage but has no floor yet (#5112).
-- **Advisory work never blocks.** `Python tests (offline tooling)` is the one job that reports status without being a
-  required check, and the Jest suite is an advisory *step* inside `Frontend (build)` — so a red JS suite reports
-  without turning that check red.
+- **Advisory work never blocks.** `Python tests (offline tooling)` is the one check that reports status without
+  being required — it covers an operator utility that never runs on the server. Everything else in the checks list
+  gates the merge, the Jest suite included (#5132).
 
 Full gating policy and rationale: [`docs/testing-and-ci.md`](docs/testing-and-ci.md).
 
