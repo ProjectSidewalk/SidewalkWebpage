@@ -20,6 +20,7 @@ when a task is in its area.
 | Storing uploaded media (DB row vs. media dir) | `docs/architecture.md` → "Media storage" |
 | Tests or CI | `docs/testing-and-ci.md`, `test/e2e/README.md` |
 | `scripts/*.py` | `scripts/README.md` |
+| Google Maps keys, quotas, or a Google Cloud bill | `docs/google-cloud.md` |
 
 ## Workflow
 

@@ -329,11 +329,11 @@ jobs:
     # Both halves block, and the job is a required status check — so the db bring-up, grunt build, `sbt stage`,
     # app boot and the readiness probes gate merges too, not just the two test steps.
     timeout-minutes: 30
-    # Job-level env (shared by `sbt stage` and the app process), mirroring backend-tests' block with one difference:
-    # GOOGLE_MAPS_API_KEY prefers the real referrer/API-restricted test key so the phase-2 Explore/Validate specs can
-    # exercise Street View. The secret is absent on fork PRs; the fallback keeps the app booting with the dummy key,
-    # and HAS_REAL_GMAPS_KEY=false makes those specs self-skip (test/e2e/explore-validate.spec.js). Mapbox stays dummy
-    # on purpose — map pages are stubbed in-suite (test/e2e/fixtures.js) so they never hit the network.
+    # Job-level env (shared by `sbt stage` and the app process), mirroring backend-tests' block. Every key is a
+    # dummy on purpose: Mapbox and Google Maps are both stubbed in-suite (test/e2e/fixtures.js), so no page hits the
+    # network — and no test can bill a Google SKU (#5129: a run against the real API was ~20 billable panorama
+    # instantiations, from Explore's tutorial and the label-detail popup that /labelMap, /gallery, /dashboard and
+    # /stories build at page load). A real key must never come back here.
     env:
       DATABASE_URL: jdbc:postgresql://localhost:5432/sidewalk
       DATABASE_USER: sidewalk
@@ -344,8 +344,7 @@ jobs:
       SILHOUETTE_CRYPTER_KEY: DUMMY_SILHOUETTE_CRYPTER_KEY
       INTERNAL_API_KEY: DUMMY_INTERNAL_API_KEY
       MAPBOX_API_KEY: DUMMY_MAPBOX_API_KEY
-      GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY_TEST || 'DUMMY_GOOGLE_API_KEY' }}
-      HAS_REAL_GMAPS_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY_TEST != '' }}
+      GOOGLE_MAPS_API_KEY: DUMMY_GOOGLE_API_KEY
       GOOGLE_MAPS_SECRET: DUMMY_GOOGLE_SECRET
       GEMINI_API_KEY: DUMMY_GEMINI_API_KEY
       SCISTARTER_API_KEY: DUMMY_SCISTARTER_API_KEY
