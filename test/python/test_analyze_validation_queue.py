@@ -15,9 +15,7 @@ import pytest
 import analyze_validation_queue as avq
 
 
-# ---------------------------------------------------------------------------------------------------------------
 # Fixtures and helpers.
-# ---------------------------------------------------------------------------------------------------------------
 
 
 def make_pool(rows):
@@ -72,9 +70,7 @@ def validation_row(label_id, result, timestamp="2026-01-01 00:00:00+00", source=
     }
 
 
-# ---------------------------------------------------------------------------------------------------------------
 # Retirement rule and triage predicates.
-# ---------------------------------------------------------------------------------------------------------------
 
 
 @pytest.mark.parametrize("agree,disagree,unsure,expected", [
@@ -133,9 +129,7 @@ def test_unsure_heavy_needs_the_unsure_votes_to_outnumber_the_decisive_ones():
     assert not bool(avq.unsure_heavy(0, 0, 1))
 
 
-# ---------------------------------------------------------------------------------------------------------------
 # Scores.
-# ---------------------------------------------------------------------------------------------------------------
 
 
 @pytest.mark.parametrize("agree,disagree,unsure,expected", [
@@ -187,9 +181,7 @@ def test_old_pick_weight_is_the_reciprocal_of_the_gap_to_the_ceiling():
     assert unvalidated / settled == pytest.approx(1.9, abs=0.05)
 
 
-# ---------------------------------------------------------------------------------------------------------------
 # Sort keys and selection.
-# ---------------------------------------------------------------------------------------------------------------
 
 
 def test_es_sort_keys_pick_in_proportion_to_the_weight():
@@ -253,9 +245,7 @@ def test_sample_mission_handles_a_pool_smaller_than_a_mission():
     assert avq.sample_mission(np.array([]), rng).size == 0
 
 
-# ---------------------------------------------------------------------------------------------------------------
 # Type selection.
-# ---------------------------------------------------------------------------------------------------------------
 
 
 def test_type_probabilities_give_every_type_the_floor_and_split_the_rest_by_weight():
@@ -280,9 +270,7 @@ def test_no_sidewalk_is_held_back_unless_it_is_the_only_type_left():
         ["CurbRamp", "NoSidewalk"]
 
 
-# ---------------------------------------------------------------------------------------------------------------
 # Bucketing.
-# ---------------------------------------------------------------------------------------------------------------
 
 
 def test_status_buckets_are_disjoint_and_ordered_by_how_settled_a_label_is():
@@ -297,9 +285,7 @@ def test_vote_buckets_cover_every_count():
     assert list(avq.vote_bucket(np.array([0, 1, 2, 3, 4, 5, 12]))) == ["0", "1", "2", "3-4", "3-4", "5+", "5+"]
 
 
-# ---------------------------------------------------------------------------------------------------------------
 # Historical replay.
-# ---------------------------------------------------------------------------------------------------------------
 
 
 def test_replay_margins_tracks_the_margin_before_each_vote():
@@ -355,9 +341,7 @@ def test_waste_by_groups_on_whatever_the_key_function_returns():
     assert by_source["Validate"]["wasted_pct"] == 0.0
 
 
-# ---------------------------------------------------------------------------------------------------------------
 # Pick shares.
-# ---------------------------------------------------------------------------------------------------------------
 
 
 def test_pick_probabilities_sum_to_one_and_never_serve_a_decided_label_under_the_new_policy():
@@ -388,9 +372,7 @@ def test_share_by_group_sums_the_right_rows():
     assert avq.share_by_group(shares, groups, ("a", "b")) == {"a": 75.0, "b": 25.0}
 
 
-# ---------------------------------------------------------------------------------------------------------------
 # Forward simulation.
-# ---------------------------------------------------------------------------------------------------------------
 
 
 def test_simulate_votes_spends_nothing_on_decided_labels_under_the_new_policy():
@@ -428,9 +410,7 @@ def test_simulate_votes_reports_no_metrics_when_nothing_is_servable():
     assert result["on_decided_pct"] == 0.0
 
 
-# ---------------------------------------------------------------------------------------------------------------
 # Pool container, CSV loading and the report.
-# ---------------------------------------------------------------------------------------------------------------
 
 
 def test_pool_subset_and_no_sidewalk_filter():

@@ -2,7 +2,7 @@
 -- LabelTable.retrieveLabelListForValidationQuery (via labelsWithAuditTasksAndUserStats and imageryViewable), minus
 -- only the two per-viewer predicates, which have no meaning for a whole-city analysis: "not my own label" and "not
 -- already validated by me". Anything looser would count labels the queue never offers, which is how #4715's original
--- "58k unvalidated" ended up inflated by ~32k tutorial labels.
+-- "58k unvalidated" ended up inflated by 36k tutorial labels.
 --
 -- Driven by tools/validation_queue/run.sh, which supplies the psql variables:
 --   :schema            city schema to read (SET search_path, so no table here is schema-qualified)

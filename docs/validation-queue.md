@@ -269,8 +269,8 @@ PR. Two changes are behind that, and the table does not let them be attributed c
 isolates the sampler already carries the new score:
 
 - **The bonus gate.** Moving it from `label.correct IS NULL` to `needsVotes` takes the new-labeler labels that
-  actually carry the +150 from **2,650** to **17,827** — the same bonus, reaching 6.7× as many labels, because a
-  single AI *Agree* no longer disqualifies one.
+  actually carry the +150 from **2,650** to **17,827** — the same bonus, reaching 6.7× as many labels, because under
+  the `needsVotes` gate a lone AI *Agree* does not disqualify a label.
 - **The exponent.** Holding eligibility fixed, the same score gives new labelers **22.1%** of picks at
   `PickWeightExponent = 1` and **34.6%** at 2; the retirement rule adds the last 2.4 points to reach 37.0%.
 

@@ -1359,7 +1359,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
         (_lb, _lp, _pd, _us, _at, labelType, regionId, isAiUser, _ai.map(_._1), _ai.map(_._2).flatten)
       }
 
-    // Keep only the labels this queue serves. The filter sits here because the triage predicate reads the AI's vote.
+    // The queue filter sits after the AI join because the triage predicate reads the AI's vote.
     val _labelInfoInQueue = _labelInfoWithAiData.filter { case (l, _, _, _, _, _, _, _, _, aiv) =>
       ValidationQueuePolicy.inQueue(queue, l, aiv.map(_.validationResult))
     }

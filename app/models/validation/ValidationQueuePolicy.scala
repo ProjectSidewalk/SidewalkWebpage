@@ -14,9 +14,9 @@ import java.time.{Duration, OffsetDateTime}
  * Slick expressions shared by the label query and the per-type counts, and the specs pin them. Lifting a value into
  * `application.conf` is a one-file change if a deployment ever needs a different one.
  *
- * Rationale for the values (Seattle, Sept 2026; see docs/validation-queue.md for the tables): a second vote settles 68%
- * of one-vote labels, but by the fifth vote the marginal settle rate has fallen to ~20–38% and a quarter of those votes
- * are Unsure, so five crowd votes without a decision is where the crowd stops and an expert takes over.
+ * Rationale for the values (Seattle, Sept 2026; see docs/validation-queue.md for the tables): votes still arriving on
+ * an undecided label fall from 203k at the first vote to 2k at the fifth while their Unsure share climbs from 7% to
+ * 26%, so five crowd votes without a decision is where the crowd stops and an expert takes over.
  */
 object ValidationQueuePolicy {
 
@@ -42,9 +42,9 @@ object ValidationQueuePolicy {
   val MaxScore: Double = NewLabelerBonus + HighQualityLabelerBonus + ConsensusNeedMax + RecencyBonus
 
   /**
-   * Pick probability is proportional to score to this power. 2 keeps the new-labeler emphasis where the additive
-   * formula put it (new-labeler labels are ~1% of Seattle's servable pool and take ~9–10% of picks under either); 1
-   * would make it proportional and cut that share to under 4%.
+   * Pick probability is proportional to score to this power, which is how much of the additive score survives into the
+   * serve rate. On Seattle's pool, labels by a new labeler are 14% of the pool and take 22% of picks at exponent 1
+   * against 35% at 2; [[NewLabelerBonus]] is the other half of that dial.
    */
   val PickWeightExponent: Double = 2
 

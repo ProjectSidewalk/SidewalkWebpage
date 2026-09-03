@@ -18,8 +18,8 @@ import util.{AnonSession, RoleSession}
  *
  * The flag reaches the page two ways — a query parameter on the admin routes, and a field in the `validate_params`
  * body a running page posts back — and both are covered, because the pages read the embedded value and post it
- * straight back. Expert Validate defaults it on, plain Validate has no way to ask for it, and a body that predates
- * the field still has to parse.
+ * straight back. Expert Validate defaults it on, plain Validate has no way to ask for it, and a body from an older
+ * tab, which omits the field, still has to parse.
  *
  * Requires a Postgres+PostGIS database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI).
  */
@@ -87,7 +87,7 @@ class ValidateTriageParamsSpec extends PlaySpec with RoleSession with GuiceOneAp
       "triage"           -> true
     )
 
-    /** The same body as a page that predates the triage field would post it. */
+    /** The same body from an older tab, which omits the triage field. */
     val claimWithoutTriage: JsObject = triageClaim - "triage"
 
     def moreLabels(params: JsObject, cookies: Seq[Cookie]) = {

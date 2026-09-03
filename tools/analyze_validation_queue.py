@@ -37,10 +37,8 @@ import sys
 
 import numpy as np
 
-# ---------------------------------------------------------------------------------------------------------------
 # Policy constants. These mirror models.validation.ValidationQueuePolicy; a change there is a change here, and the
 # report prints them so a stale copy is visible in the output rather than silent.
-# ---------------------------------------------------------------------------------------------------------------
 
 SETTLED_MARGIN = 2
 MAX_CROWD_VOTES = 5
@@ -82,9 +80,7 @@ STATUS_ORDER = ("unvalidated", "unsure-only", "margin 1", "tied", "decided")
 VOTE_BUCKET_ORDER = ("0", "1", "2", "3-4", "5+")
 
 
-# ---------------------------------------------------------------------------------------------------------------
 # Policy predicates and scores. Every one takes numpy arrays (or scalars) and returns the same shape.
-# ---------------------------------------------------------------------------------------------------------------
 
 
 def total_votes(agree, disagree, unsure):
@@ -222,9 +218,7 @@ def old_pick_weight(score):
     return 1.0 / (OLD_SCORE_CEILING - np.asarray(score, dtype=np.float64))
 
 
-# ---------------------------------------------------------------------------------------------------------------
 # Sort keys. Each returns one draw of the key the corresponding ORDER BY produces; the largest key sorts first.
-# ---------------------------------------------------------------------------------------------------------------
 
 
 def old_sort_keys(score, rng):
@@ -263,9 +257,7 @@ def jitter_sort_keys(score, rng, width=JITTER_WIDTH):
     return score + rng.random(score.shape) * width
 
 
-# ---------------------------------------------------------------------------------------------------------------
 # Selection mechanics.
-# ---------------------------------------------------------------------------------------------------------------
 
 
 def sample_mission(keys, rng, mission_length=MISSION_LENGTH, batch_multiplier=BATCH_MULTIPLIER):
@@ -327,9 +319,7 @@ def eligible_types(available_by_type, mission_length=MISSION_LENGTH, serve_no_si
     return [t for t in avail if t in PRIMARY_VALIDATE_LABEL_TYPES]
 
 
-# ---------------------------------------------------------------------------------------------------------------
 # Bucketing.
-# ---------------------------------------------------------------------------------------------------------------
 
 
 def status_of(agree, disagree, unsure, settled_margin=SETTLED_MARGIN):
@@ -365,9 +355,7 @@ def vote_bucket(votes):
     return out
 
 
-# ---------------------------------------------------------------------------------------------------------------
 # Historical replay.
-# ---------------------------------------------------------------------------------------------------------------
 
 
 def replay_margins(validations, settled_margin=SETTLED_MARGIN):
@@ -480,9 +468,7 @@ def waste_by(replayed, key_fn):
     ]
 
 
-# ---------------------------------------------------------------------------------------------------------------
 # Pool container and the two policies as data.
-# ---------------------------------------------------------------------------------------------------------------
 
 
 class Pool(object):
@@ -632,9 +618,7 @@ def _policy_type_weights(pool, policy):
     return pool.correct_is_null
 
 
-# ---------------------------------------------------------------------------------------------------------------
 # (ii) Where the picks go.
-# ---------------------------------------------------------------------------------------------------------------
 
 
 def pick_probabilities(pool, policy, rng, missions_per_type=2000, serve_no_sidewalk=False):
@@ -693,9 +677,7 @@ def share_by_group(shares, groups, order):
     return {name: 100.0 * float(shares[groups == name].sum()) for name in order}
 
 
-# ---------------------------------------------------------------------------------------------------------------
 # (iv) Forward simulation.
-# ---------------------------------------------------------------------------------------------------------------
 
 
 def simulate_votes(pool, policy, n_votes, rng, p_correct, missions=None, serve_no_sidewalk=False):
@@ -788,9 +770,7 @@ def simulate_votes(pool, policy, n_votes, rng, p_correct, missions=None, serve_n
     }
 
 
-# ---------------------------------------------------------------------------------------------------------------
 # CSV loading.
-# ---------------------------------------------------------------------------------------------------------------
 
 
 def _to_bool(value):
@@ -858,9 +838,7 @@ def load_validations(path):
     return out
 
 
-# ---------------------------------------------------------------------------------------------------------------
 # Report formatting.
-# ---------------------------------------------------------------------------------------------------------------
 
 
 def markdown_table(headers, rows):
