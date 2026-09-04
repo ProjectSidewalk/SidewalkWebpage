@@ -38,6 +38,7 @@ describe('PopupPanoManager builds its viewer lazily', () => {
     let idleCallbacks;
     let svHolder;
     let buttonHolder;
+    let attributionOverlay;
 
     beforeEach(() => {
         jest.resetModules();
@@ -55,6 +56,8 @@ describe('PopupPanoManager builds its viewer lazily', () => {
         };
         window.i18next = { t: (k) => k };
         window.createPanoViewerLogo = () => ({ showPrimaryLogo: jest.fn(), showSourceLogo: jest.fn() });
+        attributionOverlay = { show: jest.fn(), hide: jest.fn() };
+        window.createPanoAttribution = () => attributionOverlay;
         window.LabelVisibilityToggle = { HIDDEN_CLASS: 'hidden' };
         window.PannellumViewer = { create: jest.fn(() => Promise.resolve(fakeViewer())) };
         // No self-hosted backup for any pano, so a failed live attempt lands on the crop.
@@ -134,6 +137,21 @@ describe('PopupPanoManager builds its viewer lazily', () => {
         expect(viewerType.create).not.toHaveBeenCalled();
         expect(manager.activeViewerName).toBe('StaticCrop');
         expect(manager.panoViewer).toBeUndefined();
+    });
+
+    test('the imagery attribution shows over the crop and hides again when live imagery takes over', async () => {
+        // The crop is Project Sidewalk's own copy of the imagery, so it carries the label's attribution line (#4865);
+        // the provider's live viewer draws its own, so the pill must go when it shows.
+        const manager = await createManager();
+        const line = { holder: '© 2025 Google', provider: null, license: null, license_url: null };
+
+        await manager.setPano('pano-gone', POV, 'https://example.test/crop.png', true, null, line);
+        expect(attributionOverlay.show).toHaveBeenCalledTimes(1);
+        expect(attributionOverlay.show).toHaveBeenLastCalledWith(line);
+
+        await manager.setPano('pano-1', POV, null);
+        expect(manager.activeViewerName).toBe('Default');
+        expect(attributionOverlay.hide).toHaveBeenCalledTimes(1);
     });
 
     test('a viewer that fails to build falls back to the crop, and the next label tries the build again', async () => {
