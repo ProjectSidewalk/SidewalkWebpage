@@ -27,6 +27,7 @@
   @common.labelPopup(admin = false, withPaging = true)
 
   <link href='@assets.path("css/components/label-detail.css")' rel="stylesheet">
+  <link href='@assets.path("css/components/pano-attribution.css")' rel="stylesheet">
   <link href='@assets.path("css/components/filter-sidebar.css")' rel="stylesheet">
   <link href='@assets.path("css/components/map-download-control.css")' rel="stylesheet">
   <link href='@assets.path("css/components/tag-pills.css")' rel="stylesheet">
@@ -228,9 +229,15 @@
           showsPartialFilterCaveat: Boolean(regionsParam) || Boolean(routesParam)
             || Boolean(aiValidationOptionsParam),
         }), 'top-right');
-        // Popup arrows step through spatially nearby labels using the already-loaded map data.
-        self.nearbyNav = createNearbyLabelNavigator(self.mapData);
+        // Popup arrows step through spatially nearby labels using the already-loaded map data, skipping any the
+        // sidebar filters hide (#5124). Built after MapSidebarUrlSync above has restored the URL's filters: that
+        // restore applies state without firing onChange, so it must land before anything derives arrow state.
+        self.nearbyNav = createNearbyLabelNavigator(self.mapData, {
+          isCandidate: (labelType, feature) => sidebarFilter.matchesFilters(labelType, feature),
+        });
         params.popupLabelViewer.setNearbyNavigator(self.nearbyNav);
+        // A user-driven filter change starts a fresh tour and re-derives the arrows' enabled states.
+        sidebarFilter.onChange(() => self.nearbyNav.filtersChanged());
 
         // Viewport label loading (#5002): label data streams in (and refreshes as the map moves) after the map
         // is ready, so everything reading the loaded label set re-syncs on each data event.

@@ -776,6 +776,7 @@ function buildBackupImageData(meta) {
     cameraRoll: pd.camera_roll,
     captureDate: meta.image_capture_date,
     copyright: pd.copyright,
+    attribution: pd.attribution,
     address: pd.address,
   };
   return backupImageDataIsComplete(backupImageData) ? backupImageData : null;

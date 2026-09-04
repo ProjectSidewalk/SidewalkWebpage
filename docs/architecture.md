@@ -81,6 +81,26 @@ the app dir, #4925):
   photos and audio today. These sit outside the app dir, are validated at boot by `PersistentMediaDirCheck`, and
   need their own provisioning and backup path on every host.
 
+`cropped.image.directory` additionally holds the **derived imagery** (#4865), all of it cut from the self-hosted
+panorama store (`pano.images.directory`, which the nightly panorama-tools scraper fills) by the nightly
+`CropGenerationActor` via `CropService`: per-label crops under `<city-id>/<LabelType>/`, and downscaled copies of
+whole panoramas under `<city-id>/pano-downscaled/`. Both are disposable — delete either and the next run rebuilds —
+which is why they share the crop store rather than earning directories of their own, and why neither may live in the
+panorama store, which the app only reads.
+
+Crops are the image the Gallery, the landing validation grid and label popups fall back to when live imagery is
+unavailable; they are written by the browser's `POST /saveImage` canvas snapshot at labeling time and by the job for
+every label that has none (AI submissions, failed uploads, any past city). The geometry — `CropSizingRule` (the
+swappable, versioned sizing rule) and `CropGeometry` (equirectangular mechanics) — is a port of panorama-tools'
+`CropRunner.py`, pinned to it by golden fixtures under `test/resources/crops/`. The downscaled copies exist because
+Pannellum renders a pano as one WebGL texture and 8192 px is a common cap; `/backupImage/:panoId` serves one in place
+of the native file when it exists, and the viewer can't tell, because it places markers by angle. The job also prunes
+a copy the current cap no longer calls for, so raising `pano.downscaled.max-width` reaches the store as surely as
+lowering it. Imagery Project Sidewalk shows a copy of — a self-hosted pano or a crop — carries the attribution
+`ImageryAttribution` composes (Mapillary contributors are CC BY-SA 4.0), rendered by `PanoAttribution.js` in the
+label-detail pano box and in Validate's Pannellum fallback (`css/components/pano-attribution.css` is the shared look;
+each host positions the pill).
+
 If either category outgrows its lane — thousands of files, multi-MB originals, a CDN or on-the-fly transforms in
 front — the move is to object storage (S3/MinIO), never the local filesystem.
 
@@ -97,10 +117,11 @@ actors in `app/actor/`.
 ### Background jobs
 
 Each deployment runs a set of nightly jobs as pekko actors in `app/actor/` — the imagery expiry sweep, the
-imagery-age poll and freshness sync, street-priority recalculation, user and funnel stats, label clustering, OSM way
-refresh, AI validations, and auth-token cleanup. The schedule lives in one place, `app/actor/ScheduledJobs.scala`:
-each actor reads its own time from there, staggered across the small hours and shifted per city by
-`ConfigService.getOffsetHours` so 50+ deployments don't contend for the same database and provider quotas.
+imagery-age poll and freshness sync, street-priority recalculation, user and funnel stats, label clustering, crop
+generation, OSM way refresh, AI validations, and auth-token cleanup. The schedule lives in one place,
+`app/actor/ScheduledJobs.scala`: each actor reads its own time from there, staggered across the small hours and
+shifted per city by `ConfigService.getOffsetHours` so 50+ deployments don't contend for the same database and
+provider quotas.
 
 Every run is bracketed by `JobRunService.record`, which writes a `background_job_run` row — start, finish, outcome,
 and the job's own counts as JSONB (#4928). Without it, a job that silently stops firing is indistinguishable from one
@@ -185,9 +206,11 @@ corresponding Twirl view:
   (`ApiDocsTheme.color(token, alpha?)`, the one way preview code reads a CSS color token for Chart.js/Mapbox so
   chart colors follow the design system). Served file-by-file — no Grunt bundle.
 - **`ps-map/`** — shared map component used across pages.
-- **`help/`** — help/FAQ page.
 - **`common/`** — modules shared across bundles: `pano-viewer/` (an abstraction over the GSV / Mapillary / Infra3d /
-  Pannellum imagery providers), `label-detail/` (label popups), and various utilities.
+  Pannellum imagery providers), `label-detail/` (label popups), and various utilities. The popup's pano viewer is
+  built for the first label shown, never for a visit that opens none: Google bills every `StreetViewPanorama`
+  constructed, hidden or not, and most visits to a hosting page never open a label (#5128). Only the free library
+  download is scheduled early (`PanoViewer.preloadLibrary`).
 
 There is **no module system**: files are concatenated in a hand-specified order (see `Gruntfile.js`). Third-party
 libraries live under `public/vendor/<lib>/`, one self-contained folder each (never edited or linted). Edit `src/`

@@ -160,11 +160,11 @@ unattended. A Down that cannot apply leaves that instance **down until a human i
 evolutions that refuse to destroy data silently, so check those for conflicts *before* rolling back rather than
 discovering them one crashed city at a time.
 
-The canonical example is evolution **354** (#4842): its Down re-inserts archived voided votes with deliberately no
+The canonical example is evolution **355** (#4842): its Down re-inserts archived voided votes with deliberately no
 `ON CONFLICT`. If any validator re-voted on a repaired label after the evolution applied, their new vote holds the
 `(user_id, label_id)` unique slot, the re-insert fails on `label_validation_user_id_label_id_unique`, and the instance
 won't start. That is the designed outcome — an archived verdict must never be discarded silently; a human decides
-which of the two votes survives. Before rolling back past 354, run this per city schema and resolve any rows it
+which of the two votes survives. Before rolling back past 355, run this per city schema and resolve any rows it
 returns (delete whichever vote loses, then roll back):
 
 ```sql
@@ -185,9 +185,16 @@ INNER JOIN label_validation
 restarts — so mid-rollout an already-updated instance can query a schema that hasn't applied the new evolution yet. The
 missing relation fails that city's whole query, and the service layer's `.recover` then drops the city from the
 aggregate surfaces silently. Two ways to handle it: ship the evolution one release ahead of the code that reads it, or
-add a `to_regclass` existence probe that skips the new table's arm (`ConfigTable.schemaHasVoidedValidationArchive` does
-this for 354) **plus a tracking issue to delete the probe once the release has reached every server** — without the
-issue, the temporary guard becomes permanent.
+guard the read with a `to_regclass` probe **plus a tracking issue to delete the probe once the release has reached
+every server** — without the issue, the temporary guard becomes permanent.
+
+What the probe does depends on the change. For an *added* table, probe for its presence and omit its arm where it is
+absent — an unmigrated schema's contribution is genuinely zero (evolution 355 was handled this way, and the guard came
+out in #4878 once the release was everywhere). For a change that *reshapes* an existing read, there is no arm to omit:
+the probe has to pick between two spellings, so it keys on whichever side of the change is detectable. Evolution 373
+drops the `label_type` lookup table in the same transaction that types the columns, so `schemaHasLabelTypeEnum` treats
+the lookup table's **absence** as the signal and `LabelTypeSql` carries a fragment per shape (removal tracked in
+#5118).
 
 ### Writing the release notes
 
@@ -293,7 +300,7 @@ outside the build tree** via its environment variable (a variable that is set bu
 |---|---|---|---|
 | `story.media.directory` | `SIDEWALK_STORY_MEDIA_DIR` | User-uploaded story photos (**irreplaceable**) | **App refuses to start** |
 | `pano.images.directory` | `SIDEWALK_PANO_DIR` | Self-hosted pano store — the only copies of GSV imagery Google has expired (**irreplaceable**) | **App refuses to start** |
-| `cropped.image.directory` | `SIDEWALK_IMAGES_DIR` | Label crops (re-derivable from pano imagery) | Error logged at boot |
+| `cropped.image.directory` | `SIDEWALK_IMAGES_DIR` | Label crops, and the downscaled panos beside them (both re-cut from pano imagery) | Error logged at boot |
 | `share.image.directory` | `SIDEWALK_SHARE_IMAGES_DIR` | Cached social-share previews (regenerable) | Error logged at boot |
 
 `PersistentMediaDirCheck` enforces this at boot in **prod mode** — what every staged binary runs in — so it covers
@@ -302,11 +309,18 @@ every deployed stage *and* a staged binary run by hand (export the four variable
 same env file as the media paths, so the incomplete-env-file mistake behind #4925 would disarm the guard exactly when
 it is needed. Dev and test runs (`sbt run`, the test suites) skip the check.
 
+`SIDEWALK_IMAGES_DIR` is the one the app writes on its own schedule — the nightly crop job cuts both the crops and,
+under `<city-id>/pano-downscaled/`, the display copies of panos too wide for a WebGL texture — so it has to be local
+and writable by the app's user. The pano store they are cut *from* is read-only to that user, which is right for a
+store nothing in the app writes. The downscaled copies deliberately do not live there:
+`PanoDataService.localBackupImageFile` finds a pano by extension, so a downscaled `.jpg` beside a native `.png` would
+be picked up *as* the native file and cut from at the wrong scale.
+
 The fatal tier is deliberate for irreplaceable content: accepting a photo we already know the next release will
 delete is worse than not starting, and since `develop` redeploys **test** while prod waits for a release tag, a
 forgotten variable surfaces on test long before it can reach prod.
 
-**Adding a fifth one?** Resolve it through `MediaDirs` (never a hand-rolled path concat — the check's verdict is only
+**Adding another?** Resolve it through `MediaDirs` (never a hand-rolled path concat — the check's verdict is only
 meaningful while it models the exact resolution the write paths use), add it to `persistentDirs` in
 `PersistentMediaDirCheck`, decide whether its contents are irreplaceable (fatal) or derived (logged), and have the
 deployment tooling export its variable. Losing a story photo this way (#4925) took three weeks to notice, so the
@@ -345,8 +359,8 @@ browser refetches the page on every navigation, so a deploy's new asset URLs are
 nobody is left holding stale HTML that points at a fingerprinted file the new build no longer contains, and there is
 no window in which current markup references an outdated cached asset.
 
-Originals stay in place too, so hardcoded `/assets/...` paths and relative `url(...)` in CSS keep resolving — but only
-`assets.path(...)` yields the long-lived URL, which is why it's preferred everywhere.
+Originals stay in place too, so a hardcoded `/assets/...` path keeps resolving — but only `assets.path(...)` yields the
+long-lived URL, which is why it's preferred everywhere.
 
 **Frontend JS gets there through a stamped manifest** (#4893). A `.js` file can't call `assets.path(...)`, so the app
 publishes the answers instead: `build.sbt` generates `models.utils.AssetInventory` — every file under the
@@ -360,6 +374,27 @@ as they would with the path written out by hand. `make lint-asset-paths` (a bloc
 file in a manifest family, and an interpolated one has to open with a literal family directory that is in the manifest
 (which is also why a path is built inside one template literal rather than concatenated). All necessary because
 neither half of a mistake raises anything at runtime.
+
+**CSS gets there by rewriting the stylesheet** (#5094). A stylesheet offers no interpolation point for either
+mechanism above, so the `fingerprintCssAssetUrls` pipeline stage
+([`project/CssAssetUrls.scala`](../project/CssAssetUrls.scala)) rewrites its `url(...)` targets to the `<md5>-<name>`
+form at stage time, deriving the name from the file's bytes as sbt-digest does. Absolute stays absolute and relative
+stays relative (the digested copy sits in the original's directory), and a query string or fragment rides along, which
+keeps Bootstrap's `...eot?#iefix` glyphicons working. **A new reference needs nothing registered**: unlike
+`util.assetPath` and its `assetManifestPrefixes`, the stage resolves each `url()` against the file itself. Just name a
+file that exists.
+
+Two things about that stage are load-bearing:
+
+- **It runs before `digest`** (`pipelineStages := Seq(fingerprintCssAssetUrls, digest)`), which folds each referenced
+  asset's digest into the referring stylesheet's own, so a change to either gives the stylesheet a new URL. Reversed, a
+  stylesheet's fingerprint covers only its pre-rewrite text, so swapping a font leaves the CSS naming it at an
+  unchanged, year-cached URL pointing at a path the new build lacks.
+- **An unresolvable `url()` fails the build**, like the asset-manifest generator: passing it through means a broken
+  reference or an asset silently left on the one-hour cache, neither of which shows up at runtime.
+  `make lint-asset-paths` applies the same rule to `public/css/` (rule 4 in
+  [`tools/check-asset-paths.mjs`](../tools/check-asset-paths.mjs)), so in practice this fails a fast CI step instead.
+  Bundles under `public/js/*/build/` are left to the stage, which sees them on disk.
 
 Stage/dist only: local `sbt run` serves plain paths and `no-cache` as before, so exercising the real behavior means
 staging the app and running the binary directly rather than `npm start`. That depends on `pipelineStages` in

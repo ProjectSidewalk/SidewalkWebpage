@@ -103,7 +103,7 @@ async function fetchAggregateStats() {
     return response;
   } catch (error) {
     console.error('Failed to fetch aggregate statistics:', error);
-    throw new Error(`Unable to fetch aggregate statistics: ${error.message}`);
+    throw new Error(`Unable to fetch aggregate statistics: ${error.message}`, { cause: error });
   }
 }
 

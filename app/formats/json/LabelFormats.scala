@@ -1,7 +1,8 @@
 package formats.json
 
 import models.label._
-import models.pano.{PanoData, PanoViewerMetadata}
+import models.pano.PanoSource.PanoSource
+import models.pano.{ImageryAttribution, PanoData, PanoViewerMetadata}
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 
@@ -124,7 +125,7 @@ object LabelFormats {
       "comments"            -> labelMetadata.comments.map(commentToJson(_, currUsername, commenterIdx)),
       "from_current_user"   -> labelMetadata.fromCurrentUser,
       "backup_image_url"    -> backupImageUrl,
-      "pano_data"           -> labelMetadata.panoMetadata.map(panoViewerMetadataToJson),
+      "pano_data"           -> labelMetadata.panoMetadata.map(panoViewerMetadataToJson(_, labelMetadata.panoSource)),
       "admin_data"          -> adminData.map(ad =>
         Json.obj(
           "username"             -> ad.username,
@@ -202,7 +203,7 @@ object LabelFormats {
       "ai_generated"       -> labelMetadata.aiGenerated,
       "expired"            -> labelMetadata.expired,
       "from_current_user"  -> labelMetadata.fromCurrentUser,
-      "pano_data"          -> labelMetadata.panoMetadata.map(panoViewerMetadataToJson)
+      "pano_data"          -> labelMetadata.panoMetadata.map(panoViewerMetadataToJson(_, labelMetadata.panoSource))
     )
   }
 
@@ -259,8 +260,13 @@ object LabelFormats {
       (__ \ "mutually_exclusive_with").writeNullable[String]
   )(unlift(Tag.unapply))
 
-  /** Serializes a PanoViewerMetadata to the JSON shape the frontend expects under the "pano_data" key. */
-  private def panoViewerMetadataToJson(pm: PanoViewerMetadata): JsObject = Json.obj(
+  /**
+   * Serializes a PanoViewerMetadata to the JSON shape the frontend expects under the "pano_data" key.
+   *
+   * @param source Where the pano's imagery came from, which decides the attribution line owed when Project Sidewalk
+   *               displays its own copy of it (a self-hosted pano or a crop).
+   */
+  private def panoViewerMetadataToJson(pm: PanoViewerMetadata, source: PanoSource): JsObject = Json.obj(
     "width"          -> pm.width,
     "height"         -> pm.height,
     "tile_width"     -> pm.tileWidth,
@@ -269,6 +275,7 @@ object LabelFormats {
     "camera_pitch"   -> pm.cameraPitch,
     "camera_roll"    -> pm.cameraRoll,
     "copyright"      -> pm.copyright,
+    "attribution"    -> ImageryAttribution.line(source, pm.copyright).map(_.toJson),
     "address"        -> pm.address
   )
 
@@ -292,6 +299,7 @@ object LabelFormats {
       "cameraRoll"    -> p.cameraRoll,
       "captureDate"   -> p.captureDate,
       "copyright"     -> p.copyright,
+      "attribution"   -> ImageryAttribution.line(p.source, p.copyright).map(_.toJson),
       "address"       -> p.address
     )
   }

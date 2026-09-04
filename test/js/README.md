@@ -45,6 +45,17 @@ Also covered, beyond the api-docs previews:
   non-WebGL 2D fallback projects both axes and wraps headings. Record fixtures are shared with
   `test/service/PanoDataServiceSpec.scala`, so the JS and Scala ports are pinned to one external oracle
   (`pov_replay.py`) rather than to each other.
+- `common/pano-viewer/src/panoUtilities.js` → `gsvFovContract.test.js` — the empirically measured GSV FOV-vs-aspect
+  contract (#5083). `tools/gsv-fov-probe/` measured what field of view Google's WebGL renderer holds fixed as the
+  container aspect changes; this pins the projection helpers' width-spanning assumption, the measured clamp window
+  and its per-zoom binding aspects, and the analyzer's copy of `zoomToFov`, against the recorded fixture
+  `fixtures/gsvFovMeasurements.json`. It pins *code* against frozen measurements — a renderer change on Google's
+  side is invisible to it and needs a fresh probe run (that tool's README says when).
+- `tools/gsv-fov-probe/estimator.cjs` → `gsvFovProbeEstimator.test.js` — the probe's focal-length fitter against
+  synthetic pinhole ground truth (#5083), gate 1 of that experiment's protocol: no live measurement is trusted until
+  the estimator recovers a known focal length to better than 0.2%. This is the slowest suite in the tree (~40 s,
+  nearly all of it in the synthetic renders); if it grows further, shrink the synthetic image rather than raising
+  `testTimeout`.
 
 Each test file has:
 
@@ -133,18 +144,17 @@ alongside `loadGlobalScript.js` as coverage grows.
 `common/aggregateStats.js` (named as a first target in the plan) is a good next addition — it has retry/timeout logic
 worth unit-testing with fake timers.
 
-## Why this is opt-in and NOT in CI
+## How this is wired into CI
 
-Frontend linting and the JS **ES5→ES2022 migration** are owned by a separate in-flight effort, **issue #2487**. Dropping
-test/lint tooling into CI mid-migration would create large, conflict-prone churn and risks colliding with that work.
-So:
-
-- **No ESLint, no broad config** is introduced here (`testMatch` is anchored to `test/js/`, so production JS is only
-  ever loaded as a module under test, never collected as one).
-- **CI runs this suite as an advisory step** in the `frontend` job (`npm run test:js`, `continue-on-error` on the step
-  so a failure never turns the required `Frontend (build)` check red). Promotion to blocking rides #2487's track,
-  once coverage is broad enough that a red suite always means a real regression.
-- The existing `npm test` placeholder is **unchanged** to avoid surprising any tooling that already calls it.
+- **Blocking** (#5132). `npm run test:js:coverage` is a step in the `frontend` job with no `continue-on-error`, so a
+  red suite turns the required `Frontend (build)` check red. Thin coverage is why there is no `coverageThreshold`
+  (see `jest.config.js`); it is not a reason to let a test that exists go red. Run it locally with `make test-js`.
+- **Linted** (#5132). `test/js/` is in ESLint's file globs, with the same rule set as `test/e2e/` plus jest globals.
+  The `@stylistic` house style is deliberately not applied -- these files are 4-space, and reformatting them would
+  bury real findings under whitespace. Bundle globals a suite installs on `window` are declared in
+  `eslint.config.js`; a subject pulled in via `eval` gets a per-file `/* global */` directive.
+- `testMatch` is anchored to `test/js/`, so production JS is only ever loaded as a module under test, never
+  collected as one.
 
 ## Coverage
 

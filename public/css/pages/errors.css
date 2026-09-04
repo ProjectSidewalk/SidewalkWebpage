@@ -130,6 +130,14 @@ body {
   text-decoration: underline;
 }
 
+/* Wraps to one button per line on a narrow card rather than shrinking them below a comfortable tap target. */
+.error-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+}
+
 .error-home {
   justify-content: center;
 }

@@ -155,6 +155,9 @@
     "mission-resume": {
       "message": "Deine Mission in {{neighborhoodName}} wird fortgesetzt — noch {{distanceLeft, distance(style: small)}}."
     },
+    "route-unavailable": {
+      "message": "Diese Route ist nicht verfügbar. Möglicherweise wurde sie gelöscht."
+    },
     "minimap": {
       "coach-dismiss": "Verstanden",
       "distance-left": "Noch {{distance}}",

@@ -327,10 +327,10 @@ class MissionStartTutorial {
     }
 
     // The icon is the same on the left panel and the labelOnImage.
-    let iconID = '';
-    let exampleTypeLabel = '';
-    let labelOnImageTitle = '';
-    let labelOnImageDescription = '';
+    let iconID;
+    let exampleTypeLabel;
+    let labelOnImageTitle;
+    let labelOnImageDescription;
     if (slide.isExampleCorrect) {
       iconID = MissionStartTutorial.#SMILEYS[MissionStartTutorial.#EXAMPLE_TYPES.CORRECT];
       exampleTypeLabel = i18next.t('common:mission-start-tutorial.example-type-label-correct');

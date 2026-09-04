@@ -1,3 +1,67 @@
+/* Guide content: body copy, figures, and the label-example images. */
+.help .maincontent {
+  padding-left: 40px;
+}
+
+figure figcaption {
+  padding-top: 10px;
+  font-style: italic;
+}
+
+.help img {
+  box-shadow: 0 1px 1px rgb(0 0 0 / 5%);
+  border-radius: var(--border-radius);
+}
+
+.help .help-item {
+  margin-bottom: 10px;
+}
+
+.help .help-item h2 {
+  margin-bottom: 20px;
+}
+
+/* The sticky question panel on the left. Its position and scrolling classes are toggled by
+   common/labelingGuidePanelResize.js. */
+.scrollable {
+  height: 500px;
+  overflow-y: scroll;
+}
+
+.not-scrollable {
+  height: auto;
+  overflow-y: hidden;
+}
+
+.sidebar {
+  position: fixed;
+  z-index: 1;
+}
+
+.stuck-sidebar {
+  position: absolute;
+  z-index: 1;
+}
+
+.not-sidebar {
+  position: static;
+}
+
+#help-panel .panel-body {
+  padding: 0;
+}
+
+.help ul#questions-list {
+  padding: 0;
+  list-style-type: none;
+  margin: 0;
+}
+
+.help ul#questions-list li {
+  padding: 10px;
+  border-bottom: 1px solid var(--color-neutral-200);
+}
+
 .help ul#questions-list #subtopics li {
   padding-left: 40px;
 }

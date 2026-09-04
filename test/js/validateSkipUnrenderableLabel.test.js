@@ -70,6 +70,7 @@ describe('PanoManager clears the pano when no viewer can render it (issue #4810)
     global.PanoMarker = loadClassFromFile(PANO_MARKER_PATH, 'PanoMarker');
     global.i18next = {t: () => 'Curb ramp'};
     global.createPanoViewerLogo = jest.fn(() => ({showPrimaryLogo: jest.fn(), showSourceLogo: jest.fn()}));
+    global.createPanoAttribution = jest.fn(() => ({show: jest.fn(), hide: jest.fn()}));
     global.GsvViewer = class GsvViewer {};             // distinct from FakeViewerType, so the GSV-only
     global.MapillaryViewer = class MapillaryViewer {}; // and Mapillary-only attribution paths are skipped
     global.svv = {
@@ -103,6 +104,7 @@ describe('PanoManager clears the pano when no viewer can render it (issue #4810)
     delete global.PanoMarker;
     delete global.i18next;
     delete global.createPanoViewerLogo;
+    delete global.createPanoAttribution;
     delete global.GsvViewer;
     delete global.MapillaryViewer;
     delete global.svv;
