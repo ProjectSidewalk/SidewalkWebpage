@@ -83,6 +83,11 @@ class LabelApiModelsSpec extends AnyFunSuite with Matchers with OptionValues {
       "https://www.mapillary.com/app/?pKey=DsCvWstZYz9JL81V9NloOQ&focus=photo"
   }
 
+  test("Panoramax pano_url links to the federated viewer's picture permalink at the label's heading/pitch") {
+    sampleLabel(PanoSource.Panoramax).panoUrl.value shouldBe
+      "https://api.panoramax.xyz/#focus=pic&pic=DsCvWstZYz9JL81V9NloOQ&xyz=94.31/-24.68/30"
+  }
+
   test("infra3d has no shareable viewer URL (None)") {
     sampleLabel(PanoSource.Infra3d).panoUrl shouldBe None
   }
