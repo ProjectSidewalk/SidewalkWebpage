@@ -131,6 +131,13 @@ class RouteBuilderController @Inject() (
    * (/explore handles anonymous sign-up itself); retired slugs of renamed routes keep redirecting via the alias
    * table.
    *
+   * A link that resolves to nothing gets its own 404 rather than the generic one (#5164). Whoever is holding a
+   * share link was after a route, so the page says that is what failed and offers the city's route list — which
+   * may well hold the route itself, since the usual cause is a slug retyped rather than copied (#5150). It stays
+   * a 404: there is no page to load anyway, and a broken link answering 200 misleads crawlers and anyone
+   * debugging one. Deleted and never-existed are deliberately not told apart — that costs another query, and the
+   * copy is honest about both.
+   *
    * @param slug A route reference: the route's slug, matched case-insensitively so a retyped link resolves, or a
    *             bare route id (#5157). 404 if it names nothing or the route has been deleted.
    */
@@ -141,9 +148,15 @@ class RouteBuilderController @Inject() (
         NotFound(
           views.html.errors.errorPage(
             NOT_FOUND,
-            Messages("error.404.heading"),
-            Messages("error.404.message"),
-            requestedPath = Some(request.path)
+            Messages("error.404.route.heading"),
+            Messages("error.404.route.message"),
+            requestedPath = Some(request.path),
+            action = Some(
+              views.ErrorPageAction(
+                Messages("error.404.route.browse"),
+                controllers.routes.RouteBuilderController.routesPage.url
+              )
+            )
           )
         )
     }

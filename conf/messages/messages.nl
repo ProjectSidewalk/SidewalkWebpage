@@ -804,6 +804,9 @@ routes.page.none.cta = Maak de eerste route
 # Foutpagina's (404, 500), weergegeven door modules.CustomErrorHandler.
 error.404.heading = Pagina niet gevonden
 error.404.message = We konden de opgevraagde pagina niet vinden.
+error.404.route.heading = Route niet gevonden
+error.404.route.message = Deze routelink werkt niet. Mogelijk is de route verwijderd of staat er een typefout in het adres.
+error.404.route.browse = Alle routes bekijken
 error.500.heading = Er is iets misgegaan
 error.500.message = Er is een onverwachte fout aan onze kant opgetreden. Het ligt niet aan jou — probeer het zo meteen opnieuw.
 error.500.id = Foutcode: {0}

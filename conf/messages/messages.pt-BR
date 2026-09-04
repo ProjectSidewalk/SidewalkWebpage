@@ -813,6 +813,9 @@ routes.page.none.cta = Crie a primeira rota
 # Páginas de erro (404, 500), renderizadas por modules.CustomErrorHandler.
 error.404.heading = Página não encontrada
 error.404.message = Não conseguimos encontrar a página que você solicitou.
+error.404.route.heading = Rota não encontrada
+error.404.route.message = Este link de rota não funciona. A rota pode ter sido excluída ou o endereço pode ter um erro de digitação.
+error.404.route.browse = Ver todas as rotas
 error.500.heading = Algo deu errado
 error.500.message = Ocorreu um erro inesperado do nosso lado. A culpa não é sua — tente novamente em um instante.
 error.500.id = ID do erro: {0}
