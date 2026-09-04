@@ -6,8 +6,9 @@
  *   - Gallery's expanded view: mounts inline inside a <div class="label-detail label-detail--inline">.
  *
  * The controller scopes all DOM queries to `root` and never touches the document outside of it. Multiple instances on
- * different pages cannot collide. The host is responsible for ensuring that `root` is laid out (visible in the DOM with
- * non-zero dimensions) before create() is called, because the pano viewer needs to measure its container at init.
+ * different pages cannot collide. The pano viewer is built on the first showLabel(), not in create() (#5128), so the
+ * host must have `root` laid out (visible, non-zero size) by the time it calls showLabel(): the viewer measures its
+ * container at init.
  */
 class LabelDetail {
   /**
@@ -170,13 +171,11 @@ class LabelDetail {
   }
 
   /**
-   * Builds a LabelDetail and initializes its pano viewer.
-   *
-   * Async because the pano viewer must be created before the controller is usable; a constructor cannot be async.
+   * Builds a LabelDetail and its pano manager (whose viewer is created on the first showLabel()).
    *
    * @param {HTMLElement} root
    * @param {Object} opts - See the constructor.
-   * @returns {Promise<LabelDetail>} Resolves once the pano viewer has been initialized.
+   * @returns {Promise<LabelDetail>} Resolves once the view is wired and ready for showLabel().
    */
   static async create(root, opts) {
     const detail = new LabelDetail(root, opts);
@@ -198,15 +197,13 @@ class LabelDetail {
   // ───────────────────────────────────────────────────────────────────
 
   /**
-   * One-time setup: caches element references, wires event handlers, and initializes the pano viewer.
+   * One-time setup: caches element references, wires event handlers, and builds the pano manager.
    */
   async #init() {
     this.#cacheElements();
     this.#tagEditor = new TagEditor(this.#els.tags);
     this.#wireHandlers();
 
-    // Pano viewer needs a visible host element on init. The wrapping host (LabelPopup or Gallery) is responsible
-    // for ensuring this is the case before constructing LabelDetail.
     this.panoManager = await PopupPanoManager.create(
       this.#els.svHolder,
       this.#els.panoOverlay,
@@ -292,6 +289,7 @@ class LabelDetail {
 
     // Resolve panoManager.panoViewer per use rather than capturing it: it swaps between the primary viewer and
     // Pannellum as labels are opened, and a captured viewer keeps describing the previously shown pano (#4813).
+    // Undefined until a label has built a viewer, which the popover tolerates.
     const panoViewer = () => this.panoManager.panoViewer;
     new PanoInfoPopover(
       host,
@@ -302,7 +300,7 @@ class LabelDetail {
       () => this.#currentLabelMeta && this.#currentLabelMeta.street_edge_id,
       () => this.#currentLabelMeta && this.#currentLabelMeta.region_id,
       () => this.#currentLabelMeta && moment(new Date(this.#currentLabelMeta.image_capture_date)),
-      () => (panoViewer().currPanoData ? panoViewer().currPanoData.getProperty('address') : null),
+      () => panoViewer()?.currPanoData?.getProperty('address') ?? null,
       () => this.#currentLabelMeta && {
         heading: this.#currentLabelMeta.heading, pitch: this.#currentLabelMeta.pitch, zoom: this.#currentLabelMeta.zoom,
       },
@@ -552,6 +550,9 @@ class LabelDetail {
       return idOrMeta;
     }
 
+    // The viewer's build (its first time) and this label's fetch are independent; run them side by side so a first
+    // open pays for the longer of the two rather than their sum.
+    this.panoManager.warmUp();
     const labelId = idOrMeta;
     const url = this.#admin ? `/adminapi/label/id/${labelId}` : `/label/id/${labelId}`;
     const response = await fetch(url, { method: 'GET', headers: { 'Content-Type': 'application/json' } });
@@ -625,7 +626,7 @@ class LabelDetail {
         // The live imagery's metadata may carry an address the label payload didn't. Only read it when the shown
         // pano is actually this label's on the primary viewer — on the static-crop fallback, currPanoData still
         // describes whatever pano the viewer showed last.
-        const panoData = this.panoManager.panoViewer.currPanoData;
+        const panoData = this.panoManager.panoViewer?.currPanoData;
         const livePano = imageShown && this.panoManager.activeViewerName === 'Default'
           && panoData && panoData.getPanoId() === meta.pano_id;
         const address = (livePano && panoData.getProperty('address'))

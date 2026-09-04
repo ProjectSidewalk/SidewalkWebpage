@@ -241,7 +241,8 @@ object PanoDataService {
    * the horizon are undershot by any bounded model; and the residual signed median runs about -0.17 m.
    *
    * Issues: [[https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4765]] (resolution dependence) and
-   * [[https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4766]] (near/far compression).
+   * [[https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4766]] (near/far compression). The in-repo summary,
+   * with the geodesy decision, the parity fixture and the viewport frame contract: `docs/label-latlng-estimation.md`.
    */
   object LatLngEstimation {
 
