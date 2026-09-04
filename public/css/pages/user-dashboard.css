@@ -1246,13 +1246,16 @@
 
 /* ---- Leaderboard: community band + podium ---------------------------------------------------------------------- */
 
-/* Flex rather than equal grid tracks so a value can never be squeezed into its neighbour: 150px is each tile's
-   preferred width, but a flex item's automatic minimum size floors it at its own content, which a track can't do
-   (#5175). The tiles stay evenly sized while they fit — only one holding a value too wide for its share takes more,
-   and the rest give it up. */
+/* Five tiles on one line, always (#5175). Each basis is a fifth of what's left once the gaps are paid for, so five
+   exactly fill the row, and `min-width: 0` stops a long value from growing its own tile and pushing a lone widow
+   onto a second row. Two things keep the values inside those fifths, in that order of preference: each swaps to the
+   short form it also renders (1,662,874 → 1.7M) once full figures stop fitting, and only then does the type give
+   ground. The band is its own container so both rules can measure it directly — its width depends on which of the
+   page shell's three regimes is in play, so the viewport is a poor proxy. */
 .ud-community-band {
   display: flex;
   flex-wrap: wrap;
+  container-type: inline-size;
   gap: var(--space-lg);
   padding: var(--space-lg);
   margin: var(--space-md) 0;
@@ -1265,7 +1268,8 @@
 }
 
 .ud-community-stat {
-  flex: 1 1 150px;
+  flex: 1 1 calc((100% - 4 * var(--space-lg)) / 5);
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1291,22 +1295,77 @@
   display: block;
   font-family: var(--font-primary);
 
-  /* px, not rem, for the reason given on .ud-impact-value above. Capped at 30 because five tiles share the content
-     column here, leaving each about 150px at the widths this band is read at. */
-  font-size: clamp(24px, 3.5vw, 30px);
+  /* px, not rem, for the reason given on .ud-impact-value above, and sized off the band (cqi) rather than the
+     viewport so it tracks the width the tiles actually get. The coefficient is "how much of a fifth of the band one
+     value may occupy", derived from the widest short form the tiles can hold; it is not a free parameter, and
+     stat-bands.spec.js fails if it is wrong in either direction. */
+  font-size: clamp(18px, calc(4.8cqi - 5px), 30px);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   line-height: 1.1;
 
-  /* A grouped total is one unbreakable token, so this is also the tile's minimum width — the guarantee that a
-     value outgrowing its share widens its own tile instead of running into the next one. */
+  /* A grouped total is one unbreakable token: it wraps nowhere and so is never split across two lines. */
   white-space: nowrap;
+}
+
+/* Values that have a shorter form render both, and exactly one of them is shown. The full figure is the default;
+   it is also the one that stays in the accessibility tree at every width, so a screen reader always reads the exact
+   number while the short form is decorative (aria-hidden in the markup). */
+.ud-value-short {
+  display: none;
+}
+
+/* Where five full figures no longer fit their fifth of the band, show the short forms instead of shrinking the type
+   to suit the longest number anyone might one day reach. The full figure is only hidden visually. */
+@container (width < 1000px) {
+  .ud-community-value .ud-value-full {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .ud-community-value .ud-value-short {
+    display: inline;
+  }
+}
+
+/* Narrower than this even five short forms are illegible, so the row becomes 3 + 2 — two tiles on the last line
+   rather than the lone one that reads as a mistake. */
+@container (width < 470px) {
+  .ud-community-stat {
+    flex-basis: calc((100% - 2 * var(--space-lg)) / 3);
+  }
+
+  .ud-community-value {
+    font-size: clamp(18px, calc(8cqi - 4px), 30px);
+  }
+}
+
+/* On the narrowest phones a third of the band is smaller than the figures it holds, so each tile takes a line of its
+   own. One per line is the other shape with no odd tile out, and it buys back the full type size. */
+@container (width < 265px) {
+  .ud-community-stat {
+    flex-basis: 100%;
+  }
+
+  .ud-community-value {
+    font-size: clamp(18px, calc(24cqi - 4px), 30px);
+  }
 }
 
 .ud-community-label {
   display: block;
   font: var(--text-body-regular);
   color: var(--color-asphalt-300);
+
+  /* A tile is a fixed fraction of the band, and German runs its captions into single words longer than that
+     (Beschriftungen, Validierungen). `anywhere` rather than `break-word` because only it also lets the caption's
+     minimum width fall below that word — the tiles are centred, so a caption too wide for its own tile would
+     otherwise hang out either side and lie across its neighbour's. */
+  overflow-wrap: anywhere;
 }
 
 .ud-podium {

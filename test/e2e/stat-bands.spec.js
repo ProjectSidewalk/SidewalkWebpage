@@ -1,17 +1,18 @@
 /**
  * The site's stat bands must never let one figure run into its neighbour (issues #5151, #5175).
  *
- * Two bands lay a handful of big numbers out across one row: `/about`'s "by the numbers" and the community band
- * shared by `/leaderboard` and the dashboard's cross-city section. Neither sizes a stat from what it holds, so a
- * value wider than its share has nothing to stop it running into the next one. On `/about` that already happened
- * (#5151). On the community band it has not: its tiles are centred and its gutter is wide, so today's values
- * overhang into the gutter instead of colliding — these cases pin the guarantee rather than reproduce a failure,
- * and they are what would catch a raised font cap, a sixth tile, or a total that outgrows its abbreviation (#5175).
+ * Two bands lay a handful of big numbers out across one row: `/about`'s "by the numbers" (#5151) and the community
+ * band shared by `/leaderboard` and the dashboard's cross-city section (#5175). Each holds a different promise, and
+ * both are pinned here. `/about` sizes every stat from its own content, so the guarantee is only that no two of them
+ * ever touch. The community band goes further: five tiles stay on one line, dropping to 3 + 2 where they genuinely
+ * cannot, so a lone stranded tile is a failure there and its figures swap to a short form under pressure rather than
+ * shrinking the type to suit the longest number anyone might reach.
  *
  * Their real content is a moving target — the counts grow, some arrive from an API and differ per environment, and
  * each locale groups digits and translates the captions differently — so measuring the pages as served would only
  * pin whatever happens to be in the CI database. Each band is driven on its real page with its real stylesheet and
- * the widest content it is expected to survive swapped in.
+ * the widest content it is expected to survive swapped in. That makes the community band's type coefficient a
+ * tested value rather than a guess: too large and a figure spills, too small and the numbers are needlessly meek.
  *
  * Overlap is measured on Range rects — the inked text box — rather than the element box, because that is what a
  * reader actually sees collide, and a too-narrow box with room to spare around it is not a bug.
@@ -86,6 +87,8 @@ const BANDS = [
   {
     name: '/leaderboard community band',
     page: {path: '/leaderboard'},
+    // This band promises five tiles on one line, and 3 + 2 where they genuinely cannot fit -- never a lone tile.
+    noWidow: true,
     selectors: {
       band: '.ud-community-band',
       item: '.ud-community-stat',
@@ -94,46 +97,45 @@ const BANDS = [
     },
     scenarios: [
       {
-        // leaderboard.scala.html's bigCountMarkup abbreviates counts at a million, so this is today's shape.
-        name: 'counts abbreviated at a million',
+        // [exact, caption, short] -- the band renders both forms and picks one by width.
+        name: 'community totals at prod scale',
         stats: [
-          ['19,343', 'Contributors'],
-          ['1.6M', 'Labels'],
-          ['2.3M', 'Validations'],
-          ['30,822 km', 'Streets explored'],
+          ['19,343', 'Contributors', '19k'],
+          ['1,662,874', 'Labels', '1.7M'],
+          ['2,330,941', 'Validations', '2.3M'],
+          ['30,822 km', 'Streets explored', '31k km'],
           ['57', 'Cities'],
         ],
       },
       {
-        // fmtBigDist has no abbreviation step, so the community distance grows without bound in its tile.
-        name: 'community distance past 100,000 km',
+        // Every figure an order of magnitude past today's, to keep the type coefficient honest as the counts grow.
+        name: 'community totals an order of magnitude on',
         stats: [
-          ['19,343', 'Contributors'],
-          ['1.6M', 'Labels'],
-          ['2.3M', 'Validations'],
-          ['130,822 km', 'Streets explored'],
-          ['57', 'Cities'],
+          ['193,432', 'Contributors', '193k'],
+          ['12,662,874', 'Labels', '12.7M'],
+          ['22,330,941', 'Validations', '22.3M'],
+          ['130,822 km', 'Streets explored', '131k km'],
+          ['557', 'Cities'],
         ],
       },
       {
-        // The dashboard's cross-city copy of this band formats with a bare toLocaleString, so its totals reach the
-        // tiles unabbreviated however large they get.
-        name: 'unabbreviated cross-city totals',
+        // The shape the dashboard's cross-city copy of this band fills in, whose distance carries a decimal.
+        name: 'cross-city totals',
         stats: [
           ['12', 'Cities'],
-          ['1,234,567', 'Labels'],
-          ['2,345,678', 'Validations'],
-          ['12,345.6 km', 'Distance'],
+          ['1,234,567', 'Labels', '1.2M'],
+          ['2,345,678', 'Validations', '2.3M'],
+          ['12,345.6 km', 'Distance', '12k km'],
           ['57', 'Cities'],
         ],
       },
       {
         name: 'longest German captions',
         stats: [
-          ['19.343', 'Mitwirkende'],
-          ['1,6M', 'Beschriftungen'],
-          ['2,3M', 'Validierungen'],
-          ['30.822 km', 'Erkundete Straßen'],
+          ['19.343', 'Mitwirkende', '19k'],
+          ['1.662.874', 'Beschriftungen', '1,7M'],
+          ['2.330.941', 'Validierungen', '2,3M'],
+          ['30.822 km', 'Erkundete Straßen', '31k km'],
           ['57', 'Städte'],
         ],
       },
@@ -152,8 +154,17 @@ async function setStats(page, selectors, stats) {
   await page.evaluate(({sel, pairs}) => {
     document.querySelectorAll(sel.item).forEach((el, i) => {
       if (!pairs[i]) return;
-      el.querySelector(sel.value).textContent = pairs[i][0];
-      el.querySelector(sel.label).textContent = pairs[i][1];
+      const [full, caption, short] = pairs[i];
+      const value = el.querySelector(sel.value);
+      // A third entry means the band renders the figure twice and picks one by width, so both have to be present
+      // or the width sweep would only ever measure the long one.
+      if (short === undefined) {
+        value.textContent = full;
+      } else {
+        value.innerHTML
+          = `<span class="ud-value-full">${full}</span><span class="ud-value-short" aria-hidden="true">${short}</span>`;
+      }
+      el.querySelector(sel.label).textContent = caption;
     });
   }, {sel: selectors, pairs: stats});
   await page.evaluate(() => document.fonts.ready);
@@ -177,12 +188,22 @@ function bandCollisions(page, selectors) {
       range.selectNodeContents(el);
       return range.getBoundingClientRect();
     };
+    // Where a figure is rendered in two forms, only the one actually on screen can collide with anything.
+    const shown = (value) => {
+      const short = value.querySelector('.ud-value-short');
+      const full = value.querySelector('.ud-value-full');
+      if (!short || !full) return value;
+      return getComputedStyle(short).display === 'none' ? full : short;
+    };
     const band = document.querySelector(sel.band);
-    const items = [...band.querySelectorAll(sel.item)].map((el) => ({
-      value: el.querySelector(sel.value).textContent,
-      number: inked(el.querySelector(sel.value)),
-      label: inked(el.querySelector(sel.label)),
-    }));
+    const items = [...band.querySelectorAll(sel.item)].map((el) => {
+      const value = shown(el.querySelector(sel.value));
+      return {
+        value: value.textContent.trim(),
+        number: inked(value),
+        label: inked(el.querySelector(sel.label)),
+      };
+    });
 
     const overlaps = [];
     for (let i = 0; i < items.length; i++) {
@@ -207,7 +228,11 @@ function bandCollisions(page, selectors) {
     const overflow = Math.max(0, ...items.flatMap((it) => [it.number.right - contentRight,
       it.label.right - contentRight]));
 
-    return {values: items.map((it) => it.value), overlaps, overflow: Number(overflow.toFixed(1))};
+    // How the tiles fall into rows, so a band that promises five-across can be held to it.
+    const tops = [...band.querySelectorAll(sel.item)].map((el) => Math.round(el.getBoundingClientRect().top));
+    const rows = [...new Set(tops)].map((top) => tops.filter((t) => t === top).length);
+
+    return {values: items.map((it) => it.value), overlaps, rows, overflow: Number(overflow.toFixed(1))};
   }, selectors);
 }
 
@@ -224,14 +249,25 @@ for (const band of BANDS) {
         await loadAndSettle(page, context, band.page);
         await setStats(page, band.selectors, scenario.stats);
 
-        const expectedValues = scenario.stats.map(([value]) => value);
+        // Either form of a figure is a legitimate thing to measure; anything else means the band stopped holding
+        // what this test injected, and every assertion below would be about the deployment's own numbers instead.
+        const allowedValues = scenario.stats.map(([full, , short]) => (short === undefined ? [full] : [full, short]));
+
         for (const width of WIDTHS) {
           await page.setViewportSize({width, height: 900});
 
-          const {values, overlaps, overflow} = await bandCollisions(page, band.selectors);
-          expect(values, `at ${width}px the band no longer holds the injected values`).toEqual(expectedValues);
+          const {values, overlaps, rows, overflow} = await bandCollisions(page, band.selectors);
+          values.forEach((value, i) => {
+            expect(allowedValues[i], `at ${width}px stat ${i} reads "${value}"`).toContain(value);
+          });
           expect(overlaps, `at ${width}px: ${overlaps.join('; ')}`).toEqual([]);
           expect(overflow, `at ${width}px a stat paints ${overflow}px past the band`).toBeLessThanOrEqual(0.5);
+          if (band.noWidow) {
+            // A last line holding one tile is only stranded if the lines above it hold more. Five tiles stacked one
+            // per line is the other shape with no odd tile out, and it is what the narrowest phones get.
+            const stranded = rows.length > 1 && rows[rows.length - 1] === 1 && Math.max(...rows) > 1;
+            expect(stranded, `at ${width}px the band wraps ${rows.join('+')}, stranding one tile`).toBe(false);
+          }
         }
       });
     }
