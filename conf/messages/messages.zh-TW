@@ -73,6 +73,7 @@ press.keys = 點擊 「{0}」 鍵
 
 city.state = {1}{0}
 
+city.name.washington-dc = 華盛頓
 city.name.newberg-or = 紐伯格
 city.name.seattle-wa = 西雅圖
 city.name.columbus-oh = 哥倫布
@@ -127,6 +128,7 @@ city.name.waltham-ma = 沃爾瑟姆
 city.name.houston-tx = 休士頓
 city.name.newport-ky = 紐波特
 
+state.name.dc = 特區
 state.name.oregon = 奧勒岡州
 state.name.washington = 華盛頓州
 state.name.ohio = 俄亥俄州
