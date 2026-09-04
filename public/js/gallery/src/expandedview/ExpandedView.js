@@ -86,6 +86,10 @@ class ExpandedView {
     // Capture a ?labelId= deep link now: the initial query's refreshUI() closes the expanded view, which also
     // scrubs the param from the URL, so it must be read before that and acted on after (restoreFromUrl()).
     this.initialUrlLabelId = LabelDetail.urlLabelId();
+    // That label is what this visit is for, so start its viewer (the billable, deferred part of LabelDetail's
+    // init) now rather than after the cards have rendered. The container is visibility:hidden, which keeps its
+    // layout, so the viewer can still measure it. Bounded so a provider that never loads can't hold the cards.
+    if (this.initialUrlLabelId) await this.panoManager.warmUp(PopupPanoManager.DEEP_LINK_BUILD_WAIT_MS);
   }
 
   /**

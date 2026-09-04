@@ -5,6 +5,11 @@ Play 3.0 (Java 17) backend, Postgres + PostGIS via Slick, and a vanilla-JS front
 transpile, no minify, no module system), all run in Docker. Request flow is routes → Controller → Service → Table
 (DAO). Architecture tour: `docs/architecture.md`. Setup, daily commands, troubleshooting: `docs/dev-environment.md`.
 
+## 🚨 NEVER READ `docker-compose.override.yml` 🚨
+
+Real live secrets, nothing enforces this but you. Never open it, never print or commit a value from it, and exclude
+it from wide `grep`/`find`/`cat *` sweeps. Ask the maintainer for a value; `docker-compose.yml` has dummy equivalents.
+
 This file holds only cross-cutting rules. Detail lives in `docs/` and loads on demand: path-scoped rules in
 `.claude/rules/` surface the essentials when you read a matching file, and the table says which doc to read first
 when a task is in its area.
@@ -21,6 +26,7 @@ when a task is in its area.
 | Tests or CI | `docs/testing-and-ci.md`, `test/e2e/README.md` |
 | `scripts/*.py` | `scripts/README.md` |
 | Google Maps keys, quotas, or a Google Cloud bill | `docs/google-cloud.md` |
+| The label lat/lng estimator or the labeling viewport frame | `docs/label-latlng-estimation.md` |
 
 ## Workflow
 
@@ -37,7 +43,6 @@ when a task is in its area.
 - Never browser-test anything that needs a street-view panorama (placing labels, validating). Hand the developer a
   checklist or console snippet instead. The `test/e2e/` suite only *loads* Explore's tutorial and Validate's landing
   state; don't extend it into pano interaction.
-- `docker-compose.override.yml` holds the real local secrets and is hidden from you. Ask if you need a value.
 
 ## Before a change is done
 
@@ -73,7 +78,8 @@ when a task is in its area.
   `calc(<n>px * var(--ui-scale, 1))`.
 - Assets are named by logical path, never by URL: `assets.path("…")` in Twirl and `util.assetPath('…')` in JS,
   never a hardcoded `/assets/` string (only those resolve to the fingerprinted, immutable URL; `make lint-asset-paths`
-  is the gate).
+  is the gate). CSS is the exception: a `url()` names a real file under `public/`, in either form, and a build stage
+  fingerprints it.
 
 ## Backend is the source of truth
 

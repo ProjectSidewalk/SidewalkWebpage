@@ -26,7 +26,8 @@
  *     aren't the label map themselves — e.g. the user dashboard).
  * @param {boolean} [opts.showExploreHereLink] Show the popup's "Explore here" footer link, which opens Explore at
  *     the shown label's pano and point of view (#4637).
- * @returns {Promise<object>} Resolves once the pano viewer has been initialized.
+ * @returns {Promise<object>} Resolves once the dialog is wired; the pano viewer itself is built on the first
+ *     showLabel().
  */
 async function LabelPopup(admin, viewerType, viewerAccessToken, currUsername, opts = {}) {
   const dialog = document.getElementById('label-modal');
@@ -34,11 +35,10 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, currUsername, op
     throw new Error('LabelPopup: #label-modal not found. Did you include common.labelPopup() on the page?');
   }
 
-  // The pano viewer needs a visible host element on init (Mapillary in particular). Open the dialog inside an
-  // "initializing" class that hides both the dialog and its ::backdrop, init LabelDetail (which builds the pano
-  // viewer), then close. Future showLabel() calls just toggle the dialog open without re-init.
-  dialog.classList.add('label-detail--initializing');
-  dialog.showModal();
+  // The pano viewer is built on the first showLabel(), never here (#5128): Google bills every StreetViewPanorama
+  // constructed, hidden or not, and most visits to a hosting page never open a label. showLabel() opens the dialog
+  // before the viewer is built, which is what satisfies the viewer's visible-host requirement (Mapillary measures
+  // its container at init).
   const labelDetail = await LabelDetail.create(dialog, {
     admin,
     viewerType,
@@ -47,10 +47,6 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, currUsername, op
     showLabelMapLink: opts.showLabelMapLink,
     showExploreHereLink: opts.showExploreHereLink,
   });
-  dialog.close();
-  // Hold the initializing class through the close transition duration so the fade-out doesn't flash the dialog.
-  await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-  dialog.classList.remove('label-detail--initializing');
 
   // Close button + backdrop click. ESC is handled natively by <dialog>.
   dialog.querySelector('[data-action="close-label-detail"]').addEventListener('click', () => dialog.close());
@@ -134,6 +130,11 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, currUsername, op
     const initialLabelId = LabelDetail.urlLabelId();
     if (initialLabelId) {
       showLabel(initialLabelId, opts.syncUrlSource).catch(() => LabelDetail.syncUrlLabelId(null));
+      // Hold the host here until the viewer is built. A host builds its map as soon as this resolves, and the two
+      // inits contending for the main thread roughly doubles the time to imagery (measured on LabelMap: ~1.4 s →
+      // ~2.4 s) — the deep-linked label is what this visit is for, so it goes first. Bounded, so a provider whose
+      // script never loads costs the page a pause rather than its map.
+      await labelDetail.panoManager.warmUp(PopupPanoManager.DEEP_LINK_BUILD_WAIT_MS);
     }
   }
 
