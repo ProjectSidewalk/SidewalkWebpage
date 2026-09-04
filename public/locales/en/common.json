@@ -89,6 +89,7 @@
   "only": "Only",
   "image-capture-date": "Image Capture Date",
   "drag-to-look-around": "Drag to look around",
+  "loading-imagery": "Loading imagery...",
   "hide-label": "Hide Label",
   "show-label": "Show Label",
   "hide-label-tooltip": "Temporarily hide the label to see what's underneath.",
