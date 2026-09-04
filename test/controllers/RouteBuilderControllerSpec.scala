@@ -516,6 +516,7 @@ class RouteBuilderControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
       // dies with the route that owned it instead of quietly retargeting.
       status(deleteRoute(user, namesakeId)) mustBe OK
       status(route(app, FakeRequest(GET, s"/r/$targetId")).get) mustBe NOT_FOUND
+    }
 
     // #5164: this page is the whole of what a share-link recipient sees when the link is dead, and they were, by
     // construction, after a route. Landing them on a generic "page not found" with only a home button wastes the
