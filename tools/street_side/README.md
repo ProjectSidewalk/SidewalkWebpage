@@ -18,7 +18,7 @@ docker exec -w /home/<worktree> projectsidewalk-web python3.13 tools/street_side
 docker exec -w /home/<worktree> projectsidewalk-web python3.13 tools/street_side/street_side.py export
 docker exec -w /home/<worktree> projectsidewalk-web python3.13 tools/street_side/analyze_street_side.py
 python3 tools/street_side/fetch_share_images.py   # host side (network): picks the worked examples, fetches their share images
-docker exec -w /home/<worktree> projectsidewalk-web python3.13 tools/street_side/case_maps.py   # map + image pairs
+docker exec -w /home/<worktree> projectsidewalk-web python3.13 tools/street_side/case_maps.py   # one map + image figure per example
 ```
 
 `--city` / `--exp` pick the city schema and the scratch schema; `PGUSER` / `PGPASSWORD` are the city role.
@@ -50,4 +50,4 @@ number, `tables.md` the tables, `hand_label_sample.csv` a stratified sample for 
 `case_candidates.csv` up to twelve rule-ranked labels per worked-example situation (closest to the candidate set's
 median distance first). `fetch_share_images.py` keeps the first candidate per situation whose share image the Seattle
 server can produce (`cases.csv`, `crops/`), and `case_maps.py` draws each as a map beside that image, with the
-label-type marker composited from the stored canvas position, as `fig_cases.png`.
+label-type marker composited from the stored canvas position, one figure per example as `fig_case_<case>.png`.

@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Draw each worked example (out/cases.csv, picked by fetch_share_images.py from analyze_street_side.py's
-candidates) as a pair: a small map with the audited street and its digitized direction, the neighbouring streets,
-SDOT's sidewalk lines and curb-ramp points, the camera, the label, the camera-to-label ray the heading method
-reads, and the perpendicular to the centerline the geometric method reads; beside it, the label's share image
-(out/crops/<label_id>.jpg), the street-level crop with the marker composited. out/fig_cases.png.
+candidates) as its own figure, out/fig_case_<case>.png: a small map with the audited street and its digitized
+direction, the neighbouring streets, SDOT's sidewalk lines and curb-ramp points, the camera, the label, the
+camera-to-label ray the heading method reads, and the perpendicular to the centerline the geometric method reads;
+beside it, the label's share image (out/crops/<label_id>.jpg), the street-level crop with the marker composited.
+One file per example, each with its own legend, so the report can show every pair at full column width with its
+caption under it; a single grid of six shrank each map below legibility in the artifact column.
 
 Run inside the web container after analyze_street_side.py and fetch_share_images.py:
     python3.13 tools/street_side/case_maps.py
@@ -152,7 +154,9 @@ def panel(ax, case, data):
         p = loc.geom(gj)
         ax.plot(p.x, p.y, marker="s", ms=4.5, color=C_THIRD, mec="white", mew=0.6, ls="", zorder=3)
     ax.plot(*aud.xy, color=C_AUDITED, lw=2.8, solid_capstyle="round", zorder=2)
-    draw_arrow(ax, aud, 0.55, C_AUDITED)
+    # Anchor the direction arrow a few metres past the label's foot so it is always inside the panel (a long edge
+    # puts its midpoint off-screen) and clear of the perpendicular.
+    draw_arrow(ax, aud, min(0.97, (aud.project(lab) + 6.0) / aud.length), C_AUDITED)
 
     # The two readings: the heading method's ray from the camera, the geometric method's perpendicular to the line.
     ax.plot([cam.x, lab.x], [cam.y, lab.y], color=C_HEAD, lw=1.2, ls=(0, (3, 2)), zorder=4)
@@ -180,7 +184,7 @@ def panel(ax, case, data):
     truth = f" · truth {side_word(case['truth'])}" if pd.notna(case.get("truth")) else ""
     flipped = case["case"] == "near_line" and pd.notna(case.get("geo_side_old"))
     old_txt = f" (was {side_word(case['geo_side_old'])})" if flipped else ""
-    ax.set_title(case["title"], fontsize=9, loc="left", pad=6)
+    ax.figure.suptitle(case["title"], fontsize=10, x=0.01, y=0.985, ha="left")
     ax.text(0.03, 0.97,
             f"label {case['label_id']} · {case['label_type']}{truth}\n"
             f"geometric: {side_word(case['geo_side'])}, {case['geo_dist_m']:.1f} m from the line{old_txt}\n"
@@ -198,17 +202,6 @@ def main():
     cases = pd.read_csv(OUT / "cases.csv")
 
     plt.rcParams.update({"font.size": 9})
-    # Three rows of two (map, crop) pairs; the crop gets the wider column since share images are landscape.
-    fig = plt.figure(figsize=(15.5, 11.2))
-    gs = GridSpec(3, 4, figure=fig, width_ratios=[1, 1.55, 1, 1.55], wspace=0.06, hspace=0.22,
-                  left=0.01, right=0.99, top=0.96, bottom=0.08)
-    with connect() as conn, conn.cursor() as cur:
-        for i, (_, case) in enumerate(cases.iterrows()):
-            row, col = divmod(i, 2)
-            ax_map = fig.add_subplot(gs[row, 2 * col])
-            ax_img = fig.add_subplot(gs[row, 2 * col + 1])
-            panel(ax_map, case, fetch(cur, args.exp, int(case.label_id), int(case.edge_id)))
-            draw_share_image(ax_img, case, canvas_xy(cur, args.city, int(case.label_id)))
     handles = [
         Line2D([], [], color=C_AUDITED, lw=2.8, label="audited street (arrow = digitized direction)"),
         Line2D([], [], color=C_STREET, lw=2.2, label="other streets"),
@@ -221,9 +214,22 @@ def main():
         Line2D([], [], color=C_GEO, lw=1.2, label="perpendicular to the centerline (geometric method)"),
         Line2D([], [], marker="o", mfc="white", mec=C_GEO, ls="", ms=7, label="position before the #4818 reposition"),
     ]
-    fig.legend(handles=handles, loc="lower center", ncol=4, frameon=False, fontsize=7.5, bbox_to_anchor=(0.5, 0.0))
-    fig.savefig(OUT / "fig_cases.png", dpi=150)
-    print("wrote", OUT / "fig_cases.png")
+    with connect() as conn, conn.cursor() as cur:
+        for _, case in cases.iterrows():
+            # One (map, crop) pair per figure; the crop gets the wider column since share images are landscape.
+            fig = plt.figure(figsize=(10.5, 4.9))
+            gs = GridSpec(1, 2, figure=fig, width_ratios=[1, 1.55], wspace=0.05,
+                          left=0.01, right=0.99, top=0.92, bottom=0.17)
+            ax_map = fig.add_subplot(gs[0, 0])
+            ax_img = fig.add_subplot(gs[0, 1])
+            panel(ax_map, case, fetch(cur, args.exp, int(case.label_id), int(case.edge_id)))
+            draw_share_image(ax_img, case, canvas_xy(cur, args.city, int(case.label_id)))
+            fig.legend(handles=handles, loc="lower center", ncol=4, frameon=False, fontsize=7,
+                       bbox_to_anchor=(0.5, 0.0), columnspacing=1.2, handlelength=2.2)
+            out = OUT / f"fig_case_{case['case']}.png"
+            fig.savefig(out, dpi=150)
+            plt.close(fig)
+            print("wrote", out)
 
 
 if __name__ == "__main__":

@@ -424,20 +424,52 @@ heading method signs, and the perpendicular to the centerline the geometric meth
 label's share image, the street-level view with the label-type marker at the labeled spot (`case_maps.py` composites
 the marker from the stored canvas position, because the Seattle deployment serves its share images without one).
 
-![Six representative labels: a map of the audited street, SDOT sidewalks and ramps, the camera and both readings, beside each label's street-level image](2886-street-side/fig_cases.png)
+Each figure stands alone with its own legend. The counts are each situation's candidate pool.
 
-| pair | label | candidates | what it shows |
-|---|---|---|---|
-| typical | [267987](https://sidewalk-sea.cs.washington.edu/label/267987) `CurbRamp` | 9,243 | camera 1 m off the street, 5 m from the label; both methods say right, and SDOT's ramp point sits beside the label |
-| corner | [114352](https://sidewalk-sea.cs.washington.edu/label/114352) `CurbRamp` | 5,835 | camera 12 m off the audited street, on the cross street; the ray crosses the audited centerline, so the heading method says right while the label and the SDOT ramp are on the left. This is §5.1 in one picture |
-| within 1 m | [293679](https://sidewalk-sea.cs.washington.edu/label/293679) `CurbRamp` | 639 | 0.3 m from the line, seen from 15 m away on the cross street; the #4818 reposition moved it from left to right. `NULL` under the rule |
-| far | [99610](https://sidewalk-sea.cs.washington.edu/label/99610) `SurfaceProblem` | 41 | 31 m from the camera and 10 m from the line: the ray runs along the street, so the side is not in doubt (§4.4.8) |
-| bare side | [299692](https://sidewalk-sea.cs.washington.edu/label/299692) `NoSidewalk` | 352 | on the unimproved side of a one-sided street, 4 m from the line; both methods agree with SDOT |
-| on the paved line | [285511](https://sidewalk-sea.cs.washington.edu/label/285511) `NoSidewalk` | 53 | sits on the walkway SDOT calls paved; both methods put it there. Not a side error: the label and the inventory disagree about whether a sidewalk exists (§4.4.3) |
+**Typical: camera on the street, both methods agree.** [267987](https://sidewalk-sea.cs.washington.edu/label/267987)
+`CurbRamp`, 9,243 candidates.
 
-The label links open each share page, where the full panorama can be checked.
+![Map and street-level image of label 267987: camera 1 m off the street and 5 m from the label; both readings point right, and SDOT's ramp point sits beside the label](2886-street-side/fig_case_agree.png)
 
-## §5 · Analysis
+Camera 1 m off the street, 5 m from the label; both methods say right, and SDOT's ramp point sits beside the label.
+
+**Corner: camera on the cross street, heading method wrong.** [114352](https://sidewalk-sea.cs.washington.edu/label/114352)
+`CurbRamp`, 5,835 candidates.
+
+![Map and street-level image of label 114352: the camera sits 12 m off the audited street on the cross street; its ray crosses the audited centerline, so the heading method says right while the label and the SDOT ramp are on the left](2886-street-side/fig_case_corner.png)
+
+Camera 12 m off the audited street, on the cross street; the ray crosses the audited centerline, so the heading
+method says right while the label and the SDOT ramp are on the left. This is §5.1 in one picture.
+
+**Within 1 m of the centerline: the reposition flipped the side.** [293679](https://sidewalk-sea.cs.washington.edu/label/293679)
+`CurbRamp`, 639 candidates.
+
+![Map and street-level image of label 293679: 0.3 m from the centerline, seen from 15 m away on the cross street; the hollow marker shows where it sat before the #4818 reposition moved it across the line](2886-street-side/fig_case_near_line.png)
+
+0.3 m from the line, seen from 15 m away on the cross street; the #4818 reposition moved it from left to right.
+`NULL` under the rule.
+
+**Far from the camera: the side is still clear.** [99610](https://sidewalk-sea.cs.washington.edu/label/99610)
+`SurfaceProblem`, 41 candidates.
+
+![Map and street-level image of label 99610: 31 m from the camera and 10 m from the centerline; the camera ray runs along the street and both readings say right](2886-street-side/fig_case_far.png)
+
+31 m from the camera and 10 m from the line: the ray runs along the street, so the side is not in doubt (§4.4.8).
+
+**NoSidewalk on a one-sided street: on the bare side.** [299692](https://sidewalk-sea.cs.washington.edu/label/299692)
+`NoSidewalk`, 352 candidates.
+
+![Map and street-level image of label 299692: on the unimproved side of a one-sided street, 4 m from the centerline; both readings agree with SDOT](2886-street-side/fig_case_ns_bare.png)
+
+On the unimproved side of a one-sided street, 4 m from the line; both methods agree with SDOT.
+
+**NoSidewalk on the walkway SDOT calls paved: not a side error.** [285511](https://sidewalk-sea.cs.washington.edu/label/285511)
+`NoSidewalk`, 53 candidates.
+
+![Map and street-level image of label 285511: the label sits on the walkway SDOT records as paved; both readings put it there](2886-street-side/fig_case_ns_paved.png)
+
+Sits on the walkway SDOT calls paved; both methods put it there. Not a side error: the label and the inventory
+disagree about whether a sidewalk exists (§4.4.3).
 
 ### §5.1 Why the heading method loses, and why that is not what the ticket expected
 
@@ -566,7 +598,7 @@ docker exec -w /home/<worktree> projectsidewalk-web python3.13 tools/street_side
 docker exec -w /home/<worktree> projectsidewalk-web python3.13 tools/street_side/street_side.py export
 docker exec -w /home/<worktree> projectsidewalk-web python3.13 tools/street_side/analyze_street_side.py
 python3 tools/street_side/fetch_share_images.py                                                # §4.7 picks + images (network)
-docker exec -w /home/<worktree> projectsidewalk-web python3.13 tools/street_side/case_maps.py      # §4.7 pairs
+docker exec -w /home/<worktree> projectsidewalk-web python3.13 tools/street_side/case_maps.py      # §4.7 figures
 ```
 
 `tools/street_side/out/summary.json` holds every number quoted above; `tables.md` every table, including the ones
