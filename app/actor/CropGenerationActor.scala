@@ -19,7 +19,7 @@ object CropGenerationActor {
 
 /**
  * Nightly reconciliation of the derived imagery (#4865): cuts a crop for every label without one whose pano is in
- * the self-hosted store, and a display derivative for every stored pano wider than the viewer can render. The
+ * the self-hosted store, and a downscaled copy of every stored pano wider than the viewer can render. The
  * scraper that fills the store runs once per city per day at a time of its own, so a pano it fetches after this
  * job's slot is picked up the following night.
  */

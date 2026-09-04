@@ -10,7 +10,7 @@ import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.{Sink, Source}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.{JsObject, Json}
-import play.api.{Configuration, Environment, Logger}
+import play.api.{Configuration, Logger}
 import service.CropGeometry.CropBox
 import service.CropService._
 
@@ -58,7 +58,7 @@ object CropService {
       outOfFrame: Int,
       dimsMismatch: Int,
       dimsUnverified: Int,
-      derivativesWritten: Int,
+      downscaledWritten: Int,
       errors: Int
   ) {
 
@@ -66,7 +66,7 @@ object CropService {
     def summary: String =
       s"Crop generation (rule ${CropSizingRule.Version}): opened $panosOpened panos, wrote $cropsWritten crops " +
         s"($shiftedVertically shifted to stay inside the pano, $dimsUnverified against a pano whose dimensions the " +
-        s"database doesn't record) and $derivativesWritten display derivatives; skipped $panosWithoutBackup panos " +
+        s"database doesn't record) and $downscaledWritten downscaled panos; skipped $panosWithoutBackup panos " +
         s"with no self-hosted image, $dimsMismatch labels on a dimension mismatch and $outOfFrame labels outside " +
         s"the image; $errors errors."
 
@@ -80,15 +80,15 @@ object CropService {
       "out_of_frame"         -> outOfFrame,
       "dims_mismatch"        -> dimsMismatch,
       "dims_unverified"      -> dimsUnverified,
-      "derivatives_written"  -> derivativesWritten,
+      "downscaled_written"   -> downscaledWritten,
       "errors"               -> errors
     )
   }
 
-  /** JPEG quality for display derivatives: they exist to be looked at in a pano viewer, not to be cut from. */
-  val DerivativeJpegQuality: Float = 0.85f
+  /** JPEG quality for downscaled panos: they exist to be looked at in a pano viewer, not to be cut from. */
+  val DownscaledJpegQuality: Float = 0.85f
 
-  /** The most source rows one derivative strip holds at once (a 16384-wide strip this tall is ~67 MB as RGB). */
+  /** The most source rows one downscaling strip holds at once (a 16384-wide strip this tall is ~67 MB as RGB). */
   val MaxStripRows: Int = 1024
 
   /**
@@ -96,7 +96,7 @@ object CropService {
    * runs of a window that crosses the equirectangular seam.
    *
    * What a region read saves is memory, not decoding: ImageIO walks the compressed stream from the start every time
-   * ([[ImageUtils.readRegion]]), so a pano costs one pass per window plus one per derivative strip. Bounding the
+   * ([[ImageUtils.readRegion]]), so a pano costs one pass per window plus one per downscaling strip. Bounding the
    * peak raster is the whole point — cutting a second window is cheap in memory and is not free in CPU.
    *
    * @param reader    A reader from [[ImageUtils.withReader]].
@@ -124,7 +124,7 @@ object CropService {
     ImageUtils.scaleToMaxEdge(window, CropGeometry.MaxStoredWidth)
 
   /**
-   * How many source rows each derivative strip covers, chosen so that every strip boundary lands on a whole output
+   * How many source rows each downscaling strip covers, chosen so that every strip boundary lands on a whole output
    * row. With `unit = srcHeight / gcd(srcHeight, targetHeight)`, a strip of `k * unit` source rows maps to exactly
    * `k * targetHeight / gcd` output rows, so scaling strips independently is identical to scaling the whole image
    * and there are no seams. The strip is the largest multiple of `unit` under [[MaxStripRows]], or `unit` itself
@@ -138,7 +138,7 @@ object CropService {
   }
 
   /**
-   * Writes the display derivative of a panorama: the same image, `targetWidth` wide, as a JPEG.
+   * Writes the downscaled copy of a panorama: the same image, `targetWidth` wide, as a JPEG.
    *
    * Reads the source in horizontal strips ([[stripRows]]) and area-averages each into its rows of the output, so
    * memory is bounded by the output plus one strip rather than by the native pano.
@@ -149,7 +149,7 @@ object CropService {
    * @param targetWidth Width to write; the height follows from the pano's aspect.
    * @param file        Where to write it; parent directories are created.
    */
-  def writeDerivative(reader: ImageReader, srcWidth: Int, srcHeight: Int, targetWidth: Int, file: File): Unit = {
+  def writeDownscaled(reader: ImageReader, srcWidth: Int, srcHeight: Int, targetWidth: Int, file: File): Unit = {
     val targetHeight = math.max(1, Math.rint(srcHeight.toDouble * targetWidth / srcWidth).toInt)
     val out          = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_RGB)
     val g            = out.createGraphics()
@@ -167,14 +167,14 @@ object CropService {
       }
     } finally g.dispose()
     val _ = file.getParentFile.mkdirs()
-    ImageUtils.writeJpeg(out, file, DerivativeJpegQuality)
+    ImageUtils.writeJpeg(out, file, DownscaledJpegQuality)
   }
 
   private def gcd(a: Int, b: Int): Int = if (b == 0) a else gcd(b, a % b)
 }
 
 /**
- * Derived imagery cut from the self-hosted panorama store: per-label crop images and per-pano display derivatives
+ * Derived imagery cut from the self-hosted panorama store: per-label crop images and per-pano downscaled copies
  * (#4865).
  *
  * Both are derived data, regenerated by a nightly reconciliation job rather than written inline with any submission:
@@ -185,7 +185,7 @@ object CropService {
 trait CropService {
 
   /**
-   * Cuts a crop for every live label that has none and whose pano has a self-hosted image, and a display derivative
+   * Cuts a crop for every live label that has none and whose pano has a self-hosted image, and a downscaled copy
    * for every self-hosted pano wider than the viewer can render. At most one run at a time: a second call while one
    * is in flight fails with [[IllegalStateException]].
    */
@@ -194,18 +194,17 @@ trait CropService {
   /** Whether a run is in flight. */
   def isRunning: Boolean
 
-  /** Where a pano's display derivative is, or would be, stored. */
-  def derivedImageFile(panoId: String): File
+  /** Where a pano's downscaled copy is, or would be, stored. */
+  def downscaledImageFile(panoId: String): File
 
-  /** The pano's display derivative, when one has been written. */
-  def existingDerivedImage(panoId: String): Option[File]
+  /** The pano's downscaled copy, when one has been written. */
+  def existingDownscaledImage(panoId: String): Option[File]
 }
 
 @Singleton
 class CropServiceImpl @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     config: Configuration,
-    environment: Environment,
     panoDataService: PanoDataService,
     labelTable: LabelTable,
     panoDataTable: PanoDataTable,
@@ -217,30 +216,33 @@ class CropServiceImpl @Inject() (
 
   private val logger = Logger(this.getClass)
 
-  // Its own root, deliberately outside pano.images.directory: localBackupImageFile scans that store by extension, so
-  // a derivative placed beside the native file could be picked up as the native file.
-  private val derivedDir: File        = MediaDirs.cityDir(config, environment, "pano.derived.images.directory")
-  private val derivativeMaxWidth: Int = config.get[Int]("pano.derived.max-width")
+  private val downscaledMaxWidth: Int = config.get[Int]("pano.downscaled.max-width")
   private val cropsDir: File          = new File(panoDataService.getCropDirectory)
+
+  // Beside the crops rather than in a store of its own: same nightly job, same disposability, so one derived-imagery
+  // directory covers both and a deployment has one fewer path to provision. Never inside pano.images.directory —
+  // localBackupImageFile scans that store by extension, so a downscaled copy beside a native file would be picked
+  // up as the native file, served as the archive and cut from at the wrong scale.
+  private val downscaledDir: File = new File(cropsDir, "pano-downscaled")
 
   private val running = new AtomicBoolean(false)
 
   /** Mutable tallies for one run; `result` freezes them. */
   private class Counts {
     var panosOpened, panosWithoutBackup, cropsWritten, shiftedVertically, outOfFrame, dimsMismatch, dimsUnverified,
-        derivativesWritten, errors = 0
+        downscaledWritten, errors = 0
 
     def result: CropRunResult = CropRunResult(
       panosOpened, panosWithoutBackup, cropsWritten, shiftedVertically, outOfFrame, dimsMismatch, dimsUnverified,
-      derivativesWritten, errors
+      downscaledWritten, errors
     )
   }
 
   def isRunning: Boolean = running.get()
 
-  def derivedImageFile(panoId: String): File = new File(new File(derivedDir, panoId.take(2)), s"$panoId.jpg")
+  def downscaledImageFile(panoId: String): File = new File(new File(downscaledDir, panoId.take(2)), s"$panoId.jpg")
 
-  def existingDerivedImage(panoId: String): Option[File] = Some(derivedImageFile(panoId)).filter(_.isFile)
+  def existingDownscaledImage(panoId: String): Option[File] = Some(downscaledImageFile(panoId)).filter(_.isFile)
 
   def generateMissingCrops(): Future[CropRunResult] = {
     if (!running.compareAndSet(false, true)) {
@@ -255,8 +257,8 @@ class CropServiceImpl @Inject() (
             candidates <- cropCandidates(existing)
             backed     <- Future(cutCrops(candidates, counts))(cpuEc)
             _          <- markHasBackup(backed)
-            wide       <- db.run(panoDataTable.getWideBackupPanos(derivativeMaxWidth))
-            _          <- Future(writeMissingDerivatives(wide, counts))(cpuEc)
+            wide       <- db.run(panoDataTable.getWideBackupPanos(downscaledMaxWidth))
+            _          <- Future(writeMissingDownscaled(wide, counts))(cpuEc)
           } yield counts.result
         }
         .andThen { case _ => running.set(false) }
@@ -330,7 +332,7 @@ class CropServiceImpl @Inject() (
                 }
                 labels.foreach(label => cutCrop(reader, width, height, label, counts))
               }
-              writeDerivativeIfWide(panoId, reader, width, height, counts)
+              writeDownscaledIfWide(panoId, reader, width, height, counts)
             }
           } catch {
             case NonFatal(e) =>
@@ -369,52 +371,52 @@ class CropServiceImpl @Inject() (
   }
 
   /**
-   * Whether the derivative on disk is the one the current configuration asks for.
+   * Whether the downscaled copy on disk is the one the current configuration asks for.
    *
-   * Checked rather than assumed because a `pano.derived.max-width` change is otherwise invisible: the file exists, so
+   * Checked rather than assumed because a `pano.downscaled.max-width` change is otherwise invisible: the file exists, so
    * nothing recuts it, and `/backupImage` goes on serving the old width in place of the native pano — the one thing
-   * lowering the cap was meant to stop. A file that won't open reads as out of date too, so a truncated derivative
-   * heals on the next run.
+   * lowering the cap was meant to stop. A file that won't open reads as out of date too, so a truncated copy heals
+   * on the next run.
    */
-  private def derivativeIsCurrent(panoId: String): Boolean = {
-    val file = derivedImageFile(panoId)
+  private def downscaledIsCurrent(panoId: String): Boolean = {
+    val file = downscaledImageFile(panoId)
     file.isFile && {
-      try ImageUtils.withReader(file)((_, width, _) => width == derivativeMaxWidth)
+      try ImageUtils.withReader(file)((_, width, _) => width == downscaledMaxWidth)
       catch { case NonFatal(_) => false }
     }
   }
 
-  private def writeDerivativeIfWide(
+  private def writeDownscaledIfWide(
       panoId: String,
       reader: ImageReader,
       width: Int,
       height: Int,
       counts: Counts
   ): Unit =
-    if (width > derivativeMaxWidth && !derivativeIsCurrent(panoId)) {
+    if (width > downscaledMaxWidth && !downscaledIsCurrent(panoId)) {
       try {
-        writeDerivative(reader, width, height, derivativeMaxWidth, derivedImageFile(panoId))
-        counts.derivativesWritten += 1
+        writeDownscaled(reader, width, height, downscaledMaxWidth, downscaledImageFile(panoId))
+        counts.downscaledWritten += 1
       } catch {
         case NonFatal(e) =>
           counts.errors += 1
-          logger.warn(s"Failed to write the display derivative for pano $panoId: $e")
+          logger.warn(s"Failed to write the downscaled copy of pano $panoId: $e")
       }
     }
 
-  /** Derivatives for backed-up panos the crop pass had no reason to open (every label already cropped). */
-  private def writeMissingDerivatives(panoIds: Seq[String], counts: Counts): Unit = {
-    panoIds.filterNot(derivativeIsCurrent).foreach { panoId =>
+  /** Downscaled copies for backed-up panos the crop pass had no reason to open (every label already cropped). */
+  private def writeMissingDownscaled(panoIds: Seq[String], counts: Counts): Unit = {
+    panoIds.filterNot(downscaledIsCurrent).foreach { panoId =>
       panoDataService.localBackupImageFile(panoId).foreach { file =>
         try {
           ImageUtils.withReader(file) { (reader, width, height) =>
             counts.panosOpened += 1
-            writeDerivativeIfWide(panoId, reader, width, height, counts)
+            writeDownscaledIfWide(panoId, reader, width, height, counts)
           }
         } catch {
           case NonFatal(e) =>
             counts.errors += 1
-            logger.warn(s"Pano $panoId: cannot read ${file.getPath} for its display derivative: $e")
+            logger.warn(s"Pano $panoId: cannot read ${file.getPath} to downscale it: $e")
         }
       }
     }

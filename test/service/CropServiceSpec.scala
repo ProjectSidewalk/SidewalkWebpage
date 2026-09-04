@@ -38,18 +38,17 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPe
   private val prefix    = "CropServiceSpec-4865-"
   private val mediaRoot = Files.createTempDirectory("crop-service-spec").toFile
 
-  /** The pano viewer's width cap, set below the synthetic pano's 1024 so the run has a derivative to write. */
-  private val DerivativeMaxWidth = 512
+  /** The pano viewer's width cap, set below the synthetic pano's 1024 so the run has a pano to downscale. */
+  private val DownscaledMaxWidth = 512
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder()
       .disable[modules.ActorModule] // No eager background actors during tests.
       .configure(
-        "cropped.image.directory"       -> new File(mediaRoot, "crops").getPath,
-        "pano.images.directory"         -> new File(mediaRoot, "panos").getPath,
-        "pano.derived.images.directory" -> new File(mediaRoot, "derived").getPath,
-        "share.image.directory"         -> new File(mediaRoot, "share").getPath,
-        "pano.derived.max-width"        -> DerivativeMaxWidth
+        "cropped.image.directory"   -> new File(mediaRoot, "crops").getPath,
+        "pano.images.directory"     -> new File(mediaRoot, "panos").getPath,
+        "share.image.directory"     -> new File(mediaRoot, "share").getPath,
+        "pano.downscaled.max-width" -> DownscaledMaxWidth
       )
       .build()
 
@@ -243,61 +242,61 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPe
       cropFile(mismatchedPanoId).exists() mustBe false
     }
 
-    "write a display derivative for every stored pano wider than the viewer's cap" in {
-      // Both stored panos are 1024 wide against a 512 cap; the derivative doesn't depend on the label being cut.
-      val derivative = cropService.derivedImageFile(backedPanoId)
-      derivative.exists() mustBe true
-      val image = ImageIO.read(derivative)
-      (image.getWidth, image.getHeight) mustBe (DerivativeMaxWidth, DerivativeMaxWidth / 2)
-      cropService.derivedImageFile(mismatchedPanoId).exists() mustBe true
+    "downscale every stored pano wider than the viewer's cap" in {
+      // Both stored panos are 1024 wide against a 512 cap; downscaling doesn't depend on the label being cut.
+      val downscaled = cropService.downscaledImageFile(backedPanoId)
+      downscaled.exists() mustBe true
+      val image = ImageIO.read(downscaled)
+      (image.getWidth, image.getHeight) mustBe (DownscaledMaxWidth, DownscaledMaxWidth / 2)
+      cropService.downscaledImageFile(mismatchedPanoId).exists() mustBe true
     }
 
     "do nothing on a second run" in {
       val crop       = cropFile(backedPanoId)
-      val derivative = cropService.derivedImageFile(backedPanoId)
-      val before     = (crop.lastModified(), crop.length(), derivative.lastModified(), derivative.length())
+      val downscaled = cropService.downscaledImageFile(backedPanoId)
+      val before     = (crop.lastModified(), crop.length(), downscaled.lastModified(), downscaled.length())
 
       val result = generate()
 
       result.cropsWritten mustBe 0
-      result.derivativesWritten mustBe 0
-      (crop.lastModified(), crop.length(), derivative.lastModified(), derivative.length()) mustBe before
+      result.downscaledWritten mustBe 0
+      (crop.lastModified(), crop.length(), downscaled.lastModified(), downscaled.length()) mustBe before
     }
 
-    "recut a derivative left at a width the configuration no longer asks for" in {
-      // Standing in for a `pano.derived.max-width` change, which the previous case shows a presence test can't see.
-      val derivative = cropService.derivedImageFile(backedPanoId)
-      val stale      = new BufferedImage(DerivativeMaxWidth / 2, DerivativeMaxWidth / 4, BufferedImage.TYPE_INT_RGB)
-      ImageUtils.writeJpeg(stale, derivative, CropService.DerivativeJpegQuality)
+    "recut a downscaled copy left at a width the configuration no longer asks for" in {
+      // Standing in for a `pano.downscaled.max-width` change, which the previous case shows a presence test can't see.
+      val downscaled = cropService.downscaledImageFile(backedPanoId)
+      val stale      = new BufferedImage(DownscaledMaxWidth / 2, DownscaledMaxWidth / 4, BufferedImage.TYPE_INT_RGB)
+      ImageUtils.writeJpeg(stale, downscaled, CropService.DownscaledJpegQuality)
 
       val result = generate()
 
-      result.derivativesWritten mustBe 1
-      ImageIO.read(derivative).getWidth mustBe DerivativeMaxWidth
+      result.downscaledWritten mustBe 1
+      ImageIO.read(downscaled).getWidth mustBe DownscaledMaxWidth
     }
   }
 
   "GET /backupImage/:panoId" should {
-    "serve the derivative when there is one, and the native file otherwise" in {
+    "serve the downscaled copy when there is one, and the native file otherwise" in {
       val url        = signingService.signedUrl(s"/backupImage/$backedPanoId")
-      val derivative = cropService.derivedImageFile(backedPanoId)
-      derivative.exists() mustBe true
+      val downscaled = cropService.downscaledImageFile(backedPanoId)
+      downscaled.exists() mustBe true
 
-      val withDerivative = route(app, FakeRequest(GET, url)).get
-      status(withDerivative) mustBe OK
-      contentType(withDerivative) mustBe Some("image/jpeg")
-      contentAsBytes(withDerivative).length.toLong mustBe derivative.length()
+      val withDownscaled = route(app, FakeRequest(GET, url)).get
+      status(withDownscaled) mustBe OK
+      contentType(withDownscaled) mustBe Some("image/jpeg")
+      contentAsBytes(withDownscaled).length.toLong mustBe downscaled.length()
 
       // Moved aside rather than deleted, and put back, so this case leaves the store as it found it.
-      val moved = new File(s"${derivative.getPath}.moved")
-      val _     = Files.move(derivative.toPath, moved.toPath)
+      val moved = new File(s"${downscaled.getPath}.moved")
+      val _     = Files.move(downscaled.toPath, moved.toPath)
       try {
         val native = route(app, FakeRequest(GET, url)).get
         status(native) mustBe OK
         contentType(native) mustBe Some("image/png")
         contentAsBytes(native).length.toLong mustBe syntheticPano.length()
       } finally {
-        val _ = Files.move(moved.toPath, derivative.toPath)
+        val _ = Files.move(moved.toPath, downscaled.toPath)
       }
     }
   }

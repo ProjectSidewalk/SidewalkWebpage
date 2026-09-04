@@ -251,14 +251,14 @@ class CropGeometrySpec extends PlaySpec {
     }
   }
 
-  "CropService.writeDerivative" should {
+  "CropService.writeDownscaled" should {
     "equal a whole-image scale of the same pano, strip by strip" in {
       val whole         = ImageIO.read(pano)
       val target        = 640
-      val out           = File.createTempFile("derivative", ".jpg")
-      val referenceFile = File.createTempFile("derivative-reference", ".jpg")
+      val out           = File.createTempFile("downscaled", ".jpg")
+      val referenceFile = File.createTempFile("downscaled-reference", ".jpg")
       try {
-        ImageUtils.withReader(pano) { (reader, w, h) => CropService.writeDerivative(reader, w, h, target, out) }
+        ImageUtils.withReader(pano) { (reader, w, h) => CropService.writeDownscaled(reader, w, h, target, out) }
         val written = ImageIO.read(out)
         (written.getWidth, written.getHeight) mustBe (640, 320)
 
@@ -268,8 +268,8 @@ class CropGeometrySpec extends PlaySpec {
         val g         = reference.createGraphics()
         val _         = g.drawImage(whole.getScaledInstance(640, 320, java.awt.Image.SCALE_AREA_AVERAGING), 0, 0, null)
         g.dispose()
-        ImageUtils.writeJpeg(reference, referenceFile, CropService.DerivativeJpegQuality)
-        assertSamePixels(written, ImageIO.read(referenceFile), "strip-wise derivative vs whole-image scale")
+        ImageUtils.writeJpeg(reference, referenceFile, CropService.DownscaledJpegQuality)
+        assertSamePixels(written, ImageIO.read(referenceFile), "strip-wise downscale vs whole-image scale")
       } finally {
         val _ = out.delete()
         val _ = referenceFile.delete()

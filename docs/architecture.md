@@ -81,17 +81,20 @@ the app dir, #4925):
   photos and audio today. These sit outside the app dir, are validated at boot by `PersistentMediaDirCheck`, and
   need their own provisioning and backup path on every host.
 
-The same directories also hold the **derived imagery** (#4865): per-label crop images under
-`cropped.image.directory` and per-pano display derivatives under `pano.derived.images.directory`, both cut from the
-self-hosted panorama store (`pano.images.directory`, which the nightly panorama-tools scraper fills) by the nightly
-`CropGenerationActor` via `CropService`. Crops are the image the Gallery, the landing validation grid and label
-popups fall back to when live imagery is unavailable; they are written by the browser's `POST /saveImage` canvas
-snapshot at labeling time and by the job for every label that has none (AI submissions, failed uploads, any past
-city). The geometry —
-`CropSizingRule` (the swappable, versioned sizing rule) and `CropGeometry` (equirectangular mechanics) — is a port of
-panorama-tools' `CropRunner.py`, pinned to it by golden fixtures under `test/resources/crops/`. Derivatives exist
-because Pannellum renders a pano as one WebGL texture and 8192 px is a common cap; `/backupImage/:panoId` serves the
-derivative when one exists. Both stores are disposable: delete them and the next run rebuilds. Imagery Project
+`cropped.image.directory` additionally holds the **derived imagery** (#4865), all of it cut from the self-hosted
+panorama store (`pano.images.directory`, which the nightly panorama-tools scraper fills) by the nightly
+`CropGenerationActor` via `CropService`: per-label crops under `<city-id>/<LabelType>/`, and downscaled copies of
+whole panoramas under `<city-id>/pano-downscaled/`. Both are disposable — delete either and the next run rebuilds —
+which is why they share the crop store rather than earning directories of their own, and why neither may live in the
+panorama store, which the app only reads.
+
+Crops are the image the Gallery, the landing validation grid and label popups fall back to when live imagery is
+unavailable; they are written by the browser's `POST /saveImage` canvas snapshot at labeling time and by the job for
+every label that has none (AI submissions, failed uploads, any past city). The geometry — `CropSizingRule` (the
+swappable, versioned sizing rule) and `CropGeometry` (equirectangular mechanics) — is a port of panorama-tools'
+`CropRunner.py`, pinned to it by golden fixtures under `test/resources/crops/`. The downscaled copies exist because
+Pannellum renders a pano as one WebGL texture and 8192 px is a common cap; `/backupImage/:panoId` serves one in place
+of the native file when it exists, and the viewer can't tell, because it places markers by angle. Imagery Project
 Sidewalk shows a copy of — a self-hosted pano or a crop — carries the attribution `ImageryAttribution` composes
 (Mapillary contributors are CC BY-SA 4.0), rendered by `PanoAttribution.js`.
 

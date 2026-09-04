@@ -285,7 +285,7 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
 
   /**
    * Panos with a self-hosted backup whose native width is over `maxWidth`, or unknown — the ones that may need a
-   * display derivative (#4865). A row that records no width is included rather than assumed narrow; the crop job
+   * downscaled copy (#4865). A row that records no width is included rather than assumed narrow; the crop job
    * decides from the file it opens, which is the only frame that can be measured.
    *
    * @param maxWidth The widest image the pano viewer can be handed.

@@ -71,7 +71,7 @@ class AdminJobTriggerSpec
   private val ClusterResults = ClusteringResults(labelCount = 4614, clusterCount = 4615)
   private val CropResult     = CropRunResult(
     panosOpened = 4616, panosWithoutBackup = 4617, cropsWritten = 4618, shiftedVertically = 4619, outOfFrame = 4620,
-    dimsMismatch = 4621, dimsUnverified = 4622, derivativesWritten = 4623, errors = 4624
+    dimsMismatch = 4621, dimsUnverified = 4622, downscaledWritten = 4623, errors = 4624
   )
 
   /** Set per test: this endpoint's failure path is part of its contract, and Guice owns the stub. */
