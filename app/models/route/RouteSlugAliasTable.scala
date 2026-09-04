@@ -45,14 +45,6 @@ class RouteSlugAliasTable @Inject() (protected val dbConfigProvider: DatabaseCon
   }
 
   /**
-   * Whether this slug has ever been retired here, including by a route since deleted — which is what keeps a dead
-   * share link dead rather than letting it be reread as a bare route id (#5157).
-   */
-  def slugReserved(slug: String): DBIO[Boolean] = {
-    slugAliases.filter(_.slug === slug).exists.result
-  }
-
-  /**
    * Gets aliases whose slug is the given base or starts with "<base>-", with their owning route ids — the
    * candidate set the slug uniquifier must avoid (an alias owned by the route being renamed is reclaimable).
    */
