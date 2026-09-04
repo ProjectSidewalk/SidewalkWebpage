@@ -41,14 +41,23 @@ object ImageryAttribution {
   /**
    * @param source    Where the imagery came from.
    * @param copyright The provider's copyright string for the pano, as `pano_data.copyright` stores it.
-   * @return          The attribution to show beside the imagery, or None when nothing is known to attribute.
+   * @return          The attribution to show beside the imagery, or None when nothing is known to attribute. For
+   *                  Mapillary the provider and the licence are known from `source` alone, so a pano with no recorded
+   *                  contributor is still credited to Mapillary under its licence.
    */
-  def line(source: PanoSource, copyright: Option[String]): Option[Line] =
-    copyright.map(_.trim).filter(_.nonEmpty).map { holder =>
-      source match {
-        case PanoSource.Mapillary =>
-          Line(s"© $holder", Some("Mapillary"), Some(MapillaryLicense), Some(MapillaryLicenseUrl))
-        case _ => Line(holder, None, None, None)
-      }
+  def line(source: PanoSource, copyright: Option[String]): Option[Line] = {
+    val recorded = copyright.map(_.trim).filter(_.nonEmpty)
+    source match {
+      case PanoSource.Mapillary =>
+        Some(
+          Line(
+            recorded.map(holder => s"© $holder").getOrElse("Mapillary"),
+            recorded.map(_ => "Mapillary"),
+            Some(MapillaryLicense),
+            Some(MapillaryLicenseUrl)
+          )
+        )
+      case _ => recorded.map(Line(_, None, None, None))
     }
+  }
 }

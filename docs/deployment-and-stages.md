@@ -311,11 +311,10 @@ it is needed. Dev and test runs (`sbt run`, the test suites) skip the check.
 
 `SIDEWALK_IMAGES_DIR` is the one the app writes on its own schedule — the nightly crop job cuts both the crops and,
 under `<city-id>/pano-downscaled/`, the display copies of panos too wide for a WebGL texture — so it has to be local
-and writable by the app's user. The pano store they are cut *from* is read-only to it (on makelab1 the store is
-group-owned by `makelab` and `apache` is in no group but its own), which is right for a store nothing writes. The
-downscaled copies deliberately do not live there: `PanoDataService.localBackupImageFile` finds a pano by extension,
-so a downscaled `.jpg` beside a native `.png` would be picked up *as* the native file and cut from at the wrong
-scale.
+and writable by the app's user. The pano store they are cut *from* is read-only to that user, which is right for a
+store nothing in the app writes. The downscaled copies deliberately do not live there:
+`PanoDataService.localBackupImageFile` finds a pano by extension, so a downscaled `.jpg` beside a native `.png` would
+be picked up *as* the native file and cut from at the wrong scale.
 
 The fatal tier is deliberate for irreplaceable content: accepting a photo we already know the next release will
 delete is worse than not starting, and since `develop` redeploys **test** while prod waits for a release tag, a

@@ -24,10 +24,22 @@ class ImageryAttributionSpec extends PlaySpec {
         "City of Zurich and iNovitas AG"
     }
 
-    "attribute nothing when no copyright is recorded" in {
-      ImageryAttribution.line(PanoSource.Mapillary, None) mustBe None
-      ImageryAttribution.line(PanoSource.Mapillary, Some("  ")) mustBe None
+    "credit Mapillary under its licence when no contributor is recorded, since both follow from the source" in {
+      val expected = ImageryAttribution.Line(
+        "Mapillary",
+        None,
+        Some(ImageryAttribution.MapillaryLicense),
+        Some(ImageryAttribution.MapillaryLicenseUrl)
+      )
+      ImageryAttribution.line(PanoSource.Mapillary, None).value mustBe expected
+      ImageryAttribution.line(PanoSource.Mapillary, Some("  ")).value mustBe expected
+      expected.text mustBe "Mapillary · CC BY-SA 4.0"
+    }
+
+    "attribute nothing when a provider's copyright string is all that could be shown and none is recorded" in {
       ImageryAttribution.line(PanoSource.Gsv, None) mustBe None
+      ImageryAttribution.line(PanoSource.Gsv, Some(" ")) mustBe None
+      ImageryAttribution.line(PanoSource.Infra3d, None) mustBe None
     }
 
     "serialize with the licence link the UI needs, and nulls where there is none" in {

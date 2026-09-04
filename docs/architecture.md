@@ -94,9 +94,12 @@ every label that has none (AI submissions, failed uploads, any past city). The g
 swappable, versioned sizing rule) and `CropGeometry` (equirectangular mechanics) — is a port of panorama-tools'
 `CropRunner.py`, pinned to it by golden fixtures under `test/resources/crops/`. The downscaled copies exist because
 Pannellum renders a pano as one WebGL texture and 8192 px is a common cap; `/backupImage/:panoId` serves one in place
-of the native file when it exists, and the viewer can't tell, because it places markers by angle. Imagery Project
-Sidewalk shows a copy of — a self-hosted pano or a crop — carries the attribution `ImageryAttribution` composes
-(Mapillary contributors are CC BY-SA 4.0), rendered by `PanoAttribution.js`.
+of the native file when it exists, and the viewer can't tell, because it places markers by angle. The job also prunes
+a copy the current cap no longer calls for, so raising `pano.downscaled.max-width` reaches the store as surely as
+lowering it. Imagery Project Sidewalk shows a copy of — a self-hosted pano or a crop — carries the attribution
+`ImageryAttribution` composes (Mapillary contributors are CC BY-SA 4.0), rendered by `PanoAttribution.js` in the
+label-detail pano box and in Validate's Pannellum fallback (`css/components/pano-attribution.css` is the shared look;
+each host positions the pill).
 
 If either category outgrows its lane — thousands of files, multi-MB originals, a CDN or on-the-fly transforms in
 front — the move is to object storage (S3/MinIO), never the local filesystem.

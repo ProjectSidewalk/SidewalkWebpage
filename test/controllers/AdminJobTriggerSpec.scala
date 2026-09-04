@@ -71,11 +71,14 @@ class AdminJobTriggerSpec
   private val ClusterResults = ClusteringResults(labelCount = 4614, clusterCount = 4615)
   private val CropResult     = CropRunResult(
     panosOpened = 4616, panosWithoutBackup = 4617, cropsWritten = 4618, shiftedVertically = 4619, outOfFrame = 4620,
-    dimsMismatch = 4621, dimsUnverified = 4622, downscaledWritten = 4623, errors = 4624
+    dimsMismatch = 4621, dimsUnverified = 4622, downscaledWritten = 4623, downscaledDeleted = 4625, errors = 4624
   )
 
   /** Set per test: this endpoint's failure path is part of its contract, and Guice owns the stub. */
   @volatile private var osmWayAnswer: Future[Int] = Future.successful(0)
+
+  /** Set per test: whether the crop service reports a run in flight, which is the trigger's refusal path. */
+  @volatile private var cropRunning: Boolean = false
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder()
@@ -107,8 +110,8 @@ class AdminJobTriggerSpec
           StubService.answering[ClusterService](Map("runClustering" -> Future.successful(ClusterResults)))
         ),
         bind[CropService].toInstance(
-          StubService.answering[CropService](
-            Map("generateMissingCrops" -> Future.successful(CropResult), "isRunning" -> false)
+          StubService.answeringWith[CropService](
+            Map("generateMissingCrops" -> (() => Future.successful(CropResult)), "isRunning" -> (() => cropRunning))
           )
         ),
         bind[OsmWayService].toInstance(
@@ -240,6 +243,19 @@ class AdminJobTriggerSpec
       }
       jobRun.triggeredBy mustBe JobRunTrigger.Manual
       jobRun.details.value mustBe CropResult.runDetails
+    }
+
+    "refuse with 409, and record nothing, while a run is already in flight" in {
+      // The refusal happens before the run is recorded on purpose: a second click during an hour-long backfill is not
+      // a failed job, and must not show as one on the Health panel.
+      cropRunning = true
+      try {
+        val idFloor  = highestRunId
+        val response = asAdmin("/adminapi/generateCrops", POST)
+        status(response) mustBe CONFLICT
+        contentAsString(response) must include("already in progress")
+        runsSince(idFloor, CropGenerationActor.Name) mustBe empty
+      } finally cropRunning = false
     }
   }
 

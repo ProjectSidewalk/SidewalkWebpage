@@ -60,16 +60,23 @@ class CropGenerationActor @Inject() (cropService: CropService, jobRunService: Jo
   }
 
   def receive: Receive = { case CropGenerationActor.Tick =>
-    val currentTimeStart: String = dateFormatter.format(Instant.now())
-    logger.info(s"Auto-scheduled crop generation started at: $currentTimeStart")
-    jobRunService
-      .record(CropGenerationActor.Name, JobRunTrigger.Scheduled)(cropService.generateMissingCrops())(_.runDetails)
-      .onComplete {
-        case Success(results) =>
-          logger.info(results.summary)
-          val currentEndTime: String = dateFormatter.format(Instant.now())
-          logger.info(s"Crop generation completed at: $currentEndTime")
-        case Failure(e) => logger.error(s"Error generating crops: ${e.getMessage}")
-      }
+    // A manual backfill can outlive the night: it is a run of this same job, so the Health panel is already covered,
+    // and recording the refusal `generateMissingCrops` would answer with as a failed nightly run would show the job
+    // red while it is in fact running.
+    if (cropService.isRunning) {
+      logger.info("Auto-scheduled crop generation skipped: a run is already in progress.")
+    } else {
+      val currentTimeStart: String = dateFormatter.format(Instant.now())
+      logger.info(s"Auto-scheduled crop generation started at: $currentTimeStart")
+      jobRunService
+        .record(CropGenerationActor.Name, JobRunTrigger.Scheduled)(cropService.generateMissingCrops())(_.runDetails)
+        .onComplete {
+          case Success(results) =>
+            logger.info(results.summary)
+            val currentEndTime: String = dateFormatter.format(Instant.now())
+            logger.info(s"Crop generation completed at: $currentEndTime")
+          case Failure(e) => logger.error(s"Error generating crops: ${e.getMessage}")
+        }
+    }
   }
 }

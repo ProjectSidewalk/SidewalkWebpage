@@ -249,30 +249,74 @@ class CropGeometrySpec extends PlaySpec {
       CropService.stripRows(8192, 4096) mustBe 1024
       CropService.stripRows(5501, 4096) mustBe 5501
     }
+
+    "honour a smaller cap, so a test can force several strips out of a small fixture" in {
+      // 512 -> 128 has unit 4; the production cap reads the whole fixture in one strip, a 64-row cap in eight.
+      CropService.stripRows(512, 128) mustBe 1024
+      CropService.stripRows(512, 128, maxStripRows = 64) mustBe 64
+    }
+  }
+
+  "CropService.downscale" should {
+    // 1024x512 -> 256x128 is an exact 4:1 reduction, so the true answer is the mean of each 4x4 block, computable in
+    // integers: what the strips must reproduce, without either side's float accumulation in the way.
+    val target     = 256
+    lazy val whole = ImageIO.read(pano)
+
+    /** The exact block mean, rounded half up as AreaAveragingScaleFilter's Math.round does. */
+    def exactBlockMean(): BufferedImage = {
+      val out = new BufferedImage(target, target / 2, BufferedImage.TYPE_INT_RGB)
+      for {
+        dy <- 0 until target / 2
+        dx <- 0 until target
+      } {
+        var r, g, b = 0
+        for {
+          sy <- dy * 4 until dy * 4 + 4
+          sx <- dx * 4 until dx * 4 + 4
+        } {
+          val rgb = whole.getRGB(sx, sy)
+          r += (rgb >> 16) & 0xff
+          g += (rgb >> 8) & 0xff
+          b += rgb & 0xff
+        }
+        val round = (sum: Int) => (sum * 2 + 16) / 32 // floor(sum / 16 + 0.5)
+        out.setRGB(dx, dy, (round(r) << 16) | (round(g) << 8) | round(b))
+      }
+      out
+    }
+
+    "reproduce the exact area average when read in several strips, with no seam at any boundary" in {
+      // Eight strips of 64 rows, each landing on 16 whole output rows. Per output pixel the filter sums 16 weighted
+      // samples of at most 255 x 256 x 16 -- under 2^24, so its float accumulation is exact and the strips must match
+      // the block mean to the pixel, boundaries included.
+      val strips = ImageUtils.withReader(pano) { (reader, w, h) =>
+        CropService.downscale(reader, w, h, target, maxStripRows = 64)
+      }
+      (strips.getWidth, strips.getHeight) mustBe (target, target / 2)
+      assertSamePixels(strips, exactBlockMean(), "eight strips vs exact block mean")
+    }
+
+    "give the same pixels under the production cap, which reads this fixture as one strip" in {
+      // So the cap changes memory and nothing else. At a 4:1 reduction every weight the filter applies is a power of
+      // two, which keeps even the whole image's larger sums exact in float; the same check at 11000 -> 8192 would only
+      // hold to within a unit, per the note on `downscale`.
+      val single = ImageUtils.withReader(pano) { (reader, w, h) => CropService.downscale(reader, w, h, target) }
+      assertSamePixels(single, exactBlockMean(), "one strip vs exact block mean")
+    }
   }
 
   "CropService.writeDownscaled" should {
-    "equal a whole-image scale of the same pano, strip by strip" in {
-      val whole         = ImageIO.read(pano)
-      val target        = 640
-      val out           = File.createTempFile("downscaled", ".jpg")
-      val referenceFile = File.createTempFile("downscaled-reference", ".jpg")
+    "write the downscaled raster as a JPEG of the target size, at the aspect the pano has" in {
+      val out = File.createTempFile("downscaled", ".jpg")
       try {
-        ImageUtils.withReader(pano) { (reader, w, h) => CropService.writeDownscaled(reader, w, h, target, out) }
+        ImageUtils.withReader(pano) { (reader, w, h) => CropService.writeDownscaled(reader, w, h, 640, out) }
         val written = ImageIO.read(out)
         (written.getWidth, written.getHeight) mustBe (640, 320)
-
-        // Strips scaled independently must match the whole image scaled at once — what aligned boundaries buy. The
-        // reference goes through the same JPEG writer, so identical rasters in mean identical pixels out.
-        val reference = new BufferedImage(640, 320, BufferedImage.TYPE_INT_RGB)
-        val g         = reference.createGraphics()
-        val _         = g.drawImage(whole.getScaledInstance(640, 320, java.awt.Image.SCALE_AREA_AVERAGING), 0, 0, null)
-        g.dispose()
-        ImageUtils.writeJpeg(reference, referenceFile, CropService.DownscaledJpegQuality)
-        assertSamePixels(written, ImageIO.read(referenceFile), "strip-wise downscale vs whole-image scale")
+        // JPEG is lossy, so only a coarse check on content: the fixture's red channel is a left-to-right ramp.
+        (written.getRGB(639, 160) >> 16) & 0xff must be > ((written.getRGB(0, 160) >> 16) & 0xff) + 200
       } finally {
         val _ = out.delete()
-        val _ = referenceFile.delete()
       }
     }
   }
