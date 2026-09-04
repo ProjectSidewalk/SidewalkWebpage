@@ -28,7 +28,7 @@ const aiHoverSelectors = [
  */
 function aiLabelIndicator(extraClasses = []) {
   const icon = document.createElement('img');
-  icon.src = '/assets/images/icons/ai-icon-black-filled-white-circle.png';
+  icon.src = util.assetPath('images/icons/ai-icon-black-filled-white-circle.png');
   icon.alt = 'AI indicator';
   icon.classList.add('ai-icon-marker');
   extraClasses.forEach((cls) => icon.classList.add(cls));

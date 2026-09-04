@@ -15,6 +15,17 @@ class GsvViewer extends PanoViewer {
     this.currPanoData = undefined;
   }
 
+  /**
+   * Pulls in the Maps JS core + Street View modules without building a panorama. Google bills the
+   * StreetViewPanorama constructor, not the library download, so this is free to run for visitors who never
+   * open a pano — it just takes the ~400 KB script chain off the click path when they do (#5128).
+   * @returns {Promise<void>}
+   */
+  static async preloadLibrary() {
+    await google.maps.importLibrary('core');
+    await google.maps.importLibrary('streetView');
+  }
+
   async initialize(canvasElem, panoOptions = {}) {
     // The core library must be loaded for the google.maps.LatLng/Size constructors used in #getCustomPanoData.
     await google.maps.importLibrary('core');
@@ -272,7 +283,7 @@ class GsvViewer extends PanoViewer {
           originHeading: 50.3866,
           originPitch: -1.13769,
           getTileUrl(_pano, zoom, tileX, tileY) {
-            return `/assets/images/pano-tutorial/tutorial/${zoom}-${tileX}-${tileY}.jpg`;
+            return util.assetPath(`images/pano-tutorial/tutorial/${zoom}-${tileX}-${tileY}.jpg`);
           },
         },
         time: [],
@@ -293,7 +304,7 @@ class GsvViewer extends PanoViewer {
           originHeading: 344,
           originPitch: 0,
           getTileUrl(_pano, zoom, tileX, tileY) {
-            return `/assets/images/pano-tutorial/afterwalktutorial/${zoom}-${tileX}-${tileY}.jpg`;
+            return util.assetPath(`images/pano-tutorial/afterwalktutorial/${zoom}-${tileX}-${tileY}.jpg`);
           },
         },
         time: [],

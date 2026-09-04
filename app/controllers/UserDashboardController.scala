@@ -5,7 +5,7 @@ import controllers.helper.ControllerUtils
 import controllers.helper.ControllerUtils.MeasurementSystem
 import formats.json.UserFormats.{settingsSubmissionReads, SettingsSubmission}
 import models.auth.{DefaultEnv, WithAdmin, WithSignedIn}
-import models.user.SidewalkUserWithRole
+import models.user.{Role, SidewalkUserWithRole}
 import play.api.Configuration
 import play.api.i18n.Messages
 import play.api.libs.json.{JsError, JsSuccess, Json}
@@ -146,11 +146,11 @@ class UserDashboardController @Inject() (
    *
    * A `UserAwareAction` (#4643), so the general public — including cookie-less visitors and anonymous auto-accounts —
    * can view it without an account being minted. The view shows the community/podium/tables to everyone and gates the
-   * personal "you" pieces behind `isSignedIn` (an identity with role != "Anonymous"), offering a sign-up CTA otherwise.
+   * personal "you" pieces behind `isSignedIn` (an identity with role != Role.Anonymous), offering a sign-up CTA otherwise.
    */
   def leaderboard = cc.securityService.UserAwareAction { implicit request =>
     val user                                       = request.identity
-    val signedInUser: Option[SidewalkUserWithRole] = user.filter(_.role != "Anonymous")
+    val signedInUser: Option[SidewalkUserWithRole] = user.filter(_.role != Role.Anonymous)
     val isSignedIn: Boolean                        = signedInUser.isDefined
     val isMetric: Boolean                          = ControllerUtils.isMetric
     val cityName                                   = configService.getCityName(request2Messages.lang)

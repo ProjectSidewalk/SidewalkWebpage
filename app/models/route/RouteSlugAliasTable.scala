@@ -39,9 +39,9 @@ class RouteSlugAliasTable @Inject() (protected val dbConfigProvider: DatabaseCon
     slugAliases += alias
   }
 
-  /** Gets the route id an old slug points at, if any. */
-  def getRouteIdBySlug(slug: String): DBIO[Option[Int]] = {
-    slugAliases.filter(_.slug === slug).map(_.routeId).result.headOption
+  /** Gets the (slug, route id) pairs of the retired slugs matching any spelling of an incoming share link. */
+  def getRouteIdsBySlugs(slugs: Seq[String]): DBIO[Seq[(String, Int)]] = {
+    slugAliases.filter(_.slug.inSet(slugs)).map(a => (a.slug, a.routeId)).result
   }
 
   /**

@@ -159,6 +159,11 @@
   color: var(--color-neutral-900);
 }
 
+/* Link blue is 2.4:1 against the nudge's neutral-900 copy, under WCAG 1.4.1's 3:1 for a color-only link. */
+.ud-nudge a {
+  text-decoration: underline;
+}
+
 /* ---- Streak / activity heatmap --------------------------------------------------------------------------------- */
 .ud-streak {
   display: flex;
@@ -1072,7 +1077,7 @@
   padding: 8px 18px;
   border: 1px solid transparent;
   border-radius: var(--border-radius);
-  background: var(--color-pine-600);
+  background: var(--color-pine-700);
   color: var(--color-neutral-white);
   font: var(--text-small-bold);
   text-decoration: none;
@@ -1081,7 +1086,7 @@
 }
 
 .ud-btn-primary:hover {
-  background: var(--color-pine-700);
+  background: var(--color-pine-800);
   text-decoration: none;
 }
 
@@ -1234,10 +1239,31 @@
   color: var(--color-neutral-700);
 }
 
+/* Link blue reaches only 1.2:1 against this muted copy, so the hue can't be the only thing marking the link (1.4.1). */
+.ud-impact-bridge a {
+  text-decoration: underline;
+}
+
 /* ---- Leaderboard: community band + podium ---------------------------------------------------------------------- */
+
+/* Every tile on one line, always (#5175). Each basis is an equal share of what's left once the gaps are paid for, so
+   they exactly fill the row, and `min-width: 0` stops a long value from growing its own tile and pushing a lone
+   widow onto a second row. Two things keep the values inside their share, in that order of preference: each swaps to
+   the short form it also renders (1,662,874 → 1.7M) once full figures stop fitting, and only then does the type give
+   ground. The band is its own container so both rules can measure it directly — its width depends on which of the
+   page shell's three regimes is in play, so the viewport is a poor proxy.
+
+   `--band-cols` is how many tiles the band holds, and every share below is computed from it. The leaderboard's has
+   five and the dashboard's cross-city copy has four, so a hardcoded fifth strands the fourth tile alone on a second
+   row at the narrow step — which is the failure this whole rule exists to prevent (#5186). A band that sets neither
+   the variable nor a matching tile count is the one thing that can still go wrong here. */
 .ud-community-band {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  --band-cols: 5;
+  --band-cols-narrow: 3;
+
+  display: flex;
+  flex-wrap: wrap;
+  container-type: inline-size;
   gap: var(--space-lg);
   padding: var(--space-lg);
   margin: var(--space-md) 0;
@@ -1249,7 +1275,15 @@
   color: var(--color-neutral-900);
 }
 
+/* The dashboard's cross-city copy of the band carries one tile fewer than the leaderboard's. */
+.ud-cities-band {
+  --band-cols: 4;
+  --band-cols-narrow: 2;
+}
+
 .ud-community-stat {
+  flex: 1 1 calc((100% - (var(--band-cols) - 1) * var(--space-lg)) / var(--band-cols));
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1261,6 +1295,10 @@
 .ud-community-icon {
   height: 56px;
   width: auto;
+
+  /* The tiles carry no intrinsic floor, so an icon wider than its share would paint over the next tile rather than
+     widen its own. The widest today clears the narrowest tile by about 4px; this keeps the next one safe too. */
+  max-width: 100%;
   object-fit: contain;
 }
 
@@ -1275,18 +1313,74 @@
   display: block;
   font-family: var(--font-primary);
 
-  /* px, not rem, for the reason given on .ud-impact-value above. Capped at 30 because five tiles share the content
-     column here, leaving tracks as narrow as ~150px — enough for "11,635 km" on one line at this size, not more. */
-  font-size: clamp(24px, 3.5vw, 30px);
+  /* px, not rem, for the reason given on .ud-impact-value above, and sized off the band (cqi) rather than the
+     viewport so it tracks the width the tiles actually get. One expression covers every column count: a value may
+     occupy 24% of its own tile, which is what the widest short form the tiles can hold needs. The 5px absorbs the
+     gap the share calculation already paid for. Too large and a figure spills; too small and the numbers are
+     needlessly meek, and only the first of those is something stat-bands.spec.js can fail on. */
+  font-size: clamp(18px, calc(24cqi / var(--band-cols) - 5px), 30px);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   line-height: 1.1;
+
+  /* A grouped total is one unbreakable token: it wraps nowhere and so is never split across two lines. */
+  white-space: nowrap;
+}
+
+/* Values that have a shorter form render both, and exactly one of them is shown. The full figure is the default;
+   it is also the one that stays in the accessibility tree at every width, so a screen reader always reads the exact
+   number while the short form is decorative (aria-hidden in the markup). */
+.ud-value-short {
+  display: none;
+}
+
+/* Where a row of full figures outgrows the shares it has to sit in, show the short forms instead of shrinking the
+   type to suit the longest number anyone might one day reach. The full figure is only hidden visually. The threshold
+   is the five-tile band's; a four-tile one gets wider shares and so abbreviates a little earlier than it must. */
+@container (width < 1000px) {
+  .ud-community-value .ud-value-full {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .ud-community-value .ud-value-short {
+    display: inline;
+  }
+}
+
+/* Narrower than this even the short forms are illegible across a full row, so the band drops to `--band-cols-narrow`
+   per line: five tiles go 3 + 2 and four go 2 + 2. Neither leaves the lone tile that reads as a mistake, which is why
+   this is a per-band number rather than one divisor — three columns would strand the fourth tile of a four-tile band.
+   The count is overridden on the tiles rather than the band because a container cannot restyle itself; the value's
+   type inherits it from there. */
+@container (width < 470px) {
+  .ud-community-stat {
+    --band-cols: var(--band-cols-narrow);
+  }
+}
+
+/* On the narrowest phones a third of the band is smaller than the figures it holds, so each tile takes a line of its
+   own. One per line is the other shape with no odd tile out, and it buys back the full type size. */
+@container (width < 265px) {
+  .ud-community-stat {
+    --band-cols: 1;
+  }
 }
 
 .ud-community-label {
   display: block;
   font: var(--text-body-regular);
   color: var(--color-asphalt-300);
+
+  /* A tile is a fixed fraction of the band, and German runs its captions into single words longer than that
+     (Beschriftungen, Validierungen). `anywhere` rather than `break-word` because only it also lets the caption's
+     minimum width fall below that word — the tiles are centred, so a caption too wide for its own tile would
+     otherwise hang out either side and lie across its neighbour's. */
+  overflow-wrap: anywhere;
 }
 
 .ud-podium {
@@ -1391,6 +1485,11 @@
 .ud-field-help {
   font: var(--text-small-regular);
   color: var(--color-neutral-700);
+}
+
+/* The help line's muted grey is 1.2:1 against link blue, so color alone cannot separate the two (WCAG 1.4.1). */
+.ud-field-help a {
+  text-decoration: underline;
 }
 
 .ud-radio-row {
@@ -1972,7 +2071,7 @@
   font: var(--text-small-regular);
 }
 
-/* `.ud-community-band` sets `display: grid`, which outranks the UA's `[hidden] { display: none }` — so a band the
+/* `.ud-community-band` sets a `display` that outranks the UA's `[hidden] { display: none }` — so a band the
  * script hasn't filled in yet would render as a row of empty stat labels. */
 .ud-community-band[hidden] { display: none; }
 

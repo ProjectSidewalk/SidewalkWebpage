@@ -9,7 +9,7 @@ class Mission {
     missionType: undefined,
     completed: undefined,
     labelsProgress: undefined,
-    labelTypeId: undefined,
+    labelType: undefined,
     labelsValidated: undefined,
     unsureCount: 0,
   };
@@ -34,7 +34,7 @@ class Mission {
     if ('completed' in params) this.setProperty('completed', params.completed);
     if ('labelsProgress' in params) this.setProperty('labelsProgress', params.labelsProgress);
     if ('labelsValidated' in params) this.setProperty('labelsValidated', params.labelsValidated);
-    if ('labelTypeId' in params) this.setProperty('labelTypeId', params.labelTypeId);
+    if ('labelType' in params) this.setProperty('labelType', params.labelType);
     if ('unsureCount' in params) this.setProperty('unsureCount', params.unsureCount);
   }
 

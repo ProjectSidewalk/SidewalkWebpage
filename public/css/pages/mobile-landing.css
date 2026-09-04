@@ -43,9 +43,9 @@
 }
 
 #mobile-landing-tagline {
-  font-family: Raleway-bold, sans-serif;
+  font-family: var(--font-accent);
   font-size: 30px;
-  font-weight: bold;
+  font-weight: 700;
   color: var(--color-neutral-white);
   line-height: 1.2;
   letter-spacing: 0.04em;
@@ -177,11 +177,12 @@
   margin: 24px auto 0;
 }
 
+/* Primary font, not the accent one: Raleway's old-style figures drop 3/4/5/7/9 below the baseline. */
 .mobile-stat-number {
   display: block;
-  font-family: Raleway-extrabold, sans-serif;
+  font-family: var(--font-primary);
   font-size: 36px;
-  font-weight: bold;
+  font-weight: 800;
   color: var(--color-asphalt-500);
   line-height: 1.1;
 }
@@ -195,29 +196,10 @@
   letter-spacing: 0.05em;
 }
 
-/* Collaborators section */
-#mobile-collaborators {
+/* The shared landing partial styles itself via the site-wide homepage.css; this only supplies mobile sectioning. */
+#mobile-partners {
   padding: 40px 20px;
   background: var(--color-neutral-white);
-  text-align: center;
-}
-
-.mobile-collaborators-grid {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  align-items: center;
-  gap: 20px 36px;
-  margin-top: 24px;
-}
-
-.mobile-collaborator-image {
-  width: 110px;
-}
-
-.mobile-collaborator-image img {
-  width: 100%;
-  height: auto;
 }
 
 /* Laptop CTA section */
@@ -241,9 +223,9 @@
 }
 
 .mobile-cta-heading {
-  font-family: Raleway-bold, sans-serif;
+  font-family: var(--font-accent);
   font-size: 26px;
-  font-weight: bold;
+  font-weight: 700;
   color: var(--color-neutral-white);
   margin: 0 0 12px;
   line-height: 1.2;
@@ -262,11 +244,11 @@
   font-family: Raleway, sans-serif;
   font-size: 11px;
   line-height: 1.6;
-  color: rgb(255 255 255 / 45%);
+  color: rgb(255 255 255 / 55%);
 }
 
 #mobile-cta-footer-info a {
-  color: rgb(255 255 255 / 45%);
+  color: rgb(255 255 255 / 55%);
   text-decoration: underline;
 }
 
@@ -287,9 +269,5 @@
 
   .mobile-stat-number {
     font-size: 46px;
-  }
-
-  .mobile-collaborator-image {
-    width: 130px;
   }
 }

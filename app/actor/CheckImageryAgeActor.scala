@@ -4,7 +4,6 @@ import actor.ActorUtils.{dateFormatter, getTimeToNextUpdate}
 import models.utils.JobRunTrigger
 import org.apache.pekko.actor.{Actor, Cancellable}
 import play.api.Logger
-import play.api.libs.json.Json
 import service.{ConfigService, ImageryFreshnessService, JobRunService}
 
 import java.time.Instant
@@ -69,15 +68,9 @@ class CheckImageryAgeActor @Inject() (
     val currentTimeStart: String = dateFormatter.format(Instant.now())
     logger.info(s"Auto-scheduled imagery-age poll starting at: $currentTimeStart")
     jobRunService
-      .record(CheckImageryAgeActor.Name, JobRunTrigger.Scheduled)(imageryFreshnessService.pollImageryAges()) { result =>
-        Json.obj(
-          "provider"          -> result.provider,
-          "streets_selected"  -> result.streetsSelected,
-          "streets_polled"    -> result.streetsPolled,
-          "streets_skipped"   -> result.streetsSkipped,
-          "not_polled_reason" -> result.notPolledReason
-        )
-      }
+      .record(CheckImageryAgeActor.Name, JobRunTrigger.Scheduled)(imageryFreshnessService.pollImageryAges())(
+        _.runDetails
+      )
       .onComplete {
         case Success(result) => logger.info(result.summary)
         case Failure(e)      => logger.error("Error polling imagery ages", e)

@@ -177,6 +177,29 @@ class StreetStatusMap {
     this.highlightSegments([]);
   }
 
+  /**
+   * Zooms to one segment and highlights it alone, replacing any prior highlight.
+   *
+   * This is how the regained-imagery queue (#4929) points at a street: its rows are all `no_imagery`, and Explore
+   * can only serve an open street, so "show me where this is" has to be answered on this page.
+   *
+   * @param {number} streetEdgeId - The segment to zoom to.
+   * @param {number[][]} bounds - [[minLng, minLat], [maxLng, maxLat]] covering that segment.
+   */
+  focusSegment(streetEdgeId, bounds) {
+    this.highlightSegments([streetEdgeId]);
+    // maxZoom keeps a short segment from slamming to street level, where there is no context to place it in.
+    this.#map.fitBounds(bounds, { padding: 140, maxZoom: 16, duration: 700 });
+  }
+
+  /**
+   * @param {object} feature - One GeoJSON feature.
+   * @returns {number[][]} Its [[minLng, minLat], [maxLng, maxLat]] bounds box, for focusSegment.
+   */
+  static boundsOfFeature(feature) {
+    return StreetStatusMap.#bounds({ features: [feature] });
+  }
+
   /** Builds the hover-popup HTML showing a segment's status and activity. */
   static #popupHtml(p) {
     const row = (label, value) => `<dt>${label}</dt><dd>${value}</dd>`;

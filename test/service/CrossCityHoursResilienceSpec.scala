@@ -53,7 +53,8 @@ class CrossCityHoursResilienceSpec extends PlaySpec with GuiceOneAppPerSuite {
         app.injector.instanceOf[FunnelStatTable],
         app.injector.instanceOf[VersionTable],
         app.injector.instanceOf[PanoDataService],
-        app.injector.instanceOf[SwrCache]
+        app.injector.instanceOf[SwrCache],
+        app.injector.instanceOf[AssetManifestService]
       ) {
     override def getCrossCityHoursScope: Future[SelfViewScope] = scope
   }

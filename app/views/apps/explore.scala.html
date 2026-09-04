@@ -1,6 +1,6 @@
 @import formats.json.MissionFormats._
 @import formats.json.ExploreFormats._
-@import models.user.SidewalkUserWithRole
+@import models.user.{Role, SidewalkUserWithRole}
 @import play.api.Configuration
 @import play.api.libs.json.Json
 @import service.{CommonPageData, ExplorePageData}
@@ -289,6 +289,18 @@
         @* Current mission: header, description, mission progress, plus the neighborhood progress bar and the minimap that fills the remaining sidebar height. *@
         <section id="explore-sidebar__mission" class="explore-sidebar__section explore-sidebar__section--map">
           <h1 id="current-mission-header" class="explore-sidebar__heading"></h1>
+
+          @* Exit link for custom-route walks; unhidden by MissionPanel in route mode. Pauses the walk server-side,
+             so re-entering the route later resumes where the user left off (#4833). *@
+          <a id="explore-sidebar__exit-route" class="explore-sidebar__see-all explore-sidebar__see-all--exit-route"
+             href="/explore?resumeRoute=false" hidden>
+            <span data-i18n="audit:right-ui.current-mission.exit-route">Exit Custom Route</span>
+            <svg class="explore-sidebar__see-all-icon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+          </a>
 
           @* The mission and neighborhood progress bars, each paired with its label. *@
           <div class="explore-sidebar__progress-groups">
@@ -800,7 +812,7 @@
         </div>
       </div>
       <div class="tutorial-intro__links">
-        @if(user.role == "Anonymous") {
+        @if(user.role == Role.Anonymous) {
           <p>
             <span data-i18n="audit:tutorial-intro.have-account"></span>
             <a href="@routes.UserController.signIn()" data-au-open="signIn" class="tutorial-intro__link" data-i18n="audit:tutorial-intro.sign-in"></a>
@@ -861,7 +873,6 @@
   <script src='@assets.path("js/explore/build/explore.js")'></script>
   <script src='@assets.path("js/ps-map/build/ps-map.js")'></script>
   <script src='@assets.path("vendor/kinetic/kinetic-v4.4.3.min.js")'></script>
-  <script src='@assets.path("vendor/d3/d3-3.5.6.js")'></script>
 
   <script src='@assets.path("vendor/turf/turf-7.3.4.min.js")'></script>
   <script src='@assets.path("vendor/async-lock/async-lock-1.4.1.min.js")'></script>
@@ -941,8 +952,6 @@
     }
 
     mainParam.dataStoreUrl = '@routes.ExploreController.post';
-    mainParam.imageDirectory = "@assets.path("images/explore/")";
-    mainParam.audioDirectory = "@assets.path("audio/")";
 
     mainParam.user = {
       username: @jsonForScript(user.username),
@@ -963,6 +972,13 @@
     mainParam.routeId = @data.userRoute.get.routeId;
     mainParam.userRouteId = @data.userRoute.get.userRouteId;
     mainParam.routeName = @jsonForScript(data.route.map(_.name).getOrElse(""));
+    mainParam.routeResumed = @data.routeResumed;
+    }
+
+    @* A ?routeId= naming no live route was dropped rather than obeyed, so the session is not the one the link asked
+       for (#5156). Emitted only when it happened, so the ordinary page carries nothing extra. *@
+    @if(data.routeUnavailable) {
+    mainParam.routeUnavailable = true;
     }
 
     @* Optional pano seed: an admin auditing a specific street from a pano/lat-lng, or an address drop-in (#4451). *@

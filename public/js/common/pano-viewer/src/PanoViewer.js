@@ -86,6 +86,12 @@ class PanoViewer {
    * @static
    */
   static async create(canvasElem, panoOptions = {}) {
+    // Mapillary (and the Infra3d fork of it) style their render canvas `position: absolute` with no offsets, so
+    // it sits at its *static position* — which an inherited `text-align: center` places at the middle of the
+    // line box. Under a centering ancestor (mobile Validate's body/.tool-ui) that shifted the canvas right by
+    // half the mount's width, leaving the left half blank (#4999). The mount hosts SDK-positioned chrome, never
+    // flowed text, so pinning it left is safe for every provider and spares each page from knowing about this.
+    canvasElem.style.textAlign = 'left';
     const newViewer = new this();
     newViewer.canvasElem = canvasElem;
     await newViewer.initialize(canvasElem, panoOptions);
@@ -237,6 +243,14 @@ class PanoViewer {
    * @returns {Promise<void>}
    */
   async preloadPanoNear(_latLng, _excludedPanos = new Set()) {}
+
+  /**
+   * Downloads the provider's viewer code ahead of create(), so a viewer built later on a user action doesn't wait on
+   * the network. Must not construct a viewer: for providers that bill per viewer instance (GSV), that is the whole
+   * point of deferring create() (#5128). No-op by default; override in providers that load code on demand.
+   * @returns {Promise<void>}
+   */
+  static async preloadLibrary() {}
 
   /**
    * Moves the current panorama to the specified panorama ID.

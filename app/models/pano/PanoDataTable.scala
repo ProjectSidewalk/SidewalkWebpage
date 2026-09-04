@@ -137,6 +137,12 @@ class PanoDataTableDef(tag: Tag) extends Table[PanoData](tag, "pano_data") {
 
 @ImplementedBy(classOf[PanoDataTable]) trait PanoDataTableRepository {}
 
+object PanoDataTable {
+
+  /** Ids per `markHasBackup` statement: enough to make a night's update a handful of round trips, not thousands. */
+  val MarkHasBackupChunk: Int = 1000
+}
+
 @Singleton
 class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
     extends PanoDataTableRepository
@@ -284,15 +290,53 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
   }
 
   /**
+   * Panos with a self-hosted backup whose native width is over `maxWidth`, or unknown — the ones that may need a
+   * downscaled copy (#4865). A row that records no width is included rather than assumed narrow; the crop job
+   * decides from the file it opens, which is the only frame that can be measured.
+   *
+   * @param maxWidth The widest image the pano viewer can be handed.
+   * @return         Pano ids.
+   */
+  def getWideBackupPanos(maxWidth: Int): DBIO[Seq[String]] = {
+    panoDataRecords
+      .filter(p =>
+        p.hasBackup.getOrElse(false: Rep[Boolean]) && p.width.map(_ > maxWidth).getOrElse(true: Rep[Boolean])
+      )
+      .map(_.panoId)
+      .result
+  }
+
+  /**
    * Sets has_backup = true for the given pano, but only if it isn't already true.
    *
    * @param panoId The ID of the pano whose has_backup flag should be set.
    */
-  def markHasBackup(panoId: String): DBIO[Int] = {
-    panoDataRecords
-      .filter(p => p.panoId === panoId && !p.hasBackup.getOrElse(false: Rep[Boolean]))
-      .map(_.hasBackup)
-      .update(Some(true))
+  def markHasBackup(panoId: String): DBIO[Int] = markHasBackup(Seq(panoId))
+
+  /**
+   * Sets has_backup = true for every one of these panos that isn't already flagged — the crop job learns about a whole
+   * night's worth at a time (#4865).
+   *
+   * Issued in statements of [[PanoDataTable.MarkHasBackupChunk]] ids. `inSet` inlines its values as SQL literals, so a
+   * first backfill in a large city (Seattle has ~110k panos with live labels) would otherwise be one multi-megabyte
+   * statement; bounding it costs a few round trips and means a failure part-way leaves the earlier chunks flagged,
+   * which is the truth about the store. Not a transaction of its own for the same reason.
+   *
+   * @param panoIds The IDs of the panos whose has_backup flag should be set.
+   * @return        Rows updated across all chunks.
+   */
+  def markHasBackup(panoIds: Seq[String]): DBIO[Int] = {
+    if (panoIds.isEmpty) DBIO.successful(0)
+    else {
+      DBIO
+        .sequence(panoIds.distinct.grouped(PanoDataTable.MarkHasBackupChunk).toSeq.map { chunk =>
+          panoDataRecords
+            .filter(p => (p.panoId inSet chunk) && !p.hasBackup.getOrElse(false: Rep[Boolean]))
+            .map(_.hasBackup)
+            .update(Some(true))
+        })
+        .map(_.sum)
+    }
   }
 
   /**

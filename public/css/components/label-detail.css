@@ -3,7 +3,7 @@
  *
  * The base `.label-detail` rules style a self-contained label-info card. Two host modes are supported:
  *   - Modal popup (LabelMap, Dashboard, Admin): the host is a <dialog id="label-modal" class="label-detail">.
- *     Modal-specific styling (fixed width, ::backdrop, opening transition, init-offscreen hack) lives below.
+ *     Modal-specific styling (fixed width, ::backdrop, opening transition) lives below.
  *   - Inline (Gallery's expanded view): the host adds `.label-detail--inline`, which drops the dialog-fixed
  *     sizing and lets the parent grid drive the dimensions. Paging-arrow rules also live in the inline section.
  *
@@ -43,13 +43,6 @@
    dialog), so keep the veil light enough that the spotlighted dot stays readable. */
 .label-detail--map-host::backdrop {
   background: rgb(0 0 0 / 12%);
-}
-
-/* Used during pano-viewer init: dialog must be in the DOM and visible to lay out, but invisible to the user. */
-.label-detail.label-detail--initializing,
-.label-detail.label-detail--initializing::backdrop {
-  visibility: hidden;
-  transition: none;
 }
 
 /* Open / close transition. Requires @starting-style + transition-behavior: allow-discrete. Only applies to the
@@ -152,6 +145,10 @@ dialog.label-detail[open]::backdrop {
   border-radius: 8px;
   overflow: hidden;
   margin-bottom: 6px;
+
+  /* The ground under the pano, the loading overlay and the fallbacks. Here rather than on the pano itself, which
+     is `visibility: hidden` until imagery paints and so cannot paint its own. No :root token matches it. */
+  background: #e9e9e9;
 }
 
 .label-detail__pano-wrap::after {
@@ -175,8 +172,33 @@ dialog.label-detail[open]::backdrop {
   position: relative;
   width: 100%;
   aspect-ratio: 720 / 480;
-  background: #e9e9e9;
   overflow: hidden;
+}
+
+/* The pano is `visibility: hidden` until imagery paints, so without this the card is an empty grey box that reads
+   as broken. Stacks below the validation ring (5) and the info popover (10/11), above the viewer's own layers. */
+.label-detail__pano-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font: var(--text-small-regular);
+  color: var(--color-asphalt-500);
+  pointer-events: none;
+}
+
+.label-detail__pano-loading-img {
+  width: 96px;
+  height: 96px;
+}
+
+/* The .webp animates on its own and cannot be paused, so drop it entirely and let the text carry the message. */
+@media (prefers-reduced-motion: reduce) {
+  .label-detail__pano-loading-img { display: none; }
 }
 
 /* Standard pan affordance: open hand over the draggable imagery, closed while dragging. Applies wherever the
@@ -228,6 +250,14 @@ dialog.label-detail[open]::backdrop {
 
 @media (prefers-reduced-motion: reduce) {
   .label-detail__pan-hint { transition: none; }
+}
+
+/* Imagery attribution (#4865; look in css/components/pano-attribution.css, which every host of this dialog links) in
+   the pano's top-right, clear of the hide-label control (top-left) and the hover validation bar (bottom). */
+.label-detail .pano-attribution {
+  top: 10px;
+  right: 10px;
+  z-index: 6; /* Above the validation ring (5), below the info popover (10), like the hide-label control. */
 }
 
 /* Hide-label toggle (#2477) in the pano's top-left. Revealed on hover like the paging arrows. */
@@ -344,7 +374,9 @@ dialog.label-detail[open]::backdrop {
   outline-offset: 2px;
 }
 
-/* Hover-reveal validation buttons at bottom of pano. Modeled after Gallery's old expanded-view validation buttons. */
+/* Hover-reveal validation buttons at bottom of pano. Modeled after Gallery's old expanded-view validation buttons.
+   Hidden outright on the viewer's own label (#5047); the card-wide `.label-detail [hidden]` guard at the top of
+   this file is what makes that stick against the display: flex below. */
 .label-detail__pano-overlay {
   position: absolute;
   left: 0;
@@ -635,8 +667,11 @@ button.label-detail__meta-cell:focus-visible {
   opacity: 0.6;
 }
 
-/* Editable faces (#2575): dropping --static restores the shared hover wash; the ring marks keyboard focus. */
-.label-detail--editable .label-detail__severity-faces .severity-button:focus-visible {
+/* Editable faces (#2575): dropping --static restores the shared hover wash; the ring marks keyboard focus.
+   The ring follows focusability rather than editability: a face locked for want of imagery keeps its place in the
+   tab order so a keyboard user can land on it and hear why (#5047), and needs the same ring when they do. Only the
+   plain read-only faces, which LabelDetail parks at tabindex="-1", are excluded. */
+.label-detail__severity-faces .severity-button:not([tabindex="-1"]):focus-visible {
   outline: 2px solid var(--color-link-100);
   outline-offset: 2px;
 }
@@ -653,9 +688,28 @@ button.label-detail__meta-cell:focus-visible {
   margin: 0;
 }
 
+/* Save confirmation beside an editable column's heading (#5047). Severity and tags autosave on click, so this line
+   is the only acknowledgement the user gets; it reads as quiet confirmation by default and only turns orange when
+   it is carrying a failure the reader has to act on.
+
+   Its visible text has to stay to a word or two. .label-detail__col--severity is `flex: 0 0 auto`, so whatever sits
+   in that header sets the column's width outright — a full sentence widened it by about its own length, squeezing
+   the tags column to its 120px floor for as long as the message was up. LabelDetail keeps the long form in an
+   out-of-flow .sr-only node and on the tooltip instead; see #fillEditStatus. */
 .label-detail__edit-status {
   font: var(--text-tiny-regular);
-  color: var(--color-orange-700);
+  color: var(--color-neutral-700);
+  transition: opacity 400ms ease; /* Keep in step with LabelDetail's #EDIT_STATUS_FADE_MS. */
+}
+
+.label-detail__edit-status--error { color: var(--color-orange-700); }
+
+/* The message is held, then faded rather than cut, so it leaves the way a confirmation should instead of blinking
+   out mid-glance. The text is only removed once the fade has finished. */
+.label-detail__edit-status--fading { opacity: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .label-detail__edit-status { transition: none; }
 }
 
 /* Tag pills — base styles are in tag-pills.css (.tag-pill class). */
@@ -762,10 +816,40 @@ button.label-detail__meta-cell:focus-visible {
   outline-offset: 2px;
 }
 
+/* Cancel is a design-system secondary button (.button-ps .button--small .button--secondary); only its height and
+   radius are pinned here, to match the bespoke submit button it stands beside rather than sit a few px shorter.
+   The negative offsets are what make it visible at all: .button--secondary draws its edge as an `outline`, which
+   paints *outside* the border box, and the row above clips to a box exactly as tall as this button — so an
+   outward outline lost its top and bottom and rendered as two floating arcs. Drawing inward costs a pixel of fill
+   and nothing else. Same for the focus ring, which would otherwise be clipped the same way. */
+.label-detail__comment-cancel {
+  box-sizing: border-box;
+  height: 34px;
+  justify-content: center;
+  border-radius: 12px;
+  flex-shrink: 0;
+  outline-offset: -1px;
+}
+
+.label-detail__comment-cancel:focus-visible {
+  outline: 2px solid var(--color-link-100);
+  outline-offset: -2px;
+}
+
+/* Sits between the comment row and the list rather than inside the row, so it survives the row collapsing on save.
+   The explicit [hidden] rule is required: a `display` here would otherwise beat the UA stylesheet's `[hidden]` and
+   leave an empty line holding space whenever there is nothing to announce. */
 .label-detail__comment-confirmation {
+  display: block;
+  margin-bottom: 6px;
   font: var(--text-caption-regular);
   color: var(--color-pine-700);
 }
+
+.label-detail__comment-confirmation[hidden] { display: none; }
+
+/* A failed save or delete is the one outcome the reader has to act on, so it doesn't wear the success green. */
+.label-detail__comment-confirmation.is-error { color: var(--color-orange-700); }
 
 /* ─── Description / comments ──────────────────────────────────────────── */
 
@@ -849,6 +933,31 @@ button.label-detail__meta-cell:focus-visible {
 .label-detail__comment-avatar--3 { background: var(--color-link-100); }
 .label-detail__comment-avatar--4 { background: var(--color-banana-700); }
 .label-detail__comment-avatar--5 { background: var(--color-asphalt-200); }
+
+/* The commenter's current vote (#5015), in the same colors the pano ring and overlay buttons give each vote. Black
+   on each of the three backgrounds clears WCAG AAA for text (10.7:1 on pine-500, 7.1:1 on orange-500, 14.3:1 on
+   asphalt-100), and the glyph inherits that same color rather than the icon files' hardcoded #242424. */
+.label-detail__comment-vote {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-right: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font: var(--text-tiny-semibold);
+  color: var(--color-neutral-black);
+  vertical-align: middle;
+}
+
+.label-detail__comment-vote svg {
+  width: 12px;
+  height: 12px;
+  display: block;
+}
+
+.label-detail__comment-vote--agree    { background: var(--color-pine-500); }
+.label-detail__comment-vote--disagree { background: var(--color-orange-500); }
+.label-detail__comment-vote--unsure   { background: var(--color-asphalt-100); }
 
 /* When the comment was left (relative time; exact date in the tooltip). */
 .label-detail__comment-when {
@@ -1347,6 +1456,8 @@ button.label-detail__meta-cell:focus-visible {
 
 .label-detail__story-edit,
 .label-detail__story-delete,
+.label-detail__comment-edit,
+.label-detail__comment-delete,
 .label-detail__tags-edit {
   padding: 2px;
   border: none;
@@ -1359,12 +1470,37 @@ button.label-detail__meta-cell:focus-visible {
 }
 
 .label-detail__story-edit,
+.label-detail__comment-edit,
 .label-detail__tags-edit { color: var(--color-link-200); }
 
-.label-detail__story-delete { color: var(--color-orange-700); }
+.label-detail__story-delete,
+.label-detail__comment-delete { color: var(--color-orange-700); }
+
+/* The comment controls trail the comment text, so the spacing leads rather than follows. */
+.label-detail__comment-own-control {
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.label-detail__comment-own-control:disabled {
+  color: var(--color-neutral-700);
+  cursor: default;
+  text-decoration: none; /* The underline is what makes it read as a live control; off means off. */
+}
+
+/* The Tags control is marked aria-disabled rather than natively disabled when the label's imagery didn't load
+   (#5047), so it still takes the hover and focus that open the tooltip explaining why. This is the matching look:
+   greyed and no longer offering a pointer, but still a focus target. */
+.label-detail__tags-edit[aria-disabled="true"] {
+  color: var(--color-neutral-700);
+  cursor: default;
+  text-decoration: none; /* The underline is what makes it read as a live control; off means off. */
+}
 
 .label-detail__story-edit:focus-visible,
 .label-detail__story-delete:focus-visible,
+.label-detail__comment-edit:focus-visible,
+.label-detail__comment-delete:focus-visible,
 .label-detail__tags-edit:focus-visible {
   outline: 2px solid #4a90e2;
   outline-offset: 2px;
@@ -1486,6 +1622,12 @@ dialog.story-lightbox::backdrop { background: rgb(0 0 0 / 45%); }
 }
 
 .story-composer__photo-attach[hidden] { display: none; }
+
+.story-composer__photo-icon {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
 
 .story-composer__photo-attach:hover {
   border-color: var(--color-pine-700);

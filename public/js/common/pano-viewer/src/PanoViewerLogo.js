@@ -19,9 +19,11 @@ function createPanoViewerLogo(container, primaryViewerType) {
    * @type {Map<typeof PanoViewer, {src: string, alt: string, paddingLeft: number}>}
    */
   const LOGOS = new Map([
-    [GsvViewer, { src: '/assets/images/logos/google-logo.svg', alt: 'Google', paddingLeft: 10 }],
-    [MapillaryViewer, { src: '/assets/images/logos/mapillary-logo-white.png', alt: 'Mapillary', paddingLeft: 5 }],
-    [Infra3dViewer, { src: '/assets/images/logos/infra3d-logo.svg', alt: 'infra3D', paddingLeft: 6 }],
+    [GsvViewer, { src: util.assetPath('images/logos/google-logo.svg'), alt: 'Google', paddingLeft: 10 }],
+    [MapillaryViewer, {
+      src: util.assetPath('images/logos/mapillary-logo-white.png'), alt: 'Mapillary', paddingLeft: 5,
+    }],
+    [Infra3dViewer, { src: util.assetPath('images/logos/infra3d-logo.svg'), alt: 'infra3D', paddingLeft: 6 }],
   ]);
 
   // Logo box metrics in unscaled px. The image fills the holder's content-box height, so its rendered width follows

@@ -3,6 +3,13 @@ package views
 import play.api.libs.json.{Json, Writes}
 import play.twirl.api.Html
 
+/**
+ * A call-to-action button on the shared error page: where an error leaves the user is often more useful than an
+ * apology, and only the raising controller knows where that is (a dead /r/ link belongs at the route list, #5164).
+ * `label` arrives already localized.
+ */
+case class ErrorPageAction(label: String, href: String)
+
 /** Helpers shared across Twirl templates. */
 object ViewHelpers {
 

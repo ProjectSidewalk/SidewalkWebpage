@@ -19,14 +19,8 @@
  * Lives apart from explore-validate.spec.js on purpose: that file skips wholesale without a real Google Maps
  * key (absent on fork PRs), and nothing here needs one.
  */
-const {devices} = require('@playwright/test');
-const {test, expect, stubMapbox, waitForAppReady, loadAndSettle, horizontalOverflowReport, STORAGE_STATE} =
-  require('./fixtures');
-
-// devices['iPhone 13'] supplies the mobile UA, touch support and DPR. defaultBrowserType is dropped because the
-// suite's chromium project already fixes the browser, and the viewport is widened to the full 390×844 screen.
-const IPHONE = {...devices['iPhone 13'], viewport: {width: 390, height: 844}};
-delete IPHONE.defaultBrowserType;
+const {test, expect, stubMapbox, waitForAppReady, loadAndSettle, horizontalOverflowReport, PHONE_DEVICE,
+  STORAGE_STATE} = require('./fixtures');
 
 /**
  * Loads a page-table entry and runs the shared no-errors + no-horizontal-overflow assertions.
@@ -49,9 +43,8 @@ async function checkPhoneViewport(page, context, consoleErrors, p) {
 
 // mapbox / makeabilityLab / loadingOverlay flags as in pages.spec.js. Pages that UA-redirect mobile visitors
 // are deliberately absent (see the header comment); /labelingGuide serves phones but is not yet responsive,
-// so it joins with its #4875 phase-2 conversion. Caveat: against CI's near-empty seed the data-driven pages
-// (/leaderboard, /routes, /stories, the rawLabels preview) render empty shells, so content-driven overflow
-// (a long username, a story title) is only exercised by a local run against a seeded DB.
+// so it joins with its #4875 phase-2 conversion. Caveat: CI's seed is short content, so overflow driven by volume
+// or by an unusually long username or story title is still only exercised against a full local DB.
 const PAGES = [
   {path: '/mobileLanding'},
   {path: '/signIn'},
@@ -64,11 +57,11 @@ const PAGES = [
   {path: '/labelMap', mapbox: true, loadingOverlay: true},
   {path: '/gallery', loadingOverlay: true},
   {path: '/api'},
-  {path: '/v3/api-docs/rawLabels'},
+  {path: '/v3/api-docs/rawLabels', mapbox: true},
 ];
 
 test.describe('phone viewport (390px)', () => {
-  test.use(IPHONE);
+  test.use(PHONE_DEVICE);
 
   for (const p of PAGES) {
     test(`${p.path} fits without horizontal overflow`, async ({page, context, consoleErrors}) => {
@@ -78,11 +71,11 @@ test.describe('phone viewport (390px)', () => {
 });
 
 // The card grids' minimums only bind below ~368px, so the 390px block above cannot see them (#4691) — the
-// community pages' 320px track floor, and the Gallery's 280px card track in a 300px content box. Same seed caveat,
-// and it bites harder: with nothing in CI's DB these load the empty shell, which fits at any width — the
-// cards are exercised by a local run against a seeded DB.
+// community pages' 320px track floor, and the Gallery's 280px card track in a 300px content box. The seed puts
+// real cards behind /routes and /gallery, so those tracks are measured rather than an empty shell; /stories has no
+// seeded rows, so it still renders the empty shell that fits at any width.
 test.describe('narrow phone viewport (320px)', () => {
-  test.use({...IPHONE, viewport: {width: 320, height: 653}});
+  test.use({...PHONE_DEVICE, viewport: {width: 320, height: 653}});
 
   const NARROW_PATHS = ['/routes', '/stories', '/gallery'];
   for (const p of PAGES.filter((page) => NARROW_PATHS.includes(page.path))) {
@@ -92,12 +85,16 @@ test.describe('narrow phone viewport (320px)', () => {
   }
 });
 
+// A long-but-real street address, written into the card below so the shrinkable cell is always measured at a
+// width worth testing instead of at whatever this database's chosen label happens to carry.
+const LONG_ADDRESS = '1234 Northwest Martin Luther King Jr Boulevard';
+
 /**
- * Finds a label near the city center from the label feed.
+ * Finds the label near the city center that these tests measure.
  *
  * @param {import('@playwright/test').Page} page - The test's page, used only for its request context.
- * @returns {Promise<Object|null>} The label's GeoJSON feature, or null when the database has none there (CI's
- *   near-empty seed).
+ * @returns {Promise<Object|null>} The lowest-numbered label's GeoJSON feature, or null when the database has none
+ *   near the city center.
  */
 let cachedLabelFeature; // The feed fetch dominates these tests' runtime on a seeded dev DB; one fetch serves all.
 async function findLabelFeature(page) {
@@ -106,7 +103,12 @@ async function findLabelFeature(page) {
   const pad = 0.05;
   const bbox = [center.lng - pad, center.lat - pad, center.lng + pad, center.lat + pad].join(',');
   const feed = await (await page.request.get(`/labels/all?bbox=${bbox}`)).json();
-  cachedLabelFeature = feed.features?.[0] ?? null;
+  // Lowest label_id rather than whatever the feed lists first: the endpoint imposes no order, so features[0]
+  // picked a different label per run, and the card's width follows the label (#5025).
+  const features = feed.features ?? [];
+  cachedLabelFeature = features.length
+    ? features.reduce((lowest, f) => (f.properties.label_id < lowest.properties.label_id ? f : lowest))
+    : null;
   return cachedLabelFeature;
 }
 
@@ -117,12 +119,13 @@ async function findLabelFeature(page) {
  * horizontal scroller, and the card's `overflow-y: auto` computes `overflow-x` to `auto` on the same box. The
  * meta strip is measured too — it is the row that overflows first, its cells fixed-width but for the address.
  *
- * Skips when the database has no label to open (CI's near-empty seed).
+ * Skips when the database has no label to open near the city center.
  *
  * @param {import('@playwright/test').Page} page - The test's page, already at a phone viewport.
  * @param {Object} [opts] - Options.
  * @param {boolean} [opts.withoutAddress=false] - Measure with the address cell hidden: the state a label whose
- *   imagery is gone lands in, leaving no shrinkable cell to absorb a narrow card.
+ *   imagery is gone lands in, leaving no shrinkable cell to absorb a narrow card. Otherwise the cell is shown
+ *   carrying LONG_ADDRESS.
  */
 async function checkLabelCardFits(page, {withoutAddress = false} = {}) {
   // Slow from the first step: these load map + modal + pano late in a full run, when the shared browser is heaviest.
@@ -138,31 +141,61 @@ async function checkLabelCardFits(page, {withoutAddress = false} = {}) {
   await page.goto(`/labelMap?labelId=${feature.properties.label_id}`);
   await waitForAppReady(page);
   await expect(page.locator('#label-modal')).toBeVisible({timeout: 30_000});
-  // The strip refits when the address resolves from the loaded imagery, which is after the card first paints.
-  await page.waitForTimeout(2000);
+  // Both cases author the address cell rather than accepting whatever the imagery resolved: whether an address
+  // arrives at all, and how long it is, varies by label and by run, and the strip's width follows it. Authored
+  // through the DOM rather than stubbed out of the metadata because the loaded imagery re-supplies an address
+  // either way; these are the states #showAddress itself reaches.
+  //
+  // Authoring, re-fitting and measuring share one retry because #showAddress runs again when the pano resolves,
+  // which is network-timed and can land between any two of those steps. Holding the state briefly and then
+  // measuring outside the retry loses that race whenever the pano settles in the gap. Once it has run there is
+  // nothing left to rewrite the cell, so the block converges rather than spinning.
+  let fit;
+  await expect(async () => {
+    await page.evaluate(({hide, address}) => {
+      const cell = document.querySelector('.label-detail__meta-cell--address');
+      cell.hidden = hide;
+      document.querySelector('.label-detail__meta-divider--address').hidden = hide;
+      if (!hide) document.querySelector('.label-detail__address').textContent = address;
+    }, {hide: withoutAddress, address: LONG_ADDRESS});
 
-  if (withoutAddress) {
-    // Hidden rather than stubbed out of the metadata: the loaded imagery re-supplies an address, so a label served
-    // without one still gets one once its pano loads. Hiding the cell is the state #showAddress itself reaches,
-    // and it re-runs the fitter through the same ResizeObserver production uses.
-    await page.evaluate(() => {
-      document.querySelector('.label-detail__meta-cell--address').hidden = true;
-      document.querySelector('.label-detail__meta-divider--address').hidden = true;
+    // Those writes reach the DOM but not the fitter: #fitMetaRow runs from a ResizeObserver on the meta row, and
+    // toggling that row's own children never changes its box. Unfitted, the strip keeps whatever trims the real
+    // address left on it — the per-run variance this helper exists to pin. A 1px viewport round-trip is the
+    // resize path production takes on rotation, and lands back on the width under test.
+    const viewport = page.viewportSize();
+    await page.setViewportSize({...viewport, width: viewport.width - 1});
+    await page.setViewportSize(viewport);
+    // ResizeObserver callbacks land before paint, so two frames covers the re-fit and its relayout.
+    await page.evaluate(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done))));
+
+    fit = await page.evaluate(() => {
+      const card = document.getElementById('label-modal');
+      const row = card.querySelector('.label-detail__meta-row');
+      return {
+        cardScrollWidth: card.scrollWidth,
+        cardClientWidth: card.clientWidth,
+        rowScrollWidth: row.scrollWidth,
+        rowClientWidth: row.clientWidth,
+        rowClasses: row.className,
+        addressHidden: card.querySelector('.label-detail__meta-cell--address').hidden,
+        addressText: card.querySelector('.label-detail__address').textContent,
+      };
     });
-    await page.waitForTimeout(600);
-  }
 
-  const fit = await page.evaluate(() => {
-    const card = document.getElementById('label-modal');
-    const row = card.querySelector('.label-detail__meta-row');
-    return {
-      cardScrollWidth: card.scrollWidth,
-      cardClientWidth: card.clientWidth,
-      rowScrollWidth: row.scrollWidth,
-      rowClientWidth: row.clientWidth,
-      rowClasses: row.className,
-    };
-  });
+    expect(fit.addressHidden, `the address cell left the state under test: ${JSON.stringify(fit)}`)
+      .toBe(withoutAddress);
+    if (!withoutAddress) {
+      expect(fit.addressText, `the authored address was overwritten: ${JSON.stringify(fit)}`).toBe(LONG_ADDRESS);
+      // LONG_ADDRESS fits no phone-width strip, so the row it is measured on must be in the trimmed state. The
+      // width assertions can't check that: the address cell ellipsizes any length on its own, fitted or not.
+      expect(fit.rowClasses, `the meta strip was never re-fitted: ${JSON.stringify(fit)}`)
+        .toContain('label-detail__meta-row--no-time');
+    }
+  }).toPass({timeout: 30_000});
+
+  // Outside the retry: once the state above holds, a card that still scrolls sideways is a real overflow, not a
+  // race, and re-measuring it until the timeout would only delay the report.
   expect(fit.cardScrollWidth, `the label card scrolls sideways: ${JSON.stringify(fit)}`)
     .toBeLessThanOrEqual(fit.cardClientWidth + 1);
   expect(fit.rowScrollWidth, `the meta strip overflows its row: ${JSON.stringify(fit)}`)
@@ -174,7 +207,7 @@ async function checkLabelCardFits(page, {withoutAddress = false} = {}) {
 // there is nothing to shrink and the fixed facts have to be trimmed. Same seed caveat as the card grids — with
 // no labels in the database there is nothing to open, and these skip.
 test.describe('phone viewport (390px), label detail card', () => {
-  test.use(IPHONE);
+  test.use(PHONE_DEVICE);
 
   test('an open label card fits', async ({page, context}) => {
     await stubMapbox(context);
@@ -190,7 +223,7 @@ test.describe('phone viewport (390px), label detail card', () => {
 });
 
 test.describe('narrow phone viewport (320px), label detail card', () => {
-  test.use({...IPHONE, viewport: {width: 320, height: 653}});
+  test.use({...PHONE_DEVICE, viewport: {width: 320, height: 653}});
 
   test('an open label card fits', async ({page, context}) => {
     await stubMapbox(context);
@@ -199,7 +232,7 @@ test.describe('narrow phone viewport (320px), label detail card', () => {
 });
 
 test.describe('phone viewport (390px), registered user', () => {
-  test.use({...IPHONE, storageState: STORAGE_STATE});
+  test.use({...PHONE_DEVICE, storageState: STORAGE_STATE});
 
   test('/dashboard fits without horizontal overflow', async ({page, context, consoleErrors}) => {
     await checkPhoneViewport(page, context, consoleErrors, {path: '/dashboard', mapbox: true});

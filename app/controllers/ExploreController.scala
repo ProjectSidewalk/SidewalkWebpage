@@ -107,6 +107,15 @@ class ExploreController @Inject() (
           else "Visit_Audit"
         cc.loggingService.insert(user.userId, request.ipAddress, activityStr)
 
+        // The id that failed is logged separately, because it reaches neither the activity string above (which names
+        // the route the session ended up in, if any) nor the page (which is told only that something was dropped).
+        // Without it, a stale share link can't be told apart from a typo, or traced back to what was shared (#5156).
+        if (exploreData.routeUnavailable) {
+          routeId.foreach { rId =>
+            cc.loggingService.insert(user.userId, request.ipAddress, s"Visit_Audit_UnresolvableRouteId=$rId")
+          }
+        }
+
         // Load the Explore page. The match statement below just passes along any extra params. The pano is seeded at
         // panoId or lat/lng for an admin exploring a specific street, or at lat/lng for an address drop-in (any
         // user) — where a pano + POV seed can ride along (the label card's "Explore here", #4637): the pano wins
@@ -326,7 +335,7 @@ class ExploreController @Inject() (
                   }
 
                 // Send contributions to SciStarter async so that it can be recorded in their user dashboard there.
-                val eligibleUser: Boolean = RoleTable.SCISTARTER_ROLES.contains(user.role)
+                val eligibleUser: Boolean = Role.SCISTARTER_ROLES.contains(user.role)
                 if (returnData.newLabels.nonEmpty && config.get[String]("environment-type") == "prod" && eligibleUser) {
                   exploreService
                     .secondsSpentAuditing(

@@ -16,6 +16,7 @@ class StreetStatusPage {
 
   #rows = [];                      // Per-region aggregation rows, in API order.
   #segmentsByRegion = new Map();   // region_id -> number[] of street_edge_ids.
+  #featureByStreet = new Map();    // street_edge_id -> its GeoJSON feature, for single-street zooms.
 
   #pinnedIds = [];
   #hoverIds = null; // null = no active hover.
@@ -37,7 +38,13 @@ class StreetStatusPage {
     // needs the other, so the whole-city GeoJSON fetch must not hold the trend charts blank behind it. Since nothing
     // awaits it, it needs its own catch — an unhandled rejection here would fail the e2e smoke suite.
     if (this.#trendUrl) {
-      new StreetStatusTrend({ trendUrl: this.#trendUrl, weeks: this.#trendWeeks }).init()
+      new StreetStatusTrend({
+        trendUrl: this.#trendUrl,
+        weeks: this.#trendWeeks,
+        // Bound now but only usable once the map has loaded, which is the later of the two: the queue asks first and
+        // renders a plain street id if the answer is no.
+        onShowStreet: (id) => this.#showStreet(id),
+      }).init()
         .catch((e) => console.error('Could not initialize the street-status trend section.', e));
     }
 
@@ -101,8 +108,27 @@ class StreetStatusPage {
       if (row[p.status] !== undefined) row[p.status] += 1;
       row.total += 1;
       this.#segmentsByRegion.get(regionId).push(Number(p.street_edge_id));
+      this.#featureByStreet.set(Number(p.street_edge_id), f);
     }
     this.#rows = Array.from(byRegion.values());
+  }
+
+  /**
+   * Zooms the map to one street and scrolls it into view, for a panel below that can only name a street by id.
+   *
+   * @param {number} streetEdgeId - The street to show.
+   * @returns {boolean} false when the map isn't ready or doesn't know that street, so the caller can fall back to
+   *   rendering a plain id rather than an action that would do nothing.
+   */
+  #showStreet(streetEdgeId) {
+    const feature = this.#featureByStreet.get(Number(streetEdgeId));
+    if (!this.#map || !feature) return false;
+    this.#pinnedIds = [];
+    this.#hoverIds = null;
+    this.#table?.clearHighlight();
+    this.#map.focusSegment(Number(streetEdgeId), StreetStatusMap.boundsOfFeature(feature));
+    document.getElementById('street-status-map-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    return true;
   }
 
   /** Click handler: toggles the pinned set (clicking the same selection again clears it). */

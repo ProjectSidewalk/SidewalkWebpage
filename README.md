@@ -62,12 +62,14 @@ guide: **[`docs/dev-environment.md`](docs/dev-environment.md)**.
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | Branch/PR workflow, coding standards, i18n. |
 | [`docs/style-guide.md`](docs/style-guide.md) | Detailed code-style conventions (JS, Scala, HTML/CSS). |
 | [`docs/internationalization.md`](docs/internationalization.md) | How translations work + adding a new language. |
-| [`CLAUDE.md`](CLAUDE.md) | Conventions + operational notes, used as AI-assistant context. |
+| [`CLAUDE.md`](CLAUDE.md) | Short index of cross-cutting conventions, used as AI-assistant context. |
 | [`docs/testing-and-ci.md`](docs/testing-and-ci.md) | Testing strategy and CI rollout plan. |
+| [`docs/google-cloud.md`](docs/google-cloud.md) | Google Maps Platform: which calls bill, how to read usage, and the CI rule. |
 | [`docs/upgrading-libraries.md`](docs/upgrading-libraries.md) | Dependency-version inventory and how to update each. |
 | [`docs/logged-events.md`](docs/logged-events.md) | How user-interaction logging works + the event reference. |
 | [`docs/data-notes.md`](docs/data-notes.md) | Release-specific caveats for analyzing Project Sidewalk data. |
 | [`docs/image-credits.md`](docs/image-credits.md) | Sources for the images we didn't take ourselves. |
+| [`docs/label-latlng-estimation.md`](docs/label-latlng-estimation.md) | How a label's map position is estimated from its panorama pixel, the geodesy decision, and the viewport frame contract. |
 | [`docs/ai-subsystems.md`](docs/ai-subsystems.md) | Map of all AI/CV subsystems and repos: what's in production, how the pieces connect, and the project timeline since 2018. |
 | [`SECURITY.md`](SECURITY.md) | How to report a vulnerability. |
 | [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) | Community standards. |

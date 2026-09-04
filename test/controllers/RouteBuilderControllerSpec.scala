@@ -1,10 +1,12 @@
 package controllers
 
 import org.apache.pekko.stream.Materializer
+import org.scalatest.Assertion
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.i18n.{Lang, MessagesApi}
 import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.mvc.Cookie
 import play.api.test.CSRFTokenHelper._
@@ -32,6 +34,10 @@ class RouteBuilderControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
   implicit lazy val mat: Materializer = app.materializer
 
   private val XHR = "X-Requested-With" -> "XMLHttpRequest"
+
+  private lazy val messagesApi: MessagesApi = app.injector.instanceOf[MessagesApi]
+  // The requests below send no Accept-Language, so Play serves English.
+  implicit private val lang: Lang = Lang("en")
 
   /** Creates a throwaway UUID-tagged registered user and returns its session cookies (incl. the authenticator). */
   private def signUpFreshUser(): Seq[Cookie] = {
@@ -67,9 +73,13 @@ class RouteBuilderControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
       FakeRequest(GET, "/contribution/streets/all?filterLowQuality=true").withCookies(userCookies: _*)
     ).get
     status(resp) mustBe OK
-    val features           = (contentAsJson(resp) \ "features").as[Seq[JsValue]]
-    val byRegion           = features.groupBy(f => (f \ "properties" \ "region_id").as[Int])
-    val (regionId, inSame) = byRegion.find(_._2.size >= n).get
+    val features = (contentAsJson(resp) \ "features").as[Seq[JsValue]]
+    val byRegion = features.groupBy(f => (f \ "properties" \ "region_id").as[Int])
+    // Cancels rather than throwing on `.get`: the route-editing cases want several streets sharing a region, and
+    // CI's schema has one routable street, so those cases have no data to work with there.
+    val (regionId, inSame) = byRegion
+      .find(_._2.size >= n)
+      .getOrElse(cancel(s"No region in the connected DB holds $n routable streets; needs a seeded DB."))
     (inSame.take(n).map(f => (f \ "properties" \ "street_edge_id").as[Int]), regionId)
   }
 
@@ -118,6 +128,19 @@ class RouteBuilderControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
 
   /** A short unique tag for route names so slug assertions are deterministic against a shared database. */
   private def uniqueTag(): String = UUID.randomUUID().toString.replace("-", "").take(12)
+
+  /**
+   * Asserts a /r/<slug> spelling redirects to that exact route — landing on some other route is still a failure.
+   *
+   * @return The Location assertion, so the helper composes where ScalaTest expects an Assertion.
+   */
+  private def mustRedirectTo(typedSlug: String, routeId: Int): Assertion = {
+    val visit = route(app, FakeRequest(GET, s"/r/$typedSlug")).get
+    withClue(s"/r/$typedSlug: ") {
+      status(visit) mustBe FOUND
+      header(LOCATION, visit).get must include(s"/explore?routeId=$routeId")
+    }
+  }
 
   "The RouteBuilder routes" should {
     "exist and redirect an unauthenticated GET /userapi/routes to sign-in (3xx, not 404)" in {
@@ -376,6 +399,110 @@ class RouteBuilderControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
       status(delete) mustBe OK
       status(route(app, FakeRequest(GET, s"/r/$slug1")).get) mustBe NOT_FOUND
       status(route(app, FakeRequest(GET, s"/r/$slug2")).get) mustBe NOT_FOUND
+    }
+
+    // #5150: the link handed out during a demo was retyped from the route's name, so its casing missed the slug.
+    "resolve a link retyped from the route's name rather than copied" in {
+      val user                 = signUpFreshUser()
+      val (streetId, regionId) = anyStreet(user)
+      val tag                  = uniqueTag()
+
+      val saved = saveRoute(user, saveRouteBody(regionId, streetId, Some(s"Demo For Yochai $tag")))
+      status(saved) mustBe OK
+      val routeId = (contentAsJson(saved) \ "route_id").as[Int]
+      (contentAsJson(saved) \ "slug").as[String] mustBe s"demo-for-yochai-$tag"
+
+      // The third is the name itself, as a browser would encode it.
+      Seq(s"Demo-For-Yochai-$tag", s"demo-for-Yochai-$tag", s"Demo%20For%20Yochai%20$tag")
+        .foreach(mustRedirectTo(_, routeId))
+
+      // A retired slug redirects under a retyped spelling too.
+      status(putRoute(user, routeId, Json.obj("name" -> s"Renamed Walk $tag"))) mustBe OK
+      mustRedirectTo(s"Demo-For-Yochai-$tag", routeId)
+
+      // Folding the URL must not turn an unknown slug into a hit.
+      status(route(app, FakeRequest(GET, s"/r/Demo%20For%20Nobody%20$tag")).get) mustBe NOT_FOUND
+
+      // Nor may it resurrect a share link its owner deleted, by either spelling.
+      status(deleteRoute(user, routeId)) mustBe OK
+      status(route(app, FakeRequest(GET, s"/r/Renamed%20Walk%20$tag")).get) mustBe NOT_FOUND
+      status(route(app, FakeRequest(GET, s"/r/Demo-For-Yochai-$tag")).get) mustBe NOT_FOUND
+    }
+
+    // Case folding alone isn't enough: the run in "St. Louis" folds to "--", where the stored slug collapsed it to
+    // one dash. Slugifying the URL is the candidate that closes that gap (RouteServiceImpl.slugCandidates).
+    "resolve a retyped name whose punctuation collapsed when its slug was generated" in {
+      val user                 = signUpFreshUser()
+      val (streetId, regionId) = anyStreet(user)
+      val tag                  = uniqueTag()
+
+      val saved = saveRoute(user, saveRouteBody(regionId, streetId, Some(s"St. Louis Walk $tag")))
+      status(saved) mustBe OK
+      val routeId = (contentAsJson(saved) \ "route_id").as[Int]
+      (contentAsJson(saved) \ "slug").as[String] mustBe s"st-louis-walk-$tag"
+
+      // The last spelling is what the fold produces, so it exercises the slugify candidate on its own.
+      Seq(s"St.%20Louis%20Walk%20$tag", s"ST.%20LOUIS%20WALK%20$tag", s"st--louis-walk-$tag")
+        .foreach(mustRedirectTo(_, routeId))
+    }
+
+    // #5157 briefly made /r/<x> accept a bare route id too; it was taken back out because ids are dense, so a
+    // mistyped one lands on a real route instead of 404ing — and a slug's sparseness, the fact that a typo misses,
+    // is the only error detection a share link has. This pins the namespace closed: a live route's id is not a way
+    // in, however tempting it looks. /explore?routeId=<id> is where an id belongs, and still takes one.
+    "not resolve a bare route id — /r/ is for slugs" in {
+      val user                 = signUpFreshUser()
+      val (streetId, regionId) = anyStreet(user)
+
+      val saved = saveRoute(user, saveRouteBody(regionId, streetId, Some(s"Slug Only Walk ${uniqueTag()}")))
+      status(saved) mustBe OK
+      val routeId = (contentAsJson(saved) \ "route_id").as[Int]
+      val slug    = (contentAsJson(saved) \ "slug").as[String]
+
+      // The slug reaches it; its id does not, in any spelling.
+      mustRedirectTo(slug, routeId)
+      Seq(routeId.toString, s"0$routeId", s"+$routeId", "0", "-1").foreach { path =>
+        withClue(s"/r/$path: ") { status(route(app, FakeRequest(GET, s"/r/$path")).get) mustBe NOT_FOUND }
+      }
+    }
+
+    // #5164: this page is the whole of what a share-link recipient sees when the link is dead, and they were, by
+    // construction, after a route. Landing them on a generic "page not found" with only a home button wastes the
+    // one chance to hand them the list that may well hold the route they were sent to.
+    "answer a dead share link with a route-aware 404 offering the route list" in {
+      val user                 = signUpFreshUser()
+      val (streetId, regionId) = anyStreet(user)
+      val tag                  = uniqueTag()
+
+      val saved = saveRoute(user, saveRouteBody(regionId, streetId, Some(s"Dead Link Walk $tag")))
+      status(saved) mustBe OK
+      val routeId = (contentAsJson(saved) \ "route_id").as[Int]
+      val slug    = (contentAsJson(saved) \ "slug").as[String]
+      status(deleteRoute(user, routeId)) mustBe OK
+
+      // Both ways to miss: a slug that died with its route, and one that never existed.
+      Seq(slug, s"never-existed-$tag").foreach { path =>
+        val resp = route(app, FakeRequest(GET, s"/r/$path")).get
+        withClue(s"/r/$path: ") {
+          status(resp) mustBe NOT_FOUND
+          val html = contentAsString(resp)
+          html must include(messagesApi("error.404.route.heading"))
+          html must include(messagesApi("error.404.route.browse"))
+          html must include("href=\"/routes\"")
+          // Still the branded error page, and still names the link that failed.
+          html must include(messagesApi("error.home"))
+          html must include(s"/r/$path")
+        }
+      }
+    }
+
+    // The call to action is opt-in, so an ordinary miss keeps the generic page it always had.
+    "leave an unrelated 404 generic, with no route list to browse" in {
+      val resp = route(app, FakeRequest(GET, s"/definitely-not-a-page-${uniqueTag()}")).get
+      status(resp) mustBe NOT_FOUND
+      val html = contentAsString(resp)
+      html must include(messagesApi("error.404.heading"))
+      html must not include messagesApi("error.404.route.browse")
     }
   }
 

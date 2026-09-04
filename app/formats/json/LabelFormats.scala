@@ -1,7 +1,8 @@
 package formats.json
 
 import models.label._
-import models.pano.{PanoData, PanoViewerMetadata}
+import models.pano.PanoSource.PanoSource
+import models.pano.{ImageryAttribution, PanoData, PanoViewerMetadata}
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 
@@ -16,7 +17,7 @@ object LabelFormats {
       (__ \ "mission_id").write[Int] and
       (__ \ "user_id").write[String] and
       (__ \ "pano_id").write[String] and
-      (__ \ "label_type_id").write[Int] and
+      (__ \ "label_type").write[LabelTypeEnum.Base] and
       (__ \ "deleted").write[Boolean] and
       (__ \ "temporary_label_id").write[Int] and
       (__ \ "time_created").write[OffsetDateTime] and
@@ -42,26 +43,14 @@ object LabelFormats {
       (__ \ "y").write[Int]
   )(unlift(LocationXY.unapply))
 
-  implicit val labelTypeReads: Reads[LabelTypeEnum.Base] = Reads { json =>
-    val errorSubstring =
-      s"Valid types are: ${LabelTypeEnum.primaryLabelTypes.mkString(", ")}. Or you can use their IDs: ${LabelTypeEnum.primaryLabelTypeIds.mkString(", ")}."
-
-    // Try parsing as either the ID number as an int, or the name as a String.
-    json match {
-      case JsString(value) =>
-        LabelTypeEnum.byName.get(value) match {
-          case Some(labelType) => JsSuccess(labelType)
-          case None            => JsError(s"Invalid LabelType name: $value. $errorSubstring")
-        }
-      case JsNumber(value) =>
-        val intValue = value.toInt
-        LabelTypeEnum.byId.get(intValue) match {
-          case Some(labelType) => JsSuccess(labelType)
-          case None            => JsError(s"Invalid LabelType ID: $intValue. $errorSubstring")
-        }
-      case _ =>
-        JsError(s"Expected a string or integer. $errorSubstring")
-    }
+  implicit val labelTypeReads: Reads[LabelTypeEnum.Base] = Reads {
+    case JsString(value) =>
+      LabelTypeEnum.byName.get(value) match {
+        case Some(labelType) => JsSuccess(labelType)
+        case None            =>
+          JsError(s"Invalid LabelType name: $value. Valid types are: ${LabelTypeEnum.orderedNames.mkString(", ")}.")
+      }
+    case _ => JsError(s"Expected a label type name. Valid types are: ${LabelTypeEnum.orderedNames.mkString(", ")}.")
   }
 
   implicit val labelMetadataWrites: Writes[LabelMetadata] = Writes { m =>
@@ -136,7 +125,7 @@ object LabelFormats {
       "comments"            -> labelMetadata.comments.map(commentToJson(_, currUsername, commenterIdx)),
       "from_current_user"   -> labelMetadata.fromCurrentUser,
       "backup_image_url"    -> backupImageUrl,
-      "pano_data"           -> labelMetadata.panoMetadata.map(panoViewerMetadataToJson),
+      "pano_data"           -> labelMetadata.panoMetadata.map(panoViewerMetadataToJson(_, labelMetadata.panoSource)),
       "admin_data"          -> adminData.map(ad =>
         Json.obj(
           "username"             -> ad.username,
@@ -152,10 +141,11 @@ object LabelFormats {
   }
 
   /**
-   * The comment shape the shared label-detail card consumes: the text, whether the requesting user wrote it, and a
-   * per-label commenter index (distinct commenters numbered by first comment). The index lets the card draw a
-   * consistent anonymous avatar per validator within one label without exposing usernames on public surfaces or
-   * creating an identifier that links a validator across labels.
+   * The comment shape the shared label-detail card consumes: the text, whether the requesting user wrote it, the
+   * commenter's current vote on the label (null if they have none), and a per-label commenter index (distinct
+   * commenters numbered by first comment). The index lets the card draw a consistent anonymous avatar per validator
+   * within one label without exposing usernames on public surfaces or creating an identifier that links a validator
+   * across labels.
    */
   private def commentToJson(c: LabelComment, currUsername: Option[String], commenterIdx: Map[String, Int]): JsObject = {
     val idx: Int = commenterIdx.getOrElse(c.username, 0)
@@ -163,6 +153,7 @@ object LabelFormats {
       "comment"      -> c.comment,
       "mine"         -> currUsername.contains(c.username),
       "time_created" -> c.timeCreated,
+      "validation"   -> c.validation,
       "commenter"    -> idx
     )
   }
@@ -212,7 +203,7 @@ object LabelFormats {
       "ai_generated"       -> labelMetadata.aiGenerated,
       "expired"            -> labelMetadata.expired,
       "from_current_user"  -> labelMetadata.fromCurrentUser,
-      "pano_data"          -> labelMetadata.panoMetadata.map(panoViewerMetadataToJson)
+      "pano_data"          -> labelMetadata.panoMetadata.map(panoViewerMetadataToJson(_, labelMetadata.panoSource))
     )
   }
 
@@ -264,13 +255,18 @@ object LabelFormats {
 
   implicit val tagWrites: Writes[Tag] = (
     (__ \ "tag_id").write[Int] and
-      (__ \ "label_type_id").write[Int] and
+      (__ \ "label_type").write[LabelTypeEnum.Base] and
       (__ \ "tag_name").write[String] and
       (__ \ "mutually_exclusive_with").writeNullable[String]
   )(unlift(Tag.unapply))
 
-  /** Serializes a PanoViewerMetadata to the JSON shape the frontend expects under the "pano_data" key. */
-  private def panoViewerMetadataToJson(pm: PanoViewerMetadata): JsObject = Json.obj(
+  /**
+   * Serializes a PanoViewerMetadata to the JSON shape the frontend expects under the "pano_data" key.
+   *
+   * @param source Where the pano's imagery came from, which decides the attribution line owed when Project Sidewalk
+   *               displays its own copy of it (a self-hosted pano or a crop).
+   */
+  private def panoViewerMetadataToJson(pm: PanoViewerMetadata, source: PanoSource): JsObject = Json.obj(
     "width"          -> pm.width,
     "height"         -> pm.height,
     "tile_width"     -> pm.tileWidth,
@@ -279,6 +275,7 @@ object LabelFormats {
     "camera_pitch"   -> pm.cameraPitch,
     "camera_roll"    -> pm.cameraRoll,
     "copyright"      -> pm.copyright,
+    "attribution"    -> ImageryAttribution.line(source, pm.copyright).map(_.toJson),
     "address"        -> pm.address
   )
 
@@ -302,6 +299,7 @@ object LabelFormats {
       "cameraRoll"    -> p.cameraRoll,
       "captureDate"   -> p.captureDate,
       "copyright"     -> p.copyright,
+      "attribution"   -> ImageryAttribution.line(p.source, p.copyright).map(_.toJson),
       "address"       -> p.address
     )
   }
@@ -338,7 +336,7 @@ object LabelFormats {
       "panoHeight"    -> label.panoHeight,
       "tagIds"        -> label.labelData.tags.flatMap { t =>
         allTags
-          .filter(at => at.tag == t && at.labelTypeId == LabelTypeEnum.labelTypeToId(label.labelType))
+          .filter(at => at.tag == t && at.labelType.name == label.labelType)
           .map(_.tagId)
           .headOption
       },

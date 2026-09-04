@@ -164,6 +164,11 @@ pre > code.language-csv {
   margin-top: var(--space-sm);
 }
 
+/* The note's muted grey is 1.2:1 against link blue, so color alone cannot separate the two (WCAG 1.4.1). */
+.download-note a {
+  text-decoration: underline;
+}
+
 /* A proportion bar under a count in a table cell. The fill's width is set from the data. */
 .count-bar-container {
   width: 100%;
@@ -289,7 +294,7 @@ pre > code.language-csv {
 }
 
 .status-message--error {
-  color: var(--color-error-200);
+  color: var(--color-error-300);
 }
 
 .status-progress {
@@ -307,7 +312,7 @@ pre > code.language-csv {
 }
 
 .message-error {
-  color: var(--color-error-200);
+  color: var(--color-error-300);
   background-color: rgb(from var(--color-error-200) r g b / 10%);
   border-color: var(--color-error-200);
 }
@@ -599,7 +604,7 @@ pre > code.language-csv {
 
 .permalink--failed,
 .permalink--failed:hover {
-  color: var(--color-error-200);
+  color: var(--color-error-300);
 }
 
 .copy-toast {

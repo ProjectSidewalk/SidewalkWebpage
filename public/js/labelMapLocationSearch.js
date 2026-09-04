@@ -165,7 +165,10 @@ function initLabelMapLocationSearch(map, mapboxApiKey) {
 
   // onAdd(map) binds the map (enabling the auto-flyTo and a map-center proximity bias) and returns the
   // control's DOM element, which we place inside the sidebar instead of handing to map.addControl().
-  container.appendChild(searchBox.onAdd(map));
+  const searchBoxElement = searchBox.onAdd(map);
+  container.appendChild(searchBoxElement);
+  // Seed the aria-expanded that Search JS itself only writes once its result list has opened (#5087).
+  searchBoxElement.querySelector('input[role="combobox"]')?.setAttribute('aria-expanded', 'false');
 
   // On selecting a result, drop a pin the user can hover/focus to open the "explore here" invitation (#4451). The
   // popup is deliberately NOT opened on selection: someone searching an address on the LabelMap is there to look at
@@ -221,7 +224,7 @@ function initLabelMapLocationSearch(map, mapboxApiKey) {
         <path class="ps-search-pin__body"
               d="M19 47 C19 47 4 31 4 19 A15 15 0 1 1 34 19 C34 31 19 47 19 47 Z"/>
         <circle class="ps-search-pin__face" cx="19" cy="19" r="12.5"/>
-        <image href="/assets/images/logos/ProjectSidewalkLogo_NoText_WheelchairCircleCentered_100x100.png"
+        <image href="${util.assetPath('images/logos/ProjectSidewalkLogo_NoText_WheelchairCircleCentered_100x100.png')}"
                x="8" y="8" width="22" height="22"/>
       </svg>`;
 

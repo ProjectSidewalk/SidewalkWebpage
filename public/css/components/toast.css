@@ -13,19 +13,24 @@
   border-radius: calc(20px * var(--ui-scale, 1));
   border: calc(1px * var(--ui-scale, 1)) solid var(--color-asphalt-200);
 
-  /* Resting (pre-entry/exit) state: hidden and nudged up. The visible state below fades it in. */
+  /* Resting (pre-entry/exit) state: hidden and nudged up. The visible state below fades it in.
+
+     A transition is read from the state being moved *to*, so this one times the exit and the one on the visible
+     state times the entry. They differ on purpose: the toast should arrive promptly, since it answers something the
+     user just did, but leave gently enough that the eye reads it as fading rather than being cut. */
   opacity: 0;
   transform: translateX(-50%) translateY(calc(-8px * var(--ui-scale, 1)));
-  transition: opacity 0.3s ease, transform 0.3s ease;
+  transition: opacity 0.5s ease, transform 0.5s ease;
 }
 
 /* Shown state: slightly transparent at rest so the panorama stays partly visible behind it. */
 .ps-toast--visible {
   opacity: 0.85;
   transform: translateX(-50%) translateY(0);
+  transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
-/* Hovering brings it fully opaque (the auto-dismiss timer is also paused while hovered; see Toast.js). */
+/* Hover or focus brings it fully opaque; whether either also pauses the auto-dismiss timer is Toast.js's call. */
 .ps-toast--visible.ps-toast--hover {
   opacity: 1;
 }
@@ -96,7 +101,8 @@
 }
 
 /*
- * Close (X) button: a white circle over top-right corner. Revealed on hover or keyboard focus.
+ * Close (X): a white circle over the top-right corner. Always visible — it is the toast's only dismissal
+ * affordance, so hiding it until hover leaves an action button as the sole thing to click, and strands touch users.
  */
 .ps-toast__close {
   position: absolute;
@@ -113,8 +119,6 @@
   background: var(--color-neutral-white);
   box-shadow: 0 calc(1px * var(--ui-scale, 1)) calc(3px * var(--ui-scale, 1)) rgb(0 0 0 / 25%);
   cursor: pointer;
-  opacity: 0;
-  transition: opacity 0.2s ease;
 }
 
 .ps-toast__close-icon {
@@ -123,7 +127,3 @@
   height: calc(14px * var(--ui-scale, 1));
 }
 
-.ps-toast--hover .ps-toast__close,
-.ps-toast:focus-within .ps-toast__close {
-  opacity: 1;
-}

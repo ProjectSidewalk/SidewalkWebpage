@@ -89,6 +89,7 @@
   "only": "Only",
   "image-capture-date": "Image Capture Date",
   "drag-to-look-around": "Drag to look around",
+  "loading-imagery": "Loading imagery...",
   "hide-label": "Hide Label",
   "show-label": "Show Label",
   "hide-label-tooltip": "Temporarily hide the label to see what's underneath.",
@@ -204,11 +205,15 @@
     "copy-to-clipboard": "Copy to clipboard",
     "copied-to-clipboard": "Data copied to your clipboard!"
   },
+  "pano-attribution": {
+    "opens-new-tab": "(opens in a new tab)"
+  },
   "mission-start-tutorial": {
     "example-type-label-correct": "CORRECT EXAMPLE",
     "label-type-subtitle": "Why is this wrong?",
     "label-on-image-title-correct": "Correct label",
     "start-mission": "Start mission",
+    "resume-mission": "Resume mission",
     "curb-ramp": {
       "slide-1": {
         "title": "{{- labelType}}",

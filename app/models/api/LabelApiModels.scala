@@ -191,6 +191,7 @@ object LabelValidationSummaryForApi {
  * @param tags List of descriptive tags applied to the label
  * @param description Optional user-provided description of the issue
  * @param timeCreated Timestamp when the label was created
+ * @param highQualityUser Whether the labeler is flagged as a high-quality contributor (`user_stat.high_quality`)
  * @param streetEdgeId Project Sidewalk's street segment identifier
  * @param osmWayId OpenStreetMap way identifier
  * @param regionId Identifier of the region (neighborhood) the label falls within
@@ -230,6 +231,7 @@ case class LabelDataForApi(
     tags: List[String],
     description: Option[String],
     timeCreated: OffsetDateTime,
+    highQualityUser: Boolean,
     streetEdgeId: Int,
     osmWayId: Long,
     regionId: Int,
@@ -299,24 +301,25 @@ case class LabelDataForApi(
       "type"       -> "Feature",
       "geometry"   -> createGeoJsonPointGeometry(longitude, latitude),
       "properties" -> Json.obj(
-        "label_id"       -> labelId,
-        "user_id"        -> userId,
-        "pano_id"        -> panoId,
-        "pano_source"    -> panoSource.toString,
-        "label_type"     -> labelType,
-        "severity"       -> severity,
-        "tags"           -> tags,
-        "description"    -> description,
-        "time_created"   -> timeCreated,
-        "street_edge_id" -> streetEdgeId,
-        "osm_way_id"     -> osmWayId,
-        "region_id"      -> regionId,
-        "region_name"    -> regionName,
-        "correct"        -> correct,
-        "agree_count"    -> agreeCount,
-        "disagree_count" -> disagreeCount,
-        "unsure_count"   -> unsureCount,
-        "validations"    -> validations.map(v =>
+        "label_id"          -> labelId,
+        "user_id"           -> userId,
+        "pano_id"           -> panoId,
+        "pano_source"       -> panoSource.toString,
+        "label_type"        -> labelType,
+        "severity"          -> severity,
+        "tags"              -> tags,
+        "description"       -> description,
+        "time_created"      -> timeCreated,
+        "high_quality_user" -> highQualityUser,
+        "street_edge_id"    -> streetEdgeId,
+        "osm_way_id"        -> osmWayId,
+        "region_id"         -> regionId,
+        "region_name"       -> regionName,
+        "correct"           -> correct,
+        "agree_count"       -> agreeCount,
+        "disagree_count"    -> disagreeCount,
+        "unsure_count"      -> unsureCount,
+        "validations"       -> validations.map(v =>
           Json.obj(
             "user_id"    -> v.userId,
             "validation" -> v.validationType
@@ -362,6 +365,7 @@ case class LabelDataForApi(
       escapeCsvField(tags.mkString("[", ",", "]")),
       description.map(escapeCsvField).getOrElse(""),
       timeCreated.toInstant.toEpochMilli.toString,
+      highQualityUser.toString,
       streetEdgeId.toString,
       osmWayId.toString,
       regionId.toString,
@@ -410,10 +414,10 @@ object LabelDataForApi {
    * This should be included as the first line when generating CSV output.
    */
   val csvHeader: String =
-    "label_id,user_id,pano_id,pano_source,label_type,severity,tags,description,time_created,street_edge_id," +
-      "osm_way_id,region_id,region_name,correct,agree_count,disagree_count,unsure_count,validations,audit_task_id,mission_id," +
-      "image_capture_date,heading,pitch,zoom,canvas_x,canvas_y,canvas_width,canvas_height,pano_x,pano_y,pano_width," +
-      "pano_height,camera_heading,camera_pitch,camera_roll,pano_url,latitude,longitude\n"
+    "label_id,user_id,pano_id,pano_source,label_type,severity,tags,description,time_created,high_quality_user," +
+      "street_edge_id,osm_way_id,region_id,region_name,correct,agree_count,disagree_count,unsure_count,validations," +
+      "audit_task_id,mission_id,image_capture_date,heading,pitch,zoom,canvas_x,canvas_y,canvas_width,canvas_height," +
+      "pano_x,pano_y,pano_width,pano_height,camera_heading,camera_pitch,camera_roll,pano_url,latitude,longitude\n"
 
   /**
    * Implicit JSON writer for LabelData that uses the toJson method.
@@ -429,7 +433,7 @@ object LabelDataForApi {
  *
  * @param labelId Unique identifier for the label
  * @param panoId Identifier of the panorama the label was placed on
- * @param labelTypeId Numeric label type identifier
+ * @param labelType Label type name (e.g. "CurbRamp")
  * @param agreeCount Number of "agree" validations the label received
  * @param disagreeCount Number of "disagree" validations the label received
  * @param unsureCount Number of "unsure" validations the label received
@@ -451,7 +455,7 @@ object LabelDataForApi {
 case class LabelCVMetadata(
     labelId: Int,
     panoId: String,
-    labelTypeId: Int,
+    labelType: String,
     agreeCount: Int,
     disagreeCount: Int,
     unsureCount: Int,
@@ -480,7 +484,7 @@ case class LabelCVMetadata(
    * @return A comma-separated row; `None` options render as "NA".
    */
   override def toCsvRow: String = {
-    s"${labelId},${panoId},${labelTypeId},${agreeCount},${disagreeCount},${unsureCount}," +
+    s"${labelId},${panoId},${escapeCsvField(labelType)},${agreeCount},${disagreeCount},${unsureCount}," +
       s"${formatOptionForCsv(panoWidth)},${formatOptionForCsv(panoHeight)},${panoX},${panoY}," +
       s"${canvasWidth},${canvasHeight},${canvasX},${canvasY},${zoom},${heading},${pitch}," +
       s"${cameraHeading},${cameraPitch},${cameraRoll.map(_.toString).getOrElse("NA")}"
@@ -494,7 +498,7 @@ case class LabelCVMetadata(
  * Companion object for LabelCVMetadata containing the CSV header and JSON writer.
  */
 object LabelCVMetadata {
-  val csvHeader: String = "Label ID,Panorama ID,Label Type ID,Agree Count,Disagree Count,Unsure Count,Panorama Width," +
+  val csvHeader: String = "Label ID,Panorama ID,Label Type,Agree Count,Disagree Count,Unsure Count,Panorama Width," +
     "Panorama Height,Panorama X,Panorama Y,Canvas Width,Canvas Height,Canvas X,Canvas Y,Zoom,Heading,Pitch," +
     "Camera Heading,Camera Pitch,Camera Roll\n"
 

@@ -131,7 +131,7 @@ class Onboarding {
     // the static screenshot, the Google label markers, and the fog all share one coordinate frame and stay aligned.
     svl.ui.minimap.holder.addClass('minimap-tutorial');
     svl.ui.minimap.holder.css({
-      backgroundImage: `url('${svl.imageDirectory}onboarding/TutorialMiniMap.jpg')`,
+      backgroundImage: `url('${util.assetPath('images/explore/onboarding/TutorialMiniMap.jpg')}')`,
       backgroundSize: 'cover',
       backgroundRepeat: 'no-repeat',
       backgroundPosition: 'center',
@@ -380,7 +380,6 @@ class Onboarding {
     for (const annotation of currAnnotations) {
       imX = annotation.x;
       imY = annotation.y;
-      centeredPov = null;
 
       // Decode the annotation's angular coordinate (see OnboardingStates.js) and map it to a canvas coordinate.
       imX = util.misc.unwrapPanoX(imX, currentPov.heading, svl.TUTORIAL_PANO_WIDTH);
@@ -415,7 +414,6 @@ class Onboarding {
         }
       } else if (annotation.type === 'box') {
         if (!onCanvas) continue;
-        lineAngle = annotation.angle;
         params = {
           lineWidth: 4,
           strokeStyle: 'rgba(255, 255, 255, 1)',

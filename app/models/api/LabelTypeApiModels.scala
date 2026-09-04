@@ -8,7 +8,6 @@ import play.api.libs.json.{Json, JsonConfiguration, JsonNaming, OFormat}
 /**
  * Represents complete information about a label type for API responses.
  *
- * @param id Unique identifier for the label type
  * @param name Machine name of the label type (e.g., "CurbRamp")
  * @param displayName Localized short human-readable name (e.g., "Curb Ramp")
  * @param description Localized human-readable description
@@ -20,7 +19,6 @@ import play.api.libs.json.{Json, JsonConfiguration, JsonNaming, OFormat}
  * @param isPrimaryValidate Whether this type is included in primary validation
  */
 case class LabelTypeForApi(
-    id: Int,
     name: String,
     displayName: String,
     description: String,

@@ -18,7 +18,7 @@ async function fetchLabelFeed(url, { signal } = {}) {
     return await response.json();
   } catch (e) {
     if (e.name === 'AbortError') throw e; // Cancellation isn't a feed failure; callers must tell them apart.
-    throw new Error(`Label feed ${url} returned an unreadable body (truncated stream?): ${e.message}`);
+    throw new Error(`Label feed ${url} returned an unreadable body (truncated stream?): ${e.message}`, { cause: e });
   }
 }
 
@@ -205,5 +205,16 @@ function geometryBounds(geometry) {
     else coords.forEach(extend);
   };
   extend(geometry.coordinates);
+  return bounds;
+}
+
+/**
+ * Returns the bounds enclosing every feature in a GeoJSON FeatureCollection.
+ * @param {object} featureCollection The collection.
+ * @returns {mapboxgl.LngLatBounds} Bounds covering all of its features.
+ */
+function featureCollectionBounds(featureCollection) {
+  const bounds = new mapboxgl.LngLatBounds();
+  for (const feature of featureCollection.features ?? []) bounds.extend(geometryBounds(feature.geometry));
   return bounds;
 }

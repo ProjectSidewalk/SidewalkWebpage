@@ -22,12 +22,6 @@ module.exports = function (grunt) {
         ],
         dest: 'public/js/explore/build/explore.js'
       },
-      dist_help: {
-        src: [
-          'public/js/help/src/*.js'
-        ],
-        dest: 'public/js/help/build/help.js'
-      },
       dist_validate: {
         src: [
           'public/js/common/aiLabelIndicator.js',
@@ -105,6 +99,7 @@ module.exports = function (grunt) {
         src: [
           'public/js/common/Toast.js',
           'public/js/common/ConfirmDialog.js',
+          'public/js/common/mapboxSearchBoxA11y.js',
           'public/js/route-builder/src/*.js'
         ],
         dest: 'public/js/route-builder/build/route-builder.js'
@@ -147,6 +142,7 @@ module.exports = function (grunt) {
           'public/js/common/pano-viewer/src/Infra3dViewer.js',
           'public/js/common/pano-viewer/src/PannellumViewer.js',
           'public/js/common/pano-viewer/src/PanoViewerLogo.js',
+          'public/js/common/pano-viewer/src/PanoAttribution.js',
           'public/js/common/pano-viewer/src/PanoInfoPopover.js'
         ],
         dest: 'public/js/common/pano-viewer/build/pano-viewer.js'
@@ -168,6 +164,7 @@ module.exports = function (grunt) {
         src: [
           'public/css/components/label-anchored-panel.css',
           'public/css/components/label-hover-card.css',
+          'public/css/components/pano-attribution.css',
           'public/css/pages/validate/*.css',
           'public/css/components/mission-start-tutorial.css'
         ],
@@ -196,7 +193,6 @@ module.exports = function (grunt) {
           'public/js/explore/src/*.js',
           'public/js/explore/src/**/*.js',
           'public/css/pages/explore/*.css',
-          'public/js/help/src/*.js',
           'public/js/validate/src/*.js',
           'public/js/validate/src/**/*.js',
           'public/css/pages/validate/*.css',
@@ -208,6 +204,7 @@ module.exports = function (grunt) {
           'public/js/shared-label/*.js',
           'public/css/components/label-anchored-panel.css',
           'public/css/components/label-hover-card.css',
+          'public/css/components/pano-attribution.css',
           'public/css/components/mission-start-tutorial.css'
         ],
         tasks: [

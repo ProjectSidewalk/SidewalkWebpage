@@ -2,7 +2,7 @@ package models.validation
 
 import com.google.inject.ImplementedBy
 import models.api.{ValidationDataForApi, ValidationFiltersForApi, ValidationResultTypeForApi}
-import models.label.LabelTypeEnum.{labelTypeIdToLabelType, labelTypeIds, labelTypeNames}
+import models.label.LabelTypeEnum.labelTypeNames
 import models.label._
 import models.mission.MissionTableDef
 import models.user._
@@ -83,6 +83,10 @@ class LabelValidationTableDef(tag: slick.lifted.Tag) extends Table[LabelValidati
   def user    = foreignKey("label_validation_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
   def mission = foreignKey("label_validation_mission_id_fkey", missionId, TableQuery[MissionTableDef])(_.missionId)
   def userLabelUnique = index("label_validation_user_id_label_id_unique", (userId, labelId), unique = true)
+
+  // Serves the (label_id, user_id) vote lookup that label_comments_agg joins per comment (#5015). The DB index also
+  // carries INCLUDE (validation_result) so that probe stays index-only -- Slick has no DSL for a covering column.
+  def labelUserIdx = index("label_validation_label_id_user_id_idx", (labelId, userId))
 }
 
 @ImplementedBy(classOf[LabelValidationTable])
@@ -101,9 +105,7 @@ class LabelValidationTable @Inject() (
   val voidedValidations    = TableQuery[VoidedLabelValidationTableDef]
   val users                = TableQuery[SidewalkUserTableDef]
   val userRoles            = TableQuery[UserRoleTableDef]
-  val roleTable            = TableQuery[RoleTableDef]
   val labelsUnfiltered     = TableQuery[LabelTableDef]
-  val labelTypeTable       = TableQuery[LabelTypeTableDef]
   val humanValidations     = validations.join(sidewalkUserTable.humanUsers).on(_.userId === _.userId).map(_._1)
   val labelsWithoutDeleted = labelsUnfiltered.filter(_.deleted === false)
 
@@ -169,27 +171,28 @@ class LabelValidationTable @Inject() (
 
   /**
    * Select validation counts per user.
-   * @return list of tuples (labeler_id, (labeler_role, labels_validated, agreed_count))
+   *
+   * Deliberately does not join user_role: nothing reads the labeler's role here, and user_role has only a non-unique
+   * index on user_id, so a user carrying more than one role row would double every count.
+   *
+   * @return list of tuples (labeler_id, (labels_validated, agreed_count))
    */
-  def getValidationCountsByUser: DBIO[Seq[(String, (String, Int, Int))]] = {
+  def getValidationCountsByUser: DBIO[Seq[(String, (Int, Int))]] = {
     val _labels = for {
-      _label    <- labelTable.labelsWithExcludedUsers
-      _user     <- users if _user.userId === _label.userId // User who placed the label.
-      _userRole <- userRoles if _user.userId === _userRole.userId
-      _role     <- roleTable if _userRole.roleId === _role.roleId
+      _label <- labelTable.labelsWithExcludedUsers
+      _user  <- users if _user.userId === _label.userId // User who placed the label.
       if _label.correct.isDefined // Filter for labels marked as either correct or incorrect.
-    } yield (_user.userId, _role.role, _label.correct)
+    } yield (_user.userId, _label.correct)
 
     // Count the number of correct labels and total number marked as either correct or incorrect for each user.
     _labels
-      .groupBy(l => (l._1, l._2))
-      .map { case ((userId, role), group) =>
+      .groupBy(_._1)
+      .map { case (userId, group) =>
         (
           userId,
           (
-            role,
             group.length, // # Correct or incorrect.
-            group.map(l => Case.If(l._3.getOrElse(false) === true).Then(1).Else(0)).sum.getOrElse(0) // # Correct labels
+            group.map(l => Case.If(l._2.getOrElse(false) === true).Then(1).Else(0)).sum.getOrElse(0) // # Correct labels
           )
         )
       }
@@ -275,31 +278,33 @@ class LabelValidationTable @Inject() (
       .on(_.labelId === _.labelId)
       .join(sidewalkUserTable.sidewalkUserToRoleJoin)
       .on(_._1.userId === _._1.userId)
-      .groupBy { case ((v, l), (u, ur, r)) => (l.labelTypeId, v.validationResult, r.role === "AI") }
-      .map { case ((labelTypeId, valResult, isAi), group) => (labelTypeId, valResult, isAi, group.length) }
+      .groupBy { case ((v, l), (u, ur)) => (l.labelType, v.validationResult, ur.role === Role.Ai) }
+      .map { case ((labelType, valResult, isAi), group) =>
+        (labelType.asColumnOf[String], valResult, isAi, group.length)
+      }
       .result
       .map { valCounts =>
         // We want to also calculate a sum for every possible subgroup b/w label_type, validation_result and validator.
         // Let's start by enumerating every subgroup combination. We include None for each of the three fields to
         // allow for "All" entries.
-        val subgroupCombinations: Set[(Option[Int], Option[ValidationOption.Value], Option[Boolean])] = for {
-          labelType <- labelTypeIds.map(Some(_)) ++ Seq(None)
+        val subgroupCombinations: Set[(Option[String], Option[ValidationOption.Value], Option[Boolean])] = for {
+          labelType <- labelTypeNames.map(Some(_)) ++ Seq(None)
           valResult <- ValidationOption.values.toSeq.map(Some(_)) ++ Seq(None)
           validator <- Seq(Some(true), Some(false), None)
         } yield (labelType, valResult, validator)
 
         // For each combination, filter matching records and sum their counts.
         subgroupCombinations.map { case (labTypeFilter, valResultFilter, validatorFilter) =>
-          val filteredData = valCounts.filter { case (labelTypeId, valResult, isAi, _) =>
+          val filteredData = valCounts.filter { case (labelType, valResult, isAi, _) =>
             // .forall returns true of the element matches or if the filter is None (which works perfectly for "All").
-            labTypeFilter.forall(_ == labelTypeId) &&
+            labTypeFilter.forall(_ == labelType) &&
             valResultFilter.forall(_ == valResult) &&
             validatorFilter.forall(_ == isAi)
           }
           val subgroupCount = filteredData.map(_._4).sum
 
           // Create the ValidationCount object for this subgroup.
-          val labelType = labTypeFilter.map(labelTypeIdToLabelType).getOrElse("All")
+          val labelType = labTypeFilter.getOrElse("All")
           val validator = validatorFilter.map(isAi => if (isAi) "AI" else "Human").getOrElse("Both")
           ValidationCount(subgroupCount, timeInterval, labelType, valResultFilter, validator)
         }.toSeq
@@ -345,8 +350,7 @@ class LabelValidationTable @Inject() (
     (for {
       _validation <- validations
       _userRole   <- userRoles if _validation.userId === _userRole.userId
-      _role       <- roleTable if _userRole.roleId === _role.roleId
-    } yield (_role.role === "AI", _validation.validationResult))
+    } yield (_userRole.role === Role.Ai, _validation.validationResult))
       .groupBy(r => (r._1, r._2))
       .map { case ((isAi, result), group) => (isAi, result, group.length) }
       .result
@@ -366,8 +370,7 @@ class LabelValidationTable @Inject() (
       _validation <- validations
       _user       <- sidewalkUserTable.humanUsers if _validation.userId === _user.userId
       _label      <- labelsWithoutDeleted if _validation.labelId === _label.labelId
-      _labelType  <- labelTypeTable if _label.labelTypeId === _labelType.labelTypeId
-    } yield (_validation.labelId, _labelType.labelType, _user.username, _validation.validationResult,
+    } yield (_validation.labelId, _label.labelTypeName, _user.username, _validation.validationResult,
       _validation.endTimestamp))
       .sortBy(_._5.desc)
       .take(n)
@@ -382,21 +385,20 @@ class LabelValidationTable @Inject() (
    */
   def getValidationsForApi(
       filters: ValidationFiltersForApi
-  ): Query[_, (LabelValidation, Label, LabelType, Role), Seq] = {
+  ): Query[_, (LabelValidation, Label, Role.Value), Seq] = {
     for {
-      validation             <- validations
-      label                  <- labelsUnfiltered if validation.labelId === label.labelId
-      labelType              <- labelTypeTable if label.labelTypeId === labelType.labelTypeId
-      (user, userRole, role) <- sidewalkUserTable.sidewalkUserToRoleJoin if validation.userId === user.userId
+      validation       <- validations
+      label            <- labelsUnfiltered if validation.labelId === label.labelId
+      (user, userRole) <- sidewalkUserTable.sidewalkUserToRoleJoin if validation.userId === user.userId
 
       // Apply filters.
       if filters.labelId.map(validation.labelId === _).getOrElse(true: Rep[Boolean]) &&
         filters.userId.map(user.userId === _).getOrElse(true: Rep[Boolean]) &&
         filters.validationResult.map(validation.validationResult === _).getOrElse(true: Rep[Boolean]) &&
-        filters.labelTypeId.map(label.labelTypeId === _).getOrElse(true: Rep[Boolean]) &&
+        filters.labelType.map(label.labelType === _).getOrElse(true: Rep[Boolean]) &&
         filters.validationTimestamp.map(validation.startTimestamp >= _).getOrElse(true: Rep[Boolean]) &&
         filters.source.map(validation.source === _).getOrElse(true: Rep[Boolean])
-    } yield (validation, label, labelType, role)
+    } yield (validation, label, userRole.role)
   }
 
   /**
@@ -405,17 +407,16 @@ class LabelValidationTable @Inject() (
    * TODO try doing something like TupleConverter in LabelTable.scala. Need a more general solution.
    */
   def tupleToValidationDataForApi(
-      tuple: (LabelValidation, Label, LabelType, Role)
+      tuple: (LabelValidation, Label, Role.Value)
   ): ValidationDataForApi = {
-    val (validation, label, labelType, role) = tuple
+    val (validation, label, role) = tuple
     ValidationDataForApi(
       labelValidationId = validation.labelValidationId,
       labelId = validation.labelId,
-      labelTypeId = label.labelTypeId,
-      labelType = labelType.labelType,
+      labelType = label.labelType.name,
       validationResult = validation.validationResult,
       userId = validation.userId,
-      validatorType = if (role.role == "AI") "AI" else "Human",
+      validatorType = if (role == Role.Ai) "AI" else "Human",
       missionId = validation.missionId,
       canvasXY = validation.canvasX.flatMap(x => validation.canvasY.map(y => LocationXY(x, y))),
       heading = validation.heading,
@@ -438,7 +439,7 @@ class LabelValidationTable @Inject() (
     validations
       .join(sidewalkUserTable.sidewalkUserToRoleJoin)
       .on(_.userId === _._1.userId)
-      .groupBy { case (v, (u, ur, r)) => (v.validationResult, r.role === "AI") }
+      .groupBy { case (v, (u, ur)) => (v.validationResult, ur.role === Role.Ai) }
       .map { case ((valResult, isAi), group) => (valResult, isAi, group.length) }
       .result
       .map { results: Seq[(ValidationOption.Value, Boolean, Int)] =>
@@ -498,28 +499,26 @@ class LabelValidationTable @Inject() (
 
     sql"""
       SELECT CAST((label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date AS TEXT) AS date,
-             label_type.label_type,
-             COUNT(CASE WHEN role.role IS DISTINCT FROM 'AI' AND label_validation.validation_result::text = 'Agree'
+             label.label_type::text,
+             COUNT(CASE WHEN user_role.role IS DISTINCT FROM 'AI' AND label_validation.validation_result::text = 'Agree'
                         THEN 1 END) AS human_agree,
-             COUNT(CASE WHEN role.role IS DISTINCT FROM 'AI' AND label_validation.validation_result::text = 'Disagree'
+             COUNT(CASE WHEN user_role.role IS DISTINCT FROM 'AI' AND label_validation.validation_result::text = 'Disagree'
                         THEN 1 END) AS human_disagree,
-             COUNT(CASE WHEN role.role IS DISTINCT FROM 'AI' AND label_validation.validation_result::text = 'Unsure'
+             COUNT(CASE WHEN user_role.role IS DISTINCT FROM 'AI' AND label_validation.validation_result::text = 'Unsure'
                         THEN 1 END) AS human_unsure,
-             COUNT(CASE WHEN role.role = 'AI' AND label_validation.validation_result::text = 'Agree'
+             COUNT(CASE WHEN user_role.role = 'AI' AND label_validation.validation_result::text = 'Agree'
                         THEN 1 END) AS ai_agree,
-             COUNT(CASE WHEN role.role = 'AI' AND label_validation.validation_result::text = 'Disagree'
+             COUNT(CASE WHEN user_role.role = 'AI' AND label_validation.validation_result::text = 'Disagree'
                         THEN 1 END) AS ai_disagree,
-             COUNT(CASE WHEN role.role = 'AI' AND label_validation.validation_result::text = 'Unsure'
+             COUNT(CASE WHEN user_role.role = 'AI' AND label_validation.validation_result::text = 'Unsure'
                         THEN 1 END) AS ai_unsure
       FROM label_validation
       INNER JOIN label      ON label_validation.label_id    = label.label_id
-      INNER JOIN label_type ON label.label_type_id          = label_type.label_type_id
       INNER JOIN user_stat  ON label_validation.user_id     = user_stat.user_id
       LEFT  JOIN sidewalk_login.user_role ON label_validation.user_id = user_role.user_id
-      LEFT  JOIN sidewalk_login.role      ON user_role.role_id        = role.role_id
       WHERE #$where
-      GROUP BY (label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date, label_type.label_type
-      ORDER BY date ASC, label_type.label_type
+      GROUP BY (label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date, label.label_type::text
+      ORDER BY date ASC, label.label_type::text
     """.as[(LocalDate, String, Int, Int, Int, Int, Int, Int)]
   }
 }

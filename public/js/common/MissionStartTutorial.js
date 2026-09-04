@@ -130,7 +130,7 @@ class MissionStartTutorial {
           : i18next.t(titleKey),
         slideSubtitle: isExampleCorrect ? '' : i18next.t('common:mission-start-tutorial.label-type-subtitle'),
         slideDescription: i18next.t(`common:mission-start-tutorial.${lesson.copy}.slide-${i + 1}.description`),
-        imageURL: `/assets/images/tutorials/${explore}${lesson.photos}-${slide.photo}.png`,
+        imageURL: util.assetPath(`images/tutorials/${explore}${lesson.photos}-${slide.photo}.png`),
         labelOnImage: { position: slide.label },
       };
     });
@@ -159,7 +159,8 @@ class MissionStartTutorial {
   /**
    * @param {string} missionType Mission type ('validate' or 'audit').
    * @param {string} labelType One of the seven label types for which the tutorial is initialized.
-   * @param {object} data Mission data: `nLabels` (VALIDATE) or `neighborhood` (EXPLORE).
+   * @param {object} data Mission data: `nLabels` (VALIDATE) or `neighborhood` (EXPLORE), plus optional `resuming`
+   *                      (the mission already has progress, so the done button reads "Resume mission").
    * @param {object} svvOrsvl SVValidate or SVLabel object that logs interactions and acts on tutorial close.
    * @param {string} [language] Language code that tweaks spacing for verbose translations.
    */
@@ -232,7 +233,9 @@ class MissionStartTutorial {
     $('.mst-instruction-1').html(this.#labelTypeModule.missionInstruction1);
     $('.mst-instruction-2').html(this.#labelTypeModule.missionInstruction2);
 
-    $('.mission-start-tutorial-done-btn').text(i18next.t('common:mission-start-tutorial.start-mission'));
+    $('.mission-start-tutorial-done-btn').text(i18next.t(this.#data.resuming
+      ? 'common:mission-start-tutorial.resume-mission'
+      : 'common:mission-start-tutorial.start-mission'));
 
     // Show the tab bar to allow selection of different labels in explore mission screens.
     // And set up other UI.
@@ -324,10 +327,10 @@ class MissionStartTutorial {
     }
 
     // The icon is the same on the left panel and the labelOnImage.
-    let iconID = '';
-    let exampleTypeLabel = '';
-    let labelOnImageTitle = '';
-    let labelOnImageDescription = '';
+    let iconID;
+    let exampleTypeLabel;
+    let labelOnImageTitle;
+    let labelOnImageDescription;
     if (slide.isExampleCorrect) {
       iconID = MissionStartTutorial.#SMILEYS[MissionStartTutorial.#EXAMPLE_TYPES.CORRECT];
       exampleTypeLabel = i18next.t('common:mission-start-tutorial.example-type-label-correct');
@@ -438,7 +441,8 @@ class MissionStartTutorial {
     // Event handler to allow selecting between different label types
     $('.explore-mission-start-tab.label').off().click((e) => {
       const labelType = $(e.currentTarget).attr('data-label-type');
-      new MissionStartTutorial('audit', labelType, { neighborhood: this.#data.neighborhood }, svl);
+      // A tab switch only changes which label type is taught, so everything describing the mission has to survive it.
+      new MissionStartTutorial('audit', labelType, this.#data, svl, this.#language);
     });
 
     $('.mission-start-tutorial-done-btn').off().click(hideMST);

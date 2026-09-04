@@ -10,7 +10,6 @@ GET     /terms                                          controllers.ApplicationC
 GET     /labelMap                                       controllers.ApplicationController.labelMap(regions: Option[String] ?= None, routes: Option[String] ?= None, aiValidationOptions: Option[String] ?= None)
 GET     /labelmap                                       controllers.ApplicationController.labelMap(regions: Option[String] ?= None, routes: Option[String] ?= None, aiValidationOptions: Option[String] ?= None)
 GET     /gallery                                        controllers.GalleryController.gallery(labelType: String ?= "Assorted", neighborhoods: String ?= "", severities: String ?= "", tags: List[String] ?= List(), validationOptions: String ?= "correct,unvalidated", aiValidationOptions: String ?= "")
-GET     /help                                           controllers.ApplicationController.help
 GET     /labelingGuide                                  controllers.ApplicationController.labelingGuide
 GET     /labelingguide                                  controllers.ApplicationController.labelingGuide
 GET     /labelingGuide/curbRamps                        controllers.ApplicationController.labelingGuideCurbRamps
@@ -67,6 +66,7 @@ GET     /admin/stories                                  controllers.AdminDashboa
 GET     /admin/humans-vs-ai                             controllers.AdminDashboardController.humansVsAi
 GET     /admin/api-analytics                            controllers.AdminDashboardController.apiAnalytics
 GET     /admin/management                               controllers.AdminDashboardController.management
+GET     /admin/partners                                 controllers.AdminDashboardController.partners
 GET     /admin/across-cities                            controllers.AdminDashboardController.acrossCities
 GET     /admin/health                                   controllers.AdminDashboardController.health
 GET     /admin/user/:username                           controllers.UserDashboardController.adminDashboard(username: String)
@@ -75,6 +75,8 @@ GET     /admin/label/:labelId                           controllers.ShareControl
 
 GET     /adminapi/dbHealth                              controllers.AdminDashboardController.getDbHealth
 GET     /adminapi/streetStatusTrend                     controllers.AdminDashboardController.getStreetStatusTrend(weeks: Int ?= service.StreetLifecycleService.DefaultTrendWeeks)
+PUT     /adminapi/streets/:streetEdgeId/reopen          controllers.AdminDashboardController.reopenStreet(streetEdgeId: Int)
+DELETE  /adminapi/streets/:streetEdgeId/reopenCandidate controllers.AdminDashboardController.dismissReopenCandidate(streetEdgeId: Int)
 GET     /adminapi/imageryFreshness                      controllers.AdminDashboardController.getImageryFreshness(days: Int ?= service.ImageryFreshnessReportService.DefaultDays)
 GET     /adminapi/streetPriority                        controllers.AdminDashboardController.getStreetPriority
 GET     /adminapi/auditedStreetTimes                    controllers.AdminController.getAuditedStreetsWithTimestamps
@@ -107,6 +109,17 @@ PUT     /adminapi/setTaskFlag                           controllers.AdminControl
 PUT     /adminapi/updateTeamStatus/:teamId              controllers.AdminController.updateTeamStatus(teamId: Int)
 PUT     /adminapi/updateTeamVisibility/:teamId          controllers.AdminController.updateTeamVisibility(teamId: Int)
 GET     /adminapi/checkImagery                          controllers.AdminController.checkImagery()
+POST    /adminapi/generateCrops                         controllers.AdminController.generateCrops
+
+# Community-partner logos on the landing page (#4516). Global (all-cities) scope is Owner-only; the reorder routes
+# must precede the :partnerId ones so "order" isn't captured as an id.
+GET     /adminapi/partners                              controllers.PartnerController.getPartners
+POST    /adminapi/partners                              controllers.PartnerController.createCityPartner
+POST    /adminapi/globalPartners                        controllers.PartnerController.createGlobalPartner
+PUT     /adminapi/partners/order                        controllers.PartnerController.reorderCityPartners
+PUT     /adminapi/globalPartners/order                  controllers.PartnerController.reorderGlobalPartners
+PUT     /adminapi/partners/:partnerId                   controllers.PartnerController.updatePartner(partnerId: Int)
+DELETE  /adminapi/partners/:partnerId                   controllers.PartnerController.deletePartner(partnerId: Int)
 GET     /adminapi/refreshOsmWayData                     controllers.AdminController.refreshOsmWayData()
 GET     /adminapi/recalculateStreetPriority             controllers.AdminController.recalculateStreetPriority
 GET     /adminapi/threadPoolStats                       controllers.AdminController.getThreadPoolStats
@@ -137,6 +150,7 @@ POST    /validationTask/moreLabels                      controllers.ValidateCont
 POST    /galleryTask                                    controllers.GalleryController.post
 POST    /labelmap/validate                              controllers.ValidateController.postLabelMapValidation
 POST    /labelmap/comment                               controllers.ValidateController.postLabelMapComment
+DELETE  /labelmap/comment/:labelId                      controllers.ValidateController.deleteLabelMapComment(labelId: Int)
 
 # Labels
 GET     /labels/all                                     controllers.LabelController.getAllLabelsForLabelMap(regions: Option[String] ?= None, routes: Option[String] ?= None, aiValidationOptions: Option[String] ?= None, bbox: Option[String] ?= None)
@@ -222,6 +236,10 @@ GET     /backupImage/:panoId                            controllers.ImageControl
 GET     /stories                                        controllers.StoryController.storiesPage
 GET     /label/:labelId/stories                         controllers.StoryController.getStories(labelId: Int)
 GET     /storyMedia/:storyMediaId                       controllers.StoryController.serveStoryMedia(storyMediaId: Int)
+
+# Community-partner logo bytes (#4516). Public: they render on the public landing page, and the rendered URL's
+# ?v=<updated-at> makes the hard caching safe.
+GET     /partnerLogo/:partnerId                         controllers.PartnerController.servePartnerLogo(partnerId: Int)
 POST    /userapi/stories                                controllers.StoryController.submitStory
 PUT     /userapi/stories/:storyId                       controllers.StoryController.updateOwnStory(storyId: Int)
 DELETE  /userapi/stories/:storyId                       controllers.StoryController.deleteOwnStory(storyId: Int)
@@ -257,9 +275,9 @@ GET     /v3/api/labelClusters                           controllers.api.LabelClu
 GET     /v3/api/streets                                 controllers.api.StreetsApiController.getStreets(bbox: Option[String], regionId: Option[Int], regionName: Option[String], minLabelCount: Option[Int], minAuditCount: Option[Int], minUserCount: Option[Int], wayType: Option[String], status: Option[String], filetype: Option[String], inline: Option[Boolean])
 GET     /v3/api/streetTypes                             controllers.api.StreetsApiController.getStreetTypes
 GET     /v3/api/regions                                 controllers.api.RegionApiController.getRegions(bbox: Option[String], regionId: Option[Int], regionName: Option[String], minLabelCount: Option[Int], filetype: Option[String], inline: Option[Boolean])
-GET     /v3/api/validations                             controllers.api.ValidationApiController.getValidations(labelId: Option[Int], userId: Option[String], validationResult: Option[String], labelTypeId: Option[Int], validationTimestamp: Option[String], source: Option[String], filetype: Option[String], inline: Option[Boolean])
+GET     /v3/api/validations                             controllers.api.ValidationApiController.getValidations(labelId: Option[Int], userId: Option[String], validationResult: Option[String], labelType: Option[String], validationTimestamp: Option[String], source: Option[String], filetype: Option[String], inline: Option[Boolean])
 GET     /v3/api/validationResultTypes                   controllers.api.ValidationApiController.getValidationResultTypes
-GET     /v3/api/labelEdits                              controllers.api.LabelEditApiController.getLabelEdits(labelId: Option[Int], userId: Option[String], labelTypeId: Option[Int], editTimestamp: Option[String], source: Option[String], withValidation: Option[Boolean], filetype: Option[String], inline: Option[Boolean])
+GET     /v3/api/labelEdits                              controllers.api.LabelEditApiController.getLabelEdits(labelId: Option[Int], userId: Option[String], labelType: Option[String], editTimestamp: Option[String], source: Option[String], withValidation: Option[Boolean], filetype: Option[String], inline: Option[Boolean])
 GET     /v3/api/accessScoreStreets                      controllers.api.AccessScoreApiController.getAccessScoreStreets(bbox: Option[String], regionId: Option[Int], regionName: Option[String], filetype: Option[String], inline: Option[Boolean])
 GET     /v3/api/accessScoreRegions                      controllers.api.AccessScoreApiController.getAccessScoreRegions(bbox: Option[String], regionId: Option[Int], regionName: Option[String], filetype: Option[String], inline: Option[Boolean])
 

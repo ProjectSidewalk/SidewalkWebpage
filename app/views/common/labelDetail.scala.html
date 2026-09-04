@@ -27,6 +27,11 @@
     </button>
   }
   <div class="label-detail__pano"></div>
+  @* The viewer is built on the first open (#5128), so that one wait is the longest and lands on a blank box. *@
+  <div class="label-detail__pano-loading" role="status" hidden>
+    <img class="label-detail__pano-loading-img" src='@assets.path("videos/ProjectSidewalk_LoadingAnimation_WithArmMovement_Medium.webp")' alt="" aria-hidden="true">
+    <span data-i18n="common:loading-imagery">Loading imagery...</span>
+  </div>
   @* Hide-label toggle (#2477): steps the marker aside so the feature under it can be seen, leaving a dashed ring.
      LabelDetail fills in the icon and wording, which reverse with the state  . *@
   <button type="button" class="label-detail__hide-label" data-ps-tooltip-placement="bottom"></button>
@@ -51,7 +56,9 @@
     @* The meta cell is a flex row with a gap, so label + colon must be ONE flex item or the bare-text colon
        becomes its own item with gap on both sides ("Labeled : "). The inner span keeps punctuation out of the
        translated string. *@
-    <span><span data-i18n="common:labeled">Labeled</span>:</span>
+    @* LabelDetail swaps this word for "You labeled" on the viewer's own label (#5047), so the strip says whose
+       label it is where the reader is already looking for the date. *@
+    <span><span class="label-detail__labeled-word" data-i18n="common:labeled">Labeled</span>:</span>
     <span class="label-detail__timestamp label-detail__meta-value"></span>
   </div>
   <span class="label-detail__meta-divider" aria-hidden="true"></span>
@@ -82,8 +89,8 @@
 <div class="label-detail__columns">
   <section class="label-detail__col label-detail__col--validations">
     <h3 class="label-detail__col-title" data-i18n="labelmap:validations">Validations</h3>
-    @* Validation count display. Each icon's `src` is swapped by JS between the four variants — outline / filled / outline-ai / filled-ai — depending on whether the user (filled) and/or the AI (ai badge) validated this option. The base URL for the icon files is provided via `data-icon-base` so JS doesn't need to know the assets' path. *@
-    <div class="label-detail__vote-display" data-icon-base='@assets.path("images/icons/validation/")'>
+    @* Validation count display. Each icon's `src` is swapped by JS between the four variants — outline / filled / outline-ai / filled-ai — depending on whether the user (filled) and/or the AI (ai badge) validated this option; LabelDetail builds those URLs with util.assetPath. *@
+    <div class="label-detail__vote-display">
       @* Each vote is icon + count with the action word beneath, mirroring the severity faces' icon-over-word
          rhythm; the visible word also names the button for assistive tech. Like the pano overlay's, these are
          toggle buttons — clicking the pressed one clears the vote (#4653). *@
@@ -111,8 +118,13 @@
     </div>
   </section>
   <section class="label-detail__col label-detail__col--severity">
-    @* Title and severity level labels are swapped by LabelDetail JS based on current label type. *@
-    <h3 class="label-detail__col-title label-detail__severity-title">Severity</h3>
+    @* Title and severity level labels are swapped by LabelDetail JS based on current label type, and again for the
+       viewer's own label, where the column is titled "Your Rating" (#5047). The status span voices the outcome of
+       a rating save; it mirrors the one in the tags column so each confirmation lands beside what it describes. *@
+    <div class="label-detail__col-header">
+      <h3 class="label-detail__col-title label-detail__severity-title">Severity</h3>
+      <span class="label-detail__edit-status" role="status" aria-live="polite"></span>
+    </div>
     @* Read-only unless LabelDetail drops `--static`/`aria-disabled` for the labeler or an admin (#2575). *@
     <div class="label-detail__severity-faces" role="group" aria-label="Severity">
       <button type="button" class="severity-button severity-button--static" data-severity="1" aria-disabled="true" aria-pressed="false" tabindex="-1">
@@ -131,9 +143,11 @@
   </section>
 
   <section class="label-detail__col label-detail__col--tags">
-    @* Edit/Done toggles TagEditor's pills in place of the read-only list (#2575); the status span voices a failed save. *@
+    @* Add/Edit/Done toggles TagEditor's pills in place of the read-only list (#2575); the status span voices a
+       failed save. LabelDetail picks the word and its aria-label per label, and marks the button aria-disabled
+       (never `disabled`, which would swallow the hover its tooltip needs) when there's no imagery to judge by. *@
     <div class="label-detail__col-header">
-      <h3 class="label-detail__col-title" data-i18n="common:tags">Tags</h3>
+      <h3 class="label-detail__col-title label-detail__tags-title" data-i18n="common:tags">Tags</h3>
       <button type="button" class="label-detail__tags-edit" hidden aria-expanded="false" data-i18n="labelmap:edit-tags">Edit</button>
       <span class="label-detail__edit-status" role="status" aria-live="polite"></span>
     </div>
@@ -152,20 +166,29 @@
   <section class="label-detail__comments-section">
     @* The count badge signals that comments exist before the reader reaches the list; data-i18n lives on the inner
        span so the i18n pass doesn't overwrite the badge. *@
-    <h3 class="label-detail__col-title label-detail__comments-title">
+    @* tabindex="-1" is not for tabbing — it makes the heading a programmatic focus target, so deleting your comment
+       can land focus on the section it was in rather than dropping it to the document (#5015). *@
+    <h3 class="label-detail__col-title label-detail__comments-title" tabindex="-1">
       <span data-i18n="common:comments">Validator Comments</span>
       <span class="label-detail__comments-count" hidden></span>
     </h3>
-    @* The input leads the section it adds to (newest comments render right beneath it). It appears only alongside
-       a Disagree/Unsure vote (#4572); LabelDetail toggles it and sets the per-vote prompt on the label +
-       placeholder, and CSS hides the list's "None" while the input is up. Open-ended notes about a place belong
-       to lived-experience stories (#4054), not here. *@
+    @* The input leads the section it adds to (newest comments render right beneath it). It appears alongside the
+       user's vote (#5015); LabelDetail toggles it and sets the per-vote prompt on the label + placeholder, and
+       CSS hides the list's "None" while the input is up. Open-ended notes about a place belong to
+       lived-experience stories (#4054), not here. *@
     <div class="label-detail__comment-row">
-      <label class="sr-only" for="label-detail-comment-input">Tell us why you disagree…</label>
-      <input type="text" id="label-detail-comment-input" class="label-detail__comment-input" placeholder="Tell us why you disagree…">
+      @* Both strings are placeholders for LabelDetail's per-vote prompt, which replaces them before the row is ever
+         shown. They stay generic so a paint before that runs never contradicts the vote the reader just cast. *@
+      <label class="sr-only" for="label-detail-comment-input">Add a comment…</label>
+      <input type="text" id="label-detail-comment-input" class="label-detail__comment-input" placeholder="Add a comment…">
       <button type="button" class="label-detail__comment-submit" data-action="submit-comment" data-i18n="labelmap:comment">Comment</button>
-      <span class="label-detail__comment-confirmation" role="status" aria-live="polite" hidden data-i18n="labelmap:comment-submitted">Comment submitted</span>
+      @* Only shown while editing an existing comment, so the reader has a way out that isn't "save something". *@
+      <button type="button" class="button-ps button--small button--secondary label-detail__comment-cancel" data-action="cancel-comment-edit" hidden data-i18n="common:cancel">Cancel</button>
     </div>
+    @* Outside the comment row, because saving a comment closes that row: a live region inside it would be collapsed
+       to nothing in the same frame that its message is set, which announces to no one and shows for no one. Its
+       text is set from LabelDetail for every outcome (saved / updated / deleted / cleared / failed). *@
+    <span class="label-detail__comment-confirmation" role="status" aria-live="polite" hidden></span>
     <div class="label-detail__validator-comments"></div>
   </section>
 </div>

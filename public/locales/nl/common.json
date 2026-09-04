@@ -89,6 +89,7 @@
   "only": "Alleen",
   "image-capture-date": "Opnamedatum afbeelding",
   "drag-to-look-around": "Sleep om rond te kijken",
+  "loading-imagery": "Beelden laden...",
   "hide-label": "Verberg Label",
   "show-label": "Toon Label",
   "hide-label-tooltip": "Verbergt het label tijdelijk om te zien wat eronder ligt.",
@@ -204,11 +205,15 @@
     "copy-to-clipboard": "Kopiëren naar klembord",
     "copied-to-clipboard": "Gegevens gekopieerd naar uw klembord!"
   },
+  "pano-attribution": {
+    "opens-new-tab": "(opent in een nieuw tabblad)"
+  },
   "mission-start-tutorial": {
     "example-type-label-correct": "JUISTE VOORBEELD",
     "label-type-subtitle": "Waarom is dit verkeerd?",
     "label-on-image-title-correct": "Correct etiket",
     "start-mission": "Missie starten",
+    "resume-mission": "Missie hervatten",
     "curb-ramp": {
       "slide-1": {
         "title": "{{- labelType}}",

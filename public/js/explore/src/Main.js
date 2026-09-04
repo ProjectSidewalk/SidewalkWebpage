@@ -3,6 +3,9 @@
  * first mission or the onboarding tutorial.
  */
 class Main {
+  // sessionStorage key for an unresolvable-?routeId= notice waiting out the tutorial (#5156).
+  static #ROUTE_UNAVAILABLE_KEY = 'sidewalk.routeUnavailable';
+
   #params;
 
   // Initialize things that need data loading.
@@ -19,8 +22,6 @@ class Main {
   constructor(params) {
     this.#params = params;
 
-    svl.imageDirectory = ('imageDirectory' in params) ? params.imageDirectory : '/';
-    svl.audioDirectory = ('audioDirectory' in params) ? params.audioDirectory : '/';
     svl.onboarding = null;
     svl.isOnboarding = () => this.#params.mission.mission_type === 'auditOnboarding';
     // Free exploration at a searched address (#4451): labeling works normally, but the task/mission never complete.
@@ -123,7 +124,7 @@ class Main {
     svl.labelContainer = new LabelContainer($, params.nextTemporaryLabelId);
 
     // Set map parameters and instantiate it.
-    svl.compass = new Compass(svl, svl.navigationService, svl.taskContainer);
+    svl.compass = new Compass(svl.navigationService, svl.taskContainer);
     svl.keyboardShortcutAlert = new KeyboardShortcutAlert(svl.alertController);
     svl.ratingReminderAlert = new RatingReminderAlert(svl.alertController);
     svl.zoomShortcutAlert = new ZoomShortcutAlert(svl.alertController);
@@ -141,7 +142,7 @@ class Main {
     svl.contextMenu = new ContextMenu(svl.ui.contextMenu);
 
     // Game effects
-    svl.audioEffect = new AudioEffect(svl.audioDirectory, svl.storage);
+    svl.audioEffect = new AudioEffect(svl.storage);
 
     const neighborhood = new Neighborhood({
       regionId: params.regionId, geoJSON: params.regionGeoJSON, name: params.regionName,
@@ -290,6 +291,47 @@ class Main {
   }
 
   /**
+   * Holds an unresolvable-?routeId= notice (#5156) over the tutorial, which is where a first-time visitor following
+   * a stale share link lands.
+   *
+   * Saying it now would be saying it into the tutorial intro and then throwing it away: onboarding takes over the
+   * whole session and ends by reloading a bare /explore, which carries no trace of the route that was asked for.
+   * Waiting is also what a *valid* route does here — its walk is set up, suppressed for the tutorial's sake (#4816),
+   * and picked up on that same reload. sessionStorage rather than a field because of that reload; per tab, so a
+   * notice never outlives the browsing session that earned it.
+   */
+  #parkRouteUnavailableNotice() {
+    if (!this.#params.routeUnavailable) return;
+    try {
+      window.sessionStorage.setItem(Main.#ROUTE_UNAVAILABLE_KEY, '1');
+    } catch {
+      // Storage throws outright in some privacy modes. A notice that can't cross the reload is lost; it must never
+      // be the thing that breaks Explore.
+    }
+  }
+
+  /**
+   * Whether this load owes the user the unresolvable-?routeId= notice — this visit's own, or one held over the
+   * tutorial by [[#parkRouteUnavailableNotice]]. Consumed as it is read, so it shows once.
+   *
+   * A held notice is dropped once a route has resolved: the user asked again and got one, so the earlier failure is
+   * news about a route they have already moved past — and reporting it would take the place of the resume toast,
+   * which belongs to the route they are actually in.
+   *
+   * @returns {boolean} True when the toast should be shown.
+   */
+  #takeRouteUnavailableNotice() {
+    const asked = Boolean(this.#params.routeUnavailable);
+    try {
+      const parked = window.sessionStorage.getItem(Main.#ROUTE_UNAVAILABLE_KEY) === '1';
+      if (parked) window.sessionStorage.removeItem(Main.#ROUTE_UNAVAILABLE_KEY);
+      return asked || (parked && !this.#params.routeId);
+    } catch {
+      return asked;
+    }
+  }
+
+  /**
    * Skip the onboarding tutorial from the intro: mark the onboarding mission skipped/complete, submit, and reload into
    * a real Explore mission. Mirrors how the onboarding itself ends on skip.
    */
@@ -307,7 +349,7 @@ class Main {
     svl.alertController.hideAlert();
 
     if (!this.#onboardingHandAnimation) {
-      this.#onboardingHandAnimation = new HandAnimation(svl.imageDirectory, svl.ui.onboarding);
+      this.#onboardingHandAnimation = new HandAnimation(svl.ui.onboarding);
       this.#onboardingStates = new OnboardingStates(svl.contextMenu, svl.compass, svl.panoManager);
     }
 
@@ -388,6 +430,7 @@ class Main {
       // Check if the user has completed the onboarding tutorial.
       const mission = svl.missionContainer.getCurrentMission();
       if (mission.getProperty('missionType') === 'auditOnboarding') {
+        this.#parkRouteUnavailableNotice();
         this.#startTutorialIntro();
       } else {
         this.#calculateAndSetTasksMissionsOffset();
@@ -412,10 +455,63 @@ class Main {
           // them.
           const potentialLabelTypes = util.misc.PRIMARY_LABEL_TYPES;
           const labelType = potentialLabelTypes[Math.floor(Math.random() * potentialLabelTypes.length)];
+          const currentMission = svl.missionContainer.getCurrentMission();
+          const missionProgressM = currentMission.getProperty('distanceProgress') || 0;
+          // A pre-existing in-progress street also counts as resuming — the server sets audit_task_id on the task
+          // only when handing one back — since a labeler mid-street may have zero mission distance banked.
+          const resuming = currentMission.getProperty('missionType') === 'audit'
+            && (missionProgressM > 0 || Boolean(this.#params.task.properties.audit_task_id));
           new MissionStartTutorial('audit', labelType, {
-            nLength: svl.missionContainer.getCurrentMission().getDistance('miles'),
+            nLength: currentMission.getDistance('miles'),
             neighborhood: currentNeighborhood.getProperty('name'),
+            resuming,
           }, svl, this.#params.language);
+
+          // Toasts telling the user this visit resumed something in progress (#4833), or that the route the URL
+          // asked for could not be opened (#5156), deferred until the mission-start screen closes so they aren't
+          // missed underneath it. At most one shows: they occupy the same spot over the pano, and the dropped-route
+          // news outranks a resume note the sidebar's route name already carries.
+          if (this.#takeRouteUnavailableNotice()) {
+            document.addEventListener('ps:mission-start-tutorial:done', () => {
+              svl.tracker.push('RouteUnavailableToast_Shown');
+              Toast.show({
+                message: i18next.t('right-ui.route-unavailable.message'),
+                reference: document.getElementById('pano'),
+                dark: true,
+                duration: 10000,
+              });
+            }, { once: true });
+          } else if (svl.userRouteId && this.#params.routeResumed) {
+            document.addEventListener('ps:mission-start-tutorial:done', () => {
+              svl.tracker.push('RouteResumeToast_Shown');
+              Toast.show({
+                message: i18next.t('right-ui.route-resume.message', { routeName: svl.routeName }),
+                button: {
+                  label: i18next.t('right-ui.route-resume.exit'),
+                  onClick: () => {
+                    svl.tracker.push('Click_ExitRoute', { source: 'toast' });
+                    window.location.href = '/explore?resumeRoute=false';
+                  },
+                },
+                reference: document.getElementById('pano'),
+                dark: true,
+                duration: 10000,
+              });
+            }, { once: true });
+          } else if (!svl.userRouteId && resuming) {
+            document.addEventListener('ps:mission-start-tutorial:done', () => {
+              svl.tracker.push('MissionResumeToast_Shown');
+              Toast.show({
+                message: i18next.t('right-ui.mission-resume.message', {
+                  neighborhoodName: currentNeighborhood.getProperty('name'),
+                  distanceLeft: Math.max(currentMission.getDistance('meters') - missionProgressM, 0),
+                }),
+                reference: document.getElementById('pano'),
+                dark: true,
+                duration: 10000,
+              });
+            }, { once: true });
+          }
         }
 
         this.#startTheMission(mission, currentNeighborhood);

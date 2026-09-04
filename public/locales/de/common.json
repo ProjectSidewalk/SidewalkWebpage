@@ -89,6 +89,7 @@
   "only": "Nur",
   "image-capture-date": "Datum der Bildaufnahme",
   "drag-to-look-around": "Ziehen Sie, um sich umzusehen",
+  "loading-imagery": "Bilder werden geladen …",
   "hide-label": "Beschriftung ausblenden",
   "show-label": "Beschriftung einblenden",
   "hide-label-tooltip": "Blendet die Beschriftung vorübergehend aus, um zu sehen, was darunter liegt.",
@@ -204,11 +205,15 @@
     "copy-to-clipboard": "In die Zwischenablage kopieren",
     "copied-to-clipboard": "Daten wurden in Zwischenablage kopiert"
   },
+  "pano-attribution": {
+    "opens-new-tab": "(wird in einem neuen Tab geöffnet)"
+  },
   "mission-start-tutorial": {
     "example-type-label-correct": "RICHTIGES BEISPIEL",
     "label-type-subtitle": "Wieso ist das falsch?",
     "label-on-image-title-correct": "Richtige Beschriftung",
     "start-mission": "Mission starten",
+    "resume-mission": "Mission fortsetzen",
     "curb-ramp": {
       "slide-1": {
         "title": "{{- labelType}}",

@@ -1,5 +1,4 @@
 node_modules
-package-lock.json
 .DS_Store
 tmp/**/*
 .idea
@@ -94,7 +93,6 @@ project/.sbtserver.lock
 
 # JavaScript and Node
 public/js/explore/build/*
-public/js/help/build/*
 public/js/user-dashboard/build/*
 public/js/validate/build/*
 public/js/gallery/build/*
@@ -155,3 +153,12 @@ project/project/
 
 # CSV downloads written to the project root by the aggregate-stats endpoints during local test runs.
 projectSidewalkStats_*.csv
+
+# GSV FOV probe raw recordings (issue #5083) — live-imagery screenshots stay local; derived numbers are committed.
+tools/gsv-fov-probe/runs/
+# The full run manifest is ~11 MB of per-capture readbacks that only mean anything alongside those
+# screenshots; analyze.mjs --copy-recorded commits manifest-extract.json instead.
+tools/gsv-fov-probe/recorded/**/manifest.json
+tools/street_side/data/
+tools/street_side/out/
+tools/street_side/compute.log

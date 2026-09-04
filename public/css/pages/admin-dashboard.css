@@ -593,7 +593,11 @@
 
 /* Emphasized category (opts.emphasisIndex — e.g. the in-progress "today" bar): bolder, darker text; the bar itself
    renders with a lighter fill + solid outline so a partial period reads as still accumulating. */
-.mini-axis--emphasis,
+.mini-axis--emphasis {
+  fill: var(--color-neutral-900);
+  font: var(--text-caption-semibold);
+}
+
 /* Reference line: a target the bars are read against (e.g. the poll's nightly batch size), not a data series. */
 .mini-ref {
   stroke: var(--color-neutral-700);
@@ -2548,8 +2552,10 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
   align-items: flex-start;
 }
 
-.stories-queue-btn {
-  padding: 6px 12px;
+/* Shared by the stories moderation queue and the regained-imagery queue (#4929) so the two admin queues read as one
+   thing. */
+.stories-queue-btn,
+.reopen-queue-btn {
   border: 1px solid #999999;
   border-radius: 4px;
   background: #ffffff;
@@ -2557,9 +2563,15 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
   font: var(--text-small-regular);
 }
 
-.stories-queue-btn:hover { background: #f0f0f0; }
+.stories-queue-btn {
+  padding: 6px 12px;
+}
 
-.stories-queue-btn:disabled {
+.stories-queue-btn:hover,
+.reopen-queue-btn:hover { background: #f0f0f0; }
+
+.stories-queue-btn:disabled,
+.reopen-queue-btn:disabled {
   opacity: 0.6;
   cursor: wait;
 }
@@ -2569,7 +2581,9 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
   color: #a31217;
 }
 
-.stories-queue-btn:focus-visible {
+.stories-queue-btn:focus-visible,
+.reopen-queue-btn:focus-visible,
+.reopen-queue-locate:focus-visible {
   outline: 2px solid #4a90e2;
   outline-offset: 2px;
 }
@@ -2583,6 +2597,33 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
 /* --- Street Status: recently-changed trends (#4928) ------------------------------------------------------------
    Line/bar colors for the status series come from StreetStatusColors.STATUSES, published onto the section as
    --trend-<status> custom properties by StreetStatusTrend so the charts and the map legend can't disagree. */
+
+/* Regained-imagery review queue (#4929): action buttons, sharing the stories moderation buttons' look above. */
+.reopen-queue-actions {
+  white-space: nowrap;
+}
+
+.reopen-queue-btn {
+  padding: 4px 10px;
+}
+
+.reopen-queue-btn + .reopen-queue-btn { margin-left: 6px; }
+
+/* The street id: an action rather than a link, since a retired street has nothing to open in Explore. Styled as a
+   link so the column still reads as one. */
+.reopen-queue-locate {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-accent-link, #1c6bb0);
+  cursor: pointer;
+  font: inherit;
+  text-decoration: underline;
+}
+
+.reopen-queue-error {
+  color: var(--color-accent-delete, #f93e3e);
+}
 
 .trend-controls {
   display: flex;
@@ -2696,3 +2737,152 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
 .mini-swatch--skipped { background: var(--color-neutral-400); }
 .mini-swatch--flagged { background: var(--priority-reaudit, #d55e00); }
 .mini-swatch--unflagged { background: var(--color-pine-600); }
+
+/* --- Partners: community-partner logo manager (#4516) --------------------------------------------------------- */
+
+.partners-status {
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+}
+
+.partners-list {
+  margin: var(--space-md) 0;
+}
+
+.partners-empty {
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+}
+
+.partners-owner-note {
+  font: var(--text-small-bold);
+  color: var(--color-neutral-700);
+}
+
+.partners-row {
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr) 220px;
+  gap: 14px;
+  align-items: center;
+  padding: 12px 0;
+  border-top: 1px solid var(--color-neutral-200);
+}
+
+/* The neutral backing keeps white-on-transparent logos visible. */
+.partners-row-thumb {
+  width: 100%;
+  height: 56px;
+  object-fit: contain;
+  background: var(--color-neutral-100);
+  border-radius: var(--border-radius);
+  padding: 4px;
+}
+
+.partners-row-name {
+  font: var(--text-body-bold);
+  overflow-wrap: anywhere;
+}
+
+.partners-row-url {
+  font: var(--text-small-regular);
+  overflow-wrap: anywhere;
+}
+
+.partners-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+/* Rows use the design system's secondary buttons; there's no destructive variant, so tint Delete with the error
+   token (the :hover re-assert wins the cascade over .button--secondary:hover, which would otherwise reset the
+   color; :focus deliberately keeps the system's banana ring). */
+.partners-row-btn--danger,
+.partners-row-btn--danger:hover {
+  color: var(--color-error-200);
+  outline-color: var(--color-error-200);
+}
+
+.partners-add-form {
+  margin-top: var(--space-lg);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--color-neutral-200);
+}
+
+.partners-form-heading {
+  font: var(--text-body-bold);
+  margin: 0 0 var(--space-sm);
+}
+
+.partners-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-sm) var(--space-md);
+}
+
+.partners-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.partners-form-label {
+  font: var(--text-small-medium);
+  margin-bottom: 0; /* Bootstrap 3 gives every <label> a bottom margin. */
+}
+
+/* The logo picker is the one control on this page the browser draws itself: the field takes the .ps-input box like
+   its neighbors -- on tighter padding, so the button it wraps doesn't make it taller than the fields beside it --
+   and the picker button is dressed as a .button--secondary so it reads as one of our buttons. */
+.partners-file-input {
+  padding: 3px 4px;
+}
+
+.partners-file-input::file-selector-button {
+  font: var(--text-caption-medium);
+  color: var(--color-neutral-900);
+  background: var(--color-neutral-white) 10px center / 14px no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cg fill='none' stroke='%23242424' stroke-width='1.4' stroke-linejoin='round'%3E%3Crect x='1.5' y='2.5' width='13' height='11' rx='1.5'/%3E%3Cpath d='M1.5 10.5 5 7.5l3 2.5 2.5-2 4 3.5'/%3E%3C/g%3E%3Ccircle cx='5.4' cy='6' r='1.1' fill='%23242424'/%3E%3C/svg%3E");
+  border: none;
+  outline: 1px solid var(--color-neutral-800);
+  border-radius: 8px;
+  padding: 3px 12px 3px 30px;
+  margin-right: var(--space-sm);
+  cursor: pointer;
+  transition: background-color 0.4s ease 0s;
+}
+
+.partners-file-input::file-selector-button:hover {
+  background-color: var(--color-banana-200);
+}
+
+.partners-form-actions {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+}
+
+/* .button-ps's display: inline-flex outranks the UA/Bootstrap [hidden] rule, so re-assert it. */
+.partners-cancel-edit[hidden] {
+  display: none;
+}
+
+.partners-form-error {
+  font: var(--text-small-regular);
+  color: var(--color-error-200);
+  margin-top: var(--space-sm);
+}
+
+@media (width <= 900px) {
+  .partners-row {
+    grid-template-columns: 1fr;
+  }
+
+  .partners-row-actions {
+    justify-content: flex-start;
+  }
+
+  .partners-form-grid {
+    grid-template-columns: 1fr;
+  }
+}

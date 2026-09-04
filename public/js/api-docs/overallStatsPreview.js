@@ -87,7 +87,8 @@
             });
         })
         .catch((error) => {
-          container.innerHTML = `<div class="message message-error">Failed to load data: ${error.message}</div>`;
+          container.innerHTML = `<div class="message message-error" role="alert">Failed to load data: `
+            + `${error.message}</div>`;
           console.error('Overall stats preview error:', error);
           // The failure is already surfaced in the container above, and init() is fire-and-forget at every call
           // site (app/views/apiDocs/*), so re-rejecting here can only ever become an unhandled rejection.
@@ -299,10 +300,11 @@
       canvas.height = container.offsetHeight;
       container.appendChild(canvas);
 
-      // Get label types with severity data.
+      // A type with no labels comes back as null, and Occlusion/Signal carry no severity, so the key being present
+      // says nothing about whether it can be charted. VALID_LABEL_TYPES also drops the object's scalar members.
       const labelTypes = Object.keys(data.labels)
-        .filter((key) => key !== 'label_count'
-          && data.labels[key].severity_mean !== undefined);
+        .filter((key) => util.misc.VALID_LABEL_TYPES.includes(key)
+          && typeof data.labels[key].severity_mean === 'number');
 
       // Sort label types by severity (descending).
       labelTypes.sort((a, b) => data.labels[b].severity_mean - data.labels[a].severity_mean);
@@ -337,7 +339,10 @@
                 label(context) {
                   const type = labelTypes[context.dataIndex];
                   const mean = data.labels[type].severity_mean.toFixed(2);
-                  const sd = data.labels[type].severity_sd.toFixed(2);
+                  // Postgres `stddev` is NULL over a single row, so a type with one severity-bearing label has a
+                  // mean but no deviation -- an ordinary state for a young city, not a missing field.
+                  const sdValue = data.labels[type].severity_sd;
+                  const sd = typeof sdValue === 'number' ? sdValue.toFixed(2) : 'n/a';
                   const countWithSeverity = data.labels[type].count_with_severity;
                   return [
                     `Mean Severity: ${mean}`,

@@ -1,7 +1,5 @@
 FROM eclipse-temurin:17-jdk-focal
 
-RUN apt-get update && apt-get upgrade -y
-
 RUN curl -sL https://deb.nodesource.com/setup_24.x | bash -
 
 # Add repository for sbt.
@@ -23,7 +21,7 @@ RUN apt-get install -y \
 
 WORKDIR /home
 
-COPY package.json ./
+COPY package.json package-lock.json ./
 COPY requirements.txt ./
 COPY requirements-dev.txt ./
 COPY requirements-offline-tools.txt ./
@@ -52,4 +50,8 @@ RUN curl -LsSf https://astral.sh/uv/0.12.5/install.sh | env UV_INSTALL_DIR=/usr/
   uv cache clean
 RUN python3.13 -m pip install --no-cache-dir -r requirements-offline-tools.txt -r requirements-dev.txt
 
-RUN npm install
+# Not `npm install`: the image must not drift from the tree CI resolved (#5152). Copied last so editing the script
+# doesn't invalidate the layers above. The stamp is what stops the first `make dev` after a build reinstalling the
+# identical tree.
+COPY tools/npm-sync.sh ./tools/
+RUN npm ci && bash tools/npm-sync.sh --write-stamp

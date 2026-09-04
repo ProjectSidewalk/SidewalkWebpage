@@ -31,7 +31,7 @@
   activeTags: Seq[String] = Seq.empty
 )(implicit messages: Messages, assets: AssetsFinder)
 
-@tagsByLabelType = @{tags.groupBy(t => LabelTypeEnum.labelTypeIdToLabelType.getOrElse(t.labelTypeId, ""))}
+@tagsByLabelType = @{tags.groupBy(_.labelType.name)}
 
 @* Right-aligned slot at the end of a filter row: an optional live label count, and an "Only" button that swaps in
    on hover/focus to exclusive-select that row within its section. *@
