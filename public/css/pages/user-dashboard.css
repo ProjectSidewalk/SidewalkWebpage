@@ -1245,9 +1245,14 @@
 }
 
 /* ---- Leaderboard: community band + podium ---------------------------------------------------------------------- */
+
+/* Flex rather than equal grid tracks so a value can never be squeezed into its neighbour: 150px is each tile's
+   preferred width, but a flex item's automatic minimum size floors it at its own content, which a track can't do
+   (#5175). The tiles stay evenly sized while they fit — only one holding a value too wide for its share takes more,
+   and the rest give it up. */
 .ud-community-band {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: var(--space-lg);
   padding: var(--space-lg);
   margin: var(--space-md) 0;
@@ -1260,6 +1265,7 @@
 }
 
 .ud-community-stat {
+  flex: 1 1 150px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1286,11 +1292,15 @@
   font-family: var(--font-primary);
 
   /* px, not rem, for the reason given on .ud-impact-value above. Capped at 30 because five tiles share the content
-     column here, leaving tracks as narrow as ~150px — enough for "11,635 km" on one line at this size, not more. */
+     column here, leaving each about 150px at the widths this band is read at. */
   font-size: clamp(24px, 3.5vw, 30px);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   line-height: 1.1;
+
+  /* A grouped total is one unbreakable token, so this is also the tile's minimum width — the guarantee that a
+     value outgrowing its share widens its own tile instead of running into the next one. */
+  white-space: nowrap;
 }
 
 .ud-community-label {
