@@ -245,6 +245,14 @@ class PanoViewer {
   async preloadPanoNear(_latLng, _excludedPanos = new Set()) {}
 
   /**
+   * Downloads the provider's viewer code ahead of create(), so a viewer built later on a user action doesn't wait on
+   * the network. Must not construct a viewer: for providers that bill per viewer instance (GSV), that is the whole
+   * point of deferring create() (#5128). No-op by default; override in providers that load code on demand.
+   * @returns {Promise<void>}
+   */
+  static async preloadLibrary() {}
+
+  /**
    * Moves the current panorama to the specified panorama ID.
    * @param panoId The panorama ID to set.
    * @returns {Promise<PanoData>} The panorama data object.
