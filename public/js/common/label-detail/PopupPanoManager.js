@@ -31,6 +31,10 @@ class PopupPanoManager {
   static DEEP_LINK_BUILD_WAIT_MS = 3000;
   #pannellumViewer = undefined;  // Only constructed when an expired pano with a self-hosted image is shown.
   #loadingEl; // Host-rendered overlay (.label-detail__pano-loading); absent on a host that doesn't include it.
+  // Identifies the newest setPano() call. Its late work — the deferred resize/POV, the reveal, the fallback panel —
+  // all mutates one shared holder, so an abandoned load reaching those steps would paint over the label that
+  // replaced it. LabelDetail guards its own async tail the same way, on #currentLabelMeta.
+  #loadToken = 0;
   #panoCanvas;
   #pannellumCanvas;
   #panoNotAvailable;
@@ -289,6 +293,7 @@ class PopupPanoManager {
    *                             static crop (step 1–3). Only `false` for step 4, the "imagery not available" panel.
    */
   async setPano(panoId, pov, cropUrl, expired = false, backupImage = null) {
+    const load = ++this.#loadToken;
     this.#cropUrl = typeof cropUrl === 'string' ? cropUrl : null;
     this.svHolder.css('visibility', 'hidden'); // Hide until we've finished rendering.
     if (this.#loadingEl) this.#loadingEl.hidden = false;
@@ -303,8 +308,8 @@ class PopupPanoManager {
         await primaryViewer.setPano(panoId);
         this.#teardownPannellum();
         this.activeViewerName = 'Default';
-        await this.#panoSuccessCallback(pov);
-        this.#finishLoad();
+        await this.#panoSuccessCallback(pov, load);
+        this.#finishLoad(load);
         return true;
       } catch {
         // Primary viewer failed — lazy-fetch backup metadata if caller didn't pre-supply it.
@@ -320,7 +325,7 @@ class PopupPanoManager {
       try {
         await this.#showPannellumPano(backupImage, pov);
         this.activeViewerName = 'Pannellum';
-        this.#finishLoad();
+        this.#finishLoad(load);
         return true;
       } catch (err) {
         console.error('PannellumViewer failed to load; falling back to crop:', err);
@@ -332,16 +337,20 @@ class PopupPanoManager {
 
     // Step 3 & 4: hand off to the existing failure callback, which shows the crop if cropUrl is set
     // and a generic "imagery not available" message otherwise. Its return distinguishes those two outcomes.
+    if (load !== this.#loadToken) return false;
     this.activeViewerName = 'StaticCrop';
     const cropShown = await this.#panoFailureCallback();
-    this.#finishLoad();
+    this.#finishLoad(load);
     return cropShown;
   }
 
   /**
-   * Ends a load: drops the spinner and reveals the imagery, unless the host closed over this load.
+   * Ends a load: drops the spinner and reveals the imagery, unless a newer label has taken over or the host closed
+   * over this one.
+   * @param {number} load The token this load was issued.
    */
-  #finishLoad() {
+  #finishLoad(load) {
+    if (load !== this.#loadToken) return;
     if (this.#loadingEl) this.#loadingEl.hidden = true;
     if (!this.svHolder[0].dataset.closedDuringLoad) this.svHolder.css('visibility', 'visible');
   }
@@ -390,9 +399,10 @@ class PopupPanoManager {
   /**
    * Refreshes all views for the new pano and saves historic pano metadata.
    * @param {{heading: number, pitch: number, zoom: number}} targetPov - The desired pov to set for the pano.
+   * @param {number} [load] - The issuing setPano()'s token; its deferred work is dropped once a newer load exists.
    * @returns {Promise<void>} Resolves once the pano and label have rendered.
    */
-  async #panoSuccessCallback(targetPov) {
+  async #panoSuccessCallback(targetPov, load) {
     // Show the pano, hide the fallback image and error messages.
     $(this.#panoCanvas).css('display', 'block');
     $(this.#fallbackContainer).css('display', 'none');
@@ -404,6 +414,12 @@ class PopupPanoManager {
     // with Explore/Gallery/Validate. Probably because of how we show/hide the popup.
     return await new Promise((resolve) => {
       setTimeout(() => {
+        // A newer label may own the viewer by now — this.label is already its data, so rendering here would put its
+        // marker on whatever pano the shared viewer is showing.
+        if (load !== undefined && load !== this.#loadToken) {
+          resolve();
+          return;
+        }
         // The host may have closed over this load: a viewer measured at 0x0 derives a tile zoom of NaN and wedges
         // retrying a request the provider rejects, so let the next open run these against a laid-out container.
         const { width, height } = this.svHolder[0].getBoundingClientRect();

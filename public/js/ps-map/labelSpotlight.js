@@ -193,7 +193,6 @@ function createLabelSpotlight({ dialog, getMap, getMapData, getCoords, getLabelT
     let dy = 0;
     if (gutterX >= gutterY && gutterX > MIN_GUTTER) dx = (window.innerWidth - gutterX) / 2;
     else if (gutterY > MIN_GUTTER) dy = (window.innerHeight - gutterY) / 2;
-    else if (gutterX > MIN_GUTTER) dx = (window.innerWidth - gutterX) / 2;
     const zoom = Math.max(map.getZoom(), 16);
     // Pre-shift the center by hand rather than passing CameraOptions.offset: a deep-link/paging jump must be
     // instant, and mapbox drops offset on instant moves (see centerShowingLabelAt), which would bury the dot —
