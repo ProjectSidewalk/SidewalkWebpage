@@ -12,6 +12,7 @@ wants next · Seattle, every real label · tool and every number in `tools/stree
 | **99.7% → 18.5%** | the heading method's accuracy as the camera moves off the audited street: 99.7% with the camera within a metre of the centerline, 88% at 5–8 m, 45% at 8–15 m, 18.5% beyond. One label in five (20.4%) has its camera more than 5 m off the audited centerline, and at corners the camera is nearer the cross street for over half of all curb-ramp labels. The geometric method does not move: 99.2–99.8% across the same bands |
 | **2.2%** | of the 167,218 labels evolution 352 repositioned changed geometric side. The flips live where the label is near the line: 26.7% within 1 m, 12% at 1–2 m, 1.6% at 3–4 m, 0.2% beyond 4 m. With a 1 m floor the rate is 1.3%; the heading method cannot flip (it never reads the position), which is the one argument it keeps |
 | **3.8%** | the unresolvable fraction under the recommended rule (geometric side against the audited street, `NULL` within 1 m of the centerline or without a position): 3.5% of labels sit within a metre of the line, where either method is a coin flip and the reposition flipped a quarter of them. By type: `NoSidewalk` 6.6% unresolved, `Crosswalk` 35% (a crosswalk is *in* the road; its side is ill-defined), the other main types 1.5–2.6% (`Occlusion` 5.3%, `Other` 15.6%) |
+| **2 m ≈ 97%** | the side's accuracy is a monotone, type-independent function of the label's distance from the centerline, the same on both clean truth sets: 63–70% under 0.5 m, 84–87% at 0.5–1 m, 94–96% at 1–1.5 m, 97–98% at 1.5–2 m, 99%+ from 3 m. Distance from the *camera* does not hurt it (97.5–100% at every range up to 24 m+). So the margin itself is the confidence: store it signed, in metres, and let consumers pick their threshold (§5.4) |
 | **1 of 6** | `NoSidewalk` labels on SDOT's one-sided streets that sit within 4 m of the walkway SDOT says is paved (117 of 738). Both methods put them on the paved side and the heading method needs no position to do so, so they are not side errors: the label and the inventory disagree about whether a sidewalk is there. Any per-side `NoSidewalk` consumer inherits that disagreement, not a computation error |
 
 > Reproduce (offline, from the dev database; ~6 min): `tools/street_side/README.md`. The SDOT layers were pulled
@@ -311,6 +312,27 @@ The "accuracy when they agree" column is a read on each truth set's own noise (t
 disagree with the truth unless the truth is wrong): 94–95% for the two independent sets, 99.8% for the
 position-dependent one.
 
+#### §4.4.8 Distance from the camera
+
+The estimator's error runs along the ray and grows with distance
+([#5084](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/5084)), so a far label might be expected to be
+sided less reliably. It is not. Geometric accuracy by camera-to-label distance, on the two clean truth sets:
+
+| camera → label | 0–3 m | 3–5 | 5–8 | 8–12 | 12–16 | 16–20 | 20–24 | 24+ |
+|---|---|---|---|---|---|---|---|---|
+| on-sidewalk vs nearest paved (n = 34,931) | 97.5% | 98.5% | 99.7% | 99.9% | 99.9% | 99.8% | 99.6% | 100% |
+| curb ramps within 6 m of their ramp (n = 81,668) | 99.0% | 99.6% | 99.7% | 99.8% | 99.7% | 99.3% | 98.9% | 99.7% |
+| *median distance to the centerline, curb ramps (m)* | 4.9 | 5.1 | 5.2 | 5.7 | 6.2 | 6.4 | 6.9 | 8.0 |
+
+Sliding a label along its ray only changes its side where the ray crosses the centerline, and a ray that crosses
+the centerline puts the label near the line whatever the camera distance. The far labels are the easy ones: the
+median label 24 m or more from its camera sits 8–10 m from the line. The slight dip in the first column is the
+near-camera labels that are also near the line. The heading method is the one that degrades with distance (94% at
+0–3 m to 85–88% beyond 5 m on the ramp set), and only mildly. Median camera-to-label distance is 8.6 m (p10 4.5 m,
+p90 15.9 m).
+
+![Geometric accuracy by camera-to-label distance, and by distance to the centerline in 0.5 m bands](2886-street-side/fig_calibration.png)
+
 ### §4.5 RQ5: which street is the frame
 
 For 12.0% of labels the street nearest the estimated position is not the audited street: 2.7% of `NoSidewalk`,
@@ -349,6 +371,27 @@ Abstention curves on the pooled truth set (dominated by curb ramps) say the same
 82.4% → 86.7% for 34 points.
 
 ![Accuracy vs coverage as each method abstains below its own margin](2886-street-side/fig_abstention.png)
+
+### §4.7 Six labels, drawn
+
+Each panel is one label chosen by rule, not by hand: the median-distance member of the candidate set the row
+describes (`analyze_street_side.py` writes the picks to `out/cases.csv`; `case_maps.py` draws them). The map shows
+the audited street with its digitized direction, SDOT's sidewalk lines and ramp points, the camera, and the two
+readings: the camera-to-label ray the heading method signs, and the perpendicular to the centerline the geometric
+method measures.
+
+![Six representative labels with the audited street, SDOT sidewalks and ramps, the camera, and both readings](2886-street-side/fig_cases.png)
+
+| panel | label | candidates | what it shows |
+|---|---|---|---|
+| typical | [39802](https://sidewalk-seattle.cs.washington.edu/label/39802) `CurbRamp` | 9,243 | camera 1 m off the street, 10 m from the label; both methods say right, and SDOT's ramp point sits beside the label |
+| corner | [114352](https://sidewalk-seattle.cs.washington.edu/label/114352) `CurbRamp` | 5,835 | camera 12 m off the audited street, on the cross street; the ray crosses the audited centerline, so the heading method says right while the label and the SDOT ramp are on the left. This is §5.1 in one picture |
+| within 1 m | [224582](https://sidewalk-seattle.cs.washington.edu/label/224582) `CurbRamp` | 639 | 0.3 m from the line; the #4818 reposition moved it from left to right. `NULL` under the rule |
+| far | [45842](https://sidewalk-seattle.cs.washington.edu/label/45842) `Obstacle` | 43 | 24 m from the camera and 10 m from the line: the ray runs along the street, so the side is not in doubt (§4.4.8) |
+| bare side | [33301](https://sidewalk-seattle.cs.washington.edu/label/33301) `NoSidewalk` | 352 | on the unimproved side of a one-sided street, 4 m from the line; both methods agree with SDOT |
+| on the paved line | [285511](https://sidewalk-seattle.cs.washington.edu/label/285511) `NoSidewalk` | 53 | sits on the walkway SDOT calls paved; both methods put it there. Not a side error: the label and the inventory disagree about whether a sidewalk exists (§4.4.3) |
+
+The label links open the share page for each, where the panorama can be checked by eye.
 
 ## §5 · Analysis
 
@@ -402,20 +445,49 @@ link per label) is the place to look at these; this report did not view imagery.
   geometric side agrees with the corner the label is nearest, which is the weaker claim.
 - `Crosswalk` labels get a side because the column is per label, not because the side means much; a consumer
   should treat that type's value as "which end of the crossing", and 35% of them are `NULL` under the floor.
-- Nothing was visually verified. The hand-label sample exists so that someone can.
+- No panorama was looked at. The six maps in §4.7 verify the geometry against SDOT's lines, not the imagery; the
+  share links there and the hand-label sample exist so that someone can.
+
+### §5.4 The margin is the confidence
+
+Accuracy is a clean, monotone, type-independent function of the label's distance from the centerline, and the
+curve is the same on both clean truth sets:
+
+| distance to centerline | 0–0.5 m | 0.5–1 | 1–1.5 | 1.5–2 | 2–2.5 | 2.5–3 | 3–4 | 4–5 | 5+ |
+|---|---|---|---|---|---|---|---|---|---|
+| on-sidewalk vs nearest paved (n = 34,944) | 63% | 87% | 96% | 96% | 95% | 98% | 99.1% | 99.6% | 100% |
+| curb ramps within 6 m of their ramp (n = 81,685) | 70% | 84% | 94% | 98% | 98% | 99.4% | 99.9% | 100% | 100% |
+
+So there is no need for a separate confidence score, or a low/medium/high bucket that then has to be kept
+calibrated. The margin itself is the confidence, and it is already in metres. Stored signed (positive on the left of
+the edge's digitized direction, negative on the right), one number carries both the side and its reliability, is a
+physical quantity that does not go stale when the estimator is refit, and lets each consumer pick its own threshold
+from the table above. The 1 m `NULL` floor becomes the convenience default for consumers that do not want to think
+about it, rather than the only signal. It is exactly as informative for a label 4 m from the line (a near-certainty)
+as for one 0.4 m from it (a coin flip).
+
+What a far label *is* less certain about is which street it belongs to (the frame, §4.5), not which side. That is a
+separate question with a separate answer: the side is relative to the audited edge, and the along-edge fraction is
+the natural companion to store when [#1155](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/1155) wants a
+topology.
 
 ## §6 · Recommendation, and the feature it implies
 
-**Persist the geometric side, relative to the audited street, with a 1 m floor.** Concretely:
+**Persist the geometric side as a signed offset from the audited street's centerline, and derive the `left`/`right`
+enum from it with a 1 m floor.** Concretely:
 
-1. **Schema (one evolution).** `CREATE TYPE street_side AS ENUM ('left', 'right')` and a nullable
-   `label_point.street_side street_side`, `left`/`right` of `street_edge.geom`'s digitized direction for the label's
-   `label.street_edge_id`; `NULL` when the label has no position or lies within 1 m of the centerline. The same
-   evolution backfills every row with one `UPDATE` (a `label_point` ⋈ `label` ⋈ `street_edge` join on primary keys,
-   one pass over `label_point` per schema, no correlated subquery). Compute the sign in a conformal projection so the
-   foot point is right at any latitude without a per-city SRID: `ST_Transform(geom, 3857)` for the locate and cross
-   product, `ST_Distance(geography)` for the floor. Mirror the enum in Scala the way `computation_method` is
-   (`ComputationMethod.scala`, `MyPostgresProfile`'s `createEnumJdbcType`).
+1. **Schema (one evolution).** A nullable `label_point.centerline_offset_m double precision`: the geodesic distance
+   from the label's position to `street_edge.geom` for the label's `label.street_edge_id`, positive on the left of the
+   edge's digitized direction and negative on the right; `NULL` only when the label has no position. Beside it,
+   `CREATE TYPE street_side AS ENUM ('left', 'right')` and `label_point.street_side`, `left` when the offset is
+   ≥ 1 m, `right` when ≤ −1 m, `NULL` in between. Make the enum a `GENERATED ALWAYS AS (...) STORED` column so it
+   cannot drift from the offset it summarises (a plain column recomputed alongside is the fallback if a generated
+   enum column proves awkward in Slick). The same evolution backfills every row with one `UPDATE` (a `label_point`
+   ⋈ `label` ⋈ `street_edge` join on primary keys, one pass over `label_point` per schema, no correlated subquery).
+   Compute the sign in a conformal projection so the foot point is right at any latitude without a per-city SRID:
+   `ST_Transform(geom, 3857)` for the locate and cross product, `ST_Distance(geography)` for the magnitude. Mirror
+   the enum in Scala the way `computation_method` is (`ComputationMethod.scala`, `MyPostgresProfile`'s
+   `createEnumJdbcType`).
 2. **Insert path.** Where `ExploreService` inserts a `label_point` (crowd and AI submissions both go through
    `LabelPointTable.insert`), compute the side in the same transaction against the label's `street_edge_id`, using
    the same expression as the backfill. The expression should live in one place; the cleanest is a SQL function
@@ -423,12 +495,14 @@ link per label) is the place to look at these; this report did not view imagery.
    trigger on `label_point.geom` would make drift impossible by construction; the schema has no trigger today, so
    that is a judgment call for the PR.)
 3. **Recompute contract.** Any future reposition of `label_point.geom` (a 352-style backfill, a change of
-   `street_edge_id` such as 352's AI reattach, an estimator refit) recomputes `street_side` in the same statement.
+   `street_edge_id` such as 352's AI reattach, an estimator refit) recomputes `centerline_offset_m` in the same statement (the enum follows if it is generated).
    §4.3 is the cost of forgetting: 2.2% of stored sides silently wrong after a reposition, 27% of those near the
    line.
-4. **API.** `street_side` (`left` / `right` / `null`) on `/v3/api/rawLabels` and the label endpoints that carry
-   `street_edge_id`, snake_case per [#3871](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/3871), documented
-   as relative to the digitized direction of `street_edge_id`. A consumer that wants a cardinal side can derive one
+4. **API.** `street_side` (`left` / `right` / `null`) and `centerline_offset_m` on `/v3/api/rawLabels` and the label
+   endpoints that carry `street_edge_id`, snake_case per
+   [#3871](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/3871), documented as relative to the digitized
+   direction of `street_edge_id`, with the §5.4 calibration table in the docs so a consumer can read "2 m ≈ 97%" off
+   it and choose its own floor. A consumer that wants a cardinal side can derive one
    from the edge's geometry; a consumer that wants "same side as label X" compares the two values on a shared
    `street_edge_id`, which is the query [#1155](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/1155) and the
    `NoSidewalk` queue rule actually need.
@@ -447,6 +521,7 @@ docker exec -w /home/<worktree> projectsidewalk-web python3.13 tools/street_side
 docker exec -w /home/<worktree> projectsidewalk-web python3.13 tools/street_side/street_side.py compute   # ~4 min
 docker exec -w /home/<worktree> projectsidewalk-web python3.13 tools/street_side/street_side.py export
 docker exec -w /home/<worktree> projectsidewalk-web python3.13 tools/street_side/analyze_street_side.py
+docker exec -w /home/<worktree> projectsidewalk-web python3.13 tools/street_side/case_maps.py      # §4.7 maps
 ```
 
 `tools/street_side/out/summary.json` holds every number quoted above; `tables.md` every table, including the ones

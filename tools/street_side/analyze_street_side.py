@@ -20,6 +20,10 @@ DIST_BANDS = [0, 1, 2, 3, 4, 6, 8, 12, np.inf]
 DIST_LABELS = ["0–1", "1–2", "2–3", "3–4", "4–6", "6–8", "8–12", "12+"]
 AXIS_BANDS = [0, 5, 10, 20, 30, 45, 60, 90.001]
 AXIS_LABELS = ["0–5", "5–10", "10–20", "20–30", "30–45", "45–60", "60–90"]
+CAM_BANDS = [0, 3, 5, 8, 12, 16, 20, 24, np.inf]
+CAM_LABELS = ["0–3", "3–5", "5–8", "8–12", "12–16", "16–20", "20–24", "24+"]
+FINE_BANDS = [0, 0.5, 1, 1.5, 2, 2.5, 3, 4, 5, np.inf]
+FINE_LABELS = ["0–0.5", "0.5–1", "1–1.5", "1.5–2", "2–2.5", "2.5–3", "3–4", "4–5", "5+"]
 TYPES = ["CurbRamp", "NoCurbRamp", "Obstacle", "SurfaceProblem", "NoSidewalk", "Crosswalk", "Signal", "Occlusion",
          "Other"]
 S = {}          # summary
@@ -37,6 +41,20 @@ def pct(a, b):
 
 def band(x, bands, labels):
     return pd.cut(x, bands, labels=labels, right=False, include_lowest=True)
+
+
+def haversine_m(lat1, lng1, lat2, lng2):
+    """Great-circle distance in metres between two lat/lng arrays (the camera and the label are tens of metres apart,
+    so the spherical form is exact to the centimetre here)."""
+    lat1, lng1, lat2, lng2 = map(np.radians, (lat1, lng1, lat2, lng2))
+    a = np.sin((lat2 - lat1) / 2) ** 2 + np.cos(lat1) * np.cos(lat2) * np.sin((lng2 - lng1) / 2) ** 2
+    return 2 * 6371008.8 * np.arcsin(np.sqrt(a))
+
+
+def typical(df, sort_col="geo_dist_m"):
+    """The median row of a candidate set, so an example in the report is representative rather than cherry-picked."""
+    d = df.sort_values(sort_col)
+    return d.iloc[len(d) // 2]
 
 
 def agreement(df, by):
@@ -99,6 +117,9 @@ def main():
     aud = side[side.frame == "audited"].merge(base, on="label_id", how="left").merge(near, on="label_id", how="left")
     aud["dist_band"] = band(aud.geo_dist_m, DIST_BANDS, DIST_LABELS)
     aud["axis_band"] = band(aud.axis_angle_deg, AXIS_BANDS, AXIS_LABELS)
+    aud["cam_dist_m"] = haversine_m(aud.lat, aud.lng, aud.pano_lat, aud.pano_lng)
+    aud["cam_band"] = band(aud.cam_dist_m, CAM_BANDS, CAM_LABELS)
+    aud["fine_band"] = band(aud.geo_dist_m, FINE_BANDS, FINE_LABELS)
 
     n = len(base)
     S["n_labels"] = n
@@ -370,6 +391,57 @@ def main():
     md("Curb-ramp labels: accuracy by camera offset from the audited centerline (m)", accuracy(cru, "truth", "offset_band"))
     S["truth_cr_by_ramp_dist"] = accuracy(cru, "truth", "ramp_band").to_dict(orient="index")
     S["truth_cr_by_offset"] = accuracy(cru, "truth", "offset_band").to_dict(orient="index")
+
+    # RQ7: does distance from the camera hurt the side? The estimator's error grows along the ray (#5084), but a
+    # slide along the ray only changes the side where the ray crosses the centerline. Scored on the two clean truth
+    # sets, plus the median centerline distance per band, which is what makes the far labels the easy ones.
+    cr6 = cru[cru.ramp_dist_m <= 6]  # the clean end of the ramp truth set: a ramp point right at the label
+    S["truth_cr6"] = {"n": len(cr6), **accuracy(cr6, "truth").to_dict(orient="index")["all"]}
+    for key, df_, title in [("sw2", sw2, "Obstacle/SurfaceProblem vs the nearest paved sidewalk"),
+                            ("cr", cr6, "Curb-ramp labels within 6 m of their SDOT ramp")]:
+        by_cam = accuracy(df_, "truth", "cam_band").reindex(CAM_LABELS)
+        by_cam["median_dist_to_centerline_m"] = df_.groupby("cam_band", observed=True).geo_dist_m.median().reindex(CAM_LABELS).round(1)
+        md(f"{title}: accuracy by camera-to-label distance (m)", by_cam)
+        S[f"truth_{key}_by_cam_dist"] = by_cam.to_dict(orient="index")
+        by_fine = accuracy(df_, "truth", "fine_band").reindex(FINE_LABELS)
+        md(f"{title}: accuracy by distance to the centerline in 0.5 m bands (the calibration table)", by_fine)
+        S[f"truth_{key}_by_fine_dist"] = by_fine.to_dict(orient="index")
+    S["cam_dist_quantiles"] = aud.cam_dist_m.quantile(q).round(1).to_dict()
+    S["cam_band_counts"] = aud.cam_band.value_counts().reindex(CAM_LABELS).to_dict()
+
+    # Worked examples for case_maps.py: one representative (median-distance) label per situation the report
+    # discusses, chosen by rule rather than by hand so the pick is reproducible.
+    main_types = ["CurbRamp", "NoCurbRamp", "Obstacle", "SurfaceProblem", "NoSidewalk"]
+    cases = [
+        ("agree", "Typical: camera on the street, both methods agree",
+         cru[(cru.pano_offset_m < 1.5) & (cru.geo_side == cru.head_side) & (cru.geo_side == cru.truth)
+             & (cru.ramp_dist_m < 3) & cru.geo_dist_m.between(4, 8)]),
+        ("corner", "Corner: camera on the cross street, heading method wrong",
+         cru[(cru.pano_offset_m > 8) & (cru.geo_side != cru.head_side) & (cru.geo_side == cru.truth)
+             & (cru.ramp_dist_m < 4) & (cru.geo_dist_m > 3)]),
+        ("near_line", "Within 1 m of the centerline: the reposition flipped the side",
+         aud[(aud.geo_dist_m < 0.7) & aud.geo_side_old.isin([1, -1]) & (aud.geo_side_old != aud.geo_side)
+             & (aud.geo_dist_old_m < 1.5) & aud.label_type.isin(main_types)]),
+        ("far", "Far from the camera: the side is still clear",
+         sw2[(sw2.cam_dist_m > 24) & (sw2.geo_side == sw2.truth) & (sw2.geo_dist_m > 6) & (sw2.pano_offset_m < 3)
+             & sw2.head_side.isin([1, -1])]),
+        ("ns_bare", "NoSidewalk on a one-sided street: on the bare side",
+         ns_v[(ns_v.placement == "across (6-20 m)") & (ns_v.geo_side == ns_v.truth) & (ns_v.head_side == ns_v.truth)]),
+        ("ns_paved", "NoSidewalk on the walkway SDOT calls paved: not a side error",
+         ns_v[(ns_v.placement == "on the paved line (<=4 m)") & (ns_v.paved_dist < 2) & (ns_v.geo_side == ns_v.head_side)]),
+    ]
+    rows = []
+    for key, title, pool in cases:
+        r = typical(pool)
+        rows.append({"case": key, "title": title, "pool_n": len(pool), "label_id": int(r.label_id),
+                     "label_type": r.label_type, "edge_id": int(r.edge_id), "geo_side": int(r.geo_side),
+                     "geo_dist_m": round(r.geo_dist_m, 2), "head_side": int(r.head_side) if r.head_side in (1, -1) else None,
+                     "pano_offset_m": round(r.pano_offset_m, 1), "cam_dist_m": round(r.cam_dist_m, 1),
+                     "truth": int(r.truth) if "truth" in r and r.truth in (1, -1) else None,
+                     "geo_side_old": int(r.geo_side_old) if r.geo_side_old in (1, -1) else None,
+                     "gallery_url": f"https://sidewalk-seattle.cs.washington.edu/label/{int(r.label_id)}"})
+    pd.DataFrame(rows).to_csv(OUT / "cases.csv", index=False)
+    S["cases"] = rows
     S["depth_check_split"] = {"note": "geo side of the measured position is the reference here"}
 
     # abstention curves & combined rules on the pooled truth set
@@ -552,6 +624,24 @@ def main():
     ax.set_xlabel("current distance to centerline (m)")
     fig.tight_layout()
     fig.savefig(OUT / "fig_stability.png", dpi=160)
+    plt.close(fig)
+
+    fig, ax = plt.subplots(1, 2, figsize=(10, 3.6))
+    for key, lab, mk in [("sw2", "on-sidewalk vs nearest paved (n = 35k)", "o"), ("cr", "curb ramps within 6 m of their ramp (n = 82k)", "s")]:
+        d = pd.DataFrame(S[f"truth_{key}_by_cam_dist"]).T.reindex(CAM_LABELS)
+        ax[0].plot(CAM_LABELS, d.geo_acc_pct, marker=mk, color=C_GEO, lw=2, ms=5, label=lab)
+        f = pd.DataFrame(S[f"truth_{key}_by_fine_dist"]).T.reindex(FINE_LABELS)
+        ax[1].plot(FINE_LABELS, f.geo_acc_pct, marker=mk, color=C_GEO, lw=2, ms=5, label=lab)
+    ax[0].set_ylim(90, 100.5)
+    ax[0].set_title("Geometric accuracy by camera-to-label distance (m)", fontsize=9)
+    ax[0].set_ylabel("accuracy (%)")
+    ax[0].legend(frameon=False, fontsize=8, loc="lower right")
+    ax[1].set_ylim(50, 101)
+    ax[1].axhline(97, color="#e6e5e1", lw=1)
+    ax[1].set_title("Geometric accuracy by distance to the centerline (m): the calibration", fontsize=9)
+    ax[1].tick_params(axis="x", labelsize=8)
+    fig.tight_layout()
+    fig.savefig(OUT / "fig_calibration.png", dpi=160)
     plt.close(fig)
 
     (OUT / "summary.json").write_text(json.dumps(S, indent=1, default=lambda o: None if pd.isna(o) else str(o)))
