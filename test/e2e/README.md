@@ -7,9 +7,8 @@ an unbound-method `this` bug, a route-ordering 400 breaking a fetch. It asserts 
 plus two pieces of layout geometry — `phone-viewport.spec.js` re-loads the responsive pages at a 390×844
 phone viewport and fails on horizontal overflow (#4883), and `about-stats-band.spec.js` sweeps `/about`'s
 stats band across widths and fails when one stat runs into the next (#5151) — and one accessibility gate:
-`a11y.spec.js` runs
-axe-core over each audited page and fails on any untracked WCAG 2.1 AA violation (#5060). Deep
-canvas/imagery testing stays manual by design.
+`a11y.spec.js` runs axe-core over each audited page and fails on any untracked WCAG 2.1 AA violation
+(#5060). Deep canvas/imagery testing stays manual by design.
 
 ## Running locally
 

@@ -4,17 +4,32 @@
  * The band's real content is a moving target — the counts grow, the values arrive from /v3/api/aggregateStats and
  * differ per environment, and each locale groups digits and translates the captions differently — so measuring the
  * page as served would only ever pin whatever happens to be in the CI database. This drives the real page and its
- * real stylesheet, then swaps in the widest values the band is expected to survive: the server-rendered no-JS
- * fallbacks that ship in about.scala.html, an eight-figure future, and the longest captions across the supported
- * languages. That is the layout contract the fixed-width tracks this replaced could not hold.
+ * real stylesheet with the widest content the band is expected to survive swapped in: the server-rendered no-JS
+ * fallbacks that ship in about.scala.html, an eight-figure future, and the longest caption each column has across
+ * the supported languages.
  *
  * Overlap is measured on Range rects — the inked text box — rather than the element box, because that is what a
  * reader actually sees collide, and a too-narrow box with room to spare around it is not a bug.
  */
 const {test, expect, loadAndSettle} = require('./fixtures');
 
-// Wide enough for the band on one line, down through both wrap points to the narrowest phone we support.
+// Wide enough for the band on one line, down through both wrap points to the narrowest phone we support. 320px is
+// also the WCAG 1.4.10 reflow benchmark, and 600px is inside the 640px that 200% zoom on a 1280px window produces.
 const WIDTHS = [1600, 1440, 1216, 1024, 900, 768, 600, 480, 390, 320];
+
+// What the page's own hydration is held to, so it can't race the values this spec injects. Only the fields
+// fetchAggregateStats validates matter; every one it lists must be a number or it falls back to an error state.
+const STUB_AGGREGATE_STATS = {
+  status: 'OK',
+  km_explored: 30822,
+  km_explored_no_overlap: 28000,
+  total_labels: 1662874,
+  total_validations: 2330941,
+  num_cities: 57,
+  num_countries: 11,
+  num_languages: 8,
+  by_label_type: {},
+};
 
 const SCENARIOS = [
   {
@@ -28,14 +43,16 @@ const SCENARIOS = [
     ],
   },
   {
-    // Spanish and German carry the longest captions of the supported languages, and group digits with periods.
-    name: 'longest localized captions',
+    // The widest caption each column has across conf/messages/messages.*, so this is stricter than any one locale:
+    // pt-BR's kilometers, German's labels and validations, Spanish's cities, English's countries. Digits are
+    // period-grouped, as es/de/pt-BR format them.
+    name: 'widest caption per column',
     stats: [
-      ['30.822', 'Kilómetros explorados'],
-      ['1.662.874', 'Markierungen'],
-      ['2.330.941', 'Validaciones'],
+      ['30.822', 'Quilômetros explorados'],
+      ['1.662.874', 'Beschriftungen'],
+      ['2.330.941', 'Validierungen'],
       ['57', 'Ciudades'],
-      ['11', 'Länder'],
+      ['11', 'Countries'],
     ],
   },
   {
@@ -68,11 +85,14 @@ async function setStats(page, stats) {
 }
 
 /**
- * Reports every pair of stat values (or captions) whose inked boxes intersect, plus anything painting past the
- * band's own content box.
+ * Reports every pair of stats whose inked boxes intersect, plus anything painting past the band's content box.
+ *
+ * The values are reported back alongside the geometry so the caller can prove it measured the content it injected:
+ * a band that quietly reverted to the deployment's own (short) counts would otherwise pass without testing anything.
  *
  * @param {import('@playwright/test').Page} page - The loaded /about page.
- * @returns {Promise<{overlaps: string[], overflow: number}>} Human-readable collisions and the worst overhang in px.
+ * @returns {Promise<{values: string[], overlaps: string[], overflow: number}>} The values as measured, the
+ *   human-readable collisions between them, and the worst overhang past the band's content box in px.
  */
 function bandCollisions(page) {
   return page.evaluate(() => {
@@ -81,7 +101,7 @@ function bandCollisions(page) {
       range.selectNodeContents(el);
       return range.getBoundingClientRect();
     };
-    const band = document.querySelector('.about-stats-grid');
+    const band = document.querySelector('.about-stats-row');
     const items = [...band.querySelectorAll('.about-stat')].map((el) => ({
       value: el.querySelector('.about-stat-number').textContent,
       number: inked(el.querySelector('.about-stat-number')),
@@ -104,24 +124,33 @@ function bandCollisions(page) {
       }
     }
 
-    const right = band.getBoundingClientRect().right;
-    const overflow = Math.max(0, ...items.flatMap((it) => [it.number.right - right, it.label.right - right]));
-    return {overlaps, overflow: Number(overflow.toFixed(1))};
+    // getBoundingClientRect reports the border box whatever box-sizing says, and .about-container pads 20px a side
+    // with no border-box reset in scope — so the padding has to come off, or 20px of encroachment goes unreported.
+    const box = band.getBoundingClientRect();
+    const contentRight = box.right - parseFloat(getComputedStyle(band).paddingRight);
+    const overflow = Math.max(0, ...items.flatMap((it) => [it.number.right - contentRight,
+      it.label.right - contentRight]));
+
+    return {values: items.map((it) => it.value), overlaps, overflow: Number(overflow.toFixed(1))};
   });
 }
 
 test.describe('/about stats band', () => {
   for (const scenario of SCENARIOS) {
     test(`no stat collides with its neighbour — ${scenario.name}`, async ({page, context}) => {
+      await context.route('**/v3/api/aggregateStats*', (route) => route.fulfill({
+        contentType: 'application/json',
+        body: JSON.stringify(STUB_AGGREGATE_STATS),
+      }));
       await loadAndSettle(page, context, {path: '/about', makeabilityLab: true, mapbox: true});
+      await setStats(page, scenario.stats);
 
+      const expectedValues = scenario.stats.map(([value]) => value);
       for (const width of WIDTHS) {
         await page.setViewportSize({width, height: 900});
-        // The values are re-applied per width: /about hydrates from the API, which can land mid-loop and
-        // put the deployment's own counts back.
-        await setStats(page, scenario.stats);
 
-        const {overlaps, overflow} = await bandCollisions(page);
+        const {values, overlaps, overflow} = await bandCollisions(page);
+        expect(values, `at ${width}px the band no longer holds the injected values`).toEqual(expectedValues);
         expect(overlaps, `at ${width}px: ${overlaps.join('; ')}`).toEqual([]);
         expect(overflow, `at ${width}px a stat paints ${overflow}px past the band`).toBeLessThanOrEqual(0.5);
       }

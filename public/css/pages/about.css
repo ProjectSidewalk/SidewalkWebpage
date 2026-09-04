@@ -123,10 +123,11 @@
   border-bottom: 1px solid var(--color-neutral-200);
 }
 
-/* Each stat sizes itself to its own content and the leftover width is shared out evenly, so the widest value can't be
-   squeezed by an equal-width track: a seven-figure count and a locale whose label runs long both just take the room
-   they need, and the band wraps to another line instead of overlapping its neighbour (#5151). */
-.about-stats-grid {
+/* Each stat is sized to its own content, with the leftover width shared out evenly. Nothing but the content decides
+   how wide a stat gets, so the widest value always fits: a seven-figure count and a locale whose caption runs long
+   each take the room they need, and the band wraps to another line rather than letting one stat overlap the next
+   (#5151). Intrinsic on purpose — no track floor and no breakpoints to keep in step with the translations. */
+.about-stats-row {
   display: flex;
   flex-wrap: wrap;
   gap: 28px 20px;
