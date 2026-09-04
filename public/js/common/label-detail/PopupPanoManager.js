@@ -39,6 +39,7 @@ class PopupPanoManager {
   #fallbackMarker;
   #fallbackPanzoom;
   #logo;
+  #attribution;
   #cropUrl;
   #labelsHidden = false;
 
@@ -169,6 +170,7 @@ class PopupPanoManager {
 
     this.#logo = createPanoViewerLogo(this.svHolder[0], this.#viewerType);
     this.#logo.showPrimaryLogo();
+    this.#attribution = createPanoAttribution(this.svHolder[0]);
 
     // Pre-pay the viewer library's download (free) so the first open only pays for the viewer itself. Idle-timed so
     // it never competes with the host page's own load; a failure here just means the first open downloads it.
@@ -278,15 +280,20 @@ class PopupPanoManager {
    *   3. Static screenshot at `cropUrl`.
    *   4. "Imagery not available" error message.
    *
+   * Steps 2 and 3 show Project Sidewalk's own copy of the imagery, so they carry the attribution the provider's live
+   * viewer would otherwise draw itself (#4865).
+   *
    * @param {string} panoId
    * @param {{heading: number, pitch: number, zoom: number}} pov
    * @param {?string} cropUrl - URL for the screenshot fallback image, if available.
    * @param {boolean} [expired=false] - When true, skips the live attempt (imagery known to be expired).
    * @param {?Object} [backupImage=null] - Self-hosted pano metadata; fetched lazily from the backend if null.
+   * @param {?Object} [attribution=null] - The pano's structured imagery attribution (`pano_data.attribution` in the
+   *     label payload); falls back to the lazily fetched backup metadata's, when there is one.
    * @returns {Promise<boolean>} Whether a viewable image of the label was shown — live/Pannellum imagery or the
    *                             static crop (step 1–3). Only `false` for step 4, the "imagery not available" panel.
    */
-  async setPano(panoId, pov, cropUrl, expired = false, backupImage = null) {
+  async setPano(panoId, pov, cropUrl, expired = false, backupImage = null, attribution = null) {
     this.#cropUrl = typeof cropUrl === 'string' ? cropUrl : null;
     this.svHolder.css('visibility', 'hidden'); // Hide until we've finished rendering.
     // Reset fallback zoom/pan so a previous label's manipulation doesn't leak into this one.
@@ -300,6 +307,7 @@ class PopupPanoManager {
         await primaryViewer.setPano(panoId);
         this.#teardownPannellum();
         this.activeViewerName = 'Default';
+        this.#attribution?.hide();
         await this.#panoSuccessCallback(pov);
         if (!this.svHolder[0].dataset.closedDuringLoad) this.svHolder.css('visibility', 'visible');
         return true;
@@ -311,12 +319,14 @@ class PopupPanoManager {
       // Already known expired and no backup pre-supplied — fetch now before trying Pannellum.
       backupImage = await this.#fetchBackupImageMetadata(panoId);
     }
+    const ownCopyAttribution = attribution || (backupImage && backupImage.attribution) || null;
 
     // Step 2: try the self-hosted Pannellum copy if we have its metadata.
     if (backupImage) {
       try {
         await this.#showPannellumPano(backupImage, pov);
         this.activeViewerName = 'Pannellum';
+        this.#attribution?.show(ownCopyAttribution);
         if (!this.svHolder[0].dataset.closedDuringLoad) this.svHolder.css('visibility', 'visible');
         return true;
       } catch (err) {
@@ -331,6 +341,8 @@ class PopupPanoManager {
     // and a generic "imagery not available" message otherwise. Its return distinguishes those two outcomes.
     this.activeViewerName = 'StaticCrop';
     const cropShown = await this.#panoFailureCallback();
+    if (cropShown) this.#attribution?.show(ownCopyAttribution);
+    else this.#attribution?.hide();
     if (!this.svHolder[0].dataset.closedDuringLoad) this.svHolder.css('visibility', 'visible');
     return cropShown;
   }

@@ -2,7 +2,8 @@ package actor
 
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{JsNull, Json}
-import service.ClusteringResults
+import service.CropService.CropRunResult
+import service.{ClusteringResults, CropSizingRule}
 
 /**
  * The wire shape of the run details each multi-trigger job records (#5044).
@@ -35,6 +36,25 @@ class JobRunDetailsSpec extends PlaySpec {
     "record clustering under the keys its readers use" in {
       ClusteringResults(labelCount = 14, clusterCount = 15).runDetails mustBe
         Json.obj("labels_clustered" -> 14, "clusters_created" -> 15)
+    }
+
+    "record crop generation's every count, and the rule that cut the store" in {
+      CropRunResult(
+        panosOpened = 20, panosWithoutBackup = 21, cropsWritten = 22, shiftedVertically = 23, outOfFrame = 24,
+        dimsMismatch = 25, dimsUnverified = 26, downscaledWritten = 27, downscaledDeleted = 28, errors = 29
+      ).runDetails mustBe Json.obj(
+        "crop_rule_version"    -> CropSizingRule.Version,
+        "panos_opened"         -> 20,
+        "panos_without_backup" -> 21,
+        "crops_written"        -> 22,
+        "shifted_vertically"   -> 23,
+        "out_of_frame"         -> 24,
+        "dims_mismatch"        -> 25,
+        "dims_unverified"      -> 26,
+        "downscaled_written"   -> 27,
+        "downscaled_deleted"   -> 28,
+        "errors"               -> 29
+      )
     }
 
     "record the street-priority rebuild's count, or a null where no rebuild ran" in {

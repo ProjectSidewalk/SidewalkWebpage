@@ -223,6 +223,14 @@ dialog.label-detail[open]::backdrop {
   .label-detail__pan-hint { transition: none; }
 }
 
+/* Imagery attribution (#4865; look in css/components/pano-attribution.css, which every host of this dialog links) in
+   the pano's top-right, clear of the hide-label control (top-left) and the hover validation bar (bottom). */
+.label-detail .pano-attribution {
+  top: 10px;
+  right: 10px;
+  z-index: 6; /* Above the validation ring (5), below the info popover (10), like the hide-label control. */
+}
+
 /* Hide-label toggle (#2477) in the pano's top-left. Revealed on hover like the paging arrows. */
 .label-detail__hide-label {
   position: absolute;
