@@ -73,12 +73,12 @@ describe('createPanoAttribution', () => {
     expect(el().textContent).not.toContain('MISSING:');
   });
 
-  it("shows a provider's own copyright string as plain text", () => {
+  it('stays hidden for imagery with no licence to name', () => {
+    // Google and infra3d supply a copyright string rather than a licence, and the source logo plus the viewer's own
+    // copyright line already carry it; a second copy in the overlay is noise (Jon, 2026-09-04).
     overlay.show({ holder: '© 2025 Google', provider: null, license: null, license_url: null });
 
-    expect(el().hidden).toBe(false);
-    expect(el().textContent).toBe('© 2025 Google');
-    expect(el().querySelector('a')).toBeNull();
+    expect(el().hidden).toBe(true);
   });
 
   it('hides for a missing or empty attribution, and on hide()', () => {
@@ -87,7 +87,7 @@ describe('createPanoAttribution', () => {
     expect(el().hidden).toBe(true);
 
     overlay.show(MAPILLARY);
-    overlay.show({ holder: '' });
+    overlay.show({ ...MAPILLARY, holder: '' });
     expect(el().hidden).toBe(true);
 
     overlay.show(MAPILLARY);
@@ -97,9 +97,9 @@ describe('createPanoAttribution', () => {
 
   it('replaces the previous line rather than appending to it', () => {
     overlay.show(MAPILLARY);
-    overlay.show({ holder: '© 2025 Google' });
+    overlay.show({ ...MAPILLARY, holder: 'Mapillary', provider: null });
 
-    expect(el().textContent).toBe('© 2025 Google');
-    expect(el().querySelector('a')).toBeNull();
+    expect(el().textContent).toBe(`Mapillary · CC BY-SA 4.0 ${NEW_TAB_CUE}`);
+    expect(el().querySelectorAll('a')).toHaveLength(1);
   });
 });

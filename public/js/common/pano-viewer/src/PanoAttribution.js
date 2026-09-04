@@ -3,6 +3,11 @@
  * Project Sidewalk shows its own copy of a panorama — the self-hosted Pannellum copy or a crop — rather than the
  * provider's live viewer, which draws its own (#4865).
  *
+ * Only licensed imagery gets an overlay. Mapillary's CC BY-SA obliges us to name the contributor and the licence,
+ * and nothing else on screen does that once Pannellum has replaced Mapillary's viewer. Google's and infra3d's
+ * imagery carries a copyright string instead of a licence, which the source logo and the viewer's own copyright
+ * line already convey, so a second copy of it is noise (Jon, 2026-09-04).
+ *
  * The container must establish a CSS positioning context, as for createPanoViewerLogo. The overlay sits top-right,
  * clear of the hide-label control (top-left) and the hover validation bar (bottom).
  *
@@ -49,11 +54,12 @@ function createPanoAttribution(container) {
 
   return {
     /**
-     * Shows the overlay for an attribution, or hides it when there is nothing to attribute.
+     * Shows the overlay for an attribution, or hides it when there is nothing to attribute or the imagery carries
+     * no licence to name.
      * @param {?{holder: string, provider: ?string, license: ?string, license_url: ?string}} attribution
      */
     show(attribution) {
-      if (!attribution || !attribution.holder) {
+      if (!attribution || !attribution.holder || !attribution.license) {
         holder.hidden = true;
         return;
       }
