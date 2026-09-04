@@ -341,8 +341,12 @@ class CrossCityStats {
 
   /**
    * Fills a community-band tile with a figure in both the forms the band's CSS can choose between: the exact one,
-   * which always carries the accessible reading, and a short one for widths too narrow to seat five exact figures
-   * across the row. Both are built here from numbers we formatted ourselves, so there is no caller text to escape.
+   * which always carries the accessible reading, and a short one for widths too narrow to seat a full row of exact
+   * figures.
+   *
+   * Built as elements rather than markup: a distance's unit is a translated Messages value, so these strings are not
+   * all ours to trust, and textContent keeps this method inside the escaping rule the rest of the file follows. It
+   * also leaves no whitespace around the figure, which `white-space: nowrap` would otherwise carry into a selection.
    *
    * @param {string} id - Element id of the tile's `.ud-community-value`.
    * @param {string} full - The exact figure, e.g. "1,234,567".
@@ -355,9 +359,14 @@ class CrossCityStats {
       el.textContent = full;
       return;
     }
-    el.innerHTML = `
-      <span class="ud-value-full">${full}</span><span class="ud-value-short" aria-hidden="true">${short}</span>
-    `;
+    const fullSpan = document.createElement('span');
+    fullSpan.className = 'ud-value-full';
+    fullSpan.textContent = full;
+    const shortSpan = document.createElement('span');
+    shortSpan.className = 'ud-value-short';
+    shortSpan.setAttribute('aria-hidden', 'true');
+    shortSpan.textContent = short;
+    el.replaceChildren(fullSpan, shortSpan);
   }
 
   /**
@@ -369,8 +378,13 @@ class CrossCityStats {
    */
   static #shortNum(n) {
     const v = Number(n || 0);
-    if (v >= 1000000) return `${(v / 1000000).toLocaleString(undefined, { maximumFractionDigits: 1 })}M`;
-    if (v >= 10000) return `${Math.round(v / 1000).toLocaleString()}k`;
+    // Rounding picks the tier, so 999,999 reads "1.0M" rather than a "1000k" that claims not to be a million. The
+    // digits match leaderboard.scala.html's shortCount exactly -- one decimal at M, none and ungrouped at k --
+    // because the two feed the same band and its type is sized to the character count.
+    const thousands = Math.round(v / 1000);
+    const oneDecimal = { minimumFractionDigits: 1, maximumFractionDigits: 1 };
+    if (thousands >= 1000) return `${(v / 1000000).toLocaleString(undefined, oneDecimal)}M`;
+    if (v >= 10000) return `${thousands}k`;
     return CrossCityStats.#num(v);
   }
 
@@ -436,7 +450,7 @@ class CrossCityStats {
    */
   static #shortDist(floored, unit) {
     if (floored < 10000) return CrossCityStats.#fmtDist(floored, unit);
-    return `${Math.round(floored / 1000).toLocaleString()}k ${unit || ''}`.trim();
+    return `${CrossCityStats.#shortNum(floored)} ${unit || ''}`.trim();
   }
 
   /** Localized month-and-year for a last-labeled timestamp, or a dash when the mapper only validated there. */
