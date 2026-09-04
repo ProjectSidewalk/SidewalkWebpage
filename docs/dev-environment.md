@@ -154,11 +154,15 @@ npm start         # (inside that shell) build assets + run the app
 
 Then visit http://localhost:9000. To stop everything: `make docker-stop`.
 
+`make dev` also keeps `node_modules` in step with `package-lock.json`, reinstalling only when the two have diverged.
+See [npm dependencies](#npm-dependencies).
+
 Other handy targets:
 
 | Command | What it does |
 |---------|--------------|
-| `make docker-up` | Start all services detached (no shell). |
+| `make docker-up` | Start all services detached (no shell). Useful for `db` only: the web container exits at once, its image command being `jshell`, which reads EOF without a TTY. |
+| `make npm-sync` | Reinstall `node_modules` from `package-lock.json` if they've diverged. |
 | `make ssh target=web` | Open a shell in a running container (`target=web` or `target=db`). |
 
 ---
@@ -254,6 +258,33 @@ The dev server hot-reloads, so you rarely restart it.
   image's 3.8, kept because the app shells out to it for in-band clustering; `python3.13` is where the offline tooling
   and its libraries live. Run offline scripts as `python3.13 scripts/...`. Details in
   [`scripts/README.md`](../scripts/README.md); pins in [`docs/upgrading-libraries.md`](upgrading-libraries.md).
+
+### npm dependencies
+
+`package-lock.json` is committed, and it — not `package.json` — decides which versions actually get installed. CI
+runs `npm ci`, which installs it exactly and refuses to run if it disagrees with `package.json`, so every developer
+and every required check share one toolchain.
+
+To add or change a dependency, edit `package.json`, run `npm install` inside the container, and **commit the
+resulting `package-lock.json` alongside it**. Don't hand-edit the lockfile. On a rootful Docker daemon, run that
+install as `docker exec -u $(id -u) projectsidewalk-web …` — npm rewrites the lockfile by rename, so the new file
+lands owned by container root, and a tracked root-owned file makes the next host-side `git checkout` of it fail.
+
+`package.json`'s `engines` records the Node and npm the container and CI use. There's no `.npmrc`, so it's advisory:
+npm prints an `EBADENGINE` warning and installs anyway. It's there to tell you what the supported pair is,
+which matters for `make test-e2e-host` — the one path that installs on your host rather than in the container.
+
+The container never uses your checkout's `node_modules`. The bind mount would otherwise lay a host-built copy — the
+one `make test-e2e-host` needs — over the container's, so `docker-compose.yml` mounts a named volume over that path.
+The volume outlives the container and so isn't refreshed by rebuilding the image; `make dev` and `make npm-sync` are
+what refresh it, against a stamp covering `package.json`, `package-lock.json` and the container's node/npm versions.
+To start completely clean:
+
+```bash
+make docker-stop
+docker volume rm "$(basename "$PWD" | tr '[:upper:]' '[:lower:]')_node_modules"   # your checkout dir, lowercased
+make dev
+```
 
 ### Checking that backend changes compile
 

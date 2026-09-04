@@ -397,6 +397,10 @@ class RouteServiceImpl @Inject() (
    * than copied still lands on it (#5150). Live routes outrank retired slugs whichever spelling matched: a link that
    * still works beats one kept alive only for old shares.
    *
+   * /r/ resolves slugs and nothing else. A bare route id was accepted here briefly (#5157) and taken back out: ids
+   * are dense, so a mistyped one lands on a real route instead of 404ing, and a slug's sparseness — the fact that a
+   * typo misses — is the only error detection a share link has. /explore?routeId=<id> is where an id belongs.
+   *
    * Retyping stays lossy in two ways no fold can close, both preferable to a 404: "/r/STRASSE-TOUR" misses a route
    * slugged "straße-tour" (ß has no canonical decomposition), and where the uniquifier appended "-2" a retyped name
    * reaches whichever route holds the unsuffixed slug. A copied link is always unambiguous.

@@ -5,6 +5,11 @@ Play 3.0 (Java 17) backend, Postgres + PostGIS via Slick, and a vanilla-JS front
 transpile, no minify, no module system), all run in Docker. Request flow is routes → Controller → Service → Table
 (DAO). Architecture tour: `docs/architecture.md`. Setup, daily commands, troubleshooting: `docs/dev-environment.md`.
 
+## 🚨 NEVER READ `docker-compose.override.yml` 🚨
+
+Real live secrets, nothing enforces this but you. Never open it, never print or commit a value from it, and exclude
+it from wide `grep`/`find`/`cat *` sweeps. Ask the maintainer for a value; `docker-compose.yml` has dummy equivalents.
+
 This file holds only cross-cutting rules. Detail lives in `docs/` and loads on demand: path-scoped rules in
 `.claude/rules/` surface the essentials when you read a matching file, and the table says which doc to read first
 when a task is in its area.
@@ -38,7 +43,6 @@ when a task is in its area.
 - Never browser-test anything that needs a street-view panorama (placing labels, validating). Hand the developer a
   checklist or console snippet instead. The `test/e2e/` suite only *loads* Explore's tutorial and Validate's landing
   state; don't extend it into pano interaction.
-- `docker-compose.override.yml` holds the real local secrets and is hidden from you. Ask if you need a value.
 
 ## Before a change is done
 
