@@ -6,6 +6,7 @@ import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.test.Helpers._
+import models.utils.MyPostgresProfile.api._
 import play.api.test.FakeRequest
 
 /**
@@ -54,7 +55,8 @@ class RawLabelsApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       // Header from LabelDataForApi.csvHeader; assert snake_case field names are present and camelCase absent.
       body must include(
         "label_id,user_id,pano_id,pano_source,label_type,severity,tags,description,time_created,high_quality_user," +
-          "street_edge_id,osm_way_id,region_id,region_name,correct,agree_count,disagree_count,unsure_count," +
+          "street_edge_id,osm_way_id,region_id,region_name,street_side,centerline_offset_m,correct,agree_count," +
+          "disagree_count,unsure_count," +
           "validations,audit_task_id,mission_id,image_capture_date,heading,pitch,zoom,canvas_x,canvas_y," +
           "canvas_width,canvas_height,pano_x,pano_y,pano_width,pano_height,camera_heading,camera_pitch," +
           "camera_roll,pano_url,latitude,longitude"
@@ -62,6 +64,45 @@ class RawLabelsApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       body must not include "labelId"
       body must not include "streetEdgeId"
       body must not include "neighborhood"
+    }
+
+    "carry street_side and centerline_offset_m on a real feature, consistent with each other (#2886)" in {
+      // The row converter is positional, so only a feature read from the DB proves the two columns land in the right
+      // fields. Needs a positioned label to build a bbox around; an empty schema cancels rather than passes.
+      val dbConfig =
+        app.injector.instanceOf[play.api.db.slick.DatabaseConfigProvider].get[models.utils.MyPostgresProfile]
+      val anchor = scala.concurrent.Await.result(
+        dbConfig.db.run(
+          sql"SELECT lng, lat FROM label_point WHERE geom IS NOT NULL ORDER BY label_point_id DESC LIMIT 1"
+            .as[(Double, Double)]
+            .headOption
+        ),
+        scala.concurrent.duration.DurationInt(60).seconds
+      )
+      assume(anchor.isDefined, "no positioned labels in this schema; needs a seeded DB")
+      val (lng, lat) = anchor.get
+      val bbox       = s"bbox=${lng - 0.0005},${lat - 0.0005},${lng + 0.0005},${lat + 0.0005}"
+
+      val resp = route(app, FakeRequest(GET, s"/v3/api/rawLabels?$bbox")).get
+      status(resp) mustBe OK
+      val features = (contentAsJson(resp) \ "features").as[Seq[play.api.libs.json.JsObject]]
+      features must not be empty
+      features.foreach { feature =>
+        val props  = (feature \ "properties").as[play.api.libs.json.JsObject]
+        val side   = (props \ "street_side").asOpt[String]
+        val offset = (props \ "centerline_offset_m").asOpt[Double]
+        (props \ "street_side").toOption mustBe defined
+        (props \ "centerline_offset_m").toOption mustBe defined
+        side.foreach(_ must (be("left") or be("right")))
+        // The side is the offset with a 1 m floor: left is >= 1, right is <= -1, and inside the floor there is none.
+        (side, offset) match {
+          case (Some("left"), Some(m))  => m must be >= 1.0
+          case (Some("right"), Some(m)) => m must be <= -1.0
+          case (None, Some(m))          => m.abs must be < 1.0
+          case (None, None)             => succeed
+          case other                    => fail(s"side without an offset: $other")
+        }
+      }
     }
 
     "return 400 INVALID_PARAMETER for a malformed bbox" in {

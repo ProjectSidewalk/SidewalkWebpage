@@ -134,10 +134,14 @@ The dev DB is small enough that any SQL looks fast; prod tables are not (`label`
 
 Distances are measured geodesically (`ST_Length(geom::geography)`; see [`style-guide.md`](style-guide.md)). Cached
 distance columns (`user_stat.meters_audited`, `labels_per_meter` and the `high_quality` flag derived from it,
-`region_completion`, `route.distance_meters`) must equal what their runtime recompute would produce, so changing a
-distance query means recomputing its caches in the same evolution, and the nightly refresh that maintains them has to
-reach every row a full recompute would touch (#4774). `GeodesicDistanceSpec` checks both against the connected
-database; it needs a *seeded* one, since its cache-freshness tests cancel on empty tables.
+`region_completion`, `route.distance_meters`, and `label_point.centerline_offset_m`) must equal what their runtime
+recompute would produce, so changing a distance query means recomputing its caches in the same evolution, and the
+nightly refresh that maintains them has to reach every row a full recompute would touch (#4774).
+`GeodesicDistanceSpec` checks both against the connected database; it needs a *seeded* one, since its cache-freshness
+tests cancel on empty tables. `centerline_offset_m` is the odd one out: nothing refreshes it nightly, so an evolution
+that moves `label_point.geom` or changes `label.street_edge_id` must recompute it in the same statement with
+`label_centerline_offset_m(label_point.geom, street_edge.geom)` (374.sql's backfill is the template);
+`StreetSideSpec` fails if a stored value differs from a fresh call.
 
 ## A new table that cross-schema queries read
 

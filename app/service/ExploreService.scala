@@ -710,11 +710,13 @@ class ExploreServiceImpl @Inject() (
         )
       )
 
-      // Add an entry to the label_point table.
-      _ <- labelPointTable.insert(
+      // The side of the street is relative to calculatedStreetEdgeId, so it is filled in after the insert (#2886).
+      newLabelPointId: Int <- labelPointTable.insert(
         LabelPoint(0, newLabelId, point.panoX, point.panoY, point.canvasX, point.canvasY, point.heading, point.pitch,
-          point.zoom, point.lat, point.lng, pointGeom, point.computationMethod)
+          point.zoom, point.lat, point.lng, pointGeom, point.computationMethod, centerlineOffsetM = None,
+          streetSide = None)
       )
+      _ <- labelPointTable.computeCenterlineOffset(newLabelPointId, calculatedStreetEdgeId)
     } yield {
       NewLabelData(newLabelId, label.temporaryLabelId, LabelTypeEnum.byName(label.labelType), label.panoSource,
         label.tutorial, timeCreated)

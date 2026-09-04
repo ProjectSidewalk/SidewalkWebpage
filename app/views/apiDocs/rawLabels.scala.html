@@ -227,6 +227,8 @@
         "osm_way_id": 11584845,
         "region_id": 1,
         "region_name": "Teaneck Community Charter School",
+        "street_side": "left",
+        "centerline_offset_m": 4.62,
         "correct": true,
         "agree_count": 2,
         "disagree_count": 0,
@@ -281,6 +283,8 @@
         "osm_way_id": 11566031,
         "region_id": 1,
         "region_name": "Teaneck Community Charter School",
+        "street_side": null,
+        "centerline_offset_m": -0.71,
         "correct": true,
         "agree_count": 2,
         "disagree_count": 1,
@@ -403,6 +407,16 @@
             <td><code>properties.region_name</code></td>
             <td><code>string</code></td>
             <td>Name of the region (neighborhood) the label falls within, as defined in Project Sidewalk's regions.</td>
+          </tr>
+          <tr>
+            <td><code>properties.street_side</code></td>
+            <td><code>string | null</code></td>
+            <td><strong>Added September 2026:</strong> which side of the street the label sits on, <code>left</code> or <code>right</code> relative to the digitized direction of <code>street_edge_id</code> (its <code>geometry</code> in the Streets API runs start to end). Derived from <code>centerline_offset_m</code> with a 1&nbsp;m floor: <code>null</code> when the label is within a metre of the centerline (where the side is a coin flip, e.g. most crosswalks) or has no position. Two labels on the same <code>street_edge_id</code> with the same <code>street_side</code> are on the same sidewalk. See <a href="#street-side">how confident the side is</a>.</td>
+          </tr>
+          <tr>
+            <td><code>properties.centerline_offset_m</code></td>
+            <td><code>number | null</code></td>
+            <td><strong>Added September 2026:</strong> signed geodesic distance in metres from the label's estimated position to the centerline of <code>street_edge_id</code>, positive on the left of the digitized direction and negative on the right. This is the side's confidence: use it to choose your own threshold instead of the 1&nbsp;m floor. <code>null</code> when the label has no position.</td>
           </tr>
 
             <!-- Validation Information -->
@@ -543,11 +557,33 @@
       </table>
     </div>
 
+    <h5 id="street-side">How confident <code>street_side</code> is <a href="#street-side" class="permalink">#</a></h5>
+    <p>The side is computed from the label's estimated position, so it is only as sure as that position is far from the centerline. Scored against Seattle's official sidewalk and curb-ramp inventory, its accuracy is a function of <code>|centerline_offset_m|</code> alone, the same for every label type (details and method in <a href="https://github.com/ProjectSidewalk/SidewalkWebpage/blob/develop/docs/experiments/2026-09-03-street-side-assignment.md">the #2886 report</a>). The 1&nbsp;m floor is where the value stops being a coin flip; raise it if you need a surer side:</p>
+    <div class="ps-table-wrapper" tabindex="0" role="region" aria-labelledby="street-side">
+      <table class="ps-table ps-table--compact">
+        <thead>
+          <tr>
+            <th scope="col"><code>|centerline_offset_m|</code></th>
+            <th scope="col">Side agrees with the inventory</th>
+            <th scope="col">Share of positioned labels</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>under 0.5&nbsp;m</td><td>63–70%</td><td>1.8%</td></tr>
+          <tr><td>0.5–1&nbsp;m (still <code>null</code>)</td><td>84–87%</td><td>1.7%</td></tr>
+          <tr><td>1–1.5&nbsp;m</td><td>94–96%</td><td>2.0%</td></tr>
+          <tr><td>1.5–2&nbsp;m</td><td>97–98%</td><td>2.6%</td></tr>
+          <tr><td>2–3&nbsp;m</td><td>98–99%</td><td>7.7%</td></tr>
+          <tr><td>3&nbsp;m and beyond</td><td>99%+</td><td>84%</td></tr>
+        </tbody>
+      </table>
+    </div>
+
     <h4 id="response-csv">CSV Format <a href="#response-csv" class="permalink">#</a></h4>
     <p>If <code>filetype=csv</code> is specified, the response body will be CSV data. The first row contains the headers, corresponding to the fields in the GeoJSON properties object, plus <code>latitude</code> and <code>longitude</code> columns derived from the geometry. CRS is WGS84 (EPSG:4326).</p>
-    <pre tabindex="0"><code class="language-csv">label_id,user_id,pano_id,pano_source,label_type,severity,tags,description,...,disagree_count,unsure_count,latitude,longitude
-115,18b26a38-...,YQScv...,gsv,CurbRamp,2,[missing tactile warning],,...,1,0,40.715,-74.005
-116,...,...,gsv,Obstacle,4,[construction],"Temporary fence",...,3,0,40.7151,-74.0051
+    <pre tabindex="0"><code class="language-csv">label_id,user_id,pano_id,pano_source,label_type,severity,tags,description,...,region_name,street_side,centerline_offset_m,correct,...,latitude,longitude
+115,18b26a38-...,YQScv...,gsv,CurbRamp,2,[missing tactile warning],,...,Teaneck,left,4.62,true,...,40.715,-74.005
+116,...,...,gsv,Obstacle,4,[construction],"Temporary fence",...,Teaneck,right,-3.1,true,...,40.7151,-74.0051
 ...</code></pre>
     <h4 id="response-shapefile">Shapefile Format <a href="#response-shapefile" class="permalink">#</a></h4>
     <p>If <code>filetype=shapefile</code> is specified, the response body will be a ZIP archive containing the Shapefile components (.shp, .shx, .dbf, .prj). The attribute table (.dbf) contains fields corresponding to the GeoJSON properties object (field names may be truncated due to Shapefile limitations). The included <code>.prj</code> file defines the Coordinate Reference System (CRS), typically WGS84 (EPSG:4326). </p>

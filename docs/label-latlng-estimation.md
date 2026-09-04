@@ -101,6 +101,33 @@ On the era frame the shipped constant reads about 17% too near on the subpopulat
 payloads' pinned 2.50 m ground plane (DC, 6656-px panoramas, Newberg); that is the truth's scale, not the click
 geometry, and the modern frame is the measured one.
 
+## The side of the street (#2886)
+
+The position above also fixes which side of its street a label is on. Evolution 374 stores it on `label_point` as
+**`centerline_offset_m`**, the signed geodesic distance from the estimated position to the centerline of the label's
+`street_edge_id` (the open street nearest the position at submission): positive on the **left** of the edge's
+digitized direction (`ST_StartPoint` → `ST_EndPoint`), negative on the right, `NULL` without a position. The
+`street_side` enum (`left`/`right`, mirrored by `models.label.StreetSide`) is a `GENERATED` column over it with a 1 m
+floor, so it can't drift from the offset. Both are on `/v3/api/rawLabels`.
+
+The sign is relative to the edge rather than cardinal because that is what "same sidewalk as label X" needs (compare
+`street_side` on a shared `street_edge_id`), and cardinal sides are undefined on diagonal streets. It comes from a
+cross product against the edge's local tangent in Web Mercator (conformal, so no per-city SRID); the magnitude is
+geodesic. The one SQL function, `label_centerline_offset_m`, serves the backfill and the insert path
+(`LabelPointTable.computeCenterlineOffset`, run right after the point insert in `ExploreService.insertLabel`), so the
+stored value always equals a fresh recompute, and `StreetSideSpec` checks that it does.
+
+Why this design and not the camera heading the issue proposed: scored against Seattle's SDOT sidewalk inventory, the
+geometric side is right 93–96% where the two methods disagree, the heading method fails whenever the camera is off
+the audited street (18.5% accurate beyond 15 m, and one label in five is shot from more than 5 m off), and no hybrid
+beats it. The offset is stored rather than just the enum because accuracy is a monotone function of it alone
+(63–70% under 0.5 m, 97–98% at 1.5–2 m, 99%+ from 3 m, the same for every label type), so a consumer can pick its own
+floor. Full report: [`experiments/2026-09-03-street-side-assignment.md`](experiments/2026-09-03-street-side-assignment.md).
+
+**Recompute contract.** Anything that moves `label_point.geom` or changes `label.street_edge_id` (a 352/366-style
+backfill, an estimator refit, an AI reattach) recomputes `centerline_offset_m` in the same statement. The reposition
+in 352 flipped 2.2% of sides; forgetting the recompute would have left every one of them silently wrong.
+
 ## The frame contract (for #5085 and any viewport change)
 
 The estimator sees only the two angles above, and the angles come from the click through the *projection*:
