@@ -440,6 +440,78 @@ class RouteBuilderControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
       Seq(s"St.%20Louis%20Walk%20$tag", s"ST.%20LOUIS%20WALK%20$tag", s"st--louis-walk-$tag")
         .foreach(mustRedirectTo(_, routeId))
     }
+
+    // #5157: /r/2 is the spelling of a share link that survives being read aloud in a demo; a slug is not speakable.
+    "resolve a bare route id, and 404 an id that names nothing" in {
+      val user                 = signUpFreshUser()
+      val (streetId, regionId) = anyStreet(user)
+
+      val saved = saveRoute(user, saveRouteBody(regionId, streetId, Some(s"Speakable Walk ${uniqueTag()}")))
+      status(saved) mustBe OK
+      val routeId = (contentAsJson(saved) \ "route_id").as[Int]
+
+      mustRedirectTo(routeId.toString, routeId)
+
+      // Ids naming nothing 404 rather than erroring, including one past Int's range: the path is bound as a String,
+      // so nothing upstream rejects it for us. Only the canonical decimal spelling is read as an id at all, so the
+      // route above answers at exactly one numeric URL rather than at "+id", "0id", "00id", ... as well.
+      Seq("0", "-1", Int.MaxValue.toString, "99999999999999999999", s"0$routeId", s"+$routeId").foreach { path =>
+        withClue(s"/r/$path: ") { status(route(app, FakeRequest(GET, s"/r/$path")).get) mustBe NOT_FOUND }
+      }
+
+      // A deleted route's id stops resolving, exactly as its slug does.
+      status(deleteRoute(user, routeId)) mustBe OK
+      status(route(app, FakeRequest(GET, s"/r/$routeId")).get) mustBe NOT_FOUND
+    }
+
+    // A slug outliving its route is the point of the reservation: RouteTable.slugsStartingWith keeps a deleted
+    // route's slug taken so a later route can't inherit its share links. Reading a dead numeric slug as an id
+    // would sidestep that — silently, and onto a stranger's route rather than onto a 404.
+    "keep a deleted route's numeric slug dead rather than rereading it as the id of a live route" in {
+      val user                 = signUpFreshUser()
+      val (streetId, regionId) = anyStreet(user)
+
+      val live = saveRoute(user, saveRouteBody(regionId, streetId, Some(s"Reservation Target ${uniqueTag()}")))
+      status(live) mustBe OK
+      val liveId = (contentAsJson(live) \ "route_id").as[Int]
+
+      // A second route named after the first one's id, deleted without ever being renamed — so the reservation
+      // rests on the route row alone, with no alias to fall back on.
+      val namesake = saveRoute(user, saveRouteBody(regionId, streetId, Some(liveId.toString)))
+      status(namesake) mustBe OK
+      (contentAsJson(namesake) \ "slug").as[String] mustBe liveId.toString
+      status(deleteRoute(user, (contentAsJson(namesake) \ "route_id").as[Int])) mustBe OK
+
+      status(route(app, FakeRequest(GET, s"/r/$liveId")).get) mustBe NOT_FOUND
+    }
+
+    // The candidate order is the whole safety argument for bare ids, so it gets a route whose slug *is* another
+    // route's id: every step of the order is observable on one URL.
+    "let a slug spelled as a number outrank the route id it collides with" in {
+      val user                 = signUpFreshUser()
+      val (streetId, regionId) = anyStreet(user)
+
+      val target = saveRoute(user, saveRouteBody(regionId, streetId, Some(s"Collision Target ${uniqueTag()}")))
+      status(target) mustBe OK
+      val targetId = (contentAsJson(target) \ "route_id").as[Int]
+
+      val namesake = saveRoute(user, saveRouteBody(regionId, streetId, Some(targetId.toString)))
+      status(namesake) mustBe OK
+      val namesakeId = (contentAsJson(namesake) \ "route_id").as[Int]
+      (contentAsJson(namesake) \ "slug").as[String] mustBe targetId.toString
+
+      // A live slug beats the id.
+      mustRedirectTo(targetId.toString, namesakeId)
+
+      // Renaming retires that slug to the alias table, which is still tried ahead of the id.
+      status(putRoute(user, namesakeId, Json.obj("name" -> s"Renamed Namesake ${uniqueTag()}"))) mustBe OK
+      mustRedirectTo(targetId.toString, namesakeId)
+
+      // Deleting the namesake doesn't hand the URL to the id either: a retired slug stays retired, so the link
+      // dies with the route that owned it instead of quietly retargeting.
+      status(deleteRoute(user, namesakeId)) mustBe OK
+      status(route(app, FakeRequest(GET, s"/r/$targetId")).get) mustBe NOT_FOUND
+    }
   }
 
   "GET /userapi/routes, PUT and DELETE /userapi/routes/:routeId" should {
