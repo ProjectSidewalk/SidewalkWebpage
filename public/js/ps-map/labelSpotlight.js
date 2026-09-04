@@ -66,6 +66,20 @@ function createLabelSpotlight({ dialog, getMap, getMapData, getCoords, getLabelT
     tailSvg.style.display = 'none';
     tailVisible = false;
   };
+  // Shortens base->aimed so it ends at the viewport edge when the dot is scrolled off it, keeping the direction.
+  const clipToViewport = (fromX, fromY, aimed) => {
+    const INSET = 6;
+    const vx = aimed.x - fromX;
+    const vy = aimed.y - fromY;
+    let t = 1;
+    if (vx > 0) t = Math.min(t, (window.innerWidth - INSET - fromX) / vx);
+    else if (vx < 0) t = Math.min(t, (INSET - fromX) / vx);
+    if (vy > 0) t = Math.min(t, (window.innerHeight - INSET - fromY) / vy);
+    else if (vy < 0) t = Math.min(t, (INSET - fromY) / vy);
+    t = Math.max(0, Math.min(1, t));
+    return { x: fromX + vx * t, y: fromY + vy * t };
+  };
+
   // Hosts run this on every map 'move' frame, so the common no-spotlight state must bail before any DOM work.
   const updateTail = () => {
     const map = getMap();
@@ -78,9 +92,10 @@ function createLabelSpotlight({ dialog, getMap, getMapData, getCoords, getLabelT
     const p = map.project(coords);
     const dot = { x: mapRect.left + p.x, y: mapRect.top + p.y };
     const r = dialog.getBoundingClientRect();
+    // The one case with no tail to draw: a triangle to a dot behind the dialog points back into the card. A dot
+    // merely off-screen still has a direction, and gets a tip clipped to the viewport edge below.
     const inDialog = dot.x >= r.left && dot.x <= r.right && dot.y >= r.top && dot.y <= r.bottom;
-    const onScreen = dot.x >= 0 && dot.x <= window.innerWidth && dot.y >= 0 && dot.y <= window.innerHeight;
-    if (inDialog || !onScreen) {
+    if (inDialog) {
       hideTail();
       return;
     }
@@ -88,6 +103,7 @@ function createLabelSpotlight({ dialog, getMap, getMapData, getCoords, getLabelT
     // narrow-viewport case. CORNER_MARGIN keeps the base clear of the dialog's rounded corners.
     const CORNER_MARGIN = 48;
     const HALF_BASE = 26;
+    const BEACON_RIM = 18;
     const onSide = dot.x < r.left || dot.x > r.right;
     const baseX = onSide
       ? (dot.x >= (r.left + r.right) / 2 ? r.right - 1 : r.left + 1)
@@ -98,13 +114,18 @@ function createLabelSpotlight({ dialog, getMap, getMapData, getCoords, getLabelT
     const dx = dot.x - baseX;
     const dy = dot.y - baseY;
     const len = Math.hypot(dx, dy);
-    if (len < 40) {
-      hideTail(); // Too close for a triangle to read; the beacon alone marks it.
+    // The tip stops BEACON_RIM short of the dot, so any closer and the triangle folds back on itself. Above that
+    // the base narrows with the distance, so a near dot thins the tail to a sliver rather than blinking it out.
+    if (len < BEACON_RIM + 4) {
+      hideTail();
       return;
     }
-    const tip = { x: dot.x - (dx / len) * 18, y: dot.y - (dy / len) * 18 }; // Stop at the beacon's rim.
-    const spreadX = onSide ? 0 : HALF_BASE;
-    const spreadY = onSide ? HALF_BASE : 0;
+    const aimed = { x: dot.x - (dx / len) * BEACON_RIM, y: dot.y - (dy / len) * BEACON_RIM };
+    const tip = clipToViewport(baseX, baseY, aimed);
+    const tipLen = Math.hypot(tip.x - baseX, tip.y - baseY);
+    const halfBase = Math.max(4, Math.min(HALF_BASE, tipLen * 0.6));
+    const spreadX = onSide ? 0 : halfBase;
+    const spreadY = onSide ? halfBase : 0;
     const corner1 = `${baseX - spreadX},${baseY - spreadY}`;
     const corner2 = `${baseX + spreadX},${baseY + spreadY}`;
     tailShape.setAttribute('points', `${corner1} ${corner2} ${tip.x},${tip.y}`);
@@ -161,16 +182,18 @@ function createLabelSpotlight({ dialog, getMap, getMapData, getCoords, getLabelT
     const map = getMap();
     const coords = getCoords(labelId);
     if (!map || !coords) return;
-    // Right gutter first; the left one is under the filter sidebar. Without the vertical fallback a narrow viewport
-    // (a phone, or devtools docked beside the page) buries the dot under the dialog, losing beacon and tail at once.
-    const MIN_GUTTER = 80;
+    // Park the dot in the roomier gutter — right rather than left, which is under the filter sidebar. Refuse only
+    // a gutter too narrow for the beacon: a clipped beacon with a tail still reads, whereas the alternative buries
+    // the dot under the dialog and leaves updateTail() nothing to draw. A phone leaves no gutter either way.
+    const MIN_GUTTER = 24;
     const rect = dialog.open ? dialog.getBoundingClientRect() : null;
     const gutterX = (window.innerWidth - (rect?.width || 650)) / 2;
     const gutterY = (window.innerHeight - (rect?.height || 0)) / 2;
     let dx = 0;
     let dy = 0;
-    if (gutterX > MIN_GUTTER) dx = (window.innerWidth - gutterX) / 2;
+    if (gutterX >= gutterY && gutterX > MIN_GUTTER) dx = (window.innerWidth - gutterX) / 2;
     else if (gutterY > MIN_GUTTER) dy = (window.innerHeight - gutterY) / 2;
+    else if (gutterX > MIN_GUTTER) dx = (window.innerWidth - gutterX) / 2;
     const zoom = Math.max(map.getZoom(), 16);
     // Pre-shift the center by hand rather than passing CameraOptions.offset: a deep-link/paging jump must be
     // instant, and mapbox drops offset on instant moves (see centerShowingLabelAt), which would bury the dot —
