@@ -2,6 +2,9 @@
  * Canvas Module. Owns the label canvas: drawing labels, hit-testing the cursor, and pano pan/cursor handling.
  */
 class Canvas {
+  // Widest crop we store, in px: what the boxed tool's HiDPI canvas has always produced (1440x960), and the size the
+  // share images and ML crops are cut from.
+  static CROP_MAX_WIDTH = 1440;
   // Grace period before the hover card hides once the cursor leaves the label, giving the pointer time to
   // travel from the icon onto the card (e.g. to reach its Edit/Delete buttons) without the card vanishing mid-way.
   static #HOVER_CARD_HIDE_DELAY_MS = 200;
@@ -29,8 +32,6 @@ class Canvas {
     isLeftDown: false,
   };
 
-  #canvasProperties = { height: 0, width: 0 };
-
   /**
    * @param {Object} ribbon - The RibbonMenu, queried for the selected label type / mode.
    */
@@ -53,10 +54,6 @@ class Canvas {
     // Render the canvas at its on-screen (and HiDPI) resolution now that pano may be displayed at a different size
     // than the 720x480 logical frame, while keeping all drawing code in that logical frame via a context transform.
     util.sizeCanvasToDisplay(el, this.#ctx);
-
-    // clearRect() operates in the logical frame thanks to the context transform set in util.sizeCanvasToDisplay.
-    this.#canvasProperties.width = util.EXPLORE_CANVAS_WIDTH;
-    this.#canvasProperties.height = util.EXPLORE_CANVAS_HEIGHT;
 
     // Attach listeners to dom elements. view-control-layer handles panning, drawing-layer handles adding labels.
     svl.ui.canvas.drawingLayer.on('mousedown', (e) => this.#handleDrawingLayerMouseDown(e));
@@ -88,11 +85,13 @@ class Canvas {
     // Generate some metadata for the new label.
     const labelType = this.#ribbon.getStatus('selectedLabelType');
     const pov = svl.panoViewer.getPov();
-    const povOfLabel = util.pano.canvasCoordToCenteredPov(
-      pov, canvasX, canvasY, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT,
-    );
+    // The click is projected through the frame it was made in, and the label keeps that frame (#5085): it is stored
+    // beside canvas_x/canvas_y so every later reader can project the point the same way.
+    const frame = svl.CANVAS_FRAME;
+    const hFov = svl.renderedHFov(pov.zoom);
+    const povOfLabel = util.pano.canvasCoordToCenteredPov(pov, canvasX, canvasY, frame.width, frame.height, hFov);
     const rerenderCanvasCoord = util.pano.centeredPovToCanvasCoord(
-      povOfLabel, pov, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS,
+      povOfLabel, pov, frame.width, frame.height, svl.LABEL_ICON_RADIUS, hFov,
     );
     const param = {
       tutorial: svl.missionContainer.getCurrentMission().getProperty('missionType') === 'auditOnboarding',
@@ -100,6 +99,7 @@ class Canvas {
       auditTaskId: svl.taskContainer.getCurrentTask().getAuditTaskId(),
       labelType,
       originalCanvasXY: { x: canvasX, y: canvasY },
+      originalCanvasFrame: { width: frame.width, height: frame.height },
       currCanvasXY: rerenderCanvasCoord,
       povOfLabelIfCentered: povOfLabel,
       panoId: svl.panoViewer.getPanoId(),
@@ -115,6 +115,8 @@ class Canvas {
       labelType,
       canvasX,
       canvasY,
+      canvasWidth: frame.width,
+      canvasHeight: frame.height,
     }, {
       temporaryLabelId: this.#status.currentLabel.getProperty('temporaryLabelId'),
     });
@@ -165,7 +167,7 @@ class Canvas {
   }
 
   /**
-   * Returns the cursor position in the fixed 720x480 logical canvas frame.
+   * Returns the cursor position in the logical canvas frame (720 px wide, see util.exploreCanvasFrame).
    *
    * The street view is displayed larger than the logical frame (see the --pano-width CSS variable), so we
    * divide the on-screen position by the display scale.
@@ -499,7 +501,8 @@ class Canvas {
    * @returns {Canvas} this.
    */
   clear() {
-    this.#ctx.clearRect(0, 0, this.#canvasProperties.width, this.#canvasProperties.height);
+    // clearRect() operates in the logical frame thanks to the context transform set in util.sizeCanvasToDisplay.
+    this.#ctx.clearRect(0, 0, svl.CANVAS_FRAME.width, svl.CANVAS_FRAME.height);
     return this;
   }
 
@@ -704,7 +707,29 @@ class Canvas {
     }
 
     // Save a high-res version of the image to the label object. Uploaded after label is saved to the db.
-    const newCrop = $(`.${svl.panoViewer.getCanvasClass()}`)[0].toDataURL('image/jpeg', 1);
-    label.setProperty('crop', newCrop);
+    const source = $(`.${svl.panoViewer.getCanvasClass()}`)[0];
+    label.setProperty('crop', Canvas.#cropDataUrl(source));
+  }
+
+  /**
+   * The crop as a JPEG data URL, no wider than CROP_MAX_WIDTH.
+   *
+   * The pano's canvas is its on-screen box times the device pixel ratio: 1440 px wide for the boxed tool at its
+   * largest, but 5000+ px for a fill-window viewport on a HiDPI display (#5085), which would make every crop 6-10x
+   * the bytes for no gain to the card surfaces and ML pipeline that consume them. Wider canvases are downscaled,
+   * keeping their aspect ratio, which the card surfaces read from the label's frame.
+   *
+   * @param {HTMLCanvasElement} source - The pano viewer's canvas.
+   * @returns {string} A JPEG data URL.
+   */
+  static #cropDataUrl(source) {
+    if (source.width <= Canvas.CROP_MAX_WIDTH) return source.toDataURL('image/jpeg', 1);
+    const scaled = document.createElement('canvas');
+    scaled.width = Canvas.CROP_MAX_WIDTH;
+    scaled.height = Math.round(source.height * Canvas.CROP_MAX_WIDTH / source.width);
+    const ctx = scaled.getContext('2d');
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(source, 0, 0, scaled.width, scaled.height);
+    return scaled.toDataURL('image/jpeg', 1);
   }
 }

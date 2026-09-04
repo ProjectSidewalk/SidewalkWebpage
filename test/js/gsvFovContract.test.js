@@ -121,6 +121,18 @@ function unclamped(cfg) {
 }
 
 describeWithFixture('GSV FOV contract (recorded fixture, #5083)', () => {
+    // The production model (#5085) carries the clamp window this suite pins, and reproduces the verdict's prediction
+    // wherever the two are anchored on the same curve (zooms 1-2; zoom 3 is anchored on the measured control here
+    // until the curve constant is corrected, see "the measured curve pins the app zoomToFov" below).
+    test('util.pano.renderedHFov carries the pinned clamp window and reproduces the verdict', () => {
+        expect(pano.GSV_VFOV_CLAMP_DEG.min).toBe(CLAMP_FLOOR_DEG);
+        expect(pano.GSV_VFOV_CLAMP_DEG.max).toBe(CLAMP_CEILING_DEG);
+        expect(fixture.verdict).toBe('width-pinned-vfov-clamped');
+        for (const cfg of fixture.configs.filter((c) => c.zoom !== 3)) {
+            expect(pano.renderedHFov(cfg.zoom, cfg.width / cfg.height, 'gsv')).toBeCloseTo(predictedHFov(cfg), 9);
+        }
+    });
+
     test('fixture carries its provenance', () => {
         expect(typeof fixture.generatedAt).toBe('string');
         expect(typeof fixture.mapsVersion).toBe('string');

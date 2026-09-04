@@ -474,6 +474,35 @@ function UtilitiesMisc(JSON) {
   }
 
   /**
+   * Where a label's canvas position lands, in percent, once its crop is cover-fitted into a box of another aspect.
+   *
+   * Card surfaces show a label's crop with `object-fit: cover` (or `background-size: cover`) inside a fixed-aspect
+   * box and place the marker at a percentage of that box. That is only `canvas_x / canvas_width` when the crop has the
+   * box's aspect ratio. A crop taken in a wider viewport (#5085) has the overflow trimmed equally from both sides, so
+   * the marker's fraction has to be re-expressed in the visible part; a taller crop loses top and bottom instead.
+   * Identity when the aspects match, so every 3:2 crop lands where it always has.
+   *
+   * @param {number} canvasX - The label's x in its frame.
+   * @param {number} canvasY - The label's y in its frame.
+   * @param {number} canvasWidth - Width of the frame canvasX/canvasY are expressed in (the crop has the same aspect).
+   * @param {number} canvasHeight - Height of that frame.
+   * @param {number} boxAspect - Width:height ratio of the box the crop is cover-fitted into.
+   * @returns {{left: number, top: number}} Percentages of the box's width and height.
+   */
+  function markerPercentInCoverBox(canvasX, canvasY, canvasWidth, canvasHeight, boxAspect) {
+    const frameAspect = canvasWidth / canvasHeight;
+    let fracX = canvasX / canvasWidth;
+    let fracY = canvasY / canvasHeight;
+    if (frameAspect > boxAspect) {
+      // The crop is wider than the box: only boxAspect / frameAspect of its width is visible, centered.
+      fracX = (fracX - 0.5) * (frameAspect / boxAspect) + 0.5;
+    } else if (frameAspect < boxAspect) {
+      fracY = (fracY - 0.5) * (boxAspect / frameAspect) + 0.5;
+    }
+    return { left: 100 * fracX, top: 100 * fracY };
+  }
+
+  /**
    * Merges a tutorial state's own annotations with the ones carried over from earlier states, without duplicates.
    *
    * The carry-over list is rebuilt from this merged list on every draw, and a state is drawn many times over (once
@@ -714,6 +743,7 @@ function UtilitiesMisc(JSON) {
   self.reportNoImagery = reportNoImagery;
   self.getStreetNameNear = getStreetNameNear;
   self.unwrapPanoX = unwrapPanoX;
+  self.markerPercentInCoverBox = markerPercentInCoverBox;
   self.mergeOnboardingAnnotations = mergeOnboardingAnnotations;
   self.carryOverOnboardingAnnotations = carryOverOnboardingAnnotations;
 

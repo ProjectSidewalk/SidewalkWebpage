@@ -109,12 +109,18 @@ labeling canvas into the POV that centers it, and `util.pano.povToPanoCoord` tur
 The projection models the viewport as a rectilinear camera with focal length `(canvasWidth / 2) / tan(hFov / 2)`,
 where the horizontal field of view is a function of zoom alone (#5083).
 
-**The invariant: a click must be projected through the frame it was made in.** Today every caller passes the
-720×480 constants (`util.EXPLORE_CANVAS_WIDTH/HEIGHT` in JS, `LabelPointTable.canvasWidth/Height` in Scala's
-`calculatePovIfCentered`), and every stored label was in fact placed on a 720×480 frame, so the constant is correct
-for the corpus. The moment the labeling viewport can be another size, the frame has to travel with the label
-(`label_point.canvas_width/canvas_height`, the #5085 plan) and every consumer of `canvas_x/canvas_y` has to read it.
-Measured over 387 label directions on frames from 4:3 to 21:9:
+**The invariant: a click must be projected through the frame it was made in.** Since evolution 374 (#5085) the frame
+travels with the label as `label_point.canvas_width/canvas_height`, and every consumer of `canvas_x/canvas_y` reads
+it: the Scala tripwire (`calculatePovIfCentered` takes the frame), Validate's marker decode, the label-detail popup,
+resumed missions, the share image, and the card surfaces (whose crops are cover-fitted into a 3:2 box, so their
+markers go through `util.misc.markerPercentInCoverBox`). Explore's frame is *logical*: always 720 px wide
+(`util.exploreCanvasFrame`), with a height of 720 divided by the displayed aspect ratio, 480 for the boxed tool and
+about 405 for a 16:9 immersive window. Only the aspect matters, so a 720-wide frame is exactly as good as the
+on-screen size, and the whole pre-374 corpus, which the client always normalized into 720×480, keeps that frame as
+its default. Validate's `label_validation.canvas_width/height` is the on-screen size in CSS px; the two tables differ
+in unit but not in meaning. AI labels carry the notional 720×480 (`LabelPointTable.canvasWidth/Height`), whose
+center is the one point consistent with the POV stored beside it. Measured over 387 label directions on frames from
+4:3 to 21:9:
 
 | how the click is interpreted | position error |
 |---|---|
@@ -124,8 +130,12 @@ Measured over 387 label directions on frames from 4:3 to 21:9:
 
 Uniform scaling is free: a 1280×720 and a 1920×1080 frame give identical results because focal length and both click
 offsets scale together, which is why the boxed tool's `--ui-scale` zoom has never needed a correction. Aspect is
-not. Portrait shapes and beyond-21:9 at zoom 3, where GSV clamps the vertical field, change the *effective*
-horizontal FOV rather than this math; #5083's clamp model applies before the projection.
+not. Off 3:2 the horizontal FOV itself also stops being a function of zoom alone: GSV clamps the vertical field to
+[14.97°, 89.84°] (#5083), which binds at aspect ≥ 1.90 at zoom 3, so an ordinary fill-window viewport renders a wider
+horizontal field than the zoom curve says. `util.pano.renderedHFov(zoom, aspect, viewerType)` and its port
+`PanoDataService.renderedHFov` model that, and both projection functions take the result as their trailing `hFov`
+argument; every writer and reader of a stored click passes it, keyed on the imagery source because Mapillary and
+Infra3D read their rendered field back and need no correction.
 
 ## What to do when the constants change
 

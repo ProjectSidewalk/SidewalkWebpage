@@ -394,10 +394,12 @@ class PopupPanoManager {
     if (W === 0 || H === 0) return;
 
     const t = this.#fallbackPanzoom.getTransform();
-    const fracX = this.label.canvasX / this.label.originalCanvasWidth;
-    const fracY = this.label.canvasY / this.label.originalCanvasHeight;
-    this.#fallbackMarker.style.left = `${t.x + fracX * W * t.scale}px`;
-    this.#fallbackMarker.style.top = `${t.y + fracY * H * t.scale}px`;
+    // The crop is cover-fitted into the container, so a crop of another aspect has its overflow trimmed (#5085).
+    const pct = util.misc.markerPercentInCoverBox(
+      this.label.canvasX, this.label.canvasY, this.label.originalCanvasWidth, this.label.originalCanvasHeight, W / H,
+    );
+    this.#fallbackMarker.style.left = `${t.x + (pct.left / 100) * W * t.scale}px`;
+    this.#fallbackMarker.style.top = `${t.y + (pct.top / 100) * H * t.scale}px`;
   }
 
   /**
@@ -407,9 +409,7 @@ class PopupPanoManager {
    *   streetEdgeId, aiGenerated.
    */
   renderLabel(label) {
-    const pos = util.pano.canvasCoordToCenteredPov(
-      label.pov, label.canvasX, label.canvasY, label.originalCanvasWidth, label.originalCanvasHeight,
-    );
+    const pos = this.#labelPov(label);
     // Mount the marker inside whichever canvas is currently visible so it sits over the right viewer.
     const activeCanvas = this.panoViewer === this.#pannellumViewer ? this.#pannellumCanvas : this.#panoCanvas;
     const panoMarker = new PanoMarker({
@@ -461,8 +461,22 @@ class PopupPanoManager {
    * @returns {{heading: number, pitch: number}}
    */
   getOriginalPosition() {
-    return util.pano.canvasCoordToCenteredPov(this.label.pov, this.label.canvasX, this.label.canvasY,
-      this.label.originalCanvasWidth, this.label.originalCanvasHeight);
+    return this.#labelPov(this.label);
+  }
+
+  /**
+   * The label's own direction: its stored click projected through the frame it was made in, with the fov that
+   * frame's aspect rendered at (#5085). The label was placed with the city's imagery, which the popup renders too.
+   * @param {Object} label - Plain-object label shape produced by LabelPopup (see renderLabel).
+   * @returns {{heading: number, pitch: number, zoom: number}}
+   */
+  #labelPov(label) {
+    const hFov = util.pano.renderedHFov(
+      label.pov.zoom, label.originalCanvasWidth / label.originalCanvasHeight, this.panoViewer?.getViewerType(),
+    );
+    return util.pano.canvasCoordToCenteredPov(
+      label.pov, label.canvasX, label.canvasY, label.originalCanvasWidth, label.originalCanvasHeight, hFov,
+    );
   }
 
   /**

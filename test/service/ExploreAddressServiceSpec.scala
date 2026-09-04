@@ -219,7 +219,7 @@ class ExploreAddressServiceSpec
       severity = Some(1),
       description = None,
       tagIds = Seq.empty,
-      point = LabelPointSubmission(0, 0, 0, 0, 0d, 0d, 1d, None, None, None),
+      point = LabelPointSubmission(0, 0, 0, 0, 720, 480, 0d, 0d, 1d, None, None, None),
       temporaryLabelId = temporaryLabelId,
       timeCreated = Some(OffsetDateTime.now),
       tutorial = false,

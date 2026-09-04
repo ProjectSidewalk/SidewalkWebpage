@@ -22,6 +22,7 @@ const CARD_SRC = fs.readFileSync(
 function label(overrides = {}) {
     return {
         label_id: 1, label_type: 'CurbRamp', region_id: 7, severity: 2, canvas_x: 10, canvas_y: 20,
+        canvas_width: 720, canvas_height: 480,
         agree_count: 1, disagree_count: 0, unsure_count: 0, tags: [], ai_generated: false, ...overrides,
     };
 }
@@ -53,6 +54,7 @@ describe('a Gallery card\'s location line', () => {
             misc: {
                 getIconImagePaths: () => ({ iconImagePath: 'icon.png' }),
                 labelTypeHasSeverity: () => true,
+                markerPercentInCoverBox: (x, y, w, h) => ({ left: 100 * x / w, top: 100 * y / h }),
             },
         };
         // Collaborators the constructor builds but this test doesn't exercise.

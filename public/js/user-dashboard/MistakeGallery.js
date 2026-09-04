@@ -28,9 +28,6 @@ class MistakeGallery {
     // Per-label response state shared between a card and the popup so they stay in sync in-session.
     this.responses = new Map(); // label_id -> { agrees: boolean|null, note: string }
     this.popupPanel = null; // the vote/note panel injected into the popup dialog
-    // Explore canvas dimensions (fallback if util.EXPLORE_CANVAS_* isn't loaded on this page).
-    this.canvasW = (window.util && util.EXPLORE_CANVAS_WIDTH) || 720;
-    this.canvasH = (window.util && util.EXPLORE_CANVAS_HEIGHT) || 480;
   }
 
   /** Returns (creating if needed) the mutable response state for a label. */
@@ -107,14 +104,21 @@ class MistakeGallery {
     img.className = 'ud-card-img';
     if (m.image_url) img.style.backgroundImage = `url("${m.image_url}")`;
     if (iconPath) {
-      const canvasW = (typeof util !== 'undefined' && util.EXPLORE_CANVAS_WIDTH) || 720;
-      const canvasH = (typeof util !== 'undefined' && util.EXPLORE_CANVAS_HEIGHT) || 480;
       const marker = document.createElement('img');
       marker.className = 'ud-card-label-marker';
       marker.src = iconPath;
       marker.alt = '';
-      marker.style.left = typeof m.canvas_x === 'number' ? `${(100 * m.canvas_x) / canvasW}%` : '50%';
-      marker.style.top = typeof m.canvas_y === 'number' ? `${(100 * m.canvas_y) / canvasH}%` : '50%';
+      if (typeof m.canvas_x === 'number' && typeof m.canvas_y === 'number') {
+        // The crop is cover-fitted into the card's 3:2 box (.ud-card-img), so the marker's percentages are taken in the
+        // visible part of a crop of another aspect (#5085). The frame defaults to the boxed 720x480 for old payloads.
+        const pct = util.misc.markerPercentInCoverBox(m.canvas_x, m.canvas_y,
+          m.canvas_width ?? util.EXPLORE_CANVAS_WIDTH, m.canvas_height ?? util.EXPLORE_CANVAS_HEIGHT, 3 / 2);
+        marker.style.left = `${pct.left}%`;
+        marker.style.top = `${pct.top}%`;
+      } else {
+        marker.style.left = '50%';
+        marker.style.top = '50%';
+      }
       img.appendChild(marker);
     }
     const verdict = document.createElement('span');

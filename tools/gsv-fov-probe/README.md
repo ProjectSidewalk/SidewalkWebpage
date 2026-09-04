@@ -41,6 +41,12 @@ is 3:2, where nothing binds and every hypothesis coincides — this only matters
 `analyze.mjs` recomputes this table into `results.json` (`bindingAspects`) and the contract fixture, and
 `test/js/gsvFovContract.test.js` pins it.
 
+Production consumes the verdict as `util.pano.renderedHFov(zoom, aspect, viewerType)`
+(`public/js/common/pano-viewer/src/panoUtilities.js`) and its Scala port `PanoDataService.renderedHFov`, which
+Explore feeds to the projection at capture and every reader of a stored click feeds it when decoding (#5085). The
+contract suite pins the JS function against this recording; `PanoDataServiceSpec` pins the Scala port to the same
+numbers.
+
 ### Limitations
 
 - **The bounds are only ever observed on the vertical axis, so "vFov clamp" is a modelling choice, not a

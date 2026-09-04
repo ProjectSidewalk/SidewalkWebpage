@@ -2,7 +2,7 @@ package controllers
 
 import controllers.base._
 import models.auth.{DefaultEnv, WithAdmin}
-import models.label.{LabelMetadata, LabelPointTable, LabelTypeEnum, LocationXY}
+import models.label.{LabelMetadata, LabelTypeEnum, LocationXY}
 import models.pano.PanoSource.PanoSource
 import models.story.StoryForView
 import models.user.SidewalkUserWithRole
@@ -275,7 +275,8 @@ class ShareController @Inject() (
       case Some(_) if !cropExistedBefore && cropFile.exists() =>
         buildAndCacheShareImage(meta, imagerySource, cacheFile) // Terminates: the retry sees the crop up front.
       case Some(base) =>
-        val composited: BufferedImage = compositeMarker(base, meta.labelType, meta.canvasXY)
+        val composited: BufferedImage =
+          compositeMarker(base, meta.labelType, meta.canvasXY, meta.canvasWidth, meta.canvasHeight)
         cacheFile.getParentFile.mkdirs()
         writeJpeg(composited, cacheFile)
         if (cacheFile.exists()) {
@@ -362,11 +363,17 @@ class ShareController @Inject() (
    * canvas position so the shared preview points at the labeled spot. The output size is fixed (cover-scale, center-
    * crop) so the og:image:width/height the meta advertises is always true regardless of the base image's source
    * (stored crops are 1440×960 but GSV stills come back 640×480), and cards stay high-res on every platform.
+   *
+   * `canvasXY` is a position in the label's own frame (`canvasWidth` x `canvasHeight`, #5085), read as fractions of
+   * the base image: a stored crop has the frame's aspect ratio, so the fractions carry straight through the cover
+   * transform, and a GSV still is an approximation of that frame either way.
    */
   private[controllers] def compositeMarker(
       base: BufferedImage,
       labelType: LabelTypeEnum.Base,
-      canvasXY: LocationXY
+      canvasXY: LocationXY,
+      canvasWidth: Int,
+      canvasHeight: Int
   ): BufferedImage = {
     // RGB (not ARGB): the canvas is fully covered by the base photo, and ImageIO's JPEG writer rejects alpha.
     val out: BufferedImage = new BufferedImage(SHARE_IMAGE_WIDTH, SHARE_IMAGE_HEIGHT, BufferedImage.TYPE_INT_RGB)
@@ -389,10 +396,10 @@ class ShareController @Inject() (
     val iconFile: File = environment.getFile(s"public/images/icons/label_type_icons/${labelType.name}_small.png")
     if (iconFile.exists()) {
       Option(ImageIO.read(iconFile)).foreach { icon =>
-        // The stored canvas position is a fraction of the label-point canvas; map it through the same
-        // cover-scale + crop transform as the base image so the marker stays on the labeled spot.
-        val centerX: Int = (canvasXY.x.toDouble / LabelPointTable.canvasWidth * scaledW).toInt - offX
-        val centerY: Int = (canvasXY.y.toDouble / LabelPointTable.canvasHeight * scaledH).toInt - offY
+        // The stored canvas position is a fraction of the label's frame; map it through the same cover-scale + crop
+        // transform as the base image so the marker stays on the labeled spot.
+        val centerX: Int = (canvasXY.x.toDouble / canvasWidth * scaledW).toInt - offX
+        val centerY: Int = (canvasXY.y.toDouble / canvasHeight * scaledH).toInt - offY
         // ~65px on the 2x-retina canvas = a 32px marker at display size, matching the map-marker scale.
         val iconW: Int = math.max(24, (SHARE_IMAGE_WIDTH * 0.045).toInt)
         val iconH: Int = (icon.getHeight.toDouble / icon.getWidth * iconW).toInt

@@ -131,9 +131,8 @@ class AiServiceImpl @Inject() (
               label: Label     <- labelTable.find(labelId).map(_.get) // If we got this far, we know label exists.
               validation: LabelValidation = LabelValidation(
                 0, labelId, aiValResult, SidewalkUserTable.aiUserId, aiMissionId, Some(labelPoint.canvasX),
-                Some(labelPoint.canvasY), labelPoint.heading, labelPoint.pitch, labelPoint.zoom,
-                LabelPointTable.canvasWidth, LabelPointTable.canvasHeight, startTime, aiResults.timestamp,
-                UiSource.SidewalkAI, ViewerType.Default
+                Some(labelPoint.canvasY), labelPoint.heading, labelPoint.pitch, labelPoint.zoom, labelPoint.canvasWidth,
+                labelPoint.canvasHeight, startTime, aiResults.timestamp, UiSource.SidewalkAI, ViewerType.Default
               )
               // The AI only votes; resubmitting the label's own severity and tags records no edit.
               valId: Option[Int] <- validationService

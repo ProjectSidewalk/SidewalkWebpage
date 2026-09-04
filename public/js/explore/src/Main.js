@@ -25,10 +25,20 @@ class Main {
     svl.isExploreAddressMode = () => this.#params.mission.mission_type === 'exploreAddress';
     svl.regionId = params.regionId;
 
-    // Both are derived from --ui-scale and refreshed by applyExploreScale() below, which owns that variable. They
-    // start at their scale-1 values because the tool renders at scale 1 until that first call (#4838).
+    // All three are derived from the displayed pano's size and refreshed by applyExploreScale() below. They start at
+    // their scale-1, boxed values because the tool renders at scale 1 until that first call (#4838, #5085).
+    svl.CANVAS_FRAME = { width: util.EXPLORE_CANVAS_WIDTH, height: util.EXPLORE_CANVAS_HEIGHT };
     svl.LABEL_ICON_RADIUS = util.labelIconRadius(1);
     svl.LABEL_HIT_MARGIN = util.labelHitMargin(1);
+    /**
+     * The horizontal fov the pano viewer renders at a zoom for the current frame, which the projection has to be fed
+     * off 3:2 because GSV clamps its vertical field on wide viewports (#5083, #5085).
+     * @param {number} zoom - The viewer zoom.
+     * @returns {number} Degrees.
+     */
+    svl.renderedHFov = (zoom) => util.pano.renderedHFov(
+      zoom, svl.CANVAS_FRAME.width / svl.CANVAS_FRAME.height, svl.panoViewer.getViewerType(),
+    );
     svl.TUTORIAL_PANO_HEIGHT = 6656;
     svl.TUTORIAL_PANO_WIDTH = 13312;
     svl.TUTORIAL_PANO_SCALE_FACTOR = 3.25;
@@ -466,21 +476,32 @@ class Main {
 
       // Uniformly scale the whole tool to fit the viewport (like browser zoom) using var(--ui-scale).
       const applyExploreScale = () => {
-        const scale = util.applyToolScale(
+        util.applyToolScale(
           ['--pano-base-width', '--sidebar-base-gap', '--sidebar-base-width'],
           ['--ribbon-base-top', '--ribbon-base-height', '--pano-base-height'],
         );
-        // The label icon and its click target are capped in screen px, so both depend on the scale just applied
-        // (#4838). Cached rather than computed per render: they're read once per label per canvas render, and per
-        // label on every mousemove, and each read would otherwise force a style recalculation.
-        svl.LABEL_ICON_RADIUS = util.labelIconRadius(scale);
-        svl.LABEL_HIT_MARGIN = util.labelHitMargin(scale);
+        // The logical frame follows the displayed pano's aspect (#5085), and the label icon and its click target are
+        // capped in screen px, so they depend on the pano's display scale (#4838), which is --ui-scale in the boxed
+        // tool but not in a fill-window one. Cached rather than computed per render: they're read once per label per
+        // canvas render, and per label on every mousemove, and each read would otherwise force a style recalculation.
+        const displayScale = util.exploreDisplayScale();
+        svl.CANVAS_FRAME = util.exploreCanvasFrame();
+        svl.LABEL_ICON_RADIUS = util.labelIconRadius(displayScale);
+        svl.LABEL_HIT_MARGIN = util.labelHitMargin(displayScale);
       };
-      applyExploreScale();
-      // The canvas was rasterized at scale 1 during init; re-raster it at the chosen scale.
-      if (svl.canvas) svl.canvas.resize();
-      if (svl.onboarding) svl.onboarding.resize();
-      if (svl.observedArea) svl.observedArea.update();
+      /**
+       * Re-lays out the tool for its current box: rescale, then re-raster the canvases and tell the pano viewer its
+       * element changed size. Synchronous, so a layout switch (immersive mode, #5085) lands in one frame.
+       */
+      svl.relayout = () => {
+        applyExploreScale();
+        // The canvas was rasterized at scale 1 during init; re-raster it at the chosen scale.
+        if (svl.canvas) svl.canvas.resize();
+        if (svl.onboarding) svl.onboarding.resize();
+        if (svl.observedArea) svl.observedArea.update();
+        if (svl.panoViewer) svl.panoViewer.resize();
+      };
+      svl.relayout();
       // Redraw fog of war after the rescale. Minimap does this async, so we have to listen on this event.
       if (svl.observedArea && svl.minimap) {
         google.maps.event.addListenerOnce(svl.minimap.getMap(), 'bounds_changed', () => svl.observedArea.update());
@@ -495,6 +516,7 @@ class Main {
           if (svl.canvas) svl.canvas.resize();
           if (svl.onboarding) svl.onboarding.resize();
           if (svl.observedArea) svl.observedArea.update();
+          if (svl.panoViewer) svl.panoViewer.resize();
         }, 150);
       });
     }

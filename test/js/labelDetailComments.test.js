@@ -187,6 +187,8 @@ function meta(overrides = {}) {
         zoom: 2,
         canvas_x: 100,
         canvas_y: 200,
+        canvas_width: 720,
+        canvas_height: 480,
         street_edge_id: 7,
         region_id: 3,
         timestamp: '2026-08-01T12:00:00Z',
@@ -267,7 +269,7 @@ describe('the validator comment box (#5015)', () => {
                 isPositiveLabelType: () => false,
                 labelTypeHasSeverity: () => true,
             },
-            pano: { centeredPovToCanvasCoord: () => ({ x: 0, y: 0 }) },
+            pano: { centeredPovToCanvasCoord: () => ({ x: 0, y: 0 }), renderedHFov: () => 90 },
             url: { replaceQuery: () => {} },
         };
         window.BadgeAchievements = { seedCounts: () => {}, recordValidation: () => {} };
@@ -285,6 +287,7 @@ describe('the validator comment box (#5015)', () => {
             activeViewerName: 'Default',
             panoViewer: {
                 currPanoData: null,
+                getViewerType: () => 'gsv',
                 getPanoId: () => 'pano-1',
                 getPosition: () => ({ lat: 47.61, lng: -122.33 }),
             },

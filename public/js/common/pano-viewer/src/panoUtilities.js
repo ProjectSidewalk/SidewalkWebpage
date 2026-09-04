@@ -85,6 +85,42 @@ util.pano.hFovToVFov = (horizontalFov, aspect) => {
 };
 
 /**
+ * GSV's silent vertical field-of-view clamp, in degrees, measured in #5083 (tools/gsv-fov-probe/README.md, "Verdict").
+ *
+ * GSV spans zoomToFov(zoom) across the container's width at every aspect ratio, except that the vertical field this
+ * implies is clamped to this window; when a bound binds, the vertical field pins there and the horizontal one follows
+ * from the aspect instead of from the curve. The clamp is invisible to getZoom()/getPov(), which keep reporting the
+ * requested zoom, so it has to be modeled rather than read back. The floor binds at aspect ≥ 1.90 at zoom 3, barely
+ * wider than 16:9, so an ordinary fill-window viewport reaches it (#5085); the ceiling binds on square-or-taller
+ * viewports at zoom 1 and portrait ones at zooms 2–3. test/js/gsvFovContract.test.js pins these against the recorded
+ * measurements, and PanoDataService.GSV_VFOV_CLAMP_DEG carries the same two numbers for the server's replay.
+ */
+util.pano.GSV_VFOV_CLAMP_DEG = Object.freeze({ min: 14.97, max: 89.84 });
+
+/**
+ * The horizontal field of view a pano viewer actually renders for a zoom in a viewport of the given aspect ratio.
+ *
+ * This is the fov the projection helpers below must be fed for anything not 3:2 (#5085). GSV is zoomToFov(zoom) with
+ * GSV_VFOV_CLAMP_DEG applied; every other viewer is zoomToFov(zoom) itself: Mapillary and Infra3D read their rendered
+ * field back through fovToZoom (so their zoom already encodes what is on screen, and applying GSV's clamp on top would
+ * be wrong by up to 1.4° at aspect 2), and Pannellum takes horizontal fov directly. Identity at 3:2 for all of them.
+ *
+ * @param {number} zoom - The zoom level (GSV's scale).
+ * @param {number} aspect - Width:height of the viewport, or of the frame a stored click was made in.
+ * @param {string} viewerType - PanoViewer#getViewerType(): 'gsv', 'mapillary', 'infra3d', or 'pannellum'.
+ * @returns {number} The rendered horizontal field of view, in degrees.
+ */
+util.pano.renderedHFov = (zoom, aspect, viewerType) => {
+  const curve = util.pano.zoomToFov(zoom);
+  if (viewerType !== 'gsv' || !(aspect > 0)) return curve;
+  const vFov = util.pano.hFovToVFov(curve, aspect);
+  const { min, max } = util.pano.GSV_VFOV_CLAMP_DEG;
+  if (vFov > max) return util.pano.vFovToHFov(max, aspect);
+  if (vFov < min) return util.pano.vFovToHFov(min, aspect);
+  return curve;
+};
+
+/**
  * Calculates the zoom level from a given horizontal field of view. This is the inverse of zoomToFov().
  *
  * TODO Maybe we should decide on our own zoom levels rather than using Google's.
@@ -180,10 +216,14 @@ util.pano.povToPanoCoord = (pov, cameraHeading, panoWidth, panoHeight) => {
  * @param {number} canvasY Y-coordinate of the point of interest
  * @param {number} canvasWidth Width of the canvas
  * @param {number} canvasHeight Height of the canvas
+ * @param {number} [hFov] The horizontal fov the canvas was rendered with, in degrees: renderedHFov() for the viewer
+ *   and the canvas's aspect. Defaults to the zoom curve, which is exact for a 3:2 canvas on every viewer (#5085).
  * @returns {{heading: number, pitch: number, zoom: number}} POV of the pano if centered on the given point
  */
-util.pano.canvasCoordToCenteredPov = (pov, canvasX, canvasY, canvasWidth, canvasHeight) => {
-  const fov = util.pano.zoomToFov(pov.zoom) * Math.PI / 180.0;
+util.pano.canvasCoordToCenteredPov = (
+  pov, canvasX, canvasY, canvasWidth, canvasHeight, hFov = util.pano.zoomToFov(pov.zoom),
+) => {
+  const fov = hFov * Math.PI / 180.0;
 
   const h0 = pov.heading * Math.PI / 180.0;
   const p0 = pov.pitch * Math.PI / 180.0;
@@ -230,12 +270,16 @@ util.pano.canvasCoordToCenteredPov = (pov, canvasX, canvasY, canvasWidth, canvas
  * @param {number} canvasWidth Width of the canvas
  * @param {number} canvasHeight Height of the canvas
  * @param {number} margin The extra pixels around canvas width/height where we don't return null, usually label radius
+ * @param {number} [hFov] The horizontal fov the canvas is rendered with, in degrees: renderedHFov() for the viewer
+ *   and the canvas's aspect. Defaults to the zoom curve, which is exact for a 3:2 canvas on every viewer (#5085).
  * @returns {{x: number, y: number}|null} Canvas coordinates for the point at `newPov`; null if not on the canvas
  */
-util.pano.centeredPovToCanvasCoord = (centeredPov, newPov, canvasWidth, canvasHeight, margin) => {
+util.pano.centeredPovToCanvasCoord = (
+  centeredPov, newPov, canvasWidth, canvasHeight, margin, hFov = util.pano.zoomToFov(newPov.zoom),
+) => {
   // Gather required variables and convert to radians where necessary.
   const DEG_TO_RAD = Math.PI / 180.0;
-  const fov = util.pano.zoomToFov(newPov.zoom) * DEG_TO_RAD;
+  const fov = hFov * DEG_TO_RAD;
   const h0 = newPov.heading * DEG_TO_RAD;
   const p0 = newPov.pitch * DEG_TO_RAD;
   const h = centeredPov.heading * DEG_TO_RAD;

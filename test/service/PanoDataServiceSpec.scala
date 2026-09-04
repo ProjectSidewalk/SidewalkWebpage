@@ -1,6 +1,7 @@
 package service
 
 import models.label.POV
+import models.pano.PanoSource
 import models.utils.CommonUtils
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
@@ -111,27 +112,71 @@ class PanoDataServiceSpec extends AnyFunSuite with Matchers {
   // label 65640's REPAIRED record reproducing its truth (6453, 4688) (off-target-markers report §5-6).
 
   test("a click at the canvas center is the viewport itself") {
-    val pov = PanoDataService.calculatePovIfCentered(POV(123.4, -17.25, 1.0), 360.0, 240.0)
+    val pov = PanoDataService.calculatePovIfCentered(POV(123.4, -17.25, 1.0), 360.0, 240.0, 720, 480, PanoSource.Gsv)
     pov.heading shouldBe (123.4 +- eps)
     pov.pitch shouldBe (-17.25 +- eps)
     PanoDataService.calculatePanoXYFromPov(pov, 100.0, 16384, 8192) shouldBe ((9257, 4881))
   }
 
   test("a real record reproduces its stored pano_x/pano_y (Teaneck 14955)") {
-    val pov = PanoDataService.calculatePovIfCentered(POV(298.25, -35.0, 1.0), 451.0, 142.0)
+    val pov = PanoDataService.calculatePovIfCentered(POV(298.25, -35.0, 1.0), 451.0, 142.0, 720, 480, PanoSource.Gsv)
     pov.heading shouldBe (312.7293509714128 +- 1e-6) // -47.27065 wrapped into [0, 360)
     pov.pitch shouldBe (-19.252086018069306 +- 1e-6)
     PanoDataService.calculatePanoXYFromPov(pov, 18.107881546020508, 16384, 8192) shouldBe ((5217, 4972))
   }
 
   test("a repaired record lands on the label's truth coordinate (Chicago 65640)") {
-    val pov = PanoDataService.calculatePovIfCentered(POV(155.9336, -15.0063, 3.0), 81.0, 195.0)
+    val pov =
+      PanoDataService.calculatePovIfCentered(POV(155.9336, -15.0063, 3.0), 81.0, 195.0, 720, 480, PanoSource.Gsv)
     PanoDataService.calculatePanoXYFromPov(pov, 183.0481719970703, 16384, 8192) shouldBe ((6453, 4688))
+  }
+
+  // The frame contract (#5085): only the frame's aspect ratio enters the projection, so a uniformly scaled frame
+  // is the same frame, and a frame of a different shape is not (docs/label-latlng-estimation.md, "The frame contract").
+  test("the same click fractions in a 720x480 and a 1440x960 frame give one direction") {
+    val boxed  = PanoDataService.calculatePovIfCentered(POV(298.25, -35.0, 1.0), 451.0, 142.0, 720, 480, PanoSource.Gsv)
+    val scaled =
+      PanoDataService.calculatePovIfCentered(POV(298.25, -35.0, 1.0), 902.0, 284.0, 1440, 960, PanoSource.Gsv)
+    scaled.heading shouldBe (boxed.heading +- eps)
+    scaled.pitch shouldBe (boxed.pitch +- eps)
+  }
+
+  test("an off-center click read against a 720x405 frame is a different direction than against 720x480") {
+    val boxed = PanoDataService.calculatePovIfCentered(POV(298.25, -35.0, 1.0), 451.0, 142.0, 720, 480, PanoSource.Gsv)
+    val wide  = PanoDataService.calculatePovIfCentered(POV(298.25, -35.0, 1.0), 451.0, 142.0, 720, 405, PanoSource.Gsv)
+    // The vertical origin moved by 37.5 px, about 5.4 deg of pitch at zoom 1; the heading shifts under a degree, only
+    // through the viewport's own tilt.
+    wide.heading shouldBe (boxed.heading +- 1.5)
+    math.abs(wide.pitch - boxed.pitch) should be > 2.0
+  }
+
+  // GSV's vertical-fov clamp (#5083), the same model as util.pano.renderedHFov; test/js/panoProjection.test.js pins
+  // the JS half against the same numbers, and test/js/gsvFovContract.test.js pins the JS half against the recording.
+  test("renderedHFov is the zoom curve at 3:2 on every source and at any aspect off GSV") {
+    for (zoom <- Seq(1.0, 2.0, 3.0)) {
+      PanoDataService.renderedHFov(zoom, 1.5, PanoSource.Gsv) shouldBe (PanoDataService.getFov(zoom) +- eps)
+      PanoDataService.renderedHFov(zoom, 2.0, PanoSource.Mapillary) shouldBe (PanoDataService.getFov(zoom) +- eps)
+    }
+  }
+
+  test("renderedHFov follows GSV's clamped vertical field on wide and tall viewports") {
+    // 2:1 at zoom 3 implies a 14.05 deg vertical field, under the 14.97 floor: the floor pins and hFov widens to ~29.4.
+    PanoDataService.renderedHFov(3.0, 2.0, PanoSource.Gsv) shouldBe (29.44 +- 0.01)
+    // 3:4 at zoom 1 implies 106 deg vertically, over the 89.84 ceiling: hFov narrows to ~73.6.
+    PanoDataService.renderedHFov(1.0, 0.75, PanoSource.Gsv) shouldBe (73.58 +- 0.01)
+    PanoDataService.GSV_VFOV_CLAMP_DEG shouldBe ((14.97, 89.84))
+  }
+
+  test("a wide-frame click on GSV is replayed with the clamped fov, not the curve") {
+    val clamped = PanoDataService.calculatePovIfCentered(POV(100.0, -10.0, 3.0), 700.0, 200.0, 720, 360, PanoSource.Gsv)
+    val curve   =
+      PanoDataService.calculatePovIfCentered(POV(100.0, -10.0, 3.0), 700.0, 200.0, 720, 360, PanoSource.Mapillary)
+    math.abs(clamped.heading - curve.heading) should be > 0.5 // ~29.4 vs 27.7 deg across 720 px, read 340 px off center.
   }
 
   test("pano x wraps at the seam instead of going out of range") {
     // A corner click on a viewport just west of north, camera looking almost due north: x must wrap into range.
-    val pov = PanoDataService.calculatePovIfCentered(POV(359.5, -10.0, 2.0), 700.0, 460.0)
+    val pov = PanoDataService.calculatePovIfCentered(POV(359.5, -10.0, 2.0), 700.0, 460.0, 720, 480, PanoSource.Gsv)
     pov.heading shouldBe (26.307176630462052 +- 1e-6)
     pov.pitch shouldBe (-24.403575993903466 +- 1e-6)
     val (panoX, panoY) = PanoDataService.calculatePanoXYFromPov(pov, 0.25, 13312, 6656)
@@ -142,7 +187,7 @@ class PanoDataServiceSpec extends AnyFunSuite with Matchers {
   test("the forward projection round-trips through calculatePovFromPanoXY") {
     // Project a click to pano pixels, invert with the existing inverse: the label direction must come back
     // (to within the half-pixel the integer pano coordinate quantizes away).
-    val pov          = PanoDataService.calculatePovIfCentered(POV(210.0, -22.0, 2.0), 500.0, 300.0)
+    val pov = PanoDataService.calculatePovIfCentered(POV(210.0, -22.0, 2.0), 500.0, 300.0, 720, 480, PanoSource.Gsv)
     val (px, py)     = PanoDataService.calculatePanoXYFromPov(pov, 47.5, 16384, 8192)
     val roundTripped = PanoDataService.calculatePovFromPanoXY(px, py, 16384, 8192, 47.5)
     roundTripped.heading shouldBe (pov.heading +- 0.05)

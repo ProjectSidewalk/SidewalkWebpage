@@ -6,11 +6,11 @@ util.EXPLORE_CANVAS_HEIGHT = 480;
 util.EXPLORE_CANVAS_ASPECT_RATIO = util.EXPLORE_CANVAS_WIDTH / util.EXPLORE_CANVAS_HEIGHT;
 
 /**
- * Ratio between the Explore street view's on-screen size and its fixed 720x480 logical coordinate frame.
+ * Ratio between the Explore street view's on-screen size and its logical coordinate frame, which is always 720 px wide.
  *
- * The pano is displayed larger than the logical frame (see the --pano-width CSS variable), but all coordinate
- * math, stored canvas_x/canvas_y, and pano_x/pano_y stay in the 720x480 frame. This ratio converts between the
- * two: multiply a logical coordinate by it to position a DOM element over the pano, or divide an on-screen
+ * The pano is displayed larger than the logical frame (see the --pano-width CSS variable), but all coordinate math
+ * and the stored canvas_x/canvas_y stay in the logical frame (util.exploreCanvasFrame). This ratio converts between
+ * the two: multiply a logical coordinate by it to position a DOM element over the pano, or divide an on-screen
  * coordinate by it to map a click back into the logical frame. Measured live so it is robust to any scaling.
  *
  * @returns {number} displayWidth / EXPLORE_CANVAS_WIDTH, or 1 if the street view is not present
@@ -18,6 +18,29 @@ util.EXPLORE_CANVAS_ASPECT_RATIO = util.EXPLORE_CANVAS_WIDTH / util.EXPLORE_CANV
 util.exploreDisplayScale = function () {
   const layer = document.getElementById('label-drawing-layer');
   return layer ? layer.getBoundingClientRect().width / util.EXPLORE_CANVAS_WIDTH : 1;
+};
+
+/**
+ * The logical frame Explore's labeling canvas is drawn in and a click's canvas_x/canvas_y are expressed in (#5085).
+ *
+ * The frame is always EXPLORE_CANVAS_WIDTH wide and as tall as the displayed pano's aspect ratio makes it: 480 in
+ * the boxed tool, about 405 in a 16:9 window. Only the aspect ratio matters to the projection that turns a click into
+ * a direction (focal length and click offsets scale together), so a 720-wide frame is exactly as good as the
+ * on-screen size, and every label placed in the boxed tool keeps the 720x480 the whole corpus is in. Measured from
+ * the same element `util.mousePosition` reports clicks against, so the click and its frame share one coordinate
+ * space; callers cache the result per layout (svl.CANVAS_FRAME) rather than measuring per render.
+ *
+ * @returns {{width: number, height: number}} The frame in logical px; 720x480 when the street view is unmeasurable.
+ */
+util.exploreCanvasFrame = function () {
+  const rect = document.getElementById('label-drawing-layer')?.getBoundingClientRect();
+  if (!rect?.width || !rect?.height) {
+    return { width: util.EXPLORE_CANVAS_WIDTH, height: util.EXPLORE_CANVAS_HEIGHT };
+  }
+  return {
+    width: util.EXPLORE_CANVAS_WIDTH,
+    height: Math.round(util.EXPLORE_CANVAS_WIDTH * rect.height / rect.width),
+  };
 };
 
 // Radius of a placed label's icon at --ui-scale = 1, in the 720x480 logical frame. Every piece of icon geometry in
@@ -138,11 +161,14 @@ util.labelHitMargin = function (scale) {
 util.sizeCanvasToDisplay = function (el, ctx) {
   const rect = el.getBoundingClientRect();
   const displayWidth = rect.width || util.EXPLORE_CANVAS_WIDTH;
+  // The box's own height, so the bitmap follows the displayed aspect (#5085); 3:2 only when it can't be measured.
+  const displayHeight = rect.height || displayWidth / util.EXPLORE_CANVAS_ASPECT_RATIO;
   const dpr = window.devicePixelRatio || 1;
   el.width = Math.round(displayWidth * dpr);
-  el.height = Math.round(displayWidth / util.EXPLORE_CANVAS_ASPECT_RATIO * dpr);
-  // Map the 720x480 logical frame onto the full-resolution bitmap. Setting el.width/height above resets the
-  // context, so this transform must be (re)applied here.
+  el.height = Math.round(displayHeight * dpr);
+  // Map the 720-wide logical frame onto the full-resolution bitmap (the transform is uniform, so the frame's height
+  // follows the box's aspect, see util.exploreCanvasFrame). Setting el.width/height above resets the context, so
+  // this transform must be (re)applied here.
   const scale = el.width / util.EXPLORE_CANVAS_WIDTH;
   ctx.setTransform(scale, 0, 0, scale, 0, 0);
   // Label icons are drawn from a raster sized for the densest display we support (see Label.preloadIcons), so on
@@ -160,8 +186,8 @@ util.sizeCanvasToDisplay = function (el, ctx) {
  * Panels styled with .label-anchored-panel read the values this sets.
  *
  * Coordinates are given in a logical frame that `scale` converts to on-screen pixels, so a caller whose marker is
- * already positioned in on-screen pixels divides by the same `scale` before calling. Both tools' panos are 720x480
- * at --ui-scale = 1, so the default `frameHeight` suits either.
+ * already positioned in on-screen pixels divides by the same `scale` before calling. The default `frameHeight` is
+ * Explore's displayed pano height, measured (its aspect follows the window in immersive mode, #5085).
  *
  * @param {jQuery} panel - The panel to position. Must be .label-anchored-panel and a child of `opts.originEl`.
  * @param {{x: number, y: number}} labelCanvasXY - The label icon's center in the logical canvas frame.
@@ -185,7 +211,9 @@ util.anchorPanelToLabel = function (panel, labelCanvasXY, iconRadius, opts = {})
   const radius = iconRadius * scale;
   const width = panel.outerWidth();
   const height = panel.outerHeight();
-  const panoHeight = opts.frameHeight ?? util.EXPLORE_CANVAS_HEIGHT * scale;
+  const panoHeight = opts.frameHeight
+    ?? (document.getElementById('label-drawing-layer')?.getBoundingClientRect().height
+      || util.EXPLORE_CANVAS_HEIGHT * scale);
 
   // In Explore the panel is bounded horizontally by the whole tool, not the pano: the pano's right edge is not a
   // wall, and a panel is welcome to float over the sidebar beside it. That matters because the context menu is over

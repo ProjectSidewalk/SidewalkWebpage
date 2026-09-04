@@ -79,13 +79,18 @@ class ExploreSubmissionSpec
     bootstrap
   }
 
-  /** A label submission as the Explore frontend compiles one, placed at the task's current position. */
+  /**
+   * A label submission as the Explore frontend compiles one, placed at the task's current position.
+   *
+   * @param canvasFrame The frame the click is expressed in (#5085); None mimics a pre-#5085 client that sends no frame.
+   */
   private def labelJson(
       tempId: Int,
       b: ExploreBootstrap,
       tutorial: Boolean,
       deleted: Boolean = false,
-      severity: Int = 1
+      severity: Int = 1,
+      canvasFrame: Option[(Int, Int)] = Some((720, 405))
   ): JsObject =
     Json.obj(
       "pano_id"     -> specPanoId,
@@ -95,7 +100,7 @@ class ExploreSubmissionSpec
       "severity"    -> severity,
       "description" -> JsNull,
       "tag_ids"     -> Json.arr(),
-      "label_point" -> Json.obj(
+      "label_point" -> (Json.obj(
         "pano_x"             -> 8000,
         "pano_y"             -> 4000,
         "canvas_x"           -> 360,
@@ -106,7 +111,7 @@ class ExploreSubmissionSpec
         "lat"                -> b.currentLat,
         "lng"                -> b.currentLng,
         "computation_method" -> "depth"
-      ),
+      ) ++ canvasFrame.fold(Json.obj())(f => Json.obj("canvas_width" -> f._1, "canvas_height" -> f._2))),
       "temporary_label_id" -> tempId,
       "time_created"       -> OffsetDateTime.now,
       "tutorial"           -> tutorial
@@ -387,13 +392,14 @@ class ExploreSubmissionSpec
       labels.head.severity mustBe Some(1)
 
       val point = run(
-        sql"SELECT pano_x, canvas_x, lat, lng FROM label_point WHERE label_id = $labelId"
-          .as[(Int, Int, Option[Double], Option[Double])]
+        sql"SELECT pano_x, canvas_x, canvas_width, canvas_height, lat, lng FROM label_point WHERE label_id = $labelId"
+          .as[(Int, Int, Int, Int, Option[Double], Option[Double])]
       ).headOption
       point mustBe defined
       (point.get._1, point.get._2) mustBe ((8000, 360))
-      point.get._3 mustBe defined
-      point.get._4 mustBe defined
+      (point.get._3, point.get._4) mustBe ((720, 405)) // The frame travels with the label (#5085).
+      point.get._5 mustBe defined
+      point.get._6 mustBe defined
 
       // The async writes that ride the same submission: environment and pano metadata.
       eventually(timeout(Span(15, Seconds)), interval(Span(250, Millis))) {
@@ -440,7 +446,7 @@ class ExploreSubmissionSpec
       val priorityBefore = streetPriority(b2.streetEdgeId)
       val tempId         = 777002
 
-      val posted = postTask(session, submission(b2, Seq(labelJson(tempId, b2, tutorial = false))))
+      val posted = postTask(session, submission(b2, Seq(labelJson(tempId, b2, tutorial = false, canvasFrame = None))))
       status(posted) mustBe OK
       val auditTaskId = (contentAsJson(posted) \ "audit_task_id").as[Int]
 
@@ -448,6 +454,10 @@ class ExploreSubmissionSpec
       rows must have size 1
       rows.head.tutorial mustBe false
       rows.head.deleted mustBe false
+      // No canvas_width/height in the payload (a pre-#5085 client): the frame defaults to the boxed 720x480.
+      run(
+        sql"SELECT canvas_width, canvas_height FROM label_point WHERE label_id = ${rows.head.labelId}".as[(Int, Int)]
+      ).headOption mustBe Some((720, 480))
 
       // An incomplete task leaves the street's priority untouched.
       streetPriority(b2.streetEdgeId) mustBe priorityBefore

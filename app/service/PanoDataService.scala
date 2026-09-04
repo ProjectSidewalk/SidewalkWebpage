@@ -135,6 +135,35 @@ object PanoDataService {
   }
 
   /**
+   * GSV's silent vertical field-of-view clamp, in degrees, measured in #5083: the same two numbers as
+   * `util.pano.GSV_VFOV_CLAMP_DEG` (public/js/common/pano-viewer/src/panoUtilities.js), which documents the model.
+   */
+  val GSV_VFOV_CLAMP_DEG: (Double, Double) = (14.97, 89.84)
+
+  /**
+   * The horizontal field of view a pano viewer renders for a zoom in a viewport of the given aspect ratio: GSV spans
+   * `getFov(zoom)` across the width but clamps the implied vertical field to `GSV_VFOV_CLAMP_DEG`, and when a bound
+   * binds the horizontal field follows from the aspect instead. Every other source renders the curve itself. Port of
+   * `util.pano.renderedHFov`, so the server's replay of a click (#4842) uses the fov the client projected with (#5085).
+   *
+   * @param zoom   The zoom level (GSV's scale).
+   * @param aspect Width:height of the frame the click was made in.
+   * @param source The imagery the frame rendered.
+   * @return       The rendered horizontal field of view, in degrees.
+   */
+  def renderedHFov(zoom: Double, aspect: Double, source: PanoSource): Double = {
+    val curve = getFov(zoom)
+    if (source != PanoSource.Gsv || !(aspect > 0)) curve
+    else {
+      val (floor, ceiling) = GSV_VFOV_CLAMP_DEG
+      val vFov             = math.toDegrees(2 * math.atan(math.tan(math.toRadians(curve / 2)) / aspect))
+      if (vFov > ceiling) math.toDegrees(2 * math.atan(math.tan(math.toRadians(ceiling / 2)) * aspect))
+      else if (vFov < floor) math.toDegrees(2 * math.atan(math.tan(math.toRadians(floor / 2)) * aspect))
+      else curve
+    }
+  }
+
+  /**
    * How far a submitted label record may miss its own pano_x/pano_y before the submission guard logs it, in degrees
    * of angular disagreement (0.18 deg is ~8 px on a 16384-px pano). Above integer-rounding noise (~0.02 deg) and the
    * few-hundredths-of-a-degree jitter of Google's metadata, below anything a user could notice on screen.
@@ -152,18 +181,32 @@ object PanoDataService {
    * how the submission guard detects a record that does not reproduce its own coordinate (issue #4842; the
    * off-target-markers study in sidewalk-panorama-tools reports/2026-08-10-off-target-markers-validate.md).
    *
-   * @param viewport Viewport POV when the click happened (heading/pitch in degrees; zoom sets the fov).
-   * @param canvasX  Click x on the logical labeling canvas (720x480, origin top-left).
-   * @param canvasY  Click y on the logical labeling canvas.
-   * @return         The label's own POV: heading in [0, 360), pitch in [-90, 90], zoom carried through.
+   * The click has to be projected through the frame it was made in (#5085): the frame's width sets the focal length
+   * and its center is the offset origin, so the same fractions in a 720x480 and a 1440x960 frame give one direction,
+   * while a 720x480 and a 720x405 frame do not. Callers pass the label's own `canvas_width/canvas_height`.
+   *
+   * @param viewport     Viewport POV when the click happened (heading/pitch in degrees; zoom sets the fov).
+   * @param canvasX      Click x on the labeling canvas, in the frame's px (origin top-left).
+   * @param canvasY      Click y on the labeling canvas.
+   * @param canvasWidth  Width of the frame the click is expressed in, in px.
+   * @param canvasHeight Height of that frame, in px.
+   * @param source       The imagery the frame rendered, which decides the fov it rendered at (`renderedHFov`).
+   * @return             The label's own POV: heading in [0, 360), pitch in [-90, 90], zoom carried through.
    */
-  def calculatePovIfCentered(viewport: POV, canvasX: Double, canvasY: Double): POV = {
-    val fov = math.toRadians(getFov(viewport.zoom))
+  def calculatePovIfCentered(
+      viewport: POV,
+      canvasX: Double,
+      canvasY: Double,
+      canvasWidth: Int,
+      canvasHeight: Int,
+      source: PanoSource
+  ): POV = {
+    val fov = math.toRadians(renderedHFov(viewport.zoom, canvasWidth.toDouble / canvasHeight, source))
     val h0  = math.toRadians(viewport.heading)
     val p0  = math.toRadians(viewport.pitch)
-    val f   = 0.5 * LabelPointTable.canvasWidth / math.tan(0.5 * fov)
-    val du  = canvasX - LabelPointTable.canvasWidth / 2.0
-    val dv  = LabelPointTable.canvasHeight / 2.0 - canvasY
+    val f   = 0.5 * canvasWidth / math.tan(0.5 * fov)
+    val du  = canvasX - canvasWidth / 2.0
+    val dv  = canvasHeight / 2.0 - canvasY
     // The sign factor is the JS's beyond-vertical guard; it never fires for real viewer pitch but is kept verbatim.
     val sg = if (math.cos(p0) >= 0) 1.0 else -1.0
 

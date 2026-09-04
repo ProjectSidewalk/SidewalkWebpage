@@ -367,13 +367,15 @@ class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
       ((minX + maxX) / 2, (minY + maxY) / 2)
     }
 
-    val bg           = 0xcc0000 // Solid red; no label-type icon is red, so any non-red pixel is the marker.
-    val canvasCenter = LocationXY(LabelPointTable.canvasWidth / 2, LabelPointTable.canvasHeight / 2)
+    val bg               = 0xcc0000 // Solid red; no label-type icon is red, so any non-red pixel is the marker.
+    val canvasCenter     = LocationXY(LabelPointTable.canvasWidth / 2, LabelPointTable.canvasHeight / 2)
+    val (boxedW, boxedH) = (LabelPointTable.canvasWidth, LabelPointTable.canvasHeight)
 
     "output the fixed share dimensions and keep a centered marker centered for a 4:3 GSV-sized base" in {
       // 640x480 is what the GSV Static API actually returns; cover-cropping 4:3 to 3:2 trims top/bottom, and a
       // marker at the canvas center must map to the output center through that transform.
-      val out = controller.compositeMarker(solidBase(640, 480, bg), LabelTypeEnum.CurbRamp, canvasCenter)
+      val out =
+        controller.compositeMarker(solidBase(640, 480, bg), LabelTypeEnum.CurbRamp, canvasCenter, boxedW, boxedH)
       out.getWidth mustBe 1440
       out.getHeight mustBe 960
       val (cx, cy) = markerCenter(out, bg)
@@ -382,7 +384,8 @@ class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
     }
 
     "keep a centered marker centered for a crop-sized (already 3:2) base" in {
-      val out      = controller.compositeMarker(solidBase(1440, 960, bg), LabelTypeEnum.NoCurbRamp, canvasCenter)
+      val out =
+        controller.compositeMarker(solidBase(1440, 960, bg), LabelTypeEnum.NoCurbRamp, canvasCenter, boxedW, boxedH)
       val (cx, cy) = markerCenter(out, bg)
       cx must be(720 +- 3)
       cy must be(480 +- 3)
@@ -390,11 +393,23 @@ class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
 
     "map an off-center canvas position through the cover-crop transform" in {
       // Canvas x at 1/4 width on a 3:2 base (scale-only, no crop): marker center must land at 1/4 output width.
-      val quarter  = LocationXY(LabelPointTable.canvasWidth / 4, LabelPointTable.canvasHeight / 2)
-      val out      = controller.compositeMarker(solidBase(1440, 960, bg), LabelTypeEnum.Obstacle, quarter)
+      val quarter = LocationXY(LabelPointTable.canvasWidth / 4, LabelPointTable.canvasHeight / 2)
+      val out = controller.compositeMarker(solidBase(1440, 960, bg), LabelTypeEnum.Obstacle, quarter, boxedW, boxedH)
       val (cx, cy) = markerCenter(out, bg)
       cx must be(360 +- 3)
       cy must be(480 +- 3)
+    }
+
+    "read the canvas position as a fraction of the label's own frame (#5085)" in {
+      // A label placed in a 16:9 immersive viewport: its frame is 720x405 and its crop has the same aspect. Cover-
+      // scaling a 1600x900 base into 1440x960 scales by 960/900 (scaledW 1707) and trims 133 px off each side, so a
+      // marker at 1/4 of the frame's width lands at 0.25 * 1707 - 133 = 293 px. Read against the boxed 720x480 frame
+      // instead, the same canvas_y (mid-frame at 202) would sit at 42% of the height, not 50%.
+      val quarterWide = LocationXY(180, 202)
+      val out = controller.compositeMarker(solidBase(1600, 900, bg), LabelTypeEnum.Crosswalk, quarterWide, 720, 405)
+      val (cx, cy) = markerCenter(out, bg)
+      cx must be(293 +- 4)
+      cy must be(480 +- 4)
     }
   }
 

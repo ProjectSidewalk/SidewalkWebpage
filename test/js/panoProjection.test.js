@@ -29,6 +29,7 @@ window.bowser = {
     }),
 };
 loadGlobalScript('public/js/common/utilities.js');
+loadGlobalScript('public/js/common/utilitiesMath.js'); // renderedHFov's aspect bridges use util.math.to{Degrees,Radians}.
 loadGlobalScript('public/js/common/pano-viewer/src/panoUtilities.js');
 
 const pano = window.util.pano;
@@ -185,6 +186,39 @@ describe('util.pano projection', () => {
         });
     });
 
+    // GSV's vertical-fov clamp (#5083) modeled in production code (#5085). test/js/gsvFovContract.test.js pins the
+    // same function against the recorded measurements; PanoDataServiceSpec pins the Scala port to these numbers.
+    describe('renderedHFov applies GSV\'s vertical-fov clamp before the projection', () => {
+        it('is the zoom curve at 3:2 on every viewer, and at any aspect off GSV', () => {
+            for (const zoom of [1, 2, 3]) {
+                expect(pano.renderedHFov(zoom, 1.5, 'gsv')).toBeCloseTo(pano.zoomToFov(zoom), 9);
+                expect(pano.renderedHFov(zoom, 2.0, 'mapillary')).toBeCloseTo(pano.zoomToFov(zoom), 9);
+                expect(pano.renderedHFov(zoom, 0.5, 'pannellum')).toBeCloseTo(pano.zoomToFov(zoom), 9);
+            }
+        });
+
+        it('widens hFov where the floor binds and narrows it where the ceiling binds', () => {
+            // 2:1 at zoom 3 implies a 14.05° vertical field, under the 14.97° floor: hFov widens from 27.7 to ~29.4.
+            expect(pano.renderedHFov(3, 2.0, 'gsv')).toBeCloseTo(29.44, 1);
+            // 3:4 at zoom 1 implies 106° vertically, over the 89.84° ceiling: hFov narrows from 89.75 to ~73.6.
+            expect(pano.renderedHFov(1, 0.75, 'gsv')).toBeCloseTo(73.58, 1);
+            expect(pano.GSV_VFOV_CLAMP_DEG).toEqual({ min: 14.97, max: 89.84 });
+        });
+
+        it('is what the projection helpers take as their trailing hFov argument', () => {
+            const pov = {heading: 100, pitch: -10, zoom: 3};
+            const byDefault = pano.canvasCoordToCenteredPov(pov, 700, 200, 720, 360);
+            const explicit = pano.canvasCoordToCenteredPov(pov, 700, 200, 720, 360, pano.zoomToFov(3));
+            expect(explicit).toEqual(byDefault);
+            const clamped = pano.canvasCoordToCenteredPov(pov, 700, 200, 720, 360, pano.renderedHFov(3, 2, 'gsv'));
+            expect(Math.abs(clamped.heading - byDefault.heading)).toBeGreaterThan(0.5);
+            // And the round trip closes through the same fov.
+            const back = pano.centeredPovToCanvasCoord(clamped, pov, 720, 360, 0, pano.renderedHFov(3, 2, 'gsv'));
+            expect(back.x).toBeCloseTo(700, 6);
+            expect(back.y).toBeCloseTo(200, 6);
+        });
+    });
+
     // The shared function is only half the invariant. The 5-px fudge #4851 chased never lived in the projection
     // itself — it lived in each consumer's copy, and today's equivalent is a nudge on the arguments at a call site.
     // So pin the consumer too: a label stored at the canvas center must read back as the POV it was authored at.
@@ -197,6 +231,7 @@ describe('util.pano projection', () => {
             const authored = {heading: 212.75, pitch: -9.5, zoom: 2};
             const label = new ValidateLabel({
                 canvas_x: CANVAS_WIDTH / 2, canvas_y: CANVAS_HEIGHT / 2,
+                canvas_width: CANVAS_WIDTH, canvas_height: CANVAS_HEIGHT,
                 heading: authored.heading, pitch: authored.pitch, zoom: authored.zoom,
             });
 
@@ -205,6 +240,26 @@ describe('util.pano projection', () => {
             expect(pano.wrapHeading(pov.heading - authored.heading)).toBeCloseTo(0, 6);
             expect(pov.pitch).toBeCloseTo(authored.pitch, 6);
             expect(pov.zoom).toBe(authored.zoom);
+        });
+
+        // The frame contract (#5085): a label placed in a 16:9 viewport carries a 720x405 frame, and its mid-frame
+        // click (y = 202) decodes to the authored pitch only through that frame. A payload without the frame is a
+        // label that predates the columns, so it decodes through the boxed 720x480.
+        it('Validate: getOriginalPov projects through the label\'s own frame, defaulting to 720x480', () => {
+            const src = fs.readFileSync(VALIDATE_LABEL_PATH, 'utf8');
+            const ValidateLabel = (0, eval)(`(() => {\n${src}\nreturn Label;\n})()`);
+            global.buildBackupImageData = () => null;
+            const authored = {heading: 212.75, pitch: -9.5, zoom: 2};
+            const common = {canvas_x: 360, canvas_y: 202, heading: authored.heading, pitch: authored.pitch, zoom: 2};
+
+            const wide = new ValidateLabel({...common, canvas_width: 720, canvas_height: 405}).getOriginalPov();
+            expect(pano.wrapHeading(wide.heading - authored.heading)).toBeCloseTo(0, 6);
+            expect(wide.pitch).toBeCloseTo(authored.pitch, 1);
+
+            const legacy = new ValidateLabel(common).getOriginalPov();
+            const boxed = pano.canvasCoordToCenteredPov(authored, 360, 202, CANVAS_WIDTH, CANVAS_HEIGHT);
+            expect(legacy.pitch).toBeCloseTo(boxed.pitch, 6);
+            expect(legacy.pitch).toBeGreaterThan(authored.pitch + 2); // 38 px above the boxed center reads as looking up.
         });
     });
 });

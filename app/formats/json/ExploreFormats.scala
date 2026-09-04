@@ -2,7 +2,7 @@ package formats.json
 
 import formats.json.PanoFormats.{panoSourceReads, PanoDate}
 import models.audit.{AuditTask, AuditTaskInteraction, NewTask}
-import models.label.ComputationMethod
+import models.label.{ComputationMethod, LabelPointTable}
 import models.pano.PanoSource
 import models.pano.PanoSource.PanoSource
 import models.street.StreetEdgePriority
@@ -46,6 +46,8 @@ object ExploreFormats {
       panoY: Int,
       canvasX: Int,
       canvasY: Int,
+      canvasWidth: Int,
+      canvasHeight: Int,
       heading: Double,
       pitch: Double,
       zoom: Double,
@@ -263,11 +265,20 @@ object ExploreFormats {
     }
   }
 
+  private val positiveFrameError = JsonValidationError("canvas_width and canvas_height must be positive")
+
   implicit val labelPointSubmissionReads: Reads[LabelPointSubmission] = (
     (JsPath \ "pano_x").read[Int] and
       (JsPath \ "pano_y").read[Int] and
       (JsPath \ "canvas_x").read[Int] and
       (JsPath \ "canvas_y").read[Int] and
+      // Defaulted, not required, for Explore sessions that were open across the #5085 deploy: every such client is the
+      // boxed 720x480 tool, so the default is exactly right, where a 400 would drop the label. Make these required once
+      // no pre-#5085 clients remain.
+      (JsPath \ "canvas_width").readWithDefault[Int](LabelPointTable.canvasWidth).filter(positiveFrameError)(_ > 0) and
+      (JsPath \ "canvas_height")
+        .readWithDefault[Int](LabelPointTable.canvasHeight)
+        .filter(positiveFrameError)(_ > 0) and
       (JsPath \ "heading").read[Double] and
       (JsPath \ "pitch").read[Double] and
       (JsPath \ "zoom").read[Double] and

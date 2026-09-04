@@ -601,8 +601,9 @@ class LabelDetail {
       label_type: meta.label_type,
       canvasX: meta.canvas_x,
       canvasY: meta.canvas_y,
-      originalCanvasWidth: util.EXPLORE_CANVAS_WIDTH,
-      originalCanvasHeight: util.EXPLORE_CANVAS_HEIGHT,
+      // The frame the click was made in (#5085); the boxed 720x480 covers payloads that predate the columns.
+      originalCanvasWidth: meta.canvas_width ?? util.EXPLORE_CANVAS_WIDTH,
+      originalCanvasHeight: meta.canvas_height ?? util.EXPLORE_CANVAS_HEIGHT,
       pov: labelPov,
       streetEdgeId: meta.street_edge_id,
       aiGenerated: meta.ai_generated,
@@ -931,8 +932,10 @@ class LabelDetail {
     const userPov = { heading: context.heading, pitch: context.pitch, zoom: context.zoom };
 
     const labelRadius = 10;
-    const pixelCoordinates
-      = util.pano.centeredPovToCanvasCoord(panoMarkerPov, userPov, canvasWidth, canvasHeight, labelRadius);
+    const pixelCoordinates = util.pano.centeredPovToCanvasCoord(
+      panoMarkerPov, userPov, canvasWidth, canvasHeight, labelRadius,
+      util.pano.renderedHFov(userPov.zoom, canvasWidth / canvasHeight, this.panoManager.panoViewer?.getViewerType()),
+    );
 
     const data = {
       label_id: this.panoManager.label.labelId,

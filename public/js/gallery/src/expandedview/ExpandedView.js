@@ -131,6 +131,8 @@ class ExpandedView {
       zoom: p.zoom,
       canvas_x: p.original_canvas_x,
       canvas_y: p.original_canvas_y,
+      canvas_width: p.original_canvas_width,
+      canvas_height: p.original_canvas_height,
       severity: p.severity,
       description: p.description,
       street_edge_id: p.street_edge_id,

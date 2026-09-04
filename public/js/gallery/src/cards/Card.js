@@ -2,6 +2,9 @@
  * A Card module.
  */
 class Card {
+  // Width:height of the card's photo box (.static-gallery-image fills a 3:2 container); crops are cover-fitted into it.
+  static CARD_IMAGE_ASPECT = 3 / 2;
+
   #params;
   #cropUrl;
   #gsvImageUrl;
@@ -28,6 +31,8 @@ class Card {
     zoom: undefined,
     original_canvas_x: undefined,
     original_canvas_y: undefined,
+    original_canvas_width: undefined,
+    original_canvas_height: undefined,
     severity: undefined,
     description: undefined,
     street_edge_id: undefined,
@@ -93,6 +98,9 @@ class Card {
     properties.pov = { heading: param.heading, pitch: param.pitch, zoom: param.zoom };
     properties.original_canvas_x = param.canvas_x;
     properties.original_canvas_y = param.canvas_y;
+    // The frame the click was made in (#5085); the boxed 720x480 covers payloads that predate the columns.
+    properties.original_canvas_width = param.canvas_width ?? util.EXPLORE_CANVAS_WIDTH;
+    properties.original_canvas_height = param.canvas_height ?? util.EXPLORE_CANVAS_HEIGHT;
     properties.val_counts = {
       Agree: param.agree_count,
       Disagree: param.disagree_count,
@@ -190,13 +198,16 @@ class Card {
     cardTags.id = properties.label_id;
     cardData.appendChild(cardTags);
 
-    // Append the overlays for label information on top of the image.
-    const markerLeftPercent = 100 * properties.original_canvas_x / (util.EXPLORE_CANVAS_WIDTH);
-    const markerTopPercent = 100 * properties.original_canvas_y / (util.EXPLORE_CANVAS_HEIGHT);
+    // Append the overlays for label information on top of the image. The crop is cover-fitted into the card's 3:2
+    // box (.static-gallery-image), so the marker's percentages are taken in the visible part of the crop (#5085).
+    const markerPercent = util.misc.markerPercentInCoverBox(
+      properties.original_canvas_x, properties.original_canvas_y,
+      properties.original_canvas_width, properties.original_canvas_height, Card.CARD_IMAGE_ASPECT,
+    );
     const markerWrapper = document.createElement('div');
     markerWrapper.className = 'gallery-marker-wrapper';
-    markerWrapper.style.left = `calc(${markerLeftPercent}% - var(--gallery-marker-size) / 2)`;
-    markerWrapper.style.top = `calc(${markerTopPercent}% - var(--gallery-marker-size) / 2)`;
+    markerWrapper.style.left = `calc(${markerPercent.left}% - var(--gallery-marker-size) / 2)`;
+    markerWrapper.style.top = `calc(${markerPercent.top}% - var(--gallery-marker-size) / 2)`;
     markerWrapper.appendChild(labelIcon);
     if (properties.ai_generated) {
       const aiIndicator = aiLabelIndicator(['ai-icon', 'ai-icon-marker', 'ai-icon-marker-card']);

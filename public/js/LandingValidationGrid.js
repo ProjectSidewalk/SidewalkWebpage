@@ -73,6 +73,17 @@ class LandingValidationGrid {
    * How many grid slots the CSS actually shows at the current viewport width.
    * @returns {number}
    */
+  /**
+   * Where a label's marker sits on its card, in percent of the card's 3:2 photo box (.lvg-card-img), with the crop
+   * cover-fitted into that box (#5085). The frame defaults to the boxed 720x480 for payloads that predate the columns.
+   * @param {object} label - A label from the grid's feed, with canvas_x/y and optionally canvas_width/height.
+   * @returns {{left: number, top: number}} Percentages of the box.
+   */
+  static #markerPercent(label) {
+    return util.misc.markerPercentInCoverBox(label.canvas_x, label.canvas_y,
+      label.canvas_width ?? util.EXPLORE_CANVAS_WIDTH, label.canvas_height ?? util.EXPLORE_CANVAS_HEIGHT, 3 / 2);
+  }
+
   static #visibleCardCount() {
     return window.matchMedia('(width <= 650px)').matches
       ? LandingValidationGrid.#NARROW_VISIBLE_CARDS
@@ -163,8 +174,11 @@ class LandingValidationGrid {
       marker.className = 'lvg-card-marker';
       marker.src = iconPath;
       marker.alt = '';
-      marker.style.left = `${(100 * label.canvas_x) / util.EXPLORE_CANVAS_WIDTH}%`;
-      marker.style.top = `${(100 * label.canvas_y) / util.EXPLORE_CANVAS_HEIGHT}%`;
+      // The crop is cover-fitted into the card's 3:2 box (.lvg-card-img), so the marker's percentages are taken in the
+      // visible part of a crop of another aspect (#5085).
+      const pct = LandingValidationGrid.#markerPercent(label);
+      marker.style.left = `${pct.left}%`;
+      marker.style.top = `${pct.top}%`;
       imgWrap.appendChild(marker);
     }
     card.appendChild(imgWrap);
@@ -320,8 +334,9 @@ class LandingValidationGrid {
     window.logWebpageActivity(`Click_module=LandingValidationGrid_result=${result}_labelId=${label.label_id}`);
 
     // Mirror the Gallery's static-image validation payload: canvas_* describe where the label sits within the
-    // rendered image, scaled from the 720x480 Explore canvas coordinates the label was placed on.
+    // rendered image, re-expressed from the frame the label was placed in (#5085).
     const img = card.querySelector('.lvg-card-photo');
+    const pct = LandingValidationGrid.#markerPercent(label);
     const timestamp = new Date();
     const payload = {
       label_id: label.label_id,
@@ -331,8 +346,8 @@ class LandingValidationGrid {
       tags: label.tags,
       canvas_width: Math.round(img.clientWidth),
       canvas_height: Math.round(img.clientHeight),
-      canvas_x: Math.round((label.canvas_x * img.clientWidth) / util.EXPLORE_CANVAS_WIDTH),
-      canvas_y: Math.round((label.canvas_y * img.clientHeight) / util.EXPLORE_CANVAS_HEIGHT),
+      canvas_x: Math.round((pct.left / 100) * img.clientWidth),
+      canvas_y: Math.round((pct.top / 100) * img.clientHeight),
       heading: label.heading,
       pitch: label.pitch,
       zoom: label.zoom,

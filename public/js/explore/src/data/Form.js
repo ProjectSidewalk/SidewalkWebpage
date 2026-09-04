@@ -178,6 +178,8 @@ class Form {
           pano_y: Math.round(prop.panoXY.y),
           canvas_x: prop.originalCanvasXY.x,
           canvas_y: prop.originalCanvasXY.y,
+          canvas_width: prop.originalCanvasFrame.width,
+          canvas_height: prop.originalCanvasFrame.height,
           heading: prop.originalPov.heading,
           pitch: prop.originalPov.pitch,
           zoom: prop.originalPov.zoom,

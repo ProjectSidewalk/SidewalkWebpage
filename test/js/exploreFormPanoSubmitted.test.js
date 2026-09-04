@@ -59,6 +59,7 @@ function labelStub(panoId, tempLabelId) {
         tutorial: false,
         panoXY: { x: 100, y: 100 },
         originalCanvasXY: { x: 200, y: 200 },
+        originalCanvasFrame: { width: 720, height: 480 },
         originalPov: { heading: 90, pitch: 0, zoom: 1 },
         temporaryLabelId: tempLabelId,
         severity: null,

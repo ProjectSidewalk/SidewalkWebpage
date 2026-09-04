@@ -2,6 +2,7 @@ package formats.json
 
 import formats.json.ExploreFormats._
 import models.audit.AuditTask
+import models.label.LabelPointTable
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 import play.api.libs.json.Json
@@ -41,6 +42,32 @@ class ExploreFormatsSpec extends AnyFunSuite with Matchers {
   test("TaskSubmission tolerates a missing audited_distance_m (older clients)") {
     val withoutDistance = Json.parse(taskSubmissionJson).as[play.api.libs.json.JsObject] - "audited_distance_m"
     withoutDistance.as[TaskSubmission].auditedDistanceM shouldBe None
+  }
+
+  private val labelPointJson = Json.obj(
+    "pano_x"        -> 8000,
+    "pano_y"        -> 4000,
+    "canvas_x"      -> 360,
+    "canvas_y"      -> 202,
+    "canvas_width"  -> 720,
+    "canvas_height" -> 405,
+    "heading"       -> 100.5,
+    "pitch"         -> -10.0,
+    "zoom"          -> 1
+  )
+
+  test("LabelPointSubmission parses the frame the click was made in (#5085)") {
+    val sub = labelPointJson.as[LabelPointSubmission]
+    (sub.canvasWidth, sub.canvasHeight) shouldBe ((720, 405))
+  }
+
+  test("LabelPointSubmission defaults a missing frame to the boxed 720x480 (pre-#5085 clients)") {
+    val sub = (labelPointJson - "canvas_width" - "canvas_height").as[LabelPointSubmission]
+    (sub.canvasWidth, sub.canvasHeight) shouldBe ((LabelPointTable.canvasWidth, LabelPointTable.canvasHeight))
+  }
+
+  test("LabelPointSubmission rejects a non-positive frame") {
+    (labelPointJson + ("canvas_height" -> Json.toJson(0))).validate[LabelPointSubmission].isError shouldBe true
   }
 
   test("AuditTask serializes audited_distance_m and start_offset_m in snake_case") {
