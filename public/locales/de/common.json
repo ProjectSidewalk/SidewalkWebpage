@@ -204,6 +204,9 @@
     "copy-to-clipboard": "In die Zwischenablage kopieren",
     "copied-to-clipboard": "Daten wurden in Zwischenablage kopiert"
   },
+  "pano-attribution": {
+    "opens-new-tab": "(wird in einem neuen Tab geöffnet)"
+  },
   "mission-start-tutorial": {
     "example-type-label-correct": "RICHTIGES BEISPIEL",
     "label-type-subtitle": "Wieso ist das falsch?",

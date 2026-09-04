@@ -1,0 +1,46 @@
+/* Imagery attribution (#4865): the rights holder, provider and licence owed while Project Sidewalk's own copy of the
+   imagery — the self-hosted Pannellum pano or the static crop — is on screen. The providers' live viewers draw their
+   own. Always visible, not hover-revealed: it is an obligation of the licence, not a control. Dark pill for contrast
+   on any imagery; the licence token is the one link.
+
+   Mounted by PanoAttribution.js (pano-viewer bundle) inside a positioned pano container. This file is the look; each
+   host positions the pill where its own overlays leave room (label-detail.css, validate/svv-panorama.css). */
+.pano-attribution {
+  position: absolute;
+  max-width: calc(100% - 20px);
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 60%);
+  color: var(--color-neutral-white);
+  font: var(--text-caption-medium);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none; /* Never intercepts a drag on the imagery beneath it… */
+}
+
+.pano-attribution a {
+  color: inherit;
+  text-decoration: underline;
+  pointer-events: auto; /* …except on the licence link itself. */
+}
+
+.pano-attribution a:focus-visible {
+  outline: 2px solid var(--color-neutral-white);
+  outline-offset: 2px;
+}
+
+/* The "(opens in a new tab)" cue for assistive tech, off-screen like the other hosts' visually-hidden text. */
+.pano-attribution__new-tab {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.pano-attribution[hidden] { display: none; }

@@ -146,7 +146,8 @@ case class LabelMetadata(
     aiGenerated: Boolean,
     expired: Boolean,
     fromCurrentUser: Boolean,
-    panoMetadata: Option[PanoViewerMetadata]
+    panoMetadata: Option[PanoViewerMetadata],
+    panoSource: PanoSource
 )
 
 /**
@@ -518,6 +519,10 @@ object LabelTable {
       )
     }
 
+  // One row of getCropCandidates: label id and type, pano id, the label's pano_x/pano_y, and the pano's recorded
+  // width/height. Mapped to service.CropService.CropCandidate by the crop job.
+  type CropCandidateTuple = (Int, LabelTypeEnum.Base, String, Int, Int, Option[Int], Option[Int])
+
   // Type alias for the tuple representation of LabelCVMetadata.
   // TODO in Scala 3 I think that we can make these top-level like we do for the case class version.
   type LabelCVMetadataTuple = (
@@ -754,7 +759,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           r.nextStringOption(), // copyright
           r.nextStringOption()  // address
         )
-      )
+      ),
+      PanoSource.withName(r.nextString())
     )
   }
 
@@ -1152,7 +1158,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              pano_data.camera_pitch,
              pano_data.camera_roll,
              pano_data.copyright,
-             pano_data.address
+             pano_data.address,
+             pano_data.source
       FROM label AS lb1
       INNER JOIN pano_data ON lb1.pano_id = pano_data.pano_id
       INNER JOIN audit_task AS at ON lb1.audit_task_id = at.audit_task_id
@@ -2669,6 +2676,24 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _pd.cameraPitch.asColumnOf[Double],
       _pd.cameraRoll
     )).sortBy(_._1).result
+  }
+
+  /**
+   * Every label the crop job could cut a crop for, with the pano's recorded dimensions — the frame `pano_x`/`pano_y`
+   * are expressed in. Streamed rather than materialized because it is the whole label table; the job filters against
+   * the crop store as rows arrive (#4865).
+   *
+   * Built on `labelsWithExcludedUsers`: an excluded user's labels are cropped like anyone else's, because they are
+   * what an admin looks at to judge the exclusion and what a study of poor labeling behaviour is made of — and the
+   * pano they were cut from expires long before the research does. Deleted and tutorial labels are left out; no
+   * surface displays either.
+   */
+  def getCropCandidates: StreamingDBIO[Seq[CropCandidateTuple], CropCandidateTuple] = {
+    (for {
+      _l  <- labelsWithExcludedUsers
+      _lp <- labelPoints if _l.labelId === _lp.labelId
+      _pd <- panoData if _l.panoId === _pd.panoId
+    } yield (_l.labelId, _l.labelType, _l.panoId, _lp.panoX, _lp.panoY, _pd.width, _pd.height)).result
   }
 
   /**

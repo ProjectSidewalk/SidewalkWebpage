@@ -75,7 +75,8 @@ class ScheduledJobsSpec extends PlaySpec {
         FunnelStatActor.Name,                // /adminapi/updateFunnelStats
         RecalculateStreetPriorityActor.Name, // /adminapi/recalculateStreetPriority
         OsmWayRefreshActor.Name,             // /adminapi/refreshOsmWayData
-        ClusteringActor.Name                 // /runClustering
+        ClusteringActor.Name,                // /runClustering
+        CropGenerationActor.Name             // /adminapi/generateCrops
       )
       ScheduledJobs.All.map(_.name) must contain allElementsOf handTriggered
     }
@@ -84,7 +85,8 @@ class ScheduledJobsSpec extends PlaySpec {
       val scheduled = Seq(
         CheckImageExpiryActor.Name, GetAiValidationsActor.Name, CheckImageryAgeActor.Name, UserStatActor.Name,
         RecalculateStreetPriorityActor.Name, RecalculateStreetPriorityActor.FreshnessSyncJobName,
-        OsmWayRefreshActor.Name, AuthTokenCleanerActor.Name, FunnelStatActor.Name, ClusteringActor.Name
+        OsmWayRefreshActor.Name, AuthTokenCleanerActor.Name, FunnelStatActor.Name, ClusteringActor.Name,
+        CropGenerationActor.Name
       )
       ScheduledJobs.All.map(_.name) must contain theSameElementsAs scheduled
     }

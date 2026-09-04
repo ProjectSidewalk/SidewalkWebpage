@@ -145,6 +145,17 @@
   font-size: calc(30px * var(--ui-scale));
 }
 
+/* Imagery attribution (#4865; look in css/components/pano-attribution.css, bundled into validate.css) in the pano's
+   bottom-right — the top-right is the zoom buttons' and the speed-limit sign's, the bottom-left the logo's and the
+   date's. Shown only while the Pannellum fallback is up, so it never competes with GSV's own bottom-right links.
+   Above the click-handling view-control-layer (2), which its licence link would otherwise sit under. */
+#svv-panorama-holder .pano-attribution {
+  bottom: calc(7px * var(--ui-scale));
+  right: calc(7px * var(--ui-scale));
+  z-index: 3;
+  max-width: calc(100% - 14px * var(--ui-scale));
+}
+
 /* Shared button look in pano-overlay-buttons.css; this rule only positions the holder in the top-right of the pano. */
 #zoom-buttons-holder {
   position: absolute;
