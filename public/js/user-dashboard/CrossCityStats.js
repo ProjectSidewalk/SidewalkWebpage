@@ -95,13 +95,17 @@ class CrossCityStats {
    */
   #renderBand(cities, data) {
     this.#setText('ud-cities-total-cities', CrossCityStats.#num(cities.length));
-    this.#setText('ud-cities-total-labels', CrossCityStats.#num(data.total_labels));
-    this.#setText('ud-cities-total-validations', CrossCityStats.#num(data.total_validations));
+    this.#setBandValue('ud-cities-total-labels',
+      CrossCityStats.#num(data.total_labels), CrossCityStats.#shortNum(data.total_labels));
+    this.#setBandValue('ud-cities-total-validations',
+      CrossCityStats.#num(data.total_validations), CrossCityStats.#shortNum(data.total_validations));
     // Distance is the one total that can't come from the payload: the rows are each floored for display, and
     // floor(Σ) can land a tenth above Σ floor. A band that doesn't add up to the column beneath it undercuts the one
     // thing this section is for.
     const distance = cities.reduce((sum, c) => sum + CrossCityStats.#floorDist(c.distance), 0);
-    this.#setText('ud-cities-total-distance', CrossCityStats.#fmtDist(distance, data.distance_unit));
+    this.#setBandValue('ud-cities-total-distance',
+      CrossCityStats.#fmtDist(distance, data.distance_unit),
+      CrossCityStats.#shortDist(distance, data.distance_unit));
     const band = this.#section.querySelector('#ud-cities-band');
     if (band) band.hidden = false;
   }
@@ -336,6 +340,41 @@ class CrossCityStats {
   }
 
   /**
+   * Fills a community-band tile with a figure in both the forms the band's CSS can choose between: the exact one,
+   * which always carries the accessible reading, and a short one for widths too narrow to seat five exact figures
+   * across the row. Both are built here from numbers we formatted ourselves, so there is no caller text to escape.
+   *
+   * @param {string} id - Element id of the tile's `.ud-community-value`.
+   * @param {string} full - The exact figure, e.g. "1,234,567".
+   * @param {string} short - Its short form, e.g. "1.2M"; pass the same string when there isn't one.
+   */
+  #setBandValue(id, full, short) {
+    const el = this.#section.querySelector(`#${id}`);
+    if (!el) return;
+    if (full === short) {
+      el.textContent = full;
+      return;
+    }
+    el.innerHTML = `
+      <span class="ud-value-full">${full}</span><span class="ud-value-short" aria-hidden="true">${short}</span>
+    `;
+  }
+
+  /**
+   * The short form of a count, matching the leaderboard band's thresholds: millions to one decimal, thousands
+   * whole, anything smaller left grouped.
+   *
+   * @param {number} n - The count.
+   * @returns {string} The short form, or the grouped number when it is already short.
+   */
+  static #shortNum(n) {
+    const v = Number(n || 0);
+    if (v >= 1000000) return `${(v / 1000000).toLocaleString(undefined, { maximumFractionDigits: 1 })}M`;
+    if (v >= 10000) return `${Math.round(v / 1000).toLocaleString()}k`;
+    return CrossCityStats.#num(v);
+  }
+
+  /**
    * Translates with i18next's HTML-escaping off.
    *
    * Every string in this file either lands in textContent or is escaped by #esc on its way into innerHTML, so the
@@ -385,6 +424,19 @@ class CrossCityStats {
    */
   static #fmtDist(floored, unit) {
     return `${floored.toFixed(1)} ${unit || ''}`.trim();
+  }
+
+  /**
+   * The short form of a distance, for the community band's narrow widths: whole thousands past ten thousand,
+   * otherwise the same string #fmtDist produces.
+   *
+   * @param {number} floored - An already-floored distance, as #fmtDist takes.
+   * @param {string} unit - Distance abbreviation for this viewer ("km" / "mi").
+   * @returns {string} The short form, or the ordinary one when it is already short.
+   */
+  static #shortDist(floored, unit) {
+    if (floored < 10000) return CrossCityStats.#fmtDist(floored, unit);
+    return `${Math.round(floored / 1000).toLocaleString()}k ${unit || ''}`.trim();
   }
 
   /** Localized month-and-year for a last-labeled timestamp, or a dash when the mapper only validated there. */
