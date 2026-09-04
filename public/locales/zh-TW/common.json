@@ -87,6 +87,7 @@
   "only": "只看",
   "image-capture-date": "影像拍攝日期",
   "drag-to-look-around": "拖曳以環顧四周",
+  "loading-imagery": "正在載入影像...",
   "hide-label": "隱藏標記",
   "show-label": "顯示標記",
   "hide-label-tooltip": "暫時隱藏標記以查看下方的情況。",

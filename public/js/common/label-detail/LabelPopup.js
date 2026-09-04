@@ -34,6 +34,7 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, currUsername, op
   if (!dialog) {
     throw new Error('LabelPopup: #label-modal not found. Did you include common.labelPopup() on the page?');
   }
+  const panoEl = dialog.querySelector('.label-detail__pano');
 
   // The pano viewer is built on the first showLabel(), never here (#5128): Google bills every StreetViewPanorama
   // constructed, hidden or not, and most visits to a hosting page never open a label. showLabel() opens the dialog
@@ -105,6 +106,8 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, currUsername, op
    */
   async function showLabel(labelId, source) {
     if (!dialog.open) dialog.showModal();
+    // Clear the close-guard so this label's pano is allowed to reveal itself once it loads.
+    delete panoEl?.dataset.closedDuringLoad;
     if (opts.syncUrlSource) LabelDetail.syncUrlLabelId(labelId);
     currentLabelId = labelId;
     lastSource = source;
@@ -121,6 +124,11 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, currUsername, op
 
   // Every close path (X, backdrop, ESC) fires the dialog's close event.
   dialog.addEventListener('close', () => {
+    if (panoEl) {
+      // Clear setPano()'s inline visibility and flag the close, so a load still in flight can't reveal itself.
+      panoEl.style.visibility = '';
+      panoEl.dataset.closedDuringLoad = 'true';
+    }
     if (opts.syncUrlSource) LabelDetail.syncUrlLabelId(null);
     if (typeof opts.onClose === 'function' && currentLabelId) opts.onClose(currentLabelId);
   });

@@ -30,6 +30,7 @@ class PopupPanoManager {
   // healthy build takes well under a second even on a cold cache.
   static DEEP_LINK_BUILD_WAIT_MS = 3000;
   #pannellumViewer = undefined;  // Only constructed when an expired pano with a self-hosted image is shown.
+  #loadingEl; // Host-rendered overlay (.label-detail__pano-loading); absent on a host that doesn't include it.
   #panoCanvas;
   #pannellumCanvas;
   #panoNotAvailable;
@@ -92,6 +93,7 @@ class PopupPanoManager {
     this.#buttonHolder = $(buttonHolder);
     this.svHolder = $(svHolder);
     this.svHolder.addClass('admin-panorama');
+    this.#loadingEl = svHolder.parentElement?.querySelector('.label-detail__pano-loading') ?? null;
 
     // svHolder's children are absolutely aligned, svHolder's position has to be either absolute or relative
     if (this.svHolder.css('position') !== 'absolute' && this.svHolder.css('position') !== 'relative') {
@@ -289,6 +291,7 @@ class PopupPanoManager {
   async setPano(panoId, pov, cropUrl, expired = false, backupImage = null) {
     this.#cropUrl = typeof cropUrl === 'string' ? cropUrl : null;
     this.svHolder.css('visibility', 'hidden'); // Hide until we've finished rendering.
+    if (this.#loadingEl) this.#loadingEl.hidden = false;
     // Reset fallback zoom/pan so a previous label's manipulation doesn't leak into this one.
     this.#resetFallbackTransform();
 
@@ -301,7 +304,7 @@ class PopupPanoManager {
         this.#teardownPannellum();
         this.activeViewerName = 'Default';
         await this.#panoSuccessCallback(pov);
-        if (!this.svHolder[0].dataset.closedDuringLoad) this.svHolder.css('visibility', 'visible');
+        this.#finishLoad();
         return true;
       } catch {
         // Primary viewer failed — lazy-fetch backup metadata if caller didn't pre-supply it.
@@ -317,7 +320,7 @@ class PopupPanoManager {
       try {
         await this.#showPannellumPano(backupImage, pov);
         this.activeViewerName = 'Pannellum';
-        if (!this.svHolder[0].dataset.closedDuringLoad) this.svHolder.css('visibility', 'visible');
+        this.#finishLoad();
         return true;
       } catch (err) {
         console.error('PannellumViewer failed to load; falling back to crop:', err);
@@ -331,8 +334,16 @@ class PopupPanoManager {
     // and a generic "imagery not available" message otherwise. Its return distinguishes those two outcomes.
     this.activeViewerName = 'StaticCrop';
     const cropShown = await this.#panoFailureCallback();
-    if (!this.svHolder[0].dataset.closedDuringLoad) this.svHolder.css('visibility', 'visible');
+    this.#finishLoad();
     return cropShown;
+  }
+
+  /**
+   * Ends a load: drops the spinner and reveals the imagery, unless the host closed over this load.
+   */
+  #finishLoad() {
+    if (this.#loadingEl) this.#loadingEl.hidden = true;
+    if (!this.svHolder[0].dataset.closedDuringLoad) this.svHolder.css('visibility', 'visible');
   }
 
   /**
@@ -393,8 +404,13 @@ class PopupPanoManager {
     // with Explore/Gallery/Validate. Probably because of how we show/hide the popup.
     return await new Promise((resolve) => {
       setTimeout(() => {
-        this.panoViewer.resize();
-        this.panoViewer.setPov(targetPov);
+        // The host may have closed over this load: a viewer measured at 0x0 derives a tile zoom of NaN and wedges
+        // retrying a request the provider rejects, so let the next open run these against a laid-out container.
+        const { width, height } = this.svHolder[0].getBoundingClientRect();
+        if (width > 0 && height > 0) {
+          this.panoViewer.resize();
+          this.panoViewer.setPov(targetPov);
+        }
         if (this.label) this.renderLabel(this.label);
         resolve();
       }, 250);
