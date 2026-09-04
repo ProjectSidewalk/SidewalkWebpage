@@ -69,6 +69,30 @@ def test_mapillary_has_imagery_other_error_raises():
         cs.mapillary_has_imagery({'error': {'code': 400, 'message': 'bad request'}})
 
 
+def _pnx_feature(picture_id, datetime):
+    return {'id': picture_id, 'geometry': {'type': 'Point', 'coordinates': [-1.47, 43.49]},
+            'properties': {'datetime': datetime}}
+
+
+def test_panoramax_has_imagery_feature_presence():
+    assert cs.panoramax_has_imagery({'features': [_pnx_feature('a', '2026-08-11T15:02:33+00:00')]}) is True
+    assert cs.panoramax_has_imagery({'features': []}) is False
+
+
+def test_panoramax_has_imagery_error_body_raises():
+    with pytest.raises(cs.ImageryApiError):
+        cs.panoramax_has_imagery({'message': 'Invalid bbox parameter', 'status_code': 400})
+
+
+def test_panoramax_capture_date_is_the_newest_picture():
+    response = {'features': [_pnx_feature('a', '2024-10-31T09:00:00+00:00'),
+                             _pnx_feature('b', '2026-08-11T15:02:33+02:00'),
+                             {'id': 'c', 'properties': {}}]}  # no datetime -> ignored
+    assert cs.panoramax_capture_date(response) == '2026-08-11'
+    assert cs.panoramax_capture_date({'features': []}) is None
+    assert cs.panoramax_capture_date({'features': [_pnx_feature('d', 'garbage')]}) is None
+
+
 @pytest.mark.parametrize('raw, expected', [
     ('2019-06-15', '2019-06-15'),   # full date
     ('2019-06', '2019-06-01'),      # year-month -> 1st of month
@@ -520,6 +544,32 @@ def test_process_street_mapillary_no_imagery():
     assert _run_process(_LINE_60, 'Mapillary', lambda url: {'data': []}).outcome == cs.NO_IMAGERY
 
 
+def test_process_street_panoramax_has_imagery_with_dates():
+    seen = []
+
+    def fetch(url):
+        seen.append(url)
+        return {'features': [_pnx_feature('a', '2026-08-11T15:02:33+00:00'),
+                             _pnx_feature('b', '2025-03-02T10:00:00+00:00')]}
+
+    result = _run_process(_LINE_60, 'Panoramax', fetch)
+    assert result.outcome == cs.HAS_IMAGERY
+    # Each point contributes its newest picture's date, and every point saw the same pair of pictures.
+    assert (result.oldest_capture, result.newest_capture) == ('2026-08-11', '2026-08-11')
+    assert result.n_panos >= 3
+    assert all(url.startswith(cs.PANORAMAX_SEARCH_URL + '&bbox=') for url in seen)
+
+
+def test_process_street_panoramax_no_imagery():
+    assert _run_process(_LINE_60, 'Panoramax', lambda url: {'features': []}).outcome == cs.NO_IMAGERY
+
+
+def test_panoramax_bbox_url_appends_four_coords():
+    url = cs._panoramax_bbox_url(47.6, -122.3, 0.025)
+    assert url.startswith(cs.PANORAMAX_SEARCH_URL + '&bbox=')
+    assert len(url.split('&bbox=')[1].split(',')) == 4
+
+
 class _FakeInfra3dAuth:
     tenant = 'uzh'
 
@@ -810,6 +860,16 @@ def test_main_mapillary_branch(monkeypatch, tmp_path):
     _setup(monkeypatch, tmp_path, [(100, 1, _LINE_60)], env_var='MAPILLARY_ACCESS_TOKEN')
     monkeypatch.setattr(cs, '_get_json', lambda url: {'data': []})  # no imagery
     assert cs.main(['--mapillary']) == 0
+    assert _output(tmp_path)['street_edge_id'].tolist() == [100]
+
+
+def test_main_panoramax_branch_needs_no_key(monkeypatch, tmp_path, capsys):
+    _setup(monkeypatch, tmp_path, [(100, 1, _LINE_60)])
+    for var in ('GOOGLE_MAPS_API_KEY', 'MAPILLARY_ACCESS_TOKEN'):
+        monkeypatch.delenv(var, raising=False)
+    monkeypatch.setattr(cs, '_get_json', lambda url: {'features': []})  # no imagery
+    assert cs.main(['--panoramax']) == 0
+    assert 'no credential needed' in capsys.readouterr().out
     assert _output(tmp_path)['street_edge_id'].tolist() == [100]
 
 

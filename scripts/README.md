@@ -46,7 +46,8 @@ dependencies must be installed in the `python3` interpreter the app shells out t
 
 ## `check_streets_for_imagery.py`
 
-Finds streets lacking street-view imagery (Google Street View, Mapillary, or Infra3d) and writes them to a CSV.
+Finds streets lacking street-view imagery (Google Street View, Mapillary, Panoramax, or Infra3d) and writes them to a
+CSV.
 Standalone and manual — nothing in the app calls it.
 
 1. Export a CSV of the `street_edge` table with columns `street_edge_id, region_id, x1, y1, x2, y2, geom` (geom as WKB
@@ -57,6 +58,7 @@ Standalone and manual — nothing in the app calls it.
    python3.13 scripts/check_streets_for_imagery.py --mapillary   # needs MAPILLARY_ACCESS_TOKEN
    python3.13 scripts/check_streets_for_imagery.py --infra3d     # needs INFRA3D_CLIENT_ID + INFRA3D_CLIENT_SECRET;
                                                                  # add --campaign <uid> if the tenant has several
+   python3.13 scripts/check_streets_for_imagery.py --panoramax   # public API, no credential; 360° pictures only
    ```
    It checks each street's endpoints first, then samples points along the street, and flags streets where enough points
    lack imagery. It writes streets without imagery to `db/streets_with_no_imagery.csv`, and a per-street imagery
@@ -93,7 +95,8 @@ raising it.
 
 ### Imagery age
 
-The GSV and Infra3d responses we already fetch also carry an imagery capture date, so — for **no extra API calls** —
+The GSV, Panoramax, and Infra3d responses we already fetch also carry an imagery capture date, so — for **no extra API
+calls** —
 the scan records each street's capture-date range (oldest/newest) and pano count into `db/street_imagery_summary.csv`
 (`street_edge_id, region_id, has_imagery, oldest_capture, newest_capture, n_panos`). That tells us not just whether a
 street has imagery but how old it is. Mapillary capture dates are a future enhancement. Persisting this into the

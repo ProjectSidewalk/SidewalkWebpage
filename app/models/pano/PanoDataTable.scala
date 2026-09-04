@@ -68,7 +68,7 @@ object PanoSource extends Enumeration {
   /**
    * Sources whose imagery `PanoDataService.panoExists` can actually verify against a provider API.
    */
-  val providerCheckedSources: Set[Value] = Set(Gsv, Mapillary)
+  val providerCheckedSources: Set[Value] = Set(Gsv, Mapillary, Panoramax)
 
   /**
    * Sources a client may name in a submission. `Tutorial` is server-owned.

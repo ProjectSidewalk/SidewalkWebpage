@@ -440,9 +440,9 @@ class PanoDataServiceImpl @Inject() (
   /**
    * Checks whether the imagery for a label's panorama is still available, dispatching per imagery source.
    *
-   * GSV and Mapillary are verified against their respective provider APIs. Infra3d (and any other source) is assumed
-   * to always be available. A miss is only ever reported when the provider explicitly says the image is gone — network
-   * errors, timeouts, auth failures, and other inconclusive responses return `None`.
+   * GSV, Mapillary, and Panoramax are verified against their respective provider APIs. Infra3d (and any other source)
+   * is assumed to always be available. A miss is only ever reported when the provider explicitly says the image is
+   * gone — network errors, timeouts, auth failures, and other inconclusive responses return `None`.
    *
    * @param panoId     Panorama ID.
    * @param panoSource Imagery source the label was placed on.
@@ -452,6 +452,7 @@ class PanoDataServiceImpl @Inject() (
     panoSource match {
       case PanoSource.Gsv       => gsvPanoExists(panoId)
       case PanoSource.Mapillary => mapillaryPanoExists(panoId)
+      case PanoSource.Panoramax => panoramaxPanoExists(panoId)
       case _                    => Future.successful(Some(true))
     }
   }
@@ -550,6 +551,43 @@ class PanoDataServiceImpl @Inject() (
               None
           }
     }
+  }
+
+  /**
+   * Checks whether a Panoramax picture still exists via the federated meta-catalog (`GET /api/pictures/:id`), which
+   * needs no credential. The catalog answers 404 for a deleted or hidden picture and 200 with the STAC item otherwise.
+   *
+   * @param panoId Panoramax picture ID (a UUID).
+   * @return       `Some(true)` if the imagery exists, `Some(false)` if not, `None` if inconclusive.
+   */
+  private def panoramaxPanoExists(panoId: String): Future[Option[Boolean]] = {
+    ws.url(s"https://api.panoramax.xyz/api/pictures/$panoId")
+      .withRequestTimeout(5.seconds)
+      .get()
+      .flatMap { response =>
+        val timestamp = OffsetDateTime.now
+        response.status match {
+          case 200 if (Json.parse(response.body) \ "id").toOption.isDefined =>
+            db.run(
+              panoDataTable.updateExpiredStatus(panoId, expired = false, Some(backupExists(panoId)), timestamp)
+            ).map(_ => Some(true))
+          case 404 =>
+            db.run(panoDataTable.updateExpiredStatus(panoId, expired = true, Some(backupExists(panoId)), timestamp))
+              .map(_ => Some(false))
+          case other =>
+            // Inconclusive (rate limit, 5xx, unexpected body). Don't assume the picture is gone.
+            logger.info(s"Panoramax existence check inconclusive ($other) for $panoId: ${response.body.take(200)}")
+            Future.successful(None)
+        }
+      }
+      .recover {
+        // A transient network error doesn't mean the picture is gone; treat as inconclusive.
+        case _: SocketTimeoutException => None
+        case _: IOException            => None
+        case e: Exception              =>
+          logger.warn(s"Unexpected error checking Panoramax imagery for $panoId; treating as inconclusive.", e)
+          None
+      }
   }
 
   /**
