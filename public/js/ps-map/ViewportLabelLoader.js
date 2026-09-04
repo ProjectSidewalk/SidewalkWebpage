@@ -3,9 +3,9 @@
  *
  * All viewport-fetch policy lives here so createPSMap and the page only react to events:
  * - The fetched bbox is the viewport padded by `padFactor` per side (clamped to the map's maxBounds), so small
- *   pans stay inside already-fetched data and cost no request. When the initial viewport shows the whole city
- *   (the desktop default), the padded first fetch covers everything and no later move can escape it — desktop
- *   ends up with exactly one request, like the old single-shot load.
+ *   pans stay inside already-fetched data and cost no request. Once a fetch has covered `dataBounds` — the
+ *   extent the labels themselves live in — there is nothing left to fetch and every later move is free, so a
+ *   desktop session opened on the city-wide view makes exactly one request, like the old single-shot load.
  * - Below `minFetchZoom` (where `floorApplies`, mobile by default) nothing is fetched: the layers are cleared
  *   through the normal data fan-out and a `belowFloor` state is emitted so the page can hint "zoom in". This is
  *   what keeps a pinch-out from re-downloading a whole city over cell data.
@@ -16,6 +16,9 @@
  * loader off the resolved map promise) can't miss a fast first fetch.
  */
 class ViewportLabelLoader {
+  /** @type {number} Degrees (~1 km) of slack on the data extent; see the constructor for why. */
+  static #DATA_BOUNDS_MARGIN_DEG = 0.01;
+
   /** @type {mapboxgl.Map} */
   #map;
   /** @type {string|URL} */
@@ -41,6 +44,11 @@ class ViewportLabelLoader {
   #abortController = null;
   /** @type {?number} */
   #debounceTimer = null;
+  /** @type {?{minLng: number, minLat: number, maxLng: number, maxLat: number}} Extent the labels live in,
+   *     margin included; null when the caller didn't supply one. */
+  #dataBounds = null;
+  /** @type {boolean} A fetch has covered `#dataBounds`, so every later move is a no-op. */
+  #coversAllData = false;
   /** @type {boolean} */
   #belowFloor = false;
   /** @type {string} */
@@ -63,14 +71,30 @@ class ViewportLabelLoader {
    * @param {number} [options.padFactor=0.5] Fraction of the viewport span added on each side of the fetched
    *     bbox, so nearby pans need no request. 0.5 fetches roughly four viewports' worth.
    * @param {number} [options.debounceMs=350] Quiet time after a moveend before the viewport is evaluated.
+   * @param {mapboxgl.LngLatBounds} [options.dataBounds] The extent the labels live in (the city's streets and
+   *     neighborhoods); a fetch covering it has fetched everything, so no later move refetches. maxBounds
+   *     can't stand in for it — several cities draw one degrees larger than the city itself (#5170).
    */
-  constructor(map, labelsURL, { minFetchZoom = 13, floorApplies, padFactor = 0.5, debounceMs = 350 } = {}) {
+  constructor(map, labelsURL,
+    { minFetchZoom = 13, floorApplies, padFactor = 0.5, debounceMs = 350, dataBounds } = {}) {
     this.#map = map;
     this.#labelsURL = labelsURL;
     this.#minFetchZoom = minFetchZoom;
     this.#floorApplies = floorApplies ?? (() => util.isMobile());
     this.#padFactor = padFactor;
     this.#debounceMs = debounceMs;
+    if (dataBounds) {
+      // A label sits up to ~40m off the street it belongs to, so the extent gets slack before a fetch counts as
+      // covering it — then clamping, since a target past maxBounds is one no fetch could meet and the latch
+      // would never fire.
+      const margin = ViewportLabelLoader.#DATA_BOUNDS_MARGIN_DEG;
+      this.#dataBounds = this.#clampedBox({
+        minLng: dataBounds.getWest() - margin,
+        minLat: dataBounds.getSouth() - margin,
+        maxLng: dataBounds.getEast() + margin,
+        maxLat: dataBounds.getNorth() + margin,
+      });
+    }
   }
 
   /** Binds the map's moveend and evaluates the current viewport immediately (no debounce on the first pass). */
@@ -85,6 +109,7 @@ class ViewportLabelLoader {
   /** Forgets the last fetched bbox and fetches the current viewport now. The retry hook for a failed fetch. */
   refetch() {
     this.#lastFetchedBbox = null;
+    this.#coversAllData = false;
     this.#evaluate();
   }
 
@@ -140,6 +165,7 @@ class ViewportLabelLoader {
         // The layers are being cleared, so the last-fetched bbox must be forgotten too — otherwise returning
         // above the floor inside it would pass the containment check and leave the map empty.
         this.#lastFetchedBbox = null;
+        this.#coversAllData = false;
         this.#abortController?.abort();
         this.#emitData({ type: 'FeatureCollection', features: [] });
         this.#setState('belowFloor');
@@ -148,15 +174,17 @@ class ViewportLabelLoader {
     }
     this.#belowFloor = false;
 
+    if (this.#coversAllData) return;
+
     const viewport = this.#map.getBounds();
-    if (this.#lastFetchedBbox && this.#contains(this.#lastFetchedBbox, viewport)) return;
+    if (this.#lastFetchedBbox && this.#contains(this.#lastFetchedBbox, this.#boxFor(viewport, 0))) return;
 
     if (this.#inFlight) {
       this.#queued = true;
       return;
     }
 
-    this.#fetch(this.#paddedBbox(viewport));
+    this.#fetch(this.#boxFor(viewport, this.#padFactor));
   }
 
   /**
@@ -175,6 +203,7 @@ class ViewportLabelLoader {
       const data = await fetchLabelFeed(url, { signal: this.#abortController?.signal });
       if (token !== this.#fetchSeq) return;
       this.#lastFetchedBbox = bbox;
+      this.#coversAllData = this.#dataBounds !== null && this.#contains(bbox, this.#dataBounds);
       this.#emitData(data);
       this.#setState('idle');
     } catch (e) {
@@ -192,47 +221,62 @@ class ViewportLabelLoader {
   }
 
   /**
-   * Returns the viewport expanded by `padFactor` of its span per side, clamped to the map's maxBounds (which
-   * loses nothing — the viewport itself can't leave maxBounds — and keeps the desktop one-fetch invariant
-   * exact). Corners are rounded to 5 decimals (~1 m) so the stored bbox is exactly what the server filtered by.
+   * Returns the viewport expanded by `pad` of its span per side, clamped and rounded by #clampedBox.
+   *
+   * The fetched bbox and the box containment compares against both come from here. A raw viewport won't do
+   * for the latter: zoomed out past maxBounds (mapbox pins the center only once the bounds are smaller than
+   * the view) it can never be contained in a bbox clamped to them (#5170).
+   *
    * @param {mapboxgl.LngLatBounds} viewport The current unpadded viewport.
-   * @returns {{minLng: number, minLat: number, maxLng: number, maxLat: number}} The bbox to fetch.
+   * @param {number} pad Fraction of the viewport's span added on each side before clamping.
+   * @returns {{minLng: number, minLat: number, maxLng: number, maxLat: number}} The clamped, rounded box.
    */
-  #paddedBbox(viewport) {
-    const padLng = (viewport.getEast() - viewport.getWest()) * this.#padFactor;
-    const padLat = (viewport.getNorth() - viewport.getSouth()) * this.#padFactor;
-    let box = {
+  #boxFor(viewport, pad) {
+    const padLng = (viewport.getEast() - viewport.getWest()) * pad;
+    const padLat = (viewport.getNorth() - viewport.getSouth()) * pad;
+    const box = {
       minLng: viewport.getWest() - padLng,
       minLat: viewport.getSouth() - padLat,
       maxLng: viewport.getEast() + padLng,
       maxLat: viewport.getNorth() + padLat,
     };
+    return this.#clampedBox(box);
+  }
+
+  /**
+   * Every box the loader compares or fetches passes through here, so an edge pinned to maxBounds is the same
+   * number on both sides of a comparison rather than one rounding itself out of containment.
+   * @param {{minLng: number, minLat: number, maxLng: number, maxLat: number}} box The box to normalize.
+   * @returns {{minLng: number, minLat: number, maxLng: number, maxLat: number}} It, held inside maxBounds —
+   *     the limit of what any viewport, and so any fetch, can reach — and rounded to the 5 decimals (~1 m)
+   *     the server filters by.
+   */
+  #clampedBox(box) {
     const maxBounds = this.#map.getMaxBounds();
-    if (maxBounds) {
-      const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
-      box = {
-        minLng: clamp(box.minLng, maxBounds.getWest(), maxBounds.getEast()),
-        minLat: clamp(box.minLat, maxBounds.getSouth(), maxBounds.getNorth()),
-        maxLng: clamp(box.maxLng, maxBounds.getWest(), maxBounds.getEast()),
-        maxLat: clamp(box.maxLat, maxBounds.getSouth(), maxBounds.getNorth()),
-      };
-    }
+    const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+    const fit = maxBounds
+      ? {
+          minLng: clamp(box.minLng, maxBounds.getWest(), maxBounds.getEast()),
+          minLat: clamp(box.minLat, maxBounds.getSouth(), maxBounds.getNorth()),
+          maxLng: clamp(box.maxLng, maxBounds.getWest(), maxBounds.getEast()),
+          maxLat: clamp(box.maxLat, maxBounds.getSouth(), maxBounds.getNorth()),
+        }
+      : box;
     const round = (value) => Number(value.toFixed(5));
     return {
-      minLng: round(box.minLng), minLat: round(box.minLat), maxLng: round(box.maxLng), maxLat: round(box.maxLat),
+      minLng: round(fit.minLng), minLat: round(fit.minLat), maxLng: round(fit.maxLng), maxLat: round(fit.maxLat),
     };
   }
 
   /**
-   * Returns whether the viewport lies fully inside the bbox. Rounding shrinks the stored bbox by ≤ 0.5 m per
-   * edge, which the padding dwarfs.
+   * Returns whether the viewed box lies fully inside the fetched bbox.
    * @param {{minLng: number, minLat: number, maxLng: number, maxLat: number}} bbox The fetched bbox.
-   * @param {mapboxgl.LngLatBounds} viewport The current viewport.
+   * @param {{minLng: number, minLat: number, maxLng: number, maxLat: number}} view The current viewed box.
    * @returns {boolean} True when no refetch is needed.
    */
-  #contains(bbox, viewport) {
-    return viewport.getWest() >= bbox.minLng && viewport.getEast() <= bbox.maxLng
-      && viewport.getSouth() >= bbox.minLat && viewport.getNorth() <= bbox.maxLat;
+  #contains(bbox, view) {
+    return view.minLng >= bbox.minLng && view.maxLng <= bbox.maxLng
+      && view.minLat >= bbox.minLat && view.maxLat <= bbox.maxLat;
   }
 
   /**
