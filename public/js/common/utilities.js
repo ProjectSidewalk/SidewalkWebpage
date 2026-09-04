@@ -251,9 +251,16 @@ util.anchorPanelToLabel = function (panel, labelCanvasXY, iconRadius, opts = {})
  * --ui-scale = 1 is the sum of the given base-size CSS variables, which each tool defines on its .tool-ui element.
  * @param {string[]} widthVarNames Base-size CSS variables that sum to the tool's reference width.
  * @param {string[]} heightVarNames Base-size CSS variables that sum to the tool's reference height.
+ * @param {object} [opts] Fit options. The defaults are the boxed tool's; a fill-window layout (Explore's immersive
+ *   mode, #5085) passes zero margins and a higher cap, since its pano is sized by CSS and the scale only sizes the
+ *   controls floating over it.
+ * @param {number} [opts.maxScale=1.8] Cap past which text and controls balloon.
+ * @param {number} [opts.hMargin=40] Breathing room on each side of the tool, in CSS px.
+ * @param {number} [opts.bottomReserve=60] Space kept below the tool for the footer and a little margin, in CSS px.
  * @returns {number} The applied scale factor.
  */
-util.applyToolScale = function (widthVarNames, heightVarNames) {
+util.applyToolScale = function (widthVarNames, heightVarNames, opts = {}) {
+  const { maxScale = 1.8, hMargin = 40, bottomReserve = 60 } = opts;
   const toolUI = document.querySelector('.tool-ui');
   if (!toolUI) return 1;
 
@@ -264,17 +271,14 @@ util.applyToolScale = function (widthVarNames, heightVarNames) {
   const refHeight = heightVarNames.reduce((sum, name) => sum + cssPx(name), 0);
   if (!refWidth || !refHeight) return 1; // Base vars missing (page doesn't define them); leave --ui-scale at 1.
   const MIN_SCALE = 0.65;
-  const MAX_SCALE = 1.8;
-  const H_MARGIN = 40;       // Breathing room on each side of the tool.
-  const BOTTOM_RESERVE = 60; // Space below the tool for the footer and a little margin.
 
   // Everything above the tool (the navbar) is fixed chrome that does not scale, so reserve it.
   const topOffset = Math.max(0, toolUI.getBoundingClientRect().top + window.scrollY);
-  const availWidth = window.innerWidth - H_MARGIN * 2;
-  const availHeight = window.innerHeight - topOffset - BOTTOM_RESERVE;
+  const availWidth = window.innerWidth - hMargin * 2;
+  const availHeight = window.innerHeight - topOffset - bottomReserve;
 
   let scale = Math.min(availWidth / refWidth, availHeight / refHeight);
-  scale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, scale));
+  scale = Math.max(MIN_SCALE, Math.min(maxScale, scale));
   const scaleStr = scale.toFixed(4);
   toolUI.style.setProperty('--ui-scale', scaleStr);
   // Also expose the scale at the document root so self-contained overlays rendered outside .tool-ui (e.g. the

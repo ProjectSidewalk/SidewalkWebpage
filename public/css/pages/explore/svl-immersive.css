@@ -1,0 +1,87 @@
+/* Immersive mode (#5085): the pano fills the browser window and the surviving controls float over it. body.svl-immersive
+   is toggled by controls/ImmersiveMode.js, which also sets html.chromeless (main.css) to hide the navbar and the
+   test-server banner. Everything here overrides the boxed layout's CSS variables on the same element, so
+   #svl-application-holder, #interaction-area-holder and every .window-streetview follow (see the derivations in
+   svl.css) without touching their own rules. The pano's size is CSS-driven here; --ui-scale, which JS still sets, only
+   sizes the controls floating over it. */
+body.svl-immersive .tool-ui {
+  position: fixed;
+  inset: 0;
+  width: auto;
+  margin: 0;
+  --pano-width: 100vw;
+  --pano-height: 100dvh;
+  --app-width: 100vw;
+
+  /* The ribbon keeps its size and floats over the pano, so the pano starts at the very top: override the derived
+     variable rather than zeroing --ribbon-height, which the ribbon and the controls under it still read. */
+  --street-view-top: 0px;
+}
+
+/* The screen edge is the frame. */
+body.svl-immersive #pano {
+  border-radius: 0;
+}
+
+body.svl-immersive #pano-border-frame {
+  display: none;
+}
+
+/* The label-type ribbon floats over the top-left of the pano at its boxed size: mode switching is the core loop, so it
+   stays always-on. Its text is black on the boxed layout's white page, so over imagery it needs a surface of its own. */
+body.svl-immersive #ribbon-menu-holder {
+  top: 0;
+  width: calc(var(--pano-base-width) * var(--ui-scale));
+  padding: 0 calc(8px * var(--ui-scale));
+  background: rgb(from var(--color-neutral-white) r g b / 92%);
+  border-radius: 0 0 calc(12px * var(--ui-scale)) 0;
+  z-index: 5;
+}
+
+/* Everything that lives in the pano's top row in the boxed layout moves below the ribbon band, which is robust at any
+   window width; centring the ribbon instead only avoids collisions on windows wider than the ribbon plus the buttons. */
+body.svl-immersive #explore-control-buttons-holder,
+body.svl-immersive #zoom-buttons-holder,
+body.svl-immersive .speed-limit-sign {
+  top: calc(var(--ribbon-height) + 7px * var(--ui-scale));
+}
+
+body.svl-immersive #immersive-toggle-holder {
+  top: calc(var(--ribbon-height) + 59px * var(--ui-scale));
+}
+
+body.svl-immersive #alert-holder {
+  top: calc(var(--ribbon-height) + 8px * var(--ui-scale));
+}
+
+/* The sidebar becomes a card in the bottom-right holding only the mission section (progress + minimap): lifetime stats
+   and badges are between-bursts content and return on exit. --sidebar-width is deliberately kept, so the card is the
+   boxed sidebar's width and --minimap-base-size (svl-minimap.css) stays true for ObservedArea's geometry. */
+body.svl-immersive #explore-sidebar__stats,
+body.svl-immersive #explore-sidebar__badges {
+  display: none;
+}
+
+body.svl-immersive #explore-sidebar {
+  left: auto;
+  top: auto;
+  right: calc(12px * var(--ui-scale));
+  bottom: calc(12px * var(--ui-scale));
+  height: auto;
+  padding: calc(8px * var(--ui-scale));
+  background: var(--color-neutral-white);
+  border-radius: calc(12px * var(--ui-scale));
+  box-shadow: var(--box-shadow-lg);
+  z-index: 2;
+}
+
+/* In a height:auto column the minimap's flex: 1 1 auto; min-height: 0 would collapse it, so give it its square back. */
+body.svl-immersive #minimap-holder {
+  flex: 0 0 auto;
+  height: var(--sidebar-width);
+}
+
+/* The route-guidance message shares the bottom-right corner with the card in the boxed layout, so step it left. */
+body.svl-immersive #compass-message-holder {
+  right: calc(var(--sidebar-width) + 36px * var(--ui-scale));
+}

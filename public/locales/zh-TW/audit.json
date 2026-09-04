@@ -134,7 +134,10 @@
     "feedback": "回饋",
     "feedback-tooltip": "和我們分享一下你的想法",
     "feedback-submitted": "已送出回饋",
-    "feedback-title": "有任何想法或問題嗎？或是找到程式錯誤?<br>歡迎給我們任何回饋喔！"
+    "feedback-title": "有任何想法或問題嗎？或是找到程式錯誤?<br>歡迎給我們任何回饋喔！",
+    "immersive-enter": "填滿視窗",
+    "immersive-exit": "離開沉浸模式",
+    "immersive-exit-hint": "沉浸模式。按 F 離開。"
   },
   "right-ui": {
     "opens-new-tab": "(在新分頁中開啟)",

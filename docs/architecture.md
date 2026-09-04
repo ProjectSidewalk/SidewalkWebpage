@@ -173,6 +173,9 @@ Each major UI is a self-contained app under `public/js/`, bundled separately by 
 corresponding Twirl view:
 
 - **`explore/`** — the Explore/Audit tool (label accessibility issues on street-view panoramas). The largest app.
+  Its immersive mode (#5085, `src/controls/ImmersiveMode.js` + `css/pages/explore/svl-immersive.css`) fills the
+  browser window with the pano; the labeling frame it stores with every label, and why, is in
+  [`label-latlng-estimation.md`](label-latlng-estimation.md) under "The frame contract".
 - **`validate/`** — the Validate tool (confirm/reject others' labels).
 - **`gallery/`** — browsable, filterable gallery of labels.
 - **`admin-dashboard/`** — the admin dashboard (#4272), served file-by-file rather than bundled: one

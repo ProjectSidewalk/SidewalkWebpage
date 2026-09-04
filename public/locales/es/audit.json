@@ -134,7 +134,10 @@
     "feedback": "Retroalimentación",
     "feedback-tooltip": "Comparte tus pensamientos con nosotros",
     "feedback-submitted": "Comentarios enviados",
-    "feedback-title": "¿Alguna idea? ¿Encontraste algo confuso? ¿Has visto un error?<br>¡Envíanos tus comentarios!"
+    "feedback-title": "¿Alguna idea? ¿Encontraste algo confuso? ¿Has visto un error?<br>¡Envíanos tus comentarios!",
+    "immersive-enter": "Llenar la ventana",
+    "immersive-exit": "Salir del modo inmersivo",
+    "immersive-exit-hint": "Modo inmersivo. Pulsa F para salir."
   },
   "right-ui": {
     "opens-new-tab": "(se abre en una pestaña nueva)",

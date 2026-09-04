@@ -484,6 +484,12 @@
               <img class="zoom-button-icon" src='@assets.path("images/icons/minus-white-material.svg")' alt="">
             </button>
           </div>
+          @* Immersive mode toggle (#5085), its own holder so the zoom pair keeps its rounded bottom corner. *@
+          <div id="immersive-toggle-holder" class="zoom-buttons-holder">
+            <button type="button" id="immersive-toggle-button" class="zoom-button" title="@Messages("press.key", "F")" aria-label="Fill the window" data-i18n-aria-label="audit:controls.immersive-enter" aria-pressed="false">
+              <img id="immersive-toggle-icon" class="zoom-button-icon" src='@assets.path("images/icons/maximize-2-white-feather.svg")' alt="">
+            </button>
+          </div>
             <!-- You can put an extra div element on top of the pano div panel to disable any of pano control. -->
           <div id="pano" class="window-streetview"></div>
           <div id="onboarding-holder" class="window-streetview">

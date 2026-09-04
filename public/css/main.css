@@ -310,6 +310,17 @@ body.no-navbar-offset {
   padding-top: 0;
 }
 
+/* A tool that has taken over the whole window (Explore's immersive mode, #5085) hides the site chrome: the navbar, the
+   test-server banner, and the offset that makes room for them. Toggled at runtime, unlike .no-navbar-offset. */
+html.chromeless #header,
+html.chromeless .test-server-banner {
+  display: none;
+}
+
+html.chromeless body {
+  padding-top: 0;
+}
+
 .spacer10 { height: 10px; }
 .spacer20 { height: 20px; }
 

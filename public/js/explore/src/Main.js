@@ -198,6 +198,8 @@ class Main {
     svl.feedbackModal = new FeedbackModal(svl, svl.tracker, svl.ribbon, svl.taskContainer);
     svl.panoOverlayControls = new PanoOverlayControls(svl.tracker, svl.navigationService, svl.stuckAlert,
       svl.keyboardShortcutAlert);
+    // svl.relayout is assigned once the tool is laid out (below); the arrow looks it up at toggle time.
+    svl.immersiveMode = new ImmersiveMode(svl.tracker, () => svl.relayout());
 
     svl.infoPopover = new PanoInfoPopover(svl.ui.streetview.dateHolder, () => svl.panoViewer,
       () => svl.panoViewer.getPosition(), () => svl.panoViewer.getPanoId(),
@@ -476,9 +478,13 @@ class Main {
 
       // Uniformly scale the whole tool to fit the viewport (like browser zoom) using var(--ui-scale).
       const applyExploreScale = () => {
+        // Immersive mode (#5085) sizes the pano with CSS and floats the controls over it, so the scale fits only the
+        // pano-wide ribbon and its own height into the whole window, with no page margins to keep clear of.
+        const immersive = svl.immersiveMode?.isActive() ?? false;
         util.applyToolScale(
-          ['--pano-base-width', '--sidebar-base-gap', '--sidebar-base-width'],
+          immersive ? ['--pano-base-width'] : ['--pano-base-width', '--sidebar-base-gap', '--sidebar-base-width'],
           ['--ribbon-base-top', '--ribbon-base-height', '--pano-base-height'],
+          immersive ? { maxScale: 3, hMargin: 0, bottomReserve: 0 } : {},
         );
         // The logical frame follows the displayed pano's aspect (#5085), and the label icon and its click target are
         // capped in screen px, so they depend on the pano's display scale (#4838), which is --ui-scale in the boxed

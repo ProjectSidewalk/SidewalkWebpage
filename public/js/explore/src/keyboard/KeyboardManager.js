@@ -180,6 +180,13 @@ class KeyboardManager {
         svl.tracker.push('KeyboardShortcut_ModeSwitch_Walk', { keyCode: e.keyCode });
       }
 
+      // Immersive mode on/off (#5085). F is a tag shortcut while the context menu is open, and an f typed into a text
+      // field must not toggle the layout: #status.focusOnTextField only tracks the context menu's own textarea.
+      if (e.code === 'KeyF' && !e.shiftKey && !e.altKey && !e.metaKey && !this.#contextMenu.isOpen()
+        && !['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName) && svl.immersiveMode) {
+        svl.immersiveMode.toggle('KeyboardShortcut');
+      }
+
       // Zooming in/out.
       if (e.code === 'KeyZ') {
         // Close the context menu whenever we zoom.
