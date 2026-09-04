@@ -84,8 +84,17 @@ function createLabelSpotlight({ dialog, getMap, getMapData, getCoords, getLabelT
       hideTail();
       return;
     }
-    const baseX = dot.x >= (r.left + r.right) / 2 ? r.right - 1 : r.left + 1;
-    const baseY = Math.min(Math.max(dot.y, r.top + 48), r.bottom - 48);
+    // The base sits on whichever edge faces the dot — a horizontal one when it is above or below, which is the
+    // narrow-viewport case. CORNER_MARGIN keeps the base clear of the dialog's rounded corners.
+    const CORNER_MARGIN = 48;
+    const HALF_BASE = 26;
+    const onSide = dot.x < r.left || dot.x > r.right;
+    const baseX = onSide
+      ? (dot.x >= (r.left + r.right) / 2 ? r.right - 1 : r.left + 1)
+      : Math.min(Math.max(dot.x, r.left + CORNER_MARGIN), r.right - CORNER_MARGIN);
+    const baseY = onSide
+      ? Math.min(Math.max(dot.y, r.top + CORNER_MARGIN), r.bottom - CORNER_MARGIN)
+      : (dot.y >= (r.top + r.bottom) / 2 ? r.bottom - 1 : r.top + 1);
     const dx = dot.x - baseX;
     const dy = dot.y - baseY;
     const len = Math.hypot(dx, dy);
@@ -94,7 +103,11 @@ function createLabelSpotlight({ dialog, getMap, getMapData, getCoords, getLabelT
       return;
     }
     const tip = { x: dot.x - (dx / len) * 18, y: dot.y - (dy / len) * 18 }; // Stop at the beacon's rim.
-    tailShape.setAttribute('points', `${baseX},${baseY - 26} ${baseX},${baseY + 26} ${tip.x},${tip.y}`);
+    const spreadX = onSide ? 0 : HALF_BASE;
+    const spreadY = onSide ? HALF_BASE : 0;
+    const corner1 = `${baseX - spreadX},${baseY - spreadY}`;
+    const corner2 = `${baseX + spreadX},${baseY + spreadY}`;
+    tailShape.setAttribute('points', `${corner1} ${corner2} ${tip.x},${tip.y}`);
     if (!tailVisible) {
       tailSvg.style.display = 'block';
       tailVisible = true;
@@ -141,22 +154,28 @@ function createLabelSpotlight({ dialog, getMap, getMapData, getCoords, getLabelT
     }
   };
 
-  // Spotlights the label the popup is showing: a beacon on its dot (one pulse on landing), with the map
-  // positioned so the dot sits centered in the gutter to the RIGHT of the centered dialog (the left gutter
-  // is covered by the filter sidebar), tail-tied to the dialog. Falls back to plain centering when the
-  // viewport leaves no gutter wide enough for the beacon's pulse ring.
+  // Spotlights the label the popup is showing: a beacon on its dot (one pulse on landing), placed in a free gutter
+  // beside or below the centered dialog and tail-tied to it. Falls back to plain centering only when no gutter can
+  // hold the beacon's pulse ring, which costs both affordances at once — the dot ends up under the dialog.
   const spotlight = (labelId, jump = false) => {
     const map = getMap();
     const coords = getCoords(labelId);
     if (!map || !coords) return;
-    const dialogW = (dialog.open && dialog.getBoundingClientRect().width) || 650;
-    const gutter = (window.innerWidth - dialogW) / 2;
-    const dx = gutter > 80 ? (window.innerWidth - gutter) / 2 : 0;
+    // Right gutter first; the left one is under the filter sidebar. Without the vertical fallback a narrow viewport
+    // (a phone, or devtools docked beside the page) buries the dot under the dialog, losing beacon and tail at once.
+    const MIN_GUTTER = 80;
+    const rect = dialog.open ? dialog.getBoundingClientRect() : null;
+    const gutterX = (window.innerWidth - (rect?.width || 650)) / 2;
+    const gutterY = (window.innerHeight - (rect?.height || 0)) / 2;
+    let dx = 0;
+    let dy = 0;
+    if (gutterX > MIN_GUTTER) dx = (window.innerWidth - gutterX) / 2;
+    else if (gutterY > MIN_GUTTER) dy = (window.innerHeight - gutterY) / 2;
     const zoom = Math.max(map.getZoom(), 16);
     // Pre-shift the center by hand rather than passing CameraOptions.offset: a deep-link/paging jump must be
     // instant, and mapbox drops offset on instant moves (see centerShowingLabelAt), which would bury the dot —
     // and with it the beacon and tail — under the centered dialog. This keeps jump and ease placing identically.
-    const camera = { center: centerShowingLabelAt(coords, dx, 0, zoom), zoom };
+    const camera = { center: centerShowingLabelAt(coords, dx, dy, zoom), zoom };
     if (jump) map.jumpTo(camera);
     else map.easeTo(camera);
     setBeacon(labelId, 'spotlight');
