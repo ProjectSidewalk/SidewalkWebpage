@@ -13,7 +13,7 @@ never hides inside another's numbers:
 |---|---|---|
 | **Project Sidewalk** | Every production and `-test` stage on `cs.washington.edu` | One browser key, referrer-restricted to the stage hostnames — a new city's hostname must be added or its map and panos fail to load. Maps JS API + Street View Static API only. |
 | **Project Sidewalk Dev Env** | `localhost:9000` development (`GOOGLE_MAPS_API_KEY` in `docker-compose.override.yml`) | Referrer-restricted to localhost. |
-| **Project Sidewalk CI Env** | Nothing automated, by design: the browser suite stubs Google Maps (#5129), so no CI job carries a real key — the only two jobs that set `GOOGLE_MAPS_API_KEY` (`backend-tests`, `e2e-smoke`) set it to a dummy string, and no other job carries a Google credential at all. Kept as its own project so that any future Google usage from CI has its own numbers rather than production's. | One browser key, referrer-restricted to localhost. Separately, the **project's** "Map loads per day" quota is set to zero, which binds every key here rather than this one in particular. The key is kept as a break-glass way to re-validate the stub against Google's real behavior — which therefore takes two deliberate acts, raise the cap and put it back, and cannot be done by accident. Created 2026-08-03 with phase 2 of #4504, when the suite carried a real key. |
+| **Project Sidewalk CI Env** | Nothing automated, by design: the browser suite stubs Google Maps (#5129), so no CI job carries a real key — the only two jobs that set `GOOGLE_MAPS_API_KEY` (`backend-tests`, `e2e-smoke`) set it to a dummy string, and no other job carries a Google credential at all. Kept as its own project so that any future Google usage from CI has its own numbers rather than production's. | One browser key, referrer-restricted to localhost and scoped to the Maps JS API alone. Separately, **every billable daily quota in the project is set to zero** — that is a project-level control, binding any key here rather than this one in particular. The key is kept as a break-glass way to re-validate the stub against Google's real behavior — which therefore takes two deliberate acts, raise the cap and put it back, and cannot be done by accident. Created 2026-08-03 with phase 2 of #4504, when the suite carried a real key. |
 
 `GOOGLE_MAPS_SECRET` (URL signing for the Street View Static and metadata calls the *server* makes) is a separate
 credential from the same project as the key it signs for.
@@ -88,8 +88,8 @@ images, and through the `googleMapsLeaks` auto-fixture both aborts-and-reports a
 host and checks that the `google.maps` each page ended up with is the stub's — so a page that builds a real map or
 panorama, or loads the API from somewhere the host list doesn't name, cannot merge. *Outside the suite*, no CI job
 has a key to bill with: `GOOGLE_MAPS_API_KEY` is the literal `DUMMY_GOOGLE_API_KEY` in `ci.yml`. *And in the
-project itself*, the Maps JS "Map loads per day" quota is zero, so the break-glass key cannot serve a map load
-until someone deliberately raises it. A leak would therefore fail on an invalid key — but the fixture is what turns
+project itself*, every billable daily quota is zero — map loads, 3D map loads and both Static Maps buckets — so
+nothing in that project can bill until someone deliberately raises one. A leak would therefore fail on an invalid key — but the fixture is what turns
 that into a named test failure rather than a console error to puzzle over.
 
 Budget alerts are the backstop, and they were rebuilt after August: one budget per project, each sized to a small
