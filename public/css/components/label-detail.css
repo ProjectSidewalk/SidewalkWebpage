@@ -145,6 +145,10 @@ dialog.label-detail[open]::backdrop {
   border-radius: 8px;
   overflow: hidden;
   margin-bottom: 6px;
+
+  /* The ground under the pano, the loading overlay and the fallbacks. Here rather than on the pano itself, which
+     is `visibility: hidden` until imagery paints and so cannot paint its own. No :root token matches it. */
+  background: #e9e9e9;
 }
 
 .label-detail__pano-wrap::after {
@@ -168,8 +172,33 @@ dialog.label-detail[open]::backdrop {
   position: relative;
   width: 100%;
   aspect-ratio: 720 / 480;
-  background: #e9e9e9;
   overflow: hidden;
+}
+
+/* The pano is `visibility: hidden` until imagery paints, so without this the card is an empty grey box that reads
+   as broken. Stacks below the validation ring (5) and the info popover (10/11), above the viewer's own layers. */
+.label-detail__pano-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font: var(--text-small-regular);
+  color: var(--color-asphalt-500);
+  pointer-events: none;
+}
+
+.label-detail__pano-loading-img {
+  width: 96px;
+  height: 96px;
+}
+
+/* The .webp animates on its own and cannot be paused, so drop it entirely and let the text carry the message. */
+@media (prefers-reduced-motion: reduce) {
+  .label-detail__pano-loading-img { display: none; }
 }
 
 /* Standard pan affordance: open hand over the draggable imagery, closed while dragging. Applies wherever the

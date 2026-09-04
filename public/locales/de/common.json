@@ -89,6 +89,7 @@
   "only": "Nur",
   "image-capture-date": "Datum der Bildaufnahme",
   "drag-to-look-around": "Ziehen Sie, um sich umzusehen",
+  "loading-imagery": "Bilder werden geladen …",
   "hide-label": "Beschriftung ausblenden",
   "show-label": "Beschriftung einblenden",
   "hide-label-tooltip": "Blendet die Beschriftung vorübergehend aus, um zu sehen, was darunter liegt.",

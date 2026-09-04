@@ -27,6 +27,11 @@
     </button>
   }
   <div class="label-detail__pano"></div>
+  @* The viewer is built on the first open (#5128), so that one wait is the longest and lands on a blank box. *@
+  <div class="label-detail__pano-loading" role="status" hidden>
+    <img class="label-detail__pano-loading-img" src='@assets.path("videos/ProjectSidewalk_LoadingAnimation_WithArmMovement_Medium.webp")' alt="" aria-hidden="true">
+    <span data-i18n="common:loading-imagery">Loading imagery...</span>
+  </div>
   @* Hide-label toggle (#2477): steps the marker aside so the feature under it can be seen, leaving a dashed ring.
      LabelDetail fills in the icon and wording, which reverse with the state  . *@
   <button type="button" class="label-detail__hide-label" data-ps-tooltip-placement="bottom"></button>
