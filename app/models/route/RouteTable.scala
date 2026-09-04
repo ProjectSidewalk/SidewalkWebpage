@@ -305,17 +305,6 @@ class RouteTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   }
 
   /**
-   * Whether any route carries this slug, deleted routes included.
-   *
-   * Deleted ones count on purpose. A slug stays reserved after its route is gone — the same reservation
-   * `slugsStartingWith` enforces when generating one — so a share link that died with its route can never come
-   * back pointing at a different route (#5157).
-   */
-  def slugReserved(slug: String): DBIO[Boolean] = {
-    routes.filter(_.slug === slug).exists.result
-  }
-
-  /**
    * Gets slugs (with their route ids) equal to the given base or starting with "<base>-" — the candidate set the
    * slug uniquifier must avoid. Includes deleted routes: their slugs stay reserved so a recycled slug can't make
    * an old share link point at someone else's route.
