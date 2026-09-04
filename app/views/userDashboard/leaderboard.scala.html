@@ -1,4 +1,5 @@
 @import controllers.helper.ControllerUtils.distanceUnitWords
+@import play.twirl.api.HtmlFormat
 @import service.{CityImpact, CommonPageData, GlobalLeaderboardEntry}
 @import models.api.AggregateStats
 @import models.user.{LeaderboardStat, SidewalkUserWithRole, UserStanding}
@@ -72,6 +73,40 @@
 @fmtBigDist(km: Double) = @{
   val dist = if (isMetric) km else km * 0.621371
   s"${"%,.0f".formatLocal(locale, dist)} ${unitWords.abbr}"
+}
+
+@*
+* The community band keeps every tile on one line, which leaves a value only its own share of the band to sit in.
+* Each of its figures therefore renders twice — the exact one and a short one — and CSS shows whichever fits, so the
+* band abbreviates under pressure rather than shrinking its type. The full figure carries the accessible reading at
+* every width; the short form is decorative. Values with no shorter form render as themselves, unwrapped. The digits
+* here and in CrossCityStats.#shortNum have to agree: the two fill the same band, whose type is sized to them.
+*@
+@shortCount(n: Int) = @{
+  // Rounding decides the tier, not the raw value: 999,999 rounds to 1000 thousands, and printing that as "1000k"
+  // would read as a million while claiming not to be one.
+  val thousands = math.round(n / 1000.0)
+  if (thousands >= 1000) "%.1fM".formatLocal(locale, n / 1000000.0)
+  else if (n >= 10000) "%dk".formatLocal(locale, thousands)
+  else fmtCount(n)
+}
+
+@twoForm(full: String, short: String) = @{
+  // Escaped rather than interpolated raw: a distance carries a translated unit, so these strings are not all ours.
+  val f = HtmlFormat.escape(full)
+  if (full == short) f
+  else {
+    val s = HtmlFormat.escape(short)
+    Html(s"""<span class="ud-value-full">$f</span><span class="ud-value-short" aria-hidden="true">$s</span>""")
+  }
+}
+
+@communityCount(n: Int) = @{ twoForm(fmtCount(n), shortCount(n)) }
+
+@communityDist(km: Double) = @{
+  val dist = if (isMetric) km else km * 0.621371
+  val short = if (dist >= 10000) s"""${shortCount(dist.toInt)} ${unitWords.abbr}""" else fmtBigDist(km)
+  twoForm(fmtBigDist(km), short)
 }
 
 @*
@@ -345,19 +380,19 @@
     <div class="ud-community-band">
       <div class="ud-community-stat">
         <img class="ud-community-icon" src="@assets.path("images/icons/project_sidewalk_flag.png")" alt="">
-        <span class="ud-community-value">@bigCount(aggregate.totalUsers)</span><span class="ud-community-label">@Messages("leaderboard.community.contributors")</span>
+        <span class="ud-community-value">@communityCount(aggregate.totalUsers)</span><span class="ud-community-label">@Messages("leaderboard.community.contributors")</span>
       </div>
       <div class="ud-community-stat">
         <img class="ud-community-icon" src="@assets.path("images/icons/noun_pin_location_2342268_cropped.png")" alt="">
-        <span class="ud-community-value">@bigCount(aggregate.totalLabels)</span><span class="ud-community-label">@Messages("leaderboard.community.labels")</span>
+        <span class="ud-community-value">@communityCount(aggregate.totalLabels)</span><span class="ud-community-label">@Messages("leaderboard.community.labels")</span>
       </div>
       <div class="ud-community-stat">
         <img class="ud-community-icon" src="@assets.path("images/icons/noun_validation_1876484_cropped.png")" alt="">
-        <span class="ud-community-value">@bigCount(aggregate.totalValidations)</span><span class="ud-community-label">@Messages("validations")</span>
+        <span class="ud-community-value">@communityCount(aggregate.totalValidations)</span><span class="ud-community-label">@Messages("validations")</span>
       </div>
       <div class="ud-community-stat">
         <img class="ud-community-icon" src="@assets.path("images/icons/noun_distance_2587675_cropped.png")" alt="">
-        <span class="ud-community-value">@fmtBigDist(aggregate.kmExplored)</span><span class="ud-community-label">@Messages("leaderboard.community.streets")</span>
+        <span class="ud-community-value">@communityDist(aggregate.kmExplored)</span><span class="ud-community-label">@Messages("leaderboard.community.streets")</span>
       </div>
       <div class="ud-community-stat">
         @* Placeholder globe until a matching line-art cities icon is added (Jon to source). *@

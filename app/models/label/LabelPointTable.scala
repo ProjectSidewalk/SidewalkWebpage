@@ -90,7 +90,7 @@ class LabelPointTable @Inject() (protected val dbConfigProvider: DatabaseConfigP
 
   /**
    * Recomputes a label point's signed centerline offset against the given edge (#2886); the generated `street_side`
-   * follows. Calls the same SQL function as 374.sql's backfill, so a stored value always equals a fresh recompute.
+   * follows. Calls the same SQL function as 375.sql's backfill, so a stored value always equals a fresh recompute.
    *
    * @param streetEdgeId The label's `street_edge_id`, the edge the side is relative to.
    * @return Rows updated: 1, or 0 if either id is unknown.

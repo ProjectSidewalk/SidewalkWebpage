@@ -8,7 +8,7 @@ package models.label
  * within a metre of the centerline, or without a position, has no side; the column is GENERATED and never written
  * from Scala.
  *
- * NOTE: if changing these values, update the `street_side` Postgres enum type as well (see 374.sql).
+ * NOTE: if changing these values, update the `street_side` Postgres enum type as well (see 375.sql).
  */
 object StreetSide extends Enumeration {
   type StreetSide = Value

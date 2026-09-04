@@ -24,7 +24,7 @@ import scala.concurrent.duration.DurationInt
  *      the compass), and a bent street (the sign follows the local tangent, not the chord). Magnitudes are checked
  *      against PostGIS's geodesic distance, so a projected magnitude fails.
  *   2. The insert path, `LabelPointTable.insert` then `computeCenterlineOffset`, inside a rolled-back transaction.
- *   3. Cache freshness: every stored offset equals a fresh call of the function, the postcondition 374's backfill
+ *   3. Cache freshness: every stored offset equals a fresh call of the function, the postcondition 375's backfill
  *      promises and the contract any later reposition must keep (`docs/evolutions.md`). Needs a seeded DB, so it
  *      `assume`s label_point is non-empty and cancels otherwise, the `GeodesicDistanceSpec` convention.
  */

@@ -103,7 +103,7 @@ geometry, and the modern frame is the measured one.
 
 ## The side of the street (#2886)
 
-The position above also fixes which side of its street a label is on. Evolution 374 stores it on `label_point` as
+The position above also fixes which side of its street a label is on. Evolution 375 stores it on `label_point` as
 **`centerline_offset_m`**, the signed geodesic distance from the estimated position to the centerline of the label's
 `street_edge_id` (the open street nearest the position at submission): positive on the **left** of the edge's
 digitized direction (`ST_StartPoint` → `ST_EndPoint`), negative on the right, `NULL` without a position. The

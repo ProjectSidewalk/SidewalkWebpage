@@ -4,10 +4,11 @@ A thin headless-browser suite (issue #4504) that loads each core page and **fail
 error or non-allowlisted `console.error`**. It exists to catch the class of regression that compile, the
 grunt build, and all four linters are blind to: runtime-only JS errors — a stale bundle, a missing global,
 an unbound-method `this` bug, a route-ordering 400 breaking a fetch. It asserts *pages initialize cleanly*
-plus one piece of layout geometry — `phone-viewport.spec.js` re-loads the responsive pages at a 390×844
-phone viewport and fails on horizontal overflow (#4883) — and one accessibility gate: `a11y.spec.js` runs
-axe-core over each audited page and fails on any untracked WCAG 2.1 AA violation (#5060). Deep
-canvas/imagery testing stays manual by design.
+plus two pieces of layout geometry — `phone-viewport.spec.js` re-loads the responsive pages at a 390×844
+phone viewport and fails on horizontal overflow (#4883), and `stat-bands.spec.js` sweeps the `/about` and
+community stat bands across widths and fails when one stat runs into the next (#5151) — and one accessibility gate:
+`a11y.spec.js` runs axe-core over each audited page and fails on any untracked WCAG 2.1 AA violation
+(#5060). Deep canvas/imagery testing stays manual by design.
 
 ## Running locally
 
@@ -235,6 +236,7 @@ read, not a second city dump to maintain. Three things about it shape this suite
 | `a11y-api-docs-states.spec.js` | The same gate over the api-docs previews' error and empty renders, forced by intercepting their feeds (#5122) |
 | `a11y-allowlist.js` | Per-page allowlist of tracked violations, the shared WCAG tag list, plus the partition/format helpers |
 | `overflow-report.spec.js` | `horizontalOverflowReport`'s exemption rules, pinned against synthetic DOM |
+| `stat-bands.spec.js` | The `/about` and `/leaderboard` stat bands across viewport widths, with worst-case values swapped in: no stat's value or caption collides with its neighbour (#5151, #5175) |
 | `dashboard.spec.js` | Registered-user pages |
 | `explore-validate.spec.js` | Phase-2 Explore/Validate/mobile-Validate specs, against the Google Maps stub |
 | `fixtures/google-maps-stub.js` | The fake `google.maps` every context gets in place of Google's API (#5129); `../js/googleMapsStub.test.js` pins its contract |
