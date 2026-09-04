@@ -71,7 +71,7 @@ class ViewportLabelLoader {
    * @param {number} [options.padFactor=0.5] Fraction of the viewport span added on each side of the fetched
    *     bbox, so nearby pans need no request. 0.5 fetches roughly four viewports' worth.
    * @param {number} [options.debounceMs=350] Quiet time after a moveend before the viewport is evaluated.
-   * @param {mapboxgl.LngLatBounds} [options.dataBounds] The extent the labels live in (the city's
+   * @param {mapboxgl.LngLatBounds} [options.dataBounds] The extent the labels live in (the city's streets and
    *     neighborhoods); a fetch covering it has fetched everything, so no later move refetches. maxBounds
    *     can't stand in for it — several cities draw one degrees larger than the city itself (#5170).
    */
@@ -84,9 +84,9 @@ class ViewportLabelLoader {
     this.#padFactor = padFactor;
     this.#debounceMs = debounceMs;
     if (dataBounds) {
-      // Labels sit a little outside the polygons they belong to (the boundary runs down the street, the label
-      // is on the sidewalk), so the extent gets slack before a fetch counts as covering it — then clamping,
-      // since a target past maxBounds is one no fetch could meet and the latch would never fire.
+      // A label sits up to ~40m off the street it belongs to, so the extent gets slack before a fetch counts as
+      // covering it — then clamping, since a target past maxBounds is one no fetch could meet and the latch
+      // would never fire.
       const margin = ViewportLabelLoader.#DATA_BOUNDS_MARGIN_DEG;
       this.#dataBounds = this.#clampedBox({
         minLng: dataBounds.getWest() - margin,
