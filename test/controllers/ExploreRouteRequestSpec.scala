@@ -205,6 +205,23 @@ class ExploreRouteRequestSpec
       pageParam(visit, "routeUnavailable") mustBe Some(JsBoolean(true))
     }
 
+    // The tutorial suppresses route data on the page (#4816), so this flag is the only thing that survives the
+    // visit — the client parks it and shows it on the load after the tutorial. A first-time visitor following a
+    // stale share link is exactly who lands here, so if the server stopped emitting it, the one user the whole
+    // deferral exists for would silently never hear.
+    "flag a dropped route on a tutorial visit, where a first-time visitor following the link lands" in {
+      val session   = freshAnonSession()
+      val bootstrap = exploreBootstrap(session)
+      createdUserIds += bootstrap.userId
+      bootstrap.missionType mustBe "auditOnboarding"
+
+      val visit = exploreHtml(session, s"?routeId=$UnknownRouteId")
+
+      pageParam(visit, "routeUnavailable") mustBe Some(JsBoolean(true))
+      // Route data stays suppressed for the tutorial's sake, which is why the notice has to wait rather than show.
+      pageParam(visit, "routeId") mustBe None
+    }
+
     "report a route that was deleted after its link was shared" in {
       val (session, routeId, _) = sessionWalkingARoute()
       deleteRoute(session, routeId)

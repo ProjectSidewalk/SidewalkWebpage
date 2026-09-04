@@ -298,7 +298,7 @@ class Main {
    * whole session and ends by reloading a bare /explore, which carries no trace of the route that was asked for.
    * Waiting is also what a *valid* route does here — its walk is set up, suppressed for the tutorial's sake (#4816),
    * and picked up on that same reload. sessionStorage rather than a field because of that reload; per tab, so a
-   * notice never outlives the visit that earned it.
+   * notice never outlives the browsing session that earned it.
    */
   #parkRouteUnavailableNotice() {
     if (!this.#params.routeUnavailable) return;
@@ -314,6 +314,10 @@ class Main {
    * Whether this load owes the user the unresolvable-?routeId= notice — this visit's own, or one held over the
    * tutorial by [[#parkRouteUnavailableNotice]]. Consumed as it is read, so it shows once.
    *
+   * A held notice is dropped once a route has resolved: the user asked again and got one, so the earlier failure is
+   * news about a route they have already moved past — and reporting it would take the place of the resume toast,
+   * which belongs to the route they are actually in.
+   *
    * @returns {boolean} True when the toast should be shown.
    */
   #takeRouteUnavailableNotice() {
@@ -321,7 +325,7 @@ class Main {
     try {
       const parked = window.sessionStorage.getItem(Main.#ROUTE_UNAVAILABLE_KEY) === '1';
       if (parked) window.sessionStorage.removeItem(Main.#ROUTE_UNAVAILABLE_KEY);
-      return asked || parked;
+      return asked || (parked && !this.#params.routeId);
     } catch {
       return asked;
     }
