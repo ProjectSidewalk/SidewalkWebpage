@@ -409,8 +409,81 @@ def main():
     S["cam_dist_quantiles"] = aud.cam_dist_m.quantile(q).round(1).to_dict()
     S["cam_band_counts"] = aud.cam_band.value_counts().reindex(CAM_LABELS).to_dict()
 
-    # Worked examples for case_maps.py: one representative (median-distance) label per situation the report
-    # discusses, chosen by rule rather than by hand so the pick is reproducible.
+    # RQ8: can a hybrid beat the geometric side? Every rule that mixes the two, plus a cross-validated logistic
+    # combination of the signed margins, on the pooled clean truth sets. The geometric position lies on the heading
+    # ray (it is the ray plus a distance), so the heading method holds a strict subset of the geometric information;
+    # the only place it can add anything is where the distance estimate is off by enough to cross the centerline,
+    # which the calibration table already isolates as the sub-metre band.
+    pool = pd.concat([sw2, cr6])
+    pool = pool[pool.geo_side.isin([1, -1]) & pool.head_side.isin([1, -1]) & pool.axis_angle_deg.notna()
+                & pool.pano_offset_m.notna()].copy()
+    g, h, d, ang, off = pool.geo_side, pool.head_side, pool.geo_dist_m, pool.axis_angle_deg, pool.pano_offset_m
+    conf_head = (off < 2) & (ang >= 20)
+    rules = [
+        ("geometric, no floor", g),
+        ("geometric, NULL under 1 m", g.where(d >= 1)),
+        ("geometric, NULL under 2 m", g.where(d >= 2)),
+        ("heading, no floor", h),
+        ("heading only where confident (camera < 2 m off, angle >= 20°)", h.where(conf_head)),
+        ("geometric >= 1 m, else confident heading", g.where(d >= 1).fillna(h.where(conf_head))),
+        ("geometric >= 1 m, else the side both agree on", g.where(d >= 1).fillna(g.where(g == h))),
+        ("only where both agree, no floor", g.where(g == h)),
+        ("both agree, or geometric >= 2 m", g.where((g == h) | (d >= 2))),
+    ]
+    hy = []
+    for name, pred in rules:
+        dec = pred.notna()
+        hy.append({"rule": name, "coverage_pct": pct(int(dec.sum()), len(pool)),
+                   "acc_pct": round(100.0 * (pred[dec] == pool.truth[dec]).mean(), 2),
+                   "wrong": int((pred[dec] != pool.truth[dec]).sum())})
+    hy = pd.DataFrame(hy).set_index("rule")
+    md("Hybrid rules on the pooled clean truth sets (on-sidewalk vs nearest paved + curb ramps within 6 m)", hy, ".2f")
+    S["hybrid_rules"] = hy.to_dict(orient="index")
+    S["hybrid_pool_n"] = len(pool)
+    near1 = d < 1
+    S["hybrid_band_0_1"] = {"n": int(near1.sum()), "geo_acc_pct": round(100.0 * (g[near1] == pool.truth[near1]).mean(), 1),
+                            "head_acc_pct": round(100.0 * (h[near1] == pool.truth[near1]).mean(), 1),
+                            "confident_head_n": int((near1 & conf_head).sum()),
+                            "confident_head_acc_pct": round(100.0 * (h[near1 & conf_head] == pool.truth[near1 & conf_head]).mean(), 1)}
+    S["confident_head_disagreements_beyond_2m"] = int(((off < 1) & (ang >= 30) & (g != h) & (d >= 2)).sum())
+
+    # Learned combination: logistic regression on the signed margins (geometric distance, heading angle, the latter
+    # also discounted by camera offset), 5-fold cross-validated, compared with the plain geometric floor at matched
+    # coverage so the two abstain on the same number of labels.
+    hd = h * np.minimum(ang, 60) / 60
+    X = np.column_stack([g * np.minimum(d, 6), hd, hd * np.exp(-off / 3), hd * (off < 2), np.ones(len(pool))])
+    y = (pool.truth.values == 1).astype(float)
+
+    def fit_logistic(X, y, iters=30):
+        w = np.zeros(X.shape[1])
+        for _ in range(iters):
+            p = 1 / (1 + np.exp(-X @ w))
+            wt = p * (1 - p) + 1e-9
+            w += np.linalg.solve(X.T @ (X * wt[:, None]) + 1e-6 * np.eye(X.shape[1]), X.T @ (y - p))
+        return w
+    fold = np.random.default_rng(2886).integers(0, 5, len(pool))
+    prob = np.zeros(len(pool))
+    for k in range(5):
+        w = fit_logistic(X[fold != k], y[fold != k])
+        prob[fold == k] = 1 / (1 + np.exp(-X[fold == k] @ w))
+    lp = np.where(prob >= 0.5, 1, -1)
+    lm = np.abs(prob - 0.5)
+    truth = pool.truth.values
+    learned = []
+    for cov in [100, 99, 97, 95, 92, 90]:
+        tl = np.quantile(lm, 1 - cov / 100) if cov < 100 else 0
+        tg = np.quantile(d, 1 - cov / 100) if cov < 100 else 0
+        ml, mg = lm >= tl, d.values >= tg
+        learned.append({"coverage_pct": cov, "learned_acc_pct": round(100.0 * (lp[ml] == truth[ml]).mean(), 2),
+                        "geometric_floor_m": round(float(tg), 2),
+                        "geometric_acc_pct": round(100.0 * (g.values[mg] == truth[mg]).mean(), 2)})
+    learned = pd.DataFrame(learned).set_index("coverage_pct")
+    md("Learned logistic hybrid vs the geometric floor at matched coverage (5-fold CV, pooled clean truth sets)", learned, ".2f")
+    S["hybrid_learned"] = learned.to_dict(orient="index")
+
+    # Worked examples for case_maps.py: candidates for one representative label per situation the report discusses,
+    # ranked by closeness to the candidate set's median distance, so the pick is by rule rather than by hand.
+    # fetch_share_images.py (host side, network) takes the first candidate whose share image exists.
     main_types = ["CurbRamp", "NoCurbRamp", "Obstacle", "SurfaceProblem", "NoSidewalk"]
     cases = [
         ("agree", "Typical: camera on the street, both methods agree",
@@ -432,16 +505,17 @@ def main():
     ]
     rows = []
     for key, title, pool in cases:
-        r = typical(pool)
-        rows.append({"case": key, "title": title, "pool_n": len(pool), "label_id": int(r.label_id),
+        med = pool.geo_dist_m.median()
+        ranked = pool.assign(rank=(pool.geo_dist_m - med).abs()).sort_values(["rank", "label_id"]).head(12)
+        for i, (_, r) in enumerate(ranked.iterrows()):
+            rows.append({"case": key, "title": title, "pool_n": len(pool), "rank": i, "label_id": int(r.label_id),
                      "label_type": r.label_type, "edge_id": int(r.edge_id), "geo_side": int(r.geo_side),
                      "geo_dist_m": round(r.geo_dist_m, 2), "head_side": int(r.head_side) if r.head_side in (1, -1) else None,
                      "pano_offset_m": round(r.pano_offset_m, 1), "cam_dist_m": round(r.cam_dist_m, 1),
                      "truth": int(r.truth) if "truth" in r and r.truth in (1, -1) else None,
                      "geo_side_old": int(r.geo_side_old) if r.geo_side_old in (1, -1) else None,
-                     "gallery_url": f"https://sidewalk-seattle.cs.washington.edu/label/{int(r.label_id)}"})
-    pd.DataFrame(rows).to_csv(OUT / "cases.csv", index=False)
-    S["cases"] = rows
+                         "share_url": f"https://sidewalk-sea.cs.washington.edu/label/{int(r.label_id)}"})
+    pd.DataFrame(rows).to_csv(OUT / "case_candidates.csv", index=False)
     S["depth_check_split"] = {"note": "geo side of the measured position is the reference here"}
 
     # abstention curves & combined rules on the pooled truth set
@@ -524,7 +598,7 @@ def main():
             parts.append(pool.sample(min(k, len(pool)), random_state=int(rng.integers(1 << 30))))
     samp = pd.concat(parts)[["label_id", "label_type", "computation_method", "geo_side", "geo_dist_m", "head_side",
                              "axis_angle_deg", "edge_id", "lat", "lng", "pano_id"]].copy()
-    samp["gallery_url"] = "https://sidewalk-seattle.cs.washington.edu/label/" + samp.label_id.astype(str)
+    samp["share_url"] = "https://sidewalk-sea.cs.washington.edu/label/" + samp.label_id.astype(str)
     samp["your_side"] = ""
     samp.round(2).to_csv(OUT / "hand_label_sample.csv", index=False)
     S["hand_label_sample_n"] = len(samp)

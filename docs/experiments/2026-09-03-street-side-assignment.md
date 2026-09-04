@@ -13,6 +13,7 @@ wants next · Seattle, every real label · tool and every number in `tools/stree
 | **2.2%** | of the 167,218 labels evolution 352 repositioned changed geometric side. The flips live where the label is near the line: 26.7% within 1 m, 12% at 1–2 m, 1.6% at 3–4 m, 0.2% beyond 4 m. With a 1 m floor the rate is 1.3%; the heading method cannot flip (it never reads the position), which is the one argument it keeps |
 | **3.8%** | the unresolvable fraction under the recommended rule (geometric side against the audited street, `NULL` within 1 m of the centerline or without a position): 3.5% of labels sit within a metre of the line, where either method is a coin flip and the reposition flipped a quarter of them. By type: `NoSidewalk` 6.6% unresolved, `Crosswalk` 35% (a crosswalk is *in* the road; its side is ill-defined), the other main types 1.5–2.6% (`Occlusion` 5.3%, `Other` 15.6%) |
 | **2 m ≈ 97%** | the side's accuracy is a monotone, type-independent function of the label's distance from the centerline, the same on both clean truth sets: 63–70% under 0.5 m, 84–87% at 0.5–1 m, 94–96% at 1–1.5 m, 97–98% at 1.5–2 m, 99%+ from 3 m. Distance from the *camera* does not hurt it (97.5–100% at every range up to 24 m+). So the margin itself is the confidence: store it signed, in metres, and let consumers pick their threshold (§5.4) |
+| **no hybrid** | beats it. Every rule that mixes the two methods, and a cross-validated logistic combination of both methods' margins, lands on the geometric floor's accuracy-versus-coverage curve to the second decimal (§4.6). The estimated position *is* the heading ray plus a distance, so the heading method holds a strict subset of the geometric information; it can only add something where the distance error crosses the centerline, the sub-metre band, and there it is a 77% coin flip itself |
 | **1 of 6** | `NoSidewalk` labels on SDOT's one-sided streets that sit within 4 m of the walkway SDOT says is paved (117 of 738). Both methods put them on the paved side and the heading method needs no position to do so, so they are not side errors: the label and the inventory disagree about whether a sidewalk is there. Any per-side `NoSidewalk` consumer inherits that disagreement, not a computation error |
 
 > Reproduce (offline, from the dev database; ~6 min): `tools/street_side/README.md`. The SDOT layers were pulled
@@ -372,26 +373,69 @@ Abstention curves on the pooled truth set (dominated by curb ramps) say the same
 
 ![Accuracy vs coverage as each method abstains below its own margin](2886-street-side/fig_abstention.png)
 
+**Hybrids.** The natural follow-up is whether a combination beats either method alone. Every rule that mixes the two
+was scored on the pooled clean truth sets (on-sidewalk vs nearest paved plus curb ramps within 6 m of their ramp;
+116,056 labels where both methods decide):
+
+| rule | coverage | accuracy | wrong |
+|---|---|---|---|
+| geometric, no floor | 100% | 99.67% | 385 |
+| geometric, `NULL` under 1 m | 99.3% | 99.81% | 216 |
+| geometric, `NULL` under 2 m | 97.6% | 99.88% | 135 |
+| heading, no floor | 100% | 89.84% | 11,788 |
+| heading only where it is confident (camera < 2 m off the street, ray ≥ 20° off the axis) | 41.8% | 99.81% | 93 |
+| geometric ≥ 1 m, else confident heading | 99.4% | 99.81% | 223 |
+| geometric ≥ 1 m, else the side both agree on | 99.8% | 99.76% | 279 |
+| only where both agree | 89.9% | 99.76% | 252 |
+| both agree, or geometric ≥ 2 m | 99.6% | 99.77% | 262 |
+
+A learned combination does no better. A logistic regression on the signed margins of both methods (the geometric
+distance, the heading angle, the heading angle discounted by camera offset), fit and scored with 5-fold
+cross-validation, and compared with the plain geometric floor at matched coverage so both abstain on the same number
+of labels:
+
+| coverage | learned hybrid | geometric floor | geometric |
+|---|---|---|---|
+| 100% | 99.70% | 0 m | 99.67% |
+| 99% | 99.83% | 1.26 m | 99.84% |
+| 97% | 99.90% | 2.19 m | 99.90% |
+| 95% | 99.93% | 2.63 m | 99.93% |
+| 92% | 99.95% | 3.08 m | 99.95% |
+| 90% | 99.96% | 3.31 m | 99.96% |
+
+The reason is structural rather than a matter of tuning. The estimated position lies *on* the heading ray: the
+estimator is that ray plus a distance along it. So the heading method holds a strict subset of the information the
+geometric method has, and can only add something where the distance estimate is wrong by enough to carry the label
+across the centerline. The calibration in §5.4 already isolates that region as the sub-metre band, and there the
+heading method is itself a coin flip (798 labels within 1 m of the line: geometric 78.8%, heading 77.2%). Filling
+that band with the heading method only where it is confident buys 0.1 points of coverage at 89% accuracy on 65
+labels. In the other direction, a confident heading reading (camera within 1 m of the centerline, ray ≥ 30° off the
+axis) never disagrees with the geometric side beyond 2 m from the line: zero such labels. Where the heading method
+is sure, the geometric method is already right; where the geometric method is unsure, so is the heading method.
+There is no second code path to build.
+
 ### §4.7 Six labels, drawn
 
-Each panel is one label chosen by rule, not by hand: the median-distance member of the candidate set the row
-describes (`analyze_street_side.py` writes the picks to `out/cases.csv`; `case_maps.py` draws them). The map shows
-the audited street with its digitized direction, SDOT's sidewalk lines and ramp points, the camera, and the two
-readings: the camera-to-label ray the heading method signs, and the perpendicular to the centerline the geometric
-method measures.
+Each pair is one label chosen by rule, not by hand: `analyze_street_side.py` ranks each situation's candidates by
+closeness to the candidate set's median distance, and `fetch_share_images.py` takes the first that has a street-level
+image on the Seattle server (older labels often have none). The map shows the audited street with its digitized
+direction, SDOT's sidewalk lines and ramp points, the camera, and the two readings: the camera-to-label ray the
+heading method signs, and the perpendicular to the centerline the geometric method measures. Beside it is the
+label's share image, the street-level view with the label-type marker at the labeled spot (`case_maps.py` composites
+the marker from the stored canvas position, because the Seattle deployment serves its share images without one).
 
-![Six representative labels with the audited street, SDOT sidewalks and ramps, the camera, and both readings](2886-street-side/fig_cases.png)
+![Six representative labels: a map of the audited street, SDOT sidewalks and ramps, the camera and both readings, beside each label's street-level image](2886-street-side/fig_cases.png)
 
-| panel | label | candidates | what it shows |
+| pair | label | candidates | what it shows |
 |---|---|---|---|
-| typical | [39802](https://sidewalk-seattle.cs.washington.edu/label/39802) `CurbRamp` | 9,243 | camera 1 m off the street, 10 m from the label; both methods say right, and SDOT's ramp point sits beside the label |
-| corner | [114352](https://sidewalk-seattle.cs.washington.edu/label/114352) `CurbRamp` | 5,835 | camera 12 m off the audited street, on the cross street; the ray crosses the audited centerline, so the heading method says right while the label and the SDOT ramp are on the left. This is §5.1 in one picture |
-| within 1 m | [224582](https://sidewalk-seattle.cs.washington.edu/label/224582) `CurbRamp` | 639 | 0.3 m from the line; the #4818 reposition moved it from left to right. `NULL` under the rule |
-| far | [45842](https://sidewalk-seattle.cs.washington.edu/label/45842) `Obstacle` | 43 | 24 m from the camera and 10 m from the line: the ray runs along the street, so the side is not in doubt (§4.4.8) |
-| bare side | [33301](https://sidewalk-seattle.cs.washington.edu/label/33301) `NoSidewalk` | 352 | on the unimproved side of a one-sided street, 4 m from the line; both methods agree with SDOT |
-| on the paved line | [285511](https://sidewalk-seattle.cs.washington.edu/label/285511) `NoSidewalk` | 53 | sits on the walkway SDOT calls paved; both methods put it there. Not a side error: the label and the inventory disagree about whether a sidewalk exists (§4.4.3) |
+| typical | [267987](https://sidewalk-sea.cs.washington.edu/label/267987) `CurbRamp` | 9,243 | camera 1 m off the street, 5 m from the label; both methods say right, and SDOT's ramp point sits beside the label |
+| corner | [114352](https://sidewalk-sea.cs.washington.edu/label/114352) `CurbRamp` | 5,835 | camera 12 m off the audited street, on the cross street; the ray crosses the audited centerline, so the heading method says right while the label and the SDOT ramp are on the left. This is §5.1 in one picture |
+| within 1 m | [293679](https://sidewalk-sea.cs.washington.edu/label/293679) `CurbRamp` | 639 | 0.3 m from the line, seen from 15 m away on the cross street; the #4818 reposition moved it from left to right. `NULL` under the rule |
+| far | [99610](https://sidewalk-sea.cs.washington.edu/label/99610) `SurfaceProblem` | 41 | 31 m from the camera and 10 m from the line: the ray runs along the street, so the side is not in doubt (§4.4.8) |
+| bare side | [299692](https://sidewalk-sea.cs.washington.edu/label/299692) `NoSidewalk` | 352 | on the unimproved side of a one-sided street, 4 m from the line; both methods agree with SDOT |
+| on the paved line | [285511](https://sidewalk-sea.cs.washington.edu/label/285511) `NoSidewalk` | 53 | sits on the walkway SDOT calls paved; both methods put it there. Not a side error: the label and the inventory disagree about whether a sidewalk exists (§4.4.3) |
 
-The label links open the share page for each, where the panorama can be checked by eye.
+The label links open each share page, where the full panorama can be checked.
 
 ## §5 · Analysis
 
@@ -521,7 +565,8 @@ docker exec -w /home/<worktree> projectsidewalk-web python3.13 tools/street_side
 docker exec -w /home/<worktree> projectsidewalk-web python3.13 tools/street_side/street_side.py compute   # ~4 min
 docker exec -w /home/<worktree> projectsidewalk-web python3.13 tools/street_side/street_side.py export
 docker exec -w /home/<worktree> projectsidewalk-web python3.13 tools/street_side/analyze_street_side.py
-docker exec -w /home/<worktree> projectsidewalk-web python3.13 tools/street_side/case_maps.py      # §4.7 maps
+python3 tools/street_side/fetch_share_images.py                                                # §4.7 picks + images (network)
+docker exec -w /home/<worktree> projectsidewalk-web python3.13 tools/street_side/case_maps.py      # §4.7 pairs
 ```
 
 `tools/street_side/out/summary.json` holds every number quoted above; `tables.md` every table, including the ones

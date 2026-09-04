@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Draw a small map for each worked example analyze_street_side.py picks (out/cases.csv): the audited street with
-its digitized direction, the neighbouring streets, SDOT's sidewalk lines and curb-ramp points, the camera, the
-label, the camera-to-label ray the heading method reads, and the perpendicular to the centerline the geometric
-method reads. One panel per case, out/fig_cases.png.
+"""Draw each worked example (out/cases.csv, picked by fetch_share_images.py from analyze_street_side.py's
+candidates) as a pair: a small map with the audited street and its digitized direction, the neighbouring streets,
+SDOT's sidewalk lines and curb-ramp points, the camera, the label, the camera-to-label ray the heading method
+reads, and the perpendicular to the centerline the geometric method reads; beside it, the label's share image
+(out/crops/<label_id>.jpg), the street-level crop with the marker composited. out/fig_cases.png.
 
-Run inside the web container after analyze_street_side.py:
+Run inside the web container after analyze_street_side.py and fetch_share_images.py:
     python3.13 tools/street_side/case_maps.py
 Connection env is the same as street_side.py (PGHOST / PGDATABASE / PGUSER / PGPASSWORD, --exp for the scratch schema).
 """
@@ -16,8 +17,11 @@ from pathlib import Path
 
 import matplotlib
 matplotlib.use("Agg")
+import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
+from matplotlib.gridspec import GridSpec
 from matplotlib.lines import Line2D
+from matplotlib.offsetbox import AnnotationBbox, OffsetImage
 import pandas as pd
 import psycopg2
 from shapely.geometry import LineString, Point, shape
@@ -27,6 +31,10 @@ OUT = HERE / "out"
 C_GEO, C_HEAD, C_THIRD, C_GRAY = "#2a78d6", "#eb6834", "#1baf7a", "#8a8987"
 C_STREET, C_AUDITED, C_UNIMPROVED = "#c9c7c2", "#3d3d3b", "#b8b6b2"
 RADIUS_M = 70  # how far around the label to fetch context
+ICONS = HERE.parents[1] / "public" / "images" / "icons" / "label_type_icons"
+# ShareController's geometry: the share image is SHARE_W x SHARE_H, cover-scaled from the stored crop (1440x960) or
+# from a 640x480 Street View still, and the label's canvas position (720x480 canvas) maps through the same transform.
+SHARE_W, SHARE_H, CANVAS_W, CANVAS_H = 1440, 960, 720, 480
 
 
 def connect():
@@ -59,6 +67,31 @@ def fetch(cur, exp, label_id, edge_id):
                 (json.dumps(label), RADIUS_M))
     ramps = [(cat, json.loads(g)) for cat, g in cur.fetchall()]
     return label, pano, old, audited, edges, sidewalks, ramps
+
+
+def canvas_xy(cur, city, label_id):
+    cur.execute(f"SELECT canvas_x, canvas_y FROM {city}.label_point WHERE label_id = %s", (label_id,))
+    return cur.fetchone()
+
+
+def marker_xy(cx, cy, has_crop):
+    """Where the marker lands on the share image for a canvas position, through ShareController's cover-scale."""
+    bw, bh = (1440, 960) if has_crop else (640, 480)
+    scale = max(SHARE_W / bw, SHARE_H / bh)
+    sw, sh = round(bw * scale), round(bh * scale)
+    return cx / CANVAS_W * sw - (sw - SHARE_W) // 2, cy / CANVAS_H * sh - (sh - SHARE_H) // 2
+
+
+def draw_share_image(ax, case, cxy):
+    """The share image with the label-type marker composited at the labeled spot (the server's own compositing step
+    is skipped on the Seattle deployment, so the marker is drawn here from the stored canvas position)."""
+    img = mpimg.imread(OUT / "crops" / f"{case.label_id}.jpg")
+    ax.imshow(img)
+    if cxy is not None:
+        x, y = marker_xy(cxy[0], cxy[1], bool(case.has_crop))
+        icon = mpimg.imread(ICONS / f"{case.label_type}_small.png")
+        ax.add_artist(AnnotationBbox(OffsetImage(icon, zoom=0.5), (x, y), frameon=False, pad=0))
+    ax.set_axis_off()
 
 
 class Local:
@@ -145,28 +178,37 @@ def panel(ax, case, data):
     ax.text(x0 + 5, y0 + 0.02 * 2 * half, "10 m", ha="center", va="bottom", fontsize=7, color="#3d3d3b")
 
     truth = f" · truth {side_word(case['truth'])}" if pd.notna(case.get("truth")) else ""
-    old_txt = f" (was {side_word(case['geo_side_old'])})" if pd.notna(case.get("geo_side_old")) else ""
+    flipped = case["case"] == "near_line" and pd.notna(case.get("geo_side_old"))
+    old_txt = f" (was {side_word(case['geo_side_old'])})" if flipped else ""
     ax.set_title(case["title"], fontsize=9, loc="left", pad=6)
-    ax.text(0.02, 0.98,
+    ax.text(0.03, 0.97,
             f"label {case['label_id']} · {case['label_type']}{truth}\n"
-            f"geometric: {side_word(case['geo_side'])} at {case['geo_dist_m']:.1f} m from the line{old_txt}\n"
-            f"heading: {side_word(case['head_side'])} · camera {case['pano_offset_m']:.0f} m off the street, "
-            f"{case['cam_dist_m']:.0f} m from the label",
-            transform=ax.transAxes, fontsize=7, va="top", ha="left", color="#3d3d3b",
+            f"geometric: {side_word(case['geo_side'])}, {case['geo_dist_m']:.1f} m from the line{old_txt}\n"
+            f"heading: {side_word(case['head_side'])}\n"
+            f"camera: {case['pano_offset_m']:.0f} m off the street, {case['cam_dist_m']:.0f} m from the label",
+            transform=ax.transAxes, fontsize=6.5, va="top", ha="left", color="#3d3d3b",
             bbox={"boxstyle": "round,pad=0.35", "fc": "white", "ec": "#e6e5e1", "alpha": 0.92}, zorder=10)
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--exp", default="experiment_2886")
+    ap.add_argument("--city", default="sidewalk_seattle")
     args = ap.parse_args()
     cases = pd.read_csv(OUT / "cases.csv")
 
     plt.rcParams.update({"font.size": 9})
-    fig, axes = plt.subplots(2, 3, figsize=(13, 9.2))
+    # Three rows of two (map, crop) pairs; the crop gets the wider column since share images are landscape.
+    fig = plt.figure(figsize=(15.5, 11.2))
+    gs = GridSpec(3, 4, figure=fig, width_ratios=[1, 1.55, 1, 1.55], wspace=0.06, hspace=0.22,
+                  left=0.01, right=0.99, top=0.96, bottom=0.08)
     with connect() as conn, conn.cursor() as cur:
-        for ax, (_, case) in zip(axes.flat, cases.iterrows()):
-            panel(ax, case, fetch(cur, args.exp, int(case.label_id), int(case.edge_id)))
+        for i, (_, case) in enumerate(cases.iterrows()):
+            row, col = divmod(i, 2)
+            ax_map = fig.add_subplot(gs[row, 2 * col])
+            ax_img = fig.add_subplot(gs[row, 2 * col + 1])
+            panel(ax_map, case, fetch(cur, args.exp, int(case.label_id), int(case.edge_id)))
+            draw_share_image(ax_img, case, canvas_xy(cur, args.city, int(case.label_id)))
     handles = [
         Line2D([], [], color=C_AUDITED, lw=2.8, label="audited street (arrow = digitized direction)"),
         Line2D([], [], color=C_STREET, lw=2.2, label="other streets"),
@@ -180,8 +222,7 @@ def main():
         Line2D([], [], marker="o", mfc="white", mec=C_GEO, ls="", ms=7, label="position before the #4818 reposition"),
     ]
     fig.legend(handles=handles, loc="lower center", ncol=4, frameon=False, fontsize=7.5, bbox_to_anchor=(0.5, 0.0))
-    fig.tight_layout(rect=(0, 0.07, 1, 1))
-    fig.savefig(OUT / "fig_cases.png", dpi=160)
+    fig.savefig(OUT / "fig_cases.png", dpi=150)
     print("wrote", OUT / "fig_cases.png")
 
 
