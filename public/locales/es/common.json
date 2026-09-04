@@ -205,6 +205,9 @@
     "copy-to-clipboard": "Copiar al portapapeles",
     "copied-to-clipboard": "¡Datos copiados a su portapapeles!"
   },
+  "pano-attribution": {
+    "opens-new-tab": "(se abre en una pestaña nueva)"
+  },
   "mission-start-tutorial": {
     "example-type-label-correct": "EJEMPLO CORRECTO",
     "label-type-subtitle": "¿Por qué está mal?",

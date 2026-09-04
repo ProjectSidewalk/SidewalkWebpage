@@ -205,6 +205,9 @@
     "copy-to-clipboard": "Copiar para a área de transferência",
     "copied-to-clipboard": "Dados copiados para a área de transferência!"
   },
+  "pano-attribution": {
+    "opens-new-tab": "(abre em uma nova aba)"
+  },
   "mission-start-tutorial": {
     "example-type-label-correct": "EXEMPLO CORRETO",
     "label-type-subtitle": "Por que isso está errado?",

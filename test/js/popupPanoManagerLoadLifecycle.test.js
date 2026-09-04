@@ -62,6 +62,7 @@ describe('PopupPanoManager load lifecycle', () => {
         };
         window.i18next = { t: (k) => k };
         window.createPanoViewerLogo = () => ({ showPrimaryLogo: jest.fn(), showSourceLogo: jest.fn() });
+        window.createPanoAttribution = () => ({ show: jest.fn(), hide: jest.fn() });
         window.LabelVisibilityToggle = { HIDDEN_CLASS: 'hidden' };
         window.PannellumViewer = { create: jest.fn() };
         window.fetch = jest.fn(() => Promise.resolve({ ok: false }));

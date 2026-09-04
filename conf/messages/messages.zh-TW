@@ -877,6 +877,9 @@ routes.page.none.cta = 建立第一條路線
 # 錯誤頁面（404、500），由 modules.CustomErrorHandler 呈現。
 error.404.heading = 找不到頁面
 error.404.message = 我們找不到你要求的頁面。
+error.404.route.heading = 找不到路線
+error.404.route.message = 這個路線連結無法使用，可能是路線已被刪除，或是網址有誤。
+error.404.route.browse = 瀏覽所有路線
 error.500.heading = 發生了一些問題
 error.500.message = 我們這邊發生了未預期的錯誤。這不是你的問題，請稍後再試一次。
 error.500.id = 錯誤代碼：{0}

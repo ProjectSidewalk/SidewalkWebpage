@@ -13,7 +13,7 @@ never hides inside another's numbers:
 |---|---|---|
 | **Project Sidewalk** | Every production and `-test` stage on `cs.washington.edu` | One browser key, referrer-restricted to the stage hostnames — a new city's hostname must be added or its map and panos fail to load. Maps JS API + Street View Static API only. |
 | **Project Sidewalk Dev Env** | `localhost:9000` development (`GOOGLE_MAPS_API_KEY` in `docker-compose.override.yml`) | Referrer-restricted to localhost. |
-| **Project Sidewalk CI Env** | Nothing, by design: the browser suite stubs Google Maps (#5129) and holds no key at all — `GOOGLE_MAPS_API_KEY` is a dummy string in every CI job. Created 2026-08-03 with phase 2 of #4504, when the suite carried a real key; kept so that any future Google usage from CI has its own numbers rather than production's. |
+| **Project Sidewalk CI Env** | Nothing automated, by design: the browser suite stubs Google Maps (#5129), so no CI job carries a real key — the only two jobs that set `GOOGLE_MAPS_API_KEY` (`backend-tests`, `e2e-smoke`) set it to a dummy string, and no other job carries a Google credential at all. Kept as its own project so that any future Google usage from CI has its own numbers rather than production's. | One browser key, referrer-restricted to localhost and scoped to the Maps JS API alone. Separately, **every billable daily quota in the project is set to zero** — that is a project-level control, binding any key here rather than this one in particular. The key is kept as a break-glass way to re-validate the stub against Google's real behavior — which therefore takes two deliberate acts, raise the cap and put it back, and cannot be done by accident. Created 2026-08-03 with phase 2 of #4504, when the suite carried a real key. |
 
 `GOOGLE_MAPS_SECRET` (URL signing for the Street View Static and metadata calls the *server* makes) is a separate
 credential from the same project as the key it signs for.
@@ -81,19 +81,23 @@ None, since #5129 — but the month before that (August 2026), when the `e2e-smo
   ever opened. The smoke suite loads those pages ~18 times a run, which is where most of the CI usage came from;
   #5128 makes that lazy.
 
-The rule, therefore: **CI never instantiates a Google map or panorama, and never fetches a Google image.** Two
-layers enforce it, and neither is a quota. In the suite, `test/e2e/fixtures.js` routes the Maps JS API bootstrap to
-a local fake (`test/e2e/fixtures/google-maps-stub.js`) on every context, serves a transparent pixel for Street View
-Static images, and through the `googleMapsLeaks` auto-fixture both aborts-and-reports any other request to a Google
-map host and checks that the `google.maps` each page ended up with is the stub's — so a page that builds a real map
-or panorama, or loads the API from somewhere the host list doesn't name, cannot merge. Outside the suite, no CI job
-has a key to bill with: `GOOGLE_MAPS_API_KEY` is the literal `DUMMY_GOOGLE_API_KEY` in `ci.yml`, and the CI project
-has no key. A leak would therefore fail on an invalid key, never bill — but the fixture is what turns it into a
-named test failure rather than a console error to puzzle over.
+The rule, therefore: **CI never instantiates a Google map or panorama, and never fetches a Google image.** Three
+layers enforce it. *In the suite*, `test/e2e/fixtures.js` routes the Maps JS API bootstrap to a local fake
+(`test/e2e/fixtures/google-maps-stub.js`) on every context, serves a transparent pixel for Street View Static
+images, and through the `googleMapsLeaks` auto-fixture both aborts-and-reports any other request to a Google map
+host and checks that the `google.maps` each page ended up with is the stub's — so a page that builds a real map or
+panorama, or loads the API from somewhere the host list doesn't name, cannot merge. *Outside the suite*, no CI job
+has a key to bill with: `GOOGLE_MAPS_API_KEY` is the literal `DUMMY_GOOGLE_API_KEY` in `ci.yml`. *And in the
+project itself*, every billable daily quota is zero — map loads, 3D map loads and both Static Maps buckets — so
+nothing in that project can bill until someone deliberately raises one. A leak would therefore fail on an invalid key — but the fixture is what turns
+that into a named test failure rather than a console error to puzzle over.
 
-Budget alerts are the second line. The account-wide budget was a leftover of Google's retired $200 monthly credit,
-$200 with alerts at 75/95/100%, so a $100 month never tripped it and August was discovered on the invoice. Size
-budgets to a small multiple of the *normal* monthly bill, one per project so a runaway is attributable.
+Budget alerts are the backstop, and they were rebuilt after August: one budget per project, each sized to a small
+multiple of that project's normal bill, plus an account-wide total, all alerting at 50/90/100% of current spend.
+One per project is what makes a runaway attributable to the environment that caused it. August was missed because
+the only budget then was a leftover of Google's retired monthly credit, and it was scoped to a single project that
+was none of these three — so no amount of Project Sidewalk spend could have tripped it, and the bill was found on
+the invoice.
 
 ## Also billed here
 

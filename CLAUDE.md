@@ -5,9 +5,19 @@ Play 3.0 (Java 17) backend, Postgres + PostGIS via Slick, and a vanilla-JS front
 transpile, no minify, no module system), all run in Docker. Request flow is routes → Controller → Service → Table
 (DAO). Architecture tour: `docs/architecture.md`. Setup, daily commands, troubleshooting: `docs/dev-environment.md`.
 
-This file holds only cross-cutting rules. Detail lives in `docs/` and loads on demand: path-scoped rules in
-`.claude/rules/` surface the essentials when you read a matching file, and the table says which doc to read first
-when a task is in its area.
+## 🚨 NEVER READ `docker-compose.override.yml` 🚨
+
+Real live secrets, nothing enforces this but you. Never open it, never print or commit a value from it, and exclude
+it from wide `grep`/`find`/`cat *` sweeps. Ask the maintainer for a value; `docker-compose.yml` has dummy equivalents.
+
+## Starting on an issue? Assign it first
+
+The moment you begin implementing or debugging an issue (not when filing, reading, or triaging it), assign the
+developer you act for: `gh issue edit <n> --add-assignee @me`. Assignment means "someone is on this now", so it is
+never done at filing time and never skipped. If someone else is already assigned, say so before adding yourself.
+
+This file holds only cross-cutting rules. `.claude/rules/` surfaces path-scoped essentials when you touch a matching
+file, and this table says which doc to read first:
 
 | Working on… | Read first |
 |---|---|
@@ -21,6 +31,7 @@ when a task is in its area.
 | Tests or CI | `docs/testing-and-ci.md`, `test/e2e/README.md` |
 | `scripts/*.py` | `scripts/README.md` |
 | Google Maps keys, quotas, or a Google Cloud bill | `docs/google-cloud.md` |
+| The label lat/lng estimator or the labeling viewport frame | `docs/label-latlng-estimation.md` |
 
 ## Workflow
 
@@ -37,7 +48,6 @@ when a task is in its area.
 - Never browser-test anything that needs a street-view panorama (placing labels, validating). Hand the developer a
   checklist or console snippet instead. The `test/e2e/` suite only *loads* Explore's tutorial and Validate's landing
   state; don't extend it into pano interaction.
-- `docker-compose.override.yml` holds the real local secrets and is hidden from you. Ask if you need a value.
 
 ## Before a change is done
 
@@ -67,13 +77,12 @@ when a task is in its area.
   the logging and update `docs/logged-events.md`.
 - All user-facing text is translated into every supported language (en, es, nl, de, pt-BR, zh-TW, plus the
   en-US/en-NZ overlays). Backend English goes in `conf/messages/messages.en`, never the base `messages`. Prefer
-  `data-i18n="ns:key"` in HTML.
-- UI meets WCAG 2.1/2.2 AA and is styled from the `main.css` `:root` tokens and `.ps-*` primitives:
-  `font: var(--text-*)` rather than raw font properties, px never rem, no hardcoded hex. Tool-UI dimensions are
-  `calc(<n>px * var(--ui-scale, 1))`.
+  `data-i18n="ns:key"` in HTML, including HTML built in JS.
+- UI meets WCAG 2.1/2.2 AA and is styled from the `main.css` `:root` tokens and `.ps-*` primitives: px never rem,
+  no hardcoded hex, tool-UI dimensions `calc(<n>px * var(--ui-scale, 1))`. Full rules load with any CSS or view file.
 - Assets are named by logical path, never by URL: `assets.path("…")` in Twirl and `util.assetPath('…')` in JS,
-  never a hardcoded `/assets/` string (only those resolve to the fingerprinted, immutable URL; `make lint-asset-paths`
-  is the gate).
+  never a hardcoded `/assets/` string (only those resolve to the fingerprinted URL; `make lint-asset-paths` gates
+  it). A CSS `url()` just names a real file under `public/`.
 
 ## Backend is the source of truth
 
@@ -92,11 +101,10 @@ only if genuinely unavoidable, centralize the literal with a comment saying why 
 | Obstacle | `#78B0EA` | | Signal | `#63C0AB` |
 | SurfaceProblem | `#F68D3E` | | Other, Occlusion | `#B3B3B3` |
 
-Never invent substitute colors. In JS call `util.misc.getLabelColors(labelType)` (`public/js/common/UtilitiesSidewalk.js`);
-`/v3/api/labelTypes` is canonical. The marker icon is `public/images/icons/label_type_icons/{LabelType}_small.svg`,
-reached through `util.misc.getIconImagePaths(labelType).iconImagePath`, and it is the only variant frontend code may
-use (the Explore canvas rasterizes it itself). The `.png` sizes beside it exist for server-side share images and the
-API's `icon_url` fields only.
+Never invent substitute colors. JS calls `util.misc.getLabelColors(labelType)`; `/v3/api/labelTypes` is canonical.
+The only marker icon frontend code may use is `public/images/icons/label_type_icons/{LabelType}_small.svg`, reached
+through `util.misc.getIconImagePaths(labelType).iconImagePath`. The `.png` sizes beside it exist for server-side
+share images and the API's `icon_url` fields only.
 
 ## Working with the running app
 
@@ -107,7 +115,7 @@ API's `icon_url` fields only.
   (`make qa-worktree wt=<name>`): `docs/dev-environment.md`.
 - Inspect the DB read-only: `docker exec projectsidewalk-db psql -U readonly_user -d sidewalk -c "…"` (never
   `-U sidewalk`). One schema per city (`sidewalk_seattle` is a safe default for schema questions), auth in
-  `sidewalk_login`. For data or migration state, the active schema is `$DATABASE_USER` in the web container, and
-  `readonly_user` may have no rights on it: `\dt` silently omits what it can't see, so enumerate with `pg_namespace`
-  and query as the city's own role. Evolutions auto-apply when a page loads. The dev DB is tiny and omits the two
-  heavyweight tables, `audit_task_interaction` and `validation_task_interaction`; never infer prod size from it.
+  `sidewalk_login`. The active schema is `$DATABASE_USER` in the web container; `readonly_user` may lack rights on
+  it, and `\dt` silently omits what it can't see, so enumerate via `pg_namespace` and query as the city's own role.
+  Evolutions auto-apply on page load. The dev DB is tiny and omits `audit_task_interaction` and
+  `validation_task_interaction`; never infer prod size from it.

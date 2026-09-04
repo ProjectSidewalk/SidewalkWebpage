@@ -44,6 +44,7 @@ class PopupPanoManager {
   #fallbackMarker;
   #fallbackPanzoom;
   #logo;
+  #attribution;
   #cropUrl;
   #labelsHidden = false;
 
@@ -175,6 +176,7 @@ class PopupPanoManager {
 
     this.#logo = createPanoViewerLogo(this.svHolder[0], this.#viewerType);
     this.#logo.showPrimaryLogo();
+    this.#attribution = createPanoAttribution(this.svHolder[0]);
 
     // Pre-pay the viewer library's download (free) so the first open only pays for the viewer itself. Idle-timed so
     // it never competes with the host page's own load; a failure here just means the first open downloads it.
@@ -284,15 +286,20 @@ class PopupPanoManager {
    *   3. Static screenshot at `cropUrl`.
    *   4. "Imagery not available" error message.
    *
+   * Steps 2 and 3 show Project Sidewalk's own copy of the imagery, so they carry the attribution the provider's live
+   * viewer would otherwise draw itself (#4865).
+   *
    * @param {string} panoId
    * @param {{heading: number, pitch: number, zoom: number}} pov
    * @param {?string} cropUrl - URL for the screenshot fallback image, if available.
    * @param {boolean} [expired=false] - When true, skips the live attempt (imagery known to be expired).
    * @param {?Object} [backupImage=null] - Self-hosted pano metadata; fetched lazily from the backend if null.
+   * @param {?Object} [attribution=null] - The pano's structured imagery attribution (`pano_data.attribution` in the
+   *     label payload); falls back to the lazily fetched backup metadata's, when there is one.
    * @returns {Promise<boolean>} Whether a viewable image of the label was shown — live/Pannellum imagery or the
    *                             static crop (step 1–3). Only `false` for step 4, the "imagery not available" panel.
    */
-  async setPano(panoId, pov, cropUrl, expired = false, backupImage = null) {
+  async setPano(panoId, pov, cropUrl, expired = false, backupImage = null, attribution = null) {
     const load = ++this.#loadToken;
     this.#cropUrl = typeof cropUrl === 'string' ? cropUrl : null;
     this.svHolder.css('visibility', 'hidden'); // Hide until we've finished rendering.
@@ -319,13 +326,14 @@ class PopupPanoManager {
       // Already known expired and no backup pre-supplied — fetch now before trying Pannellum.
       backupImage = await this.#fetchBackupImageMetadata(panoId);
     }
+    const ownCopyAttribution = attribution || (backupImage && backupImage.attribution) || null;
 
     // Step 2: try the self-hosted Pannellum copy if we have its metadata.
     if (backupImage) {
       try {
         await this.#showPannellumPano(backupImage, pov);
         this.activeViewerName = 'Pannellum';
-        this.#finishLoad(load);
+        this.#finishLoad(load, { showAttribution: true, attribution: ownCopyAttribution });
         return true;
       } catch (err) {
         console.error('PannellumViewer failed to load; falling back to crop:', err);
@@ -340,17 +348,25 @@ class PopupPanoManager {
     if (load !== this.#loadToken) return false;
     this.activeViewerName = 'StaticCrop';
     const cropShown = await this.#panoFailureCallback();
-    this.#finishLoad(load);
+    this.#finishLoad(load, { showAttribution: cropShown, attribution: ownCopyAttribution });
     return cropShown;
   }
 
   /**
-   * Ends a load: drops the spinner and reveals the imagery, unless a newer label has taken over or the host closed
-   * over this one.
+   * Ends a load: settles the attribution overlay, drops the spinner, and reveals the imagery — unless a newer label
+   * has taken over or the host closed over this one. The overlay belongs here rather than at each call site so a
+   * superseded load can't credit its own imagery over the label that replaced it.
+   *
    * @param {number} load The token this load was issued.
+   * @param {Object} [options]
+   * @param {boolean} [options.showAttribution=false] Whether the image on screen is Project Sidewalk's own copy,
+   *     which carries the credit the provider's live viewer would otherwise draw itself (#4865).
+   * @param {?Object} [options.attribution=null] The structured attribution to show, when there is one.
    */
-  #finishLoad(load) {
+  #finishLoad(load, { showAttribution = false, attribution = null } = {}) {
     if (load !== this.#loadToken) return;
+    if (showAttribution) this.#attribution?.show(attribution);
+    else this.#attribution?.hide();
     if (this.#loadingEl) this.#loadingEl.hidden = true;
     if (!this.svHolder[0].dataset.closedDuringLoad) this.svHolder.css('visibility', 'visible');
   }

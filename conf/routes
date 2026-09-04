@@ -109,6 +109,7 @@ PUT     /adminapi/setTaskFlag                           controllers.AdminControl
 PUT     /adminapi/updateTeamStatus/:teamId              controllers.AdminController.updateTeamStatus(teamId: Int)
 PUT     /adminapi/updateTeamVisibility/:teamId          controllers.AdminController.updateTeamVisibility(teamId: Int)
 GET     /adminapi/checkImagery                          controllers.AdminController.checkImagery()
+POST    /adminapi/generateCrops                         controllers.AdminController.generateCrops
 
 # Community-partner logos on the landing page (#4516). Global (all-cities) scope is Owner-only; the reorder routes
 # must precede the :partnerId ones so "order" isn't captured as an id.

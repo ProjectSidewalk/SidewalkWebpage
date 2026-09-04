@@ -205,6 +205,9 @@
     "copy-to-clipboard": "Copy to clipboard",
     "copied-to-clipboard": "Data copied to your clipboard!"
   },
+  "pano-attribution": {
+    "opens-new-tab": "(opens in a new tab)"
+  },
   "mission-start-tutorial": {
     "example-type-label-correct": "CORRECT EXAMPLE",
     "label-type-subtitle": "Why is this wrong?",

@@ -614,7 +614,8 @@ class LabelDetail {
     // setPano() resolves to whether a viewable image of the label was shown — live/Pannellum imagery or the static
     // crop. It's only false for the "imagery not available" panel, i.e. nothing to look at. Lock validating/
     // commenting only in that case: if the user can see the label in an image (crop included), they can validate it.
-    this.panoManager.setPano(meta.pano_id, labelPov, meta.crop_url, meta.expired, backupImage)
+    const attribution = (meta.pano_data && meta.pano_data.attribution) || null;
+    this.panoManager.setPano(meta.pano_id, labelPov, meta.crop_url, meta.expired, backupImage, attribution)
       .then((imageShown) => {
         // Guard against a newer label having been opened while this resolved.
         if (this.#currentLabelMeta !== meta) return;

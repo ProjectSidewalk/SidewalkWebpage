@@ -45,6 +45,17 @@ Also covered, beyond the api-docs previews:
   non-WebGL 2D fallback projects both axes and wraps headings. Record fixtures are shared with
   `test/service/PanoDataServiceSpec.scala`, so the JS and Scala ports are pinned to one external oracle
   (`pov_replay.py`) rather than to each other.
+- `common/pano-viewer/src/panoUtilities.js` → `gsvFovContract.test.js` — the empirically measured GSV FOV-vs-aspect
+  contract (#5083). `tools/gsv-fov-probe/` measured what field of view Google's WebGL renderer holds fixed as the
+  container aspect changes; this pins the projection helpers' width-spanning assumption, the measured clamp window
+  and its per-zoom binding aspects, and the analyzer's copy of `zoomToFov`, against the recorded fixture
+  `fixtures/gsvFovMeasurements.json`. It pins *code* against frozen measurements — a renderer change on Google's
+  side is invisible to it and needs a fresh probe run (that tool's README says when).
+- `tools/gsv-fov-probe/estimator.cjs` → `gsvFovProbeEstimator.test.js` — the probe's focal-length fitter against
+  synthetic pinhole ground truth (#5083), gate 1 of that experiment's protocol: no live measurement is trusted until
+  the estimator recovers a known focal length to better than 0.2%. This is the slowest suite in the tree (~40 s,
+  nearly all of it in the synthetic renders); if it grows further, shrink the synthetic image rather than raising
+  `testTimeout`.
 
 Each test file has:
 

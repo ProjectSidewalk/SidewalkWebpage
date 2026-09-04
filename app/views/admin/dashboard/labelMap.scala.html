@@ -28,6 +28,7 @@
   @* Label-detail popup + PSMap dependencies. The label-detail modules are pulled in individually (not via the legacy Admin.js bundle) to keep with the dashboard's standalone-script convention; i18next, AppManager, util, jQuery and the Google Maps loader are already loaded by common.main / adminLayout. *@
 @common.labelPopup(admin = true)
   <link href='@assets.path("css/components/label-detail.css")' rel="stylesheet">
+  <link href='@assets.path("css/components/pano-attribution.css")' rel="stylesheet">
   <link href='@assets.path("css/components/tag-pills.css")' rel="stylesheet">
   <link href='@assets.path("css/components/choropleth.css")' rel="stylesheet">
   <link href='@assets.path("css/components/filter-sidebar.css")' rel="stylesheet">

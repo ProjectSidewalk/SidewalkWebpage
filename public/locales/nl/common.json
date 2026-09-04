@@ -205,6 +205,9 @@
     "copy-to-clipboard": "Kopiëren naar klembord",
     "copied-to-clipboard": "Gegevens gekopieerd naar uw klembord!"
   },
+  "pano-attribution": {
+    "opens-new-tab": "(opent in een nieuw tabblad)"
+  },
   "mission-start-tutorial": {
     "example-type-label-correct": "JUISTE VOORBEELD",
     "label-type-subtitle": "Waarom is dit verkeerd?",

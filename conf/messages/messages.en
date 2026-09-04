@@ -817,6 +817,9 @@ routes.page.none.cta = Build the first route
 # Error pages (404, 500), rendered by modules.CustomErrorHandler.
 error.404.heading = Page not found
 error.404.message = We could not find the page you requested.
+error.404.route.heading = Route not found
+error.404.route.message = This route link doesn''t work. It may have been deleted, or the address may have a typo.
+error.404.route.browse = Browse all routes
 error.500.heading = Something went wrong
 error.500.message = An unexpected error occurred on our end. This is not your fault — please try again in a moment.
 error.500.id = Error ID: {0}
