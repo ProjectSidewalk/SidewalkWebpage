@@ -31,6 +31,9 @@ class PanoManager {
   /** @type {{showPrimaryLogo: Function, showSourceLogo: Function}} */
   #logo;
 
+  /** The imagery-attribution pill, shown while the Pannellum fallback — Project Sidewalk's own copy — is up (#4865). */
+  #attribution;
+
   // Throttle POV-change logging. Dragging the pano (especially via touch on mobile) fires `pov_changed`
   // continuously; logging every one floods the interaction buffer and forces the Tracker's 200-action mid-mission
   // flush every few validations (#2745). Log at most once per interval (with a trailing call so the final POV is
@@ -78,6 +81,7 @@ class PanoManager {
     // Set up the imagery source logo. #showPannellumPano will override it if Pannellum takes over below.
     this.#logo = createPanoViewerLogo(this.#panoCanvas.parentElement, panoViewerType);
     this.#logo.showPrimaryLogo();
+    this.#attribution = createPanoAttribution(this.#panoCanvas.parentElement);
 
     // Load the first pano, falling back to Pannellum if the primary viewer fails.
     try {
@@ -395,6 +399,7 @@ class PanoManager {
     svv.panoViewer.resize();
     svv.tracker.push('Viewer_Primary');
     this.#logo.showPrimaryLogo();
+    this.#attribution.hide(); // The provider's live viewer draws its own.
   }
 
   /**
@@ -430,6 +435,7 @@ class PanoManager {
     svv.panoViewer.resize();
     svv.tracker.push('Viewer_Pannellum');
     this.#logo.showSourceLogo();
+    this.#attribution.show(backupImage.attribution || null);
     return svv.panoViewer.currPanoData;
   }
 

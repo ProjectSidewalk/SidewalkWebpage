@@ -202,6 +202,9 @@
     "copy-to-clipboard": "複製到剪貼簿",
     "copied-to-clipboard": "資訊已複製於您的剪貼簿！"
   },
+  "pano-attribution": {
+    "opens-new-tab": "(在新分頁中開啟)"
+  },
   "mission-start-tutorial": {
     "example-type-label-correct": "正確案例",
     "label-type-subtitle": "為什麼是錯的？",

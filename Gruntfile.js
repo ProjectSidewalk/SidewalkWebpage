@@ -164,6 +164,7 @@ module.exports = function (grunt) {
         src: [
           'public/css/components/label-anchored-panel.css',
           'public/css/components/label-hover-card.css',
+          'public/css/components/pano-attribution.css',
           'public/css/pages/validate/*.css',
           'public/css/components/mission-start-tutorial.css'
         ],
@@ -203,6 +204,7 @@ module.exports = function (grunt) {
           'public/js/shared-label/*.js',
           'public/css/components/label-anchored-panel.css',
           'public/css/components/label-hover-card.css',
+          'public/css/components/pano-attribution.css',
           'public/css/components/mission-start-tutorial.css'
         ],
         tasks: [

@@ -11,8 +11,14 @@ const path = require('path');
 
 const ATTRIBUTION_PATH = path.resolve(__dirname, '..', '..', 'public/js/common/pano-viewer/src/PanoAttribution.js');
 
+/** The one string the overlay translates: the new-tab cue on the licence link. */
+const NEW_TAB_CUE = '(opens in a new tab)';
+
 /** Load PanoAttribution.js (a plain top-level function declaration, concatenation-style). */
 function loadAttribution() {
+  global.i18next = {
+    t: (key) => (key === 'common:pano-attribution.opens-new-tab' ? NEW_TAB_CUE : `MISSING:${key}`),
+  };
   const src = fs.readFileSync(ATTRIBUTION_PATH, 'utf8');
   return (0, eval)(`${src}\ncreatePanoAttribution;`);
 }
@@ -46,13 +52,25 @@ describe('createPanoAttribution', () => {
     overlay.show(MAPILLARY);
 
     expect(el().hidden).toBe(false);
-    expect(el().textContent).toBe('© jacobwhall · Mapillary · CC BY-SA 4.0');
+    expect(el().textContent).toBe(`© jacobwhall · Mapillary · CC BY-SA 4.0 ${NEW_TAB_CUE}`);
     const links = el().querySelectorAll('a');
     expect(links).toHaveLength(1);
-    expect(links[0].textContent).toBe('CC BY-SA 4.0');
     expect(links[0].href).toBe(MAPILLARY.license_url);
     expect(links[0].target).toBe('_blank');
     expect(links[0].rel).toBe('noopener');
+  });
+
+  it('tells assistive tech the licence link opens a new tab, without changing the visible token', () => {
+    overlay.show(MAPILLARY);
+
+    const link = el().querySelector('a');
+    // The cue lives inside the link so it is part of the link's accessible name, and is visually hidden by class.
+    const cue = link.querySelector('.pano-attribution__new-tab');
+    expect(cue).not.toBeNull();
+    expect(cue.textContent.trim()).toBe(NEW_TAB_CUE);
+    expect(link.textContent).toBe(`CC BY-SA 4.0 ${NEW_TAB_CUE}`);
+    // Nothing but the cue is translated, so a missing key would surface here rather than as blank text.
+    expect(el().textContent).not.toContain('MISSING:');
   });
 
   it("shows a provider's own copyright string as plain text", () => {
