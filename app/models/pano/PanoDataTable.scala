@@ -57,6 +57,7 @@ object PanoSource extends Enumeration {
   val Gsv       = Value("gsv")
   val Mapillary = Value("mapillary")
   val Infra3d   = Value("infra3d")
+  val Panoramax = Value("panoramax")
 
   /**
    * The tutorial's locally-served panos, whose imagery is app assets. They carry rows so that every label has one
@@ -72,7 +73,7 @@ object PanoSource extends Enumeration {
   /**
    * Sources a client may name in a submission. `Tutorial` is server-owned.
    */
-  val clientSubmittableSources: Set[Value] = Set(Gsv, Mapillary, Infra3d)
+  val clientSubmittableSources: Set[Value] = Set(Gsv, Mapillary, Infra3d, Panoramax)
 }
 
 case class PanoDataSlim(

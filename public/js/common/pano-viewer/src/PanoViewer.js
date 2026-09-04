@@ -59,6 +59,9 @@ class PanoViewer {
     } else if (new.target === PannellumViewer) {
       this.viewerType = 'pannellum';
       this.canvasClass = 'pannellum-canvas';
+    } else if (new.target === PanoramaxViewer) {
+      this.viewerType = 'panoramax';
+      this.canvasClass = 'psv-canvas';
     }
   }
 

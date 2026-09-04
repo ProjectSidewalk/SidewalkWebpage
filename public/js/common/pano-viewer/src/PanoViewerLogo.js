@@ -24,6 +24,7 @@ function createPanoViewerLogo(container, primaryViewerType) {
       src: util.assetPath('images/logos/mapillary-logo-white.png'), alt: 'Mapillary', paddingLeft: 5,
     }],
     [Infra3dViewer, { src: util.assetPath('images/logos/infra3d-logo.svg'), alt: 'infra3D', paddingLeft: 6 }],
+    [PanoramaxViewer, { src: util.assetPath('images/logos/panoramax-logo.svg'), alt: 'Panoramax', paddingLeft: 6 }],
   ]);
 
   // Logo box metrics in unscaled px. The image fills the holder's content-box height, so its rendered width follows
