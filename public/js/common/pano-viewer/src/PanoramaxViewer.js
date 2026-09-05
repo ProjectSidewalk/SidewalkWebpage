@@ -31,6 +31,19 @@ class PanoramaxViewer extends PanoViewer {
   /** How far a picture may be from the current one and still be offered as a navigation link, in meters. */
   static #LINK_RADIUS_M = 30;
 
+  /**
+   * How far a picture from another sequence must be to count as somewhere to go, in meters. Parallel sequences on
+   * the same road (the other carriageway, a second pass) sit a few meters to the side; a link there is a sidestep, not
+   * a move, and on a dense network every side would offer one.
+   */
+  static #MIN_CROSS_LINK_M = 8;
+
+  /**
+   * How far, in degrees, a picture from another sequence must be from the directions the current sequence already
+   * covers before it earns its own arrow. Closer than this it is the same road seen from a neighbouring sequence.
+   */
+  static #CROSS_LINK_MIN_ANGLE = 50;
+
   /** Widest vertical field of view we render at, matching MapillaryViewer's clamp so zoom 1 looks the same. */
   static #MAX_VERTICAL_FOV = 90;
 
@@ -481,9 +494,12 @@ class PanoramaxViewer extends PanoViewer {
   };
 
   /**
-   * The pictures a navigation arrow can lead to: the nearest 360° picture in each direction around the current one,
-   * with sequence neighbours (the STAC `next`/`prev` links) preferred because they follow the road. Panoramax has
-   * no link graph of its own, so this is assembled from a search around the picture.
+   * The pictures a navigation arrow can lead to. Panoramax has no link graph of its own, so this is assembled from a
+   * search around the picture to look like Street View's: the sequence neighbours (the STAC `next`/`prev` links) are
+   * the road ahead and behind, and a picture from another sequence adds an arrow only when it opens a genuinely
+   * different direction — a cross street — rather than the same road from a parallel pass. Without that filter a
+   * dense network (Bayonne: a picture every few meters, several sequences per road) fills all eight compass sectors
+   * and the user faces a star of arrows.
    * @param {object} item The current picture.
    * @returns {Promise<Array<{panoId: string, heading: number}>>}
    */
@@ -499,22 +515,31 @@ class PanoramaxViewer extends PanoViewer {
     const sequenceNeighbors = new Set(
       item.links.filter((l) => l.rel === 'next' || l.rel === 'prev').map((l) => l.href.split('/').pop()),
     );
-    // One link per 45° sector, keeping the sequence neighbour if the sector has one, else the nearest picture.
-    const bySector = new Map();
+    const candidates = [];
     for (const candidate of nearby) {
       if (candidate.id === item.id) continue;
       const there = turf.point(candidate.geometry.coordinates);
       const dist = turf.distance(here, there, { units: 'meters' });
       if (dist < 2 || dist > PanoramaxViewer.#LINK_RADIUS_M) continue; // Co-located pictures aren't a move.
       const heading = (turf.bearing(here, there) + 360) % 360;
-      const sector = Math.floor(heading / 45);
-      const link = { panoId: candidate.id, heading, dist, inSequence: sequenceNeighbors.has(candidate.id) };
-      const current = bySector.get(sector);
-      const better = !current || (link.inSequence && !current.inSequence)
-        || (link.inSequence === current.inSequence && link.dist < current.dist);
-      if (better) bySector.set(sector, link);
+      candidates.push({ panoId: candidate.id, heading, dist, inSequence: sequenceNeighbors.has(candidate.id) });
     }
-    return [...bySector.values()].map(({ panoId, heading }) => ({ panoId, heading }));
+    const angleBetween = (a, b) => Math.abs(((a - b + 540) % 360) - 180);
+
+    // The road itself: the previous and next pictures of this sequence, whatever their distance.
+    const links = candidates.filter((c) => c.inSequence);
+    // Cross streets: the nearest picture per 90° sector among those far enough away and off the road's own axis.
+    const bySector = new Map();
+    for (const candidate of candidates) {
+      if (candidate.inSequence || candidate.dist < PanoramaxViewer.#MIN_CROSS_LINK_M) continue;
+      if (links.some((l) => angleBetween(l.heading, candidate.heading) < PanoramaxViewer.#CROSS_LINK_MIN_ANGLE)) {
+        continue;
+      }
+      const sector = Math.floor(candidate.heading / 90);
+      const current = bySector.get(sector);
+      if (!current || candidate.dist < current.dist) bySector.set(sector, candidate);
+    }
+    return [...links, ...bySector.values()].map(({ panoId, heading }) => ({ panoId, heading }));
   };
 
   // ---- Angles -----------------------------------------------------------------------------------------------------
