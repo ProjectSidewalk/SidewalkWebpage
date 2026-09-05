@@ -62,7 +62,7 @@ city.name.winterthur-infra3d = Winterthur
 city.name.waltham-ma = Waltham
 city.name.houston-tx = Houston
 city.name.newport-ky = Newport
-
+city.name.bayonne = Bayonne
 state.name.oregon = Oregon
 state.name.washington = Washington
 state.name.ohio = Ohio
@@ -94,6 +94,8 @@ country.name.canada = Canada
 country.name.india = India
 country.name.chile = Chile
 country.name.brazil = Brazil
+
+country.name.france = France
 
 lang.name.en-US = US English
 lang.name.en-NZ = NZ English
