@@ -184,14 +184,18 @@ class PanoramaxViewer extends PanoViewer {
       showLoader: !this.currPanoData, // Only the very first picture gets PSV's spinner; moves keep the old frame.
       sphereCorrection,
     });
-    // Say that it failed if it doesn't work after 12 seconds, the budget MapillaryViewer gives a move.
+    // Say that it failed if it doesn't work after 12 seconds, the budget MapillaryViewer gives a move. The timer is
+    // cleared either way, so a page that moves often doesn't carry a pending timeout per move.
+    let timer;
     const loaded = await Promise.race([
       load,
-      new Promise((_, reject) => setTimeout(() => reject(new Error('Timed out')), 12000)),
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error('Timed out')), 12000);
+      }),
     ]).catch((err) => {
       console.error('Failed to load pano: ', panoId, err);
       throw new Error(`Failed to load pano: ${panoId}`);
-    });
+    }).finally(() => clearTimeout(timer));
     // PSV resolves false when the load was superseded by a newer setPanorama call; the newer call reports for both.
     if (loaded === false) throw new Error(`Load of pano ${panoId} was superseded`);
 
@@ -256,6 +260,9 @@ class PanoramaxViewer extends PanoViewer {
 
   clearPrefetchCache = () => {
     this.#prefetchedSearches = [];
+    // The item cache holds every STAC item every search returned, so it grows for the life of the page unless it is
+    // dropped with the searches that filled it. The current picture stays, since setPano() re-reads it on a move.
+    this.#items = new Map(this.#item ? [[this.#item.id, this.#item]] : []);
   };
 
   /**
@@ -274,7 +281,11 @@ class PanoramaxViewer extends PanoViewer {
     }
   };
 
-  /** See PanoViewer.publicViewerLink(). Panoramax's `xyz` is heading/pitch/zoom, with zoom on its own 0–100 scale. */
+  /**
+   * See PanoViewer.publicViewerLink(). Panoramax's `xyz` is heading/pitch/zoom, with zoom on its own 0–100 scale
+   * (30 is its default view). `LabelDataForApi.panoUrl` builds the same URL server-side for the v3 API's `pano_url`
+   * and can't share this code across the language line — change one and change the other.
+   */
   publicViewerLink(panoId, { heading = 0, pitch = 0 } = {}) {
     return {
       url: `https://api.panoramax.xyz/#focus=pic&pic=${panoId}&xyz=${heading.toFixed(2)}/${pitch.toFixed(2)}/30`,
@@ -321,9 +332,11 @@ class PanoramaxViewer extends PanoViewer {
     const width = item.properties['pers:interior_orientation']?.sensor_array_dimensions?.[0] || 0;
     const resolutionScore = Math.min(width / 12288, 1);
 
-    // Recency: exponential decay by age in years, 5-year scale. Fresh → 1.0, 3yr → 0.55, 8yr → 0.20.
+    // Recency: exponential decay by age in years, 5-year scale. Fresh → 1.0, 3yr → 0.55, 8yr → 0.20. A picture whose
+    // datetime won't parse scores as if it were 3 years old rather than NaN, which loses every `>` comparison and so
+    // could make a box full of such pictures look like a street with no imagery at all.
     const ageYears = (Date.now() - Date.parse(item.properties.datetime)) / (365.25 * 24 * 3600 * 1000);
-    const recencyScore = Math.exp(-ageYears / 5);
+    const recencyScore = Number.isFinite(ageYears) ? Math.exp(-ageYears / 5) : Math.exp(-3 / 5);
 
     // Sequence continuity: prefer staying in the current sequence (STAC collection) for smoother navigation.
     const sequenceScore = this.#item && item.collection === this.#item.collection ? 1 : 0;
@@ -429,13 +442,33 @@ class PanoramaxViewer extends PanoViewer {
   };
 
   /**
+   * The tile pyramid a 360° picture publishes, which is what the renderer reads. Only the search filters pictures to
+   * `field_of_view=360`; `/api/pictures/:id` doesn't, so a stored label id can name a picture with no pyramid, and
+   * that has to fail the way a missing picture does rather than as a TypeError the seed fallback can't classify.
+   *
+   * @param {object} item The picture's STAC item.
+   * @returns {object} Its first tile matrix.
+   * @throws {NoImageryError} When the picture has no pyramid, tile template, or base image.
+   */
+  static #tileMatrix(item) {
+    // Keyed by tile-matrix-set name — `geovisio` on every instance today, but read positionally so a rename or a
+    // second set doesn't blank the viewer.
+    const sets = item.properties?.['tiles:tile_matrix_sets'];
+    const matrix = sets && Object.values(sets)[0]?.tileMatrix?.[0];
+    if (!matrix || !item.asset_templates?.tiles?.href || !item.assets?.sd?.href) {
+      throw new NoImageryError(`Panoramax picture ${item.id} publishes no 360° tile pyramid.`);
+    }
+    return matrix;
+  }
+
+  /**
    * Builds the tiles-adapter config from a STAC item, the way Panoramax's own viewer does (apiFeatureToPSVNode):
    * the SD picture as the base image, and the tile matrix + URL template for the pyramid.
    * @param {object} item
    * @returns {{baseUrl: string, width: number, cols: number, rows: number, tileUrl: Function}}
    */
   static #panoramaConfig(item) {
-    const matrix = item.properties['tiles:tile_matrix_sets'].geovisio.tileMatrix[0];
+    const matrix = PanoramaxViewer.#tileMatrix(item);
     const template = item.asset_templates.tiles.href;
     return {
       baseUrl: item.assets.sd.href,
@@ -454,13 +487,15 @@ class PanoramaxViewer extends PanoViewer {
    */
   #panoDataParams = (item) => {
     const props = item.properties;
-    const matrix = props['tiles:tile_matrix_sets'].geovisio.tileMatrix[0];
+    const matrix = PanoramaxViewer.#tileMatrix(item);
     const dims = props['pers:interior_orientation']?.sensor_array_dimensions;
     const width = dims?.[0] || matrix.matrixWidth * matrix.tileWidth;
     return {
       panoId: item.id,
       source: this.getViewerType(),
-      captureDate: moment(props.datetime),
+      // parseZone keeps the capture's own offset: `datetime` is normalised to UTC, so a plain moment() would render
+      // it in the reader's timezone and an evening capture would show a different day in Paris than in Seattle.
+      captureDate: moment.parseZone(props.datetimetz || props.datetime),
       width,
       height: dims?.[1] || Math.round(width / 2),
       tileWidth: matrix.tileWidth,
@@ -496,10 +531,10 @@ class PanoramaxViewer extends PanoViewer {
   /**
    * The pictures a navigation arrow can lead to. Panoramax has no link graph of its own, so this is assembled from a
    * search around the picture to look like Street View's: the sequence neighbours (the STAC `next`/`prev` links) are
-   * the road ahead and behind, and a picture from another sequence adds an arrow only when it opens a genuinely
-   * different direction — a cross street — rather than the same road from a parallel pass. Without that filter a
-   * dense network (Bayonne: a picture every few meters, several sequences per road) fills all eight compass sectors
-   * and the user faces a star of arrows.
+   * the road ahead and behind at whatever distance the sequence puts them, and a picture from another sequence adds
+   * an arrow only when it opens a genuinely different direction — a cross street — rather than the same road from a
+   * parallel pass. Without that filter a dense network (Bayonne: a picture every few meters, several sequences per
+   * road) fills all eight compass sectors and the user faces a star of arrows.
    * @param {object} item The current picture.
    * @returns {Promise<Array<{panoId: string, heading: number}>>}
    */
@@ -515,16 +550,22 @@ class PanoramaxViewer extends PanoViewer {
     const sequenceNeighbors = new Set(
       item.links.filter((l) => l.rel === 'next' || l.rel === 'prev').map((l) => l.href.split('/').pop()),
     );
+    // A sequence neighbour the search didn't return is fetched by id, so the road ahead always has an arrow: it goes
+    // missing otherwise whenever the sequence has a gap wider than the link radius, or the box is dense enough that
+    // newer pictures from other sequences fill the search's page limit ahead of it.
+    const searched = new Set(nearby.map((n) => n.id));
+    const missing = [...sequenceNeighbors].filter((id) => !searched.has(id));
+    const fetched = await Promise.all(missing.map((id) => this.#fetchItem(id).catch(() => null)));
     const candidates = [];
-    for (const candidate of nearby) {
+    for (const candidate of [...nearby, ...fetched.filter(Boolean)]) {
       if (candidate.id === item.id) continue;
       const there = turf.point(candidate.geometry.coordinates);
       const dist = turf.distance(here, there, { units: 'meters' });
-      if (dist < 2 || dist > PanoramaxViewer.#LINK_RADIUS_M) continue; // Co-located pictures aren't a move.
+      const inSequence = sequenceNeighbors.has(candidate.id);
+      // Co-located pictures aren't a move; past the link radius only the road itself is still somewhere to go.
+      if (dist < 2 || (dist > PanoramaxViewer.#LINK_RADIUS_M && !inSequence)) continue;
       const heading = (turf.bearing(here, there) + 360) % 360;
-      candidates.push({
-        panoId: candidate.id, heading, dist, item: candidate, inSequence: sequenceNeighbors.has(candidate.id),
-      });
+      candidates.push({ panoId: candidate.id, heading, dist, item: candidate, inSequence });
     }
     const angleBetween = (a, b) => Math.abs(((a - b + 540) % 360) - 180);
 

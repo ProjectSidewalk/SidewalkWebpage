@@ -8,8 +8,11 @@ import play.api.libs.json.{JsObject, Json}
  * pano viewer, or a crop cut from one (#4865). The live providers' own viewers draw their own.
  *
  * Mapillary imagery is CC BY-SA 4.0: redistribution is permitted with visible attribution, so the line names the
- * contributor (`pano_data.copyright` holds the bare Mapillary username), the provider and the licence. Google's and
- * infra3d's imagery carries the copyright string the provider supplied, which is the whole of what they ask shown.
+ * contributor (`pano_data.copyright` holds the bare Mapillary username), the provider and the licence. Panoramax
+ * imagery is open too, but under a licence its contributor picks per picture (CC BY-SA 4.0, CC BY 4.0 or
+ * etalab 2.0), and `pano_data` records no licence, so the line names the producer and Panoramax and stops there.
+ * Google's and infra3d's imagery carries the copyright string the provider supplied, which is the whole of what
+ * they ask shown.
  */
 object ImageryAttribution {
 
@@ -43,7 +46,8 @@ object ImageryAttribution {
    * @param copyright The provider's copyright string for the pano, as `pano_data.copyright` stores it.
    * @return          The attribution to show beside the imagery, or None when nothing is known to attribute. For
    *                  Mapillary the provider and the licence are known from `source` alone, so a pano with no recorded
-   *                  contributor is still credited to Mapillary under its licence.
+   *                  contributor is still credited to Mapillary under its licence; likewise a Panoramax pano is
+   *                  credited to Panoramax whether or not its producer was recorded.
    */
   def line(source: PanoSource, copyright: Option[String]): Option[Line] = {
     val recorded = copyright.map(_.trim).filter(_.nonEmpty)
@@ -55,6 +59,16 @@ object ImageryAttribution {
             recorded.map(_ => "Mapillary"),
             Some(MapillaryLicense),
             Some(MapillaryLicenseUrl)
+          )
+        )
+      // The licence is deliberately absent rather than guessed: it varies per picture and nothing stores it (#5202).
+      case PanoSource.Panoramax =>
+        Some(
+          Line(
+            recorded.map(holder => s"© $holder").getOrElse("Panoramax"),
+            recorded.map(_ => "Panoramax"),
+            None,
+            None
           )
         )
       case _ => recorded.map(Line(_, None, None, None))

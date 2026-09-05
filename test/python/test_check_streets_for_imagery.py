@@ -547,8 +547,8 @@ def test_process_street_mapillary_no_imagery():
 def test_process_street_panoramax_has_imagery_with_dates():
     seen = []
 
-    def fetch(url):
-        seen.append(url)
+    def fetch(url, **kwargs):
+        seen.append((url, kwargs))
         return {'features': [_pnx_feature('a', '2026-08-11T15:02:33+00:00'),
                              _pnx_feature('b', '2025-03-02T10:00:00+00:00')]}
 
@@ -557,11 +557,13 @@ def test_process_street_panoramax_has_imagery_with_dates():
     # Each point contributes its newest picture's date, and every point saw the same pair of pictures.
     assert (result.oldest_capture, result.newest_capture) == ('2026-08-11', '2026-08-11')
     assert result.n_panos >= 3
-    assert all(url.startswith(cs.PANORAMAX_SEARCH_URL + '&bbox=') for url in seen)
+    assert all(url.startswith(cs.PANORAMAX_SEARCH_URL + '&bbox=') for url, _ in seen)
+    # The keyless API has nothing but the User-Agent to say whose traffic this is.
+    assert all(kwargs['headers'] is cs.PANORAMAX_HEADERS for _, kwargs in seen)
 
 
 def test_process_street_panoramax_no_imagery():
-    assert _run_process(_LINE_60, 'Panoramax', lambda url: {'features': []}).outcome == cs.NO_IMAGERY
+    assert _run_process(_LINE_60, 'Panoramax', lambda url, **kwargs: {'features': []}).outcome == cs.NO_IMAGERY
 
 
 def test_panoramax_bbox_url_appends_four_coords():
@@ -867,7 +869,7 @@ def test_main_panoramax_branch_needs_no_key(monkeypatch, tmp_path, capsys):
     _setup(monkeypatch, tmp_path, [(100, 1, _LINE_60)])
     for var in ('GOOGLE_MAPS_API_KEY', 'MAPILLARY_ACCESS_TOKEN'):
         monkeypatch.delenv(var, raising=False)
-    monkeypatch.setattr(cs, '_get_json', lambda url: {'features': []})  # no imagery
+    monkeypatch.setattr(cs, '_get_json', lambda url, **kwargs: {'features': []})  # no imagery
     assert cs.main(['--panoramax']) == 0
     assert 'no credential needed' in capsys.readouterr().out
     assert _output(tmp_path)['street_edge_id'].tolist() == [100]

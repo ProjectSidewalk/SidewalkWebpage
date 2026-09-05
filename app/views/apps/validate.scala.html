@@ -267,7 +267,7 @@
       param.countryId = "@currentCity.countryId";
       const imagerySrc = "@commonData.imagerySource.toString";
       param.viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer
-      : imagerySrc === 'panoramax' ? PanoramaxViewer : GsvViewer;
+        : imagerySrc === 'panoramax' ? PanoramaxViewer : GsvViewer;
       param.viewerAccessToken = "@commonData.imageryAccessToken";
       param.validateParams = {
         adminVersion: @validateParams.adminVersion,

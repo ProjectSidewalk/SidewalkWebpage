@@ -272,7 +272,8 @@ case class LabelDataForApi(
    *    and `pitch` (-90..90) match Project Sidewalk's own conventions, so they pass through unchanged.
    *  - Mapillary: the web app's image-permalink form (`pKey`).
    *  - Panoramax: the federated viewer's picture permalink, whose `xyz` fragment is heading/pitch/zoom with zoom on
-   *    Panoramax's own 0–100 scale (30 is its default view).
+   *    Panoramax's own 0–100 scale (30 is its default view). `PanoramaxViewer.publicViewerLink` builds the same URL
+   *    client-side for the label popup's "View in Panoramax" link -- change one and change the other.
    *  - infra3d: no public, shareable viewer URL exists, so this is `None`.
    *
    * @return The provider's viewer URL for this label, or `None` when the provider has no shareable external viewer.

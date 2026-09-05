@@ -52,6 +52,13 @@ object PanoDataService {
   val LiveImageryTtlDays: Long = 7
 
   /**
+   * How we identify ourselves to Panoramax (#5185). Its API is keyless and community-run, so unlike GSV and
+   * Mapillary — where the key already says who is calling — nothing else tells the operators whose traffic this is
+   * or where to write if it misbehaves.
+   */
+  val PanoramaxUserAgent: String = "ProjectSidewalk/1.0 (+https://projectsidewalk.org; sidewalk@cs.uw.edu)"
+
+  /**
    * How many panos the nightly expiry sweep may have in flight at once (#4559).
    */
   val ImageryCheckConcurrency: Int = 10
@@ -562,6 +569,7 @@ class PanoDataServiceImpl @Inject() (
    */
   private def panoramaxPanoExists(panoId: String): Future[Option[Boolean]] = {
     ws.url(s"https://api.panoramax.xyz/api/pictures/$panoId")
+      .addHttpHeaders("User-Agent" -> PanoDataService.PanoramaxUserAgent)
       .withRequestTimeout(5.seconds)
       .get()
       .flatMap { response =>

@@ -183,6 +183,11 @@ object ImageryFreshnessService {
    * Converts a Panoramax STAC `datetime` (ISO-8601 with offset, e.g. `2026-08-11T15:02:33+00:00`) to its UTC date,
    * with the same plausibility clamp as Mapillary: the value is the contributor's camera clock, so pre-2004 and future
    * dates are treated as unknown rather than trusted.
+   *
+   * The item also carries the capture's local instant (`datetimetz`), which the viewer reads so the date it shows is
+   * the one the contributor would call it. This poll deliberately doesn't: it compares imagery ages at year
+   * granularity, where a date that can be a day out either way costs nothing and a single timezone convention keeps
+   * it comparable with the Mapillary poll beside it, whose epoch millis carry no local offset at all.
    */
   def parsePanoramaxDatetime(raw: String, now: LocalDate = LocalDate.now(ZoneOffset.UTC)): Option[LocalDate] =
     Try(OffsetDateTime.parse(raw).withOffsetSameInstant(ZoneOffset.UTC).toLocalDate).toOption
@@ -532,6 +537,7 @@ class ImageryFreshnessServiceImpl @Inject() (
     val (dLat, dLng) = bboxHalfWidths(lat, SampleRadiusMeters)
     val bbox         = s"${lng - dLng},${lat - dLat},${lng + dLng},${lat + dLat}"
     ws.url(s"https://api.panoramax.xyz/api/search?bbox=$bbox&filter=field_of_view%3D360&sortby=-ts&limit=100")
+      .addHttpHeaders("User-Agent" -> PanoDataService.PanoramaxUserAgent)
       .withRequestTimeout(5.seconds)
       .get()
       .map { response =>
