@@ -135,6 +135,8 @@ POINT_RADIUS_KM = 0.015
 # Panoramax: the federated meta-catalog's STAC search, filtered to 360° pictures (the only kind the viewer serves),
 # newest first so the capture date read from the first result is the street's newest. No key, no documented limit.
 PANORAMAX_SEARCH_URL = 'https://api.panoramax.xyz/api/search?filter=field_of_view%3D360&sortby=-ts&limit=100'
+# The API is keyless and community-run, so nothing but this says whose scan traffic it is or where to complain.
+PANORAMAX_HEADERS = {'User-Agent': 'ProjectSidewalk-check-streets/1.0 (sidewalk@cs.uw.edu)'}
 
 # Infra3d: the token grant mirrors PanoDataService.getInfra3dToken; the framegate route is what the vendored viewer SDK
 # calls for setLocation. The route's tenant segment comes from the token's scope, so there is no per-city config.
@@ -677,7 +679,7 @@ def _point_pano_info(api, lat, lng, fetch, gsv_url, mapillary_url, radius_km, in
     if api == 'GSV':
         return _pano_info(api, fetch(gsv_url + '&location=' + str(lat) + ',' + str(lng)))
     if api == 'Panoramax':
-        return _pano_info(api, fetch(_panoramax_bbox_url(lat, lng, radius_km)))
+        return _pano_info(api, fetch(_panoramax_bbox_url(lat, lng, radius_km), headers=PANORAMAX_HEADERS))
     if api == 'Infra3d':
         return _infra3d_point_pano_info(infra3d, lat, lng, radius_km, fetch)
     return _pano_info(api, fetch(_mapillary_bbox_url(mapillary_url, lat, lng, radius_km)))

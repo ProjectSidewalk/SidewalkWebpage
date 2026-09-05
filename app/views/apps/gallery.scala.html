@@ -112,7 +112,7 @@
       params.currUsername = @if(user.exists(_.role != Role.Anonymous)) {"@user.map(_.username)"} else {null};
       const imagerySrc = "@commonData.imagerySource.toString";
       params.viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer
-      : imagerySrc === 'panoramax' ? PanoramaxViewer : GsvViewer;
+        : imagerySrc === 'panoramax' ? PanoramaxViewer : GsvViewer;
       params.viewerAccessToken = "@commonData.imageryAccessToken";
       sg.main = Main.create(params);
     });
