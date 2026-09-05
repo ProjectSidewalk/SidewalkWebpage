@@ -16,6 +16,11 @@ network, no live Google/Mapillary or app calls.
   (`redistribute_vertices`), the GSV/Mapillary response parsers (`gsv_has_imagery`, `mapillary_has_imagery`), the
   imagery-decision thresholds (`imagery_verdict`, `street_has_no_imagery`), and the CSV writer (`write_output`).
 - `test_verify_latlng_backfill.py` — the one-off checker in [`tools/`](../../tools), which is stdlib-only.
+- `test_build_city_streets.py` — the headless new-city street import in [`tools/`](../../tools) (#4291): splitting a
+  way only where it meets another included way, the tier-1 merge of sub-threshold pieces and its ring guard (#4717),
+  region assignment (cut at a boundary / kept whole to the majority / attached to the nearest / dropped), the region
+  name report (#4620), and `build` end to end with Overpass stubbed. **`python3.13` only** — it imports shapely, so it
+  is `--ignore`d in the 3.8 half rather than run in both.
 
 ### Resilience coverage
 

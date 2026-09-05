@@ -37,14 +37,17 @@
    set one, else the language default, resolved once here so util.isMetric() can't disagree with the server. *@
 <html lang="@messages.lang.code" data-mobile-device="@ControllerUtils.isMobile" data-measurement-system="@ControllerUtils.measurementSystem">
   <head>
-      <!-- Global site tag (gtag.js) - Google Analytics -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=@commonData.googleAnalyticsId"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      gtag('config', '@commonData.googleAnalyticsId');
-    </script>
+    @* Global site tag (gtag.js) - Google Analytics. Skipped when the city has no measurement id yet: loading the
+       tag with an empty one requests gtag/js?id= on every page and configures a property that doesn't exist. *@
+    @if(commonData.googleAnalyticsId.nonEmpty) {
+      <script async src="https://www.googletagmanager.com/gtag/js?id=@commonData.googleAnalyticsId"></script>
+      <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', '@commonData.googleAnalyticsId');
+      </script>
+    }
     <meta charset="utf-8">
     @* No maximum-scale/user-scalable=no: pinch zoom is a WCAG 1.4.4 (Resize Text) affordance, not a nuisance. *@
     <meta name="viewport" content="width=device-width, initial-scale=1">

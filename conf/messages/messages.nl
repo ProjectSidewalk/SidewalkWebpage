@@ -84,6 +84,7 @@ country.name.switzerland = Zwitserland
 country.name.new-zealand = Nieuw-Zeeland
 country.name.chile = Chili
 country.name.brazil = Brazilië
+country.name.france = Frankrijk
 
 navbar.explore = Ontdekken
 navbar.validate = Bevestigen

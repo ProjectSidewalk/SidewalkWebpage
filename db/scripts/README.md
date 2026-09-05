@@ -61,9 +61,25 @@ make dev  ─▶  init.sh (auto)  ─▶  make import-users  ─▶  make import
 
 ```
 make create-new-schema name=sidewalk_newcity   # empty schema from the template
-# …load qgis_road + qgis_region into that schema (QGIS/OSM export)…
+# …load qgis_road + qgis_region into that schema (QGIS/OSM export, or the tool below)…
 make fill-new-schema                            # streets, regions, tutorial, city center
 make hide-streets-without-imagery               # optional: after check_streets_for_imagery.py
+```
+
+The `qgis_road` / `qgis_region` staging tables can come from the QGIS runbook on the wiki or, headless, from
+**`tools/build_city_streets.py`** (#4291): given the city limit and the neighborhood polygons as WGS 84 GeoJSON, it
+fetches the streets from OpenStreetMap, splits them where included ways meet, clips them to the city, assigns each to
+a neighborhood, and writes one SQL file that creates and fills both tables. It also applies the anti-sliver rules from
+#4717 (merge sub-20 m pieces back into their own way, cut a street at a neighborhood boundary only when both parts
+stay ≥ 20 m) and prints the tiny-segment counts and a region-name quality report (#4620) to review before importing.
+Those rules are unit-tested in [`test/python/test_build_city_streets.py`](../../test/python/test_build_city_streets.py).
+
+```
+docker exec projectsidewalk-web python3.13 tools/build_city_streets.py --boundary /tmp/city.geojson \
+    --regions /tmp/neighborhoods.geojson --region-name-prop name --out /tmp/city_staging.sql --cache /tmp/city_osm.json
+docker cp /tmp/city_staging.sql projectsidewalk-db:/tmp/ && \
+    docker exec projectsidewalk-db psql -v ON_ERROR_STOP=1 -U sidewalk_newcity -d sidewalk -f /tmp/city_staging.sql
+make fill-new-schema   # way_type column: highway; region name column: the --region-name-prop value
 ```
 
 **Ongoing maintenance:**
