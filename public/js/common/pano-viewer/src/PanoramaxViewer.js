@@ -522,13 +522,17 @@ class PanoramaxViewer extends PanoViewer {
       const dist = turf.distance(here, there, { units: 'meters' });
       if (dist < 2 || dist > PanoramaxViewer.#LINK_RADIUS_M) continue; // Co-located pictures aren't a move.
       const heading = (turf.bearing(here, there) + 360) % 360;
-      candidates.push({ panoId: candidate.id, heading, dist, inSequence: sequenceNeighbors.has(candidate.id) });
+      candidates.push({
+        panoId: candidate.id, heading, dist, item: candidate, inSequence: sequenceNeighbors.has(candidate.id),
+      });
     }
     const angleBetween = (a, b) => Math.abs(((a - b + 540) % 360) - 180);
 
     // The road itself: the previous and next pictures of this sequence, whatever their distance.
     const links = candidates.filter((c) => c.inSequence);
-    // Cross streets: the nearest picture per 90° sector among those far enough away and off the road's own axis.
+    // Cross streets: one picture per 90° sector among those far enough away and off the road's own axis, chosen
+    // with the picker's own score so the arrow lands on the freshest, sharpest nearby picture rather than merely the
+    // closest — the same recency-over-proximity preference the Mapillary picker applies.
     const bySector = new Map();
     for (const candidate of candidates) {
       if (candidate.inSequence || candidate.dist < PanoramaxViewer.#MIN_CROSS_LINK_M) continue;
@@ -536,8 +540,9 @@ class PanoramaxViewer extends PanoViewer {
         continue;
       }
       const sector = Math.floor(candidate.heading / 90);
+      const score = this.#scorePano(candidate.item, here);
       const current = bySector.get(sector);
-      if (!current || candidate.dist < current.dist) bySector.set(sector, candidate);
+      if (!current || score > current.score) bySector.set(sector, { ...candidate, score });
     }
     return [...links, ...bySector.values()].map(({ panoId, heading }) => ({ panoId, heading }));
   };
