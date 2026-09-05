@@ -93,12 +93,15 @@ raising it.
 
 ### Imagery age
 
-The GSV and Infra3d responses we already fetch also carry an imagery capture date, so — for **no extra API calls** —
-the scan records each street's capture-date range (oldest/newest) and pano count into `db/street_imagery_summary.csv`
+The responses we already fetch also carry an imagery capture date, so — for **no extra API calls** — the scan records
+each street's capture-date range (oldest/newest) and pano count into `db/street_imagery_summary.csv`
 (`street_edge_id, region_id, has_imagery, oldest_capture, newest_capture, n_panos`). That tells us not just whether a
-street has imagery but how old it is. Mapillary capture dates are a future enhancement. Persisting this into the
-database — to power a "stale imagery" signal alongside the `street_edge_status` work (#3888) — is tracked as a
-separate follow-up (#4348).
+street has imagery but how old it is. GSV and Infra3d each answer with a single pano, so its date is the one recorded.
+Mapillary instead returns every image in the queried box, and the date recorded belongs to the image Explore would
+actually display: `score_pano` ports the viewer's ranking (distance, resolution, recency), reading its weights from
+`conf/mapillary-pano-scoring.json` so the two can't drift. Recording the *newest* image instead would let a street look
+freshly imaged while the viewer went on serving older panos (#4411). Persisting this into the database — to power a
+"stale imagery" signal alongside the `street_edge_status` work (#3888) — is tracked as a separate follow-up (#4348).
 
 ### Resilience & resume
 

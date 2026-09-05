@@ -1,0 +1,23 @@
+{
+  "_comment": [
+    "Weights and decay scales for ranking candidate Mapillary panoramas at a location. Mapillary is the only imagery",
+    "provider whose candidates we rank ourselves: GSV delegates selection to Google's StreetViewService, and",
+    "Infra3d/Pannellum never search by location.",
+    "Two consumers must agree on these numbers, which is why they live here rather than in either one:",
+    "MapillaryViewer.#scorePano (public/js/common/pano-viewer/src/MapillaryViewer.js) picks the pano Explore and",
+    "Validate display, and score_pano (scripts/check_streets_for_imagery.py) picks the pano whose capture date we",
+    "record for a street. If those disagreed, we would report a street as freshly imaged and then never show the",
+    "imagery that said so (#4411).",
+    "The weights sum to 1, so a score is always in [0, 1]. models.utils.MapillaryPanoScoring parses this into a typed",
+    "shape, so a typo fails loudly and this comment never reaches the browser."
+  ],
+
+  "distanceWeight": 0.45,
+  "resolutionWeight": 0.25,
+  "recencyWeight": 0.25,
+  "sequenceWeight": 0.05,
+
+  "distanceDecayMeters": 10,
+  "maxImageWidthPx": 16384,
+  "recencyDecayYears": 5
+}
