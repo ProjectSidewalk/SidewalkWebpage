@@ -1,0 +1,345 @@
+{
+  "mapbox-language-code": "fr",
+  "map-two-finger-pan": "Utilisez deux doigts pour déplacer la carte",
+  "explore-street-link": "<a href='/explore?streetEdgeId={{streetId}}' class='street-selection-trigger' streetId='{{streetId}}'>Cliquez ici</a> pour explorer cette rue !",
+  "distance-progress": "{{done, distance(style: small; unit: false)}}/{{total, distance(style: small)}}",
+  "distance-large": "{{dist}} {{unitAbbr}}",
+  "speed-limit-tooltip": "Connaître la <b>limitation de vitesse</b> d'une rue aide à mieux évaluer la sécurité des piétons, par exemple s'il est <b>sûr</b> de traverser à une intersection non régulée.",
+  "speed-limit-aria-label": "Limitation de vitesse {{speed}} {{units}}",
+  "format-number": "{{val, number}}",
+  "cities-cta-join_one": "Rejoignez {{count, number}} autre communauté",
+  "cities-cta-join_other": "Rejoignez {{count, number}} autres communautés",
+  "agree": "D'accord",
+  "disagree": "Pas d'accord",
+  "unsure": "Incertain",
+  "correct": "Validée correcte",
+  "incorrect": "Validée incorrecte",
+  "unvalidated": "Non validée",
+  "curb-ramp": "Bateau de trottoir",
+  "no-curb-ramp": "Bateau manquant",
+  "obstacle": "Obstacle sur le passage",
+  "surface-problem": "Problème de surface",
+  "occlusion": "Trottoir non visible",
+  "no-sidewalk": "Absence de trottoir",
+  "crosswalk": "Passage piéton marqué",
+  "signal": "Feu piéton",
+  "other": "Autre",
+  "surface-problems": "Problèmes de surface",
+  "close": "Fermer",
+  "cancel": "Annuler",
+  "continue": "Continuer",
+  "delete": "Supprimer",
+  "done": "Terminé",
+  "badges": {
+    "congratulations": "Félicitations !",
+    "you-earned": "Vous avez gagné le badge « {{badge}} » !",
+    "my-dashboard": "Mon tableau de bord",
+    "labeler-name": "Étiqueteur",
+    "explorer-name": "Explorateur",
+    "adventurer-name": "Aventurier",
+    "validator-name": "Validateur"
+  },
+  "sign-up": "S'inscrire",
+  "sign-in": "Se connecter",
+  "complete": "terminé",
+  "zoom-in": "Zoom avant",
+  "zoom-out": "Zoom arrière",
+  "more-options": "Plus d'options",
+  "map": {
+    "distance-left_one": "Plus que {{count}} {{unitNameSingular}} !",
+    "distance-left_other": "Plus que {{count}} {{unitName}} !",
+    "less-than-one-unit-left": "Moins d'un {{unitNameSingular}} restant !",
+    "click-to-help": "<a href='{{url}}' class='region-selection-trigger' regionId='{{regionId}}'>Cliquez ici</a> pour aider à terminer ce quartier",
+    "needs-reaudit": "Environ {{n}} {{unitAbbr}} de rues ici ont de nouvelles images de rue et doivent être réexplorées !",
+    "click-to-reaudit": "<a href='{{url}}' class='region-selection-trigger' regionId='{{regionId}}'>Cliquez ici</a> pour réexplorer ces rues",
+    "thanks": "Merci pour toute votre aide !",
+    "100-percent-complete": "100 % terminé !",
+    "percent-complete": "{{percent}} % terminé"
+  },
+  "cities-map": {
+    "explore": "Explorer {{cityName}}",
+    "loading-stats": "Chargement des statistiques...",
+    "private-deployment": "Déploiement privé"
+  },
+  "errors": {
+    "title": "Les images de cette étiquette ne sont plus disponibles.",
+    "explore-street": "Explorer la rue"
+  },
+  "severity": "Gravité",
+  "quality": "Qualité",
+  "rate-severity": "Évaluer la gravité",
+  "rate-quality": "Évaluer la qualité",
+  "rate-severity-info": "Évaluez au mieux dans quelle mesure l'obstacle ou l'aménagement étiqueté gêne le passage des piétons.",
+  "rate-quality-info": "Évaluez au mieux la qualité de l'aménagement étiqueté.",
+  "update-severity-level": "Modifier le niveau de gravité",
+  "update-quality-level": "Modifier le niveau de qualité",
+  "severity-example-tooltip-1": "Exemple de gravité faible",
+  "severity-example-tooltip-2": "Exemple de gravité moyenne",
+  "severity-example-tooltip-3": "Exemple de gravité élevée",
+  "quality-example-tooltip-1": "Exemple de bonne qualité",
+  "quality-example-tooltip-2": "Exemple de qualité correcte",
+  "quality-example-tooltip-3": "Exemple de mauvaise qualité",
+  "no-severity": "Aucune évaluation de gravité n'a été fournie pour cette étiquette",
+  "no-quality": "Aucune évaluation de qualité n'a été fournie pour cette étiquette",
+  "tags": "Tags",
+  "description": "Description",
+  "no-description": "Aucune description",
+  "comments": "Commentaires des validateurs",
+  "none": "Aucun",
+  "only": "Uniquement",
+  "image-capture-date": "Date de prise de vue",
+  "drag-to-look-around": "Faites glisser pour regarder autour de vous",
+  "loading-imagery": "Chargement des images...",
+  "hide-label": "Masquer l'étiquette",
+  "show-label": "Afficher l'étiquette",
+  "hide-label-tooltip": "Masquer temporairement l'étiquette pour voir ce qu'il y a dessous.",
+  "show-label-tooltip": "Afficher de nouveau l'étiquette.",
+  "labeled": "Étiqueté le",
+  "low": "Faible",
+  "medium": "Moyenne",
+  "high": "Élevée",
+  "good": "Bonne",
+  "okay": "Correcte",
+  "bad": "Mauvaise",
+  "yes": "Oui",
+  "no": "Non",
+  "ai-generated-label-tooltip": "Cette étiquette a été générée par une IA. L'IA peut se tromper : faites votre propre évaluation.",
+  "tag": {
+    "narrow": "étroit",
+    "points into traffic": "orienté vers la circulation",
+    "missing tactile warning": "bande d'éveil manquante",
+    "tactile warning": "bande d'éveil",
+    "steep": "pente raide",
+    "not enough landing space": "palier insuffisant",
+    "not level with street": "pas au niveau de la chaussée",
+    "surface problem": "problème de surface",
+    "debris / pooled water": "débris / eau stagnante",
+    "parallel lines": "lignes parallèles",
+    "alternate route present": "autre passage disponible",
+    "no alternate route": "aucun autre passage",
+    "unclear if needed": "nécessité incertaine",
+    "trash/recycling can": "poubelle / bac de tri",
+    "fire hydrant": "bouche d'incendie",
+    "pole": "poteau",
+    "tree": "arbre",
+    "vegetation": "végétation",
+    "parked car": "voiture garée",
+    "parked bike": "vélo stationné",
+    "construction": "travaux",
+    "sign": "panneau",
+    "garage entrance": "entrée de garage",
+    "stairs": "escalier",
+    "street vendor": "vendeur ambulant",
+    "litter/garbage": "détritus / ordures",
+    "parked scooter/motorcycle": "scooter / moto stationné",
+    "bumpy": "bosselé",
+    "uneven/slanted": "irrégulier / incliné",
+    "cracks": "fissures",
+    "grass": "herbe",
+    "narrow sidewalk": "trottoir étroit",
+    "brick/cobblestone": "briques / pavés",
+    "very broken": "très abîmé",
+    "rail/tram track": "rails de tram / voie ferrée",
+    "sand/gravel": "boue / sable / gravier",
+    "uncovered manhole": "regard non couvert",
+    "ends abruptly": "s'arrête brusquement",
+    "street has a sidewalk": "la rue a un trottoir",
+    "street has no sidewalks": "la rue n'a aucun trottoir",
+    "gravel/dirt road": "route en gravier / en terre",
+    "shared pedestrian/car space": "espace partagé piétons / voitures",
+    "height difference": "différence de niveau",
+    "paint fading": "peinture effacée",
+    "broken surface": "surface abîmée",
+    "uneven surface": "surface irrégulière",
+    "no pedestrian priority": "pas de priorité piétonne",
+    "very long crossing": "traversée très longue",
+    "level with sidewalk": "au niveau du trottoir",
+    "button waist height": "bouton à hauteur de taille",
+    "APS": "boutons tactiles et sonores",
+    "one button": "un bouton",
+    "two buttons": "deux boutons",
+    "hard to reach buttons": "boutons difficiles à atteindre",
+    "missing crosswalk": "passage piéton marqué manquant",
+    "no bus stop access": "arrêt de bus inaccessible",
+    "pedestrian lane marking": "marquage de voie piétonne",
+    "covered walkway": "passage couvert",
+    "too close to traffic": "trop près de la circulation",
+    "utility panel": "coffret technique",
+    "outdoor dining area": "terrasse de restaurant",
+    "mailbox": "boîte aux lettres",
+    "debris": "débris",
+    "not aligned with crosswalk": "non aligné avec le passage piéton",
+    "utility cabinet": "armoire technique",
+    "cycle lane- protection from traffic": "piste cyclable : protégée de la circulation",
+    "cycle lane- no protection from traffic": "piste cyclable : non protégée de la circulation",
+    "cycle lane- surface problem": "piste cyclable : problème de surface",
+    "cycle lane- faded paint": "piste cyclable : peinture effacée",
+    "cycle lane- debris / pooled water": "piste cyclable : débris / eau stagnante",
+    "cycle lane- parked car": "piste cyclable : voiture garée",
+    "cycle box": "sas vélo",
+    "not visible": "non visible",
+    "cart": "chariot",
+    "drainage": "évacuation d'eau",
+    "electrical box": "coffret électrique",
+    "too dirty/cluttered": "trop sale / encombré",
+    "yellow box, accessibility features not visible": "boîtier jaune, dispositifs d'accessibilité non visibles",
+    "bollard": "borne"
+  },
+  "pano-info": {
+    "details-title": "Détails",
+    "latitude": "Latitude",
+    "longitude": "Longitude",
+    "image-id": "ID de l'image",
+    "street-id": "ID de la rue",
+    "google-street-view": "Google Street View",
+    "mapillary": "Mapillary",
+    "infra3d": "infra3D",
+    "region-id": "ID du quartier",
+    "label-id": "ID de l'étiquette",
+    "label-date": "$t(common:labeled)",
+    "pano-date": "$t(common:image-capture-date)",
+    "pano-address": "Adresse",
+    "view-in-gsv": "Voir dans Google Street View",
+    "view-in-mapillary": "Voir dans Mapillary",
+    "city": "Ville",
+    "copy-to-clipboard": "Copier dans le presse-papiers",
+    "copied-to-clipboard": "Données copiées dans votre presse-papiers !"
+  },
+  "pano-attribution": {
+    "opens-new-tab": "(s'ouvre dans un nouvel onglet)"
+  },
+  "mission-start-tutorial": {
+    "example-type-label-correct": "EXEMPLE CORRECT",
+    "label-type-subtitle": "Pourquoi est-ce faux ?",
+    "label-on-image-title-correct": "Étiquette correcte",
+    "start-mission": "Commencer la mission",
+    "resume-mission": "Reprendre la mission",
+    "curb-ramp": {
+      "slide-1": {
+        "title": "{{- labelType}}",
+        "description": "Les bateaux de trottoir permettent de passer du trottoir à la chaussée. Ils devraient exister à toutes les intersections où l'on peut traverser."
+      },
+      "slide-2": {
+        "title": "Entrée charretière",
+        "description": "Les entrées charretières ne sont <b>pas</b> des bateaux de trottoir. Elles sont conçues pour les véhicules, pas pour les piétons. Elles ne doivent <b>pas</b> être étiquetées comme Bateaux de trottoir."
+      },
+      "slide-3": {
+        "title": "Garage",
+        "description": "Les accès aux garages ne sont <b>pas</b> des bateaux de trottoir. Ils ne doivent <b>pas</b> être étiquetés comme Bateaux de trottoir."
+      }
+    },
+    "no-curb-ramp": {
+      "slide-1": {
+        "title": "{{- labelType}}",
+        "description": "Les intersections de trottoirs devraient avoir des bateaux — idéalement deux par coin. Si un coin a un trottoir mais pas de bateau, placez l'étiquette Bateau manquant là où vous pensez qu'un bateau devrait exister."
+      },
+      "slide-2": {
+        "title": "Allées privées",
+        "description": "Les allées piétonnes privées ne doivent <b>pas</b> être étiquetées comme Bateaux manquants."
+      },
+      "slide-3": {
+        "title": "Hors du cheminement piéton",
+        "description": "Aucun bateau n'est nécessaire sur les passages <b>non</b> destinés aux piétons."
+      },
+      "slide-4": {
+        "title": "$t(common:no-sidewalk)",
+        "description": "Pour les coins <b>sans trottoir</b>, utilisez l'étiquette Absence de trottoir plutôt que Bateau manquant."
+      }
+    },
+    "obstacle": {
+      "slide-1": {
+        "title": "{{- labelType}}",
+        "description": "Les obstacles sont des éléments qui entravent les <b>cheminements piétons</b> pour les personnes en fauteuil roulant, avec un déambulateur ou une autre aide à la mobilité.<br><br>Toutes les bouches d'incendie, tous les poteaux et tous les panneaux ne sont pas des obstacles — seulement ceux qui bloquent clairement le passage des piétons."
+      },
+      "slide-2": {
+        "title": "Assez de place pour contourner",
+        "description": "La moto est garée sur le côté ; il reste amplement de place pour les piétons sur le reste du trottoir."
+      },
+      "slide-3": {
+        "title": "Obstacle hors du trottoir",
+        "description": "Ce cône de signalisation n'est <b>pas</b> sur un cheminement piéton, il ne doit donc pas être marqué comme Obstacle.<br><br> Ne marquez que les obstacles situés sur les trottoirs, les passages piétons et les autres cheminements piétons."
+      },
+      "slide-4": {
+        "title": "Objet en mouvement",
+        "description": "La voiture semble en mouvement sur l'image et ne doit pas être étiquetée comme Obstacle."
+      }
+    },
+    "surface-problem": {
+      "slide-1": {
+        "title": "{{- labelType}}",
+        "description": "Si quelque chose sur la surface du trottoir ou du passage piéton rend la traversée <b>inconfortable ou impossible,</b> il faut l'étiqueter comme Problème de surface."
+      },
+      "slide-2": {
+        "title": "Dalles de trottoir normales",
+        "description": "Des dalles de trottoir normales (sans écarts, fissures ni bosses) ne sont pas des problèmes de surface."
+      },
+      "slide-3": {
+        "title": "Hors du cheminement piéton",
+        "description": "Ce gravier n'est <b>pas</b> sur un cheminement piéton, il ne doit donc pas être marqué comme Problème de surface.<br><br>Ne marquez que les problèmes de surface situés sur les trottoirs, les passages piétons et les autres cheminements piétons."
+      }
+    },
+    "no-sidewalk": {
+      "slide-1": {
+        "title": "{{- labelType}}",
+        "description": "Si un côté de la rue n'a pas de trottoir, marquez-le avec une étiquette <b>Absence de trottoir</b>."
+      },
+      "slide-2": {
+        "title": "Terre-plein central",
+        "description": "Un terre-plein qui sépare deux sens de circulation et n'est pas destiné aux piétons ne doit <b>pas</b> être étiqueté comme Absence de trottoir."
+      },
+      "slide-3": {
+        "title": "Revêtement",
+        "description": "Il y a un trottoir ici. Il ne doit <b>pas</b> être marqué comme Absence de trottoir."
+      }
+    },
+    "crosswalk": {
+      "slide-1": {
+        "title": "{{- labelType}}",
+        "description": "Un passage piéton est un espace légalement défini pour traverser une route.<br><br>Les passages piétons sont souvent indiqués par des <b>bandes parallèles.</b>"
+      },
+      "slide-2": {
+        "title": "Aucun marquage visible",
+        "description": "Les traversées sans marquage visible ne doivent <b>pas</b> être étiquetées comme Passages piétons marqués."
+      },
+      "slide-3": {
+        "title": "Ligne d'arrêt",
+        "description": "Les lignes d'arrêt pour les voitures ne doivent pas être étiquetées comme Passages piétons marqués."
+      },
+      "slide-4": {
+        "title": "Ralentisseur",
+        "description": "Les ralentisseurs ne doivent pas être étiquetés comme Passages piétons marqués."
+      }
+    },
+    "signal": {
+      "slide-1": {
+        "title": "{{- labelType}}",
+        "description": "Un feu piéton indique quand les piétons peuvent traverser la rue et leur laisse le temps de le faire en sécurité.<br><br> Certains feux piétons sont activés par un bouton d'appel à hauteur de taille."
+      },
+      "slide-2": {
+        "title": "Signalisation",
+        "description": "Ce panneau n'indique pas quand les piétons peuvent traverser la rue."
+      },
+      "slide-3": {
+        "title": "Poteau",
+        "description": "Ce poteau ne présente aucun signal destiné aux piétons."
+      },
+      "slide-4": {
+        "title": "Feu de circulation pour véhicules",
+        "description": "Ce feu de circulation ne concerne que les véhicules, pas les piétons."
+      }
+    }
+  },
+  "share": {
+    "button": "Partager",
+    "heading": "Partager cette étiquette",
+    "text": "Découvrez cette étiquette {{labelType}} sur Project Sidewalk",
+    "story-text": "« {{excerpt}} » — un témoignage de la communauté sur Project Sidewalk",
+    "copy-link": "Copier le lien",
+    "copied": "Copié !",
+    "on-bluesky": "Partager sur Bluesky",
+    "on-x": "Partager sur X",
+    "on-facebook": "Partager sur Facebook",
+    "on-linkedin": "Partager sur LinkedIn",
+    "via-email": "Partager par e-mail"
+  }
+}
