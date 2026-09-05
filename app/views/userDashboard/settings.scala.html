@@ -21,28 +21,28 @@
 @selectedIfChosen(choice: String) = @{if (unitsChoice == choice) Html("selected") else Html("")}
 
 @content = {
-  <div class="api-section" id="settings-section">
-    <h1 class="api-heading" id="settings">@Messages("dashboard.settings.title") <a href="#settings" class="permalink">#</a></h1>
+  <div class="page-section" id="settings-section">
+    <h1 class="page-heading" id="settings">@Messages("dashboard.settings.title") <a href="#settings" class="permalink">#</a></h1>
     <p>@Messages("dashboard.settings.intro")</p>
   </div>
 
-  <div class="api-section" id="settings-account-section">
-    <h2 class="api-heading" id="account">@Messages("dashboard.settings.account") <a href="#account" class="permalink">#</a></h2>
+  <div class="page-section" id="settings-account-section">
+    <h2 class="page-heading" id="account">@Messages("dashboard.settings.account") <a href="#account" class="permalink">#</a></h2>
     <div class="ud-form">
       <div class="ud-field">
         <label class="ud-label" for="set-username">@Messages("username")</label>
-        <input class="ud-input" id="set-username" type="text" value="@user.username"
+        <input class="ps-input ps-input--large" id="set-username" type="text" value="@user.username"
            maxlength="30" autocomplete="off" spellcheck="false">
         <span class="ud-field-help">@Messages("dashboard.settings.username.help")</span>
       </div>
       <div class="ud-field">
         <label class="ud-label" for="set-email">@Messages("dashboard.settings.email")</label>
-        <input class="ud-input" id="set-email" type="email" value="@user.email" readonly disabled>
+        <input class="ps-input ps-input--large" id="set-email" type="email" value="@user.email" readonly disabled>
         <span class="ud-field-help">@Html(Messages("dashboard.settings.email.help"))</span>
       </div>
       <div class="ud-field">
         <label class="ud-label" for="set-units">@Messages("dashboard.settings.units")</label>
-        <select class="ud-input" id="set-units">
+        <select class="ps-select ps-select--large" id="set-units">
           @for(choice <- Seq(MeasurementSystem.FollowLanguage, MeasurementSystem.Metric, MeasurementSystem.Imperial)) {
             <option value="@choice" @selectedIfChosen(choice)>@Messages(s"dashboard.settings.units.$choice")</option>
           }
@@ -52,8 +52,8 @@
     </div>
   </div>
 
-  <div class="api-section" id="settings-service-hours-section">
-    <h2 class="api-heading" id="service-hours">@Messages("dashboard.settings.service.hours") <a href="#service-hours" class="permalink">#</a></h2>
+  <div class="page-section" id="settings-service-hours-section">
+    <h2 class="page-heading" id="service-hours">@Messages("dashboard.settings.service.hours") <a href="#service-hours" class="permalink">#</a></h2>
     <div class="ud-form">
       <label class="ud-check" for="set-community-service">
         <input type="checkbox" id="set-community-service" @if(user.communityService){checked}>
@@ -66,13 +66,13 @@
     </div>
   </div>
 
-  <div class="api-section" id="settings-team-section">
-    <h2 class="api-heading" id="team">@Messages("dashboard.settings.team") <a href="#team" class="permalink">#</a></h2>
+  <div class="page-section" id="settings-team-section">
+    <h2 class="page-heading" id="team">@Messages("dashboard.settings.team") <a href="#team" class="permalink">#</a></h2>
     <div class="ud-form">
       <div class="ud-field">
         <label class="ud-label" for="set-team">@Messages("dashboard.settings.team.label")</label>
         <div class="ud-field-inline">
-          <select class="ud-input" id="set-team">
+          <select class="ps-select ps-select--large" id="set-team">
             @currTeam.map { t =>
               <option value="@t.teamId" selected>@t.name</option>
             }
@@ -90,8 +90,8 @@
     </div>
   </div>
 
-  <div class="api-section" id="settings-privacy-section">
-    <h2 class="api-heading" id="privacy">@Messages("dashboard.settings.privacy") <a href="#privacy" class="permalink">#</a></h2>
+  <div class="page-section" id="settings-privacy-section">
+    <h2 class="page-heading" id="privacy">@Messages("dashboard.settings.privacy") <a href="#privacy" class="permalink">#</a></h2>
     @if(privateByDefault){
       <p class="ud-nudge">@Messages("dashboard.settings.privacy.default.note")</p>
     }
@@ -113,7 +113,7 @@
     </div>
   </div>
 
-  <div class="api-section" id="settings-save-section">
+  <div class="page-section" id="settings-save-section">
     <button type="button" class="ud-btn-primary" id="set-save-btn">@Messages("dashboard.settings.save")</button>
     <span class="ud-save-status" id="set-save-status" role="status" aria-live="polite"></span>
   </div>

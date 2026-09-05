@@ -62,6 +62,7 @@ city.name.winterthur-infra3d = Winterthur
 city.name.waltham-ma = Waltham
 city.name.houston-tx = Houston
 city.name.newport-ky = Newport
+city.name.bayonne = Bayonne
 
 state.name.oregon = Oregon
 state.name.washington = Washington
@@ -95,6 +96,8 @@ country.name.india = India
 country.name.chile = Chile
 country.name.brazil = Brazil
 
+country.name.france = France
+
 lang.name.en-US = US English
 lang.name.en-NZ = NZ English
 lang.name.en = English
@@ -103,21 +106,11 @@ lang.name.nl = Nederlandse
 lang.name.de = Deutsch
 lang.name.zh-TW = 繁體中文
 lang.name.pt-BR = Português
+lang.name.fr = Français
 
 ##
 ## Text that requires non-English translations. Using this file until we add those translations.
 ##
-
-# Label type descriptions.
-curb.ramp.description = Curb ramp connecting sidewalk to street
-missing.ramp.description = Missing curb ramp
-obstacle.description = Obstacle in the path
-surface.problem.description = Problem with sidewalk surface
-no.sidewalk.description = No sidewalk present on this side of the street
-crosswalk.description = Marked pedestrian crossing
-signal.description = Pedestrian signal or button to aid in crossing a street
-occlusion.description = View obscured
-other.description = Other accessibility issue
 
 # Tag descriptions. Note that tags 41 and 42 were removed in previous updates, and thus lack descriptions here.
 tag.description.1 = The ramp is not wide enough for a wheelchair to safely use it

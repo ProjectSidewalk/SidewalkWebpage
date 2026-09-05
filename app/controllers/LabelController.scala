@@ -1,17 +1,19 @@
 package controllers
 
 import controllers.base._
-import controllers.helper.ControllerUtils.{parseIntegerSeq, NoUserId}
+import controllers.helper.ControllerUtils.{isAdmin, parseIntegerSeq, NoUserId}
 import formats.json.LabelFormats
+import formats.json.ValidateFormats.{labelEditSubmissionReads, LabelEditSubmission}
 import models.auth.DefaultEnv
 import models.label._
+import models.utils.LatLngBBox
 import play.api.Logger
 import play.api.libs.json._
 import play.silhouette.api.Silhouette
-import service.{LabelService, PanoDataService}
+import service.{LabelEditOutcome, LabelEditService, LabelService, PanoDataService}
 
 import javax.inject.{Inject, Singleton}
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class LabelController @Inject() (
@@ -19,6 +21,7 @@ class LabelController @Inject() (
     val silhouette: Silhouette[DefaultEnv],
     implicit val ec: ExecutionContext,
     labelService: LabelService,
+    labelEditService: LabelEditService,
     panoDataService: PanoDataService
 ) extends CustomBaseController(cc) {
 
@@ -62,11 +65,40 @@ class LabelController @Inject() (
           LabelFormats.labelMetadataWithValidationToJson(metadata, request.identity.map(_.username)) ++
             Json.obj(
               "crop_url"         -> panoDataService.cropUrl(metadata.labelId, metadata.labelType),
-              "backup_image_url" -> panoDataService.backupImageUrl(metadata.panoId)
+              "backup_image_url" -> panoDataService.backupImageUrl(metadata.panoId),
+              "can_edit"         -> (metadata.fromCurrentUser || isAdmin(request.identity))
             )
         )
       case None => NotFound(s"No label found with ID: $labelId")
     }
+  }
+
+  /**
+   * Edits a label's severity and tags from the label popup (#2575). Allowed to the labeler and to admins. Responds
+   * with the label's resulting severity and tags, which can differ from what was sent if invalid tags were dropped.
+   */
+  def editLabel = cc.securityService.SecuredAction(parse.json) { implicit request =>
+    request.body
+      .validate[LabelEditSubmission]
+      .fold(
+        errors => Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))),
+        submission => {
+          if (submission.severity.exists(s => s < 1 || s > 3)) {
+            Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> "severity must be 1-3 or null")))
+          } else {
+            labelEditService
+              .editLabel(submission.labelId, request.identity, submission.severity, submission.tags, submission.source)
+              .map {
+                case LabelEditOutcome.Applied(label) =>
+                  Ok(Json.obj("status" -> "Success", "severity" -> label.severity, "tags" -> label.tags))
+                case LabelEditOutcome.Forbidden =>
+                  Forbidden(Json.obj("status" -> "Error", "message" -> "Only the labeler or an admin can edit a label"))
+                case LabelEditOutcome.NotFound =>
+                  NotFound(Json.obj("status" -> "Error", "message" -> s"No label found with ID: ${submission.labelId}"))
+              }
+          }
+        }
+      )
   }
 
   /**
@@ -80,17 +112,37 @@ class LabelController @Inject() (
    * @param routes              Comma-separated route IDs to filter by.
    * @param aiValidationOptions Comma-separated AI validation results to filter by. An empty-but-present value matches
    *                            no result, so `?aiValidationOptions=` yields an empty feature collection.
+   * @param bbox                Bounding box to filter by, as "minLng,minLat,maxLng,maxLat" (the v3 API convention).
+   *                            Unlike the params above, a malformed value is a 400 rather than silently ignored:
+   *                            dropping the bbox would stream the whole city — the exact payload the viewport-scoped
+   *                            LabelMap exists to avoid (#5002) — so a client bug should fail loudly.
    * @return                    GeoJSON FeatureCollection of Point features, each carrying the 11 label properties the
    *                            LabelMap renders from.
    */
-  def getAllLabelsForLabelMap(regions: Option[String], routes: Option[String], aiValidationOptions: Option[String]) =
+  def getAllLabelsForLabelMap(
+      regions: Option[String],
+      routes: Option[String],
+      aiValidationOptions: Option[String],
+      bbox: Option[String]
+  ) =
     Action {
-      val regionIds: Seq[Int]    = parseIntegerSeq(regions)
-      val routeIds: Seq[Int]     = parseIntegerSeq(routes)
-      val aiValOpts: Seq[String] = aiValidationOptions.map(_.split(",").toSeq.distinct).getOrElse(Seq())
+      val parsedBbox: Option[Option[LatLngBBox]] = bbox.map(LatLngBBox.fromString)
+      if (parsedBbox.contains(None)) {
+        BadRequest(
+          Json.obj("status" -> "Error", "message" -> "Invalid bbox format. Expected: minLng,minLat,maxLng,maxLat")
+        )
+      } else {
+        val regionIds: Seq[Int]    = parseIntegerSeq(regions)
+        val routeIds: Seq[Int]     = parseIntegerSeq(routes)
+        val aiValOpts: Seq[String] = aiValidationOptions.map(_.split(",").toSeq.distinct).getOrElse(Seq())
 
-      val labels = labelService.getLabelsForLabelMap(regionIds, routeIds, aiValOpts, DEFAULT_BATCH_SIZE)
-      streamGeoJson(labels.map(LabelFormats.labelForLabelMapToGeoJson(_, admin = false)), "labels/all")
+        val labels =
+          labelService.getLabelsForLabelMap(regionIds, routeIds, aiValOpts, parsedBbox.flatten, DEFAULT_BATCH_SIZE)
+        // Short-lived public cache: absorbs reload/back-nav refetches while keeping mapathon "label now, see it on
+        // the map" flows under a minute stale. No auth or identity-varying content here, so `public` is safe.
+        streamGeoJson(labels.map(LabelFormats.labelForLabelMapToGeoJson(_, admin = false)), "labels/all")
+          .withHeaders(CACHE_CONTROL -> "public, max-age=60")
+      }
     }
 
   /**
@@ -104,7 +156,7 @@ class LabelController @Inject() (
       Ok(JsArray(tags.map { tag =>
         Json.obj(
           "tag_id"                  -> tag.tagId,
-          "label_type"              -> LabelTypeEnum.labelTypeIdToLabelType(tag.labelTypeId),
+          "label_type"              -> tag.labelType.name,
           "tag"                     -> tag.tag,
           "mutually_exclusive_with" -> tag.mutuallyExclusiveWith
         )

@@ -109,8 +109,9 @@ class RouteOverview {
   }
 
   /**
-   * Strokes each route street: completed streets solid in the explored color, the rest dashed in the ahead color, each
+   * Strokes each route street: walked streets solid in the explored color, the rest dashed in the ahead color, each
    * over a white casing so the route reads on the muted basemap regardless of hue (matching the street-level route).
+   * A street given up on for lack of imagery counts as walked here, matching the minimap (#5008).
    * @param {CanvasRenderingContext2D} ctx
    * @param {Task[]} tasks
    * @param {function(number, number): number[]} project
@@ -121,7 +122,7 @@ class RouteOverview {
     for (const task of tasks) {
       const coords = task.getGeoJSON().geometry.coordinates;
       if (coords.length < 2) continue;
-      const done = task.isComplete();
+      const done = task.isComplete() || task.wasGivenUpOnImagery();
       ctx.setLineDash([]);
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
       ctx.lineWidth = done ? 5 : 4.5;

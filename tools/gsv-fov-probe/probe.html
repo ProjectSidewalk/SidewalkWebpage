@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  GSV FOV probe page (issue #5083). Served by record.mjs via a Playwright route on the dev app's origin
+  (so the tutorial pano's /assets tiles resolve and the Maps API key sees the same referer as the real app).
+  Never linked from the app; not part of any bundle or test suite.
+
+  The Maps bootstrap below is copied from app/views/common/main.scala.html so the probe loads the API exactly
+  the way production does; record.mjs substitutes __GMAPS_KEY__ / __MAPS_VERSION__ before serving.
+-->
+<head>
+  <meta charset="utf-8">
+  <title>GSV FOV probe (#5083)</title>
+  <style>
+    html, body { margin: 0; padding: 0; background: #000; }
+    #pano { position: absolute; top: 0; left: 0; }
+  </style>
+  <script>
+    (g=>{var h,a,k,p="The Google Maps JavaScript API",c="google",l="importLibrary",q="__ib__",m=document,b=window;b=b[c]||(b[c]={});var d=b.maps||(b.maps={}),r=new Set,e=new URLSearchParams,u=()=>h||(h=new Promise(async(f,n)=>{await (a=m.createElement("script"));e.set("libraries",[...r]+"");for(k in g)e.set(k.replace(/[A-Z]/g,t=>"_"+t[0].toLowerCase()),g[k]);e.set("callback",c+".maps."+q);a.src=`https://maps.${c}apis.com/maps/api/js?`+e;d[q]=f;a.onerror=()=>h=n(Error(p+" could not load."));a.nonce=m.querySelector("script[nonce]")?.nonce||"";m.head.append(a)}));d[l]?console.warn(p+" only loads once. Ignoring:",g):d[l]=(f,...n)=>r.add(f)&&u().then(()=>d[l](f,...n))})({
+      key: "__GMAPS_KEY__",
+      v: "__MAPS_VERSION__"
+    });
+  </script>
+</head>
+<body>
+  <div id="pano"></div>
+  <script>
+    'use strict';
+
+    /**
+     * Local-asset tutorial panos, mirrored verbatim from GsvViewer.#getCustomPanoData so the probe renders
+     * them through the identical registerPanoProvider path the app uses. The 'tutorial' pano is the fully
+     * deterministic control scene: its tiles are version-pinned repo assets.
+     */
+    const TUTORIAL_PANO_IDS = new Set(['tutorial', 'afterWalkTutorial']);
+    const getCustomPanoData = (pano) => {
+      if (pano === 'tutorial') {
+        return {
+          location: { pano: 'tutorial', latLng: new google.maps.LatLng(38.94042608, -77.06766133) },
+          links: [{ description: 'afterWalkTutorial', heading: 340, pano: 'afterWalkTutorial' }],
+          imageDate: '2014-05',
+          copyright: 'Imagery (c) 2010 Google',
+          tiles: {
+            tileSize: new google.maps.Size(2048, 1024),
+            worldSize: new google.maps.Size(4096, 2048),
+            centerHeading: 50.3866,
+            originHeading: 50.3866,
+            originPitch: -1.13769,
+            getTileUrl(_pano, zoom, tileX, tileY) {
+              return `/assets/images/pano-tutorial/tutorial/${zoom}-${tileX}-${tileY}.jpg`;
+            },
+          },
+          time: [],
+        };
+      } else if (pano === 'afterWalkTutorial') {
+        return {
+          location: { pano: 'afterWalkTutorial', latLng: new google.maps.LatLng(38.94061618, -77.06768201) },
+          links: [],
+          imageDate: '2014-05',
+          copyright: 'Imagery (c) 2010 Google',
+          tiles: {
+            tileSize: new google.maps.Size(1700, 850),
+            worldSize: new google.maps.Size(3400, 1700),
+            centerHeading: 344,
+            originHeading: 344,
+            originPitch: 0,
+            getTileUrl(_pano, zoom, tileX, tileY) {
+              return `/assets/images/pano-tutorial/afterwalktutorial/${zoom}-${tileX}-${tileY}.jpg`;
+            },
+          },
+          time: [],
+        };
+      }
+    };
+
+    let gsvPano = null;
+    let streetViewService = null;
+    let panoMeta = null;
+
+    /**
+     * Census of what the Maps API mounted inside the container — the WebGL-vs-2D-fallback assertion.
+     * The WebGL renderer mounts a container-filling <canvas>; the 2D tile fallback builds <img> stacks and
+     * renders through the OTHER projection curve, which would silently poison the experiment (see README).
+     */
+    const rendererCensus = () => {
+      const container = document.getElementById('pano');
+      const canvases = [...container.querySelectorAll('canvas')].map((c) => ({
+        width: c.width, height: c.height, clientWidth: c.clientWidth, clientHeight: c.clientHeight,
+      }));
+      const rect = container.getBoundingClientRect();
+      let webglAvailable = false;
+      try {
+        webglAvailable = !!document.createElement('canvas').getContext('webgl2') ||
+          !!document.createElement('canvas').getContext('webgl');
+      } catch { /* leave false */ }
+      // Identify the render canvas BY SIZE, not by DOM order: the Maps API mounts several canvases per load
+      // (two 300x150 scratch surfaces alongside the real one) and nothing guarantees which comes first.
+      // The recorder screenshots this index, so a wrong pick would silently fit the wrong image.
+      const renderCanvasIndex = canvases.findIndex(
+        (c) => c.clientWidth >= rect.width - 1 && c.clientHeight >= rect.height - 1);
+      return {
+        canvases,
+        imgCount: container.querySelectorAll('img').length,
+        containerRect: { width: rect.width, height: rect.height },
+        webglAvailable,
+        fullSizeCanvas: renderCanvasIndex >= 0,
+        renderCanvasIndex,
+        devicePixelRatio: window.devicePixelRatio,
+      };
+    };
+
+    /** Snapshot of everything the recorder logs per capture: POV/zoom readbacks, version, renderer state. */
+    const getState = () => ({
+      pov: gsvPano ? gsvPano.getPov() : null,
+      zoom: gsvPano ? gsvPano.getZoom() : null,
+      pano: gsvPano ? gsvPano.getPano() : null,
+      photographerPov: gsvPano && gsvPano.getPhotographerPov ? gsvPano.getPhotographerPov() : null,
+      mapsVersion: google.maps.version,
+      renderer: rendererCensus(),
+    });
+
+    window.__probe = {
+      /**
+       * Creates the panorama in a container of the given CSS-px size and loads a pano.
+       *
+       * @param {{width: number, height: number, pano?: string, location?: {lat: number, lng: number},
+       *     radius?: number}} cfg - Exactly one of pano (id; tutorial ids allowed) or location (resolved via
+       *     StreetViewService at the given radius, default 100 m).
+       * @returns {Promise<object>} {meta, state} — resolved pano metadata and the initial state snapshot.
+       */
+      async init(cfg) {
+        const container = document.getElementById('pano');
+        container.style.width = `${cfg.width}px`;
+        container.style.height = `${cfg.height}px`;
+
+        await google.maps.importLibrary('core');
+        const { StreetViewService, StreetViewPanorama } = await google.maps.importLibrary('streetView');
+        streetViewService = new StreetViewService();
+
+        // Pano options mirroring GsvViewer's defaults (defaultNavigation false), so the probe renders under
+        // the same widget configuration as the app.
+        gsvPano = new StreetViewPanorama(container, {
+          addressControl: false,
+          clickToGo: false,
+          disableDefaultUI: true,
+          motionTracking: false,
+          motionTrackingControl: false,
+          panControl: false,
+          scrollwheel: false,
+          showRoadLabels: false,
+          zoomControl: false,
+        });
+        gsvPano.registerPanoProvider((pano) => (TUTORIAL_PANO_IDS.has(pano) ? getCustomPanoData(pano) : null));
+
+        let panoId = cfg.pano;
+        let svcData = null;
+        if (!panoId) {
+          const resp = await streetViewService.getPanorama({
+            location: cfg.location,
+            radius: cfg.radius ?? 100,
+            preference: 'nearest',
+            // 'google' excludes user-contributed photospheres: the seattle-downtown coords resolved to a
+            // third-party photosphere whose tiles render black in the probe, poisoning every fit for that scene.
+            sources: ['google', 'outdoor'],
+          });
+          svcData = resp.data;
+          panoId = svcData.location.pano;
+        } else if (!TUTORIAL_PANO_IDS.has(panoId)) {
+          const resp = await streetViewService.getPanorama({ pano: panoId });
+          svcData = resp.data;
+        }
+
+        const loaded = new Promise((resolve, reject) => {
+          const timer = setTimeout(() => reject(new Error(`pano ${panoId} did not load within 30s`)), 30000);
+          const listener = gsvPano.addListener('pano_changed', () => {
+            if (gsvPano.getPano() === panoId) {
+              clearTimeout(timer);
+              google.maps.event.removeListener(listener);
+              resolve();
+            }
+          });
+        });
+        gsvPano.setPano(panoId);
+        await loaded;
+
+        panoMeta = {
+          panoId,
+          imageDate: svcData?.imageDate ?? (TUTORIAL_PANO_IDS.has(panoId) ? getCustomPanoData(panoId).imageDate : null),
+          copyright: svcData?.copyright ?? null,
+          centerHeading: svcData?.tiles?.centerHeading ??
+            (TUTORIAL_PANO_IDS.has(panoId) ? getCustomPanoData(panoId).tiles.centerHeading : null),
+          worldSize: svcData?.tiles?.worldSize
+            ? { width: svcData.tiles.worldSize.width, height: svcData.tiles.worldSize.height }
+            : (TUTORIAL_PANO_IDS.has(panoId)
+                ? { width: getCustomPanoData(panoId).tiles.worldSize.width,
+                    height: getCustomPanoData(panoId).tiles.worldSize.height }
+                : null),
+          resolvedLatLng: svcData?.location?.latLng
+            ? { lat: svcData.location.latLng.lat(), lng: svcData.location.latLng.lng() }
+            : null,
+        };
+        return { meta: panoMeta, state: getState() };
+      },
+
+      /**
+       * Points the camera. Zoom is set through setZoom (the modern API's channel); heading/pitch through
+       * setPov. Returns the post-set state so the recorder always logs what was actually rendered, not what
+       * was requested (clamping/quantization detection).
+       *
+       * @param {{heading: number, pitch: number, zoom: number}} pov - Requested camera orientation.
+       * @returns {object} State snapshot after the set.
+       */
+      setPov(pov) {
+        gsvPano.setPov({ heading: pov.heading, pitch: pov.pitch });
+        if (typeof pov.zoom === 'number') gsvPano.setZoom(pov.zoom);
+        return getState();
+      },
+
+      getState,
+    };
+  </script>
+</body>
+</html>

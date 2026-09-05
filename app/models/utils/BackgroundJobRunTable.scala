@@ -183,6 +183,27 @@ class BackgroundJobRunTable @Inject() (protected val dbConfigProvider: DatabaseC
   }
 
   /**
+   * Every run of the named jobs since a cutoff, newest first, for charting a job's history rather than its last run.
+   *
+   * The per-run `details` is the payload here: the imagery panel reads its nightly poll/flag counts out of it (#4908),
+   * which is the only place those numbers survive. Bounded by `since` and by the job list, so it stays a small read
+   * even though `background_job_run` is never pruned.
+   *
+   * @param jobNames Jobs to read; an empty list reads nothing rather than everything.
+   * @param since    Runs that *started* at or after this instant, so a long run is counted on the night it began.
+   * @return         Matching runs of any trigger and any status, newest first.
+   */
+  def runsForJobsSince(jobNames: Seq[String], since: OffsetDateTime): DBIO[Seq[BackgroundJobRun]] = {
+    if (jobNames.isEmpty) DBIO.successful(Seq.empty)
+    else {
+      backgroundJobRuns
+        .filter(run => run.jobName.inSet(jobNames) && run.startedAt >= since)
+        .sortBy(_.startedAt.desc)
+        .result
+    }
+  }
+
+  /**
    * Scheduled-run counts per (job, outcome) since a cutoff, for the recent-failure-rate column.
    *
    * Scoped to scheduled runs for the same reason [[lastScheduledSuccessPerJob]] is: the column reads as a statement

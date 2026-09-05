@@ -3,9 +3,34 @@
  */
 package models.api
 
+import models.label.LabelTypeEnum
 import play.api.libs.json.{JsObject, Json}
 
 object ApiModelUtils {
+
+  /**
+   * Sorts (label type name, _) pairs in canonical label type order, with "Overall" first, so API output order stays
+   * consistent.
+   */
+  val labelTypeOrdering: Ordering[(String, Any)] = Ordering.by { case (labelType, _) =>
+    (
+      labelType != "Overall",
+      LabelTypeEnum.orderedNames.indexOf(labelType) match {
+        case -1 => Int.MaxValue
+        case i  => i
+      }
+    )
+  }
+
+  /**
+   * Converts a human-readable or camelCase/PascalCase label into a snake_case CSV key (#3871), e.g. "KM Explored" or
+   * "CurbRamp Count" into "km_explored" or "curb_ramp_count".
+   */
+  def toSnakeKey(label: String): String =
+    label.trim
+      .replaceAll("([a-z\\d])([A-Z])", "$1_$2") // split camelCase/PascalCase boundaries
+      .replaceAll("\\s+", "_")                  // spaces to underscores
+      .toLowerCase
 
   /**
    * Helper to safely quote CSV fields containing commas, quotes, or newlines.

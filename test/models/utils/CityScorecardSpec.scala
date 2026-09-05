@@ -1,12 +1,14 @@
 package models.utils
 
+import models.label.LabelTypeEnum
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
 import models.utils.MyPostgresProfile.api._
-import service.{AggregateStats, CityScorecard}
+import models.api.AggregateStats
+import service.CityScorecard
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -74,8 +76,9 @@ class CityScorecardSpec extends PlaySpec with GuiceOneAppPerSuite {
     "execute getContributorUserIdsBySchema" in {
       run(configTable.getContributorUserIdsBySchema(schema)) mustBe a[Seq[_]]
     }
-    "execute getLabelTypeStatsBySchema" in {
-      run(configTable.getLabelTypeStatsBySchema(schema)) mustBe a[Map[_, _]]
+    "report every label type in the scorecard's per-type breakdown, zero counts included" in {
+      // The per-type query LEFT JOINs labels onto the full type list so a type with no labels still gets a row.
+      run(configTable.getCityScorecardBySchema(schema)).byLabelType.keySet mustBe LabelTypeEnum.labelTypeNames
     }
     "execute getCityWeeklyTrendBySchema (all-time and windowed)" in {
       run(configTable.getCityWeeklyTrendBySchema(schema, None)) mustBe a[Seq[_]]

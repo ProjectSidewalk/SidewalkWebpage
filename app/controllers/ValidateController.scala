@@ -91,7 +91,7 @@ class ValidateController @Inject() (
 
   /**
    * Returns the Expert Validate page, optionally with some admin filters.
-   * @param labelType       Label type or label type ID to validate.
+   * @param labelType       Label type to validate, by name.
    * @param users           Comma-separated list of usernames or user IDs to validate (could be mixed).
    * @param neighborhoods   Comma-separated list of neighborhood names or region IDs to validate (could be mixed).
    * @param unvalidatedOnly Boolean indicating whether to show only labels with no prior validations.
@@ -163,7 +163,7 @@ class ValidateController @Inject() (
   /**
    * Checks filtering parameters passed into the validate endpoints, and returns an error message if any are invalid.
    * @param adminVersion    Boolean indicating whether the admin version of the page is being shown.
-   * @param labelType       Label type or label type ID to validate.
+   * @param labelType       Label type to validate, by name.
    * @param users           Comma-separated list of usernames or user IDs to validate (could be mixed).
    * @param neighborhoods   Comma-separated list of neighborhood names or region IDs to validate (could be mixed).
    * @param unvalidatedOnly Boolean indicating whether to show only labels with no prior validations.
@@ -175,17 +175,9 @@ class ValidateController @Inject() (
       neighborhoods: Option[String],
       unvalidatedOnly: Option[Boolean]
   ): Future[(ValidateParams, Result)] = {
-    // If any inputs are invalid, send back error message. For each input, we check if the input is an integer
-    // representing a valid ID (label_type_id, user_id, or region_id) or a String representing a valid name for that
-    // parameter (label_type, username, or region_name).
-    val parsedLabelType: Option[Option[LabelTypeEnum.Base]] = labelType.map { lType =>
-      val lTypeFromId: Option[LabelTypeEnum.Base]   = lType.toIntOption.flatMap(LabelTypeEnum.byId.get)
-      val lTypeFromName: Option[LabelTypeEnum.Base] = LabelTypeEnum.byName.get(lType)
-      if (lTypeFromId.isDefined) lTypeFromId
-      else if (lTypeFromName.isDefined) lTypeFromName
-      else None
-    }
-    val userIdsList: Option[Seq[Future[Option[String]]]] = users.map(
+    // Users and regions may be given by id or by name, so each is resolved both ways before deciding it is invalid.
+    val parsedLabelType: Option[Option[LabelTypeEnum.Base]] = labelType.map(LabelTypeEnum.byName.get)
+    val userIdsList: Option[Seq[Future[Option[String]]]]    = users.map(
       _.split(',')
         .map(_.trim)
         .map { userStr =>
@@ -230,7 +222,7 @@ class ValidateController @Inject() (
       if (parsedLabelType.isDefined && parsedLabelType.get.isEmpty) {
         (
           ValidateParams(adminVersion),
-          BadRequest(s"Invalid label type provided: ${labelType.get}. Valid label types are: ${LabelTypeEnum.primaryLabelTypeNames.mkString(", ")}. Or you can use their IDs: ${LabelTypeEnum.primaryLabelTypeIds.mkString(", ")}.")
+          BadRequest(s"Invalid label type provided: ${labelType.get}. Valid label types are: ${LabelTypeEnum.primaryLabelTypeNames.mkString(", ")}.")
         )
       } else if (userIds.isDefined && userIds.get.length != userIds.get.flatten.length) {
         (
@@ -314,10 +306,11 @@ class ValidateController @Inject() (
       // Insert validations and comments (if there are any).
       _ <- validationService.submitValidations(data.validations.map { newVal =>
         ValidationSubmission(
-          LabelValidation(0, newVal.labelId, newVal.validationResult, newVal.oldSeverity, newVal.newSeverity,
-            newVal.oldTags, newVal.newTags, user.userId, newVal.missionId, newVal.canvasX, newVal.canvasY,
-            newVal.heading, newVal.pitch, newVal.zoom, newVal.canvasHeight, newVal.canvasWidth, newVal.startTimestamp,
-            newVal.endTimestamp, newVal.source, newVal.viewerType),
+          LabelValidation(0, newVal.labelId, newVal.validationResult, user.userId, newVal.missionId, newVal.canvasX,
+            newVal.canvasY, newVal.heading, newVal.pitch, newVal.zoom, newVal.canvasHeight, newVal.canvasWidth,
+            newVal.startTimestamp, newVal.endTimestamp, newVal.source, newVal.viewerType),
+          newVal.severity,
+          newVal.tags,
           newVal.comment.map(c =>
             ValidationTaskComment(
               0, c.missionId, c.labelId, user.userId, ipAddress, c.panoId, c.heading, c.pitch, c.zoom, c.lat, c.lng,
@@ -382,7 +375,7 @@ class ValidateController @Inject() (
     panoDataService.insertPanoHistories(data.panoHistories)
 
     // Send contributions to SciStarter async so that it can be recorded in their user dashboard there.
-    val eligibleUser: Boolean = RoleTable.SCISTARTER_ROLES.contains(user.role)
+    val eligibleUser: Boolean = Role.SCISTARTER_ROLES.contains(user.role)
     if (data.validations.nonEmpty && config.get[String]("environment-type") == "prod" && eligibleUser) {
       // Cap time for each validation at 1 minute.
       val timeSpent: Double = data.validations.map { l =>
@@ -403,7 +396,7 @@ class ValidateController @Inject() (
    * that gate ever widens. The region and unvalidated-only filters are open to everyone on plain /validate.
    */
   private def paramsAllowedFor(params: ValidateParams, user: SidewalkUserWithRole): ValidateParams = {
-    if (RoleTable.ADMIN_ROLES.contains(user.role)) params
+    if (Role.ADMIN_ROLES.contains(user.role)) params
     else
       ValidateParams(
         adminVersion = false,
@@ -449,7 +442,7 @@ class ValidateController @Inject() (
         moreLabels => {
           val safeParams: ValidateParams = paramsAllowedFor(moreLabels.validateParams, request.identity)
           for {
-            (labels, adminData) <- labelService.getMoreLabelsToValidate(request.identity, moreLabels.labelTypeId,
+            (labels, adminData) <- labelService.getMoreLabelsToValidate(request.identity, moreLabels.labelType,
               moreLabels.labelsNeeded, moreLabels.excludedLabelIds.toSet, safeParams)
             maxSpeeds <- osmWayService.getMaxSpeedsForStreets(labels.map(_.streetEdgeId).distinct)
           } yield {
@@ -494,15 +487,16 @@ class ValidateController @Inject() (
           mission <- missionService.resumeOrCreateNewValidateMission(
             userId,
             MissionType.LabelmapValidation,
-            newVal.labelType.id
+            newVal.labelType
           )
           newValIds <- validationService.submitValidations(
             Seq(
               ValidationSubmission(
-                LabelValidation(0, newVal.labelId, newVal.validationResult, newVal.oldSeverity, newVal.newSeverity,
-                  newVal.oldTags, newVal.newTags, userId, mission.get.missionId, newVal.canvasX, newVal.canvasY,
-                  newVal.heading, newVal.pitch, newVal.zoom, newVal.canvasHeight, newVal.canvasWidth,
-                  newVal.startTimestamp, newVal.endTimestamp, newVal.source, newVal.viewerType),
+                LabelValidation(0, newVal.labelId, newVal.validationResult, userId, mission.get.missionId,
+                  newVal.canvasX, newVal.canvasY, newVal.heading, newVal.pitch, newVal.zoom, newVal.canvasHeight,
+                  newVal.canvasWidth, newVal.startTimestamp, newVal.endTimestamp, newVal.source, newVal.viewerType),
+                newVal.severity,
+                newVal.tags,
                 comment = None,
                 newVal.undone,
                 newVal.redone
@@ -517,24 +511,22 @@ class ValidateController @Inject() (
   }
 
   /**
-   * Handles a comment POST request. It parses the comment and inserts it into the comment table.
+   * Handles a comment POST request from LabelMap, replacing whatever the user had said about the label before.
    */
   def postLabelMapComment = cc.securityService.SecuredAction(parse.json) { implicit request =>
     val submission = request.body.validate[LabelMapValidationCommentSubmission]
     submission.fold(
       errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
       submission => {
-        val userId: String   = request.identity.userId
-        val labelTypeId: Int = LabelTypeEnum.labelTypeToId(submission.labelType)
+        val userId: String                = request.identity.userId
+        val labelType: LabelTypeEnum.Base = LabelTypeEnum.withName(submission.labelType)
         for {
-          // Get the (or create a) mission_id for this user_id and label_type_id.
           mission <- missionService.resumeOrCreateNewValidateMission(
             userId,
             MissionType.LabelmapValidation,
-            labelTypeId
+            labelType
           )
-          _              <- validationService.deleteCommentIfExists(submission.labelId, userId)
-          commentId: Int <- validationService.insertComment(
+          commentId: Int <- validationService.replaceComment(
             ValidationTaskComment(0, mission.get.missionId, submission.labelId, userId, request.ipAddress,
               submission.panoId, submission.heading, submission.pitch, submission.zoom, submission.lat, submission.lng,
               OffsetDateTime.now, submission.comment)
@@ -544,6 +536,22 @@ class ValidateController @Inject() (
         }
       }
     )
+  }
+
+  /**
+   * Deletes the signed-in user's own comment on a label, from the label card's Delete control (#5015).
+   *
+   * Keyed by label rather than by comment id: the card's comment payload carries no id, and a comment is unique per
+   * (label, user) anyway, so the identity of the row to delete is fully determined by the label and the session.
+   * That also makes the delete inherently scoped to the caller's own comment — there is no id to forge.
+   *
+   * @param labelId The label whose comment should be removed.
+   * @return `Ok` with the number deleted (0 if they had not commented), so a double-click is not an error.
+   */
+  def deleteLabelMapComment(labelId: Int) = cc.securityService.SecuredAction { implicit request =>
+    validationService.deleteComment(labelId, request.identity.userId).map { deleted =>
+      Ok(Json.obj("deleted" -> deleted))
+    }
   }
 
 }

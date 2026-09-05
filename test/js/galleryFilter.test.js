@@ -68,14 +68,15 @@ function buildFixture() {
           </button>
         </li>`).join('');
 
+    // The header sits outside #card-filter, as on the page: the loading class must not reach the disclosure.
     document.body.innerHTML = `
+      <div class="gallery-filter-header">
+        <h4 id="filter-header">Filter By</h4>
+        <button type="button" id="clear-filters" class="button-ps button--tiny button--secondary" hidden>
+          <span aria-hidden="true">&#10006;</span><span>Clear Filters</span>
+        </button>
+      </div>
       <div id="card-filter">
-        <div class="gallery-filter-header">
-          <h4 id="filter-header">Filter By</h4>
-          <button type="button" id="clear-filters" class="button-ps button--tiny button--secondary" hidden>
-            <span aria-hidden="true">&#10006;</span><span>Clear Filters</span>
-          </button>
-        </div>
         <section class="filter-sidebar__section" data-filter-section="severity">
           <div class="filter-sidebar__heading-row">
             <h3 class="filter-sidebar__heading" data-i18n="common:severity">Severity</h3>
@@ -336,11 +337,14 @@ describe('GalleryFilter', () => {
             filter.disable();
             expect(document.getElementById('card-filter').classList.contains('filter-sidebar--loading')).toBe(true);
             expect(typeBox('Obstacle').disabled).toBe(true);
+            // Outside the sidebar, so the loading class can't reach it.
+            expect(clearBtn().disabled).toBe(true);
 
             filter.enable();
 
             expect(document.getElementById('card-filter').classList.contains('filter-sidebar--loading')).toBe(false);
             expect(typeBox('Obstacle').disabled).toBe(false);
+            expect(clearBtn().disabled).toBe(false);
         });
     });
 });

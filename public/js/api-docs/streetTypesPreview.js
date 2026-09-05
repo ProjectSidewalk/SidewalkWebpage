@@ -56,7 +56,7 @@
       return this.fetchStreetTypes()
         .then((data) => this.renderStreetTypes(data, container))
         .catch((error) => {
-          container.innerHTML = `<div class="message message-error">Failed to load street types: `
+          container.innerHTML = `<div class="message message-error" role="alert">Failed to load street types: `
             + `${error.message}</div>`;
           // The failure is already surfaced in the container above, and init() is fire-and-forget at every call
           // site (app/views/apiDocs/*), so re-rejecting here can only ever become an unhandled rejection.
@@ -92,7 +92,7 @@
 
       // Create table structure.
       const table = document.createElement('table');
-      table.className = 'street-types-table';
+      table.className = 'ps-table';
 
       // Create table header.
       const thead = document.createElement('thead');
@@ -128,7 +128,7 @@
 
         // Count cell.
         const countCell = document.createElement('td');
-        countCell.className = 'street-count';
+        countCell.className = 'num';
 
         // Create a container for the count and progress bar.
         const countContainer = document.createElement('div');
@@ -159,9 +159,8 @@
 
       table.appendChild(tbody);
 
-      // Clear container and add table.
       container.innerHTML = '';
-      container.appendChild(table);
+      container.appendChild(window.createApiTableWrapper(table, 'Street types'));
 
       return table;
     },

@@ -31,6 +31,9 @@ class PanoManager {
   /** @type {{showPrimaryLogo: Function, showSourceLogo: Function}} */
   #logo;
 
+  /** The imagery-attribution pill, shown while the Pannellum fallback — Project Sidewalk's own copy — is up (#4865). */
+  #attribution;
+
   // Throttle POV-change logging. Dragging the pano (especially via touch on mobile) fires `pov_changed`
   // continuously; logging every one floods the interaction buffer and forces the Tracker's 200-action mid-mission
   // flush every few validations (#2745). Log at most once per interval (with a trailing call so the final POV is
@@ -67,7 +70,7 @@ class PanoManager {
     this.#pannellumCanvas = document.createElement('div');
     this.#pannellumCanvas.id = 'svv-panorama-pannellum';
     this.#pannellumCanvas.style.cssText
-            = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none;';
+      = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none;';
     this.#panoCanvas.insertAdjacentElement('afterend', this.#pannellumCanvas);
 
     this.#logPovChange = util.throttle(() => svv.tracker.push('POV_Changed'), PanoManager.#POV_LOG_INTERVAL_MS);
@@ -78,6 +81,7 @@ class PanoManager {
     // Set up the imagery source logo. #showPannellumPano will override it if Pannellum takes over below.
     this.#logo = createPanoViewerLogo(this.#panoCanvas.parentElement, panoViewerType);
     this.#logo.showPrimaryLogo();
+    this.#attribution = createPanoAttribution(this.#panoCanvas.parentElement);
 
     // Load the first pano, falling back to Pannellum if the primary viewer fails.
     try {
@@ -97,7 +101,7 @@ class PanoManager {
     this.#watchViewerPov(this.#primaryViewer);
 
     if (util.isMobile()) {
-      this.#sizePano();
+      this.sizePano();
       svv.panoViewer.resize(); // Necessary for PannellumViewer for correct vertical position of the label.
     }
 
@@ -268,8 +272,8 @@ class PanoManager {
     }
 
     // The icon is handed to CSS rather than set as the marker's own background, so that hiding the label can
-    // crossfade it out (svv-panorama.css) while the ring around it stays put to mark the spot. The colour rides
-    // along for the dashed ring that ring becomes while hidden.
+    // crossfade it out (main.css's .label-marker) while the ring around it stays put to mark the spot. The colour
+    // rides along for the dashed ring that ring becomes while hidden.
     const marker = this.labelMarker.marker_;
     marker.style.setProperty('--label-icon', `url(${currentLabel.getIconUrl()})`);
     marker.style.setProperty('--label-color', currentLabel.getIconColor());
@@ -395,6 +399,7 @@ class PanoManager {
     svv.panoViewer.resize();
     svv.tracker.push('Viewer_Primary');
     this.#logo.showPrimaryLogo();
+    this.#attribution.hide(); // The provider's live viewer draws its own.
   }
 
   /**
@@ -425,8 +430,12 @@ class PanoManager {
     }
     this.#watchViewerPov(this.#pannellumViewer);
     svv.panoViewer = this.#pannellumViewer;
+    // As #teardownPannellum does on the way back: a viewer only measures its container when told to, and this one
+    // has been sitting hidden — since a rotation, in the mobile case, which resized every canvas underneath it.
+    svv.panoViewer.resize();
     svv.tracker.push('Viewer_Pannellum');
     this.#logo.showSourceLogo();
+    this.#attribution.show(backupImage.attribution || null);
     return svv.panoViewer.currPanoData;
   }
 
@@ -495,15 +504,20 @@ class PanoManager {
   }
 
   /**
-   * Sets the size of the panorama and panorama holder depending on the size of the mobile phone.
-   * @private
+   * Fills the screen below the tool's header with the panorama. Mobile only; desktop sizes the pano from CSS.
+   *
+   * Measured from documentElement rather than window.innerWidth/innerHeight, which on iOS track the *visual*
+   * viewport: called after a pinch, those report the zoomed-into region and would size the pano to it.
+   *
+   * The header's height is read off the holder's own top edge, so this follows whatever mobile-validate.css puts
+   * above it rather than repeating the number.
    */
-  #sizePano() {
+  sizePano() {
     const panoHolderElem = document.getElementById('svv-panorama-holder');
     const controlLayerElem = document.getElementById('view-control-layer');
     const heightOffset = panoHolderElem.getBoundingClientRect().top;
-    const h = window.innerHeight - heightOffset;
-    const w = window.innerWidth;
+    const h = document.documentElement.clientHeight - heightOffset;
+    const w = document.documentElement.clientWidth;
     const left = 0;
     this.#panoCanvas.style.height = `${h}px`;
     this.#pannellumCanvas.style.height = `${h}px`;
@@ -516,6 +530,11 @@ class PanoManager {
     this.#panoCanvas.style.left = `${left}px`;
     panoHolderElem.style.left = `${left}px`;
     controlLayerElem.style.left = `${left}px`;
+
+    // The marker positions itself from the pano's size. It redraws on window resize too, but that listener is
+    // older than the one that calls this and runs unthrottled — so on a rotation it has already drawn against the
+    // dimensions being replaced here, and nothing would move it again until the next pan.
+    this.labelMarker?.draw();
   }
 
   /**

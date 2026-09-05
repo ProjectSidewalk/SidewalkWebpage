@@ -16,8 +16,8 @@ class Minimap {
 
   // Route start/finish flags reuse RouteBuilder's flag icons at its rasterized size, planted at the pole base.
   static #ROUTE_FLAG_SIZE_PX = 27;
-  static #START_FLAG_SRC = '/assets/images/icons/routebuilder/flag-start.svg';
-  static #FINISH_FLAG_SRC = '/assets/images/icons/routebuilder/flag-end.svg';
+  static #START_FLAG_SRC = util.assetPath('images/icons/routebuilder/flag-start.svg');
+  static #FINISH_FLAG_SRC = util.assetPath('images/icons/routebuilder/flag-end.svg');
 
   /** @type {google.maps.Map} */
   #map;

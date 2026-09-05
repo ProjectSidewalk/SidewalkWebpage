@@ -142,9 +142,21 @@
     "no-accuracy-tooltip": "Precisamos de mais dados para calcular uma classificação de precisão para você. Adicione mais rótulos e inscreva-se para acompanhar sua classificação de precisão!",
     "current-mission": {
       "header": "Missão Atual",
+      "header-route": "Rota Personalizada",
       "message-route": "Explore {{routeName}}",
+      "exit-route": "Sair da rota personalizada",
       "header-free-explore": "Exploração livre",
       "message": "Explore __PLACEHOLDER__ de {{neighborhoodName}}"
+    },
+    "route-resume": {
+      "message": "Retomando sua rota personalizada “{{routeName}}” de onde você parou.",
+      "exit": "Sair da rota personalizada"
+    },
+    "mission-resume": {
+      "message": "Retomando sua missão em {{neighborhoodName}} — faltam {{distanceLeft, distance(style: small)}}."
+    },
+    "route-unavailable": {
+      "message": "Essa rota não está disponível. Ela pode ter sido excluída."
     },
     "minimap": {
       "coach-dismiss": "Entendi",

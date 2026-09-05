@@ -1,0 +1,79 @@
+/**
+ * Project Sidewalk Label Clusters API - CSS Styles
+ *
+ * This stylesheet contains specific styles for the Label Clusters API documentation page.
+ * It extends the base api-docs.css with styles specific to the label clusters visualization.
+ */
+
+/* Severity indicator */
+.severity-indicator {
+  display: inline-block;
+  width: 50px;
+  height: 12px;
+  margin-right: 5px;
+  border-radius: 2px;
+  background: linear-gradient(to right, var(--color-jade-400), var(--color-banana-600), var(--color-orange-500));
+}
+
+/* Cluster size visualization */
+.cluster-size-example {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0;
+}
+
+.cluster-size-circle {
+  display: inline-block;
+  border-radius: 50%;
+  background-color: rgb(from var(--color-link-100) r g b / 70%);
+  border: 1px solid var(--color-neutral-black);
+}
+
+.cluster-size-small {
+  width: 8px;
+  height: 8px;
+}
+
+.cluster-size-medium {
+  width: 12px;
+  height: 12px;
+}
+
+.cluster-size-large {
+  width: 16px;
+  height: 16px;
+}
+
+.cluster-size-label {
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+}
+
+/* Filter examples section */
+.filter-example {
+  background-color: var(--color-neutral-100);
+  border-left: 3px solid var(--color-link-200);
+  padding: 10px 15px;
+  margin: 10px 0;
+  font: var(--text-small-regular);
+}
+
+.filter-example .description {
+  margin-top: 5px;
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+}
+
+/* Map container specific to label clusters */
+#label-clusters-preview {
+  margin: var(--space-lg) 0;
+  box-shadow: var(--box-shadow);
+}
+
+/* var(--breakpoint-sm) */
+@media (width <= 768px) {
+  .filter-example {
+    font: var(--text-caption-regular);
+  }
+}

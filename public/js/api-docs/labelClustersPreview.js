@@ -13,7 +13,7 @@
 
   // Presentational only — it mirrors no backend value, and is picked to stay distinct from every label type color
   // against the dimmed basemap.
-  const REGION_COLOR = '#0077cc';
+  const REGION_COLOR = ApiDocsTheme.color('--color-link-200');
 
   let config = {
     apiBaseUrl: '/v3/api',
@@ -57,7 +57,7 @@
       try {
         const typeData = await this.fetchLabelTypes();
         labelTypeInfo = typeData.label_types.reduce((acc, type) => {
-          acc[type.name] = { color: type.color, description: type.description };
+          acc[type.name] = { color: type.color, display: type.display_name, description: type.description };
           return acc;
         }, {});
 
@@ -65,10 +65,10 @@
         container.innerHTML = '';
         const map = await this.createMap(container, regionData);
 
-        const clusters = await this.fetchClustersByRegionId(regionData.region_id);
+        const clusters = await this.fetchClustersByRegionId(regionData.properties.region_id);
         this.displayClustersOnMap(map, clusters);
       } catch (error) {
-        container.innerHTML = `<div class="message message-error">Failed to load label clusters: `
+        container.innerHTML = `<div class="message message-error" role="alert">Failed to load label clusters: `
           + `${error.message}</div>`;
         console.error('Label clusters preview error:', error);
         // The failure is already surfaced in the container above, and init() is fire-and-forget at every call
@@ -108,7 +108,7 @@
     /**
      * Create the map, framed on the region the preview is scoped to and with that region outlined.
      * @param {HTMLElement} container - Container element for the map
-     * @param {object} regionData - Data about the region to display
+     * @param {object} regionData - GeoJSON Feature for the region to display
      * @returns {Promise<object>} A promise that resolves with the loaded Mapbox map
      */
     async createMap(container, regionData) {
@@ -119,10 +119,7 @@
       });
 
       // Outline the region so it's clear which slice of the city the clusters below are drawn from.
-      map.addSource(REGION_SOURCE, {
-        type: 'geojson',
-        data: { type: 'Feature', geometry: regionData.geometry, properties: {} },
-      });
+      map.addSource(REGION_SOURCE, { type: 'geojson', data: regionData });
       map.addLayer({
         id: 'region-fill',
         type: 'fill',
@@ -137,7 +134,7 @@
       });
 
       const regionTitle = ApiDocsMap.addOverlay(map, 'top-right', 'map-chip');
-      regionTitle.innerHTML = `<strong>Region:</strong> ${regionData.name || 'Sample Region'}`;
+      regionTitle.innerHTML = `<strong>Region:</strong> ${regionData.properties.name || 'Sample Region'}`;
 
       return map;
     },
@@ -150,7 +147,8 @@
     displayClustersOnMap(map, clusters) {
       if (!clusters.features || clusters.features.length === 0) {
         const noClustersDiv = document.createElement('div');
-        noClustersDiv.className = 'no-clusters-message';
+        noClustersDiv.className = 'map-message';
+        noClustersDiv.setAttribute('role', 'status');
         noClustersDiv.textContent = 'No label clusters found in this region.';
         map.getContainer().appendChild(noClustersDiv);
         return;
@@ -166,7 +164,7 @@
           'circle-radius': ['min', 8, ['+', 3, ['*', 0.5, ['coalesce', ['get', 'cluster_size'], 1]]]],
           'circle-color': ApiDocsMap.labelTypeColorExpression(labelTypeInfo),
           'circle-opacity': 0.75,
-          'circle-stroke-color': '#000000',
+          'circle-stroke-color': ApiDocsTheme.color('--color-neutral-black'),
           'circle-stroke-width': 1,
         },
       });
@@ -203,7 +201,7 @@
           + `${props.unsure_count} unsure`;
 
         ApiDocsMap.popup(map, feature.geometry.coordinates.slice(), `
-          <h4>${props.label_type}</h4>
+          <h4>${labelTypeInfo[props.label_type]?.display || props.label_type}</h4>
           <p>${labelTypeInfo[props.label_type]?.description || ''}</p>
           <p>${severity}</p>
           <p>${clusterSize}</p>

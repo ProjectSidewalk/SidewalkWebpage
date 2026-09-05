@@ -21,6 +21,11 @@ functions — no network, no live Google/Mapillary/OSM or app calls.
   API mocked), the GeoPackage/SQL/report writers (`tmp_path`), the CLI, and `main` end-to-end including the region
   source fallback chain and the `--from-gpkg` re-export mode.
 - `test_verify_latlng_backfill.py` — the one-off checker in [`tools/`](../../tools), which is stdlib-only.
+- `test_build_city_streets.py` — the headless new-city street import in [`tools/`](../../tools) (#4291): splitting a
+  way only where it meets another included way, the tier-1 merge of sub-threshold pieces and its ring guard (#4717),
+  region assignment (cut at a boundary / kept whole to the majority / attached to the nearest / dropped), the region
+  name report (#4620), and `build` end to end with Overpass stubbed. **`python3.13` only** — it imports shapely, so it
+  is `--ignore`d in the 3.8 half rather than run in both.
 
 ### Resilience coverage
 
@@ -89,7 +94,14 @@ If you add logic, add a test — keep new code pure where possible (or hide I/O 
 
 ## CI status
 
-Run by the **advisory** `python-tests` job in `.github/workflows/ci.yml` (`continue-on-error: true`) — it reports
-failures but does not block PRs yet, matching how the DB-backed API tests were introduced. Ramp to blocking once the
-suite is proven stable. It is a two-leg matrix mirroring `make test-python`: `Python tests (in-band script)` on 3.8 and
-`Python tests (offline tooling)` on 3.13, with `fail-fast: false` so one half failing still reports the other.
+Run by the `python-tests` job in `.github/workflows/ci.yml` — a two-leg matrix mirroring `make test-python`:
+`Python tests (in-band script)` on 3.8 and `Python tests (offline tooling)` on 3.13, with `fail-fast: false` so one
+half failing still reports the other.
+
+The legs gate differently, via `continue-on-error: ${{ matrix.advisory }}` rather than a job-level flag. The **in-band**
+leg is **blocking** and a required status check, because `label_clustering.py` is shelled out to by the running app, so
+breaking it breaks production. The **offline tooling** leg is **advisory**: `check_streets_for_imagery.py` is an
+operator utility run out-of-band, and a red run there is worth seeing but not worth blocking app changes on.
+
+`half` also spells the check name, so renaming a leg renames the required check — branch protection would then wait on
+a check no PR produces. Update both together.

@@ -3,6 +3,7 @@ package controllers.api
 import controllers.base.CustomControllerComponents
 import controllers.helper.ShapefilesCreatorHelper
 import models.api.{ApiError, LabelClusterFiltersForApi, LabelClusterForApi, RawLabelInClusterDataForApi}
+import models.label.LabelTypeEnum
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.Source
 import org.apache.pekko.util.ByteString
@@ -76,7 +77,9 @@ class LabelClustersApiController @Inject() (
     val parsedBbox                = parseBBoxString(bbox)
     val parsedAvgImageCaptureDate = parseDateTimeParam(avgImageCaptureDate, "avgImageCaptureDate")
     val parsedAvgLabelDate        = parseDateTimeParam(avgLabelDate, "avgLabelDate")
-    val parsedLabelTypes          = parseCommaSeparated(labelType)
+    // Allowlisted rather than split raw: the names are spliced into a comparison against the label_type enum column,
+    // where an unknown name is a Postgres error mid-stream, not an empty result.
+    val parsedLabelTypes = parseAllowlistedList(labelType, LabelTypeEnum.labelTypeNames, "labelType")
 
     // Collect the first invalid-parameter error, if any.
     val firstError: Option[ApiError] = Seq(
@@ -92,7 +95,8 @@ class LabelClustersApiController @Inject() (
         Some(ApiError.invalidParameter("Invalid clusterSize value. Must be a positive integer.", "clusterSize"))
       else None,
       parsedAvgImageCaptureDate.left.toOption,
-      parsedAvgLabelDate.left.toOption
+      parsedAvgLabelDate.left.toOption,
+      parsedLabelTypes.left.toOption
     ).flatten.headOption
 
     firstError match {
@@ -104,9 +108,9 @@ class LabelClustersApiController @Inject() (
 
           // Create filters object.
           val filters = LabelClusterFiltersForApi(
-            bbox = finalBbox, labelTypes = parsedLabelTypes, regionId = finalRegionId, regionName = finalRegionName,
-            includeRawLabels = includeRawLabels.getOrElse(false), minClusterSize = clusterSize,
-            minAvgImageCaptureDate = parsedAvgImageCaptureDate.toOption.flatten,
+            bbox = finalBbox, labelTypes = parsedLabelTypes.toOption.flatten, regionId = finalRegionId,
+            regionName = finalRegionName, includeRawLabels = includeRawLabels.getOrElse(false),
+            minClusterSize = clusterSize, minAvgImageCaptureDate = parsedAvgImageCaptureDate.toOption.flatten,
             minAvgLabelDate = parsedAvgLabelDate.toOption.flatten, minSeverity = minSeverity, maxSeverity = maxSeverity
           )
 

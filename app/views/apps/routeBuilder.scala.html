@@ -1,3 +1,4 @@
+@import models.user.Role
 @import play.api.Configuration
 @import service.CommonPageData
 @(commonData: service.CommonPageData, user: Option[models.user.SidewalkUserWithRole], minutesPer100m: Double
@@ -5,22 +6,20 @@
 
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
 @* A cookie-less visitor (None) gets the same treatment as an anonymous account. *@
-@isAnon = @{user.forall(_.role == "Anonymous")}
+@isAnon = @{user.forall(_.role == Role.Anonymous)}
 @paceRounded = @{f"$minutesPer100m%.1f"}
 
 @common.main(commonData, Messages("seo.title.route.builder"), defaultI18nNamespace = "routebuilder", i18Namespaces = Seq("routebuilder", "common"), url = "/routeBuilder") {
   @common.navbar(commonData, user)
 
-  <script src='@assets.path("vendor/i18next/i18next-23.16.8.min.js")'></script>
-  <script src='@assets.path("vendor/i18next-http-backend/i18nextHttpBackend-3.0.4.min.js")'></script>
   <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.js")'></script>
   <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")'></script>
   <link href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")' rel="stylesheet">
   <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-search-1.5.0.js")'></script>
   <script src='@assets.path("vendor/turf/turf-7.3.4.min.js")'></script>
 
-  <link rel="stylesheet" href='@assets.path("css/common/toast.css")'>
-  <link rel="stylesheet" href='@assets.path("css/route-builder.css")'>
+  <link rel="stylesheet" href='@assets.path("css/components/toast.css")'>
+  <link rel="stylesheet" href='@assets.path("css/pages/route-builder.css")'>
   <script src='@assets.path("js/route-builder/build/route-builder.js")'></script>
 
   @* Full-viewport map. Routing is by clicking points on the map; the floating planner card (left), the on-map CTA,

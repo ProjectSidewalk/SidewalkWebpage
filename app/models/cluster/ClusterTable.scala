@@ -2,7 +2,7 @@ package models.cluster
 
 import com.google.inject.ImplementedBy
 import models.api.{LabelClusterFiltersForApi, LabelClusterForApi, RawLabelInClusterDataForApi}
-import models.label.LabelTypeTableDef
+import models.label.LabelTypeEnum
 import models.street.StreetEdgeTableDef
 import models.utils.MyPostgresProfile.api._
 import models.utils.SpatialQueryType.SpatialQueryType
@@ -20,7 +20,7 @@ import javax.inject.{Inject, Singleton}
 case class Cluster(
     clusterId: Int,
     clusteringSessionId: Int,
-    labelTypeId: Int,
+    labelType: LabelTypeEnum.Base,
     streetEdgeId: Int,
     geom: Point,
     severity: Option[Int]
@@ -47,19 +47,18 @@ case class ClusterScoreRow(
 )
 
 class ClusterTableDef(tag: slick.lifted.Tag) extends Table[Cluster](tag, "cluster") {
-  def clusterId: Rep[Int]           = column[Int]("cluster_id", O.PrimaryKey, O.AutoInc)
-  def clusteringSessionId: Rep[Int] = column[Int]("clustering_session_id")
-  def labelTypeId: Rep[Int]         = column[Int]("label_type_id")
-  def streetEdgeId: Rep[Int]        = column[Int]("street_edge_id")
-  def geom: Rep[Point]              = column[Point]("geom")
-  def severity: Rep[Option[Int]]    = column[Option[Int]]("severity")
+  def clusterId: Rep[Int]                = column[Int]("cluster_id", O.PrimaryKey, O.AutoInc)
+  def clusteringSessionId: Rep[Int]      = column[Int]("clustering_session_id")
+  def labelType: Rep[LabelTypeEnum.Base] = column[LabelTypeEnum.Base]("label_type")
+  def streetEdgeId: Rep[Int]             = column[Int]("street_edge_id")
+  def geom: Rep[Point]                   = column[Point]("geom")
+  def severity: Rep[Option[Int]]         = column[Option[Int]]("severity")
 
-  def * = (clusterId, clusteringSessionId, labelTypeId, streetEdgeId, geom, severity) <> (
+  def * = (clusterId, clusteringSessionId, labelType, streetEdgeId, geom, severity) <> (
     (Cluster.apply _).tupled,
     Cluster.unapply
   )
 
-  def labelType = foreignKey("cluster_label_type_id_fkey", labelTypeId, TableQuery[LabelTypeTableDef])(_.labelTypeId)
   def clusteringSession =
     foreignKey("cluster_clustering_session_id_fkey", clusteringSessionId, TableQuery[ClusteringSessionTableDef])(
       _.clusteringSessionId,
@@ -180,7 +179,7 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
     // Restrict to the scored label types. Single-quote-escaped; empty set short-circuits to no rows.
     val labelTypeFilter: String =
       if (labelTypes.isEmpty) "FALSE"
-      else s"label_type.label_type IN (${labelTypes.map(lt => s"'${lt.replace("'", "''")}'").mkString(", ")})"
+      else s"cluster.label_type IN (${labelTypes.map(lt => s"'${lt.replace("'", "''")}'").mkString(", ")})"
 
     // Number of member labels per cluster (the denominator for the tag-active threshold).
     val labelCounts =
@@ -207,12 +206,11 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
 
     sql"""
       SELECT cluster.street_edge_id,
-             label_type.label_type,
+             cluster.label_type::text,
              cluster.severity,
              label_counts.label_count,
              cluster_tag_counts.tag_counts
       FROM cluster
-      INNER JOIN label_type ON cluster.label_type_id = label_type.label_type_id
       INNER JOIN street_edge ON cluster.street_edge_id = street_edge.street_edge_id
       INNER JOIN street_edge_region ON street_edge.street_edge_id = street_edge_region.street_edge_id
       INNER JOIN region ON street_edge_region.region_id = region.region_id
@@ -242,7 +240,7 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
     // Apply the rest of the filters.
     if (filters.labelTypes.isDefined && filters.labelTypes.get.nonEmpty) {
       val labelTypeList = filters.labelTypes.get.map(lt => s"'${lt.replace("'", "''")}'").mkString(", ")
-      whereConditions :+= s"label_type.label_type IN ($labelTypeList)"
+      whereConditions :+= s"cluster.label_type IN ($labelTypeList)"
     }
 
     if (filters.minClusterSize.isDefined) {
@@ -318,7 +316,7 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
     // Base query for label clusters.
     var finalQuery = s"""
     SELECT cluster.cluster_id AS label_cluster_id,
-          label_type.label_type,
+          cluster.label_type::text,
           cluster.street_edge_id,
           osm_way_street_edge.osm_way_id,
           street_edge_region.region_id,
@@ -336,7 +334,6 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
           ST_X(cluster.geom) AS lng,
           cluster_tag_counts.tag_counts
     FROM cluster
-    INNER JOIN label_type ON cluster.label_type_id = label_type.label_type_id
     INNER JOIN street_edge ON cluster.street_edge_id = street_edge.street_edge_id
     INNER JOIN street_edge_region ON street_edge.street_edge_id = street_edge_region.street_edge_id
     INNER JOIN region ON street_edge_region.region_id = region.region_id

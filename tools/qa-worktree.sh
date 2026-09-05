@@ -15,7 +15,7 @@
 #
 # Handles the worktree-specific setup the plain `npm start` flow doesn't (node_modules,
 # bundles, a backgrounded grunt watch, sbt caches, config.file, thin-client contention).
-# See CLAUDE.md -> "Running a worktree's app for QA".
+# See docs/dev-environment.md -> "Running a branch from a git worktree".
 #
 set -euo pipefail
 

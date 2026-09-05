@@ -26,10 +26,9 @@ class Confetti {
   /**
    * The backing-store ratio to draw a canvas of the given CSS size at, capped to stay inside MAX_CANVAS_AREA.
    *
-   * The cap bites on exactly the phones this fires over: a page with no viewport meta is laid out at ~980 CSS px
-   * wide and a couple of thousand tall, which at devicePixelRatio 3 asks for ~19M device pixels. Such a page is
-   * displayed at well under 1:1 anyway, so the ratio being given up buys no sharpness — and the ~75MB of RGBA it
-   * would have allocated is cleared every frame.
+   * The cap bites on a large, high-density display: a 2560x1440 window at devicePixelRatio 3 asks for ~33M device
+   * pixels, twice the budget. What is given up buys almost nothing on a canvas of soft-edged paper — and the
+   * ~130MB of RGBA it would have allocated is cleared every frame.
    *
    * @param {number} width Canvas width in CSS px.
    * @param {number} height Canvas height in CSS px.
@@ -68,8 +67,8 @@ class Confetti {
     canvas.setAttribute('aria-hidden', 'true');
     document.body.appendChild(canvas);
 
-    // The page may be laid out at a viewport far wider than the screen (mobile Validate ships no viewport meta), so
-    // the canvas is sized in CSS pixels of that layout and the pieces are scaled to it.
+    // Sized in CSS pixels, with every piece's size and throw scaled to that width, so the burst reads the same on a
+    // phone screen as on a desktop one.
     const width = canvas.offsetWidth;
     const height = canvas.offsetHeight;
     const ratio = Confetti.backingRatio(width, height, window.devicePixelRatio || 1);

@@ -16,20 +16,22 @@ import play.api.test.Helpers._
 import java.time.OffsetDateTime
 
 /**
- * Functional tests for the per-user cap on `POST /explore/nostreetview` (#4918).
+ * Functional tests for `POST /explore/nostreetview`: the per-user cap (#4918) and the evidence-only write contract
+ * (#4922).
  *
- * The endpoint is unusually expensive to get wrong: an accepted report marks the reported street `completed` and
- * lowers its priority, so the street stops being handed out to labelers. That makes a false report permanent lost
- * coverage rather than a retryable annoyance, and production has twice seen a client loop turn a transient imagery
- * failure into dozens of streets marked audited that nobody ever looked at — 44 streets in 33 seconds in one case.
+ * The write contract is the load-bearing property: an accepted report records a `street_edge_issue` row and nothing
+ * else — the task stays incomplete, the street keeps its priority, and the region's audited distance is untouched. A
+ * report is one session's verdict and transient imagery failures forge them wholesale (production saw a client loop
+ * submit 44 in 33 seconds), so nothing an audit credits may hang off of one.
  *
- * The client-side guards that bound those loops can't be the only defense, because clients keep running cached
- * bundles for up to an hour after a deploy and old bundles carry the unbounded behavior. So the property under test
- * here is the one that holds regardless of what the client does: past the budget, the server writes nothing.
+ * The rate limit bounds how much junk evidence a runaway client can write. The client-side guards that bound those
+ * loops can't be the only defense, because clients keep running cached bundles for up to an hour after a deploy. So
+ * the property under test is the one that holds regardless of what the client does: past the budget, the server
+ * writes nothing at all.
  *
  * The suite runs with a budget of [[MaxReports]] rather than the configured production value so a test can exhaust it
- * without marking a pile of real streets audited. Each test mints its own anonymous user, which is also the limiter's
- * key, so tests neither share budget nor depend on each other's order.
+ * in a handful of requests. Each test mints its own anonymous user, which is also the limiter's key, so tests neither
+ * share budget nor depend on each other's order.
  */
 // Mixin order matters: GuiceOneAppPerSuite must be rightmost so its run() wraps BeforeAndAfterAll's — otherwise
 // afterAll's cleanup executes after the app (and its DB pool) has shut down and aborts the suite.
@@ -58,32 +60,56 @@ class ExploreNoImageryRateLimitSpec
   /** Users minted by this suite; everything written under them is deleted in `afterAll`. */
   private var createdUserIds: Set[String] = Set.empty
 
-  /** Pre-test `street_edge_priority.priority` for each street a report completed, restored in `afterAll`. */
+  /**
+   * Pre-test `street_edge_priority.priority` per street: what a report must not move (#4922). Restored in `afterAll`
+   * regardless, so a regression that starts moving it can't leave the shared dev DB poisoned.
+   */
   private var priorityBackup: Map[Int, Double] = Map.empty
 
-  /** Pre-test `region_completion.audited_distance` for each region touched, restored in `afterAll`. */
+  /** Pre-test `region_completion.audited_distance` per region: same contract and same safety net as the priority. */
   private var auditedDistanceBackup: Map[Int, Double] = Map.empty
 
   /** The shared bootstrap, plus the bookkeeping that lets `afterAll` clean up after the user it assigns work to. */
   private def bootstrapFor(session: Seq[Cookie]): ExploreBootstrap = {
     val bootstrap = exploreBootstrap(session)
     createdUserIds += bootstrap.userId
-    run(
-      sql"SELECT priority FROM street_edge_priority WHERE street_edge_id = ${bootstrap.streetEdgeId}".as[Double]
-    ).headOption
-      .foreach(p => priorityBackup += (bootstrap.streetEdgeId -> p))
-    run(
-      sql"SELECT audited_distance FROM region_completion WHERE region_id = ${bootstrap.regionId}".as[Double]
-    ).headOption
-      .foreach(d => auditedDistanceBackup += (bootstrap.regionId -> d))
     bootstrap
   }
 
+  /**
+   * A street whose audited state the contract can actually be checked against, with its region.
+   *
+   * The street a session is *assigned* won't do: a brand-new anonymous user's first mission is the tutorial, whose
+   * street is served with a hardcoded priority and carries neither a `street_edge_priority` nor a `region_completion`
+   * row — so assertions keyed to it have nothing to compare and die on an empty result. Picking a regular street with
+   * both rows present is what makes "the report moved neither" a real check rather than one that reads two absences.
+   * The endpoint takes the street from the payload, so naming one here is exactly what the client does.
+   *
+   * @return The street and its region, or None when the connected schema has no such street.
+   */
+  private def streetWithAuditedState(): Option[(Int, Int)] =
+    run(sql"""SELECT street_edge_priority.street_edge_id, street_edge_region.region_id
+              FROM street_edge_priority
+              INNER JOIN street_edge_region
+                      ON street_edge_priority.street_edge_id = street_edge_region.street_edge_id
+              INNER JOIN region_completion ON street_edge_region.region_id = region_completion.region_id
+              WHERE street_edge_priority.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
+              ORDER BY street_edge_priority.street_edge_id
+              LIMIT 1""".as[(Int, Int)]).headOption
+
+  /** Snapshots the shared audited-state rows for a street, so a test can assert the report moved neither. */
+  private def backUpAuditedState(streetEdgeId: Int, regionId: Int): Unit = {
+    priorityBackup += (streetEdgeId ->
+      run(sql"SELECT priority FROM street_edge_priority WHERE street_edge_id = $streetEdgeId".as[Double]).head)
+    auditedDistanceBackup += (regionId ->
+      run(sql"SELECT audited_distance FROM region_completion WHERE region_id = $regionId".as[Double]).head)
+  }
+
   /** A missing-imagery report shaped exactly as `util.misc.reportNoImagery` builds one. */
-  private def reportPayload(b: ExploreBootstrap): JsValue =
+  private def reportPayload(b: ExploreBootstrap, streetEdgeId: Int = -1): JsValue =
     Json.obj(
       "audit_task" -> Json.obj(
-        "street_edge_id"                  -> b.streetEdgeId,
+        "street_edge_id"                  -> (if (streetEdgeId >= 0) streetEdgeId else b.streetEdgeId),
         "task_start"                      -> b.taskStart,
         "audit_task_id"                   -> b.auditTaskId,
         "completed"                       -> false,
@@ -134,22 +160,38 @@ class ExploreNoImageryRateLimitSpec
       (contentAsJson(refused) \ "status").as[String] mustBe "Error"
     }
 
-    "accept a report within budget and record the street as having no imagery" in {
-      val session = freshAnonSession()
-      val b       = bootstrapFor(session)
+    "accept a report within budget, recording evidence without marking the street audited" in {
+      val session                  = freshAnonSession()
+      val b                        = bootstrapFor(session)
+      val (streetEdgeId, regionId) = streetWithAuditedState()
+        .getOrElse(cancel("No non-tutorial street in the connected schema carries priority and completion rows."))
+      backUpAuditedState(streetEdgeId, regionId)
 
-      val resp = postReport(session, reportPayload(b))
+      val resp = postReport(session, reportPayload(b, streetEdgeId))
       status(resp) mustBe OK
-      (contentAsJson(resp) \ "success").as[Int] mustBe b.streetEdgeId
+      (contentAsJson(resp) \ "success").as[Int] mustBe streetEdgeId
 
       run(
         sql"""SELECT count(*) FROM street_edge_issue
-              WHERE user_id = ${b.userId} AND street_edge_id = ${b.streetEdgeId} AND issue = 'PanoNotAvailable'"""
+              WHERE user_id = ${b.userId} AND street_edge_id = $streetEdgeId AND issue = 'PanoNotAvailable'"""
           .as[Int]
       ).head mustBe 1
+
+      // The evidence-only contract (#4922): the issue row above is the report's entire footprint. No audit task is
+      // touched at all, and the shared audited-state rows hold their pre-test values, so the street stays in the
+      // assignment rotation for everyone.
+      run(
+        sql"SELECT completed FROM audit_task WHERE user_id = ${b.userId} AND street_edge_id = $streetEdgeId".as[Boolean]
+      ) mustBe empty
+      run(
+        sql"SELECT priority FROM street_edge_priority WHERE street_edge_id = $streetEdgeId".as[Double]
+      ).head mustBe priorityBackup(streetEdgeId)
+      run(
+        sql"SELECT audited_distance FROM region_completion WHERE region_id = $regionId".as[Double]
+      ).head mustBe auditedDistanceBackup(regionId)
     }
 
-    "stop marking streets audited once the user's budget is spent" in {
+    "write nothing once the user's budget is spent" in {
       val session = freshAnonSession()
       val b       = bootstrapFor(session)
 
@@ -160,12 +202,9 @@ class ExploreNoImageryRateLimitSpec
       val refused = postReport(session, reportPayload(b))
       status(refused) mustBe TOO_MANY_REQUESTS
 
-      // The point of the limit: a refused report leaves no trace, so the street stays in the assignment rotation.
+      // The point of the limit: a refused report leaves no trace at all, not even the evidence row an accepted one
+      // would write, so nothing downstream ever sees the street as suspect.
       reportedStreetCount(b.userId) mustBe before
-      run(
-        sql"SELECT completed FROM audit_task WHERE user_id = ${b.userId} AND street_edge_id = ${b.streetEdgeId}"
-          .as[Boolean]
-      ) must not contain true
     }
 
     "budget one user at a time, so a single runaway session can't lock everyone else out" in {
@@ -182,7 +221,7 @@ class ExploreNoImageryRateLimitSpec
   }
 
   /**
-   * Removes the reports and tasks the suite wrote, and puts back the shared rows an accepted report moved.
+   * Removes the reports and tasks the suite wrote, and puts back the shared rows nothing should have moved.
    *
    * Order follows the foreign keys, and the mission's `current_audit_task_id` is cleared first: a mission points back
    * at the task the user is on, so deleting audit_task before breaking that reference violates the constraint.

@@ -34,6 +34,9 @@ trait RolledBackDb { this: GuiceOneAppPerSuite =>
   /** Runs an action against the connected DB and blocks for the result. */
   protected def run[T](action: DBIO[T]): T = Await.result(dbConfig.db.run(action), dbTimeout)
 
+  /** The active city schema (first search_path entry) — what the service layer passes for the own-city arm. */
+  protected def currentSchema: DBIO[String] = sql"SELECT current_schema()".as[String].head
+
   /** Sentinel used to abort (and thus roll back) the wrapping transaction after the test body has run. */
   private object RollbackSentinel extends RuntimeException("intentional rollback -- leave the DB untouched")
 

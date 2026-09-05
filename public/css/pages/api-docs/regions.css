@@ -1,0 +1,18 @@
+/**
+ * Regions API Documentation - Specific Styles.
+ *
+ * The choropleth preview's frame; its toolbar, legend, and popups use the shared map classes in api-docs.css.
+ */
+
+/* The toolbar stacks above the map inside the shared .map-container frame. */
+#regions-preview {
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-neutral-white);
+}
+
+#regions-map {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+}

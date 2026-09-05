@@ -30,6 +30,8 @@ case class ExplorePageData(
     region: Region,
     userRoute: Option[UserRoute],
     route: Option[Route],
+    routeResumed: Boolean,
+    routeUnavailable: Boolean,
     hasCompletedAMission: Boolean,
     nextTempLabelId: Int,
     surveyData: Seq[SurveyQuestionWithOptions],
@@ -54,6 +56,14 @@ case class ExploreTaskPostReturnValue(
     refreshPage: Boolean
 )
 case class UpdatedStreets(lastPriorityUpdateTime: OffsetDateTime, updatedStreetPriorities: Seq[StreetEdgePriority])
+
+/**
+ * Outcome of route-walk setup for an Explore session: the walk to use (if any) and whether it pre-existed.
+ *
+ * @param routeUnavailable Whether a ?routeId= was supplied that names no live route, so the request was dropped
+ *                         (#5156). The page tells the user rather than passing them off as an ordinary session.
+ */
+case class RouteWalkSetup(walk: Option[UserRoute], resumed: Boolean, routeUnavailable: Boolean = false)
 
 /**
  * Companion object with constants that are shared throughout codebase.
@@ -108,14 +118,12 @@ trait ExploreService {
   def insertComment(comment: AuditTaskComment): Future[Int]
 
   /**
-   * Logs to the street_edge_issue table and, for regular audit missions, marks the task as complete as if it were
-   * completed normally. For exploreAddress missions only the issue is logged — the task never completes (#4451).
-   * @param taskSubmission The audit task associated with the imagery issue
+   * Logs a labeler's report of missing imagery to the street_edge_issue table. Evidence only: the task stays
+   * incomplete and the street keeps its priority, whatever the mission type (#4918, #4922).
    * @param streetIssue The StreetIssue object to submit
-   * @param missionId The mission_id for the task
    * @return The number of rows added to the street_edge_issue table (should always be 1)
    */
-  def insertNoImagery(taskSubmission: TaskSubmission, streetIssue: StreetEdgeIssue, missionId: Int): Future[Int]
+  def insertNoImagery(streetIssue: StreetEdgeIssue): Future[Int]
 
   /**
    * Inserts a set of AI-generated labels into the database, filling in appropriate tables with dummy data.
@@ -163,6 +171,7 @@ class ExploreServiceImpl @Inject() (
     routeTable: RouteTable,
     userRouteTable: UserRouteTable,
     labelService: LabelService,
+    labelEditService: LabelEditService,
     auditTaskTable: AuditTaskTable,
     auditTaskEnvironmentTable: AuditTaskEnvironmentTable,
     auditTaskInteractionTable: AuditTaskInteractionTable,
@@ -200,14 +209,16 @@ class ExploreServiceImpl @Inject() (
   ): Future[ExplorePageData] = {
     def getExploreDataAction = for {
       // Check if user has an active route or create a new one if routeId was supplied. If resumeRoute is false and no
-      // routeId was supplied, then the function should return None and the user is not sent on a specific route.
-      // However, region or street id params take precedence.
-      userRoute: Option[UserRoute] <-
+      // routeId was supplied, then the function should return None and the user is not sent on a specific route. A
+      // routeId naming no live route is dropped and flagged for the page (#5156). Region or street id params take
+      // precedence over all of it.
+      routeSetup: RouteWalkSetup <-
         if (regionId.isEmpty && streetEdgeId.isEmpty) {
           setUpPossibleUserRoute(routeId, userId, resumeRoute)
         } else {
-          DBIO.successful(None)
+          DBIO.successful(RouteWalkSetup(None, resumed = false))
         }
+      userRoute = routeSetup.walk
       routeOption: Option[Route] <- userRoute
         .map(ur => routeTable.getRoute(ur.routeId))
         .getOrElse(DBIO.successful(None))
@@ -272,10 +283,18 @@ class ExploreServiceImpl @Inject() (
         } else if (routeOption.isDefined) {
           userRouteTable.getRouteTask(userRoute.get, mission.missionId)
         } else if (mission.currentAuditTaskId.isDefined) {
-          // If we find no task with the given ID, try to get any new task in the neighborhood.
-          auditTaskTable.selectTaskFromTaskId(mission.currentAuditTaskId.get).flatMap { currTask =>
-            if (currTask.isDefined) DBIO.successful(currTask)
-            else auditTaskTable.selectANewTaskInARegion(regionId, userId, mission.missionId)
+          // If we find no task with the given ID, try to get any new task in the neighborhood. A task the labeler has
+          // just reported for missing imagery is passed over the same way: the report leaves it incomplete (#4922),
+          // so resuming it would hand back the street whose imagery would not load, on this load and every reload
+          // after it. The street keeps its place in the pool for the offline checker to settle (#4918); this only
+          // declines to serve it to the labeler who just bounced off it.
+          auditTaskTable.selectTaskFromTaskId(mission.currentAuditTaskId.get).flatMap {
+            case Some(currTask) =>
+              streetEdgeIssueTable.reportedNoImagerySince(currTask.edgeId, userId, currTask.taskStart).flatMap {
+                case true  => auditTaskTable.selectANewTaskInARegion(regionId, userId, mission.missionId)
+                case false => DBIO.successful(Some(currTask))
+              }
+            case None => auditTaskTable.selectANewTaskInARegion(regionId, userId, mission.missionId)
           }
         } else {
           auditTaskTable.selectANewTaskInARegion(regionId, userId, mission.missionId)
@@ -312,8 +331,20 @@ class ExploreServiceImpl @Inject() (
       // ?routeId= still sets a walk up above, since that is the user asking for one; it just waits for them.)
       val (pageUserRoute, pageRoute) =
         if (updatedMission.missionType == MissionType.AuditOnboarding) (None, None) else (userRoute, routeOption)
-      ExplorePageData(task, updatedMission, region.get, pageUserRoute, pageRoute, hasCompletedAMission, nextTempLabelId,
-        surveyData, tutorialStreetId, makeCrops)
+      ExplorePageData(
+        task,
+        updatedMission,
+        region.get,
+        pageUserRoute,
+        pageRoute,
+        routeResumed = pageUserRoute.isDefined && routeSetup.resumed,
+        routeSetup.routeUnavailable,
+        hasCompletedAMission,
+        nextTempLabelId,
+        surveyData,
+        tutorialStreetId,
+        makeCrops
+      )
     }
     db.run(getExploreDataAction.transactionally)
   }
@@ -345,8 +376,9 @@ class ExploreServiceImpl @Inject() (
                 makeCrops: Boolean                         <- configTable.getMakeCrops
               } yield {
                 Some(
-                  ExplorePageData(task, updatedMission, region, userRoute = None, route = None, hasCompletedAMission,
-                    nextTempLabelId, surveyData, tutorialStreetId, makeCrops)
+                  ExplorePageData(task, updatedMission, region, userRoute = None, route = None, routeResumed = false,
+                    routeUnavailable = false, hasCompletedAMission, nextTempLabelId, surveyData, tutorialStreetId,
+                    makeCrops)
                 )
               }
           }
@@ -409,35 +441,65 @@ class ExploreServiceImpl @Inject() (
     }
   }
 
+  /**
+   * Resolves which route walk (if any) this Explore session should be in, creating/resuming/pausing as needed.
+   *
+   * Walks are paused rather than discarded wherever the user hasn't explicitly asked for a restart, so their
+   * progress survives and an explicit ?routeId= visit resumes exactly where they left off (#4833). Discarding —
+   * which permanently ends a walk, restarting the route from its first street next time — is reserved for
+   * ?routeId=X&resumeRoute=false.
+   *
+   * A ?routeId= naming no live route is dropped instead of obeyed, so the session runs exactly as if none had been
+   * supplied, and the caller reports the drop (#5156). What that buys is the pause: reaching the exit-route arm now
+   * takes an explicit resumeRoute=false, where before a mistyped or since-deleted id was enough on its own to end a
+   * walk the user was legitimately in. ?routeId=<unresolvable>&resumeRoute=false still pauses — the user spelled out
+   * the exit — and is hand-typed only, since nothing in the UI emits the pair.
+   *
+   * @param routeId     Route explicitly requested via ?routeId=, if any.
+   * @param resumeRoute Whether an existing walk may be resumed (the ?resumeRoute= param; defaults to true).
+   * @return            The walk this session should use (None for normal exploration), with whether the user is
+   *                    resuming a walk they have already been in, and whether a requested route was dropped as
+   *                    unresolvable. Existence of the row isn't enough for "resuming" — one can be created and never
+   *                    entered, and that user is not resuming anything.
+   */
   private def setUpPossibleUserRoute(
       routeId: Option[Int],
       userId: String,
       resumeRoute: Boolean
-  ): DBIO[Option[UserRoute]] = {
+  ): DBIO[RouteWalkSetup] = {
     (routeId match {
       case Some(rId) => routeTable.getRoute(rId).map(_.isDefined)
       case None      => DBIO.successful(false)
     }).flatMap { routeExists =>
-      (routeExists, routeId, resumeRoute) match {
-        // Discard routes that don't match routeId, resume route with given routeId if it exists, o/w make a new one.
-        case (true, Some(rId), true) =>
+      val resolvedRouteId: Option[Int] = if (routeExists) routeId else None
+      val setup: DBIO[RouteWalkSetup]  = (resolvedRouteId, resumeRoute) match {
+        // Pause routes that don't match routeId, resume route with given routeId if it exists, o/w make a new one.
+        case (Some(rId), true) =>
           for {
-            _      <- userRouteTable.discardOtherActiveRoutes(rId, userId)
+            _      <- userRouteTable.pauseOtherActiveRoutes(rId, userId)
             result <- userRouteTable.getActiveRouteOrCreateNew(rId, userId)
-          } yield Some(result)
-        // Discard old routes, save a new one with given routeId.
-        case (true, Some(rId), false) =>
+            walked <-
+              if (result._2) userRouteTable.hasBeenWalked(result._1.userRouteId) else DBIO.successful(false)
+          } yield RouteWalkSetup(Some(result._1), resumed = walked)
+        // Explicit restart: discard old walks (including any of this route), save a new one with given routeId.
+        case (Some(rId), false) =>
           for {
             _      <- userRouteTable.discardAllActiveRoutes(userId)
             result <- userRouteTable.getActiveRouteOrCreateNew(rId, userId)
-          } yield Some(result)
+          } yield RouteWalkSetup(Some(result._1), resumed = false)
         // Get an in progress route (with any routeId) if it exists, otherwise return None.
-        case (_, None, true) =>
-          userRouteTable.getInProgressRoute(userId)
-        // Discard old routes, return None.
-        case (_, _, _) =>
-          userRouteTable.discardAllActiveRoutes(userId).map(_ => None)
+        case (None, true) =>
+          userRouteTable.getInProgressRoute(userId).flatMap {
+            case Some(walk) =>
+              userRouteTable.hasBeenWalked(walk.userRouteId).map(w => RouteWalkSetup(Some(walk), resumed = w))
+            case None => DBIO.successful(RouteWalkSetup(None, resumed = false))
+          }
+        // The "exit route" path (/explore?resumeRoute=false): pause old walks, return None. A dropped routeId can
+        // reach this arm, but only alongside the explicit resumeRoute=false — never on the strength of the id alone.
+        case (None, false) =>
+          userRouteTable.pauseAllActiveRoutes(userId).map(_ => RouteWalkSetup(None, resumed = false))
       }
+      setup.map(_.copy(routeUnavailable = routeId.isDefined && !routeExists))
     }
   }
 
@@ -632,7 +694,7 @@ class ExploreServiceImpl @Inject() (
           missionId = missionId,
           userId = userId,
           panoId = label.panoId,
-          labelTypeId = LabelTypeEnum.labelTypeToId(label.labelType),
+          labelType = LabelTypeEnum.withName(label.labelType),
           deleted = label.deleted,
           temporaryLabelId = label.temporaryLabelId,
           timeCreated = timeCreated,
@@ -759,27 +821,25 @@ class ExploreServiceImpl @Inject() (
     db.run(auditTaskCommentTable.insert(comment))
   }
 
-  def insertNoImagery(taskSubmission: TaskSubmission, streetIssue: StreetEdgeIssue, missionId: Int): Future[Int] = {
-    // Record the imagery issue for any mission type, but only mark the street complete (with the priority update that
-    // entails) for regular audits: an exploreAddress task must never complete, so that a drop-in session at a spot
-    // with no imagery can't mark the whole street as audited (#4451).
-    def completeTaskAction(auditTaskId: Int, missionType: Option[MissionType.Value]): DBIO[Int] = {
-      if (missionType.contains(MissionType.ExploreAddress)) DBIO.successful(0)
-      else {
-        for {
-          _                  <- updateStreetPriority(streetIssue.streetEdgeId, streetIssue.userId)
-          atRowsUpdated: Int <- auditTaskTable.updateCompleted(auditTaskId, completed = true)
-        } yield atRowsUpdated
-      }
-    }
-
-    db.run(missionTable.getMissionType(missionId).flatMap { missionType: Option[MissionType.Value] =>
-      updateAuditTaskTable(streetIssue.userId, taskSubmission, missionId).flatMap { auditTaskId: Int =>
-        completeTaskAction(auditTaskId, missionType)
-          .zip(streetEdgeIssueTable.insert(streetIssue))
-          .map(_._2)
-      }
-    })
+  /**
+   * Records a labeler's report that a street's imagery failed to load, without crediting anyone with an audit.
+   *
+   * The report is evidence, not a verdict: one session's failure to load imagery is unreliable (transient GSV
+   * failures forge it wholesale, #4918), so it must not complete the task, drop the street's priority, or count
+   * toward region completion or the user's audited distance. The street stays open and un-audited for everyone.
+   * Streets that genuinely lack imagery leave the pool when the offline checker (check_streets_for_imagery.py ->
+   * street_edge.status = 'no_imagery') confirms the accumulated street_edge_issue reports (#4922).
+   *
+   * The issue row is the whole write. The audit task is deliberately left alone: it stays live and resumable now that
+   * a report doesn't complete it, and the report carries no record of where the labeler had walked to — so writing
+   * the task's progress from it would rewind their position to the street's start and null out the distance they had
+   * covered. street_edge_issue references the street and the user directly, so it stands on its own.
+   *
+   * @param streetIssue The report itself, one street_edge_issue row.
+   * @return The number of street_edge_issue rows inserted (1).
+   */
+  def insertNoImagery(streetIssue: StreetEdgeIssue): Future[Int] = {
+    db.run(streetEdgeIssueTable.insert(streetIssue))
   }
 
   /**
@@ -922,12 +982,12 @@ class ExploreServiceImpl @Inject() (
           // Insert any labels.
           val labelSubmitActions: Seq[DBIO[Option[NewLabelData]]] =
             data.labels.map { label: LabelSubmission =>
-              val labelTypeId: Int = LabelTypeEnum.labelTypeToId(label.labelType)
+              val labelType: LabelTypeEnum.Base = LabelTypeEnum.withName(label.labelType)
               labelTable.find(label.temporaryLabelId, userId).flatMap {
                 case Some(existingLabel) =>
                   // If there is already a label with this temp id but a mismatched label type, the user probably has the
                   // Explore page open in multiple browsers. Don't add the label; tell the front-end to refresh the page.
-                  if (existingLabel.labelTypeId != labelTypeId) {
+                  if (existingLabel.labelType != labelType) {
                     refreshPage = true
                     DBIO.successful(None)
                   } else {
@@ -938,7 +998,7 @@ class ExploreServiceImpl @Inject() (
                       tagStrings: List[String] = label.tagIds.distinct
                         .flatMap(t => allTags.filter(_.tagId == t).map(_.tag).headOption)
                         .toList
-                      _ <- labelService.updateLabelFromExplore(existingLabel.labelId, label.deleted, label.severity,
+                      _ <- labelEditService.updateLabelFromExplore(existingLabel.labelId, label.deleted, label.severity,
                         label.description, tagStrings)
                     } yield None
                   }

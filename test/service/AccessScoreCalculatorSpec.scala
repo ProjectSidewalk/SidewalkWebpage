@@ -101,9 +101,9 @@ class AccessScoreCalculatorSpec extends AnyFunSuite with Matchers {
     AccessScoreCalculator.scoreRegion(Seq((0.42, 50.0))).get shouldBe (0.42 +- eps) // single street
   }
 
-  test("the scored-type set is exactly the seven expected types, in id order") {
+  test("the scored-type set is exactly the seven expected types, in canonical order") {
     AccessScoreCalculator.orderedScoredTypes shouldBe Seq(
-      "CurbRamp", "NoCurbRamp", "Obstacle", "SurfaceProblem", "NoSidewalk", "Crosswalk", "Signal"
+      "CurbRamp", "NoCurbRamp", "Obstacle", "SurfaceProblem", "Crosswalk", "Signal", "NoSidewalk"
     )
   }
 }

@@ -26,7 +26,7 @@
 @cityCount = @{commonData.allCityInfo.size}
 @countryCount = @{commonData.allCityInfo.map(_.countryId).distinct.size}
 @* Count of natively translated languages, from config so it can't drift: base languages only (en-US/en-NZ are
-   regional overlays of en, zh-TW's base is zh), so e.g. [en, en-US, en-NZ, es, nl, zh-TW, de, pt-BR] counts 6. *@
+   regional overlays of en, zh-TW's base is zh), so e.g. [en, en-US, en-NZ, es, nl, zh-TW, de, pt-BR, fr] counts 7. *@
 @languageCount = @{config.get[Seq[String]]("play.i18n.langs").map(_.takeWhile(_ != '-')).distinct.size}
 
 @* AboutPage JSON-LD built with the JSON library (not hand-written markup) so quoting is always valid; escaping `<`
@@ -62,10 +62,10 @@
 @* about.css ships in <head> rather than alongside the markup: this page is one long column of styled bands, so
    loading it at the end of the body paints the whole thing unstyled before it snaps into place. *@
 @extraHeadContent = {
-  <link rel="stylesheet" href='@assets.path("css/about.css")'>
+  <link rel="stylesheet" href='@assets.path("css/pages/about.css")'>
   @* Styles the deployment map's city popups. Small enough to ship up front, unlike the mapping libraries the map
      itself needs, which aboutPage.js only fetches once the section nears the viewport. *@
-  <link rel="stylesheet" href='@assets.path("css/deployment-map.css")'>
+  <link rel="stylesheet" href='@assets.path("css/components/deployment-map.css")'>
   <script type="application/ld+json">@Html(jsonLd)</script>
 }
 
@@ -100,7 +100,7 @@
        hold true as the dataset only grows, replaced by exact live values from /v3/api/aggregateStats on load. *@
     <section class="about-stats" aria-labelledby="about-stats-heading">
       <h2 class="sr-only" id="about-stats-heading">@Messages("about.stats.heading")</h2>
-      <div class="about-container about-stats-grid">
+      <div class="about-container about-stats-row">
         <div class="about-stat">
           <span class="about-stat-number" data-live-stat="km_explored">30,000+</span>
           <span class="about-stat-label">@Messages("about.stats.km")</span>

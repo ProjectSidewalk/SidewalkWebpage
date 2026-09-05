@@ -58,7 +58,8 @@
       return this.fetchLabelTypes()
         .then((data) => this.renderLabelTypes(data, container))
         .catch((error) => {
-          container.innerHTML = `<div class="message message-error">Failed to load label types: ${error.message}</div>`;
+          container.innerHTML = `<div class="message message-error" role="alert">Failed to load label types: `
+            + `${error.message}</div>`;
           // The failure is already surfaced in the container above, and init() is fire-and-forget at every call
           // site (app/views/apiDocs/*), so re-rejecting here can only ever become an unhandled rejection.
         });
@@ -93,14 +94,15 @@
 
       // Create table structure.
       const table = document.createElement('table');
-      table.className = 'label-types-table';
+      table.className = 'ps-table';
 
       // Create table header.
       const thead = document.createElement('thead');
       const headerRow = document.createElement('tr');
 
       const headers = [
-        'Name', 'Description', 'Standard Icon', 'Small Icon', 'Tiny Icon', 'Color Preview', 'Color Code',
+        'Name', 'Display Name', 'Description', 'Standard Icon', 'Small Icon', 'Tiny Icon', 'Color Preview',
+        'Color Code',
       ];
       headers.forEach((text) => {
         const th = document.createElement('th');
@@ -122,6 +124,12 @@
         nameCell.textContent = type.name;
         nameCell.className = 'label-name';
         row.appendChild(nameCell);
+
+        // Display name cell.
+        const displayNameCell = document.createElement('td');
+        displayNameCell.textContent = type.display_name;
+        displayNameCell.className = 'label-name';
+        row.appendChild(displayNameCell);
 
         // Description cell.
         const descCell = document.createElement('td');
@@ -182,9 +190,8 @@
 
       table.appendChild(tbody);
 
-      // Clear container and add table.
       container.innerHTML = '';
-      container.appendChild(table);
+      container.appendChild(window.createApiTableWrapper(table, 'Label types'));
 
       return table;
     },

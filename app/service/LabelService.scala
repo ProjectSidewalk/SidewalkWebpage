@@ -4,7 +4,6 @@ import com.google.inject.ImplementedBy
 import controllers.helper.ValidateHelper.ValidateParams
 import formats.json.ValidateFormats.ValidationMissionProgress
 import models.label.LabelTable._
-import models.label.LabelTypeEnum.labelTypeToId
 import models.label.{Tag, _}
 import models.mission.{Mission, MissionTable, MissionType}
 import models.pano.PanoSource
@@ -12,14 +11,13 @@ import models.pano.PanoSource.PanoSource
 import models.user.SidewalkUserWithRole
 import models.utils.CommonUtils.UiSource
 import models.utils.MyPostgresProfile.api._
-import models.utils.{ExcludedTag, MyPostgresProfile}
+import models.utils.{ExcludedTag, LatLngBBox, MyPostgresProfile}
 import models.validation.LabelValidationTable
 import org.apache.pekko.stream.scaladsl.Source
 import play.api.Logger
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.dbio.DBIO
 
-import java.time.OffsetDateTime
 import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Random
@@ -38,9 +36,9 @@ trait LabelService {
   def countLabelsInRegion(regionId: Int): Future[Int]
   def selectAllTags: DBIO[Seq[models.label.Tag]]
   def selectAllTagsFuture: Future[Seq[models.label.Tag]]
-  def selectTagsByLabelType(labelType: String): Future[Seq[models.label.Tag]]
+  def selectTagsByLabelType(labelType: LabelTypeEnum.Base): Future[Seq[models.label.Tag]]
   def getTagsForCurrentCity: Future[Seq[models.label.Tag]]
-  def cleanTagList(tags: Seq[String], labelTypeId: Int): DBIO[Seq[String]]
+  def cleanTagList(tags: Seq[String], labelType: LabelTypeEnum.Base): DBIO[Seq[String]]
   def getSingleLabelMetadata(labelId: Int, userId: String): Future[Option[LabelMetadata]]
   def getLabelLatLng(labelId: Int): Future[Option[LatLng]]
   def getRecentLabelMetadata(takeN: Int): Future[Seq[LabelMetadata]]
@@ -49,6 +47,7 @@ trait LabelService {
       regionIds: Seq[Int],
       routeIds: Seq[Int],
       aiValOptions: Seq[String],
+      bbox: Option[LatLngBBox],
       batchSize: Int
   ): Source[LabelForLabelMap, _]
   def getGalleryLabels(
@@ -68,7 +67,7 @@ trait LabelService {
       userId: String,
       n: Int,
       viewer: PanoSource,
-      labelTypeId: Int,
+      labelType: LabelTypeEnum.Base,
       userIds: Option[Set[String]] = None,
       regionIds: Option[Set[Int]] = None,
       unvalidatedOnly: Boolean = false,
@@ -86,7 +85,7 @@ trait LabelService {
   ): Future[ValidationTaskPostReturnValue]
   def getMoreLabelsToValidate(
       user: SidewalkUserWithRole,
-      labelTypeId: Int,
+      labelType: LabelTypeEnum.Base,
       labelsNeeded: Int,
       excludedLabelIds: Set[Int],
       validateParams: ValidateParams
@@ -100,13 +99,6 @@ trait LabelService {
   def recordMistakeNote(labelId: Int, userId: String, comment: Option[String]): Future[Boolean]
   def getLabelsFromUserInRegion(regionId: Int, userId: String): Future[Seq[ResumeLabelMetadata]]
   def insertLabel(label: Label): DBIO[Int]
-  def updateLabelFromExplore(
-      labelId: Int,
-      deleted: Boolean,
-      severity: Option[Int],
-      description: Option[String],
-      tags: List[String]
-  ): DBIO[Int]
 }
 
 @Singleton
@@ -139,24 +131,24 @@ class LabelServiceImpl @Inject() (
   def selectAllTagsFuture: Future[Seq[models.label.Tag]] =
     db.run(selectAllTags)
 
-  def selectTagsByLabelTypeId(labelTypeId: Int): DBIO[Seq[models.label.Tag]] = {
-    selectAllTags.map(_.filter(_.labelTypeId == labelTypeId))
+  def selectTagsByLabelTypeDbio(labelType: LabelTypeEnum.Base): DBIO[Seq[models.label.Tag]] = {
+    selectAllTags.map(_.filter(_.labelType == labelType))
   }
 
-  def selectTagsByLabelType(labelType: String): Future[Seq[models.label.Tag]] =
-    db.run(selectTagsByLabelTypeId(LabelTypeEnum.labelTypeToId(labelType)))
+  def selectTagsByLabelType(labelType: LabelTypeEnum.Base): Future[Seq[models.label.Tag]] =
+    db.run(selectTagsByLabelTypeDbio(labelType))
 
   def getTagsForCurrentCity: Future[Seq[models.label.Tag]] = {
     db.run(for {
       excludedTags: Seq[ExcludedTag] <- configService.getExcludedTags
       allTags: Seq[Tag]              <- selectAllTags
     } yield {
-      allTags.filterNot(t => excludedTags.exists(et => et.tag == t.tag && labelTypeToId(et.labelType) == t.labelTypeId))
+      allTags.filterNot(t => excludedTags.exists(et => et.tag == t.tag && et.labelType == t.labelType.name))
     })
   }
 
-  def findConflictingTags(tags: Set[String], labelTypeId: Int): DBIO[Seq[String]] = {
-    selectTagsByLabelTypeId(labelTypeId).map { allTags: Seq[models.label.Tag] =>
+  def findConflictingTags(tags: Set[String], labelType: LabelTypeEnum.Base): DBIO[Seq[String]] = {
+    selectTagsByLabelTypeDbio(labelType).map { allTags: Seq[models.label.Tag] =>
       allTags.filter(tag => tags.contains(tag.tag) && tag.mutuallyExclusiveWith.exists(tags.contains)).map(_.tag)
     }
   }
@@ -164,14 +156,14 @@ class LabelServiceImpl @Inject() (
   /**
    * Removes any tags that are invalid or conflicting.
    * @param tags List of tags to clean
-   * @param labelTypeId Label type ID to filter tags by
+   * @param labelType Label type to filter tags by
    * @return Cleaned list of tags
    */
-  def cleanTagList(tags: Seq[String], labelTypeId: Int): DBIO[Seq[String]] = {
+  def cleanTagList(tags: Seq[String], labelType: LabelTypeEnum.Base): DBIO[Seq[String]] = {
     for {
-      validTags: Seq[String] <- selectTagsByLabelTypeId(labelTypeId).map(_.map(_.tag))
+      validTags: Seq[String] <- selectTagsByLabelTypeDbio(labelType).map(_.map(_.tag))
       cleanedTags: Seq[String] = tags.distinct.filter(t => validTags.contains(t))
-      conflictingTags: Seq[String] <- findConflictingTags(cleanedTags.toSet, labelTypeId)
+      conflictingTags: Seq[String] <- findConflictingTags(cleanedTags.toSet, labelType)
     } yield {
       if (conflictingTags.nonEmpty) {
         logger.warn(s"Tag list has conflicting tags, removing all that conflict: ${conflictingTags.mkString(", ")}")
@@ -196,6 +188,7 @@ class LabelServiceImpl @Inject() (
       regionIds: Seq[Int],
       routeIds: Seq[Int],
       aiValOptions: Seq[String],
+      bbox: Option[LatLngBBox],
       batchSize: Int
   ): Source[LabelForLabelMap, _] =
     // `.transactionally` is required for Postgres to honor fetchSize and stream instead of materializing (#3932). It
@@ -206,7 +199,7 @@ class LabelServiceImpl @Inject() (
     Source.fromPublisher(
       db.stream(
         labelTable
-          .getLabelsForLabelMap(regionIds, routeIds, aiValOptions)
+          .getLabelsForLabelMap(regionIds, routeIds, aiValOptions, bbox)
           .result
           .transactionally
           .withStatementParameters(fetchSize = batchSize)
@@ -296,7 +289,7 @@ class LabelServiceImpl @Inject() (
    * @param userId           User ID for the current user.
    * @param n                Number of labels we need to query.
    * @param viewer           The type of pano viewer the labels must have been added on (GSV, Mapillary, etc).
-   * @param labelTypeId      Label Type ID of labels requested.
+   * @param labelType        Label type of labels requested.
    * @param userIds          Optional list of user IDs to filter by.
    * @param regionIds        Optional list of region IDs to filter by.
    * @param excludedLabelIds Labels the caller already holds and must not be handed again (#4810).
@@ -306,7 +299,7 @@ class LabelServiceImpl @Inject() (
       userId: String,
       n: Int,
       viewer: PanoSource,
-      labelTypeId: Int,
+      labelType: LabelTypeEnum.Base,
       userIds: Option[Set[String]] = None,
       regionIds: Option[Set[Int]] = None,
       unvalidatedOnly: Boolean = false,
@@ -314,7 +307,7 @@ class LabelServiceImpl @Inject() (
   ): Future[Seq[LabelValidationMetadata]] = {
     // TODO can we make this and the Gallery queries transactions to prevent label dupes?
     findValidLabelsForType(
-      labelTable.retrieveLabelListForValidationQuery(userId, viewer, labelTypeId,
+      labelTable.retrieveLabelListForValidationQuery(userId, viewer, labelType,
         configService.getAiTagSuggestionsEnabled, userIds, regionIds, unvalidatedOnly, excludedLabelIds),
       randomize = true,
       useCrops = false,
@@ -431,7 +424,7 @@ class LabelServiceImpl @Inject() (
   }
 
   /**
-   * Get the label_type_id to validate. Label types with fewer labels with validations have higher priority.
+   * Get the label type to validate. Label types with fewer labels with validations have higher priority.
    *
    * We get the number of labels available to validate for each label type and the number of those that have no
    * validations (or have agree=disagree). We then filter out label types with fewer than missionLength labels available
@@ -441,37 +434,37 @@ class LabelServiceImpl @Inject() (
    * @param missionLength     Number of labels for this mission.
    * @param requiredLabelType labelType of the current mission.
    */
-  def getLabelTypeIdToValidate(
+  def getLabelTypeToValidate(
       userId: String,
       missionLength: Int,
       viewerType: PanoSource,
       requiredLabelType: Option[LabelTypeEnum.Base]
-  ): Future[Option[Int]] = {
+  ): Future[Option[LabelTypeEnum.Base]] = {
     db.run(labelTable.getAvailableValidationsLabelsByType(userId, viewerType).map { availValidations =>
       val availTypes: Seq[LabelTypeValidationsLeft] = availValidations
         .filter(_.validationsAvailable >= missionLength)
         .filter(x => requiredLabelType.isEmpty || requiredLabelType.contains(x.labelType))
         .filter(x => LabelTypeEnum.primaryLabelTypes.contains(x.labelType))
 
-      // Unless NoSidewalk (7) is the only available label type, remove it from the list of available types.
+      // Unless NoSidewalk is the only available label type, remove it from the list of available types.
       val typesFiltered: Seq[LabelTypeValidationsLeft] = availTypes
         .filter(x => LabelTypeEnum.primaryValidateLabelTypes.contains(x.labelType) || availTypes.length == 1)
 
       if (typesFiltered.length < 2) {
-        typesFiltered.map(_.labelType.id).headOption
+        typesFiltered.map(_.labelType).headOption
       } else {
         // Each label type has at least a 2% chance of being selected. Remaining probability is divvied up
         // proportionally based on the number of remaining labels requiring a validation for each label type.
-        val typeProbabilities: Seq[(Int, Double)] = if (typesFiltered.map(_.validationsNeeded).sum > 0) {
+        val typeProbabilities: Seq[(LabelTypeEnum.Base, Double)] = if (typesFiltered.map(_.validationsNeeded).sum > 0) {
           typesFiltered.map { t =>
             (
-              t.labelType.id,
+              t.labelType,
               0.02 + (1 - typesFiltered.length * 0.02)
                 * (t.validationsNeeded.toDouble / typesFiltered.map(_.validationsNeeded).sum)
             )
           }
         } else {
-          typesFiltered.map(x => (x.labelType.id, 1d / typesFiltered.length))
+          typesFiltered.map(x => (x.labelType, 1d / typesFiltered.length))
         }
 
         // Get cumulative probabilities.
@@ -479,9 +472,8 @@ class LabelServiceImpl @Inject() (
           typeProbabilities.scanLeft(0.0) { case (acc, (_, prob)) => acc + prob }.tail
 
         // Choose a label type proportionally based on the calculated probabilities.
-        val random           = new Random()
-        val labelTypeId: Int = typeProbabilities(cumulativeProbabilities.indexWhere(_ > random.nextDouble()))._1
-        Some(labelTypeId)
+        val random = new Random()
+        Some(typeProbabilities(cumulativeProbabilities.indexWhere(_ > random.nextDouble()))._1)
       }
     })
   }
@@ -497,11 +489,11 @@ class LabelServiceImpl @Inject() (
   ): Future[(Option[Mission], Option[(Int, Int, Int)], Seq[LabelValidationMetadata], Seq[AdminValidationData])] = {
     // TODO can this be merged with `getDataForValidatePostRequest`?
     val viewerType: PanoSource = configService.getPanoSource
-    getLabelTypeIdToValidate(user.userId, labelCount, viewerType, validateParams.labelType).flatMap {
-      case Some(labelTypeId) =>
+    getLabelTypeToValidate(user.userId, labelCount, viewerType, validateParams.labelType).flatMap {
+      case Some(labelType) =>
         for {
           mission: Mission <- missionService
-            .resumeOrCreateNewValidateMission(user.userId, MissionType.Validation, labelTypeId)
+            .resumeOrCreateNewValidateMission(user.userId, MissionType.Validation, labelType)
             .map(_.get)
           missionProgress: (Int, Int, Int) <- db.run(labelValidationTable.getValidationProgress(mission.missionId))
 
@@ -509,7 +501,7 @@ class LabelServiceImpl @Inject() (
           labelsProgress: Int   = mission.labelsProgress.get
           labelsToValidate: Int = MissionTable.validationMissionLabelsToRetrieve
           labelsToRetrieve: Int = labelsToValidate - labelsProgress
-          labelMetadata <- retrieveLabelListForValidation(user.userId, labelsToRetrieve, viewerType, labelTypeId,
+          labelMetadata <- retrieveLabelListForValidation(user.userId, labelsToRetrieve, viewerType, labelType,
             validateParams.userIds.map(_.toSet), validateParams.neighborhoodIds.map(_.toSet),
             validateParams.unvalidatedOnly)
           adminData <- {
@@ -533,7 +525,7 @@ class LabelServiceImpl @Inject() (
    * render (#4810) would otherwise leave the mission unfinishable. This tops the queue back up.
    *
    * @param user             The user validating.
-   * @param labelTypeId      Label type of the mission being topped up.
+   * @param labelType        Label type of the mission being topped up.
    * @param labelsNeeded     How many labels the client is short, capped at a full mission's worth.
    * @param excludedLabelIds Every label the client already holds, so it can't be handed one back.
    * @param validateParams   The page's filters, so a topped-up label matches what the rest of the mission is.
@@ -541,7 +533,7 @@ class LabelServiceImpl @Inject() (
    */
   def getMoreLabelsToValidate(
       user: SidewalkUserWithRole,
-      labelTypeId: Int,
+      labelType: LabelTypeEnum.Base,
       labelsNeeded: Int,
       excludedLabelIds: Set[Int],
       validateParams: ValidateParams
@@ -552,7 +544,7 @@ class LabelServiceImpl @Inject() (
       Future.successful((Seq.empty[LabelValidationMetadata], Seq.empty[AdminValidationData]))
     } else {
       for {
-        labelList <- retrieveLabelListForValidation(user.userId, nToRetrieve, viewerType, labelTypeId,
+        labelList <- retrieveLabelListForValidation(user.userId, nToRetrieve, viewerType, labelType,
           validateParams.userIds.map(_.toSet), validateParams.neighborhoodIds.map(_.toSet),
           validateParams.unvalidatedOnly, excludedLabelIds)
         adminData <- {
@@ -576,22 +568,22 @@ class LabelServiceImpl @Inject() (
     val viewerType: PanoSource = configService.getPanoSource
     val labelsToRetrieve: Int  = MissionTable.validationMissionLabelsToRetrieve
     (for {
-      nextMissionLabelTypeId <- {
+      nextMissionLabelType <- {
         if (missionProgress.exists(_.completed))
-          getLabelTypeIdToValidate(user.userId, labelsToRetrieve, viewerType, validateParams.labelType)
-        else Future.successful(Option.empty[Int])
+          getLabelTypeToValidate(user.userId, labelsToRetrieve, viewerType, validateParams.labelType)
+        else Future.successful(Option.empty[LabelTypeEnum.Base])
       }
     } yield {
-      (missionProgress, nextMissionLabelTypeId) match {
-        case (Some(missionProgress), Some(nextMissionLabelTypeId)) =>
+      (missionProgress, nextMissionLabelType) match {
+        case (Some(missionProgress), Some(nextMissionLabelType)) =>
           for {
             newMission: Option[Mission] <- missionService.updateMissionTableValidate(
               user,
               missionProgress,
-              Some(nextMissionLabelTypeId)
+              Some(nextMissionLabelType)
             )
             labelList: Seq[LabelValidationMetadata] <- retrieveLabelListForValidation(user.userId, labelsToRetrieve,
-              viewerType, nextMissionLabelTypeId, validateParams.userIds.map(_.toSet),
+              viewerType, nextMissionLabelType, validateParams.userIds.map(_.toSet),
               validateParams.neighborhoodIds.map(_.toSet), validateParams.unvalidatedOnly)
             adminData <- {
               if (validateParams.adminVersion) getExtraAdminValidateData(labelList.map(_.labelId))
@@ -668,7 +660,7 @@ class LabelServiceImpl @Inject() (
    */
   def insertLabel(label: Label): DBIO[Int] = {
     for {
-      cleanTags: Seq[String] <- cleanTagList(label.tags, label.labelTypeId)
+      cleanTags: Seq[String] <- cleanTagList(label.tags, label.labelType)
       clean: Label = label.copy(tags = cleanTags.toList)
       labelId: Int <- (labelTable.labelsUnfiltered returning labelTable.labelsUnfiltered.map(_.labelId)) += clean
 
@@ -681,53 +673,4 @@ class LabelServiceImpl @Inject() (
     }
   }
 
-  /**
-   * Update the metadata that users might change on the Explore page after initially placing a label.
-   * @param labelId ID of the label to update
-   * @param deleted Whether the label is deleted or not
-   * @param severity Optional severity of the label, None if not set
-   * @param description Optional description of the label, None if not set
-   * @param tags List of tags associated with the label
-   * @return
-   */
-  def updateLabelFromExplore(
-      labelId: Int,
-      deleted: Boolean,
-      severity: Option[Int],
-      description: Option[String],
-      tags: List[String]
-  ): DBIO[Int] = {
-    val labelToUpdateQuery = labelTable.labelsUnfiltered.filter(_.labelId === labelId)
-
-    for {
-      labelToUpdate: Label      <- labelToUpdateQuery.result.head
-      cleanedTags: List[String] <- cleanTagList(tags, labelToUpdate.labelTypeId).map(_.toList)
-
-      // If the severity or tags have been changed, we need to update the label_history table as well.
-      _ <-
-        if (labelToUpdate.severity != severity || labelToUpdate.tags.toSet != cleanedTags.toSet) {
-          // If there are multiple entries in the label_history table, then the label has been edited before, and we need
-          // to add an entirely new entry to the table, otherwise we can just update the existing entry.
-          labelHistoryTable.labelHistory.filter(_.labelId === labelId).length.result.flatMap {
-            case labelHistoryCount if labelHistoryCount > 1 =>
-              labelHistoryTable.insert(
-                LabelHistory(0, labelId, severity, cleanedTags, labelToUpdate.userId, OffsetDateTime.now,
-                  UiSource.Explore, None)
-              )
-            case _ =>
-              labelHistoryTable.labelHistory
-                .filter(_.labelId === labelId)
-                .map(l => (l.severity, l.tags))
-                .update((severity, cleanedTags))
-          }
-        } else DBIO.successful(())
-
-      // Finally, update the label table.
-      rowsUpdated: Int <- labelToUpdateQuery
-        .map(l => (l.deleted, l.severity, l.description, l.tags))
-        .update((deleted, severity, description, cleanedTags))
-    } yield {
-      rowsUpdated
-    }
-  }
 }

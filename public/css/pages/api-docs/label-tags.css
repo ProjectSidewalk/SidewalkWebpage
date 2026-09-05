@@ -1,0 +1,62 @@
+/**
+ * Project Sidewalk API Documentation - Label Tags Component Styles
+ *
+ * Cell styles for the label-tag tables, which are .ps-table instances built by labelTagsPreview.js.
+ */
+
+#label-tags-preview {
+  margin: var(--space-lg) 0;
+  max-width: 1000px;
+  width: 100%;
+}
+
+.label-tags-section {
+  margin-bottom: var(--space-xl);
+}
+
+/* Tag Name */
+.tag-name {
+  font: var(--text-small-bold);
+}
+
+/* Tag Image */
+.tag-image {
+  text-align: center;
+}
+
+/* Tag Description */
+.tag-description {
+  color: var(--color-neutral-700);
+  max-width: 300px;
+}
+
+/* Tag Exclusions */
+.tag-exclusions {
+  color: var(--color-neutral-700);
+  font: var(--text-caption-regular);
+}
+
+.tag-exclusions span {
+  display: inline-block;
+  background-color: var(--color-neutral-100);
+  border-radius: var(--border-radius-sm);
+  padding: 2px 6px;
+  margin: 2px;
+}
+
+.tag-exclusions:empty::after {
+  content: "None";
+  color: var(--color-neutral-700);
+  font-style: italic;
+}
+
+/* Label Type Column */
+.label-type {
+  font: var(--text-small-bold);
+  width: 20%;
+}
+
+/* Label Tags List */
+.label-tags-list {
+  color: var(--color-neutral-700);
+}

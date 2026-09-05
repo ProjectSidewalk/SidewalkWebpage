@@ -47,9 +47,12 @@ object ScheduledJobs {
   val FunnelStats: ScheduledJob      = ScheduledJob(FunnelStatActor.Name, "Engagement funnel stats", 3, 15)
   val Clustering: ScheduledJob       = ScheduledJob(ClusteringActor.Name, "Label clustering", 4, 0)
 
+  /** After clustering, which can run long in a big city; the two share the CPU-intensive pool. */
+  val CropGeneration: ScheduledJob = ScheduledJob(CropGenerationActor.Name, "Crop generation", 5, 0)
+
   /** Every job the Health panel expects to see a recent run of, in the order they run. */
   val All: Seq[ScheduledJob] = Seq(CheckImageExpiry, GetAiValidations, CheckImageryAge, UserStats, ImageryFreshnessSync,
-    RecalculateStreetPriority, OsmWayRefresh, AuthTokenCleaner, FunnelStats, Clustering)
+    RecalculateStreetPriority, OsmWayRefresh, AuthTokenCleaner, FunnelStats, Clustering, CropGeneration)
 
   /**
    * How long after a job's last successful run it counts as overdue, in hours.

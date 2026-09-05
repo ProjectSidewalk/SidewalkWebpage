@@ -4,7 +4,7 @@ import actor.ActorUtils.{dateFormatter, getTimeToNextUpdate}
 import models.utils.JobRunTrigger
 import org.apache.pekko.actor.{Actor, Cancellable}
 import play.api.Logger
-import play.api.libs.json.Json
+import play.api.libs.json.{JsNull, JsNumber, JsObject, JsValue, Json}
 import service.{ConfigService, ImageryFreshnessService, JobRunService, RegionService, StreetService}
 
 import java.time.Instant
@@ -26,6 +26,20 @@ object RecalculateStreetPriorityActor {
   val FreshnessSyncJobName = "imagery-freshness-sync"
 
   case object Tick
+
+  /**
+   * The counts as they are stored against a `background_job_run` row.
+   *
+   * Defined here rather than at each call site so the nightly sequence and the admin hand-trigger can't record the
+   * same job under two different shapes.
+   *
+   * @param regionsSeeded Rows written to `region_completion` by the rebuild that follows the recalculation, or `None`
+   *                      for the hand-trigger, which runs the recalculation alone. A plain `0` would file "the
+   *                      rebuild found no regions" and "no rebuild ran" as the same run.
+   * @return The run's `details` object.
+   */
+  def runDetails(regionsSeeded: Option[Int]): JsObject =
+    Json.obj("regions_seeded" -> regionsSeeded.fold[JsValue](JsNull)(count => JsNumber(count)))
 }
 
 @Singleton
@@ -101,7 +115,7 @@ class RecalculateStreetPriorityActor @Inject() (
         _             <- streetService.recalculateStreetPriority
         _             <- regionService.truncateRegionCompletionTable
         regionsSeeded <- regionService.initializeRegionCompletionTable
-      } yield regionsSeeded) { regionsSeeded => Json.obj("regions_seeded" -> regionsSeeded) }
+      } yield regionsSeeded)(regionsSeeded => RecalculateStreetPriorityActor.runDetails(Some(regionsSeeded)))
       .onComplete {
         case Success(_) =>
           val currentEndTime: String = dateFormatter.format(Instant.now())

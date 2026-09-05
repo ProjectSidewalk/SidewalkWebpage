@@ -5,6 +5,6 @@
     }
   },
   "mission-complete": {
-    "body-1": "You just validated {{n}} Curb Style labels."
+    "body-CurbRamp": "You just validated {{n}} Curb Style labels."
   }
 }

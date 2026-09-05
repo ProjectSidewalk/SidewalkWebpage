@@ -156,12 +156,11 @@ window.appManager.ready(() => {
     window.logWebpageActivity('Click_module=HowYouCanHelp_tab=3');
   });
 
-  // Triggered when images in Collaborators section are clicked.
-  // Logs "Click_module=Collaborator_type=<"img">_source=<"makeability" or "ligapeatonal">
-  $('#collaborators-container').on('click', 'a', (e) => {
-    const type = e.currentTarget.id.split('-')[1];
-    const source = e.currentTarget.id.split('-')[0];
-    window.logWebpageActivity(`Click_module=Collaborator_type=${type}_source=${source}`);
+  // Triggered when a logo or credit link in the Community Partners section is clicked (#4516).
+  // Logs "Click_module=Partner_source=<slugged partner name, e.g. "makeability-lab">".
+  $('#partners-container').on('click', 'a', (e) => {
+    const source = e.currentTarget.dataset.partnerSource || 'unknown';
+    window.logWebpageActivity(`Click_module=Partner_source=${source}`);
   });
 
   // Triggered when 'Start Exploring' in video container is clicked.

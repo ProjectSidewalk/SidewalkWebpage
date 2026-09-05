@@ -87,6 +87,11 @@
   "only": "只看",
   "image-capture-date": "影像拍攝日期",
   "drag-to-look-around": "拖曳以環顧四周",
+  "loading-imagery": "正在載入影像...",
+  "hide-label": "隱藏標記",
+  "show-label": "顯示標記",
+  "hide-label-tooltip": "暫時隱藏標記以查看下方的情況。",
+  "show-label-tooltip": "重新顯示標記。",
   "labeled": "已標記",
   "low": "低的",
   "medium": "中等的",
@@ -194,15 +199,20 @@
     "pano-address": "地址",
     "view-in-gsv": "在Google街景圖裡查看",
     "view-in-mapillary": "在Mapillary街景圖裡查看",
+    "view-in-panoramax": "在Panoramax街景圖裡查看",
     "city": "城市",
     "copy-to-clipboard": "複製到剪貼簿",
     "copied-to-clipboard": "資訊已複製於您的剪貼簿！"
+  },
+  "pano-attribution": {
+    "opens-new-tab": "(在新分頁中開啟)"
   },
   "mission-start-tutorial": {
     "example-type-label-correct": "正確案例",
     "label-type-subtitle": "為什麼是錯的？",
     "label-on-image-title-correct": "正確的標記",
     "start-mission": "開始任務",
+    "resume-mission": "繼續任務",
     "curb-ramp": {
       "slide-1": {
         "title": "{{- labelType}}",

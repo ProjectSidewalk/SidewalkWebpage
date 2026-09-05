@@ -4,10 +4,14 @@
 class MissionPanel {
   #headerEl;
   #descriptionEl;
+  #exitRouteEl;
 
   constructor() {
     this.#headerEl = document.getElementById('current-mission-header');
     this.#descriptionEl = document.getElementById('current-mission-description');
+    this.#exitRouteEl = document.getElementById('explore-sidebar__exit-route');
+    // The link's href does the navigation; the page-dismissal flush (Form's pagehide handler) submits the event.
+    this.#exitRouteEl.addEventListener('click', () => svl.tracker.push('Click_ExitRoute', { source: 'sidebar' }));
   }
 
   /**
@@ -20,6 +24,8 @@ class MissionPanel {
 
     if (missionType === 'exploreAddress') {
       this.#headerEl.innerHTML = i18next.t('right-ui.current-mission.header-free-explore');
+    } else if (isRoute) {
+      this.#headerEl.innerHTML = i18next.t('right-ui.current-mission.header-route');
     } else {
       this.#headerEl.innerHTML = i18next.t('right-ui.current-mission.header');
     }
@@ -47,6 +53,9 @@ class MissionPanel {
     }
 
     this.#descriptionEl.innerHTML = missionMessage;
+
+    // The exit link only makes sense on a custom-route walk.
+    this.#exitRouteEl.hidden = !isRoute;
 
     // The mission line is clamped to one line via CSS; when a long neighborhood name is clipped, keep the full text
     // available on hover (and leave no redundant tooltip when it already fits).

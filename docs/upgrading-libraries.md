@@ -121,8 +121,8 @@ edited or linted.**
 **To upgrade a self-hosted library:** download the new version, drop it in `public/vendor/<lib>/`, **rename it to
 include the version number** (e.g. `turf-7.3.4.min.js`) for clarity, update every reference to the old filename across
 the code, and delete the old file. The version baked into each filename under `vendor/` is the real source of truth for
-the frontend — the app has no asset fingerprinting, so version-in-filename is the only cache-buster — keep this list
-matching it.
+the frontend — it names in the URL what a reader would otherwise have to diff for, and lets two versions sit side by
+side mid-upgrade — keep this list matching it.
 
 - **async-lock: 1.4.1** — **note:** a fresh download probably needs the trailing `module.export` line removed.
   [Download](https://cdn.jsdelivr.net/npm/async-lock@1.4.1/lib/index.min.js) ·
@@ -136,12 +136,6 @@ matching it.
 - **bootstrap-accessibility-plugin** (bundles Bootstrap 3.1.1 + jQuery 1.12.2) — accessibility patches for our
   Bootstrap 3 UI; lives in `public/vendor/bootstrap-accessibility/` (with the bundled Bootstrap 3.1.1 JS and jQuery
   1.12.2 split out into `public/vendor/bootstrap/` and `public/vendor/jquery/`). Tied to the Bootstrap-removal effort.
-- **bootstrap-datepicker: 1.9.0** — admin pages only; language packs not yet bundled.
-  [Download JS](https://unpkg.com/bootstrap-datepicker@1.9.0/dist/js/bootstrap-datepicker.min.js) ·
-  [Download CSS](https://unpkg.com/bootstrap-datepicker@1.9.0/dist/css/bootstrap-datepicker.min.css) ·
-  [Changelog](https://github.com/uxsolutions/bootstrap-datepicker/blob/master/CHANGELOG.md)
-- **bootstrap-slider: 7.1.1** — slider UI control; in `public/vendor/bootstrap-slider/`.
-  [Changelog](https://github.com/seiyria/bootstrap-slider/releases)
 - **bowser: 2.14.1** — browser detection.
   [Versions](https://www.npmjs.com/package/bowser?activeTab=versions) ·
   [Changelog](https://github.com/bowser-js/bowser/releases)
@@ -149,11 +143,6 @@ matching it.
   [Download](https://unpkg.com/chart.js) · [Changelog](https://github.com/chartjs/Chart.js/releases)
 - **countUp.js: 1.9.3** — animates the counting-up of stats on the landing page; lightly used. (Several libraries
   share this name — be careful which you grab.)
-- **d3: 3.5.6** — **note:** we're several major versions behind; it's a big library and the upgrade hasn't been
-  prioritized. [Versions](https://www.npmjs.com/package/d3?activeTab=versions) ·
-  [Changelog](https://github.com/d3/d3/releases)
-- **dataTables.bootstrap / jquery.dataTables** — **TODO:** clarify these and their relationship to jQuery/Bootstrap.
-  Tied to the jQuery/Bootstrap removal effort.
 - **floating-ui: 1.7.6 (`@floating-ui/dom`), 1.7.5 (`@floating-ui/core`)** — **note:** start from the newest `dom`
   version, then pick a `core` version that satisfies its dependency.
   [Changelog](https://github.com/floating-ui/floating-ui/releases) ·
@@ -194,6 +183,20 @@ matching it.
   [Changelog](https://github.com/mpetroff/pannellum/blob/2.5.7/changelog.md)
 - **panzoom: 9.4.4** — zoom/pan for static images in LabelMap/Gallery.
   [Download](https://unpkg.com/panzoom@9.4.4/dist/panzoom.min.js) · [Versions](https://github.com/anvaka/panzoom/tags)
+- **photo-sphere-viewer: 5.15.1** (bundling **three.js 0.185.1**) — the renderer behind the Panoramax imagery
+  provider (#5185). **Not an upstream file:** a self-contained bundle built by
+  `public/vendor/photo-sphere-viewer/build/build.sh`, because upstream ships ES modules only and needs a newer
+  three.js than the standalone 0.160.1 below. Upgrade by running the script with the new version (three.js follows
+  from PSV's own dependency pin); see the README beside it. [Releases](https://github.com/mistic100/Photo-Sphere-Viewer/releases) ·
+  [Docs](https://photo-sphere-viewer.js.org/guide/)
+- **prism: 1.30.0** — syntax highlighting for the API docs' code blocks. We ship the core plus only the language
+  components the docs use (`json`, `csv`), so a new `language-*` class in a docs page means adding that component too.
+  **No stock theme:** the `.token.*` colors are ours, in `css/pages/api-docs/api-docs.css`, so the blocks stay on the
+  design-system tokens — an upgrade is the JS files only. **Note:** 1.30.0 is old (March 2025) because v1 is in
+  maintenance while the repo's default branch develops **v2**, an unreleased breaking rewrite (ESM, `src/languages/`,
+  a different dist layout). So 1.x is the stable line to track, and `1.30.0 → 2.x` will be a migration rather than a
+  file swap. [Download (pick components)](https://prismjs.com/download.html) ·
+  [Changelog](https://github.com/PrismJS/prism/releases)
 - **proj4js: 2.19.10** — [Download](https://cdnjs.com/libraries/proj4js) ·
   [Changelog](https://github.com/proj4js/proj4js/releases)
 - **selectize.js: 0.15.2** — **note:** unmaintained (last release 2022). The suggested successor is
@@ -208,7 +211,7 @@ matching it.
   [Changelog](https://github.com/Turfjs/turf/releases)
 - **jquery.magnific-popup** — **TODO:** unclear status; resolve the jQuery situation first. Tied to jQuery removal.
 
-> **jQuery / Bootstrap removal:** several entries above (Bootstrap, dataTables, magnific-popup, selectize) are part of
+> **jQuery / Bootstrap removal:** several entries above (Bootstrap, magnific-popup, selectize) are part of
 > a slow, deliberate transition *off* jQuery and Bootstrap toward native JS/CSS. Prefer native alternatives in new
 > code rather than leaning further on these. See the coding guidance in [`CONTRIBUTING.md`](../CONTRIBUTING.md).
 

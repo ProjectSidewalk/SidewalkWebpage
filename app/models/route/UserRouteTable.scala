@@ -10,7 +10,14 @@ import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
-case class UserRoute(userRouteId: Int, routeId: Int, userId: String, completed: Boolean, discarded: Boolean)
+case class UserRoute(
+    userRouteId: Int,
+    routeId: Int,
+    userId: String,
+    completed: Boolean,
+    discarded: Boolean,
+    paused: Boolean = false
+)
 
 class UserRouteTableDef(tag: slick.lifted.Tag) extends Table[UserRoute](tag, "user_route") {
   def userRouteId: Rep[Int]   = column[Int]("user_route_id", O.PrimaryKey, O.AutoInc)
@@ -18,8 +25,10 @@ class UserRouteTableDef(tag: slick.lifted.Tag) extends Table[UserRoute](tag, "us
   def userId: Rep[String]     = column[String]("user_id")
   def completed: Rep[Boolean] = column[Boolean]("completed")
   def discarded: Rep[Boolean] = column[Boolean]("discarded")
+  def paused: Rep[Boolean]    = column[Boolean]("paused", O.Default(false))
 
-  def * = (userRouteId, routeId, userId, completed, discarded) <> ((UserRoute.apply _).tupled, UserRoute.unapply)
+  def * =
+    (userRouteId, routeId, userId, completed, discarded, paused) <> ((UserRoute.apply _).tupled, UserRoute.unapply)
 
   def route = foreignKey("user_route_route_id_fkey", routeId, TableQuery[RouteTableDef])(_.routeId)
   def user  = foreignKey("user_route_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
@@ -45,7 +54,10 @@ class UserRouteTable @Inject() (
   val activeRoutes        = userRoutes.filter(ur => !ur.completed && !ur.discarded)
 
   /**
-   * The user's in-progress route walk, if any.
+   * The user's in-progress route walk, if any — the walk that a bare /explore visit silently resumes.
+   *
+   * Paused walks are excluded: the user exited that route, so it only resumes on an explicit ?routeId= visit
+   * (getActiveRouteOrCreateNew), never silently (#4833).
    *
    * Routes soft-deleted by their owner are excluded. A shared route can be deleted while someone else is partway
    * through it, and resuming one builds an inconsistent session — the mission is route-scoped off the user_route
@@ -54,7 +66,7 @@ class UserRouteTable @Inject() (
    */
   def getInProgressRoute(userId: String): DBIO[Option[UserRoute]] = {
     activeRoutes
-      .filter(_.userId === userId)
+      .filter(ur => ur.userId === userId && !ur.paused)
       .join(routes.filter(!_.deleted))
       .on(_.routeId === _.routeId)
       .map(_._1)
@@ -67,16 +79,46 @@ class UserRouteTable @Inject() (
   }
 
   /**
-   * Discard any active routes for the given user that doesn't match the given routeId.
+   * Whether a street of this walk has ever been served to the user.
+   *
+   * Distance walked is deliberately not the signal: someone who opens a street and labels without moving has been in
+   * the walk. It also separates a real walk from one created but never entered — picking up a route during onboarding
+   * serves a tutorial task instead (see ExploreService), leaving the walk row-less.
    */
-  def discardOtherActiveRoutes(routeId: Int, userId: String): DBIO[Int] = {
-    activeRoutes.filter(x => x.routeId =!= routeId && x.userId === userId).map(_.discarded).update(true)
+  def hasBeenWalked(userRouteId: Int): DBIO[Boolean] = {
+    auditTaskUserRoutes.filter(_.userRouteId === userRouteId).exists.result
   }
 
-  def getActiveRouteOrCreateNew(routeId: Int, userId: String): DBIO[UserRoute] = {
+  /**
+   * Pause all of the user's active route walks. Unlike discarding, a paused walk keeps its progress and resumes
+   * where it left off when the user explicitly re-enters the route via ?routeId= (#4833).
+   */
+  def pauseAllActiveRoutes(userId: String): DBIO[Int] = {
+    activeRoutes.filter(_.userId === userId).map(_.paused).update(true)
+  }
+
+  /**
+   * Pause any active route walks for the given user that don't match the given routeId.
+   */
+  def pauseOtherActiveRoutes(routeId: Int, userId: String): DBIO[Int] = {
+    activeRoutes.filter(x => x.routeId =!= routeId && x.userId === userId).map(_.paused).update(true)
+  }
+
+  /**
+   * The user's active walk of the given route (un-pausing it if they had exited), or a brand new walk of it.
+   *
+   * @return The walk, paired with whether it already existed (a resumed walk) rather than being created here.
+   */
+  def getActiveRouteOrCreateNew(routeId: Int, userId: String): DBIO[(UserRoute, Boolean)] = {
     activeRoutes.filter(ar => ar.routeId === routeId && ar.userId === userId).result.headOption.flatMap {
-      case Some(ur) => DBIO.successful(ur)
-      case None     => insert(UserRoute(0, routeId, userId, completed = false, discarded = false))
+      case Some(ur) if ur.paused =>
+        userRoutes
+          .filter(_.userRouteId === ur.userRouteId)
+          .map(_.paused)
+          .update(false)
+          .map(_ => (ur.copy(paused = false), true))
+      case Some(ur) => DBIO.successful((ur, true))
+      case None     => insert(UserRoute(0, routeId, userId, completed = false, discarded = false)).map((_, false))
     }
   }
 
@@ -88,15 +130,8 @@ class UserRouteTable @Inject() (
    * @param missionId
    */
   def getRouteTask(currRoute: UserRoute, missionId: Int): DBIO[Option[NewTask]] = {
-    val possibleTask: DBIO[Option[NewTask]] = auditTaskUserRoutes
-      .join(auditTasks)
-      .on(_.auditTaskId === _.auditTaskId)
-      .join(routeStreets)
-      .on(_._1.routeStreetId === _.routeStreetId)
-      .filter(x => !x._1._2.completed && x._1._1.userRouteId === currRoute.userRouteId.bind)
-      .map(x => (x._1._1.auditTaskId, x._2.routeStreetId, x._2.position))
-      .result
-      .headOption
+    val possibleTask: DBIO[Option[NewTask]] = auditTaskTable
+      .resumableRouteTask(currRoute.userRouteId)
       .flatMap {
         case Some((currTaskId, currRouteStreetId, currPosition)) =>
           auditTaskTable.selectTaskFromTaskId(currTaskId, Some(currRouteStreetId), Some(currPosition))
@@ -128,6 +163,12 @@ class UserRouteTable @Inject() (
 
   /**
    * Check if the given user route has been finished based on the audit_task table. Mark as complete if so.
+   *
+   * A street the labeler reported as imagery-less during this walk counts as done. It stays incomplete on purpose
+   * (#4922), so requiring a completed audit for every street would leave the walk active forever: the route is
+   * resumed ahead of any region assignment, and with nothing left to hand out the labeler gets the finished-region
+   * overlay on every visit instead of new work (#5008).
+   *
    * @param userRouteId
    */
   def updateCompleteness(userRouteId: Int): DBIO[Boolean] = {
@@ -136,6 +177,7 @@ class UserRouteTable @Inject() (
       .join(completedTasks)
       .on(_.auditTaskId === _.auditTaskId)
       .filter(_._1.userRouteId === userRouteId)
+    val reportedStreets = auditTaskTable.streetsReportedNoImageryDuringRoute(userRouteId)
 
     // Check if all streets in the route have a completed audit using an outer join. If so, mark as complete in db.
     userRoutes
@@ -143,7 +185,7 @@ class UserRouteTable @Inject() (
       .on(_.routeId === _.routeId)
       .joinLeft(userAudits)
       .on(_._2.routeStreetId === _._1.routeStreetId)
-      .filter(x => x._1._1.userRouteId === userRouteId && x._2.isEmpty)
+      .filter(x => x._1._1.userRouteId === userRouteId && x._2.isEmpty && !(x._1._2.streetEdgeId in reportedStreets))
       .exists
       .result
       .flatMap {

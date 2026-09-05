@@ -222,11 +222,14 @@ class GalleryFilter {
   /** Blocks interaction with the filters while a page of cards loads. */
   disable() {
     this.#sidebar.disable();
+    // The reset sits outside the sidebar (see gallery.scala.html), so it needs disabling on its own.
+    this.#clearButton.disabled = true;
   }
 
   /** Restores interaction with the filters. */
   enable() {
     this.#sidebar.enable();
+    this.#clearButton.disabled = false;
   }
 
   /** Resets every filter to its default state. Callers follow with update() to apply it. */

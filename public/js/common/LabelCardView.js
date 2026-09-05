@@ -2,7 +2,7 @@
  * Fills in the shared label card — the read-only panel showing a label's type, rating, tags, and description.
  *
  * Explore's hover card and Validate's label card are the same component: one Twirl template
- * (views/components/labelCard.scala.html), one stylesheet pair (css/common/label-anchored-panel.css for the shell,
+ * (views/components/labelCard.scala.html), one stylesheet pair (css/components/label-anchored-panel.css for the shell,
  * label-hover-card.css for the chip stack), and this class for the populate logic, so the two tools can't drift in
  * how a rating, tag pill, or description is presented (#4730). Each tool keeps what is genuinely its own: showing,
  * hiding, and anchoring the card, its action buttons, and its share control.

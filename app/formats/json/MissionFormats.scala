@@ -1,5 +1,7 @@
 package formats.json
 
+import formats.json.LabelFormats.labelTypeEnumWrites
+import models.label.LabelTypeEnum
 import models.mission.{Mission, MissionType}
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
@@ -21,7 +23,7 @@ object MissionFormats {
       (__ \ "region_id").writeNullable[Int] and
       (__ \ "labels_validated").writeNullable[Int] and
       (__ \ "labels_progress").writeNullable[Int] and
-      (__ \ "label_type_id").writeNullable[Int] and
+      (__ \ "label_type").writeNullable[LabelTypeEnum.Base] and
       (__ \ "skipped").write[Boolean] and
       (__ \ "current_audit_task_id").writeNullable[Int] and
       (__ \ "user_route_id").writeNullable[Int]

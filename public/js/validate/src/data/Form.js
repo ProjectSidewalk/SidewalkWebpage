@@ -52,7 +52,7 @@ class Form {
   getValidateParams() {
     return {
       admin_version: svv.adminVersion,
-      label_type: svv.validateParams.labelTypeId,
+      label_type: svv.validateParams.labelType,
       user_ids: svv.validateParams.userIds,
       neighborhood_ids: svv.validateParams.regionIds,
       unvalidated_only: svv.validateParams.unvalidatedOnly,
@@ -80,7 +80,7 @@ class Form {
         mission_type: mission.getProperty('missionType'),
         labels_progress: mission.getProperty('labelsProgress'),
         labels_total: mission.getProperty('labelsValidated'),
-        label_type_id: mission.getProperty('labelTypeId'),
+        label_type: mission.getProperty('labelType'),
         completed: missionComplete ? missionComplete : false,
       };
     }
@@ -194,7 +194,7 @@ class Form {
       if (result.has_mission_available) {
         if (result.mission) {
           svv.missionContainer.createAMission(result.mission, result.progress);
-          svv.labelContainer.resetLabelList(result.labels, result.mission.label_type_id);
+          svv.labelContainer.resetLabelList(result.labels, result.mission.label_type);
           await svv.labelContainer.renderCurrentLabel();
           svv.modalMissionComplete.nextMissionLoaded();
         }

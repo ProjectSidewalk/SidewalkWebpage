@@ -4,7 +4,7 @@
  * Three sections, all driven from /adminapi/getUserStats (users + teams) plus the existing admin mutation endpoints:
  *   - Users: a searchable, sortable, paginated directory with inline role and team assignment.
  *   - Teams: open/closed and visible/hidden toggles.
- *   - Maintenance: recalc user stats, recalc street priority, clear cache (each confirmed before running).
+ *   - Maintenance: recalc user stats, recalc street priority, generate crops, clear cache (each confirmed first).
  *
  * The full user list (~13k on a large deployment like Seattle, after anonymous-with-no-activity are filtered out) is
  * downloaded once and then filtered/sorted/paginated entirely client-side — small enough to keep every column sortable
@@ -37,7 +37,8 @@ class ManagementPage {
 
   /**
    * @param {{userStatsUrl: string, setRoleUrl: string, setTeamUrl: string, teamStatusUrl: string,
-   *          teamVisibilityUrl: string, clearCacheUrl: string, recalcStatsUrl: string, recalcPriorityUrl: string}} urls
+   *          teamVisibilityUrl: string, clearCacheUrl: string, recalcStatsUrl: string, recalcPriorityUrl: string,
+   *          generateCropsUrl: string}} urls
    */
   constructor(urls) {
     this.#urls = urls;
@@ -147,7 +148,7 @@ class ManagementPage {
     }).join('');
 
     document.getElementById('mgmt-users').innerHTML = rows.length
-      ? `<table class="contrib-table mgmt-table"><thead>${head}</thead><tbody>${body}</tbody></table>`
+      ? `<table class="ps-table ps-table--compact contrib-table mgmt-table"><thead>${head}</thead><tbody>${body}</tbody></table>`
       : '<p class="dq-empty">No users match your search.</p>';
 
     this.#renderCount(all.length);
@@ -184,7 +185,7 @@ class ManagementPage {
           btn('last', 'Last »', atEnd),
           '</div>',
           `<label class="mgmt-page-size-label">Rows per page `
-          + `<select class="mgmt-page-size">${sizeOpts}</select></label>`,
+          + `<select class="ps-select mgmt-page-size">${sizeOpts}</select></label>`,
         ].join('');
     for (const id of ManagementPage.#PAGINATION_IDS) {
       const el = document.getElementById(id);
@@ -199,11 +200,12 @@ class ManagementPage {
     const opts = ManagementPage.#ASSIGNABLE_ROLES.map((r) =>
       `<option value="${r}"${r === current ? ' selected' : ''}>${r}</option>`).join('');
     if (assignable) {
-      return `<select class="mgmt-select" data-kind="role" data-user-id="${ManagementPage.#esc(u.userId)}" `
+      return `<select class="ps-select mgmt-select" data-kind="role" data-user-id="${ManagementPage.#esc(u.userId)}" `
         + `aria-label="Role for ${ManagementPage.#esc(u.username)}">${opts}</select>`;
     }
     // Show the locked system role as a disabled, selected option so the column still reads clearly.
-    return `<select class="mgmt-select" disabled aria-label="Role for ${ManagementPage.#esc(u.username)} (locked)">`
+    return `<select class="ps-select mgmt-select" disabled `
+      + `aria-label="Role for ${ManagementPage.#esc(u.username)} (locked)">`
       + `<option selected>${ManagementPage.#esc(current)}</option></select>`;
   }
 
@@ -215,7 +217,7 @@ class ManagementPage {
       `<option value="${t.teamId}"${hasTeam && t.name === u.team ? ' selected' : ''}>`
       + `${ManagementPage.#esc(t.name)}</option>`,
     ).join('');
-    return `<select class="mgmt-select" data-kind="team" data-user-id="${ManagementPage.#esc(u.userId)}" `
+    return `<select class="ps-select mgmt-select" data-kind="team" data-user-id="${ManagementPage.#esc(u.userId)}" `
       + `aria-label="Team for ${ManagementPage.#esc(u.username)}">${placeholder}${opts}</select>`;
   }
 
@@ -322,7 +324,7 @@ class ManagementPage {
         <td>${ManagementPage.#toggle('status', t.teamId, t.open, 'Open', 'Closed')}</td>
         <td>${ManagementPage.#toggle('visibility', t.teamId, t.visible, 'Visible', 'Hidden')}</td>
       </tr>`).join('');
-    el.innerHTML = `<table class="contrib-table mgmt-table"><thead>${head}</thead><tbody>${body}</tbody></table>`;
+    el.innerHTML = `<table class="ps-table ps-table--compact contrib-table mgmt-table"><thead>${head}</thead><tbody>${body}</tbody></table>`;
   }
 
   #wireTeams() {
@@ -352,7 +354,8 @@ class ManagementPage {
   // --- Maintenance ------------------------------------------------------------------------------------------------
 
   #wireMaintenance() {
-    const run = (id, url, method, label) => {
+    // `done` is what the button reports on success: a trigger that answers before its job finishes can't say "Done".
+    const run = (id, url, method, label, done = `Done: ${label}.`) => {
       const btn = document.getElementById(id);
       if (!btn) return;
       btn.addEventListener('click', async () => {
@@ -366,7 +369,7 @@ class ManagementPage {
         this.#maintResult(`Running: ${label}…`);
         try {
           await this.#mutate(url, method);
-          this.#maintResult(`Done: ${label}.`);
+          this.#maintResult(done);
         } catch (err) {
           this.#maintResult(`Failed: ${label} — ${err.message}`, true);
         } finally {
@@ -376,6 +379,8 @@ class ManagementPage {
     };
     run('mgmt-recalc-stats', this.#urls.recalcStatsUrl, 'GET', 'recalculate user stats');
     run('mgmt-recalc-priority', this.#urls.recalcPriorityUrl, 'GET', 'recalculate street priority');
+    run('mgmt-generate-crops', this.#urls.generateCropsUrl, 'POST', 'generate crops',
+      'Started: generate crops. It runs in the background — the Health panel reports how it ended.');
     run('mgmt-clear-cache', this.#urls.clearCacheUrl, 'PUT', 'clear server cache');
   }
 

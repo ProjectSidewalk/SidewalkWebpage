@@ -7,9 +7,9 @@
  * the response is gzipped, so Content-Length is the compressed size, and the label count isn't known until the
  * payload has fully parsed — neither yields an honest percentage.
  *
- * The error state is driven by the caller's `catch`, not by anything observed here. The feed is a chunked 200,
- * so a stream that dies mid-flight arrives as a truncated body under a success status and only surfaces when
- * the JSON parse throws (#3932).
+ * The error state is driven by the caller's error handling, not by anything observed here. The feed is a
+ * chunked 200, so a stream that dies mid-flight arrives as a truncated body under a success status and only
+ * surfaces when the JSON parse throws (#3932).
  *
  * Markup comes from the shared `common.mapLoadingOverlay` Twirl partial, so /labelMap and /admin/label-map
  * present the same thing.
@@ -25,9 +25,8 @@ class MapLoadingOverlay {
 
   /**
    * @param {object} [options]
-   * @param {Function} [options.onRetry] - Invoked when retry is pressed. Defaults to reloading the page, which
-   *     is the honest retry: the feed is fetched once while the map is built, so there is nothing to re-request
-   *     without reconstructing the map.
+   * @param {Function} [options.onRetry] - Invoked when retry is pressed — with viewport label loading, this is
+   *     where the page re-issues the feed request (ViewportLabelLoader.refetch). Defaults to reloading the page.
    */
   constructor({ onRetry } = {}) {
     this.#root = document.getElementById('labelmap-loading');
@@ -36,7 +35,18 @@ class MapLoadingOverlay {
     this.#errorCard = document.getElementById('labelmap-error-card');
     this.#elapsedEl = document.getElementById('labelmap-loading-elapsed');
     this.#retryButton = document.getElementById('labelmap-retry');
-    this.#retryButton.addEventListener('click', () => (onRetry ? onRetry() : window.location.reload()));
+    this.#retryButton.addEventListener('click', () => {
+      // A retry is a fresh attempt: clear the failure latch and put the spinner back up for immediate feedback.
+      this.#failed = false;
+      this.show();
+      if (onRetry) onRetry();
+      else window.location.reload();
+    });
+  }
+
+  /** @returns {boolean} Whether the overlay (spinner or error card) is currently covering the map. */
+  isVisible() {
+    return this.#root ? !this.#root.hidden : false;
   }
 
   /**

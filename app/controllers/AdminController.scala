@@ -1,20 +1,19 @@
 package controllers
 
-import actor.{CheckImageExpiryActor, FunnelStatActor, OsmWayRefreshActor, RecalculateStreetPriorityActor, UserStatActor}
+import actor._
 import controllers.base._
-import controllers.helper.ControllerUtils
-import controllers.helper.ControllerUtils.isAdmin
 import formats.json.AdminFormats._
 import formats.json.LabelFormats._
 import formats.json.UserFormats._
 import models.auth.{DefaultEnv, WithAdmin, WithOwner}
 import models.label.LabelTypeEnum
-import models.user.{RoleTable, SidewalkUserWithRole}
+import models.user.Role
 import models.utils.JobRunTrigger
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.dispatch.Dispatcher
 import play.api.cache.AsyncCacheApi
-import play.api.libs.json.{JsArray, JsError, JsObject, Json}
+import play.api.i18n.Messages
+import play.api.libs.json._
 import play.api.{Configuration, Logger}
 import play.silhouette.api.Silhouette
 import play.silhouette.impl.exceptions.IdentityNotFoundException
@@ -26,7 +25,7 @@ import java.util.concurrent.ThreadPoolExecutor
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.jdk.CollectionConverters.CollectionHasAsScala
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 import scala.util.control.NonFatal
 
 @Singleton
@@ -41,70 +40,17 @@ class AdminController @Inject() (
     labelService: LabelService,
     streetService: StreetService,
     panoDataService: PanoDataService,
+    cropService: CropService,
     osmWayService: service.OsmWayService,
     userService: service.UserService,
     jobRunService: JobRunService,
+    trafficService: TrafficService,
     actorSystem: ActorSystem
-)(implicit ec: ExecutionContext, assets: AssetsFinder)
+)(implicit ec: ExecutionContext)
     extends CustomBaseController(cc) {
 
   implicit val implicitConfig: Configuration = config
   private val logger                         = Logger(this.getClass)
-
-  /**
-   * Loads the admin version of the user dashboard page.
-   */
-  def userProfile(username: String) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-    authenticationService.findByUsername(username).flatMap {
-      case Some(user) =>
-        val metricSystem: Boolean = ControllerUtils.isMetric
-        for {
-          userProfileData: UserProfileData <- userService.getUserProfileData(user.userId, metricSystem)
-          adminData                        <- adminService.getAdminUserProfileData(user.userId)
-          commonData                       <- configService.getCommonPageData(request2Messages.lang)
-          tags                             <- labelService.getTagsForCurrentCity
-        } yield {
-          cc.loggingService.insert(user.userId, request.ipAddress, s"Visit_AdminUserDashboard_User=$username")
-          Ok(
-            views.html.userProfile(commonData, "Sidewalk - Dashboard", request.identity, user, tags, userProfileData,
-              Some(adminData))
-          )
-        }
-      case _ => Future.failed(new IdentityNotFoundException("Username not found."))
-    }
-  }
-
-  /**
-   * Loads the page that shows a single label with a search box to view others.
-   */
-  def label(labelId: Int) = cc.securityService.SecuredAction { implicit request =>
-    configService.getCommonPageData(request2Messages.lang).map { commonData =>
-      val user: SidewalkUserWithRole = request.identity
-      val admin: Boolean             = isAdmin(request.identity)
-      cc.loggingService.insert(user.userId, request.ipAddress, s"Visit_LabelView_Label=${labelId}_Admin=$admin")
-      Ok(views.html.admin.label(commonData, "Sidewalk - LabelView", user, admin, labelId))
-    }
-  }
-
-  /**
-   * Loads the page that replays an audit task.
-   */
-  def task(taskId: Int) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-    for {
-      commonData <- configService.getCommonPageData(request2Messages.lang)
-      maybeTask  <- adminService.findAuditTask(taskId)
-    } yield {
-      val user: SidewalkUserWithRole = request.identity
-      maybeTask match {
-        case Some(task) =>
-          cc.loggingService.insert(user.userId, request.ipAddress, s"Visit_AdminTask_TaskId=$taskId")
-          Ok(views.html.admin.task(commonData, "Sidewalk - TaskView", user, task))
-        case None =>
-          cc.loggingService.insert(user.userId, request.ipAddress, s"Visit_AdminTask_TaskId=${taskId}_NotFound")
-          NotFound(s"Task with ID $taskId not found.")
-      }
-    }
-  }
 
   /**
    * Get a list of all labels for the admin page, as a GeoJSON FeatureCollection of points.
@@ -113,7 +59,7 @@ class AdminController @Inject() (
    * response is streamed from the db in a chunked response rather than materialized in memory (#3932).
    */
   def getAllLabels = cc.securityService.SecuredAction(WithAdmin()) { _ =>
-    val labels = labelService.getLabelsForLabelMap(Seq(), Seq(), Seq(), DEFAULT_BATCH_SIZE)
+    val labels = labelService.getLabelsForLabelMap(Seq(), Seq(), Seq(), bbox = None, DEFAULT_BATCH_SIZE)
     Future.successful(streamGeoJson(labels.map(labelForLabelMapToGeoJson(_, admin = true)), "adminapi/labels/all"))
   }
 
@@ -158,14 +104,6 @@ class AdminController @Inject() (
   }
 
   /**
-   * Get the list of interactions logged for the given audit task. Used to reconstruct the task for playback.
-   */
-  def getAnAuditTaskPath(taskId: Int) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
-    adminService.getAuditInteractionsWithLabels(taskId).map { actions => Ok(auditTaskInteractionsToGeoJSON(actions)) }
-  }
-
-  /**
    * Get metadata for a given label ID (for admins; includes personal identifiers like username).
    */
   def getAdminLabelData(labelId: Int) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
@@ -177,7 +115,8 @@ class AdminController @Inject() (
             labelMetadataWithValidationToJsonAdmin(metadata, adminData.head) ++
               Json.obj(
                 "crop_url"         -> panoDataService.cropUrl(metadata.labelId, metadata.labelType),
-                "backup_image_url" -> panoDataService.backupImageUrl(metadata.panoId)
+                "backup_image_url" -> panoDataService.backupImageUrl(metadata.panoId),
+                "can_edit"         -> true
               )
           )
         }
@@ -220,24 +159,24 @@ class AdminController @Inject() (
     submission.fold(
       errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
       submission => {
-        val userId: String  = submission.userId
-        val newRole: String = submission.roleId
+        val userId: String              = submission.userId
+        val newRole: Option[Role.Value] = Role.fromString(submission.roleId)
 
         authenticationService.findByUserId(userId) flatMap {
           case Some(user) =>
-            if (user.role == "Owner") {
+            if (user.role == Role.Owner) {
               Future.successful(BadRequest("Owner's role cannot be changed"))
-            } else if (newRole == "Owner") {
+            } else if (newRole.contains(Role.Owner)) {
               Future.successful(BadRequest("Cannot set a new owner"))
-            } else if (!RoleTable.VALID_ROLES.contains(newRole)) {
+            } else if (newRole.isEmpty) {
               Future.successful(BadRequest("Invalid role"))
             } else {
               authenticationService
-                .updateRole(userId, newRole)
+                .updateRole(userId, newRole.get)
                 .map(_ => {
-                  val logText = s"UpdateRole_User=${userId}_Old=${user.role}_New=$newRole"
+                  val logText = s"UpdateRole_User=${userId}_Old=${user.role}_New=${newRole.get}"
                   cc.loggingService.insert(request.identity.userId, request.ipAddress, logText)
-                  Ok(Json.obj("username" -> user.username, "user_id" -> userId, "role" -> newRole))
+                  Ok(Json.obj("username" -> user.username, "user_id" -> userId, "role" -> newRole.get.toString))
                 })
             }
           case None =>
@@ -248,74 +187,118 @@ class AdminController @Inject() (
   }
 
   /**
-   * Updates high_quality_manual and high_quality in the database for the given user.
+   * Saves the admin-editable account settings for another user in one request, from the Manage user tab of their
+   * dashboard (`/admin/user/:username/manage`): username, role, team, manual quality flag, service-hours opt-in, the two
+   * privacy flags, and (on infra3D deployments) infra3D access.
+   *
+   * Every setting is required (a missing one is a 400, never a reset to a default). Every check that can refuse the
+   * save — an Owner can't be changed at all, only an Owner can set an admin's quality, only someone with infra3D access
+   * can grant it, the username rules — runs before the first write, so a refused save applies nothing.
    */
-  def setUserQualityManual = cc.securityService.SecuredAction(WithAdmin(), parse.json) { implicit request =>
-    val submission = request.body.validate[UserQualitySubmission]
-    submission.fold(
-      errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
-      submission => {
-        val userId: String                  = submission.userId
-        val newUserQuality: Option[Boolean] = submission.userQualityManual
+  def saveUserSettings = cc.securityService.SecuredAction(WithAdmin(), parse.json) { implicit request =>
+    val admin                   = request.identity
+    def reject(message: String) = Future.successful(BadRequest(Json.obj("success" -> false, "error" -> message)))
 
-        authenticationService.findByUserId(userId) flatMap {
+    request.body.validate[AdminUserSettingsSubmission] match {
+      case JsError(errors) => reject(s"Invalid settings: ${JsError.toJson(errors).keys.mkString(", ")}")
+      case JsSuccess(s, _) =>
+        val userId = s.userId
+        val teamId = s.teamId.filter(_ > 0)
+        authenticationService.findByUserId(userId).flatMap {
+          case None       => reject("No user has this user ID")
           case Some(user) =>
-            if (user.role == "Owner") {
-              Future.successful(
-                BadRequest(Json.obj("status" -> "Error", "message" -> "Owner's quality cannot be changed"))
-              )
-            } else if (user.role == "Administrator" && request.identity.role != "Owner") {
-              Future.successful(
-                BadRequest(Json.obj("status" -> "Error", "message" -> "Admin's quality can only be set by an Owner"))
-              )
-            } else {
-              // Update the high_quality_manual and high_quality columns. Recomputes high_quality if input is None.
-              userService
-                .setManualUserQuality(userId, newUserQuality)
-                .map {
-                  case Some(newQuality) =>
-                    val logText = s"UpdateUserManualQuality_User=${userId}_Manual=${newUserQuality}_New=$newQuality"
-                    cc.loggingService.insert(request.identity.userId, request.ipAddress, logText)
-                    Ok(Json.obj("new_user_quality" -> newQuality))
-                  case None => BadRequest(Json.obj("status" -> "Error", "message" -> "Likely an excluded user"))
-                }
-            }
-          case None =>
-            Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> "No user has this user_id")))
-        }
-      }
-    )
-  }
+            for {
+              // A user who has never visited this city has no user_stat row yet; without one the privacy and quality
+              // writes below would match nothing and the save would report success having changed nothing.
+              _        <- authenticationService.addUserStatEntryIfNew(userId)
+              stats    <- userService.getUserStats(userId)
+              currTeam <- userService.getUserTeam(userId)
+              response <- {
+                // None for a role the enum doesn't know, which the assignable-roles check below refuses by name.
+                val newRole: Option[Role.Value] = Role.fromString(s.role)
+                val usernameChanged             = s.username != user.username
+                val roleChanged                 = !newRole.contains(user.role)
+                val teamChanged                 = currTeam.map(_.teamId) != teamId
+                val serviceChanged              = s.communityService != user.communityService
+                val privacyChanged              =
+                  stats.exists(st => st.onLeaderboard != s.onLeaderboard || st.publicProfile != s.publicProfile)
+                val qualityChanged = stats.exists(_.highQualityManual != s.highQualityManual)
+                val infra3dChanged = s.infra3dAccess.exists(_ != user.infra3dAccess)
+                val anyChanged     = usernameChanged || roleChanged || teamChanged || serviceChanged ||
+                  privacyChanged || qualityChanged || infra3dChanged
 
-  /**
-   * Updates <city>_infra3d_access column in the database for the given user.
-   */
-  def setInfra3dAccess = cc.securityService.SecuredAction(WithAdmin(), parse.json) { implicit request =>
-    val submission = request.body.validate[UserInfra3dAccess]
-    submission.fold(
-      errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
-      submission => {
-        authenticationService.findByUserId(submission.userId) flatMap {
-          case Some(user) =>
-            if (user.role == "Owner") {
-              Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> "Owner access can't be changed")))
-            } else if (!request.identity.infra3dAccess) {
-              Future.successful(
-                BadRequest(Json.obj("status" -> "Error", "message" -> "Lacking permission to grant access"))
-              )
-            } else {
-              authenticationService
-                .setInfra3dAccess(submission.userId, submission.access)
-                .map { rowsUpdated =>
-                  if (rowsUpdated > 0) Ok(Json.obj("message" -> "infra3D access updated successfully"))
-                  else BadRequest(Json.obj("error" -> "Failed to update infra3D access"))
+                // Ordered from the broadest refusal to the narrowest.
+                val firstError: Option[String] =
+                  if (anyChanged && user.role == Role.Owner) Some("An Owner's settings can't be changed")
+                  else if (roleChanged && !newRole.exists(Role.ADMIN_ASSIGNABLE_ROLES.contains))
+                    Some(s"Can't assign role ${s.role}")
+                  else if (roleChanged && !Role.ADMIN_ASSIGNABLE_ROLES.contains(user.role))
+                    Some(s"A ${user.role} account's role can't be changed")
+                  else if (qualityChanged && user.role == Role.Administrator && admin.role != Role.Owner)
+                    Some("An admin's quality can only be set by an Owner")
+                  else if (infra3dChanged && !admin.infra3dAccess) Some("Only a user with infra3D access can grant it")
+                  else None
+
+                val usernameCheck: Future[Either[String, Unit]] =
+                  if (firstError.isDefined) Future.successful(Left(firstError.get))
+                  else if (usernameChanged) userService.validateUsername(userId, s.username).map {
+                    case Left(errorKey) => Left(Messages(errorKey))
+                    case Right(_)       => Right(())
+                  }
+                  else Future.successful(Right(()))
+
+                usernameCheck.flatMap {
+                  case Left(message) => reject(message)
+                  case Right(_)      =>
+                    for {
+                      _ <- userService.updatePrivacySettings(userId, s.onLeaderboard, s.publicProfile)
+                      _ <- teamId
+                        .map(id => userService.setUserTeam(userId, id))
+                        .getOrElse(userService.leaveTeam(userId))
+                      _ <- authenticationService.setCommunityServiceStatus(userId, s.communityService)
+                      // newRole is defined here: an unrecognized one was refused by the assignable-roles check above.
+                      _ <- newRole
+                        .filter(_ => roleChanged)
+                        .map(role => authenticationService.updateRole(userId, role))
+                        .getOrElse(Future.successful(0))
+                      _ <- s.infra3dAccess
+                        .filter(_ => infra3dChanged)
+                        .map(access => authenticationService.setInfra3dAccess(userId, access))
+                        .getOrElse(Future.successful(0))
+                      newQuality <-
+                        if (qualityChanged) userService.setManualUserQuality(userId, s.highQualityManual)
+                        else Future.successful(stats.map(_.highQuality))
+                      _ <-
+                        if (usernameChanged) userService.changeUsername(userId, s.username)
+                        else Future.successful(Right(user.username))
+                    } yield {
+                      cc.loggingService.insert(
+                        admin.userId,
+                        request.ipAddress,
+                        s"Click_module=AdminSaveUserSettings_User=$userId"
+                      )
+                      if (roleChanged) {
+                        cc.loggingService.insert(
+                          admin.userId,
+                          request.ipAddress,
+                          s"UpdateRole_User=${userId}_Old=${user.role}_New=${s.role}"
+                        )
+                      }
+                      if (qualityChanged) {
+                        cc.loggingService.insert(
+                          admin.userId,
+                          request.ipAddress,
+                          s"UpdateUserManualQuality_User=${userId}_Manual=${s.highQualityManual}_New=$newQuality"
+                        )
+                      }
+                      // The page's URL is keyed by username, so the client needs the saved name to re-point itself.
+                      Ok(Json.obj("success" -> true, "high_quality" -> newQuality, "username" -> s.username))
+                    }
                 }
-            }
-          case None =>
-            Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> "No user has this user_id")))
+              }
+            } yield response
         }
-      }
-    )
+    }
   }
 
   /* Clears all cached values. Should only be called from the Admin page. */
@@ -338,9 +321,9 @@ class AdminController @Inject() (
     }
 
     jobRunService
-      .record(UserStatActor.Name, JobRunTrigger.Manual)(adminService.updateUserStatTable(cutoffTime)) { usersUpdated =>
-        Json.obj("users_updated" -> usersUpdated)
-      }
+      .record(UserStatActor.Name, JobRunTrigger.Manual)(adminService.updateUserStatTable(cutoffTime))(
+        UserStatActor.runDetails
+      )
       .map { usersUpdated: Int => Ok(s"User stats updated for $usersUpdated users!") }
   }
 
@@ -353,9 +336,9 @@ class AdminController @Inject() (
   def updateFunnelStats = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     cc.loggingService.insert(request.identity.userId, request.ipAddress, request.toString)
     jobRunService
-      .record(FunnelStatActor.Name, JobRunTrigger.Manual)(adminService.updateFunnelStatTable()) { rowsUpdated =>
-        Json.obj("rows_written" -> rowsUpdated)
-      }
+      .record(FunnelStatActor.Name, JobRunTrigger.Manual)(adminService.updateFunnelStatTable())(
+        FunnelStatActor.runDetails
+      )
       .map { rowsUpdated => Ok(s"Funnel stats updated ($rowsUpdated rows)!") }
   }
 
@@ -681,14 +664,20 @@ class AdminController @Inject() (
       val cities = withFlags.map { case CityScorecardWithFlags(sc, anomalies) =>
         val info = cityInfoById.get(sc.cityId)
         // Per-label-type breakdown (the data-pattern lens), keyed by label type with snake_case stat names.
-        val byLabelType = JsObject(sc.byLabelType.toSeq.map { case (labelType, s) =>
-          labelType -> Json.obj(
-            "labels"    -> s.labels,
-            "validated" -> s.labelsValidated,
-            "agree"     -> s.labelsValidatedAgree,
-            "disagree"  -> s.labelsValidatedDisagree
-          )
-        })
+        val byLabelType = JsObject(
+          sc.byLabelType.toSeq
+            .sortBy { case (labelType, _) =>
+              LabelTypeEnum.orderedNames.indexOf(labelType)
+            }
+            .map { case (labelType, s) =>
+              labelType -> Json.obj(
+                "labels"    -> s.labels,
+                "validated" -> s.labelsValidated,
+                "agree"     -> s.labelsValidatedAgree,
+                "disagree"  -> s.labelsValidatedDisagree
+              )
+            }
+        )
         // Trailing weekly activity (oldest first) — drives per-city sparklines and the aggregate overview line charts.
         val weeklyTrend = JsArray(sc.weeklyTrend.map { w =>
           Json.obj(
@@ -918,6 +907,35 @@ class AdminController @Inject() (
   }
 
   /**
+   * Returns every configured city's web-traffic summary from the GA4 Data API (Planning#8), for the Across Cities
+   * page's Traffic section. Owner-only (cross-deployment data). Output is snake_case per the v3 convention.
+   *
+   * GA being unreachable, unconfigured, or mid-outage must never break the dashboard, so every such case degrades to
+   * `available: false` (HTTP 200) and the page renders the section as unavailable.
+   */
+  def getCityTraffic = cc.securityService.SecuredAction(WithOwner()) { implicit request =>
+    cc.loggingService.insert(request.identity.userId, request.ipAddress, request.toString)
+    trafficService
+      .getCityTraffic()
+      .map {
+        case Some(snapshot) =>
+          Ok(
+            Json.obj(
+              "available"       -> true,
+              "fetched_at"      -> snapshot.fetchedAt,
+              "traffic_by_city" -> JsObject(snapshot.cities.map(c => c.cityId -> Json.toJson(c))),
+              "failed_city_ids" -> snapshot.failedCityIds
+            )
+          )
+        case None => Ok(Json.obj("available" -> false))
+      }
+      .recover { case NonFatal(e) =>
+        logger.warn(s"GA traffic unavailable: ${e.getMessage}")
+        Ok(Json.obj("available" -> false))
+      }
+  }
+
+  /**
    * Returns THIS deployment's own precomputed engagement funnels for one time window (#4379), for the per-city
    * Contributors page. Admin-gated (per-city Administrators see their own city), unlike the Owner-gated cross-city
    * [[getCityFunnels]]. Output is snake_case per the v3 convention; each funnel's `steps` array names its steps in
@@ -965,13 +983,13 @@ class AdminController @Inject() (
    *
    * Recorded as a `Manual` run of the nightly street-priority job (#4928). Only the recalculation step, not the
    * imagery-freshness sync and region_completion rebuild the nightly sequence wraps around it, which is why the run
-   * records no counts.
+   * records a null `regions_seeded` rather than a count.
    */
   def recalculateStreetPriority = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
     jobRunService
       .record(RecalculateStreetPriorityActor.Name, JobRunTrigger.Manual)(streetService.recalculateStreetPriority)(_ =>
-        Json.obj()
+        RecalculateStreetPriorityActor.runDetails(None)
       )
       .map(_ => Ok("Successfully recalculated street priorities"))
   }
@@ -1017,6 +1035,31 @@ class AdminController @Inject() (
   }
 
   /**
+   * Cuts the missing label crops and downscaled panos from the self-hosted pano store. Same as the nightly
+   * process, for a backfill that shouldn't wait for it (#4865).
+   *
+   * Recorded as a `Manual` run of that nightly job (#4928), and answered as soon as the run starts rather than when
+   * it ends — alone among these triggers, because a first backfill runs for about an hour, far past any proxy's read
+   * timeout, and a timed-out request reads as a failed job while the run carries on unseen. The Health panel is
+   * where it reports; `isRunning` is what keeps a second click from starting a second pass over the same store.
+   */
+  def generateCrops = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    cc.loggingService.insert(request.identity.userId, request.ipAddress, request.toString)
+    // Checked before the run is recorded, so a refused trigger doesn't leave a failed run on the Health panel.
+    if (cropService.isRunning) {
+      Future.successful(Conflict("A crop generation run is already in progress."))
+    } else {
+      jobRunService
+        .record(CropGenerationActor.Name, JobRunTrigger.Manual)(cropService.generateMissingCrops())(_.runDetails)
+        .onComplete {
+          case Success(results) => logger.info(results.summary)
+          case Failure(e)       => logger.error(s"Manually triggered crop generation failed: ${e.getMessage}")
+        }
+      Future.successful(Accepted("Crop generation started. It reports to the Health panel when it finishes."))
+    }
+  }
+
+  /**
    * Refreshes the cached OSM way data (speed limits etc.). Same as the nightly process, for QA and initial backfill.
    *
    * Recorded as a `Manual` run of that nightly job (#4928). This one runs for tens of minutes and can half-fail, so
@@ -1025,9 +1068,9 @@ class AdminController @Inject() (
   def refreshOsmWayData() = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
     jobRunService
-      .record(OsmWayRefreshActor.Name, JobRunTrigger.Manual)(osmWayService.refreshOsmWayData()) { waysRefreshed =>
-        Json.obj("ways_refreshed" -> waysRefreshed)
-      }
+      .record(OsmWayRefreshActor.Name, JobRunTrigger.Manual)(osmWayService.refreshOsmWayData())(
+        OsmWayRefreshActor.runDetails
+      )
       .map { waysRefreshed => Ok(Json.obj("ways_refreshed" -> waysRefreshed)) }
       .recover { case NonFatal(e) =>
         logger.error("OSM way data refresh failed.", e)

@@ -2,7 +2,8 @@
 -- Remove a set of label_validations from the DB.
 --
 -- Tables with a FK to label_validation:
---   label_history           (label_validation_id nullable; only set when the validation changed severity/tags)
+--   label_edit              (label_validation_id nullable; the edit submitted with the validation, if it changed
+--                            severity/tags; its label_history row hangs off label_edit.label_edit_id)
 --   label_ai_assessment     (label_validation_id nullable)
 --
 -- Other tables touched by this script (no FK to label_validation, but logically tied):
@@ -53,7 +54,7 @@ UNION ALL
 SELECT 'distinct_affected_labels', COUNT(DISTINCT lv.label_id) FROM label_validation lv
     JOIN validations_to_remove USING (label_validation_id)
 UNION ALL
-SELECT 'matching_label_history',   COUNT(*) FROM label_history
+SELECT 'matching_label_edits',     COUNT(*) FROM label_edit
     WHERE label_validation_id IN (SELECT label_validation_id FROM validations_to_remove)
 UNION ALL
 SELECT 'matching_ai_assessments',  COUNT(*) FROM label_ai_assessment
@@ -74,10 +75,18 @@ SET label_validation_id = NULL
 WHERE label_validation_id IN (SELECT label_validation_id FROM validations_to_remove);
 
 -- ---------------------------------------------------------------------
--- 4. Delete the matching label_history rows (the ones recorded by these validations).
+-- 4. Delete the edits these validations were submitted with and their label_history rows. Step 7 repairs the chains.
 -- ---------------------------------------------------------------------
-DELETE FROM label_history
+CREATE TEMP TABLE edits_to_remove (label_edit_id INT PRIMARY KEY, label_id INT NOT NULL) ON COMMIT DROP;
+INSERT INTO edits_to_remove (label_edit_id, label_id)
+SELECT label_edit_id, label_id FROM label_edit
 WHERE label_validation_id IN (SELECT label_validation_id FROM validations_to_remove);
+
+DELETE FROM label_history
+WHERE label_edit_id IN (SELECT label_edit_id FROM edits_to_remove);
+
+DELETE FROM label_edit
+WHERE label_edit_id IN (SELECT label_edit_id FROM edits_to_remove);
 
 -- ---------------------------------------------------------------------
 -- 5. Delete the validation_task_comment rows tied to these validations (by label_id + user_id + mission_id).
@@ -96,24 +105,52 @@ DELETE FROM label_validation
 WHERE label_validation_id IN (SELECT label_validation_id FROM validations_to_remove);
 
 -- ---------------------------------------------------------------------
--- 7. Clean up now-redundant label_history entries across ALL labels.
---    After removing validation-linked history rows, adjacent entries may have identical (severity, tags)
---    and no longer represent a change. Drop the later of any such pair.
+-- 7. Repair the affected labels' edit chains, as LabelEditService.revertEdit does for one undo: each surviving edit
+--    starts from the label_history row before it, an edit that now changes nothing is removed with its history row,
+--    and the label takes the state of its latest surviving history row.
 -- ---------------------------------------------------------------------
+CREATE TEMP TABLE rebased_edits ON COMMIT DROP AS
+SELECT label_edit.label_edit_id,
+       ordered.prev_severity,
+       ordered.prev_tags,
+       (label_edit.new_severity IS NOT DISTINCT FROM ordered.prev_severity
+        AND label_edit.new_tags <@ ordered.prev_tags AND ordered.prev_tags <@ label_edit.new_tags) AS noop
+FROM (
+    SELECT label_edit_id,
+           LAG(severity) OVER per_label AS prev_severity,
+           LAG(tags)     OVER per_label AS prev_tags
+    FROM label_history
+    WHERE label_id IN (SELECT label_id FROM edits_to_remove)
+    WINDOW per_label AS (PARTITION BY label_id ORDER BY edit_time, label_history_id)
+) AS ordered
+INNER JOIN label_edit ON ordered.label_edit_id = label_edit.label_edit_id
+WHERE label_edit.old_severity IS DISTINCT FROM ordered.prev_severity
+    OR NOT (label_edit.old_tags <@ ordered.prev_tags AND ordered.prev_tags <@ label_edit.old_tags);
+
 DELETE FROM label_history
-WHERE label_history_id IN (
-    SELECT label_history_id
-    FROM (
-        SELECT label_history_id,
-               severity,
-               tags,
-               LAG(severity) OVER (PARTITION BY label_id ORDER BY edit_time) AS prev_severity,
-               LAG(tags)     OVER (PARTITION BY label_id ORDER BY edit_time) AS prev_tags
-        FROM label_history
-    ) subquery
-    WHERE severity IS NOT DISTINCT FROM prev_severity
-        AND tags     IS NOT DISTINCT FROM prev_tags
-);
+WHERE label_edit_id IN (SELECT label_edit_id FROM rebased_edits WHERE noop);
+
+DELETE FROM label_edit
+WHERE label_edit_id IN (SELECT label_edit_id FROM rebased_edits WHERE noop);
+
+UPDATE label_edit
+SET old_severity = rebased_edits.prev_severity,
+    old_tags     = rebased_edits.prev_tags
+FROM rebased_edits
+WHERE rebased_edits.label_edit_id = label_edit.label_edit_id AND NOT rebased_edits.noop;
+
+UPDATE label
+SET severity = latest.severity,
+    tags     = latest.tags
+FROM (
+    SELECT DISTINCT ON (label_id) label_id, severity, tags
+    FROM label_history
+    WHERE label_id IN (SELECT label_id FROM edits_to_remove)
+    ORDER BY label_id, edit_time DESC, label_history_id DESC
+) AS latest
+WHERE latest.label_id = label.label_id
+    AND (label.severity IS DISTINCT FROM latest.severity
+         OR NOT (label.tags <@ latest.tags AND latest.tags <@ label.tags));
 
 -- ---------------------------------------------------------------------
 -- 8. Refresh agree_count / disagree_count / unsure_count / correct across ALL labels.
@@ -123,14 +160,14 @@ UPDATE label
 SET (agree_count, disagree_count, unsure_count, correct) = (n_agree, n_disagree, n_unsure, is_correct)
 FROM (
     SELECT label.label_id,
-           COUNT(CASE WHEN validation_result = 1 AND user_stat.user_id IS NOT NULL THEN 1 END) AS n_agree,
-           COUNT(CASE WHEN validation_result = 2 AND user_stat.user_id IS NOT NULL THEN 1 END) AS n_disagree,
-           COUNT(CASE WHEN validation_result = 3 AND user_stat.user_id IS NOT NULL THEN 1 END) AS n_unsure,
+           COUNT(CASE WHEN validation_result = 'Agree' AND user_stat.user_id IS NOT NULL THEN 1 END) AS n_agree,
+           COUNT(CASE WHEN validation_result = 'Disagree' AND user_stat.user_id IS NOT NULL THEN 1 END) AS n_disagree,
+           COUNT(CASE WHEN validation_result = 'Unsure' AND user_stat.user_id IS NOT NULL THEN 1 END) AS n_unsure,
            CASE
-               WHEN COUNT(CASE WHEN validation_result = 1 AND user_stat.user_id IS NOT NULL THEN 1 END)
-                  > COUNT(CASE WHEN validation_result = 2 AND user_stat.user_id IS NOT NULL THEN 1 END) THEN TRUE
-               WHEN COUNT(CASE WHEN validation_result = 2 AND user_stat.user_id IS NOT NULL THEN 1 END)
-                  > COUNT(CASE WHEN validation_result = 1 AND user_stat.user_id IS NOT NULL THEN 1 END) THEN FALSE
+               WHEN COUNT(CASE WHEN validation_result = 'Agree' AND user_stat.user_id IS NOT NULL THEN 1 END)
+                  > COUNT(CASE WHEN validation_result = 'Disagree' AND user_stat.user_id IS NOT NULL THEN 1 END) THEN TRUE
+               WHEN COUNT(CASE WHEN validation_result = 'Disagree' AND user_stat.user_id IS NOT NULL THEN 1 END)
+                  > COUNT(CASE WHEN validation_result = 'Agree' AND user_stat.user_id IS NOT NULL THEN 1 END) THEN FALSE
                ELSE NULL
            END AS is_correct
     FROM label
@@ -178,8 +215,25 @@ WHERE user_stat.user_id = accuracy_subquery.user_id
 SELECT 'still_in_label_validation'     AS where_found, COUNT(*) FROM label_validation
     WHERE label_validation_id IN (SELECT label_validation_id FROM validations_to_remove)
 UNION ALL
-SELECT 'still_linked_in_label_history',                COUNT(*) FROM label_history
+SELECT 'still_linked_in_label_edit',                   COUNT(*) FROM label_edit
     WHERE label_validation_id IN (SELECT label_validation_id FROM validations_to_remove)
+UNION ALL
+SELECT 'edits_without_history_row',                    COUNT(*) FROM label_edit
+    LEFT JOIN label_history ON label_edit.label_edit_id = label_history.label_edit_id
+    WHERE label_history.label_history_id IS NULL
+UNION ALL
+SELECT 'edits_with_broken_chain',                      COUNT(*)
+    FROM (
+        SELECT label_edit_id,
+               LAG(severity) OVER per_label AS prev_severity,
+               LAG(tags)     OVER per_label AS prev_tags
+        FROM label_history
+        WHERE label_id IN (SELECT label_id FROM edits_to_remove)
+        WINDOW per_label AS (PARTITION BY label_id ORDER BY edit_time, label_history_id)
+    ) AS ordered
+    INNER JOIN label_edit ON ordered.label_edit_id = label_edit.label_edit_id
+    WHERE label_edit.old_severity IS DISTINCT FROM ordered.prev_severity
+        OR NOT (label_edit.old_tags <@ ordered.prev_tags AND ordered.prev_tags <@ label_edit.old_tags)
 UNION ALL
 SELECT 'still_linked_in_ai_assessment',               COUNT(*) FROM label_ai_assessment
     WHERE label_validation_id IN (SELECT label_validation_id FROM validations_to_remove);

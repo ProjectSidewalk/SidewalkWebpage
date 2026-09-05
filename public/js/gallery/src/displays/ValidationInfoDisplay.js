@@ -2,8 +2,6 @@
  * An object that creates a display for the agree/disagree counts on a gallery card.
  */
 class ValidationInfoDisplay {
-  static #ICON_BASE = '/assets/images/icons/validation/';
-
   #aiValidation;
   #userValidation;
   #lockReason = null;
@@ -79,7 +77,7 @@ class ValidationInfoDisplay {
   #makeVoteIcon(action, isAi) {
     const icon = document.createElement('img');
     icon.className = 'validation-info-image';
-    icon.src = `${ValidationInfoDisplay.#ICON_BASE}${action.toLowerCase()}-outline${isAi ? '-ai' : ''}.svg`;
+    icon.src = util.assetPath(`images/icons/validation/${action.toLowerCase()}-outline${isAi ? '-ai' : ''}.svg`);
     icon.alt = '';
     return icon;
   }

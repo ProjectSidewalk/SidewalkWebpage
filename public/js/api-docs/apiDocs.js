@@ -19,6 +19,12 @@
  * - Follows web standards and best practices
  */
 
+// Chart.js paints its labels onto a canvas, so they can't inherit the page font. The pages that chart load Chart.js
+// ahead of this script, and build their charts once their data arrives.
+if (window.Chart) {
+  window.Chart.defaults.font.family = getComputedStyle(document.documentElement).getPropertyValue('--font-primary');
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const enableLeftSidebarAccordions = false; // Flag to disable left sidebar accordions.
 
@@ -53,17 +59,17 @@ document.addEventListener('DOMContentLoaded', () => {
  */
 function setupStaticNavAccordions() {
   console.log('Setting up static navigation accordions structure');
-  const navContainer = document.querySelector('.api-nav');
+  const navContainer = document.querySelector('.page-nav');
   if (!navContainer) return;
 
-  const navHeaders = navContainer.querySelectorAll('.api-nav-header');
+  const navHeaders = navContainer.querySelectorAll('.page-nav-header');
   let submenuIdCounter = 0; // Counter for unique IDs.
 
   navHeaders.forEach((header) => {
     let nextElement = header.nextElementSibling;
     const potentialGroup = [];
-    while (nextElement && !nextElement.classList.contains('api-nav-header')) {
-      if (nextElement.tagName === 'A' && nextElement.classList.contains('api-nav-item')) {
+    while (nextElement && !nextElement.classList.contains('page-nav-header')) {
+      if (nextElement.tagName === 'A' && nextElement.classList.contains('page-nav-item')) {
         potentialGroup.push(nextElement);
       }
       nextElement = nextElement.nextElementSibling;
@@ -87,7 +93,7 @@ function setupStaticNavAccordions() {
 
       if (baseItem && hashItems.length > 0) {
         // Check if already processed (e.g., by dynamic generation).
-        if (baseItem.classList.contains('api-nav-accordion')) {
+        if (baseItem.classList.contains('page-nav-accordion')) {
           console.log(`Skipping setup for already existing accordion: ${baseUrl}`);
           continue;
         }
@@ -96,7 +102,7 @@ function setupStaticNavAccordions() {
         const submenuId = `static-submenu-${submenuIdCounter++}`;
 
         // 1. Convert baseItem to accordion trigger.
-        baseItem.classList.add('api-nav-accordion');
+        baseItem.classList.add('page-nav-accordion');
         baseItem.setAttribute('aria-expanded', 'false');
         baseItem.setAttribute('aria-controls', submenuId);
 
@@ -108,7 +114,7 @@ function setupStaticNavAccordions() {
 
         // 2. Create submenu container.
         const submenu = document.createElement('div');
-        submenu.className = 'api-nav-submenu';
+        submenu.className = 'page-nav-submenu';
         submenu.id = submenuId;
         submenu.setAttribute('role', 'region');
         submenu.style.maxHeight = '0px'; // Start collapsed
@@ -117,7 +123,7 @@ function setupStaticNavAccordions() {
         // 3. Move hashItems into the submenu.
         hashItems.forEach((item) => {
           // Optional: Add subitem class for styling.
-          item.classList.add('api-nav-subitem');
+          item.classList.add('page-nav-subitem');
           // Remove item from original position and append to submenu.
           item.parentNode.removeChild(item);
           submenu.appendChild(item);
@@ -137,22 +143,22 @@ function setupStaticNavAccordions() {
  */
 function generateDynamicSidebarSubmenu() {
   console.log('Generating dynamic sidebar submenu for active page');
-  const activeNavItem = document.querySelector('.api-sidebar .api-nav-item.active');
+  const activeNavItem = document.querySelector('.page-sidebar .page-nav-item.active');
 
   // Ensure it's a top-level item (not already inside a submenu).
-  if (!activeNavItem || activeNavItem.closest('.api-nav-submenu')) {
+  if (!activeNavItem || activeNavItem.closest('.page-nav-submenu')) {
     console.log('No suitable top-level active nav item found for dynamic submenu.');
     return;
   }
 
-  const content = document.querySelector('.api-content');
+  const content = document.querySelector('.page-content');
   if (!content) {
     console.error('Content area not found for dynamic submenu generation.');
     return;
   }
 
   // Find H1 and H2 headings with IDs within the main content.
-  const headings = content.querySelectorAll('h1[id].api-heading, h2[id].api-heading');
+  const headings = content.querySelectorAll('h1[id].page-heading, h2[id].page-heading');
   if (headings.length === 0) {
     console.log('No H1/H2 headings with IDs found in content for dynamic submenu.');
     return;
@@ -163,7 +169,7 @@ function generateDynamicSidebarSubmenu() {
 
   // 1. Create submenu container
   const submenu = document.createElement('div');
-  submenu.className = 'api-nav-submenu'; // JS will set initial maxHeight
+  submenu.className = 'page-nav-submenu'; // JS will set initial maxHeight
   submenu.id = submenuId;
   submenu.setAttribute('role', 'region');
   submenu.style.overflow = 'hidden'; // Keep hidden during setup
@@ -175,14 +181,14 @@ function generateDynamicSidebarSubmenu() {
     const level = heading.tagName.toLowerCase(); // h1, h2
 
     const subItem = document.createElement('a');
-    subItem.className = `api-nav-subitem level-${level}`;
+    subItem.className = `page-nav-subitem level-${level}`;
     subItem.href = `#${id}`; // Link to the heading ID
     subItem.textContent = title;
     submenu.appendChild(subItem);
   });
 
   // 3. Convert the activeNavItem to be an accordion trigger.
-  activeNavItem.classList.add('api-nav-accordion');
+  activeNavItem.classList.add('page-nav-accordion');
   activeNavItem.setAttribute('aria-expanded', 'true'); // Start expanded
   activeNavItem.setAttribute('aria-controls', submenuId);
 
@@ -210,15 +216,15 @@ function generateDynamicSidebarSubmenu() {
  * delegation.
  */
 function setupAccordionListener() {
-  const navContainer = document.querySelector('.api-sidebar .api-nav');
+  const navContainer = document.querySelector('.page-sidebar .page-nav');
   if (!navContainer) {
-    console.error('Navigation container .api-nav not found for accordion listener.');
+    console.error('Navigation container .page-nav not found for accordion listener.');
     return;
   }
 
   navContainer.addEventListener('click', (event) => {
     // Find the closest ancestor that is an accordion trigger.
-    const accordionTrigger = event.target.closest('.api-nav-accordion');
+    const accordionTrigger = event.target.closest('.page-nav-accordion');
 
     if (accordionTrigger) {
       // Prevent default link behavior only if it's an actual link being used as trigger.
@@ -270,8 +276,8 @@ function setupAccordionListener() {
  * @returns {void}
  */
 function generateTableOfContents() {
-  const content = document.querySelector('.api-content');
-  const tocContainer = document.querySelector('.api-toc ul');
+  const content = document.querySelector('.page-content');
+  const tocContainer = document.querySelector('.page-toc ul');
 
   if (!content || !tocContainer) {
     console.error('Could not find content or TOC container elements');
@@ -309,13 +315,13 @@ function generateTableOfContents() {
  * @returns {void}
  */
 function setupScrollSpy() {
-  const contentArea = document.querySelector('.api-content');
+  const contentArea = document.querySelector('.page-content');
   if (!contentArea) return;
 
   // Select only elements with IDs for section detection.
   const contentSections = contentArea.querySelectorAll('[id]');
   // Select only links in the right TOC.
-  const tocLinks = document.querySelectorAll('.api-toc a');
+  const tocLinks = document.querySelectorAll('.page-toc a');
 
   if (contentSections.length === 0 || tocLinks.length === 0) {
     console.warn('No elements with IDs found in content or no TOC links found for scroll spy.');
@@ -374,7 +380,7 @@ function setupScrollSpy() {
  */
 function setupSmoothScrolling() {
   // Target both TOC and Sidebar nav container.
-  const scrollContainers = document.querySelectorAll('.api-toc, .api-sidebar .api-nav');
+  const scrollContainers = document.querySelectorAll('.page-toc, .page-sidebar .page-nav');
   if (scrollContainers.length === 0) return;
 
   const headerHeight = parseInt(
@@ -389,7 +395,7 @@ function setupSmoothScrolling() {
       // Check if it's an internal hash link.
       if (link && link.getAttribute('href') && link.getAttribute('href').startsWith('#')) {
         // Allow accordion toggle clicks to be handled separately by setupAccordionListener.
-        if (link.classList.contains('api-nav-accordion')) {
+        if (link.classList.contains('page-nav-accordion')) {
           // Make sure default wasn't already prevented by accordion listener if it exists.
           if (!event.defaultPrevented) {
             event.preventDefault(); // Prevent scrolling if clicking accordion header directly.
@@ -421,7 +427,7 @@ function setupSmoothScrolling() {
  */
 function setupPermalinkCopying() {
   // Use event delegation on the content area for potentially dynamic headings.
-  const contentArea = document.querySelector('.api-content');
+  const contentArea = document.querySelector('.page-content');
   if (!contentArea) return;
 
   contentArea.addEventListener('click', (event) => {
@@ -531,7 +537,7 @@ function setupDownloadButtons() {
         // Hide status if requested.
         if (hideStatus) {
           downloadStatus.classList.add('ps-hidden');
-          if (statusMessage) statusMessage.style.color = ''; // Reset color
+          if (statusMessage) statusMessage.classList.remove('status-message--warning', 'status-message--error');
         }
       }
 
@@ -563,7 +569,7 @@ function setupDownloadButtons() {
         if (!downloadState.started && !downloadState.completed) {
           if (statusMessage) {
             statusMessage.textContent = 'Taking longer than expected.';
-            statusMessage.style.color = '#f39c12'; // Warning color
+            statusMessage.classList.add('status-message--warning');
           }
           if (statusProgress) statusProgress.textContent = 'You can try again or try a different format.';
 
@@ -577,7 +583,7 @@ function setupDownloadButtons() {
           downloadState.timeouts.push(setTimeout(() => {
             if (!downloadState.started && !downloadState.completed) {
               downloadStatus.classList.add('ps-hidden');
-              if (statusMessage) statusMessage.style.color = ''; // Reset color
+              if (statusMessage) statusMessage.classList.remove('status-message--warning', 'status-message--error');
             }
           }, 10000));
         }
@@ -639,7 +645,7 @@ function setupDownloadButtons() {
 
         if (statusMessage) {
           statusMessage.textContent = 'Error starting download.';
-          statusMessage.style.color = 'red';
+          statusMessage.classList.add('status-message--error');
         }
         if (statusProgress) statusProgress.textContent = 'Please try again or try a different format.';
 
@@ -656,7 +662,7 @@ function setupDownloadButtons() {
         // Hide error message after 5 seconds.
         downloadState.timeouts.push(setTimeout(() => {
           downloadStatus.classList.add('ps-hidden');
-          if (statusMessage) statusMessage.style.color = ''; // Reset color
+          if (statusMessage) statusMessage.classList.remove('status-message--warning', 'status-message--error');
         }, 5000));
       };
 
@@ -812,11 +818,7 @@ function showCopyFeedback(permalinkElement, status) {
   }, 2000);
 
   // Add brief visual feedback to the permalink itself.
-  const originalColor = permalinkElement.style.color;
-  permalinkElement.style.color = status === 'success' ? '#4caf50' : '#f44336';
-  permalinkElement.style.transition = 'color 0.2s ease';
-
-  setTimeout(() => {
-    permalinkElement.style.color = originalColor;
-  }, 500);
+  const feedbackClass = status === 'success' ? 'permalink--copied' : 'permalink--failed';
+  permalinkElement.classList.add(feedbackClass);
+  setTimeout(() => permalinkElement.classList.remove(feedbackClass), 500);
 }

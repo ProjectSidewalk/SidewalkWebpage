@@ -6,6 +6,7 @@ import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
+import util.UserAgents
 
 import java.net.URLEncoder
 
@@ -76,6 +77,11 @@ class GalleryPageSpec extends PlaySpec with GuiceOneAppPerSuite {
 
     "drop a tag the city does not have, rather than failing the page" in {
       activeTags(galleryPage("?tags=definitely-not-a-real-tag")) mustBe empty
+    }
+
+    "serve the page to a mobile visitor instead of redirecting to /mobileLanding" in {
+      val resp = route(app, FakeRequest(GET, "/gallery").withHeaders(UserAgents.mobile)).get
+      status(resp) mustBe OK
     }
   }
 }

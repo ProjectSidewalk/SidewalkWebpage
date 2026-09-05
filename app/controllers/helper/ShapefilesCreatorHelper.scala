@@ -268,6 +268,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       + "tags:String,"            // Tags list
       + "descriptn:String,"       // Description
       + "labelTime:String,"       // Creation timestamp
+      + "hiQualUser:Boolean,"     // Whether the labeler is flagged as a high-quality contributor
       + "streetId:Integer,"       // Street edge ID
       + "osmWayId:String,"        // OSM street ID
       + "regionId:Integer,"       // Region (neighborhood) ID
@@ -311,6 +312,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureBuilder.add(label.tags.mkString("[", ",", "]"))
       featureBuilder.add(label.description.orNull)
       featureBuilder.add(label.timeCreated)
+      featureBuilder.add(label.highQualityUser)
       featureBuilder.add(label.streetEdgeId)
       featureBuilder.add(label.osmWayId.toString)
       featureBuilder.add(label.regionId)
@@ -714,43 +716,44 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
     // Define the feature type schema.
     val featureType: SimpleFeatureType = DataUtilities.createType(
       "labels",
-      "the_geom:Point:srid=4326," // the geometry attribute: Point type
-      + "label_id:Integer,"       // label ID
-      + "user_id:String,"         // User Id
-      + "pano_id:String,"         // Pano ID
-      + "pano_source:String,"     // Imagery provider (gsv, mapillary, infra3d)
-      + "label_type:String,"      // Label type
-      + "severity:Integer,"       // Severity
-      + "tags:String,"            // Label Tags
-      + "description:String,"     // Label Description
-      + "time_created:String,"    // Creation timestamp
-      + "street_edge_id:Integer," // Street edge ID
-      + "osm_way_id:String,"      // OSM street ID
-      + "region_id:Integer,"      // Region (neighborhood) ID
-      + "region_name:String,"     // Region (neighborhood) name
-      + "correct:String,"         // Validation correctness
-      + "agree_count:Integer,"    // Agree validations
-      + "disagree_count:Integer," // Disagree validations
-      + "unsure_count:Integer,"   // Unsure validations
-      + "validations:String,"     // Validation details
-      + "audit_task_id:Integer,"  // Audit task ID
-      + "mission_id:Integer,"     // Mission ID
-      + "image_date:String,"      // Image capture date
-      + "heading:Double,"         // Heading angle
-      + "pitch:Double,"           // Pitch angle
-      + "zoom:Integer,"           // Zoom level
-      + "canvas_x:Integer,"       // Canvas X position
-      + "canvas_y:Integer,"       // Canvas Y position
-      + "canvas_width:Integer,"   // Canvas width
-      + "canvas_height:Integer,"  // Canvas height
-      + "pano_x:Integer,"         // Panorama X position
-      + "pano_y:Integer,"         // Panorama Y position
-      + "pano_width:Integer,"     // Panorama width
-      + "pano_height:Integer,"    // Panorama height
-      + "camera_heading:Double,"  // Camera heading
-      + "camera_pitch:Double,"    // Camera pitch
-      + "camera_roll:Double,"     // Camera pitch
-      + "pano_url:String"         // Provider viewer URL (empty for providers without one)
+      "the_geom:Point:srid=4326,"    // the geometry attribute: Point type
+      + "label_id:Integer,"          // label ID
+      + "user_id:String,"            // User Id
+      + "pano_id:String,"            // Pano ID
+      + "pano_source:String,"        // Imagery provider (gsv, mapillary, infra3d)
+      + "label_type:String,"         // Label type
+      + "severity:Integer,"          // Severity
+      + "tags:String,"               // Label Tags
+      + "description:String,"        // Label Description
+      + "time_created:String,"       // Creation timestamp
+      + "high_quality_user:Boolean," // Whether the labeler is flagged as a high-quality contributor
+      + "street_edge_id:Integer,"    // Street edge ID
+      + "osm_way_id:String,"         // OSM street ID
+      + "region_id:Integer,"         // Region (neighborhood) ID
+      + "region_name:String,"        // Region (neighborhood) name
+      + "correct:String,"            // Validation correctness
+      + "agree_count:Integer,"       // Agree validations
+      + "disagree_count:Integer,"    // Disagree validations
+      + "unsure_count:Integer,"      // Unsure validations
+      + "validations:String,"        // Validation details
+      + "audit_task_id:Integer,"     // Audit task ID
+      + "mission_id:Integer,"        // Mission ID
+      + "image_date:String,"         // Image capture date
+      + "heading:Double,"            // Heading angle
+      + "pitch:Double,"              // Pitch angle
+      + "zoom:Integer,"              // Zoom level
+      + "canvas_x:Integer,"          // Canvas X position
+      + "canvas_y:Integer,"          // Canvas Y position
+      + "canvas_width:Integer,"      // Canvas width
+      + "canvas_height:Integer,"     // Canvas height
+      + "pano_x:Integer,"            // Panorama X position
+      + "pano_y:Integer,"            // Panorama Y position
+      + "pano_width:Integer,"        // Panorama width
+      + "pano_height:Integer,"       // Panorama height
+      + "camera_heading:Double,"     // Camera heading
+      + "camera_pitch:Double,"       // Camera pitch
+      + "camera_roll:Double,"        // Camera pitch
+      + "pano_url:String"            // Provider viewer URL (empty for providers without one)
     )
 
     val geometryFactory: GeometryFactory = JTSFactoryFinder.getGeometryFactory
@@ -770,6 +773,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureBuilder.add(label.tags.mkString("[", ",", "]"))
       featureBuilder.add(label.description.map(String.valueOf).orNull)
       featureBuilder.add(label.timeCreated)
+      featureBuilder.add(label.highQualityUser)
       featureBuilder.add(label.streetEdgeId)
       featureBuilder.add(String.valueOf(label.osmWayId))
       featureBuilder.add(label.regionId)

@@ -74,18 +74,19 @@ class ValidateAdminParamsSpec extends PlaySpec with GuiceOneAppPerSuite {
     (email, cookies(resp).toSeq)
   }
 
-  /** The validation mission a visit to /validate just created, as (missionId, labelTypeId, labelsValidated). */
-  private def newestValidationMission(email: String): Option[(Int, Int, Int)] = {
+  /** The validation mission a visit to /validate just created, as (missionId, labelType, labelsValidated). */
+  private def newestValidationMission(email: String): Option[(Int, String, Int)] = {
     // Held as a local so its path-dependent Database type stays stable; a field would need an existential.
     val dbConfig = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
     Await.result(
       dbConfig.db.run(
-        sql"""SELECT mission.mission_id, COALESCE(mission.label_type_id, 1), COALESCE(mission.labels_validated, 10)
+        sql"""SELECT mission.mission_id, COALESCE(mission.label_type::text, 'CurbRamp'),
+                     COALESCE(mission.labels_validated, 10)
               FROM mission
               INNER JOIN sidewalk_login.sidewalk_user ON mission.user_id = sidewalk_user.user_id
               WHERE sidewalk_user.email = $email AND mission.mission_type = 'validation'
               ORDER BY mission.mission_id DESC
-              LIMIT 1""".as[(Int, Int, Int)].headOption
+              LIMIT 1""".as[(Int, String, Int)].headOption
       ),
       30.seconds
     )
@@ -100,7 +101,7 @@ class ValidateAdminParamsSpec extends PlaySpec with GuiceOneAppPerSuite {
     "answer a registered user's adminVersion claim without admin data" in {
       val (_, userCookies) = signUpFreshUser()
       val body             = Json.obj(
-        "label_type_id"      -> 1,
+        "label_type"         -> "CurbRamp",
         "labels_needed"      -> 3,
         "excluded_label_ids" -> Json.arr(),
         "validate_params"    -> AdminClaim
@@ -129,7 +130,7 @@ class ValidateAdminParamsSpec extends PlaySpec with GuiceOneAppPerSuite {
       status(route(app, FakeRequest(GET, "/validate").withCookies(userCookies: _*)).get) mustBe OK
       val mission = newestValidationMission(email)
       assume(mission.isDefined, "no validation mission available in this schema")
-      val (missionId, labelTypeId, labelsValidated) = mission.get
+      val (missionId, labelType, labelsValidated) = mission.get
 
       // The next mission's labels only come back once a mission is reported complete.
       val body = Json.obj(
@@ -141,7 +142,7 @@ class ValidateAdminParamsSpec extends PlaySpec with GuiceOneAppPerSuite {
           "mission_type"    -> "validation",
           "labels_progress" -> labelsValidated,
           "labels_total"    -> labelsValidated,
-          "label_type_id"   -> labelTypeId,
+          "label_type"      -> labelType,
           "completed"       -> true
         ),
         "validate_params" -> AdminClaim,

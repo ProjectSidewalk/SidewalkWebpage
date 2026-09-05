@@ -1,16 +1,20 @@
 /**
- * The explanation a labeler gets when Explore gives up on a street *at page load* and reloads onto another one
- * (#4918).
+ * The explanation a labeler gets when Explore gives up on a street *at page load* and reloads (#4918).
  *
  * This path is the one that cost production ~3,370 streets, and it is the harder one to say anything on: the reload
- * that carries the labeler to a new street also tears down the page that would have told them about it. So the
- * failing load leaves a note in sessionStorage, and the load that follows reads it and speaks. Without that the
- * labeler is silently somewhere else, which is precisely how a session could walk 44 streets in 33 seconds without
- * anyone in the seat realizing anything had happened.
+ * tears down the page that would have told the labeler what happened. So the failing load leaves a note in
+ * sessionStorage — the given-up street's id — and the load that follows reads it and speaks. The id matters because
+ * the reported street stays in the pool and assignment picks at random among the highest-priority ones (#4922), so
+ * the follow-up load can land back on it: the "you were moved" explanation must only fire when the fresh assignment
+ * really is somewhere else. Without any of this the labeler is silently elsewhere, which is precisely how a session
+ * could walk 44 streets in 33 seconds without anyone in the seat realizing anything had happened.
  */
 
 const fs = require('fs');
 const path = require('path');
+
+const { windowWithStubbedLocation, runScriptWithWindow, newLocationStub } =
+    require('./support/windowWithStubbedLocation');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const readSrc = (relativePath) => fs.readFileSync(path.join(REPO_ROOT, relativePath), 'utf8');
@@ -22,6 +26,7 @@ const PANO_MANAGER_SRC = readSrc('public/js/explore/src/panorama/PanoManager.js'
 describe('a street given up on at page load', () => {
     let reportNoImagery;
     let showAlert;
+    let locationStub;
 
     /** A viewer type whose creation fails the given way, standing in for a street with no imagery or a dead SDK. */
     const viewerTypeFailingWith = (error) => ({ create: jest.fn(() => Promise.reject(error)) });
@@ -59,42 +64,44 @@ describe('a street given up on at page load', () => {
         showAlert = jest.fn();
 
         // jsdom refuses real navigation, and the give-up path ends in one.
-        Object.defineProperty(window, 'location', { value: { replace: jest.fn() }, writable: true });
+        locationStub = newLocationStub();
+        const win = windowWithStubbedLocation(locationStub);
 
         window.svl = { tracker: { push: jest.fn() }, alertController: { showAlert } };
         window.util = { misc: { reportNoImagery } };
         window.i18next = { t: (key) => key };
 
-        window.eval(`${NO_IMAGERY_ERROR_SRC}; window.NoImageryError = NoImageryError;`);
-        window.eval(`${FLAG_GUARD_SRC}; window.NoImageryFlagGuard = NoImageryFlagGuard;`);
-        window.eval(`${PANO_MANAGER_SRC}; window.PanoManager = PanoManager;`);
+        runScriptWithWindow(`${NO_IMAGERY_ERROR_SRC}; window.NoImageryError = NoImageryError;`, win);
+        runScriptWithWindow(`${FLAG_GUARD_SRC}; window.NoImageryFlagGuard = NoImageryFlagGuard;`, win);
+        runScriptWithWindow(`${PANO_MANAGER_SRC}; window.PanoManager = PanoManager;`, win);
     });
 
     it('leaves a note for the load that follows, so the move can be explained', async () => {
         await loadAndFail(new window.NoImageryError('nothing usable here'));
 
         expect(reportNoImagery).toHaveBeenCalledWith(task, 3);
-        expect(window.location.replace).toHaveBeenCalledWith('/explore');
-        expect(window.PanoManager.consumeStreetSkippedNotice()).toBe(true);
+        expect(locationStub.replace).toHaveBeenCalledWith('/explore');
+        // The note names the street, so the arrival can tell a retry of this street from a move to another.
+        expect(window.PanoManager.consumeStreetSkippedNotice()).toBe(101);
     });
 
     it('explains the move once, not on every load thereafter', async () => {
         await loadAndFail(new window.NoImageryError('nothing usable here'));
 
-        expect(window.PanoManager.consumeStreetSkippedNotice()).toBe(true);
-        expect(window.PanoManager.consumeStreetSkippedNotice()).toBe(false);
+        expect(window.PanoManager.consumeStreetSkippedNotice()).toBe(101);
+        expect(window.PanoManager.consumeStreetSkippedNotice()).toBeNull();
     });
 
     it('says nothing on an ordinary load', () => {
-        expect(window.PanoManager.consumeStreetSkippedNotice()).toBe(false);
+        expect(window.PanoManager.consumeStreetSkippedNotice()).toBeNull();
     });
 
     it('leaves no note when the provider never answered, since nobody was moved', async () => {
         await loadAndFail(new Error('the maps library never loaded'));
 
         expect(reportNoImagery).not.toHaveBeenCalled();
-        expect(window.location.replace).not.toHaveBeenCalled();
-        expect(window.PanoManager.consumeStreetSkippedNotice()).toBe(false);
+        expect(locationStub.replace).not.toHaveBeenCalled();
+        expect(window.PanoManager.consumeStreetSkippedNotice()).toBeNull();
         expect(showAlert).toHaveBeenCalledWith('popup.imagery-load-failed', 'imageryLoadFailed', false);
     });
 
@@ -108,8 +115,20 @@ describe('a street given up on at page load', () => {
         // Past the flag budget nothing is recorded and nobody is moved, so the transient-failure wording ("try
         // again in a few minutes") would be doubly wrong: nothing failed, and waiting changes nothing.
         expect(reportNoImagery).not.toHaveBeenCalled();
-        expect(window.location.replace).not.toHaveBeenCalled();
+        expect(locationStub.replace).not.toHaveBeenCalled();
         expect(showAlert).toHaveBeenCalledWith('popup.imagery-skip-limit', 'imagerySkipLimit', false);
+    });
+
+    it('hands the budget back when it stops, so the reload it suggests actually starts over', async () => {
+        for (let i = 0; i < window.NoImageryFlagGuard.MAX_CONSECUTIVE_FLAGS; i++) {
+            window.NoImageryFlagGuard.recordStreetGivenUp();
+        }
+
+        await loadAndFail(new window.NoImageryError('nothing usable here'));
+
+        // The message tells the labeler to reload to start again. A budget that survived the reload would make that
+        // advice false and leave the tab unable to show them a street ever again.
+        expect(window.NoImageryFlagGuard.count()).toBe(0);
     });
 
     describe('when the load stops instead of reloading', () => {

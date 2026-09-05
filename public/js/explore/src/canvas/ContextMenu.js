@@ -475,12 +475,12 @@ class ContextMenu {
             // Add tooltip with tag example if we have an example image to show.
             // If there's a server-specific image, try that first. Get default image as a backup.
             let exampleImage;
-            const imageUrl = `/assets/images/examples/tags/${tag.tag_id}.png`;
+            const imageUrl = util.assetPath(`images/examples/tags/${tag.tag_id}.png`);
             let citySpecificImageUrl;
             if (window.cityId === 'chandigarh-india') {
-              citySpecificImageUrl = `/assets/images/examples/tags/india/${tag.tag_id}.png`;
+              citySpecificImageUrl = util.assetPath(`images/examples/tags/india/${tag.tag_id}.png`);
             } else if (['zurich', 'zurich-infra3d', 'staging'].includes(window.cityId)) {
-              citySpecificImageUrl = `/assets/images/examples/tags/zurich/${tag.tag_id}.png`;
+              citySpecificImageUrl = util.assetPath(`images/examples/tags/zurich/${tag.tag_id}.png`);
             }
 
             // Try the server-specific image, getting normal image as a backup.
@@ -554,7 +554,7 @@ class ContextMenu {
       : 'severity-example-tooltip';
     for (let sev = 1; sev < 4; sev++) {
       // Add severity tooltips for the current label type if we have images for them.
-      util.getImage(`/assets/images/examples/severity/${labelType}_Severity${sev}.png`).then((img) => {
+      util.getImage(util.assetPath(`images/examples/severity/${labelType}_Severity${sev}.png`)).then((img) => {
         const tooltipHeader = i18next.t(`common:${tooltipKey}-${sev}`);
         const tooltipFooter = `<i>${i18next.t('center-ui.context-menu.severity-shortcuts')}</i>`;
         // 'auto top' flips the tooltip below the button if it would clip the viewport top.

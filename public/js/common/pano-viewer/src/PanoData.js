@@ -5,7 +5,8 @@ class PanoData {
   /**
    * @param params {object}
    * @param {string} params.panoId The unique ID for this panorama
-   * @param {string} params.source The data source for the image, one of "gsv", "mapillary", or "infra3d"
+   * @param {string} params.source The data source for the image: "gsv", "mapillary", "infra3d", "panoramax", or
+   *     "pannellum" for our own backup copy of a pano
    * @param {number} params.lat Latitude of the camera
    * @param {number} params.lng Longitude of the camera
    * @param {number} params.cameraHeading Heading of the camera in degrees, with respect to true north
@@ -40,7 +41,7 @@ class PanoData {
     });
 
     // Validate parameter types and ranges
-    const validSources = ['gsv', 'mapillary', 'infra3d', 'pannellum'];
+    const validSources = ['gsv', 'mapillary', 'infra3d', 'pannellum', 'panoramax'];
     if (!validSources.includes(params.source)) {
       throw new Error(`Invalid source. Must be one of: ${validSources.join(', ')}`);
     }

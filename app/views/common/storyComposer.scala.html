@@ -31,6 +31,7 @@
       @* Accepted types must stay in sync with StoryService's sniffed-format allowlist (stock ImageIO: no WebP). *@
       <input type="file" id="@{idPrefix}-photo" class="story-composer__photo-input sr-only"
              accept="image/jpeg,image/png">
+      <img class="story-composer__photo-icon" src='@assets.path("images/icons/camera-feather.svg")' alt="">
       <span data-i18n="labelmap:story.add-photo">Add a photo (optional)</span>
     </label>
     <div class="story-composer__photo-preview" hidden>

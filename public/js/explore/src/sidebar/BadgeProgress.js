@@ -134,7 +134,7 @@ class BadgeProgress {
       thresholds: BadgeAchievements.THRESHOLDS.labels,
       nameKey: 'common:badges.labeler-name',
       goalKey: 'audit:right-ui.badges.labeler-goal',
-      iconFor: (level) => `/assets/images/badges/badge_labels_badge${level}.png`,
+      iconFor: (level) => util.assetPath(`images/badges/badge_labels_badge${level}.png`),
       nextText: (target) => i18next.t('audit:right-ui.badges.next-labels', { count: target }),
       unit: '',
       decimals: 0,
@@ -151,8 +151,8 @@ class BadgeProgress {
       nameKey: 'common:badges.explorer-name',
       goalKey: 'audit:right-ui.badges.explorer-goal',
       iconFor: (level) => (isMetric
-        ? `/assets/images/badges/badge_distance_km_badge${level}.png`
-        : `/assets/images/badges/badge_distance_badge${level}.png`),
+        ? util.assetPath(`images/badges/badge_distance_km_badge${level}.png`)
+        : util.assetPath(`images/badges/badge_distance_badge${level}.png`)),
       // The badge's total distance goal, shown to one decimal place.
       nextText: (target) => i18next.t('audit:right-ui.badges.next-distance', {
         distance: `${this.#formatNumber(Number(target.toFixed(1)))} ${distanceUnit}`,

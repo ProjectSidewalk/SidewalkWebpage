@@ -89,6 +89,11 @@
   "only": "Nur",
   "image-capture-date": "Datum der Bildaufnahme",
   "drag-to-look-around": "Ziehen Sie, um sich umzusehen",
+  "loading-imagery": "Bilder werden geladen …",
+  "hide-label": "Beschriftung ausblenden",
+  "show-label": "Beschriftung einblenden",
+  "hide-label-tooltip": "Blendet die Beschriftung vorübergehend aus, um zu sehen, was darunter liegt.",
+  "show-label-tooltip": "Blendet die Beschriftung wieder ein.",
   "labeled": "Beschriftet",
   "low": "Niedrig",
   "medium": "Medium",
@@ -196,15 +201,20 @@
     "pano-address": "Adresse",
     "view-in-gsv": "Ansicht in Google Street View",
     "view-in-mapillary": "Ansicht in Mapillary",
+    "view-in-panoramax": "Ansicht in Panoramax",
     "city": "Stadt",
     "copy-to-clipboard": "In die Zwischenablage kopieren",
     "copied-to-clipboard": "Daten wurden in Zwischenablage kopiert"
+  },
+  "pano-attribution": {
+    "opens-new-tab": "(wird in einem neuen Tab geöffnet)"
   },
   "mission-start-tutorial": {
     "example-type-label-correct": "RICHTIGES BEISPIEL",
     "label-type-subtitle": "Wieso ist das falsch?",
     "label-on-image-title-correct": "Richtige Beschriftung",
     "start-mission": "Mission starten",
+    "resume-mission": "Mission fortsetzen",
     "curb-ramp": {
       "slide-1": {
         "title": "{{- labelType}}",

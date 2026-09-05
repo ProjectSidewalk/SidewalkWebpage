@@ -58,7 +58,7 @@ describe('Label lat/lng estimation', () => {
         Label.createMinimapMarker = () => ({ addListener: () => {} });
         window.turf = {
             point: (coords) => ({ geometry: { coordinates: coords } }),
-            destination: jest.fn((start, distKm, bearing) => ({ geometry: { coordinates: [-122.303, 47.656] } })),
+            destination: jest.fn((_start, _distKm, _bearing) => ({ geometry: { coordinates: [-122.303, 47.656] } })),
         };
     });
 

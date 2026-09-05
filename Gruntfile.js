@@ -22,58 +22,6 @@ module.exports = function (grunt) {
         ],
         dest: 'public/js/explore/build/explore.js'
       },
-      dist_progress: {
-        src: [
-          // Shared deep-link query rules; every reader/writer of the URL's filter params depends on it.
-          'public/js/common/urlQuery.js',
-          'public/js/common/aiLabelIndicator.js',
-          'public/js/admin/src/*.js',
-          // PopupPanoManager and LabelDetail must be concatenated before LabelPopup.
-          'public/js/common/label-detail/PopupPanoManager.js',
-          'public/js/common/ConfirmDialog.js',
-          'public/js/common/label-detail/StoryComposer.js',
-          'public/js/common/label-detail/StorySection.js',
-          'public/js/common/label-detail/LabelDetail.js',
-          'public/js/common/share/ShareWidget.js',
-          'public/js/common/label-detail/LabelPopup.js',
-          'public/js/validate/src/util/*.js',
-          'public/js/common/PanoMarker.js',
-          // Toast must be concatenated before BadgeAchievements, which builds badge-unlock toasts.
-          'public/js/common/Toast.js',
-          'public/js/common/BadgeAchievements.js',
-          'public/js/user-dashboard/src/*.js',
-          'public/js/common/utilitiesSidewalk.js',
-        ],
-        dest: 'public/js/user-dashboard/build/user-dashboard.js'
-      },
-      dist_admin: {
-        src: [
-          // Shared deep-link query rules; every reader/writer of the URL's filter params depends on it.
-          'public/js/common/urlQuery.js',
-          'public/js/common/aiLabelIndicator.js',
-          // Toast must be concatenated before BadgeAchievements, which LabelDetail uses for validation badges.
-          'public/js/common/Toast.js',
-          'public/js/common/BadgeAchievements.js',
-          'public/js/admin/src/*.js',
-          // PopupPanoManager and LabelDetail must be concatenated before LabelPopup.
-          'public/js/common/label-detail/PopupPanoManager.js',
-          'public/js/common/ConfirmDialog.js',
-          'public/js/common/label-detail/StoryComposer.js',
-          'public/js/common/label-detail/StorySection.js',
-          'public/js/common/label-detail/LabelDetail.js',
-          'public/js/common/share/ShareWidget.js',
-          'public/js/common/label-detail/LabelPopup.js',
-          'public/js/common/utilitiesSidewalk.js',
-          'public/js/common/PanoMarker.js',
-        ],
-        dest: 'public/js/admin/build/admin.js'
-      },
-      dist_help: {
-        src: [
-          'public/js/help/src/*.js'
-        ],
-        dest: 'public/js/help/build/help.js'
-      },
       dist_validate: {
         src: [
           'public/js/common/aiLabelIndicator.js',
@@ -91,6 +39,7 @@ module.exports = function (grunt) {
           'public/js/validate/src/zoom/*.js',
           'public/js/common/ProgressBar.js',
           'public/js/common/PanoMarker.js',
+          'public/js/common/LabelVisibilityToggle.js',
           'public/js/common/LabelCardView.js',
           'public/js/common/utilitiesSidewalk.js',
           'public/js/common/SpeedLimit.js',
@@ -116,10 +65,12 @@ module.exports = function (grunt) {
           'public/js/common/ConfirmDialog.js',
           'public/js/common/label-detail/StoryComposer.js',
           'public/js/common/label-detail/StorySection.js',
+          'public/js/common/label-detail/TagEditor.js',
           'public/js/common/label-detail/LabelDetail.js',
           'public/js/common/share/ShareWidget.js',
           // The shared filter sidebar owns the sidebar controls; GalleryFilter is the Gallery's adapter for it.
           'public/js/common/filter-sidebar/*.js',
+          'public/js/common/sidebarDisclosure.js',
           'public/js/gallery/src/cards/*.js',
           'public/js/gallery/src/data/*.js',
           'public/js/gallery/src/filter/*.js',
@@ -129,6 +80,7 @@ module.exports = function (grunt) {
           'public/js/gallery/src/expandedview/*.js',
           'public/js/gallery/src/*.js',
           'public/js/common/PanoMarker.js',
+          'public/js/common/LabelVisibilityToggle.js',
           'public/js/common/utilitiesSidewalk.js'
         ],
         dest: 'public/js/gallery/build/gallery.js'
@@ -147,6 +99,7 @@ module.exports = function (grunt) {
         src: [
           'public/js/common/Toast.js',
           'public/js/common/ConfirmDialog.js',
+          'public/js/common/mapboxSearchBoxA11y.js',
           'public/js/route-builder/src/*.js'
         ],
         dest: 'public/js/route-builder/build/route-builder.js'
@@ -162,11 +115,13 @@ module.exports = function (grunt) {
           'public/js/common/Toast.js',
           'public/js/common/BadgeAchievements.js',
           'public/js/common/PanoMarker.js',
+          'public/js/common/LabelVisibilityToggle.js',
           // PopupPanoManager + LabelDetail must precede anything that uses them.
           'public/js/common/label-detail/PopupPanoManager.js',
           'public/js/common/ConfirmDialog.js',
           'public/js/common/label-detail/StoryComposer.js',
           'public/js/common/label-detail/StorySection.js',
+          'public/js/common/label-detail/TagEditor.js',
           'public/js/common/label-detail/LabelDetail.js',
           'public/js/common/share/ShareWidget.js',
           'public/js/shared-label/*.js'
@@ -186,7 +141,9 @@ module.exports = function (grunt) {
           'public/js/common/pano-viewer/src/MapillaryViewer.js',
           'public/js/common/pano-viewer/src/Infra3dViewer.js',
           'public/js/common/pano-viewer/src/PannellumViewer.js',
+          'public/js/common/pano-viewer/src/PanoramaxViewer.js',
           'public/js/common/pano-viewer/src/PanoViewerLogo.js',
+          'public/js/common/pano-viewer/src/PanoAttribution.js',
           'public/js/common/pano-viewer/src/PanoInfoPopover.js'
         ],
         dest: 'public/js/common/pano-viewer/build/pano-viewer.js'
@@ -194,28 +151,29 @@ module.exports = function (grunt) {
     },
     concat_css: {
       // The two label-card files come first so each tool's own stylesheet can override the shared base after it.
-      // public/css/common/ has no glob — every file used from it is named by hand, in each bundle that wants it.
+      // public/css/components/ has no glob — every file used from it is named by hand, in each bundle that wants it.
       dist_audit: {
         src: [
-          'public/css/common/label-anchored-panel.css',
-          'public/css/common/label-hover-card.css',
-          'public/css/explore/*.css',
-          'public/css/common/mission-start-tutorial.css'
+          'public/css/components/label-anchored-panel.css',
+          'public/css/components/label-hover-card.css',
+          'public/css/pages/explore/*.css',
+          'public/css/components/mission-start-tutorial.css'
         ],
         dest: 'public/js/explore/build/explore.css'
       },
       dist_validate: {
         src: [
-          'public/css/common/label-anchored-panel.css',
-          'public/css/common/label-hover-card.css',
-          'public/css/validate/*.css',
-          'public/css/common/mission-start-tutorial.css'
+          'public/css/components/label-anchored-panel.css',
+          'public/css/components/label-hover-card.css',
+          'public/css/components/pano-attribution.css',
+          'public/css/pages/validate/*.css',
+          'public/css/components/mission-start-tutorial.css'
         ],
         dest: 'public/js/validate/build/validate.css'
       },
       gallery_all: {
         src: [
-          'public/css/gallery/*.css'
+          'public/css/pages/gallery/*.css'
         ],
         dest: 'public/js/gallery/build/gallery.css'
       }
@@ -235,20 +193,20 @@ module.exports = function (grunt) {
           'public/js/common/*/src/*.js',
           'public/js/explore/src/*.js',
           'public/js/explore/src/**/*.js',
-          'public/css/explore/*.css',
-          'public/js/user-dashboard/src/**/*.js',
-          'public/js/admin/src/**/*.js',
-          'public/js/help/src/*.js',
+          'public/css/pages/explore/*.css',
           'public/js/validate/src/*.js',
           'public/js/validate/src/**/*.js',
-          'public/css/validate/*.css',
+          'public/css/pages/validate/*.css',
           'public/js/gallery/src/*.js',
           'public/js/gallery/src/**/*.js',
-          'public/css/gallery/*.css',
+          'public/css/pages/gallery/*.css',
           'public/js/ps-map/*.js',
           'public/js/route-builder/src/*.js',
           'public/js/shared-label/*.js',
-          'public/css/common/*.css'
+          'public/css/components/label-anchored-panel.css',
+          'public/css/components/label-hover-card.css',
+          'public/css/components/pano-attribution.css',
+          'public/css/components/mission-start-tutorial.css'
         ],
         tasks: [
           'concat',
@@ -268,5 +226,5 @@ module.exports = function (grunt) {
 
   // 4. Where we tell Grunt what to do when we type "grunt" into the terminal.
   grunt.registerTask('default', ['concat', 'concat_css']);
-  grunt.registerTask('dist', ['concat:dist_audit', 'concat:dist_progress', 'concat:dist_admin', 'concat:dist_validate', 'concat:dist_gallery']);
+  grunt.registerTask('dist', ['concat:dist_audit', 'concat:dist_validate', 'concat:dist_gallery']);
 };

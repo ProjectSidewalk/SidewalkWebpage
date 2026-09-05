@@ -142,9 +142,21 @@
     "no-accuracy-tooltip": "We need more data to calculate an accuracy rating for you. Add more labels and sign up to keep track of your accuracy rating!",
     "current-mission": {
       "header": "Current Mission",
+      "header-route": "Custom Route",
       "message-route": "Explore {{routeName}}",
+      "exit-route": "Exit Custom Route",
       "header-free-explore": "Free Exploration",
       "message": "Explore __PLACEHOLDER__ of {{neighborhoodName}}"
+    },
+    "route-resume": {
+      "message": "Resuming your custom route “{{routeName}}” where you left off.",
+      "exit": "Exit Custom Route"
+    },
+    "mission-resume": {
+      "message": "Resuming your mission in {{neighborhoodName}} — {{distanceLeft, distance(style: small)}} to go."
+    },
+    "route-unavailable": {
+      "message": "That route isn't available. It may have been deleted."
     },
     "minimap": {
       "coach-dismiss": "Got it",

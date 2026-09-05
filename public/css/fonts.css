@@ -1,133 +1,9 @@
-@font-face {
-  font-family: "Noto Sans";
-  src: url("/assets/fonts/NotoSans/NotoSans-Bold.woff2") format("woff2");
-  font-style: normal;
-  font-weight: bold;
-}
-
-@font-face {
-  font-family: "Noto Sans";
-  src: url("/assets/fonts/NotoSans/NotoSans-BoldItalic.woff2") format("woff2");
-  font-style: italic;
-  font-weight: bold;
-}
-
-@font-face {
-  font-family: "Noto Sans";
-  src: url("/assets/fonts/NotoSans/NotoSans-Italic.woff2") format("woff2");
-  font-style: italic;
-  font-weight: normal;
-}
-
-@font-face {
-  font-family: "Noto Sans";
-  src: url("/assets/fonts/NotoSans/NotoSans-Regular.woff2") format("woff2");
-  font-style: normal;
-  font-weight: normal;
-}
-
-/* BEGIN Light */
-@font-face {
-  font-family: "Open Sans";
-  src: url("/assets/fonts/OpenSans/Light/OpenSans-Light.woff2") format("woff2");
-  font-weight: 300;
-  font-style: normal;
-}
-
-/* END Light */
-
-/* BEGIN Light Italic */
-@font-face {
-  font-family: "Open Sans";
-  src: url("/assets/fonts/OpenSans/LightItalic/OpenSans-LightItalic.woff2") format("woff2");
-  font-weight: 300;
-  font-style: italic;
-}
-
-/* END Light Italic */
-
-/* BEGIN Regular */
-@font-face {
-  font-family: "Open Sans";
-  src: url("/assets/fonts/OpenSans/Regular/OpenSans-Regular.woff2") format("woff2");
-  font-weight: normal;
-  font-style: normal;
-}
-
-/* END Regular */
-
-/* BEGIN Italic */
-@font-face {
-  font-family: "Open Sans";
-  src: url("/assets/fonts/OpenSans/Italic/OpenSans-Italic.woff2") format("woff2");
-  font-weight: normal;
-  font-style: italic;
-}
-
-/* END Italic */
-
-/* BEGIN Semibold */
-@font-face {
-  font-family: "Open Sans";
-  src: url("/assets/fonts/OpenSans/Semibold/OpenSans-Semibold.woff2") format("woff2");
-  font-weight: 600;
-  font-style: normal;
-}
-
-/* END Semibold */
-
-/* BEGIN Semibold Italic */
-@font-face {
-  font-family: "Open Sans";
-  src: url("/assets/fonts/OpenSans/SemiboldItalic/OpenSans-SemiboldItalic.woff2") format("woff2");
-  font-weight: 600;
-  font-style: italic;
-}
-
-/* END Semibold Italic */
-
-/* BEGIN Bold */
-@font-face {
-  font-family: "Open Sans";
-  src: url("/assets/fonts/OpenSans/Bold/OpenSans-Bold.woff2") format("woff2");
-  font-weight: bold;
-  font-style: normal;
-}
-
-/* END Bold */
-
-/* BEGIN Bold Italic */
-@font-face {
-  font-family: "Open Sans";
-  src: url("/assets/fonts/OpenSans/BoldItalic/OpenSans-BoldItalic.woff2") format("woff2");
-  font-weight: bold;
-  font-style: italic;
-}
-
-/* END Bold Italic */
-
-/* BEGIN Extrabold */
-@font-face {
-  font-family: "Open Sans";
-  src: url("/assets/fonts/OpenSans/ExtraBold/OpenSans-ExtraBold.woff2") format("woff2");
-  font-weight: 800;
-  font-style: normal;
-}
-
-/* END Extrabold */
-
-/* BEGIN Extrabold Italic */
-@font-face {
-  font-family: "Open Sans";
-  src: url("/assets/fonts/OpenSans/ExtraBoldItalic/OpenSans-ExtraBoldItalic.woff2") format("woff2");
-  font-weight: 800;
-  font-style: italic;
-}
-
-/* END Extrabold Italic */
-
-/* Mulish (variable font, weights 200-1000). Latin + Latin-Extended subsets cover all currently-supported languages
-   except Chinese, which falls back to Noto Sans. */
+/* Mulish (variable font, weights 200-1000). The Latin + Latin-Extended subsets cover every supported language but
+   zh-TW, whose glyphs come from the CJK system faces named after Mulish in --font-primary.
+   The italic faces are a separate download rather than an axis on the upright ones, and without them a browser
+   shears the roman into a fake oblique instead of using Mulish's drawn italic letterforms.
+   Refreshing these: pull the css2 URL Google serves for a modern browser, keep the latin and latin-ext faces of
+   each style, and copy their unicode-ranges here alongside the woff2 (last taken from Mulish v18). */
 @font-face {
   font-family: Mulish;
   src: url("/assets/fonts/Mulish/Mulish-latin.woff2") format("woff2");
@@ -148,34 +24,33 @@
     U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 
-/* Inter (--font-sans on the API docs) and JetBrains Mono (--font-mono, everywhere), both variable fonts, both
-   Latin + Latin-Extended like Mulish above. Served from here rather than fetched from Google at render time: a
-   third-party stylesheet is a dependency on someone else's uptime and URL churn — the woff2 names behind that CSS
-   rotate within a single Google-assigned version, which broke a page load in CI — and it hands every visitor's IP
-   to Google on a page we serve ourselves.
-   Both are SIL OFL 1.1; the license and its copyright notice ship beside each family, as the license requires.
-   Refreshing them: pull the css2 URL Google serves for a modern browser, keep the latin and latin-ext faces, and
-   copy their unicode-ranges here alongside the woff2 (last taken from Inter v20 and JetBrains Mono v24). */
 @font-face {
-  font-family: Inter;
-  src: url("/assets/fonts/Inter/Inter-latin.woff2") format("woff2");
-  font-style: normal;
-  font-weight: 100 900;
+  font-family: Mulish;
+  src: url("/assets/fonts/Mulish/Mulish-italic-latin.woff2") format("woff2");
+  font-style: italic;
+  font-weight: 200 1000;
   font-display: swap;
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
     U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
 @font-face {
-  font-family: Inter;
-  src: url("/assets/fonts/Inter/Inter-latin-ext.woff2") format("woff2");
-  font-style: normal;
-  font-weight: 100 900;
+  font-family: Mulish;
+  src: url("/assets/fonts/Mulish/Mulish-italic-latin-ext.woff2") format("woff2");
+  font-style: italic;
+  font-weight: 200 1000;
   font-display: swap;
   unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF,
     U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 
+/* JetBrains Mono (--font-mono), a variable font, Latin + Latin-Extended like Mulish above. Served from here rather
+   than fetched from Google at render time: a third-party stylesheet is a dependency on someone else's uptime and URL
+   churn — the woff2 names behind that CSS rotate within a single Google-assigned version, which broke a page load in
+   CI — and it hands every visitor's IP to Google on a page we serve ourselves.
+   SIL OFL 1.1; the license and its copyright notice ship beside the family, as the license requires.
+   Refreshing it: pull the css2 URL Google serves for a modern browser, keep the latin and latin-ext faces, and
+   copy their unicode-ranges here alongside the woff2 (last taken from JetBrains Mono v24). */
 @font-face {
   font-family: "JetBrains Mono";
   src: url("/assets/fonts/JetBrainsMono/JetBrainsMono-latin.woff2") format("woff2");

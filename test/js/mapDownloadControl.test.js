@@ -138,6 +138,15 @@ describe('MapDownloadControl.buildDownloadUrl', () => {
         expect(queryOf(withoutRegion).has('regionId')).toBe(false);
     });
 
+    // Viewport-scoped downloads (#5002): the bbox scopes the file to the current view and takes regionId's
+    // place — the endpoint gives bbox precedence, so sending both could never narrow the file further.
+    test('a bbox scopes the download and supersedes regionId', () => {
+        const url = MapDownloadControl.buildDownloadUrl(makeState(),
+            { format: 'geojson', regionId: 42, bbox: '-122.4,47.5,-122.3,47.6' });
+        expect(queryOf(url).get('bbox')).toBe('-122.4,47.5,-122.3,47.6');
+        expect(queryOf(url).has('regionId')).toBe(false);
+    });
+
     test('omits empty selections (the UI disables downloads in that state)', () => {
         const url = MapDownloadControl.buildDownloadUrl(
             makeState({ severities: [], labelTypes: [], validations: [] }), { format: 'geojson' });

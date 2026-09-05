@@ -20,7 +20,7 @@
     endpoint: '/accessScoreStreets',
   };
 
-  const NONE_COLOR = '#888888'; // Unaudited streets (null score).
+  const NONE_COLOR = ApiDocsTheme.color('--color-neutral-600'); // Unaudited streets (null score).
 
   // An unaudited street has no score to read, so it's drawn thinner and fainter than one that does.
   const UNAUDITED = ['<', ['coalesce', ['get', 'score'], -1], 0];
@@ -53,15 +53,15 @@
         await this.renderMap(container, streets);
       } catch (error) {
         console.error('Error rendering AccessScore streets preview:', error);
-        container.innerHTML = '<div class="no-data-message">Unable to load AccessScore data for the preview.</div>';
+        container.innerHTML = '<div class="map-message" role="alert">Unable to load AccessScore data '
+          + 'for the preview.</div>';
       }
     },
 
     /** Pick a sample region (the one with the most labels) to keep the preview focused. Null = whole city. */
     fetchSampleRegionId() {
-      // getRegionWithMostLabels returns a flat Region object (region_id at the top level), not a GeoJSON Feature.
       return ApiDocsMap.fetchJson(`${config.apiBaseUrl}/regionWithMostLabels`)
-        .then((region) => (region ? region.region_id : null))
+        .then((region) => (region ? region.properties.region_id : null))
         .catch(() => null);
     },
 
@@ -138,7 +138,8 @@
     /** Show an on-map message (e.g. when there is no data). */
     addNoDataMessage(map, text) {
       const div = document.createElement('div');
-      div.className = 'no-data-message';
+      div.className = 'map-message';
+      div.setAttribute('role', 'status');
       div.textContent = text;
       map.getContainer().appendChild(div);
     },

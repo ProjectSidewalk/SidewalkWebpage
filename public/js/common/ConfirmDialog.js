@@ -5,7 +5,7 @@
  * consistently, so in-app confirmations use this instead. A single shared <dialog class="ps-confirm"> is built
  * lazily on first use and reused for every confirmation on the page; the native element supplies the focus trap,
  * Esc-to-dismiss, and ::backdrop. Esc and every other dismissal path resolve false. The cancel button takes
- * initial focus so a stray Enter can't trigger a destructive action. Styles live in css/label-detail.css.
+ * initial focus so a stray Enter can't trigger a destructive action. Styles live in css/components/label-detail.css.
  */
 class ConfirmDialog {
   static #dialog = null;

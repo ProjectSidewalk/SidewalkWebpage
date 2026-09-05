@@ -200,24 +200,40 @@ class GeodesicDistanceSpec extends PlaySpec with GuiceOneAppPerSuite with Option
     }
 
     "match a fresh runtime recompute of user_stat.labels_per_meter for users with audited meters" in {
-      // Scoped to meters_audited > 0: for users without audited meters the runtime recompute writes NULL while
-      // legacy rows may carry other values, and no distance is involved in that difference.
-      val allUserIds = TableQuery[UserStatTableDef].map(_.userId)
+      // Scoped to meters_audited > 0 on both sides. For users without audited meters the runtime recompute writes
+      // NULL while legacy rows may carry other values, and no distance is involved in that difference — and
+      // recomputing the whole table is not free to skip: a real city schema holds ~1M user_stat rows against ~3k
+      // audited ones, which is the difference between a fast check and one that times out (#5042).
+      val auditedUserIds = TableQuery[UserStatTableDef].filter(_.metersAudited > 0d).map(_.userId)
+
+      // Excludes the suite-created fixture users. Other suites write meters_audited without refreshing the derived
+      // labels_per_meter, so their rows sit in a state the product never leaves a real user in and read here as
+      // cache drift — permanently, since the rows persist in a shared dev DB (#5075).
+      val snapshot = sql"""SELECT user_stat.user_id, user_stat.labels_per_meter
+                           FROM user_stat
+                           INNER JOIN sidewalk_login.sidewalk_user
+                               ON sidewalk_user.user_id = user_stat.user_id
+                           WHERE user_stat.meters_audited > 0
+                               AND sidewalk_user.username NOT LIKE 'spec%'""".as[(String, Option[Double])].map(_.toMap)
+
       val (before, after): (Map[String, Option[Double]], Map[String, Option[Double]]) = runRolledBack(for {
-        before <- sql"SELECT user_id, labels_per_meter FROM user_stat WHERE meters_audited > 0"
-          .as[(String, Option[Double])]
-          .map(_.toMap)
-        _     <- userStatTable.updateLabelsPerMeterHelper(allUserIds)
-        after <- sql"SELECT user_id, labels_per_meter FROM user_stat WHERE meters_audited > 0"
-          .as[(String, Option[Double])]
-          .map(_.toMap)
+        before <- snapshot
+        _      <- userStatTable.updateLabelsPerMeterHelper(auditedUserIds)
+        after  <- snapshot
       } yield (before, after))
 
       assume(after.nonEmpty, "no users with audited meters in this schema; cache freshness needs a seeded DB")
       after.foreach { case (userId, recomputed) =>
         (before.get(userId).value, recomputed) match {
-          case (Some(cached), Some(fresh)) => assertClose(cached, fresh, relTol = 1e-9, absTol = 1e-12)
-          case (cached, fresh)             => cached mustBe fresh
+          // Not exact equality on the value: the numerator is a label count, and on any DB people actually label
+          // against, the cache is one nightly refresh behind whatever was added since. That drift is tiny — a single
+          // new label moved a 2554-label mapper by 0.04% — while the failure this test exists to catch is a
+          // denominator measured the wrong way, which at Seattle's latitude is a ~48% shift (1/cos 47.6°). 1% sits
+          // far below that and far above label churn.
+          case (Some(cached), Some(fresh)) => assertClose(cached, fresh, relTol = 1e-2, absTol = 1e-12)
+          // Presence is still exact: a cached NULL where the recompute produces a value (or the reverse) is a
+          // refresh that never reached the row, not staleness.
+          case (cached, fresh) => cached mustBe fresh
         }
       }
     }

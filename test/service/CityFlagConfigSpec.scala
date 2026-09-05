@@ -22,6 +22,12 @@ class CityFlagConfigSpec extends PlaySpec {
   private val optionalFlagBlocks =
     Seq("ai-label-submission-enabled", "private-profiles-by-default", "global-leaderboard-excluded")
 
+  /**
+   * Env-scoped per-city string blocks (`<block>.{prod,test}.<cityId>`) where an unlisted city is also legal (read via
+   * `getOptional`, or unreachable for cities never deployed) — the same silent-typo failure mode as the flag blocks.
+   */
+  private val envScopedStringBlocks = Seq("landing-page-url", "google-analytics-4-id", "google-analytics-property-id")
+
   private lazy val config: Config       = ConfigFactory.load()
   private lazy val cityIds: Set[String] = config.getStringList("city-params.city-ids").asScala.toSet
 
@@ -44,6 +50,21 @@ class CityFlagConfigSpec extends PlaySpec {
         if (config.hasPath(path)) {
           config.getConfig(path).root().keySet().asScala.foreach { cityId =>
             withClue(s"$block.$cityId: ") { noException must be thrownBy config.getBoolean(s"$path.$cityId") }
+          }
+        }
+      }
+    }
+  }
+
+  "the env-scoped per-city string blocks" should {
+    "key every prod/test entry on a configured city id, so a typo can't silently read as unconfigured" in {
+      envScopedStringBlocks.foreach { block =>
+        Seq("prod", "test").foreach { env =>
+          val path = s"city-params.$block.$env"
+          if (config.hasPath(path)) {
+            config.getConfig(path).root().keySet().asScala.foreach { cityId =>
+              withClue(s"$block.$env.$cityId is not in city-params.city-ids: ") { cityIds must contain(cityId) }
+            }
           }
         }
       }

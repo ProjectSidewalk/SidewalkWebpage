@@ -1,5 +1,6 @@
 package models.userdashboard
 
+import models.user.Role
 import models.utils.MyPostgresProfile
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
@@ -44,12 +45,11 @@ class TrophyTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
                  RANK() OVER (PARTITION BY #$labelWeek ORDER BY COUNT(label.label_id) DESC)::int AS rnk
           FROM sidewalk_user
           INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
-          INNER JOIN role ON user_role.role_id = role.role_id
           INNER JOIN user_stat ON sidewalk_user.user_id = user_stat.user_id
           INNER JOIN label ON sidewalk_user.user_id = label.user_id
           WHERE label.deleted = FALSE
               AND label.tutorial = FALSE
-              AND role.role IN ('Registered', 'Administrator', 'Researcher')
+              AND user_role.role IN (#${Role.LEADERBOARD_ROLES_SQL})
               AND user_stat.excluded = FALSE
               AND user_stat.on_leaderboard = TRUE
               AND #$labelWeek < #$nowWeek

@@ -46,7 +46,7 @@ trait AuthenticationService extends IdentityService[SidewalkUserWithRole] {
   def cleanAuthTokens: Future[Int]
   def setCommunityServiceStatus(userId: String, newCommServiceStatus: Boolean): Future[Int]
   def setInfra3dAccess(userId: String, newAccess: Boolean): Future[Int]
-  def updateRole(userId: String, newRole: String): Future[Int]
+  def updateRole(userId: String, newRole: Role.Value): Future[Int]
 }
 
 @Singleton
@@ -117,7 +117,7 @@ class AuthenticationServiceImpl @Inject() (
       isUserAvailable(username, email).flatMap {
         case true =>
           Future.successful(
-            SidewalkUserWithRole(UUID.randomUUID().toString, username, email, "Anonymous", false, false)
+            SidewalkUserWithRole(UUID.randomUUID().toString, username, email, Role.Anonymous, false, false)
           )
         case false => tryGenerateUser()
       }
@@ -337,7 +337,7 @@ class AuthenticationServiceImpl @Inject() (
 
   def cleanAuthTokens: Future[Int] = db.run(authTokenTable.removeExpired(OffsetDateTime.now))
 
-  def updateRole(userId: String, newRole: String): Future[Int] =
+  def updateRole(userId: String, newRole: Role.Value): Future[Int] =
     db.run(userRoleTable.updateRole(userId, newRole))
 
   def setCommunityServiceStatus(userId: String, newCommServiceStatus: Boolean): Future[Int] =

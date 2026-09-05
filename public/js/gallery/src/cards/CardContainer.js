@@ -10,19 +10,6 @@ class CardContainer {
 
   static #cardsPerPage = 9;
 
-  // Map label type to id.
-  static #labelTypeIds = {
-    CurbRamp: 1,
-    NoCurbRamp: 2,
-    Obstacle: 3,
-    SurfaceProblem: 4,
-    Other: 5,
-    Occlusion: 6,
-    NoSidewalk: 7,
-    Crosswalk: 9,
-    Signal: 10,
-  };
-
   #uiCardContainer;
   #initialFilters;
   #panoViewerType;
@@ -112,7 +99,7 @@ class CardContainer {
     // Grab first batch of labels to show.
     const filters = this.#currentFilters();
     this.fetchLabels(
-      filters.typeIds,
+      filters.types,
       CardContainer.#initialLoad,
       filters.valOptions,
       Array.from(this.#loadedLabelIds),
@@ -155,6 +142,20 @@ class CardContainer {
       // Sets/Updates the label being displayed in the expanded view.
       this.#expandedView.updateCardIndex(this.#findCardIndex(cardId));
     });
+
+    // Tag pills are fitted in measured pixels at render time (TagDisplay), so a card-column width change
+    // (rotation, the narrow-layout re-stack, a desktop resize) leaves stale fits; re-fit the visible cards.
+    // TagDisplay rebuilds from scratch, so re-running is idempotent; the width guard plus trailing debounce
+    // keep it quiet during continuous resizes and height-only changes (which ResizeObserver also reports).
+    let lastTagFitWidth = null;
+    let tagRefitTimer = null;
+    new ResizeObserver((entries) => {
+      const width = entries[0].contentRect.width;
+      if (width === lastTagFitWidth) return;
+      lastTagFitWidth = width;
+      clearTimeout(tagRefitTimer);
+      tagRefitTimer = setTimeout(() => this.getCurrentPageCards().forEach((card) => card.refitTags()), 150);
+    }).observe(uiCardContainer.holder[0]);
   }
 
   /**
@@ -226,7 +227,7 @@ class CardContainer {
   /**
    * Grab n labels of the specified label types, severities, and tags.
    *
-   * @param {number[]} labelTypeIds Label type ids specifying which types of labels to grab.
+   * @param {string[]} labelTypes Label type names specifying which types of labels to grab.
    * @param {*} n Number of labels to grab.
    * @param validationOptions List of validation options for fetched labels: correct, incorrect, and/or unvalidated.
    * @param {*} loadedLabels Label Ids of labels already grabbed.
@@ -237,12 +238,12 @@ class CardContainer {
    * @param {*} callback Function to be called when labels arrive.
    */
   fetchLabels(
-    labelTypeIds, n, validationOptions, loadedLabels, neighborhoods, severities, tagsByLabelType, aiValidationOptions,
+    labelTypes, n, validationOptions, loadedLabels, neighborhoods, severities, tagsByLabelType, aiValidationOptions,
     callback,
   ) {
     const url = '/label/labels';
     const data = {
-      label_type_ids: labelTypeIds,
+      label_types: labelTypes,
       n,
       validation_options: validationOptions,
       ...(neighborhoods !== undefined && { neighborhoods }),
@@ -269,6 +270,11 @@ class CardContainer {
           }
           if (callback) callback();
         }
+      },
+      // Still run the callback on failure: it is what releases the sidebar's loading state, so skipping it leaves
+      // the filters greyed and unusable for the rest of the page's life.
+      error: () => {
+        if (callback) callback();
       },
     });
   }
@@ -297,7 +303,7 @@ class CardContainer {
 
   /**
    * The filters the sidebar is currently reporting, in the shape the label query takes.
-   * @returns {{types: string[], typeIds: number[], valOptions: string[], severities: (string[]|undefined),
+   * @returns {{types: string[], valOptions: string[], severities: (string[]|undefined),
    *      tagsByType: object}} The current filter state.
    */
   #currentFilters() {
@@ -307,7 +313,6 @@ class CardContainer {
     const anyHasSeverity = types.some((type) => util.misc.labelTypeHasSeverity(type));
     return {
       types,
-      typeIds: types.map((type) => CardContainer.#labelTypeIds[type]),
       valOptions: sg.cardFilter.getAppliedValidationOptions(),
       severities: anyHasSeverity ? sg.cardFilter.getAppliedSeverities() : undefined,
       tagsByType: sg.cardFilter.getAppliedTagsByType(),
@@ -357,7 +362,7 @@ class CardContainer {
     if (this.#currentCards.getSize() < CardContainer.#cardsPerPage * this.#currentPage + 1) {
       // When we don't have enough cards of specific query to show on one page, see if more can be grabbed.
       this.fetchLabels(
-        filters.typeIds,
+        filters.types,
         CardContainer.#cardsPerPage * 2,
         filters.valOptions,
         Array.from(this.#loadedLabelIds),

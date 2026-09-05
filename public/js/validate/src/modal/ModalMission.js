@@ -27,7 +27,7 @@ class ModalMission {
         {
           missionId: mission.getProperty('missionId'),
           missionType: mission.getProperty('missionType'),
-          labelTypeId: mission.getProperty('labelTypeId'),
+          labelType: mission.getProperty('labelType'),
           labelsValidated: mission.getProperty('labelsValidated'),
         },
       );
@@ -190,10 +190,10 @@ class ModalMission {
    * @param {Mission} mission Mission object for the new mission.
    */
   setMissionMessage(mission) {
-    const labelType = svv.labelTypes[mission.getProperty('labelTypeId')];
+    const labelType = mission.getProperty('labelType');
     const title = i18next.t('validate:mission-start-tutorial.mst-instruction-2', {
       nLabels: mission.getProperty('labelsValidated'),
-      labelType: svv.labelTypeNames[mission.getProperty('labelTypeId')],
+      labelType: svv.labelTypeNames[labelType],
     });
     // Desktop reaches here too — MissionContainer starts every mission the same way — but shows this screen only to
     // announce a dead end (ModalNoNewMission). Building the briefing there would cost a tutorial photo fetched per

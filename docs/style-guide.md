@@ -1,16 +1,15 @@
 # Code style guide
 
 This is the detailed style reference for Project Sidewalk. [`CONTRIBUTING.md`](../CONTRIBUTING.md) lists the
-day-to-day essentials and links here for the full conventions; [`CLAUDE.md`](../CLAUDE.md) holds the architecture and
-the ScalaDoc/JSDoc comment standards. This page explains the conventions a linter can't, and the *why* behind the
-ones it can.
+day-to-day essentials and links here for the full conventions; [`docs/architecture.md`](architecture.md) holds the
+architecture. This page explains the conventions a linter can't, and the *why* behind the ones it can.
 
 **The linters are the source of truth for mechanically-checkable rules.** JavaScript/CSS/HTML rules live in
 [`eslint.config.js`](../eslint.config.js), [`stylelint.config.mjs`](../stylelint.config.mjs), and
 [`.htmlhintrc`](../.htmlhintrc); Scala formatting lives in [`.scalafmt.conf`](../.scalafmt.conf). When this guide and a
 config disagree, the config wins — fix the config and this doc together. **The linters are all blocking CI gates** —
-ESLint (JS + translation JSON), Stylelint (CSS), HTMLHint (HTML), cross-locale key parity, and `scalafmtCheckAll` for
-Scala. The trees are kept fully lint-clean
+ESLint (JS + translation JSON), Stylelint (CSS), HTMLHint (HTML), cross-locale key parity, the `public/css/` layout
+check, the `public/js/` asset-path check, and `scalafmtCheckAll` for Scala. The trees are kept fully lint-clean
 ([#2487](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2487)), so run the relevant linter — or `make lint`
 for all of them — and get to zero before you push: `make lint-fix` autofixes the mechanical JS/CSS findings, hand-fix
 the rest. CI wiring is in [`docs/testing-and-ci.md`](testing-and-ci.md).
@@ -24,7 +23,7 @@ These apply across every language in the repo.
 - **Indent with spaces, never tabs.** Scala, JS, and CSS all use 2-space indent.
 - **End every file with a single newline.** A missing final newline shows up as a red marker on the GitHub diff.
 - **Comments explain _why_, not _what_** — well-named identifiers cover the *what*. Start a comment with a capital
-  letter and end it with a period:
+  letter and end it with a period (full rules and the doc-header templates in [Comments](#comments) below):
 
   ```js
   // This is the correct style.
@@ -32,12 +31,24 @@ These apply across every language in the repo.
   ```
 
 - **Accessibility is part of style.** Any UI work must meet **WCAG 2.1/2.2 Level AA**.
-- **Style from the design-system tokens in `main.css` `:root`.** Colors, type, spacing, and button styles come from
-  our Figma "Design System Tokens"; hardcoded values are what we're migrating away from. For type, use the composite
-  `--text-*` tokens (`font: var(--text-body-regular);`) rather than building on the raw `--font-primary`/
-  `--font-accent` stacks — they're complete `font` shorthands (weight, size/line-height, family) and bake in
-  `--ui-scale`. If a token's line-height (or another single aspect) doesn't suit, keep the token and override that
-  one property on the next line instead of hand-assembling the font.
+- **Style from the design-system tokens in `main.css` `:root`.** Colors (`--color-*`), type (`--text-*`), spacing
+  (`--space-*`), radii (`--border-radius*`), elevation (`--box-shadow*`), motion (`--transition-*`), stacking
+  (`--z-index-*`), breakpoints (`--breakpoint-*` — reference values, since `var()` can't appear in a media query;
+  write the px and name the token in a comment) and button styles come from our Figma "Design System Tokens";
+  hardcoded values are what we're migrating away from. For type, use the composite `--text-*` tokens
+  (`font: var(--text-body-regular);`) rather than building on the raw `--font-primary`/`--font-accent` stacks —
+  they're complete `font` shorthands (weight, size/line-height, family) and bake in `--ui-scale`. If a token's
+  line-height (or another single aspect) doesn't suit, keep the token and override that one property on the next
+  line instead of hand-assembling the font. Long-form reading text takes `--text-prose-regular` (body size, looser
+  leading); code blocks take `--text-code-regular`.
+- **Use the component primitives in `main.css` before writing a new one.** Buttons are `.button-ps` with a
+  `.button--<variant>` and `.button--<size>` modifier; text inputs and textareas are `.ps-input`, `<select>`s are
+  `.ps-select` (both take `--large` for a settings-style form); data tables are `.ps-table` (`--compact` for dense
+  admin data, `.num` on a numeric cell, `.ps-table-wrapper` for the horizontal scroller). A page-scoped class on top
+  for layout (width, margin, a sticky header, a row-highlight state) is fine; re-declaring the font, border, padding,
+  or hover/focus treatment is not — extend the primitive in `main.css` instead.
+- **Size in px, never `rem`.** Bootstrap 3 sets `html { font-size: 62.5% }`, so `1rem` is 10px everywhere and a
+  `0.875rem` "14px" renders at 8.75px. The `--text-*` tokens are px for this reason.
 - **Raleway (`--font-accent`) is display-only — and never for numbers.** Default to the primary font (Mulish); the
   accent font appears only in the tokens that already carry it (`--text-h1-bold`, `--text-h2-bold`,
   `--text-small-accent`). Raleway defaults to old-style (text) figures — digits vary in height and 3/4/5/7/9 descend
@@ -98,7 +109,7 @@ Edit files under `src/`; never edit the generated `build/` bundles. Most rules b
   ```
 
 - **Document with JSDoc** (`/** ... */`) on every `class` and non-trivial method, including `#private` ones — type
-  annotations matter because there's no static checker. Full template and rules in [`CLAUDE.md`](../CLAUDE.md).
+  annotations matter because there's no static checker. Full template and rules in [Comments](#comments).
 
 ## HTML / CSS
 
@@ -123,19 +134,39 @@ The `public/` static-asset tree follows an industry-standard layout, settled in 
 consistent with it.
 
 - **First-party assets split by type.** `public/js/` is **JavaScript only** — no `css/`, `img/`, or `audio/` dirs
-  nested inside an app dir. Styles live in `public/css/` (with per-app subdirs `css/explore/`, `css/validate/`,
-  `css/gallery/`); media lives in `public/images/`, `public/audio/`, and `public/videos/`. App-private styles go to
-  `css/<app>/`, app-private images to `images/<app>/`.
+  nested inside an app dir. Styles live in `public/css/`; media lives in `public/images/`, `public/audio/`, and
+  `public/videos/`. App-private styles go to `css/pages/`, app-private images to `images/<app>/`.
+- **`public/css/` is organized by what each file is** (#5030), and its root has exactly four entries. `main.css` and
+  `fonts.css` (tokens and `.ps-*` primitives, no layout knowledge). `css/components/` holds anything more than one
+  page links, one component per file with a `ps-` or component-named class prefix (`page-shell.css` — the sidebar +
+  content + TOC template the API docs and both dashboards build on, `kpi.css`, `tables.css`, `label-detail.css`,
+  `toast.css`, …). `css/pages/` holds everything page-specific: a single file for a single page (`about.css`,
+  `auth.css`, `admin-dashboard.css`, `user-dashboard.css`, …) and a subdir for a page family with several files
+  (`pages/explore/`, `pages/validate/`, `pages/gallery/`, `pages/api-docs/`). Two rules keep the split honest, both
+  enforced by `make lint-css-layout` (`tools/check-css-layout.mjs`, a blocking CI step): every entry under `pages/`
+  is registered in the lint's `PAGES` map with the views that may link it — its own page, or for the Grunt-bundled
+  tools its own bundle (the two legacy exceptions, `homepage.css` and `auth.css`, are registered to the site-wide
+  layout) — and an unregistered file fails the lint, so when a second page needs a rule, it moves to
+  `css/components/`; and a page's class prefix (`ud-`, `ac-`/`ov-`/`dq-`/…, `svl-`, `svv-`, `gallery-`) is defined
+  only in that page's stylesheet(s). Layouts link the shell plus only the component files their pages use;
+  never `@import` (Play fingerprints per file, and an import adds a serial round trip).
 - **Third-party code groups by library** under `public/vendor/<lib>/`, each folder self-contained (its JS + CSS +
   fonts + images together, upstream internal layout preserved so relative `url()` refs keep working). **Nothing under
-  `vendor/` is ever edited or linted.** Vendored filenames carry their version (`pannellum-2.5.7.js`) — the app has
-  no asset fingerprinting, so version-in-filename is the only cache-buster (see
-  [`docs/upgrading-libraries.md`](upgrading-libraries.md)).
+  `vendor/` is ever edited or linted.** Vendored filenames carry their version (`pannellum-2.5.7.js`), which names
+  in the URL what a reader would otherwise have to diff for, and keeps two versions installable side by side during
+  an upgrade (see [`docs/upgrading-libraries.md`](upgrading-libraries.md)).
+- **Never hardcode an `/assets/...` URL in JavaScript** (#4893). Name the asset by its logical path under `public/`
+  and resolve it with **`util.assetPath('images/icons/openhand.cur')`** (defined in `public/js/common/utilities.js`,
+  loaded on every page). Staged builds content-fingerprint assets and serve the fingerprinted copy `immutable` for a
+  year; a hardcoded path gets the one-hour default, so a returning visitor re-asks about every asset once an hour and
+  a swapped file reaches a cached client only after that hour. Twirl's equivalent is `assets.path(...)` — also
+  mandatory, for the same reason. `make lint-asset-paths` enforces this; the full mechanism is in
+  [`docs/deployment-and-stages.md`](deployment-and-stages.md) → "Asset caching".
 
 **Naming conventions:**
 
 - **Directories → kebab-case**, always (`user-dashboard/`, `ps-map/`, `label-detail/`).
-- **CSS files → kebab-case**, always (`labeling-guide.css`, `user-profile.css`, `filter-sidebar.css`).
+- **CSS files → kebab-case**, always (`labeling-guide.css`, `user-dashboard.css`, `filter-sidebar.css`).
 - **JS files → Airbnb "filename matches what it defines":** **PascalCase** for a file that defines a
   class/constructor (`AppManager.js`, `LabelPopup.js`, `GsvViewer.js`), **camelCase** for a function/utility/entry
   file (`main.js`, `aggregateStats.js`, `timestampLocalization.js`). Kebab-case is **not** used for JS files.
@@ -187,11 +218,146 @@ is a blocking CI gate). Conventions scalafmt doesn't cover:
   loads every row into memory); for CPU-heavy work use the `cpu-intensive` `ExecutionContext` rather than the default
   (see existing usages).
 - **Document with ScalaDoc** (`/** ... */`) on every class/trait/object and non-trivial method, including `private`
-  ones. Full template and rules in [`CLAUDE.md`](../CLAUDE.md).
+  ones. Full template and rules in [Comments](#comments).
+- **Evolutions** have their own rules — numbering, ownership, constraints, prod-scale SQL — in
+  [`docs/evolutions.md`](evolutions.md).
 
 ## Public API (`/v3`)
 
 The API has its own naming contract: **output field names are `snake_case`** (JSON, GeoJSON properties, CSV headers,
-shapefile/geopackage fields) while **query/REST parameters are `camelCase`**. New API DTOs go in `app/models/api/`.
-The full convention — including the snake_case `JsonConfiguration` pattern and the `StreamingApiType` serialization
-shape — is in the API sections of [`CLAUDE.md`](../CLAUDE.md).
+GeoPackage fields) while **query/REST parameters are `camelCase`**; Shapefile is the one exception. New API DTOs go
+in `app/models/api/`. The full convention — including the snake_case `JsonConfiguration` pattern and the
+`StreamingApiType` serialization shape — is in [`docs/architecture.md`](architecture.md) → "The public API".
+
+## Comments
+
+Comments communicate **why** code makes a choice, not **what** it does (well-named identifiers handle that). Follow
+the language-specific conventions below so that IDEs, documentation generators, and the next developer can consume
+them.
+
+### Scala (ScalaDoc)
+
+Use `/** ... */` for all ScalaDoc. Every class, trait, object, and non-trivial method gets one, including `private`
+methods: private methods are read by the next developer, not just public API consumers.
+
+**Method / function:**
+
+```scala
+/**
+ * One-line summary of what this does or returns.
+ *
+ * Longer description when the contract, preconditions, or edge cases need more room.
+ * Separate from the summary with a blank line; keep each line under 120 chars.
+ *
+ * @param name  Description. Don't repeat the type — it is already in the signature.
+ * @param other Description. Align multi-param descriptions for readability.
+ * @return      What is returned and meaningful edge cases (e.g. `None` if absent,
+ *              `Left(ApiError)` if malformed, `Right(Some(...))` if valid).
+ */
+```
+
+**Class / trait / object / companion:**
+
+```scala
+/**
+ * One-line description of this type's single responsibility.
+ *
+ * Longer description if construction semantics, lifecycle, or thread-safety matter.
+ *
+ * @param cc  Description of constructor param (omit implicit/DI-only params).
+ */
+```
+
+Rules:
+
+- Use `@return` (not `@returns`) — that is the ScalaDoc standard.
+- Align `@param` descriptions when there are multiple, consistent with Play/Slick/Scala stdlib style.
+- Omit `@throws` unless the exception is part of the intentional public contract.
+- Do not document implicit params that are pure DI plumbing.
+- Trivial one-line helpers (simple delegators, obvious getters) may omit the header.
+
+### JavaScript (JSDoc)
+
+Use `/** ... */` for all JSDoc. Every `class` and every non-trivial method gets one, including `#private` methods.
+Type annotations in `@param` matter because there is no static type checker.
+
+**Method / function:**
+
+```javascript
+/**
+ * One-line summary.
+ *
+ * Longer description when needed. Keep lines under 120 chars.
+ *
+ * @param {string} name - Description. Mark optional params as {string} [name] = defaultValue.
+ * @param {number} count - Description.
+ * @returns {boolean} What is returned; include edge cases (null if not found, etc.).
+ */
+```
+
+**Class:**
+
+```javascript
+/**
+ * One-line description of the class's single responsibility.
+ */
+class Foo {
+    /**
+     * @param {string} name - Description.
+     */
+    constructor(name) { ... }
+}
+```
+
+Rules:
+
+- Use `@returns` (not `@return`) — that is the JSDoc standard (opposite of ScalaDoc).
+- Always include `{Type}` in `@param` and `@returns`.
+- Use `{Type} [paramName]` (square brackets) for optional parameters, and `{Type} [paramName=default]` when a
+  default exists and is non-obvious.
+- Trivial one-line helpers may omit the header.
+
+### Inline comments
+
+Use `//` for inline comments within a body. Write the **why**, never the what:
+
+```scala
+// bbox takes precedence over region filters per the v3 API contract (#3871).
+val finalBbox = if (bboxActive) parsedBbox else ...
+```
+
+not:
+
+```scala
+// check if bbox is active   ← restates the code; adds no value
+val finalBbox = if (bboxActive) parsedBbox else ...
+```
+
+Good targets for inline comments: non-obvious algorithmic choices or ordering constraints; business rules and domain
+invariants that aren't apparent from identifiers; workarounds for external bugs or framework quirks; why a specific
+constant or threshold was chosen (link the issue); branches where the "looks-wrong" path is actually correct;
+validation sequences where the order of checks matters.
+
+### What not to comment
+
+- Do not restate what the code obviously does.
+- Do not describe what the code *used to* do, or narrate a change — that is changelog, and git history already
+  records it. This is the single most common offender: a diff renames or replaces something, and a comment gets
+  added to explain the *before*. The reader only needs the current contract; if a comment is only meaningful read
+  against the diff, delete it. Applies everywhere, but especially in tests and `models/` DAO/DTO files:
+
+  ```scala
+  // BAD — narrates the rename; only makes sense next to the diff:
+  // region_id + region_name replace the old neighborhood field (#3980).
+  body must not include "neighborhood" // now region_name (#3980)
+
+  // GOOD — the assertions already state the current contract; no comment needed:
+  body must include("region_id,region_name")
+  body must not include "neighborhood"
+  ```
+
+  Tells that you are writing one of these and should stop: *used to*, *previously*, *formerly*, *replaces the old*,
+  *renamed to/from*, *no longer*. A `PostToolUse` hook in `.claude/settings.json` flags these on save.
+- Do not leave `TODO`/`FIXME` in committed code without a linked tracking issue.
+- Do not add a header just because a function was touched; only add one if it is missing and the function is
+  non-trivial.

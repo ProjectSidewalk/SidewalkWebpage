@@ -24,15 +24,10 @@ class ShareImageCache @Inject() (config: Configuration, environment: Environment
   private val logger = Logger(this.getClass)
 
   /**
-   * Directory where cached share preview images live: `<share.image.directory>/<city-id>/`. A relative configured path
-   * (the `.share-images` default) is resolved against the application root, not the process working directory — a
-   * staged prod app runs from the stage dir, so a CWD-relative path would silently point somewhere else there.
+   * Directory where cached share preview images live: `<share.image.directory>/<city-id>/`. Resolution goes through
+   * `MediaDirs` — the one resolver every media path and the boot check share (#4925).
    */
-  def dir: File = {
-    val configured = new File(config.get[String]("share.image.directory"))
-    val base       = if (configured.isAbsolute) configured else environment.getFile(configured.getPath)
-    new File(base, configService.getCityId)
-  }
+  def dir: File = new File(MediaDirs.baseDir(config, environment, "share.image.directory"), configService.getCityId)
 
   /** The cached preview for a label, which may or may not exist. */
   def fileFor(labelId: Int): File = new File(dir, s"share_$labelId.jpg")

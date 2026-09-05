@@ -49,13 +49,13 @@ class RoutePopover {
     container.innerHTML = `
       <button type="button" class="route-popover-btn route-popover-reverse" role="menuitem">
         <span class="route-popover-icon-chip">
-          <img src="/assets/images/icons/repeat-feather.svg" alt="" class="route-popover-icon">
+          <img src="${util.assetPath('images/icons/repeat-feather.svg')}" alt="" class="route-popover-icon">
         </span>
         <span>${i18next.t('reverse-direction')}</span>
       </button>
       <button type="button" class="route-popover-btn route-popover-delete" role="menuitem">
         <span class="route-popover-icon-chip route-popover-icon-chip--danger">
-          <img src="/assets/images/icons/trash-2-red-feather.svg" alt="" class="route-popover-icon">
+          <img src="${util.assetPath('images/icons/trash-2-red-feather.svg')}" alt="" class="route-popover-icon">
         </span>
         <span>${i18next.t('delete-route')}</span>
       </button>`;

@@ -48,6 +48,9 @@ class ValidationTaskCommentTableDef(tag: Tag) extends Table[ValidationTaskCommen
   def * = (validationTaskCommentId, missionId, labelId, userId, ipAddress, panoId, heading, pitch, zoom, lat, lng,
     timestamp, comment) <> ((ValidationTaskComment.apply _).tupled, ValidationTaskComment.unapply)
 
+  def labelUserUnique =
+    index("validation_task_comment_label_id_user_id_unique", (labelId, userId), unique = true)
+
   def mission =
     foreignKey("validation_task_comment_mission_id_fkey", missionId, TableQuery[MissionTableDef])(_.missionId)
   def label = foreignKey("validation_task_comment_label_id_fkey", labelId, TableQuery[LabelTableDef])(_.labelId)
@@ -79,7 +82,7 @@ class ValidationTaskCommentTable @Inject() (
    * has usually rolled over by the time the same user revisits the label from a label card (#4653). Matching on the
    * current mission would strand the old comment on a label whose validation had just been replaced or cleared.
    *
-   * @return Count of comments deleted, normally 0 or 1.
+   * @return Count of comments deleted, 0 or 1 — (label_id, user_id) is UNIQUE.
    */
   def deleteIfExists(labelId: Int, userId: String): DBIO[Int] = {
     validationTaskComments.filter(comment => comment.labelId === labelId && comment.userId === userId).delete

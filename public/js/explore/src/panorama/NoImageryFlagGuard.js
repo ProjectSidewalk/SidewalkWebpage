@@ -1,14 +1,13 @@
 /**
  * Bounds how many streets one browsing session may automatically flag as having no imagery (#4918).
  *
- * Flagging a street records it as imagery-less, which marks it audited and drops it out of the assignment rotation,
- * and Explore then moves straight on to the next street. So any failure that repeats — a flaky provider, a maps
- * library that will not load — flags one street per attempt for as long as it lasts, with nothing to stop it.
- * Production saw 44 streets, three quarters of a neighborhood's recorded coverage, consumed in 33 seconds this way.
- *
- * An unbroken run of flags is far better explained by one broken session than by a run of genuinely empty streets, so
- * past the limit we stop believing the signal and tell the user instead. Nothing here is user-initiated: this counts
- * an automatic action, not a labeler choosing to move on.
+ * Flagging a street records a street_edge_issue row — evidence for the offline imagery checker, which is what
+ * actually retires a street (#4922) — and Explore then moves the labeler along. The report itself costs little, but
+ * any failure that repeats — a flaky provider, a maps library that will not load — files one report per attempt for
+ * as long as it lasts, and an unbroken run of them is far better explained by one broken session than by a run of
+ * genuinely empty streets. Past the limit we stop believing the signal and tell the user instead: junk evidence
+ * pollutes the checker's queue, and production saw one session file 44 reports in 33 seconds. Nothing here is
+ * user-initiated: this counts an automatic action, not a labeler choosing to move on.
  *
  * The count lives in sessionStorage because one of the two flagging paths reloads the page, which is precisely why
  * in-memory state never caught this.
@@ -26,8 +25,8 @@ class NoImageryFlagGuard {
    * the labeler keeps getting new streets, but nothing more is written down — so a patchy area doesn't strand
    * someone doing perfectly ordinary work.
    *
-   * There is a ceiling rather than none because a silent move leaves the street marked incomplete, so
-   * `TaskContainer.nextTask` can hand it straight back: only the immediately-preceding street is excluded, which
+   * There is a ceiling rather than none because every given-up street stays marked incomplete, so
+   * `TaskContainer.nextTask` can hand one straight back: only the immediately-preceding street is excluded, which
    * makes an A→B→A cycle possible. Each hop also re-sweeps a whole street against the imagery provider. So the run
    * ends here and the labeler is told, rather than looping.
    */

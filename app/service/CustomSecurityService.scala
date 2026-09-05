@@ -2,7 +2,7 @@ package service
 
 import models.auth._
 import models.pano.PanoSource
-import models.user.SidewalkUserWithRole
+import models.user.{Role, SidewalkUserWithRole}
 import play.api.mvc.Results.{Redirect, Status}
 import play.api.mvc._
 import play.silhouette.api.Silhouette
@@ -104,7 +104,7 @@ class CustomSecurityService @Inject() (
       case Some(identity) =>
         authenticationService.addUserStatEntryIfNew(identity.userId).flatMap(_ => block(request))
       case None if configService.getPanoSource == PanoSource.Infra3d =>
-        Future.successful(infra3dAccessHelper("Anonymous", request.path, request.queryString))
+        Future.successful(infra3dAccessHelper(Role.Anonymous, request.path, request.queryString))
       case None =>
         block(request)
     }
@@ -112,16 +112,16 @@ class CustomSecurityService @Inject() (
 
   // Send user to sign in/up if they are anon. Use required role to show appropriate error message.
   private def unauthorizedErrorHelper(
-      currRole: String,
-      requiredRole: String,
+      currRole: Role.Value,
+      requiredRole: Role.Value,
       path: String,
       queryString: Map[String, Seq[String]]
   ): Result = {
     (currRole, requiredRole) match {
-      case ("Anonymous", "Registered") =>
+      case (Role.Anonymous, Role.Registered) =>
         Redirect("/signIn", queryString + ("url" -> Seq(path)))
           .flashing("error" -> "Please sign in to access this resource.")
-      case ("Anonymous", _) =>
+      case (Role.Anonymous, _) =>
         Redirect("/signIn", queryString + ("url" -> Seq(path)))
           .flashing("error" -> s"Please sign in as a $requiredRole to access this resource.")
       case (_, _) =>
@@ -130,8 +130,8 @@ class CustomSecurityService @Inject() (
   }
 
   // Send user to sign in/up if they are anon, o/w show a message saying that they need to be granted infra3D access.
-  private def infra3dAccessHelper(currRole: String, path: String, queryString: Map[String, Seq[String]]): Result = {
-    if (currRole == "Anonymous") {
+  private def infra3dAccessHelper(currRole: Role.Value, path: String, queryString: Map[String, Seq[String]]): Result = {
+    if (currRole == Role.Anonymous) {
       Redirect("/signIn", queryString + ("url" -> Seq(path)))
         .flashing("error" -> "Please sign in to access this resource.")
     } else {

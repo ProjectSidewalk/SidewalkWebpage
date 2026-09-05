@@ -10,7 +10,7 @@
  * Accessibility (WCAG 2.1/2.2 AA, ARIA menu pattern): the trigger carries `aria-haspopup`/`aria-expanded`; the
  * popover is a labeled `role="menu"`; ESC and click-outside close it; focus moves into the popover on open and
  * returns to the trigger on close; ArrowUp/ArrowDown cycle the items and Home/End jump to the first/last one; all
- * actions are real <button>s with visible focus states (styled in css/common/share-widget.css).
+ * actions are real <button>s with visible focus states (styled in css/components/share-widget.css).
  */
 class ShareWidget {
   /** @type {HTMLElement} The container the popover is appended into (positioned relative to the trigger). */

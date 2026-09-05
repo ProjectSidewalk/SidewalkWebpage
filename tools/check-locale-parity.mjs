@@ -1,10 +1,8 @@
 #!/usr/bin/env node
-// Cross-locale key-parity check for the i18next translation files under public/locales/.
+// Cross-locale key-parity and empty-value checks for the i18next translation files under public/locales/.
 //
-// This is the i18n-aware companion to the eslint-plugin-i18n-json rules wired into eslint.config.js: the plugin
-// handles per-file validity/empty-value checks, and this script handles cross-file key parity, which the plugin's
-// `identical-keys` rule can't do correctly here. Two i18n realities make a plain "every locale must have exactly the
-// reference's keys" comparison wrong:
+// The i18n-aware companion to the @eslint/json rules in eslint.config.js, which cover per-file JSON validity. Two
+// i18n realities make a plain "every locale must have exactly the reference's keys" comparison wrong:
 //
 //   1. i18next plural suffixes. A key can appear as `foo_one`, `foo_other`, `foo_few`, ... and which suffixes exist
 //      depends on the language's CLDR plural rules -- Chinese (zh-TW) has only `_other`, English has `_one`/`_other`,
@@ -15,7 +13,8 @@
 //      we only flag keys that don't exist in the reference at all (typos / stale keys), never missing keys.
 //
 // The `en` locale is the reference. Full locales are compared for exact key parity; override-only files are compared
-// as subsets. Exits non-zero (and prints the offending files/keys) if any mismatch is found, so it can gate CI.
+// as subsets. Every file, reference included, is also checked for values that aren't a non-empty string. Exits
+// non-zero (and prints the offending files/keys) if anything is found, so it can gate CI.
 
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -44,22 +43,63 @@ function leafKeys(obj, prefix = '') {
 }
 
 /**
- * Read a translation file and return its leaf keys as a Set with i18next plural suffixes normalized away, so that
- * languages with different plural-category counts compare as equal.
+ * Parse a translation file, or null if it's missing or invalid -- validity is @eslint/json's job, not this script's.
  *
  * @param {string} filePath - Absolute path to the JSON file.
- * @returns {Set<string>} Normalized leaf key set (empty if the file is missing or unparseable -- validity is the
- *                        i18n-json ESLint rules' job, not this script's).
+ * @returns {object|null} The parsed translations.
  */
-function normalizedKeySet(filePath) {
-    if (!existsSync(filePath)) return new Set();
-    let parsed;
+function readTranslations(filePath) {
+    if (!existsSync(filePath)) return null;
     try {
-        parsed = JSON.parse(readFileSync(filePath, 'utf8'));
+        return JSON.parse(readFileSync(filePath, 'utf8'));
     } catch {
-        return new Set();
+        return null;
     }
-    return new Set(leafKeys(parsed).map(key => key.replace(PLURAL_SUFFIX, '')));
+}
+
+/**
+ * Leaf keys with i18next plural suffixes normalized away, so languages with different plural-category counts compare
+ * as equal.
+ *
+ * @param {object|null} parsed - Parsed translations, or null for a missing/invalid file.
+ * @returns {Set<string>} Normalized leaf key set.
+ */
+function normalizedKeySet(parsed) {
+    return parsed ? new Set(leafKeys(parsed).map(key => key.replace(PLURAL_SUFFIX, ''))) : new Set();
+}
+
+// The reference's key sets are compared against once per locale file, so parse each namespace once rather than 63x.
+const referenceKeysByNamespace = new Map();
+
+/** @returns {Set<string>} The reference locale's normalized keys for a base namespace. */
+function referenceKeySet(baseNamespace) {
+    if (!referenceKeysByNamespace.has(baseNamespace)) {
+        const path = join(LOCALES_DIR, REFERENCE_LOCALE, `${baseNamespace}.json`);
+        referenceKeysByNamespace.set(baseNamespace, normalizedKeySet(readTranslations(path)));
+    }
+    return referenceKeysByNamespace.get(baseNamespace);
+}
+
+/**
+ * Collect leaf values that aren't a usable translation string.
+ *
+ * i18next only falls back when a key is *absent*, so an empty string is a silent blank in the UI rather than a
+ * fallback to the reference locale. An empty object holds no keys at all, so the parity comparison can't see it.
+ *
+ * @param {object} obj - Parsed translation JSON (or a nested sub-object).
+ * @param {string} [prefix] - Accumulated dotted path prefix for recursion.
+ * @returns {Array<{path: string, reason: string}>} One entry per unusable leaf.
+ */
+function unusableValues(obj, prefix = '') {
+    return Object.entries(obj).flatMap(([key, value]) => {
+        const path = `${prefix}${key}`;
+        if (typeof value === 'string') return value.trim() === '' ? [{ path, reason: 'empty string' }] : [];
+        if (Array.isArray(value)) return [{ path, reason: 'array' }];
+        if (value && typeof value === 'object') {
+            return Object.keys(value).length ? unusableValues(value, `${path}.`) : [{ path, reason: 'empty object' }];
+        }
+        return [{ path, reason: `${value === null ? 'null' : typeof value}, not a string` }];
+    });
 }
 
 /** @returns {string[]} The `.json` filenames directly inside a locale directory. */
@@ -83,28 +123,32 @@ for (const locale of locales) {
 
     for (const file of localeFiles(locale)) {
         const stem = file.replace(/\.json$/, '');
+
+        const parsed = readTranslations(join(LOCALES_DIR, locale, file));
+        const problem = { file: `${locale}/${file}` };
+        if (parsed) problem.unusable = unusableValues(parsed);
+
         const baseNamespace = stem.split('-')[0];
         const isCityOverlay = stem.includes('-');
 
         // The reference for any file is the reference locale's *base* namespace (e.g. `common-zurich.json` and
         // `en-US/common.json` both compare against `en/common.json`).
-        if (!baseNamespaces.includes(baseNamespace)) continue; // Unknown namespace; nothing to compare against.
-
         // The reference's own base-namespace files have nothing to compare against (they'd compare to themselves).
-        // Its city overlays are still worth subset-checking against the base namespace.
-        if (locale === REFERENCE_LOCALE && !isCityOverlay) continue;
+        // Its city overlays are still worth subset-checking against the base namespace. An unknown namespace has
+        // nothing to compare against either -- but its values were still worth checking above.
+        const comparable = baseNamespaces.includes(baseNamespace) && !(locale === REFERENCE_LOCALE && !isCityOverlay);
+        if (comparable) {
+            const referenceKeys = referenceKeySet(baseNamespace);
+            const localeKeys = normalizedKeySet(parsed);
 
-        const referenceKeys = normalizedKeySet(join(LOCALES_DIR, REFERENCE_LOCALE, `${baseNamespace}.json`));
-        const localeKeys = normalizedKeySet(join(LOCALES_DIR, locale, file));
-
-        const unknown = [...localeKeys].filter(key => !referenceKeys.has(key));
-        if (isOverrideOnlyLocale || isCityOverlay) {
+            problem.unknown = [...localeKeys].filter(key => !referenceKeys.has(key));
             // Override-only: only unknown/typo'd keys are errors; missing keys are the intended fallback behavior.
-            if (unknown.length) problems.push({ file: `${locale}/${file}`, unknown });
-        } else {
-            const missing = [...referenceKeys].filter(key => !localeKeys.has(key));
-            if (missing.length || unknown.length) problems.push({ file: `${locale}/${file}`, missing, unknown });
+            if (!isOverrideOnlyLocale && !isCityOverlay) {
+                problem.missing = [...referenceKeys].filter(key => !localeKeys.has(key));
+            }
         }
+
+        if (problem.unusable?.length || problem.missing?.length || problem.unknown?.length) problems.push(problem);
     }
 
     // Full locales must carry every base namespace file; a whole missing file is drift the per-file loop can't see.
@@ -118,18 +162,29 @@ for (const locale of locales) {
 }
 
 if (problems.length === 0) {
-    console.log(`Locale parity OK -- all locales consistent with '${REFERENCE_LOCALE}'.`);
+    console.log(`Locale checks OK -- all locales consistent with '${REFERENCE_LOCALE}', no empty values.`);
     process.exit(0);
 }
 
-console.error(`Locale parity check failed (${problems.length} file(s) differ from '${REFERENCE_LOCALE}'):\n`);
-for (const { file, missingFile, missing, unknown } of problems) {
+console.error(`Locale checks failed (${problems.length} problem(s), reference locale '${REFERENCE_LOCALE}'):\n`);
+for (const { file, missingFile, missing, unknown, unusable } of problems) {
     if (missingFile) {
         console.error(`  ${file}\n    - entire namespace file is missing`);
         continue;
     }
     console.error(`  ${file}`);
-    if (missing?.length) console.error(`    - missing ${missing.length} key(s): ${missing.slice(0, 10).join(', ')}${missing.length > 10 ? ', ...' : ''}`);
-    if (unknown?.length) console.error(`    - ${unknown.length} unknown key(s) not in reference: ${unknown.slice(0, 10).join(', ')}${unknown.length > 10 ? ', ...' : ''}`);
+    if (unusable?.length) {
+        const shown = unusable.slice(0, 10).map(({ path, reason }) => `${path} (${reason})`).join(', ');
+        console.error(`    - ${unusable.length} unusable value(s): ${shown}${unusable.length > 10 ? ', ...' : ''}`);
+    }
+    if (missing?.length) {
+        const shown = missing.slice(0, 10).join(', ');
+        console.error(`    - missing ${missing.length} key(s): ${shown}${missing.length > 10 ? ', ...' : ''}`);
+    }
+    if (unknown?.length) {
+        const shown = unknown.slice(0, 10).join(', ');
+        const more = unknown.length > 10 ? ', ...' : '';
+        console.error(`    - ${unknown.length} unknown key(s) not in reference: ${shown}${more}`);
+    }
 }
 process.exit(1);

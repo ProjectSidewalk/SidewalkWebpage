@@ -22,6 +22,7 @@ class StoryComposer {
   #labelTypeName = null; // Localized label-type name for the title; null falls back to the generic wording.
   #onSubmitted;
   #username;
+  #updateUrlFor;
   #objectUrl = null;
   #busy = false;
   // Edit mode (#4054): non-null while editing an existing story. The existing photo is previewed from its signed URL
@@ -41,11 +42,14 @@ class StoryComposer {
    *     drops the link back to it.
    * @param {(edited: boolean) => void} [opts.onSubmitted] - Fired after a successful submission or in-place edit
    *     (hosts refresh the story list); `edited` distinguishes the two for the announcement.
+   * @param {(storyId: number) => string} [opts.updateUrlFor] - Where an in-place edit is PUT; defaults to the
+   *     author's own-story route. The admin view of a user's dashboard points it at the /adminapi moderation route.
    */
   constructor(dialog, opts) {
     this.#dialog = dialog;
     this.#username = opts.currUsername || '';
     this.#onSubmitted = opts.onSubmitted;
+    this.#updateUrlFor = opts.updateUrlFor || ((storyId) => `/userapi/stories/${storyId}`);
 
     const q = (sel) => dialog.querySelector(sel);
     this.#els = {
@@ -320,7 +324,7 @@ class StoryComposer {
     els.submit.textContent = i18next.t(editing ? 'labelmap:story.saving' : 'labelmap:story.submitting');
     try {
       const res = editing
-        ? await this.#postForm(`/userapi/stories/${this.#editStoryId}`, formData, 'PUT')
+        ? await this.#postForm(this.#updateUrlFor(this.#editStoryId), formData, 'PUT')
         : await this.#postForm('/userapi/stories', formData);
       if (res.ok) {
         if (editing) {

@@ -30,7 +30,7 @@ object GalleryFormats {
   )
   case class GalleryLabelsRequest(
       n: Int,
-      labelTypeIds: Option[Seq[Int]],
+      labelTypes: Option[Seq[String]],
       validationOptions: Option[Seq[String]],
       regionIds: Option[Seq[Int]],
       severities: Option[Seq[String]],
@@ -69,7 +69,7 @@ object GalleryFormats {
 
   implicit val galleryLabelsRequestReads: Reads[GalleryLabelsRequest] = (
     (JsPath \ "n").read[Int] and
-      (JsPath \ "label_type_ids").readNullable[Seq[Int]] and
+      (JsPath \ "label_types").readNullable[Seq[String]] and
       (JsPath \ "validation_options").readNullable[Seq[String]] and
       (JsPath \ "neighborhoods").readNullable[Seq[Int]] and
       (JsPath \ "severities").readNullable[Seq[String]] and

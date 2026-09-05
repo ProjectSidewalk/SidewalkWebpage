@@ -15,18 +15,12 @@ function addLabelsToMap(map, labelData, params) {
   const colorMapping = util.misc.getLabelColors();
   const mapData = CreateMapLayerTracker();
 
-  // Sort labels into flat arrays by label type.
-  for (const feature of labelData.features) {
-    const labelType = feature.properties.label_type;
-    if (mapData.sortedLabels[labelType]) {
-      mapData.sortedLabels[labelType].push(feature);
-    }
-  }
-
-  // Create one source + layer per label type.
+  // Create one (empty) source + layer per label type, then populate through setLabelData — the same path a
+  // viewport refetch takes — so initial load and refresh can't drift apart.
   for (const labelType of Object.keys(mapData.sortedLabels)) {
-    mapData.layerNames[labelType] = createLayer(mapData.sortedLabels[labelType], labelType);
+    mapData.layerNames[labelType] = createLayer(labelType);
   }
+  setLabelData(map, mapData, labelData);
 
   // Apply the initial set of filters (incorrect is unchecked by default). Use highQualityFilter param if provided,
   // defaulting to false so labels aren't hidden before MapSidebarFilter takes over with the correct setting.
@@ -63,16 +57,15 @@ function addLabelsToMap(map, labelData, params) {
   }
 
   /**
-   * Creates a single Mapbox source and circle layer for the given label type.
-   * @param {Array} features GeoJSON features for this label type.
+   * Creates a single empty Mapbox source and circle layer for the given label type.
    * @param {string} labelType The label type key.
    * @returns {string} The layer name.
    */
-  function createLayer(features, labelType) {
+  function createLayer(labelType) {
     const layerName = `labels-${labelType}`;
     map.addSource(layerName, {
       type: 'geojson',
-      data: { type: 'FeatureCollection', features },
+      data: { type: 'FeatureCollection', features: [] },
       promoteId: 'label_id',
     });
     map.addLayer({
@@ -105,24 +98,29 @@ function addLabelsToMap(map, labelData, params) {
     return layerName;
   }
 
-  /**
-   * Checks if all label layers have been added to the map.
-   * @returns {boolean} True if all layers are loaded.
-   */
-  function allLabelLayersLoaded() {
-    return Object.values(mapData.layerNames).every((name) => map.getLayer(name) !== undefined);
-  }
+  // addSource/addLayer are synchronous, so every layer already exists here. 'sourcedataloading' can't be the
+  // readiness signal: it refires on every setData, for the life of a viewport-refreshed map.
+  return Promise.resolve(mapData);
+}
 
-  // Return promise that resolves once all layers have been added.
-  return new Promise((resolve) => {
-    if (allLabelLayersLoaded()) {
-      resolve(mapData);
-    } else {
-      map.on('sourcedataloading', () => {
-        if (allLabelLayersLoaded()) {
-          resolve(mapData);
-        }
-      });
-    }
-  });
+/**
+ * Replaces the label data shown on the map — the one sanctioned way to swap it once addLabelsToMap has built
+ * the layers. The per-type arrays in mapData.sortedLabels are emptied and refilled rather than reassigned, so
+ * every reference-holder (sidebar counts, nearby-label navigator, download control) sees fresh data unre-wired.
+ *
+ * Layer-level state (setFilter expressions, visibility, paint) survives setData; hover feature-state doesn't,
+ * which is fine — the next mousemove restores it, and setFeatureState on an absent id is a silent no-op.
+ *
+ * @param {object} map The Mapbox map object.
+ * @param {object} mapData The layer tracker from CreateMapLayerTracker.
+ * @param {object} labelData GeoJSON FeatureCollection of labels to draw.
+ */
+function setLabelData(map, mapData, labelData) {
+  for (const features of Object.values(mapData.sortedLabels)) features.length = 0;
+  for (const feature of labelData.features) {
+    mapData.sortedLabels[feature.properties.label_type]?.push(feature);
+  }
+  for (const [labelType, layerName] of Object.entries(mapData.layerNames)) {
+    map.getSource(layerName)?.setData({ type: 'FeatureCollection', features: mapData.sortedLabels[labelType] });
+  }
 }

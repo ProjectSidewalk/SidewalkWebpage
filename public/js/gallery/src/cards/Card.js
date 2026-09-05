@@ -41,6 +41,7 @@ class Card {
     ai_generated: false,
     comments: [],
     from_current_user: false,
+    can_edit: false,
   };
 
   // Status to determine if static imagery has been loaded.
@@ -102,14 +103,17 @@ class Card {
     else if (param.agree_count + param.disagree_count + param.unsure_count > 0) properties.correctness = 'unsure';
     else properties.correctness = 'unvalidated';
 
-    // Place label icon.
+    const labelTypeName = i18next.t(util.camelToKebab(this.getLabelType()));
+
     labelIcon.src = util.misc.getIconImagePaths(this.getLabelType()).iconImagePath;
     labelIcon.classList.add('label-icon', 'label-icon-gallery');
+    // Decorative: it only marks where in the image the label sits, and its type is already the header's text.
+    labelIcon.alt = '';
 
-    // Create an element for the image in the card.
     this.#imageId = `label_id_${properties.label_id}`;
     panoImage.id = this.#imageId;
     panoImage.className = 'static-gallery-image';
+    panoImage.alt = i18next.t('gallery:card-image-alt', { labelType: labelTypeName });
 
     // Create the container card.
     this.#card = document.createElement('div');
@@ -126,7 +130,7 @@ class Card {
     // Create the div to store the label type, and the neighborhood the label sits in when we know its name.
     const cardHeader = document.createElement('div');
     cardHeader.className = 'card-header';
-    cardHeader.innerHTML = `<div class="card-header__type">${i18next.t(util.camelToKebab(this.getLabelType()))}</div>`;
+    cardHeader.innerHTML = `<div class="card-header__type">${labelTypeName}</div>`;
     const regionName = sg.regionNames?.[properties.region_id];
     if (regionName) {
       // The name is a way out to this label on the LabelMap — the same ?labelId= deep link the expanded view's
@@ -147,7 +151,7 @@ class Card {
       });
       const pin = document.createElement('img');
       pin.className = 'card-location__pin';
-      pin.src = '/assets/images/icons/map-pin-feather.svg';
+      pin.src = util.assetPath('images/icons/map-pin-feather.svg');
       pin.alt = '';
       const name = document.createElement('span');
       name.className = 'card-location__name';
@@ -314,8 +318,15 @@ class Card {
    * Renders the tags on the card when the card is loaded onto on the DOM.
    */
   #renderTags() {
-    const selector = `.card-tags#${this.#properties.label_id}`;
-    new TagDisplay(selector, this.#properties.tags);
+    new TagDisplay(this.#card.querySelector('.card-tags'), this.#properties.tags);
+  }
+
+  /** Re-runs the pixel-measured tag fit against the card's current width (see CardContainer's ResizeObserver). */
+  refitTags() {
+    // Detaching the page's cards changes the holder's width, so the observer can fire on cards already out of the
+    // DOM, where every tag measures zero and the fit collapses to a bare "+n". They re-fit on re-render anyway.
+    if (!this.#card.isConnected) return;
+    this.#renderTags();
   }
 
   /**
@@ -328,6 +339,24 @@ class Card {
   setProperty(key, value) {
     this.#properties[key] = value;
     return this;
+  }
+
+  /**
+   * Applies an edit made in the expanded view (#2575) to the small card, redrawing its severity and tag displays.
+   * @param {?number} severity
+   * @param {string[]} tags
+   */
+  updateSeverityAndTags(severity, tags) {
+    this.#properties.severity = severity;
+    this.#properties.tags = tags;
+    const cardSeverity = this.#card.querySelector('.card-severity');
+    if (cardSeverity) {
+      cardSeverity.replaceChildren();
+      new SeverityDisplay(cardSeverity, severity, this.getLabelType());
+    }
+    // TagDisplay leaves an empty list untouched; clear the old tags here.
+    this.#card.querySelector('.card-tags').innerHTML = `<div class="label-tags-header"></div>`;
+    this.#renderTags();
   }
 
   /**

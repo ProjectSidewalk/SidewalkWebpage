@@ -1,5 +1,6 @@
 package models.utils
 
+import models.pano.PanoImageryChangeSource
 import models.street.StreetEdgeStatusChangeSource
 import models.utils.MyPostgresProfile.api._
 import org.scalatestplus.play.PlaySpec
@@ -9,7 +10,7 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import util.RolledBackDb
 
 /**
- * Checks that the Scala enums added in #4928 still match the Postgres enum types they back (evolution 358).
+ * Checks that the Scala enums behind the transition logs still match the Postgres enum types they back.
  *
  * Each of these pairs is held together only by a `NOTE:` comment asking the next person to change both sides. Nothing
  * enforced it, and the failure mode is bad: `createEnumJdbcType` maps by name, so a label present on one side and not
@@ -38,7 +39,7 @@ class EnumTypeParitySpec extends PlaySpec with GuiceOneAppPerSuite with RolledBa
     ).toSet
   }
 
-  "the Postgres enum types added in 358" should {
+  "the Postgres enum types behind the transition logs" should {
     "match JobRunStatus exactly" in {
       labelsOf("job_run_status") mustBe JobRunStatus.values.map(_.toString)
     }
@@ -51,6 +52,12 @@ class EnumTypeParitySpec extends PlaySpec with GuiceOneAppPerSuite with RolledBa
       // This one also has a third side: the `db/scripts` shell writers each emit one of these labels. A source they
       // emit that Postgres doesn't know fails their INSERT loudly, which is why the enum is an enum (#4103).
       labelsOf("street_edge_status_change_source") mustBe StreetEdgeStatusChangeSource.values.map(_.toString)
+    }
+
+    "match PanoImageryChangeSource exactly" in {
+      // The writers cast a Scala-supplied string to this type inside raw SQL, so a drift here fails the pano upsert
+      // itself — the path every labeler's viewer takes — rather than only a read.
+      labelsOf("pano_imagery_change_source") mustBe PanoImageryChangeSource.values.map(_.toString)
     }
   }
 }

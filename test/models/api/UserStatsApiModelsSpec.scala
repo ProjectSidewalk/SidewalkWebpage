@@ -61,7 +61,7 @@ class UserStatsApiModelsSpec extends AnyFunSuite with Matchers {
   }
 
   private def sampleCVMetadata: LabelCVMetadata = LabelCVMetadata(
-    labelId = 1, panoId = "pano-1", labelTypeId = 2, agreeCount = 3, disagreeCount = 1, unsureCount = 0,
+    labelId = 1, panoId = "pano-1", labelType = "NoCurbRamp", agreeCount = 3, disagreeCount = 1, unsureCount = 0,
     panoWidth = None, panoHeight = Some(8192), panoX = 100, panoY = 200, canvasWidth = 720, canvasHeight = 480,
     canvasX = 50, canvasY = 60, zoom = 1.0, heading = 90.0, pitch = -10.0, cameraHeading = 95.0, cameraPitch = 0.0,
     cameraRoll = None

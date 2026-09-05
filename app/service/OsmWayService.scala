@@ -1,5 +1,6 @@
 package service
 
+import com.google.inject.ImplementedBy
 import models.street.{OsmWay, OsmWayTable, WayType}
 import models.utils.MyPostgresProfile
 import org.apache.pekko.actor.ActorSystem
@@ -17,26 +18,8 @@ import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
-/**
- * Maintains the cached OSM way data (osm_way table) that backs the speed-limit sign (#4654).
- *
- * Two write paths, both polite to the shared community Overpass instance: a nightly batch refresh that bulk-fetches
- * tags for every way mapped in osm_way_street_edge (monthly per way, via a staleness cutoff), and an on-demand point
- * lookup used when a user wanders onto a street outside our network — checked against our DB first so each unknown
- * spot costs Overpass at most one query ever, across all users.
- */
-@Singleton
-class OsmWayService @Inject() (
-    protected val dbConfigProvider: DatabaseConfigProvider,
-    ws: WSClient,
-    cacheApi: AsyncCacheApi,
-    actorSystem: ActorSystem,
-    osmWayTable: OsmWayTable
-)(implicit ec: ExecutionContext)
-    extends HasDatabaseConfigProvider[MyPostgresProfile] {
-  import OsmWayService._
-
-  private val logger = Logger(this.getClass)
+@ImplementedBy(classOf[OsmWayServiceImpl])
+trait OsmWayService {
 
   /**
    * Refreshes cached way data for every mapped way whose row is missing or older than `STALENESS_PERIOD`.
@@ -47,6 +30,48 @@ class OsmWayService @Inject() (
    *
    * @return Number of ways refreshed (0 when everything is fresh).
    */
+  def refreshOsmWayData(): Future[Int]
+
+  /**
+   * Gets the speed limit at a point, for positions not on our street network (the /speedLimit fallback).
+   *
+   * Checks ways already stored in our DB first; only on a miss does it query Overpass for the nearest road,
+   * storing the result (with geometry) so the next lookup nearby is served from the DB. Results — including "no road
+   * here" — are cached for a few minutes per rounded coordinate so repeated pano moves at the same spot are free.
+   *
+   * @return The raw maxspeed tag of the nearest road within `SEARCH_RADIUS_M`; None if no road or no tag, and on any
+   *         Overpass failure (this method never propagates an error).
+   */
+  def getSpeedLimitAtPoint(lat: Double, lng: Double): Future[Option[String]]
+
+  /**
+   * Gets the maxspeed for each of the given streets, keyed by street_edge_id. Streets with no known speed are absent.
+   */
+  def getMaxSpeedsForStreets(streetEdgeIds: Seq[Int]): Future[Map[Int, String]]
+}
+
+/**
+ * Maintains the cached OSM way data (osm_way table) that backs the speed-limit sign (#4654).
+ *
+ * Two write paths, both polite to the shared community Overpass instance: a nightly batch refresh that bulk-fetches
+ * tags for every way mapped in osm_way_street_edge (monthly per way, via a staleness cutoff), and an on-demand point
+ * lookup used when a user wanders onto a street outside our network — checked against our DB first so each unknown
+ * spot costs Overpass at most one query ever, across all users.
+ */
+@Singleton
+class OsmWayServiceImpl @Inject() (
+    protected val dbConfigProvider: DatabaseConfigProvider,
+    ws: WSClient,
+    cacheApi: AsyncCacheApi,
+    actorSystem: ActorSystem,
+    osmWayTable: OsmWayTable
+)(implicit ec: ExecutionContext)
+    extends OsmWayService
+    with HasDatabaseConfigProvider[MyPostgresProfile] {
+  import OsmWayService._
+
+  private val logger = Logger(this.getClass)
+
   def refreshOsmWayData(): Future[Int] = {
     db.run(osmWayTable.getWayIdsMissingOrStale(OffsetDateTime.now.minusDays(STALENESS_PERIOD_DAYS))).flatMap { wayIds =>
       if (wayIds.isEmpty) { Future.successful(0) }
@@ -70,16 +95,6 @@ class OsmWayService @Inject() (
     }
   }
 
-  /**
-   * Gets the speed limit at a point, for positions not on our street network (the /speedLimit fallback).
-   *
-   * Checks ways already stored in our DB first; only on a miss does it query Overpass for the nearest road,
-   * storing the result (with geometry) so the next lookup nearby is served from the DB. Results — including "no road
-   * here" — are cached for a few minutes per rounded coordinate so repeated pano moves at the same spot are free.
-   *
-   * @return The raw maxspeed tag of the nearest road within `SEARCH_RADIUS_M`; None if no road or no tag, and on any
-   *         Overpass failure (this method never propagates an error).
-   */
   def getSpeedLimitAtPoint(lat: Double, lng: Double): Future[Option[String]] = {
     val cacheKey = f"speedLimitAtPoint:$lat%.4f,$lng%.4f"
     cacheApi.getOrElseUpdate[Option[String]](cacheKey, POINT_CACHE_TTL) {
@@ -95,9 +110,6 @@ class OsmWayService @Inject() (
     }
   }
 
-  /**
-   * Gets the maxspeed for each of the given streets, keyed by street_edge_id. Streets with no known speed are absent.
-   */
   def getMaxSpeedsForStreets(streetEdgeIds: Seq[Int]): Future[Map[Int, String]] = {
     db.run(osmWayTable.getMaxSpeeds(streetEdgeIds))
   }

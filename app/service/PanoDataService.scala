@@ -13,9 +13,9 @@ import org.locationtech.jts.geom.Point
 import play.api.cache.AsyncCacheApi
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.http.ContentTypes
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.{JsNull, JsNumber, JsObject, JsValue, Json}
 import play.api.libs.ws.WSClient
-import play.api.{Configuration, Logger}
+import play.api.{Configuration, Environment, Logger}
 import service.PanoDataService.{
   getFov,
   ImageryCheckConcurrency,
@@ -52,6 +52,13 @@ object PanoDataService {
   val LiveImageryTtlDays: Long = 7
 
   /**
+   * How we identify ourselves to Panoramax (#5185). Its API is keyless and community-run, so unlike GSV and
+   * Mapillary — where the key already says who is calling — nothing else tells the operators whose traffic this is
+   * or where to write if it misbehaves.
+   */
+  val PanoramaxUserAgent: String = "ProjectSidewalk/1.0 (+https://projectsidewalk.org; sidewalk@cs.uw.edu)"
+
+  /**
    * How many panos the nightly expiry sweep may have in flight at once (#4559).
    */
   val ImageryCheckConcurrency: Int = 10
@@ -69,14 +76,19 @@ object PanoDataService {
    * @param stillThere Panos the provider confirmed still serve imagery.
    * @param gone       Panos the provider confirmed it has no imagery for.
    * @param errors     Panos the provider gave no usable answer for (timeout, auth failure, unexpected status).
+   * @param reconciled Panos whose `pano_imagery_change` log disagreed with `pano_data.expired`, healed after the
+   *                   checks (#5007). `None` when the repair itself failed — a plain `0` would file "nothing was
+   *                   wrong" and "we never looked" as the same run.
    */
-  case class ImageryCheckResult(stillThere: Int, gone: Int, errors: Int) {
+  case class ImageryCheckResult(stillThere: Int, gone: Int, errors: Int, reconciled: Option[Int]) {
 
     /** Total panos the sweep asked the providers about. */
     def checked: Int = stillThere + gone + errors
 
     /** One line for the actor log and the admin endpoint's response body. */
-    def summary: String = s"Not expired: $stillThere. Expired: $gone. Errors: $errors."
+    def summary: String =
+      s"Not expired: $stillThere. Expired: $gone. Errors: $errors. " +
+        s"Reconciled: ${reconciled.map(_.toString).getOrElse("failed")}."
 
     /**
      * The counts as they are stored against a `background_job_run` row.
@@ -88,7 +100,8 @@ object PanoDataService {
       "panos_checked" -> checked,
       "still_there"   -> stillThere,
       "gone"          -> gone,
-      "errors"        -> errors
+      "errors"        -> errors,
+      "reconciled"    -> reconciled.fold[JsValue](JsNull)(count => JsNumber(count))
     )
   }
 
@@ -235,7 +248,8 @@ object PanoDataService {
    * the horizon are undershot by any bounded model; and the residual signed median runs about -0.17 m.
    *
    * Issues: [[https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4765]] (resolution dependence) and
-   * [[https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4766]] (near/far compression).
+   * [[https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4766]] (near/far compression). The in-repo summary,
+   * with the geodesy decision, the parity fixture and the viewport frame contract: `docs/label-latlng-estimation.md`.
    */
   object LatLngEstimation {
 
@@ -374,11 +388,13 @@ trait PanoDataService {
 class PanoDataServiceImpl @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     config: Configuration,
+    environment: Environment,
     cacheApi: AsyncCacheApi,
     ws: WSClient,
     implicit val ec: ExecutionContext,
     panoDataTable: PanoDataTable,
     panoHistoryTable: PanoHistoryTable,
+    panoImageryChangeTable: PanoImageryChangeTable,
     streetEdgeTable: models.street.StreetEdgeTable,
     signingService: ImageSigningService
 )(implicit mat: Materializer)
@@ -397,9 +413,9 @@ class PanoDataServiceImpl @Inject() (
   // Get an HMAC-SHA1 signing key from the raw key bytes.
   val sha1Key: SecretKeySpec = new SecretKeySpec(secretKey, "HmacSHA1")
 
-  private val cropsDirName: String = getCropDirectory
-  private val panosBaseDir: String =
-    config.get[String]("pano.images.directory") + File.separator + config.get[String]("city-id")
+  // Both resolved through MediaDirs, the same resolver PersistentMediaDirCheck models the write paths with (#4925).
+  private val cropsDir: File     = MediaDirs.cityDir(config, environment, "cropped.image.directory")
+  private val panosBaseDir: File = MediaDirs.cityDir(config, environment, "pano.images.directory")
 
   def getInfra3dToken(cityId: String): Future[String] = {
     // Token expires after 60 minutes, so we don't need to get a new token every time.
@@ -431,9 +447,9 @@ class PanoDataServiceImpl @Inject() (
   /**
    * Checks whether the imagery for a label's panorama is still available, dispatching per imagery source.
    *
-   * GSV and Mapillary are verified against their respective provider APIs. Infra3d (and any other source) is assumed
-   * to always be available. A miss is only ever reported when the provider explicitly says the image is gone — network
-   * errors, timeouts, auth failures, and other inconclusive responses return `None`.
+   * GSV, Mapillary, and Panoramax are verified against their respective provider APIs. Infra3d (and any other source)
+   * is assumed to always be available. A miss is only ever reported when the provider explicitly says the image is
+   * gone — network errors, timeouts, auth failures, and other inconclusive responses return `None`.
    *
    * @param panoId     Panorama ID.
    * @param panoSource Imagery source the label was placed on.
@@ -443,6 +459,7 @@ class PanoDataServiceImpl @Inject() (
     panoSource match {
       case PanoSource.Gsv       => gsvPanoExists(panoId)
       case PanoSource.Mapillary => mapillaryPanoExists(panoId)
+      case PanoSource.Panoramax => panoramaxPanoExists(panoId)
       case _                    => Future.successful(Some(true))
     }
   }
@@ -541,6 +558,44 @@ class PanoDataServiceImpl @Inject() (
               None
           }
     }
+  }
+
+  /**
+   * Checks whether a Panoramax picture still exists via the federated meta-catalog (`GET /api/pictures/:id`), which
+   * needs no credential. The catalog answers 404 for a deleted or hidden picture and 200 with the STAC item otherwise.
+   *
+   * @param panoId Panoramax picture ID (a UUID).
+   * @return       `Some(true)` if the imagery exists, `Some(false)` if not, `None` if inconclusive.
+   */
+  private def panoramaxPanoExists(panoId: String): Future[Option[Boolean]] = {
+    ws.url(s"https://api.panoramax.xyz/api/pictures/$panoId")
+      .addHttpHeaders("User-Agent" -> PanoDataService.PanoramaxUserAgent)
+      .withRequestTimeout(5.seconds)
+      .get()
+      .flatMap { response =>
+        val timestamp = OffsetDateTime.now
+        response.status match {
+          case 200 if (Json.parse(response.body) \ "id").toOption.isDefined =>
+            db.run(
+              panoDataTable.updateExpiredStatus(panoId, expired = false, Some(backupExists(panoId)), timestamp)
+            ).map(_ => Some(true))
+          case 404 =>
+            db.run(panoDataTable.updateExpiredStatus(panoId, expired = true, Some(backupExists(panoId)), timestamp))
+              .map(_ => Some(false))
+          case other =>
+            // Inconclusive (rate limit, 5xx, unexpected body). Don't assume the picture is gone.
+            logger.info(s"Panoramax existence check inconclusive ($other) for $panoId: ${response.body.take(200)}")
+            Future.successful(None)
+        }
+      }
+      .recover {
+        // A transient network error doesn't mean the picture is gone; treat as inconclusive.
+        case _: SocketTimeoutException => None
+        case _: IOException            => None
+        case e: Exception              =>
+          logger.warn(s"Unexpected error checking Panoramax imagery for $panoId; treating as inconclusive.", e)
+          None
+      }
   }
 
   /**
@@ -686,12 +741,34 @@ class PanoDataServiceImpl @Inject() (
         logger.info(s"Checking ${expiredPanosToCheck.length} expired panos.")
 
         // Check each pano against whichever provider it came from, then tally the three outcomes.
-        checkImageryBounded(panosToCheck ++ expiredPanosToCheck).map { responses =>
-          ImageryCheckResult(
-            stillThere = responses.count(_.contains(true)),
-            gone = responses.count(_.contains(false)),
-            errors = responses.count(_.isEmpty)
-          )
+        checkImageryBounded(panosToCheck ++ expiredPanosToCheck).flatMap { responses =>
+          // Heal any pano whose log disagrees with pano_data.expired, so a missed transition dangles for at most a
+          // day (#5007). The sweep's own updates have already committed by here, so a failed repair must not
+          // propagate: that would mark a successful sweep failed on /admin/health and lose the counts it learned.
+          db.run(panoImageryChangeTable.reconcile())
+            .map { healedPanoIds =>
+              if (healedPanoIds.nonEmpty) {
+                val preview = healedPanoIds.take(20).mkString(", ") + (if (healedPanoIds.length > 20) ", ..." else "")
+                logger.warn(
+                  s"Healed ${healedPanoIds.length} missed imagery transition(s) — either a writer of " +
+                    s"pano_data.expired is skipping the pano_imagery_change log, or the snapshot race documented " +
+                    s"on PanoDataTable.updateExpiredStatus fired: $preview"
+                )
+              }
+              Some(healedPanoIds.length)
+            }
+            .recover { case NonFatal(e) =>
+              logger.error("Imagery-log reconciliation failed; the sweep's own results stand.", e)
+              None
+            }
+            .map { reconciled =>
+              ImageryCheckResult(
+                stillThere = responses.count(_.contains(true)),
+                gone = responses.count(_.contains(false)),
+                errors = responses.count(_.isEmpty),
+                reconciled = reconciled
+              )
+            }
         }
       }
     ).flatten
@@ -716,8 +793,7 @@ class PanoDataServiceImpl @Inject() (
       .runWith(Sink.seq)
   }
 
-  def getCropDirectory: String =
-    config.get[String]("cropped.image.directory") + File.separator + config.get[String]("city-id")
+  def getCropDirectory: String = cropsDir.getPath
 
   /** Checks whether a locally-hosted equirectangular backup image exists for the given pano. */
   def backupExists(panoId: String): Boolean = localBackupImageFile(panoId).isDefined
@@ -731,7 +807,7 @@ class PanoDataServiceImpl @Inject() (
 
   /** Returns the on-disk file where a label's crop image is (or would be) stored. */
   def cropFile(labelId: Int, labelType: String): File =
-    new File(cropsDirName + File.separator + labelType + File.separator + "crop_" + labelId + ".png")
+    new File(new File(cropsDir, labelType), s"crop_$labelId.png")
 
   /** Checks whether a crop image file exists for the given label. */
   def cropExists(labelId: Int, labelType: LabelTypeEnum.Base): Boolean =

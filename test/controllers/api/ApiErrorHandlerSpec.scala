@@ -75,7 +75,8 @@ class ApiErrorHandlerSpec extends PlaySpec with GuiceOneAppPerSuite {
     "render the branded 500 page with an error id for non-API paths in prod mode" in {
       // The branded 500 only dispatches in prod (dev/test show Play's stack-trace page), so this needs its own
       // prod-mode app. Prod refuses the default application secret, so one is set explicitly; evolutions are
-      // disabled because the handler renders without touching the schema.
+      // disabled because the handler renders without touching the schema. StartupChecksModule is disabled because
+      // prod mode arms PersistentMediaDirCheck, which would refuse this checkout's relative media dirs (#4925).
       val prodApp = new GuiceApplicationBuilder()
         .in(Mode.Prod)
         .configure(
@@ -83,6 +84,7 @@ class ApiErrorHandlerSpec extends PlaySpec with GuiceOneAppPerSuite {
           "play.evolutions.enabled" -> false
         )
         .disable[modules.ActorModule]
+        .disable[modules.StartupChecksModule]
         .build()
       try {
         val resp = prodApp.injector

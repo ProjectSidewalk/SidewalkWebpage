@@ -260,11 +260,14 @@ class HealthTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    * locally-hosted backup image vs. are unchecked, missing, or at-risk (source expired AND no backup, so the label
    * has no viewable imagery). `has_backup` is refreshed lazily by the imagery check, so a large `unchecked` (NULL)
    * count is normal and these counts approximate on-disk truth. Schema-local (resolves via the connection search_path).
+   *
+   * Tutorial panos are excluded, since backup coverage is meaningless for app assets. `IS DISTINCT FROM` rather than
+   * `<>` so a label whose pano has no row at all still counts as unchecked.
    */
   def getPanoBackupStats: DBIO[PanoBackupStats] = bounded {
     sql"""
       WITH labeled AS (
-        SELECT DISTINCT pano_id FROM label WHERE pano_id IS NOT NULL AND pano_id <> 'tutorial'
+        SELECT DISTINCT pano_id FROM label WHERE pano_id IS NOT NULL
       )
       SELECT count(*)::bigint                                                                  AS labeled_panos,
              count(*) FILTER (WHERE pd.has_backup IS TRUE)::bigint                             AS backed_up,
@@ -273,6 +276,7 @@ class HealthTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
              count(*) FILTER (WHERE pd.expired IS TRUE AND pd.has_backup IS NOT TRUE)::bigint  AS at_risk
       FROM labeled
       LEFT JOIN pano_data pd ON pd.pano_id = labeled.pano_id
+      WHERE pd.source IS DISTINCT FROM 'tutorial'
     """.as[PanoBackupStats].head
   }
 }

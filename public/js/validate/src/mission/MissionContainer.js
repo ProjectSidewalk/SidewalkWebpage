@@ -56,7 +56,7 @@ class MissionContainer {
       disagreeCount: progressMetadata.disagree_count,
       labelsProgress: missionMetadata.labels_progress,
       labelsValidated: missionMetadata.labels_validated,
-      labelTypeId: missionMetadata.label_type_id,
+      labelType: missionMetadata.label_type,
       missionId: missionMetadata.mission_id,
       missionType: missionMetadata.mission_type,
       unsureCount: progressMetadata.unsure_count,
@@ -64,7 +64,7 @@ class MissionContainer {
     const mission = new Mission(metadata);
     this.addAMission(mission);
     svv.modalMission.setMissionMessage(mission);
-    svv.statusField.updateLabelText(svv.labelTypes[mission.getProperty('labelTypeId')]);
+    svv.statusField.updateLabelText(mission.getProperty('labelType'));
   }
 
   /**

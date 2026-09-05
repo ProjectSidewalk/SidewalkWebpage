@@ -37,20 +37,21 @@
    set one, else the language default, resolved once here so util.isMetric() can't disagree with the server. *@
 <html lang="@messages.lang.code" data-mobile-device="@ControllerUtils.isMobile" data-measurement-system="@ControllerUtils.measurementSystem">
   <head>
-      <!-- Global site tag (gtag.js) - Google Analytics -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=@commonData.googleAnalyticsId"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      gtag('config', '@commonData.googleAnalyticsId');
-    </script>
-    <meta charset="utf-8">
-    @* The mobile Validate page (url == "/mobile") deliberately gets no viewport meta: mobile-validate.css is tuned
-       for the ~980px legacy viewport that phones fall back to, and device-width would blow up its fixed sizes. *@
-    @if(url != "/mobile") {
-      <meta name="viewport" content="width=device-width, initial-scale=1">
+    @* Global site tag (gtag.js) - Google Analytics. Skipped when the city has no measurement id yet: loading the
+       tag with an empty one requests gtag/js?id= on every page and configures a property that doesn't exist. *@
+    @if(commonData.googleAnalyticsId.nonEmpty) {
+      <script async src="https://www.googletagmanager.com/gtag/js?id=@commonData.googleAnalyticsId"></script>
+      <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', '@commonData.googleAnalyticsId');
+      </script>
     }
+    <meta charset="utf-8">
+    @* No maximum-scale/user-scalable=no: pinch zoom is a WCAG 1.4.4 (Resize Text) affordance, not a nuisance. *@
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
     <title>@title</title>
     @common.seoHead(commonData, title, pageMeta)
     @* Per-page <head> injection point, e.g. Open Graph / Twitter Card meta for social sharing (#456). *@
@@ -78,11 +79,11 @@
 
     <link href='@assets.path("css/fonts.css")' rel="stylesheet">
     <link rel="stylesheet" href='@assets.path("css/main.css")'>
-    <link rel="stylesheet" href='@assets.path("css/common/toast.css")'>
-    <link rel="stylesheet" href='@assets.path("css/common/confirm-dialog.css")'>
-    <link rel="stylesheet" href='@assets.path("css/common/share-widget.css")'>
-    <link rel="stylesheet" href='@assets.path("css/homepage.css")'>
-    <link rel="stylesheet" href='@assets.path("css/auth.css")'>
+    <link rel="stylesheet" href='@assets.path("css/components/toast.css")'>
+    <link rel="stylesheet" href='@assets.path("css/components/confirm-dialog.css")'>
+    <link rel="stylesheet" href='@assets.path("css/components/share-widget.css")'>
+    <link rel="stylesheet" href='@assets.path("css/pages/homepage.css")'>
+    <link rel="stylesheet" href='@assets.path("css/pages/auth.css")'>
 
     @* Auth dialog (#4375): Modal.js must precede AuthModal.js; both no-op on pages without the dialog. *@
     <script src='@assets.path("js/common/Modal.js")' defer></script>
@@ -92,6 +93,13 @@
 
     @* Deferred: utilities.js only touches the bowser global lazily, from DOMContentLoaded-or-later callers. *@
     <script src='@assets.path("vendor/bowser/bowser-2.14.1.min.js")' defer></script>
+    @* Content-fingerprint digests for assets whose URLs JS builds at runtime (#4893): logicalPath -> md5, read by
+       util.assetPath. Empty under dev `sbt run` (no digests exist); a missing entry falls back to the plain
+       /assets/ path. Must precede the tool bundles: their module-level constants resolve URLs at script-eval time.
+       jsdom and the error pages never stamp this, so util.assetPath must tolerate its absence. Already serialized
+       (AssetManifestService does it once at startup), so this interpolates a string rather than a several-hundred-
+       entry map. *@
+    <script>window.assetDigests = @commonData.assetDigestsJson;</script>
     <script src='@assets.path("js/common/utilities.js")'></script>
     <script src='@assets.path("js/common/utilitiesMath.js")'></script>
     <script src='@assets.path("js/common/i18nDom.js")'></script>
@@ -162,7 +170,6 @@
             <!-- Back to top<br>-->
           <a href='@routes.ApplicationController.about' id="sidewalk-about-link">@Messages("footer.about")</a> <br>
           <a href='@routes.ApplicationController.terms' id="sidewalk-terms-link" target="_blank">@Messages("footer.terms")</a> <br>
-          <a href='@routes.ApplicationController.help' id="sidewalk-help-link" target="_blank">@Messages("footer.help")</a> <br>
           <a href='@routes.ApplicationController.labelingGuide' id="sidewalk-labeling-link" target="_blank">@Messages("footer.guide")</a> <br>
         </div>
         <div class="col-sm-4 footer-link">
@@ -244,7 +251,7 @@
         });
 
         // Log clicks on links in the information footer to WebpageActivityTable.
-        // Log is of form: "Click_module=InfoFooter_target=<link>_route=</|/explore|/help|...>"
+        // Log is of form: "Click_module=InfoFooter_target=<link>_route=</|/explore|/labelingGuide|...>"
         $('#info-footer').on('click','a', function(e){
           const currentRoute = window.location.pathname;
           const link = e.currentTarget.id.split('-')[0];

@@ -9,13 +9,6 @@
  * show an explicit empty state rather than misleading all-human bars.
  */
 class HumanVsAiPage {
-  /** Short, human-friendly names for label types (the v3 API has a machine name + long description, no short label). */
-  static #DISPLAY = {
-    CurbRamp: 'Curb Ramp', NoCurbRamp: 'Missing Curb Ramp', Obstacle: 'Obstacle',
-    SurfaceProblem: 'Surface Problem', NoSidewalk: 'No Sidewalk', Crosswalk: 'Crosswalk',
-    Signal: 'Signal', Occlusion: 'Occlusion', Other: 'Other',
-  };
-
   /** Below this many validated labels, an acceptance rate is too noisy to compare, so it's shown muted. */
   static #MIN_VALIDATED = 20;
 
@@ -70,7 +63,7 @@ class HumanVsAiPage {
     const list = (labelTypes && labelTypes.label_types) || [];
     for (const lt of list) {
       this.#meta.set(lt.name, {
-        display: HumanVsAiPage.#DISPLAY[lt.name] || lt.name,
+        display: lt.display_name || lt.name,
         color: this.#canonicalColor(lt.name) || lt.color || '#999999',
         icon: lt.small_icon_url || '',
       });
@@ -211,7 +204,7 @@ class HumanVsAiPage {
     }], { format: 'count' });
 
     document.getElementById('hva-verdicts').innerHTML
-            = this.#verdictRow('Humans', human) + this.#verdictRow('AI', ai);
+      = this.#verdictRow('Humans', human) + this.#verdictRow('AI', ai);
   }
 
   /** A labelled three-segment agree/disagree/unsure bar for one validator group. */
@@ -257,8 +250,8 @@ class HumanVsAiPage {
     // Two ranked lists, each scaled within itself, so the comparison is of tag *mix*, not raw volume (humans have
     // applied vastly more tags overall, which would otherwise dwarf the AI list).
     document.getElementById('hva-tags').innerHTML
-            = this.#tagList('AI tagger', aiTags, 'var(--hva-ai, #d55e00)')
-              + this.#tagList('Humans', humanTags, 'var(--hva-human, #0072b2)');
+      = this.#tagList('AI tagger', aiTags, 'var(--hva-ai, #d55e00)')
+        + this.#tagList('Humans', humanTags, 'var(--hva-human, #0072b2)');
   }
 
   #tagList(title, tags, color) {

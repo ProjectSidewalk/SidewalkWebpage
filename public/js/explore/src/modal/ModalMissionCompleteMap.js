@@ -22,12 +22,12 @@ class ModalMissionCompleteMap {
   // Route start/finish flags reuse RouteBuilder's flag icons (the same ones shown on the Explore minimap), at its
   // rasterized size, planted at the pole base. Scaled by --ui-scale to match the rest of the (unscaled-map) modal UI.
   static #ROUTE_FLAG_SIZE_PX = 27;
-  static #START_FLAG_SRC = '/assets/images/icons/routebuilder/flag-start.svg';
-  static #FINISH_FLAG_SRC = '/assets/images/icons/routebuilder/flag-end.svg';
+  static #START_FLAG_SRC = util.assetPath('images/icons/routebuilder/flag-start.svg');
+  static #FINISH_FLAG_SRC = util.assetPath('images/icons/routebuilder/flag-end.svg');
 
   // The explorer ("flag person") that walks the route start-to-finish, reusing RouteBuilder's explorer icon and its
   // walk duration so the finish celebration mirrors the RouteBuilder preview.
-  static #EXPLORER_SRC = '/assets/images/icons/project_sidewalk_flag.png';
+  static #EXPLORER_SRC = util.assetPath('images/icons/project_sidewalk_flag.png');
   static #EXPLORER_SIZE_PX = 40;
   static #EXPLORER_WALK_MS = 2500;
   static #EXPLORER_LINGER_MS = 700; // Pause at the finish before the explorer is removed.

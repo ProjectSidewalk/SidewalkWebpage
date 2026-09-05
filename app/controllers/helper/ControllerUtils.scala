@@ -1,7 +1,6 @@
 package controllers.helper
 
-import models.label.LabelTypeEnum
-import models.user.{RoleTable, SidewalkUserWithRole}
+import models.user.{Role, SidewalkUserWithRole}
 import play.api.i18n.Messages
 import play.api.mvc.Results.{Redirect, Unauthorized}
 import play.api.mvc.{Cookie, DiscardingCookie, RequestHeader, Result}
@@ -135,7 +134,7 @@ object ControllerUtils {
    * Checks if the given user is an Administrator.
    */
   def isAdmin(user: SidewalkUserWithRole): Boolean = {
-    RoleTable.ADMIN_ROLES.contains(user.role)
+    Role.ADMIN_ROLES.contains(user.role)
   }
   def isAdmin(user: Option[SidewalkUserWithRole]): Boolean = {
     user.map(isAdmin).getOrElse(false)
@@ -178,12 +177,6 @@ object ControllerUtils {
 
   def parseIntegerSeq(listOfInts: Option[String]): Seq[Int] = {
     listOfInts.map(parseIntegerSeq).getOrElse(Seq())
-  }
-
-  // Provides a sorting function to sort by label_type_id if given the label_type string, with "Overall" going first.
-  // This is used by our APIs to show output in a consistent order.
-  val labelTypeOrdering: Ordering[(String, Any)] = Ordering.by { case (labelType, _) =>
-    (labelType != "Overall", LabelTypeEnum.labelTypeToId.getOrElse(labelType, Int.MaxValue))
   }
 
   /**

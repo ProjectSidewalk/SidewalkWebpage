@@ -31,6 +31,11 @@ object CommonUtils {
     val SharedLabelThumbs               = Value("SharedLabelThumbs")
     val DashboardStories                = Value("DashboardStories")
     val AdminStories                    = Value("AdminStories")
+    val GalleryExpanded                 = Value("GalleryExpanded")
+    val AdminLabelMap                   = Value("AdminLabelMap")
+    val AdminActivity                   = Value("AdminActivity")
+    val StoryListPage                   = Value("StoryListPage")
+    val UserDashboard                   = Value("UserDashboard")
     val OldDataUnknownSource            = Value("Old data, unknown source")
   }
 

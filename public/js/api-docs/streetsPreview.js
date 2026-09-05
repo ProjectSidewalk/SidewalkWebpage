@@ -12,7 +12,7 @@
   const REGION_SOURCE = 'preview-region';
   const STREET_SOURCE = 'streets';
   const STREET_LAYER = 'street-lines';
-  const REGION_COLOR = '#ffffff';
+  const REGION_COLOR = ApiDocsTheme.color('--color-neutral-white');
   const DAY_MS = 24 * 60 * 60 * 1000;
 
   // A street with no labels has no age to place on the ramp, so it's drawn thinner and fainter than one that has.
@@ -95,7 +95,7 @@
       property: 'user_count',
       legendTitle: 'Users per Street',
       ramp: ['#472c7a', '#ffffff'],
-      none: { color: '#3d3d3d', label: 'Unaudited' },
+      none: { color: ApiDocsTheme.color('--color-neutral-800'), label: 'Unaudited' },
       // Zero contributors is a category of its own rather than the bottom of the ramp.
       noneAtOrBelow: 0,
       domain: (stats) => ({ min: 1, max: stats.maxUserCount }),
@@ -115,7 +115,7 @@
       property: 'days_since_label',
       legendTitle: 'Audit Age',
       ramp: ['#44ff44', '#ff4444'],
-      none: { color: '#d3d3d3', label: 'Never audited' },
+      none: { color: ApiDocsTheme.color('--color-neutral-300'), label: 'Never audited' },
       // The ramp runs from today rather than from the freshest street here, so the colors mean the same thing
       // whichever region the preview lands on.
       domain: (stats) => ({ min: 0, max: stats.maxDays }),
@@ -137,7 +137,7 @@
       property: 'label_count',
       legendTitle: 'Labels per Street',
       ramp: ['#440154', '#f0f921'],
-      none: { color: '#3d3d3d', label: 'No labels' },
+      none: { color: ApiDocsTheme.color('--color-neutral-800'), label: 'No labels' },
       noneAtOrBelow: 0,
       domain: (stats) => ({ min: 1, max: stats.maxLabelCount }),
       ticks: (stats) => countTicks(1, stats.maxLabelCount, 5),
@@ -238,7 +238,7 @@
 
       try {
         const regionData = await this.fetchRegionWithMostLabels();
-        const streets = withAge(await this.fetchStreetsByRegionId(regionData.region_id));
+        const streets = withAge(await this.fetchStreetsByRegionId(regionData.properties.region_id));
         const stats = summarize(streets.features);
 
         // Settled rather than all so that one failing to render doesn't prevent the others from rendering.
@@ -260,7 +260,8 @@
      */
     showError(container, error) {
       console.error('Streets preview error:', error);
-      container.innerHTML = `<div class="message message-error">Failed to load streets: ${error.message}</div>`;
+      container.innerHTML = `<div class="message message-error" role="alert">Failed to load streets: `
+        + `${error.message}</div>`;
     },
 
     /**
@@ -289,7 +290,7 @@
      *
      * @param {HTMLElement} container - Container element for this map
      * @param {object} metric - The METRICS entry driving this map
-     * @param {object} regionData - The region the preview is scoped to
+     * @param {object} regionData - GeoJSON Feature for the region the preview is scoped to
      * @param {object} streets - GeoJSON FeatureCollection of streets
      * @param {object} stats - The rollup from summarize()
      * @returns {Promise} Resolves once the map has loaded and drawn
@@ -315,15 +316,12 @@
      *
      * @param {object} map - The loaded Mapbox map
      * @param {object} metric - The METRICS entry driving this map
-     * @param {object} regionData - The region the preview is scoped to
+     * @param {object} regionData - GeoJSON Feature for the region the preview is scoped to
      * @param {object} streets - GeoJSON FeatureCollection of streets
      * @param {object} stats - The rollup from summarize()
      */
     drawMap(map, metric, regionData, streets, stats) {
-      map.addSource(REGION_SOURCE, {
-        type: 'geojson',
-        data: { type: 'Feature', geometry: regionData.geometry, properties: {} },
-      });
+      map.addSource(REGION_SOURCE, { type: 'geojson', data: regionData });
       map.addLayer({
         id: 'region-fill',
         type: 'fill',
@@ -338,10 +336,11 @@
       });
 
       const regionTitle = ApiDocsMap.addOverlay(map, 'top-right', 'map-chip');
-      regionTitle.innerHTML = `<strong>Region:</strong> ${regionData.name || 'Sample Region'}`;
+      regionTitle.innerHTML = `<strong>Region:</strong> ${regionData.properties.name || 'Sample Region'}`;
 
       if (!streets.features.length) {
         const message = ApiDocsMap.addOverlay(map, 'top-right', 'map-chip');
+        message.setAttribute('role', 'status');
         message.textContent = 'No streets found in this region.';
         return;
       }

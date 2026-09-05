@@ -16,8 +16,6 @@
   @common.navbar(commonData, Some(user))
   @common.icons()
 
-  <script src='@assets.path("vendor/i18next/i18next-23.16.8.min.js")'></script>
-  <script src='@assets.path("vendor/i18next-http-backend/i18nextHttpBackend-3.0.4.min.js")'></script>
   <script src='@assets.path("vendor/turf/turf-7.3.4.min.js")'></script>
   <script src='@assets.path("vendor/selectize/selectize-0.15.2.min.js")'></script>
   <link rel="stylesheet" href='@assets.path("vendor/selectize/selectize-0.15.2.min.css")'>
@@ -28,15 +26,18 @@
   <script src='@assets.path("vendor/three/three-0.160.1-min.js")'></script>
   <script src='@assets.path("vendor/mapillary/mapillary-4.1.2.min.js")'></script>
   <link href='@assets.path("vendor/mapillary/mapillary-4.1.2.css")' rel="stylesheet">
+  } else if (commonData.imagerySource == PanoSource.Panoramax) {
+  <script src='@assets.path("vendor/photo-sphere-viewer/psv-5.15.1-bundle.min.js")'></script>
+  <link href='@assets.path("vendor/photo-sphere-viewer/psv-5.15.1.css")' rel="stylesheet">
   }
   <script src='@assets.path("vendor/pannellum/pannellum-2.5.7.js")'></script>
   <link rel="stylesheet" href='@assets.path("vendor/pannellum/pannellum-2.5.7.css")'>
   <script src='@assets.path("js/common/pano-viewer/build/pano-viewer.js")'></script>
   <script src='@assets.path("js/validate/build/validate.js")'></script>
   <link rel="stylesheet" href='@assets.path("js/validate/build/validate.css")'>
-  <link rel="stylesheet" href='@assets.path("css/progress-bar.css")'>
-  <link rel="stylesheet" href='@assets.path("css/pano-overlay-buttons.css")'>
-  <link rel="stylesheet" href='@assets.path("css/tag-pills.css")'>
+  <link rel="stylesheet" href='@assets.path("css/components/progress-bar.css")'>
+  <link rel="stylesheet" href='@assets.path("css/components/pano-overlay-buttons.css")'>
+  <link rel="stylesheet" href='@assets.path("css/components/tag-pills.css")'>
 
   @common.missionStartTutorial()
   @common.panoInfoPopover()
@@ -265,11 +266,12 @@
       param.language = "@messages.lang.code";
       param.countryId = "@currentCity.countryId";
       const imagerySrc = "@commonData.imagerySource.toString";
-      param.viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer : GsvViewer;
+      param.viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer
+        : imagerySrc === 'panoramax' ? PanoramaxViewer : GsvViewer;
       param.viewerAccessToken = "@commonData.imageryAccessToken";
       param.validateParams = {
         adminVersion: @validateParams.adminVersion,
-        labelTypeId: @Html(validateParams.labelType.map(_.id.toString).getOrElse("null")),
+        labelType: @Html(validateParams.labelType.map(lt => s"'${lt.name}'").getOrElse("null")),
         userIds: @Html(validateParams.userIds.map(_.mkString("['", "','", "']")).getOrElse("null")),
         regionIds: @Html(validateParams.neighborhoodIds.map(_.mkString("[", ",", "]")).getOrElse("null")),
         unvalidatedOnly: @validateParams.unvalidatedOnly

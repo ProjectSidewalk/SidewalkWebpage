@@ -16,6 +16,8 @@
 const fs = require('fs');
 const path = require('path');
 
+const { assetPathStub } = require('./loadGlobalScript');
+
 const PANO_MANAGER_PATH = path.resolve(__dirname, '..', '..', 'public/js/validate/src/panorama/PanoManager.js');
 const PANO_MARKER_PATH = path.resolve(__dirname, '..', '..', 'public/js/common/PanoMarker.js');
 const LABEL_CONTAINER_PATH = path.resolve(__dirname, '..', '..', 'public/js/validate/src/label/LabelContainer.js');
@@ -68,6 +70,7 @@ describe('PanoManager clears the pano when no viewer can render it (issue #4810)
     global.PanoMarker = loadClassFromFile(PANO_MARKER_PATH, 'PanoMarker');
     global.i18next = {t: () => 'Curb ramp'};
     global.createPanoViewerLogo = jest.fn(() => ({showPrimaryLogo: jest.fn(), showSourceLogo: jest.fn()}));
+    global.createPanoAttribution = jest.fn(() => ({show: jest.fn(), hide: jest.fn()}));
     global.GsvViewer = class GsvViewer {};             // distinct from FakeViewerType, so the GSV-only
     global.MapillaryViewer = class MapillaryViewer {}; // and Mapillary-only attribution paths are skipped
     global.svv = {
@@ -101,6 +104,7 @@ describe('PanoManager clears the pano when no viewer can render it (issue #4810)
     delete global.PanoMarker;
     delete global.i18next;
     delete global.createPanoViewerLogo;
+    delete global.createPanoAttribution;
     delete global.GsvViewer;
     delete global.MapillaryViewer;
     delete global.svv;
@@ -153,7 +157,7 @@ describe('PanoManager clears the pano when no viewer can render it (issue #4810)
 });
 
 describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
-  const LABEL_TYPE_ID = 3;
+  const LABEL_TYPE = 'Obstacle';
   let LabelContainer;
   let unrenderablePanoIds;
   let topUpQueue;   // Successive `labels` arrays the /moreLabels endpoint answers with.
@@ -169,7 +173,7 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
       return Promise.resolve({ok: true, json: () => Promise.resolve({labels: topUpQueue.shift() ?? []})});
     });
 
-    global.util = {isMobile: () => false};
+    global.util = {isMobile: () => false, assetPath: assetPathStub};
     global.i18next = {t: jest.fn((key) => key)};
     // The bundle's Label class; only the accessors LabelContainer and its collaborators touch.
     global.Label = class Label {
@@ -231,7 +235,7 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
    * @returns {Promise<LabelContainer>}
    */
   function buildContainer(labelList = threeLabels()) {
-    return LabelContainer.create(labelList, LABEL_TYPE_ID);
+    return LabelContainer.create(labelList, LABEL_TYPE);
   }
 
   /** @returns {Array<number>} The label ids the validation UI was actually asked to render, in order. */
@@ -304,7 +308,7 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
 
     expect(global.fetch).toHaveBeenCalledWith('/validationTask/moreLabels', expect.objectContaining({method: 'POST'}));
     expect(topUpBodies).toHaveLength(1);
-    expect(topUpBodies[0].label_type_id).toBe(LABEL_TYPE_ID);
+    expect(topUpBodies[0].label_type).toBe(LABEL_TYPE);
     expect(topUpBodies[0].labels_needed).toBe(1);
     // Including the ones already answered: those validations may not have reached the database yet.
     expect(topUpBodies[0].excluded_label_ids.sort()).toEqual([1, 2, 3]);

@@ -33,7 +33,7 @@ util.LABEL_ICON_BASE_RADIUS = 17;
 util.LABEL_ICON_MAX_SCREEN_DIAMETER = 38;
 
 // Smallest a label's pointer target may get on screen, in CSS px. WCAG 2.5.8 Target Size (Minimum), level AA.
-// Validate's marker floors itself in CSS instead (--label-min-target in css/validate/svv-panorama.css), because
+// Validate's marker floors itself in CSS instead (--label-min-target in css/pages/validate/svv-panorama.css), because
 // only the target grows there and not the mark; keep the two numbers in step.
 util.LABEL_MIN_SCREEN_TARGET = 24;
 
@@ -49,8 +49,8 @@ util.LABEL_MIN_SCREEN_TARGET = 24;
  */
 util.cappedMarkerDiameter = function (baseDiameter, scale) {
   // The cap limits growth driven by --ui-scale; it never shrinks a marker below the size its tool chose. That is
-  // what keeps mobile Validate out of it — a phone's marker is a 52px touch target and never runs applyToolScale,
-  // so capping it to 38 would shrink a touch target to answer a desktop problem.
+  // what keeps mobile Validate out of it — a phone's marker is already sized for a thumb and never runs
+  // applyToolScale, so the cap must not be allowed to shrink a touch target to answer a desktop problem.
   return Math.min(baseDiameter * scale, Math.max(baseDiameter, util.LABEL_ICON_MAX_SCREEN_DIAMETER));
 };
 
@@ -271,27 +271,6 @@ util.applyToolScale = function (widthVarNames, heightVarNames) {
   return scale;
 };
 
-/** What util.legacyViewportScale falls back to, and what the CSS assumes when JS hasn't run: a ~390pt phone. */
-util.DEFAULT_LEGACY_VIEWPORT_SCALE = 2.5;
-
-/**
- * How far a page that ships no viewport meta is being shrunk to fit the device, as a factor to scale UI back up by.
- *
- * Such a page is laid out at a legacy viewport (~980 CSS px wide) and then fitted to the screen, which leaves
- * anything authored in real design-system units at a fraction of its intended size. The counter-scale is the ratio
- * between the two widths, so it lands near 2.5 on a 390pt phone, ~3.1 on a 320pt one, and ~1.3 on a tablet — all of
- * which the server's mobile UA regex routes to the same page.
- *
- * @param {number} layoutWidth The layout viewport's width in CSS px, i.e. document.documentElement.clientWidth.
- * @param {number} screenWidth The screen's own width in points, i.e. screen.width.
- * @returns {number} The factor, clamped to [1, 4] — a screen at least as wide as the layout means the page isn't
- *      being shrunk, so it scales by 1. DEFAULT_LEGACY_VIEWPORT_SCALE when either measurement is missing.
- */
-util.legacyViewportScale = function (layoutWidth, screenWidth) {
-  if (!(layoutWidth > 0) || !(screenWidth > 0)) return util.DEFAULT_LEGACY_VIEWPORT_SCALE;
-  return Math.max(1, Math.min(4, layoutWidth / screenWidth));
-};
-
 /**
  * Returns the uniform UI scale factor currently applied to the page (see util.applyToolScale), or 1 if unscaled.
  * @returns {number} The current --ui-scale value.
@@ -331,6 +310,27 @@ util.isMetric = () => document.documentElement.dataset.measurementSystem === 'me
 // The unit name turf.js expects for distance/length options. A turf argument, not display text — turf only accepts its
 // own English identifiers, so this must never be routed through a translation.
 util.turfDistanceUnits = () => (util.isMetric() ? 'kilometers' : 'miles');
+
+/**
+ * Resolves a public asset's logical path to the URL to load it from (#4893).
+ *
+ * Staged/prod builds content-fingerprint every asset (sbt-digest writes an `<md5>-<name>` copy beside the original,
+ * served with a year-long immutable cache), and main.scala.html stamps `window.assetDigests` with the digests for
+ * the families JS references. Returns the fingerprinted URL when the stamp has an entry, otherwise the plain
+ * `/assets/<path>` — byte-identical to the historical hardcoded form — so dev mode (`sbt run` builds no digests),
+ * jsdom tests, and files the pipeline missed behave exactly as before. Never hardcode `/assets/...` in JS;
+ * tools/check-asset-paths.mjs enforces this.
+ *
+ * @param {string} logicalPath - Path under public/, e.g. 'images/icons/openhand.cur'. No leading slash, no
+ *                               '/assets/' prefix.
+ * @returns {string} A URL beginning with '/assets/'.
+ */
+util.assetPath = function (logicalPath) {
+  const digest = window.assetDigests?.[logicalPath];
+  if (typeof digest !== 'string') return `/assets/${logicalPath}`;
+  const cut = logicalPath.lastIndexOf('/') + 1;
+  return `/assets/${logicalPath.slice(0, cut)}${digest}-${logicalPath.slice(cut)}`;
+};
 
 /**
  * This reader's distance words: `unitAbbr` ("km"), `unitAbbrSmall` ("m"), `unitName` ("kilometers"), and

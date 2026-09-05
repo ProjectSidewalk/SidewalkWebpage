@@ -3,9 +3,17 @@ package controllers
 import controllers.base.{CustomBaseController, CustomControllerComponents}
 import models.auth.{WithAdmin, WithOwner}
 import play.api.Configuration
+import models.street.StreetPriorityForAdmin
 import play.api.libs.json.Json
 import service.HealthService.dbHealthDataWrites
-import service.{ConfigService, HealthService, LabelService, StreetLifecycleService}
+import service.{
+  ConfigService,
+  HealthService,
+  ImageryFreshnessReportService,
+  LabelService,
+  StreetLifecycleService,
+  StreetService
+}
 
 import javax.inject._
 import scala.concurrent.ExecutionContext
@@ -26,7 +34,9 @@ class AdminDashboardController @Inject() (
     configService: ConfigService,
     labelService: LabelService,
     healthService: HealthService,
-    streetLifecycleService: StreetLifecycleService
+    streetLifecycleService: StreetLifecycleService,
+    imageryFreshnessReportService: ImageryFreshnessReportService,
+    streetService: StreetService
 )(implicit ec: ExecutionContext)
     extends CustomBaseController(cc) {
   implicit val implicitConfig: Configuration = config
@@ -243,5 +253,91 @@ class AdminDashboardController @Inject() (
    */
   def getStreetStatusTrend(weeks: Int) = cc.securityService.SecuredAction(WithAdmin()) { _ =>
     streetLifecycleService.getStreetStatusTrend(weeks).map(trend => Ok(Json.toJson(trend)))
+  }
+
+  /**
+   * Reopens a no_imagery street from the Street Status page's "Regained imagery" review queue (#4929).
+   *
+   * Guarded on the street's current status, so a stale queue row can't reopen a street twice (409) or invent
+   * one (404).
+   */
+  def reopenStreet(streetEdgeId: Int) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    streetLifecycleService.reopenStreet(streetEdgeId).map {
+      case StreetLifecycleService.Reopened =>
+        cc.loggingService.insert(request.identity.userId, request.ipAddress, s"ReopenStreet_Street=$streetEdgeId")
+        Ok(Json.obj("status" -> "success", "street_edge_id" -> streetEdgeId))
+      case StreetLifecycleService.NotNoImagery(current) =>
+        Conflict(Json.obj("status" -> "Error", "message" -> s"Street $streetEdgeId is '$current', not 'no_imagery'."))
+      case StreetLifecycleService.StreetNotFound =>
+        NotFound(Json.obj("status" -> "Error", "message" -> s"No street with id $streetEdgeId."))
+    }
+  }
+
+  /**
+   * Dismisses a "Regained imagery" reopen candidate without changing the street (#4929). Idempotent: dismissing a
+   * street with no queued candidate succeeds with `dismissed = 0`, since the admin's goal — no queue entry — holds.
+   * Only a dismissal that changed something is logged, so the activity trail counts judgements rather than clicks.
+   */
+  def dismissReopenCandidate(streetEdgeId: Int) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    streetLifecycleService.dismissReopenCandidate(streetEdgeId).map { dismissed =>
+      if (dismissed > 0) {
+        cc.loggingService.insert(
+          request.identity.userId,
+          request.ipAddress,
+          s"DismissReopenCandidate_Street=$streetEdgeId"
+        )
+      }
+      Ok(Json.obj("status" -> "success", "street_edge_id" -> streetEdgeId, "dismissed" -> dismissed))
+    }
+  }
+
+  /**
+   * Renders the Imagery page: where the re-audit work sits, and whether the pipeline that finds it is alive (#4908).
+   *
+   * The #4384 pipeline surfaces which streets need a re-audit but not the ranking Explore actually routes on, and its
+   * nightly poll — the only thing that can raise a re-audit flag — reports solely to the application log, where a
+   * poller that stopped firing leaves no evidence at all. This page renders both: a priority-colored street map with
+   * the audit counts behind each value, and the poll's own recorded rotation and flag counts.
+   */
+  def imagery = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Admin_Imagery")
+      Ok(views.html.admin.dashboard.imagery(commonData, request.identity))
+    }
+  }
+
+  /**
+   * Renders the Partners page: the community-partner logos shown on the landing page (#4516).
+   *
+   * Any admin manages the current city's partners here; the global list (every deployment's landing page) is
+   * rendered for context but editable only by Owners, enforced on the /adminapi/globalPartners routes.
+   */
+  def partners = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Admin_Partners")
+      Ok(views.html.admin.dashboard.partners(commonData, request.identity))
+    }
+  }
+
+  /**
+   * The Imagery page's pipeline endpoint: nightly poll/flag counts and job state as snake_case JSON (#4908).
+   *
+   * @param days Window size; clamped by [[ImageryFreshnessReportService.clampDays]], so a junk value narrows the
+   *             chart rather than erroring.
+   */
+  def getImageryFreshness(days: Int) = cc.securityService.SecuredAction(WithAdmin()) { _ =>
+    imageryFreshnessReportService.getReport(days).map(report => Ok(Json.toJson(report)))
+  }
+
+  /**
+   * The Imagery page's per-street endpoint: every routable street's priority plus the audit counts it derives from.
+   *
+   * Geometry is deliberately absent — the page joins these rows to the street GeoJSON it already fetches from
+   * `/v3/api/streets`, which keeps this payload small enough to also drive the tables and the rotation roll-ups.
+   * Admin-only rather than published on the v3 API: priority is an internal routing weight, and exposing it there
+   * would freeze it into a public contract that the multi-factor prioritization work (#4894) is expected to change.
+   */
+  def getStreetPriority = cc.securityService.SecuredAction(WithAdmin()) { _ =>
+    streetService.getPriorityWithInputs.map(streets => Ok(StreetPriorityForAdmin.payload(streets)))
   }
 }

@@ -19,7 +19,7 @@ class StreetStatusColors {
   static FALLBACK = '#d0d0d0';
 
   /** High-contrast color for the currently selected region's segments (distinct from all four status colors). */
-  static SELECTED = '#0566f5'; // --color-accent-link
+  static SELECTED = '#0566f5'; // Near --color-link-200, which the dashboard uses for its other selected states.
 
   /** @param {string} status @returns {string} the hex color for a status, or the fallback if unrecognized. */
   static colorFor(status) {
@@ -175,6 +175,29 @@ class StreetStatusMap {
   /** Clears any selected-segment highlight. */
   clearHighlight() {
     this.highlightSegments([]);
+  }
+
+  /**
+   * Zooms to one segment and highlights it alone, replacing any prior highlight.
+   *
+   * This is how the regained-imagery queue (#4929) points at a street: its rows are all `no_imagery`, and Explore
+   * can only serve an open street, so "show me where this is" has to be answered on this page.
+   *
+   * @param {number} streetEdgeId - The segment to zoom to.
+   * @param {number[][]} bounds - [[minLng, minLat], [maxLng, maxLat]] covering that segment.
+   */
+  focusSegment(streetEdgeId, bounds) {
+    this.highlightSegments([streetEdgeId]);
+    // maxZoom keeps a short segment from slamming to street level, where there is no context to place it in.
+    this.#map.fitBounds(bounds, { padding: 140, maxZoom: 16, duration: 700 });
+  }
+
+  /**
+   * @param {object} feature - One GeoJSON feature.
+   * @returns {number[][]} Its [[minLng, minLat], [maxLng, maxLat]] bounds box, for focusSegment.
+   */
+  static boundsOfFeature(feature) {
+    return StreetStatusMap.#bounds({ features: [feature] });
   }
 
   /** Builds the hover-popup HTML showing a segment's status and activity. */

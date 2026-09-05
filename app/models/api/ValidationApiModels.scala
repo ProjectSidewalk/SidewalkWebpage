@@ -6,6 +6,7 @@
 package models.api
 
 import models.api.ApiModelUtils.escapeCsvField
+import models.label.LabelTypeEnum
 import models.label.LocationXY
 import models.utils.CommonUtils.UiSource.UiSource
 import models.validation.ValidationOption
@@ -19,21 +20,16 @@ import java.time.OffsetDateTime
  * @param labelId Optional label ID to filter validations by the validated label
  * @param userId Optional user ID to filter validations by the user who performed the validation
  * @param validationResult Optional validation result to filter by (Agree, Disagree, or Unsure)
- * @param labelTypeId Optional label type ID to filter by the type of the validated label
+ * @param labelType Optional label type to filter by the type of the validated label
  * @param validationTimestamp Optional timestamp to filter validations by when they occurred (using startTimestamp)
- * @param changedTags Optional boolean to filter validations where tags were changed (oldTags != newTags)
- * @param changedSeverityLevels Optional boolean to filter validations where severity was changed
- *                              (oldSeverity != newSeverity)
  * @param source Optional validation interface (UiSource) to filter by, e.g. Validate, ValidateMobile, ExpertValidate
  */
 case class ValidationFiltersForApi(
     labelId: Option[Int] = None,
     userId: Option[String] = None,
     validationResult: Option[ValidationOption.Value] = None,
-    labelTypeId: Option[Int] = None,
+    labelType: Option[LabelTypeEnum.Base] = None,
     validationTimestamp: Option[OffsetDateTime] = None,
-    changedTags: Option[Boolean] = None,
-    changedSeverityLevels: Option[Boolean] = None,
     source: Option[UiSource] = None
 )
 
@@ -41,16 +37,13 @@ case class ValidationFiltersForApi(
  * Represents a label validation for the API.
  * Implements StreamingApiType to support streaming output formats like JSON and CSV.
  * Note: Validations do not include geographic coordinates - those are properties of the labels being validated.
+ * A change to the label's severity or tags submitted with the vote is a separate record in the Label Edits API,
+ * linked by `label_validation_id`.
  *
  * @param labelValidationId Unique identifier for the validation
  * @param labelId ID of the validated label
- * @param labelTypeId Type ID of the validated label
- * @param labelType String representation of the label type
+ * @param labelType Type of the validated label (e.g. "CurbRamp")
  * @param validationResult Result of the validation (Agree, Disagree, or Unsure)
- * @param oldSeverity Previous severity assigned to the label
- * @param newSeverity New severity assigned during validation
- * @param oldTags Previous tags assigned to the label
- * @param newTags New tags assigned during validation
  * @param userId ID of the user who performed the validation
  * @param validatorType Whether the validation was performed by a human or AI
  * @param missionId ID of the mission during which the validation was performed
@@ -67,13 +60,8 @@ case class ValidationFiltersForApi(
 case class ValidationDataForApi(
     labelValidationId: Int,
     labelId: Int,
-    labelTypeId: Int,
     labelType: String,
     validationResult: ValidationOption.Value,
-    oldSeverity: Option[Int],
-    newSeverity: Option[Int],
-    oldTags: List[String],
-    newTags: List[String],
     userId: String,
     validatorType: String,
     missionId: Int,
@@ -98,13 +86,8 @@ case class ValidationDataForApi(
     Json.obj(
       "label_validation_id" -> labelValidationId,
       "label_id"            -> labelId,
-      "label_type_id"       -> labelTypeId,
       "label_type"          -> labelType,
       "validation_result"   -> validationResult,
-      "old_severity"        -> oldSeverity,
-      "new_severity"        -> newSeverity,
-      "old_tags"            -> oldTags,
-      "new_tags"            -> newTags,
       "user_id"             -> userId,
       "validator_type"      -> validatorType,
       "mission_id"          -> missionId,
@@ -133,13 +116,8 @@ case class ValidationDataForApi(
     val fields = Seq(
       labelValidationId.toString,
       labelId.toString,
-      labelTypeId.toString,
       escapeCsvField(labelType),
       validationResult.toString,
-      oldSeverity.map(_.toString).getOrElse(""),
-      newSeverity.map(_.toString).getOrElse(""),
-      escapeCsvField(oldTags.mkString("[", ",", "]")),
-      escapeCsvField(newTags.mkString("[", ",", "]")),
       escapeCsvField(userId),
       validatorType,
       missionId.toString,
@@ -167,9 +145,9 @@ object ValidationDataForApi {
    * CSV header string with field names in the same order as the toCsvRow output.
    * This should be included as the first line when generating CSV output.
    */
-  val csvHeader: String = "label_validation_id,label_id,label_type_id,label_type,validation_result," +
-    "old_severity,new_severity,old_tags,new_tags,user_id,validator_type,mission_id,canvas_x,canvas_y," +
-    "heading,pitch,zoom,canvas_height,canvas_width,start_timestamp,end_timestamp,source\n"
+  val csvHeader: String = "label_validation_id,label_id,label_type,validation_result,user_id," +
+    "validator_type,mission_id,canvas_x,canvas_y,heading,pitch,zoom,canvas_height,canvas_width,start_timestamp," +
+    "end_timestamp,source\n"
 }
 
 /**

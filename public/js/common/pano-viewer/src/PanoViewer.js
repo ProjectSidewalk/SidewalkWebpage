@@ -34,6 +34,14 @@ class PanoViewer {
   initialSeed;
 
   /**
+   * The element the viewer renders into. create() sets this before initialize() runs so that it is available to
+   * any code the initialization path calls (e.g. an early getPov()). _viewportAspect() measures it to derive the
+   * live aspect ratio for fov↔zoom conversion (#4852).
+   * @type {(Element|undefined)}
+   */
+  canvasElem;
+
+  /**
    * Private constructor to prevent direct instantiation.
    */
   constructor() {
@@ -51,6 +59,9 @@ class PanoViewer {
     } else if (new.target === PannellumViewer) {
       this.viewerType = 'pannellum';
       this.canvasClass = 'pannellum-canvas';
+    } else if (new.target === PanoramaxViewer) {
+      this.viewerType = 'panoramax';
+      this.canvasClass = 'psv-canvas';
     }
   }
 
@@ -78,9 +89,35 @@ class PanoViewer {
    * @static
    */
   static async create(canvasElem, panoOptions = {}) {
+    // Mapillary (and the Infra3d fork of it) style their render canvas `position: absolute` with no offsets, so
+    // it sits at its *static position* — which an inherited `text-align: center` places at the middle of the
+    // line box. Under a centering ancestor (mobile Validate's body/.tool-ui) that shifted the canvas right by
+    // half the mount's width, leaving the left half blank (#4999). The mount hosts SDK-positioned chrome, never
+    // flowed text, so pinning it left is safe for every provider and spares each page from knowing about this.
+    canvasElem.style.textAlign = 'left';
     const newViewer = new this();
+    newViewer.canvasElem = canvasElem;
     await newViewer.initialize(canvasElem, panoOptions);
     return newViewer;
+  }
+
+  /**
+   * The live width:height aspect ratio of the element the pano renders in, for fov↔zoom conversion (#4852).
+   *
+   * Falls back to the fixed Explore-canvas ratio when the element has no measurable box yet (not laid out, or
+   * `display: none` — e.g. the label-detail popup pano while hidden), which keeps the conversion stable until a
+   * real measurement exists.
+   *
+   * Measures the mount container, which every call site can treat as the render canvas because they all pass
+   * `disableDefaultUi: true`. A viewer showing in-container chrome (Infra3D's topbar/toolbar/cockpit) renders
+   * into a shorter canvas than this, and would need to measure `canvasElem.querySelector('.' + canvasClass)`.
+   *
+   * @returns {number} The viewport aspect ratio, or util.EXPLORE_CANVAS_ASPECT_RATIO if it can't be measured.
+   * @protected
+   */
+  _viewportAspect() {
+    const rect = this.canvasElem?.getBoundingClientRect();
+    return rect && rect.width > 0 && rect.height > 0 ? rect.width / rect.height : util.EXPLORE_CANVAS_ASPECT_RATIO;
   }
 
   /**
@@ -209,6 +246,14 @@ class PanoViewer {
    * @returns {Promise<void>}
    */
   async preloadPanoNear(_latLng, _excludedPanos = new Set()) {}
+
+  /**
+   * Downloads the provider's viewer code ahead of create(), so a viewer built later on a user action doesn't wait on
+   * the network. Must not construct a viewer: for providers that bill per viewer instance (GSV), that is the whole
+   * point of deferring create() (#5128). No-op by default; override in providers that load code on demand.
+   * @returns {Promise<void>}
+   */
+  static async preloadLibrary() {}
 
   /**
    * Moves the current panorama to the specified panorama ID.

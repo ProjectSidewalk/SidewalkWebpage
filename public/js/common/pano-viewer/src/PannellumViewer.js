@@ -19,9 +19,6 @@ class PannellumViewer extends PanoViewer {
   /** @type {number} Cached cameraHeading for the current pano (degrees, wrt true north). */
   #cameraHeading = 0;
 
-  /** @type {number} Cached cameraPitch for the current pano (degrees, positive = camera tilted up). */
-  #cameraPitch = 0;
-
   /** @type {string|undefined} Scene ID currently loaded in the Pannellum viewer. */
   #currentSceneId = undefined;
 
@@ -61,7 +58,6 @@ class PannellumViewer extends PanoViewer {
     if (!panoId) throw new Error('PannellumViewer requires startPanoId or panoMetadata.panoId');
 
     this.#cameraHeading = metadata.cameraHeading || 0;
-    this.#cameraPitch = metadata.cameraPitch || 0;
     this.currPanoData = this.#buildPanoData(panoId, metadata);
     this.#currentSceneId = panoId;
 
@@ -94,7 +90,7 @@ class PannellumViewer extends PanoViewer {
           haov: 360,
           vaov: 180,
           yaw: this.#headingToYaw(startHeading),
-          pitch: startPitch - this.#cameraPitch,
+          pitch: startPitch,
           hfov: util.pano.zoomToFov(startZoom),
           northOffset: this.#cameraHeading, // Only used by Pannellum's compass UI, which we keep hidden.
         },
@@ -150,7 +146,6 @@ class PannellumViewer extends PanoViewer {
     if (panoId === oldSceneId) {
       // Same pano — update calibration (e.g. if metadata was re-fetched) and reposition.
       this.#cameraHeading = metadata.cameraHeading || 0;
-      this.#cameraPitch = metadata.cameraPitch || 0;
       this.currPanoData = this.#buildPanoData(panoId, metadata);
       this.setPov(pov);
       for (const listener of this.panoChangedListeners) await listener();
@@ -161,8 +156,7 @@ class PannellumViewer extends PanoViewer {
     // (which #headingToYaw and #yawToHeading read from). The instance fields are updated after the load resolves so
     // the rAF loop doesn't emit pov_changed with a mismatched cameraHeading during the transition.
     const newCameraHeading = metadata.cameraHeading || 0;
-    const newCameraPitch = metadata.cameraPitch || 0;
-    const pitch = (pov.pitch ?? 0) - newCameraPitch;
+    const pitch = pov.pitch ?? 0;
     const yaw = this.#headingToYaw(pov.heading ?? newCameraHeading, newCameraHeading);
     const hfov = util.pano.zoomToFov(pov.zoom ?? 1);
 
@@ -199,7 +193,6 @@ class PannellumViewer extends PanoViewer {
 
     // Update instance calibration only after the new scene is fully loaded so getPov()/setPov() are consistent.
     this.#cameraHeading = newCameraHeading;
-    this.#cameraPitch = newCameraPitch;
     this.currPanoData = this.#buildPanoData(panoId, metadata);
     this.#currentSceneId = panoId;
 
@@ -322,10 +315,15 @@ class PannellumViewer extends PanoViewer {
     return this.currPanoData.getProperty('linkedPanos');
   };
 
+  // Heading is calibrated against cameraHeading but pitch is not, and the asymmetry is real: a pano's column 0
+  // sits at an arbitrary bearing, so yaw needs a reference, while row panoHeight/2 is the horizon by construction.
+  // povToPanoCoord, calculatePovFromPanoXY and CropGeometry all agree on that, and the stored images really are
+  // gravity-aligned — a label's pano_x/pano_y reads back onto the labelled feature. Subtracting cameraPitch here
+  // displaced the label marker by that angle, nonzero on ~98% of panos (#5174).
   getPov = () => {
     return {
       heading: this.#yawToHeading(this.#viewer.getYaw()),
-      pitch: this.#viewer.getPitch() + this.#cameraPitch,
+      pitch: this.#viewer.getPitch(),
       zoom: util.pano.fovToZoom(this.#viewer.getHfov()),
     };
   };
@@ -333,7 +331,7 @@ class PannellumViewer extends PanoViewer {
   setPov = (pov) => {
     // Second arg `false` disables Pannellum's animation; we want the change to apply immediately.
     this.#viewer.setYaw(this.#headingToYaw(pov.heading), false);
-    this.#viewer.setPitch(pov.pitch - this.#cameraPitch, false);
+    this.#viewer.setPitch(pov.pitch, false);
     if (pov.zoom !== null && pov.zoom !== undefined) {
       this.#viewer.setHfov(util.pano.zoomToFov(pov.zoom), false);
     }

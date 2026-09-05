@@ -2,6 +2,7 @@ package service
 
 import com.google.inject.ImplementedBy
 import executors.CpuIntensiveExecutionContext
+import play.api.libs.json.{JsObject, Json}
 import play.api.{Configuration, Environment, Logger}
 
 import java.io.File
@@ -13,7 +14,18 @@ import scala.sys.process.{Process, ProcessLogger}
 /**
  * Final counts from a clustering run: how many labels were grouped into how many clusters.
  */
-case class ClusteringResults(labelCount: Int, clusterCount: Int)
+case class ClusteringResults(labelCount: Int, clusterCount: Int) {
+
+  /**
+   * The counts as they are stored against a `background_job_run` row.
+   *
+   * Defined on the result rather than at each call site so the nightly run and the admin hand-trigger can't record
+   * the same clustering under two different shapes.
+   *
+   * @return The run's `details` object.
+   */
+  def runDetails: JsObject = Json.obj("labels_clustered" -> labelCount, "clusters_created" -> clusterCount)
+}
 
 @ImplementedBy(classOf[ClusterServiceImpl])
 trait ClusterService {

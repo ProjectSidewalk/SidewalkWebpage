@@ -3,8 +3,10 @@
  *
  * The sidebar itself is FilterSidebar (`common/filter-sidebar/`), which owns the controls and their interaction
  * rules; this class is the map's half of that split. It mirrors the sidebar's state into the `mapData` tracker,
- * rewrites the layer filters, facets the counts, and logs the interaction — plus the map-only chrome (collapse,
- * drag-to-resize) that lives on the same element.
+ * rewrites the layer filters, facets the counts, and logs the interaction.
+ *
+ * Whether the drawer is open is MapSidebarDrawer's, not this class's: that state has to be live from map-ready,
+ * and this one can only be built once the label feed has loaded.
  */
 class MapSidebarFilter {
   /** @type {mapboxgl.Map} */
@@ -19,8 +21,12 @@ class MapSidebarFilter {
   #filters;
   /** @type {boolean} */
   #showsCounts;
+  /** @type {boolean} */
+  #viewportCounts;
   /** @type {object} Last-applied per-type layer visibility, so unchanged layers aren't re-set on every click. */
   #layerVisibility = {};
+  /** @type {Map<string, ?HTMLInputElement>} Each label type's checkbox (null when the sidebar omits it). */
+  #typeCheckboxes = new Map();
   /** @type {Array<() => void>} */
   #changeCallbacks = [];
 
@@ -30,11 +36,16 @@ class MapSidebarFilter {
    * @param {object} mapData The layer tracker from CreateMapLayerTracker.
    * @param {object} [options] Configuration options.
    * @param {boolean} [options.highQualityFilter=true] Whether to apply the high-quality user filter.
+   * @param {boolean} [options.viewportCounts=false] Count only labels inside the current viewport. For pages
+   *     with viewport-scoped label loading (#5002), where the loaded set is padded beyond the view: the counts
+   *     then mean "in the current view" and agree with a view-scoped download. The host page is responsible for
+   *     calling refresh() when the data or the viewport changes.
    */
-  constructor(map, mapData, { highQualityFilter = true } = {}) {
+  constructor(map, mapData, { highQualityFilter = true, viewportCounts = false } = {}) {
     this.#map = map;
     this.#mapData = mapData;
     this.#highQualityFilter = highQualityFilter;
+    this.#viewportCounts = viewportCounts;
     this.#sidebar = document.getElementById('filter-sidebar');
     this.#showsCounts = this.#sidebar.querySelector('.filter-sidebar__count') !== null;
 
@@ -42,10 +53,9 @@ class MapSidebarFilter {
 
     for (const labelType of Object.keys(this.#mapData.layerNames)) {
       this.#layerVisibility[labelType] = true;
+      this.#typeCheckboxes.set(labelType, this.#sidebar.querySelector(`#${labelType}-checkbox`));
     }
 
-    this.#initSidebarOpenClose();
-    this.#initResizeHandle();
     this.#filters.enable();
 
     // Sync the streets layer visibility with the initial checkbox state (the streets layer starts hidden).
@@ -80,19 +90,39 @@ class MapSidebarFilter {
    * @returns {number} The visible label count across all checked label types.
    */
   getVisibleLabelCount() {
+    const bounds = this.#countBounds();
     let total = 0;
     for (const [labelType, features] of Object.entries(this.#mapData.sortedLabels)) {
-      if (!(this.#sidebar.querySelector(`#${labelType}-checkbox`)?.checked ?? false)) continue;
+      if (!this.#typeChecked(labelType)) continue;
       for (const feature of features) {
-        const props = feature.properties;
-        if (!this.#passesQualityFilters(props)) continue;
-        if (this.#passesSeverity(props) && this.#passesTags(labelType, props)
-          && this.#mapData[this.#validationCategory(props)]) {
-          total += 1;
-        }
+        if (bounds && !bounds.contains(feature.geometry.coordinates)) continue;
+        if (this.#passesLabelFilters(labelType, feature.properties)) total += 1;
       }
     }
     return total;
+  }
+
+  /**
+   * Returns true when the current filters leave a loaded label visible on the map: its type is checked and it
+   * passes the quality, severity, tag, and validation filters. The viewport is not consulted — a label just off
+   * screen is still a legitimate place to page to — and neither is the spotlight bypass, which is a popup
+   * affordance rather than part of the matching data. Backs the popup's prev/next navigator, so the arrows step
+   * only among labels the user can see (#5124).
+   *
+   * @param {string} labelType The label's type key (e.g. 'CurbRamp').
+   * @param {object} feature   The label's GeoJSON feature.
+   * @returns {boolean} Whether the label matches the active filters.
+   */
+  matchesFilters(labelType, feature) {
+    return this.#typeChecked(labelType) && this.#passesLabelFilters(labelType, feature.properties);
+  }
+
+  /**
+   * Recomputes the faceted counts — the hook for viewport label loading, where the data (a refetch) or the
+   * counted area (a pan under viewportCounts) changes without a filter interaction.
+   */
+  refresh() {
+    this.#updateCounts();
   }
 
   /**
@@ -205,68 +235,6 @@ class MapSidebarFilter {
     }
   }
 
-  /** Initializes the sidebar open/close behavior. Padding is set initially by createPSMap. */
-  #initSidebarOpenClose() {
-    const closeBtn = document.getElementById('filter-sidebar-close');
-    const openBtn = document.getElementById('filter-sidebar-open');
-    const handle = document.getElementById('filter-sidebar-resize-handle');
-
-    closeBtn.addEventListener('click', () => {
-      this.#sidebar.classList.add('filter-sidebar--hidden');
-      handle.style.display = 'none';
-      openBtn.style.display = 'block';
-      this.#map.easeTo({ padding: { left: 0, top: 0, right: 0, bottom: 0 } });
-      this.#logActivity('Click_module=MapSidebar_Close');
-    });
-    openBtn.addEventListener('click', () => {
-      const width = this.#sidebar.offsetWidth;
-      this.#sidebar.classList.remove('filter-sidebar--hidden');
-      handle.style.display = '';
-      openBtn.style.display = 'none';
-      this.#map.easeTo({ padding: { left: width, top: 0, right: 0, bottom: 0 } });
-      this.#logActivity('Click_module=MapSidebar_Open');
-    });
-  }
-
-  /** Wires up the drag-to-resize handle on the sidebar's right edge, keeping map centered as you drag. */
-  #initResizeHandle() {
-    const handle = document.getElementById('filter-sidebar-resize-handle');
-    if (!handle) return;
-
-    const MIN_WIDTH = 280;
-    const MAX_WIDTH = 600;
-
-    // Sync the handle's starting position with the sidebar's rendered width.
-    handle.style.left = `${this.#sidebar.offsetWidth}px`;
-
-    const onPointerMove = (e) => {
-      const rect = this.#sidebar.getBoundingClientRect();
-      const newWidth = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, e.clientX - rect.left));
-      this.#sidebar.style.width = `${newWidth}px`;
-      handle.style.left = `${newWidth}px`;
-      this.#map.setPadding({ left: newWidth, top: 0, right: 0, bottom: 0 });
-    };
-
-    const onPointerUp = (e) => {
-      handle.releasePointerCapture?.(e.pointerId);
-      handle.classList.remove('filter-sidebar__resize-handle--dragging');
-      document.body.classList.remove('filter-sidebar-resizing');
-      handle.removeEventListener('pointermove', onPointerMove);
-      handle.removeEventListener('pointerup', onPointerUp);
-      handle.removeEventListener('pointercancel', onPointerUp);
-    };
-
-    handle.addEventListener('pointerdown', (e) => {
-      e.preventDefault();
-      handle.setPointerCapture(e.pointerId);
-      handle.classList.add('filter-sidebar__resize-handle--dragging');
-      document.body.classList.add('filter-sidebar-resizing');
-      handle.addEventListener('pointermove', onPointerMove);
-      handle.addEventListener('pointerup', onPointerUp);
-      handle.addEventListener('pointercancel', onPointerUp);
-    });
-  }
-
   /**
    * Recomputes and renders the per-option label counts. No-op on pages that don't render count slots.
    *
@@ -277,13 +245,15 @@ class MapSidebarFilter {
   #updateCounts() {
     if (!this.#showsCounts) return;
 
+    const bounds = this.#countBounds();
     const typeCounts = {};
     const validationCounts = { correct: 0, incorrect: 0, unsure: 0, unvalidated: 0 };
     for (const [labelType, features] of Object.entries(this.#mapData.sortedLabels)) {
-      const typeChecked = this.#sidebar.querySelector(`#${labelType}-checkbox`)?.checked ?? false;
+      const typeChecked = this.#typeChecked(labelType);
       let count = 0;
       for (const feature of features) {
         const props = feature.properties;
+        if (bounds && !bounds.contains(feature.geometry.coordinates)) continue;
         if (!this.#passesQualityFilters(props)) continue;
         const severityOk = this.#passesSeverity(props);
         const tagsOk = this.#passesTags(labelType, props);
@@ -306,15 +276,48 @@ class MapSidebarFilter {
     this.#filters.setCounts({ ...typeCounts, ...validationCounts, ...streetCounts });
   }
 
+  /** @returns {?mapboxgl.LngLatBounds} The current viewport under viewportCounts, else null (no restriction). */
+  #countBounds() {
+    return this.#viewportCounts ? this.#map.getBounds() : null;
+  }
+
+  /**
+   * Returns true when the label type's sidebar checkbox is checked. The elements are looked up once at construction
+   * (this runs per label inside city-sized scans) but `checked` is read live, so the DOM stays the source of truth.
+   *
+   * A type the sidebar doesn't render counts as unchecked: every host renders every type the feed can carry, and a
+   * host that dropped one would hide its layer on the first filter change anyway (#syncLayerVisibility only shows
+   * checked types), so "not pageable" is the state the map converges to.
+   *
+   * @param {string} labelType The label type key.
+   * @returns {boolean} Whether labels of this type are currently shown.
+   */
+  #typeChecked(labelType) {
+    return this.#typeCheckboxes.get(labelType)?.checked ?? false;
+  }
+
+  /**
+   * Returns true when a label passes every per-label filter other than its type checkbox: quality, severity,
+   * tags, and validation status. The faceted counts can't use this whole (they ignore one axis at a time), so it
+   * serves the all-axes consumers: the visible-label count and the popup navigator.
+   * @param {string} labelType The label's type key.
+   * @param {object} props     The label's GeoJSON properties.
+   * @returns {boolean} Whether the label survives all four axes.
+   */
+  #passesLabelFilters(labelType, props) {
+    return this.#passesQualityFilters(props) && this.#passesSeverity(props) && this.#passesTags(labelType, props)
+      && this.#mapData[this.#validationCategory(props)] === true;
+  }
+
   /**
    * Returns true when the label passes the selected severity toggles (toggle 0 covers labels with no severity).
    * @param {object} props The label's GeoJSON properties.
    * @returns {boolean} Whether the label's severity is currently enabled.
    */
   #passesSeverity(props) {
-    return Number.isInteger(props.severity)
-      ? Boolean(this.#mapData.severities[props.severity])
-      : this.#mapData.severities[0];
+    return Boolean(Number.isInteger(props.severity)
+      ? this.#mapData.severities[props.severity]
+      : this.#mapData.severities[0]);
   }
 
   /**
@@ -349,7 +352,11 @@ class MapSidebarFilter {
     const selected = this.#mapData.selectedTags[labelType];
     if (!selected || selected.size === 0) return true;
     const tags = props.tags ?? [];
-    return Array.from(selected).some((tag) => tags.includes(tag));
+    // A plain loop over the Set: this runs per label inside city-sized scans, so no per-call array copy.
+    for (const tag of selected) {
+      if (tags.includes(tag)) return true;
+    }
+    return false;
   }
 
   /**

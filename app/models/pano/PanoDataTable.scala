@@ -6,15 +6,12 @@ import models.pano.PanoSource.PanoSource
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import play.api.libs.json.{JsValue, Json}
-import slick.jdbc.GetResult
+import play.api.libs.functional.syntax._
+import play.api.libs.json.{__, JsValue, Json, Writes}
 
-import java.time.{LocalDate, OffsetDateTime}
+import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
-
-/** Panos whose imagery went away during one week. */
-case class PanoExpiryWeek(weekStart: LocalDate, panoCount: Int)
 
 /** Pano metadata needed to render a backup image in Pannellum. */
 case class PanoViewerMetadata(
@@ -60,11 +57,23 @@ object PanoSource extends Enumeration {
   val Gsv       = Value("gsv")
   val Mapillary = Value("mapillary")
   val Infra3d   = Value("infra3d")
+  val Panoramax = Value("panoramax")
+
+  /**
+   * The tutorial's locally-served panos, whose imagery is app assets. They carry rows so that every label has one
+   * (#4587), and this value is what keeps them out of the scraper's work list and every provider call (#4773).
+   */
+  val Tutorial = Value("tutorial")
 
   /**
    * Sources whose imagery `PanoDataService.panoExists` can actually verify against a provider API.
    */
-  val providerCheckedSources: Set[Value] = Set(Gsv, Mapillary)
+  val providerCheckedSources: Set[Value] = Set(Gsv, Mapillary, Panoramax)
+
+  /**
+   * Sources a client may name in a submission. `Tutorial` is server-owned.
+   */
+  val clientSubmittableSources: Set[Value] = Set(Gsv, Mapillary, Infra3d, Panoramax)
 }
 
 case class PanoDataSlim(
@@ -79,6 +88,21 @@ case class PanoDataSlim(
     cameraRoll: Option[Double],
     source: PanoSource
 )
+
+object PanoDataSlim {
+  implicit val panoDataSlimWrites: Writes[PanoDataSlim] = (
+    (__ \ "pano_id").write[String] and
+      (__ \ "has_labels").write[Boolean] and
+      (__ \ "width").writeNullable[Int] and
+      (__ \ "height").writeNullable[Int] and
+      (__ \ "lat").writeNullable[Double] and
+      (__ \ "lng").writeNullable[Double] and
+      (__ \ "camera_heading").writeNullable[Double] and
+      (__ \ "camera_pitch").writeNullable[Double] and
+      (__ \ "camera_roll").writeNullable[Double] and
+      (__ \ "source").write[PanoSource.Value]
+  )(unlift(PanoDataSlim.unapply))
+}
 
 class PanoDataTableDef(tag: Tag) extends Table[PanoData](tag, "pano_data") {
   def panoId: Rep[String]                = column[String]("pano_id", O.PrimaryKey)
@@ -114,6 +138,12 @@ class PanoDataTableDef(tag: Tag) extends Table[PanoData](tag, "pano_data") {
 
 @ImplementedBy(classOf[PanoDataTable]) trait PanoDataTableRepository {}
 
+object PanoDataTable {
+
+  /** Ids per `markHasBackup` statement: enough to make a night's update a handful of round trips, not thousands. */
+  val MarkHasBackupChunk: Int = 1000
+}
+
 @Singleton
 class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
     extends PanoDataTableRepository
@@ -123,44 +153,26 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
   val panoDataRecords = TableQuery[PanoDataTableDef]
   val labelTable      = TableQuery[LabelTableDef]
 
-  implicit private val getPanoExpiryWeek: GetResult[PanoExpiryWeek] =
-    GetResult(r => PanoExpiryWeek(r.nextDate().toLocalDate, r.nextInt()))
-
   /**
-   * Panos already expired when `expired_at` started being recorded, so the trend can say how much it can't show.
+   * Panos that were already expired before any of this was recorded, so the trend can say how much it can't show.
+   *
+   * These are the rows `pano_imagery_change` has no loss event for: they expired before 358 added `expired_at`, so
+   * 364's backfill of the log from that column had no date to seed them with. If one regains imagery it still logs
+   * the recovery, so the chart can show more recoveries than losses until this count drains.
    */
   def countExpiredWithoutExpiryDate: DBIO[Int] = {
     panoDataRecords.filter(pano => pano.expired && pano.expiredAt.isEmpty).length.result
   }
 
   /**
-   * Panos whose imagery went away, bucketed by ISO week, for the admin imagery-trend chart.
-   *
-   * Only counts panos that expired after `expired_at` started being recorded (358.sql): earlier expiries have no
-   * flip date to bucket, so they are absent rather than piled onto the first week.
-   *
-   * Note that `expired_at` is current state, not an event log — a re-check or a user view that finds the imagery
-   * back clears it — so this reads "panos still missing, by when they went" and a pano that expired and later
-   * returned leaves the week it was counted in. Past weeks can therefore shrink between two loads of the chart,
-   * which the page says out loud. Turning this into a true series would mean logging expiries the way
-   * `street_edge_status_change` logs status moves.
-   *
-   * @param since Only expiries at or after this instant.
-   */
-  def newlyExpiredByWeek(since: OffsetDateTime): DBIO[Seq[PanoExpiryWeek]] = {
-    sql"""SELECT date_trunc('week', expired_at)::date, COUNT(*)
-          FROM pano_data
-          WHERE expired_at >= $since
-          GROUP BY date_trunc('week', expired_at)::date
-          ORDER BY date_trunc('week', expired_at)::date""".as[PanoExpiryWeek]
-  }
-
-  /**
    * Get a pano metadata for all panos with a flag indicating whether they have labels.
+   *
+   * Tutorial panos are excluded: this feeds `/adminapi/panos`, the scraper's work list, and their imagery is app
+   * assets with no provider to download from.
    */
   def getAllPanos: DBIO[Seq[PanoDataSlim]] = {
     panoDataRecords
-      .filter(_.panoId =!= "tutorial")
+      .filter(_.source =!= PanoSource.Tutorial)
       .joinLeft(labelTable)
       .on(_.panoId === _.panoId)
       .distinctOn(_._1.panoId)
@@ -168,7 +180,7 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
         (g.panoId, l.isDefined, g.width, g.height, g.lat, g.lng, g.cameraHeading, g.cameraPitch, g.cameraRoll, g.source)
       }
       .result
-      .map(_.map(PanoDataSlim.tupled))
+      .map(_.map((PanoDataSlim.apply _).tupled))
   }
 
   /**
@@ -189,14 +201,25 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
   /**
    * Mark whether the pano was expired with a timestamp. If not expired, also update last_viewed column.
    *
-   * `expired_at` records when the imagery went away, so it is stamped only on the false -> true edge and left alone
-   * by the nightly re-checks that keep confirming an already-expired pano. That is what separates it from
-   * `last_checked`, which every check bumps whether or not anything changed — and without the separation, "what
-   * newly expired this week" is unanswerable.
+   * Both branches carry two edge-triggered side effects on top of the flip itself. `expired_at` is stamped on the
+   * false -> true edge and cleared on the way back, so it dates the imagery that is missing now — which
+   * `last_checked` cannot, since every re-check bumps that whether or not anything changed. And a row goes into
+   * `pano_imagery_change` on either edge, which is what survives the round trip: `expired_at` is destroyed when the
+   * imagery returns, taking the week the pano expired in with it (#4947).
    *
-   * The expiring branch is one raw statement rather than a Slick pair because the edge test and the flip have to
-   * happen together: `pano_data_expired_at_check` is evaluated per statement, so stamping first fails on a row that
-   * is still unexpired, and flipping first destroys the very condition the stamp depends on.
+   * Both branches are single raw statements rather than Slick updates because each needs the pre-update value of
+   * `expired` and can't read it back afterwards — `UPDATE ... RETURNING` hands back the new row. A CTE that reads
+   * the row sees the statement's snapshot, so `edge` holds the state as it was before the flip. It also settles the
+   * expiring branch's other constraint: `pano_data_expired_at_check` is evaluated per statement, so stamping in a
+   * separate statement first fails on a row that is still unexpired, and flipping first destroys the very condition
+   * the stamp depends on.
+   *
+   * That snapshot is also the limit of what `edge` can see: a flip committed by another connection mid-statement is
+   * invisible to it, so a sweep expiring a pano while a labeler's `upsert` is in flight can leave a loss with no
+   * matching recovery. The window is one autocommit statement, which is rare enough to accept — and the nightly
+   * reconciliation pass heals what slips through (`PanoImageryChangeTable.reconcile`, #5007). Do not reach for
+   * `FOR UPDATE` on `edge` to close it — that collides with the same statement's own write of the row, so `edge`
+   * comes back empty and the ordinary uncontended case silently stops logging (verified on PG 16).
    *
    * @param panoId The ID of the pano
    * @param expired Whether the original source for the image has expired
@@ -210,18 +233,34 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
       hasBackup: Option[Boolean],
       lastChecked: OffsetDateTime
   ): DBIO[Int] = {
+    val source = PanoImageryChangeSource.ProviderCheck.toString
     if (expired) {
-      sqlu"""UPDATE pano_data
+      sqlu"""WITH edge AS (
+               SELECT pano_id FROM pano_data WHERE pano_id = $panoId AND NOT expired
+             ), logged AS (
+               INSERT INTO pano_imagery_change (pano_id, expired, changed_at, source)
+               SELECT pano_id, TRUE, $lastChecked, $source::pano_imagery_change_source FROM edge
+             )
+             UPDATE pano_data
              SET expired = TRUE,
                  has_backup = $hasBackup,
                  last_checked = $lastChecked,
                  expired_at = CASE WHEN expired THEN expired_at ELSE $lastChecked END
              WHERE pano_id = $panoId"""
     } else {
-      val q = for {
-        img <- panoDataRecords if img.panoId === panoId
-      } yield (img.expired, img.hasBackup, img.lastChecked, img.lastViewed, img.expiredAt)
-      q.update((expired, hasBackup, lastChecked, lastChecked, None))
+      sqlu"""WITH edge AS (
+               SELECT pano_id FROM pano_data WHERE pano_id = $panoId AND expired
+             ), logged AS (
+               INSERT INTO pano_imagery_change (pano_id, expired, changed_at, source)
+               SELECT pano_id, FALSE, $lastChecked, $source::pano_imagery_change_source FROM edge
+             )
+             UPDATE pano_data
+             SET expired = FALSE,
+                 has_backup = $hasBackup,
+                 last_checked = $lastChecked,
+                 last_viewed = $lastChecked,
+                 expired_at = NULL
+             WHERE pano_id = $panoId"""
     }
   }
 
@@ -252,15 +291,53 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
   }
 
   /**
+   * Panos with a self-hosted backup whose native width is over `maxWidth`, or unknown — the ones that may need a
+   * downscaled copy (#4865). A row that records no width is included rather than assumed narrow; the crop job
+   * decides from the file it opens, which is the only frame that can be measured.
+   *
+   * @param maxWidth The widest image the pano viewer can be handed.
+   * @return         Pano ids.
+   */
+  def getWideBackupPanos(maxWidth: Int): DBIO[Seq[String]] = {
+    panoDataRecords
+      .filter(p =>
+        p.hasBackup.getOrElse(false: Rep[Boolean]) && p.width.map(_ > maxWidth).getOrElse(true: Rep[Boolean])
+      )
+      .map(_.panoId)
+      .result
+  }
+
+  /**
    * Sets has_backup = true for the given pano, but only if it isn't already true.
    *
    * @param panoId The ID of the pano whose has_backup flag should be set.
    */
-  def markHasBackup(panoId: String): DBIO[Int] = {
-    panoDataRecords
-      .filter(p => p.panoId === panoId && !p.hasBackup.getOrElse(false: Rep[Boolean]))
-      .map(_.hasBackup)
-      .update(Some(true))
+  def markHasBackup(panoId: String): DBIO[Int] = markHasBackup(Seq(panoId))
+
+  /**
+   * Sets has_backup = true for every one of these panos that isn't already flagged — the crop job learns about a whole
+   * night's worth at a time (#4865).
+   *
+   * Issued in statements of [[PanoDataTable.MarkHasBackupChunk]] ids. `inSet` inlines its values as SQL literals, so a
+   * first backfill in a large city (Seattle has ~110k panos with live labels) would otherwise be one multi-megabyte
+   * statement; bounding it costs a few round trips and means a failure part-way leaves the earlier chunks flagged,
+   * which is the truth about the store. Not a transaction of its own for the same reason.
+   *
+   * @param panoIds The IDs of the panos whose has_backup flag should be set.
+   * @return        Rows updated across all chunks.
+   */
+  def markHasBackup(panoIds: Seq[String]): DBIO[Int] = {
+    if (panoIds.isEmpty) DBIO.successful(0)
+    else {
+      DBIO
+        .sequence(panoIds.distinct.grouped(PanoDataTable.MarkHasBackupChunk).toSeq.map { chunk =>
+          panoDataRecords
+            .filter(p => (p.panoId inSet chunk) && !p.hasBackup.getOrElse(false: Rep[Boolean]))
+            .map(_.hasBackup)
+            .update(Some(true))
+        })
+        .map(_.sum)
+    }
   }
 
   /**
@@ -303,11 +380,24 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
    *   - `address` and `source_metadata` are only ever replaced, never cleared.
    *   - The pano was just viewed, so `expired` resets to false and the viewed/checked timestamps refresh.
    *
+   * Un-expiring a pano this way is a real imagery transition — a labeler loading it is proof the imagery is back —
+   * so it records one in `pano_imagery_change` (#4947). The `edge` CTE is what keeps it to the transition: it sees
+   * the statement's snapshot, so it holds the pano's state before the upsert, and the common case of viewing a pano
+   * that was never expired logs nothing. New panos match nothing there either, so the log row can't precede the row
+   * it references. It inherits the snapshot race and the `FOR UPDATE` trap described on `updateExpiredStatus`.
+   *
    * @param data The pano metadata to save.
    * @return Number of rows inserted/updated (always 1).
    */
   def upsert(data: PanoData): DBIO[Int] = {
+    val source = PanoImageryChangeSource.PanoView.toString
     sqlu"""
+      WITH edge AS (
+        SELECT pano_id FROM pano_data WHERE pano_id = ${data.panoId} AND expired
+      ), logged AS (
+        INSERT INTO pano_imagery_change (pano_id, expired, changed_at, source)
+        SELECT pano_id, FALSE, ${data.lastViewed}, $source::pano_imagery_change_source FROM edge
+      )
       INSERT INTO pano_data (pano_id, width, height, tile_width, tile_height, capture_date, copyright, lat, lng,
                              camera_heading, camera_pitch, camera_roll, expired, last_viewed, pano_history_saved,
                              last_checked, source, has_backup, address, source_metadata)

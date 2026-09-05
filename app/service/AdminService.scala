@@ -3,7 +3,7 @@ package service
 import com.google.inject.ImplementedBy
 import models.audit._
 import models.label.{LabelAiAssessmentTable, LabelCount, LabelTable, TagCount}
-import models.mission.{MissionTable, RegionalMission}
+import models.mission.MissionTable
 import models.pano.PanoSource.PanoSource
 import models.region.Region
 import models.street.StreetEdgeTable
@@ -109,11 +109,11 @@ case class LabelThumbnailMeta(panoId: String, panoSource: PanoSource, heading: D
  * A compact "who is this contributor" summary for annotating a recent-activity item: their role plus how much they've
  * contributed overall. Lets the admin Activity feed say a bit about each person, not just the single action shown.
  *
- * @param role        The user's role (e.g. "Registered", "Researcher", "Anonymous").
+ * @param role        The account's role, which is what the feed annotates each actor with.
  * @param labels      Total labels they've placed (same base as the Contributors page, so the numbers agree).
  * @param validations Total validations they've performed.
  */
-case class UserSummary(role: String, labels: Int, validations: Int)
+case class UserSummary(role: Role.Value, labels: Int, validations: Int)
 
 /**
  * One row of the Contributors page's "Top labelers" leaderboard: a prolific labeler with the breakdowns that reveal
@@ -125,7 +125,7 @@ case class UserSummary(role: String, labels: Int, validations: Int)
 case class LabelerLeaderboardEntry(
     userId: String,
     username: String,
-    role: String,
+    role: Role.Value,
     labels: Int,
     ownValidated: Int,
     ownValidatedAgreedPct: Double,
@@ -141,7 +141,7 @@ case class LabelerLeaderboardEntry(
 case class ValidatorLeaderboardEntry(
     userId: String,
     username: String,
-    role: String,
+    role: Role.Value,
     validations: Int,
     agree: Int,
     disagree: Int,
@@ -282,8 +282,6 @@ trait AdminService {
   def getTagCounts: Future[Seq[TagCount]]
   def getTagSeverityCounts: Future[Seq[TagSeverityCount]]
   def getAuditedStreetsWithTimestamps: Future[Seq[AuditedStreetWithTimestamp]]
-  def findAuditTask(taskId: Int): Future[Option[AuditTask]]
-  def getAuditInteractionsWithLabels(auditTaskId: Int): Future[Seq[InteractionWithLabel]]
   def getAdminUserProfileData(userId: String): Future[AdminUserProfileData]
   def getContributionTimeStats: Future[Seq[ContributionTimeStat]]
   def getRecentExploreAndValidateComments: Future[Seq[GenericComment]]
@@ -423,30 +421,28 @@ class AdminServiceImpl @Inject() (
   }
   def getAuditedStreetsWithTimestamps: Future[Seq[AuditedStreetWithTimestamp]] =
     db.run(auditTaskTable.getAuditedStreetsWithTimestamps)
-  def findAuditTask(taskId: Int): Future[Option[AuditTask]] = db.run(auditTaskTable.find(taskId))
-  def getAuditInteractionsWithLabels(auditTaskId: Int): Future[Seq[InteractionWithLabel]] =
-    db.run(auditTaskInteractionTable.getAuditInteractionsWithLabels(auditTaskId))
 
   /**
    * Gets the additional data to show on the admin view of a user's dashboard.
+   *
+   * Hours are not among it: the page reports the user's total across every city, which only the cross-schema fan-out
+   * in `UserService.getCrossCityHours` can produce, and the page fetches that after it renders (#4986).
+   *
    * @param userId ID of the user whose data we're getting.
    */
   def getAdminUserProfileData(userId: String): Future[AdminUserProfileData] = {
     val (onLeaderboard, publicProfile)          = configService.defaultPrivacyFlags
     val profileData: DBIO[AdminUserProfileData] = for {
       currRegion: Option[Region] <- userCurrentRegionTable.getCurrentRegion(userId)
-      completedAudits: Int       <- auditTaskTable.countCompletedAuditsForUser(userId)
-      hoursWorked: Double        <- auditTaskInteractionTable.getHoursAuditingAndValidating(userId)
       // Insert a user_stat if the user hasn't visited this server before, allowing this page to load. Unconditional
       // rather than read-then-insert: this comprehension isn't transactional, so two admins opening the page at once
       // would both read "no row" and both insert. The privacy flags must be the deployment's defaults, since the user
       // hasn't opted into anything — and with UNIQUE (user_id) in place this is the only row they'll ever get here.
-      _                                       <- userStatTable.insertIfNew(userId, onLeaderboard, publicProfile)
-      userStats: UserStat                     <- userStatTable.getStatsFromUserId(userId).map(_.get)
-      completedMissions: Seq[RegionalMission] <- missionTable.selectCompletedRegionalMission(userId)
-      comments: Seq[AuditTaskComment]         <- auditTaskCommentTable.all(userId)
+      _                               <- userStatTable.insertIfNew(userId, onLeaderboard, publicProfile)
+      userStats: UserStat             <- userStatTable.getStatsFromUserId(userId).map(_.get)
+      comments: Seq[AuditTaskComment] <- auditTaskCommentTable.forUser(userId)
     } yield {
-      AdminUserProfileData(currRegion, completedAudits, hoursWorked, userStats, completedMissions, comments)
+      AdminUserProfileData(currRegion, userStats, comments)
     }
     db.run(profileData)
   }
@@ -800,8 +796,8 @@ class AdminServiceImpl @Inject() (
         .map(_.toMap)
       // Map(user_id: String -> label_count: Int).
       labelCounts: Map[String, Int] <- labelTable.countLabelsByUser.map(_.toMap)
-      // Map(user_id: String -> (role: String, total: Int, agreed: Int, disagreed: Int, unsure: Int)).
-      validatedCounts: Map[String, (String, Int, Int)] <- labelValidationTable.getValidationCountsByUser.map(_.toMap)
+      // Map(user_id: String -> (validated: Int, agreed: Int)).
+      validatedCounts: Map[String, (Int, Int)] <- labelValidationTable.getValidationCountsByUser.map(_.toMap)
       // Map(user_id: String -> (count: Int, agreed: Int, disagreed: Int)).
       othersValidatedCounts: Map[String, (Int, Int)] <- labelValidationTable.getValidatedCountsPerUser.map(_.toMap)
       // Map(user_id: String -> (high_quality: Boolean, high_quality_manual: Option[Boolean])).
@@ -811,9 +807,9 @@ class AdminServiceImpl @Inject() (
     } yield {
       // Now left join them all together and put into UserStatsForAdminPage objects.
       users.map { user =>
-        val ownValidatedCounts = validatedCounts.getOrElse(user.userId, ("", 0, 0))
-        val ownValidatedTotal  = ownValidatedCounts._2
-        val ownValidatedAgreed = ownValidatedCounts._3
+        val ownValidatedCounts = validatedCounts.getOrElse(user.userId, (0, 0))
+        val ownValidatedTotal  = ownValidatedCounts._1
+        val ownValidatedAgreed = ownValidatedCounts._2
 
         val otherValidatedCounts = othersValidatedCounts.getOrElse(user.userId, (0, 0))
         val otherValidatedTotal  = otherValidatedCounts._1

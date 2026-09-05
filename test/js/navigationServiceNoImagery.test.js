@@ -2,11 +2,12 @@
  * What Explore is allowed to conclude, and to write down, when the imagery search along a street comes up empty
  * (#4918), and that the labeler is actually taken somewhere afterwards (#4921).
  *
- * Recording a street as imagery-less marks it audited and drops it out of the assignment rotation, so the cost of
- * getting this wrong is coverage nobody ever looked at: production lost ~3,370 streets across 29 cities to it. The
- * decisions under test are therefore about evidence, not mechanics — whether the provider answered at all, whether
- * every sampled point along the street answered the same way, and whether a session's run of failures has gone on
- * long enough to be better explained by one broken session than by a run of genuinely empty streets.
+ * A report is evidence, not an audit (#4922): it records a street_edge_issue row and must not finish the task —
+ * finishing submits completed=true, which the regular submission path credits as a full audit, and that inflation
+ * is what cost production ~3,370 streets across 29 cities. The decisions under test are therefore about evidence —
+ * whether the provider answered at all, whether every sampled point along the street answered the same way, and
+ * whether a session's run of failures has gone on long enough to be better explained by one broken session than by
+ * a run of genuinely empty streets — plus the one write-path rule above.
  *
  * The seam is `svl.panoManager.setLocation`, the one call the sweep makes per sampled point: each test scripts what
  * the provider says at each point and asserts on what gets reported, what gets advanced, and what the labeler is
@@ -76,16 +77,26 @@ const turfStub = {
 
 /**
  * A street the sweep can walk down.
- * @param {number} streetEdgeId - Identity the stuck-pano set and the reporting path key off.
- * @param {object} [options] - `lengthKm` (default 100 m, so a sweep samples it in ~10 steps) and `atEnd`, which
- *     stands in for the labeler having already walked to within reach of the street's endpoint.
+ * @param {number} streetEdgeId - Identity the reporting path keys off.
+ * @param {object} [options] - `lengthKm` (default 100 m, so a sweep samples it in ~10 steps), `atEnd`, which
+ *     stands in for the labeler having already walked to within reach of the street's endpoint, and `walkOrder`,
+ *     the route position that identifies this traversal to the stuck-pano set.
  */
-function makeTask(streetEdgeId, { lengthKm = 0.1, atEnd = false } = {}) {
+function makeTask(streetEdgeId, { lengthKm = 0.1, atEnd = false, walkOrder = null } = {}) {
     const start = [-74.0, FIXTURE_LAT];
     const end = [-74.0 + lengthKm * DEG_PER_KM_LNG, FIXTURE_LAT];
     return {
         streetEdgeId,
         getStreetEdgeId: () => streetEdgeId,
+        getWalkOrder: () => walkOrder,
+        givenUp: false,
+        giveUpOnImagery() {
+          this.givenUp = true;
+        },
+        wasGivenUpOnImagery() {
+          return this.givenUp;
+        },
+        render: jest.fn(),
         getFeature: () => lineFeature([start, end]),
         getEndCoordinate: () => ({ lat: end[1], lng: end[0] }),
         getFurthestPointReached: () => pointFeature(start),
@@ -130,10 +141,11 @@ describe('Explore, when the imagery search runs out along a street', () => {
             },
             contextMenu: { isOpen: () => false, hide: stub() },
             feedbackModal: { hide: stub() },
+            form: { submitData: jest.fn(() => Promise.resolve()) },
             keyboard: { setStatus: jest.fn() },
             minimap: { setMinimapLocation: stub() },
             missionContainer: { getCurrentMission: () => ({ getProperty: () => 7, pushATaskToTheRoute: jest.fn() }) },
-            missionController: { wrapUpRouteOrNeighborhood: stub() },
+            missionController: { wrapUpRouteOrNeighborhood: stub(), onRouteReadyToFinish: stub() },
             missionModel: { updateMissionProgress: stub() },
             neighborhoodModel: {
                 currentNeighborhood: () => ({}), isRoute: false, isRouteOrNeighborhoodComplete: () => false,
@@ -235,6 +247,32 @@ describe('Explore, when the imagery search runs out along a street', () => {
             expect(svl.taskContainer.setCurrentTask).toHaveBeenCalledWith(live);
         });
 
+        it('leaves the reported street\'s task unfinished, since a report is evidence, not an audit (#4922)', async () => {
+            const [dead, live] = [makeTask(101), makeTask(102)];
+            assignStreets(dead, live);
+            respondToSearch = () => (svl.taskContainer.getCurrentTask() === dead ? emptyGround() : foundImagery());
+
+            await nav.moveForward();
+
+            // endTask() submits the task with completed=true, and the regular submission path credits that as a
+            // full audit — region coverage, priority drop, audited meters. A no-imagery verdict supports none of it.
+            expect(svl.taskContainer.endTask).not.toHaveBeenCalled();
+        });
+
+        it('flushes the street being left before the task changes under the buffer', async () => {
+            const [dead, live] = [makeTask(101), makeTask(102)];
+            assignStreets(dead, live);
+            respondToSearch = () => (svl.taskContainer.getCurrentTask() === dead ? emptyGround() : foundImagery());
+
+            await nav.moveForward();
+
+            // Interactions carry no task id of their own, so whatever is still queued lands on whichever task the
+            // next submission names. Flushing against the street being left is what keeps it off the next one.
+            expect(svl.form.submitData).toHaveBeenCalledWith(dead);
+            expect(svl.form.submitData.mock.invocationCallOrder[0])
+                .toBeLessThan(svl.taskContainer.setCurrentTask.mock.invocationCallOrder[0]);
+        });
+
         it('searches the street it moved to, rather than stranding the labeler on the old one (#4921)', async () => {
             const [dead, live] = [makeTask(101), makeTask(102)];
             assignStreets(dead, live);
@@ -283,6 +321,30 @@ describe('Explore, when the imagery search runs out along a street', () => {
             // rest of the session's visited panos is how a street with perfectly good imagery scans as having none:
             // setLocation() rejects an excluded pano exactly as it rejects empty ground, and the nearest pano to a
             // new street's start is routinely one visited on the street just finished.
+            expect(searches.at(-1).excludedPanos).not.toContain('pano-street-start');
+        });
+
+        it('gives each pass of an out-and-back route its own stuck panos (#5008)', async () => {
+            // The two passes share a street edge id, so keying the reset on the street hands the return leg every
+            // pano the outbound leg banked — on a short street, all of them.
+            svl.neighborhoodModel.isRoute = true;
+            const [outbound, back] = [makeTask(101, { walkOrder: 1 }), makeTask(101, { walkOrder: 2 })];
+            assignStreets(outbound, back);
+            let standingOn = 'pano-street-start';
+            svl.panoViewer.getPanoId = () => standingOn;
+            let walkedOnce = false;
+            respondToSearch = () => {
+                if (svl.taskContainer.getCurrentTask() === back) return foundImagery();
+                if (walkedOnce) return emptyGround();
+                walkedOnce = true;
+                standingOn = 'pano-mid-street';
+                return foundImagery();
+            };
+
+            await nav.moveForward();
+            jest.advanceTimersByTime(1000);
+            await nav.moveForward();
+
             expect(searches.at(-1).excludedPanos).not.toContain('pano-street-start');
         });
     });
@@ -344,9 +406,26 @@ describe('Explore, when the imagery search runs out along a street', () => {
 
             await nav.moveForward();
 
-            expect(window.NoImageryFlagGuard.count()).toBe(6);
+            expect(svl.taskContainer.setCurrentTask).toHaveBeenCalledTimes(5);
+            // The budget goes back when the run ends: whatever happens next is the labeler deciding to try again,
+            // which is a fresh decision rather than more of the automatic run this bounds.
+            expect(window.NoImageryFlagGuard.count()).toBe(0);
             expect(svl.tracker.push).toHaveBeenCalledWith('NoImageryAdvanceLimitReached');
             expect(nav.getStatus('disableWalking')).toBe(false);
+        });
+
+        it('leaves the street they are left standing on unmarked, having never moved them off it (#5008)', async () => {
+            const streets = Array.from({ length: 9 }, (_unused, i) => makeTask(200 + i));
+            assignStreets(...streets);
+            respondToSearch = emptyGround;
+
+            await nav.moveForward();
+
+            // The flag means "we moved them off this street" — it credits the street's full length toward progress,
+            // draws it as walked, and takes it out of nextTask's rotation. The street the ceiling stops them on is
+            // still theirs to walk if they click stuck and land somewhere.
+            expect(streets[4].wasGivenUpOnImagery()).toBe(true);
+            expect(streets[5].wasGivenUpOnImagery()).toBe(false);
         });
 
         it('says the run was stopped, not that imagery failed to load', async () => {
@@ -384,6 +463,51 @@ describe('Explore, when the imagery search runs out along a street', () => {
             expect(svl.neighborhoodModel.setComplete).toHaveBeenCalled();
             expect(svl.missionController.wrapUpRouteOrNeighborhood).toHaveBeenCalled();
         });
+
+        it('ends a route through its normal finish flow, not by firing the modal mid-stride (#5008)', async () => {
+            svl.neighborhoodModel.isRoute = true;
+            assignStreets(makeTask(101, { walkOrder: 1 }));
+            respondToSearch = emptyGround;
+
+            await nav.moveForward();
+
+            expect(svl.neighborhoodModel.setComplete).toHaveBeenCalled();
+            // The finish toast and its look-around gate, the same ending a route gets when its last street is walked.
+            expect(svl.missionController.onRouteReadyToFinish).toHaveBeenCalled();
+            expect(svl.missionController.wrapUpRouteOrNeighborhood).not.toHaveBeenCalled();
+            // The labeler has to be able to look around for that gate to ever open.
+            expect(nav.getStatus('disableWalking')).toBe(false);
+        });
+
+        it('gives up on a street once, however many times the labeler tries to walk off it (#5008)', async () => {
+            // The route's finish gate needs the labeler able to look around, so the terminal branch hands the controls
+            // back — which also lets them press forward again on the street it just gave up on.
+            svl.neighborhoodModel.isRoute = true;
+            assignStreets(makeTask(101, { walkOrder: 1 }));
+            respondToSearch = emptyGround;
+
+            await nav.moveForward();
+            jest.advanceTimersByTime(1000);
+            await nav.moveForward();
+
+            expect(reportNoImagery).toHaveBeenCalledTimes(1);
+            expect(svl.missionController.onRouteReadyToFinish).toHaveBeenCalledTimes(1);
+            expect(svl.tracker.push.mock.calls.filter(([event]) => event === 'PanoSearchFailed')).toHaveLength(0);
+        });
+
+        it('remembers the street it gave up on, without claiming the labeler audited it (#5008)', async () => {
+            const [dead, live] = [makeTask(101), makeTask(102)];
+            assignStreets(dead, live);
+            respondToSearch = () => (svl.taskContainer.getCurrentTask() === dead ? emptyGround() : foundImagery());
+
+            await nav.moveForward();
+
+            // The flag is what keeps nextTask from handing the street back and the minimap from drawing it as still
+            // to walk; the street stays incomplete, so nothing here reaches audit_task.completed (#4922).
+            expect(dead.wasGivenUpOnImagery()).toBe(true);
+            expect(dead.render).toHaveBeenCalled();
+            expect(svl.taskContainer.endTask).not.toHaveBeenCalled();
+        });
     });
 
     describe('and the labeler had already walked most of the street', () => {
@@ -396,6 +520,9 @@ describe('Explore, when the imagery search runs out along a street', () => {
 
             expect(reportNoImagery).not.toHaveBeenCalled();
             expect(window.NoImageryFlagGuard.count()).toBe(0);
+            // Unlike a report, this is a real completion: the labeler walked the street to within reach of its end,
+            // so the task is finished through the same call the normal end-of-street flow uses.
+            expect(svl.taskContainer.endTask).toHaveBeenCalled();
         });
 
         it('still ends it when the provider stopped answering, since walking it is what earned the credit', async () => {

@@ -3,26 +3,11 @@
  * labels down by type — counts, severity/quality ratings, validation coverage and agreement (with a human-vs-AI
  * toggle), and tag usage. Rendered as an accessible HTML/CSS scorecard (no charting library), so the page stays light.
  *
- * Type metadata is driven by canonical sources rather than hardcoded: the type list + colors + icons come from
- * /v3/api/labelTypes, and behavior (which types carry severity, positive-vs-negative rating scheme, the 1..N rating
- * vocabulary, and the smiley icons) comes from util.misc — the same framework the labeling/validation UIs use. The
- * only intentional literal is a short display-name map, because the API exposes a machine name + long description but
- * no short label.
+ * Type metadata is driven by canonical sources rather than hardcoded: the type list + localized display names + colors
+ * + icons come from /v3/api/labelTypes, and behavior (which types carry severity, positive/negative rating scheme,
+ * the 1..N rating vocabulary, and the smiley icons) comes from util.misc — same framework the Explore/Validate UIs use.
  */
 class DataQualityPage {
-  /** Short display names (the v3 labelTypes API has a machine `name` + long `description`, but no short label). */
-  static #DISPLAY_NAMES = {
-    CurbRamp: 'Curb Ramp',
-    NoCurbRamp: 'Missing Curb Ramp',
-    Obstacle: 'Obstacle',
-    SurfaceProblem: 'Surface Problem',
-    NoSidewalk: 'Missing Sidewalk',
-    Crosswalk: 'Crosswalk',
-    Signal: 'Signal',
-    Occlusion: 'Occlusion',
-    Other: 'Other',
-  };
-
   static #TOP_TAGS_PER_TYPE = 8;
 
   #statsUrl;
@@ -87,7 +72,7 @@ class DataQualityPage {
       this.#meta.set(lt.name, {
         color: lt.color,
         icon: lt.small_icon_url,
-        display: DataQualityPage.#DISPLAY_NAMES[lt.name] || lt.name,
+        display: lt.display_name || lt.name,
       });
     }
   }

@@ -211,4 +211,80 @@ class BackgroundJobRunTableSpec extends PlaySpec with BeforeAndAfterAll with Gui
       counts().get((JobRunStatus.Running, false)) mustBe Some(1)
     }
   }
+
+  "runsForJobsSince" should {
+
+    /** Seeds one finished run and returns its id. */
+    def seed(job: String, startedAt: OffsetDateTime, status: JobRunStatus.Value, details: Option[String]): Int = {
+      val id = run(jobRunTable.insertRunning(job, JobRunTrigger.Scheduled, startedAt))
+      val _  = run(
+        jobRunTable.finish(
+          id,
+          status,
+          startedAt.plusMinutes(1),
+          details.map(Json.parse),
+          if (status == JobRunStatus.Failed) Some("boom") else None
+        )
+      )
+      id
+    }
+
+    def since(days: Int): Seq[BackgroundJobRun] =
+      run(jobRunTable.runsForJobsSince(Seq(jobName, otherJobName), OffsetDateTime.now.minusDays(days.toLong)))
+
+    "return every run of the named jobs inside the window, newest first" in {
+      cleanUp()
+      seed(jobName, OffsetDateTime.now.minusDays(3), JobRunStatus.Succeeded, None)
+      seed(otherJobName, OffsetDateTime.now.minusDays(1), JobRunStatus.Succeeded, None)
+      seed(jobName, OffsetDateTime.now.minusDays(2), JobRunStatus.Failed, None)
+
+      val runs = since(7)
+      runs.map(_.jobName) mustBe Seq(otherJobName, jobName, jobName)
+      runs.map(_.startedAt) mustBe runs.map(_.startedAt).sortBy(-_.toEpochSecond)
+    }
+
+    "carry each run's own recorded counts, which live nowhere else" in {
+      // The page's whole per-night series is read out of `details`; a read that dropped it would chart zeros against
+      // a pipeline that was working.
+      cleanUp()
+      seed(jobName, OffsetDateTime.now, JobRunStatus.Succeeded, Some("""{"streets_polled": 480}"""))
+      (since(1).head.details.get \ "streets_polled").as[Int] mustBe 480
+    }
+
+    "keep every run of a night rather than only the last, since a hand-run job adds to it" in {
+      cleanUp()
+      seed(jobName, OffsetDateTime.now.minusHours(6), JobRunStatus.Succeeded, None)
+      seed(jobName, OffsetDateTime.now.minusHours(1), JobRunStatus.Succeeded, None)
+      since(1).count(_.jobName == jobName) mustBe 2
+    }
+
+    "keep a failed run, which is the night the counts cannot explain on their own" in {
+      cleanUp()
+      seed(jobName, OffsetDateTime.now, JobRunStatus.Failed, None)
+      since(1).map(_.status) mustBe Seq(JobRunStatus.Failed)
+    }
+
+    "exclude a run that started before the window" in {
+      cleanUp()
+      seed(jobName, OffsetDateTime.now.minusDays(40), JobRunStatus.Succeeded, None)
+      since(30) mustBe empty
+    }
+
+    "exclude jobs it was not asked about" in {
+      cleanUp()
+      seed(jobName, OffsetDateTime.now, JobRunStatus.Succeeded, None)
+      seed(otherJobName, OffsetDateTime.now, JobRunStatus.Succeeded, None)
+      run(jobRunTable.runsForJobsSince(Seq(jobName), OffsetDateTime.now.minusDays(1)))
+        .map(_.jobName)
+        .distinct mustBe Seq(jobName)
+    }
+
+    "read nothing at all when asked about no jobs" in {
+      // `inSet(Nil)` is a query Slick will happily build; short-circuiting keeps an empty roster from scanning the
+      // table and returning every job in it.
+      cleanUp()
+      seed(jobName, OffsetDateTime.now, JobRunStatus.Succeeded, None)
+      run(jobRunTable.runsForJobsSince(Seq.empty, OffsetDateTime.now.minusDays(365))) mustBe empty
+    }
+  }
 }

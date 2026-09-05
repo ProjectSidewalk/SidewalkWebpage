@@ -7,6 +7,8 @@
  * Runs under jsdom (jest.config.js).
  */
 
+/* global PanoData, backupImageDataIsComplete, buildBackupImageData -- pulled into scope by the eval() loader below. */
+
 const fs = require('fs');
 const path = require('path');
 

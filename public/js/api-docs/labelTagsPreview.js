@@ -16,7 +16,6 @@
     apiPath: '/v3/api',
     apiDocsPath: '/v3/api-docs',
     endpoint: '/labelTags',
-    imageBasePath: '/assets/images/examples/tags',
     displayMode: 'detailed', // "detailed" or "summary"
   };
 
@@ -40,7 +39,6 @@
      * @param {string} [options.containerId] - ID of the container element
      * @param {number} [options.maxWidth] - Maximum width for the preview container
      * @param {string} [options.endpoint] - API endpoint for label tags
-     * @param {string} [options.imageBasePath] - Base path for tag images
      * @param {string} [options.displayMode] - Display mode: "detailed" (default) or "summary"
      */
     setup(options) {
@@ -84,7 +82,8 @@
           }
         })
         .catch((error) => {
-          container.innerHTML = `<div class="message message-error">Failed to load label tags: ${error.message}</div>`;
+          container.innerHTML = `<div class="message message-error" role="alert">Failed to load label tags: `
+            + `${error.message}</div>`;
           // The failure is already surfaced in the container above, and init() is fire-and-forget at every call
           // site (app/views/apiDocs/*), so re-rejecting here can only ever become an unhandled rejection.
         });
@@ -153,11 +152,11 @@
         const section = document.createElement('div');
         section.className = 'label-tags-section';
 
-        // Add heading for the label type. Use the same `api-heading` + child `.permalink` markup as the static headings
-        // so these JS-rendered sub-headers get TOC entries and the hover/copy "#" anchor that the rest of the API docs
-        // link to (e.g. the index page's summary table links here via #label-type-<type>).
+        // Add heading for the label type. Use the same `page-heading` + child `.permalink` markup as the static
+        // headings so these JS-rendered sub-headers get TOC entries and the hover/copy "#" anchor that the rest of
+        // the API docs link to (e.g. the index page's summary table links here via #label-type-<type>).
         const heading = document.createElement('h3');
-        heading.className = 'api-heading section-subheading';
+        heading.className = 'page-heading section-subheading';
         const headingId = labelTypeAnchorId(labelType);
         heading.id = headingId;
         heading.appendChild(document.createTextNode(`${labelType} `));
@@ -172,7 +171,7 @@
 
         // Create table for tags.
         const table = document.createElement('table');
-        table.className = 'tags-table';
+        table.className = 'ps-table';
 
         // Create table header.
         const thead = document.createElement('thead');
@@ -207,13 +206,14 @@
 
           // Create image element.
           const img = document.createElement('img');
-          img.src = `${config.imageBasePath}/${tag.id}.png`;
+          // The family directory stays literal so tools/check-asset-paths.mjs can tell the digest manifest covers it.
+          img.src = util.assetPath(`images/examples/tags/${tag.id}.png`);
           img.alt = `${tag.tag} tag image`;
           img.width = 150;
           // img.height = 50;
           img.onerror = function () {
             // Replace with placeholder if image fails to load.
-            this.src = '/assets/images/examples/tags/placeholder.png';
+            this.src = util.assetPath('images/examples/tags/placeholder.png');
             this.alt = 'Image not available';
           };
 
@@ -244,7 +244,7 @@
         });
 
         table.appendChild(tbody);
-        section.appendChild(table);
+        section.appendChild(window.createApiTableWrapper(table, `${labelType} tags`));
 
         container.appendChild(section);
       });
@@ -264,7 +264,7 @@
 
       // Create table.
       const table = document.createElement('table');
-      table.className = 'tags-summary-table';
+      table.className = 'ps-table';
 
       // Create table header.
       const thead = document.createElement('thead');
@@ -323,7 +323,7 @@
       });
 
       table.appendChild(tbody);
-      container.appendChild(table);
+      container.appendChild(window.createApiTableWrapper(table, 'Label tags by label type'));
     },
   };
 })();

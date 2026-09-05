@@ -23,6 +23,8 @@ class MapDownloadControl {
   #getFilterState;
   /** @type {() => number} */
   #getVisibleLabelCount;
+  /** @type {?() => string} */
+  #getBbox;
   /** @type {?number} */
   #regionId;
   /** @type {boolean} */
@@ -72,13 +74,18 @@ class MapDownloadControl {
    * @param {object} options
    * @param {() => object} options.getFilterState Returns FilterSidebar.getState()'s shape.
    * @param {() => number} options.getVisibleLabelCount Returns the number of labels the filters leave visible.
+   * @param {?() => string} [options.getBbox] Returns the current viewport as "minLng,minLat,maxLng,maxLat" to
+   *      scope downloads to the visible map area (GIS "export what you see", #5002). When provided, regionId is
+   *      not sent — the endpoint gives bbox precedence anyway, so it could never narrow the file further.
    * @param {?number} [options.regionId] Single deep-linked region id to scope downloads to, or null.
    * @param {boolean} [options.showsPartialFilterCaveat=false] Whether to warn that some page-level filters
    *      (multi-region, routes, AI validation) are not reflected in downloads.
    */
-  constructor({ getFilterState, getVisibleLabelCount, regionId = null, showsPartialFilterCaveat = false }) {
+  constructor({ getFilterState, getVisibleLabelCount, getBbox = null, regionId = null,
+    showsPartialFilterCaveat = false }) {
     this.#getFilterState = getFilterState;
     this.#getVisibleLabelCount = getVisibleLabelCount;
+    this.#getBbox = getBbox;
     this.#regionId = regionId;
     this.#showsPartialFilterCaveat = showsPartialFilterCaveat;
     this.#idPrefix = `map-download-${MapDownloadControl.#instanceCount++}`;
@@ -96,9 +103,11 @@ class MapDownloadControl {
    * @param {object} options
    * @param {string} options.format One of 'geojson', 'csv', 'shapefile', 'geopackage'.
    * @param {?number} [options.regionId] Single region id to scope the download to, or null.
+   * @param {?string} [options.bbox] Viewport bbox "minLng,minLat,maxLng,maxLat" to scope the download to, or
+   *      null. Takes regionId's place when set — see the getBbox constructor option.
    * @returns {string} The relative URL, e.g. "/v3/api/rawLabels?filetype=csv&highQualityUserOnly=true".
    */
-  static buildDownloadUrl(state, { format, regionId = null }) {
+  static buildDownloadUrl(state, { format, regionId = null, bbox = null }) {
     const params = new URLSearchParams();
     params.set('filetype', format);
     // The public LabelMap only renders high-quality users' labels (labelMap.scala.html passes
@@ -131,7 +140,8 @@ class MapDownloadControl {
       for (const tag of tags) params.append('tags', `${labelType}:${tag}`);
     }
 
-    if (regionId !== null) params.set('regionId', String(regionId));
+    if (bbox !== null) params.set('bbox', bbox);
+    else if (regionId !== null) params.set('regionId', String(regionId));
     return `/v3/api/rawLabels?${params}`;
   }
 
@@ -255,7 +265,11 @@ class MapDownloadControl {
    * @param {string} format One of 'geojson', 'csv', 'shapefile', 'geopackage'.
    */
   #triggerDownload(format) {
-    const url = MapDownloadControl.buildDownloadUrl(this.#getFilterState(), { format, regionId: this.#regionId });
+    const url = MapDownloadControl.buildDownloadUrl(this.#getFilterState(), {
+      format,
+      regionId: this.#regionId,
+      bbox: this.#getBbox?.() ?? null,
+    });
     const link = document.createElement('a');
     link.href = url;
     link.download = '';

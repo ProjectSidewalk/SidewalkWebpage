@@ -1,3 +1,4 @@
+@import models.user.Role
 @import views.html.helper.CSRF
 @(commonData: service.CommonPageData, user: models.user.SidewalkUserWithRole, isMobile: Boolean
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: play.api.Configuration)
@@ -20,7 +21,7 @@
       <p>Mapping sidewalks counts as real volunteer work — many students earn school or organization service hours
       here. We track your time automatically; you map, get feedback, and submit your hours when you're done.</p>
     </div>
-    @if(user.role == "Anonymous") {
+    @if(user.role == Role.Anonymous) {
       <div class="sh-track sh-track--off">
         <div class="sh-track-body">
           <strong>Sign up to earn service hours</strong>

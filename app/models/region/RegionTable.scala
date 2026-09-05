@@ -3,7 +3,6 @@ package models.region
 import com.google.inject.ImplementedBy
 import models.api.{RegionDataForApi, RegionFiltersForApi}
 import models.audit.AuditTaskTableDef
-import models.label.LabelTable
 import models.street.{StreetEdgePriorityTableDef, StreetEdgeRegionTable}
 import models.utils.MyPostgresProfile.api._
 import models.utils.{LatLngBBox, MyPostgresProfile}
@@ -35,8 +34,7 @@ trait RegionTableRepository {}
 @Singleton
 class RegionTable @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
-    streetEdgeRegionTable: StreetEdgeRegionTable,
-    labelTable: LabelTable
+    streetEdgeRegionTable: StreetEdgeRegionTable
 )(implicit val ec: ExecutionContext)
     extends RegionTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
@@ -122,25 +120,6 @@ class RegionTable @Inject() (
   }
 
   /**
-   * Returns the non-deleted region with the highest number of labels, if any have labels.
-   *
-   * @return DBIO action containing the region with the most labels
-   */
-  def getRegionWithMostLabels: DBIO[Option[Region]] = {
-    labelTable.labelsWithAuditTasksAndUserStats
-      .join(streetEdgeRegionTable.streetEdgeRegionTable)
-      .on(_._1.streetEdgeId === _.streetEdgeId)
-      .groupBy(_._2.regionId) // Group by region_id
-      .map { case (regionId, group) => (regionId, group.length) } // Count labels per region.
-      .join(regionsWithoutDeleted)
-      .on(_._1 === _.regionId) // Join with regions to get full region info.
-      .sortBy(_._1._2.desc)    // Sort by label count descending.
-      .map(_._2)
-      .result
-      .headOption // Output first region.
-  }
-
-  /**
    * Gets all region (neighborhood) data for the API with filters applied, designed for streaming.
    *
    * @param filters The filters to apply when retrieving regions.
@@ -148,6 +127,30 @@ class RegionTable @Inject() (
    */
   def getRegionsForApi(
       filters: RegionFiltersForApi
+  ): SqlStreamingAction[Vector[RegionDataForApi], RegionDataForApi, Effect.Read] =
+    regionsForApiQuery(filters, "filtered_regions.region_id", None)
+
+  /**
+   * Gets the region with the most labels, in the same shape as the rest of the regions API.
+   *
+   * @return DBIO action containing the region with the most labels, or None if no region has any labels.
+   */
+  def getRegionWithMostLabelsForApi: DBIO[Option[RegionDataForApi]] =
+    // minLabelCount is what makes an unlabeled city return None rather than an arbitrary empty region.
+    regionsForApiQuery(RegionFiltersForApi(minLabelCount = Some(1)), "label_count DESC", Some(1)).headOption
+
+  /**
+   * Builds the regions query shared by the regions API endpoints.
+   *
+   * @param filters The filters to apply when retrieving regions.
+   * @param orderBy SQL ordering expression over the final SELECT's output columns.
+   * @param limit   Optional row cap.
+   * @return        A streaming database action that yields RegionDataForApi objects.
+   */
+  private def regionsForApiQuery(
+      filters: RegionFiltersForApi,
+      orderBy: String,
+      limit: Option[Int]
   ): SqlStreamingAction[Vector[RegionDataForApi], RegionDataForApi, Effect.Read] = {
     // Set up query filters. User-supplied string values (regionName) are single-quote-escaped and numeric filters are
     // safe; see #2756 for migrating these raw builders to bound parameters.
@@ -272,7 +275,8 @@ class RegionTable @Inject() (
       LEFT JOIN region_completion ON filtered_regions.region_id = region_completion.region_id
       WHERE 1=1
         $minLabelCountFilter
-      ORDER BY filtered_regions.region_id
+      ORDER BY $orderBy
+      ${limit.map(n => s"LIMIT $n").getOrElse("")}
     """
 
     implicit val getRegionDataForApi: GetResult[RegionDataForApi] = GetResult { r =>

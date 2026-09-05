@@ -6,7 +6,7 @@ import models.audit.AuditTaskTableDef
 import models.label.{LabelTable, LabelTypeEnum}
 import models.mission.{MissionTableDef, MissionType}
 import models.street.StreetEdgeTable
-import models.user.RoleTable.ROLES_RESEARCHER_COLLAPSED
+import models.user.Role.ROLES_RESEARCHER_COLLAPSED
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import models.validation.LabelValidationTableDef
@@ -50,7 +50,7 @@ case class UserStatsForAdminPage(
     userId: String,
     username: String,
     email: String,
-    role: String,
+    role: Role.Value,
     team: Option[String],
     signUpTime: Option[OffsetDateTime],
     lastSignInTime: Option[OffsetDateTime],
@@ -72,7 +72,7 @@ case class UserCount(
     highQualityOnly: Boolean
 ) {
   require(Seq("explore", "validate", "combined").contains(toolUsed.toLowerCase()))
-  require((ROLES_RESEARCHER_COLLAPSED.map(_.toLowerCase()) ++ Seq("all")).contains(role))
+  require((ROLES_RESEARCHER_COLLAPSED.map(_.toString.toLowerCase()) ++ Seq("all")).contains(role))
 }
 
 case class LeaderboardStat(
@@ -106,6 +106,29 @@ case class GlobalLeaderboardStat(
     distanceMeters: Double,
     accuracy: Option[Double],
     topCitySchema: String
+)
+
+/**
+ * One user's contribution totals in one city, for the dashboard's cross-city breakdown (#4496).
+ *
+ * Every count matches the definition the single-city dashboard already uses for the same tile, so the row for the
+ * city being viewed reconciles exactly with the hero KPIs above it.
+ *
+ * @param citySchema    DB schema the totals came from; the caller maps it back to a city id.
+ * @param labels        Labels placed here, on [[LabelTable.labelsWithExcludedUsers]]'s definition.
+ * @param validations   Validations given here.
+ * @param missions      Completed, non-skipped missions here (onboarding included).
+ * @param metersAudited Street distance audited here from the nightly `user_stat.meters_audited`, or None if this city
+ *                      has no `user_stat` row for the user.
+ * @param lastActivity  When the user last placed a label here, or None if they have never labeled here.
+ */
+case class CrossCityUserStat(
+    citySchema: String,
+    labels: Int,
+    validations: Int,
+    missions: Int,
+    metersAudited: Option[Double],
+    lastActivity: Option[OffsetDateTime]
 )
 
 /**
@@ -615,13 +638,12 @@ class UserStatTable @Inject() (
           SELECT #$groupingCol, COUNT(label_id) AS label_count
           FROM sidewalk_user
           INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
-          INNER JOIN role ON user_role.role_id = role.role_id
           INNER JOIN user_stat ON sidewalk_user.user_id = user_stat.user_id
           INNER JOIN label ON sidewalk_user.user_id = label.user_id
           #$joinUserTeamTable
           WHERE label.deleted = FALSE
               AND label.tutorial = FALSE
-              AND role.role IN (#${RoleTable.LEADERBOARD_ROLES_SQL})
+              AND user_role.role IN (#${Role.LEADERBOARD_ROLES_SQL})
               AND user_stat.excluded = FALSE
               #$leaderboardVisibilityFilter
               AND (label.time_created AT TIME ZONE 'US/Pacific') > #$statStartTime
@@ -686,7 +708,7 @@ class UserStatTable @Inject() (
    *  - Ranking is by raw label count, so the rows are in true rank order (the per-city board's composite score has a
    *    city-relative distance term that cannot be compared across cities).
    *
-   * Eligibility mirrors the per-city board — role in [[RoleTable.LEADERBOARD_ROLES]], non-excluded,
+   * Eligibility mirrors the per-city board — role in [[Role.LEADERBOARD_ROLES]], non-excluded,
    * non-deleted/non-tutorial labels — with two cross-city refinements:
    *  - `excluded` is per city, so a user flagged low-quality in one city loses *that city's* contribution and keeps the
    *    rest; the flag describes that city's data, not the person. It is applied as an aggregate FILTER rather than a
@@ -778,8 +800,7 @@ class UserStatTable @Inject() (
             SELECT rolled.*
             FROM rolled
             INNER JOIN sidewalk_login.user_role ON user_role.user_id = rolled.user_id
-            INNER JOIN sidewalk_login.role ON user_role.role_id = role.role_id
-            WHERE role.role IN (#${RoleTable.LEADERBOARD_ROLES_SQL})
+            WHERE user_role.role IN (#${Role.LEADERBOARD_ROLES_SQL})
             ORDER BY rolled.label_count DESC, rolled.user_id
             LIMIT $n
         )
@@ -810,6 +831,98 @@ class UserStatTable @Inject() (
           val username: String = if (isValidEmail(stat._2)) stat._2.slice(0, stat._2.lastIndexOf('@')) else stat._2
           GlobalLeaderboardStat(stat._1, username, stat._3, stat._4, stat._5, stat._6, stat._7)
         })
+    }
+  }
+
+  /**
+   * The schema this connection reads, i.e. the city every other dashboard query returns data for.
+   *
+   * Taken from the connection rather than `city-id` config because a box whose `DATABASE_USER` and `SIDEWALK_CITY_ID`
+   * name different cities would otherwise credit one city's live distance to another city's row.
+   */
+  def currentSchema: DBIO[String] = sql"SELECT current_schema()".as[String].head
+
+  /**
+   * One user's contribution totals in each of `citySchemas`, for the dashboard's cross-city section (#4496).
+   *
+   * Accounts are global while contributions are per-city, so a mapper's real Project Sidewalk totals only exist as a
+   * roll-up across schemas. All city schemas live in one database, so this is a single statement rather than a fan-out.
+   *
+   * Shaped as scalar subqueries per city rather than grouped scans because the whole query is keyed on one `user_id`:
+   * every subquery is an index seek, so a city the user never touched costs an index miss instead of a table scan.
+   * Measured on production (51 schemas, heaviest multi-city account): ~9 s cold, ~200 ms warm.
+   *
+   * Three deliberate choices:
+   *  - Counts mirror the single-city dashboard's own definitions rather than the global leaderboard's looser ones. The
+   *    row for the city being viewed sits inches below the hero KPIs, so any divergence reads as a bug (#4699).
+   *  - Distance reads the nightly `user_stat.meters_audited` — `MAX`, not `SUM`, because `user_stat.user_id` carries no
+   *    unique constraint and duplicate rows exist in the wild. It also keeps PostGIS out of a 51-way union, which is
+   *    what forces `withJitOff` elsewhere (#4376/#4545).
+   *  - Nothing here reads `excluded`, `on_leaderboard` or `public_profile`. This is a mapper looking at their own data,
+   *    so no visibility flag applies — and a schema behind on evolutions may not have those columns at all, which
+   *    would fail the entire union rather than one city.
+   *
+   * @param citySchemas DB schema names to report on, already vetted by the caller for existence and required
+   *                    columns. Spliced into SQL, so each must be a bare identifier.
+   * @param userId      The mapper whose totals to gather; bound once and referenced by every block.
+   * @return            One row per schema, including cities where the user did nothing (the caller drops those),
+   *                    most labels first.
+   */
+  def getCrossCityUserStats(citySchemas: Seq[String], userId: String): DBIO[Seq[CrossCityUserStat]] = {
+    if (citySchemas.isEmpty) {
+      DBIO.successful(Seq.empty[CrossCityUserStat])
+    } else {
+      // Schema names are spliced, not bound, so reject anything that isn't a bare identifier before building the SQL.
+      val unsafe: Seq[String] = citySchemas.filterNot(_.matches("^[a-z_][a-z0-9_]*$"))
+      require(unsafe.isEmpty, s"Refusing to build cross-schema SQL for non-identifier schema names: $unsafe")
+
+      // The user id is bound once in a CTE and read back as `(SELECT user_id FROM me)`; the per-schema blocks are
+      // built as plain strings, so an interpolated `$userId` inside them would be spliced rather than bound.
+      val blocks: String = citySchemas
+        .map { schema =>
+          // Label filters mirror LabelTable.labelsWithExcludedUsers: joined to audit_task, not deleted, not tutorial,
+          // and on neither the label's nor the task's tutorial street. "Excluded" users are counted on purpose — this
+          // is their own dashboard, and countLabelsFromUser makes the same call. Validations add the archive back for
+          // the same reason countValidations does: the #4842 repair moved voided votes out of label_validation, but
+          // the work happened.
+          s"""  SELECT '$schema'::text AS city_schema,
+         (SELECT COUNT(*)::int
+            FROM "$schema".label
+            INNER JOIN "$schema".audit_task ON audit_task.audit_task_id = label.audit_task_id
+           WHERE label.user_id = (SELECT user_id FROM me)
+             AND label.deleted = FALSE AND label.tutorial = FALSE
+             AND label.street_edge_id NOT IN (SELECT tutorial_street_edge_id FROM "$schema".config)
+             AND audit_task.street_edge_id NOT IN (SELECT tutorial_street_edge_id FROM "$schema".config)
+         ) AS labels,
+         (SELECT COUNT(*)::int FROM "$schema".label_validation
+           WHERE label_validation.user_id = (SELECT user_id FROM me))
+           + (SELECT COUNT(*)::int FROM "$schema".voided_label_validation
+           WHERE voided_label_validation.user_id = (SELECT user_id FROM me)) AS validations,
+         (SELECT COUNT(*)::int FROM "$schema".mission
+           WHERE mission.user_id = (SELECT user_id FROM me)
+             AND mission.completed = TRUE AND mission.skipped = FALSE) AS missions,
+         (SELECT MAX(user_stat.meters_audited) FROM "$schema".user_stat
+           WHERE user_stat.user_id = (SELECT user_id FROM me)) AS meters_audited,
+         (SELECT MAX(label.time_created) FROM "$schema".label
+           WHERE label.user_id = (SELECT user_id FROM me) AND label.deleted = FALSE) AS last_activity"""
+        }
+        .mkString("\n  UNION ALL\n")
+
+      val union =
+        sql"""
+        WITH me AS (SELECT CAST($userId AS text) AS user_id)
+        #$blocks
+        ORDER BY labels DESC, city_schema;
+      """
+          .as[(String, Int, Int, Int, Option[Double], Option[OffsetDateTime])]
+          .map(_.map(CrossCityUserStat.tupled))
+
+      // Bounded because this fires on every dashboard load, holds one of the app's 25 pooled connections for its whole
+      // run, and is the one query here whose plan can't be predicted from dev: the arm count is however many cities are
+      // deployed. 30s leaves generous room over the ~9s cold measurement while still capping a pathological plan, and
+      // the caller degrades to hiding the section rather than failing the page. `SET LOCAL` + `.transactionally` scopes
+      // the setting to this statement and auto-commits, so it never lingers as an idle-in-transaction of its own.
+      (sqlu"SET LOCAL statement_timeout = 30000" >> union).transactionally
     }
   }
 
@@ -846,12 +959,11 @@ class UserStatTable @Inject() (
                  COUNT(*) OVER ()::int AS cohort
           FROM sidewalk_user
           INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
-          INNER JOIN role ON user_role.role_id = role.role_id
           INNER JOIN user_stat ON sidewalk_user.user_id = user_stat.user_id
           INNER JOIN label ON sidewalk_user.user_id = label.user_id
           WHERE label.deleted = FALSE
               AND label.tutorial = FALSE
-              AND role.role IN (#${RoleTable.LEADERBOARD_ROLES_SQL})
+              AND user_role.role IN (#${Role.LEADERBOARD_ROLES_SQL})
               AND user_stat.excluded = FALSE
               AND user_stat.on_leaderboard = TRUE
               #$timeFilter
@@ -920,13 +1032,12 @@ class UserStatTable @Inject() (
    */
   def getLabelTypeAccuracy(userId: String): DBIO[Seq[(String, Int, Int)]] = {
     sql"""
-      SELECT label_type.label_type,
+      SELECT label.label_type::text,
              COUNT(*) FILTER (WHERE label.correct IS TRUE)::int AS correct,
              COUNT(*) FILTER (WHERE label.correct IS FALSE)::int AS incorrect
       FROM label
-      INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
       WHERE label.user_id = $userId AND label.deleted = FALSE AND label.tutorial = FALSE
-      GROUP BY label_type.label_type;
+      GROUP BY label.label_type::text;
     """.as[(String, Int, Int)]
   }
 
@@ -934,27 +1045,10 @@ class UserStatTable @Inject() (
    * Get all users, excluding anon users who haven't placed any labels or done any validations (to limit table size).
    */
   def usersMinusAnonUsersWithNoLabelsAndNoValidations: DBIO[Seq[SidewalkUserWithRole]] = {
-    //    val anonUsersWithLabels = (for {
-    //      _user <- userTable
-    //      _userRole <- userRoleTable if _user.userId === _userRole.userId
-    //      _role <- roleTable if _userRole.roleId === _role.roleId
-    //      _label <- LabelTable.labelsWithTutorialAndExcludedUsers if _user.userId === _label.userId
-    //      if _role.role === "Anonymous"
-    //    } yield (_user, _role)).groupBy(x => x).map(_._1)
-    //
-    //    val anonUsersWithValidations = (for {
-    //      _user <- userTable
-    //      _userRole <- userRoleTable if _user.userId === _userRole.userId
-    //      _role <- roleTable if _userRole.roleId === _role.roleId
-    //      _labelValidation <- LabelValidationTable.validationLabels if _user.userId === _labelValidation.userId
-    //      if _role.role === "Anonymous"
-    //    } yield (_user, _role)).groupBy(x => x).map(_._1)
-
-    val otherUsers = sidewalkUserTable.sidewalkUserWithRole.filter(_._4 =!= "Anonymous")
+    val otherUsers = sidewalkUserTable.sidewalkUserWithRole.filter(_._4 =!= Role.Anonymous)
 
     // TODO Only returning non-anonymous users temporarily:
     // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/3802
-    //    anonUsersWithLabels.union(anonUsersWithValidations) ++ otherUsers
     otherUsers.result.map(_.map(SidewalkUserWithRole.tupled))
   }
 
@@ -968,7 +1062,7 @@ class UserStatTable @Inject() (
     userStats
       .join(userRoleTable)
       .on(_.userId === _.userId)
-      .filter(_._2.roleId =!= 6) // Exclude anonymous users.
+      .filter(_._2.role =!= Role.Anonymous)
       .filter(!_._1.highQuality)
       .length
       .result
@@ -982,7 +1076,7 @@ class UserStatTable @Inject() (
     userStats
       .join(userRoleTable)
       .on(_.userId === _.userId)
-      .filter(_._2.roleId =!= 6) // Exclude anonymous users.
+      .filter(_._2.role =!= Role.Anonymous)
       .map(x => (x._1.userId, x._1.highQuality, x._1.highQualityManual))
       .result
   }
@@ -1045,8 +1139,7 @@ class UserStatTable @Inject() (
       ) users
       INNER JOIN user_stat ON users.user_id = user_stat.user_id
       INNER JOIN user_role ON user_stat.user_id = user_role.user_id
-      INNER JOIN role ON user_role.role_id = role.role_id
-      WHERE role.role <> 'AI'
+      WHERE user_role.role <> 'AI'
           AND #$highQualityOnlySql;
     """.as[Int].head.map(n => UserCount(n, "combined", "all", timeInterval, taskCompletedOnly, highQualityOnly))
   }
@@ -1129,7 +1222,6 @@ class UserStatTable @Inject() (
              COALESCE(label_counts.other_not_validated, 0) AS other_not_validated
       FROM user_stat
       INNER JOIN user_role ON user_stat.user_id = user_role.user_id
-      INNER JOIN role ON user_role.role_id = role.role_id
       -- Validations given.
       LEFT JOIN (
           SELECT label_validation.user_id,
@@ -1197,14 +1289,13 @@ class UserStatTable @Inject() (
                  COUNT(CASE WHEN label_type = 'Other' AND correct IS NULL THEN 1 END) AS other_not_validated
           FROM audit_task
           INNER JOIN label ON audit_task.audit_task_id = label.audit_task_id
-          INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
           WHERE deleted = FALSE
               AND tutorial = FALSE
               AND label.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
               AND audit_task.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
           GROUP BY audit_task.user_id
       ) label_counts ON user_stat.user_id = label_counts.user_id
-      WHERE role.role <> 'Anonymous'
+      WHERE user_role.role <> 'Anonymous'
           AND user_stat.excluded = FALSE
           #$minLabelsClause
           #$minMetersClause
