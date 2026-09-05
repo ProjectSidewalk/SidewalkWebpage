@@ -5,6 +5,7 @@ error.email = Enter a valid email address
 invalid.credentials = Invalid credentials!
 access.denied = Access denied!
 
+city.name.washington-dc = Washington
 city.name.newberg-or = Newberg
 city.name.seattle-wa = Seattle
 city.name.columbus-oh = Columbus
@@ -63,6 +64,7 @@ city.name.waltham-ma = Waltham
 city.name.houston-tx = Houston
 city.name.newport-ky = Newport
 
+state.name.dc = DC
 state.name.oregon = Oregon
 state.name.washington = Washington
 state.name.ohio = Ohio
