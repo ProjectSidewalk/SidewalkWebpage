@@ -1,5 +1,6 @@
 """
-Finds streets that lack street-view imagery (Google Street View, Mapillary, or Infra3d) and writes them to a CSV.
+Finds streets that lack street-view imagery (Google Street View, Mapillary, Panoramax, or Infra3d) and writes them to a
+CSV.
 
 This is a standalone, manually-run utility (it is not invoked by the app). Workflow:
 
@@ -10,7 +11,9 @@ This is a standalone, manually-run utility (it is not invoked by the app). Workf
          python3.13 scripts/check_streets_for_imagery.py --gsv
          python3.13 scripts/check_streets_for_imagery.py --mapillary
          python3.13 scripts/check_streets_for_imagery.py --infra3d
+         python3.13 scripts/check_streets_for_imagery.py --panoramax
 
+     ``--panoramax`` needs no credential (the API is public);
      ``--gsv`` needs ``GOOGLE_MAPS_API_KEY``; ``--mapillary`` needs ``MAPILLARY_ACCESS_TOKEN``; ``--infra3d`` needs
      ``INFRA3D_CLIENT_ID`` and ``INFRA3D_CLIENT_SECRET`` (one city's pair — the same OAuth client-credentials the app
      holds per city as ``INFRA3D_CLIENT_ID_<CITY>``), plus ``--campaign <uid>`` if the city's tenant holds more than
@@ -128,6 +131,12 @@ DISTANCE = 0.000135
 # picking up imagery from a nearby parallel street.
 ENDPOINT_RADIUS_KM = 0.025
 POINT_RADIUS_KM = 0.015
+
+# Panoramax: the federated meta-catalog's STAC search, filtered to 360° pictures (the only kind the viewer serves),
+# newest first so the capture date read from the first result is the street's newest. No key, no documented limit.
+PANORAMAX_SEARCH_URL = 'https://api.panoramax.xyz/api/search?filter=field_of_view%3D360&sortby=-ts&limit=100'
+# The API is keyless and community-run, so nothing but this says whose scan traffic it is or where to complain.
+PANORAMAX_HEADERS = {'User-Agent': 'ProjectSidewalk-check-streets/1.0 (sidewalk@cs.uw.edu)'}
 
 # Infra3d: the token grant mirrors PanoDataService.getInfra3dToken; the framegate route is what the vendored viewer SDK
 # calls for setLocation. The route's tenant segment comes from the token's scope, so there is no per-city config.
@@ -385,6 +394,42 @@ def mapillary_has_imagery(response_json):
     return not no_imagery
 
 
+def panoramax_has_imagery(response_json):
+    """
+    Interprets a Panoramax STAC search response.
+
+    A search answers with a GeoJSON FeatureCollection; no ``features`` key at all means the API returned an error body.
+
+    Args:
+        response_json: The decoded JSON from the Panoramax search endpoint.
+
+    Returns:
+        ``True`` if any 360° picture lies in the searched box, ``False`` if ``features`` is empty.
+
+    Raises:
+        ImageryApiError: If the response is not a FeatureCollection.
+    """
+    if 'features' not in response_json:
+        raise ImageryApiError('unexpected Panoramax response: ' + str(response_json)[:200])
+    return len(response_json['features']) > 0
+
+
+def panoramax_capture_date(response_json):
+    """
+    Extracts the newest picture's standardized capture date from a Panoramax search response.
+
+    Args:
+        response_json: The decoded JSON from the Panoramax search endpoint (a FeatureCollection).
+
+    Returns:
+        An ISO ``YYYY-MM-DD`` string, or ``None`` if no picture carries a ``datetime``.
+    """
+    dates = [standardize_capture_date(str(f.get('properties', {}).get('datetime', ''))[:10])
+             for f in response_json.get('features', [])]
+    dates = [d for d in dates if d]
+    return max(dates) if dates else None
+
+
 def infra3d_pano_info(response_json, lat, lng, radius_km):
     """
     Interprets an Infra3d nearest-frame (``knn/query``) response for a query point.
@@ -552,6 +597,12 @@ def _mapillary_bbox_url(mapillary_url, lat, lng, radius_km):
     return mapillary_url + '&bbox=' + ','.join(str(coord) for coord in bbox)
 
 
+def _panoramax_bbox_url(lat, lng, radius_km):
+    """Appends a ``&bbox=`` query (a box of ``radius_km`` around the point) to the Panoramax search URL."""
+    bbox = create_bounding_box(lat, lng, radius_km)
+    return PANORAMAX_SEARCH_URL + '&bbox=' + ','.join(str(coord) for coord in bbox)
+
+
 def _infra3d_frame_filter(campaign_uids):
     """The framegate ``filter`` restricting frames to 360° types within the given campaigns, as the viewer does."""
     return "%s and campaign_uid in '(%s)'" % (INFRA3D_PANO_FILTER, ', '.join(campaign_uids))
@@ -608,11 +659,13 @@ def _pano_info(api, response_json):
     """
     Builds a ``PanoInfo`` (imagery present? + capture date) from one provider response.
 
-    GSV responses carry a capture date; Mapillary capture dates are not yet captured (a future enhancement), so
-    Mapillary panos report ``capture_date=None``.
+    GSV and Panoramax responses carry a capture date; Mapillary capture dates are not yet captured (a future
+    enhancement), so Mapillary panos report ``capture_date=None``.
     """
     if api == 'GSV':
         return PanoInfo(gsv_has_imagery(response_json), gsv_capture_date(response_json))
+    if api == 'Panoramax':
+        return PanoInfo(panoramax_has_imagery(response_json), panoramax_capture_date(response_json))
     return PanoInfo(mapillary_has_imagery(response_json), None)
 
 
@@ -620,11 +673,13 @@ def _point_pano_info(api, lat, lng, fetch, gsv_url, mapillary_url, radius_km, in
     """
     Queries the configured provider at one point (via ``fetch``) and returns its ``PanoInfo``.
 
-    ``radius_km`` is the Mapillary bbox half-extent / Infra3d max frame distance; GSV bakes its radius into ``gsv_url``.
-    ``infra3d`` is the ``Infra3dScan`` (token holder + campaign scope), needed only for that provider.
+    ``radius_km`` is the Mapillary/Panoramax bbox half-extent / Infra3d max frame distance; GSV bakes its radius into
+    ``gsv_url``. ``infra3d`` is the ``Infra3dScan`` (token holder + campaign scope), needed only for that provider.
     """
     if api == 'GSV':
         return _pano_info(api, fetch(gsv_url + '&location=' + str(lat) + ',' + str(lng)))
+    if api == 'Panoramax':
+        return _pano_info(api, fetch(_panoramax_bbox_url(lat, lng, radius_km), headers=PANORAMAX_HEADERS))
     if api == 'Infra3d':
         return _infra3d_point_pano_info(infra3d, lat, lng, radius_km, fetch)
     return _pano_info(api, fetch(_mapillary_bbox_url(mapillary_url, lat, lng, radius_km)))
@@ -665,7 +720,7 @@ def process_street(street, api, fetch, gsv_url, gsv_url_endpoint, mapillary_url,
 
     Args:
         street:           A street row (Series) with ``street_edge_id``, ``region_id``, endpoint x/y, and ``geom``.
-        api:              ``'GSV'``, ``'Mapillary'``, or ``'Infra3d'``.
+        api:              ``'GSV'``, ``'Mapillary'``, ``'Panoramax'``, or ``'Infra3d'``.
         fetch:            A ``fetch(url, **kwargs) -> json`` (typically from ``make_fetch``, with retry).
         gsv_url:          GSV metadata base URL with the along-street radius baked in (GSV only).
         gsv_url_endpoint: GSV metadata base URL with the endpoint radius baked in (GSV only).
@@ -771,6 +826,7 @@ def main(argv=None):
 
     Returns:
         Process exit code: 0 on success, 1 on a missing API key, an unusable Infra3d setup, or a user interrupt.
+        Panoramax needs no key, so its scan can only fail per street.
     """
     parser = argparse.ArgumentParser(
         description='Loops through streets, outputting any without imagery to a separate file.')
@@ -780,6 +836,8 @@ def main(argv=None):
                           help='Check for Mapillary imagery (needs MAPILLARY_ACCESS_TOKEN)')
     provider.add_argument('--infra3d', action='store_true',
                           help='Check for Infra3d imagery (needs INFRA3D_CLIENT_ID + INFRA3D_CLIENT_SECRET)')
+    provider.add_argument('--panoramax', action='store_true',
+                          help='Check for Panoramax 360° imagery (public API, no credential needed)')
     parser.add_argument('--campaign', action='append', default=[], metavar='UID',
                         help='Infra3d campaign to count imagery from (repeatable). Required only when the tenant '
                              'holds more than one campaign; the scan lists them if so.')
@@ -788,7 +846,7 @@ def main(argv=None):
     parser.add_argument('--max-qps', type=float, default=DEFAULT_MAX_QPS,
                         help='Global cap on requests per second across all workers (default: %(default)s).')
     args = parser.parse_args(argv)
-    api = 'GSV' if args.gsv else 'Mapillary' if args.mapillary else 'Infra3d'
+    api = 'GSV' if args.gsv else 'Mapillary' if args.mapillary else 'Panoramax' if args.panoramax else 'Infra3d'
     # One shared rate limiter caps total request rate across all worker threads.
     fetch = make_fetch(rate_limiter=RateLimiter(args.max_qps))
 
@@ -811,6 +869,8 @@ def main(argv=None):
         names = dict(campaigns)
         print('Checking Infra3d tenant %s, campaign(s): %s' % (
             auth.tenant, ', '.join('%s (%s)' % (uid, names[uid]) for uid in campaign_uids)))
+    elif api == 'Panoramax':
+        print('Checking Panoramax 360° coverage via %s (public API, no credential needed)' % PANORAMAX_SEARCH_URL)
     else:
         api_key = os.getenv('GOOGLE_MAPS_API_KEY') if api == 'GSV' else os.getenv('MAPILLARY_ACCESS_TOKEN')
         if api_key is None:

@@ -15,8 +15,9 @@
  */
 function createPanoViewerLogo(container, primaryViewerType) {
   /**
-   * The logo art per imagery source. paddingLeft is hand-tuned per logo, in unscaled px.
-   * @type {Map<typeof PanoViewer, {src: string, alt: string, paddingLeft: number}>}
+   * The logo art per imagery source. paddingLeft is hand-tuned per logo, in unscaled px. A `label` is a wordmark
+   * drawn as text after the art, for a source whose mark alone doesn't say who it is.
+   * @type {Map<typeof PanoViewer, {src: string, alt: string, paddingLeft: number, label?: string}>}
    */
   const LOGOS = new Map([
     [GsvViewer, { src: util.assetPath('images/logos/google-logo.svg'), alt: 'Google', paddingLeft: 10 }],
@@ -24,6 +25,10 @@ function createPanoViewerLogo(container, primaryViewerType) {
       src: util.assetPath('images/logos/mapillary-logo-white.png'), alt: 'Mapillary', paddingLeft: 5,
     }],
     [Infra3dViewer, { src: util.assetPath('images/logos/infra3d-logo.svg'), alt: 'infra3D', paddingLeft: 6 }],
+    // Panoramax publishes only its icon; the name is set beside it because the icon isn't widely recognized.
+    [PanoramaxViewer, {
+      src: util.assetPath('images/logos/panoramax-logo.svg'), alt: 'Panoramax', paddingLeft: 6, label: 'Panoramax',
+    }],
   ]);
 
   // Logo box metrics in unscaled px. The image fills the holder's content-box height, so its rendered width follows
@@ -49,9 +54,23 @@ function createPanoViewerLogo(container, primaryViewerType) {
   const img = document.createElement('img');
   img.style.maxHeight = '100%';
   holder.appendChild(img);
+  // The wordmark, when the source has one: styled like the capture date beside it so the row reads as one line.
+  const LABEL_GAP = 6;
+  const label = document.createElement('span');
+  Object.assign(label.style, {
+    display: 'none',
+    alignSelf: 'center',
+    marginLeft: `calc(${LABEL_GAP}px * var(--ui-scale, 1))`,
+    font: 'var(--text-small-bold)',
+    color: 'var(--color-neutral-white)',
+    textShadow: 'calc(1px * var(--ui-scale, 1)) calc(1px * var(--ui-scale, 1)) calc(1px * var(--ui-scale, 1)) '
+      + 'var(--color-neutral-black)',
+    whiteSpace: 'nowrap',
+  });
+  holder.appendChild(label);
   container.appendChild(holder);
 
-  /** @type {?{src: string, alt: string, paddingLeft: number}} The logo currently in the holder. */
+  /** @type {?{src: string, alt: string, paddingLeft: number, label?: string}} The logo currently in the holder. */
   let activeLogo = null;
 
   /**
@@ -72,7 +91,12 @@ function createPanoViewerLogo(container, primaryViewerType) {
     const aspectRatio = rect.width / rect.height;
     if (!Number.isFinite(aspectRatio) || aspectRatio <= 0) return;
     const boxWidth = IMG_HEIGHT * aspectRatio;
-    container.style.setProperty('--pano-logo-width', `${activeLogo.paddingLeft + inkRightEdge(boxWidth)}px`);
+    // The label is laid out in scaled px; the image's rendered height over its authored height is the scale in force.
+    const uiScale = rect.height / IMG_HEIGHT;
+    const labelWidth = activeLogo.label ? LABEL_GAP + label.getBoundingClientRect().width / uiScale : 0;
+    container.style.setProperty(
+      '--pano-logo-width', `${activeLogo.paddingLeft + inkRightEdge(boxWidth) + labelWidth}px`,
+    );
   }
 
   /**
@@ -111,7 +135,9 @@ function createPanoViewerLogo(container, primaryViewerType) {
 
   // The rendered box only has a usable ratio once the image has loaded and been laid out, which can happen well after
   // the logo is set (and again if the pano starts out hidden), so republish on every resize of the image box.
-  new ResizeObserver(publishLogoWidth).observe(img);
+  const resizeObserver = new ResizeObserver(publishLogoWidth);
+  resizeObserver.observe(img);
+  resizeObserver.observe(label);
 
   /**
    * Shows the logo for the given viewer type.
@@ -122,7 +148,10 @@ function createPanoViewerLogo(container, primaryViewerType) {
     if (!info) return;
     activeLogo = info;
     img.src = info.src;
-    img.alt = info.alt;
+    // With a visible wordmark the art is decorative; without one the alt text is the source's name.
+    img.alt = info.label ? '' : info.alt;
+    label.textContent = info.label || '';
+    label.style.display = info.label ? '' : 'none';
     holder.style.paddingLeft = `calc(${info.paddingLeft}px * var(--ui-scale, 1))`;
     holder.style.display = 'flex';
     publishLogoWidth();

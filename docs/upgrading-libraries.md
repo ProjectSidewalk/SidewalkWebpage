@@ -183,6 +183,12 @@ side mid-upgrade — keep this list matching it.
   [Changelog](https://github.com/mpetroff/pannellum/blob/2.5.7/changelog.md)
 - **panzoom: 9.4.4** — zoom/pan for static images in LabelMap/Gallery.
   [Download](https://unpkg.com/panzoom@9.4.4/dist/panzoom.min.js) · [Versions](https://github.com/anvaka/panzoom/tags)
+- **photo-sphere-viewer: 5.15.1** (bundling **three.js 0.185.1**) — the renderer behind the Panoramax imagery
+  provider (#5185). **Not an upstream file:** a self-contained bundle built by
+  `public/vendor/photo-sphere-viewer/build/build.sh`, because upstream ships ES modules only and needs a newer
+  three.js than the standalone 0.160.1 below. Upgrade by running the script with the new version (three.js follows
+  from PSV's own dependency pin); see the README beside it. [Releases](https://github.com/mistic100/Photo-Sphere-Viewer/releases) ·
+  [Docs](https://photo-sphere-viewer.js.org/guide/)
 - **prism: 1.30.0** — syntax highlighting for the API docs' code blocks. We ship the core plus only the language
   components the docs use (`json`, `csv`), so a new `language-*` class in a docs page means adding that component too.
   **No stock theme:** the `.token.*` colors are ours, in `css/pages/api-docs/api-docs.css`, so the blocks stay on the

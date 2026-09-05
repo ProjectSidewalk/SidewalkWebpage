@@ -36,6 +36,14 @@ class ImageryAttributionSpec extends PlaySpec {
       expected.text mustBe "Mapillary · CC BY-SA 4.0"
     }
 
+    "name Panoramax beside its producer, with no licence, since the licence varies per picture (#5202)" in {
+      val line = ImageryAttribution.line(PanoSource.Panoramax, Some("Arretche")).value
+      line mustBe ImageryAttribution.Line("© Arretche", Some("Panoramax"), None, None)
+      line.text mustBe "© Arretche · Panoramax"
+      ImageryAttribution.line(PanoSource.Panoramax, None).value mustBe
+        ImageryAttribution.Line("Panoramax", None, None, None)
+    }
+
     "attribute nothing when a provider's copyright string is all that could be shown and none is recorded" in {
       ImageryAttribution.line(PanoSource.Gsv, None) mustBe None
       ImageryAttribution.line(PanoSource.Gsv, Some(" ")) mustBe None

@@ -30,7 +30,7 @@ Play backend ── routes → Controller → Service → Table (DAO/Slick)
         │                         Postgres + PostGIS  (one schema per city: sidewalk_<city>;
         │                                              auth in sidewalk_login)
         ▼
-External imagery providers (Google Street View / Mapillary / Infra3d / Pannellum)
+External imagery providers (Google Street View / Mapillary / Infra3d / Panoramax / Pannellum)
 
 Out-of-band Python utilities: scripts/label_clustering.py, scripts/check_streets_for_imagery.py
 ```
@@ -207,7 +207,7 @@ corresponding Twirl view:
   chart colors follow the design system). Served file-by-file — no Grunt bundle.
 - **`ps-map/`** — shared map component used across pages.
 - **`common/`** — modules shared across bundles: `pano-viewer/` (an abstraction over the GSV / Mapillary / Infra3d /
-  Pannellum imagery providers), `label-detail/` (label popups), and various utilities. The popup's pano viewer is
+  Panoramax / Pannellum imagery providers), `label-detail/` (label popups), and various utilities. The popup's pano viewer is
   built for the first label shown, never for a visit that opens none: Google bills every `StreetViewPanorama`
   constructed, hidden or not, and most visits to a hosting page never open a label (#5128). Only the free library
   download is scheduled early (`PanoViewer.preloadLibrary`). Deferring the build moves that cost to the first open,

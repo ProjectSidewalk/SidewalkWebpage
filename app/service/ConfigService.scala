@@ -2210,6 +2210,8 @@ class ConfigServiceImpl @Inject() (
         if (imagerySource == PanoSource.Gsv) Future.successful(gMapsApiKey)
         else if (imagerySource == PanoSource.Infra3d) panoDataService.getInfra3dToken(cityId)
         else if (imagerySource == PanoSource.Mapillary) Future.successful(config.get[String]("mapillary-access-token"))
+        // Panoramax's API is public and keyless (#5185); the viewer ignores the token.
+        else if (imagerySource == PanoSource.Panoramax) Future.successful("")
         else Future.failed(new Exception("No valid imagery source specified"))
       gMapsApiKey: String        = config.get[String]("google-maps-api-key")
       mapboxApiKey: String       = config.get[String]("mapbox-api-key")

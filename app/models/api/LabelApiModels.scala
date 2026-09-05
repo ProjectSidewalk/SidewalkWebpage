@@ -185,7 +185,7 @@ object LabelValidationSummaryForApi {
  * @param labelId Unique identifier for the label
  * @param userId Anonymized identifier of the user who created the label
  * @param panoId Panorama identifier where the label was placed
- * @param panoSource Imagery provider the panorama came from (GSV, Mapillary, or infra3d); drives `panoUrl`
+ * @param panoSource Imagery provider the panorama came from (GSV, Mapillary, Panoramax, or infra3d); drives `panoUrl`
  * @param labelType Type of accessibility issue (e.g., "CurbRamp", "SurfaceProblem")
  * @param severity Optional severity rating (1-3 scale)
  * @param tags List of descriptive tags applied to the label
@@ -271,6 +271,9 @@ case class LabelDataForApi(
    *    See https://developers.google.com/maps/documentation/urls/get-started#street-view-action. `heading` (-180..360)
    *    and `pitch` (-90..90) match Project Sidewalk's own conventions, so they pass through unchanged.
    *  - Mapillary: the web app's image-permalink form (`pKey`).
+   *  - Panoramax: the federated viewer's picture permalink, whose `xyz` fragment is heading/pitch/zoom with zoom on
+   *    Panoramax's own 0–100 scale (30 is its default view). `PanoramaxViewer.publicViewerLink` builds the same URL
+   *    client-side for the label popup's "View in Panoramax" link -- change one and change the other.
    *  - infra3d: no public, shareable viewer URL exists, so this is `None`.
    *
    * @return The provider's viewer URL for this label, or `None` when the provider has no shareable external viewer.
@@ -283,6 +286,11 @@ case class LabelDataForApi(
       )
     case PanoSource.Mapillary =>
       Some(s"https://www.mapillary.com/app/?pKey=$panoId&focus=photo")
+    case PanoSource.Panoramax =>
+      Some(
+        s"https://api.panoramax.xyz/#focus=pic&pic=$panoId" +
+          f"&xyz=${heading.getOrElse(0.0)}%.2f/${pitch.getOrElse(0.0)}%.2f/30"
+      )
     case _ =>
       None
   }
