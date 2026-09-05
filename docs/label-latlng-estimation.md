@@ -101,6 +101,45 @@ On the era frame the shipped constant reads about 17% too near on the subpopulat
 payloads' pinned 2.50 m ground plane (DC, 6656-px panoramas, Newberg); that is the truth's scale, not the click
 geometry, and the modern frame is the measured one.
 
+## The side of the street (#2886)
+
+The position above also fixes which side of its street a label is on. Evolution 375 stores it on `label_point` as
+**`centerline_offset_m`**, the signed geodesic distance from the estimated position to the centerline of the label's
+`street_edge_id` (the open street nearest the position at submission): positive on the **left** of the edge's
+digitized direction (`ST_StartPoint` → `ST_EndPoint`), negative on the right, `NULL` without a position. The
+`street_side` enum (`left`/`right`, mirrored by `models.label.StreetSide`) is a `GENERATED` column over it with a 1 m
+floor, so it can't drift from the offset. Both are on `/v3/api/rawLabels`.
+
+The sign is relative to the edge rather than cardinal because that is what "same sidewalk as label X" needs (compare
+`street_side` on a shared `street_edge_id`), and cardinal sides are undefined on diagonal streets. It comes from a
+cross product against the edge's local tangent in Web Mercator (conformal, so no per-city SRID); the magnitude is
+geodesic.
+
+The magnitude is measured **across** the street, not along it. A label whose perpendicular foot falls past the end of
+its edge -- about 5% of them, since an edge ends at every intersection -- is nearest to that endpoint, so a naive
+distance-to-the-edge would count the along-street run too, and report a label 30 m off the end and 0.3 m to the side
+as 30 m of side. Those points keep only their cross-track component; an interior foot is perpendicular by
+construction and is unaffected to the bit. On Teaneck's 23,911 positioned labels the refinement moves 1,178 of them,
+changes **no** label's side, drops 18 inside the 1 m floor where they belong, and takes the largest offset from
+126.5 m to 25.1 m.
+
+The one SQL function, `label_centerline_offset_m`, serves the backfill and the insert path
+(`LabelPointTable.computeCenterlineOffset`, run right after the point insert in `ExploreService.insertLabel`), so the
+stored value always equals a fresh recompute, and `StreetSideSpec` checks that it does.
+
+Why this design and not the camera heading the issue proposed: scored against Seattle's SDOT sidewalk inventory, the
+geometric side is right 93–96% where the two methods disagree, the heading method fails whenever the camera is off
+the audited street (18.5% accurate beyond 15 m, and one label in five is shot from more than 5 m off), and no hybrid
+beats it. The offset is stored rather than just the enum because accuracy is a monotone function of it alone
+(63–70% under 0.5 m, 97–98% at 1.5–2 m, 99%+ from 3 m, the same for every label type), so a consumer can pick its own
+floor. Full report: [`experiments/2026-09-03-street-side-assignment.md`](experiments/2026-09-03-street-side-assignment.md).
+
+**Recompute contract.** Anything that moves `label_point.geom`, changes `label.street_edge_id`, or edits
+`street_edge.geom` (a 352/366-style backfill, an estimator refit, an AI reattach, a street re-import) recomputes
+`centerline_offset_m` in the same statement. The reposition in 352 flipped 2.2% of sides; forgetting the recompute
+would have left every one of them silently wrong. Re-importing streets is the sharpest edge: reversing an edge's
+digitized direction flips the sign of every label on it at once.
+
 ## The frame contract (for #5085 and any viewport change)
 
 The estimator sees only the two angles above, and the angles come from the click through the *projection*:

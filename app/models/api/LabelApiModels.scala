@@ -7,6 +7,7 @@
 package models.api
 
 import models.api.ApiModelUtils.{createGeoJsonPointGeometry, escapeCsvField}
+import models.label.StreetSide
 import models.pano.PanoSource
 import models.pano.PanoSource.PanoSource
 import models.utils.LatLngBBox
@@ -196,6 +197,13 @@ object LabelValidationSummaryForApi {
  * @param osmWayId OpenStreetMap way identifier
  * @param regionId Identifier of the region (neighborhood) the label falls within
  * @param regionName Name of the region (neighborhood) where the label is located
+ * @param streetSide Side of `streetEdgeId` the label sits on, relative to the edge's digitized direction (#2886);
+ *                   `None` within 1 m of the centerline or without a position
+ * @param centerlineOffsetM Signed geodesic distance from the street's centerline in metres, positive on the left of
+ *                          the digitized direction and negative on the right; the side's confidence. Measured across
+ *                          the street, not along it: a label past the end of its edge keeps only its cross-track
+ *                          component, so the magnitude never inflates into an along-street distance (`None` without
+ *                          a position)
  * @param latitude Geographic latitude coordinate
  * @param longitude Geographic longitude coordinate
  * @param correct Option indicating consensus validation status
@@ -236,6 +244,8 @@ case class LabelDataForApi(
     osmWayId: Long,
     regionId: Int,
     regionName: String,
+    streetSide: Option[StreetSide.Value],
+    centerlineOffsetM: Option[Double],
     latitude: Double,
     longitude: Double,
     correct: Option[Boolean],
@@ -301,25 +311,27 @@ case class LabelDataForApi(
       "type"       -> "Feature",
       "geometry"   -> createGeoJsonPointGeometry(longitude, latitude),
       "properties" -> Json.obj(
-        "label_id"          -> labelId,
-        "user_id"           -> userId,
-        "pano_id"           -> panoId,
-        "pano_source"       -> panoSource.toString,
-        "label_type"        -> labelType,
-        "severity"          -> severity,
-        "tags"              -> tags,
-        "description"       -> description,
-        "time_created"      -> timeCreated,
-        "high_quality_user" -> highQualityUser,
-        "street_edge_id"    -> streetEdgeId,
-        "osm_way_id"        -> osmWayId,
-        "region_id"         -> regionId,
-        "region_name"       -> regionName,
-        "correct"           -> correct,
-        "agree_count"       -> agreeCount,
-        "disagree_count"    -> disagreeCount,
-        "unsure_count"      -> unsureCount,
-        "validations"       -> validations.map(v =>
+        "label_id"            -> labelId,
+        "user_id"             -> userId,
+        "pano_id"             -> panoId,
+        "pano_source"         -> panoSource.toString,
+        "label_type"          -> labelType,
+        "severity"            -> severity,
+        "tags"                -> tags,
+        "description"         -> description,
+        "time_created"        -> timeCreated,
+        "high_quality_user"   -> highQualityUser,
+        "street_edge_id"      -> streetEdgeId,
+        "osm_way_id"          -> osmWayId,
+        "region_id"           -> regionId,
+        "region_name"         -> regionName,
+        "street_side"         -> streetSide.map(_.toString),
+        "centerline_offset_m" -> centerlineOffsetM,
+        "correct"             -> correct,
+        "agree_count"         -> agreeCount,
+        "disagree_count"      -> disagreeCount,
+        "unsure_count"        -> unsureCount,
+        "validations"         -> validations.map(v =>
           Json.obj(
             "user_id"    -> v.userId,
             "validation" -> v.validationType
@@ -370,6 +382,8 @@ case class LabelDataForApi(
       osmWayId.toString,
       regionId.toString,
       escapeCsvField(regionName),
+      streetSide.map(_.toString).getOrElse(""),
+      centerlineOffsetM.map(_.toString).getOrElse(""),
       correct.map(_.toString).getOrElse(""),
       agreeCount.toString,
       disagreeCount.toString,
@@ -415,7 +429,8 @@ object LabelDataForApi {
    */
   val csvHeader: String =
     "label_id,user_id,pano_id,pano_source,label_type,severity,tags,description,time_created,high_quality_user," +
-      "street_edge_id,osm_way_id,region_id,region_name,correct,agree_count,disagree_count,unsure_count,validations," +
+      "street_edge_id,osm_way_id,region_id,region_name,street_side,centerline_offset_m,correct,agree_count," +
+      "disagree_count,unsure_count,validations," +
       "audit_task_id,mission_id,image_capture_date,heading,pitch,zoom,canvas_x,canvas_y,canvas_width,canvas_height," +
       "pano_x,pano_y,pano_width,pano_height,camera_heading,camera_pitch,camera_roll,pano_url,latitude,longitude\n"
 
