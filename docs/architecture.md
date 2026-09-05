@@ -269,7 +269,7 @@ Two separate i18n systems:
 2. **Frontend** (client-side) — JSON under `public/locales/<lang>/` (e.g. `common.json`), referenced with
    `i18next.t('key')` or, preferably, `data-i18n="ns:key"` in HTML.
 
-Supported languages: en, es, de, nl, zh-TW, pt-BR, plus regional English variants en-US and en-NZ.
+Supported languages: en, es, de, nl, zh-TW, pt-BR, fr, plus regional English variants en-US and en-NZ.
 
 ## Configuration & deployment
 

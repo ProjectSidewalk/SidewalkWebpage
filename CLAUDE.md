@@ -75,7 +75,7 @@ file, and this table says which doc to read first:
 - Mobile detection has one definition, `ControllerUtils.isMobile`; JS reads `util.isMobile()`. Never re-sniff the UA.
 - User interactions are logged (clicks, key presses, mode switches, …). When you add or change one, add or adjust
   the logging and update `docs/logged-events.md`.
-- All user-facing text is translated into every supported language (en, es, nl, de, pt-BR, zh-TW, plus the
+- All user-facing text is translated into every supported language (en, es, nl, de, pt-BR, zh-TW, fr, plus the
   en-US/en-NZ overlays). Backend English goes in `conf/messages/messages.en`, never the base `messages`. Prefer
   `data-i18n="ns:key"` in HTML, including HTML built in JS.
 - UI meets WCAG 2.1/2.2 AA and is styled from the `main.css` `:root` tokens and `.ps-*` primitives: px never rem,
