@@ -200,7 +200,9 @@ object LabelValidationSummaryForApi {
  * @param streetSide Side of `streetEdgeId` the label sits on, relative to the edge's digitized direction (#2886);
  *                   `None` within 1 m of the centerline or without a position
  * @param centerlineOffsetM Signed geodesic distance from the street's centerline in metres, positive on the left of
- *                          the digitized direction and negative on the right; the side's confidence (`None` without
+ *                          the digitized direction and negative on the right; the side's confidence. Measured across
+ *                          the street, not along it: a label past the end of its edge keeps only its cross-track
+ *                          component, so the magnitude never inflates into an along-street distance (`None` without
  *                          a position)
  * @param latitude Geographic latitude coordinate
  * @param longitude Geographic longitude coordinate

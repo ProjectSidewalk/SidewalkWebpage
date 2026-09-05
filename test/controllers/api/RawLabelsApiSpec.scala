@@ -69,17 +69,36 @@ class RawLabelsApiSpec extends PlaySpec with GuiceOneAppPerSuite {
     "carry street_side and centerline_offset_m on a real feature, consistent with each other (#2886)" in {
       // The row converter is positional, so only a feature read from the DB proves the two columns land in the right
       // fields. Needs a positioned label to build a bbox around; an empty schema cancels rather than passes.
+      //
+      // The anchor has to satisfy the same predicates getLabelDataWithFilters applies, or the bbox can enclose only
+      // labels the endpoint filters out and the assertions below fail on an empty list. The newest label_point is
+      // exactly the wrong pick: anyone who has just been labelling in the Explore tutorial leaves one there.
       val dbConfig =
         app.injector.instanceOf[play.api.db.slick.DatabaseConfigProvider].get[models.utils.MyPostgresProfile]
       val anchor = scala.concurrent.Await.result(
         dbConfig.db.run(
-          sql"SELECT lng, lat FROM label_point WHERE geom IS NOT NULL ORDER BY label_point_id DESC LIMIT 1"
+          sql"""SELECT label_point.lng, label_point.lat
+                FROM label
+                INNER JOIN label_point ON label.label_id = label_point.label_id
+                INNER JOIN osm_way_street_edge ON label.street_edge_id = osm_way_street_edge.street_edge_id
+                INNER JOIN street_edge_region ON label.street_edge_id = street_edge_region.street_edge_id
+                INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
+                INNER JOIN pano_data ON label.pano_id = pano_data.pano_id
+                INNER JOIN user_stat ON label.user_id = user_stat.user_id
+                WHERE label_point.geom IS NOT NULL
+                  AND label.deleted = FALSE
+                  AND label.tutorial = FALSE
+                  AND user_stat.excluded = FALSE
+                  AND label.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
+                  AND audit_task.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
+                ORDER BY label.label_id DESC
+                LIMIT 1"""
             .as[(Double, Double)]
             .headOption
         ),
         scala.concurrent.duration.DurationInt(60).seconds
       )
-      assume(anchor.isDefined, "no positioned labels in this schema; needs a seeded DB")
+      assume(anchor.isDefined, "no API-visible positioned labels in this schema; needs a seeded DB")
       val (lng, lat) = anchor.get
       val bbox       = s"bbox=${lng - 0.0005},${lat - 0.0005},${lng + 0.0005},${lat + 0.0005}"
 

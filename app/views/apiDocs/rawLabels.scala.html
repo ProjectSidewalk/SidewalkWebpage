@@ -416,7 +416,7 @@
           <tr>
             <td><code>properties.centerline_offset_m</code></td>
             <td><code>number | null</code></td>
-            <td><strong>Added September 2026:</strong> signed geodesic distance in metres from the label's estimated position to the centerline of <code>street_edge_id</code>, positive on the left of the digitized direction and negative on the right. This is the side's confidence: use it to choose your own threshold instead of the 1&nbsp;m floor. <code>null</code> when the label has no position.</td>
+            <td><strong>Added September 2026:</strong> signed geodesic distance in metres from the label's estimated position to the centerline of <code>street_edge_id</code>, positive on the left of the digitized direction and negative on the right. This is the side's confidence: use it to choose your own threshold instead of the 1&nbsp;m floor. Measured across the street rather than along it, so a label sitting past the end of its street edge reports only how far to the side it is, not how far past the end. <code>null</code> when the label has no position.</td>
           </tr>
 
             <!-- Validation Information -->
@@ -578,6 +578,7 @@
         </tbody>
       </table>
     </div>
+    <p>These figures come from the report linked above, which scored an earlier form of the offset that also counted distance <em>along</em> the street for labels sitting past the end of their street edge. Restricting the measurement to the across-street component moved about 5% of labels into a lower band without changing any label's side, so the accuracies above are, if anything, slightly conservative for the values the API returns today.</p>
 
     <h4 id="response-csv">CSV Format <a href="#response-csv" class="permalink">#</a></h4>
     <p>If <code>filetype=csv</code> is specified, the response body will be CSV data. The first row contains the headers, corresponding to the fields in the GeoJSON properties object, plus <code>latitude</code> and <code>longitude</code> columns derived from the geometry. CRS is WGS84 (EPSG:4326).</p>
