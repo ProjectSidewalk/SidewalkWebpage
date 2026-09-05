@@ -79,7 +79,11 @@ before choosing: the number is public and permanent.
 ```bash
 git fetch origin
 git switch -c prep-v<X.Y.Z>-release origin/develop
+git merge origin/master
 ```
+
+Merging `master` in here keeps the release PR a fast-forward-able diff: hotfixes tagged straight off `master`, and
+the merge commits GitHub writes when closing a release PR, otherwise show up as phantom conflicts in step 6.
 
 ### 3. Bump the app version
 

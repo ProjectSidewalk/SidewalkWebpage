@@ -1,4 +1,5 @@
 @import controllers.helper.ControllerUtils.distanceUnitWords
+@import play.twirl.api.HtmlFormat
 @import service.{CityImpact, CommonPageData, GlobalLeaderboardEntry}
 @import models.api.AggregateStats
 @import models.user.{LeaderboardStat, SidewalkUserWithRole, UserStanding}
@@ -75,28 +76,36 @@
 }
 
 @*
-* The community band keeps all five tiles on one line, which means a value has only a fifth of the band to sit in.
+* The community band keeps every tile on one line, which leaves a value only its own share of the band to sit in.
 * Each of its figures therefore renders twice — the exact one and a short one — and CSS shows whichever fits, so the
 * band abbreviates under pressure rather than shrinking its type. The full figure carries the accessible reading at
-* every width; the short form is decorative. Values with no shorter form render as themselves, unwrapped.
+* every width; the short form is decorative. Values with no shorter form render as themselves, unwrapped. The digits
+* here and in CrossCityStats.#shortNum have to agree: the two fill the same band, whose type is sized to them.
 *@
 @shortCount(n: Int) = @{
-  if (n >= 1000000) "%.1fM".formatLocal(locale, n / 1000000.0)
-  else if (n >= 10000) "%.0fk".formatLocal(locale, n / 1000.0)
+  // Rounding decides the tier, not the raw value: 999,999 rounds to 1000 thousands, and printing that as "1000k"
+  // would read as a million while claiming not to be one.
+  val thousands = math.round(n / 1000.0)
+  if (thousands >= 1000) "%.1fM".formatLocal(locale, n / 1000000.0)
+  else if (n >= 10000) "%dk".formatLocal(locale, thousands)
   else fmtCount(n)
 }
 
 @twoForm(full: String, short: String) = @{
-  if (full == short) Html(full)
-  else Html(s"""<span class="ud-value-full">$full</span><span class="ud-value-short" aria-hidden="true">$short</span>""")
+  // Escaped rather than interpolated raw: a distance carries a translated unit, so these strings are not all ours.
+  val f = HtmlFormat.escape(full)
+  if (full == short) f
+  else {
+    val s = HtmlFormat.escape(short)
+    Html(s"""<span class="ud-value-full">$f</span><span class="ud-value-short" aria-hidden="true">$s</span>""")
+  }
 }
 
 @communityCount(n: Int) = @{ twoForm(fmtCount(n), shortCount(n)) }
 
 @communityDist(km: Double) = @{
   val dist = if (isMetric) km else km * 0.621371
-  val unit = unitWords.abbr
-  val short = if (dist >= 10000) s"""${"%.0fk".formatLocal(locale, dist / 1000.0)} $unit""" else fmtBigDist(km)
+  val short = if (dist >= 10000) s"""${shortCount(dist.toInt)} ${unitWords.abbr}""" else fmtBigDist(km)
   twoForm(fmtBigDist(km), short)
 }
 

@@ -130,6 +130,19 @@ const BANDS = [
         ],
       },
       {
+        // The dashboard's cross-city band is this one with a tile removed. Hardcoding five columns strands that
+        // fourth tile at the narrow step (#5186), which is the failure the band's whole rule exists to prevent.
+        name: 'four tiles, as the dashboard renders them',
+        drop: 1,
+        bandClass: 'ud-cities-band',
+        stats: [
+          ['12', 'Cities'],
+          ['1,234,567', 'Labels', '1.2M'],
+          ['2,345,678', 'Validations', '2.3M'],
+          ['12,345.6 km', 'Distance', '12k km'],
+        ],
+      },
+      {
         name: 'longest German captions',
         stats: [
           ['19.343', 'Mitwirkende', '19k'],
@@ -142,6 +155,23 @@ const BANDS = [
     ],
   },
 ];
+
+/**
+ * Reshapes the band into a variant another page renders, so one page can stand in for both. Removing tiles and
+ * adding the variant's own class is what exercises the real rule rather than a hand-set column count.
+ *
+ * @param {import('@playwright/test').Page} page - The loaded page.
+ * @param {Object} selectors - The band's `band` and `item` selectors.
+ * @param {Object} scenario - Its `drop` (tiles to remove from the end) and `bandClass` (class the variant carries).
+ */
+async function applyShape(page, selectors, scenario) {
+  if (!scenario.drop) return;
+  await page.evaluate(({sel, drop, cls}) => {
+    const band = document.querySelector(sel.band);
+    if (cls) band.classList.add(cls);
+    [...band.querySelectorAll(sel.item)].slice(-drop).forEach((el) => el.remove());
+  }, {sel: selectors, drop: scenario.drop, cls: scenario.bandClass});
+}
 
 /**
  * Replaces every stat's value and caption, so the band is measured against known worst-case content.
@@ -224,9 +254,14 @@ function bandCollisions(page, selectors) {
     // getBoundingClientRect reports the border box whatever box-sizing says, and both bands pad their sides with no
     // border-box reset in scope — so the padding has to come off, or that much encroachment goes unreported.
     const box = band.getBoundingClientRect();
-    const contentRight = box.right - parseFloat(getComputedStyle(band).paddingRight);
-    const overflow = Math.max(0, ...items.flatMap((it) => [it.number.right - contentRight,
-      it.label.right - contentRight]));
+    const style = getComputedStyle(band);
+    const contentRight = box.right - parseFloat(style.paddingRight);
+    const contentLeft = box.left + parseFloat(style.paddingLeft);
+    // Both edges: these tiles are centred, so a value too wide for its share hangs off either side of the band.
+    const overflow = Math.max(0, ...items.flatMap((it) => [
+      it.number.right - contentRight, contentLeft - it.number.left,
+      it.label.right - contentRight, contentLeft - it.label.left,
+    ]));
 
     // How the tiles fall into rows, so a band that promises five-across can be held to it.
     const tops = [...band.querySelectorAll(sel.item)].map((el) => Math.round(el.getBoundingClientRect().top));
@@ -247,6 +282,7 @@ for (const band of BANDS) {
           }));
         }
         await loadAndSettle(page, context, band.page);
+        await applyShape(page, band.selectors, scenario);
         await setStats(page, band.selectors, scenario.stats);
 
         // Either form of a figure is a legitimate thing to measure; anything else means the band stopped holding
