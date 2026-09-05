@@ -6,7 +6,7 @@ name := """sidewalk-webpage"""
 
 version := "11.11.0"
 
-scalaVersion := "2.13.18"
+scalaVersion := "3.9.0"
 
 // These lines prevent documentation from being generated. Once we clean up our Scaladoc, we can remove these lines.
 Compile / doc / sources                := Seq.empty
@@ -155,15 +155,8 @@ Compile / sourceGenerators += Def.task {
 // literal shape — one quoted prefix per line. `locales` is deliberately absent: i18next-http-backend interpolates its
 // own `loadPath` template, so those URLs never reach the helper.
 val assetManifestPrefixes = Seq(
-  "audio",
-  "images/badges",
-  "images/examples",
-  "images/explore",
-  "images/icons",
-  "images/logos",
-  "images/pano-tutorial",
-  "images/tutorials",
-  "images/validate"
+  "audio", "images/badges", "images/examples", "images/explore", "images/icons", "images/logos", "images/pano-tutorial",
+  "images/tutorials", "images/validate"
 )
 
 // Generate models.utils.AssetInventory: the sorted logical paths of every file under the prefixes above, so the app
@@ -176,12 +169,14 @@ val assetManifestPrefixes = Seq(
 // Output is sorted and deterministic so the generated source is byte-identical between compiles and zinc has nothing
 // to recompile.
 Compile / sourceGenerators += Def.task {
-  val publicDir = baseDirectory.value / "public"
+  val publicDir          = baseDirectory.value / "public"
   val paths: Seq[String] = assetManifestPrefixes.flatMap { prefix =>
     val dir = publicDir / prefix
     if (!dir.isDirectory) {
-      sys.error(s"build.sbt: asset manifest prefix 'public/$prefix' is not a directory. If the asset family moved, " +
-        "update assetManifestPrefixes (and the util.assetPath call sites naming it).")
+      sys.error(
+        s"build.sbt: asset manifest prefix 'public/$prefix' is not a directory. If the asset family moved, " +
+          "update assetManifestPrefixes (and the util.assetPath call sites naming it)."
+      )
     }
     (dir ** "*")
       .get()
