@@ -72,6 +72,7 @@ fetches the streets from OpenStreetMap, splits them where included ways meet, cl
 a neighborhood, and writes one SQL file that creates and fills both tables. It also applies the anti-sliver rules from
 #4717 (merge sub-20 m pieces back into their own way, cut a street at a neighborhood boundary only when both parts
 stay ≥ 20 m) and prints the tiny-segment counts and a region-name quality report (#4620) to review before importing.
+Those rules are unit-tested in [`test/python/test_build_city_streets.py`](../../test/python/test_build_city_streets.py).
 
 ```
 docker exec projectsidewalk-web python3.13 tools/build_city_streets.py --boundary /tmp/city.geojson \

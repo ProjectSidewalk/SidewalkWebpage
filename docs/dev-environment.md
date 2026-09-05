@@ -215,6 +215,7 @@ truth**; the snapshot below is a convenience copy (it may lag as new cities are 
 | hackensack-nj | sidewalk_hackensack | | clifton-nj | sidewalk_clifton |
 | maywood-nj | sidewalk_maywood | | newport-ky | sidewalk_newport_ky |
 | bayonne | sidewalk_bayonne | | | |
+
 ---
 
 ## Editor and database tools
