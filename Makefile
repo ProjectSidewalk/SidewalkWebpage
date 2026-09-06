@@ -1,7 +1,7 @@
 .PHONY: dev docker-up docker-up-db docker-run docker-stop npm-sync ssh qa-worktree qa-worktree-stop worktree-remove \
         test-js test-e2e test-e2e-host \
         test-python test-python-app test-python-tools \
-        import-users import-dump create-new-schema fill-new-schema onboard-city build-city-data \
+        import-users import-dump create-new-schema fill-new-schema onboard-city build-city-data check-imagery \
         hide-streets-without-imagery \
         import-street-imagery reveal-or-hide-neighborhoods \
         lint lint-fix lint-evolutions lint-locales lint-css-layout lint-asset-paths scalafmt scalafmt-fix \
@@ -200,6 +200,13 @@ onboard-city:
 #      `make build-city-data id=newport-ky args="--from-gpkg"`
 build-city-data:
 	@docker exec -it $(web-container) sh -c "cd /home && python3.13 scripts/onboard_city.py --city-id $(id) $(args)"
+
+# Imagery preflight or full scan for a city's streets (scripts/check_streets_for_imagery.py, in the web container,
+# which holds the provider keys). A preflight samples the build artifacts before the city has a database:
+# e.g. `make check-imagery id=laurens-ia args="--sample 150 --mapillary"`; the full scan (`args="--mapillary"`) is
+# what `make onboard-city` runs for you.
+check-imagery:
+	@docker exec -it $(web-container) sh -c "cd /home && python3.13 scripts/check_streets_for_imagery.py --city-id $(id) $(args)"
 
 hide-streets-without-imagery:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/hide-streets-without-imagery.sh"

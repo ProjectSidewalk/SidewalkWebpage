@@ -23,6 +23,14 @@ This is a standalone, manually-run utility (it is not invoked by the app). Workf
      capture-date range) to ``street_imagery_summary.csv``, both in the same dir.
   4. Run ``make hide-streets-without-imagery`` to mark those streets in the database.
 
+Preflight (``--sample N``): the same check on a random sample of streets, kept apart from a full scan's files under
+``db/onboarding/<city-id>/preflight/<provider>/``, with every provider sampled so far summarized side by side in
+``db/onboarding/<city-id>/preflight_report.md``. ``scripts/onboard_city.py`` writes the endpoints CSV this reads, so
+"does this city have GSV / Mapillary / Panoramax imagery, and how fresh is it?" is answered from the build artifacts in
+a few minutes, before the city has a database:
+
+         make check-imagery id=newport-ky args="--sample 150 --gsv"
+
 For each street it first checks both endpoints; if neither has imagery the street is flagged immediately. Otherwise it
 walks points along the street (added roughly every 15 m) and flags the street once enough points lack imagery (see
 ``imagery_verdict`` for the exact thresholds).
@@ -84,7 +92,7 @@ import threading
 import time
 from collections import namedtuple
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime
+from datetime import datetime, timezone
 from urllib.parse import quote
 
 import pandas as pd
@@ -117,6 +125,12 @@ SUMMARY_FILE = 'db/onboarding/{}/street_imagery_summary.csv'
 CHECKPOINT_FILE = 'db/onboarding/{}/streets_imagery_checkpoint.csv'
 # Streets that still errored after the end-of-run retry, for follow-up.
 FAILED_FILE = 'db/onboarding/{}/failed_streets.csv'
+# A --sample preflight keeps its files apart from a full scan's, per provider, so sampling several providers never
+# touches the checkpoint a full scan resumes from; the report collects every provider sampled so far.
+PREFLIGHT_DIR = 'db/onboarding/{}/preflight/{}'
+PREFLIGHT_REPORT = 'db/onboarding/{}/preflight_report.md'
+# Streets a bare --sample checks: enough for a coverage estimate within ~±8 points at 95%, a few minutes per provider.
+DEFAULT_SAMPLE = 150
 
 # Seconds before a single request to Google/Mapillary is abandoned (each attempt; retries are layered on top).
 REQUEST_TIMEOUT = 30
@@ -329,10 +343,21 @@ def gsv_has_imagery(response_json):
         response_json: The decoded JSON from the GSV metadata endpoint.
 
     Returns:
-        ``True`` if imagery is present, ``False`` if the response status is ``ZERO_RESULTS``.
+        ``True`` if imagery is present (status ``OK``), ``False`` if there is none (``ZERO_RESULTS`` / ``NOT_FOUND``).
+
+    Raises:
+        ImageryApiError: On any other status (``OVER_QUERY_LIMIT``, ``REQUEST_DENIED``, ``INVALID_REQUEST``,
+                         ``UNKNOWN_ERROR``). Google returns these with HTTP 200, so treating them as "not
+                         ZERO_RESULTS" made a throttled or mis-keyed run report every street as covered, with no
+                         capture dates (#5091). The street fails instead and is retried; a run with a bad key ends
+                         with every street in ``failed_streets.csv`` rather than a clean-looking 100%.
     """
     status = pd.json_normalize(response_json).status[0]
-    return status != 'ZERO_RESULTS'
+    if status == 'OK':
+        return True
+    if status in ('ZERO_RESULTS', 'NOT_FOUND'):
+        return False
+    raise ImageryApiError('GSV metadata status %s' % status)
 
 
 def standardize_capture_date(raw):
@@ -820,9 +845,97 @@ def finalize_outputs(checkpoint_file, output_file, failed_file, summary_file):
         _write_ids_csv(failed, failed_file)
 
 
+def preflight_summary(summary, n_failed=0):
+    """
+    Aggregates a preflight sample's per-street summary into the headline figures the report shows.
+
+    Args:
+        summary:  A DataFrame in ``SUMMARY_COLUMNS`` shape (the settled streets of one provider's sample).
+        n_failed: Streets that errored out of the sample (a mis-keyed provider shows up here, not as coverage).
+
+    Returns:
+        A dict: ``n_streets``, ``n_covered``, ``pct_covered``, ``n_failed``, the ``oldest`` / ``median`` / ``newest``
+        of the streets' newest capture dates (None without dates), and ``years`` — a ``{year: streets}`` count of the
+        newest capture year.
+    """
+    n_streets = len(summary)
+    n_covered = int(summary['has_imagery'].sum()) if n_streets else 0
+    newest = summary['newest_capture'].dropna().astype(str).sort_values().tolist() if n_streets else []
+    years = {}
+    for date in newest:
+        years[date[:4]] = years.get(date[:4], 0) + 1
+    return {
+        'n_streets': n_streets,
+        'n_covered': n_covered,
+        'pct_covered': 100.0 * n_covered / n_streets if n_streets else 0.0,
+        'n_failed': n_failed,
+        'oldest': newest[0] if newest else None,
+        'median': newest[len(newest) // 2] if newest else None,
+        'newest': newest[-1] if newest else None,
+        'years': years,
+    }
+
+
+def collect_preflight_summaries(city_dir):
+    """
+    Reads every provider's preflight results under ``<city_dir>/preflight/``.
+
+    Args:
+        city_dir: The city's ``db/onboarding/<city-id>`` directory.
+
+    Returns:
+        ``{provider: preflight_summary(...)}`` for each provider dir holding a summary CSV.
+    """
+    preflight_root = os.path.join(city_dir, 'preflight')
+    summaries = {}
+    if not os.path.isdir(preflight_root):
+        return summaries
+    for provider in sorted(os.listdir(preflight_root)):
+        summary_path = os.path.join(preflight_root, provider, os.path.basename(SUMMARY_FILE))
+        if not os.path.isfile(summary_path):
+            continue
+        failed_path = os.path.join(preflight_root, provider, os.path.basename(FAILED_FILE))
+        n_failed = len(pd.read_csv(failed_path)) if os.path.isfile(failed_path) else 0
+        summaries[provider] = preflight_summary(pd.read_csv(summary_path), n_failed)
+    return summaries
+
+
+def write_preflight_report(path, city_id, summaries):
+    """
+    Writes the per-city preflight comparison: one row per provider sampled so far, so the imagery choice is a table.
+
+    Args:
+        path:      Output ``.md`` path.
+        city_id:   The city id, for the title.
+        summaries: ``{provider: preflight_summary(...)}``.
+    """
+    lines = [
+        '# Imagery preflight — %s' % city_id,
+        '',
+        '- Updated: %s by `scripts/check_streets_for_imagery.py --sample`' % datetime.now(timezone.utc).strftime(
+            '%Y-%m-%d %H:%M UTC'),
+        '- Each row is an independent random sample of the built streets; a street counts as covered when the full',
+        "  scan's verdict rules would keep it open. Dates are each covered street's newest capture (Mapillary reports",
+        '  no dates). A non-zero `failed` column means requests errored — check the key or quota before reading the',
+        '  coverage figure.',
+        '',
+        '| provider | sample | covered | failed | oldest | median | newest | newest capture by year |',
+        '|---|---|---|---|---|---|---|---|',
+    ]
+    for provider, s in sorted(summaries.items()):
+        years = ', '.join('%s: %d' % (year, count) for year, count in sorted(s['years'].items())) or '—'
+        lines.append('| %s | %d | %d (%.0f%%) | %d | %s | %s | %s | %s |' % (
+            provider, s['n_streets'], s['n_covered'], s['pct_covered'], s['n_failed'], s['oldest'] or '—',
+            s['median'] or '—', s['newest'] or '—', years))
+    lines += ['', 'Rerun with another `--<provider>` to add a row; `--seed` picks a different sample.', '']
+    with open(path, 'w') as handle:
+        handle.write('\n'.join(lines))
+
+
 def main(argv=None):
     """
-    Parses arguments and scans every street for imagery, writing those without it to ``OUTPUT_FILE``.
+    Parses arguments and scans every street for imagery, writing those without it to ``OUTPUT_FILE`` — or, with
+    ``--sample``, checks a random sample and refreshes the city's ``preflight_report.md``.
 
     Args:
         argv: Optional argument list (defaults to ``sys.argv``); accepted to make the entrypoint testable.
@@ -851,6 +964,12 @@ def main(argv=None):
                         help='Number of streets to check concurrently (default: %(default)s).')
     parser.add_argument('--max-qps', type=float, default=DEFAULT_MAX_QPS,
                         help='Global cap on requests per second across all workers (default: %(default)s).')
+    parser.add_argument('--sample', type=int, nargs='?', const=DEFAULT_SAMPLE, metavar='N',
+                        help='Preflight: check a random sample of N streets (%d when bare) and refresh the city\'s '
+                             'preflight_report.md instead of running the full scan. Files go to '
+                             'db/onboarding/<city-id>/preflight/<provider>/, apart from a full scan\'s.' % DEFAULT_SAMPLE)
+    parser.add_argument('--seed', type=int, default=0,
+                        help='Random seed for --sample (default: %(default)s, so a rerun checks the same streets).')
     args = parser.parse_args(argv)
     api = 'GSV' if args.gsv else 'Mapillary' if args.mapillary else 'Panoramax' if args.panoramax else 'Infra3d'
     # One shared rate limiter caps total request rate across all worker threads.
@@ -890,6 +1009,13 @@ def main(argv=None):
     failed_path = os.path.join(REPO_ROOT, FAILED_FILE.format(args.city_id))
     summary_path = os.path.join(REPO_ROOT, SUMMARY_FILE.format(args.city_id))
 
+    if args.sample:
+        preflight_dir = os.path.join(REPO_ROOT, PREFLIGHT_DIR.format(args.city_id, api.lower()))
+        os.makedirs(preflight_dir, exist_ok=True)
+        checkpoint_path, output_path, failed_path, summary_path = (
+            os.path.join(preflight_dir, os.path.basename(template))
+            for template in (CHECKPOINT_FILE, OUTPUT_FILE, FAILED_FILE, SUMMARY_FILE))
+
     if not os.path.isfile(input_path):
         print(f"Couldn't find {input_path} — export this city's street_edge endpoints there first "
               '(see the module docstring).')
@@ -897,6 +1023,11 @@ def main(argv=None):
 
     # Read street edge data and interpolate vertices roughly every 15 m so we can sample imagery along each street.
     street_data = pd.read_csv(input_path)
+    if args.sample:
+        n_all = len(street_data)
+        street_data = street_data.sample(n=min(args.sample, n_all), random_state=args.seed)
+        print('Preflight: checking a random %d of %d streets for %s imagery (seed %d)'
+              % (len(street_data), n_all, api, args.seed))
     street_data = street_data.sort_values(by=['region_id', 'street_edge_id'])
     street_data['geom'] = list(map(lambda g: redistribute_vertices(wkb.loads(g, hex=True)), list(street_data['geom'])))
 
@@ -945,6 +1076,16 @@ def main(argv=None):
         # Derive the outputs however the scan ended -- interrupt, or a bug escaping a worker -- so the streets already
         # settled in the checkpoint are never lost to a traceback.
         finalize_outputs(checkpoint_path, output_path, failed_path, summary_path)
+        if args.sample:
+            city_dir = os.path.join(REPO_ROOT, 'db', 'onboarding', args.city_id)
+            summaries = collect_preflight_summaries(city_dir)
+            report_path = os.path.join(REPO_ROOT, PREFLIGHT_REPORT.format(args.city_id))
+            write_preflight_report(report_path, args.city_id, summaries)
+            result = summaries[api.lower()]
+            print('%s: %d of %d sampled streets covered (%.0f%%), %d failed; newest captures %s .. %s (median %s). '
+                  'Report: %s' % (api, result['n_covered'], result['n_streets'], result['pct_covered'],
+                                  result['n_failed'], result['oldest'] or '—', result['newest'] or '—',
+                                  result['median'] or '—', report_path))
     return 0
 
 

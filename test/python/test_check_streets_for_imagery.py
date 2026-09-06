@@ -53,6 +53,19 @@ def test_redistribute_vertices_long_line_adds_points_every_distance():
 def test_gsv_has_imagery():
     assert cs.gsv_has_imagery({'status': 'OK', 'location': {'lat': 47.6, 'lng': -122.3}}) is True
     assert cs.gsv_has_imagery({'status': 'ZERO_RESULTS'}) is False
+    assert cs.gsv_has_imagery({'status': 'NOT_FOUND'}) is False
+
+
+@pytest.mark.parametrize('status', ['OVER_QUERY_LIMIT', 'REQUEST_DENIED', 'INVALID_REQUEST', 'UNKNOWN_ERROR'])
+def test_gsv_quota_and_key_statuses_are_errors_not_imagery(status):
+    # Google returns these with HTTP 200; reading them as "not ZERO_RESULTS" reported 100% coverage on a bad key.
+    with pytest.raises(cs.ImageryApiError, match=status):
+        cs.gsv_has_imagery({'status': status})
+
+
+def test_process_street_fails_rather_than_covers_on_a_gsv_quota_status():
+    result = _run_process(_LINE_60, 'GSV', lambda url: {'status': 'REQUEST_DENIED'})
+    assert result.outcome == cs.FAILED
 
 
 def test_mapillary_has_imagery_data_presence():
@@ -980,3 +993,85 @@ def test_main_keyboard_interrupt_finalizes_and_returns_1(monkeypatch, tmp_path):
     monkeypatch.setattr(cs, 'process_street', interrupt)
     assert cs.main(['--city-id', _CITY, '--gsv']) == 1
     assert _output(tmp_path).empty  # finalize still ran, producing an (empty) output file
+
+
+# --------------------------------------------------------------------------------------------------------------------
+# --sample preflight
+# --------------------------------------------------------------------------------------------------------------------
+
+def _summary_frame(rows):
+    return pd.DataFrame(rows, columns=cs.SUMMARY_COLUMNS)
+
+
+def test_preflight_summary_aggregates_coverage_and_newest_captures():
+    summary = _summary_frame([
+        (1, 1, True, '2019-01-01', '2024-05-01', 3),
+        (2, 1, True, '2021-01-01', '2021-06-01', 2),
+        (3, 1, False, None, None, 0),
+        (4, 2, True, None, None, 1),   # covered, but the provider reports no dates (Mapillary)
+    ])
+    result = cs.preflight_summary(summary, n_failed=1)
+    assert (result['n_streets'], result['n_covered'], result['n_failed']) == (4, 3, 1)
+    assert result['pct_covered'] == pytest.approx(75)
+    assert (result['oldest'], result['median'], result['newest']) == ('2021-06-01', '2024-05-01', '2024-05-01')
+    assert result['years'] == {'2021': 1, '2024': 1}
+
+
+def test_preflight_summary_of_nothing():
+    result = cs.preflight_summary(_summary_frame([]))
+    assert result['n_streets'] == 0 and result['pct_covered'] == 0.0
+    assert result['oldest'] is None and result['years'] == {}
+
+
+def test_collect_and_write_preflight_report(tmp_path):
+    assert cs.collect_preflight_summaries(str(tmp_path)) == {}
+    for provider, rows in (('gsv', [(1, 1, True, '2020-01-01', '2020-01-01', 1), (2, 1, False, None, None, 0)]),
+                           ('mapillary', [(1, 1, True, None, None, 4), (2, 1, True, None, None, 2)]),
+                           ('panoramax', [])):
+        provider_dir = tmp_path / 'preflight' / provider
+        provider_dir.mkdir(parents=True)
+        if provider != 'panoramax':  # A provider dir with no summary yet (interrupted run) is skipped.
+            _summary_frame(rows).to_csv(provider_dir / 'street_imagery_summary.csv', index=False)
+    pd.DataFrame({'street_edge_id': [3, 4]}).to_csv(tmp_path / 'preflight' / 'gsv' / 'failed_streets.csv',
+                                                    index=False)
+    summaries = cs.collect_preflight_summaries(str(tmp_path))
+    assert sorted(summaries) == ['gsv', 'mapillary']
+    assert summaries['gsv']['n_failed'] == 2
+    report = tmp_path / 'preflight_report.md'
+    cs.write_preflight_report(str(report), 'testville-wa', summaries)
+    text = report.read_text()
+    assert '# Imagery preflight — testville-wa' in text
+    assert '| gsv | 2 | 1 (50%) | 2 | 2020-01-01 | 2020-01-01 | 2020-01-01 | 2020: 1 |' in text
+    assert '| mapillary | 2 | 2 (100%) | 0 | — | — | — | — |' in text
+
+
+def test_main_sample_mode_keeps_its_files_apart_and_writes_the_report(monkeypatch, tmp_path, capsys):
+    _setup(monkeypatch, tmp_path, [(100, 1, _LINE_60), (200, 1, _LINE_61), (300, 2, _LINE_60)])
+    monkeypatch.setattr(cs, '_get_json', lambda url: {'status': 'OK', 'date': '2023-04'})
+    assert cs.main(['--city-id', _CITY, '--gsv', '--sample', '2', '--max-qps', '1000']) == 0
+    preflight_dir = tmp_path / 'db' / 'onboarding' / _CITY / 'preflight' / 'gsv'
+    sample = pd.read_csv(preflight_dir / 'street_imagery_summary.csv')
+    assert len(sample) == 2 and sample['has_imagery'].all()
+    # The full scan's files are untouched, so a later full run starts from a clean checkpoint.
+    assert not (tmp_path / cs.CHECKPOINT_FILE.format(_CITY)).exists()
+    assert not (tmp_path / cs.SUMMARY_FILE.format(_CITY)).exists()
+    report = (tmp_path / cs.PREFLIGHT_REPORT.format(_CITY)).read_text()
+    assert '| gsv | 2 | 2 (100%) | 0 | 2023-04-01 | 2023-04-01 | 2023-04-01 | 2023: 2 |' in report
+    out = capsys.readouterr().out
+    assert 'Preflight: checking a random 2 of 3 streets for GSV imagery (seed 0)' in out
+    assert 'GSV: 2 of 2 sampled streets covered (100%), 0 failed' in out
+
+
+def test_main_bare_sample_flag_uses_the_default_size_and_the_same_streets_per_seed(monkeypatch, tmp_path):
+    _setup(monkeypatch, tmp_path, [(100, 1, _LINE_60), (200, 1, _LINE_61), (300, 2, _LINE_60)])
+    monkeypatch.setattr(cs, '_get_json', lambda url: {'status': 'ZERO_RESULTS'})
+    assert cs.DEFAULT_SAMPLE == 150
+    assert cs.main(['--city-id', _CITY, '--gsv', '--sample', '--max-qps', '1000']) == 0
+    summary_path = tmp_path / 'db' / 'onboarding' / _CITY / 'preflight' / 'gsv' / 'street_imagery_summary.csv'
+    assert len(pd.read_csv(summary_path)) == 3   # a sample larger than the city is the whole city
+    first = sorted(pd.read_csv(summary_path)['street_edge_id'])
+    summary_path.unlink()
+    (summary_path.parent / 'streets_imagery_checkpoint.csv').unlink()
+    assert cs.main(['--city-id', _CITY, '--gsv', '--sample', '2', '--seed', '7', '--max-qps', '1000']) == 0
+    second = sorted(pd.read_csv(summary_path)['street_edge_id'])
+    assert len(second) == 2 and set(second) <= set(first)
