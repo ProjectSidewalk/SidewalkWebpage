@@ -1,26 +1,34 @@
 # Python utility tests
 
-Unit tests for the two standalone Python scripts in [`scripts/`](../../scripts) — `label_clustering.py` and
-`check_streets_for_imagery.py`. This is the **first** Python test layer for Project Sidewalk. See
-[`docs/testing-and-ci.md`](../../docs/testing-and-ci.md) for where it fits in the overall testing plan.
+Unit tests for the three standalone Python scripts in [`scripts/`](../../scripts) — `label_clustering.py`,
+`check_streets_for_imagery.py`, and `onboard_city.py`. This is the **first** Python test layer for Project Sidewalk.
+See [`docs/testing-and-ci.md`](../../docs/testing-and-ci.md) for where it fits in the overall testing plan.
 
 ## What is covered
 
-The scripts were refactored (issues #4340, #4341) so their decision logic lives in small, **pure, importable**
-functions, with network and file I/O isolated in thin wrappers and `main`. The tests target those pure functions — no
-network, no live Google/Mapillary or app calls.
+The scripts are written (or were refactored — issues #4340, #4341) so their decision logic lives in small, **pure,
+importable** functions, with network and file I/O isolated in thin wrappers and `main`. The tests target those pure
+functions — no network, no live Google/Mapillary/OSM or app calls.
 
 - `test_label_clustering.py` — the distance metric (`custom_dist`), coordinate cleaning (`clean_label_data`), per-type
   clustering (`cluster`), global cluster-id offsetting (`offset_and_combine`), and JSON assembly (`build_output_json`).
 - `test_check_streets_for_imagery.py` — bounding-box math (`create_bounding_box`), vertex interpolation
   (`redistribute_vertices`), the GSV/Mapillary response parsers (`gsv_has_imagery`, `mapillary_has_imagery`), the
   imagery-decision thresholds (`imagery_verdict`, `street_has_no_imagery`), and the CSV writer (`write_output`).
+- `test_onboard_city.py` — the city-onboarding pipeline (#4291): the OSM filter builder and tag normalization,
+  geodesic measures, the street-healing stack (gap bridging, boundary-tail restore, fragment healing, rider merging),
+  region prep/merging/validation, COPY/EWKB serialization, and the I/O layer — fetch wrappers (osmnx and the TIGERweb
+  API mocked), the GeoPackage/SQL/report writers (`tmp_path`), the CLI, and `main` end-to-end including the region
+  source fallback chain and the `--from-gpkg` re-export mode.
 - `test_verify_latlng_backfill.py` — the one-off checker in [`tools/`](../../tools), which is stdlib-only.
-- `test_build_city_streets.py` — the headless new-city street import in [`tools/`](../../tools) (#4291): splitting a
-  way only where it meets another included way, the tier-1 merge of sub-threshold pieces and its ring guard (#4717),
-  region assignment (cut at a boundary / kept whole to the majority / attached to the nearest / dropped), the region
-  name report (#4620), and `build` end to end with Overpass stubbed. **`python3.13` only** — it imports shapely, so it
-  is `--ignore`d in the 3.8 half rather than run in both.
+- `test_setup_new_city.py` — `make onboard-city`'s orchestrator in [`tools/`](../../tools) (#4291): the id/URL/date
+  derivations, the cityparams/messages/docs edits (run against copies of the real files so a structural change there
+  fails here first), the docker-backed steps with `subprocess` faked (the one-shot evolutions boot and its hash
+  verification, the imagery scan, the dump), and `main` end to end with the prompts scripted — dry run, a full run,
+  and every resume gate. Stdlib-only, so it runs in both halves.
+- `test_create_ga_properties.py` — the GA4 property/stream creation in [`tools/`](../../tools): the naming
+  convention and cityparams lookups, the paged property search, idempotent reruns, the placeholder rewrite, and the
+  dry run, with `urllib` faked. Stdlib-only, both halves.
 
 ### Resilience coverage
 
@@ -40,7 +48,7 @@ that the bounding-box radius is in kilometers.
 make test-python
 ```
 
-That runs `pytest` inside the running `projectsidewalk-web` container **twice**, once per interpreter, because the two
+That runs `pytest` inside the running `projectsidewalk-web` container **twice**, once per interpreter, because the
 scripts run on different ones (#4396): `label_clustering.py` on the `python3` (3.8) the deployed server uses, the
 offline tooling on `python3.13`. `make test-python-app` / `make test-python-tools` run one half each; both take `args=`.
 
@@ -62,7 +70,7 @@ Config lives in [`pyproject.toml`](../../pyproject.toml) (`[tool.pytest.ini_opti
 collection to `test/python/` and puts `scripts/` and `tools/` on `sys.path` so the tests can `import label_clustering` /
 `import check_streets_for_imagery` directly.
 
-**Adding a test file:** nothing to register. Each half runs the whole directory *minus* the one file the other
+**Adding a test file:** nothing to register. Each half runs the whole directory *minus* the files the other
 interpreter owns (`--ignore`, in the [`Makefile`](../../Makefile) and the `python-tests` matrix in
 [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml)), so a new file runs in **both**. If it only works on one,
 add an `--ignore` to the other; until you do, that half fails on import.
@@ -70,16 +78,18 @@ add an `--ignore` to the other; until you do, that half fails on import.
 ## Coverage
 
 Every run measures **line + branch** coverage (`pytest-cov`) and **fails under 100%** (`--cov-fail-under` in
-`pyproject.toml`). The scripts are small and the logic is now pure, so full correctness coverage is the bar — a new
-uncovered branch fails the suite. The HTTP/file I/O in `main` is exercised by mocking the network (`monkeypatch` of the
-`_get_json`/`fetch_labels`/`post_results` wrappers) and using `tmp_path`, so no real network or DB is touched. The two
-narrow exclusions are documented where they sit: the `if __name__ == '__main__'` entrypoint guards (never run under
-pytest) and one provably-unreachable loop-exit branch in `check_streets` (`# pragma: no branch`, justified inline).
+`pyproject.toml`). The scripts are small and the logic is pure, so full correctness coverage is the bar — a new
+uncovered branch fails the suite. The HTTP/file I/O in `main` is exercised by mocking the network (`monkeypatch` of
+the HTTP wrappers, or of `sys.modules['osmnx']` for the onboarding fetches) and using `tmp_path`, so no real network
+or DB is touched. The two narrow exclusions are documented where they sit: the `if __name__ == '__main__'` entrypoint
+guards (never run under pytest) and one provably-unreachable loop-exit branch in `check_streets` (`# pragma: no
+branch`, justified inline).
 
 Scoping is a bare `--cov` plus `source = ["scripts"]`. `source` is what reports a file nothing imported as 0%, so a
-script arriving with no tests fails the gate rather than going unmeasured — the arm `include` would drop. It applies to
-the script the running interpreter *cannot* import too, so each half sets **`COVERAGE_OMIT`** to that file
-(`cov-omit-*` in the [`Makefile`](../../Makefile), `coverage-omit` in the CI matrix); unset, a hand-run fails loudly
+script arriving with no tests fails the gate rather than going unmeasured — the arm `include` would drop. It applies
+to the scripts the running interpreter *cannot* import too, so each half omits those files via **`COVERAGE_OMIT`**
+(plus **`COVERAGE_OMIT2`** on the 3.8 half, which can't import either offline tool) — `cov-omit-*` in the
+[`Makefile`](../../Makefile), `coverage-omit`/`coverage-omit-2` in the CI matrix; unset, a hand-run fails loudly
 instead. (`tools/` is outside `source`: one-off utilities, not held to 100%.)
 
 If you add logic, add a test — keep new code pure where possible (or hide I/O behind a thin wrapper and mock it) so the

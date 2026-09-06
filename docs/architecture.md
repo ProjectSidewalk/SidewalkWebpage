@@ -284,13 +284,17 @@ production runtime shape, see [`docs/deployment-and-stages.md`](deployment-and-s
 
 ## Python utilities
 
-Two standalone scripts under [`scripts/`](../scripts) (see [`scripts/README.md`](../scripts/README.md)):
+Three standalone scripts under [`scripts/`](../scripts) (see [`scripts/README.md`](../scripts/README.md)):
 
 - `scripts/label_clustering.py` — clusters nearby labels (used by the clustering flow; see `ClusterService` /
   `app/models/cluster/`). Run as `python3` — the app shells out to it, so it has to work on the deployed server's
   system Python.
 - `scripts/check_streets_for_imagery.py` — checks streets for available street-view imagery. Run as `python3.13`,
   the second interpreter the web image carries for offline tooling whose libraries have moved past 3.8.
+- `scripts/onboard_city.py` — builds a new city's street/region staging data from open sources (#4291), feeding
+  `db/scripts/fill-new-schema.sh`. Also `python3.13`. Run via `make build-city-data`; `make check-imagery` samples the
+  imagery, and `make onboard-city` (`tools/setup_new_city.py`) chains the rest of a new city's setup — see
+  [`docs/onboarding-a-city.md`](onboarding-a-city.md).
 
 `label_clustering.py` is invoked **in-band** (`ClusterService.runMultiUserClustering` shells out to it per region
 during admin-triggered `/runClustering` and the nightly `ClusteringActor` run), so the deployed app must be able to

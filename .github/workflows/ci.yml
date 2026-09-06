@@ -503,8 +503,8 @@ jobs:
       # One leg per interpreter the web container ships, testing each script on the Python that runs it (#4396):
       # label_clustering.py is shelled out to by the app, so it stays on prod's EOL 3.8; the offline tooling needs
       # >= 3.11. Mirrors the `pytest-args-*` and `cov-omit-*` variables in the Makefile — each leg takes the whole
-      # directory minus the files only the other's interpreter can import (shapely is 3.13-only here), so a new test
-      # file runs in both rather than in neither.
+      # directory minus the files only the other's interpreter can import (shapely/geopandas are 3.13-only here), so a
+      # new test file runs in both rather than in neither.
       # `half` also spells the check name, and `Python tests (in-band script)` is a required check — renaming a half
       # renames the check, which branch protection then waits forever for. Update both together.
       matrix:
@@ -515,8 +515,9 @@ jobs:
             requirements: -r requirements.txt -r requirements-dev.txt
             pytest-args: >-
               test/python --ignore=test/python/test_check_streets_for_imagery.py
-              --ignore=test/python/test_build_city_streets.py
+              --ignore=test/python/test_onboard_city.py
             coverage-omit: scripts/check_streets_for_imagery.py
+            coverage-omit-2: scripts/onboard_city.py
           - half: offline tooling
             advisory: true
             python: '3.13'
@@ -539,3 +540,4 @@ jobs:
         run: pytest ${{ matrix['pytest-args'] }}
         env:
           COVERAGE_OMIT: ${{ matrix['coverage-omit'] }}
+          COVERAGE_OMIT2: ${{ matrix['coverage-omit-2'] }}

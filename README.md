@@ -120,10 +120,10 @@ Want a Project Sidewalk server set up for your city or municipality? Read our
 [Considerations for Deploying Project Sidewalk into a New City](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Considerations-when-Preparing-for-and-Deploying-to-New-Cities)
 wiki page, then email us at **sidewalk@cs.uw.edu**.
 
-If you're outside the team and want to set up your own server for a city we don't currently support, start with the
-[Creating a database for a new city](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Creating-database-for-a-new-city)
-wiki page. This is a non-trivial amount of work the first time through, especially without prior GIS experience —
-email our lead engineer, Mikey (saugstad@cs.washington.edu), with questions.
+If you're outside the team and want to set up your own server for a city we don't currently support, start with
+[Onboarding a city](docs/onboarding-a-city.md): the repo's tooling builds a city's streets and regions from open data
+and fills a database schema in an afternoon. The server side is still yours to run — email our lead engineer, Mikey
+(saugstad@cs.washington.edu), with questions.
 
 ## Project history & funding
 

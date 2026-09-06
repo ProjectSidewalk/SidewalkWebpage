@@ -53,6 +53,19 @@ def test_redistribute_vertices_long_line_adds_points_every_distance():
 def test_gsv_has_imagery():
     assert cs.gsv_has_imagery({'status': 'OK', 'location': {'lat': 47.6, 'lng': -122.3}}) is True
     assert cs.gsv_has_imagery({'status': 'ZERO_RESULTS'}) is False
+    assert cs.gsv_has_imagery({'status': 'NOT_FOUND'}) is False
+
+
+@pytest.mark.parametrize('status', ['OVER_QUERY_LIMIT', 'REQUEST_DENIED', 'INVALID_REQUEST', 'UNKNOWN_ERROR'])
+def test_gsv_quota_and_key_statuses_are_errors_not_imagery(status):
+    # Google returns these with HTTP 200; reading them as "not ZERO_RESULTS" reported 100% coverage on a bad key.
+    with pytest.raises(cs.ImageryApiError, match=status):
+        cs.gsv_has_imagery({'status': status})
+
+
+def test_process_street_fails_rather_than_covers_on_a_gsv_quota_status():
+    result = _run_process(_LINE_60, 'GSV', lambda url: {'status': 'REQUEST_DENIED'})
+    assert result.outcome == cs.FAILED
 
 
 def test_mapillary_has_imagery_data_presence():
@@ -692,7 +705,7 @@ def test_finalize_outputs_dedups_keep_last_and_writes_summary(tmp_path):
     cs.finalize_outputs(checkpoint, output, failed, summary)
 
     assert pd.read_csv(output)['street_edge_id'].tolist() == [1, 3]
-    assert not os.path.exists(failed)
+    assert pd.read_csv(failed).empty   # written even when nothing failed, so a stale list can't survive a rerun
     summary_df = pd.read_csv(summary).set_index('street_edge_id').sort_index()
     assert list(summary_df.index) == [1, 2, 3]  # all settled (failed excluded)
     assert bool(summary_df.loc[2, 'has_imagery']) is True
@@ -726,6 +739,10 @@ def test_finalize_outputs_without_checkpoint_writes_empty(tmp_path):
 # main (HTTP mocked)
 # --------------------------------------------------------------------------------------------------------------------
 
+# Every city's data files live in their own db/onboarding/<city-id>/ dir, so main() tests pass this everywhere.
+_CITY = 'testville-wa'
+
+
 def _write_street_csv(directory, streets):
     rows = []
     for street_edge_id, region_id, line in streets:
@@ -733,12 +750,13 @@ def _write_street_csv(directory, streets):
         x2, y2 = line.coords[-1]
         rows.append({'street_edge_id': street_edge_id, 'region_id': region_id,
                      'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2, 'geom': wkb.dumps(line, hex=True)})
-    pd.DataFrame(rows).to_csv(directory / 'street_edge_endpoints.csv', index=False)
+    path = directory / cs.INPUT_FILE.format(_CITY)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    pd.DataFrame(rows).to_csv(path, index=False)
 
 
 def _setup(monkeypatch, tmp_path, streets, env_var='GOOGLE_MAPS_API_KEY'):
     _write_street_csv(tmp_path, streets)
-    (tmp_path / 'db').mkdir()
     # Point the script's repo root at tmp_path, then run from an unrelated CWD that has neither the input CSV nor a
     # db/ dir. This makes every main() test a regression check that the script resolves its files against the repo
     # root rather than the working directory (running from scripts/ used to fail at 0% progress, #4359).
@@ -750,26 +768,37 @@ def _setup(monkeypatch, tmp_path, streets, env_var='GOOGLE_MAPS_API_KEY'):
 
 
 def _output(tmp_path):
-    return pd.read_csv(tmp_path / cs.OUTPUT_FILE)
+    return pd.read_csv(tmp_path / cs.OUTPUT_FILE.format(_CITY))
 
 
 def _summary(tmp_path):
-    return pd.read_csv(tmp_path / cs.SUMMARY_FILE).set_index('street_edge_id')
+    return pd.read_csv(tmp_path / cs.SUMMARY_FILE.format(_CITY)).set_index('street_edge_id')
+
+
+def test_main_requires_a_city_id():
+    with pytest.raises(SystemExit):
+        cs.main(['--gsv'])
 
 
 def test_main_requires_a_provider_flag():
     with pytest.raises(SystemExit):
-        cs.main([])
+        cs.main(['--city-id', _CITY])
 
 
 def test_main_rejects_both_flags():
     with pytest.raises(SystemExit):
-        cs.main(['--gsv', '--mapillary'])
+        cs.main(['--city-id', _CITY, '--gsv', '--mapillary'])
 
 
 def test_main_missing_api_key_returns_1(monkeypatch):
     monkeypatch.delenv('GOOGLE_MAPS_API_KEY', raising=False)
-    assert cs.main(['--gsv']) == 1
+    assert cs.main(['--city-id', _CITY, '--gsv']) == 1
+
+
+def test_main_missing_input_csv_returns_1(monkeypatch, tmp_path):
+    monkeypatch.setattr(cs, 'REPO_ROOT', str(tmp_path))
+    monkeypatch.setenv('GOOGLE_MAPS_API_KEY', 'dummy')
+    assert cs.main(['--city-id', 'no-such-city', '--gsv']) == 1
 
 
 def test_main_happy_mixed_outcomes_and_summary(monkeypatch, tmp_path):
@@ -778,7 +807,7 @@ def test_main_happy_mixed_outcomes_and_summary(monkeypatch, tmp_path):
     monkeypatch.setattr(cs, '_get_json',
                         lambda url: {'status': 'OK'} if '47.61' in url else {'status': 'ZERO_RESULTS'})
     # High QPS so the rate limiter never actually throttles the test; --workers exercises the thread pool.
-    assert cs.main(['--gsv', '--workers', '4', '--max-qps', '1000']) == 0
+    assert cs.main(['--city-id', _CITY, '--gsv', '--workers', '4', '--max-qps', '1000']) == 0
     assert _output(tmp_path)['street_edge_id'].tolist() == [100]
     summary = _summary(tmp_path)
     assert sorted(summary.index) == [100, 200]
@@ -789,7 +818,7 @@ def test_main_happy_mixed_outcomes_and_summary(monkeypatch, tmp_path):
 def test_main_summary_captures_capture_dates(monkeypatch, tmp_path):
     _setup(monkeypatch, tmp_path, [(200, 1, _LINE_61)])
     monkeypatch.setattr(cs, '_get_json', lambda url: {'status': 'OK', 'date': '2021-08'})
-    assert cs.main(['--gsv', '--max-qps', '1000']) == 0
+    assert cs.main(['--city-id', _CITY, '--gsv', '--max-qps', '1000']) == 0
     summary = _summary(tmp_path)
     assert summary.loc[200, 'newest_capture'] == '2021-08-01'
     assert summary.loc[200, 'n_panos'] >= 1
@@ -800,7 +829,6 @@ def test_main_runs_from_a_different_working_directory(monkeypatch, tmp_path):
     # because the first checkpoint write hit a CWD-relative db/ path that didn't exist. Anchoring to the repo root
     # fixes it: here we run from a scripts/ dir that has neither the input CSV nor db/, and the scan still completes.
     _write_street_csv(tmp_path, [(100, 1, _LINE_60)])
-    (tmp_path / 'db').mkdir()
     monkeypatch.setattr(cs, 'REPO_ROOT', str(tmp_path))
     scripts_dir = tmp_path / 'scripts'
     scripts_dir.mkdir()
@@ -808,7 +836,7 @@ def test_main_runs_from_a_different_working_directory(monkeypatch, tmp_path):
     monkeypatch.setenv('GOOGLE_MAPS_API_KEY', 'dummy')
     monkeypatch.setattr(cs, '_get_json', lambda url: {'status': 'ZERO_RESULTS'})  # no imagery -> flagged
 
-    assert cs.main(['--gsv']) == 0
+    assert cs.main(['--city-id', _CITY, '--gsv']) == 0
     # Output and checkpoint land under the repo root's db/, not the scripts/ working directory.
     assert _output(tmp_path)['street_edge_id'].tolist() == [100]
     assert not (scripts_dir / 'db').exists()
@@ -817,9 +845,9 @@ def test_main_runs_from_a_different_working_directory(monkeypatch, tmp_path):
 def test_main_resumes_from_checkpoint(monkeypatch, tmp_path):
     _setup(monkeypatch, tmp_path, [(100, 1, _LINE_60), (200, 1, _LINE_61)])
     _settled_checkpoint([(100, 1, cs.HAS_IMAGERY, '2019-01-01', '2019-01-01', 3)]).to_csv(
-        tmp_path / cs.CHECKPOINT_FILE, index=False)
+        tmp_path / cs.CHECKPOINT_FILE.format(_CITY, 'gsv'), index=False)
     monkeypatch.setattr(cs, '_get_json', lambda url: {'status': 'ZERO_RESULTS'})
-    assert cs.main(['--gsv']) == 0
+    assert cs.main(['--city-id', _CITY, '--gsv']) == 0
     # 100 was already settled (has imagery) and skipped; only 200 was processed -> flagged.
     assert _output(tmp_path)['street_edge_id'].tolist() == [200]
 
@@ -829,7 +857,8 @@ def test_progress_bar_resumes_at_prior_position(monkeypatch, tmp_path):
     # picks up at its prior percentage rather than restarting at 0% (requested on #4360).
     _setup(monkeypatch, tmp_path, [(100, 1, _LINE_60), (200, 1, _LINE_61), (300, 1, _LINE_60)])
     _settled_checkpoint([(100, 1, cs.HAS_IMAGERY, '2019-01-01', '2019-01-01', 3),
-                         (200, 1, cs.NO_IMAGERY, None, None, 0)]).to_csv(tmp_path / cs.CHECKPOINT_FILE, index=False)
+                         (200, 1, cs.NO_IMAGERY, None, None, 0)]).to_csv(
+        tmp_path / cs.CHECKPOINT_FILE.format(_CITY, 'gsv'), index=False)
     monkeypatch.setattr(cs, '_get_json', lambda url: {'status': 'ZERO_RESULTS'})
 
     captured = {}
@@ -839,7 +868,7 @@ def test_progress_bar_resumes_at_prior_position(monkeypatch, tmp_path):
         return iterable
 
     monkeypatch.setattr(cs, 'tqdm', spy_tqdm)
-    assert cs.main(['--gsv']) == 0
+    assert cs.main(['--city-id', _CITY, '--gsv']) == 0
     # 3 streets total, 2 already settled -> bar starts at 2/3, not 0/3.
     assert captured['total'] == 3
     assert captured['initial'] == 2
@@ -853,15 +882,15 @@ def test_main_fail_soft_records_failed_streets(monkeypatch, tmp_path):
         raise requests.exceptions.ConnectionError('down')
 
     monkeypatch.setattr(cs, '_get_json', boom)
-    assert cs.main(['--gsv', '--max-qps', '1000']) == 0  # the scan completes despite the failure
+    assert cs.main(['--city-id', _CITY, '--gsv', '--max-qps', '1000']) == 0  # the scan completes despite the failure
     assert _output(tmp_path).empty
-    assert pd.read_csv(tmp_path / cs.FAILED_FILE)['street_edge_id'].tolist() == [100]
+    assert pd.read_csv(tmp_path / cs.FAILED_FILE.format(_CITY))['street_edge_id'].tolist() == [100]
 
 
 def test_main_mapillary_branch(monkeypatch, tmp_path):
     _setup(monkeypatch, tmp_path, [(100, 1, _LINE_60)], env_var='MAPILLARY_ACCESS_TOKEN')
     monkeypatch.setattr(cs, '_get_json', lambda url: {'data': []})  # no imagery
-    assert cs.main(['--mapillary']) == 0
+    assert cs.main(['--city-id', _CITY, '--mapillary']) == 0
     assert _output(tmp_path)['street_edge_id'].tolist() == [100]
 
 
@@ -870,7 +899,7 @@ def test_main_panoramax_branch_needs_no_key(monkeypatch, tmp_path, capsys):
     for var in ('GOOGLE_MAPS_API_KEY', 'MAPILLARY_ACCESS_TOKEN'):
         monkeypatch.delenv(var, raising=False)
     monkeypatch.setattr(cs, '_get_json', lambda url, **kwargs: {'features': []})  # no imagery
-    assert cs.main(['--panoramax']) == 0
+    assert cs.main(['--city-id', _CITY, '--panoramax']) == 0
     assert 'no credential needed' in capsys.readouterr().out
     assert _output(tmp_path)['street_edge_id'].tolist() == [100]
 
@@ -900,7 +929,7 @@ def _setup_infra3d(monkeypatch, tmp_path, campaigns, seen=None):
 def test_main_infra3d_branch_scopes_to_the_only_campaign(monkeypatch, tmp_path, capsys):
     seen = []
     _setup_infra3d(monkeypatch, tmp_path, [('c1', '2024 Zürich')], seen)
-    assert cs.main(['--infra3d']) == 0
+    assert cs.main(['--city-id', _CITY, '--infra3d']) == 0
     assert _output(tmp_path)['street_edge_id'].tolist() == [100]
     assert 'tenant uzh, campaign(s): c1 (2024 Zürich)' in capsys.readouterr().out
     assert all('campaign_uid%20in%20%27%28c1%29%27' in url for url in seen[1:])
@@ -908,7 +937,7 @@ def test_main_infra3d_branch_scopes_to_the_only_campaign(monkeypatch, tmp_path, 
 
 def test_main_infra3d_several_campaigns_need_a_choice(monkeypatch, tmp_path, capsys):
     _setup_infra3d(monkeypatch, tmp_path, [('c1', 'a'), ('c2', 'b')])
-    assert cs.main(['--infra3d']) == 1
+    assert cs.main(['--city-id', _CITY, '--infra3d']) == 1
     out = capsys.readouterr().out
     assert '--campaign' in out and 'c1  a' in out and 'c2  b' in out
 
@@ -916,27 +945,27 @@ def test_main_infra3d_several_campaigns_need_a_choice(monkeypatch, tmp_path, cap
 def test_main_infra3d_campaign_flag_selects_scope(monkeypatch, tmp_path):
     seen = []
     _setup_infra3d(monkeypatch, tmp_path, [('c1', 'a'), ('c2', 'b')], seen)
-    assert cs.main(['--infra3d', '--campaign', 'c2', '--campaign', 'c1']) == 0
+    assert cs.main(['--city-id', _CITY, '--infra3d', '--campaign', 'c2', '--campaign', 'c1']) == 0
     assert all('campaign_uid%20in%20%27%28c2%2C%20c1%29%27' in url for url in seen[1:])
 
 
 def test_main_infra3d_unknown_campaign_returns_1(monkeypatch, tmp_path, capsys):
     _setup_infra3d(monkeypatch, tmp_path, [('c1', 'a')])
-    assert cs.main(['--infra3d', '--campaign', 'nope']) == 1
+    assert cs.main(['--city-id', _CITY, '--infra3d', '--campaign', 'nope']) == 1
     assert 'not in this tenant: nope' in capsys.readouterr().out
 
 
 def test_main_infra3d_missing_credentials_returns_1(monkeypatch):
     monkeypatch.setenv('INFRA3D_CLIENT_ID', 'dummy')
     monkeypatch.delenv('INFRA3D_CLIENT_SECRET', raising=False)
-    assert cs.main(['--infra3d']) == 1
+    assert cs.main(['--city-id', _CITY, '--infra3d']) == 1
 
 
 def test_main_infra3d_token_failure_returns_1(monkeypatch, tmp_path):
     _setup(monkeypatch, tmp_path, [(100, 1, _LINE_60)], env_var='INFRA3D_CLIENT_ID')
     monkeypatch.setenv('INFRA3D_CLIENT_SECRET', 'dummy')
     monkeypatch.setattr(cs.requests, 'post', _infra3d_token_post(status_code=401))
-    assert cs.main(['--infra3d']) == 1
+    assert cs.main(['--city-id', _CITY, '--infra3d']) == 1
 
 
 def test_main_unexpected_worker_error_still_finalizes_outputs(monkeypatch, tmp_path):
@@ -950,7 +979,7 @@ def test_main_unexpected_worker_error_still_finalizes_outputs(monkeypatch, tmp_p
 
     monkeypatch.setattr(cs, '_get_json', get_json)
     with pytest.raises(RuntimeError):  # not swallowed: a bug should still be loud...
-        cs.main(['--gsv', '--workers', '1', '--max-qps', '1000'])
+        cs.main(['--city-id', _CITY, '--gsv', '--workers', '1', '--max-qps', '1000'])
     assert _output(tmp_path)['street_edge_id'].tolist() == [100]  # ...but the settled streets are written out.
 
 
@@ -962,5 +991,150 @@ def test_main_keyboard_interrupt_finalizes_and_returns_1(monkeypatch, tmp_path):
         raise KeyboardInterrupt()
 
     monkeypatch.setattr(cs, 'process_street', interrupt)
-    assert cs.main(['--gsv']) == 1
+    assert cs.main(['--city-id', _CITY, '--gsv']) == 1
     assert _output(tmp_path).empty  # finalize still ran, producing an (empty) output file
+
+
+# --------------------------------------------------------------------------------------------------------------------
+# --sample preflight
+# --------------------------------------------------------------------------------------------------------------------
+
+def _summary_frame(rows):
+    return pd.DataFrame(rows, columns=cs.SUMMARY_COLUMNS)
+
+
+def test_preflight_summary_aggregates_coverage_and_newest_captures():
+    summary = _summary_frame([
+        (1, 1, True, '2019-01-01', '2024-05-01', 3),
+        (2, 1, True, '2021-01-01', '2021-06-01', 2),
+        (3, 1, False, None, None, 0),
+        (4, 2, True, None, None, 1),   # covered, but the provider reports no dates (Mapillary)
+    ])
+    result = cs.preflight_summary(summary, n_failed=1)
+    assert (result['n_streets'], result['n_covered'], result['n_failed']) == (4, 3, 1)
+    assert result['pct_covered'] == pytest.approx(75)
+    assert (result['oldest'], result['median'], result['newest']) == ('2021-06-01', '2021-06-01', '2024-05-01')
+    assert result['years'] == {'2021': 1, '2024': 1}
+
+
+def test_preflight_summary_of_nothing():
+    result = cs.preflight_summary(_summary_frame([]))
+    assert result['n_streets'] == 0 and result['pct_covered'] == 0.0
+    assert result['oldest'] is None and result['years'] == {}
+
+
+def test_collect_and_write_preflight_report(tmp_path):
+    assert cs.collect_preflight_summaries(str(tmp_path)) == {}
+    for provider, rows in (('gsv', [(1, 1, True, '2020-01-01', '2020-01-01', 1), (2, 1, False, None, None, 0)]),
+                           ('mapillary', [(1, 1, True, None, None, 4), (2, 1, True, None, None, 2)]),
+                           ('panoramax', [])):
+        provider_dir = tmp_path / 'preflight' / provider
+        provider_dir.mkdir(parents=True)
+        if provider != 'panoramax':  # A provider dir with no summary yet (interrupted run) is skipped.
+            _summary_frame(rows).to_csv(provider_dir / 'street_imagery_summary.csv', index=False)
+    pd.DataFrame({'street_edge_id': [3, 4]}).to_csv(tmp_path / 'preflight' / 'gsv' / 'failed_streets.csv',
+                                                    index=False)
+    summaries = cs.collect_preflight_summaries(str(tmp_path))
+    assert sorted(summaries) == ['gsv', 'mapillary']
+    assert summaries['gsv']['n_failed'] == 2
+    report = tmp_path / 'preflight_report.md'
+    cs.write_preflight_report(str(report), 'testville-wa', summaries)
+    text = report.read_text()
+    assert '# Imagery preflight — testville-wa' in text
+    assert '| gsv | 2 | 1 (50%) | 2 | 2020-01-01 | 2020-01-01 | 2020-01-01 | 2020: 1 |' in text
+    assert '| mapillary | 2 | 2 (100%) | 0 | — | — | — | — |' in text
+
+
+def test_main_sample_mode_keeps_its_files_apart_and_writes_the_report(monkeypatch, tmp_path, capsys):
+    _setup(monkeypatch, tmp_path, [(100, 1, _LINE_60), (200, 1, _LINE_61), (300, 2, _LINE_60)])
+    monkeypatch.setattr(cs, '_get_json', lambda url: {'status': 'OK', 'date': '2023-04'})
+    assert cs.main(['--city-id', _CITY, '--gsv', '--sample', '2', '--max-qps', '1000']) == 0
+    preflight_dir = tmp_path / 'db' / 'onboarding' / _CITY / 'preflight' / 'gsv'
+    sample = pd.read_csv(preflight_dir / 'street_imagery_summary.csv')
+    assert len(sample) == 2 and sample['has_imagery'].all()
+    # The full scan's files are untouched, so a later full run starts from a clean checkpoint.
+    assert not (tmp_path / cs.CHECKPOINT_FILE.format(_CITY, 'gsv')).exists()
+    assert not (tmp_path / cs.SUMMARY_FILE.format(_CITY)).exists()
+    report = (tmp_path / cs.PREFLIGHT_REPORT.format(_CITY)).read_text()
+    assert '| gsv | 2 | 2 (100%) | 0 | 2023-04-01 | 2023-04-01 | 2023-04-01 | 2023: 2 |' in report
+    out = capsys.readouterr().out
+    assert 'Preflight: checking a random 2 of 3 streets for GSV imagery (seed 0)' in out
+    assert 'GSV: 2 of 2 sampled streets covered (100%), 0 failed' in out
+
+
+def test_main_bare_sample_flag_uses_the_default_size_and_the_same_streets_per_seed(monkeypatch, tmp_path):
+    _setup(monkeypatch, tmp_path, [(100, 1, _LINE_60), (200, 1, _LINE_61), (300, 2, _LINE_60)])
+    monkeypatch.setattr(cs, '_get_json', lambda url: {'status': 'ZERO_RESULTS'})
+    assert cs.DEFAULT_SAMPLE == 150
+    assert cs.main(['--city-id', _CITY, '--gsv', '--sample', '--max-qps', '1000']) == 0
+    summary_path = tmp_path / 'db' / 'onboarding' / _CITY / 'preflight' / 'gsv' / 'street_imagery_summary.csv'
+    assert len(pd.read_csv(summary_path)) == 3   # a sample larger than the city is the whole city
+    first = sorted(pd.read_csv(summary_path)['street_edge_id'])
+    # A different sample replaces the provider's preflight rather than accumulating into it.
+    assert cs.main(['--city-id', _CITY, '--gsv', '--sample', '2', '--seed', '7', '--max-qps', '1000']) == 0
+    second = sorted(pd.read_csv(summary_path)['street_edge_id'])
+    assert len(second) == 2 and set(second) <= set(first)
+
+
+def test_main_sample_reruns_resume_the_same_sample_but_replace_a_different_one(monkeypatch, tmp_path, capsys):
+    _setup(monkeypatch, tmp_path, [(100, 1, _LINE_60), (200, 1, _LINE_61), (300, 2, _LINE_60)])
+    calls = []
+
+    def fetch(url):
+        calls.append(url)
+        return {'status': 'ZERO_RESULTS'}
+
+    monkeypatch.setattr(cs, '_get_json', fetch)
+    assert cs.main(['--city-id', _CITY, '--gsv', '--sample', '1', '--max-qps', '1000']) == 0
+    n_first = len(calls)
+    summary_path = tmp_path / 'db' / 'onboarding' / _CITY / 'preflight' / 'gsv' / 'street_imagery_summary.csv'
+    # Same N and seed: the settled street is resumed, nothing is fetched again.
+    assert cs.main(['--city-id', _CITY, '--gsv', '--sample', '1', '--max-qps', '1000']) == 0
+    assert len(calls) == n_first and len(pd.read_csv(summary_path)) == 1
+    # A superset sample keeps it; a sample that leaves it out starts fresh.
+    assert cs.main(['--city-id', _CITY, '--gsv', '--sample', '3', '--max-qps', '1000']) == 0
+    assert len(pd.read_csv(summary_path)) == 3
+    assert cs.main(['--city-id', _CITY, '--gsv', '--sample', '1', '--max-qps', '1000']) == 0
+    assert len(pd.read_csv(summary_path)) == 1
+    assert 'starting this sample fresh' in capsys.readouterr().out
+
+
+def test_main_full_scan_checkpoints_per_provider(monkeypatch, tmp_path):
+    _setup(monkeypatch, tmp_path, [(100, 1, _LINE_60)])
+    monkeypatch.setenv('MAPILLARY_ACCESS_TOKEN', 'dummy')
+    monkeypatch.setattr(cs, '_get_json', lambda url: {'status': 'ZERO_RESULTS'})
+    assert cs.main(['--city-id', _CITY, '--gsv', '--max-qps', '1000']) == 0
+    assert _output(tmp_path)['street_edge_id'].tolist() == [100]
+    # Mapillary has imagery everywhere: the second provider rescans instead of resuming GSV's verdicts.
+    monkeypatch.setattr(cs, '_get_json', lambda url: {'data': [{'id': '1'}]})
+    assert cs.main(['--city-id', _CITY, '--mapillary', '--max-qps', '1000']) == 0
+    assert _output(tmp_path).empty
+    assert _summary(tmp_path).loc[100, 'has_imagery']
+    city_dir = tmp_path / 'db' / 'onboarding' / _CITY
+    assert (city_dir / 'streets_imagery_checkpoint_gsv.csv').exists()
+    assert (city_dir / 'streets_imagery_checkpoint_mapillary.csv').exists()
+
+
+def test_main_rewrites_the_failed_list_every_run(monkeypatch, tmp_path):
+    _setup(monkeypatch, tmp_path, [(100, 1, _LINE_60)])
+    monkeypatch.setattr(cs.time, 'sleep', lambda *_a: None)
+
+    def boom(url):
+        raise requests.exceptions.ConnectionError('down')
+
+    monkeypatch.setattr(cs, '_get_json', boom)
+    assert cs.main(['--city-id', _CITY, '--gsv', '--max-qps', '1000']) == 0
+    failed_path = tmp_path / cs.FAILED_FILE.format(_CITY)
+    assert pd.read_csv(failed_path)['street_edge_id'].tolist() == [100]
+    monkeypatch.setattr(cs, '_get_json', lambda url: {'status': 'OK'})
+    assert cs.main(['--city-id', _CITY, '--gsv', '--max-qps', '1000']) == 0
+    assert failed_path.exists() and pd.read_csv(failed_path).empty
+    assert pd.read_csv(failed_path).columns.tolist() == ['street_edge_id', 'region_id']
+
+
+def test_main_rejects_a_non_positive_sample_and_a_malformed_city_id():
+    with pytest.raises(SystemExit):
+        cs.main(['--city-id', _CITY, '--gsv', '--sample', '0'])
+    with pytest.raises(SystemExit):
+        cs.main(['--city-id', '../etc', '--gsv'])
+    assert cs.valid_city_id('newport-ky') == 'newport-ky'

@@ -1,9 +1,9 @@
 # Python utility scripts
 
-Two standalone Python utilities for Project Sidewalk. They are **not** part of the running web app's request path
-(except as noted below) — they are run out-of-band. `check_streets_for_imagery.py` resolves its data/output paths
-relative to the repo root, so it can be launched from any working directory. Unit tests for both live in
-[`test/python/`](../test/python).
+Three standalone Python utilities for Project Sidewalk. They are **not** part of the running web app's request path
+(except as noted below) — they are run out-of-band. `check_streets_for_imagery.py` and `onboard_city.py` resolve their
+data/output paths relative to the repo root, so they can be launched from any working directory. Unit tests for all
+three live in [`test/python/`](../test/python).
 
 ## Which interpreter to use
 
@@ -14,6 +14,7 @@ a current one):
 | --- | --- | --- |
 | `label_clustering.py` | `python3` (3.8) | [`requirements.txt`](../requirements.txt) |
 | `check_streets_for_imagery.py` | `python3.13` | [`requirements-offline-tools.txt`](../requirements-offline-tools.txt) |
+| `onboard_city.py` | `python3.13` | [`requirements-offline-tools.txt`](../requirements-offline-tools.txt) |
 
 `label_clustering.py` is shelled out to by the running app, so it must work on whatever `python3` the server has —
 currently 3.8, which is EOL (#4396). Offline tooling has no such tie and runs on `python3.13`; host-side, ≥ 3.11.
@@ -51,18 +52,21 @@ CSV.
 Standalone and manual — nothing in the app calls it.
 
 1. Export a CSV of the `street_edge` table with columns `street_edge_id, region_id, x1, y1, x2, y2, geom` (geom as WKB
-   hex), named `street_edge_endpoints.csv`, in the repo root.
+   hex) to `db/onboarding/<city-id>/street_edge_endpoints.csv`. Every scan file lives in that per-city dir, so scans
+   for different cities can't collide or resume each other's checkpoints.
 2. Run **one** of (from any directory — paths resolve relative to the repo root):
    ```bash
-   python3.13 scripts/check_streets_for_imagery.py --gsv         # needs GOOGLE_MAPS_API_KEY
-   python3.13 scripts/check_streets_for_imagery.py --mapillary   # needs MAPILLARY_ACCESS_TOKEN
-   python3.13 scripts/check_streets_for_imagery.py --infra3d     # needs INFRA3D_CLIENT_ID + INFRA3D_CLIENT_SECRET;
-                                                                 # add --campaign <uid> if the tenant has several
-   python3.13 scripts/check_streets_for_imagery.py --panoramax   # public API, no credential; 360° pictures only
+   python3.13 scripts/check_streets_for_imagery.py --city-id newport-ky --gsv         # needs GOOGLE_MAPS_API_KEY
+   python3.13 scripts/check_streets_for_imagery.py --city-id newport-ky --mapillary   # needs MAPILLARY_ACCESS_TOKEN
+   python3.13 scripts/check_streets_for_imagery.py --city-id newport-ky --infra3d     # needs INFRA3D_CLIENT_ID +
+                                                                 # INFRA3D_CLIENT_SECRET; add --campaign <uid> if
+                                                                 # the tenant has several
+   python3.13 scripts/check_streets_for_imagery.py --city-id newport-ky --panoramax   # public API, no credential;
+                                                                 # 360° pictures only
    ```
    It checks each street's endpoints first, then samples points along the street, and flags streets where enough points
-   lack imagery. It writes streets without imagery to `db/streets_with_no_imagery.csv`, and a per-street imagery
-   summary (presence + capture-date range) to `db/street_imagery_summary.csv`.
+   lack imagery. It writes streets without imagery to `streets_with_no_imagery.csv`, and a per-street imagery summary
+   (presence + capture-date range) to `street_imagery_summary.csv`, both in the same dir.
 3. Run `make hide-streets-without-imagery` to mark those streets in the database.
 
 Optional flags: `--workers N` (streets checked concurrently, default 8) and `--max-qps F` (global cap on requests per
@@ -93,11 +97,27 @@ The token lives 60 minutes and is refreshed automatically during a long scan. In
 default `--max-qps 10` is in the range of a single busy browser session, so keep it there (or lower) rather than
 raising it.
 
+### Preflight (`--sample`)
+
+```bash
+make check-imagery id=laurens-ia args="--sample --gsv"          # 150 random streets; --sample 60 --seed 3 to vary
+make check-imagery id=laurens-ia args="--sample --mapillary"
+```
+
+The same per-street verdict on a random sample, kept under `db/onboarding/<city-id>/preflight/<provider>/` so a full
+scan's checkpoint is untouched, with every provider sampled so far summarized side by side in
+`db/onboarding/<city-id>/preflight_report.md`: coverage, **failed** (a key or quota problem — GSV's
+`OVER_QUERY_LIMIT` / `REQUEST_DENIED` now fail the street instead of counting as imagery), and the oldest / median /
+newest of the covered streets' newest captures. Because `onboard_city.py` writes the endpoints CSV this reads, the
+question "does this city have imagery, and how fresh?" is answered minutes after the build, before any database work.
+A rerun with the same `N` and `--seed` resumes the sample; a different sample replaces that provider's row rather than
+accumulating into it.
+
 ### Imagery age
 
 The GSV, Panoramax, and Infra3d responses we already fetch also carry an imagery capture date, so — for **no extra API
-calls** —
-the scan records each street's capture-date range (oldest/newest) and pano count into `db/street_imagery_summary.csv`
+calls** — the scan records each street's capture-date range (oldest/newest) and pano count into
+`street_imagery_summary.csv`
 (`street_edge_id, region_id, has_imagery, oldest_capture, newest_capture, n_panos`). That tells us not just whether a
 street has imagery but how old it is. Mapillary capture dates are a future enhancement. Persisting this into the
 database — to power a "stale imagery" signal alongside the `street_edge_status` work (#3888) — is tracked as a
@@ -112,10 +132,14 @@ The scan is built to survive a flaky network over a long run, and to scan a whol
   the sequential endpoint→points early-exit, so concurrency doesn't inflate the number of API calls.
 - **Retry:** each request is retried with exponential backoff + jitter (`tenacity`) before giving up.
 - **Fail-soft:** a street that still errors is logged and the scan **continues** (it no longer aborts the whole run);
-  the failed set is retried once at the end, and any still-failing streets are written to `db/failed_streets.csv`.
-- **Resume:** progress is checkpointed per street to `db/streets_imagery_checkpoint.csv`, so a re-run resumes where it
-  left off and re-attempts only failed/unprocessed streets. The final `db/streets_with_no_imagery.csv` is derived from
-  the checkpoint at the end — its schema is unchanged, so `make hide-streets-without-imagery` is unaffected.
+  the failed set is retried once at the end, and any still-failing streets are written to `failed_streets.csv`.
+- **Resume:** progress is checkpointed per street to `streets_imagery_checkpoint_<provider>.csv`, so a re-run resumes
+  where it left off and re-attempts only failed/unprocessed streets — and since every city's files live in its own dir
+  and the checkpoint is per provider, a scan can never resume another city's or another provider's results:
+  `--mapillary` after `--gsv` rescans and regenerates the output CSVs from the Mapillary checkpoint. The final
+  no-imagery CSV is derived from the checkpoint at the end — its schema is unchanged, so
+  `make hide-streets-without-imagery` is unaffected. `failed_streets.csv` is rewritten every run (empty when nothing
+  failed), so a rerun with a fixed key clears it.
 - **Progress:** a `tqdm` progress bar (count, %, rate, and ETA) renders to stderr as streets complete. It tracks the
   whole city and is seeded with already-settled streets, so a resumed run picks up at its prior percentage rather than
   restarting at 0%. It auto-suppresses when stderr isn't a terminal, so redirected/CI logs stay clean.
@@ -149,9 +173,45 @@ column:
   zero API cost and covers every **audited** street, including Mapillary/Infra3d panos. Rows are tagged
   `data_source = 'pano_data'`.
 - **Feeder 2 — the imagery scan (manual).** For streets a scan reached but that have no labels yet (so Feeder 1 can't
-  see them), run `make import-street-imagery` to ingest `db/street_imagery_summary.csv` — the per-street summary the
-  scan writes. Rows are tagged `data_source = 'imagery_scan'`, and a scan
+  see them), run `make import-street-imagery` to ingest `db/onboarding/<city-id>/street_imagery_summary.csv` — the
+  per-street summary the scan writes. Rows are tagged `data_source = 'imagery_scan'`, and a scan
   supersedes an existing `pano_data` row for the same street (it's a deliberate, fresher measurement).
+
+## `onboard_city.py`
+
+Builds a new city's street + region staging data (`qgis_road`/`qgis_region`, consumed by
+`db/scripts/fill-new-schema.sh`) from open data sources — the headless replacement for the QGIS onboarding runbook
+(#4291). Standalone and manual; it never writes to the database. The full workflow around it, including the QGIS QA
+loop and the imagery preflight, is [`docs/onboarding-a-city.md`](../docs/onboarding-a-city.md).
+
+```bash
+make build-city-data id=laurens-ia args="--place 'Laurens, Iowa, USA'"
+make build-city-data id=bayonne args="--boundary-file city.geojson --regions-file quartiers.geojson \
+    --region-name-col nom --regions-source 'https://…'"
+```
+
+`--city-id` is the id the deployment will use in `conf/cityparams.conf` (`SIDEWALK_CITY_ID`); the schema /
+`DATABASE_USER` swaps its hyphens for underscores (`sidewalk_laurens_ia` — new cities keep the full city id).
+
+Streets come from OSM (osmnx, the runbook's highway filter minus `area=yes` plazas, `--include-alleys` for
+`service=alley`), noded only where included ways meet. Then the #4717 anti-tiny-segment rules: pieces under
+`--merge-tiny-m` (20 m) left between close intersections merge back into a touching piece of the same OSM way (never
+closing a ring); region-boundary fragments under `--heal-segment-m` are reabsorbed; boundary-running splits are merged
+(`rider_merges` QA layer); truncated ends riding within `--boundary-merge-tol-m` of the covered area are restored.
+osmnx joins consecutive OSM ways between intersections into one edge, so a street lists every way it spans in
+`osm_ids` (the fill records the first in `osm_way_street_edge`, which is one row per street). Regions come from the
+first source that works: `--regions-file` (any OGR format/CRS; `--region-name-col` names its name column, and
+`--regions-source` records the provenance in `region.data_source`), OSM neighbourhood polygons (auto-rejected under
+75% city coverage), US census tracts (TIGERweb), or the city boundary as a single region.
+
+Outputs land in `db/onboarding/<city-id>/` (git-ignored; visible to the db container at `/opt/onboarding/` when run
+from the main checkout): the QA GeoPackage, `qgis_tables.sql`, `street_edge_endpoints.csv` (the scan's input, so the
+preflight below runs before any database exists), and `report.md` with the tiny-segment histogram (production
+averages 18% of streets under 20 m; Bayonne rebuilt at 4%), per-region km with `SPARSE`/`OVERSIZED`/`EMPTY` flags,
+region-name warnings (#4620), and boundary coverage. The QA loop: rerun with tweaked flags — `--merge-regions
+"Census Tract 513:Census Tract 523.01"` folds regions by *name* and re-splits the streets against the merged
+boundaries — or hand-edit the GeoPackage in QGIS and regenerate the SQL with `make build-city-data id=<city-id>
+args="--from-gpkg"`, which validates the layers first (a hand-built layer with a single `osm_id` column is accepted).
 
 ## Testing
 
