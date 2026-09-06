@@ -24,18 +24,23 @@ class DesktopValidationMenu {
 
     // Add onclick for each validation button.
     menuUI.yesButton.click((e) => {
+      // The menu is dimmed and pointer-blocked while the next label's pano loads, but a button that kept focus after
+      // a click still answers Enter with a native click of its own, which no CSS stops (#5211).
+      if (svv.labelContainer.dropInputWhileLoading('Agree')) return;
       const action = e.isTrigger ? 'ValidationKeyboardShortcut_Agree' : 'ValidationButtonClick_Agree';
       svv.tracker.push(action);
       this.#setYesView();
       svv.labelContainer.getCurrentLabel().setProperty('validationResult', 'Agree');
     });
     menuUI.noButton.click((e) => {
+      if (svv.labelContainer.dropInputWhileLoading('Disagree')) return;
       const action = e.isTrigger ? 'ValidationKeyboardShortcut_Disagree' : 'ValidationButtonClick_Disagree';
       svv.tracker.push(action);
       this.#setNoView();
       svv.labelContainer.getCurrentLabel().setProperty('validationResult', 'Disagree');
     });
     menuUI.unsureButton.click((e) => {
+      if (svv.labelContainer.dropInputWhileLoading('Unsure')) return;
       const action = e.isTrigger ? 'ValidationKeyboardShortcut_Unsure' : 'ValidationButtonClick_Unsure';
       svv.tracker.push(action);
       this.#setUnsureView();
@@ -545,6 +550,9 @@ class DesktopValidationMenu {
    * @param {boolean} keyboardShortcut Whether or not the validation was triggered by a keyboard shortcut.
    */
   #validateLabel(action, keyboardShortcut) {
+    // Everything below writes to whatever getCurrentLabel() returns, which mid-load is already the next label (#5211).
+    if (svv.labelContainer.dropInputWhileLoading(`Submit=${action}`)) return;
+
     const menuUI = this.#menuUI;
     const actionStr = keyboardShortcut ? 'ValidationKeyboardShortcut_Submit_Validation=' : 'Click=Submit_Validation=';
     const timestamp = new Date();
