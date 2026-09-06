@@ -14,7 +14,8 @@
  * dropped to the body counts as the card's on a popup host, because paging keeps putting it there (an arrow
  * disables at the end of the run, the comment box disables while the next label's imagery loads, the comment list
  * and the viewer are rebuilt), and a session that stops answering keys after a few labels is the symptom. For the
- * same reason a shortcut vote leaves focus alone rather than opening the comment box under it.
+ * same reason a vote never moves focus into the comment box it opens — by either input path, so that a run
+ * through labels can mix the mouse and the keyboard freely (Jon, #5194).
  *
  * The shortcuts press the card's own buttons rather than reaching past them, so a hidden or disabled control means
  * the key does nothing here and is left for the page to handle (the arrows still scroll). The click they fire
@@ -714,8 +715,9 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
             expect(nextArrow().disabled).toBe(false);
         });
 
-        test('a pointer vote is still taken into the comment box', async () => {
-            // Clicking a vote is a deliberate stop on that label, and the box asking why is where you are going.
+        test('nor does a pointer vote, so the two input paths stay interchangeable', async () => {
+            // A run through labels is often mouse and keyboard together, and a box that swallows focus on one of
+            // those paths and not the other makes which keys work depend on how the last vote was cast.
             await showLabel({ user_validation: null });
 
             overlayButton('disagree').dispatchEvent(
@@ -723,7 +725,8 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
             );
             await flush();
 
-            expect(document.activeElement).toBe(q('.label-detail__comment-input'));
+            expect(q('.label-detail__comment-row').classList.contains('is-open')).toBe(true);
+            expect(document.activeElement).not.toBe(q('.label-detail__comment-input'));
         });
     });
 

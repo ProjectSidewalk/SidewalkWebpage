@@ -951,9 +951,12 @@ class LabelDetail {
    * (label, user), so a second submission silently replaced the first — an open, inviting box above your own comment
    * offered exactly the action that destroyed it.
    *
-   * @param {boolean} [focusOnReveal=false] - Focus the input when this call reveals the row (fresh-vote flow).
+   * Revealing the box never moves focus into it, whichever way the vote was cast. A vote is usually one step of a
+   * run through labels — page, judge, page — and focus landing in a text field ends that run for the keyboard and
+   * makes the two input paths behave differently for no reason the reader can see. The box is a visible, labelled
+   * invitation; whoever wants to answer it reaches it with Tab or a click (Jon, #5194).
    */
-  #updateCommentRow(focusOnReveal = false) {
+  #updateCommentRow() {
     const els = this.#els;
     if (!els.commentRow) return;
     const action = this.#prevAction;
@@ -961,7 +964,6 @@ class LabelDetail {
     // Editing opens the box even with no vote: clearing a vote deletes its comment, but comments predating that rule
     // still exist, and their author must be able to reach their own text.
     const show = !this.#locked && (this.#editingComment || (voted && this.#myCommentIdx < 0));
-    const wasOpen = els.commentRow.classList.contains('is-open');
     els.commentRow.classList.toggle('is-open', show);
     if (show) {
       // An edit with no vote behind it has no per-vote prompt to show, so it falls back to the neutral one.
@@ -970,7 +972,6 @@ class LabelDetail {
         : i18next.t('labelmap:add-comment');
       els.commentInput.placeholder = prompt;
       if (els.commentLabel) els.commentLabel.textContent = prompt;
-      if (!wasOpen && focusOnReveal) els.commentInput.focus();
     }
     els.commentButton.textContent = i18next.t(this.#editingComment ? 'labelmap:comment-save' : 'labelmap:comment');
     if (els.commentCancel) els.commentCancel.hidden = !this.#editingComment;
@@ -1055,7 +1056,8 @@ class LabelDetail {
    * @param {boolean} [undone=false] - Clear the user's existing `action` vote instead of casting one (#4653). The
    *     backend deletes the validation and the user's comment on the label rather than inserting a new row, so the
    *     label returns to no-vote for this user.
-   * @param {boolean} [viaKeyboard=false] - The vote came from the keyboard; only reaches the ClearVote event.
+   * @param {boolean} [viaKeyboard=false] - The vote came from the keyboard rather than a pointer. Reaches the
+   *     ClearVote event, which logs the two input paths apart, and the vote echo, which only the keyboard gets.
    */
   #submitValidation(action, source, undone = false, viaKeyboard = false) {
     const isNewValidation = !undone && !this.#prevAction;
@@ -1116,11 +1118,7 @@ class LabelDetail {
       // Clearing a vote — and changing one (the `redone` flag) — deletes the user's comment server-side; drop it
       // here too so the list and its vote chips (#5015) match what a reload would show.
       const commentDropped = (undone || data.redone) && this.#dropOwnComment();
-      // The box opens either way, but only a pointer vote is taken into it. A shortcut vote is usually one step of
-      // paging through labels, and focus landing in a text field ends that: every following A/D/U and arrow is
-      // then a character or a caret move, which is the right thing to do with a key aimed at an input and reads as
-      // the card having stopped listening. Whoever wants to type reaches the box with Tab.
-      this.#updateCommentRow(!viaKeyboard);
+      this.#updateCommentRow();
       if (commentDropped) this.#flashCommentStatus('labelmap:comment-cleared', 'removed');
       this.#setVoteButtonsDisabled(false);
       if (isNewValidation) BadgeAchievements.recordValidation(this.panoManager.svHolder[0]);
