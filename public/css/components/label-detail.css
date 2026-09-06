@@ -259,9 +259,29 @@ dialog.label-detail[open]::backdrop {
   bottom: 4.5px;
   right: 10px;
 
-  /* Under the hover validation bar (1), like the source logo opposite it: while that bar is up it belongs to the
-     vote buttons, and a credit painted over them would be the thing in the way. */
-  z-index: 0;
+  z-index: 0; /* Under the hover validation bar (1), like the source logo opposite it. */
+}
+
+/* Both halves of the credit step aside for the vote bar rather than being occluded by it — the bar's own reveal
+   condition, read from the wrap with :has() because the credit sits inside .label-detail__pano, a *previous*
+   sibling of the bar. [hidden] is part of that condition: the bar is dropped entirely on the viewer's own label
+   (#5047), and the credit would otherwise vanish for a bar that never arrives. */
+.label-detail .pano-attribution,
+.label-detail .pano-viewer-logo {
+  transition: opacity 150ms ease; /* The bar's own fade. */
+}
+
+.label-detail__pano-wrap:hover:has(.label-detail__pano-overlay:not([hidden])) .pano-attribution,
+.label-detail__pano-wrap:hover:has(.label-detail__pano-overlay:not([hidden])) .pano-viewer-logo,
+.label-detail__pano-wrap:has(.label-detail__pano-overlay:focus-within) .pano-attribution,
+.label-detail__pano-wrap:has(.label-detail__pano-overlay:focus-within) .pano-viewer-logo {
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .label-detail .pano-attribution,
+  .label-detail .pano-viewer-logo { transition: none; }
 }
 
 /* Hide-label toggle (#2477) in the pano's top-left. Revealed on hover like the paging arrows. */
