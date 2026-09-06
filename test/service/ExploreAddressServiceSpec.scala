@@ -229,7 +229,7 @@ class ExploreAddressServiceSpec
         PanoSubmission(panoId = specPanoId, source = PanoSource.Gsv, captureDate = "2024-06", width = Some(8192),
           height = Some(4096), tileWidth = Some(512), tileHeight = Some(512), lat = Some(41.87), lng = Some(-87.62),
           cameraHeading = Some(180d), cameraPitch = Some(0d), cameraRoll = None, links = Seq.empty, copyright = None,
-          address = None, history = Seq.empty, sourceMetadata = None)
+          license = None, address = None, history = Seq.empty, sourceMetadata = None)
       )
     )
 

@@ -275,7 +275,7 @@ object LabelFormats {
     "camera_pitch"   -> pm.cameraPitch,
     "camera_roll"    -> pm.cameraRoll,
     "copyright"      -> pm.copyright,
-    "attribution"    -> ImageryAttribution.line(source, pm.copyright).map(_.toJson),
+    "attribution"    -> ImageryAttribution.line(source, pm.copyright, pm.license).map(_.toJson),
     "address"        -> pm.address
   )
 
@@ -299,7 +299,7 @@ object LabelFormats {
       "cameraRoll"    -> p.cameraRoll,
       "captureDate"   -> p.captureDate,
       "copyright"     -> p.copyright,
-      "attribution"   -> ImageryAttribution.line(p.source, p.copyright).map(_.toJson),
+      "attribution"   -> ImageryAttribution.line(p.source, p.copyright, p.license).map(_.toJson),
       "address"       -> p.address
     )
   }

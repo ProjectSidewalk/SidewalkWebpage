@@ -782,8 +782,8 @@ class ExploreServiceImpl @Inject() (
     for {
       _ <- panoDataTable.upsert(
         PanoData(pano.panoId, pano.width, pano.height, pano.tileWidth, pano.tileHeight, pano.captureDate,
-          pano.copyright, pano.lat, pano.lng, pano.cameraHeading, pano.cameraPitch, pano.cameraRoll, expired = false,
-          timestamp, Some(timestamp), timestamp, pano.source, hasBackup = None, address = pano.address,
+          pano.copyright, pano.license, pano.lat, pano.lng, pano.cameraHeading, pano.cameraPitch, pano.cameraRoll,
+          expired = false, timestamp, Some(timestamp), timestamp, pano.source, hasBackup = None, address = pano.address,
           sourceMetadata = pano.sourceMetadata)
       )
 
