@@ -76,12 +76,10 @@ class AccessScoreService @Inject() (
   ): StreetAccessScoreForApi = {
     val inputs: Seq[ClusterScoreInput] =
       rows.map(r => ClusterScoreInput(r.labelType, r.severity, r.labelCount, r.tagCounts))
-    val rawScore: Double                            = AccessScoreCalculator.scoreStreet(inputs)
-    val byType: Map[String, Seq[ClusterScoreInput]] = inputs.groupBy(_.labelType)
-    val clusterCounts: Map[String, Int]             = byType.map { case (lt, cs) => lt -> cs.size }
-    val subScores: Map[String, Double]              = byType.map { case (lt, cs) =>
-      lt -> cs.map(AccessScoreCalculator.scoreCluster).sum
-    }
+    // The score is squashed from the same per-type terms the API reports, so `sub_scores` always explains `score`.
+    val subScores: Map[String, Double]  = AccessScoreCalculator.scoreByType(inputs)
+    val rawScore: Double                = AccessScoreCalculator.scoreFromSubScores(subScores)
+    val clusterCounts: Map[String, Int] = inputs.groupBy(_.labelType).map { case (lt, cs) => lt -> cs.size }
 
     StreetAccessScoreForApi(
       streetEdgeId = s.street.streetEdgeId,
