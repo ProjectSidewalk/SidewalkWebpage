@@ -3,33 +3,36 @@ Guided end-to-end setup of a new city from its onboarding artifacts (issue #4291
 
 Run after scripts/onboard_city.py has produced db/onboarding/<city-id>/ and the GeoPackage has been QA'd:
 
-    make onboard-city id=newport-ky        (host-side; wraps `python3 tools/setup_new_city.py newport-ky`)
+    make onboard-city id=laurens-ia        (host-side; wraps `python3 tools/setup_new_city.py laurens-ia`)
 
 It chains every remaining setup step, pausing only where a human is required:
 
-  1. Registers the city in conf/cityparams.conf (all the per-city maps, with derived defaults and placeholder GA
-     ids), conf/messages (city name; state name if it's a US state we haven't seen before), and the City IDs table
-     in docs/dev-environment.md.
-  2. Creates the city's GA4 properties and fills the real measurement ids (tools/create_ga_properties.py) — when
-     the repo-root ga-service-account.json key exists and the ids are still placeholders; skipped with a pointer
+  0. Shows the build report's headline numbers and the imagery preflight table (if one was run) and asks to go on.
+  1. Registers the city in conf/cityparams.conf (every per-city map, with derived defaults and empty GA ids),
+     conf/messages (city name; state or country name if new to the platform), and the City IDs table in
+     docs/dev-environment.md — then lists the translation keys a human still owes.
+  2. Creates the city's GA4 properties and fills the measurement + property ids (tools/create_ga_properties.py) —
+     when the repo-root ga-service-account.json key exists and the ids are still empty; skipped with a pointer
      otherwise.
-  3. Creates the empty city schema from the template (db/scripts/create-new-schema.sh).
+  3. Creates the empty city schema by cloning a donor city's structure + seed rows (db/scripts/create-new-schema.sh;
+     the donor defaults to the active dev city and is refused if it sits ahead of this checkout's evolutions).
   4. Boots the app one-shot inside the web container with DATABASE_USER/SIDEWALK_CITY_ID overridden via
      `docker exec -e` (a running container's env is fixed at creation, so editing docker-compose.override.yml can't
-     retarget it), and watches play_evolutions until the schema is current — the template dump is far behind, and
-     fill-new-schema.sh needs current columns. The boot is stopped once evolutions land.
+     retarget it), and watches play_evolutions until the schema is current. A no-op when the donor was current.
   5. Loads db/onboarding/<city-id>/qgis_tables.sql into the schema.
   6. Runs fill-new-schema.sh non-interactively (you pick the tutorial region and which regions open at launch).
-  7. Runs the scripts/check_streets_for_imagery.py scan in the web container (which holds the API keys and the
-     python3.13 deps) against a freshly exported endpoints CSV, hides the no-imagery streets, and imports the
-     imagery-age summary into street_imagery.
+  7. Runs the scripts/check_streets_for_imagery.py scan for the city's imagery provider in the web container (which
+     holds the API keys and the python3.13 deps) against a freshly exported endpoints CSV, hides the no-imagery
+     streets, and imports the imagery-age summary into street_imagery.
+  8. Dumps the finished schema to db/<schema>-dump — the file import-dump.sh and the server both restore — and
+     prints the server handoff checklist.
 
 A rerun skips whatever already happened: registered configs, an existing schema (answer "n"), applied evolutions,
-and a filled schema (jumping straight to the imagery scan).
+a filled schema (jumping straight to the imagery scan), and a scan already applied. `--skip-scan` defers step 7.
 
 Host-side and stdlib-only (it edits repo files and drives docker), unlike scripts/, which runs in the web container.
 Config edits are idempotent — a city already present in cityparams.conf is left alone — and `--dry-run` previews the
-file edits and stops before any docker/db step.
+file edits and stops before any docker/db step. The pure helpers are unit-tested in test/python/test_setup_new_city.py.
 """
 
 import argparse
@@ -45,6 +48,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 CITYPARAMS = REPO_ROOT / 'conf' / 'cityparams.conf'
 MESSAGES_DIR = REPO_ROOT / 'conf' / 'messages'
+EVOLUTIONS_DIR = REPO_ROOT / 'conf' / 'evolutions' / 'default'
 DB_CONTAINER = 'projectsidewalk-db'
 WEB_CONTAINER = 'projectsidewalk-web'
 
@@ -67,6 +71,24 @@ US_STATES = {
     'wi': 'wisconsin', 'wy': 'wyoming', 'dc': 'district-of-columbia',
 }
 
+# cityparams pano-viewer-type -> (check_streets_for_imagery.py flag, env vars the web container must hold to scan).
+# Panoramax's API is public, so its scan needs no credential.
+PROVIDERS = {
+    'gsv': ('--gsv', ('GOOGLE_MAPS_API_KEY',)),
+    'mapillary': ('--mapillary', ('MAPILLARY_ACCESS_TOKEN',)),
+    'panoramax': ('--panoramax', ()),
+    'infra3d': ('--infra3d', ('INFRA3D_CLIENT_ID', 'INFRA3D_CLIENT_SECRET')),
+}
+
+# Per-city maps a new city is deliberately *not* added to: each is a false-by-default flag (ConfigService.cityFlag)
+# that a maintainer opts a city into; a missing entry is the default.
+OPTIONAL_FLAG_MAPS = ('private-profiles-by-default', 'global-leaderboard-excluded', 'ai-label-submission-enabled')
+
+# The message files besides the base `messages` that carry place names; each needs a line only where its rendering
+# differs from the base (zh-TW always does).
+TRANSLATED_MESSAGE_FILES = ('messages.zh-TW', 'messages.es', 'messages.nl', 'messages.de', 'messages.pt-BR',
+                            'messages.fr')
+
 
 def schema_name(city_id):
     """Same derivation as scripts/onboard_city.py: full city id, hyphens as underscores."""
@@ -83,6 +105,106 @@ def prompt(text, default=None):
         if default is not None:
             return default
 
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Pure derivations (unit-tested).
+# ---------------------------------------------------------------------------------------------------------------------
+
+def split_city_id(city_id):
+    """
+    Splits a city id into its display tokens and, for US cities, the state the trailing token abbreviates.
+
+    Args:
+        city_id: e.g. ``laurens-ia`` or ``bayonne``.
+
+    Returns:
+        ``(display_default, us_state)``: the title-cased name without the state suffix, and the state id
+        (``iowa``) or None.
+    """
+    tokens = city_id.split('-')
+    us_state = US_STATES.get(tokens[-1]) if len(tokens) > 1 else None
+    return ' '.join(tokens[:-1] if us_state else tokens).title(), us_state
+
+
+def default_prod_url(city_id, us_state):
+    """The server-name convention drops the state qualifier (teaneck-nj -> sidewalk-teaneck) but keeps a country's."""
+    tokens = city_id.split('-')
+    url_base = '-'.join(tokens[:-1]) if us_state else city_id
+    return f'https://sidewalk-{url_base}.cs.washington.edu'
+
+
+def test_url_for(prod_url):
+    """The test stage's URL: ``-test`` appended to the first host label (sidewalk-x -> sidewalk-x-test)."""
+    scheme, host = prod_url.rstrip('/').split('://', 1)
+    first_label, _, rest = host.partition('.')
+    return f'{scheme}://{first_label}-test' + (f'.{rest}' if rest else '')
+
+
+def default_launch_date(today):
+    """The convention: the Friday of the week after ``today`` (weekday(): Monday = 0, so 11 - weekday lands there)."""
+    return (today + timedelta(days=11 - today.weekday())).isoformat()
+
+
+def highest_evolution(evolutions_dir=None):
+    """The repo's highest evolution number — what a donor schema must not exceed."""
+    evolutions_dir = evolutions_dir or EVOLUTIONS_DIR
+    return max(int(path.stem) for path in evolutions_dir.glob('*.sql') if path.stem.isdigit())
+
+
+def report_headlines(report_text):
+    """The build report's summary bullets (streets, tiny segments, regions, ...) and any flagged-region rows."""
+    lines = report_text.split('\n')
+    bullets = [line for line in lines if line.startswith('- ') and not line.startswith('- Generated')]
+    flagged = [line for line in lines if line.startswith('| ') and line.rstrip('| ').endswith(('splitting',
+                                                                                              'neighbor',
+                                                                                              'no streets'))]
+    return bullets + flagged
+
+
+def preflight_table(preflight_text):
+    """The provider rows of a preflight_report.md (header + data rows), or an empty list without one."""
+    lines = [line for line in preflight_text.split('\n') if line.startswith('|')]
+    return lines if len(lines) > 2 else []
+
+
+def translation_todo(city_id, state, new_country):
+    """
+    The message keys a human still has to translate after the English lines are in.
+
+    Args:
+        city_id:     The city id (its ``city.name.<id>`` key).
+        state:       The US state id whose ``state.name.<state>`` line was just added, or None.
+        new_country: The country id whose ``country.name.<country>`` line was just added, or None.
+
+    Returns:
+        Human-readable lines, one per file, naming the keys to add where the language renders them differently
+        (zh-TW always transliterates; Latin-script languages only for well-known exonyms).
+    """
+    keys = [f'city.name.{city_id}']
+    if state:
+        keys.append(f'state.name.{state}')
+    if new_country:
+        keys.append(f'country.name.{new_country}')
+    return [f'  conf/messages/{file_name}: {", ".join(keys)}' for file_name in TRANSLATED_MESSAGE_FILES]
+
+
+def handoff_checklist(city_id, schema, prod_url, test_url):
+    """The steps outside this repo that stand between a finished local schema and a live city."""
+    return f'''
+Server handoff for {city_id}:
+  1. Copy the dump to the server:  scp db/{schema}-dump makelab1.cs.washington.edu:/www/sidewalk/new-city-dumps/
+  2. On the server, register the city with the IT tooling (uwcseit-sidewalk-tools: bin/setup-new.pl), which creates the
+     DB role, restores the dump into sidewalk_test / sidewalk_prod, and writes the vhost — test stage first.
+  3. DNS + Google Cloud: add {test_url} and {prod_url} as referrers on the Maps API key (docs/google-cloud.md).
+  4. Open the PR with the config, message, and docs changes; the auto-deploy picks the city up once it lands on
+     develop (test) and in a release (prod).
+  5. Round-trip check any time: make import-dump db={schema} restores db/{schema}-dump into the dev DB.
+'''
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Config-file edits (unit-tested against copies of the real files).
+# ---------------------------------------------------------------------------------------------------------------------
 
 def find_block(lines, name, start=0):
     """
@@ -124,32 +246,40 @@ def add_cityparams_entries(city_id, values, dry_run):
     text = CITYPARAMS.read_text()
     if re.search(rf'^\s*("?){re.escape(city_id)}\1\s*(=|$)', text, re.MULTILINE):
         print(f'  cityparams.conf already knows {city_id}; leaving it alone.')
-        return
+        return False
     lines = text.split('\n')
     insert_entry(lines, ['city-ids'], f'"{city_id}"')
     for path, value in values:
         insert_entry(lines, path, f'{city_id} = {value}')
     if dry_run:
         print(f'  [dry-run] would add {1 + len(values)} entries to {CITYPARAMS}')
-        return
+        return True
     CITYPARAMS.write_text('\n'.join(lines))
     print(f'  Registered {city_id} in {CITYPARAMS.name} ({1 + len(values)} entries).')
+    return True
+
+
+def message_key_exists(file_name, key):
+    """Whether ``key`` is already defined in the given message file."""
+    lines = (MESSAGES_DIR / file_name).read_text().split('\n')
+    return any(line.startswith(f'{key} ') or line.startswith(f'{key}=') for line in lines)
 
 
 def add_message_line(file_name, key, value, dry_run):
     """Appends `key = value` right after the file's last key of the same family; no-op if the key exists."""
     path = MESSAGES_DIR / file_name
+    if message_key_exists(file_name, key):
+        return False
     lines = path.read_text().split('\n')
-    if any(line.startswith(f'{key} ') or line.startswith(f'{key}=') for line in lines):
-        return
     family = key.rsplit('.', 1)[0] + '.'
     last = max(i for i, line in enumerate(lines) if line.startswith(family))
     lines.insert(last + 1, f'{key} = {value}')
     if dry_run:
         print(f'  [dry-run] would add "{key} = {value}" to {file_name}')
-        return
+        return True
     path.write_text('\n'.join(lines))
     print(f'  Added "{key} = {value}" to {file_name}.')
+    return True
 
 
 def add_docs_city_row(city_id, schema, dry_run):
@@ -177,6 +307,10 @@ def add_docs_city_row(city_id, schema, dry_run):
     print(f'  Added {city_id} to the City IDs table in docs/dev-environment.md.')
 
 
+# ---------------------------------------------------------------------------------------------------------------------
+# Docker / DB steps.
+# ---------------------------------------------------------------------------------------------------------------------
+
 def docker_db(*args, **kwargs):
     return subprocess.run(['docker', 'exec', '-i', DB_CONTAINER, *args], **kwargs)
 
@@ -187,6 +321,12 @@ def db_query(sql):
     return result.stdout.strip() if result.returncode == 0 else None
 
 
+def web_env(name):
+    """An environment variable's value inside the web container, or None when unset."""
+    result = subprocess.run(['docker', 'exec', WEB_CONTAINER, 'printenv', name], capture_output=True, text=True)
+    return result.stdout.strip() or None if result.returncode == 0 else None
+
+
 def sbt_running():
     return subprocess.run(['docker', 'exec', WEB_CONTAINER, 'pgrep', '-f', 'sbt-launch'],
                           capture_output=True).returncode == 0
@@ -194,8 +334,7 @@ def sbt_running():
 
 def apply_evolutions(schema, city_id):
     """Boots the app one-shot as the new city and blocks until play_evolutions reaches the repo's latest."""
-    latest = max(int(p.stem) for p in (REPO_ROOT / 'conf' / 'evolutions' / 'default').glob('*.sql')
-                 if p.stem.isdigit())
+    latest = highest_evolution()
     applied = db_query(f'SELECT max(id) FROM {schema}.play_evolutions')
     if applied and int(applied) >= latest:
         print(f'  Schema is already at evolution {applied}; no app boot needed.')
@@ -234,14 +373,15 @@ def apply_evolutions(schema, city_id):
 def run_imagery_scan(schema, city_id, pano_type):
     """Scans the exported street endpoints for imagery (in the web container), hides the no-imagery streets, and
     imports the imagery-age summary."""
-    flag = {'gsv': '--gsv', 'mapillary': '--mapillary'}.get(pano_type)
-    if flag is None:
+    if pano_type not in PROVIDERS:
         print(f'  No imagery scan for pano type "{pano_type}"; skipping.')
         return
-    env_var = 'GOOGLE_MAPS_API_KEY' if flag == '--gsv' else 'MAPILLARY_ACCESS_TOKEN'
-    key = subprocess.run(['docker', 'exec', WEB_CONTAINER, 'printenv', env_var], capture_output=True, text=True)
-    if key.returncode != 0 or not key.stdout.strip():
-        print(f'  {env_var} is not set in the web container; skipping the scan (run it manually later).')
+    flag, env_vars = PROVIDERS[pano_type]
+    missing = [name for name in env_vars if not web_env(name)]
+    if missing:
+        print(f'  {", ".join(missing)} not set in the web container; skipping the scan. Set it in '
+              f'docker-compose.override.yml, recreate the container, and rerun (the fill is done, so the rerun '
+              'jumps straight here).')
         return
 
     export = docker_db('psql', '-U', schema, '-d', 'sidewalk', '-c',
@@ -251,7 +391,9 @@ def run_imagery_scan(schema, city_id, pano_type):
                        'WHERE street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)) '
                        'TO STDOUT WITH (FORMAT csv, HEADER)',
                        capture_output=True, text=True, check=True)
-    (REPO_ROOT / 'db' / 'onboarding' / city_id / 'street_edge_endpoints.csv').write_text(export.stdout)
+    city_dir = REPO_ROOT / 'db' / 'onboarding' / city_id
+    city_dir.mkdir(parents=True, exist_ok=True)
+    (city_dir / 'street_edge_endpoints.csv').write_text(export.stdout)
     print(f'  Scanning {export.stdout.count(chr(10)) - 1} streets for {pano_type} imagery (resumes this city\'s '
           'own checkpoint if interrupted)...')
     # A TTY (when we have one to give) lets the scan's tqdm progress bar render; over a plain pipe it auto-hides.
@@ -259,7 +401,7 @@ def run_imagery_scan(schema, city_id, pano_type):
     subprocess.run(['docker', 'exec', '-i', *tty, WEB_CONTAINER, 'python3.13',
                     'scripts/check_streets_for_imagery.py', '--city-id', city_id, flag], check=True)
 
-    no_imagery = REPO_ROOT / 'db' / 'onboarding' / city_id / 'streets_with_no_imagery.csv'
+    no_imagery = city_dir / 'streets_with_no_imagery.csv'
     n_hidden = max(0, len(no_imagery.read_text().strip().split('\n')) - 1) if no_imagery.exists() else 0
     print(f'  {n_hidden} street(s) without imagery; marking them no_imagery...')
     docker_db('/opt/scripts/hide-streets-without-imagery.sh', schema,
@@ -272,47 +414,82 @@ def run_imagery_scan(schema, city_id, pano_type):
               f'onboarding/{city_id}/street_imagery_summary.csv', check=True)
 
 
+def dump_schema(schema):
+    """
+    Dumps the finished schema to db/<schema>-dump in the format import-dump.sh and the server restore (-Fc).
+
+    Returns:
+        The number of objects the dump lists (a sanity check that it isn't empty).
+    """
+    dump_path = f'/opt/{schema}-dump'
+    docker_db('pg_dump', '-U', 'sidewalk', '-d', 'sidewalk', '-Fc', '-n', schema, '-f', dump_path, check=True)
+    listing = docker_db('pg_restore', '--list', dump_path, capture_output=True, text=True, check=True)
+    n_objects = sum(1 for line in listing.stdout.split('\n') if line and not line.startswith(';'))
+    size = docker_db('stat', '-c', '%s', dump_path, capture_output=True, text=True, check=True).stdout.strip()
+    print(f'  Wrote db/{schema}-dump ({int(size) / 1e6:.1f} MB, {n_objects} objects).')
+    return n_objects
+
+
 def parse_report(city_id):
     """Pulls the region table out of the onboarding run's report.md, for the tutorial-region prompt."""
     report = (REPO_ROOT / 'db' / 'onboarding' / city_id / 'report.md').read_text()
     return re.findall(r'^\| (\d+) \| (.+?) \|', report, re.MULTILINE)
 
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser(description='Guided end-to-end new-city setup from onboarding artifacts.')
-    parser.add_argument('city_id', help='The cityparams city id, e.g. "newport-ky" (must match the '
+    parser.add_argument('city_id', help='The cityparams city id, e.g. "laurens-ia" (must match the '
                                         'scripts/onboard_city.py --city-id used to generate the artifacts).')
     parser.add_argument('--dry-run', action='store_true',
                         help='Preview the config-file edits and stop before any docker/db step.')
-    args = parser.parse_args()
+    parser.add_argument('--donor', help='City schema to clone the structure from (default: the dev container\'s '
+                                        'DATABASE_USER). Refused if it sits ahead of this checkout\'s evolutions.')
+    parser.add_argument('--skip-scan', action='store_true',
+                        help='Skip the imagery scan (step 7); a later rerun picks it up.')
+    args = parser.parse_args(argv)
     city_id = args.city_id
     schema = schema_name(city_id)
 
-    sql_file = REPO_ROOT / 'db' / 'onboarding' / city_id / 'qgis_tables.sql'
+    city_dir = REPO_ROOT / 'db' / 'onboarding' / city_id
+    sql_file = city_dir / 'qgis_tables.sql'
     if not sql_file.exists():
-        sys.exit(f'error: {sql_file} not found — run scripts/onboard_city.py --city-id {city_id} first.')
+        sys.exit(f'error: {sql_file} not found — run `make build-city-data id={city_id} ...` first.')
     regions = parse_report(city_id)
 
-    tokens = city_id.split('-')
-    us_state = US_STATES.get(tokens[-1]) if len(tokens) > 1 else None
-    display_default = ' '.join(tokens[:-1] if us_state else tokens).title()
-    display_name = prompt('City display name', display_default)
-    country = prompt('Country id (e.g. usa, mexico, taiwan)', 'usa' if us_state else None)
-    state = prompt('State id', us_state) if country == 'usa' else None
-    pano_type = prompt('Pano viewer type (gsv, mapillary, infra3d)', 'gsv')
-    status = prompt('Visibility status (public, private)', 'public')
-    # 11 - weekday() lands on the Friday of the next calendar week (weekday(): Monday = 0).
-    launch_default = (date.today() + timedelta(days=11 - date.today().weekday())).isoformat()
-    launch_date = prompt('Launch date (convention: the Friday of the following week)', launch_default)
-    # The convention drops the state/country qualifier from server names (teaneck-nj -> sidewalk-teaneck).
-    url_base = '-'.join(tokens[:-1]) if us_state else city_id
-    prod_url = prompt('Prod landing-page URL', f'https://sidewalk-{url_base}.cs.washington.edu')
-    scheme, host = prod_url.rstrip('/').split('://', 1)
-    first_label, _, rest = host.partition('.')
-    test_url = f'{scheme}://{first_label}-test' + (f'.{rest}' if rest else '')
+    print(f'Step 0/8 — what the build produced for {city_id}:')
+    for line in report_headlines((city_dir / 'report.md').read_text()):
+        print(f'  {line}')
+    preflight_path = city_dir / 'preflight_report.md'
+    rows = preflight_table(preflight_path.read_text()) if preflight_path.exists() else []
+    if rows:
+        print('  Imagery preflight:')
+        for line in rows:
+            print(f'    {line}')
+    else:
+        print(f'  No imagery preflight yet — `make check-imagery id={city_id} args="--sample --<provider>"` answers '
+              '"does this city have imagery?" in a few minutes, before any database work.')
+    if prompt('Continue with this data? (y/n)', 'y') != 'y':
+        sys.exit('Stopped; rerun the build (or --from-gpkg after QGIS edits) and come back.')
 
-    print('\nStep 1/7 — register the city in conf/...')
-    add_cityparams_entries(city_id, [
+    display_default, us_state = split_city_id(city_id)
+    display_name = prompt('City display name', display_default)
+    country = prompt('Country id (e.g. usa, mexico, france)', 'usa' if us_state else None)
+    state = prompt('State id', us_state) if country == 'usa' else None
+    pano_type = prompt('Pano viewer type (gsv, mapillary, panoramax, infra3d)', 'gsv')
+    while pano_type not in PROVIDERS:
+        pano_type = prompt(f'Unknown viewer type; one of {", ".join(PROVIDERS)}', 'gsv')
+    status = prompt('Visibility status (public, private)', 'private')
+    launch_date = prompt('Launch date (convention: the Friday of the following week)',
+                         default_launch_date(date.today()))
+    prod_url = prompt('Prod landing-page URL', default_prod_url(city_id, us_state))
+    test_url = test_url_for(prod_url)
+    new_country = None
+    if not message_key_exists('messages', f'country.name.{country}'):
+        new_country = country
+        country_name = prompt('Country display name (new to the platform)', country.replace('-', ' ').title())
+
+    print('\nStep 1/8 — register the city in conf/...')
+    registered = add_cityparams_entries(city_id, [
         (['db-schema'], f'"{schema}"'),
         (['city-short-name'], 'null'),
         (['state-id'], f'"{state}"' if state else 'null'),
@@ -323,30 +500,40 @@ def main():
         (['logo-img'], '"sidewalk-logo.png"'),
         (['landing-page-url', 'prod'], f'"{prod_url}"'),
         (['landing-page-url', 'test'], f'"{test_url}"'),
-        (['google-analytics-4-id', 'prod'], '"TODO"'),
-        (['google-analytics-4-id', 'test'], '"TODO"'),
+        # Empty, not "TODO": the layout skips the gtag block for an empty id. Step 2 fills them.
+        (['google-analytics-4-id', 'prod'], '""'),
+        (['google-analytics-4-id', 'test'], '""'),
         (['ai-tag-suggestions-enabled'], 'true'),
         (['ai-validation-enabled'], 'true'),
         (['ai-validation-min-accuracy'], '"0.92"'),
         (['pano-viewer-type'], f'"{pano_type}"'),
     ], args.dry_run)
+    if registered:
+        print(f'  Left unset (false by default; opt in by hand if wanted): {", ".join(OPTIONAL_FLAG_MAPS)}.')
     add_message_line('messages', f'city.name.{city_id}', display_name, args.dry_run)
-    if state and state in US_STATES.values():
+    new_state = None
+    if state and state in US_STATES.values() and not message_key_exists('messages', f'state.name.{state}'):
+        new_state = state
         add_message_line('messages', f'state.name.{state}', state.replace('-', ' ').title(), args.dry_run)
         abbrev = next(k for k, v in US_STATES.items() if v == state).upper()
         add_message_line('messages.en', f'state.name.{state}', abbrev, args.dry_run)
+    if new_country:
+        add_message_line('messages', f'country.name.{country}', country_name, args.dry_run)
     add_docs_city_row(city_id, schema, args.dry_run)
+    print('  Translations still owed (zh-TW always; the others only where the name differs from English):')
+    for line in translation_todo(city_id, new_state, new_country):
+        print(line)
 
     if args.dry_run:
         print('\n[dry-run] stopping before the docker/db steps.')
         return
 
-    print('\nStep 2/7 — create the Google Analytics properties...')
+    print('\nStep 2/8 — create the Google Analytics properties...')
     import create_ga_properties
     if not create_ga_properties.KEY_FILE.is_file():
         print(f'  No {create_ga_properties.KEY_FILE.name} in the repo root; skipping — see '
               'tools/create_ga_properties.py for the one-time setup, then run it standalone.')
-    elif not create_ga_properties.ids_are_todo(city_id):
+    elif not create_ga_properties.ids_are_placeholders(city_id):
         print('  GA measurement ids are already filled in; skipping.')
     else:
         create_ga_properties.create_for_city(city_id)
@@ -355,29 +542,28 @@ def main():
         if subprocess.run(['docker', 'exec', container, 'true'], capture_output=True).returncode != 0:
             sys.exit(f'error: the {container} container is not running (make docker-up / make dev).')
 
-    print(f'\nStep 3/7 — create the empty schema {schema}...')
-    if db_query(f"SELECT 1 FROM pg_namespace WHERE nspname = '{schema}'"):
-        if prompt(f'Schema {schema} already exists. Drop and recreate it? (y/n)', 'n') != 'y':
-            print('  Keeping the existing schema.')
-        else:
-            docker_db('/opt/scripts/create-new-schema.sh', schema, check=True)
+    print(f'\nStep 3/8 — create the empty schema {schema} by cloning a donor city...')
+    if db_query(f"SELECT 1 FROM pg_namespace WHERE nspname = '{schema}'") and \
+            prompt(f'Schema {schema} already exists. Drop and recreate it? (y/n)', 'n') != 'y':
+        print('  Keeping the existing schema.')
     else:
-        docker_db('/opt/scripts/create-new-schema.sh', schema, check=True)
+        donor = args.donor or web_env('DATABASE_USER') or prompt('Donor schema to clone (e.g. sidewalk_richmond)')
+        docker_db('/opt/scripts/create-new-schema.sh', schema, donor, str(highest_evolution()), check=True)
 
-    print('\nStep 4/7 — apply evolutions via a one-shot app boot...')
+    print('\nStep 4/8 — apply evolutions via a one-shot app boot...')
     apply_evolutions(schema, city_id)
 
-    # A filled schema means steps 5-6 already ran (the template alone holds just the tutorial street); rerunning the
-    # fill would collide on street_edge ids.
+    # A filled schema means steps 5-6 already ran (a fresh clone holds just the tutorial street); rerunning the fill
+    # would collide on street_edge ids.
     streets = db_query(f'SELECT count(*) FROM {schema}.street_edge')
     if streets and int(streets) > 1:
-        print(f'\nSteps 5-6/7 — skipped: {schema} already holds {streets} streets.')
+        print(f'\nSteps 5-6/8 — skipped: {schema} already holds {streets} streets.')
     else:
-        print(f'\nStep 5/7 — load the staging tables from {sql_file.name}...')
+        print(f'\nStep 5/8 — load the staging tables from {sql_file.name}...')
         docker_db('psql', '-v', 'ON_ERROR_STOP=1', '-U', schema, '-d', 'sidewalk',
                   '-f', f'/opt/onboarding/{city_id}/qgis_tables.sql', check=True)
 
-        print('\nStep 6/7 — fill the schema from the staging tables. Regions:')
+        print('\nStep 6/8 — fill the schema from the staging tables. Regions:')
         for region_id, name in regions:
             print(f'  {region_id}: {name}')
         tutorial_region = prompt('Tutorial region id (a central region with imagery)', '1')
@@ -389,16 +575,26 @@ def main():
             regions_spec = prompt('Invalid — use "all", "include:1 2 3", or "exclude:4 5"', 'all')
         docker_db('/opt/scripts/fill-new-schema.sh', schema, tutorial_region, regions_spec, check=True)
 
-    print('\nStep 7/7 — imagery scan (finds streets with no street-view imagery and hides them)...')
-    run_imagery_scan(schema, city_id, pano_type)
+    print('\nStep 7/8 — imagery scan (finds streets with no street-view imagery and hides them)...')
+    if args.skip_scan:
+        print('  Skipped (--skip-scan); a rerun without the flag picks it up.')
+    elif db_query(f"SELECT count(*) FROM {schema}.street_imagery WHERE data_source = 'imagery_scan'") not in (None,
+                                                                                                             '0'):
+        print('  A scan was already imported into street_imagery; skipping.')
+    else:
+        run_imagery_scan(schema, city_id, pano_type)
+
+    print('\nStep 8/8 — dump the finished schema for the server...')
+    dump_schema(schema)
 
     print(f'''
 Done — {display_name}'s schema is populated. To develop against it, set SIDEWALK_CITY_ID={city_id} and
 DATABASE_USER={schema} in docker-compose.override.yml and recreate the container (make docker-stop, then make dev) —
 a running container's environment can't be changed in place.
-
-Last step: run the `add-city-configs` skill in a Claude Code session (it finishes what a script can't — non-English
-name translations, a review of the derived cityparams values, and the Google Analytics ids if step 2 was skipped).''')
+{handoff_checklist(city_id, schema, prod_url, test_url)}
+Still on a human: the translations listed under step 1, a look at `excluded_tags` and `update_offset_hours` in the
+city's config row (the clone carries the donor's), and the GA ids if step 2 was skipped. The `/onboard-city` skill
+walks through all of it.''')
 
 
 if __name__ == '__main__':

@@ -2,17 +2,19 @@
 Creates a new city's Google Analytics 4 properties (prod + test) and writes the measurement ids into cityparams.conf.
 
 `make onboard-city` runs this as its GA step when the key file (below) is present; standalone, for a city whose ids
-are still "TODO" placeholders:
+are still the empty placeholders make onboard-city writes:
 
     python3 tools/create_ga_properties.py newport-ky
 
 For each of the two GA accounts (prod and test) it creates, via the Analytics Admin API, a property named per our
 convention — "<City Name>, <ST>" for US cities, "<City Name>, <Country>" otherwise — with the team's standard
 settings (Los Angeles time zone, USD, industry Science), plus a web data stream of the same name pointing at that
-stage's landing-page URL, with enhanced measurement on. The stream's G- measurement id replaces the "TODO" in
-cityparams.conf. Business size/objectives are UI-wizard-only fields with no API equivalent — they only shape the
-default report collection, so they're skipped. Reruns are safe: an existing property or stream with the convention
-name is reused rather than duplicated.
+stage's landing-page URL, with enhanced measurement on. The stream's G- measurement id replaces the empty
+placeholder in cityparams.conf's google-analytics-4-id, and the property's numeric id is registered under
+google-analytics-property-id (what the admin Traffic section queries; a city missing there just has no row).
+Business size/objectives are UI-wizard-only fields with no API equivalent — they only shape the default report
+collection, so they're skipped. Reruns are safe: an existing property or stream with the convention name is reused
+rather than duplicated.
 
 One-time setup (fully headless afterward — no GCP roles needed, the service account is authorized on the GA side):
 
@@ -60,6 +62,16 @@ def cityparams_value(lines, path, city_id):
         if match:
             return match.group(1).strip('"')
     sys.exit(f'error: {city_id} has no {".".join(path)} entry in cityparams.conf — run `make onboard-city` first.')
+
+
+def cityparams_block_lines(lines, path):
+    """The lines inside the (possibly nested) cityparams block at ``path``, excluding its braces."""
+    start = 0
+    close = None
+    for name in path:
+        start, close = setup_new_city.find_block(lines, name, start)
+        start += 1
+    return lines[start:close]
 
 
 def message_value(file_name, key):
@@ -164,19 +176,24 @@ def ensure_property(token, account, display_name, default_uri):
     return stream['webStreamData']['measurementId'], prop_name.split('/')[1]
 
 
-def find_todo_line(lines, stage, city_id):
-    """Index of the city's `= "TODO"` GA-id line for the stage, or None when it's already filled in."""
+def find_placeholder_line(lines, stage, city_id):
+    """
+    Index of the city's still-empty measurement-id line (`<city> = ""`) for the stage, or None once it's filled in.
+
+    An empty id is the placeholder because the layout skips the gtag block for an empty id; a "TODO" string would be
+    requested as ``gtag/js?id=TODO`` on every page.
+    """
     start, close = setup_new_city.find_block(lines, 'google-analytics-4-id')
     start, close = setup_new_city.find_block(lines, stage, start)
     for i in range(start, close):
-        if re.match(rf'\s*{re.escape(city_id)}\s*=\s*"TODO"\s*$', lines[i]):
+        if re.match(rf'\s*{re.escape(city_id)}\s*=\s*""\s*$', lines[i]):
             return i
     return None
 
 
-def ids_are_todo(city_id):
+def ids_are_placeholders(city_id):
     lines = CITYPARAMS.read_text().split('\n')
-    return all(find_todo_line(lines, stage, city_id) is not None for stage in ('prod', 'test'))
+    return all(find_placeholder_line(lines, stage, city_id) is not None for stage in ('prod', 'test'))
 
 
 def create_for_city(city_id, dry_run=False):
@@ -187,8 +204,8 @@ def create_for_city(city_id, dry_run=False):
               ('test', TEST_ACCOUNT, cityparams_value(lines, ['landing-page-url', 'test'], city_id))]
     for stage, account, url in stages:
         # Fail loudly on an already-filled id BEFORE anything is created.
-        if not dry_run and find_todo_line(lines, stage, city_id) is None:
-            sys.exit(f'error: no `{city_id} = "TODO"` line in google-analytics-4-id.{stage} — already filled in? '
+        if not dry_run and find_placeholder_line(lines, stage, city_id) is None:
+            sys.exit(f'error: no `{city_id} = ""` line in google-analytics-4-id.{stage} — already filled in? '
                      'Nothing to do.')
         print(f'  {stage}: property "{display_name}" under accounts/{account}, web stream -> {url}')
     if dry_run:
@@ -199,14 +216,21 @@ def create_for_city(city_id, dry_run=False):
     admin_links = []
     for stage, account, url in stages:
         measurement_id, property_id = ensure_property(token, account, display_name, url)
-        i = find_todo_line(lines, stage, city_id)
-        lines[i] = lines[i].replace('"TODO"', f'"{measurement_id}"')
-        # Written per stage so a failure on the second leaves the first's id recorded.
+        i = find_placeholder_line(lines, stage, city_id)
+        lines[i] = lines[i].replace('""', f'"{measurement_id}"')
+        # The numeric property id feeds the admin Traffic section; the map is optional per city, so add the entry
+        # only if it isn't there yet.
+        if not any(re.match(rf'\s*{re.escape(city_id)}\s*=', line)
+                   for line in cityparams_block_lines(lines, ['google-analytics-property-id', stage])):
+            setup_new_city.insert_entry(lines, ['google-analytics-property-id', stage],
+                                        f'{city_id} = "{property_id}"')
+        # Written per stage so a failure on the second leaves the first's ids recorded.
         CITYPARAMS.write_text('\n'.join(lines))
         admin_links.append(f'{stage}: https://analytics.google.com/analytics/web/#/a{account}p{property_id}/admin')
-        print(f'  {stage}: measurement id {measurement_id}')
-    print(f'  Wrote both measurement ids into {CITYPARAMS}. Business size/objectives have no API equivalent; '
-          'set them under Admin -> Property -> Business details if you care about the default report collections:')
+        print(f'  {stage}: measurement id {measurement_id}, property id {property_id}')
+    print(f'  Wrote both stages\' measurement and property ids into {CITYPARAMS}. Business size/objectives have no '
+          'API equivalent; set them under Admin -> Property -> Business details if you care about the default '
+          'report collections:')
     for link in admin_links:
         print(f'    {link}')
 

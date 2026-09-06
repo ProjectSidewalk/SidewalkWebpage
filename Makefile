@@ -183,8 +183,14 @@ import-users:
 import-dump:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/import-dump.sh $(db)"
 
+# The repo's highest evolution number, so create-new-schema.sh can refuse a donor schema that another branch's QA
+# pushed ahead of this checkout (cloning it would carry that branch's evolution into the new city).
+max-evolution = $(shell ls conf/evolutions/default | sed 's/\.sql$$//' | grep -E '^[0-9]+$$' | sort -n | tail -1)
+
+# Clone a live city's structure (+ seed rows) into a new empty schema. e.g.
+# `make create-new-schema name=sidewalk_laurens_ia donor=sidewalk_richmond`; donor defaults to the active dev city.
 create-new-schema:
-	@docker exec -it $(db-container) sh -c "/opt/scripts/create-new-schema.sh $(name)"
+	@docker exec -it $(db-container) sh -c "/opt/scripts/create-new-schema.sh $(name) $(or $(donor),$$(docker exec $(web-container) printenv DATABASE_USER 2>/dev/null)) $(max-evolution)"
 
 fill-new-schema:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/fill-new-schema.sh"
