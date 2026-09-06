@@ -63,6 +63,7 @@ city.name.waltham-ma = Waltham
 city.name.houston-tx = Houston
 city.name.newport-ky = Newport
 city.name.bayonne = Bayonne
+city.name.laurens-ia = Laurens
 
 state.name.oregon = Oregon
 state.name.washington = Washington
@@ -83,6 +84,7 @@ state.name.florida = Florida
 state.name.massachusetts = Massachusetts
 state.name.texas = Texas
 state.name.kentucky = Kentucky
+state.name.iowa = Iowa
 
 country.name.usa = USA
 country.name.mexico = Mexico
