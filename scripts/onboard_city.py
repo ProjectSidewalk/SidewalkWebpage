@@ -3,9 +3,10 @@ Builds a new city's street + region data (the ``qgis_road`` / ``qgis_region`` st
 replacing the manual QGIS pipeline for the repeatable parts of city onboarding (issue #4291).
 
 This is a standalone, manually-run utility (it is not invoked by the app). It automates the deterministic ~90% of the
-"Creating database for a new city" wiki workflow — data acquisition, filtering, splitting, clipping, and id assignment —
-while keeping a human in the loop for visual QA: the script never writes to the database. It emits a GeoPackage to
-eyeball in QGIS plus a SQL file that loads the two staging tables, and loading that SQL is a separate, deliberate step.
+"Creating database for a new city" wiki workflow — data acquisition, filtering, splitting, clipping, and id
+assignment — while keeping a human in the loop for visual QA: the script never writes to the database. It emits a
+GeoPackage to eyeball in QGIS plus a SQL file that loads the two staging tables, and loading that SQL is a separate,
+deliberate step.
 
 Workflow:
 
@@ -159,8 +160,8 @@ def as_id_list(value):
     Normalizes an osmnx ``osmid`` attribute to a list of OSM way ids.
 
     When osmnx simplifies a graph, an edge merged from several OSM ways carries ``osmid`` as a list; an unmerged edge
-    carries a scalar. Every way id is kept — ``osm_way_street_edge`` is one-to-many, so a street that spans several
-    ways can point at all of them.
+    carries a scalar. Every way id is kept for the QA GeoPackage and the staging SQL; ``osm_way_street_edge`` holds
+    one row per street (UNIQUE ``street_edge_id``), so the fill records the first — the way the street starts on.
 
     Args:
         value: A scalar way id, or a non-empty list of them.
@@ -188,7 +189,8 @@ def parse_osm_ids(text):
     Returns:
         A list of ints; empty when the cell is null or blank (validation then rejects the row).
     """
-    if text is None or (isinstance(text, float) and pd.isna(text)):
+    # Any null a GeoPackage read can hand back: None, float NaN, or the pandas NA singleton (nullable columns).
+    if text is None or (pd.api.types.is_scalar(text) and pd.isna(text)):
         return []
     return [int(part) for part in str(text).split(',') if part.strip()]
 
@@ -343,16 +345,17 @@ def check_region_names(names):
     return warnings
 
 
-# Per-run tiny-segment figures (#4717): counts under 5/10/20 m, the sub-20 m share, and the median street length.
-StreetStats = namedtuple('StreetStats', 'n_lt5 n_lt10 n_lt20 pct_lt20 median_m')
+# Per-run tiny-segment figures (#4717): counts under 5/10/20 m, the sub-20 m share, the median street length, and
+# the loop roads (start == end) — kept as OSM maps them, as shipped cities carry a few, but worth a glance in QGIS.
+StreetStats = namedtuple('StreetStats', 'n_lt5 n_lt10 n_lt20 pct_lt20 median_m n_loops')
 
 
 def street_length_stats(roads):
     """
-    Summarizes street lengths the way #4717 measures production: how many streets are tiny.
+    Summarizes street lengths the way #4717 measures production: how many streets are tiny, plus the loop roads.
 
     Args:
-        roads: GeoDataFrame with a ``length_m`` column.
+        roads: GeoDataFrame with a ``length_m`` column and LineString geometry.
 
     Returns:
         A :data:`StreetStats`. The production average is 18.4% of streets under 20 m; a new city should come in at
@@ -360,9 +363,10 @@ def street_length_stats(roads):
     """
     lengths = roads['length_m']
     n_lt20 = int((lengths < 20).sum())
+    n_loops = int(sum(geom.coords[0] == geom.coords[-1] for geom in roads.geometry))
     return StreetStats(int((lengths < 5).sum()), int((lengths < 10).sum()), n_lt20,
                        100 * n_lt20 / len(lengths) if len(lengths) else 0.0,
-                       float(lengths.median()) if len(lengths) else 0.0)
+                       float(lengths.median()) if len(lengths) else 0.0, n_loops)
 
 
 def drop_short_segments(roads, min_m):
@@ -783,6 +787,12 @@ def validate_staging(roads, regions):
     if invalid:
         errors.append(f'region geometries {invalid} are invalid (self-intersection?) — fix in QGIS '
                       '(Vector > Geometry Tools > Fix Geometries) and re-export')
+    # A loop road (start == end) is simple; a street that doubles back over itself is not. Nothing downstream can
+    # cope with the latter (double length, coincident endpoints), so it never reaches the SQL.
+    not_simple = sorted(roads.loc[~roads.geometry.is_simple, 'road_id'])
+    if not_simple:
+        errors.append(f'street geometries {not_simple} self-overlap or self-intersect — a street must be a simple '
+                      'line (a loop road is fine); fix in QGIS and re-export')
     if regions['name'].isna().any() or (regions['name'].astype(str).str.strip() == '').any():
         errors.append('every region needs a non-empty name')
     if roads[['highway', 'region_id']].isna().any().any():
@@ -926,8 +936,12 @@ def fetch_osm_neighborhoods(boundary_poly):
             frames.append(features.reset_index()[['name', 'geometry']])
     if not frames:
         return gpd.GeoDataFrame(columns=['name', 'geometry'], geometry='geometry', crs='EPSG:4326')
-    neighborhoods = pd.concat(frames, ignore_index=True).drop_duplicates(subset='name')
-    return gpd.GeoDataFrame(neighborhoods, geometry='geometry', crs='EPSG:4326')
+    neighborhoods = gpd.GeoDataFrame(pd.concat(frames, ignore_index=True), geometry='geometry', crs='EPSG:4326')
+    # The two queries can return the same relation twice (a place=quarter that is also an admin_level=10 boundary);
+    # only an identical (name, geometry) pair is a duplicate. Same-named *different* polygons — and every unnamed
+    # one — stay, so nothing is silently dropped; prepare_regions keeps same-named regions apart.
+    duplicate = neighborhoods.assign(_wkb=neighborhoods.geometry.to_wkb()).duplicated(subset=['name', '_wkb'])
+    return neighborhoods[~duplicate.values].reset_index(drop=True)
 
 
 def fetch_census_tracts(boundary_poly):
@@ -1049,14 +1063,18 @@ def absorb_small_parts(parts, min_part_m2):
     while absorbed and not small.empty:
         absorbed = False
         for idx in list(small.index):
-            best_name, best_len = None, 0.0
+            best_idx, best_len = None, 0.0
             for target in keep.itertuples():
                 # Planar degree length is fine here: it only ranks this one part's shared borders.
                 shared_len = small.geometry[idx].intersection(target.geometry).length
                 if shared_len > best_len:
-                    best_name, best_len = target.name, shared_len
-            if best_name is not None:
-                small.loc[idx, 'name'] = best_name
+                    best_idx, best_len = target.Index, shared_len
+            if best_idx is not None:
+                # The part joins its neighbour in every attribute (name and, when present, the source polygon key
+                # prepare_regions dissolves by), not just the name.
+                for column in parts.columns:
+                    if column != 'geometry':
+                        small.loc[idx, column] = keep.loc[best_idx, column]
                 keep = pd.concat([keep, small.loc[[idx]]])
                 small = small.drop(index=idx)
                 absorbed = True
@@ -1079,18 +1097,23 @@ def prepare_regions(raw_regions, boundary, min_part_m2):
     Returns:
         A GeoDataFrame with ``region_id`` (1..N), ``name``, and MultiPolygon geometry.
     """
-    regions = raw_regions.copy()
+    regions = raw_regions.copy().reset_index(drop=True)
     regions['geometry'] = regions.geometry.make_valid()
     regions['name'] = regions['name'].fillna('').astype(str)
     regions.loc[regions['name'] == '', 'name'] = [
         f'Region {i}' for i in range(1, (regions['name'] == '').sum() + 1)
     ]
+    # Each source polygon keeps its identity through clip -> explode -> dissolve. Dissolving by *name* would fold
+    # two same-named polygons into one region: census tract names repeat across counties ("Census Tract 203"), and
+    # an OSM dataset can carry two "Downtown"s.
+    regions['source_key'] = regions.index
 
     clipped = gpd.overlay(regions, boundary[['geometry']], how='intersection', keep_geom_type=True)
     parts = absorb_small_parts(clipped.explode(index_parts=False), min_part_m2)
     if parts.empty:
         sys.exit('error: no region polygons survived clipping to the city boundary.')
-    dissolved = parts.dissolve(by='name', as_index=False)
+    dissolved = parts.dissolve(by='source_key', as_index=False)
+    dissolved['name'] = disambiguate_names(list(dissolved['name']))
 
     dissolved = dissolved.sort_values('name').reset_index(drop=True)
     dissolved['region_id'] = dissolved.index + 1
@@ -1098,6 +1121,32 @@ def prepare_regions(raw_regions, boundary, min_part_m2):
 
     warn_if_overlapping(dissolved)
     return dissolved[['region_id', 'name', 'geometry']]
+
+
+def disambiguate_names(names):
+    """
+    Makes region names unique by numbering repeats (``"Census Tract 203"``, ``"Census Tract 203 (2)"``), warning
+    about each — a repeated name is usually two different places (tracts in different counties), never a reason to
+    merge them; ``--merge-regions`` exists for deliberate merges.
+
+    Args:
+        names: Region names in source order.
+
+    Returns:
+        The names with every repeat after the first suffixed.
+    """
+    counts = Counter(names)
+    seen = Counter()
+    unique = []
+    for name in names:
+        seen[name] += 1
+        unique.append(f'{name} ({seen[name]})' if seen[name] > 1 else name)
+    for name, count in sorted(counts.items()):
+        if count > 1:
+            logger.warning('Region name %r appears %d times in the source data; kept as separate regions '
+                           '"%s (2)".. — merge them deliberately with --merge-regions if they are one place.',
+                           name, count, name)
+    return unique
 
 
 def warn_if_overlapping(regions):
@@ -1122,9 +1171,73 @@ def oriented_piece(edge_geom, piece_geom):
     """
     start_pos = edge_geom.project(Point(piece_geom.coords[0]))
     end_pos = edge_geom.project(Point(piece_geom.coords[-1]))
+    if edge_geom.is_closed:
+        start_pos, end_pos = locate_on_ring(edge_geom, piece_geom, start_pos, end_pos)
     if start_pos > end_pos:
         return shapely.reverse(piece_geom), end_pos, start_pos
     return piece_geom, start_pos, end_pos
+
+
+def split_at_closure(edge_geom, piece_geom):
+    """
+    Splits a piece of a *closed* edge that runs through the ring's closure point into the arcs either side of it.
+
+    The overlay joins the linework on both sides of a loop road's start/end vertex into one piece when both fall in
+    the same region, so that piece wraps around the ring: it can't be described as one ``[start, end]`` interval
+    along the edge, and locating it as one put a wrong interval on it (the region-straddling rings of #5203 doubled
+    that way). Split at the closure vertex, each arc is an ordinary interval that :func:`locate_on_ring` places.
+
+    Args:
+        edge_geom:  The original edge LineString.
+        piece_geom: One overlay piece of it.
+
+    Returns:
+        ``[piece_geom]`` for an open edge or a piece that only touches the closure point at its ends; the two arcs
+        otherwise.
+    """
+    if not edge_geom.is_closed:
+        return [piece_geom]
+    closure_x, closure_y = edge_geom.coords[0]
+    coords = list(piece_geom.coords)
+    for i in range(1, len(coords) - 1):
+        if abs(coords[i][0] - closure_x) < CONTIGUITY_EPS_DEG and abs(coords[i][1] - closure_y) < CONTIGUITY_EPS_DEG:
+            return [LineString(coords[:i + 1]), LineString(coords[i:])]
+    return [piece_geom]
+
+
+def locate_on_ring(edge_geom, piece_geom, start_pos, end_pos):
+    """
+    Resolves where a piece of a *closed* edge sits — a loop road (cul-de-sac circle, a roundabout mapped as one
+    way) starts and ends at the same point.
+
+    ``project()`` maps that closure point to 0 whether a piece meets it as the ring's start or as its end, so a
+    piece ending there would be located as ``[start, 0]`` and a whole ring as ``[0, 0]`` — which made
+    :func:`restore_boundary_tails` see the entire ring as a missing tail and weld it on a second time (doubling 17 of
+    Bayonne's 2,117 streets). An interior point of the piece settles the ambiguity: an endpoint projected onto the
+    closure is the ring's full length whenever that is what keeps the interior point between the two endpoints.
+
+    Args:
+        edge_geom:  The closed edge LineString.
+        piece_geom: One piece of it (may be the whole ring).
+        start_pos:  ``project()`` of the piece's first coordinate.
+        end_pos:    ``project()`` of the piece's last coordinate.
+
+    Returns:
+        The corrected ``(start_pos, end_pos)``; still unordered, the caller orients the piece.
+    """
+    length = edge_geom.length
+
+    def at_closure(pos):
+        return pos < CONTIGUITY_EPS_DEG or length - pos < CONTIGUITY_EPS_DEG
+
+    if at_closure(start_pos) and at_closure(end_pos):
+        return 0.0, length
+    mid_pos = edge_geom.project(piece_geom.interpolate(0.5, normalized=True))
+    if at_closure(start_pos):
+        start_pos = 0.0 if mid_pos < end_pos else length
+    elif at_closure(end_pos):
+        end_pos = 0.0 if mid_pos < start_pos else length
+    return start_pos, end_pos
 
 
 def assign_regions(streets, regions, min_segment_m, heal_m, boundary_merge_tol_m):
@@ -1173,16 +1286,16 @@ def assign_regions(streets, regions, min_segment_m, heal_m, boundary_merge_tol_m
     buffered_coverage = shapely.union_all(list(buffered_regions.values()))
 
     healed_rows, junction_rows = [], []
-    n_raw_pieces = len(pieces)
+    n_raw_pieces = 0
     n_bridged_total, restored_m_total = 0, 0.0
     for edge_id, edge_pieces in pieces.groupby('edge_id'):
         edge = streets.iloc[edge_id]
         located = []
-        for piece_geom in edge_pieces.geometry:
-            geometry, start_pos, end_pos = oriented_piece(edge.geometry, piece_geom)
-            located.append(Piece(None, geometry, start_pos, end_pos, geodesic_length_m(geometry)))
-        located = [piece._replace(region_id=region_id)
-                   for piece, region_id in zip(located, edge_pieces['region_id'])]
+        for piece_geom, region_id in zip(edge_pieces.geometry, edge_pieces['region_id']):
+            for arc in split_at_closure(edge.geometry, piece_geom):
+                geometry, start_pos, end_pos = oriented_piece(edge.geometry, arc)
+                located.append(Piece(region_id, geometry, start_pos, end_pos, geodesic_length_m(geometry)))
+        n_raw_pieces += len(located)
         located.sort(key=lambda piece: piece.start_pos)
         located, n_bridged, restored_m = bridge_short_gaps(edge.geometry, located, heal_m, buffered_coverage)
         located, n_tails, tails_m = restore_boundary_tails(edge.geometry, located, buffered_coverage)
@@ -1195,7 +1308,8 @@ def assign_regions(streets, regions, min_segment_m, heal_m, boundary_merge_tol_m
             healed_rows.append({'osm_ids': edge['osm_ids'], 'highway': edge['highway'],
                                 'region_id': piece.region_id, 'length_m': piece.length_m,
                                 'geometry': piece.geometry})
-    healed = gpd.GeoDataFrame(healed_rows, geometry='geometry', crs=streets.crs)
+    healed = gpd.GeoDataFrame(healed_rows, columns=['osm_ids', 'highway', 'region_id', 'length_m', 'geometry'],
+                              geometry='geometry', crs=streets.crs)
     rider_junctions = gpd.GeoDataFrame(junction_rows, geometry='geometry', crs=streets.crs,
                                        columns=['osm_ids', 'geometry'])
 
@@ -1351,6 +1465,7 @@ def write_report(path, args, region_source, roads, regions, dropped, stats, cove
         f'- Tiny segments (#4717): < 5 m: **{street_stats.n_lt5}**, < 10 m: **{street_stats.n_lt10}**, < 20 m: '
         f'**{street_stats.n_lt20}** (**{street_stats.pct_lt20:.0f}%** of streets; production averages 18%)',
         f'- Regions: **{len(regions)}**{coverage_note}',
+        f'- Loop roads (start = end): **{street_stats.n_loops}** — kept as OSM maps them; check them in QGIS',
     ]
     if n_tier1_merged is not None:
         lines.append(f'- Merged sub-{args.merge_tiny_m:g} m pieces into a touching piece of the same OSM way '
@@ -1518,7 +1633,8 @@ def run_from_gpkg(args):
     if 'osm_ids' in roads.columns:
         roads['osm_ids'] = roads['osm_ids'].map(parse_osm_ids)
     else:  # A hand-built layer (the QGIS runbook's shape) carries one way id per street.
-        roads['osm_ids'] = roads['osm_id'].map(lambda way_id: [int(way_id)]) if 'osm_id' in roads.columns else None
+        roads['osm_ids'] = (roads['osm_id'].map(lambda way_id: [] if pd.isna(way_id) else [int(way_id)])
+                            if 'osm_id' in roads.columns else None)
     roads['length_m'] = [geodesic_length_m(geom) for geom in roads.geometry]
 
     errors = validate_staging(roads, regions)
@@ -1618,6 +1734,9 @@ def main(argv=None):
 
     roads, dropped, heal_stats, rider_junctions = assign_regions(streets, regions, args.min_segment_m,
                                                                  args.heal_segment_m, args.boundary_merge_tol_m)
+    if roads.empty:
+        sys.exit('error: no street landed in any region — check that the boundary and the regions overlap the '
+                 'street network (the fetch found %d edges).' % len(streets))
     errors = validate_staging(roads, regions)
     if errors:  # A pipeline-invariant safety net; any hit here is a bug in the steps above.
         sys.exit('error: generated staging data failed validation:\n  - ' + '\n  - '.join(errors))

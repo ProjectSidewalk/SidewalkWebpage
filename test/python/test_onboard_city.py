@@ -18,7 +18,9 @@ import pytest
 
 gpd = pytest.importorskip('geopandas', reason='the geo stack (requirements-offline-tools.txt) needs Python >= 3.11')
 
+import shapely  # noqa: E402
 from shapely.geometry import LineString, MultiPolygon, Point, Polygon, mapping  # noqa: E402
+from shapely.ops import substring  # noqa: E402
 
 import onboard_city as oc  # noqa: E402
 
@@ -769,6 +771,7 @@ def test_write_report_summarizes_a_fetch_run(tmp_path):
     assert '(#4717 tier 1): **7**' in report
     assert 'Region name warnings (1, #4620)' in report and "ALL CAPS: 'DOWNTOWN'" in report
     assert 'make check-imagery id=testville-wa args="--sample 150 --gsv"' in report
+    assert 'Loop roads (start = end): **0**' in report
 
 
 def test_write_report_re_export_variant_omits_healing_and_coverage(tmp_path):
@@ -1061,7 +1064,11 @@ def test_street_length_stats_counts_tiny_streets():
     assert (stats.n_lt5, stats.n_lt10, stats.n_lt20) == (1, 2, 3)
     assert stats.pct_lt20 == pytest.approx(60)
     assert stats.median_m == 19
-    assert oc.street_length_stats(_roads([])) == oc.StreetStats(0, 0, 0, 0.0, 0.0)
+    assert stats.n_loops == 0
+    assert oc.street_length_stats(_roads([])) == oc.StreetStats(0, 0, 0, 0.0, 0.0, 0)
+    loop = _roads([890])
+    loop.loc[0, 'geometry'] = _RING
+    assert oc.street_length_stats(loop).n_loops == 1
 
 
 def test_write_endpoints_csv_matches_the_scans_input_contract(tmp_path):
@@ -1073,3 +1080,128 @@ def test_write_endpoints_csv_matches_the_scans_input_contract(tmp_path):
     assert rows.loc[0, 'x1'] == pytest.approx(0.002) and rows.loc[0, 'x2'] == pytest.approx(0.008)
     from shapely import wkb
     assert wkb.loads(rows.loc[1, 'geom'], hex=True).equals(LineString([(0.012, 0.005), (0.018, 0.005)]))
+
+
+# --------------------------------------------------------------------------------------------------------------------
+# Loop roads (closed edges) through the healing stack — the doubled rings of #5203
+# --------------------------------------------------------------------------------------------------------------------
+
+# A ~890 m loop road inside west, closed at its first vertex.
+_RING = LineString([(0.002, 0.002), (0.004, 0.002), (0.004, 0.004), (0.002, 0.004), (0.002, 0.002)])
+
+
+def test_oriented_piece_locates_a_whole_ring_and_arcs_touching_its_closure():
+    geom, start, end = oc.oriented_piece(_RING, _RING)
+    assert (start, end) == (0.0, _RING.length) and geom.is_closed
+    tail = substring(_RING, 0.7 * _RING.length, _RING.length)   # ends at the closure point
+    head = substring(_RING, 0, 0.3 * _RING.length)              # starts at it
+    for arc in (tail, shapely.reverse(tail)):
+        geom, start, end = oc.oriented_piece(_RING, arc)
+        assert (start, end) == (pytest.approx(0.7 * _RING.length), pytest.approx(_RING.length))
+        assert geom.coords[-1] == _RING.coords[0]
+    for arc in (head, shapely.reverse(head)):
+        geom, start, end = oc.oriented_piece(_RING, arc)
+        assert (start, end) == (0.0, pytest.approx(0.3 * _RING.length))
+        assert geom.coords[0] == _RING.coords[0]
+
+
+def test_split_at_closure_cuts_only_a_piece_running_through_the_ring_start():
+    # The arc from 0.7 L around the closure to 0.3 L as the overlay hands it back: one piece through the start
+    # vertex.
+    head = substring(_RING, 0, 0.3 * _RING.length)
+    wrapped = oc.merge_linestrings(substring(_RING, 0.7 * _RING.length, _RING.length), head)
+    arcs = oc.split_at_closure(_RING, wrapped)
+    assert len(arcs) == 2
+    assert arcs[0].coords[-1] == _RING.coords[0] and arcs[1].coords[0] == _RING.coords[0]
+    assert oc.split_at_closure(_RING, _RING) == [_RING]
+    assert oc.split_at_closure(_RING, head) == [head]
+    open_edge = LineString([(0, 0), (0.001, 0)])
+    assert oc.split_at_closure(open_edge, open_edge) == [open_edge]
+
+
+def test_restore_boundary_tails_leaves_a_whole_ring_alone():
+    geom, start, end = oc.oriented_piece(_RING, _RING)
+    piece = oc.Piece(1, geom, start, end, oc.geodesic_length_m(geom))
+    pieces, n_restored, restored_m = oc.restore_boundary_tails(_RING, [piece], _RING.buffer(0.001))
+    assert n_restored == 0 and restored_m == 0
+    assert pieces[0].length_m == pytest.approx(oc.geodesic_length_m(_RING))
+
+
+def test_assign_regions_keeps_loop_roads_simple_and_never_longer_than_the_input():
+    straddling = LineString([(0.008, 0.002), (0.012, 0.002), (0.012, 0.004), (0.008, 0.004), (0.008, 0.002)])
+    on_city_edge = LineString([(0.018, 0.002), (0.022, 0.002), (0.022, 0.004), (0.018, 0.004), (0.018, 0.002)])
+    streets = _streets_gdf([list(ring.coords) for ring in (_RING, straddling, on_city_edge)])
+    roads, dropped, heal_stats, riders = oc.assign_regions(streets, _city_regions(), min_segment_m=15, heal_m=30,
+                                                           boundary_merge_tol_m=15)
+    assert roads.geometry.is_simple.all()
+    assert dropped.empty and riders.empty
+    assert roads['length_m'].sum() <= sum(oc.geodesic_length_m(g) for g in streets.geometry) * (1 + 1e-9)
+    # The loop inside one region comes out whole, once.
+    loops = roads[[geom.is_closed for geom in roads.geometry]]
+    assert len(loops) == 1
+    assert loops['length_m'].iloc[0] == pytest.approx(oc.geodesic_length_m(_RING), rel=1e-6)
+    # The straddling loop is cut at the region line into its east arc and the west arcs either side of the ring's
+    # start vertex; together they are the ring, no more.
+    straddle = roads[roads['osm_ids'].map(lambda ids: ids == [101])]
+    assert sorted(straddle['region_id']) == [1, 1, 2]
+    assert straddle['length_m'].sum() == pytest.approx(oc.geodesic_length_m(straddling), rel=1e-6)
+    # Half of the third loop lies outside the city and stays cut.
+    edge = roads[roads['osm_ids'].map(lambda ids: ids == [102])]
+    assert edge['length_m'].sum() == pytest.approx(oc.geodesic_length_m(on_city_edge) / 2, rel=1e-3)
+
+
+def test_validate_staging_rejects_a_street_that_doubles_back_on_itself():
+    roads = _staged_roads()
+    roads.loc[0, 'geometry'] = LineString([(0.002, 0.005), (0.008, 0.005), (0.002, 0.005)])
+    errors = oc.validate_staging(roads, _city_regions())
+    assert len(errors) == 1 and 'self-overlap' in errors[0] and '[1]' in errors[0]
+    # A loop road is simple and passes.
+    roads.loc[0, 'geometry'] = _RING
+    assert oc.validate_staging(roads, _city_regions()) == []
+
+
+def test_main_aborts_when_no_street_lands_in_any_region(tmp_path, monkeypatch):
+    _patch_pipeline(monkeypatch, _two_hoods())
+    monkeypatch.setattr(oc, 'fetch_streets', lambda poly, alleys, buffer_m: _streets_gdf([[(1, 1), (1.001, 1)]]))
+    with pytest.raises(SystemExit, match='no street landed'):
+        oc.main(['--city-id', 'testville', '--place', 'Testville, USA', '--out-dir', str(tmp_path)])
+
+
+# --------------------------------------------------------------------------------------------------------------------
+# Nulls and repeats in the source data
+# --------------------------------------------------------------------------------------------------------------------
+
+def test_parse_osm_ids_treats_every_null_flavour_as_empty():
+    assert oc.parse_osm_ids(None) == [] and oc.parse_osm_ids(float('nan')) == [] and oc.parse_osm_ids(pd.NA) == []
+    assert oc.parse_osm_ids('7') == [7]
+
+
+def test_run_from_gpkg_reports_a_null_osm_id_instead_of_crashing(tmp_path):
+    path = tmp_path / 'null_qa.gpkg'
+    hand_built = oc.gpkg_frame(_staged_roads()).drop(columns=['osm_ids'])
+    hand_built['osm_id'] = [100, None]
+    hand_built.to_file(path, layer='qgis_road', driver='GPKG')
+    _city_regions().to_file(path, layer='qgis_region', driver='GPKG')
+    with pytest.raises(SystemExit, match='OSM way id'):
+        oc.run_from_gpkg(oc.parse_args(['--city-id', 'testville', '--from-gpkg', str(path)]))
+
+
+def test_fetch_osm_neighborhoods_drops_only_exact_repeats(monkeypatch):
+    place = gpd.GeoDataFrame({'name': [None, None, 'west']}, geometry=[_W, _E, _W], crs='EPSG:4326')
+    admin = gpd.GeoDataFrame({'name': ['west', 'west'], 'admin_level': ['10', '10']}, geometry=[_W, _E],
+                             crs='EPSG:4326')
+    _fake_features(monkeypatch, place, admin)
+    hoods = oc.fetch_osm_neighborhoods(_CITY)
+    # Two unnamed polygons (different shapes) and 'west' on both shapes survive; only the repeat of ('west', _W) goes.
+    assert len(hoods) == 4
+    assert hoods['name'].isna().sum() == 2
+
+
+def test_prepare_regions_keeps_same_named_source_polygons_apart(caplog):
+    raw = gpd.GeoDataFrame({'name': ['Census Tract 1', 'Census Tract 1']}, geometry=[_W, _E], crs='EPSG:4326')
+    with caplog.at_level(logging.WARNING):
+        regions = oc.prepare_regions(raw, _CITY_GDF, min_part_m2=10_000)
+    assert list(regions['name']) == ['Census Tract 1', 'Census Tract 1 (2)']
+    assert list(regions['region_id']) == [1, 2]
+    assert any('appears 2 times' in record.message for record in caplog.records)
+    assert oc.disambiguate_names(['a', 'b', 'a', 'a']) == ['a', 'b', 'a (2)', 'a (3)']
