@@ -292,9 +292,9 @@ Three standalone scripts under [`scripts/`](../scripts) (see [`scripts/README.md
 - `scripts/check_streets_for_imagery.py` — checks streets for available street-view imagery. Run as `python3.13`,
   the second interpreter the web image carries for offline tooling whose libraries have moved past 3.8.
 - `scripts/onboard_city.py` — builds a new city's street/region staging data from open sources (#4291), feeding
-  `db/scripts/fill-new-schema.sh`. Also `python3.13`. Run via `make build-city-data`; `make onboard-city`
-  (`tools/setup_new_city.py`) then chains the rest of a new city's setup — see
-  [`db/scripts/README.md`](../db/scripts/README.md).
+  `db/scripts/fill-new-schema.sh`. Also `python3.13`. Run via `make build-city-data`; `make check-imagery` samples the
+  imagery, and `make onboard-city` (`tools/setup_new_city.py`) chains the rest of a new city's setup — see
+  [`docs/onboarding-a-city.md`](onboarding-a-city.md).
 
 `label_clustering.py` is invoked **in-band** (`ClusterService.runMultiUserClustering` shells out to it per region
 during admin-triggered `/runClustering` and the nightly `ClusteringActor` run), so the deployed app must be able to

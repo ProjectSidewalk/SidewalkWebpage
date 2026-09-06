@@ -21,11 +21,7 @@ functions — no network, no live Google/Mapillary/OSM or app calls.
   API mocked), the GeoPackage/SQL/report writers (`tmp_path`), the CLI, and `main` end-to-end including the region
   source fallback chain and the `--from-gpkg` re-export mode.
 - `test_verify_latlng_backfill.py` — the one-off checker in [`tools/`](../../tools), which is stdlib-only.
-- `test_build_city_streets.py` — the headless new-city street import in [`tools/`](../../tools) (#4291): splitting a
-  way only where it meets another included way, the tier-1 merge of sub-threshold pieces and its ring guard (#4717),
-  region assignment (cut at a boundary / kept whole to the majority / attached to the nearest / dropped), the region
-  name report (#4620), and `build` end to end with Overpass stubbed. **`python3.13` only** — it imports shapely, so it
-  is `--ignore`d in the 3.8 half rather than run in both.
+- `test_setup_new_city.py` — `make onboard-city`'s orchestrator in [`tools/`](../../tools) (#4291): the id/URL/date derivations and the cityparams/messages/docs edits, run against copies of the real files so a structural change there fails here first. Stdlib-only, so it runs in both halves.
 
 ### Resilience coverage
 

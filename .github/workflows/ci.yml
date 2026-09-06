@@ -515,7 +515,6 @@ jobs:
             requirements: -r requirements.txt -r requirements-dev.txt
             pytest-args: >-
               test/python --ignore=test/python/test_check_streets_for_imagery.py
-              --ignore=test/python/test_build_city_streets.py
               --ignore=test/python/test_onboard_city.py
             coverage-omit: scripts/check_streets_for_imagery.py
             coverage-omit-2: scripts/onboard_city.py

@@ -97,6 +97,20 @@ The token lives 60 minutes and is refreshed automatically during a long scan. In
 default `--max-qps 10` is in the range of a single busy browser session, so keep it there (or lower) rather than
 raising it.
 
+### Preflight (`--sample`)
+
+```bash
+make check-imagery id=laurens-ia args="--sample --gsv"          # 150 random streets; --sample 60 --seed 3 to vary
+make check-imagery id=laurens-ia args="--sample --mapillary"
+```
+
+The same per-street verdict on a random sample, kept under `db/onboarding/<city-id>/preflight/<provider>/` so a full
+scan's checkpoint is untouched, with every provider sampled so far summarized side by side in
+`db/onboarding/<city-id>/preflight_report.md`: coverage, **failed** (a key or quota problem — GSV's
+`OVER_QUERY_LIMIT` / `REQUEST_DENIED` now fail the street instead of counting as imagery), and the oldest / median /
+newest of the covered streets' newest captures. Because `onboard_city.py` writes the endpoints CSV this reads, the
+question "does this city have imagery, and how fresh?" is answered minutes after the build, before any database work.
+
 ### Imagery age
 
 The GSV, Panoramax, and Infra3d responses we already fetch also carry an imagery capture date, so — for **no extra API
@@ -161,43 +175,38 @@ column:
 ## `onboard_city.py`
 
 Builds a new city's street + region staging data (`qgis_road`/`qgis_region`, consumed by
-`db/scripts/fill-new-schema.sh`) from open data sources — the automated replacement for the manual QGIS onboarding
-pipeline (#4291). Standalone and manual; it never writes to the database.
+`db/scripts/fill-new-schema.sh`) from open data sources — the headless replacement for the QGIS onboarding runbook
+(#4291). Standalone and manual; it never writes to the database. The full workflow around it, including the QGIS QA
+loop and the imagery preflight, is [`docs/onboarding-a-city.md`](../docs/onboarding-a-city.md).
 
 ```bash
-make build-city-data id=newport-ky args="--place 'Newport, Kentucky, USA'"
+make build-city-data id=laurens-ia args="--place 'Laurens, Iowa, USA'"
+make build-city-data id=bayonne args="--boundary-file city.geojson --regions-file quartiers.geojson \
+    --region-name-col nom --regions-source 'https://…'"
 ```
 
-`--city-id` is the id the deployment will eventually use in `conf/cityparams.conf` (`SIDEWALK_CITY_ID`), so later
-config steps can consume it directly; the suggested schema name / `DATABASE_USER` swaps its hyphens for underscores
-(`sidewalk_newport_ky` — new cities keep the full city id there, unlike older hand-trimmed schemas like
-`sidewalk_newport`).
+`--city-id` is the id the deployment will use in `conf/cityparams.conf` (`SIDEWALK_CITY_ID`); the schema /
+`DATABASE_USER` swaps its hyphens for underscores (`sidewalk_laurens_ia` — new cities keep the full city id).
 
-Streets come from OSM (osmnx, the wiki's highway filter, `--include-alleys` for `service=alley`). Regions come from
-the first source that works: `--regions-file` (bring your own; must carry a `name` column, and `--regions-source`
-records its provenance — a source URL or the supplying collaborator's email — in `region.data_source`), OSM
-neighborhood polygons (auto-rejected under 75% city coverage), US census tracts (TIGERweb), or the city boundary as
-a single region. Streets are split at region
-boundaries, then healed so boundary-riding streets aren't shredded or truncated: fragments under `--heal-segment-m`
-are reabsorbed, out-of-coverage gaps/ends riding within `--boundary-merge-tol-m` of the covered area are restored
-(streets may poke slightly outside the city), and boundary-running splits are merged (`rider_merges` QA layer).
+Streets come from OSM (osmnx, the runbook's highway filter minus `area=yes` plazas, `--include-alleys` for
+`service=alley`), noded only where included ways meet. Then the #4717 anti-tiny-segment rules: pieces under
+`--merge-tiny-m` (20 m) left between close intersections merge back into a touching piece of the same OSM way (never
+closing a ring); region-boundary fragments under `--heal-segment-m` are reabsorbed; boundary-running splits are merged
+(`rider_merges` QA layer); truncated ends riding within `--boundary-merge-tol-m` of the covered area are restored.
+osmnx joins consecutive OSM ways between intersections into one edge, so a street lists every way it spans in
+`osm_ids` (the fill records the first in `osm_way_street_edge`, which is one row per street). Regions come from the
+first source that works: `--regions-file` (any OGR format/CRS; `--region-name-col` names its name column, and
+`--regions-source` records the provenance in `region.data_source`), OSM neighbourhood polygons (auto-rejected under
+75% city coverage), US census tracts (TIGERweb), or the city boundary as a single region.
 
-Outputs land in `db/onboarding/<city-id>/` (git-ignored; visible in the db container under `/opt`): a QA GeoPackage
-to eyeball in QGIS, the `qgis_tables.sql` load file, and a Markdown report with per-region stats and flags
-(SPARSE/OVERSIZED/EMPTY). The QA loop: rerun with tweaked flags — including
-`--merge-regions "Census Tract 513:Census Tract 523.01"` (region *names*) to fold flagged regions into neighbors;
-structural region changes always go through a full rerun so streets re-split and re-heal against the merged
-boundaries and region ids stay dense. For surgical fixes, hand-edit the GeoPackage layers in QGIS and regenerate the
-SQL with the same target: `make build-city-data id=<city-id> args="--from-gpkg"` (a bare `--from-gpkg` targets the
-city's own QA GeoPackage; keeps the regions' existing `data_source`, and re-runs the validation and topology checks —
-invalid region geometry fails, overlaps and boundary-coverage gaps warn). And when
-hand-edited regions should *re-do the streets*, feed the edited GeoPackage back into a fetch rerun as the region
-source — `--regions-file <the QA gpkg> --regions-source "..."` reads its `qgis_region` layer directly.
-
-Once the GeoPackage passes QA, `make onboard-city id=<city-id>` (host-side, `tools/setup_new_city.py`) chains the
-rest of the setup: config registration, schema creation, evolutions, the staging load, the fill, and the
-`check_streets_for_imagery.py` scan + no-imagery street hiding + imagery-age import — see
-[`db/scripts/README.md`](../db/scripts/README.md) → "Standing up a brand-new city".
+Outputs land in `db/onboarding/<city-id>/` (git-ignored; visible to the db container at `/opt/onboarding/` when run
+from the main checkout): the QA GeoPackage, `qgis_tables.sql`, `street_edge_endpoints.csv` (the scan's input, so the
+preflight below runs before any database exists), and `report.md` with the tiny-segment histogram (production
+averages 18% of streets under 20 m; Bayonne rebuilt at 4%), per-region km with `SPARSE`/`OVERSIZED`/`EMPTY` flags,
+region-name warnings (#4620), and boundary coverage. The QA loop: rerun with tweaked flags — `--merge-regions
+"Census Tract 513:Census Tract 523.01"` folds regions by *name* and re-splits the streets against the merged
+boundaries — or hand-edit the GeoPackage in QGIS and regenerate the SQL with `make build-city-data id=<city-id>
+args="--from-gpkg"`, which validates the layers first (a hand-built layer with a single `osm_id` column is accepted).
 
 ## Testing
 

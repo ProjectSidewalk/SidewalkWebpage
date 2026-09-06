@@ -226,7 +226,7 @@ import-street-imagery:
 # import, so a new test file runs in both by default instead of silently in neither. COVERAGE_OMIT/COVERAGE_OMIT2 are
 # explained in pyproject.toml.
 pytest-args-app   = test/python --ignore=test/python/test_check_streets_for_imagery.py \
-                    --ignore=test/python/test_build_city_streets.py --ignore=test/python/test_onboard_city.py
+                    --ignore=test/python/test_onboard_city.py
 pytest-args-tools = test/python --ignore=test/python/test_label_clustering.py
 cov-omit-app      = -e COVERAGE_OMIT=scripts/check_streets_for_imagery.py -e COVERAGE_OMIT2=scripts/onboard_city.py
 cov-omit-tools    = -e COVERAGE_OMIT=scripts/label_clustering.py

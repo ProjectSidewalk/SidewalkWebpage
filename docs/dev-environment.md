@@ -22,8 +22,8 @@ not install Scala, Node, or Postgres directly — you only need Docker, Git, and
   [Mapbox](https://docs.mapbox.com/help/getting-started/access-tokens/) keys and add them to the override file.
 
 The dev setup is geared toward team members. If you're outside the team and want to stand up a server for a city we
-don't support, start with the [Creating a database for a new city](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Creating-database-for-a-new-city)
-wiki page — that's a substantial GIS task on its own.
+don't support, start with [Onboarding a city](onboarding-a-city.md) — the tooling builds the streets and regions from
+open data and fills a schema; the server side is still on you.
 
 ---
 
@@ -216,7 +216,7 @@ truth**; the snapshot below is a convenience copy (it may lag as new cities are 
 | mendota-il | sidewalk_mendota | | waltham-ma | sidewalk_waltham |
 | knox-oh | sidewalk_knox | | houston-tx | sidewalk_houston |
 | kaohsiung-tw | sidewalk_kaohsiung | | newport-ky | sidewalk_newport_ky |
-| bayonne | sidewalk_bayonne | | | |
+| bayonne | sidewalk_bayonne | | laurens-ia | sidewalk_laurens_ia |
 
 ---
 
