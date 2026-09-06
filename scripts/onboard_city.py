@@ -3,7 +3,7 @@ Builds a new city's street + region data (the ``qgis_road`` / ``qgis_region`` st
 replacing the manual QGIS pipeline for the repeatable parts of city onboarding (issue #4291).
 
 This is a standalone, manually-run utility (it is not invoked by the app). It automates the deterministic ~90% of the
-"Creating database for a new city" wiki workflow — data acquisition, filtering, splitting, clipping, and id
+retired "Creating database for a new city" QGIS runbook — data acquisition, filtering, splitting, clipping, and id
 assignment — while keeping a human in the loop for visual QA: the script never writes to the database. It emits a
 GeoPackage to eyeball in QGIS plus a SQL file that loads the two staging tables, and loading that SQL is a separate,
 deliberate step.
@@ -58,8 +58,8 @@ becomes ``street_edge_id``, ``geom`` LineString 4326 pre-split at intersections,
 
 Street semantics vs. the manual QGIS flow:
 
-  * The highway filter is the same one the wiki prescribes (trunk/primary/secondary/tertiary/residential/unclassified/
-    pedestrian/living_street, plus ``service``+``service=alley`` with ``--include-alleys``).
+  * The highway filter is the one the retired QGIS runbook prescribed (trunk/primary/secondary/tertiary/residential/
+    unclassified/pedestrian/living_street, plus ``service``+``service=alley`` with ``--include-alleys``).
   * osmnx returns the graph already noded at intersections, but only at *shared OSM nodes within the filtered
     network*: excluded way types don't cause splits, and grade-separated crossings (overpasses) share no node so —
     unlike QGIS "Split with lines", which splits at any geometric crossing — they correctly stay unsplit. Its
@@ -70,7 +70,7 @@ Street semantics vs. the manual QGIS flow:
     arcs, the stubs between a dual carriageway's links — are merged back into a touching piece of the *same* OSM way
     (#4717 tier 1), never closing a ring. On Bayonne this took sub-20 m streets from 27% to 16% of the network, in
     line with the production average.
-  * Streets are additionally split at region boundaries by the region-assignment overlay (same as the wiki's
+  * Streets are additionally split at region boundaries by the region-assignment overlay (same as the runbook's
     "Intersection" step). A region boundary that runs *along* a street (census tract boundaries usually follow
     street centerlines) would shred it into fragments alternating between the two regions, so a healing pass
     reabsorbs fragments shorter than ``--heal-segment-m`` into their touching neighbor on the same street (which
@@ -84,7 +84,7 @@ Street semantics vs. the manual QGIS flow:
     *along* the boundary rather than across it — one side lying entirely within ``--boundary-merge-tol-m`` of the
     other side's region — so a boundary-running road split midway comes back as one street (genuine crossings pull
     away from the boundary and keep their split; merged junctions land in the ``rider_merges`` QA layer). Whatever
-    is still shorter than ``--min-segment-m`` after healing is dropped (the wiki's manual "delete tiny segments"
+    is still shorter than ``--min-segment-m`` after healing is dropped (the runbook's manual "delete tiny segments"
     pass) — kept in the QA GeoPackage's ``dropped_segments`` layer for review.
 
 The decision logic lives in pure, import-safe functions; network and file I/O live in the ``fetch_*``/``write_*``
@@ -121,7 +121,7 @@ def _osmnx():
     ox.settings.cache_folder = str(REPO_ROOT / 'db' / 'onboarding' / 'osmnx-cache')
     return ox
 
-# The way types we audit — the same filter the manual QGIS flow applies (wiki: "Creating database for a new city").
+# The way types we audit — the same filter the manual QGIS flow applies (the retired QGIS runbook).
 # Every value is a label of the DB's way_type enum, so fill-new-schema.sh's ::way_type cast can't fail.
 DEFAULT_WAY_TYPES = (
     'trunk', 'primary', 'secondary', 'tertiary', 'residential', 'unclassified', 'pedestrian', 'living_street'
@@ -531,7 +531,7 @@ def restore_boundary_tails(edge_geom, pieces, buffered_coverage):
     inside). When such a missing end lies entirely within the buffered coverage — the rides-the-boundary test of
     :func:`absorb_boundary_riders`, with outside-the-city as the "other side" — it is recovered from the original
     edge geometry and welded onto the adjacent piece. An end that pulls away from the covered area genuinely leaves
-    the city and stays truncated. (This automates the wiki's manual advice to nudge boundary polygons outward so
+    the city and stays truncated. (This automates the runbook's advice to nudge boundary polygons outward so
     they fully capture parallel streets.)
 
     Args:
@@ -1244,7 +1244,7 @@ def assign_regions(streets, regions, min_segment_m, heal_m, boundary_merge_tol_m
     """
     Splits streets at region boundaries, tags each piece with its ``region_id``, and assigns road ids.
 
-    This is the wiki's "Intersection" geoprocessing step (pieces outside every region are trimmed away) followed by a
+    This is the runbook's "Intersection" geoprocessing step (pieces outside every region are trimmed away) followed by a
     healing pass: out-of-region gaps and truncated ends are restored from the original street geometry when short or
     riding the boundary of the covered area (:func:`bridge_short_gaps` / :func:`restore_boundary_tails` — a street
     hugging the city boundary stays whole rather than losing mid-block chunks or its ends), and fragments shorter

@@ -1,8 +1,11 @@
 # Onboarding a city
 
 How a new deployment goes from "we'd like Project Sidewalk in X" to a schema on the server, using the tooling in this
-repo. It replaces the wiki's QGIS-by-hand runbook for everything but the visual QA, and takes an afternoon rather
-than days (#4291). The `onboard-city` Claude Code skill drives this same sequence with the judgment calls filled in.
+repo. It replaces the QGIS-by-hand runbook that used to live in the wiki for everything but the visual QA, and takes
+an afternoon rather than days (#4291); the retired runbook's last revision stays readable in the
+[wiki page's history](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Creating-database-for-a-new-city/fdd8da7)
+for the manual QGIS steps. The `onboard-city` Claude Code skill drives this same sequence with the judgment calls
+filled in.
 
 ```
 make build-city-data id=<city-id> args="..."          # 1. streets + regions → db/onboarding/<city-id>/  (minutes)
@@ -144,10 +147,29 @@ where a person is needed and skips whatever a previous run already did:
   and clears the donor's `mapathon_event_link`. Check them before launch.
 - **Visual QA.** Land on the site as the new city (`SIDEWALK_CITY_ID` + `DATABASE_USER` in
   `docker-compose.override.yml`, recreate the container): the map centers on the city, neighborhood names read right,
-  one street walks in Explore on the chosen imagery, the Explore tag lists match `excluded_tags`.
+  one street walks in Explore on the chosen imagery, the Explore tag lists match `excluded_tags`. Two things the
+  first visit needs: sign in **before** switching the dev env to the new city — from a dev env pointed at an existing
+  city — so that whatever your testing logs is attributed to a user that already exists in the production
+  `sidewalk_login`; and if the landing map needs a different zoom, edit `config.default_map_zoom` and clear the Play
+  cache from the admin page (it caches the config row), the same after hiding streets on a live server, since the
+  total street distance behind the completion percentage is cached too.
 - **Server.** `scp db/<schema>-dump makelab1.cs.washington.edu:/www/sidewalk/new-city-dumps/`, then the IT tooling
   (`uwcseit-sidewalk-tools`: `bin/setup-new.pl`, test stage first), the Maps-key referrers for both URLs
-  (`docs/google-cloud.md`), DNS, and the PR with the config, message, and docs changes.
+  (`docs/google-cloud.md`), DNS, and the PR with the config, message, and docs changes. Where the tooling can't be
+  used, the fallback is an email to CS support asking for the test and prod servers, with both URLs, any redirect
+  from an older name, `SIDEWALK_CITY_ID`, and `DATABASE_USER`.
+
+## Optional follow-ups
+
+- **Pano scraper**, only when the deployment is also a computer-vision dataset: once prod is up, create the city's
+  directory under `sidewalk_panos/Panoramas/<city-id>` on the panorama store, seed it with a `log.csv` carrying the
+  same headers as the other cities' scraper logs (no trailing newline), and add a crontab entry for the city on the
+  scraper host, copied from another city's and spaced out to a different hour. Mikey holds the access to both.
+- **Uptime monitoring.** In [Uptime Robot](https://uptimerobot.com/), add an HTTP(s) monitor at a 5-minute interval
+  on the `/signIn` endpoint of each stage (e.g. `https://sidewalk-<city>-test.cs.washington.edu/signIn`).
+- **A launch limited to an arbitrary boundary** (streets around transit stations, say) has no tooling: phased launches
+  are by region (`include:`/`exclude:` at fill time, `make reveal-or-hide-neighborhoods` later). The retired runbook's
+  hand recipe for it is in the wiki page history linked above, but it predates `street_edge.status`.
 
 ## Re-running, and doing it by hand
 
