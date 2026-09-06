@@ -51,7 +51,8 @@ function createPanoViewerLogo(container, primarySource) {
   Object.assign(holder.style, {
     display: 'none',
     position: 'absolute',
-    bottom: 'calc(var(--bottom-left-links-clearance, 2px) * var(--ui-scale, 1))',
+    // --pano-logo-bottom lets a host lift the logo from CSS, which this inline style would otherwise win against.
+    bottom: 'var(--pano-logo-bottom, calc(var(--bottom-left-links-clearance, 2px) * var(--ui-scale, 1)))',
     left: '0',
     zIndex: '1',
     height: `calc(${HOLDER_HEIGHT}px * var(--ui-scale, 1))`,

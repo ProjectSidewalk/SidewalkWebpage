@@ -59,7 +59,7 @@
 
 .lvg-card-img .pano-attribution {
   right: 6px;
-  bottom: 3px;
+  bottom: 4.6px; /* Puts the 16px pill's center on the scaled logo's art center, 12.6px above the image's edge. */
 }
 
 .lvg-card-photo {

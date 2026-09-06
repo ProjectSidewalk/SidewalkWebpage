@@ -57,16 +57,23 @@ with respect to the image holder. This allows the validation menu to be placed o
   border-top-right-radius: 20px;
 }
 
-/* Imagery credit on the card's own still (#4865, #5202; look in css/components/pano-attribution.css). Both hug the
-   bottom edge, overlapping the hover validation bar while it is up. */
+/* Imagery credit on the card's own still (#4865, #5202; look in css/components/pano-attribution.css), clear of the
+   vote row that owns the bottom 14% of the holder. The clearance is static rather than revealed on hover, and it is
+   not optional: (pointer: coarse) keeps that row up permanently, so a credit inside the band is invisible on every
+   touch device, and the row's buttons hit-test even at opacity 0, so a click on the licence would vote instead.
+   The +6.2px puts the pill's center on the logo's art center, 11.16px above whatever line the two share. */
+.image-holder {
+  --credit-clearance: calc(14% + 3px);
+}
+
 .image-holder .pano-viewer-logo {
   --ui-scale: 0.72; /* Card-sized: the 29px logo row down to ~21px. Only the logo — the pill sets its own type. */
+  --pano-logo-bottom: var(--credit-clearance);
 }
 
 .image-holder .pano-attribution {
   right: 6px;
-  bottom: 3px;
-  z-index: 1; /* Under the hover validation bar (2), like the source logo opposite it. */
+  bottom: calc(var(--credit-clearance) + 6.2px);
 }
 
 #gallery-validation-button-holder {
