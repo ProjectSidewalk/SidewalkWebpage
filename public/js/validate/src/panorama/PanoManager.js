@@ -66,7 +66,9 @@ class PanoManager {
 
     this.#panoCanvas = document.getElementById('svv-panorama');
 
-    // Sibling canvas for the Pannellum fallback viewer, hidden until an expired pano needs it.
+    // Sibling canvas for the Pannellum fallback viewer, hidden until an expired pano needs it. `visibility`, not
+    // `display`, is what hides it once it holds a viewer: a display:none element has no size, and a viewer only
+    // measures the box it is mounted in, so it has to be laid out to load a pano it isn't showing yet (#5206).
     this.#pannellumCanvas = document.createElement('div');
     this.#pannellumCanvas.id = 'svv-panorama-pannellum';
     this.#pannellumCanvas.style.cssText
@@ -380,7 +382,7 @@ class PanoManager {
   #clearViewer() {
     this.setProperty('panoLoaded', false);
     this.#panoCanvas.style.display = 'none';
-    this.#pannellumCanvas.style.display = 'none';
+    this.#hidePannellumCanvas();
     if (this.labelMarker) {
       this.labelMarker.removeMarker();
       this.labelMarker = null;
@@ -393,7 +395,7 @@ class PanoManager {
    * @private
    */
   #teardownPannellum() {
-    this.#pannellumCanvas.style.display = 'none';
+    this.#hidePannellumCanvas();
     this.#panoCanvas.style.display = '';
     svv.panoViewer = this.#primaryViewer;
     svv.panoViewer.resize();
@@ -403,40 +405,81 @@ class PanoManager {
   }
 
   /**
-   * Shows the Pannellum viewer for the given pano. On the first call, creates a PannellumViewer; on subsequent
-   * calls, reuses it via loadPano() to avoid recreating the WebGL context. Sets svv.panoViewer to the Pannellum
-   * viewer so the rest of the codebase (setPov, getPov, markers) uses the correct viewer.
+   * Loads the given pano into the Pannellum viewer and, once it is on screen, hands the pano area over to it.
+   *
+   * On the first call this creates a PannellumViewer; on later calls it reuses the same one via loadPano(), to avoid
+   * recreating the WebGL context. Sets svv.panoViewer to the Pannellum viewer so the rest of the codebase (setPov,
+   * getPov, markers) uses the correct viewer.
+   *
+   * The invariant: this canvas is painted only while it holds the current label's pano. It has to be, because the
+   * viewer is reused and its canvas therefore carries whatever pano it last drew — an earlier label's, from however
+   * many labels back that was. Revealing it any sooner than the load resolving would put that pano on screen for
+   * the length of the download, under this label's marker and the outgoing label's capture date, where a validator
+   * reads it as the label they were just handed (#5206). So the load runs against a laid-out but unpainted canvas
+   * and the swap — canvas, active viewer, logo, attribution — happens in one step afterwards; nothing here paints,
+   * and the outgoing label's imagery stays up until this one is ready.
+   *
    * @param {{object}} backupImage
    * @returns {Promise<PanoData>}
    * @private
    */
   async #showPannellumPano(backupImage) {
-    this.#panoCanvas.style.display = 'none';
-    this.#pannellumCanvas.style.display = '';
-
     // Use a neutral POV here; renderPanoMarker will setPov to the correct heading immediately after.
     const neutralPov = { heading: backupImage.cameraHeading || 0, pitch: 0, zoom: 1 };
 
-    if (this.#pannellumViewer) {
-      await this.#pannellumViewer.loadPano(backupImage.panoId, backupImage, neutralPov);
-    } else {
-      this.#pannellumViewer = await PannellumViewer.create(this.#pannellumCanvas, {
-        panoMetadata: backupImage,
-        startPanoId: backupImage.panoId,
-        startHeading: neutralPov.heading,
-        startPitch: neutralPov.pitch,
-        startZoom: neutralPov.zoom,
-      });
+    // Put the canvas into the layout without painting it, so the viewer mounted in it can measure itself. One that
+    // is already showing is left alone: it holds the outgoing label's imagery, which is what should stay up.
+    // `wasShowing` is only consulted to decide how much to undo on failure; it deliberately does not gate the
+    // reveal below, which restates the whole visible state rather than assuming what this call changed.
+    const wasShowing = this.#pannellumCanvas.style.display !== 'none';
+    if (!wasShowing) {
+      this.#pannellumCanvas.style.visibility = 'hidden';
+      this.#pannellumCanvas.style.display = '';
     }
+    try {
+      if (this.#pannellumViewer) {
+        await this.#pannellumViewer.loadPano(backupImage.panoId, backupImage, neutralPov);
+      } else {
+        this.#pannellumViewer = await PannellumViewer.create(this.#pannellumCanvas, {
+          panoMetadata: backupImage,
+          startPanoId: backupImage.panoId,
+          startHeading: neutralPov.heading,
+          startPitch: neutralPov.pitch,
+          startZoom: neutralPov.zoom,
+        });
+      }
+    } catch (err) {
+      // Put the pano area back the way this call found it, so a failed fallback leaves the outgoing label's imagery
+      // up rather than a canvas the caller believes is hidden. setPanorama decides what happens next.
+      if (!wasShowing) this.#hidePannellumCanvas();
+      throw err;
+    }
+
     this.#watchViewerPov(this.#pannellumViewer);
     svv.panoViewer = this.#pannellumViewer;
     // As #teardownPannellum does on the way back: a viewer only measures its container when told to, and this one
     // has been sitting hidden — since a rotation, in the mobile case, which resized every canvas underneath it.
     svv.panoViewer.resize();
+    // Set both properties rather than only the one this call is expected to have changed. Redundant on the common
+    // path, load-bearing when two loads overlap: the other one's cleanup can have taken this canvas out of the
+    // layout while this load was in flight, and reinstating only `visibility` would leave both canvases hidden —
+    // an empty pano area that still reports panoLoaded and gets a marker drawn over it.
+    this.#panoCanvas.style.display = 'none';
+    this.#pannellumCanvas.style.display = '';
+    this.#pannellumCanvas.style.visibility = '';
     svv.tracker.push('Viewer_Pannellum');
     this.#logo.showSourceLogo();
     this.#attribution.show(backupImage.attribution || null);
     return svv.panoViewer.currPanoData;
+  }
+
+  /**
+   * Takes the Pannellum canvas back out of sight, and out of the layout so it can't sit over the primary viewer.
+   * @private
+   */
+  #hidePannellumCanvas() {
+    this.#pannellumCanvas.style.display = 'none';
+    this.#pannellumCanvas.style.visibility = '';
   }
 
   /**
