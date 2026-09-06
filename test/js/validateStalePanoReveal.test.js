@@ -2,11 +2,11 @@
  * Tests that Validate never paints a pano the current label doesn't belong to, in
  * public/js/validate/src/panorama/PanoManager.js (`#showPannellumPano`, `setPanorama`).
  *
- * The Pannellum fallback viewer is reused across labels so its WebGL context survives, which means its canvas still
- * holds the last pano it drew. Revealing that canvas before the new image loaded put an earlier label's imagery on
- * screen for the length of the download — with this label's marker on it — and validators answered the question
- * against it (#5206). The load now happens with the canvas laid out but unpainted, and the swap happens in one step
- * once the image is really there.
+ * The Pannellum fallback viewer is reused across labels so its WebGL context survives, which means its canvas
+ * carries whatever pano it last drew — an earlier label's. Painting it before the new image has loaded would put
+ * that pano on screen for the length of the download, with this label's marker on it, and a validator would answer
+ * the question against it (#5206). So the load runs against a laid-out but unpainted canvas, and the swap happens
+ * in one step once the image is really there.
  *
  * The assertions are about what a validator could see at each instant, so they read `display`/`visibility` off the
  * two canvases rather than trusting the call order. Fake viewers throughout; no imagery is involved.
@@ -17,15 +17,6 @@ const path = require('path');
 
 const PANO_MANAGER_PATH = path.resolve(__dirname, '..', '..', 'public/js/validate/src/panorama/PanoManager.js');
 const THROTTLE_PATH = path.resolve(__dirname, '..', '..', 'public/js/validate/src/util/throttle.js');
-
-/**
- * Let every already-queued microtask run, so an assertion about a load in flight isn't really an assertion about how
- * many `await` hops the production code happens to take to reach it.
- * @returns {Promise<void>}
- */
-async function settlePending() {
-  for (let i = 0; i < 10; i++) await Promise.resolve();
-}
 
 /**
  * Load a bare `class` declaration out of a production file. The Grunt bundle concatenates these into page scope, so
@@ -77,7 +68,12 @@ describe('Validate only paints the fallback canvas once it holds this label\'s p
 
   /**
    * Hold the next Pannellum load open so a test can look at the screen while it is in flight.
-   * @returns {{resolve: Function, reject: Function}} Controls for settling that load.
+   *
+   * `started` resolves from inside the mock, which is the moment the production code has actually reached the load.
+   * Awaiting that rather than a fixed number of microtask ticks keeps the mid-flight assertions from depending on
+   * how many `await` hops the call path happens to take.
+   *
+   * @returns {{started: Promise<void>, resolve: Function, reject: Function}} Controls for settling that load.
    */
   function holdPannellumLoad() {
     const controls = {};
@@ -85,8 +81,11 @@ describe('Validate only paints the fallback canvas once it holds this label\'s p
       controls.resolve = () => resolve(panoData);
       controls.reject = () => reject(new Error('backup image failed'));
     });
-    pannellumViewer.loadPano = jest.fn(() => gate);
-    global.PannellumViewer.create = jest.fn(() => gate.then(() => pannellumViewer));
+    controls.started = new Promise((markStarted) => {
+      const enter = () => { markStarted(); return gate; };
+      pannellumViewer.loadPano = jest.fn(enter);
+      global.PannellumViewer.create = jest.fn(() => enter().then(() => pannellumViewer));
+    });
     return controls;
   }
 
@@ -145,7 +144,7 @@ describe('Validate only paints the fallback canvas once it holds this label\'s p
     const load = holdPannellumLoad();
 
     const inFlight = panoManager.setPanorama('pano2', backupImage);
-    await settlePending();
+    await load.started;
 
     // This is the bug: the fallback canvas held an earlier label's pano, and revealing it here showed that pano.
     expect(visibleCanvas()).toBe('primary');
@@ -160,7 +159,7 @@ describe('Validate only paints the fallback canvas once it holds this label\'s p
     const load = holdPannellumLoad();
 
     const inFlight = panoManager.setPanorama('pano2', backupImage);
-    await settlePending();
+    await load.started;
 
     // A display:none element has no size, and a viewer only measures the box it is mounted in.
     expect(pannellumCanvas.style.display).not.toBe('none');
@@ -175,7 +174,7 @@ describe('Validate only paints the fallback canvas once it holds this label\'s p
     const load = holdPannellumLoad();
 
     const inFlight = panoManager.setPanorama('pano2', backupImage);
-    await settlePending();
+    await load.started;
 
     // Crediting our own copy over the previous label's provider imagery would misattribute it.
     expect(logo.showSourceLogo).not.toHaveBeenCalled();
@@ -192,7 +191,7 @@ describe('Validate only paints the fallback canvas once it holds this label\'s p
     const load = holdPannellumLoad();
 
     const inFlight = panoManager.setPanorama('pano2', backupImage);
-    await settlePending();
+    await load.started;
     load.reject();
     const result = await inFlight;
 
@@ -209,7 +208,7 @@ describe('Validate only paints the fallback canvas once it holds this label\'s p
 
     const load = holdPannellumLoad();
     const inFlight = panoManager.setPanorama('pano3', { panoId: 'backup-pano-2', cameraHeading: 12 });
-    await settlePending();
+    await load.started;
 
     // Already the right canvas, and it holds the outgoing label's imagery — the honest thing to keep showing.
     expect(visibleCanvas()).toBe('pannellum');
@@ -217,6 +216,29 @@ describe('Validate only paints the fallback canvas once it holds this label\'s p
 
     load.resolve();
     await inFlight;
+    expect(visibleCanvas()).toBe('pannellum');
+  });
+
+  test('a load that finishes after another one failed still leaves its image on screen', async () => {
+    // Two loads in flight at once: the older one's failure cleanup takes the canvas out of the layout while the
+    // newer one is still downloading. The newer one has to restate the whole visible state, not just the part it
+    // expects to have changed, or it reports success over an empty pano area and the caller draws a marker on it.
+    primaryViewerFails();
+    const first = holdPannellumLoad();
+    const firstInFlight = panoManager.setPanorama('pano2', backupImage);
+    await first.started;
+
+    const second = holdPannellumLoad();
+    const secondInFlight = panoManager.setPanorama('pano3', { panoId: 'backup-pano-2', cameraHeading: 12 });
+    await second.started;
+
+    first.reject();
+    await firstInFlight;
+    second.resolve();
+    const result = await secondInFlight;
+
+    expect(result).not.toBeNull();
+    expect(panoManager.getProperty('panoLoaded')).toBe(true);
     expect(visibleCanvas()).toBe('pannellum');
   });
 

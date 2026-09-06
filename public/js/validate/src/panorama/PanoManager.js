@@ -411,13 +411,13 @@ class PanoManager {
    * recreating the WebGL context. Sets svv.panoViewer to the Pannellum viewer so the rest of the codebase (setPov,
    * getPov, markers) uses the correct viewer.
    *
-   * The load happens while the canvas is laid out but unpainted, and the swap — canvas, active viewer, logo,
-   * attribution — happens in one step afterwards. Reusing the viewer means its canvas still holds the last pano it
-   * drew, which is an *earlier label's* imagery, from however many labels ago that was; revealing the canvas before
-   * the load resolved put that image on screen for the length of the download, under the new label's marker and the
-   * previous label's capture date, and validators read it as the label they had just been given (#5206). Nothing
-   * here paints, so the outgoing label's imagery simply stays up until this one is ready, and the tool's own busy
-   * state (`validate-disabled`, set by LabelContainer) is what says a load is in progress.
+   * The invariant: this canvas is painted only while it holds the current label's pano. It has to be, because the
+   * viewer is reused and its canvas therefore carries whatever pano it last drew — an earlier label's, from however
+   * many labels back that was. Revealing it any sooner than the load resolving would put that pano on screen for
+   * the length of the download, under this label's marker and the outgoing label's capture date, where a validator
+   * reads it as the label they were just handed (#5206). So the load runs against a laid-out but unpainted canvas
+   * and the swap — canvas, active viewer, logo, attribution — happens in one step afterwards; nothing here paints,
+   * and the outgoing label's imagery stays up until this one is ready.
    *
    * @param {{object}} backupImage
    * @returns {Promise<PanoData>}
@@ -429,6 +429,8 @@ class PanoManager {
 
     // Put the canvas into the layout without painting it, so the viewer mounted in it can measure itself. One that
     // is already showing is left alone: it holds the outgoing label's imagery, which is what should stay up.
+    // `wasShowing` is only consulted to decide how much to undo on failure; it deliberately does not gate the
+    // reveal below, which restates the whole visible state rather than assuming what this call changed.
     const wasShowing = this.#pannellumCanvas.style.display !== 'none';
     if (!wasShowing) {
       this.#pannellumCanvas.style.visibility = 'hidden';
@@ -458,7 +460,12 @@ class PanoManager {
     // As #teardownPannellum does on the way back: a viewer only measures its container when told to, and this one
     // has been sitting hidden — since a rotation, in the mobile case, which resized every canvas underneath it.
     svv.panoViewer.resize();
+    // Set both properties rather than only the one this call is expected to have changed. Redundant on the common
+    // path, load-bearing when two loads overlap: the other one's cleanup can have taken this canvas out of the
+    // layout while this load was in flight, and reinstating only `visibility` would leave both canvases hidden —
+    // an empty pano area that still reports panoLoaded and gets a marker drawn over it.
     this.#panoCanvas.style.display = 'none';
+    this.#pannellumCanvas.style.display = '';
     this.#pannellumCanvas.style.visibility = '';
     svv.tracker.push('Viewer_Pannellum');
     this.#logo.showSourceLogo();
