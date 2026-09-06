@@ -29,7 +29,6 @@ class Label {
     aiTagsNotPresent: undefined,
     isMobile: undefined,
     aiGenerated: false,
-    expired: false,
     backupImage: null,
   };
 
@@ -103,7 +102,6 @@ class Label {
       if ('ai_tags' in params) this.setAuditProperty('aiTags', params.ai_tags);
       if ('ai_tags_not_present' in params) this.setAuditProperty('aiTagsNotPresent', params.ai_tags_not_present);
       if ('ai_generated' in params) this.setAuditProperty('aiGenerated', params.ai_generated);
-      if ('expired' in params) this.setAuditProperty('expired', Boolean(params.expired));
       this.setAuditProperty('backupImage', buildBackupImageData(params));
       // Properties only used on the Admin version of Validate.
       if ('admin_data' in params && params.admin_data !== null) {

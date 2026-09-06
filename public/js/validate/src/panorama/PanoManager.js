@@ -54,10 +54,9 @@ class PanoManager {
    * @param {string} viewerAccessToken An access token used to request images for the pano viewer
    * @param {string} startPanoId The ID of the panorama to load first
    * @param {{object}|null} startBackupImage Self-hosted backup for the first pano, or null.
-   * @param {boolean} startExpired Whether the first pano's imagery is known to have expired from its source.
    * @returns {Promise<void>} A Promise that resolves once the first pano has loaded
    */
-  async #init(panoViewerType, viewerAccessToken, startPanoId, startBackupImage, startExpired) {
+  async #init(panoViewerType, viewerAccessToken, startPanoId, startBackupImage) {
     // Create the primary viewer without a startPanoId so viewer construction never fails due to an expired pano.
     const panoOptions = {
       accessToken: viewerAccessToken,
@@ -86,19 +85,14 @@ class PanoManager {
     this.#logo.showPrimaryLogo();
     this.#attribution = createPanoAttribution(this.#panoCanvas.parentElement);
 
-    // Load the first pano, falling back to Pannellum if the primary viewer fails — or going straight there when the
-    // backend has already told us this pano's imagery is gone.
-    if (PanoManager.#useBackupDirectly(startExpired, startBackupImage)) {
-      this.#setPanoCallback(await this.#showPannellumPano(startBackupImage));
-    } else {
-      try {
-        const panoData = await this.#primaryViewer.setPano(startPanoId);
+    // Load the first pano, falling back to Pannellum if the primary viewer fails.
+    try {
+      const panoData = await this.#primaryViewer.setPano(startPanoId);
+      this.#setPanoCallback(panoData);
+    } catch {
+      if (startBackupImage) {
+        const panoData = await this.#showPannellumPano(startBackupImage);
         this.#setPanoCallback(panoData);
-      } catch {
-        if (startBackupImage) {
-          const panoData = await this.#showPannellumPano(startBackupImage);
-          this.#setPanoCallback(panoData);
-        }
       }
     }
 
@@ -342,66 +336,38 @@ class PanoManager {
    *
    * @param {string} panoId The ID for the panorama that we want to move to.
    * @param {{object}|null} backupImage Self-hosted pano data from the backend, or null.
-   * @param {boolean} [expired=false] Whether this pano's imagery is known to have expired from its source, in which
-   *      case the primary viewer is skipped when there is a backup to render instead.
    * @returns {Promise<PanoData|null>} The loaded pano's metadata, or `null` when no viewer could render it. A null
    *      return means the pano area is now empty, so the caller must not draw a label marker over it or ask for a
    *      validation of the label it was loading (#4810).
    */
-  async setPanorama(panoId, backupImage = null, expired = false) {
+  async setPanorama(panoId, backupImage = null) {
     this.setProperty('panoLoaded', false);
 
-    // Both sources are always tried; `expired` only decides which goes first. Asking the live provider for imagery
-    // the backend has already checked and written off is a round trip the validator waits through for an answer we
-    // have (#5206) — but the flag is a nightly verdict that the sweep itself re-checks, and a backup can fail to
-    // decode, so neither source is ever ruled out.
-    const loaders = PanoManager.#useBackupDirectly(expired, backupImage)
-      ? [() => this.#loadFromBackup(backupImage), () => this.#loadFromPrimary(panoId)]
-      : [() => this.#loadFromPrimary(panoId), () => this.#loadFromBackup(backupImage)];
-
-    let lastError = null;
-    for (const load of loaders) {
-      try {
-        const panoData = await load();
-        if (!panoData) continue; // Nothing to attempt from this source — a label with no self-hosted backup.
-        this.#setPanoCallback(panoData);
-        this.setProperty('panoLoaded', true);
-        svv.tracker.push('PanoId_Changed');
-        return panoData;
-      } catch (err) {
-        lastError = err;
+    // Try the primary viewer first.
+    try {
+      const panoData = await this.#primaryViewer.setPano(panoId);
+      this.#teardownPannellum();
+      this.#setPanoCallback(panoData);
+      this.setProperty('panoLoaded', true);
+      svv.tracker.push('PanoId_Changed');
+      return panoData;
+    } catch {
+      // Primary viewer failed — try Pannellum if we have local pano data.
+      if (backupImage) {
+        try {
+          const panoData = await this.#showPannellumPano(backupImage);
+          this.#setPanoCallback(panoData);
+          this.setProperty('panoLoaded', true);
+          svv.tracker.push('PanoId_Changed');
+          return panoData;
+        } catch (err) {
+          console.error('PannellumViewer failed to load for Validate:', err);
+        }
       }
     }
 
-    // Only reached when no source rendered, which is the case the caller turns into a dropped label (#4810) — rare
-    // enough to be worth a line, unlike the routine "provider is out of imagery, the backup has it" hand-off.
-    if (lastError) console.error('Validate could not render a pano:', lastError);
     this.#clearViewer();
     return null;
-  }
-
-  /**
-   * Loads a pano into the primary viewer and hands the pano area back to it.
-   * @param {string} panoId The pano to load.
-   * @returns {Promise<PanoData>} The loaded pano's metadata; rejects if the provider can't render it.
-   * @private
-   */
-  async #loadFromPrimary(panoId) {
-    const panoData = await this.#primaryViewer.setPano(panoId);
-    this.#teardownPannellum();
-    return panoData;
-  }
-
-  /**
-   * Loads a pano from its self-hosted backup, if it has one.
-   * @param {{object}|null} backupImage The pano's backup metadata, or null when there isn't one.
-   * @returns {Promise<PanoData|null>} The loaded pano's metadata, or null when there was no backup to try;
-   *      rejects if there was one and it wouldn't render.
-   * @private
-   */
-  #loadFromBackup(backupImage) {
-    if (!backupImage) return Promise.resolve(null);
-    return this.#showPannellumPano(backupImage);
   }
 
   /**
@@ -510,23 +476,6 @@ class PanoManager {
   }
 
   /**
-   * Whether a label's imagery should go straight to its self-hosted backup, skipping the primary viewer.
-   *
-   * The backend already knows an expired pano is expired and says so in the label payload, so the request to the
-   * live provider is a round trip we know will fail — one the validator waits through before the fallback even
-   * starts (#5206). Only skip it when there is something to fall back to: with no backup the primary viewer is the
-   * label's last chance, and `expired` can be stale — the nightly sweep re-checks panos it has already written off.
-   *
-   * @param {boolean} expired Whether the backend flagged this pano's imagery as expired.
-   * @param {{object}|null} backupImage The pano's self-hosted backup metadata, or null when there isn't one.
-   * @returns {boolean} True to go straight to the backup.
-   * @private
-   */
-  static #useBackupDirectly(expired, backupImage) {
-    return Boolean(expired && backupImage);
-  }
-
-  /**
    * Adds or removes the AI badge on the validation marker.
    * @param showIndicator  True to show the AI badge, false to remove it.
    * @private
@@ -630,12 +579,11 @@ class PanoManager {
    * @param {string} viewerAccessToken An access token used to request images for the pano viewer
    * @param {string} startPanoId The ID of the panorama to load first
    * @param {{object}|null} startBackupImage Self-hosted backup for the first pano, or null.
-   * @param {boolean} [startExpired=false] Whether the first pano's imagery is known to have expired from its source.
    * @returns {Promise<PanoManager>} The panoManager instance, with the first pano already loaded.
    */
-  static async create(panoViewerType, viewerAccessToken, startPanoId, startBackupImage = null, startExpired = false) {
+  static async create(panoViewerType, viewerAccessToken, startPanoId, startBackupImage = null) {
     const newPanoManager = new PanoManager();
-    await newPanoManager.#init(panoViewerType, viewerAccessToken, startPanoId, startBackupImage, startExpired);
+    await newPanoManager.#init(panoViewerType, viewerAccessToken, startPanoId, startBackupImage);
     return newPanoManager;
   }
 }
