@@ -1349,6 +1349,10 @@ class LabelDetail {
   }
 
   #resetVoteButtonStyles() {
+    // A vote echo still in flight belongs to the label being left, and the tally rows it mounts into are cached
+    // once and reused for every label the card shows — so left alone it would go on rising over a label the reader
+    // never voted on, which is the one thing an affordance that reports a vote must never say.
+    for (const ghost of this.#root.querySelectorAll('.label-detail__vote-pop')) ghost.remove();
     for (const btn of Object.values(this.#els.panoOverlayButtons)) {
       btn.classList.remove('is-selected');
       btn.setAttribute('aria-pressed', 'false');
@@ -1609,6 +1613,9 @@ class LabelDetail {
    * Decorative and silent: `aria-hidden` with an empty alt, since the vote it reports is already carried by the
    * button's `aria-pressed` and the count beside it. Skipped entirely under prefers-reduced-motion, the way every
    * other optional flourish here is (Confetti, ObservedArea, StorySection).
+   *
+   * Tied to the label it was cast on: #resetVoteButtonStyles() drops one still in flight when the card moves to
+   * another label, since the tally row it lives in is shared by every label the card shows.
    *
    * @param {'Agree'|'Disagree'|'Unsure'} action - The vote that was cast.
    */

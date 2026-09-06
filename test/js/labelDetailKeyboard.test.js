@@ -637,6 +637,21 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
             delete window.matchMedia;
         });
 
+        test('paging away takes the echo with it, so it cannot report a vote on the next label', async () => {
+            // The tally rows are cached once and reused for every label the card shows, so an echo still in flight
+            // when the reader pages would go on rising over a label they never voted on — the one thing this
+            // affordance must never say. Well within reach: the animation runs 700ms and the arrow keys are how
+            // the run moves.
+            await showLabel({ label_id: 100 });
+            press('KeyA');
+            await flush();
+            expect(echo()).not.toBeNull();
+
+            await showLabel({ label_id: 101 });
+
+            expect(echo()).toBeNull();
+        });
+
         test('it takes itself back out of the markup', async () => {
             // On a timer rather than animationend: closing the card mid-flight cancels the animation instead of
             // ending it, and a node left behind on every such vote would accumulate.
