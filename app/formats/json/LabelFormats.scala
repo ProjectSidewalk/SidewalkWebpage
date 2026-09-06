@@ -125,8 +125,10 @@ object LabelFormats {
       "comments"            -> labelMetadata.comments.map(commentToJson(_, currUsername, commenterIdx)),
       "from_current_user"   -> labelMetadata.fromCurrentUser,
       "backup_image_url"    -> backupImageUrl,
-      "pano_data"           -> labelMetadata.panoMetadata.map(panoViewerMetadataToJson(_, labelMetadata.panoSource)),
-      "admin_data"          -> adminData.map(ad =>
+      // Per label, not per city: a city that has changed providers holds labels from both (#5202).
+      "pano_source" -> labelMetadata.panoSource.toString,
+      "pano_data"   -> labelMetadata.panoMetadata.map(panoViewerMetadataToJson(_, labelMetadata.panoSource)),
+      "admin_data"  -> adminData.map(ad =>
         Json.obj(
           "username"             -> ad.username,
           "previous_validations" -> ad.previousValidations.map(prevVal =>
@@ -275,7 +277,7 @@ object LabelFormats {
     "camera_pitch"   -> pm.cameraPitch,
     "camera_roll"    -> pm.cameraRoll,
     "copyright"      -> pm.copyright,
-    "attribution"    -> ImageryAttribution.line(source, pm.copyright).map(_.toJson),
+    "attribution"    -> ImageryAttribution.line(source, pm.copyright, pm.license).map(_.toJson),
     "address"        -> pm.address
   )
 
@@ -299,7 +301,7 @@ object LabelFormats {
       "cameraRoll"    -> p.cameraRoll,
       "captureDate"   -> p.captureDate,
       "copyright"     -> p.copyright,
-      "attribution"   -> ImageryAttribution.line(p.source, p.copyright).map(_.toJson),
+      "attribution"   -> ImageryAttribution.line(p.source, p.copyright, p.license).map(_.toJson),
       "address"       -> p.address
     )
   }

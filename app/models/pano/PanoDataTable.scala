@@ -23,6 +23,7 @@ case class PanoViewerMetadata(
     cameraPitch: Option[Double],
     cameraRoll: Option[Double],
     copyright: Option[String],
+    license: Option[String],
     address: Option[String]
 )
 
@@ -34,6 +35,9 @@ case class PanoData(
     tileHeight: Option[Int],
     captureDate: String,
     copyright: Option[String],
+    // The licence the imagery is shared under, when the provider records one per picture. Panoramax only (#5202);
+    // Mapillary's is uniform and known from `source`, and the other providers publish a copyright string instead.
+    license: Option[String],
     lat: Option[Double],
     lng: Option[Double],
     cameraHeading: Option[Double],
@@ -112,6 +116,7 @@ class PanoDataTableDef(tag: Tag) extends Table[PanoData](tag, "pano_data") {
   def tileHeight: Rep[Option[Int]]       = column[Option[Int]]("tile_height")
   def captureDate: Rep[String]           = column[String]("capture_date")
   def copyright: Rep[Option[String]]     = column[Option[String]]("copyright")
+  def license: Rep[Option[String]]       = column[Option[String]]("license")
   def lat: Rep[Option[Double]]           = column[Option[Double]]("lat")
   def lng: Rep[Option[Double]]           = column[Option[Double]]("lng")
   def cameraHeading: Rep[Option[Double]] = column[Option[Double]]("camera_heading")
@@ -131,8 +136,9 @@ class PanoDataTableDef(tag: Tag) extends Table[PanoData](tag, "pano_data") {
   // CHECK constraint, which Slick can't express: NULL unless `expired`.
   def expiredAt: Rep[Option[OffsetDateTime]] = column[Option[OffsetDateTime]]("expired_at")
 
-  def * = (panoId, width, height, tileWidth, tileHeight, captureDate, copyright, lat, lng, cameraHeading, cameraPitch,
-    cameraRoll, expired, lastViewed, panoHistorySaved, lastChecked, source, hasBackup, address, sourceMetadata) <>
+  def * = (panoId, width, height, tileWidth, tileHeight, captureDate, copyright, license, lat, lng, cameraHeading,
+    cameraPitch, cameraRoll, expired, lastViewed, panoHistorySaved, lastChecked, source, hasBackup, address,
+    sourceMetadata) <>
     ((PanoData.apply _).tupled, PanoData.unapply)
 }
 
@@ -376,7 +382,8 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
    *
    * Update semantics when the pano is already recorded:
    *   - Position/camera fields take the submitted value but are never cleared.
-   *   - Intrinsic fields (dims, copyright) keep their existing value and only fill in NULLs, as they never change.
+   *   - Intrinsic fields (dims, copyright, licence) keep their existing value and only fill in NULLs, as they never
+   *     change.
    *   - `address` and `source_metadata` are only ever replaced, never cleared.
    *   - The pano was just viewed, so `expired` resets to false and the viewed/checked timestamps refresh.
    *
@@ -398,11 +405,11 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
         INSERT INTO pano_imagery_change (pano_id, expired, changed_at, source)
         SELECT pano_id, FALSE, ${data.lastViewed}, $source::pano_imagery_change_source FROM edge
       )
-      INSERT INTO pano_data (pano_id, width, height, tile_width, tile_height, capture_date, copyright, lat, lng,
-                             camera_heading, camera_pitch, camera_roll, expired, last_viewed, pano_history_saved,
+      INSERT INTO pano_data (pano_id, width, height, tile_width, tile_height, capture_date, copyright, license, lat,
+                             lng, camera_heading, camera_pitch, camera_roll, expired, last_viewed, pano_history_saved,
                              last_checked, source, has_backup, address, source_metadata)
       VALUES (${data.panoId}, ${data.width}, ${data.height}, ${data.tileWidth}, ${data.tileHeight},
-              ${data.captureDate}, ${data.copyright}, ${data.lat}, ${data.lng}, ${data.cameraHeading},
+              ${data.captureDate}, ${data.copyright}, ${data.license}, ${data.lat}, ${data.lng}, ${data.cameraHeading},
               ${data.cameraPitch}, ${data.cameraRoll}, ${data.expired}, ${data.lastViewed}, ${data.panoHistorySaved},
               ${data.lastChecked}, ${data.source.toString}::pano_source, ${data.hasBackup}, ${data.address},
               ${data.sourceMetadata.map(m => Json.stringify(m))}::jsonb)
@@ -417,6 +424,7 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
         tile_width = COALESCE(pano_data.tile_width, EXCLUDED.tile_width),
         tile_height = COALESCE(pano_data.tile_height, EXCLUDED.tile_height),
         copyright = COALESCE(pano_data.copyright, EXCLUDED.copyright),
+        license = COALESCE(pano_data.license, EXCLUDED.license),
         address = COALESCE(EXCLUDED.address, pano_data.address),
         source_metadata = COALESCE(EXCLUDED.source_metadata, pano_data.source_metadata),
         expired = false,

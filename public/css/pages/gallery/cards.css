@@ -57,6 +57,54 @@ with respect to the image holder. This allows the validation menu to be placed o
   border-top-right-radius: 20px;
 }
 
+/* Imagery credit on the card's own still (#4865, #5202; look in css/components/pano-attribution.css). It shares the
+   bottom edge with the vote row, so it steps aside when that row comes up rather than being occluded by it. 4.6px
+   puts the pill's center on the logo's art center, both 12.6px above the image's bottom edge. */
+.image-holder .pano-viewer-logo {
+  --ui-scale: 0.72; /* Card-sized: the 29px logo row down to ~21px. Only the logo — the pill sets its own type. */
+}
+
+.image-holder .pano-attribution {
+  right: 6px;
+  bottom: 4.6px;
+}
+
+.image-holder .pano-viewer-logo,
+.image-holder .pano-attribution {
+  transition: opacity 120ms ease; /* The vote buttons' own fade. */
+}
+
+.gallery-card:hover .pano-viewer-logo,
+.gallery-card:hover .pano-attribution {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Hover can't reveal the vote row on a touch-primary device, so it never leaves — and a credit that yields to it
+   would never be seen at all. The credit takes the top edge there instead, where nothing competes for the space. */
+@media (pointer: coarse) {
+  .image-holder .pano-viewer-logo {
+    --pano-logo-bottom: auto;
+
+    top: 3px;
+  }
+
+  .image-holder .pano-attribution {
+    top: 4.7px; /* Puts the pill's center on the logo's art center, both 12.7px below the top edge. */
+    bottom: auto;
+  }
+
+  .gallery-card:hover .pano-viewer-logo,
+  .gallery-card:hover .pano-attribution {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .image-holder .pano-viewer-logo,
+  .image-holder .pano-attribution { transition: none; }
+}
+
 #gallery-validation-button-holder {
   display: flex;
   flex-flow: row wrap;

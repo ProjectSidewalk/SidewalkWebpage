@@ -19,6 +19,9 @@
  *   MapillaryViewer already does for Mapillary.
  */
 class PanoramaxViewer extends PanoViewer {
+  /** The `pano_data.source` value, so code outside the viewer can name this source without holding the class. */
+  static SOURCE = 'panoramax';
+
   /** The federated meta-catalog, which searches every Panoramax instance at once. */
   static API_BASE = 'https://api.panoramax.xyz/api';
 
@@ -47,12 +50,17 @@ class PanoramaxViewer extends PanoViewer {
   /** Widest vertical field of view we render at, matching MapillaryViewer's clamp so zoom 1 looks the same. */
   static #MAX_VERTICAL_FOV = 90;
 
-  /** The licence identifiers Panoramax uses, mapped to the display name and link our attribution overlay shows. */
-  static #LICENSES = {
-    'CC-BY-SA-4.0': { name: 'CC BY-SA 4.0', url: 'https://creativecommons.org/licenses/by-sa/4.0/' },
-    'CC-BY-4.0': { name: 'CC BY 4.0', url: 'https://creativecommons.org/licenses/by/4.0/' },
-    'etalab-2.0': { name: 'Licence Ouverte 2.0', url: 'https://www.etalab.gouv.fr/licence-ouverte-open-licence/' },
-  };
+  /**
+   * The licence identifiers Panoramax uses, mapped to the display name and link our attribution overlay shows.
+   *
+   * Stamped onto the page by main.scala.html from ImageryAttribution.PanoramaxLicenses, which is the one copy of the
+   * table (#5202): the server names the licence the same way when it renders a crop or a self-hosted pano itself.
+   * Empty when a page didn't stamp it, which #attributionFor handles by showing the raw identifier.
+   * @returns {Object<string, {name: string, url: string}>}
+   */
+  static get #LICENSES() {
+    return window.panoramaxLicenses ?? {};
+  }
 
   /** @type {object} The underlying Photo Sphere Viewer instance. */
   #viewer = undefined;
@@ -506,6 +514,7 @@ class PanoramaxViewer extends PanoViewer {
       cameraPitch: props['pers:pitch'] || 0,
       cameraRoll: props['pers:roll'] ?? undefined,
       copyright: props['geovisio:producer'],
+      license: props.license,
       linkedPanos: [],
       history: [],
     };

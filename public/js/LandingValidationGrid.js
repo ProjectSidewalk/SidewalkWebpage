@@ -167,6 +167,10 @@ class LandingValidationGrid {
       marker.style.top = `${(100 * label.canvas_y) / util.EXPLORE_CANVAS_HEIGHT}%`;
       imgWrap.appendChild(marker);
     }
+    // The credit owed on a still we serve ourselves (#4865, #5202). Only licensed imagery carries a licence, so
+    // createPanoAttribution hides itself for a source with none, leaving the logo alone.
+    createPanoViewerLogo(imgWrap, label.pano_source).showSourceLogo();
+    createPanoAttribution(imgWrap, { compact: true }).show(label.pano_data?.attribution);
     card.appendChild(imgWrap);
 
     const body = document.createElement('figcaption');

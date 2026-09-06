@@ -81,7 +81,7 @@ class PanoManager {
     svv.panoViewer = this.#primaryViewer;
 
     // Set up the imagery source logo. #showPannellumPano will override it if Pannellum takes over below.
-    this.#logo = createPanoViewerLogo(this.#panoCanvas.parentElement, panoViewerType);
+    this.#logo = createPanoViewerLogo(this.#panoCanvas.parentElement, panoViewerType.SOURCE);
     this.#logo.showPrimaryLogo();
     this.#attribution = createPanoAttribution(this.#panoCanvas.parentElement);
 

@@ -100,6 +100,8 @@ object ExploreFormats {
       cameraRoll: Option[Double],
       links: Seq[PanoLinkSubmission],
       copyright: Option[String],
+      // The licence identifier the imagery provider records per picture. Panoramax only (#5202).
+      license: Option[String],
       address: Option[String],
       history: Seq[PanoDate],
       // Verbatim imagery-provider metadata blob; sent by the AI labeler only, never by the Explore client (#4806).
@@ -310,6 +312,7 @@ object ExploreFormats {
       (JsPath \ "camera_roll").readNullable[Double] and
       (JsPath \ "links").read[Seq[PanoLinkSubmission]] and
       (JsPath \ "copyright").readNullable[String] and
+      (JsPath \ "license").readNullable[String] and
       (JsPath \ "address").readNullable[String] and
       (JsPath \ "history").read[Seq[PanoDate]] and
       (JsPath \ "source_metadata").readNullable[JsObject](sourceMetadataReads)

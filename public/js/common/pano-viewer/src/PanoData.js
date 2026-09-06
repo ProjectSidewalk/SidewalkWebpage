@@ -19,6 +19,7 @@ class PanoData {
    * @param {moment} params.captureDate Time when the picture was taken, only using up to month/year granularity
    * @param {string} [params.address] Optional address for the current location
    * @param {string} [params.copyright] Optional associated copyright info for the image
+   * @param {string} [params.license] Optional licence identifier the provider records per image (Panoramax only)
    * @param {Array<{panoId: string, heading: number}>} params.linkedPanos List of nearby panos linked to with nav arrows
    * @param {Array<{panoId: string, captureDate: Date}>} params.history List of panos at this pano's location over time
    * @param {boolean} [params.submitted=false] Whether we've sent this data to the server yet; false unless in tutorial
@@ -75,6 +76,7 @@ class PanoData {
       tileHeight: params.tileHeight || params.height,
       address: params.address || null,
       copyright: params.copyright || null,
+      license: params.license || null,
       captureDate: params.captureDate,
       linkedPanos: params.linkedPanos || [],
       history: params.history || [],

@@ -1,4 +1,5 @@
 @import controllers.helper.ControllerUtils
+@import models.pano.ImageryAttribution
 @import play.api.Configuration
 @import play.api.libs.json.Json
 @import service.CommonPageData
@@ -100,6 +101,11 @@
        (AssetManifestService does it once at startup), so this interpolates a string rather than a several-hundred-
        entry map. *@
     <script>window.assetDigests = @commonData.assetDigestsJson;</script>
+    @* Panoramax licence identifier -> display name and licence-text URL (#5202). ImageryAttribution owns the table so
+       that the attribution the server renders on a crop or a self-hosted pano and the one PanoramaxViewer renders in
+       the live viewer name the same licence the same way. PanoramaxViewer shows an identifier it can't find here
+       verbatim, so a page that never stamps this (jsdom, the error pages) degrades rather than breaks. *@
+    <script>window.panoramaxLicenses = @Html(ImageryAttribution.panoramaxLicensesJson);</script>
     <script src='@assets.path("js/common/utilities.js")'></script>
     <script src='@assets.path("js/common/utilitiesMath.js")'></script>
     <script src='@assets.path("js/common/i18nDom.js")'></script>
