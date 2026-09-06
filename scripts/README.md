@@ -110,6 +110,8 @@ scan's checkpoint is untouched, with every provider sampled so far summarized si
 `OVER_QUERY_LIMIT` / `REQUEST_DENIED` now fail the street instead of counting as imagery), and the oldest / median /
 newest of the covered streets' newest captures. Because `onboard_city.py` writes the endpoints CSV this reads, the
 question "does this city have imagery, and how fresh?" is answered minutes after the build, before any database work.
+A rerun with the same `N` and `--seed` resumes the sample; a different sample replaces that provider's row rather than
+accumulating into it.
 
 ### Imagery age
 
@@ -131,10 +133,13 @@ The scan is built to survive a flaky network over a long run, and to scan a whol
 - **Retry:** each request is retried with exponential backoff + jitter (`tenacity`) before giving up.
 - **Fail-soft:** a street that still errors is logged and the scan **continues** (it no longer aborts the whole run);
   the failed set is retried once at the end, and any still-failing streets are written to `failed_streets.csv`.
-- **Resume:** progress is checkpointed per street to `streets_imagery_checkpoint.csv`, so a re-run resumes where it
-  left off and re-attempts only failed/unprocessed streets — and since every city's files live in its own dir, a
-  leftover checkpoint from another city can never be resumed by mistake. The final no-imagery CSV is derived from
-  the checkpoint at the end — its schema is unchanged, so `make hide-streets-without-imagery` is unaffected.
+- **Resume:** progress is checkpointed per street to `streets_imagery_checkpoint_<provider>.csv`, so a re-run resumes
+  where it left off and re-attempts only failed/unprocessed streets — and since every city's files live in its own dir
+  and the checkpoint is per provider, a scan can never resume another city's or another provider's results:
+  `--mapillary` after `--gsv` rescans and regenerates the output CSVs from the Mapillary checkpoint. The final
+  no-imagery CSV is derived from the checkpoint at the end — its schema is unchanged, so
+  `make hide-streets-without-imagery` is unaffected. `failed_streets.csv` is rewritten every run (empty when nothing
+  failed), so a rerun with a fixed key clears it.
 - **Progress:** a `tqdm` progress bar (count, %, rate, and ETA) renders to stderr as streets complete. It tracks the
   whole city and is seeded with already-settled streets, so a resumed run picks up at its prior percentage rather than
   restarting at 0%. It auto-suppresses when stderr isn't a terminal, so redirected/CI logs stay clean.

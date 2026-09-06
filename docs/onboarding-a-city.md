@@ -53,7 +53,7 @@ It never touches the database. It writes, under `db/onboarding/<city-id>/`:
 
 | File | What for |
 |---|---|
-| `report.md` | Read this first: street count, km, the **tiny-segment share** (production averages 18% under 20 m; Bayonne rebuilt at 4%), regions flagged `OVERSIZED` (> 60 km of streets — split it), `SPARSE`/`EMPTY` (fold it), region-name warnings (#4620), boundary coverage. |
+| `report.md` | Read this first: street count, km, the **tiny-segment share** (production averages 18% under 20 m; Bayonne rebuilt at 4%), loop roads (start = end — kept as OSM maps them), regions flagged `OVERSIZED` (> 60 km of streets — split it), `SPARSE`/`EMPTY` (fold it), region-name warnings (#4620; a repeated source name is kept as separate regions, `"X (2)"`), boundary coverage. |
 | `<city-id>_qa.gpkg` | The QA GeoPackage for QGIS: `qgis_road`, `qgis_region`, `city_boundary`, plus `dropped_segments` and `rider_merges` so you can see what the rules did. |
 | `qgis_tables.sql` | The staging tables `fill-new-schema.sh` consumes (`qgis_road`: `road_id`, `osm_ids bigint[]`, `highway`, `region_id`, `geom`; `qgis_region`: `region_id`, `name`, `data_source`, `geom`). |
 | `street_edge_endpoints.csv` | The imagery scan's input, so step 2 can run before any database exists. |
@@ -85,7 +85,8 @@ Each run checks a random 150 streets (`--sample N`, `--seed`) with the same verd
 row to `db/onboarding/<city-id>/preflight_report.md`: sample size, covered, **failed**, and the oldest / median /
 newest of the covered streets' newest captures (Mapillary reports no dates). A non-zero `failed` column is a key or
 quota problem, not a coverage figure — the scan no longer reads Google's `OVER_QUERY_LIMIT` / `REQUEST_DENIED` as
-"has imagery". Its files live under `preflight/<provider>/`, apart from the full scan's checkpoint.
+"has imagery". Its files live under `preflight/<provider>/`, apart from the full scan's checkpoint; a rerun with the
+same `N` and `--seed` resumes, a different sample replaces the row.
 
 Below about 70% coverage, say so before going on: the full scan will hide that share of the city.
 
@@ -112,11 +113,18 @@ where a person is needed and skips whatever a previous run already did:
 3. **Schema** — `db/scripts/create-new-schema.sh` clones a **donor** city's structure and seed rows (evolutions,
    version history, `config` with its tutorial street, tags, survey questions), creates the role, bumps the
    sequences, grants `readonly_user`. The donor defaults to the dev container's `DATABASE_USER`; pass `--donor` to
-   choose. A donor that has applied an evolution beyond this checkout's highest is refused — a dev schema that hosted
-   another branch's QA would otherwise carry that evolution into the new city. (The committed `sidewalk_init`
-   template is no longer used here: it is frozen at evolution 252 and cannot be replayed past 372, #5198.)
+   choose. A donor is refused when it has applied an evolution beyond this checkout's highest — a dev schema that
+   hosted another branch's QA, which would otherwise carry that branch's evolution into the new city. The same
+   schema can also hold another branch's evolution under the *same* number, so the donor's top evolution is
+   checked too: it passes when its `play_evolutions` hash is the one Play computes from this checkout's file
+   (`make` and the orchestrator pass it in); otherwise every other city schema that has applied that number must
+   agree with the donor, and a disagreement names the schemas so you can pick another `--donor`. (The committed
+   `sidewalk_init` template is not used here: it is frozen at evolution 252 and cannot be replayed past 372, #5198.)
 4. **Evolutions** — boots the app once as the new city and waits for `play_evolutions` to reach the repo's highest.
-   A no-op when the donor was current. Your own `npm start` must be stopped for this step.
+   Right after a clone it boots even when the donor was current, because Play is the one reliable check that every
+   applied evolution is this checkout's (it compares hashes and, with `autoApplyDowns`, reverts and re-applies from a
+   mismatch). On a rerun that kept the schema, a current schema skips the boot. Your own `npm start` must be stopped
+   for this step.
 5. **Load** — `qgis_tables.sql` into the schema.
 6. **Fill** — `fill-new-schema.sh` with the tutorial region and which regions open at launch (`all`,
    `include:1 2 3`, `exclude:4`). It sets the city center, map bounds (region extent + 0.5°), and default zoom from the
@@ -131,8 +139,9 @@ where a person is needed and skips whatever a previous run already did:
 
 - **Translations.** `conf/messages/messages.zh-TW` always gets the city (and any new state or country) transliterated;
   `es`, `nl`, `de`, `pt-BR`, `fr` only where the name differs from English. `make lint-locales` must stay green.
-- **The `config` row.** The clone carries the donor's `excluded_tags` (a European city may want a different set) and
-  `update_offset_hours` (assigned from the load-spreading spreadsheet). Check both before launch.
+- **The `config` row.** The clone carries the donor's `excluded_tags` (a European city may want a different set),
+  `update_offset_hours` (assigned from the load-spreading spreadsheet), and `make_crops`; the fill prints all three
+  and clears the donor's `mapathon_event_link`. Check them before launch.
 - **Visual QA.** Land on the site as the new city (`SIDEWALK_CITY_ID` + `DATABASE_USER` in
   `docker-compose.override.yml`, recreate the container): the map centers on the city, neighborhood names read right,
   one street walks in Explore on the chosen imagery, the Explore tag lists match `excluded_tags`.

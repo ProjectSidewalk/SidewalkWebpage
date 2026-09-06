@@ -80,8 +80,11 @@ make onboard-city id=<city-id>
 It shows the report and preflight, asks for the display name, country/state, provider, status (default private),
 launch date (the Friday of next week), and URLs; registers the city in `conf/cityparams.conf`, `conf/messages`, and
 the docs City IDs table; creates GA properties when `ga-service-account.json` is present; clones a donor schema
-(the dev container's city by default — pass `--donor` if that schema hosted another branch's evolution); boots the app
-once to apply any missing evolutions; loads and fills; runs the full imagery scan for the chosen provider; dumps the
+(the dev container's city by default — refused, with the schemas that disagree named, if its top evolution is another
+branch's under the same number, i.e. its hash is neither the file's nor the other schemas'; pass `--donor` then);
+boots the app once to apply any missing evolutions — and,
+right after a clone, to let Play verify every applied hash; loads and fills; runs the full imagery scan for the
+chosen provider; dumps the
 schema to `db/<schema>-dump`; prints the handoff. Rerunning skips finished steps; `--skip-scan` defers the scan;
 `--dry-run` previews the file edits.
 
@@ -94,7 +97,8 @@ Watch the fill's closing summary (streets, km, sub-20 m share, per-region km, ce
   `États-Unis`). English city/state/country names go in the base `messages` (proper nouns are language-neutral);
   the US state abbreviation goes in `messages.en`. `make lint-locales` must stay green.
 - **`config` row review.** The clone carries the donor's `excluded_tags` (a European city may want a different tag
-  set) and `update_offset_hours` (Mikey's load-spreading spreadsheet assigns these). Ask; don't guess.
+  set), `update_offset_hours` (Mikey's load-spreading spreadsheet assigns these), and `make_crops`; the fill prints
+  all three and clears the donor's `mapathon_event_link`. Ask; don't guess.
 - **Optional flags** left unset on purpose: `private-profiles-by-default`, `global-leaderboard-excluded`,
   `ai-label-submission-enabled` (all false by default).
 - **GA.** If step 2 was skipped, `python3 tools/create_ga_properties.py <city-id>` fills both id maps later; new
