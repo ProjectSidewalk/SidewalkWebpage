@@ -60,7 +60,12 @@ class AccessScoreTeaneckSnapshotSpec extends AnyFunSuite with Matchers {
           tagCounts = Json.parse(f(4)).as[Map[String, Int]]
         )
       }
+      .filter { case (_, c) => AccessScoreCalculator.scoredTypeNames.contains(c.labelType) }
       .groupMap(_._1)(_._2)
+
+  /** Every label type the fixture carries, before the scored-type filter above. */
+  private lazy val fixtureTypes: Set[String] =
+    fixtureLines("teaneck-cluster-rows.csv.gz").map(line => splitRow(line, 5)(1)).toSet
 
   /** Every audited street with its clusters (possibly none), the population the API scores. */
   private lazy val audited: Seq[(Street, Seq[ClusterScoreInput])] =
@@ -95,6 +100,14 @@ class AccessScoreTeaneckSnapshotSpec extends AnyFunSuite with Matchers {
 
   private def logit(p: Double): Double   = math.log(p / (1.0 - p))
   private def sigmoid(t: Double): Double = 1.0 / (1.0 + math.exp(-t))
+
+  test("the fixture covers exactly the scored types, so a refresh can't silently stop exercising one") {
+    // The README's extraction SQL hardcodes this list. If the two drift, the failure belongs here rather than
+    // surfacing later as an unrelated assertion about scoreByType's key set.
+    withClue("update the WHERE clause in test/resources/access-score/README.md to match scoredTypeNames: ") {
+      fixtureTypes shouldBe AccessScoreCalculator.scoredTypeNames
+    }
+  }
 
   test("the snapshot is large enough to be meaningful, and exhibits the NoSidewalk density it exists to test") {
     audited.size should be >= 2000

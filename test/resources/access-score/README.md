@@ -15,8 +15,13 @@ Both files are gzipped CSV with a header row.
 
 The cluster rows are exactly what `ClusterTable.getClusterScoreRows` streams to `AccessScoreService`, minus the bbox
 filter. To refresh the snapshot, run the two `COPY` queries below against a city schema and gzip the output (the spec
-only assumes a city with a few hundred audited NoSidewalk streets; its thresholds are loose enough for any city with
-that much data):
+assumes a city with a few hundred audited NoSidewalk streets and at least one cluster of every scored type; its
+thresholds are loose enough for any city with that much data).
+
+**The second query's `WHERE label_type IN (...)` must list exactly `AccessScoreCalculator.scoredTypeNames`.** That set
+is the source of truth, and this SQL is a hand-maintained copy of it, so a scored type added or removed on the Scala
+side has to be reflected here before the snapshot is regenerated. `AccessScoreTeaneckSnapshotSpec` asserts the fixture's
+label types equal `scoredTypeNames` and fails pointing at this file if they drift.
 
 ```sql
 COPY (

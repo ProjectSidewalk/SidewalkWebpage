@@ -91,7 +91,14 @@ object AccessScoreCalculator {
 
   // --- TUNABLE: cluster count at which a StreetCondition type's extent factor reaches 1. One stray pin counts 1/n
   // of the base weight; n or more clusters count the full base, however many more there are. Labelers place
-  // NoSidewalk at a median of ~5 clusters per 100 m, so a fully labeled street of ordinary length saturates (#5093). ---
+  // NoSidewalk at a median of ~5 clusters per 100 m, so a fully labeled street of ordinary length saturates (#5093).
+  //
+  // KNOWN LIMITATION: a raw cluster count is a proxy for coverage, and NoSidewalk clusters at 10 m, so how easily a
+  // street saturates scales with its length. Measured on the Teaneck snapshot, only 35% of NoSidewalk streets under
+  // 50 m reach three clusters, against 69-78% of longer ones — so a short street with no sidewalk at all is capped
+  // near extent 2/3 and scores above an identically-conditioned long street. Pooling removes the density bias above
+  // saturation but not below it. Fixing it properly means a length-aware denominator, which this object cannot do
+  // without being handed the street's length (AccessScoreService has it); until then the bias is on short streets. ---
   val streetConditionSaturationCount: Int = 3
 
   // --- TUNABLE: additive weight adjustments for impactful tags. (labelType, tag) -> delta; unlisted tags contribute 0.
@@ -148,14 +155,16 @@ object AccessScoreCalculator {
   /**
    * Computes a single cluster's signed contribution to its street's pre-sigmoid sum.
    *
-   * For a [[StreetCondition]] type this is the term the cluster would earn as the only one of its type on the street
-   * (extent `1 / streetConditionSaturationCount`); several such clusters on one street do not sum, they pool — see
-   * [[scoreByType]].
+   * Scope this narrowly: [[scoreByType]] is the entry point for scoring a street, and summing this over a street's
+   * clusters is only correct for the per-cluster scoring modes. For a [[StreetCondition]] type this returns the term
+   * the cluster would earn as the only one of its type on the street (extent `1 / streetConditionSaturationCount`),
+   * so summing it over `n` such clusters yields `n` times a fraction of the base weight instead of the pooled term —
+   * the label-density artifact the pooling exists to remove.
    *
    * @param c The cluster inputs.
    * @return  The contribution, or 0.0 if the cluster's label type is not scored (e.g. Occlusion/Other).
    */
-  def scoreCluster(c: ClusterScoreInput): Double = {
+  private[service] def scoreCluster(c: ClusterScoreInput): Double = {
     typeWeights.get(c.labelType) match {
       case None                            => 0.0 // Not a scored type.
       case Some(TypeWeight(base, scoring)) =>
