@@ -52,10 +52,12 @@ chosen by the operator once there are several -- so it never counts frames Explo
 
 Resilience (so a long scan survives a flaky network): each request is retried with exponential backoff; a street that
 still fails is logged and the scan continues rather than aborting, and the failed set is retried once at the end (any
-still-failing streets land in ``failed_streets.csv``). Progress is checkpointed per street to
-``streets_imagery_checkpoint.csv``, so a re-run resumes where it left off and re-attempts only failed/unprocessed
-streets — and because every city's files live in its own dir, a leftover checkpoint from another city can never be
-resumed by mistake. The final no-imagery CSV is derived from the checkpoint, so its schema is unchanged.
+still-failing streets land in ``failed_streets.csv``, rewritten every run so a fixed key clears it). Progress is
+checkpointed per street to ``streets_imagery_checkpoint_<provider>.csv``, so a re-run resumes where it left off and
+re-attempts only failed/unprocessed streets — and because every city's files live in its own dir and the checkpoint is
+per provider, a scan can never resume another city's, or another provider's, results: switching from ``--gsv`` to
+``--mapillary`` starts over and regenerates the output CSVs from the Mapillary checkpoint. The final no-imagery CSV is
+derived from the checkpoint, so its schema is unchanged.
 
 The pure functions (``create_bounding_box``, ``redistribute_vertices``, ``gsv_has_imagery``, ``mapillary_has_imagery``,
 ``infra3d_pano_info``, ``infra3d_campaigns``, ``standardize_capture_date``, ``gsv_capture_date``, ``imagery_verdict``,
@@ -73,8 +75,8 @@ concurrent fetching. We deliberately differ from it in three ways, because the t
 
   * Sampling: GSV Tracker samples a uniform geographic *grid* (it measures area-wide coverage and temporal patterns).
     We instead follow each street's geometry with early-exit, because our question is per-street ("does this
-    ``street_edge`` have usable imagery?"). Street-following is more targeted and makes far fewer API calls than gridding
-    a whole city, and it attributes results directly to a ``street_edge`` instead of needing a spatial join.
+    ``street_edge`` have usable imagery?"). Street-following is more targeted and makes far fewer API calls than
+    gridding a whole city, and it attributes results directly to a ``street_edge`` instead of needing a spatial join.
   * Concurrency: GSV Tracker uses asyncio/aiohttp tuned for maximum throughput (toward Google's ~500 req/s ceiling). We
     use a small thread pool plus a conservative token-bucket QPS cap, deliberately staying well under the limit; at that
     bounded concurrency, threads are simpler and sufficient, and async's scale advantage would be wasted.
@@ -83,10 +85,12 @@ concurrent fetching. We deliberately differ from it in three ways, because the t
 
 import argparse
 import base64
+import contextlib
 import csv
 import json
 import logging
 import os
+import re
 import sys
 import threading
 import time
@@ -121,8 +125,10 @@ INPUT_FILE = 'db/onboarding/{}/street_edge_endpoints.csv'
 OUTPUT_FILE = 'db/onboarding/{}/streets_with_no_imagery.csv'
 # Per-street imagery summary (presence + capture-date range) for every settled street.
 SUMMARY_FILE = 'db/onboarding/{}/street_imagery_summary.csv'
-# Per-street progress log; enables crash-safe resume and is the source the other outputs are derived from.
-CHECKPOINT_FILE = 'db/onboarding/{}/streets_imagery_checkpoint.csv'
+# Per-street progress log; enables crash-safe resume and is the source the other outputs are derived from. Keyed by
+# provider as well as city: the outputs above are regenerated from whichever provider's checkpoint the run uses, so a
+# --mapillary run after a --gsv one rescans rather than re-deriving GSV results under a Mapillary name.
+CHECKPOINT_FILE = 'db/onboarding/{}/streets_imagery_checkpoint_{}.csv'
 # Streets that still errored after the end-of-run retry, for follow-up.
 FAILED_FILE = 'db/onboarding/{}/failed_streets.csv'
 # A --sample preflight keeps its files apart from a full scan's, per provider, so sampling several providers never
@@ -268,8 +274,8 @@ class RateLimiter:
     A thread-safe token-bucket rate limiter shared across worker threads.
 
     ``acquire()`` blocks until a token is available, capping the global request rate at ``max_per_second`` (allowing
-    short bursts up to ``capacity``). Bounding the *rate* — rather than just the worker count — keeps us safely under
-    the provider's limit even if responses come back fast. The clock and sleep are injectable for deterministic tests.
+    short bursts up to ``capacity``). Bounding the *rate* — rather than just the worker count — keeps us safely
+    under the provider's limit even if responses come back fast. The clock and sleep are injectable for tests.
     """
 
     def __init__(self, max_per_second, capacity=None, monotonic=time.monotonic, sleep=time.sleep):
@@ -830,8 +836,9 @@ def finalize_outputs(checkpoint_file, output_file, failed_file, summary_file):
     Derives the final output files from the checkpoint.
 
     Writes ``output_file`` (streets with no imagery), ``summary_file`` (every settled street with its imagery
-    presence + capture-date range), and, if any remain, ``failed_file`` (streets that errored out). The latest outcome
-    per street wins, so a street that failed then succeeded on retry is counted as succeeded.
+    presence + capture-date range), and ``failed_file`` (streets that errored out — written even when empty, so a
+    rerun with a fixed key or quota clears the previous run's list rather than leaving it to be read as current). The
+    latest outcome per street wins, so a street that failed then succeeded on retry is counted as succeeded.
     """
     if os.path.isfile(checkpoint_file):
         checkpoint = pd.read_csv(checkpoint_file).drop_duplicates('street_edge_id', keep='last')
@@ -840,9 +847,7 @@ def finalize_outputs(checkpoint_file, output_file, failed_file, summary_file):
         checkpoint = pd.DataFrame(columns=CHECKPOINT_COLUMNS)
     _write_ids_csv(checkpoint[checkpoint['outcome'] == NO_IMAGERY], output_file)
     _write_summary_csv(checkpoint[checkpoint['outcome'] != FAILED], summary_file)
-    failed = checkpoint[checkpoint['outcome'] == FAILED]
-    if not failed.empty:
-        _write_ids_csv(failed, failed_file)
+    _write_ids_csv(checkpoint[checkpoint['outcome'] == FAILED], failed_file)
 
 
 def preflight_summary(summary, n_failed=0):
@@ -870,7 +875,7 @@ def preflight_summary(summary, n_failed=0):
         'pct_covered': 100.0 * n_covered / n_streets if n_streets else 0.0,
         'n_failed': n_failed,
         'oldest': newest[0] if newest else None,
-        'median': newest[len(newest) // 2] if newest else None,
+        'median': newest[(len(newest) - 1) // 2] if newest else None,   # Lower-middle for an even count.
         'newest': newest[-1] if newest else None,
         'years': years,
     }
@@ -932,6 +937,24 @@ def write_preflight_report(path, city_id, summaries):
         handle.write('\n'.join(lines))
 
 
+def valid_city_id(value):
+    """
+    argparse type for ``--city-id``: the cityparams id shape (same rule as ``onboard_city.py``, kept local so this
+    module never imports the geo stack). It is interpolated into every data-file path, so it must be a plain
+    kebab-case token.
+    """
+    if not re.fullmatch(r'[a-z][a-z0-9-]*', value):
+        raise argparse.ArgumentTypeError(f'"{value}" — use lowercase kebab-case, e.g. "newport-ky".')
+    return value
+
+
+def checkpoint_ids(checkpoint_file):
+    """Every ``street_edge_id`` a checkpoint holds, settled or failed (empty when there is no checkpoint)."""
+    if not os.path.isfile(checkpoint_file):
+        return set()
+    return set(pd.read_csv(checkpoint_file)['street_edge_id'])
+
+
 def main(argv=None):
     """
     Parses arguments and scans every street for imagery, writing those without it to ``OUTPUT_FILE`` — or, with
@@ -946,7 +969,7 @@ def main(argv=None):
     """
     parser = argparse.ArgumentParser(
         description='Loops through streets, outputting any without imagery to a separate file.')
-    parser.add_argument('--city-id', required=True,
+    parser.add_argument('--city-id', required=True, type=valid_city_id,
                         help='The cityparams city id being scanned, e.g. "newport-ky"; every data file lives in '
                              'db/onboarding/<city-id>/.')
     provider = parser.add_mutually_exclusive_group(required=True)
@@ -967,10 +990,13 @@ def main(argv=None):
     parser.add_argument('--sample', type=int, nargs='?', const=DEFAULT_SAMPLE, metavar='N',
                         help='Preflight: check a random sample of N streets (%d when bare) and refresh the city\'s '
                              'preflight_report.md instead of running the full scan. Files go to '
-                             'db/onboarding/<city-id>/preflight/<provider>/, apart from a full scan\'s.' % DEFAULT_SAMPLE)
+                             'db/onboarding/<city-id>/preflight/<provider>/, apart from a full scan\'s.'
+                             % DEFAULT_SAMPLE)
     parser.add_argument('--seed', type=int, default=0,
                         help='Random seed for --sample (default: %(default)s, so a rerun checks the same streets).')
     args = parser.parse_args(argv)
+    if args.sample is not None and args.sample <= 0:
+        parser.error('--sample needs a positive number of streets (bare --sample checks %d).' % DEFAULT_SAMPLE)
     api = 'GSV' if args.gsv else 'Mapillary' if args.mapillary else 'Panoramax' if args.panoramax else 'Infra3d'
     # One shared rate limiter caps total request rate across all worker threads.
     fetch = make_fetch(rate_limiter=RateLimiter(args.max_qps))
@@ -1002,19 +1028,18 @@ def main(argv=None):
             print("Couldn't read API key environment variable.")
             return 1
 
-    # Resolve every data file against the repo root so the script works regardless of the working directory.
+    # Resolve every data file against the repo root so the script works regardless of the working directory. A
+    # preflight keeps the same file names under its own preflight/<provider>/ dir.
+    provider = api.lower()
     input_path = os.path.join(REPO_ROOT, INPUT_FILE.format(args.city_id))
-    checkpoint_path = os.path.join(REPO_ROOT, CHECKPOINT_FILE.format(args.city_id))
-    output_path = os.path.join(REPO_ROOT, OUTPUT_FILE.format(args.city_id))
-    failed_path = os.path.join(REPO_ROOT, FAILED_FILE.format(args.city_id))
-    summary_path = os.path.join(REPO_ROOT, SUMMARY_FILE.format(args.city_id))
-
     if args.sample:
-        preflight_dir = os.path.join(REPO_ROOT, PREFLIGHT_DIR.format(args.city_id, api.lower()))
-        os.makedirs(preflight_dir, exist_ok=True)
-        checkpoint_path, output_path, failed_path, summary_path = (
-            os.path.join(preflight_dir, os.path.basename(template))
-            for template in (CHECKPOINT_FILE, OUTPUT_FILE, FAILED_FILE, SUMMARY_FILE))
+        scan_dir = os.path.join(REPO_ROOT, PREFLIGHT_DIR.format(args.city_id, provider))
+        os.makedirs(scan_dir, exist_ok=True)
+    else:
+        scan_dir = os.path.dirname(input_path)
+    checkpoint_path, output_path, failed_path, summary_path = (
+        os.path.join(scan_dir, os.path.basename(template.format(args.city_id, provider)))
+        for template in (CHECKPOINT_FILE, OUTPUT_FILE, FAILED_FILE, SUMMARY_FILE))
 
     if not os.path.isfile(input_path):
         print(f"Couldn't find {input_path} — export this city's street_edge endpoints there first "
@@ -1028,6 +1053,13 @@ def main(argv=None):
         street_data = street_data.sample(n=min(args.sample, n_all), random_state=args.seed)
         print('Preflight: checking a random %d of %d streets for %s imagery (seed %d)'
               % (len(street_data), n_all, api, args.seed))
+        # A preflight is one sample, and its report row says so. A checkpoint from a different sample (another
+        # --seed or N) would otherwise accumulate into it, and the outputs are derived from the whole checkpoint.
+        if checkpoint_ids(checkpoint_path) - set(street_data['street_edge_id']):
+            print('A previous %s preflight sampled different streets; starting this sample fresh.' % api)
+            for path in (checkpoint_path, output_path, failed_path, summary_path):
+                with contextlib.suppress(FileNotFoundError):
+                    os.remove(path)
     street_data = street_data.sort_values(by=['region_id', 'street_edge_id'])
     street_data['geom'] = list(map(lambda g: redistribute_vertices(wkb.loads(g, hex=True)), list(street_data['geom'])))
 

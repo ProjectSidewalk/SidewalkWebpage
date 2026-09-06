@@ -705,7 +705,7 @@ def test_finalize_outputs_dedups_keep_last_and_writes_summary(tmp_path):
     cs.finalize_outputs(checkpoint, output, failed, summary)
 
     assert pd.read_csv(output)['street_edge_id'].tolist() == [1, 3]
-    assert not os.path.exists(failed)
+    assert pd.read_csv(failed).empty   # written even when nothing failed, so a stale list can't survive a rerun
     summary_df = pd.read_csv(summary).set_index('street_edge_id').sort_index()
     assert list(summary_df.index) == [1, 2, 3]  # all settled (failed excluded)
     assert bool(summary_df.loc[2, 'has_imagery']) is True
@@ -845,7 +845,7 @@ def test_main_runs_from_a_different_working_directory(monkeypatch, tmp_path):
 def test_main_resumes_from_checkpoint(monkeypatch, tmp_path):
     _setup(monkeypatch, tmp_path, [(100, 1, _LINE_60), (200, 1, _LINE_61)])
     _settled_checkpoint([(100, 1, cs.HAS_IMAGERY, '2019-01-01', '2019-01-01', 3)]).to_csv(
-        tmp_path / cs.CHECKPOINT_FILE.format(_CITY), index=False)
+        tmp_path / cs.CHECKPOINT_FILE.format(_CITY, 'gsv'), index=False)
     monkeypatch.setattr(cs, '_get_json', lambda url: {'status': 'ZERO_RESULTS'})
     assert cs.main(['--city-id', _CITY, '--gsv']) == 0
     # 100 was already settled (has imagery) and skipped; only 200 was processed -> flagged.
@@ -857,8 +857,8 @@ def test_progress_bar_resumes_at_prior_position(monkeypatch, tmp_path):
     # picks up at its prior percentage rather than restarting at 0% (requested on #4360).
     _setup(monkeypatch, tmp_path, [(100, 1, _LINE_60), (200, 1, _LINE_61), (300, 1, _LINE_60)])
     _settled_checkpoint([(100, 1, cs.HAS_IMAGERY, '2019-01-01', '2019-01-01', 3),
-                         (200, 1, cs.NO_IMAGERY, None, None, 0)]).to_csv(tmp_path / cs.CHECKPOINT_FILE.format(_CITY),
-                                                                         index=False)
+                         (200, 1, cs.NO_IMAGERY, None, None, 0)]).to_csv(
+        tmp_path / cs.CHECKPOINT_FILE.format(_CITY, 'gsv'), index=False)
     monkeypatch.setattr(cs, '_get_json', lambda url: {'status': 'ZERO_RESULTS'})
 
     captured = {}
@@ -1013,7 +1013,7 @@ def test_preflight_summary_aggregates_coverage_and_newest_captures():
     result = cs.preflight_summary(summary, n_failed=1)
     assert (result['n_streets'], result['n_covered'], result['n_failed']) == (4, 3, 1)
     assert result['pct_covered'] == pytest.approx(75)
-    assert (result['oldest'], result['median'], result['newest']) == ('2021-06-01', '2024-05-01', '2024-05-01')
+    assert (result['oldest'], result['median'], result['newest']) == ('2021-06-01', '2021-06-01', '2024-05-01')
     assert result['years'] == {'2021': 1, '2024': 1}
 
 
@@ -1053,7 +1053,7 @@ def test_main_sample_mode_keeps_its_files_apart_and_writes_the_report(monkeypatc
     sample = pd.read_csv(preflight_dir / 'street_imagery_summary.csv')
     assert len(sample) == 2 and sample['has_imagery'].all()
     # The full scan's files are untouched, so a later full run starts from a clean checkpoint.
-    assert not (tmp_path / cs.CHECKPOINT_FILE.format(_CITY)).exists()
+    assert not (tmp_path / cs.CHECKPOINT_FILE.format(_CITY, 'gsv')).exists()
     assert not (tmp_path / cs.SUMMARY_FILE.format(_CITY)).exists()
     report = (tmp_path / cs.PREFLIGHT_REPORT.format(_CITY)).read_text()
     assert '| gsv | 2 | 2 (100%) | 0 | 2023-04-01 | 2023-04-01 | 2023-04-01 | 2023: 2 |' in report
@@ -1070,8 +1070,71 @@ def test_main_bare_sample_flag_uses_the_default_size_and_the_same_streets_per_se
     summary_path = tmp_path / 'db' / 'onboarding' / _CITY / 'preflight' / 'gsv' / 'street_imagery_summary.csv'
     assert len(pd.read_csv(summary_path)) == 3   # a sample larger than the city is the whole city
     first = sorted(pd.read_csv(summary_path)['street_edge_id'])
-    summary_path.unlink()
-    (summary_path.parent / 'streets_imagery_checkpoint.csv').unlink()
+    # A different sample replaces the provider's preflight rather than accumulating into it.
     assert cs.main(['--city-id', _CITY, '--gsv', '--sample', '2', '--seed', '7', '--max-qps', '1000']) == 0
     second = sorted(pd.read_csv(summary_path)['street_edge_id'])
     assert len(second) == 2 and set(second) <= set(first)
+
+
+def test_main_sample_reruns_resume_the_same_sample_but_replace_a_different_one(monkeypatch, tmp_path, capsys):
+    _setup(monkeypatch, tmp_path, [(100, 1, _LINE_60), (200, 1, _LINE_61), (300, 2, _LINE_60)])
+    calls = []
+
+    def fetch(url):
+        calls.append(url)
+        return {'status': 'ZERO_RESULTS'}
+
+    monkeypatch.setattr(cs, '_get_json', fetch)
+    assert cs.main(['--city-id', _CITY, '--gsv', '--sample', '1', '--max-qps', '1000']) == 0
+    n_first = len(calls)
+    summary_path = tmp_path / 'db' / 'onboarding' / _CITY / 'preflight' / 'gsv' / 'street_imagery_summary.csv'
+    # Same N and seed: the settled street is resumed, nothing is fetched again.
+    assert cs.main(['--city-id', _CITY, '--gsv', '--sample', '1', '--max-qps', '1000']) == 0
+    assert len(calls) == n_first and len(pd.read_csv(summary_path)) == 1
+    # A superset sample keeps it; a sample that leaves it out starts fresh.
+    assert cs.main(['--city-id', _CITY, '--gsv', '--sample', '3', '--max-qps', '1000']) == 0
+    assert len(pd.read_csv(summary_path)) == 3
+    assert cs.main(['--city-id', _CITY, '--gsv', '--sample', '1', '--max-qps', '1000']) == 0
+    assert len(pd.read_csv(summary_path)) == 1
+    assert 'starting this sample fresh' in capsys.readouterr().out
+
+
+def test_main_full_scan_checkpoints_per_provider(monkeypatch, tmp_path):
+    _setup(monkeypatch, tmp_path, [(100, 1, _LINE_60)])
+    monkeypatch.setenv('MAPILLARY_ACCESS_TOKEN', 'dummy')
+    monkeypatch.setattr(cs, '_get_json', lambda url: {'status': 'ZERO_RESULTS'})
+    assert cs.main(['--city-id', _CITY, '--gsv', '--max-qps', '1000']) == 0
+    assert _output(tmp_path)['street_edge_id'].tolist() == [100]
+    # Mapillary has imagery everywhere: the second provider rescans instead of resuming GSV's verdicts.
+    monkeypatch.setattr(cs, '_get_json', lambda url: {'data': [{'id': '1'}]})
+    assert cs.main(['--city-id', _CITY, '--mapillary', '--max-qps', '1000']) == 0
+    assert _output(tmp_path).empty
+    assert _summary(tmp_path).loc[100, 'has_imagery']
+    city_dir = tmp_path / 'db' / 'onboarding' / _CITY
+    assert (city_dir / 'streets_imagery_checkpoint_gsv.csv').exists()
+    assert (city_dir / 'streets_imagery_checkpoint_mapillary.csv').exists()
+
+
+def test_main_rewrites_the_failed_list_every_run(monkeypatch, tmp_path):
+    _setup(monkeypatch, tmp_path, [(100, 1, _LINE_60)])
+    monkeypatch.setattr(cs.time, 'sleep', lambda *_a: None)
+
+    def boom(url):
+        raise requests.exceptions.ConnectionError('down')
+
+    monkeypatch.setattr(cs, '_get_json', boom)
+    assert cs.main(['--city-id', _CITY, '--gsv', '--max-qps', '1000']) == 0
+    failed_path = tmp_path / cs.FAILED_FILE.format(_CITY)
+    assert pd.read_csv(failed_path)['street_edge_id'].tolist() == [100]
+    monkeypatch.setattr(cs, '_get_json', lambda url: {'status': 'OK'})
+    assert cs.main(['--city-id', _CITY, '--gsv', '--max-qps', '1000']) == 0
+    assert failed_path.exists() and pd.read_csv(failed_path).empty
+    assert pd.read_csv(failed_path).columns.tolist() == ['street_edge_id', 'region_id']
+
+
+def test_main_rejects_a_non_positive_sample_and_a_malformed_city_id():
+    with pytest.raises(SystemExit):
+        cs.main(['--city-id', _CITY, '--gsv', '--sample', '0'])
+    with pytest.raises(SystemExit):
+        cs.main(['--city-id', '../etc', '--gsv'])
+    assert cs.valid_city_id('newport-ky') == 'newport-ky'
