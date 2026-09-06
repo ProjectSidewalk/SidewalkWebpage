@@ -21,7 +21,14 @@ functions — no network, no live Google/Mapillary/OSM or app calls.
   API mocked), the GeoPackage/SQL/report writers (`tmp_path`), the CLI, and `main` end-to-end including the region
   source fallback chain and the `--from-gpkg` re-export mode.
 - `test_verify_latlng_backfill.py` — the one-off checker in [`tools/`](../../tools), which is stdlib-only.
-- `test_setup_new_city.py` — `make onboard-city`'s orchestrator in [`tools/`](../../tools) (#4291): the id/URL/date derivations and the cityparams/messages/docs edits, run against copies of the real files so a structural change there fails here first. Stdlib-only, so it runs in both halves.
+- `test_setup_new_city.py` — `make onboard-city`'s orchestrator in [`tools/`](../../tools) (#4291): the id/URL/date
+  derivations, the cityparams/messages/docs edits (run against copies of the real files so a structural change there
+  fails here first), the docker-backed steps with `subprocess` faked (the one-shot evolutions boot and its hash
+  verification, the imagery scan, the dump), and `main` end to end with the prompts scripted — dry run, a full run,
+  and every resume gate. Stdlib-only, so it runs in both halves.
+- `test_create_ga_properties.py` — the GA4 property/stream creation in [`tools/`](../../tools): the naming
+  convention and cityparams lookups, the paged property search, idempotent reruns, the placeholder rewrite, and the
+  dry run, with `urllib` faked. Stdlib-only, both halves.
 
 ### Resilience coverage
 

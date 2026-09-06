@@ -199,6 +199,16 @@ def quantile(sorted_values, q):
     return sorted_values[index]
 
 
+MAX_REPORTED_FAILURES = 20
+
+
+def note_failure(failures, message):
+    """Records a failure description, capping the report at MAX_REPORTED_FAILURES so a wholesale mismatch stays
+    readable (the count of rows still covers every row)."""
+    if len(failures) < MAX_REPORTED_FAILURES:
+        failures.append(message)
+
+
 def verify_rows(reader, eps):
     """Recompute every exported row and compare against the stored values.
 
@@ -217,19 +227,17 @@ def verify_rows(reader, eps):
             float(row["pano_lat"]), float(row["pano_lng"]), int(row["pano_x"]), int(row["pano_y"]),
             int(row["pano_width"]), int(row["pano_height"]), float(row["camera_heading"]))
         if row["computation_method"] != "approximation3":
-            if len(failures) < 20:
-                failures.append(f"label_point {row['label_point_id']}: stamped {row['computation_method']!r}")
+            note_failure(failures, f"label_point {row['label_point_id']}: stamped {row['computation_method']!r}")
             continue
         if row["new_lat"] == "" or row["new_lng"] == "":
-            if len(failures) < 20:
-                failures.append(f"label_point {row['label_point_id']}: NULL lat/lng after backfill")
+            note_failure(failures, f"label_point {row['label_point_id']}: NULL lat/lng after backfill")
             continue
         delta = max(abs(float(row["new_lat"]) - expected_lat), abs(float(row["new_lng"]) - expected_lng))
         max_delta_deg = max(max_delta_deg, delta)
         if delta > eps:
-            if len(failures) < 20:
-                failures.append(f"label_point {row['label_point_id']}: stored ({row['new_lat']}, {row['new_lng']}), "
-                                f"recomputed ({expected_lat!r}, {expected_lng!r}), delta {delta:.3e} deg")
+            note_failure(failures, f"label_point {row['label_point_id']}: stored ({row['new_lat']}, "
+                                   f"{row['new_lng']}), recomputed ({expected_lat!r}, {expected_lng!r}), "
+                                   f"delta {delta:.3e} deg")
         if row["old_lat"] != "" and row["old_lng"] != "":
             displacements_m.append(haversine_meters(
                 float(row["old_lat"]), float(row["old_lng"]), float(row["new_lat"]), float(row["new_lng"])))
