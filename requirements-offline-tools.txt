@@ -14,7 +14,7 @@ tenacity==9.1.4
 tqdm==4.70.0
 
 # onboard_city.py's geo stack.
-osmnx==2.0.7
+osmnx==2.1.1
 geopandas==1.1.4
 pyogrio==0.13.0
 # osmnx imports scipy unconditionally; pinned so pip can't resolve to a build mismatched with the numpy it picks.
