@@ -623,18 +623,28 @@ class LabelDetail {
     // A typed "a" has to stay an "a", and the arrows have to move the caret: the comment box is inside the card.
     if (target?.closest('input, textarea, select, [contenteditable=""], [contenteditable="true"]')) return false;
 
-    // Anything stacked over the card owns the keyboard while it is up. The story composer and the story photo
-    // lightbox are rendered *inside* the card's markup, so "the key landed inside the card" doesn't settle it:
-    // the innermost open <dialog> has to be the card itself on a popup host, and none at all on an inline one.
-    // A dialog mounted elsewhere on the page (ConfirmDialog's) is excluded by the same test.
     const hostDialog = this.#root.tagName === 'DIALOG' ? this.#root : null;
-    if ((target?.closest('dialog') ?? null) !== hostDialog) return false;
-
-    // Finally the keypress has to be meant for the card: focus is inside it, or nowhere in particular. Focus sits
-    // nowhere after the click that opens either inline host — a Gallery card is an `<img>` and takes none — and
-    // "nowhere" is also the one other state in which no control is waiting on the key.
     const active = document.activeElement;
-    return !active || active === document.body || active === document.documentElement || this.#root.contains(active);
+
+    // Focus inside the card. Anything stacked over it still owns the keyboard while it is up, and the story
+    // composer and the story photo lightbox are rendered *inside* the card's own markup — so being inside the
+    // card doesn't settle it. The innermost open <dialog> around the focused control has to be the card itself
+    // on a popup host, and none at all on an inline one.
+    if (active && this.#root.contains(active)) return active.closest('dialog') === hostDialog;
+
+    // Focus nowhere in particular, which the card owns just as much. It is the resting state on an inline host,
+    // where the click that opens the card takes no focus (a Gallery card is an `<img>`). On a popup host it is
+    // reached constantly *while paging*: whenever the control holding focus stops being focusable under the
+    // reader, the browser drops focus to the body, and paging is full of that — the arrow just clicked disables
+    // at either end of the run, the comment box disables while the next label's imagery loads, the comment list
+    // and the pano viewer are rebuilt for the new label. A modal popup is still the only thing on the page that
+    // can be typed at in that state, so the key is the card's.
+    if (active && active !== document.body && active !== document.documentElement) return false;
+
+    // With no focused node there is no ancestry to read the top layer off, so ask the document instead: any open
+    // dialog that isn't this card's own host is above the card, whether it lives inside the card's markup (the
+    // story composer) or elsewhere on the page (ConfirmDialog's).
+    return !Array.from(document.querySelectorAll('dialog[open]')).some((d) => d !== hostDialog);
   }
 
   /**
@@ -1106,7 +1116,11 @@ class LabelDetail {
       // Clearing a vote — and changing one (the `redone` flag) — deletes the user's comment server-side; drop it
       // here too so the list and its vote chips (#5015) match what a reload would show.
       const commentDropped = (undone || data.redone) && this.#dropOwnComment();
-      this.#updateCommentRow(true);
+      // The box opens either way, but only a pointer vote is taken into it. A shortcut vote is usually one step of
+      // paging through labels, and focus landing in a text field ends that: every following A/D/U and arrow is
+      // then a character or a caret move, which is the right thing to do with a key aimed at an input and reads as
+      // the card having stopped listening. Whoever wants to type reaches the box with Tab.
+      this.#updateCommentRow(!viaKeyboard);
       if (commentDropped) this.#flashCommentStatus('labelmap:comment-cleared', 'removed');
       this.#setVoteButtonsDisabled(false);
       if (isNewValidation) BadgeAchievements.recordValidation(this.panoManager.svHolder[0]);

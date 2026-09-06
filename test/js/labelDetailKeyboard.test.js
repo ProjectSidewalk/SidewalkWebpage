@@ -10,6 +10,12 @@
  * pinned below is therefore what the card *refuses* — a typed "a" in the comment box, a browser chord, an
  * auto-repeat, focus parked on some other control, a dialog stacked over the card, a host that has hidden it.
  *
+ * The other half of that rule is what the card must *keep*, which is where the shortcuts are fragile: focus
+ * dropped to the body counts as the card's on a popup host, because paging keeps putting it there (an arrow
+ * disables at the end of the run, the comment box disables while the next label's imagery loads, the comment list
+ * and the viewer are rebuilt), and a session that stops answering keys after a few labels is the symptom. For the
+ * same reason a shortcut vote leaves focus alone rather than opening the comment box under it.
+ *
  * The shortcuts press the card's own buttons rather than reaching past them, so a hidden or disabled control means
  * the key does nothing here and is left for the page to handle (the arrows still scroll). The click they fire
  * carries `detail: 0`, the shape a browser gives a button activated with Enter or Space, which is how the handlers
@@ -642,6 +648,82 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
             await new Promise((resolve) => { setTimeout(resolve, 800); });
 
             expect(echo()).toBeNull();
+        });
+    });
+
+    describe('keeping the keyboard while paging', () => {
+        /**
+         * Leaves the DOM in the state a browser produces when the focused control stops being focusable under the
+         * reader: the control disabled, and focus fallen back to the body.
+         *
+         * jsdom runs no focus fixup — disabling the active element leaves it active — so the fallback is spelled
+         * out here, and it has to happen while the element is still focusable, hence blur before disable.
+         *
+         * @param {HTMLElement} el - The control that goes away under the reader.
+         */
+        function dropFocusToBody(el) {
+            el.focus();
+            el.blur();
+            el.disabled = true;
+        }
+
+        test('focus dropped to the body under an open popup still belongs to the card', async () => {
+            // Paging keeps producing this: click Next to the end of the run and the arrow you clicked disables
+            // under your cursor, so the browser has nowhere to put focus but the body. The popup is modal, so
+            // nothing else on the page can be typed at — the keys are still the card's.
+            await mount({ asDialog: true });
+            card.setAttribute('open', '');
+            await showLabel();
+            dropFocusToBody(nextArrow());
+            expect(document.activeElement).toBe(document.body);
+
+            press('KeyA');
+            await flush();
+
+            expect(validations().map((v) => v.validation_result)).toEqual(['Agree']);
+        });
+
+        test('...but not while a dialog is stacked over it', async () => {
+            // Same focusless state, with the story composer up: it owns the keyboard until it closes, and with no
+            // focused node to read the layering off, the open dialog itself is the answer.
+            await mount({ asDialog: true });
+            card.setAttribute('open', '');
+            await showLabel();
+            q('.story-composer').setAttribute('open', ''); // jsdom has no modal dialog implementation.
+            dropFocusToBody(nextArrow());
+
+            press('KeyA');
+            await flush();
+
+            expect(validations()).toEqual([]);
+        });
+
+        test('a shortcut vote leaves focus alone rather than opening the comment box under it', async () => {
+            // The box still opens with its prompt; what it must not do is take focus, which would turn the next
+            // A/D/U or arrow into a typed character and end the paging run.
+            await showLabel({ user_validation: null });
+
+            press('KeyD');
+            await flush();
+
+            expect(q('.label-detail__comment-row').classList.contains('is-open')).toBe(true);
+            expect(document.activeElement).not.toBe(q('.label-detail__comment-input'));
+
+            // And the run continues: the next key still reaches the card.
+            press('ArrowRight');
+            expect(nextArrow().disabled).toBe(false);
+        });
+
+        test('a pointer vote is still taken into the comment box', async () => {
+            // Clicking a vote is a deliberate stop on that label, and the box asking why is where you are going.
+            await showLabel({ user_validation: null });
+
+            overlayButton('disagree').dispatchEvent(
+                new window.MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 })
+            );
+            await flush();
+
+            expect(document.activeElement).toBe(q('.label-detail__comment-input'));
         });
     });
 
