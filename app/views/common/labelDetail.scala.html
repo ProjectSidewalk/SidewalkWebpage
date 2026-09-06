@@ -22,7 +22,7 @@
 
 <div class="label-detail__pano-wrap">
   @if(withPaging) {
-    <button type="button" class="label-detail__paging label-detail__paging--prev" data-action="prev-label" aria-label="Previous label">
+    <button type="button" class="label-detail__paging label-detail__paging--prev" data-action="prev-label" aria-label="Previous label" aria-keyshortcuts="ArrowLeft">
       <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="14.5 18 8.5 12 14.5 6"/></svg>
     </button>
   }
@@ -36,14 +36,16 @@
      LabelDetail fills in the icon and wording, which reverse with the state  . *@
   <button type="button" class="label-detail__hide-label" data-ps-tooltip-placement="bottom"></button>
   @* Hover overlay with Agree/Disagree/Unsure buttons. Toggle buttons: clicking the pressed one clears the vote
-     (#4653), so `aria-pressed` is what tells assistive tech that, and LabelDetail keeps it in sync per label. *@
+     (#4653), so `aria-pressed` is what tells assistive tech that, and LabelDetail keeps it in sync per label.
+     These three are also what the card's A/D/U shortcuts press (#5194), so they carry aria-keyshortcuts; the
+     column's vote buttons below cast the same votes but announcing the key on both would read as two shortcuts. *@
   <div class="label-detail__pano-overlay" role="group" aria-label="Validate label">
-    <button type="button" class="label-detail__pano-overlay-button label-detail__pano-overlay-button--agree" data-action="validate" data-result="Agree" aria-pressed="false" data-i18n="common:agree">Agree</button>
-    <button type="button" class="label-detail__pano-overlay-button label-detail__pano-overlay-button--disagree" data-action="validate" data-result="Disagree" aria-pressed="false" data-i18n="common:disagree">Disagree</button>
-    <button type="button" class="label-detail__pano-overlay-button label-detail__pano-overlay-button--unsure" data-action="validate" data-result="Unsure" aria-pressed="false" data-i18n="common:unsure">Unsure</button>
+    <button type="button" class="label-detail__pano-overlay-button label-detail__pano-overlay-button--agree" data-action="validate" data-result="Agree" aria-pressed="false" aria-keyshortcuts="A" data-i18n="common:agree">Agree</button>
+    <button type="button" class="label-detail__pano-overlay-button label-detail__pano-overlay-button--disagree" data-action="validate" data-result="Disagree" aria-pressed="false" aria-keyshortcuts="D" data-i18n="common:disagree">Disagree</button>
+    <button type="button" class="label-detail__pano-overlay-button label-detail__pano-overlay-button--unsure" data-action="validate" data-result="Unsure" aria-pressed="false" aria-keyshortcuts="U" data-i18n="common:unsure">Unsure</button>
   </div>
   @if(withPaging) {
-    <button type="button" class="label-detail__paging label-detail__paging--next" data-action="next-label" aria-label="Next label">
+    <button type="button" class="label-detail__paging label-detail__paging--next" data-action="next-label" aria-label="Next label" aria-keyshortcuts="ArrowRight">
       <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9.5 18 15.5 12 9.5 6"/></svg>
     </button>
   }

@@ -82,6 +82,7 @@ class LabelDetail {
   #voteColumnSource;
   #showLabelMapLink;
   #showExploreHereLink;
+  #isOpenHook;
 
   // Updated in each showLabel() call so PanoInfoPopover's accessor closures see the current label.
   #currentLabelMeta = null;
@@ -154,6 +155,10 @@ class LabelDetail {
    *     point of view (#4637).
    * @param {?number} [opts.highlightStoryId] - Story to scroll to and highlight once its label's story list loads,
    *     for story-anchored share links (/label/:id?storyId=, #4722). One-shot; see StorySection.
+   * @param {() => boolean} [opts.isOpen] - Whether the card is on screen right now, which the keyboard shortcuts
+   *     (#5194) will not fire without. Only inline hosts that show and hide their panel need it (the Gallery's
+   *     expanded view): a <dialog> host answers for itself, and a host that never hides the card (the share page,
+   *     where the card *is* the page) has nothing to answer.
    */
   constructor(root, opts) {
     this.#root = root;
@@ -168,6 +173,7 @@ class LabelDetail {
     this.#showLabelMapLink = !!opts.showLabelMapLink;
     this.#showExploreHereLink = !!opts.showExploreHereLink;
     this.#highlightStoryId = opts.highlightStoryId || null;
+    this.#isOpenHook = opts.isOpen || null;
   }
 
   /**
@@ -203,6 +209,7 @@ class LabelDetail {
     this.#cacheElements();
     this.#tagEditor = new TagEditor(this.#els.tags);
     this.#wireHandlers();
+    this.#wireKeyboard();
 
     this.panoManager = await PopupPanoManager.create(
       this.#els.svHolder,
@@ -248,7 +255,7 @@ class LabelDetail {
       },
       onChange: (visible, { viaClick }) => {
         this.panoManager.setLabelsHidden(!visible);
-        if (viaClick) this.#logClick(visible ? 'ShowLabel' : 'HideLabel');
+        if (viaClick) this.#logAction(visible ? 'ShowLabel' : 'HideLabel');
       },
     });
   }
@@ -305,9 +312,9 @@ class LabelDetail {
         heading: this.#currentLabelMeta.heading, pitch: this.#currentLabelMeta.pitch, zoom: this.#currentLabelMeta.zoom,
       },
       false, // whiteIcon
-      () => this.#logClick('PanoInfoButton'),
-      () => this.#logClick('PanoInfoCopyToClipboard'),
-      () => this.#logClick('PanoInfoViewInPano'),
+      () => this.#logAction('PanoInfoButton'),
+      () => this.#logAction('PanoInfoCopyToClipboard'),
+      () => this.#logAction('PanoInfoViewInPano'),
       () => this.#currentLabelMeta && this.#currentLabelMeta.label_id,
     );
 
@@ -330,10 +337,15 @@ class LabelDetail {
   /**
    * Logs a card interaction to the webpage_activity table, tagged with the shown label.
    * @param {string} action - The interaction name, e.g. 'ViewOnLabelMap' (see docs/logged-events.md).
+   * @param {boolean} [viaKeyboard=false] - The action came from the keyboard rather than a pointer. The two input
+   *     paths are logged under different event names (`KeyboardShortcut_…` vs `Click_…`) so they stay countable
+   *     apart, which is the convention every other tool's tracker follows.
    */
-  #logClick(action) {
+  #logAction(action, viaKeyboard = false) {
     const labelId = this.#currentLabelMeta?.label_id;
-    window.logWebpageActivity(`Click_module=LabelDetail_action=${action}_labelId=${labelId}`);
+    window.logWebpageActivity(
+      `${viaKeyboard ? 'KeyboardShortcut' : 'Click'}_module=LabelDetail_action=${action}_labelId=${labelId}`,
+    );
   }
 
   /**
@@ -381,6 +393,11 @@ class LabelDetail {
     els.commentButton = this.#q('.label-detail__comment-submit');
     els.commentConfirm = this.#q('.label-detail__comment-confirmation');
     els.commentCancel = this.#q('.label-detail__comment-cancel');
+    // Prev/next arrows, rendered only when the host asks for them (`withPaging`). The host owns their click
+    // handlers; the card's arrow-key shortcuts go through the buttons, so whatever hides or disables one applies
+    // to the keyboard as well.
+    els.pagingPrev = this.#q('.label-detail__paging--prev');
+    els.pagingNext = this.#q('.label-detail__paging--next');
 
     // Validation count display: <img> elements whose `src` is swapped between the four icon variants
     // (outline / filled / outline-ai / filled-ai) by #voteIconSrc.
@@ -429,18 +446,20 @@ class LabelDetail {
     const els = this.#els;
     // Cross-surface hop into the LabelMap (only rendered on hosts that aren't the LabelMap itself).
     if (els.labelMapLink) {
-      els.labelMapLink.addEventListener('click', () => this.#logClick('ViewOnLabelMap'));
+      els.labelMapLink.addEventListener('click', () => this.#logAction('ViewOnLabelMap'));
     }
     if (els.exploreHereLink) {
-      els.exploreHereLink.addEventListener('click', () => this.#logClick('ExploreHere'));
+      els.exploreHereLink.addEventListener('click', () => this.#logAction('ExploreHere'));
     }
     // The three vote controls are toggles: clicking the one you already picked clears your vote (#4653). There's no
     // separate "clear" affordance — a dedicated control would cost card space for a rare action (Mikey, #4653).
     // buttonSource overrides #source for this specific button group; falls back to #source if null.
-    const voteHandler = (action, buttonSource) => () => {
+    // `detail === 0` marks a click the keyboard produced — the card's own A/D/U shortcut, or Enter/Space on the
+    // focused button — which only the ClearVote event needs, since casting a vote is recorded by its own row.
+    const voteHandler = (action, buttonSource) => (e) => {
       if (this.#interactionBlocked) return;
       this.#setVoteButtonsDisabled(true);
-      this.#submitValidation(action, buttonSource || this.#source, this.#prevAction === action);
+      this.#submitValidation(action, buttonSource || this.#source, this.#prevAction === action, e.detail === 0);
     };
     for (const action of Object.keys(els.panoOverlayButtons)) {
       els.panoOverlayButtons[action].addEventListener('click', voteHandler(action, this.#panoOverlaySource));
@@ -523,6 +542,107 @@ class LabelDetail {
         els.flagButtons[flag].addEventListener('click', () => this.#setFlag(flag, !this.#flags[flag]));
       }
     }
+  }
+
+  // ───────────────────────────────────────────────────────────────────
+  // Keyboard shortcuts (#5194)
+  // ───────────────────────────────────────────────────────────────────
+
+  /**
+   * The vote each shortcut casts, keyed by `KeyboardEvent.code` so a shortcut stays on the same physical key
+   * whatever the layout — the convention Validate's KeyboardManager already follows. A/Y for agree and D/N for
+   * disagree are the pairs Validate and the Gallery have long offered, kept so the muscle memory carries over.
+   */
+  static #VOTE_KEYS = {
+    KeyA: 'Agree', KeyY: 'Agree', KeyD: 'Disagree', KeyN: 'Disagree', KeyU: 'Unsure',
+  };
+
+  /**
+   * Listens for the card's shortcuts: left/right arrows page to the previous/next label, and A/Y, D/N and U cast
+   * agree, disagree and unsure (#5194).
+   *
+   * On `window`, in the capture phase, for two reasons that pull the same way. The card is often the frontmost
+   * thing on the page with nothing inside it holding focus — the Gallery's expanded view opens from a click on an
+   * `<img>`, which takes none — so a listener on the root would never see those keys at all. And every pano viewer
+   * registers a window-capture listener that `stopPropagation()`s the arrow keys (plus A/D/W/S on GSV) to keep
+   * them from steering the imagery, which ends the dispatch there: a bubble-phase listener anywhere on the page
+   * would be dead on exactly the keys this handles. #ownsKeyboard() is what keeps a window-wide listener honest.
+   */
+  #wireKeyboard() {
+    window.addEventListener('keydown', (e) => this.#handleShortcut(e), { capture: true });
+  }
+
+  /**
+   * Runs the shortcut for a keypress this card owns, then claims the event so nothing else acts on it too.
+   *
+   * The shortcuts drive the card's own buttons rather than reaching past them, so each action keeps one code path:
+   * the host's paging and logging, and every hidden/disabled guard already on the control, apply unchanged to the
+   * keyboard. A key whose button isn't there to press is left alone entirely — no preventDefault, no
+   * stopPropagation — so the page keeps whatever it would otherwise do with it (the arrows still scroll).
+   *
+   * @param {KeyboardEvent} e
+   */
+  #handleShortcut(e) {
+    if (!this.#ownsKeyboard(e)) return;
+
+    const vote = LabelDetail.#VOTE_KEYS[e.code];
+    let button = null;
+    if (vote) button = this.#els.panoOverlayButtons[vote];
+    else if (e.code === 'ArrowLeft') button = this.#els.pagingPrev;
+    else if (e.code === 'ArrowRight') button = this.#els.pagingNext;
+    if (!button || button.hidden || button.disabled) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+    // A click whose `detail` is 0 — exactly what the browser fires for a button reached with Tab and pressed with
+    // Enter or Space — so the handlers behind these buttons can still log the keyboard apart from the mouse (the
+    // idiom Navbar.js uses).
+    button.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window, detail: 0 }));
+  }
+
+  /**
+   * Whether a keypress is this card's to act on: the card has to be the frontmost thing on the page *and* the
+   * keypress has to have been aimed at it (#5194). The listener is window-wide, so this is the whole of the scope.
+   *
+   * @param {KeyboardEvent} e
+   * @returns {boolean}
+   */
+  #ownsKeyboard(e) {
+    // Chords belong to the browser and the OS — Alt+Left is Back, Cmd/Ctrl+A selects the page — and a repeat is a
+    // key being held, which shouldn't page through labels at the OS repeat rate.
+    if (e.ctrlKey || e.metaKey || e.altKey || e.repeat) return false;
+    if (!this.#isShowing) return false;
+
+    const target = e.target instanceof Element ? e.target : null;
+    // A typed "a" has to stay an "a", and the arrows have to move the caret: the comment box is inside the card.
+    if (target?.closest('input, textarea, select, [contenteditable=""], [contenteditable="true"]')) return false;
+
+    // Anything stacked over the card owns the keyboard while it is up. The story composer and the story photo
+    // lightbox are rendered *inside* the card's markup, so "the key landed inside the card" doesn't settle it:
+    // the innermost open <dialog> has to be the card itself on a popup host, and none at all on an inline one.
+    // A dialog mounted elsewhere on the page (ConfirmDialog's) is excluded by the same test.
+    const hostDialog = this.#root.tagName === 'DIALOG' ? this.#root : null;
+    if ((target?.closest('dialog') ?? null) !== hostDialog) return false;
+
+    // Finally the keypress has to be meant for the card: focus is inside it, or nowhere in particular. Focus sits
+    // nowhere after the click that opens either inline host — a Gallery card is an `<img>` and takes none — and
+    // "nowhere" is also the one other state in which no control is waiting on the key.
+    const active = document.activeElement;
+    return !active || active === document.body || active === document.documentElement || this.#root.contains(active);
+  }
+
+  /**
+   * Whether the card is on screen, which the shortcuts don't fire without. A <dialog> host answers for itself; an
+   * inline host that shows and hides its panel says so through opts.isOpen; one that never hides it (the share
+   * page, where the card *is* the page) needs neither. A root taken out of the document is never showing — a card
+   * the host replaced shouldn't keep answering keys from its detached copy of the markup.
+   *
+   * @returns {boolean}
+   */
+  get #isShowing() {
+    if (!this.#root.isConnected) return false;
+    if (this.#isOpenHook) return !!this.#isOpenHook();
+    return this.#root.tagName === 'DIALOG' ? this.#root.open : true;
   }
 
   // ───────────────────────────────────────────────────────────────────
@@ -919,8 +1039,9 @@ class LabelDetail {
    * @param {boolean} [undone=false] - Clear the user's existing `action` vote instead of casting one (#4653). The
    *     backend deletes the validation and the user's comment on the label rather than inserting a new row, so the
    *     label returns to no-vote for this user.
+   * @param {boolean} [viaKeyboard=false] - The vote came from the keyboard; only reaches the ClearVote event.
    */
-  #submitValidation(action, source, undone = false) {
+  #submitValidation(action, source, undone = false, viaKeyboard = false) {
     const isNewValidation = !undone && !this.#prevAction;
     const validationTimestamp = new Date();
     const canvasWidth = this.panoManager.svHolder.width();
@@ -970,7 +1091,7 @@ class LabelDetail {
       const newAction = undone ? null : action;
       // Casting a vote is recorded by the label_validation row itself; clearing one deletes that row, so this event
       // is the only trace it happened. Logged on success so the count tracks clears that actually landed.
-      if (undone) this.#logClick(`ClearVote_result=${action}`);
+      if (undone) this.#logAction(`ClearVote_result=${action}`, viaKeyboard);
       this.#updateVoteCount(newAction);
       this.#highlightVote(newAction);
       // Clearing a vote — and changing one (the `redone` flag) — deletes the user's comment server-side; drop it
@@ -1037,7 +1158,7 @@ class LabelDetail {
     els.commentButton.classList.toggle('is-active', els.commentInput.value.trim().length > 0);
     els.commentInput.focus();
     els.commentInput.select();
-    this.#logClick('EditCommentOpen');
+    this.#logAction('EditCommentOpen');
   }
 
   /**
@@ -1086,7 +1207,7 @@ class LabelDetail {
       this.#dropOwnComment();
       this.#updateCommentRow();
       this.#flashCommentStatus('labelmap:comment-deleted', 'removed');
-      this.#logClick('DeleteComment');
+      this.#logAction('DeleteComment');
       // The Delete button had focus and the re-render above just destroyed it, so focus would otherwise fall back to
       // the document. The reopened box is both the accessible landing spot and the useful one — it is where a
       // replacement comment gets typed. A comment with no vote behind it leaves the box shut, so fall back to the
@@ -1740,7 +1861,7 @@ class LabelDetail {
   #startTagEditing() {
     const meta = this.#currentLabelMeta;
     if (!meta) return;
-    this.#logClick('EditTagsOpen');
+    this.#logAction('EditTagsOpen');
     this.#setTagsEditLabel(true);
     this.#els.tags.classList.remove('label-detail__empty');
     this.#els.tags.textContent = '';
@@ -1828,9 +1949,9 @@ class LabelDetail {
       render();
       this.#showEditStatus(i18next.t('labelmap:edit-saved'), { columns });
       if (meta.severity !== prev.severity) {
-        this.#logClick(`EditSeverity_old=${prev.severity}_new=${meta.severity}`);
+        this.#logAction(`EditSeverity_old=${prev.severity}_new=${meta.severity}`);
       }
-      if (!sameTags) this.#logClick(`EditTags_old=${prev.tags.join('|')}_new=${meta.tags.join('|')}`);
+      if (!sameTags) this.#logAction(`EditTags_old=${prev.tags.join('|')}_new=${meta.tags.join('|')}`);
       if (typeof this.#onEdit === 'function') this.#onEdit(meta);
     } catch (err) {
       console.error(err);
@@ -2058,7 +2179,7 @@ class LabelDetail {
       const wasEdit = this.#editingComment;
       els.commentInput.value = '';
       els.commentButton.classList.remove('is-active');
-      if (wasEdit) this.#logClick('EditComment');
+      if (wasEdit) this.#logAction('EditComment');
 
       // Update the visible list. Admin views render objects with a username; non-admin views render bare comment
       // strings. Replace the user's existing comment (if any) rather than appending — the backend deletes prior
