@@ -128,9 +128,17 @@ def api_call(method, url, token, payload=None):
 
 
 def find_property(token, account, display_name):
-    """The account's (non-trashed) property named ``display_name``, or None."""
-    listing = api_call('GET', f'{API}/v1beta/properties?filter=parent:accounts/{account}&pageSize=200', token)
-    return next((p['name'] for p in listing.get('properties', []) if p['displayName'] == display_name), None)
+    """The account's (non-trashed) property named ``display_name``, or None — paging through the whole account."""
+    url = f'{API}/v1beta/properties?filter=parent:accounts/{account}&pageSize=200'
+    while url:
+        listing = api_call('GET', url, token)
+        match = next((p['name'] for p in listing.get('properties', []) if p['displayName'] == display_name), None)
+        if match:
+            return match
+        next_page = listing.get('nextPageToken')
+        url = f'{API}/v1beta/properties?filter=parent:accounts/{account}&pageSize=200&pageToken={next_page}' \
+            if next_page else None
+    return None
 
 
 def assert_enhanced_measurement(token, stream_name):

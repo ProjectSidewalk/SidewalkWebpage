@@ -15,10 +15,14 @@ It chains every remaining setup step, pausing only where a human is required:
      when the repo-root ga-service-account.json key exists and the ids are still empty; skipped with a pointer
      otherwise.
   3. Creates the empty city schema by cloning a donor city's structure + seed rows (db/scripts/create-new-schema.sh;
-     the donor defaults to the active dev city and is refused if it sits ahead of this checkout's evolutions).
+     the donor defaults to the active dev city and is refused if it sits ahead of this checkout's evolutions, or if
+     its top evolution is another branch's under the same number — the script gets the file's Play hash to tell).
   4. Boots the app one-shot inside the web container with DATABASE_USER/SIDEWALK_CITY_ID overridden via
      `docker exec -e` (a running container's env is fixed at creation, so editing docker-compose.override.yml can't
-     retarget it), and watches play_evolutions until the schema is current. A no-op when the donor was current.
+     retarget it), and watches play_evolutions until the schema is current. Right after a clone the boot happens
+     even when the donor was current: Play checks every applied evolution's hash against this checkout's files and
+     (autoApplyDowns) corrects one the donor picked up from another branch at the same number. On a rerun that kept
+     the schema, a current schema skips the boot.
   5. Loads db/onboarding/<city-id>/qgis_tables.sql into the schema.
   6. Runs fill-new-schema.sh non-interactively (you pick the tutorial region and which regions open at launch).
   7. Runs the scripts/check_streets_for_imagery.py scan for the city's imagery provider in the web container (which
@@ -36,6 +40,7 @@ file edits and stops before any docker/db step. The pure helpers are unit-tested
 """
 
 import argparse
+import hashlib
 import re
 import subprocess
 import sys
@@ -53,8 +58,13 @@ DB_CONTAINER = 'projectsidewalk-db'
 WEB_CONTAINER = 'projectsidewalk-web'
 
 # The same sbt invocation `npm start` uses, minus `~` (one-shot, no watch). The tail pipe keeps stdin open — Play's
-# dev server stops on stdin EOF, which a detached `docker exec` would deliver immediately.
-BOOT_CMD = ("cd /home && tail -f /dev/null | sbt -Dconfig.file=/home/conf/application.local.conf "
+# dev server stops on stdin EOF, which a detached `docker exec` would deliver immediately. Every process of the boot
+# carries BOOT_MARKER on its command line (tail via `exec -a`, sbt and its JVM via a -D property nothing reads), so
+# stopping it is one `pkill -f` that can't touch another `tail -f /dev/null` in the container (make qa-worktree
+# holds one open the same way).
+BOOT_MARKER = 'onboard-city-boot'
+BOOT_CMD = (f"cd /home && (exec -a {BOOT_MARKER}-stdin tail -f /dev/null) | sbt -D{BOOT_MARKER}=1 "
+            "-Dconfig.file=/home/conf/application.local.conf "
             "-Dsbt.coursier.home='.coursier' -Dsbt.global.base='.sbt' -Dsbt.boot.directory='.sbt/boot' "
             "-Dsbt.repository.config='.sbt/repositories' -J-Xmx1536m run > /tmp/onboard-city-boot.log 2>&1")
 
@@ -93,6 +103,17 @@ TRANSLATED_MESSAGE_FILES = ('messages.zh-TW', 'messages.es', 'messages.nl', 'mes
 def schema_name(city_id):
     """Same derivation as scripts/onboard_city.py: full city id, hyphens as underscores."""
     return 'sidewalk_' + city_id.replace('-', '_')
+
+
+def valid_city_id(value):
+    """
+    argparse type for the city id — the same rule scripts/onboard_city.py applies to --city-id (kept local: this
+    script is stdlib-only). The id becomes a schema name interpolated into SQL and paths, so it must be a plain
+    kebab-case token.
+    """
+    if not re.fullmatch(r'[a-z][a-z0-9-]*', value):
+        raise argparse.ArgumentTypeError(f'"{value}" — use lowercase kebab-case, e.g. "laurens-ia".')
+    return value
 
 
 def prompt(text, default=None):
@@ -149,6 +170,39 @@ def highest_evolution(evolutions_dir=None):
     """The repo's highest evolution number — what a donor schema must not exceed."""
     evolutions_dir = evolutions_dir or EVOLUTIONS_DIR
     return max(int(path.stem) for path in evolutions_dir.glob('*.sql') if path.stem.isdigit())
+
+
+def evolution_hash(path):
+    """
+    Play's hash of an evolution file — ``sha1(downs.trim + ups.trim)`` over the ``!Ups`` / ``!Downs`` sections — as
+    stored in ``play_evolutions.hash`` when the app applies it.
+
+    Only a *match* means anything: the donor's row was written by Play from this very file, so the donor is on this
+    checkout's evolution. A mismatch is inconclusive — Play's parser normalizes some files in ways this
+    transcription doesn't reproduce (measured: 237 of 375 shipped evolutions round-trip), so create-new-schema.sh
+    falls back to comparing the donor with the other city schemas in that case.
+
+    Args:
+        path: The ``<n>.sql`` evolution file.
+
+    Returns:
+        The 40-character hex digest.
+    """
+    ups, downs, section = [], [], None
+    for line in path.read_text().split('\n'):
+        if re.match(r'^(#|--).*!Ups.*$', line):
+            section = ups
+        elif re.match(r'^(#|--).*!Downs.*$', line):
+            section = downs
+        elif section is not None:
+            section.append(line)
+    return hashlib.sha1(('\n'.join(downs).strip() + '\n'.join(ups).strip()).encode()).hexdigest()
+
+
+def highest_evolution_hash(evolutions_dir=None):
+    """:func:`evolution_hash` of the repo's highest evolution — the donor check's positive evidence."""
+    evolutions_dir = evolutions_dir or EVOLUTIONS_DIR
+    return evolution_hash(evolutions_dir / f'{highest_evolution(evolutions_dir)}.sql')
 
 
 def report_headlines(report_text):
@@ -332,11 +386,28 @@ def sbt_running():
                           capture_output=True).returncode == 0
 
 
-def apply_evolutions(schema, city_id):
-    """Boots the app one-shot as the new city and blocks until play_evolutions reaches the repo's latest."""
+def evolution_problem(schema):
+    """The newest evolution Play failed on, as ``"<id>: <problem>"``, or None when every row is clean."""
+    return db_query(f"SELECT id || ': ' || left(last_problem, 300) FROM {schema}.play_evolutions "
+                    "WHERE last_problem IS NOT NULL AND last_problem <> '' ORDER BY id DESC LIMIT 1")
+
+
+def apply_evolutions(schema, city_id, verify=False):
+    """
+    Boots the app one-shot as the new city and blocks until play_evolutions reaches the repo's latest.
+
+    Args:
+        schema:  The city schema.
+        city_id: Its city id (SIDEWALK_CITY_ID for the boot).
+        verify:  Boot even when the schema already reads the latest number. Right after a donor clone this is the
+                 only check that the donor's evolutions are *this checkout's*: Play compares every applied hash
+                 with the file and, with autoApplyDowns on, reverts and re-applies from the first mismatch — the case
+                 of a dev schema that hosted another branch's evolution at the same number.
+    """
     latest = highest_evolution()
     applied = db_query(f'SELECT max(id) FROM {schema}.play_evolutions')
-    if applied and int(applied) >= latest:
+    current = bool(applied) and int(applied) >= latest
+    if current and not verify:
         print(f'  Schema is already at evolution {applied}; no app boot needed.')
         return
     while sbt_running():
@@ -344,7 +415,11 @@ def apply_evolutions(schema, city_id):
               'and the build locks. Ctrl-C your `npm start`, then press Enter... ')
     subprocess.run(['docker', 'exec', '-d', '-e', f'DATABASE_USER={schema}', '-e', f'SIDEWALK_CITY_ID={city_id}',
                     WEB_CONTAINER, 'bash', '-c', BOOT_CMD], check=True)
-    print(f'  Booting the app as {city_id} to apply evolutions (needs {latest}; the dev compile takes a while)...')
+    if current:
+        print(f'  Schema reads evolution {applied}; booting the app as {city_id} once anyway so Play checks every '
+              'applied hash against this checkout (the dev compile takes a while)...')
+    else:
+        print(f'  Booting the app as {city_id} to apply evolutions (needs {latest}; the dev compile takes a while)...')
     try:
         deadline = time.monotonic() + 30 * 60
         while time.monotonic() < deadline:
@@ -356,17 +431,20 @@ def apply_evolutions(schema, city_id):
             except (urllib.error.URLError, OSError):
                 time.sleep(10)
                 continue
+            problem = evolution_problem(schema)
+            if problem:
+                sys.exit(f'error: Play could not apply evolution {problem}\n  Fix the cause (docker exec '
+                         f'{WEB_CONTAINER} tail -50 /tmp/onboard-city-boot.log), then rerun.')
             applied = db_query(f'SELECT max(id) FROM {schema}.play_evolutions')
             if applied and int(applied) >= latest:
-                print(f'  Evolutions applied (at {applied}).')
+                print(f'  Evolutions applied and verified (at {applied}).')
                 return
             print(f'  ...at {applied or "?"} of {latest}')
             time.sleep(10)
         sys.exit(f'error: evolutions never reached {latest}. Check the boot log: '
                  f'docker exec {WEB_CONTAINER} tail -50 /tmp/onboard-city-boot.log — then rerun.')
     finally:
-        for pattern in ('sbt-launch', 'tail -f /dev/null'):
-            subprocess.run(['docker', 'exec', WEB_CONTAINER, 'pkill', '-f', pattern], capture_output=True)
+        subprocess.run(['docker', 'exec', WEB_CONTAINER, 'pkill', '-f', BOOT_MARKER], capture_output=True)
         print('  One-shot app stopped; :9000 is free again.')
 
 
@@ -438,8 +516,9 @@ def parse_report(city_id):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description='Guided end-to-end new-city setup from onboarding artifacts.')
-    parser.add_argument('city_id', help='The cityparams city id, e.g. "laurens-ia" (must match the '
-                                        'scripts/onboard_city.py --city-id used to generate the artifacts).')
+    parser.add_argument('city_id', type=valid_city_id,
+                        help='The cityparams city id, e.g. "laurens-ia" (must match the scripts/onboard_city.py '
+                             '--city-id used to generate the artifacts).')
     parser.add_argument('--dry-run', action='store_true',
                         help='Preview the config-file edits and stop before any docker/db step.')
     parser.add_argument('--donor', help='City schema to clone the structure from (default: the dev container\'s '
@@ -515,7 +594,7 @@ def main(argv=None):
     if state and state in US_STATES.values() and not message_key_exists('messages', f'state.name.{state}'):
         new_state = state
         add_message_line('messages', f'state.name.{state}', state.replace('-', ' ').title(), args.dry_run)
-        abbrev = next(k for k, v in US_STATES.items() if v == state).upper()
+        abbrev = {name: code for code, name in US_STATES.items()}[state].upper()
         add_message_line('messages.en', f'state.name.{state}', abbrev, args.dry_run)
     if new_country:
         add_message_line('messages', f'country.name.{country}', country_name, args.dry_run)
@@ -543,15 +622,18 @@ def main(argv=None):
             sys.exit(f'error: the {container} container is not running (make docker-up / make dev).')
 
     print(f'\nStep 3/8 — create the empty schema {schema} by cloning a donor city...')
+    cloned = False
     if db_query(f"SELECT 1 FROM pg_namespace WHERE nspname = '{schema}'") and \
             prompt(f'Schema {schema} already exists. Drop and recreate it? (y/n)', 'n') != 'y':
         print('  Keeping the existing schema.')
     else:
         donor = args.donor or web_env('DATABASE_USER') or prompt('Donor schema to clone (e.g. sidewalk_richmond)')
-        docker_db('/opt/scripts/create-new-schema.sh', schema, donor, str(highest_evolution()), check=True)
+        docker_db('/opt/scripts/create-new-schema.sh', schema, donor, str(highest_evolution()),
+                  highest_evolution_hash(), check=True)
+        cloned = True
 
     print('\nStep 4/8 — apply evolutions via a one-shot app boot...')
-    apply_evolutions(schema, city_id)
+    apply_evolutions(schema, city_id, verify=cloned)
 
     # A filled schema means steps 5-6 already ran (a fresh clone holds just the tutorial street); rerunning the fill
     # would collide on street_edge ids.
@@ -592,9 +674,9 @@ Done — {display_name}'s schema is populated. To develop against it, set SIDEWA
 DATABASE_USER={schema} in docker-compose.override.yml and recreate the container (make docker-stop, then make dev) —
 a running container's environment can't be changed in place.
 {handoff_checklist(city_id, schema, prod_url, test_url)}
-Still on a human: the translations listed under step 1, a look at `excluded_tags` and `update_offset_hours` in the
-city's config row (the clone carries the donor's), and the GA ids if step 2 was skipped. The `/onboard-city` skill
-walks through all of it.''')
+Still on a human: the translations listed under step 1; the donor's values the clone carried in the city's config row
+— `excluded_tags`, `update_offset_hours`, `make_crops` (the fill printed them; `mapathon_event_link` was cleared);
+and the GA ids if step 2 was skipped. The `/onboard-city` skill walks through all of it.''')
 
 
 if __name__ == '__main__':

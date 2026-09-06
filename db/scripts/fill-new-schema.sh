@@ -3,10 +3,10 @@
 # fill-new-schema.sh — populate a fresh city schema's streets and regions from QGIS-imported staging tables.
 #
 # WHY THIS EXISTS: after create-new-schema.sh gives you an empty city schema, the geographic data (streets + regions)
-# is loaded into two staging tables — qgis_road and qgis_region — by scripts/onboard_city.py (or a QGIS export). This
-# script turns that staging data into the app's real tables (street_edge, region, street_edge_region,
-# street_edge_priority, ...), relocates the schema's seeded tutorial street to sit after the imported streets, sets the
-# city center/bounds/zoom in `config`, drops the staging tables, and prints what landed.
+# is loaded into two staging tables — qgis_road and qgis_region — by scripts/onboard_city.py (or a QGIS export).
+# This script turns that staging data into the app's real tables (street_edge, region, street_edge_region,
+# street_edge_priority, ...), relocates the schema's seeded tutorial street to sit after the imported streets, sets
+# the city center/bounds/zoom in `config`, drops the staging tables, and prints what landed.
 # It asks for the schema, tutorial region, and which regions open at launch (or takes them as positional args for
 # scripted use), prints a summary, and confirms before touching the DB. Everything runs in one transaction, so a
 # failure rolls the whole thing back.
@@ -14,11 +14,11 @@
 # HOW IT'S RUN:  make fill-new-schema   →   /opt/scripts/fill-new-schema.sh   (inside projectsidewalk-db).
 # PRECONDITION:  the target schema exists (create-new-schema.sh) and qgis_road + qgis_region are loaded into it, in
 #                the canonical shape scripts/onboard_city.py emits: qgis_road (road_id, osm_ids bigint[], highway,
-#                region_id, geom) and qgis_region (region_id, name, data_source, geom) — a hand-built export must match
-#                it (osm_ids = ARRAY[osm_id]).
+#                region_id, geom) and qgis_region (region_id, name, data_source, geom) — a hand-built export must
+#                match it (osm_ids = ARRAY[osm_id]).
 #
-# GOTCHA: prompt answers are interpolated into SQL. Region-id lists must be space-separated integers; the schema must
-# be a real city schema with the QGIS staging tables present.
+# GOTCHA: prompt answers are interpolated into SQL, so the ids are checked to be integers below; the schema must be a
+# real city schema with the QGIS staging tables present.
 # =====================================================================================================================
 set -euo pipefail
 
@@ -57,6 +57,17 @@ else
             REGIONS_HIDDEN=$(prompt_with_default "Enter IDs to exclude (space-separated)" "")
         fi
     fi
+fi
+
+# Everything interpolated into SQL below is an integer or a space-separated list of them.
+if [[ ! "$TUTORIAL_REGION_ID" =~ ^[0-9]+$ ]]; then
+    echo "Error: the tutorial region id must be an integer (got '$TUTORIAL_REGION_ID')." >&2
+    exit 1
+fi
+if [[ "$MODE" == "include" && ! "$REGIONS_SHOWN" =~ ^[0-9]+( [0-9]+)*$ ]] ||
+   [[ "$MODE" == "exclude" && ! "$REGIONS_HIDDEN" =~ ^[0-9]+( [0-9]+)*$ ]]; then
+    echo "Error: region ids must be a non-empty, space-separated list of integers (e.g. '1 2 3')." >&2
+    exit 1
 fi
 
 # The tutorial region must end up open (space-padded literal containment, not a regex).
@@ -110,11 +121,13 @@ psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" <<-EOSQL
     -- The schema arrives holding exactly one street: the shared DC tutorial street (so config's tutorial_street_edge_id
     -- FK is satisfiable). Imported qgis road_ids start at 1, so relocate the tutorial to sit just past the imported
     -- streets before importing them -- this keeps every real street's street_edge_id equal to its qgis road_id.
-    -- config's FK is RESTRICT, so the id can't be UPDATEd in place: copy the tutorial row to MAX(road_id) + 1, repoint
-    -- config at the copy, then delete the original. (A donor-cloned schema can carry the tutorial at an id already
-    -- above MAX(road_id) + 1; MAX(street_edge_id) then keeps that row and drops the copy, which is just as good.)
+    -- config's FK is RESTRICT, so the id can't be UPDATEd in place: copy the tutorial row to one past both the
+    -- imported ids and the current tutorial id (so the copy can't collide with the row it copies), repoint config at
+    -- the copy, then delete the original. (A donor-cloned schema can carry the tutorial at an id already above
+    -- MAX(road_id) + 1; MAX(street_edge_id) then keeps that row and drops the copy, which is just as good.)
     INSERT INTO street_edge (street_edge_id, geom, x1, y1, x2, y2, way_type, status, timestamp)
-        SELECT (SELECT MAX(road_id) FROM qgis_road) + 1, geom, x1, y1, x2, y2, way_type, status, timestamp
+        SELECT GREATEST((SELECT MAX(road_id) FROM qgis_road), (SELECT MAX(street_edge_id) FROM street_edge)) + 1,
+               geom, x1, y1, x2, y2, way_type, status, timestamp
         FROM street_edge;
     UPDATE config SET tutorial_street_edge_id = (SELECT MAX(street_edge_id) FROM street_edge);
     DELETE FROM street_edge WHERE street_edge_id <> (SELECT tutorial_street_edge_id FROM config);
@@ -168,12 +181,15 @@ psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" <<-EOSQL
         FROM street_edge
         WHERE status = 'open';
 
-    -- Update config table's open_status column based on whether regions were removed.
-    UPDATE config SET open_status = '$OPEN_STATUS_Q';
+    -- Update config table's open_status column based on whether regions were removed. The clone carried the donor's
+    -- whole config row: a mapathon banner is the donor's event, never this city's, so it is cleared here; the other
+    -- inherited settings (excluded_tags, update_offset_hours, make_crops) are printed below for review.
+    UPDATE config SET open_status = '$OPEN_STATUS_Q', mapathon_event_link = NULL;
 
     -- Set the city center, map bounds, and default map zoom in the config table from the open regions' geoms. The
     -- bounds are the regions' extent padded by 0.5° (~55 km): they only bound map views, and existing cities sit at
-    -- 0.5–2° of margin, enough to pan to the neighbours without the placeholder ±1° box some older cities carry. The
+    -- 0.5–2° of margin, enough to pan to the neighbours without the placeholder ±1° box some older cities carry.
+    -- The
     -- zoom fits the regions to the viewport: log2(360 / extent in latitude-equivalent degrees) tracks the zooms from
     -- existing cities closely.
     UPDATE config
@@ -192,6 +208,30 @@ psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" <<-EOSQL
         FROM region
         WHERE deleted = FALSE
     ) extent;
+
+    -- The clone moved every sequence past its seed rows, but the ids just inserted are explicit and can sit higher
+    -- (a city with more streets than the donor's tutorial id). Move street_edge's and region's sequences past the
+    -- new rows so the first serial insert (a later street re-import) can't collide. The sequence is read off each
+    -- column's DEFAULT, which covers both a SERIAL and the schema's hand-made region_id_seq.
+    DO \$\$
+    DECLARE
+        col record;
+        sequence_name text;
+    BEGIN
+        FOR col IN SELECT * FROM (VALUES ('street_edge', 'street_edge_id'), ('region', 'region_id'))
+                                 AS serial_columns(table_name, column_name)
+        LOOP
+            SELECT substring(pg_get_expr(pg_attrdef.adbin, pg_attrdef.adrelid) FROM 'nextval\(''([^'']+)''')
+            INTO sequence_name
+            FROM pg_attrdef
+            JOIN pg_attribute ON pg_attribute.attrelid = pg_attrdef.adrelid AND pg_attribute.attnum = pg_attrdef.adnum
+            WHERE pg_attrdef.adrelid = col.table_name::regclass AND pg_attribute.attname = col.column_name;
+            IF sequence_name IS NOT NULL THEN
+                EXECUTE format('SELECT setval(%L, (SELECT max(%I) FROM %I))',
+                               sequence_name, col.column_name, col.table_name);
+            END IF;
+        END LOOP;
+    END \$\$;
 
     -- Remove the staging tables — qgis_road first, since onboard_city.py's staging SQL gives it a foreign key to
     -- qgis_region.
@@ -223,7 +263,13 @@ psql -d sidewalk -U "$SCHEMA_NAME" -v ON_ERROR_STOP=1 <<-EOSQL
     GROUP BY region.region_id, region.name, region.deleted
     ORDER BY region.region_id;
 
-    SELECT open_status, round(city_center_lat::numeric, 4) AS center_lat, round(city_center_lng::numeric, 4) AS center_lng,
-           default_map_zoom, tutorial_street_edge_id
+    SELECT open_status, round(city_center_lat::numeric, 4) AS center_lat,
+           round(city_center_lng::numeric, 4) AS center_lng, default_map_zoom, tutorial_street_edge_id
+    FROM config;
+
+    -- Inherited from the donor's config row; each is a per-city decision (see docs/onboarding-a-city.md).
+    SELECT update_offset_hours, make_crops, jsonb_array_length(COALESCE(excluded_tags, '[]')) AS excluded_tags,
+           mapathon_event_link
     FROM config;
 EOSQL
+echo "The last row is the donor's: review update_offset_hours, make_crops, and excluded_tags before launch."

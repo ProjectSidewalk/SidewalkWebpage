@@ -8,10 +8,10 @@
 # street, the tag catalogue, and the survey questions — creates the owning role, and wires up search_path + read-only
 # grants. After this, you'd load the city's streets/regions with fill-new-schema.sh.
 #
-# It clones a donor rather than restoring the committed `sidewalk_init` template because the template is frozen at
-# evolution 252 and can no longer be replayed forward: evolutions 270/295/355 read `sidewalk_login.role`, which 372
-# dropped, so a schema that old wedges on its first app boot (#5198). A donor at the current evolution level never
-# goes stale. `init.sh` and CI still restore the template for the dev DB's first boot; only this script moved on.
+# It clones a donor rather than restoring the committed `sidewalk_init` template: the template is frozen at evolution
+# 252, and evolutions 270/295/355 read `sidewalk_login.role`, which 372 dropped, so replaying it forward wedges on the
+# first app boot (#5198). A donor at the current evolution level never goes stale. `init.sh` and CI still restore the
+# template for the dev DB's first boot.
 #
 # HOW IT'S RUN:  make create-new-schema name=<schema> donor=<schema>   →   /opt/scripts/create-new-schema.sh <args>
 # INPUT:         $1 = new schema name (e.g. sidewalk_newcity)
@@ -19,6 +19,12 @@
 #                $3 = (optional) the repo's highest evolution number. The donor is refused when it has applied
 #                     anything beyond it: a dev schema that hosted another branch's QA can sit *ahead* of develop, and
 #                     cloning it would carry that branch's evolution into the new city. `make` passes this for you.
+#                     The number alone can't tell a shipped evolution from another branch's at the *same* number:
+#                $4 = (optional) Play's hash of that evolution's file (`make` and setup_new_city.py compute it). A
+#                     donor whose top evolution carries it is certainly on this checkout's evolution. Without it, or
+#                     when it differs (Play normalizes some files in ways the host-side hash doesn't reproduce, so a
+#                     difference alone proves nothing), the donor's top evolution must hash the same as in every
+#                     other city schema that has applied it.
 #
 # GOTCHA: the names are interpolated into DDL, so they must be safe bare SQL identifiers (validated below). Re-running
 # for an existing name drops and recreates that schema — destructive, as intended for a fresh setup.
@@ -30,15 +36,17 @@ source /opt/scripts/helpers.sh
 NAME=${1:-}
 DONOR=${2:-}
 MAX_EVOLUTION=${3:-}
+EXPECTED_HASH=${4:-}
 if [[ -z "$NAME" || -z "$DONOR" ]]; then
-    echo "Usage: create-new-schema.sh <schema_name> <donor_schema> [max_evolution]" >&2
+    echo "Usage: create-new-schema.sh <schema_name> <donor_schema> [max_evolution] [max_evolution_hash]" >&2
     echo "       Typically run via: make create-new-schema name=<schema_name> donor=<donor_schema>" >&2
     exit 1
 fi
 for identifier in "$NAME" "$DONOR"; do
     if [[ ! "$identifier" =~ ^[a-z][a-z0-9_]*$ ]]; then
         echo "Error: '$identifier' is not a valid schema name." >&2
-        echo "       Use lowercase letters, digits, and underscores, starting with a letter (e.g. sidewalk_newcity)." >&2
+        echo "       Use lowercase letters, digits, and underscores, starting with a letter" >&2
+        echo "       (e.g. sidewalk_newcity)." >&2
         exit 1
     fi
 done
@@ -48,6 +56,10 @@ if [[ "$NAME" == "$DONOR" ]]; then
 fi
 if [[ -n "$MAX_EVOLUTION" && ! "$MAX_EVOLUTION" =~ ^[0-9]+$ ]]; then
     echo "Error: max_evolution must be a number (got '$MAX_EVOLUTION')." >&2
+    exit 1
+fi
+if [[ -n "$EXPECTED_HASH" && ! "$EXPECTED_HASH" =~ ^[0-9a-f]{40}$ ]]; then
+    echo "Error: max_evolution_hash must be a 40-char sha1 (got '$EXPECTED_HASH')." >&2
     exit 1
 fi
 
@@ -64,8 +76,36 @@ if [[ -z "$donor_evolution" ]]; then
 fi
 if [[ -n "$MAX_EVOLUTION" && "$donor_evolution" -gt "$MAX_EVOLUTION" ]]; then
     echo "Error: donor '$DONOR' is at evolution $donor_evolution, beyond this checkout's highest ($MAX_EVOLUTION)." >&2
-    echo "       It has applied an evolution from another branch; pick a donor that hasn't (see docs/onboarding-a-city.md)." >&2
+    echo "       It has applied an evolution from another branch; pick a donor that hasn't" >&2
+    echo "       (see docs/onboarding-a-city.md)." >&2
     exit 1
+fi
+
+# Same number, different evolution: a dev schema that hosted a branch's QA can hold that branch's 375 while develop
+# shipped another 375. The file's own Play hash settles it when it matches the donor's row. When it doesn't (or
+# wasn't given), every other city schema that has applied the donor's top evolution must agree with the donor. Only
+# the top evolution is compared — a few old evolutions were edited long after they shipped, so lower ids can
+# legitimately differ between cities dumped at different times.
+donor_hash=$(psql -U postgres -d sidewalk -tAc \
+    "SELECT hash FROM $DONOR.play_evolutions WHERE id = $donor_evolution")
+if [[ -n "$EXPECTED_HASH" && "$donor_hash" == "$EXPECTED_HASH" ]]; then
+    echo "Donor's evolution $donor_evolution carries this checkout's hash (${donor_hash:0:8})."
+else
+    disagreeing=""
+    for schema in $(psql -U postgres -d sidewalk -tAc "SELECT nspname FROM pg_namespace
+            WHERE nspname LIKE 'sidewalk\_%' AND nspname NOT IN ('$DONOR', '$NAME') ORDER BY nspname"); do
+        other_hash=$(psql -U postgres -d sidewalk -tAc \
+            "SELECT hash FROM $schema.play_evolutions WHERE id = $donor_evolution" 2>/dev/null) || continue
+        if [[ -n "$other_hash" && "$other_hash" != "$donor_hash" ]]; then
+            disagreeing+=" $schema"
+        fi
+    done
+    if [[ -n "$disagreeing" ]]; then
+        echo "Error: donor '$DONOR' applied a different evolution $donor_evolution (hash ${donor_hash:0:8})" >&2
+        echo "       than:$disagreeing. One side is another branch's evolution under the same number; pick a" >&2
+        echo "       donor whose $donor_evolution matches develop (see docs/onboarding-a-city.md)." >&2
+        exit 1
+    fi
 fi
 echo "Cloning the structure of $DONOR (at evolution $donor_evolution) into $NAME..."
 
@@ -108,21 +148,33 @@ psql -v ON_ERROR_STOP=1 -U postgres -d sidewalk <<-EOSQL
     ALTER ROLE $NAME SET search_path = $NAME,sidewalk_login,public;
 
     -- Sequences arrive at 1; move each past the rows just copied (the tag ids, the tutorial street, ...), so the
-    -- first runtime INSERT doesn't collide with a seed row.
+    -- first runtime INSERT doesn't collide with a seed row. SERIAL sequences are owned by their column (pg_depend);
+    -- the schema's older hand-made ones (region_id_seq, street_edge_region_id_seq, ...) are only named in the
+    -- column DEFAULT, so pg_attrdef finds those. (pg_class is joined to itself, hence the one alias.)
     DO \$\$
     DECLARE
         seq record;
     BEGIN
         FOR seq IN
-            SELECT sequence_class.relname AS sequence_name, table_class.relname AS table_name,
-                   attribute.attname AS column_name
-            FROM pg_class sequence_class
-            JOIN pg_namespace ON pg_namespace.oid = sequence_class.relnamespace
-            JOIN pg_depend ON pg_depend.objid = sequence_class.oid AND pg_depend.deptype = 'a'
+            SELECT pg_class.relname AS sequence_name, table_class.relname AS table_name,
+                   pg_attribute.attname AS column_name
+            FROM pg_class
+            JOIN pg_namespace ON pg_namespace.oid = pg_class.relnamespace
+            JOIN pg_depend ON pg_depend.objid = pg_class.oid AND pg_depend.deptype = 'a'
             JOIN pg_class table_class ON table_class.oid = pg_depend.refobjid
-            JOIN pg_attribute attribute ON attribute.attrelid = table_class.oid
-                                       AND attribute.attnum = pg_depend.refobjsubid
-            WHERE sequence_class.relkind = 'S' AND pg_namespace.nspname = '$NAME'
+            JOIN pg_attribute ON pg_attribute.attrelid = table_class.oid
+                             AND pg_attribute.attnum = pg_depend.refobjsubid
+            WHERE pg_class.relkind = 'S' AND pg_namespace.nspname = '$NAME'
+            UNION
+            SELECT pg_class.relname, table_class.relname, pg_attribute.attname
+            FROM pg_class
+            JOIN pg_namespace ON pg_namespace.oid = pg_class.relnamespace
+            JOIN pg_attrdef ON pg_get_expr(pg_attrdef.adbin, pg_attrdef.adrelid)
+                               LIKE 'nextval(''' || pg_namespace.nspname || '.' || pg_class.relname || '''%'
+            JOIN pg_class table_class ON table_class.oid = pg_attrdef.adrelid
+            JOIN pg_attribute ON pg_attribute.attrelid = pg_attrdef.adrelid
+                             AND pg_attribute.attnum = pg_attrdef.adnum
+            WHERE pg_class.relkind = 'S' AND pg_namespace.nspname = '$NAME'
         LOOP
             EXECUTE format('SELECT setval(%L, COALESCE((SELECT max(%I) FROM %I.%I), 0) + 1, false)',
                            '$NAME.' || seq.sequence_name, seq.column_name, '$NAME', seq.table_name);
@@ -141,6 +193,8 @@ psql -v ON_ERROR_STOP=1 -U postgres -d sidewalk <<-EOSQL
     END \$\$;
 EOSQL
 
-echo "Created $NAME from $DONOR: $(psql -U postgres -d sidewalk -tAc "SELECT count(*) FROM pg_tables WHERE schemaname = '$NAME'") tables, \
-evolutions through $donor_evolution, $(psql -U postgres -d sidewalk -tAc "SELECT count(*) FROM $NAME.tag") tags, one tutorial street."
+n_tables=$(psql -U postgres -d sidewalk -tAc "SELECT count(*) FROM pg_tables WHERE schemaname = '$NAME'")
+n_tags=$(psql -U postgres -d sidewalk -tAc "SELECT count(*) FROM $NAME.tag")
+echo "Created $NAME from $DONOR: $n_tables tables, evolutions through $donor_evolution, $n_tags tags," \
+     "one tutorial street."
 echo "Next: load qgis_road + qgis_region into it, then make fill-new-schema."
