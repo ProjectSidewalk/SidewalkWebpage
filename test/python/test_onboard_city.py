@@ -13,6 +13,7 @@ import logging
 import sys
 from types import SimpleNamespace
 
+import pandas as pd
 import pytest
 
 gpd = pytest.importorskip('geopandas', reason='the geo stack (requirements-offline-tools.txt) needs Python >= 3.11')
@@ -35,6 +36,7 @@ def test_build_osm_filters_covers_default_way_types_only():
     for way_type in oc.DEFAULT_WAY_TYPES:
         assert way_type in filters[0]
     assert 'alley' not in filters[0]
+    assert '["area"!="yes"]' in filters[0]
 
 
 def test_build_osm_filters_alleys_add_a_second_filter():
@@ -43,9 +45,18 @@ def test_build_osm_filters_alleys_add_a_second_filter():
     assert '"service"="alley"' in filters[1]
 
 
-def test_flatten_tag_scalar_passthrough_and_list_head():
-    assert oc.flatten_tag(123) == 123
-    assert oc.flatten_tag([456, 789]) == 456
+def test_as_id_list_keeps_every_way_id():
+    assert oc.as_id_list(123) == [123]
+    assert oc.as_id_list([456, 789]) == [456, 789]
+
+
+def test_osm_ids_round_trip_through_geopackage_text():
+    assert oc.osm_ids_to_text([100, 101]) == '100,101'
+    assert oc.parse_osm_ids('100,101') == [100, 101]
+    assert oc.parse_osm_ids(100) == [100]
+    assert oc.parse_osm_ids(None) == []
+    assert oc.parse_osm_ids(float('nan')) == []
+    assert oc.parse_osm_ids(' ') == []
 
 
 def test_normalize_way_type_prefers_an_allowed_value_from_merged_lists():
@@ -328,7 +339,7 @@ def test_merge_regions_rejects_unknown_names():
 
 def test_validate_staging_passes_good_data():
     regions = _region_set()
-    roads = gpd.GeoDataFrame({'road_id': [1, 2], 'osm_id': [11, 22], 'highway': ['residential', 'primary'],
+    roads = gpd.GeoDataFrame({'road_id': [1, 2], 'osm_ids': [[11], [22, 23]], 'highway': ['residential', 'primary'],
                               'region_id': [1, 2],
                               'geometry': [LineString([(0, 0), (0.001, 0)])] * 2}, crs='EPSG:4326')
     assert oc.validate_staging(roads, regions) == []
@@ -336,7 +347,7 @@ def test_validate_staging_passes_good_data():
 
 def test_validate_staging_catches_broken_edits():
     regions = _region_set()
-    roads = gpd.GeoDataFrame({'road_id': [1, 1], 'osm_id': [11, 22], 'highway': ['residential', 'primary'],
+    roads = gpd.GeoDataFrame({'road_id': [1, 1], 'osm_ids': [[11], [22]], 'highway': ['residential', 'primary'],
                               'region_id': [1, 9],
                               'geometry': [LineString([(0, 0), (0.001, 0)])] * 2}, crs='EPSG:4326')
     errors = oc.validate_staging(roads, regions)
@@ -425,7 +436,7 @@ def test_validate_staging_catches_geometry_name_and_null_problems():
     regions = _region_set()
     regions.loc[0, 'name'] = '   '
     regions.loc[[1], 'geometry'] = [_SQUARE]
-    roads = gpd.GeoDataFrame({'road_id': [1, 2], 'osm_id': [11, None], 'highway': ['residential', 'primary'],
+    roads = gpd.GeoDataFrame({'road_id': [1, 2], 'osm_ids': [[11], []], 'highway': ['residential', None],
                               'region_id': [1, 2],
                               'geometry': [Point(0, 0), LineString([(0, 0), (0.001, 0)])]}, crs='EPSG:4326')
     errors = oc.validate_staging(roads, regions)
@@ -433,12 +444,13 @@ def test_validate_staging_catches_geometry_name_and_null_problems():
     assert any('MultiPolygon' in error for error in errors)
     assert any('non-empty name' in error for error in errors)
     assert any('non-null' in error for error in errors)
+    assert any('at least one OSM way id' in error for error in errors)
 
 
 def test_validate_staging_catches_duplicate_region_ids():
     regions = _region_set()
     regions['region_id'] = [1, 1]
-    roads = gpd.GeoDataFrame({'road_id': [1], 'osm_id': [11], 'highway': ['residential'], 'region_id': [1],
+    roads = gpd.GeoDataFrame({'road_id': [1], 'osm_ids': [[11]], 'highway': ['residential'], 'region_id': [1],
                               'geometry': [LineString([(0, 0), (0.001, 0)])]}, crs='EPSG:4326')
     assert any('duplicate region_id' in error for error in oc.validate_staging(roads, regions))
 
@@ -447,7 +459,7 @@ def test_validate_staging_catches_invalid_region_geometry():
     regions = _region_set()
     bowtie = MultiPolygon([Polygon([(0, 0), (0.01, 0.01), (0.01, 0), (0, 0.01)])])
     regions.loc[[0], 'geometry'] = [bowtie]
-    roads = gpd.GeoDataFrame({'road_id': [1], 'osm_id': [11], 'highway': ['residential'], 'region_id': [1],
+    roads = gpd.GeoDataFrame({'road_id': [1], 'osm_ids': [[11]], 'highway': ['residential'], 'region_id': [1],
                               'geometry': [LineString([(0, 0), (0.001, 0)])]}, crs='EPSG:4326')
     assert any('invalid' in error for error in oc.validate_staging(roads, regions))
 
@@ -567,6 +579,10 @@ def test_read_regions_file_requires_a_name_column(tmp_path):
     unnamed.to_file(unnamed_path, driver='GeoJSON')
     with pytest.raises(SystemExit):
         oc.read_regions_file(unnamed_path)
+    # --region-name-col names the column a municipal dataset actually uses (Bayonne's quartiers: "nom").
+    renamed = oc.read_regions_file(unnamed_path, name_col='hood')
+    assert list(renamed.columns) == ['name', 'geometry']
+    assert list(renamed['name']) == ['west']
 
 
 def test_read_regions_file_reads_a_qa_geopackages_region_layer(tmp_path):
@@ -578,7 +594,8 @@ def test_read_regions_file_reads_a_qa_geopackages_region_layer(tmp_path):
 
 
 def test_fetch_streets_buffers_the_fetch_polygon_and_normalizes_columns(monkeypatch):
-    edges = gpd.GeoDataFrame({'osmid': [[100, 101], 200], 'highway': [['track', 'residential'], 'primary']},
+    edges = gpd.GeoDataFrame({'u': [1, 2], 'v': [2, 3], 'osmid': [[100, 101], 200],
+                              'highway': [['track', 'residential'], 'primary']},
                              geometry=[LineString([(0, 0), (0.001, 0)]), LineString([(0.001, 0), (0.002, 0)])],
                              crs='EPSG:4326')
     seen = {}
@@ -592,7 +609,8 @@ def test_fetch_streets_buffers_the_fetch_polygon_and_normalizes_columns(monkeypa
                                         graph_to_gdfs=lambda graph, nodes, edges: edges_gdf))
     edges_gdf = edges
     streets = oc.fetch_streets(_CITY, include_alleys=False, fetch_buffer_m=50)
-    assert list(streets['osm_id']) == [100, 200]
+    assert list(streets.columns) == ['u', 'v', 'osm_ids', 'highway', 'geometry']
+    assert list(streets['osm_ids']) == [[100, 101], [200]]
     assert list(streets['highway']) == ['residential', 'primary']
     assert seen['poly'].contains(_CITY)
     assert seen['poly'].area > _CITY.area
@@ -643,7 +661,9 @@ def test_prepare_regions_warns_on_overlapping_regions(caplog):
 
 
 def _streets_gdf(lines):
-    return gpd.GeoDataFrame({'osm_id': list(range(100, 100 + len(lines))), 'highway': ['residential'] * len(lines)},
+    n = len(lines)
+    return gpd.GeoDataFrame({'u': list(range(1, 2 * n, 2)), 'v': list(range(2, 2 * n + 1, 2)),
+                             'osm_ids': [[way_id] for way_id in range(100, 100 + n)], 'highway': ['residential'] * n},
                             geometry=[LineString(line) for line in lines], crs='EPSG:4326')
 
 
@@ -672,23 +692,26 @@ def test_assign_regions_splits_streets_and_assigns_dense_road_ids():
 # --------------------------------------------------------------------------------------------------------------------
 
 def _staged_roads():
-    return gpd.GeoDataFrame({'road_id': [1, 2], 'osm_id': [100, 101], 'highway': ['residential', 'primary'],
+    return gpd.GeoDataFrame({'road_id': [1, 2], 'osm_ids': [[100], [101, 102]], 'highway': ['residential', 'primary'],
                              'region_id': [1, 2], 'length_m': [667.9, 667.9],
                              'geometry': [LineString([(0.002, 0.005), (0.008, 0.005)]),
                                           LineString([(0.012, 0.005), (0.018, 0.005)])]}, crs='EPSG:4326')
 
 
 def _empty_riders():
-    return gpd.GeoDataFrame(columns=['osm_id', 'geometry'], geometry='geometry', crs='EPSG:4326')
+    return gpd.GeoDataFrame(columns=['osm_ids', 'geometry'], geometry='geometry', crs='EPSG:4326')
 
 
 def test_write_gpkg_writes_qa_layers(tmp_path):
     roads = _staged_roads()
-    riders = gpd.GeoDataFrame({'osm_id': [100]}, geometry=[Point(0.01, 0.005)], crs='EPSG:4326')
+    riders = gpd.GeoDataFrame({'osm_ids': [[100]]}, geometry=[Point(0.01, 0.005)], crs='EPSG:4326')
     path = tmp_path / 'qa.gpkg'
     oc.write_gpkg(path, roads, _city_regions(), _CITY_GDF, roads.iloc[0:1], riders)
     assert set(gpd.list_layers(path)['name']) == {'qgis_road', 'qgis_region', 'city_boundary', 'dropped_segments',
                                                   'rider_merges'}
+    # Way-id lists travel as text in the GeoPackage and come back as lists.
+    assert list(gpd.read_file(path, layer='qgis_road')['osm_ids']) == ['100', '101,102']
+    assert list(gpd.read_file(path, layer='rider_merges')['osm_ids']) == ['100']
 
 
 def test_write_gpkg_skips_empty_qa_layers(tmp_path):
@@ -708,6 +731,9 @@ def test_write_sql_emits_loadable_copy_blocks(tmp_path):
     assert '0102000020E610' in sql.upper()
     assert 'COPY qgis_region (region_id, name, data_source, geom)' in sql
     assert '\twest\tOpenStreetMap\t' in sql
+    assert 'osm_ids bigint[] NOT NULL' in sql
+    assert '\t{100}\tresidential\t' in sql
+    assert '\t{101,102}\tprimary\t' in sql
 
 
 def test_parse_args_requires_exactly_one_input_mode():
@@ -733,12 +759,16 @@ def test_write_report_summarizes_a_fetch_run(tmp_path):
     stats = oc.region_street_stats(roads, regions, 60)
     heal = oc.HealStats(3, 2, 45.0, 1)
     oc.write_report(tmp_path / 'report.md', args, 'US Census tracts (TIGERweb)', roads, regions, roads.iloc[0:1],
-                    stats, 0.98, heal)
+                    stats, 0.98, heal, name_warnings=['ALL CAPS: \'DOWNTOWN\''], n_tier1_merged=7)
     report = (tmp_path / 'report.md').read_text()
     assert '98.0%' in report
     assert 'dropped_segments' in report
     assert 'make onboard-city id=testville-wa' in report
     assert '| residential | 1 |' in report
+    assert 'Tiny segments (#4717): < 5 m: **0**, < 10 m: **0**, < 20 m: **0** (**0%**' in report
+    assert '(#4717 tier 1): **7**' in report
+    assert 'Region name warnings (1, #4620)' in report and "ALL CAPS: 'DOWNTOWN'" in report
+    assert 'make check-imagery id=testville-wa args="--sample 150 --gsv"' in report
 
 
 def test_write_report_re_export_variant_omits_healing_and_coverage(tmp_path):
@@ -750,11 +780,13 @@ def test_write_report_re_export_variant_omits_healing_and_coverage(tmp_path):
     report = (tmp_path / 'report.md').read_text()
     assert 'Healed' not in report
     assert 'covering' not in report
+    assert 'tier 1' not in report
+    assert 'Region name warnings' not in report
 
 
 def _staging_gpkg(tmp_path, with_boundary=True):
     path = tmp_path / 'city_qa.gpkg'
-    _staged_roads().to_file(path, layer='qgis_road', driver='GPKG')
+    oc.gpkg_frame(_staged_roads()).to_file(path, layer='qgis_road', driver='GPKG')
     # Regions deliberately lack data_source, exercising the hand-built-GeoPackage fallback.
     _city_regions().drop(columns=['data_source']).to_file(path, layer='qgis_region', driver='GPKG')
     if with_boundary:
@@ -767,10 +799,30 @@ def test_run_from_gpkg_regenerates_sql_from_edited_layers(tmp_path):
     oc.run_from_gpkg(oc.parse_args(['--city-id', 'testville', '--from-gpkg', str(path)]))
     sql = (tmp_path / 'qgis_tables.sql').read_text()
     assert 'COPY qgis_road' in sql
+    assert '\t{101,102}\t' in sql
     assert 'edited GeoPackage (city_qa.gpkg)' in sql
     report = (tmp_path / 'report.md').read_text()
     assert 'edited GeoPackage' in report
     assert 'covering' in report
+    assert (tmp_path / 'street_edge_endpoints.csv').exists()
+
+
+def test_run_from_gpkg_accepts_a_hand_built_layer_with_one_way_id_per_street(tmp_path):
+    path = tmp_path / 'hand_qa.gpkg'
+    hand_built = oc.gpkg_frame(_staged_roads()).drop(columns=['osm_ids'])
+    hand_built['osm_id'] = [100, 101]
+    hand_built.to_file(path, layer='qgis_road', driver='GPKG')
+    _city_regions().to_file(path, layer='qgis_region', driver='GPKG')
+    oc.run_from_gpkg(oc.parse_args(['--city-id', 'testville', '--from-gpkg', str(path)]))
+    assert '\t{101}\tprimary\t' in (tmp_path / 'qgis_tables.sql').read_text()
+
+
+def test_run_from_gpkg_rejects_a_layer_without_any_way_ids(tmp_path):
+    path = tmp_path / 'noways_qa.gpkg'
+    oc.gpkg_frame(_staged_roads()).drop(columns=['osm_ids']).to_file(path, layer='qgis_road', driver='GPKG')
+    _city_regions().to_file(path, layer='qgis_region', driver='GPKG')
+    with pytest.raises(SystemExit, match='OSM way id'):
+        oc.run_from_gpkg(oc.parse_args(['--city-id', 'testville', '--from-gpkg', str(path)]))
 
 
 def test_run_from_gpkg_honors_out_dir_and_survives_missing_boundary_layer(tmp_path):
@@ -788,7 +840,7 @@ def test_run_from_gpkg_warns_on_overlaps_and_gaps(tmp_path, caplog):
     # Both regions are the same western square: fully overlapping, and covering only half the city.
     regions = _city_regions()
     regions['geometry'] = [MultiPolygon([_W]), MultiPolygon([_W])]
-    _staged_roads().to_file(path, layer='qgis_road', driver='GPKG')
+    oc.gpkg_frame(_staged_roads()).to_file(path, layer='qgis_road', driver='GPKG')
     regions.to_file(path, layer='qgis_region', driver='GPKG')
     _CITY_GDF.to_file(path, layer='city_boundary', driver='GPKG')
     with caplog.at_level(logging.WARNING):
@@ -801,7 +853,7 @@ def test_run_from_gpkg_rejects_broken_edits(tmp_path):
     roads = _staged_roads()
     roads['region_id'] = 9
     path = tmp_path / 'broken_qa.gpkg'
-    roads.to_file(path, layer='qgis_road', driver='GPKG')
+    oc.gpkg_frame(roads).to_file(path, layer='qgis_road', driver='GPKG')
     _city_regions().to_file(path, layer='qgis_region', driver='GPKG')
     with pytest.raises(SystemExit):
         oc.run_from_gpkg(oc.parse_args(['--city-id', 'testville', '--from-gpkg', str(path)]))
@@ -829,6 +881,9 @@ def test_main_uses_osm_neighborhoods_and_writes_artifacts(tmp_path, monkeypatch)
     report = (tmp_path / 'report.md').read_text()
     assert 'OpenStreetMap' in report
     assert 'Streets: **3**' in report
+    endpoints = (tmp_path / 'street_edge_endpoints.csv').read_text().splitlines()
+    assert endpoints[0] == 'street_edge_id,region_id,x1,y1,x2,y2,geom'
+    assert len(endpoints) == 4
 
 
 def test_main_falls_back_to_census_when_osm_is_sparse(tmp_path, monkeypatch):
@@ -900,3 +955,121 @@ def test_main_aborts_when_generated_data_fails_validation(tmp_path, monkeypatch)
     monkeypatch.setattr(oc, 'validate_staging', lambda roads, regions: ['boom'])
     with pytest.raises(SystemExit):
         oc.main(['--city-id', 'testville', '--place', 'Testville, USA', '--out-dir', str(tmp_path)])
+
+
+# --------------------------------------------------------------------------------------------------------------------
+# merge_tiny_same_way (#4717 tier 1) / check_region_names (#4620) / street_length_stats / write_endpoints_csv
+# --------------------------------------------------------------------------------------------------------------------
+
+def _edges(rows):
+    """Edges as (u, v, osm_ids, coords) on the equator, where 0.0001 degrees is ~11 m."""
+    return gpd.GeoDataFrame({'u': [r[0] for r in rows], 'v': [r[1] for r in rows], 'osm_ids': [r[2] for r in rows],
+                             'highway': ['residential'] * len(rows)},
+                            geometry=[LineString(r[3]) for r in rows], crs='EPSG:4326')
+
+
+def test_tier1_merge_absorbs_a_short_piece_into_its_own_way():
+    # Way 100 is cut by cross street 200 into 100 m + 10 m + 100 m; the 10 m middle joins one neighbour.
+    streets = _edges([
+        (1, 2, [100], [(0, 0), (0.0009, 0)]),
+        (2, 3, [100], [(0.0009, 0), (0.001, 0)]),
+        (3, 4, [100], [(0.001, 0), (0.0019, 0)]),
+        (2, 5, [200], [(0.0009, 0), (0.0009, 0.001)]),
+    ])
+    merged, n = oc.merge_tiny_same_way(streets, 20)
+    assert n == 1
+    assert len(merged) == 3
+    lengths = sorted(oc.geodesic_length_m(g) for g in merged.geometry)
+    assert lengths[0] == pytest.approx(100, rel=0.02)   # the untouched 100 m piece
+    assert lengths[2] == pytest.approx(111, rel=0.02)   # 100 m + the 10 m stub
+    assert lengths[1] == pytest.approx(111, rel=0.02)   # the cross street
+    assert all(way_ids in ([100], [200]) for way_ids in merged['osm_ids'])
+
+
+def test_tier1_merge_leaves_a_short_piece_of_another_way_alone():
+    streets = _edges([
+        (1, 2, [100], [(0, 0), (0.001, 0)]),
+        (2, 3, [200], [(0.001, 0), (0.001, 0.0001)]),   # 11 m stub of a different way
+    ])
+    merged, n = oc.merge_tiny_same_way(streets, 20)
+    assert n == 0 and len(merged) == 2
+
+
+def test_tier1_merge_never_closes_a_ring():
+    # A roundabout as three 11 m arcs of one way: two can merge, the third would close the loop.
+    streets = _edges([
+        (1, 2, [100], [(0, 0), (0.0001, 0)]),
+        (2, 3, [100], [(0.0001, 0), (0.0001, 0.0001)]),
+        (3, 1, [100], [(0.0001, 0.0001), (0, 0)]),
+    ])
+    merged, n = oc.merge_tiny_same_way(streets, 20)
+    assert n == 1 and len(merged) == 2
+    assert all(row.u != row.v for row in merged.itertuples())
+
+
+def test_tier1_merge_prefers_the_shorter_neighbour_and_unions_way_ids():
+    streets = _edges([
+        (1, 2, [100, 101], [(0, 0), (0.002, 0)]),          # 222 m, a simplified two-way edge
+        (2, 3, [101], [(0.002, 0), (0.0021, 0)]),          # 11 m stub sharing way 101
+        (3, 4, [101], [(0.0021, 0), (0.0022, 0)]),         # 11 m, also short: the shorter neighbour
+        (2, 9, [300], [(0.002, 0), (0.002, 0.001)]),
+    ])
+    merged, n = oc.merge_tiny_same_way(streets, 20)
+    # The two stubs merge with each other first (22 m, no longer short), so the long edge stays as it was.
+    assert n == 1 and len(merged) == 3
+    assert [100, 101] in list(merged['osm_ids'])
+    assert oc.geodesic_length_m(merged.geometry.iloc[0]) == pytest.approx(222, rel=0.02)
+
+
+def test_tier1_merge_skips_pieces_whose_geometries_do_not_meet_and_self_loops():
+    streets = _edges([
+        (1, 2, [100], [(0, 0), (0.0001, 0)]),
+        (2, 3, [100], [(1, 1), (1.0001, 1)]),               # shares node 2 on paper only
+        (7, 7, [100], [(0.5, 0.5), (0.5001, 0.5), (0.5, 0.5)]),  # a self-loop is never a merge candidate
+    ])
+    merged, n = oc.merge_tiny_same_way(streets, 20)
+    assert n == 0 and len(merged) == 3
+
+
+def test_tier1_merge_is_off_at_zero_and_on_empty_input():
+    streets = _edges([(1, 2, [100], [(0, 0), (0.0001, 0)]), (2, 3, [100], [(0.0001, 0), (0.0002, 0)])])
+    assert oc.merge_tiny_same_way(streets, 0)[1] == 0
+    assert oc.merge_tiny_same_way(streets.iloc[0:0], 20)[1] == 0
+
+
+def test_check_region_names_flags_each_defect_once():
+    warnings = oc.check_region_names(['DOWNTOWN', ' Eastside', 'westside', 'bad\x07name', 'Dup', 'Dup', ''])
+    assert "ALL CAPS: 'DOWNTOWN'" in warnings
+    assert "stray whitespace in ' Eastside'" in warnings
+    assert "all lowercase: 'westside'" in warnings
+    assert any(w.startswith('control character in') for w in warnings)
+    assert warnings.count("duplicate name: 'Dup'") == 1
+    assert 'empty region name' in warnings
+
+
+def test_check_region_names_leaves_a_short_acronym_alone():
+    assert oc.check_region_names(['SoDo', 'VCU', 'Census Tract 501']) == []
+
+
+def test_gpkg_frame_passes_frames_without_way_ids_through():
+    boundary = oc.gpkg_frame(_CITY_GDF)
+    assert list(boundary.columns) == list(_CITY_GDF.columns)
+
+
+def test_street_length_stats_counts_tiny_streets():
+    stats = oc.street_length_stats(_roads([3, 8, 19, 25, 300]))
+    assert (stats.n_lt5, stats.n_lt10, stats.n_lt20) == (1, 2, 3)
+    assert stats.pct_lt20 == pytest.approx(60)
+    assert stats.median_m == 19
+    assert oc.street_length_stats(_roads([])) == oc.StreetStats(0, 0, 0, 0.0, 0.0)
+
+
+def test_write_endpoints_csv_matches_the_scans_input_contract(tmp_path):
+    path = tmp_path / 'street_edge_endpoints.csv'
+    oc.write_endpoints_csv(path, _staged_roads())
+    rows = pd.read_csv(path)
+    assert list(rows.columns) == ['street_edge_id', 'region_id', 'x1', 'y1', 'x2', 'y2', 'geom']
+    assert list(rows['street_edge_id']) == [1, 2]
+    assert rows.loc[0, 'x1'] == pytest.approx(0.002) and rows.loc[0, 'x2'] == pytest.approx(0.008)
+    from shapely import wkb
+    assert wkb.loads(rows.loc[1, 'geom'], hex=True).equals(LineString([(0.012, 0.005), (0.018, 0.005)]))
