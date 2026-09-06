@@ -171,6 +171,7 @@ class Main {
     const firstLabel = param.labelList[0];
     svv.panoManager = await PanoManager.create(
       svv.viewerType, param.viewerAccessToken, firstLabel.pano_id, buildBackupImageData(firstLabel),
+      Boolean(firstLabel.expired),
     );
     svv.labelContainer = await LabelContainer.create(param.labelList, param.mission.label_type);
 

@@ -19,6 +19,15 @@
   overflow: hidden;
 }
 
+/* Pannellum's own progress box. Validate loads the fallback viewer's imagery off-screen and only reveals the canvas
+   once it holds this label's pano (PanoManager.#showPannellumPano, #5206), so this box would only ever appear over
+   the *outgoing* label's imagery — a second provider's progress UI, in its own styling, reporting megabytes, on top
+   of a picture it does not belong to. The tool says it is busy in its own voice instead: the dimmed controls and
+   wait cursor that LabelContainer.#setUiBusy puts up for every label load, fallback or not. */
+#svv-panorama-pannellum .pnlm-load-box {
+  display: none !important;
+}
+
 /* Colored frame on top of the pano and marker layers. Drawing it above the marker (rather than as the pano's own
    border underneath) means a label at the very edge is clipped by the frame instead of rendering on top of it. */
 #pano-border-frame {
