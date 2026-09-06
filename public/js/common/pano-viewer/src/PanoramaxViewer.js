@@ -19,6 +19,9 @@
  *   MapillaryViewer already does for Mapillary.
  */
 class PanoramaxViewer extends PanoViewer {
+  /** The `pano_data.source` value, so code outside the viewer can name this source without holding the class. */
+  static SOURCE = 'panoramax';
+
   /** The federated meta-catalog, which searches every Panoramax instance at once. */
   static API_BASE = 'https://api.panoramax.xyz/api';
 

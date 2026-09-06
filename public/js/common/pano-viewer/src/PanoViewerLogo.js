@@ -4,29 +4,34 @@
  * The container must establish a CSS positioning context (position: relative, absolute, or fixed) so that
  * the absolutely-positioned logo is scoped to the pano area. Returns an object with two methods:
  *   - showPrimaryLogo() — use when the primary viewer (GSV/Mapillary/Infra3D) is active.
- *   - showSourceLogo()  — use when Pannellum is active as a backup for the primary source.
+ *   - showSourceLogo()  — use when Pannellum is active as a backup, and on a still we render ourselves (a crop on
+ *     a Gallery or landing card), where no live viewer brands the imagery at all.
  *
  * The overlay also publishes where the logo's pixels end, as the --pano-logo-width CSS variable on the container,
  * so that overlays sitting to its right (the pano capture date and info button) can clear it.
  *
+ * Keyed on the `pano_data.source` string rather than a viewer class, so this file can ship in the pano-credit
+ * bundle that pages with no viewer load (#5202).
+ *
  * @param {Element} container The positioned pano container element.
- * @param {typeof PanoViewer} primaryViewerType The primary viewer class (GsvViewer, MapillaryViewer, etc.).
+ * @param {string} primarySource The imagery source ('gsv', 'mapillary', 'infra3d', 'panoramax'); a viewer class
+ *     exposes its own as the static SOURCE.
  * @returns {{ showPrimaryLogo: Function, showSourceLogo: Function }}
  */
-function createPanoViewerLogo(container, primaryViewerType) {
+function createPanoViewerLogo(container, primarySource) {
   /**
    * The logo art per imagery source. paddingLeft is hand-tuned per logo, in unscaled px. A `label` is a wordmark
    * drawn as text after the art, for a source whose mark alone doesn't say who it is.
-   * @type {Map<typeof PanoViewer, {src: string, alt: string, paddingLeft: number, label?: string}>}
+   * @type {Map<string, {src: string, alt: string, paddingLeft: number, label?: string}>}
    */
   const LOGOS = new Map([
-    [GsvViewer, { src: util.assetPath('images/logos/google-logo.svg'), alt: 'Google', paddingLeft: 10 }],
-    [MapillaryViewer, {
+    ['gsv', { src: util.assetPath('images/logos/google-logo.svg'), alt: 'Google', paddingLeft: 10 }],
+    ['mapillary', {
       src: util.assetPath('images/logos/mapillary-logo-white.png'), alt: 'Mapillary', paddingLeft: 5,
     }],
-    [Infra3dViewer, { src: util.assetPath('images/logos/infra3d-logo.svg'), alt: 'infra3D', paddingLeft: 6 }],
+    ['infra3d', { src: util.assetPath('images/logos/infra3d-logo.svg'), alt: 'infra3D', paddingLeft: 6 }],
     // Panoramax publishes only its icon; the name is set beside it because the icon isn't widely recognized.
-    [PanoramaxViewer, {
+    ['panoramax', {
       src: util.assetPath('images/logos/panoramax-logo.svg'), alt: 'Panoramax', paddingLeft: 6, label: 'Panoramax',
     }],
   ]);
@@ -41,6 +46,8 @@ function createPanoViewerLogo(container, primaryViewerType) {
   const PADDING_TOP = HOLDER_HEIGHT - IMG_HEIGHT - PADDING_BOTTOM;
 
   const holder = document.createElement('div');
+  // A host needing the logo at another size sets --ui-scale on this, which every dimension below is sized against.
+  holder.className = 'pano-viewer-logo';
   Object.assign(holder.style, {
     display: 'none',
     position: 'absolute',
@@ -140,11 +147,11 @@ function createPanoViewerLogo(container, primaryViewerType) {
   resizeObserver.observe(label);
 
   /**
-   * Shows the logo for the given viewer type.
-   * @param {typeof PanoViewer} viewerType
+   * Shows the logo for the given imagery source.
+   * @param {string} source
    */
-  function showLogo(viewerType) {
-    const info = LOGOS.get(viewerType);
+  function showLogo(source) {
+    const info = LOGOS.get(source);
     if (!info) return;
     activeLogo = info;
     img.src = info.src;
@@ -162,21 +169,21 @@ function createPanoViewerLogo(container, primaryViewerType) {
      * Shows the logo for the primary viewer, or hides the overlay for GSV (which provides its own branding).
      */
     showPrimaryLogo() {
-      if (primaryViewerType === GsvViewer) {
+      if (primarySource === 'gsv') {
         holder.style.display = 'none';
         activeLogo = null;
         // Google draws its own logo, so overlays to its right fall back to the offset that clears that one.
         container.style.removeProperty('--pano-logo-width');
       } else {
-        showLogo(primaryViewerType);
+        showLogo(primarySource);
       }
     },
 
     /**
-     * Shows the source logo for the primary viewer's imagery. Used when Pannellum is active.
+     * Shows the source logo for the primary viewer's imagery. Used when Pannellum is active, and on our own stills.
      */
     showSourceLogo() {
-      showLogo(primaryViewerType);
+      showLogo(primarySource);
     },
   };
 }

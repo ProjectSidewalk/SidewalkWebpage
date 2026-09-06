@@ -57,6 +57,18 @@ with respect to the image holder. This allows the validation menu to be placed o
   border-top-right-radius: 20px;
 }
 
+/* Imagery credit on the card's own still (#4865, #5202; look in css/components/pano-attribution.css). Both hug the
+   bottom edge, overlapping the hover validation bar while it is up. */
+.image-holder .pano-viewer-logo {
+  --ui-scale: 0.72; /* Card-sized: the 29px logo row down to ~21px. Only the logo — the pill sets its own type. */
+}
+
+.image-holder .pano-attribution {
+  right: 6px;
+  bottom: 3px;
+  z-index: 1; /* Under the hover validation bar (2), like the source logo opposite it. */
+}
+
 #gallery-validation-button-holder {
   display: flex;
   flex-flow: row wrap;

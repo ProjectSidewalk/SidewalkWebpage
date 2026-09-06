@@ -174,7 +174,7 @@ class PopupPanoManager {
     });
     this.#fallbackPanzoom.on('transform', () => this.#updateFallbackMarkerPosition());
 
-    this.#logo = createPanoViewerLogo(this.svHolder[0], this.#viewerType);
+    this.#logo = createPanoViewerLogo(this.svHolder[0], this.#viewerType.SOURCE);
     this.#logo.showPrimaryLogo();
     this.#attribution = createPanoAttribution(this.svHolder[0]);
 

@@ -15,6 +15,7 @@ class Card {
     label_id: undefined,
     label_type: undefined,
     pano_id: undefined,
+    pano_source: undefined,
     pano_data: undefined,
     lat: undefined,
     lng: undefined,
@@ -211,6 +212,11 @@ class Card {
     }
     imageHolder.appendChild(markerWrapper);
     imageHolder.appendChild(panoImage);
+
+    // The credit owed on a still we serve ourselves (#4865, #5202). Only licensed imagery carries a licence, so
+    // createPanoAttribution hides itself for a source with none, leaving the logo alone.
+    createPanoViewerLogo(imageHolder, properties.pano_source).showSourceLogo();
+    createPanoAttribution(imageHolder, { compact: true }).show(properties.pano_data?.attribution);
 
     this.#card.appendChild(cardInfo);
     this.validationMenu = new ValidationMenu(this, $(imageHolder));

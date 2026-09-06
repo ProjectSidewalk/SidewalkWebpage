@@ -51,6 +51,17 @@
   background: var(--color-neutral-100, #f0f0f0);
 }
 
+/* Imagery credit on the card's own still (#4865, #5202; look in css/components/pano-attribution.css). Nothing else
+   overlays this image — the vote buttons live in the figcaption below it — so both sit flush. */
+.lvg-card-img .pano-viewer-logo {
+  --ui-scale: 0.72; /* Card-sized: the 29px logo row down to ~21px. Only the logo — the pill sets its own type. */
+}
+
+.lvg-card-img .pano-attribution {
+  right: 6px;
+  bottom: 3px;
+}
+
 .lvg-card-photo {
   width: 100%;
   height: 100%;

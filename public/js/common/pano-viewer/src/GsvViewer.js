@@ -3,6 +3,9 @@
  * Docs: https://developers.google.com/maps/documentation/javascript/reference/street-view
  */
 class GsvViewer extends PanoViewer {
+  /** The `pano_data.source` value, so code outside the viewer can name this source without holding the class. */
+  static SOURCE = 'gsv';
+
   // If GSV's internal pano load never fires position_changed (e.g. its metadata RPC 502s), fail the load after this
   // long so the in-flight move can recover instead of hanging the UI forever. Generous, so it won't abort slow loads.
   static #PANO_LOAD_TIMEOUT_MS = 10000;

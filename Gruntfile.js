@@ -147,6 +147,15 @@ module.exports = function (grunt) {
           'public/js/common/pano-viewer/src/PanoInfoPopover.js'
         ],
         dest: 'public/js/common/pano-viewer/build/pano-viewer.js'
+      },
+      // The imagery-credit overlays alone, for a page with stills but no viewer (the landing grid, #5202). Neither
+      // file may reference a viewer class — that is what lets them stand alone. A page loads one bundle or the other.
+      dist_pano_credit: {
+        src: [
+          'public/js/common/pano-viewer/src/PanoViewerLogo.js',
+          'public/js/common/pano-viewer/src/PanoAttribution.js'
+        ],
+        dest: 'public/js/common/pano-credit/build/pano-credit.js'
       }
     },
     concat_css: {

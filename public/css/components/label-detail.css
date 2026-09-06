@@ -252,12 +252,16 @@ dialog.label-detail[open]::backdrop {
   .label-detail__pan-hint { transition: none; }
 }
 
-/* Imagery attribution (#4865; look in css/components/pano-attribution.css, which every host of this dialog links) in
-   the pano's top-right, clear of the hide-label control (top-left) and the hover validation bar (bottom). */
+/* Imagery attribution (#4865; look in css/components/pano-attribution.css, which every host of this dialog links).
+   4.5px puts the 26px pill's center on the source logo's optical line opposite it — 17.5px above the pano's bottom
+   edge (PanoViewerLogo's 2px clearance plus the 15.5px its own art centers on) — so the two read as one credit. */
 .label-detail .pano-attribution {
-  top: 10px;
+  bottom: 4.5px;
   right: 10px;
-  z-index: 6; /* Above the validation ring (5), below the info popover (10), like the hide-label control. */
+
+  /* Under the hover validation bar (1), like the source logo opposite it: while that bar is up it belongs to the
+     vote buttons, and a credit painted over them would be the thing in the way. */
+  z-index: 0;
 }
 
 /* Hide-label toggle (#2477) in the pano's top-left. Revealed on hover like the paging arrows. */
