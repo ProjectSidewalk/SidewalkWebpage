@@ -3,18 +3,19 @@
 # fill-new-schema.sh — populate a fresh city schema's streets and regions from QGIS-imported staging tables.
 #
 # WHY THIS EXISTS: after create-new-schema.sh gives you an empty city schema, the geographic data (streets + regions)
-# is loaded into two staging tables — qgis_road and qgis_region — from a QGIS/OSM export. This script turns that
-# staging data into the app's real tables (street_edge, region, street_edge_region, street_edge_priority, ...),
-# relocates the template's seeded DC tutorial street to sit after the imported streets, sets the city center/bounds in
-# `config`, and drops the staging tables when done.
+# is loaded into two staging tables — qgis_road and qgis_region — by scripts/onboard_city.py (or a QGIS export). This
+# script turns that staging data into the app's real tables (street_edge, region, street_edge_region,
+# street_edge_priority, ...), relocates the schema's seeded tutorial street to sit after the imported streets, sets the
+# city center/bounds/zoom in `config`, drops the staging tables, and prints what landed.
 # It asks for the schema, tutorial region, and which regions open at launch (or takes them as positional args for
 # scripted use), prints a summary, and confirms before touching the DB. Everything runs in one transaction, so a
 # failure rolls the whole thing back.
 #
 # HOW IT'S RUN:  make fill-new-schema   →   /opt/scripts/fill-new-schema.sh   (inside projectsidewalk-db).
 # PRECONDITION:  the target schema exists (create-new-schema.sh) and qgis_road + qgis_region are loaded into it, in
-#                the canonical shape scripts/onboard_city.py emits: qgis_road (road_id, osm_id, highway, region_id,
-#                geom) and qgis_region (region_id, name, data_source, geom) — a hand-built export must match it.
+#                the canonical shape scripts/onboard_city.py emits: qgis_road (road_id, osm_ids bigint[], highway,
+#                region_id, geom) and qgis_region (region_id, name, data_source, geom) — a hand-built export must match
+#                it (osm_ids = ARRAY[osm_id]).
 #
 # GOTCHA: prompt answers are interpolated into SQL. Region-id lists must be space-separated integers; the schema must
 # be a real city schema with the QGIS staging tables present.
@@ -106,11 +107,12 @@ fi
 # import arrives with string-typed columns, add explicit CAST()s here rather than relying on implicit coercion.
 psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" <<-EOSQL
     BEGIN;
-    -- The sidewalk_init template seeds the shared DC tutorial street at street_edge_id = 1 (so config's
-    -- tutorial_street_edge_id FK is satisfiable in the otherwise-empty template). Imported qgis road_ids also start at
-    -- 1, so relocate the tutorial to sit just past the imported streets before importing them -- this keeps every real
-    -- street's street_edge_id equal to its qgis road_id. config's FK is RESTRICT, so the id can't be UPDATEd in place:
-    -- copy the tutorial row to MAX(road_id) + 1, repoint config at the copy, then delete the original.
+    -- The schema arrives holding exactly one street: the shared DC tutorial street (so config's tutorial_street_edge_id
+    -- FK is satisfiable). Imported qgis road_ids start at 1, so relocate the tutorial to sit just past the imported
+    -- streets before importing them -- this keeps every real street's street_edge_id equal to its qgis road_id.
+    -- config's FK is RESTRICT, so the id can't be UPDATEd in place: copy the tutorial row to MAX(road_id) + 1, repoint
+    -- config at the copy, then delete the original. (A donor-cloned schema can carry the tutorial at an id already
+    -- above MAX(road_id) + 1; MAX(street_edge_id) then keeps that row and drops the copy, which is just as good.)
     INSERT INTO street_edge (street_edge_id, geom, x1, y1, x2, y2, way_type, status, timestamp)
         SELECT (SELECT MAX(road_id) FROM qgis_road) + 1, geom, x1, y1, x2, y2, way_type, status, timestamp
         FROM street_edge;
@@ -126,9 +128,11 @@ psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" <<-EOSQL
                ST_X(ST_StartPoint(geom)), ST_Y(ST_StartPoint(geom)), ST_X(ST_EndPoint(geom)), ST_Y(ST_EndPoint(geom))
         FROM qgis_road;
 
-    -- Fill in the osm_way_street_edge table to link streets to their original OSM ways.
+    -- Fill in the osm_way_street_edge table to link streets to their original OSM ways. The table holds one row per
+    -- street (UNIQUE street_edge_id), so a street that spans several ways -- osmnx joins consecutive ways between
+    -- intersections -- records the way it starts on; the full list stays in the QA GeoPackage's osm_ids column.
     INSERT INTO osm_way_street_edge (osm_way_id, street_edge_id)
-        SELECT CAST(osm_id AS INT), road_id FROM qgis_road;
+        SELECT osm_ids[1], road_id FROM qgis_road;
 
     -- Fill in the region table using the qgis_region table. Names imported from QGIS/OSM are sometimes ALL CAPS
     -- (issue #4596), so title-case any name that is entirely uppercase and does not look like an acronym. Guards keep
@@ -167,16 +171,18 @@ psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" <<-EOSQL
     -- Update config table's open_status column based on whether regions were removed.
     UPDATE config SET open_status = '$OPEN_STATUS_Q';
 
-    -- Set the city center and default map zoom in the config table from the open regions' geoms. The ±1° boundary
-    -- box is a rough placeholder (~111 km) meant to comfortably contain the city. The zoom fits the regions to the
-    -- viewport: log2(360 / extent in latitude-equivalent degrees) tracks the zooms from existing cities closely.
+    -- Set the city center, map bounds, and default map zoom in the config table from the open regions' geoms. The
+    -- bounds are the regions' extent padded by 0.5° (~55 km): they only bound map views, and existing cities sit at
+    -- 0.5–2° of margin, enough to pan to the neighbours without the placeholder ±1° box some older cities carry. The
+    -- zoom fits the regions to the viewport: log2(360 / extent in latitude-equivalent degrees) tracks the zooms from
+    -- existing cities closely.
     UPDATE config
     SET city_center_lat = (lat_min + lat_max) / 2,
         city_center_lng = (lng_min + lng_max) / 2,
-        southwest_boundary_lat = (lat_min + lat_max) / 2 - 1,
-        southwest_boundary_lng = (lng_min + lng_max) / 2 - 1,
-        northeast_boundary_lat = (lat_min + lat_max) / 2 + 1,
-        northeast_boundary_lng = (lng_min + lng_max) / 2 + 1,
+        southwest_boundary_lat = lat_min - 0.5,
+        southwest_boundary_lng = lng_min - 0.5,
+        northeast_boundary_lat = lat_max + 0.5,
+        northeast_boundary_lng = lng_max + 0.5,
         default_map_zoom = least(14, greatest(9,
             round(log(2, (360 / greatest(lat_max - lat_min,
                 (lng_max - lng_min) * cos(radians((lat_min + lat_max) / 2))))::numeric) * 4) / 4))
@@ -193,4 +199,31 @@ psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" <<-EOSQL
     DROP TABLE qgis_region;
 
     COMMIT;
+EOSQL
+
+# What landed, so the operator can sanity-check against the onboarding report before moving on. Tiny segments are
+# the #4717 metric (production averages 18% of streets under 20 m).
+echo -e "\nFilled $SCHEMA_NAME:"
+psql -d sidewalk -U "$SCHEMA_NAME" -v ON_ERROR_STOP=1 <<-EOSQL
+    SELECT count(*) AS streets,
+           round((sum(ST_Length(geom::geography)) / 1000)::numeric, 1) AS km,
+           count(*) FILTER (WHERE ST_Length(geom::geography) < 20) AS under_20m,
+           round((100.0 * count(*) FILTER (WHERE ST_Length(geom::geography) < 20) / count(*))::numeric, 1)
+               AS pct_under_20m,
+           count(*) FILTER (WHERE status = 'open') AS open_streets,
+           count(*) FILTER (WHERE status = 'closed') AS closed_streets
+    FROM street_edge
+    WHERE street_edge_id <> (SELECT tutorial_street_edge_id FROM config);
+
+    SELECT region.region_id, region.name, region.deleted AS hidden, count(street_edge_region.street_edge_id) AS streets,
+           round((sum(ST_Length(street_edge.geom::geography)) / 1000)::numeric, 1) AS km
+    FROM region
+    LEFT JOIN street_edge_region ON region.region_id = street_edge_region.region_id
+    LEFT JOIN street_edge ON street_edge_region.street_edge_id = street_edge.street_edge_id
+    GROUP BY region.region_id, region.name, region.deleted
+    ORDER BY region.region_id;
+
+    SELECT open_status, round(city_center_lat::numeric, 4) AS center_lat, round(city_center_lng::numeric, 4) AS center_lng,
+           default_map_zoom, tutorial_street_edge_id
+    FROM config;
 EOSQL
