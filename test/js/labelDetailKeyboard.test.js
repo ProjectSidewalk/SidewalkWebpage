@@ -13,7 +13,8 @@
  * The shortcuts press the card's own buttons rather than reaching past them, so a hidden or disabled control means
  * the key does nothing here and is left for the page to handle (the arrows still scroll). The click they fire
  * carries `detail: 0`, the shape a browser gives a button activated with Enter or Space, which is how the handlers
- * behind those buttons keep logging the keyboard apart from the mouse.
+ * keep logging the keyboard apart from the mouse — and how the vote echo tells the two apart, since a pointer
+ * already has the button it pressed as feedback and only the keyboard needs the change pointed out.
  *
  * Fixture and stub strategy follow labelDetailComments.test.js: LabelDetail is a top-level `class` written for
  * Grunt concatenation, so its source is eval'd into the jsdom global with an epilogue exposing it, TagEditor rides
@@ -237,6 +238,7 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
     const overlayButton = (result) => q(`.label-detail__pano-overlay-button--${result}`);
     const prevArrow = () => q('.label-detail__paging--prev');
     const nextArrow = () => q('.label-detail__paging--next');
+    const echo = () => q('.label-detail__vote-pop');
 
     /** The bodies of the validations posted so far, newest last. */
     const validations = () => post.mock.calls
@@ -566,6 +568,80 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
             await flush();
 
             expect(validations().map((v) => v.validation_result)).toEqual(['Unsure']);
+        });
+    });
+
+    describe('the vote echo (#5194)', () => {
+        test.each([
+            ['KeyA', 'Agree', 'agree'],
+            ['KeyD', 'Disagree', 'disagree'],
+            ['KeyU', 'Unsure', 'unsure'],
+        ])('%s drops a ghost of the %s icon on that vote\'s tally', async (code, action, variant) => {
+            await showLabel();
+
+            press(code);
+            await flush();
+
+            // Mounted on the icon row, so it starts exactly over the icon it copies; the variant class is what
+            // sends agree and unsure up and disagree down.
+            expect(echo().parentElement).toBe(q(`.label-detail__vote--${variant} .label-detail__vote-top`));
+            expect(echo().classList.contains(`label-detail__vote-pop--${variant}`)).toBe(true);
+            // The filled, non-AI icon: the ghost stands for the verdict just cast, not for the icon's own state.
+            expect(echo().getAttribute('src')).toBe(`/assets/images/icons/validation/${variant}-filled.svg`);
+            // Decoration — the vote it reports is already carried by aria-pressed and the count beside it.
+            expect(echo().getAttribute('aria-hidden')).toBe('true');
+            expect(echo().alt).toBe('');
+        });
+
+        test('a pointer click gets none of it', async () => {
+            // Clicking leaves the pressed button under the cursor, which is feedback enough.
+            await showLabel();
+
+            overlayButton('agree').dispatchEvent(
+                new window.MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 })
+            );
+            await flush();
+
+            expect(validations().map((v) => v.validation_result)).toEqual(['Agree']);
+            expect(echo()).toBeNull();
+        });
+
+        test('clearing a vote gets none of it either', async () => {
+            // A rising icon says "counted"; it would read as the opposite of what clearing does.
+            await showLabel({ user_validation: 'Agree', num_agree: 1 });
+
+            press('KeyA');
+            await flush();
+
+            expect(validations()[0].undone).toBe(true);
+            expect(echo()).toBeNull();
+        });
+
+        test('prefers-reduced-motion skips it entirely', async () => {
+            // Skipped rather than slowed: it is an optional flourish, the way Confetti and StorySection treat theirs.
+            window.matchMedia = () => ({ matches: true });
+            await showLabel();
+
+            press('KeyA');
+            await flush();
+
+            expect(validations().map((v) => v.validation_result)).toEqual(['Agree']);
+            expect(echo()).toBeNull();
+            delete window.matchMedia;
+        });
+
+        test('it takes itself back out of the markup', async () => {
+            // On a timer rather than animationend: closing the card mid-flight cancels the animation instead of
+            // ending it, and a node left behind on every such vote would accumulate.
+            await showLabel();
+
+            press('KeyA');
+            await flush();
+            expect(echo()).not.toBeNull();
+
+            await new Promise((resolve) => { setTimeout(resolve, 800); });
+
+            expect(echo()).toBeNull();
         });
     });
 

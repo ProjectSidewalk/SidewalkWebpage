@@ -615,8 +615,9 @@ button.label-detail__meta-cell:focus-visible {
 }
 
 /* Icon size and row gap match the severity faces (24px icons, 5px gap) so the word rows under the two
-   columns align perfectly. */
+   columns align perfectly. Positioned so the keyboard-vote echo below can anchor on the icon. */
 .label-detail__vote-top {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 1px;
@@ -649,6 +650,61 @@ button.label-detail__meta-cell:focus-visible {
 
 .label-detail__vote-count {
   font-variant-numeric: tabular-nums;
+}
+
+/* Keyboard-vote echo (#5194). A shortcut casts a vote with no control under the cursor to watch, so the vote that
+   landed is echoed as a ghost of its own icon drifting off the tally it just incremented — upward for agree and
+   unsure, downward for disagree, so the motion carries the verdict's direction. Decoration only: the filled icon
+   and the new count underneath are the state, and LabelDetail skips the whole thing under prefers-reduced-motion.
+   Mounted in the icon row, whose first child is the icon, so the ghost starts exactly over what it copies. */
+.label-detail__vote-pop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: calc(24px * var(--ui-scale, 1));
+  height: calc(24px * var(--ui-scale, 1));
+  pointer-events: none;
+  opacity: 0;
+  animation: label-detail-vote-rise 700ms ease-out forwards;
+}
+
+.label-detail__vote-pop--disagree {
+  animation-name: label-detail-vote-fall;
+}
+
+/* Fades in over the first quarter so the ghost reads as leaving the icon rather than appearing beside it. */
+@keyframes label-detail-vote-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(0.85);
+  }
+
+  25% {
+    opacity: 1;
+    transform: translateY(calc(-6px * var(--ui-scale, 1))) scale(1.1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(calc(-26px * var(--ui-scale, 1))) scale(1.1);
+  }
+}
+
+@keyframes label-detail-vote-fall {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(0.85);
+  }
+
+  25% {
+    opacity: 1;
+    transform: translateY(calc(6px * var(--ui-scale, 1))) scale(1.1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(calc(26px * var(--ui-scale, 1))) scale(1.1);
+  }
 }
 
 /* Severity faces — the inner faces use the shared .severity-button (--static) styles in main.css. Content-sized
