@@ -29,6 +29,7 @@ const ROOT_ENTRIES = new Set(['main.css', 'fonts.css', 'components', 'pages']);
 // dashboard's API-analytics page.
 const PAGES = {
   'pages/about.css': { views: ['app/views/about.scala.html'] },
+  'pages/access-score.css': { views: ['app/views/apps/accessScore.scala.html'], prefixes: ['acs-'] },
   'pages/admin-dashboard.css': {
     views: ['app/views/admin/dashboard/'],
     prefixes: ['ac-', 'ov-', 'dq-', 'hva-', 'mgmt-', 'contrib-', 'coverage-', 'activity-', 'deploy-strip',

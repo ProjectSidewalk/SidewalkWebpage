@@ -95,6 +95,18 @@ module.exports = function (grunt) {
         ],
         dest: 'public/js/ps-map/build/ps-map.js'
       },
+      dist_access_score: {
+        src: [
+          // The score ramp is a shared helper (the api-docs load it on its own); the tool's modules follow it.
+          'public/js/common/scoreRamp.js',
+          'public/js/access-score/src/AccessScoreModel.js',
+          'public/js/access-score/src/AccessScoreUrlSync.js',
+          'public/js/access-score/src/AccessScoreMapView.js',
+          'public/js/access-score/src/AccessScoreSidebar.js',
+          'public/js/access-score/src/main.js',
+        ],
+        dest: 'public/js/access-score/build/access-score.js'
+      },
       dist_route_builder: {
         src: [
           'public/js/common/Toast.js',
@@ -211,6 +223,7 @@ module.exports = function (grunt) {
           'public/css/pages/gallery/*.css',
           'public/js/ps-map/*.js',
           'public/js/route-builder/src/*.js',
+          'public/js/access-score/src/*.js',
           'public/js/shared-label/*.js',
           'public/css/components/label-anchored-panel.css',
           'public/css/components/label-hover-card.css',

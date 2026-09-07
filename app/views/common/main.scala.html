@@ -9,7 +9,7 @@
 
 @currentCity = @{commonData.currentCity}
 @* Pages that render the map full-window (no footer, #wrap becomes a fixed-height flex column). *@
-@fullWindow = @{url == "/labelMap" || url == "/routeBuilder"}
+@fullWindow = @{url == "/labelMap" || url == "/routeBuilder" || url == "/accessScore"}
 @* Tool pages fill or fix the viewport like the full-window pages do, so none of them render the footer. *@
 @noFooter = @{fullWindow || Seq("/explore", "/validate", "/expertValidate", "/mobile", "/mobileLanding").contains(url)}
 @* The landing page draws its hero under the fixed navbar and pads itself (homepage.css), so it opts out of the

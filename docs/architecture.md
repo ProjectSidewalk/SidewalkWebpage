@@ -205,6 +205,10 @@ corresponding Twirl view:
   that endpoint, alongside `apiDocs.js` (shell behavior), `apiTableWrapper.js`, and `apiDocsTheme.js`
   (`ApiDocsTheme.color(token, alpha?)`, the one way preview code reads a CSS color token for Chart.js/Mapbox so
   chart colors follow the design system). Served file-by-file — no Grunt bundle.
+- **`access-score/`** — the AccessScore tool (`/accessScore`, #5217): a pure scoring model that re-runs the engine's
+  math in the browser (`AccessScoreModel.js`, pinned to the Scala engine through `test/fixtures/accessScoreParity.json`),
+  the map view (streets and a neighborhood choropleth colored from feature-state), the weights sidebar, and URL state.
+  Grunt-bundled to `access-score/build/`; the shared score ramp is `common/scoreRamp.js`.
 - **`ps-map/`** — shared map component used across pages.
 - **`common/`** — modules shared across bundles: `pano-viewer/` (an abstraction over the GSV / Mapillary / Infra3d /
   Panoramax / Pannellum imagery providers), `label-detail/` (label popups), and various utilities. The popup's pano viewer is

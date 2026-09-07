@@ -1,0 +1,145 @@
+@import models.user.SidewalkUserWithRole
+@import play.api.Configuration
+@import service.CommonPageData
+@(commonData: CommonPageData, title: String, user: Option[SidewalkUserWithRole]
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
+@currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
+
+@* A sidebar section: heading row plus content. Mirrors the shared filter sidebar's section markup so the two
+   panels read the same, while the controls are this tool's own. *@
+@section(id: String, headingKey: String, headingText: String)(content: Html) = {
+  <section class="filter-sidebar__section acs-section" id="@id" aria-labelledby="@id-heading">
+    <div class="filter-sidebar__heading-row">
+      <h3 class="filter-sidebar__heading" id="@id-heading" data-i18n="accessscore:@headingKey">@headingText</h3>
+    </div>
+    @content
+  </section>
+}
+
+@common.main(commonData, title, i18Namespaces = Seq("common", "labelmap", "accessscore"), url = "/accessScore",
+  pageMeta = service.PageMeta(description = Some(Messages("seo.description.access.score", currentCity.cityNameShort)))) {
+  @common.navbar(commonData, user)
+  <div id="page-loading">
+    <img id="loading-animation" src='@assets.path("videos/ProjectSidewalk_LoadingAnimation_WithArmMovement_Medium.webp")' alt='@Messages("loading")'>
+  </div>
+  <div id="acs-map-container" class="container choropleth-container">
+    <div id="acs-map-holder" class="choropleth-holder">
+      <div id="acs-map" class="choropleth"></div>
+
+      <div id="filter-sidebar" class="filter-sidebar ps-invisible acs-sidebar" role="complementary" aria-label="AccessScore controls" data-i18n-aria-label="accessscore:controls">
+        <button type="button" id="filter-sidebar-close" class="filter-sidebar__close" aria-label="Close" data-i18n-aria-label="common:close">
+          <img src="@assets.path("images/icons/chevrons-left-feather.svg")" alt="">
+        </button>
+
+        @* Same ids as the LabelMap's search section: labelMapLocationSearch.js mounts into #labelmap-search-box. *@
+        <section class="filter-sidebar__section" id="labelmap-search-section" role="search">
+          <div id="labelmap-search-box"></div>
+        </section>
+
+        @section("acs-unit-section", "unit", "Show") {
+          <div class="acs-segmented" role="radiogroup" aria-labelledby="acs-unit-section-heading">
+            <label class="acs-segmented__option" for="acs-unit-streets">
+              <input type="radio" name="acs-unit" id="acs-unit-streets" value="streets" checked>
+              <span data-i18n="accessscore:unit-streets">Streets</span>
+            </label>
+            <label class="acs-segmented__option" for="acs-unit-regions">
+              <input type="radio" name="acs-unit" id="acs-unit-regions" value="regions">
+              <span data-i18n="accessscore:unit-regions">Neighborhoods</span>
+            </label>
+          </div>
+        }
+
+        @section("acs-preset-section", "preset", "Lens") {
+          <label class="sr-only" for="acs-preset" data-i18n="accessscore:preset">Lens</label>
+          <select id="acs-preset" class="ps-select acs-select"></select>
+          <p class="acs-help" data-i18n="accessscore:preset-help">Starting points for different travelers and decision makers. Move any slider to make it your own.</p>
+        }
+
+        @section("acs-weights-section", "weights", "Factor weights") {
+          <div id="acs-weights" class="acs-weights"></div>
+          <p class="acs-help" data-i18n="accessscore:weights-help">How much each kind of feature or problem moves a street's score. The bar under each slider shows its average effect right now.</p>
+        }
+
+        @section("acs-severity-section", "severity", "Severity emphasis") {
+          <div class="acs-slider-row">
+            <label class="sr-only" for="acs-severity" data-i18n="accessscore:severity">Severity emphasis</label>
+            <input type="range" class="acs-range" id="acs-severity" min="0" max="1" step="0.05" value="1">
+            <output id="acs-severity-value" for="acs-severity">100%</output>
+          </div>
+          <p class="acs-help" data-i18n="accessscore:severity-help">At 100% a severe problem counts more than a minor one, as the engine does. At 0% every problem counts the same.</p>
+          <label class="acs-check" for="acs-tags">
+            <input type="checkbox" id="acs-tags" checked>
+            <span data-i18n="accessscore:tags">Use tag adjustments (e.g. a curb ramp tagged steep counts less)</span>
+          </label>
+        }
+
+        <div id="acs-region-options" hidden>
+          @section("acs-region-section", "region-options", "Neighborhood options") {
+            <label class="acs-field-label" for="acs-aggregation" data-i18n="accessscore:aggregation">Roll-up</label>
+            <select id="acs-aggregation" class="ps-select acs-select">
+              <option value="length" data-i18n="accessscore:aggregation-length">Weight streets by length</option>
+              <option value="mean" data-i18n="accessscore:aggregation-mean">Simple mean of streets</option>
+            </select>
+            <label class="acs-field-label" for="acs-min-completion" data-i18n="accessscore:min-completion">Minimum completion to show a score</label>
+            <div class="acs-slider-row">
+              <input type="range" class="acs-range" id="acs-min-completion" min="0" max="100" step="5" value="50">
+              <output id="acs-min-completion-value" for="acs-min-completion">50%</output>
+            </div>
+            <p class="acs-help" data-i18n="accessscore:min-completion-help">Neighborhoods explored less than this are hatched instead of scored, so a score never rests on a few streets.</p>
+          }
+        </div>
+
+        <div id="acs-street-options">
+          @section("acs-street-section", "street-options", "Street options") {
+            <label class="acs-check" for="acs-show-unaudited">
+              <input type="checkbox" id="acs-show-unaudited" checked>
+              <span data-i18n="accessscore:show-unaudited">Show unaudited streets</span>
+            </label>
+          }
+        </div>
+
+        <section class="filter-sidebar__section acs-section acs-actions" aria-label="Actions" data-i18n-aria-label="accessscore:actions">
+          <div class="acs-actions__row">
+            <button type="button" id="acs-reset" class="button-ps button--small button--secondary" data-i18n="accessscore:reset">Reset</button>
+            <button type="button" id="acs-copy-link" class="button-ps button--small button--primary" data-i18n="accessscore:copy-link">Copy link</button>
+          </div>
+          <a class="acs-actions__docs" href="@routes.ApiDocsController.accessScoreStreets#scoring-model" target="_blank" rel="noopener" data-i18n="accessscore:how-computed">How is this computed?</a>
+          <p id="acs-updated-at" class="acs-updated-at" aria-live="polite"></p>
+        </section>
+      </div>
+
+      @* Drag handle on the right edge of the sidebar for resizing. *@
+      <div id="filter-sidebar-resize-handle" class="filter-sidebar__resize-handle" role="separator" aria-orientation="vertical" aria-label="Resize panel" data-i18n-aria-label="accessscore:resize"></div>
+
+      @* Floating button to reopen the sidebar when it's closed *@
+      <button type="button" id="filter-sidebar-open" class="filter-sidebar-open-btn" aria-expanded="false" aria-label="AccessScore controls" data-i18n-aria-label="accessscore:controls">
+        <img src="@assets.path("images/icons/chevrons-right-feather.svg")" alt="">
+      </button>
+
+      @common.mapLoadingOverlay()
+    </div>
+  </div>
+
+  <link href='@assets.path("css/components/filter-sidebar.css")' rel="stylesheet">
+  <link href='@assets.path("css/components/choropleth.css")' rel="stylesheet">
+  <link href='@assets.path("css/components/toast.css")' rel="stylesheet">
+  <link href='@assets.path("css/pages/access-score.css")' rel="stylesheet">
+
+  <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.js")'></script>
+  <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")'></script>
+  <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-search-1.5.0.js")'></script>
+  <link href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")' rel="stylesheet">
+  <script src='@assets.path("js/common/Toast.js")'></script>
+  <script src='@assets.path("js/common/utilitiesSidewalk.js")'></script>
+  <script src='@assets.path("js/ps-map/build/ps-map.js")'></script>
+  <script src='@assets.path("js/labelMapLocationSearch.js")'></script>
+  <script src='@assets.path("js/access-score/build/access-score.js")'></script>
+
+  <script>
+    // Gets all translations before building the page.
+    window.appManager.ready(function () {
+      AccessScoreApp.start({ mapboxApiKey: '@commonData.mapboxApiKey' });
+    });
+  </script>
+}

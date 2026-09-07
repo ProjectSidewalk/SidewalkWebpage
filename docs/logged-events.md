@@ -83,6 +83,16 @@ The LabelMap's "Download" control (`ps-map/MapDownloadControl.js`, #4095) logs t
 `/v3/api/rawLabels` request, so it also appears in the API request log), and `MapDownload_DocsLink` when the panel's
 API-documentation link is followed.
 
+The AccessScore tool (`/accessScore`, `public/js/access-score/`, #5217) logs its sidebar and map interactions as the
+**`Click_module=AccessScore_<Action>`** family, on a control's settled `change` (never per slider tick):
+`AccessScore_Unit_value=<streets|regions>`, `AccessScore_Preset_value=<id>`,
+`AccessScore_Weight_value=<labelType>_value=<magnitude>`, `AccessScore_SeverityEmphasis_value=<0..1>`,
+`AccessScore_Tags_value=<bool>`, `AccessScore_Aggregation_value=<length|mean>`,
+`AccessScore_MinCompletion_value=<percent>`, `AccessScore_ShowUnaudited_value=<bool>`, `AccessScore_Reset`,
+`AccessScore_Select_streetId=<id>` / `AccessScore_Select_regionId=<id>` (a click on a street or neighborhood),
+`AccessScore_CopyLink`, and the popup's hops `AccessScore_ViewOnLabelMap` / `AccessScore_ExploreHere`. The drawer's
+`MapSidebar_Open` / `MapSidebar_Close` fire here too (shared chrome); the server logs `Visit_AccessScore` per page load.
+
 The Gallery renders the same sidebar (`gallery/src/filter/GalleryFilter.js`) and logs to `gallery_task_interaction`
 under its own names, one `<Section>Apply` / `<Section>Unapply` pair per section with the toggled value in the notes:
 `LabelTypeApply` with `Label_Type:<type>`, `SeverityApply` with `Severity:<null|1|2|3>`, `ValidationOptionApply` with

@@ -55,6 +55,7 @@ const PAGES = [
   {path: '/v3/api-docs/aggregate-stats-by-day'},
   {path: '/gallery', loadingOverlay: true},
   {path: '/labelMap', mapbox: true, loadingOverlay: true},
+  {path: '/accessScore', mapbox: true, loadingOverlay: true},
   {path: '/routeBuilder', mapbox: true},
   {path: '/cities', mapbox: true},
   {path: '/mobileLanding'},

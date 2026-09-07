@@ -1,0 +1,401 @@
+/*
+ * The AccessScore tool (/accessScore, #5217): a full-window map with the shared filter-sidebar chrome on the left
+ * (components/filter-sidebar.css), this tool's own controls inside it, a score legend over the map, and the hover
+ * tooltip and selection popup. Everything is sized from the main.css tokens; the score colors come from the
+ * --color-score-ramp-* tokens through ScoreRamp, never from a hex here.
+ */
+
+/* ---- Full-window map, mirroring the public LabelMap's rules in components/choropleth.css ---- */
+
+#acs-map-container {
+  max-width: none; /* Override the Bootstrap .container max-width so the map spans the window. */
+  width: 100%;
+  flex: 1 1 auto; /* Fill the space #wrap leaves below the navbar and any test-server banner. */
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+}
+
+#acs-map {
+  height: 100%;
+  margin-top: 0;
+}
+
+/* ---- Sidebar sections ---- */
+
+.acs-section {
+  padding-bottom: var(--space-md);
+  border-bottom: 1px solid var(--color-neutral-200);
+}
+
+.acs-help {
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+  margin: var(--space-xs) 0 0;
+}
+
+.acs-field-label {
+  display: block;
+  font: var(--text-small-medium);
+  color: var(--color-neutral-900);
+  margin: var(--space-sm) 0 var(--space-xxs);
+}
+
+.acs-select {
+  width: 100%;
+}
+
+.acs-check {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-xs);
+  font: var(--text-small-regular);
+  color: var(--color-neutral-900);
+  margin: var(--space-sm) 0 0;
+  cursor: pointer;
+}
+
+.acs-check input {
+  margin: 3px 0 0;
+}
+
+/* Streets | Neighborhoods: two radios styled as one segmented control. */
+.acs-segmented {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 1px solid var(--color-neutral-400);
+  border-radius: var(--border-radius);
+  overflow: hidden;
+}
+
+.acs-segmented__option {
+  position: relative;
+  margin: 0;
+  text-align: center;
+  font: var(--text-small-medium);
+  color: var(--color-neutral-800);
+  padding: var(--space-xs) var(--space-sm);
+  cursor: pointer;
+  background: var(--color-neutral-white);
+}
+
+.acs-segmented__option + .acs-segmented__option {
+  border-left: 1px solid var(--color-neutral-400);
+}
+
+.acs-segmented__option input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.acs-segmented__option:has(input:checked) {
+  background: var(--color-pine-600);
+  color: var(--color-neutral-white);
+}
+
+.acs-segmented__option:has(input:focus-visible) {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: -2px;
+}
+
+/* ---- Sliders ---- */
+
+/* Native range inputs, unthemed: the thumb/track pseudo-elements are vendor-specific and accent-color is outside the
+   Baseline set the stylelint config allows, so the control keeps the platform look and the row carries the value. */
+.acs-range {
+  width: 100%;
+  margin: 0;
+  cursor: pointer;
+}
+
+.acs-slider-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.acs-slider-row output {
+  font: var(--text-small-medium);
+  color: var(--color-neutral-900);
+  min-width: 44px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.acs-weight {
+  margin-top: var(--space-sm);
+}
+
+.acs-weight__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-bottom: 2px;
+}
+
+.acs-weight__swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.acs-weight__label {
+  flex: 1 1 auto;
+  margin: 0;
+  font: var(--text-small-medium);
+  color: var(--color-neutral-900);
+  cursor: pointer;
+}
+
+.acs-weight__sign {
+  font: var(--text-tiny-semibold);
+  width: 16px;
+  height: 16px;
+  line-height: 16px;
+  text-align: center;
+  border-radius: 50%;
+  color: var(--color-neutral-white);
+}
+
+.acs-weight__sign--feature {
+  background: var(--color-score-ramp-5);
+}
+
+.acs-weight__sign--problem {
+  background: var(--color-score-ramp-1);
+}
+
+.acs-weight__value {
+  font: var(--text-small-medium);
+  color: var(--color-neutral-800);
+  min-width: 36px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The average contribution under each slider: a thin bar whose length is relative to the largest type's. */
+.acs-weight__contrib {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  height: 12px;
+  margin-top: 2px;
+}
+
+.acs-weight__bar {
+  display: block;
+  height: 4px;
+  width: 0;
+  border-radius: 2px;
+  background: var(--color-neutral-400);
+  transition: width var(--transition-fast);
+}
+
+.acs-weight__bar--feature {
+  background: var(--color-score-ramp-5);
+}
+
+.acs-weight__bar--problem {
+  background: var(--color-score-ramp-1);
+}
+
+.acs-weight__bar-label {
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-700);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Actions ---- */
+
+.acs-actions {
+  border-bottom: none;
+}
+
+.acs-actions__row {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.acs-actions__row .button-ps {
+  flex: 1 1 0;
+}
+
+.acs-actions__docs {
+  display: inline-block;
+  margin-top: var(--space-sm);
+  font: var(--text-small-medium);
+}
+
+.acs-updated-at {
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+  margin: var(--space-sm) 0 0;
+}
+
+/* ---- Legend over the map ---- */
+
+.acs-legend {
+  position: absolute;
+  left: var(--space-sm);
+  bottom: 30px; /* Clear Mapbox's attribution strip. */
+  z-index: 2;
+  width: 220px;
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--color-neutral-white);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-900);
+}
+
+.acs-legend__title {
+  font: var(--text-caption-semibold);
+  margin-bottom: var(--space-xxs);
+}
+
+.acs-legend__bar {
+  height: 10px;
+  border-radius: 5px;
+}
+
+.acs-legend__ticks {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-xs);
+  margin-top: 2px;
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-700);
+}
+
+.acs-legend__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-top: var(--space-xxs);
+}
+
+.acs-legend__swatch {
+  width: 22px;
+  height: 8px;
+  border-radius: 4px;
+  flex: none;
+}
+
+.acs-legend__swatch--unaudited {
+  height: 3px;
+  background: var(--color-neutral-400);
+}
+
+.acs-legend__swatch--hatch {
+  background: repeating-linear-gradient(135deg, var(--color-neutral-600) 0 1px, var(--color-neutral-100) 1px 4px);
+}
+
+/* The sidebar covers the legend's corner while open on a wide viewport; it moves right of the drawer. */
+.filter-sidebar:not(.filter-sidebar--hidden) ~ .acs-legend {
+  left: calc(350px + var(--space-sm));
+}
+
+/* ---- Tooltip and selection popup (Mapbox popups) ---- */
+
+.acs-tooltip .mapboxgl-popup-content,
+.acs-popup .mapboxgl-popup-content {
+  font: var(--text-small-regular);
+  color: var(--color-neutral-900);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  padding: var(--space-sm) var(--space-md);
+}
+
+/* The hover tooltip follows the pointer, so it must never catch the click meant for the feature under it. */
+.acs-tooltip,
+.acs-tooltip .mapboxgl-popup-content {
+  pointer-events: none;
+}
+
+.acs-tooltip__score,
+.acs-popup__score {
+  font: var(--text-h3-bold);
+  color: var(--color-neutral-black);
+  font-variant-numeric: tabular-nums;
+}
+
+.acs-popup__title {
+  font: var(--text-body-bold);
+  margin: 0 var(--space-lg) var(--space-xxs) 0;
+}
+
+.acs-popup__subtitle {
+  font: var(--text-small-bold);
+  margin: var(--space-sm) 0 var(--space-xxs);
+}
+
+.acs-popup__meta,
+.acs-popup__empty {
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+  margin: 0;
+}
+
+.acs-popup__table {
+  width: 100%;
+  border-collapse: collapse;
+  font: var(--text-caption-regular);
+}
+
+.acs-popup__table th {
+  font: var(--text-caption-semibold);
+  color: var(--color-neutral-700);
+  text-align: left;
+  padding: 2px 0;
+  border-bottom: 1px solid var(--color-neutral-200);
+}
+
+.acs-popup__table td {
+  padding: 3px 0;
+  border-bottom: 1px solid var(--color-neutral-100);
+}
+
+.acs-popup__num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.acs-popup__term--feature {
+  color: var(--color-jade-700);
+}
+
+.acs-popup__term--problem {
+  color: var(--color-orange-600);
+}
+
+.acs-popup__swatch {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  margin-right: var(--space-xxs);
+  vertical-align: middle;
+}
+
+.acs-popup__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs) var(--space-md);
+  margin-top: var(--space-sm);
+  font: var(--text-small-medium);
+}
+
+/* Narrow viewports: the drawer is full-bleed (filter-sidebar.css), so the legend keeps its own corner. */
+@media (width <= 600px) { /* --breakpoint-sm */
+  .filter-sidebar:not(.filter-sidebar--hidden) ~ .acs-legend {
+    left: var(--space-sm);
+  }
+
+  .acs-legend {
+    width: 160px;
+  }
+}
