@@ -403,7 +403,7 @@ a {
 }
 
 .button--primary:focus {
-  outline: 1px solid var(--color-banana-800);
+  outline: 2px solid var(--color-banana-900);
   color: var(--color-neutral-black);
 }
 
@@ -424,7 +424,7 @@ a {
 }
 
 .button--secondary:focus {
-  outline: 1px solid var(--color-banana-600);
+  outline: 2px solid var(--color-banana-900);
   color: var(--color-neutral-900);
 }
 

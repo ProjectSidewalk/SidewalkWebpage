@@ -34,8 +34,7 @@
   "unsaved-changes": {
     "message": "Je hebt niet-opgeslagen wijzigingen. Wil je ze opslaan voordat je deze pagina verlaat?",
     "save": "Opslaan en verlaten",
-    "discard": "Verlaten zonder opslaan",
-    "stay": "Op deze pagina blijven"
+    "leave": "Verlaten"
   },
   "badges": {
     "congratulations": "Gefeliciteerd!",

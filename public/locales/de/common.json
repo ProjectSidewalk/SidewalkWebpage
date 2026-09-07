@@ -33,8 +33,7 @@
   "unsaved-changes": {
     "message": "Du hast ungespeicherte Änderungen. Möchtest du sie speichern, bevor du diese Seite verlässt?",
     "save": "Speichern und verlassen",
-    "discard": "Ohne Speichern verlassen",
-    "stay": "Auf dieser Seite bleiben"
+    "leave": "Verlassen"
   },
   "badges": {
     "congratulations": "Glückwunsch!",

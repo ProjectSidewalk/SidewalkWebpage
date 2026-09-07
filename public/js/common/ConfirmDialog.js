@@ -8,11 +8,11 @@
  * Styles: css/components/confirm-dialog.css.
  */
 class ConfirmDialog {
-  // The design system has no destructive variant, so 'danger' is the base button plus the dialog's own error tint.
+  // The design system has no destructive variant, so 'danger' is a primary button the dialog's stylesheet re-tints.
   static #BUTTON_CLASSES = {
     secondary: 'button-ps button--medium button--secondary',
     primary: 'button-ps button--medium button--primary',
-    danger: 'button-ps button--medium ps-confirm__btn--danger',
+    danger: 'button-ps button--medium button--primary ps-confirm__btn--danger',
   };
 
   static #dialog = null;
@@ -31,14 +31,15 @@ class ConfirmDialog {
    * @param {string} opts.confirmText - Label for the confirming button.
    * @param {string} opts.cancelText - Label for the dismissing button.
    * @param {boolean} [opts.danger=false] - Styles the confirm button red for destructive actions.
+   * @param {string} [opts.confirmIconSrc] - URL of a decorative icon shown before the confirm button's text.
    * @returns {Promise<boolean>} true if confirmed; false on cancel, Esc, or any other dismissal.
    */
-  static confirm({ message, confirmText, cancelText, danger = false }) {
+  static confirm({ message, confirmText, cancelText, danger = false, confirmIconSrc = null }) {
     return ConfirmDialog.choose({
       message,
       buttons: [
         { id: 'cancel', text: cancelText },
-        { id: 'confirm', text: confirmText, style: danger ? 'danger' : 'primary' },
+        { id: 'confirm', text: confirmText, style: danger ? 'danger' : 'primary', iconSrc: confirmIconSrc },
       ],
       dismissValue: 'cancel',
     }).then((choice) => choice === 'confirm');
@@ -49,7 +50,7 @@ class ConfirmDialog {
    *
    * @param {Object} opts
    * @param {string} opts.message - The question being asked.
-   * @param {Object[]} opts.buttons - The choices left to right, each `{ id, text, style }` with `style`
+   * @param {Object[]} opts.buttons - The choices left to right, each `{ id, text, style, iconSrc }` with `style`
    *     'secondary' (the default), 'primary', or 'danger'.
    * @param {*} [opts.dismissValue=null] - Resolved on Esc or a backdrop click.
    * @param {string} [opts.focusId] - Button to focus. Defaults to the first that changes nothing.
@@ -78,11 +79,18 @@ class ConfirmDialog {
   }
 
   /** @returns {HTMLButtonElement} A `buttons` entry as a button, wired to settle the pending promise with its id. */
-  static #buildButton({ id, text, style = 'secondary' }) {
+  static #buildButton({ id, text, style = 'secondary', iconSrc = null }) {
     const el = document.createElement('button');
     el.type = 'button';
     el.className = `ps-confirm__btn ${ConfirmDialog.#BUTTON_CLASSES[style]}`;
-    el.textContent = text;
+    if (iconSrc) {
+      const icon = document.createElement('img');
+      icon.className = 'ps-confirm__btn-icon';
+      icon.src = iconSrc;
+      icon.alt = '';
+      el.appendChild(icon);
+    }
+    el.appendChild(document.createTextNode(text));
     el.addEventListener('click', () => ConfirmDialog.#settle(id));
     return el;
   }

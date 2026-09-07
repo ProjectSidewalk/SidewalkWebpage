@@ -4,7 +4,7 @@
  */
 dialog.ps-confirm {
   box-sizing: border-box;
-  width: 360px;
+  width: 380px;
   max-width: calc(100vw - 32px);
   border: none;
   border-radius: 12px;
@@ -23,6 +23,10 @@ dialog.ps-confirm::backdrop { background: rgb(0 0 0 / 45%); }
   line-height: 1.45;
 }
 
+.ps-confirm__btn {
+  gap: 6px;
+}
+
 .ps-confirm__actions {
   display: flex;
   flex-wrap: wrap;
@@ -31,20 +35,22 @@ dialog.ps-confirm::backdrop { background: rgb(0 0 0 / 45%); }
   margin-top: 16px;
 }
 
-/* There's no destructive variant in the design system, so a delete's confirm button is the base button carrying the
-   error token — same workaround as .partners-row-btn--danger, kept solid here because it's the dialog's main action.
-   error-300 rather than -200: white on -200 is 4.38:1, under the 4.5:1 AA floor. Hover darkens instead of lightening
-   for the same reason, and the focus ring is the dialog's own because no design-system variant supplies one. */
-.ps-confirm__btn--danger {
+/* There's no destructive variant in the design system, so a delete's confirm button is a primary one re-tinted with
+   the error token — same workaround as .partners-row-btn--danger, and like it these re-assert over the variant's own
+   :hover and :focus, which would otherwise put the primary's colors back. error-300 rather than -200: white on -200
+   is 4.38:1, under the 4.5:1 AA floor. Hover darkens instead of lightening for the same reason. */
+.ps-confirm__btn--danger,
+.ps-confirm__btn--danger:focus {
   background-color: var(--color-error-300);
   color: var(--color-neutral-white);
 }
 
 .ps-confirm__btn--danger:hover {
   background-color: color-mix(in srgb, var(--color-error-200) 60%, black);
+  color: var(--color-neutral-white);
 }
 
-.ps-confirm__btn--danger:focus-visible {
-  outline: 2px solid var(--color-error-300);
-  outline-offset: 2px;
+.ps-confirm__btn-icon {
+  width: 16px;
+  height: 16px;
 }

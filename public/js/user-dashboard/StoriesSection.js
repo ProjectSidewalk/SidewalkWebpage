@@ -192,6 +192,7 @@ class StoriesSection {
       confirmText: i18next.t('labelmap:story.delete'),
       cancelText: i18next.t('labelmap:story.cancel'),
       danger: true,
+      confirmIconSrc: util.assetPath('images/icons/trash-2-white-feather.svg'),
     });
     if (!confirmed) return;
     window.logWebpageActivity?.(`Click_module=StoryDeleteClient_storyId=${story.story_id}`);

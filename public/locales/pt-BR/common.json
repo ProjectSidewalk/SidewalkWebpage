@@ -33,8 +33,7 @@
   "unsaved-changes": {
     "message": "Você tem alterações não salvas. Deseja salvá-las antes de sair desta página?",
     "save": "Salvar e sair",
-    "discard": "Sair sem salvar",
-    "stay": "Permanecer nesta página"
+    "leave": "Sair"
   },
   "badges": {
     "congratulations": "Parabéns!",

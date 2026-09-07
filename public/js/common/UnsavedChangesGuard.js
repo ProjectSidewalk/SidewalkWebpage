@@ -45,8 +45,8 @@ class UnsavedChangesGuard {
     const choice = await ConfirmDialog.choose({
       message: i18next.t('common:unsaved-changes.message'),
       buttons: [
-        { id: 'stay', text: i18next.t('common:unsaved-changes.stay') },
-        { id: 'discard', text: i18next.t('common:unsaved-changes.discard') },
+        { id: 'stay', text: i18next.t('common:cancel') },
+        { id: 'discard', text: i18next.t('common:unsaved-changes.leave') },
         { id: 'save', text: i18next.t('common:unsaved-changes.save'), style: 'primary' },
       ],
       dismissValue: 'stay',

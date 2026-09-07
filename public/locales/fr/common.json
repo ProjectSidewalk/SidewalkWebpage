@@ -33,8 +33,7 @@
   "unsaved-changes": {
     "message": "Vous avez des modifications non enregistrées. Voulez-vous les enregistrer avant de quitter cette page ?",
     "save": "Enregistrer et quitter",
-    "discard": "Quitter sans enregistrer",
-    "stay": "Rester sur cette page"
+    "leave": "Quitter"
   },
   "badges": {
     "congratulations": "Félicitations !",
