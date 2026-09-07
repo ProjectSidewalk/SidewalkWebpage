@@ -26,6 +26,10 @@ Also covered, beyond the api-docs previews:
   fork, the popover's ARIA contract and focus management, clipboard/intents, and activity logging. `ShareWidget` is a
   top-level `class` declaration (not a `window.X = ...` assignment), so the test evals the source into the jsdom
   global scope instead of using `loadGlobalScript`.
+- `common/scoreRamp.js` → `scoreRamp.test.js` — the AccessScore color ramp (#5217), read from the `--color-score-ramp-*`
+  tokens so the api-docs maps and the AccessScore tool paint one score one color: token order, exact hits at the
+  stops and the neutral midpoint, sRGB interpolation matching Mapbox's `interpolate`, clamping, the Mapbox stop list
+  and expression, and the legend gradient.
 - `common/AppManager.js` → `appManagerCsrfFetch.test.js` — the `window.fetch` CSRF wrapper (#4232): the token must
   reach same-origin requests and *only* same-origin requests, across all three argument types `fetch` accepts
   (string, `URL`, `Request`). jsdom implements neither `fetch` nor `Request`, so the test supplies both.
