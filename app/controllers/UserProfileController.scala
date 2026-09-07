@@ -230,6 +230,19 @@ class UserProfileController @Inject() (
     }
 
   /**
+   * Removes the given user from whatever team they're on, leaving them on none (#5147).
+   *
+   * Leaving is its own endpoint rather than a `setUserTeam` with a sentinel id because "no team" isn't a team: the
+   * dashboard and Settings both offer it as an explicit action, and only teams a user could actually join belong in
+   * the team dropdowns.
+   */
+  def leaveTeam(userId: String) =
+    cc.securityService.SecuredAction(WithAdminOrRegisteredAndIsUser(userId)) { implicit request =>
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Click_module=LeaveTeam")
+      userService.leaveTeam(userId).map(_ => Ok(Json.obj("user_id" -> userId)))
+    }
+
+  /**
    * Creates a team and puts it in the team table.
    */
   def createTeam() = cc.securityService.SecuredAction(parse.json) { implicit request =>

@@ -39,8 +39,10 @@ class Settings {
       communityService: document.getElementById('set-community-service')?.checked ?? false,
       // 'auto' = follow the site language; the server clears the override cookie rather than setting one.
       measurementSystem: units,
-      // Empty string = "No team"; send null so the server leaves any current team.
-      teamId: teamVal === '' ? null : parseInt(teamVal, 10),
+      // null tells the server not to touch team membership, which covers both the "Choose a team…" placeholder and
+      // the team the user is already on — re-picking it is nothing to write. Leaving is the Leave button
+      // (TeamActions.js), never a save (#5147).
+      teamId: teamVal === '' || teamVal === teamEl.dataset.currentTeam ? null : parseInt(teamVal, 10),
     };
 
     this.saveBtn.setAttribute('disabled', 'disabled');
@@ -54,6 +56,8 @@ class Settings {
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.success) {
         this.currentUsername = username || this.currentUsername;
+        // The team just written is now the one they're on, so saving again doesn't write it a second time.
+        if (payload.teamId !== null) teamEl.dataset.currentTeam = teamVal;
         // Units are read from a stamp the server writes into the page, so a change only takes effect on the next
         // render. Reload rather than leave every distance on screen in the units the user just moved away from.
         if (units !== this.currentUnits) {
