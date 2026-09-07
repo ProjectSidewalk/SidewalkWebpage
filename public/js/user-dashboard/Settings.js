@@ -30,7 +30,7 @@ class Settings {
     new UnsavedChangesGuard({
       isDirty: () => this.#snapshot() !== this.#baseline,
       save: () => this.#save({ reloadOnUnitsChange: false }),
-      logModule: 'UnsavedSettings',
+      onChoice: (choice) => window.logWebpageActivity?.(`Click_module=UnsavedSettings_choice=${choice}`),
     });
   }
 

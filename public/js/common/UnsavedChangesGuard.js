@@ -12,7 +12,7 @@
 class UnsavedChangesGuard {
   #isDirty;
   #save;
-  #logModule;
+  #onChoice;
   #leaving = false; // Set while the guard navigates, so the beforeunload backstop doesn't prompt about its own trip.
 
   /**
@@ -20,13 +20,13 @@ class UnsavedChangesGuard {
    * @param {Object} opts
    * @param {function(): boolean} opts.isDirty - Whether there are unsaved edits right now.
    * @param {function(): Promise<boolean>} opts.save - Saves the edits, resolving true if the save succeeded.
-   * @param {string} [opts.logModule] - Names this guard in the `Click_module=<logModule>_choice=<…>` activity
-   *     logged for the user's answer. Omit to log nothing.
+   * @param {function(string): void} [opts.onChoice] - Called with the button the user picked ('save', 'discard',
+   *     or 'stay'), to log it in the page's own activity naming.
    */
-  constructor({ isDirty, save, logModule = null }) {
+  constructor({ isDirty, save, onChoice = null }) {
     this.#isDirty = isDirty;
     this.#save = save;
-    this.#logModule = logModule;
+    this.#onChoice = onChoice;
     window.addEventListener('beforeunload', (e) => {
       if (!this.#leaving && this.#isDirty()) e.preventDefault();
     });
@@ -51,7 +51,7 @@ class UnsavedChangesGuard {
       ],
       dismissValue: 'stay',
     });
-    if (this.#logModule) window.logWebpageActivity?.(`Click_module=${this.#logModule}_choice=${choice}`);
+    this.#onChoice?.(choice);
     // A failed save keeps the user on the page with their edits and the save's own error message in front of them.
     if (choice === 'save') return this.#save();
     return choice === 'discard';

@@ -53,7 +53,6 @@ function setUp({ choice = 'stay', href = OTHER_PAGE, attrs = '', saveOk = true, 
       search: '',
       assign: (url) => record.navigations.push(url),
     },
-    logWebpageActivity: (activity) => record.logs.push(activity),
   };
   const confirmDialog = {
     choose: (opts) => {
@@ -71,7 +70,7 @@ function setUp({ choice = 'stay', href = OTHER_PAGE, attrs = '', saveOk = true, 
       record.saves += 1;
       return Promise.resolve(saveOk);
     },
-    logModule: 'UnsavedSettings',
+    onChoice: (choice) => record.logs.push(`Click_module=UnsavedSettings_choice=${choice}`),
   });
   return { link: doc.getElementById('link'), record, beforeUnload };
 }
