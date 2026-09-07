@@ -404,6 +404,7 @@ a {
 
 .button--primary:focus {
   outline: 2px solid var(--color-banana-900);
+  outline-offset: 2px;
   color: var(--color-neutral-black);
 }
 
