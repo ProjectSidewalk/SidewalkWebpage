@@ -2,9 +2,10 @@ package controllers.api
 
 import controllers.base.CustomControllerComponents
 import controllers.helper.ShapefilesCreatorHelper
-import models.api.{ApiError, RegionAccessScoreForApi, StreetAccessScoreForApi}
+import models.api.{AccessScoreConfigForApi, ApiError, RegionAccessScoreForApi, StreetAccessScoreForApi}
 import models.utils.{LatLngBBox, SpatialQueryType}
 import org.apache.pekko.stream.scaladsl.Source
+import play.api.libs.json.Json
 import play.silhouette.api.Silhouette
 import service.{AccessScoreService, ApiService, ConfigService}
 
@@ -56,30 +57,33 @@ class AccessScoreApiController @Inject() (
     resolveAccessScoreArea(bbox, regionId, regionName).flatMap {
       case Left(error)                           => Future.successful(badRequest(error))
       case Right((resolvedBbox, regionFilterId)) =>
-        accessScoreService.computeStreetScoresV3(SpatialQueryType.Street, resolvedBbox, DEFAULT_BATCH_SIZE).flatMap {
-          allStreets =>
-            // A region's bbox can overlap neighbors, so restrict to the requested region when one was given.
-            val streets: Seq[StreetAccessScoreForApi] =
-              regionFilterId.fold(allStreets)(id => allStreets.filter(_.regionId == id))
-            val baseFileName: String                             = timestampedFilename("accessScoreStreets")
-            val streetStream: Source[StreetAccessScoreForApi, _] = Source.fromIterator(() => streets.iterator)
-            cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
+        // An unfiltered request is the whole city, the one computation worth caching; a filter keeps the live path.
+        val streetScores: Future[Seq[StreetAccessScoreForApi]] =
+          if (isFullCity(bbox, regionId, regionName)) accessScoreService.getFullCityStreetScores(DEFAULT_BATCH_SIZE)
+          else accessScoreService.computeStreetScoresV3(SpatialQueryType.Street, resolvedBbox, DEFAULT_BATCH_SIZE)
+        streetScores.flatMap { allStreets =>
+          // A region's bbox can overlap neighbors, so restrict to the requested region when one was given.
+          val streets: Seq[StreetAccessScoreForApi] =
+            regionFilterId.fold(allStreets)(id => allStreets.filter(_.regionId == id))
+          val baseFileName: String                             = timestampedFilename("accessScoreStreets")
+          val streetStream: Source[StreetAccessScoreForApi, _] = Source.fromIterator(() => streets.iterator)
+          cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
 
-            filetype match {
-              case Some("csv") =>
-                outputCSV(streetStream, StreetAccessScoreForApi.csvHeader, inline, baseFileName + ".csv")
-              case Some("shapefile") =>
-                outputShapefile(
-                  streetStream,
-                  baseFileName,
-                  shapefileCreator.createStreetAccessScoreShapefile,
-                  shapefileCreator
-                )
-              case Some("geopackage") =>
-                outputGeopackage(streetStream, baseFileName, shapefileCreator.createStreetAccessScoreGeopackage, inline)
-              case _ =>
-                outputGeoJSON(streetStream, inline, baseFileName + ".geojson")
-            }
+          filetype match {
+            case Some("csv") =>
+              outputCSV(streetStream, StreetAccessScoreForApi.csvHeader, inline, baseFileName + ".csv")
+            case Some("shapefile") =>
+              outputShapefile(
+                streetStream,
+                baseFileName,
+                shapefileCreator.createStreetAccessScoreShapefile,
+                shapefileCreator
+              )
+            case Some("geopackage") =>
+              outputGeopackage(streetStream, baseFileName, shapefileCreator.createStreetAccessScoreGeopackage, inline)
+            case _ =>
+              outputGeoJSON(streetStream, inline, baseFileName + ".geojson")
+          }
         }
     }
   }
@@ -106,7 +110,10 @@ class AccessScoreApiController @Inject() (
     resolveAccessScoreArea(bbox, regionId, regionName).flatMap {
       case Left(error)                           => Future.successful(badRequest(error))
       case Right((resolvedBbox, regionFilterId)) =>
-        accessScoreService.computeRegionScoresV3(resolvedBbox, DEFAULT_BATCH_SIZE).flatMap { allRegions =>
+        val regionScores: Future[Seq[RegionAccessScoreForApi]] =
+          if (isFullCity(bbox, regionId, regionName)) accessScoreService.getFullCityRegionScores(DEFAULT_BATCH_SIZE)
+          else accessScoreService.computeRegionScoresV3(resolvedBbox, DEFAULT_BATCH_SIZE)
+        regionScores.flatMap { allRegions =>
           val regions: Seq[RegionAccessScoreForApi] =
             regionFilterId.fold(allRegions)(id => allRegions.filter(_.regionId == id))
           val baseFileName: String                             = timestampedFilename("accessScoreRegions")
@@ -131,6 +138,21 @@ class AccessScoreApiController @Inject() (
         }
     }
   }
+
+  /**
+   * The AccessScore engine's configuration (v3, #3855): scored types, base weights and scoring modes, the rating
+   * multipliers, tag adjustments, and the named weight presets. With the per-street `severity_counts` and
+   * `tag_adjustments` from the streets endpoint, this is everything a client needs to recompute a score under its
+   * own weights without re-declaring any of the engine's constants.
+   */
+  def getAccessScoreConfig = silhouette.UserAwareAction.async { implicit request =>
+    cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
+    Future.successful(Ok(Json.toJson(AccessScoreConfigForApi.current)))
+  }
+
+  /** Whether a request carries no geo-filter at all, i.e. resolves to the city's configured bounds. */
+  private def isFullCity(bbox: Option[String], regionId: Option[Int], regionName: Option[String]): Boolean =
+    bbox.isEmpty && regionId.isEmpty && regionName.isEmpty
 
   /**
    * Resolves the v3 geo-filters to a single bounding box to score within, plus the region id to post-filter results by.

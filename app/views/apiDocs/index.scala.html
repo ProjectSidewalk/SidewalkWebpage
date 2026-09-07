@@ -153,6 +153,7 @@
     <ul class="api-list">
       <li><b><a href="@routes.ApiDocsController.accessScoreStreets">AccessScore: Streets</a>:</b> AccessScore for individual streets (<code>GET /v3/api/accessScoreStreets</code>).</li>
       <li><b><a href="@routes.ApiDocsController.accessScoreRegions">AccessScore: Regions</a>:</b> AccessScore for regions (neighborhoods), length-weighted across their streets (<code>GET /v3/api/accessScoreRegions</code>).</li>
+      <li><b><a href="@routes.ApiDocsController.accessScoreStreets#scoring-config">AccessScore: Configuration</a>:</b> the scoring engine's weights, multipliers, tag adjustments, and named presets, so you can recompute a street's score under your own weights (<code>GET /v3/api/accessScoreConfig</code>).</li>
     </ul>
     <p>Both endpoints accept the standard geo-filters (<code>bbox</code>, <code>regionId</code>, <code>regionName</code>) and output formats (<code>filetype=</code> geojson [default], <code>csv</code>, <code>shapefile</code>, <code>geopackage</code>).</p>
     <p>How the score is computed:</p>

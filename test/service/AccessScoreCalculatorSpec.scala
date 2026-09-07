@@ -212,6 +212,104 @@ class AccessScoreCalculatorSpec extends AnyFunSuite with Matchers {
     AccessScoreCalculator.scoreRegion(Seq((0.42, 50.0))).get shouldBe (0.42 +- eps) // single street
   }
 
+  // --- The count-based path the AccessScore tool's client mirrors (#3855) ---
+
+  /** A deterministic spread of clusters: every scored type, every rating bucket, tags on and off, pooled NoSidewalk. */
+  private def randomClusters(seed: Int, n: Int): Seq[ClusterScoreInput] = {
+    val rng   = new scala.util.Random(seed)
+    val types = AccessScoreCalculator.orderedScoredTypes :+ "Occlusion"
+    Seq.fill(n) {
+      val labelType  = types(rng.nextInt(types.size))
+      val severity   = rng.nextInt(6) match { case 0 => None; case 5 => Some(5); case s => Some(s) }
+      val labelCount = rng.nextInt(4)
+      val tags = AccessScoreCalculator.tagAdjustments.keysIterator.collect { case (lt, tag) if lt == labelType => tag }
+      val tagCounts = tags.filter(_ => rng.nextBoolean()).map(tag => tag -> rng.nextInt(labelCount + 1)).toMap
+      cluster(labelType, severity, labelCount, tagCounts)
+    }
+  }
+
+  test("severityCountsByType buckets ratings 1..3 and sends null or out-of-range ratings to the null bucket") {
+    val counts = AccessScoreCalculator.severityCountsByType(
+      Seq(
+        cluster("CurbRamp", Some(1)),
+        cluster("CurbRamp", Some(1)),
+        cluster("CurbRamp", Some(3)),
+        cluster("CurbRamp", None),
+        cluster("CurbRamp", Some(5)),
+        cluster("Obstacle", Some(2)),
+        cluster("Occlusion", Some(2))
+      )
+    )
+    counts shouldBe Map("CurbRamp" -> Map("1" -> 2, "3" -> 1, "null" -> 2), "Obstacle" -> Map("2" -> 1))
+    AccessScoreCalculator.severityBucket(Some(0)) shouldBe "null"
+    AccessScoreCalculator.severityBuckets shouldBe Seq("1", "2", "3", "null")
+  }
+
+  test("tagAdjustmentsByType judges per-cluster types cluster by cluster and NoSidewalk over the pooled street") {
+    val adjustments = AccessScoreCalculator.tagAdjustmentsByType(
+      Seq(
+        cluster("Signal", labelCount = 2, tagCounts = Map("hard to reach buttons" -> 1)), // active: −0.25
+        cluster("Signal", labelCount = 3, tagCounts = Map("APS" -> 1)), // inactive
+        noSidewalk(labelCount = 3, "street has no sidewalks", tagged = 2), // pooled 2/4 → active: −1.0
+        noSidewalk(labelCount = 1),
+        cluster("CurbRamp", Some(1))
+      )
+    )
+    adjustments shouldBe Map("Signal" -> -0.25, "NoSidewalk" -> -1.0, "CurbRamp" -> 0.0)
+  }
+
+  test("subScoresFromCounts rebuilds scoreByType exactly from the counts, over a wide random spread of streets") {
+    (1 to 200).foreach { seed =>
+      val clusters = randomClusters(seed, n = 1 + seed % 12)
+      val expected = AccessScoreCalculator.scoreByType(clusters)
+      val rebuilt  = AccessScoreCalculator.subScoresFromCounts(
+        AccessScoreCalculator.severityCountsByType(clusters),
+        AccessScoreCalculator.tagAdjustmentsByType(clusters)
+      )
+      withClue(s"seed $seed: ") {
+        rebuilt.keySet shouldBe expected.keySet
+        expected.foreach { case (t, term) => rebuilt(t) shouldBe (term +- eps) }
+        AccessScoreCalculator.scoreFromSubScores(rebuilt) shouldBe (AccessScoreCalculator.scoreStreet(clusters) +- eps)
+      }
+    }
+  }
+
+  test("subScoresFromCounts scales each type's weighted part by the substituted weight but never its tag adjustment") {
+    val counts = Map("Obstacle" -> Map("3" -> 2), "NoSidewalk" -> Map("null" -> 8), "Signal" -> Map("null" -> 1))
+    val tags   = Map("Obstacle" -> 0.0, "NoSidewalk" -> -1.0, "Signal" -> 0.25)
+    val halved = AccessScoreCalculator.baseWeights.map { case (t, w) => t -> w / 2 }
+    val terms  = AccessScoreCalculator.subScoresFromCounts(counts, tags, halved)
+    terms("Obstacle") shouldBe (-1.0 +- eps)         // (−1.0 / 2) × 2 × 1.0
+    terms("NoSidewalk") shouldBe (-1.0 - 1.0 +- eps) // (−2.0 / 2) × min(1, 8/3) − 1.0
+    terms("Signal") shouldBe (0.25 + 0.25 +- eps)    // (0.5 / 2) × 1 + 0.25
+    // A type with zero clusters contributes nothing even if a tag adjustment is (spuriously) supplied for it.
+    AccessScoreCalculator.subScoresFromCounts(Map("CurbRamp" -> Map.empty), Map("CurbRamp" -> 1.0)) shouldBe Map.empty
+  }
+
+  test("ratingMultiplier ignores the bucket for the modes that ignore ratings") {
+    AccessScoreCalculator.severityBuckets.foreach { b =>
+      AccessScoreCalculator.ratingMultiplier(AccessScoreCalculator.PresenceOnly, b) shouldBe 1.0
+      AccessScoreCalculator.ratingMultiplier(AccessScoreCalculator.StreetCondition, b) shouldBe 1.0
+    }
+    AccessScoreCalculator.ratingMultiplier(AccessScoreCalculator.PositiveQuality, "3") shouldBe -1.0
+    AccessScoreCalculator.ratingMultiplier(AccessScoreCalculator.PositiveQuality, "null") shouldBe 0.5
+    AccessScoreCalculator.ratingMultiplier(AccessScoreCalculator.NegativeSeverity, "null") shouldBe 0.33
+  }
+
+  test("every preset weights exactly the scored types, and 'default' is the engine's own magnitudes") {
+    AccessScoreCalculator.presetOrder.toSet shouldBe AccessScoreCalculator.presets.keySet
+    AccessScoreCalculator.presetOrder.head shouldBe "default"
+    AccessScoreCalculator.presets.foreach { case (id, weights) =>
+      withClue(s"preset $id: ") {
+        weights.keySet shouldBe AccessScoreCalculator.scoredTypeNames
+        weights.values.foreach(_ should be >= 0.0)
+      }
+    }
+    AccessScoreCalculator.presets("default") shouldBe AccessScoreCalculator.baseWeights.map { case (t, w) =>
+      t -> math.abs(w)
+    }
+  }
+
   test("the scored-type set is exactly the seven expected types, in canonical order") {
     AccessScoreCalculator.orderedScoredTypes shouldBe Seq(
       "CurbRamp", "NoCurbRamp", "Obstacle", "SurfaceProblem", "Crosswalk", "Signal", "NoSidewalk"

@@ -1038,8 +1038,9 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
   /**
    * Creates a shapefile from StreetAccessScoreForApi objects (v3, #3855).
    *
-   * The per-label-type count/sub-score columns use short codes (e.g. nCRamp, sCRamp) because the DBF format truncates
-   * column names at 10 characters; GeoJSON/CSV/GeoPackage keep the full snake_case names.
+   * The per-label-type columns use short codes because the DBF format truncates column names at 10 characters:
+   * cluster count `n<code>`, sub-score `s<code>`, cluster count per rating bucket `n1<code>`..`n3<code>` plus
+   * `n0<code>` for unrated clusters, and tag adjustment `t<code>`. GeoJSON/CSV/GeoPackage keep the full snake_case names.
    */
   def createStreetAccessScoreShapefile(
       source: Source[StreetAccessScoreForApi, _],
@@ -1051,6 +1052,14 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
         val c = AccessScoreApiModels.shapefileTypeCode(t); s"n$c:Integer,s$c:Double"
       }
       .mkString(",")
+    val perBucketSpec: String = AccessScoreApiModels.typeBucketColumns
+      .map { case (t, b) =>
+        s"${AccessScoreApiModels.shapefileBucketPrefix(b)}${AccessScoreApiModels.shapefileTypeCode(t)}:Integer"
+      }
+      .mkString(",")
+    val perTagSpec: String = AccessScoreApiModels.orderedTypes
+      .map { t => s"t${AccessScoreApiModels.shapefileTypeCode(t)}:Double" }
+      .mkString(",")
     val featureType: SimpleFeatureType = DataUtilities.createType(
       "AccessScoreStreet",
       "the_geom:LineString:srid=4326," // LineString geometry
@@ -1061,7 +1070,9 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       + "auditCount:Integer,"          // Number of completed audits
       + "lengthM:Double,"              // Street length in meters
       + "labelCount:Integer,"          // Number of labels contributing to the score
-      + perTypeSpec                    // Per-type cluster count (n<code>) and sub-score (s<code>)
+      + perTypeSpec + ","              // Per-type cluster count (n<code>) and sub-score (s<code>)
+      + perBucketSpec + ","            // Per-type cluster count per rating bucket (n1..n3<code>, n0<code> unrated)
+      + perTagSpec                     // Per-type summed tag adjustment (t<code>)
     )
 
     def buildFeature(s: StreetAccessScoreForApi, fb: SimpleFeatureBuilder): SimpleFeature = {
@@ -1077,6 +1088,10 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
         fb.add(s.clusterCounts.getOrElse(t, 0))
         fb.add(s.subScores.getOrElse(t, 0.0))
       }
+      AccessScoreApiModels.typeBucketColumns.foreach { case (t, b) =>
+        fb.add(s.severityCounts.getOrElse(t, Map.empty[String, Int]).getOrElse(b, 0))
+      }
+      AccessScoreApiModels.orderedTypes.foreach { t => fb.add(s.tagAdjustments.getOrElse(t, 0.0)) }
       fb.buildFeature(null)
     }
 
@@ -1094,10 +1109,19 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
         val n = AccessScoreApiModels.snakeType(t); Seq(s"n_$n:Integer", s"score_$n:Double")
       }
       .mkString(",")
+    val perBucketSpec: String = AccessScoreApiModels.typeBucketColumns
+      .map { case (t, b) =>
+        s"n_${AccessScoreApiModels.snakeType(t)}_${AccessScoreApiModels.bucketSuffix(b)}:Integer"
+      }
+      .mkString(",")
+    val perTagSpec: String = AccessScoreApiModels.orderedTypes
+      .map { t => s"tag_adj_${AccessScoreApiModels.snakeType(t)}:Double" }
+      .mkString(",")
     val featureType: SimpleFeatureType = DataUtilities.createType(
       "access_score_streets",
       "the_geom:LineString:srid=4326,street_id:Integer,osm_way_id:String,region_id:Integer,score:Double," +
-        "audit_count:Integer,length_meters:Double,label_count:Integer," + perTypeSpec
+        "audit_count:Integer,length_meters:Double,label_count:Integer," +
+        perTypeSpec + "," + perBucketSpec + "," + perTagSpec
     )
 
     def buildFeature(s: StreetAccessScoreForApi, fb: SimpleFeatureBuilder): SimpleFeature = {
@@ -1113,6 +1137,10 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
         fb.add(s.clusterCounts.getOrElse(t, 0))
         fb.add(s.subScores.getOrElse(t, 0.0))
       }
+      AccessScoreApiModels.typeBucketColumns.foreach { case (t, b) =>
+        fb.add(s.severityCounts.getOrElse(t, Map.empty[String, Int]).getOrElse(b, 0))
+      }
+      AccessScoreApiModels.orderedTypes.foreach { t => fb.add(s.tagAdjustments.getOrElse(t, 0.0)) }
       fb.buildFeature(null)
     }
 

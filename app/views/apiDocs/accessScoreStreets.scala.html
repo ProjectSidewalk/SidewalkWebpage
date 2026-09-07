@@ -117,6 +117,19 @@
     </div>
     <p>The per-type <code>cluster_counts</code> and <code>sub_scores</code> in each response let you see exactly how a street's score was composed: the <code>sub_scores</code> sum to <code>logit(score)</code>. Other label types (Occlusion, Other) do not affect the score.</p>
     <p class="download-note">Note: The score is not normalized by street length — a long street with many issues saturates toward 0. Region scores (see the <a href="@routes.ApiDocsController.accessScoreRegions">AccessScore: Regions API</a>) <em>are</em> length-weighted.</p>
+
+    <div class="api-subsection" id="scoring-config-section">
+      <h3 class="page-heading" id="scoring-config">Recomputing the score under your own weights<a href="#scoring-config" class="permalink">#</a></h3>
+      <p>Every street carries the inputs to its score, so you can re-weight it yourself. <code>GET /v3/api/accessScoreConfig</code> returns the engine's configuration — the scored types in order, each type's base weight and scoring mode, the rating multipliers per bucket, the tag adjustments, the street-condition saturation count, and a few named weight presets — as JSON:</p>
+      <pre><code class="language-text">GET /v3/api/accessScoreConfig</code></pre>
+      <p>Then, per street, each type's term is rebuilt from <code>severity_counts</code> and <code>tag_adjustments</code>:</p>
+      <ul class="api-list">
+        <li><strong>Per-cluster types</strong> (<code>positive_quality</code>, <code>negative_severity</code>, <code>presence_only</code>): <code>term = weight × Σ<sub>bucket</sub> severity_counts[type][bucket] × multiplier(bucket) + tag_adjustments[type]</code>, where the multiplier comes from <code>quality_multiplier</code> or <code>severity_multiplier</code> by scoring mode, and is <code>1</code> for <code>presence_only</code>.</li>
+        <li><strong>Street-condition types</strong> (<code>street_condition</code>): <code>term = weight × min(1, n / street_condition_saturation_count) + tag_adjustments[type]</code>, with <code>n</code> the type's total cluster count.</li>
+        <li><code>score = sigmoid(Σ<sub>type</sub> term)</code>. With the engine's own <code>base_weight</code> for every <code>weight</code>, the terms equal <code>sub_scores</code> and the result equals <code>score</code>.</li>
+      </ul>
+      <p>The <code>presets</code> object holds named weight vectors (magnitudes; a type's sign is fixed by its base weight) for a few stakeholder lenses; <code>default</code> is the engine's own weights. They are starting points, not validated standards.</p>
+    </div>
   </div>
 
   <div class="page-section" id="quick-download-section">
@@ -220,6 +233,19 @@
         "sub_scores": {
           "CurbRamp": 7.5, "NoCurbRamp": 0.0, "Obstacle": 0.0, "SurfaceProblem": -0.67,
           "Crosswalk": 4.25, "Signal": 0.0, "NoSidewalk": 0.0
+        },
+        "severity_counts": {
+          "CurbRamp": {"1": 10, "2": 0, "3": 0, "null": 0},
+          "NoCurbRamp": {"1": 0, "2": 0, "3": 0, "null": 0},
+          "Obstacle": {"1": 0, "2": 0, "3": 0, "null": 0},
+          "SurfaceProblem": {"1": 0, "2": 1, "3": 0, "null": 0},
+          "Crosswalk": {"1": 5, "2": 1, "3": 0, "null": 0},
+          "Signal": {"1": 0, "2": 0, "3": 0, "null": 0},
+          "NoSidewalk": {"1": 0, "2": 0, "3": 0, "null": 0}
+        },
+        "tag_adjustments": {
+          "CurbRamp": 0.0, "NoCurbRamp": 0.0, "Obstacle": 0.0, "SurfaceProblem": 0.0,
+          "Crosswalk": 0.0, "Signal": 0.0, "NoSidewalk": 0.0
         }
       }
     },
@@ -244,18 +270,21 @@
           <tr><td><code>properties.label_count</code></td><td><code>integer</code></td><td>Number of labels contributing to this street's scored clusters.</td></tr>
           <tr><td><code>properties.cluster_counts</code></td><td><code>object</code></td><td>Number of scored clusters of each label type on the street, keyed by label-type name.</td></tr>
           <tr><td><code>properties.sub_scores</code></td><td><code>object</code></td><td>Contribution of each label type to the pre-sigmoid total, keyed by label-type name; the values sum to <code>logit(score)</code>, so they explain how the <code>score</code> was composed. Per-cluster types report the sum over their clusters; <code>NoSidewalk</code> reports the street's single pooled term (see <a href="#scoring-model">How the score is computed</a>), which does not scale with <code>cluster_counts.NoSidewalk</code>.</td></tr>
+          <tr><td><code>properties.severity_counts</code></td><td><code>object</code></td><td>Number of scored clusters of each label type in each rating bucket (<code>"1"</code>, <code>"2"</code>, <code>"3"</code>, or <code>"null"</code> for unrated clusters), keyed by label-type name. The buckets of a type sum to its <code>cluster_counts</code> entry.</td></tr>
+          <tr><td><code>properties.tag_adjustments</code></td><td><code>object</code></td><td>The summed adjustment of the active tags of each label type, keyed by label-type name: the part of <code>sub_scores</code> that no weight scales. With <code>severity_counts</code> and the <a href="#scoring-config">scoring configuration</a>, enough to <a href="#scoring-config">recompute the score under your own weights</a>.</td></tr>
         </tbody>
       </table>
     </div>
 
     <h4 id="response-csv">CSV Format <a href="#response-csv" class="permalink">#</a></h4>
-    <p>If <code>filetype=csv</code>, the first row is the header. The per-type <code>cluster_counts</code> and <code>sub_scores</code> are flattened into one column per label type (<code>n_*</code> and <code>score_*</code>), and the geometry is simplified to start/end points.</p>
-    <pre tabindex="0"><code class="language-csv">street_edge_id,osm_way_id,region_id,score,audit_count,length_meters,label_count,n_curb_ramp,n_no_curb_ramp,n_obstacle,n_surface_problem,n_crosswalk,n_signal,n_no_sidewalk,score_curb_ramp,score_no_curb_ramp,score_obstacle,score_surface_problem,score_crosswalk,score_signal,score_no_sidewalk,start_point,end_point
-766,11584845,8,1.0,2,142.7,29,10,0,0,1,6,0,0,7.5,0.0,0.0,-0.67,4.25,0.0,0.0,"-74.0243,40.8839","-74.0245,40.8836"
+    <p>If <code>filetype=csv</code>, the first row is the header. The per-type objects are flattened into one column per label type: <code>cluster_counts</code> as <code>n_*</code>, <code>sub_scores</code> as <code>score_*</code>, <code>severity_counts</code> as <code>n_*_sev1</code>, <code>n_*_sev2</code>, <code>n_*_sev3</code>, <code>n_*_sev_null</code>, and <code>tag_adjustments</code> as <code>tag_adj_*</code>; the geometry is simplified to start/end points.</p>
+    <pre tabindex="0"><code class="language-csv">street_edge_id,osm_way_id,region_id,score,audit_count,length_meters,label_count,n_curb_ramp,…,n_no_sidewalk,score_curb_ramp,…,score_no_sidewalk,n_curb_ramp_sev1,n_curb_ramp_sev2,n_curb_ramp_sev3,n_curb_ramp_sev_null,…,n_no_sidewalk_sev_null,tag_adj_curb_ramp,…,tag_adj_no_sidewalk,start_point,end_point
+766,11584845,8,1.0,2,142.7,29,10,…,0,7.5,…,0.0,10,0,0,0,…,0,0.0,…,0.0,"-74.0243,40.8839","-74.0245,40.8836"
 ...</code></pre>
+    <p>The full header, in order: the seven leading columns, then <code>n_&lt;type&gt;</code> for each of the @AccessScoreCalculator.orderedScoredTypes.size scored types, <code>score_&lt;type&gt;</code> for each, the four <code>n_&lt;type&gt;_sev*</code> buckets for each, <code>tag_adj_&lt;type&gt;</code> for each, then <code>start_point</code> and <code>end_point</code>. Types are always in the order <code>@AccessScoreCalculator.orderedScoredTypes.map(models.api.AccessScoreApiModels.snakeType).mkString(", ")</code>.</p>
 
     <h4 id="response-shapefile">Shapefile Format <a href="#response-shapefile" class="permalink">#</a></h4>
-    <p>If <code>filetype=shapefile</code>, the response is a ZIP archive of Shapefile components (.shp, .shx, .dbf, .prj). Because the DBF format truncates column names at 10 characters, the per-type columns use short codes (e.g. <code>nCRamp</code>, <code>sCRamp</code>); the GeoJSON, CSV, and GeoPackage formats keep the full names.</p>
+    <p>If <code>filetype=shapefile</code>, the response is a ZIP archive of Shapefile components (.shp, .shx, .dbf, .prj). Because the DBF format truncates column names at 10 characters, the per-type columns use short codes: cluster count <code>nCRamp</code>, sub-score <code>sCRamp</code>, cluster count per rating bucket <code>n1CRamp</code>, <code>n2CRamp</code>, <code>n3CRamp</code> and <code>n0CRamp</code> (unrated), and tag adjustment <code>tCRamp</code>; the GeoJSON, CSV, and GeoPackage formats keep the full names.</p>
 
     <h4 id="response-geopackage">GeoPackage Format <a href="#response-geopackage" class="permalink">#</a></h4>
     <p>If <code>filetype=geopackage</code>, the response is a GeoPackage (.gpkg) file with full geometry and attributes (full snake_case column names).</p>

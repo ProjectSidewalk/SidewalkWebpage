@@ -78,6 +78,9 @@ object AccessScoreCalculator {
   /** Scored types in the canonical label type order so CSV/shapefile columns never drift from the header. */
   val orderedScoredTypes: Seq[String] = LabelTypeEnum.orderedNames.filter(scoredTypeNames.contains)
 
+  /** Each scored type's signed base weight, the form [[subScoresFromCounts]] takes so a caller can substitute its own. */
+  val baseWeights: Map[String, Double] = typeWeights.map { case (t, tw) => t -> tw.baseWeight }
+
   // --- TUNABLE: quality multiplier for PositiveQuality types. Signed: Bad(3) flips a positive base to a penalty. ---
   private val qualityMultiplier: Map[Int, Double] = Map(1 -> 1.0, 2 -> 0.5, 3 -> -1.0)
   // Null quality on a positive type → treat as Okay (credit an unknown weakly but still positively).
@@ -88,6 +91,20 @@ object AccessScoreCalculator {
   // Null severity on a negative type → treat as Low (penalize an unknown conservatively). Highest-impact tuning knob:
   // v2 effectively used magnitude 1.0 for every negative cluster, so scores shift relative to v2 by design (#3855).
   private val severityNullMultiplier: Double = severityMultiplier(1)
+
+  /** The rating bucket for an unrated cluster, or one whose rating is outside 1..3 (the multiplier maps' domain). */
+  val nullSeverityBucket: String = "null"
+
+  /** The rating buckets a cluster can fall into, in the order the API publishes them. */
+  val severityBuckets: Seq[String] = Seq("1", "2", "3", nullSeverityBucket)
+
+  /** The quality multipliers keyed by [[severityBuckets]], the null bucket carrying its fallback. */
+  val qualityMultiplierByBucket: Map[String, Double] =
+    qualityMultiplier.map { case (s, m) => s.toString -> m } + (nullSeverityBucket -> qualityNullMultiplier)
+
+  /** The severity multipliers keyed by [[severityBuckets]], the null bucket carrying its fallback. */
+  val severityMultiplierByBucket: Map[String, Double] =
+    severityMultiplier.map { case (s, m) => s.toString -> m } + (nullSeverityBucket -> severityNullMultiplier)
 
   // --- TUNABLE: cluster count at which a StreetCondition type's extent factor reaches 1. One stray pin counts 1/n
   // of the base weight; n or more clusters count the full base, however many more there are. Labelers place
@@ -136,6 +153,44 @@ object AccessScoreCalculator {
   // --- TUNABLE: a tag counts toward scoring when it appears on at least this fraction of the labels it is judged over
   // (a cluster's members, or a street's pooled members for a StreetCondition type). ---
   val tagActiveThreshold: Double = 0.5
+
+  // --- TUNABLE: named weight vectors for the AccessScore tool's stakeholder lenses. Each is a magnitude per scored
+  // type; the type's sign is fixed by its base weight. "default" is the engine's own weights, so the tool can reset
+  // to exactly what the API serves. The other three are starting points from the CHI 2022 design-probe study's
+  // stakeholder interviews (obstacles are dealbreakers for wheelchair users, signals and crosswalks matter most to
+  // blind travelers, missing ramps are what a DOT can fix), pending review with people who have lived experience. ---
+  val presetOrder: Seq[String] = Seq("default", "wheelchair", "low_vision", "dot_curb_ramps")
+
+  val presets: Map[String, Map[String, Double]] = Map(
+    "default"    -> baseWeights.map { case (t, w) => t -> math.abs(w) },
+    "wheelchair" -> Map(
+      LabelTypeEnum.CurbRamp.name       -> 1.00,
+      LabelTypeEnum.NoCurbRamp.name     -> 1.50,
+      LabelTypeEnum.Obstacle.name       -> 1.50,
+      LabelTypeEnum.SurfaceProblem.name -> 1.25,
+      LabelTypeEnum.Crosswalk.name      -> 0.50,
+      LabelTypeEnum.Signal.name         -> 0.25,
+      LabelTypeEnum.NoSidewalk.name     -> 2.00
+    ),
+    "low_vision" -> Map(
+      LabelTypeEnum.CurbRamp.name       -> 0.50,
+      LabelTypeEnum.NoCurbRamp.name     -> 0.75,
+      LabelTypeEnum.Obstacle.name       -> 1.25,
+      LabelTypeEnum.SurfaceProblem.name -> 0.75,
+      LabelTypeEnum.Crosswalk.name      -> 1.25,
+      LabelTypeEnum.Signal.name         -> 1.50,
+      LabelTypeEnum.NoSidewalk.name     -> 2.00
+    ),
+    "dot_curb_ramps" -> Map(
+      LabelTypeEnum.CurbRamp.name       -> 1.00,
+      LabelTypeEnum.NoCurbRamp.name     -> 2.00,
+      LabelTypeEnum.Obstacle.name       -> 1.00,
+      LabelTypeEnum.SurfaceProblem.name -> 1.00,
+      LabelTypeEnum.Crosswalk.name      -> 0.75,
+      LabelTypeEnum.Signal.name         -> 0.50,
+      LabelTypeEnum.NoSidewalk.name     -> 2.00
+    )
+  )
 
   /**
    * The per-cluster inputs the calculator needs. Severity is the cluster's median member severity (None if unrated).
@@ -200,6 +255,118 @@ object AccessScoreCalculator {
       }
     }
   }
+
+  /**
+   * The API's name for a scoring mode, so a client can pick the right multiplier table without knowing the Scala type.
+   *
+   * @param scoring The scoring mode.
+   * @return        Its snake_case name.
+   */
+  def scoringName(scoring: Scoring): String = scoring match {
+    case PresenceOnly     => "presence_only"
+    case PositiveQuality  => "positive_quality"
+    case NegativeSeverity => "negative_severity"
+    case StreetCondition  => "street_condition"
+  }
+
+  /**
+   * The rating bucket a cluster's median severity falls into.
+   *
+   * @param severity The cluster's median severity.
+   * @return         "1", "2", or "3", or the null bucket for an unrated cluster or a rating outside the multiplier
+   *                 tables' domain (which the per-cluster path also treats as unrated).
+   */
+  def severityBucket(severity: Option[Int]): String =
+    severity.filter(s => s >= 1 && s <= 3).map(_.toString).getOrElse(nullSeverityBucket)
+
+  /**
+   * The factor a single cluster in `bucket` multiplies its type's base weight by.
+   *
+   * @param scoring The type's scoring mode.
+   * @param bucket  One of [[severityBuckets]].
+   * @return        The multiplier; 1.0 for the modes that ignore ratings (a [[StreetCondition]] type's extent factor is
+   *                a function of the cluster count, not of any one cluster, and is applied by [[subScoresFromCounts]]).
+   */
+  def ratingMultiplier(scoring: Scoring, bucket: String): Double = scoring match {
+    case PositiveQuality                => qualityMultiplierByBucket.getOrElse(bucket, qualityNullMultiplier)
+    case NegativeSeverity               => severityMultiplierByBucket.getOrElse(bucket, severityNullMultiplier)
+    case PresenceOnly | StreetCondition => 1.0
+  }
+
+  /**
+   * Turns a preset's weight magnitudes into the signed base weights [[subScoresFromCounts]] takes, each type keeping
+   * the sign of its engine base weight (a problem type stays a penalty however heavily it is weighted).
+   *
+   * @param magnitudes Weight magnitude per scored type, e.g. one of [[presets]].
+   * @return           Signed base weight per type present in `magnitudes`.
+   */
+  def signedWeights(magnitudes: Map[String, Double]): Map[String, Double] =
+    magnitudes.map { case (t, m) => t -> math.signum(baseWeights.getOrElse(t, 1.0)) * math.abs(m) }
+
+  /**
+   * Counts a street's clusters per scored type and rating bucket: the rating-dependent half of the inputs that let
+   * [[subScoresFromCounts]] rebuild the street's score under any weights.
+   *
+   * @param clusters The street's clusters (any label type; unscored types are dropped).
+   * @return         `labelType → bucket → count`, present only for scored types with at least one cluster; a bucket
+   *                 with no clusters is absent rather than zero.
+   */
+  def severityCountsByType(clusters: Seq[ClusterScoreInput]): Map[String, Map[String, Int]] =
+    clusters
+      .filter(c => scoredTypeNames.contains(c.labelType))
+      .groupBy(_.labelType)
+      .map { case (labelType, typeClusters) =>
+        labelType -> typeClusters.groupBy(c => severityBucket(c.severity)).map { case (b, cs) => b -> cs.size }
+      }
+
+  /**
+   * Each scored type's summed tag adjustment on a street — judged per cluster for the per-cluster modes and over the
+   * pooled labels for a [[StreetCondition]] type — i.e. the part of the type's term that no weight scales.
+   *
+   * @param clusters The street's clusters (any label type; unscored types are dropped).
+   * @return         `labelType → adjustment`, present only for scored types with at least one cluster.
+   */
+  def tagAdjustmentsByType(clusters: Seq[ClusterScoreInput]): Map[String, Double] =
+    clusters.groupBy(_.labelType).flatMap { case (labelType, typeClusters) =>
+      typeWeights.get(labelType).map { tw =>
+        val adjustment: Double = tw.scoring match {
+          case StreetCondition => pooledTagAdjustment(typeClusters)
+          case _               => typeClusters.iterator.map(activeTagAdjustment).sum
+        }
+        labelType -> adjustment
+      }
+    }
+
+  /**
+   * Rebuilds each scored type's contribution from the counts alone, so the score can be recomputed under different
+   * weights without the clusters — the path the AccessScore tool's client-side reweighting mirrors.
+   *
+   * With the engine's own `baseWeights` this equals [[scoreByType]] on the clusters the counts came from: for a
+   * per-cluster type `base × Σ_bucket count × ratingMultiplier + tagAdjustment`, for a [[StreetCondition]] type
+   * `base × min(1, n / streetConditionSaturationCount) + tagAdjustment`.
+   *
+   * @param severityCounts Per type, the cluster count per rating bucket (see [[severityCountsByType]]).
+   * @param tagAdjustments Per type, the summed active tag adjustment (see [[tagAdjustmentsByType]]).
+   * @param baseWeights    Signed base weight per type; a type missing here contributes nothing.
+   * @return               Contribution keyed by label-type name, present only for types with at least one cluster.
+   */
+  def subScoresFromCounts(
+      severityCounts: Map[String, Map[String, Int]],
+      tagAdjustments: Map[String, Double],
+      baseWeights: Map[String, Double] = baseWeights
+  ): Map[String, Double] =
+    severityCounts.flatMap { case (labelType, countsByBucket) =>
+      val clusterCount: Int = countsByBucket.valuesIterator.sum
+      typeWeights.get(labelType).filter(_ => clusterCount > 0).map { tw =>
+        val base: Double     = baseWeights.getOrElse(labelType, 0.0)
+        val weighted: Double = tw.scoring match {
+          case StreetCondition => base * math.min(1.0, clusterCount.toDouble / streetConditionSaturationCount)
+          case scoring         =>
+            base * countsByBucket.iterator.map { case (b, n) => n * ratingMultiplier(scoring, b) }.sum
+        }
+        labelType -> (weighted + tagAdjustments.getOrElse(labelType, 0.0))
+      }
+    }
 
   /**
    * The pooled term for a [[StreetCondition]] type: the base weight scaled by how much of the street the clusters

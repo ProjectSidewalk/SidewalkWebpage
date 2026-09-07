@@ -1,9 +1,10 @@
 /**
  * Models for the Project Sidewalk AccessScore API (v3, #3855).
  *
- * Holds the streaming DTOs returned by `/v3/api/accessScoreStreets` and `/v3/api/accessScoreRegions`, plus the parsed
- * filter object. The scoring math itself lives in `service.AccessScoreCalculator`; these types only carry and serialize
- * the computed results. Per the v3 conventions (#3871) all output field names are snake_case; the dynamic per-type
+ * Holds the streaming DTOs returned by `/v3/api/accessScoreStreets` and `/v3/api/accessScoreRegions`, the engine
+ * configuration returned by `/v3/api/accessScoreConfig`, and the parsed filter object. The scoring math itself lives in
+ * `service.AccessScoreCalculator`; these types only carry and serialize the computed results and the constants behind
+ * them. Per the v3 conventions (#3871) all output field names are snake_case; the dynamic per-type
  * breakdown objects are keyed by the canonical label-type names (e.g. "CurbRamp"), matching `/v3/api/labelTypes`.
  */
 package models.api
@@ -43,9 +44,45 @@ object AccessScoreApiModels {
     "Signal"         -> "Signal"
   )
 
+  /** The rating buckets a cluster can fall into, in column order. */
+  val severityBuckets: Seq[String] = AccessScoreCalculator.severityBuckets
+
+  /**
+   * The CSV/GeoPackage column suffix for a rating bucket: `sev1`..`sev3`, or `sev_null` for unrated clusters.
+   *
+   * @param bucket One of [[severityBuckets]].
+   * @return       The suffix.
+   */
+  def bucketSuffix(bucket: String): String =
+    if (bucket == AccessScoreCalculator.nullSeverityBucket) "sev_null" else s"sev$bucket"
+
+  /**
+   * The shapefile column prefix for a rating bucket's cluster count: `n1`..`n3`, or `n0` for unrated clusters, so the
+   * per-type code that follows keeps the column under DBF's 10 characters.
+   *
+   * @param bucket One of [[severityBuckets]].
+   * @return       The prefix.
+   */
+  def shapefileBucketPrefix(bucket: String): String =
+    if (bucket == AccessScoreCalculator.nullSeverityBucket) "n0" else s"n$bucket"
+
   /** Builds a JSON object keyed by canonical label-type name from a (possibly sparse) per-type map, defaulting to 0. */
   private[api] def perTypeJson[T](values: Map[String, T], default: T)(implicit w: Writes[T]): JsObject =
     JsObject(orderedTypes.map(t => t -> Json.toJson(values.getOrElse(t, default))))
+
+  /** Builds the dense `type → bucket → count` JSON object from a (possibly sparse) map, defaulting to 0. */
+  private[api] def perTypeBucketJson(values: Map[String, Map[String, Int]]): JsObject =
+    JsObject(orderedTypes.map { t =>
+      val byBucket: Map[String, Int] = values.getOrElse(t, Map.empty)
+      t -> JsObject(severityBuckets.map(b => b -> Json.toJson(byBucket.getOrElse(b, 0))))
+    })
+
+  /** Every (type, bucket) pair in column order: types outermost, so a type's buckets sit together. */
+  val typeBucketColumns: Seq[(String, String)] =
+    for {
+      t <- orderedTypes
+      b <- severityBuckets
+    } yield (t, b)
 }
 
 /**
@@ -60,6 +97,9 @@ object AccessScoreApiModels {
  * @param labelCount          Number of labels contributing to this street's clusters.
  * @param clusterCounts       Per-label-type count of scored clusters on the street.
  * @param subScores           Per-label-type summed contribution to the pre-sigmoid score (explains the score).
+ * @param severityCounts      Per-label-type cluster count per rating bucket ("1", "2", "3", "null"): with
+ *                            `tagAdjustments`, enough to recompute the score under different weights.
+ * @param tagAdjustments      Per-label-type summed active tag adjustment (the part of `subScores` no weight scales).
  * @param geometry            The LineString geometry of the street.
  */
 case class StreetAccessScoreForApi(
@@ -72,6 +112,8 @@ case class StreetAccessScoreForApi(
     labelCount: Int,
     clusterCounts: Map[String, Int],
     subScores: Map[String, Double],
+    severityCounts: Map[String, Map[String, Int]],
+    tagAdjustments: Map[String, Double],
     geometry: LineString
 ) extends StreamingApiType {
 
@@ -81,15 +123,17 @@ case class StreetAccessScoreForApi(
       "type"       -> "Feature",
       "geometry"   -> geometry,
       "properties" -> Json.obj(
-        "street_edge_id" -> streetEdgeId,
-        "osm_way_id"     -> osmWayId,
-        "region_id"      -> regionId,
-        "score"          -> score,
-        "audit_count"    -> auditCount,
-        "length_meters"  -> lengthMeters,
-        "label_count"    -> labelCount,
-        "cluster_counts" -> AccessScoreApiModels.perTypeJson(clusterCounts, 0),
-        "sub_scores"     -> AccessScoreApiModels.perTypeJson(subScores, 0.0)
+        "street_edge_id"  -> streetEdgeId,
+        "osm_way_id"      -> osmWayId,
+        "region_id"       -> regionId,
+        "score"           -> score,
+        "audit_count"     -> auditCount,
+        "length_meters"   -> lengthMeters,
+        "label_count"     -> labelCount,
+        "cluster_counts"  -> AccessScoreApiModels.perTypeJson(clusterCounts, 0),
+        "sub_scores"      -> AccessScoreApiModels.perTypeJson(subScores, 0.0),
+        "severity_counts" -> AccessScoreApiModels.perTypeBucketJson(severityCounts),
+        "tag_adjustments" -> AccessScoreApiModels.perTypeJson(tagAdjustments, 0.0)
       )
     )
   }
@@ -107,11 +151,15 @@ case class StreetAccessScoreForApi(
     )
     val countFields    = AccessScoreApiModels.orderedTypes.map(t => clusterCounts.getOrElse(t, 0).toString)
     val subScoreFields = AccessScoreApiModels.orderedTypes.map(t => subScores.getOrElse(t, 0.0).toString)
-    val tailFields     = Seq(
+    val bucketFields   = AccessScoreApiModels.typeBucketColumns.map { case (t, b) =>
+      severityCounts.getOrElse(t, Map.empty[String, Int]).getOrElse(b, 0).toString
+    }
+    val tagFields  = AccessScoreApiModels.orderedTypes.map(t => tagAdjustments.getOrElse(t, 0.0).toString)
+    val tailFields = Seq(
       escapeCsvField(s"${geometry.getStartPoint.getX},${geometry.getStartPoint.getY}"),
       escapeCsvField(s"${geometry.getEndPoint.getX},${geometry.getEndPoint.getY}")
     )
-    (baseFields ++ countFields ++ subScoreFields ++ tailFields).mkString(",")
+    (baseFields ++ countFields ++ subScoreFields ++ bucketFields ++ tagFields ++ tailFields).mkString(",")
   }
 }
 
@@ -120,8 +168,12 @@ object StreetAccessScoreForApi {
   val csvHeader: String = {
     val countCols    = AccessScoreApiModels.orderedTypes.map(t => s"n_${AccessScoreApiModels.snakeType(t)}")
     val subScoreCols = AccessScoreApiModels.orderedTypes.map(t => s"score_${AccessScoreApiModels.snakeType(t)}")
+    val bucketCols   = AccessScoreApiModels.typeBucketColumns.map { case (t, b) =>
+      s"n_${AccessScoreApiModels.snakeType(t)}_${AccessScoreApiModels.bucketSuffix(b)}"
+    }
+    val tagCols = AccessScoreApiModels.orderedTypes.map(t => s"tag_adj_${AccessScoreApiModels.snakeType(t)}")
     (Seq("street_edge_id", "osm_way_id", "region_id", "score", "audit_count", "length_meters", "label_count") ++
-      countCols ++ subScoreCols ++ Seq("start_point", "end_point")).mkString(",") + "\n"
+      countCols ++ subScoreCols ++ bucketCols ++ tagCols ++ Seq("start_point", "end_point")).mkString(",") + "\n"
   }
 
   implicit val writes: Writes[StreetAccessScoreForApi] = (s: StreetAccessScoreForApi) => s.toJson
@@ -193,6 +245,111 @@ object RegionAccessScoreForApi {
   }
 
   implicit val writes: Writes[RegionAccessScoreForApi] = (r: RegionAccessScoreForApi) => r.toJson
+}
+
+/**
+ * One label type's scoring configuration, for `/v3/api/accessScoreConfig`.
+ *
+ * @param baseWeight Signed base weight.
+ * @param scoring    The scoring mode's API name: `presence_only`, `positive_quality`, `negative_severity`, or
+ *                   `street_condition`.
+ */
+case class TypeWeightForApi(baseWeight: Double, scoring: String)
+
+/**
+ * One tag's adjustment to its label type's contribution, for `/v3/api/accessScoreConfig`.
+ *
+ * @param labelType The label type the tag belongs to.
+ * @param tag       The tag.
+ * @param delta     The signed adjustment added when the tag is active.
+ */
+case class TagAdjustmentForApi(labelType: String, tag: String, delta: Double)
+
+/**
+ * The AccessScore engine's configuration, published so a client can recompute a street's score from the counts the
+ * streets endpoint carries — under the engine's weights or its own — without re-declaring any of it (#3855).
+ *
+ * @param scoredTypes                   The scored label types, in the order every per-type output uses.
+ * @param severityBuckets               The rating buckets of `severity_counts`, in order.
+ * @param typeWeights                   Per type, its base weight and scoring mode.
+ * @param qualityMultiplier             Per bucket, the multiplier for `positive_quality` types.
+ * @param severityMultiplier            Per bucket, the multiplier for `negative_severity` types.
+ * @param streetConditionSaturationCount The cluster count at which a `street_condition` type's extent factor reaches 1.
+ * @param tagAdjustments                Every tag adjustment the engine applies.
+ * @param streetConditionPointTags      The (type, tag) pairs judged per cluster rather than over a street's pooled labels.
+ * @param tagActiveThreshold            The fraction of labels a tag must cover to be active.
+ * @param presetOrder                   The preset ids in display order.
+ * @param presets                       Per preset id, a weight magnitude per scored type.
+ */
+case class AccessScoreConfigForApi(
+    scoredTypes: Seq[String],
+    severityBuckets: Seq[String],
+    typeWeights: Map[String, TypeWeightForApi],
+    qualityMultiplier: Map[String, Double],
+    severityMultiplier: Map[String, Double],
+    streetConditionSaturationCount: Int,
+    tagAdjustments: Seq[TagAdjustmentForApi],
+    streetConditionPointTags: Seq[(String, String)],
+    tagActiveThreshold: Double,
+    presetOrder: Seq[String],
+    presets: Map[String, Map[String, Double]]
+) {
+
+  /** Serializes the configuration with snake_case keys; per-type and per-bucket objects keep the engine's order. */
+  def toJson: JsObject = {
+    val orderedBuckets: Map[String, Double] => JsObject =
+      m => JsObject(severityBuckets.map(b => b -> Json.toJson(m(b))))
+    val orderedWeights: Map[String, Double] => JsObject =
+      m => JsObject(scoredTypes.map(t => t -> Json.toJson(m.getOrElse(t, 0.0))))
+    Json.obj(
+      "scored_types"     -> scoredTypes,
+      "severity_buckets" -> severityBuckets,
+      "type_weights"     -> JsObject(scoredTypes.map { t =>
+        t -> Json.obj("base_weight" -> typeWeights(t).baseWeight, "scoring" -> typeWeights(t).scoring)
+      }),
+      "quality_multiplier"                -> orderedBuckets(qualityMultiplier),
+      "severity_multiplier"               -> orderedBuckets(severityMultiplier),
+      "street_condition_saturation_count" -> streetConditionSaturationCount,
+      "tag_adjustments"                   -> tagAdjustments.map { a =>
+        Json.obj("label_type" -> a.labelType, "tag" -> a.tag, "delta" -> a.delta)
+      },
+      "street_condition_point_tags" -> streetConditionPointTags.map { case (t, tag) =>
+        Json.obj("label_type" -> t, "tag" -> tag)
+      },
+      "tag_active_threshold" -> tagActiveThreshold,
+      "preset_order"         -> presetOrder,
+      "presets"              -> JsObject(presetOrder.map(id => id -> orderedWeights(presets(id))))
+    )
+  }
+}
+
+/** Builds the config DTO from the engine, so the API can only ever publish what it computes with. */
+object AccessScoreConfigForApi {
+
+  /** The engine's current configuration. */
+  def current: AccessScoreConfigForApi = {
+    val types: Seq[String] = AccessScoreCalculator.orderedScoredTypes
+    AccessScoreConfigForApi(
+      scoredTypes = types,
+      severityBuckets = AccessScoreCalculator.severityBuckets,
+      typeWeights = AccessScoreCalculator.typeWeights.map { case (t, tw) =>
+        t -> TypeWeightForApi(tw.baseWeight, AccessScoreCalculator.scoringName(tw.scoring))
+      },
+      qualityMultiplier = AccessScoreCalculator.qualityMultiplierByBucket,
+      severityMultiplier = AccessScoreCalculator.severityMultiplierByBucket,
+      streetConditionSaturationCount = AccessScoreCalculator.streetConditionSaturationCount,
+      // Type order first, then tag name, so the listing is stable across JVMs (the source map is unordered).
+      tagAdjustments = AccessScoreCalculator.tagAdjustments.toSeq
+        .map { case ((t, tag), delta) => TagAdjustmentForApi(t, tag, delta) }
+        .sortBy(a => (types.indexOf(a.labelType), a.tag)),
+      streetConditionPointTags = AccessScoreCalculator.streetConditionPointTags.toSeq.sorted,
+      tagActiveThreshold = AccessScoreCalculator.tagActiveThreshold,
+      presetOrder = AccessScoreCalculator.presetOrder,
+      presets = AccessScoreCalculator.presets
+    )
+  }
+
+  implicit val writes: Writes[AccessScoreConfigForApi] = (c: AccessScoreConfigForApi) => c.toJson
 }
 
 /**
