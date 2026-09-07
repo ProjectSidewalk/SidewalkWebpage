@@ -16,6 +16,11 @@
 @noSidewalkBase = @{AccessScoreCalculator.typeWeights(models.label.LabelTypeEnum.NoSidewalk.name).baseWeight}
 @noSidewalkTag(tag: String) = @{AccessScoreCalculator.tagAdjustments((models.label.LabelTypeEnum.NoSidewalk.name, tag))}
 @saturation = @{AccessScoreCalculator.streetConditionSaturationCount}
+@radius = @{AccessScoreCalculator.attributionRadiusMeters.toInt}
+@perMeters = @{AccessScoreCalculator.lengthNormalizationPerMeters.toInt}
+@minMeters = @{AccessScoreCalculator.lengthMinMeters.toInt}
+@intersectionTypeList = @{AccessScoreCalculator.orderedIntersectionTypes.mkString(", ")}
+@normalizedTypeList = @{AccessScoreCalculator.orderedScoredTypes.filter(t => AccessScoreCalculator.typeWeights(t).lengthNormalized).mkString(", ")}
 @sigmoid(t: Double) = @{f"${1.0 / (1.0 + math.exp(-t))}%.2f"}
 @signed(x: Double) = @{f"$x%+.2f"}
 @tagAdjustmentsFor(labelType: String) = @{
@@ -31,7 +36,7 @@
 
   <div class="page-section" id="access-score-streets-intro-section">
     <h1 class="page-heading" id="access-score-streets-api">AccessScore: Streets API <a href="#access-score-streets-api" class="permalink">#</a></h1>
-    <p>The AccessScore: Streets API returns an accessibility score in the range <code>(0,&nbsp;1)</code> for each street segment — higher is more accessible. The score weights each clustered accessibility feature by its type, its severity/quality rating, and its tags, then squashes the total with a logistic function.</p>
+    <p>The AccessScore: Streets API returns an accessibility score in the range <code>(0,&nbsp;1)</code> for each street — higher is more accessible. A street's <code>score</code> combines three things: its own <strong>segment</strong>, scored from the obstacles, surface problems, and missing sidewalks along it, and the <strong>intersections at its two ends</strong>, scored from the curb ramps, crosswalks, and signals pooled at each corner (see the <a href="@routes.ApiDocsController.accessScoreIntersections">AccessScore: Intersections API</a>). Each piece weights every clustered feature by its type, its severity/quality rating, and its tags, then squashes the total with a logistic function.</p>
     <p>AccessScore extends the method introduced in <a href="https://makeabilitylab.cs.washington.edu/media/publications/Li_APilotStudyOfSidewalkEquityInSeattleUsingCrowdsourcedSidewalkAssessmentData_UrbanAccess2022.pdf">Li et&nbsp;al., <i>A Pilot Study of Sidewalk Equity in Seattle</i> (Urban Access 2022)</a>. It is <strong>experimental</strong>: the weights are deliberately simple and subject to change. For full control you can compute your own index from the <a href="@routes.ApiDocsController.labelClusters">Label Clusters API</a>.</p>
   </div>
 
@@ -72,13 +77,16 @@
 
   <div class="page-section" id="scoring-model-section">
     <h2 class="page-heading" id="scoring-model">How the score is computed<a href="#scoring-model" class="permalink">#</a></h2>
-    <p>Project Sidewalk clusters proximal labels of the same type. Each scored label type on a street contributes a signed term; the street's score is the logistic (sigmoid) of the sum of those terms, mapped to <code>(0,&nbsp;1)</code>. An empty or unlabeled street scores the neutral <code>0.5</code>.</p>
+    <p>Project Sidewalk clusters proximal labels of the same type, and scores two kinds of unit from them: a street's <strong>segment</strong> and an <strong>intersection</strong>. Four of the seven scored label types are corner features — @intersectionTypeList — so each of their clusters is attributed to the nearest intersection within @radius&nbsp;m (on whichever street it sits) and scores that intersection, pooled with the corner features of every other street meeting there. The rest of the street's clusters score its segment: the along-length types (Obstacle, SurfaceProblem, NoSidewalk), plus any corner-type cluster too far from an intersection to belong to one (a mid-block crosswalk, a driveway ramp), which counts as an ordinary point feature.</p>
+    <p>A street's headline <code>score</code> is the plain mean of its <code>segment_score</code> and the scores of its start and end intersections, over whichever of the three exist — a trip along a street includes getting on and off it. An end with no intersection (a dead end, a street split at a region boundary) or a grade-separated one contributes nothing, and an unaudited street between two scored crossings still gets a headline from them. All three components are reported, so you can recombine them your own way.</p>
+    <p><strong>Scoring a segment.</strong> Each scored label type contributes a signed term; the segment's score is the logistic (sigmoid) of the sum of those terms, mapped to <code>(0,&nbsp;1)</code>. An audited street with nothing on it scores the neutral <code>0.5</code>.</p>
     <p>Most types are scored <strong>per cluster</strong>. Each cluster contributes <code>base(type) × ratingMultiplier + Σ tagAdjustments</code>, and the type's term is the sum over its clusters on the street:</p>
     <ul class="api-list">
       <li><strong>Positive, quality-rated</strong> (CurbRamp, Crosswalk): rated <em>Good&nbsp;/&nbsp;Okay&nbsp;/&nbsp;Bad</em> → multiplier <code>+1.0&nbsp;/&nbsp;+0.5&nbsp;/&nbsp;−1.0</code>. A <em>Bad</em> feature therefore <em>lowers</em> the score.</li>
       <li><strong>Negative, severity-rated</strong> (NoCurbRamp, Obstacle, SurfaceProblem): rated <em>Low&nbsp;/&nbsp;Medium&nbsp;/&nbsp;High</em> → magnitude <code>0.33&nbsp;/&nbsp;0.67&nbsp;/&nbsp;1.0</code> of the (negative) base.</li>
       <li><strong>Presence-only</strong> (Signal): no rating; each cluster adds the base weight as-is.</li>
       <li><strong>Tags</strong> adjust a cluster's weight when present on at least half of its labels — e.g. a Signal tagged <em>hard to reach buttons</em> counts negatively, while <em>APS</em> (accessible signal) counts positively.</li>
+      <li><strong>Length normalization</strong> (@normalizedTypeList): these describe problems <em>along</em> a street, so their terms are scaled to a density per @perMeters&nbsp;m — <code>term × @perMeters / max(length_meters, @minMeters)</code>. Three obstacles on a 300&nbsp;m street score as one on a 100&nbsp;m street; a long street is not penalized for having more room for problems. The @minMeters&nbsp;m floor keeps a stub of a street from multiplying one problem without bound, so the factor never exceeds @{perMeters / minMeters}.</li>
     </ul>
     <p><strong>NoSidewalk is scored once per street, as a street condition</strong>, rather than per cluster. A missing sidewalk is a stretch, not a point: labelers pin it repeatedly along the street and it is clustered at 10&nbsp;m, so a per-cluster weight would measure how many pins were dropped instead of whether the street has a sidewalk. All of a street's NoSidewalk clusters pool into a single term, which is what <code>score_no_sidewalk</code> reports:</p>
     <pre><code class="language-text">score_no_sidewalk = base × min(1, n / @saturation) + Σ tagAdjustments</code></pre>
@@ -115,18 +123,20 @@
         </tbody>
       </table>
     </div>
-    <p>The per-type <code>cluster_counts</code> and <code>sub_scores</code> in each response let you see exactly how a street's score was composed: the <code>sub_scores</code> sum to <code>logit(score)</code>. Other label types (Occlusion, Other) do not affect the score.</p>
-    <p class="download-note">Note: The score is not normalized by street length — a long street with many issues saturates toward 0. Region scores (see the <a href="@routes.ApiDocsController.accessScoreRegions">AccessScore: Regions API</a>) <em>are</em> length-weighted.</p>
+    <p>The per-type <code>cluster_counts</code> and <code>sub_scores</code> in each response let you see exactly how a street's segment was composed: the <code>sub_scores</code> sum to <code>logit(segment_score)</code>. A corner type appearing there is a mid-block cluster; the ones at the corners are on the <a href="@routes.ApiDocsController.accessScoreIntersections">intersections</a>. Other label types (Occlusion, Other) do not affect the score.</p>
+    <p class="download-note">Note: Region scores (see the <a href="@routes.ApiDocsController.accessScoreRegions">AccessScore: Regions API</a>) are the length-weighted mean of their streets' headline scores, alongside a plain mean of their intersections.</p>
 
     <div class="api-subsection" id="scoring-config-section">
       <h3 class="page-heading" id="scoring-config">Recomputing the score under your own weights<a href="#scoring-config" class="permalink">#</a></h3>
       <p>Every street carries the inputs to its score, so you can re-weight it yourself. <code>GET /v3/api/accessScoreConfig</code> returns the engine's configuration — the scored types in order, each type's base weight and scoring mode, the rating multipliers per bucket, the tag adjustments, the street-condition saturation count, and a few named weight presets — as JSON:</p>
       <pre><code class="language-text">GET /v3/api/accessScoreConfig</code></pre>
-      <p>Then, per street, each type's term is rebuilt from <code>severity_counts</code> and <code>tag_adjustments</code>:</p>
+      <p>Then, per street, each type's segment term is rebuilt from <code>severity_counts</code>, <code>tag_adjustments</code>, and <code>length_meters</code>:</p>
       <ul class="api-list">
         <li><strong>Per-cluster types</strong> (<code>positive_quality</code>, <code>negative_severity</code>, <code>presence_only</code>): <code>term = weight × Σ<sub>bucket</sub> severity_counts[type][bucket] × multiplier(bucket) + tag_adjustments[type]</code>, where the multiplier comes from <code>quality_multiplier</code> or <code>severity_multiplier</code> by scoring mode, and is <code>1</code> for <code>presence_only</code>.</li>
         <li><strong>Street-condition types</strong> (<code>street_condition</code>): <code>term = weight × min(1, n / street_condition_saturation_count) + tag_adjustments[type]</code>, with <code>n</code> the type's total cluster count.</li>
-        <li><code>score = sigmoid(Σ<sub>type</sub> term)</code>. With the engine's own <code>base_weight</code> for every <code>weight</code>, the terms equal <code>sub_scores</code> and the result equals <code>score</code>.</li>
+        <li><strong>Length-normalized types</strong> (<code>length_normalized</code> is true): multiply the whole term by <code>length_normalization.per_meters / max(length_meters, length_normalization.min_length_meters)</code>.</li>
+        <li><code>segment_score = sigmoid(Σ<sub>type</sub> term)</code>. With the engine's own <code>base_weight</code> for every <code>weight</code>, the terms equal <code>sub_scores</code> and the result equals <code>segment_score</code>.</li>
+        <li>An <a href="@routes.ApiDocsController.accessScoreIntersections">intersection</a> is rebuilt the same way from its own <code>severity_counts</code> and <code>tag_adjustments</code>, with no length factor; the street's headline <code>score</code> is then the mean of <code>segment_score</code> and the scores of <code>start_intersection_id</code> and <code>end_intersection_id</code>, over those that are not <code>null</code>.</li>
       </ul>
       <p>The response also carries <code>clusters_updated_at</code>: when the nightly clustering run that every score is computed from last finished (ISO&nbsp;8601, or <code>null</code> before the first run). Labels added after that moment are not in any cluster yet and cannot have changed a score until the next run.</p>
       <p>The <code>presets</code> object holds named weight vectors (magnitudes; a type's sign is fixed by its base weight) for a few stakeholder lenses; <code>default</code> is the engine's own weights. They are starting points, not validated standards.</p>
@@ -223,24 +233,29 @@
         "street_edge_id": 766,
         "osm_way_id": 11584845,
         "region_id": 8,
-        "score": 1.0,
+        "score": 0.6849,
+        "segment_score": 0.3846,
+        "start_intersection_id": 412,
+        "end_intersection_id": 415,
+        "start_intersection_score": 0.8176,
+        "end_intersection_score": 0.8525,
         "audit_count": 2,
         "length_meters": 142.7,
-        "label_count": 29,
+        "label_count": 4,
         "cluster_counts": {
-          "CurbRamp": 10, "NoCurbRamp": 0, "Obstacle": 0, "SurfaceProblem": 1,
-          "Crosswalk": 6, "Signal": 0, "NoSidewalk": 0
+          "CurbRamp": 0, "NoCurbRamp": 0, "Obstacle": 0, "SurfaceProblem": 1,
+          "Crosswalk": 1, "Signal": 0, "NoSidewalk": 0
         },
         "sub_scores": {
-          "CurbRamp": 7.5, "NoCurbRamp": 0.0, "Obstacle": 0.0, "SurfaceProblem": -0.67,
-          "Crosswalk": 4.25, "Signal": 0.0, "NoSidewalk": 0.0
+          "CurbRamp": 0.0, "NoCurbRamp": 0.0, "Obstacle": 0.0, "SurfaceProblem": -0.4695,
+          "Crosswalk": 0.0, "Signal": 0.0, "NoSidewalk": 0.0
         },
         "severity_counts": {
-          "CurbRamp": {"1": 10, "2": 0, "3": 0, "null": 0},
+          "CurbRamp": {"1": 0, "2": 0, "3": 0, "null": 0},
           "NoCurbRamp": {"1": 0, "2": 0, "3": 0, "null": 0},
           "Obstacle": {"1": 0, "2": 0, "3": 0, "null": 0},
           "SurfaceProblem": {"1": 0, "2": 1, "3": 0, "null": 0},
-          "Crosswalk": {"1": 5, "2": 1, "3": 0, "null": 0},
+          "Crosswalk": {"1": 0, "2": 0, "3": 1, "null": 0},
           "Signal": {"1": 0, "2": 0, "3": 0, "null": 0},
           "NoSidewalk": {"1": 0, "2": 0, "3": 0, "null": 0}
         },
@@ -265,27 +280,32 @@
           <tr><td><code>properties.street_edge_id</code></td><td><code>integer</code></td><td>Project Sidewalk's unique identifier for this street segment.</td></tr>
           <tr><td><code>properties.osm_way_id</code></td><td><code>integer</code></td><td><a href="https://wiki.openstreetmap.org/wiki/Way">OpenStreetMap Way ID</a> for the street, if available.</td></tr>
           <tr><td><code>properties.region_id</code></td><td><code>integer</code></td><td>Identifier for the region the street belongs to.</td></tr>
-          <tr><td><code>properties.score</code></td><td><code>number</code></td><td>AccessScore in <code>(0,&nbsp;1)</code>; higher is more accessible. <code>null</code> when the street has not been audited.</td></tr>
+          <tr><td><code>properties.score</code></td><td><code>number</code></td><td>Headline AccessScore in <code>(0,&nbsp;1)</code>; higher is more accessible. The mean of <code>segment_score</code>, <code>start_intersection_score</code>, and <code>end_intersection_score</code> over those that are not <code>null</code>; <code>null</code> when all three are.</td></tr>
+          <tr><td><code>properties.segment_score</code></td><td><code>number</code></td><td>The street's own segment score in <code>(0,&nbsp;1)</code>, from the clusters in <code>cluster_counts</code>. <code>null</code> when the street has not been audited.</td></tr>
+          <tr><td><code>properties.start_intersection_id</code></td><td><code>integer</code></td><td>The intersection at the start of the street's geometry (see the <a href="@routes.ApiDocsController.accessScoreIntersections">Intersections API</a>); <code>null</code> when that end is a dead end or a mere way split.</td></tr>
+          <tr><td><code>properties.end_intersection_id</code></td><td><code>integer</code></td><td>The intersection at the end of the street's geometry; <code>null</code> likewise.</td></tr>
+          <tr><td><code>properties.start_intersection_score</code></td><td><code>number</code></td><td>That intersection's score; <code>null</code> when there is none, it is unscored, or it is grade-separated.</td></tr>
+          <tr><td><code>properties.end_intersection_score</code></td><td><code>number</code></td><td>That intersection's score; <code>null</code> likewise.</td></tr>
           <tr><td><code>properties.audit_count</code></td><td><code>integer</code></td><td>Number of completed (high-quality) audits of this street.</td></tr>
-          <tr><td><code>properties.length_meters</code></td><td><code>number</code></td><td>Street length in meters (used to length-weight region scores).</td></tr>
-          <tr><td><code>properties.label_count</code></td><td><code>integer</code></td><td>Number of labels contributing to this street's scored clusters.</td></tr>
-          <tr><td><code>properties.cluster_counts</code></td><td><code>object</code></td><td>Number of scored clusters of each label type on the street, keyed by label-type name.</td></tr>
-          <tr><td><code>properties.sub_scores</code></td><td><code>object</code></td><td>Contribution of each label type to the pre-sigmoid total, keyed by label-type name; the values sum to <code>logit(score)</code>, so they explain how the <code>score</code> was composed. Per-cluster types report the sum over their clusters; <code>NoSidewalk</code> reports the street's single pooled term (see <a href="#scoring-model">How the score is computed</a>), which does not scale with <code>cluster_counts.NoSidewalk</code>.</td></tr>
-          <tr><td><code>properties.severity_counts</code></td><td><code>object</code></td><td>Number of scored clusters of each label type in each rating bucket (<code>"1"</code>, <code>"2"</code>, <code>"3"</code>, or <code>"null"</code> for unrated clusters), keyed by label-type name. The buckets of a type sum to its <code>cluster_counts</code> entry.</td></tr>
-          <tr><td><code>properties.tag_adjustments</code></td><td><code>object</code></td><td>The summed adjustment of the active tags of each label type, keyed by label-type name: the part of <code>sub_scores</code> that no weight scales. With <code>severity_counts</code> and the <a href="#scoring-config">scoring configuration</a>, enough to <a href="#scoring-config">recompute the score under your own weights</a>.</td></tr>
+          <tr><td><code>properties.length_meters</code></td><td><code>number</code></td><td>Street length in meters (geodesic). Length-weights region scores and normalizes the along-length terms.</td></tr>
+          <tr><td><code>properties.label_count</code></td><td><code>integer</code></td><td>Number of labels contributing to this street's segment clusters.</td></tr>
+          <tr><td><code>properties.cluster_counts</code></td><td><code>object</code></td><td>Number of clusters of each label type scoring the segment, keyed by label-type name: the along-length types, plus any corner-type cluster not attributed to an intersection.</td></tr>
+          <tr><td><code>properties.sub_scores</code></td><td><code>object</code></td><td>Contribution of each label type to the segment's pre-sigmoid total, keyed by label-type name; the values sum to <code>logit(segment_score)</code>, so they explain how it was composed. Per-cluster types report the sum over their clusters, length-normalized where the type is; <code>NoSidewalk</code> reports the street's single pooled term (see <a href="#scoring-model">How the score is computed</a>), which does not scale with <code>cluster_counts.NoSidewalk</code>.</td></tr>
+          <tr><td><code>properties.severity_counts</code></td><td><code>object</code></td><td>Number of segment clusters of each label type in each rating bucket (<code>"1"</code>, <code>"2"</code>, <code>"3"</code>, or <code>"null"</code> for unrated clusters), keyed by label-type name. The buckets of a type sum to its <code>cluster_counts</code> entry.</td></tr>
+          <tr><td><code>properties.tag_adjustments</code></td><td><code>object</code></td><td>The summed adjustment of the active tags of each label type, keyed by label-type name: the part of <code>sub_scores</code> that no weight scales, before length normalization. With <code>severity_counts</code>, <code>length_meters</code>, and the <a href="#scoring-config">scoring configuration</a>, enough to <a href="#scoring-config">recompute the segment score under your own weights</a>.</td></tr>
         </tbody>
       </table>
     </div>
 
     <h4 id="response-csv">CSV Format <a href="#response-csv" class="permalink">#</a></h4>
     <p>If <code>filetype=csv</code>, the first row is the header. The per-type objects are flattened into one column per label type: <code>cluster_counts</code> as <code>n_*</code>, <code>sub_scores</code> as <code>score_*</code>, <code>severity_counts</code> as <code>n_*_sev1</code>, <code>n_*_sev2</code>, <code>n_*_sev3</code>, <code>n_*_sev_null</code>, and <code>tag_adjustments</code> as <code>tag_adj_*</code>; the geometry is simplified to start/end points.</p>
-    <pre tabindex="0"><code class="language-csv">street_edge_id,osm_way_id,region_id,score,audit_count,length_meters,label_count,n_curb_ramp,…,n_no_sidewalk,score_curb_ramp,…,score_no_sidewalk,n_curb_ramp_sev1,n_curb_ramp_sev2,n_curb_ramp_sev3,n_curb_ramp_sev_null,…,n_no_sidewalk_sev_null,tag_adj_curb_ramp,…,tag_adj_no_sidewalk,start_point,end_point
-766,11584845,8,1.0,2,142.7,29,10,…,0,7.5,…,0.0,10,0,0,0,…,0,0.0,…,0.0,"-74.0243,40.8839","-74.0245,40.8836"
+    <pre tabindex="0"><code class="language-csv">street_edge_id,osm_way_id,region_id,score,segment_score,start_intersection_id,end_intersection_id,start_intersection_score,end_intersection_score,audit_count,length_meters,label_count,n_curb_ramp,…,n_no_sidewalk,score_curb_ramp,…,score_no_sidewalk,n_curb_ramp_sev1,n_curb_ramp_sev2,n_curb_ramp_sev3,n_curb_ramp_sev_null,…,n_no_sidewalk_sev_null,tag_adj_curb_ramp,…,tag_adj_no_sidewalk,start_point,end_point
+766,11584845,8,0.6849,0.3846,412,415,0.8176,0.8525,2,142.7,4,0,…,0,0.0,…,0.0,0,0,0,0,…,0,0.0,…,0.0,"-74.0243,40.8839","-74.0245,40.8836"
 ...</code></pre>
-    <p>The full header, in order: the seven leading columns, then <code>n_&lt;type&gt;</code> for each of the @AccessScoreCalculator.orderedScoredTypes.size scored types, <code>score_&lt;type&gt;</code> for each, the four <code>n_&lt;type&gt;_sev*</code> buckets for each, <code>tag_adj_&lt;type&gt;</code> for each, then <code>start_point</code> and <code>end_point</code>. Types are always in the order <code>@AccessScoreCalculator.orderedScoredTypes.map(models.api.AccessScoreApiModels.snakeType).mkString(", ")</code>.</p>
+    <p>The full header, in order: the twelve leading columns, then <code>n_&lt;type&gt;</code> for each of the @AccessScoreCalculator.orderedScoredTypes.size scored types, <code>score_&lt;type&gt;</code> for each, the four <code>n_&lt;type&gt;_sev*</code> buckets for each, <code>tag_adj_&lt;type&gt;</code> for each, then <code>start_point</code> and <code>end_point</code>. Types are always in the order <code>@AccessScoreCalculator.orderedScoredTypes.map(models.api.AccessScoreApiModels.snakeType).mkString(", ")</code>.</p>
 
     <h4 id="response-shapefile">Shapefile Format <a href="#response-shapefile" class="permalink">#</a></h4>
-    <p>If <code>filetype=shapefile</code>, the response is a ZIP archive of Shapefile components (.shp, .shx, .dbf, .prj). Because the DBF format truncates column names at 10 characters, the per-type columns use short codes: cluster count <code>nCRamp</code>, sub-score <code>sCRamp</code>, cluster count per rating bucket <code>n1CRamp</code>, <code>n2CRamp</code>, <code>n3CRamp</code> and <code>n0CRamp</code> (unrated), and tag adjustment <code>tCRamp</code>; the GeoJSON, CSV, and GeoPackage formats keep the full names.</p>
+    <p>If <code>filetype=shapefile</code>, the response is a ZIP archive of Shapefile components (.shp, .shx, .dbf, .prj). Because the DBF format truncates column names at 10 characters, the columns use short codes: <code>segScore</code>, <code>sIntId</code> / <code>eIntId</code>, and <code>sIntScore</code> / <code>eIntScore</code> for the headline's components, and per type cluster count <code>nCRamp</code>, sub-score <code>sCRamp</code>, cluster count per rating bucket <code>n1CRamp</code>, <code>n2CRamp</code>, <code>n3CRamp</code> and <code>n0CRamp</code> (unrated), and tag adjustment <code>tCRamp</code>; the GeoJSON, CSV, and GeoPackage formats keep the full names.</p>
 
     <h4 id="response-geopackage">GeoPackage Format <a href="#response-geopackage" class="permalink">#</a></h4>
     <p>If <code>filetype=geopackage</code>, the response is a GeoPackage (.gpkg) file with full geometry and attributes (full snake_case column names).</p>
@@ -302,8 +322,8 @@
     <h2 class="page-heading" id="best-practices">Best Practices<a href="#best-practices" class="permalink">#</a></h2>
     <ul>
       <li><strong>Treat the score as relative, not absolute:</strong> the weights are experimental. Use scores to compare streets, not as a calibrated index.</li>
-      <li><strong>Read the breakdown:</strong> <code>cluster_counts</code> and <code>sub_scores</code> explain each score and help you sanity-check it.</li>
-      <li><strong>Mind audit coverage:</strong> a <code>null</code> score means the street has not been audited — absence of data, not poor accessibility.</li>
+      <li><strong>Read the breakdown:</strong> <code>segment_score</code> and the two intersection scores show which part of a trip along the street is the problem, and <code>cluster_counts</code> and <code>sub_scores</code> explain the segment.</li>
+      <li><strong>Mind audit coverage:</strong> a <code>null</code> <code>segment_score</code> means the street has not been audited — absence of data, not poor accessibility. Its headline may still carry its crossings' scores.</li>
       <li><strong>Roll up to neighborhoods:</strong> use the <a href="@routes.ApiDocsController.accessScoreRegions">AccessScore: Regions API</a> for length-weighted, region-level scores.</li>
     </ul>
   </div>

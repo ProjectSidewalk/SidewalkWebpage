@@ -64,7 +64,7 @@
     <ul class="api-list">
       <li><a href="#metadata-apis"><strong>Metadata APIs:</strong></a> for describing our data structures and deployment cities</li>
       <li><a href="#data-apis"><strong>Data APIs:</strong></a> for our collected label data and validations</li>
-      <li><a href="#accessibility-score-apis"><strong>AccessScores APIs:</strong></a> for scoring of sidewalk accessibility of streets and regions</li>
+      <li><a href="#accessibility-score-apis"><strong>AccessScores APIs:</strong></a> for scoring of sidewalk accessibility of streets, intersections, and regions</li>
       <li><a href="#stats-apis"><strong>Stats APIs:</strong></a> for overall stats on users and collected data</li>
     </ul>
 
@@ -151,7 +151,8 @@
     <h2 class="page-heading" id="accessibility-score-apis">Access Score APIs<a href="#accessibility-score-apis" class="permalink">#</a></h2>
     <p>Inspired by <a href="https://www.walkscore.com/">WalkScore</a>, we also compute an aggregate <b>AccessScore</b> based on Project Sidewalk data. AccessScore extends the method from <a href="https://makeabilitylab.cs.washington.edu/media/publications/Li_APilotStudyOfSidewalkEquityInSeattleUsingCrowdsourcedSidewalkAssessmentData_UrbanAccess2022.pdf">Li et&nbsp;al. (Urban Access 2022)</a> by weighting each feature by its severity/quality rating and its tags. These scoring algorithms are experimental and the weights are subject to change; you can also compute your own indices via the Labels API.</p>
     <ul class="api-list">
-      <li><b><a href="@routes.ApiDocsController.accessScoreStreets">AccessScore: Streets</a>:</b> AccessScore for individual streets (<code>GET /v3/api/accessScoreStreets</code>).</li>
+      <li><b><a href="@routes.ApiDocsController.accessScoreStreets">AccessScore: Streets</a>:</b> AccessScore for individual streets: each street's own segment, its two end intersections, and their combination (<code>GET /v3/api/accessScoreStreets</code>).</li>
+      <li><b><a href="@routes.ApiDocsController.accessScoreIntersections">AccessScore: Intersections</a>:</b> AccessScore for intersections — <em>can I cross here?</em> — from the curb ramps, crosswalks, and signals pooled at each one (<code>GET /v3/api/accessScoreIntersections</code>).</li>
       <li><b><a href="@routes.ApiDocsController.accessScoreRegions">AccessScore: Regions</a>:</b> AccessScore for regions (neighborhoods), length-weighted across their streets (<code>GET /v3/api/accessScoreRegions</code>).</li>
       <li><b><a href="@routes.ApiDocsController.accessScoreStreets#scoring-config">AccessScore: Configuration</a>:</b> the scoring engine's weights, multipliers, tag adjustments, and named presets, so you can recompute a street's score under your own weights (<code>GET /v3/api/accessScoreConfig</code>).</li>
     </ul>

@@ -2,6 +2,7 @@ package controllers.helper
 
 import models.api.{
   AccessScoreApiModels,
+  IntersectionAccessScoreForApi,
   LabelClusterForApi,
   LabelDataForApi,
   RawLabelInClusterDataForApi,
@@ -363,6 +364,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
     + "clusterId:Integer,"      // Cluster ID
     + "labelType:String,"       // Label type
     + "streetId:Integer,"       // Street edge ID
+    + "intersecId:Integer,"     // Intersection ID (null if none)
     + "osmWayId:String,"        // OSM way ID
     + "regionId:Integer,"       // Region ID
     + "regionName:String,"      // Region name
@@ -388,6 +390,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
     featureBuilder.add(cluster.labelClusterId)
     featureBuilder.add(cluster.labelType)
     featureBuilder.add(cluster.streetEdgeId)
+    featureBuilder.add(cluster.intersectionId.map(Integer.valueOf).orNull)
     featureBuilder.add(cluster.osmWayId.toString)
     featureBuilder.add(cluster.regionId)
     featureBuilder.add(cluster.regionName)
@@ -565,6 +568,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       + "cluster_id:Integer,"      // Cluster ID
       + "label_type:String,"       // Label type
       + "street_edge_id:Integer,"  // Street edge ID
+      + "intersection_id:Integer," // Intersection ID (null if none)
       + "osm_way_id:String,"       // OSM way ID (as String to avoid Long issues)
       + "region_id:Integer,"       // Region ID
       + "region_name:String,"      // Region name
@@ -626,6 +630,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
             clusterBuilder.add(cluster.labelClusterId)
             clusterBuilder.add(cluster.labelType)
             clusterBuilder.add(cluster.streetEdgeId)
+            clusterBuilder.add(cluster.intersectionId.map(Integer.valueOf).orNull)
             clusterBuilder.add(cluster.osmWayId.toString)
             clusterBuilder.add(cluster.regionId)
             clusterBuilder.add(cluster.regionName)
@@ -1066,7 +1071,12 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       + "streetId:Integer,"            // Street edge ID
       + "osmWayId:String,"             // OSM way ID as String (shapefiles don't handle Long well)
       + "regionId:Integer,"            // Region ID
-      + "score:Double,"                // Access score (null if unaudited)
+      + "score:Double,"                // Headline score: mean of the segment and its end intersections (null if none)
+      + "segScore:Double,"             // The segment's own score (null if unaudited)
+      + "sIntId:Integer,"              // Start intersection ID (null if none)
+      + "eIntId:Integer,"              // End intersection ID (null if none)
+      + "sIntScore:Double,"            // Start intersection's score (null if unscored)
+      + "eIntScore:Double,"            // End intersection's score (null if unscored)
       + "auditCount:Integer,"          // Number of completed audits
       + "lengthM:Double,"              // Street length in meters
       + "labelCount:Integer,"          // Number of labels contributing to the score
@@ -1081,6 +1091,11 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       fb.add(s.osmWayId.toString)
       fb.add(s.regionId)
       fb.add(s.score.map(Double.box).orNull)
+      fb.add(s.segmentScore.map(Double.box).orNull)
+      fb.add(s.startIntersectionId.map(Integer.valueOf).orNull)
+      fb.add(s.endIntersectionId.map(Integer.valueOf).orNull)
+      fb.add(s.startIntersectionScore.map(Double.box).orNull)
+      fb.add(s.endIntersectionScore.map(Double.box).orNull)
       fb.add(s.auditCount)
       fb.add(s.lengthMeters)
       fb.add(s.labelCount)
@@ -1120,6 +1135,8 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
     val featureType: SimpleFeatureType = DataUtilities.createType(
       "access_score_streets",
       "the_geom:LineString:srid=4326,street_id:Integer,osm_way_id:String,region_id:Integer,score:Double," +
+        "segment_score:Double,start_intersection_id:Integer,end_intersection_id:Integer," +
+        "start_intersection_score:Double,end_intersection_score:Double," +
         "audit_count:Integer,length_meters:Double,label_count:Integer," +
         perTypeSpec + "," + perBucketSpec + "," + perTagSpec
     )
@@ -1130,6 +1147,11 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       fb.add(s.osmWayId.toString)
       fb.add(s.regionId)
       fb.add(s.score.map(Double.box).orNull)
+      fb.add(s.segmentScore.map(Double.box).orNull)
+      fb.add(s.startIntersectionId.map(Integer.valueOf).orNull)
+      fb.add(s.endIntersectionId.map(Integer.valueOf).orNull)
+      fb.add(s.startIntersectionScore.map(Double.box).orNull)
+      fb.add(s.endIntersectionScore.map(Double.box).orNull)
       fb.add(s.auditCount)
       fb.add(s.lengthMeters)
       fb.add(s.labelCount)
@@ -1165,6 +1187,9 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       + "coverage:Double,"               // Fraction of streets audited
       + "audited:Integer,"               // Audited street count
       + "total:Integer,"                 // Total street count
+      + "intScore:Double,"               // Mean score of the region's scored intersections (null if none)
+      + "intCount:Integer,"              // Intersections in the region (grade-separated crossings excluded)
+      + "scIntCount:Integer,"            // How many of them are scored
       + perTypeSpec                      // Per-type mean cluster count (a<code>)
     )
 
@@ -1176,6 +1201,9 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       fb.add(r.coverage)
       fb.add(r.auditedStreetCount)
       fb.add(r.totalStreetCount)
+      fb.add(r.intersectionScore.map(Double.box).orNull)
+      fb.add(r.intersectionCount)
+      fb.add(r.scoredIntersectionCount)
       AccessScoreApiModels.orderedTypes.foreach { t => fb.add(r.avgClusterCounts.getOrElse(t, 0.0)) }
       fb.buildFeature(null)
     }
@@ -1195,7 +1223,8 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
     val featureType: SimpleFeatureType = DataUtilities.createType(
       "access_score_regions",
       "the_geom:MultiPolygon:srid=4326,region_id:Integer,name:String,score:Double,coverage:Double," +
-        "audited_street_count:Integer,total_street_count:Integer," + perTypeSpec
+        "audited_street_count:Integer,total_street_count:Integer,intersection_score:Double," +
+        "intersection_count:Integer,scored_intersection_count:Integer," + perTypeSpec
     )
 
     def buildFeature(r: RegionAccessScoreForApi, fb: SimpleFeatureBuilder): SimpleFeature = {
@@ -1206,7 +1235,120 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       fb.add(r.coverage)
       fb.add(r.auditedStreetCount)
       fb.add(r.totalStreetCount)
+      fb.add(r.intersectionScore.map(Double.box).orNull)
+      fb.add(r.intersectionCount)
+      fb.add(r.scoredIntersectionCount)
       AccessScoreApiModels.orderedTypes.foreach { t => fb.add(r.avgClusterCounts.getOrElse(t, 0.0)) }
+      fb.buildFeature(null)
+    }
+
+    createGeneralGeoPackage(source, outputFile, batchSize, featureType, buildFeature)
+  }
+
+  /**
+   * Creates a shapefile from IntersectionAccessScoreForApi objects (v3, #5095). Per-type columns use the same short
+   * codes as the street shapefile, over the intersection types only.
+   */
+  def createIntersectionAccessScoreShapefile(
+      source: Source[IntersectionAccessScoreForApi, _],
+      outputFile: String,
+      batchSize: Int
+  ): Future[Option[Path]] = {
+    val types: Seq[String]  = AccessScoreApiModels.orderedIntersectionTypes
+    val perTypeSpec: String = types
+      .map { t =>
+        val c = AccessScoreApiModels.shapefileTypeCode(t); s"n$c:Integer,s$c:Double"
+      }
+      .mkString(",")
+    val perBucketSpec: String = AccessScoreApiModels.intersectionTypeBucketColumns
+      .map { case (t, b) =>
+        s"${AccessScoreApiModels.shapefileBucketPrefix(b)}${AccessScoreApiModels.shapefileTypeCode(t)}:Integer"
+      }
+      .mkString(",")
+    val perTagSpec: String = types.map { t => s"t${AccessScoreApiModels.shapefileTypeCode(t)}:Double" }.mkString(",")
+    val featureType: SimpleFeatureType = DataUtilities.createType(
+      "AccessScoreIntersection",
+      "the_geom:Point:srid=4326," // Point geometry
+      + "intersecId:Integer,"     // Intersection ID
+      + "regionId:Integer,"       // Region ID (null if none)
+      + "degree:Integer,"         // Streets meeting here
+      + "gradeSep:String,"        // "true" for a bridge/tunnel crossing, never scored
+      + "streetIds:String,"       // Comma-separated street edge IDs
+      + "auditCount:Integer,"     // Completed audits summed over those streets
+      + "score:Double,"           // Access score (null if unscored)
+      + "labelCount:Integer,"     // Number of labels contributing to the score
+      + perTypeSpec + ","         // Per-type cluster count (n<code>) and sub-score (s<code>)
+      + perBucketSpec + ","       // Per-type cluster count per rating bucket
+      + perTagSpec                // Per-type summed tag adjustment (t<code>)
+    )
+
+    def buildFeature(i: IntersectionAccessScoreForApi, fb: SimpleFeatureBuilder): SimpleFeature = {
+      fb.add(i.geometry)
+      fb.add(i.intersectionId)
+      fb.add(i.regionId.map(Integer.valueOf).orNull)
+      fb.add(i.degree)
+      fb.add(i.gradeSeparated.toString)
+      fb.add(i.streetEdgeIds.mkString(","))
+      fb.add(i.auditCount)
+      fb.add(i.score.map(Double.box).orNull)
+      fb.add(i.labelCount)
+      types.foreach { t =>
+        fb.add(i.clusterCounts.getOrElse(t, 0))
+        fb.add(i.subScores.getOrElse(t, 0.0))
+      }
+      AccessScoreApiModels.intersectionTypeBucketColumns.foreach { case (t, b) =>
+        fb.add(i.severityCounts.getOrElse(t, Map.empty[String, Int]).getOrElse(b, 0))
+      }
+      types.foreach { t => fb.add(i.tagAdjustments.getOrElse(t, 0.0)) }
+      fb.buildFeature(null)
+    }
+
+    createGeneralShapefile(source, outputFile, batchSize, featureType, buildFeature)
+  }
+
+  /** Creates a GeoPackage from IntersectionAccessScoreForApi objects (v3, #5095). Full snake_case column names. */
+  def createIntersectionAccessScoreGeopackage(
+      source: Source[IntersectionAccessScoreForApi, _],
+      outputFile: String,
+      batchSize: Int
+  ): Future[Option[Path]] = {
+    val types: Seq[String]  = AccessScoreApiModels.orderedIntersectionTypes
+    val perTypeSpec: String = types
+      .flatMap { t =>
+        val n = AccessScoreApiModels.snakeType(t); Seq(s"n_$n:Integer", s"score_$n:Double")
+      }
+      .mkString(",")
+    val perBucketSpec: String = AccessScoreApiModels.intersectionTypeBucketColumns
+      .map { case (t, b) =>
+        s"n_${AccessScoreApiModels.snakeType(t)}_${AccessScoreApiModels.bucketSuffix(b)}:Integer"
+      }
+      .mkString(",")
+    val perTagSpec: String = types.map { t => s"tag_adj_${AccessScoreApiModels.snakeType(t)}:Double" }.mkString(",")
+    val featureType: SimpleFeatureType = DataUtilities.createType(
+      "access_score_intersections",
+      "the_geom:Point:srid=4326,intersection_id:Integer,region_id:Integer,degree:Integer,grade_separated:Boolean," +
+        "street_edge_ids:String,audit_count:Integer,score:Double,label_count:Integer," +
+        perTypeSpec + "," + perBucketSpec + "," + perTagSpec
+    )
+
+    def buildFeature(i: IntersectionAccessScoreForApi, fb: SimpleFeatureBuilder): SimpleFeature = {
+      fb.add(i.geometry)
+      fb.add(i.intersectionId)
+      fb.add(i.regionId.map(Integer.valueOf).orNull)
+      fb.add(i.degree)
+      fb.add(i.gradeSeparated)
+      fb.add(i.streetEdgeIds.mkString(","))
+      fb.add(i.auditCount)
+      fb.add(i.score.map(Double.box).orNull)
+      fb.add(i.labelCount)
+      types.foreach { t =>
+        fb.add(i.clusterCounts.getOrElse(t, 0))
+        fb.add(i.subScores.getOrElse(t, 0.0))
+      }
+      AccessScoreApiModels.intersectionTypeBucketColumns.foreach { case (t, b) =>
+        fb.add(i.severityCounts.getOrElse(t, Map.empty[String, Int]).getOrElse(b, 0))
+      }
+      types.foreach { t => fb.add(i.tagAdjustments.getOrElse(t, 0.0)) }
       fb.buildFeature(null)
     }
 

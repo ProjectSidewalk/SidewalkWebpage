@@ -9,15 +9,25 @@ import models.label.LabelTypeEnum
  * lives here as tunable constants so the math can be unit-tested in isolation and adjusted without touching the DB layer
  * ([[AccessScoreService]]) or the controller. Nothing in this object performs IO.
  *
- * The model:
- *   - A street's pre-sigmoid sum is the sum of one term per scored label type ([[scoreByType]]).
+ * The model scores two kinds of unit (#5095): a street **segment** and an **intersection**.
+ *   - A unit's pre-sigmoid sum is the sum of one term per scored label type ([[scoreByType]]).
  *   - For per-cluster types that term is the sum of each cluster's
  *     `contribution = base(type) * multiplier + tagAdjustments` ([[scoreCluster]]).
  *   - For a street-condition type (NoSidewalk, #5093) the street's clusters pool into a single term,
  *     `base(type) * extent(n) + pooledTagAdjustments`, so the penalty reflects the street's condition rather than how
  *     many pins a labeler dropped along it.
- *   - The street score is `sigmoid(sum)`, mapped to (0, 1).
- *   - A region's score is the street-length-weighted mean of its audited streets' scores (the paper's normalization).
+ *   - The intersection types ([[intersectionTypeNames]]: CurbRamp, NoCurbRamp, Crosswalk, Signal) are corner
+ *     features. Their clusters are pooled on the intersection they sit at, across every street meeting there, and
+ *     score it; a cluster too far from any intersection (a mid-block crosswalk, a driveway ramp) stays with its
+ *     street and scores the segment as an ordinary point feature.
+ *   - The along-length types ([[segmentTypeNames]]) score the segment. The [[lengthNormalized]] ones (Obstacle,
+ *     SurfaceProblem) are scaled to a per-100 m density by [[lengthFactor]], so a long street is not penalized for
+ *     having more room for problems; NoSidewalk's pooled term is already length-free.
+ *   - A unit's score is `sigmoid(sum)`, mapped to (0, 1).
+ *   - A street's headline score is the mean of its segment score and its end intersections' scores
+ *     ([[headlineScore]]): a trip along a street includes getting on and off it.
+ *   - A region's score is the street-length-weighted mean of its audited streets' scores (the paper's normalization),
+ *     and its intersection score the plain mean of its scored intersections.
  *
  * Severity semantics differ by type and are the crux of the model (the same DB `severity` column means different things):
  *   - Positive **quality**-rated types (CurbRamp, Crosswalk): Good(1) / Okay(2) / Bad(3). A Bad one flips negative.
@@ -54,20 +64,25 @@ object AccessScoreCalculator {
   /**
    * Per-type scoring configuration.
    *
-   * @param baseWeight Signed base weight (positive features positive, negative features negative). The severity/quality
-   *                   multiplier scales this; for `PositiveQuality` the multiplier may flip the sign (Bad → negative).
-   * @param scoring    How this type's clusters are scored.
+   * @param baseWeight       Signed base weight (positive features positive, negative features negative). The
+   *                         severity/quality multiplier scales this; for `PositiveQuality` the multiplier may flip the
+   *                         sign (Bad → negative).
+   * @param scoring          How this type's clusters are scored.
+   * @param lengthNormalized Whether the type's term on a segment is scaled to a per-100 m density ([[lengthFactor]]).
+   *                         Only meaningful for along-length types; an intersection has no length.
    */
-  case class TypeWeight(baseWeight: Double, scoring: Scoring)
+  case class TypeWeight(baseWeight: Double, scoring: Scoring, lengthNormalized: Boolean = false)
 
   // --- TUNABLE: base weight + scoring mode per scored label type. Types absent here are excluded from scoring. ---
   val typeWeights: Map[String, TypeWeight] = Map(
-    LabelTypeEnum.CurbRamp.name       -> TypeWeight(+0.75, PositiveQuality),
-    LabelTypeEnum.Crosswalk.name      -> TypeWeight(+0.75, PositiveQuality),
-    LabelTypeEnum.Signal.name         -> TypeWeight(+0.50, PresenceOnly),
-    LabelTypeEnum.NoCurbRamp.name     -> TypeWeight(-1.00, NegativeSeverity),
-    LabelTypeEnum.Obstacle.name       -> TypeWeight(-1.00, NegativeSeverity),
-    LabelTypeEnum.SurfaceProblem.name -> TypeWeight(-1.00, NegativeSeverity),
+    LabelTypeEnum.CurbRamp.name   -> TypeWeight(+0.75, PositiveQuality),
+    LabelTypeEnum.Crosswalk.name  -> TypeWeight(+0.75, PositiveQuality),
+    LabelTypeEnum.Signal.name     -> TypeWeight(+0.50, PresenceOnly),
+    LabelTypeEnum.NoCurbRamp.name -> TypeWeight(-1.00, NegativeSeverity),
+    // Along-length problems are counted per 100 m of street (#5095): three obstacles on a 300 m street are the
+    // same density as one on a 100 m street, and score the same.
+    LabelTypeEnum.Obstacle.name       -> TypeWeight(-1.00, NegativeSeverity, lengthNormalized = true),
+    LabelTypeEnum.SurfaceProblem.name -> TypeWeight(-1.00, NegativeSeverity, lengthNormalized = true),
     // A whole street without a sidewalk sits at sigmoid(-2) ≈ 0.12 before its tags and other features (#5093).
     LabelTypeEnum.NoSidewalk.name -> TypeWeight(-2.00, StreetCondition)
   )
@@ -80,6 +95,52 @@ object AccessScoreCalculator {
 
   /** Each scored type's signed base weight, the form [[subScoresFromCounts]] takes so a caller can substitute its own. */
   val baseWeights: Map[String, Double] = typeWeights.map { case (t, tw) => t -> tw.baseWeight }
+
+  // --- Intersections as a scoring unit (#5095). ---
+  // Measured on Seattle's clusters: 81-95% of CurbRamp, NoCurbRamp, Crosswalk and Signal clusters sit within 25 m of
+  // an intersection (median 9-15 m), against 22-24% of Obstacle, SurfaceProblem and NoSidewalk clusters (median
+  // 29-32 m, what a uniform spread along a street looks like). The split is clean, so it is a fixed partition.
+
+  /** The scored types that are corner features, pooled on the intersection they sit at rather than on a street. */
+  val intersectionTypeNames: Set[String] = Set(
+    LabelTypeEnum.CurbRamp.name,
+    LabelTypeEnum.NoCurbRamp.name,
+    LabelTypeEnum.Crosswalk.name,
+    LabelTypeEnum.Signal.name
+  )
+
+  /** The scored types that describe a stretch of street: everything scored that isn't an intersection type. */
+  val segmentTypeNames: Set[String] = scoredTypeNames -- intersectionTypeNames
+
+  /** The intersection types in canonical order, the column order of every per-type intersection output. */
+  val orderedIntersectionTypes: Seq[String] = orderedScoredTypes.filter(intersectionTypeNames.contains)
+
+  // --- TUNABLE: how far (geodesic meters) from the nearest intersection a corner-type cluster is still attributed to
+  // it. The 5-8% of such clusters farther out are mid-block crosswalks and driveway ramps, which stay with the street.
+  // Cited by the SQL that attributes clusters (IntersectionTable) and published by /v3/api/accessScoreConfig. ---
+  val attributionRadiusMeters: Double = 25.0
+
+  // --- TUNABLE: a length-normalized type's term is expressed per this many meters of street, with the street's
+  // length floored at lengthMinMeters so a stub can't multiply one problem without bound (factor caps at 4). ---
+  val lengthNormalizationPerMeters: Double = 100.0
+  val lengthMinMeters: Double              = 25.0
+
+  /**
+   * The factor a [[TypeWeight.lengthNormalized]] type's segment term is scaled by: the term per
+   * [[lengthNormalizationPerMeters]] of street, the street's length floored at [[lengthMinMeters]].
+   *
+   * @param lengthMeters The segment's length in meters.
+   * @return             `per / max(length, min)`: 1 on a 100 m street, 0.5 on a 200 m one, 4 on anything ≤ 25 m.
+   */
+  def lengthFactor(lengthMeters: Double): Double =
+    lengthNormalizationPerMeters / math.max(lengthMeters, lengthMinMeters)
+
+  /** [[lengthFactor]] for a length-normalized type on a segment; 1 for everything else, intersections included. */
+  private def termFactor(labelType: String, lengthMeters: Option[Double]): Double =
+    lengthMeters match {
+      case Some(length) if typeWeights.get(labelType).exists(_.lengthNormalized) => lengthFactor(length)
+      case _                                                                     => 1.0
+    }
 
   // --- TUNABLE: quality multiplier for PositiveQuality types. Signed: Bad(3) flips a positive base to a penalty. ---
   private val qualityMultiplier: Map[Int, Double] = Map(1 -> 1.0, 2 -> 0.5, 3 -> -1.0)
@@ -221,8 +282,8 @@ object AccessScoreCalculator {
    */
   private[service] def scoreCluster(c: ClusterScoreInput): Double = {
     typeWeights.get(c.labelType) match {
-      case None                            => 0.0 // Not a scored type.
-      case Some(TypeWeight(base, scoring)) =>
+      case None                               => 0.0 // Not a scored type.
+      case Some(TypeWeight(base, scoring, _)) =>
         scoring match {
           case PresenceOnly    => base + activeTagAdjustment(c)
           case PositiveQuality =>
@@ -235,23 +296,27 @@ object AccessScoreCalculator {
   }
 
   /**
-   * Computes each scored label type's contribution to a street's pre-sigmoid sum.
+   * Computes each scored label type's contribution to a unit's pre-sigmoid sum.
    *
    * Per-cluster types contribute the sum of their clusters' [[scoreCluster]] values; a [[StreetCondition]] type
-   * contributes one pooled term for all of its clusters on the street. This is the one path both the street score and
-   * the API's `sub_scores` breakdown go through, so the breakdown always sums to the score's logit.
+   * contributes one pooled term for all of its clusters on the street. On a segment (a length is given) a
+   * [[TypeWeight.lengthNormalized]] type's term is then scaled by [[lengthFactor]]; on an intersection (no length)
+   * nothing is scaled. This is the one path both the unit's score and the API's `sub_scores` breakdown go through, so
+   * the breakdown always sums to the score's logit.
    *
-   * @param clusters The street's clusters (any label type; unscored types are dropped).
-   * @return         Contribution keyed by label-type name, present only for scored types with at least one cluster.
+   * @param clusters     The unit's clusters (any label type; unscored types are dropped). For a segment that is its
+   *                     along-length clusters plus any corner-type clusters not attributed to an intersection.
+   * @param lengthMeters The segment's length, or None for an intersection.
+   * @return             Contribution keyed by label-type name, present only for scored types with at least one cluster.
    */
-  def scoreByType(clusters: Seq[ClusterScoreInput]): Map[String, Double] = {
+  def scoreByType(clusters: Seq[ClusterScoreInput], lengthMeters: Option[Double] = None): Map[String, Double] = {
     clusters.groupBy(_.labelType).flatMap { case (labelType, typeClusters) =>
-      typeWeights.get(labelType).map { case TypeWeight(base, scoring) =>
+      typeWeights.get(labelType).map { case TypeWeight(base, scoring, _) =>
         val term: Double = scoring match {
           case StreetCondition => streetConditionTerm(base, typeClusters)
           case _               => typeClusters.iterator.map(scoreCluster).sum
         }
-        labelType -> term
+        labelType -> term * termFactor(labelType, lengthMeters)
       }
     }
   }
@@ -343,17 +408,20 @@ object AccessScoreCalculator {
    *
    * With the engine's own `baseWeights` this equals [[scoreByType]] on the clusters the counts came from: for a
    * per-cluster type `base × Σ_bucket count × ratingMultiplier + tagAdjustment`, for a [[StreetCondition]] type
-   * `base × min(1, n / streetConditionSaturationCount) + tagAdjustment`.
+   * `base × min(1, n / streetConditionSaturationCount) + tagAdjustment`, and on a segment a length-normalized type's
+   * whole term is then multiplied by [[lengthFactor]] — the published `tag_adjustments` are the unscaled sums.
    *
    * @param severityCounts Per type, the cluster count per rating bucket (see [[severityCountsByType]]).
    * @param tagAdjustments Per type, the summed active tag adjustment (see [[tagAdjustmentsByType]]).
    * @param baseWeights    Signed base weight per type; a type missing here contributes nothing.
+   * @param lengthMeters   The segment's length, or None for an intersection (nothing is length-scaled).
    * @return               Contribution keyed by label-type name, present only for types with at least one cluster.
    */
   def subScoresFromCounts(
       severityCounts: Map[String, Map[String, Int]],
       tagAdjustments: Map[String, Double],
-      baseWeights: Map[String, Double] = baseWeights
+      baseWeights: Map[String, Double] = baseWeights,
+      lengthMeters: Option[Double] = None
   ): Map[String, Double] =
     severityCounts.flatMap { case (labelType, countsByBucket) =>
       val clusterCount: Int = countsByBucket.valuesIterator.sum
@@ -364,7 +432,7 @@ object AccessScoreCalculator {
           case scoring         =>
             base * countsByBucket.iterator.map { case (b, n) => n * ratingMultiplier(scoring, b) }.sum
         }
-        labelType -> (weighted + tagAdjustments.getOrElse(labelType, 0.0))
+        labelType -> (weighted + tagAdjustments.getOrElse(labelType, 0.0)) * termFactor(labelType, lengthMeters)
       }
     }
 
@@ -434,13 +502,40 @@ object AccessScoreCalculator {
   def scoreFromSubScores(subScores: Map[String, Double]): Double = sigmoid(subScores.valuesIterator.sum)
 
   /**
-   * Computes a street's access score: the sigmoid of the summed per-type contributions. No length normalization at the
-   * street level (faithful to the paper) — this is a saturating "how accessible is this street" signal in (0, 1).
+   * Computes a unit's access score: the sigmoid of the summed per-type contributions — a saturating "how accessible is
+   * this" signal in (0, 1). With a length this is a street segment's score; without one an intersection's.
    *
-   * @param clusters The street's scored clusters (empty yields the neutral 0.5).
-   * @return         The access score in (0, 1).
+   * @param clusters     The unit's scored clusters (empty yields the neutral 0.5).
+   * @param lengthMeters The segment's length, or None for an intersection.
+   * @return             The access score in (0, 1).
    */
-  def scoreStreet(clusters: Seq[ClusterScoreInput]): Double = scoreFromSubScores(scoreByType(clusters))
+  def scoreStreet(clusters: Seq[ClusterScoreInput], lengthMeters: Option[Double] = None): Double =
+    scoreFromSubScores(scoreByType(clusters, lengthMeters))
+
+  /**
+   * A street's headline score: the plain mean of its segment score and the scores of the intersections at its two
+   * ends, over whichever of the three exist (#5095). An end with no intersection (a dead end, a way split at a region
+   * boundary) or a grade-separated one simply contributes nothing, and a street whose ends are unscored keeps its
+   * segment score; the components are all reported beside the headline so a consumer can recombine them.
+   *
+   * @param segmentScore The segment's score, or None when the street is unaudited.
+   * @param endScores    The scores of the street's end intersections that have one.
+   * @return             The mean, or None when there is nothing to average.
+   */
+  def headlineScore(segmentScore: Option[Double], endScores: Seq[Double]): Option[Double] = {
+    val components: Seq[Double] = segmentScore.toSeq ++ endScores
+    if (components.isEmpty) None else Some(components.sum / components.size)
+  }
+
+  /**
+   * Computes a region's intersection score as the plain mean of its scored intersections (#5095). Unweighted, since
+   * an intersection has no length: every crossing counts once.
+   *
+   * @param intersectionScores The scores of the region's scored intersections.
+   * @return                   The mean, or None when the region has no scored intersection.
+   */
+  def scoreRegionIntersections(intersectionScores: Seq[Double]): Option[Double] =
+    if (intersectionScores.isEmpty) None else Some(intersectionScores.sum / intersectionScores.size)
 
   /**
    * Computes a region's access score as the street-length-weighted mean of its audited streets' scores.

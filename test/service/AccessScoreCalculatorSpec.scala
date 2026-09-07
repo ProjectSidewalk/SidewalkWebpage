@@ -9,7 +9,8 @@ import service.AccessScoreCalculator.ClusterScoreInput
  *
  * Pins the consequential weighting decisions so they can't silently drift: the Good/Okay/Bad sign-flip for positive
  * types, the Low/Med/High magnitude scaling for negative types, presence-only handling for Signal, the null-severity
- * fallbacks, tag activation, the street-condition pooling of NoSidewalk, and the street/region aggregation.
+ * fallbacks, tag activation, the street-condition pooling of NoSidewalk, the intersection/segment split with its
+ * length normalization (#5095), and the street/region aggregation.
  */
 class AccessScoreCalculatorSpec extends AnyFunSuite with Matchers {
 
@@ -314,5 +315,116 @@ class AccessScoreCalculatorSpec extends AnyFunSuite with Matchers {
     AccessScoreCalculator.orderedScoredTypes shouldBe Seq(
       "CurbRamp", "NoCurbRamp", "Obstacle", "SurfaceProblem", "Crosswalk", "Signal", "NoSidewalk"
     )
+  }
+
+  // --- Intersections as a scoring unit, and length normalization (#5095) ---
+
+  test("the intersection and segment types partition the scored types, in canonical order") {
+    AccessScoreCalculator.intersectionTypeNames shouldBe Set("CurbRamp", "NoCurbRamp", "Crosswalk", "Signal")
+    AccessScoreCalculator.segmentTypeNames shouldBe Set("Obstacle", "SurfaceProblem", "NoSidewalk")
+    (AccessScoreCalculator.intersectionTypeNames ++ AccessScoreCalculator.segmentTypeNames) shouldBe
+      AccessScoreCalculator.scoredTypeNames
+    AccessScoreCalculator.orderedIntersectionTypes shouldBe Seq("CurbRamp", "NoCurbRamp", "Crosswalk", "Signal")
+    AccessScoreCalculator.attributionRadiusMeters shouldBe 25.0
+  }
+
+  test("only Obstacle and SurfaceProblem are length-normalized: NoSidewalk is pooled, the corner types are points") {
+    AccessScoreCalculator.typeWeights.collect { case (t, tw) if tw.lengthNormalized => t }.toSet shouldBe
+      Set("Obstacle", "SurfaceProblem")
+  }
+
+  test("the length factor is per 100 m with the street floored at 25 m") {
+    AccessScoreCalculator.lengthFactor(100.0) shouldBe (1.0 +- eps)
+    AccessScoreCalculator.lengthFactor(200.0) shouldBe (0.5 +- eps)
+    AccessScoreCalculator.lengthFactor(50.0) shouldBe (2.0 +- eps)
+    AccessScoreCalculator.lengthFactor(25.0) shouldBe (4.0 +- eps)
+    AccessScoreCalculator.lengthFactor(10.0) shouldBe (4.0 +- eps) // floored
+    AccessScoreCalculator.lengthFactor(0.0) shouldBe (4.0 +- eps)
+  }
+
+  test("on a segment, a normalized type's whole term scales with length; nothing else does") {
+    val clusters = Seq(
+      cluster("Obstacle", Some(3), labelCount = 1),
+      cluster("SurfaceProblem", Some(1)),
+      cluster("CurbRamp", Some(1)), // A mid-block ramp stays an ordinary point term.
+      noSidewalk(),
+      noSidewalk(),
+      noSidewalk()
+    )
+    val at100 = AccessScoreCalculator.scoreByType(clusters, Some(100.0))
+    val at300 = AccessScoreCalculator.scoreByType(clusters, Some(300.0))
+    val plain = AccessScoreCalculator.scoreByType(clusters)
+
+    at100("Obstacle") shouldBe (-1.0 +- eps)
+    at300("Obstacle") shouldBe (-1.0 / 3 +- eps)
+    at300("SurfaceProblem") shouldBe (-0.33 / 3 +- eps)
+    at300("CurbRamp") shouldBe (0.75 +- eps)
+    at300("NoSidewalk") shouldBe (-2.0 +- eps)
+    // A 100 m street is the model's reference length, so it scores exactly as the unnormalized sum does.
+    at100 shouldBe plain
+  }
+
+  test("the tag adjustment of a normalized type scales with the term, since it describes the same clusters") {
+    val c     = cluster("Obstacle", Some(1), labelCount = 1, tagCounts = Map("some unmapped tag" -> 1))
+    val terms = AccessScoreCalculator.scoreByType(Seq(c), Some(50.0))
+    terms("Obstacle") shouldBe (-0.33 * 2 +- eps)
+    // And the count path agrees, from the unscaled tag adjustment the API publishes.
+    val rebuilt = AccessScoreCalculator.subScoresFromCounts(
+      AccessScoreCalculator.severityCountsByType(Seq(c)),
+      AccessScoreCalculator.tagAdjustmentsByType(Seq(c)),
+      lengthMeters = Some(50.0)
+    )
+    rebuilt("Obstacle") shouldBe (terms("Obstacle") +- eps)
+  }
+
+  test("subScoresFromCounts with a length rebuilds the segment terms exactly, over a wide random spread") {
+    (1 to 200).foreach { seed =>
+      val clusters = randomClusters(seed, n = 1 + seed % 12)
+      val length   = 10.0 + (seed * 37) % 400
+      val expected = AccessScoreCalculator.scoreByType(clusters, Some(length))
+      val rebuilt  = AccessScoreCalculator.subScoresFromCounts(
+        AccessScoreCalculator.severityCountsByType(clusters),
+        AccessScoreCalculator.tagAdjustmentsByType(clusters),
+        lengthMeters = Some(length)
+      )
+      withClue(s"seed $seed, length $length: ") {
+        rebuilt.keySet shouldBe expected.keySet
+        expected.foreach { case (t, term) => rebuilt(t) shouldBe (term +- eps) }
+        AccessScoreCalculator.scoreFromSubScores(rebuilt) shouldBe
+          (AccessScoreCalculator.scoreStreet(clusters, Some(length)) +- eps)
+      }
+    }
+  }
+
+  test("an intersection scores its pooled corner features with no length factor at all") {
+    val corner = Seq(
+      cluster("CurbRamp", Some(1)),
+      cluster("CurbRamp", Some(1)),
+      cluster("NoCurbRamp", Some(3), tagCounts = Map("no alternate route" -> 1)),
+      cluster("Crosswalk", Some(2)),
+      cluster("Signal", tagCounts = Map("APS" -> 1))
+    )
+    val terms = AccessScoreCalculator.scoreByType(corner)
+    terms("CurbRamp") shouldBe (1.5 +- eps)
+    terms("NoCurbRamp") shouldBe (-1.5 +- eps)
+    terms("Crosswalk") shouldBe (0.375 +- eps)
+    terms("Signal") shouldBe (0.75 +- eps)
+    AccessScoreCalculator.scoreStreet(corner) shouldBe (1.0 / (1.0 + math.exp(-1.125)) +- eps)
+    // Two ramps at a four-way read as two ramps: degree does not enter the score.
+    AccessScoreCalculator.scoreStreet(corner) shouldBe (AccessScoreCalculator.scoreStreet(corner, None) +- eps)
+  }
+
+  test("the headline is the plain mean of whichever of segment, start, and end exist") {
+    AccessScoreCalculator.headlineScore(Some(0.2), Seq(0.5, 0.8)).get shouldBe (0.5 +- eps)
+    AccessScoreCalculator.headlineScore(Some(0.2), Seq(0.8)).get shouldBe (0.5 +- eps)
+    AccessScoreCalculator.headlineScore(Some(0.2), Seq.empty).get shouldBe (0.2 +- eps)
+    // An unaudited street between two scored intersections still gets a headline from its crossings.
+    AccessScoreCalculator.headlineScore(None, Seq(0.4, 0.6)).get shouldBe (0.5 +- eps)
+    AccessScoreCalculator.headlineScore(None, Seq.empty) shouldBe None
+  }
+
+  test("a region's intersection score is the unweighted mean of its scored intersections, or None") {
+    AccessScoreCalculator.scoreRegionIntersections(Seq(0.2, 0.4, 0.9)).get shouldBe (0.5 +- eps)
+    AccessScoreCalculator.scoreRegionIntersections(Seq.empty) shouldBe None
   }
 }

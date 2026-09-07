@@ -279,6 +279,7 @@ GET     /v3/api/validations                             controllers.api.Validati
 GET     /v3/api/validationResultTypes                   controllers.api.ValidationApiController.getValidationResultTypes
 GET     /v3/api/labelEdits                              controllers.api.LabelEditApiController.getLabelEdits(labelId: Option[Int], userId: Option[String], labelType: Option[String], editTimestamp: Option[String], source: Option[String], withValidation: Option[Boolean], filetype: Option[String], inline: Option[Boolean])
 GET     /v3/api/accessScoreStreets                      controllers.api.AccessScoreApiController.getAccessScoreStreets(bbox: Option[String], regionId: Option[Int], regionName: Option[String], filetype: Option[String], inline: Option[Boolean])
+GET     /v3/api/accessScoreIntersections                controllers.api.AccessScoreApiController.getAccessScoreIntersections(bbox: Option[String], regionId: Option[Int], regionName: Option[String], filetype: Option[String], inline: Option[Boolean])
 GET     /v3/api/accessScoreRegions                      controllers.api.AccessScoreApiController.getAccessScoreRegions(bbox: Option[String], regionId: Option[Int], regionName: Option[String], filetype: Option[String], inline: Option[Boolean])
 GET     /v3/api/accessScoreConfig                       controllers.api.AccessScoreApiController.getAccessScoreConfig
 
@@ -293,6 +294,7 @@ GET     /v3/api-docs/streets                            controllers.ApiDocsContr
 GET     /v3/api-docs/streetTypes                        controllers.ApiDocsController.streetTypes
 GET     /v3/api-docs/regions                            controllers.ApiDocsController.regions
 GET     /v3/api-docs/accessScoreStreets                 controllers.ApiDocsController.accessScoreStreets
+GET     /v3/api-docs/accessScoreIntersections           controllers.ApiDocsController.accessScoreIntersections
 GET     /v3/api-docs/accessScoreRegions                 controllers.ApiDocsController.accessScoreRegions
 GET     /v3/api-docs/validations                        controllers.ApiDocsController.validations
 GET     /v3/api-docs/validation-result-types            controllers.ApiDocsController.validationResultTypes

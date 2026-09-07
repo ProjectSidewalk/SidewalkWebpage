@@ -10,9 +10,10 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers._
 
 /**
- * Locks the response contract of the v3 AccessScore API (#3855): GET /v3/api/accessScoreStreets and
- * /v3/api/accessScoreRegions return a GeoJSON FeatureCollection by default and a snake_case CSV header for filetype=csv,
- * and reject a malformed bbox / non-positive regionId with 400 INVALID_PARAMETER. Asserts shape, not data.
+ * Locks the response contract of the v3 AccessScore API (#3855, #5095): GET /v3/api/accessScoreStreets,
+ * /v3/api/accessScoreIntersections, and /v3/api/accessScoreRegions return a GeoJSON FeatureCollection by default and a
+ * snake_case CSV header for filetype=csv, and reject a malformed bbox / non-positive regionId with 400
+ * INVALID_PARAMETER. Asserts shape, not data.
  *
  * Boots the real application (real Slick/PostGIS) and exercises the routes end to end. The endpoints are
  * `UserAwareAction` (no auth needed); the eager scheduling actors are disabled so they don't fire background work.
@@ -51,7 +52,8 @@ class AccessScoreApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       val body = contentAsString(resp)
       // Per-type columns are generated from AccessScoreCalculator.orderedScoredTypes; assert the leading + trailing run.
       body must include(
-        "street_edge_id,osm_way_id,region_id,score,audit_count,length_meters,label_count,n_curb_ramp"
+        "street_edge_id,osm_way_id,region_id,score,segment_score,start_intersection_id,end_intersection_id," +
+          "start_intersection_score,end_intersection_score,audit_count,length_meters,label_count,n_curb_ramp"
       )
       body must include("score_no_sidewalk,n_curb_ramp_sev1,n_curb_ramp_sev2,n_curb_ramp_sev3,n_curb_ramp_sev_null")
       body must include("tag_adj_curb_ramp")
@@ -73,6 +75,9 @@ class AccessScoreApiSpec extends PlaySpec with GuiceOneAppPerSuite {
           Set("CurbRamp", "NoCurbRamp", "Obstacle", "SurfaceProblem", "Crosswalk", "Signal", "NoSidewalk")
         (props \ "severity_counts" \ "CurbRamp").as[JsObject].keys mustBe Set("1", "2", "3", "null")
         (props \ "tag_adjustments").as[JsObject].keys mustBe (props \ "severity_counts").as[JsObject].keys
+        // The headline's components are always present, null where an end has no scored intersection (#5095).
+        props.keys must contain allOf ("segment_score", "start_intersection_id", "end_intersection_id",
+          "start_intersection_score", "end_intersection_score")
       }
       // A second call is served from the same cached computation.
       status(route(app, FakeRequest(GET, "/v3/api/accessScoreStreets")).get) mustBe OK
@@ -100,6 +105,13 @@ class AccessScoreApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       val json = contentAsJson(resp)
       (json \ "scored_types").as[Seq[String]] mustBe
         Seq("CurbRamp", "NoCurbRamp", "Obstacle", "SurfaceProblem", "Crosswalk", "Signal", "NoSidewalk")
+      (json \ "intersection_types").as[Seq[String]] mustBe Seq("CurbRamp", "NoCurbRamp", "Crosswalk", "Signal")
+      (json \ "segment_types").as[Seq[String]] mustBe Seq("Obstacle", "SurfaceProblem", "NoSidewalk")
+      (json \ "attribution_radius_meters").as[Double] mustBe 25.0
+      (json \ "length_normalization" \ "per_meters").as[Double] mustBe 100.0
+      (json \ "length_normalization" \ "min_length_meters").as[Double] mustBe 25.0
+      (json \ "type_weights" \ "Obstacle" \ "length_normalized").as[Boolean] mustBe true
+      (json \ "type_weights" \ "CurbRamp" \ "length_normalized").as[Boolean] mustBe false
       (json \ "severity_buckets").as[Seq[String]] mustBe Seq("1", "2", "3", "null")
       (json \ "type_weights" \ "NoSidewalk" \ "scoring").as[String] mustBe "street_condition"
       (json \ "type_weights" \ "CurbRamp" \ "base_weight").as[Double] mustBe 0.75
@@ -137,7 +149,8 @@ class AccessScoreApiSpec extends PlaySpec with GuiceOneAppPerSuite {
 
       val body = contentAsString(resp)
       body must include(
-        "region_id,name,score,coverage,audited_street_count,total_street_count,avg_n_curb_ramp"
+        "region_id,name,score,coverage,audited_street_count,total_street_count,intersection_score," +
+          "intersection_count,scored_intersection_count,avg_n_curb_ramp"
       )
       body must include("center_point")
       body must not include "regionId"
@@ -147,6 +160,66 @@ class AccessScoreApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       val resp = route(app, FakeRequest(GET, "/v3/api/accessScoreRegions?bbox=not-a-bbox")).get
       status(resp) mustBe BAD_REQUEST
       (contentAsJson(resp) \ "parameter").as[String] mustBe "bbox"
+    }
+  }
+
+  "GET /v3/api/accessScoreIntersections" should {
+    "return 200 GeoJSON FeatureCollection by default" in {
+      val resp = route(app, FakeRequest(GET, s"/v3/api/accessScoreIntersections?$tinyBbox")).get
+      status(resp) mustBe OK
+      contentType(resp) mustBe Some("application/json")
+
+      val json = contentAsJson(resp)
+      (json \ "type").as[String] mustBe "FeatureCollection"
+      (json \ "features").asOpt[Seq[JsObject]] mustBe defined
+    }
+
+    "return CSV with the documented snake_case header when filetype=csv" in {
+      val resp = route(app, FakeRequest(GET, s"/v3/api/accessScoreIntersections?$tinyBbox&filetype=csv")).get
+      status(resp) mustBe OK
+      contentType(resp) mustBe Some("text/csv")
+
+      val body = contentAsString(resp)
+      body must include(
+        "intersection_id,region_id,degree,grade_separated,street_edge_ids,audit_count,score,label_count,n_curb_ramp," +
+          "n_no_curb_ramp,n_crosswalk,n_signal,score_curb_ramp"
+      )
+      body must include("n_curb_ramp_sev1,n_curb_ramp_sev2,n_curb_ramp_sev3,n_curb_ramp_sev_null")
+      body must include("tag_adj_signal,lat,lng")
+      // Along-length types never score an intersection, so they have no columns here.
+      body must not include "n_obstacle"
+      body must not include "intersectionId"
+    }
+
+    "serve the whole city from the cache with Point features carrying the per-bucket inputs" in {
+      val resp = route(app, FakeRequest(GET, "/v3/api/accessScoreIntersections")).get
+      status(resp) mustBe OK
+      val json = contentAsJson(resp)
+      (json \ "type").as[String] mustBe "FeatureCollection"
+
+      // The CI database is empty, so the shape check only runs where there is an intersection to check.
+      (json \ "features").as[Seq[JsObject]].headOption.foreach { feature =>
+        (feature \ "geometry" \ "type").as[String] mustBe "Point"
+        val props = (feature \ "properties").as[JsObject]
+        (props \ "degree").as[Int] must be >= 3
+        (props \ "street_edge_ids").as[Seq[Int]].size must be >= 1
+        (props \ "severity_counts").as[JsObject].keys mustBe Set("CurbRamp", "NoCurbRamp", "Crosswalk", "Signal")
+        (props \ "severity_counts" \ "CurbRamp").as[JsObject].keys mustBe Set("1", "2", "3", "null")
+        props.keys must contain allOf ("grade_separated", "score", "sub_scores", "tag_adjustments")
+      }
+      status(route(app, FakeRequest(GET, "/v3/api/accessScoreIntersections")).get) mustBe OK
+    }
+
+    "return 400 INVALID_PARAMETER for a malformed bbox" in {
+      val resp = route(app, FakeRequest(GET, "/v3/api/accessScoreIntersections?bbox=not-a-bbox")).get
+      status(resp) mustBe BAD_REQUEST
+      (contentAsJson(resp) \ "parameter").as[String] mustBe "bbox"
+    }
+
+    "return 400 INVALID_PARAMETER for a non-positive regionId" in {
+      val resp = route(app, FakeRequest(GET, "/v3/api/accessScoreIntersections?regionId=0")).get
+      status(resp) mustBe BAD_REQUEST
+      (contentAsJson(resp) \ "parameter").as[String] mustBe "regionId"
     }
   }
 }

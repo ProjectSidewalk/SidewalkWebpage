@@ -54,6 +54,7 @@ Two naming conventions dominate here: **`Visit_<Page>`** for a page view (e.g. `
 `Visit_Leaderboard`, `Visit_Settings`, `Visit_PublicProfile` — the dashboard/leaderboard names carry over from the
 pre-redesign pages, so per-page analytics stay continuous across the #4474 cutover) and **`Click_module=<Action>`** for
 a discrete action (e.g. `Click_module=SaveSettings`, `Click_module=CreateTeam`, `Click_module=MistakeVote_agrees=<bool>`, `Click_module=MistakeNote`).
+Every `/v3/api-docs/*` page records `Visit_APIDocs_<Endpoint>` (e.g. `Visit_APIDocs_AccessScoreIntersections`).
 Follow these when adding a page or action. A settings save that actually moves the measurement units also logs
 `Click_module=ChangeUnits_from=<auto|metric|imperial>_to=<auto|metric|imperial>` beside the `SaveSettings` event, in the
 shape of the navbar's `Click_module=ChangeLanguage_from=<lang>_to=<lang>_location=<…>_route=<…>`, so units adoption can
