@@ -376,8 +376,11 @@ and a missing entry falls back to the plain `/assets/<path>`, so dev, jsdom, and
 as they would with the path written out by hand. `make lint-asset-paths` (a blocking CI step) keeps hardcoded
 `/assets/...` URLs out of `public/js/` and checks every `util.assetPath` argument: a literal one has to name a real
 file in a manifest family, and an interpolated one has to open with a literal family directory that is in the manifest
-(which is also why a path is built inside one template literal rather than concatenated). All necessary because
-neither half of a mistake raises anything at runtime.
+(which is also why a path is built inside one template literal rather than concatenated). It also rejects string
+surgery on an element's resolved `src`, which is the same mistake wearing a disguise: the URL already on an `<img>`
+carries *that* file's digest, so editing the filename inside it leaves another file's fingerprint in front of the new
+name. Ask `util.assetPath` for the variant's own path instead. All necessary because neither half of a mistake raises
+anything at runtime.
 
 **CSS gets there by rewriting the stylesheet** (#5094). A stylesheet offers no interpolation point for either
 mechanism above, so the `fingerprintCssAssetUrls` pipeline stage
@@ -396,7 +399,7 @@ Two things about that stage are load-bearing:
   unchanged, year-cached URL pointing at a path the new build lacks.
 - **An unresolvable `url()` fails the build**, like the asset-manifest generator: passing it through means a broken
   reference or an asset silently left on the one-hour cache, neither of which shows up at runtime.
-  `make lint-asset-paths` applies the same rule to `public/css/` (rule 4 in
+  `make lint-asset-paths` applies the same rule to `public/css/` (rule 5 in
   [`tools/check-asset-paths.mjs`](../tools/check-asset-paths.mjs)), so in practice this fails a fast CI step instead.
   Bundles under `public/js/*/build/` are left to the stage, which sees them on disk.
 

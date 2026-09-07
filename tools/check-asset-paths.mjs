@@ -21,14 +21,17 @@
 //        manifest;
 //      - an argument built by concatenation is rejected outright: only a whole path inside one template literal is
 //        checkable, and CLAUDE.md asks for that form anyway.
-//   3. Every prefix in that list is a real directory, so a renamed asset family fails here rather than in sbt.
+//   3. No string surgery on an element's `src`: a resolved URL carries the digest of the file it names, so editing
+//      the filename inside one leaves another file's fingerprint in front of it. Name the variant you want through
+//      util.assetPath instead.
+//   4. Every prefix in that list is a real directory, so a renamed asset family fails here rather than in sbt.
 //
 // == public/css/ ==
 // A stylesheet takes the other route: the `fingerprintCssAssetUrls` stage (project/CssAssetUrls.scala) rewrites its
 // `url(...)` targets at stage time, resolving each against the file itself rather than a manifest — so either URL form
 // is fine, nothing needs registering, and the stage's one requirement is the one rule here:
 //
-//   4. Every `url(...)` that names a file (not a data: payload, another origin, or a same-document fragment) resolves
+//   5. Every `url(...)` that names a file (not a data: payload, another origin, or a same-document fragment) resolves
 //      to something real under public/ — caught here, seconds into CI, rather than midway through a stage build.
 //
 // Bundles under public/js/*/build/ are left to the stage: checking them here would report a concatenated copy of a
@@ -64,6 +67,12 @@ const HARDCODED = /['"`(]\/assets\/(?!\$)[A-Za-z0-9_\-./]*/g;
 // Where a util.assetPath call starts; its argument is then read off with the walker below rather than by regex, so
 // every call shape is accounted for instead of only the ones a pattern happens to describe.
 const CALL = /util\.assetPath\(/g;
+
+// Editing an element's already-resolved `src` as a string. Deliberately narrow: `src` is the attribute that carries
+// an asset URL, and these are the methods that would rewrite one. `href` is left out — in public/js it names fragment
+// ids, the page's own location and API links, never an asset.
+const SRC_SURGERY =
+  /(?:\.src|getAttribute\(\s*['"]src['"]\s*\))\s*\.\s*(replace|slice|substring|substr|split|concat)\s*\(/g;
 
 // A css url() token. Kept in step with UrlToken in project/CssAssetUrls.scala: this check is only worth anything
 // while it reads the same references the stage will.
@@ -289,7 +298,7 @@ function inManifest(logicalPath) {
   return PREFIXES.length === 0 || PREFIXES.some((prefix) => logicalPath.startsWith(`${prefix}/`));
 }
 
-// --- 1 & 2. Per-file checks ---------------------------------------------------------------------------------------
+// --- 1, 2 & 3. Per-file checks -----------------------------------------------------------------------------------
 
 const files = walkJs(JS_DIR);
 let staticCalls = 0;
@@ -308,6 +317,12 @@ for (const file of files) {
       if (ALLOWED.some((entry) => entry.file === file && url === entry.url.split('{')[0])) continue;
       problems.push(`${file}:${i + 1}: hardcoded '${url}' URL — use util.assetPath('images/...') so staged builds `
         + 'serve the fingerprinted, immutable-cached copy');
+    }
+
+    for (const [, method] of line.matchAll(SRC_SURGERY)) {
+      problems.push(`${file}:${i + 1}: edits an element's resolved src with .${method}() — a staged build's URL `
+        + 'carries the digest of the file it names, so the result keeps that fingerprint in front of a different '
+        + "filename and 404s. Build the variant's own URL with util.assetPath instead.");
     }
   });
 
@@ -364,7 +379,7 @@ for (const file of files) {
   }
 }
 
-// --- 3. The allowlist is still live -------------------------------------------------------------------------------
+// --- 4. The allowlist is still live -------------------------------------------------------------------------------
 
 for (const { file, url } of ALLOWED) {
   const text = existsSync(join(ROOT, file)) ? readFileSync(join(ROOT, file), 'utf8') : '';
@@ -374,7 +389,7 @@ for (const { file, url } of ALLOWED) {
   }
 }
 
-// --- 4. Every css url() names a real file --------------------------------------------------------------------------
+// --- 5. Every css url() names a real file --------------------------------------------------------------------------
 
 const cssFiles = walkCss(PUBLIC_DIR);
 let cssUrls = 0;

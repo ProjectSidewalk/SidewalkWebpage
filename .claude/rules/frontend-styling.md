@@ -24,8 +24,9 @@ Full rules: `docs/style-guide.md` (tokens, primitives, file layout, naming) and 
   fingerprinted name (`docs/deployment-and-stages.md` → "Asset caching"). Naming a file that isn't there fails
   `make lint-asset-paths` and the stage build, so add the asset first.
 - **Twirl:** every asset through `assets.path("…")` (JS uses `util.assetPath('…')`), never a hardcoded `/assets/`
-  string; only those resolve to the fingerprinted, immutable URL, and `make lint-asset-paths` gates the JS side. No
-  inline styles or scripts; `alt` on every image; prefer `data-i18n="ns:key"`. Icons are their own files in
-  `public/images/icons/`, never inlined SVG.
+  string; only those resolve to the fingerprinted, immutable URL, and `make lint-asset-paths` gates the JS side. To
+  swap an `<img>` between artwork variants, ask `util.assetPath` for the new path — never edit the filename inside the
+  `src` already on the element, which carries the old file's digest. No inline styles or scripts; `alt` on every
+  image; prefer `data-i18n="ns:key"`. Icons are their own files in `public/images/icons/`, never inlined SVG.
 - **Accessibility gate:** every page in `test/e2e/pages.js` is held to WCAG 2.1 AA by axe; new controls are real
   semantic elements with names and keyboard handlers. Allowlisting a violation is a last resort and needs an issue.
