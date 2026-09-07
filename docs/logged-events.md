@@ -57,7 +57,11 @@ a discrete action (e.g. `Click_module=SaveSettings`, `Click_module=CreateTeam`, 
 Follow these when adding a page or action. A settings save that actually moves the measurement units also logs
 `Click_module=ChangeUnits_from=<auto|metric|imperial>_to=<auto|metric|imperial>` beside the `SaveSettings` event, in the
 shape of the navbar's `Click_module=ChangeLanguage_from=<lang>_to=<lang>_location=<…>_route=<…>`, so units adoption can
-be measured the same way language switching is (`auto` means "follow the site language", the default). The landing page's validation grid logs
+be measured the same way language switching is (`auto` means "follow the site language", the default). Leaving the
+settings page with unsaved edits logs the user's answer to the shared unsaved-changes prompt
+(`common/UnsavedChangesGuard.js`) as `Click_module=UnsavedSettings_choice=<save|discard|stay>`, so a prompt people
+mostly answer "discard" to says the form is asking too late (#5226). The browser's own refresh/close warning can't
+be logged, so this counts link clicks only. The landing page's validation grid logs
 `View_module=LandingValidationGrid_labelCount=<n>` when the grid first loads (it's below the fold and lazy-loaded, so
 this marks the grid actually being seen, not just the page view) and
 `Click_module=LandingValidationGrid_result=<Agree|Disagree|Unsure>_labelId=<id>` per vote; the vote itself lands in
@@ -208,6 +212,7 @@ ones whose meaning, parameters, or history aren't obvious:
 | `RouteBuilder_Click=SavedRoute_Edit_RouteId=<id>` / `SavedRoute_Explore_RouteId=<id>` / `SavedRoute_Copy_RouteId=<id>` | Actions on a card in the intro panel's "Your saved routes" section: loading the route into the editor (clicking the card body), opening it in Explore, or copying its `/r/<slug>` share link. Signed-in users see their account's routes there; guests see the device-local list. |
 | `RouteBuilder_Click=UpdateRoute_RouteId=<id>` / `UpdateSuccess_RouteId=<id>` / `UpdateError` | The Update Route button while editing a loaded saved route: the PUT writing the edited street list back to the same route, and its outcome. |
 | `RouteBuilder_Click=NewRoute` | The Create-a-new-route button in the planner card: clears the current route or editing session (confirming first if unsaved work would be lost), returns to the intro state, and resets the camera to the city view. |
+| `RouteBuilder_Click=UnsavedLeave_<save\|discard\|stay>` | The answer to the prompt shown when a link would leave the builder with an unsaved route or unwritten edits (`common/UnsavedChangesGuard.js`, #5226). "save" then runs the normal save flow — an update for a loaded route, the name modal for a new one — so its own Update/Save events follow. A refresh or tab close falls back to the browser's own warning, which can't be logged. |
 | `RouteBuilder_Click=ExitEditSession` | Closing an editing session that has no unsaved edits (re-clicking the active card, or the trash can) — the saved route is untouched and the builder returns to the intro state. |
 | `RouteBuilder_AddWaypoint=Success_Count=<n>_Source=<MapClick\|AddressStart\|AddressEnd>` / `NoPath_Source=…` / `DifferentRegion_Source=…` | Point-to-point routing (#4579): a map click (or a typed Start/End address) added waypoint `n`, extending the route from the previous point along an A* walking path. `NoPath` / `DifferentRegion` mark a click that couldn't be added because it was unreachable or fell outside the route's neighborhood. |
 | `RouteBuilder_Click=SetStartAddress` / `SetEndAddress` | A Start or End address was chosen from the search field, planting a waypoint there. |

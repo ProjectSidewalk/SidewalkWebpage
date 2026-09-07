@@ -11,7 +11,8 @@
 * User Dashboard — Settings page. Editable username (#4373), read-only email, a measurement-units choice (#4404),
 * team membership, and the two privacy toggles from #4323 — "Show me on the leaderboard" (on_leaderboard) and
 * "Make my dashboard public" (public_profile). The whole form saves in one POST to /dashboard/settings via
-* Settings.js. Shown on the shared shell as its own nav item (#2545).
+* Settings.js, which also warns before the page is left with unsaved edits (#5226). Shown on the shared shell as
+* its own nav item (#2545).
 *
 * @param unitsChoice The user's own units selection: "auto" (follow the site language), "metric", or "imperial".
 *@
@@ -126,6 +127,7 @@
 
   @userDashboard._createTeamDialog()
   <script src="@assets.path("js/common/ConfirmDialog.js")"></script>
+  <script src="@assets.path("js/common/UnsavedChangesGuard.js")"></script>
   <script src="@assets.path("js/user-dashboard/TeamActions.js")"></script>
   <script src="@assets.path("js/user-dashboard/Settings.js")"></script>
   <script>
