@@ -22,6 +22,7 @@ class AccessScoreMapView {
   #model;
   #onSelect;
   #tooltipHtml;
+  #clickClaimed;
   #unit;
   #hover = { source: null, id: null };
   #selected = { unit: null, id: null };
@@ -38,12 +39,15 @@ class AccessScoreMapView {
    * @param {object} options.regions - The `/neighborhoods` polygon FeatureCollection (`region_id`, `region_name`).
    * @param {function} options.onSelect - Called with `{unit, id, lngLat}` on a click, or `null` on deselect.
    * @param {function} options.tooltipHtml - Called with `{unit, id}`; returns the hover tooltip's HTML or null.
+   * @param {function} [options.clickClaimed] - Called with the Mapbox click event; return true when something
+   *                                            drawn above these layers (a label dot) owns the click.
    */
-  constructor(map, { model, streets, regions, onSelect, tooltipHtml }) {
+  constructor(map, { model, streets, regions, onSelect, tooltipHtml, clickClaimed = () => false }) {
     this.#map = map;
     this.#model = model;
     this.#onSelect = onSelect;
     this.#tooltipHtml = tooltipHtml;
+    this.#clickClaimed = clickClaimed;
     this.#unit = model.state.unit;
     this.#tooltip = new mapboxgl.Popup({
       closeButton: false, closeOnClick: false, focusAfterOpen: false, className: 'acs-tooltip', maxWidth: '280px',
@@ -87,6 +91,11 @@ class AccessScoreMapView {
       this.#frame = null;
       this.#writeScores();
     });
+  }
+
+  /** Hides the hover tooltip, e.g. when a selection popup opens where the pointer sits. */
+  hideTooltip() {
+    this.#tooltip.remove();
   }
 
   /**
@@ -289,7 +298,7 @@ class AccessScoreMapView {
         this.#map.getCanvas().style.cursor = '';
       });
       this.#map.on('click', layer, (e) => {
-        if (this.#unit !== unit || !e.features.length) return;
+        if (this.#unit !== unit || !e.features.length || this.#clickClaimed(e)) return;
         e.preventDefault();
         this.#onSelect({ unit, id: e.features[0].id, lngLat: e.lngLat });
       });
@@ -299,6 +308,13 @@ class AccessScoreMapView {
     // A click on bare map clears the selection; Mapbox marks layer clicks with defaultPrevented.
     this.#map.on('click', (e) => {
       if (!e.defaultPrevented && this.#selected.id !== null) this.#onSelect(null);
+    });
+    // Leaving the canvas for a DOM element over it — the address-search pin and its popup, a control — fires no
+    // layer mouseleave, and the tooltip would otherwise sit open beside the pin's own popup.
+    this.#map.on('mouseout', () => {
+      this.#clearHover();
+      this.#tooltip.remove();
+      this.#map.getCanvas().style.cursor = '';
     });
   }
 

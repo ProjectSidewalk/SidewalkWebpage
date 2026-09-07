@@ -70,6 +70,10 @@
 
 .acs-segmented__option {
   position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
   margin: 0;
   text-align: center;
   font: var(--text-small-medium);
@@ -103,12 +107,63 @@
 
 /* ---- Sliders ---- */
 
-/* Native range inputs, unthemed: the thumb/track pseudo-elements are vendor-specific and accent-color is outside the
-   Baseline set the stylelint config allows, so the control keeps the platform look and the row carries the value. */
+/* Quiet sliders: a hairline neutral track and a small neutral thumb, so seven of them in a column read as one
+   calm block and the colored contribution bars underneath carry the meaning. Themed through the vendor
+   pseudo-elements (the standard `accent-color` is outside the Baseline set the stylelint config allows), and the
+   thumb keeps a visible focus ring. */
 .acs-range {
   width: 100%;
+  height: 20px;
   margin: 0;
+  background: transparent;
   cursor: pointer;
+  appearance: none;
+}
+
+.acs-range::-webkit-slider-runnable-track {
+  height: 3px;
+  border-radius: 2px;
+  background: var(--color-neutral-300);
+}
+
+.acs-range::-moz-range-track {
+  height: 3px;
+  border-radius: 2px;
+  background: var(--color-neutral-300);
+}
+
+.acs-range::-webkit-slider-thumb {
+  width: 14px;
+  height: 14px;
+  margin-top: -5.5px;
+  border: 2px solid var(--color-neutral-white);
+  border-radius: 50%;
+  background: var(--color-asphalt-300);
+  box-shadow: var(--box-shadow-sm);
+  appearance: none;
+}
+
+.acs-range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--color-neutral-white);
+  border-radius: 50%;
+  background: var(--color-asphalt-300);
+  box-shadow: var(--box-shadow-sm);
+}
+
+.acs-range:focus-visible {
+  outline: none;
+}
+
+.acs-range:focus-visible::-webkit-slider-thumb {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: 2px;
+}
+
+.acs-range:focus-visible::-moz-range-thumb {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: 2px;
 }
 
 .acs-slider-row {
@@ -136,10 +191,9 @@
   margin-bottom: 2px;
 }
 
-.acs-weight__swatch {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
+.acs-weight__icon {
+  width: 20px;
+  height: 20px;
   flex: none;
 }
 
@@ -151,28 +205,27 @@
   cursor: pointer;
 }
 
-.acs-weight__sign {
+/* "helps" / "hurts": the factor's direction in a word, tinted with the ramp's two poles. */
+.acs-weight__role {
   font: var(--text-tiny-semibold);
-  width: 16px;
-  height: 16px;
-  line-height: 16px;
-  text-align: center;
-  border-radius: 50%;
-  color: var(--color-neutral-white);
+  padding: 1px 6px;
+  border-radius: 8px;
 }
 
-.acs-weight__sign--feature {
-  background: var(--color-score-ramp-5);
+.acs-weight__role--feature {
+  color: var(--color-jade-800);
+  background: var(--color-jade-200);
 }
 
-.acs-weight__sign--problem {
-  background: var(--color-score-ramp-1);
+.acs-weight__role--problem {
+  color: var(--color-orange-800);
+  background: var(--color-orange-200);
 }
 
 .acs-weight__value {
   font: var(--text-small-medium);
   color: var(--color-neutral-800);
-  min-width: 36px;
+  min-width: 44px;
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
@@ -190,6 +243,7 @@
   display: block;
   height: 4px;
   width: 0;
+  max-width: 55%;
   border-radius: 2px;
   background: var(--color-neutral-400);
   transition: width var(--transition-fast);
@@ -207,6 +261,100 @@
   font: var(--text-tiny-regular);
   color: var(--color-neutral-700);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ---- Collapsible sections ---- */
+
+.acs-details__summary {
+  cursor: pointer;
+  list-style: none;
+  font: var(--text-caption-semibold);
+  color: var(--color-link-200);
+}
+
+.acs-details__summary::-webkit-details-marker {
+  display: none;
+}
+
+.acs-details__summary::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: var(--space-xs);
+  border-right: 2px solid currentcolor;
+  border-bottom: 2px solid currentcolor;
+  transform: rotate(-45deg);
+  transition: transform var(--transition-fast);
+}
+
+.acs-details[open] > .acs-details__summary::before {
+  transform: rotate(45deg);
+}
+
+.acs-details--inline {
+  margin-top: var(--space-xs);
+}
+
+/* A whole section behind a disclosure: the heading is the summary, with the weights in force as its hint. */
+.acs-details__summary--section {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-sm);
+  color: inherit;
+}
+
+.acs-details__summary--section .filter-sidebar__heading {
+  flex: 1 1 auto;
+}
+
+.acs-details__hint {
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+}
+
+.acs-subsection {
+  margin-top: var(--space-md);
+  padding-top: var(--space-sm);
+  border-top: 1px dashed var(--color-neutral-200);
+}
+
+.acs-lens-table {
+  margin-top: var(--space-xs);
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-900);
+}
+
+.acs-lens-table__lens + .acs-lens-table__lens {
+  margin-top: var(--space-xs);
+}
+
+.acs-lens-table__name {
+  font: var(--text-caption-semibold);
+}
+
+.acs-lens-table__changes,
+.acs-lens-table__same {
+  margin: 2px 0 0;
+  padding-left: var(--space-md);
+}
+
+.acs-lens-table__same {
+  padding-left: 0;
+  color: var(--color-neutral-700);
+}
+
+.acs-lens-table__was {
+  color: var(--color-neutral-600);
+  text-decoration: line-through;
+}
+
+/* Unit buttons carry a glyph beside the word. */
+.acs-segmented__glyph {
+  width: 16px;
+  height: 16px;
+  flex: none;
 }
 
 /* ---- Actions ---- */
@@ -314,6 +462,26 @@
 .acs-tooltip,
 .acs-tooltip .mapboxgl-popup-content {
   pointer-events: none;
+}
+
+.acs-tooltip__meta {
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+}
+
+/* The explanation lines under a hover score. */
+.acs-tooltip__why {
+  margin: var(--space-xs) 0 0;
+  padding-left: var(--space-md);
+  font: var(--text-caption-regular);
+}
+
+.acs-tooltip__standout--better {
+  color: var(--color-jade-800);
+}
+
+.acs-tooltip__standout--worse {
+  color: var(--color-orange-800);
 }
 
 .acs-tooltip__score,

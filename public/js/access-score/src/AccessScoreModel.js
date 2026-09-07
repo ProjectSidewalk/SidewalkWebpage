@@ -28,6 +28,7 @@ class AccessScoreModel {
     aggregation: 'length',
     minCompletion: 0.5,
     showUnaudited: true,
+    showLabels: true,
   });
 
   /** Histogram resolution over the 0–1 score range. */
@@ -63,6 +64,7 @@ class AccessScoreModel {
   #terms;
   #scores;
   #regionStats = [];
+  #cityContributions = null;
 
   /**
    * @param {object} config - The `/v3/api/accessScoreConfig` response.
@@ -281,26 +283,34 @@ class AccessScoreModel {
   }
 
   /**
-   * Each type's mean contribution per audited street under the current state — what is driving the scores.
+   * Each type's mean contribution per audited street under the current state — what is driving the scores — and
+   * its mean cluster count, for the same streets.
    * @param {object} [options] - Scope.
    * @param {Set<number>} [options.streetIds] - Restrict to these street ids.
-   * @returns {{means: Object<string, number>, streets: number}} Mean term per type and the street count behind it.
+   * @returns {{means: Object<string, number>, clusterMeans: Object<string, number>, streets: number}} Mean term and
+   *   mean cluster count per type, and the street count behind them.
    */
   contributions({ streetIds } = {}) {
     const T = this.#types.length;
     const sums = new Float64Array(T);
+    const counts = new Float64Array(T);
     let streets = 0;
     for (let i = 0; i < this.#n; i++) {
       if (this.#audited[i] !== 1) continue;
       if (streetIds && !streetIds.has(this.#ids[i])) continue;
       streets += 1;
-      for (let t = 0; t < T; t++) sums[t] += this.#terms[i * T + t];
+      for (let t = 0; t < T; t++) {
+        sums[t] += this.#terms[i * T + t];
+        counts[t] += this.#clusterCounts[i * T + t];
+      }
     }
     const means = {};
+    const clusterMeans = {};
     this.#types.forEach((type, t) => {
       means[type] = streets ? sums[t] / streets : 0;
+      clusterMeans[type] = streets ? counts[t] / streets : 0;
     });
-    return { means, streets };
+    return { means, clusterMeans, streets };
   }
 
   /**
@@ -338,6 +348,56 @@ class AccessScoreModel {
       regions: this.#regions.length,
       problemClusters,
     };
+  }
+
+  /**
+   * What stands out about a street's or a neighborhood's score, for the hover tooltip: the type pushing it up
+   * the most, the type dragging it down the most, and — for a neighborhood — the type on which it differs most
+   * from the city-wide average per audited street.
+   *
+   * @param {string} unit - 'streets' or 'regions'.
+   * @param {number} id - The street or region id.
+   * @returns {?{helped: ?{type: string, value: number}, hurt: ?{type: string, value: number},
+   *   standout: ?{type: string, value: number, cityValue: number, better: boolean}}} Null for an unknown id or
+   *   an unscored feature; each part is null when nothing qualifies (e.g. no problems on the street).
+   */
+  notable(unit, id) {
+    let terms;
+    let standout = null;
+    if (unit === 'streets') {
+      const s = this.explainStreet(id);
+      if (!s || !s.audited) return null;
+      terms = Object.fromEntries(this.#types.map((t) => [t, s.terms[t].term]));
+    } else {
+      const r = this.explainRegion(id);
+      if (!r || r.score === null || r.belowFloor) return null;
+      const ids = new Set(this.regionStreets(id).map((st) => st.streetId));
+      terms = this.contributions({ streetIds: ids }).means;
+      const city = this.#cityContributions.means;
+      // The type whose per-street effect here is furthest from the city's, in absolute terms, if it is at all
+      // noticeable — a tenth of a logit per street is the floor below which it is noise.
+      let best = 0.1;
+      for (const t of this.#types) {
+        const diff = terms[t] - city[t];
+        if (Math.abs(diff) > best) {
+          best = Math.abs(diff);
+          standout = { type: t, value: terms[t], cityValue: city[t], better: diff > 0 };
+        }
+      }
+    }
+    const pick = (sign) => {
+      let bestType = null;
+      let bestValue = 0;
+      for (const t of this.#types) {
+        const v = terms[t];
+        if (Math.sign(v) === sign && Math.abs(v) > Math.abs(bestValue)) {
+          bestType = t;
+          bestValue = v;
+        }
+      }
+      return bestType ? { type: bestType, value: bestValue } : null;
+    };
+    return { helped: pick(1), hurt: pick(-1), standout };
   }
 
   /**
@@ -450,6 +510,7 @@ class AccessScoreModel {
       this.#scores[i] = this.#audited[i] === 1 ? 1 / (1 + Math.exp(-x)) : NaN;
     }
     this.#rollUpRegions();
+    this.#cityContributions = this.contributions();
   }
 
   /** Aggregates audited street scores per region under the current aggregation and completion floor. */

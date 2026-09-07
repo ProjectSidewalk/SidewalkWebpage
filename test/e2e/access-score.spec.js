@@ -50,6 +50,8 @@ async function stubFeeds(context) {
   await context.route('**/v3/api/accessScoreStreets*', (route) => route.fulfill({json: streetsFixture()}));
   await context.route('**/neighborhoods', (route) => route.fulfill({json: REGIONS}));
   await context.route('**/neighborhoods/completionRate*', (route) => route.fulfill({json: COMPLETION}));
+  await context.route('**/labels/all*', (route) =>
+    route.fulfill({json: {type: 'FeatureCollection', features: []}}));
 }
 
 /** Waits for the page to expose its model and map. */
@@ -106,7 +108,9 @@ test.describe('/accessScore', () => {
     await waitForTool(page);
     const requestsAfterLoad = scoreRequests.length;
 
-    // Zero out the curb-ramp weight: street 1 falls to the neutral 0.5.
+    // The weights start collapsed so the panel reads simply; open them, then zero the curb-ramp weight: street 1
+    // falls to the neutral 0.5.
+    await page.locator('#acs-weights-details summary').click();
     await page.locator('#acs-weight-CurbRamp').fill('0');
     await page.locator('#acs-weight-CurbRamp').dispatchEvent('input');
     await page.locator('#acs-weight-CurbRamp').dispatchEvent('change');

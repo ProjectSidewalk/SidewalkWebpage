@@ -152,6 +152,19 @@ describe('AccessScoreModel', () => {
         expect(model.kpis().totalKm).toBeCloseTo(1.3, 12);
     });
 
+    test('contributions report each type\'s mean term and mean cluster count over the scoped streets', () => {
+        const model = new AccessScoreModel(FIXTURE.config, streets, [REGION]);
+        const ids = new Set([2, 3]); // "one good curb ramp" and "bad curb ramp flips negative"
+        const { means, clusterMeans, streets: n } = model.contributions({ streetIds: ids });
+        expect(n).toBe(2);
+        expect(clusterMeans.CurbRamp).toBe(1);
+        expect(means.CurbRamp).toBeCloseTo((0.75 - 0.75) / 2, 12);
+        expect(clusterMeans.Obstacle).toBe(0);
+        const n2 = model.notable('streets', 3);
+        expect(n2.hurt.type).toBe('CurbRamp');
+        expect(n2.helped).toBeNull();
+    });
+
     test('an empty city yields no NaN anywhere', () => {
         const model = new AccessScoreModel(FIXTURE.config, { type: 'FeatureCollection', features: [] }, []);
         const k = model.kpis();
@@ -160,6 +173,7 @@ describe('AccessScoreModel', () => {
         expect(model.histogram().total).toBe(0);
         expect(model.ranked().top).toEqual([]);
         expect(model.contributions().streets).toBe(0);
+        expect(Object.values(model.contributions().clusterMeans).every((v) => v === 0)).toBe(true);
         expect(Object.values(model.contributions().means).every((v) => v === 0)).toBe(true);
     });
 });

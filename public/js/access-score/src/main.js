@@ -40,10 +40,13 @@ window.AccessScoreApp = (function () {
    *
    * @param {object} options - Page options.
    * @param {string} options.mapboxApiKey - The Mapbox access token.
+   * @param {function} options.viewerType - The pano viewer class for the city's imagery, for the label card.
+   * @param {string} options.imageryAccessToken - The imagery provider's token.
+   * @param {?string} options.username - The signed-in user's name, or null.
    * @returns {Promise<object>} Resolves with `{map, model, mapView}` once the map is scored (also exposed as
    *   `window.accessScore` for the insights panel and the browser tests).
    */
-  async function start({ mapboxApiKey }) {
+  async function start({ mapboxApiKey, viewerType, imageryAccessToken, username = null }) {
     const overlay = new MapLoadingOverlay({ onRetry: () => window.location.reload() });
     const sidebarEl = document.getElementById('filter-sidebar');
     let map = null;
@@ -98,10 +101,15 @@ window.AccessScoreApp = (function () {
         return;
       }
       mapView.setSelection(selection);
+      mapView.hideTooltip();
       urlSync.setSelection(selection.id);
       const html = explanationHtml(selection);
       if (!html) return;
-      popup = new mapboxgl.Popup({ className: 'acs-popup', maxWidth: '360px', focusAfterOpen: !fromUrl })
+      // Not closeOnClick: the popup is opened from a map click, and Mapbox would close it on that same click. A
+      // click on bare map deselects through the map view instead.
+      popup = new mapboxgl.Popup({
+        className: 'acs-popup', maxWidth: '360px', focusAfterOpen: !fromUrl, closeOnClick: false,
+      })
         .setLngLat(selection.lngLat).setHTML(html).addTo(map);
       popup.on('close', () => {
         if (!popup) return;
@@ -117,14 +125,20 @@ window.AccessScoreApp = (function () {
       regions,
       onSelect: (selection) => select(selection),
       tooltipHtml: ({ unit, id }) => (unit === 'streets' ? streetTooltipHtml(id) : regionTooltipHtml(id)),
+      // A click on a label dot opens the label card; the street or neighborhood under it stays unselected.
+      clickClaimed: (e) => map.queryRenderedFeatures(e.point).some((f) => f.layer.id.startsWith('labels-')),
     });
+    const evidence = await mountLabelEvidence();
 
     /** Applies a state change everywhere it shows: map, sidebar bars, URL, and the panel's listeners. */
     const applyChange = (meta) => {
       const state = model.state;
       if (meta.kind === 'Unit') mapView.setUnit(state.unit);
       if (meta.kind === 'ShowUnaudited') mapView.setShowUnaudited(state.showUnaudited);
+      if (meta.kind === 'ShowLabels') evidence.setVisible(state.showLabels);
       mapView.applyScores();
+      // A lens or a reset moves every slider; a slider mid-drag already shows its own value.
+      if (meta.kind !== 'Weight' || meta.final) sidebar.setState(model.state);
       sidebar.setContributions(model.contributions().means);
       if (popup) select(null);
       urlSync.scheduleWrite();
@@ -133,11 +147,16 @@ window.AccessScoreApp = (function () {
     };
 
     sidebar.onChange((partial, meta) => {
+      if (meta.kind === 'Section') {
+        log(meta.kind, meta.value);
+        return;
+      }
       if (meta.kind === 'Reset') {
         model.setState({ ...AccessScoreModel.DEFAULT_STATE, weights: { ...config.presets.default } });
         sidebar.setState(model.state);
         mapView.setUnit(model.state.unit);
         mapView.setShowUnaudited(model.state.showUnaudited);
+        evidence.setVisible(model.state.showLabels);
       } else {
         model.setState(partial);
       }
@@ -170,10 +189,56 @@ window.AccessScoreApp = (function () {
       }
     }
 
-    const app = { map, model, mapView, sidebar, config, streets, regions };
+    const app = { map, model, mapView, sidebar, config, streets, regions, labelLoader: evidence.loader };
     window.accessScore = app;
     document.dispatchEvent(new CustomEvent('accessscore:ready', { detail: app }));
     return app;
+
+    /**
+     * The labels behind the scores, as the Label Map draws them: one layer per type, fed by the viewport loader
+     * once the map is zoomed to street level (a whole city's labels is tens of MB, and at city scale the score
+     * colors are the story), each opening the label card on click. The evidence is what lets a reader check a
+     * score against the imagery rather than take it on faith.
+     */
+    async function mountLabelEvidence() {
+      const popupLabelViewer = await LabelPopup(false, viewerType, imageryAccessToken, username, {
+        syncUrlSource: 'AccessScore',
+        showExploreHereLink: true,
+      });
+      const labelData = await addLabelsToMap(map, { type: 'FeatureCollection', features: [] }, {
+        mapName: 'acs-map',
+        popupLabelViewer,
+        uiSource: 'AccessScore',
+        highQualityFilter: true,
+      });
+      const feedUrl = new URL('/labels/all?filterLowQuality=true', window.location.origin);
+      const loader = new ViewportLabelLoader(map, feedUrl, {
+        minFetchZoom: 14,
+        floorApplies: () => true,
+        dataBounds: featureCollectionBounds(regions),
+      });
+      const pill = new MapStatusPill(document.getElementById('acs-map'));
+      let visible = model.state.showLabels;
+      const applyVisibility = () => {
+        for (const type of Object.keys(labelData.sortedLabels)) toggleLabelLayer(type, visible, map, labelData);
+      };
+      loader.onData((featureCollection) => {
+        setLabelData(map, labelData, featureCollection);
+        applyVisibility();
+      });
+      loader.onError((e) => console.error('AccessScore label feed failed', e));
+      loader.onStateChange((state) => pill.setState(visible ? state : 'idle'));
+      loader.start();
+      applyVisibility();
+      return {
+        loader,
+        setVisible(show) {
+          visible = show;
+          applyVisibility();
+          if (!show) pill.setState('idle');
+        },
+      };
+    }
 
     /** The "scores reflect labels clustered on …" note under the sidebar's actions. */
     function renderUpdatedAt(iso) {
@@ -187,6 +252,36 @@ window.AccessScoreApp = (function () {
       el.textContent = i18next.t('accessscore:updated-at', { date });
     }
 
+    /** A signed per-street effect, as text ("+1.43"). */
+    function signed(value) {
+      return (value >= 0 ? '+' : '−') + Math.abs(value).toFixed(2);
+    }
+
+    /** The lines that say what is behind a score: the biggest help, the biggest drag, and what stands out. */
+    function notableHtml(unit, id) {
+      const n = model.notable(unit, id);
+      if (!n) return '';
+      const lines = [];
+      if (n.standout) {
+        // Four phrasings: a problem that costs less here is good news, a feature that helps less here is not.
+        const tone = n.standout.better ? 'better' : 'worse';
+        const kind = config.type_weights[n.standout.type].base_weight < 0 ? 'problem' : 'feature';
+        lines.push(`<li class="acs-tooltip__standout acs-tooltip__standout--${tone}">${
+          i18next.t(`accessscore:tip-standout-${kind}-${tone}`, {
+            type: typeName(n.standout.type), value: signed(n.standout.value), city: signed(n.standout.cityValue),
+          })}</li>`);
+      }
+      if (n.helped) {
+        lines.push(`<li>${i18next.t('accessscore:tip-helped', {
+          type: typeName(n.helped.type), value: signed(n.helped.value) })}</li>`);
+      }
+      if (n.hurt) {
+        lines.push(`<li>${i18next.t('accessscore:tip-hurt', {
+          type: typeName(n.hurt.type), value: signed(n.hurt.value) })}</li>`);
+      }
+      return lines.length ? `<ul class="acs-tooltip__why">${lines.join('')}</ul>` : '';
+    }
+
     function streetTooltipHtml(id) {
       const s = model.explainStreet(id);
       if (!s) return null;
@@ -195,18 +290,21 @@ window.AccessScoreApp = (function () {
       const { problems, features } = countClusters(s);
       return `<strong>${title}</strong>
         <div class="acs-tooltip__score">${formatScore(s.score)}</div>
-        <div>${i18next.t('accessscore:tooltip-meta', { problems, features })}</div>`;
+        <div class="acs-tooltip__meta">${i18next.t('accessscore:tooltip-meta', { problems, features })}</div>
+        ${notableHtml('streets', id)}`;
     }
 
     function regionTooltipHtml(id) {
       const r = model.explainRegion(id);
       if (!r) return null;
       const percent = Math.round(r.completion * 100);
-      const body = r.score === null || r.belowFloor
-        ? i18next.t('accessscore:insufficient', { percent })
-        : `<div class="acs-tooltip__score">${formatScore(r.score)}</div>
-           <div>${i18next.t('accessscore:completion', { percent })}</div>`;
-      return `<strong>${r.name}</strong>${body}`;
+      if (r.score === null || r.belowFloor) {
+        return `<strong>${r.name}</strong><br>${i18next.t('accessscore:insufficient', { percent })}`;
+      }
+      return `<strong>${r.name}</strong>
+        <div class="acs-tooltip__score">${formatScore(r.score)}</div>
+        <div class="acs-tooltip__meta">${i18next.t('accessscore:completion', { percent })}</div>
+        ${notableHtml('regions', id)}`;
     }
 
     /** Clusters of problem vs feature types on a street, for the one-line summary. */

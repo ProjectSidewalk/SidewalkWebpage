@@ -58,7 +58,9 @@ class AccessScoreSidebar {
     e.minCompletion.value = Math.round(state.minCompletion * 100);
     e.minCompletionOutput.textContent = `${Math.round(state.minCompletion * 100)}%`;
     e.showUnaudited.checked = state.showUnaudited;
+    e.showLabels.checked = state.showLabels;
     this.#showUnitOptions(state.unit);
+    this.#updateWeightsSummary(state.preset);
   }
 
   /**
@@ -74,7 +76,8 @@ class AccessScoreSidebar {
       row.bar.style.width = `${Math.round((Math.abs(value) / max) * 100)}%`;
       row.bar.classList.toggle('acs-weight__bar--feature', value > 0);
       row.bar.classList.toggle('acs-weight__bar--problem', value < 0);
-      row.barLabel.textContent = (value >= 0 ? '+' : '−') + Math.abs(value).toFixed(2);
+      row.barLabel.textContent = i18next.t('accessscore:row-avg',
+        { value: (value >= 0 ? '+' : '−') + Math.abs(value).toFixed(2) });
     }
   }
 
@@ -83,20 +86,21 @@ class AccessScoreSidebar {
     const root = this.#root;
     const preset = root.querySelector('#acs-preset');
     preset.innerHTML = [...this.#config.preset_order, 'custom'].map((id) =>
-      `<option value="${id}">${i18next.t(`accessscore:preset-${id.replace(/_/g, '-')}`)}</option>`).join('');
+      `<option value="${id}">${this.#presetName(id)}</option>`).join('');
 
     const weights = root.querySelector('#acs-weights');
     weights.innerHTML = this.#config.scored_types.map((type) => {
-      const sign = this.#config.type_weights[type].base_weight < 0 ? '−' : '+';
+      const problem = this.#config.type_weights[type].base_weight < 0;
       const name = i18next.t(`common:${AccessScoreSidebar.#typeKey(type)}`);
-      const signLabel = i18next.t(sign === '+' ? 'accessscore:weight-feature' : 'accessscore:weight-problem');
+      const role = i18next.t(problem ? 'accessscore:row-hurts' : 'accessscore:row-helps');
+      const roleTitle = i18next.t(problem ? 'accessscore:weight-problem' : 'accessscore:weight-feature');
       return `
         <div class="acs-weight" data-type="${type}">
           <div class="acs-weight__head">
-            <span class="acs-weight__swatch" style="background-color: ${util.misc.getLabelColors(type)};"></span>
+            <img class="acs-weight__icon" src="${util.misc.getIconImagePaths(type).iconImagePath}" alt="">
             <label class="acs-weight__label" for="acs-weight-${type}">${name}</label>
-            <span class="acs-weight__sign acs-weight__sign--${sign === '+' ? 'feature' : 'problem'}"
-                  title="${signLabel}" aria-label="${signLabel}">${sign}</span>
+            <span class="acs-weight__role acs-weight__role--${problem ? 'problem' : 'feature'}"
+                  title="${roleTitle}">${role}</span>
             <output class="acs-weight__value" for="acs-weight-${type}"></output>
           </div>
           <input type="range" class="acs-range" id="acs-weight-${type}" min="0" max="${AccessScoreSidebar.MAX_WEIGHT}"
@@ -106,6 +110,7 @@ class AccessScoreSidebar {
           </div>
         </div>`;
     }).join('');
+    this.#renderLensTable();
 
     this.#els = {
       unitInputs: Array.from(root.querySelectorAll('input[name="acs-unit"]')),
@@ -126,7 +131,11 @@ class AccessScoreSidebar {
       minCompletion: root.querySelector('#acs-min-completion'),
       minCompletionOutput: root.querySelector('#acs-min-completion-value'),
       showUnaudited: root.querySelector('#acs-show-unaudited'),
+      showLabels: root.querySelector('#acs-show-labels'),
       reset: root.querySelector('#acs-reset'),
+      weightsDetails: root.querySelector('#acs-weights-details'),
+      weightsSummary: root.querySelector('#acs-weights-summary'),
+      lensDetails: root.querySelector('#acs-lens-details'),
       regionOptions: root.querySelector('#acs-region-options'),
       streetOptions: root.querySelector('#acs-street-options'),
     };
@@ -150,6 +159,7 @@ class AccessScoreSidebar {
       row.input.addEventListener('input', () => {
         row.output.textContent = AccessScoreSidebar.#format(value());
         e.preset.value = this.#matchingPreset() ?? 'custom';
+        this.#updateWeightsSummary(e.preset.value);
         emitWeight(false);
       });
       row.input.addEventListener('change', () => emitWeight(true));
@@ -175,7 +185,14 @@ class AccessScoreSidebar {
     e.showUnaudited.addEventListener('change', () =>
       this.#emit({ showUnaudited: e.showUnaudited.checked },
         { kind: 'ShowUnaudited', value: e.showUnaudited.checked, final: true }));
+    e.showLabels.addEventListener('change', () => this.#emit({ showLabels: e.showLabels.checked },
+      { kind: 'ShowLabels', value: e.showLabels.checked, final: true }));
     e.reset.addEventListener('click', () => this.#emit(null, { kind: 'Reset', final: true }));
+    // Opening a disclosure is worth knowing about — it says whether people reach for the weights at all.
+    for (const [details, name] of [[e.weightsDetails, 'weights'], [e.lensDetails, 'lenses']]) {
+      details?.addEventListener('toggle', () =>
+        this.#emit(null, { kind: 'Section', value: `${name}_open=${details.open}`, final: true }));
+    }
   }
 
   #showUnitOptions(unit) {
@@ -203,6 +220,40 @@ class AccessScoreSidebar {
   }
 
   static #format(value) {
-    return Number(value).toFixed(2);
+    return `×${Number(value).toFixed(2)}`;
+  }
+
+  /** The display name of a preset id ("missing_ramps" → accessscore:preset-missing-ramps). */
+  #presetName(id) {
+    return i18next.t(`accessscore:preset-${id.replace(/_/g, '-')}`);
+  }
+
+  /** The "what does each lens change" table: per lens, the weights that differ from the engine's defaults. */
+  #renderLensTable() {
+    const table = this.#root.querySelector('#acs-lens-table');
+    if (!table) return;
+    const defaults = this.#config.presets.default;
+    table.innerHTML = this.#config.preset_order.map((id) => {
+      const changes = this.#config.scored_types
+        .filter((t) => Math.abs(this.#config.presets[id][t] - defaults[t]) > 1e-9)
+        .map((t) => `<li>${i18next.t(`common:${AccessScoreSidebar.#typeKey(t)}`)} <b>${
+          AccessScoreSidebar.#format(this.#config.presets[id][t])}</b> <span class="acs-lens-table__was">${
+          AccessScoreSidebar.#format(defaults[t])}</span></li>`);
+      const body = changes.length
+        ? `<ul class="acs-lens-table__changes">${changes.join('')}</ul>`
+        : `<p class="acs-lens-table__same">${i18next.t('accessscore:lens-same')}</p>`;
+      return `<div class="acs-lens-table__lens">
+        <div class="acs-lens-table__name">${this.#presetName(id)}</div>${body}
+      </div>`;
+    }).join('');
+  }
+
+  /** The one-line hint on the collapsed weights section: which weights are in force. */
+  #updateWeightsSummary(preset) {
+    const el = this.#els.weightsSummary;
+    if (!el) return;
+    if (preset === 'default') el.textContent = i18next.t('accessscore:weights-summary-default');
+    else if (preset === 'custom') el.textContent = i18next.t('accessscore:weights-summary-custom');
+    else el.textContent = i18next.t('accessscore:weights-summary-preset', { name: this.#presetName(preset) });
   }
 }
