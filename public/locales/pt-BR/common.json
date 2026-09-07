@@ -30,6 +30,12 @@
   "continue": "Continuar",
   "delete": "Excluir",
   "done": "Concluído",
+  "unsaved-changes": {
+    "message": "Você tem alterações não salvas. Deseja salvá-las antes de sair desta página?",
+    "save": "Salvar e sair",
+    "discard": "Sair sem salvar",
+    "stay": "Permanecer nesta página"
+  },
   "badges": {
     "congratulations": "Parabéns!",
     "you-earned": "Você ganhou a insígnia “{{badge}}”!",

@@ -30,6 +30,12 @@
   "continue": "Continuer",
   "delete": "Supprimer",
   "done": "Terminé",
+  "unsaved-changes": {
+    "message": "Vous avez des modifications non enregistrées. Voulez-vous les enregistrer avant de quitter cette page ?",
+    "save": "Enregistrer et quitter",
+    "discard": "Quitter sans enregistrer",
+    "stay": "Rester sur cette page"
+  },
   "badges": {
     "congratulations": "Félicitations !",
     "you-earned": "Vous avez gagné le badge « {{badge}} » !",

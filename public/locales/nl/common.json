@@ -31,6 +31,12 @@
   "continue": "Doorgaan",
   "delete": "Verwijderen",
   "done": "Klaar",
+  "unsaved-changes": {
+    "message": "Je hebt niet-opgeslagen wijzigingen. Wil je ze opslaan voordat je deze pagina verlaat?",
+    "save": "Opslaan en verlaten",
+    "discard": "Verlaten zonder opslaan",
+    "stay": "Op deze pagina blijven"
+  },
   "badges": {
     "congratulations": "Gefeliciteerd!",
     "you-earned": "Je hebt de “{{badge}}”-badge verdiend!",

@@ -1217,7 +1217,6 @@ class LabelDetail {
       confirmText: i18next.t('labelmap:comment-delete'),
       cancelText: i18next.t('common:cancel'),
       danger: true,
-      confirmIconSrc: util.assetPath('images/icons/delete-white-material.svg'),
     });
     if (!confirmed) return;
     const labelId = this.panoManager.label.labelId;

@@ -57,7 +57,11 @@ a discrete action (e.g. `Click_module=SaveSettings`, `Click_module=CreateTeam`, 
 Follow these when adding a page or action. A settings save that actually moves the measurement units also logs
 `Click_module=ChangeUnits_from=<auto|metric|imperial>_to=<auto|metric|imperial>` beside the `SaveSettings` event, in the
 shape of the navbar's `Click_module=ChangeLanguage_from=<lang>_to=<lang>_location=<…>_route=<…>`, so units adoption can
-be measured the same way language switching is (`auto` means "follow the site language", the default). The landing page's validation grid logs
+be measured the same way language switching is (`auto` means "follow the site language", the default). Leaving the
+settings page with unsaved edits logs the user's answer to the shared unsaved-changes prompt
+(`common/UnsavedChangesGuard.js`) as `Click_module=UnsavedSettings_choice=<save|discard|stay>`, so a prompt people
+mostly answer "discard" to says the form is asking too late (#5226). The browser's own refresh/close warning can't
+be logged, so this counts link clicks only. The landing page's validation grid logs
 `View_module=LandingValidationGrid_labelCount=<n>` when the grid first loads (it's below the fold and lazy-loaded, so
 this marks the grid actually being seen, not just the page view) and
 `Click_module=LandingValidationGrid_result=<Agree|Disagree|Unsure>_labelId=<id>` per vote; the vote itself lands in

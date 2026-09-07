@@ -30,6 +30,12 @@
   "continue": "Continue",
   "delete": "Delete",
   "done": "Done",
+  "unsaved-changes": {
+    "message": "You have unsaved changes. Would you like to save them before leaving this page?",
+    "save": "Save and leave",
+    "discard": "Leave without saving",
+    "stay": "Stay on this page"
+  },
   "badges": {
     "congratulations": "Congratulations!",
     "you-earned": "You earned the “{{badge}}” badge!",
