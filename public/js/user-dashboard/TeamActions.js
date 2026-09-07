@@ -42,9 +42,14 @@ class TeamActions {
     document.querySelectorAll('.ud-join-team-btn').forEach((btn) => {
       btn.addEventListener('click', () => TeamActions.#join(btn));
       if (!select) return;
-      select.addEventListener('change', () => {
+      const sync = () => {
         btn.disabled = select.value === '' || select.value === select.dataset.currentTeam;
-      });
+      };
+      select.addEventListener('change', sync);
+      // A bfcache restore puts the old selection back without firing `change`, which would otherwise strand Join
+      // greyed out over a team the user had already picked.
+      window.addEventListener('pageshow', sync);
+      sync();
     });
   }
 
@@ -121,6 +126,24 @@ class TeamActions {
   }
 
   /**
+   * Brings the Settings team controls onto a team the Save button just switched to.
+   *
+   * The save posts the team itself instead of going through these buttons, so without this nothing would tell the
+   * Leave button that it now speaks for a different team — it would keep naming the old one, and keep reporting the
+   * old one's openness (#5147).
+   *
+   * @param {number} teamId - The team the save just put the user on.
+   */
+  static settingsTeamSaved(teamId) {
+    const select = document.getElementById('set-team');
+    const option = [...select.options].find((o) => o.value === String(teamId));
+    if (!option) return;
+    select.dataset.currentTeam = option.value;
+    // Only the team a user is already on can be a closed one; every other option was rendered from the open teams.
+    TeamActions.#setLeaveButton({ name: option.textContent, open: true });
+  }
+
+  /**
    * Moves the Settings team controls onto a team the user just joined or left, without a reload.
    *
    * Only Settings has a form worth protecting, so this is also what tells the two callers apart: a page without the
@@ -132,20 +155,18 @@ class TeamActions {
   static #syncSettingsForm(team) {
     const select = document.getElementById('set-team');
     if (!select) return false;
-    const actions = document.querySelector('.ud-team-actions');
-    const leaveBtn = actions.querySelector('.ud-leave-team-btn');
 
-    // Whatever was selected is either the placeholder or the team being left. A team the user could switch back to
-    // stays in the list as one more option; one that has closed its doors would be a dead choice, so it goes.
-    const previous = select.selectedOptions[0];
+    // The team being left is the one data-current-team names, never simply whatever is selected: those are
+    // different teams whenever the user has picked something in the dropdown and not saved it.
+    const previous = [...select.options].find((o) => o.value === select.dataset.currentTeam);
     if (previous) {
-      if (previous.value !== '' && leaveBtn?.dataset.teamOpen === 'true') previous.selected = false;
+      // A team the user could switch back to stays in the list as one more option; one that has closed its doors
+      // would be a dead choice, so it goes.
+      const wasOpen = document.querySelector('.ud-leave-team-btn')?.dataset.teamOpen === 'true';
+      if (previous.value !== '' && wasOpen) previous.selected = false;
       else previous.remove();
     }
-    leaveBtn?.remove();
 
-    // Built element by element rather than as markup: a team name is user-supplied text, and textContent/dataset
-    // keep it text.
     const option = document.createElement('option');
     option.value = team ? String(team.id) : '';
     option.textContent = team ? team.name : select.dataset.placeholder;
@@ -154,16 +175,29 @@ class TeamActions {
     // The save compares against this to skip re-writing a team the user is already on, so it moves too.
     select.dataset.currentTeam = option.value;
 
-    if (team) {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'ud-btn-secondary ud-leave-team-btn';
-      btn.textContent = i18next.t('dashboard:team-leave');
-      btn.dataset.teamName = team.name;
-      btn.dataset.teamOpen = String(team.open);
-      actions.append(btn);
-    }
+    TeamActions.#setLeaveButton(team);
     return true;
+  }
+
+  /**
+   * Puts the Leave button on the team the user is now on, or takes it away when they're on none.
+   *
+   * Built element by element rather than as markup: a team name is text the user chose, and textContent/dataset
+   * keep it text.
+   *
+   * @param {?{name: string, open: boolean}} team - The team now joined, or null after leaving.
+   */
+  static #setLeaveButton(team) {
+    const actions = document.querySelector('.ud-team-actions');
+    actions.querySelector('.ud-leave-team-btn')?.remove();
+    if (!team) return;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'ud-btn-secondary ud-leave-team-btn';
+    btn.textContent = i18next.t('dashboard:team-leave');
+    btn.dataset.teamName = team.name;
+    btn.dataset.teamOpen = String(team.open);
+    actions.append(btn);
   }
 
   /** Clears the form + any prior error. */

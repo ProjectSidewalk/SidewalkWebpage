@@ -56,8 +56,9 @@ class Settings {
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.success) {
         this.currentUsername = username || this.currentUsername;
-        // The team just written is now the one they're on, so saving again doesn't write it a second time.
-        if (payload.teamId !== null) teamEl.dataset.currentTeam = teamVal;
+        // Hand the team the save just wrote to the team controls: it's the one the user is on now, so saving again
+        // doesn't write it a second time, and the Leave button speaks for it rather than the team they left.
+        if (payload.teamId !== null) TeamActions.settingsTeamSaved(payload.teamId);
         // Units are read from a stamp the server writes into the page, so a change only takes effect on the next
         // render. Reload rather than leave every distance on screen in the units the user just moved away from.
         if (units !== this.currentUnits) {

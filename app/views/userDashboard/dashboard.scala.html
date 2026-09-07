@@ -386,7 +386,7 @@
             </div>
           }
         }
-        @userDashboard._teamActions(profileData.userTeam, user.userId, createIsPrimary = true, createDisabled = adminView)
+        @userDashboard._teamActions(profileData.userTeam, user.userId, createIsPrimary = true, readOnly = adminView)
         @profileData.userTeam.map { _ =>
           <a class="ud-see-all" href="@routes.UserDashboardController.leaderboard#teams">@Messages("dashboard.team.see.board")</a>
         }
