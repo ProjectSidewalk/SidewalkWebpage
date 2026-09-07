@@ -199,6 +199,65 @@ describe('input aimed at a label whose pano is still loading is dropped (issue #
     expect(svv.ui.busyRegion.toggleClass).toHaveBeenLastCalledWith('validate-disabled', false);
     expect(labelContainer.dropInputWhileLoading('Agree')).toBe(false);
   });
+
+  // The lock is released on the two normal exits only, so before this a throw anywhere in the render left it set for
+  // good: every later verdict, undo and advance dropped, the tool reading as dead rather than busy, and the only
+  // trace a flood of this event. Mobile is where it would bite, since desktop is already unusable once the
+  // validate-disabled class stays on.
+  test('a render that throws still hands the tool back', async () => {
+    const {labelContainer, inFlight} = await buildContainerMidLoad();
+    await finishLoad(inFlight);
+
+    const boom = new Error('label card blew up');
+    svv.labelCard.render.mockImplementationOnce(() => { throw boom; });
+
+    await expect(labelContainer.moveToNextLabel()).rejects.toThrow(boom);
+
+    expect(labelContainer.dropInputWhileLoading('Agree')).toBe(false);
+    expect(svv.ui.busyRegion.attr).toHaveBeenLastCalledWith('aria-busy', null);
+    expect(svv.ui.busyRegion.toggleClass).toHaveBeenLastCalledWith('validate-disabled', false);
+  });
+
+  // The no-more-labels path releases the lock before showing its modal, so that the modal's own disableKeyboard is
+  // what stands. A release in the finally has to leave that alone rather than re-enable the keyboard behind it.
+  test('the out-of-labels modal is not handed a re-enabled keyboard', async () => {
+    global.svv.keyboard = {enableKeyboard: jest.fn(), disableKeyboard: jest.fn()};
+    const labelContainer = await LabelContainer.create([{labelId: 1, panoId: 'panoA'}], LABEL_TYPE);
+    svv.keyboard.enableKeyboard.mockClear();
+
+    await labelContainer.moveToNextLabel();
+
+    expect(svv.modalNoNewMission.show).toHaveBeenCalled();
+    expect(svv.keyboard.enableKeyboard).toHaveBeenCalledTimes(1); // The deliberate early release, and no second one.
+  });
+});
+
+// Both menus write the chosen reason straight onto the current label, and neither is reached through the guarded
+// verdict path: a reason button keeps focus after a click, and Enter activates a focused button natively once
+// KeyboardManager has stopped intercepting it — which is exactly what #setUiBusy does for the length of a load. The
+// reason would then be stored on a label the validator has not seen, survive resetMenu (which clears the chosen
+// styling but not the label's properties) and come back as the canned comment for a reason nobody picked.
+//
+// Checked in the source rather than by driving the menus, which need jQuery, i18next and Bootstrap to construct, and
+// whose #private methods a test can't reach anyway. The invariant is narrow enough to read directly: the guard has to
+// be the setter's first statement, since everything after it writes.
+describe('the reason setters refuse a reason aimed at a label that is still loading', () => {
+  const MENU_PATHS = {
+    desktop: path.join(REPO_ROOT, 'public/js/validate/src/menu/DesktopValidationMenu.js'),
+    mobile: path.join(REPO_ROOT, 'public/js/validate/src/menu/MobileValidationMenu.js'),
+  };
+
+  test.each([
+    ['desktop', '#setDisagreeReason', 'DisagreeReason'],
+    ['desktop', '#setUnsureReason', 'UnsureReason'],
+    ['mobile', '#setDisagreeReason', 'DisagreeReason'],
+    ['mobile', '#setUnsureReason', 'UnsureReason'],
+  ])('%s %s opens with the load guard', (layout, method, source) => {
+    const src = fs.readFileSync(MENU_PATHS[layout], 'utf8');
+    const guard = `${method}(id) {\n    if (svv.labelContainer.dropInputWhileLoading('${source}')) return;`;
+
+    expect(src).toContain(guard);
+  });
 });
 
 // Mobile had no busy state for years because #setUiBusy named two ids that exist only in the desktop view: jQuery

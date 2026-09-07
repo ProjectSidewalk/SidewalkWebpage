@@ -110,12 +110,16 @@ class MobileValidationMenu {
     });
 
     // Add onclick for the skip-reason buttons, which submit the validation without an associated reason.
+    // Guarded here rather than left to #validateLabel: these clear the reason on the current label before they
+    // submit, so mid-load the clear lands on the label that isn't on screen yet, even though the submit is refused.
     $('#no-menu-skip-reason-button').click((e) => {
+      if (svv.labelContainer.dropInputWhileLoading('DisagreeReason')) return;
       svv.tracker.push('Click=DisagreeReason_Skip');
       svv.labelContainer.getCurrentLabel().setProperty('disagreeOption', undefined);
       this.#validateLabel('Disagree', e.isTrigger);
     });
     $('#unsure-menu-skip-reason-button').click((e) => {
+      if (svv.labelContainer.dropInputWhileLoading('UnsureReason')) return;
       svv.tracker.push('Click=UnsureReason_Skip');
       svv.labelContainer.getCurrentLabel().setProperty('unsureOption', undefined);
       this.#validateLabel('Unsure', e.isTrigger);
@@ -264,7 +268,19 @@ class MobileValidationMenu {
   }
 
   // VALIDATING 'NO' SECTION.
+  /**
+   * Records the reason chosen for a disagree verdict.
+   *
+   * Guarded because a reason button keeps focus after a click, and Enter natively activates a focused button whether
+   * or not KeyboardManager is listening — so a second Enter inside the load window writes the reason onto the label
+   * that hasn't appeared on screen yet (#5211). `resetMenu` clears the chosen styling for a new label but not its
+   * properties, so the reason would ride along invisibly and be submitted as the canned comment for a reason nobody
+   * picked for the label it lands on.
+   *
+   * @param {string} id Id of the chosen reason button, or 'other' for the free-text box.
+   */
   #setDisagreeReason(id) {
+    if (svv.labelContainer.dropInputWhileLoading('DisagreeReason')) return;
     const menuUI = this.#menuUI;
     this.#disagreeReasonButtons.removeClass('chosen');
     if (id === 'other') {
@@ -279,7 +295,19 @@ class MobileValidationMenu {
   }
 
   // VALIDATING 'UNSURE' SECTION.
+  /**
+   * Records the reason chosen for an unsure verdict.
+   *
+   * Guarded because a reason button keeps focus after a click, and Enter natively activates a focused button whether
+   * or not KeyboardManager is listening — so a second Enter inside the load window writes the reason onto the label
+   * that hasn't appeared on screen yet (#5211). `resetMenu` clears the chosen styling for a new label but not its
+   * properties, so the reason would ride along invisibly and be submitted as the canned comment for a reason nobody
+   * picked for the label it lands on.
+   *
+   * @param {string} id Id of the chosen reason button, or 'other' for the free-text box.
+   */
   #setUnsureReason(id) {
+    if (svv.labelContainer.dropInputWhileLoading('UnsureReason')) return;
     const menuUI = this.#menuUI;
     this.#unsureReasonButtons.removeClass('chosen');
     if (id === 'other') {
