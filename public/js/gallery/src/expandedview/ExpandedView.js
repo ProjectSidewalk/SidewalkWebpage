@@ -66,6 +66,10 @@ class ExpandedView {
       voteColumnSource: 'GalleryExpandedThumbs',
       showLabelMapLink: true,
       showExploreHereLink: true,
+      // This host hides its panel with CSS rather than closing a <dialog>, so the card can't tell on its own
+      // whether it is on screen — and its keyboard shortcuts (#5194) must not vote on the last-shown label after
+      // the panel has been closed.
+      isOpen: () => this.open,
     });
 
     // Expose panoManager for Keyboard.js zoom shortcuts.
@@ -74,10 +78,10 @@ class ExpandedView {
     // Wire paging buttons.
     this.leftArrow = root.querySelector('.label-detail__paging--prev');
     this.rightArrow = root.querySelector('.label-detail__paging--next');
-    this.leftArrowDisabled = false;
-    this.rightArrowDisabled = false;
-    if (this.leftArrow) this.leftArrow.addEventListener('click', () => this.previousLabel(false));
-    if (this.rightArrow) this.rightArrow.addEventListener('click', () => this.nextLabel(false));
+    // A click whose `detail` is 0 didn't come from a pointer: it's the card's arrow-key shortcut (#5194), or Enter
+    // or Space on the focused arrow. Both stay logged as keyboard shortcuts rather than clicks.
+    if (this.leftArrow) this.leftArrow.addEventListener('click', (e) => this.previousLabel(e.detail === 0));
+    if (this.rightArrow) this.rightArrow.addEventListener('click', (e) => this.nextLabel(e.detail === 0));
 
     // Wire close button.
     const closeBtn = root.querySelector('[data-action="close-label-detail"]');
@@ -106,7 +110,6 @@ class ExpandedView {
     // With no reference card, paging picks up from the first card (Next), so there is nothing to page back to;
     // an enabled Prev here would drive cardIndex below -1 and break the paging state machine.
     if (this.leftArrow) this.leftArrow.disabled = true;
-    this.leftArrowDisabled = true;
     LabelDetail.syncUrlLabelId(labelId); // refreshUI's close scrubbed the param; put it back for refresh/re-share.
     this.labelDetail.showLabel(labelId, 'GalleryExpanded')
       .catch(() => this.closeExpandedViewAndRemoveCardTransparency());
@@ -251,14 +254,8 @@ class ExpandedView {
    * @param {number} index The index of the card to update to.
    */
   #updateExpandedViewCardByIndex(index) {
-    if (this.leftArrow) {
-      this.leftArrow.disabled = false;
-      this.leftArrowDisabled = false;
-    }
-    if (this.rightArrow) {
-      this.rightArrow.disabled = false;
-      this.rightArrowDisabled = false;
-    }
+    if (this.leftArrow) this.leftArrow.disabled = false;
+    if (this.rightArrow) this.rightArrow.disabled = false;
     this.cardIndex = index;
     this.refCard = sg.cardContainer.getCardByIndex(this.cardIndex);
 
@@ -271,18 +268,12 @@ class ExpandedView {
 
     this.#openExpandedView();
 
-    if (this.cardIndex === 0) {
-      if (this.leftArrow) this.leftArrow.disabled = true;
-      this.leftArrowDisabled = true;
-    }
+    if (this.cardIndex === 0 && this.leftArrow) this.leftArrow.disabled = true;
 
     if (sg.cardContainer.isLastPage()) {
       const page = sg.cardContainer.getCurrentPage();
       const lastCardIndex = (page - 1) * ExpandedView.#cardsPerPage + sg.cardContainer.getCurrentPageCards().length - 1;
-      if (this.cardIndex === lastCardIndex) {
-        if (this.rightArrow) this.rightArrow.disabled = true;
-        this.rightArrowDisabled = true;
-      }
+      if (this.cardIndex === lastCardIndex && this.rightArrow) this.rightArrow.disabled = true;
     }
   }
 
@@ -375,17 +366,5 @@ class ExpandedView {
     this.pendingCardIndex = undefined;
     this.#uiModal.css('visibility', 'visible');
     this.#updateExpandedViewCardByIndex(idx);
-  }
-
-  /**
-   * Programmatically triggers a validation from the expanded view (used by Keyboard.js shortcuts).
-   * Clicks the corresponding pano overlay button in the LabelDetail markup, which goes through
-   * LabelDetail's normal vote flow (including the onVote callback that syncs back to the card).
-   * @param {'Agree'|'Disagree'|'Unsure'} action
-   */
-  validate(action) {
-    if (!this.open) return;
-    const btn = this.#root.querySelector(`.label-detail__pano-overlay-button--${action.toLowerCase()}`);
-    if (btn && !btn.disabled) btn.click();
   }
 }

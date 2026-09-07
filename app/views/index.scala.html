@@ -258,10 +258,13 @@
     <script src='@assets.path("js/homepage.js")' defer></script>
     <script src='@assets.path("js/common/utilitiesSidewalk.js")' defer></script>
     <script src='@assets.path("js/common/share/ShareWidget.js")' defer></script>
+    @* The grid's imagery credits, without the 170 KB pano-viewer bundle: this page shows stills, never a live viewer. *@
+    <script src='@assets.path("js/common/pano-credit/build/pano-credit.js")' defer></script>
     <script src='@assets.path("js/LandingValidationGrid.js")' defer></script>
     <link href='@assets.path("css/components/choropleth.css")' rel="stylesheet">
     <link href='@assets.path("css/components/deployment-map.css")' rel="stylesheet">
     <link href='@assets.path("css/components/landing-validation-grid.css")' rel="stylesheet">
+    <link href='@assets.path("css/components/pano-attribution.css")' rel="stylesheet">
     @* The grid cards' share chip + popover (.label-detail__share-*) are styled by css/components/share-widget.css, which common/main.scala.html links on every page — nothing else here needs label-detail.css. *@
 
     <script>

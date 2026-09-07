@@ -46,7 +46,7 @@ case class LabelClusterFiltersForApi(
  * @param labelId Unique identifier for the label
  * @param userId Anonymized identifier of the user who created the label
  * @param panoId Panorama identifier where the label was placed
- * @param panoSource Imagery provider the panorama came from (gsv, mapillary, or infra3d); None when the pano has no
+ * @param panoSource Imagery provider the panorama came from (gsv, mapillary, panoramax, or infra3d); None when the pano has no
  *                   pano_data row (the cluster query LEFT JOINs pano_data, and no FK guarantees a row exists)
  * @param severity Optional severity rating (1-3 scale)
  * @param timeCreated Timestamp when the label was created

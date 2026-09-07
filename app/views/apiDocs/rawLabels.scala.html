@@ -453,7 +453,7 @@
           <tr>
             <td><code>properties.pano_source</code></td>
             <td><code>string</code></td>
-            <td>Imagery provider the panorama came from: <code>gsv</code> (Google Street View), <code>mapillary</code>, or <code>infra3d</code>.</td>
+            <td>Imagery provider the panorama came from: <code>gsv</code> (Google Street View), <code>mapillary</code>, <code>panoramax</code>, or <code>infra3d</code>.</td>
           </tr>
           <tr>
             <td><code>properties.image_capture_date</code></td>
@@ -463,7 +463,7 @@
           <tr>
             <td><code>properties.pano_url</code></td>
             <td><code>string | null</code></td>
-            <td>Link to view the panorama where this label was placed in its imagery provider's viewer, positioned at the label's heading and pitch. For Google Street View panoramas this uses Google's <a target="_blank" href="https://developers.google.com/maps/documentation/urls/get-started#street-view-action">Maps URLs</a> format (no API key required); for Mapillary it links to the Mapillary web app. <code>null</code> for providers without a shareable public viewer (e.g., infra3d).</td>
+            <td>Link to view the panorama where this label was placed in its imagery provider's viewer, positioned at the label's heading and pitch. For Google Street View panoramas this uses Google's <a target="_blank" href="https://developers.google.com/maps/documentation/urls/get-started#street-view-action">Maps URLs</a> format (no API key required); for Mapillary it links to the Mapillary web app; for Panoramax it links to the picture on the Panoramax federated viewer. <code>null</code> for providers without a shareable public viewer (e.g., infra3d).</td>
           </tr>
 
             <!-- Camera and View Position Information -->

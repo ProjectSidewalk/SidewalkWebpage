@@ -22,6 +22,10 @@ class MobileValidationMenu {
 
     // Add onclick for each validation button.
     menuUI.yesButton.click((e) => {
+      // A tap that lands while the next label's pano is still loading would be answering the label on screen and
+      // recording it against the one behind it (#5211). The verdict row is dimmed for that window; this is what
+      // catches a tap that beat the class onto the page.
+      if (svv.labelContainer.dropInputWhileLoading('Agree')) return;
       const action = e.isTrigger ? 'ValidationKeyboardShortcut_Agree' : 'ValidationButtonClick_Agree';
       svv.tracker.push(action);
       this.#setYesView();
@@ -31,12 +35,14 @@ class MobileValidationMenu {
       this.#validateLabel(svv.labelContainer.getCurrentLabel().getProperty('validationResult'), e.isTrigger);
     });
     menuUI.noButton.click((e) => {
+      if (svv.labelContainer.dropInputWhileLoading('Disagree')) return;
       const action = e.isTrigger ? 'ValidationKeyboardShortcut_Disagree' : 'ValidationButtonClick_Disagree';
       svv.tracker.push(action);
       this.#setNoView();
       svv.labelContainer.getCurrentLabel().setProperty('validationResult', 'Disagree');
     });
     menuUI.unsureButton.click((e) => {
+      if (svv.labelContainer.dropInputWhileLoading('Unsure')) return;
       const action = e.isTrigger ? 'ValidationKeyboardShortcut_Unsure' : 'ValidationButtonClick_Unsure';
       svv.tracker.push(action);
       this.#setUnsureView();
@@ -300,6 +306,9 @@ class MobileValidationMenu {
    * @param {boolean} keyboardShortcut Whether or not the validation was triggered by a keyboard shortcut.
    */
   #validateLabel(action, keyboardShortcut) {
+    // Everything below writes to whatever getCurrentLabel() returns, which mid-load is already the next label (#5211).
+    if (svv.labelContainer.dropInputWhileLoading(`Submit=${action}`)) return;
+
     const menuUI = this.#menuUI;
     const actionStr = keyboardShortcut ? 'ValidationKeyboardShortcut_Submit_Validation=' : 'Click=Submit_Validation=';
     const timestamp = new Date();

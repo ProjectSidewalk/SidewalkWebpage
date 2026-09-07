@@ -94,7 +94,7 @@ jobs:
         run: npx eslint public/js/ public/locales/ test/js/ test/e2e/ playwright.config.js
 
       # Blocking: the CSS tree is kept stylelint-clean (#2487), the CSS counterpart to the ESLint gate above. Same glob
-      # `make stylelint` defaults to; vendored/generated CSS is carved out by stylelint.config.mjs's own `ignoreFiles`.
+      # `make stylelint` defaults to; vendored/generated CSS is carved out by `.stylelintignore`.
       # The glob is single-quoted so Stylelint's own globber expands `**` (not the shell). Like ESLint, no
       # `--max-warnings` flag: the one `warning` rule (max-line-length) is deliberately advisory — CLAUDE.md sanctions
       # long-line exceptions — so an over-limit line nags but doesn't block. `if: always()` runs it even when an earlier
@@ -225,7 +225,8 @@ jobs:
         uses: sbt/setup-sbt@v1
 
       # Bring up Postgres+PostGIS exactly as dev does (db/Dockerfile + init.sh, which restores the shared
-      # sidewalk_login schema and the sidewalk_init template). No data volume is mounted, so init runs fresh each run.
+      # sidewalk_login schema and the sidewalk_init template). A runner starts with the `pgdata` volume empty, which is
+      # what makes the entrypoint run init.sh — locally, an existing volume makes it skip, and you get your own dev DB.
       - name: Start database
         run: docker compose up -d --build db
 
@@ -502,7 +503,8 @@ jobs:
       # One leg per interpreter the web container ships, testing each script on the Python that runs it (#4396):
       # label_clustering.py is shelled out to by the app, so it stays on prod's EOL 3.8; the offline tooling needs
       # >= 3.11. Mirrors the `pytest-args-*` and `cov-omit-*` variables in the Makefile — each leg takes the whole
-      # directory minus the one file the other owns, so a new test file runs in both rather than in neither.
+      # directory minus the files only the other's interpreter can import (shapely/geopandas are 3.13-only here), so a
+      # new test file runs in both rather than in neither.
       # `half` also spells the check name, and `Python tests (in-band script)` is a required check — renaming a half
       # renames the check, which branch protection then waits forever for. Update both together.
       matrix:
@@ -511,8 +513,11 @@ jobs:
             advisory: false
             python: '3.8'
             requirements: -r requirements.txt -r requirements-dev.txt
-            pytest-args: test/python --ignore=test/python/test_check_streets_for_imagery.py
+            pytest-args: >-
+              test/python --ignore=test/python/test_check_streets_for_imagery.py
+              --ignore=test/python/test_onboard_city.py
             coverage-omit: scripts/check_streets_for_imagery.py
+            coverage-omit-2: scripts/onboard_city.py
           - half: offline tooling
             advisory: true
             python: '3.13'
@@ -535,3 +540,4 @@ jobs:
         run: pytest ${{ matrix['pytest-args'] }}
         env:
           COVERAGE_OMIT: ${{ matrix['coverage-omit'] }}
+          COVERAGE_OMIT2: ${{ matrix['coverage-omit-2'] }}

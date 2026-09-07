@@ -1,7 +1,8 @@
 .PHONY: dev docker-up docker-up-db docker-run docker-stop npm-sync ssh qa-worktree qa-worktree-stop worktree-remove \
         test-js test-e2e test-e2e-host \
         test-python test-python-app test-python-tools \
-        import-users import-dump create-new-schema fill-new-schema hide-streets-without-imagery \
+        import-users import-dump create-new-schema fill-new-schema onboard-city build-city-data check-imagery \
+        hide-streets-without-imagery \
         import-street-imagery reveal-or-hide-neighborhoods \
         lint lint-fix lint-evolutions lint-locales lint-css-layout lint-asset-paths scalafmt scalafmt-fix \
         eslint htmlhint stylelint eslint-fix stylelint-fix \
@@ -182,11 +183,39 @@ import-users:
 import-dump:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/import-dump.sh $(db)"
 
+# The repo's highest evolution number, so create-new-schema.sh can refuse a donor schema that another branch's QA
+# pushed ahead of this checkout (cloning it would carry that branch's evolution into the new city).
+max-evolution = $(shell ls conf/evolutions/default | sed 's/\.sql$$//' | grep -E '^[0-9]+$$' | sort -n | tail -1)
+# Play's hash of that evolution's file: a donor whose top evolution carries the same hash is certainly on this
+# checkout's evolution, not another branch's under the same number (see create-new-schema.sh).
+max-evolution-hash = $(shell python3 -c 'import sys; sys.path.insert(0, "tools"); import setup_new_city; print(setup_new_city.highest_evolution_hash())')
+
+# Clone a live city's structure (+ seed rows) into a new empty schema. e.g.
+# `make create-new-schema name=sidewalk_laurens_ia donor=sidewalk_richmond`; donor defaults to the active dev city.
 create-new-schema:
-	@docker exec -it $(db-container) sh -c "/opt/scripts/create-new-schema.sh $(name)"
+	@docker exec -it $(db-container) sh -c "/opt/scripts/create-new-schema.sh $(name) $(or $(donor),$$(docker exec $(web-container) printenv DATABASE_USER 2>/dev/null)) $(max-evolution) $(max-evolution-hash)"
 
 fill-new-schema:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/fill-new-schema.sh"
+
+# Host-side (edits conf/ and pauses for you to start the app), so no docker exec wrapper.
+onboard-city:
+	@python3 tools/setup_new_city.py $(id)
+
+# Build a city's street/region staging data + QA GeoPackage (scripts/onboard_city.py, in the web container), passing
+# the script's flags via args=. The same target re-exports the SQL after hand edits: a bare --from-gpkg targets the
+# city's own QA GeoPackage.
+# e.g. `make build-city-data id=newport-ky args="--place 'Newport, Kentucky, USA'"`
+#      `make build-city-data id=newport-ky args="--from-gpkg"`
+build-city-data:
+	@docker exec -it $(web-container) sh -c "cd /home && python3.13 scripts/onboard_city.py --city-id $(id) $(args)"
+
+# Imagery preflight or full scan for a city's streets (scripts/check_streets_for_imagery.py, in the web container,
+# which holds the provider keys). A preflight samples the build artifacts before the city has a database:
+# e.g. `make check-imagery id=laurens-ia args="--sample 150 --mapillary"`; the full scan (`args="--mapillary"`) is
+# what `make onboard-city` runs for you.
+check-imagery:
+	@docker exec -it $(web-container) sh -c "cd /home && python3.13 scripts/check_streets_for_imagery.py --city-id $(id) $(args)"
 
 hide-streets-without-imagery:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/hide-streets-without-imagery.sh"
@@ -196,11 +225,13 @@ import-street-imagery:
 
 # Python utility tests (test/python/) in the web container; extra pytest flags via args=, e.g. args="-k bbox -v".
 # Split by interpreter because the scripts are: label_clustering.py runs in-band on prod's `python3` (3.8), while the
-# offline tooling needs >= 3.11. Each half runs the whole directory minus the one file the other owns, so a new test
-# file runs in both by default instead of silently in neither. COVERAGE_OMIT is explained in pyproject.toml.
-pytest-args-app   = test/python --ignore=test/python/test_check_streets_for_imagery.py
+# offline tooling needs >= 3.11. Each half runs the whole directory minus the files only the other's interpreter can
+# import, so a new test file runs in both by default instead of silently in neither. COVERAGE_OMIT/COVERAGE_OMIT2 are
+# explained in pyproject.toml.
+pytest-args-app   = test/python --ignore=test/python/test_check_streets_for_imagery.py \
+                    --ignore=test/python/test_onboard_city.py
 pytest-args-tools = test/python --ignore=test/python/test_label_clustering.py
-cov-omit-app      = -e COVERAGE_OMIT=scripts/check_streets_for_imagery.py
+cov-omit-app      = -e COVERAGE_OMIT=scripts/check_streets_for_imagery.py -e COVERAGE_OMIT2=scripts/onboard_city.py
 cov-omit-tools    = -e COVERAGE_OMIT=scripts/label_clustering.py
 
 # Both halves run even when the first fails, matching CI's `fail-fast: false`; prerequisites would stop at the first.

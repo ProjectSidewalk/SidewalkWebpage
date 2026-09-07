@@ -1,0 +1,26 @@
+@import models.user.Team
+@(currTeam: Option[Team], userId: String, createIsPrimary: Boolean, readOnly: Boolean = false)(implicit messages: Messages)
+
+@*
+* The "Create a team" / "Leave team" button pair, shared by the dashboard's team card and the Settings team section
+* so the two pages can't drift apart again (#5147). Both buttons are handled by TeamActions.js via their classes.
+*
+* Leave is a button rather than a dropdown entry because "no team" is the absence of a team, not one more team to
+* pick (#5147). Whether the team still takes members rides along, so the confirmation can say if leaving is undoable.
+*
+* The user id sits on the wrapper, not the button, so a Leave button TeamActions.js adds later can find it too.
+*
+* @param createIsPrimary Whether "Create a team" is the section's main call to action (the dashboard card) or sits
+*   beside a control that already is (the Settings dropdown).
+* @param readOnly Set on the dashboard's admin view, where neither button means what it says: Create joins the
+*   signed-in admin rather than the user being looked at, and Leave's confirmation is first-person — the wrong
+*   promise to make about someone else's membership. Admins use that user's admin page, which offers "No team".
+*@
+<div class="ud-team-actions" data-user-id="@userId">
+  <button type="button" class="@if(createIsPrimary){ud-btn-primary}else{ud-btn-secondary} ud-create-team-btn"
+      @if(readOnly){disabled}>@if(createIsPrimary){<span class="ud-btn-plus" aria-hidden="true">+</span> }@Messages("dashboard.create.team")</button>
+  @currTeam.map { t =>
+    <button type="button" class="ud-btn-secondary ud-leave-team-btn" @if(readOnly){disabled}
+        data-team-name="@t.name" data-team-open="@t.open">@Messages("dashboard.team.leave")</button>
+  }
+</div>

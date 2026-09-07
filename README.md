@@ -79,12 +79,14 @@ guide: **[`docs/dev-environment.md`](docs/dev-environment.md)**.
 **Developer documentation lives in this repository** — versioned with the code, reviewed in pull requests, and
 searchable by tooling (and AI assistants). That includes how code ships: cutting a release and the deployment stages
 are in [`docs/deployment-and-stages.md`](docs/deployment-and-stages.md). The
-[**wiki**](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki) holds **city-deployment and GIS data preparation**
-(building a new city's database, road geometries, revealing and hiding regions), and other **operational how-tos and
-visual tutorials** — content that changes independently of the code or is maintained by non-developers.
+Onboarding a city — streets, regions, schema, configs — is in the repo too, in
+[`docs/onboarding-a-city.md`](docs/onboarding-a-city.md), because tooling in this repo does it. The
+[**wiki**](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki) is being wound down to what changes independently
+of the code or is maintained by non-developers: the partner-facing deployment considerations and a few **operational
+how-tos** for a running deployment (adding road geometries after launch, revealing and hiding regions).
 
-Rule of thumb: *if it describes the code, how to contribute, or how the code gets deployed, it's in the repo; if it's
-about preparing a new city's data or operating a running deployment's content, it's in the wiki.* We keep one source of
+Rule of thumb: *if it describes the code, how to contribute, how the code gets deployed, or how a city gets set up,
+it's in the repo; if it's about operating a running deployment's content, it's in the wiki.* We keep one source of
 truth per topic and cross-link rather than duplicate.
 
 ## AI in Project Sidewalk
@@ -120,10 +122,10 @@ Want a Project Sidewalk server set up for your city or municipality? Read our
 [Considerations for Deploying Project Sidewalk into a New City](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Considerations-when-Preparing-for-and-Deploying-to-New-Cities)
 wiki page, then email us at **sidewalk@cs.uw.edu**.
 
-If you're outside the team and want to set up your own server for a city we don't currently support, start with the
-[Creating a database for a new city](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Creating-database-for-a-new-city)
-wiki page. This is a non-trivial amount of work the first time through, especially without prior GIS experience —
-email our lead engineer, Mikey (saugstad@cs.washington.edu), with questions.
+If you're outside the team and want to set up your own server for a city we don't currently support, start with
+[Onboarding a city](docs/onboarding-a-city.md): the repo's tooling builds a city's streets and regions from open data
+and fills a database schema in an afternoon. The server side is still yours to run — email our lead engineer, Mikey
+(saugstad@cs.washington.edu), with questions.
 
 ## Project history & funding
 

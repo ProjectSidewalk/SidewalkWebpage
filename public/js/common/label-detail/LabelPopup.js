@@ -34,6 +34,7 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, currUsername, op
   if (!dialog) {
     throw new Error('LabelPopup: #label-modal not found. Did you include common.labelPopup() on the page?');
   }
+  const panoEl = dialog.querySelector('.label-detail__pano');
 
   // The pano viewer is built on the first showLabel(), never here (#5128): Google bills every StreetViewPanorama
   // constructed, hidden or not, and most visits to a hosting page never open a label. showLabel() opens the dialog
@@ -73,20 +74,24 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, currUsername, op
   if (prevBtn) prevBtn.hidden = true;
   if (nextBtn) nextBtn.hidden = true;
 
+  // A click whose `detail` is 0 didn't come from a pointer: it's the card's arrow-key shortcut (#5194), or Enter
+  // or Space on the focused arrow. The two input paths are logged apart, per docs/logged-events.md.
+  const pagingPrefix = (e) => (e.detail === 0 ? 'KeyboardShortcut' : 'Click');
+
   // Attached once here, guarded on the current navigator, so a repeat setNearbyNavigator() call can't stack
   // duplicate handlers that would double-advance the navigator on a single click.
   if (prevBtn) {
-    prevBtn.addEventListener('click', () => {
+    prevBtn.addEventListener('click', (e) => {
       if (!nearbyNav) return;
-      window.logWebpageActivity(`Click_module=LabelPopup_action=PrevLabel_labelId=${currentLabelId}`);
+      window.logWebpageActivity(`${pagingPrefix(e)}_module=LabelPopup_action=PrevLabel_labelId=${currentLabelId}`);
       const id = nearbyNav.prev(currentLabelId);
       if (id) showLabel(id, lastSource);
     });
   }
   if (nextBtn) {
-    nextBtn.addEventListener('click', () => {
+    nextBtn.addEventListener('click', (e) => {
       if (!nearbyNav) return;
-      window.logWebpageActivity(`Click_module=LabelPopup_action=NextLabel_labelId=${currentLabelId}`);
+      window.logWebpageActivity(`${pagingPrefix(e)}_module=LabelPopup_action=NextLabel_labelId=${currentLabelId}`);
       const id = nearbyNav.next(currentLabelId);
       if (id) showLabel(id, lastSource);
     });
@@ -105,6 +110,8 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, currUsername, op
    */
   async function showLabel(labelId, source) {
     if (!dialog.open) dialog.showModal();
+    // Clear the close-guard so this label's pano is allowed to reveal itself once it loads.
+    delete panoEl?.dataset.closedDuringLoad;
     if (opts.syncUrlSource) LabelDetail.syncUrlLabelId(labelId);
     currentLabelId = labelId;
     lastSource = source;
@@ -121,6 +128,11 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, currUsername, op
 
   // Every close path (X, backdrop, ESC) fires the dialog's close event.
   dialog.addEventListener('close', () => {
+    if (panoEl) {
+      // Clear setPano()'s inline visibility and flag the close, so a load still in flight can't reveal itself.
+      panoEl.style.visibility = '';
+      panoEl.dataset.closedDuringLoad = 'true';
+    }
     if (opts.syncUrlSource) LabelDetail.syncUrlLabelId(null);
     if (typeof opts.onClose === 'function' && currentLabelId) opts.onClose(currentLabelId);
   });

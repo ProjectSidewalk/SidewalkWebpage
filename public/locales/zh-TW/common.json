@@ -87,6 +87,7 @@
   "only": "只看",
   "image-capture-date": "影像拍攝日期",
   "drag-to-look-around": "拖曳以環顧四周",
+  "loading-imagery": "正在載入影像...",
   "hide-label": "隱藏標記",
   "show-label": "顯示標記",
   "hide-label-tooltip": "暫時隱藏標記以查看下方的情況。",
@@ -198,6 +199,7 @@
     "pano-address": "地址",
     "view-in-gsv": "在Google街景圖裡查看",
     "view-in-mapillary": "在Mapillary街景圖裡查看",
+    "view-in-panoramax": "在Panoramax街景圖裡查看",
     "city": "城市",
     "copy-to-clipboard": "複製到剪貼簿",
     "copied-to-clipboard": "資訊已複製於您的剪貼簿！"

@@ -13,6 +13,9 @@
  * swap panos via addScene()/loadScene() without destroying and recreating the WebGL context.
  */
 class PannellumViewer extends PanoViewer {
+  /** The `pano_data.source` value, so code outside the viewer can name this source without holding the class. */
+  static SOURCE = 'pannellum';
+
   /** @type {object} The underlying pannellum viewer instance. */
   #viewer = undefined;
 

@@ -3,6 +3,9 @@
  * Docs: https://mapillary.github.io/mapillary-js/api/classes/viewer.Viewer
  */
 class MapillaryViewer extends PanoViewer {
+  /** The `pano_data.source` value, so code outside the viewer can name this source without holding the class. */
+  static SOURCE = 'mapillary';
+
   // The vertical fov Mapillary can actually render a spherical image at: it renders fov = 2·atan(2^−zoom) and
   // clamps zoom to [0, 3], giving [14.25°, 90°]. Requests outside that are silently clamped by the SDK (#4852).
   // Plain Math rather than util.math.toDegrees: these evaluate at bundle load, and util ships in a separate

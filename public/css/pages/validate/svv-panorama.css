@@ -19,6 +19,19 @@
   overflow: hidden;
 }
 
+/* Pannellum's own progress box, desktop only. The fallback viewer's canvas is painted only once it holds the
+   current label's pano (PanoManager.#showPannellumPano, #5206), so this box can surface in one case: a fallback
+   label following another, where the outgoing pano stays up during the load. There it reads as a second provider's
+   progress UI, in its own styling, reporting megabytes, over a picture it does not belong to — and desktop already
+   says the tool is busy in its own voice, via the controls LabelContainer.#setUiBusy dims and the wait cursor.
+
+   Scoped to the desktop wrapper because that last part is not true on mobile: #svv-application-holder and
+   #validation-menu-holder exist only in validate.scala.html, so on mobile #setUiBusy has nothing to dim and a wait
+   cursor means nothing on touch. Until mobile grows a busy state of its own, this box is its only load feedback. */
+#svv-application-holder #svv-panorama-pannellum .pnlm-load-box {
+  display: none !important;
+}
+
 /* Colored frame on top of the pano and marker layers. Drawing it above the marker (rather than as the pano's own
    border underneath) means a label at the very edge is clipped by the frame instead of rendering on top of it. */
 #pano-border-frame {

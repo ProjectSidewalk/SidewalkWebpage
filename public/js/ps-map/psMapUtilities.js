@@ -207,3 +207,14 @@ function geometryBounds(geometry) {
   extend(geometry.coordinates);
   return bounds;
 }
+
+/**
+ * Returns the bounds enclosing every feature in a GeoJSON FeatureCollection.
+ * @param {object} featureCollection The collection.
+ * @returns {mapboxgl.LngLatBounds} Bounds covering all of its features.
+ */
+function featureCollectionBounds(featureCollection) {
+  const bounds = new mapboxgl.LngLatBounds();
+  for (const feature of featureCollection.features ?? []) bounds.extend(geometryBounds(feature.geometry));
+  return bounds;
+}

@@ -5,7 +5,8 @@ class PanoData {
   /**
    * @param params {object}
    * @param {string} params.panoId The unique ID for this panorama
-   * @param {string} params.source The data source for the image, one of "gsv", "mapillary", or "infra3d"
+   * @param {string} params.source The data source for the image: "gsv", "mapillary", "infra3d", "panoramax", or
+   *     "pannellum" for our own backup copy of a pano
    * @param {number} params.lat Latitude of the camera
    * @param {number} params.lng Longitude of the camera
    * @param {number} params.cameraHeading Heading of the camera in degrees, with respect to true north
@@ -18,6 +19,7 @@ class PanoData {
    * @param {moment} params.captureDate Time when the picture was taken, only using up to month/year granularity
    * @param {string} [params.address] Optional address for the current location
    * @param {string} [params.copyright] Optional associated copyright info for the image
+   * @param {string} [params.license] Optional licence identifier the provider records per image (Panoramax only)
    * @param {Array<{panoId: string, heading: number}>} params.linkedPanos List of nearby panos linked to with nav arrows
    * @param {Array<{panoId: string, captureDate: Date}>} params.history List of panos at this pano's location over time
    * @param {boolean} [params.submitted=false] Whether we've sent this data to the server yet; false unless in tutorial
@@ -40,7 +42,7 @@ class PanoData {
     });
 
     // Validate parameter types and ranges
-    const validSources = ['gsv', 'mapillary', 'infra3d', 'pannellum'];
+    const validSources = ['gsv', 'mapillary', 'infra3d', 'pannellum', 'panoramax'];
     if (!validSources.includes(params.source)) {
       throw new Error(`Invalid source. Must be one of: ${validSources.join(', ')}`);
     }
@@ -74,6 +76,7 @@ class PanoData {
       tileHeight: params.tileHeight || params.height,
       address: params.address || null,
       copyright: params.copyright || null,
+      license: params.license || null,
       captureDate: params.captureDate,
       linkedPanos: params.linkedPanos || [],
       history: params.history || [],

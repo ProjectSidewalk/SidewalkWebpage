@@ -30,7 +30,7 @@ Play backend ── routes → Controller → Service → Table (DAO/Slick)
         │                         Postgres + PostGIS  (one schema per city: sidewalk_<city>;
         │                                              auth in sidewalk_login)
         ▼
-External imagery providers (Google Street View / Mapillary / Infra3d / Pannellum)
+External imagery providers (Google Street View / Mapillary / Infra3d / Panoramax / Pannellum)
 
 Out-of-band Python utilities: scripts/label_clustering.py, scripts/check_streets_for_imagery.py
 ```
@@ -207,10 +207,11 @@ corresponding Twirl view:
   chart colors follow the design system). Served file-by-file — no Grunt bundle.
 - **`ps-map/`** — shared map component used across pages.
 - **`common/`** — modules shared across bundles: `pano-viewer/` (an abstraction over the GSV / Mapillary / Infra3d /
-  Pannellum imagery providers), `label-detail/` (label popups), and various utilities. The popup's pano viewer is
+  Panoramax / Pannellum imagery providers), `label-detail/` (label popups), and various utilities. The popup's pano viewer is
   built for the first label shown, never for a visit that opens none: Google bills every `StreetViewPanorama`
   constructed, hidden or not, and most visits to a hosting page never open a label (#5128). Only the free library
-  download is scheduled early (`PanoViewer.preloadLibrary`).
+  download is scheduled early (`PanoViewer.preloadLibrary`). Deferring the build moves that cost to the first open,
+  where the user is watching, so the card covers the wait with `.label-detail__pano-loading` until imagery paints.
 
 There is **no module system**: files are concatenated in a hand-specified order (see `Gruntfile.js`). Third-party
 libraries live under `public/vendor/<lib>/`, one self-contained folder each (never edited or linted). Edit `src/`
@@ -236,9 +237,9 @@ tool bundles resolve icon URLs in module-level constants at script-eval time. Fr
 `util.assetPath('images/icons/openhand.cur')`, building the whole path inside one template literal when part of it
 varies. Under dev `sbt run` nothing is fingerprinted, so the stamp is empty and every lookup falls back to the plain
 `/assets/<path>`. Neither half of a mistake fails at runtime, so `tools/check-asset-paths.mjs`
-(`make lint-asset-paths`, a blocking CI step) is the gate: no hardcoded `/assets/` URLs under `public/js/`, and every
-`util.assetPath` argument names a real file in a manifest family. Full caching contract:
-[`deployment-and-stages.md`](deployment-and-stages.md) → "Asset caching".
+(`make lint-asset-paths`, a blocking CI step) is the gate: no hardcoded `/assets/` URLs under `public/js/`, every
+`util.assetPath` argument names a real file in a manifest family, and no code edits an element's resolved `src` as a
+string. Full caching contract: [`deployment-and-stages.md`](deployment-and-stages.md) → "Asset caching".
 
 **Styling comes from the design-system tokens in `main.css` `:root`** — color ramps (`--color-*`), composite type
 tokens (`--text-*`, complete `font` shorthands that bake in the tool-UI zoom factor `--ui-scale`), spacing, radii,
@@ -268,7 +269,7 @@ Two separate i18n systems:
 2. **Frontend** (client-side) — JSON under `public/locales/<lang>/` (e.g. `common.json`), referenced with
    `i18next.t('key')` or, preferably, `data-i18n="ns:key"` in HTML.
 
-Supported languages: en, es, de, nl, zh-TW, pt-BR, plus regional English variants en-US and en-NZ.
+Supported languages: en, es, de, nl, zh-TW, pt-BR, fr, plus regional English variants en-US and en-NZ.
 
 ## Configuration & deployment
 
@@ -283,13 +284,17 @@ production runtime shape, see [`docs/deployment-and-stages.md`](deployment-and-s
 
 ## Python utilities
 
-Two standalone scripts under [`scripts/`](../scripts) (see [`scripts/README.md`](../scripts/README.md)):
+Three standalone scripts under [`scripts/`](../scripts) (see [`scripts/README.md`](../scripts/README.md)):
 
 - `scripts/label_clustering.py` — clusters nearby labels (used by the clustering flow; see `ClusterService` /
   `app/models/cluster/`). Run as `python3` — the app shells out to it, so it has to work on the deployed server's
   system Python.
 - `scripts/check_streets_for_imagery.py` — checks streets for available street-view imagery. Run as `python3.13`,
   the second interpreter the web image carries for offline tooling whose libraries have moved past 3.8.
+- `scripts/onboard_city.py` — builds a new city's street/region staging data from open sources (#4291), feeding
+  `db/scripts/fill-new-schema.sh`. Also `python3.13`. Run via `make build-city-data`; `make check-imagery` samples the
+  imagery, and `make onboard-city` (`tools/setup_new_city.py`) chains the rest of a new city's setup — see
+  [`docs/onboarding-a-city.md`](onboarding-a-city.md).
 
 `label_clustering.py` is invoked **in-band** (`ClusterService.runMultiUserClustering` shells out to it per region
 during admin-triggered `/runClustering` and the nightly `ClusteringActor` run), so the deployed app must be able to

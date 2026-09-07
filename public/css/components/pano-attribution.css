@@ -3,8 +3,9 @@
    own. Always visible, not hover-revealed: it is an obligation of the licence, not a control. Dark pill for contrast
    on any imagery; the licence token is the one link.
 
-   Mounted by PanoAttribution.js (pano-viewer bundle) inside a positioned pano container. This file is the look; each
-   host positions the pill where its own overlays leave room (label-detail.css, validate/svv-panorama.css). */
+   Mounted by PanoAttribution.js (the pano-viewer and pano-credit bundles) inside a positioned pano container. This
+   file is the look; each host positions the pill where its own overlays leave room (label-detail.css,
+   validate/svv-panorama.css, gallery/cards.css, landing-validation-grid.css). */
 .pano-attribution {
   position: absolute;
   max-width: calc(100% - 20px);
@@ -28,6 +29,18 @@
 .pano-attribution a:focus-visible {
   outline: 2px solid var(--color-neutral-white);
   outline-offset: 2px;
+}
+
+/* Card-sized form (#5202). The source logo opposite it names the provider, so this half carries only the holder and
+   the licence. It wraps rather than truncating: the licence name is the last thing that may be cut. */
+.pano-attribution--compact {
+  max-width: 62%;
+  padding: 2px 6px;
+  border-radius: 7px;
+  font: var(--text-tiny-medium);
+  white-space: normal;
+  text-align: right;
+  text-overflow: clip;
 }
 
 /* The "(opens in a new tab)" cue for assistive tech, off-screen like the other hosts' visually-hidden text. */

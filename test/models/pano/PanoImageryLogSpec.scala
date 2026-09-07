@@ -47,9 +47,10 @@ class PanoImageryLogSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAp
   /** The pano as a user's viewer would first record it: present, unexpired, never expired. */
   private def freshPano(viewedAt: OffsetDateTime): PanoData = PanoData(
     panoId = panoId, width = Some(16384), height = Some(8192), tileWidth = Some(512), tileHeight = Some(512),
-    captureDate = "2020-06", copyright = Some("test"), lat = Some(47.0), lng = Some(-122.0), cameraHeading = Some(0d),
-    cameraPitch = Some(0d), cameraRoll = Some(0d), expired = false, lastViewed = viewedAt, panoHistorySaved = None,
-    lastChecked = viewedAt, source = PanoSource.Gsv, hasBackup = Some(false), address = None, sourceMetadata = None
+    captureDate = "2020-06", copyright = Some("test"), license = None, lat = Some(47.0), lng = Some(-122.0),
+    cameraHeading = Some(0d), cameraPitch = Some(0d), cameraRoll = Some(0d), expired = false, lastViewed = viewedAt,
+    panoHistorySaved = None, lastChecked = viewedAt, source = PanoSource.Gsv, hasBackup = Some(false), address = None,
+    sourceMetadata = None
   )
 
   /** The log for the seeded pano, oldest first, as (direction, source) pairs. */
