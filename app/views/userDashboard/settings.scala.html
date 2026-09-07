@@ -72,10 +72,9 @@
       <div class="ud-field">
         <label class="ud-label" for="set-team">@Messages("dashboard.settings.team.label")</label>
         <div class="ud-field-inline">
-          @* Your current team is the default choice, and only teams you could switch to are listed alongside it.
-             Leaving is the "Leave team" button, never an option in here: an empty value means "don't touch my team",
-             so an accidental selection can't drop a membership. `data-current-team` is what the save compares
-             against so re-picking the team you're already on isn't written again. *@
+          @* Your current team is the default choice, listed alongside only the teams you could switch to; leaving
+             is the button, so an empty value means "don't touch my team" and no selection can drop a membership.
+             The save compares against `data-current-team` to skip re-writing the team you're already on. *@
           <select class="ps-select ps-select--large" id="set-team"
               data-current-team="@currTeam.map(_.teamId.toString).getOrElse("")"
               data-placeholder="@Messages("dashboard.team.choose")">

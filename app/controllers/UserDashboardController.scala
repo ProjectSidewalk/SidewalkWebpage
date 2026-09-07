@@ -206,11 +206,10 @@ class UserDashboardController @Inject() (
   /**
    * Persists the Settings form in one save: an optional username change (validated) plus the two privacy flags, the
    * measurement-units choice, and the user's team. The body is a `SettingsSubmission` (a missing privacy flag is a
-   * 400, never a reset); `teamId` is a positive id to join/switch, or null/non-positive to leave the team alone.
-   * Leaving a team is a deliberate action of its own (`UserProfileController.leaveTeam`, #5147), never something a
-   * save can do by omission. A username that fails validation (length, allowed characters, profanity, or already
-   * taken) refuses the whole save with a 400 and a user-facing message before anything is written; the rename itself
-   * is the last write.
+   * 400, never a reset); `teamId` is a positive id to join/switch, or null/non-positive to leave the team alone —
+   * dropping a team is `UserProfileController.leaveTeam`, never something a save does by omission (#5147). A
+   * username that fails validation (length, allowed characters, profanity, or already taken) refuses the whole save
+   * with a 400 and a user-facing message before anything is written; the rename itself is the last write.
    *
    * Units are the one setting that isn't a database write: like the language choice it lives in a cookie, so a
    * submitted change either sets the override or discards it to fall back to the site language (#4404).

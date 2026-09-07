@@ -1111,8 +1111,8 @@
 /* "Create a team" sits below the teams table / empty-state banner, so give it breathing room. */
 .ud-btn-primary.ud-create-team-btn { margin-top: var(--space-md); }
 
-/* The Create/Leave pair from userDashboard/_teamActions: its own row on the dashboard card, and one more item in
-   the inline row beside the Settings dropdown. */
+/* The Create/Leave pair from userDashboard/_teamActions: its own row on the dashboard card, one more item in the
+   inline row beside the Settings dropdown. */
 .ud-team-actions {
   display: flex;
   flex-wrap: wrap;
@@ -1120,7 +1120,7 @@
   align-items: center;
 }
 
-/* Inside the pair the wrapper carries the offset, so Create and Leave sit on the same line. */
+/* The wrapper carries the offset, so Create and Leave sit on the same line. */
 .ud-team-card .ud-team-actions { margin-top: var(--space-md); }
 .ud-team-actions .ud-btn-primary.ud-create-team-btn { margin-top: 0; }
 

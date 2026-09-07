@@ -12,7 +12,7 @@ object UserFormats {
   /**
    * The Settings page's save (`POST /dashboard/settings`). The privacy flags are required so a body that omits one
    * can't silently reset it, and every optional field means "not touching it" — `teamId` included, since leaving a
-   * team is its own action (`UserProfileController.leaveTeam`) rather than a save with the field left off.
+   * team is its own action (`UserProfileController.leaveTeam`).
    */
   case class SettingsSubmission(
       username: Option[String],

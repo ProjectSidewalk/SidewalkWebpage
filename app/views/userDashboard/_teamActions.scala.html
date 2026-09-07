@@ -5,19 +5,16 @@
 * The "Create a team" / "Leave team" button pair, shared by the dashboard's team card and the Settings team section
 * so the two pages can't drift apart again (#5147). Both buttons are handled by TeamActions.js via their classes.
 *
-* Leave is offered only to someone actually on a team, and is an immediate action with a confirmation rather than a
-* dropdown entry: "no team" is the absence of a team, not one more team to pick (#5147). Whether the team is still
-* taking members rides along so the confirmation can say whether leaving is undoable.
+* Leave is a button rather than a dropdown entry because "no team" is the absence of a team, not one more team to
+* pick (#5147). Whether the team still takes members rides along, so the confirmation can say if leaving is undoable.
 *
-* The user id sits on the wrapper rather than on the button, so a Leave button that TeamActions.js adds after a team
-* is created in place can find it too.
+* The user id sits on the wrapper, not the button, so a Leave button TeamActions.js adds later can find it too.
 *
 * @param createIsPrimary Whether "Create a team" is the section's main call to action (the dashboard card) or sits
 *   beside a control that already is (the Settings dropdown).
-* @param readOnly Set on the dashboard's admin view, where neither button means what it says: creating a team joins
-*   the signed-in admin rather than the user being looked at, and Leave's confirmation is written in the first person
-*   ("Leave 'X'? You can rejoin it later"), which is the wrong promise to make about someone else's membership. An
-*   admin who needs to take a user off a team does it on that user's admin page, which offers "No team" outright.
+* @param readOnly Set on the dashboard's admin view, where neither button means what it says: Create joins the
+*   signed-in admin rather than the user being looked at, and Leave's confirmation is first-person — the wrong
+*   promise to make about someone else's membership. Admins use that user's admin page, which offers "No team".
 *@
 <div class="ud-team-actions" data-user-id="@userId">
   <button type="button" class="@if(createIsPrimary){ud-btn-primary}else{ud-btn-secondary} ud-create-team-btn"

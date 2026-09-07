@@ -6,9 +6,8 @@
  * name (length + profanity/abuse guard) and auto-joins the creator. Server-side validation messages are shown
  * inline. CSRF is handled by the global fetch wrapper (AppManager).
  *
- * A finished team change reloads so every team-dependent part of the page re-renders — except on Settings, where a
- * reload would throw away whatever the user has typed into the rest of the form but not saved yet. There the team
- * controls are patched in place instead (#5147).
+ * A finished team change reloads so everything team-dependent re-renders — except on Settings, where that would
+ * discard unsaved edits to the rest of the form, so the controls are patched in place instead (#5147).
  */
 class TeamActions {
   /** Wires the open buttons and the form. Safe to call when the dialog isn't present (no-op). */
@@ -35,7 +34,7 @@ class TeamActions {
   /**
    * Wires the "Join team" dropdown button (dashboard only). Safe to call when absent.
    *
-   * The dropdown opens on the team the user is already on, so Join is inert until they pick a different one.
+   * The dropdown opens on the team the user is already on, so Join stays inert until they pick a different one.
    */
   static initJoin() {
     const select = document.getElementById('ud-team-select');
@@ -46,17 +45,13 @@ class TeamActions {
         btn.disabled = select.value === '' || select.value === select.dataset.currentTeam;
       };
       select.addEventListener('change', sync);
-      // A bfcache restore puts the old selection back without firing `change`, which would otherwise strand Join
-      // greyed out over a team the user had already picked.
+      // A bfcache restore puts the old selection back without firing `change`.
       window.addEventListener('pageshow', sync);
       sync();
     });
   }
 
-  /**
-   * Wires the "Leave team" button, rendered only for someone on a team. Delegated, so a button added after a team is
-   * created in place is live without rewiring.
-   */
+  /** Wires the "Leave team" button. Delegated, so a button added after a team is created in place is live too. */
   static initLeave() {
     document.addEventListener('click', (e) => {
       const btn = e.target.closest('.ud-leave-team-btn');
@@ -90,10 +85,10 @@ class TeamActions {
   /**
    * Confirms, then drops the user's team membership.
    *
-   * Confirmed first because leaving isn't always undoable, and the prompt says which case this is: an open team can
-   * be rejoined from the same dropdown, a closed one needs an admin to put the user back.
+   * The prompt distinguishes the two cases because only one is undoable: an open team can be rejoined from the same
+   * dropdown, a closed one needs an admin.
    *
-   * @param {HTMLButtonElement} btn - The clicked button, carrying the team's name and whether it's still open.
+   * @param {HTMLButtonElement} btn - The clicked button, carrying the team's name and whether it's open.
    * @returns {Promise<void>}
    */
   static async #leave(btn) {
@@ -128,9 +123,8 @@ class TeamActions {
   /**
    * Brings the Settings team controls onto a team the Save button just switched to.
    *
-   * The save posts the team itself instead of going through these buttons, so without this nothing would tell the
-   * Leave button that it now speaks for a different team — it would keep naming the old one, and keep reporting the
-   * old one's openness (#5147).
+   * A save posts the team itself rather than going through these buttons, so nothing else would move the Leave
+   * button off the old team (#5147).
    *
    * @param {number} teamId - The team the save just put the user on.
    */
@@ -139,15 +133,14 @@ class TeamActions {
     const option = [...select.options].find((o) => o.value === String(teamId));
     if (!option) return;
     select.dataset.currentTeam = option.value;
-    // Only the team a user is already on can be a closed one; every other option was rendered from the open teams.
+    // Only the team a user is already on can be closed; every other option came from the open teams.
     TeamActions.#setLeaveButton({ name: option.textContent, open: true });
   }
 
   /**
    * Moves the Settings team controls onto a team the user just joined or left, without a reload.
    *
-   * Only Settings has a form worth protecting, so this is also what tells the two callers apart: a page without the
-   * team select gets `false` and reloads as before.
+   * Only Settings has a form worth protecting, so a missing select is also what tells the callers to reload.
    *
    * @param {?{id: number, name: string, open: boolean}} team - The team now joined, or null after leaving.
    * @returns {boolean} true if the page was updated in place; false if the caller should reload instead.
@@ -156,12 +149,11 @@ class TeamActions {
     const select = document.getElementById('set-team');
     if (!select) return false;
 
-    // The team being left is the one data-current-team names, never simply whatever is selected: those are
-    // different teams whenever the user has picked something in the dropdown and not saved it.
+    // The team being left is the one data-current-team names, not whatever is selected — those differ whenever the
+    // dropdown holds an unsaved pick.
     const previous = [...select.options].find((o) => o.value === select.dataset.currentTeam);
     if (previous) {
-      // A team the user could switch back to stays in the list as one more option; one that has closed its doors
-      // would be a dead choice, so it goes.
+      // A team they could switch back to stays in the list; a closed one would be a dead choice.
       const wasOpen = document.querySelector('.ud-leave-team-btn')?.dataset.teamOpen === 'true';
       if (previous.value !== '' && wasOpen) previous.selected = false;
       else previous.remove();
@@ -172,7 +164,7 @@ class TeamActions {
     option.textContent = team ? team.name : select.dataset.placeholder;
     option.selected = true;
     select.prepend(option);
-    // The save compares against this to skip re-writing a team the user is already on, so it moves too.
+    // The save compares against this to skip re-writing a team the user is already on.
     select.dataset.currentTeam = option.value;
 
     TeamActions.#setLeaveButton(team);
@@ -180,10 +172,9 @@ class TeamActions {
   }
 
   /**
-   * Puts the Leave button on the team the user is now on, or takes it away when they're on none.
+   * Puts the Leave button on the team the user is now on, or removes it when they're on none.
    *
-   * Built element by element rather than as markup: a team name is text the user chose, and textContent/dataset
-   * keep it text.
+   * Built element by element: a team name is text the user chose, and textContent/dataset keep it text.
    *
    * @param {?{name: string, open: boolean}} team - The team now joined, or null after leaving.
    */
@@ -229,7 +220,7 @@ class TeamActions {
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.success) {
         document.getElementById('ud-create-team-dialog').close();
-        // A team is open to new members the moment it's created; only an admin ever closes one.
+        // A new team takes members until an admin closes it.
         const team = { id: data.team_id, name, open: true };
         if (!TeamActions.#syncSettingsForm(team)) window.location.reload();
         return;

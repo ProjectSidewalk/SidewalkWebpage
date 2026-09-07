@@ -370,9 +370,8 @@
           @if(joinable.nonEmpty) {
             <label class="ud-team-join-label" for="ud-team-select">@if(profileData.userTeam.isDefined){@Messages("dashboard.team.switch")}else{@Messages("dashboard.team.join.existing")}</label>
             <div class="ud-field-inline">
-              @* The team you're on is the default choice, so the dropdown reads as your membership rather than as a
-                 blank form. Join then stays disabled until you pick a different one — re-picking the team you're
-                 already on is nothing to save (#5147). *@
+              @* The team you're on is the default choice, so the dropdown reads as your membership rather than a
+                 blank form, and Join stays disabled until you pick a different one (#5147). *@
               <select class="ps-select ps-select--large" id="ud-team-select" aria-label="@Messages("dashboard.team.choose.aria")"
                   data-current-team="@profileData.userTeam.map(_.teamId.toString).getOrElse("")">
                 @profileData.userTeam.map { t =>
