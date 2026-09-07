@@ -129,7 +129,7 @@
       "tag" : "ends abruptly"
     } ],
     "tag_active_threshold" : 0.5,
-    "preset_order" : [ "default", "wheelchair", "low_vision", "dot_curb_ramps" ],
+    "preset_order" : [ "default", "barriers", "infrastructure", "missing_ramps" ],
     "presets" : {
       "default" : {
         "CurbRamp" : 0.75,
@@ -140,25 +140,25 @@
         "Signal" : 0.5,
         "NoSidewalk" : 2
       },
-      "wheelchair" : {
-        "CurbRamp" : 1,
+      "barriers" : {
+        "CurbRamp" : 0.75,
         "NoCurbRamp" : 1.5,
         "Obstacle" : 1.5,
-        "SurfaceProblem" : 1.25,
-        "Crosswalk" : 0.5,
-        "Signal" : 0.25,
+        "SurfaceProblem" : 1.5,
+        "Crosswalk" : 0.75,
+        "Signal" : 0.5,
+        "NoSidewalk" : 3
+      },
+      "infrastructure" : {
+        "CurbRamp" : 1.125,
+        "NoCurbRamp" : 1,
+        "Obstacle" : 1,
+        "SurfaceProblem" : 1,
+        "Crosswalk" : 1.125,
+        "Signal" : 0.75,
         "NoSidewalk" : 2
       },
-      "low_vision" : {
-        "CurbRamp" : 0.5,
-        "NoCurbRamp" : 0.75,
-        "Obstacle" : 1.25,
-        "SurfaceProblem" : 0.75,
-        "Crosswalk" : 1.25,
-        "Signal" : 1.5,
-        "NoSidewalk" : 2
-      },
-      "dot_curb_ramps" : {
+      "missing_ramps" : {
         "CurbRamp" : 1,
         "NoCurbRamp" : 2,
         "Obstacle" : 1,
@@ -245,7 +245,7 @@
     },
     "score" : 0.5,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
@@ -257,7 +257,7 @@
       },
       "score" : 0.5
     }, {
-      "preset" : "low_vision",
+      "preset" : "infrastructure",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
@@ -269,7 +269,7 @@
       },
       "score" : 0.5
     }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
@@ -362,9 +362,9 @@
     },
     "score" : 0.679178699175393,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
       "sub_scores" : {
-        "CurbRamp" : 1,
+        "CurbRamp" : 0.75,
         "NoCurbRamp" : 0,
         "Obstacle" : 0,
         "SurfaceProblem" : 0,
@@ -372,11 +372,11 @@
         "Signal" : 0,
         "NoSidewalk" : 0
       },
-      "score" : 0.7310585786300049
+      "score" : 0.679178699175393
     }, {
-      "preset" : "low_vision",
+      "preset" : "infrastructure",
       "sub_scores" : {
-        "CurbRamp" : 0.5,
+        "CurbRamp" : 1.125,
         "NoCurbRamp" : 0,
         "Obstacle" : 0,
         "SurfaceProblem" : 0,
@@ -384,9 +384,9 @@
         "Signal" : 0,
         "NoSidewalk" : 0
       },
-      "score" : 0.6224593312018546
+      "score" : 0.7549149868676283
     }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : 1,
         "NoCurbRamp" : 0,
@@ -479,9 +479,9 @@
     },
     "score" : 0.320821300824607,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
       "sub_scores" : {
-        "CurbRamp" : -1,
+        "CurbRamp" : -0.75,
         "NoCurbRamp" : 0,
         "Obstacle" : 0,
         "SurfaceProblem" : 0,
@@ -489,11 +489,11 @@
         "Signal" : 0,
         "NoSidewalk" : 0
       },
-      "score" : 0.2689414213699951
+      "score" : 0.320821300824607
     }, {
-      "preset" : "low_vision",
+      "preset" : "infrastructure",
       "sub_scores" : {
-        "CurbRamp" : -0.5,
+        "CurbRamp" : -1.125,
         "NoCurbRamp" : 0,
         "Obstacle" : 0,
         "SurfaceProblem" : 0,
@@ -501,9 +501,9 @@
         "Signal" : 0,
         "NoSidewalk" : 0
       },
-      "score" : 0.3775406687981454
+      "score" : 0.24508501313237172
     }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : -1,
         "NoCurbRamp" : 0,
@@ -596,9 +596,9 @@
     },
     "score" : 0.5926665999540698,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
       "sub_scores" : {
-        "CurbRamp" : 0.5,
+        "CurbRamp" : 0.375,
         "NoCurbRamp" : 0,
         "Obstacle" : 0,
         "SurfaceProblem" : 0,
@@ -606,11 +606,11 @@
         "Signal" : 0,
         "NoSidewalk" : 0
       },
-      "score" : 0.6224593312018546
+      "score" : 0.5926665999540698
     }, {
-      "preset" : "low_vision",
+      "preset" : "infrastructure",
       "sub_scores" : {
-        "CurbRamp" : 0.25,
+        "CurbRamp" : 0.5625,
         "NoCurbRamp" : 0,
         "Obstacle" : 0,
         "SurfaceProblem" : 0,
@@ -618,9 +618,9 @@
         "Signal" : 0,
         "NoSidewalk" : 0
       },
-      "score" : 0.5621765008857981
+      "score" : 0.6370307944803831
     }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : 0.5,
         "NoCurbRamp" : 0,
@@ -718,9 +718,9 @@
     },
     "score" : 0.5112481019468548,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
       "sub_scores" : {
-        "CurbRamp" : 0.5,
+        "CurbRamp" : 0.375,
         "NoCurbRamp" : 0,
         "Obstacle" : -0.495,
         "SurfaceProblem" : 0,
@@ -728,21 +728,21 @@
         "Signal" : 0,
         "NoSidewalk" : 0
       },
-      "score" : 0.5012499973958399
+      "score" : 0.4700359482354282
     }, {
-      "preset" : "low_vision",
+      "preset" : "infrastructure",
       "sub_scores" : {
-        "CurbRamp" : 0.25,
+        "CurbRamp" : 0.5625,
         "NoCurbRamp" : 0,
-        "Obstacle" : -0.41250000000000003,
+        "Obstacle" : -0.33,
         "SurfaceProblem" : 0,
         "Crosswalk" : 0,
         "Signal" : 0,
         "NoSidewalk" : 0
       },
-      "score" : 0.4594641607262107
+      "score" : 0.5578645727207344
     }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : 0.5,
         "NoCurbRamp" : 0,
@@ -845,7 +845,7 @@
     },
     "score" : 0.11920292202211755,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
@@ -857,19 +857,19 @@
       },
       "score" : 0.04742587317756678
     }, {
-      "preset" : "low_vision",
+      "preset" : "infrastructure",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
-        "Obstacle" : -2.5,
+        "Obstacle" : -2,
         "SurfaceProblem" : 0,
         "Crosswalk" : 0,
         "Signal" : 0,
         "NoSidewalk" : 0
       },
-      "score" : 0.07585818002124355
+      "score" : 0.11920292202211755
     }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
@@ -962,31 +962,31 @@
     },
     "score" : 0.4182406231581638,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
         "Obstacle" : 0,
-        "SurfaceProblem" : -0.41250000000000003,
+        "SurfaceProblem" : -0.495,
         "Crosswalk" : 0,
         "Signal" : 0,
         "NoSidewalk" : 0
       },
-      "score" : 0.3983128198171432
+      "score" : 0.37871640480893215
     }, {
-      "preset" : "low_vision",
+      "preset" : "infrastructure",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
         "Obstacle" : 0,
-        "SurfaceProblem" : -0.2475,
+        "SurfaceProblem" : -0.33,
         "Crosswalk" : 0,
         "Signal" : 0,
         "NoSidewalk" : 0
       },
-      "score" : 0.4384389296638045
+      "score" : 0.4182406231581638
     }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
@@ -1084,31 +1084,31 @@
     },
     "score" : 0.7310585786300049,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
         "Obstacle" : 0,
         "SurfaceProblem" : 0,
         "Crosswalk" : 0,
-        "Signal" : 0.5,
+        "Signal" : 1,
         "NoSidewalk" : 0
       },
-      "score" : 0.6224593312018546
+      "score" : 0.7310585786300049
     }, {
-      "preset" : "low_vision",
+      "preset" : "infrastructure",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
         "Obstacle" : 0,
         "SurfaceProblem" : 0,
         "Crosswalk" : 0,
-        "Signal" : 3,
+        "Signal" : 1.5,
         "NoSidewalk" : 0
       },
-      "score" : 0.9525741268224334
+      "score" : 0.8175744761936437
     }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
@@ -1203,31 +1203,31 @@
     },
     "score" : 0.5621765008857981,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
         "Obstacle" : 0,
         "SurfaceProblem" : 0,
         "Crosswalk" : 0,
-        "Signal" : 0,
+        "Signal" : 0.25,
         "NoSidewalk" : 0
       },
-      "score" : 0.5
+      "score" : 0.5621765008857981
     }, {
-      "preset" : "low_vision",
+      "preset" : "infrastructure",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
         "Obstacle" : 0,
         "SurfaceProblem" : 0,
         "Crosswalk" : 0,
-        "Signal" : 1.25,
+        "Signal" : 0.5,
         "NoSidewalk" : 0
       },
-      "score" : 0.7772998611746911
+      "score" : 0.6224593312018546
     }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
@@ -1322,31 +1322,31 @@
     },
     "score" : 0.6224593312018546,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
         "Obstacle" : 0,
         "SurfaceProblem" : 0,
         "Crosswalk" : 0,
-        "Signal" : 0.25,
+        "Signal" : 0.5,
         "NoSidewalk" : 0
       },
-      "score" : 0.5621765008857981
+      "score" : 0.6224593312018546
     }, {
-      "preset" : "low_vision",
+      "preset" : "infrastructure",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
         "Obstacle" : 0,
         "SurfaceProblem" : 0,
         "Crosswalk" : 0,
-        "Signal" : 1.5,
+        "Signal" : 0.75,
         "NoSidewalk" : 0
       },
-      "score" : 0.8175744761936437
+      "score" : 0.679178699175393
     }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
@@ -1441,31 +1441,31 @@
     },
     "score" : 0.3775406687981454,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
         "Obstacle" : 0,
         "SurfaceProblem" : 0,
-        "Crosswalk" : -0.25,
+        "Crosswalk" : -0.5,
         "Signal" : 0,
         "NoSidewalk" : 0
       },
-      "score" : 0.43782349911420193
+      "score" : 0.3775406687981454
     }, {
-      "preset" : "low_vision",
+      "preset" : "infrastructure",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
         "Obstacle" : 0,
         "SurfaceProblem" : 0,
-        "Crosswalk" : -1,
+        "Crosswalk" : -0.875,
         "Signal" : 0,
         "NoSidewalk" : 0
       },
-      "score" : 0.2689414213699951
+      "score" : 0.29421497216298875
     }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
@@ -1560,9 +1560,9 @@
     },
     "score" : 0.679178699175393,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
       "sub_scores" : {
-        "CurbRamp" : 1,
+        "CurbRamp" : 0.75,
         "NoCurbRamp" : 0,
         "Obstacle" : 0,
         "SurfaceProblem" : 0,
@@ -1570,11 +1570,11 @@
         "Signal" : 0,
         "NoSidewalk" : 0
       },
-      "score" : 0.7310585786300049
+      "score" : 0.679178699175393
     }, {
-      "preset" : "low_vision",
+      "preset" : "infrastructure",
       "sub_scores" : {
-        "CurbRamp" : 0.5,
+        "CurbRamp" : 1.125,
         "NoCurbRamp" : 0,
         "Obstacle" : 0,
         "SurfaceProblem" : 0,
@@ -1582,9 +1582,9 @@
         "Signal" : 0,
         "NoSidewalk" : 0
       },
-      "score" : 0.6224593312018546
+      "score" : 0.7549149868676283
     }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : 1,
         "NoCurbRamp" : 0,
@@ -1679,31 +1679,31 @@
     },
     "score" : 0.6224593312018546,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
         "Obstacle" : 0,
         "SurfaceProblem" : 0,
         "Crosswalk" : 0,
-        "Signal" : 0.25,
+        "Signal" : 0.5,
         "NoSidewalk" : 0
       },
-      "score" : 0.5621765008857981
+      "score" : 0.6224593312018546
     }, {
-      "preset" : "low_vision",
+      "preset" : "infrastructure",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
         "Obstacle" : 0,
         "SurfaceProblem" : 0,
         "Crosswalk" : 0,
-        "Signal" : 1.5,
+        "Signal" : 0.75,
         "NoSidewalk" : 0
       },
-      "score" : 0.8175744761936437
+      "score" : 0.679178699175393
     }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
@@ -1796,7 +1796,19 @@
     },
     "score" : 0.33924363123418283,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
+      "sub_scores" : {
+        "CurbRamp" : 0,
+        "NoCurbRamp" : 0,
+        "Obstacle" : 0,
+        "SurfaceProblem" : 0,
+        "Crosswalk" : 0,
+        "Signal" : 0,
+        "NoSidewalk" : -1
+      },
+      "score" : 0.2689414213699951
+    }, {
+      "preset" : "infrastructure",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
@@ -1808,19 +1820,7 @@
       },
       "score" : 0.33924363123418283
     }, {
-      "preset" : "low_vision",
-      "sub_scores" : {
-        "CurbRamp" : 0,
-        "NoCurbRamp" : 0,
-        "Obstacle" : 0,
-        "SurfaceProblem" : 0,
-        "Crosswalk" : 0,
-        "Signal" : 0,
-        "NoSidewalk" : -0.6666666666666666
-      },
-      "score" : 0.33924363123418283
-    }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
@@ -1948,7 +1948,19 @@
     },
     "score" : 0.11920292202211755,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
+      "sub_scores" : {
+        "CurbRamp" : 0,
+        "NoCurbRamp" : 0,
+        "Obstacle" : 0,
+        "SurfaceProblem" : 0,
+        "Crosswalk" : 0,
+        "Signal" : 0,
+        "NoSidewalk" : -3
+      },
+      "score" : 0.04742587317756678
+    }, {
+      "preset" : "infrastructure",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
@@ -1960,19 +1972,7 @@
       },
       "score" : 0.11920292202211755
     }, {
-      "preset" : "low_vision",
-      "sub_scores" : {
-        "CurbRamp" : 0,
-        "NoCurbRamp" : 0,
-        "Obstacle" : 0,
-        "SurfaceProblem" : 0,
-        "Crosswalk" : 0,
-        "Signal" : 0,
-        "NoSidewalk" : -2
-      },
-      "score" : 0.11920292202211755
-    }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
@@ -2072,7 +2072,19 @@
     },
     "score" : 0.08839967720705845,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
+      "sub_scores" : {
+        "CurbRamp" : 0,
+        "NoCurbRamp" : 0,
+        "Obstacle" : 0,
+        "SurfaceProblem" : 0,
+        "Crosswalk" : 0,
+        "Signal" : 0,
+        "NoSidewalk" : -3
+      },
+      "score" : 0.04742587317756678
+    }, {
+      "preset" : "infrastructure",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
@@ -2084,19 +2096,7 @@
       },
       "score" : 0.08839967720705845
     }, {
-      "preset" : "low_vision",
-      "sub_scores" : {
-        "CurbRamp" : 0,
-        "NoCurbRamp" : 0,
-        "Obstacle" : 0,
-        "SurfaceProblem" : 0,
-        "Crosswalk" : 0,
-        "Signal" : 0,
-        "NoSidewalk" : -2.333333333333333
-      },
-      "score" : 0.08839967720705845
-    }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
@@ -2201,7 +2201,19 @@
     },
     "score" : 0.11920292202211755,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
+      "sub_scores" : {
+        "CurbRamp" : 0,
+        "NoCurbRamp" : 0,
+        "Obstacle" : 0,
+        "SurfaceProblem" : 0,
+        "Crosswalk" : 0,
+        "Signal" : 0,
+        "NoSidewalk" : -3
+      },
+      "score" : 0.04742587317756678
+    }, {
+      "preset" : "infrastructure",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
@@ -2213,19 +2225,7 @@
       },
       "score" : 0.11920292202211755
     }, {
-      "preset" : "low_vision",
-      "sub_scores" : {
-        "CurbRamp" : 0,
-        "NoCurbRamp" : 0,
-        "Obstacle" : 0,
-        "SurfaceProblem" : 0,
-        "Crosswalk" : 0,
-        "Signal" : 0,
-        "NoSidewalk" : -2
-      },
-      "score" : 0.11920292202211755
-    }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
@@ -2355,7 +2355,19 @@
     },
     "score" : 0.04742587317756678,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
+      "sub_scores" : {
+        "CurbRamp" : 0,
+        "NoCurbRamp" : 0,
+        "Obstacle" : 0,
+        "SurfaceProblem" : 0,
+        "Crosswalk" : 0,
+        "Signal" : 0,
+        "NoSidewalk" : -4
+      },
+      "score" : 0.01798620996209156
+    }, {
+      "preset" : "infrastructure",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
@@ -2367,19 +2379,7 @@
       },
       "score" : 0.04742587317756678
     }, {
-      "preset" : "low_vision",
-      "sub_scores" : {
-        "CurbRamp" : 0,
-        "NoCurbRamp" : 0,
-        "Obstacle" : 0,
-        "SurfaceProblem" : 0,
-        "Crosswalk" : 0,
-        "Signal" : 0,
-        "NoSidewalk" : -3
-      },
-      "score" : 0.04742587317756678
-    }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
@@ -2481,7 +2481,19 @@
     },
     "score" : 0.20860852732604496,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
+      "sub_scores" : {
+        "CurbRamp" : 0,
+        "NoCurbRamp" : 0,
+        "Obstacle" : 0,
+        "SurfaceProblem" : 0,
+        "Crosswalk" : 0,
+        "Signal" : 0,
+        "NoSidewalk" : -2
+      },
+      "score" : 0.11920292202211755
+    }, {
+      "preset" : "infrastructure",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
@@ -2493,19 +2505,7 @@
       },
       "score" : 0.20860852732604496
     }, {
-      "preset" : "low_vision",
-      "sub_scores" : {
-        "CurbRamp" : 0,
-        "NoCurbRamp" : 0,
-        "Obstacle" : 0,
-        "SurfaceProblem" : 0,
-        "Crosswalk" : 0,
-        "Signal" : 0,
-        "NoSidewalk" : -1.3333333333333333
-      },
-      "score" : 0.20860852732604496
-    }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
@@ -2608,31 +2608,31 @@
     },
     "score" : 0.6224593312018546,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
         "Obstacle" : 0,
         "SurfaceProblem" : 0,
         "Crosswalk" : 0,
-        "Signal" : 0.25,
+        "Signal" : 0.5,
         "NoSidewalk" : 0
       },
-      "score" : 0.5621765008857981
+      "score" : 0.6224593312018546
     }, {
-      "preset" : "low_vision",
+      "preset" : "infrastructure",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
         "Obstacle" : 0,
         "SurfaceProblem" : 0,
         "Crosswalk" : 0,
-        "Signal" : 1.5,
+        "Signal" : 0.75,
         "NoSidewalk" : 0
       },
-      "score" : 0.8175744761936437
+      "score" : 0.679178699175393
     }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
@@ -2767,31 +2767,31 @@
     },
     "score" : 0.03562841001727189,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : -1.5050000000000001,
         "Obstacle" : -1.0050000000000001,
-        "SurfaceProblem" : -1.25,
-        "Crosswalk" : 0.25,
-        "Signal" : 0.25,
-        "NoSidewalk" : -1.3333333333333333
+        "SurfaceProblem" : -1.5,
+        "Crosswalk" : 0.375,
+        "Signal" : 0.5,
+        "NoSidewalk" : -2
       },
-      "score" : 0.010017702007842107
+      "score" : 0.005852596965436843
     }, {
-      "preset" : "low_vision",
+      "preset" : "infrastructure",
       "sub_scores" : {
         "CurbRamp" : 0,
-        "NoCurbRamp" : -1.0025,
-        "Obstacle" : -0.8375,
-        "SurfaceProblem" : -0.75,
-        "Crosswalk" : 0.625,
-        "Signal" : 1.5,
+        "NoCurbRamp" : -1.17,
+        "Obstacle" : -0.67,
+        "SurfaceProblem" : -1,
+        "Crosswalk" : 0.5625,
+        "Signal" : 0.75,
         "NoSidewalk" : -1.3333333333333333
       },
-      "score" : 0.14205406826303832
+      "score" : 0.05412402244891235
     }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : -1.84,
@@ -2922,31 +2922,31 @@
     },
     "score" : 0.45512110762641994,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : -1.5,
         "Obstacle" : 0,
-        "SurfaceProblem" : -0.41250000000000003,
+        "SurfaceProblem" : -0.495,
         "Crosswalk" : 0,
-        "Signal" : 0.65,
+        "Signal" : 1.15,
         "NoSidewalk" : 0
       },
-      "score" : 0.2205438313617533
+      "score" : 0.3004827723375725
     }, {
-      "preset" : "low_vision",
+      "preset" : "infrastructure",
       "sub_scores" : {
         "CurbRamp" : 0,
-        "NoCurbRamp" : -0.75,
+        "NoCurbRamp" : -1,
         "Obstacle" : 0,
-        "SurfaceProblem" : -0.2475,
+        "SurfaceProblem" : -0.33,
         "Crosswalk" : 0,
-        "Signal" : 3.15,
+        "Signal" : 1.65,
         "NoSidewalk" : 0
       },
-      "score" : 0.8959021614494812
+      "score" : 0.5793242521487494
     }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : -2,
@@ -3078,31 +3078,31 @@
     },
     "score" : 0.7064767277992888,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
       "sub_scores" : {
-        "CurbRamp" : -0.25,
+        "CurbRamp" : -0.375,
         "NoCurbRamp" : 0,
         "Obstacle" : -0.495,
         "SurfaceProblem" : 0,
-        "Crosswalk" : 0.75,
-        "Signal" : 0.25,
-        "NoSidewalk" : -0.16666666666666663
+        "Crosswalk" : 1.25,
+        "Signal" : 0.5,
+        "NoSidewalk" : -0.5
       },
-      "score" : 0.5220689852501704
+      "score" : 0.5938731029341427
     }, {
-      "preset" : "low_vision",
+      "preset" : "infrastructure",
       "sub_scores" : {
-        "CurbRamp" : -0.5,
+        "CurbRamp" : -0.1875,
         "NoCurbRamp" : 0,
-        "Obstacle" : -0.41250000000000003,
+        "Obstacle" : -0.33,
         "SurfaceProblem" : 0,
-        "Crosswalk" : 2.25,
-        "Signal" : 1.5,
+        "Crosswalk" : 2,
+        "Signal" : 0.75,
         "NoSidewalk" : -0.16666666666666663
       },
-      "score" : 0.9352834899295965
+      "score" : 0.8875377387663422
     }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : -0.25,
         "NoCurbRamp" : 0,
@@ -3221,31 +3221,31 @@
     },
     "score" : 0.542397940774351,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
         "Obstacle" : 0,
-        "SurfaceProblem" : -0.41250000000000003,
-        "Crosswalk" : 0.25,
+        "SurfaceProblem" : -0.495,
+        "Crosswalk" : 0.5,
         "Signal" : 0,
         "NoSidewalk" : 0
       },
-      "score" : 0.4594641607262107
+      "score" : 0.5012499973958399
     }, {
-      "preset" : "low_vision",
+      "preset" : "infrastructure",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
         "Obstacle" : 0,
-        "SurfaceProblem" : -0.2475,
-        "Crosswalk" : 1,
+        "SurfaceProblem" : -0.33,
+        "Crosswalk" : 0.875,
         "Signal" : 0,
         "NoSidewalk" : 0
       },
-      "score" : 0.6797231924722057
+      "score" : 0.6329747766804606
     }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
@@ -3384,31 +3384,31 @@
     },
     "score" : 0.29421497216298875,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
       "sub_scores" : {
-        "CurbRamp" : 1,
+        "CurbRamp" : 0.75,
         "NoCurbRamp" : -2.495,
         "Obstacle" : 0,
-        "SurfaceProblem" : -0.8375,
-        "Crosswalk" : 0.25,
-        "Signal" : 0.25,
+        "SurfaceProblem" : -1.0050000000000001,
+        "Crosswalk" : 0.375,
+        "Signal" : 0.5,
         "NoSidewalk" : 0
       },
-      "score" : 0.1379407213021581
+      "score" : 0.13296424019782926
     }, {
-      "preset" : "low_vision",
+      "preset" : "infrastructure",
       "sub_scores" : {
-        "CurbRamp" : 0.5,
-        "NoCurbRamp" : -1.4975,
+        "CurbRamp" : 1.125,
+        "NoCurbRamp" : -1.83,
         "Obstacle" : 0,
-        "SurfaceProblem" : -0.5025000000000001,
-        "Crosswalk" : 0.625,
-        "Signal" : 1.5,
+        "SurfaceProblem" : -0.67,
+        "Crosswalk" : 0.5625,
+        "Signal" : 0.75,
         "NoSidewalk" : 0
       },
-      "score" : 0.6513548646660542
+      "score" : 0.48438008427698437
     }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : 1,
         "NoCurbRamp" : -3.16,
@@ -3510,31 +3510,31 @@
     },
     "score" : 0.34864513533394575,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
         "Obstacle" : 0,
         "SurfaceProblem" : 0,
-        "Crosswalk" : -0.5,
+        "Crosswalk" : -0.625,
         "Signal" : 0,
         "NoSidewalk" : 0
       },
-      "score" : 0.3775406687981454
+      "score" : 0.34864513533394575
     }, {
-      "preset" : "low_vision",
+      "preset" : "infrastructure",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
         "Obstacle" : 0,
         "SurfaceProblem" : 0,
-        "Crosswalk" : -0.875,
+        "Crosswalk" : -0.8125,
         "Signal" : 0,
         "NoSidewalk" : 0
       },
-      "score" : 0.29421497216298875
+      "score" : 0.30735801686526387
     }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
@@ -3665,31 +3665,31 @@
     },
     "score" : 0.5510712693073418,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : -0.745,
         "Obstacle" : -0.495,
-        "SurfaceProblem" : -0.8250000000000001,
-        "Crosswalk" : 0.25,
-        "Signal" : 0.9,
+        "SurfaceProblem" : -0.99,
+        "Crosswalk" : 0.375,
+        "Signal" : 1.4,
         "NoSidewalk" : 0
       },
-      "score" : 0.28597777322269835
+      "score" : 0.3881726309982629
     }, {
-      "preset" : "low_vision",
+      "preset" : "infrastructure",
       "sub_scores" : {
         "CurbRamp" : 0,
-        "NoCurbRamp" : -0.4975,
-        "Obstacle" : -0.41250000000000003,
-        "SurfaceProblem" : -0.495,
-        "Crosswalk" : 0.625,
-        "Signal" : 3.4,
+        "NoCurbRamp" : -0.5800000000000001,
+        "Obstacle" : -0.33,
+        "SurfaceProblem" : -0.66,
+        "Crosswalk" : 0.5625,
+        "Signal" : 1.9,
         "NoSidewalk" : 0
       },
-      "score" : 0.9321377064230055
+      "score" : 0.7094058152553434
     }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : -0.91,
@@ -3801,31 +3801,31 @@
     },
     "score" : 0.7772998611746911,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
         "Obstacle" : 0,
         "SurfaceProblem" : 0,
-        "Crosswalk" : 0.5,
-        "Signal" : 0.25,
+        "Crosswalk" : 0.75,
+        "Signal" : 0.5,
         "NoSidewalk" : 0
       },
-      "score" : 0.679178699175393
+      "score" : 0.7772998611746911
     }, {
-      "preset" : "low_vision",
+      "preset" : "infrastructure",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
         "Obstacle" : 0,
         "SurfaceProblem" : 0,
-        "Crosswalk" : 1.25,
-        "Signal" : 1.5,
+        "Crosswalk" : 1.125,
+        "Signal" : 0.75,
         "NoSidewalk" : 0
       },
-      "score" : 0.9399133498259924
+      "score" : 0.8670357598021706
     }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
@@ -3963,31 +3963,31 @@
     },
     "score" : 0.049815342016064496,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
       "sub_scores" : {
-        "CurbRamp" : 0.5,
+        "CurbRamp" : 0.375,
         "NoCurbRamp" : -1.5,
         "Obstacle" : -0.495,
-        "SurfaceProblem" : -0.8250000000000001,
+        "SurfaceProblem" : -0.99,
         "Crosswalk" : 0,
         "Signal" : 0,
-        "NoSidewalk" : -1.3333333333333333
+        "NoSidewalk" : -2
       },
-      "score" : 0.025250530127986667
+      "score" : 0.009853755523231264
     }, {
-      "preset" : "low_vision",
+      "preset" : "infrastructure",
       "sub_scores" : {
-        "CurbRamp" : 0.25,
-        "NoCurbRamp" : -0.75,
-        "Obstacle" : -0.41250000000000003,
-        "SurfaceProblem" : -0.495,
+        "CurbRamp" : 0.5625,
+        "NoCurbRamp" : -1,
+        "Obstacle" : -0.33,
+        "SurfaceProblem" : -0.66,
         "Crosswalk" : 0,
         "Signal" : 0,
         "NoSidewalk" : -1.3333333333333333
       },
-      "score" : 0.06060644152241991
+      "score" : 0.05947773208358519
     }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : 0.5,
         "NoCurbRamp" : -2,
@@ -4119,31 +4119,31 @@
     },
     "score" : 0.13296424019782926,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
       "sub_scores" : {
-        "CurbRamp" : 0.25,
+        "CurbRamp" : 0.125,
         "NoCurbRamp" : -1.0050000000000001,
         "Obstacle" : -1.5,
-        "SurfaceProblem" : -1.6625,
-        "Crosswalk" : 0.5,
-        "Signal" : 0,
+        "SurfaceProblem" : -1.995,
+        "Crosswalk" : 0.75,
+        "Signal" : 0.25,
         "NoSidewalk" : 0
       },
-      "score" : 0.03175300033673977
+      "score" : 0.03308597838870413
     }, {
-      "preset" : "low_vision",
+      "preset" : "infrastructure",
       "sub_scores" : {
-        "CurbRamp" : 0,
-        "NoCurbRamp" : -0.5025000000000001,
-        "Obstacle" : -1.25,
-        "SurfaceProblem" : -0.9975,
-        "Crosswalk" : 1.25,
-        "Signal" : 1.25,
+        "CurbRamp" : 0.3125,
+        "NoCurbRamp" : -0.67,
+        "Obstacle" : -1,
+        "SurfaceProblem" : -1.33,
+        "Crosswalk" : 1.125,
+        "Signal" : 0.5,
         "NoSidewalk" : 0
       },
-      "score" : 0.4378234991142018
+      "score" : 0.25683199138751883
     }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : 0.25,
         "NoCurbRamp" : -1.34,
@@ -4262,31 +4262,31 @@
     },
     "score" : 0.22999608125931395,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
         "Obstacle" : 0,
         "SurfaceProblem" : 0,
-        "Crosswalk" : 0.5,
+        "Crosswalk" : 0.625,
         "Signal" : 0,
-        "NoSidewalk" : -1.8333333333333333
+        "NoSidewalk" : -2.5
       },
-      "score" : 0.20860852732604496
+      "score" : 0.13296424019782926
     }, {
-      "preset" : "low_vision",
+      "preset" : "infrastructure",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
         "Obstacle" : 0,
         "SurfaceProblem" : 0,
-        "Crosswalk" : 0.875,
+        "Crosswalk" : 0.8125,
         "Signal" : 0,
         "NoSidewalk" : -1.8333333333333333
       },
-      "score" : 0.27721201336877543
+      "score" : 0.2648651090899917
     }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
@@ -4438,31 +4438,31 @@
     },
     "score" : 0.43004521797357204,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
       "sub_scores" : {
-        "CurbRamp" : 0.5,
+        "CurbRamp" : 0.375,
         "NoCurbRamp" : -0.245,
         "Obstacle" : -0.495,
-        "SurfaceProblem" : -0.41250000000000003,
+        "SurfaceProblem" : -0.495,
         "Crosswalk" : 0,
-        "Signal" : 0.75,
-        "NoSidewalk" : -1.6666666666666665
+        "Signal" : 1.75,
+        "NoSidewalk" : -2
       },
-      "score" : 0.1723352224410927
+      "score" : 0.24787088856042985
     }, {
-      "preset" : "low_vision",
+      "preset" : "infrastructure",
       "sub_scores" : {
-        "CurbRamp" : 0.25,
-        "NoCurbRamp" : 0.0025000000000000022,
-        "Obstacle" : -0.41250000000000003,
-        "SurfaceProblem" : -0.2475,
+        "CurbRamp" : 0.5625,
+        "NoCurbRamp" : -0.08000000000000002,
+        "Obstacle" : -0.33,
+        "SurfaceProblem" : -0.33,
         "Crosswalk" : 0,
-        "Signal" : 5.75,
+        "Signal" : 2.75,
         "NoSidewalk" : -1.6666666666666665
       },
-      "score" : 0.9752973851701079
+      "score" : 0.7121467777293562
     }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : 0.5,
         "NoCurbRamp" : -0.41000000000000003,
@@ -4559,9 +4559,9 @@
     },
     "score" : 0.5621765008857981,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
       "sub_scores" : {
-        "CurbRamp" : 0.5,
+        "CurbRamp" : 0.25,
         "NoCurbRamp" : 0,
         "Obstacle" : 0,
         "SurfaceProblem" : 0,
@@ -4569,11 +4569,11 @@
         "Signal" : 0,
         "NoSidewalk" : 0
       },
-      "score" : 0.6224593312018546
+      "score" : 0.5621765008857981
     }, {
-      "preset" : "low_vision",
+      "preset" : "infrastructure",
       "sub_scores" : {
-        "CurbRamp" : 0,
+        "CurbRamp" : 0.625,
         "NoCurbRamp" : 0,
         "Obstacle" : 0,
         "SurfaceProblem" : 0,
@@ -4581,9 +4581,9 @@
         "Signal" : 0,
         "NoSidewalk" : 0
       },
-      "score" : 0.5
+      "score" : 0.6513548646660542
     }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : 0.5,
         "NoCurbRamp" : 0,
@@ -4706,31 +4706,31 @@
     },
     "score" : 0.5224848247918001,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
       "sub_scores" : {
-        "CurbRamp" : 0.5,
+        "CurbRamp" : 0.375,
         "NoCurbRamp" : -0.495,
         "Obstacle" : -0.495,
         "SurfaceProblem" : 0,
-        "Crosswalk" : 0.25,
+        "Crosswalk" : 0.375,
         "Signal" : 0,
         "NoSidewalk" : 0
       },
       "score" : 0.44028635073280703
     }, {
-      "preset" : "low_vision",
+      "preset" : "infrastructure",
       "sub_scores" : {
-        "CurbRamp" : 0.25,
-        "NoCurbRamp" : -0.2475,
-        "Obstacle" : -0.41250000000000003,
+        "CurbRamp" : 0.5625,
+        "NoCurbRamp" : -0.33,
+        "Obstacle" : -0.33,
         "SurfaceProblem" : 0,
-        "Crosswalk" : 0.625,
+        "Crosswalk" : 0.5625,
         "Signal" : 0,
         "NoSidewalk" : 0
       },
-      "score" : 0.5535439031511183
+      "score" : 0.6141996427768951
     }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : 0.5,
         "NoCurbRamp" : -0.66,
@@ -4873,31 +4873,31 @@
     },
     "score" : 0.8021838885585817,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
         "Obstacle" : -1.0050000000000001,
-        "SurfaceProblem" : -0.41250000000000003,
-        "Crosswalk" : 0.5,
-        "Signal" : 0.65,
+        "SurfaceProblem" : -0.495,
+        "Crosswalk" : 0.75,
+        "Signal" : 1.65,
         "NoSidewalk" : 0
       },
-      "score" : 0.43352094403237207
+      "score" : 0.7109495026250039
     }, {
-      "preset" : "low_vision",
+      "preset" : "infrastructure",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
-        "Obstacle" : -0.8375,
-        "SurfaceProblem" : -0.2475,
-        "Crosswalk" : 1.25,
-        "Signal" : 5.65,
+        "Obstacle" : -0.67,
+        "SurfaceProblem" : -0.33,
+        "Crosswalk" : 1.125,
+        "Signal" : 2.65,
         "NoSidewalk" : 0
       },
-      "score" : 0.9970263884105953
+      "score" : 0.9413098250079087
     }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
@@ -5036,31 +5036,31 @@
     },
     "score" : 0.2621158988083651,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
       "sub_scores" : {
-        "CurbRamp" : 1.5,
+        "CurbRamp" : 1.125,
         "NoCurbRamp" : -1.5,
         "Obstacle" : -0.99,
         "SurfaceProblem" : 0,
-        "Crosswalk" : -0.25,
+        "Crosswalk" : -0.5,
         "Signal" : 0,
         "NoSidewalk" : 0
       },
-      "score" : 0.22443598573092652
+      "score" : 0.13412132498066076
     }, {
-      "preset" : "low_vision",
+      "preset" : "infrastructure",
       "sub_scores" : {
-        "CurbRamp" : 0.75,
-        "NoCurbRamp" : -0.75,
-        "Obstacle" : -0.8250000000000001,
+        "CurbRamp" : 1.6875,
+        "NoCurbRamp" : -1,
+        "Obstacle" : -0.66,
         "SurfaceProblem" : 0,
-        "Crosswalk" : -1,
+        "Crosswalk" : -0.875,
         "Signal" : 0,
         "NoSidewalk" : 0
       },
-      "score" : 0.13883499354730713
+      "score" : 0.29995755239752564
     }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : 1.5,
         "NoCurbRamp" : -2,
@@ -5160,31 +5160,31 @@
     },
     "score" : 0.23866728515708957,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : -0.995,
         "Obstacle" : 0,
-        "SurfaceProblem" : -0.41250000000000003,
+        "SurfaceProblem" : -0.495,
         "Crosswalk" : 0,
         "Signal" : 0,
         "NoSidewalk" : 0
       },
-      "score" : 0.19662867146554086
+      "score" : 0.18392172741950427
     }, {
-      "preset" : "low_vision",
+      "preset" : "infrastructure",
       "sub_scores" : {
         "CurbRamp" : 0,
-        "NoCurbRamp" : -0.7475,
+        "NoCurbRamp" : -0.8300000000000001,
         "Obstacle" : 0,
-        "SurfaceProblem" : -0.2475,
+        "SurfaceProblem" : -0.33,
         "Crosswalk" : 0,
         "Signal" : 0,
         "NoSidewalk" : 0
       },
-      "score" : 0.2699256160188812
+      "score" : 0.23866728515708957
     }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : -1.1600000000000001,
@@ -5277,7 +5277,7 @@
     },
     "score" : 0.5,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
@@ -5289,7 +5289,7 @@
       },
       "score" : 0.5
     }, {
-      "preset" : "low_vision",
+      "preset" : "infrastructure",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
@@ -5301,7 +5301,7 @@
       },
       "score" : 0.5
     }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
@@ -5399,7 +5399,7 @@
     },
     "score" : 0.5,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
@@ -5411,7 +5411,7 @@
       },
       "score" : 0.5
     }, {
-      "preset" : "low_vision",
+      "preset" : "infrastructure",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
@@ -5423,7 +5423,7 @@
       },
       "score" : 0.5
     }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
@@ -5564,31 +5564,31 @@
     },
     "score" : 0.6433651456944017,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
       "sub_scores" : {
-        "CurbRamp" : 1.25,
+        "CurbRamp" : 0.875,
         "NoCurbRamp" : 0,
         "Obstacle" : -0.99,
         "SurfaceProblem" : 0,
-        "Crosswalk" : 0.25,
+        "Crosswalk" : 0.375,
         "Signal" : 0,
         "NoSidewalk" : 0
       },
-      "score" : 0.6248064744684293
+      "score" : 0.5646362918030292
     }, {
-      "preset" : "low_vision",
+      "preset" : "infrastructure",
       "sub_scores" : {
-        "CurbRamp" : 0.5,
+        "CurbRamp" : 1.4375,
         "NoCurbRamp" : 0,
-        "Obstacle" : -0.8250000000000001,
+        "Obstacle" : -0.66,
         "SurfaceProblem" : 0,
-        "Crosswalk" : 0.625,
+        "Crosswalk" : 0.5625,
         "Signal" : 0,
         "NoSidewalk" : 0
       },
-      "score" : 0.5744425168116589
+      "score" : 0.7924899414403643
     }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : 1.25,
         "NoCurbRamp" : 0,
@@ -5734,31 +5734,31 @@
     },
     "score" : 0.38659051875065326,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : -1.4849999999999999,
         "Obstacle" : 0,
-        "SurfaceProblem" : -0.41250000000000003,
-        "Crosswalk" : 0,
-        "Signal" : 0.9,
-        "NoSidewalk" : -0.9166666666666666
+        "SurfaceProblem" : -0.495,
+        "Crosswalk" : 0.125,
+        "Signal" : 1.65,
+        "NoSidewalk" : -1.25
       },
-      "score" : 0.12851347205174912
+      "score" : 0.18923325363949445
     }, {
-      "preset" : "low_vision",
+      "preset" : "infrastructure",
       "sub_scores" : {
         "CurbRamp" : 0,
-        "NoCurbRamp" : -0.7424999999999999,
+        "NoCurbRamp" : -0.99,
         "Obstacle" : 0,
-        "SurfaceProblem" : -0.2475,
-        "Crosswalk" : 0.375,
-        "Signal" : 4.65,
+        "SurfaceProblem" : -0.33,
+        "Crosswalk" : 0.3125,
+        "Signal" : 2.4,
         "NoSidewalk" : -0.9166666666666666
       },
-      "score" : 0.9576426743951241
+      "score" : 0.6167634955828062
     }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : -1.98,
@@ -5924,31 +5924,31 @@
     },
     "score" : 0.04586950202926675,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
         "Obstacle" : -0.99,
         "SurfaceProblem" : 0,
-        "Crosswalk" : -0.25,
-        "Signal" : 0.5,
-        "NoSidewalk" : -3
+        "Crosswalk" : -0.375,
+        "Signal" : 1,
+        "NoSidewalk" : -4
       },
-      "score" : 0.023202938145644076
+      "score" : 0.012555022394782534
     }, {
-      "preset" : "low_vision",
+      "preset" : "infrastructure",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
-        "Obstacle" : -0.8250000000000001,
+        "Obstacle" : -0.66,
         "SurfaceProblem" : 0,
-        "Crosswalk" : -0.625,
-        "Signal" : 3,
+        "Crosswalk" : -0.5625,
+        "Signal" : 1.5,
         "NoSidewalk" : -3
       },
-      "score" : 0.19000156601531296
+      "score" : 0.06165866547246404
     }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
@@ -6090,31 +6090,31 @@
     },
     "score" : 0.07298832475366326,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : -1.0050000000000001,
         "Obstacle" : 0,
-        "SurfaceProblem" : -2.9125,
-        "Crosswalk" : 0,
-        "Signal" : 0.5,
-        "NoSidewalk" : -0.6666666666666666
+        "SurfaceProblem" : -3.495,
+        "Crosswalk" : 0.125,
+        "Signal" : 1,
+        "NoSidewalk" : -1
       },
-      "score" : 0.016558368468919702
+      "score" : 0.01243165085318582
     }, {
-      "preset" : "low_vision",
+      "preset" : "infrastructure",
       "sub_scores" : {
         "CurbRamp" : 0,
-        "NoCurbRamp" : -0.5025000000000001,
+        "NoCurbRamp" : -0.67,
         "Obstacle" : 0,
-        "SurfaceProblem" : -1.7475,
-        "Crosswalk" : 0.375,
-        "Signal" : 3,
+        "SurfaceProblem" : -2.33,
+        "Crosswalk" : 0.3125,
+        "Signal" : 1.5,
         "NoSidewalk" : -0.6666666666666666
       },
-      "score" : 0.6126187220843661
+      "score" : 0.13538442443760837
     }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : -1.34,
@@ -6275,31 +6275,31 @@
     },
     "score" : 0.11815697780926952,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
       "sub_scores" : {
         "CurbRamp" : -0.5,
         "NoCurbRamp" : 0,
         "Obstacle" : -1.995,
-        "SurfaceProblem" : -1.6625,
+        "SurfaceProblem" : -1.995,
         "Crosswalk" : 0,
-        "Signal" : 0.65,
+        "Signal" : 1.15,
         "NoSidewalk" : 0
       },
-      "score" : 0.029099584743100017
+      "score" : 0.03422415769239587
     }, {
-      "preset" : "low_vision",
+      "preset" : "infrastructure",
       "sub_scores" : {
         "CurbRamp" : -0.5,
         "NoCurbRamp" : 0,
-        "Obstacle" : -1.6625,
-        "SurfaceProblem" : -0.9975,
+        "Obstacle" : -1.33,
+        "SurfaceProblem" : -1.33,
         "Crosswalk" : 0,
-        "Signal" : 3.15,
+        "Signal" : 1.65,
         "NoSidewalk" : 0
       },
-      "score" : 0.49750002083312495
+      "score" : 0.18093879315214198
     }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : -0.5,
         "NoCurbRamp" : 0,
@@ -6412,31 +6412,31 @@
     },
     "score" : 0.5621765008857981,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
       "sub_scores" : {
-        "CurbRamp" : 0.75,
+        "CurbRamp" : 0.5,
         "NoCurbRamp" : 0,
         "Obstacle" : 0,
-        "SurfaceProblem" : -1.25,
-        "Crosswalk" : 0.5,
+        "SurfaceProblem" : -1.5,
+        "Crosswalk" : 0.75,
         "Signal" : 0,
         "NoSidewalk" : 0
       },
-      "score" : 0.5
+      "score" : 0.43782349911420193
     }, {
-      "preset" : "low_vision",
+      "preset" : "infrastructure",
       "sub_scores" : {
-        "CurbRamp" : 0.25,
+        "CurbRamp" : 0.875,
         "NoCurbRamp" : 0,
         "Obstacle" : 0,
-        "SurfaceProblem" : -0.75,
-        "Crosswalk" : 1.25,
+        "SurfaceProblem" : -1,
+        "Crosswalk" : 1.125,
         "Signal" : 0,
         "NoSidewalk" : 0
       },
-      "score" : 0.679178699175393
+      "score" : 0.7310585786300049
     }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : 0.75,
         "NoCurbRamp" : 0,
@@ -6538,31 +6538,31 @@
     },
     "score" : 0.7057850278370112,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
       "sub_scores" : {
-        "CurbRamp" : 0.25,
+        "CurbRamp" : 0.125,
         "NoCurbRamp" : 0,
         "Obstacle" : 0,
         "SurfaceProblem" : 0,
         "Crosswalk" : 0,
-        "Signal" : 0.5,
+        "Signal" : 0.75,
         "NoSidewalk" : 0
       },
-      "score" : 0.679178699175393
+      "score" : 0.7057850278370112
     }, {
-      "preset" : "low_vision",
+      "preset" : "infrastructure",
       "sub_scores" : {
-        "CurbRamp" : 0,
+        "CurbRamp" : 0.3125,
         "NoCurbRamp" : 0,
         "Obstacle" : 0,
         "SurfaceProblem" : 0,
         "Crosswalk" : 0,
-        "Signal" : 1.75,
+        "Signal" : 1,
         "NoSidewalk" : 0
       },
-      "score" : 0.8519528019683106
+      "score" : 0.7879311956428947
     }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : 0.25,
         "NoCurbRamp" : 0,
@@ -6701,31 +6701,31 @@
     },
     "score" : 0.36470515067719295,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
       "sub_scores" : {
-        "CurbRamp" : -1,
+        "CurbRamp" : -0.75,
         "NoCurbRamp" : 0,
         "Obstacle" : 0,
-        "SurfaceProblem" : -1.6625,
-        "Crosswalk" : 0.25,
-        "Signal" : 0.65,
+        "SurfaceProblem" : -1.995,
+        "Crosswalk" : 0.375,
+        "Signal" : 1.15,
         "NoSidewalk" : 0
       },
-      "score" : 0.1464775088617339
+      "score" : 0.22793645057321624
     }, {
-      "preset" : "low_vision",
+      "preset" : "infrastructure",
       "sub_scores" : {
-        "CurbRamp" : -0.5,
+        "CurbRamp" : -1.125,
         "NoCurbRamp" : 0,
         "Obstacle" : 0,
-        "SurfaceProblem" : -0.9975,
-        "Crosswalk" : 0.625,
-        "Signal" : 3.15,
+        "SurfaceProblem" : -1.33,
+        "Crosswalk" : 0.5625,
+        "Signal" : 1.65,
         "NoSidewalk" : 0
       },
-      "score" : 0.906996376473957
+      "score" : 0.4396703573114467
     }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : -1,
         "NoCurbRamp" : 0,
@@ -6891,31 +6891,31 @@
     },
     "score" : 0.569954782026428,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
       "sub_scores" : {
-        "CurbRamp" : 1.5,
+        "CurbRamp" : 1.125,
         "NoCurbRamp" : 0,
         "Obstacle" : -1.0050000000000001,
-        "SurfaceProblem" : -1.2375,
-        "Crosswalk" : 0.5,
-        "Signal" : 0.15,
-        "NoSidewalk" : -0.33333333333333326
+        "SurfaceProblem" : -1.4849999999999999,
+        "Crosswalk" : 0.75,
+        "Signal" : 0.4,
+        "NoSidewalk" : -1
       },
-      "score" : 0.39512173076520907
+      "score" : 0.2288175544441832
     }, {
-      "preset" : "low_vision",
+      "preset" : "infrastructure",
       "sub_scores" : {
-        "CurbRamp" : 0.75,
+        "CurbRamp" : 1.6875,
         "NoCurbRamp" : 0,
-        "Obstacle" : -0.8375,
-        "SurfaceProblem" : -0.7424999999999999,
-        "Crosswalk" : 1.25,
-        "Signal" : 1.4,
+        "Obstacle" : -0.67,
+        "SurfaceProblem" : -0.99,
+        "Crosswalk" : 1.125,
+        "Signal" : 0.65,
         "NoSidewalk" : -0.33333333333333326
       },
-      "score" : 0.8155774302743269
+      "score" : 0.8129306904259139
     }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : 1.5,
         "NoCurbRamp" : 0,
@@ -7079,31 +7079,31 @@
     },
     "score" : 0.18542741929298223,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
       "sub_scores" : {
-        "CurbRamp" : -0.25,
+        "CurbRamp" : -0.375,
         "NoCurbRamp" : -0.99,
         "Obstacle" : -0.99,
-        "SurfaceProblem" : -0.8250000000000001,
-        "Crosswalk" : 0.25,
-        "Signal" : 0.25,
+        "SurfaceProblem" : -0.99,
+        "Crosswalk" : 0.375,
+        "Signal" : 0.5,
         "NoSidewalk" : 0
       },
-      "score" : 0.07209129819769405
+      "score" : 0.0779882351293664
     }, {
-      "preset" : "low_vision",
+      "preset" : "infrastructure",
       "sub_scores" : {
-        "CurbRamp" : -0.5,
-        "NoCurbRamp" : -0.495,
-        "Obstacle" : -0.8250000000000001,
-        "SurfaceProblem" : -0.495,
-        "Crosswalk" : 0.625,
-        "Signal" : 1.5,
+        "CurbRamp" : -0.1875,
+        "NoCurbRamp" : -0.66,
+        "Obstacle" : -0.66,
+        "SurfaceProblem" : -0.66,
+        "Crosswalk" : 0.5625,
+        "Signal" : 0.75,
         "NoSidewalk" : 0
       },
-      "score" : 0.45264238185691075
+      "score" : 0.29838504638459934
     }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : -0.25,
         "NoCurbRamp" : -1.32,
@@ -7209,31 +7209,31 @@
     },
     "score" : 0.14846812221071454,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
         "Obstacle" : -1.5,
-        "SurfaceProblem" : -0.41250000000000003,
+        "SurfaceProblem" : -0.495,
         "Crosswalk" : 0,
         "Signal" : 0,
-        "NoSidewalk" : -0.41666666666666663
+        "NoSidewalk" : -0.75
       },
-      "score" : 0.08873602511704856
+      "score" : 0.060369653291890396
     }, {
-      "preset" : "low_vision",
+      "preset" : "infrastructure",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
-        "Obstacle" : -1.25,
-        "SurfaceProblem" : -0.2475,
+        "Obstacle" : -1,
+        "SurfaceProblem" : -0.33,
         "Crosswalk" : 0,
         "Signal" : 0,
         "NoSidewalk" : -0.41666666666666663
       },
-      "score" : 0.12851347205174912
+      "score" : 0.14846812221071454
     }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
@@ -7335,9 +7335,9 @@
     },
     "score" : 0.679178699175393,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
       "sub_scores" : {
-        "CurbRamp" : 1,
+        "CurbRamp" : 0.75,
         "NoCurbRamp" : 0,
         "Obstacle" : 0,
         "SurfaceProblem" : 0,
@@ -7345,11 +7345,11 @@
         "Signal" : 0,
         "NoSidewalk" : 0
       },
-      "score" : 0.7310585786300049
+      "score" : 0.679178699175393
     }, {
-      "preset" : "low_vision",
+      "preset" : "infrastructure",
       "sub_scores" : {
-        "CurbRamp" : 0.5,
+        "CurbRamp" : 1.125,
         "NoCurbRamp" : 0,
         "Obstacle" : 0,
         "SurfaceProblem" : 0,
@@ -7357,9 +7357,9 @@
         "Signal" : 0,
         "NoSidewalk" : 0
       },
-      "score" : 0.6224593312018546
+      "score" : 0.7549149868676283
     }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : 1,
         "NoCurbRamp" : 0,
@@ -7454,31 +7454,31 @@
     },
     "score" : 0.679178699175393,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
         "Obstacle" : 0,
         "SurfaceProblem" : 0,
         "Crosswalk" : 0,
-        "Signal" : 0.5,
+        "Signal" : 0.75,
         "NoSidewalk" : 0
       },
-      "score" : 0.6224593312018546
+      "score" : 0.679178699175393
     }, {
-      "preset" : "low_vision",
+      "preset" : "infrastructure",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
         "Obstacle" : 0,
         "SurfaceProblem" : 0,
         "Crosswalk" : 0,
-        "Signal" : 1.75,
+        "Signal" : 1,
         "NoSidewalk" : 0
       },
-      "score" : 0.8519528019683106
+      "score" : 0.7310585786300049
     }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
@@ -7598,31 +7598,31 @@
     },
     "score" : 0.09870769982767257,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
         "Obstacle" : 0,
-        "SurfaceProblem" : -0.8375,
-        "Crosswalk" : 0.25,
-        "Signal" : 0,
-        "NoSidewalk" : -2.1666666666666665
+        "SurfaceProblem" : -1.0050000000000001,
+        "Crosswalk" : 0.375,
+        "Signal" : 0.25,
+        "NoSidewalk" : -2.5
       },
-      "score" : 0.059851763368817305
+      "score" : 0.05315113639806372
     }, {
-      "preset" : "low_vision",
+      "preset" : "infrastructure",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
         "Obstacle" : 0,
-        "SurfaceProblem" : -0.5025000000000001,
-        "Crosswalk" : 0.625,
-        "Signal" : 1.25,
+        "SurfaceProblem" : -0.67,
+        "Crosswalk" : 0.5625,
+        "Signal" : 0.5,
         "NoSidewalk" : -2.1666666666666665
       },
-      "score" : 0.3112747062231952
+      "score" : 0.1450249281740397
     }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
@@ -7717,31 +7717,31 @@
     },
     "score" : 0.6224593312018546,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
         "Obstacle" : 0,
         "SurfaceProblem" : 0,
         "Crosswalk" : 0,
-        "Signal" : 0.25,
+        "Signal" : 0.5,
         "NoSidewalk" : 0
       },
-      "score" : 0.5621765008857981
+      "score" : 0.6224593312018546
     }, {
-      "preset" : "low_vision",
+      "preset" : "infrastructure",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
         "Obstacle" : 0,
         "SurfaceProblem" : 0,
         "Crosswalk" : 0,
-        "Signal" : 1.5,
+        "Signal" : 0.75,
         "NoSidewalk" : 0
       },
-      "score" : 0.8175744761936437
+      "score" : 0.679178699175393
     }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
@@ -7906,31 +7906,31 @@
     },
     "score" : 0.022132364310660752,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
       "sub_scores" : {
-        "CurbRamp" : -0.75,
+        "CurbRamp" : -0.625,
         "NoCurbRamp" : -1.995,
         "Obstacle" : -0.495,
-        "SurfaceProblem" : -2.0875,
-        "Crosswalk" : 0.5,
-        "Signal" : 0.25,
-        "NoSidewalk" : -1.0833333333333333
+        "SurfaceProblem" : -2.505,
+        "Crosswalk" : 0.75,
+        "Signal" : 0.5,
+        "NoSidewalk" : -1.75
       },
-      "score" : 0.00346755026624716
+      "score" : 0.002193633356708746
     }, {
-      "preset" : "low_vision",
+      "preset" : "infrastructure",
       "sub_scores" : {
-        "CurbRamp" : -0.5,
-        "NoCurbRamp" : -0.9975,
-        "Obstacle" : -0.41250000000000003,
-        "SurfaceProblem" : -1.2525,
-        "Crosswalk" : 1.25,
-        "Signal" : 1.5,
+        "CurbRamp" : -0.8125,
+        "NoCurbRamp" : -1.33,
+        "Obstacle" : -0.33,
+        "SurfaceProblem" : -1.67,
+        "Crosswalk" : 1.125,
+        "Signal" : 0.75,
         "NoSidewalk" : -1.0833333333333333
       },
-      "score" : 0.18304778985560816
+      "score" : 0.03386788618774724
     }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : -0.75,
         "NoCurbRamp" : -2.66,
@@ -8059,31 +8059,31 @@
     },
     "score" : 0.6410674063348171,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
         "Obstacle" : -1.0050000000000001,
         "SurfaceProblem" : 0,
-        "Crosswalk" : 0,
-        "Signal" : 0.5,
+        "Crosswalk" : 0.25,
+        "Signal" : 1,
         "NoSidewalk" : 0
       },
-      "score" : 0.37636637170177395
+      "score" : 0.5609454503247162
     }, {
-      "preset" : "low_vision",
+      "preset" : "infrastructure",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
-        "Obstacle" : -0.8375,
+        "Obstacle" : -0.67,
         "SurfaceProblem" : 0,
-        "Crosswalk" : 0.75,
-        "Signal" : 3,
+        "Crosswalk" : 0.625,
+        "Signal" : 1.5,
         "NoSidewalk" : 0
       },
-      "score" : 0.9484609086700875
+      "score" : 0.8107667463605056
     }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
@@ -8192,31 +8192,31 @@
     },
     "score" : 0.39731466202150834,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
         "Obstacle" : 0,
         "SurfaceProblem" : 0,
         "Crosswalk" : 0,
-        "Signal" : 0.25,
-        "NoSidewalk" : -0.9166666666666666
+        "Signal" : 0.5,
+        "NoSidewalk" : -1.25
       },
-      "score" : 0.33924363123418283
+      "score" : 0.320821300824607
     }, {
-      "preset" : "low_vision",
+      "preset" : "infrastructure",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
         "Obstacle" : 0,
         "SurfaceProblem" : 0,
         "Crosswalk" : 0,
-        "Signal" : 1.5,
+        "Signal" : 0.75,
         "NoSidewalk" : -0.9166666666666666
       },
-      "score" : 0.6418340450887311
+      "score" : 0.45842951678320015
     }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : 0,
         "NoCurbRamp" : 0,
@@ -8341,9 +8341,21 @@
     },
     "score" : 0.31181091584343673,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
       "sub_scores" : {
-        "CurbRamp" : 0.25,
+        "CurbRamp" : -0.125,
+        "NoCurbRamp" : 0,
+        "Obstacle" : 0,
+        "SurfaceProblem" : 0,
+        "Crosswalk" : 0,
+        "Signal" : 0,
+        "NoSidewalk" : -1
+      },
+      "score" : 0.24508501313237172
+    }, {
+      "preset" : "infrastructure",
+      "sub_scores" : {
+        "CurbRamp" : 0.4375,
         "NoCurbRamp" : 0,
         "Obstacle" : 0,
         "SurfaceProblem" : 0,
@@ -8351,21 +8363,9 @@
         "Signal" : 0,
         "NoSidewalk" : -0.6666666666666666
       },
-      "score" : 0.39731466202150834
+      "score" : 0.44295775743453863
     }, {
-      "preset" : "low_vision",
-      "sub_scores" : {
-        "CurbRamp" : -0.5,
-        "NoCurbRamp" : 0,
-        "Obstacle" : 0,
-        "SurfaceProblem" : 0,
-        "Crosswalk" : 0,
-        "Signal" : 0,
-        "NoSidewalk" : -0.6666666666666666
-      },
-      "score" : 0.23745802834390256
-    }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : 0.25,
         "NoCurbRamp" : 0,
@@ -8476,31 +8476,31 @@
     },
     "score" : 0.7981867777396212,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
       "sub_scores" : {
-        "CurbRamp" : 0.5,
+        "CurbRamp" : 0.375,
         "NoCurbRamp" : 0,
         "Obstacle" : 0,
         "SurfaceProblem" : 0,
         "Crosswalk" : 0,
-        "Signal" : 0.5,
+        "Signal" : 1,
         "NoSidewalk" : 0
       },
-      "score" : 0.7310585786300049
+      "score" : 0.7981867777396212
     }, {
-      "preset" : "low_vision",
+      "preset" : "infrastructure",
       "sub_scores" : {
-        "CurbRamp" : 0.25,
+        "CurbRamp" : 0.5625,
         "NoCurbRamp" : 0,
         "Obstacle" : 0,
         "SurfaceProblem" : 0,
         "Crosswalk" : 0,
-        "Signal" : 3,
+        "Signal" : 1.5,
         "NoSidewalk" : 0
       },
-      "score" : 0.9626731126558706
+      "score" : 0.8872045937171068
     }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : 0.5,
         "NoCurbRamp" : 0,
@@ -8672,31 +8672,31 @@
     },
     "score" : 0.0054410174354997225,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
       "sub_scores" : {
-        "CurbRamp" : -2.5,
+        "CurbRamp" : -2.125,
         "NoCurbRamp" : -1.5,
         "Obstacle" : 0,
-        "SurfaceProblem" : -2.5,
+        "SurfaceProblem" : -3,
         "Crosswalk" : 0,
-        "Signal" : 0.75,
-        "NoSidewalk" : -1.3333333333333333
+        "Signal" : 1.25,
+        "NoSidewalk" : -2
       },
-      "score" : 0.0008382686253805756
+      "score" : 0.0006263341581094202
     }, {
-      "preset" : "low_vision",
+      "preset" : "infrastructure",
       "sub_scores" : {
-        "CurbRamp" : -1.75,
-        "NoCurbRamp" : -0.75,
+        "CurbRamp" : -2.6875,
+        "NoCurbRamp" : -1,
         "Obstacle" : 0,
-        "SurfaceProblem" : -1.5,
+        "SurfaceProblem" : -2,
         "Crosswalk" : 0,
-        "Signal" : 3.25,
+        "Signal" : 1.75,
         "NoSidewalk" : -1.3333333333333333
       },
-      "score" : 0.11072731797236826
+      "score" : 0.005113048393733231
     }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : -2.5,
         "NoCurbRamp" : -2,
@@ -8870,31 +8870,31 @@
     },
     "score" : 0.06913842034334682,
     "reweighted" : [ {
-      "preset" : "wheelchair",
+      "preset" : "barriers",
       "sub_scores" : {
-        "CurbRamp" : 1.25,
+        "CurbRamp" : 0.75,
         "NoCurbRamp" : -4.505,
         "Obstacle" : 0,
-        "SurfaceProblem" : -0.41250000000000003,
+        "SurfaceProblem" : -0.495,
         "Crosswalk" : 0,
-        "Signal" : 0.4,
-        "NoSidewalk" : -0.5
+        "Signal" : 0.65,
+        "NoSidewalk" : -1.5
       },
-      "score" : 0.02258776753141482
+      "score" : 0.006059801491584117
     }, {
-      "preset" : "low_vision",
+      "preset" : "infrastructure",
       "sub_scores" : {
-        "CurbRamp" : 0.25,
-        "NoCurbRamp" : -2.5025,
+        "CurbRamp" : 1.5,
+        "NoCurbRamp" : -3.17,
         "Obstacle" : 0,
-        "SurfaceProblem" : -0.2475,
+        "SurfaceProblem" : -0.33,
         "Crosswalk" : 0,
-        "Signal" : 1.65,
+        "Signal" : 0.9,
         "NoSidewalk" : -0.5
       },
-      "score" : 0.20587037180094733
+      "score" : 0.16798161486607552
     }, {
-      "preset" : "dot_curb_ramps",
+      "preset" : "missing_ramps",
       "sub_scores" : {
         "CurbRamp" : 1.25,
         "NoCurbRamp" : -5.84,
