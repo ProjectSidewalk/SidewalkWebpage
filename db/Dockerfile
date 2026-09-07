@@ -24,7 +24,11 @@ ENV DEBIAN_FRONTEND=noninteractive
 #
 # Retries go in apt.conf.d rather than in a `-o` flag, which would apply to a single invocation, so that they cover
 # the package downloads and not just the index fetch.
-RUN echo 'Acquire::Retries "3";' > /etc/apt/apt.conf.d/80-retries && \
+#
+# Check-Valid-Until is off because the base image's bullseye-security suite reached end-of-life and its Release file
+# is now expired, which apt otherwise treats as fatal (#5232). The upgrade pulls only the two named packages from the
+# current apt.postgresql.org Release, nothing from debian-security, so accepting its stale index changes nothing here.
+RUN echo 'Acquire::Retries "3"; Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/80-retries && \
   apt-get update && \
   apt-get install -y --no-install-recommends --only-upgrade postgresql-16 postgresql-client-16 && \
   # Drop the cached .deb files and package lists, which would otherwise ship inside the image.
