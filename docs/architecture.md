@@ -117,8 +117,9 @@ actors in `app/actor/`.
 ### Background jobs
 
 Each deployment runs a set of nightly jobs as pekko actors in `app/actor/` — the imagery expiry sweep, the
-imagery-age poll and freshness sync, street-priority recalculation, user and funnel stats, label clustering, crop
-generation, OSM way refresh, AI validations, and auth-token cleanup. The schedule lives in one place,
+imagery-age poll and freshness sync, street-priority recalculation, user and funnel stats, label clustering (which
+opens with the intersection rebuild that re-derives the `intersection` table from the street graph and attributes
+corner-feature clusters to it, #5095), crop generation, OSM way refresh, AI validations, and auth-token cleanup. The schedule lives in one place,
 `app/actor/ScheduledJobs.scala`: each actor reads its own time from there, staggered across the small hours and
 shifted per city by `ConfigService.getOffsetHours` so 50+ deployments don't contend for the same database and
 provider quotas.

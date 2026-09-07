@@ -66,17 +66,28 @@ class ScheduledJobsSpec extends PlaySpec {
       ScheduledJobs.ImageryFreshnessSync.name must not be ScheduledJobs.RecalculateStreetPriority.name
     }
 
+    "give the intersection rebuild the time of the job it runs inside" in {
+      // Same shape as the freshness sync: it is the first step of the clustering run, not a job of its own (#5095).
+      ScheduledJobs.IntersectionRebuild.hour mustBe ScheduledJobs.Clustering.hour
+      ScheduledJobs.IntersectionRebuild.minute mustBe ScheduledJobs.Clustering.minute
+      ScheduledJobs.IntersectionRebuild.name must not be ScheduledJobs.Clustering.name
+      ScheduledJobs.All.indexOf(ScheduledJobs.IntersectionRebuild) must be < ScheduledJobs.All.indexOf(
+        ScheduledJobs.Clustering
+      )
+    }
+
     "cover every job name a hand-trigger endpoint records under" in {
       // The /adminapi routes record Manual runs under the nightly job's name (#4928). A name that isn't on the roster
       // writes rows no panel row ever reads, so the run is recorded and still invisible.
       val handTriggered = Seq(
-        CheckImageExpiryActor.Name,          // /adminapi/checkImagery
-        UserStatActor.Name,                  // /adminapi/updateUserStats
-        FunnelStatActor.Name,                // /adminapi/updateFunnelStats
-        RecalculateStreetPriorityActor.Name, // /adminapi/recalculateStreetPriority
-        OsmWayRefreshActor.Name,             // /adminapi/refreshOsmWayData
-        ClusteringActor.Name,                // /runClustering
-        CropGenerationActor.Name             // /adminapi/generateCrops
+        CheckImageExpiryActor.Name,                            // /adminapi/checkImagery
+        UserStatActor.Name,                                    // /adminapi/updateUserStats
+        FunnelStatActor.Name,                                  // /adminapi/updateFunnelStats
+        RecalculateStreetPriorityActor.Name,                   // /adminapi/recalculateStreetPriority
+        OsmWayRefreshActor.Name,                               // /adminapi/refreshOsmWayData
+        service.ClusterServiceImpl.IntersectionRebuildJobName, // /runClustering, its first step
+        ClusteringActor.Name,                                  // /runClustering
+        CropGenerationActor.Name                               // /adminapi/generateCrops
       )
       ScheduledJobs.All.map(_.name) must contain allElementsOf handTriggered
     }
@@ -85,8 +96,8 @@ class ScheduledJobsSpec extends PlaySpec {
       val scheduled = Seq(
         CheckImageExpiryActor.Name, GetAiValidationsActor.Name, CheckImageryAgeActor.Name, UserStatActor.Name,
         RecalculateStreetPriorityActor.Name, RecalculateStreetPriorityActor.FreshnessSyncJobName,
-        OsmWayRefreshActor.Name, AuthTokenCleanerActor.Name, FunnelStatActor.Name, ClusteringActor.Name,
-        CropGenerationActor.Name
+        OsmWayRefreshActor.Name, AuthTokenCleanerActor.Name, FunnelStatActor.Name,
+        service.ClusterServiceImpl.IntersectionRebuildJobName, ClusteringActor.Name, CropGenerationActor.Name
       )
       ScheduledJobs.All.map(_.name) must contain theSameElementsAs scheduled
     }
