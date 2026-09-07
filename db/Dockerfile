@@ -17,14 +17,15 @@ ENV DEBIAN_FRONTEND=noninteractive
 # base ships, so naming it would be a no-op that could later split it from its own -scripts package. gdal-bin stays
 # out because it is only the GDAL command-line tools, which nothing here calls, and it hard-depends on python3-gdal,
 # which would drag a Python 3.9 stack out of debian-security. PostGIS raster support does not go through it: that
-# links libgdal28, which the base image already ships.
+# links libgdal28, which the base image already ships. pgrouting is gone for the same reason (#5197): nothing has
+# run `CREATE EXTENSION pgrouting` since 2021, and no code here has ever called a `pgr_*` function. It was a
+# leftover from the 2015 access-route project that shared this database.
 #
 # Retries go in apt.conf.d rather than in a `-o` flag, which would apply to a single invocation, so that they cover
 # the package downloads and not just the index fetch.
 RUN echo 'Acquire::Retries "3";' > /etc/apt/apt.conf.d/80-retries && \
   apt-get update && \
   apt-get install -y --no-install-recommends --only-upgrade postgresql-16 postgresql-client-16 && \
-  apt-get install -y --no-install-recommends postgresql-16-pgrouting && \
   # Drop the cached .deb files and package lists, which would otherwise ship inside the image.
   apt-get clean && \
   rm -rf /var/lib/apt/lists/*
