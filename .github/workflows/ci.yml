@@ -94,7 +94,7 @@ jobs:
         run: npx eslint public/js/ public/locales/ test/js/ test/e2e/ playwright.config.js
 
       # Blocking: the CSS tree is kept stylelint-clean (#2487), the CSS counterpart to the ESLint gate above. Same glob
-      # `make stylelint` defaults to; vendored/generated CSS is carved out by stylelint.config.mjs's own `ignoreFiles`.
+      # `make stylelint` defaults to; vendored/generated CSS is carved out by `.stylelintignore`.
       # The glob is single-quoted so Stylelint's own globber expands `**` (not the shell). Like ESLint, no
       # `--max-warnings` flag: the one `warning` rule (max-line-length) is deliberately advisory — CLAUDE.md sanctions
       # long-line exceptions — so an over-limit line nags but doesn't block. `if: always()` runs it even when an earlier
