@@ -4,7 +4,7 @@
  * Building the map, layering chips and legends over it, and reading GeoJSON properties back off a rendered feature
  * live here. Data fetching, colors, and popup content belong to each page's own `*Preview.js`.
  *
- * @requires mapbox-gl, mapbox-gl-language, i18next
+ * @requires mapbox-gl, mapbox-gl-language, i18next, ScoreRamp (js/common/scoreRamp.js)
  */
 
 window.ApiDocsMap = (function () {
@@ -14,8 +14,6 @@ window.ApiDocsMap = (function () {
   // The preview layers are small dots over a busy street grid, so the basemap is knocked back behind them.
   const BASEMAP_DIM_OPACITY = 0.5;
 
-  // ColorBrewer RdYlGn: low accessibility is red and high is green, as in the paper the score comes from.
-  const ACCESS_SCORE_RAMP = ['#d7191c', '#fdae61', '#ffffbf', '#a6d96a', '#1a9641'];
 
   /**
    * Builds a Mapbox map in the given container and resolves once it has loaded.
@@ -325,7 +323,8 @@ window.ApiDocsMap = (function () {
 
   return {
     STYLE_PROJECT_SIDEWALK,
-    ACCESS_SCORE_RAMP,
+    // The AccessScore ramp lives in main.css (read through ScoreRamp) so the docs and the AccessScore tool agree.
+    get ACCESS_SCORE_RAMP() { return ScoreRamp.colors(); },
     create,
     popup,
     addOverlay,

@@ -138,6 +138,19 @@
   --color-label-crosswalk: var(--color-yellow-500);
   --color-label-signal: var(--color-mint-500);
 
+  /* AccessScore ramp: a diverging scale centered on the neutral score (0.5, where a street's problems and features
+     balance), read low → high. Problems run into orange, features into teal, and the midpoint is a grey that recedes
+     on the light basemap. Validated with the dataviz palette checks: each arm passes the ordinal ramp checks (monotone
+     lightness, ≥ 0.06 L per step, light end ≥ 2:1 on the surface) and the orange/teal poles clear the CVD floor;
+     the deep-orange vs jade pair sits in the 6–8 ΔE band, so anything colored by this ramp also carries its value as
+     text (tooltip, legend, table). Read through public/js/common/scoreRamp.js — a chart or map layer never lists
+     these hexes itself. */
+  --color-score-ramp-1: var(--color-orange-600);
+  --color-score-ramp-2: var(--color-orange-500);
+  --color-score-ramp-3: var(--color-neutral-400);
+  --color-score-ramp-4: var(--color-mint-500);
+  --color-score-ramp-5: var(--color-jade-600);
+
   /* Font stacks. Mulish handles ~all type (body, UI, headings H3 and below); Raleway is reserved for top-level H1/H2
        and the Small-Accent style. Mulish doesn't ship CJK glyphs, so its stack ends with Traditional-Chinese system
        fonts (PingFang TC on macOS/iOS, Microsoft JhengHei on Windows; Linux/Android fall through via sans-serif). The
