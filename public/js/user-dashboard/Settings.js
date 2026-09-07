@@ -36,7 +36,8 @@ class Settings {
 
   /** @returns {Object} The form's current values, in the shape the save endpoint takes. */
   #payload() {
-    const teamVal = document.getElementById('set-team')?.value ?? '';
+    const teamEl = document.getElementById('set-team');
+    const teamVal = teamEl?.value ?? '';
     return {
       username: (document.getElementById('set-username')?.value || '').trim(),
       onLeaderboard: document.getElementById('set-on-leaderboard')?.checked ?? true,
@@ -44,8 +45,9 @@ class Settings {
       communityService: document.getElementById('set-community-service')?.checked ?? false,
       // 'auto' = follow the site language; the server clears the override cookie rather than setting one.
       measurementSystem: document.getElementById('set-units')?.value ?? 'auto',
-      // Empty string = "No team"; send null so the server leaves any current team.
-      teamId: teamVal === '' ? null : parseInt(teamVal, 10),
+      // null tells the server not to touch team membership: the "Choose a team…" placeholder, or the team they're
+      // already on. Leaving is the Leave button (TeamActions.js), never a save (#5147).
+      teamId: teamVal === '' || teamVal === teamEl.dataset.currentTeam ? null : parseInt(teamVal, 10),
     };
   }
 
@@ -64,7 +66,6 @@ class Settings {
      */
   async #save({ reloadOnUnitsChange = true } = {}) {
     const payload = this.#payload();
-    const snapshot = this.#snapshot();
 
     this.saveBtn.setAttribute('disabled', 'disabled');
     this.#setStatus(i18next.t('dashboard:settings-form.saving'), null);
@@ -77,8 +78,11 @@ class Settings {
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.success) {
         this.currentUsername = payload.username || this.currentUsername;
-        // Baseline first: what's on screen is now what's stored, so leaving the page loses nothing.
-        this.#baseline = snapshot;
+        // Hand the written team to the controls, so a second save skips it and Leave speaks for it, not the old one.
+        if (payload.teamId !== null) TeamActions.settingsTeamSaved(payload.teamId);
+        // What was just written is the baseline now, with teamId flattened to the null a team already joined sends,
+        // so the save that moved onto it doesn't leave the form looking edited.
+        this.#baseline = JSON.stringify({ ...payload, teamId: null });
         const unitsChanged = payload.measurementSystem !== this.currentUnits;
         this.currentUnits = payload.measurementSystem;
         // Units are read from a stamp the server writes into the page, so a change only takes effect on the next
