@@ -81,6 +81,9 @@
     "create-failed": "Het team kon niet worden aangemaakt. Probeer het opnieuw.",
     "network-error": "Netwerkfout — probeer het opnieuw."
   },
+  "team-leave-confirm-open": "\"{{name}}\" verlaten? Je kunt je later via dezelfde lijst weer aansluiten.",
+  "team-leave-confirm-closed": "\"{{name}}\" verlaten? Dit team neemt geen nieuwe leden aan, dus je kunt je niet zelf weer aansluiten.",
+  "team-leave": "Team verlaten",
   "stories": {
     "none": "Je hebt nog geen verhalen geschreven. Open een etiket op de kaart en kies “Schrijf jouw verhaal”."
   },
