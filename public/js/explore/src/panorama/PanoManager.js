@@ -247,7 +247,7 @@ class PanoManager {
       }
     });
 
-    const panoViewerLogo = createPanoViewerLogo(this.panoCanvas.parentElement, panoViewerType);
+    const panoViewerLogo = createPanoViewerLogo(this.panoCanvas.parentElement, panoViewerType.SOURCE);
     panoViewerLogo.showPrimaryLogo();
 
     if (panoViewerType === GsvViewer) {

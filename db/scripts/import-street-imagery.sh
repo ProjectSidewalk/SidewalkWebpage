@@ -2,7 +2,8 @@
 set -euo pipefail
 
 # Feeder 2 for the street_imagery table (#4348): ingest the per-street imagery summary produced by
-# check_streets_for_imagery.py (db/street_imagery_summary.csv) into street_imagery with data_source = 'imagery_scan'.
+# check_streets_for_imagery.py (db/onboarding/<city-id>/street_imagery_summary.csv) into street_imagery with
+# data_source = 'imagery_scan'.
 # This covers streets a scan reached but that have no labels yet, so Feeder 1 (the evolution-326 pano_data backfill)
 # could not see them. A deliberate scan is treated as authoritative for the streets it covers, so on a key collision the
 # scan row supersedes an existing pano_data row. The app also refreshes street_imagery on its own each night (#4384):
@@ -12,10 +13,12 @@ set -euo pipefail
 
 source /opt/scripts/helpers.sh
 
-SCHEMA_NAME=$(prompt_with_default "Schema name")
-
-# Prompt user for path to CSV file and prepend working dir.
-CSV_FILENAME=$(prompt_with_default "Path to CSV file (relative to db dir)" "street_imagery_summary.csv")
+# Optional positional args ($1 schema, $2 CSV path relative to the db dir) so tools/setup_new_city.py can drive the
+# script without faking its prompts; anything omitted is prompted for. No prompt default: the scan writes into each
+# city's own onboarding dir.
+SCHEMA_NAME=${1:-$(prompt_with_default "Schema name")}
+CSV_FILENAME=${2:-$(prompt_with_default \
+    "Path to CSV file (relative to db dir, e.g. onboarding/newport-ky/street_imagery_summary.csv)")}
 CSV_FILENAME=/opt/$CSV_FILENAME
 if [[ ! -f "$CSV_FILENAME" ]]; then
     echo "Error: CSV not found at $CSV_FILENAME. Generate it with check_streets_for_imagery.py first." >&2

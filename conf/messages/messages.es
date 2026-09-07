@@ -96,6 +96,7 @@ country.name.taiwan = Taiwán
 country.name.new-zealand = Nueva Zelanda
 country.name.canada = Canadá
 country.name.brazil = Brasil
+country.name.france = Francia
 
 navbar.explore = Explorar
 navbar.validate = Validar

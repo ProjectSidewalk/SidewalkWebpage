@@ -15,6 +15,9 @@ maintenance operation.
   `/opt/<name>-dump`. That's why scripts reference `/opt/...` paths and source `/opt/scripts/helpers.sh`.
 - Most scripts are invoked through **`make` targets** that `docker exec` into the running db container. You generally
   run `make <target>` from the **host**, from the repo root.
+- The interactive scripts (`fill-new-schema.sh`, `hide-streets-without-imagery.sh`, `import-street-imagery.sh`) also
+  take their answers as **optional positional args** (each script's header lists them) — that's how
+  `tools/setup_new_city.py` drives them; run without args they prompt as usual.
 - `init.sh` is special: it is **not** a `make` target. Postgres' official image runs it **once, automatically**, on the
   first boot of a fresh data volume (it's mounted into `/docker-entrypoint-initdb.d/`).
 - The data is **seeded from binary `pg_restore` dumps**, not regenerated from Play evolutions. A full city is hundreds
@@ -39,8 +42,8 @@ are **git-ignored** and must be placed in `db/` yourself; see [`docs/dev-environ
 | `init.sh` | _(automatic on first boot)_ | Creates the `sidewalk` DB + roles, enables PostGIS, restores the committed **template** dumps (`sidewalk_init-dump`, `sidewalk_init_users-dump`), seeds the `SidewalkAI` user and read-only `readonly_user` role, and switches local auth to `trust`. | Never run by hand — it runs itself on a fresh db volume. |
 | `import-users.sh` | `make import-users` | Drops and reloads the shared **login schema** (`sidewalk_login`) from `sidewalk_users-dump` (~900 MB); re-grants read-only afterward. | After first boot, and whenever you refresh the users dump. |
 | `import-dump.sh` | `make import-dump db=<schema>` | Drops and reloads **one city's schema** from `<schema>-dump`; recreates the role, sets its `search_path`, re-grants read-only. | To load or refresh a city's data. |
-| `create-new-schema.sh` | `make create-new-schema name=<schema>` | Builds a **brand-new empty city schema** from the `sidewalk_init` template (no data dump needed yet). | When standing up a city you don't yet have a dump for. |
-| `fill-new-schema.sh` | `make fill-new-schema` | Interactively populates a new city's `street_edge` / `region` / priority tables from **QGIS staging tables** (`qgis_road`, `qgis_region`), relocates the template's seeded tutorial street to the end, sets the city center. | After `create-new-schema` + loading QGIS data, to bring the city online. |
+| `create-new-schema.sh` | `make create-new-schema name=<schema> donor=<schema>` | Builds a **brand-new empty city schema** by cloning a live city's structure plus its seed rows (evolutions, version, `config` + tutorial street, tags, surveys) and bumping the sequences. Refuses a donor that has applied an evolution beyond the checkout's highest, or whose top evolution is another branch's under the same number — accepted when its hash is the file's (`make` passes both), otherwise the other city schemas must agree with it. The committed template is not used here — it is frozen at evolution 252 and can't be replayed past 372 (#5198). | When standing up a city you don't yet have a dump for. |
+| `fill-new-schema.sh` | `make fill-new-schema` | Populates a new city's `street_edge` / `region` / priority tables from the **staging tables** (`qgis_road`, `qgis_region` — from `scripts/onboard_city.py` or a QGIS export), relocates the seeded tutorial street past the imported ids, sets the city center, map bounds, and zoom from the open regions, and prints what landed. | After `create-new-schema` + loading the staging SQL, to bring the city online. |
 | `hide-streets-without-imagery.sh` | `make hide-streets-without-imagery` | Marks streets listed in a CSV as `status = 'no_imagery'` so they're not handed out for auditing. | After running `check_streets_for_imagery.py`. |
 | `reveal-or-hide-neighborhoods.sh` | `make reveal-or-hide-neighborhoods` | Opens or closes whole **regions** for auditing (flips `region.deleted` + street status between `open`/`closed`); relocates the tutorial street if its region is hidden. | Phased city launches; pulling a region back. |
 | `import-street-imagery.sh` | `make import-street-imagery` | Ingests `check_streets_for_imagery.py`'s per-street imagery summary CSV into the `street_imagery` table. | When backfilling imagery-age data for a city (#4348). |
@@ -57,14 +60,28 @@ are **git-ignored** and must be placed in `db/` yourself; see [`docs/dev-environ
 make dev  ─▶  init.sh (auto)  ─▶  make import-users  ─▶  make import-dump db=sidewalk_seattle
 ```
 
-**Standing up a brand-new city (no dump yet):**
+**Standing up a brand-new city (no dump yet):** the whole sequence, from open data to a server-ready dump, is
+[`docs/onboarding-a-city.md`](../../docs/onboarding-a-city.md). In short:
 
 ```
-make create-new-schema name=sidewalk_newcity   # empty schema from the template
-# …load qgis_road + qgis_region into that schema (QGIS/OSM export)…
-make fill-new-schema                            # streets, regions, tutorial, city center
-make hide-streets-without-imagery               # optional: after check_streets_for_imagery.py
+make build-city-data id=<city-id> args="--place '<City, State, Country>'"   # scripts/onboard_city.py → db/onboarding/<city-id>/
+make check-imagery   id=<city-id> args="--sample --gsv"                       # imagery preflight, per provider
+make onboard-city    id=<city-id>                                             # tools/setup_new_city.py: configs, GA, schema, fill, scan, dump
 ```
+
+`onboard-city` drives the scripts here in this order — the same steps by hand, for a QGIS export or a partial rerun:
+
+```
+make create-new-schema name=sidewalk_<city> donor=sidewalk_<donor>   # clone a current city's structure + seed rows
+# …load qgis_road + qgis_region into the schema (onboard_city.py writes a psql-loadable qgis_tables.sql)…
+make fill-new-schema                                                  # streets, regions, tutorial, center/bounds/zoom
+make check-imagery id=<city-id> args="--<provider>"                   # full imagery scan (an hour for a mid-sized city)
+make hide-streets-without-imagery                                     # onboarding/<city-id>/streets_with_no_imagery.csv
+make import-street-imagery                                            # onboarding/<city-id>/street_imagery_summary.csv
+```
+
+Run these from the **main checkout**: `db/` is what the container sees at `/opt`, so a worktree's `db/onboarding/`
+and `db/scripts/` are invisible to it.
 
 **Ongoing maintenance:**
 

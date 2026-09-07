@@ -866,6 +866,9 @@
   <script src='@assets.path("vendor/three/three-0.160.1-min.js")'></script>
   <script src='@assets.path("vendor/mapillary/mapillary-4.1.2.min.js")'></script>
   <link href='@assets.path("vendor/mapillary/mapillary-4.1.2.css")' rel="stylesheet">
+  } else if (commonData.imagerySource == PanoSource.Panoramax) {
+  <script src='@assets.path("vendor/photo-sphere-viewer/psv-5.15.1-bundle.min.js")'></script>
+  <link href='@assets.path("vendor/photo-sphere-viewer/psv-5.15.1.css")' rel="stylesheet">
   }
   <script src='@assets.path("js/common/pano-viewer/build/pano-viewer.js")'></script>
   <script src='@assets.path("vendor/floating-ui/floating-ui.core-1.7.5.umd.min.js")'></script>
@@ -1010,7 +1013,8 @@
        the server-side one. *@
     mainParam.latLngEstimation = @jsonForScript(service.PanoDataService.LatLngEstimation.asJson);
     const imagerySrc = "@commonData.imagerySource.toString";
-    mainParam.viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer : GsvViewer;
+    mainParam.viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer
+      : imagerySrc === 'panoramax' ? PanoramaxViewer : GsvViewer;
     mainParam.viewerAccessToken = "@commonData.imageryAccessToken";
 
     window.appManager.ready(function () {

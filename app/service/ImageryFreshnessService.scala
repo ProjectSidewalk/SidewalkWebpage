@@ -13,7 +13,7 @@ import play.api.{Configuration, Logger}
 
 import java.io.IOException
 import java.net.SocketTimeoutException
-import java.time.{Instant, LocalDate, ZoneOffset}
+import java.time.{Instant, LocalDate, OffsetDateTime, ZoneOffset}
 import javax.inject._
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContext, Future}
@@ -179,6 +179,20 @@ object ImageryFreshnessService {
     Try(Instant.ofEpochMilli(capturedAtMs).atOffset(ZoneOffset.UTC).toLocalDate).toOption
       .filter(d => capturedAtMs > 0 && d.getYear >= 2004 && !d.isAfter(now))
 
+  /**
+   * Converts a Panoramax STAC `datetime` (ISO-8601 with offset, e.g. `2026-08-11T15:02:33+00:00`) to its UTC date,
+   * with the same plausibility clamp as Mapillary: the value is the contributor's camera clock, so pre-2004 and future
+   * dates are treated as unknown rather than trusted.
+   *
+   * The item also carries the capture's local instant (`datetimetz`), which the viewer reads so the date it shows is
+   * the one the contributor would call it. This poll deliberately doesn't: it compares imagery ages at year
+   * granularity, where a date that can be a day out either way costs nothing and a single timezone convention keeps
+   * it comparable with the Mapillary poll beside it, whose epoch millis carry no local offset at all.
+   */
+  def parsePanoramaxDatetime(raw: String, now: LocalDate = LocalDate.now(ZoneOffset.UTC)): Option[LocalDate] =
+    Try(OffsetDateTime.parse(raw).withOffsetSameInstant(ZoneOffset.UTC).toLocalDate).toOption
+      .filter(d => d.getYear >= 2004 && !d.isAfter(now))
+
   /** Half-widths of a bbox approximating a circle of the given radius (meters) around a point, in degrees. */
   def bboxHalfWidths(latDegrees: Double, radiusMeters: Double): (Double, Double) = {
     val dLat = radiusMeters / 111320.0
@@ -268,6 +282,8 @@ class ImageryFreshnessServiceImpl @Inject() (
               new MissingImageryCredentialException("No mapillary-access-token configured for a Mapillary city.")
             )
         }
+      // Panoramax's API is public, so there is no credential to resolve (#5185).
+      case PanoSource.Panoramax => pollStreets("Panoramax")(fetchPanoramaxPointObservations)
       // Infra3d is deliberately not polled, though it could be: scripts/check_streets_for_imagery.py --infra3d shows
       // the query (framegate's nearest-frame `knn/query`, with the token PanoDataService.getInfra3dToken mints, and
       // the frame `timestamp` as the capture date). It isn't worth a nightly run because each Infra3d city is a single
@@ -508,6 +524,46 @@ class ImageryFreshnessServiceImpl @Inject() (
         case _: IOException            => None
         case e: Exception              =>
           logger.warn(s"Unexpected error polling Mapillary imagery age at $lat,$lng; treating as inconclusive.", e)
+          None
+      }
+  }
+
+  /**
+   * Queries Panoramax's federated meta-catalog for 360° pictures in a small bbox around a point. The search is
+   * sorted newest-first, so unlike the Mapillary poll a densely covered bbox can't hide the newest capture beyond
+   * the page limit. Flat pictures are filtered out server-side, since only 360° ones reach labelers.
+   */
+  private def fetchPanoramaxPointObservations(lat: Double, lng: Double): Future[Option[Seq[PanoObservation]]] = {
+    val (dLat, dLng) = bboxHalfWidths(lat, SampleRadiusMeters)
+    val bbox         = s"${lng - dLng},${lat - dLat},${lng + dLng},${lat + dLat}"
+    ws.url(s"https://api.panoramax.xyz/api/search?bbox=$bbox&filter=field_of_view%3D360&sortby=-ts&limit=100")
+      .addHttpHeaders("User-Agent" -> PanoDataService.PanoramaxUserAgent)
+      .withRequestTimeout(5.seconds)
+      .get()
+      .map { response =>
+        response.status match {
+          case 200 =>
+            val features = (Json.parse(response.body) \ "features").asOpt[JsArray].map(_.value).getOrElse(Seq.empty)
+            Some(features.toSeq.map { feature =>
+              val id   = (feature \ "id").asOpt[String].getOrElse("")
+              val date = (feature \ "properties" \ "datetime").asOpt[String].flatMap(d => parsePanoramaxDatetime(d))
+              // The geometry is a GeoJSON Point, so coordinates come as [lng, lat].
+              val location = (feature \ "geometry" \ "coordinates").asOpt[Seq[Double]].collect {
+                case Seq(picLng, picLat) => (picLat, picLng)
+              }
+              PanoObservation(id, date, location)
+            })
+          case other =>
+            // Rate limits, 5xx: inconclusive, skip the street and retry another night.
+            logger.info(s"Panoramax imagery-age poll inconclusive ($other) at $lat,$lng")
+            None
+        }
+      }
+      .recover {
+        case _: SocketTimeoutException => None
+        case _: IOException            => None
+        case e: Exception              =>
+          logger.warn(s"Unexpected error polling Panoramax imagery age at $lat,$lng; treating as inconclusive.", e)
           None
       }
   }

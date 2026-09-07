@@ -1,0 +1,141 @@
+{
+  "top-ui": {
+    "title": {
+      "curb-ramp": "Est-ce un <b>Bateau de trottoir</b> ?",
+      "no-curb-ramp": "Est-ce un <b>Bateau manquant</b> ?",
+      "obstacle": "Est-ce un <b>Obstacle</b> ?",
+      "surface-problem": "Est-ce un <b>Problème de surface</b> ?",
+      "no-sidewalk": "Faut-il une étiquette <b>Absence de trottoir</b> ici ?",
+      "crosswalk": "Est-ce un <b>Passage piéton marqué</b> ?",
+      "signal": "Est-ce un <b>Feu piéton</b> ?"
+    },
+    "visibility-control-hide": "Masquer l'étiquette (<u>H</u>)",
+    "visibility-control-show": "Afficher l'étiquette (<u>H</u>)",
+    "visibility-control-tooltip-hide": "Masquer temporairement l'étiquette pour mieux voir (<u>H</u>).",
+    "visibility-control-tooltip-show": "Afficher de nouveau l'étiquette (<u>H</u>)."
+  },
+  "validate-menu": {
+    "disagree-reason": {
+      "curb-ramp": {
+        "no-button-1": "C'est une entrée charretière",
+        "no-button-2": "C'est une transition trottoir–entrée charretière",
+        "no-button-2-tooltip": "Les transitions entre trottoir et entrée charretière ne sont pas des bateaux, sauf si une rampe dédiée a été ajoutée",
+        "no-button-3": "Ce devrait être une étiquette Bateau manquant",
+        "no-button-3-tooltip": "Il arrive qu'un bateau manquant soit étiqueté par erreur comme un bateau"
+      },
+      "no-curb-ramp": {
+        "no-button-1": "C'est une allée privée",
+        "no-button-2": "Il n'y a pas de trottoir ici",
+        "no-button-3": "Ce devrait être une étiquette Bateau de trottoir",
+        "no-button-3-tooltip": "Il arrive qu'un bateau soit étiqueté par erreur comme manquant, souvent parce qu'il n'a pas de bande d'éveil",
+        "no-button-4": "Il n'est pas sûr de traverser ici",
+        "no-button-4-tooltip": "Les piétons ne sont pas censés traverser à cet endroit, donc aucun bateau n'est attendu"
+      },
+      "obstacle": {
+        "no-button-1": "Ce n'est pas sur un cheminement piéton",
+        "no-button-1-tooltip": "S'il n'y a pas de trottoir, ou si l'objet n'est pas sur la partie du trottoir réservée aux piétons, comme sur l'image ci-dessous, aucune étiquette Obstacle n'est nécessaire",
+        "no-button-2": "Il y a largement la place d'éviter cet objet",
+        "no-button-2-tooltip": "Sur les trottoirs très larges, les objets faciles à éviter ne doivent <b>pas</b> être étiquetés comme obstacles",
+        "no-button-3": "Ce devrait être une étiquette Problème de surface",
+        "no-button-3-tooltip": "L'herbe et les débris comme les feuilles doivent être marqués avec une étiquette Problème de surface"
+      },
+      "surface-problem": {
+        "no-button-1": "Ce devrait être une étiquette Absence de trottoir",
+        "no-button-1-tooltip": "Le gravier ou l'herbe ne sont pas considérés comme un trottoir et doivent être marqués avec une étiquette Absence de trottoir",
+        "no-button-2": "Ce n'est pas sur un cheminement piéton",
+        "no-button-2-tooltip": "Si un problème de surface n'est pas sur un chemin destiné aux piétons, il ne doit pas être étiqueté comme problème de surface",
+        "no-button-3": "Ce sont des dalles de trottoir normales"
+      },
+      "no-sidewalk": {
+        "no-button-1": "Il y a un trottoir ici",
+        "no-button-2": "C'est un terre-plein central",
+        "no-button-3": "Ce devrait être un autre type d'étiquette",
+        "no-button-3-tooltip": "Des problèmes de surface ou des obstacles sont parfois étiquetés par erreur comme Absence de trottoir"
+      },
+      "crosswalk": {
+        "no-button-1": "Il n'y a aucun passage piéton visible ici",
+        "no-button-2": "C'est une ligne d'arrêt pour les voitures",
+        "no-button-3": "C'est un ralentisseur"
+      },
+      "signal": {
+        "no-button-1": "Ce n'est qu'un feu de circulation pour véhicules",
+        "no-button-2": "C'est un panneau sans feu indiquant quand traverser",
+        "no-button-3": "C'est un poteau sans feu ni bouton piéton"
+      }
+    },
+    "unsure-reason": {
+      "common": {
+        "reason-1": "Il faudrait une meilleure image",
+        "reason-1-tooltip": "L'image est peut-être floue, l'élément étiqueté trop éloigné, ou un autre angle serait nécessaire",
+        "reason-2": "Le placement de l'étiquette semble incorrect",
+        "reason-2-tooltip": "Il arrive que l'élément étiqueté soit visible mais que l'étiquette en soit éloignée"
+      },
+      "curb-ramp": {
+        "unsure-button-3-tooltip": "Certaines ruelles ou entrées commerciales nécessitent une rampe en raison d'une différence de niveau, d'autres non. Il n'est pas toujours clair qu'un raccord de trottoir nécessite une rampe ou une bande d'éveil."
+      },
+      "no-curb-ramp": {
+        "unsure-button-3": "Pas sûr qu'un bateau soit nécessaire",
+        "unsure-button-3-tooltip": "Il peut être difficile de savoir si les piétons doivent pouvoir traverser à une intersection avec une route plus fréquentée"
+      },
+      "obstacle": {
+        "unsure-button-3": "Il y a peut-être assez de place<br>pour éviter l'objet",
+        "unsure-button-3-tooltip": "La largeur du trottoir peut être difficile à juger sur une image"
+      },
+      "surface-problem": {
+        "unsure-button-3": "Peut-être trop mineur pour être étiqueté",
+        "unsure-button-3-tooltip": "Il peut être difficile de savoir si un défaut comme de l'herbe entre des dalles mérite une étiquette"
+      },
+      "no-sidewalk": {
+        "unsure-button-3": "Pas sûr qu'il devrait y avoir un trottoir ici",
+        "unsure-button-3-tooltip": "Il faut parfois plus de contexte, et il est difficile de déterminer d'après une seule image si un trottoir est nécessaire"
+      }
+    }
+  },
+  "center-ui": {
+    "no-info": "Aucune information disponible",
+    "pano-interactive-message": "Faites glisser pour regarder autour de vous, faites défiler pour zoomer."
+  },
+  "imagery-unavailable": {
+    "title": "Impossible de charger les images",
+    "body": "Nous n'avons pas pu charger les images de rue des étiquettes de cette mission, il n'y a donc rien à afficher pour le moment. Vos validations terminées sont enregistrées. Cela se résout généralement tout seul — veuillez réessayer.",
+    "retry": "Réessayer"
+  },
+  "mission-complete": {
+    "title": "Excellent travail !",
+    "body-CurbRamp": "Vous venez de valider {{n}} étiquettes Bateau de trottoir.",
+    "body-NoCurbRamp": "Vous venez de valider {{n}} étiquettes Bateau manquant.",
+    "body-Obstacle": "Vous venez de valider {{n}} étiquettes Obstacle.",
+    "body-SurfaceProblem": "Vous venez de valider {{n}} étiquettes Problème de surface.",
+    "body-NoSidewalk": "Vous venez de valider {{n}} étiquettes Absence de trottoir.",
+    "body-Crosswalk": "Vous venez de valider {{n}} étiquettes Passage piéton marqué.",
+    "body-Signal": "Vous venez de valider {{n}} étiquettes Feu piéton.",
+    "validate-more": "Valider d'autres étiquettes",
+    "continue": "Continuer à valider",
+    "explore": "Commencer une mission d'exploration",
+    "no-new-mission-title": "Plus aucune mission de validation disponible",
+    "no-new-mission-body": "Cliquez sur le bouton pour commencer à explorer.",
+    "no-new-mission-button": "Commencer à explorer",
+    "all-time_one": "{{count}} validation au total",
+    "all-time_other": "{{count}} validations au total",
+    "next-badge_one": "Encore {{count}} validation avant {{badge}}",
+    "next-badge_other": "Encore {{count}} validations avant {{badge}}",
+    "top-badge": "Badge ultime obtenu — vous êtes une légende !"
+  },
+  "mobile": {
+    "no-new-mission-body": "Vous pouvez ajouter d'autres étiquettes depuis un ordinateur, ou valider des étiquettes dans une autre ville !",
+    "no-new-mission-button": "Valider à"
+  },
+  "expert-validate": {
+    "add-tag": "Ajouter : {{tag}}",
+    "remove-tag": "Retirer : {{tag}}"
+  },
+  "mission-start-tutorial": {
+    "mst-instruction-1": "VOTRE MISSION",
+    "mst-instruction-2": "Validez {{nLabels}} étiquettes {{- labelType}}",
+    "examples-label": "Exemples d'étiquettes",
+    "example-type-label-incorrect": "MAUVAIS EXEMPLE",
+    "label-on-image-title-incorrect": "Étiquette erronée",
+    "label-on-image-description-correct": "Choisir <b>D'accord</b>",
+    "label-on-image-description-incorrect": "Choisir <b>Pas d'accord</b>"
+  }
+}

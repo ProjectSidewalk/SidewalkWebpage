@@ -1,0 +1,835 @@
+measurement.system = metric
+label.type = Type d''étiquette
+severity = Gravité
+curb.ramp = Bateau de trottoir
+curb.ramps = Bateaux de trottoir
+missing.ramp = Bateau manquant
+missing.ramps = Bateaux manquants
+obstacle = Obstacle sur le passage
+obstacles = Obstacles sur le passage
+surface.problem = Problème de surface
+surface.problems = Problèmes de surface
+no.sidewalk = Absence de trottoir
+crosswalk = Passage piéton marqué
+signal = Feu piéton
+occlusion = Trottoir non visible
+other = Autre
+curb.ramp.description = Bateau reliant le trottoir à la chaussée
+missing.ramp.description = Bateau de trottoir manquant
+obstacle.description = Obstacle sur le passage
+surface.problem.description = Problème sur la surface du trottoir
+no.sidewalk.description = Aucun trottoir de ce côté de la rue
+crosswalk.description = Passage piéton marqué au sol
+signal.description = Feu ou bouton d''appel piéton facilitant la traversée
+occlusion.description = Vue obstruée
+other.description = Autre problème d''accessibilité
+low = Faible
+medium = Moyenne
+high = Élevée
+not.applicable.abbr = N/A
+validations = Validations
+labels = étiquettes
+labels.caps = Étiquettes
+label.icon.alt = Icône de carte minimaliste avec un grand marqueur de destination
+accuracy = précision
+accuracy.caps = Précision
+accuracy.icon.alt = Cible avec une flèche en plein centre
+unit.distance.abbr.metric = km
+unit.distance.abbr.imperial = mi
+unit.distance.abbr.small.metric = m
+unit.distance.abbr.small.imperial = pi
+unit.distance.name.metric = kilomètres
+unit.distance.name.imperial = miles
+unit.distance.name.singular.metric = kilomètre
+unit.distance.name.singular.imperial = mile
+distance.icon.alt = Icône d''un chemin courbe menant à une destination
+ok = OK
+cancel = Annuler
+undo = Annuler
+back = Retour
+back.shortcut = Retour (<u>B</u>)
+error = Erreur !
+yes.caps = Oui
+yes.caps.shortcut = Oui (<u>Y</u>)
+no.caps = Non
+no.caps.shortcut = <u>N</u>on
+unsure.caps = Incertain
+unsure.caps.shortcut = Incertain (<u>U</u>)
+thanks = Merci !
+username = Nom d''utilisateur
+loading = Chargement...
+loading.encouragement = C''est parti !
+submit = Envoyer
+submit.shortcut = Envoyer (<u>S</u>)
+test.server.warning.message = <strong>Vous êtes sur un serveur de test.</strong> Votre travail ne sera pas enregistré ici. Pour conserver vos données, utilisez le site principal
+test.server.warning.label = Avis de serveur de test
+test.server.warning.close = Fermer l''avis
+dont.show.again = Ne plus afficher
+explore.alert.close = Fermer
+
+press.key = Appuyez sur la touche « {0} »
+press.keys = Appuyez sur les touches « {0} »
+
+city.state = {0}, {1}
+
+city.name.cdmx = Mexico
+city.name.new-taipei-tw = Nouveau Taipei
+city.name.st-louis-mo = Saint-Louis
+city.name.la-ca = Los Angeles
+city.name.knox-oh = Comté de Knox
+city.name.niagara-falls-ny = Chutes du Niagara
+city.name.validation-study = Étude de validation
+city.name.la-piedad-old = La Piedad (ancien)
+
+state.name.pennsylvania = Pennsylvanie
+state.name.california = Californie
+state.name.south-carolina = Caroline du Sud
+state.name.virginia = Virginie
+state.name.florida = Floride
+
+country.name.usa = États-Unis
+country.name.mexico = Mexique
+country.name.netherlands = Pays-Bas
+country.name.switzerland = Suisse
+country.name.taiwan = Taïwan
+country.name.new-zealand = Nouvelle-Zélande
+country.name.ecuador = Équateur
+country.name.canada = Canada
+country.name.india = Inde
+country.name.chile = Chili
+country.name.brazil = Brésil
+
+navbar.explore = Explorer
+navbar.validate = Valider
+navbar.howto = Comment étiqueter
+navbar.api = API
+navbar.about = À propos
+navbar.tools = Outils
+navbar.labelmap = Carte des étiquettes
+navbar.leaderboard = Classement
+navbar.stories = Témoignages
+navbar.routes = Itinéraires
+navbar.your.city.here = Votre ville ici
+navbar.retake.tutorial = Refaire le tutoriel
+navbar.signin = Se connecter
+navbar.signout = Se déconnecter
+navbar.dashboard = Votre tableau de bord
+navbar.your.stories = Vos témoignages
+navbar.your.routes = Vos itinéraires
+navbar.admin = Admin
+navbar.expert.validate = Validation experte
+navbar.city = Ville
+navbar.lang.aria = Options de langue
+navbar.lang.icon.alt = icône des langues
+navbar.servicehours = Infos bénévolat
+navbar.timecheck = Suivi du temps
+navbar.cities = Villes
+navbar.menu.toggle = Afficher ou masquer le menu de navigation
+navbar.tools.analyze = Analyser
+navbar.tools.community = Communauté
+navbar.tools.build = Construire
+navbar.tools.admin = Admin
+navbar.user.account = Compte
+navbar.city.search = Rechercher une ville…
+navbar.city.viewall = Voir toutes les villes sur la carte
+navbar.city.none = Aucune ville correspondante
+
+# SEO (#4237): per-page <title> values and meta descriptions. {0} is the city name where present.
+seo.title.landing = Project Sidewalk — {0}
+seo.title.explore = Explorer {0} — Project Sidewalk
+seo.title.validate = Valider — Project Sidewalk
+seo.title.expert.validate = Validation experte — Project Sidewalk
+seo.title.gallery = Galerie des trottoirs — Project Sidewalk
+seo.title.labeling.guide = Guide d''étiquetage — Project Sidewalk
+seo.title.terms = Conditions d''utilisation — Project Sidewalk
+seo.title.label.map = Carte des étiquettes de {0} — Project Sidewalk
+seo.title.cities = Villes déployées — Project Sidewalk
+seo.title.leaderboard = Classement — Project Sidewalk
+seo.title.stories = Témoignages de la communauté — Project Sidewalk
+seo.title.routes = Itinéraires de la communauté — Project Sidewalk
+seo.title.route.builder = RouteBuilder — Project Sidewalk
+seo.title.dashboard = Votre tableau de bord — Project Sidewalk
+seo.title.settings = Paramètres — Project Sidewalk
+seo.title.sign.in = Connexion — Project Sidewalk
+seo.title.sign.up = Inscription — Project Sidewalk
+seo.title.welcome = Bienvenue — Project Sidewalk
+seo.title.forgot.password = Récupérer le mot de passe — Project Sidewalk
+seo.title.reset.password = Réinitialiser le mot de passe — Project Sidewalk
+seo.title.service.hours = Infos bénévolat — Project Sidewalk
+seo.title.time.check = Suivi du temps — Project Sidewalk
+seo.title.about = À propos — Project Sidewalk
+seo.description.default = Aidez à cartographier et à évaluer les trottoirs de {0} par l''exploration virtuelle. Des données ouvertes sur les bateaux de trottoir, les obstacles et les problèmes de surface pour un monde plus accessible.
+seo.description.landing = Aidez à repérer les problèmes de sécurité et d''accessibilité des trottoirs de {0} depuis votre ordinateur. Vos étiquettes aident les chercheurs, les villes et les communautés à améliorer leurs trottoirs.
+seo.description.explore = Parcourez virtuellement les rues de {0} et étiquetez les bateaux de trottoir, les trottoirs manquants, les obstacles et les problèmes de surface pour améliorer l''accessibilité.
+seo.description.validate = Vérifiez les étiquettes d''accessibilité des trottoirs placées par d''autres dans {0} et aidez à améliorer la qualité des données.
+seo.description.gallery = Parcourez des images au niveau de la rue des aménagements et des obstacles d''accessibilité des trottoirs de {0}.
+seo.description.label.map = Carte interactive de chaque étiquette d''accessibilité des trottoirs de {0} : bateaux de trottoir, obstacles, problèmes de surface et plus encore.
+seo.description.cities = Project Sidewalk est déployé dans des villes du monde entier. Découvrez toutes les villes déployées ou faites venir Project Sidewalk dans la vôtre.
+seo.description.api = Données ouvertes et gratuites sur l''accessibilité des trottoirs de {0} : étiquettes brutes, groupes d''étiquettes, rues et scores d''accessibilité aux formats JSON, CSV, GeoJSON, GeoPackage et Shapefile.
+seo.description.about = Découvrez Project Sidewalk : notre mission de cartographier les trottoirs du monde, l''équipe de recherche qui le porte et les données ouvertes qu''il produit.
+seo.og.image.alt = Capture d''écran de l''exploration virtuelle de Project Sidewalk, avec des étiquettes d''accessibilité placées le long d''un trottoir.
+
+# About page (#4237, redesigned in #4631). Static copy is server-rendered and doubles as the no-JS/crawler fallback;
+# numbers in data-live-stat spans are hydrated from /v3/api/aggregateStats (aggregateStats.js), and the team,
+# publications, and funders sections are hydrated from the Makeability Lab API (aboutPage.js).
+about.title = À propos de Project Sidewalk
+about.hero.title = Nous cartographions et évaluons <span class="about-hero-accent">chaque trottoir</span> du monde.
+about.hero.subtitle = Project Sidewalk est un projet de recherche universitaire en source ouverte de l''Université de Washington et de l''Université de l''Illinois à Chicago qui combine la participation citoyenne et l''IA pour cartographier et évaluer les trottoirs des villes — et qui ouvre chaque donnée aux chercheurs, aux collectivités et aux communautés.
+about.hero.cta.explore = Commencer à explorer
+about.hero.cta.data = Obtenir les données
+about.stats.heading = Project Sidewalk en chiffres
+about.stats.km = Kilomètres explorés
+about.stats.labels = Étiquettes
+about.stats.validations = Validations
+about.stats.cities = Villes
+about.stats.countries = Pays
+# Accessible name for the in-page section nav. Its entries are the section headings below, read from the DOM, so
+# adding a section needs no key here.
+about.toc.title = Sur cette page
+about.how.title = Comment ça marche
+about.how.intro = Notre mission est de cartographier et d''évaluer chaque trottoir du monde grâce à la participation citoyenne à distance, à l''intelligence artificielle et à l''imagerie de rue en ligne. Toute personne disposant d''un navigateur web peut aider — aucun outil particulier n''est requis.
+about.how.step.explore.title = Explorer &amp; étiqueter
+about.how.step.explore.body = Les bénévoles parcourent virtuellement les rues de la ville dans un outil web ludique, en étiquetant les bateaux de trottoir, les trottoirs manquants, les obstacles et les problèmes de surface dans l''imagerie de rue.
+about.how.step.validate.title = Valider
+about.how.step.validate.body = Les contributeurs vérifient ensuite les étiquettes des autres — avec l''aide de l''IA — en approuvant ou en contestant ce qu''ils voient, pour que le jeu de données reste précis et fiable.
+about.how.step.data.title = Données ouvertes
+about.how.step.data.body = Chaque étiquette alimente un jeu de données ouvert que les chercheurs, les collectivités et les associations utilisent pour comprendre et améliorer l''accessibilité des trottoirs.
+about.how.step.explore.cta = Commencer à explorer
+about.how.step.validate.cta = Valider des étiquettes
+about.how.step.data.cta = Obtenir les données
+about.impact.title = L''impact de Project Sidewalk
+about.impact.intro = L''objectif n''est pas seulement de produire des données — c''est de rendre les villes plus praticables, plus roulables et plus sûres pour les piétons. Voici quelques exemples de la façon dont des communautés, des collectivités et des écoles ont mis Project Sidewalk à contribution.
+about.impact.chicago.place = Chicago, Illinois
+about.impact.chicago.body = Des conseils d''arrondissement ont utilisé les données Project Sidewalk collectées par les habitants pour répartir plus équitablement les fonds d''amélioration des trottoirs, et notre équipe a conseillé le comité de sécurité des piétons de la ville pour dépasser les réparations dictées par les plaintes.
+about.impact.illinois.place = Lincolnwood, Roselle &amp; Mendota, Illinois
+about.impact.illinois.body = Les données Project Sidewalk ont contribué aux plans de transition ADA de Lincolnwood et de Roselle, et des partenaires locaux de Mendota les ont utilisées pour obtenir une subvention Safe Routes to School afin de sécuriser les chemins de l''école.
+about.impact.burnaby.place = Burnaby, Canada
+about.impact.burnaby.body = La ville de Burnaby a intégré les données Project Sidewalk au cadre de priorisation de son programme de nouveaux trottoirs et de sa stratégie d''accessibilité récemment adoptée.
+about.impact.newberg.place = Newberg, Oregon
+about.impact.newberg.body = Après que des habitants ont cartographié les trottoirs locaux, le conseil municipal a créé un nouveau programme de rénovation des trottoirs — dont 50 000 $ pour des réparations immédiates et des aides aux propriétaires pour réparer les trottoirs devant chez eux.
+about.impact.zurich.place = Zurich, Suisse
+about.impact.zurich.body = Zurich publie les données Project Sidewalk sur le portail de données ouvertes de la ville, et le déploiement a remporté un Smart City Hub Switzerland Award dans la catégorie sciences participatives.
+about.impact.schools.place = Des salles de classe partout aux États-Unis
+about.impact.schools.body = Des élèves utilisent Project Sidewalk pour apprendre la science des données et l''engagement citoyen — des scoutes d''Oradell (New Jersey) présentant leurs résultats à leur conseil municipal aux <a href="https://makeabilitylab.cs.washington.edu/news/mcdevitt-middle-school-earns-state-recognition-for-urban-accessibility-effort-with-project-sidewalk/">collégiens de Waltham (Massachusetts) distingués par leur État pour leur engagement civique</a>.
+about.impact.more = Envie d''en savoir plus ? Notre site partenaire <a href="https://accessiblecommunities.org/">accessiblecommunities.org</a> partage des actualités, des ressources et des guides pour mettre Project Sidewalk au service de votre communauté.
+about.where.title = Où nous sommes
+about.where.body = De Seattle à Mexico et à Zurich, des bénévoles ont placé <span data-live-stat="num_cities">{0}</span> villes de <span data-live-stat="num_countries">{1}</span> pays sur la carte de l''accessibilité — une rue à la fois.
+about.where.links = <a href="/cities">Voir tous les déploiements</a>, ou <a href="https://accessiblecommunities.org/use-project-sidewalk/">faire venir Project Sidewalk dans votre ville</a>.
+about.history.title = Notre histoire
+about.history.2012 = Project Sidewalk naît en tant que projet de recherche du professeur Jon E. Froehlich et du doctorant Kotaro Hara au <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a>, avec le soutien initial d''un <a href="https://research.google/outreach/past-programs/faculty-research-awards/">Google Faculty Research Award</a> et de la <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338">National Science Foundation</a>.
+about.history.2017 = Le premier déploiement à l''échelle d''une ville est lancé à Washington, DC, sous la direction de la doctorante Manaswi Saha et du chercheur Mikey Saugstad, alors que le laboratoire rejoint la Paul G. Allen School of Computer Science &amp; Engineering de l''Université de Washington.
+about.history.2019 = L''étude pilote de DC montre que la participation citoyenne en ligne permet de cartographier les trottoirs d''une ville entière — et remporte un prix du meilleur article à CHI 2019.
+about.history.2021 = Une <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=2125087">subvention NSF Smart &amp; Connected Communities</a> approfondit notre partenariat avec l''Université de l''Illinois à Chicago et Easterseals, en élargissant les déploiements, les programmes éducatifs et notre site partenaire <a href="https://accessiblecommunities.org/">accessiblecommunities.org</a>.
+about.history.today.label = Aujourd''hui
+about.history.today = Project Sidewalk est actif dans <span data-live-stat="num_cities">{0}</span> villes du monde, traduit nativement en {1} langues et porté par des milliers de cartographes bénévoles.
+about.team.title = L''équipe
+about.team.intro = Project Sidewalk est un projet de recherche universitaire dirigé par le professeur Jon E. Froehlich au <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> de l''Université de Washington et par le professeur Yochai Eisenberg à l''Université de l''Illinois à Chicago, avec Mikey Saugstad comme ingénieur principal — et les contributions de plus d''une centaine d''étudiants et de collaborateurs au fil des années.
+about.team.current.title = Équipe actuelle
+about.team.past.title = Anciens responsables
+about.team.past.kotarohara = A lancé Project Sidewalk avec le professeur Froehlich pendant son doctorat, en concevant les méthodes de participation citoyenne et de vision par ordinateur au cœur du projet — le sujet de sa <a href="https://makeabilitylab.cs.washington.edu/media/publications/Hara_ScalableMethodsToCollectAndVisualizeSidewalkAccessibilityDataForPeopleWithMobilityImpairments_UMDCSPhDDissertation2016.pdf">thèse</a>.
+about.team.past.davidjacobs = Co-responsable de la subvention NSF initiale et du premier Google Faculty Research Award qui ont lancé Project Sidewalk, il a guidé ses premières recherches en vision par ordinateur.
+about.team.past.manaswisaha = A contribué à diriger le premier déploiement à grande échelle à Washington, DC et a conçu des outils pour comprendre les données d''accessibilité urbaine — le sujet de sa <a href="https://makeabilitylab.cs.washington.edu/media/publications/Saha_DesigningInteractiveDataDrivenToolsForUnderstandingUrbanAccessibilityAtScale_UWCSPhDDissertation2022.pdf">thèse</a>.
+about.team.contributors.title = Contributeurs
+about.team.contributors.intro = Plus de {0} personnes ont contribué du code, des maquettes et des idées à Project Sidewalk, dont {1} étudiants du lycée au doctorat. Une partie de notre mission est d''aider les étudiants en informatique et en design à travailler sur des projets à impact sociétal par l''apprentissage par l''expérience.
+about.team.contributors = … ainsi que des partenaires locaux et des milliers de cartographes bénévoles dans le monde — voir la <a href="https://makeabilitylab.cs.washington.edu/project/sidewalk/">page complète du projet</a> pour en savoir plus.
+about.pubs.title = Publications associées
+about.pubs.intro = Les recherches de Project Sidewalk sont publiées dans les principales conférences d''interaction humain-machine et d''accessibilité. Si vous utilisez nos données ou nos outils dans vos recherches, merci de citer notre <a href="https://doi.org/10.1145/3290605.3300292">article CHI 2019</a>.
+about.pubs.fallback = Parcourez <a href="https://makeabilitylab.cs.washington.edu/project/sidewalk/">toutes les publications de Project Sidewalk</a> sur le site du Makeability Lab.
+about.pubs.showAll = Afficher les {0} publications
+about.pubs.cite.title = Comment citer Project Sidewalk
+about.pubs.cite.plain = Citation
+about.pubs.cite.copy = Copier
+about.pubs.cite.copied = Copié
+about.data.title = Données ouvertes &amp; code ouvert
+about.data.body = Tout ce que nous collectons est ouvert. Téléchargez les étiquettes brutes, les groupes d''étiquettes, les rues et les scores d''accessibilité via nos <a href="/api">API publiques</a>, du CSV au GeoJSON — le tout publié sous licence CC0 ; consultez la <a href="/api">documentation de l''API</a> pour les détails et les consignes de citation. Notre <a href="https://github.com/ProjectSidewalk/SidewalkWebpage">code est également ouvert</a>.
+about.partners.title = Partenaires locaux
+about.partners.body = Nous travaillons main dans la main avec des associations de défense des personnes handicapées, des collectivités, des écoles et des groupes locaux du monde entier — dont Easterseals, World Enabled, Liga Peatonal et l''Active Transportation Alliance — pour planifier les déploiements, organiser des événements de cartographie collective et transformer les données en action locale.
+about.partners.schools = Des enseignants intègrent Project Sidewalk à leurs cours d''éducation civique et de science des données, et notre équipe et nos partenaires ont expérimenté des programmes d''apprentissage par le service et d''insertion professionnelle pour des jeunes en situation de handicap. <a href="https://accessiblecommunities.org/use-project-sidewalk/">Découvrez comment utiliser Project Sidewalk dans votre communauté</a>.
+about.funding.title = Financement de la recherche
+about.funding.body = Project Sidewalk est une recherche universitaire financée par des subventions, soutenue par la National Science Foundation avec le concours de Google, de la Fondation Alfred P. Sloan, de PacTrans et du UW Center for Research and Education on Accessible Technology and Experiences (CREATE).
+about.cta.title = Aidez-nous à cartographier chaque trottoir
+about.cta.city = Faire venir Project Sidewalk dans votre ville
+about.contact.body = Des questions, des idées ou des demandes de presse ? Écrivez-nous à <a href="mailto:sidewalk@cs.uw.edu">sidewalk@cs.uw.edu</a>, ouvrez un ticket sur <a href="https://github.com/ProjectSidewalk/SidewalkWebpage">GitHub</a>, ou suivez-nous sur <a href="https://www.linkedin.com/company/project-sidewalk/">LinkedIn</a> et <a href="https://bsky.app/profile/projectsidewalk.bsky.social">Bluesky</a>.
+
+landing.create.path = Créons un chemin pour tous
+landing.start.exploring = Commencer à explorer
+landing.new.deployment = Découvrez comment déployer Project Sidewalk dans votre ville.
+landing.mapathon = Vous habitez {0} ? Participez à <a id="mapathonLink" class="other-city-link header-link" href="{1}" target="_blank">un mapathon près de chez vous !</a>
+landing.how.you.help = Comment vous pouvez aider
+landing.how.you.help.content = Explorez virtuellement les rues de {0} pour repérer et étiqueter les problèmes d''accessibilité en trois étapes simples — depuis chez vous.
+landing.how.you.help.explore = EXPLORER
+landing.how.you.help.find = REPÉRER LES PROBLÈMES
+landing.how.you.help.assess = ÉVALUER LA GRAVITÉ
+landing.validate.title = Validez ce que d''autres ont trouvé
+landing.validate.content = Commencez à aider en quelques secondes : vérifiez les étiquettes récentes que des bénévoles ont placées à {0} et dites-nous s''ils ont vu juste.
+landing.choropleth.title = Choisissez un quartier
+landing.choropleth.content = Choisissez un quartier à explorer ci-dessous, ou cliquez sur le bouton <a href="/explore">« Explorer »</a> et un quartier vous sera attribué automatiquement !
+landing.choropleth.legend = Pourcentage du quartier terminé
+landing.stats.title = Votre travail fait la différence
+landing.stats.content.unfinished.partial = Des utilisateurs comme vous ont déjà cartographié {0} {3} de {1} — soit {2} % de la zone cible de la ville !
+landing.stats.content.unfinished.full = Des utilisateurs comme vous ont déjà cartographié {0} {3} de {1} — soit {2} % de la ville !
+landing.stats.content.finished.partial = Nous l''avons fait ! Des utilisateurs comme vous ont cartographié les {0} {2} de la zone cible de {1}. Mais ce n''est pas fini : plus il y a de contributeurs, meilleure est la qualité des données. Alors commencez à explorer dès aujourd''hui !
+landing.stats.content.finished.full = Nous l''avons fait ! Des utilisateurs comme vous ont cartographié les {0} {2} de {1}. Mais ce n''est pas fini : plus il y a de contributeurs, meilleure est la qualité des données. Alors commencez à explorer dès aujourd''hui !
+landing.stats.percent.partial = de la zone cible cartographiée
+landing.stats.percent.full = de {0} cartographié
+landing.stats.distance = {0} parcourus
+landing.stats.labels = étiquettes
+landing.stats.validations = validations
+landing.ml.title = Ce que nous faisons de vos étiquettes
+landing.ml.content = Vos étiquettes servent à améliorer l''urbanisme, à créer des outils de cartographie tenant compte de l''accessibilité et à entraîner des algorithmes d''apprentissage automatique à repérer les problèmes d''accessibilité.
+landing.ml.gif.machine.labels = étiquettes automatiques
+landing.ml.gif.you = vous
+landing.ml.gif.user.labels = étiquettes des utilisateurs
+landing.ml.gif.better.city.planning = meilleur urbanisme
+landing.ml.gif.better.temporal.tracking = meilleur suivi dans le temps
+landing.ml.gif.interactive.visualization.tools = outils de visualisation interactifs
+landing.ml.gif.smarter.routing = itinéraires plus intelligents
+landing.ml.gif.machine.learning = apprentissage automatique
+landing.ml.gif.outcomes = résultats
+landing.ml.gif.explain.alt = GIF expliquant les résultats de la participation citoyenne et de l''apprentissage automatique dans Project Sidewalk
+landing.deployment.map.title = Explorer d''autres villes
+landing.deployment.map.subtitle = Cliquez sur un cercle ci-dessous pour explorer d''autres villes Project Sidewalk !
+landing.partners.title = Partenaires locaux à {0}
+landing.partners.tagline = Notre travail à {0} est rendu possible grâce à nos formidables partenaires locaux, dont :
+landing.partners.logo.alt = Logo de {0}
+landing.partners.created.by = Project Sidewalk a été créé avec {0} par
+landing.partners.created.heart = amour
+landing.partners.created.credits = … et façonné par des partenaires de longue date comme <a href="https://ligapeatonal.org/" data-partner-source="liga-peatonal">Liga Peatonal</a>, la <a href="https://www.nationalmssociety.org/resources/get-connected/in-your-area/njm/about-this-chapter-njm" data-partner-source="nj-metro-ms-society">section New Jersey Metro de la National Multiple Sclerosis Society</a> et la <a href="https://hmsom.edu/en" data-partner-source="hackensack-meridian-som">Hackensack Meridian School of Medicine</a>, ainsi que plus de 100 étudiants contributeurs et des milliers de cartographes bénévoles dans le monde. <a href="/about" data-partner-source="about-team">Rencontrez l''équipe</a>.
+landing.partners.creator.makeability.alt = Logo du Makeability Lab
+landing.partners.creator.uw.alt = Logo de la Paul G. Allen School of Computer Science & Engineering de l''Université de Washington
+landing.partners.creator.uic.alt = Logo de l''Institute on Disability and Human Development de l''Université de l''Illinois à Chicago
+landing.clouds.alt = Nuages blancs recouvrant partiellement l''image ci-dessus, avec des statistiques affichées par-dessus.
+landing.mobile.start.validating = Commencer à valider à {0}
+landing.mobile.how.you.help.content = Aidez à améliorer les données d''accessibilité de {0} en validant les étiquettes placées par d''autres utilisateurs — directement depuis votre téléphone !
+landing.mobile.impact.step1 = Un bénévole repère un problème d''accessibilité et place une étiquette
+landing.mobile.impact.step2 = Vous regardez le même endroit et dites s''il a vu juste
+landing.mobile.impact.step3 = Les étiquettes confirmées deviennent des données fiables pour les villes, les chercheurs et les applications de navigation
+landing.mobile.stats.content = Des bénévoles comme vous ont placé ces étiquettes, collectant des données sur les trottoirs pour les urbanistes, les chercheurs et les personnes en situation de handicap.
+landing.mobile.laptop.heading = Envie d''en faire encore plus ?
+landing.mobile.laptop.content = Lancez-vous dans des missions d''étiquetage sur votre ordinateur pour cartographier vous-même les trottoirs de {0}.
+landing.mobile.cta.heading = Prêt à aider ?
+landing.mobile.cta.content = Vos validations rendent les données d''accessibilité plus fiables pour tout le monde à {0}.
+
+footer.about = À propos
+footer.terms = Conditions d''utilisation
+footer.guide = Guide d''étiquetage
+footer.developer = DÉVELOPPEURS
+footer.api = API Sidewalk
+footer.connect = CONTACT
+footer.email = Nous écrire
+footer.funding = NOUS SOMMES FIÈREMENT FINANCÉS PAR
+footer.award = Subventions <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" target="_blank" id = "nsf-link">n° 1302338</a> <br> et <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=2125087" target="_blank" id = "nsf-link">n° 2125087</a>
+footer.designed.operated = Project Sidewalk est conçu et exploité par le <a id="makeabilitylab" href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> de l''<a id="universityofwashington" href="http://www.cs.uw.edu/">Université de Washington</a>
+footer.version = Version {0} | Dernière mise à jour : <span class = "timestamp date">{1}</span>
+
+audit.tutorial.complete.1 = Vous avez réussi !
+audit.tutorial.complete.2 = Vous avez terminé le tutoriel !
+audit.tutorial.complete.learn-more = En savoir plus
+audit.tutorial.complete.start-contributing = Commencer à contribuer
+audit.tutorial.pause-animation = Mettre l''animation en pause
+
+audit.ribbon.curb.ramp.labels = ÉTIQUETTES DE BATEAUX
+audit.ribbon.sidewalk.labels = ÉTIQUETTES DE TROTTOIR
+audit.ribbon.other.labels = AUTRES ÉTIQUETTES D''ACCESSIBILITÉ
+audit.ribbon.explore = <u>E</u>xplorer
+audit.ribbon.curb.ramp = Bateau de trottoir (<u>C</u>)
+audit.ribbon.missing.ramp = Bateau <u>m</u>anquant
+audit.ribbon.obstacle = <u>O</u>bstacle sur le passage
+audit.ribbon.surface.problem = Problème de <u>s</u>urface
+audit.ribbon.no.sidewalk = Absence de trottoir (<u>N</u>)
+audit.ribbon.crosswalk = Passage piéton marqué (<u>W</u>)
+audit.ribbon.signal = Feu <u>p</u>iéton
+audit.ribbon.other = Autre
+audit.ribbon.occlusion = Trottoir non visi<u>b</u>le
+
+audit.right.ui.overall.stats = Vos statistiques globales
+
+audit.center.ui.tags.header = Ajouter des tags
+audit.center.ui.tags.info = Ajoutez des tags à vos étiquettes pour enrichir les données d''informations utiles. Survolez les tags pour voir des exemples.
+audit.center.ui.description.header = Décrire (facultatif)
+audit.center.ui.description.placeholder = Description
+
+audit.survey.title = Merci de répondre à cette enquête unique sur Project Sidewalk
+audit.survey.enjoyment.question = Dans quelle mesure appréciez-vous utiliser Project Sidewalk ?
+audit.survey.enjoyment.option.1 = Très ennuyeux
+audit.survey.enjoyment.option.2 = Ennuyeux
+audit.survey.enjoyment.option.3 = Neutre
+audit.survey.enjoyment.option.4 = Agréable
+audit.survey.enjoyment.option.5 = Très agréable
+audit.survey.difficulty.question = Est-il facile ou difficile d''utiliser Project Sidewalk ?
+audit.survey.difficulty.option.1 = Très difficile
+audit.survey.difficulty.option.2 = Difficile
+audit.survey.difficulty.option.3 = Neutre
+audit.survey.difficulty.option.4 = Facile
+audit.survey.difficulty.option.5 = Très facile
+audit.survey.performance.question = Comment jugez-vous vos performances dans les tâches d''étiquetage ?
+audit.survey.performance.option.1 = Faibles
+audit.survey.performance.option.2 = Passables
+audit.survey.performance.option.3 = Bonnes
+audit.survey.performance.option.4 = Très bonnes
+audit.survey.performance.option.5 = Excellentes
+audit.survey.rationale.question = Pourquoi avez-vous choisi de contribuer à Project Sidewalk ?
+audit.survey.feedback.question = Avez-vous des remarques, des idées d''amélioration ou des questions ?
+
+validate.comment.placeholder = Ajouter un commentaire (facultatif)
+validate.why.not = Pourquoi pas ?
+validate.why.unsure = Pourquoi « Incertain » ?
+validate.add.own.reason = Ou indiquez votre propre raison
+validate.skip.reason = Passer la raison
+validate.suggestions = Suggestions
+validate.ai.disclaimer = Les suggestions de tags sont générées par une IA ; elles ne sont pas exhaustives et peuvent être erronées
+validate.mission.complete.category = Catégorie
+validate.mission.complete.your.overall.total = Votre total général
+
+authenticate.email = Adresse e-mail
+authenticate.identifier = E-mail ou nom d''utilisateur
+authenticate.password = Mot de passe
+authenticate.remember.me = Rester connecté
+authenticate.new = Nouveau ici ? <a href="#" id="form-open-sign-up">Inscrivez-vous !</a>
+authenticate.confirm.password = Confirmer le mot de passe
+authenticate.service.hours.title = Prévoyez-vous de demander que votre travail sur Project Sidewalk soit comptabilisé comme heures de bénévolat ou de service communautaire ?
+authenticate.terms = Vous acceptez nos <a target="_blank" href="/terms">Conditions d''utilisation et notre Politique de confidentialité</a>
+authenticate.signup = S''inscrire
+authenticate.has.account = Vous avez un compte ? <a href="#" id="form-open-sign-in">Connectez-vous</a>
+authenticate.is.member = Déjà membre ? <a href="{0}">Connectez-vous</a>
+
+user.exists = Cette adresse e-mail existe déjà
+authenticate.error.username.exists = Ce nom d''utilisateur existe déjà
+authenticate.error.password.mismatch = Les mots de passe ne correspondent pas
+authenticate.error.invalid.credentials = Identifiants invalides !
+
+# Auth dialog, welcome page, and shared credential rules (#4375).
+authenticate.welcome.back = Bon retour
+authenticate.join = Rejoindre Project Sidewalk
+authenticate.tagline = Cartographiez les trottoirs. Aidez à rendre votre ville accessible à tous.
+authenticate.close = Fermer
+authenticate.show.password = Afficher le mot de passe
+authenticate.hide.password = Masquer le mot de passe
+authenticate.username.rule = 3 à 30 caractères — lettres, chiffres, tirets et tirets bas
+authenticate.pw.rule.length = Au moins {0} caractères
+authenticate.pw.rule.uppercase = Une lettre majuscule
+authenticate.pw.rule.lowercase = Une lettre minuscule
+authenticate.pw.rule.digit = Un chiffre
+authenticate.pw.match = Les mots de passe correspondent
+authenticate.pw.match.not = Les mots de passe ne correspondent pas encore
+authenticate.pw.strength.1 = Faible
+authenticate.pw.strength.2 = Correct
+authenticate.pw.strength.3 = Bon
+authenticate.pw.strength.4 = Fort
+authenticate.create.account = Créer mon compte
+authenticate.new.detail = Nouveau sur Project Sidewalk ? <a href="#" id="form-open-sign-up">Créez un compte</a>
+authenticate.new.detail.link = Nouveau sur Project Sidewalk ? <a href="{0}">Créez un compte</a>
+authenticate.error.invalid.credentials.detail = Cet e-mail et ce mot de passe ne correspondent pas à nos enregistrements. Vérifiez-les et réessayez.
+authenticate.error.generic = Une erreur est survenue de notre côté. Veuillez réessayer.
+authenticate.error.too.many = Trop de tentatives. Patientez un instant puis réessayez.
+authenticate.error.username.charset = Les noms d''utilisateur ne peuvent contenir que des lettres, des chiffres, des tirets et des tirets bas.
+authenticate.error.username.inappropriate = Ce nom d''utilisateur n''est pas autorisé — veuillez en choisir un autre.
+authenticate.error.password.requirements = Les mots de passe doivent contenir une majuscule, une minuscule et un chiffre.
+authenticate.error.terms.required = Vous devez accepter les conditions pour créer un compte.
+welcome.title = Vous êtes sur la carte, {0} !
+welcome.subtitle = Votre compte Project Sidewalk est prêt. Tout ce que vous cartographiez désormais compte pour votre ville — et pour vous. Voici ce que vous venez de débloquer :
+welcome.card.dashboard.title = Votre tableau de bord
+welcome.card.dashboard.body = Suivez vos rues, vos étiquettes et votre précision au fur et à mesure que votre impact grandit.
+welcome.card.badges.title = Badges
+welcome.card.badges.body = Gagnez-les en cartographiant, en validant et en franchissant des étapes de mission.
+welcome.card.leaderboard.title = Le classement
+welcome.card.leaderboard.body = Comparez votre cartographie à celle du reste de la ville — en solo ou en équipe.
+welcome.cta.resume = Reprendre où vous en étiez
+welcome.cta.dashboard = Voir mon tableau de bord
+welcome.hint.username = Vous pouvez changer votre nom d''utilisateur à tout moment dans <a href="{0}">Tableau de bord → Paramètres</a>.
+welcome.service.prompt = Vous cartographiez pour l''école ou pour des heures de bénévolat ?
+welcome.service.button = M''inscrire aux heures de bénévolat
+
+
+reset.pw.forgot.title = Mot de passe oublié ?
+reset.pw.forgot.submit.email = Saisissez votre e-mail et nous vous enverrons un lien pour réinitialiser votre mot de passe.
+
+reset.pw.email.hello = Bonjour {0},
+reset.pw.email.reset.title = Réinitialisez le mot de passe de votre compte Project Sidewalk
+reset.pw.email.send.link = Envoyer l''e-mail
+reset.pw.email.reset.pw.sent = Un e-mail de réinitialisation de votre mot de passe a été envoyé.
+reset.pw.email.reset.request.message = Vous avez récemment demandé à réinitialiser le mot de passe de votre compte Project Sidewalk. Cliquez sur le lien ci-dessous pour le réinitialiser :
+reset.pw.email.reset.not.requested = Si vous n''avez pas demandé de réinitialisation, ignorez ce message ou écrivez-nous pour nous en informer.
+reset.pw.email.reset.valid.duration = Cette réinitialisation est valable pendant les 60 prochaines minutes
+reset.pw.email.signature = L''équipe Project Sidewalk
+
+reset.pw.submit.new.pw = Saisissez votre nouveau mot de passe.
+reset.pw.message = Réinitialiser le mot de passe
+reset.pw.successful = Mot de passe réinitialisé !
+reset.pw.invalid.reset.link = Lien de réinitialisation invalide
+
+dashboard.current.team.greeting = Équipe : {0}
+dashboard.leave.team = Quitter l''équipe : {0}
+dashboard.create.team = Créer une équipe
+dashboard.join.team = Rejoindre une équipe !
+dashboard.missions = Missions
+dashboard.your.missions = Vos missions
+dashboard.distance = Distance
+dashboard.mission.icon.alt = Personne en fauteuil roulant tenant un drapeau
+dashboard.validation.icon.alt = Liste de contrôle à côté d''un crayon
+dashboard.accuracy.icon.tooltip = Votre précision d''étiquetage. Si N/A est affiché, trop peu de vos étiquettes ont été validées par d''autres utilisateurs.
+dashboard.achievements = Réussites
+dashboard.first = premier
+dashboard.second = deuxième
+dashboard.third = troisième
+dashboard.fourth = quatrième
+dashboard.fifth = cinquième
+dashboard.mission.badge = {0} badge de mission
+dashboard.distance.badge = {0} badge de distance
+dashboard.label.badge = {0} badge d''étiquette
+dashboard.validation.badge = {0} badge de validation
+dashboard.mistakes.header = Vos erreurs d''étiquetage récentes
+dashboard.mistakes.tooltip = Il s''agit d''erreurs relevées par d''autres utilisateurs sur la page Valider. Les validateurs se trompent parfois, et ces évaluations comportent souvent des nuances.
+dashboard.team.title = Créer une nouvelle équipe
+dashboard.team.name = Nom de l''équipe
+dashboard.team.description = Description de l''équipe (facultatif)
+dashboard.team.button = Créer l''équipe
+
+labeling.guide.curb.ramp.summary = Un bateau de trottoir est une courte rampe qui abaisse ou entaille la bordure du trottoir. Un bateau accessible offre aux personnes à mobilité réduite un cheminement sûr entre un trottoir bordé et la chaussée, ou inversement (<a href="https://www.ada.gov/pcatoolkit/chap6toolkit.htm">ADA</a>). Étiquetez chaque bateau, qu''il présente ou non des problèmes.
+labeling.guide.obstacle.summary = Les obstacles sont des objets placés directement sur le cheminement piéton et qui en bloquent le passage. L''ADA (Americans with Disabilities Act) exige un « espace au sol dégagé » le long des cheminements piétons accessibles. Cela permet aux piétons, en particulier ceux qui utilisent un déambulateur ou un fauteuil roulant, de rester en sécurité sur le trottoir ou le passage piéton. Quitter le cheminement pour éviter un obstacle peut être impossible ou provoquer un déséquilibre, une chute ou d''autres dangers.
+labeling.guide.surface.problem.summary = Un problème de surface est un défaut qui rendrait le passage cahoteux ou inconfortable pour une personne en fauteuil roulant ou utilisant une autre aide à la mobilité. Si quelque chose sur une surface rend la traversée difficile ou impossible, il faut l''étiqueter comme Problème de surface. Pour les problèmes qui s''étendent sur une grande zone, placez une étiquette Problème de surface au début du problème, puis continuez à en placer tous les quelques mètres (environ une par panorama) jusqu''à la fin du problème.
+labeling.guide.no.sidewalk.summary = Placez une étiquette Absence de trottoir à l''endroit où le trottoir s''arrête, puis continuez à en placer tous les quelques mètres (environ une par panorama) jusqu''à l''endroit où le trottoir reprend.
+labeling.guide.occlusion.summary = Parfois, la vue du trottoir est complètement bloquée. Dans ce cas, placez une étiquette « Trottoir non visible ». Elle doit rester rare : utilisez-la uniquement lorsqu''un trottoir, un bateau ou un autre problème d''accessibilité ne peut être vu sous aucun angle à cause d''obstructions, comme des voitures.
+
+
+leaderboard.header.team = Équipe
+leaderboard.header.labels = Étiquettes
+leaderboard.header.missions = Missions
+leaderboard.header.distance = Distance
+
+gallery = Galerie
+gallery.filter.by = Filtrer par
+gallery.tags = Tags
+gallery.all = Tous les types d''étiquettes
+gallery.labels.not.found = Aucun résultat. <a href="/explore">Commencez à explorer</a> pour contribuer plus de données !
+gallery.cards = Les étiquettes sont triées aléatoirement selon les filtres sélectionnés
+gallery.clear.filters = Effacer les filtres
+
+routebuilder.name = RouteBuilder
+routebuilder.welcome = Bienvenue dans RouteBuilder
+routebuilder.intro.content = Construisez un itinéraire et partagez-le avec d''autres.
+routebuilder.directions.start.aria = Adresse ou lieu de départ
+routebuilder.directions.end.aria = Adresse ou lieu d''arrivée
+routebuilder.stat.time.tooltip = Estimation basée sur le rythme habituel des explorateurs de Project Sidewalk dans cette ville (environ {0} minutes pour 100 mètres).
+routebuilder.save = Enregistrer l''itinéraire
+routebuilder.delete.route.icon.alt = Un cercle orange avec un point d''exclamation blanc au centre
+routebuilder.not.saved = L''itinéraire n''a pas été enregistré.
+routebuilder.not.saved.explanation = Vous ne pourrez pas récupérer cet itinéraire plus tard.
+routebuilder.delete.route = Supprimer l''itinéraire
+routebuilder.name.your.route = Nommez votre itinéraire
+routebuilder.close = Fermer
+routebuilder.save.explanation = Une fois enregistré, vous pourrez partager votre itinéraire et retrouver tous vos itinéraires dans votre <a href="{0}" target="_blank" rel="noopener">tableau de bord</a>.
+routebuilder.route.name.label = Nom de l''itinéraire
+routebuilder.route.name.placeholder = p. ex. De la bibliothèque au parc
+routebuilder.name.error.length = Les noms d''itinéraire sont limités à {0} caractères.
+routebuilder.name.error.allowed = Ce nom d''itinéraire n''est pas autorisé. Veuillez en choisir un autre.
+routebuilder.route.description.label = Description
+routebuilder.optional = (facultatif)
+routebuilder.route.description.placeholder = p. ex. Notre trajet habituel de la bibliothèque à l''école
+routebuilder.description.error.length = Les descriptions d''itinéraire sont limitées à {0} caractères.
+routebuilder.description.error.allowed = Cette description n''est pas autorisée. Veuillez la modifier.
+routebuilder.signin.nudge = Connectez-vous pour conserver vos itinéraires dans votre tableau de bord, où vous pourrez les retrouver, les renommer et les partager à tout moment.
+routebuilder.signin.to.save = Se connecter et enregistrer
+routebuilder.continue.without.account = Enregistrer sans compte
+routebuilder.view.in.dashboard = Gérer tous vos itinéraires dans votre tableau de bord
+routebuilder.saved.routes = Vos itinéraires enregistrés
+routebuilder.recent.routes.note = Enregistrés sur cet appareil uniquement. Connectez-vous pour les conserver dans votre tableau de bord.
+routebuilder.undo = Annuler
+routebuilder.preview = Aperçu de l''itinéraire
+routebuilder.new.route = Commencer un nouvel itinéraire
+routebuilder.new.route.tooltip = Démarre un nouvel itinéraire. Enregistrez d''abord l''itinéraire actuel si vous voulez le conserver.
+routebuilder.legend.title = Légende
+routebuilder.legend.start = Départ de l''itinéraire
+routebuilder.legend.end = Arrivée de l''itinéraire
+routebuilder.legend.direction = Sens de marche
+routebuilder.legend.pois = Points d''intérêt
+
+footer.logo.nsf.alt = Logo de la National Science Foundation
+footer.logo.google.alt = Logo de Google
+footer.logo.sloan.alt = Logo de la Fondation Alfred P. Sloan
+footer.logo.pactrans.alt = Logo du Pacific Northwest Transportation Consortium (PacTrans)
+footer.logo.create.alt = Logo du Center for Research and Education on Accessible Technology and Experiences (CREATE)
+
+cities.dashboard.cities = Villes déployées
+cities.dashboard.distance = Rues explorées
+cities.dashboard.cities.icon.alt = Personne en fauteuil roulant du logo Project Sidewalk tenant un drapeau
+cities.dashboard.cta.title = Faites venir Project Sidewalk dans votre ville !
+cities.dashboard.cta.content = Envie de cartographier l''accessibilité de votre commune ? <br/> Nous cherchons toujours de nouveaux partenaires pour transformer l''avenir de l''accessibilité urbaine.
+cities.dashboard.cta.button = Comment déployer
+cities.dashboard.cta.logo.alt = Le logo Project Sidewalk avec le texte projectsidewalk.org
+
+share.meta.title.issue = J''ai trouvé un problème d''accessibilité sur Project Sidewalk : {0}
+share.meta.title.feature = Regardez ce que j''ai trouvé sur Project Sidewalk : {0}
+share.meta.description.spotted = Repéré à {0}.
+share.meta.description.story = « {0} » — un témoignage de la communauté.
+share.meta.description.address = Près de {0}.
+share.meta.description.severity = Gravité : {0} sur 3.
+share.meta.description.tags = Tags : {0}.
+share.meta.description.cta = Explorez la carte et aidez à rendre les trottoirs accessibles à tous.
+share.meta.image.alt = Photo au niveau de la rue avec l''emplacement de l''étiquette {0} marqué
+
+# Public single-label spotlight / share page (#456).
+sharedlabel.nearby.title = Étiquettes à proximité
+sharedlabel.nearby.caption = Un échantillon d''étiquettes d''accessibilité à proximité. Voir {0} pour la carte complète.
+sharedlabel.view.this.label = Voir cette étiquette
+sharedlabel.engage.title = Aidez à évaluer les trottoirs de {0}
+sharedlabel.engage.explore = Repérer des problèmes d''accessibilité à {0}
+sharedlabel.engage.validate = Valider des étiquettes
+sharedlabel.stat.labels = étiquettes
+sharedlabel.stat.validations = validations
+sharedlabel.stat.miles = miles explorés
+sharedlabel.legend.title = Signification de ces étiquettes
+# Redesigned user dashboard, leaderboard, settings, and public profile (#4323, #4475).
+dashboard.title = Votre tableau de bord
+dashboard.you = Vous
+dashboard.hero.greeting = Bon retour, {0} 👋
+dashboard.hero.headline = Vous avez placé <strong>{0} étiquettes</strong> à {1}, rendant les trottoirs plus accessibles.
+dashboard.hero.sub = Chaque étiquette contribue à améliorer les trottoirs.
+dashboard.kpi.missions = Missions terminées
+dashboard.kpi.distance = Distance explorée
+dashboard.kpi.labels = Étiquettes placées
+dashboard.kpi.validations = Validations effectuées
+dashboard.kpi.accuracy = Précision des étiquettes
+dashboard.kpi.scope = Vos totaux à {0}.
+dashboard.map.caption = Là où vous avez exploré à {0} — vos rues parcourues et vos étiquettes. Ouvrez la légende pour filtrer.
+dashboard.cities.title = Villes que vous avez cartographiées
+dashboard.cities.map.caption = Chaque ville Project Sidewalk que vous avez cartographiée. Un cercle plus grand signifie plus d''étiquettes placées.
+dashboard.streak.title = Votre série
+dashboard.streak.intro = Gardez le rythme — chaque jour où vous cartographiez, validez ou explorez à {0} compte.
+dashboard.streak.keep.alive = Cartographiez aujourd''hui pour prolonger votre série de {0} jours !
+dashboard.streak.start = Cartographiez, validez ou explorez aujourd''hui pour démarrer une série !
+dashboard.streak.day.one = 1 jour
+dashboard.streak.day.many = {0} jours
+dashboard.streak.current = Série en cours
+dashboard.streak.longest = Plus longue série
+dashboard.streak.active.days = Jours actifs au total
+dashboard.streak.heatmap.aria = Votre activité au cours des {0} dernières semaines
+dashboard.streak.cell.tooltip.one = 1 contribution le {0}
+dashboard.streak.cell.tooltip.many = {0} contributions le {1}
+dashboard.streak.legend.less = Moins
+dashboard.streak.legend.more = Plus
+dashboard.achievements.title = Badges & trophées
+dashboard.achievements.intro = Les badges gagnés en étiquetant, en explorant et en validant — plus des trophées pour vos places au classement.
+dashboard.badges.labeler = Étiqueteur
+dashboard.badges.explorer = Explorateur
+dashboard.badges.adventurer = Aventurier
+dashboard.badges.validator = Validateur
+dashboard.badges.labeler.desc = Étiquettes d''accessibilité placées
+dashboard.badges.explorer.desc = Distance explorée
+dashboard.badges.adventurer.desc = Missions terminées
+dashboard.badges.validator.desc = Étiquettes validées
+dashboard.badges.alt = Badge {0}, niveau {1}
+dashboard.trophy.title = Vitrine des trophées
+dashboard.trophy.intro = Les trophées gagnés en étant pionnier ou premier dans un quartier, et en figurant au classement hebdomadaire.
+dashboard.trophy.none = 🏆 Pas encore de trophée — terminez dans le top 3 hebdomadaire, ou soyez le premier ou le meilleur cartographe d''un quartier, et ils apparaîtront ici.
+dashboard.trophy.explore.region = Explorer ce quartier →
+dashboard.trophy.tag.region = Quartier
+dashboard.trophy.tag.pioneer = Pionnier
+dashboard.trophy.tag.explore = Exploration
+dashboard.trophy.sub.pioneer = Tout premier étiqueteur de {0}
+dashboard.trophy.sub.champion = {0} étiquettes — le plus dans ce quartier
+dashboard.trophy.sub.weekly = Semaine du {0}
+dashboard.trophy.sub.free-explore-tried = A essayé une mission d''exploration libre
+dashboard.trophy.sub.free-explore-labeled = A étiqueté pendant une mission d''exploration libre
+dashboard.standing.title = Votre position
+dashboard.standing.intro = Un aperçu de votre position à {0} cette semaine. Le tableau complet se trouve <a href="{1}">dans le classement</a>.
+dashboard.standing.tag.week = Cette semaine
+dashboard.standing.tag.week.cohort = Cette semaine · {0} cartographes
+dashboard.standing.top.pct = Top <strong>{0} %</strong> · n° {1}
+dashboard.standing.of = sur {0}
+dashboard.standing.delta.up = En hausse de {0} par rapport à la semaine dernière — continuez ! 📈
+dashboard.standing.delta.down = En baisse de {0} par rapport à la semaine dernière — remontez ! 💪
+dashboard.standing.delta.steady = Stable par rapport à la semaine dernière.
+dashboard.standing.delta.new = Nouveau au classement cette semaine — bienvenue ! 👋
+dashboard.standing.top.contributor = 🏅 Meilleur contributeur de la semaine !
+dashboard.standing.on.board = 🌟 Vous êtes au classement cette semaine
+dashboard.standing.community.detail = Vous avez placé <strong>{0}</strong> étiquettes cette semaine — chacune aide votre communauté. 🎉
+dashboard.standing.join = ✨ Cartographiez cette semaine pour entrer au classement !
+dashboard.standing.join.detail = Placez quelques étiquettes cette semaine et vous apparaîtrez ici avec votre rang.
+dashboard.standing.see.full = Voir le classement complet →
+dashboard.mistakes.title = Ce que vous pouvez améliorer
+dashboard.mistakes.intro = Vos étiquettes à {0} que d''autres cartographes ont jugées incorrectes, pour affiner votre œil. Votre précision varie selon le type d''étiquette.
+dashboard.mistakes.intro.weakest = Vos étiquettes à {0} que d''autres cartographes ont jugées incorrectes, pour affiner votre œil. Votre précision varie selon le type d''étiquette — le type qui vous pose le plus de difficultés est mis en évidence.
+dashboard.mistakes.weakest.note = Le type le plus difficile doit compter au moins {0} validations.
+dashboard.mistakes.accuracy.none = 📊 Une fois vos étiquettes validées par d''autres, votre précision par type apparaîtra ici.
+dashboard.mistakes.validated.count = {0} validées
+dashboard.mistakes.recent.title = Erreurs récentes
+dashboard.mistakes.recent.intro = Pas d''accord avec une validation ? Dites-le-nous — vous pouvez maintenir votre étiquette et laisser une note pour expliquer le contexte.
+dashboard.mistakes.see.all = Voir toutes vos étiquettes →
+dashboard.stories.title = Vos témoignages
+dashboard.stories.intro = Les témoignages personnels que vous avez associés à des étiquettes. Ils sont publics ; vous pouvez en supprimer définitivement n''importe lequel ici, à tout moment.
+dashboard.team.title = Votre équipe
+dashboard.team.intro = Cartographiez en équipe ou en classe. Une saine compétition au sein d''un petit groupe fait la moitié du plaisir.
+dashboard.team.none = Vous ne faites pas encore partie d''une équipe
+dashboard.team.none.detail = Rejoignez une équipe ou une classe pour cartographier ensemble et grimper au classement des équipes.
+dashboard.team.switch = Changer d''équipe
+dashboard.team.join.existing = Rejoindre une équipe existante
+dashboard.team.choose = Choisir une équipe…
+dashboard.team.choose.aria = Choisir une équipe à rejoindre
+dashboard.team.join = Rejoindre l''équipe
+dashboard.team.see.board = Voir le classement des équipes →
+dashboard.team.nudge = 👋 Invitez des camarades ou des amis dans votre équipe — cartographier ensemble est plus amusant, et vous grimperez plus vite au classement des équipes !
+dashboard.routes.title = Mes itinéraires
+dashboard.routes.intro = Les itinéraires que vous avez construits dans RouteBuilder. Explorez-en un pour cartographier le long de celui-ci, ou partagez son lien.
+dashboard.routes.explore = Explorer
+dashboard.routes.labelmap = Carte des étiquettes
+dashboard.routes.copy = Copier le lien
+dashboard.routes.rename = Renommer
+dashboard.routes.delete = Supprimer
+dashboard.routes.stats = Exploré par {0} · Terminé par {1}
+dashboard.routes.stats.tooltip = Exploré : nombre de personnes ayant commencé cet itinéraire. Terminé : nombre de personnes l''ayant parcouru en entier.
+dashboard.routes.view.title = Voir cet itinéraire dans RouteBuilder
+dashboard.routes.none = Vous n''avez pas encore construit d''itinéraire.
+dashboard.routes.build.one = Construire votre premier itinéraire →
+
+dashboard.reaudit.title = Rues avec de nouvelles images
+dashboard.reaudit.intro.one = De nouvelles images de rue sont disponibles pour 1 rue que vous avez cartographiée. Vos étiquettes comptent toujours — voyons à quel point la praticabilité, la roulabilité et la sécurité y ont changé depuis votre dernier passage.
+dashboard.reaudit.intro.many = De nouvelles images de rue sont disponibles pour {0} rues que vous avez cartographiées. Vos étiquettes comptent toujours — voyons à quel point la praticabilité, la roulabilité et la sécurité de ces zones ont changé depuis votre dernier passage.
+dashboard.reaudit.imagery = nouvelles images de {0}
+dashboard.reaudit.audited = Vous l''avez cartographiée le {0}
+dashboard.reaudit.revisit = Revisiter
+dashboard.reaudit.more = Afficher {0} de plus
+dashboard.reaudit.see.map = Les voir toutes sur votre carte →
+dashboard.reaudit.none = Toutes les rues que vous avez cartographiées sont à jour avec les dernières images.
+dashboard.team.dialog.sub = Créez une équipe pour votre classe, votre club ou vos amis — vous la rejoindrez automatiquement.
+dashboard.team.dialog.name = Nom de l''équipe
+dashboard.team.dialog.name.placeholder = p. ex. La classe de 5e de Mme Rivera
+dashboard.team.dialog.desc = Description
+dashboard.team.dialog.optional = (facultatif)
+dashboard.team.dialog.desc.placeholder = Quel est l''objet de votre équipe ?
+dashboard.team.dialog.note = Tout le monde peut créer une équipe, mais seuls les administrateurs peuvent en supprimer une. Écrivez à <a href="mailto:sidewalk@cs.uw.edu">sidewalk@cs.uw.edu</a> si vous avez besoin de faire supprimer une équipe.
+dashboard.team.dialog.submit = Créer et rejoindre
+dashboard.team.error.signin = Veuillez vous connecter pour créer une équipe.
+dashboard.team.error.name.length = Le nom de l''équipe doit comporter de 2 à 50 caractères.
+dashboard.team.error.desc.length = La description est trop longue (300 caractères maximum).
+dashboard.team.error.name.allowed = Ce nom n''est pas autorisé — veuillez en choisir un autre.
+dashboard.team.error.desc.allowed = Cette description n''est pas autorisée — veuillez en choisir une autre.
+dashboard.nav.aria = Sections du tableau de bord
+dashboard.nav.you = Vous
+dashboard.nav.community = Communauté
+dashboard.nav.dashboard = Tableau de bord
+dashboard.nav.settings = Paramètres
+dashboard.toc.header = Sur cette page
+dashboard.settings.title = Paramètres
+dashboard.settings.intro = Gérez votre compte, votre équipe et ce que vous partagez avec la communauté.
+dashboard.settings.account = Compte
+dashboard.settings.username.help = 3 à 30 caractères : lettres, chiffres, tirets et tirets bas. C''est ce que les autres cartographes voient au classement.
+dashboard.settings.username.error.length = Le nom d''utilisateur doit comporter de 3 à 30 caractères.
+dashboard.settings.username.error.charset = Utilisez uniquement des lettres, des chiffres, des tirets et des tirets bas.
+dashboard.settings.username.error.allowed = Ce nom d''utilisateur n''est pas autorisé — veuillez en choisir un autre.
+dashboard.settings.username.error.taken = Ce nom d''utilisateur est déjà pris.
+dashboard.settings.email = E-mail
+dashboard.settings.email.help = Utilisé pour la connexion et la réinitialisation du mot de passe. Pour changer d''e-mail, contactez <a href="mailto:sidewalk@cs.uw.edu">sidewalk@cs.uw.edu</a>.
+dashboard.settings.units = Unités de mesure
+dashboard.settings.units.auto = Par défaut
+dashboard.settings.units.metric = Kilomètres & mètres
+dashboard.settings.units.imperial = Miles & pieds
+dashboard.settings.units.help = Les distances sur tout le site utilisent ces unités. Laissez « Par défaut » pour utiliser les unités associées à la langue du site.
+dashboard.settings.service.hours = Heures de bénévolat
+dashboard.settings.service.hours.toggle = M''inscrire aux heures de service communautaire
+dashboard.settings.service.hours.help = Vous inscrit à la reconnaissance officielle — votre responsable peut vérifier vos heures — et ajoute « Heures de bénévolat » et « Suivi du temps » au menu de votre compte.
+dashboard.settings.service.hours.link = Comment fonctionnent les heures de bénévolat
+dashboard.settings.team = Équipe
+dashboard.settings.team.label = Votre équipe
+dashboard.settings.team.none = Aucune équipe
+dashboard.settings.team.help = Rejoignez une équipe ou une classe pour cartographier ensemble et apparaître au classement des équipes. Choisissez « Aucune équipe » pour quitter votre équipe actuelle.
+dashboard.settings.privacy = Confidentialité
+dashboard.settings.privacy.default.note = Ce déploiement garde les profils privés par défaut. Activez ces options si vous souhaitez partager votre nom et votre progression avec la communauté.
+dashboard.settings.leaderboard.toggle = M''afficher au classement
+dashboard.settings.leaderboard.help = Si désactivé, votre nom n''apparaîtra dans aucun classement.
+dashboard.settings.public.toggle = Rendre mon tableau de bord public
+dashboard.settings.public.help = Si activé, tout le monde peut cliquer sur votre nom au classement pour voir une version publique de votre tableau de bord (vos statistiques, badges et trophées — jamais votre e-mail). Si désactivé, votre profil apparaît comme « privé ».
+dashboard.settings.save = Enregistrer les modifications
+dashboard.profile.tag = Profil public
+dashboard.profile.headline = {0} a placé <strong>{1} étiquettes</strong> à {2}, rendant les trottoirs plus accessibles.
+dashboard.profile.map.caption = Là où {0} a exploré — ses rues parcourues et ses étiquettes. Ouvrez la légende pour filtrer.
+dashboard.profile.notfound.title = Cartographe introuvable
+dashboard.profile.notfound = Nous n''avons trouvé aucun cartographe nommé « {0} ».
+dashboard.profile.notfound.detail = Le nom a peut-être changé. Retournez au <a href="{0}">classement</a> pour le retrouver.
+dashboard.profile.private = {0} a choisi de garder son profil privé.
+dashboard.profile.private.detail = Cette personne continue de rendre les trottoirs plus accessibles — elle a simplement choisi de ne pas partager de profil public.
+dashboard.profile.trophy.none = 🏆 {0} n''a pas encore gagné de trophée — mais chaque étiquette compte.
+leaderboard.intro = Chaque étiquette rend les trottoirs plus accessibles et plus sûrs pour tous. Voici où en est la communauté.
+leaderboard.intro.you = Chaque étiquette rend les trottoirs plus accessibles et plus sûrs pour tous. Voici où en sont la communauté — et vous.
+leaderboard.cta.title = Envie de connaître votre rang ?
+leaderboard.cta.detail = Créez un compte gratuit pour suivre vos étiquettes, gagner des badges et des trophées, et grimper au classement.
+leaderboard.cta.signup = Créer un compte
+leaderboard.hero.caption = {0} jusqu''à présent
+leaderboard.hero.bridge = Dans l''ensemble des {0} villes Project Sidewalk, la communauté a contribué {1} étiquettes et {2} validations.
+leaderboard.hero.bridge.link = Voir l''impact de la communauté
+leaderboard.hero.streets.detail = Chaque rue est comptée une fois, quel que soit le nombre de personnes qui l''ont explorée. Le chiffre toutes villes ci-dessous compte chaque exploration séparément.
+leaderboard.podium.title = En tête du classement
+leaderboard.podium.intro = Les meneurs de tous les temps à {0}. 🏆
+leaderboard.podium.labels = {0} étiquettes
+leaderboard.podium.none = 🌱 Le classement vient tout juste de commencer — soyez parmi les premiers en tête. Commencez à cartographier !
+leaderboard.alltime.title = {0} — tous les temps
+leaderboard.alltime.intro = Les meilleurs cartographes de tous les temps à {0}, classés par score global.
+leaderboard.alltime.none = 🌱 Pas encore d''étiquette — vous pourriez être le tout premier nom ici.
+leaderboard.explainer.summary = Comment le classement est-il calculé ?
+leaderboard.explainer.body = Le rang est un <strong>score</strong> global qui récompense un équilibre entre <strong>étiquettes placées</strong>, <strong>distance explorée</strong> et <strong>précision des étiquettes</strong> — une cartographie régulière et de qualité compte donc plus que le volume brut. C''est pourquoi les nombres d''étiquettes ci-dessous ne sont pas strictement ordonnés. (Les classements hebdomadaire et par équipe utilisent le même score.)
+leaderboard.header.mapper = Cartographe
+leaderboard.accuracy.explain = Comment la précision est calculée :
+leaderboard.accuracy.detail = La part des étiquettes validées d''un cartographe que d''autres cartographes ont jugées correctes. Affichée à partir de 10 étiquettes validées.
+leaderboard.thisweek.title = {0} cette semaine
+leaderboard.thisweek.intro = Remis à zéro chaque lundi — le meilleur endroit pour grimper vite.
+leaderboard.thisweek.none = ✨ Pas encore d''étiquette cette semaine — soyez le premier au classement !
+leaderboard.teams.title = Équipes à {0}
+leaderboard.teams.intro = Créez ou rejoignez une équipe pour faire la différence ensemble !
+leaderboard.teams.none = 👥 Pas encore d''équipe — soyez le premier ! Créez-en une et invitez des amis ou des camarades.
+leaderboard.allcities.title = Toutes les villes, tous les temps
+leaderboard.allcities.intro = Les meilleurs cartographes de toutes les villes Project Sidewalk, classés par nombre total d''étiquettes.
+leaderboard.allcities.note = La distance est actualisée une fois par jour.
+leaderboard.allcities.none = 🌍 Pas encore d''étiquette dans les villes — la vôtre pourrait être la première.
+leaderboard.header.topcity = Ville principale
+leaderboard.you.title = Votre place à {0} cette semaine
+leaderboard.you.intro = Votre rang parmi les cartographes de la semaine, et qui se trouve juste devant et juste derrière vous.
+leaderboard.community.title = Impact de la communauté
+leaderboard.community.intro = Toute la communauté Project Sidewalk, dans toutes les villes.
+leaderboard.community.contributors = Contributeurs
+leaderboard.community.labels = Étiquettes placées
+leaderboard.community.streets = Rues explorées
+leaderboard.community.cities = Villes
+dashboard.rank.place.one = 1re place
+dashboard.rank.place.two = 2e place
+dashboard.rank.place.three = 3e place
+
+# Community listing pages: /stories and /routes (#4688).
+stories.page.search.placeholder = Tapez pour filtrer les témoignages…
+routes.page.search.placeholder = Tapez pour filtrer les itinéraires…
+community.page.sort = Trier par
+community.page.sort.newest = Plus récents d''abord
+community.page.sort.neighborhood = Quartier
+community.page.count = {0} affichés
+community.page.no.results = Aucun résultat pour votre recherche.
+community.page.cap.note = Seuls les {0} plus récents sont affichés.
+stories.page.title = Témoignages de la communauté
+stories.page.intro = Des témoignages personnels que des membres de la communauté ont associés à des étiquettes de trottoir — des récits réels de la façon dont les obstacles et les aménagements d''accessibilité affectent la vie des gens.
+stories.page.sort.labeltype = Type d''étiquette
+stories.page.none = Aucun témoignage n''a encore été partagé dans cette ville.
+stories.page.none.cta = Trouvez une étiquette et écrivez votre témoignage
+stories.page.anonymous = Anonyme
+stories.page.view.label = Voir l''étiquette
+stories.page.read.more = Lire la suite
+stories.page.read.less = Réduire
+stories.page.photo.alt = Photo jointe à ce témoignage
+stories.page.label.image.alt = Image au niveau de la rue de cette étiquette {0}
+routes.page.title = Itinéraires de la communauté
+routes.page.intro = Des itinéraires piétons que des membres de la communauté ont construits avec RouteBuilder. Explorez-en un pour cartographier le long de celui-ci, ou copiez son lien pour le partager.
+routes.page.build.cta = Construire un itinéraire
+routes.page.sort.longest = Plus longs d''abord
+routes.page.sort.explored = Plus explorés
+routes.page.none = Aucun itinéraire n''a encore été construit dans cette ville.
+routes.page.none.cta = Construire le premier itinéraire
+
+# Error pages (404, 500), rendered by modules.CustomErrorHandler.
+error.404.heading = Page introuvable
+error.404.message = Nous n''avons pas trouvé la page demandée.
+error.404.route.heading = Itinéraire introuvable
+error.404.route.message = Ce lien d''itinéraire ne fonctionne pas. Il a peut-être été supprimé, ou l''adresse contient une faute de frappe.
+error.404.route.browse = Parcourir tous les itinéraires
+error.500.heading = Une erreur est survenue
+error.500.message = Une erreur inattendue s''est produite de notre côté. Ce n''est pas de votre fait — veuillez réessayer dans un instant.
+error.500.id = Identifiant d''erreur : {0}
+error.500.report = Si le problème persiste, merci de {0} en indiquant l''identifiant d''erreur ci-dessus pour que nous puissions enquêter.
+error.500.report.link = nous le signaler
+error.home = Retour à l''accueil

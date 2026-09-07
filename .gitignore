@@ -13,7 +13,12 @@ coverage/
 bower.json
 component.json
 docker-compose.override*.yml
+ga-service-account.json
 db/*-dump
+
+# Generated per-city artifacts from scripts/onboard_city.py and check_streets_for_imagery.py (QA GeoPackage,
+# staging SQL, report, imagery-scan CSVs, osmnx cache)
+db/onboarding/
 
 # Playwright smoke-suite output (test/e2e/)
 playwright-report/
@@ -100,6 +105,7 @@ public/js/ps-map/build/*
 public/js/route-builder/build/*
 public/js/shared-label/build/*
 public/js/common/pano-viewer/build/*
+public/js/common/pano-credit/build/*
 # Bundles written to the pre-#2292 asset layout by an out-of-date Gruntfile; the paths are dead but a stale
 # checkout can still regenerate them, and they'd otherwise slip past the public/js/*/build/* rules above.
 public/javascripts/

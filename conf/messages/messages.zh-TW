@@ -125,6 +125,8 @@ city.name.winterthur-infra3d = 溫特圖爾
 city.name.waltham-ma = 沃爾瑟姆
 city.name.houston-tx = 休士頓
 city.name.newport-ky = 紐波特
+city.name.bayonne = 巴約訥
+city.name.laurens-ia = 勞倫斯
 
 state.name.oregon = 奧勒岡州
 state.name.washington = 華盛頓州
@@ -145,6 +147,7 @@ state.name.florida = 佛羅裡達
 state.name.massachusetts = 麻薩諸塞州
 state.name.texas = 德克薩斯州
 state.name.kentucky = 肯塔基州
+state.name.iowa = 愛荷華州
 
 country.name.usa = 美國
 country.name.mexico = 墨西哥
@@ -157,6 +160,7 @@ country.name.canada = 加拿大
 country.name.india = 印度
 country.name.chile = 智利
 country.name.brazil = 巴西
+country.name.france = 法國
 
 navbar.explore = 探索
 navbar.validate = 檢核

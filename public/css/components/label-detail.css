@@ -252,12 +252,36 @@ dialog.label-detail[open]::backdrop {
   .label-detail__pan-hint { transition: none; }
 }
 
-/* Imagery attribution (#4865; look in css/components/pano-attribution.css, which every host of this dialog links) in
-   the pano's top-right, clear of the hide-label control (top-left) and the hover validation bar (bottom). */
+/* Imagery attribution (#4865; look in css/components/pano-attribution.css, which every host of this dialog links).
+   4.5px puts the 26px pill's center on the source logo's optical line opposite it — 17.5px above the pano's bottom
+   edge (PanoViewerLogo's 2px clearance plus the 15.5px its own art centers on) — so the two read as one credit. */
 .label-detail .pano-attribution {
-  top: 10px;
+  bottom: 4.5px;
   right: 10px;
-  z-index: 6; /* Above the validation ring (5), below the info popover (10), like the hide-label control. */
+
+  z-index: 0; /* Under the hover validation bar (1), like the source logo opposite it. */
+}
+
+/* Both halves of the credit step aside for the vote bar rather than being occluded by it — the bar's own reveal
+   condition, read from the wrap with :has() because the credit sits inside .label-detail__pano, a *previous*
+   sibling of the bar. [hidden] is part of that condition: the bar is dropped entirely on the viewer's own label
+   (#5047), and the credit would otherwise vanish for a bar that never arrives. */
+.label-detail .pano-attribution,
+.label-detail .pano-viewer-logo {
+  transition: opacity 150ms ease; /* The bar's own fade. */
+}
+
+.label-detail__pano-wrap:hover:has(.label-detail__pano-overlay:not([hidden])) .pano-attribution,
+.label-detail__pano-wrap:hover:has(.label-detail__pano-overlay:not([hidden])) .pano-viewer-logo,
+.label-detail__pano-wrap:has(.label-detail__pano-overlay:focus-within) .pano-attribution,
+.label-detail__pano-wrap:has(.label-detail__pano-overlay:focus-within) .pano-viewer-logo {
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .label-detail .pano-attribution,
+  .label-detail .pano-viewer-logo { transition: none; }
 }
 
 /* Hide-label toggle (#2477) in the pano's top-left. Revealed on hover like the paging arrows. */
@@ -615,8 +639,9 @@ button.label-detail__meta-cell:focus-visible {
 }
 
 /* Icon size and row gap match the severity faces (24px icons, 5px gap) so the word rows under the two
-   columns align perfectly. */
+   columns align perfectly. Positioned so the keyboard-vote echo below can anchor on the icon. */
 .label-detail__vote-top {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 1px;
@@ -649,6 +674,61 @@ button.label-detail__meta-cell:focus-visible {
 
 .label-detail__vote-count {
   font-variant-numeric: tabular-nums;
+}
+
+/* Keyboard-vote echo (#5194). A shortcut casts a vote with no control under the cursor to watch, so the vote that
+   landed is echoed as a ghost of its own icon drifting off the tally it just incremented — upward for agree and
+   unsure, downward for disagree, so the motion carries the verdict's direction. Decoration only: the filled icon
+   and the new count underneath are the state, and LabelDetail skips the whole thing under prefers-reduced-motion.
+   Mounted in the icon row, whose first child is the icon, so the ghost starts exactly over what it copies. */
+.label-detail__vote-pop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: calc(24px * var(--ui-scale, 1));
+  height: calc(24px * var(--ui-scale, 1));
+  pointer-events: none;
+  opacity: 0;
+  animation: label-detail-vote-rise 700ms ease-out forwards;
+}
+
+.label-detail__vote-pop--disagree {
+  animation-name: label-detail-vote-fall;
+}
+
+/* Fades in over the first quarter so the ghost reads as leaving the icon rather than appearing beside it. */
+@keyframes label-detail-vote-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(0.85);
+  }
+
+  25% {
+    opacity: 1;
+    transform: translateY(calc(-6px * var(--ui-scale, 1))) scale(1.1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(calc(-26px * var(--ui-scale, 1))) scale(1.1);
+  }
+}
+
+@keyframes label-detail-vote-fall {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(0.85);
+  }
+
+  25% {
+    opacity: 1;
+    transform: translateY(calc(6px * var(--ui-scale, 1))) scale(1.1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(calc(26px * var(--ui-scale, 1))) scale(1.1);
+  }
 }
 
 /* Severity faces — the inner faces use the shared .severity-button (--static) styles in main.css. Content-sized

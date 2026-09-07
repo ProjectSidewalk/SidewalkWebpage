@@ -183,6 +183,12 @@ side mid-upgrade — keep this list matching it.
   [Changelog](https://github.com/mpetroff/pannellum/blob/2.5.7/changelog.md)
 - **panzoom: 9.4.4** — zoom/pan for static images in LabelMap/Gallery.
   [Download](https://unpkg.com/panzoom@9.4.4/dist/panzoom.min.js) · [Versions](https://github.com/anvaka/panzoom/tags)
+- **photo-sphere-viewer: 5.15.1** (bundling **three.js 0.185.1**) — the renderer behind the Panoramax imagery
+  provider (#5185). **Not an upstream file:** a self-contained bundle built by
+  `public/vendor/photo-sphere-viewer/build/build.sh`, because upstream ships ES modules only and needs a newer
+  three.js than the standalone 0.160.1 below. Upgrade by running the script with the new version (three.js follows
+  from PSV's own dependency pin); see the README beside it. [Releases](https://github.com/mistic100/Photo-Sphere-Viewer/releases) ·
+  [Docs](https://photo-sphere-viewer.js.org/guide/)
 - **prism: 1.30.0** — syntax highlighting for the API docs' code blocks. We ship the core plus only the language
   components the docs use (`json`, `csv`), so a new `language-*` class in a docs page means adding that component too.
   **No stock theme:** the `.token.*` colors are ours, in `css/pages/api-docs/api-docs.css`, so the blocks stay on the
@@ -238,13 +244,17 @@ The web image carries two, and **which one a package targets decides which file 
   frozen until the interpreter moves. [pandas](https://pandas.pydata.org/docs/whatsnew/) ·
   [scipy](https://docs.scipy.org/doc/scipy/release.html) ·
   [haversine](https://github.com/mapado/haversine/releases) · [requests](https://github.com/psf/requests/releases)
-- **`requirements-offline-tools.txt`** (3.13, `check_streets_for_imagery.py`) — **pandas 3.0.5**,
-  **requests 2.34.2**, **shapely 2.1.2**, **geopy 2.5.0**, **tenacity 9.1.4**, **tqdm 4.70.0**. Self-contained rather
+- **`requirements-offline-tools.txt`** (3.13, `check_streets_for_imagery.py` + `onboard_city.py`) — **pandas 3.0.5**,
+  **requests 2.34.2**, **shapely 2.1.2**, **geopy 2.5.0**, **tenacity 9.1.4**, **tqdm 4.70.0**, plus the onboarding
+  geo stack: **osmnx 2.0.7**, **geopandas 1.1.4**, **pyogrio 0.13.0**, **scipy 1.15.3**. Self-contained rather
   than layered on `requirements.txt`, since the two files target different interpreters and so can't share a pin.
   **Note:** requires **Python ≥ 3.11**, and pandas is what sets that floor — re-check it when bumping pandas, and
   update the docs that quote it. [shapely](https://github.com/shapely/shapely/releases) ·
   [geopy](https://github.com/geopy/geopy/releases) · [tenacity](https://github.com/jd/tenacity/releases) ·
-  [tqdm](https://github.com/tqdm/tqdm/releases)
+  [tqdm](https://github.com/tqdm/tqdm/releases) · [osmnx](https://github.com/gboeing/osmnx/releases) ·
+  [geopandas](https://github.com/geopandas/geopandas/releases) ·
+  [pyogrio](https://github.com/geopandas/pyogrio/blob/main/CHANGES.md) ·
+  [scipy](https://docs.scipy.org/doc/scipy/release.html)
 - **`requirements-dev.txt`** (both) — **pytest 9.1.1** / **pytest-cov 7.1.0** on 3.10+, **pytest 8.3.5** /
   **pytest-cov 5.0.0** below, by environment marker. **Note:** the boundary is pytest 9's own floor, not the 3.8 side
   — 8.3.5 is both the last pytest supporting 3.8 and the first supporting 3.13, so it covers the 3.8–3.9 gap. Keep the

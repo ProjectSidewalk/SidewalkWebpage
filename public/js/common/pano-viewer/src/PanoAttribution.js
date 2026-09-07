@@ -8,15 +8,19 @@
  * imagery carries a copyright string instead of a licence, which the source logo and the viewer's own copyright
  * line already convey, so a second copy of it is noise (Jon, 2026-09-04).
  *
- * The container must establish a CSS positioning context, as for createPanoViewerLogo. The overlay sits top-right,
- * clear of the hide-label control (top-left) and the hover validation bar (bottom).
+ * The container must establish a CSS positioning context, as for createPanoViewerLogo. Each host positions the
+ * overlay where its own controls leave room; the look lives in css/components/pano-attribution.css.
  *
  * @param {Element} container The positioned pano container element.
+ * @param {object} [options]
+ * @param {boolean} [options.compact=false] Card-sized form: smaller type, wrapping rather than truncating, and no
+ *     provider name, since the source logo opposite it is already carrying that.
  * @returns {{ show: Function, hide: Function }}
  */
-function createPanoAttribution(container) {
+function createPanoAttribution(container, options = {}) {
+  const compact = options.compact === true;
   const holder = document.createElement('small');
-  holder.className = 'pano-attribution';
+  holder.className = compact ? 'pano-attribution pano-attribution--compact' : 'pano-attribution';
   holder.hidden = true;
   container.appendChild(holder);
 
@@ -26,7 +30,7 @@ function createPanoAttribution(container) {
    */
   function render(attribution) {
     const parts = [document.createTextNode(attribution.holder)];
-    if (attribution.provider) parts.push(document.createTextNode(attribution.provider));
+    if (attribution.provider && !compact) parts.push(document.createTextNode(attribution.provider));
     if (attribution.license) {
       if (attribution.license_url) {
         // Only the licence token links out, so the line's other names don't read as links to the provider.
