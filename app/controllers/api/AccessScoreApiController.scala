@@ -141,13 +141,17 @@ class AccessScoreApiController @Inject() (
 
   /**
    * The AccessScore engine's configuration (v3, #3855): scored types, base weights and scoring modes, the rating
-   * multipliers, tag adjustments, and the named weight presets. With the per-street `severity_counts` and
-   * `tag_adjustments` from the streets endpoint, this is everything a client needs to recompute a score under its
-   * own weights without re-declaring any of the engine's constants.
+   * multipliers, tag adjustments, and the named weight presets, plus `clusters_updated_at`, when the clusters every
+   * score is computed from were last rebuilt. With the per-street `severity_counts` and `tag_adjustments` from the
+   * streets endpoint, this is everything a client needs to recompute a score under its own weights without
+   * re-declaring any of the engine's constants.
    */
   def getAccessScoreConfig = silhouette.UserAwareAction.async { implicit request =>
     cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
-    Future.successful(Ok(Json.toJson(AccessScoreConfigForApi.current)))
+    // The engine's constants plus the one runtime fact a reader of the scores needs: how fresh the clusters are.
+    accessScoreService.clustersUpdatedAt.map { updatedAt =>
+      Ok(AccessScoreConfigForApi.current.toJson + ("clusters_updated_at" -> Json.toJson(updatedAt)))
+    }
   }
 
   /** Whether a request carries no geo-filter at all, i.e. resolves to the city's configured bounds. */

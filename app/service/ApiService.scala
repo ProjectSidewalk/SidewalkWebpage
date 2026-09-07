@@ -8,6 +8,7 @@ import models.label._
 import models.region.{Region, RegionTable}
 import models.street.{StreetEdgeInfo, StreetEdgeTable}
 import models.user.UserStatTable
+import models.utils.BackgroundJobRunTable
 import models.utils.MyPostgresProfile.api._
 import models.utils.SpatialQueryType.SpatialQueryType
 import models.utils.{ClusteringThreshold, LatLngBBox, MyPostgresProfile}
@@ -47,6 +48,9 @@ trait ApiService {
 
   /** Resolves a region name to its (region id, bounding box), or None if no such (non-deleted) region exists. */
   def resolveRegionByName(regionName: String): Future[Option[(Int, LatLngBBox)]]
+
+  /** When the named background job last finished successfully, or None if it never has on this deployment. */
+  def lastSuccessfulJobFinish(jobName: String): Future[Option[OffsetDateTime]]
 
   def getLabelCVMetadata(batchSize: Int): Source[LabelCVMetadata, _]
 
@@ -212,6 +216,7 @@ class ApiServiceImpl @Inject() (
     userStatTable: UserStatTable,
     clusteringSessionTable: ClusteringSessionTable,
     clusterLabelTable: ClusterLabelTable,
+    backgroundJobRunTable: BackgroundJobRunTable,
     labelValidationTable: LabelValidationTable,
     labelEditTable: LabelEditTable,
     implicit val ec: ExecutionContext
@@ -298,6 +303,9 @@ class ApiServiceImpl @Inject() (
 
   def resolveRegionByName(regionName: String): Future[Option[(Int, LatLngBBox)]] =
     db.run(regionTable.getRegionByName(regionName)).map(_.map(r => (r.regionId, regionToBBox(r))))
+
+  def lastSuccessfulJobFinish(jobName: String): Future[Option[OffsetDateTime]] =
+    db.run(backgroundJobRunTable.lastSuccessfulFinish(jobName))
 
   def getLabelCVMetadata(batchSize: Int): Source[LabelCVMetadata, _] = {
     // NOTE can't use `setUpStreamFromDb` here bc we need to call `mapResult` to convert tuples to `LabelCVMetadata`.

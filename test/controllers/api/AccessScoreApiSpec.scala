@@ -110,6 +110,8 @@ class AccessScoreApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       (json \ "tag_adjustments").as[Seq[JsObject]].map(a => (a \ "label_type").as[String]) must contain("Signal")
       (json \ "preset_order").as[Seq[String]].head mustBe "default"
       (json \ "presets" \ "default" \ "NoSidewalk").as[Double] mustBe 2.0
+      // Present on every deployment; null only until clustering has run once (the CI database has no job runs).
+      (json \ "clusters_updated_at").toOption mustBe defined
 
       val body = contentAsString(resp)
       body must not include "baseWeight"

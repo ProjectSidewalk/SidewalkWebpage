@@ -1,5 +1,6 @@
 package service
 
+import actor.ClusteringActor
 import executors.CpuIntensiveExecutionContext
 import models.api.{RegionAccessScoreForApi, StreetAccessScoreForApi}
 import models.cluster.ClusterScoreRow
@@ -11,6 +12,7 @@ import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.Sink
 import service.AccessScoreCalculator.ClusterScoreInput
 
+import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
 import scala.collection.mutable
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
@@ -145,6 +147,15 @@ class AccessScoreService @Inject() (
       regions      <- apiService.getNeighborhoodsWithin(bbox)
       streetScores <- getFullCityStreetScores(batchSize)
     } yield scoreRegions(regions, streetScores)
+
+  /**
+   * When the clusters the scores are computed from were last rebuilt: the nightly clustering run's last successful
+   * finish. A label added since then is not in any cluster yet, so it cannot have moved a score — which is what a
+   * contributor wondering why their labels changed nothing needs to be told.
+   *
+   * @return The finish time, or None if clustering has never succeeded on this deployment.
+   */
+  def clustersUpdatedAt: Future[Option[OffsetDateTime]] = apiService.lastSuccessfulJobFinish(ClusteringActor.Name)
 
   /** The city's configured map bounds, the area every unfiltered v3 request is resolved to. */
   private def cityBbox: Future[LatLngBBox] =

@@ -128,6 +128,7 @@
         <li><strong>Street-condition types</strong> (<code>street_condition</code>): <code>term = weight × min(1, n / street_condition_saturation_count) + tag_adjustments[type]</code>, with <code>n</code> the type's total cluster count.</li>
         <li><code>score = sigmoid(Σ<sub>type</sub> term)</code>. With the engine's own <code>base_weight</code> for every <code>weight</code>, the terms equal <code>sub_scores</code> and the result equals <code>score</code>.</li>
       </ul>
+      <p>The response also carries <code>clusters_updated_at</code>: when the nightly clustering run that every score is computed from last finished (ISO&nbsp;8601, or <code>null</code> before the first run). Labels added after that moment are not in any cluster yet and cannot have changed a score until the next run.</p>
       <p>The <code>presets</code> object holds named weight vectors (magnitudes; a type's sign is fixed by its base weight) for a few stakeholder lenses; <code>default</code> is the engine's own weights. They are starting points, not validated standards.</p>
     </div>
   </div>
