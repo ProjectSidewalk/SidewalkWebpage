@@ -81,9 +81,8 @@ class ValidationInfoDisplay {
   /**
    * A vote icon's URL, in the requested fill state and with the `-ai` variant when our AI validated this option.
    *
-   * Always rebuilt from the logical path, never edited out of the <img>'s current `src`: staged and prod builds
-   * content-fingerprint every asset, so a resolved URL carries the *outline* file's digest and swapping the name
-   * inside it names a file that doesn't exist (#5204).
+   * Rebuilt from the logical path rather than edited out of the <img>'s current `src`, which carries the outline
+   * file's content fingerprint and so can't name the filled one (#5204).
    *
    * @param {string} action 'Agree' or 'Disagree'.
    * @param {boolean} filled Whether to use the filled variant rather than the outline one.

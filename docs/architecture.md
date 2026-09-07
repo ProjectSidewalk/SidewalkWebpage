@@ -239,8 +239,7 @@ varies. Under dev `sbt run` nothing is fingerprinted, so the stamp is empty and 
 `/assets/<path>`. Neither half of a mistake fails at runtime, so `tools/check-asset-paths.mjs`
 (`make lint-asset-paths`, a blocking CI step) is the gate: no hardcoded `/assets/` URLs under `public/js/`, every
 `util.assetPath` argument names a real file in a manifest family, and no code edits an element's resolved `src` as a
-string (that URL carries one file's digest, so swapping the name inside it fingerprints the wrong file). Full caching
-contract: [`deployment-and-stages.md`](deployment-and-stages.md) → "Asset caching".
+string. Full caching contract: [`deployment-and-stages.md`](deployment-and-stages.md) → "Asset caching".
 
 **Styling comes from the design-system tokens in `main.css` `:root`** — color ramps (`--color-*`), composite type
 tokens (`--text-*`, complete `font` shorthands that bake in the tool-UI zoom factor `--ui-scale`), spacing, radii,

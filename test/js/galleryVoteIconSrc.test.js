@@ -1,12 +1,11 @@
 /**
  * Tests the Gallery card's agree/disagree thumb icons, which swap between their outline and filled artwork on hover
- * and after a vote.
+ * and after a vote (#5204).
  *
  * The contract worth pinning is that every state builds its URL from the logical path through `util.assetPath`.
- * Editing the name inside an already-resolved URL instead looks right in dev, where no digests are built, and 404s on
- * staged and prod, where the URL carries the outline file's content fingerprint and the filled file's digest is a
- * different string (#5204). So these tests run with a stamp on the page, giving each file its own digest, exactly as
- * a staged build would.
+ * Editing the name inside an already-resolved URL instead is right in dev, where no digests are built, and a 404 on
+ * staged and prod, where each file has its own fingerprint — so these tests run with a stamp on the page, as a staged
+ * build would.
  */
 
 const fs = require('fs');
@@ -29,9 +28,8 @@ const DIGESTS = {
 };
 
 /**
- * The URL a staged build serves for one of the icons above.
  * @param {string} logicalPath - The icon's path under public/.
- * @returns {string} Its fingerprinted URL.
+ * @returns {string} The URL a staged build serves it from.
  */
 const urlFor = (logicalPath) => {
   const cut = logicalPath.lastIndexOf('/') + 1;
@@ -39,9 +37,8 @@ const urlFor = (logicalPath) => {
 };
 
 /**
- * Builds a display on a fresh container, the way a Gallery card does.
  * @param {?string} aiValidation - The option our AI validated, or null if it didn't validate this label.
- * @returns {Object} The ValidationInfoDisplay under test.
+ * @returns {Object} A display built on a fresh container, the way a Gallery card does.
  */
 function makeDisplay(aiValidation = null) {
   const container = document.createElement('div');
@@ -50,10 +47,9 @@ function makeDisplay(aiValidation = null) {
 }
 
 /**
- * The `src` currently on one thumb's icon.
  * @param {Object} display - The display to read.
  * @param {string} action - 'Agree' or 'Disagree'.
- * @returns {string} The icon's URL.
+ * @returns {string} The `src` currently on that thumb's icon.
  */
 const srcOf = (display, action) => {
   const container = action === 'Agree' ? display.agreeContainer : display.disagreeContainer;

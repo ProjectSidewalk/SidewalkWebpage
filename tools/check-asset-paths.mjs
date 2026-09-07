@@ -22,8 +22,7 @@
 //      - an argument built by concatenation is rejected outright: only a whole path inside one template literal is
 //        checkable, and CLAUDE.md asks for that form anyway.
 //   3. No string surgery on an element's `src`: a resolved URL carries the digest of the file it names, so editing
-//      the filename inside one leaves another file's fingerprint in front of it. Name the variant you want through
-//      util.assetPath instead.
+//      the filename inside one leaves another file's fingerprint in front of it.
 //   4. Every prefix in that list is a real directory, so a renamed asset family fails here rather than in sbt.
 //
 // == public/css/ ==
@@ -68,9 +67,8 @@ const HARDCODED = /['"`(]\/assets\/(?!\$)[A-Za-z0-9_\-./]*/g;
 // every call shape is accounted for instead of only the ones a pattern happens to describe.
 const CALL = /util\.assetPath\(/g;
 
-// Editing an element's already-resolved `src` as a string. Deliberately narrow: `src` is the attribute that carries
-// an asset URL, and these are the methods that would rewrite one. `href` is left out — in public/js it names fragment
-// ids, the page's own location and API links, never an asset.
+// Editing an element's already-resolved `src` as a string. `href` is deliberately left out — in public/js it names
+// fragment ids, the page's own location and API links, never an asset.
 const SRC_SURGERY =
   /(?:\.src|getAttribute\(\s*['"]src['"]\s*\))\s*\.\s*(replace|slice|substring|substr|split|concat)\s*\(/g;
 
@@ -320,9 +318,9 @@ for (const file of files) {
     }
 
     for (const [, method] of line.matchAll(SRC_SURGERY)) {
-      problems.push(`${file}:${i + 1}: edits an element's resolved src with .${method}() — a staged build's URL `
-        + 'carries the digest of the file it names, so the result keeps that fingerprint in front of a different '
-        + "filename and 404s. Build the variant's own URL with util.assetPath instead.");
+      problems.push(`${file}:${i + 1}: edits an element's resolved src with .${method}() — that URL carries the `
+        + 'digest of the file it names, so the result 404s on a staged build. Build the URL you want with '
+        + 'util.assetPath instead.');
     }
   });
 

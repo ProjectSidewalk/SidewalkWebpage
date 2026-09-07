@@ -377,10 +377,8 @@ as they would with the path written out by hand. `make lint-asset-paths` (a bloc
 `/assets/...` URLs out of `public/js/` and checks every `util.assetPath` argument: a literal one has to name a real
 file in a manifest family, and an interpolated one has to open with a literal family directory that is in the manifest
 (which is also why a path is built inside one template literal rather than concatenated). It also rejects string
-surgery on an element's resolved `src`, which is the same mistake wearing a disguise: the URL already on an `<img>`
-carries *that* file's digest, so editing the filename inside it leaves another file's fingerprint in front of the new
-name. Ask `util.assetPath` for the variant's own path instead. All necessary because neither half of a mistake raises
-anything at runtime.
+surgery on an element's resolved `src`: that URL carries *its own* file's digest, so editing the filename inside it
+fingerprints the wrong file. All necessary because neither half of a mistake raises anything at runtime.
 
 **CSS gets there by rewriting the stylesheet** (#5094). A stylesheet offers no interpolation point for either
 mechanism above, so the `fingerprintCssAssetUrls` pipeline stage
