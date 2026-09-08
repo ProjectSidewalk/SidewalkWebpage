@@ -11,6 +11,9 @@ import javax.inject._
 /**
  * Serves robots.txt and sitemap.xml (issue #4237).
  *
+ * Whether this deployment is indexed at all is [[SeoUtils.isIndexable]] — the same predicate that drives the pages'
+ * robots meta tag and the `X-Robots-Tag` header from [[filters.SeoRobotsFilter]] (#5120).
+ *
  * Both actions are plain (non-Silhouette) Actions on purpose: crawlers hit these URLs constantly, and a SecuredAction
  * would create an anonymous user + session DB writes per hit. Everything here is derived from static config, so no
  * DB access is needed at all.
@@ -20,6 +23,9 @@ class SeoController @Inject() (cc: CustomControllerComponents, config: Configura
 
   private val envType: String = config.get[String]("environment-type")
   private val cityId: String  = config.get[String]("city-id")
+
+  /** Whether search engines may index this deployment at all: prod, publicly launched, and not sign-in-walled. */
+  private val indexable: Boolean = SeoUtils.isIndexable(config)
 
   /** Prod base URL for this city; the sitemap/canonical surface always points at prod, never a test domain. */
   private val baseUrl: String = config.get[String](s"city-params.landing-page-url.prod.$cityId").stripSuffix("/")
@@ -59,7 +65,7 @@ class SeoController @Inject() (cc: CustomControllerComponents, config: Configura
   private val aliasDisallowLines: String = SeoUtils.robotsDisallowedAliases.map(p => s"Disallow: $p").mkString("\n")
 
   /** A sitemap is served only where there is something crawlable to promote; robots.txt advertises it only then. */
-  private val hasSitemap: Boolean = envType == "prod" && sitemapPaths.nonEmpty
+  private val hasSitemap: Boolean = indexable && sitemapPaths.nonEmpty
 
   /**
    * The robots.txt body is fully determined by construction-time config, so build it once.
@@ -67,6 +73,12 @@ class SeoController @Inject() (cc: CustomControllerComponents, config: Configura
    * /anonSignUp is disallowed because a crawler hitting it mints a throwaway anonymous account (a DB user + a session
    * write) per hit, and the sitemap surface reaches every indexable page without it (#4643). SecuredAction pages
    * (/explore, /validate) 303 into it, which is why they stay out of the sitemap above.
+   *
+   * A **private** prod city keeps this permissive body rather than getting `Disallow: /` (#5120). Its pages are kept
+   * out of the index by the noindex meta tag and the `X-Robots-Tag` header instead, and a crawler only ever sees
+   * those if it is allowed to fetch the page: a URL blocked by robots.txt is never fetched, so Google can still
+   * list it — bare URL, no snippet — on the strength of an inbound link alone. Non-prod hosts do get `Disallow: /`,
+   * since nothing links to them and the crawl budget is pure waste there.
    */
   private val robotsBody: String =
     if (envType == "prod")
@@ -101,17 +113,18 @@ class SeoController @Inject() (cc: CustomControllerComponents, config: Configura
   }
 
   /**
-   * Serves robots.txt: on prod, allow crawling minus admin/auth/duplicate-alias surface and point at the sitemap;
-   * on test/local, disallow everything (pages also carry a noindex meta via seoHead).
+   * Serves robots.txt: on prod, allow crawling minus the admin/auth/duplicate-alias surface, pointing at the sitemap
+   * where there is one; on test/local, disallow everything (pages also carry a noindex meta via seoHead).
    */
   def robots: Action[AnyContent] = Action {
     Ok(robotsBody).as("text/plain; charset=utf-8").withHeaders(CACHE_CONTROL -> "public, max-age=86400")
   }
 
   /**
-   * Serves sitemap.xml listing the public pages with absolute prod URLs. Prod only, and only where a cookie-less
-   * crawler can actually reach those pages: a sitemap on a test/local host would list cross-host (prod) URLs, which
-   * search engines reject, and a sign-in-walled city has nothing to promote (see `sitemapPaths`).
+   * Serves sitemap.xml listing the public pages with absolute prod URLs. Indexable deployments only, and only where
+   * a cookie-less crawler can actually reach those pages: a sitemap on a test/local host would list cross-host (prod)
+   * URLs, which search engines reject, a private city must not advertise its pages at all (#5120), and a
+   * sign-in-walled city has nothing to promote (see `sitemapPaths`).
    */
   def sitemap: Action[AnyContent] = Action {
     if (hasSitemap)

@@ -1,10 +1,10 @@
 @import models.utils.SeoUtils
 @import service.{CommonPageData, PageMeta}
 @*
- * Site-wide SEO <head> block rendered on every page by main.scala.html (issue #4237): canonical URL (prod only),
- * noindex on test/local stages, and default meta description + Open Graph / Twitter Card tags. Pages that inject
- * their own social meta via extraHead (e.g. shared-label permalinks) set pageMeta.customSocialMeta to suppress the
- * defaults so crawlers never see duplicate tags.
+ * Site-wide SEO <head> block rendered on every page by main.scala.html (issue #4237): canonical URL (indexable
+ * deployments only), noindex everywhere else, and default meta description + Open Graph / Twitter Card tags. Pages
+ * that inject their own social meta via extraHead (e.g. shared-label permalinks) set pageMeta.customSocialMeta to
+ * suppress the defaults so crawlers never see duplicate tags.
  *
  * @param commonData  Per-page config (environment type, prod base URL, deployment city).
  * @param title       The page title, reused as og:title / twitter:title.
@@ -17,9 +17,10 @@
 @description = @{pageMeta.description.getOrElse(Messages("seo.description.default", commonData.currentCity.cityNameShort))}
 @ogImageUrl = @{commonData.prodUrl.stripSuffix("/") + assets.path("images/psmockup.jpg")}
 
-@if(commonData.environmentType != "prod") {
-  @* Test/local stages must never be indexed (robots.txt also disallows them). No canonical on non-prod: a canonical
-     pointing at prod would conflict with the noindex signal. *@
+@if(!commonData.isIndexable) {
+  @* Test/local stages and private-city deployments must never be indexed (#5120). No canonical here: one pointing at
+     prod would conflict with the noindex signal, and on a private city there is no public URL to point at anyway.
+     SeoRobotsFilter sends the same signal as an X-Robots-Tag header so it also covers assets and error responses. *@
   <meta name="robots" content="noindex, nofollow">
 } else {
   <link rel="canonical" href="@canonicalUrl">

@@ -84,6 +84,10 @@ case class CommonPageData(
 
   /** The deployment city's info; cityId always comes from the same config that builds allCityInfo. */
   def currentCity: CityInfo = allCityInfo.find(_.cityId == cityId).get
+
+  /** Whether search engines may index this deployment (#5120); see [[models.utils.SeoUtils.isIndexable]]. */
+  def isIndexable: Boolean =
+    SeoUtils.isIndexable(environmentType, currentCity.visibility, imagerySource.toString)
 }
 
 /**

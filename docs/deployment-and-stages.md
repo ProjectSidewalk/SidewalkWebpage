@@ -30,6 +30,29 @@ mechanism as `application.local.conf` in local dev). For example, the Silhouette
 `prod-authenticator` in the base config and is overridden in the test/local overlays, so sessions don't collide
 across environments.
 
+### Search-engine indexing
+
+The app decides whether a deployment may be indexed, from static config only. `SeoUtils.isIndexable` requires all
+three of: `environment-type = "prod"`, `city-params.status.<cityId> = "public"`, and a pano source that isn't
+Infra3D (whose imagery licence puts every page behind a sign-in, so a cookie-less crawler can reach nothing). That
+one predicate drives every indexing signal:
+
+| Signal | Where | On a non-indexable deployment |
+|---|---|---|
+| `<meta name="robots">` | `views/common/seoHead.scala.html` | `noindex, nofollow`, and no `rel=canonical` |
+| `X-Robots-Tag` header | `filters/SeoRobotsFilter` | `noindex, nofollow` on **every** response — assets, API bodies, error pages |
+| `sitemap.xml` | `SeoController.hasSitemap` | 404, and no `Sitemap:` line in robots.txt |
+
+`robots.txt` is the deliberate exception: a **private prod** city still serves the permissive body (admin/auth/alias
+`Disallow` lines only), because a URL blocked by robots.txt is never fetched, so the crawler never sees the
+`noindex` and can still list the bare URL from an inbound link. Only non-prod stages get `Disallow: /`.
+
+Until 2026 this lived outside the app: every vhost `lab/sidewalk-tools` provisioned hardcoded
+`Header set X-Robots-Tag "noindex, nofollow"`. Apache applies that *after* the backend, so it masked whatever the app
+said — suppressing all of production, while being the only thing keeping the private cities out of the index (#5120).
+**Ordering matters when removing it:** the app-side predicate must be deployed before the header is stripped from a
+private city's vhost, or that city is exposed in the gap.
+
 ## How code reaches each stage
 
 Deployment is driven by what you push to the [`SidewalkWebpage`](https://github.com/ProjectSidewalk/SidewalkWebpage)

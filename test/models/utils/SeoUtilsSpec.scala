@@ -10,6 +10,19 @@ class SeoUtilsSpec extends AnyFunSuite with Matchers {
 
   private val prodUrl = "https://sidewalk-sea.cs.washington.edu"
 
+  test("isIndexable requires prod, a publicly launched city, and no sign-in wall") {
+    SeoUtils.isIndexable("prod", "public", "gsv") shouldBe true
+    SeoUtils.isIndexable("prod", "public", "mapillary") shouldBe true
+    // A private prod city: a research partnership or pilot that is not ours to publish (#5120).
+    SeoUtils.isIndexable("prod", "private", "gsv") shouldBe false
+    // Non-prod stages, which would otherwise outrank prod for the same content (#2806).
+    SeoUtils.isIndexable("test", "public", "gsv") shouldBe false
+    SeoUtils.isIndexable("local", "public", "gsv") shouldBe false
+    SeoUtils.isIndexable("staging", "public", "gsv") shouldBe false
+    // Infra3D's imagery licence puts every page behind a sign-in, so a crawler can reach nothing (#4643).
+    SeoUtils.isIndexable("prod", "public", "infra3d") shouldBe false
+  }
+
   test("canonicalPathFor collapses every duplicate route alias to its canonical path") {
     SeoUtils.canonicalPathFor("/home") shouldBe "/"
     SeoUtils.canonicalPathFor("/developer") shouldBe "/api"
