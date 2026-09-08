@@ -166,68 +166,69 @@
       </script>
     }
     @if(!noFooter) {
+    <footer>
+      <div class="container" id="footer-container">
+        <div class="row footer-links-row">
+          <div class="col-sm-4 footer-link">
+            <span class="footer-header">PROJECT SIDEWALK</span><br>
+              <!-- Back to top<br>-->
+            <a href='@routes.ApplicationController.about' id="sidewalk-about-link">@Messages("footer.about")</a> <br>
+            <a href='@routes.ApplicationController.terms' id="sidewalk-terms-link" target="_blank">@Messages("footer.terms")</a> <br>
+            <a href='@routes.ApplicationController.labelingGuide' id="sidewalk-labeling-link" target="_blank">@Messages("footer.guide")</a> <br>
+          </div>
+          <div class="col-sm-4 footer-link">
+            <span class="footer-header">@Messages("footer.developer")</span><br>
+            <a href='@routes.ApiDocsController.index' id="developer-api-link">@Messages("footer.api")</a><br>
+          </div>
+          <div class="col-sm-4 footer-link">
+            <span class="footer-header">@Messages("footer.connect")</span><br>
+            <a target="_blank" href="https://github.com/ProjectSidewalk/SidewalkWebpage" id="connect-github-link">@common.socialIcon("github")&nbsp;Github</a> <br>
+            <a target="_blank" href="https://www.linkedin.com/company/project-sidewalk/" id="connect-linkedin-link">@common.socialIcon("linkedin")&nbsp;LinkedIn</a><br>
+            <a target="_blank" href="https://bsky.app/profile/projectsidewalk.bsky.social" id="connect-bluesky-link">@common.socialIcon("bluesky")&nbsp;Bluesky</a><br>
+            <a target="_blank" href="mailto:sidewalk@@cs.uw.edu" id="connect-email-link">@common.socialIcon("email")&nbsp;@Messages("footer.email")</a><br>
+          </div>
+        </div>
+      </div>
+      <div class="container" id="info-footer">
+        <br>
+        <p><span id="funding-title">@Messages("footer.funding")</span></p>
+        <div class="row footer-logos-row">
+          <div class="col-sm-1">
+            <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" id="nsf-link">
+              <img loading="lazy" src="@assets.path("images/nsf.png")" alt="@Messages("footer.logo.nsf.alt")">
+            </a>
+            <div class="col-sm-2" id="award-num">@Html(Messages("footer.award"))</div>
+          </div>
+          <div class="col-sm-3">
+            <a href="http://www.google.com/" id="google-link"><img loading="lazy" src="@assets.path("images/google.png")" alt="@Messages("footer.logo.google.alt")"></a>
+          </div>
+          <div class="col-sm-3">
+            <a href="https://sloan.org/fellowships/" id="sloan-link">
+              <img loading="lazy" src="@assets.path("images/sloan_logo.png")" alt="@Messages("footer.logo.sloan.alt")">
+            </a>
+          </div>
+          <div class="col-sm-2">
+            <a href="https://www.washington.edu/research/research-centers/pacific-northwest-transportation-consortium-pactrans/" id="pactrans-link">
+              <img loading="lazy" src="@assets.path("images/pactrans_logo.png")" alt="@Messages("footer.logo.pactrans.alt")">
+            </a>
+          </div>
+          <div class="col-sm-3">
+            <a href="https://create.uw.edu/" id="create-link">
+              <img loading="lazy" src="@assets.path("images/CREATE_logo.png")" alt="@Messages("footer.logo.create.alt")">
+            </a>
+          </div>
+        </div>
+        <div class="row footer-logos-row">
+          <div class="col-sm-8"></div>
+        </div>
 
-    <div class="container" id="footer-container">
-      <div class="row footer-links-row">
-        <div class="col-sm-4 footer-link">
-          <span class="footer-header">PROJECT SIDEWALK</span><br>
-            <!-- Back to top<br>-->
-          <a href='@routes.ApplicationController.about' id="sidewalk-about-link">@Messages("footer.about")</a> <br>
-          <a href='@routes.ApplicationController.terms' id="sidewalk-terms-link" target="_blank">@Messages("footer.terms")</a> <br>
-          <a href='@routes.ApplicationController.labelingGuide' id="sidewalk-labeling-link" target="_blank">@Messages("footer.guide")</a> <br>
-        </div>
-        <div class="col-sm-4 footer-link">
-          <span class="footer-header">@Messages("footer.developer")</span><br>
-          <a href='@routes.ApiDocsController.index' id="developer-api-link">@Messages("footer.api")</a><br>
-        </div>
-        <div class="col-sm-4 footer-link">
-          <span class="footer-header">@Messages("footer.connect")</span><br>
-          <a target="_blank" href="https://github.com/ProjectSidewalk/SidewalkWebpage" id="connect-github-link">@common.socialIcon("github")&nbsp;Github</a> <br>
-          <a target="_blank" href="https://www.linkedin.com/company/project-sidewalk/" id="connect-linkedin-link">@common.socialIcon("linkedin")&nbsp;LinkedIn</a><br>
-          <a target="_blank" href="https://bsky.app/profile/projectsidewalk.bsky.social" id="connect-bluesky-link">@common.socialIcon("bluesky")&nbsp;Bluesky</a><br>
-          <a target="_blank" href="mailto:sidewalk@@cs.uw.edu" id="connect-email-link">@common.socialIcon("email")&nbsp;@Messages("footer.email")</a><br>
-        </div>
+        @Html(Messages("footer.designed.operated"))<br>
+        <span id="application-version">
+        @Html(Messages("footer.version", commonData.versionId, commonData.versionTimestamp.toString))
+        </span>
       </div>
-    </div>
-    <div class="container" id="info-footer">
-      <br>
-      <p><span id="funding-title">@Messages("footer.funding")</span></p>
-      <div class="row footer-logos-row">
-        <div class="col-sm-1">
-          <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" id="nsf-link">
-            <img loading="lazy" src="@assets.path("images/nsf.png")" alt="@Messages("footer.logo.nsf.alt")">
-          </a>
-          <div class="col-sm-2" id="award-num">@Html(Messages("footer.award"))</div>
-        </div>
-        <div class="col-sm-3">
-          <a href="http://www.google.com/" id="google-link"><img loading="lazy" src="@assets.path("images/google.png")" alt="@Messages("footer.logo.google.alt")"></a>
-        </div>
-        <div class="col-sm-3">
-          <a href="https://sloan.org/fellowships/" id="sloan-link">
-            <img loading="lazy" src="@assets.path("images/sloan_logo.png")" alt="@Messages("footer.logo.sloan.alt")">
-          </a>
-        </div>
-        <div class="col-sm-2">
-          <a href="https://www.washington.edu/research/research-centers/pacific-northwest-transportation-consortium-pactrans/" id="pactrans-link">
-            <img loading="lazy" src="@assets.path("images/pactrans_logo.png")" alt="@Messages("footer.logo.pactrans.alt")">
-          </a>
-        </div>
-        <div class="col-sm-3">
-          <a href="https://create.uw.edu/" id="create-link">
-            <img loading="lazy" src="@assets.path("images/CREATE_logo.png")" alt="@Messages("footer.logo.create.alt")">
-          </a>
-        </div>
-      </div>
-      <div class="row footer-logos-row">
-        <div class="col-sm-8"></div>
-      </div>
-
-      @Html(Messages("footer.designed.operated"))<br>
-      <span id="application-version">
-      @Html(Messages("footer.version", commonData.versionId, commonData.versionTimestamp.toString))
-      </span>
-    </div>
-  }
+    </footer>
+    }
 
     <script>
       window.appManager.ready(function () {

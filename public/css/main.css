@@ -841,7 +841,7 @@ textarea.ps-input {
   color: var(--color-asphalt-500);
   font-size: 12px;
   line-height: 1.8em;
-  font-family: raleway, sans-serif;
+  font-family: var(--font-accent);
 }
 
 #footer-container a {
@@ -868,11 +868,16 @@ textarea.ps-input {
   min-height: 220px;
   background-color: var(--color-asphalt-500);
   text-align: center;
-  font-family: raleway, sans-serif;
+  font-family: var(--font-accent);
   font-size: 12px;
   color: var(--color-neutral-white);
   line-height: 1.6em;
+}
 
+/* Raleway's digits aren't tabular, and the timestamp is rewritten client-side into the reader's locale, so the
+   stamp would reflow as its width changed. */
+#application-version {
+  font-family: var(--font-primary);
 }
 
 #info-footer a {
