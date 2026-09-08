@@ -10,12 +10,15 @@
 -- always once the schema is at evolution HEAD: it writes street_edge.status and its ON CONFLICT targets need
 -- constraints the committed template lacks. Idempotent, so a job retry can re-run it.
 --
--- Four deliberate departures from prod:
+-- Five deliberate departures from prod:
 --   * NO FREE TEXT. Label descriptions and validator comments are contributor-authored and this repo is public, so
 --     the slice query never selected them; the strings below are written here instead.
 --   * USERS ARE SYNTHETIC. A contributor's account is not ours to copy, and nothing here reads more than its role.
 --   * GEOMETRY IS SIMPLIFIED (topology-preserving, so endpoints still agree with x1/y1/x2/y2): ~50 m for the region
 --     boundary, ~2 m for the streets. A raw boundary is thousands of vertices no one can read in a diff.
+--   * OSM WAY IDS ARE SYNTHETIC (street_edge_id + 900000000). The slice does not carry the real ones, and nothing
+--     in CI fetches OSM tags -- but /v3/api/rawLabels and the clusters API INNER JOIN osm_way_street_edge, so
+--     without a row per street they return an empty feature list for a fully labelled schema.
 --   * IMAGERY IS DOWNSCALED to 1024x512 and pano_data.width/height say so, because that is the size of the copy in
 --     test/e2e/fixtures/media: those columns describe the imagery we hold, and a full-resolution one is ~15 MB.
 --     label_point.pano_x/pano_y are rescaled by the same factor, since they index that same panorama -- rawLabels
@@ -64,6 +67,19 @@ SELECT s.street_edge_id, 18
 FROM (VALUES (479), (842), (1141), (1334)) AS s(street_edge_id)
 WHERE NOT EXISTS (
   SELECT 1 FROM sidewalk_teaneck.street_edge_region WHERE street_edge_id = s.street_edge_id
+);
+
+-- Every street needs an OSM way, because /v3/api/rawLabels and the label-clusters API both INNER JOIN
+-- osm_way_street_edge: without a row here those endpoints return an empty feature list for a fully labelled schema,
+-- and a spec that reads one of their features back cancels instead of failing. The ids are SYNTHETIC -- the slice
+-- does not carry the real ones, and OsmWayService only fetches tags for ways listed here, which CI never runs -- so
+-- they are the street_edge_id in a 900000000 block, distinguishable at a glance from a real OSM way id and stable
+-- across regenerations.
+INSERT INTO sidewalk_teaneck.osm_way_street_edge (osm_way_id, street_edge_id)
+SELECT s.street_edge_id + 900000000, s.street_edge_id
+FROM (VALUES (479), (842), (1141), (1334)) AS s(street_edge_id)
+WHERE NOT EXISTS (
+  SELECT 1 FROM sidewalk_teaneck.osm_way_street_edge WHERE street_edge_id = s.street_edge_id
 );
 
 -- Priorities below 1.0 mark a street as explored at least once, which is what gives region_completion a non-zero
@@ -450,7 +466,23 @@ WHERE route.route_id = 900001;
 --   meters_audited / labels_per_meter / high_quality -> UserStatTable.updateAuditedDistanceHelper,
 --                                                       updateLabelsPerMeterHelper, updateHighQuality
 --   region_completion                                -> RegionService.initializeRegionCompletionTableAction
+--   label_point.centerline_offset_m                  -> LabelPointTable.computeCenterlineOffset (377.sql's backfill)
 -- "Auditable streets" in all of them means open, non-tutorial streets -- StreetEdgeTable's `streets`.
+
+-- Which side of its street each label sits on (#2886). ExploreService.insertLabel fills this in the same
+-- transaction as the point for every label the app writes, and 377.sql's backfill filled every label that predated
+-- the column -- so a label_point inserted straight into the table, as the rows above are, is the one way a schema
+-- can hold a position whose offset was never computed. StreetSideSpec re-runs this exact recompute and demands the
+-- stored value already match. Schema-qualified because the function lives in the city schema (the evolutions run
+-- with search_path there) while this file is applied as `postgres`, whose search_path is the default.
+-- street_side is GENERATED from the offset, so it follows on its own.
+UPDATE sidewalk_teaneck.label_point
+SET centerline_offset_m = sidewalk_teaneck.label_centerline_offset_m(label_point.geom, street_edge.geom)
+FROM sidewalk_teaneck.label, sidewalk_teaneck.street_edge
+WHERE label.label_id = label_point.label_id
+  AND street_edge.street_edge_id = label.street_edge_id
+  AND label_point.geom IS NOT NULL;
+
 UPDATE sidewalk_teaneck.user_stat
 SET meters_audited = COALESCE((
       SELECT SUM(ST_Length(street_edge.geom::geography))

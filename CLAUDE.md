@@ -38,6 +38,7 @@ file, and this table says which doc to read first:
 
 - `develop` is the main branch and the PR target; `master` is the release branch. Branch names start with the
   issue number (`1234-fix-label-popup`).
+- Start a ticket by branching from an up-to-date `develop`, unless the maintainer says otherwise.
 - **Never open a pull request, merge, tag, or release without the maintainer's explicit OK.** Do the work, run the
   checks, push the branch if useful, then stop and ask. Filing GitHub issues is fine. Maintainers: @jonfroehlich
   and @misaugstad.
