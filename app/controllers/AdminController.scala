@@ -1035,8 +1035,8 @@ class AdminController @Inject() (
   }
 
   /**
-   * Cuts the missing label crops and downscaled panos from the self-hosted pano store. Same as the nightly
-   * process, for a backfill that shouldn't wait for it (#4865).
+   * Cuts the missing label crops from the self-hosted pano store. Same as the nightly process, for a backfill
+   * that shouldn't wait for it (#4865).
    *
    * Recorded as a `Manual` run of that nightly job (#4928), and answered as soon as the run starts rather than when
    * it ends — alone among these triggers, because a first backfill runs for about an hour, far past any proxy's read

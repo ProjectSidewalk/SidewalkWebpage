@@ -297,23 +297,6 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
   }
 
   /**
-   * Panos with a self-hosted backup whose native width is over `maxWidth`, or unknown — the ones that may need a
-   * downscaled copy (#4865). A row that records no width is included rather than assumed narrow; the crop job
-   * decides from the file it opens, which is the only frame that can be measured.
-   *
-   * @param maxWidth The widest image the pano viewer can be handed.
-   * @return         Pano ids.
-   */
-  def getWideBackupPanos(maxWidth: Int): DBIO[Seq[String]] = {
-    panoDataRecords
-      .filter(p =>
-        p.hasBackup.getOrElse(false: Rep[Boolean]) && p.width.map(_ > maxWidth).getOrElse(true: Rep[Boolean])
-      )
-      .map(_.panoId)
-      .result
-  }
-
-  /**
    * Sets has_backup = true for the given pano, but only if it isn't already true.
    *
    * @param panoId The ID of the pano whose has_backup flag should be set.

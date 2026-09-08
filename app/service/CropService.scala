@@ -10,11 +10,10 @@ import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.{Sink, Source}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.{JsObject, Json}
-import play.api.{Configuration, Logger}
+import play.api.Logger
 import service.CropGeometry.CropBox
 import service.CropService._
 
-import java.awt.Image
 import java.awt.image.BufferedImage
 import java.io.File
 import java.nio.file.Files
@@ -48,8 +47,7 @@ object CropService {
    * What one run did. The disjoint outcomes for a label are: cropped, skipped for a pano with no self-hosted image,
    * skipped on a dimension mismatch, skipped as out of frame, or errored; `shiftedVertically` and `dimsUnverified`
    * annotate crops that were written, the first with the label off-centre and the second without a recorded frame to
-   * check the label's position against. `downscaledDeleted` counts copies removed because the pano no longer needs
-   * one (the cap was raised past its width, or its native file is gone).
+   * check the label's position against.
    */
   case class CropRunResult(
       panosOpened: Int,
@@ -59,8 +57,6 @@ object CropService {
       outOfFrame: Int,
       dimsMismatch: Int,
       dimsUnverified: Int,
-      downscaledWritten: Int,
-      downscaledDeleted: Int,
       errors: Int
   ) {
 
@@ -68,8 +64,7 @@ object CropService {
     def summary: String =
       s"Crop generation (rule ${CropSizingRule.Version}): opened $panosOpened panos, wrote $cropsWritten crops " +
         s"($shiftedVertically shifted to stay inside the pano, $dimsUnverified against a pano whose dimensions the " +
-        s"database doesn't record) and $downscaledWritten downscaled panos, deleted $downscaledDeleted downscaled " +
-        s"panos no longer needed; skipped $panosWithoutBackup panos with no self-hosted image, $dimsMismatch labels " +
+        s"database doesn't record); skipped $panosWithoutBackup panos with no self-hosted image, $dimsMismatch labels " +
         s"on a dimension mismatch and $outOfFrame labels outside the image; $errors errors."
 
     /** The counts as stored against the run's `background_job_run` row, shared by the nightly and manual triggers. */
@@ -82,25 +77,17 @@ object CropService {
       "out_of_frame"         -> outOfFrame,
       "dims_mismatch"        -> dimsMismatch,
       "dims_unverified"      -> dimsUnverified,
-      "downscaled_written"   -> downscaledWritten,
-      "downscaled_deleted"   -> downscaledDeleted,
       "errors"               -> errors
     )
   }
-
-  /** JPEG quality for downscaled panos: they exist to be looked at in a pano viewer, not to be cut from. */
-  val DownscaledJpegQuality: Float = 0.85f
-
-  /** The most source rows one downscaling strip holds at once (a 16384-wide strip this tall is ~67 MB as RGB). */
-  val MaxStripRows: Int = 1024
 
   /**
    * Cuts a window out of the panorama behind `reader`, keeping only the window's own pixels and stitching the two
    * runs of a window that crosses the equirectangular seam.
    *
    * What a region read saves is memory, not decoding: ImageIO walks the compressed stream from the start every time
-   * ([[ImageUtils.readRegion]]), so a pano costs one pass per window plus one per downscaling strip. Bounding the
-   * peak raster is the whole point — cutting a second window is cheap in memory and is not free in CPU.
+   * ([[ImageUtils.readRegion]]), so a pano costs one pass per window. Bounding the peak raster is the whole point —
+   * cutting a second window is cheap in memory and is not free in CPU.
    *
    * @param reader    A reader from [[ImageUtils.withReader]].
    * @param box       The window, per [[CropGeometry.computeCropBox]].
@@ -125,111 +112,33 @@ object CropService {
    */
   def storedCrop(window: BufferedImage): BufferedImage =
     ImageUtils.scaleToMaxEdge(window, CropGeometry.MaxStoredWidth)
-
-  /**
-   * How many source rows each downscaling strip covers, chosen so that every strip boundary lands on a whole output
-   * row. With `unit = srcHeight / gcd(srcHeight, targetHeight)`, a strip of `k * unit` source rows maps to exactly
-   * `k * targetHeight / gcd` output rows, so each output row is averaged from exactly the source rows it covers
-   * whichever strip they arrive in, and there are no seams. The strip is the largest multiple of `unit` under
-   * `maxStripRows`, or `unit` itself when even one is taller (a pano whose heights share no factor is then read as a
-   * single strip).
-   *
-   * @param maxStripRows The most source rows a strip may hold; [[MaxStripRows]] in production, smaller in a test that
-   *                     wants several strips out of a small fixture.
-   * @return             Source rows per strip.
-   */
-  def stripRows(srcHeight: Int, targetHeight: Int, maxStripRows: Int = MaxStripRows): Int = {
-    val unit = srcHeight / gcd(srcHeight, targetHeight)
-    if (unit >= maxStripRows) unit else (maxStripRows / unit) * unit
-  }
-
-  /**
-   * The downscaled raster of a panorama: the same image, `targetWidth` wide.
-   *
-   * Reads the source in horizontal strips ([[stripRows]]) and area-averages each into its rows of the output, so
-   * memory is bounded by the output plus one strip rather than by the native pano. Area averaging accumulates in
-   * `float`, so a strip's rows can differ from a whole-image scale by a unit where that scale's sums have outgrown the
-   * mantissa; the strip is the more exact of the two, never the less.
-   *
-   * @param reader       A reader from [[ImageUtils.withReader]].
-   * @param srcWidth     The pano's width.
-   * @param srcHeight    The pano's height.
-   * @param targetWidth  Width to produce; the height follows from the pano's aspect.
-   * @param maxStripRows The most source rows a strip may hold; see [[stripRows]].
-   * @return             The downscaled image, opaque RGB.
-   */
-  def downscale(
-      reader: ImageReader,
-      srcWidth: Int,
-      srcHeight: Int,
-      targetWidth: Int,
-      maxStripRows: Int = MaxStripRows
-  ): BufferedImage = {
-    val targetHeight = math.max(1, Math.rint(srcHeight.toDouble * targetWidth / srcWidth).toInt)
-    val out          = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_RGB)
-    val g            = out.createGraphics()
-    try {
-      val rows = stripRows(srcHeight, targetHeight, maxStripRows)
-      var top  = 0
-      while (top < srcHeight) {
-        val height    = math.min(rows, srcHeight - top)
-        val strip     = ImageUtils.readRegion(reader, 0, top, srcWidth, height)
-        val dstTop    = (top.toLong * targetHeight / srcHeight).toInt
-        val dstBottom = ((top + height).toLong * targetHeight / srcHeight).toInt
-        val scaled    = strip.getScaledInstance(targetWidth, dstBottom - dstTop, Image.SCALE_AREA_AVERAGING)
-        val _         = g.drawImage(scaled, 0, dstTop, null)
-        top += height
-      }
-    } finally g.dispose()
-    out
-  }
-
-  /**
-   * Writes the downscaled copy of a panorama ([[downscale]]) as a JPEG.
-   *
-   * @param file Where to write it; parent directories are created.
-   */
-  def writeDownscaled(reader: ImageReader, srcWidth: Int, srcHeight: Int, targetWidth: Int, file: File): Unit = {
-    val out = downscale(reader, srcWidth, srcHeight, targetWidth)
-    val _   = file.getParentFile.mkdirs()
-    ImageUtils.writeJpeg(out, file, DownscaledJpegQuality)
-  }
-
-  private def gcd(a: Int, b: Int): Int = if (b == 0) a else gcd(b, a % b)
 }
 
 /**
- * Derived imagery cut from the self-hosted panorama store: per-label crop images and per-pano downscaled copies
- * (#4865).
+ * Per-label crop images cut from the self-hosted panorama store (#4865).
  *
- * Both are derived data, regenerated by a nightly reconciliation job rather than written inline with any submission:
+ * Derived data, regenerated by a nightly reconciliation job rather than written inline with any submission:
  * generation is idempotent and order-independent, so a label can't be stranded by arriving before its pano's pixels,
- * and a change to the crop geometry is a matter of deleting the store and letting the job rebuild it.
+ * and a change to the crop geometry is a matter of deleting the store and letting the job rebuild it. The job cuts
+ * label-sized windows only — never a whole-pano derivative, which a 1.5 GB web-app heap cannot afford (#5239); the
+ * downscaled display copy of a wide pano is the scraper's to write, beside the native file.
  */
 @ImplementedBy(classOf[CropServiceImpl])
 trait CropService {
 
   /**
-   * Cuts a crop for every live label that has none and whose pano has a self-hosted image, and a downscaled copy
-   * for every self-hosted pano wider than the viewer can render. At most one run at a time: a second call while one
-   * is in flight fails with [[IllegalStateException]].
+   * Cuts a crop for every live label that has none and whose pano has a self-hosted image. At most one run at a
+   * time: a second call while one is in flight fails with [[IllegalStateException]].
    */
   def generateMissingCrops(): Future[CropRunResult]
 
   /** Whether a run is in flight. */
   def isRunning: Boolean
-
-  /** Where a pano's downscaled copy is, or would be, stored. */
-  def downscaledImageFile(panoId: String): File
-
-  /** The pano's downscaled copy, when one has been written. */
-  def existingDownscaledImage(panoId: String): Option[File]
 }
 
 @Singleton
 class CropServiceImpl @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
-    config: Configuration,
     panoDataService: PanoDataService,
     labelTable: LabelTable,
     panoDataTable: PanoDataTable,
@@ -241,33 +150,21 @@ class CropServiceImpl @Inject() (
 
   private val logger = Logger(this.getClass)
 
-  private val downscaledMaxWidth: Int = config.get[Int]("pano.downscaled.max-width")
-  private val cropsDir: File          = new File(panoDataService.getCropDirectory)
-
-  // Beside the crops rather than in a store of its own: same nightly job, same disposability, so one derived-imagery
-  // directory covers both and a deployment has one fewer path to provision. Never inside pano.images.directory —
-  // localBackupImageFile scans that store by extension, so a downscaled copy beside a native file would be picked
-  // up as the native file, served as the archive and cut from at the wrong scale.
-  private val downscaledDir: File = new File(cropsDir, "pano-downscaled")
+  private val cropsDir: File = new File(panoDataService.getCropDirectory)
 
   private val running = new AtomicBoolean(false)
 
   /** Mutable tallies for one run; `result` freezes them. */
   private class Counts {
     var panosOpened, panosWithoutBackup, cropsWritten, shiftedVertically, outOfFrame, dimsMismatch, dimsUnverified,
-        downscaledWritten, downscaledDeleted, errors = 0
+        errors = 0
 
     def result: CropRunResult = CropRunResult(
-      panosOpened, panosWithoutBackup, cropsWritten, shiftedVertically, outOfFrame, dimsMismatch, dimsUnverified,
-      downscaledWritten, downscaledDeleted, errors
+      panosOpened, panosWithoutBackup, cropsWritten, shiftedVertically, outOfFrame, dimsMismatch, dimsUnverified, errors
     )
   }
 
   def isRunning: Boolean = running.get()
-
-  def downscaledImageFile(panoId: String): File = new File(new File(downscaledDir, panoId.take(2)), s"$panoId.jpg")
-
-  def existingDownscaledImage(panoId: String): Option[File] = Some(downscaledImageFile(panoId)).filter(_.isFile)
 
   def generateMissingCrops(): Future[CropRunResult] = {
     if (!running.compareAndSet(false, true)) {
@@ -282,11 +179,6 @@ class CropServiceImpl @Inject() (
             candidates <- cropCandidates(existing)
             backed     <- Future(cutCrops(candidates, counts))(cpuEc)
             _          <- markHasBackup(backed)
-            wide       <- db.run(panoDataTable.getWideBackupPanos(downscaledMaxWidth))
-            _          <- Future {
-              writeMissingDownscaled(wide, counts)
-              pruneStaleDownscaled(wide.toSet, counts)
-            }(cpuEc)
           } yield counts.result
         }
         .andThen { case _ => running.set(false) }
@@ -360,7 +252,6 @@ class CropServiceImpl @Inject() (
                 }
                 labels.foreach(label => cutCrop(reader, width, height, label, counts))
               }
-              writeDownscaledIfWide(panoId, reader, width, height, counts)
             }
           } catch {
             case NonFatal(e) =>
@@ -396,111 +287,6 @@ class CropServiceImpl @Inject() (
           logger.warn(s"Failed to crop label ${label.labelId} on pano ${label.panoId}: $e")
       }
     }
-  }
-
-  /**
-   * Whether the downscaled copy on disk is the one the current configuration asks for.
-   *
-   * Checked rather than assumed because a `pano.downscaled.max-width` change is otherwise invisible: the file exists, so
-   * nothing recuts it, and `/backupImage` goes on serving the old width in place of the native pano — the one thing
-   * lowering the cap was meant to stop. A file that won't open reads as out of date too, so a truncated copy heals
-   * on the next run.
-   */
-  private def downscaledIsCurrent(panoId: String): Boolean = {
-    val file = downscaledImageFile(panoId)
-    file.isFile && {
-      try ImageUtils.withReader(file)((_, width, _) => width == downscaledMaxWidth)
-      catch { case NonFatal(_) => false }
-    }
-  }
-
-  private def writeDownscaledIfWide(
-      panoId: String,
-      reader: ImageReader,
-      width: Int,
-      height: Int,
-      counts: Counts
-  ): Unit =
-    if (width > downscaledMaxWidth && !downscaledIsCurrent(panoId)) {
-      writeDownscaledCounting(panoId, reader, width, height, counts)
-    }
-
-  private def writeDownscaledCounting(
-      panoId: String,
-      reader: ImageReader,
-      width: Int,
-      height: Int,
-      counts: Counts
-  ): Unit =
-    try {
-      writeDownscaled(reader, width, height, downscaledMaxWidth, downscaledImageFile(panoId))
-      counts.downscaledWritten += 1
-    } catch {
-      case NonFatal(e) =>
-        counts.errors += 1
-        logger.warn(s"Failed to write the downscaled copy of pano $panoId: $e")
-    }
-
-  /**
-   * Downscaled copies for backed-up panos the crop pass had no reason to open (every label already cropped). The
-   * copy's own header is what decides whether a pano needs visiting, so the native file — the expensive one to open —
-   * is only touched for a pano whose copy is missing or at the wrong width.
-   */
-  private def writeMissingDownscaled(panoIds: Seq[String], counts: Counts): Unit = {
-    panoIds.filterNot(downscaledIsCurrent).foreach { panoId =>
-      panoDataService.localBackupImageFile(panoId).foreach { file =>
-        try {
-          ImageUtils.withReader(file) { (reader, width, height) =>
-            counts.panosOpened += 1
-            if (width > downscaledMaxWidth) writeDownscaledCounting(panoId, reader, width, height, counts)
-          }
-        } catch {
-          case NonFatal(e) =>
-            counts.errors += 1
-            logger.warn(s"Pano $panoId: cannot read ${file.getPath} to downscale it: $e")
-        }
-      }
-    }
-  }
-
-  private val DownscaledFileName = """(.+)\.jpg""".r
-
-  /**
-   * Deletes the downscaled copies of panos that no longer need one, so that a raised `pano.downscaled.max-width`
-   * reaches the store the way a lowered one does through [[downscaledIsCurrent]].
-   *
-   * A pano that the cap now lets through natively drops out of `getWideBackupPanos`, so nothing above revisits it,
-   * yet `/backupImage` would go on preferring its old, smaller copy to the native file. The copies on disk are the
-   * candidates; those the database still calls wide are kept unread, and the rest are judged by the native file's
-   * own header — the frame the writer measured — rather than by `pano_data`, so a row whose recorded width disagrees
-   * with the file (the crop pass's dimension mismatch) doesn't have its copy deleted tonight and rewritten tomorrow.
-   * A copy whose native file is gone is deleted too: the route only serves a copy beside a native file.
-   *
-   * @param wide The panos `getWideBackupPanos` returned for the current cap.
-   */
-  private def pruneStaleDownscaled(wide: Set[String], counts: Counts): Unit = {
-    existingDownscaledIds().filterNot(wide).foreach { panoId =>
-      val stillNeeded = panoDataService.localBackupImageFile(panoId).exists { file =>
-        try ImageUtils.withReader(file)((_, width, _) => width > downscaledMaxWidth)
-        catch { case NonFatal(_) => true } // An unreadable native file is not evidence; leave the copy alone.
-      }
-      if (!stillNeeded && downscaledImageFile(panoId).delete()) counts.downscaledDeleted += 1
-    }
-  }
-
-  /** Every pano with a downscaled copy on disk, by listing the store once. */
-  private def existingDownscaledIds(): Seq[String] = {
-    if (!downscaledDir.isDirectory) Seq.empty
-    else
-      Using.resource(Files.walk(downscaledDir.toPath, 2)) { paths =>
-        paths
-          .iterator()
-          .asScala
-          .filter(Files.isRegularFile(_))
-          .map(_.getFileName.toString)
-          .collect { case DownscaledFileName(panoId) => panoId }
-          .toSeq
-      }
   }
 
   /**

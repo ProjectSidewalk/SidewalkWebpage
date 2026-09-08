@@ -39,7 +39,7 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPe
   private val prefix    = "CropServiceSpec-4865-"
   private val mediaRoot = Files.createTempDirectory("crop-service-spec").toFile
 
-  /** The pano viewer's width cap, set below the synthetic pano's 1024 so the run has a pano to downscale. */
+  /** The pano viewer's width cap, set below the synthetic pano's 1024 so a sidecar at the cap is a real reduction. */
   private val DownscaledMaxWidth = 512
 
   override def fakeApplication(): Application =
@@ -68,7 +68,7 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPe
 
   private val syntheticPano = new File("test/resources/crops/synthetic-pano.png")
 
-  /** The synthetic pano's size, and the size the narrow variant is stored at — under the cap, so never downscaled. */
+  /** The synthetic pano's size, and the size the narrow variant is stored at — under the cap, so served as it is. */
   private val PanoW   = 1024
   private val PanoH   = 512
   private val NarrowW = 256
@@ -88,9 +88,6 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPe
   private val preexistingPanoId = s"${prefix}preexisting"
   private val narrowPanoId      = s"${prefix}narrow"
 
-  /** A downscaled copy with no pano behind it at all: neither a row nor a native file. */
-  private val orphanPanoId = s"${prefix}orphan"
-
   /** What `seedLabel` wrote, so afterAll can delete exactly that. */
   private case class Seeded(
       labelId: Int,
@@ -106,16 +103,18 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPe
   // The run under test happens once, in beforeAll, and every case reads its result — rather than the first case
   // running it and the rest asserting on what it left, which passes vacuously for any case run on its own.
   private var beforeRun: Map[String, (Boolean, Option[Boolean])] = Map.empty
-  private var firstRun: CropRunResult                            = CropRunResult(0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+  private var firstRun: CropRunResult                            = CropRunResult(0, 0, 0, 0, 0, 0, 0, 0)
 
   /** Where `localBackupImageFile` resolves a pano for this city. */
-  private def storeFile(panoId: String): File = {
+  private def storeFile(panoId: String): File = storeFile(panoId, s"$panoId.png")
+
+  private def storeFile(panoId: String, name: String): File = {
     val base = MediaDirs.cityDir(
       app.injector.instanceOf[Configuration],
       app.injector.instanceOf[Environment],
       "pano.images.directory"
     )
-    val file = new File(new File(base, panoId.take(2)), s"$panoId.png")
+    val file = new File(new File(base, panoId.take(2)), name)
     val _    = file.getParentFile.mkdirs()
     file
   }
@@ -138,12 +137,13 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPe
     file
   }
 
-  /** A downscaled copy of the size the cap asks for, as the job would have left it. */
-  private def plantDownscaled(panoId: String): File = {
-    val file = cropService.downscaledImageFile(panoId)
-    val _    = file.getParentFile.mkdirs()
-    val img  = new BufferedImage(DownscaledMaxWidth, DownscaledMaxWidth / 2, BufferedImage.TYPE_INT_RGB)
-    ImageUtils.writeJpeg(img, file, CropService.DownscaledJpegQuality)
+  /**
+   * A downscaled sidecar beside the pano, as the scraper leaves it: named for the cap, `width` pixels wide — the two
+   * agree unless a case wants a copy the header check must refuse.
+   */
+  private def plantSidecar(panoId: String, width: Int = DownscaledMaxWidth): File = {
+    val file = storeFile(panoId, s"$panoId.w$DownscaledMaxWidth.jpg")
+    ImageUtils.writeJpeg(new BufferedImage(width, width / 2, BufferedImage.TYPE_INT_RGB), file, 0.85f)
     file
   }
 
@@ -243,12 +243,10 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPe
       preexistingPanoId -> seedLabel(preexistingPanoId, Some((PanoW, PanoH)), panoX = 512, panoY = 300),
       narrowPanoId      -> seedLabel(narrowPanoId, Some((NarrowW, NarrowH)), panoX = 128, panoY = 70)
     )
-    // The browser got there first for this label; and two downscaled copies nothing asks for any more.
+    // The browser got there first for this label.
     val preexisting = cropFile(preexistingPanoId)
     val _           = preexisting.getParentFile.mkdirs()
     val _           = Files.write(preexisting.toPath, preexistingCropBytes)
-    val _           = plantDownscaled(narrowPanoId)
-    val _           = plantDownscaled(orphanPanoId)
 
     beforeRun = seeded.keys.map(panoId => panoId -> (cropFile(panoId).exists(), hasBackup(panoId))).toMap
     firstRun = generate()
@@ -301,6 +299,8 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPe
       val image    = ImageIO.read(crop)
       (image.getWidth, image.getHeight) mustBe (expected.width, expected.height)
       hasBackup(backedPanoId) mustBe Some(true)
+      // A pano under the viewer's cap is cut from like any other; the cap concerns display, not cropping.
+      cropFile(narrowPanoId).exists() mustBe true
     }
 
     "count the run's shifted crops off the geometry's own verdict" in {
@@ -322,9 +322,8 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPe
       // label isn't in, so the label is refused up front rather than mis-cropped.
       firstRun.outOfFrame mustBe 1
       cropFile(outOfFramePanoId).exists() mustBe false
-      // Its pano was still opened, so the run learnt it is backed up and downscaled it like any other.
+      // Its pano was still opened, so the run learnt it is backed up like any other.
       hasBackup(outOfFramePanoId) mustBe Some(true)
-      cropService.downscaledImageFile(outOfFramePanoId).exists() mustBe true
     }
 
     "file each crop under its own label type" in {
@@ -366,39 +365,15 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPe
       cropFile(mismatchedPanoId).exists() mustBe false
     }
 
-    "downscale every stored pano wider than the viewer's cap, and none that isn't" in {
-      // Every opened 1024-wide pano is over the 512 cap, whether or not its label was cut; the 256-wide one is not.
-      firstRun.downscaledWritten mustBe 7
-      val downscaled = cropService.downscaledImageFile(backedPanoId)
-      downscaled.exists() mustBe true
-      val image = ImageIO.read(downscaled)
-      (image.getWidth, image.getHeight) mustBe (DownscaledMaxWidth, DownscaledMaxWidth / 2)
-      cropService.downscaledImageFile(mismatchedPanoId).exists() mustBe true
-      cropFile(narrowPanoId).exists() mustBe true
-      cropService.downscaledImageFile(narrowPanoId).exists() mustBe false
-    }
-
-    "delete the downscaled copies of panos that no longer need one" in {
-      // Standing in for a raised cap: the narrow pano's copy was planted before the run, as if written under a lower
-      // one, and would otherwise be served in place of the native file forever. The orphan has no pano behind it at
-      // all. Neither pano is one the run had reason to revisit for a crop.
-      firstRun.downscaledDeleted mustBe 2
-      cropService.downscaledImageFile(narrowPanoId).exists() mustBe false
-      cropService.downscaledImageFile(orphanPanoId).exists() mustBe false
-    }
-
     "do nothing on a second run" in {
-      val crop       = cropFile(backedPanoId)
-      val downscaled = cropService.downscaledImageFile(backedPanoId)
-      val before     = (crop.lastModified(), crop.length(), downscaled.lastModified(), downscaled.length())
+      val crop   = cropFile(backedPanoId)
+      val before = (crop.lastModified(), crop.length())
 
       val result = generate()
 
       result.cropsWritten mustBe 0
-      result.downscaledWritten mustBe 0
-      result.downscaledDeleted mustBe 0
       result.errors mustBe 0
-      (crop.lastModified(), crop.length(), downscaled.lastModified(), downscaled.length()) mustBe before
+      (crop.lastModified(), crop.length()) mustBe before
     }
 
     "run one at a time, refusing a second call while the first is in flight" in {
@@ -413,18 +388,6 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPe
         val _ = Await.result(first, 5.minutes)
       }
       cropService.isRunning mustBe false
-    }
-
-    "recut a downscaled copy left at a width the configuration no longer asks for" in {
-      // Standing in for a `pano.downscaled.max-width` change, which the previous case shows a presence test can't see.
-      val downscaled = cropService.downscaledImageFile(backedPanoId)
-      val stale      = new BufferedImage(DownscaledMaxWidth / 2, DownscaledMaxWidth / 4, BufferedImage.TYPE_INT_RGB)
-      ImageUtils.writeJpeg(stale, downscaled, CropService.DownscaledJpegQuality)
-
-      val result = generate()
-
-      result.downscaledWritten mustBe 1
-      ImageIO.read(downscaled).getWidth mustBe DownscaledMaxWidth
     }
   }
 
@@ -448,26 +411,47 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPe
   }
 
   "GET /backupImage/:panoId" should {
-    "serve the downscaled copy when there is one, and the native file otherwise" in {
-      val url        = signingService.signedUrl(s"/backupImage/$backedPanoId")
-      val downscaled = cropService.downscaledImageFile(backedPanoId)
-      downscaled.exists() mustBe true
-
-      val withDownscaled = route(app, FakeRequest(GET, url)).get
-      status(withDownscaled) mustBe OK
-      contentType(withDownscaled) mustBe Some("image/jpeg")
-      contentAsBytes(withDownscaled).length.toLong mustBe downscaled.length()
-
-      // Moved aside rather than deleted, and put back, so this case leaves the store as it found it.
-      val moved = new File(s"${downscaled.getPath}.moved")
-      val _     = Files.move(downscaled.toPath, moved.toPath)
+    "serve the scraper's downscaled sidecar when there is one, and the native file otherwise" in {
+      val url     = signingService.signedUrl(s"/backupImage/$backedPanoId")
+      val sidecar = plantSidecar(backedPanoId)
       try {
+        val withSidecar = route(app, FakeRequest(GET, url)).get
+        status(withSidecar) mustBe OK
+        contentType(withSidecar) mustBe Some("image/jpeg")
+        contentAsBytes(withSidecar).length.toLong mustBe sidecar.length()
+      } finally {
+        val _ = sidecar.delete()
+      }
+
+      val native = route(app, FakeRequest(GET, url)).get
+      status(native) mustBe OK
+      contentType(native) mustBe Some("image/png")
+      contentAsBytes(native).length.toLong mustBe syntheticPano.length()
+    }
+
+    "pass over a sidecar that is not at the cap, rather than serve it" in {
+      // The name promises the cap; the header is what proves it. A truncated or mis-sized copy would leave the
+      // viewer with a texture it can't map, so the native file is the safer answer.
+      val url     = signingService.signedUrl(s"/backupImage/$backedPanoId")
+      val sidecar = plantSidecar(backedPanoId, width = DownscaledMaxWidth / 2)
+      try {
+        panoDataService.localDownscaledImageFile(backedPanoId) mustBe None
         val native = route(app, FakeRequest(GET, url)).get
         status(native) mustBe OK
         contentType(native) mustBe Some("image/png")
-        contentAsBytes(native).length.toLong mustBe syntheticPano.length()
       } finally {
-        val _ = Files.move(moved.toPath, downscaled.toPath)
+        val _ = sidecar.delete()
+      }
+    }
+
+    "leave the crop job's view of the store unchanged by a sidecar" in {
+      // localBackupImageFile finds a pano by exact name, so the sidecar beside it is never mistaken for the native
+      // file — the property that lets the copy live in the pano store at all.
+      val sidecar = plantSidecar(backedPanoId)
+      try {
+        panoDataService.localBackupImageFile(backedPanoId).map(_.getName) mustBe Some(s"$backedPanoId.png")
+      } finally {
+        val _ = sidecar.delete()
       }
     }
   }

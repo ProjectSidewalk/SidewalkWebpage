@@ -6,7 +6,7 @@ import models.label.{LabelPointTable, LabelTypeEnum, POV}
 import models.pano.PanoSource.PanoSource
 import models.pano._
 import models.street.StreetEdge
-import models.utils.{CommonUtils, MyPostgresProfile}
+import models.utils.{CommonUtils, ImageUtils, MyPostgresProfile}
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.{Sink, Source}
 import org.locationtech.jts.geom.Point
@@ -381,6 +381,7 @@ trait PanoDataService {
   def cropExists(labelId: Int, labelType: LabelTypeEnum.Base): Boolean
   def cropUrl(labelId: Int, labelType: LabelTypeEnum.Base): Option[String]
   def localBackupImageFile(panoId: String): Option[File]
+  def localDownscaledImageFile(panoId: String): Option[File]
   def getLocalBackupImage(panoId: String): Future[Option[PanoData]]
 }
 
@@ -416,6 +417,8 @@ class PanoDataServiceImpl @Inject() (
   // Both resolved through MediaDirs, the same resolver PersistentMediaDirCheck models the write paths with (#4925).
   private val cropsDir: File     = MediaDirs.cityDir(config, environment, "cropped.image.directory")
   private val panosBaseDir: File = MediaDirs.cityDir(config, environment, "pano.images.directory")
+
+  private val downscaledMaxWidth: Int = config.get[Int]("pano.downscaled.max-width")
 
   def getInfra3dToken(cityId: String): Future[String] = {
     // Token expires after 60 minutes, so we don't need to get a new token every time.
@@ -827,6 +830,21 @@ class PanoDataServiceImpl @Inject() (
     Seq("jpg", "jpeg", "png").iterator
       .map(ext => new File(dir, s"$panoId.$ext"))
       .find(_.exists())
+  }
+
+  /**
+   * The display copy of a pano too wide for a WebGL texture, when the scraper has written one: the sidecar
+   * `<panoId>.w<pano.downscaled.max-width>.jpg` beside the native file (#5239). The app never cuts this copy itself —
+   * a whole-pano derivative needs more heap than a city stage has. The width is in the name, so a cap change looks
+   * for a different sidecar; the header is checked all the same, so a truncated copy is passed over for the native
+   * file rather than served.
+   */
+  def localDownscaledImageFile(panoId: String): Option[File] = {
+    val file = new File(new File(panosBaseDir, panoId.take(2)), s"$panoId.w$downscaledMaxWidth.jpg")
+    Option(file).filter(_.isFile).filter { f =>
+      try ImageUtils.withReader(f)((_, width, _) => width == downscaledMaxWidth)
+      catch { case NonFatal(_) => false }
+    }
   }
 
   /**
