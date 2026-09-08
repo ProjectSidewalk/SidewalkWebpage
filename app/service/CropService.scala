@@ -132,7 +132,13 @@ object CropService {
   val ExploreFrameCropWidth: Int  = 1440
   val ExploreFrameCropHeight: Int = 960
 
-  /** An Explore-frame crop is uploaded in the labeler's session, so a crop written later than this was cut by the job. */
+  /**
+   * An Explore-frame crop is uploaded in the labeler's session, so a crop written later than this was cut by the job.
+   *
+   * Read off mtime, a property of the filesystem rather than of the crop: a store restored from backup, `cp`'d, or
+   * `rsync`'d without `-t`/`-a` carries the copy's time and every snapshot then looks job-cut, so moving a store is
+   * a decision about `label_crop` too (`docs/deployment-and-stages.md`).
+   */
   val ExploreUploadWindow: Duration = Duration.ofDays(1)
 
   /**
@@ -462,6 +468,11 @@ class CropServiceImpl @Inject() (
    * never had a browser to upload one. A pano whose frame is recorded nowhere — not in `pano_data`, not in the store —
    * leaves the window uncomputable, so the crop is counted unresolved and left for a run that can read it.
    *
+   * No branch calls a crop a snapshot on size alone: the window is recomputed from `pano_data` and the store *as they
+   * are now*, so a re-scrape, a replaced file or a later rule can make a real job window disagree on size. The two
+   * errors are not symmetric — an unresolved crop costs a warning a night, while a wrongly resolved one writes the
+   * canvas fraction this table exists to end and then stops the pass ever looking again.
+   *
    * @return The row to write, or `None` when the crop could not be classified.
    */
   private def classifyProvenance(c: ProvenanceCandidate, counts: Counts): Option[LabelCrop] = {
@@ -473,7 +484,9 @@ class CropServiceImpl @Inject() (
         case (Some(w), Some(h)) => Some((w, h))
         case _                  => storedPanoDims(c.panoId)
       }
-      val window              = panoDims.map { case (pw, ph) => windowFor(c.panoX, c.panoY, pw, ph) }
+      // `cutCrop` refuses a y outside the pano, so the job cannot have produced this file and no window registers it.
+      val frame               = panoDims.filter { case (_, ph) => c.panoY >= 0 && c.panoY < ph }
+      val window              = frame.map { case (pw, ph) => windowFor(c.panoX, c.panoY, pw, ph) }
       val windowSizeMatch     = window.exists { case (box, _) => sizesAgree(storedSize(box), (fileW, fileH)) }
       val writtenAfterSession =
         Duration
@@ -485,12 +498,18 @@ class CropServiceImpl @Inject() (
         val m = exploreFrameMarker(c.canvasX, c.canvasY)
         Some(LabelCrop(c.labelId, CropSource.ExploreFrame, m.x, m.y, fileW, fileH, None, OffsetDateTime.now))
       }
-      def panoWindow: Option[LabelCrop] = window.map { case (_, (fx, fy)) =>
-        counts.provenanceWindow += 1
-        shareImageCache.invalidate(c.labelId) // Composited with the marker at the canvas fraction.
-        LabelCrop(
-          c.labelId, CropSource.PanoWindow, fx, fy, fileW, fileH, Some(CropSizingRule.Version), OffsetDateTime.now
-        )
+      def panoWindow: Option[LabelCrop] = window.flatMap { case (_, (fx, fy)) =>
+        // A fraction outside the image fails `label_crop`'s CHECK, and one rejected row fails its whole batch.
+        if (!isFraction(fx) || !isFraction(fy)) unresolved(f"its window does not contain it ($fx%.3f, $fy%.3f)")
+        else {
+          counts.provenanceWindow += 1
+          shareImageCache.invalidate(c.labelId) // Composited with the marker at the canvas fraction.
+          Some(
+            LabelCrop(
+              c.labelId, CropSource.PanoWindow, fx, fy, fileW, fileH, Some(CropSizingRule.Version), OffsetDateTime.now
+            )
+          )
+        }
       }
       def unresolved(reason: String): Option[LabelCrop] = {
         counts.provenanceUnresolved += 1
@@ -498,14 +517,18 @@ class CropServiceImpl @Inject() (
         None
       }
 
+      val couldBeSnapshot = isExploreSize && !c.aiGenerated && !writtenAfterSession
       if (window.isEmpty) {
-        // With no window to compare against, only a snapshot-sized file from a person's session is safe to call.
-        if (isExploreSize && !c.aiGenerated && !writtenAfterSession) explore
+        if (couldBeSnapshot) explore
+        else if (frame.isEmpty && panoDims.nonEmpty)
+          unresolved(s"pano_y ${c.panoY} is outside the pano, so neither writer's window can be recomputed")
         else unresolved("no pano frame to recompute the window from")
       } else if (windowSizeMatch && !isExploreSize) panoWindow
-      else if (!windowSizeMatch && isExploreSize) explore
-      else if (windowSizeMatch) { // Both writers would have produced this size.
-        if (c.aiGenerated || writtenAfterSession) panoWindow else explore
+      else if (!windowSizeMatch && isExploreSize) {
+        if (couldBeSnapshot) explore
+        else unresolved("snapshot-sized, but the job's window disagrees and nothing says a browser wrote it")
+      } else if (windowSizeMatch) { // Both writers would have produced this size; the same three signals decide.
+        if (couldBeSnapshot) explore else panoWindow
       } else unresolved("neither writer produces this size")
     } catch {
       case NonFatal(e) =>
@@ -514,6 +537,9 @@ class CropServiceImpl @Inject() (
         None
     }
   }
+
+  /** What `label_crop`'s marker CHECK constraints accept. */
+  private def isFraction(f: Double): Boolean = f >= 0.0 && f <= 1.0
 
   /** The stored file's height is rounded by the resampler, so a unit of slack; the width cap is exact. */
   private def sizesAgree(expected: (Int, Int), actual: (Int, Int)): Boolean =

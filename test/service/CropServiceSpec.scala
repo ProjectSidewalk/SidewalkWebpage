@@ -107,6 +107,11 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with OptionValues 
   private val ambiguousAiPanoId  = s"${prefix}ambiguous-ai"
   private val unresolvedPanoId   = s"${prefix}unresolved"
 
+  // Two crops the pass must refuse rather than resolve: one the size alone would call a snapshot, on a label no
+  // browser ever had; and one whose pano_y is off the image, which no window can register a marker in.
+  private val snapshotAiPanoId   = s"${prefix}snapshot-ai"
+  private val offFrameCropPanoId = s"${prefix}offframe-crop"
+
   /** A pano wide enough that the 90-degree cap on a near-field window still exceeds the 1440-px storage cap. */
   private val WideW = 8192
   private val WideH = 4096
@@ -309,7 +314,17 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with OptionValues 
         panoY = WideY,
         ai = true
       ),
-      unresolvedPanoId -> seedLabel(unresolvedPanoId, None, panoX = 512, panoY = 300, ai = true)
+      unresolvedPanoId -> seedLabel(unresolvedPanoId, None, panoX = 512, panoY = 300, ai = true),
+      // The size says snapshot and the authorship says it cannot be one, so nothing here may decide.
+      snapshotAiPanoId -> seedLabel(snapshotAiPanoId, Some((PanoW, PanoH)), panoX = 512, panoY = 300, ai = true),
+      // Size and authorship both point at a pano window, but pano_y is off the image, so no window contains it.
+      offFrameCropPanoId -> seedLabel(
+        offFrameCropPanoId,
+        Some((WideW, WideH)),
+        panoX = WideW / 2,
+        panoY = WideH + 100,
+        ai = true
+      )
     )
     // The browser got there first for this label; and two downscaled copies nothing asks for any more.
     val preexisting = cropFile(preexistingPanoId)
@@ -322,7 +337,8 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with OptionValues 
     val windowBox = boxFor(512, 300, PanoW, PanoH)
     val _         = plantCrop(windowPanoId, windowBox.width, windowBox.height)
     val _         = plantSharePreview(windowPanoId)
-    Seq(ambiguousOldPanoId, ambiguousNewPanoId, ambiguousAiPanoId, unresolvedPanoId).foreach { panoId =>
+    Seq(ambiguousOldPanoId, ambiguousNewPanoId, ambiguousAiPanoId, unresolvedPanoId, snapshotAiPanoId,
+      offFrameCropPanoId).foreach { panoId =>
       val _ = plantCrop(panoId, CropService.ExploreFrameCropWidth, CropService.ExploreFrameCropHeight)
     }
 
@@ -532,9 +548,28 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with OptionValues 
       // cannot be recomputed; and the tiny pre-existing file is a size neither writer produces.
       labelCrop(unresolvedPanoId) mustBe None
       labelCrop(preexistingPanoId) mustBe None
-      firstRun.provenanceUnresolved mustBe 2
       firstRun.provenanceExplore mustBe 2
       firstRun.provenanceWindow mustBe 3
+    }
+
+    "refuse a snapshot-sized crop whose other signals disagree, rather than write the canvas fraction" in {
+      // The snapshot case with an AI author. The window is recomputed from pano_data as it stands now, so a size
+      // disagreement is not proof of a snapshot -- and the row a wrong guess writes stops the pass looking again.
+      labelCrop(snapshotPanoId).value.source mustBe CropSource.ExploreFrame // The human, in-session control.
+      labelCrop(snapshotAiPanoId) mustBe None
+    }
+
+    "refuse a crop whose pano_y is off the image, which no window can register a marker in" in {
+      // The window `computeCropBox` clamps out does not contain a label below the pano, so its position falls
+      // outside the image -- which label_crop's CHECK rejects, failing the whole batch that row rides in.
+      labelCrop(offFrameCropPanoId) mustBe None
+      val box     = boxFor(WideW / 2, WideH + 100, WideW, WideH)
+      val (_, fy) = CropGeometry.labelFractionInCrop((WideW / 2).toDouble, (WideH + 100).toDouble, box, WideW)
+      fy must be > 1.0 // What would have been written, and rejected, without the guard.
+    }
+
+    "count every crop it refused" in {
+      firstRun.provenanceUnresolved mustBe 4
     }
 
     "do nothing on a second run" in {
@@ -551,7 +586,7 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with OptionValues 
       result.provenanceExplore mustBe 0
       result.provenanceWindow mustBe 0
       // Still unresolved, still counted: the run keeps saying so until something can classify them.
-      result.provenanceUnresolved mustBe 2
+      result.provenanceUnresolved mustBe 4
       result.errors mustBe 0
       (crop.lastModified(), crop.length(), downscaled.lastModified(), downscaled.length()) mustBe before
       labelCrop(backedPanoId) mustBe rowBefore

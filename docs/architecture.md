@@ -93,13 +93,15 @@ unavailable; they are written by the browser's `POST /saveImage` canvas snapshot
 every label that has none (AI submissions, failed uploads, any past city). The geometry — `CropSizingRule` (the
 swappable, versioned sizing rule) and `CropGeometry` (equirectangular mechanics) — is a port of panorama-tools'
 `CropRunner.py`, pinned to it by golden fixtures under `test/resources/crops/`. The two writers put the label in
-different places — the snapshot at its canvas fraction, the job's window at wherever `CropGeometry.labelPositionInCrop`
+different places — the snapshot at its canvas fraction, the job's window wherever `CropGeometry.labelPositionInCrop`
 says (the centre, unless the window shifted off a pole) — and the files look alike, so **every crop's provenance is a
 `label_crop` row** (#2660): which writer, and the label's position as fractions of the image. Each writer records its
 row as it writes, the job's reconcile pass classifies any crop found without one (by size, then by the file's age
-against the label's), and the three surfaces that draw a marker on a crop — the Gallery card, the popup's crop
-fallback, the share preview — take it from the row (`crop_marker` in the label payloads), falling back to the canvas
-fraction only while a crop is unrecorded. A new crop writer must write that row. The downscaled copies exist because
+against the label's, and never on a signal that disagrees with the others), and the four surfaces that draw a marker
+on a crop — the Gallery card, the landing validation grid, the popup's crop fallback, the share preview — take it
+from the row (`crop_marker` in the label payloads), falling back to the canvas fraction only while a crop is
+unrecorded or the image on screen is the Street View still. A new crop writer must write that row, and a new surface
+that marks a crop must read it. The downscaled copies exist because
 Pannellum renders a pano as one WebGL texture and 8192 px is a common cap; `/backupImage/:panoId` serves one in place
 of the native file when it exists, and the viewer can't tell, because it places markers by angle. The job also prunes
 a copy the current cap no longer calls for, so raising `pano.downscaled.max-width` reaches the store as surely as

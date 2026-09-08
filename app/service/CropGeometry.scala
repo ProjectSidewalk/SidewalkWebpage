@@ -84,6 +84,10 @@ object CropSizingRule {
    * height-only conversion look right (panorama-tools #106). Not capped to the pano here: that is a property of the
    * image, and [[CropGeometry.computeCropBox]] owns it.
    *
+   * Taking `panoWidth` deliberately did not bump [[Version]]: the two conversions agree exactly at
+   * `panoWidth == 2 * panoHeight`, and every pano the project stores is 2:1, so no crop already cut changes size.
+   * Bump it the moment a provider with another aspect arrives — that is when they start to disagree.
+   *
    * @param panoY      The label's y on the pano, in native pixels.
    * @param panoWidth  The pano's width in pixels.
    * @param panoHeight The pano's height in pixels.
