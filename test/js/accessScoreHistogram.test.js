@@ -55,6 +55,13 @@ describe('AccessScoreHistogram', () => {
         expect(fills[19].style.backgroundColor).toBe(rgb(window.ScoreRamp.at(0.975)));
         // Only the first bin is in the tab order; the rest are reached with the arrow keys.
         expect(buttons().map((b) => b.getAttribute('tabindex'))).toEqual(['0', ...Array(N - 1).fill('-1')]);
+        // The axis doubles as the legend: which end is which, and the swatch for what carries no score.
+        const poles = document.querySelector('.acs-histogram__poles');
+        expect(poles.textContent).toContain('legend-low');
+        expect(poles.textContent).toContain('legend-high');
+        expect(poles.querySelector('.acs-histogram__swatch--unaudited')).not.toBeNull();
+        draw({shapeKey: 'regions', unit: 'regions'});
+        expect(document.querySelector('.acs-histogram__poles .acs-histogram__swatch--hatch')).not.toBeNull();
     });
 
     test('places the city needle and the selection caret, and moves the hover caret on its own', () => {
@@ -134,6 +141,13 @@ describe('AccessScoreHistogram', () => {
         expect(onBrush).toHaveBeenLastCalledWith({from: 1, to: 4, final: false});
         pointer('pointerup', buttons()[3], 15);
         expect(onBrush).toHaveBeenLastCalledWith({from: 1, to: 4, final: true});
+
+        // Shift+click grows the brush to the clicked bin, like Shift+Arrow.
+        draw({brush: {from: 1, to: 4}});
+        onBrush.mockClear();
+        pointer('pointerdown', buttons()[8], 85);
+        buttons()[8].dispatchEvent(new MouseEvent('pointerup', {bubbles: true, clientX: 85, button: 0, shiftKey: true}));
+        expect(onBrush).toHaveBeenLastCalledWith({from: 1, to: 9, final: true});
 
         // Resting on a bin reports a hover; leaving the bars ends it.
         onHover.mockClear();

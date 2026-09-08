@@ -151,6 +151,15 @@
   --color-score-ramp-4: var(--color-mint-500);
   --color-score-ramp-5: var(--color-jade-600);
 
+  /* The same ramp re-stepped for the AccessScore tool's dark basemap (Mapbox dark-v11, land #292929): saturated
+     poles, pale steps, and a mid grey that still clears the surface. Adjacent steps pass the CVD and normal-vision
+     separation checks and every step is >= 3:1 on the surface; the light ramp's orange-600 pole is 2.3:1 there. */
+  --color-score-ramp-dark-1: var(--color-orange-500);
+  --color-score-ramp-dark-2: var(--color-orange-300);
+  --color-score-ramp-dark-3: var(--color-neutral-600);
+  --color-score-ramp-dark-4: var(--color-mint-400);
+  --color-score-ramp-dark-5: var(--color-jade-600);
+
   /* Font stacks. Mulish handles ~all type (body, UI, headings H3 and below); Raleway is reserved for top-level H1/H2
        and the Small-Accent style. Mulish doesn't ship CJK glyphs, so its stack ends with Traditional-Chinese system
        fonts (PingFang TC on macOS/iOS, Microsoft JhengHei on Windows; Linux/Android fall through via sans-serif). The

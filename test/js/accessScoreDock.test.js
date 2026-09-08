@@ -1,9 +1,9 @@
 /**
  * Tests for AccessScoreDock (public/js/access-score/src/AccessScoreDock.js, #5217): the coordinator's composition
- * rules. Scope defines the population; a brush filters the cluster view and dims the map to scope ∩ brush; a hover
- * in a view outranks the brush on the map and never drops it; every change lands in one animation frame; a weight
- * slider mid-drag redraws the views but leaves the map's dim state alone; and a Selected scope falls back to City
- * when its selection goes.
+ * rules. Scope defines the population; a brush filters the drivers view and dims the map to scope ∩ brush; a hover
+ * in a view outranks the brush on the map and never drops it; a selection fades everything but its neighborhood
+ * once no brush is in force; every change lands in one animation frame; and a weight slider mid-drag redraws the
+ * views but leaves the map's dim state alone.
  */
 
 const {FIXTURE, stubI18next, stubUtilMisc, loadSources, feature, DOCK_HTML} = require('./support/accessScoreDockHarness');
@@ -68,7 +68,7 @@ describe('AccessScoreDock', () => {
 
     test('draws the three views and the KPIs for the whole city on its first frame', () => {
         expect(document.querySelectorAll('.acs-histogram__bin')).toHaveLength(20);
-        expect(document.querySelectorAll('.acs-clusters__row')).toHaveLength(FIXTURE.config.scored_types.length);
+        expect(document.querySelectorAll('.acs-drivers__row')).toHaveLength(FIXTURE.config.scored_types.length);
         expect(document.querySelectorAll('.acs-rank__row')).toHaveLength(2);
         expect(document.getElementById('acs-dock-scope-caption').textContent)
             .toBe(`scope-caption-city · scope-streets count=${model.streetCount}`);
@@ -85,13 +85,22 @@ describe('AccessScoreDock', () => {
         expect(mapView.setBrush).toHaveBeenCalledTimes(1);
     });
 
-    test('a brush filters the cluster view to scope ∩ brush and dims the map outside it', () => {
+    test('a brush filters the drivers view to scope ∩ brush and dims the map outside it', () => {
         dock.setBrush({from: 10, to: 20});
         flush();
         expect(lastBrush()).toEqual(idsInBins(10, 20));
         const counted = model.clusterBreakdown({streetIds: idsInBins(10, 20)});
-        const row = document.querySelector('.acs-clusters__row[data-type="CurbRamp"] .acs-clusters__count');
-        expect(row.textContent).toBe(String(counted.types.find((t) => t.type === 'CurbRamp').total));
+        const {means} = model.contributions({streetIds: idsInBins(10, 20)});
+        const row = document.querySelector('.acs-drivers__row[data-type="CurbRamp"]');
+        expect(row.querySelector('.acs-drivers__count').textContent)
+            .toBe(String(counted.types.find((t) => t.type === 'CurbRamp').total));
+        expect(row.querySelector('.acs-drivers__value').textContent).toBe(`+${means.CurbRamp.toFixed(2)}`);
+        expect(row.querySelector('.acs-drivers__bar').classList.contains('acs-drivers__bar--help')).toBe(true);
+        // Sorted by how much each type moves the score, largest first.
+        const shown = Array.from(document.querySelectorAll('.acs-drivers__row')).map((r) => r.dataset.type);
+        const expected = [...counted.types].sort((a, b) => Math.abs(means[b.type]) - Math.abs(means[a.type]))
+            .map((t) => t.type);
+        expect(shown).toEqual(expected);
         expect(document.getElementById('acs-dock-brush').hidden).toBe(false);
         expect(document.getElementById('acs-dock-brush-text').textContent)
             .toContain(`from=50 to=100 count=${idsInBins(10, 20).size}`);
@@ -154,33 +163,37 @@ describe('AccessScoreDock', () => {
         expect(lastBrush()).toEqual(idsInBins(10, 20));
     });
 
-    test('a Selected scope means the selected street\'s neighborhood and falls back to City without one', () => {
-        const selectionInput = document.querySelector('input[name="acs-scope"][value="selection"]');
-        expect(selectionInput.disabled).toBe(true);
+    test('a selection marks the views and fades the rest of the map, under any brush in force', () => {
         const lastId = model.streetCount; // in region 2
         dock.setSelection({unit: 'streets', id: lastId});
         flush();
-        expect(selectionInput.disabled).toBe(false);
         expect(document.querySelector('.acs-rank__row[aria-current="true"]').dataset.regionId).toBe('2');
         expect(document.querySelector('.acs-histogram__caret--selection').hidden).toBe(false);
-
-        dock.setScope('selection');
-        flush();
-        expect(dock.state.scope).toBe('selection');
-        expect(document.getElementById('acs-dock-scope-caption').textContent).toBe('Other · scope-streets count=3');
+        expect(document.querySelector('.acs-dock__strip-caret').hidden).toBe(false);
+        // The map fades everything outside the selected street's neighborhood.
+        expect(lastBrush()).toEqual(model.regionStreetIds(2));
         // The rank list is never reduced to the selection: it is where the neighborhood sits among the others.
         expect(document.querySelectorAll('.acs-rank__row')).toHaveLength(2);
 
+        // A brush outranks the selection on the map; clearing it hands the map back to the selection.
+        dock.setBrush({from: 10, to: 20});
+        flush();
+        expect(lastBrush()).toEqual(idsInBins(10, 20));
+        dock.setBrush(null);
+        flush();
+        expect(lastBrush()).toEqual(model.regionStreetIds(2));
+
         dock.setSelection(null);
         flush();
-        expect(dock.state.scope).toBe('city');
-        expect(document.querySelector('input[name="acs-scope"][value="city"]').checked).toBe(true);
+        expect(lastBrush()).toBeNull();
+        expect(document.querySelector('.acs-rank__row[aria-current="true"]')).toBeNull();
 
-        // In the neighborhoods unit the option has nothing to stand on, so it is not offered.
+        // In the neighborhoods unit the selection is the region itself.
         model.setState({unit: 'regions'});
         dock.applyChange({kind: 'Unit', final: true});
+        dock.setSelection({unit: 'regions', id: 1});
         flush();
-        expect(document.getElementById('acs-scope-selection-option').hidden).toBe(true);
+        expect(lastBrush()).toEqual([1]);
         expect(document.querySelector('[data-kpi="kpi-regions"]')).not.toBeNull();
     });
 
@@ -199,14 +212,14 @@ describe('AccessScoreDock', () => {
         expect(callbacks.log).toHaveBeenCalledWith('Dock', 'open');
     });
 
-    test('a cluster type toggle is passed to the map and mutes the row', () => {
-        const toggle = document.querySelector('.acs-clusters__row[data-type="Obstacle"] .acs-clusters__type');
+    test('a type toggle in the drivers view is passed to the map and mutes the row', () => {
+        const toggle = document.querySelector('.acs-drivers__row[data-type="Obstacle"] .acs-drivers__type');
         toggle.click();
         flush();
         expect(callbacks.onToggleType).toHaveBeenCalledWith('Obstacle', false);
         expect(callbacks.log).toHaveBeenCalledWith('ClusterType', 'Obstacle_shown=false');
         expect(toggle.getAttribute('aria-pressed')).toBe('false');
-        expect(toggle.closest('.acs-clusters__row').classList.contains('acs-clusters__row--hidden')).toBe(true);
+        expect(toggle.closest('.acs-drivers__row').classList.contains('acs-drivers__row--hidden')).toBe(true);
         document.querySelector('.acs-rank__row').click();
         expect(callbacks.onRankSelect).toHaveBeenCalledWith(1);
     });

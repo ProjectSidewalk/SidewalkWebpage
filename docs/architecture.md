@@ -209,12 +209,14 @@ corresponding Twirl view:
   math in the browser (`AccessScoreModel.js`, pinned to the Scala engine through `test/fixtures/accessScoreParity.json`),
   the map view (streets and a neighborhood choropleth colored from feature-state), the cluster evidence layer
   (`AccessScoreClusterLayer.js`, fed by `/v3/api/labelClusters` — the clusters the engine actually scores, not the
-  raw labels), the weights sidebar, URL state, and the insights dock over the bottom of the map
-  (`AccessScoreDock.js` coordinating three hand-rolled HTML views — the score histogram with a drag-and-keyboard
-  brush, the clusters behind the scores by rating, and the ranked neighborhoods — each a subclass of
-  `AccessScoreChart.js`; scope defines the population, a brush emphasizes in the overview views and filters the
-  cluster view and dims the map, and a selection marks rather than filters). Grunt-bundled to `access-score/build/`;
-  the shared score ramp is `common/scoreRamp.js`.
+  raw labels), the cluster sheet (`AccessScoreClusterSheet.js`: every label in a clicked cluster at once, as crop
+  cards), the weights sidebar, URL state, and the insights band along the bottom of the map (`AccessScoreDock.js`
+  coordinating three hand-rolled HTML views — the score histogram, which doubles as the legend and takes a
+  drag-and-keyboard brush, what drives the scores as diverging per-type effect bars, and the ranked neighborhoods —
+  each a subclass of `AccessScoreChart.js`; scope defines the population, a brush emphasizes in the overview views
+  and filters the drivers view and dims the map, and a selection marks and fades the rest of the map rather than
+  filtering). An optional dark basemap (`?dark=1`) takes the `--color-score-ramp-dark-*` tokens through
+  `ScoreRamp.setMode`. Grunt-bundled to `access-score/build/`; the shared score ramp is `common/scoreRamp.js`.
 - **`ps-map/`** — shared map component used across pages.
 - **`common/`** — modules shared across bundles: `pano-viewer/` (an abstraction over the GSV / Mapillary / Infra3d /
   Panoramax / Pannellum imagery providers), `label-detail/` (label popups), and various utilities. The popup's pano viewer is

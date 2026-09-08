@@ -58,8 +58,9 @@ describe('AccessScoreUrlSync', () => {
         const { dock } = AccessScoreUrlSync.read(config, '?dock=0&scope=viewport&b=40-60');
         expect(dock).toEqual({ open: false, scope: 'viewport', brush: { from: 8, to: 12 } });
         expect(AccessScoreUrlSync.read(config, '').dock).toEqual({ open: true, scope: 'city', brush: null });
-        expect(AccessScoreUrlSync.read(config, '?scope=selection').dock.scope).toBe('selection');
-        expect(AccessScoreUrlSync.read(config, '?scope=street').dock.scope).toBe('city');
+        expect(AccessScoreUrlSync.read(config, '?scope=selection').dock.scope).toBe('city');
+        expect(AccessScoreUrlSync.read(config, '?dark=1').dark).toBe(true);
+        expect(AccessScoreUrlSync.read(config, '?dark=0').dark).toBe(false);
         for (const b of ['41-60', '60-40', '0-105', '40', '40-40', 'abc']) {
             expect(AccessScoreUrlSync.read(config, `?b=${b}`).dock.brush).toBeNull();
         }
@@ -80,15 +81,17 @@ describe('AccessScoreUrlSync', () => {
         expect(params.get('lat')).toBe('40.88000');
         expect(params.get('zoom')).toBe('13.50');
         for (const name of ['unit', 'preset', 'w', 'sev', 'tags', 'agg', 'minc', 'unaudited', 'clusters', 'sel', 'dock',
-            'scope', 'b']) {
+            'scope', 'b', 'dark']) {
             expect(params.has(name)).toBe(false);
         }
 
         model.setState({ unit: 'regions', weights: { Obstacle: 1.75 }, showClusters: false });
         sync.setSelection(7);
         sync.setDock({ open: false, scope: 'viewport', brush: { from: 8, to: 12 } });
+        sync.setDark(true);
         sync.writeNow();
         params = new URLSearchParams(window.location.search);
+        expect(params.get('dark')).toBe('1');
         expect(params.get('dock')).toBe('0');
         expect(params.get('scope')).toBe('viewport');
         expect(params.get('b')).toBe('40-60');

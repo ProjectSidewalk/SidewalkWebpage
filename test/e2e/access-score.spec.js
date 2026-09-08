@@ -181,9 +181,11 @@ test.describe('/accessScore', () => {
       await expect(page.locator('#acs-dock-brush')).toBeVisible();
       await expect.poll(() => urlParam(page, 'b')).toBe('80-85');
 
-      // The cluster view is computed over the brush: only street 1's two curb ramps remain.
-      await expect(page.locator('.acs-clusters__row[data-type="CurbRamp"] .acs-clusters__count')).toHaveText('2');
-      await expect(page.locator('.acs-clusters__row[data-type="Obstacle"] .acs-clusters__count')).toHaveText('0');
+      // The drivers view is computed over the brush: only street 1's two curb ramps remain, and they help.
+      await expect(page.locator('.acs-drivers__row[data-type="CurbRamp"] .acs-drivers__count')).toHaveText('2');
+      await expect(page.locator('.acs-drivers__row[data-type="CurbRamp"] .acs-drivers__value')).toHaveText('+1.50');
+      await expect(page.locator('.acs-drivers__row[data-type="Obstacle"] .acs-drivers__count')).toHaveText('0');
+      await expect(page.locator('.acs-drivers__row').first()).toHaveAttribute('data-type', 'CurbRamp');
 
       await bins.nth(16).click();
       await expect(bins.nth(16)).toHaveAttribute('aria-pressed', 'false');
@@ -213,8 +215,6 @@ test.describe('/accessScore', () => {
       await waitForAppReady(page);
       await waitForTool(page);
       await page.locator('input[name="acs-unit"][value="regions"]').check();
-      // The Selected scope only means something for a street's neighborhood, so it is not offered here.
-      await expect(page.locator('#acs-scope-selection-option')).toBeHidden();
 
       // The region scores 0.468 (bin 9): a brush on bin 3 dims it, one on bin 9 keeps it.
       const bins = page.locator('.acs-histogram__bin');
@@ -237,6 +237,27 @@ test.describe('/accessScore', () => {
       await expect(caret).toBeVisible();
       expect(Number.parseFloat(await caret.evaluate((el) => el.style.left))).toBeCloseTo(46.8, 0);
       await expect(page.locator('.acs-histogram__bin[aria-pressed="true"]')).toHaveCount(0);
+      // The selected region stays bright; with one region in the fixture, nothing else is there to fade.
+      expect(await dimOf(page, 'acs-regions', 1)).toBe(false);
+    });
+
+  test('selecting a street fades the streets outside its neighborhood, and the collapsed band keeps the legend',
+    async ({page}) => {
+      await page.goto('/accessScore');
+      await waitForAppReady(page);
+      await waitForTool(page);
+      // The stubbed style draws no hit-testable line at this zoom, so select through the dock's own entry point.
+      await page.evaluate(() => window.accessScore.dock.setSelection({unit: 'streets', id: 1}));
+      // Every fixture street is in the one region, so none fades; the caret marks the street's score.
+      expect(await dimOf(page, 'acs-streets', 2)).toBe(false);
+      const caret = page.locator('.acs-histogram__caret--selection');
+      await expect(caret).toBeVisible();
+      expect(Number.parseFloat(await caret.evaluate((el) => el.style.left))).toBeCloseTo(81.8, 0);
+
+      await page.locator('#acs-dock-toggle').click();
+      await expect(page.locator('#acs-dock-strip')).toBeVisible();
+      await expect(page.locator('.acs-dock__strip-caret')).toBeVisible();
+      await expect(page.locator('#acs-dock-body')).toBeHidden();
     });
 
   test('a Map view scope follows the camera, and the dock state round-trips through the URL', async ({page}) => {

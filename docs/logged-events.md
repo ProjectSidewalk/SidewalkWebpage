@@ -89,16 +89,18 @@ The AccessScore tool (`/accessScore`, `public/js/access-score/`, #5217) logs its
 `AccessScore_Weight_value=<labelType>_value=<magnitude>`, `AccessScore_SeverityEmphasis_value=<0..1>`,
 `AccessScore_Tags_value=<bool>`, `AccessScore_Aggregation_value=<length|mean>`,
 `AccessScore_MinCompletion_value=<percent>`, `AccessScore_ShowUnaudited_value=<bool>`,
-`AccessScore_ShowClusters_value=<bool>` (the evidence layer), `AccessScore_Section_value=<weights|lenses>_open=<bool>`
+`AccessScore_ShowClusters_value=<bool>` (the evidence layer), `AccessScore_Section_value=<weights|lenses|tags>_open=<bool>`
 (a sidebar disclosure toggled), `AccessScore_Reset`,
 `AccessScore_Select_streetId=<id>` / `AccessScore_Select_regionId=<id>` (a click on a street or neighborhood),
-`AccessScore_SelectCluster_labelType=<type>` (a click on a cluster dot),
+`AccessScore_SelectCluster_labelType=<type>` (a click on a cluster dot, which opens the cluster sheet) and
+`AccessScore_SheetOpenLabel_labelId=<id>` (a card in that sheet opening the full label card),
+`AccessScore_DarkMap_value=<bool>` (the dark basemap toggled; the page reloads),
 `AccessScore_CopyLink`, and the popup's hops `AccessScore_ViewOnLabelMap` / `AccessScore_ExploreHere`. A click on a
 cluster dot also opens the shared label card, whose actions log as `Click_module=LabelDetail_…` (above). The insights
-dock (`AccessScoreDock.js`) adds `AccessScore_Dock_value=<open|closed>`, `AccessScore_Scope_value=<city|viewport|selection>`,
+dock (`AccessScoreDock.js`) adds `AccessScore_Dock_value=<open|closed>`, `AccessScore_Scope_value=<city|viewport>`,
 `AccessScore_Brush_value=<from>-<to>` (the brushed score range in whole percent, logged once on release, never per
 sweep tick) / `AccessScore_Brush_value=clear`, `AccessScore_ClusterType_value=<type>_shown=<bool>` (a type's dots
-toggled from the cluster view), and `AccessScore_RankSelect_regionId=<id>` (a rank row clicked; in the neighborhoods
+toggled from the drivers view), and `AccessScore_RankSelect_regionId=<id>` (a rank row clicked; in the neighborhoods
 unit the selection it makes also logs `AccessScore_Select_regionId`). The drawer's `MapSidebar_Open` /
 `MapSidebar_Close` fire here too (shared chrome); the server logs `Visit_AccessScore` per page load.
 

@@ -5,7 +5,10 @@
  * flowing sidebar → model → map/dock/URL, or dock → map.
  */
 window.AccessScoreApp = (function () {
-  const MAP_STYLE = 'mapbox://styles/mapbox/light-v11?optimize=true';
+  const MAP_STYLES = {
+    light: 'mapbox://styles/mapbox/light-v11?optimize=true',
+    dark: 'mapbox://styles/mapbox/dark-v11?optimize=true',
+  };
   const SCORE_ENDPOINT = '/v3/api/accessScoreStreets';
 
   /** Fetches JSON, treating a non-2xx status as a failure so the overlay's error card shows. */
@@ -51,6 +54,11 @@ window.AccessScoreApp = (function () {
     const overlay = new MapLoadingOverlay({ onRetry: () => window.location.reload() });
     const sidebarEl = document.getElementById('filter-sidebar');
     let map = null;
+    // The basemap is chosen before the map exists, and the ramp before anything reads it: a dark basemap takes the
+    // ramp stepped for it, so the map, the legend, and the charts all switch together.
+    const dark = new URLSearchParams(window.location.search).get('dark') === '1';
+    ScoreRamp.setMode(dark ? 'dark' : 'light');
+    document.getElementById('acs-map-holder')?.classList.toggle('acs-map-holder--dark', dark);
 
     const dataPromise = Promise.all([
       fetchJson('/v3/api/accessScoreConfig'),
@@ -61,7 +69,7 @@ window.AccessScoreApp = (function () {
 
     const mapPromise = createPSMap($, {
       mapName: 'acs-map',
-      mapStyle: MAP_STYLE,
+      mapStyle: dark ? MAP_STYLES.dark : MAP_STYLES.light,
       mapboxApiKey,
       mapboxLogoLocation: 'bottom-right',
       navigationControlPosition: 'top-right',
@@ -136,13 +144,13 @@ window.AccessScoreApp = (function () {
       // A click on a cluster dot opens the label card; the street or neighborhood under it stays unselected.
       clickClaimed: (e) => evidence?.layer.claims(e) === true,
       hoverClaimed: (e) => evidence?.layer.claims(e) === true,
+      dark,
     });
     evidence = await mountClusterEvidence();
     dock = new AccessScoreDock(document.getElementById('acs-dock'), {
       model,
       mapView,
       map,
-      config,
       // A rank row goes to the neighborhood; in the neighborhoods unit it selects it too, in the streets unit the
       // regions aren't selectable, so the fly-to is the whole answer.
       onRankSelect: (regionId) => {
@@ -180,11 +188,12 @@ window.AccessScoreApp = (function () {
         return;
       }
       if (meta.kind === 'Reset') {
-        model.setState({ ...AccessScoreModel.DEFAULT_STATE, weights: { ...config.presets.default } });
+        // "Reset weights" is exactly that: the lens, the sliders, and the two scoring switches. What is drawn (the
+        // unit, the cluster dots, unaudited streets) and the neighborhood roll-up are the reader's view, not the
+        // weighting, and stay.
+        const d = AccessScoreModel.DEFAULT_STATE;
+        model.setState({ preset: d.preset, severityEmphasis: d.severityEmphasis, tagsEnabled: d.tagsEnabled });
         sidebar.setState(model.state);
-        mapView.setUnit(model.state.unit);
-        mapView.setShowUnaudited(model.state.showUnaudited);
-        evidence.setVisible(model.state.showClusters);
       } else {
         model.setState(partial);
       }
@@ -194,6 +203,19 @@ window.AccessScoreApp = (function () {
     sidebar.setState(model.state);
     sidebar.setContributions(model.contributions().means);
     renderUpdatedAt(config.clusters_updated_at);
+    // Switching the basemap rebuilds every layer, so it is a reload with the choice in the URL — which also makes
+    // it part of the link that "Copy link" hands out.
+    const darkInput = document.getElementById('acs-dark-map');
+    if (darkInput) {
+      darkInput.checked = dark;
+      darkInput.addEventListener('change', () => {
+        log('DarkMap', darkInput.checked);
+        urlSync.setDark(darkInput.checked);
+        urlSync.writeNow();
+        window.location.reload();
+      });
+    }
+    urlSync.setDark(dark);
     document.getElementById('acs-copy-link')?.addEventListener('click', async () => {
       urlSync.writeNow();
       try {
@@ -230,7 +252,8 @@ window.AccessScoreApp = (function () {
     /**
      * The clusters the scores are computed from, drawn on the map: one layer per scored type, fed by the viewport
      * loader once the map is zoomed to street level (a whole city's clusters is megabytes, and at city scale the
-     * score colors are the story), each opening the label card on click.
+     * score colors are the story). A click opens the cluster sheet — every label in the cluster at once — and a
+     * card there opens the full label card, whose arrows page through the same cluster.
      *
      * Clusters rather than raw labels because clusters are what the engine scores — three pins on one broken curb
      * are one cluster and one term. Drawing the labels would put a denser population on the map than the
@@ -241,14 +264,25 @@ window.AccessScoreApp = (function () {
         syncUrlSource: 'AccessScore',
         showExploreHereLink: true,
       });
+      const sheet = new AccessScoreClusterSheet({
+        log,
+        onOpenLabel: (labelId, ids) => {
+          popupLabelViewer.setNearbyNavigator(clusterNavigator(ids));
+          popupLabelViewer.showLabel(labelId, 'AccessScore');
+        },
+      });
       const layer = new AccessScoreClusterLayer(map, {
         types: config.scored_types,
         tooltipHtml: clusterTooltipHtml,
         onSelect: (props) => {
-          const labelId = props.label_ids?.[0];
-          if (labelId === undefined) return;
+          if (!props.label_ids?.length) return;
           log('SelectCluster_labelType', props.label_type);
-          popupLabelViewer.showLabel(labelId, 'AccessScore');
+          const street = model.explainStreet(props.street_edge_id);
+          const term = street?.audited ? street.terms[props.label_type] : null;
+          const effect = term
+            ? i18next.t('accessscore:cluster-effect', { type: typeName(props.label_type), value: signed(term.term) })
+            : '';
+          sheet.open(props, effect);
         },
       });
       const feedUrl = new URL('/v3/api/labelClusters', window.location.origin);
@@ -276,6 +310,22 @@ window.AccessScoreApp = (function () {
           layer.setVisible(show);
           if (!show) pill.setState('idle');
         },
+      };
+    }
+
+    /**
+     * Prev/next over one cluster's labels, in the order the API listed them, for the label card's arrows. The
+     * card's contract (see nearbyLabelNavigator.js) is a tour with a trail; a cluster is small enough to be a
+     * plain list with ends.
+     */
+    function clusterNavigator(ids) {
+      const at = (id) => ids.indexOf(id);
+      return {
+        next: (id) => (at(id) >= 0 && at(id) < ids.length - 1 ? ids[at(id) + 1] : null),
+        prev: (id) => (at(id) > 0 ? ids[at(id) - 1] : null),
+        hasNext: (id) => at(id) >= 0 && at(id) < ids.length - 1,
+        hasPrev: (id) => at(id) > 0,
+        onRefresh: () => {},
       };
     }
 

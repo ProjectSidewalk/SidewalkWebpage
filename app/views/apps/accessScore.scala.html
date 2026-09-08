@@ -115,6 +115,17 @@
             </label>
             @info("tags-help")
           </div>
+          <details class="acs-details acs-details--inline" id="acs-tag-details">
+            <summary class="acs-details__summary" data-i18n="accessscore:tag-details">What do tags change?</summary>
+            <div id="acs-tag-table" class="acs-lens-table"></div>
+          </details>
+          <div class="acs-check-row">
+            <label class="acs-check" for="acs-dark-map">
+              <input type="checkbox" id="acs-dark-map">
+              <span data-i18n="accessscore:dark-map">Dark map</span>
+            </label>
+            @info("dark-map-help")
+          </div>
 
           <div id="acs-region-options" hidden>
             <label class="acs-field-label" for="acs-aggregation" data-i18n="accessscore:aggregation">Roll-up</label>
@@ -135,7 +146,7 @@
 
         <section class="filter-sidebar__section acs-section acs-actions" aria-label="Actions" data-i18n-aria-label="accessscore:actions">
           <div class="acs-actions__row">
-            <button type="button" id="acs-reset" class="button-ps button--small button--secondary" data-i18n="accessscore:reset">Reset</button>
+            <button type="button" id="acs-reset" class="button-ps button--small button--secondary" data-i18n="accessscore:reset">Reset weights</button>
             <button type="button" id="acs-copy-link" class="button-ps button--small button--primary" data-i18n="accessscore:copy-link">Copy link</button>
           </div>
           <a class="acs-actions__docs" href="@routes.ApiDocsController.accessScoreStreets#scoring-model" target="_blank" rel="noopener" data-i18n="accessscore:how-computed">How is this computed?</a>
@@ -151,8 +162,9 @@
         <img src="@assets.path("images/icons/chevrons-right-feather.svg")" alt="">
       </button>
 
-      @* The insights dock: KPIs and three linked views over the bottom of the map. A sibling of the sidebar, after
-         it, so the stylesheet can shift it clear of the open drawer. AccessScoreDock.js fills the chart holders. *@
+      @* The insights dock: KPIs and three linked views in a band along the bottom of the map. A sibling of the
+         sidebar, after it, so the stylesheet can start it at the open drawer's edge. AccessScoreDock.js fills the
+         chart holders. *@
       <aside id="acs-dock" class="acs-dock" aria-labelledby="acs-dock-title">
         <div class="acs-dock__bar">
           <button type="button" id="acs-dock-toggle" class="acs-dock__toggle" aria-expanded="true" aria-controls="acs-dock-body">
@@ -168,17 +180,20 @@
               <input type="radio" name="acs-scope" id="acs-scope-viewport" value="viewport">
               <span data-i18n="accessscore:scope-viewport">Map view</span>
             </label>
-            <label class="acs-segmented__option" for="acs-scope-selection" id="acs-scope-selection-option">
-              <input type="radio" name="acs-scope" id="acs-scope-selection" value="selection" disabled>
-              <span data-i18n="accessscore:scope-selection">Selected</span>
-            </label>
           </div>
           @info("scope-help")
           <span id="acs-dock-scope-caption" class="acs-dock__caption"></span>
+          @* The legend while the band is collapsed: the ramp with its ends and a caret at the hovered score. The
+             expanded band's histogram carries the same information with the distribution on top of it. *@
+          <div id="acs-dock-strip" class="acs-dock__strip" role="img" aria-label="AccessScore legend" data-i18n-aria-label="accessscore:legend">
+            <span class="acs-dock__strip-end">0</span>
+            <span class="acs-dock__strip-bar"><span class="acs-dock__strip-caret" hidden></span></span>
+            <span class="acs-dock__strip-end">100</span>
+          </div>
           <div id="acs-dock-kpis" class="acs-dock__kpis"></div>
           <div id="acs-dock-brush" class="acs-dock__brush" hidden>
             <span id="acs-dock-brush-text"></span>
-            <button type="button" id="acs-dock-brush-clear" class="button-ps button--small button--secondary" data-i18n="accessscore:brush-clear">Clear</button>
+            <button type="button" id="acs-dock-brush-clear" class="button-ps button--small button--secondary" data-i18n="accessscore:brush-clear">Clear range</button>
           </div>
           <div id="acs-dock-status" class="sr-only" role="status" aria-live="polite"></div>
         </div>
@@ -190,12 +205,12 @@
             </div>
             <div id="acs-histogram" class="acs-histogram"></div>
           </section>
-          <section class="acs-dock__panel acs-dock__panel--clusters" aria-labelledby="acs-dock-clusters-title">
+          <section class="acs-dock__panel acs-dock__panel--drivers" aria-labelledby="acs-dock-drivers-title">
             <div class="acs-dock__panel-head">
-              <h3 class="acs-dock__panel-title" id="acs-dock-clusters-title" data-i18n="accessscore:chart-clusters">Clusters by rating</h3>
-              @info("chart-clusters-help")
+              <h3 class="acs-dock__panel-title" id="acs-dock-drivers-title" data-i18n="accessscore:chart-drivers">What drives these scores</h3>
+              @info("chart-drivers-help")
             </div>
-            <div id="acs-cluster-bars" class="acs-clusters"></div>
+            <div id="acs-drivers" class="acs-drivers"></div>
           </section>
           <section class="acs-dock__panel acs-dock__panel--rank" aria-labelledby="acs-dock-rank-title">
             <div class="acs-dock__panel-head">
@@ -212,7 +227,8 @@
   </div>
 
   @* The label card the evidence layer opens, the same one the Label Map uses. *@
-  @common.labelPopup(admin = false, withPaging = false)
+  @* Paging steps through the labels of the cluster a card was opened from. *@
+  @common.labelPopup(admin = false, withPaging = true)
 
   <link href='@assets.path("css/components/label-detail.css")' rel="stylesheet">
   <link href='@assets.path("css/components/tag-pills.css")' rel="stylesheet">

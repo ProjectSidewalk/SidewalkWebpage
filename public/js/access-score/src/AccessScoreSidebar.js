@@ -114,6 +114,7 @@ class AccessScoreSidebar {
         </div>`;
     }).join('');
     this.#renderLensTable();
+    this.#renderTagTable();
 
     this.#els = {
       unitInputs: Array.from(root.querySelectorAll('input[name="acs-unit"]')),
@@ -139,6 +140,7 @@ class AccessScoreSidebar {
       weightsDetails: root.querySelector('#acs-weights-details'),
       weightsSummary: root.querySelector('#acs-weights-summary'),
       lensDetails: root.querySelector('#acs-lens-details'),
+      tagDetails: root.querySelector('#acs-tag-details'),
       regionOptions: root.querySelector('#acs-region-options'),
       streetOptions: root.querySelector('#acs-street-options'),
     };
@@ -192,7 +194,7 @@ class AccessScoreSidebar {
       { kind: 'ShowClusters', value: e.showClusters.checked, final: true }));
     e.reset.addEventListener('click', () => this.#emit(null, { kind: 'Reset', final: true }));
     // Opening a disclosure is worth knowing about — it says whether people reach for the weights at all.
-    for (const [details, name] of [[e.weightsDetails, 'weights'], [e.lensDetails, 'lenses']]) {
+    for (const [details, name] of [[e.weightsDetails, 'weights'], [e.lensDetails, 'lenses'], [e.tagDetails, 'tags']]) {
       details?.addEventListener('toggle', () =>
         this.#emit(null, { kind: 'Section', value: `${name}_open=${details.open}`, final: true }));
     }
@@ -249,6 +251,31 @@ class AccessScoreSidebar {
         <div class="acs-lens-table__name">${this.#presetName(id)}</div>${body}
       </div>`;
     }).join('');
+  }
+
+  /**
+   * The "what do tags change" table: per type, every tag the engine adjusts for and by how much, straight from the
+   * config so the panel can never say something the engine doesn't do.
+   */
+  #renderTagTable() {
+    const table = this.#root.querySelector('#acs-tag-table');
+    if (!table) return;
+    const byType = new Map();
+    for (const row of this.#config.tag_adjustments || []) {
+      if (!byType.has(row.label_type)) byType.set(row.label_type, []);
+      byType.get(row.label_type).push(row);
+    }
+    const item = (row) => {
+      const tag = i18next.t(`common:tag.${row.tag}`, { defaultValue: row.tag });
+      const kind = row.delta >= 0 ? 'feature' : 'problem';
+      const delta = `${row.delta >= 0 ? '+' : '−'}${Math.abs(row.delta).toFixed(2)}`;
+      return `<li>${tag} <b class="acs-tag-delta--${kind}">${delta}</b></li>`;
+    };
+    table.innerHTML = this.#config.scored_types.filter((t) => byType.has(t)).map((type) => `
+      <div class="acs-lens-table__lens">
+        <div class="acs-lens-table__name">${i18next.t(`common:${AccessScoreSidebar.#typeKey(type)}`)}</div>
+        <ul class="acs-lens-table__changes">${byType.get(type).map(item).join('')}</ul>
+      </div>`).join('');
   }
 
   /** The one-line hint on the collapsed weights section: which weights are in force. */

@@ -6,8 +6,10 @@
  * The bins are `<button>`s, which is what makes the chart accessible without a separate table: each is named
  * with its range and its value, carries `aria-pressed` for the brush, and takes the keyboard — Arrow keys move
  * between bins (roving tabindex), Enter or Space toggles a bin, Shift+Arrow extends the brush, Home/End jump, and
- * Escape clears. With a pointer, a click toggles one bin and a drag across the bars sweeps a range; the owner is
- * told about the sweep as it goes (`final: false`) and once on release.
+ * Escape clears. With a pointer, a click toggles one bin, Shift+click extends the brush to the clicked bin, and a
+ * drag across the bars sweeps a range; the owner is told about the sweep as it goes (`final: false`) and once on
+ * release. The axis under the bars doubles as the score legend: numeric ticks, the pole words, and the swatch
+ * for what carries no score (an unaudited street, or a hatched neighborhood).
  *
  * Callbacks: `onBrush({from, to, final})` (bin indices, `to` exclusive; null to clear), `onHover(bin)` and
  * `onHoverEnd()` for the pointer or focus resting on a bin.
@@ -29,6 +31,10 @@ class AccessScoreHistogram extends AccessScoreChart {
     const N = data.bins.length;
     const c = this.container;
     const barsLabel = AccessScoreChart.esc(i18next.t('accessscore:histogram-bars'));
+    // What carries no score in this unit: an unaudited street, or a neighborhood under the completion floor.
+    const noScore = data.unit === 'regions'
+      ? { swatch: 'hatch', key: 'legend-insufficient' }
+      : { swatch: 'unaudited', key: 'legend-unaudited' };
     // The value labels live in a gutter left of the bars, so they never sit on the tallest bar at either end.
     c.innerHTML = `
       <div class="acs-histogram__plot">
@@ -53,6 +59,14 @@ class AccessScoreHistogram extends AccessScoreChart {
       </div>
       <div class="acs-histogram__axis" aria-hidden="true">
         ${[0, 25, 50, 75, 100].map((v) => `<span>${v}</span>`).join('')}
+      </div>
+      <div class="acs-histogram__poles">
+        <span>${i18next.t('accessscore:legend-low')}</span>
+        <span class="acs-histogram__swatch-row">
+          <span class="acs-histogram__swatch acs-histogram__swatch--${noScore.swatch}"></span>
+          ${i18next.t(`accessscore:${noScore.key}`)}
+        </span>
+        <span>${i18next.t('accessscore:legend-high')}</span>
       </div>
       <p class="acs-histogram__empty" hidden>${i18next.t('accessscore:histogram-empty')}</p>`;
     const bins = Array.from(c.querySelectorAll('.acs-histogram__bin'));
@@ -168,6 +182,13 @@ class AccessScoreHistogram extends AccessScoreChart {
     this.emit('onBrush', same ? null : { from: k, to: k + 1, final: true });
   }
 
+  /** Grows the brush to take in a bin, from whichever edge is nearer; with no brush, starts one at the focus. */
+  #extend(k) {
+    const from = Math.min(this.#brush?.from ?? this.#focusedBin, k);
+    const to = Math.max(this.#brush?.to ?? this.#focusedBin + 1, k + 1);
+    this.emit('onBrush', { from, to, final: true });
+  }
+
   #bind() {
     const bars = this.#els.bars;
     bars.addEventListener('pointerdown', (e) => {
@@ -193,7 +214,7 @@ class AccessScoreHistogram extends AccessScoreChart {
         this.emit('onBrush', { from, to, final: false });
       }
     });
-    const release = () => {
+    const release = (e) => {
       if (!this.#drag) return;
       const drag = this.#drag;
       this.#drag = null;
@@ -201,6 +222,8 @@ class AccessScoreHistogram extends AccessScoreChart {
       if (drag.moved) {
         const [from, to] = [Math.min(drag.anchor, drag.last), Math.max(drag.anchor, drag.last) + 1];
         this.emit('onBrush', { from, to, final: true });
+      } else if (e.shiftKey) {
+        this.#extend(drag.anchor);
       } else {
         this.#toggle(drag.anchor);
       }
@@ -222,13 +245,9 @@ class AccessScoreHistogram extends AccessScoreChart {
       if (step !== undefined) {
         e.preventDefault();
         const k = Math.min(N - 1, Math.max(0, this.#focusedBin + step));
-        if (e.shiftKey) {
-          // Shift+Arrow only ever grows the brush toward the new focus; Escape and a fresh Enter shrink it. A
-          // text-selection anchor would shrink it from the wrong end when focus sits on its edge.
-          const from = Math.min(this.#brush?.from ?? this.#focusedBin, k);
-          const to = Math.max(this.#brush?.to ?? this.#focusedBin + 1, k + 1);
-          this.emit('onBrush', { from, to, final: true });
-        }
+        // Shift+Arrow only ever grows the brush toward the new focus; Escape and a fresh Enter shrink it. A
+        // text-selection anchor would shrink it from the wrong end when focus sits on its edge.
+        if (e.shiftKey) this.#extend(k);
         this.#setFocusedBin(k, { focus: true });
       } else if (e.key === 'Escape' && this.#brush) {
         e.preventDefault();

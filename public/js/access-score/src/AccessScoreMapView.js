@@ -1,11 +1,15 @@
 /**
  * The AccessScore tool's map layers: streets as score-colored lines, neighborhoods as a score choropleth with a
- * hatch for regions below the completion floor, plus hover, selection, and the legend (#5217).
+ * hatch for regions below the completion floor, plus hover and selection (#5217).
  *
  * The map owns geometry and paint; the scores live in feature-state. A slider move therefore never re-uploads a
  * source: `applyScores` writes each feature's score as feature-state in one batch per animation frame, and the
  * paint expressions read it through the shared ScoreRamp. Unaudited streets carry no score and fall to the
- * ramp's fallback color, at reduced width and opacity.
+ * ramp's fallback color, at reduced width and opacity. The score legend lives in the insights dock, which also
+ * receives every hover through `onHover`.
+ *
+ * On a dark basemap the chrome colors (region outlines and names, the unaudited grey, the selected street's
+ * casing, the hatch) come from a second palette; the score ramp itself switches through `ScoreRamp.setMode`.
  */
 class AccessScoreMapView {
   static STREET_SOURCE = 'acs-streets';
@@ -38,8 +42,9 @@ class AccessScoreMapView {
   #dimmed = { [AccessScoreMapView.STREET_SOURCE]: new Set(), [AccessScoreMapView.REGION_SOURCE]: new Set() };
   /** Each region's bounding box, for the viewport query. */
   #regionBounds = new Map();
-  #legend;
-  #marker = null;
+  /** Token names for the map's chrome, chosen for the basemap. */
+  #palette;
+  #dark;
 
   /**
    * @param {mapboxgl.Map} map - A loaded Mapbox map.
@@ -57,11 +62,24 @@ class AccessScoreMapView {
    * @param {function} [options.hoverClaimed] - Called with the Mapbox mousemove event; return true when something
    *                                            drawn above these layers owns the hover, so its tooltip is the
    *                                            only one showing.
+   * @param {boolean} [options.dark=false] - True on a dark basemap.
    */
   constructor(map, { model, streets, regions, onSelect, onHover = () => {}, tooltipHtml, clickClaimed = () => false,
-    hoverClaimed = () => false }) {
+    hoverClaimed = () => false, dark = false }) {
     this.#map = map;
     this.#model = model;
+    this.#dark = dark;
+    this.#palette = dark
+      ? {
+          regionNone: '--color-neutral-800', streetNone: '--color-neutral-700', outline: '--color-neutral-300',
+          text: '--color-neutral-100', halo: '--color-neutral-900', casing: '--color-neutral-white',
+          hatch: '--color-neutral-500',
+        }
+      : {
+          regionNone: '--color-neutral-200', streetNone: '--color-neutral-400', outline: '--color-neutral-white',
+          text: '--color-neutral-900', halo: '--color-neutral-white', casing: '--color-neutral-black',
+          hatch: '--color-neutral-600',
+        };
     this.#onSelect = onSelect;
     this.#onHover = onHover;
     this.#tooltipHtml = tooltipHtml;
@@ -75,7 +93,6 @@ class AccessScoreMapView {
     this.#addRegionLayers(regions);
     this.#addStreetLayers(streets);
     this.#addInteractions();
-    this.#legend = this.#addLegend();
     this.setUnit(this.#unit);
     this.applyScores();
   }
@@ -97,7 +114,6 @@ class AccessScoreMapView {
     // Region outlines stay on in both units as the neighborhood context; they only carry hover in regions mode.
     this.#clearHover();
     this.#tooltip.remove();
-    this.#renderLegend();
     // A brush is a set of the active unit's ids, so the other unit's dims are stale the moment the unit flips.
     this.#brush = null;
     this.#dimPending = true;
@@ -164,7 +180,6 @@ class AccessScoreMapView {
       ['boolean', ['feature-state', 'hover'], false], 2.5,
       1.2,
     ]);
-    this.#markSelected();
   }
 
   /**
@@ -226,7 +241,7 @@ class AccessScoreMapView {
     canvas.width = size;
     canvas.height = size;
     const ctx = canvas.getContext('2d');
-    ctx.strokeStyle = AccessScoreMapView.#token('--color-neutral-600');
+    ctx.strokeStyle = AccessScoreMapView.#token(this.#palette.hatch);
     ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.moveTo(-2, size + 2);
@@ -252,8 +267,11 @@ class AccessScoreMapView {
       type: 'fill',
       source: AccessScoreMapView.REGION_SOURCE,
       paint: {
-        'fill-color': ScoreRamp.expression(score, { noneColor: AccessScoreMapView.#token('--color-neutral-200') }),
-        'fill-opacity': ['case', dim, 0.15, ['boolean', ['feature-state', 'hover'], false], 0.85, 0.7],
+        'fill-color': ScoreRamp.expression(score, { noneColor: AccessScoreMapView.#token(this.#palette.regionNone) }),
+        // A fuller fill on the dark basemap: at 0.7 the ramp muddies against near-black land.
+        'fill-opacity': [
+          'case', dim, 0.15, ['boolean', ['feature-state', 'hover'], false], 0.95, this.#dark ? 0.85 : 0.7,
+        ],
       },
     });
     // A filter can't read feature-state, so the hatch layer is filtered on an id list that applyScores rewrites.
@@ -269,7 +287,7 @@ class AccessScoreMapView {
       type: 'line',
       source: AccessScoreMapView.REGION_SOURCE,
       paint: {
-        'line-color': AccessScoreMapView.#token('--color-neutral-white'),
+        'line-color': AccessScoreMapView.#token(this.#palette.outline),
         'line-width': ['case', ['boolean', ['feature-state', 'hover'], false], 2.5, 1.2],
         'line-opacity': 0.9,
       },
@@ -286,8 +304,8 @@ class AccessScoreMapView {
         'text-allow-overlap': false,
       },
       paint: {
-        'text-color': AccessScoreMapView.#token('--color-neutral-900'),
-        'text-halo-color': AccessScoreMapView.#token('--color-neutral-white'),
+        'text-color': AccessScoreMapView.#token(this.#palette.text),
+        'text-halo-color': AccessScoreMapView.#token(this.#palette.halo),
         'text-halo-width': 1.5,
         'text-opacity': ['case', dim, 0.3, 1],
       },
@@ -322,7 +340,7 @@ class AccessScoreMapView {
       filter: ['==', ['get', 'street_edge_id'], -1],
       layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: {
-        'line-color': AccessScoreMapView.#token('--color-neutral-black'),
+        'line-color': AccessScoreMapView.#token(this.#palette.casing),
         'line-width': ['interpolate', ['linear'], ['zoom'], 10, 5, 14, 9, 17, 16],
         'line-opacity': 0.9,
       },
@@ -333,7 +351,7 @@ class AccessScoreMapView {
       source: AccessScoreMapView.STREET_SOURCE,
       layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: {
-        'line-color': ScoreRamp.expression(score, { noneColor: AccessScoreMapView.#token('--color-neutral-400') }),
+        'line-color': ScoreRamp.expression(score, { noneColor: AccessScoreMapView.#token(this.#palette.streetNone) }),
         'line-width': [
           'interpolate', ['linear'], ['zoom'],
           10, ['case', hovered, 3, unaudited, 0.8, 1.2],
@@ -368,7 +386,6 @@ class AccessScoreMapView {
         if (this.#hoverClaimed(e)) {
           this.#clearHover();
           this.#tooltip.remove();
-          this.#markSelected();
           return;
         }
         const id = e.features[0].id;
@@ -379,7 +396,6 @@ class AccessScoreMapView {
           this.#map.getCanvas().style.cursor = 'pointer';
           this.#onHover({ unit, id, score: this.#scoreOf(unit, id) });
         }
-        this.markScore(this.#scoreOf(unit, id));
         const html = this.#tooltipHtml({ unit, id });
         if (html) this.#tooltip.setLngLat(e.lngLat).setHTML(html).addTo(this.#map);
       });
@@ -387,7 +403,6 @@ class AccessScoreMapView {
         if (this.#unit !== unit) return;
         this.#clearHover();
         this.#tooltip.remove();
-        this.#markSelected();
         this.#map.getCanvas().style.cursor = '';
       });
       this.#map.on('click', layer, (e) => {
@@ -407,7 +422,6 @@ class AccessScoreMapView {
     this.#map.on('mouseout', () => {
       this.#clearHover();
       this.#tooltip.remove();
-      this.#markSelected();
       this.#map.getCanvas().style.cursor = '';
     });
   }
@@ -420,11 +434,6 @@ class AccessScoreMapView {
     }
     const r = this.#model.explainRegion(id);
     return r && !r.belowFloor ? r.score : null;
-  }
-
-  /** Returns the legend mark to whatever is selected — where the pointer leaves it when nothing is hovered. */
-  #markSelected() {
-    this.markScore(this.#selected.id === null ? null : this.#scoreOf(this.#selected.unit, this.#selected.id));
   }
 
   #clearHover() {
@@ -477,56 +486,6 @@ class AccessScoreMapView {
     // fill-pattern can't read feature-state through a paint expression, so the hatch layer filters on it instead.
     this.#map.setFilter(AccessScoreMapView.REGION_HATCH_LAYER, ['in', ['get', 'region_id'], ['literal',
       this.#model.regionStats.filter((r) => r.belowFloor || r.score === null).map((r) => r.regionId)]]);
-    // A weight change moves the selected feature's score, so the legend mark has to follow it.
-    if (this.#hover.id === null) this.#markSelected();
-  }
-
-  /**
-   * The legend overlay in the map's bottom-left corner. It goes on the map's holder, after the drawer, so the
-   * stylesheet can shift it clear of the open drawer with a sibling selector; inside the map canvas it would sit
-   * under the drawer's left 350px.
-   */
-  #addLegend() {
-    const el = document.createElement('div');
-    el.className = 'acs-legend';
-    el.setAttribute('role', 'group');
-    el.setAttribute('aria-label', i18next.t('accessscore:legend'));
-    this.#map.getContainer().parentElement.appendChild(el);
-    return el;
-  }
-
-  #renderLegend() {
-    const unaudited = this.#unit === 'streets'
-      ? `<div class="acs-legend__row"><span class="acs-legend__swatch acs-legend__swatch--unaudited"></span>${
-        i18next.t('accessscore:legend-unaudited')}</div>`
-      : `<div class="acs-legend__row"><span class="acs-legend__swatch acs-legend__swatch--hatch"></span>${
-        i18next.t('accessscore:legend-insufficient')}</div>`;
-    // The numeric ends carry which direction is better; the words under them say what the direction means.
-    this.#legend.innerHTML = `
-      <div class="acs-legend__title">${i18next.t('accessscore:legend-title')}</div>
-      <div class="acs-legend__bar"><span class="acs-legend__marker" hidden aria-hidden="true"></span></div>
-      <div class="acs-legend__ticks"><span>0</span><span>50</span><span>100</span></div>
-      <div class="acs-legend__poles">
-        <span>${i18next.t('accessscore:legend-low')}</span>
-        <span>${i18next.t('accessscore:legend-high')}</span>
-      </div>
-      ${unaudited}
-    `;
-    // The ramp is data, not styling, so it can't live in the stylesheet.
-    this.#legend.querySelector('.acs-legend__bar').style.background = ScoreRamp.cssGradient();
-    this.#marker = this.#legend.querySelector('.acs-legend__marker');
-  }
-
-  /**
-   * Marks a score's place on the legend's ramp, so hovering a feature says in one glance which end of the scale
-   * it sits at — the question a gradient alone never answers.
-   * @param {?number} score - A score in [0, 1], or null to clear the mark.
-   */
-  markScore(score) {
-    if (!this.#marker) return;
-    const show = typeof score === 'number' && Number.isFinite(score);
-    this.#marker.hidden = !show;
-    if (show) this.#marker.style.left = `${Math.min(100, Math.max(0, score * 100))}%`;
   }
 
   /** A main.css color token's value. */

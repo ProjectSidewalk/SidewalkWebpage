@@ -47,7 +47,7 @@ function stubUtilMisc() {
 function loadSources() {
     RAMP.forEach((hex, i) => document.documentElement.style.setProperty(`--color-score-ramp-${i + 1}`, hex));
     window.eval(read('public/js/common/scoreRamp.js'));
-    const classes = ['AccessScoreModel', 'AccessScoreChart', 'AccessScoreHistogram', 'AccessScoreClusterBars',
+    const classes = ['AccessScoreModel', 'AccessScoreChart', 'AccessScoreHistogram', 'AccessScoreDriversBars',
         'AccessScoreRankBars', 'AccessScoreDock'];
     for (const name of classes) window.eval(`${read(`public/js/access-score/src/${name}.js`)}\nwindow.${name} = ${name};`);
 }
@@ -78,10 +78,11 @@ const DOCK_HTML = `
         <div class="acs-segmented">
           <label class="acs-segmented__option"><input type="radio" name="acs-scope" value="city" checked>City</label>
           <label class="acs-segmented__option"><input type="radio" name="acs-scope" value="viewport">Map view</label>
-          <label class="acs-segmented__option" id="acs-scope-selection-option">
-            <input type="radio" name="acs-scope" value="selection" disabled>Selected</label>
         </div>
         <span id="acs-dock-scope-caption"></span>
+        <div id="acs-dock-strip" class="acs-dock__strip">
+          <span class="acs-dock__strip-bar"><span class="acs-dock__strip-caret" hidden></span></span>
+        </div>
         <div id="acs-dock-kpis"></div>
         <div id="acs-dock-brush" hidden>
           <span id="acs-dock-brush-text"></span>
@@ -91,7 +92,7 @@ const DOCK_HTML = `
       </div>
       <div id="acs-dock-body">
         <div id="acs-histogram"></div>
-        <div id="acs-cluster-bars"></div>
+        <div id="acs-drivers"></div>
         <div id="acs-rank-bars"></div>
       </div>
     </aside>
