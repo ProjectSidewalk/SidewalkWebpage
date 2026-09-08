@@ -26,6 +26,13 @@ object PasswordPolicy {
     ("authenticate.pw.rule.lowercase", "[a-z]"),
     ("authenticate.pw.rule.digit", "\\d")
   )
+
+  /**
+   * Endpoint for the advisory breached-password check (#4492). The frontend appends the first five hex characters
+   * of the password's SHA-1 and matches the returned suffixes locally, so nothing identifying leaves the browser
+   * (Have I Been Pwned's k-anonymity model). The host must also be in `connect-src` in `conf/application.conf`.
+   */
+  val breachRangeUrl: String = "https://api.pwnedpasswords.com/range/"
 }
 
 /**

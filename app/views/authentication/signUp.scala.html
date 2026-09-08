@@ -51,35 +51,7 @@
             <label class="au-label" for="sign-up-email">@Messages("authenticate.email")</label>
             <input class="au-input" id="sign-up-email" name="email" type="email" autocomplete="email" required>
           </div>
-          <div class="au-field">
-            <label class="au-label" for="sign-up-password">@Messages("authenticate.password")</label>
-            <div class="au-input-wrap">
-              <input class="au-input au-input--with-eye" id="sign-up-password" name="password" type="password" autocomplete="new-password" aria-describedby="sign-up-pw-rules" required>
-              @common.authEyeButton("sign-up-password")
-            </div>
-            <ul class="au-checklist" id="sign-up-pw-rules" aria-live="polite">
-              @for((msgKey, ruleRegex) <- forms.PasswordPolicy.checklist) {
-                <li data-rule-regex="@ruleRegex">
-                  @common.authDot()@Messages(msgKey, forms.PasswordPolicy.minLength)
-                </li>
-              }
-            </ul>
-            <div class="au-strength" aria-hidden="true">
-              <div class="au-slabs" id="sign-up-pw-strength"><span></span><span></span><span></span><span></span></div>
-              <span class="au-strength-word" id="sign-up-pw-strength-word" data-word1="@Messages("authenticate.pw.strength.1")" data-word2="@Messages("authenticate.pw.strength.2")" data-word3="@Messages("authenticate.pw.strength.3")" data-word4="@Messages("authenticate.pw.strength.4")"></span>
-            </div>
-          </div>
-          <div class="au-field">
-            <label class="au-label" for="sign-up-password-confirm">@Messages("authenticate.confirm.password")</label>
-            <div class="au-input-wrap">
-              <input class="au-input au-input--with-eye" id="sign-up-password-confirm" name="passwordConfirm" type="password" autocomplete="new-password" aria-describedby="sign-up-pw-match" required>
-              @common.authEyeButton("sign-up-password-confirm")
-            </div>
-            <div class="au-match" id="sign-up-pw-match" data-label-match="@Messages("authenticate.pw.match")" data-label-no-match="@Messages("authenticate.pw.match.not")">
-              @common.authDot(withCross = true)
-              <span id="sign-up-pw-match-text">@Messages("authenticate.pw.match")</span>
-            </div>
-          </div>
+          @common.authPasswordFields("sign-up", "password", "passwordConfirm")
           <label class="au-check" for="sign-up-terms"><input type="checkbox" id="sign-up-terms" name="terms" value="true" required> <span>@Html(Messages("authenticate.terms"))</span></label>
           <button type="submit" class="button-ps button--primary button--large au-submit">@Messages("authenticate.create.account")</button>
         }

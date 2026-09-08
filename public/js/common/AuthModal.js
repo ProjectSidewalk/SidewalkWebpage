@@ -1,11 +1,13 @@
 /**
- * Sign-in / sign-up behavior (#4375), shared by the navbar <dialog> and the full-page /signIn·/signUp fallback:
- * show-password toggles, live password/username validation, and async submits with inline errors.
+ * Sign-in / sign-up behavior (#4375), shared by the navbar <dialog>, the full-page /signIn·/signUp fallback, and
+ * the reset-password page: show-password toggles, live password/username validation, and async submits with inline
+ * errors.
  *
  * Validation rules are NOT declared here — the Twirl template injects them from the backend's PasswordPolicy /
- * UsernamePolicy as data-rule-regex attributes (CLAUDE.md: backend is the source of truth), and this file just
- * compiles and applies them. The `AuthModal` class adds the dialog-only concerns (open/close, panel switching,
- * trigger buttons) and is exposed as `window.psAuthModal` with `.open('signIn'|'signUp')`.
+ * UsernamePolicy as data-* attributes (CLAUDE.md: backend is the source of truth), the breach-check endpoint
+ * included; this file just compiles and applies them. The `AuthModal` class adds the dialog-only concerns
+ * (open/close, panel switching, trigger buttons) and is exposed as `window.psAuthModal` with
+ * `.open('signIn'|'signUp')`.
  */
 
 const AU_ALERT_ICON = `
@@ -34,23 +36,62 @@ function wireEyeToggle(btn) {
   });
 }
 
+/** Long enough that typing a password straight through costs one request rather than one per character. */
+const AU_BREACH_DEBOUNCE_MS = 500;
+
+/** Keyed by SHA-1, not by password, so no candidate password is retained past the lookup that used it. */
+const auBreachCache = new Map();
+
 /**
- * Wires the live sign-up feedback: the password-rules checklist, the strength slabs, the confirm-match indicator,
- * and the username-rule indicator — all driven by backend-injected data-rule-regex attributes. No-ops when the
- * sign-up fields aren't on the page (e.g. the sign-in-only surfaces).
+ * Asks Have I Been Pwned whether a password is in its breach corpus. Only the first five hex characters of the
+ * SHA-1 are sent, and `Add-Padding` keeps the response length from hinting at how many hashes share that prefix.
+ * Fail-open by design (#4492): offline, blocked, or no Web Crypto all report "not breached" rather than standing
+ * between a user and their account.
+ *
+ * @param {string} password - The candidate password.
+ * @param {string} rangeUrl - The range endpoint, from PasswordPolicy.
+ * @returns {Promise<boolean>} True only if the password was positively found in the corpus.
  */
-function wireLiveValidation() {
-  const pw = document.getElementById('sign-up-password');
-  const pw2 = document.getElementById('sign-up-password-confirm');
-  const username = document.getElementById('sign-up-username');
+async function isBreachedPassword(password, rangeUrl) {
+  try {
+    const digest = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(password));
+    const hash = [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+    if (auBreachCache.has(hash)) return auBreachCache.get(hash);
+    const res = await fetch(rangeUrl + hash.slice(0, 5), { headers: { 'Add-Padding': 'true' } });
+    if (!res.ok) return false; // Uncached, like a thrown request: only a real answer is worth keeping.
+    const suffix = hash.slice(5);
+    // Padding entries are real-looking suffixes with a count of 0, so only a positive count is a hit.
+    const breached = (await res.text()).split('\n').some((line) => {
+      const [lineSuffix, count] = line.trim().split(':');
+      return lineSuffix === suffix && Number(count) > 0;
+    });
+    auBreachCache.set(hash, breached);
+    return breached;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Wires the live feedback for one new-password pair, from the group's backend-injected data-* attributes.
+ *
+ * @param {HTMLElement} group - An .au-pw-group rendered by common/authPasswordFields.scala.html.
+ */
+function wirePasswordGroup(group) {
+  const pw = group.querySelector('.au-pw');
+  const pw2 = group.querySelector('.au-pw-confirm');
   if (!pw) return;
 
-  const rules = [...document.querySelectorAll('#sign-up-pw-rules li[data-rule-regex]')]
+  const rules = [...group.querySelectorAll('.au-checklist li[data-rule-regex]')]
     .map((li) => ({ li, regex: new RegExp(li.dataset.ruleRegex) }));
-  const slabs = [...document.querySelectorAll('#sign-up-pw-strength span')];
-  const strengthWord = document.getElementById('sign-up-pw-strength-word');
-  const match = document.getElementById('sign-up-pw-match');
-  const matchText = document.getElementById('sign-up-pw-match-text');
+  const slabs = [...group.querySelectorAll('.au-pw-slabs span')];
+  const strengthWord = group.querySelector('.au-pw-strength-word');
+  const breachWarning = group.querySelector('.au-pw-breach');
+  const match = group.querySelector('.au-pw-match');
+  const matchText = group.querySelector('.au-match-text');
+  const breachUrl = group.dataset.breachUrl;
+  let breachTimer;
+  let breachedValue = null;
 
   const update = () => {
     let met = 0;
@@ -59,23 +100,61 @@ function wireLiveValidation() {
       li.classList.toggle('met', ok);
       if (ok) met++;
     });
-    slabs.forEach((slab, i) => slab.classList.toggle('paved', i < met));
+    // A password in a breach corpus is weak however many composition rules it passes, so the meter says so too.
+    const breached = breachedValue !== null && breachedValue === pw.value;
+    const shown = breached ? Math.min(met, 1) : met;
+    breachWarning?.classList.toggle('ps-hidden', !breached);
+    slabs.forEach((slab, i) => slab.classList.toggle('paved', i < shown));
     if (strengthWord) {
-      strengthWord.textContent = pw.value ? strengthWord.dataset[`word${met}`] || '' : '';
+      strengthWord.textContent = pw.value ? strengthWord.dataset[`word${shown}`] || '' : '';
     }
-    if (match && matchText) {
+    if (match && matchText && pw2) {
       const same = pw.value.length > 0 && pw.value === pw2.value;
       match.classList.toggle('met', same);
       match.classList.toggle('unmet', pw2.value.length > 0 && !same);
       matchText.textContent = pw2.value && !same ? match.dataset.labelNoMatch : match.dataset.labelMatch;
     }
   };
-  pw.addEventListener('input', update);
-  pw2?.addEventListener('input', update);
 
+  /**
+   * Schedules the breach lookup for the current value, once typing pauses. Only a password that already satisfies
+   * the composition rules is looked up; a half-typed one would spend a request to say what the checklist says.
+   */
+  const scheduleBreachCheck = () => {
+    clearTimeout(breachTimer);
+    const value = pw.value;
+    if (breachedValue !== null && breachedValue !== value) {
+      breachedValue = null; // A verdict only speaks for the exact value it was fetched for.
+    }
+    if (!breachUrl || !window.crypto?.subtle || !rules.every(({ regex }) => regex.test(value))) return;
+    breachTimer = setTimeout(async () => {
+      if (await isBreachedPassword(value, breachUrl) && pw.value === value) {
+        breachedValue = value;
+        update();
+      }
+    }, AU_BREACH_DEBOUNCE_MS);
+  };
+
+  pw.addEventListener('input', () => {
+    scheduleBreachCheck();
+    update();
+  });
+  pw2?.addEventListener('input', update);
+}
+
+/**
+ * Wires every new-password group on the page plus the username-rule indicator, all from backend-injected
+ * data-rule-regex attributes. No-ops on surfaces without those fields (e.g. the sign-in-only ones).
+ *
+ * @param {ParentNode} root - The subtree holding the auth forms.
+ */
+function wireLiveValidation(root) {
+  root.querySelectorAll('.au-pw-group').forEach(wirePasswordGroup);
+
+  const username = root.querySelector('#sign-up-username');
   if (username?.dataset.ruleRegex) {
     const usernameRegex = new RegExp(username.dataset.ruleRegex);
-    const rule = document.getElementById('sign-up-username-rule');
+    const rule = root.querySelector('#sign-up-username-rule');
     username.addEventListener('input', () => {
       const ok = usernameRegex.test(username.value);
       rule?.classList.toggle('met', ok);
@@ -185,7 +264,7 @@ function wireAsyncSubmit(form) {
  */
 function enhanceAuthForms(root) {
   root.querySelectorAll('.au-eye').forEach(wireEyeToggle);
-  wireLiveValidation();
+  wireLiveValidation(root);
   wireAsyncSubmit(root.querySelector('#sign-in-form'));
   wireAsyncSubmit(root.querySelector('#sign-up-form'));
 }

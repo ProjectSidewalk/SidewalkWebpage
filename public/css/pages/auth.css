@@ -232,7 +232,14 @@ dialog.au-dialog::backdrop {
   outline-offset: 2px;
 }
 
-/* ---- Live validation (sign-up) ------------------------------------------------------------------------------ */
+/* Wrapping the pair costs it .au-form's row gap — it is one flex child now — so re-supply the same gap here. */
+.au-pw-group {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ---- Live validation (new-password fields) ----------------------------------------------------------------------- */
 .au-checklist {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -341,6 +348,27 @@ dialog.au-dialog::backdrop {
   gap: 7px;
   font: var(--text-caption-medium);
   color: var(--color-neutral-700);
+}
+
+/* Amber, not red: this never blocks the submit, so it must not read as a field error. Orange-700 on banana-100
+   clears AA at this size. */
+.au-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--color-banana-100);
+  font: var(--text-caption-medium);
+  color: var(--color-orange-700);
+}
+
+.au-warning svg {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+  margin-top: 1px;
 }
 
 /* ---- Inline errors ------------------------------------------------------------------------------------------ */

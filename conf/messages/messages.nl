@@ -394,6 +394,7 @@ authenticate.pw.strength.1 = Zwak
 authenticate.pw.strength.2 = Oké
 authenticate.pw.strength.3 = Goed
 authenticate.pw.strength.4 = Sterk
+authenticate.pw.breached = Dit wachtwoord komt voor in een bekend datalek. Kies een ander wachtwoord.
 authenticate.create.account = Mijn account aanmaken
 authenticate.new.detail = Nieuw bij Project Sidewalk? <a href="#" id="form-open-sign-up">Maak een account</a>
 authenticate.new.detail.link = Nieuw bij Project Sidewalk? <a href="{0}">Maak een account</a>

@@ -416,6 +416,7 @@ authenticate.pw.strength.1 = Faible
 authenticate.pw.strength.2 = Correct
 authenticate.pw.strength.3 = Bon
 authenticate.pw.strength.4 = Fort
+authenticate.pw.breached = Ce mot de passe est apparu dans une fuite de données connue. Veuillez en choisir un autre.
 authenticate.create.account = Créer mon compte
 authenticate.new.detail = Nouveau sur Project Sidewalk ? <a href="#" id="form-open-sign-up">Créez un compte</a>
 authenticate.new.detail.link = Nouveau sur Project Sidewalk ? <a href="{0}">Créez un compte</a>

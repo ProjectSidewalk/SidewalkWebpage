@@ -471,6 +471,7 @@ authenticate.pw.strength.1 = 弱
 authenticate.pw.strength.2 = 尚可
 authenticate.pw.strength.3 = 良好
 authenticate.pw.strength.4 = 強
+authenticate.pw.breached = 此密碼曾出現在已知的資料外洩事件中，請改用其他密碼。
 authenticate.create.account = 建立我的帳號
 authenticate.new.detail = 第一次使用 Project Sidewalk？<a href="#" id="form-open-sign-up">建立帳號</a>
 authenticate.new.detail.link = 第一次使用 Project Sidewalk？<a href="{0}">建立帳號</a>

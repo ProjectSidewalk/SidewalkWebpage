@@ -410,6 +410,7 @@ authenticate.pw.strength.1 = Weak
 authenticate.pw.strength.2 = Okay
 authenticate.pw.strength.3 = Good
 authenticate.pw.strength.4 = Strong
+authenticate.pw.breached = This password has shown up in a known data breach. Please pick a different one.
 authenticate.create.account = Create my account
 authenticate.new.detail = New to Project Sidewalk? <a href="#" id="form-open-sign-up">Create an account</a>
 authenticate.new.detail.link = New to Project Sidewalk? <a href="{0}">Create an account</a>
