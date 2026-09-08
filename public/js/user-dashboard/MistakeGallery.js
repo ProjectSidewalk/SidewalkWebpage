@@ -100,12 +100,11 @@ class MistakeGallery {
     const card = document.createElement('figure');
     card.className = 'ud-card';
 
-    // Mark the label on the pano at its real position (canvas_x/y over the 720x480 Explore canvas), the same way
-    // the Gallery does — the label is NOT necessarily centered. The image is a 3:2 crop of the pano so the
-    // percentages line up. Falls back to the icon centered on the gradient if there's no pano image.
+    // Mark the label at its real position (canvas_x/y over the 720x480 Explore canvas), the same way the Gallery
+    // does — the label is NOT necessarily centered, and both image sources are 3:2 views of that same canvas.
     const img = document.createElement('div');
     img.className = 'ud-card-img';
-    if (m.image_url) img.style.backgroundImage = `url("${m.image_url}")`;
+    if (m.crop_url || m.image_url) img.appendChild(MistakeGallery.#photo(m));
     if (iconPath) {
       const canvasW = (typeof util !== 'undefined' && util.EXPLORE_CANVAS_WIDTH) || 720;
       const canvasH = (typeof util !== 'undefined' && util.EXPLORE_CANVAS_HEIGHT) || 480;
@@ -362,6 +361,33 @@ class MistakeGallery {
       console.error('Failed to save note', e);
       sec.querySelectorAll('button, textarea, a').forEach((el) => el.removeAttribute('disabled'));
     }
+  }
+
+  /**
+     * The card's image, preferring the label's saved crop (#4478): it is what the labeler saw, and it comes off our
+     * own disk where the Static API image is billed per request. That also sets `loading` — a crop is free to warm,
+     * an API image isn't billed until scrolled to. A crop's URL expires, so a failure retries the API image, and a
+     * second failure leaves the wrapper's gradient. Alt is empty: the card's title names the label type below it.
+     *
+     * @param {Object} m - The label record.
+     * @returns {HTMLImageElement}
+     */
+  static #photo(m) {
+    const photo = document.createElement('img');
+    photo.className = 'ud-card-photo';
+    photo.alt = '';
+    photo.loading = m.crop_url && !util.saveDataEnabled() ? 'eager' : 'lazy';
+    photo.addEventListener('error', () => {
+      if (photo.dataset.udSource === 'crop' && m.image_url) {
+        photo.dataset.udSource = 'api';
+        photo.src = m.image_url;
+      } else {
+        photo.remove();
+      }
+    });
+    photo.dataset.udSource = m.crop_url ? 'crop' : 'api';
+    photo.src = m.crop_url || m.image_url;
+    return photo;
   }
 
   /**

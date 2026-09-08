@@ -239,7 +239,18 @@ object LabelFormats {
     )
   }
 
-  def labelMetadataUserDashToJson(label: LabelMetadataUserDash, imageUrl: Option[String]): JsObject = {
+  /**
+   * Serializes a label for the user dashboard's mistake cards. Both image URLs go out because the card prefers the
+   * crop (#4478) but a crop's signed URL expires, leaving `image_url` as the fallback.
+   *
+   * @param cropUrl The label's saved crop, if one is on disk.
+   * @param imageUrl The Street View Static API image at the label's POV.
+   */
+  def labelMetadataUserDashToJson(
+      label: LabelMetadataUserDash,
+      cropUrl: Option[String],
+      imageUrl: Option[String]
+  ): JsObject = {
     Json.obj(
       "label_id"          -> label.labelId,
       "pano_id"           -> label.panoId,
@@ -251,6 +262,7 @@ object LabelFormats {
       "label_type"        -> label.labelType.name,
       "time_validated"    -> label.timeValidated,
       "validator_comment" -> label.validatorComment,
+      "crop_url"          -> cropUrl,
       "image_url"         -> imageUrl
     )
   }

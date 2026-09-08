@@ -723,8 +723,14 @@
   aspect-ratio: 3 / 2; /* Match the Explore canvas (720x480) so the label marker lines up, like the Gallery. */
   overflow: hidden;
   background: linear-gradient(135deg, var(--color-neutral-200), var(--color-neutral-400));
-  background-size: cover;
-  background-position: center;
+}
+
+/* Sits over the wrapper's gradient, which is what a card whose every image source failed falls back to. */
+.ud-card-photo {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 /* The label's own icon, placed over the pano at the label's canvas position (left/top set inline) to mark exactly
