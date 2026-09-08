@@ -29,7 +29,7 @@ class CropGenerationActorSpec extends PlaySpec with BeforeAndAfterAll with Event
   private val system                        = ActorSystem("CropGenerationActorSpec")
   implicit private val ec: ExecutionContext = system.dispatcher
 
-  private val result = CropRunResult(1, 2, 3, 4, 5, 6, 7, 8)
+  private val result = CropRunResult(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 8192, 11)
 
   override def afterAll(): Unit = {
     val _ = Await.result(system.terminate(), 10.seconds)

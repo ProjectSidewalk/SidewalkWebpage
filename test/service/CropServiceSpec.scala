@@ -103,7 +103,7 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPe
   // The run under test happens once, in beforeAll, and every case reads its result — rather than the first case
   // running it and the rest asserting on what it left, which passes vacuously for any case run on its own.
   private var beforeRun: Map[String, (Boolean, Option[Boolean])] = Map.empty
-  private var firstRun: CropRunResult                            = CropRunResult(0, 0, 0, 0, 0, 0, 0, 0)
+  private var firstRun: CropRunResult                            = CropRunResult(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 
   /** Where `localBackupImageFile` resolves a pano for this city. */
   private def storeFile(panoId: String): File = storeFile(panoId, s"$panoId.png")
@@ -247,6 +247,9 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPe
     val preexisting = cropFile(preexistingPanoId)
     val _           = preexisting.getParentFile.mkdirs()
     val _           = Files.write(preexisting.toPath, preexistingCropBytes)
+    // Exactly one wide pano arrives at the run with its display sidecar already written, so the coverage count has
+    // both answers to find. Later cases plant and delete their own; the counts here are frozen before any of that.
+    val _ = plantSidecar(backedPanoId)
 
     beforeRun = seeded.keys.map(panoId => panoId -> (cropFile(panoId).exists(), hasBackup(panoId))).toMap
     firstRun = generate()
@@ -376,6 +379,28 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPe
       (crop.lastModified(), crop.length()) mustBe before
     }
 
+    "count the wide panos that have a display sidecar, and the ones that don't" in {
+      // The app no longer writes these copies, so this count is the only thing that would notice the scraper having
+      // stopped. Only `backedPanoId`'s sidecar exists in the store, and it is the one planted before the run.
+      firstRun.sidecarsPresent mustBe 1
+      firstRun.sidecarsMissing must be > 0
+      // Recorded so a later reader can tell which cap the coverage was measured against, without guessing at the
+      // configuration of the day — the scraper holds the same number and nothing can cross-check the two.
+      firstRun.sidecarMaxWidth mustBe DownscaledMaxWidth
+    }
+
+    "ask only about backed-up panos the cap actually concerns" in {
+      // Membership rather than a total: this database holds rows other specs left behind, so the run's counts are a
+      // floor, and the query is what decides which panos they describe.
+      val wide = runDb(panoDataTable.getWideBackupPanos(DownscaledMaxWidth)).toMap
+      wide.get(backedPanoId) mustBe Some(Some(PanoW))
+      // Under the cap and backed up: nothing to display a copy of, so it is neither present nor missing.
+      wide.contains(narrowPanoId) mustBe false
+      // A row that records no width can't be judged without opening the pano, which is the cost this design avoids.
+      wide.get(unrecordedPanoId) mustBe Some(None)
+      firstRun.sidecarWidthUnknown must be > 0
+    }
+
     "run one at a time, refusing a second call while the first is in flight" in {
       val first = cropService.generateMissingCrops()
       try {
@@ -430,8 +455,9 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPe
     }
 
     "pass over a sidecar that is not at the cap, rather than serve it" in {
-      // The name promises the cap; the header is what proves it. A truncated or mis-sized copy would leave the
-      // viewer with a texture it can't map, so the native file is the safer answer.
+      // The name promises the cap; the header is what proves it, so a mis-sized copy leaves the viewer the native
+      // file rather than a texture it can't map. Truncation is a different matter — a JPEG's SOF marker is in the
+      // first few hundred bytes, so a cut-off file still reports its full width; the scraper's rename prevents that.
       val url     = signingService.signedUrl(s"/backupImage/$backedPanoId")
       val sidecar = plantSidecar(backedPanoId, width = DownscaledMaxWidth / 2)
       try {

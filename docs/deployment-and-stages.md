@@ -317,7 +317,9 @@ it is needed. Dev and test runs (`sbt run`, the test suites) skip the check.
 to be local and writable by the app's user. The pano store they are cut *from* is read-only to that user, which is
 right for a store nothing in the app writes. The downscaled display copies of panos too wide for a WebGL texture live
 in that store too, as `<panoId>.w8192.jpg` sidecars the scraper writes beside the native file (#5239); the app only
-reads them, and finds a native pano by exact name, so a sidecar is never mistaken for one.
+reads them, and finds a native pano by exact name, so a sidecar is never mistaken for one. They are the one derived
+thing in an otherwise irreplaceable directory — a `.w*.jpg` costs a re-run of the scraper's backfill, nothing more, so
+anything copying that directory can skip them.
 
 The fatal tier is deliberate for irreplaceable content: accepting a photo we already know the next release will
 delete is worse than not starting, and since `develop` redeploys **test** while prod waits for a release tag, a

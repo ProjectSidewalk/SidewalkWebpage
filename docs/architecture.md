@@ -96,7 +96,9 @@ swappable, versioned sizing rule) and `CropGeometry` (equirectangular mechanics)
 native file as `<panoId>.w8192.jpg`; `/backupImage/:panoId` serves it in place of the native file when it exists,
 and the viewer can't tell, because it places markers by angle. The app never cuts that copy itself: a whole-pano
 derivative needs more heap than a city stage has, and cutting one nightly for every wide pano OOM-killed prod JVMs
-(#5239). Imagery Project Sidewalk shows a copy of — a self-hosted pano or a crop — carries the attribution
+(#5239). It does *count* them — the nightly job stats the expected sidecar for every wide pano and records
+`sidecars_present`/`sidecars_missing` on its run row, warning when any are missing, because otherwise a scraper that
+had stopped writing them would show up only as a viewer failing to render, months later. Imagery Project Sidewalk shows a copy of — a self-hosted pano or a crop — carries the attribution
 `ImageryAttribution` composes (Mapillary contributors are CC BY-SA 4.0), rendered by `PanoAttribution.js` in the
 label-detail pano box and in Validate's Pannellum fallback (`css/components/pano-attribution.css` is the shared look;
 each host positions the pill).

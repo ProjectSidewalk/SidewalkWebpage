@@ -48,6 +48,10 @@ object CropService {
    * skipped on a dimension mismatch, skipped as out of frame, or errored; `shiftedVertically` and `dimsUnverified`
    * annotate crops that were written, the first with the label off-centre and the second without a recorded frame to
    * check the label's position against.
+   *
+   * The `sidecar*` counts are the run's other job: not what it wrote, but what the scraper did. `sidecarsMissing` is
+   * the number a viewer would fail on today, and `sidecarWidthUnknown` the panos whose recorded width can't say
+   * whether they need one.
    */
   case class CropRunResult(
       panosOpened: Int,
@@ -57,6 +61,10 @@ object CropService {
       outOfFrame: Int,
       dimsMismatch: Int,
       dimsUnverified: Int,
+      sidecarsPresent: Int,
+      sidecarsMissing: Int,
+      sidecarWidthUnknown: Int,
+      sidecarMaxWidth: Int,
       errors: Int
   ) {
 
@@ -65,19 +73,25 @@ object CropService {
       s"Crop generation (rule ${CropSizingRule.Version}): opened $panosOpened panos, wrote $cropsWritten crops " +
         s"($shiftedVertically shifted to stay inside the pano, $dimsUnverified against a pano whose dimensions the " +
         s"database doesn't record); skipped $panosWithoutBackup panos with no self-hosted image, $dimsMismatch labels " +
-        s"on a dimension mismatch and $outOfFrame labels outside the image; $errors errors."
+        s"on a dimension mismatch and $outOfFrame labels outside the image; found $sidecarsPresent of " +
+        s"${sidecarsPresent + sidecarsMissing} wide panos with a ${sidecarMaxWidth}px display sidecar " +
+        s"($sidecarWidthUnknown of unrecorded width); $errors errors."
 
     /** The counts as stored against the run's `background_job_run` row, shared by the nightly and manual triggers. */
     def runDetails: JsObject = Json.obj(
-      "crop_rule_version"    -> CropSizingRule.Version,
-      "panos_opened"         -> panosOpened,
-      "panos_without_backup" -> panosWithoutBackup,
-      "crops_written"        -> cropsWritten,
-      "shifted_vertically"   -> shiftedVertically,
-      "out_of_frame"         -> outOfFrame,
-      "dims_mismatch"        -> dimsMismatch,
-      "dims_unverified"      -> dimsUnverified,
-      "errors"               -> errors
+      "crop_rule_version"     -> CropSizingRule.Version,
+      "panos_opened"          -> panosOpened,
+      "panos_without_backup"  -> panosWithoutBackup,
+      "crops_written"         -> cropsWritten,
+      "shifted_vertically"    -> shiftedVertically,
+      "out_of_frame"          -> outOfFrame,
+      "dims_mismatch"         -> dimsMismatch,
+      "dims_unverified"       -> dimsUnverified,
+      "sidecars_present"      -> sidecarsPresent,
+      "sidecars_missing"      -> sidecarsMissing,
+      "sidecar_width_unknown" -> sidecarWidthUnknown,
+      "sidecar_max_width"     -> sidecarMaxWidth,
+      "errors"                -> errors
     )
   }
 
@@ -121,14 +135,16 @@ object CropService {
  * generation is idempotent and order-independent, so a label can't be stranded by arriving before its pano's pixels,
  * and a change to the crop geometry is a matter of deleting the store and letting the job rebuild it. The job cuts
  * label-sized windows only — never a whole-pano derivative, which a 1.5 GB web-app heap cannot afford (#5239); the
- * downscaled display copy of a wide pano is the scraper's to write, beside the native file.
+ * downscaled display copy of a wide pano is the scraper's to write, beside the native file. The run does count those
+ * copies, because nothing else would: see [[CropService.generateMissingCrops]].
  */
 @ImplementedBy(classOf[CropServiceImpl])
 trait CropService {
 
   /**
-   * Cuts a crop for every live label that has none and whose pano has a self-hosted image. At most one run at a
-   * time: a second call while one is in flight fails with [[IllegalStateException]].
+   * Cuts a crop for every live label that has none and whose pano has a self-hosted image, then counts how many wide
+   * panos have the display sidecar the scraper owes them. At most one run at a time: a second call while one is in
+   * flight fails with [[IllegalStateException]].
    */
   def generateMissingCrops(): Future[CropRunResult]
 
@@ -157,10 +173,11 @@ class CropServiceImpl @Inject() (
   /** Mutable tallies for one run; `result` freezes them. */
   private class Counts {
     var panosOpened, panosWithoutBackup, cropsWritten, shiftedVertically, outOfFrame, dimsMismatch, dimsUnverified,
-        errors = 0
+        sidecarsPresent, sidecarsMissing, sidecarWidthUnknown, errors = 0
 
     def result: CropRunResult = CropRunResult(
-      panosOpened, panosWithoutBackup, cropsWritten, shiftedVertically, outOfFrame, dimsMismatch, dimsUnverified, errors
+      panosOpened, panosWithoutBackup, cropsWritten, shiftedVertically, outOfFrame, dimsMismatch, dimsUnverified,
+      sidecarsPresent, sidecarsMissing, sidecarWidthUnknown, panoDataService.downscaledMaxWidth, errors
     )
   }
 
@@ -179,10 +196,50 @@ class CropServiceImpl @Inject() (
             candidates <- cropCandidates(existing)
             backed     <- Future(cutCrops(candidates, counts))(cpuEc)
             _          <- markHasBackup(backed)
+            _          <- countSidecars(counts)
           } yield counts.result
         }
         .andThen { case _ => running.set(false) }
     }
+  }
+
+  /**
+   * Counts how many wide panos have the downscaled display sidecar the scraper writes beside them (#5239).
+   *
+   * The app stopped cutting that copy because doing so OOM-killed prod JVMs, and nothing else watches it: the
+   * scraper's write is deliberately never fatal, so a mount going read-only, a city whose backfill never ran, or a
+   * `pano.downscaled.max-width` changed on one side of the two repos that hold it would all be invisible until a
+   * user opened an expired wide pano and got a texture their browser can't map. A missing sidecar is exactly that
+   * failure, counted the night it appears instead of whenever someone happens to look.
+   *
+   * Deliberately cheap enough to belong in a job that has to stay inside a 1.5 GB heap: one `stat` per pano, no
+   * decode, no native file opened, and the ids are streamed rather than collected, so peak memory is a row.
+   */
+  private def countSidecars(counts: Counts): Future[Unit] = {
+    val maxWidth = panoDataService.downscaledMaxWidth
+    Source
+      .fromPublisher(
+        db.stream(panoDataTable.getWideBackupPanos(maxWidth).transactionally.withStatementParameters(fetchSize = 1000))
+      )
+      // On cpuEc because a stat is blocking, and the materializer's dispatcher is the one serving requests.
+      .mapAsync(1) { case (panoId, width) =>
+        Future {
+          if (width.isEmpty) counts.sidecarWidthUnknown += 1
+          else if (panoDataService.downscaledImageFile(panoId).isFile) counts.sidecarsPresent += 1
+          else counts.sidecarsMissing += 1
+        }(cpuEc)
+      }
+      .runWith(Sink.ignore)
+      .map { _ =>
+        if (counts.sidecarsMissing > 0) {
+          logger.warn(
+            s"${counts.sidecarsMissing} of ${counts.sidecarsPresent + counts.sidecarsMissing} wide panos have no " +
+              s"${maxWidth}px display sidecar; /backupImage is serving those at native width, which a pano viewer " +
+              s"may not be able to render. The scraper writes them as <panoId>.w$maxWidth.jpg — check that its own " +
+              s"width cap still matches pano.downscaled.max-width, and that its backfill has run for this city."
+          )
+        }
+      }
   }
 
   private val CropFileName = """crop_(\d+)\.png""".r
