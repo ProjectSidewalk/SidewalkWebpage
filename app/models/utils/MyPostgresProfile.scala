@@ -3,7 +3,7 @@ package models.utils
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.github.tminglei.slickpg._
 import com.github.tminglei.slickpg.geom.PgPostGISExtensions
-import models.label.{AiImageSource, ComputationMethod, LabelTypeEnum}
+import models.label.{AiImageSource, ComputationMethod, LabelTypeEnum, StreetSide}
 import models.mission.MissionType
 import models.pano.{PanoImageryChangeSource, PanoSource}
 import models.street.{StreetEdgeIssueType, StreetEdgeStatus, StreetEdgeStatusChangeSource, StreetImagerySource, WayType}
@@ -203,6 +203,10 @@ trait MyPostgresProfile
         ComputationMethod.withName,
         quoteName = false
       )
+
+    // Mapper for street_side enum type.
+    implicit val streetSideMapper: BaseColumnType[StreetSide.Value] =
+      createEnumJdbcType[StreetSide.Value]("street_side", _.toString, StreetSide.withName, quoteName = false)
 
     // Mapper for street_edge_issue_type enum type.
     implicit val streetEdgeIssueTypeMapper: BaseColumnType[StreetEdgeIssueType.Value] =
