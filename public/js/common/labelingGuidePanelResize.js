@@ -48,8 +48,15 @@ function updateSidebarForScrollState() {
       const yOffset = document.body.clientHeight - footerHeight - infoFooterHeight - panelRect.height
         - panelDistanceFromTop;
       if (window.pageYOffset > yOffset) {
-        panel.style.top = `${yOffset}px`;
         $('#help-panel').addClass('stuck-sidebar').removeClass('sidebar').removeClass('not-sidebar');
+
+        // yOffset is a document-space y, but `top` on the now-absolute panel resolves against its offset parent's
+        // padding box (the Bootstrap column, which is position: relative), so it has to be rebased or the panel
+        // lands the column's own distance from the top of the document too low and overlaps the footer. The class
+        // has to go on first: offsetParent reads null while the panel is still position: fixed.
+        const column = panel.offsetParent;
+        const columnTop = column ? column.getBoundingClientRect().top + window.pageYOffset + column.clientTop : 0;
+        panel.style.top = `${yOffset - columnTop}px`;
       } else if (window.pageYOffset < yOffset) {
         panel.style.top = `${panelDistanceFromTop}px`;
         $('#help-panel').addClass('sidebar').removeClass('stuck-sidebar').removeClass('not-sidebar');
