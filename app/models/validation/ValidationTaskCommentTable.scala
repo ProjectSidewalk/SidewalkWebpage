@@ -69,6 +69,7 @@ class ValidationTaskCommentTable @Inject() (
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   val validationTaskComments = TableQuery[ValidationTaskCommentTableDef]
+  val commentHistory         = TableQuery[ValidationTaskCommentHistoryTableDef]
   val users                  = TableQuery[SidewalkUserTableDef]
 
   def insert(comment: ValidationTaskComment): DBIO[Int] = {
@@ -76,16 +77,28 @@ class ValidationTaskCommentTable @Inject() (
   }
 
   /**
-   * Deletes a user's comment(s) on a label, if any. Called when they replace or clear their validation of it.
+   * Copies a user's comment on a label into `validation_task_comment_history`, then removes it from the live table.
+   *
+   * The only way a comment leaves this table, so a validator's words outlive every path that stops showing them
+   * (#5076). One transaction, so no comment vanishes unrecorded and no surviving comment gains a version.
    *
    * Scoped by user rather than by mission: a comment belongs to whoever wrote it, and the mission it was written under
    * has usually rolled over by the time the same user revisits the label from a label card (#4653). Matching on the
    * current mission would strand the old comment on a label whose validation had just been replaced or cleared.
    *
-   * @return Count of comments deleted, 0 or 1 — (label_id, user_id) is UNIQUE.
+   * @param changeType What is removing the comment, which a later reader cannot recover from the rows alone.
+   * @return Count of comments archived, 0 or 1 — (label_id, user_id) is UNIQUE.
    */
-  def deleteIfExists(labelId: Int, userId: String): DBIO[Int] = {
-    validationTaskComments.filter(comment => comment.labelId === labelId && comment.userId === userId).delete
+  def archive(labelId: Int, userId: String, changeType: ValidationCommentChangeType.Value): DBIO[Int] = {
+    val liveComment = validationTaskComments.filter(c => c.labelId === labelId && c.userId === userId)
+    (for {
+      superseded <- liveComment.result
+      _          <- commentHistory ++= superseded.map(c =>
+        ValidationTaskCommentHistory(0, c.validationTaskCommentId, c.missionId, c.labelId, c.userId, c.ipAddress,
+          c.panoId, c.heading, c.pitch, c.zoom, c.lat, c.lng, c.timestamp, c.comment, OffsetDateTime.now, changeType)
+      )
+      deleted <- liveComment.delete
+    } yield deleted).transactionally
   }
 
   /**

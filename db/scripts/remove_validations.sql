@@ -8,6 +8,8 @@
 --
 -- Other tables touched by this script (no FK to label_validation, but logically tied):
 --   validation_task_comment (label_id + user_id + mission_id match the validation)
+--   validation_task_comment_history (superseded versions of those comments; erased with them, since a version left
+--                            behind would outlive the only comment it is a version of)
 --   label                   (agree_count / disagree_count / unsure_count / correct need a refresh)
 --   user_stat               (own_labels_validated + accuracy derive from label.correct)
 --   mission                 (labels_validated / labels_progress — NOT updated here; see note below)
@@ -65,6 +67,13 @@ SELECT 'matching_comments',        COUNT(*) FROM validation_task_comment c
         SELECT 1 FROM label_validation lv
         JOIN validations_to_remove USING (label_validation_id)
         WHERE lv.label_id = c.label_id AND lv.user_id = c.user_id AND lv.mission_id = c.mission_id
+    )
+UNION ALL
+SELECT 'matching_comment_versions', COUNT(*) FROM validation_task_comment_history h
+    WHERE EXISTS (
+        SELECT 1 FROM label_validation lv
+        JOIN validations_to_remove USING (label_validation_id)
+        WHERE lv.label_id = h.label_id AND lv.user_id = h.user_id
     );
 
 -- ---------------------------------------------------------------------
@@ -89,8 +98,19 @@ DELETE FROM label_edit
 WHERE label_edit_id IN (SELECT label_edit_id FROM edits_to_remove);
 
 -- ---------------------------------------------------------------------
--- 5. Delete the validation_task_comment rows tied to these validations (by label_id + user_id + mission_id).
+-- 5. Delete the validation_task_comment rows tied to these validations (by label_id + user_id + mission_id), and the
+--    superseded versions of what those users said about those labels (#5076).
+--
+--    The versions are scoped without the mission: a version can predate the mission the validation was cast in, since
+--    missions roll over while a user's comment on a label stays theirs. Matching on mission would leave earlier
+--    versions behind as the only surviving record of a comment removed here.
 -- ---------------------------------------------------------------------
+DELETE FROM validation_task_comment_history h
+USING label_validation lv
+JOIN validations_to_remove USING (label_validation_id)
+WHERE h.label_id = lv.label_id
+    AND h.user_id = lv.user_id;
+
 DELETE FROM validation_task_comment c
 USING label_validation lv
 JOIN validations_to_remove USING (label_validation_id)
