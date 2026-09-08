@@ -178,7 +178,7 @@ class UserProfileController @Inject() (
                 val cropUrl: Option[String]     = panoDataService.cropUrl(l.labelId, l.labelType)
                 val gsvImageUrl: Option[String] =
                   panoDataService.getImageUrl(l.panoId, l.panoSource, l.pov.heading, l.pov.pitch, l.pov.zoom)
-                labelMetadataUserDashToJson(l, cropUrl, gsvImageUrl)
+                labelMetadataUserDashToJson(l, cropUrl = cropUrl, imageUrl = gsvImageUrl)
               }
             }.toMap)
             Ok(validationJson)

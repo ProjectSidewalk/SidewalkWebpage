@@ -37,7 +37,6 @@ describe('the dashboard mistake card\'s image', () => {
     const marker = () => document.querySelector('.ud-card-label-marker');
 
     let mistakes;
-    let saveData;
 
     /**
      * @param {object} [opts] Overrides for the MistakeGallery options.
@@ -56,14 +55,12 @@ describe('the dashboard mistake card\'s image', () => {
             EXPLORE_CANVAS_WIDTH: 720,
             EXPLORE_CANVAS_HEIGHT: 480,
             misc: { getIconImagePaths: (type) => ({ iconImagePath: `/assets/images/${type}_small.svg` }) },
-            saveDataEnabled: () => saveData,
         };
         window.eval(`${GALLERY_SRC}\nwindow.MistakeGallery = MistakeGallery;`);
     });
 
     beforeEach(() => {
         mistakes = [mistake()];
-        saveData = false;
         window.fetch = jest.fn(() =>
             Promise.resolve({ ok: true, json: () => Promise.resolve({ Obstacle: mistakes }) }));
     });
@@ -83,20 +80,21 @@ describe('the dashboard mistake card\'s image', () => {
         expect(photo().dataset.udSource).toBe('api');
     });
 
-    it('warms a crop eagerly but leaves the billed Street View image lazy', async () => {
+    // The section sits well down the dashboard, so an eager crop that failed off-screen would fetch the billed image
+    // for a card nobody scrolled to.
+    it('leaves both sources lazy', async () => {
         mistakes = [mistake(), mistake({ label_id: 502, crop_url: null })];
         await renderGallery();
 
-        const [crop, api] = Array.from(document.querySelectorAll('.ud-card-photo'));
-        expect(crop.loading).toBe('eager');
-        expect(api.loading).toBe('lazy');
+        expect(Array.from(document.querySelectorAll('.ud-card-photo')).map((p) => p.loading))
+            .toEqual(['lazy', 'lazy']);
     });
 
-    it('leaves even a crop lazy when the viewer has asked to save data', async () => {
-        saveData = true;
+    // The wrapper is the popup's click target, so a native image drag would swallow the press.
+    it('does not let the photo be dragged off the card', async () => {
         await renderGallery();
 
-        expect(photo().loading).toBe('lazy');
+        expect(photo().draggable).toBe(false);
     });
 
     it('falls back to the Street View image when the crop\'s signed URL has expired', async () => {
@@ -105,6 +103,16 @@ describe('the dashboard mistake card\'s image', () => {
 
         expect(photo().src).toBe(GSV_URL);
         expect(photo().dataset.udSource).toBe('api');
+    });
+
+    // getImageUrl returns None for any non-GSV pano source, and those labels are the ones this change newly gives a
+    // photo to -- they showed nothing before. The crop is their only source, so it has no second chance.
+    it('drops the photo on the first failure when the crop is the only source', async () => {
+        mistakes = [mistake({ image_url: null })];
+        await renderGallery();
+        photo().dispatchEvent(new window.Event('error'));
+
+        expect(photo()).toBeNull();
     });
 
     it('drops the photo when the Street View image fails too, leaving the wrapper\'s gradient', async () => {

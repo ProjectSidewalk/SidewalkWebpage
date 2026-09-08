@@ -28,9 +28,6 @@ class MistakeGallery {
     // Per-label response state shared between a card and the popup so they stay in sync in-session.
     this.responses = new Map(); // label_id -> { agrees: boolean|null, note: string }
     this.popupPanel = null; // the vote/note panel injected into the popup dialog
-    // Explore canvas dimensions (fallback if util.EXPLORE_CANVAS_* isn't loaded on this page).
-    this.canvasW = (window.util && util.EXPLORE_CANVAS_WIDTH) || 720;
-    this.canvasH = (window.util && util.EXPLORE_CANVAS_HEIGHT) || 480;
   }
 
   /** Returns (creating if needed) the mutable response state for a label. */
@@ -106,14 +103,16 @@ class MistakeGallery {
     img.className = 'ud-card-img';
     if (m.crop_url || m.image_url) img.appendChild(MistakeGallery.#photo(m));
     if (iconPath) {
-      const canvasW = (typeof util !== 'undefined' && util.EXPLORE_CANVAS_WIDTH) || 720;
-      const canvasH = (typeof util !== 'undefined' && util.EXPLORE_CANVAS_HEIGHT) || 480;
       const marker = document.createElement('img');
       marker.className = 'ud-card-label-marker';
       marker.src = iconPath;
       marker.alt = '';
-      marker.style.left = typeof m.canvas_x === 'number' ? `${(100 * m.canvas_x) / canvasW}%` : '50%';
-      marker.style.top = typeof m.canvas_y === 'number' ? `${(100 * m.canvas_y) / canvasH}%` : '50%';
+      marker.style.left = typeof m.canvas_x === 'number'
+        ? `${(100 * m.canvas_x) / util.EXPLORE_CANVAS_WIDTH}%`
+        : '50%';
+      marker.style.top = typeof m.canvas_y === 'number'
+        ? `${(100 * m.canvas_y) / util.EXPLORE_CANVAS_HEIGHT}%`
+        : '50%';
       img.appendChild(marker);
     }
     const verdict = document.createElement('span');
@@ -365,9 +364,10 @@ class MistakeGallery {
 
   /**
      * The card's image, preferring the label's saved crop (#4478): it is what the labeler saw, and it comes off our
-     * own disk where the Static API image is billed per request. That also sets `loading` — a crop is free to warm,
-     * an API image isn't billed until scrolled to. A crop's URL expires, so a failure retries the API image, and a
-     * second failure leaves the wrapper's gradient. Alt is empty: the card's title names the label type below it.
+     * own disk where the Static API image is billed per request. A crop's URL expires, so a failure retries the API
+     * image, and a second failure leaves the wrapper's gradient. Alt is empty: the card's title names the type below
+     * it. Lazy either way — the mistakes section sits well down the dashboard, and an eager crop that failed there
+     * would fetch the billed image for a card nobody scrolled to.
      *
      * @param {Object} m - The label record.
      * @returns {HTMLImageElement}
@@ -376,7 +376,8 @@ class MistakeGallery {
     const photo = document.createElement('img');
     photo.className = 'ud-card-photo';
     photo.alt = '';
-    photo.loading = m.crop_url && !util.saveDataEnabled() ? 'eager' : 'lazy';
+    photo.loading = 'lazy';
+    photo.draggable = false; // The wrapper is the popup's click target; a native image drag would swallow the press.
     photo.addEventListener('error', () => {
       if (photo.dataset.udSource === 'crop' && m.image_url) {
         photo.dataset.udSource = 'api';
