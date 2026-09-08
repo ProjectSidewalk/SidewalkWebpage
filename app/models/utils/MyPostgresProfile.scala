@@ -9,7 +9,7 @@ import models.pano.{PanoImageryChangeSource, PanoSource}
 import models.street.{StreetEdgeIssueType, StreetEdgeStatus, StreetEdgeStatusChangeSource, StreetImagerySource, WayType}
 import models.user.Role
 import models.utils.CommonUtils.{UiSource, ViewerType}
-import models.validation.ValidationOption
+import models.validation.{ValidationCommentChangeType, ValidationOption}
 import org.locationtech.jts.geom.{Geometry, LineString, MultiPolygon, Point}
 import org.n52.jackson.datatype.jts.JtsModule
 import play.api.libs.functional.syntax.{toFunctionalBuilderOps, unlift}
@@ -158,6 +158,15 @@ trait MyPostgresProfile
         "validation_option",
         _.toString,
         ValidationOption.withName,
+        quoteName = false
+      )
+
+    // Mapper for validation_comment_change_type enum type.
+    implicit val validationCommentChangeTypeMapper: BaseColumnType[ValidationCommentChangeType.Value] =
+      createEnumJdbcType[ValidationCommentChangeType.Value](
+        "validation_comment_change_type",
+        _.toString,
+        ValidationCommentChangeType.withName,
         quoteName = false
       )
 
