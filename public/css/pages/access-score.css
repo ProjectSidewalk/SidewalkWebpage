@@ -641,19 +641,6 @@
   transform: rotate(180deg);
 }
 
-/* City | Map view: the unit control's styling at caption size. */
-.acs-segmented--compact {
-  display: inline-grid;
-  grid-template-columns: none;
-  grid-auto-flow: column;
-  grid-auto-columns: auto;
-}
-
-.acs-segmented--compact .acs-segmented__option {
-  padding: 2px var(--space-xs);
-  font: var(--text-caption-medium);
-}
-
 .acs-dock__caption {
   color: var(--color-neutral-700);
 }

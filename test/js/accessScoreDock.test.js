@@ -1,9 +1,9 @@
 /**
  * Tests for AccessScoreDock (public/js/access-score/src/AccessScoreDock.js, #5217): the coordinator's composition
- * rules. Scope defines the population; a brush filters the drivers view and dims the map to scope ∩ brush; a hover
- * in a view outranks the brush on the map and never drops it; a selection fades everything but its neighborhood
- * once no brush is in force; every change lands in one animation frame; and a weight slider mid-drag redraws the
- * views but leaves the map's dim state alone.
+ * rules. The whole city is the population; a brush filters the drivers view and dims the map outside it; a hover in
+ * a view outranks the brush on the map and never drops it; a selection fades everything but its neighborhood once
+ * no brush is in force; every change lands in one animation frame; and a weight slider mid-drag redraws the views
+ * but leaves the map's dim state alone.
  */
 
 const {FIXTURE, stubI18next, stubUtilMisc, loadSources, feature, DOCK_HTML} = require('./support/accessScoreDockHarness');
@@ -44,11 +44,7 @@ describe('AccessScoreDock', () => {
         const features = FIXTURE.streets.map((c, i) =>
             feature(c, i, {region_id: i >= FIXTURE.streets.length - 3 ? 2 : 1}));
         model = new window.AccessScoreModel(FIXTURE.config, {type: 'FeatureCollection', features}, REGIONS);
-        mapView = {
-            setBrush: jest.fn(),
-            visibleStreetIds: jest.fn(() => new Set([1, 2, 3, 4, 5])),
-            visibleRegionIds: jest.fn(() => new Set([1])),
-        };
+        mapView = {setBrush: jest.fn()};
         map = {
             on: jest.fn(),
             getPadding: () => ({left: 0, top: 0, right: 0, bottom: 0}),
@@ -70,8 +66,8 @@ describe('AccessScoreDock', () => {
         expect(document.querySelectorAll('.acs-histogram__bin')).toHaveLength(20);
         expect(document.querySelectorAll('.acs-drivers__row')).toHaveLength(FIXTURE.config.scored_types.length);
         expect(document.querySelectorAll('.acs-rank__row')).toHaveLength(2);
-        expect(document.getElementById('acs-dock-scope-caption').textContent)
-            .toBe(`scope-caption-city · scope-streets count=${model.streetCount}`);
+        expect(document.getElementById('acs-dock-caption').textContent)
+            .toBe(`count-streets count=${model.streetCount}`);
         const kpis = document.getElementById('acs-dock-kpis');
         expect(kpis.querySelector('[data-kpi="kpi-streets"] .acs-kpi__value').textContent)
             .toBe(`kpi-of scored=${model.streetCount} total=${model.streetCount}`);
@@ -85,7 +81,7 @@ describe('AccessScoreDock', () => {
         expect(mapView.setBrush).toHaveBeenCalledTimes(1);
     });
 
-    test('a brush filters the drivers view to scope ∩ brush and dims the map outside it', () => {
+    test('a brush filters the drivers view and dims the map outside it', () => {
         dock.setBrush({from: 10, to: 20});
         flush();
         expect(lastBrush()).toEqual(idsInBins(10, 20));
@@ -107,15 +103,6 @@ describe('AccessScoreDock', () => {
         expect(document.getElementById('acs-dock-status').textContent)
             .toBe(document.getElementById('acs-dock-brush-text').textContent);
         expect(callbacks.log).toHaveBeenCalledWith('Brush', '50-100');
-
-        // Scope narrows the population; the brush is taken within it.
-        dock.setScope('viewport');
-        flush();
-        const inView = new Set([...idsInBins(10, 20)].filter((id) => id <= 5));
-        expect(lastBrush()).toEqual(inView);
-        expect(document.getElementById('acs-dock-scope-caption').textContent)
-            .toBe('scope-caption-viewport · scope-streets count=5');
-        expect(callbacks.log).toHaveBeenCalledWith('Scope', 'viewport');
 
         // Clearing lifts the dim and says so.
         document.getElementById('acs-dock-brush-clear').click();
@@ -198,9 +185,9 @@ describe('AccessScoreDock', () => {
     });
 
     test('carries a URL state and reports state changes for the URL', () => {
-        dock.applyUrlState({open: false, scope: 'viewport', brush: {from: 2, to: 4}});
+        dock.applyUrlState({open: false, brush: {from: 2, to: 4}});
         flush();
-        expect(dock.state).toEqual({open: false, scope: 'viewport', brush: {from: 2, to: 4}});
+        expect(dock.state).toEqual({open: false, brush: {from: 2, to: 4}});
         expect(document.getElementById('acs-dock').classList.contains('acs-dock--collapsed')).toBe(true);
         expect(document.getElementById('acs-dock-body').hidden).toBe(true);
         expect(document.getElementById('acs-dock-toggle').getAttribute('aria-expanded')).toBe('false');

@@ -171,18 +171,7 @@
             <img class="acs-dock__chevron" src="@assets.path("images/icons/chevron-down-feather.svg")" alt="">
             <span id="acs-dock-title" data-i18n="accessscore:dock-title">Insights</span>
           </button>
-          <div class="acs-segmented acs-segmented--compact acs-dock__scope" role="radiogroup" aria-label="Scope" data-i18n-aria-label="accessscore:scope">
-            <label class="acs-segmented__option" for="acs-scope-city">
-              <input type="radio" name="acs-scope" id="acs-scope-city" value="city" checked>
-              <span data-i18n="accessscore:scope-city">City</span>
-            </label>
-            <label class="acs-segmented__option" for="acs-scope-viewport">
-              <input type="radio" name="acs-scope" id="acs-scope-viewport" value="viewport">
-              <span data-i18n="accessscore:scope-viewport">Map view</span>
-            </label>
-          </div>
-          @info("scope-help")
-          <span id="acs-dock-scope-caption" class="acs-dock__caption"></span>
+          <span id="acs-dock-caption" class="acs-dock__caption"></span>
           @* The legend while the band is collapsed: the ramp with its ends and a caret at the hovered score. The
              expanded band's histogram carries the same information with the distribution on top of it. *@
           <div id="acs-dock-strip" class="acs-dock__strip" role="img" aria-label="AccessScore legend" data-i18n-aria-label="accessscore:legend">

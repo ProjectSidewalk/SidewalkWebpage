@@ -145,11 +145,16 @@ class MapSidebarDrawer {
 
   /**
    * Publishes the drawer's live width on its parent as `--filter-sidebar-width`, so an overlay positioned beside
-   * the drawer (the AccessScore legend, and the insights dock after it) can follow a drag. A resize writes an
-   * inline width, so a stylesheet that hardcodes the 350px default detaches from the drawer's edge mid-drag.
+   * the drawer (the AccessScore insights band) can follow a drag — a resize writes an inline width, so a
+   * stylesheet that hardcodes the 350px default detaches from the drawer's edge mid-drag — and how much of the
+   * map's left edge the drawer covers as `--map-inset-left` (zero when closed or covering the map), so something
+   * centered over the map (the status pill) centers on the part the reader can see.
    */
   #publishWidth() {
-    this.#sidebar.parentElement?.style.setProperty('--filter-sidebar-width', `${this.#sidebar.offsetWidth}px`);
+    const style = this.#sidebar.parentElement?.style;
+    if (!style) return;
+    style.setProperty('--filter-sidebar-width', `${this.#sidebar.offsetWidth}px`);
+    style.setProperty('--map-inset-left', `${this.#appliedPaddingLeft ?? 0}px`);
   }
 
   /** Re-derives the drawer and the camera from the new breakpoint. */

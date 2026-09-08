@@ -5,12 +5,11 @@
  *
  * Three composition rules keep the views agreeing with each other:
  *
- * 1. **Scope defines the population.** The whole city or what the map shows; every view and every KPI computes
- *    over the scope set and never over the brush (a histogram of the brush would collapse to the bins just
- *    brushed).
+ * 1. **The whole city is the population.** Every view and every KPI computes over the city and never over the
+ *    brush (a histogram of the brush would collapse to the bins just brushed).
  * 2. **A brush emphasizes in the overview views and filters the detail view.** The histogram marks brushed bins
- *    and mutes the rest, the rank list mutes non-matching rows, and the drivers view is computed over
- *    scope ∩ brush. On the map, everything outside the brush dims.
+ *    and mutes the rest, the rank list mutes non-matching rows, and the drivers view is computed over the brush.
+ *    On the map, everything outside the brush dims.
  * 3. **A selection marks; it does not filter.** Selecting a neighborhood leaves the histogram city-wide and drops a
  *    caret at that neighborhood's score — the point of the view is to place it among the others — while the map
  *    fades every other neighborhood (in the streets unit, every street outside the selected street's
@@ -19,16 +18,11 @@
  * The map's dim follows one precedence: a transient hover set (a histogram bin, a rank row) if any, else the
  * brush, else the selection; a hover never drops the brush. Every change is batched into one animation frame,
  * like the map view's score writes. Mid-drag on a weight slider (`{kind: 'Weight', final: false}`) the views
- * redraw but the scope is not recomputed and the map's dim state is not rewritten — the brush's membership shifts
- * as scores move, and writing tens of thousands of feature-states per slider tick is the one cost this page can't
- * afford; the dim catches up on release.
+ * redraw but the map's dim state is not rewritten — the brush's membership shifts as scores move, and writing
+ * tens of thousands of feature-states per slider tick is the one cost this page can't afford; the dim catches up
+ * on release.
  */
 class AccessScoreDock {
-  /** The scope modes, in the order the control shows them. */
-  static SCOPES = ['city', 'viewport'];
-  /** Quiet time after a map move before a Viewport scope recomputes. */
-  static MOVEEND_DEBOUNCE_MS = 250;
-
   #root;
   #model;
   #mapView;
@@ -40,30 +34,26 @@ class AccessScoreDock {
   #rank;
 
   #open = true;
-  #scope = 'city';
   /** `{from, to}` in histogram bin indices, `to` exclusive; null with none. */
   #brush = null;
   #selection = null;
-  #scopeIds = { streetIds: null, regionIds: null };
   /** Ids of the active unit hovered in a view, or null. */
   #hover = null;
   #mapHover = null;
   #hiddenTypes = new Set();
 
   #frame = null;
-  #needScope = true;
   #needDim = true;
   /** Whether the next flush should read the brush out to the live region. */
   #announce = false;
-  #moveTimer = null;
   #paddingBottom = 0;
 
   /**
    * @param {HTMLElement} root - The `#acs-dock` element, carrying the shell markup from the Twirl view.
    * @param {object} options - Collaborators and callbacks.
    * @param {AccessScoreModel} options.model - The scoring model.
-   * @param {AccessScoreMapView} options.mapView - The map view, for the dim and the viewport queries.
-   * @param {mapboxgl.Map} options.map - The map, for `moveend` and the bottom padding.
+   * @param {AccessScoreMapView} options.mapView - The map view, for the dim.
+   * @param {mapboxgl.Map} options.map - The map, for the bottom padding.
    * @param {function} options.onRankSelect - Called with a region id when a rank row is clicked.
    * @param {function} options.onToggleType - Called with `(type, shown)` when a type is toggled in the drivers view.
    * @param {function} options.onStateChange - Called after any change the URL should carry.
@@ -78,8 +68,7 @@ class AccessScoreDock {
     this.#els = {
       toggle: root.querySelector('#acs-dock-toggle'),
       body: root.querySelector('#acs-dock-body'),
-      scopeInputs: Array.from(root.querySelectorAll('input[name="acs-scope"]')),
-      caption: root.querySelector('#acs-dock-scope-caption'),
+      caption: root.querySelector('#acs-dock-caption'),
       stripBar: root.querySelector('.acs-dock__strip-bar'),
       stripCaret: root.querySelector('.acs-dock__strip-caret'),
       kpis: root.querySelector('#acs-dock-kpis'),
@@ -108,31 +97,29 @@ class AccessScoreDock {
     });
     this.#bind();
     this.#observeHeight();
-    this.#schedule({ scope: true, dim: false });
+    this.#schedule({ dim: false });
   }
 
-  /** The dock's own state, for the URL: `{open, scope, brush}`. */
+  /** The dock's own state, for the URL: `{open, brush}`. */
   get state() {
-    return { open: this.#open, scope: this.#scope, brush: this.#brush ? { ...this.#brush } : null };
+    return { open: this.#open, brush: this.#brush ? { ...this.#brush } : null };
   }
 
   /**
    * Applies the state a URL carried.
-   * @param {object} state - Any of `open` (boolean), `scope`, and `brush` (`{from, to}` in bin indices).
+   * @param {object} state - Any of `open` (boolean) and `brush` (`{from, to}` in bin indices).
    */
-  applyUrlState({ open, scope, brush } = {}) {
+  applyUrlState({ open, brush } = {}) {
     if (open === false) this.setOpen(false, { log: false });
     if (brush) this.setBrush(brush, { final: true, log: false, announce: false });
-    if (scope && scope !== 'city') this.setScope(scope, { log: false });
   }
 
   /**
    * Redraws for a model change, as reported by the sidebar.
-   * @param {{kind: string, final: boolean}} meta - The change; a weight mid-drag skips the expensive halves.
+   * @param {{kind: string, final: boolean}} meta - The change; a weight mid-drag skips the map's dim rewrite.
    */
   applyChange(meta) {
-    const midDrag = meta.kind === 'Weight' && !meta.final;
-    this.#schedule({ scope: !midDrag, dim: !midDrag });
+    this.#schedule({ dim: !(meta.kind === 'Weight' && !meta.final) });
   }
 
   /**
@@ -141,7 +128,7 @@ class AccessScoreDock {
    */
   setSelection(selection) {
     this.#selection = selection ? { unit: selection.unit, id: selection.id } : null;
-    this.#schedule({ scope: false, dim: true });
+    this.#schedule({ dim: true });
   }
 
   /**
@@ -172,19 +159,6 @@ class AccessScoreDock {
   }
 
   /**
-   * Changes the scope.
-   * @param {string} scope - One of `SCOPES`.
-   * @param {object} [options] - `log` false for a programmatic change.
-   */
-  setScope(scope, { log = true } = {}) {
-    if (!AccessScoreDock.SCOPES.includes(scope)) return;
-    this.#scope = scope;
-    if (log) this.#callbacks.log('Scope', scope);
-    this.#schedule({ scope: true, dim: true });
-    this.#callbacks.onStateChange();
-  }
-
-  /**
    * Sets or clears the brush.
    * @param {?{from: number, to: number}} range - Bin indices, `to` exclusive, or null to clear.
    * @param {object} [options] - `final` false mid-sweep (nothing is logged or announced until release);
@@ -192,16 +166,15 @@ class AccessScoreDock {
    */
   setBrush(range, { final = true, log = true, announce = true } = {}) {
     this.#brush = range ? { from: range.from, to: range.to } : null;
-    this.#schedule({ scope: false, dim: true });
+    this.#schedule({ dim: true });
     if (!final) return;
     if (log) this.#callbacks.log('Brush', range ? `${range.from * 5}-${range.to * 5}` : 'clear');
     if (announce) this.#announce = true;
     this.#callbacks.onStateChange();
   }
 
-  /** Coalesces every change into one animation frame; the flags accumulate until it runs. */
-  #schedule({ scope, dim }) {
-    this.#needScope ||= scope;
+  /** Coalesces every change into one animation frame; the flag accumulates until it runs. */
+  #schedule({ dim }) {
     this.#needDim ||= dim;
     if (this.#frame !== null) return;
     this.#frame = requestAnimationFrame(() => {
@@ -210,19 +183,16 @@ class AccessScoreDock {
     });
   }
 
-  /** The flush: scope, then the datasets, then the views, the map's dim state, and the captions. */
+  /** The flush: the datasets, then the views, the map's dim state, and the captions. */
   #flush() {
     const unit = this.#model.state.unit;
-    if (this.#needScope) this.#recomputeScope();
     const needDim = this.#needDim;
-    this.#needScope = false;
     this.#needDim = false;
 
-    const { streetIds, regionIds } = this.#scopeIds;
     const brushStreets = this.#brushStreetIds();
-    // The needle is always the whole city's score, so a scoped histogram still says where the city sits.
-    const cityScore = this.#model.kpis().cityScore;
-    const histogram = this.#model.histogram({ streetIds, regionIds });
+    const kpis = this.#model.kpis();
+    const cityScore = kpis.cityScore;
+    const histogram = this.#model.histogram();
 
     this.#histogram.draw({
       shapeKey: unit,
@@ -239,29 +209,25 @@ class AccessScoreDock {
       selection: this.#selectionScore(),
       hover: this.#mapHover?.score ?? null,
     });
-    const population = brushStreets ?? streetIds;
-    const { means } = this.#model.contributions({ streetIds: population });
-    const breakdown = this.#model.clusterBreakdown({ streetIds: population });
+    const { means } = this.#model.contributions({ streetIds: brushStreets });
+    const breakdown = this.#model.clusterBreakdown({ streetIds: brushStreets });
     this.#drivers.draw({
       shapeKey: 'types',
       rows: breakdown.types.map((t) => ({ type: t.type, mean: means[t.type], count: t.total, buckets: t.buckets })),
       hidden: this.#hiddenTypes,
       streets: breakdown.streets,
     });
-    const ranked = this.#model.rankedRegions();
-    const rows = this.#scope === 'viewport' && regionIds
-      ? ranked.filter((r) => regionIds.has(r.regionId))
-      : ranked;
+    const rows = this.#model.rankedRegions();
     this.#rank.draw({
       shapeKey: rows.map((r) => r.regionId).sort((a, b) => a - b).join(','),
       rows,
       brush: this.#brush,
       selectedId: this.#selection ? this.#regionOf(this.#selection) : null,
-      floored: this.#model.regionStats.length - ranked.length,
+      floored: this.#model.regionStats.length - rows.length,
     });
 
-    this.#renderKpis(this.#model.kpis({ streetIds, regionIds }));
-    this.#renderScopeControl();
+    this.#renderKpis(kpis);
+    this.#renderCaption();
     this.#renderBrushBar(brushStreets);
     if (!this.#mapHover) this.#markCaret(this.#selectionScore());
     if (needDim) this.#applyMapDim();
@@ -273,25 +239,17 @@ class AccessScoreDock {
     }
   }
 
-  /** Recomputes the population for the current scope. */
-  #recomputeScope() {
-    this.#scopeIds = this.#scope === 'viewport'
-      ? { streetIds: this.#mapView.visibleStreetIds(), regionIds: this.#mapView.visibleRegionIds() }
-      : { streetIds: null, regionIds: null };
-  }
-
   /**
-   * The streets the brush keeps, within the scope: in the regions unit, the streets of the brushed regions.
+   * The streets the brush keeps: in the regions unit, the streets of the brushed regions.
    * @returns {?Set<number>} Street ids, or null with no brush.
    */
   #brushStreetIds() {
     if (!this.#brush) return null;
     const { from, to } = this.#brush;
-    const { streetIds, regionIds } = this.#scopeIds;
-    if (this.#model.state.unit === 'streets') return this.#model.streetIdsInBins(from, to, { streetIds });
+    if (this.#model.state.unit === 'streets') return this.#model.streetIdsInBins(from, to);
     const out = new Set();
-    for (const regionId of this.#model.regionIdsInBins(from, to, { regionIds })) {
-      for (const id of this.#model.regionStreetIds(regionId)) if (!streetIds || streetIds.has(id)) out.add(id);
+    for (const regionId of this.#model.regionIdsInBins(from, to)) {
+      for (const id of this.#model.regionStreetIds(regionId)) out.add(id);
     }
     return out;
   }
@@ -300,10 +258,8 @@ class AccessScoreDock {
   #brushUnitIds() {
     if (!this.#brush) return null;
     const { from, to } = this.#brush;
-    if (this.#model.state.unit === 'streets') {
-      return this.#model.streetIdsInBins(from, to, { streetIds: this.#scopeIds.streetIds });
-    }
-    return this.#model.regionIdsInBins(from, to, { regionIds: this.#scopeIds.regionIds });
+    if (this.#model.state.unit === 'streets') return this.#model.streetIdsInBins(from, to);
+    return this.#model.regionIdsInBins(from, to);
   }
 
   /** The ids of the active unit a selection keeps bright: its neighborhood, as regions or as streets. */
@@ -320,13 +276,10 @@ class AccessScoreDock {
   }
 
   #hoverBin(bin) {
-    const { streetIds, regionIds } = this.#scopeIds;
     const streets = this.#model.state.unit === 'streets';
-    const ids = streets
-      ? this.#model.streetIdsInBins(bin, bin + 1, { streetIds })
-      : this.#model.regionIdsInBins(bin, bin + 1, { regionIds });
+    const ids = streets ? this.#model.streetIdsInBins(bin, bin + 1) : this.#model.regionIdsInBins(bin, bin + 1);
     this.#hover = { ids };
-    this.#rank.highlight(this.#model.regionIdsInBins(bin, bin + 1, { regionIds }));
+    this.#rank.highlight(this.#model.regionIdsInBins(bin, bin + 1));
     this.#applyMapDim();
   }
 
@@ -351,7 +304,7 @@ class AccessScoreDock {
     else this.#hiddenTypes.add(type);
     this.#callbacks.log('ClusterType', `${type}_shown=${shown}`);
     this.#callbacks.onToggleType(type, shown);
-    this.#schedule({ scope: false, dim: false });
+    this.#schedule({ dim: false });
   }
 
   /** Moves the transient caret in the histogram and on the collapsed strip. */
@@ -410,18 +363,12 @@ class AccessScoreDock {
     }
   }
 
-  #renderScopeControl() {
+  /** What the views count: the city's streets, or its neighborhoods. */
+  #renderCaption() {
     const unit = this.#model.state.unit;
-    const { streetIds, regionIds } = this.#scopeIds;
-    this.#els.scopeInputs.forEach((input) => {
-      input.checked = input.value === this.#scope;
-    });
-    const regionCount = regionIds ? regionIds.size : this.#model.regionStats.length;
-    const streetCount = streetIds ? streetIds.size : this.#model.streetCount;
-    const count = unit === 'regions'
-      ? i18next.t('accessscore:scope-regions', { count: regionCount })
-      : i18next.t('accessscore:scope-streets', { count: streetCount });
-    this.#els.caption.textContent = `${i18next.t(`accessscore:scope-caption-${this.#scope}`)} · ${count}`;
+    this.#els.caption.textContent = unit === 'regions'
+      ? i18next.t('accessscore:count-regions', { count: this.#model.regionStats.length })
+      : i18next.t('accessscore:count-streets', { count: this.#model.streetCount });
   }
 
   #renderBrushBar(brushStreets) {
@@ -434,8 +381,7 @@ class AccessScoreDock {
     const range = { from: this.#brush.from * 5, to: this.#brush.to * 5 };
     let text;
     if (this.#model.state.unit === 'regions') {
-      const { from, to } = this.#brush;
-      const n = this.#model.regionIdsInBins(from, to, { regionIds: this.#scopeIds.regionIds }).size;
+      const n = this.#model.regionIdsInBins(this.#brush.from, this.#brush.to).size;
       text = i18next.t('accessscore:brush-regions', { ...range, count: n });
     } else {
       let meters = 0;
@@ -449,17 +395,7 @@ class AccessScoreDock {
 
   #bind() {
     this.#els.toggle.addEventListener('click', () => this.setOpen(!this.#open));
-    this.#els.scopeInputs.forEach((input) => input.addEventListener('change', () => {
-      if (input.checked) this.setScope(input.value);
-    }));
     this.#els.brushClear.addEventListener('click', () => this.setBrush(null));
-    // Only a Viewport scope has anything to recompute on a move, and only once the map has settled.
-    this.#map.on('moveend', () => {
-      if (this.#scope !== 'viewport') return;
-      clearTimeout(this.#moveTimer);
-      this.#moveTimer = setTimeout(() => this.#schedule({ scope: true, dim: true }),
-        AccessScoreDock.MOVEEND_DEBOUNCE_MS);
-    });
   }
 
   /**

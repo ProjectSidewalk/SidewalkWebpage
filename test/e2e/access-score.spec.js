@@ -1,7 +1,7 @@
 /**
  * Behavior tests for the AccessScore tool (/accessScore, #5217): the page scores the streets it is given, a slider
  * move re-scores them without a server round trip, the unit switch swaps the layers, and the insights dock's
- * histogram brush, scope, rank list, and URL state stay linked to the map.
+ * histogram brush, rank list, and URL state stay linked to the map.
  *
  * The data feeds are intercepted with a three-street fixture so the checks read the same against a seeded dev
  * schema and CI's empty one; the engine config is the real endpoint's (it carries no data). The pages.spec.js smoke
@@ -203,9 +203,7 @@ test.describe('/accessScore', () => {
       await page.keyboard.press('Escape');
       await expect(bins.nth(2)).toHaveAttribute('aria-pressed', 'false');
 
-      // Scope and brush are browser-side arithmetic, like the sliders.
-      await page.locator('input[name="acs-scope"][value="viewport"]').check();
-      await expect(page.locator('#acs-dock-scope-caption')).toContainText('In view');
+      // The brush is browser-side arithmetic, like the sliders.
       expect(scoreRequests.length).toBe(requestsAfterLoad);
     });
 
@@ -260,28 +258,18 @@ test.describe('/accessScore', () => {
       await expect(page.locator('#acs-dock-body')).toBeHidden();
     });
 
-  test('a Map view scope follows the camera, and the dock state round-trips through the URL', async ({page}) => {
-    await page.goto('/accessScore?dock=0&scope=viewport&b=80-85');
+  test('the dock state round-trips through the URL', async ({page}) => {
+    await page.goto('/accessScore?dock=0&b=80-85');
     await waitForAppReady(page);
     await waitForTool(page);
     await expect(page.locator('#acs-dock')).toHaveClass(/acs-dock--collapsed/);
     await expect(page.locator('#acs-dock-toggle')).toHaveAttribute('aria-expanded', 'false');
-    await expect(page.locator('input[name="acs-scope"][value="viewport"]')).toBeChecked();
-    expect(await page.evaluate(() => window.accessScore.dock.state)).toEqual({
-      open: false, scope: 'viewport', brush: {from: 16, to: 17},
-    });
+    expect(await page.evaluate(() => window.accessScore.dock.state)).toEqual({open: false, brush: {from: 16, to: 17}});
 
     await page.locator('#acs-dock-toggle').click();
     await expect(page.locator('#acs-dock-body')).toBeVisible();
     await expect(page.locator('.acs-histogram__bin').nth(16)).toHaveAttribute('aria-pressed', 'true');
-    await expect(page.locator('#acs-dock-scope-caption')).toContainText('3 streets');
-
-    // Moving the camera off the fixture empties the scope once the map settles; moving back refills it.
-    await page.evaluate(() => window.accessScore.map.jumpTo({center: [-74.2, 41.0], zoom: 14}));
-    await expect(page.locator('#acs-dock-scope-caption')).toContainText('0 streets');
-    await expect(page.locator('.acs-histogram__empty')).toBeVisible();
-    await page.evaluate(() => window.accessScore.map.jumpTo({center: [-74.009, 40.8805], zoom: 14}));
-    await expect(page.locator('#acs-dock-scope-caption')).toContainText('3 streets');
+    await expect(page.locator('#acs-dock-caption')).toContainText('3 streets');
     await expect.poll(() => urlParam(page, 'dock')).toBeNull();
   });
 });

@@ -213,9 +213,9 @@ corresponding Twirl view:
   cards), the weights sidebar, URL state, and the insights band along the bottom of the map (`AccessScoreDock.js`
   coordinating three hand-rolled HTML views — the score histogram, which doubles as the legend and takes a
   drag-and-keyboard brush, what drives the scores as diverging per-type effect bars, and the ranked neighborhoods —
-  each a subclass of `AccessScoreChart.js`; scope defines the population, a brush emphasizes in the overview views
-  and filters the drivers view and dims the map, and a selection marks and fades the rest of the map rather than
-  filtering). An optional dark basemap (`?dark=1`) takes the `--color-score-ramp-dark-*` tokens through
+  each a subclass of `AccessScoreChart.js`; the whole city is the population, a brush emphasizes in the overview
+  views and filters the drivers view and dims the map, and a selection marks and fades the rest of the map rather
+  than filtering). An optional dark basemap (`?dark=1`) takes the `--color-score-ramp-dark-*` tokens through
   `ScoreRamp.setMode`. Grunt-bundled to `access-score/build/`; the shared score ramp is `common/scoreRamp.js`.
 - **`ps-map/`** — shared map component used across pages.
 - **`common/`** — modules shared across bundles: `pano-viewer/` (an abstraction over the GSV / Mapillary / Infra3d /

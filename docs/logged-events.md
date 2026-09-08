@@ -97,7 +97,7 @@ The AccessScore tool (`/accessScore`, `public/js/access-score/`, #5217) logs its
 `AccessScore_DarkMap_value=<bool>` (the dark basemap toggled; the page reloads),
 `AccessScore_CopyLink`, and the popup's hops `AccessScore_ViewOnLabelMap` / `AccessScore_ExploreHere`. A click on a
 cluster dot also opens the shared label card, whose actions log as `Click_module=LabelDetail_…` (above). The insights
-dock (`AccessScoreDock.js`) adds `AccessScore_Dock_value=<open|closed>`, `AccessScore_Scope_value=<city|viewport>`,
+dock (`AccessScoreDock.js`) adds `AccessScore_Dock_value=<open|closed>`,
 `AccessScore_Brush_value=<from>-<to>` (the brushed score range in whole percent, logged once on release, never per
 sweep tick) / `AccessScore_Brush_value=clear`, `AccessScore_ClusterType_value=<type>_shown=<bool>` (a type's dots
 toggled from the drivers view), and `AccessScore_RankSelect_regionId=<id>` (a rank row clicked; in the neighborhoods

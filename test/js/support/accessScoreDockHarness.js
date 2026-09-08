@@ -75,11 +75,7 @@ const DOCK_HTML = `
     <aside id="acs-dock" class="acs-dock">
       <div class="acs-dock__bar">
         <button type="button" id="acs-dock-toggle" aria-expanded="true" aria-controls="acs-dock-body">Insights</button>
-        <div class="acs-segmented">
-          <label class="acs-segmented__option"><input type="radio" name="acs-scope" value="city" checked>City</label>
-          <label class="acs-segmented__option"><input type="radio" name="acs-scope" value="viewport">Map view</label>
-        </div>
-        <span id="acs-dock-scope-caption"></span>
+        <span id="acs-dock-caption"></span>
         <div id="acs-dock-strip" class="acs-dock__strip">
           <span class="acs-dock__strip-bar"><span class="acs-dock__strip-caret" hidden></span></span>
         </div>
