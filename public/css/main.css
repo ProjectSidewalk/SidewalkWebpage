@@ -870,8 +870,6 @@ textarea.ps-input {
   line-height: 1.6em;
 }
 
-/* Raleway's digits aren't tabular, and the timestamp is rewritten client-side into the reader's locale, so the
-   stamp would reflow as its width changed. */
 #application-version {
   font-family: var(--font-primary);
 }
