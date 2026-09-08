@@ -315,7 +315,9 @@ it is needed. Dev and test runs (`sbt run`, the test suites) skip the check.
 
 `SIDEWALK_IMAGES_DIR` is the one the app writes on its own schedule — the nightly crop job cuts both the crops and,
 under `<city-id>/pano-downscaled/`, the display copies of panos too wide for a WebGL texture — so it has to be local
-and writable by the app's user. The pano store they are cut *from* is read-only to that user, which is right for a
+and writable by the app's user. The same job also records each crop's provenance in `label_crop` (#2660), and its
+first run after that table lands walks every crop the city has to classify it (a header read and a stat per file); to
+have that done before the next night, trigger the job from the Management page or `POST /adminapi/generateCrops`. The pano store they are cut *from* is read-only to that user, which is right for a
 store nothing in the app writes. The downscaled copies deliberately do not live there:
 `PanoDataService.localBackupImageFile` finds a pano by extension, so a downscaled `.jpg` beside a native `.png` would
 be picked up *as* the native file and cut from at the wrong scale.

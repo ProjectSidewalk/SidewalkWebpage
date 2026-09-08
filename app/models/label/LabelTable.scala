@@ -526,6 +526,10 @@ object LabelTable {
   // width/height. Mapped to service.CropService.CropCandidate by the crop job.
   type CropCandidateTuple = (Int, LabelTypeEnum.Base, String, Int, Int, Option[Int], Option[Int])
 
+  /** (labelId, labelType, timeCreated, panoId, panoX, panoY, canvasX, canvasY, panoWidth, panoHeight, aiGenerated). */
+  type CropProvenanceTuple =
+    (Int, LabelTypeEnum.Base, OffsetDateTime, String, Int, Int, Int, Int, Option[Int], Option[Int], Boolean)
+
   // Type alias for the tuple representation of LabelCVMetadata.
   // TODO in Scala 3 I think that we can make these top-level like we do for the case class version.
   type LabelCVMetadataTuple = (
@@ -654,6 +658,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   val auditTasks             = TableQuery[AuditTaskTableDef]
   val panoData               = TableQuery[PanoDataTableDef]
   val labelPoints            = TableQuery[LabelPointTableDef]
+  val labelCrops             = TableQuery[LabelCropTableDef]
   val labelValidations       = TableQuery[LabelValidationTableDef]
   val labelAiAssessments     = TableQuery[LabelAiAssessmentTableDef]
   val labelAiFailures        = TableQuery[LabelAiFailureTableDef]
@@ -2699,6 +2704,36 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _lp <- labelPoints if _l.labelId === _lp.labelId
       _pd <- panoData if _l.panoId === _pd.panoId
     } yield (_l.labelId, _l.labelType, _l.panoId, _lp.panoX, _lp.panoY, _pd.width, _pd.height)).result
+  }
+
+  /**
+   * Every label with no `label_crop` row, with what the crop job's reconcile pass needs to classify a crop it finds on
+   * disk (#2660). Streamed like [[getCropCandidates]] — the whole label table on the first run — and on the same
+   * roster, so the two passes agree on which labels have crops at all.
+   */
+  def getLabelsWithoutCropProvenance: StreamingDBIO[Seq[CropProvenanceTuple], CropProvenanceTuple] = {
+    (for {
+      ((_l, _lc), _ur) <- labelsWithExcludedUsers
+        .joinLeft(labelCrops)
+        .on(_.labelId === _.labelId)
+        .joinLeft(userRoles)
+        .on(_._1.userId === _.userId)
+      if _lc.isEmpty
+      _lp <- labelPoints if _l.labelId === _lp.labelId
+      _pd <- panoData if _l.panoId === _pd.panoId
+    } yield (
+      _l.labelId,
+      _l.labelType,
+      _l.timeCreated,
+      _l.panoId,
+      _lp.panoX,
+      _lp.panoY,
+      _lp.canvasX,
+      _lp.canvasY,
+      _pd.width,
+      _pd.height,
+      _ur.map(_.role === Role.Ai).getOrElse(false)
+    )).result
   }
 
   /**

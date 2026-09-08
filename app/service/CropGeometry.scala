@@ -79,19 +79,20 @@ object CropSizingRule {
    * The window width to cut, in native pixels: [[predictCropSize]] scaled by [[Scale]] and clamped to
    * [[MinFovDeg]]..[[MaxFovDeg]] as an angle.
    *
-   * The clamp is computed against the pano's height (`width / height * 180`) because production panos are 2:1, so
-   * degrees-per-pixel agree on both axes, and the quantity being clamped is vertical all the way back to the
-   * regression's y-offset. Not capped to the pano here: [[CropGeometry.computeCropBox]] owns "a window cannot exceed
-   * the image", which is a property of the image rather than of the rule.
+   * The regression's size is vertical, so it becomes an angle through the height; the clamped angle becomes a width
+   * through the width, because a width is an azimuthal span. On 2:1 panos the two agree, which is what lets a
+   * height-only conversion look right (panorama-tools #106). Not capped to the pano here: that is a property of the
+   * image, and [[CropGeometry.computeCropBox]] owns it.
    *
    * @param panoY      The label's y on the pano, in native pixels.
+   * @param panoWidth  The pano's width in pixels.
    * @param panoHeight The pano's height in pixels.
    * @return           Window width in native pixels; the 3:2 window's height follows from it.
    */
-  def windowWidth(panoY: Double, panoHeight: Int): Double = {
+  def windowWidth(panoY: Double, panoWidth: Int, panoHeight: Int): Double = {
     val deg        = predictCropSize(panoY, panoHeight) * Scale / panoHeight * 180.0
     val clampedDeg = math.min(math.max(deg, MinFovDeg), MaxFovDeg)
-    clampedDeg / 180.0 * panoHeight
+    clampedDeg / 360.0 * panoWidth
   }
 }
 
@@ -169,6 +170,35 @@ object CropGeometry {
     val idealTop = rint(panoY - height / 2.0)
     val top      = math.max(0, math.min(idealTop, panoHeight - height))
     CropBox(left, top, width, height, shifted = top != idealTop)
+  }
+
+  /**
+   * Where the labelled pixel lands inside the window cut at `box` (panorama-tools #78): the one mapping the marker on
+   * a crop is drawn from, so nothing assumes the centre.
+   *
+   * Two things a hand-rolled `panoX - left` gets wrong: the **seam** (`left` is normalised into `[0, panoWidth)`, so a
+   * label at x = 20 in a window starting at 13000 is at `20 - 13000 + panoWidth`, not -12980) and the **vertical
+   * shift** (a window slid off a pole has the label at `panoY - top`, not at half the height). The answer is in
+   * cut-window pixels; as a fraction of the window it holds for the stored file at any scale.
+   *
+   * Float and unchecked, deliberately: the caller rounds, and a label the window does not contain comes back outside
+   * it, which is what the out-of-frame check upstream exists to prevent.
+   *
+   * @param box       The window [[computeCropBox]] returned for this label.
+   * @param panoWidth The pano's width in pixels, which decides where the seam is.
+   * @return          `(x, y)` in pixels of the cut window.
+   */
+  def labelPositionInCrop(panoX: Double, panoY: Double, box: CropBox, panoWidth: Int): (Double, Double) = {
+    // Python's `%` is never negative, which is what makes the seam read correctly for any finite x.
+    val dx      = (panoX - box.left) % panoWidth
+    val wrapped = if (dx < 0) dx + panoWidth else dx
+    (wrapped, panoY - box.top)
+  }
+
+  /** [[labelPositionInCrop]] as fractions of the window, which hold for the stored file at any scale. */
+  def labelFractionInCrop(panoX: Double, panoY: Double, box: CropBox, panoWidth: Int): (Double, Double) = {
+    val (x, y) = labelPositionInCrop(panoX, panoY, box, panoWidth)
+    (x / box.width, y / box.height)
   }
 
   /**

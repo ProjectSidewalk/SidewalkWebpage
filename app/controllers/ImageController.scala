@@ -37,9 +37,9 @@ class ImageController @Inject() (
   // Allowed characters in a pano ID: GSV uses base64url-style (alphanumeric + - + _); Mapillary uses digits.
   private val PANO_ID_PATTERN = "^[A-Za-z0-9_-]+$".r
 
-  // 2x the actual size of the pano window as retina screen can give us 2x the pixel density.
-  val CROP_WIDTH  = 1440
-  val CROP_HEIGHT = 960
+  // Owned by the crop service: its reconcile pass tells the two crop writers apart by this size (#2660).
+  val CROP_WIDTH  = service.CropService.ExploreFrameCropWidth
+  val CROP_HEIGHT = service.CropService.ExploreFrameCropHeight
 
   // Resize the image to the new width and height.
   def resize(img: BufferedImage, newWidth: Int, newHeight: Int): BufferedImage = {
@@ -163,8 +163,9 @@ class ImageController @Inject() (
       )
     } else {
       panoDataService.cropUrl(labelId, LabelTypeEnum.byName(labelType)) match {
-        case Some(url) => Future.successful(Ok(LabelFormats.cropImagePayload(labelId, labelType, url)))
-        case None      => Future.successful(NotFound(s"No crop image found for label: $labelId"))
+        case Some(url) =>
+          cropService.cropMarker(labelId).map(m => Ok(LabelFormats.cropImagePayload(labelId, labelType, url, m)))
+        case None => Future.successful(NotFound(s"No crop image found for label: $labelId"))
       }
     }
   }
@@ -217,12 +218,18 @@ class ImageController @Inject() (
           // Base64 decode + ImageIO read/resize/write is CPU-bound; run it off the request EC so concurrent crop
           // uploads can't starve the HTTP dispatcher (#4415).
           Future(writeImageFile(filename, b64String))(cpuEc)
-            .map { _ =>
+            .flatMap { _ =>
               // The label's social-preview image may have been built and cached before this crop existed, from a
               // Street View still or the branded placeholder. That cache never expires, so drop it here and let the
               // next request rebuild it from the crop we just wrote (#4726).
               shareImageCache.invalidate(labelId)
-              Ok("Got: crop_" + labelId)
+              // Best effort: the crop is on disk either way, and the reconcile pass records any row this misses.
+              cropService
+                .recordExploreFrameCrop(labelId, CROP_WIDTH, CROP_HEIGHT)
+                .recover { case e: Exception =>
+                  logger.warn(s"Could not record crop provenance for label $labelId: $e")
+                }
+                .map(_ => Ok("Got: crop_" + labelId))
             }
             .recover { case e: Exception =>
               logger.error("Exception when writing image file: " + filename + "\n\t" + e)

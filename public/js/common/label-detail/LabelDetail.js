@@ -743,6 +743,7 @@ class LabelDetail {
       pov: labelPov,
       streetEdgeId: meta.street_edge_id,
       aiGenerated: meta.ai_generated,
+      cropMarker: meta.crop_marker || null,
     };
     this.panoManager.setLabel(popupLabel);
     // Accept a pre-constructed backup_image object (Gallery path) or build from server fields (API path).

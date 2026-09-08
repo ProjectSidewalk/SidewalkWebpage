@@ -1,9 +1,10 @@
 package service
 
+import models.label.{CropSource, LabelCrop, LabelCropTable}
 import models.utils.{ImageUtils, MyPostgresProfile}
 import models.utils.MyPostgresProfile.api._
 import org.apache.pekko.stream.Materializer
-import org.scalatest.BeforeAndAfterAll
+import org.scalatest.{BeforeAndAfterAll, OptionValues}
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.db.slick.DatabaseConfigProvider
@@ -16,6 +17,7 @@ import service.CropService.CropRunResult
 import java.awt.image.BufferedImage
 import java.io.File
 import java.nio.file.{Files, StandardCopyOption}
+import java.time.OffsetDateTime
 import java.util.UUID
 import javax.imageio.ImageIO
 import scala.concurrent.duration._
@@ -34,7 +36,7 @@ import scala.util.{Failure, Try}
  */
 // Mixin order matters: GuiceOneAppPerSuite must be rightmost so its run() wraps BeforeAndAfterAll's — otherwise
 // afterAll's cleanup executes after the app (and its DB pool) has shut down and aborts the suite.
-class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPerSuite {
+class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with OptionValues with GuiceOneAppPerSuite {
 
   private val prefix    = "CropServiceSpec-4865-"
   private val mediaRoot = Files.createTempDirectory("crop-service-spec").toFile
@@ -60,6 +62,8 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPe
   private lazy val cropService                = app.injector.instanceOf[CropService]
   private lazy val panoDataService            = app.injector.instanceOf[PanoDataService]
   private lazy val panoDataTable              = app.injector.instanceOf[models.pano.PanoDataTable]
+  private lazy val labelCropTable             = app.injector.instanceOf[LabelCropTable]
+  private lazy val shareImageCache            = app.injector.instanceOf[ShareImageCache]
   private lazy val signingService             = app.injector.instanceOf[ImageSigningService]
 
   private def runDb[T](action: DBIO[T]): T = Await.result(dbConfig.db.run(action), 60.seconds)
@@ -91,6 +95,25 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPe
   /** A downscaled copy with no pano behind it at all: neither a row nor a native file. */
   private val orphanPanoId = s"${prefix}orphan"
 
+  // Crops that exist before the run with no label_crop row, one per way the reconcile pass tells the writers apart
+  // (#2660): a 1440x960 file where the job's window would be smaller (the size decides: a snapshot); a file of
+  // exactly the job's window size (the size decides: a window); and three 1440x960 files on a pano wide enough that
+  // the job's window would also be stored at 1440x960, where the size cannot decide and the label's age or its AI
+  // authorship does. Plus one nothing can classify: no frame anywhere to recompute the window from.
+  private val snapshotPanoId     = s"${prefix}snapshot"
+  private val windowPanoId       = s"${prefix}window"
+  private val ambiguousOldPanoId = s"${prefix}ambiguous-old"
+  private val ambiguousNewPanoId = s"${prefix}ambiguous-new"
+  private val ambiguousAiPanoId  = s"${prefix}ambiguous-ai"
+  private val unresolvedPanoId   = s"${prefix}unresolved"
+
+  /** A pano wide enough that the 90-degree cap on a near-field window still exceeds the 1440-px storage cap. */
+  private val WideW = 8192
+  private val WideH = 4096
+
+  /** A label far enough below the horizon of the wide pano for the rule to ask for its widest window. */
+  private val WideY = 2900
+
   /** What `seedLabel` wrote, so afterAll can delete exactly that. */
   private case class Seeded(
       labelId: Int,
@@ -106,7 +129,7 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPe
   // The run under test happens once, in beforeAll, and every case reads its result — rather than the first case
   // running it and the rest asserting on what it left, which passes vacuously for any case run on its own.
   private var beforeRun: Map[String, (Boolean, Option[Boolean])] = Map.empty
-  private var firstRun: CropRunResult                            = CropRunResult(0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+  private var firstRun: CropRunResult                            = CropRunResult(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 
   /** Where `localBackupImageFile` resolves a pano for this city. */
   private def storeFile(panoId: String): File = {
@@ -157,17 +180,24 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPe
       panoX: Int,
       panoY: Int,
       excluded: Boolean = false,
-      labelType: String = "CurbRamp"
+      labelType: String = "CurbRamp",
+      createdDaysAgo: Int = 0,
+      ai: Boolean = false
   ): Seeded = {
     val userId         = UUID.randomUUID().toString
     val username       = prefix + userId.take(8)
     val recordedWidth  = recordedDims.map(_._1)
     val recordedHeight = recordedDims.map(_._2)
+    val timeCreated    = OffsetDateTime.now.minusDays(createdDaysAgo.toLong)
     runDb((for {
       _ <- sqlu"""INSERT INTO sidewalk_login.sidewalk_user (user_id, username, email)
                   VALUES ($userId, $username, ${username + "@test.invalid"})"""
       _ <- sqlu"""INSERT INTO user_stat (user_stat_id, user_id, meters_audited, high_quality, excluded)
                   VALUES ((SELECT COALESCE(MAX(user_stat_id), 0) + 1 FROM user_stat), $userId, 0, TRUE, $excluded)"""
+      // Only the AI labeler gets a role row: the reconcile pass must classify a user with no role row too.
+      _ <-
+        if (ai) sqlu"INSERT INTO sidewalk_login.user_role (user_id, role) VALUES ($userId, 'AI'::sidewalk_login.role)"
+        else DBIO.successful(0)
       streetEdgeId <-
         sql"""INSERT INTO street_edge (street_edge_id, geom, x1, y1, x2, y2, way_type, status)
               VALUES ((SELECT COALESCE(MAX(street_edge_id), 0) + 1 FROM street_edge),
@@ -188,9 +218,10 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPe
                   VALUES ($panoId, '2024-05', 'mapillary', $recordedWidth, $recordedHeight, 'spec-creator')"""
       labelId <-
         sql"""INSERT INTO label (label_id, audit_task_id, pano_id, label_type, temporary_label_id, mission_id,
-                                 street_edge_id, user_id)
+                                 street_edge_id, user_id, time_created)
               VALUES ((SELECT COALESCE(MAX(label_id), 0) + 1 FROM label),
-                      $auditTaskId, $panoId, $labelType::label_type, 1, $missionId, $streetEdgeId, $userId)
+                      $auditTaskId, $panoId, $labelType::label_type, 1, $missionId, $streetEdgeId, $userId,
+                      $timeCreated)
               RETURNING label_id""".as[Int].head
       _ <- sqlu"""INSERT INTO label_point (label_point_id, label_id, pano_x, pano_y, canvas_x, canvas_y, heading,
                                            pitch, zoom)
@@ -209,7 +240,26 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPe
 
   /** The window the geometry asks for at a label's position, to derive what the run should have counted. */
   private def boxFor(panoX: Int, panoY: Int, w: Int, h: Int): CropGeometry.CropBox =
-    CropGeometry.computeCropBox(panoX.toDouble, panoY.toDouble, CropSizingRule.windowWidth(panoY.toDouble, h), w, h)
+    CropGeometry.computeCropBox(panoX.toDouble, panoY.toDouble, CropSizingRule.windowWidth(panoY.toDouble, w, h), w, h)
+
+  /** The label's `label_crop` row, when the run (or `recordExploreFrameCrop`) has written one. */
+  private def labelCrop(panoId: String): Option[LabelCrop] = runDb(labelCropTable.get(seeded(panoId).labelId))
+
+  /** Writes a blank PNG of the given size as the label's crop, as a writer before this table would have left it. */
+  private def plantCrop(panoId: String, width: Int, height: Int): File = {
+    val file = cropFile(panoId)
+    val _    = file.getParentFile.mkdirs()
+    ImageUtils.writePng(new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB), file)
+    file
+  }
+
+  /** A stand-in for a share preview composited before the crop's provenance was known. */
+  private def plantSharePreview(panoId: String): File = {
+    val file = shareImageCache.fileFor(seeded(panoId).labelId)
+    val _    = file.getParentFile.mkdirs()
+    val _    = file.createNewFile()
+    file
+  }
 
   /** A stand-in for the crop the browser uploads at labeling time: tiny, so a recut is unmistakable. */
   private val preexistingCropBytes: Array[Byte] = {
@@ -240,8 +290,26 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPe
         panoY = 300,
         labelType = "Obstacle"
       ),
-      preexistingPanoId -> seedLabel(preexistingPanoId, Some((PanoW, PanoH)), panoX = 512, panoY = 300),
-      narrowPanoId      -> seedLabel(narrowPanoId, Some((NarrowW, NarrowH)), panoX = 128, panoY = 70)
+      preexistingPanoId  -> seedLabel(preexistingPanoId, Some((PanoW, PanoH)), panoX = 512, panoY = 300),
+      narrowPanoId       -> seedLabel(narrowPanoId, Some((NarrowW, NarrowH)), panoX = 128, panoY = 70),
+      snapshotPanoId     -> seedLabel(snapshotPanoId, Some((PanoW, PanoH)), panoX = 512, panoY = 300),
+      windowPanoId       -> seedLabel(windowPanoId, Some((PanoW, PanoH)), panoX = 512, panoY = 300),
+      ambiguousOldPanoId -> seedLabel(
+        ambiguousOldPanoId,
+        Some((WideW, WideH)),
+        panoX = WideW / 2,
+        panoY = WideY,
+        createdDaysAgo = 3
+      ),
+      ambiguousNewPanoId -> seedLabel(ambiguousNewPanoId, Some((WideW, WideH)), panoX = WideW / 2, panoY = WideY),
+      ambiguousAiPanoId  -> seedLabel(
+        ambiguousAiPanoId,
+        Some((WideW, WideH)),
+        panoX = WideW / 2,
+        panoY = WideY,
+        ai = true
+      ),
+      unresolvedPanoId -> seedLabel(unresolvedPanoId, None, panoX = 512, panoY = 300, ai = true)
     )
     // The browser got there first for this label; and two downscaled copies nothing asks for any more.
     val preexisting = cropFile(preexistingPanoId)
@@ -249,6 +317,14 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPe
     val _           = Files.write(preexisting.toPath, preexistingCropBytes)
     val _           = plantDownscaled(narrowPanoId)
     val _           = plantDownscaled(orphanPanoId)
+    // Crops from before label_crop existed, for the reconcile pass to classify.
+    val _         = plantCrop(snapshotPanoId, CropService.ExploreFrameCropWidth, CropService.ExploreFrameCropHeight)
+    val windowBox = boxFor(512, 300, PanoW, PanoH)
+    val _         = plantCrop(windowPanoId, windowBox.width, windowBox.height)
+    val _         = plantSharePreview(windowPanoId)
+    Seq(ambiguousOldPanoId, ambiguousNewPanoId, ambiguousAiPanoId, unresolvedPanoId).foreach { panoId =>
+      val _ = plantCrop(panoId, CropService.ExploreFrameCropWidth, CropService.ExploreFrameCropHeight)
+    }
 
     beforeRun = seeded.keys.map(panoId => panoId -> (cropFile(panoId).exists(), hasBackup(panoId))).toMap
     firstRun = generate()
@@ -261,6 +337,8 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPe
       val prefixPattern = s"$prefix%"
       val _             = runDb(
         DBIO.seq(
+          sqlu"""DELETE FROM label_crop
+                 WHERE label_id IN (SELECT label_id FROM label WHERE pano_id LIKE $prefixPattern)""",
           sqlu"""DELETE FROM label_point
                  WHERE label_id IN (SELECT label_id FROM label WHERE pano_id LIKE $prefixPattern)""",
           sqlu"DELETE FROM label WHERE pano_id LIKE $prefixPattern",
@@ -271,6 +349,7 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPe
               sqlu"DELETE FROM mission WHERE mission_id = ${s.missionId}",
               sqlu"DELETE FROM street_edge WHERE street_edge_id = ${s.streetEdgeId}",
               sqlu"DELETE FROM user_stat WHERE user_id = ${s.userId}",
+              sqlu"DELETE FROM sidewalk_login.user_role WHERE user_id = ${s.userId}",
               sqlu"DELETE FROM sidewalk_login.sidewalk_user WHERE user_id = ${s.userId}"
             )
           })
@@ -387,18 +466,95 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPe
       cropService.downscaledImageFile(orphanPanoId).exists() mustBe false
     }
 
+    "record where the label is in every crop it cuts, off the geometry's own registration (#2660)" in {
+      val interior = labelCrop(backedPanoId).value
+      interior.source mustBe CropSource.PanoWindow
+      interior.cropRuleVersion mustBe Some(CropSizingRule.Version)
+      // An interior window is centred on the label, to within the rounding of its integer edges.
+      interior.markerX mustBe 0.5 +- 0.01
+      interior.markerY mustBe 0.5 +- 0.01
+      val image = ImageIO.read(cropFile(backedPanoId))
+      (interior.width, interior.height) mustBe ((image.getWidth, image.getHeight))
+
+      // The window that slid up off the bottom pole has its label 12 px above its bottom edge, not at its centre.
+      val pole    = labelCrop(polePanoId).value
+      val poleBox = boxFor(512, PanoH - 12, PanoW, PanoH)
+      pole.markerY mustBe (1.0 - 12.0 / poleBox.height) +- 1e-9
+      pole.markerX mustBe 0.5 +- 0.01
+
+      // Nothing was cut for these, so nothing was recorded.
+      labelCrop(unbackedPanoId) mustBe None
+      labelCrop(outOfFramePanoId) mustBe None
+      labelCrop(mismatchedPanoId) mustBe None
+    }
+
+    "tell a browser snapshot from a job window by size, where the size can tell" in {
+      // A 1440x960 file where the job's window would be far smaller: the browser's snapshot, label at its canvas
+      // fraction (the seed clicks the canvas centre).
+      val snapshot = labelCrop(snapshotPanoId).value
+      snapshot.source mustBe CropSource.ExploreFrame
+      snapshot.cropRuleVersion mustBe None
+      (snapshot.markerX, snapshot.markerY) mustBe ((0.5, 0.5))
+      (snapshot.width, snapshot.height) mustBe ((1440, 960))
+
+      // A file of exactly the job's window size for this label: the job's window, label per the geometry.
+      val window = labelCrop(windowPanoId).value
+      window.source mustBe CropSource.PanoWindow
+      window.cropRuleVersion mustBe Some(CropSizingRule.Version)
+      window.markerX mustBe 0.5 +- 0.01
+      window.markerY mustBe 0.5 +- 0.01
+    }
+
+    "drop the share preview of a crop it finds to be a job window, since it was composited at the canvas fraction" in {
+      shareImageCache.fileFor(seeded(windowPanoId).labelId).exists() mustBe false
+      // A snapshot's preview was right all along; nothing touches it (there was none to touch, and none appears).
+      shareImageCache.fileFor(seeded(snapshotPanoId).labelId).exists() mustBe false
+    }
+
+    "fall back to the label's age and authorship where both writers would have stored the same size" in {
+      // On the wide pano the job's window is capped at 1440x960 too, the same as a snapshot.
+      CropService.storedSize(boxFor(WideW / 2, WideY, WideW, WideH)) mustBe ((1440, 960))
+
+      // A crop written three days after the label was placed cannot be its session's upload.
+      labelCrop(ambiguousOldPanoId).value.source mustBe CropSource.PanoWindow
+      // One written within the session, by a person, is.
+      labelCrop(ambiguousNewPanoId).value.source mustBe CropSource.ExploreFrame
+      // An AI label never had a browser to upload one, however fresh the file.
+      labelCrop(ambiguousAiPanoId).value.source mustBe CropSource.PanoWindow
+      // The window's marker comes from the geometry, not from the canvas click.
+      val (_, (fx, fy)) = CropService.windowFor(WideW / 2, WideY, WideW, WideH)
+      labelCrop(ambiguousOldPanoId).value.markerX mustBe fx +- 1e-9
+      labelCrop(ambiguousOldPanoId).value.markerY mustBe fy +- 1e-9
+    }
+
+    "leave a crop it cannot classify unrecorded, and say so, rather than guess" in {
+      // The AI label's pano records no frame and is not in the store, so the window it would have been cut with
+      // cannot be recomputed; and the tiny pre-existing file is a size neither writer produces.
+      labelCrop(unresolvedPanoId) mustBe None
+      labelCrop(preexistingPanoId) mustBe None
+      firstRun.provenanceUnresolved mustBe 2
+      firstRun.provenanceExplore mustBe 2
+      firstRun.provenanceWindow mustBe 3
+    }
+
     "do nothing on a second run" in {
       val crop       = cropFile(backedPanoId)
       val downscaled = cropService.downscaledImageFile(backedPanoId)
       val before     = (crop.lastModified(), crop.length(), downscaled.lastModified(), downscaled.length())
+      val rowBefore  = labelCrop(backedPanoId)
 
       val result = generate()
 
       result.cropsWritten mustBe 0
       result.downscaledWritten mustBe 0
       result.downscaledDeleted mustBe 0
+      result.provenanceExplore mustBe 0
+      result.provenanceWindow mustBe 0
+      // Still unresolved, still counted: the run keeps saying so until something can classify them.
+      result.provenanceUnresolved mustBe 2
       result.errors mustBe 0
       (crop.lastModified(), crop.length(), downscaled.lastModified(), downscaled.length()) mustBe before
+      labelCrop(backedPanoId) mustBe rowBefore
     }
 
     "run one at a time, refusing a second call while the first is in flight" in {
@@ -425,6 +581,29 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPe
 
       result.downscaledWritten mustBe 1
       ImageIO.read(downscaled).getWidth mustBe DownscaledMaxWidth
+    }
+  }
+
+  "CropService.recordExploreFrameCrop" should {
+    "record the browser's snapshot with the label at its canvas fraction" in {
+      // The unbacked label has no crop and no row; this is what POST /saveImage calls once its file is written.
+      val labelId = seeded(unbackedPanoId).labelId
+      labelCrop(unbackedPanoId) mustBe None
+
+      Await.result(cropService.recordExploreFrameCrop(labelId, 1440, 960), 30.seconds)
+
+      val row = labelCrop(unbackedPanoId).value
+      row.source mustBe CropSource.ExploreFrame
+      (row.markerX, row.markerY) mustBe ((0.5, 0.5))
+      (row.width, row.height) mustBe ((1440, 960))
+      row.cropRuleVersion mustBe None
+      Await.result(cropService.cropMarker(labelId), 30.seconds).map(m => (m.x, m.y)) mustBe Some((0.5, 0.5))
+      Await.result(cropService.cropMarkers(Seq(labelId, -1)), 30.seconds).keySet mustBe Set(labelId)
+    }
+
+    "skip a label with no label_point row yet, leaving it to the reconcile pass" in {
+      Await.result(cropService.recordExploreFrameCrop(-2660, 1440, 960), 30.seconds)
+      Await.result(cropService.cropMarker(-2660), 30.seconds) mustBe None
     }
   }
 
