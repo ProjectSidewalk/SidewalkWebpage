@@ -151,6 +151,62 @@
         <img src="@assets.path("images/icons/chevrons-right-feather.svg")" alt="">
       </button>
 
+      @* The insights dock: KPIs and three linked views over the bottom of the map. A sibling of the sidebar, after
+         it, so the stylesheet can shift it clear of the open drawer. AccessScoreDock.js fills the chart holders. *@
+      <aside id="acs-dock" class="acs-dock" aria-labelledby="acs-dock-title">
+        <div class="acs-dock__bar">
+          <button type="button" id="acs-dock-toggle" class="acs-dock__toggle" aria-expanded="true" aria-controls="acs-dock-body">
+            <img class="acs-dock__chevron" src="@assets.path("images/icons/chevron-down-feather.svg")" alt="">
+            <span id="acs-dock-title" data-i18n="accessscore:dock-title">Insights</span>
+          </button>
+          <div class="acs-segmented acs-segmented--compact acs-dock__scope" role="radiogroup" aria-label="Scope" data-i18n-aria-label="accessscore:scope">
+            <label class="acs-segmented__option" for="acs-scope-city">
+              <input type="radio" name="acs-scope" id="acs-scope-city" value="city" checked>
+              <span data-i18n="accessscore:scope-city">City</span>
+            </label>
+            <label class="acs-segmented__option" for="acs-scope-viewport">
+              <input type="radio" name="acs-scope" id="acs-scope-viewport" value="viewport">
+              <span data-i18n="accessscore:scope-viewport">Map view</span>
+            </label>
+            <label class="acs-segmented__option" for="acs-scope-selection" id="acs-scope-selection-option">
+              <input type="radio" name="acs-scope" id="acs-scope-selection" value="selection" disabled>
+              <span data-i18n="accessscore:scope-selection">Selected</span>
+            </label>
+          </div>
+          @info("scope-help")
+          <span id="acs-dock-scope-caption" class="acs-dock__caption"></span>
+          <div id="acs-dock-kpis" class="acs-dock__kpis"></div>
+          <div id="acs-dock-brush" class="acs-dock__brush" hidden>
+            <span id="acs-dock-brush-text"></span>
+            <button type="button" id="acs-dock-brush-clear" class="button-ps button--small button--secondary" data-i18n="accessscore:brush-clear">Clear</button>
+          </div>
+          <div id="acs-dock-status" class="sr-only" role="status" aria-live="polite"></div>
+        </div>
+        <div id="acs-dock-body" class="acs-dock__body">
+          <section class="acs-dock__panel acs-dock__panel--histogram" aria-labelledby="acs-dock-histogram-title">
+            <div class="acs-dock__panel-head">
+              <h3 class="acs-dock__panel-title" id="acs-dock-histogram-title" data-i18n="accessscore:chart-histogram">Score distribution</h3>
+              @info("chart-histogram-help")
+            </div>
+            <div id="acs-histogram" class="acs-histogram"></div>
+          </section>
+          <section class="acs-dock__panel acs-dock__panel--clusters" aria-labelledby="acs-dock-clusters-title">
+            <div class="acs-dock__panel-head">
+              <h3 class="acs-dock__panel-title" id="acs-dock-clusters-title" data-i18n="accessscore:chart-clusters">Clusters by rating</h3>
+              @info("chart-clusters-help")
+            </div>
+            <div id="acs-cluster-bars" class="acs-clusters"></div>
+          </section>
+          <section class="acs-dock__panel acs-dock__panel--rank" aria-labelledby="acs-dock-rank-title">
+            <div class="acs-dock__panel-head">
+              <h3 class="acs-dock__panel-title" id="acs-dock-rank-title" data-i18n="accessscore:chart-rank">Neighborhoods ranked</h3>
+              @info("chart-rank-help")
+            </div>
+            <div id="acs-rank-bars" class="acs-rank"></div>
+          </section>
+        </div>
+      </aside>
+
       @common.mapLoadingOverlay()
     </div>
   </div>

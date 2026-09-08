@@ -7,7 +7,9 @@
  *
  * Params: `unit` (streets|regions), `preset`, `w` (per-type magnitudes, `CurbRamp:0.75,…`), `sev` (severity
  * emphasis 0–1), `tags` (0|1), `agg` (length|mean), `minc` (completion floor, percent), `unaudited` (0|1),
- * `clusters` (0|1, the evidence layer), `sel` (selected street or region id, read with `unit`).
+ * `clusters` (0|1, the evidence layer), `sel` (selected street or region id, read with `unit`); and the insights
+ * dock's `dock` (0 when collapsed), `scope` (viewport|selection), and `b` (the brushed score range as `from-to` in
+ * whole percent, on the histogram's 5-point bin edges).
  */
 class AccessScoreUrlSync {
   static #WRITE_DELAY_MS = 300;
@@ -16,6 +18,7 @@ class AccessScoreUrlSync {
   #map;
   #writeTimer = null;
   #selection = null;
+  #dock = { open: true, scope: 'city', brush: null };
 
   /**
    * The state a URL asks for, validated against the engine config. Unknown or malformed tokens are dropped, so a
@@ -23,7 +26,8 @@ class AccessScoreUrlSync {
    *
    * @param {object} config - The `/v3/api/accessScoreConfig` response.
    * @param {string} [search=window.location.search] - The query string to read.
-   * @returns {{state: object, selection: ?number}} A partial `AccessScoreModel` state and the selected id, if any.
+   * @returns {{state: object, selection: ?number, dock: {open: boolean, scope: string, brush: ?object}}} A partial
+   *   `AccessScoreModel` state, the selected id if any, and the dock's state (`brush` as `{from, to}` bin indices).
    */
   static read(config, search = window.location.search) {
     const params = new URLSearchParams(search);
@@ -60,7 +64,22 @@ class AccessScoreUrlSync {
     if (params.get('clusters') === '0') state.showClusters = false;
 
     const sel = Number.parseInt(params.get('sel'), 10);
-    return { state, selection: Number.isFinite(sel) && sel > 0 ? sel : null };
+
+    const dock = { open: params.get('dock') !== '0', scope: 'city', brush: null };
+    const scope = params.get('scope');
+    if (scope === 'viewport' || scope === 'selection') dock.scope = scope;
+    // A brush is only meaningful on the bin edges; anything else is dropped whole rather than rounded to a range
+    // the link's author never picked.
+    const b = /^(\d{1,3})-(\d{1,3})$/.exec(params.get('b') || '');
+    if (b) {
+      const step = 100 / AccessScoreModel.HISTOGRAM_BINS;
+      const from = Number(b[1]);
+      const to = Number(b[2]);
+      if (from < to && to <= 100 && from % step === 0 && to % step === 0) {
+        dock.brush = { from: from / step, to: to / step };
+      }
+    }
+    return { state, selection: Number.isFinite(sel) && sel > 0 ? sel : null, dock };
   }
 
   /**
@@ -83,6 +102,15 @@ class AccessScoreUrlSync {
    */
   setSelection(id) {
     this.#selection = id;
+    this.scheduleWrite();
+  }
+
+  /**
+   * Records the insights dock's state for the URL's `dock`, `scope`, and `b` params.
+   * @param {{open: boolean, scope: string, brush: ?{from: number, to: number}}} dock - The dock's state.
+   */
+  setDock(dock) {
+    this.#dock = dock;
     this.scheduleWrite();
   }
 
@@ -117,6 +145,11 @@ class AccessScoreUrlSync {
     set('unaudited', state.showUnaudited ? '1' : '0', state.showUnaudited === defaults.showUnaudited);
     set('clusters', state.showClusters ? '1' : '0', state.showClusters === defaults.showClusters);
     set('sel', String(this.#selection), this.#selection === null);
+    set('dock', '0', this.#dock.open);
+    set('scope', this.#dock.scope, this.#dock.scope === 'city');
+    const step = 100 / AccessScoreModel.HISTOGRAM_BINS;
+    const brush = this.#dock.brush;
+    set('b', brush ? `${brush.from * step}-${brush.to * step}` : '', brush === null);
 
     const center = this.#map.getCenter();
     url.searchParams.set('lat', center.lat.toFixed(5));

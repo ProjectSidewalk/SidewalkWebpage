@@ -135,7 +135,9 @@ class MapSidebarDrawer {
     const left = this.#open && !this.#narrowMq.matches ? this.#sidebar.offsetWidth : 0;
     if (left === this.#appliedPaddingLeft) return;
     this.#appliedPaddingLeft = left;
-    const padding = { left, top: 0, right: 0, bottom: 0 };
+    // Only the left edge is the drawer's to set; another overlay (the AccessScore dock, along the bottom) owns its
+    // own edge, and a fresh `{top: 0, right: 0, bottom: 0}` here would silently undo it.
+    const padding = { ...this.#map.getPadding(), left };
     if (animate) this.#map.easeTo({ padding });
     else this.#map.setPadding(padding);
     this.#publishWidth();
@@ -186,7 +188,7 @@ class MapSidebarDrawer {
       this.#draggedWidth = `${newWidth}px`;
       handle.style.left = `${newWidth}px`;
       this.#appliedPaddingLeft = newWidth;
-      this.#map.setPadding({ left: newWidth, top: 0, right: 0, bottom: 0 });
+      this.#map.setPadding({ ...this.#map.getPadding(), left: newWidth });
       this.#publishWidth();
     };
 

@@ -165,6 +165,84 @@ describe('AccessScoreModel', () => {
         expect(n2.helped).toBeNull();
     });
 
+    test('bins: binOf folds the top edge, streetBins tracks the scores, and the bin lookups honor a scope', () => {
+        expect(AccessScoreModel.binOf(0)).toBe(0);
+        expect(AccessScoreModel.binOf(0.4999)).toBe(9);
+        expect(AccessScoreModel.binOf(0.5)).toBe(10);
+        expect(AccessScoreModel.binOf(1)).toBe(19);
+        const features = FIXTURE.streets.map((c, i) => feature(c, i, { audit_count: i === 0 ? 0 : 1 }));
+        const model = new AccessScoreModel(FIXTURE.config, { type: 'FeatureCollection', features }, [REGION]);
+        expect(model.streetBins[0]).toBe(AccessScoreModel.UNBINNED);
+        for (let i = 1; i < model.streetCount; i++) {
+            expect(model.streetBins[i]).toBe(AccessScoreModel.binOf(model.streetScores[i]));
+        }
+        const good = model.streetIdsInBins(10, 20);
+        model.streetIds.forEach((id, i) => {
+            expect(good.has(id)).toBe(i > 0 && model.streetScores[i] >= 0.5);
+        });
+        expect(model.streetIdsInBins(0, 20, { streetIds: new Set([2, 3]) })).toEqual(new Set([2, 3]));
+        expect(model.streetIdsInBins(0, 20).has(1)).toBe(false); // unaudited: in no bin
+        expect(model.regionStreetIds(1).size).toBe(model.streetCount);
+        // A weight change moves streets between bins, and the bins follow in the same pass.
+        model.setState({ weights: { Obstacle: 0 } });
+        for (let i = 1; i < model.streetCount; i++) {
+            expect(model.streetBins[i]).toBe(AccessScoreModel.binOf(model.streetScores[i]));
+        }
+    });
+
+    test('clusterBreakdown sums the cluster counts per type and bucket over the scoped streets', () => {
+        const model = new AccessScoreModel(FIXTURE.config, streets, [REGION]);
+        const all = model.clusterBreakdown();
+        expect(all.streets).toBe(FIXTURE.streets.length);
+        for (const entry of all.types) {
+            for (const bucket of FIXTURE.config.severity_buckets) {
+                const expected = FIXTURE.streets.reduce((n, c) => n + ((c.severity_counts[entry.type] || {})[bucket] || 0), 0);
+                expect(entry.buckets[bucket]).toBe(expected);
+            }
+            expect(entry.total).toBe(Object.values(entry.buckets).reduce((a, b) => a + b, 0));
+        }
+        expect(all.total).toBe(all.types.reduce((n, t) => n + t.total, 0));
+        const scoped = model.clusterBreakdown({ streetIds: new Set([2, 3]) }); // one curb ramp each
+        expect(scoped.streets).toBe(2);
+        expect(scoped.types.find((t) => t.type === 'CurbRamp').total).toBe(2);
+        expect(scoped.types.find((t) => t.type === 'Obstacle').total).toBe(0);
+    });
+
+    test('kpis and the histogram take a scope, and rankedRegions orders every scored region', () => {
+        const regions = [
+            { region_id: 1, name: 'Whole', rate: 1, total_distance_m: 300, completed_distance_m: 300 },
+            { region_id: 2, name: 'Good', rate: 1, total_distance_m: 100, completed_distance_m: 100 },
+            { region_id: 3, name: 'Thin', rate: 0.2, total_distance_m: 1000, completed_distance_m: 200 },
+        ];
+        const features = [
+            feature(FIXTURE.streets[1], 0, { region_id: 1, length_meters: 100 }), // one good curb ramp
+            feature(FIXTURE.streets[2], 1, { region_id: 1, length_meters: 300 }), // bad curb ramp
+            feature(FIXTURE.streets[1], 2, { region_id: 2, length_meters: 100 }),
+            feature(FIXTURE.streets[1], 3, { region_id: 3, length_meters: 50, audit_count: 0 }),
+        ];
+        const model = new AccessScoreModel(FIXTURE.config, { type: 'FeatureCollection', features }, regions);
+        expect(model.rankedRegions().map((r) => r.regionId)).toEqual([2, 1]); // the thin region is floored out
+        expect(model.ranked(1).top.map((r) => r.regionId)).toEqual([2]);
+        expect(model.regionIdsInBins(0, 20)).toEqual(new Set([1, 2]));
+        expect(model.regionIdsInBins(0, 20, { regionIds: new Set([2]) })).toEqual(new Set([2]));
+
+        // Scoped KPIs count the streets given and measure their own lengths; unscoped ones use the region rows.
+        const city = model.kpis();
+        expect(city.streets).toBe(4);
+        expect(city.totalKm).toBeCloseTo(1.4, 12);
+        const scoped = model.kpis({ streetIds: new Set([1, 2]), regionIds: new Set([1]) });
+        expect(scoped.streets).toBe(2);
+        expect(scoped.auditedStreets).toBe(2);
+        expect(scoped.totalKm).toBeCloseTo(0.4, 12);
+        expect(scoped.auditedKm).toBeCloseTo(0.4, 12);
+        expect(scoped.regions).toBe(1);
+        expect(scoped.cityScore).toBeCloseTo(model.explainRegion(1).score, 12);
+
+        model.setState({ unit: 'regions' });
+        expect(model.histogram().total).toBe(2);
+        expect(model.histogram({ regionIds: new Set([2]) }).total).toBe(1);
+    });
+
     test('an empty city yields no NaN anywhere', () => {
         const model = new AccessScoreModel(FIXTURE.config, { type: 'FeatureCollection', features: [] }, []);
         const k = model.kpis();

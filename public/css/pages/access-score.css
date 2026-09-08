@@ -458,7 +458,9 @@
 .acs-legend {
   position: absolute;
   left: var(--space-sm);
-  bottom: 30px; /* Clear Mapbox's attribution strip. */
+
+  /* Clear Mapbox's attribution strip, and the insights dock, which publishes its height on the holder. */
+  bottom: calc(30px + var(--acs-dock-height, 0px) + var(--space-xs));
   z-index: 2;
   width: 220px;
   padding: var(--space-xs) var(--space-sm);
@@ -673,5 +675,535 @@
 
   .acs-legend {
     width: 160px;
+  }
+}
+
+/* ---- Insights dock over the bottom of the map ---- */
+
+/* Between the drawer's resize handle (11) and the status pill (15); the loading overlay (20) covers it. The right
+   edge stops short of Mapbox's logo, which sits bottom-right. */
+.acs-dock {
+  position: absolute;
+  left: var(--space-sm);
+  right: 100px;
+  bottom: 30px; /* Clear Mapbox's attribution strip, like the legend. */
+  z-index: 12;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-neutral-white);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--box-shadow-lg);
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-900);
+}
+
+.filter-sidebar:not(.filter-sidebar--hidden) ~ .acs-dock {
+  left: calc(var(--filter-sidebar-width, 350px) + var(--space-sm));
+}
+
+.acs-dock__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xxs) var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
+}
+
+.acs-dock__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xxs);
+  padding: 2px var(--space-xxs);
+  border: 0;
+  border-radius: var(--border-radius-sm);
+  background: none;
+  font: var(--text-small-bold);
+  color: var(--color-neutral-900);
+  cursor: pointer;
+}
+
+.acs-dock__toggle:hover {
+  background: var(--color-neutral-100);
+}
+
+.acs-dock__toggle:focus-visible {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: 1px;
+}
+
+.acs-dock__chevron {
+  width: 16px;
+  height: 16px;
+  transition: transform var(--transition-fast);
+}
+
+.acs-dock--collapsed .acs-dock__chevron {
+  transform: rotate(180deg);
+}
+
+/* City | Map view | Selected: the unit control's styling at caption size, three across. */
+.acs-segmented--compact {
+  display: inline-grid;
+  grid-template-columns: none;
+  grid-auto-flow: column;
+  grid-auto-columns: auto;
+}
+
+.acs-segmented--compact .acs-segmented__option {
+  padding: 2px var(--space-xs);
+  font: var(--text-caption-medium);
+}
+
+.acs-segmented__option:has(input:disabled) {
+  color: var(--color-neutral-500);
+  cursor: not-allowed;
+}
+
+/* display: flex would otherwise beat the user-agent's [hidden] rule when the option is unit-specific. */
+.acs-segmented__option[hidden] {
+  display: none;
+}
+
+.acs-dock__caption {
+  color: var(--color-neutral-700);
+}
+
+.acs-dock__kpis {
+  display: flex;
+  gap: var(--space-md);
+  margin-left: auto;
+}
+
+/* A compact stat tile: the figure over its caption, right-aligned so the tiles read as a row of numbers.
+   Proportional figures on purpose: tabular digits look loose at this weight. */
+.acs-kpi {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  min-width: 56px;
+}
+
+.acs-kpi__value {
+  font: var(--text-body-bold);
+  color: var(--color-neutral-900);
+}
+
+.acs-kpi__label {
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-700);
+  white-space: nowrap;
+}
+
+/* The brush readout: what range is picked and what it holds, with the one way to clear it. */
+.acs-dock__brush {
+  flex: 1 1 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-top: var(--space-xxs);
+  padding-top: var(--space-xxs);
+  border-top: 1px solid var(--color-neutral-200);
+  font: var(--text-caption-medium);
+}
+
+.acs-dock__brush[hidden] {
+  display: none;
+}
+
+.acs-dock__body {
+  display: grid;
+  grid-template-columns: minmax(280px, 1.8fr) minmax(240px, 1.3fr) minmax(220px, 1.1fr);
+  gap: var(--space-md);
+  padding: 0 var(--space-sm) var(--space-sm);
+  border-top: 1px solid var(--color-neutral-200);
+}
+
+.acs-dock__body[hidden] {
+  display: none;
+}
+
+.acs-dock__panel {
+  min-width: 0;
+}
+
+.acs-dock__panel-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xxs);
+  margin: var(--space-xs) 0 var(--space-xxs);
+}
+
+.acs-dock__panel-title {
+  margin: 0;
+  font: var(--text-caption-semibold);
+  color: var(--color-neutral-800);
+}
+
+/* ---- Histogram ---- */
+
+/* A gutter on the left holds the value labels, so they never land on the tallest bar at either end. */
+.acs-histogram__plot {
+  --acs-histogram-gutter: 52px;
+
+  position: relative;
+  height: 104px;
+  margin-top: var(--space-md); /* Room for the city label above the needle. */
+}
+
+/* The bars and the markers that ride them share one box, right of the gutter, so a percentage `left` on a marker
+   means the same score as a bin's position. */
+.acs-histogram__area {
+  position: absolute;
+  inset: 0 0 0 var(--acs-histogram-gutter);
+}
+
+.acs-histogram__grid {
+  position: absolute;
+  inset: 0;
+}
+
+/* Hairline gridlines, one step off the surface, with the value they stand for just above at the right. */
+.acs-histogram__gridline {
+  position: absolute;
+  right: 0;
+  left: var(--acs-histogram-gutter);
+  border-top: 1px solid var(--color-neutral-200);
+}
+
+.acs-histogram__gridline--top {
+  top: 0;
+}
+
+.acs-histogram__gridline--mid {
+  top: 50%;
+}
+
+.acs-histogram__gridline span {
+  position: absolute;
+  top: -6px;
+  right: calc(100% + var(--space-xxs));
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-700); /* neutral-600 is 3.2:1 on white, under AA for text this small. */
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The bins: twenty buttons in a row, each the full plot height so a short bar is as easy to hit as a tall one. */
+.acs-histogram__bars {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.acs-histogram__bin {
+  flex: 1 1 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: var(--border-radius-sm);
+  background: transparent;
+  cursor: pointer;
+}
+
+.acs-histogram__bin:hover {
+  background: var(--color-neutral-100);
+}
+
+.acs-histogram__bin:focus-visible {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: -2px;
+}
+
+/* Rounded at the data end, square at the baseline. The color is the ramp at the bin's midpoint, set inline. */
+.acs-histogram__bar {
+  display: block;
+  width: 100%;
+  max-width: 24px;
+  height: 0;
+  border-radius: 4px 4px 0 0;
+  transition: height var(--transition-fast), opacity var(--transition-fast);
+}
+
+.acs-histogram__bin--out .acs-histogram__bar {
+  opacity: 0.3;
+}
+
+/* The city's score: a hairline needle with its label above the plot. */
+.acs-histogram__needle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-left: 2px solid var(--color-neutral-900);
+  transform: translateX(-1px);
+  pointer-events: none;
+}
+
+.acs-histogram__needle-label {
+  position: absolute;
+  top: -14px;
+  left: var(--space-xxs);
+  font: var(--text-tiny-semibold);
+  color: var(--color-neutral-900);
+  white-space: nowrap;
+}
+
+/* Where the selected (dark) and hovered (link-blue) feature's score falls: a small pointer under the baseline. */
+.acs-histogram__caret {
+  position: absolute;
+  bottom: -7px;
+  width: 0;
+  height: 0;
+  border-right: 6px solid transparent;
+  border-bottom: 7px solid var(--color-neutral-900);
+  border-left: 6px solid transparent;
+  transform: translateX(-50%);
+  pointer-events: none;
+  transition: left var(--transition-fast);
+}
+
+.acs-histogram__caret--hover {
+  border-bottom-color: var(--color-link-200);
+}
+
+.acs-histogram__needle[hidden],
+.acs-histogram__caret[hidden] {
+  display: none;
+}
+
+.acs-histogram__axis {
+  display: flex;
+  justify-content: space-between;
+  margin: var(--space-xs) 0 0 var(--acs-histogram-gutter);
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-700);
+  font-variant-numeric: tabular-nums;
+}
+
+.acs-histogram__empty,
+.acs-clusters__empty,
+.acs-rank__empty,
+.acs-rank__note {
+  margin: var(--space-xxs) 0 0;
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-700);
+}
+
+/* ---- Clusters by rating ---- */
+
+.acs-clusters__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xxs) var(--space-sm);
+  margin-bottom: var(--space-xxs);
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-700);
+}
+
+.acs-clusters__legend-group,
+.acs-clusters__legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xxs);
+}
+
+.acs-clusters__legend-kind {
+  font: var(--text-tiny-semibold);
+  color: var(--color-neutral-800);
+}
+
+.acs-clusters__swatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+.acs-clusters__swatch--unrated {
+  background: var(--color-neutral-400);
+}
+
+.acs-clusters__rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.acs-clusters__row {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr) 36px;
+  align-items: center;
+  gap: var(--space-xs);
+  min-height: 22px;
+}
+
+.acs-clusters__row--hidden {
+  opacity: 0.45;
+}
+
+/* The type's name doubles as the switch for its dots on the map. */
+.acs-clusters__type {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xxs);
+  min-width: 0;
+  padding: 2px;
+  border: 0;
+  border-radius: var(--border-radius-sm);
+  background: none;
+  font: var(--text-caption-medium);
+  color: var(--color-neutral-900);
+  text-align: left;
+  cursor: pointer;
+}
+
+.acs-clusters__type:hover {
+  background: var(--color-neutral-100);
+}
+
+.acs-clusters__type:focus-visible,
+.acs-clusters__bar:focus-visible,
+.acs-rank__row:focus-visible {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: 1px;
+}
+
+.acs-clusters__type[aria-pressed="false"] .acs-clusters__name {
+  text-decoration: line-through;
+}
+
+.acs-clusters__icon {
+  flex: none;
+  width: 16px;
+  height: 16px;
+}
+
+.acs-clusters__name,
+.acs-rank__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A stacked bar: the segments grow in proportion (flex-grow set inline), a 2px surface gap between them. */
+.acs-clusters__bar {
+  display: flex;
+  gap: 2px;
+  height: 10px;
+  min-width: 0;
+  border-radius: 0 4px 4px 0;
+  overflow: hidden;
+  transition: width var(--transition-fast);
+}
+
+.acs-clusters__seg {
+  flex: 0 1 0;
+  min-width: 2px;
+}
+
+.acs-clusters__seg[hidden] {
+  display: none;
+}
+
+.acs-clusters__count,
+.acs-rank__score {
+  font: var(--text-caption-medium);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Neighborhoods ranked ---- */
+
+.acs-rank__rows {
+  max-height: 156px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.acs-rank__row {
+  display: grid;
+  grid-template-columns: 20px minmax(72px, 1.5fr) minmax(40px, 1fr) 30px;
+  align-items: center;
+  gap: var(--space-xs);
+  width: 100%;
+  padding: 2px var(--space-xxs);
+  border: 0;
+  border-radius: var(--border-radius-sm);
+  background: none;
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-900);
+  text-align: left;
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.acs-rank__row:hover,
+.acs-rank__row--hover {
+  background: var(--color-neutral-100);
+}
+
+.acs-rank__row[aria-current="true"] {
+  background: var(--color-pine-100);
+  box-shadow: inset 2px 0 0 var(--color-pine-700);
+}
+
+.acs-rank__row--out {
+  opacity: 0.35;
+}
+
+.acs-rank__pos {
+  color: var(--color-neutral-700);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The track is a lighter neutral so the bar's ramp color reads against it. */
+.acs-rank__track {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--color-neutral-100);
+  overflow: hidden;
+}
+
+.acs-rank__bar {
+  display: block;
+  height: 100%;
+  border-radius: 0 3px 3px 0;
+  transition: width var(--transition-fast);
+}
+
+/* Narrower windows: the three views stack, and the rank list gets shorter so the dock leaves map above it. */
+@media (width <= 1100px) {
+  .acs-dock__body {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .acs-dock__panel--histogram {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (width <= 600px) { /* --breakpoint-sm */
+  .acs-dock {
+    right: var(--space-sm);
+    left: var(--space-sm);
+  }
+
+  .acs-dock__body {
+    grid-template-columns: 1fr;
+  }
+
+  .acs-dock__kpis {
+    margin-left: 0;
+  }
+
+  .acs-rank__rows {
+    max-height: 96px;
   }
 }

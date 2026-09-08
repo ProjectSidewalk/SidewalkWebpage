@@ -40,6 +40,10 @@ function fakeMap() {
     return {
         easeTo: jest.fn(),
         setPadding: jest.fn(),
+        /** The drawer merges its left edge into whatever padding the map holds, so the stub has to report one. */
+        getPadding() {
+            return this.lastPadding() || {left: 0, top: 0, right: 0, bottom: 0};
+        },
         /** @returns {?object} The most recent padding requested, by either route. */
         lastPadding() {
             const calls = [...this.easeTo.mock.calls.map((c) => c[0].padding), ...this.setPadding.mock.calls.map((c) => c[0])];

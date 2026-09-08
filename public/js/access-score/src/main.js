@@ -1,8 +1,8 @@
 /**
  * Bootstraps the AccessScore tool page (#5217): loads the engine config, the city's streets, and the neighborhood
  * polygons and completion rates in parallel with the map, then wires the model, the map view, the cluster evidence
- * layer, the sidebar, and the URL together. Everything the page does after load is an event flowing
- * sidebar → model → map/URL/panel.
+ * layer, the sidebar, the insights dock, and the URL together. Everything the page does after load is an event
+ * flowing sidebar → model → map/dock/URL, or dock → map.
  */
 window.AccessScoreApp = (function () {
   const MAP_STYLE = 'mapbox://styles/mapbox/light-v11?optimize=true';
@@ -90,6 +90,7 @@ window.AccessScoreApp = (function () {
     const sidebar = new AccessScoreSidebar(sidebarEl, config);
     const urlSync = new AccessScoreUrlSync(model, map);
     let popup = null;
+    let dock = null;
 
     const explanationHtml = ({ unit, id }) => (unit === 'streets' ? streetPopupHtml(id) : regionPopupHtml(id));
 
@@ -99,11 +100,13 @@ window.AccessScoreApp = (function () {
       if (!selection) {
         mapView.setSelection(null);
         urlSync.setSelection(null);
+        dock?.setSelection(null);
         return;
       }
       mapView.setSelection(selection);
       mapView.hideTooltip();
       urlSync.setSelection(selection.id);
+      dock?.setSelection(selection);
       const html = explanationHtml(selection);
       if (!html) return;
       // Not closeOnClick: the popup is opened from a map click, and Mapbox would close it on that same click. A
@@ -128,14 +131,33 @@ window.AccessScoreApp = (function () {
       streets,
       regions,
       onSelect: (selection) => select(selection),
+      onHover: (hover) => dock?.markHover(hover),
       tooltipHtml: ({ unit, id }) => (unit === 'streets' ? streetTooltipHtml(id) : regionTooltipHtml(id)),
       // A click on a cluster dot opens the label card; the street or neighborhood under it stays unselected.
       clickClaimed: (e) => evidence?.layer.claims(e) === true,
       hoverClaimed: (e) => evidence?.layer.claims(e) === true,
     });
     evidence = await mountClusterEvidence();
+    dock = new AccessScoreDock(document.getElementById('acs-dock'), {
+      model,
+      mapView,
+      map,
+      config,
+      // A rank row goes to the neighborhood; in the neighborhoods unit it selects it too, in the streets unit the
+      // regions aren't selectable, so the fly-to is the whole answer.
+      onRankSelect: (regionId) => {
+        mapView.flyToRegion(regionId);
+        if (model.state.unit === 'regions') {
+          const lngLat = regionCenter(regionId);
+          if (lngLat) select({ unit: 'regions', id: regionId, lngLat });
+        }
+      },
+      onToggleType: (type, shown) => evidence.layer.setTypeVisible(type, shown),
+      onStateChange: () => urlSync.setDock(dock.state),
+      log,
+    });
 
-    /** Applies a state change everywhere it shows: map, sidebar bars, URL, and the panel's listeners. */
+    /** Applies a state change everywhere it shows: map, sidebar bars, dock, URL, and the panel's listeners. */
     const applyChange = (meta) => {
       const state = model.state;
       if (meta.kind === 'Unit') mapView.setUnit(state.unit);
@@ -146,6 +168,7 @@ window.AccessScoreApp = (function () {
       if (meta.kind !== 'Weight' || meta.final) sidebar.setState(model.state);
       sidebar.setContributions(model.contributions().means);
       if (popup) select(null);
+      dock.applyChange(meta);
       urlSync.scheduleWrite();
       if (meta.final) log(meta.kind, meta.value);
       document.dispatchEvent(new CustomEvent('accessscore:change', { detail: { state, meta } }));
@@ -193,9 +216,11 @@ window.AccessScoreApp = (function () {
         select({ unit, id: urlState.selection, lngLat }, { fromUrl: true });
       }
     }
+    // After the selection: a Selected scope has nothing to stand on before it.
+    dock.applyUrlState(urlState.dock);
 
     const app = {
-      map, model, mapView, sidebar, config, streets, regions, clusterLoader: evidence.loader,
+      map, model, mapView, sidebar, dock, config, streets, regions, clusterLoader: evidence.loader,
       clusterLayer: evidence.layer,
     };
     window.accessScore = app;

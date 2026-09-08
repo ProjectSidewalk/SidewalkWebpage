@@ -32,6 +32,14 @@ Also covered, beyond the api-docs previews:
   `AccessScoreParitySpec`): every fixture street reproduces the engine's score and per-type terms at the default
   weights and under each preset, region roll-ups match `scoreRegion`, and the sliders' semantics (custom vs preset,
   severity emphasis, the completion floor, unaudited streets, an empty city) are pinned.
+- `access-score/src/AccessScoreHistogram.js` → `accessScoreHistogram.test.js` and
+  `access-score/src/AccessScoreDock.js` → `accessScoreDock.test.js` — the tool's insights dock (#5217). The histogram
+  suite pins the twenty named bin buttons (heights against a nice ceiling, ramp colors, the city needle and the
+  hover/selection carets) and the brush by keyboard and by pointer; the dock suite pins the coordinator's
+  composition rules — scope defines the population, a brush filters the cluster view and dims the map to
+  scope ∩ brush, a hover in a view outranks the brush without dropping it, one animation frame per batch of changes,
+  the weight-slider mid-drag guard, the Selected scope's fallback, and the URL state. Both load through
+  `support/accessScoreDockHarness.js`, whose i18next stub echoes keys and arguments so text stays inspectable.
 - `common/scoreRamp.js` → `scoreRamp.test.js` — the AccessScore color ramp (#5217), read from the `--color-score-ramp-*`
   tokens so the api-docs maps and the AccessScore tool paint one score one color: token order, exact hits at the
   stops and the neutral midpoint, sRGB interpolation matching Mapbox's `interpolate`, clamping, the Mapbox stop list

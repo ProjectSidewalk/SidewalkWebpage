@@ -21,6 +21,7 @@ class AccessScoreMapView {
   #map;
   #model;
   #onSelect;
+  #onHover;
   #tooltipHtml;
   #clickClaimed;
   #hoverClaimed;
@@ -29,6 +30,14 @@ class AccessScoreMapView {
   #selected = { unit: null, id: null };
   #tooltip;
   #frame = null;
+  #scoresPending = false;
+  #dimPending = false;
+  /** The ids kept bright by the brush, or null when nothing is dimmed. */
+  #brush = null;
+  /** Per source, the ids currently carrying `dim: true` in feature-state, so a rewrite touches only the difference. */
+  #dimmed = { [AccessScoreMapView.STREET_SOURCE]: new Set(), [AccessScoreMapView.REGION_SOURCE]: new Set() };
+  /** Each region's bounding box, for the viewport query. */
+  #regionBounds = new Map();
   #legend;
   #marker = null;
 
@@ -40,6 +49,8 @@ class AccessScoreMapView {
    *                                   `audit_count`).
    * @param {object} options.regions - The `/neighborhoods` polygon FeatureCollection (`region_id`, `region_name`).
    * @param {function} options.onSelect - Called with `{unit, id, lngLat}` on a click, or `null` on deselect.
+   * @param {function} [options.onHover] - Called with `{unit, id, score}` as the pointer enters a feature (score
+   *                                       null where it has none), and with `null` as it leaves.
    * @param {function} options.tooltipHtml - Called with `{unit, id}`; returns the hover tooltip's HTML or null.
    * @param {function} [options.clickClaimed] - Called with the Mapbox click event; return true when something
    *                                            drawn above these layers (a cluster dot) owns the click.
@@ -47,11 +58,12 @@ class AccessScoreMapView {
    *                                            drawn above these layers owns the hover, so its tooltip is the
    *                                            only one showing.
    */
-  constructor(map, { model, streets, regions, onSelect, tooltipHtml, clickClaimed = () => false,
+  constructor(map, { model, streets, regions, onSelect, onHover = () => {}, tooltipHtml, clickClaimed = () => false,
     hoverClaimed = () => false }) {
     this.#map = map;
     this.#model = model;
     this.#onSelect = onSelect;
+    this.#onHover = onHover;
     this.#tooltipHtml = tooltipHtml;
     this.#clickClaimed = clickClaimed;
     this.#hoverClaimed = hoverClaimed;
@@ -86,6 +98,10 @@ class AccessScoreMapView {
     this.#clearHover();
     this.#tooltip.remove();
     this.#renderLegend();
+    // A brush is a set of the active unit's ids, so the other unit's dims are stale the moment the unit flips.
+    this.#brush = null;
+    this.#dimPending = true;
+    this.#schedule();
   }
 
   /**
@@ -93,10 +109,31 @@ class AccessScoreMapView {
    * slider drag costs one batch per frame however many `input` events it fires.
    */
   applyScores() {
+    this.#scoresPending = true;
+    this.#schedule();
+  }
+
+  /**
+   * Dims every feature of the active unit outside a set of ids — the map's side of a chart brush — or clears the
+   * dimming. Writes only the difference from the last call, and shares `applyScores`'s animation frame, so a
+   * slider drag with a brush in force still costs one batch per frame.
+   * @param {?Iterable<number>} ids - The street or region ids to keep bright, or null for no brush.
+   */
+  setBrush(ids) {
+    this.#brush = ids ? new Set(ids) : null;
+    this.#dimPending = true;
+    this.#schedule();
+  }
+
+  /** One animation frame flushes whatever is pending: scores, dims, or both. */
+  #schedule() {
     if (this.#frame !== null) return;
     this.#frame = requestAnimationFrame(() => {
       this.#frame = null;
-      this.#writeScores();
+      if (this.#scoresPending) this.#writeScores();
+      if (this.#dimPending) this.#writeDims();
+      this.#scoresPending = false;
+      this.#dimPending = false;
     });
   }
 
@@ -143,12 +180,43 @@ class AccessScoreMapView {
   }
 
   /**
-   * The ids of the streets currently drawn in the viewport, for viewport-scoped charts.
+   * The ids of the streets drawn in the part of the map the user can see, for viewport-scoped charts.
    * @returns {Set<number>} Street ids.
    */
   visibleStreetIds() {
-    const rendered = this.#map.queryRenderedFeatures({ layers: [AccessScoreMapView.STREET_LAYER] });
+    const rendered = this.#map.queryRenderedFeatures(this.#visibleBox(), {
+      layers: [AccessScoreMapView.STREET_LAYER],
+    });
     return new Set(rendered.map((f) => f.properties.street_edge_id));
+  }
+
+  /**
+   * The ids of the regions whose bounding box touches the part of the map the user can see. A bounding-box test
+   * rather than `queryRenderedFeatures` on the fill layer, which returns one entry per tile per polygon.
+   * @returns {Set<number>} Region ids.
+   */
+  visibleRegionIds() {
+    const [[x0, y0], [x1, y1]] = this.#visibleBox();
+    const sw = this.#map.unproject([x0, y1]);
+    const ne = this.#map.unproject([x1, y0]);
+    const out = new Set();
+    for (const [id, b] of this.#regionBounds) {
+      if (b.getWest() <= ne.lng && b.getEast() >= sw.lng && b.getSouth() <= ne.lat && b.getNorth() >= sw.lat) {
+        out.add(id);
+      }
+    }
+    return out;
+  }
+
+  /**
+   * The pixel box of the map not covered by the drawer or the dock: the map's canvas minus its padding, which is
+   * exactly what those overlays set.
+   * @returns {Array<Array<number>>} `[[left, top], [right, bottom]]` in canvas pixels.
+   */
+  #visibleBox() {
+    const p = this.#map.getPadding();
+    const { width, height } = this.#map.getContainer().getBoundingClientRect();
+    return [[p.left, p.top], [Math.max(p.left, width - p.right), Math.max(p.top, height - p.bottom)]];
   }
 
   /** The hatch tile: thin diagonal grey strokes, so an unscored region reads as "no data" rather than a color. */
@@ -173,17 +241,19 @@ class AccessScoreMapView {
 
   /** Neighborhood fill, hatch, outline, and name layers, bottom to top. */
   #addRegionLayers(regions) {
+    for (const f of regions.features || []) this.#regionBounds.set(f.properties.region_id, geometryBounds(f.geometry));
     this.#map.addSource(AccessScoreMapView.REGION_SOURCE, {
       type: 'geojson', data: regions, promoteId: 'region_id',
     });
     const score = ['coalesce', ['feature-state', 'score'], -1];
+    const dim = ['boolean', ['feature-state', 'dim'], false];
     this.#map.addLayer({
       id: AccessScoreMapView.REGION_FILL_LAYER,
       type: 'fill',
       source: AccessScoreMapView.REGION_SOURCE,
       paint: {
         'fill-color': ScoreRamp.expression(score, { noneColor: AccessScoreMapView.#token('--color-neutral-200') }),
-        'fill-opacity': ['case', ['boolean', ['feature-state', 'hover'], false], 0.85, 0.7],
+        'fill-opacity': ['case', dim, 0.15, ['boolean', ['feature-state', 'hover'], false], 0.85, 0.7],
       },
     });
     // A filter can't read feature-state, so the hatch layer is filtered on an id list that applyScores rewrites.
@@ -219,6 +289,7 @@ class AccessScoreMapView {
         'text-color': AccessScoreMapView.#token('--color-neutral-900'),
         'text-halo-color': AccessScoreMapView.#token('--color-neutral-white'),
         'text-halo-width': 1.5,
+        'text-opacity': ['case', dim, 0.3, 1],
       },
     });
   }
@@ -274,12 +345,16 @@ class AccessScoreMapView {
     });
   }
 
-  /** The street opacity expression: audited full, unaudited faint or hidden, brushed-out streets dimmed. */
+  /**
+   * The street opacity expression: audited full, unaudited faint or hidden, and everything outside a brush dimmed —
+   * unaudited streets included, or they would read brighter than the scored streets a brush left out.
+   */
   #streetOpacity(showUnaudited) {
+    const dim = ['boolean', ['feature-state', 'dim'], false];
     return [
       'case',
-      ['==', ['get', 'audited'], 0], showUnaudited ? 0.55 : 0,
-      ['boolean', ['feature-state', 'dim'], false], 0.15,
+      ['==', ['get', 'audited'], 0], showUnaudited ? ['case', dim, 0.1, 0.55] : 0,
+      dim, 0.15,
       0.92,
     ];
   }
@@ -302,6 +377,7 @@ class AccessScoreMapView {
           this.#hover = { source, id };
           this.#map.setFeatureState({ source, id }, { hover: true });
           this.#map.getCanvas().style.cursor = 'pointer';
+          this.#onHover({ unit, id, score: this.#scoreOf(unit, id) });
         }
         this.markScore(this.#scoreOf(unit, id));
         const html = this.#tooltipHtml({ unit, id });
@@ -354,8 +430,33 @@ class AccessScoreMapView {
   #clearHover() {
     if (this.#hover.id !== null) {
       this.#map.setFeatureState({ source: this.#hover.source, id: this.#hover.id }, { hover: false });
+      this.#onHover(null);
     }
     this.#hover = { source: null, id: null };
+  }
+
+  /**
+   * The dim batch: the active unit's features outside the brush get `dim: true`, everything else `dim: false` —
+   * written as the difference from the last batch. The inactive unit's dims are always cleared, so a brush set in
+   * one unit never lingers under the other.
+   */
+  #writeDims() {
+    const streets = this.#unit === 'streets';
+    const activeSource = streets ? AccessScoreMapView.STREET_SOURCE : AccessScoreMapView.REGION_SOURCE;
+    for (const source of Object.keys(this.#dimmed)) {
+      const target = new Set();
+      if (this.#brush && source === activeSource) {
+        if (streets) {
+          for (const id of this.#model.streetIds) if (!this.#brush.has(id)) target.add(id);
+        } else {
+          for (const r of this.#model.regionStats) if (!this.#brush.has(r.regionId)) target.add(r.regionId);
+        }
+      }
+      const current = this.#dimmed[source];
+      for (const id of current) if (!target.has(id)) this.#map.setFeatureState({ source, id }, { dim: false });
+      for (const id of target) if (!current.has(id)) this.#map.setFeatureState({ source, id }, { dim: true });
+      this.#dimmed[source] = target;
+    }
   }
 
   /** The feature-state batch: every street's score, every region's score and floor flag. */

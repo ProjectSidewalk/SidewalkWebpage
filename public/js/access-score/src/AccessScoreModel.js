@@ -63,8 +63,13 @@ class AccessScoreModel {
   #units;
   #terms;
   #scores;
+  /** Histogram bin per street, filled alongside the scores; `UNBINNED` for an unaudited street. */
+  #bins;
   #regionStats = [];
   #cityContributions = null;
+
+  /** The `streetBins` value of a street with no score. */
+  static UNBINNED = 255;
 
   /**
    * @param {object} config - The `/v3/api/accessScoreConfig` response.
@@ -90,6 +95,7 @@ class AccessScoreModel {
     this.#units = new Float64Array(this.#n * this.#types.length);
     this.#terms = new Float64Array(this.#n * this.#types.length);
     this.#scores = new Float64Array(this.#n);
+    this.#bins = new Uint8Array(this.#n);
     this.#recomputeUnits();
     this.#recompute();
   }
@@ -130,6 +136,24 @@ class AccessScoreModel {
   /** Whether each street (by position) has at least one completed audit. */
   get streetAudited() {
     return this.#audited;
+  }
+
+  /**
+   * Each street's histogram bin by position, `UNBINNED` for an unaudited street. Filled in the scoring pass, so a
+   * brush's "which streets are in these bins" is one linear read with no per-frame allocation.
+   * @returns {Uint8Array} Bin indices in `[0, HISTOGRAM_BINS)`, parallel to `streetIds`.
+   */
+  get streetBins() {
+    return this.#bins;
+  }
+
+  /**
+   * The histogram bin a score falls in.
+   * @param {number} score - A score in [0, 1].
+   * @returns {number} A bin index in `[0, HISTOGRAM_BINS)`; the top edge folds into the last bin.
+   */
+  static binOf(score) {
+    return AccessScoreModel.#bin(score, AccessScoreModel.HISTOGRAM_BINS);
   }
 
   /**
@@ -240,6 +264,55 @@ class AccessScoreModel {
   }
 
   /**
+   * Every street in a region, audited or not — the population a region-scoped view counts against.
+   * @param {number} regionId - The region's id.
+   * @returns {Set<number>} Street ids.
+   */
+  regionStreetIds(regionId) {
+    const out = new Set();
+    for (let i = 0; i < this.#n; i++) if (this.#regionIds[i] === regionId) out.add(this.#ids[i]);
+    return out;
+  }
+
+  /**
+   * The audited streets whose score falls in a range of histogram bins.
+   * @param {number} from - First bin index, inclusive.
+   * @param {number} to - Last bin index, exclusive.
+   * @param {object} [options] - Scope.
+   * @param {Set<number>} [options.streetIds] - Restrict to these ids.
+   * @returns {Set<number>} Street ids.
+   */
+  streetIdsInBins(from, to, { streetIds } = {}) {
+    const out = new Set();
+    for (let i = 0; i < this.#n; i++) {
+      const b = this.#bins[i];
+      if (b < from || b >= to) continue;
+      if (streetIds && !streetIds.has(this.#ids[i])) continue;
+      out.add(this.#ids[i]);
+    }
+    return out;
+  }
+
+  /**
+   * The scored regions whose score falls in a range of histogram bins.
+   * @param {number} from - First bin index, inclusive.
+   * @param {number} to - Last bin index, exclusive.
+   * @param {object} [options] - Scope.
+   * @param {Set<number>} [options.regionIds] - Restrict to these ids.
+   * @returns {Set<number>} Region ids.
+   */
+  regionIdsInBins(from, to, { regionIds } = {}) {
+    const out = new Set();
+    for (const r of this.#regionStats) {
+      if (r.score === null || r.belowFloor) continue;
+      if (regionIds && !regionIds.has(r.regionId)) continue;
+      const b = AccessScoreModel.binOf(r.score);
+      if (b >= from && b < to) out.add(r.regionId);
+    }
+    return out;
+  }
+
+  /**
    * The score distribution in the current unit.
    *
    * Streets are weighted by length (a kilometre of sidewalk at a score counts a kilometre, not a segment count that
@@ -248,15 +321,17 @@ class AccessScoreModel {
    *
    * @param {object} [options] - Scope.
    * @param {Set<number>} [options.streetIds] - Restrict streets to these ids (e.g. the ones in the viewport).
+   * @param {Set<number>} [options.regionIds] - Restrict regions to these ids, in the regions unit.
    * @returns {{bins: Array<{from: number, to: number, value: number}>, total: number, unit: string}} Bin values are
    *   kilometres (streets) or counts (regions); `total` is their sum.
    */
-  histogram({ streetIds } = {}) {
+  histogram({ streetIds, regionIds } = {}) {
     const N = AccessScoreModel.HISTOGRAM_BINS;
     const values = new Float64Array(N);
     if (this.#state.unit === 'regions') {
       for (const r of this.#regionStats) {
         if (r.score === null || r.belowFloor) continue;
+        if (regionIds && !regionIds.has(r.regionId)) continue;
         values[AccessScoreModel.#bin(r.score, N)] += 1;
       }
     } else {
@@ -271,15 +346,59 @@ class AccessScoreModel {
   }
 
   /**
+   * Every scored region, best first; a tie goes to the one with more audited length behind its score.
+   * @returns {Array<object>} Entries of `regionStats`, floor applied.
+   */
+  rankedRegions() {
+    return this.#regionStats.filter((r) => r.score !== null && !r.belowFloor)
+      .sort((a, b) => b.score - a.score || b.auditedLengthM - a.auditedLengthM);
+  }
+
+  /**
    * The best and worst scored regions, floor applied.
    * @param {number} [n=5] - How many of each.
    * @returns {{top: Array<object>, bottom: Array<object>}} Entries of `regionStats`; `top` best first, `bottom`
    *   worst first.
    */
   ranked(n = 5) {
-    const scored = this.#regionStats.filter((r) => r.score !== null && !r.belowFloor)
-      .sort((a, b) => b.score - a.score || b.auditedLengthM - a.auditedLengthM);
+    const scored = this.rankedRegions();
     return { top: scored.slice(0, n), bottom: scored.slice(-n).reverse() };
+  }
+
+  /**
+   * The clusters behind the scores of a set of streets, by type and rating bucket — the population the score
+   * arithmetic actually runs over, which `contributions()`'s means don't expose.
+   *
+   * @param {object} [options] - Scope.
+   * @param {Set<number>} [options.streetIds] - Restrict to these street ids (unaudited ones carry no clusters).
+   * @returns {{types: Array<{type: string, total: number, buckets: Object<string, number>}>, total: number,
+   *   streets: number}} Per type in the engine's order, its cluster count per severity bucket and in all; the grand
+   *   total; and how many audited streets were counted.
+   */
+  clusterBreakdown({ streetIds } = {}) {
+    const T = this.#types.length;
+    const B = this.#buckets.length;
+    const counts = new Int32Array(T * B);
+    let streets = 0;
+    for (let i = 0; i < this.#n; i++) {
+      if (this.#audited[i] !== 1) continue;
+      if (streetIds && !streetIds.has(this.#ids[i])) continue;
+      streets += 1;
+      const base = i * T * B;
+      for (let k = 0; k < T * B; k++) counts[k] += this.#counts[base + k];
+    }
+    let total = 0;
+    const types = this.#types.map((type, t) => {
+      const buckets = {};
+      let typeTotal = 0;
+      this.#buckets.forEach((b, k) => {
+        buckets[b] = counts[t * B + k];
+        typeTotal += counts[t * B + k];
+      });
+      total += typeTotal;
+      return { type, total: typeTotal, buckets };
+    });
+    return { types, total, streets };
   }
 
   /**
@@ -315,37 +434,55 @@ class AccessScoreModel {
 
   /**
    * Headline numbers for the KPI strip.
+   *
+   * Unscoped, the distances are the completion figures the region rows carry (what the rest of the site calls
+   * "explored"); scoped to a street set they are the summed lengths of the streets in it, since a viewport or a
+   * neighborhood has no completion row of its own. The two agree to within how the street graph is measured.
+   *
+   * @param {object} [options] - Scope.
+   * @param {Set<number>} [options.streetIds] - Restrict streets to these ids.
+   * @param {Set<number>} [options.regionIds] - Restrict the region counts to these ids.
    * @returns {{cityScore: ?number, auditedStreets: number, streets: number, auditedKm: number, totalKm: number,
-   *   regionsScored: number, regions: number, problemClusters: number}} The city-wide score is the
-   *   length-weighted mean over audited streets (null with none).
+   *   regionsScored: number, regions: number, problemClusters: number}} The score is the length-weighted mean
+   *   over the audited streets in scope (null with none).
    */
-  kpis() {
+  kpis({ streetIds, regionIds } = {}) {
     const T = this.#types.length;
     let weighted = 0;
     let length = 0;
+    let streets = 0;
     let auditedStreets = 0;
     let problemClusters = 0;
+    let scopedTotalM = 0;
     for (let i = 0; i < this.#n; i++) {
+      if (streetIds && !streetIds.has(this.#ids[i])) continue;
+      streets += 1;
+      scopedTotalM += this.#lengths[i];
       for (let t = 0; t < T; t++) if (this.#signs[t] < 0) problemClusters += this.#clusterCounts[i * T + t];
       if (this.#audited[i] !== 1) continue;
       auditedStreets += 1;
       weighted += this.#scores[i] * this.#lengths[i];
       length += this.#lengths[i];
     }
-    let totalKm = 0;
-    let auditedKm = 0;
-    for (const r of this.#regions) {
-      totalKm += (r.total_distance_m || 0) / 1000;
-      auditedKm += (r.completed_distance_m || 0) / 1000;
+    let totalKm = scopedTotalM / 1000;
+    let auditedKm = length / 1000;
+    if (!streetIds) {
+      totalKm = 0;
+      auditedKm = 0;
+      for (const r of this.#regions) {
+        totalKm += (r.total_distance_m || 0) / 1000;
+        auditedKm += (r.completed_distance_m || 0) / 1000;
+      }
     }
+    const regions = regionIds ? this.#regionStats.filter((r) => regionIds.has(r.regionId)) : this.#regionStats;
     return {
       cityScore: length > 0 ? weighted / length : null,
       auditedStreets,
-      streets: this.#n,
+      streets,
       auditedKm,
       totalKm,
-      regionsScored: this.#regionStats.filter((r) => r.score !== null && !r.belowFloor).length,
-      regions: this.#regions.length,
+      regionsScored: regions.filter((r) => r.score !== null && !r.belowFloor).length,
+      regions: regions.length,
       problemClusters,
     };
   }
@@ -507,7 +644,13 @@ class AccessScoreModel {
         this.#terms[base] = term;
         x += term;
       }
-      this.#scores[i] = this.#audited[i] === 1 ? 1 / (1 + Math.exp(-x)) : NaN;
+      if (this.#audited[i] === 1) {
+        this.#scores[i] = 1 / (1 + Math.exp(-x));
+        this.#bins[i] = AccessScoreModel.binOf(this.#scores[i]);
+      } else {
+        this.#scores[i] = NaN;
+        this.#bins[i] = AccessScoreModel.UNBINNED;
+      }
     }
     this.#rollUpRegions();
     this.#cityContributions = this.contributions();

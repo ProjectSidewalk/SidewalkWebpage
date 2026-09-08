@@ -54,6 +54,17 @@ describe('AccessScoreUrlSync', () => {
             .toBe(config.preset_order[1]);
     });
 
+    test('reads the dock params and drops a brush that is off the bin edges', () => {
+        const { dock } = AccessScoreUrlSync.read(config, '?dock=0&scope=viewport&b=40-60');
+        expect(dock).toEqual({ open: false, scope: 'viewport', brush: { from: 8, to: 12 } });
+        expect(AccessScoreUrlSync.read(config, '').dock).toEqual({ open: true, scope: 'city', brush: null });
+        expect(AccessScoreUrlSync.read(config, '?scope=selection').dock.scope).toBe('selection');
+        expect(AccessScoreUrlSync.read(config, '?scope=street').dock.scope).toBe('city');
+        for (const b of ['41-60', '60-40', '0-105', '40', '40-40', 'abc']) {
+            expect(AccessScoreUrlSync.read(config, `?b=${b}`).dock.brush).toBeNull();
+        }
+    });
+
     test('writes only what differs from the defaults, keeps foreign params, and stamps the viewport', () => {
         window.history.replaceState(null, '', '/accessScore?regions=5&lat=1&lng=2');
         const model = new AccessScoreModel(config, { type: 'FeatureCollection', features: [] }, []);
@@ -68,14 +79,19 @@ describe('AccessScoreUrlSync', () => {
         expect(params.get('regions')).toBe('5');
         expect(params.get('lat')).toBe('40.88000');
         expect(params.get('zoom')).toBe('13.50');
-        for (const name of ['unit', 'preset', 'w', 'sev', 'tags', 'agg', 'minc', 'unaudited', 'clusters', 'sel']) {
+        for (const name of ['unit', 'preset', 'w', 'sev', 'tags', 'agg', 'minc', 'unaudited', 'clusters', 'sel', 'dock',
+            'scope', 'b']) {
             expect(params.has(name)).toBe(false);
         }
 
         model.setState({ unit: 'regions', weights: { Obstacle: 1.75 }, showClusters: false });
         sync.setSelection(7);
+        sync.setDock({ open: false, scope: 'viewport', brush: { from: 8, to: 12 } });
         sync.writeNow();
         params = new URLSearchParams(window.location.search);
+        expect(params.get('dock')).toBe('0');
+        expect(params.get('scope')).toBe('viewport');
+        expect(params.get('b')).toBe('40-60');
         expect(params.get('unit')).toBe('regions');
         expect(params.get('w')).toContain('Obstacle:1.75');
         expect(params.has('preset')).toBe(false); // custom is implied by w
@@ -88,5 +104,6 @@ describe('AccessScoreUrlSync', () => {
         expect(back.state.unit).toBe('regions');
         expect(back.state.showClusters).toBe(false);
         expect(back.selection).toBe(7);
+        expect(back.dock).toEqual({ open: false, scope: 'viewport', brush: { from: 8, to: 12 } });
     });
 });

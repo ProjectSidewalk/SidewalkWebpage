@@ -21,6 +21,8 @@ class AccessScoreClusterLayer {
   #tooltipHtml;
   #onSelect;
   #visible = true;
+  /** Types switched off individually, from the dock's cluster view. */
+  #hiddenTypes = new Set();
   #hovered = null;
 
   /**
@@ -68,10 +70,28 @@ class AccessScoreClusterLayer {
    */
   setVisible(visible) {
     this.#visible = visible;
-    for (const layer of this.#layers) {
-      this.#map.setLayoutProperty(layer, 'visibility', visible ? 'visible' : 'none');
-    }
+    this.#applyVisibility();
     if (!visible) this.#clearHover();
+  }
+
+  /**
+   * Shows or hides one type's clusters, under the layer-wide switch: a type hidden here stays hidden when the
+   * layer is switched back on.
+   * @param {string} type - A scored label type.
+   * @param {boolean} visible - True to draw it.
+   */
+  setTypeVisible(type, visible) {
+    if (visible) this.#hiddenTypes.delete(type);
+    else this.#hiddenTypes.add(type);
+    this.#applyVisibility();
+    if (!visible) this.#clearHover();
+  }
+
+  #applyVisibility() {
+    for (const type of this.#types) {
+      const shown = this.#visible && !this.#hiddenTypes.has(type);
+      this.#map.setLayoutProperty(AccessScoreClusterLayer.#layerId(type), 'visibility', shown ? 'visible' : 'none');
+    }
   }
 
   /**
