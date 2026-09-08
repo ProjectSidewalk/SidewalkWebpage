@@ -81,11 +81,10 @@ class ValidationTaskCommentTable @Inject() (
    * The only way a comment leaves this table, so a validator's words outlive every path that stops showing them
    * (#5076).
    *
-   * A single `DELETE ... RETURNING` feeding the insert, rather than a read-then-delete pair: the pair's two
-   * statements see different snapshots under READ COMMITTED, so a concurrent replace of the same comment could be
-   * archived twice, or deleted after a read that found nothing and so recorded nowhere. Only rows this statement
-   * itself deleted reach the history, which is the invariant the table's value rests on. It is also one round trip
-   * on the Validate submission path, which runs it once per validation in a batch.
+   * One `DELETE ... RETURNING` feeding the insert, rather than a read-then-delete pair, whose two statements see
+   * different snapshots under READ COMMITTED: a concurrent replace could be archived twice, or deleted after a read
+   * that found nothing and so recorded nowhere. Only rows this statement deleted reach the history. It is also one
+   * round trip on the Validate submission path, which runs it once per validation in a batch.
    *
    * Scoped by user rather than by mission: a comment belongs to whoever wrote it, and the mission it was written under
    * has usually rolled over by the time the same user revisits the label from a label card (#4653). Matching on the

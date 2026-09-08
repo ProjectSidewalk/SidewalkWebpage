@@ -300,7 +300,7 @@ class ValidateSubmissionSpec
   /**
    * The superseded versions of the user's comment on the label, oldest first (#5076).
    *
-   * @return Each version's text paired with what ended it, which is the pair the live table cannot answer for.
+   * @return Each version's text paired with what ended it, the pair the live table cannot answer for.
    */
   private def commentVersionsOn(labelId: Int, userId: String): Seq[(String, String)] =
     run(
@@ -625,8 +625,8 @@ class ValidateSubmissionSpec
       val commented = Seq(validationJson(label, b.missionId, "Agree", comment = Some("Ramp is buried in snow.")))
       status(postValidationTask(session, taskSubmission(b, commented, progress))) mustBe OK
 
-      // An undo inserts nothing afterwards, so a comment attached to one supersedes nothing — calling it an edit
-      // would claim a replacement that never arrives, in the very field that exists to tell the two apart.
+      // An undo inserts nothing afterwards, so a comment attached to one supersedes nothing. Calling it an edit
+      // would claim a replacement that never arrives, in the field that exists to tell the two apart.
       val undoneWithComment =
         Seq(validationJson(label, b.missionId, "Agree", undone = true, comment = Some("Never mind.")))
       status(postValidationTask(session, taskSubmission(b, undoneWithComment, progress))) mustBe OK
@@ -762,8 +762,8 @@ class ValidateSubmissionSpec
       // is for — the vote-clearing path deletes both together.
       validationRow(labelId, b.userId).map(_._1) mustBe Some("Unsure")
 
-      // Delete means it leaves the tool, not that the words are destroyed — and it is marked as the deliberate act
-      // it is, apart from a comment a vote change dropped (#5076).
+      // Delete means it leaves the tool, not that the words are destroyed, and it is marked the deliberate act it
+      // is, apart from a comment a vote change dropped (#5076).
       commentVersionsOn(labelId, b.userId) mustBe Seq(("Cannot tell under the snow.", "delete"))
     }
 

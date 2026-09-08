@@ -62,8 +62,8 @@ class EnumTypeParitySpec extends PlaySpec with GuiceOneAppPerSuite with RolledBa
     }
 
     "match ValidationCommentChangeType exactly" in {
-      // Cast from a Scala-supplied string in raw SQL like the one above, and on a path where the cost of drift is
-      // the comment text itself: the archiving insert is what the delete of the live row hangs off (#5076).
+      // Cast from a Scala-supplied string in raw SQL like the one above, on a path where drift costs the comment
+      // text itself: the archiving insert is what the delete of the live row hangs off (#5076).
       labelsOf("validation_comment_change_type") mustBe ValidationCommentChangeType.values.map(_.toString)
     }
   }

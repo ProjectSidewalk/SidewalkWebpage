@@ -29,10 +29,10 @@ object ValidationCommentChangeType extends Enumeration {
 /**
  * One superseded version of a validator's comment on a label (#5076).
  *
- * The live row and this table's rows for the same (label, user) are together a comment's full timeline; a pair with
- * no live row is a comment that ended, and its newest version says how.
+ * The live row and this table's rows for the same (label, user) are a comment's full timeline; a pair with no live
+ * row is a comment that ended, and its newest version says how.
  *
- * Append-only: nothing in the app deletes from it, so erasing a contributor's words is a deliberate hand-run cleanup.
+ * Append-only: nothing in the app deletes from it, so erasing a contributor's words is a hand-run cleanup.
  *
  * @param validationTaskCommentId The comment row this version copies. Not a foreign key: no such row exists once a
  *                                version of it is written.

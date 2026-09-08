@@ -193,7 +193,7 @@ class ValidationServiceImpl @Inject() (
    * Backs the label card's explicit Delete control (#5015). Deleting is otherwise only reachable by clearing the
    * vote the comment rode in on, which throws away the verdict along with the text.
    *
-   * The text leaves every read path in the tool but is kept in `validation_task_comment_history`, marked as a
+   * The text leaves every read path in the tool but is kept in `validation_task_comment_history`, marked a
    * deliberate delete rather than a side effect (#5076).
    *
    * @return Count of comments deleted, 0 or 1.
@@ -234,9 +234,9 @@ class ValidationServiceImpl @Inject() (
         // the vote, and a submission carrying its own replaces it. A repeat validation carrying none must leave the
         // user's earlier free text alone — the user said nothing about it, so nothing about it changed.
         val oldCommentRemoved = if (valSubmission.undone || valSubmission.redone || valSubmission.comment.isDefined) {
-          // A retracted vote taking the text with it is not a request to erase anything, so the history tells it
-          // apart from an edit (#5076). An undo inserts nothing afterwards, so a comment riding along with one is
-          // retracted rather than replaced, however it got attached.
+          // A retracted vote taking the text with it is no request to erase anything, so the history tells it apart
+          // from an edit (#5076). An undo inserts nothing afterwards, so a comment riding along with one is
+          // retracted rather than replaced.
           val changeType =
             if (valSubmission.comment.isDefined && !valSubmission.undone) ValidationCommentChangeType.Edit
             else ValidationCommentChangeType.ValidationChange

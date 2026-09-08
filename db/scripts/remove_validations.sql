@@ -8,8 +8,8 @@
 --
 -- Other tables touched by this script (no FK to label_validation, but logically tied):
 --   validation_task_comment (label_id + user_id + mission_id match the validation)
---   validation_task_comment_history (superseded versions of those comments; erased with them, since a version left
---                            behind would outlive the only comment it is a version of)
+--   validation_task_comment_history (superseded versions of those comments; erased with them, or they would outlive
+--                            the only comment they are versions of)
 --   label                   (agree_count / disagree_count / unsure_count / correct need a refresh)
 --   user_stat               (own_labels_validated + accuracy derive from label.correct)
 --   mission                 (labels_validated / labels_progress — NOT updated here; see note below)
@@ -106,10 +106,9 @@ WHERE label_edit_id IN (SELECT label_edit_id FROM edits_to_remove);
 -- 5. Delete the validation_task_comment rows tied to these validations (by label_id + user_id + mission_id), and the
 --    superseded versions of those same comments (#5076).
 --
---    Both deletes work off one candidate list so they cannot disagree. A version is keyed by (label_id, user_id) and
---    carries the mission its own wording was written under, which routinely differs from the validation's -- so
---    scoping the versions by mission directly would spare some of a doomed comment's history, while ignoring the
---    mission entirely would wipe the history of a comment this script deliberately keeps.
+--    Both deletes work off one candidate list so they cannot disagree. A version carries the mission its own wording
+--    was written under, which routinely differs from the validation's: scoping versions by mission would spare part
+--    of a doomed comment's history, and ignoring the mission would wipe the history of a comment this script keeps.
 -- ---------------------------------------------------------------------
 CREATE TEMP TABLE comments_to_remove (label_id INT NOT NULL, user_id TEXT NOT NULL,
                                       PRIMARY KEY (label_id, user_id)) ON COMMIT DROP;
