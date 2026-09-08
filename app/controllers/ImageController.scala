@@ -115,8 +115,8 @@ class ImageController @Inject() (
   }
 
   /**
-   * Serves a self-hosted equirectangular panorama image: the downscaled copy when the crop job has written one
-   * (#4865), else the native file. The pano's metadata (`width`/`height`) always describes the native file, since that
+   * Serves a self-hosted equirectangular panorama image: the downscaled sidecar when the scraper has written one
+   * (#5239), else the native file. The pano's metadata (`width`/`height`) always describes the native file, since that
    * is the frame label positions are stored in; the viewer places markers by angle, so a smaller image is transparent
    * to it.
    *
@@ -138,7 +138,7 @@ class ImageController @Inject() (
             panoDataService.markHasBackup(panoId).failed.foreach { e =>
               logger.warn(s"Failed to update has_backup for pano $panoId: ${e.getMessage}")
             }
-            val file        = cropService.existingDownscaledImage(panoId).getOrElse(native)
+            val file        = panoDataService.localDownscaledImageFile(panoId).getOrElse(native)
             val contentType = if (file.getName.toLowerCase.endsWith(".png")) "image/png" else "image/jpeg"
             Future.successful(Ok.sendFile(file, inline = true).as(contentType))
           case None =>

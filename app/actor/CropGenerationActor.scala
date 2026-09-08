@@ -18,10 +18,9 @@ object CropGenerationActor {
 }
 
 /**
- * Nightly reconciliation of the derived imagery (#4865): cuts a crop for every label without one whose pano is in
- * the self-hosted store, and a downscaled copy of every stored pano wider than the viewer can render. The
- * scraper that fills the store runs once per city per day at a time of its own, so a pano it fetches after this
- * job's slot is picked up the following night.
+ * Nightly reconciliation of the label crops (#4865): cuts a crop for every label without one whose pano is in the
+ * self-hosted store. The scraper that fills the store runs once per city per day at a time of its own, so a pano it
+ * fetches after this job's slot is picked up the following night.
  */
 @Singleton
 class CropGenerationActor @Inject() (cropService: CropService, jobRunService: JobRunService)(implicit

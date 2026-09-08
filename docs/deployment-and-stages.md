@@ -304,7 +304,7 @@ outside the build tree** via its environment variable (a variable that is set bu
 |---|---|---|---|
 | `story.media.directory` | `SIDEWALK_STORY_MEDIA_DIR` | User-uploaded story photos (**irreplaceable**) | **App refuses to start** |
 | `pano.images.directory` | `SIDEWALK_PANO_DIR` | Self-hosted pano store — the only copies of GSV imagery Google has expired (**irreplaceable**) | **App refuses to start** |
-| `cropped.image.directory` | `SIDEWALK_IMAGES_DIR` | Label crops, and the downscaled panos beside them (both re-cut from pano imagery) | Error logged at boot |
+| `cropped.image.directory` | `SIDEWALK_IMAGES_DIR` | Label crops (re-cut from pano imagery) | Error logged at boot |
 | `share.image.directory` | `SIDEWALK_SHARE_IMAGES_DIR` | Cached social-share previews (regenerable) | Error logged at boot |
 
 `PersistentMediaDirCheck` enforces this at boot in **prod mode** — what every staged binary runs in — so it covers
@@ -313,15 +313,16 @@ every deployed stage *and* a staged binary run by hand (export the four variable
 same env file as the media paths, so the incomplete-env-file mistake behind #4925 would disarm the guard exactly when
 it is needed. Dev and test runs (`sbt run`, the test suites) skip the check.
 
-`SIDEWALK_IMAGES_DIR` is the one the app writes on its own schedule — the nightly crop job cuts both the crops and,
-under `<city-id>/pano-downscaled/`, the display copies of panos too wide for a WebGL texture — so it has to be local
-and writable by the app's user. The same job also records each crop's provenance in `label_crop` (#2660), and its
-first run after that table lands walks every crop the city has to classify it (a header read and a stat per file); to
-have that done before the next night, trigger the job from the Management page or `POST /adminapi/generateCrops`.
-The pano store they are cut *from* is read-only to that user, which is right for a store nothing in the app writes.
-The downscaled copies deliberately do not live there: `PanoDataService.localBackupImageFile` finds a pano by
-extension, so a downscaled `.jpg` beside a native `.png` would be picked up *as* the native file and cut from at the
-wrong scale.
+`SIDEWALK_IMAGES_DIR` is the one the app writes on its own schedule — the nightly crop job cuts the crops — so it has
+to be local and writable by the app's user. The same job also records each crop's provenance in `label_crop` (#2660),
+and its first run after that table lands walks every crop the city has to classify it (a header read and a stat per
+file); to have that done before the next night, trigger the job from the Management page or
+`POST /adminapi/generateCrops`. The pano store they are cut *from* is read-only to that user, which is right for a
+store nothing in the app writes. The downscaled display copies of panos too wide for a WebGL texture live in that
+store too, as `<panoId>.w8192.jpg` sidecars the scraper writes beside the native file (#5239); the app only reads
+them, and finds a native pano by exact name, so a sidecar is never mistaken for one. They are the one derived thing
+in an otherwise irreplaceable directory — a `.w*.jpg` costs a re-run of the scraper's backfill, nothing more, so
+anything copying that directory can skip them.
 
 **Moving a crop store is a decision about `label_crop` too.** Where a crop's size cannot say which writer produced
 it, the reconcile pass falls back to the file's mtime against the label's own timestamp (`CropService`'s
