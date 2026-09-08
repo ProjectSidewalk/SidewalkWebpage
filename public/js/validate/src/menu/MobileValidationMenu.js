@@ -84,7 +84,13 @@ class MobileValidationMenu {
     });
 
     // Add oninput for disagree and unsure other reason text boxes.
+    // Guarded at the handler, not left to the setter each one calls: the empty branch writes the cleared reason onto
+    // the current label directly, so without this the two branches would answer a mid-load event differently. They
+    // are believed unreachable then — KeyboardManager goes inert while a reason box has focus, so a load cannot start
+    // from there, and once one has the box is only reachable by pointer, which is blocked — but half a guard on a
+    // handler is a trap for whoever changes it next (#5211).
     menuUI.disagreeReasonTextBox.on('input', () => {
+      if (svv.labelContainer.dropInputWhileLoading('DisagreeReason')) return;
       if (menuUI.disagreeReasonTextBox.val() === '') {
         menuUI.disagreeReasonTextBox.removeClass('chosen');
         svv.labelContainer.getCurrentLabel().setProperty('disagreeOption', undefined);
@@ -93,6 +99,7 @@ class MobileValidationMenu {
       }
     });
     menuUI.unsureReasonTextBox.on('input', () => {
+      if (svv.labelContainer.dropInputWhileLoading('UnsureReason')) return;
       if (menuUI.unsureReasonTextBox.val() === '') {
         menuUI.unsureReasonTextBox.removeClass('chosen');
         svv.labelContainer.getCurrentLabel().setProperty('unsureOption', undefined);
@@ -112,14 +119,16 @@ class MobileValidationMenu {
     // Add onclick for the skip-reason buttons, which submit the validation without an associated reason.
     // Guarded here rather than left to #validateLabel: these clear the reason on the current label before they
     // submit, so mid-load the clear lands on the label that isn't on screen yet, even though the submit is refused.
+    // Their own sources, not the reason setters': a skip is a submit, so a drop here means the validator was ahead
+    // of a slow load, which is the opposite of what a dropped reason pick means.
     $('#no-menu-skip-reason-button').click((e) => {
-      if (svv.labelContainer.dropInputWhileLoading('DisagreeReason')) return;
+      if (svv.labelContainer.dropInputWhileLoading('DisagreeReason_Skip')) return;
       svv.tracker.push('Click=DisagreeReason_Skip');
       svv.labelContainer.getCurrentLabel().setProperty('disagreeOption', undefined);
       this.#validateLabel('Disagree', e.isTrigger);
     });
     $('#unsure-menu-skip-reason-button').click((e) => {
-      if (svv.labelContainer.dropInputWhileLoading('UnsureReason')) return;
+      if (svv.labelContainer.dropInputWhileLoading('UnsureReason_Skip')) return;
       svv.tracker.push('Click=UnsureReason_Skip');
       svv.labelContainer.getCurrentLabel().setProperty('unsureOption', undefined);
       this.#validateLabel('Unsure', e.isTrigger);

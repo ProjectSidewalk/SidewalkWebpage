@@ -218,6 +218,21 @@ describe('input aimed at a label whose pano is still loading is dropped (issue #
     expect(svv.ui.busyRegion.toggleClass).toHaveBeenLastCalledWith('validate-disabled', false);
   });
 
+  // Releasing the lock on a throw takes away the symptom that used to announce one — an endless run of
+  // ValidateInputDropped_Loading from a tool that never came back. Both callers lose the rejection (Form swallows it,
+  // moveToNextLabel drops it), so if the render doesn't report itself here, a render failure reaches nobody at all.
+  test('a render that throws says so, rather than just recovering quietly', async () => {
+    const {labelContainer, inFlight} = await buildContainerMidLoad();
+    await finishLoad(inFlight);
+    svv.tracker.push.mockClear();
+
+    svv.labelCard.render.mockImplementationOnce(() => { throw new Error('label card blew up'); });
+
+    await expect(labelContainer.moveToNextLabel()).rejects.toThrow('label card blew up');
+
+    expect(svv.tracker.push).toHaveBeenCalledWith('ValidateRenderFailed', {error: 'label card blew up'});
+  });
+
   // The no-more-labels path releases the lock before showing its modal, so that the modal's own disableKeyboard is
   // what stands. A release in the finally has to leave that alone rather than re-enable the keyboard behind it.
   test('the out-of-labels modal is not handed a re-enabled keyboard', async () => {
@@ -232,31 +247,53 @@ describe('input aimed at a label whose pano is still loading is dropped (issue #
   });
 });
 
-// Both menus write the chosen reason straight onto the current label, and neither is reached through the guarded
-// verdict path: a reason button keeps focus after a click, and Enter activates a focused button natively once
-// KeyboardManager has stopped intercepting it — which is exactly what #setUiBusy does for the length of a load. The
-// reason would then be stored on a label the validator has not seen, survive resetMenu (which clears the chosen
-// styling but not the label's properties) and come back as the canned comment for a reason nobody picked.
+// Every menu path that writes onto the current label outside the guarded verdict path needs a guard of its own,
+// because none of them are reached through #validateLabel. The shared mechanism is native activation: a control that
+// keeps focus after a click is still activated by the browser once KeyboardManager stops intercepting keys — which is
+// exactly what #setUiBusy does for the length of a load. Enter re-fires a focused reason button; an arrow key roves
+// the severity radios, which are only visually hidden and so still take focus, and whose keydown the pano viewers
+// stopPropagation but never preventDefault. The write then lands on a label the validator has not seen and survives
+// resetMenu, which clears the chosen styling but not the label's properties.
 //
 // Checked in the source rather than by driving the menus, which need jQuery, i18next and Bootstrap to construct, and
 // whose #private methods a test can't reach anyway. The invariant is narrow enough to read directly: the guard has to
-// be the setter's first statement, since everything after it writes.
-describe('the reason setters refuse a reason aimed at a label that is still loading', () => {
+// be the handler's first statement, since everything after it writes.
+describe('every menu path that writes onto the current label refuses one that is still loading', () => {
   const MENU_PATHS = {
     desktop: path.join(REPO_ROOT, 'public/js/validate/src/menu/DesktopValidationMenu.js'),
     mobile: path.join(REPO_ROOT, 'public/js/validate/src/menu/MobileValidationMenu.js'),
   };
 
+  // [layout, what it is, the line that opens the handler, the source it drops under].
   test.each([
-    ['desktop', '#setDisagreeReason', 'DisagreeReason'],
-    ['desktop', '#setUnsureReason', 'UnsureReason'],
-    ['mobile', '#setDisagreeReason', 'DisagreeReason'],
-    ['mobile', '#setUnsureReason', 'UnsureReason'],
-  ])('%s %s opens with the load guard', (layout, method, source) => {
-    const src = fs.readFileSync(MENU_PATHS[layout], 'utf8');
-    const guard = `${method}(id) {\n    if (svv.labelContainer.dropInputWhileLoading('${source}')) return;`;
+    ['desktop', 'the disagree reason setter', '#setDisagreeReason(id) {', 'DisagreeReason'],
+    ['desktop', 'the unsure reason setter', '#setUnsureReason(id) {', 'UnsureReason'],
+    ['desktop', 'the disagree "other" box', "menuUI.disagreeReasonTextBox.on('input', () => {", 'DisagreeReason'],
+    ['desktop', 'the unsure "other" box', "menuUI.unsureReasonTextBox.on('input', () => {", 'UnsureReason'],
+    ['desktop', 'the tag adder', '#addTag(tagName, fromAiSuggestion = false) {', 'TagAdd'],
+    ['desktop', 'the tag remover', '#removeTag(tagName, label, fromAiSuggestion = false) {', 'TagRemove'],
+    ['mobile', 'the disagree reason setter', '#setDisagreeReason(id) {', 'DisagreeReason'],
+    ['mobile', 'the unsure reason setter', '#setUnsureReason(id) {', 'UnsureReason'],
+    ['mobile', 'the disagree "other" box', "menuUI.disagreeReasonTextBox.on('input', () => {", 'DisagreeReason'],
+    ['mobile', 'the unsure "other" box', "menuUI.unsureReasonTextBox.on('input', () => {", 'UnsureReason'],
+    ['mobile', 'the disagree skip button', "$('#no-menu-skip-reason-button').click((e) => {", 'DisagreeReason_Skip'],
+    ['mobile', 'the unsure skip button', "$('#unsure-menu-skip-reason-button').click((e) => {", 'UnsureReason_Skip'],
+    // Expert Validate only, and the widest blast radius of the lot: unlike a reason this writes newSeverity, which
+    // is submitted as validation data rather than as a comment string.
+    ['desktop', 'the severity buttons', '$severityButtons.click((e) => {', 'Severity'],
+  ])('%s: %s opens with the load guard', (layout, what, opener, source) => {
+    const lines = fs.readFileSync(MENU_PATHS[layout], 'utf8').split('\n');
+    const openerLine = lines.findIndex((line) => line.trim() === opener);
 
-    expect(src).toContain(guard);
+    // A rename or a reflow of the opener would leave the case below matching nothing and passing vacuously. Keyed by
+    // the handler's name so the failure says which one moved rather than just "expected true".
+    expect({ [what]: openerLine > -1 }).toEqual({ [what]: true });
+    // First statement, not first line: several of these explain themselves in a comment before the guard.
+    const firstStatement = lines.slice(openerLine + 1)
+      .map((line) => line.trim())
+      .find((line) => line !== '' && !line.startsWith('//'));
+
+    expect(firstStatement).toBe(`if (svv.labelContainer.dropInputWhileLoading('${source}')) return;`);
   });
 });
 

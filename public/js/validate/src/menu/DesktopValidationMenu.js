@@ -52,6 +52,12 @@ class DesktopValidationMenu {
       // Add onclick for each severity button.
       const $severityButtons = menuUI.severityMenu.find('.severity-button');
       $severityButtons.click((e) => {
+        // Reachable mid-load by keyboard even though the menu is dimmed and pointer-blocked: each button is a label
+        // around a radio that is only visually hidden, so it still takes focus, and an arrow key roves the group
+        // natively. The viewers stopPropagation those keydowns but nothing preventDefaults them, so the roving still
+        // fires a click here — writing a severity onto the label that isn't on screen yet, where resetMenu hides the
+        // menu but leaves the value on the label, and it is submitted as a change nobody made (#5211).
+        if (svv.labelContainer.dropInputWhileLoading('Severity')) return;
         const currLabel = svv.labelContainer.getCurrentLabel();
         const oldSeverity = currLabel.getProperty('newSeverity');
         const newSeverity = $(e.target).closest('.severity-button').data('severity');
@@ -131,7 +137,13 @@ class DesktopValidationMenu {
     });
 
     // Add oninput for disagree and unsure other reason text boxes.
+    // Guarded at the handler, not left to the setter each one calls: the empty branch writes the cleared reason onto
+    // the current label directly, so without this the two branches would answer a mid-load event differently. They
+    // are believed unreachable then — KeyboardManager goes inert while a reason box has focus, so a load cannot start
+    // from there, and once one has the box is only reachable by pointer, which is blocked — but half a guard on a
+    // handler is a trap for whoever changes it next (#5211).
     menuUI.disagreeReasonTextBox.on('input', () => {
+      if (svv.labelContainer.dropInputWhileLoading('DisagreeReason')) return;
       if (menuUI.disagreeReasonTextBox.val() === '') {
         menuUI.disagreeReasonTextBox.removeClass('chosen');
         svv.labelContainer.getCurrentLabel().setProperty('disagreeOption', undefined);
@@ -140,6 +152,7 @@ class DesktopValidationMenu {
       }
     });
     menuUI.unsureReasonTextBox.on('input', () => {
+      if (svv.labelContainer.dropInputWhileLoading('UnsureReason')) return;
       if (menuUI.unsureReasonTextBox.val() === '') {
         menuUI.unsureReasonTextBox.removeClass('chosen');
         svv.labelContainer.getCurrentLabel().setProperty('unsureOption', undefined);
@@ -319,6 +332,9 @@ class DesktopValidationMenu {
 
   // TAG SECTION.
   #addTag(tagName, fromAiSuggestion = false) {
+    // Guarded at the write rather than at its two entry points (the tag picker and the AI suggestions), so a third
+    // can't reach the current label mid-load just by not knowing to guard itself (#5211).
+    if (svv.labelContainer.dropInputWhileLoading('TagAdd')) return;
     const currLabel = svv.labelContainer.getCurrentLabel();
 
     // If the tag is mutually exclusive with another tag that's been added, remove the other tag.
@@ -338,6 +354,9 @@ class DesktopValidationMenu {
   }
 
   #removeTag(tagName, label, fromAiSuggestion = false) {
+    // Mid-load `label` is the one that just left the screen and was already submitted, so this write goes nowhere —
+    // while #renderTags below reads getCurrentLabel() instead, drawing the tags of a label nobody can see yet (#5211).
+    if (svv.labelContainer.dropInputWhileLoading('TagRemove')) return;
     svv.tracker.push(`Click=TagRemove_Tag="${tagName}"_FromAiSuggestion=${fromAiSuggestion}`);
     label.setProperty('newTags', label.getProperty('newTags').filter((t) => t !== tagName));
     this.#renderTags();

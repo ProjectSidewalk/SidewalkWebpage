@@ -194,12 +194,17 @@ class LabelContainer {
       // Every label starts visible. Without this the toggle keeps saying "Show Label" over a marker that
       // renderPanoMarker just drew in full — you'd have to hide and re-show to get the two back in agreement.
       svv.labelVisibilityControl?.unhideLabel();
-
-      this.#setUiBusy(false);
+    } catch (error) {
+      // The only trace a render failure leaves. It used to announce itself by stranding the lock, which turned every
+      // later tap and keypress into a ValidateInputDropped_Loading — unusable for the validator, but at least loud.
+      // Releasing the lock in the finally takes that away: the caller either swallows the rejection (Form) or drops
+      // it on the floor (moveToNextLabel), so without this the tool would come back looking healthy and say nothing.
+      svv.tracker?.push('ValidateRenderFailed', { error: error.message });
+      throw error;
     } finally {
-      // Both normal exits release the lock themselves, the modal one deliberately early so that the modal's own
-      // disableKeyboard is what stands. This covers the paths that reach neither: a throw anywhere above would
-      // otherwise leave #loading set, and the tool would drop every tap and keypress for the rest of the session.
+      // The out-of-labels path releases early on purpose, so that the modal's own disableKeyboard is what stands;
+      // the condition is what keeps this from re-enabling the keyboard behind it. Every other way out lands here,
+      // a throw included — leaving #loading set would drop every tap and keypress for the rest of the session.
       if (this.#loading) this.#setUiBusy(false);
     }
   }
