@@ -89,11 +89,12 @@ The AccessScore tool (`/accessScore`, `public/js/access-score/`, #5217) logs its
 `AccessScore_Weight_value=<labelType>_value=<magnitude>`, `AccessScore_SeverityEmphasis_value=<0..1>`,
 `AccessScore_Tags_value=<bool>`, `AccessScore_Aggregation_value=<length|mean>`,
 `AccessScore_MinCompletion_value=<percent>`, `AccessScore_ShowUnaudited_value=<bool>`,
-`AccessScore_ShowLabels_value=<bool>` (the evidence layer), `AccessScore_Section_value=<weights|lenses>_open=<bool>`
+`AccessScore_ShowClusters_value=<bool>` (the evidence layer), `AccessScore_Section_value=<weights|lenses>_open=<bool>`
 (a sidebar disclosure toggled), `AccessScore_Reset`,
 `AccessScore_Select_streetId=<id>` / `AccessScore_Select_regionId=<id>` (a click on a street or neighborhood),
+`AccessScore_SelectCluster_labelType=<type>` (a click on a cluster dot),
 `AccessScore_CopyLink`, and the popup's hops `AccessScore_ViewOnLabelMap` / `AccessScore_ExploreHere`. A click on a
-label dot opens the shared label card, whose actions log as `Click_module=LabelDetail_…` (above). The drawer's
+cluster dot also opens the shared label card, whose actions log as `Click_module=LabelDetail_…` (above). The drawer's
 `MapSidebar_Open` / `MapSidebar_Close` fire here too (shared chrome); the server logs `Visit_AccessScore` per page load.
 
 The Gallery renders the same sidebar (`gallery/src/filter/GalleryFilter.js`) and logs to `gallery_task_interaction`

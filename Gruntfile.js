@@ -103,6 +103,7 @@ module.exports = function (grunt) {
           'public/js/access-score/src/AccessScoreUrlSync.js',
           'public/js/access-score/src/AccessScoreMapView.js',
           'public/js/access-score/src/AccessScoreSidebar.js',
+          'public/js/access-score/src/AccessScoreClusterLayer.js',
           'public/js/access-score/src/main.js',
         ],
         dest: 'public/js/access-score/build/access-score.js'

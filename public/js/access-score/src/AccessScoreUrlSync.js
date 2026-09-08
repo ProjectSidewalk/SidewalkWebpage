@@ -6,8 +6,8 @@
  * on both maps.
  *
  * Params: `unit` (streets|regions), `preset`, `w` (per-type magnitudes, `CurbRamp:0.75,…`), `sev` (severity
- * emphasis 0–1), `tags` (0|1), `agg` (length|mean), `minc` (completion floor, percent), `sel` (selected street or
- * region id, read with `unit`).
+ * emphasis 0–1), `tags` (0|1), `agg` (length|mean), `minc` (completion floor, percent), `unaudited` (0|1),
+ * `clusters` (0|1, the evidence layer), `sel` (selected street or region id, read with `unit`).
  */
 class AccessScoreUrlSync {
   static #WRITE_DELAY_MS = 300;
@@ -57,7 +57,7 @@ class AccessScoreUrlSync {
     const minc = Number.parseFloat(params.get('minc'));
     if (Number.isFinite(minc) && minc >= 0 && minc <= 100) state.minCompletion = minc / 100;
     if (params.get('unaudited') === '0') state.showUnaudited = false;
-    if (params.get('labels') === '0') state.showLabels = false;
+    if (params.get('clusters') === '0') state.showClusters = false;
 
     const sel = Number.parseInt(params.get('sel'), 10);
     return { state, selection: Number.isFinite(sel) && sel > 0 ? sel : null };
@@ -115,7 +115,7 @@ class AccessScoreUrlSync {
     set('agg', state.aggregation, state.aggregation === defaults.aggregation);
     set('minc', String(Math.round(state.minCompletion * 100)), state.minCompletion === defaults.minCompletion);
     set('unaudited', state.showUnaudited ? '1' : '0', state.showUnaudited === defaults.showUnaudited);
-    set('labels', state.showLabels ? '1' : '0', state.showLabels === defaults.showLabels);
+    set('clusters', state.showClusters ? '1' : '0', state.showClusters === defaults.showClusters);
     set('sel', String(this.#selection), this.#selection === null);
 
     const center = this.#map.getCenter();

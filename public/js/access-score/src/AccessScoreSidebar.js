@@ -1,11 +1,14 @@
 /**
- * The AccessScore tool's sidebar: the unit switch, the stakeholder-lens presets, one weight slider per scored
- * label type, the severity-emphasis slider, the tag toggle, and the per-unit options (#5217).
+ * The AccessScore tool's sidebar: the unit switch, the lens presets, one weight slider per scored label type, the
+ * severity-emphasis slider, and the options block that gathers every toggle in one place (#5217).
  *
  * The DOM is rendered from the engine config (`/v3/api/accessScoreConfig`) so the type rows, their order, the
  * presets, and the default magnitudes are never re-declared here. The sidebar reports changes; the page owns the
  * model and decides what to do with them. Slider drags fire `input` continuously (the map follows in real time)
  * and `change` once on release (which is what gets logged).
+ *
+ * Explanations live in `data-ps-tooltip` info buttons in the Twirl markup rather than in paragraphs here: a panel
+ * of seven sliders is unreadable with a paragraph between every control.
  */
 class AccessScoreSidebar {
   /** Slider ceiling for a weight magnitude; the engine's largest default is 2.0, so this leaves room above it. */
@@ -58,7 +61,7 @@ class AccessScoreSidebar {
     e.minCompletion.value = Math.round(state.minCompletion * 100);
     e.minCompletionOutput.textContent = `${Math.round(state.minCompletion * 100)}%`;
     e.showUnaudited.checked = state.showUnaudited;
-    e.showLabels.checked = state.showLabels;
+    e.showClusters.checked = state.showClusters;
     this.#showUnitOptions(state.unit);
     this.#updateWeightsSummary(state.preset);
   }
@@ -131,7 +134,7 @@ class AccessScoreSidebar {
       minCompletion: root.querySelector('#acs-min-completion'),
       minCompletionOutput: root.querySelector('#acs-min-completion-value'),
       showUnaudited: root.querySelector('#acs-show-unaudited'),
-      showLabels: root.querySelector('#acs-show-labels'),
+      showClusters: root.querySelector('#acs-show-clusters'),
       reset: root.querySelector('#acs-reset'),
       weightsDetails: root.querySelector('#acs-weights-details'),
       weightsSummary: root.querySelector('#acs-weights-summary'),
@@ -185,8 +188,8 @@ class AccessScoreSidebar {
     e.showUnaudited.addEventListener('change', () =>
       this.#emit({ showUnaudited: e.showUnaudited.checked },
         { kind: 'ShowUnaudited', value: e.showUnaudited.checked, final: true }));
-    e.showLabels.addEventListener('change', () => this.#emit({ showLabels: e.showLabels.checked },
-      { kind: 'ShowLabels', value: e.showLabels.checked, final: true }));
+    e.showClusters.addEventListener('change', () => this.#emit({ showClusters: e.showClusters.checked },
+      { kind: 'ShowClusters', value: e.showClusters.checked, final: true }));
     e.reset.addEventListener('click', () => this.#emit(null, { kind: 'Reset', final: true }));
     // Opening a disclosure is worth knowing about — it says whether people reach for the weights at all.
     for (const [details, name] of [[e.weightsDetails, 'weights'], [e.lensDetails, 'lenses']]) {

@@ -23,12 +23,14 @@ class AccessScoreMapView {
   #onSelect;
   #tooltipHtml;
   #clickClaimed;
+  #hoverClaimed;
   #unit;
   #hover = { source: null, id: null };
   #selected = { unit: null, id: null };
   #tooltip;
   #frame = null;
   #legend;
+  #marker = null;
 
   /**
    * @param {mapboxgl.Map} map - A loaded Mapbox map.
@@ -40,14 +42,19 @@ class AccessScoreMapView {
    * @param {function} options.onSelect - Called with `{unit, id, lngLat}` on a click, or `null` on deselect.
    * @param {function} options.tooltipHtml - Called with `{unit, id}`; returns the hover tooltip's HTML or null.
    * @param {function} [options.clickClaimed] - Called with the Mapbox click event; return true when something
-   *                                            drawn above these layers (a label dot) owns the click.
+   *                                            drawn above these layers (a cluster dot) owns the click.
+   * @param {function} [options.hoverClaimed] - Called with the Mapbox mousemove event; return true when something
+   *                                            drawn above these layers owns the hover, so its tooltip is the
+   *                                            only one showing.
    */
-  constructor(map, { model, streets, regions, onSelect, tooltipHtml, clickClaimed = () => false }) {
+  constructor(map, { model, streets, regions, onSelect, tooltipHtml, clickClaimed = () => false,
+    hoverClaimed = () => false }) {
     this.#map = map;
     this.#model = model;
     this.#onSelect = onSelect;
     this.#tooltipHtml = tooltipHtml;
     this.#clickClaimed = clickClaimed;
+    this.#hoverClaimed = hoverClaimed;
     this.#unit = model.state.unit;
     this.#tooltip = new mapboxgl.Popup({
       closeButton: false, closeOnClick: false, focusAfterOpen: false, className: 'acs-tooltip', maxWidth: '280px',
@@ -120,6 +127,7 @@ class AccessScoreMapView {
       ['boolean', ['feature-state', 'hover'], false], 2.5,
       1.2,
     ]);
+    this.#markSelected();
   }
 
   /**
@@ -281,6 +289,13 @@ class AccessScoreMapView {
     const bind = (layer, source, unit) => {
       this.#map.on('mousemove', layer, (e) => {
         if (this.#unit !== unit || !e.features.length) return;
+        // A cluster dot under the pointer owns the tooltip; two popups over one spot is unreadable.
+        if (this.#hoverClaimed(e)) {
+          this.#clearHover();
+          this.#tooltip.remove();
+          this.#markSelected();
+          return;
+        }
         const id = e.features[0].id;
         if (this.#hover.id !== id || this.#hover.source !== source) {
           this.#clearHover();
@@ -288,6 +303,7 @@ class AccessScoreMapView {
           this.#map.setFeatureState({ source, id }, { hover: true });
           this.#map.getCanvas().style.cursor = 'pointer';
         }
+        this.markScore(this.#scoreOf(unit, id));
         const html = this.#tooltipHtml({ unit, id });
         if (html) this.#tooltip.setLngLat(e.lngLat).setHTML(html).addTo(this.#map);
       });
@@ -295,6 +311,7 @@ class AccessScoreMapView {
         if (this.#unit !== unit) return;
         this.#clearHover();
         this.#tooltip.remove();
+        this.#markSelected();
         this.#map.getCanvas().style.cursor = '';
       });
       this.#map.on('click', layer, (e) => {
@@ -314,8 +331,24 @@ class AccessScoreMapView {
     this.#map.on('mouseout', () => {
       this.#clearHover();
       this.#tooltip.remove();
+      this.#markSelected();
       this.#map.getCanvas().style.cursor = '';
     });
+  }
+
+  /** A street's or region's score under the current weights, or null where it has none. */
+  #scoreOf(unit, id) {
+    if (unit === 'streets') {
+      const s = this.#model.explainStreet(id);
+      return s && s.audited ? s.score : null;
+    }
+    const r = this.#model.explainRegion(id);
+    return r && !r.belowFloor ? r.score : null;
+  }
+
+  /** Returns the legend mark to whatever is selected — where the pointer leaves it when nothing is hovered. */
+  #markSelected() {
+    this.markScore(this.#selected.id === null ? null : this.#scoreOf(this.#selected.unit, this.#selected.id));
   }
 
   #clearHover() {
@@ -343,6 +376,8 @@ class AccessScoreMapView {
     // fill-pattern can't read feature-state through a paint expression, so the hatch layer filters on it instead.
     this.#map.setFilter(AccessScoreMapView.REGION_HATCH_LAYER, ['in', ['get', 'region_id'], ['literal',
       this.#model.regionStats.filter((r) => r.belowFloor || r.score === null).map((r) => r.regionId)]]);
+    // A weight change moves the selected feature's score, so the legend mark has to follow it.
+    if (this.#hover.id === null) this.#markSelected();
   }
 
   /**
@@ -365,18 +400,32 @@ class AccessScoreMapView {
         i18next.t('accessscore:legend-unaudited')}</div>`
       : `<div class="acs-legend__row"><span class="acs-legend__swatch acs-legend__swatch--hatch"></span>${
         i18next.t('accessscore:legend-insufficient')}</div>`;
+    // The numeric ends carry which direction is better; the words under them say what the direction means.
     this.#legend.innerHTML = `
       <div class="acs-legend__title">${i18next.t('accessscore:legend-title')}</div>
-      <div class="acs-legend__bar"></div>
-      <div class="acs-legend__ticks">
+      <div class="acs-legend__bar"><span class="acs-legend__marker" hidden aria-hidden="true"></span></div>
+      <div class="acs-legend__ticks"><span>0</span><span>50</span><span>100</span></div>
+      <div class="acs-legend__poles">
         <span>${i18next.t('accessscore:legend-low')}</span>
-        <span>50</span>
         <span>${i18next.t('accessscore:legend-high')}</span>
       </div>
       ${unaudited}
     `;
     // The ramp is data, not styling, so it can't live in the stylesheet.
     this.#legend.querySelector('.acs-legend__bar').style.background = ScoreRamp.cssGradient();
+    this.#marker = this.#legend.querySelector('.acs-legend__marker');
+  }
+
+  /**
+   * Marks a score's place on the legend's ramp, so hovering a feature says in one glance which end of the scale
+   * it sits at — the question a gradient alone never answers.
+   * @param {?number} score - A score in [0, 1], or null to clear the mark.
+   */
+  markScore(score) {
+    if (!this.#marker) return;
+    const show = typeof score === 'number' && Number.isFinite(score);
+    this.#marker.hidden = !show;
+    if (show) this.#marker.style.left = `${Math.min(100, Math.max(0, score * 100))}%`;
   }
 
   /** A main.css color token's value. */

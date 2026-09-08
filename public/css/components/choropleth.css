@@ -146,12 +146,13 @@
 
 /*
  * Viewport-loading status pill (#5002): "zoom in to see labels" while the zoom floor holds fetches back, and a
- * brief note during refetches. Bottom-centered so it stays clear of the corner controls, styled like the
+ * brief note during refetches. Top-centered, where a transient help message is looked for and where nothing
+ * else sits (the drawer is left, Mapbox's controls right, its attribution along the bottom), styled like the
  * loading card above, and pointer-events: none so it never blocks map gestures.
  */
 .map-status-pill {
   position: absolute;
-  bottom: 28px;
+  top: 12px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 15; /* Above the map, below the loading overlay. */

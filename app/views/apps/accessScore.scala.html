@@ -7,12 +7,18 @@
 
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
 
-@* A sidebar section: heading row plus content. Mirrors the shared filter sidebar's section markup so the two
-   panels read the same, while the controls are this tool's own. *@
-@section(id: String, headingKey: String, headingText: String)(content: Html) = {
+@* An "i" button whose tooltip carries an explanation the panel has no room to print. psTooltip.js is loaded
+   site-wide and shows it on hover and on focus; the same string is the button's accessible name, so a screen
+   reader hears the explanation itself rather than a bare "more information". *@
+@info(key: String) = {<button type="button" class="acs-info" data-i18n-tooltip="accessscore:@key" data-i18n-aria-label="accessscore:@key" aria-label="More information"><span aria-hidden="true">i</span></button>}
+
+@* A sidebar section: heading row plus content, with an optional info button beside the heading. Mirrors the
+   shared filter sidebar's section markup so the two panels read the same, while the controls are this tool's own. *@
+@section(id: String, headingKey: String, headingText: String, infoKey: String = "")(content: Html) = {
   <section class="filter-sidebar__section acs-section" id="@id" aria-labelledby="@id-heading">
     <div class="filter-sidebar__heading-row">
       <h3 class="filter-sidebar__heading" id="@id-heading" data-i18n="accessscore:@headingKey">@headingText</h3>
+      @if(infoKey.nonEmpty) {@info(infoKey)}
     </div>
     @content
   </section>
@@ -53,10 +59,9 @@
           </div>
         }
 
-        @section("acs-preset-section", "preset", "Lens") {
+        @section("acs-preset-section", "preset", "Lens", "preset-help") {
           <label class="sr-only" for="acs-preset" data-i18n="accessscore:preset">Lens</label>
           <select id="acs-preset" class="ps-select acs-select"></select>
-          <p class="acs-help" data-i18n="accessscore:preset-help">A lens is a named set of weights: a starting point, not a standard. Every lens is listed below, and moving any slider makes the weights your own.</p>
           <details class="acs-details acs-details--inline" id="acs-lens-details">
             <summary class="acs-details__summary" data-i18n="accessscore:lens-details">What does each lens change?</summary>
             <div id="acs-lens-table" class="acs-lens-table"></div>
@@ -68,55 +73,65 @@
             <span class="filter-sidebar__heading" data-i18n="accessscore:adjust">Adjust the weights</span>
             <span class="acs-details__hint" id="acs-weights-summary"></span>
           </summary>
-          <p class="acs-help" data-i18n="accessscore:weights-help">A weight multiplies a factor's effect on a street's score. Factors marked "helps" push a score up and "hurts" push it down; the bar under each slider is that factor's average effect on a street right now.</p>
+          <div class="acs-subsection-head">
+            <span class="acs-field-label" data-i18n="accessscore:weights-factors">Factors</span>
+            @info("weights-help")
+          </div>
           <div id="acs-weights" class="acs-weights"></div>
 
           <div class="acs-subsection">
-            <label class="acs-field-label" for="acs-severity" data-i18n="accessscore:severity">Severity emphasis</label>
+            <div class="acs-subsection-head">
+              <label class="acs-field-label" for="acs-severity" data-i18n="accessscore:severity">Severity emphasis</label>
+              @info("severity-help")
+            </div>
             <div class="acs-slider-row">
               <input type="range" class="acs-range" id="acs-severity" min="0" max="1" step="0.05" value="1">
               <output id="acs-severity-value" for="acs-severity">100%</output>
             </div>
-            <p class="acs-help" data-i18n="accessscore:severity-help">At 100% a severe problem counts more than a minor one, as the engine does. At 0% every problem counts the same.</p>
-            <label class="acs-check" for="acs-tags">
-              <input type="checkbox" id="acs-tags" checked>
-              <span data-i18n="accessscore:tags">Use tag adjustments (e.g. a curb ramp tagged steep counts less)</span>
-            </label>
           </div>
         </details>
 
-        <div id="acs-region-options" hidden>
-          @section("acs-region-section", "region-options", "Neighborhood options") {
+        @* Every toggle in one place, so a reader looking for what is drawn or what counts has one section to scan
+           rather than three scattered ones. *@
+        @section("acs-options-section", "options", "Options") {
+          @* The info button sits outside the label: inside it, a click on the button would toggle the checkbox. *@
+          <div class="acs-check-row">
+            <label class="acs-check" for="acs-show-clusters">
+              <input type="checkbox" id="acs-show-clusters" checked>
+              <span data-i18n="accessscore:show-clusters">Show the clusters behind the scores</span>
+            </label>
+            @info("show-clusters-help")
+          </div>
+          <div id="acs-street-options" class="acs-check-row">
+            <label class="acs-check" for="acs-show-unaudited">
+              <input type="checkbox" id="acs-show-unaudited" checked>
+              <span data-i18n="accessscore:show-unaudited">Show unaudited streets</span>
+            </label>
+          </div>
+          <div class="acs-check-row">
+            <label class="acs-check" for="acs-tags">
+              <input type="checkbox" id="acs-tags" checked>
+              <span data-i18n="accessscore:tags">Apply tag adjustments</span>
+            </label>
+            @info("tags-help")
+          </div>
+
+          <div id="acs-region-options" hidden>
             <label class="acs-field-label" for="acs-aggregation" data-i18n="accessscore:aggregation">Roll-up</label>
             <select id="acs-aggregation" class="ps-select acs-select">
               <option value="length" data-i18n="accessscore:aggregation-length">Weight streets by length</option>
               <option value="mean" data-i18n="accessscore:aggregation-mean">Simple mean of streets</option>
             </select>
-            <label class="acs-field-label" for="acs-min-completion" data-i18n="accessscore:min-completion">Minimum completion to show a score</label>
+            <div class="acs-subsection-head">
+              <label class="acs-field-label" for="acs-min-completion" data-i18n="accessscore:min-completion">Minimum completion</label>
+              @info("min-completion-help")
+            </div>
             <div class="acs-slider-row">
               <input type="range" class="acs-range" id="acs-min-completion" min="0" max="100" step="5" value="50">
               <output id="acs-min-completion-value" for="acs-min-completion">50%</output>
             </div>
-            <p class="acs-help" data-i18n="accessscore:min-completion-help">Neighborhoods explored less than this are hatched instead of scored, so a score never rests on a few streets.</p>
-          }
-        </div>
-
-        @section("acs-evidence-section", "evidence", "Evidence") {
-          <label class="acs-check" for="acs-show-labels">
-            <input type="checkbox" id="acs-show-labels" checked>
-            <span data-i18n="accessscore:show-labels">Show the labels behind the scores</span>
-          </label>
-          <p class="acs-help" data-i18n="accessscore:show-labels-help">Labels appear once you zoom in to street level. Click one to see it in the imagery.</p>
+          </div>
         }
-
-        <div id="acs-street-options">
-          @section("acs-street-section", "street-options", "Street options") {
-            <label class="acs-check" for="acs-show-unaudited">
-              <input type="checkbox" id="acs-show-unaudited" checked>
-              <span data-i18n="accessscore:show-unaudited">Show unaudited streets</span>
-            </label>
-          }
-        </div>
 
         <section class="filter-sidebar__section acs-section acs-actions" aria-label="Actions" data-i18n-aria-label="accessscore:actions">
           <div class="acs-actions__row">
@@ -124,7 +139,7 @@
             <button type="button" id="acs-copy-link" class="button-ps button--small button--primary" data-i18n="accessscore:copy-link">Copy link</button>
           </div>
           <a class="acs-actions__docs" href="@routes.ApiDocsController.accessScoreStreets#scoring-model" target="_blank" rel="noopener" data-i18n="accessscore:how-computed">How is this computed?</a>
-          <p id="acs-updated-at" class="acs-updated-at" aria-live="polite"></p>
+          <p class="acs-updated-at"><span id="acs-updated-at" aria-live="polite"></span>@info("updated-help")</p>
         </section>
       </div>
 

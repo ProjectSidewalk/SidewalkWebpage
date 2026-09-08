@@ -50,7 +50,7 @@ async function stubFeeds(context) {
   await context.route('**/v3/api/accessScoreStreets*', (route) => route.fulfill({json: streetsFixture()}));
   await context.route('**/neighborhoods', (route) => route.fulfill({json: REGIONS}));
   await context.route('**/neighborhoods/completionRate*', (route) => route.fulfill({json: COMPLETION}));
-  await context.route('**/labels/all*', (route) =>
+  await context.route('**/v3/api/labelClusters*', (route) =>
     route.fulfill({json: {type: 'FeatureCollection', features: []}}));
 }
 

@@ -28,7 +28,7 @@ class AccessScoreModel {
     aggregation: 'length',
     minCompletion: 0.5,
     showUnaudited: true,
-    showLabels: true,
+    showClusters: true,
   });
 
   /** Histogram resolution over the 0–1 score range. */

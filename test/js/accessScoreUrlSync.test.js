@@ -26,7 +26,7 @@ describe('AccessScoreUrlSync', () => {
 
     test('reads a full state, filling unnamed weights from the default preset', () => {
         const { state, selection } = AccessScoreUrlSync.read(config,
-            '?unit=regions&w=CurbRamp:1.5,Obstacle:0&sev=0.25&tags=0&agg=mean&minc=80&unaudited=0&labels=0&sel=42');
+            '?unit=regions&w=CurbRamp:1.5,Obstacle:0&sev=0.25&tags=0&agg=mean&minc=80&unaudited=0&clusters=0&sel=42');
         expect(state.unit).toBe('regions');
         expect(state.preset).toBe('custom');
         expect(state.weights.CurbRamp).toBe(1.5);
@@ -37,7 +37,7 @@ describe('AccessScoreUrlSync', () => {
         expect(state.aggregation).toBe('mean');
         expect(state.minCompletion).toBe(0.8);
         expect(state.showUnaudited).toBe(false);
-        expect(state.showLabels).toBe(false);
+        expect(state.showClusters).toBe(false);
         expect(selection).toBe(42);
     });
 
@@ -68,25 +68,25 @@ describe('AccessScoreUrlSync', () => {
         expect(params.get('regions')).toBe('5');
         expect(params.get('lat')).toBe('40.88000');
         expect(params.get('zoom')).toBe('13.50');
-        for (const name of ['unit', 'preset', 'w', 'sev', 'tags', 'agg', 'minc', 'unaudited', 'labels', 'sel']) {
+        for (const name of ['unit', 'preset', 'w', 'sev', 'tags', 'agg', 'minc', 'unaudited', 'clusters', 'sel']) {
             expect(params.has(name)).toBe(false);
         }
 
-        model.setState({ unit: 'regions', weights: { Obstacle: 1.75 }, showLabels: false });
+        model.setState({ unit: 'regions', weights: { Obstacle: 1.75 }, showClusters: false });
         sync.setSelection(7);
         sync.writeNow();
         params = new URLSearchParams(window.location.search);
         expect(params.get('unit')).toBe('regions');
         expect(params.get('w')).toContain('Obstacle:1.75');
         expect(params.has('preset')).toBe(false); // custom is implied by w
-        expect(params.get('labels')).toBe('0');
+        expect(params.get('clusters')).toBe('0');
         expect(params.get('sel')).toBe('7');
 
         // Round trip: what was written reads back as the same state.
         const back = AccessScoreUrlSync.read(config, window.location.search);
         expect(back.state.weights.Obstacle).toBe(1.75);
         expect(back.state.unit).toBe('regions');
-        expect(back.state.showLabels).toBe(false);
+        expect(back.state.showClusters).toBe(false);
         expect(back.selection).toBe(7);
     });
 });

@@ -138,6 +138,16 @@ class MapSidebarDrawer {
     const padding = { left, top: 0, right: 0, bottom: 0 };
     if (animate) this.#map.easeTo({ padding });
     else this.#map.setPadding(padding);
+    this.#publishWidth();
+  }
+
+  /**
+   * Publishes the drawer's live width on its parent as `--filter-sidebar-width`, so an overlay positioned beside
+   * the drawer (the AccessScore legend, and the insights dock after it) can follow a drag. A resize writes an
+   * inline width, so a stylesheet that hardcodes the 350px default detaches from the drawer's edge mid-drag.
+   */
+  #publishWidth() {
+    this.#sidebar.parentElement?.style.setProperty('--filter-sidebar-width', `${this.#sidebar.offsetWidth}px`);
   }
 
   /** Re-derives the drawer and the camera from the new breakpoint. */
@@ -154,6 +164,7 @@ class MapSidebarDrawer {
       if (this.#draggedWidth) this.#sidebar.style.width = this.#draggedWidth;
       if (this.#handle) this.#handle.style.left = `${this.#sidebar.offsetWidth}px`;
       this.#setOpen(this.#open, { animate: false, moveFocus: false, log: false });
+      this.#publishWidth();
     }
   }
 
@@ -176,6 +187,7 @@ class MapSidebarDrawer {
       handle.style.left = `${newWidth}px`;
       this.#appliedPaddingLeft = newWidth;
       this.#map.setPadding({ left: newWidth, top: 0, right: 0, bottom: 0 });
+      this.#publishWidth();
     };
 
     const onPointerUp = (e) => {

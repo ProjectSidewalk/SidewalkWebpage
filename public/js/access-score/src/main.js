@@ -1,7 +1,8 @@
 /**
  * Bootstraps the AccessScore tool page (#5217): loads the engine config, the city's streets, and the neighborhood
- * polygons and completion rates in parallel with the map, then wires the model, the map view, the sidebar, and the
- * URL together. Everything the page does after load is an event flowing sidebar → model → map/URL/panel.
+ * polygons and completion rates in parallel with the map, then wires the model, the map view, the cluster evidence
+ * layer, the sidebar, and the URL together. Everything the page does after load is an event flowing
+ * sidebar → model → map/URL/panel.
  */
 window.AccessScoreApp = (function () {
   const MAP_STYLE = 'mapbox://styles/mapbox/light-v11?optimize=true';
@@ -119,23 +120,27 @@ window.AccessScoreApp = (function () {
       if (!fromUrl) log(`Select_${selection.unit === 'streets' ? 'street' : 'region'}Id`, selection.id);
     };
 
+    // The cluster layer is built after the map view so its dots draw above the streets, but the map view has to
+    // be able to ask about it from its own handlers, hence the late binding.
+    let evidence = null;
     const mapView = new AccessScoreMapView(map, {
       model,
       streets,
       regions,
       onSelect: (selection) => select(selection),
       tooltipHtml: ({ unit, id }) => (unit === 'streets' ? streetTooltipHtml(id) : regionTooltipHtml(id)),
-      // A click on a label dot opens the label card; the street or neighborhood under it stays unselected.
-      clickClaimed: (e) => map.queryRenderedFeatures(e.point).some((f) => f.layer.id.startsWith('labels-')),
+      // A click on a cluster dot opens the label card; the street or neighborhood under it stays unselected.
+      clickClaimed: (e) => evidence?.layer.claims(e) === true,
+      hoverClaimed: (e) => evidence?.layer.claims(e) === true,
     });
-    const evidence = await mountLabelEvidence();
+    evidence = await mountClusterEvidence();
 
     /** Applies a state change everywhere it shows: map, sidebar bars, URL, and the panel's listeners. */
     const applyChange = (meta) => {
       const state = model.state;
       if (meta.kind === 'Unit') mapView.setUnit(state.unit);
       if (meta.kind === 'ShowUnaudited') mapView.setShowUnaudited(state.showUnaudited);
-      if (meta.kind === 'ShowLabels') evidence.setVisible(state.showLabels);
+      if (meta.kind === 'ShowClusters') evidence.setVisible(state.showClusters);
       mapView.applyScores();
       // A lens or a reset moves every slider; a slider mid-drag already shows its own value.
       if (meta.kind !== 'Weight' || meta.final) sidebar.setState(model.state);
@@ -156,7 +161,7 @@ window.AccessScoreApp = (function () {
         sidebar.setState(model.state);
         mapView.setUnit(model.state.unit);
         mapView.setShowUnaudited(model.state.showUnaudited);
-        evidence.setVisible(model.state.showLabels);
+        evidence.setVisible(model.state.showClusters);
       } else {
         model.setState(partial);
       }
@@ -189,58 +194,97 @@ window.AccessScoreApp = (function () {
       }
     }
 
-    const app = { map, model, mapView, sidebar, config, streets, regions, labelLoader: evidence.loader };
+    const app = {
+      map, model, mapView, sidebar, config, streets, regions, clusterLoader: evidence.loader,
+      clusterLayer: evidence.layer,
+    };
     window.accessScore = app;
     document.dispatchEvent(new CustomEvent('accessscore:ready', { detail: app }));
     return app;
 
     /**
-     * The labels behind the scores, as the Label Map draws them: one layer per type, fed by the viewport loader
-     * once the map is zoomed to street level (a whole city's labels is tens of MB, and at city scale the score
-     * colors are the story), each opening the label card on click. The evidence is what lets a reader check a
-     * score against the imagery rather than take it on faith.
+     * The clusters the scores are computed from, drawn on the map: one layer per scored type, fed by the viewport
+     * loader once the map is zoomed to street level (a whole city's clusters is megabytes, and at city scale the
+     * score colors are the story), each opening the label card on click.
+     *
+     * Clusters rather than raw labels because clusters are what the engine scores — three pins on one broken curb
+     * are one cluster and one term. Drawing the labels would put a denser population on the map than the
+     * arithmetic uses, which is exactly the question a reader checking a score would trip over.
      */
-    async function mountLabelEvidence() {
+    async function mountClusterEvidence() {
       const popupLabelViewer = await LabelPopup(false, viewerType, imageryAccessToken, username, {
         syncUrlSource: 'AccessScore',
         showExploreHereLink: true,
       });
-      const labelData = await addLabelsToMap(map, { type: 'FeatureCollection', features: [] }, {
-        mapName: 'acs-map',
-        popupLabelViewer,
-        uiSource: 'AccessScore',
-        highQualityFilter: true,
+      const layer = new AccessScoreClusterLayer(map, {
+        types: config.scored_types,
+        tooltipHtml: clusterTooltipHtml,
+        onSelect: (props) => {
+          const labelId = props.label_ids?.[0];
+          if (labelId === undefined) return;
+          log('SelectCluster_labelType', props.label_type);
+          popupLabelViewer.showLabel(labelId, 'AccessScore');
+        },
       });
-      const feedUrl = new URL('/labels/all?filterLowQuality=true', window.location.origin);
+      const feedUrl = new URL('/v3/api/labelClusters', window.location.origin);
+      // Only the scored types are "behind the scores"; an Occlusion cluster moves nothing and would just be noise.
+      feedUrl.searchParams.set('labelType', config.scored_types.join(','));
       const loader = new ViewportLabelLoader(map, feedUrl, {
         minFetchZoom: 14,
         floorApplies: () => true,
         dataBounds: featureCollectionBounds(regions),
       });
-      const pill = new MapStatusPill(document.getElementById('acs-map'));
-      let visible = model.state.showLabels;
-      const applyVisibility = () => {
-        for (const type of Object.keys(labelData.sortedLabels)) toggleLabelLayer(type, visible, map, labelData);
-      };
-      loader.onData((featureCollection) => {
-        setLabelData(map, labelData, featureCollection);
-        applyVisibility();
+      const pill = new MapStatusPill(document.getElementById('acs-map'), {
+        keys: { belowFloor: 'accessscore:zoom-in-for-clusters', loading: 'accessscore:loading-clusters' },
       });
-      loader.onError((e) => console.error('AccessScore label feed failed', e));
+      let visible = model.state.showClusters;
+      loader.onData((featureCollection) => layer.setData(featureCollection));
+      loader.onError((e) => console.error('AccessScore cluster feed failed', e));
       loader.onStateChange((state) => pill.setState(visible ? state : 'idle'));
       loader.start();
-      applyVisibility();
+      layer.setVisible(visible);
       return {
         loader,
+        layer,
         setVisible(show) {
           visible = show;
-          applyVisibility();
+          layer.setVisible(show);
           if (!show) pill.setState('idle');
         },
       };
     }
 
-    /** The "scores reflect labels clustered on …" note under the sidebar's actions. */
+    /**
+     * A cluster's hover card: what it is, how many labels agree on it, and — the point of drawing clusters at all —
+     * what its type is doing to the score of the street it sits on.
+     */
+    function clusterTooltipHtml(props) {
+      // A rating's words differ by type — a curb ramp is good/okay/bad, an obstacle low/medium/high — so the
+      // wording comes from util.misc rather than a mapping written here.
+      const type = props.label_type;
+      const rating = util.misc.labelTypeHasSeverity(type) && props.median_severity
+        ? i18next.t(`common:${util.misc.getRatingLevelKeys(type)[props.median_severity]}`)
+        : null;
+      const meta = [
+        i18next.t('accessscore:cluster-size', { count: props.cluster_size }),
+        rating,
+      ].filter(Boolean).join(' · ');
+      const street = model.explainStreet(props.street_edge_id);
+      const term = street?.audited ? street.terms[type] : null;
+      // The term is this type's whole contribution to the street, not this one cluster's, so the wording says
+      // "on this street" rather than pinning the number to the dot under the pointer.
+      const effect = term
+        ? `<div class="acs-tooltip__meta">${i18next.t('accessscore:cluster-effect', {
+          type: typeName(type), value: signed(term.term) })}</div>`
+        : '';
+      return `<strong><span class="acs-popup__swatch" style="background-color: ${
+        util.misc.getLabelColors(type)};"></span>${typeName(type)}</strong>
+        <div class="acs-tooltip__meta">${meta}</div>
+        ${effect}
+        <div class="acs-tooltip__hint">${i18next.t('accessscore:cluster-open')}</div>`;
+    }
+
+    /** The "clusters rebuilt <date>" note under the sidebar's actions. */
     function renderUpdatedAt(iso) {
       const el = document.getElementById('acs-updated-at');
       if (!el) return;
@@ -291,7 +335,8 @@ window.AccessScoreApp = (function () {
       return `<strong>${title}</strong>
         <div class="acs-tooltip__score">${formatScore(s.score)}</div>
         <div class="acs-tooltip__meta">${i18next.t('accessscore:tooltip-meta', { problems, features })}</div>
-        ${notableHtml('streets', id)}`;
+        ${notableHtml('streets', id)}
+        ${clickHintHtml()}`;
     }
 
     function regionTooltipHtml(id) {
@@ -304,7 +349,13 @@ window.AccessScoreApp = (function () {
       return `<strong>${r.name}</strong>
         <div class="acs-tooltip__score">${formatScore(r.score)}</div>
         <div class="acs-tooltip__meta">${i18next.t('accessscore:completion', { percent })}</div>
-        ${notableHtml('regions', id)}`;
+        ${notableHtml('regions', id)}
+        ${clickHintHtml()}`;
+    }
+
+    /** The line that says a hover can become a click; without it nothing marks these features as selectable. */
+    function clickHintHtml() {
+      return `<div class="acs-tooltip__hint">${i18next.t('accessscore:click-for-details')}</div>`;
     }
 
     /** Clusters of problem vs feature types on a street, for the one-line summary. */

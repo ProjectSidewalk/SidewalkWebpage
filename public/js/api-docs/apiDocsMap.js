@@ -14,7 +14,6 @@ window.ApiDocsMap = (function () {
   // The preview layers are small dots over a busy street grid, so the basemap is knocked back behind them.
   const BASEMAP_DIM_OPACITY = 0.5;
 
-
   /**
    * Builds a Mapbox map in the given container and resolves once it has loaded.
    *
@@ -324,7 +323,9 @@ window.ApiDocsMap = (function () {
   return {
     STYLE_PROJECT_SIDEWALK,
     // The AccessScore ramp lives in main.css (read through ScoreRamp) so the docs and the AccessScore tool agree.
-    get ACCESS_SCORE_RAMP() { return ScoreRamp.colors(); },
+    get ACCESS_SCORE_RAMP() {
+      return ScoreRamp.colors();
+    },
     create,
     popup,
     addOverlay,

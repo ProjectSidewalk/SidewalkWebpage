@@ -28,10 +28,55 @@
   border-bottom: 1px solid var(--color-neutral-200);
 }
 
-.acs-help {
-  font: var(--text-caption-regular);
-  color: var(--color-neutral-700);
-  margin: var(--space-xs) 0 0;
+/* The "i" button that stands in for a paragraph of explanation. Sized to the 24px touch-comfortable minimum while
+   drawing as a small circle, so it sits quietly beside a heading or a checkbox rather than competing with it. */
+.acs-info {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  margin: -4px 0 -4px 2px;
+  border: 0;
+  background: none;
+  color: var(--color-neutral-600);
+  cursor: help;
+}
+
+.acs-info span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border: 1px solid currentcolor;
+  border-radius: 50%;
+  font: var(--text-tiny-semibold);
+  line-height: 1;
+}
+
+.acs-info:hover,
+.acs-info:focus-visible {
+  color: var(--color-link-200);
+}
+
+.acs-info:focus-visible {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: 1px;
+  border-radius: 50%;
+}
+
+/* A label and its info button on one line, above the control they describe. */
+.acs-subsection-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xxs);
+}
+
+.acs-subsection-head .acs-field-label {
+  margin-bottom: 0;
 }
 
 .acs-field-label {
@@ -57,6 +102,26 @@
 
 .acs-check input {
   margin: 3px 0 0;
+}
+
+/* A checkbox and its info button. The button is a sibling of the label, not a child: inside it, a click on the
+   button would toggle the checkbox. */
+.acs-check-row {
+  display: flex;
+  align-items: flex-start;
+  margin-top: var(--space-sm);
+}
+
+/* The row owns the spacing, so the info button's box lines up with the label's first line rather than sitting a
+   whole margin above it. */
+.acs-check-row .acs-check {
+  flex: 1 1 auto;
+  margin-top: 0;
+}
+
+/* display: flex would otherwise beat the user-agent's [hidden] rule when the row is the streets-only toggle. */
+.acs-check-row[hidden] {
+  display: none;
 }
 
 /* Streets | Neighborhoods: two radios styled as one segmented control. */
@@ -95,8 +160,9 @@
   cursor: pointer;
 }
 
+/* pine-700, not pine-600: white on pine-600 is 3.02:1, under the 4.5:1 WCAG AA needs for this size of text. */
 .acs-segmented__option:has(input:checked) {
-  background: var(--color-pine-600);
+  background: var(--color-pine-700);
   color: var(--color-neutral-white);
 }
 
@@ -379,6 +445,9 @@
 }
 
 .acs-updated-at {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-xxs);
   font: var(--text-caption-regular);
   color: var(--color-neutral-700);
   margin: var(--space-sm) 0 0;
@@ -406,15 +475,45 @@
 }
 
 .acs-legend__bar {
+  position: relative;
   height: 10px;
   border-radius: 5px;
 }
 
-.acs-legend__ticks {
+/* Where the hovered or selected feature's score falls on the ramp: a small pointer riding the bar. */
+.acs-legend__marker {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--color-neutral-900);
+  box-shadow: 0 0 0 1px var(--color-neutral-white);
+  transform: translateX(-50%);
+  transition: left var(--transition-fast);
+}
+
+.acs-legend__marker[hidden] {
+  display: none;
+}
+
+.acs-legend__ticks,
+.acs-legend__poles {
   display: flex;
   justify-content: space-between;
   gap: var(--space-xs);
   margin-top: 2px;
+}
+
+/* The numbers carry the direction; keep them in the primary font, never the accent one. */
+.acs-legend__ticks {
+  font: var(--text-tiny-medium);
+  color: var(--color-neutral-900);
+  font-variant-numeric: tabular-nums;
+}
+
+.acs-legend__poles {
+  margin-top: 0;
   font: var(--text-tiny-regular);
   color: var(--color-neutral-700);
 }
@@ -442,9 +541,11 @@
   background: repeating-linear-gradient(135deg, var(--color-neutral-600) 0 1px, var(--color-neutral-100) 1px 4px);
 }
 
-/* The sidebar covers the legend's corner while open on a wide viewport; it moves right of the drawer. */
+/* The sidebar covers the legend's corner while open on a wide viewport; it moves right of the drawer. The width
+   is whatever the drawer currently is -- MapSidebarDrawer's resize handle writes an inline width, so a fixed 350px
+   here would detach the legend from the drawer's edge mid-drag. main.js stamps the live value on the holder. */
 .filter-sidebar:not(.filter-sidebar--hidden) ~ .acs-legend {
-  left: calc(350px + var(--space-sm));
+  left: calc(var(--filter-sidebar-width, 350px) + var(--space-sm));
 }
 
 /* ---- Tooltip and selection popup (Mapbox popups) ---- */
@@ -462,6 +563,13 @@
 .acs-tooltip,
 .acs-tooltip .mapboxgl-popup-content {
   pointer-events: none;
+}
+
+/* "Click for details" / "Click to open in the imagery": the affordance a hover card otherwise leaves unsaid. */
+.acs-tooltip__hint {
+  margin-top: var(--space-xxs);
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-600);
 }
 
 .acs-tooltip__meta {
