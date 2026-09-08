@@ -69,7 +69,6 @@ class ValidationTaskCommentTable @Inject() (
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   val validationTaskComments = TableQuery[ValidationTaskCommentTableDef]
-  val commentHistory         = TableQuery[ValidationTaskCommentHistoryTableDef]
   val users                  = TableQuery[SidewalkUserTableDef]
 
   def insert(comment: ValidationTaskComment): DBIO[Int] = {
@@ -77,10 +76,16 @@ class ValidationTaskCommentTable @Inject() (
   }
 
   /**
-   * Copies a user's comment on a label into `validation_task_comment_history`, then removes it from the live table.
+   * Moves a user's comment on a label out of the live table and into `validation_task_comment_history`.
    *
    * The only way a comment leaves this table, so a validator's words outlive every path that stops showing them
-   * (#5076). One transaction, so no comment vanishes unrecorded and no surviving comment gains a version.
+   * (#5076).
+   *
+   * A single `DELETE ... RETURNING` feeding the insert, rather than a read-then-delete pair: the pair's two
+   * statements see different snapshots under READ COMMITTED, so a concurrent replace of the same comment could be
+   * archived twice, or deleted after a read that found nothing and so recorded nowhere. Only rows this statement
+   * itself deleted reach the history, which is the invariant the table's value rests on. It is also one round trip
+   * on the Validate submission path, which runs it once per validation in a batch.
    *
    * Scoped by user rather than by mission: a comment belongs to whoever wrote it, and the mission it was written under
    * has usually rolled over by the time the same user revisits the label from a label card (#4653). Matching on the
@@ -90,15 +95,17 @@ class ValidationTaskCommentTable @Inject() (
    * @return Count of comments archived, 0 or 1 — (label_id, user_id) is UNIQUE.
    */
   def archive(labelId: Int, userId: String, changeType: ValidationCommentChangeType.Value): DBIO[Int] = {
-    val liveComment = validationTaskComments.filter(c => c.labelId === labelId && c.userId === userId)
-    (for {
-      superseded <- liveComment.result
-      _          <- commentHistory ++= superseded.map(c =>
-        ValidationTaskCommentHistory(0, c.validationTaskCommentId, c.missionId, c.labelId, c.userId, c.ipAddress,
-          c.panoId, c.heading, c.pitch, c.zoom, c.lat, c.lng, c.timestamp, c.comment, OffsetDateTime.now, changeType)
-      )
-      deleted <- liveComment.delete
-    } yield deleted).transactionally
+    sqlu"""WITH superseded AS (
+             DELETE FROM validation_task_comment
+             WHERE label_id = $labelId AND user_id = $userId
+             RETURNING *
+           )
+           INSERT INTO validation_task_comment_history (validation_task_comment_id, mission_id, label_id, user_id,
+                                                        ip_address, pano_id, heading, pitch, zoom, lat, lng,
+                                                        timestamp, comment, change_type)
+           SELECT validation_task_comment_id, mission_id, label_id, user_id, ip_address, pano_id, heading, pitch,
+                  zoom, lat, lng, timestamp, comment, ${changeType.toString}::validation_comment_change_type
+           FROM superseded"""
   }
 
   /**

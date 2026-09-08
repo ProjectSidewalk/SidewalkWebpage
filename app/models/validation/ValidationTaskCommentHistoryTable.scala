@@ -71,11 +71,10 @@ class ValidationTaskCommentHistoryTableDef(tag: Tag)
   def heading: Rep[Double]              = column[Double]("heading")
   def pitch: Rep[Double]                = column[Double]("pitch")
   def zoom: Rep[Double]                 = column[Double]("zoom")
-  // CHECK (lat BETWEEN -90 AND 90) and CHECK (lng BETWEEN -180 AND 180) in the DB.
-  def lat: Rep[Double]               = column[Double]("lat")
-  def lng: Rep[Double]               = column[Double]("lng")
-  def timestamp: Rep[OffsetDateTime] = column[OffsetDateTime]("timestamp")
-  def comment: Rep[String]           = column[String]("comment")
+  def lat: Rep[Double]                  = column[Double]("lat")
+  def lng: Rep[Double]                  = column[Double]("lng")
+  def timestamp: Rep[OffsetDateTime]    = column[OffsetDateTime]("timestamp")
+  def comment: Rep[String]              = column[String]("comment")
   // DEFAULT now() in the DB (O.Default holds a value, not an expression).
   def supersededAt: Rep[OffsetDateTime]                  = column[OffsetDateTime]("superseded_at")
   def changeType: Rep[ValidationCommentChangeType.Value] =

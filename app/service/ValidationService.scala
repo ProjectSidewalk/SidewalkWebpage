@@ -182,11 +182,7 @@ class ValidationServiceImpl @Inject() (
    */
   def replaceComment(comment: ValidationTaskComment): Future[Int] = runWithUniqueViolationRetry {
     (for {
-      _ <- validationTaskCommentTable.archive(
-        comment.labelId,
-        comment.userId,
-        ValidationCommentChangeType.Edit
-      )
+      _         <- validationTaskCommentTable.archive(comment.labelId, comment.userId, ValidationCommentChangeType.Edit)
       commentId <- validationTaskCommentTable.insert(comment)
     } yield commentId).transactionally
   }
@@ -239,9 +235,10 @@ class ValidationServiceImpl @Inject() (
         // user's earlier free text alone — the user said nothing about it, so nothing about it changed.
         val oldCommentRemoved = if (valSubmission.undone || valSubmission.redone || valSubmission.comment.isDefined) {
           // A retracted vote taking the text with it is not a request to erase anything, so the history tells it
-          // apart from an edit (#5076).
+          // apart from an edit (#5076). An undo inserts nothing afterwards, so a comment riding along with one is
+          // retracted rather than replaced, however it got attached.
           val changeType =
-            if (valSubmission.comment.isDefined) ValidationCommentChangeType.Edit
+            if (valSubmission.comment.isDefined && !valSubmission.undone) ValidationCommentChangeType.Edit
             else ValidationCommentChangeType.ValidationChange
           validationTaskCommentTable.archive(validation.labelId, validation.userId, changeType)
         } else DBIO.successful(0)

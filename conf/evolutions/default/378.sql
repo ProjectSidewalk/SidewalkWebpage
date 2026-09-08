@@ -34,9 +34,14 @@ CREATE TABLE validation_task_comment_history (
   heading DOUBLE PRECISION NOT NULL,
   pitch DOUBLE PRECISION NOT NULL,
   zoom DOUBLE PRECISION NOT NULL,
-  lat DOUBLE PRECISION NOT NULL CHECK (lat BETWEEN -90 AND 90),
-  lng DOUBLE PRECISION NOT NULL CHECK (lng BETWEEN -180 AND 180),
-  -- When the comment was written. Paired with superseded_at it is the window the text stood for, so both are needed.
+  -- Deliberately no lat/lng CHECK, though the bounded domain would earn one on a table taking fresh input. An
+  -- archive may never be stricter than its source: validation_task_comment has no such CHECK, so a row that fails
+  -- one here is a row that can never be archived, which would leave that user's edit and delete on that label
+  -- failing forever with no way to fix it from the app.
+  lat DOUBLE PRECISION NOT NULL,
+  lng DOUBLE PRECISION NOT NULL,
+  -- When the comment was written, copied from the row. Client-supplied on the Validate path, so it is the
+  -- validator's clock, while superseded_at below is the database's -- compare the two across rows, not within one.
   timestamp TIMESTAMPTZ NOT NULL,
   comment TEXT NOT NULL,
   superseded_at TIMESTAMPTZ NOT NULL DEFAULT now(),

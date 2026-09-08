@@ -2,6 +2,7 @@ package models.utils
 
 import models.pano.PanoImageryChangeSource
 import models.street.StreetEdgeStatusChangeSource
+import models.validation.ValidationCommentChangeType
 import models.utils.MyPostgresProfile.api._
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
@@ -58,6 +59,12 @@ class EnumTypeParitySpec extends PlaySpec with GuiceOneAppPerSuite with RolledBa
       // The writers cast a Scala-supplied string to this type inside raw SQL, so a drift here fails the pano upsert
       // itself — the path every labeler's viewer takes — rather than only a read.
       labelsOf("pano_imagery_change_source") mustBe PanoImageryChangeSource.values.map(_.toString)
+    }
+
+    "match ValidationCommentChangeType exactly" in {
+      // Cast from a Scala-supplied string in raw SQL like the one above, and on a path where the cost of drift is
+      // the comment text itself: the archiving insert is what the delete of the live row hangs off (#5076).
+      labelsOf("validation_comment_change_type") mustBe ValidationCommentChangeType.values.map(_.toString)
     }
   }
 }

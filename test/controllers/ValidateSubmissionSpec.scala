@@ -614,6 +614,26 @@ class ValidateSubmissionSpec
       commentVersionsOn(labelId, b.userId) mustBe Seq(("Ramp is buried in snow.", "validation_change"))
     }
 
+    "record an undo that carries a comment as a retraction, not an edit (#5076)" in {
+      val session = freshAnonSession()
+      val b       = fetchValidateBootstrap(session)
+      val label   = b.labels.head
+      val labelId = (label \ "label_id").as[Int]
+      val _       = backupLabel(labelId)
+
+      val progress  = Some(missionProgressJson(b, 1))
+      val commented = Seq(validationJson(label, b.missionId, "Agree", comment = Some("Ramp is buried in snow.")))
+      status(postValidationTask(session, taskSubmission(b, commented, progress))) mustBe OK
+
+      // An undo inserts nothing afterwards, so a comment attached to one supersedes nothing — calling it an edit
+      // would claim a replacement that never arrives, in the very field that exists to tell the two apart.
+      val undoneWithComment =
+        Seq(validationJson(label, b.missionId, "Agree", undone = true, comment = Some("Never mind.")))
+      status(postValidationTask(session, taskSubmission(b, undoneWithComment, progress))) mustBe OK
+      commentsOn(labelId, b.userId) mustBe empty
+      commentVersionsOn(labelId, b.userId) mustBe Seq(("Ramp is buried in snow.", "validation_change"))
+    }
+
     "answer 200 to a duplicate mission-complete submission and still hand back the next mission (#4377)" in {
       val session = freshAnonSession()
       val b       = fetchValidateBootstrap(session)
