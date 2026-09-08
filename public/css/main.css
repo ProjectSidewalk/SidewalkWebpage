@@ -824,22 +824,6 @@ textarea.ps-input {
   overflow: hidden;
 }
 
-#mini-footer {
-  position: relative;
-  width: 100%;
-  min-height: 40px;
-  text-align: center;
-  color: #585c63;
-  font-size: 12px;
-  line-height: 1.6em;
-  font-family: raleway, sans-serif;
-}
-
-#mini-footer a {
-  color:#585c63;
-  text-decoration:underline;
-}
-
 #footer-container {
   position: relative;
   top: 0;
@@ -894,15 +878,6 @@ textarea.ps-input {
 #info-footer a {
   color:var(--color-neutral-white);
   text-decoration:underline;
-}
-
-/* Landing/desktop footer layout (markup in common/main.scala.html). The .filler spacer's rendered height is read
-   by labelingGuidePanelResize.js, so keep the class and its min-height. */
-.filler {
-  position: relative;
-  top: 0;
-  background-color: var(--color-neutral-white);
-  min-height: 20px;
 }
 
 /* The three columns don't fill the 900px evenly, so centering the row alone leaves the group visibly left of centre;

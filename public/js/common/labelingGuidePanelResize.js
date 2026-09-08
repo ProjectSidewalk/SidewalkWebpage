@@ -35,19 +35,18 @@ function updateSidebarForWindowSize() {
 
 /*
  * Call this function whenever the user scrolls. If the user scrolls so that the panel, remaining fixed (sidebar),
- * would go into the filler below, change the panel's position to absolute (stuck-sidebar).
+ * would go into the footer below, change the panel's position to absolute (stuck-sidebar).
  */
 function updateSidebarForScrollState() {
   if (document.readyState === 'complete') {
     const panelDistanceFromTop = 95;
     const footerHeight = document.getElementById('footer-container').offsetHeight;
     const infoFooterHeight = document.getElementById('info-footer').offsetHeight;
-    const fillerHeight = document.getElementsByClassName('filler')[0].offsetHeight;
     const panel = document.getElementById('help-panel');
     if (!$('#help-panel').hasClass('not-sidebar')) {
       const panelRect = panel.getBoundingClientRect();
-      const yOffset = document.body.clientHeight - footerHeight - infoFooterHeight - fillerHeight
-        - panelRect.height - panelDistanceFromTop;
+      const yOffset = document.body.clientHeight - footerHeight - infoFooterHeight - panelRect.height
+        - panelDistanceFromTop;
       if (window.pageYOffset > yOffset) {
         panel.style.top = `${yOffset}px`;
         $('#help-panel').addClass('stuck-sidebar').removeClass('sidebar').removeClass('not-sidebar');
