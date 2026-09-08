@@ -257,11 +257,6 @@
   color: var(--color-neutral-900);
 }
 
-.severity-segments .severity-button:has(.severity-button__radio:focus-visible) {
-  outline: 2px solid var(--color-link-100);
-  outline-offset: calc(-2px * var(--ui-scale));
-}
-
 #context-menu-description-section {
   width: 100%;
   height: auto;
