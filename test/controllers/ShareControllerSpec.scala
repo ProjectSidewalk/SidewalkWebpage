@@ -1,5 +1,6 @@
 package controllers
 
+import models.label.LabelTypeEnum.AccessImpact
 import models.label.{CropMarker, LabelMetadata, LabelTypeEnum}
 import models.story.Story
 import org.apache.pekko.stream.Materializer
@@ -184,7 +185,7 @@ class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
     }
 
     "use the issue title framing for access-issue label types" in {
-      labelWhere(_.labelType.isAccessProblem) match {
+      labelWhere(_.labelType.accessImpact == AccessImpact.Problem) match {
         case None        => cancel("No recent access-issue label in the test DB.")
         case Some(label) =>
           val body = contentAsString(route(app, FakeRequest(GET, s"/label/${label.labelId}")).get)
@@ -193,7 +194,7 @@ class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
     }
 
     "use the feature title framing for non-issue label types" in {
-      labelWhere(!_.labelType.isAccessProblem) match {
+      labelWhere(_.labelType.accessImpact != AccessImpact.Problem) match {
         case None        => cancel("No recent non-issue label in the test DB.")
         case Some(label) =>
           val body = contentAsString(route(app, FakeRequest(GET, s"/label/${label.labelId}")).get)
@@ -202,7 +203,7 @@ class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
     }
 
     "state the severity in the description for an access-issue label that has one" in {
-      labelWhere(l => l.labelType.isAccessProblem && l.severity.isDefined) match {
+      labelWhere(l => l.labelType.accessImpact == AccessImpact.Problem && l.severity.isDefined) match {
         case None        => cancel("No recent access-issue label with a severity in the test DB.")
         case Some(label) =>
           val body = contentAsString(route(app, FakeRequest(GET, s"/label/${label.labelId}")).get)

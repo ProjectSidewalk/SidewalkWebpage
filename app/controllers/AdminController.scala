@@ -711,7 +711,7 @@ class AdminController @Inject() (
           "labels_validated_share"   -> (if (sc.totalLabels > 0) sc.labelsValidated.toDouble / sc.totalLabels else 0.0),
           "labels_with_severity"     -> sc.labelsWithSeverity,
           "labels_severity_eligible" -> sc.labelsSeverityEligible,
-          // Share computed only over types that CAN have a severity (NoSidewalk/Signal/Occlusion excluded).
+          // Share computed only over types that CAN have a rating, i.e. RatingScale other than Unrated.
           "severity_share" -> (if (sc.labelsSeverityEligible > 0)
                                  sc.labelsWithSeverity.toDouble / sc.labelsSeverityEligible
                                else 0.0),
@@ -1073,7 +1073,7 @@ class AdminController @Inject() (
       .record(OsmWayRefreshActor.Name, JobRunTrigger.Manual)(osmWayService.refreshOsmWayData())(
         OsmWayRefreshActor.runDetails
       )
-      .map { waysRefreshed => Ok(Json.obj("ways_refreshed" -> waysRefreshed)) }
+      .map { result => Ok(OsmWayRefreshActor.runDetails(result)) }
       .recover { case NonFatal(e) =>
         logger.error("OSM way data refresh failed.", e)
         // Chunks upsert as they complete, so partial progress survives and a re-trigger resumes from what's missing.

@@ -280,16 +280,11 @@ class Card {
   }
 
   /**
-   * Where the label sits in the image being shown (#2660): wherever the crop says, else the canvas fraction — which is
-   * where it is on the Street View still (the Explore frame again) and on a crop nothing has recorded yet.
    * @returns {{x: number, y: number}} Fractions of the image's width and height.
    */
   #markerFraction() {
-    if (this.#status.imageSource === 'crop' && this.#cropMarker) return this.#cropMarker;
-    return {
-      x: this.#properties.original_canvas_x / util.EXPLORE_CANVAS_WIDTH,
-      y: this.#properties.original_canvas_y / util.EXPLORE_CANVAS_HEIGHT,
-    };
+    return util.misc.labelMarkerFraction(this.#status.imageSource, this.#cropMarker,
+      this.#properties.original_canvas_x, this.#properties.original_canvas_y);
   }
 
   /** Custom properties rather than offsets, so the marker's centring on the point stays in CSS beside its size. */

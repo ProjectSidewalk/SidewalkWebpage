@@ -161,6 +161,11 @@ where a person is needed and skips whatever a previous run already did:
 
 ## Optional follow-ups
 
+- **Intersections.** The AccessScore intersection table (#5095) is derived from the street graph by the nightly
+  clustering job, so a freshly onboarded city has no intersections — and no intersection scores — until that job
+  first runs (or an admin runs clustering by hand from `/clustering`). The evolution that introduced the table
+  populated it for the cities that existed then; a new city's rows come from the rebuild.
+
 - **Pano scraper**, only when the deployment is also a computer-vision dataset: once prod is up, create the city's
   directory under `sidewalk_panos/Panoramas/<city-id>` on the panorama store, seed it with a `log.csv` carrying the
   same headers as the other cities' scraper logs (no trailing newline), and add a crontab entry for the city on the

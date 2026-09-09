@@ -59,7 +59,17 @@ case class CityInfo(
     cityNameFormatted: String,
     URL: String,
     visibility: String
-)
+) {
+
+  /**
+   * Whether this deployment is publicly launched, i.e. its `city-params.status` entry is `public`.
+   *
+   * The one place the rule lives for callers holding a [[CityInfo]], so a surface that decides whether to publish a
+   * deployment's address can't drift from the others. Any unrecognized status reads as not public: the failure that
+   * matters here is disclosing an unlaunched deployment, not withholding a launched one (#5259).
+   */
+  def isPublic: Boolean = visibility == "public"
+}
 case class CommonPageData(
     cityId: String,
     environmentType: String,
@@ -84,6 +94,10 @@ case class CommonPageData(
 
   /** The deployment city's info; cityId always comes from the same config that builds allCityInfo. */
   def currentCity: CityInfo = allCityInfo.find(_.cityId == cityId).get
+
+  /** Whether search engines may index this deployment (#5120); see [[models.utils.SeoUtils.isIndexable]]. */
+  def isIndexable: Boolean =
+    SeoUtils.isIndexable(environmentType, currentCity.visibility, imagerySource.toString)
 }
 
 /**
@@ -383,8 +397,8 @@ case class CrossCityActivityWindows(byCity: Map[String, CityActivityWindow], tot
  * @param totalLabels             Non-tutorial, non-excluded labels (reconciles with the city's single-city total).
  * @param aiLabels                Subset of totalLabels authored by the AI role.
  * @param labelsWithSeverity      Subset of totalLabels that have a severity rating (a data-completeness signal).
- * @param labelsSeverityEligible  Labels whose type CAN take a severity (excludes NoSidewalk/Signal/Occlusion) — the
- *                                correct denominator for "% with severity".
+ * @param labelsSeverityEligible  Labels whose type CAN take a rating (LabelTypeEnum.ratedTypeNames) — the correct
+ *                                denominator for "% with severity".
  * @param labelsWithTags          Subset of totalLabels that have at least one tag applied.
  * @param labelsTagEligible       Labels whose type CAN take tags (types present in this deployment's tag table) — the
  *                                correct denominator for "% with tags".

@@ -157,44 +157,59 @@ class LabelContainer {
    * Renders the current label on the pano, updating the UI accordingly.
    */
   async renderCurrentLabel() {
-    this.#setUiBusy(true);
+    try {
+      this.#setUiBusy(true);
 
-    if (this.#currLabelIndex > 0) {
-      svv.undoValidation.enableUndo();
-    }
+      if (this.#currLabelIndex > 0) {
+        svv.undoValidation.enableUndo();
+      }
 
-    // Render the new pano and the label on it, updating the surrounding UI given the new label's info.
-    await this.#loadPanoForCurrentLabel();
-
-    // Dropping labels emptied the queue, so ask the backend to replace what it can and carry on.
-    while (!this.#currLabel && await this.#topUpLabelQueue()) {
+      // Render the new pano and the label on it, updating the surrounding UI given the new label's info.
       await this.#loadPanoForCurrentLabel();
+
+      // Dropping labels emptied the queue, so ask the backend to replace what it can and carry on.
+      while (!this.#currLabel && await this.#topUpLabelQueue()) {
+        await this.#loadPanoForCurrentLabel();
+      }
+
+      // Out of labels. Which modal depends on why: labels we still owe the mission mean imagery is the problem, and
+      // a reload retries them, since the labels dropped this session are only excluded for as long as it lasts.
+      if (!this.#currLabel) {
+        this.#setUiBusy(false);
+        svv.modalNoNewMission.show({ imageryUnavailable: this.#labelsOwed > 0 });
+        return;
+      }
+
+      // The card is anchored to the marker of the label we're leaving, so it can't carry over to the next one.
+      // (Undefined on the very first render, which happens while LabelContainer itself is still being constructed.)
+      svv.labelVisibilityControl?.hideLabelCard();
+      svv.labelCard.render(this.#currLabel);
+      svv.validationMenu.resetMenu(this.#currLabel);
+      if (svv.adminVersion) svv.adminInfo.updateAdminInfo(this.#currLabel);
+      svv.panoManager.renderPanoMarker(this.#currLabel);
+      // Tell the sign here rather than leave it waiting on a pano_changed: the label that just loaded may have swapped
+      // the active viewer, and the viewer the sign last heard from is then the one that stays silent (#4828). Absent
+      // on mobile, and on the first label, whose render runs inside LabelContainer.create — before SpeedLimit exists.
+      svv.speedLimit?.refresh();
+      // Every label starts visible. Without this the toggle keeps saying "Show Label" over a marker that
+      // renderPanoMarker just drew in full — you'd have to hide and re-show to get the two back in agreement.
+      svv.labelVisibilityControl?.unhideLabel();
+    } catch (error) {
+      // The only trace a render failure leaves. It used to announce itself by stranding the lock, which turned every
+      // later tap and keypress into a ValidateInputDropped_Loading — unusable for the validator, but at least loud.
+      // Releasing the lock in the finally takes that away: the caller either swallows the rejection (Form) or drops
+      // it on the floor (moveToNextLabel), so without this the tool would come back looking healthy and say nothing.
+      // Read defensively rather than as a plain `error.message`: a rejection carrying something other than an Error
+      // — a bare `Promise.reject()`, a string thrown by a viewer SDK — would make this line a TypeError of its own,
+      // losing the event and handing the caller an exception unrelated to what actually failed.
+      svv.tracker?.push('ValidateRenderFailed', { error: error?.message ?? String(error) });
+      throw error;
+    } finally {
+      // The out-of-labels path releases early on purpose, so that the modal's own disableKeyboard is what stands;
+      // the condition is what keeps this from re-enabling the keyboard behind it. Every other way out lands here,
+      // a throw included — leaving #loading set would drop every tap and keypress for the rest of the session.
+      if (this.#loading) this.#setUiBusy(false);
     }
-
-    // Out of labels. Which modal depends on why: labels we still owe the mission mean imagery is the problem, and
-    // a reload retries them, since the labels dropped this session are only excluded for as long as it lasts.
-    if (!this.#currLabel) {
-      this.#setUiBusy(false);
-      svv.modalNoNewMission.show({ imageryUnavailable: this.#labelsOwed > 0 });
-      return;
-    }
-
-    // The card is anchored to the marker of the label we're leaving, so it can't carry over to the next one.
-    // (Undefined on the very first render, which happens while LabelContainer itself is still being constructed.)
-    svv.labelVisibilityControl?.hideLabelCard();
-    svv.labelCard.render(this.#currLabel);
-    svv.validationMenu.resetMenu(this.#currLabel);
-    if (svv.adminVersion) svv.adminInfo.updateAdminInfo(this.#currLabel);
-    svv.panoManager.renderPanoMarker(this.#currLabel);
-    // Tell the sign here rather than leave it waiting on a pano_changed: the label that just loaded may have swapped
-    // the active viewer, and the viewer the sign last heard from is then the one that stays silent (#4828). Absent
-    // on mobile, and on the first label, whose render runs inside LabelContainer.create — before SpeedLimit exists.
-    svv.speedLimit?.refresh();
-    // Every label starts visible. Without this the toggle keeps saying "Show Label" over a marker that renderPanoMarker
-    // just drew in full — you'd have to hide and re-show to get the two back in agreement.
-    svv.labelVisibilityControl?.unhideLabel();
-
-    this.#setUiBusy(false);
   }
 
   /**

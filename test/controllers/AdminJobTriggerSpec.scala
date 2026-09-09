@@ -31,6 +31,7 @@ import service.{
   ClusterService,
   ClusteringResults,
   CropService,
+  OsmWayRefreshResult,
   OsmWayService,
   PanoDataService,
   StreetService
@@ -49,7 +50,7 @@ import scala.concurrent.Future
  * and read the row back.
  *
  * The work itself is stubbed. Left alone these recompute a whole city's user stats, funnels and street priorities,
- * shell out to the Python clusterer, and call out to Overpass and the imagery providers; the assertion here is about
+ * shell out to the Python clusterer, and call out to the OSM API and the imagery providers; the assertion here is about
  * the bookkeeping around the call, not the call's arithmetic, which each service's own spec covers.
  *
  * Requires a Postgres+PostGIS database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI); the
@@ -64,9 +65,10 @@ class AdminJobTriggerSpec
     with Eventually {
 
   // Distinctive values, so an assertion can tell the stub's answer from anything the connected city really holds.
-  private val UsersUpdated   = 4611
-  private val FunnelRows     = 4612
-  private val WaysRefreshed  = 4613
+  private val UsersUpdated  = 4611
+  private val FunnelRows    = 4612
+  private val WaysRefreshed =
+    OsmWayRefreshResult(waysRefreshed = 4613, waysMissing = 27, tagsRecovered = 19, tagsUnrecoverable = 2)
   private val ImageryResult  = ImageryCheckResult(stillThere = 7, gone = 2, errors = 1, reconciled = Some(3))
   private val ClusterResults = ClusteringResults(labelCount = 4614, clusterCount = 4615)
   private val CropResult     = CropRunResult(
@@ -76,7 +78,7 @@ class AdminJobTriggerSpec
   )
 
   /** Set per test: this endpoint's failure path is part of its contract, and Guice owns the stub. */
-  @volatile private var osmWayAnswer: Future[Int] = Future.successful(0)
+  @volatile private var osmWayAnswer: Future[OsmWayRefreshResult] = Future.successful(OsmWayRefreshResult.empty)
 
   /** Set per test: whether the crop service reports a run in flight, which is the trigger's refusal path. */
   @volatile private var cropRunning: Boolean = false
@@ -265,7 +267,7 @@ class AdminJobTriggerSpec
       osmWayAnswer = Future.successful(WaysRefreshed)
       val (code, body, jobRun) = trigger("/adminapi/refreshOsmWayData", OsmWayRefreshActor.Name)
       code mustBe OK
-      body must include(WaysRefreshed.toString)
+      body must include(WaysRefreshed.waysRefreshed.toString)
       jobRun.triggeredBy mustBe JobRunTrigger.Manual
       jobRun.status mustBe JobRunStatus.Succeeded
       jobRun.details.value mustBe OsmWayRefreshActor.runDetails(WaysRefreshed)

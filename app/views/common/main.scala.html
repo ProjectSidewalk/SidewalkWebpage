@@ -1,4 +1,5 @@
 @import controllers.helper.ControllerUtils
+@import models.label.LabelTypeEnum
 @import models.pano.ImageryAttribution
 @import play.api.Configuration
 @import play.api.libs.json.Json
@@ -106,6 +107,11 @@
        the live viewer name the same licence the same way. PanoramaxViewer shows an identifier it can't find here
        verbatim, so a page that never stamps this (jsdom, the error pages) degrades rather than breaks. *@
     <script>window.panoramaxLicenses = @Html(ImageryAttribution.panoramaxLicensesJson);</script>
+    @* The label-type table, in canonical order — colour, access impact, rating scale, primary flags. LabelTypeEnum
+       owns it; utilitiesSidewalk.js builds every label-type lookup from this rather than keeping a parallel set of
+       literals that can drift from the backend. Must precede the tool bundles, which read it at load time. A page
+       that never stamps it (jsdom, the error pages) leaves util.misc with an empty table. *@
+    <script>window.labelTypes = @Html(LabelTypeEnum.pageStampJson);</script>
     <script src='@assets.path("js/common/utilities.js")'></script>
     <script src='@assets.path("js/common/utilitiesMath.js")'></script>
     <script src='@assets.path("js/common/i18nDom.js")'></script>
@@ -141,7 +147,7 @@
     @if(commonData.environmentType != "prod") {
       <aside class="test-server-banner" aria-label="@Messages("test.server.warning.label")">
         <div class="test-server-banner-content">
-          <svg class="test-server-banner-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+          <span class="test-server-banner-icon" aria-hidden="true"></span>
           <p class="test-server-banner-text">
             @Html(Messages("test.server.warning.message")): <a class="test-server-banner-link" href="@commonData.prodUrl">@commonData.prodUrl</a>
           </p>

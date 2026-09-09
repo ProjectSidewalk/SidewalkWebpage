@@ -30,6 +30,53 @@ mechanism as `application.local.conf` in local dev). For example, the Silhouette
 `prod-authenticator` in the base config and is overridden in the test/local overlays, so sessions don't collide
 across environments.
 
+### Search-engine indexing
+
+The app decides whether a deployment may be indexed, from static config only. `SeoUtils.isIndexable` requires all
+three of: `environment-type = "prod"`, `city-params.status.<cityId> = "public"`, and a pano source that isn't
+Infra3D (whose imagery licence puts every page behind a sign-in, so a cookie-less crawler can reach nothing). That
+one predicate drives every indexing signal:
+
+| Signal | Where | On a non-indexable deployment |
+|---|---|---|
+| `<meta name="robots">` | `views/common/seoHead.scala.html` | `noindex, nofollow`, and no `rel=canonical` |
+| `X-Robots-Tag` header | `filters/SeoRobotsFilter` | `noindex, nofollow` on responses a `<meta>` tag can't reach — static assets, API bodies, redirects, routed 4xx |
+| `sitemap.xml` | `SeoController.hasSitemap` | 404, and no `Sitemap:` line in robots.txt |
+
+`robots.txt` is the deliberate exception: a **private prod** city still serves the permissive body (admin/auth/alias
+`Disallow` lines only), because a URL blocked by robots.txt is never fetched, so the crawler never sees the
+`noindex` and can still list the bare URL from an inbound link. Only non-prod stages get `Disallow: /`.
+
+`SearchIndexingCheck` (a `StartupChecksModule` check) logs each instance's verdict at boot, so the rollout below is
+verifiable from the deploy log rather than by curling every host:
+
+```
+INFO m.SearchIndexingCheck - Search indexing: seattle-wa is INDEXABLE (environment-type=prod, status=public,
+pano-viewer-type=gsv); 37 of 60 configured cities are public. A vhost X-Robots-Tag header can still override this.
+```
+
+It also sweeps every city's `status` and logs an error for any value that isn't `public` or `private`. Nothing there
+is fatal: an unrecognised value reads as private, which costs a launched city its search traffic silently, but
+refusing to boot over it would take the city offline instead. The public/total count is a tripwire for a bulk flip —
+the Taiwan deployments all read `${city-params.status.taipei}`, so editing one entry moves six.
+
+`SeoRobotsFilter` is prepended to `play.filters.enabled` so it is the outermost filter — Play composes that list
+outermost-first, so appending it would leave CSRF and AllowedHosts rejections uncovered.
+
+Every vhost `lab/sidewalk-tools` provisions hardcodes `Header set X-Robots-Tag "noindex, nofollow"`. Apache applies
+that *after* the backend, so it masks whatever the app says — suppressing all of production, while being the only
+thing keeping the private cities out of the index (#5120). Removing it is
+[sidewalk-tools !65](https://gitlab.cs.washington.edu/lab/sidewalk-tools/-/merge_requests/65) plus a sweep of the
+existing `/etc/httpd/conf.d/*.cs.conf` files by IT. **Ordering matters:** the app-side predicate must be deployed
+before the header is stripped from a *private* city's vhost, or that city is exposed in the gap. Public cities' vhosts
+can be swept at any time.
+
+The vhost header currently covers non-2xx responses too — measured 2026-09-09, a 404 from a private city comes back
+with `X-Robots-Tag: noindex, nofollow` — so do not plan the sweep on the assumption that the app-side header is
+strictly broader. It is broader in one direction (it follows the city's own config instead of the vhost template) and
+narrower in one: a 500 raised by an exception escaping the filter chain is recovered outside the filters and carries
+no header. Google does not index 5xx, so this costs nothing in practice, but the claim "strictly broader" is wrong.
+
 ## How code reaches each stage
 
 Deployment is driven by what you push to the [`SidewalkWebpage`](https://github.com/ProjectSidewalk/SidewalkWebpage)

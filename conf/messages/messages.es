@@ -407,6 +407,7 @@ authenticate.pw.strength.1 = Débil
 authenticate.pw.strength.2 = Aceptable
 authenticate.pw.strength.3 = Buena
 authenticate.pw.strength.4 = Fuerte
+authenticate.pw.breached = Esta contraseña ha aparecido en una filtración de datos conocida. Elige otra distinta.
 authenticate.create.account = Crear mi cuenta
 authenticate.new.detail = ¿Nuevo/a en Project Sidewalk? <a href="#" id="form-open-sign-up">Crea una cuenta</a>
 authenticate.new.detail.link = ¿Nuevo/a en Project Sidewalk? <a href="{0}">Crea una cuenta</a>

@@ -14,7 +14,7 @@
 
   <div class="page-section" id="access-score-regions-intro-section">
     <h1 class="page-heading" id="access-score-regions-api">AccessScore: Regions API <a href="#access-score-regions-api" class="permalink">#</a></h1>
-    <p>The AccessScore: Regions API returns an accessibility score in the range <code>(0,&nbsp;1)</code> for each region (neighborhood) — higher is more accessible. A region's score is the <strong>street-length-weighted mean</strong> of the AccessScores of its audited streets, so long streets count proportionally more than short ones.</p>
+    <p>The AccessScore: Regions API returns an accessibility score in the range <code>(0,&nbsp;1)</code> for each region (neighborhood) — higher is more accessible. A region's <code>score</code> is the <strong>street-length-weighted mean</strong> of the AccessScores of its audited streets, so long streets count proportionally more than short ones, and its <code>intersection_score</code> the plain mean of its scored <a href="@routes.ApiDocsController.accessScoreIntersections">intersections</a> — every crossing counts once.</p>
     <p>AccessScore extends the method introduced in <a href="https://makeabilitylab.cs.washington.edu/media/publications/Li_APilotStudyOfSidewalkEquityInSeattleUsingCrowdsourcedSidewalkAssessmentData_UrbanAccess2022.pdf">Li et&nbsp;al., <i>A Pilot Study of Sidewalk Equity in Seattle</i> (Urban Access 2022)</a>. It is <strong>experimental</strong> and the weights are subject to change. See the <a href="@routes.ApiDocsController.accessScoreStreets">AccessScore: Streets API</a> for how individual street scores are computed.</p>
   </div>
 
@@ -56,6 +56,7 @@
   <div class="page-section" id="scoring-model-section">
     <h2 class="page-heading" id="scoring-model">How the score is computed<a href="#scoring-model" class="permalink">#</a></h2>
     <p>Each of the region's audited streets is scored as described in the <a href="@routes.ApiDocsController.accessScoreStreets">AccessScore: Streets API</a>. The region's <code>score</code> is the mean of those street scores weighted by street length: <code>Σ(score × length) / Σ(length)</code>. Unaudited streets are excluded. When a region has no audited streets, its <code>score</code> is <code>null</code>.</p>
+    <p><code>intersection_score</code> is the unweighted mean of the scores of the region's intersections that have one (any street meeting them audited); grade-separated crossings are neither counted nor scored. <code>intersection_count</code> and <code>scored_intersection_count</code> say how many that is.</p>
     <p><code>coverage</code> reports the fraction of the region's streets that have been audited, so you can judge how complete a region's score is.</p>
   </div>
 
@@ -149,6 +150,9 @@
         "coverage": 1.0,
         "audited_street_count": 52,
         "total_street_count": 52,
+        "intersection_score": 0.7412,
+        "intersection_count": 31,
+        "scored_intersection_count": 31,
         "avg_cluster_counts": {
           "CurbRamp": 2.1, "NoCurbRamp": 0.3, "Obstacle": 0.4, "SurfaceProblem": 0.6,
           "Crosswalk": 0.9, "Signal": 0.1, "NoSidewalk": 0.5
@@ -173,6 +177,9 @@
           <tr><td><code>properties.coverage</code></td><td><code>number</code></td><td>Fraction of the region's streets that have been audited, in <code>[0,&nbsp;1]</code>.</td></tr>
           <tr><td><code>properties.audited_street_count</code></td><td><code>integer</code></td><td>Number of audited streets in the region.</td></tr>
           <tr><td><code>properties.total_street_count</code></td><td><code>integer</code></td><td>Total number of streets in the region.</td></tr>
+          <tr><td><code>properties.intersection_score</code></td><td><code>number</code></td><td>Plain mean of the region's scored intersections' AccessScores, in <code>(0,&nbsp;1)</code>. <code>null</code> when none is scored.</td></tr>
+          <tr><td><code>properties.intersection_count</code></td><td><code>integer</code></td><td>Number of intersections in the region, grade-separated crossings excluded.</td></tr>
+          <tr><td><code>properties.scored_intersection_count</code></td><td><code>integer</code></td><td>How many of those have a score.</td></tr>
           <tr><td><code>properties.avg_cluster_counts</code></td><td><code>object</code></td><td>Mean number of scored clusters of each label type across the region's audited streets, keyed by label-type name.</td></tr>
         </tbody>
       </table>
@@ -180,12 +187,12 @@
 
     <h4 id="response-csv">CSV Format <a href="#response-csv" class="permalink">#</a></h4>
     <p>If <code>filetype=csv</code>, the first row is the header. The per-type <code>avg_cluster_counts</code> are flattened into one <code>avg_n_*</code> column per label type, and the geometry is simplified to the region centroid.</p>
-    <pre tabindex="0"><code class="language-csv">region_id,name,score,coverage,audited_street_count,total_street_count,avg_n_curb_ramp,avg_n_no_curb_ramp,avg_n_obstacle,avg_n_surface_problem,avg_n_crosswalk,avg_n_signal,avg_n_no_sidewalk,center_point
-8,Terhune Park,0.5623,1.0,52,52,2.1,0.3,0.4,0.6,0.9,0.1,0.5,"-74.012,40.895"
+    <pre tabindex="0"><code class="language-csv">region_id,name,score,coverage,audited_street_count,total_street_count,intersection_score,intersection_count,scored_intersection_count,avg_n_curb_ramp,avg_n_no_curb_ramp,avg_n_obstacle,avg_n_surface_problem,avg_n_crosswalk,avg_n_signal,avg_n_no_sidewalk,center_point
+8,Terhune Park,0.5623,1.0,52,52,0.7412,31,31,2.1,0.3,0.4,0.6,0.9,0.1,0.5,"-74.012,40.895"
 ...</code></pre>
 
     <h4 id="response-shapefile">Shapefile Format <a href="#response-shapefile" class="permalink">#</a></h4>
-    <p>If <code>filetype=shapefile</code>, the response is a ZIP archive of Shapefile components (.shp, .shx, .dbf, .prj). Because the DBF format truncates column names at 10 characters, the per-type columns use short codes (e.g. <code>aCRamp</code>); the GeoJSON, CSV, and GeoPackage formats keep the full names.</p>
+    <p>If <code>filetype=shapefile</code>, the response is a ZIP archive of Shapefile components (.shp, .shx, .dbf, .prj). Because the DBF format truncates column names at 10 characters, the intersection columns are <code>intScore</code>, <code>intCount</code>, and <code>scIntCount</code>, and the per-type columns use short codes (e.g. <code>aCRamp</code>); the GeoJSON, CSV, and GeoPackage formats keep the full names.</p>
 
     <h4 id="response-geopackage">GeoPackage Format <a href="#response-geopackage" class="permalink">#</a></h4>
     <p>If <code>filetype=geopackage</code>, the response is a GeoPackage (.gpkg) file with full geometry and attributes (full snake_case column names).</p>
@@ -203,7 +210,7 @@
     <ul>
       <li><strong>Read <code>coverage</code> alongside <code>score</code>:</strong> a high score over low coverage reflects only the audited fraction of the region.</li>
       <li><strong>Treat the score as relative, not absolute:</strong> the weights are experimental. Use scores to compare regions, not as a calibrated index.</li>
-      <li><strong>Drill down:</strong> use the <a href="@routes.ApiDocsController.accessScoreStreets">AccessScore: Streets API</a> to see which streets drive a region's score.</li>
+      <li><strong>Drill down:</strong> use the <a href="@routes.ApiDocsController.accessScoreStreets">AccessScore: Streets API</a> and <a href="@routes.ApiDocsController.accessScoreIntersections">AccessScore: Intersections API</a> to see which streets and crossings drive a region's scores.</li>
     </ul>
   </div>
 }

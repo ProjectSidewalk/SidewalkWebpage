@@ -96,12 +96,12 @@ different places — the snapshot at its canvas fraction, the job's window where
 says (the centre, unless the window shifted off a pole) — and the files look alike, so **every crop's provenance is a
 `label_crop` row** (#2660): which writer, and the label's position as fractions of the image. Each writer records its
 row as it writes, the job's reconcile pass classifies any crop found without one (by size, then by the file's age
-against the label's, and never on a signal that disagrees with the others), and the four surfaces that draw a marker
-on a crop — the Gallery card, the landing validation grid, the popup's crop fallback, the share preview — take it
-from the row (`crop_marker` in the label payloads), falling back to the canvas fraction only while a crop is
-unrecorded or the image on screen is the Street View still. A new crop writer must write that row, and a new surface
-that marks a crop must read it. A pano too wide for the viewer's GPU is shown from a downscaled copy, and
-`/backupImage/:panoId` serves that in place of the native file without the viewer being able to tell, because it
+against the label's, and never on a signal that disagrees with the others), and the five surfaces that draw a marker
+on a crop — the Gallery card, the landing validation grid, the dashboard's mistake cards, the popup's crop fallback,
+the share preview — take it from the row (`crop_marker` in the label payloads), falling back to the canvas fraction
+only while a crop is unrecorded or the image on screen is the Street View still. A new crop writer must write that row,
+and a new surface that marks a crop must read it. A pano too wide for the viewer's GPU is shown from a downscaled copy,
+and `/backupImage/:panoId` serves that in place of the native file without the viewer being able to tell, because it
 places markers by angle. **The viewer decides when one is needed**, because only it knows the GPU: Pannellum uploads
 an equirect as two halves, so its limit is `2 x MAX_TEXTURE_SIZE` and a device advertising 8192 renders a 16384-wide
 pano — the widest GSV produces — untouched. When a device can't, it appends `?maxWidth=` and `PanoDisplayCopyService`
@@ -114,9 +114,10 @@ decoding and rescaling; the trade is pixel-dropping instead of area-averaging, t
 it runs.
 
 Imagery Project Sidewalk shows a copy of — a self-hosted pano or a crop — carries the attribution
-`ImageryAttribution` composes (Mapillary contributors are CC BY-SA 4.0), rendered by `PanoAttribution.js` in the
-label-detail pano box and in Validate's Pannellum fallback (`css/components/pano-attribution.css` is the shared look;
-each host positions the pill).
+`ImageryAttribution` composes (Mapillary contributors are CC BY-SA 4.0), rendered by `PanoAttribution.js` alongside
+the source logo `PanoViewerLogo.js` draws: in the label-detail pano box, in Validate's Pannellum fallback, and on
+every card that shows a crop — the Gallery card, the landing validation grid, and the dashboard's mistake cards
+(`css/components/pano-attribution.css` is the shared look; each host positions the pill).
 
 If either category outgrows its lane — thousands of files, multi-MB originals, a CDN or on-the-fly transforms in
 front — the move is to object storage (S3/MinIO), never the local filesystem.
@@ -127,15 +128,17 @@ DI is Guice. The app bootstraps via `app/CustomApplicationLoader.scala`; modules
 `conf/application.conf` and defined in `app/modules/` (`CustomControllerModule`, `ActorModule`, `ExecutorsModule`,
 `SilhouetteModule`, and `StartupChecksModule` — the home for boot-time checks that surface deployment-level
 misconfiguration, like `PersistentMediaDirCheck`). Custom execution contexts live in `app/executors/`; background
-actors in `app/actor/`.
+actors in `app/actor/`; HTTP filters in `app/filters/`, registered through `play.filters.enabled` in
+`conf/application.conf`.
 
 **Views** are Twirl templates (`app/views/*.scala.html`).
 
 ### Background jobs
 
 Each deployment runs a set of nightly jobs as pekko actors in `app/actor/` — the imagery expiry sweep, the
-imagery-age poll and freshness sync, street-priority recalculation, user and funnel stats, label clustering, crop
-generation, OSM way refresh, AI validations, and auth-token cleanup. The schedule lives in one place,
+imagery-age poll and freshness sync, street-priority recalculation, user and funnel stats, label clustering (which
+opens with the intersection rebuild that re-derives the `intersection` table from the street graph and attributes
+corner-feature clusters to it, #5095), crop generation, OSM way refresh, AI validations, and auth-token cleanup. The schedule lives in one place,
 `app/actor/ScheduledJobs.scala`: each actor reads its own time from there, staggered across the small hours and
 shifted per city by `ConfigService.getOffsetHours` so 50+ deployments don't contend for the same database and
 provider quotas.
@@ -330,6 +333,22 @@ Every label type (CurbRamp, NoCurbRamp, Obstacle, SurfaceProblem, Crosswalk, Sig
 canonical color and icon set. The source of truth is the **`/v3/api/labelTypes`** endpoint; in frontend code use
 `util.misc.getLabelColors(labelType)` rather than hardcoding hex values. See [`CLAUDE.md`](../CLAUDE.md) for the
 canonical color table and icon locations.
+
+Each type carries two independent domain facts, both published by that endpoint:
+
+- **access impact** (`LabelTypeEnum.AccessImpact`, `access_impact`) — `problem` (a barrier), `feature` (something
+  that helps), or `neutral` (Occlusion and Other). This drives framing and copy.
+- **rating scale** (`LabelTypeEnum.RatingScale`, `rating_scale`) — `quality` (1 is good, 3 is bad), `severity`
+  (1 is low, 3 is high), or `unrated` for a type whose labels never carry a 1–3 rating. Anything that *reads* a
+  label's severity branches on this.
+
+Neither derives from the other: Other is `neutral` but rated on the severity scale, NoSidewalk is a `problem` that
+is unrated, and Signal is a `feature` that is unrated. Source both rather than hand-writing a list of type names —
+`util.misc.isPositiveLabelType` is `rating_scale === 'quality'`, not an access-impact check.
+
+`main.scala.html` stamps this whole table onto every page as `window.labelTypes` (like `window.assetDigests`), and
+`utilitiesSidewalk.js` builds every frontend label-type list, colour and rating flag from it. A page that doesn't
+stamp it gets an empty table, so `util.misc`'s lists come back empty rather than erroring.
 
 ## Where to go next
 

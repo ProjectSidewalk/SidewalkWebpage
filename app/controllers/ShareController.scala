@@ -2,6 +2,7 @@ package controllers
 
 import controllers.base._
 import models.auth.{DefaultEnv, WithAdmin}
+import models.label.LabelTypeEnum.AccessImpact
 import models.label.{CropMarker, LabelMetadata, LabelTypeEnum}
 import models.pano.PanoSource.PanoSource
 import models.story.StoryForView
@@ -181,12 +182,12 @@ class ShareController @Inject() (
   }
 
   /**
-   * Builds the localized share title. Issue types ("I found an accessibility issue...") and non-issue types (positive
-   * features like curb ramps, or neutral types like occlusions — "Look what I found...") take opposite framings, so
-   * the copy forks on the label type's `isAccessProblem`.
+   * Builds the localized share title. Problems ("I found an accessibility issue...") and everything else (positive
+   * features like curb ramps, neutral types like occlusions — "Look what I found...") take opposite framings.
    */
   private def shareTitle(meta: LabelMetadata)(implicit messages: Messages): String = {
-    val key: String = if (meta.labelType.isAccessProblem) "share.meta.title.issue" else "share.meta.title.feature"
+    val isProblem   = meta.labelType.accessImpact == AccessImpact.Problem
+    val key: String = if (isProblem) "share.meta.title.issue" else "share.meta.title.feature"
     Messages(key, Messages(meta.labelType.nameKey))
   }
 
@@ -225,7 +226,7 @@ class ShareController @Inject() (
           Some(Messages("share.meta.description.spotted", cityName)),
           meta.panoMetadata.flatMap(_.address).map(a => Messages("share.meta.description.address", a)),
           meta.severity
-            .filter(_ => meta.labelType.isAccessProblem)
+            .filter(_ => meta.labelType.accessImpact == AccessImpact.Problem)
             .map(s => Messages("share.meta.description.severity", s)),
           Option(meta.tags)
             .filter(_.nonEmpty)
@@ -407,7 +408,7 @@ class ShareController @Inject() (
 
     // The colored "small" icon variant is the same marker family the Gallery overlays on card photos, carrying the
     // label type's canonical color (the large `{name}.png` illustrations are grayscale).
-    val iconFile: File = environment.getFile(s"public/images/icons/label_type_icons/${labelType.name}_small.png")
+    val iconFile: File = environment.getFile(s"public/${labelType.smallIconPath}")
     if (iconFile.exists()) {
       Option(ImageIO.read(iconFile)).foreach { icon =>
         val centerX: Int = (marker.x * scaledW).toInt - offX
