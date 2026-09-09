@@ -243,14 +243,16 @@ object LabelFormats {
    * Serializes a label for the user dashboard's mistake cards. Both image URLs go out because the card prefers the
    * crop (#4478) but a crop's signed URL expires, leaving `image_url` as the fallback.
    *
-   * @param label    The validated label.
-   * @param cropUrl  The label's saved crop, if one is on disk.
-   * @param imageUrl The Street View Static API image at the label's POV; None for a non-GSV pano source.
-   * @return         The card's JSON, with both image URLs nullable.
+   * @param label      The validated label.
+   * @param cropUrl    The label's saved crop, if one is on disk.
+   * @param cropMarker Where the label sits in that crop (#2660); absent for a crop no `label_crop` row describes.
+   * @param imageUrl   The Street View Static API image at the label's POV; None for a non-GSV pano source.
+   * @return           The card's JSON, with every image field nullable.
    */
   def labelMetadataUserDashToJson(
       label: LabelMetadataUserDash,
       cropUrl: Option[String],
+      cropMarker: Option[CropMarker],
       imageUrl: Option[String]
   ): JsObject = {
     Json.obj(
@@ -265,6 +267,7 @@ object LabelFormats {
       "time_validated"    -> label.timeValidated,
       "validator_comment" -> label.validatorComment,
       "crop_url"          -> cropUrl,
+      "crop_marker"       -> cropMarker,
       "image_url"         -> imageUrl
     )
   }

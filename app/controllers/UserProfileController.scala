@@ -33,6 +33,7 @@ class UserProfileController @Inject() (
     labelService: service.LabelService,
     streetService: service.StreetService,
     panoDataService: service.PanoDataService,
+    cropService: service.CropService,
     implicit val ec: ExecutionContext,
     cpuEc: CpuIntensiveExecutionContext
 ) extends CustomBaseController(cc) {
@@ -172,16 +173,19 @@ class UserProfileController @Inject() (
       authenticationService.findByUserId(userId).flatMap {
         case Some(user) =>
           val labelTypes: Set[LabelTypeEnum.Base] = LabelTypeEnum.primaryValidateLabelTypes
-          labelService.getRecentValidatedLabelsForUser(userId, labelTypes, n).map { validations =>
-            val validationJson = Json.toJson(labelTypes.map { labelType =>
-              labelType.name -> validations(labelType).map { l =>
-                val cropUrl: Option[String]     = panoDataService.cropUrl(l.labelId, l.labelType)
-                val gsvImageUrl: Option[String] =
-                  panoDataService.getImageUrl(l.panoId, l.panoSource, l.pov.heading, l.pov.pitch, l.pov.zoom)
-                labelMetadataUserDashToJson(l, cropUrl = cropUrl, imageUrl = gsvImageUrl)
-              }
-            }.toMap)
-            Ok(validationJson)
+          labelService.getRecentValidatedLabelsForUser(userId, labelTypes, n).flatMap { validations =>
+            val labelIds: Seq[Int] = labelTypes.toSeq.flatMap(validations(_).map(_.labelId))
+            cropService.cropMarkers(labelIds).map { markers =>
+              val validationJson = Json.toJson(labelTypes.map { labelType =>
+                labelType.name -> validations(labelType).map { l =>
+                  val cropUrl: Option[String]     = panoDataService.cropUrl(l.labelId, l.labelType)
+                  val gsvImageUrl: Option[String] =
+                    panoDataService.getImageUrl(l.panoId, l.panoSource, l.pov.heading, l.pov.pitch, l.pov.zoom)
+                  labelMetadataUserDashToJson(l, cropUrl, markers.get(l.labelId), gsvImageUrl)
+                }
+              }.toMap)
+              Ok(validationJson)
+            }
           }
         case _ => Future.failed(new IdentityNotFoundException("Username not found."))
       }

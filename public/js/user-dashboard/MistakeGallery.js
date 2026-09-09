@@ -97,23 +97,20 @@ class MistakeGallery {
     const card = document.createElement('figure');
     card.className = 'ud-card';
 
-    // Mark the label at its real position (canvas_x/y over the 720x480 Explore canvas), the same way the Gallery
-    // does — the label is NOT necessarily centered, and both image sources are 3:2 views of that same canvas.
     const img = document.createElement('div');
     img.className = 'ud-card-img';
-    if (m.crop_url || m.image_url) img.appendChild(MistakeGallery.#photo(m));
+    const photo = m.crop_url || m.image_url ? MistakeGallery.#photo(m) : null;
+    if (photo) img.appendChild(photo);
     if (iconPath) {
       const marker = document.createElement('img');
       marker.className = 'ud-card-label-marker';
       marker.src = iconPath;
       marker.alt = '';
-      marker.style.left = typeof m.canvas_x === 'number'
-        ? `${(100 * m.canvas_x) / util.EXPLORE_CANVAS_WIDTH}%`
-        : '50%';
-      marker.style.top = typeof m.canvas_y === 'number'
-        ? `${(100 * m.canvas_y) / util.EXPLORE_CANVAS_HEIGHT}%`
-        : '50%';
+      MistakeGallery.#positionMarker(marker, m, photo?.dataset.udSource);
       img.appendChild(marker);
+      // The crop's recorded position describes the crop only, so a fall back to the still re-places the marker.
+      photo?.addEventListener('ps:sourcechange', () =>
+        MistakeGallery.#positionMarker(marker, m, photo.dataset.udSource));
     }
     const verdict = document.createElement('span');
     verdict.className = 'ud-card-verdict';
@@ -367,11 +364,33 @@ class MistakeGallery {
      * own disk where the Static API image is billed per request. A crop's URL expires, so a failure retries the API
      * image, and a second failure leaves the wrapper's gradient. Alt is empty: the card's title names the type below
      * it. Lazy either way — the mistakes section sits well down the dashboard, and an eager crop that failed there
-     * would fetch the billed image for a card nobody scrolled to.
+     * would fetch the billed image for a card nobody scrolled to. A fall back to the still emits `ps:sourcechange`,
+     * since the marker's position depends on which source is showing.
      *
      * @param {Object} m - The label record.
      * @returns {HTMLImageElement}
      */
+  /**
+     * Places the label-type icon over whichever image the card ended up showing (#2660). A job-cut crop is a window
+     * around the label rather than a snapshot of the labeler's canvas, so only its `label_crop` row places it; the
+     * canvas fraction is right on the Street View still (the Explore frame again) and is the only answer left for a
+     * crop nothing has recorded.
+     *
+     * @param {HTMLImageElement} marker - The marker element.
+     * @param {Object} m - The label record.
+     * @param {?string} source - Which source is showing: 'crop', 'api', or undefined for the bare gradient.
+     */
+  static #positionMarker(marker, m, source) {
+    const { x, y } = source === 'crop' && m.crop_marker
+      ? m.crop_marker
+      : {
+          x: typeof m.canvas_x === 'number' ? m.canvas_x / util.EXPLORE_CANVAS_WIDTH : 0.5,
+          y: typeof m.canvas_y === 'number' ? m.canvas_y / util.EXPLORE_CANVAS_HEIGHT : 0.5,
+        };
+    marker.style.left = `${100 * x}%`;
+    marker.style.top = `${100 * y}%`;
+  }
+
   static #photo(m) {
     const photo = document.createElement('img');
     photo.className = 'ud-card-photo';
@@ -381,6 +400,7 @@ class MistakeGallery {
     photo.addEventListener('error', () => {
       if (photo.dataset.udSource === 'crop' && m.image_url) {
         photo.dataset.udSource = 'api';
+        photo.dispatchEvent(new CustomEvent('ps:sourcechange'));
         photo.src = m.image_url;
       } else {
         photo.remove();

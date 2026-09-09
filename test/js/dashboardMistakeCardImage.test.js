@@ -4,8 +4,9 @@
  * Two sources cover the same view and the order between them is the contract: the crop is ours and free to serve,
  * `image_url` is billed per request, so the crop wins -- and stays only a preference, since its URL expires.
  *
- * A crop is the WHOLE 720x480 canvas, not a cutout centered on the label, so the marker overlay must survive the
- * switch; without it a card with several features in frame stops saying which one was called a mistake.
+ * Which source is showing also decides where the marker goes (#2660). A crop the nightly job cut is a window around
+ * the label, not the labeler's canvas, so only its `label_crop` row places it; `canvas_x/y` is right on the Street
+ * View still and is the only answer left for a crop nothing recorded. A runtime fall back has to re-place it.
  *
  * MistakeGallery is a page-global `class` reaching for globals, so the source is eval'd into jsdom with its
  * collaborators (fetch, i18next, util) stubbed.
@@ -124,12 +125,39 @@ describe('the dashboard mistake card\'s image', () => {
         expect(document.querySelector('.ud-card-img')).not.toBeNull();
     });
 
-    it('keeps the marker on the label\'s canvas position over the crop, which is the whole canvas', async () => {
+    it('places the marker from the crop\'s recorded position, not the labeling canvas', async () => {
+        mistakes = [mistake({ crop_marker: { x: 0.5, y: 0.5 } })];
         await renderGallery();
 
         expect(marker().src).toContain('Obstacle_small.svg');
+        expect(marker().style.left).toBe('50%');
+        expect(marker().style.top).toBe('50%');
+    });
+
+    it('falls back to the canvas position for a crop nothing recorded', async () => {
+        await renderGallery(); // The default fixture has no crop_marker.
+
         expect(marker().style.left).toBe('25%'); // 180/720
         expect(marker().style.top).toBe('75%'); // 360/480
+    });
+
+    it('uses the canvas position on the Street View still, which is the Explore frame again', async () => {
+        mistakes = [mistake({ crop_url: null, crop_marker: { x: 0.5, y: 0.5 } })];
+        await renderGallery();
+
+        expect(marker().style.left).toBe('25%');
+        expect(marker().style.top).toBe('75%');
+    });
+
+    it('re-places the marker when an expired crop falls back to the still', async () => {
+        mistakes = [mistake({ crop_marker: { x: 0.5, y: 0.5 } })];
+        await renderGallery();
+        expect(marker().style.left).toBe('50%');
+
+        photo().dispatchEvent(new window.Event('error'));
+
+        expect(marker().style.left).toBe('25%');
+        expect(marker().style.top).toBe('75%');
     });
 
     it('centers the marker on the bare gradient when the label has neither image nor canvas position', async () => {
