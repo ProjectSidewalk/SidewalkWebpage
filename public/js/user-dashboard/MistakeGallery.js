@@ -28,9 +28,6 @@ class MistakeGallery {
     // Per-label response state shared between a card and the popup so they stay in sync in-session.
     this.responses = new Map(); // label_id -> { agrees: boolean|null, note: string }
     this.popupPanel = null; // the vote/note panel injected into the popup dialog
-    // Explore canvas dimensions (fallback if util.EXPLORE_CANVAS_* isn't loaded on this page).
-    this.canvasW = (window.util && util.EXPLORE_CANVAS_WIDTH) || 720;
-    this.canvasH = (window.util && util.EXPLORE_CANVAS_HEIGHT) || 480;
   }
 
   /** Returns (creating if needed) the mutable response state for a label. */
@@ -100,21 +97,18 @@ class MistakeGallery {
     const card = document.createElement('figure');
     card.className = 'ud-card';
 
-    // Mark the label on the pano at its real position (canvas_x/y over the 720x480 Explore canvas), the same way
-    // the Gallery does — the label is NOT necessarily centered. The image is a 3:2 crop of the pano so the
-    // percentages line up. Falls back to the icon centered on the gradient if there's no pano image.
     const img = document.createElement('div');
     img.className = 'ud-card-img';
-    if (m.image_url) img.style.backgroundImage = `url("${m.image_url}")`;
-    if (iconPath) {
-      const canvasW = (typeof util !== 'undefined' && util.EXPLORE_CANVAS_WIDTH) || 720;
-      const canvasH = (typeof util !== 'undefined' && util.EXPLORE_CANVAS_HEIGHT) || 480;
-      const marker = document.createElement('img');
+    const marker = iconPath ? document.createElement('img') : null;
+    // The crop's recorded position describes the crop only, so losing it has to re-place the marker.
+    const photo = MistakeGallery.#photo(m,
+      (source) => marker && MistakeGallery.#positionMarker(marker, m, source));
+    if (photo) img.appendChild(photo);
+    if (marker) {
       marker.className = 'ud-card-label-marker';
       marker.src = iconPath;
       marker.alt = '';
-      marker.style.left = typeof m.canvas_x === 'number' ? `${(100 * m.canvas_x) / canvasW}%` : '50%';
-      marker.style.top = typeof m.canvas_y === 'number' ? `${(100 * m.canvas_y) / canvasH}%` : '50%';
+      MistakeGallery.#positionMarker(marker, m, photo?.dataset.udSource ?? null);
       img.appendChild(marker);
     }
     const verdict = document.createElement('span');
@@ -362,6 +356,51 @@ class MistakeGallery {
       console.error('Failed to save note', e);
       sec.querySelectorAll('button, textarea, a').forEach((el) => el.removeAttribute('disabled'));
     }
+  }
+
+  /**
+     * Places the label-type icon over whichever image the card ended up showing.
+     *
+     * @param {HTMLImageElement} marker - The marker element.
+     * @param {Object} m - The label record.
+     * @param {?string} source - Which source is showing: 'crop', 'api', or null for the bare gradient.
+     */
+  static #positionMarker(marker, m, source) {
+    const { x, y } = util.misc.labelMarkerFraction(source, m.crop_marker, m.canvas_x, m.canvas_y);
+    marker.style.left = `${100 * x}%`;
+    marker.style.top = `${100 * y}%`;
+  }
+
+  /**
+     * The card's image, preferring the label's saved crop (#4478): it's what the labeler saw, and it comes off our own
+     * disk, where the Static API image is billed per request. A crop's URL expires, so a failure retries the API image,
+     * and a second failure removes the photo. Alt is empty: the card's title names the type below it.
+     *
+     * @param {Object} m - The label record.
+     * @param {function(?string): void} onSourceChange - Called with the source now on screen ('api', or null once
+     *     every source has failed), since the marker's position depends on which image is showing.
+     * @returns {?HTMLImageElement} The image, or null when the label has no source at all.
+     */
+  static #photo(m, onSourceChange) {
+    if (!m.crop_url && !m.image_url) return null;
+    const photo = document.createElement('img');
+    photo.className = 'ud-card-photo';
+    photo.alt = '';
+    photo.loading = 'lazy';
+    photo.draggable = false; // The wrapper is the popup's click target; a native image drag would swallow the press.
+    photo.addEventListener('error', () => {
+      if (photo.dataset.udSource === 'crop' && m.image_url) {
+        photo.dataset.udSource = 'api';
+        photo.src = m.image_url;
+      } else {
+        photo.remove();
+        delete photo.dataset.udSource;
+      }
+      onSourceChange(photo.dataset.udSource ?? null);
+    });
+    photo.dataset.udSource = m.crop_url ? 'crop' : 'api';
+    photo.src = m.crop_url || m.image_url;
+    return photo;
   }
 
   /**

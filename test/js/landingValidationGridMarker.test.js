@@ -13,6 +13,8 @@
 const fs = require('fs');
 const path = require('path');
 
+const { assetPathStub, installUtilitiesMisc } = require('./loadGlobalScript');
+
 const GRID_SRC = fs.readFileSync(
     path.resolve(__dirname, '..', '..', 'public/js/LandingValidationGrid.js'), 'utf8'
 );
@@ -65,14 +67,15 @@ describe('the landing validation grid\'s label marker', () => {
     beforeAll(() => {
         window.i18next = { t: (key) => key };
         window.util = {
+            assetPath: assetPathStub,
             camelToKebab: (s) => s.toLowerCase(),
             saveDataEnabled: () => false,
             onFirstInteractionOrIdle: () => {},
             lazyIdentityFetch: () => Promise.resolve({ ok: true }),
             EXPLORE_CANVAS_WIDTH: 720,
             EXPLORE_CANVAS_HEIGHT: 480,
-            misc: { getIconImagePaths: () => ({ iconImagePath: 'icon.png' }) },
         };
+        installUtilitiesMisc(); // The real util.misc, so labelMarkerFraction under test is the shipped one.
         window.logWebpageActivity = jest.fn();
         // jsdom has no layout, so it has no matchMedia; the grid asks it how many slots this width shows.
         window.matchMedia = () => ({ matches: false });
