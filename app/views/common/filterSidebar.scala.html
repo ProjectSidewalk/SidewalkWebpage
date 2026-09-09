@@ -120,7 +120,10 @@
   </li>
 }
 
-@streetItem(id: String, streetClass: String, i18nKey: String, text: String) = {
+@* A street row. `subI18nKey` hangs a caption under the row name: the three street states share one wrapping
+   ("audited"/"unaudited"), and the qualifier that separates two of them is too long for a single line in any
+   language, so it reads as a second line rather than as part of the name. *@
+@streetItem(id: String, streetClass: String, i18nKey: String, text: String, subI18nKey: String = "", subText: String = "") = {
   <li class="filter-sidebar__item">
     <input type="checkbox" id="@id" class="filter-sidebar__checkbox" data-filter-type="streets" @if(streetsShownByDefault){checked} disabled>
     <label class="filter-sidebar__item-label" for="@id">
@@ -129,7 +132,12 @@
           <path d="M 2 10 L 18 10 z"></path>
         </svg>
       </span>
-      <span class="filter-sidebar__item-name" data-i18n="@i18nKey">@text</span>
+      <span class="filter-sidebar__item-text">
+        <span class="filter-sidebar__item-name" data-i18n="@i18nKey">@text</span>
+        @if(subI18nKey.nonEmpty) {
+          <span class="filter-sidebar__item-sublabel" data-i18n="@subI18nKey">@subText</span>
+        }
+      </span>
     </label>
     @rightSlot("streets", id)
   </li>
@@ -209,7 +217,8 @@
           <ul class="filter-sidebar__list">
             @streetItem("audited-street", "audited", "labelmap:audited-street", "Audited Street")
             @if(showOutdatedStreetFilter) {
-              @streetItem("outdated-street", "outdated", "labelmap:outdated-street", "Audited, Newer Imagery Available")
+              @streetItem("outdated-street", "outdated", "labelmap:audited-street", "Audited Street",
+                "labelmap:outdated-street-note", "Newer imagery available")
             }
             @streetItem("unaudited-street", "unaudited", "labelmap:unaudited-street", "Unaudited Street")
           </ul>

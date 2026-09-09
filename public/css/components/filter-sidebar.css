@@ -347,7 +347,10 @@ body.filter-sidebar-resizing {
   color: var(--color-neutral-black);
   margin: 0;
   cursor: pointer;
-  white-space: nowrap;
+
+  /* Wraps rather than running over the count. The row is as narrow as 280px (MapSidebarDrawer's minimum) and the
+     names are translated, so no name is short enough at every width to rely on staying one line. */
+  overflow-wrap: break-word;
   line-height: normal;
   flex: 1; /* Fill the middle of the row so the whole hover area toggles the checkbox, not just the text. */
 }
@@ -363,6 +366,36 @@ body.filter-sidebar-resizing {
 /* Deselected rows read as off at a glance: hollow icon (below) plus a dimmed name. */
 .filter-sidebar__checkbox:not(:checked) + .filter-sidebar__item-label {
   color: var(--color-neutral-700);
+}
+
+/* A row whose name needs a qualifier stacks it as a caption instead of running past the count (#4384's street row
+   overruns the count in every language at the default 350px, and at any width once the panel is dragged narrower). */
+.filter-sidebar__item-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.filter-sidebar__item-sublabel {
+  font: var(--text-caption-medium);
+  color: var(--color-neutral-700);
+}
+
+/* The count pairs with the row's name, not with the two-line block, so the three street rows' counts stay on one
+   line grid. Declaring the name's line box here rather than leaning on `line-height: normal` is what lets the slot
+   match it without a magic number. The icon deliberately stays centered on the whole block: its checked-state badge
+   is positioned against the icon box, so stretching that box would drop the badge below the other rows'. */
+.filter-sidebar__item:has(.filter-sidebar__item-sublabel) {
+  --row-name-line: calc(20px * var(--ui-scale, 1));
+}
+
+.filter-sidebar__item:has(.filter-sidebar__item-sublabel) .filter-sidebar__item-text {
+  line-height: var(--row-name-line);
+}
+
+.filter-sidebar__item:has(.filter-sidebar__item-sublabel) .filter-sidebar__right-slot {
+  align-self: flex-start;
+  min-height: var(--row-name-line);
 }
 
 /* One step dimmer than a selected row's count (neutral-800). */

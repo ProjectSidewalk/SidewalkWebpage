@@ -220,8 +220,10 @@ class FilterSidebar {
     this.#root.querySelectorAll('.filter-sidebar__only').forEach((btn) => {
       // Give the visible "Only" text its row's context for screen readers (e.g. "Only: Obstacle").
       const row = btn.closest('.filter-sidebar__item-row, .filter-sidebar__item, .filter-sidebar__severity-cell');
+      // Collapsed, not just trimmed: a row with a sub-label spans two elements, so its text arrives with the
+      // markup's indentation between them.
       const rowLabel = row?.querySelector('.filter-sidebar__item-name, label, .severity-button__label')
-        ?.textContent.trim();
+        ?.textContent.replace(/\s+/g, ' ').trim();
       if (rowLabel) btn.setAttribute('aria-label', `${i18next.t(this.#i18nKeys.only)}: ${rowLabel}`);
 
       btn.addEventListener('click', () => {

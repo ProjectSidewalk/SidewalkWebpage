@@ -15,7 +15,7 @@
   "legend": "Legend",
   "streets": "Streets",
   "audited-street": "Audited Street",
-  "outdated-street": "Audited, Newer Imagery Available",
+  "outdated-street-note": "Newer imagery available",
   "unaudited-street": "Unaudited Street",
   "not-applicable-abbr": "N/A",
   "deselect-all": "Deselect all",

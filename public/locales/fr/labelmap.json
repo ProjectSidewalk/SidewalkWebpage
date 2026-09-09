@@ -15,7 +15,7 @@
   "legend": "Légende",
   "streets": "Rues",
   "audited-street": "Rue explorée",
-  "outdated-street": "Explorée, nouvelles images disponibles",
+  "outdated-street-note": "Nouvelles images disponibles",
   "unaudited-street": "Rue non explorée",
   "not-applicable-abbr": "N/A",
   "deselect-all": "Tout désélectionner",
